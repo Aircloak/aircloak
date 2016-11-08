@@ -134,24 +134,15 @@ defmodule Cloak.Aql.Compiler do
 
   defp compile_subqueries(%Query{from: nil} = query), do: query
   defp compile_subqueries(query) do
-    compiled = do_compile_subqueries(query.from, query.data_source)
-    %Query{query | from: compiled, info: query.info ++ gather_info(compiled)}
-  end
+    {info, compiled} =
+      query
+      |> Lens.get_and_map(Query.subqueries(), fn(subquery = %{ast: ast, alias: alias}) ->
+        compiled_one = compiled_subquery(query.data_source, ast, alias)
+        {compiled_one.info, %{subquery | ast: compiled_one}}
+      end)
 
-  defp do_compile_subqueries({:join, join}, data_source) do
-    {:join, %{join |
-      lhs: do_compile_subqueries(join.lhs, data_source),
-      rhs: do_compile_subqueries(join.rhs, data_source)
-    }}
+    %Query{compiled | info: Enum.concat(info)}
   end
-  defp do_compile_subqueries({:subquery, subquery}, data_source) do
-    {:subquery, %{subquery | ast: compiled_subquery(data_source, subquery.ast, subquery.alias)}}
-  end
-  defp do_compile_subqueries(identifier = {_, table}, _data_source) when is_binary(table), do: identifier
-
-  defp gather_info({:join, %{lhs: lhs, rhs: rhs}}), do: gather_info(rhs) ++ gather_info(lhs)
-  defp gather_info({:subquery, subquery}), do: subquery.ast.info
-  defp gather_info(_), do: []
 
   defp compiled_subquery(data_source, parsed_query, alias) do
     case compile(data_source, Map.put(parsed_query, :subquery?, :true)) do
@@ -218,17 +209,12 @@ defmodule Cloak.Aql.Compiler do
 
   defp compile_tables(%Query{from: nil} = query), do: query
   defp compile_tables(query) do
-    normalized = normalize_from(query.from, query.data_source)
-    %Query{query |
-      from: normalized,
-      selected_tables: selected_tables(normalized, query.data_source),
-    }
+    query = Lens.map(query, Query.from_tables(), &normalize_from(&1, query.data_source))
+    selected_tables = Lens.to_list(query, Query.from_leaves()) |> Enum.map(&selected_tables(&1, query.data_source))
+
+    %Query{query | selected_tables: selected_tables}
   end
 
-  defp normalize_from({:join, join = %{lhs: lhs, rhs: rhs}}, data_source) do
-    {:join, %{join | lhs: normalize_from(lhs, data_source), rhs: normalize_from(rhs, data_source)}}
-  end
-  defp normalize_from(already_compiled_subquery = {:subquery, _}, _data_source), do: already_compiled_subquery
   defp normalize_from(table_identifier = {_, table_name}, data_source) do
     case table(data_source, table_identifier) do
       nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
@@ -246,21 +232,18 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp selected_tables({:join, join}, data_source) do
-    selected_tables(join.lhs, data_source) ++ selected_tables(join.rhs, data_source)
-  end
   defp selected_tables({:subquery, subquery}, _data_source) do
-    [%{
+    %{
       name: subquery.alias,
       db_name: nil,
       columns: Enum.map(subquery.ast.db_columns, &{&1.alias || &1.name, &1.type}),
       user_id: Enum.find(subquery.ast.db_columns, &(&1.user_id?)).name
-    }]
+    }
   end
   defp selected_tables(table_name, data_source) when is_binary(table_name) do
     case DataSource.table(data_source, table_name) do
       nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
-      table -> [table]
+      table -> table
     end
   end
 

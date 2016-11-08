@@ -8,6 +8,8 @@ defmodule Cloak.Aql.Query do
   """
 
   alias Cloak.Aql.{Column, Function, Parser}
+  use Lens.Macros
+  alias Lens, as: L
 
   @type negatable_condition ::
       {:comparison, Column.t, :=, Column.t}
@@ -106,6 +108,24 @@ defmodule Cloak.Aql.Query do
       column_types: extract_column_types(query.columns),
       selected_types: selected_types(query.columns),
     }
+  end
+
+
+  # -------------------------------------------------------------------
+  # Lenses
+  # -------------------------------------------------------------------
+
+  deflens subqueries, do: from_leaves() |> L.satisfy(&match?({:subquery, _}, &1)) |> L.at(1)
+
+  deflens from_tables, do: from_leaves() |> L.satisfy(&(match?({:quoted, _}, &1) or match?({:unquoted, _}, &1)))
+
+  deflens from_leaves, do: L.key(:from) |> do_from_leaves()
+
+  deflens do_from_leaves do
+    L.match(fn
+      {:join, _} -> L.at(1) |> L.keys([:lhs, :rhs]) |> do_from_leaves()
+      _ -> L.root()
+    end)
   end
 
 
