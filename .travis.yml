@@ -1,9 +1,5 @@
 sudo: false
-language: elixir
-elixir:
-  - 1.3.2
-otp_release:
-  - 18.2.1
+language: c
 env:
   global:
     - MIX_HOME=$(pwd)/.mix
@@ -42,6 +38,7 @@ addons:
     - gcc-4.8
     - g++-4.8
     - unixodbc
+    - unixodbc-dev
     - odbc-postgresql
     - mongodb-org-server
   hosts:
@@ -52,10 +49,6 @@ before_install:
   - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
   - ./travis-asdf-setup.sh
   - npm i -g yarn
-install:
-  - mkdir -p $MIX_HOME
-  - mix local.hex --force
-  - mix local.rebar --force
 before_script:
   - ./travis-before-script.sh
 script:

@@ -2,16 +2,17 @@ defmodule Cloak.Aql.Column do
   @moduledoc "Represents a column in a compiled query."
 
   @type column_type :: Cloak.DataSource.data_type | nil
+  @type db_function :: String.t | {:cast, Cloak.DataSource.data_type | :varbinary}
   @type t :: %__MODULE__{
     table: :unknown | Cloak.DataSource.table,
-    name: String.t,
+    name: String.t | :constant | nil,
     alias: String.t | nil,
     type: column_type,
     user_id?: boolean,
     db_row_position: nil | non_neg_integer,
     constant?: boolean,
     value: any,
-    db_function: String.t | nil,
+    db_function: db_function | nil,
     db_function_args: [t],
     aggregate?: boolean
   }
@@ -27,7 +28,7 @@ defmodule Cloak.Aql.Column do
   end
 
   @doc "Creates a column representing a database function call."
-  @spec db_function(String.t, [t], column_type) :: t
+  @spec db_function(db_function, [t], column_type, boolean) :: t
   def db_function(db_function, db_function_args, type \\ nil, aggregate? \\ false) do
     %__MODULE__{db_function: db_function, db_function_args: db_function_args, type: type, aggregate?: aggregate?}
   end

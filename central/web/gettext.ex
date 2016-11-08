@@ -21,12 +21,4 @@ defmodule Central.Gettext do
   See the [Gettext Docs](http://hexdocs.pm/gettext) for detailed usage.
   """
   use Gettext, otp_app: :central
-
-  # Bug in current Elixir, see https://github.com/elixir-lang/gettext/issues/98
-  @dialyzer [
-    {:nowarn_function, 'MACRO-dgettext': 3},
-    {:nowarn_function, 'MACRO-dgettext': 4},
-    {:nowarn_function, 'MACRO-dngettext': 5},
-    {:nowarn_function, 'MACRO-dngettext': 6},
-  ]
 end

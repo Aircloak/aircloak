@@ -1,5 +1,10 @@
 This document serves to describe breaking changes and provide upgrade hints when major changes are introduced. When you're creating a pull with some major changes, please add brief upgrade instructions here.
 
+## Migration to Erlang 19 & Elixir 1.3.4
+
+- OS X users: manually install Erlang (see [here](./osx_erlang_with_odbc.md) for instructions)
+- Run `asdf install` in the project root folder to install new dependencies.
+
 ## Replace docker-machine with Docker for Mac
 
 - see [here](./macos_docker.md) for migration instructions

@@ -19,7 +19,7 @@ defmodule Air.PsqlServer.Protocol do
   import Air.PsqlServer.Protocol.Messages
 
   @opaque t :: %{
-    name: :atom,
+    name: atom,
     buffer: binary,
     expecting: non_neg_integer,
     actions: [action]

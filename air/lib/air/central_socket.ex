@@ -21,7 +21,7 @@ defmodule Air.CentralSocket do
   # -------------------------------------------------------------------
 
   @doc "Starts the socket client."
-  @spec start_link(%{}, GenServer.options) :: GenServer.on_start
+  @spec start_link(Map.t, GenServer.options) :: GenServer.on_start
   def start_link(air_params \\ air_params(), gen_server_opts \\ [name: __MODULE__]) do
     GenSocketClient.start_link(
       __MODULE__,
@@ -179,7 +179,7 @@ defmodule Air.CentralSocket do
   # Internal functions
   # -------------------------------------------------------------------
 
-  @spec call(GenServer.server, String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
+  @spec call(GenServer.server, String.t, Map.t, pos_integer) :: {:ok, any} | {:error, any}
   defp call(socket, event, payload, timeout \\ :timer.seconds(5)) do
     mref = Process.monitor(socket)
     send(socket, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})

@@ -65,7 +65,8 @@ defmodule Cloak.Aql.Parser do
     show: :tables | :columns,
     limit: integer,
     offset: integer,
-    distinct: boolean
+    distinct: boolean,
+    subquery?: boolean
   }
 
 

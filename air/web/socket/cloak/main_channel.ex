@@ -49,6 +49,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   # -------------------------------------------------------------------
 
   @doc false
+  @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
   def join("main", cloak_info, socket) do
     Process.flag(:trap_exit, true)
 
@@ -64,6 +65,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   @doc false
+  @dialyzer {:nowarn_function, terminate: 2} # Phoenix bug, fixed in master
   def terminate(_reason, socket) do
     cloak_id = socket.assigns.cloak_id
     Logger.info("cloak '#{cloak_id}' left air")
