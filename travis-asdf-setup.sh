@@ -36,3 +36,9 @@ install_if_missing "nodejs"
 
 echo "Installing language environments with asdf"
 asdf install
+
+# install Elixi/Erlang builders
+source $HOME/.asdf/asdf.sh
+mkdir -p $MIX_HOME
+mix local.hex --force
+mix local.rebar --force

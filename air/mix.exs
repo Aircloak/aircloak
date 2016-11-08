@@ -63,7 +63,7 @@ defmodule Air.Mixfile do
       {:gettext, "~> 0.9"},
       {:cowboy, "~> 1.0"},
       {:comeonin, "~> 2.5"},
-      {:guardian, "~> 0.10.0"},
+      {:guardian, "~> 0.13.0"},
       {:lhttpc, github: "esl/lhttpc", override: true},
       {:hackney, "~> 1.5.0"},
       {:exrm, "~> 1.0.8", warn_missing: false},
@@ -97,7 +97,7 @@ defmodule Air.Mixfile do
   defp ignored_credo_checks(_), do:
     ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
 
-  defp applications(:test), do: common_applications()
+  defp applications(:test), do: [:odbc | common_applications()]
   defp applications(:dev), do: common_applications() ++ dialyzer_required_deps()
   defp applications(:prod), do: common_applications()
 

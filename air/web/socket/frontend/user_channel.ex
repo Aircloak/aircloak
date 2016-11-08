@@ -31,6 +31,7 @@ defmodule Air.Socket.Frontend.UserChannel do
   # -------------------------------------------------------------------
 
   @doc false
+  @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
   def join("session:" <> session_id, _, socket) do
     case Ecto.UUID.cast(session_id) do
       {:ok, _} -> {:ok, socket}

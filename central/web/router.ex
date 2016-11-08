@@ -31,8 +31,9 @@ defmodule Central.Router do
     resources "/customers", CustomerController do
       get "/token", CustomerController, :token, as: :token
     end
+    resources "/stats", StatsController
 
-    get "/", UserController, :index
+    get "/", StatsController, :index
     delete "/logout", SessionController, :delete
   end
 end

@@ -33,7 +33,8 @@ defmodule Cloak.Aql.Parser do
     | {:in, String.t, [any]}
 
   @type where_clause ::
-      negatable_condition | {:not, negatable_condition}
+      negatable_condition
+    | {:not, negatable_condition}
     | {:comparison, String.t, comparator, any}
 
   @type having_clause :: {:comparison, column, comparator, any}
@@ -64,7 +65,8 @@ defmodule Cloak.Aql.Parser do
     show: :tables | :columns,
     limit: integer,
     offset: integer,
-    distinct: boolean
+    distinct: boolean,
+    subquery?: boolean
   }
 
 
@@ -577,7 +579,8 @@ defmodule Cloak.Aql.Parser do
       {qualified_identifier() |> option(keyword(:not)) |> keyword(:in), in_values()},
       {qualified_identifier() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
       {qualified_identifier() |> keyword(:between), allowed_where_range()},
-      {qualified_identifier(), pair_both(comparator(), allowed_where_value())},
+      {qualified_identifier() |> inequality_comparator(), any_constant()},
+      {qualified_identifier() |> equality_comparator(), allowed_where_value()},
       {:else, error_message(fail(""), "Invalid where expression.")}
     ])
     |> map(fn
@@ -589,10 +592,10 @@ defmodule Cloak.Aql.Parser do
           {[identifier, :not, :in], [in_values]} -> {:not, {:in, identifier, in_values}}
           {[identifier, :is, nil], [:null]} -> {:is, identifier, :null}
           {[identifier, :is, :not], [:null]} -> {:not, {:is, identifier, :null}}
-          {[identifier], [{:<>, value}]} -> {:not, {:comparison, identifier, :=, value}}
-          {[identifier], [{comparator, value}]} -> {:comparison, identifier, comparator, value}
           {[identifier, :between], [{min, max}]} ->
             [{:comparison, identifier, :>=, min}, {:comparison, identifier, :<=, max}]
+          {[identifier, :<>], [value]} -> {:not, {:comparison, identifier, :=, value}}
+          {[identifier, comparator], [value]} -> {:comparison, identifier, comparator, value}
         end)
   end
 
@@ -628,7 +631,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp any_constant() do
-    constant_of([:string, :integer, :float, :boolean])
+    constant_of([:string, :integer, :float, :boolean]) |> label("constant")
   end
 
   defp constant_of(expected_types) do
@@ -689,11 +692,14 @@ defmodule Cloak.Aql.Parser do
     |> label("identifier")
   end
 
-  defp comparator(parser \\ noop()) do
-    parser
-    |> keyword_of([:=, :<, :<=, :>=, :>, :<>])
-    |> label("comparator")
-  end
+  defp comparator(parser \\ noop()), do:
+    parser |> either(equality_comparator(), inequality_comparator()) |> label("comparator")
+
+  defp equality_comparator(parser \\ noop()), do:
+    parser |> keyword_of([:=, :<>]) |> label("equality comparator")
+
+  defp inequality_comparator(parser \\ noop()), do:
+    parser |> keyword_of([:<, :<=, :>, :>=]) |> label("inequality comparator")
 
   defp keyword_of(parser, types) do
     parser

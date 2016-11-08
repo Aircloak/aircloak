@@ -122,7 +122,7 @@ defmodule Cloak.Query.Runner do
   end
 
   defp execute_sql_query(%Query{command: :show, show: :tables} = query) do
-    query = %Query{query | columns: [%Column{table: :unknown, constant?: true, name: "name", type: :string}]}
+    query = %Query{query | columns: [%Column{table: :unknown, constant?: true, name: "name", type: :text}]}
     buckets = for {id, _table} <- query.data_source.tables, do: %{occurrences: 1, row: [id]}
     successful_result(
       %Result{columns: ["name"], buckets: buckets, features: Query.extract_features(query)},
@@ -133,7 +133,7 @@ defmodule Cloak.Query.Runner do
     columns = ["name", "type"]
     query = %Query{query | columns: Enum.map(
       columns,
-      &%Column{table: :unknown, constant?: true, name: &1, type: :string}
+      &%Column{table: :unknown, constant?: true, name: &1, type: :text}
     )}
     [table] = query.selected_tables
     buckets = for {name, type} <- table.columns, do: %{occurrences: 1, row: [name, type]}

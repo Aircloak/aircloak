@@ -83,7 +83,7 @@ defmodule Cloak.Query.DatetimeTest do
     :ok = insert_rows(_user_ids = 0..9, "datetimes", ["time_only"], [~T[01:00:00]])
     :ok = insert_rows(_user_ids = 10..19, "datetimes", ["time_only"], [~T[10:00:00]])
 
-    assert_query "select count(*) from datetimes where time_only > '05:00:00'",
+    assert_query "select count(*) from datetimes where time_only > '09:00:00' and time_only < '11:00:00'",
       %{query_id: "1", columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
   end
 

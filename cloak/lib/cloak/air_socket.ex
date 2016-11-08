@@ -20,7 +20,7 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
 
   @doc "Starts the socket client."
-  @spec start_link(%{}, GenServer.options) :: GenServer.on_start
+  @spec start_link(Map.t, GenServer.options) :: GenServer.on_start
   def start_link(cloak_params \\ cloak_params(), gen_server_opts \\ [name: __MODULE__]) do
     GenSocketClient.start_link(
       __MODULE__,
@@ -42,7 +42,7 @@ defmodule Cloak.AirSocket do
   The function returns when the Air responds. If the timeout occurs, it is
   still possible that the Air has received the request.
   """
-  @spec send_query_result(GenServer.server, %{}) :: :ok | {:error, any}
+  @spec send_query_result(GenServer.server, Map.t) :: :ok | {:error, any}
   def send_query_result(socket \\ __MODULE__, result) do
     Logger.info("sending result for query #{result.query_id} to Air")
     case call(socket, "query_result", result, :timer.seconds(5)) do
@@ -227,7 +227,7 @@ defmodule Cloak.AirSocket do
     send(client_pid, {mref, response})
   end
 
-  @spec call(GenServer.server, String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
+  @spec call(GenServer.server, String.t, Map.t, pos_integer) :: {:ok, any} | {:error, any}
   defp call(socket, event, payload, timeout) do
     mref = Process.monitor(socket)
     send(socket, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})

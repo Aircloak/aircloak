@@ -16,33 +16,56 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
 
 <pre style="float:left; background-color:inherit; color:inherit; text-shadow:inherit; padding-top: inherit;">
   SELECT [DISTINCT]
-    column_expression [, ...]
+    field_expression [, ...]
     FROM from_expression [, ...]
     [ WHERE where_expression [AND ...] ]
     [ GROUP BY column_name [, ...] ]
     [ HAVING having_expression [AND ...] ]
     [ ORDER BY column_name [ASC | DESC] [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
 
+  field_expression :=
+    column_expression [AS alias]
+
   column_expression :=
     column_name |
-    aggregation_function([DISTINCT] column_name)
+    aggregation_function([DISTINCT] column_name) |
+    function(column_expression) |
+    column_expression binary_operator column_expression
+
+  binary_operator :=
+    + | - | * | / | ^ | %
 
   from_expression :=
-    table_name |
-    table1 CROSS JOIN table2 |
-    table1 { [INNER] | { LEFT | RIGHT | FULL } [OUTER] } JOIN table2 ON where_expression
+    table | join
+
+  table :=
+    table_name | (select_expression) [AS] alias
+
+  join :=
+    table CROSS JOIN table |
+    table { [INNER] | { LEFT | RIGHT | FULL } [OUTER] } JOIN table ON where_expression
 
   aggregation_function :=
     COUNT | SUM | AVG | MIN | MAX | STDDEV | MEDIAN
 
   where_expression :=
-    column_name comparison_operator value |
+    column_name equality_operator (value | column_name) |
+    column_name inequality_operator value |
     column_name IS [NOT] NULL |
     column_name IN (constant [, ...])
     column_name [NOT] LIKE | ILIKE string_pattern
 
   having_expression :=
       column_expression comparison_operator (value | column_expression)
+
+  comparison_operator :=
+      equality_operator | inequality_operator
+
+  quality_operator :=
+      = | <>
+
+  inequality_operator :=
+      > | >= | < | <=
 </pre>
 
 __Notes__:
@@ -54,6 +77,7 @@ __Notes__:
 - You can restrict the range of returned rows by a query using the `LIMIT` and/or `OFFSET` clauses, but you need to
  provide the ORDER BY clause to ensure a stable order for the rows.
 - Using the `HAVING` clause requires the `GROUP BY` clause to be specified and conditions must not refer to non-aggregated fields.
+- Binary operators are only supported if the `math` feature is enabled in the cloak configuration.
 
 ## JOIN restrictions
 
@@ -75,6 +99,15 @@ Note:
 
 - `OUTER` is automatically implied when you use `LEFT`, `RIGHT` or `FULL` joins. Writing `LEFT OUTER JOIN` is therefore equivalent to writing `LEFT JOIN`
 - `INNER` is automatically implied when you use `JOIN` without any other qualifiers. Writing `t1 JOIN t2` is therefore the same as writing `t1 INNER JOIN t2`
+
+## Subquery restrictions
+
+A subquery expression must always select the user-id column. For example, assuming table `t1` with the user-id column called `uid`:
+
+- __Valid__: `SELECT name FROM (SELECT uid, name FROM t1) sq`
+- __Invalid__: `SELECT name FROM (SELECT name FROM t1) sq`
+
+Operators `<>`, `IN`, and `NOT` (except `IS NOT NULL`) can't be used in subquery `WHERE` expressions.
 
 
 ## Understanding query results
@@ -120,6 +153,27 @@ After low-count values are filtered, some amount of noise is introduced. Conside
 
 The results of aggregate functions, such as `SUM` and `COUNT`, are also anonymized. The returned values will slightly differ from the real values.
 
+## Optional features
+
+Some features of the platform can be enabled/disabled by setting flags in the
+data source configuration located at `[cloak_config_directory]/config.json`.
+These might affect the ease of use, but also the level of anonymization provided.
+Currently the only such feature is `math`, which enables/disables mathematical
+operators and some mathematical functions in queries.
+
+```js
+// All features are disabled by default. To enable:
+
+{
+  ...
+  "features": {
+    "math": true
+  },
+  ...
+}
+
+```
+
 ## Date functions
 
 The functions `year`, `month`, `day`, `hour`, `minute`, `second`, and `weekday` are supported. They extract
@@ -132,6 +186,8 @@ SELECT EXTRACT(year FROM date_column) FROM table;
 ```
 
 ## Mathematical operators
+
+[Requires `math`](#optional-features)
 
 The operators `+`, `-`, `/`, and `*` have their usual meaning of addition, subtraction, division, and
 multiplication respectively. The operator `^` denotes exponentiation. The operator `%` denotes the division
@@ -152,6 +208,8 @@ remainder.
 ## Mathematical functions
 
 ### abs
+
+[Requires `math`](#optional-features)
 
 Computes the absolute value of the given number.
 
@@ -183,6 +241,8 @@ BUCKET(180 BY 50 ALIGN MIDDLE)
 
 ### ceil / ceiling
 
+[Requires `math`](#optional-features)
+
 Computes the smallest integer that is greater than or equal to its argument.
 
 ```sql
@@ -191,6 +251,8 @@ CEIL(3.22)
 ```
 
 ### div
+
+[Requires `math`](#optional-features)
 
 Performs integer division on its arguments.
 
@@ -204,6 +266,8 @@ DIV(10, 3)
 
 ### floor
 
+[Requires `math`](#optional-features)
+
 Computes the largest integer that is less than or equal to its argument.
 
 ```sql
@@ -213,6 +277,8 @@ FLOOR(3.22)
 
 ### mod
 
+[Requires `math`](#optional-features)
+
 `MOD(a, b)` computes the remainder from `DIV(a, b)`.
 
 ```sql
@@ -221,6 +287,8 @@ MOD(10, 3)
 ```
 
 ### pow
+
+[Requires `math`](#optional-features)
 
 `POW(a, b)` computes `a` to the `b`-th power.
 
@@ -233,6 +301,8 @@ POW(2, 3.5)
 ```
 
 ### round
+
+[Requires `math`](#optional-features)
 
 Rounds the given floating-point value to the nearest integer. An optional second argument signifies the precision.
 
@@ -257,6 +327,8 @@ SQRT(2)
 ```
 
 ### trunc
+
+[Requires `math`](#optional-features)
 
 Rounds the given floating-point value towards zero. An optional second argument signifies the precision.
 

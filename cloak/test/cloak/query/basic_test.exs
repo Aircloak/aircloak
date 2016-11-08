@@ -732,4 +732,11 @@ defmodule Cloak.Query.BasicTest do
     assert_query "select count(*), bucket(height by 10) as foo from heights group by foo",
       %{columns: ["count", "foo"], rows: [%{row: [10, 170.0]}, %{row: [10, 190.0]}]}
   end
+
+  test "counting distinct uids" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", [], [])
+
+    assert_query "select count(distinct user_id) from heights",
+      %{columns: ["count"], rows: [%{row: [10]}]}
+  end
 end

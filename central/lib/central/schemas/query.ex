@@ -10,14 +10,15 @@ defmodule Central.Schemas.Query do
   schema "queries" do
     field :metrics, :map
     field :features, :map
+    field :aux, :map
 
     belongs_to :customer, Central.Schemas.Customer
 
     timestamps
   end
 
-  @required_fields ~w(metrics features)a
-  @optional_fields ~w()a
+  @required_fields ~w()a
+  @optional_fields ~w(metrics features aux)a
 
 
   # -------------------------------------------------------------------
