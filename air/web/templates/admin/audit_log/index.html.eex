@@ -1,13 +1,30 @@
-<div id="audit-log-view" />
+<h2>Audit log</h2>
 
-<script>
-  window.pageConfig = {
-    onLoad: function(App) {
-      var props = {
-        entries: <%= {:safe, @audit_logs} %>,
-      };
+<table class="table">
+  <thead>
+    <tr>
+      <th>Event</th>
+      <th>User</th>
+      <th>Time</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <%= for audit_log <- @audit_logs do %>
+      <tr>
+        <td><%= audit_log.event %></td>
+        <td><%= audit_log.user %></td>
+        <td><%= time_ago(audit_log) %></td>
+        <td>
+          <ul>
+            <%= for {name, value} <- humanize_names(audit_log.metadata) do %>
+              <li><strong><%= name %></strong>: <%= value %></li>
+            <% end %>
+          </ul>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
 
-      App.auditLog(props, document.getElementById("audit-log-view"));
-    }
-  };
-</script>
+<%= pagination_links @audit_logs %>

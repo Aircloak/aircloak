@@ -36,7 +36,7 @@ defmodule Air.Service.AuditLog do
     AuditLog
     |> date_range(params.from, params.to)
     |> order_by_event()
-    |> Repo.all()
+    |> Repo.paginate(page: params.page)
   end
 
   #-----------------------------------------------------------------------------------------------------------
