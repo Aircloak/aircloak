@@ -19,6 +19,11 @@ defmodule Cloak.Aql.Compiler.Test do
       <> "of type `datetime` cannot be compared."
   end
 
+  test "rejects mistyped like conditions" do
+    {:error, error} = compile("select * from table where numeric like 'something'", data_source())
+    assert error == "Column `numeric` from table `table` of type `integer` cannot be used in a LIKE expression."
+  end
+
   test "casts datetime where conditions" do
     result = compile!("select * from table where column > '2015-01-01' and column < '2016-01-01'", data_source())
 

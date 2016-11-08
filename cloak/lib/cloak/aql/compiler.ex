@@ -1048,8 +1048,14 @@ defmodule Cloak.Aql.Compiler do
 
   defp verify_where_clause({:comparison, column_a, _, column_b}) do
     if not Column.constant?(column_a) and not Column.constant?(column_b) and column_a.type != column_b.type do
-      raise CompilationError, message: "#{column_a |> Column.display_name() |> String.capitalize} of type "
+      raise CompilationError, message: "#{column_a |> Column.display_name() |> String.capitalize()} of type "
         <> "`#{column_a.type}` and #{Column.display_name(column_b)} of type `#{column_b.type}` cannot be compared."
+    end
+  end
+  defp verify_where_clause({:like, column, _}) do
+    if column.type != :text do
+      raise CompilationError, message: "#{column |> Column.display_name() |> String.capitalize()} of type "
+        <> "`#{column.type}` cannot be used in a LIKE expression."
     end
   end
   defp verify_where_clause({:not, clause}), do: verify_where_clause(clause)
