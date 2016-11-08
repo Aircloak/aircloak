@@ -11,16 +11,24 @@ defmodule Air.Socket.Frontend.UserChannelTest do
 
   setup do
     user = create_user!()
+    session = Ecto.UUID.generate()
     {:ok, _, _} =
       socket("user", %{user: user})
-      |> subscribe_and_join(UserChannel, "user:" <> to_string(user.id))
+      |> subscribe_and_join(UserChannel, "session:" <> session)
 
-    {:ok, user: user}
+    {:ok, socket: socket, user: user, session: session}
   end
 
-  test "results of queries are pushed to the user", %{user: user} do
-    query = create_query!(user)
+  test "allows joining session with any UUID", %{socket: socket} do
+    assert {:ok, _, _} = subscribe_and_join(socket, UserChannel, "session:#{Ecto.UUID.generate()}")
+  end
 
+  test "does not allow joining sessions that are not valid UUIDs", %{socket: socket} do
+    assert {:error, _} = subscribe_and_join(socket, UserChannel, "session:some_id")
+  end
+
+  test "results of queries are pushed to the given session", %{user: user, session: session_id} do
+    query = create_query!(user, %{session_id: session_id})
     UserChannel.broadcast_result(query)
 
     expected = Air.Query.for_display(query)
@@ -28,8 +36,8 @@ defmodule Air.Socket.Frontend.UserChannelTest do
     assert_push("result", ^expected)
   end
 
-  test "results of other user's queries are not pushed to the user" do
-    query = create_query!(_other_user = create_user!())
+  test "results of queries are not pushed to other sessions", %{user: user} do
+    query = create_query!(user, %{session_id: Ecto.UUID.generate()})
     result = Air.Query.for_display(query)
 
     UserChannel.broadcast_result(query)

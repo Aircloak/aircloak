@@ -17,6 +17,7 @@ import type {History} from "./history_loader";
 
 type Props = {
   userId: number,
+  sessionId: string,
   guardianToken: string,
   dataSourceId: number,
   dataSourceAvailable: boolean,
@@ -126,6 +127,7 @@ class QueriesView extends React.Component {
       query: {
         statement: this.state.statement,
         data_source_id: this.props.dataSourceId,
+        session_id: this.props.sessionId,
       },
     });
   }
@@ -276,6 +278,6 @@ class QueriesView extends React.Component {
 }
 
 export default function renderQueriesView(data: Props, elem: Node) {
-  const socket = new ResultSocket(data.userId, data.guardianToken);
+  const socket = new ResultSocket(data.sessionId, data.guardianToken);
   ReactDOM.render(<QueriesView resultSocket={socket} {...data} />, elem);
 }

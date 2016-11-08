@@ -6,20 +6,20 @@ type Callback = () => void;
 type Callbacks = {joined?: Callback, failedJoin?: Callback, result?: Callback};
 
 export class ResultSocket {
-  constructor(userId: number, userToken: string) {
-    this.userId = userId;
+  constructor(sessionId: string, userToken: string) {
+    this.sessionId = sessionId;
     this.socket = new Socket("/frontend/socket", {params: {token: userToken}});
     this.socket.connect();
 
     this.start = this.start.bind(this);
   }
 
-  userId: number;
+  sessionId: string;
   socket: Socket;
   start: (callbacks: Callbacks) => void;
 
   start(callbacks: Callbacks) {
-    const channel = this.socket.channel(`user:${this.userId}`, {});
+    const channel = this.socket.channel(`session:${this.sessionId}`, {});
     const noop = () => {};
     const {
       joined = noop,

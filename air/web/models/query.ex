@@ -15,6 +15,7 @@ defmodule Air.Query do
     field :execution_time, :integer
     field :users_count, :integer
     field :features, :map
+    field :session_id, Ecto.UUID
 
     belongs_to :user, User
     belongs_to :data_source, DataSource
@@ -23,7 +24,7 @@ defmodule Air.Query do
   end
 
   @required_fields ~w()a
-  @optional_fields ~w(statement data_source_id tables result execution_time users_count features)a
+  @optional_fields ~w(statement data_source_id tables result execution_time users_count features session_id)a
 
 
   # -------------------------------------------------------------------
@@ -58,7 +59,7 @@ defmodule Air.Query do
   @spec for_display(t) :: Map.t
   def for_display(query) do
     query
-    |> Map.take([:id, :data_source_id, :statement])
+    |> Map.take([:id, :data_source_id, :statement, :session_id])
     |> Map.merge(result_map(query))
   end
 
