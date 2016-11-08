@@ -31,12 +31,25 @@ defmodule Air.Service.AuditLog do
 
   Returned entries are descending sorted by the creation date.
   """
-  @spec between(Ecto.DateTime.t, Ecto.DateTime.t) :: [Air.AuditLog.t]
-  def between(from, to) do
-    Repo.all(
-      from a in AuditLog,
-      where: a.inserted_at >= ^from and a.inserted_at <= ^to,
-      order_by: [desc: :inserted_at]
-    )
+  @spec for(Map.t) :: [Air.AuditLog.t]
+  def for(params) do
+    AuditLog
+    |> date_range(params.from, params.to)
+    |> order_by_event()
+    |> Repo.all()
+  end
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Internal functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  defp order_by_event(query) do
+    from a in query,
+    order_by: [desc: :inserted_at]
+  end
+
+  defp date_range(query, from, to) do
+    from a in query,
+    where: a.inserted_at >= ^from and a.inserted_at <= ^to
   end
 end

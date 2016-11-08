@@ -38,7 +38,11 @@ defmodule Air.Admin.AuditLogController do
   # -------------------------------------------------------------------
 
   defp load_entries_json(from, to) do
-    Air.Service.AuditLog.between(from, to)
+    %{
+      from: from,
+      to: to,
+    }
+    |> Air.Service.AuditLog.for()
     |> Enum.map(&audit_log_data/1)
     |> Poison.encode!()
   end
