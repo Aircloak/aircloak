@@ -2,6 +2,7 @@ defmodule Air.PsqlServer.RanchServerTest do
   use ExUnit.Case, async: true
 
   alias Air.PsqlServer.RanchServer
+  alias Air.PsqlTestDriver.Client
   use Air.PsqlTestDriver
 
   @port 20_000
@@ -12,44 +13,46 @@ defmodule Air.PsqlServer.RanchServerTest do
   end
 
   test "rejecting a login" do
-    client = start_client(@port, "some_user", "some_pass")
+    {:ok, _} = Client.start_link(@port, "some_user", "some_pass")
     handle_server_event {:login, _password}, _conn, do: :error
-    assert {:error, error} = Task.await(client)
+    assert_receive {:not_connected, error}
     assert to_string(error) =~ ~r/Authentication failed/
   end
 
   test "logging in" do
-    client = start_client(@port, "some_user", "some_pass")
+    {:ok, _} = Client.start_link(@port, "some_user", "some_pass")
     handle_server_event {:login, password}, conn do
       assert Map.fetch!(conn.login_params, "user") == "some_user"
       assert password == "some_pass"
       {:ok, conn}
     end
-
-    assert :ok == Task.await(client)
+    assert_receive :connected
   end
 
   test "successful query" do
-    client = start_client(@port, "some_user", "some_pass", "select foo from bar")
+    {:ok, client} = Client.start_link(@port, "some_user", "some_pass")
     handle_server_event {:login, _password}, conn, do: {:ok, conn}
 
+    Client.simple_query(client, "select foo from bar")
     handle_server_event {:run_query, query}, conn do
       assert query == "select foo from bar"
       RanchServer.set_query_result(conn, %{columns: [%{name: "foo", type: :integer}], rows: [[1], [2]]})
     end
 
-    assert {:selected, columns, rows} =  Task.await(client)
+    assert_receive {:selected, columns, rows}
     assert columns == ['foo']
     assert rows == [{'1'}, {'2'}]
   end
 
   test "query error" do
-    client = start_client(@port, "some_user", "some_pass", "select foo from bar")
+    {:ok, client} = Client.start_link(@port, "some_user", "some_pass")
     handle_server_event {:login, _password}, conn, do: {:ok, conn}
+
+    Client.simple_query(client, "select foo from bar")
     handle_server_event {:run_query, _query}, conn, do:
       RanchServer.set_query_result(conn, %{error: "some error"})
 
-    assert {:error, error} =  Task.await(client)
+    assert_receive {:error, error}
     assert to_string(error) =~ ~r/some error/
   end
 end
