@@ -74,6 +74,17 @@ defmodule Air.Service.DataSourceTest do
   test "fetching last query for the unavailable data source", context, do:
     assert {:error, :unauthorized} == DataSource.last_query({:id, context.ds2.id}, context.user3)
 
+  test "returns a list of data sources given their ids" do
+    ds1 = TestRepoHelper.create_data_source!()
+    ds2 = TestRepoHelper.create_data_source!()
+    expected = [ds1, ds2]
+      |> Enum.map(&(&1.id))
+      |> Enum.sort()
+    assert DataSource.by_ids([ds1.id, ds2.id])
+      |> Enum.map(&(&1.id))
+      |> Enum.sort() == expected
+  end
+
   defp create_query(user, data_source), do:
     TestRepoHelper.create_query!(user, %{statement: "query content", data_source_id: data_source.id})
 end
