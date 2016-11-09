@@ -26,6 +26,11 @@
             </td>
           </tr>
         <% end %>
+        <%= if @audit_logs.total_entries == 0 do %>
+          <tr>
+            <td colspan="4">There are no audit log entries for the current set of filters.</td>
+          </tr>
+        <% end %>
       </tbody>
     </table>
 
