@@ -11,7 +11,7 @@ defmodule Air.Query do
   schema "queries" do
     field :statement, :string
     field :tables, {:array, :string}
-    field :result, :string
+    field :result, :map
     field :execution_time, :integer
     field :users_count, :integer
     field :features, :map
@@ -149,8 +149,5 @@ defmodule Air.Query do
   # -------------------------------------------------------------------
 
   defp result_map(%{result: nil}), do: %{rows: [], columns: [], completed: false}
-  defp result_map(%{result: result_json}) do
-    Poison.decode!(result_json)
-    |> Map.put(:completed, true)
-  end
+  defp result_map(%{result: result_json}), do: Map.put(result_json, :completed, true)
 end
