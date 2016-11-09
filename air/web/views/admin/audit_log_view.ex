@@ -20,9 +20,7 @@ defmodule Air.Admin.AuditLogView do
     Enum.any?(query_params[to_string(name)] || [], &(&1 == to_string(param)))
   end
 
-  def toggle_item(%Plug.Conn{query_params: query_params}, name, param), do:
-    toggle_item(query_params, name, param)
-  def toggle_item(query_params, name, param) do
+  def toggle_item(%Plug.Conn{query_params: query_params}, name, param) do
     normalized_name = to_string(name)
     normalized_param = to_string(param)
     values_for_name = query_params[normalized_name] || []
