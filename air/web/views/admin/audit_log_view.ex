@@ -17,10 +17,7 @@ defmodule Air.Admin.AuditLogView do
   def is_selected(%Plug.Conn{query_params: query_params}, name, param), do:
     is_selected(query_params, name, param)
   def is_selected(query_params, name, param) do
-    normalized_name = to_string(name)
-    normalized_param = to_string(param)
-    values_for_name = query_params[normalized_name] || []
-    Enum.find(values_for_name, & &1 == normalized_param) != nil
+    Enum.any?(query_params[to_string(name)] || [], &(&1 == to_string(param)))
   end
 
   def toggle_item(%Plug.Conn{query_params: query_params}, name, param), do:
