@@ -54,7 +54,7 @@ defmodule Air.Admin.DataSourceController do
     changeset = DataSource.changeset(user, params["data_source"])
     case Repo.update(changeset) do
       {:ok, data_source} ->
-        audit_log(conn, "Altered data_source", name: data_source.name)
+        audit_log(conn, "Altered data source", name: data_source.name, data_source: data_source.id)
         conn
         |> put_flash(:info, "Data source updated")
         |> redirect(to: admin_data_source_path(conn, :index))
@@ -83,7 +83,8 @@ defmodule Air.Admin.DataSourceController do
   def delete(conn, _params) do
     data_source = conn.assigns.data_source
     Repo.delete!(data_source)
-    audit_log(conn, "Removed data source", name: data_source.name, global_id: data_source.global_id)
+    audit_log(conn, "Removed data source", name: data_source.name,
+      global_id: data_source.global_id, data_source: data_source.id)
     conn
     |> put_flash(:info, "Data source deleted")
     |> redirect(to: admin_data_source_path(conn, :index))
