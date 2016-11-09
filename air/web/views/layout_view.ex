@@ -1,6 +1,8 @@
 defmodule Air.LayoutView do
   @moduledoc false
   use Air.Web, :view
+  # bug in the current Phoenix
+  @dialyzer :no_match
 
   defp help_links(conn) do
     case Air.Plug.HelpPages.help_pages(conn) do
