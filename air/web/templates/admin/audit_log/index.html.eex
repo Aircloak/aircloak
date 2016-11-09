@@ -59,23 +59,25 @@
       </table>
     </div>
 
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        Filter by event type
+    <%= if length(@event_types) > 0 do %>
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          Filter by event type
+        </div>
+        <table class="table">
+          <tbody>
+            <%= for event <- @event_types do %>
+              <tr class="<%= if is_selected(@conn, :events, event), do: "warning", else: "" %>">
+                <td>
+                  <%= link [{:safe, glyph(is_selected(@conn, :events, event))}, event],
+                    to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :events, event)) %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
       </div>
-      <table class="table">
-        <tbody>
-          <%= for event <- @event_types do %>
-            <tr class="<%= if is_selected(@conn, :events, event), do: "warning", else: "" %>">
-              <td>
-                <%= link [{:safe, glyph(is_selected(@conn, :events, event))}, event],
-                  to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :events, event)) %>
-              </td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
-    </div>
+    <% end %>
 
     <%= if length(@data_sources) > 0 do %>
       <div class="panel panel-default">
