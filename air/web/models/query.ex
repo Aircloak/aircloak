@@ -126,12 +126,12 @@ defmodule Air.Query do
       inserted_at: q.inserted_at,
       data_source: ds.name,
       statement: q.statement,
-      error: fragment("?::json->>'error'", q.result)
+      error: fragment("?->>'error'", q.result)
     },
     where:
       not is_nil(q.statement) and q.statement != "" and
       q.inserted_at > fragment("(CURRENT_DATE - INTERVAL '7 day')::date") and
-      fragment("?::json->>'error' <> ''", q.result),
+      fragment("?->>'error' <> ''", q.result),
     order_by: [desc: q.inserted_at]
   end
 
