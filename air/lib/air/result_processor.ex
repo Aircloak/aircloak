@@ -54,14 +54,14 @@ defmodule Air.ResultProcessor do
 
     row_count = (result["rows"] || []) |> Enum.map(&(&1["occurrences"])) |> Enum.sum
 
-    storable_result = Poison.encode!(%{
+    storable_result = %{
       columns: result["columns"],
       types: result["features"]["selected_types"],
       rows: result["rows"],
       error: result["error"],
       info: result["info"],
       row_count: row_count,
-    })
+    }
 
     query
     |> Query.changeset(%{
