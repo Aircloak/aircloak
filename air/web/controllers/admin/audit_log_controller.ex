@@ -2,6 +2,8 @@ defmodule Air.Admin.AuditLogController do
   @moduledoc false
   use Air.Web, :admin_controller
 
+  alias Air.Service.AuditLog
+
 
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback
@@ -26,11 +28,11 @@ defmodule Air.Admin.AuditLogController do
       data_sources: params["data_sources"] || [],
     }
     render(conn, "index.html",
-      audit_logs: Air.Service.AuditLog.for(service_params),
+      audit_logs: AuditLog.for(service_params),
       full_width: true,
-      users: Air.Service.User.all(),
+      users: AuditLog.users(service_params),
       event_types: event_types(service_params),
-      data_sources: Air.Service.AuditLog.data_sources(service_params),
+      data_sources: AuditLog.data_sources(service_params),
     )
   end
 

@@ -72,6 +72,32 @@ defmodule Air.Service.AuditLogTest do
     assert AuditLog.event_types(%{users: [user3.email]}) == []
   end
 
+  test "users for audit logs is not dependent on user filtering" do
+    user1 = create_user!()
+    user2 = create_user!()
+
+    AuditLog.log(user1, "event1", %{meta: true})
+    AuditLog.log(user2, "event2", %{meta: true})
+
+    emails = [user1, user2]
+      |> Enum.sort_by(&(&1.name))
+      |> Enum.map(&(&1.email))
+    assert AuditLog.users(%{users: [user1.email]})
+      |> Enum.map(&(&1.email)) == emails
+  end
+
+  test "lists all users for audit logs" do
+    user1 = create_user!()
+    user2 = create_user!()
+    data_source = create_data_source!()
+
+    AuditLog.log(user1, "event1", %{meta: true})
+    AuditLog.log(user2, "event2", %{meta: true, data_source: data_source.id})
+
+    assert AuditLog.users(%{events: ["event1"]})
+      |> Enum.map(&(&1.email)) == [user1.email]
+  end
+
   test "lists all data sources when no filters" do
     data_source1 = create_data_source!()
     data_source2 = create_data_source!()

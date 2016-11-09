@@ -1,7 +1,7 @@
 defmodule Air.Service.AuditLog do
   @moduledoc "Services for using the audit log."
 
-  alias Air.{Repo, AuditLog, DataSource}
+  alias Air.{Repo, AuditLog, DataSource, User}
   import Ecto.Query, only: [from: 2]
   require Logger
 
@@ -68,6 +68,18 @@ defmodule Air.Service.AuditLog do
     |> Repo.all()
   end
 
+  @doc """
+  Returns user structs (names and emails) of users who have audit log
+  events for a given filter group.
+  """
+  @spec users(Map.t) :: [Map.t]
+  def users(params \\ %{}) do
+    AuditLog
+    |> for_event(Map.get(params, :events, []))
+    |> for_data_sources(Map.get(params, :data_sources, []))
+    |> select_users()
+    |> Repo.all()
+  end
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
@@ -121,5 +133,20 @@ defmodule Air.Service.AuditLog do
       id: d.id,
       name: d.name,
     }
+  end
+
+  defp select_users(query) do
+    user_query = from user in User,
+      select: %{
+        name: user.name,
+        email: user.email,
+      }
+
+    from a in query,
+    inner_join: user in subquery(user_query),
+    on: a.user == user.email,
+    group_by: [user.name, user.email],
+    order_by: [asc: user.name],
+    select: user
   end
 end
