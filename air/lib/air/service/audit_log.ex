@@ -1,7 +1,7 @@
 defmodule Air.Service.AuditLog do
   @moduledoc "Services for using the audit log."
 
-  alias Air.{Repo, AuditLog}
+  alias Air.{Repo, AuditLog, DataSource}
   import Ecto.Query, only: [from: 2]
   require Logger
 
@@ -36,6 +36,7 @@ defmodule Air.Service.AuditLog do
     AuditLog
     |> for_user(Map.get(params, :users, []))
     |> for_event(Map.get(params, :events, []))
+    |> for_data_sources(Map.get(params, :data_sources, []))
     |> order_by_event()
     |> Repo.paginate(page: Map.get(params, :page, 1))
   end
@@ -44,11 +45,26 @@ defmodule Air.Service.AuditLog do
   Returns a list of distinct event types given a set of users.
   If no users are given, all event types across all users are returned.
   """
-  @spec event_types([String.t]) :: [String.t]
-  def event_types(users \\ []) do
+  @spec event_types(Map.t) :: [String.t]
+  def event_types(params \\ %{}) do
     AuditLog
-    |> for_user(users)
+    |> for_user(Map.get(params, :users, []))
+    |> for_data_sources(Map.get(params, :data_sources, []))
     |> select_event_types()
+    |> Repo.all()
+  end
+
+  @doc """
+  Returns a list of the distinct data sources having been queried.
+  Returns an empty list if none of the audit log entries currently
+  being filtered for are query execution events.
+  """
+  @spec data_sources(Map.t) :: [Map.t]
+  def data_sources(params \\ %{}) do
+    AuditLog
+    |> for_user(Map.get(params, :users, []))
+    |> for_event(Map.get(params, :events, []))
+    |> select_data_sources()
     |> Repo.all()
   end
 
@@ -74,10 +90,36 @@ defmodule Air.Service.AuditLog do
     where: a.event in ^events
   end
 
+  defp for_data_sources(query, []), do: query
+  defp for_data_sources(query, data_sources) do
+    data_sources = data_sources |> Enum.map(&to_string/1)
+    from a in query,
+    where: fragment("?->>'data_source'", a.metadata) in ^data_sources
+  end
+
   defp select_event_types(query) do
     from a in query,
     group_by: a.event,
     order_by: [asc: :event],
     select: a.event
+  end
+
+  defp select_data_sources(query) do
+    data_source_query = from data_source in DataSource,
+      select: %{
+        id: data_source.id,
+        name: data_source.name,
+      }
+
+    from a in query,
+    where: fragment("?->>'data_source' <> ''", a.metadata),
+    right_join: d in subquery(data_source_query),
+    on: d.id == fragment("cast(?->>'data_source' as integer)", a.metadata),
+    group_by: [d.id, d.name],
+    order_by: [asc: d.name],
+    select: %{
+      id: d.id,
+      name: d.name,
+    }
   end
 end

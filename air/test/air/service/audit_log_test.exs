@@ -29,6 +29,16 @@ defmodule Air.Service.AuditLogTest do
     assert entries_count(%{users: [user1.email, user2.email]}, 2)
   end
 
+  test "filter audit logs by data source" do
+    user = create_user!()
+    data_source = create_data_source!()
+
+    AuditLog.log(user, "event", %{data_source: data_source.id})
+
+    assert entries_count(%{data_sources: [data_source.id]}, 1)
+    assert entries_count(%{data_sources: [data_source.id + 1]}, 0)
+  end
+
   test "filter audit logs by event type" do
     user = create_user!()
 
@@ -56,10 +66,39 @@ defmodule Air.Service.AuditLogTest do
     user3 = create_user!()
     AuditLog.log(user1, "event1", %{meta: true})
     AuditLog.log(user2, "event2", %{meta: true})
-    assert AuditLog.event_types([user1.email]) == ["event1"]
-    assert AuditLog.event_types([user2.email]) == ["event2"]
-    assert AuditLog.event_types([user1.email, user2.email]) == ["event1", "event2"]
-    assert AuditLog.event_types([user3.email]) == []
+    assert AuditLog.event_types(%{users: [user1.email]}) == ["event1"]
+    assert AuditLog.event_types(%{users: [user2.email]}) == ["event2"]
+    assert AuditLog.event_types(%{users: [user1.email, user2.email]}) == ["event1", "event2"]
+    assert AuditLog.event_types(%{users: [user3.email]}) == []
+  end
+
+  test "lists all data sources when no filters" do
+    data_source1 = create_data_source!()
+    data_source2 = create_data_source!()
+
+    user = create_user!()
+    AuditLog.log(user, "event", %{data_source: data_source1.id})
+    AuditLog.log(user, "event", %{data_source: data_source2.id})
+
+    names = [data_source1.name, data_source2.name] |> Enum.sort()
+    assert AuditLog.data_sources() |> Enum.map(&(&1.name)) == names
+  end
+
+  test "data source list filters with other filters" do
+    data_source1 = create_data_source!()
+    data_source2 = create_data_source!()
+    user1 = create_user!()
+    user2 = create_user!()
+
+    AuditLog.log(user1, "event1", %{data_source: data_source1.id})
+    AuditLog.log(user1, "event2", %{data_source: data_source2.id})
+
+    names = [data_source1.name, data_source2.name] |> Enum.sort()
+    assert AuditLog.data_sources(%{users: [user1.email]})
+     |> Enum.map(&(&1.name)) == names
+    assert AuditLog.data_sources(%{users: [user2.email]}) == []
+    assert AuditLog.data_sources(%{users: [user1.email], events: ["event1"]})
+     |> Enum.map(&(&1.name)) == [data_source1.name]
   end
 
   defp entries_count(params, count) do
