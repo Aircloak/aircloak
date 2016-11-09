@@ -16,7 +16,7 @@ defmodule Air.Service.AuditLog do
     email = if user != nil, do: user.email, else: "Unknown user"
 
     %AuditLog{}
-    |> AuditLog.changeset(%{user: email, event: event, metadata: Poison.encode!(metadata)})
+    |> AuditLog.changeset(%{user: email, event: event, metadata: metadata})
     |> Repo.insert()
     |> case do
           {:ok, _} -> :ok
@@ -31,12 +31,53 @@ defmodule Air.Service.AuditLog do
 
   Returned entries are descending sorted by the creation date.
   """
-  @spec between(Ecto.DateTime.t, Ecto.DateTime.t) :: [Air.AuditLog.t]
-  def between(from, to) do
-    Repo.all(
-      from a in AuditLog,
-      where: a.inserted_at >= ^from and a.inserted_at <= ^to,
-      order_by: [desc: :inserted_at]
-    )
+  @spec for(Map.t) :: Scrivener.Page.t
+  def for(params \\ %{}) do
+    AuditLog
+    |> for_user(Map.get(params, :users, []))
+    |> for_event(Map.get(params, :events, []))
+    |> order_by_event()
+    |> Repo.paginate(page: Map.get(params, :page, 1))
+  end
+
+  @doc """
+  Returns a list of distinct event types given a set of users.
+  If no users are given, all event types across all users are returned.
+  """
+  @spec event_types([String.t]) :: [String.t]
+  def event_types(users \\ []) do
+    AuditLog
+    |> for_user(users)
+    |> select_event_types()
+    |> Repo.all()
+  end
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Internal functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  defp order_by_event(query) do
+    from a in query,
+    order_by: [desc: :inserted_at]
+  end
+
+  defp for_user(query, []), do: query
+  defp for_user(query, users) do
+    from a in query,
+    where: a.user in ^users
+  end
+
+  defp for_event(query, []), do: query
+  defp for_event(query, events) do
+    from a in query,
+    where: a.event in ^events
+  end
+
+  defp select_event_types(query) do
+    from a in query,
+    group_by: a.event,
+    order_by: [asc: :event],
+    select: a.event
   end
 end

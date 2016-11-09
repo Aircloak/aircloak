@@ -64,7 +64,6 @@ defmodule Air.Router do
     resources "/data_sources", DataSourceController
     resources "/accounting", AccountingController, singleton: true
 
-    get "/audit_log/load_entries", AuditLogController, :load_entries
     get "/audit_log", AuditLogController, :index
 
     resources "/cloaks", CloaksController

@@ -37,6 +37,9 @@ config :guardian, Guardian,
   verify_issuer: true,
   serializer: Air.GuardianSerializer
 
+config :scrivener_html,
+  routes_helper: Air.Router.Helpers
+
 config :air, Air.Repo,
   adapter: Ecto.Adapters.Postgres,
   pool_size: 10,
