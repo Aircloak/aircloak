@@ -1,7 +1,7 @@
 defmodule Cloak.Aql.Comparison do
   @moduledoc "Contains utility functions for working with representations of comparisons."
 
-  alias Cloak.Aql.{Query, Column, Function}
+  alias Cloak.Aql.{Query, Column, Function, Parser}
 
   @inequalities [:<, :>, :<=, :>=]
 
@@ -23,13 +23,13 @@ defmodule Cloak.Aql.Comparison do
   def value({:ilike, _lhs, rhs}), do: rhs.value
 
   @doc "Returns the term the given comparison acts on."
-  @spec column(Query.where_clause) :: String.t
-  def column({:comparison, lhs, _, _rhs}), do: lhs.name
-  def column({:not, comparison}), do: column(comparison)
-  def column({:is, lhs, :null}), do: lhs.name
-  def column({:in, lhs, _rhs}), do: lhs.name
-  def column({:like, lhs, _rhs}), do: lhs.name
-  def column({:ilike, lhs, _rhs}), do: lhs.name
+  @spec subject(Query.where_clause | Parser.where_clause) :: Column.t | Parser.column
+  def subject({:comparison, lhs, _, _rhs}), do: lhs
+  def subject({:not, comparison}), do: subject(comparison)
+  def subject({:is, lhs, :null}), do: lhs
+  def subject({:in, lhs, _rhs}), do: lhs
+  def subject({:like, lhs, _rhs}), do: lhs
+  def subject({:ilike, lhs, _rhs}), do: lhs
 
   @doc "Returns a representation of the direction of the given inequality as `:<` or `:>`."
   @spec direction(Query.where_clause) :: direction
