@@ -3,4 +3,6 @@ defmodule Air.Admin.QueryView do
   use Air.Web, :view
   # bug in the current Phoenix
   @dialyzer :no_match
+
+  import Scrivener.HTML
 end
