@@ -91,14 +91,14 @@ defmodule Air.PsqlTestDriver do
         )
     |> call({:login, password})
 
-  def run_query(conn, query) do
+  def run_query(conn, query, params, max_rows) do
     downcased_query = String.downcase(query)
     if match?("set " <> _, downcased_query) or
        downcased_query == "select oid, typbasetype from pg_type where typname = 'lo'" do
       # A few queries always sent by the ODBC driver. We're ignoring them here for now.
       RanchServer.set_query_result(conn, %{columns: [], rows: []})
     else
-      call(conn, {:run_query, query})
+      call(conn, {:run_query, query, params, max_rows})
     end
   end
 

@@ -45,7 +45,7 @@ defmodule Air.PsqlServer.RanchServer do
   @callback login(t, String.t) :: {:ok, t} | :error
 
   @doc "Invoked to run the query."
-  @callback run_query(t, String.t) :: t
+  @callback run_query(t, String.t, [any], pos_integer) :: t
 
   @doc "Invoked to describe the statement result."
   @callback describe_statement(t, String.t, [any]) :: t
@@ -223,8 +223,8 @@ defmodule Air.PsqlServer.RanchServer do
         update_protocol(conn, &Protocol.authenticated(&1, false))
     end
   end
-  defp handle_protocol_action({:run_query, query}, conn), do:
-    handle_behaviour_actions(conn.behaviour_mod.run_query(conn, query))
+  defp handle_protocol_action({:run_query, query, params, max_rows}, conn), do:
+    handle_behaviour_actions(conn.behaviour_mod.run_query(conn, query, params, max_rows))
   defp handle_protocol_action({:describe_statement, query, params}, conn), do:
     handle_behaviour_actions(conn.behaviour_mod.describe_statement(conn, query, params))
 

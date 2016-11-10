@@ -55,7 +55,7 @@ defmodule Air.PsqlServer do
   end
 
   @doc false
-  def run_query(conn, query) do
+  def run_query(conn, query, _params, _max_rows) do
     RanchServer.assign(
       conn,
       :query_runner,

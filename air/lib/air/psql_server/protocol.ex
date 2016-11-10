@@ -30,7 +30,8 @@ defmodule Air.PsqlServer.Protocol do
     {:send, iodata()} |
     {:close, reason :: any} |
     {:login_params, map} |
-    {:authenticate, password :: binary}
+    {:authenticate, password :: binary} |
+    {:run_query, String.t, [any], non_neg_integer}
 
   @type authentication_method :: :cleartext
 
@@ -236,7 +237,7 @@ defmodule Air.PsqlServer.Protocol do
     close(state, :normal)
   defp handle_event(state(:ready), {:message, %{type: :query} = message}), do:
     state
-    |> add_action({:run_query, null_terminated_to_string(message.payload)})
+    |> add_action({:run_query, null_terminated_to_string(message.payload), [], 0})
     |> next_state(:running_query)
   defp handle_event(state(:ready), {:message, %{type: :parse} = message}) do
     prepared_statement = decode_parse_message(message.payload)
@@ -265,6 +266,14 @@ defmodule Air.PsqlServer.Protocol do
     |> add_action({:describe_statement, prepared_statement.query, prepared_statement.params})
     |> next_state(:describing_statement)
   end
+  defp handle_event(state(:ready), {:message, %{type: :execute} = message}) do
+    execute_data = decode_execute_message(message.payload)
+    prepared_statement = Map.fetch!(state.prepared_statements, execute_data.statement_name)
+
+    state
+    |> add_action({:run_query, prepared_statement.query, prepared_statement.params, execute_data.max_rows})
+    |> next_state(:running_prepared_statement)
+  end
   # :running_query -> awaiting query result
   defp handle_event(state(:running_query), {:select_result, result}), do:
     state
@@ -276,6 +285,23 @@ defmodule Air.PsqlServer.Protocol do
     state
     |> request_send(row_description(columns))
     |> transition_after_message(:ready)
+  # :running_prepared_statement -> awaiting result of an executed prepared statement
+  defp handle_event(state(:running_prepared_statement), {:select_result, result}), do:
+    state
+    |> send_rows(result.rows)
+    |> request_send(command_complete("SELECT #{length(result.rows)}"))
+    |> request_send(ready_for_query())
+    |> transition_after_message(:syncing)
+
+  # :syncing -> ignoring all message until sync arrives
+  defp handle_event(state(:syncing), {:message, %{type: :sync}}), do:
+    transition_after_message(state, :ready)
+  defp handle_event(state(:syncing), {:message, _}), do:
+    transition_after_message(state, :syncing)
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Internal functions
+  #-----------------------------------------------------------------------------------------------------------
 
   defp send_result(state, %{rows: rows, columns: columns}), do:
     state
@@ -284,11 +310,6 @@ defmodule Air.PsqlServer.Protocol do
     |> request_send(command_complete("SELECT #{length(rows)}"))
   defp send_result(state, %{error: error}), do:
     request_send(state, error_message("ERROR", "42P01", error))
-
-
-  #-----------------------------------------------------------------------------------------------------------
-  # Internal functions
-  #-----------------------------------------------------------------------------------------------------------
 
   defp send_rows(state, rows), do:
     Enum.reduce(rows, state, &request_send(&2, data_row(&1)))

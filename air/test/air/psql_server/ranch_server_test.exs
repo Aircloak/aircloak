@@ -34,8 +34,10 @@ defmodule Air.PsqlServer.RanchServerTest do
     handle_server_event {:login, _password}, conn, do: {:ok, conn}
 
     Client.simple_query(client, "select foo from bar")
-    handle_server_event {:run_query, query}, conn do
+    handle_server_event {:run_query, query, params, max_rows}, conn do
       assert query == "select foo from bar"
+      assert params == []
+      assert max_rows == 0
       RanchServer.set_query_result(conn, %{columns: [%{name: "foo", type: :int8}], rows: [[1], [2]]})
     end
 
@@ -49,7 +51,7 @@ defmodule Air.PsqlServer.RanchServerTest do
     handle_server_event {:login, _password}, conn, do: {:ok, conn}
 
     Client.simple_query(client, "select foo from bar")
-    handle_server_event {:run_query, _query}, conn, do:
+    handle_server_event {:run_query, _query, _params, _max_rows}, conn, do:
       RanchServer.set_query_result(conn, %{error: "some error"})
 
     assert_receive {:error, error}
@@ -66,5 +68,14 @@ defmodule Air.PsqlServer.RanchServerTest do
       assert params == [1]
       RanchServer.set_describe_result(conn, [%{name: "col1", type: :int8}])
     end
+
+    handle_server_event {:run_query, query, params, max_rows}, conn do
+      assert query == "select $1"
+      assert params == [1]
+      assert max_rows == 0
+      RanchServer.set_query_result(conn, %{columns: [], rows: [[1]]})
+    end
+
+    assert_receive {:selected, ['col1'], [{'1'}]}
   end
 end

@@ -47,6 +47,11 @@ defmodule Air.PsqlServer.Protocol.Messages do
     %{type: type, name: name}
   end
 
+  def decode_execute_message(execute_data) do
+    [name, <<max_rows::32>>] = :binary.split(execute_data, <<0>>)
+    %{statement_name: name, max_rows: max_rows}
+  end
+
   def query_message(query), do: frontend_message(:query, null_terminate(query))
 
   def password_message(password), do: frontend_message(:password, null_terminate(password))
@@ -57,9 +62,11 @@ defmodule Air.PsqlServer.Protocol.Messages do
       %{
         bind: ?B,
         describe: ?D,
+        execute: ?E,
         parse: ?P,
         password: ?p,
         query: ?Q,
+        sync: ?S,
         terminate: ?X
       } do
     defp frontend_message_name(unquote(message_byte)), do: unquote(message_name)
