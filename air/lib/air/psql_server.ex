@@ -64,6 +64,10 @@ defmodule Air.PsqlServer do
   end
 
   @doc false
+  def describe_statement(_conn, _query, _params), do:
+    raise "Prepared statements are not supported!"
+
+  @doc false
   def handle_message(%{assigns: %{query_runner: %Task{ref: ref}}} = conn, {ref, query_result}), do:
     RanchServer.set_query_result(conn, parse_response(query_result))
   def handle_message(conn, _message), do:
