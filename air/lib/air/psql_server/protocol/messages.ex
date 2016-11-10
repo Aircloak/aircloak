@@ -27,6 +27,21 @@ defmodule Air.PsqlServer.Protocol.Messages do
     |> Enum.into(%{})
   end
 
+  def decode_parse_message(parse_message_data) do
+    [statement_name, parse_message_data] = :binary.split(parse_message_data, <<0>>)
+    [query, parse_message_data] = :binary.split(parse_message_data, <<0>>)
+    <<num_params::16, parse_message_data::binary>> = parse_message_data
+    param_types = for <<oid::32 <- parse_message_data>>, do: type_name(oid)
+
+    %{
+      statement_name: statement_name,
+      query: query,
+      num_params: num_params,
+      param_types: param_types,
+      params: []
+    }
+  end
+
   def query_message(query), do: frontend_message(:query, null_terminate(query))
 
   def password_message(password), do: frontend_message(:password, null_terminate(password))
@@ -35,6 +50,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   for {message_name, message_byte} <-
       %{
+        parse: ?P,
         password: ?p,
         query: ?Q,
         terminate: ?X
@@ -42,6 +58,9 @@ defmodule Air.PsqlServer.Protocol.Messages do
     defp frontend_message_name(unquote(message_byte)), do: unquote(message_name)
     defp frontend_message_byte(unquote(message_name)), do: unquote(message_byte)
   end
+
+  # we're not using all patterns in this function, so dialyzer complains
+  @dialyzer {:nowarn_function, frontend_message_byte: 1}
 
   defp frontend_message(message_name, payload), do:
     <<frontend_message_byte(message_name)::8, message_with_size(payload)::binary>>
@@ -77,9 +96,11 @@ defmodule Air.PsqlServer.Protocol.Messages do
       0
     >>)
 
-  def require_ssl(), do: <<?S>>
-
   def ready_for_query(), do: backend_message(:ready_for_query, <<?I>>)
+
+  def parse_complete(), do: backend_message(:parse_complete, <<>>)
+
+  def require_ssl(), do: <<?S>>
 
   def row_description(columns) do
     columns_descriptions =
@@ -111,6 +132,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
         data_row: ?D,
         error_response: ?E,
         parameter_status: ?S,
+        parse_complete: ?B,
         ready_for_query: ?Z,
         row_description: ?T,
       } do

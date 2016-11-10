@@ -22,7 +22,8 @@ defmodule Air.PsqlServer.Protocol do
     name: atom,
     buffer: binary,
     expecting: non_neg_integer,
-    actions: [action]
+    actions: [action],
+    prepared_statements: %{String.t => prepared_statement}
   }
 
   @type action ::
@@ -40,6 +41,19 @@ defmodule Air.PsqlServer.Protocol do
     rows: [any]
   }
 
+  @type prepared_statement :: %{
+    statement_name: String.t,
+    query: String.t,
+    num_params: non_neg_integer,
+    param_types: [psql_type],
+    params: [any]
+  }
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # API
+  #-----------------------------------------------------------------------------------------------------------
+
   @doc "Creates the initial protocol state."
   @spec new() :: t
   def new() do
@@ -47,14 +61,10 @@ defmodule Air.PsqlServer.Protocol do
       name: :initial,
       buffer: "",
       expecting: 8,
-      actions: []
+      actions: [],
+      prepared_statements: %{}
     }
   end
-
-
-  #-----------------------------------------------------------------------------------------------------------
-  # API
-  #-----------------------------------------------------------------------------------------------------------
 
   @doc """
   Returns the list of actions which the driver must perform.
@@ -220,6 +230,14 @@ defmodule Air.PsqlServer.Protocol do
     state
     |> add_action({:run_query, null_terminated_to_string(message.payload)})
     |> next_state(:running_query)
+  defp handle_event(state(:ready), {:message, %{type: :parse} = message}) do
+    prepared_statement = decode_parse_message(message.payload)
+
+    state
+    |> put_in([:prepared_statements, prepared_statement.statement_name], prepared_statement)
+    |> request_send(parse_complete())
+    |> transition_after_message(:ready)
+  end
   # :running_query -> awaiting query result
   defp handle_event(state(:running_query), {:select_result, result}), do:
     state
