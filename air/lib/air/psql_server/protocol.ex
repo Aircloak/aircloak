@@ -36,10 +36,9 @@ defmodule Air.PsqlServer.Protocol do
 
   @type psql_type :: :int4 | :int8 | :text | :unknown
 
-  @type query_result :: %{
-    columns: [%{name: String.t, type: psql_type}],
-    rows: [any]
-  }
+  @type column :: %{name: String.t, type: psql_type}
+
+  @type query_result :: %{columns: [column], rows: [any]}
 
   @type prepared_statement :: %{
     statement_name: String.t,
@@ -108,6 +107,11 @@ defmodule Air.PsqlServer.Protocol do
   def select_result(state, result), do:
     handle_event(state, {:select_result, result})
 
+  @doc "Should be invoked by the driver when the describe result is available."
+  @spec describe_result(t, [column]) :: t
+  def describe_result(state, columns), do:
+    handle_event(state, {:describe_result, columns})
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
@@ -136,7 +140,9 @@ defmodule Air.PsqlServer.Protocol do
     |> next_state(:closed)
 
   defp transition_after_message(state, next_state), do:
-    next_state(state, {:message_header, next_state}, 5)
+    state
+    |> next_state({:message_header, next_state}, 5)
+    |> process_buffer()
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -166,7 +172,9 @@ defmodule Air.PsqlServer.Protocol do
   defp handle_event(state({:message_header, next_state_name}), {:message, raw_message_header}) do
     message_header = decode_message_header(raw_message_header)
     if message_header.length > 0 do
-      next_state(state, {:message_payload, next_state_name, message_header.type}, message_header.length)
+      state
+      |> next_state({:message_payload, next_state_name, message_header.type}, message_header.length)
+      |> process_buffer()
     else
       state
       |> next_state(next_state_name)
@@ -262,6 +270,11 @@ defmodule Air.PsqlServer.Protocol do
     state
     |> send_result(result)
     |> request_send(ready_for_query())
+    |> transition_after_message(:ready)
+  # :describing_statement -> awaiting describe result
+  defp handle_event(state(:describing_statement), {:describe_result, columns}), do:
+    state
+    |> request_send(row_description(columns))
     |> transition_after_message(:ready)
 
   defp send_result(state, %{rows: rows, columns: columns}), do:

@@ -91,6 +91,9 @@ defmodule Air.PsqlServer.RanchServer do
   def set_query_result(conn, query_result), do:
     update_in(conn.behaviour_actions, &[{:query_result, query_result} | &1])
 
+  @spec set_describe_result(t, [Protocol.column]) :: t
+  def set_describe_result(conn, columns), do:
+    update_in(conn.behaviour_actions, &[{:set_describe_result, columns} | &1])
 
   #-----------------------------------------------------------------------------------------------------------
   # :ranch_protocol callback functions
@@ -236,4 +239,6 @@ defmodule Air.PsqlServer.RanchServer do
 
   defp handle_behaviour_action(conn, {:query_result, query_result}), do:
     update_protocol(conn, &Protocol.select_result(&1, query_result))
+  defp handle_behaviour_action(conn, {:set_describe_result, columns}), do:
+    update_protocol(conn, &Protocol.describe_result(&1, columns))
 end

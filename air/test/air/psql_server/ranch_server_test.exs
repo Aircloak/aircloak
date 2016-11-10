@@ -64,7 +64,7 @@ defmodule Air.PsqlServer.RanchServerTest do
     handle_server_event {:describe_statement, query, params}, conn do
       assert query == "select $1"
       assert params == [1]
-      conn
+      RanchServer.set_describe_result(conn, [%{name: "col1", type: :int8}])
     end
   end
 end
