@@ -32,6 +32,6 @@ defmodule Air.Admin.AuditLogView do
     Map.put(query_params, normalized_name, values_for_name)
   end
 
-  def glyph(true), do: "<span class='glyphicon glyphicon-remove' aria-hidden='true'></span> "
-  def glyph(false), do: ""
+  def glyph(true), do: {:safe, "<span class='glyphicon glyphicon-remove' aria-hidden='true'></span> "}
+  def glyph(false), do: {:safe, ""}
 end

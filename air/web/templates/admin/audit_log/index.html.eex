@@ -50,7 +50,7 @@
           <%= for user <- @users do %>
             <tr class="<%= if selected?(@conn, :users, user.email), do: "warning", else: "" %>">
               <td>
-                <%= link [{:safe, glyph(selected?(@conn, :users, user.email))}, user.name],
+                <%= link [glyph(selected?(@conn, :users, user.email)), user.name],
                   to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :users, user.email)) %>
               </td>
             </tr>
@@ -69,7 +69,7 @@
             <%= for event <- @event_types do %>
               <tr class="<%= if selected?(@conn, :events, event), do: "warning", else: "" %>">
                 <td>
-                  <%= link [{:safe, glyph(selected?(@conn, :events, event))}, event],
+                  <%= link [glyph(selected?(@conn, :events, event)), event],
                     to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :events, event)) %>
                 </td>
               </tr>
@@ -89,7 +89,7 @@
             <%= for data_source <- @data_sources do %>
               <tr class="<%= if selected?(@conn, :data_sources, data_source.id), do: "warning", else: "" %>">
                 <td>
-                  <%= link [{:safe, glyph(selected?(@conn, :data_sources, data_source.id))}, data_source.name],
+                  <%= link [glyph(selected?(@conn, :data_sources, data_source.id)), data_source.name],
                     to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :data_sources, data_source.id)) %>
                 </td>
               </tr>
