@@ -68,7 +68,7 @@ defmodule Cloak.Query.Anonymizer do
   def sufficiently_large?(anonymizer, count) do
     {noisy_lower_bound, anonymizer} = add_noise(anonymizer, config(:low_count_soft_lower_bound))
     noisy_lower_bound = Kernel.max(round(noisy_lower_bound), config(:low_count_absolute_lower_bound))
-    {count > noisy_lower_bound, anonymizer}
+    {count >= noisy_lower_bound, anonymizer}
   end
 
   @doc "Computes the noisy count and noise sigma of all values in rows, where each row is an enumerable."
