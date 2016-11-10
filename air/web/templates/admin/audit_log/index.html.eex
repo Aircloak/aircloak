@@ -48,9 +48,9 @@
       <table class="table">
         <tbody>
           <%= for user <- @users do %>
-            <tr class="<%= if is_selected(@conn, :users, user.email), do: "warning", else: "" %>">
+            <tr class="<%= if selected?(@conn, :users, user.email), do: "warning", else: "" %>">
               <td>
-                <%= link [{:safe, glyph(is_selected(@conn, :users, user.email))}, user.name],
+                <%= link [glyph(selected?(@conn, :users, user.email)), user.name],
                   to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :users, user.email)) %>
               </td>
             </tr>
@@ -59,22 +59,44 @@
       </table>
     </div>
 
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        Filter by event type
+    <%= if length(@event_types) > 0 do %>
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          Filter by event type
+        </div>
+        <table class="table">
+          <tbody>
+            <%= for event <- @event_types do %>
+              <tr class="<%= if selected?(@conn, :events, event), do: "warning", else: "" %>">
+                <td>
+                  <%= link [glyph(selected?(@conn, :events, event)), event],
+                    to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :events, event)) %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
       </div>
-      <table class="table">
-        <tbody>
-          <%= for event <- @event_types do %>
-            <tr class="<%= if is_selected(@conn, :events, event), do: "warning", else: "" %>">
-              <td>
-                <%= link [{:safe, glyph(is_selected(@conn, :events, event))}, event],
-                  to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :events, event)) %>
-              </td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
-    </div>
+    <% end %>
+
+    <%= if length(@data_sources) > 0 do %>
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          Filter by data source
+        </div>
+        <table class="table">
+          <tbody>
+            <%= for data_source <- @data_sources do %>
+              <tr class="<%= if selected?(@conn, :data_sources, data_source.id), do: "warning", else: "" %>">
+                <td>
+                  <%= link [glyph(selected?(@conn, :data_sources, data_source.id)), data_source.name],
+                    to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :data_sources, data_source.id)) %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
   </div>
 </div>

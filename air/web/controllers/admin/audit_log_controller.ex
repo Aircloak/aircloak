@@ -2,6 +2,8 @@ defmodule Air.Admin.AuditLogController do
   @moduledoc false
   use Air.Web, :admin_controller
 
+  alias Air.Service.AuditLog
+
 
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback
@@ -19,28 +21,18 @@ defmodule Air.Admin.AuditLogController do
   # -------------------------------------------------------------------
 
   def index(conn, params) do
-    entries = Air.Service.AuditLog.for(%{
-      page: params["page"] || 1,
+    service_params = %{
+      page: String.to_integer(params["page"] || "1"),
       users: params["users"] || [],
       events: params["events"] || [],
-    })
+      data_sources: (params["data_sources"] || []) |> Enum.map(&String.to_integer/1),
+    }
     render(conn, "index.html",
-      audit_logs: entries,
+      audit_logs: AuditLog.for(service_params),
       full_width: true,
-      users: Air.Service.User.all(),
-      event_types: event_types(params),
+      users: AuditLog.users(service_params),
+      event_types: AuditLog.event_types(service_params),
+      data_sources: AuditLog.data_sources(service_params),
     )
-  end
-
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp event_types(params) do
-    already_selected_event_types = params["events"] || []
-    combined_event_types = Air.Service.AuditLog.event_types(params["users"] || []) ++
-      already_selected_event_types
-    Enum.uniq(combined_event_types)
   end
 end
