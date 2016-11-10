@@ -5,6 +5,12 @@ defmodule Air.Service.AuditLog do
   import Ecto.Query, only: [from: 2]
   require Logger
 
+  @type filter_params :: %{
+    page: non_neg_integer,
+    users: [String.t],
+    events: [String.t],
+    data_sources: [String.t]
+  }
 
   #-----------------------------------------------------------------------------------------------------------
   # API functions
@@ -31,25 +37,25 @@ defmodule Air.Service.AuditLog do
 
   Returned entries are descending sorted by the creation date.
   """
-  @spec for(Map.t) :: Scrivener.Page.t
-  def for(params \\ %{}) do
+  @spec for(filter_params) :: Scrivener.Page.t
+  def for(params) do
     AuditLog
-    |> for_user(Map.get(params, :users, []))
-    |> for_event(Map.get(params, :events, []))
-    |> for_data_sources(Map.get(params, :data_sources, []))
+    |> for_user(params.users)
+    |> for_event(params.events)
+    |> for_data_sources(params.data_sources)
     |> order_by_event()
-    |> Repo.paginate(page: Map.get(params, :page, 1))
+    |> Repo.paginate(page: params.page)
   end
 
   @doc """
   Returns a list of distinct event types given a set of users.
   If no users are given, all event types across all users are returned.
   """
-  @spec event_types(Map.t) :: [String.t]
-  def event_types(params \\ %{}) do
+  @spec event_types(filter_params) :: [String.t]
+  def event_types(params) do
     AuditLog
-    |> for_user(Map.get(params, :users, []))
-    |> for_data_sources(Map.get(params, :data_sources, []))
+    |> for_user(params.users)
+    |> for_data_sources(params.data_sources)
     |> select_event_types()
     |> Repo.all()
   end
@@ -59,11 +65,11 @@ defmodule Air.Service.AuditLog do
   Returns an empty list if none of the audit log entries currently
   being filtered for are query execution events.
   """
-  @spec data_sources(Map.t) :: [Map.t]
-  def data_sources(params \\ %{}) do
+  @spec data_sources(filter_params) :: [%{id: non_neg_integer, name: String.t}]
+  def data_sources(params) do
     AuditLog
-    |> for_user(Map.get(params, :users, []))
-    |> for_event(Map.get(params, :events, []))
+    |> for_user(params.users)
+    |> for_event(params.events)
     |> select_data_sources()
     |> Repo.all()
   end
@@ -72,11 +78,11 @@ defmodule Air.Service.AuditLog do
   Returns user structs (names and emails) of users who have audit log
   events for a given filter group.
   """
-  @spec users(Map.t) :: [Map.t]
-  def users(params \\ %{}) do
+  @spec users(filter_params) :: [%{name: String.t, email: String.t}]
+  def users(params) do
     AuditLog
-    |> for_event(Map.get(params, :events, []))
-    |> for_data_sources(Map.get(params, :data_sources, []))
+    |> for_event(params.events)
+    |> for_data_sources(params.data_sources)
     |> select_users()
     |> Repo.all()
   end

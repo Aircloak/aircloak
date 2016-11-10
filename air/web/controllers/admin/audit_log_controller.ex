@@ -22,7 +22,7 @@ defmodule Air.Admin.AuditLogController do
 
   def index(conn, params) do
     service_params = %{
-      page: params["page"] || 1,
+      page: String.to_integer(params["page"] || "1"),
       users: params["users"] || [],
       events: params["events"] || [],
       data_sources: params["data_sources"] || [],
@@ -43,8 +43,7 @@ defmodule Air.Admin.AuditLogController do
 
   defp event_types(params) do
     already_selected_event_types = params[:events]
-    combined_event_types = Air.Service.AuditLog.event_types(params) ++
-      already_selected_event_types
+    combined_event_types = AuditLog.event_types(params) ++ already_selected_event_types
     Enum.uniq(combined_event_types)
   end
 
