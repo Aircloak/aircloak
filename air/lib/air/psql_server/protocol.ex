@@ -184,13 +184,10 @@ defmodule Air.PsqlServer.Protocol do
     end
   end
   # :message_payload -> awaiting a message payload
-  defp handle_event(state, {:message_payload, next_state_name, message_type}, {:message, payload}) do
-    parsed_payload = apply(Air.PsqlServer.Protocol.Messages, :"decode_#{message_type}_message", [payload])
-
+  defp handle_event(state, {:message_payload, next_state_name, message_type}, {:message, payload}), do:
     state
     |> next_state(next_state_name)
-    |> dispatch_event({:message, %{type: message_type, payload: parsed_payload}})
-  end
+    |> dispatch_event({:message, %{type: message_type, payload: decode_message(message_type, payload)}})
   # :ssl -> waiting for the connection to be upgraded to SSL
   defp handle_event(state, :ssl, :ssl_negotiated), do:
     next_state(state, :startup_message, 8)
