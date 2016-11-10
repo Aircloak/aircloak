@@ -253,6 +253,7 @@ defmodule Air.PsqlServer.Protocol do
     prepared_statement = Map.fetch!(state.prepared_statements, describe_data.name)
 
     state
+    |> request_send(parameter_description(prepared_statement.param_types))
     |> add_action({:describe_statement, prepared_statement.query, prepared_statement.params})
     |> next_state(:describing_statement)
   end

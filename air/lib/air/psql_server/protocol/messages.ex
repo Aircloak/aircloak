@@ -176,6 +176,16 @@ defmodule Air.PsqlServer.Protocol.Messages do
   def parameter_status(name, value), do:
     backend_message(:parameter_status, null_terminate(name) <> null_terminate(value))
 
+  def parameter_description(param_types) do
+    encoded_types =
+      param_types
+      |> Enum.map(&type_oid/1)
+      |> Enum.map(&<<&1::32>>)
+      |> IO.iodata_to_binary()
+
+    backend_message(:parameter_description, <<length(param_types)::16, encoded_types::binary>>)
+  end
+
   def ssl_message(), do: message_with_size(<<1234::16, 5679::16>>)
 
   def startup_message(major, minor, opts) do
@@ -194,6 +204,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
         command_complete: ?C,
         data_row: ?D,
         error_response: ?E,
+        parameter_description: ?t,
         parameter_status: ?S,
         parse_complete: ?B,
         ready_for_query: ?Z,
@@ -230,6 +241,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
       >>
 
     defp type_name(unquote(meta.oid)), do: unquote(type)
+    defp type_oid(unquote(type)), do: unquote(meta.oid)
   end
 
   defp value_to_text(nil), do: <<-1::32>>
