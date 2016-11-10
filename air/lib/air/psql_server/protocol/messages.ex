@@ -50,6 +50,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   for {message_name, message_byte} <-
       %{
+        bind: ?B,
         parse: ?P,
         password: ?p,
         query: ?Q,
@@ -67,6 +68,59 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
 
   #-----------------------------------------------------------------------------------------------------------
+  # Decoding of a bind message
+  #-----------------------------------------------------------------------------------------------------------
+
+  def decode_bind_message(bind_message_data) do
+    [_portal, bind_message_data] = :binary.split(bind_message_data, <<0>>)
+    [statement_name, bind_message_data] = :binary.split(bind_message_data, <<0>>)
+
+    <<num_format_codes::16, bind_message_data::binary>> = bind_message_data
+    {format_codes, bind_message_data} = decode_format_codes(num_format_codes, bind_message_data)
+
+    <<num_params::16, bind_message_data::binary>> = bind_message_data
+    {params, bind_message_data} = decode_params(num_params, bind_message_data)
+
+    <<num_result_codes::16, bind_message_data::binary>> = bind_message_data
+    {result_codes, <<>>} = decode_result_codes(num_result_codes, bind_message_data)
+
+    %{
+      statement_name: statement_name,
+      format_codes: format_codes,
+      params: params,
+      result_codes: result_codes
+    }
+  end
+
+  defp decode_format_codes(0, bind_message_data), do:
+    {[], bind_message_data}
+  defp decode_format_codes(num_format_codes, <<format_code::16, bind_message_data::binary>>) do
+    {rest_codes, bind_message_data} = decode_format_codes(num_format_codes - 1, bind_message_data)
+    {[format_code | rest_codes], bind_message_data}
+  end
+
+  defp decode_result_codes(0, bind_message_data), do:
+    {[], bind_message_data}
+  defp decode_result_codes(num_result_codes, <<result_code::16, bind_message_data::binary>>) do
+    {rest_codes, bind_message_data} = decode_result_codes(num_result_codes - 1, bind_message_data)
+    {[result_code | rest_codes], bind_message_data}
+  end
+
+  defp decode_params(0, bind_message_data), do:
+    {[], bind_message_data}
+  defp decode_params(num_params, bind_message_data) do
+    {value, bind_message_data} = param_value(bind_message_data)
+    {rest_values, bind_message_data} = decode_params(num_params - 1, bind_message_data)
+    {[value | rest_values], bind_message_data}
+  end
+
+  defp param_value(<<-1::signed-integer-size(32), bind_message_data::binary>>), do:
+    {nil, bind_message_data}
+  defp param_value(<<size::32, value::binary-size(size), bind_message_data::binary>>), do:
+    {value, bind_message_data}
+
+
+  #-----------------------------------------------------------------------------------------------------------
   # Outgoing (backend messages)
   #-----------------------------------------------------------------------------------------------------------
 
@@ -76,6 +130,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
   def authentication_method(:cleartext), do: backend_message(:authentication, <<3::32>>)
 
   def authentication_ok(), do: backend_message(:authentication, <<0::32>>)
+
+  def bind_complete(), do: backend_message(:bind_complete, <<>>)
 
   def command_complete(tag), do: backend_message(:command_complete, null_terminate(tag))
 
@@ -128,6 +184,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
   for {message_name, message_byte} <-
       %{
         authentication: ?R,
+        bind_complete: ?2,
         command_complete: ?C,
         data_row: ?D,
         error_response: ?E,
@@ -165,6 +222,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
         -1::32,
         0::16
       >>
+
+    defp type_name(unquote(meta.oid)), do: unquote(type)
   end
 
   defp value_to_text(nil), do: <<-1::32>>
