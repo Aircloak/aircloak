@@ -184,10 +184,13 @@ defmodule Air.PsqlServer.Protocol do
     end
   end
   # :message_payload -> awaiting a message payload
-  defp handle_event(state, {:message_payload, next_state_name, message_type}, {:message, payload}), do:
+  defp handle_event(state, {:message_payload, next_state_name, message_type}, {:message, payload}) do
+    parsed_payload = apply(Air.PsqlServer.Protocol.Messages, :"decode_#{message_type}_message", [payload])
+
     state
     |> next_state(next_state_name)
-    |> dispatch_event({:message, %{type: message_type, payload: payload}})
+    |> dispatch_event({:message, %{type: message_type, payload: parsed_payload}})
+  end
   # :ssl -> waiting for the connection to be upgraded to SSL
   defp handle_event(state, :ssl, :ssl_negotiated), do:
     next_state(state, :startup_message, 8)
@@ -213,7 +216,7 @@ defmodule Air.PsqlServer.Protocol do
   # :password -> expecting password from the client
   defp handle_event(state, :password, {:message, %{type: :password} = password_message}), do:
     state
-    |> add_action({:authenticate, null_terminated_to_string(password_message.payload)})
+    |> add_action({:authenticate, password_message.payload})
     |> next_state(:authenticating)
   # :authenticating -> expecting authentication result from the driver
   defp handle_event(state, :authenticating, {:authenticated, true}) do
@@ -270,18 +273,15 @@ defmodule Air.PsqlServer.Protocol do
     close(state, :normal)
   defp handle_ready_message(state, :query, payload), do:
     state
-    |> add_action({:run_query, null_terminated_to_string(payload), [], 0})
+    |> add_action({:run_query, payload, [], 0})
     |> next_state(:running_query)
-  defp handle_ready_message(state, :parse, payload) do
-    prepared_statement = decode_parse_message(payload)
-
+  defp handle_ready_message(state, :parse, prepared_statement) do
     state
     |> put_in([:prepared_statements, prepared_statement.name], prepared_statement)
     |> request_send(parse_complete())
     |> transition_after_message(:ready)
   end
-  defp handle_ready_message(state, :bind, payload) do
-    bind_data = decode_bind_message(payload)
+  defp handle_ready_message(state, :bind, bind_data) do
     prepared_statement = Map.fetch!(state.prepared_statements, bind_data.name)
     params = convert_params(bind_data.params, prepared_statement.param_types)
 
@@ -290,8 +290,7 @@ defmodule Air.PsqlServer.Protocol do
     |> request_send(bind_complete())
     |> transition_after_message(:ready)
   end
-  defp handle_ready_message(state, :describe, payload) do
-    describe_data = decode_describe_message(payload)
+  defp handle_ready_message(state, :describe, describe_data) do
     prepared_statement = Map.fetch!(state.prepared_statements, describe_data.name)
 
     state
@@ -299,8 +298,7 @@ defmodule Air.PsqlServer.Protocol do
     |> add_action({:describe_statement, prepared_statement.query, prepared_statement.params})
     |> next_state(:describing_statement)
   end
-  defp handle_ready_message(state, :execute, payload) do
-    execute_data = decode_execute_message(payload)
+  defp handle_ready_message(state, :execute, execute_data) do
     prepared_statement = Map.fetch!(state.prepared_statements, execute_data.name)
 
     state

@@ -42,6 +42,16 @@ defmodule Air.PsqlServer.Protocol.Messages do
     }
   end
 
+  def decode_password_message(password_message) do
+    [password, <<>>] = :binary.split(password_message, <<0>>)
+    password
+  end
+
+  def decode_query_message(query_message) do
+    [query, <<>>] = :binary.split(query_message, <<0>>)
+    query
+  end
+
   def decode_describe_message(<<type, describe_data::binary>>) do
     [name, ""] = :binary.split(describe_data, <<0>>)
     %{type: type, name: name}
@@ -264,12 +274,6 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   defp message_with_size(payload), do:
     <<(4 + byte_size(payload))::32, payload::binary>>
-
-  def null_terminated_to_string(null_terminated_string) do
-    string_size = byte_size(null_terminated_string) - 1
-    <<string::binary-size(string_size), 0>> = null_terminated_string
-    string
-  end
 
   defp null_terminate(string), do: <<string::binary, 0>>
 end
