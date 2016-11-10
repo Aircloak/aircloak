@@ -206,7 +206,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
         error_response: ?E,
         parameter_description: ?t,
         parameter_status: ?S,
-        parse_complete: ?B,
+        parse_complete: ?1,
         ready_for_query: ?Z,
         row_description: ?T,
       } do
