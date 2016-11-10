@@ -73,6 +73,16 @@ defmodule Air.Service.AuditLogTest do
     assert AuditLog.event_types(params(%{users: [user3.email]})) == []
   end
 
+  test "includes selected event types irrespective of filters" do
+    user1 = create_user!()
+    user2 = create_user!()
+
+    AuditLog.log(user1, "event1", %{meta: true})
+    AuditLog.log(user2, "event2", %{meta: true})
+
+    assert AuditLog.event_types(params(%{users: [user1.email], events: ["event2"]})) == ["event1", "event2"]
+  end
+
   test "users for audit logs is not dependent on user filtering" do
     user1 = create_user!()
     user2 = create_user!()
@@ -97,6 +107,19 @@ defmodule Air.Service.AuditLogTest do
 
     assert AuditLog.users(params(%{events: ["event1"]}))
       |> Enum.map(&(&1.email)) == [user1.email]
+  end
+
+  test "includes selected users irrespective of filters" do
+    user1 = create_user!()
+    user2 = create_user!()
+
+    AuditLog.log(user1, "event1", %{meta: true})
+    AuditLog.log(user2, "event2", %{meta: true})
+
+    expected = [user1, user2]
+      |> Enum.sort_by(&(&1.name))
+      |> Enum.map(&(%{name: &1.name, email: &1.email}))
+    assert AuditLog.users(params(%{users: [user1.email], events: ["event2"]})) == expected
   end
 
   test "lists all data sources when no filters" do
@@ -128,12 +151,25 @@ defmodule Air.Service.AuditLogTest do
      |> Enum.map(&(&1.name)) == [data_source1.name]
   end
 
+  test "includes selected data sources irrespecitve of filters" do
+    user1 = create_user!()
+    user2 = create_user!()
+    data_source1 = create_data_source!()
+    data_source2 = create_data_source!()
+    AuditLog.log(user1, "event1", %{data_source: data_source1.id})
+    AuditLog.log(user2, "event2", %{data_source: data_source2.id})
+
+    names = [data_source1.name, data_source2.name] |> Enum.sort()
+    assert AuditLog.data_sources(params(%{users: [user1.email], data_sources: [data_source2.id]}))
+     |> Enum.map(&(&1.name)) == names
+  end
+
   defp params(provided \\ %{}) do
     provided
     |> Map.put(:page, Map.get(provided, :page, 1))
     |> Map.put(:users, Map.get(provided, :users, []))
     |> Map.put(:events, Map.get(provided, :events, []))
-    |> Map.put(:data_sources, Map.get(provided, :data_sources, []))
+    |> Map.put(:data_sources, Map.get(provided, :data_sources, []) |> Enum.map(&to_string/1))
   end
 
   defp entries_count(params, count) do

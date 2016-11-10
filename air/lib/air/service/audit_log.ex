@@ -50,41 +50,69 @@ defmodule Air.Service.AuditLog do
   @doc """
   Returns a list of distinct event types given a set of users.
   If no users are given, all event types across all users are returned.
+
+  Also includes all events present in the parameters, whether or not
+  the other parameters would normally exclude them.
   """
   @spec event_types(filter_params) :: [String.t]
   def event_types(params) do
-    AuditLog
-    |> for_user(params.users)
-    |> for_data_sources(params.data_sources)
-    |> select_event_types()
-    |> Repo.all()
+    event_types = AuditLog
+      |> for_user(params.users)
+      |> for_data_sources(params.data_sources)
+      |> select_event_types()
+      |> Repo.all()
+
+    # Include currently selected event types
+    params[:events] ++ event_types
+    |> Enum.uniq()
+    |> Enum.sort()
   end
 
   @doc """
   Returns a list of the distinct data sources having been queried.
   Returns an empty list if none of the audit log entries currently
   being filtered for are query execution events.
+
+  Also includes all data sources present in the parameters, whether or not
+  the other parameters would normally exclude them.
   """
   @spec data_sources(filter_params) :: [%{id: non_neg_integer, name: String.t}]
   def data_sources(params) do
-    AuditLog
-    |> for_user(params.users)
-    |> for_event(params.events)
-    |> select_data_sources()
-    |> Repo.all()
+    data_sources = AuditLog
+      |> for_user(params.users)
+      |> for_event(params.events)
+      |> select_data_sources()
+      |> Repo.all()
+
+    # Include currently selected data sources
+    (params[:data_sources] |> Enum.map(&String.to_integer/1)) -- (data_sources |> Enum.map(&(&1.id)))
+    |> Air.Service.DataSource.by_ids()
+    |> Enum.map(&(%{name: &1.name, id: &1.id}))
+    |> Enum.concat(data_sources)
+    |> Enum.sort_by(&(&1.name))
   end
 
   @doc """
   Returns user structs (names and emails) of users who have audit log
   events for a given filter group.
+
+  Also includes all users present in the parameters, whether or not
+  the other parameters would normally exclude them.
   """
   @spec users(filter_params) :: [%{name: String.t, email: String.t}]
   def users(params) do
-    AuditLog
-    |> for_event(params.events)
-    |> for_data_sources(params.data_sources)
-    |> select_users()
-    |> Repo.all()
+    users = AuditLog
+      |> for_event(params.events)
+      |> for_data_sources(params.data_sources)
+      |> select_users()
+      |> Repo.all()
+
+    # Include currently selected users
+    params[:users] -- (users |> Enum.map(&(&1.email)))
+    |> Air.Service.User.by_emails()
+    |> Enum.map(&(%{name: &1.name, email: &1.email}))
+    |> Enum.concat(users)
+    |> Enum.sort_by(&(&1.name))
   end
 
   #-----------------------------------------------------------------------------------------------------------
