@@ -144,11 +144,11 @@ defmodule Cloak.Query.LCFConditions do
   end
   defp matchers({:not, {:like, column, %Column{type: :text, value: pattern}}}) do
     regex = pattern |> Comparison.to_regex() |> Regex.compile!("ums")
-    {fn(row) -> Function.apply_to_db_row(column, row) =~ regex end, :drop}
+    {fn(row) -> (Function.apply_to_db_row(column, row) || "") =~ regex end, :drop}
   end
   defp matchers({:not, {:ilike, column, %Column{type: :text, value: pattern}}}) do
     regex = pattern |> Comparison.to_regex() |> Regex.compile!("uims")
-    {fn(row) -> Function.apply_to_db_row(column, row) =~ regex end, :drop}
+    {fn(row) -> (Function.apply_to_db_row(column, row) || "") =~ regex end, :drop}
   end
   defp matchers({:not, {:in, column, values}}) do
     for value <- values do
