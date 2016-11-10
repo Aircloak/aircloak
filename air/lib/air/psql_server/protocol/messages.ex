@@ -13,13 +13,13 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   def ssl_message?(message), do: message == ssl_message()
 
-  def parse_startup_message(<<length::32, major::16, minor::16>> = message), do:
+  def decode_startup_message(<<length::32, major::16, minor::16>> = message), do:
     %{length: length - byte_size(message), version: %{major: major, minor: minor}}
 
-  def parse_message_header(<<message_byte::8, length::32>>), do:
+  def decode_message_header(<<message_byte::8, length::32>>), do:
     %{type: frontend_message_name(message_byte), length: length - 4}
 
-  def parse_login_params(raw_login_params) do
+  def decode_login_params(raw_login_params) do
     raw_login_params
     |> String.split(<<0>>)
     |> Stream.chunk(2)

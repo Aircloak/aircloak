@@ -152,7 +152,7 @@ defmodule Air.PsqlServer.Protocol do
   end
   # :message_header -> awaiting a message header
   defp handle_event(state({:message_header, next_state_name}), {:message, raw_message_header}) do
-    message_header = parse_message_header(raw_message_header)
+    message_header = decode_message_header(raw_message_header)
     if message_header.length > 0 do
       next_state(state, {:message_payload, next_state_name, message_header.type}, message_header.length)
     else
@@ -171,7 +171,7 @@ defmodule Air.PsqlServer.Protocol do
     next_state(state, :startup_message, 8)
   # :startup_message -> expecting startup message from the client
   defp handle_event(state(:startup_message), {:message, message}) do
-    startup_message = parse_startup_message(message)
+    startup_message = decode_startup_message(message)
     if startup_message.version.major != 3 do
       close(state, :unsupported_protocol_version)
     else
@@ -181,7 +181,7 @@ defmodule Air.PsqlServer.Protocol do
   # :login_params -> expecting login params from the client
   defp handle_event(state(:login_params), {:message, raw_login_params}), do:
     state
-    |> add_action({:login_params, parse_login_params(raw_login_params)})
+    |> add_action({:login_params, decode_login_params(raw_login_params)})
     |> next_state(:authentication_method)
   # :authentication_method -> expecting the driver to choose the authentication method
   defp handle_event(state(:authentication_method), {:authentication_method, authentication_method}), do:
