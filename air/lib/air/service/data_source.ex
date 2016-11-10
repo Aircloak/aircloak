@@ -121,7 +121,7 @@ defmodule Air.Service.DataSource do
     end
   end
 
-  @doc "Returns a list of data sources given their names"
+  @doc "Returns a list of data sources given their ids"
   @spec by_ids([non_neg_integer]) :: [DataSource.t]
   def by_ids(ids \\ []) do
     Repo.all(from data_source in DataSource,
