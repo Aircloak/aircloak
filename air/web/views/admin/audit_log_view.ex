@@ -14,9 +14,9 @@ defmodule Air.Admin.AuditLogView do
 
   def time_ago(entry), do: Air.Utils.DateTime.time_ago(entry.inserted_at)
 
-  def is_selected(%Plug.Conn{query_params: query_params}, name, param), do:
-    is_selected(query_params, name, param)
-  def is_selected(query_params, name, param) do
+  def selected?(%Plug.Conn{query_params: query_params}, name, param), do:
+    selected?(query_params, name, param)
+  def selected?(query_params, name, param) do
     Enum.any?(query_params[to_string(name)] || [], &(&1 == to_string(param)))
   end
 
@@ -24,7 +24,7 @@ defmodule Air.Admin.AuditLogView do
     normalized_name = to_string(name)
     normalized_param = to_string(param)
     values_for_name = query_params[normalized_name] || []
-    values_for_name = if is_selected(query_params, normalized_name, normalized_param) do
+    values_for_name = if selected?(query_params, normalized_name, normalized_param) do
       values_for_name -- [normalized_param]
     else
       [normalized_param | values_for_name]
