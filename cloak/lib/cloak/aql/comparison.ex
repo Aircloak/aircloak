@@ -1,7 +1,7 @@
 defmodule Cloak.Aql.Comparison do
   @moduledoc "Contains utility functions for working with representations of comparisons."
 
-  alias Cloak.Aql.Query
+  alias Cloak.Aql.{Query, Column, Function}
 
   @inequalities [:<, :>, :<=, :>=]
 
@@ -38,8 +38,38 @@ defmodule Cloak.Aql.Comparison do
   def direction({:comparison, _, :>, _}), do: :>
   def direction({:comparison, _, :>=, _}), do: :>
 
-  @doc "Converts a 'LIKE' pattern string to a regex string."
-  @spec to_regex(String.t) :: String.t
+  def to_function(_condition, _truth \\ true)
+  def to_function({:not, condition}, truth), do: to_function(condition, not truth)
+  def to_function({:comparison, column, operator, value}, truth) do
+    value = extract_value(value)
+    fn(row) -> compare(operator, Function.apply_to_db_row(column, row), value) == truth end
+  end
+  def to_function({:like, column, %Column{type: :text, value: pattern}}, truth) do
+    regex = pattern |> to_regex() |> Regex.compile!("ums")
+    fn(row) -> compare(:=~, Function.apply_to_db_row(column, row), regex) == truth end
+  end
+  def to_function({:ilike, column, %Column{type: :text, value: pattern}}, truth) do
+    regex = pattern |> to_regex() |> Regex.compile!("uims")
+    fn(row) -> compare(:=~, Function.apply_to_db_row(column, row), regex) == truth end
+  end
+  def to_function({:is, column, nil}, truth) do
+    fn(row) -> (Function.apply_to_db_row(column, row) == nil) == truth end
+  end
+  def to_function({:in, column, values}, truth) do
+    values = for value <- values, do: extract_value(value)
+    fn(row) -> compare(:=, Function.apply_to_db_row(column, row), values) == truth end
+  end
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Internal functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  defp anchor(pattern), do: "^#{pattern}$"
+
+  defp extract_value(%Column{value: value}), do: value
+  defp extract_value(value), do: value
+
   def to_regex(pattern), do:
     pattern
     |> Regex.escape()
@@ -49,10 +79,13 @@ defmodule Cloak.Aql.Comparison do
     |> String.replace(".*.", "_") # handle escaped `_` (`%_`)
     |> anchor()
 
-
-  #-----------------------------------------------------------------------------------------------------------
-  # Internal functions
-  #-----------------------------------------------------------------------------------------------------------
-
-  defp anchor(pattern), do: "^#{pattern}$"
+  defp compare(_operator, nil, _value), do: nil
+  defp compare(:=, target, values) when is_list(values), do: Enum.member?(values, target)
+  defp compare(:=, target, value), do: target == value
+  defp compare(:<>, target, value), do: target != value
+  defp compare(:>, target, value), do: target > value
+  defp compare(:<, target, value), do: target < value
+  defp compare(:>=, target, value), do: target >= value
+  defp compare(:<=, target, value), do: target <= value
+  defp compare(:=~, target, value), do: target =~ value
 end
