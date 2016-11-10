@@ -4,6 +4,7 @@ defmodule Cloak.Aql.Compiler do
   alias Cloak.{DataSource, Features}
   alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query}
   alias Cloak.Aql.Parsers.Token
+  alias Cloak.Query.DataDecoder
 
   defmodule CompilationError do
     @moduledoc false
@@ -515,19 +516,29 @@ defmodule Cloak.Aql.Compiler do
 
   defp partition_where_clauses(%Query{subquery?: true} = query) do
     case Enum.find(query.where, &requires_lcf_check?/1) do
-      nil -> query
-      condition_requiring_lcf_check ->
+      nil -> :ok
+      condition ->
         raise CompilationError,
-          message: "#{negative_condition_string(condition_requiring_lcf_check)} is not supported in a subquery."
+          message: "#{negative_condition_string(condition)} is not supported in a subquery."
     end
+    case Enum.find(query.where, &Comparison.subject(&1) |> DataDecoder.needs_decoding?()) do
+      nil -> :ok
+      condition ->
+        column = Comparison.subject(condition)
+        raise CompilationError,
+          message: "The #{Column.display_name(column)} needs decoding and can not be used in a subquery."
+    end
+    query
   end
   defp partition_where_clauses(query) do
     {require_lcf_check, safe_clauses} = Enum.partition(query.where, &requires_lcf_check?/1)
-    unsafe_filter_columns = Enum.map(require_lcf_check, &where_clause_to_identifier/1)
     safe_clauses = safe_clauses ++ Enum.reject(require_lcf_check, &negative_clause?/1)
+    {encoded_column_clauses, safe_clauses} =
+      Enum.partition(safe_clauses, &Comparison.subject(&1) |> DataDecoder.needs_decoding?())
+    unsafe_filter_columns = Enum.map(require_lcf_check ++ encoded_column_clauses, &Comparison.subject/1)
 
     %Query{query | where: safe_clauses, lcf_check_conditions: require_lcf_check,
-      unsafe_filter_columns: unsafe_filter_columns}
+      unsafe_filter_columns: unsafe_filter_columns, encoded_where: encoded_column_clauses}
   end
 
   defp requires_lcf_check?({:not, {:is, _, :null}}), do: false
@@ -604,7 +615,7 @@ defmodule Cloak.Aql.Compiler do
     verify_ranges(query)
 
     ranges = inequalities_by_column(clauses)
-    non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), where_clause_to_identifier(&1)))
+    non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), Comparison.subject(&1)))
 
     Enum.reduce(ranges, %{query | where: non_range_clauses}, &add_aligned_range/2)
   end
@@ -667,7 +678,7 @@ defmodule Cloak.Aql.Compiler do
   defp inequalities_by_column(where_clauses) do
     where_clauses
     |> Enum.filter(&Comparison.inequality?/1)
-    |> Enum.group_by(&where_clause_to_identifier/1)
+    |> Enum.group_by(&Comparison.subject/1)
     |> Enum.filter(fn({column, _}) -> Enum.member?(@aligned_types, column.type) end)
     |> Enum.map(&discard_redundant_inequalities/1)
     |> Enum.into(%{})
@@ -688,7 +699,7 @@ defmodule Cloak.Aql.Compiler do
   defp cast_where_clauses(query), do: query
 
   defp cast_where_clause(clause) do
-    column = where_clause_to_identifier(clause)
+    column = Comparison.subject(clause)
     do_cast_where_clause(clause, column.type)
   end
 
@@ -722,18 +733,13 @@ defmodule Cloak.Aql.Compiler do
     Cloak.Time.parse_datetime(string)
   defp do_parse_time(_, _), do: {:error, :invalid_cast}
 
-  defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
-  defp where_clause_to_identifier({:not, subclause}), do: where_clause_to_identifier(subclause)
-  Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
-    defp where_clause_to_identifier({unquote(keyword), identifier, _}), do: identifier
-  end)
-
   defp map_terminal_elements(query, mapper_fun) do
     %Query{query |
       columns: Enum.map(query.columns, &map_terminal_element(&1, mapper_fun)),
       group_by: Enum.map(query.group_by, &map_terminal_element(&1, mapper_fun)),
       where: Enum.map(query.where, &map_where_clause(&1, mapper_fun)),
       lcf_check_conditions: Enum.map(query.lcf_check_conditions, &map_where_clause(&1, mapper_fun)),
+      encoded_where: Enum.map(query.encoded_where, &map_where_clause(&1, mapper_fun)),
       order_by: Enum.map(query.order_by, &map_order_by(&1, mapper_fun)),
       having: Enum.map(query.having, &map_where_clause(&1, mapper_fun)),
       db_columns: Enum.map(query.db_columns, &map_terminal_element(&1, mapper_fun)),
