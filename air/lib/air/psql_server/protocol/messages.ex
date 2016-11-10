@@ -126,19 +126,20 @@ defmodule Air.PsqlServer.Protocol.Messages do
   # Types encoding
   #-----------------------------------------------------------------------------------------------------------
 
-  for {type, oid, len} <- [
+  for {type, meta} <- %{
     # Obtained as `select typname, oid, typlen from pg_type`
-    {:integer, 20, 8}, # int8
-    {:text, 25, -1}, # text
-    {:unknown, 705, -2}, # unknown
-  ] do
+    int8: %{oid: 20, len: 8},
+    int4: %{oid: 23, len: 4},
+    text: %{oid: 25, len: -1},
+    unknown: %{oid: 705, len: -1}
+  } do
     defp column_description(%{type: unquote(type)} = column), do:
       <<
         null_terminate(column.name)::binary,
         0::32,
         0::16,
-        unquote(oid)::32,
-        unquote(len)::16,
+        unquote(meta.oid)::32,
+        unquote(meta.len)::16,
         -1::32,
         0::16
       >>

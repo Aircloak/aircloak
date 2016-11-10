@@ -96,8 +96,11 @@ defmodule Air.PsqlServer do
     %{error: "System error!"}
   end
 
-  for supported_type <- [:integer, :text] do
-    defp type_atom(unquote(to_string(supported_type))), do: unquote(supported_type)
+  for {aql_type, psql_type} <- %{
+    "integer" => :int8,
+    "text" => :text
+  } do
+    defp type_atom(unquote(aql_type)), do: unquote(psql_type)
   end
   defp type_atom(_other), do: :unknown
 end

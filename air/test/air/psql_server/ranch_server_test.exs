@@ -36,7 +36,7 @@ defmodule Air.PsqlServer.RanchServerTest do
     Client.simple_query(client, "select foo from bar")
     handle_server_event {:run_query, query}, conn do
       assert query == "select foo from bar"
-      RanchServer.set_query_result(conn, %{columns: [%{name: "foo", type: :integer}], rows: [[1], [2]]})
+      RanchServer.set_query_result(conn, %{columns: [%{name: "foo", type: :int8}], rows: [[1], [2]]})
     end
 
     assert_receive {:selected, columns, rows}

@@ -41,7 +41,7 @@ defmodule Air.PsqlServer.ProtocolTest do
       authenticate(true)
       |> run_actions(
             process: [query_message("select foo from bar")],
-            select_result: [%{columns: [%{name: "x", type: :integer}], rows: [[1], [2]]}]
+            select_result: [%{columns: [%{name: "x", type: :int8}], rows: [[1], [2]]}]
           )
       |> last_actions(5)
 

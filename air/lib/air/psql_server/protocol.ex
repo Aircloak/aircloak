@@ -33,8 +33,10 @@ defmodule Air.PsqlServer.Protocol do
 
   @type authentication_method :: :cleartext
 
+  @type psql_type :: :int4 | :int8 | :text | :unknown
+
   @type query_result :: %{
-    columns: [%{name: String.t, type: :integer | :string | :unknown}],
+    columns: [%{name: String.t, type: psql_type}],
     rows: [any]
   }
 
