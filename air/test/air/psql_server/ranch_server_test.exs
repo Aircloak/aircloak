@@ -29,7 +29,7 @@ defmodule Air.PsqlServer.RanchServerTest do
     assert_receive :connected
   end
 
-  test "successful query" do
+  test "simple query" do
     {:ok, client} = Client.start_link(@port, "some_user", "some_pass")
     handle_server_event {:login, _password}, conn, do: {:ok, conn}
 
@@ -44,7 +44,7 @@ defmodule Air.PsqlServer.RanchServerTest do
     assert rows == [{'1'}, {'2'}]
   end
 
-  test "query error" do
+  test "simple query error" do
     {:ok, client} = Client.start_link(@port, "some_user", "some_pass")
     handle_server_event {:login, _password}, conn, do: {:ok, conn}
 
@@ -54,5 +54,17 @@ defmodule Air.PsqlServer.RanchServerTest do
 
     assert_receive {:error, error}
     assert to_string(error) =~ ~r/some error/
+  end
+
+  test "extended query" do
+    {:ok, client} = Client.start_link(@port, "some_user", "some_pass")
+    handle_server_event {:login, _password}, conn, do: {:ok, conn}
+
+    Client.extended_query(client, "select $1", [{:sql_integer, [1]}])
+    handle_server_event {:describe_statement, query, params}, conn do
+      assert query == "select $1"
+      assert params == [1]
+      conn
+    end
   end
 end

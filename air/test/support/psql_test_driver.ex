@@ -20,6 +20,9 @@ defmodule Air.PsqlTestDriver do
     def simple_query(pid, query), do:
       GenServer.cast(pid, {:simple_query, query})
 
+    def extended_query(pid, query, params), do:
+      GenServer.cast(pid, {:extended_query, query, params})
+
     def init({test_process, port, user, pass}) do
       send(self(), {:connect, port, user, pass})
       {:ok, %{test_process: test_process, conn: nil}}
@@ -27,6 +30,11 @@ defmodule Air.PsqlTestDriver do
 
     def handle_cast({:simple_query, query}, state) do
       send(state.test_process, :odbc.sql_query(state.conn, to_charlist(query)))
+      {:noreply, state}
+    end
+
+    def handle_cast({:extended_query, query, params}, state) do
+      send(state.test_process, :odbc.param_query(state.conn, to_charlist(query), params))
       {:noreply, state}
     end
 
@@ -96,6 +104,9 @@ defmodule Air.PsqlTestDriver do
 
   def handle_message(conn, message), do:
     call(conn, {:handle_message, message})
+
+  def describe_statement(conn, query, params), do:
+    call(conn, {:describe_statement, query, params})
 
   defp call(conn, message) do
     try do
