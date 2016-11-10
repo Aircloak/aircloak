@@ -233,48 +233,9 @@ defmodule Air.PsqlServer.Protocol do
     |> request_send(authentication_ok())
     |> request_send(error_message("FATAL", "28000", "Authentication failed!"))
     |> close(:not_authenticated)
-  # :ready -> ready to accept queries
-  defp handle_event(state, :ready, {:message, %{type: :terminate}}), do:
-    close(state, :normal)
-  defp handle_event(state, :ready, {:message, %{type: :query} = message}), do:
-    state
-    |> add_action({:run_query, null_terminated_to_string(message.payload), [], 0})
-    |> next_state(:running_query)
-  defp handle_event(state, :ready, {:message, %{type: :parse} = message}) do
-    prepared_statement = decode_parse_message(message.payload)
-
-    state
-    |> put_in([:prepared_statements, prepared_statement.name], prepared_statement)
-    |> request_send(parse_complete())
-    |> transition_after_message(:ready)
-  end
-  defp handle_event(state, :ready, {:message, %{type: :bind} = message}) do
-    bind_data = decode_bind_message(message.payload)
-    prepared_statement = Map.fetch!(state.prepared_statements, bind_data.name)
-    params = convert_params(bind_data.params, prepared_statement.param_types)
-
-    state
-    |> put_in([:prepared_statements, bind_data.name], %{prepared_statement | params: params})
-    |> request_send(bind_complete())
-    |> transition_after_message(:ready)
-  end
-  defp handle_event(state, :ready, {:message, %{type: :describe} = message}) do
-    describe_data = decode_describe_message(message.payload)
-    prepared_statement = Map.fetch!(state.prepared_statements, describe_data.name)
-
-    state
-    |> request_send(parameter_description(prepared_statement.param_types))
-    |> add_action({:describe_statement, prepared_statement.query, prepared_statement.params})
-    |> next_state(:describing_statement)
-  end
-  defp handle_event(state, :ready, {:message, %{type: :execute} = message}) do
-    execute_data = decode_execute_message(message.payload)
-    prepared_statement = Map.fetch!(state.prepared_statements, execute_data.name)
-
-    state
-    |> add_action({:run_query, prepared_statement.query, prepared_statement.params, execute_data.max_rows})
-    |> next_state(:running_prepared_statement)
-  end
+  # :ready -> handling of various client messages
+  defp handle_event(state, :ready, {:message, message}), do:
+    handle_ready_message(state, message.type, message.payload)
   # :running_query -> awaiting query result
   defp handle_event(state, :running_query, {:select_result, result}), do:
     state
@@ -299,6 +260,54 @@ defmodule Air.PsqlServer.Protocol do
     transition_after_message(state, :ready)
   defp handle_event(state, :syncing, {:message, _}), do:
     transition_after_message(state, :syncing)
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Handling of messages in the `:ready` state
+  #-----------------------------------------------------------------------------------------------------------
+
+  defp handle_ready_message(state, :terminate, _), do:
+    close(state, :normal)
+  defp handle_ready_message(state, :query, payload), do:
+    state
+    |> add_action({:run_query, null_terminated_to_string(payload), [], 0})
+    |> next_state(:running_query)
+  defp handle_ready_message(state, :parse, payload) do
+    prepared_statement = decode_parse_message(payload)
+
+    state
+    |> put_in([:prepared_statements, prepared_statement.name], prepared_statement)
+    |> request_send(parse_complete())
+    |> transition_after_message(:ready)
+  end
+  defp handle_ready_message(state, :bind, payload) do
+    bind_data = decode_bind_message(payload)
+    prepared_statement = Map.fetch!(state.prepared_statements, bind_data.name)
+    params = convert_params(bind_data.params, prepared_statement.param_types)
+
+    state
+    |> put_in([:prepared_statements, bind_data.name], %{prepared_statement | params: params})
+    |> request_send(bind_complete())
+    |> transition_after_message(:ready)
+  end
+  defp handle_ready_message(state, :describe, payload) do
+    describe_data = decode_describe_message(payload)
+    prepared_statement = Map.fetch!(state.prepared_statements, describe_data.name)
+
+    state
+    |> request_send(parameter_description(prepared_statement.param_types))
+    |> add_action({:describe_statement, prepared_statement.query, prepared_statement.params})
+    |> next_state(:describing_statement)
+  end
+  defp handle_ready_message(state, :execute, payload) do
+    execute_data = decode_execute_message(payload)
+    prepared_statement = Map.fetch!(state.prepared_statements, execute_data.name)
+
+    state
+    |> add_action({:run_query, prepared_statement.query, prepared_statement.params, execute_data.max_rows})
+    |> next_state(:running_prepared_statement)
+  end
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
