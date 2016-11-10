@@ -6,12 +6,16 @@ defmodule Air.Service.AuditLog do
   require Logger
 
   @type email :: String.t
+  @type event_name :: String.t
+  @type data_source_id :: non_neg_integer
+  @type page_number :: non_neg_integer
   @type filter_params :: %{
-    page: non_neg_integer,
+    page: page_number,
     users: [email],
-    events: [String.t],
-    data_sources: [String.t]
+    events: [event_name],
+    data_sources: [data_source_id]
   }
+
 
   #-----------------------------------------------------------------------------------------------------------
   # API functions
@@ -55,7 +59,7 @@ defmodule Air.Service.AuditLog do
   Also includes all events present in the parameters, whether or not
   the other parameters would normally exclude them.
   """
-  @spec event_types(filter_params) :: [String.t]
+  @spec event_types(filter_params) :: [event_name]
   def event_types(params) do
     event_types = AuditLog
       |> for_user(params.users)
@@ -77,7 +81,7 @@ defmodule Air.Service.AuditLog do
   Also includes all data sources present in the parameters, whether or not
   the other parameters would normally exclude them.
   """
-  @spec data_sources(filter_params) :: [%{id: non_neg_integer, name: String.t}]
+  @spec data_sources(filter_params) :: [%{id: data_source_id, name: String.t}]
   def data_sources(params) do
     data_sources = AuditLog
       |> for_user(params.users)
@@ -86,7 +90,7 @@ defmodule Air.Service.AuditLog do
       |> Repo.all()
 
     # Include currently selected data sources
-    (params[:data_sources] |> Enum.map(&String.to_integer/1)) -- (data_sources |> Enum.map(&(&1.id)))
+    params[:data_sources] -- (data_sources |> Enum.map(&(&1.id)))
     |> Air.Service.DataSource.by_ids()
     |> Enum.map(&(%{name: &1.name, id: &1.id}))
     |> Enum.concat(data_sources)

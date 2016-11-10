@@ -169,7 +169,7 @@ defmodule Air.Service.AuditLogTest do
     |> Map.put(:page, Map.get(provided, :page, 1))
     |> Map.put(:users, Map.get(provided, :users, []))
     |> Map.put(:events, Map.get(provided, :events, []))
-    |> Map.put(:data_sources, Map.get(provided, :data_sources, []) |> Enum.map(&to_string/1))
+    |> Map.put(:data_sources, Map.get(provided, :data_sources, []))
   end
 
   defp entries_count(params, count) do
