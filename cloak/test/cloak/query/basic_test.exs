@@ -88,14 +88,17 @@ defmodule Cloak.Query.BasicTest do
 
   test "should return LCF property when sufficient rows are filtered" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 0..1, "heights", ["height"], [160])
-    :ok = insert_rows(_user_ids = 20..24, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 20..24, "heights", ["height"], [190])
-    :ok = insert_rows(_user_ids = 25..29, "heights", ["height"], [200])
-    :ok = insert_rows(_user_ids = 25..29, "heights", ["height"], [150])
+    :ok = insert_rows(_user_ids = 0..3, "heights", ["height"], [160])
+    :ok = insert_rows(_user_ids = 20..23, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 20..23, "heights", ["height"], [190])
+    :ok = insert_rows(_user_ids = 24..27, "heights", ["height"], [200])
+    :ok = insert_rows(_user_ids = 24..27, "heights", ["height"], [150])
 
     assert_query "select height from heights order by height",
-      %{columns: ["height"], rows: [%{row: [180], occurrences: 20}, %{row: [:*], occurrences: 22}]}
+      %{columns: ["height"], rows: [
+        %{row: [180], occurrences: 20},
+        %{row: [:*], occurrences: 19},
+      ]}
   end
 
   test "should produce counts" do
