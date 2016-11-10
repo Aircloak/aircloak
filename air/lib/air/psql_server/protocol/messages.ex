@@ -27,6 +27,16 @@ defmodule Air.PsqlServer.Protocol.Messages do
     |> Enum.into(%{})
   end
 
+  def decode_message(:bind, message), do:
+    decode_bind_message(message)
+  def decode_message(:describe, <<type, describe_data::binary>>) do
+    [name, ""] = :binary.split(describe_data, <<0>>)
+    %{type: type, name: name}
+  end
+  def decode_message(:execute, execute_data) do
+    [name, <<max_rows::32>>] = :binary.split(execute_data, <<0>>)
+    %{name: name, max_rows: max_rows}
+  end
   def decode_message(:parse, parse_message_data) do
     [name, parse_message_data] = :binary.split(parse_message_data, <<0>>)
     [query, parse_message_data] = :binary.split(parse_message_data, <<0>>)
@@ -49,15 +59,6 @@ defmodule Air.PsqlServer.Protocol.Messages do
     [query, <<>>] = :binary.split(query_message, <<0>>)
     query
   end
-  def decode_message(:describe, <<type, describe_data::binary>>) do
-    [name, ""] = :binary.split(describe_data, <<0>>)
-    %{type: type, name: name}
-  end
-  def decode_message(:execute, execute_data) do
-    [name, <<max_rows::32>>] = :binary.split(execute_data, <<0>>)
-    %{name: name, max_rows: max_rows}
-  end
-  def decode_message(:bind, message), do: decode_bind_message(message)
 
   def query_message(query), do: client_message(:query, null_terminate(query))
 
