@@ -8,7 +8,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
 
   #-----------------------------------------------------------------------------------------------------------
-  # Incoming (frontend) messages
+  # Client messages (i.e. "frontend" as referenced in official PostgreSQL docs)
   #-----------------------------------------------------------------------------------------------------------
 
   def ssl_message?(message), do: message == ssl_message()
@@ -17,7 +17,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
     %{length: length - byte_size(message), version: %{major: major, minor: minor}}
 
   def decode_message_header(<<message_byte::8, length::32>>), do:
-    %{type: frontend_message_name(message_byte), length: length - 4}
+    %{type: client_message_name(message_byte), length: length - 4}
 
   def decode_login_params(raw_login_params) do
     raw_login_params
@@ -52,11 +52,11 @@ defmodule Air.PsqlServer.Protocol.Messages do
     %{name: name, max_rows: max_rows}
   end
 
-  def query_message(query), do: frontend_message(:query, null_terminate(query))
+  def query_message(query), do: client_message(:query, null_terminate(query))
 
-  def password_message(password), do: frontend_message(:password, null_terminate(password))
+  def password_message(password), do: client_message(:password, null_terminate(password))
 
-  def terminate_message(), do: frontend_message(:terminate, <<>>)
+  def terminate_message(), do: client_message(:terminate, <<>>)
 
   for {message_name, message_byte} <-
       %{
@@ -69,15 +69,15 @@ defmodule Air.PsqlServer.Protocol.Messages do
         sync: ?S,
         terminate: ?X
       } do
-    defp frontend_message_name(unquote(message_byte)), do: unquote(message_name)
-    defp frontend_message_byte(unquote(message_name)), do: unquote(message_byte)
+    defp client_message_name(unquote(message_byte)), do: unquote(message_name)
+    defp client_message_byte(unquote(message_name)), do: unquote(message_byte)
   end
 
   # we're not using all patterns in this function, so dialyzer complains
-  @dialyzer {:nowarn_function, frontend_message_byte: 1}
+  @dialyzer {:nowarn_function, client_message_byte: 1}
 
-  defp frontend_message(message_name, payload), do:
-    <<frontend_message_byte(message_name)::8, message_with_size(payload)::binary>>
+  defp client_message(message_name, payload), do:
+    <<client_message_byte(message_name)::8, message_with_size(payload)::binary>>
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -134,19 +134,19 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
 
   #-----------------------------------------------------------------------------------------------------------
-  # Outgoing (backend messages)
+  # Server (i.e. "backend" as referenced in official PostgreSQL docs)
   #-----------------------------------------------------------------------------------------------------------
 
-  def backend_message_type(<<message_byte::8, _::binary>>), do:
-    backend_message_name(message_byte)
+  def server_message_type(<<message_byte::8, _::binary>>), do:
+    server_message_name(message_byte)
 
-  def authentication_method(:cleartext), do: backend_message(:authentication, <<3::32>>)
+  def authentication_method(:cleartext), do: server_message(:authentication, <<3::32>>)
 
-  def authentication_ok(), do: backend_message(:authentication, <<0::32>>)
+  def authentication_ok(), do: server_message(:authentication, <<0::32>>)
 
-  def bind_complete(), do: backend_message(:bind_complete, <<>>)
+  def bind_complete(), do: server_message(:bind_complete, <<>>)
 
-  def command_complete(tag), do: backend_message(:command_complete, null_terminate(tag))
+  def command_complete(tag), do: server_message(:command_complete, null_terminate(tag))
 
   def data_row(values) do
     encoded_row =
@@ -154,20 +154,20 @@ defmodule Air.PsqlServer.Protocol.Messages do
       |> Enum.map(&value_to_text/1)
       |> IO.iodata_to_binary()
 
-    backend_message(:data_row, <<length(values)::16, encoded_row::binary>>)
+    server_message(:data_row, <<length(values)::16, encoded_row::binary>>)
   end
 
   def error_message(severity, code, message), do:
-    backend_message(:error_response, <<
+    server_message(:error_response, <<
       ?S, null_terminate(severity)::binary,
       ?C, null_terminate(code)::binary,
       ?M, null_terminate(message)::binary,
       0
     >>)
 
-  def ready_for_query(), do: backend_message(:ready_for_query, <<?I>>)
+  def ready_for_query(), do: server_message(:ready_for_query, <<?I>>)
 
-  def parse_complete(), do: backend_message(:parse_complete, <<>>)
+  def parse_complete(), do: server_message(:parse_complete, <<>>)
 
   def require_ssl(), do: <<?S>>
 
@@ -177,11 +177,11 @@ defmodule Air.PsqlServer.Protocol.Messages do
       |> Enum.map(&column_description/1)
       |> IO.iodata_to_binary()
 
-    backend_message(:row_description, <<length(columns)::16, columns_descriptions::binary>>)
+    server_message(:row_description, <<length(columns)::16, columns_descriptions::binary>>)
   end
 
   def parameter_status(name, value), do:
-    backend_message(:parameter_status, null_terminate(name) <> null_terminate(value))
+    server_message(:parameter_status, null_terminate(name) <> null_terminate(value))
 
   def parameter_description(param_types) do
     encoded_types =
@@ -190,7 +190,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
       |> Enum.map(&<<&1::32>>)
       |> IO.iodata_to_binary()
 
-    backend_message(:parameter_description, <<length(param_types)::16, encoded_types::binary>>)
+    server_message(:parameter_description, <<length(param_types)::16, encoded_types::binary>>)
   end
 
   def ssl_message(), do: message_with_size(<<1234::16, 5679::16>>)
@@ -217,12 +217,12 @@ defmodule Air.PsqlServer.Protocol.Messages do
         ready_for_query: ?Z,
         row_description: ?T,
       } do
-    defp backend_message_name(unquote(message_byte)), do: unquote(message_name)
-    defp backend_message_byte(unquote(message_name)), do: unquote(message_byte)
+    defp server_message_name(unquote(message_byte)), do: unquote(message_name)
+    defp server_message_byte(unquote(message_name)), do: unquote(message_byte)
   end
 
-  defp backend_message(message_name, payload), do:
-    <<backend_message_byte(message_name)::8, message_with_size(payload)::binary>>
+  defp server_message(message_name, payload), do:
+    <<server_message_byte(message_name)::8, message_with_size(payload)::binary>>
 
 
   #-----------------------------------------------------------------------------------------------------------

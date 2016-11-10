@@ -45,9 +45,9 @@ defmodule Air.PsqlServer.ProtocolTest do
           )
       |> last_actions(5)
 
-    assert backend_message_type(row_description_message) == :row_description
-    assert backend_message_type(data_row1_message) == :data_row
-    assert backend_message_type(data_row2_message) == :data_row
+    assert server_message_type(row_description_message) == :row_description
+    assert server_message_type(data_row1_message) == :data_row
+    assert server_message_type(data_row2_message) == :data_row
     assert ready_for_query_message == ready_for_query()
     assert command_complete_message == command_complete("SELECT 2")
   end
