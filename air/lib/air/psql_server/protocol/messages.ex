@@ -37,11 +37,11 @@ defmodule Air.PsqlServer.Protocol.Messages do
     [name, <<max_rows::32>>] = :binary.split(execute_data, <<0>>)
     %{name: name, max_rows: max_rows}
   end
-  def decode_message(:parse, parse_message_data) do
-    [name, parse_message_data] = :binary.split(parse_message_data, <<0>>)
-    [query, parse_message_data] = :binary.split(parse_message_data, <<0>>)
-    <<num_params::16, parse_message_data::binary>> = parse_message_data
-    param_types = for <<oid::32 <- parse_message_data>>, do: type_name(oid)
+  def decode_message(:parse, parse_data) do
+    [name, parse_data] = :binary.split(parse_data, <<0>>)
+    [query, parse_data] = :binary.split(parse_data, <<0>>)
+    <<num_params::16, parse_data::binary>> = parse_data
+    param_types = for <<oid::32 <- parse_data>>, do: type_name(oid)
 
     %{
       name: name,
