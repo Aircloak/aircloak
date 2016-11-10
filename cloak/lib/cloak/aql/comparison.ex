@@ -38,6 +38,8 @@ defmodule Cloak.Aql.Comparison do
   def direction({:comparison, _, :>, _}), do: :>
   def direction({:comparison, _, :>=, _}), do: :>
 
+  @doc "Converts the given condition to a function that checks a row."
+  @spec to_function(Query.where_clause, boolean) :: function
   def to_function(_condition, _truth \\ true)
   def to_function({:not, condition}, truth), do: to_function(condition, not truth)
   def to_function({:comparison, column, operator, value}, truth) do
