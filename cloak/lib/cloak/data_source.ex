@@ -34,6 +34,8 @@ defmodule Cloak.DataSource do
 
   alias Cloak.Aql
   alias Cloak.DataSource.Parameters
+  alias Cloak.Query.DataDecoder
+
   require Logger
   require Aircloak.DeployConfig
 
@@ -49,7 +51,8 @@ defmodule Cloak.DataSource do
     db_name: String.t, # table name in the database
     user_id: String.t,
     ignore_unsupported_types: boolean,
-    columns: [{column, data_type}]
+    columns: [{column, data_type}],
+    decoders: [DataDecoder.t]
   }
   @type num_rows :: non_neg_integer
   @type column :: String.t
@@ -59,6 +62,7 @@ defmodule Cloak.DataSource do
   @type query_result :: Enumerable.t
   @type processed_result :: any
   @type result_processor :: (query_result -> processed_result)
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Driver behaviour
@@ -226,10 +230,8 @@ defmodule Cloak.DataSource do
     Application.put_env(:cloak, :data_sources, data_sources)
   end
 
-  defp add_tables(data_source) do
-    tables = load_tables(data_source) |> Enum.into(%{})
-    Map.put(data_source, :tables, tables)
-  end
+  defp add_tables(data_source), do:
+    Map.put(data_source, :tables, load_tables(data_source))
 
   defp load_tables(data_source) do
     driver = data_source.driver
@@ -241,9 +243,11 @@ defmodule Cloak.DataSource do
           |> Map.put(:columns, [])
           |> Map.put(:name, to_string(table_id))
           |> Map.put_new(:db_name, to_string(table_id))
+          |> Map.put_new(:decoders, [])
         end)
         |> Enum.flat_map(&driver.load_tables(connection, &1))
         |> Enum.map(&parse_columns(data_source, &1))
+        |> Enum.map(&DataDecoder.init/1)
         |> Enum.map(&{String.to_atom(&1.name), &1})
         |> Enum.into(%{})
       after
