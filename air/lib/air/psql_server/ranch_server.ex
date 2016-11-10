@@ -47,6 +47,9 @@ defmodule Air.PsqlServer.RanchServer do
   @doc "Invoked to run the query."
   @callback run_query(t, String.t) :: t
 
+  @doc "Invoked to describe the statement result."
+  @callback describe_statement(t, String.t, [any]) :: t
+
   @doc "Invoked when a message is received by the connection process."
   @callback handle_message(t, any) :: t
 
@@ -219,6 +222,8 @@ defmodule Air.PsqlServer.RanchServer do
   end
   defp handle_protocol_action({:run_query, query}, conn), do:
     handle_query_result(conn.behaviour_mod.run_query(conn, query))
+  defp handle_protocol_action({:describe_statement, query, params}, conn), do:
+    conn.behaviour_mod.describe_statement(conn, query, params)
 
   defp update_protocol(conn, fun), do:
     %__MODULE__{conn | protocol: fun.(conn.protocol)}

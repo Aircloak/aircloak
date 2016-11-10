@@ -248,6 +248,14 @@ defmodule Air.PsqlServer.Protocol do
     |> request_send(bind_complete())
     |> transition_after_message(:ready)
   end
+  defp handle_event(state(:ready), {:message, %{type: :describe} = message}) do
+    describe_data = decode_describe_message(message.payload)
+    prepared_statement = Map.fetch!(state.prepared_statements, describe_data.name)
+
+    state
+    |> add_action({:describe_statement, prepared_statement.query, prepared_statement.params})
+    |> next_state(:describing_statement)
+  end
   # :running_query -> awaiting query result
   defp handle_event(state(:running_query), {:select_result, result}), do:
     state

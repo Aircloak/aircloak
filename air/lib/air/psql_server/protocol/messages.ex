@@ -42,6 +42,11 @@ defmodule Air.PsqlServer.Protocol.Messages do
     }
   end
 
+  def decode_describe_message(<<type, describe_data::binary>>) do
+    [name, ""] = :binary.split(describe_data, <<0>>)
+    %{type: type, name: name}
+  end
+
   def query_message(query), do: frontend_message(:query, null_terminate(query))
 
   def password_message(password), do: frontend_message(:password, null_terminate(password))
@@ -51,6 +56,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
   for {message_name, message_byte} <-
       %{
         bind: ?B,
+        describe: ?D,
         parse: ?P,
         password: ?p,
         query: ?Q,
