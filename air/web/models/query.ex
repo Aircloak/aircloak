@@ -130,7 +130,6 @@ defmodule Air.Query do
     },
     where:
       not is_nil(q.statement) and q.statement != "" and
-      q.inserted_at > fragment("(CURRENT_DATE - INTERVAL '7 day')::date") and
       fragment("?->>'error' <> ''", q.result),
     order_by: [desc: q.inserted_at]
   end
