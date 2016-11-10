@@ -31,7 +31,8 @@ defmodule Air.PsqlServer.Protocol do
     {:close, reason :: any} |
     {:login_params, map} |
     {:authenticate, password :: binary} |
-    {:run_query, String.t, [any], non_neg_integer}
+    {:run_query, String.t, [any], non_neg_integer} |
+    {:describe_statement, String.t, [any]}
 
   @type authentication_method :: :cleartext
 
