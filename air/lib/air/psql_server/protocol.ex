@@ -43,7 +43,7 @@ defmodule Air.PsqlServer.Protocol do
   @type query_result :: %{columns: [column], rows: [any]}
 
   @type prepared_statement :: %{
-    statement_name: String.t,
+    name: String.t,
     query: String.t,
     num_params: non_neg_integer,
     param_types: [psql_type],
@@ -244,17 +244,17 @@ defmodule Air.PsqlServer.Protocol do
     prepared_statement = decode_parse_message(message.payload)
 
     state
-    |> put_in([:prepared_statements, prepared_statement.statement_name], prepared_statement)
+    |> put_in([:prepared_statements, prepared_statement.name], prepared_statement)
     |> request_send(parse_complete())
     |> transition_after_message(:ready)
   end
   defp handle_event(state(:ready), {:message, %{type: :bind} = message}) do
     bind_data = decode_bind_message(message.payload)
-    prepared_statement = Map.fetch!(state.prepared_statements, bind_data.statement_name)
+    prepared_statement = Map.fetch!(state.prepared_statements, bind_data.name)
     params = convert_params(bind_data.params, prepared_statement.param_types)
 
     state
-    |> put_in([:prepared_statements, bind_data.statement_name], %{prepared_statement | params: params})
+    |> put_in([:prepared_statements, bind_data.name], %{prepared_statement | params: params})
     |> request_send(bind_complete())
     |> transition_after_message(:ready)
   end
@@ -269,7 +269,7 @@ defmodule Air.PsqlServer.Protocol do
   end
   defp handle_event(state(:ready), {:message, %{type: :execute} = message}) do
     execute_data = decode_execute_message(message.payload)
-    prepared_statement = Map.fetch!(state.prepared_statements, execute_data.statement_name)
+    prepared_statement = Map.fetch!(state.prepared_statements, execute_data.name)
 
     state
     |> add_action({:run_query, prepared_statement.query, prepared_statement.params, execute_data.max_rows})

@@ -28,13 +28,13 @@ defmodule Air.PsqlServer.Protocol.Messages do
   end
 
   def decode_parse_message(parse_message_data) do
-    [statement_name, parse_message_data] = :binary.split(parse_message_data, <<0>>)
+    [name, parse_message_data] = :binary.split(parse_message_data, <<0>>)
     [query, parse_message_data] = :binary.split(parse_message_data, <<0>>)
     <<num_params::16, parse_message_data::binary>> = parse_message_data
     param_types = for <<oid::32 <- parse_message_data>>, do: type_name(oid)
 
     %{
-      statement_name: statement_name,
+      name: name,
       query: query,
       num_params: num_params,
       param_types: param_types,
@@ -49,7 +49,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   def decode_execute_message(execute_data) do
     [name, <<max_rows::32>>] = :binary.split(execute_data, <<0>>)
-    %{statement_name: name, max_rows: max_rows}
+    %{name: name, max_rows: max_rows}
   end
 
   def query_message(query), do: frontend_message(:query, null_terminate(query))
@@ -86,7 +86,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   def decode_bind_message(bind_message_data) do
     [_portal, bind_message_data] = :binary.split(bind_message_data, <<0>>)
-    [statement_name, bind_message_data] = :binary.split(bind_message_data, <<0>>)
+    [name, bind_message_data] = :binary.split(bind_message_data, <<0>>)
 
     <<num_format_codes::16, bind_message_data::binary>> = bind_message_data
     {format_codes, bind_message_data} = decode_format_codes(num_format_codes, bind_message_data)
@@ -98,7 +98,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
     {result_codes, <<>>} = decode_result_codes(num_result_codes, bind_message_data)
 
     %{
-      statement_name: statement_name,
+      name: name,
       format_codes: format_codes,
       params: params,
       result_codes: result_codes
