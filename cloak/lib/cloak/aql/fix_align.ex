@@ -63,6 +63,24 @@ defmodule Cloak.Aql.FixAlign do
   def align_interval({%Time{} = x, %Time{} = y}, _), do:
     {x, y} |> time_to_datetime() |> align_date_time() |> datetime_to_time() |> cap_midnight() |> max_precision()
 
+  def subintervals({x, y}, size_factors \\ @default_size_factors) do
+    size =
+      sizes({x, y}, size_factors, _allow_fractions = true)
+      |> Stream.take_while(&(&1 < y - x))
+      |> Enum.reverse()
+      |> hd()
+
+    base = floor_to(x, size / 2) - size / 2
+
+    Stream.iterate(0, &(&1 + 1))
+    |> Stream.flat_map(fn i -> [
+      {base + i * size, base + (i + 1) * size},
+      {base + i * size + size / 2, base + (i + 1) * size + size / 2},
+    ] end)
+    |> Stream.drop_while(fn {_, right} -> right <= x end)
+    |> Enum.take_while(fn {left, _} -> left < y end)
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions for Dates and NaiveDateTimes

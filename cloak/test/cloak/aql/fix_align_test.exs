@@ -129,6 +129,13 @@ defmodule Cloak.Aql.FixAlign.Test do
     assert FixAlign.align(15) == 20
   end
 
+  test "subintervals" do
+    assert [{-2.5, 2.5}, {0, 5}, {2.5, 7.5}, {5, 10}, {7.5, 12.5}] == FixAlign.subintervals({0, 10})
+    assert [{-1, 1}, {0, 2}, {1, 3}, {2, 4}, {3, 5}, {4, 6}] == FixAlign.subintervals({0, 5})
+    assert [{-0.5, 0.5}, {0, 1}, {0.5, 1.5}, {1, 2}, {1.5, 2.5}] == FixAlign.subintervals({0, 2})
+    assert [{-3, 3}, {0, 6}, {3, 9}, {6, 12}, {9, 15}] == FixAlign.subintervals({0, 10}, _size_factors = [1, 2, 6])
+  end
+
   defp interval(:int), do: int_interval
   defp interval(:float), do: float_interval
   defp interval(:datetime), do: datetime_interval
