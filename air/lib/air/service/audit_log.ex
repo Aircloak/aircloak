@@ -5,9 +5,10 @@ defmodule Air.Service.AuditLog do
   import Ecto.Query, only: [from: 2]
   require Logger
 
+  @type email :: String.t
   @type filter_params :: %{
     page: non_neg_integer,
-    users: [String.t],
+    users: [email],
     events: [String.t],
     data_sources: [String.t]
   }
@@ -99,7 +100,7 @@ defmodule Air.Service.AuditLog do
   Also includes all users present in the parameters, whether or not
   the other parameters would normally exclude them.
   """
-  @spec users(filter_params) :: [%{name: String.t, email: String.t}]
+  @spec users(filter_params) :: [%{name: String.t, email: email}]
   def users(params) do
     users = AuditLog
       |> for_event(params.events)
