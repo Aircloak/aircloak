@@ -115,7 +115,7 @@ defmodule Air.Query do
   Adds a query filter returning recent queries which failed on cloak.
 
   The queryable returned by this function will select a map with fields
-  `id`, `statement`, and `error`.
+  `id`, `inserted_at`, `data_source`, `statement`, and `error`.
   """
   @spec failed(Ecto.Queryable.t) :: Ecto.Queryable.t
   def failed(query \\ __MODULE__) do
