@@ -32,7 +32,8 @@ config :cloak, :anonymizer,
   low_count_soft_lower_bound: {4, 0.6},
 
   # The minimum absolute value of the noisy lower bound.
-  low_count_absolute_lower_bound: 1,
+  # Reported values equal or exceed this value.
+  low_count_absolute_lower_bound: 2,
 
   # The mean and standard deviation for the count of outliers dropped, from the top of the collection,
   # during the anonymized aggregation of values. The outliers are replaced with the noisy

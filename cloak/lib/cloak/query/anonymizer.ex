@@ -56,10 +56,10 @@ defmodule Cloak.Query.Anonymizer do
   Returns a `{boolean, anonymizer}` tuple, where the boolean value is
   true if the passed bucket size is sufficiently large to be reported.
 
-  Sufficiently large means:
+  Sufficiently large means the bucket size is greater or equal to the:
 
-  1. Greater than low_count_absolute_lower_bound
-  2. A noised version of the count is greater than low_count_soft_lower_bound
+  1. low_count_absolute_lower_bound
+  2. noisy low_count_soft_lower_bound
 
   See config/config.exs for the parameters of the distribution used. The PRNG is seeded based
   on the user list provided, giving the same answer every time for the given list of users.
@@ -68,7 +68,7 @@ defmodule Cloak.Query.Anonymizer do
   def sufficiently_large?(anonymizer, count) do
     {noisy_lower_bound, anonymizer} = add_noise(anonymizer, config(:low_count_soft_lower_bound))
     noisy_lower_bound = Kernel.max(round(noisy_lower_bound), config(:low_count_absolute_lower_bound))
-    {count > noisy_lower_bound, anonymizer}
+    {count >= noisy_lower_bound, anonymizer}
   end
 
   @doc "Computes the noisy count and noise sigma of all values in rows, where each row is an enumerable."
