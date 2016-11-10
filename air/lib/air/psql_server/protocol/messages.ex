@@ -8,7 +8,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
 
   #-----------------------------------------------------------------------------------------------------------
-  # Decoding functions
+  # Incoming (frontend) messages
   #-----------------------------------------------------------------------------------------------------------
 
   def ssl_message?(message), do: message == ssl_message()
@@ -17,10 +17,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
     %{length: length - byte_size(message), version: %{major: major, minor: minor}}
 
   def parse_message_header(<<message_byte::8, length::32>>), do:
-    %{type: message_name(message_byte), length: length - 4}
-
-  def message_type(<<message_header::binary-size(5), _::binary>>), do:
-    parse_message_header(message_header).type
+    %{type: frontend_message_name(message_byte), length: length - 4}
 
   def parse_login_params(raw_login_params) do
     raw_login_params
@@ -30,16 +27,38 @@ defmodule Air.PsqlServer.Protocol.Messages do
     |> Enum.into(%{})
   end
 
+  def query_message(query), do: frontend_message(:query, null_terminate(query))
+
+  def password_message(password), do: frontend_message(:password, null_terminate(password))
+
+  def terminate_message(), do: frontend_message(:terminate, <<>>)
+
+  for {message_name, message_byte} <-
+      %{
+        password: ?p,
+        query: ?Q,
+        terminate: ?X
+      } do
+    defp frontend_message_name(unquote(message_byte)), do: unquote(message_name)
+    defp frontend_message_byte(unquote(message_name)), do: unquote(message_byte)
+  end
+
+  defp frontend_message(message_name, payload), do:
+    <<frontend_message_byte(message_name)::8, message_with_size(payload)::binary>>
+
 
   #-----------------------------------------------------------------------------------------------------------
-  # Encoding functions
+  # Outgoing (backend messages)
   #-----------------------------------------------------------------------------------------------------------
 
-  def authentication_method(:cleartext), do: message_with_size(:authentication, <<3::32>>)
+  def backend_message_type(<<message_byte::8, _::binary>>), do:
+    backend_message_name(message_byte)
 
-  def authentication_ok(), do: message_with_size(:authentication, <<0::32>>)
+  def authentication_method(:cleartext), do: backend_message(:authentication, <<3::32>>)
 
-  def command_complete(tag), do: message_with_size(:command_complete, null_terminate(tag))
+  def authentication_ok(), do: backend_message(:authentication, <<0::32>>)
+
+  def command_complete(tag), do: backend_message(:command_complete, null_terminate(tag))
 
   def data_row(values) do
     encoded_row =
@@ -47,11 +66,11 @@ defmodule Air.PsqlServer.Protocol.Messages do
       |> Enum.map(&value_to_text/1)
       |> IO.iodata_to_binary()
 
-    message_with_size(:data_row, <<length(values)::16, encoded_row::binary>>)
+    backend_message(:data_row, <<length(values)::16, encoded_row::binary>>)
   end
 
   def error_message(severity, code, message), do:
-    message_with_size(:error_response, <<
+    backend_message(:error_response, <<
       ?S, null_terminate(severity)::binary,
       ?C, null_terminate(code)::binary,
       ?M, null_terminate(message)::binary,
@@ -60,7 +79,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   def require_ssl(), do: <<?S>>
 
-  def ready_for_query(), do: message_with_size(:ready_for_query, <<?I>>)
+  def ready_for_query(), do: backend_message(:ready_for_query, <<?I>>)
 
   def row_description(columns) do
     columns_descriptions =
@@ -68,15 +87,11 @@ defmodule Air.PsqlServer.Protocol.Messages do
       |> Enum.map(&column_description/1)
       |> IO.iodata_to_binary()
 
-    message_with_size(:row_description, <<length(columns)::16, columns_descriptions::binary>>)
+    backend_message(:row_description, <<length(columns)::16, columns_descriptions::binary>>)
   end
 
   def parameter_status(name, value), do:
-    message_with_size(:parameter_status, null_terminate(name) <> null_terminate(value))
-
-  def password_message(password), do: message_with_size(:password, null_terminate(password))
-
-  def query_message(query), do: message_with_size(:query, null_terminate(query))
+    backend_message(:parameter_status, null_terminate(name) <> null_terminate(value))
 
   def ssl_message(), do: message_with_size(<<1234::16, 5679::16>>)
 
@@ -89,7 +104,22 @@ defmodule Air.PsqlServer.Protocol.Messages do
     |> message_with_size()
   end
 
-  def terminate_message(), do: message_with_size(:terminate, <<>>)
+  for {message_name, message_byte} <-
+      %{
+        authentication: ?R,
+        command_complete: ?C,
+        data_row: ?D,
+        error_response: ?E,
+        parameter_status: ?S,
+        ready_for_query: ?Z,
+        row_description: ?T,
+      } do
+    defp backend_message_name(unquote(message_byte)), do: unquote(message_name)
+    defp backend_message_byte(unquote(message_name)), do: unquote(message_byte)
+  end
+
+  defp backend_message(message_name, payload), do:
+    <<backend_message_byte(message_name)::8, message_with_size(payload)::binary>>
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -122,36 +152,11 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
 
   #-----------------------------------------------------------------------------------------------------------
-  # Message helpers
+  # Other helpers
   #-----------------------------------------------------------------------------------------------------------
 
   defp message_with_size(payload), do:
     <<(4 + byte_size(payload))::32, payload::binary>>
-
-  defp message_with_size(message_name, payload), do:
-    <<message_byte(message_name)::8, message_with_size(payload)::binary>>
-
-  for {message_name, message_byte} <-
-      %{
-        authentication: ?R,
-        command_complete: ?C,
-        data_row: ?D,
-        error_response: ?E,
-        password: ?p,
-        parameter_status: ?S,
-        query: ?Q,
-        ready_for_query: ?Z,
-        row_description: ?T,
-        terminate: ?X
-      } do
-    defp message_name(unquote(message_byte)), do: unquote(message_name)
-    defp message_byte(unquote(message_name)), do: unquote(message_byte)
-  end
-
-
-  #-----------------------------------------------------------------------------------------------------------
-  # Other helpers
-  #-----------------------------------------------------------------------------------------------------------
 
   def null_terminated_to_string(null_terminated_string) do
     string_size = byte_size(null_terminated_string) - 1
