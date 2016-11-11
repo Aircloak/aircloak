@@ -236,11 +236,20 @@ defmodule Air.CentralSocket do
   end
 
   defp central_socket_url(air_params) do
-    config(:central_site)
+    central_url()
     |> URI.parse()
     |> Map.put(:path, "/air/socket/websocket")
     |> Map.put(:query, URI.encode_query(air_params))
     |> URI.to_string()
+  end
+
+  # We allow for an alternate central in cases of test deployments for
+  # the staging environment.
+  defp central_url() do
+    case Map.fetch(Aircloak.DeployConfig.fetch!("site"), "alternate_aircloak_central") do
+      {:ok, url} -> url
+      :error -> config(:central_site)
+    end
   end
 
   defp respond_to_internal_request({client_pid, mref}, response) do
