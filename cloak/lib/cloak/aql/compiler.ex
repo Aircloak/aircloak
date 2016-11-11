@@ -868,9 +868,27 @@ defmodule Cloak.Aql.Compiler do
       type -> Column.db_function(name, args, type, Function.aggregate_function?(function_spec))
     end
   end
+  defp identifier_to_column({:parameter, index}, _columns_by_name, query) do
+    if index > tuple_size(query.parameters) do
+      message =
+        "The query references the `$#{index}` parameter, " <>
+        "but only #{tuple_size(query.parameters)} parameters are passed."
+      raise CompilationError, message: message
+    end
+
+    param_value = elem(query.parameters, index - 1)
+    Column.constant(data_type(param_value, index), param_value)
+  end
   defp identifier_to_column({:constant, type, value}, _columns_by_name, _query), do:
     Column.constant(type, value)
   defp identifier_to_column(other, _columns_by_name, _query), do: other
+
+  defp data_type(value, _index) when is_boolean(value), do: :boolean
+  defp data_type(value, _index) when is_integer(value), do: :integer
+  defp data_type(value, _index) when is_float(value), do: :real
+  defp data_type(value, _index) when is_binary(value), do: :text
+  defp data_type(_value, index), do:
+    raise CompilationError, message: "Invalid value for the parameter `$#{index}`"
 
   defp get_columns(columns_by_name, {:unquoted, name}) do
     columns_by_name

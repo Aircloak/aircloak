@@ -7,9 +7,9 @@ defmodule Cloak.DataSource.MongoDBTest do
 
   @table "test"
 
-  defmacro assert_query(context, query, expected_response) do
+  defmacro assert_query(context, query, parameters \\ [], expected_response) do
     quote do
-      Runner.start("1", unquote(context).data_source, unquote(query), [], {:process, self()})
+      Runner.start("1", unquote(context).data_source, unquote(query), unquote(parameters), {:process, self()})
       response = receive do
         {:reply, response} -> response
       end
