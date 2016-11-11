@@ -41,13 +41,13 @@ defmodule Air.PsqlServer.ProtocolTest do
       authenticate(true)
       |> run_actions(
             process: [query_message("select foo from bar")],
-            select_result: [%{columns: [%{name: "x", type: :integer}], rows: [[1], [2]]}]
+            select_result: [%{columns: [%{name: "x", type: :int8}], rows: [[1], [2]]}]
           )
       |> last_actions(5)
 
-    assert message_type(row_description_message) == :row_description
-    assert message_type(data_row1_message) == :data_row
-    assert message_type(data_row2_message) == :data_row
+    assert server_message_type(row_description_message) == :row_description
+    assert server_message_type(data_row1_message) == :data_row
+    assert server_message_type(data_row2_message) == :data_row
     assert ready_for_query_message == ready_for_query()
     assert command_complete_message == command_complete("SELECT 2")
   end

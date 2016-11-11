@@ -55,13 +55,17 @@ defmodule Air.PsqlServer do
   end
 
   @doc false
-  def run_query(conn, query) do
+  def run_query(conn, query, _params, _max_rows) do
     RanchServer.assign(
       conn,
       :query_runner,
       Task.async(fn -> DataSource.run_query(conn.assigns.data_source_id, conn.assigns.user, query) end)
     )
   end
+
+  @doc false
+  def describe_statement(_conn, _query, _params), do:
+    raise "Prepared statements are not supported!"
 
   @doc false
   def handle_message(%{assigns: %{query_runner: %Task{ref: ref}}} = conn, {ref, query_result}), do:
@@ -96,8 +100,11 @@ defmodule Air.PsqlServer do
     %{error: "System error!"}
   end
 
-  for supported_type <- [:integer, :text] do
-    defp type_atom(unquote(to_string(supported_type))), do: unquote(supported_type)
+  for {aql_type, psql_type} <- %{
+    "integer" => :int8,
+    "text" => :text
+  } do
+    defp type_atom(unquote(aql_type)), do: unquote(psql_type)
   end
   defp type_atom(_other), do: :unknown
 end
