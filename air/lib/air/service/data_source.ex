@@ -54,9 +54,9 @@ defmodule Air.Service.DataSource do
     session_id: String.t | nil
   ]
   @doc "Starts the query on the given data source as the given user."
-  @spec start_query(data_source_id_spec, User.t, String.t, start_query_options) ::
+  @spec start_query(data_source_id_spec, User.t, String.t, [any], start_query_options) ::
     {:ok, Query.t} | {:error, :unauthorized | :not_connected | :internal_error | any}
-  def start_query(data_source_id_spec, user, statement, opts \\ []) do
+  def start_query(data_source_id_spec, user, statement, parameters, opts \\ []) do
     opts = Keyword.merge([audit_meta: %{}, notify: false], opts)
 
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user),
@@ -69,7 +69,7 @@ defmodule Air.Service.DataSource do
         case DataSourceManager.channel_pids(query.data_source.global_id) do
           [channel_pid | _] ->
             if opts[:notify] == true, do: Air.QueryEvents.subscribe(query.id)
-            with :ok <- MainChannel.run_query(channel_pid, Query.to_cloak_query(query)), do:
+            with :ok <- MainChannel.run_query(channel_pid, Query.to_cloak_query(query, parameters)), do:
               {:ok, query}
 
           [] -> {:error, :not_connected}
@@ -86,10 +86,11 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Runs the query synchronously and returns its result."
-  @spec run_query(data_source_id_spec, User.t, String.t, [audit_meta: %{atom => any}]) ::
+  @spec run_query(data_source_id_spec, User.t, String.t, [any], [audit_meta: %{atom => any}]) ::
     {:ok, %{}} | {:error, :unauthorized | :not_connected | :internal_error | any}
-  def run_query(data_source_id_spec, user, statement, opts \\ []) do
-    with {:ok, %{id: query_id}} <- start_query(data_source_id_spec, user, statement, [{:notify, true} | opts]) do
+  def run_query(data_source_id_spec, user, statement, parameters, opts \\ []) do
+    opts = [{:notify, true} | opts]
+    with {:ok, %{id: query_id}} <- start_query(data_source_id_spec, user, statement, parameters, opts) do
       receive do
         {:query_result, %{"query_id" => ^query_id} = result} ->
           Air.QueryEvents.unsubscribe(query_id)

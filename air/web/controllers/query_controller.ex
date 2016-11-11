@@ -42,6 +42,7 @@ defmodule Air.QueryController do
       data_source_id_spec(params),
       conn.assigns.current_user,
       Map.fetch!(params, "statement"),
+      [],
       audit_meta: audit_log_meta(conn),
       session_id: params["session_id"]
     ) do

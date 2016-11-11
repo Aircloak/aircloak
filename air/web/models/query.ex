@@ -5,7 +5,7 @@ defmodule Air.Query do
   alias Air.{User, Repo, DataSource}
 
   @type t :: %__MODULE__{}
-  @type cloak_query :: %{id: String.t, statement: String.t, data_source: String.t}
+  @type cloak_query :: %{id: String.t, statement: String.t, parameters: [any], data_source: String.t}
 
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "queries" do
@@ -46,12 +46,13 @@ defmodule Air.Query do
   end
 
   @doc "Converts the query model to the cloak compliant data."
-  @spec to_cloak_query(t) :: cloak_query
-  def to_cloak_query(query) do
+  @spec to_cloak_query(t, [any]) :: cloak_query
+  def to_cloak_query(query, parameters) do
     %{
       id: query.id,
       statement: query.statement,
-      data_source: query.data_source.global_id
+      data_source: query.data_source.global_id,
+      parameters: parameters
     }
   end
 

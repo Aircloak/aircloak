@@ -55,11 +55,13 @@ defmodule Air.PsqlServer do
   end
 
   @doc false
-  def run_query(conn, query, _params, _max_rows) do
+  def run_query(conn, query, params, _max_rows) do
     RanchServer.assign(
       conn,
       :query_runner,
-      Task.async(fn -> DataSource.run_query(conn.assigns.data_source_id, conn.assigns.user, query) end)
+      Task.async(fn ->
+        DataSource.run_query(conn.assigns.data_source_id, conn.assigns.user, query, params)
+      end)
     )
   end
 
