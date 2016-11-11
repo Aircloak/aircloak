@@ -96,4 +96,15 @@ __macOS users__: see [here](../macos_docker.md) for additional instructions.
 
 ### Deploying
 
-See [here](../README.md#deploying).
+To deploy `central`, run the command `./production.sh <target> deploy` from the `central` root folder.
+
+There are two deployment targets available. `central_prod` and `central_stage`. These deploy to
+[https://central.aircloak.com](https://central.aircloak.com) and
+[https://central-stage.aircloak.com](https://central-stage.aircloak.com) respectively.
+
+If you want to change aspects of the deployment you can find the deployment configurations in the
+[deploy_targets](../deploy_targets) folder alongside the configurations for the `aircloak` deployments.
+
+Please note that all deployed aircloaks talk to the production central by default. That is by design.
+To exercise the stage central, you have to visit [https://air-for-central-stage.aircloak.com](https://air-for-central-stage.aircloak.com)
+which can be deployed like any other `aircloak` and relies on the deployment target `for_central_stage`.
