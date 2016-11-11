@@ -17,7 +17,7 @@ defmodule Cloak.Aql.Compiler do
   # -------------------------------------------------------------------
 
   @doc "Prepares the parsed SQL query for execution."
-  @spec compile(DataSource.t, Parser.parsed_query) :: {:ok, Query.t} | {:error, String.t}
+  @spec compile(DataSource.t, Parser.parsed_query, Features.t) :: {:ok, Query.t} | {:error, String.t}
   def compile(data_source, parsed_query, features \\ Features.from_config()) do
     try do
       parsed_query
