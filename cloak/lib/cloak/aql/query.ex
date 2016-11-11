@@ -7,7 +7,7 @@ defmodule Cloak.Aql.Query do
   database, perform anonymized aggregation, and produce the final output.
   """
 
-  alias Cloak.Aql.{Column, Function, Parser}
+  alias Cloak.Aql.{Column, FixAlign, Function, Parser}
 
   @type negatable_condition ::
       {:comparison, Column.t, :=, Column.t}
@@ -45,7 +45,8 @@ defmodule Cloak.Aql.Query do
     limit: pos_integer | nil,
     offset: non_neg_integer,
     having: [having_clause],
-    distinct: boolean
+    distinct: boolean,
+    ranges: %{Column.t => FixAlign.interval},
   }
 
   defstruct [
@@ -53,7 +54,7 @@ defmodule Cloak.Aql.Query do
     order_by: [], column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
     implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
     db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct: false,
-    features: nil
+    features: nil, ranges: %{}
   ]
 
 

@@ -523,6 +523,11 @@ defmodule Cloak.Aql.Compiler.Test do
     assert msg == "The range for column `numeric` has been adjusted to 0.0 <= `numeric` < 2.0"
   end
 
+  test "columns with an inequality are requested for fetching" do
+    columns = compile!("select count(*) from table where numeric >= 0.1 and numeric < 1.9", data_source()).db_columns
+    assert Enum.any?(columns, &(&1.name == "numeric"))
+  end
+
   test "does not include an info message when the alignment does not need to be fixed" do
     assert compile!("select count(*) from table where numeric >= 1 and numeric < 2", data_source()).info == []
   end

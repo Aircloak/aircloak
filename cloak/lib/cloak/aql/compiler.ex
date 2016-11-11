@@ -628,6 +628,7 @@ defmodule Cloak.Aql.Compiler do
         "The range for column `#{column.name}` has been adjusted to #{left} <= `#{column.name}` < #{right}"
       )
     end
+    |> put_in([Access.key(:ranges), column], {left, right})
   end
 
   defp implement_range?({left, right}, conditions) do
@@ -902,13 +903,10 @@ defmodule Cloak.Aql.Compiler do
   defp add_info_message(query, info_message), do: %Query{query | info: [info_message | query.info]}
 
   defp calculate_db_columns(query) do
-    query = %Query{query |
-      db_columns:
-        query
-        |> select_expressions()
-        |> Enum.uniq_by(&db_column_name/1)
-    }
+    select_columns = query |> select_expressions() |> Enum.uniq_by(&db_column_name/1)
+    range_columns = Map.keys(query.ranges)
 
+    query = %Query{query | db_columns: select_columns ++ range_columns}
     map_terminal_elements(query, &set_column_db_row_position(&1, query))
   end
 
