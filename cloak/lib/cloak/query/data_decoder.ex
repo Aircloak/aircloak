@@ -3,7 +3,8 @@ defmodule Cloak.Query.DataDecoder do
 
   alias Cloak.Aql.{Query, Column}
 
-  @type t :: %{method: fun, columns: [String.t]}
+  @type decoder :: (String.t -> {:ok, String.t} | :error)
+  @type t :: %{method: decoder, columns: [String.t]}
 
 
   # -------------------------------------------------------------------
