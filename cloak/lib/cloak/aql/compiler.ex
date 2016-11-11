@@ -17,11 +17,11 @@ defmodule Cloak.Aql.Compiler do
   # -------------------------------------------------------------------
 
   @doc "Prepares the parsed SQL query for execution."
-  @spec compile(DataSource.t, Parser.parsed_query, Features.t) :: {:ok, Query.t} | {:error, String.t}
-  def compile(data_source, parsed_query, features \\ Features.from_config()) do
+  @spec compile(DataSource.t, Parser.parsed_query, tuple, Features.t) :: {:ok, Query.t} | {:error, String.t}
+  def compile(data_source, parsed_query, parameters, features \\ Features.from_config()) do
     try do
       parsed_query
-      |> to_prepped_query(data_source, features)
+      |> to_prepped_query(data_source, features, parameters)
       |> compile_prepped_query()
     rescue
       e in CompilationError -> {:error, e.message}
@@ -33,11 +33,12 @@ defmodule Cloak.Aql.Compiler do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp to_prepped_query(parsed_query, data_source, features) do
+  defp to_prepped_query(parsed_query, data_source, features, parameters) do
     %Query{
       data_source: data_source,
       mode: query_mode(data_source.driver, parsed_query[:from]),
       features: features,
+      parameters: parameters
     }
     |> Map.merge(parsed_query)
   end
@@ -135,27 +136,28 @@ defmodule Cloak.Aql.Compiler do
 
   defp compile_subqueries(%Query{from: nil} = query), do: query
   defp compile_subqueries(query) do
-    compiled = do_compile_subqueries(query.from, query.data_source)
+    compiled = do_compile_subqueries(query.from, query.data_source, query.parameters)
     %Query{query | from: compiled, info: query.info ++ gather_info(compiled)}
   end
 
-  defp do_compile_subqueries({:join, join}, data_source) do
+  defp do_compile_subqueries({:join, join}, data_source, parameters) do
     {:join, %{join |
-      lhs: do_compile_subqueries(join.lhs, data_source),
-      rhs: do_compile_subqueries(join.rhs, data_source)
+      lhs: do_compile_subqueries(join.lhs, data_source, parameters),
+      rhs: do_compile_subqueries(join.rhs, data_source, parameters)
     }}
   end
-  defp do_compile_subqueries({:subquery, subquery}, data_source) do
-    {:subquery, %{subquery | ast: compiled_subquery(data_source, subquery.ast, subquery.alias)}}
+  defp do_compile_subqueries({:subquery, subquery}, data_source, parameters) do
+    {:subquery, %{subquery | ast: compiled_subquery(data_source, subquery.ast, subquery.alias, parameters)}}
   end
-  defp do_compile_subqueries(identifier = {_, table}, _data_source) when is_binary(table), do: identifier
+  defp do_compile_subqueries(identifier = {_, table}, _data_source, _parameters) when is_binary(table), do:
+    identifier
 
   defp gather_info({:join, %{lhs: lhs, rhs: rhs}}), do: gather_info(rhs) ++ gather_info(lhs)
   defp gather_info({:subquery, subquery}), do: subquery.ast.info
   defp gather_info(_), do: []
 
-  defp compiled_subquery(data_source, parsed_query, alias) do
-    case compile(data_source, Map.put(parsed_query, :subquery?, :true)) do
+  defp compiled_subquery(data_source, parsed_query, alias, parameters) do
+    case compile(data_source, Map.put(parsed_query, :subquery?, :true), parameters) do
       {:ok, compiled_query} ->
         compiled_query
         |> validate_uid(alias)

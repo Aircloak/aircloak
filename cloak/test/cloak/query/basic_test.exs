@@ -651,7 +651,8 @@ defmodule Cloak.Query.BasicTest do
         select heights.height as h1, heights_alias.height as h2
         from heights, heights_alias
         where heights.user_id=heights_alias.user_id
-      "
+      ",
+      []
     )
     assert [%Column{name: "user_id"}, %Column{name: "height"}] = query.db_columns
   end

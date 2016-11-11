@@ -25,7 +25,7 @@ defmodule PerfTest do
 
   defp run_query(statement) do
     {duration, row} = :timer.tc(fn () ->
-      :ok = Cloak.Query.Runner.start("1",  Cloak.DataSource.fetch!(:local), statement, {:process, self()})
+      :ok = Cloak.Query.Runner.start("1",  Cloak.DataSource.fetch!(:local), statement, [], {:process, self()})
       receive do
         {:reply, %{rows: [%{occurrences: 1, row: row}]}} -> row
         {:reply, %{error: error}} -> raise "Query failed with error: #{error}."

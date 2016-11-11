@@ -7,7 +7,7 @@ defmodule Cloak.Test.QueryHelpers do
     quote do
       run_query =
         fn(data_source) ->
-          Query.Runner.start("1", data_source, unquote(query), {:process, self()})
+          Query.Runner.start("1", data_source, unquote(query), [], {:process, self()})
           receive do
             {:reply, response} -> response
           end
