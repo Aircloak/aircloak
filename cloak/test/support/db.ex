@@ -45,7 +45,9 @@ defmodule Cloak.Test.DB do
   def handle_call({:create_table, table_name, definition, opts}, _from, state) do
     db_name = opts[:db_name] || table_name
     create_db_table(db_name, definition, opts)
-    DataSource.register_test_table(String.to_atom(table_name), full_table_name(db_name), "user_id")
+    decoders = opts[:decoders] || []
+    table = %{db_name: full_table_name(db_name), user_id: "user_id", decoders: decoders}
+    DataSource.register_test_table(String.to_atom(table_name), table)
     {:reply, :ok, state}
   end
 

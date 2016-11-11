@@ -330,9 +330,8 @@ defmodule Cloak.DataSource do
 
   if Mix.env == :test do
     @doc false
-    def register_test_table(table_id, table_name, user_id) do
+    def register_test_table(table_id, table) do
       sources = for source <- Application.get_env(:cloak, :data_sources) do
-        table = %{db_name: table_name, user_id: user_id}
         tables = Map.put(source[:tables], table_id, table)
         Map.put(source, :tables, tables) |> add_tables()
       end
