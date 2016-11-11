@@ -60,7 +60,7 @@ defmodule Air.Service.DataSource do
     opts = Keyword.merge([audit_meta: %{}, notify: false], opts)
 
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user),
-         query <- create_query(data_source.id, user, statement, opts[:session_id])
+         query <- create_query(data_source.id, user, statement, parameters, opts[:session_id])
     do
       Air.Service.AuditLog.log(user, "Executed query",
         Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.id}))
@@ -145,10 +145,15 @@ defmodule Air.Service.DataSource do
   defp user_data_source(user, {:global_id, global_id}), do:
     from data_source in users_data_sources(user), where: data_source.global_id == ^global_id
 
-  defp create_query(data_source_id, user, statement, session_id) do
+  defp create_query(data_source_id, user, statement, parameters, session_id) do
     user
     |> Ecto.build_assoc(:queries)
-    |> Query.changeset(%{data_source_id: data_source_id, statement: statement, session_id: session_id})
+    |> Query.changeset(%{
+          data_source_id: data_source_id,
+          statement: statement,
+          parameters: %{values: parameters},
+          session_id: session_id
+        })
     |> Repo.insert!()
     |> Repo.preload(:data_source)
   end

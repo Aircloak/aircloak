@@ -16,6 +16,7 @@ defmodule Air.Query do
     field :users_count, :integer
     field :features, :map
     field :session_id, Ecto.UUID
+    field :parameters, :map
 
     belongs_to :user, User
     belongs_to :data_source, DataSource
@@ -24,7 +25,9 @@ defmodule Air.Query do
   end
 
   @required_fields ~w()a
-  @optional_fields ~w(statement data_source_id tables result execution_time users_count features session_id)a
+  @optional_fields ~w(
+    statement data_source_id tables result execution_time users_count features session_id parameters
+  )a
 
 
   # -------------------------------------------------------------------
