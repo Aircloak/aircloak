@@ -83,6 +83,7 @@ defmodule Central.Service.Customer do
   @doc "Records a query execution associated with a customer"
   @spec record_query(Customer.t, Map.t) :: :ok | :error
   def record_query(customer, params) do
+    Central.Service.ElasticSearch.record_query(customer, params)
     changeset = customer
       |> Ecto.build_assoc(:queries)
       |> Query.changeset(params)
