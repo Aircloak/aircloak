@@ -531,13 +531,20 @@ defmodule Cloak.Aql.Compiler do
     query
   end
   defp partition_where_clauses(query) do
-    {require_lcf_check, safe_clauses} = Enum.partition(query.where, &requires_lcf_check?/1)
-    safe_clauses = safe_clauses ++ Enum.reject(require_lcf_check, &negative_clause?/1)
-    {encoded_column_clauses, safe_clauses} =
-      Enum.partition(safe_clauses, &Comparison.subject(&1) |> DataDecoder.needs_decoding?())
-    unsafe_filter_columns = Enum.map(require_lcf_check ++ encoded_column_clauses, &Comparison.subject/1)
+    # extract conditions requiring low-count filtering
+    {require_lcf_checks, safe_clauses} = Enum.partition(query.where, &requires_lcf_check?/1)
+    # split LCF conditions into positives and negatives
+    {negative_lcf_checks, positive_lcf_checks} = Enum.partition(require_lcf_checks, &Comparison.negative?/1)
+    # convert negative LCF conditions into checks for `IS NOT NULL`
+    filter_null_lcf_columns = Enum.map(negative_lcf_checks, &{:not, {:is, Comparison.subject(&1), :null}})
+    # forward normal conditions, positive LCF conditions and `IS NOT NULL` checks for negative LCF conditions to driver
+    safe_clauses = Enum.uniq(safe_clauses ++ positive_lcf_checks ++ filter_null_lcf_columns)
+    # extract conditions using encoded columns
+    {encoded_column_clauses, safe_clauses} = Enum.partition(safe_clauses, &encoded_column_condition?/1)
+    # extract columns needed in the cloak for extra filtering
+    unsafe_filter_columns = Enum.map(require_lcf_checks ++ encoded_column_clauses, &Comparison.subject/1)
 
-    %Query{query | where: safe_clauses, lcf_check_conditions: require_lcf_check,
+    %Query{query | where: safe_clauses, lcf_check_conditions: require_lcf_checks,
       unsafe_filter_columns: unsafe_filter_columns, encoded_where: encoded_column_clauses}
   end
 
@@ -546,8 +553,8 @@ defmodule Cloak.Aql.Compiler do
   defp requires_lcf_check?({:in, _column, _values}), do: true
   defp requires_lcf_check?(_other), do: false
 
-  defp negative_clause?({:not, _}), do: true
-  defp negative_clause?(_), do: false
+  defp encoded_column_condition?(condition), do:
+    Comparison.verb(condition) != :is and Comparison.subject(condition) |> DataDecoder.needs_decoding?()
 
   defp verify_joins(query) do
     join_conditions_scope_check(query.from)

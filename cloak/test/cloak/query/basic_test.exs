@@ -409,6 +409,7 @@ defmodule Cloak.Query.BasicTest do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+    :ok = insert_rows(_user_ids = 40..49, "heights", ["height"], [nil])
 
     assert_query "select count(*) from heights where height <> 180",
       %{columns: ["count"], rows: [%{row: [40], occurrences: 1}]}
@@ -417,6 +418,7 @@ defmodule Cloak.Query.BasicTest do
   test "should drop <> conditions if they would expose small groups" do
     :ok = insert_rows(_user_ids = 0..9, "heights", ["name"], ["Alice"])
     :ok = insert_rows(_user_ids = 10..11, "heights", ["name"], ["Bob"])
+    :ok = insert_rows(_user_ids = 12..19, "heights", ["name"], [nil])
 
     assert_query "select count(*) from heights where name <> 'Bob'",
       %{columns: ["count"], rows: [%{row: [12], occurrences: 1}]}

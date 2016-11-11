@@ -62,6 +62,20 @@ defmodule Cloak.Aql.Comparison do
     fn(row) -> compare(:=, Function.apply_to_db_row(column, row), values) == truth end
   end
 
+  @doc "Checks for a negative condition."
+  @spec negative?(Query.where_clause) :: boolean
+  def negative?({:not, _}), do: true
+  def negative?(_), do: false
+
+  @doc "Returns the verb of the condition."
+  @spec verb(Query.where_clause) :: atom
+  def verb({:not, condition}), do: verb(condition)
+  def verb({:comparison, _lhs, _, _rhs}), do: :comparison
+  def verb({:is, _lhs, :null}), do: :is
+  def verb({:in, _lhs, _rhs}), do: :in
+  def verb({:like, _lhs, _rhs}), do: :like
+  def verb({:ilike, _lhs, _rhs}), do: :ilike
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
