@@ -63,13 +63,13 @@ defmodule Cloak.Aql.FixAlign do
   def align_interval({%Time{} = x, %Time{} = y}, _), do:
     {x, y} |> time_to_datetime() |> align_date_time() |> datetime_to_time() |> cap_midnight() |> max_precision()
 
+  @doc """
+  Returns a list of subintervals of the given interval that are smaller by one step and intersect with this interval.
+  """
+  @spec subintervals(interval(x)) :: [interval(x)] when x: var
+  @spec subintervals(interval(x), [pos_integer]) :: [interval(x)] when x: var
   def subintervals({x, y}, size_factors \\ @default_size_factors) do
-    size =
-      sizes({x, y}, size_factors, _allow_fractions = true)
-      |> Stream.take_while(&(&1 < y - x))
-      |> Enum.reverse()
-      |> hd()
-
+    size = largest_smaller_size({x, y}, size_factors)
     base = floor_to(x, size / 2) - size / 2
 
     Stream.iterate(0, &(&1 + 1))
@@ -223,6 +223,13 @@ defmodule Cloak.Aql.FixAlign do
   # -------------------------------------------------------------------
   # Internal functions for numeric intervals
   # -------------------------------------------------------------------
+
+  defp largest_smaller_size({x, y}, size_factors) do
+    sizes({x, y}, size_factors, _allow_fractions = true)
+    |> Stream.take_while(&(&1 < y - x))
+    |> Enum.reverse()
+    |> hd()
+  end
 
   defp snap(size, {x, y}, allow_half) do
     require Integer
