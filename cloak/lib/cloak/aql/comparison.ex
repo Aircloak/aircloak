@@ -54,7 +54,7 @@ defmodule Cloak.Aql.Comparison do
     regex = pattern |> to_regex() |> Regex.compile!("uims")
     fn(row) -> compare(:=~, Function.apply_to_db_row(column, row), regex) == truth end
   end
-  def to_function({:is, column, nil}, truth) do
+  def to_function({:is, column, :null}, truth) do
     fn(row) -> (Function.apply_to_db_row(column, row) == nil) == truth end
   end
   def to_function({:in, column, values}, truth) do
