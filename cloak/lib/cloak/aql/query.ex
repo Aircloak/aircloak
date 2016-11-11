@@ -110,6 +110,11 @@ defmodule Cloak.Aql.Query do
     }
   end
 
+  @spec describe_query(DataSource.t, String.t, [any]) :: {:ok, [String.t], Map.t} | {:error, String.t}
+  def describe_query(data_source, statement, parameters), do:
+    with {:ok, query} <- make(data_source, statement, parameters), do:
+      {:ok, query.column_titles, extract_features(query)}
+
 
   # -------------------------------------------------------------------
   # Internal functions

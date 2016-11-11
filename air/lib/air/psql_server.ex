@@ -55,7 +55,7 @@ defmodule Air.PsqlServer do
   end
 
   @doc false
-  def run_query(conn, query, params, _max_rows) do
+  def run_query(conn, query, params, _max_rows), do:
     RanchServer.assign(
       conn,
       :query_runner,
@@ -63,15 +63,22 @@ defmodule Air.PsqlServer do
         DataSource.run_query(conn.assigns.data_source_id, conn.assigns.user, query, params)
       end)
     )
-  end
 
   @doc false
-  def describe_statement(_conn, _query, _params), do:
-    raise "Prepared statements are not supported!"
+  def describe_statement(conn, query, params), do:
+    RanchServer.assign(
+      conn,
+      :query_describer,
+      Task.async(fn ->
+        DataSource.describe_query(conn.assigns.data_source_id, conn.assigns.user, query, params)
+      end)
+    )
 
   @doc false
   def handle_message(%{assigns: %{query_runner: %Task{ref: ref}}} = conn, {ref, query_result}), do:
     RanchServer.set_query_result(conn, parse_response(query_result))
+  def handle_message(%{assigns: %{query_describer: %Task{ref: ref}}} = conn, {ref, query_result}), do:
+    RanchServer.set_describe_result(conn, parse_response(query_result).columns)
   def handle_message(conn, _message), do:
     conn
 
@@ -94,7 +101,7 @@ defmodule Air.PsqlServer do
         |> Enum.map(fn({name, type}) -> %{name: name, type: type_atom(type)} end),
       rows:
         query_result
-        |> Map.fetch!("rows")
+        |> Map.get("rows", [])
         |> Enum.flat_map(&List.duplicate(Map.fetch!(&1, "row"), Map.fetch!(&1, "occurrences")))
     }
   defp parse_response(other) do

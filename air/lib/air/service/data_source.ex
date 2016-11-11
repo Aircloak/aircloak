@@ -7,6 +7,12 @@ defmodule Air.Service.DataSource do
 
   @type data_source_id_spec :: {:id, String.t} | {:global_id, String.t}
 
+  @type start_query_options :: [
+    audit_meta: %{atom => any},
+    notify: boolean,
+    session_id: String.t | nil
+  ]
+
 
   #-----------------------------------------------------------------------------------------------------------
   # API functions
@@ -48,11 +54,34 @@ defmodule Air.Service.DataSource do
     end
   end
 
-  @type start_query_options :: [
-    audit_meta: %{atom => any},
-    notify: boolean,
-    session_id: String.t | nil
-  ]
+  @doc "Asks the cloak to describe the query, and returns the result."
+  @spec describe_query(data_source_id_spec, User.t, String.t, [any]) ::
+    {:ok, map} | {:error, :unauthorized | :not_connected | :internal_error | any}
+  def describe_query(data_source_id_spec, user, statement, parameters) do
+    with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
+      try do
+        case DataSourceManager.channel_pids(data_source.global_id) do
+          [channel_pid | _] ->
+            data = %{
+              statement: statement,
+              data_source: data_source.global_id,
+              parameters: parameters
+            }
+            MainChannel.describe_query(channel_pid, data)
+
+          [] -> {:error, :not_connected}
+        end
+      catch type, error ->
+        Logger.error([
+          "Error describing a query: #{inspect(type)}:#{inspect(error)}\n",
+          Exception.format_stacktrace(System.stacktrace())
+        ])
+
+        {:error, :internal_error}
+      end
+    end
+  end
+
   @doc "Starts the query on the given data source as the given user."
   @spec start_query(data_source_id_spec, User.t, String.t, [any], start_query_options) ::
     {:ok, Query.t} | {:error, :unauthorized | :not_connected | :internal_error | any}
