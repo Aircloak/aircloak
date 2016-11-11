@@ -108,24 +108,3 @@ If you want to change aspects of the deployment you can find the deployment conf
 Please note that all deployed aircloaks talk to the production central by default. That is by design.
 To exercise the stage central, you have to visit [https://air-for-central-stage.aircloak.com](https://air-for-central-stage.aircloak.com)
 which can be deployed like any other `aircloak` and relies on the deployment target `for_central_stage`.
-
-In order to force another `air` to talk to a distinct `central`, add a configuration parameter to the
-air site config called: `alternate_aircloak_central`. __This is not something that should not be publicised
-or used widely. We certainly don't want our customers to talk to other centrals than our own, as that
-prevents us from getting information needed for billing.
-
-A sample configuration would look like:
-
-```
-{
-  "site": {
-    "alternate_aircloak_central": "wss://central-stage.aircloak.com",
-    ...
-  },
-
-  "database": {
-    ...
-  }
-}
-```
-

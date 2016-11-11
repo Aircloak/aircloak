@@ -243,8 +243,9 @@ defmodule Air.CentralSocket do
     |> URI.to_string()
   end
 
-  # We allow for an alternate central in cases of test deployments for
-  # the staging environment.
+  # We allow for an alternate `central` to be used in the case of test deployments for the staging environment.
+  # This parameter is not documented elsewhere. We want to reduce the chance of it becoming public knowledge.
+  # Production deployments should talk to our central air for billing purposes and to allow us to collect stats.
   defp central_url() do
     case Map.fetch(Aircloak.DeployConfig.fetch!("site"), "alternate_aircloak_central") do
       {:ok, url} -> url
