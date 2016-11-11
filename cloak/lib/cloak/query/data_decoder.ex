@@ -1,5 +1,12 @@
 defmodule Cloak.Query.DataDecoder do
-  @moduledoc "Implements API for decoding individually encoded columns in a data store."
+  @moduledoc """
+  Implements API for decoding individually encoded columns in a data store.
+  The decoders need to be specified in the table configuration, for example:
+  "decoders": [
+    {"method": "base64", "columns": ["column1"]},
+    {"method": "aes_cbc_128", "key": "1234567890ABCDEF", "columns": ["column1", "column2"]}
+  ]
+  """
 
   alias Cloak.Aql.{Query, Column}
 
