@@ -59,7 +59,7 @@ defmodule Cloak.Aql.Comparison do
   end
   def to_function({:in, column, values}, truth) do
     values = for value <- values, do: extract_value(value)
-    fn(row) -> compare(:=, Function.apply_to_db_row(column, row), values) == truth end
+    fn(row) -> compare(:in, Function.apply_to_db_row(column, row), values) == truth end
   end
 
   @doc "Checks for a negative condition."
@@ -96,7 +96,7 @@ defmodule Cloak.Aql.Comparison do
     |> anchor()
 
   defp compare(_operator, nil, _value), do: nil
-  defp compare(:=, target, values) when is_list(values), do: Enum.member?(values, target)
+  defp compare(:in, target, values) when is_list(values), do: Enum.member?(values, target)
   defp compare(:=, target, value), do: target == value
   defp compare(:<>, target, value), do: target != value
   defp compare(:>, target, value), do: target > value
