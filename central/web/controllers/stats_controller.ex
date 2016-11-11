@@ -12,7 +12,8 @@ defmodule Central.StatsController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    render(conn, "index.html", basic_stats: Stats.basic_stats())
+    dash_page = Central.site_setting("main_kibana_dash_url")
+    render(conn, "index.html", url: dash_page)
   end
 
   def show(conn, %{"id" => id}) do
