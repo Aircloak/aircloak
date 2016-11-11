@@ -35,6 +35,7 @@ defmodule Cloak.Aql.Query do
     group_by: [Function.t],
     where: [where_clause],
     lcf_check_conditions: [where_clause],
+    encoded_where: [where_clause],
     order_by: [{pos_integer, :asc | :desc}],
     show: :tables | :columns,
     selected_tables: [DataSource.table],
@@ -53,7 +54,7 @@ defmodule Cloak.Aql.Query do
     order_by: [], column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
     implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
     db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct: false,
-    features: nil
+    features: nil, encoded_where: []
   ]
 
 
@@ -102,7 +103,7 @@ defmodule Cloak.Aql.Query do
       num_tables: num_tables(query.selected_tables),
       num_group_by: num_group_by(query),
       functions: extract_functions(query.columns),
-      where_conditions: extract_where_conditions(query.where ++ query.lcf_check_conditions),
+      where_conditions: extract_where_conditions(query.where ++ query.lcf_check_conditions ++ query.encoded_where),
       column_types: extract_column_types(query.columns),
       selected_types: selected_types(query.columns),
     }

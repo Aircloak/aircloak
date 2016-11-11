@@ -321,8 +321,11 @@ defmodule Cloak.Aql.Compiler.Test do
       """,
       data_source)
     assert [column("table", "column"), {:function, "count", [column("table", "column")]}] = result.columns
-    assert [{:comparison, column("table", "numeric"), :>=, _}, {:comparison, column("table", "numeric"), :<, _}]
-      = result.where
+    assert [
+      {:comparison, column("table", "numeric"), :>=, _},
+      {:comparison, column("table", "numeric"), :<, _},
+      {:not, {:is, column("table", "column"), :null}}
+    ] = result.where
     assert [{:not, {:comparison, column("table", "column"), :=, _}}] = result.lcf_check_conditions
     assert [column("table", "column")] = result.unsafe_filter_columns
     assert [column("table", "column")] = result.group_by

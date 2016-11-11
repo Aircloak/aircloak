@@ -10,9 +10,9 @@ defmodule Cloak.Query.Runner do
   use GenServer
   require Logger
 
-  alias Cloak.Aql.{Query, Column}
+  alias Cloak.Aql.{Query, Column, Comparison}
   alias Cloak.DataSource
-  alias Cloak.Query.{Aggregator, LCFConditions, Sorter, Result}
+  alias Cloak.Query.{Aggregator, LCFConditions, Sorter, Result, DataDecoder}
 
   @supervisor_name Module.concat(__MODULE__, Supervisor)
 
@@ -160,6 +160,8 @@ defmodule Cloak.Query.Runner do
     DataSource.select(query, fn(rows) ->
       Logger.debug("Processing rows ...")
       rows
+      |> DataDecoder.decode(query)
+      |> filter_on_encoded_columns(query)
       |> LCFConditions.apply(query)
       |> Aggregator.aggregate(query)
       |> Sorter.order(query)
@@ -241,6 +243,12 @@ defmodule Cloak.Query.Runner do
   defp distinct(%Result{buckets: buckets} = result, %Query{distinct: true}), do:
     %Result{result | buckets: Enum.map(buckets, &Map.put(&1, :occurrences, 1))}
   defp distinct(result, %Query{distinct: false}), do: result
+
+  defp filter_on_encoded_columns(stream, %Query{encoded_where: []}), do: stream
+  defp filter_on_encoded_columns(stream, %Query{encoded_where: conditions}) do
+    filters = Enum.map(conditions, &Comparison.to_function/1)
+    Stream.filter(stream, &Enum.all?(filters, fn (filter) -> filter.(&1) end))
+  end
 
 
   # -------------------------------------------------------------------
