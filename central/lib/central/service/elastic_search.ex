@@ -17,12 +17,11 @@ defmodule Central.Service.ElasticSearch do
   """
   @spec record_query(Customer.t, Map.t) :: :ok | :error
   def record_query(customer, params) do
-    {:ok, timestamp} = Timex.format(Timex.now(), "{ISO:Extended}")
     aux = Map.get(params, :aux, %{})
       |> Map.put(:customer, %{id: customer.id, name: customer.name})
     params = params
       |> Map.put(:aux, aux)
-      |> Map.put(:timestamp, timestamp)
+      |> Map.put(:timestamp, Timex.format!(Timex.now(), "{ISO:Extended}"))
     record(:customer, :query, params)
   end
 
