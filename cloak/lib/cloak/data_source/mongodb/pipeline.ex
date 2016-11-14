@@ -62,7 +62,8 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   defp map_parameter(%NaiveDateTime{} = datetime) do
     {date, {hour, minute, second}} = NaiveDateTime.to_erl(datetime)
-    BSON.DateTime.from_datetime({date, {hour, minute, second, datetime.microsecond}})
+    {usec, _precision} = datetime.microsecond
+    BSON.DateTime.from_datetime({date, {hour, minute, second, usec}})
   end
   defp map_parameter(%Date{} = date), do:
     BSON.DateTime.from_datetime({Date.to_erl(date), {0, 0, 0, 0}})
