@@ -8,39 +8,30 @@ defmodule Central.KibanaProxyController do
   # -------------------------------------------------------------------
 
   def get(conn, params) do
-    case HTTPoison.get(url(conn, params), trimmed_headers(conn)) do
-      {:ok, result} ->
-        conn
-        |> merge_resp_headers(result.headers)
-        # Because we are requesting resources cross domains
-        |> put_private(:plug_skip_csrf_protection, true)
-        |> send_resp(result.status_code, result.body)
-      {:error, error} ->
-        conn
-        |> put_resp_content_type("text/plain")
-        |> send_resp(501, "Could not proxy to Kibana: #{error.reason}")
-    end
+    HTTPoison.get(url(conn, params), trimmed_headers(conn)) |> handle_response(conn)
   end
 
   def post(conn, params) do
-    case HTTPoison.post(url(conn, params), conn.private[:raw_body], trimmed_headers(conn)) do
-      {:ok, result} ->
-        conn
-        |> merge_resp_headers(result.headers)
-        # Because we are requesting resources cross domains
-        |> put_private(:plug_skip_csrf_protection, true)
-        |> send_resp(result.status_code, result.body)
-      {:error, error} ->
-        conn
-        |> put_resp_content_type("text/plain")
-        |> send_resp(501, "Could not proxy to Kibana: #{error.reason}")
-    end
+    HTTPoison.post(url(conn, params), conn.private[:raw_body], trimmed_headers(conn)) |> handle_response(conn)
   end
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp handle_response({:ok, result}, conn) do
+    conn
+    |> merge_resp_headers(result.headers)
+    # Because we are requesting resources cross domains
+    |> put_private(:plug_skip_csrf_protection, true)
+    |> send_resp(result.status_code, result.body)
+  end
+  defp handle_response({:error, error}, conn) do
+    conn
+    |> put_resp_content_type("text/plain")
+    |> send_resp(501, "Could not proxy to Kibana: #{error.reason}")
+  end
 
   defp url(conn, params) do
     query_string = conn.query_string
