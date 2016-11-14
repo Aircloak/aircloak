@@ -12,7 +12,7 @@ defmodule Cloak.Query.Runner do
 
   alias Cloak.Aql.{Query, Column}
   alias Cloak.DataSource
-  alias Cloak.Query.{Aggregator, LCFConditions, Sorter, Result}
+  alias Cloak.Query.{Aggregator, LCFConditions, ShrinkAndDrop, Sorter, Result}
 
   @supervisor_name Module.concat(__MODULE__, Supervisor)
 
@@ -161,6 +161,7 @@ defmodule Cloak.Query.Runner do
       Logger.debug("Processing rows ...")
       rows
       |> LCFConditions.apply(query)
+      |> ShrinkAndDrop.apply(query)
       |> Aggregator.aggregate(query)
       |> Sorter.order(query)
       |> distinct(query)

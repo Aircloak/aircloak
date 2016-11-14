@@ -740,7 +740,10 @@ defmodule Cloak.Aql.Compiler do
       db_columns: Enum.map(query.db_columns, &map_terminal_element(&1, mapper_fun)),
       property: Enum.map(query.property, &map_terminal_element(&1, mapper_fun)),
       aggregators: Enum.map(query.aggregators, &map_terminal_element(&1, mapper_fun)),
-      from: map_join_conditions_columns(query.from, mapper_fun)
+      from: map_join_conditions_columns(query.from, mapper_fun),
+      ranges: query.ranges
+        |> Enum.map(fn {column, range} -> {map_terminal_element(column, mapper_fun), range} end)
+        |> Enum.into(%{})
     }
   end
 
