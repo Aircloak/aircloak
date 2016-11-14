@@ -39,7 +39,6 @@ defmodule Cloak.Mixfile do
       {:timex, "~> 3.1.3"},
       {:poison, "~> 2.2.0", override: true},
       {:httpoison, "~> 0.9.0"},
-      {:poolboy, "~> 1.5", override: true},
       {:mongodb, "~> 0.2.0"},
 
       # Test deps
