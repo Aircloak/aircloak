@@ -60,6 +60,7 @@ defmodule Cloak.Aql.Lexer do
       quoted_identifier(),
       identifier(),
       keyword(),
+      parameter(),
       other()
     ]))
   end
@@ -71,6 +72,11 @@ defmodule Cloak.Aql.Lexer do
           %Token{offset: offset, line: line, column: column, category: :eof}
         end)
   end
+
+  defp parameter(), do:
+    word_of(~r/\$[1-9][0-9]*/)
+    |> map(fn("$" <> index_str) -> {:parameter, String.to_integer(index_str)} end)
+    |> output_token()
 
   defp other() do
     char()
