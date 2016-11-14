@@ -34,6 +34,7 @@ defmodule Central.Router do
 
   scope "/kibana", Central do
     pipe_through [:proxy, :browser_auth]
+    get "/", KibanaProxyController, :redirect_to_web_interface
     get "/*path", KibanaProxyController, :get
     post "/*path", KibanaProxyController, :post
   end

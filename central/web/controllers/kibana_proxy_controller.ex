@@ -15,6 +15,10 @@ defmodule Central.KibanaProxyController do
     HTTPoison.post(url(conn, params), conn.private[:raw_body], trimmed_headers(conn)) |> handle_response(conn)
   end
 
+  def redirect_to_web_interface(conn, _params) do
+    redirect(conn, to: "/kibana/app/kibana")
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
