@@ -45,10 +45,10 @@ defmodule Air.PsqlServer.RanchServer do
   @callback login(t, String.t) :: {:ok, t} | :error
 
   @doc "Invoked to run the query."
-  @callback run_query(t, String.t, [any], pos_integer) :: t
+  @callback run_query(t, String.t, [Protocol.db_value], pos_integer) :: t
 
   @doc "Invoked to describe the statement result."
-  @callback describe_statement(t, String.t, [any]) :: t
+  @callback describe_statement(t, String.t, [Protocol.db_value]) :: t
 
   @doc "Invoked when a message is received by the connection process."
   @callback handle_message(t, any) :: t

@@ -2,10 +2,15 @@ defmodule Air.Query do
   @moduledoc "The query model."
   use Air.Web, :model
 
-  alias Air.{User, Repo, DataSource}
+  alias Air.{User, Repo, DataSource, PsqlServer.Protocol}
 
   @type t :: %__MODULE__{}
-  @type cloak_query :: %{id: String.t, statement: String.t, parameters: [any], data_source: String.t}
+  @type cloak_query :: %{
+    id: String.t,
+    statement: String.t,
+    parameters: [Protocol.db_value],
+    data_source: String.t
+  }
 
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "queries" do
