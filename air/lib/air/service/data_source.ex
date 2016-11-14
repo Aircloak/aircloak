@@ -1,7 +1,7 @@
 defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
-  alias Air.{DataSource, DataSourceManager, Query, Repo, User, Socket.Cloak.MainChannel}
+  alias Air.{DataSource, DataSourceManager, PsqlServer.Protocol, Query, Repo, User, Socket.Cloak.MainChannel}
   import Ecto.Query, only: [from: 2]
   require Logger
 
@@ -55,7 +55,7 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Asks the cloak to describe the query, and returns the result."
-  @spec describe_query(data_source_id_spec, User.t, String.t, [any]) ::
+  @spec describe_query(data_source_id_spec, User.t, String.t, [Protocol.db_value]) ::
     {:ok, map} | {:error, :unauthorized | :not_connected | :internal_error | any}
   def describe_query(data_source_id_spec, user, statement, parameters) do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
@@ -83,7 +83,7 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Starts the query on the given data source as the given user."
-  @spec start_query(data_source_id_spec, User.t, String.t, [any], start_query_options) ::
+  @spec start_query(data_source_id_spec, User.t, String.t, [Protocol.db_value], start_query_options) ::
     {:ok, Query.t} | {:error, :unauthorized | :not_connected | :internal_error | any}
   def start_query(data_source_id_spec, user, statement, parameters, opts \\ []) do
     opts = Keyword.merge([audit_meta: %{}, notify: false], opts)
@@ -115,7 +115,7 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Runs the query synchronously and returns its result."
-  @spec run_query(data_source_id_spec, User.t, String.t, [any], [audit_meta: %{atom => any}]) ::
+  @spec run_query(data_source_id_spec, User.t, String.t, [Protocol.db_value], [audit_meta: %{atom => any}]) ::
     {:ok, %{}} | {:error, :unauthorized | :not_connected | :internal_error | any}
   def run_query(data_source_id_spec, user, statement, parameters, opts \\ []) do
     opts = [{:notify, true} | opts]

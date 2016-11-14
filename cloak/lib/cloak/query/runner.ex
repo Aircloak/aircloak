@@ -55,7 +55,7 @@ defmodule Cloak.Query.Runner do
   is sent to the required destination. If an error occurs, the result will contain
   error information.
   """
-  @spec start(String.t, Cloak.DataSource.t, String.t, [any], Cloak.ResultSender.target) :: :ok
+  @spec start(String.t, DataSource.t, String.t, [DataSource.field], Cloak.ResultSender.target) :: :ok
   def start(query_id, data_source, statement, parameters, result_target \\ :air_socket) do
     {:ok, _} = Supervisor.start_child(@supervisor_name,
       [{query_id, data_source, statement, parameters, result_target}, [name: worker_name(query_id)]])
