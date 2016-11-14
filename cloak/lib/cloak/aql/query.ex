@@ -7,6 +7,7 @@ defmodule Cloak.Aql.Query do
   database, perform anonymized aggregation, and produce the final output.
   """
 
+  alias Cloak.DataSource
   alias Cloak.Aql.{Column, Function, Parser}
 
   @type negatable_condition ::
@@ -68,14 +69,14 @@ defmodule Cloak.Aql.Query do
 
   Raises on error.
   """
-  @spec make!(DataSource.t, String.t, [any]) :: t
+  @spec make!(DataSource.t, String.t, [DataSource.field]) :: t
   def make!(data_source, string, parameters) do
     {:ok, query} = make(data_source, string, parameters)
     query
   end
 
   @doc "Creates a compiled query from a string representation."
-  @spec make(DataSource.t, String.t, [any]) :: {:ok, t} | {:error, String.t}
+  @spec make(DataSource.t, String.t, [DataSource.field]) :: {:ok, t} | {:error, String.t}
   def make(data_source, string, parameters) do
     with {:ok, parsed_query} <- Cloak.Aql.Parser.parse(data_source, string) do
       Cloak.Aql.Compiler.compile(data_source, parsed_query, List.to_tuple(parameters))
@@ -110,7 +111,7 @@ defmodule Cloak.Aql.Query do
     }
   end
 
-  @spec describe_query(DataSource.t, String.t, [any]) :: {:ok, [String.t], Map.t} | {:error, String.t}
+  @spec describe_query(DataSource.t, String.t, [DataSource.field]) :: {:ok, [String.t], Map.t} | {:error, String.t}
   def describe_query(data_source, statement, parameters), do:
     with {:ok, query} <- make(data_source, statement, parameters), do:
       {:ok, query.column_titles, extract_features(query)}
