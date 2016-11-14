@@ -869,14 +869,14 @@ defmodule Cloak.Aql.Compiler do
     end
   end
   defp identifier_to_column({:parameter, index}, _columns_by_name, query) do
-    if index > tuple_size(query.parameters) do
+    if index > length(query.parameters) do
       message =
         "The query references the `$#{index}` parameter, " <>
-        "but only #{tuple_size(query.parameters)} parameters are passed."
+        "but only #{length(query.parameters)} parameters are passed."
       raise CompilationError, message: message
     end
 
-    param_value = elem(query.parameters, index - 1)
+    param_value = Enum.at(query.parameters, index - 1)
     Column.constant(data_type(param_value, index), param_value)
   end
   defp identifier_to_column({:constant, type, value}, _columns_by_name, _query), do:

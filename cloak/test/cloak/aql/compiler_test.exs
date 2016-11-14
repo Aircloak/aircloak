@@ -634,7 +634,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   defp compile(query_string, data_source, parameters \\ [], features \\ Cloak.Features.from_config) do
     query = Parser.parse!(data_source, query_string)
-    Compiler.compile(data_source, query, List.to_tuple(parameters), features)
+    Compiler.compile(data_source, query, parameters, features)
   end
 
   defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do

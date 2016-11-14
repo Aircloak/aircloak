@@ -48,7 +48,7 @@ defmodule Cloak.Aql.Query do
     offset: non_neg_integer,
     having: [having_clause],
     distinct: boolean,
-    parameters: tuple
+    parameters: [DataSource.field]
   }
 
   defstruct [
@@ -56,7 +56,7 @@ defmodule Cloak.Aql.Query do
     order_by: [], column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
     implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
     db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct: false,
-    features: nil, encoded_where: [], parameters: {}
+    features: nil, encoded_where: [], parameters: []
   ]
 
 
@@ -79,7 +79,7 @@ defmodule Cloak.Aql.Query do
   @spec make(DataSource.t, String.t, [DataSource.field]) :: {:ok, t} | {:error, String.t}
   def make(data_source, string, parameters) do
     with {:ok, parsed_query} <- Cloak.Aql.Parser.parse(data_source, string) do
-      Cloak.Aql.Compiler.compile(data_source, parsed_query, List.to_tuple(parameters))
+      Cloak.Aql.Compiler.compile(data_source, parsed_query, parameters)
     end
   end
 
