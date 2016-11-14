@@ -18,19 +18,19 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   setup do
-    parameters = [host: "localhost", database: "cloaktest"]
-    {:ok, conn} = MongoDB.connect(parameters)
-    :mc_worker_api.delete(conn, @table, %{})
+    parameters = [hostname: "localhost", database: "cloaktest"]
+    {:ok, conn} = Mongo.start_link(parameters)
+    Mongo.delete_many(conn, @table, %{})
     for i <- 1..10 do
       value = %{name: "user#{i}", age: 30, male: true, bills: [%{issuer: "vendor", ids: [1, 2]}]}
-      {{true, %{"n" => 1}}, [_value]} = :mc_worker_api.insert(conn, @table, [value])
+      Mongo.insert_one!(conn, @table, value)
     end
     tables =
       conn
       |> MongoDB.load_tables(%{db_name: @table, name: @table, columns: [], user_id: "_id"})
       |> Enum.map(&{&1.name, &1})
       |> Enum.into(%{})
-    MongoDB.disconnect(conn)
+    GenServer.stop(conn)
 
     data_source = %{
       global_id: :"data_source_#{:erlang.unique_integer()}",

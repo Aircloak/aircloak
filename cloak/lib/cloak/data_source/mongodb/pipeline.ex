@@ -60,15 +60,12 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_operator(:<=), do: :'$lte'
   defp parse_operator(:<>), do: :'$neq'
 
-  @epoch :calendar.datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}})
-  defp erlang_datetime_to_timestamp(datetime, {microsecond, _precision} \\ {0, 0}) do
-    seconds = :calendar.datetime_to_gregorian_seconds(datetime) - @epoch
-    {seconds |> div(1_000_000), seconds |> rem(1_000_000), microsecond}
+  defp map_parameter(%NaiveDateTime{} = datetime) do
+    {date, {hour, minute, second}} = NaiveDateTime.to_erl(datetime)
+    BSON.DateTime.from_datetime({date, {hour, minute, second, datetime.microsecond}})
   end
-
-  defp map_parameter(%NaiveDateTime{} = datetime), do:
-    datetime |> NaiveDateTime.to_erl() |> erlang_datetime_to_timestamp(datetime.microsecond)
-  defp map_parameter(%Date{} = date), do: erlang_datetime_to_timestamp({Date.to_erl(date), {0, 0, 0}})
+  defp map_parameter(%Date{} = date), do:
+    BSON.DateTime.from_datetime({Date.to_erl(date), {0, 0, 0, 0}})
   defp map_parameter(%Column{value: value}), do: value
 
   defp parse_where_condition({:comparison, %Column{name: field}, operator, value}), do:

@@ -8,8 +8,8 @@ defmodule Cloak.DataSource.MongoDB do
     "driver": "mongodb",
     "marker": "mongodb",
     "parameters": {
-      "host": "...",
-      "login": "...",
+      "hostname": "...",
+      "username": "...",
       "password": "...",
       "database": "..."
     },
@@ -41,14 +41,14 @@ defmodule Cloak.DataSource.MongoDB do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
-  def connect(parameters), do:
-    parameters
-    |> Enum.to_list()
-    |> Keyword.update!(:host, &to_char_list/1)
-    |> :mc_worker_api.connect()
+  def connect(parameters) do
+    parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, pool: DBConnection.Connection]
+    Mongo.start_link(parameters)
+  end
+
   @doc false
   def disconnect(connection), do:
-    :mc_worker_api.disconnect(connection)
+    GenServer.stop(connection)
 
   @doc false
   def load_tables(connection, table) do
@@ -84,7 +84,7 @@ defmodule Cloak.DataSource.MongoDB do
       }
     """
     connection
-    |> execute!({:mapreduce, table.db_name, :map, map_code, :reduce, reduce_code, :out, {:inline, 1}})
+    |> execute!([{:mapreduce, table.db_name}, {:map, map_code}, {:reduce, reduce_code}, {:out, %{inline: 1}}])
     |> Enum.map(fn (%{"_id" => name, "value" => type}) ->
       {name, parse_type(type)}
     end)
@@ -97,7 +97,7 @@ defmodule Cloak.DataSource.MongoDB do
     columns = for %Column{name: name} <- query.db_columns, do: String.split(name, ".")
     result =
       connection
-      |> execute!({:aggregate, collection, :pipeline, pipeline})
+      |> Mongo.aggregate(collection, pipeline, max_time: :timer.hours(1), batch_size: 25_000)
       |> Stream.map(&extract_fields(&1, columns))
       |> result_processor.()
     {:ok, result}
@@ -117,12 +117,11 @@ defmodule Cloak.DataSource.MongoDB do
   defp parse_type("date"), do: :datetime
   defp parse_type(type), do: {:unsupported, type}
 
-  @dialyzer [:no_fail_call, :no_return, :no_unused] # `mc_worker_api.command` has incorrect type spec.
   defp execute!(conn, command) do
-    case :mc_worker_api.command(conn, command) do
-      {true, %{"results" => results}} -> results
-      {true, %{"result" => result}} -> result
-      {false, %{"errmsg" => error}} -> raise RuntimeError, "MongoDB execute command error: #{error}"
+    case Mongo.command(conn, command) do
+      {:ok, %{"results" => results}} -> results
+      {:ok, %{"result" => result}} -> result
+      {:error, %Mongo.Error{message: error}} -> raise RuntimeError, "MongoDB execute command error: #{error}"
     end
   end
 
@@ -133,13 +132,12 @@ defmodule Cloak.DataSource.MongoDB do
   defp extract_field(value, []), do: value
   defp extract_field(%{} = object, [key | rest]), do: extract_field(object[key], rest)
 
-  defp map_field({value}), do: value
-  defp map_field({:bin, :bin, value}), do: value
-  defp map_field({mega_sec, sec, micro_sec}), do:
-    {mega_sec, sec, 0}
-    |> :calendar.now_to_datetime()
-    |> NaiveDateTime.from_erl({micro_sec, 6})
-    |> error_to_nil()
+  defp map_field(%BSON.ObjectId{value: value}), do: value
+  defp map_field(%BSON.Binary{binary: value}), do: value
+  defp map_field(%BSON.DateTime{} = value) do
+    {{year, month, day}, {hour, minute, second, usec}} = BSON.DateTime.to_datetime(value)
+    NaiveDateTime.new(year, month, day, hour, minute, second, {usec, 6}) |> error_to_nil()
+  end
   defp map_field(value), do: value
 
   defp error_to_nil({:ok, result}), do: result

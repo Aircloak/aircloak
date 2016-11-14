@@ -205,7 +205,7 @@ defmodule Cloak.DataSource do
     # The data source marker is useful when we you want to force identical data sources to get
     # distinct global IDs. This can be used for exampel in staging and test environments.
 
-    user = Parameters.get_one_of(data.parameters, ["uid", "user", "username", "login"]) || "anon"
+    user = Parameters.get_one_of(data.parameters, ["uid", "user", "username"]) || "anon"
     database = Parameters.get_one_of(data.parameters, ["database"])
     host = Parameters.get_one_of(data.parameters, ["hostname", "server", "host"])
 
