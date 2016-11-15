@@ -86,7 +86,7 @@ defmodule Cloak.Query.DataDecoder do
   defp aes_cbc128_decode(value, _key) when rem(byte_size(value), 16) != 0, do: :error
   defp aes_cbc128_decode(value, key) do
     value = :crypto.block_decrypt(:aes_cbc128, key, @zero_iv, value)
-    <<last>> = String.last(value)
+    last = :binary.last(value)
     {value, padding} = String.split_at(value, -last)
     if padding == String.duplicate(<<last>>, last),
       do: {:ok, value},
