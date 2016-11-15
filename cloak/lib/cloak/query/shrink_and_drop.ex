@@ -14,20 +14,8 @@ defmodule Cloak.Query.ShrinkAndDrop do
   defp for_suppression(_rows, _column, {%Time{}, _}), do: MapSet.new
   defp for_suppression(_rows, _column, {%Date{}, _}), do: MapSet.new
   defp for_suppression(_rows, _column, {%NaiveDateTime{}, _}), do: MapSet.new
-  defp for_suppression(rows, column, _range) do
-    do_for_suppression(rows, column, compact_range(rows, column))
-  end
-
-  defp compact_range(rows, column) do
-    values = Enum.map(rows, &Function.apply_to_db_row(column, &1))
-    case {Enum.min(values), Enum.max(values)} do
-      {x, x} -> {x, x + 1}
-      {x, y} -> FixAlign.align_interval({x, y})
-    end
-  end
-
-  defp do_for_suppression(rows, column, range) do
-    for {x, y} <- FixAlign.subintervals(range) do
+  defp for_suppression(rows, column, range) do
+    for {x, y} <- attack_intervals(rows, column, range) do
       {in_range, out_of_range} = Enum.partition(rows, fn(row) ->
         row_value = Function.apply_to_db_row(column, row)
         row_value >= x && row_value < y
@@ -41,5 +29,18 @@ defmodule Cloak.Query.ShrinkAndDrop do
       end
     end
     |> Enum.reduce(MapSet.new, &MapSet.union/2)
+  end
+
+  defp attack_intervals(rows, column, {x, y}) do
+    shift = (y - x) / 2
+    FixAlign.subintervals(compact_range(rows, column)) ++ [{x - shift, y - shift}, {x + shift, y + shift}]
+  end
+
+  defp compact_range(rows, column) do
+    values = Enum.map(rows, &Function.apply_to_db_row(column, &1))
+    case {Enum.min(values), Enum.max(values)} do
+      {x, x} -> {x, x + 1}
+      {x, y} -> FixAlign.align_interval({x, y})
+    end
   end
 end
