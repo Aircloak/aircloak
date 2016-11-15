@@ -14,6 +14,7 @@ defmodule Central.ViewHelpers do
     {:safe, link_html}
   end
 
+  defp active?("/", "/stats"), do: true
   defp active?(request_path, link_path), do: String.starts_with?(request_path, link_path)
 
   def logged_in?(conn) do

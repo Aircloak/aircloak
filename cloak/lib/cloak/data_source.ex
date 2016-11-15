@@ -56,7 +56,7 @@ defmodule Cloak.DataSource do
   }
   @type num_rows :: non_neg_integer
   @type column :: String.t
-  @type field :: String.t | integer | number | boolean | nil
+  @type field :: String.t | number | boolean | nil
   @type row :: [field]
   @type data_type :: :text | :integer | :real | :boolean | :datetime | :time | :date | :uuid | :unknown
   @type query_result :: Enumerable.t

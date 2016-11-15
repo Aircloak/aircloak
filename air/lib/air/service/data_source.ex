@@ -1,11 +1,17 @@
 defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
-  alias Air.{DataSource, DataSourceManager, Query, Repo, User, Socket.Cloak.MainChannel}
+  alias Air.{DataSource, DataSourceManager, PsqlServer.Protocol, Query, Repo, User, Socket.Cloak.MainChannel}
   import Ecto.Query, only: [from: 2]
   require Logger
 
   @type data_source_id_spec :: {:id, String.t} | {:global_id, String.t}
+
+  @type start_query_options :: [
+    audit_meta: %{atom => any},
+    notify: boolean,
+    session_id: String.t | nil
+  ]
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -48,19 +54,42 @@ defmodule Air.Service.DataSource do
     end
   end
 
-  @type start_query_options :: [
-    audit_meta: %{atom => any},
-    notify: boolean,
-    session_id: String.t | nil
-  ]
+  @doc "Asks the cloak to describe the query, and returns the result."
+  @spec describe_query(data_source_id_spec, User.t, String.t, [Protocol.db_value]) ::
+    {:ok, map} | {:error, :unauthorized | :not_connected | :internal_error | any}
+  def describe_query(data_source_id_spec, user, statement, parameters) do
+    with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
+      try do
+        case DataSourceManager.channel_pids(data_source.global_id) do
+          [channel_pid | _] ->
+            data = %{
+              statement: statement,
+              data_source: data_source.global_id,
+              parameters: parameters
+            }
+            MainChannel.describe_query(channel_pid, data)
+
+          [] -> {:error, :not_connected}
+        end
+      catch type, error ->
+        Logger.error([
+          "Error describing a query: #{inspect(type)}:#{inspect(error)}\n",
+          Exception.format_stacktrace(System.stacktrace())
+        ])
+
+        {:error, :internal_error}
+      end
+    end
+  end
+
   @doc "Starts the query on the given data source as the given user."
-  @spec start_query(data_source_id_spec, User.t, String.t, start_query_options) ::
+  @spec start_query(data_source_id_spec, User.t, String.t, [Protocol.db_value], start_query_options) ::
     {:ok, Query.t} | {:error, :unauthorized | :not_connected | :internal_error | any}
-  def start_query(data_source_id_spec, user, statement, opts \\ []) do
+  def start_query(data_source_id_spec, user, statement, parameters, opts \\ []) do
     opts = Keyword.merge([audit_meta: %{}, notify: false], opts)
 
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user),
-         query <- create_query(data_source.id, user, statement, opts[:session_id])
+         query <- create_query(data_source.id, user, statement, parameters, opts[:session_id])
     do
       Air.Service.AuditLog.log(user, "Executed query",
         Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.id}))
@@ -69,7 +98,7 @@ defmodule Air.Service.DataSource do
         case DataSourceManager.channel_pids(query.data_source.global_id) do
           [channel_pid | _] ->
             if opts[:notify] == true, do: Air.QueryEvents.subscribe(query.id)
-            with :ok <- MainChannel.run_query(channel_pid, Query.to_cloak_query(query)), do:
+            with :ok <- MainChannel.run_query(channel_pid, Query.to_cloak_query(query, parameters)), do:
               {:ok, query}
 
           [] -> {:error, :not_connected}
@@ -86,10 +115,11 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Runs the query synchronously and returns its result."
-  @spec run_query(data_source_id_spec, User.t, String.t, [audit_meta: %{atom => any}]) ::
+  @spec run_query(data_source_id_spec, User.t, String.t, [Protocol.db_value], [audit_meta: %{atom => any}]) ::
     {:ok, %{}} | {:error, :unauthorized | :not_connected | :internal_error | any}
-  def run_query(data_source_id_spec, user, statement, opts \\ []) do
-    with {:ok, %{id: query_id}} <- start_query(data_source_id_spec, user, statement, [{:notify, true} | opts]) do
+  def run_query(data_source_id_spec, user, statement, parameters, opts \\ []) do
+    opts = [{:notify, true} | opts]
+    with {:ok, %{id: query_id}} <- start_query(data_source_id_spec, user, statement, parameters, opts) do
       receive do
         {:query_result, %{"query_id" => ^query_id} = result} ->
           Air.QueryEvents.unsubscribe(query_id)
@@ -144,10 +174,15 @@ defmodule Air.Service.DataSource do
   defp user_data_source(user, {:global_id, global_id}), do:
     from data_source in users_data_sources(user), where: data_source.global_id == ^global_id
 
-  defp create_query(data_source_id, user, statement, session_id) do
+  defp create_query(data_source_id, user, statement, parameters, session_id) do
     user
     |> Ecto.build_assoc(:queries)
-    |> Query.changeset(%{data_source_id: data_source_id, statement: statement, session_id: session_id})
+    |> Query.changeset(%{
+          data_source_id: data_source_id,
+          statement: statement,
+          parameters: %{values: parameters},
+          session_id: session_id
+        })
     |> Repo.insert!()
     |> Repo.preload(:data_source)
   end

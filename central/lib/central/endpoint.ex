@@ -34,7 +34,7 @@ defmodule Central.Endpoint do
   plug Plug.Logger, log: :debug
 
   plug Plug.Parsers,
-    parsers: [:urlencoded, :multipart, :json],
+    parsers: [Central.Plug.KibanaProxyParser, :urlencoded, :multipart, :json],
     pass: ["*/*"],
     json_decoder: Poison
 

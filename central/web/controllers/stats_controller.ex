@@ -2,8 +2,6 @@ defmodule Central.StatsController do
   @moduledoc false
   use Central.Web, :controller
 
-  alias Central.Service.{Stats, Customer}
-
   plug :set_layout
 
 
@@ -12,12 +10,8 @@ defmodule Central.StatsController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    render(conn, "index.html", basic_stats: Stats.basic_stats())
-  end
-
-  def show(conn, %{"id" => id}) do
-    {:ok, customer} = Customer.get(id)
-    render(conn, "show.html", customer: customer, stats: Stats.for_customer(customer))
+    dash_url = Central.site_setting("kibana_main_dash")
+    render(conn, "index.html", dash: dash_url)
   end
 
 

@@ -31,8 +31,10 @@ defmodule Air.PsqlServer.Protocol do
     {:close, reason :: any} |
     {:login_params, map} |
     {:authenticate, password :: binary} |
-    {:run_query, String.t, [any], non_neg_integer} |
-    {:describe_statement, String.t, [any]}
+    {:run_query, String.t, [db_value], non_neg_integer} |
+    {:describe_statement, String.t, [db_value]}
+
+  @type db_value :: String.t | number | boolean | nil
 
   @type authentication_method :: :cleartext
 
@@ -40,14 +42,14 @@ defmodule Air.PsqlServer.Protocol do
 
   @type column :: %{name: String.t, type: psql_type}
 
-  @type query_result :: %{columns: [column], rows: [any]}
+  @type query_result :: %{columns: [column], rows: [db_value]}
 
   @type prepared_statement :: %{
     name: String.t,
     query: String.t,
     num_params: non_neg_integer,
     param_types: [psql_type],
-    params: [any]
+    params: [db_value]
   }
 
 
