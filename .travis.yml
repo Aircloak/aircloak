@@ -48,7 +48,7 @@ before_install:
   - mysql -e "CREATE DATABASE cloaktest1 DEFAULT CHARACTER SET utf8;" -u root
   - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
   - ./travis-asdf-setup.sh
-  - npm i -g yarn
+  - npm i -g yarn@0.16.1
 before_script:
   - ./travis-before-script.sh
 script:
