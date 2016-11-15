@@ -18,4 +18,11 @@ defmodule Cloak.Query.AnonymizationTest do
     assert_query "select count(*) from anonymizations where number >= 0 and number < 10",
       %{columns: ["count"], rows: [%{row: [100]}]}
   end
+
+  test "recursive shrink and drop" do
+    :ok = insert_rows(_user_ids = 1..100, "anonymizations", ["number"], [6])
+    :ok = insert_rows(_user_ids = 0..0, "anonymizations", ["number"], [8])
+    assert_query "select count(*) from anonymizations where number >= 0 and number < 20",
+      %{columns: ["count"], rows: [%{row: [100]}]}
+  end
 end
