@@ -1,10 +1,12 @@
 defmodule Cloak.Aql.Column do
   @moduledoc "Represents a column in a compiled query."
 
-  @type column_type :: Cloak.DataSource.data_type | nil
-  @type db_function :: String.t | {:cast, Cloak.DataSource.data_type | :varbinary}
+  alias Cloak.DataSource
+
+  @type column_type :: DataSource.data_type | nil
+  @type db_function :: String.t | {:cast, DataSource.data_type | :varbinary}
   @type t :: %__MODULE__{
-    table: :unknown | Cloak.DataSource.table,
+    table: :unknown | DataSource.table,
     name: String.t | :constant | nil,
     alias: String.t | nil,
     type: column_type,
