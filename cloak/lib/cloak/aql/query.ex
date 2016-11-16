@@ -97,7 +97,7 @@ defmodule Cloak.Aql.Query do
   Examples include how many columns were selected, which, if any
   functions where used, etc.
   """
-  @spec extract_features(t) :: Map.t
+  @spec extract_features(t) :: map
   def extract_features(query) do
     %{
       num_selected_columns: num_selected_columns(query.column_titles),
@@ -111,7 +111,7 @@ defmodule Cloak.Aql.Query do
     }
   end
 
-  @spec describe_query(DataSource.t, String.t, [DataSource.field]) :: {:ok, [String.t], Map.t} | {:error, String.t}
+  @spec describe_query(DataSource.t, String.t, [DataSource.field]) :: {:ok, [String.t], map} | {:error, String.t}
   def describe_query(data_source, statement, parameters), do:
     with {:ok, query} <- make(data_source, statement, parameters), do:
       {:ok, query.column_titles, extract_features(query)}

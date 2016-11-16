@@ -11,7 +11,7 @@ defmodule Cloak.Query.Result do
     columns: [String.t],
     types: [atom],
     users_count: non_neg_integer,
-    features: Map.t,
+    features: map,
   }
 
   defstruct buckets: [], columns: [], types: [], users_count: 0, features: %{}
