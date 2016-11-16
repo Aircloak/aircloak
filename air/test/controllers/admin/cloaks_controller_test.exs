@@ -23,7 +23,7 @@ defmodule Air.Admin.CloaksControllerTest do
       channel_pid: pid,
       id: "cloak id",
       name: "cloak name",
-      online_since: Timex.DateTime.now(),
+      online_since: Timex.now(),
     }
 
     data_sources = [%{"global_id" => "global_id", "tables" => []}]
@@ -50,7 +50,7 @@ defmodule Air.Admin.CloaksControllerTest do
       channel_pid: pid,
       id: "cloak id",
       name: "cloak name",
-      online_since: Timex.DateTime.now(),
+      online_since: Timex.now(),
     }
 
     data_sources = [%{"global_id" => "global_id", "tables" => []}]

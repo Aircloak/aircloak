@@ -11,7 +11,7 @@ defmodule Air.Utils.DateTime do
   def time_ago(date_time) do
     date_time
     |> Ecto.DateTime.to_erl()
-    |> Timex.DateTime.from_erl()
+    |> NaiveDateTime.from_erl!()
     |> Timex.from_now()
   end
 
