@@ -41,7 +41,10 @@ defmodule Aircloak.DeployConfig do
 
   @doc false
   defmacro read_config!(), do:
-    quote(do: unquote(__MODULE__).do_read_config(unquote(Mix.Project.config[:app]), unquote(Mix.env)))
+    quote(do: unquote(__MODULE__).do_read_config(
+      unquote(Mix.Project.config[:app]),
+      Application.fetch_env!(:aircloak_common, :env)
+    ))
 
   @doc false
   def do_read_config(app, env) do

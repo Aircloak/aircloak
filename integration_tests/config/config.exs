@@ -2,6 +2,8 @@
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
 
+config :aircloak_common, :env, Mix.env
+
 # turn off sasl error logger
 config :sasl, :sasl_error_logger, false
 
