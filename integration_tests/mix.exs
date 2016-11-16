@@ -11,10 +11,12 @@ defmodule IntegrationTests.Mixfile do
   end
 
   def application do
-    [applications: [:logger]]
+    [applications: [:logger, :cloak]]
   end
 
   defp deps do
-    []
+    [
+      {:cloak, path: "../cloak"},
+    ]
   end
 end
