@@ -11,12 +11,17 @@ defmodule IntegrationTests.Mixfile do
   end
 
   def application do
-    [applications: [:logger, :cloak]]
+    [applications: [:logger, :air, :cloak]]
   end
 
   defp deps do
     [
       {:cloak, path: "../cloak"},
+      {:air, path: "../air"},
+      {:timex, "~> 3.1.3", override: true},
+      {:poison, "~> 2.2.0", override: true},
+      {:hackney, "~> 1.6.0", override: true},
+      {:phoenix_live_reload, "~> 1.0", only: :dev},
     ]
   end
 end
