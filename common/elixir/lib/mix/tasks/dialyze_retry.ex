@@ -22,7 +22,7 @@ defmodule Mix.Tasks.DialyzeRetry do
   @recursive true
 
   @doc false
-  def run(_args) do
+  def run(args) do
     try do
       Mix.Task.run("dialyze", ["--no-analyse"])
     rescue Mix.Error ->
@@ -36,6 +36,6 @@ defmodule Mix.Tasks.DialyzeRetry do
 
     # Finally, run dialyzer without checking PLT (this has been done above)
     Mix.Task.reenable("dialyze")
-    Mix.Task.run("dialyze", ["--no-check"])
+    Mix.Task.run("dialyze", ["--no-check" | args])
   end
 end
