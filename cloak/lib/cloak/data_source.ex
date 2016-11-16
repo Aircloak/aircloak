@@ -32,7 +32,7 @@ defmodule Cloak.DataSource do
   The data source schema will also be sent to air, so it can be referenced by incoming tasks.
   """
 
-  alias Cloak.Aql
+  alias Cloak.Aql.Query
   alias Cloak.DataSource.Parameters
   alias Cloak.Query.DataDecoder
 
@@ -43,7 +43,7 @@ defmodule Cloak.DataSource do
   @type t :: %{
     global_id: atom,
     driver: module,
-    parameters: Driver.parameters,
+    parameters: Cloak.DataSource.Driver.parameters,
     tables: %{atom => table}
   }
   @type table :: %{
@@ -84,7 +84,7 @@ defmodule Cloak.DataSource do
     @callback load_tables(connection, Cloak.DataSource.table) :: [Cloak.DataSource.table]
 
     @doc "Driver specific implementation for the `DataSource.select` functionality."
-    @callback select(connection, Aql.t, Cloak.DataSource.result_processor)
+    @callback select(connection, Query.t, Cloak.DataSource.result_processor)
       :: {:ok, Cloak.DataSource.processed_result} | {:error, any}
   end
 
@@ -114,7 +114,7 @@ defmodule Cloak.DataSource do
   end
 
   @doc "Returns the list of defined data sources."
-  @spec all() :: [DataSource.t]
+  @spec all() :: [t]
   def all() do
     Application.get_env(:cloak, :data_sources)
   end
@@ -135,7 +135,7 @@ defmodule Cloak.DataSource do
   Besides the query object, this methods also needs a result processing function
   for handling the stream of rows produced as a result of executing the query.
   """
-  @spec select(Aql.t, result_processor) :: {:ok, processed_result} | {:error, any}
+  @spec select(Query.t, result_processor) :: {:ok, processed_result} | {:error, any}
   def select(%{data_source: data_source} = select_query, result_processor) do
     driver = data_source.driver
     Logger.debug("Connecting to `#{data_source.global_id}` ...")

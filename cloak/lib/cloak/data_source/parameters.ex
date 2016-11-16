@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.Parameters do
 
     assert "value" === get(%{:key => "value"}, "KEY")
   """
-  @spec get(Map.t, String.t | Atom.t) :: String.t
+  @spec get(map, String.t | atom) :: String.t
   def get(parameters, name) do
     [value] = all(parameters, name)
     value
@@ -26,7 +26,7 @@ defmodule Cloak.DataSource.Parameters do
   Looks up a value under one of many possible keys. Returns the first value that is found
   or nil if none is found. Like `get/2`, the case of the key is not important.
   """
-  @spec get_one_of(Map.t, [String.t | Atom.t]) :: String.t | nil
+  @spec get_one_of(map, [String.t | atom]) :: String.t | nil
   def get_one_of(parameters, names) do
     Enum.find_value(names, &find_parameter_by_name(parameters, &1))
   end
