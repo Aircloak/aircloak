@@ -19,7 +19,6 @@ defmodule IntegrationTests.Mixfile do
       {:cloak, path: "../cloak"},
       {:air, path: "../air"},
       {:poison, "~> 2.2.0", override: true},
-      {:hackney, "~> 1.6.0", override: true},
       {:phoenix_live_reload, "~> 1.0", only: :dev},
     ]
   end
