@@ -63,7 +63,12 @@ defmodule Aircloak.DeployConfig do
     data_sources_file_name =
       case env do
         :dev -> "dev.json"
-        :test -> if System.get_env("TRAVIS") == "true" do "travis.json" else "test.json" end
+        :test ->
+          if System.get_env("TRAVIS") == "true" do
+            if System.get_env("INTEGRATION_TEST") == "true", do: "integration_tests.json", else: "travis.json"
+          else
+            "test.json"
+          end
         :prod -> "config.json"
       end
 

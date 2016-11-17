@@ -80,4 +80,12 @@ function banner() {
   make test
   make dialyze
   popd
+
+
+  # integration_tests -----------------------------------------------------------
+
+  banner "integration_tests"
+  pushd integration_tests
+  INTEGRATION_TEST=true mix test
+  popd
 )
