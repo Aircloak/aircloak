@@ -1,7 +1,7 @@
 defmodule Cloak.Aql.Function do
   @moduledoc "Includes information about functions and implementation of non-aggregation functions."
 
-  alias Cloak.Aql.{Column, Parser}
+  alias Cloak.Aql.{Column, Parser, Query}
   alias Cloak.{DataSource, Features}
   alias Timex.Duration
 
@@ -79,6 +79,7 @@ defmodule Cloak.Aql.Function do
       %{type_specs: %{[:text, :integer, {:optional, :integer}] => :text}},
     ~w(||) => %{type_specs: %{[:text, :text] => :text}},
     ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
+    ~w(extract_match) => %{type_specs: %{[:text, :text] => :text}, not_in_subquery: true},
     [{:cast, :integer}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer}},
     [{:cast, :real}] =>
@@ -94,9 +95,9 @@ defmodule Cloak.Aql.Function do
     [{:cast, :text}] =>
       %{type_specs: %{[:any] => :text}},
     [{:cast, :interval}] =>
-      %{type_specs: %{[{:or, [:text, :interval]}] => :interval}}
+      %{type_specs: %{[{:or, [:text, :interval]}] => :interval}},
   }
-  |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
+  |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, Map.put(traits, :name, &1)}) end)
   |> Enum.into(%{})
 
   @type t :: Parser.column | Column.t
@@ -113,15 +114,16 @@ defmodule Cloak.Aql.Function do
   def function?({:function, _, _}), do: true
   def function?(_), do: false
 
-  @doc "Returns true if the given function call to a known function, false otherwise."
-  @spec valid_function?(t, Features.t) :: boolean
-  def valid_function?({:function, function, _}, features) do
-    case @functions[function] do
-      nil -> false
-      %{required_feature: feature} -> Features.has?(features, feature)
-      _ -> true
-    end
-  end
+  @doc "Returns true if the function is valid, and otherwise a representative error message."
+  @spec valid_function?(t, Query.t) :: true | {:error, String.t}
+  def valid_function?(function_term, query), do:
+    with {:ok, function} <- function_exists?(function_term), do:
+      valid_feature?(function, query.features)
+
+  @doc "Returns true if the function is valid to use in a subquery"
+  @spec valid_function_for_subquery?(t, Query.t) :: true | {:error, String.t}
+  def valid_function_for_subquery?(function, query), do:
+    with true <- valid_function?(function, query), do: allowed_in_subquery?(function)
 
   @doc """
   Returns true if the given column definition is a function call to an aggregate function, false otherwise.
@@ -153,16 +155,12 @@ defmodule Cloak.Aql.Function do
   @doc "Returns the return type of the given function call."
   @spec return_type(t) :: data_type | nil
   def return_type({:function, {:cast, type}, _}), do: type
-  def return_type(function = {:function, _name, _}) do
-    case function_exists?(function) do
-      {:ok, %{type_specs: type_specs}} ->
-        type_specs
-        |> Enum.find(fn({arguments, _}) -> do_well_typed?(function, arguments) end)
-        |> case do
-          {_arguments, return_type} -> return_type
-          nil -> nil
-        end
-      error -> error
+  def return_type(function = {:function, name, _}) do
+    @functions[name].type_specs
+    |> Enum.find(fn({arguments, _}) -> do_well_typed?(function, arguments) end)
+    |> case do
+      {_arguments, return_type} -> return_type
+      nil -> nil
     end
   end
 
@@ -218,6 +216,7 @@ defmodule Cloak.Aql.Function do
   @doc "Returns the value of the bucket size argument of the given 'bucket' function call."
   @spec bucket_size(t) :: number
   def bucket_size({:function, {:bucket, _}, [_, {:constant, _, size}]}), do: size
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -284,6 +283,13 @@ defmodule Cloak.Aql.Function do
   defp do_apply("substring_for", [string, count]), do: substring(string, 1, count)
   defp do_apply("||", args), do: Enum.join(args)
   defp do_apply("concat", args), do: Enum.join(args)
+  defp do_apply("extract_match", [string, regex_pattern]) do
+    regex = Regex.compile!(regex_pattern, "ui")
+    case Regex.run(regex, string, capture: :first) do
+      [capture] -> capture
+      nil -> nil
+    end
+  end
   defp do_apply("^", [x, y]), do: :math.pow(x, y)
   defp do_apply("*", [x = %Duration{}, y]), do: Duration.scale(x, y)
   defp do_apply("*", [x, y = %Duration{}]), do: do_apply("*", [y, x])
@@ -423,6 +429,24 @@ defmodule Cloak.Aql.Function do
     case @functions[function] do
       nil -> {:error, "Unknown function `#{name(function_term)}`."}
       function -> {:ok, function}
+    end
+  end
+
+  def valid_feature?(%{required_feature: feature, name: name}, features) do
+    if Features.has?(features, feature) do
+      true
+    else
+      {:error, "Function `#{name}` requires feature `#{feature}` to be enabled."}
+    end
+  end
+  # No feature requirement
+  def valid_feature?(_, _features), do: true
+
+  defp allowed_in_subquery?({:function, function, _}) do
+    case @functions[function] do
+      %{not_in_subquery: true, name: name} ->
+        {:error, "Function `#{name}` is not allowed in subqueries."}
+      _ -> true
     end
   end
 end

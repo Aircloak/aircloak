@@ -469,11 +469,12 @@ defmodule Cloak.Aql.Compiler do
   defp verify_functions(query) do
     query.columns
     |> Enum.filter(&Function.function?/1)
-    |> Enum.reject(&Function.valid_function?(&1, query.features))
+    |> Enum.map(&Function.valid_function?(&1, query))
+    |> Enum.filter(fn({:error, _}) -> true; (_) -> false end)
     |> case do
       [] -> :ok
-      [function | _rest] ->
-        raise CompilationError, message: "Unknown function `#{Function.name(function)}`."
+      [{:error, message} | _rest] ->
+        raise CompilationError, message: message
     end
   end
 
@@ -862,11 +863,14 @@ defmodule Cloak.Aql.Compiler do
       end
     end
   end
-  defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name, %Query{subquery?: true}) do
-    case Function.return_type(function_spec) do
+  defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name, %Query{subquery?: true} = query) do
+    with true <- Function.valid_function_for_subquery?(function_spec, query) do
+      case Function.return_type(function_spec) do
+        nil -> raise CompilationError, message: function_argument_error_message(function_spec)
+        type -> Column.db_function(name, args, type, Function.aggregate_function?(function_spec))
+      end
+    else
       {:error, message} ->  raise CompilationError, message: message
-      nil -> raise CompilationError, message: function_argument_error_message(function_spec)
-      type -> Column.db_function(name, args, type, Function.aggregate_function?(function_spec))
     end
   end
   defp identifier_to_column({:parameter, index}, _columns_by_name, query) do

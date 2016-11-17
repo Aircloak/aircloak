@@ -55,6 +55,18 @@ defmodule Cloak.Query.FunctionTest do
     )
   end
 
+  test "extract_match", do:
+    assert "First" == apply_elixir_function("extract_match('First word', '\\w+')", "heights_ft")
+
+  test "extract_match is forbidden in subquery" do
+    assert_subquery_function(
+      "extract_match(cast(height as text), '\d+')",
+      "heights_ft",
+      %{error: "Function `extract_match` is not allowed in subqueries."}
+    )
+  end
+
+
   test "min(height)", do: assert_subquery_aggregate("min(height)", "heights_ft", 180)
   test "max(height)", do: assert_subquery_aggregate("max(height)", "heights_ft", 180)
   test "min(datetime)", do: assert_subquery_aggregate("min(datetime)", "datetimes_ft", ~N[2015-01-02 03:04:05.000000])
@@ -127,16 +139,20 @@ defmodule Cloak.Query.FunctionTest do
 
   defp apply_function(sql_fragment, table_name) do
     assert_query(
-      "select (#{sql_fragment}) as elixir_res from #{table_name}",
-      %{rows: [%{row: [result_simple_query]}]}
-    )
-
-    assert_query(
       "select sql_res from (select user_id, (#{sql_fragment}) as sql_res from #{table_name}) alias",
       %{rows: [%{row: [result_subquery]}]}
     )
 
+    result_simple_query = apply_elixir_function(sql_fragment, table_name)
     assert result_simple_query == result_subquery
+    result_simple_query
+  end
+
+  defp apply_elixir_function(sql_fragment, table_name) do
+    assert_query(
+      "select (#{sql_fragment}) as elixir_res from #{table_name}",
+      %{rows: [%{row: [result_simple_query]}]}
+    )
     result_simple_query
   end
 end
