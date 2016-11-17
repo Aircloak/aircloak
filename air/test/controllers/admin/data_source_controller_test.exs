@@ -8,7 +8,6 @@ defmodule Air.Admin.DataSourceControllerTest do
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
-    :ok
   end
 
   test "regular user can't manage data sources" do
