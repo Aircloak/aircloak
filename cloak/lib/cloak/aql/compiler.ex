@@ -864,6 +864,7 @@ defmodule Cloak.Aql.Compiler do
   end
   defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name, %Query{subquery?: true}) do
     case Function.return_type(function_spec) do
+      {:error, message} ->  raise CompilationError, message: message
       nil -> raise CompilationError, message: function_argument_error_message(function_spec)
       type -> Column.db_function(name, args, type, Function.aggregate_function?(function_spec))
     end

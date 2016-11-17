@@ -40,6 +40,21 @@ defmodule Cloak.Query.FunctionTest do
     )
   end
 
+  test "detect unknown function" do
+    assert_query(
+      "select foo(height) from heights_ft",
+      %{error: "Unknown function `foo`."}
+    )
+  end
+
+  test "detect unknown function in subqueries" do
+    assert_subquery_function(
+      "foo(height)",
+      "heights_ft",
+      %{error: "Unknown function `foo`."}
+    )
+  end
+
   test "min(height)", do: assert_subquery_aggregate("min(height)", "heights_ft", 180)
   test "max(height)", do: assert_subquery_aggregate("max(height)", "heights_ft", 180)
   test "min(datetime)", do: assert_subquery_aggregate("min(datetime)", "datetimes_ft", ~N[2015-01-02 03:04:05.000000])

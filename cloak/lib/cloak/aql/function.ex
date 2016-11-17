@@ -153,12 +153,16 @@ defmodule Cloak.Aql.Function do
   @doc "Returns the return type of the given function call."
   @spec return_type(t) :: data_type | nil
   def return_type({:function, {:cast, type}, _}), do: type
-  def return_type(function = {:function, name, _}) do
-    @functions[name].type_specs
-    |> Enum.find(fn({arguments, _}) -> do_well_typed?(function, arguments) end)
-    |> case do
-      {_arguments, return_type} -> return_type
-      nil -> nil
+  def return_type(function = {:function, _name, _}) do
+    case function_exists?(function) do
+      {:ok, %{type_specs: type_specs}} ->
+        type_specs
+        |> Enum.find(fn({arguments, _}) -> do_well_typed?(function, arguments) end)
+        |> case do
+          {_arguments, return_type} -> return_type
+          nil -> nil
+        end
+      error -> error
     end
   end
 
@@ -414,4 +418,11 @@ defmodule Cloak.Aql.Function do
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _}), do: nil
+
+  def function_exists?({:function, function, _} = function_term) do
+    case @functions[function] do
+      nil -> {:error, "Unknown function `#{name(function_term)}`."}
+      function -> {:ok, function}
+    end
+  end
 end
