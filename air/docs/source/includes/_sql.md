@@ -62,7 +62,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
   comparison_operator :=
       equality_operator | inequality_operator
 
-  quality_operator :=
+  equality_operator :=
       = | <>
 
   inequality_operator :=
