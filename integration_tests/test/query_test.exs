@@ -21,6 +21,11 @@ defmodule IntegrationTest.QueryTest do
     ]
   end
 
+  test "select" do
+    {:ok, result} = run_query("select name, height from users")
+    assert Map.fetch!(result, "rows") == [%{"occurrences" => 100, "row" => ["john", 180]}]
+  end
+
   defp run_query(query, params \\ []), do:
     Air.Service.DataSource.run_query(Manager.data_source_global_id(), Manager.air_user(), query, params)
 end

@@ -31,6 +31,7 @@ defmodule IntegrationTest.Manager do
   defp setup_cloak_database() do
     Cloak.Test.DB.start_link()
     :ok = Cloak.Test.DB.create_table("users", "name TEXT, height INTEGER")
+    :ok = insert_rows(1..100, "users", ["name", "height"], ["john", 180])
   end
 
   defp setup_air_user() do
@@ -71,5 +72,9 @@ defmodule IntegrationTest.Manager do
     |> Repo.preload([:groups])
     |> DataSource.changeset(%{groups: [admin_group.id]})
     |> Repo.update!()
+  end
+
+  defp insert_rows(user_id_range, table, columns, values) do
+    Cloak.Test.DB.add_users_data(table, columns, Enum.map(user_id_range, &["user#{&1}" | values]))
   end
 end
