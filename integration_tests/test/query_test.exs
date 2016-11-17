@@ -11,6 +11,16 @@ defmodule IntegrationTest.QueryTest do
     assert Map.fetch!(result, "rows") == [%{"occurrences" => 1, "row" => ["users"]}]
   end
 
+  test "show columns" do
+    {:ok, result} = run_query("show columns from users")
+
+    assert Map.fetch!(result, "rows") == [
+      %{"occurrences" => 1, "row" => ["user_id", "text"]},
+      %{"occurrences" => 1, "row" => ["name", "text"]},
+      %{"occurrences" => 1, "row" => ["height", "integer"]}
+    ]
+  end
+
   defp run_query(query, params \\ []), do:
     Air.Service.DataSource.run_query(Manager.data_source_global_id(), Manager.air_user(), query, params)
 end
