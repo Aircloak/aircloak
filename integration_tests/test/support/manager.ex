@@ -36,18 +36,10 @@ defmodule IntegrationTest.Manager do
 
   defp setup_air_user() do
     # delete previous entries
-    Repo.delete_all(
-      from dg in "data_sources_groups",
-      join: g in Group, on: g.id == dg.group_id,
-      where: g.name == @admin_group_name
-    )
-    Repo.delete_all(
-      from gu in "groups_users",
-      join: g in Group, on: g.id == gu.group_id,
-      where: g.name == @admin_group_name
-    )
-    Repo.delete_all(from u in User, where: u.email == @user_mail)
-    Repo.delete_all(from g in Group, where: g.name == @admin_group_name)
+    Air.Repo.delete_all("data_sources_groups")
+    Air.Repo.delete_all("groups_users")
+    Air.Repo.delete_all(Air.User)
+    Air.Repo.delete_all(Air.Group)
 
     # create group
     admin_group =
