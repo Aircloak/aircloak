@@ -69,7 +69,11 @@ defmodule Cloak.AirSocketTest do
     ensure_joined(cloak_name)
     MainChannel.subscribe(cloak_name)
 
-    [data_source_id | _] = Cloak.DataSource.ids()
+    data_source_id =
+      Application.get_env(:cloak, :data_sources)
+      |> Enum.map(&(&1.global_id))
+      |> hd()
+
     request = %{
       request_id: "foo",
       event: "run_query",
