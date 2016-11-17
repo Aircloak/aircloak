@@ -7,7 +7,33 @@ defmodule IntegrationTest.Manager do
   @user_mail "integration_test@aircloak.com"
   @data_source_global_id "postgres/cloaktest1-native@localhost"
 
-  def setup_user() do
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  def setup() do
+    setup_cloak_database()
+    setup_air_user()
+  end
+
+  def data_source_global_id(), do:
+    {:global_id, @data_source_global_id}
+
+  def air_user(), do:
+    Repo.one!(from u in User, where: u.email == @user_mail)
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp setup_cloak_database() do
+    Cloak.Test.DB.start_link()
+    :ok = Cloak.Test.DB.create_table("users", "name TEXT, height INTEGER")
+  end
+
+  defp setup_air_user() do
     # delete previous entries
     Repo.delete_all(
       from dg in "data_sources_groups",
@@ -46,10 +72,4 @@ defmodule IntegrationTest.Manager do
     |> DataSource.changeset(%{groups: [admin_group.id]})
     |> Repo.update!()
   end
-
-  def data_source_global_id(), do:
-    {:global_id, @data_source_global_id}
-
-  def air_user(), do:
-    Repo.one!(from u in User, where: u.email == @user_mail)
 end

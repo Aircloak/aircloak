@@ -5,9 +5,10 @@ defmodule IntegrationTest.QueryTest do
 
   test "show tables" do
     assert {:ok, result} = run_query("show tables")
-    assert ["name"] == Map.fetch!(result, "columns")
-    assert ["text"] == result |> Map.fetch!("features") |> Map.fetch!("column_types")
-    assert ["text"] == result |> Map.fetch!("features") |> Map.fetch!("selected_types")
+    assert Map.fetch!(result, "columns") == ["name"]
+    assert result |> Map.fetch!("features") |> Map.fetch!("column_types") == ["text"]
+    assert result |> Map.fetch!("features") |> Map.fetch!("selected_types") == ["text"]
+    assert Map.fetch!(result, "rows") == [%{"occurrences" => 1, "row" => ["users"]}]
   end
 
   defp run_query(query, params \\ []), do:

@@ -1,2 +1,2 @@
-IntegrationTest.Manager.setup_user()
+IntegrationTest.Manager.setup()
 ExUnit.start()
