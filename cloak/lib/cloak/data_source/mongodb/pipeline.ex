@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   alias Cloak.Aql.{Query, Column, Comparison}
   alias Cloak.Query.Runner.RuntimeError
-  alias Cloak.DataSource.MongoDB.Schema
+  alias Cloak.DataSource.MongoDB.{Schema, Projector}
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -18,7 +18,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       parse_where_conditions(base_conditions) ++
       unwind_arrays(table.array_path) ++
       parse_where_conditions(array_conditions) ++
-      project_array_sizes(table) ++
+      Projector.map_array_sizes(table) ++
       parse_where_conditions(array_size_conditions) ++
       parse_query(query)
     {table.db_name, pipeline}
@@ -40,11 +40,11 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   #-----------------------------------------------------------------------------------------------------------
 
   defp parse_query(%Query{subquery?: false} = query), do:
-    project_columns(query.db_columns)
+    Projector.map_columns(query.db_columns)
   defp parse_query(%Query{group_by: [_|_]}), do:
     raise RuntimeError, message: "Grouping in subqueries is not supported on 'mongodb' data sources."
   defp parse_query(query), do:
-    project_columns(query.db_columns) ++
+    Projector.map_columns(query.db_columns) ++
     order_rows(query.order_by, query.db_columns) ++
     offset_rows(query.offset) ++
     limit_rows(query.limit)
@@ -101,55 +101,26 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     {base_conditions, array_conditions, array_size_conditions}
   end
 
-  defp array_size_projector(name), do: %{'$size': %{'$ifNull': ["$" <> name, []]}}
-
-  defp project_array_sizes(table) do
-    columns = for {name, _type} <- table.columns, do: name
-    case Enum.partition(columns, &Schema.is_array_size?/1) do
-      {_, []} -> []
-      {array_sizes, regular_columns} ->
-        projected_columns =
-          Enum.map(regular_columns, &{&1, true}) ++
-          Enum.map(array_sizes, &{&1, &1 |> Schema.array_size_field() |> array_size_projector()})
-        [%{'$project': Enum.into(projected_columns, %{})}]
-    end
+  defp unwind_arrays(_path, _path \\ "")
+  defp unwind_arrays([], _path), do: []
+  defp unwind_arrays([array | rest], path) do
+    path = path <> array
+    [%{'$unwind': "$" <> path} | unwind_arrays(rest, path)]
   end
 
-  defp project_columns(columns), do:
-    [%{'$project': columns |> Enum.map(&project_column/1) |> Enum.into(%{"_id" => false})}]
-
-  defp project_column(%Column{name: name, alias: nil}), do: {name, true}
-  defp project_column(%Column{name: name, alias: alias}) do
-    unless valid_alias?(alias), do:
-      raise RuntimeError, message: "MongoDB column alias `#{alias}` contains invalid character(s)."
-    {alias, "$" <> name}
+  defp order_rows([], _columns), do: []
+  defp order_rows(order_by, columns) do
+    order_by = for {index, dir} <- order_by, into: %{} do
+      dir = if dir == :desc do -1 else 1 end
+      name = columns |> Enum.at(index) |> Map.get(:alias)
+      {name, dir}
+    end
+    [%{'$sort': order_by}]
   end
 
-  defp valid_alias?(name), do:
-    String.match?(name, ~r/^[a-zA-Z_#][a-zA-Z0-9_.#]*$/) and
-    ! String.contains?(name, "..") and
-    String.last(name) != "."
+  defp offset_rows(0), do: []
+  defp offset_rows(amount), do: [%{'$skip': amount}]
 
-    defp unwind_arrays(_path, _path \\ "")
-    defp unwind_arrays([], _path), do: []
-    defp unwind_arrays([array | rest], path) do
-      path = path <> array
-      [%{'$unwind': "$" <> path} | unwind_arrays(rest, path)]
-    end
-
-    defp order_rows([], _columns), do: []
-    defp order_rows(order_by, columns) do
-      order_by = for {index, dir} <- order_by, into: %{} do
-        dir = if dir == :desc do -1 else 1 end
-        name = columns |> Enum.at(index) |> Map.get(:alias)
-        {name, dir}
-      end
-      [%{'$sort': order_by}]
-    end
-
-    defp offset_rows(0), do: []
-    defp offset_rows(amount), do: [%{'$skip': amount}]
-
-    defp limit_rows(nil), do: []
-    defp limit_rows(amount), do: [%{'$limit': amount}]
+  defp limit_rows(nil), do: []
+  defp limit_rows(amount), do: [%{'$limit': amount}]
 end
