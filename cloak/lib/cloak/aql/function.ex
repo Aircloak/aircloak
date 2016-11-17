@@ -79,7 +79,8 @@ defmodule Cloak.Aql.Function do
       %{type_specs: %{[:text, :integer, {:optional, :integer}] => :text}},
     ~w(||) => %{type_specs: %{[:text, :text] => :text}},
     ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
-    ~w(extract_match) => %{type_specs: %{[:text, :text] => :text}, not_in_subquery: true},
+    ~w(extract_match) => %{type_specs: %{[:text, :text] => :text}, not_in_subquery: true,
+      precompiled: true},
     [{:cast, :integer}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer}},
     [{:cast, :real}] =>
@@ -217,6 +218,26 @@ defmodule Cloak.Aql.Function do
   @spec bucket_size(t) :: number
   def bucket_size({:function, {:bucket, _}, [_, {:constant, _, size}]}), do: size
 
+  @doc """
+  Returns true if the function needs precompiling. Precompiling is useful if there is a costly
+  preprocessing step needed that should only be done once, or if static query parameters can
+  be validated prior to query execution.
+  """
+  @spec needs_precompiling?(String.t) :: boolean
+  def needs_precompiling?(function), do: Map.get(@functions[function], :precompiled, false)
+
+  @doc "Compiles a function so it is ready for execution"
+  @spec compile_function(t, ((t) :: {:ok, t} | {:error, String.t})) :: {:ok, t} | {:error, String.t}
+  def compile_function({:function, "extract_match", [column, pattern_column]}, compilation_callback) do
+    case Regex.compile(pattern_column.value, "ui") do
+      {:ok, regex} ->
+        regex_column = %Column{pattern_column | value: regex}
+        {:function, "extract_match", compilation_callback.([column]) ++ [regex_column]}
+      {:error, {error, location}} ->
+        {:error, "The regex used in `extract_match` is invalid: #{error} at character #{location}"}
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -283,8 +304,7 @@ defmodule Cloak.Aql.Function do
   defp do_apply("substring_for", [string, count]), do: substring(string, 1, count)
   defp do_apply("||", args), do: Enum.join(args)
   defp do_apply("concat", args), do: Enum.join(args)
-  defp do_apply("extract_match", [string, regex_pattern]) do
-    regex = Regex.compile!(regex_pattern, "ui")
+  defp do_apply("extract_match", [string, regex]) do
     case Regex.run(regex, string, capture: :first) do
       [capture] -> capture
       nil -> nil

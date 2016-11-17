@@ -73,6 +73,7 @@ defmodule Cloak.Aql.Compiler do
     query = query
     |> compile_columns()
     |> verify_columns()
+    |> precompile_functions()
     |> censor_selected_uids()
     |> compile_order_by()
     |> partition_selected_columns()
@@ -96,6 +97,7 @@ defmodule Cloak.Aql.Compiler do
       |> compile_tables()
       |> compile_columns()
       |> verify_columns()
+      |> precompile_functions()
       |> censor_selected_uids()
       |> compile_order_by()
       |> verify_joins()
@@ -414,6 +416,28 @@ defmodule Cloak.Aql.Compiler do
           <> ", but got (#{function_call |> actual_types() |> quoted_list()})."
     end
   end
+
+  defp precompile_functions(%Query{} = query) do
+    %Query{query |
+      columns: precompile_functions(query.columns),
+      group_by: precompile_functions(query.group_by),
+      order_by: (for {column, direction} <- query.order_by, do: {precompile_function(column), direction}),
+    }
+  end
+  defp precompile_functions(columns), do:
+    Enum.map(columns, &precompile_function/1)
+
+  defp precompile_function({:function, function, args} = function_spec) do
+    if Function.needs_precompiling?(function) do
+      case Function.compile_function(function_spec, &precompile_functions/1) do
+        {:error, message} -> raise CompilationError, message: message
+        compiled_function -> compiled_function
+      end
+    else
+      {:function, function, precompile_functions(args)}
+    end
+  end
+  defp precompile_function(column), do: column
 
   defp many_overloads?(function_call) do
     length(Function.argument_types(function_call)) > 4

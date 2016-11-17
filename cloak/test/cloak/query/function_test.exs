@@ -2,6 +2,7 @@ defmodule Cloak.Query.FunctionTest do
   use ExUnit.Case, async: true
 
   import Cloak.Test.QueryHelpers
+  alias Cloak.Aql.Function
 
   setup_all do
     Cloak.Test.DB.create_table("heights_ft", "height INTEGER, name TEXT")
@@ -66,6 +67,18 @@ defmodule Cloak.Query.FunctionTest do
     )
   end
 
+  test "knows that extract_match should be precompiled", do:
+    assert Function.needs_precompiling?("extract_match")
+  test "normal (for example `ceil`) functions don't need precompiling", do:
+    refute Function.needs_precompiling?("ceil")
+
+  test "gives sensible error message for broken regex" do
+    assert_query(
+      "SELECT extract_match(name, '(missing-parenthesis') FROM heights_ft",
+      %{error: message}
+    )
+    assert message =~ ~r/missing \) at character/
+  end
 
   test "min(height)", do: assert_subquery_aggregate("min(height)", "heights_ft", 180)
   test "max(height)", do: assert_subquery_aggregate("max(height)", "heights_ft", 180)
