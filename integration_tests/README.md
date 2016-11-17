@@ -1,24 +1,8 @@
-# IntegrationTests
+# Integration tests
 
-**TODO: Add description**
+This is project bundles air and cloak, and tests end-to-end functionality. The project can only be used in test environment:
 
-## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
-
-  1. Add `integration_tests` to your list of dependencies in `mix.exs`:
-
-    ```elixir
-    def deps do
-      [{:integration_tests, "~> 0.1.0"}]
-    end
-    ```
-
-  2. Ensure `integration_tests` is started before your application:
-
-    ```elixir
-    def application do
-      [applications: [:integration_tests]]
-    end
-    ```
-
+```
+$ MIX_ENV=test mix deps.get
+$ mix test
+```
