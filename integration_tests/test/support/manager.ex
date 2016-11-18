@@ -5,6 +5,7 @@ defmodule IntegrationTest.Manager do
 
   @admin_group_name "admins"
   @user_mail "integration_test@aircloak.com"
+  @user_password "1234"
   @data_source_global_id "postgres/cloaktest1-native@localhost"
 
 
@@ -17,8 +18,11 @@ defmodule IntegrationTest.Manager do
     setup_air_user()
   end
 
-  def data_source_global_id(), do:
-    @data_source_global_id
+  def data_source_global_id(), do: @data_source_global_id
+
+  def user_mail(), do: @user_mail
+
+  def user_password(), do: @user_password
 
   def air_user(), do:
     Repo.one!(from u in User, where: u.email == @user_mail)
@@ -52,7 +56,7 @@ defmodule IntegrationTest.Manager do
     |> User.new_user_changeset(%{
           email: @user_mail,
           name: "integration_test",
-          password: "1234",
+          password: @user_password,
           password_confirmation: "1234",
           groups: [admin_group.id]
         })
