@@ -42,7 +42,7 @@ defmodule Air.PsqlServer.Protocol do
 
   @type column :: %{name: String.t, type: psql_type}
 
-  @type query_result :: %{columns: [column], rows: [db_value]}
+  @type query_result :: %{columns: [column], rows: [db_value]} | nil
 
   @type prepared_statement :: %{
     name: String.t,
@@ -107,9 +107,9 @@ defmodule Air.PsqlServer.Protocol do
     dispatch_event(state, {:authenticated, success})
 
   @doc "Should be invoked by the driver when the select query result is available."
-  @spec select_result(t, query_result) :: t
-  def select_result(state, result), do:
-    dispatch_event(state, {:select_result, result})
+  @spec query_result(t, query_result) :: t
+  def query_result(state, result), do:
+    dispatch_event(state, {:query_result, result})
 
   @doc "Should be invoked by the driver when the describe result is available."
   @spec describe_result(t, [column]) :: t
@@ -239,7 +239,7 @@ defmodule Air.PsqlServer.Protocol do
   defp handle_event(state, :ready, {:message, message}), do:
     handle_ready_message(state, message.type, message.payload)
   # :running_query -> awaiting query result
-  defp handle_event(state, :running_query, {:select_result, result}), do:
+  defp handle_event(state, :running_query, {:query_result, result}), do:
     state
     |> send_result(result)
     |> request_send(ready_for_query())
@@ -250,7 +250,7 @@ defmodule Air.PsqlServer.Protocol do
     |> request_send(row_description(columns))
     |> transition_after_message(:ready)
   # :running_prepared_statement -> awaiting result of an executed prepared statement
-  defp handle_event(state, :running_prepared_statement, {:select_result, result}), do:
+  defp handle_event(state, :running_prepared_statement, {:query_result, result}), do:
     state
     |> send_rows(result.rows)
     |> request_send(command_complete("SELECT #{length(result.rows)}"))
@@ -310,6 +310,8 @@ defmodule Air.PsqlServer.Protocol do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
+  defp send_result(state, nil), do:
+    request_send(state, command_complete(""))
   defp send_result(state, %{rows: rows, columns: columns}), do:
     state
     |> request_send(row_description(columns))

@@ -94,17 +94,15 @@ defmodule Air.PsqlServer do
 
   defp handle_special_query(conn, "set " <> _), do:
     # we're ignoring set for now
-    {true, empty_response(conn)}
+    {true, RanchServer.set_query_result(conn, nil)}
   defp handle_special_query(conn, query) do
     cond do
       # select ... from pg_type ...
-      query =~ ~r/^select.+from pg_type/ -> {true, empty_response(conn)}
+      query =~ ~r/^select.+from pg_type/ ->
+        {true, RanchServer.set_query_result(conn, %{columns: [], rows: []})}
       true -> false
     end
   end
-
-  defp empty_response(conn), do:
-    RanchServer.set_query_result(conn, %{columns: [], rows: []})
 
   defp parse_response({:error, :not_connected}), do:
     %{error: "Data source is not available!"}
