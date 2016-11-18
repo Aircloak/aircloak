@@ -44,6 +44,17 @@ defmodule IntegrationTest.PsqlTest do
     assert Enum.all?(rows, &(&1 == {'john', '181'}))
   end
 
+  test "select error" do
+    {:ok, conn} = connect()
+    ExUnit.CaptureLog.capture_log(fn -> assert {:error, _} = :odbc.sql_query(conn, 'invalid query') end)
+  end
+
+  test "extended query error" do
+    {:ok, conn} = connect()
+    ExUnit.CaptureLog.capture_log(fn -> assert {:error, _} = :odbc.param_query(conn, 'invalid query', []) end)
+  end
+
+
   defp connect(params \\ []) do
     params = Keyword.merge(
       [user: Manager.user_mail(), password: Manager.user_password(), database: Manager.data_source_global_id()],
