@@ -27,6 +27,12 @@ defmodule IntegrationTest.PsqlTest do
       {'height', 'integer'}
     ]}
   end
+
+  test "select" do
+    {:ok, conn} = connect()
+    assert {:selected, ['name', 'height'], rows} = :odbc.sql_query(conn, 'select name, height from users')
+    assert Enum.all?(rows, &(&1 == {'john', '180'}))
+  end
   
 
   defp connect(params \\ []) do
