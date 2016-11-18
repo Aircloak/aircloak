@@ -60,12 +60,6 @@ defmodule Air.PsqlServer.Protocol.Messages do
     query
   end
 
-  def query_message(query), do: client_message(:query, null_terminate(query))
-
-  def password_message(password), do: client_message(:password, null_terminate(password))
-
-  def terminate_message(), do: client_message(:terminate, <<>>)
-
   for {message_name, message_byte} <-
       %{
         bind: ?B,
@@ -83,9 +77,6 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   # we're not using all patterns in this function, so dialyzer complains
   @dialyzer {:nowarn_function, client_message_byte: 1}
-
-  defp client_message(message_name, payload), do:
-    <<client_message_byte(message_name)::8, message_with_size(payload)::binary>>
 
 
   #-----------------------------------------------------------------------------------------------------------

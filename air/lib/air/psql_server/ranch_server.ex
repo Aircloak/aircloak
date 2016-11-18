@@ -87,7 +87,7 @@ defmodule Air.PsqlServer.RanchServer do
     put_in(conn.assigns[key], value)
 
   @doc "Stores a query result into a connection state."
-  @spec set_query_result(t, %{}) :: t
+  @spec set_query_result(t, Protocol.query_result) :: t
   def set_query_result(conn, query_result), do:
     update_in(conn.behaviour_actions, &[{:query_result, query_result} | &1])
 
@@ -238,7 +238,7 @@ defmodule Air.PsqlServer.RanchServer do
     |> handle_protocol_actions()
 
   defp handle_behaviour_action(conn, {:query_result, query_result}), do:
-    update_protocol(conn, &Protocol.select_result(&1, query_result))
+    update_protocol(conn, &Protocol.query_result(&1, query_result))
   defp handle_behaviour_action(conn, {:set_describe_result, columns}), do:
     update_protocol(conn, &Protocol.describe_result(&1, columns))
 end
