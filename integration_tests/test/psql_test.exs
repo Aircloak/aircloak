@@ -31,7 +31,7 @@ defmodule IntegrationTest.PsqlTest do
   test "select" do
     {:ok, conn} = connect()
     assert {:selected, ['name', 'height'], rows} = :odbc.sql_query(conn, 'select name, height from users')
-    assert Enum.all?(rows, &(&1 == {'john', '180'}))
+    assert Enum.uniq(rows) == [{'john', '180'}]
   end
 
   test "extended query" do
@@ -41,7 +41,7 @@ defmodule IntegrationTest.PsqlTest do
       'select name, height + $1 as height from users where height = $2',
       [{:sql_integer, [1]}, {:sql_integer, [180]}]
     )
-    assert Enum.all?(rows, &(&1 == {'john', '181'}))
+    assert Enum.uniq(rows) == [{'john', '181'}]
   end
 
   test "select error" do
