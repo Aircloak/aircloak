@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     [%{'$project': columns |> Enum.map(&map_column/1) |> Enum.into(%{"_id" => false})}]
 
   @doc "Creates a MongoDB projection for the array size columns in a table."
-  @spec map_array_sizes(Cloak.DataSource.table) :: [map]
+  @spec map_array_sizes(map) :: [map]
   def map_array_sizes(table) do
     columns = for {name, _type} <- table.columns, do: name
     case Enum.partition(columns, &Schema.is_array_size?/1) do
