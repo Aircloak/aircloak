@@ -55,14 +55,19 @@ defmodule Air.PsqlServer do
   end
 
   @doc false
-  def run_query(conn, query, params, _max_rows), do:
-    RanchServer.assign(
-      conn,
-      :query_runner,
-      Task.async(fn ->
-        DataSource.run_query(conn.assigns.data_source_id, conn.assigns.user, query, params)
-      end)
-    )
+  def run_query(conn, query, params, _max_rows) do
+    case handle_special_query(conn, String.downcase(query)) do
+      {true, conn} -> conn
+      false ->
+        RanchServer.assign(
+          conn,
+          :query_runner,
+          Task.async(fn ->
+            DataSource.run_query(conn.assigns.data_source_id, conn.assigns.user, query, params)
+          end)
+        )
+    end
+  end
 
   @doc false
   def describe_statement(conn, query, params), do:
@@ -86,6 +91,20 @@ defmodule Air.PsqlServer do
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp handle_special_query(conn, "set " <> _), do:
+    # we're ignoring set for now
+    {true, empty_response(conn)}
+  defp handle_special_query(conn, query) do
+    cond do
+      # select ... from pg_type ...
+      query =~ ~r/^select.+from pg_type/ -> {true, empty_response(conn)}
+      true -> false
+    end
+  end
+
+  defp empty_response(conn), do:
+    RanchServer.set_query_result(conn, %{columns: [], rows: []})
 
   defp parse_response({:error, :not_connected}), do:
     %{error: "Data source is not available!"}
