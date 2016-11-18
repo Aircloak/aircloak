@@ -14,6 +14,11 @@ defmodule IntegrationTest.PsqlTest do
     assert to_string(msg) =~ ~r/Authentication failed/
   end
 
+  test "show tables" do
+    {:ok, conn} = connect()
+    assert :odbc.sql_query(conn, 'show tables') == {:selected, ['name'], [{'users'}]}
+  end
+
   defp connect(params \\ []) do
     params = Keyword.merge(
       [user: Manager.user_mail(), password: Manager.user_password(), database: Manager.data_source_global_id()],
