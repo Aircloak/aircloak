@@ -19,6 +19,16 @@ defmodule IntegrationTest.PsqlTest do
     assert :odbc.sql_query(conn, 'show tables') == {:selected, ['name'], [{'users'}]}
   end
 
+  test "show columns" do
+    {:ok, conn} = connect()
+    assert :odbc.sql_query(conn, 'show columns from users') == {:selected, ['name', 'type'], [
+      {'user_id', 'text'},
+      {'name', 'text'},
+      {'height', 'integer'}
+    ]}
+  end
+  
+
   defp connect(params \\ []) do
     params = Keyword.merge(
       [user: Manager.user_mail(), password: Manager.user_password(), database: Manager.data_source_global_id()],
