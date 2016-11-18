@@ -14,6 +14,22 @@ defmodule IntegrationTest.PsqlTest do
     assert to_string(msg) =~ ~r/Authentication failed/
   end
 
+  test "ssl mode is required" do
+    assert {:error, msg} = connect(sslmode: "disable")
+    assert to_string(msg) =~ ~r/Connection refused/
+  end
+
+  test "connecting" do
+    assert {:ok, _} = connect(sslmode: "require")
+    assert {:ok, _} = connect(sslmode: "prefer")
+    assert {:ok, _} = connect(sslmode: "allow")
+  end
+
+  test "disconnecting" do
+    {:ok, conn} = connect()
+    assert :ok = :odbc.disconnect(conn)
+  end
+
   test "show tables" do
     {:ok, conn} = connect()
     assert :odbc.sql_query(conn, 'show tables') == {:selected, ['name'], [{'users'}]}
@@ -57,7 +73,12 @@ defmodule IntegrationTest.PsqlTest do
 
   defp connect(params \\ []) do
     params = Keyword.merge(
-      [user: Manager.user_mail(), password: Manager.user_password(), database: Manager.data_source_global_id()],
+      [
+        user: Manager.user_mail(),
+        password: Manager.user_password(),
+        database: Manager.data_source_global_id(),
+        sslmode: "require"
+      ],
       params
     )
 
@@ -66,7 +87,7 @@ defmodule IntegrationTest.PsqlTest do
         "DSN" => "PostgreSQL",
         "Server" => "localhost",
         "Port" => Application.fetch_env!(:air, Air.PsqlServer) |> Keyword.fetch!(:port),
-        "sslmode" => "require",
+        "sslmode" => params[:sslmode],
         "Uid" => params[:user],
         "Pwd" => params[:password],
         "Database" => params[:database]
