@@ -34,7 +34,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
 
   defp deps do
     [
-      {:poison, "~> 1.5"},
+      {:poison, "~> 2.2.0"},
       {:gproc, "~> 0.5.0"},
       {:protobuffs, github: "basho/erlang_protobuffs", tag: "0.8.2", warn_missing: false},
       {:ex_doc, "~> 0.13", warn_missing: false},

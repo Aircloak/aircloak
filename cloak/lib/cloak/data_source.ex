@@ -225,12 +225,14 @@ defmodule Cloak.DataSource do
     Map.merge(data, %{global_id: global_id})
   end
 
+  @doc false
   # load the columns list for all defined tables in all data sources
-  defp cache_columns(data_sources) do
+  def cache_columns(data_sources) do
     Application.put_env(:cloak, :data_sources, data_sources)
   end
 
-  defp add_tables(data_source), do:
+  @doc false
+  def add_tables(data_source), do:
     Map.put(data_source, :tables, load_tables(data_source))
 
   defp load_tables(data_source) do
@@ -320,45 +322,6 @@ defmodule Cloak.DataSource do
       nil
     else
       raise "#{msg}\nTo ignore these columns set `ignore_unsupported_types: true` in your table settings"
-    end
-  end
-
-
-  #-----------------------------------------------------------------------------------------------------------
-  # Test functions
-  #-----------------------------------------------------------------------------------------------------------
-
-  if Mix.env == :test do
-    @doc false
-    def register_test_table(table_id, table) do
-      sources = for source <- Application.get_env(:cloak, :data_sources) do
-        tables = Map.put(source[:tables], table_id, table)
-        Map.put(source, :tables, tables) |> add_tables()
-      end
-      cache_columns(sources)
-    end
-
-    @doc false
-    def unregister_test_table(table_id) do
-      sources = for source <- Application.get_env(:cloak, :data_sources) do
-        tables = Map.delete(source[:tables], table_id)
-        Map.put(source, :tables, tables)
-      end
-      cache_columns(sources)
-    end
-
-    @doc false
-    def clear_test_tables() do
-      sources = for source <- Application.get_env(:cloak, :data_sources) do
-        Map.put(source, :tables, %{})
-      end
-      cache_columns(sources)
-    end
-
-    @doc false
-    def ids() do
-      Application.get_env(:cloak, :data_sources)
-      |> Enum.map(&(&1.global_id))
     end
   end
 end

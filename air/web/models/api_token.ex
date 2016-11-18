@@ -51,7 +51,7 @@ defmodule Air.ApiToken do
   """
   @spec touch(ApiToken.t) :: Changeset.t
   def touch(model) do
-    time_params = %{updated_at: Timex.Time.now |> Timex.to_erlang_datetime |> Ecto.DateTime.from_erl}
+    time_params = %{updated_at: Timex.now |> Timex.to_erl |> Ecto.DateTime.from_erl}
     cast(model, time_params, [:updated_at], [])
   end
 end

@@ -65,9 +65,8 @@ defmodule Air.Mixfile do
       {:comeonin, "~> 2.5"},
       {:guardian, "~> 0.13.0"},
       {:lhttpc, github: "esl/lhttpc", override: true},
-      {:hackney, "~> 1.5.0"},
       {:exrm, "~> 1.0.8", warn_missing: false},
-      {:timex, "~> 2.2"},
+      {:timex, "~> 3.1.3"},
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
       {:csv, "~> 1.4.2"},
@@ -106,7 +105,7 @@ defmodule Air.Mixfile do
   defp common_applications do
     [
       :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
-      :lhttpc, :hackney, :guardian, :inets, :timex, :aircloak_common, :inflex, :csv,
+      :lhttpc, :guardian, :inets, :timex, :aircloak_common, :inflex, :csv,
       :phoenix_pubsub, :phoenix_mtm, :ranch, :phoenix_gen_socket_client, :websocket_client,
       :scrivener_ecto, :scrivener_html,
     ]

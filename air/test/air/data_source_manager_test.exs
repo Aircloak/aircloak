@@ -78,7 +78,7 @@ defmodule Air.DataSourceManager.Test do
     %{
       id: "cloak_id_#{:erlang.unique_integer()}",
       name: "cloak_name",
-      online_since: Timex.DateTime.now()
+      online_since: Timex.now()
     }
   end
 

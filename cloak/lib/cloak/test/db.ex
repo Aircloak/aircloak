@@ -1,4 +1,9 @@
 defmodule Cloak.Test.DB do
+  @moduledoc false
+
+  # This module is used only for test purposes. Since it is also used in integration_tests
+  # project, it needs to reside in lib folder.
+
   alias Cloak.DataSource
 
   use GenServer
@@ -37,7 +42,7 @@ defmodule Cloak.Test.DB do
 
   def init(_) do
     execute!("DROP SCHEMA IF EXISTS cloak_test CASCADE")
-    DataSource.clear_test_tables()
+    clear_test_tables()
     execute!("CREATE SCHEMA cloak_test")
     {:ok, nil}
   end
@@ -47,7 +52,7 @@ defmodule Cloak.Test.DB do
     create_db_table(db_name, definition, opts)
     decoders = opts[:decoders] || []
     table = %{db_name: full_table_name(db_name), user_id: "user_id", decoders: decoders}
-    DataSource.register_test_table(String.to_atom(table_name), table)
+    register_test_table(String.to_atom(table_name), table)
     {:reply, :ok, state}
   end
 
@@ -55,6 +60,21 @@ defmodule Cloak.Test.DB do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp register_test_table(table_id, table) do
+    sources = for source <- Application.get_env(:cloak, :data_sources) do
+      tables = Map.put(source[:tables], table_id, table)
+      Map.put(source, :tables, tables) |> DataSource.add_tables()
+    end
+    DataSource.cache_columns(sources)
+  end
+
+  defp clear_test_tables() do
+    sources = for source <- Application.get_env(:cloak, :data_sources) do
+      Map.put(source, :tables, %{})
+    end
+    DataSource.cache_columns(sources)
+  end
 
   defp create_db_table(db_name, definition, opts) do
     if opts[:skip_db_create] do

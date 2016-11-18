@@ -84,4 +84,13 @@ function banner() {
   MIX_ENV=prod mix compile --warnings-as-errors
   MIX_ENV=test make recreate_db
   popd
+
+
+  # integration_tests ---------------------------------------------------------------
+
+  banner "integration_tests"
+  pushd integration_tests
+  MIX_ENV=test mix deps.get
+  MIX_ENV=test mix compile
+  popd
 )

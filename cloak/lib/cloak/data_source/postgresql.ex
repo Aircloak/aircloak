@@ -108,17 +108,16 @@ defmodule Cloak.DataSource.PostgreSQL do
   # Test functions
   #-----------------------------------------------------------------------------------------------------------
 
-  if Mix.env == :test do
-    defp parameter_mapper(%NaiveDateTime{} = dt), do:
-      %Postgrex.Timestamp{year: dt.year, month: dt.month, day: dt.day,
-        hour: dt.hour, min: dt.minute, sec: dt.second, usec: 0}
-    defp parameter_mapper(%Date{} = d), do: %Postgrex.Date{year: d.year, month: d.month, day: d.day}
-    defp parameter_mapper(%Time{} = t), do: %Postgrex.Time{hour: t.hour, min: t.minute, sec: t.second, usec: 0}
-    defp parameter_mapper(value), do: value
-    @doc false
-    def execute(connection, statement, parameters) do
-      parameters = Enum.map(parameters, &parameter_mapper/1)
-      Postgrex.query(connection, statement, parameters, [timeout: :timer.minutes(2)])
-    end
+  @doc false
+  def execute(connection, statement, parameters) do
+    parameters = Enum.map(parameters, &parameter_mapper/1)
+    Postgrex.query(connection, statement, parameters, [timeout: :timer.minutes(2)])
   end
+
+  defp parameter_mapper(%NaiveDateTime{} = dt), do:
+    %Postgrex.Timestamp{year: dt.year, month: dt.month, day: dt.day,
+      hour: dt.hour, min: dt.minute, sec: dt.second, usec: 0}
+  defp parameter_mapper(%Date{} = d), do: %Postgrex.Date{year: d.year, month: d.month, day: d.day}
+  defp parameter_mapper(%Time{} = t), do: %Postgrex.Time{hour: t.hour, min: t.minute, sec: t.second, usec: 0}
+  defp parameter_mapper(value), do: value
 end
