@@ -427,14 +427,10 @@ defmodule Cloak.Aql.Compiler do
   defp precompile_functions(columns), do:
     Enum.map(columns, &precompile_function/1)
 
-  defp precompile_function({:function, function, args} = function_spec) do
-    if Function.needs_precompiling?(function) do
-      case Function.compile_function(function_spec, &precompile_functions/1) do
-        {:error, message} -> raise CompilationError, message: message
-        compiled_function -> compiled_function
-      end
-    else
-      {:function, function, precompile_functions(args)}
+  defp precompile_function({:function, _function, _args} = function_spec) do
+    case Function.compile_function(function_spec, &precompile_functions/1) do
+      {:error, message} -> raise CompilationError, message: message
+      compiled_function -> compiled_function
     end
   end
   defp precompile_function(column), do: column

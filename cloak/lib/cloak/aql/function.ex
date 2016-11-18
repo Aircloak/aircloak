@@ -104,6 +104,7 @@ defmodule Cloak.Aql.Function do
   @type t :: Parser.column | Column.t
   @type data_type :: :any | DataSource.data_type
   @type argument_type :: data_type | {:optional, data_type} | {:many1, data_type} | {:or, [data_type]}
+  @type function_compilation_callback :: (list(t)) :: list(t) | no_return
 
 
   # -------------------------------------------------------------------
@@ -227,7 +228,9 @@ defmodule Cloak.Aql.Function do
   def needs_precompiling?(function), do: Map.get(@functions[function], :precompiled, false)
 
   @doc "Compiles a function so it is ready for execution"
-  @spec compile_function(t, ((t) :: {:ok, t} | {:error, String.t})) :: {:ok, t} | {:error, String.t}
+  @spec compile_function(t, function_compilation_callback) :: t | {:error, String.t}
+  def compile_function({:function, "extract_match", [_column, %Column{value: %Regex{}}]
+      } = precompiled_function, _callback), do: precompiled_function
   def compile_function({:function, "extract_match", [column, pattern_column]}, compilation_callback) do
     case Regex.compile(pattern_column.value, "ui") do
       {:ok, regex} ->
@@ -237,6 +240,8 @@ defmodule Cloak.Aql.Function do
         {:error, "The regex used in `extract_match` is invalid: #{error} at character #{location}"}
     end
   end
+  def compile_function({:function, function, args}, compilation_callback), do:
+    {:function, function, compilation_callback.(args)}
 
 
   # -------------------------------------------------------------------

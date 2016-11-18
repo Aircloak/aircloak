@@ -485,6 +485,26 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("/", [1, 0]) == nil
   end
 
+  test "compiling already extract_match function creates regex" do
+    function = {:function, "extract_match", [%Column{}, %Column{value: "regex_pattern"}]}
+    callback = fn(a) -> a end
+    assert {:function, _, [_, %Column{value: %Regex{}}]} = Function.compile_function(function, callback)
+  end
+
+  test "compiling already compiled extract_match function does nothing" do
+    function = {:function, "extract_match", [%Column{}, %Column{value: "regex_pattern"}]}
+    callback = fn(a) -> a end
+    compiled_function = Function.compile_function(function, callback)
+    assert Function.compile_function(compiled_function, callback) == compiled_function
+  end
+
+  test "compiling function that doesn't need compilation does nothing" do
+    function = {:function, "no_compilation", [:args1, :args2]}
+    callback = fn(a) -> a end
+    assert function == Function.compile_function(function, callback)
+  end
+
+
   defp return_type(name, arg_types), do:
     Function.return_type({:function, name, Enum.map(arg_types, &Column.constant(&1, nil))})
 
