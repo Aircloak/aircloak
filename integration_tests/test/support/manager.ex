@@ -18,7 +18,7 @@ defmodule IntegrationTest.Manager do
   end
 
   def data_source_global_id(), do:
-    {:global_id, @data_source_global_id}
+    @data_source_global_id
 
   def air_user(), do:
     Repo.one!(from u in User, where: u.email == @user_mail)

@@ -27,5 +27,10 @@ defmodule IntegrationTest.QueryTest do
   end
 
   defp run_query(query, params \\ []), do:
-    Air.Service.DataSource.run_query(Manager.data_source_global_id(), Manager.air_user(), query, params)
+    Air.Service.DataSource.run_query(
+      {:global_id, Manager.data_source_global_id()},
+      Manager.air_user(),
+      query,
+      params
+    )
 end
