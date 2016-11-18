@@ -96,11 +96,11 @@ defmodule Air.PsqlServer do
     # we're ignoring set for now
     {true, RanchServer.set_query_result(conn, nil)}
   defp handle_special_query(conn, query) do
-    cond do
+    if query =~ ~r/^select.+from pg_type/ do
       # select ... from pg_type ...
-      query =~ ~r/^select.+from pg_type/ ->
-        {true, RanchServer.set_query_result(conn, %{columns: [], rows: []})}
-      true -> false
+      {true, RanchServer.set_query_result(conn, %{columns: [], rows: []})}
+    else
+      false
     end
   end
 
