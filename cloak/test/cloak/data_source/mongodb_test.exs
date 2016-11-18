@@ -25,6 +25,9 @@ defmodule Cloak.DataSource.MongoDBTest do
       value = %{name: "user#{i}", age: 30, male: true, bills: [%{issuer: "vendor", ids: [1, 2]}]}
       Mongo.insert_one!(conn, @table, value)
     end
+    for _i <- 11..15 do
+      Mongo.insert_one!(conn, @table, %{})
+    end
     tables =
       conn
       |> MongoDB.load_tables(%{db_name: @table, name: @table, columns: [], user_id: "_id"})
@@ -71,7 +74,8 @@ defmodule Cloak.DataSource.MongoDBTest do
   test "basic queries on root table", context do
     assert_query context, "SELECT COUNT(name) FROM #{@table}", %{rows: [%{occurrences: 1, row: [10]}]}
     assert_query context, "SELECT AVG(age) FROM #{@table}", %{rows: [%{occurrences: 1, row: [30.0]}]}
-    assert_query context, "SELECT DISTINCT male FROM #{@table}", %{rows: [%{occurrences: 1, row: [true]}]}
+    assert_query context, "SELECT DISTINCT male FROM #{@table} WHERE male IS NOT NULL",
+      %{rows: [%{occurrences: 1, row: [true]}]}
   end
 
   test "virtual tables", context do
@@ -92,6 +96,29 @@ defmodule Cloak.DataSource.MongoDBTest do
     assert_query context,
       "SELECT bills.issuer, COUNT(*) FROM #{@table}_bills_ids WHERE bills.ids = 1 GROUP BY bills.issuer",
       %{rows: [%{occurrences: 1, row: ["vendor", 10]}]}
+  end
+
+  test "basic sub-queries", context do
+    assert_query context, "SELECT AVG(age) FROM (SELECT _id, age FROM #{@table}) AS t",
+      %{rows: [%{occurrences: 1, row: [30.0]}]}
+    assert_query context, "SELECT COUNT(name) FROM (SELECT _id, name FROM #{@table}_bills) AS t",
+      %{rows: [%{occurrences: 1, row: [10]}]}
+  end
+
+  test "sub-queries with limit/offset", context do
+    assert_query context, """
+        SELECT COUNT(name) FROM (SELECT _id, name FROM #{@table}_bills_ids ORDER BY _id LIMIT 10) AS t
+      """, %{rows: [%{occurrences: 1, row: [10]}]}
+    assert_query context, """
+        SELECT COUNT(name) FROM (SELECT _id, name FROM #{@table}_bills_ids ORDER BY _id LIMIT 10 OFFSET 10) AS t
+      """, %{rows: [%{occurrences: 1, row: [10]}]}
+  end
+
+  test "functions in sub-queries", context do
+    assert_query context, "SELECT AVG(age) FROM (SELECT _id, trunc(abs(age) - 30.0) AS age FROM #{@table}) AS t",
+      %{rows: [%{occurrences: 1, row: [0.0]}]}
+    assert_query context, "SELECT name FROM (SELECT _id, lower(left(name, 4)) AS name FROM #{@table}) AS t",
+      %{rows: [%{occurrences: 5, row: [nil]}, %{occurrences: 10, row: ["user"]}]}
   end
 end
 end

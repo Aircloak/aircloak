@@ -198,8 +198,8 @@ defmodule Cloak.Aql.Compiler do
           all_id_columns_from_tables(subquery)
           |> Enum.map(&Column.display_name/1)
           |> case do
-            [column] -> "the #{column}"
-            columns -> "one of the #{Enum.join(columns, ", ")}"
+            [column] -> "the column #{column}"
+            columns -> "one of the columns #{Enum.join(columns, ", ")}"
           end
 
         raise CompilationError, message:
@@ -528,7 +528,7 @@ defmodule Cloak.Aql.Compiler do
       condition ->
         column = Comparison.subject(condition)
         raise CompilationError,
-          message: "The #{Column.display_name(column)} needs decoding and can not be used in a subquery."
+          message: "Column #{Column.display_name(column)} needs decoding and can not be used in a subquery."
     end
     query
   end
@@ -1068,7 +1068,8 @@ defmodule Cloak.Aql.Compiler do
     for {:comparison, column, _operator, target} <- query.having, do:
       for term <- [column, target], do:
         if individual_column?(term, query), do:
-          raise CompilationError, message: "`HAVING` clause can not be applied over #{Column.display_name(term)}."
+          raise CompilationError,
+            message: "`HAVING` clause can not be applied over column #{Column.display_name(term)}."
     query
   end
   defp verify_having(query), do: query
@@ -1081,14 +1082,14 @@ defmodule Cloak.Aql.Compiler do
 
   defp verify_where_clause({:comparison, column_a, _, column_b}) do
     if not Column.constant?(column_a) and not Column.constant?(column_b) and column_a.type != column_b.type do
-      raise CompilationError, message: "#{column_a |> Column.display_name() |> String.capitalize()} of type "
-        <> "`#{column_a.type}` and #{Column.display_name(column_b)} of type `#{column_b.type}` cannot be compared."
+      raise CompilationError, message: "Column #{Column.display_name(column_a)} of type `#{column_a.type}` and "
+        <> "column #{Column.display_name(column_b)} of type `#{column_b.type}` cannot be compared."
     end
   end
   defp verify_where_clause({:like, column, _}) do
     if column.type != :text do
-      raise CompilationError, message: "#{column |> Column.display_name() |> String.capitalize()} of type "
-        <> "`#{column.type}` cannot be used in a LIKE expression."
+      raise CompilationError,
+        message: "Column #{Column.display_name(column)} of type `#{column.type}` cannot be used in a LIKE expression."
     end
   end
   defp verify_where_clause({:not, clause}), do: verify_where_clause(clause)

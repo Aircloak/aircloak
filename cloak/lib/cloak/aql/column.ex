@@ -55,9 +55,8 @@ defmodule Cloak.Aql.Column do
   This function should mostly be used when producing error messages.
   """
   @spec display_name(t) :: String.t
-  def display_name(column) do
-    "column `#{column.name}` from table `#{column.table.name}`"
-  end
+  def display_name(%__MODULE__{name: name, table: table}) when is_binary(name), do:
+    "`#{name}` from table `#{table.name}`"
 
   @doc "Returns the column value of a database row."
   @spec value(t, DataSource.row) :: DataSource.field
