@@ -33,7 +33,16 @@ defmodule IntegrationTest.PsqlTest do
     assert {:selected, ['name', 'height'], rows} = :odbc.sql_query(conn, 'select name, height from users')
     assert Enum.all?(rows, &(&1 == {'john', '180'}))
   end
-  
+
+  test "extended query" do
+    {:ok, conn} = connect()
+    assert {:selected, ['name', 'height'], rows} = :odbc.param_query(
+      conn,
+      'select name, height + $1 as height from users where height = $2',
+      [{:sql_integer, [1]}, {:sql_integer, [180]}]
+    )
+    assert Enum.all?(rows, &(&1 == {'john', '181'}))
+  end
 
   defp connect(params \\ []) do
     params = Keyword.merge(
