@@ -94,6 +94,8 @@ defmodule Cloak.Query.ShrinkAndDrop do
     def count(%{left: left, right: right}), do:
       max(HalfBuffer.count(left), HalfBuffer.count(right))
 
+    def empty?(buffer), do: count(buffer) == 0
+
     def range_dropping(%{left: left, right: right}, n) do
       x = HalfBuffer.value_dropping(left, n)
       y = HalfBuffer.value_dropping(right, n)
@@ -135,6 +137,18 @@ defmodule Cloak.Query.ShrinkAndDrop do
   end
 
   defp do_suppress_outliers(:done, %{buffer: buffer}, _column) do
+    if Buffer.empty?(buffer) do
+      {[], nil}
+    else
+      emit_buffer(buffer)
+    end
+  end
+  defp do_suppress_outliers(row, %{next_id: next_id, buffer: buffer}, column) do
+    {new_buffer, popped_rows} = row |> decorate_row(next_id, column) |> Buffer.add(buffer)
+    {Enum.map(popped_rows, &undecorate_row/1), %{next_id: next_id + 1, buffer: new_buffer}}
+  end
+
+  defp emit_buffer(buffer) do
     interval =
       buffer
       |> Buffer.range_dropping(Buffer.count(buffer) - 1)
@@ -144,10 +158,6 @@ defmodule Cloak.Query.ShrinkAndDrop do
       end
 
     {buffer |> Buffer.inside(interval) |> Enum.map(&undecorate_row/1), nil}
-  end
-  defp do_suppress_outliers(row, %{next_id: next_id, buffer: buffer}, column) do
-    {new_buffer, popped_rows} = row |> decorate_row(next_id, column) |> Buffer.add(buffer)
-    {Enum.map(popped_rows, &undecorate_row/1), %{next_id: next_id + 1, buffer: new_buffer}}
   end
 
   # Very small number such that x + epsilon(x) > x
