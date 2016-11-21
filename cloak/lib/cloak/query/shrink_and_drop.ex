@@ -65,11 +65,9 @@ defmodule Cloak.Query.ShrinkAndDrop do
   defmodule Buffer do
     defstruct [:left, :right]
 
-    @extremes_to_keep 11
-
-    def new, do: %Buffer{
-      left: HalfBuffer.new(@extremes_to_keep, &Kernel.</2),
-      right: HalfBuffer.new(@extremes_to_keep, &Kernel.>/2)
+    def new(size), do: %Buffer{
+      left: HalfBuffer.new(size, &Kernel.</2),
+      right: HalfBuffer.new(size, &Kernel.>/2)
     }
 
     def add(row, buffer) do
@@ -128,7 +126,7 @@ defmodule Cloak.Query.ShrinkAndDrop do
   @supported_types [:integer, :real]
   defp suppress_outliers({column, _range}, rows) do
     if Enum.member?(@supported_types, Function.type(column)) do
-      initial_state = %{next_id: 0, buffer: Buffer.new(), user_ids: MapSet.new()}
+      initial_state = %{next_id: 0, buffer: Buffer.new(buffer_size()), user_ids: MapSet.new()}
 
       rows
       |> Stream.concat([:done])
@@ -175,4 +173,10 @@ defmodule Cloak.Query.ShrinkAndDrop do
   defp user_id([id | _rest]), do: id
 
   defp value(row, column), do: Function.apply_to_db_row(column, row)
+
+  defp buffer_size do
+    # A size that is unlikely to be exceeded by Anonymizer.noisy_lower_bound()
+    {mean, _sigma} = Anonymizer.config(:low_count_soft_lower_bound)
+    3 * mean + 1
+  end
 end
