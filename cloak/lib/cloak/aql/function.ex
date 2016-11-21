@@ -79,6 +79,11 @@ defmodule Cloak.Aql.Function do
       %{type_specs: %{[:text, :integer, {:optional, :integer}] => :text}},
     ~w(||) => %{type_specs: %{[:text, :text] => :text}},
     ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
+    # NOTICE: The `not_in_subquery` needs to be set for `extract_match` (whether or not we
+    # can implement it in a subquery). The reason for this is what we have called: WYSIWYC
+    # (what you see is what you count). If `extract_match` is allowed in a subquery it can
+    # effectively be used as an `OR`, whereas if it is used at the top-level the output of
+    # the function is directly anonymised, and hence safe.
     ~w(extract_match) => %{type_specs: %{[:text, :text] => :text}, not_in_subquery: true,
       precompiled: true},
     [{:cast, :integer}] =>
