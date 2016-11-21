@@ -66,9 +66,18 @@ defmodule Cloak.Query.Anonymizer do
   """
   @spec sufficiently_large?(t, non_neg_integer) :: {boolean, t}
   def sufficiently_large?(anonymizer, count) do
+    {noisy_lower_bound, anonymizer} = noisy_lower_bound(anonymizer)
+    {count > noisy_lower_bound, anonymizer}
+  end
+
+  @doc """
+  Returns a lower bound distributed as described in `sufficently_large?`.
+  """
+  @spec noisy_lower_bound(t) :: {non_neg_integer, t}
+  def noisy_lower_bound(anonymizer) do
     {noisy_lower_bound, anonymizer} = add_noise(anonymizer, config(:low_count_soft_lower_bound))
     noisy_lower_bound = Kernel.max(round(noisy_lower_bound), config(:low_count_absolute_lower_bound))
-    {count > noisy_lower_bound, anonymizer}
+    {noisy_lower_bound, anonymizer}
   end
 
   @doc "Computes the noisy count and noise sigma of all values in rows, where each row is an enumerable."
