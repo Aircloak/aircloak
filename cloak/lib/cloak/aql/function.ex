@@ -84,6 +84,15 @@ defmodule Cloak.Aql.Function do
     # (what you see is what you count). If `extract_match` is allowed in a subquery it can
     # effectively be used as an `OR`, whereas if it is used at the top-level the output of
     # the function is directly anonymised, and hence safe.
+    # An example attack could look like:
+    #
+    #   SELECT count(*)
+    #   FROM (
+    #     SELECT uid, extract_match(name, 'Pattern1|Pattern2|Pattern3|...') as match
+    #     FROM table
+    #     WHERE match is not null
+    #   )
+    #
     ~w(extract_match) => %{type_specs: %{[:text, :text] => :text}, not_in_subquery: true,
       precompiled: true},
     [{:cast, :integer}] =>
