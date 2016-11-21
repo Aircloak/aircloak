@@ -485,7 +485,7 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("/", [1, 0]) == nil
   end
 
-  test "compiling already extract_match function creates regex" do
+  test "compiling extract_match function creates regex of regex pattern" do
     function = {:function, "extract_match", [%Column{}, %Column{value: "regex_pattern"}]}
     callback = fn(a) -> a end
     assert {:function, _, [_, %Column{value: %Regex{}}]} = Function.compile_function(function, callback)
