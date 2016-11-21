@@ -144,3 +144,83 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
 - We compute the noisy value for Nv: `Nv = 0.5`.
 - We compute the sum of all the remaining users: `Sum = 10 + 10 + 1000 + 1000 = 2020`.
 - We compute the final result: `Result = Sum + No * TopAverage + Nv * RemainingAverage = 2020 + 3 * 670 + 0.5 * 505 = 4282.5`.
+
+## Fixed alignment
+
+This is part of a two-step process that protects users from being exposed by two
+related queries that differ by a range applied to a column in the WHERE clause.
+For the other part see [Shrink and drop](#shrink_and_drop).
+
+Whenever the query includes an inequality on some columns we require that there
+is a complementary inequality bounding the variable from the other side. For
+example `x > 10` and `x < 10 AND x > 20` are disallowed while `x > 10 AND x <= 20`
+is allowed. We then align this range to a fixed grid with the following procedure:
+
+* Find the closest size in the series `..., 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, ...`
+  for which an aligned range of that size will contain the original range
+* The low end of the range is the low end of the original range rounded down
+  to the nearest half of the size
+* The high end is the low end plus the size
+
+Examples:
+
+```
+{1, 3} -> {1, 3}
+{1, 4} -> {0, 5}
+{3, 7} -> {2.5, 7.5}
+{10.1, 11.9} -> {10.0, 12.0}
+```
+
+This sets the stage for [Shrink and drop](#shrink_and_drop) since we limit the
+possible queries to a discreet set.
+
+## Fixed alignment for dates
+
+Date, time and datetime inequalities are also subject to fixed alignment. The
+scheme used for the grid is a bit more complex to make the produced aligned
+intervals feel more natural (like a quarter or a full month).
+
+The interval is converted into units since epoch (or midnight for time intervals)
+depending on its size - an interval of a couple minutes will use minutes here,
+while one that is about the length of a month will use months. That converted
+interval is then aligned as described in [Fixed alignment](#fixed_alignment) with
+the caveat that depending on the chosen grain (days, minutes, etc.) a different
+grid sized is used. For example for minutes the allowed grid sizes are
+`1, 2, 5, 15, 30, 60`. The result is converted back into a datetime interval.
+
+## Shrink and drop
+
+Given a query that scopes a certain column by an interval we need to check if
+the analyst could have made another query with a slightly different interval
+that differs by a `low_count` number of users. If so the rows outside of that
+other query need to be suppressed from the output so that the result is the
+same for both queries.
+
+The perfect algorithm for this calls for analyzing all possible smaller ranges
+for a given range and then recursively checking any data that remains after
+suppression. Due to problems with implementing such an approach in a streaming
+manner we decided on the following, approximate, approach:
+
+* The input is a stream of rows.
+* We buffer top and bottom N values for the scoped column seen.
+* When a row arrives we check if it's "safe" - that is the value for that row
+is bigger than the bottom N values and smaller than the top N.
+* If it is then we emit it immediately.
+* If it's not then we add it to the buffer. If the row belongs to a user that's
+already in the buffer it is "attached" to that user. Otherwise a new entry for
+the owner of that row is created. If the buffer exceeds size N at this point,
+then all the rows from the "safest" (closest to the middle) user are removed
+from the buffer and emitted.
+* An exception to the above occurs when the user is in both the top N and bottom
+N buffers - in that case the rows are "attached" in the other buffer instead
+of being emitted.
+* We collect the set of user ids from emitted rows.
+* At the end of the stream we pick a random number with the same configuration as
+the offset used for determining `low_count` using a seed generated from the set
+of used ids.
+* The number N above is picked in such a way that there is a low probability of
+requiring more than N values at this point.
+* We skip that number of users from each side of the buffer. We find the smallest
+range that encompasses all non-skipped entries in the buffer and align that range.
+* We emit all buffered data that fits into the aligned range and suppress all data
+that doesn't.
