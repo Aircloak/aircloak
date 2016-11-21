@@ -73,6 +73,7 @@ defmodule Cloak.Aql.Compiler do
     query = query
     |> compile_columns()
     |> verify_columns()
+    |> precompile_functions()
     |> censor_selected_uids()
     |> compile_order_by()
     |> partition_selected_columns()
@@ -96,6 +97,7 @@ defmodule Cloak.Aql.Compiler do
       |> compile_tables()
       |> compile_columns()
       |> verify_columns()
+      |> precompile_functions()
       |> censor_selected_uids()
       |> compile_order_by()
       |> verify_joins()
@@ -415,6 +417,24 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
+  defp precompile_functions(%Query{} = query) do
+    %Query{query |
+      columns: precompile_functions(query.columns),
+      group_by: precompile_functions(query.group_by),
+      order_by: (for {column, direction} <- query.order_by, do: {precompile_function(column), direction}),
+    }
+  end
+  defp precompile_functions(columns), do:
+    Enum.map(columns, &precompile_function/1)
+
+  defp precompile_function({:function, _function, _args} = function_spec) do
+    case Function.compile_function(function_spec, &precompile_functions/1) do
+      {:error, message} -> raise CompilationError, message: message
+      compiled_function -> compiled_function
+    end
+  end
+  defp precompile_function(column), do: column
+
   defp many_overloads?(function_call) do
     length(Function.argument_types(function_call)) > 4
   end
@@ -469,11 +489,34 @@ defmodule Cloak.Aql.Compiler do
   defp verify_functions(query) do
     query.columns
     |> Enum.filter(&Function.function?/1)
-    |> Enum.reject(&Function.valid_function?(&1, query.features))
-    |> case do
-      [] -> :ok
-      [function | _rest] ->
-        raise CompilationError, message: "Unknown function `#{Function.name(function)}`."
+    |> Enum.each(&check_function_validity(&1, query))
+  end
+
+  defp check_function_validity(function, query) do
+    verify_function_exists(function)
+    verify_function_supported_feature(function, query)
+    verify_function_subquery_usage(function, query)
+  end
+
+  defp verify_function_exists(function) do
+    unless Function.exists?(function) do
+      raise CompilationError, message: "Unknown function `#{Function.name(function)}`."
+    end
+  end
+
+  defp verify_function_supported_feature(function, query) do
+    unless Function.valid_feature?(function, query) do
+      raise CompilationError, message:
+        "Function `#{Function.name(function)}` requires feature " <>
+        "`#{Function.required_feature(function)}` to be enabled."
+    end
+  end
+
+  defp verify_function_subquery_usage(_function, %Query{subquery?: false}), do: :ok
+  defp verify_function_subquery_usage(function, %Query{subquery?: true}) do
+    unless Function.allowed_in_subquery?(function) do
+      raise CompilationError, message:
+        "Function `#{Function.name(function)}` is not allowed in subqueries."
     end
   end
 
@@ -862,7 +905,8 @@ defmodule Cloak.Aql.Compiler do
       end
     end
   end
-  defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name, %Query{subquery?: true}) do
+  defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name, %Query{subquery?: true} = query) do
+    check_function_validity(function_spec, query)
     case Function.return_type(function_spec) do
       nil -> raise CompilationError, message: function_argument_error_message(function_spec)
       type -> Column.db_function(name, args, type, Function.aggregate_function?(function_spec))

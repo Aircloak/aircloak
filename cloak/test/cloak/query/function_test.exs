@@ -2,6 +2,7 @@ defmodule Cloak.Query.FunctionTest do
   use ExUnit.Case, async: true
 
   import Cloak.Test.QueryHelpers
+  alias Cloak.Aql.Function
 
   setup_all do
     Cloak.Test.DB.create_table("heights_ft", "height INTEGER, name TEXT")
@@ -38,6 +39,45 @@ defmodule Cloak.Query.FunctionTest do
       "heights_ft",
       %{error: "Column `user_id` from table `heights_ft` needs to appear in the `GROUP BY`" <> _}
     )
+  end
+
+  test "detect unknown function" do
+    assert_query(
+      "select foo(height) from heights_ft",
+      %{error: "Unknown function `foo`."}
+    )
+  end
+
+  test "detect unknown function in subqueries" do
+    assert_subquery_function(
+      "foo(height)",
+      "heights_ft",
+      %{error: "Unknown function `foo`."}
+    )
+  end
+
+  test "extract_match", do:
+    assert "First" == apply_elixir_function("extract_match('First word', '\\w+')", "heights_ft")
+
+  test "extract_match is forbidden in subquery" do
+    assert_subquery_function(
+      "extract_match(cast(height as text), '\d+')",
+      "heights_ft",
+      %{error: "Function `extract_match` is not allowed in subqueries."}
+    )
+  end
+
+  test "knows that extract_match should be precompiled", do:
+    assert Function.needs_precompiling?("extract_match")
+  test "normal (for example `ceil`) functions don't need precompiling", do:
+    refute Function.needs_precompiling?("ceil")
+
+  test "gives sensible error message for broken regex" do
+    assert_query(
+      "SELECT extract_match(name, '(missing-parenthesis') FROM heights_ft",
+      %{error: message}
+    )
+    assert message =~ ~r/missing \) at character/
   end
 
   test "min(height)", do: assert_subquery_aggregate("min(height)", "heights_ft", 180)
@@ -112,16 +152,20 @@ defmodule Cloak.Query.FunctionTest do
 
   defp apply_function(sql_fragment, table_name) do
     assert_query(
-      "select (#{sql_fragment}) as elixir_res from #{table_name}",
-      %{rows: [%{row: [result_simple_query]}]}
-    )
-
-    assert_query(
       "select sql_res from (select user_id, (#{sql_fragment}) as sql_res from #{table_name}) alias",
       %{rows: [%{row: [result_subquery]}]}
     )
 
+    result_simple_query = apply_elixir_function(sql_fragment, table_name)
     assert result_simple_query == result_subquery
+    result_simple_query
+  end
+
+  defp apply_elixir_function(sql_fragment, table_name) do
+    assert_query(
+      "select (#{sql_fragment}) as elixir_res from #{table_name}",
+      %{rows: [%{row: [result_simple_query]}]}
+    )
     result_simple_query
   end
 end

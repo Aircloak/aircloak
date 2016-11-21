@@ -617,7 +617,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "math can be disabled with a config setting" do
     assert {:error, error} = compile("select numeric * 2 from table", data_source(), [], %{math: false})
-    assert error =~ ~r/Unknown function `*`/
+    assert error =~ ~r/requires feature `math`/
   end
 
   test "dotted columns can be used unquoted" do
