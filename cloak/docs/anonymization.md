@@ -1,4 +1,3 @@
-
 # Anonymization techniques
 
 This document describes the algorithms we use to compute aggregates in a
@@ -10,7 +9,6 @@ The input to each method is the list of values for a bucket, grouped by user.
 The hardcoded numbers used throughout this document can be changed during setup,
 on a per-customer basis. For a specific cloak, the actual values are taken from
 the [configuration file](../config/config.exs), in the `anonymizer` section.
-
 
 ## DISTINCT preprocessing
 
@@ -98,7 +96,7 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
 ## MEDIAN
 
   - The values are sorted in ascending order.
-  - The real median is computed.  
+  - The real median is computed.
   - The closest value per-user is extracted from above and below the median,
     from a noisy amount (mean: 5, SD: 1) of distinct users on each side.
   - The final result is the average of the real median and the extracted values from above and below.
