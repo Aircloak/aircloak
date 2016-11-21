@@ -11,5 +11,5 @@ defmodule Cloak.Features do
 
   @doc "Returns true if the given feature list has the given feature, false otherwise."
   @spec has?(t, atom) :: boolean
-  def has?(features, feature), do: features[to_string(feature)]
+  def has?(features, feature), do: features[to_string(feature)] || false
 end

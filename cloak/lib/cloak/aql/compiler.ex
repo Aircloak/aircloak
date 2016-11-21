@@ -489,12 +489,34 @@ defmodule Cloak.Aql.Compiler do
   defp verify_functions(query) do
     query.columns
     |> Enum.filter(&Function.function?/1)
-    |> Enum.map(&Function.valid_function?(&1, query))
-    |> Enum.filter(fn({:error, _}) -> true; (_) -> false end)
-    |> case do
-      [] -> :ok
-      [{:error, message} | _rest] ->
-        raise CompilationError, message: message
+    |> Enum.each(&check_function_validity(&1, query))
+  end
+
+  defp check_function_validity(function, query) do
+    verify_function_exists(function)
+    verify_function_supported_feature(function, query)
+    verify_function_subquery_usage(function, query)
+  end
+
+  defp verify_function_exists(function) do
+    unless Function.exists?(function) do
+      raise CompilationError, message: "Unknown function `#{Function.name(function)}`."
+    end
+  end
+
+  defp verify_function_supported_feature(function, query) do
+    unless Function.valid_feature?(function, query) do
+      raise CompilationError, message:
+        "Function `#{Function.name(function)}` requires feature " <>
+        "`#{Function.required_feature(function)}` to be enabled."
+    end
+  end
+
+  defp verify_function_subquery_usage(_function, %Query{subquery?: false}), do: :ok
+  defp verify_function_subquery_usage(function, %Query{subquery?: true}) do
+    unless Function.allowed_in_subquery?(function) do
+      raise CompilationError, message:
+        "Function `#{Function.name(function)}` is not allowed in subqueries."
     end
   end
 
@@ -884,13 +906,10 @@ defmodule Cloak.Aql.Compiler do
     end
   end
   defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name, %Query{subquery?: true} = query) do
-    with true <- Function.valid_function_for_subquery?(function_spec, query) do
-      case Function.return_type(function_spec) do
-        nil -> raise CompilationError, message: function_argument_error_message(function_spec)
-        type -> Column.db_function(name, args, type, Function.aggregate_function?(function_spec))
-      end
-    else
-      {:error, message} ->  raise CompilationError, message: message
+    check_function_validity(function_spec, query)
+    case Function.return_type(function_spec) do
+      nil -> raise CompilationError, message: function_argument_error_message(function_spec)
+      type -> Column.db_function(name, args, type, Function.aggregate_function?(function_spec))
     end
   end
   defp identifier_to_column({:parameter, index}, _columns_by_name, query) do

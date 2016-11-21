@@ -2,7 +2,7 @@ defmodule Cloak.Aql.Function.Test do
   require Integer
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.{Column, Function}
+  alias Cloak.Aql.{Column, Function, Query}
   alias Timex.Duration
 
   test "sqrt", do:
@@ -504,6 +504,27 @@ defmodule Cloak.Aql.Function.Test do
     assert function == Function.compile_function(function, callback)
   end
 
+  test "knows `extract_match` isn't allowed in a subquery", do:
+    refute Function.allowed_in_subquery?({:function, "extract_match", []})
+
+  test "knows `ceil` is allowed in a subquery", do:
+    assert Function.allowed_in_subquery?({:function, "ceil", []})
+
+  test "returns feature required by a function", do:
+    assert :math == Function.required_feature({:function, "*", []})
+
+  test "returns nil if no feature is required by a function", do:
+    assert nil == Function.required_feature({:function, "extract_match", []})
+
+  test "returns false for query without feature support using function requiring feature", do:
+    refute Function.valid_feature?({:function, "*", []}, %Query{})
+
+  test "returns true for query with feature support using function requiring feature", do:
+    assert Function.valid_feature?({:function, "*", []}, %Query{features: %{"math" => true}})
+
+  test "returns true if function exists", do: assert Function.exists?({:function, "*", []})
+
+  test "returns false if function does not exists", do: refute Function.exists?({:function, "foobar", []})
 
   defp return_type(name, arg_types), do:
     Function.return_type({:function, name, Enum.map(arg_types, &Column.constant(&1, nil))})

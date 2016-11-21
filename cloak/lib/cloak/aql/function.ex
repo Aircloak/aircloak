@@ -116,17 +116,6 @@ defmodule Cloak.Aql.Function do
   def function?({:function, _, _}), do: true
   def function?(_), do: false
 
-  @doc "Returns true if the function is valid, and otherwise a representative error message."
-  @spec valid_function?(t, Query.t) :: true | {:error, String.t}
-  def valid_function?(function_term, query), do:
-    with {:ok, function} <- function_exists?(function_term), do:
-      valid_feature?(function, query.features)
-
-  @doc "Returns true if the function is valid to use in a subquery"
-  @spec valid_function_for_subquery?(t, Query.t) :: true | {:error, String.t}
-  def valid_function_for_subquery?(function, query), do:
-    with true <- valid_function?(function, query), do: allowed_in_subquery?(function)
-
   @doc """
   Returns true if the given column definition is a function call to an aggregate function, false otherwise.
   """
@@ -242,6 +231,48 @@ defmodule Cloak.Aql.Function do
   end
   def compile_function({:function, function, args}, compilation_callback), do:
     {:function, function, compilation_callback.(args)}
+
+  @doc "Returns true if the function is a valid cloak function"
+  @spec exists?(t) :: boolean
+  def exists?({:function, function, _}), do: @functions[function] !== nil
+
+  @doc """
+  Returns true if the function is supported given the features supported in the query.
+
+  This function expects the caller to already have validated that the function exists.
+  This can be done with the `exists?` function.
+  """
+  @spec valid_feature?(t, Query.t) :: boolean
+  def valid_feature?(function, %Query{features: features}) do
+    case required_feature(function) do
+      nil -> true
+      feature -> Features.has?(features, feature)
+    end
+  end
+
+  @doc "Returns a feature required by a function, or nil if the function has no feature requirements."
+  @spec required_feature(t) :: atom | nil
+  def required_feature({:function, function, _}) do
+    case @functions[function] do
+      %{required_feature: feature} -> feature
+      # No feature requirement
+      _ -> nil
+    end
+  end
+
+  @doc """
+  Returns true if the function is allowed in sub-queries.
+
+  This function expects the caller to already have validated that the function exists.
+  This can be done with the `exists?` function.
+  """
+  @spec allowed_in_subquery?(t) :: boolean
+  def allowed_in_subquery?({:function, function, _}) do
+    case @functions[function] do
+      %{not_in_subquery: true} -> false
+      _ -> true
+    end
+  end
 
 
   # -------------------------------------------------------------------
@@ -449,29 +480,4 @@ defmodule Cloak.Aql.Function do
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _}), do: nil
-
-  def function_exists?({:function, function, _} = function_term) do
-    case @functions[function] do
-      nil -> {:error, "Unknown function `#{name(function_term)}`."}
-      function -> {:ok, function}
-    end
-  end
-
-  def valid_feature?(%{required_feature: feature, name: name}, features) do
-    if Features.has?(features, feature) do
-      true
-    else
-      {:error, "Function `#{name}` requires feature `#{feature}` to be enabled."}
-    end
-  end
-  # No feature requirement
-  def valid_feature?(_, _features), do: true
-
-  defp allowed_in_subquery?({:function, function, _}) do
-    case @functions[function] do
-      %{not_in_subquery: true, name: name} ->
-        {:error, "Function `#{name}` is not allowed in subqueries."}
-      _ -> true
-    end
-  end
 end
