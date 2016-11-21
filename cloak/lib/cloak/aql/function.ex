@@ -103,7 +103,7 @@ defmodule Cloak.Aql.Function do
     [{:cast, :interval}] =>
       %{type_specs: %{[{:or, [:text, :interval]}] => :interval}},
   }
-  |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, Map.put(traits, :name, &1)}) end)
+  |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
 
   @type t :: Parser.column | Column.t
