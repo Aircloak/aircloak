@@ -25,12 +25,4 @@ defmodule Cloak.Query.AnonymizationTest do
     assert_query "select count(*) from anonymizations where number >= 0 and number < 20",
       %{columns: ["count"], rows: [%{row: [100]}]}
   end
-
-  test "shrink and drop when the possible attack is from the same-sized interval, shifted" do
-    :ok = insert_rows(_user_ids = 1..50, "anonymizations", ["number"], [2.6])
-    :ok = insert_rows(_user_ids = 1..50, "anonymizations", ["number"], [3.9])
-    :ok = insert_rows(_user_ids = 0..0, "anonymizations", ["number"], [2.4])
-    assert_query "select count(*) from anonymizations where number >= 0 and number < 5",
-      %{columns: ["count"], rows: [%{row: [100]}]}
-  end
 end
