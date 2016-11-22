@@ -1,13 +1,38 @@
 defmodule Cloak.Query.ShrinkAndDrop.Buffer do
+  @moduledoc """
+  Implements the buffer used for the shrink and drop algorithm. For an overview see "Shrink and drop" in
+  docs/anonymization.md.
+  """
+
   alias Cloak.Query.ShrinkAndDrop.HalfBuffer
+  alias Cloak.Aql.FixAlign
 
   defstruct [:left, :right]
 
+  @type t :: %__MODULE__{left: HalfBuffer.t, right: HalfBuffer.t}
+  @type row :: {row_id, user_id, row_value, row_data}
+  @type row_id :: integer
+  @type user_id :: any
+  @type row_value :: number
+  @type row_data :: any
+
+
+  # -------------------------------------------------------------------
+  # API
+  # -------------------------------------------------------------------
+
+  @doc "Returns an empty buffer with the given size limit for each side."
+  @spec new(pos_integer) :: t
   def new(size), do: %__MODULE__{
     left: HalfBuffer.new(size, &Kernel.</2),
     right: HalfBuffer.new(size, &Kernel.>/2)
   }
 
+  @doc """
+  Adds the row to the buffer. Returns the new state of the buffer along with any rows that needed to be removed and are
+  now safe to emit due to the buffer overflowing.
+  """
+  @spec add(row, t) :: {t, [row]}
   def add(row, buffer) do
     {new_buffer, popped} = do_add(row, buffer)
     {new_buffer, popped} = Enum.reduce(popped, {new_buffer, []}, fn(row = {_, user_id, value, _}, {buffer, popped}) ->
@@ -24,19 +49,27 @@ defmodule Cloak.Query.ShrinkAndDrop.Buffer do
     {new_buffer, Enum.uniq(popped)}
   end
 
+  @doc "Returns all rows in this buffer that fall in the given interval."
+  @spec inside(t, FixAlign.interval(number)) :: [row]
   def inside(%{left: left, right: right}, interval), do:
     HalfBuffer.inside(left, interval) ++ HalfBuffer.inside(right, interval) |> Enum.uniq()
 
-  def count(%{left: left, right: right}), do:
-    max(HalfBuffer.count(left), HalfBuffer.count(right))
+  @doc "Returns true if the buffer is empty, false otherwise."
+  @spec empty?(t) :: boolean
+  def empty?(%{left: left, right: right}), do: HalfBuffer.empty?(left) && HalfBuffer.empty?(right)
 
-  def empty?(buffer), do: count(buffer) == 0
-
+  @doc "Returns a pair {x, y} such that when ignoring n outermost entries all data in the buffer is >= x and <= y."
+  @spec range_dropping(t, non_neg_integer) :: FixAlign.interval(number)
   def range_dropping(%{left: left, right: right}, n) do
     x = HalfBuffer.value_dropping(left, n)
     y = HalfBuffer.value_dropping(right, n)
     {min(x, y), max(x, y)}
   end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp do_add(row = {_, user_id, value, _}, buffer = %{left: left, right: right}) do
     cond do

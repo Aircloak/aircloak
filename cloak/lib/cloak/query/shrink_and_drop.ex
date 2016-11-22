@@ -1,9 +1,25 @@
 defmodule Cloak.Query.ShrinkAndDrop do
+  @moduledoc """
+  Implements the shrink and drop algorithm. For an overview see "Shrink and drop" in docs/anonymization.md.
+  """
+
   alias Cloak.Query.Anonymizer
-  alias Cloak.Aql.{FixAlign, Function}
+  alias Cloak.Aql.{FixAlign, Function, Query}
   alias Cloak.Query.ShrinkAndDrop.Buffer
 
+
+  # -------------------------------------------------------------------
+  # API
+  # -------------------------------------------------------------------
+
+  @doc "Applies the shrink and drop algorithm in a streaming manner."
+  @spec apply(Stream.t, Query.t) :: Stream.t
   def apply(rows, query), do: Enum.reduce(query.ranges, rows, &suppress_outliers/2)
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   @supported_types [:integer, :real]
   defp suppress_outliers({column, _range}, rows) do
