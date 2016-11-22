@@ -79,8 +79,12 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer do
 
   @doc "Returns all data in the buffer for which the value is included in the given interval."
   @spec inside(t, FixAlign.interval(number)) :: [Buffer.row_data]
-  def inside(%{users: users}, {x, y}), do:
-    users |> Map.values() |> Enum.filter(&(x <= &1[:value] && &1[:value] < y)) |> Enum.flat_map(&(&1[:rows]))
+  def inside(%{users: users}, {x, y}) do
+    users
+    |> Map.values()
+    |> Enum.flat_map(&(&1[:rows]))
+    |> Enum.filter(fn({_, _, value, _}) -> x <= value && value < y end)
+  end
 
 
   # -------------------------------------------------------------------
