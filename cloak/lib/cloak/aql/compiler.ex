@@ -253,11 +253,13 @@ defmodule Cloak.Aql.Compiler do
     selected_tables(join.lhs, data_source) ++ selected_tables(join.rhs, data_source)
   end
   defp selected_tables({:subquery, subquery}, _data_source) do
+    user_id = Enum.find(subquery.ast.db_columns, &(&1.user_id?))
+    columns = Enum.map(subquery.ast.db_columns, &{&1.alias || &1.name, &1.type})
     [%{
       name: subquery.alias,
       db_name: nil,
-      columns: Enum.map(subquery.ast.db_columns, &{&1.alias || &1.name, &1.type}),
-      user_id: Enum.find(subquery.ast.db_columns, &(&1.user_id?)).name
+      columns: columns,
+      user_id: user_id.alias || user_id.name
     }]
   end
   defp selected_tables(table_name, data_source) when is_binary(table_name) do
@@ -313,12 +315,20 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp aggregated_column?(column, query), do:
-    Function.aggregate_function?(column) or
-    Column.aggregate_db_function?(column) or
     Enum.member?(query.group_by, column) or
     (
       Function.function?(column) and
-      column |> Function.arguments() |> Enum.any?(&aggregated_column?(&1, query))
+      (
+        Function.aggregate_function?(column) or
+        column |> Function.arguments() |> Enum.any?(&aggregated_column?(&1, query))
+      )
+    ) or
+    (
+      Column.db_function?(column) and
+      (
+        column.aggregate? or
+        Enum.any?(column.db_function_args, &aggregated_column?(&1, query))
+      )
     )
 
   defp constant_column?(column), do:
@@ -453,8 +463,12 @@ defmodule Cloak.Aql.Compiler do
     "Column #{quoted_item(arg.name)} needs"
   defp aggregated_expression_display({:function, _function, args}), do:
     "Columns (#{args |> Enum.map(&(&1.name)) |> quoted_list()}) need"
-  defp aggregated_expression_display(%Column{} = column), do:
-    "Column `#{column.name}` from table `#{column.table.name}` needs"
+  defp aggregated_expression_display(%Column{db_function: fun, db_function_args: args}) when fun != nil do
+    [column | _] = for %Column{constant?: false} = column <- args, do: column
+    aggregated_expression_display(column)
+  end
+  defp aggregated_expression_display(%Column{table: table, name: name}), do:
+    "Column `#{name}` from table `#{table.name}` needs"
 
   defp verify_group_by_functions(query) do
     query.group_by
@@ -918,9 +932,7 @@ defmodule Cloak.Aql.Compiler do
     if Function.aggregate_function?(column) do
       false
     else
-      column
-      |> extract_columns()
-      |> Enum.any?(&(&1 != nil and &1.user_id?))
+      column |> extract_columns() |> Enum.any?(& &1 != nil and &1.user_id?)
     end
   end
 
@@ -950,8 +962,7 @@ defmodule Cloak.Aql.Compiler do
     # will be resolved in the post-processing phase
     [id_column(query) | query.columns ++ query.group_by ++ query.unsafe_filter_columns ++ query.having]
     |> Enum.flat_map(&extract_columns/1)
-    |> Enum.reject(&(&1 == nil))
-    |> Enum.reject(&(&1.constant?))
+    |> Enum.reject(& &1 == nil or &1.constant?)
   end
   defp select_expressions(%Query{command: :select, subquery?: true} = query) do
     # currently we don't support functions in subqueries
@@ -981,7 +992,7 @@ defmodule Cloak.Aql.Compiler do
   defp all_id_columns_from_tables(%Query{command: :select, selected_tables: tables}) do
     Enum.map(tables, fn(table) ->
       user_id = table.user_id
-      {_, type} = Enum.find(table.columns, &match?({^user_id, _}, &1))
+      {_, type} = Enum.find(table.columns, fn ({name, _type}) -> insensitive_equal?(user_id, name) end)
       %Column{table: table, name: user_id, type: type, user_id?: true}
     end)
   end
