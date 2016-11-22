@@ -46,7 +46,7 @@ defmodule Cloak.Query.ShrinkAndDrop do
   end
 
   # Very small number such that x + epsilon(x) > x
-  defp epsilon(x), do: x / 100000000000000
+  defp epsilon(x), do: x / 100_000_000_000_000
 
   defp decorate_row(row, id, column), do: {id, user_id(row), value(row, column), row}
 
