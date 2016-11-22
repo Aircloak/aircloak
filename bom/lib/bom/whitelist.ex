@@ -12,8 +12,10 @@ defmodule BOM.Whitelist do
     :elixir => %{
       {"ecto",            "2.0.5"}  => %{type: :apache2, text: :provided},
       {"erlware_commons", "0.21.0"} => %{type: :mit,     text: :provided},
+      {"scrivener",       "2.1.1"}  => %{type: :mit,     text: :standard},
+      {"scrivener_ecto",  "1.0.2"}  => %{type: :mit,     text: :standard},
+      {"scrivener_html",  "1.3.3"}  => %{type: :mit,     text: :standard},
       {"excoveralls",     "0.5.5"}  => %{type: :mit,     text: :standard},
-      {"bson",            "0a2965e870efe17012aa278529d24bf525da682e"}  => %{type: :apache2, text: :standard},
     },
     :node => %{
       {"base64-js",                 "0.0.2"}  => %{type: :mit,           text: :provided},

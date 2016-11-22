@@ -18,29 +18,23 @@ defmodule Air.Socket.Cloak.MainChannel do
   """
   @spec run_query(pid | nil, Air.Query.cloak_query) :: :ok | {:error, any}
   def run_query(channel_pid, query) do
-    try do
-      case call(channel_pid, "run_query", query, :timer.seconds(5)) do
-        {:ok, _} -> :ok
-        error -> error
-      end
-    catch
-      :exit, :noproc ->
-        {:error, :not_connected}
-    end
+    with {:ok, _} <- call(channel_pid, "run_query", query, :timer.seconds(5)), do: :ok
   end
+
+  @doc """
+  Asks the cloak to describe the query.
+
+  Unlike `run_query/2`, this function is synchronous, meaning it waits for the
+  cloak to respond, and returns the result obtained by the cloak.
+  """
+  @spec describe_query(pid | nil, map) :: {:ok, map} | {:error, any}
+  def describe_query(channel_pid, query_data), do:
+    call(channel_pid, "describe_query", query_data, :timer.seconds(5))
 
   @doc "Stops a query on the given cloak."
   @spec stop_query(pid | nil, String.t) :: :ok | {:error, any}
   def stop_query(channel_pid, query_id) do
-    try do
-      case call(channel_pid, "stop_query", query_id, :timer.seconds(5)) do
-        {:ok, _} -> :ok
-        error -> error
-      end
-    catch
-      :exit, :noproc ->
-        {:error, :not_connected}
-    end
+    with {:ok, _} <- call(channel_pid, "stop_query", query_id, :timer.seconds(5)), do: :ok
   end
 
 
@@ -56,7 +50,7 @@ defmodule Air.Socket.Cloak.MainChannel do
     cloak = %{
       id: socket.assigns.cloak_id,
       name: socket.assigns.name,
-      online_since: Timex.DateTime.now(),
+      online_since: Timex.now(),
     }
     data_sources = Map.fetch!(cloak_info, "data_sources")
     Air.DataSourceManager.register_cloak(cloak, data_sources)
@@ -157,8 +151,8 @@ defmodule Air.Socket.Cloak.MainChannel do
     send(client_pid, {mref, response})
   end
 
-  @spec call(pid | nil, String.t, %{}, pos_integer) :: {:ok, any} | {:error, any}
-  defp call(nil, _event, _payload, _timeout), do: exit(:noproc)
+  @spec call(pid | nil, String.t, any, pos_integer) :: {:ok, any} | {:error, any}
+  defp call(nil, _event, _payload, _timeout), do: {:error, :not_connected}
   defp call(pid, event, payload, timeout) do
     mref = Process.monitor(pid)
     send(pid, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})

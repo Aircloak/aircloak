@@ -5,6 +5,8 @@
 # is restricted to this project.
 use Mix.Config
 
+config :aircloak_common, :env, Mix.env
+
 # Configures the endpoint
 config :air, Air.Endpoint,
   check_origin: false,
@@ -36,6 +38,9 @@ config :guardian, Guardian,
   ttl: { 30, :days },
   verify_issuer: true,
   serializer: Air.GuardianSerializer
+
+config :scrivener_html,
+  routes_helper: Air.Router.Helpers
 
 config :air, Air.Repo,
   adapter: Ecto.Adapters.Postgres,

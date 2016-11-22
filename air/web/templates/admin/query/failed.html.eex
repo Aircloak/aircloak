@@ -1,3 +1,7 @@
+<h2>Failed queries</h2>
+
+<%= pagination_links @failed_queries %>
+
 <div id="query-view">
   <%= for query <- @failed_queries do %>
     <div>
@@ -12,3 +16,5 @@
     </div>
   <% end %>
 </div>
+
+<%= pagination_links @failed_queries %>

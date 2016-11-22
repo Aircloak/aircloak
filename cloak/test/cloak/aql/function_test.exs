@@ -2,7 +2,7 @@ defmodule Cloak.Aql.Function.Test do
   require Integer
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.{Column, Function}
+  alias Cloak.Aql.{Column, Function, Query}
   alias Timex.Duration
 
   test "sqrt", do:
@@ -484,6 +484,47 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("+", [1, nil]) == nil
     assert apply_function("/", [1, 0]) == nil
   end
+
+  test "compiling extract_match function creates regex of regex pattern" do
+    function = {:function, "extract_match", [%Column{}, %Column{value: "regex_pattern"}]}
+    callback = fn(a) -> a end
+    assert {:function, _, [_, %Column{value: %Regex{}}]} = Function.compile_function(function, callback)
+  end
+
+  test "compiling already compiled extract_match function does nothing" do
+    function = {:function, "extract_match", [%Column{}, %Column{value: "regex_pattern"}]}
+    callback = fn(a) -> a end
+    compiled_function = Function.compile_function(function, callback)
+    assert Function.compile_function(compiled_function, callback) == compiled_function
+  end
+
+  test "compiling function that doesn't need compilation does nothing" do
+    function = {:function, "no_compilation", [:args1, :args2]}
+    callback = fn(a) -> a end
+    assert function == Function.compile_function(function, callback)
+  end
+
+  test "knows `extract_match` isn't allowed in a subquery", do:
+    refute Function.allowed_in_subquery?({:function, "extract_match", []})
+
+  test "knows `ceil` is allowed in a subquery", do:
+    assert Function.allowed_in_subquery?({:function, "ceil", []})
+
+  test "returns feature required by a function", do:
+    assert :math == Function.required_feature({:function, "*", []})
+
+  test "returns nil if no feature is required by a function", do:
+    assert nil == Function.required_feature({:function, "extract_match", []})
+
+  test "returns false for query without feature support using function requiring feature", do:
+    refute Function.valid_feature?({:function, "*", []}, %Query{})
+
+  test "returns true for query with feature support using function requiring feature", do:
+    assert Function.valid_feature?({:function, "*", []}, %Query{features: %{"math" => true}})
+
+  test "returns true if function exists", do: assert Function.exists?({:function, "*", []})
+
+  test "returns false if function does not exists", do: refute Function.exists?({:function, "foobar", []})
 
   defp return_type(name, arg_types), do:
     Function.return_type({:function, name, Enum.map(arg_types, &Column.constant(&1, nil))})

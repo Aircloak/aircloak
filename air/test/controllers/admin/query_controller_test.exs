@@ -46,7 +46,7 @@ defmodule Air.Admin.QueryControllerTest do
     create_query!(user, %{
       statement: statement,
       data_source_id: data_source.id,
-      result: Poison.encode!(result)
+      result: result,
     })
   end
 end

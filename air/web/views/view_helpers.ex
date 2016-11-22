@@ -1,6 +1,9 @@
 defmodule Air.ViewHelpers do
   @moduledoc "Common helper functions for views."
 
+  import Phoenix.HTML.Tag, only: [content_tag: 3]
+  import Phoenix.HTML.Link, only: [link: 2]
+
   @doc "Verifies if the currently logged-in user has permissions on the given action."
   @spec permitted?(Plug.Conn.t, module, atom) :: boolean
   def permitted?(conn, controller, action) do
@@ -19,18 +22,21 @@ defmodule Air.ViewHelpers do
   @doc """
   Generates a navbar link, and highlights the active one
   """
-  @spec navbar_link(Plug.Conn.t, String.t, String.t) :: {:safe, String.t}
-  def navbar_link(%{request_path: request_path}, name, desired_path) do
-    link_html = if active?(request_path, desired_path) do
-      "<li role=\"presentation\" class=\"active\"><a href=\"#{desired_path}\">#{name}</a></li>"
-    else
-      "<li><a href=\"#{desired_path}\">#{name}</a></li>"
+  @spec navbar_link(Plug.Conn.t, String.t, String.t, Keyword.t) :: {:safe, [any]}
+  def navbar_link(%{request_path: request_path}, name, desired_path, options \\ []) do
+    content_tag(:li, role: "presentation", class: active_class(request_path, desired_path)) do
+      link(name, to: desired_path, target: Keyword.get(options, :target, "_self"))
     end
-    {:safe, link_html}
   end
 
-  defp active?("/admin", "/admin/cloaks"), do: true
-  defp active?(request_path, link_path), do: String.starts_with?(request_path, link_path)
+  defp active_class("/admin", "/admin/cloaks"), do: "active"
+  defp active_class(request_path, link_path) do
+    if String.starts_with?(request_path, link_path) do
+      "active"
+    else
+      nil
+    end
+  end
 
   def logged_in?(conn) do
     conn.assigns.current_user != nil

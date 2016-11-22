@@ -112,6 +112,9 @@ defmodule Cloak.Aql.Parser.Test do
     end
   end
 
+  defmacrop parameter(index), do:
+    quote(do: {:parameter, index})
+
   for join_type <- [:inner_join, :full_outer_join, :left_outer_join, :right_outer_join] do
     defmacrop unquote(join_type)(lhs, rhs, conditions) do
       join_type = unquote(join_type)
@@ -828,6 +831,15 @@ defmodule Cloak.Aql.Parser.Test do
     assert_equal_parse "select bucket(foo by 10) from bar", "select bucket(foo by 10 align lower) from bar"
   end
 
+  test "query parameters", do:
+    assert_parse(
+      "select $1, $2 + 1 FROM foo WHERE $3 = $4",
+      select(
+        columns: [parameter(1), {:function, "+", [parameter(2), constant(1)]}],
+        where: [{:comparison, parameter(3), :=, parameter(4)}]
+      )
+    )
+
   create_test =
     fn(description, data_source, statement, expected_error, line, column) ->
       test description do
@@ -911,6 +923,8 @@ defmodule Cloak.Aql.Parser.Test do
         "select interval 'does not parse' from foo", "Expected `column definition`", {1, 8}},
       {"inequality between two columns",
         "select count(*) from foo where bar < baz", "Expected `constant`", {1, 38}},
+      {"table can't be parameterized",
+        "select x from $1", "Expected `table name`", {1, 15}},
       # parsed subqueries
       {"unclosed parens in a parsed subquery expression",
         "select foo from (select bar from baz", "Expected `)`", {1, 37}},

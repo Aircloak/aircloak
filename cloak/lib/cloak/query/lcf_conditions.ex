@@ -9,7 +9,7 @@ defmodule Cloak.Query.LCFConditions do
   """
 
   alias Cloak.Query.Anonymizer
-  alias Cloak.Aql.{Column, Function, Query, Comparison}
+  alias Cloak.Aql.{Query, Comparison}
 
 
   # -------------------------------------------------------------------
@@ -138,31 +138,10 @@ defmodule Cloak.Query.LCFConditions do
     |> Enum.sort_by(&(&1.match_decision))
   end
 
-  defp matchers({:not, {:comparison, column, :=, value}}) do
-    value = extract_value(value)
-    {fn(row) -> Function.apply_to_db_row(column, row) == value end, :drop}
-  end
-  defp matchers({:not, {:like, column, %Column{type: :text, value: pattern}}}) do
-    regex = pattern |> Comparison.to_regex() |> Regex.compile!("ums")
-    {fn(row) -> Function.apply_to_db_row(column, row) =~ regex end, :drop}
-  end
-  defp matchers({:not, {:ilike, column, %Column{type: :text, value: pattern}}}) do
-    regex = pattern |> Comparison.to_regex() |> Regex.compile!("uims")
-    {fn(row) -> Function.apply_to_db_row(column, row) =~ regex end, :drop}
-  end
-  defp matchers({:not, {:in, column, values}}) do
-    for value <- values do
-      value = extract_value(value)
-      {fn(row) -> Function.apply_to_db_row(column, row) == value end, :drop}
-    end
-  end
-  defp matchers({:in, column, values}) do
-    for value <- values do
-      value = extract_value(value)
-      {fn(row) -> Function.apply_to_db_row(column, row) == value end, :keep}
-    end
-  end
-
-  defp extract_value(%Column{value: value}), do: value
-  defp extract_value(value), do: value
+  defp matchers({:not, {:in, column, values}}), do:
+    for value <- values, do: matchers({:not, {:comparison, column, :=, value}})
+  defp matchers({:in, column, values}), do:
+    for value <- values, do: matchers({:comparison, column, :=, value})
+  defp matchers({:not, condition}), do: {Comparison.to_function(condition), :drop}
+  defp matchers(condition), do: {Comparison.to_function(condition), :keep}
 end

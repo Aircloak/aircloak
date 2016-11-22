@@ -321,8 +321,11 @@ defmodule Cloak.Aql.Compiler.Test do
       """,
       data_source)
     assert [column("table", "column"), {:function, "count", [column("table", "column")]}] = result.columns
-    assert [{:comparison, column("table", "numeric"), :>=, _}, {:comparison, column("table", "numeric"), :<, _}]
-      = result.where
+    assert [
+      {:comparison, column("table", "numeric"), :>=, _},
+      {:comparison, column("table", "numeric"), :<, _},
+      {:not, {:is, column("table", "column"), :null}}
+    ] = result.where
     assert [{:not, {:comparison, column("table", "column"), :=, _}}] = result.lcf_check_conditions
     assert [column("table", "column")] = result.unsafe_filter_columns
     assert [column("table", "column")] = result.group_by
@@ -618,8 +621,8 @@ defmodule Cloak.Aql.Compiler.Test do
   end
 
   test "math can be disabled with a config setting" do
-    assert {:error, error} = compile("select numeric * 2 from table", data_source(), %{math: false})
-    assert error =~ ~r/Unknown function `*`/
+    assert {:error, error} = compile("select numeric * 2 from table", data_source(), [], %{math: false})
+    assert error =~ ~r/requires feature `math`/
   end
 
   test "dotted columns can be used unquoted" do
@@ -629,14 +632,14 @@ defmodule Cloak.Aql.Compiler.Test do
       compile!("select table.column.with.dots from table", dotted_data_source())
   end
 
-  defp compile!(query_string, data_source) do
-    {:ok, result} = compile(query_string, data_source)
+  defp compile!(query_string, data_source, parameters \\ []) do
+    {:ok, result} = compile(query_string, data_source, parameters)
     result
   end
 
-  defp compile(query_string, data_source, features \\ Cloak.Features.from_config) do
+  defp compile(query_string, data_source, parameters \\ [], features \\ Cloak.Features.from_config) do
     query = Parser.parse!(data_source, query_string)
-    Compiler.compile(data_source, query, features)
+    Compiler.compile(data_source, query, parameters, features)
   end
 
   defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do

@@ -32,8 +32,10 @@ defmodule Cloak.DataSource do
   The data source schema will also be sent to air, so it can be referenced by incoming tasks.
   """
 
-  alias Cloak.Aql
+  alias Cloak.Aql.Query
   alias Cloak.DataSource.Parameters
+  alias Cloak.Query.DataDecoder
+
   require Logger
   require Aircloak.DeployConfig
 
@@ -41,7 +43,7 @@ defmodule Cloak.DataSource do
   @type t :: %{
     global_id: atom,
     driver: module,
-    parameters: Driver.parameters,
+    parameters: Cloak.DataSource.Driver.parameters,
     tables: %{atom => table}
   }
   @type table :: %{
@@ -49,16 +51,18 @@ defmodule Cloak.DataSource do
     db_name: String.t, # table name in the database
     user_id: String.t,
     ignore_unsupported_types: boolean,
-    columns: [{column, data_type}]
+    columns: [{column, data_type}],
+    decoders: [DataDecoder.t]
   }
   @type num_rows :: non_neg_integer
   @type column :: String.t
-  @type field :: String.t | integer | number | boolean | nil
+  @type field :: String.t | number | boolean | nil
   @type row :: [field]
   @type data_type :: :text | :integer | :real | :boolean | :datetime | :time | :date | :uuid | :unknown
   @type query_result :: Enumerable.t
   @type processed_result :: any
   @type result_processor :: (query_result -> processed_result)
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Driver behaviour
@@ -80,7 +84,7 @@ defmodule Cloak.DataSource do
     @callback load_tables(connection, Cloak.DataSource.table) :: [Cloak.DataSource.table]
 
     @doc "Driver specific implementation for the `DataSource.select` functionality."
-    @callback select(connection, Aql.t, Cloak.DataSource.result_processor)
+    @callback select(connection, Query.t, Cloak.DataSource.result_processor)
       :: {:ok, Cloak.DataSource.processed_result} | {:error, any}
   end
 
@@ -110,7 +114,7 @@ defmodule Cloak.DataSource do
   end
 
   @doc "Returns the list of defined data sources."
-  @spec all() :: [DataSource.t]
+  @spec all() :: [t]
   def all() do
     Application.get_env(:cloak, :data_sources)
   end
@@ -131,7 +135,7 @@ defmodule Cloak.DataSource do
   Besides the query object, this methods also needs a result processing function
   for handling the stream of rows produced as a result of executing the query.
   """
-  @spec select(Aql.t, result_processor) :: {:ok, processed_result} | {:error, any}
+  @spec select(Query.t, result_processor) :: {:ok, processed_result} | {:error, any}
   def select(%{data_source: data_source} = select_query, result_processor) do
     driver = data_source.driver
     Logger.debug("Connecting to `#{data_source.global_id}` ...")
@@ -201,12 +205,12 @@ defmodule Cloak.DataSource do
     # The data source marker is useful when we you want to force identical data sources to get
     # distinct global IDs. This can be used for exampel in staging and test environments.
 
-    user = Parameters.get_one_of(data.parameters, ["uid", "user", "username", "login"])
+    user = Parameters.get_one_of(data.parameters, ["uid", "user", "username"]) || "anon"
     database = Parameters.get_one_of(data.parameters, ["database"])
     host = Parameters.get_one_of(data.parameters, ["hostname", "server", "host"])
 
-    if Enum.any?([user, database, host], &(is_nil(&1))) do
-      raise "Misconfigured data source: user, database, and host parameters are required"
+    if Enum.any?([database, host], &(is_nil(&1))) do
+      raise "Misconfigured data source: database and hostname parameters are required."
     end
 
     marker = case Map.get(data, :marker) do
@@ -221,15 +225,15 @@ defmodule Cloak.DataSource do
     Map.merge(data, %{global_id: global_id})
   end
 
+  @doc false
   # load the columns list for all defined tables in all data sources
-  defp cache_columns(data_sources) do
+  def cache_columns(data_sources) do
     Application.put_env(:cloak, :data_sources, data_sources)
   end
 
-  defp add_tables(data_source) do
-    tables = load_tables(data_source) |> Enum.into(%{})
-    Map.put(data_source, :tables, tables)
-  end
+  @doc false
+  def add_tables(data_source), do:
+    Map.put(data_source, :tables, load_tables(data_source))
 
   defp load_tables(data_source) do
     driver = data_source.driver
@@ -237,10 +241,15 @@ defmodule Cloak.DataSource do
       try do
         data_source.tables
         |> Enum.map(fn ({table_id, table}) ->
-          table |> Map.put(:columns, []) |> Map.put(:name, to_string(table_id))
+          table
+          |> Map.put(:columns, [])
+          |> Map.put(:name, to_string(table_id))
+          |> Map.put_new(:db_name, to_string(table_id))
+          |> Map.put_new(:decoders, [])
         end)
         |> Enum.flat_map(&driver.load_tables(connection, &1))
         |> Enum.map(&parse_columns(data_source, &1))
+        |> Enum.map(&DataDecoder.init/1)
         |> Enum.map(&{String.to_atom(&1.name), &1})
         |> Enum.into(%{})
       after
@@ -313,46 +322,6 @@ defmodule Cloak.DataSource do
       nil
     else
       raise "#{msg}\nTo ignore these columns set `ignore_unsupported_types: true` in your table settings"
-    end
-  end
-
-
-  #-----------------------------------------------------------------------------------------------------------
-  # Test functions
-  #-----------------------------------------------------------------------------------------------------------
-
-  if Mix.env == :test do
-    @doc false
-    def register_test_table(table_id, table_name, user_id) do
-      sources = for source <- Application.get_env(:cloak, :data_sources) do
-        table = %{db_name: table_name, user_id: user_id}
-        tables = Map.put(source[:tables], table_id, table)
-        Map.put(source, :tables, tables) |> add_tables()
-      end
-      cache_columns(sources)
-    end
-
-    @doc false
-    def unregister_test_table(table_id) do
-      sources = for source <- Application.get_env(:cloak, :data_sources) do
-        tables = Map.delete(source[:tables], table_id)
-        Map.put(source, :tables, tables)
-      end
-      cache_columns(sources)
-    end
-
-    @doc false
-    def clear_test_tables() do
-      sources = for source <- Application.get_env(:cloak, :data_sources) do
-        Map.put(source, :tables, %{})
-      end
-      cache_columns(sources)
-    end
-
-    @doc false
-    def ids() do
-      Application.get_env(:cloak, :data_sources)
-      |> Enum.map(&(&1.global_id))
     end
   end
 end

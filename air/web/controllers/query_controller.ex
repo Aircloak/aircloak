@@ -42,6 +42,7 @@ defmodule Air.QueryController do
       data_source_id_spec(params),
       conn.assigns.current_user,
       Map.fetch!(params, "statement"),
+      [],
       audit_meta: audit_log_meta(conn),
       session_id: params["session_id"]
     ) do
@@ -94,10 +95,6 @@ defmodule Air.QueryController do
         {:error, reason} -> query_error(conn, reason)
       end
     end
-  end
-
-  def failed(conn, _params) do
-    render(conn, "failed.html", failed_queries: Repo.all(Query.failed()))
   end
 
 

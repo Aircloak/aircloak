@@ -56,10 +56,10 @@ defmodule Cloak.Query.Anonymizer do
   Returns a `{boolean, anonymizer}` tuple, where the boolean value is
   true if the passed bucket size is sufficiently large to be reported.
 
-  Sufficiently large means:
+  Sufficiently large means the bucket size is greater or equal to the:
 
-  1. Greater than low_count_absolute_lower_bound
-  2. A noised version of the count is greater than low_count_soft_lower_bound
+  1. low_count_absolute_lower_bound
+  2. noisy low_count_soft_lower_bound
 
   See config/config.exs for the parameters of the distribution used. The PRNG is seeded based
   on the user list provided, giving the same answer every time for the given list of users.
@@ -67,7 +67,7 @@ defmodule Cloak.Query.Anonymizer do
   @spec sufficiently_large?(t, non_neg_integer) :: {boolean, t}
   def sufficiently_large?(anonymizer, count) do
     {noisy_lower_bound, anonymizer} = noisy_lower_bound(anonymizer)
-    {count > noisy_lower_bound, anonymizer}
+    {count >= noisy_lower_bound, anonymizer}
   end
 
   @doc """
@@ -102,7 +102,10 @@ defmodule Cloak.Query.Anonymizer do
   @spec min(t, Enumerable.t) :: number | nil
   def min(anonymizer, rows) do
     # we use the fact that min([value]) = -max([-value])
-    -get_max(anonymizer, rows, &(-Enum.min(&1)))
+    case get_max(anonymizer, rows, & -Enum.min(&1)) do
+      nil -> nil
+      value -> -value
+    end
   end
 
   @doc "Computes the noisy maximum value of all values in rows, where each row is an enumerable of numbers."

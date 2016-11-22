@@ -4,6 +4,7 @@ defmodule Cloak.Aql.Compiler do
   alias Cloak.{DataSource, Features}
   alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query}
   alias Cloak.Aql.Parsers.Token
+  alias Cloak.Query.DataDecoder
 
   defmodule CompilationError do
     @moduledoc false
@@ -16,11 +17,11 @@ defmodule Cloak.Aql.Compiler do
   # -------------------------------------------------------------------
 
   @doc "Prepares the parsed SQL query for execution."
-  @spec compile(DataSource.t, Parser.parsed_query) :: {:ok, Query.t} | {:error, String.t}
-  def compile(data_source, parsed_query, features \\ Features.from_config()) do
+  @spec compile(DataSource.t, Parser.parsed_query, tuple, Features.t) :: {:ok, Query.t} | {:error, String.t}
+  def compile(data_source, parsed_query, parameters, features \\ Features.from_config()) do
     try do
       parsed_query
-      |> to_prepped_query(data_source, features)
+      |> to_prepped_query(data_source, features, parameters)
       |> compile_prepped_query()
     rescue
       e in CompilationError -> {:error, e.message}
@@ -32,11 +33,12 @@ defmodule Cloak.Aql.Compiler do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp to_prepped_query(parsed_query, data_source, features) do
+  defp to_prepped_query(parsed_query, data_source, features, parameters) do
     %Query{
       data_source: data_source,
       mode: query_mode(data_source.driver, parsed_query[:from]),
       features: features,
+      parameters: parameters
     }
     |> Map.merge(parsed_query)
   end
@@ -71,6 +73,7 @@ defmodule Cloak.Aql.Compiler do
     query = query
     |> compile_columns()
     |> verify_columns()
+    |> precompile_functions()
     |> censor_selected_uids()
     |> compile_order_by()
     |> partition_selected_columns()
@@ -94,6 +97,7 @@ defmodule Cloak.Aql.Compiler do
       |> compile_tables()
       |> compile_columns()
       |> verify_columns()
+      |> precompile_functions()
       |> censor_selected_uids()
       |> compile_order_by()
       |> verify_joins()
@@ -134,27 +138,28 @@ defmodule Cloak.Aql.Compiler do
 
   defp compile_subqueries(%Query{from: nil} = query), do: query
   defp compile_subqueries(query) do
-    compiled = do_compile_subqueries(query.from, query.data_source)
+    compiled = do_compile_subqueries(query.from, query.data_source, query.parameters)
     %Query{query | from: compiled, info: query.info ++ gather_info(compiled)}
   end
 
-  defp do_compile_subqueries({:join, join}, data_source) do
+  defp do_compile_subqueries({:join, join}, data_source, parameters) do
     {:join, %{join |
-      lhs: do_compile_subqueries(join.lhs, data_source),
-      rhs: do_compile_subqueries(join.rhs, data_source)
+      lhs: do_compile_subqueries(join.lhs, data_source, parameters),
+      rhs: do_compile_subqueries(join.rhs, data_source, parameters)
     }}
   end
-  defp do_compile_subqueries({:subquery, subquery}, data_source) do
-    {:subquery, %{subquery | ast: compiled_subquery(data_source, subquery.ast, subquery.alias)}}
+  defp do_compile_subqueries({:subquery, subquery}, data_source, parameters) do
+    {:subquery, %{subquery | ast: compiled_subquery(data_source, subquery.ast, subquery.alias, parameters)}}
   end
-  defp do_compile_subqueries(identifier = {_, table}, _data_source) when is_binary(table), do: identifier
+  defp do_compile_subqueries(identifier = {_, table}, _data_source, _parameters) when is_binary(table), do:
+    identifier
 
   defp gather_info({:join, %{lhs: lhs, rhs: rhs}}), do: gather_info(rhs) ++ gather_info(lhs)
   defp gather_info({:subquery, subquery}), do: subquery.ast.info
   defp gather_info(_), do: []
 
-  defp compiled_subquery(data_source, parsed_query, alias) do
-    case compile(data_source, Map.put(parsed_query, :subquery?, :true)) do
+  defp compiled_subquery(data_source, parsed_query, alias, parameters) do
+    case compile(data_source, Map.put(parsed_query, :subquery?, :true), parameters) do
       {:ok, compiled_query} ->
         compiled_query
         |> validate_uid(alias)
@@ -195,8 +200,8 @@ defmodule Cloak.Aql.Compiler do
           all_id_columns_from_tables(subquery)
           |> Enum.map(&Column.display_name/1)
           |> case do
-            [column] -> "the #{column}"
-            columns -> "one of the #{Enum.join(columns, ", ")}"
+            [column] -> "the column #{column}"
+            columns -> "one of the columns #{Enum.join(columns, ", ")}"
           end
 
         raise CompilationError, message:
@@ -412,6 +417,24 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
+  defp precompile_functions(%Query{} = query) do
+    %Query{query |
+      columns: precompile_functions(query.columns),
+      group_by: precompile_functions(query.group_by),
+      order_by: (for {column, direction} <- query.order_by, do: {precompile_function(column), direction}),
+    }
+  end
+  defp precompile_functions(columns), do:
+    Enum.map(columns, &precompile_function/1)
+
+  defp precompile_function({:function, _function, _args} = function_spec) do
+    case Function.compile_function(function_spec, &precompile_functions/1) do
+      {:error, message} -> raise CompilationError, message: message
+      compiled_function -> compiled_function
+    end
+  end
+  defp precompile_function(column), do: column
+
   defp many_overloads?(function_call) do
     length(Function.argument_types(function_call)) > 4
   end
@@ -466,11 +489,34 @@ defmodule Cloak.Aql.Compiler do
   defp verify_functions(query) do
     query.columns
     |> Enum.filter(&Function.function?/1)
-    |> Enum.reject(&Function.valid_function?(&1, query.features))
-    |> case do
-      [] -> :ok
-      [function | _rest] ->
-        raise CompilationError, message: "Unknown function `#{Function.name(function)}`."
+    |> Enum.each(&check_function_validity(&1, query))
+  end
+
+  defp check_function_validity(function, query) do
+    verify_function_exists(function)
+    verify_function_supported_feature(function, query)
+    verify_function_subquery_usage(function, query)
+  end
+
+  defp verify_function_exists(function) do
+    unless Function.exists?(function) do
+      raise CompilationError, message: "Unknown function `#{Function.name(function)}`."
+    end
+  end
+
+  defp verify_function_supported_feature(function, query) do
+    unless Function.valid_feature?(function, query) do
+      raise CompilationError, message:
+        "Function `#{Function.name(function)}` requires feature " <>
+        "`#{Function.required_feature(function)}` to be enabled."
+    end
+  end
+
+  defp verify_function_subquery_usage(_function, %Query{subquery?: false}), do: :ok
+  defp verify_function_subquery_usage(function, %Query{subquery?: true}) do
+    unless Function.allowed_in_subquery?(function) do
+      raise CompilationError, message:
+        "Function `#{Function.name(function)}` is not allowed in subqueries."
     end
   end
 
@@ -515,19 +561,36 @@ defmodule Cloak.Aql.Compiler do
 
   defp partition_where_clauses(%Query{subquery?: true} = query) do
     case Enum.find(query.where, &requires_lcf_check?/1) do
-      nil -> query
-      condition_requiring_lcf_check ->
+      nil -> :ok
+      condition ->
         raise CompilationError,
-          message: "#{negative_condition_string(condition_requiring_lcf_check)} is not supported in a subquery."
+          message: "#{negative_condition_string(condition)} is not supported in a subquery."
     end
+    case Enum.find(query.where, &Comparison.subject(&1) |> DataDecoder.needs_decoding?()) do
+      nil -> :ok
+      condition ->
+        column = Comparison.subject(condition)
+        raise CompilationError,
+          message: "Column #{Column.display_name(column)} needs decoding and can not be used in a subquery."
+    end
+    query
   end
   defp partition_where_clauses(query) do
-    {require_lcf_check, safe_clauses} = Enum.partition(query.where, &requires_lcf_check?/1)
-    unsafe_filter_columns = Enum.map(require_lcf_check, &where_clause_to_identifier/1)
-    safe_clauses = safe_clauses ++ Enum.reject(require_lcf_check, &negative_clause?/1)
+    # extract conditions requiring low-count filtering
+    {require_lcf_checks, safe_clauses} = Enum.partition(query.where, &requires_lcf_check?/1)
+    # split LCF conditions into positives and negatives
+    {negative_lcf_checks, positive_lcf_checks} = Enum.partition(require_lcf_checks, &Comparison.negative?/1)
+    # convert negative LCF conditions into checks for `IS NOT NULL`
+    filter_null_lcf_columns = Enum.map(negative_lcf_checks, &{:not, {:is, Comparison.subject(&1), :null}})
+    # forward normal conditions, positive LCF conditions and `IS NOT NULL` checks for negative LCF conditions to driver
+    safe_clauses = Enum.uniq(safe_clauses ++ positive_lcf_checks ++ filter_null_lcf_columns)
+    # extract conditions using encoded columns
+    {encoded_column_clauses, safe_clauses} = Enum.partition(safe_clauses, &encoded_column_condition?/1)
+    # extract columns needed in the cloak for extra filtering
+    unsafe_filter_columns = Enum.map(require_lcf_checks ++ encoded_column_clauses, &Comparison.subject/1)
 
-    %Query{query | where: safe_clauses, lcf_check_conditions: require_lcf_check,
-      unsafe_filter_columns: unsafe_filter_columns}
+    %Query{query | where: safe_clauses, lcf_check_conditions: require_lcf_checks,
+      unsafe_filter_columns: unsafe_filter_columns, encoded_where: encoded_column_clauses}
   end
 
   defp requires_lcf_check?({:not, {:is, _, :null}}), do: false
@@ -535,8 +598,8 @@ defmodule Cloak.Aql.Compiler do
   defp requires_lcf_check?({:in, _column, _values}), do: true
   defp requires_lcf_check?(_other), do: false
 
-  defp negative_clause?({:not, _}), do: true
-  defp negative_clause?(_), do: false
+  defp encoded_column_condition?(condition), do:
+    Comparison.verb(condition) != :is and Comparison.subject(condition) |> DataDecoder.needs_decoding?()
 
   defp verify_joins(query) do
     join_conditions_scope_check(query.from)
@@ -604,7 +667,7 @@ defmodule Cloak.Aql.Compiler do
     verify_ranges(query)
 
     ranges = inequalities_by_column(clauses)
-    non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), where_clause_to_identifier(&1)))
+    non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), Comparison.subject(&1)))
 
     Enum.reduce(ranges, %{query | where: non_range_clauses}, &add_aligned_range/2)
   end
@@ -668,7 +731,7 @@ defmodule Cloak.Aql.Compiler do
   defp inequalities_by_column(where_clauses) do
     where_clauses
     |> Enum.filter(&Comparison.inequality?/1)
-    |> Enum.group_by(&where_clause_to_identifier/1)
+    |> Enum.group_by(&Comparison.subject/1)
     |> Enum.filter(fn({column, _}) -> Enum.member?(@aligned_types, column.type) end)
     |> Enum.map(&discard_redundant_inequalities/1)
     |> Enum.into(%{})
@@ -689,7 +752,7 @@ defmodule Cloak.Aql.Compiler do
   defp cast_where_clauses(query), do: query
 
   defp cast_where_clause(clause) do
-    column = where_clause_to_identifier(clause)
+    column = Comparison.subject(clause)
     do_cast_where_clause(clause, column.type)
   end
 
@@ -723,18 +786,13 @@ defmodule Cloak.Aql.Compiler do
     Cloak.Time.parse_datetime(string)
   defp do_parse_time(_, _), do: {:error, :invalid_cast}
 
-  defp where_clause_to_identifier({:comparison, identifier, _, _}), do: identifier
-  defp where_clause_to_identifier({:not, subclause}), do: where_clause_to_identifier(subclause)
-  Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
-    defp where_clause_to_identifier({unquote(keyword), identifier, _}), do: identifier
-  end)
-
   defp map_terminal_elements(query, mapper_fun) do
     %Query{query |
       columns: Enum.map(query.columns, &map_terminal_element(&1, mapper_fun)),
       group_by: Enum.map(query.group_by, &map_terminal_element(&1, mapper_fun)),
       where: Enum.map(query.where, &map_where_clause(&1, mapper_fun)),
       lcf_check_conditions: Enum.map(query.lcf_check_conditions, &map_where_clause(&1, mapper_fun)),
+      encoded_where: Enum.map(query.encoded_where, &map_where_clause(&1, mapper_fun)),
       order_by: Enum.map(query.order_by, &map_order_by(&1, mapper_fun)),
       having: Enum.map(query.having, &map_where_clause(&1, mapper_fun)),
       db_columns: Enum.map(query.db_columns, &map_terminal_element(&1, mapper_fun)),
@@ -851,15 +909,34 @@ defmodule Cloak.Aql.Compiler do
       end
     end
   end
-  defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name, %Query{subquery?: true}) do
+  defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name, %Query{subquery?: true} = query) do
+    check_function_validity(function_spec, query)
     case Function.return_type(function_spec) do
       nil -> raise CompilationError, message: function_argument_error_message(function_spec)
       type -> Column.db_function(name, args, type, Function.aggregate_function?(function_spec))
     end
   end
+  defp identifier_to_column({:parameter, index}, _columns_by_name, query) do
+    if index > length(query.parameters) do
+      message =
+        "The query references the `$#{index}` parameter, " <>
+        "but only #{length(query.parameters)} parameters are passed."
+      raise CompilationError, message: message
+    end
+
+    param_value = Enum.at(query.parameters, index - 1)
+    Column.constant(data_type(param_value, index), param_value)
+  end
   defp identifier_to_column({:constant, type, value}, _columns_by_name, _query), do:
     Column.constant(type, value)
   defp identifier_to_column(other, _columns_by_name, _query), do: other
+
+  defp data_type(value, _index) when is_boolean(value), do: :boolean
+  defp data_type(value, _index) when is_integer(value), do: :integer
+  defp data_type(value, _index) when is_float(value), do: :real
+  defp data_type(value, _index) when is_binary(value), do: :text
+  defp data_type(_value, index), do:
+    raise CompilationError, message: "Invalid value for the parameter `$#{index}`"
 
   defp get_columns(columns_by_name, {:unquoted, name}) do
     columns_by_name
@@ -1036,7 +1113,8 @@ defmodule Cloak.Aql.Compiler do
     for {:comparison, column, _operator, target} <- query.having, do:
       for term <- [column, target], do:
         if individual_column?(term, query), do:
-          raise CompilationError, message: "`HAVING` clause can not be applied over #{Column.display_name(term)}."
+          raise CompilationError,
+            message: "`HAVING` clause can not be applied over column #{Column.display_name(term)}."
     query
   end
   defp verify_having(query), do: query
@@ -1049,14 +1127,14 @@ defmodule Cloak.Aql.Compiler do
 
   defp verify_where_clause({:comparison, column_a, _, column_b}) do
     if not Column.constant?(column_a) and not Column.constant?(column_b) and column_a.type != column_b.type do
-      raise CompilationError, message: "#{column_a |> Column.display_name() |> String.capitalize()} of type "
-        <> "`#{column_a.type}` and #{Column.display_name(column_b)} of type `#{column_b.type}` cannot be compared."
+      raise CompilationError, message: "Column #{Column.display_name(column_a)} of type `#{column_a.type}` and "
+        <> "column #{Column.display_name(column_b)} of type `#{column_b.type}` cannot be compared."
     end
   end
   defp verify_where_clause({:like, column, _}) do
     if column.type != :text do
-      raise CompilationError, message: "#{column |> Column.display_name() |> String.capitalize()} of type "
-        <> "`#{column.type}` cannot be used in a LIKE expression."
+      raise CompilationError,
+        message: "Column #{Column.display_name(column)} of type `#{column.type}` cannot be used in a LIKE expression."
     end
   end
   defp verify_where_clause({:not, clause}), do: verify_where_clause(clause)

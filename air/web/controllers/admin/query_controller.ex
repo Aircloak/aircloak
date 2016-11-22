@@ -22,7 +22,9 @@ defmodule Air.Admin.QueryController do
   # Actions
   # -------------------------------------------------------------------
 
-  def failed(conn, _params) do
-    render(conn, "failed.html", failed_queries: Repo.all(Query.failed()))
+  def failed(conn, params) do
+    page = params["page"] || 1
+    failed_queries = Repo.paginate(Query.failed(), page: page)
+    render(conn, "failed.html", failed_queries: failed_queries)
   end
 end

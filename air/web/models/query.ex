@@ -2,20 +2,26 @@ defmodule Air.Query do
   @moduledoc "The query model."
   use Air.Web, :model
 
-  alias Air.{User, Repo, DataSource}
+  alias Air.{User, Repo, DataSource, PsqlServer.Protocol}
 
   @type t :: %__MODULE__{}
-  @type cloak_query :: %{id: String.t, statement: String.t, data_source: String.t}
+  @type cloak_query :: %{
+    id: String.t,
+    statement: String.t,
+    parameters: [Protocol.db_value],
+    data_source: String.t
+  }
 
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "queries" do
     field :statement, :string
     field :tables, {:array, :string}
-    field :result, :string
+    field :result, :map
     field :execution_time, :integer
     field :users_count, :integer
     field :features, :map
     field :session_id, Ecto.UUID
+    field :parameters, :map
 
     belongs_to :user, User
     belongs_to :data_source, DataSource
@@ -24,7 +30,9 @@ defmodule Air.Query do
   end
 
   @required_fields ~w()a
-  @optional_fields ~w(statement data_source_id tables result execution_time users_count features session_id)a
+  @optional_fields ~w(
+    statement data_source_id tables result execution_time users_count features session_id parameters
+  )a
 
 
   # -------------------------------------------------------------------
@@ -46,12 +54,13 @@ defmodule Air.Query do
   end
 
   @doc "Converts the query model to the cloak compliant data."
-  @spec to_cloak_query(t) :: cloak_query
-  def to_cloak_query(query) do
+  @spec to_cloak_query(t, [any]) :: cloak_query
+  def to_cloak_query(query, parameters) do
     %{
       id: query.id,
       statement: query.statement,
-      data_source: query.data_source.global_id
+      data_source: query.data_source.global_id,
+      parameters: parameters
     }
   end
 
@@ -115,7 +124,7 @@ defmodule Air.Query do
   Adds a query filter returning recent queries which failed on cloak.
 
   The queryable returned by this function will select a map with fields
-  `id`, `statement`, and `error`.
+  `id`, `inserted_at`, `data_source`, `statement`, and `error`.
   """
   @spec failed(Ecto.Queryable.t) :: Ecto.Queryable.t
   def failed(query \\ __MODULE__) do
@@ -126,12 +135,11 @@ defmodule Air.Query do
       inserted_at: q.inserted_at,
       data_source: ds.name,
       statement: q.statement,
-      error: fragment("?::json->>'error'", q.result)
+      error: fragment("?->>'error'", q.result)
     },
     where:
       not is_nil(q.statement) and q.statement != "" and
-      q.inserted_at > fragment("(CURRENT_DATE - INTERVAL '7 day')::date") and
-      fragment("?::json->>'error' <> ''", q.result),
+      fragment("?->>'error' <> ''", q.result),
     order_by: [desc: q.inserted_at]
   end
 
@@ -149,8 +157,5 @@ defmodule Air.Query do
   # -------------------------------------------------------------------
 
   defp result_map(%{result: nil}), do: %{rows: [], columns: [], completed: false}
-  defp result_map(%{result: result_json}) do
-    Poison.decode!(result_json)
-    |> Map.put(:completed, true)
-  end
+  defp result_map(%{result: result_json}), do: Map.put(result_json, :completed, true)
 end

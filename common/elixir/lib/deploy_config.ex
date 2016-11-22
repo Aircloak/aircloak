@@ -41,7 +41,10 @@ defmodule Aircloak.DeployConfig do
 
   @doc false
   defmacro read_config!(), do:
-    quote(do: unquote(__MODULE__).do_read_config(unquote(Mix.Project.config[:app]), unquote(Mix.env)))
+    quote(do: unquote(__MODULE__).do_read_config(
+      unquote(Mix.Project.config[:app]),
+      Application.fetch_env!(:aircloak_common, :env)
+    ))
 
   @doc false
   def do_read_config(app, env) do
@@ -60,7 +63,12 @@ defmodule Aircloak.DeployConfig do
     data_sources_file_name =
       case env do
         :dev -> "dev.json"
-        :test -> if System.get_env("TRAVIS") == "true" do "travis.json" else "test.json" end
+        :test ->
+          if System.get_env("TRAVIS") == "true" do
+            if System.get_env("INTEGRATION_TEST") == "true", do: "integration_tests.json", else: "travis.json"
+          else
+            "test.json"
+          end
         :prod -> "config.json"
       end
 

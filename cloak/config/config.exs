@@ -2,6 +2,8 @@
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
 
+config :aircloak_common, :env, Mix.env
+
 # turn off sasl error logger
 config :sasl, :sasl_error_logger, false
 
@@ -29,9 +31,10 @@ config :cloak, :air,
 config :cloak, :anonymizer,
   # The mean and standard deviation for the lower bound of the number
   # of users that must be in a bucket to get reported.
-  low_count_soft_lower_bound: {5, 1},
+  low_count_soft_lower_bound: {4, 0.6},
 
   # The minimum absolute value of the noisy lower bound.
+  # Reported values equal or exceed this value.
   low_count_absolute_lower_bound: 2,
 
   # The mean and standard deviation for the count of outliers dropped, from the top of the collection,

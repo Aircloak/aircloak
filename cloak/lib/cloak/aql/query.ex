@@ -7,6 +7,7 @@ defmodule Cloak.Aql.Query do
   database, perform anonymized aggregation, and produce the final output.
   """
 
+  alias Cloak.DataSource
   alias Cloak.Aql.{Column, FixAlign, Function, Parser}
 
   @type negatable_condition ::
@@ -24,7 +25,7 @@ defmodule Cloak.Aql.Query do
 
   @type t :: %__MODULE__{
     data_source: DataSource.t,
-    features: Features.t,
+    features: Cloak.Features.t,
     command: :select | :show,
     columns: [Column.t],
     column_titles: [String.t],
@@ -35,6 +36,7 @@ defmodule Cloak.Aql.Query do
     group_by: [Function.t],
     where: [where_clause],
     lcf_check_conditions: [where_clause],
+    encoded_where: [where_clause],
     order_by: [{pos_integer, :asc | :desc}],
     show: :tables | :columns,
     selected_tables: [DataSource.table],
@@ -47,6 +49,7 @@ defmodule Cloak.Aql.Query do
     having: [having_clause],
     distinct: boolean,
     ranges: %{Column.t => FixAlign.interval},
+    parameters: [DataSource.field]
   }
 
   defstruct [
@@ -54,7 +57,7 @@ defmodule Cloak.Aql.Query do
     order_by: [], column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
     implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
     db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct: false,
-    features: nil, ranges: %{}
+    features: nil, encoded_where: [], ranges: %{}, parameters: []
   ]
 
 
@@ -67,17 +70,17 @@ defmodule Cloak.Aql.Query do
 
   Raises on error.
   """
-  @spec make!(DataSource.t, String.t) :: t
-  def make!(data_source, string) do
-    {:ok, query} = make(data_source, string)
+  @spec make!(DataSource.t, String.t, [DataSource.field]) :: t
+  def make!(data_source, string, parameters) do
+    {:ok, query} = make(data_source, string, parameters)
     query
   end
 
   @doc "Creates a compiled query from a string representation."
-  @spec make(DataSource.t, String.t) :: {:ok, t} | {:error, String.t}
-  def make(data_source, string) do
+  @spec make(DataSource.t, String.t, [DataSource.field]) :: {:ok, t} | {:error, String.t}
+  def make(data_source, string, parameters) do
     with {:ok, parsed_query} <- Cloak.Aql.Parser.parse(data_source, string) do
-      Cloak.Aql.Compiler.compile(data_source, parsed_query)
+      Cloak.Aql.Compiler.compile(data_source, parsed_query, parameters)
     end
   end
 
@@ -95,7 +98,7 @@ defmodule Cloak.Aql.Query do
   Examples include how many columns were selected, which, if any
   functions where used, etc.
   """
-  @spec extract_features(t) :: Map.t
+  @spec extract_features(t) :: map
   def extract_features(query) do
     %{
       num_selected_columns: num_selected_columns(query.column_titles),
@@ -103,11 +106,16 @@ defmodule Cloak.Aql.Query do
       num_tables: num_tables(query.selected_tables),
       num_group_by: num_group_by(query),
       functions: extract_functions(query.columns),
-      where_conditions: extract_where_conditions(query.where ++ query.lcf_check_conditions),
+      where_conditions: extract_where_conditions(query.where ++ query.lcf_check_conditions ++ query.encoded_where),
       column_types: extract_column_types(query.columns),
       selected_types: selected_types(query.columns),
     }
   end
+
+  @spec describe_query(DataSource.t, String.t, [DataSource.field]) :: {:ok, [String.t], map} | {:error, String.t}
+  def describe_query(data_source, statement, parameters), do:
+    with {:ok, query} <- make(data_source, statement, parameters), do:
+      {:ok, query.column_titles, extract_features(query)}
 
 
   # -------------------------------------------------------------------

@@ -88,14 +88,17 @@ defmodule Cloak.Query.BasicTest do
 
   test "should return LCF property when sufficient rows are filtered" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 0..1, "heights", ["height"], [160])
-    :ok = insert_rows(_user_ids = 20..24, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 20..24, "heights", ["height"], [190])
-    :ok = insert_rows(_user_ids = 25..29, "heights", ["height"], [200])
-    :ok = insert_rows(_user_ids = 25..29, "heights", ["height"], [150])
+    :ok = insert_rows(_user_ids = 0..3, "heights", ["height"], [160])
+    :ok = insert_rows(_user_ids = 20..23, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 20..23, "heights", ["height"], [190])
+    :ok = insert_rows(_user_ids = 24..27, "heights", ["height"], [200])
+    :ok = insert_rows(_user_ids = 24..27, "heights", ["height"], [150])
 
     assert_query "select height from heights order by height",
-      %{columns: ["height"], rows: [%{row: [180], occurrences: 20}, %{row: [:*], occurrences: 22}]}
+      %{columns: ["height"], rows: [
+        %{row: [180], occurrences: 20},
+        %{row: [:*], occurrences: 19},
+      ]}
   end
 
   test "should produce counts" do
@@ -409,6 +412,7 @@ defmodule Cloak.Query.BasicTest do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+    :ok = insert_rows(_user_ids = 40..49, "heights", ["height"], [nil])
 
     assert_query "select count(*) from heights where height <> 180",
       %{columns: ["count"], rows: [%{row: [40], occurrences: 1}]}
@@ -417,6 +421,7 @@ defmodule Cloak.Query.BasicTest do
   test "should drop <> conditions if they would expose small groups" do
     :ok = insert_rows(_user_ids = 0..9, "heights", ["name"], ["Alice"])
     :ok = insert_rows(_user_ids = 10..11, "heights", ["name"], ["Bob"])
+    :ok = insert_rows(_user_ids = 12..19, "heights", ["name"], [nil])
 
     assert_query "select count(*) from heights where name <> 'Bob'",
       %{columns: ["count"], rows: [%{row: [12], occurrences: 1}]}
@@ -640,14 +645,19 @@ defmodule Cloak.Query.BasicTest do
   end
 
   test "same database columns are selected only once in implicit self-join" do
-    {:ok, query} = Cloak.Aql.Query.make(
-      Cloak.DataSource.fetch!(hd(Cloak.DataSource.ids())),
-      "
-        select heights.height as h1, heights_alias.height as h2
-        from heights, heights_alias
-        where heights.user_id=heights_alias.user_id
-      "
-    )
+    {:ok, query} =
+      Application.get_env(:cloak, :data_sources)
+      |> Enum.map(&(&1.global_id))
+      |> hd()
+      |> Cloak.DataSource.fetch!()
+      |> Cloak.Aql.Query.make(
+            "
+              select heights.height as h1, heights_alias.height as h2
+              from heights, heights_alias
+              where heights.user_id=heights_alias.user_id
+            ",
+            []
+          )
     assert [%Column{name: "user_id"}, %Column{name: "height"}] = query.db_columns
   end
 
@@ -738,5 +748,11 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query "select count(distinct user_id) from heights",
       %{columns: ["count"], rows: [%{row: [10]}]}
+  end
+
+  test "parameters binding" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select height + $1 as height from heights WHERE $3 = $2", [10, true, true],
+      %{columns: ["height"], rows: [%{row: [190], occurrences: 100}]}
   end
 end

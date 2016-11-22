@@ -1,10 +1,12 @@
 defmodule Cloak.Aql.Column do
   @moduledoc "Represents a column in a compiled query."
 
-  @type column_type :: Cloak.DataSource.data_type | nil
-  @type db_function :: String.t | {:cast, Cloak.DataSource.data_type | :varbinary}
+  alias Cloak.DataSource
+
+  @type column_type :: DataSource.data_type | nil
+  @type db_function :: String.t | {:cast, DataSource.data_type | :varbinary}
   @type t :: %__MODULE__{
-    table: :unknown | Cloak.DataSource.table,
+    table: :unknown | DataSource.table,
     name: String.t | :constant | nil,
     alias: String.t | nil,
     type: column_type,
@@ -53,9 +55,8 @@ defmodule Cloak.Aql.Column do
   This function should mostly be used when producing error messages.
   """
   @spec display_name(t) :: String.t
-  def display_name(column) do
-    "column `#{column.name}` from table `#{column.table.name}`"
-  end
+  def display_name(%__MODULE__{name: name, table: table}) when is_binary(name), do:
+    "`#{name}` from table `#{table.name}`"
 
   @doc "Returns the column value of a database row."
   @spec value(t, DataSource.row) :: DataSource.field

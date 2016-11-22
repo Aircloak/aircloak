@@ -25,6 +25,7 @@ defmodule Cloak.Aql.Parser do
     | {:distinct, qualified_identifier}
     | {:function, function_name, [column]}
     | {:constant, data_type, any}
+    | {:parameter, pos_integer}
 
   @type negatable_condition ::
       {:comparison, String.t, :=, any}
@@ -191,7 +192,7 @@ defmodule Cloak.Aql.Parser do
       trim_expression(),
       substring_expression(),
       concat_expression(),
-      qualified_identifier(),
+      field_or_parameter(),
       constant_column() |> label("column definition")
     ])
   end
@@ -211,11 +212,32 @@ defmodule Cloak.Aql.Parser do
     pipe(
       [
         column(),
-        option(keyword(:as) |> identifier())
+        option(
+          keyword(:as)
+          |> name()
+        )
       ],
       fn
         ([column, nil]) -> column
-        ([column, :as, {_, name}]) -> {column, :as, name}
+        ([column, :as, name]) -> {column, :as, name}
+      end
+    )
+  end
+
+  defp name(parser) do
+    map(
+      parser,
+      pair_both(
+        identifier(),
+        many(
+          pair_both(
+            keyword(:"."),
+            identifier()
+          )
+        )
+      ),
+      fn ({{_, first}, rest}) ->
+          [first | Enum.map(rest, fn ({:., {_, part}}) -> part end)] |> Enum.join(".")
       end
     )
   end
@@ -371,7 +393,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp concat_expression() do
-    infix_expression([keyword(:||)], either_deepest_error(qualified_identifier(), constant_column()))
+    infix_expression([keyword(:||)], either_deepest_error(field_or_parameter(), constant_column()))
   end
 
   defp infix_expression(operators, inner_expression) do
@@ -385,6 +407,9 @@ defmodule Cloak.Aql.Parser do
       end
     )
   end
+
+  defp field_or_parameter(), do:
+    either(qualified_identifier(), parameter())
 
   defp qualified_identifier() do
     map(
@@ -575,12 +600,12 @@ defmodule Cloak.Aql.Parser do
 
   defp where_expression() do
     switch([
-      {qualified_identifier() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]), constant(:string)},
-      {qualified_identifier() |> option(keyword(:not)) |> keyword(:in), in_values()},
-      {qualified_identifier() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
-      {qualified_identifier() |> keyword(:between), allowed_where_range()},
-      {qualified_identifier() |> inequality_comparator(), any_constant()},
-      {qualified_identifier() |> equality_comparator(), allowed_where_value()},
+      {field_or_parameter() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]), constant(:string)},
+      {field_or_parameter() |> option(keyword(:not)) |> keyword(:in), in_values()},
+      {field_or_parameter() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
+      {field_or_parameter() |> keyword(:between), allowed_where_range()},
+      {field_or_parameter() |> inequality_comparator(), any_constant()},
+      {field_or_parameter() |> equality_comparator(), allowed_where_value()},
       {:else, error_message(fail(""), "Invalid where expression.")}
     ])
     |> map(fn
@@ -600,7 +625,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp allowed_where_value() do
-    either(qualified_identifier(), any_constant())
+    either(field_or_parameter(), any_constant())
     |> label("comparison value")
   end
 
@@ -779,6 +804,12 @@ defmodule Cloak.Aql.Parser do
       (:distinct) -> {:distinct, true}
       (nil) -> {:distinct, false}
     end)
+  end
+
+  defp parameter() do
+    token(:parameter)
+    |> map(&{:parameter, &1.value})
+    |> label("expected parameter")
   end
 
 

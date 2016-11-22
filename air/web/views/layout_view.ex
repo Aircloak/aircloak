@@ -1,6 +1,16 @@
 defmodule Air.LayoutView do
   @moduledoc false
   use Air.Web, :view
+  # bug in the current Phoenix
+  @dialyzer :no_match
+
+  defp container_class(assigns) do
+    if assigns[:full_width] do
+      "container-fluid"
+    else
+      "container"
+    end
+  end
 
   defp help_links(conn) do
     case Air.Plug.HelpPages.help_pages(conn) do

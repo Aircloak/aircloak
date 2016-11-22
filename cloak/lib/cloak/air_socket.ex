@@ -20,7 +20,7 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
 
   @doc "Starts the socket client."
-  @spec start_link(Map.t, GenServer.options) :: GenServer.on_start
+  @spec start_link(map, GenServer.options) :: GenServer.on_start
   def start_link(cloak_params \\ cloak_params(), gen_server_opts \\ [name: __MODULE__]) do
     GenSocketClient.start_link(
       __MODULE__,
@@ -42,7 +42,7 @@ defmodule Cloak.AirSocket do
   The function returns when the Air responds. If the timeout occurs, it is
   still possible that the Air has received the request.
   """
-  @spec send_query_result(GenServer.server, Map.t) :: :ok | {:error, any}
+  @spec send_query_result(GenServer.server, map) :: :ok | {:error, any}
   def send_query_result(socket \\ __MODULE__, result) do
     Logger.info("sending result for query #{result.query_id} to Air")
     case call(socket, "query_result", result, :timer.seconds(5)) do
@@ -172,14 +172,30 @@ defmodule Cloak.AirSocket do
 
   defp handle_air_call("run_query", serialized_query, from, state) do
     %{"id" => id, "statement" => statement, "data_source" => data_source} = serialized_query
+    parameters = Map.fetch!(serialized_query, "parameters")
     case Cloak.DataSource.fetch(data_source) do
       :error ->
         respond_to_air(from, :error, "Unknown data source.")
 
       {:ok, data_source} ->
         Logger.info("starting query #{id} ...")
-        Cloak.Query.Runner.start(id, data_source, statement)
+        Cloak.Query.Runner.start(id, data_source, statement, parameters)
         respond_to_air(from, :ok)
+    end
+    {:ok, state}
+  end
+  defp handle_air_call("describe_query", serialized_query, from, state) do
+    %{"statement" => statement, "data_source" => data_source} = serialized_query
+    parameters = Map.fetch!(serialized_query, "parameters")
+    case Cloak.DataSource.fetch(data_source) do
+      :error ->
+        respond_to_air(from, :error, "Unknown data source.")
+
+      {:ok, data_source} ->
+        case Cloak.Aql.Query.describe_query(data_source, statement, parameters) do
+          {:ok, columns, features} -> respond_to_air(from, :ok, %{columns: columns, features: features})
+          {:error, reason} -> respond_to_air(from, :ok, reason)
+        end
     end
     {:ok, state}
   end
@@ -227,7 +243,7 @@ defmodule Cloak.AirSocket do
     send(client_pid, {mref, response})
   end
 
-  @spec call(GenServer.server, String.t, Map.t, pos_integer) :: {:ok, any} | {:error, any}
+  @spec call(GenServer.server, String.t, map, pos_integer) :: {:ok, any} | {:error, any}
   defp call(socket, event, payload, timeout) do
     mref = Process.monitor(socket)
     send(socket, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})

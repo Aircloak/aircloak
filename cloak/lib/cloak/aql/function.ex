@@ -1,7 +1,7 @@
 defmodule Cloak.Aql.Function do
   @moduledoc "Includes information about functions and implementation of non-aggregation functions."
 
-  alias Cloak.Aql.{Column, Parser}
+  alias Cloak.Aql.{Column, Parser, Query}
   alias Cloak.{DataSource, Features}
   alias Timex.Duration
 
@@ -79,6 +79,22 @@ defmodule Cloak.Aql.Function do
       %{type_specs: %{[:text, :integer, {:optional, :integer}] => :text}},
     ~w(||) => %{type_specs: %{[:text, :text] => :text}},
     ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
+    # NOTICE: The `not_in_subquery` needs to be set for `extract_match` (whether or not we
+    # can implement it in a subquery). The reason for this is what we have called: WYSIWYC
+    # (what you see is what you count). If `extract_match` is allowed in a subquery it can
+    # effectively be used as an `OR`, whereas if it is used at the top-level the output of
+    # the function is directly anonymised, and hence safe.
+    # An example attack could look like:
+    #
+    #   SELECT count(*)
+    #   FROM (
+    #     SELECT uid, extract_match(name, 'Pattern1|Pattern2|Pattern3|...') as match
+    #     FROM table
+    #     WHERE match is not null
+    #   )
+    #
+    ~w(extract_match) => %{type_specs: %{[:text, :text] => :text}, not_in_subquery: true,
+      precompiled: true},
     [{:cast, :integer}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer}},
     [{:cast, :real}] =>
@@ -94,7 +110,7 @@ defmodule Cloak.Aql.Function do
     [{:cast, :text}] =>
       %{type_specs: %{[:any] => :text}},
     [{:cast, :interval}] =>
-      %{type_specs: %{[{:or, [:text, :interval]}] => :interval}}
+      %{type_specs: %{[{:or, [:text, :interval]}] => :interval}},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -102,6 +118,7 @@ defmodule Cloak.Aql.Function do
   @type t :: Parser.column | Column.t
   @type data_type :: :any | DataSource.data_type
   @type argument_type :: data_type | {:optional, data_type} | {:many1, data_type} | {:or, [data_type]}
+  @type function_compilation_callback :: (list(t)) :: list(t) | no_return
 
 
   # -------------------------------------------------------------------
@@ -112,16 +129,6 @@ defmodule Cloak.Aql.Function do
   @spec function?(t) :: boolean
   def function?({:function, _, _}), do: true
   def function?(_), do: false
-
-  @doc "Returns true if the given function call to a known function, false otherwise."
-  @spec valid_function?(t, Features.t) :: boolean
-  def valid_function?({:function, function, _}, features) do
-    case @functions[function] do
-      nil -> false
-      %{required_feature: feature} -> Features.has?(features, feature)
-      _ -> true
-    end
-  end
 
   @doc """
   Returns true if the given column definition is a function call to an aggregate function, false otherwise.
@@ -215,6 +222,73 @@ defmodule Cloak.Aql.Function do
   @spec bucket_size(t) :: number
   def bucket_size({:function, {:bucket, _}, [_, {:constant, _, size}]}), do: size
 
+  @doc """
+  Returns true if the function needs precompiling. Precompiling is useful if there is a costly
+  preprocessing step needed that should only be done once, or if static query parameters can
+  be validated prior to query execution.
+  """
+  @spec needs_precompiling?(String.t) :: boolean
+  def needs_precompiling?(function), do: Map.get(@functions[function], :precompiled, false)
+
+  @doc "Compiles a function so it is ready for execution"
+  @spec compile_function(t, function_compilation_callback) :: t | {:error, String.t}
+  def compile_function({:function, "extract_match", [_column, %Column{value: %Regex{}}]
+      } = precompiled_function, _callback), do: precompiled_function
+  def compile_function({:function, "extract_match", [column, pattern_column]}, compilation_callback) do
+    case Regex.compile(pattern_column.value, "ui") do
+      {:ok, regex} ->
+        regex_column = %Column{pattern_column | value: regex}
+        {:function, "extract_match", compilation_callback.([column]) ++ [regex_column]}
+      {:error, {error, location}} ->
+        {:error, "The regex used in `extract_match` is invalid: #{error} at character #{location}"}
+    end
+  end
+  def compile_function({:function, function, args}, compilation_callback), do:
+    {:function, function, compilation_callback.(args)}
+
+  @doc "Returns true if the function is a valid cloak function"
+  @spec exists?(t) :: boolean
+  def exists?({:function, function, _}), do: @functions[function] !== nil
+
+  @doc """
+  Returns true if the function is supported given the features supported in the query.
+
+  This function expects the caller to already have validated that the function exists.
+  This can be done with the `exists?` function.
+  """
+  @spec valid_feature?(t, Query.t) :: boolean
+  def valid_feature?(function, %Query{features: features}) do
+    case required_feature(function) do
+      nil -> true
+      feature -> Features.has?(features, feature)
+    end
+  end
+
+  @doc "Returns a feature required by a function, or nil if the function has no feature requirements."
+  @spec required_feature(t) :: atom | nil
+  def required_feature({:function, function, _}) do
+    case @functions[function] do
+      %{required_feature: feature} -> feature
+      # No feature requirement
+      _ -> nil
+    end
+  end
+
+  @doc """
+  Returns true if the function is allowed in sub-queries.
+
+  This function expects the caller to already have validated that the function exists.
+  This can be done with the `exists?` function.
+  """
+  @spec allowed_in_subquery?(t) :: boolean
+  def allowed_in_subquery?({:function, function, _}) do
+    case @functions[function] do
+      %{not_in_subquery: true} -> false
+      _ -> true
+    end
+  end
+
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -280,6 +354,12 @@ defmodule Cloak.Aql.Function do
   defp do_apply("substring_for", [string, count]), do: substring(string, 1, count)
   defp do_apply("||", args), do: Enum.join(args)
   defp do_apply("concat", args), do: Enum.join(args)
+  defp do_apply("extract_match", [string, regex]) do
+    case Regex.run(regex, string, capture: :first) do
+      [capture] -> capture
+      nil -> nil
+    end
+  end
   defp do_apply("^", [x, y]), do: :math.pow(x, y)
   defp do_apply("*", [x = %Duration{}, y]), do: Duration.scale(x, y)
   defp do_apply("*", [x, y = %Duration{}]), do: do_apply("*", [y, x])

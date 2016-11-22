@@ -18,7 +18,7 @@ defmodule Air.PsqlServer.RanchServer do
   alias Air.PsqlServer.Protocol
 
   defstruct [:ref, :socket, :transport, :opts, :behaviour_mod, :protocol, :login_params, assigns: %{},
-    query_result: nil]
+    behaviour_actions: []]
 
   @type t :: %__MODULE__{
     # Only fields open to clients are specified here
@@ -45,7 +45,10 @@ defmodule Air.PsqlServer.RanchServer do
   @callback login(t, String.t) :: {:ok, t} | :error
 
   @doc "Invoked to run the query."
-  @callback run_query(t, String.t) :: t
+  @callback run_query(t, String.t, [Protocol.db_value], pos_integer) :: t
+
+  @doc "Invoked to describe the statement result."
+  @callback describe_statement(t, String.t, [Protocol.db_value]) :: t
 
   @doc "Invoked when a message is received by the connection process."
   @callback handle_message(t, any) :: t
@@ -84,10 +87,13 @@ defmodule Air.PsqlServer.RanchServer do
     put_in(conn.assigns[key], value)
 
   @doc "Stores a query result into a connection state."
-  @spec set_query_result(t, %{}) :: t
-  def set_query_result(%{query_result: nil} = conn, query_result), do:
-    %__MODULE__{conn | query_result: query_result}
+  @spec set_query_result(t, Protocol.query_result) :: t
+  def set_query_result(conn, query_result), do:
+    update_in(conn.behaviour_actions, &[{:query_result, query_result} | &1])
 
+  @spec set_describe_result(t, [Protocol.column]) :: t
+  def set_describe_result(conn, columns), do:
+    update_in(conn.behaviour_actions, &[{:set_describe_result, columns} | &1])
 
   #-----------------------------------------------------------------------------------------------------------
   # :ranch_protocol callback functions
@@ -159,7 +165,7 @@ defmodule Air.PsqlServer.RanchServer do
     end
   end
   def handle_info(msg, conn), do:
-    {:noreply, handle_query_result(conn.behaviour_mod.handle_message(conn, msg))}
+    {:noreply, handle_behaviour_actions(conn.behaviour_mod.handle_message(conn, msg))}
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -217,17 +223,22 @@ defmodule Air.PsqlServer.RanchServer do
         update_protocol(conn, &Protocol.authenticated(&1, false))
     end
   end
-  defp handle_protocol_action({:run_query, query}, conn), do:
-    handle_query_result(conn.behaviour_mod.run_query(conn, query))
+  defp handle_protocol_action({:run_query, query, params, max_rows}, conn), do:
+    handle_behaviour_actions(conn.behaviour_mod.run_query(conn, query, params, max_rows))
+  defp handle_protocol_action({:describe_statement, query, params}, conn), do:
+    handle_behaviour_actions(conn.behaviour_mod.describe_statement(conn, query, params))
 
   defp update_protocol(conn, fun), do:
     %__MODULE__{conn | protocol: fun.(conn.protocol)}
 
-  defp handle_query_result(%{query_result: nil} = conn), do:
-    conn
-  defp handle_query_result(conn), do:
-    conn
-    |> update_protocol(&Protocol.select_result(&1, conn.query_result))
-    |> Map.put(:query_result, nil)
+  defp handle_behaviour_actions(conn), do:
+    conn.behaviour_actions
+    |> List.foldr(conn, &handle_behaviour_action(&2, &1))
+    |> Map.put(:behaviour_actions, [])
     |> handle_protocol_actions()
+
+  defp handle_behaviour_action(conn, {:query_result, query_result}), do:
+    update_protocol(conn, &Protocol.query_result(&1, query_result))
+  defp handle_behaviour_action(conn, {:set_describe_result, columns}), do:
+    update_protocol(conn, &Protocol.describe_result(&1, columns))
 end

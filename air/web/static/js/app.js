@@ -15,12 +15,10 @@
 // to also remove its path from "config.paths.watched".
 import "phoenix_html";
 
-import renderAuditLogView from "./audit_log/root";
 import renderQueriesView from "./queries/root";
 import renderTableInfo from "./table_info/root";
 
 const App = {
-  auditLog: renderAuditLogView,
   queryPage: renderQueriesView,
   tableInfo: renderTableInfo,
 };

@@ -51,6 +51,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
   where_expression :=
     column_name equality_operator (value | column_name) |
     column_name inequality_operator value |
+    column_name BETWEEN value AND value |
     column_name IS [NOT] NULL |
     column_name IN (constant [, ...])
     column_name [NOT] LIKE | ILIKE string_pattern
@@ -61,7 +62,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
   comparison_operator :=
       equality_operator | inequality_operator
 
-  quality_operator :=
+  equality_operator :=
       = | <>
 
   inequality_operator :=

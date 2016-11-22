@@ -4,14 +4,12 @@ defmodule Cloak.Query.Result do
   allows a result to contain meta-data about the query execution.
   """
 
-  alias Air.Query.Aggregator
-
   @type t :: %__MODULE__{
-    buckets: [Aggregator.bucket],
+    buckets: [Cloak.Query.Aggregator.bucket],
     columns: [String.t],
     types: [atom],
     users_count: non_neg_integer,
-    features: Map.t,
+    features: map,
   }
 
   defstruct buckets: [], columns: [], types: [], users_count: 0, features: %{}

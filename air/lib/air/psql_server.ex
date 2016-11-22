@@ -55,17 +55,35 @@ defmodule Air.PsqlServer do
   end
 
   @doc false
-  def run_query(conn, query) do
+  def run_query(conn, query, params, _max_rows) do
+    case handle_special_query(conn, String.downcase(query)) do
+      {true, conn} -> conn
+      false ->
+        RanchServer.assign(
+          conn,
+          :query_runner,
+          Task.async(fn ->
+            DataSource.run_query(conn.assigns.data_source_id, conn.assigns.user, query, params)
+          end)
+        )
+    end
+  end
+
+  @doc false
+  def describe_statement(conn, query, params), do:
     RanchServer.assign(
       conn,
-      :query_runner,
-      Task.async(fn -> DataSource.run_query(conn.assigns.data_source_id, conn.assigns.user, query) end)
+      :query_describer,
+      Task.async(fn ->
+        DataSource.describe_query(conn.assigns.data_source_id, conn.assigns.user, query, params)
+      end)
     )
-  end
 
   @doc false
   def handle_message(%{assigns: %{query_runner: %Task{ref: ref}}} = conn, {ref, query_result}), do:
     RanchServer.set_query_result(conn, parse_response(query_result))
+  def handle_message(%{assigns: %{query_describer: %Task{ref: ref}}} = conn, {ref, query_result}), do:
+    RanchServer.set_describe_result(conn, parse_response(query_result).columns)
   def handle_message(conn, _message), do:
     conn
 
@@ -73,6 +91,18 @@ defmodule Air.PsqlServer do
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp handle_special_query(conn, "set " <> _), do:
+    # we're ignoring set for now
+    {true, RanchServer.set_query_result(conn, nil)}
+  defp handle_special_query(conn, query) do
+    if query =~ ~r/^select.+from pg_type/ do
+      # select ... from pg_type ...
+      {true, RanchServer.set_query_result(conn, %{columns: [], rows: []})}
+    else
+      false
+    end
+  end
 
   defp parse_response({:error, :not_connected}), do:
     %{error: "Data source is not available!"}
@@ -88,7 +118,7 @@ defmodule Air.PsqlServer do
         |> Enum.map(fn({name, type}) -> %{name: name, type: type_atom(type)} end),
       rows:
         query_result
-        |> Map.fetch!("rows")
+        |> Map.get("rows", [])
         |> Enum.flat_map(&List.duplicate(Map.fetch!(&1, "row"), Map.fetch!(&1, "occurrences")))
     }
   defp parse_response(other) do
@@ -96,8 +126,11 @@ defmodule Air.PsqlServer do
     %{error: "System error!"}
   end
 
-  for supported_type <- [:integer, :text] do
-    defp type_atom(unquote(to_string(supported_type))), do: unquote(supported_type)
+  for {aql_type, psql_type} <- %{
+    "integer" => :int8,
+    "text" => :text
+  } do
+    defp type_atom(unquote(aql_type)), do: unquote(psql_type)
   end
   defp type_atom(_other), do: :unknown
 end

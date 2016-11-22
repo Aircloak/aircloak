@@ -22,6 +22,8 @@ cache:
   - central/deps
   - central/_build
   - central/node_modules
+  - integration_tests/deps
+  - integration_tests/_build
   - $HOME/.asdf
   - $HOME/.yarn-cache
 services:
@@ -32,7 +34,7 @@ addons:
   apt:
     sources:
     - ubuntu-toolchain-r-test
-    - mongodb-3.0-precise
+    - mongodb-3.2-precise
     packages:
     - jq
     - gcc-4.8
@@ -48,7 +50,7 @@ before_install:
   - mysql -e "CREATE DATABASE cloaktest1 DEFAULT CHARACTER SET utf8;" -u root
   - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
   - ./travis-asdf-setup.sh
-  - npm i -g yarn
+  - npm i -g yarn@0.16.1
 before_script:
   - ./travis-before-script.sh
 script:

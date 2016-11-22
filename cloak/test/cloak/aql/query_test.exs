@@ -73,12 +73,12 @@ defmodule Cloak.Aql.QueryTest do
       FROM feat_users
       WHERE height > 10 and height < 20
     """)
-    assert %{where_conditions: ["=", "<>"]} = features_from("""
+    assert %{where_conditions: ["=", "not null", "<>"]} = features_from("""
       SELECT height
       FROM feat_users
       WHERE height <> 10 and male = true
     """)
-    assert %{where_conditions: ["in", "not in"]} = features_from("""
+    assert %{where_conditions: ["in", "not null", "not in"]} = features_from("""
       SELECT height
       FROM feat_users
       WHERE
@@ -90,7 +90,7 @@ defmodule Cloak.Aql.QueryTest do
       FROM feat_users
       WHERE height IS NULL and name IS NOT NULL
     """)
-    assert %{where_conditions: ["like", "ilike", "not like", "not ilike"]} = features_from("""
+    assert %{where_conditions: ["like", "ilike", "not null", "not like", "not ilike"]} = features_from("""
       SELECT height
       FROM feat_users
       WHERE name LIKE '%' and name ILIKE '%foo%' and name NOT LIKE '_' and name NOT ILIKE '%bar%'
@@ -139,9 +139,9 @@ defmodule Cloak.Aql.QueryTest do
 
   defp features_from(statement) do
     [first_ds | rest_ds] = Cloak.DataSource.all()
-    query = Query.make!(first_ds, statement) |> Map.delete(:data_source)
+    query = Query.make!(first_ds, statement, []) |> Map.delete(:data_source)
     for data_source <- rest_ds, do:
-      assert(query == Query.make!(data_source, statement) |> Map.delete(:data_source))
+      assert(query == Query.make!(data_source, statement, []) |> Map.delete(:data_source))
     Query.extract_features(query)
   end
 end
