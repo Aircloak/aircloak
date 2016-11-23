@@ -755,4 +755,13 @@ defmodule Cloak.Query.BasicTest do
     assert_query "select height + $1 as height from heights WHERE $3 = $2", [10, true, true],
       %{columns: ["height"], rows: [%{row: [190], occurrences: 100}]}
   end
+
+  test "user id case sensitivity and aliasing" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
+
+    assert_query "select count(*) from (select USER_ID from heights) as t",
+      %{rows: [%{row: [10], occurrences: 1}]}
+    assert_query "select count(*) from (select user_id as uid from heights) as t",
+      %{rows: [%{row: [10], occurrences: 1}]}
+  end
 end
