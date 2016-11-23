@@ -3,7 +3,6 @@ defmodule Cloak.Aql.Compiler do
 
   alias Cloak.{DataSource, Features}
   alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query}
-  alias Cloak.Aql.Parsers.Token
   alias Cloak.Query.DataDecoder
 
   defmodule CompilationError do
@@ -342,31 +341,20 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp compile_buckets(query) do
-    {columns, messages} = Enum.reduce(query.columns, {[], []}, &compile_bucket/2)
-    %{query | columns: Enum.reverse(columns), info: messages ++ query.info}
+    {messages, columns} = Lens.get_and_map(Lens.all() |> buckets(), query.columns, &align_bucket/1)
+    %{query | columns: columns, info: Enum.reject(messages, &is_nil/1) ++ query.info}
   end
 
-  defp compile_bucket(column, {output_columns, messages}) do
-    if Function.bucket?(column) do
-      align_bucket(column, {output_columns, messages})
-    else
-      {[column | output_columns], messages}
-    end
-  end
-
-  defp align_bucket(column, {output_columns, messages}) do
+  defp align_bucket(column) do
     if Function.bucket_size(column) <= 0 do
       raise CompilationError, message: "Bucket size #{Function.bucket_size(column)} must be > 0"
     end
 
     aligned = Function.update_bucket_size(column, &FixAlign.align/1)
     if aligned == column do
-      {[column | output_columns], messages}
+      {nil, aligned}
     else
-      {
-        [aligned | output_columns],
-        ["Bucket size adjusted from #{Function.bucket_size(column)} to #{Function.bucket_size(aligned)}" | messages]
-      }
+      {"Bucket size adjusted from #{Function.bucket_size(column)} to #{Function.bucket_size(aligned)}", aligned}
     end
   end
 
@@ -832,18 +820,7 @@ defmodule Cloak.Aql.Compiler do
   defp map_order_by({identifier, direction}, mapper_fun),
     do: {map_terminal_element(identifier, mapper_fun), direction}
 
-  defp map_terminal_element(%Token{} = token, mapper_fun), do: mapper_fun.(token)
-  defp map_terminal_element(%Column{} = column, mapper_fun), do: mapper_fun.(column)
-  defp map_terminal_element({:identifier, _, _} = identifier, mapper_fun), do: mapper_fun.(identifier)
-  defp map_terminal_element({:function, "count", :*} = function, _converter_fun), do: function
-  defp map_terminal_element({:function, "count_noise", :*} = function, _converter_fun), do: function
-  defp map_terminal_element({:function, function, identifier}, converter_fun),
-    do: converter_fun.({:function, function, map_terminal_element(identifier, converter_fun)})
-  defp map_terminal_element({:distinct, identifier}, converter_fun),
-    do: converter_fun.({:distinct, map_terminal_element(identifier, converter_fun)})
-  defp map_terminal_element(elements, mapper_fun) when is_list(elements),
-    do: Enum.map(elements, &map_terminal_element(&1, mapper_fun))
-  defp map_terminal_element(constant, mapper_fun), do: mapper_fun.(constant)
+  defp map_terminal_element(x, f), do: Lens.map(terminal_elements(), x, f)
 
   defp identifiers_to_columns(query) do
     columns_by_name =
@@ -1138,4 +1115,25 @@ defmodule Cloak.Aql.Compiler do
   end
   defp verify_where_clause({:not, clause}), do: verify_where_clause(clause)
   defp verify_where_clause(_), do: :ok
+
+
+  # -------------------------------------------------------------------
+  # Lenses into Query
+  # -------------------------------------------------------------------
+
+  use Lens.Macros
+
+  deflens terminal_elements do
+    Lens.match(fn
+      {:function, "count", :*} -> Lens.empty()
+      {:function, "count_noise", :*} -> Lens.empty()
+      {:function, _, _} -> Lens.both(Lens.at(2) |> terminal_elements(), Lens.root())
+      {:distinct, _} -> Lens.both(Lens.at(1) |> terminal_elements(), Lens.root())
+      {_, :as, _} -> Lens.at(0)
+      elements when is_list(elements) -> Lens.all() |> terminal_elements()
+      _ -> Lens.root
+    end)
+  end
+
+  deflens buckets, do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
 end

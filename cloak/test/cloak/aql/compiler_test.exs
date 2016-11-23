@@ -571,8 +571,8 @@ defmodule Cloak.Aql.Compiler.Test do
   end
 
   test "bucket sizes are aligned, adding an info message" do
-    first = compile!("select bucket(numeric by 0.11) from table", data_source())
-    second = compile!("select bucket(numeric by 0.1) from table", data_source())
+    first = compile!("select bucket(numeric by 0.11) as foo from table", data_source())
+    second = compile!("select bucket(numeric by 0.1) as foo from table", data_source())
 
     assert Map.drop(first, [:info]) == Map.drop(second, [:info])
     assert ["Bucket size adjusted from 0.11 to 0.1"] = first.info
