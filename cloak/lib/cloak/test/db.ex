@@ -119,7 +119,7 @@ defmodule Cloak.Test.DB do
   defp full_table_name(table_name), do: "cloak_test.#{table_name}"
 
   defp create_connection(data_source) do
-    {:ok, connection} = data_source.driver.connect(data_source.parameters)
+    connection = data_source.driver.connect(data_source.parameters)
     Process.put({:connection, data_source.global_id}, connection)
     connection
   end

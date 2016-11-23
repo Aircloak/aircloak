@@ -5,6 +5,7 @@ defmodule Cloak.DataSource.ODBC do
   """
 
   alias Cloak.DataSource.SqlBuilder
+  alias Cloak.Query.Runner.RuntimeError
   alias Cloak.Aql.Column
 
 
@@ -22,9 +23,12 @@ defmodule Cloak.DataSource.ODBC do
     with {:ok, connection} <- parameters |> to_connection_string() |> :odbc.connect(options) do
       sql_dialect = parameters.'DSN' |> String.downcase() |> String.to_existing_atom()
       set_dialect(sql_dialect, connection)
-      {:ok, %__MODULE__{sql_dialect: sql_dialect, connection: connection}}
+      %__MODULE__{sql_dialect: sql_dialect, connection: connection}
+    else
+      {:error, reason} -> raise RuntimeError, message: to_string(reason)
     end
   end
+
   @doc false
   def disconnect(%__MODULE__{connection: connection}) do
     :odbc.disconnect(connection)
