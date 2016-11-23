@@ -44,7 +44,7 @@ defmodule Cloak.Aql.Function do
     ~w(abs) => %{required_feature: :math, type_specs: %{[numeric] => :real}},
     ~w(sqrt) => %{type_specs: %{[numeric] => :real}},
     ~w(div mod %) => %{required_feature: :math, type_specs: %{[:integer, :integer] => :integer}},
-    ~w(pow ^) => %{required_feature: :math, type_specs: arithmetic_operation},
+    ~w(pow ^) => %{required_feature: :math, type_specs: %{[numeric, numeric] => :real}},
     ~w(+) => %{required_feature: :math, type_specs: Map.merge(arithmetic_operation, %{
       [:date, :interval] => :datetime,
       [:time, :interval] => :time,
