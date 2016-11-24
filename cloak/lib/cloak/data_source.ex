@@ -75,7 +75,7 @@ defmodule Cloak.DataSource do
     @type parameters :: any
 
     @doc "Opens a new connection to the data store."
-    @callback connect(parameters) :: {:ok, connection} | {:error, any}
+    @callback connect!(parameters) :: connection
 
     @doc "Closes the connection to the data store."
     @callback disconnect(connection) :: :ok
@@ -139,14 +139,13 @@ defmodule Cloak.DataSource do
   def select(%{data_source: data_source} = select_query, result_processor) do
     driver = data_source.driver
     Logger.debug("Connecting to `#{data_source.global_id}` ...")
-    with {:ok, connection} <- driver.connect(data_source.parameters) do
-      try do
-        Logger.debug("Selecting data ...")
-        driver.select(connection, select_query, result_processor)
-      after
-        Logger.debug("Disconnecting ...")
-        driver.disconnect(connection)
-      end
+    connection = driver.connect!(data_source.parameters)
+    try do
+      Logger.debug("Selecting data ...")
+      driver.select(connection, select_query, result_processor)
+    after
+      Logger.debug("Disconnecting ...")
+      driver.disconnect(connection)
     end
   end
 
@@ -237,28 +236,24 @@ defmodule Cloak.DataSource do
 
   defp load_tables(data_source) do
     driver = data_source.driver
-    with {:ok, connection} <- driver.connect(data_source.parameters) do
-      try do
-        data_source.tables
-        |> Enum.map(fn ({table_id, table}) ->
-          table
-          |> Map.put(:columns, [])
-          |> Map.put(:name, to_string(table_id))
-          |> Map.put_new(:db_name, to_string(table_id))
-          |> Map.put_new(:decoders, [])
-        end)
-        |> Enum.flat_map(&driver.load_tables(connection, &1))
-        |> Enum.map(&parse_columns(data_source, &1))
-        |> Enum.map(&DataDecoder.init/1)
-        |> Enum.map(&{String.to_atom(&1.name), &1})
-        |> Enum.into(%{})
-      after
-        driver.disconnect(connection)
-      end
-    else
-      {:error, reason} ->
-        Logger.error("Error connecting to #{data_source.global_id}: #{reason}")
-        nil
+    Logger.info("Loading tables from #{data_source.global_id} ...")
+    connection = driver.connect!(data_source.parameters)
+    try do
+      data_source.tables
+      |> Enum.map(fn ({table_id, table}) ->
+        table
+        |> Map.put(:columns, [])
+        |> Map.put(:name, to_string(table_id))
+        |> Map.put_new(:db_name, to_string(table_id))
+        |> Map.put_new(:decoders, [])
+      end)
+      |> Enum.flat_map(&driver.load_tables(connection, &1))
+      |> Enum.map(&parse_columns(data_source, &1))
+      |> Enum.map(&DataDecoder.init/1)
+      |> Enum.map(&{String.to_atom(&1.name), &1})
+      |> Enum.into(%{})
+    after
+      driver.disconnect(connection)
     end
   end
 

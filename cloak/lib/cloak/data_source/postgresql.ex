@@ -13,11 +13,11 @@ defmodule Cloak.DataSource.PostgreSQL do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
-  def connect(parameters) do
+  def connect!(parameters) do
     parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, pool: DBConnection.Connection]
     with {:ok, connection} = Postgrex.start_link(parameters) do
       {:ok, %Postgrex.Result{}} = Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
-      {:ok, connection}
+      connection
     end
   end
   @doc false
