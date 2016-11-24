@@ -256,18 +256,18 @@ defmodule Cloak.Query.Anonymizer do
   # this method will drop the rows with negative values, and, for the remaining rows,
   # will return the anonymized sum plus the required scale for the noise standard deviation.
   defp sum_positives(rows, outliers_count, top_count, row_accumulator) do
-    {sum, count, top_length, top_values} = Enum.reduce(rows, {0, 0, 0, []}, fn
-      (row, {sum, count, top_length, top}) when top_length <= outliers_count + top_count ->
+    {sum, top_length, top_values} = Enum.reduce(rows, {0, 0, []}, fn
+      (row, {sum, top_length, top}) when top_length <= outliers_count + top_count ->
         row_value = row_accumulator.(row)
         case row_value >= 0 do
-          true -> {sum, count, top_length + 1, Enum.sort([row_value | top])}
-          false -> {sum, count, top_length, top}
+          true -> {sum, top_length + 1, Enum.sort([row_value | top])}
+          false -> {sum, top_length, top}
         end
-      (row, {sum, count, top_length, [top_smallest | top_rest] = top}) ->
+      (row, {sum, top_length, [top_smallest | top_rest] = top}) ->
         row_value = Kernel.max(row_accumulator.(row), 0)
         case row_value > top_smallest do
-          true -> {sum + top_smallest, count + 1, top_length, Enum.sort([row_value | top_rest])}
-          false -> {sum + row_value, count + 1, top_length, top}
+          true -> {sum + top_smallest, top_length, Enum.sort([row_value | top_rest])}
+          false -> {sum + row_value, top_length, top}
         end
     end)
     case top_length > outliers_count do
@@ -276,10 +276,7 @@ defmodule Cloak.Query.Anonymizer do
         top_length  = top_length - outliers_count
         top_values_sum = top_values |> Enum.take(top_length) |> Enum.sum()
         top_average = top_values_sum / top_length
-        sum = sum + top_values_sum
-        count = count + top_length
-        average = sum / count
-        {sum + outliers_count * top_average, average}
+        {sum + top_values_sum + outliers_count * top_average, top_average}
     end
   end
 
