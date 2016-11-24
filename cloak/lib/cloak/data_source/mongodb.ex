@@ -41,7 +41,7 @@ defmodule Cloak.DataSource.MongoDB do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
-  def connect(parameters) do
+  def connect!(parameters) do
     self = self()
     parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true,
       pool: DBConnection.Connection, after_connect: fn (_) -> send self, :connected end]

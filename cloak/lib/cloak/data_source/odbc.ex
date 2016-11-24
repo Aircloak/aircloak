@@ -18,7 +18,7 @@ defmodule Cloak.DataSource.ODBC do
   defstruct [:connection, :sql_dialect]
 
   @doc false
-  def connect(parameters) do
+  def connect!(parameters) do
     options = [auto_commit: :on, binary_strings: :on, tuple_row: :off]
     with {:ok, connection} <- parameters |> to_connection_string() |> :odbc.connect(options) do
       sql_dialect = parameters.'DSN' |> String.downcase() |> String.to_existing_atom()

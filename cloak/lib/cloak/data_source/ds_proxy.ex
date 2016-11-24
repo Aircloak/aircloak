@@ -33,7 +33,7 @@ defmodule Cloak.DataSource.DsProxy do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
-  def connect(parameters), do: Enum.to_list(parameters)
+  def connect!(parameters), do: Enum.to_list(parameters)
   @doc false
   def disconnect(_connection), do: :ok
 

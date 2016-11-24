@@ -75,7 +75,7 @@ defmodule Cloak.DataSource do
     @type parameters :: any
 
     @doc "Opens a new connection to the data store."
-    @callback connect(parameters) :: connection
+    @callback connect!(parameters) :: connection
 
     @doc "Closes the connection to the data store."
     @callback disconnect(connection) :: :ok
@@ -139,7 +139,7 @@ defmodule Cloak.DataSource do
   def select(%{data_source: data_source} = select_query, result_processor) do
     driver = data_source.driver
     Logger.debug("Connecting to `#{data_source.global_id}` ...")
-    connection = driver.connect(data_source.parameters)
+    connection = driver.connect!(data_source.parameters)
     try do
       Logger.debug("Selecting data ...")
       driver.select(connection, select_query, result_processor)
@@ -237,7 +237,7 @@ defmodule Cloak.DataSource do
   defp load_tables(data_source) do
     driver = data_source.driver
     Logger.info("Loading tables from #{data_source.global_id} ...")
-    connection = driver.connect(data_source.parameters)
+    connection = driver.connect!(data_source.parameters)
     try do
       data_source.tables
       |> Enum.map(fn ({table_id, table}) ->
