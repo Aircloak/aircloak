@@ -120,5 +120,29 @@ defmodule Cloak.DataSource.MongoDBTest do
     assert_query context, "SELECT name FROM (SELECT _id, lower(left(name, 4)) AS name FROM #{@table}) AS t",
       %{rows: [%{occurrences: 5, row: [nil]}, %{occurrences: 10, row: ["user"]}]}
   end
+
+  test "aggregation sub-queries", context do
+    assert_query context, """
+        SELECT COUNT(*), SUM(value) FROM (SELECT _id, COUNT(*) AS value FROM #{@table} GROUP BY _id) AS t
+      """, %{rows: [%{occurrences: 1, row: [15, 15]}]}
+
+    assert_query context, """
+        SELECT COUNT(*), SUM(value) FROM (SELECT _id, COUNT(age) AS value FROM #{@table} GROUP BY _id) AS t
+      """, %{rows: [%{occurrences: 1, row: [15, 10]}]}
+
+    assert_query context, """
+        SELECT COUNT(*), SUM(value) FROM (SELECT _id, AVG(age) AS value FROM #{@table} GROUP BY _id) AS t
+      """, %{rows: [%{occurrences: 1, row: [15, 300.0]}]}
+
+    assert_query context, """
+        SELECT COUNT(*), SUM(value) FROM
+        (SELECT _id, COUNT(DISTINCT bills.issuer) AS value FROM #{@table}_bills_ids GROUP BY _id) AS t
+      """, %{rows: [%{occurrences: 1, row: [10, 10]}]}
+
+    assert_query context, """
+        SELECT COUNT(*), SUM(value) FROM
+        (SELECT _id, SUM(DISTINCT bills.ids) AS value FROM #{@table}_bills_ids GROUP BY _id) AS t
+      """, %{rows: [%{occurrences: 1, row: [10, 30]}]}
+  end
 end
 end
