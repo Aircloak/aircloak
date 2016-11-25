@@ -252,26 +252,45 @@ defmodule Cloak.Query.Anonymizer do
     |> Enum.take(amount)
   end
 
+  # This is a micro-optimization for inserting a value into a sorted list, by avoiding a call to Enum.sort/1.
+  # Although the input for this should be very small (less than 10 items), it helps to reduce the amount
+  # of garbage generated during aggregation.
+  defp insert_sorted([], new_value), do: [new_value]
+  defp insert_sorted([head | _tail] = list, new_value) when new_value <= head, do: [new_value | list]
+  defp insert_sorted([head | tail], new_value) when new_value > head, do: [head | insert_sorted(tail, new_value)]
+
   # Given a list of rows, a row accumulator functor and the anonymization parameters,
   # this method will drop the rows with negative values, and, for the remaining rows,
   # will return the anonymized sum plus the required scale for the noise standard deviation.
   defp sum_positives(rows, outliers_count, top_count, row_accumulator) do
+    # The following part is written in a more convoluted way in order to do a single pass through the data.
+    # It improves performance, but also reduces the amount of garbage generated, making the cloak more memory-stable.
+    # The code is roughly equivalent to:
+    # rows
+    #   |> Enum.map(row_accumulator)
+    #   |> Enum.filter(&(&1 >= 0))
+    #   |> Enum.sort(&(&1 > &2))
+    #   |> Enum.split(outliers_count + top_count)
     {sum, top_length, top_values} = Enum.reduce(rows, {0, 0, []}, fn
       (row, {sum, top_length, top}) when top_length <= outliers_count + top_count ->
+        # This is the case in which the `top_values` list is not full yet and
+        # we need to add the current row_value (if valid) to it.
         row_value = row_accumulator.(row)
         case row_value >= 0 do
-          true -> {sum, top_length + 1, Enum.sort([row_value | top])}
+          true -> {sum, top_length + 1, insert_sorted(top, row_value)}
           false -> {sum, top_length, top}
         end
       (row, {sum, top_length, [top_smallest | top_rest] = top}) ->
+        # This is the case in which our `top_values` list is full and we need to compare the
+        # current `row_value` with the head of the list.
         row_value = Kernel.max(row_accumulator.(row), 0)
         case row_value > top_smallest do
-          true -> {sum + top_smallest, top_length, Enum.sort([row_value | top_rest])}
+          true -> {sum + top_smallest, top_length, insert_sorted(top_rest, row_value)}
           false -> {sum + row_value, top_length, top}
         end
     end)
     case top_length > outliers_count do
-      false -> {0, 0}
+      false -> {0, 0} # We don't have enough values to return a result.
       true ->
         top_length  = top_length - outliers_count
         top_values_sum = top_values |> Enum.take(top_length) |> Enum.sum()
