@@ -121,7 +121,7 @@ defmodule Cloak.DataSource.MongoDBTest do
       %{rows: [%{occurrences: 5, row: [nil]}, %{occurrences: 10, row: ["user"]}]}
   end
 
-  test "aggregation sub-queries", context do
+  test "aggregation in sub-queries", context do
     assert_query context, """
         SELECT COUNT(*), SUM(value) FROM (SELECT _id, COUNT(*) AS value FROM #{@table} GROUP BY _id) AS t
       """, %{rows: [%{occurrences: 1, row: [15, 15]}]}
@@ -143,6 +143,12 @@ defmodule Cloak.DataSource.MongoDBTest do
         SELECT COUNT(*), SUM(value) FROM
         (SELECT _id, SUM(DISTINCT bills.ids) AS value FROM #{@table}_bills_ids GROUP BY _id) AS t
       """, %{rows: [%{occurrences: 1, row: [10, 30]}]}
+  end
+
+  test "distinct in sub-queries", context do
+    assert_query context, """
+        SELECT COUNT(*) FROM (SELECT DISTINCT _id, length(bills.issuer) AS value FROM #{@table}_bills_ids) AS t
+      """, %{rows: [%{occurrences: 1, row: [10]}]}
   end
 end
 end
