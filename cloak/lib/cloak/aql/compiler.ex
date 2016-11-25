@@ -1156,9 +1156,7 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  Enum.each([:>, :>=, :<, :<=], fn(comparator) ->
-    defp check_for_string_inequalities(unquote(comparator), %Column{type: :text}), do:
-      raise CompilationError, message: "Inequalities on string values are currently not supported."
-  end)
+  defp check_for_string_inequalities(comparator, %Column{type: :text}) when comparator in [:>, :>=, :<, :<=], do:
+    raise CompilationError, message: "Inequalities on string values are currently not supported."
   defp check_for_string_inequalities(_, _), do: :ok
 end
