@@ -35,6 +35,12 @@ defmodule Cloak.Test.DB do
     :ok
   end
 
+  def register_test_table(table_id, db_name, decoders \\ []) do
+    table = %{db_name: db_name, user_id: "user_id", decoders: decoders}
+    Application.get_env(:cloak, :data_sources)
+    |> Enum.map(&(&1 |> put_in([:tables, table_id], table) |> DataSource.add_tables()))
+    |> DataSource.cache_columns()
+  end
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -51,8 +57,7 @@ defmodule Cloak.Test.DB do
     db_name = opts[:db_name] || table_name
     create_db_table(db_name, definition, opts)
     decoders = opts[:decoders] || []
-    table = %{db_name: full_table_name(db_name), user_id: "user_id", decoders: decoders}
-    register_test_table(String.to_atom(table_name), table)
+    register_test_table(String.to_atom(table_name), full_table_name(db_name), decoders)
     {:reply, :ok, state}
   end
 
@@ -61,19 +66,10 @@ defmodule Cloak.Test.DB do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp register_test_table(table_id, table) do
-    sources = for source <- Application.get_env(:cloak, :data_sources) do
-      tables = Map.put(source[:tables], table_id, table)
-      Map.put(source, :tables, tables) |> DataSource.add_tables()
-    end
-    DataSource.cache_columns(sources)
-  end
-
   defp clear_test_tables() do
-    sources = for source <- Application.get_env(:cloak, :data_sources) do
-      Map.put(source, :tables, %{})
-    end
-    DataSource.cache_columns(sources)
+    Application.get_env(:cloak, :data_sources)
+    |> Enum.map(&Map.put(&1, :tables, %{}))
+    |> DataSource.cache_columns()
   end
 
   defp create_db_table(db_name, definition, opts) do

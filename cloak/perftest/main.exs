@@ -13,7 +13,7 @@ defmodule PerfTest do
   end
 
   defp data_source_setup() do
-    Cloak.DataSource.register_test_table(String.to_atom(@table_name), @table_name, "user_id")
+    Cloak.Test.DB.register_test_table(String.to_atom(@table_name), @table_name)
   end
 
   defp stats(timings) do
@@ -24,8 +24,9 @@ defmodule PerfTest do
   end
 
   defp run_query(statement) do
+    data_source = Cloak.DataSource.fetch!("postgres/cloaktest1-native@localhost")
     {duration, row} = :timer.tc(fn () ->
-      :ok = Cloak.Query.Runner.start("1",  Cloak.DataSource.fetch!(:local), statement, [], {:process, self()})
+      :ok = Cloak.Query.Runner.start("1", data_source, statement, [], {:process, self()})
       receive do
         {:reply, %{rows: [%{occurrences: 1, row: row}]}} -> row
         {:reply, %{error: error}} -> raise "Query failed with error: #{error}."
