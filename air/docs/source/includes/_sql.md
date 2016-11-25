@@ -387,6 +387,8 @@ LEFT('some text', -2)
 
 ### length
 
+[Requires `math`](#optional-features)
+
 Computes the number of characters in the string.
 
 ```sql
