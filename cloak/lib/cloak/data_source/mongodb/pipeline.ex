@@ -42,7 +42,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_query(%Query{subquery?: false} = query), do:
     Projector.map_columns(query.db_columns)
   defp parse_query(%Query{subquery?: true} = query), do:
-    aggregate_and_project(query.db_columns, query.group_by, query.having) ++
+    aggregate_and_project(query) ++
     order_rows(query.order_by, query.db_columns) ++
     offset_rows(query.offset) ++
     limit_rows(query.limit)
@@ -181,7 +181,12 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp extract_column_top_from_condition({verb, lhs, rhs}, aggregators) when verb in [:in, :is, :like, :ilike], do:
     {verb, extract_column_top(lhs, aggregators, []), rhs}
 
-  defp aggregate_and_project(columns, groups, having) do
+  defp aggregate_and_project(%Query{db_columns: columns, distinct: true}) do
+    properties = project_properties(columns)
+    column_tops = Enum.map(columns, &extract_column_top(&1, [], columns))
+    [%{'$group': %{"_id" => properties}}] ++ Projector.map_columns(column_tops)
+  end
+  defp aggregate_and_project(%Query{db_columns: columns, group_by: groups, having: having}) do
     aggregators =
       (columns ++ Enum.map(having, &Comparison.subject/1))
       |> Enum.flat_map(&extract_aggregator/1)
