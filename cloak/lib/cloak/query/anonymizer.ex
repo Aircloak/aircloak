@@ -271,22 +271,22 @@ defmodule Cloak.Query.Anonymizer do
     #   |> Enum.filter(&(&1 >= 0))
     #   |> Enum.sort(&(&1 > &2))
     #   |> Enum.split(outliers_count + top_count)
-    {sum, top_length, top_values} = Enum.reduce(rows, {0, 0, []}, fn
-      (row, {sum, top_length, top}) when top_length <= outliers_count + top_count ->
+    {sum, count, top_length, top_values} = Enum.reduce(rows, {0, 0, 0, []}, fn
+      (row, {sum, count, top_length, top}) when top_length <= outliers_count + top_count ->
         # This is the case in which the `top_values` list is not full yet and
         # we need to add the current row_value (if valid) to it.
         row_value = row_accumulator.(row)
         case row_value >= 0 do
-          true -> {sum, top_length + 1, insert_sorted(top, row_value)}
-          false -> {sum, top_length, top}
+          true -> {sum, count, top_length + 1, insert_sorted(top, row_value)}
+          false -> {sum, count, top_length, top}
         end
-      (row, {sum, top_length, [top_smallest | top_rest] = top}) ->
+      (row, {sum, count, top_length, [top_smallest | top_rest] = top}) ->
         # This is the case in which our `top_values` list is full and we need to compare the
         # current `row_value` with the head of the list.
         row_value = Kernel.max(row_accumulator.(row), 0)
         case row_value > top_smallest do
-          true -> {sum + top_smallest, top_length, insert_sorted(top_rest, row_value)}
-          false -> {sum + row_value, top_length, top}
+          true -> {sum + top_smallest, count + 1, top_length, insert_sorted(top_rest, row_value)}
+          false -> {sum + row_value, count + 1, top_length, top}
         end
     end)
     case top_length > outliers_count do
@@ -295,7 +295,10 @@ defmodule Cloak.Query.Anonymizer do
         top_length  = top_length - outliers_count
         top_values_sum = top_values |> Enum.take(top_length) |> Enum.sum()
         top_average = top_values_sum / top_length
-        {sum + top_values_sum + outliers_count * top_average, top_average}
+        sum = sum + top_values_sum
+        count = count + top_length
+        average = sum / count
+        {sum + outliers_count * top_average, Kernel.max(2 * average, top_average)}
     end
   end
 
