@@ -13,6 +13,14 @@ defmodule Cloak.Aql.Compiler.Test do
     assert %{group_by: []} = compile!("select * from table", data_source())
   end
 
+  for first <- [:>, :>=], second <- [:<, :<=] do
+    test "rejects inequalities on strings with #{first} and #{second}" do
+      {:error, error} = compile("select * from table where string #{unquote(first)} " <>
+        "'CEO' and string #{unquote(second)} 'CEP'", data_source())
+      assert error == "Inequalities on string values are currently not supported."
+    end
+  end
+
   test "rejects mistyped where conditions" do
     {:error, error} = compile("select * from table where numeric = column", data_source())
     assert error == "Column `numeric` from table `table` of type `integer` and column `column` from table `table` "
