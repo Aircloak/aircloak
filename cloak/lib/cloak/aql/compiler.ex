@@ -1135,11 +1135,9 @@ defmodule Cloak.Aql.Compiler do
   end
   defp verify_where_clauses(query), do: query
 
-  defp verify_where_clause({:comparison, column_a, _, column_b}) do
-    if not Column.constant?(column_a) and not Column.constant?(column_b) and column_a.type != column_b.type do
-      raise CompilationError, message: "Column #{Column.display_name(column_a)} of type `#{column_a.type}` and "
-        <> "column #{Column.display_name(column_b)} of type `#{column_b.type}` cannot be compared."
-    end
+  defp verify_where_clause({:comparison, column_a, comparator, column_b}) do
+    verify_where_clause_types(column_a, column_b)
+    check_for_string_inequalities(comparator, column_b)
   end
   defp verify_where_clause({:like, column, _}) do
     if column.type != :text do
@@ -1149,4 +1147,16 @@ defmodule Cloak.Aql.Compiler do
   end
   defp verify_where_clause({:not, clause}), do: verify_where_clause(clause)
   defp verify_where_clause(_), do: :ok
+
+
+  defp verify_where_clause_types(column_a, column_b) do
+    if not Column.constant?(column_a) and not Column.constant?(column_b) and column_a.type != column_b.type do
+      raise CompilationError, message: "Column #{Column.display_name(column_a)} of type `#{column_a.type}` and "
+        <> "column #{Column.display_name(column_b)} of type `#{column_b.type}` cannot be compared."
+    end
+  end
+
+  defp check_for_string_inequalities(comparator, %Column{type: :text}) when comparator in [:>, :>=, :<, :<=], do:
+    raise CompilationError, message: "Inequalities on string values are currently not supported."
+  defp check_for_string_inequalities(_, _), do: :ok
 end

@@ -50,7 +50,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
 
   where_expression :=
     column_name equality_operator (value | column_name) |
-    column_name inequality_operator value |
+    column_name inequality_operator (numerical_value | datetime_value) |
     column_name BETWEEN value AND value |
     column_name IS [NOT] NULL |
     column_name IN (constant [, ...])
@@ -386,6 +386,8 @@ LEFT('some text', -2)
 ```
 
 ### length
+
+[Requires `math`](#optional-features)
 
 Computes the number of characters in the string.
 

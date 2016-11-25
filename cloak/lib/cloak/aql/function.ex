@@ -71,7 +71,7 @@ defmodule Cloak.Aql.Function do
       [numeric, numeric] => :real,
       [:interval, {:or, [:integer, :real]}] => :interval,
     }},
-    ~w(length) => %{type_specs: %{[:text] => :integer}},
+    ~w(length) => %{required_feature: :math, type_specs: %{[:text] => :integer}},
     ~w(lower lcase upper ucase) => %{type_specs: %{[:text] => :text}},
     ~w(left right) => %{type_specs: %{[:text, :integer] => :text}},
     ~w(btrim ltrim rtrim) => %{type_specs: %{[:text, {:optional, :text}] => :text}},
