@@ -31,18 +31,15 @@
         },
         "customers": {
           "db_name": "customers",
-          "user_id": "id",
-          "ignore_unsupported_types": false
+          "user_id": "id"
         },
         "accounts": {
           "db_name": "accounts",
-          "user_id": "customer_id",
-          "ignore_unsupported_types": false
+          "user_id": "customer_id"
         },
         "transactions": {
           "db_name": "transactions",
-          "user_id": "customer_id",
-          "ignore_unsupported_types": false
+          "user_id": "customer_id"
         }
       }
     },
@@ -73,18 +70,15 @@
         },
         "customers": {
           "db_name": "customers",
-          "user_id": "id",
-          "ignore_unsupported_types": false
+          "user_id": "id"
         },
         "accounts": {
           "db_name": "accounts",
-          "user_id": "customer_id",
-          "ignore_unsupported_types": false
+          "user_id": "customer_id"
         },
         "transactions": {
           "db_name": "transactions",
-          "user_id": "customer_id",
-          "ignore_unsupported_types": false
+          "user_id": "customer_id"
         }
       }
     }
