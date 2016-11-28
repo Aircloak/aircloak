@@ -107,7 +107,7 @@ puts "\\.\n"
 puts "COPY transactions (id, customer_id, account_id, amount, date, description) FROM stdin;"
 customers.each do |customer|
   customer[:accounts].each do |account_nr|
-    income = rand(10_000) + 400
+    income = rand(2000) + 400
 
     # Generate transaction for income
     transaction_id += 1
