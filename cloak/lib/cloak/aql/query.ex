@@ -31,7 +31,7 @@ defmodule Cloak.Aql.Query do
     column_titles: [String.t],
     property: [Function.t],
     aggregators: [Function.t],
-    implicit_count: boolean,
+    implicit_count?: boolean,
     unsafe_filter_columns: [Column.t],
     group_by: [Function.t],
     where: [where_clause],
@@ -47,15 +47,15 @@ defmodule Cloak.Aql.Query do
     limit: pos_integer | nil,
     offset: non_neg_integer,
     having: [having_clause],
-    distinct: boolean,
+    distinct?: boolean,
     parameters: [DataSource.field]
   }
 
   defstruct [
     columns: [], where: [], lcf_check_conditions: [], unsafe_filter_columns: [], group_by: [],
     order_by: [], column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
-    implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
-    db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct: false,
+    implicit_count?: false, data_source: nil, command: nil, show: nil, mode: nil,
+    db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
     features: nil, encoded_where: [], parameters: []
   ]
 

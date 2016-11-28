@@ -263,7 +263,7 @@ defmodule Cloak.Query.Aggregator do
     for selected_column <- query.columns, do:
       fetch_bucket_value!(row, columns, selected_column)
 
-  defp occurrences(row, columns, %Query{implicit_count: true}), do:
+  defp occurrences(row, columns, %Query{implicit_count?: true}), do:
     fetch_bucket_value!(row, columns, {:function, "count", [:*]})
   defp occurrences(_row, _columns, _query), do: 1
 

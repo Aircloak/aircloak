@@ -66,7 +66,7 @@ defmodule Cloak.Aql.Parser do
     show: :tables | :columns,
     limit: integer,
     offset: integer,
-    distinct: boolean,
+    distinct?: boolean,
     subquery?: boolean
   }
 
@@ -801,8 +801,8 @@ defmodule Cloak.Aql.Parser do
     keyword(:distinct)
     |> option()
     |> map(fn
-      (:distinct) -> {:distinct, true}
-      (nil) -> {:distinct, false}
+      (:distinct) -> {:distinct?, true}
+      (nil) -> {:distinct?, false}
     end)
   end
 

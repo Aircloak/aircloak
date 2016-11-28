@@ -240,9 +240,9 @@ defmodule Cloak.Query.Runner do
   defp drop([%{occurrences: occurrences} = bucket | rest], amount), do:
     [%{bucket | occurrences: occurrences - amount} | rest]
 
-  defp distinct(%Result{buckets: buckets} = result, %Query{distinct: true}), do:
+  defp distinct(%Result{buckets: buckets} = result, %Query{distinct?: true}), do:
     %Result{result | buckets: Enum.map(buckets, &Map.put(&1, :occurrences, 1))}
-  defp distinct(result, %Query{distinct: false}), do: result
+  defp distinct(result, %Query{distinct?: false}), do: result
 
   defp filter_on_encoded_columns(stream, %Query{encoded_where: []}), do: stream
   defp filter_on_encoded_columns(stream, %Query{encoded_where: conditions}) do

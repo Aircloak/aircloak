@@ -550,7 +550,7 @@ defmodule Cloak.Aql.Compiler do
     case filter_aggregators(selected_columns) do
       [] ->
         %Query{query |
-          property: selected_columns |> Enum.uniq(), aggregators: [{:function, "count", [:*]}], implicit_count: true
+          property: selected_columns |> Enum.uniq(), aggregators: [{:function, "count", [:*]}], implicit_count?: true
         }
       aggregators ->
         %Query{query | property: [], aggregators: aggregators |> Enum.uniq()}
