@@ -28,6 +28,21 @@
           "db_name": "demographics",
           "user_id": "uid",
           "ignore_unsupported_types": false
+        },
+        "customers": {
+          "db_name": "customers",
+          "user_id": "id",
+          "ignore_unsupported_types": false
+        },
+        "accounts": {
+          "db_name": "accounts",
+          "user_id": "customer_id",
+          "ignore_unsupported_types": false
+        },
+        "transactions": {
+          "db_name": "transactions",
+          "user_id": "customer_id",
+          "ignore_unsupported_types": false
         }
       }
     },
@@ -54,6 +69,21 @@
         "demographics": {
           "db_name": "demographics",
           "user_id": "uid",
+          "ignore_unsupported_types": false
+        },
+        "customers": {
+          "db_name": "customers",
+          "user_id": "id",
+          "ignore_unsupported_types": false
+        },
+        "accounts": {
+          "db_name": "accounts",
+          "user_id": "customer_id",
+          "ignore_unsupported_types": false
+        },
+        "transactions": {
+          "db_name": "transactions",
+          "user_id": "customer_id",
           "ignore_unsupported_types": false
         }
       }
