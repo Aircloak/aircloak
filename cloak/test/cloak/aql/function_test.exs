@@ -526,6 +526,12 @@ defmodule Cloak.Aql.Function.Test do
 
   test "returns false if function does not exists", do: refute Function.exists?({:function, "foobar", []})
 
+  test "can tell when a function splits rows", do:
+    assert Function.row_splitting_function?({:function, "extract_matches", []})
+
+  test "can tell when a function does not split rows", do:
+    refute Function.row_splitting_function?({:function, "extract_match", []})
+
   defp return_type(name, arg_types), do:
     Function.return_type({:function, name, Enum.map(arg_types, &Column.constant(&1, nil))})
 

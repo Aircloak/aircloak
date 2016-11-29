@@ -79,9 +79,9 @@ defmodule Cloak.Aql.Function do
       %{type_specs: %{[:text, :integer, {:optional, :integer}] => :text}},
     ~w(||) => %{type_specs: %{[:text, :text] => :text}},
     ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
-    # NOTICE: The `not_in_subquery` needs to be set for `extract_match` (whether or not we
-    # can implement it in a subquery). The reason for this is what we have called: WYSIWYC
-    # (what you see is what you count). If `extract_match` is allowed in a subquery it can
+    # NOTICE: The `not_in_subquery` needs to be set for `extract_match` and `extract_matches`
+    # (whether or not we can implement it in a subquery). The reason for this is what we have called:
+    # WYSIWYC (what you see is what you count). If `extract_match` is allowed in a subquery it can
     # effectively be used as an `OR`, whereas if it is used at the top-level the output of
     # the function is directly anonymised, and hence safe.
     # An example attack could look like:
@@ -95,6 +95,8 @@ defmodule Cloak.Aql.Function do
     #
     ~w(extract_match) => %{type_specs: %{[:text, :text] => :text}, not_in_subquery: true,
       precompiled: true},
+    ~w(extract_matches) => %{type_specs: %{[:text, :text] => :text}, not_in_subquery: true,
+      precompiled: true, row_splitting: true},
     [{:cast, :integer}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer}},
     [{:cast, :real}] =>
@@ -136,6 +138,11 @@ defmodule Cloak.Aql.Function do
   @spec aggregate_function?(t) :: boolean
   def aggregate_function?({:function, name, _}), do: @functions |> Map.fetch!(name) |> Map.get(:aggregate, false)
   def aggregate_function?(_), do: false
+
+  @doc "Returns true if the function is one that can split a row into multiple rows, false otherise."
+  @spec row_splitting_function?(t) :: boolean
+  def row_splitting_function?({:function, name, _}), do: @functions |> Map.fetch!(name) |> Map.get(:row_splitting, false)
+  def row_splitting_function?(_), do: false
 
   @doc "Returns true if the given function call is a cast, false otherwise."
   @spec cast?(t) :: boolean
