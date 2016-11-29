@@ -1,4 +1,4 @@
-defmodule Aircloak.DecimalUtil do
+defmodule Cloak.DecimalUtil do
   @moduledoc """
   Provides functions around the Decimal hex library.
   """
