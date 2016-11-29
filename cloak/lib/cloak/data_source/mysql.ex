@@ -82,7 +82,7 @@ defmodule Cloak.DataSource.MySQL do
   defp field_mapper(<<1>>), do: true
   @decimal_precision :math.pow(10, 15)
   defp field_mapper(%Decimal{} = value), do:
-    (value |> Decimal.mult(Decimal.new(@decimal_precision)) |> Decimal.to_integer()) / @decimal_precision
+    Cloak.DecimalUtil.to_precision(value, @decimal_precision)
   defp field_mapper(field), do: field
 
   defp error_to_nil({:ok, result}), do: result
