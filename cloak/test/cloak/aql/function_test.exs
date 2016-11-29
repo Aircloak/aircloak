@@ -507,6 +507,9 @@ defmodule Cloak.Aql.Function.Test do
   test "knows `extract_match` isn't allowed in a subquery", do:
     refute Function.allowed_in_subquery?({:function, "extract_match", []})
 
+  test "knows `extract_matches` isn't allowed in a subquery", do:
+    refute Function.allowed_in_subquery?({:function, "extract_matches", []})
+
   test "knows `ceil` is allowed in a subquery", do:
     assert Function.allowed_in_subquery?({:function, "ceil", []})
 
