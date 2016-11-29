@@ -13,7 +13,7 @@ COPY air/mix.exs air/mix.lock air/package.json air/yarn.lock /aircloak/air/
 COPY air/config /aircloak/air/config
 COPY common /aircloak/common
 COPY air/fetch_deps.sh /aircloak/air/
-COPY air/docs /aircloak/air/docs
+COPY air/user_docs /aircloak/air/user_docs
 
 RUN \
   . /tmp/build_config/proxies.sh && \
@@ -22,7 +22,7 @@ RUN \
   bash -c ". ~/.asdf/asdf.sh && MIX_ENV=prod mix deps.compile " && \
   echo "Fetching node packages..." && \
   bash -c ". ~/.bashrc && yarn install" && \
-  cd docs && bundle install -j4 && cd ..
+  cd user_docs && bundle install -j4 && cd ..
 
 # Build the Bill of Materials
 COPY bom /aircloak/bom

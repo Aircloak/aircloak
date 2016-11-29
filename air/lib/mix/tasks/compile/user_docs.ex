@@ -13,15 +13,15 @@ defmodule Mix.Tasks.Compile.UserDocs do
       cmd!("bundle", ~w(exec middleman build))
       File.mkdir_p!("priv/static")
       File.rm_rf!("priv/static/docs")
-      File.cp_r!("docs/build", "priv/static/docs")
-      Mix.Shell.IO.info("Compiled docs")
+      File.cp_r!("user_docs/build", "priv/static/docs")
+      Mix.Shell.IO.info("Compiled user docs")
     end
   end
 
   defp stale?() do
     try do
       source_mtime =
-        Path.wildcard("docs/**")
+        Path.wildcard("user_docs/**")
         |> Enum.map(&File.stat!(&1).mtime)
         |> Enum.max()
 
@@ -43,11 +43,11 @@ defmodule Mix.Tasks.Compile.UserDocs do
     case System.cmd(cmd, args,
           stderr_to_stdout: true,
           into: IO.stream(:stdio, :line),
-          cd: "docs"
+          cd: "user_docs"
         ) do
       {_, 0} -> :ok
       {_, _} ->
-        Mix.raise("Error building api docs")
+        Mix.raise("Error building user docs")
     end
   end
 end
