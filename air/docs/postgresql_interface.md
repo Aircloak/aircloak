@@ -2,7 +2,7 @@
 
 The Air system exposes a PostgreSQL server interface which can be used by to query data sources. The PostgreSQL protocol allows our system to be used by various 3rd party tools and clients, such as Tableau, QlikView, PostgreSQL ODBC driver, PostgreSQL drivers in various languages, ...
 
-The documentation of the protocol is available [here](https://www.postgresql.org/docs/9.6/static/protocol.html). Currently, only the subset of the protocol is implemented. In particular, we support only the following features:
+The documentation of the protocol is available [here](https://www.postgresql.org/docs/9.6/static/protocol.html). Currently, only a subset of the protocol is implemented. In particular, we support only the following features:
 
 - SSL-based authentication with cleartext password
 - Simple queries
