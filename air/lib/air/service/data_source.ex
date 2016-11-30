@@ -65,7 +65,8 @@ defmodule Air.Service.DataSource do
             data = %{
               statement: statement,
               data_source: data_source.global_id,
-              parameters: parameters
+              parameters: parameters,
+              views: %{} # TODO: pass views from the database once they are in place
             }
             MainChannel.describe_query(channel_pid, data)
 

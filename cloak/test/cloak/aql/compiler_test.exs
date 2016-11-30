@@ -635,14 +635,15 @@ defmodule Cloak.Aql.Compiler.Test do
       compile!("select table.column.with.dots from table", dotted_data_source())
   end
 
-  defp compile!(query_string, data_source, parameters \\ []) do
-    {:ok, result} = compile(query_string, data_source, parameters)
+  defp compile!(query_string, data_source, options \\ []) do
+    {:ok, result} = compile(query_string, data_source, options)
     result
   end
 
-  defp compile(query_string, data_source, parameters \\ [], features \\ Cloak.Features.from_config) do
+  defp compile(query_string, data_source, options \\ [], features \\ Cloak.Features.from_config) do
     query = Parser.parse!(data_source, query_string)
-    Compiler.compile(data_source, query, parameters, features)
+    Compiler.compile(data_source, query, Keyword.get(options, :parameters, []),
+      Keyword.get(options, :views, %{}), features)
   end
 
   defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do

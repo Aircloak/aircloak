@@ -656,7 +656,8 @@ defmodule Cloak.Query.BasicTest do
               from heights, heights_alias
               where heights.user_id=heights_alias.user_id
             ",
-            []
+            [],
+            %{}
           )
     assert [%Column{name: "user_id"}, %Column{name: "height"}] = query.db_columns
   end
@@ -752,7 +753,7 @@ defmodule Cloak.Query.BasicTest do
 
   test "parameters binding" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    assert_query "select height + $1 as height from heights WHERE $3 = $2", [10, true, true],
+    assert_query "select height + $1 as height from heights WHERE $3 = $2", [parameters: [10, true, true]],
       %{columns: ["height"], rows: [%{row: [190], occurrences: 100}]}
   end
 

@@ -9,7 +9,8 @@ defmodule Air.Query do
     id: String.t,
     statement: String.t,
     parameters: [Protocol.db_value],
-    data_source: String.t
+    data_source: String.t,
+    views: %{String.t => String.t}
   }
 
   @primary_key {:id, :binary_id, autogenerate: true}
@@ -60,7 +61,8 @@ defmodule Air.Query do
       id: query.id,
       statement: query.statement,
       data_source: query.data_source.global_id,
-      parameters: parameters
+      parameters: parameters,
+      views: %{} # TODO: pass views from the database once they are in place
     }
   end
 
