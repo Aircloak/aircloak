@@ -635,6 +635,20 @@ defmodule Cloak.Aql.Compiler.Test do
       compile!("select table.column.with.dots from table", dotted_data_source())
   end
 
+  test "view error" do
+    assert {:error, error} = compile("select foo from table_view", data_source(),
+      views: %{"table_view" => "select"})
+
+    assert error == "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
+  end
+
+  test "view is treated as a subquery" do
+    assert {:error, error} = compile("select numeric from table_view", data_source(),
+      views: %{"table_view" => "select numeric from table"})
+
+    assert error =~ ~r/Missing a user id column in the select list of subquery `table_view`./
+  end
+
   defp compile!(query_string, data_source, options \\ []) do
     {:ok, result} = compile(query_string, data_source, options)
     result

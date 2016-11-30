@@ -95,6 +95,7 @@ defmodule Cloak.Aql.Compiler do
   defp compile_prepped_query(query) do
     try do
       query = query
+      |> resolve_views()
       |> compile_subqueries()
       |> compile_tables()
       |> compile_columns()
@@ -131,6 +132,39 @@ defmodule Cloak.Aql.Compiler do
   defp ds_proxy_validate_no_where(%Query{where: []}), do: :ok
   defp ds_proxy_validate_no_where(_) do
     raise CompilationError, message: "WHERE-clause in outer SELECT is not allowed in combination with a subquery."
+  end
+
+
+  # -------------------------------------------------------------------
+  # Views
+  # -------------------------------------------------------------------
+
+  defp resolve_views(%Query{from: nil} = query), do: query
+  defp resolve_views(query) do
+    compiled = do_resolve_views(query.from, query)
+    %Query{query | from: compiled}
+  end
+
+  defp do_resolve_views({:join, join}, query) do
+    {:join, %{join |
+      lhs: do_resolve_views(join.lhs, query),
+      rhs: do_resolve_views(join.rhs, query)
+    }}
+  end
+  defp do_resolve_views({_, name} = table_or_view, query) when is_binary(name) do
+    case Map.fetch(query.views, name) do
+      {:ok, view_sql} -> view_to_subquery(name, view_sql, query)
+      :error -> table_or_view
+    end
+  end
+  defp do_resolve_views(other, _query), do:
+    other
+
+  def view_to_subquery(view_name, view_sql, query) do
+    case Cloak.Aql.Parser.parse(query.data_source, view_sql) do
+      {:ok, parsed_view} -> {:subquery, %{type: :parsed, ast: parsed_view, alias: view_name}}
+      {:error, error} -> raise CompilationError, message: "Error in the view `#{view_name}`: #{error}"
+    end
   end
 
 

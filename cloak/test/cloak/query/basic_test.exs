@@ -765,4 +765,18 @@ defmodule Cloak.Query.BasicTest do
     assert_query "select count(*) from (select user_id as uid from heights) as t",
       %{rows: [%{row: [10], occurrences: 1}]}
   end
+
+  test "select from a view" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select height from heights_view",
+      [views: %{"heights_view" => "select user_id, height from heights"}],
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "qualified select from a view" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select heights_view.height from heights_view",
+      [views: %{"heights_view" => "select user_id, height from heights"}],
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
 end
