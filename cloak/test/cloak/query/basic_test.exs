@@ -794,6 +794,16 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 
+  test "view can be used in another view" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select height from v1",
+      [views: %{
+        "v1" => "select user_id, height from v2",
+        "v2" => "select user_id, height from heights"
+      }],
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
   test "qualified select from a view" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query "select heights_view.height from heights_view",
