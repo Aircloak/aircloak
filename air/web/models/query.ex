@@ -55,6 +55,7 @@ defmodule Air.Query do
   end
 
   @doc "Converts the query model to the cloak compliant data."
+  @lint {Credo.Check.Design.TagTODO, false}
   @spec to_cloak_query(t, [any]) :: cloak_query
   def to_cloak_query(query, parameters) do
     %{

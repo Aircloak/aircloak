@@ -96,7 +96,7 @@ defmodule Air.Mixfile do
   defp ignored_credo_checks(:test), do:
     ["ModuleDoc" | ignored_credo_checks(:dev)]
   defp ignored_credo_checks(_), do:
-    ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting", "TagTODO"]
+    ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
 
   defp applications(:test), do: [:odbc | common_applications()]
   defp applications(:dev), do: common_applications() ++ dialyzer_required_deps()
