@@ -649,6 +649,13 @@ defmodule Cloak.Aql.Compiler.Test do
     assert error == "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
   end
 
+  test "ambiguous view/table error" do
+    assert {:error, error} = compile("select numeric from table", data_source(),
+      views: %{"table" => "select numeric from table"})
+
+    assert error == "There is both a table, and a view named `table`. Rename the view to resolve the conflict."
+  end
+
   test "view is treated as a subquery" do
     assert {:error, error} = compile("select numeric from table_view", data_source(),
       views: %{"table_view" => "select numeric from table"})
