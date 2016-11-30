@@ -47,6 +47,17 @@ defmodule Cloak.Query.BasicTest do
     ]
   end
 
+  test "show columns from a view" do
+    assert_query "show columns from v1",
+      [views: %{"v1" => "select user_id, height from heights"}],
+      %{query_id: "1", columns: ["name", "type"], rows: rows}
+
+    assert Enum.sort_by(rows, &(&1[:row])) == [
+      %{occurrences: 1, row: ["height", :integer]},
+      %{occurrences: 1, row: ["user_id", :text]}
+    ]
+  end
+
   test "simple select query" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query "select height from heights",

@@ -87,7 +87,7 @@ defmodule Cloak.Aql.Compiler do
   end
   defp compile_prepped_query(%Query{command: :show} = query) do
     try do
-      {:ok, compile_tables(query)}
+      {:ok, query |> resolve_views() |> compile_subqueries() |> compile_tables()}
     rescue
       e in CompilationError -> {:error, e.message}
     end
