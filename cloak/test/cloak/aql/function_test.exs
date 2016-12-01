@@ -485,30 +485,35 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("/", [1, 0]) == nil
   end
 
-  test "compiling extract_match function creates regex of regex pattern" do
-    function = {:function, "extract_match", [%Column{}, %Column{value: "regex_pattern"}]}
-    callback = fn(a) -> a end
-    assert {:function, _, [_, %Column{value: %Regex{}}]} = Function.compile_function(function, callback)
-  end
-
-  test "compiling already compiled extract_match function does nothing" do
-    function = {:function, "extract_match", [%Column{}, %Column{value: "regex_pattern"}]}
-    callback = fn(a) -> a end
-    compiled_function = Function.compile_function(function, callback)
-    assert Function.compile_function(compiled_function, callback) == compiled_function
-  end
-
   test "compiling function that doesn't need compilation does nothing" do
     function = {:function, "no_compilation", [:args1, :args2]}
     callback = fn(a) -> a end
     assert function == Function.compile_function(function, callback)
   end
 
-  test "knows `extract_match` isn't allowed in a subquery", do:
-    refute Function.allowed_in_subquery?({:function, "extract_match", []})
+  Enum.map(["extract_match", "extract_matches"], fn(function_name) ->
+    test "compiling #{function_name} function creates regex of regex pattern" do
+      function = {:function, unquote(function_name), [%Column{}, %Column{value: "regex_pattern"}]}
+      callback = fn(a) -> a end
+      assert {:function, _, [_, %Column{value: %Regex{}}]} = Function.compile_function(function, callback)
+    end
 
-  test "knows `extract_matches` isn't allowed in a subquery", do:
-    refute Function.allowed_in_subquery?({:function, "extract_matches", []})
+    test "compiling already compiled #{function_name} function does nothing" do
+      function = {:function, unquote(function_name), [%Column{}, %Column{value: "regex_pattern"}]}
+      callback = fn(a) -> a end
+      compiled_function = Function.compile_function(function, callback)
+      assert Function.compile_function(compiled_function, callback) == compiled_function
+    end
+
+    test "knows `#{function_name}` isn't allowed in a subquery", do:
+      refute Function.allowed_in_subquery?({:function, unquote(function_name), []})
+  end)
+
+  test "can tell when a function splits rows", do:
+    assert Function.row_splitting_function?({:function, "extract_matches", []})
+
+  test "can tell when a function does not split rows", do:
+    refute Function.row_splitting_function?({:function, "extract_match", []})
 
   test "knows `ceil` is allowed in a subquery", do:
     assert Function.allowed_in_subquery?({:function, "ceil", []})
@@ -528,12 +533,6 @@ defmodule Cloak.Aql.Function.Test do
   test "returns true if function exists", do: assert Function.exists?({:function, "*", []})
 
   test "returns false if function does not exists", do: refute Function.exists?({:function, "foobar", []})
-
-  test "can tell when a function splits rows", do:
-    assert Function.row_splitting_function?({:function, "extract_matches", []})
-
-  test "can tell when a function does not split rows", do:
-    refute Function.row_splitting_function?({:function, "extract_match", []})
 
   defp return_type(name, arg_types), do:
     Function.return_type({:function, name, Enum.map(arg_types, &Column.constant(&1, nil))})

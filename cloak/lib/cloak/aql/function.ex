@@ -239,15 +239,16 @@ defmodule Cloak.Aql.Function do
 
   @doc "Compiles a function so it is ready for execution"
   @spec compile_function(t, function_compilation_callback) :: t | {:error, String.t}
-  def compile_function({:function, "extract_match", [_column, %Column{value: %Regex{}}]
-      } = precompiled_function, _callback), do: precompiled_function
-  def compile_function({:function, "extract_match", [column, pattern_column]}, compilation_callback) do
+  def compile_function({:function, name, [_column, %Column{value: %Regex{}}]} = precompiled_function, _callback)
+    when name in ["extract_match", "extract_matches"], do: precompiled_function
+  def compile_function({:function, name, [column, pattern_column]}, compilation_callback)
+      when name in ["extract_match", "extract_matches"] do
     case Regex.compile(pattern_column.value, "ui") do
       {:ok, regex} ->
         regex_column = %Column{pattern_column | value: regex}
-        {:function, "extract_match", compilation_callback.([column]) ++ [regex_column]}
+        {:function, name, compilation_callback.([column]) ++ [regex_column]}
       {:error, {error, location}} ->
-        {:error, "The regex used in `extract_match` is invalid: #{error} at character #{location}"}
+        {:error, "The regex used in `#{name}` is invalid: #{error} at character #{location}"}
     end
   end
   def compile_function({:function, function, args}, compilation_callback), do:
@@ -367,6 +368,9 @@ defmodule Cloak.Aql.Function do
       nil -> nil
     end
   end
+  defp do_apply("extract_matches", [nil, _regex]), do: [nil]
+  defp do_apply("extract_matches", [string, regex]), do:
+    List.flatten(Regex.scan(regex, string, capture: :first))
   defp do_apply("^", [x, y]), do: :math.pow(x, y)
   defp do_apply("*", [x = %Duration{}, y]), do: Duration.scale(x, y)
   defp do_apply("*", [x, y = %Duration{}]), do: do_apply("*", [y, x])
