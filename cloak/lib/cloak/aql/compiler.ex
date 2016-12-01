@@ -645,7 +645,7 @@ defmodule Cloak.Aql.Compiler do
       # the value column returned as part of the first column
       db_column = case find_db_column(hd(args)) do
         nil -> raise CompilationError, message:
-          "Function `#{name}` requires at least one of it's arguments to be a column."
+          "Function `#{name}` requires that the first argument must be a column."
         value -> value
       end
       column_name = "#{Function.name(function_spec)}_return_value"
