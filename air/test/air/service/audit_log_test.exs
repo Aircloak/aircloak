@@ -1,5 +1,5 @@
 defmodule Air.Service.AuditLogTest do
-  use Air.ModelCase, async: true
+  use Air.SchemaCase, async: true
 
   import Air.TestRepoHelper
   alias Air.{Repo, Service.AuditLog}

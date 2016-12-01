@@ -1,6 +1,6 @@
 defmodule Air.DataSourceManager.Test do
   use ExUnit.Case, async: false
-  use Air.ModelCase
+  use Air.SchemaCase
 
   import Air.AssertionHelper
 

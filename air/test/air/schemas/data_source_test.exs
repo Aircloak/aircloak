@@ -1,5 +1,5 @@
 defmodule Air.Schemas.DataSourceTest do
-  use Air.ModelCase, async: true
+  use Air.SchemaCase, async: true
 
   alias Air.{Schemas.DataSource, Schemas.Group, TestRepoHelper, TestUtils}
 

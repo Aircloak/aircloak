@@ -1,5 +1,5 @@
 defmodule Air.Schemas.AuditLogTest do
-  use Air.ModelCase, async: true
+  use Air.SchemaCase, async: true
 
   alias Air.Schemas.AuditLog
 

@@ -1,6 +1,6 @@
 defmodule Air.Schemas.ApiTokenTest do
   use ExUnit.Case, async: true
-  use Air.ModelCase
+  use Air.SchemaCase
   alias Air.Schemas.ApiToken
 
   @valid_attrs %{description: "some content", user_id: 1}
