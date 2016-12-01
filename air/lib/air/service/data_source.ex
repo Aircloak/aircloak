@@ -63,57 +63,31 @@ defmodule Air.Service.DataSource do
   @spec describe_query(data_source_id_spec, User.t, String.t, [Protocol.db_value]) ::
     {:ok, map} | data_source_operation_error
   def describe_query(data_source_id_spec, user, statement, parameters) do
-    with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
-      try do
-        case DataSourceManager.channel_pids(data_source.global_id) do
-          [channel_pid | _] ->
-            data = %{
-              statement: statement,
-              data_source: data_source.global_id,
-              parameters: parameters,
-              views: %{} # TODO: pass views from the database once they are in place
-            }
-            MainChannel.describe_query(channel_pid, data)
-
-          [] -> {:error, :not_connected}
-        end
-      catch type, error ->
-        Logger.error([
-          "Error describing a query: #{inspect(type)}:#{inspect(error)}\n",
-          Exception.format_stacktrace(System.stacktrace())
-        ])
-
-        {:error, :internal_error}
+    on_available_cloak(data_source_id_spec, user,
+      fn(data_source, channel_pid) ->
+        MainChannel.describe_query(channel_pid, %{
+          statement: statement,
+          data_source: data_source.global_id,
+          parameters: parameters,
+          views: %{} # TODO: pass views from the database once they are in place
+        })
       end
-    end
+    )
   end
 
   @doc "Asks the cloak to describe the query, and returns the result."
   @lint {Credo.Check.Design.TagTODO, false}
   @spec validate_view(data_source_id_spec, User.t, String.t) :: {:ok, map} | data_source_operation_error
   def validate_view(data_source_id_spec, user, sql) do
-    with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
-      try do
-        case DataSourceManager.channel_pids(data_source.global_id) do
-          [channel_pid | _] ->
-            data = %{
-              data_source: data_source.global_id,
-              sql: sql,
-              views: %{} # TODO: pass views from the database once they are in place
-            }
-            MainChannel.validate_view(channel_pid, data)
-
-          [] -> {:error, :not_connected}
-        end
-      catch type, error ->
-        Logger.error([
-          "Error describing a view: #{inspect(type)}:#{inspect(error)}\n",
-          Exception.format_stacktrace(System.stacktrace())
-        ])
-
-        {:error, :internal_error}
+    on_available_cloak(data_source_id_spec, user,
+      fn(data_source, channel_pid) ->
+        MainChannel.validate_view(channel_pid, %{
+          data_source: data_source.global_id,
+          sql: sql,
+          views: %{} # TODO: pass views from the database once they are in place
+        })
       end
-    end
+    )
   end
 
   @doc "Starts the query on the given data source as the given user."
@@ -122,30 +96,19 @@ defmodule Air.Service.DataSource do
   def start_query(data_source_id_spec, user, statement, parameters, opts \\ []) do
     opts = Keyword.merge([audit_meta: %{}, notify: false], opts)
 
-    with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user),
-         query <- create_query(data_source.id, user, statement, parameters, opts[:session_id])
-    do
-      Air.Service.AuditLog.log(user, "Executed query",
-        Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.id}))
+    on_available_cloak(data_source_id_spec, user,
+      fn(data_source, channel_pid) ->
+        query = create_query(data_source.id, user, statement, parameters, opts[:session_id])
 
-      try do
-        case DataSourceManager.channel_pids(query.data_source.global_id) do
-          [channel_pid | _] ->
-            if opts[:notify] == true, do: Air.QueryEvents.subscribe(query.id)
-            with :ok <- MainChannel.run_query(channel_pid, Query.to_cloak_query(query, parameters)), do:
-              {:ok, query}
+        Air.Service.AuditLog.log(user, "Executed query",
+          Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.id}))
 
-          [] -> {:error, :not_connected}
-        end
-      catch type, error ->
-        Logger.error([
-          "Error running a query: #{inspect(type)}:#{inspect(error)}\n",
-          Exception.format_stacktrace(System.stacktrace())
-        ])
+        if opts[:notify] == true, do: Air.QueryEvents.subscribe(query.id)
 
-        {:error, :internal_error}
+        with :ok <- MainChannel.run_query(channel_pid, Query.to_cloak_query(query, parameters)), do:
+          {:ok, query}
       end
-    end
+    )
   end
 
   @doc "Runs the query synchronously and returns its result."
@@ -219,5 +182,23 @@ defmodule Air.Service.DataSource do
         })
     |> Repo.insert!()
     |> Repo.preload(:data_source)
+  end
+
+  defp on_available_cloak(data_source_id_spec, user, fun) do
+    with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
+      try do
+        case DataSourceManager.channel_pids(data_source.global_id) do
+          [channel_pid | _] -> fun.(data_source, channel_pid)
+          [] -> {:error, :not_connected}
+        end
+      catch type, error ->
+        Logger.error([
+          "Error running a cloak operation: #{inspect(type)}:#{inspect(error)}\n",
+          Exception.format_stacktrace(System.stacktrace())
+        ])
+
+        {:error, :internal_error}
+      end
+    end
   end
 end
