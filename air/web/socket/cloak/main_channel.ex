@@ -31,6 +31,15 @@ defmodule Air.Socket.Cloak.MainChannel do
   def describe_query(channel_pid, query_data), do:
     call(channel_pid, "describe_query", query_data, :timer.seconds(5))
 
+  @doc "Validates the view on the cloak."
+  @spec validate_view(pid | nil, map) :: :ok | {:error, any}
+  def validate_view(channel_pid, view_data) do
+    case call(channel_pid, "validate_view", view_data, :timer.seconds(5)) do
+      {:ok, %{"valid" => true}} -> :ok
+      {:ok, %{"valid" => false, "error" => error}} -> {:error, error}
+    end
+  end
+
   @doc "Stops a query on the given cloak."
   @spec stop_query(pid | nil, String.t) :: :ok | {:error, any}
   def stop_query(channel_pid, query_id) do

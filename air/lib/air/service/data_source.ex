@@ -14,6 +14,9 @@ defmodule Air.Service.DataSource do
     session_id: String.t | nil
   ]
 
+  @type data_source_operation_error ::
+    {:error, :unauthorized | :not_connected | :internal_error | any}
+
 
   #-----------------------------------------------------------------------------------------------------------
   # API functions
@@ -58,7 +61,7 @@ defmodule Air.Service.DataSource do
   @doc "Asks the cloak to describe the query, and returns the result."
   @lint {Credo.Check.Design.TagTODO, false}
   @spec describe_query(data_source_id_spec, User.t, String.t, [Protocol.db_value]) ::
-    {:ok, map} | {:error, :unauthorized | :not_connected | :internal_error | any}
+    {:ok, map} | data_source_operation_error
   def describe_query(data_source_id_spec, user, statement, parameters) do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
       try do
@@ -85,9 +88,37 @@ defmodule Air.Service.DataSource do
     end
   end
 
+  @doc "Asks the cloak to describe the query, and returns the result."
+  @lint {Credo.Check.Design.TagTODO, false}
+  @spec validate_view(data_source_id_spec, User.t, String.t) :: {:ok, map} | data_source_operation_error
+  def validate_view(data_source_id_spec, user, sql) do
+    with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
+      try do
+        case DataSourceManager.channel_pids(data_source.global_id) do
+          [channel_pid | _] ->
+            data = %{
+              data_source: data_source.global_id,
+              sql: sql,
+              views: %{} # TODO: pass views from the database once they are in place
+            }
+            MainChannel.validate_view(channel_pid, data)
+
+          [] -> {:error, :not_connected}
+        end
+      catch type, error ->
+        Logger.error([
+          "Error describing a view: #{inspect(type)}:#{inspect(error)}\n",
+          Exception.format_stacktrace(System.stacktrace())
+        ])
+
+        {:error, :internal_error}
+      end
+    end
+  end
+
   @doc "Starts the query on the given data source as the given user."
   @spec start_query(data_source_id_spec, User.t, String.t, [Protocol.db_value], start_query_options) ::
-    {:ok, Query.t} | {:error, :unauthorized | :not_connected | :internal_error | any}
+    {:ok, Query.t} | data_source_operation_error
   def start_query(data_source_id_spec, user, statement, parameters, opts \\ []) do
     opts = Keyword.merge([audit_meta: %{}, notify: false], opts)
 
@@ -119,7 +150,7 @@ defmodule Air.Service.DataSource do
 
   @doc "Runs the query synchronously and returns its result."
   @spec run_query(data_source_id_spec, User.t, String.t, [Protocol.db_value], [audit_meta: %{atom => any}]) ::
-    {:ok, %{}} | {:error, :unauthorized | :not_connected | :internal_error | any}
+    {:ok, map} | data_source_operation_error
   def run_query(data_source_id_spec, user, statement, parameters, opts \\ []) do
     opts = [{:notify, true} | opts]
     with {:ok, %{id: query_id}} <- start_query(data_source_id_spec, user, statement, parameters, opts) do
