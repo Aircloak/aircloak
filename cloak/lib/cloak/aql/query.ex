@@ -23,6 +23,8 @@ defmodule Cloak.Aql.Query do
 
   @type having_clause :: {:comparison, Column.t, Parser.comparator, Column.t}
 
+  @type view_map :: %{view_name :: String.t => view_sql :: String.t}
+
   @type t :: %__MODULE__{
     data_source: DataSource.t,
     features: Cloak.Features.t,
@@ -49,7 +51,8 @@ defmodule Cloak.Aql.Query do
     offset: non_neg_integer,
     having: [having_clause],
     distinct: boolean,
-    parameters: [DataSource.field]
+    parameters: [DataSource.field],
+    views: view_map
   }
 
   defstruct [
@@ -57,7 +60,7 @@ defmodule Cloak.Aql.Query do
     order_by: [], column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
     row_splitters: [], implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
     db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct: false,
-    features: nil, encoded_where: [], parameters: []
+    features: nil, encoded_where: [], parameters: [], views: %{}
   ]
 
 
@@ -70,17 +73,18 @@ defmodule Cloak.Aql.Query do
 
   Raises on error.
   """
-  @spec make!(DataSource.t, String.t, [DataSource.field]) :: t
-  def make!(data_source, string, parameters) do
-    {:ok, query} = make(data_source, string, parameters)
+  @spec make!(DataSource.t, String.t, [DataSource.field], view_map) :: t
+  def make!(data_source, string, parameters, views) do
+    {:ok, query} = make(data_source, string, parameters, views)
     query
   end
 
   @doc "Creates a compiled query from a string representation."
-  @spec make(DataSource.t, String.t, [DataSource.field]) :: {:ok, t} | {:error, String.t}
-  def make(data_source, string, parameters) do
+  @spec make(DataSource.t, String.t, [DataSource.field], view_map) ::
+    {:ok, t} | {:error, String.t}
+  def make(data_source, string, parameters, views) do
     with {:ok, parsed_query} <- Cloak.Aql.Parser.parse(data_source, string) do
-      Cloak.Aql.Compiler.compile(data_source, parsed_query, parameters)
+      Cloak.Aql.Compiler.compile(data_source, parsed_query, parameters, views)
     end
   end
 
@@ -112,9 +116,10 @@ defmodule Cloak.Aql.Query do
     }
   end
 
-  @spec describe_query(DataSource.t, String.t, [DataSource.field]) :: {:ok, [String.t], map} | {:error, String.t}
-  def describe_query(data_source, statement, parameters), do:
-    with {:ok, query} <- make(data_source, statement, parameters), do:
+  @spec describe_query(DataSource.t, String.t, [DataSource.field], view_map) ::
+    {:ok, [String.t], map} | {:error, String.t}
+  def describe_query(data_source, statement, parameters, views), do:
+    with {:ok, query} <- make(data_source, statement, parameters, views), do:
       {:ok, query.column_titles, extract_features(query)}
 
 

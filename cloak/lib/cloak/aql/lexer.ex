@@ -103,7 +103,7 @@ defmodule Cloak.Aql.Lexer do
   end
 
   defp float_constant() do
-    word_of(~r/[-+]?[0-9]*\.[0-9]+([eE][-+]?[0-9]+)?+/)
+    word_of(~r/[0-9]*\.[0-9]+([eE][-+]?[0-9]+)?+/)
     |> map(&Float.parse/1)
     |> satisfy(&match?({_, ""}, &1))
     |> map(fn({value, _}) -> value end)
@@ -111,7 +111,7 @@ defmodule Cloak.Aql.Lexer do
   end
 
   defp integer_constant() do
-    word_of(~r/[-+]?[0-9]+(?!\w)/)
+    word_of(~r/[0-9]+(?!\w)/)
     |> map(&Integer.parse/1)
     |> satisfy(&match?({_, ""}, &1))
     |> map(fn({value, _}) -> value end)

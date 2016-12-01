@@ -14,7 +14,7 @@
 !air/mix.lock
 !air/config
 !air/lib
-!air/docs
+!air/user_docs
 !air/web
 !air/src
 !air/include

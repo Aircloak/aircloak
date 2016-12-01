@@ -55,10 +55,12 @@ defmodule Cloak.Query.Runner do
   is sent to the required destination. If an error occurs, the result will contain
   error information.
   """
-  @spec start(String.t, DataSource.t, String.t, [DataSource.field], Cloak.ResultSender.target) :: :ok
-  def start(query_id, data_source, statement, parameters, result_target \\ :air_socket) do
+  @lint {Credo.Check.Refactor.FunctionArity, false}
+  @spec start(String.t, DataSource.t, String.t, [DataSource.field], Query.view_map,
+    Cloak.ResultSender.target) :: :ok
+  def start(query_id, data_source, statement, parameters, views, result_target \\ :air_socket) do
     {:ok, _} = Supervisor.start_child(@supervisor_name,
-      [{query_id, data_source, statement, parameters, result_target}, [name: worker_name(query_id)]])
+      [{query_id, data_source, statement, parameters, views, result_target}, [name: worker_name(query_id)]])
     :ok
   end
 
@@ -72,7 +74,7 @@ defmodule Cloak.Query.Runner do
   # -------------------------------------------------------------------
 
   @doc false
-  def init({query_id, data_source, statement, parameters, result_target}) do
+  def init({query_id, data_source, statement, parameters, views, result_target}) do
     Process.flag(:trap_exit, true)
     {:ok, %{
       query_id: query_id,
@@ -82,7 +84,7 @@ defmodule Cloak.Query.Runner do
       # We're starting the runner as a direct child.
       # This GenServer will wait for the runner to return or crash. Such approach allows us to
       # detect a failure no matter how the query fails (even if the runner process is for example killed).
-      runner: Task.async(fn() -> run_query(data_source, statement, parameters) end)
+      runner: Task.async(fn() -> run_query(data_source, statement, parameters, views) end)
     }}
   end
 
@@ -114,16 +116,19 @@ defmodule Cloak.Query.Runner do
   ## Query runner
   ## ----------------------------------------------------------------
 
-  defp run_query(data_source, statement, parameters) do
+  defp run_query(data_source, statement, parameters, views) do
     Logger.debug("Parsing statement `#{statement}` ...")
-    with {:ok, sql_query} <- Query.make(data_source, statement, parameters) do
+    with {:ok, sql_query} <- Query.make(data_source, statement, parameters, views) do
       execute_sql_query(sql_query)
     end
   end
 
   defp execute_sql_query(%Query{command: :show, show: :tables} = query) do
     query = %Query{query | columns: [%Column{table: :unknown, constant?: true, name: "name", type: :text}]}
-    buckets = for {id, _table} <- query.data_source.tables, do: %{occurrences: 1, row: [id]}
+    buckets =
+      Map.keys(query.data_source.tables) ++ Map.keys(query.views)
+      |> Enum.map(&%{occurrences: 1, row: [to_string(&1)]})
+
     successful_result(
       %Result{columns: ["name"], buckets: buckets, features: Query.extract_features(query)},
       query
@@ -257,7 +262,9 @@ defmodule Cloak.Query.Runner do
   # -------------------------------------------------------------------
 
   if Mix.env == :test do
-    def run_sync(data_source, statement, parameters), do: run_query(data_source, statement, parameters)
+    def run_sync(data_source, statement, parameters, views), do:
+      run_query(data_source, statement, parameters, views)
+
     # tests run the same query in parallel, so we make the process name unique to avoid conflicts
     def worker_name(_query_id), do: {:via, :gproc, {:n, :l, {__MODULE__, :erlang.unique_integer()}}}
   else
