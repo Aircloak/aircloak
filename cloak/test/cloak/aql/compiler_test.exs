@@ -635,14 +635,43 @@ defmodule Cloak.Aql.Compiler.Test do
       compile!("select table.column.with.dots from table", dotted_data_source())
   end
 
-  defp compile!(query_string, data_source, parameters \\ []) do
-    {:ok, result} = compile(query_string, data_source, parameters)
+  test "view error" do
+    assert {:error, error} = compile("select foo from table_view", data_source(),
+      views: %{"table_view" => "select"})
+
+    assert error == "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
+  end
+
+  test "view error in show columns" do
+    assert {:error, error} = compile("show columns from table_view", data_source(),
+      views: %{"table_view" => "select"})
+
+    assert error == "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
+  end
+
+  test "ambiguous view/table error" do
+    assert {:error, error} = compile("select numeric from table", data_source(),
+      views: %{"table" => "select numeric from table"})
+
+    assert error == "There is both a table, and a view named `table`. Rename the view to resolve the conflict."
+  end
+
+  test "view is treated as a subquery" do
+    assert {:error, error} = compile("select numeric from table_view", data_source(),
+      views: %{"table_view" => "select numeric from table"})
+
+    assert error =~ ~r/Missing a user id column in the select list of subquery `table_view`./
+  end
+
+  defp compile!(query_string, data_source, options \\ []) do
+    {:ok, result} = compile(query_string, data_source, options)
     result
   end
 
-  defp compile(query_string, data_source, parameters \\ [], features \\ Cloak.Features.from_config) do
+  defp compile(query_string, data_source, options \\ [], features \\ Cloak.Features.from_config) do
     query = Parser.parse!(data_source, query_string)
-    Compiler.compile(data_source, query, parameters, features)
+    Compiler.compile(data_source, query, Keyword.get(options, :parameters, []),
+      Keyword.get(options, :views, %{}), features)
   end
 
   defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do

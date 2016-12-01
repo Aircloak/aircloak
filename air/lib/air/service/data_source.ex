@@ -55,6 +55,7 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Asks the cloak to describe the query, and returns the result."
+  @lint {Credo.Check.Design.TagTODO, false}
   @spec describe_query(data_source_id_spec, User.t, String.t, [Protocol.db_value]) ::
     {:ok, map} | {:error, :unauthorized | :not_connected | :internal_error | any}
   def describe_query(data_source_id_spec, user, statement, parameters) do
@@ -65,7 +66,8 @@ defmodule Air.Service.DataSource do
             data = %{
               statement: statement,
               data_source: data_source.global_id,
-              parameters: parameters
+              parameters: parameters,
+              views: %{} # TODO: pass views from the database once they are in place
             }
             MainChannel.describe_query(channel_pid, data)
 

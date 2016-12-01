@@ -139,9 +139,9 @@ defmodule Cloak.Aql.QueryTest do
 
   defp features_from(statement) do
     [first_ds | rest_ds] = Cloak.DataSource.all()
-    query = Query.make!(first_ds, statement, []) |> Map.delete(:data_source)
+    query = Query.make!(first_ds, statement, [], %{}) |> Map.delete(:data_source)
     for data_source <- rest_ds, do:
-      assert(query == Query.make!(data_source, statement, []) |> Map.delete(:data_source))
+      assert(query == Query.make!(data_source, statement, [], %{}) |> Map.delete(:data_source))
     Query.extract_features(query)
   end
 end
