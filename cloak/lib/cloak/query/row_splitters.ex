@@ -15,6 +15,10 @@ defmodule Cloak.Query.RowSplitters do
 
   applies `function1` with each combination of the return values of `splitter1` and
   `splitter2`.
+
+  This module also applies functions that are nested within row splitters:
+
+    `splitter(function1(function2(value)))`
   """
 
   alias Cloak.Aql.{Query, Column, Function}
@@ -28,6 +32,7 @@ defmodule Cloak.Query.RowSplitters do
   @spec split(Enumerable.t, Query.t) :: Enumerable.t
   def split(stream, %Query{row_splitters: []}), do: stream
   def split(stream, query), do: Stream.flat_map(stream, &split_row(&1, query))
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
