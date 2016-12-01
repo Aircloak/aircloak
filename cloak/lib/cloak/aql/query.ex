@@ -131,6 +131,12 @@ defmodule Cloak.Aql.Query do
     }
   end
 
+  @doc """
+  Describes the result of a parameterized query.
+
+  This function will return the description of the result, such as column names
+  and types, without executing the query.
+  """
   @spec describe_query(DataSource.t, String.t, [DataSource.field], view_map) ::
     {:ok, [String.t], map} | {:error, String.t}
   def describe_query(data_source, statement, parameters, views), do:
