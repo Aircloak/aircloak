@@ -46,10 +46,7 @@ defmodule Cloak.Query.RowSplitters do
 
   defp apply_function(row, {:row_splitter, function_spec, index}) do
     row = row ++ List.duplicate(nil, index - (length(row) - 1))
-    case apply_function(row, function_spec) do
-      [nil] -> [row]
-      values -> for cell_value <- values, do: List.replace_at(row, index, cell_value)
-    end
+    for cell_value <- apply_function(row, function_spec), do: List.replace_at(row, index, cell_value)
   end
   defp apply_function(row, {:function, _, args} = function_spec) do
     inner_functions_results = for arg <- args, do: apply_function(row, arg)
