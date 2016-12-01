@@ -29,6 +29,19 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
+  @doc "Validates a user-defined view."
+  @spec validate_view(DataSource.t, Parser.parsed_query, Query.view_map) :: :ok | {:error, String.t}
+  def validate_view(data_source, parsed_query, views) do
+    try do
+      with {:ok, query} <- compile(data_source, Map.put(parsed_query, :subquery?, true), [], views) do
+        query |> validate_uid("the view") |> validate_offset("The view")
+        :ok
+      end
+    rescue
+      e in CompilationError -> {:error, e.message}
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -212,8 +225,8 @@ defmodule Cloak.Aql.Compiler do
     ) do
       {:ok, compiled_query} ->
         compiled_query
-        |> validate_uid(alias)
-        |> validate_offset(alias)
+        |> validate_uid("subquery `#{alias}`")
+        |> validate_offset("Subquery `#{alias}`")
         |> align_limit()
         |> align_offset()
       {:error, error} -> raise CompilationError, message: error
@@ -243,7 +256,7 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp validate_uid(subquery, alias) do
+  defp validate_uid(subquery, display) do
     case Enum.find(subquery.db_columns, &(&1.user_id?)) do
       nil ->
         possible_uid_columns =
@@ -255,15 +268,15 @@ defmodule Cloak.Aql.Compiler do
           end
 
         raise CompilationError, message:
-          "Missing a user id column in the select list of subquery `#{alias}`. " <>
+          "Missing a user id column in the select list of #{display}. " <>
           "To fix this error, add #{possible_uid_columns} to the subquery select list."
       _ ->
         subquery
     end
   end
 
-  defp validate_offset(%{offset: offset, limit: limit}, alias) when is_nil(limit) and offset > 0, do:
-      raise CompilationError, message: "Subquery `#{alias}` has an OFFSET clause without a LIMIT clause."
+  defp validate_offset(%{offset: offset, limit: limit}, display) when is_nil(limit) and offset > 0, do:
+      raise CompilationError, message: "#{display} has an OFFSET clause without a LIMIT clause."
   defp validate_offset(subquery, _), do: subquery
 
 

@@ -8,7 +8,7 @@ defmodule Cloak.Aql.Query do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Aql.{Column, Function, Parser}
+  alias Cloak.Aql.{Column, Compiler, Function, Parser}
 
   @type negatable_condition ::
       {:comparison, Column.t, :=, Column.t}
@@ -98,8 +98,8 @@ defmodule Cloak.Aql.Query do
   @spec make(DataSource.t, String.t, [DataSource.field], view_map) ::
     {:ok, t} | {:error, String.t}
   def make(data_source, string, parameters, views) do
-    with {:ok, parsed_query} <- Cloak.Aql.Parser.parse(data_source, string) do
-      Cloak.Aql.Compiler.compile(data_source, parsed_query, parameters, views)
+    with {:ok, parsed_query} <- Parser.parse(data_source, string) do
+      Compiler.compile(data_source, parsed_query, parameters, views)
     end
   end
 
@@ -142,6 +142,13 @@ defmodule Cloak.Aql.Query do
   def describe_query(data_source, statement, parameters, views), do:
     with {:ok, query} <- make(data_source, statement, parameters, views), do:
       {:ok, query.column_titles, extract_features(query)}
+
+
+  @doc "Validates a user-defined view."
+  @spec validate_view(DataSource.t, String.t, view_map) :: :ok | {:error, String.t}
+  def validate_view(data_source, sql, views), do:
+    with {:ok, parsed_query} <- Parser.parse(data_source, sql), do:
+      Compiler.validate_view(data_source, parsed_query, views)
 
 
   # -------------------------------------------------------------------
