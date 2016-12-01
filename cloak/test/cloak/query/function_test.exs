@@ -150,6 +150,27 @@ defmodule Cloak.Query.FunctionTest do
     )
   end
 
+  test "extract_matches can be used multipel times in the same query" do
+    assert_query("""
+      SELECT
+        extract_matches(name, '\\w+') as word1,
+        extract_matches(name, '\\w+') as word2
+      FROM heights_ft
+      """,
+      %{rows: [
+        %{row: ["first", "first"], occurrences: 100},
+        %{row: ["first", "second"], occurrences: 100},
+        %{row: ["first", "third"], occurrences: 100},
+        %{row: ["second", "first"], occurrences: 100},
+        %{row: ["second", "second"], occurrences: 100},
+        %{row: ["second", "third"], occurrences: 100},
+        %{row: ["third", "first"], occurrences: 100},
+        %{row: ["third", "second"], occurrences: 100},
+        %{row: ["third", "third"], occurrences: 100},
+      ]}
+    )
+  end
+
   test "extract_matches can handle regular expressions that yield no results" do
     assert_query(
       "SELECT extract_matches(name, 'foo') as words FROM heights_ft",

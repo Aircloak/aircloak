@@ -594,19 +594,62 @@ defmodule Cloak.Aql.Compiler do
   defp partition_selected_columns(%Query{group_by: groups = [_|_], columns: selected_columns} = query) do
     having_columns = Enum.flat_map(query.having, fn ({:comparison, column, _operator, target}) -> [column, target] end)
     aggregators = filter_aggregators(selected_columns ++ having_columns)
-    %Query{query | property: groups |> Enum.uniq(), aggregators: aggregators |> Enum.uniq()}
+    %Query{query |
+      property: groups |> drop_duplicates(),
+      aggregators: aggregators |> drop_duplicates()
+    }
   end
   defp partition_selected_columns(%Query{columns: selected_columns} = query) do
     case filter_aggregators(selected_columns) do
       [] ->
         %Query{query |
-          property: selected_columns |> Enum.uniq(), aggregators: [{:function, "count", [:*]}], implicit_count: true
+          property: selected_columns |> drop_duplicates(),
+          aggregators: [{:function, "count", [:*]}], implicit_count: true
         }
       aggregators ->
-        %Query{query | property: [], aggregators: aggregators |> Enum.uniq()}
+        %Query{query | property: [], aggregators: aggregators |> drop_duplicates()}
     end
   end
   defp partition_selected_columns(query), do: query
+
+  # This is effectively a special version of Enum.uniq/1. It does not collapse down duplicate
+  # occurrences of columns that contain row splitting functions.
+  defp drop_duplicates(columns) do
+    {columns, _} = List.foldr(columns, {[], 0}, fn(column, {acc, index}) ->
+      {tagged_column, next_index} = tag_row_splitters(column, index)
+      {[tagged_column | acc], next_index}
+    end)
+    columns
+    |> Enum.uniq()
+    |> Enum.map(&strip_tags/1)
+  end
+
+  defp tag_row_splitters({:distinct, column}, index) do
+    {tagged_column, new_index} = tag_row_splitters(column, index)
+    {{:distinct, tagged_column}, new_index}
+  end
+  defp tag_row_splitters(:*, index), do: {:*, index}
+  defp tag_row_splitters(%Column{} = column, index), do: {column, index}
+  defp tag_row_splitters({:function, name, args} = function_spec, index) do
+    {tagged_args, new_index} = List.foldr(args, {[], index}, fn(arg, {args_acc, current_index}) ->
+      {tagged_arg, next_index} = tag_row_splitters(arg, current_index)
+      {[tagged_arg | args_acc], next_index}
+    end)
+    updated_spec = {:function, name, tagged_args}
+    if Function.row_splitting_function?(function_spec) do
+      increased_index = new_index + 1
+      {{:tagged_splitter, updated_spec, increased_index}, increased_index}
+    else
+      {updated_spec, new_index}
+    end
+  end
+
+  defp strip_tags({:distinct, column}), do: {:distinct, strip_tags(column)}
+  defp strip_tags(:*), do: :*
+  defp strip_tags(%Column{} = column), do: column
+  defp strip_tags({:function, name, args}), do:
+    {:function, name, Enum.map(args, &strip_tags/1)}
+  defp strip_tags({:tagged_splitter, function_spec, _}), do: strip_tags(function_spec)
 
   defp partition_row_splitters(%Query{} = query) do
     next_available_index = length(query.db_columns)
