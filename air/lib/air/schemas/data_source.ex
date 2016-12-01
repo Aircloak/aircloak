@@ -1,8 +1,8 @@
-defmodule Air.DataSource do
+defmodule Air.Schemas.DataSource do
   @moduledoc "Represents data sources made available through the cloaks"
   use Air.Web, :model
 
-  alias Air.{DataSource, Group}
+  alias Air.Schemas.Group
 
   @type t :: %__MODULE__{}
 
@@ -11,7 +11,7 @@ defmodule Air.DataSource do
     field :name, :string
     field :tables, :string
 
-    has_many :queries, Air.Query
+    has_many :queries, Air.Schemas.Query
     many_to_many :groups, Group,
       join_through: "data_sources_groups",
       on_delete: :delete_all,
@@ -29,7 +29,7 @@ defmodule Air.DataSource do
   # -------------------------------------------------------------------
 
   @doc "Returns a map representation of the data source tables"
-  @spec tables(DataSource.t) :: [Map.t]
+  @spec tables(t) :: [Map.t]
   def tables(data_source) do
     case Poison.decode(data_source.tables) do
       {:ok, tables} -> tables
@@ -38,7 +38,7 @@ defmodule Air.DataSource do
   end
 
   @doc "Format a data source as a map"
-  @spec to_map(DataSource.t) :: Map.t
+  @spec to_map(t) :: Map.t
   def to_map(data_source) do
     %{
       id: data_source.id,

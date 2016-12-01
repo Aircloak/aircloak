@@ -3,7 +3,7 @@ defmodule Air.GuardianSerializer do
   @behaviour Guardian.Serializer
 
   import Ecto.Query, only: [from: 2]
-  alias Air.{Repo, User}
+  alias Air.{Repo, Schemas.User}
 
   # Temporarily suppress dialyzer due to typespec error in Guardian
   @dialyzer {:nowarn_function, for_token: 1}

@@ -1,4 +1,4 @@
-defmodule Air.AuditLog do
+defmodule Air.Schemas.AuditLog do
   @moduledoc "Model for recording events having taken place"
   use Air.Web, :model
   require Logger

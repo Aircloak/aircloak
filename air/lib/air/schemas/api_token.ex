@@ -1,4 +1,4 @@
-defmodule Air.ApiToken do
+defmodule Air.Schemas.ApiToken do
   @moduledoc """
   The API tokens allow us to authenticate users accessing our API.
   There is a many tokens to a single user relationship, allowing a
@@ -19,7 +19,7 @@ defmodule Air.ApiToken do
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "api_tokens" do
     field :description, :string
-    belongs_to :user, Air.User, references: :id
+    belongs_to :user, Air.Schemas.User, references: :id
 
     timestamps
   end

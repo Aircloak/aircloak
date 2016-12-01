@@ -1,4 +1,4 @@
-defmodule Air.User do
+defmodule Air.Schemas.User do
   @moduledoc "The user model."
   require Logger
 
@@ -6,7 +6,7 @@ defmodule Air.User do
 
   alias Ecto.Changeset
   alias Comeonin.Pbkdf2, as: Hash
-  alias Air.Group
+  alias Air.Schemas.Group
 
   @type t :: %__MODULE__{}
   @type role_key :: :anonymous | :user | :admin
@@ -18,7 +18,7 @@ defmodule Air.User do
     field :hashed_password, :string
     field :name, :string
 
-    has_many :queries, Air.Query
+    has_many :queries, Air.Schemas.Query
     many_to_many :groups, Group,
       join_through: "groups_users",
       on_delete: :delete_all,
@@ -123,7 +123,7 @@ defmodule Air.User do
   @doc "Returns a boolean regarding whether a administrator account already exists"
   @spec admin_user_exists?() :: boolean
   def admin_user_exists?() do
-    query = from u in Air.User,
+    query = from u in Air.Schemas.User,
       inner_join: g in assoc(u, :groups),
       where: g.admin,
       limit: 1

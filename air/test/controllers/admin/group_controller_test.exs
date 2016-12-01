@@ -2,7 +2,7 @@ defmodule Air.Admin.GroupControllerTest do
   use Air.ConnCase, async: true
 
   import Air.TestConnHelper
-  alias Air.{TestRepoHelper, Group, Repo}
+  alias Air.{TestRepoHelper, Schemas.Group, Repo}
 
   test "regular user can't manage users", %{conn: conn} do
     user = TestRepoHelper.create_user!()

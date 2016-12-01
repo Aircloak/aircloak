@@ -4,7 +4,7 @@ defmodule Air.API.DataSourceController.Test do
   use Air.ConnCase, async: false
 
   import Air.{TestConnHelper, TestRepoHelper}
-  alias Air.{TestSocketHelper, DataSource, Repo}
+  alias Air.{TestSocketHelper, Schemas.DataSource, Repo}
   alias Poison, as: JSON
 
   setup do

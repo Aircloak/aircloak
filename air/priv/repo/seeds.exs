@@ -12,7 +12,7 @@
 # is meant to be forward only. If existing rows have to be changed, for example
 # if the database structure changes, it's advised to recreate the entire database.
 
-alias Air.{User, Group, Repo}
+alias Air.{Schemas.User, Schemas.Group, Repo}
 import Ecto.Query, only: [from: 2]
 
 # admin user

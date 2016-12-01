@@ -1,4 +1,4 @@
-defmodule Air.CentralCall do
+defmodule Air.Schemas.CentralCall do
   @moduledoc """
   This model holds RPC calls from the air to the central that failed
   due to the server not being connected, or other temporary glitches.

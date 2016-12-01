@@ -4,7 +4,7 @@ defmodule Air.QueryController do
   use Timex
 
   require Logger
-  alias Air.{Query, Repo, Service.DataSource}
+  alias Air.{Schemas.Query, Repo, Service.DataSource}
   alias Plug.Conn.Status
 
 

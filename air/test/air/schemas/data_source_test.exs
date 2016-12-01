@@ -1,7 +1,7 @@
-defmodule Air.DataSourceTest do
+defmodule Air.Schemas.DataSourceTest do
   use Air.ModelCase, async: true
 
-  alias Air.{DataSource, Group, TestRepoHelper, TestUtils}
+  alias Air.{Schemas.DataSource, Schemas.Group, TestRepoHelper, TestUtils}
 
   @valid_attrs %{
     global_id: "global_id",

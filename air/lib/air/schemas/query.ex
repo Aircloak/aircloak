@@ -1,8 +1,8 @@
-defmodule Air.Query do
+defmodule Air.Schemas.Query do
   @moduledoc "The query model."
   use Air.Web, :model
 
-  alias Air.{User, Repo, DataSource, PsqlServer.Protocol}
+  alias Air.{Schemas.DataSource, Schemas.User, Repo, PsqlServer.Protocol}
 
   @type t :: %__MODULE__{}
   @type cloak_query :: %{

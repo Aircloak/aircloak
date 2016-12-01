@@ -4,7 +4,7 @@ defmodule Air.DataSourceManager.Test do
 
   import Air.AssertionHelper
 
-  alias Air.{Repo, DataSource, DataSourceManager}
+  alias Air.{Repo, Schemas.DataSource, DataSourceManager}
 
   @data_source_id "data_source_id"
   @data_sources [%{"global_id" => @data_source_id, "tables" => []}]

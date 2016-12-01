@@ -1,4 +1,4 @@
-defmodule Air.Group do
+defmodule Air.Schemas.Group do
   @moduledoc """
   Groups allows the air system to manage authorization of data sources.
   A group can have many users and likewise give access to many distinct data sources.
@@ -8,7 +8,7 @@ defmodule Air.Group do
   """
   use Air.Web, :model
 
-  alias Air.{User, DataSource, Repo}
+  alias Air.{Schemas.User, Schemas.DataSource, Repo}
 
   @type t :: %__MODULE__{}
 

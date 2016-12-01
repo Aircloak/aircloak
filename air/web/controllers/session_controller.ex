@@ -2,7 +2,7 @@ defmodule Air.SessionController do
   @moduledoc false
   use Air.Web, :controller
 
-  alias Air.User
+  alias Air.Schemas.User
 
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback
