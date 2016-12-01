@@ -6,7 +6,7 @@ defmodule Air.Schemas.Group do
   available to users of any number of groups. There is therefore a many to many to many
   relationship between users, groups and data sources.
   """
-  use Air.Web, :model
+  use Air.Schemas.Base
 
   alias Air.{Schemas.User, Schemas.DataSource, Repo}
 

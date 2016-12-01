@@ -1,6 +1,6 @@
 defmodule Air.Schemas.Query do
   @moduledoc "The query model."
-  use Air.Web, :model
+  use Air.Schemas.Base
 
   alias Air.{Schemas.DataSource, Schemas.User, Repo, PsqlServer.Protocol}
 

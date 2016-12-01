@@ -3,7 +3,7 @@ defmodule Air.Schemas.CentralCall do
   This model holds RPC calls from the air to the central that failed
   due to the server not being connected, or other temporary glitches.
   """
-  use Air.Web, :model
+  use Air.Schemas.Base
 
   alias Ecto.Changeset
 

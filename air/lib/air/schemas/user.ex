@@ -2,7 +2,7 @@ defmodule Air.Schemas.User do
   @moduledoc "The user model."
   require Logger
 
-  use Air.Web, :model
+  use Air.Schemas.Base
 
   alias Ecto.Changeset
   alias Comeonin.Pbkdf2, as: Hash

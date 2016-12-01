@@ -10,7 +10,7 @@ defmodule Air.Schemas.ApiToken do
   record in the database, allowing us to validate the existence of
   the token when the request is made.
   """
-  use Air.Web, :model
+  use Air.Schemas.Base
 
   alias Ecto.Changeset
 

@@ -1,6 +1,6 @@
 defmodule Air.Schemas.DataSource do
   @moduledoc "Represents data sources made available through the cloaks"
-  use Air.Web, :model
+  use Air.Schemas.Base
 
   alias Air.Schemas.Group
 

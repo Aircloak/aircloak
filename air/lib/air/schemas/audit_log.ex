@@ -1,6 +1,6 @@
 defmodule Air.Schemas.AuditLog do
   @moduledoc "Model for recording events having taken place"
-  use Air.Web, :model
+  use Air.Schemas.Base
   require Logger
 
   @type t :: %__MODULE__{}
