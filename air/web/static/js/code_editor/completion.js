@@ -5,6 +5,7 @@ import _ from "lodash";
 const KEYWORDS = [
   "SELECT", "FROM",
   "COUNT(*)", "SUM()", "MIN()", "MAX()", "AVG()", "STDDEV()", "MEDIAN()",
+  "EXTRACT_MATCH(columnName, 'regex')", "EXTRACT_MATCHES(columnName, 'regex')",
   "SHOW TABLES;",
   "LEFT JOIN", "LEFT INNER JOIN", "RIGHT INNER JOIN",
   "OUTER JOIN", "FULL OUTER JOIN", "LEFT OUTER JOIN", "RIGHT OUTER JOIN",
