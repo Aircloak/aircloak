@@ -6,7 +6,11 @@ import completions from "code_editor/completion";
 it("completes keywords", () => {
   assert.deepEqual(
     completions("thing cou| rest", 9, _.identity, [], []),
-    {list: [{text: "COUNT(*)", from: 6, to: 9}]}
+    {list: [
+      {text: "COUNT(distinct columnName)", from: 6, to: 9},
+      {text: "COUNT(columnName)", from: 6, to: 9},
+      {text: "COUNT(*)", from: 6, to: 9},
+    ]}
   );
 });
 
