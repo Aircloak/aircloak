@@ -2,7 +2,7 @@ defmodule Air.DataSourceControllerTest do
   use Air.ConnCase, async: true
 
   import Air.TestConnHelper
-  alias Air.{TestRepoHelper, DataSource, User, Repo}
+  alias Air.{TestRepoHelper, Schemas.DataSource, Schemas.User, Repo}
 
   test "can see data sources assigned to a group the user belongs to", %{conn: conn} do
     group = TestRepoHelper.create_group!()

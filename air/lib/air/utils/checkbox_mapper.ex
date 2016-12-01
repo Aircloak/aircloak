@@ -2,7 +2,7 @@ defmodule Air.Utils.CheckboxMapper do
   @moduledoc """
   Utilities used when creating checkboxes using the PhoenixMTM library
   """
-  alias Air.Group
+  alias Air.Schemas.Group
 
   import Phoenix.HTML.Tag, only: [content_tag: 2, content_tag: 3]
   import Phoenix.HTML, only: [html_escape: 1, raw: 1]

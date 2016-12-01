@@ -5,7 +5,7 @@ defmodule Air.Monitoring.FailedQueries do
   @spec start_link() :: {:ok, pid}
   def start_link, do: Task.start_link(&work/0)
 
-  alias Air.{Repo, Query, QueryEvents}
+  alias Air.{Repo, Schemas.Query, QueryEvents}
 
 
   # -------------------------------------------------------------------

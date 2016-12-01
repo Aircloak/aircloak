@@ -2,7 +2,7 @@ defmodule Air.ApiTokenControllerTest do
   use Air.ConnCase, async: true
 
   import Air.{TestConnHelper, TestRepoHelper, TestAuthHelper}
-  alias Air.ApiToken
+  alias Air.Schemas.ApiToken
 
   @invalid_attrs %{name: ""}
   @api_token_params %{api_token: %{description: "Token description"}}

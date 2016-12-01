@@ -5,7 +5,7 @@ defmodule Air.DataSourceManager do
   """
   require Logger
 
-  alias Air.{Repo, DataSource}
+  alias Air.{Repo, Schemas.DataSource}
 
 
   # -------------------------------------------------------------------

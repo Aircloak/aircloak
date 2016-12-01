@@ -2,7 +2,7 @@ defmodule Air.Admin.UserController do
   @moduledoc false
   use Air.Web, :admin_controller
 
-  alias Air.User
+  alias Air.Schemas.User
 
   plug :load_user when action in [:edit, :update, :delete]
 

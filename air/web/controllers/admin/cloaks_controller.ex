@@ -3,7 +3,7 @@ defmodule Air.Admin.CloaksController do
   use Air.Web, :admin_controller
   use Timex
 
-  alias Air.{DataSourceManager, Repo, DataSource}
+  alias Air.{DataSourceManager, Repo, Schemas.DataSource}
 
 
   # -------------------------------------------------------------------

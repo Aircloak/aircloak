@@ -2,7 +2,7 @@ defmodule Air.ProfileController do
   @moduledoc false
   use Air.Web, :controller
 
-  alias Air.User
+  alias Air.Schemas.User
   alias Ecto.Changeset
 
   @simple_fields ~w(name email)

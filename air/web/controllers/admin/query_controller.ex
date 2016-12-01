@@ -4,7 +4,7 @@ defmodule Air.Admin.QueryController do
   use Timex
 
   require Logger
-  alias Air.{Query, Repo}
+  alias Air.{Schemas.Query, Repo}
 
 
   # -------------------------------------------------------------------

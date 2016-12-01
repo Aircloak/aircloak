@@ -1,7 +1,7 @@
 defmodule IntegrationTest.Manager do
   import Ecto.Query, only: [from: 2]
 
-  alias Air.{DataSource, Group, Repo, User}
+  alias Air.{Repo, Schemas.DataSource, Schemas.Group, Schemas.User}
 
   @admin_group_name "admins"
   @user_mail "integration_test@aircloak.com"
@@ -40,10 +40,10 @@ defmodule IntegrationTest.Manager do
 
   defp setup_air_user() do
     # delete previous entries
-    Air.Repo.delete_all("data_sources_groups")
-    Air.Repo.delete_all("groups_users")
-    Air.Repo.delete_all(Air.User)
-    Air.Repo.delete_all(Air.Group)
+    Repo.delete_all("data_sources_groups")
+    Repo.delete_all("groups_users")
+    Repo.delete_all(User)
+    Repo.delete_all(Group)
 
     # create group
     admin_group =

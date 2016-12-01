@@ -1,7 +1,7 @@
-defmodule Air.UserTest do
-  use Air.ModelCase, async: true
+defmodule Air.Schemas.UserTest do
+  use Air.SchemaCase, async: true
 
-  alias Air.{User, TestRepoHelper, TestUtils, Group}
+  alias Air.{Schemas.Group, Schemas.User, TestRepoHelper, TestUtils}
 
   @valid_attrs %{
     email: "admin@aircloak.com",
@@ -153,7 +153,7 @@ defmodule Air.UserTest do
 
   defp user(role_key) do
     %User{
-      groups: [%Air.Group{admin: role_key == :admin}]
+      groups: [%Group{admin: role_key == :admin}]
     }
   end
 end

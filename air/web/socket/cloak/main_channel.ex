@@ -16,7 +16,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   The function returns when the cloak responds. If the timeout occurs, it is
   still possible that a cloak has received the request.
   """
-  @spec run_query(pid | nil, Air.Query.cloak_query) :: :ok | {:error, any}
+  @spec run_query(pid | nil, Air.Schemas.Query.cloak_query) :: :ok | {:error, any}
   def run_query(channel_pid, query) do
     with {:ok, _} <- call(channel_pid, "run_query", query, :timer.seconds(5)), do: :ok
   end

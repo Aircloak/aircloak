@@ -1,7 +1,8 @@
 defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
-  alias Air.{DataSource, DataSourceManager, PsqlServer.Protocol, Query, Repo, User, Socket.Cloak.MainChannel}
+  alias Air.Schemas.{DataSource, Query, User}
+  alias Air.{DataSourceManager, PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel}
   import Ecto.Query, only: [from: 2]
   require Logger
 
@@ -31,7 +32,7 @@ defmodule Air.Service.DataSource do
   @spec fetch_as_user(data_source_id_spec, User.t) :: {:ok, DataSource.t} | {:error, :unauthorized}
   def fetch_as_user(data_source_id_spec, user) do
     case Repo.one(user_data_source(user, data_source_id_spec)) do
-      %Air.DataSource{} = data_source -> {:ok, data_source}
+      %DataSource{} = data_source -> {:ok, data_source}
       nil -> {:error, :unauthorized}
     end
   end
@@ -165,7 +166,7 @@ defmodule Air.Service.DataSource do
   #-----------------------------------------------------------------------------------------------------------
 
   defp users_data_sources(user) do
-    from data_source in Air.DataSource,
+    from data_source in DataSource,
       inner_join: group in assoc(data_source, :groups),
       inner_join: user in assoc(group, :users),
       where: user.id == ^user.id

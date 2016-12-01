@@ -3,7 +3,7 @@ defmodule Air.ProfileController.Test do
 
   import Air.TestConnHelper
   alias Air.TestRepoHelper
-  alias Air.{Repo, User}
+  alias Air.{Repo, Schemas.User}
 
   test "updating own details" do
     user = TestRepoHelper.create_user!()

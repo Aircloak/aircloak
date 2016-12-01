@@ -2,7 +2,7 @@ defmodule Air.ApiTokenController do
   @moduledoc false
   use Air.Web, :controller
 
-  alias Air.{ApiToken, Token}
+  alias Air.{Schemas.ApiToken, Token}
 
 
   # -------------------------------------------------------------------
