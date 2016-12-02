@@ -30,8 +30,8 @@ defmodule Cloak.Query.RowSplitters do
 
   @doc "Splits individual rows into multiple rows based on applied splitter functions"
   @spec split(Enumerable.t, Query.t) :: Enumerable.t
-  def split(rows_stream, %Query{row_splitters: []}), do: rows_stream
-  def split(rows_stream, query), do: Stream.flat_map(rows_stream, &split_row(&1, query))
+  def split(rows, %Query{row_splitters: []}), do: rows
+  def split(rows, query), do: Stream.flat_map(rows, &split_row(&1, query))
 
 
   #-----------------------------------------------------------------------------------------------------------
