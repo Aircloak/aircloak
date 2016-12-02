@@ -33,6 +33,22 @@ defmodule Cloak.Aql.Query do
     column_titles: [String.t],
     property: [Function.t],
     aggregators: [Function.t],
+    # When row-splitters are used (like `extract_matches`), the row splitting has to happen
+    # prior to other functions being executed. All function call chains that contain one or
+    # more row-splitters in them are partitioned such that the row-splitters and their child
+    # function applications are contained in the row-splitters. The original function call
+    # chains are then amended to take a virtual column as their input representing the output
+    # of the row-splitters:
+    #
+    #   avg(length(extract_matches(cast(number as text), '\d+')))
+    #
+    # becomes:
+    #
+    #   avg(length(<dummy_column>)
+    #   extract_matches(cast(number as text), '\d+')
+    #
+    # where the latter of these two is contained in the row-splitters.
+    row_splitters: [Function.t],
     implicit_count: boolean,
     unsafe_filter_columns: [Column.t],
     group_by: [Function.t],
@@ -57,7 +73,7 @@ defmodule Cloak.Aql.Query do
   defstruct [
     columns: [], where: [], lcf_check_conditions: [], unsafe_filter_columns: [], group_by: [],
     order_by: [], column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
-    implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
+    row_splitters: [], implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
     db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct: false,
     features: nil, encoded_where: [], parameters: [], views: %{}
   ]

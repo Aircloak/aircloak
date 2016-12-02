@@ -12,7 +12,7 @@ defmodule Cloak.Query.Runner do
 
   alias Cloak.Aql.{Query, Column, Comparison}
   alias Cloak.DataSource
-  alias Cloak.Query.{Aggregator, LCFConditions, Sorter, Result, DataDecoder}
+  alias Cloak.Query.{Aggregator, LCFConditions, Sorter, Result, DataDecoder, RowSplitters}
 
   @supervisor_name Module.concat(__MODULE__, Supervisor)
 
@@ -166,6 +166,7 @@ defmodule Cloak.Query.Runner do
       Logger.debug("Processing rows ...")
       rows
       |> DataDecoder.decode(query)
+      |> RowSplitters.split(query)
       |> filter_on_encoded_columns(query)
       |> LCFConditions.apply(query)
       |> Aggregator.aggregate(query)
