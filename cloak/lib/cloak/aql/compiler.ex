@@ -617,46 +617,17 @@ defmodule Cloak.Aql.Compiler do
   # times database columns are loaded from the database, but allows us to deal with the output
   # of the row splitting function instances separately.
   defp drop_duplicates(columns) do
-    columns
-    |> tag_row_splitters()
-    |> Enum.uniq()
-    |> Enum.map(&strip_tags/1)
-  end
-
-  defp tag_row_splitters(columns) do
-    {columns, _} = List.foldr(columns, {[], 0}, fn(column, {acc, index}) ->
-      {tagged_column, next_index} = tag_row_splitters(column, index)
-      {[tagged_column | acc], next_index}
+    Enum.uniq_by(columns, fn(column) ->
+      if Function.contains_row_splitter?(column) do
+        # We don't care about the column in this case, just that it is different from
+        # a) other columns
+        # b) the same row-splitter construct appearing again
+        Kernel.make_ref()
+      else
+        column
+      end
     end)
-    columns
   end
-
-  defp tag_row_splitters({:distinct, column}, index) do
-    {tagged_column, new_index} = tag_row_splitters(column, index)
-    {{:distinct, tagged_column}, new_index}
-  end
-  defp tag_row_splitters(:*, index), do: {:*, index}
-  defp tag_row_splitters(%Column{} = column, index), do: {column, index}
-  defp tag_row_splitters({:function, name, args} = function_spec, index) do
-    {tagged_args, new_index} = List.foldr(args, {[], index}, fn(arg, {args_acc, current_index}) ->
-      {tagged_arg, next_index} = tag_row_splitters(arg, current_index)
-      {[tagged_arg | args_acc], next_index}
-    end)
-    updated_spec = {:function, name, tagged_args}
-    if Function.row_splitting_function?(function_spec) do
-      increased_index = new_index + 1
-      {{:tagged_splitter, updated_spec, increased_index}, increased_index}
-    else
-      {updated_spec, new_index}
-    end
-  end
-
-  defp strip_tags({:distinct, column}), do: {:distinct, strip_tags(column)}
-  defp strip_tags(:*), do: :*
-  defp strip_tags(%Column{} = column), do: column
-  defp strip_tags({:function, name, args}), do:
-    {:function, name, Enum.map(args, &strip_tags/1)}
-  defp strip_tags({:tagged_splitter, function_spec, _}), do: strip_tags(function_spec)
 
   defp partition_row_splitters(%Query{} = query) do
     next_available_index = length(query.db_columns)

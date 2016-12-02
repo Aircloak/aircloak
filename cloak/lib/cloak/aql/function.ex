@@ -144,6 +144,19 @@ defmodule Cloak.Aql.Function do
   def row_splitting_function?({:function, name, _}), do: @functions |> Map.fetch!(name) |> Map.get(:row_splitting, false)
   def row_splitting_function?(_), do: false
 
+  @doc "Returns true if a function or column is or contains a row-splitter"
+  @spec contains_row_splitter?(t) :: boolean
+  def contains_row_splitter?({:distinct, column}), do: contains_row_splitter?(column)
+  def contains_row_splitter?(:*), do: false
+  def contains_row_splitter?(%Column{}), do: false
+  def contains_row_splitter?({:function, _name, args} = function_spec) do
+    if row_splitting_function?(function_spec) do
+      true
+    else
+      Enum.any?(args, &contains_row_splitter?/1)
+    end
+  end
+
   @doc "Returns true if the given function call is a cast, false otherwise."
   @spec cast?(t) :: boolean
   def cast?({:function, {:cast, _}, _}), do: true
