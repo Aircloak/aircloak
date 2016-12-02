@@ -54,19 +54,6 @@ defmodule Air.Schemas.Query do
     |> foreign_key_constraint(:data_source_id)
   end
 
-  @doc "Converts the query model to the cloak compliant data."
-  @lint {Credo.Check.Design.TagTODO, false}
-  @spec to_cloak_query(t, [any]) :: cloak_query
-  def to_cloak_query(query, parameters) do
-    %{
-      id: query.id,
-      statement: query.statement,
-      data_source: query.data_source.global_id,
-      parameters: parameters,
-      views: %{} # TODO: pass views from the database once they are in place
-    }
-  end
-
   @doc "Produces a JSON blob of the query and it's result for rendering"
   @spec for_display(t) :: Map.t
   def for_display(query) do

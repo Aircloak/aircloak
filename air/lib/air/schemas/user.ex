@@ -23,6 +23,7 @@ defmodule Air.Schemas.User do
       join_through: "groups_users",
       on_delete: :delete_all,
       on_replace: :delete
+    has_many :views, Air.Schemas.View
 
     timestamps
 

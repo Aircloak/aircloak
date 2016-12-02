@@ -59,7 +59,6 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Asks the cloak to describe the query, and returns the result."
-  @lint {Credo.Check.Design.TagTODO, false}
   @spec describe_query(data_source_id_spec, User.t, String.t, [Protocol.db_value]) ::
     {:ok, map} | data_source_operation_error
   def describe_query(data_source_id_spec, user, statement, parameters) do
@@ -69,7 +68,7 @@ defmodule Air.Service.DataSource do
           statement: statement,
           data_source: data_source.global_id,
           parameters: parameters,
-          views: %{} # TODO: pass views from the database once they are in place
+          views: user_views_map(user)
         })
       end
     )
@@ -123,7 +122,7 @@ defmodule Air.Service.DataSource do
 
         if opts[:notify] == true, do: Air.QueryEvents.subscribe(query.id)
 
-        with :ok <- MainChannel.run_query(channel_pid, Query.to_cloak_query(query, parameters)), do:
+        with :ok <- MainChannel.run_query(channel_pid, cloak_query_map(query, user, parameters)), do:
           {:ok, query}
       end
     )
@@ -220,18 +219,33 @@ defmodule Air.Service.DataSource do
     end
   end
 
-  @lint {Credo.Check.Design.TagTODO, false}
   defp on_cloak_validated_view(data_source_id_spec, user, sql, fun) do
     on_available_cloak(data_source_id_spec, user,
       fn(data_source, channel_pid) ->
         with :ok <- MainChannel.validate_view(channel_pid, %{
           data_source: data_source.global_id,
           sql: sql,
-          views: %{} # TODO: pass views from the database once they are in place
+          views: user_views_map(user)
         }) do
           fun.(data_source)
         end
       end
     )
+  end
+
+  defp user_views_map(user) do
+    Repo.preload(user, :views).views
+    |> Enum.map(&{&1.name, &1.sql})
+    |> Enum.into(%{})
+  end
+
+  defp cloak_query_map(query, user, parameters) do
+    %{
+      id: query.id,
+      statement: query.statement,
+      data_source: query.data_source.global_id,
+      parameters: parameters,
+      views: user_views_map(user)
+    }
   end
 end

@@ -23,9 +23,15 @@ defmodule IntegrationTest.ViewTest do
     assert updated_view.sql == "select user_id from users"
   end
 
+  test "selecting from the view" do
+    {:ok, view} = create_view(unique_view_name(), "select user_id, name from users")
+    {:ok, result} = run_query("select name from #{view.name}")
+    assert Map.fetch!(result, "rows") == [%{"occurrences" => 100, "row" => ["john"]}]
+  end
+
 
   defp unique_view_name(), do:
-    "view_#{:erlang.unique_integer()}"
+    "view_#{:erlang.unique_integer([:positive])}"
 
   defp create_view(name, sql), do:
     Air.Service.DataSource.create_view({:global_id, Manager.data_source_global_id()},  Manager.air_user(),
@@ -34,4 +40,12 @@ defmodule IntegrationTest.ViewTest do
   defp update_view(view_id, name, sql), do:
     Air.Service.DataSource.update_view({:global_id, Manager.data_source_global_id()},  Manager.air_user(),
       view_id, name, sql)
+
+  defp run_query(query, params \\ []), do:
+    Air.Service.DataSource.run_query(
+      {:global_id, Manager.data_source_global_id()},
+      Manager.air_user(),
+      query,
+      params
+    )
 end
