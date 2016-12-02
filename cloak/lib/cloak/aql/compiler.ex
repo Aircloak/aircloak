@@ -617,13 +617,18 @@ defmodule Cloak.Aql.Compiler do
   # times database columns are loaded from the database, but allows us to deal with the output
   # of the row splitting function instances separately.
   defp drop_duplicates(columns) do
+    columns
+    |> tag_row_splitters()
+    |> Enum.uniq()
+    |> Enum.map(&strip_tags/1)
+  end
+
+  defp tag_row_splitters(columns) do
     {columns, _} = List.foldr(columns, {[], 0}, fn(column, {acc, index}) ->
       {tagged_column, next_index} = tag_row_splitters(column, index)
       {[tagged_column | acc], next_index}
     end)
     columns
-    |> Enum.uniq()
-    |> Enum.map(&strip_tags/1)
   end
 
   defp tag_row_splitters({:distinct, column}, index) do
