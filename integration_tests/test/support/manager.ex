@@ -5,7 +5,6 @@ defmodule IntegrationTest.Manager do
   alias Air.Schemas.{DataSource, Group, User, View}
 
   @admin_group_name "admins"
-  @user_mail "integration_test@aircloak.com"
   @user_password "1234"
   @data_source_global_id "postgres/cloaktest1-native@localhost"
 
@@ -16,17 +15,27 @@ defmodule IntegrationTest.Manager do
 
   def setup() do
     setup_cloak_database()
-    setup_air_user()
+    setup_data_source()
   end
 
   def data_source_global_id(), do: @data_source_global_id
 
-  def user_mail(), do: @user_mail
-
   def user_password(), do: @user_password
 
-  def air_user(), do:
-    Repo.one!(from u in User, where: u.email == @user_mail)
+  def create_air_user() do
+    admin_group = Repo.one!(from group in Group, where: group.name == @admin_group_name)
+
+    # create user
+    %User{}
+    |> User.new_user_changeset(%{
+          email: "user_#{:erlang.unique_integer([:positive])}@aircloak.com",
+          name: "user_#{:erlang.unique_integer([:positive])}",
+          password: @user_password,
+          password_confirmation: @user_password,
+          groups: [admin_group.id]
+        })
+    |> Repo.insert!()
+  end
 
 
   # -------------------------------------------------------------------
@@ -39,7 +48,7 @@ defmodule IntegrationTest.Manager do
     :ok = insert_rows(1..100, "users", ["name", "height"], ["john", 180])
   end
 
-  defp setup_air_user() do
+  defp setup_data_source() do
     # delete previous entries
     Repo.delete_all(View)
     Repo.delete_all("data_sources_groups")
@@ -52,17 +61,6 @@ defmodule IntegrationTest.Manager do
       %Group{}
       |> Group.changeset(%{name: @admin_group_name, admin: true})
       |> Repo.insert!()
-
-    # create user
-    %User{}
-    |> User.new_user_changeset(%{
-          email: @user_mail,
-          name: "integration_test",
-          password: @user_password,
-          password_confirmation: "1234",
-          groups: [admin_group.id]
-        })
-    |> Repo.insert!()
 
     # connect data source to group
     from(ds in DataSource, where: ds.global_id == @data_source_global_id)
