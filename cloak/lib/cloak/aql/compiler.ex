@@ -613,7 +613,9 @@ defmodule Cloak.Aql.Compiler do
   defp partition_selected_columns(query), do: query
 
   # This is effectively a special version of Enum.uniq/1. It does not collapse down duplicate
-  # occurrences of columns that contain row splitting functions.
+  # occurrences of columns that contain row splitting functions. This does not affect how many
+  # times database columns are loaded from the database, but allows us to deal with the output
+  # of the row splitting function instances separately.
   defp drop_duplicates(columns) do
     {columns, _} = List.foldr(columns, {[], 0}, fn(column, {acc, index}) ->
       {tagged_column, next_index} = tag_row_splitters(column, index)
