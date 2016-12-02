@@ -77,7 +77,7 @@ defmodule Air.Service.DataSource do
 
   @doc "Asks the cloak to describe the query, and returns the result."
   @lint {Credo.Check.Design.TagTODO, false}
-  @spec validate_view(data_source_id_spec, User.t, String.t) :: {:ok, map} | data_source_operation_error
+  @spec validate_view(data_source_id_spec, User.t, String.t) :: :ok | data_source_operation_error
   def validate_view(data_source_id_spec, user, sql) do
     on_available_cloak(data_source_id_spec, user,
       fn(data_source, channel_pid) ->
