@@ -296,6 +296,23 @@ defmodule Cloak.Aql.Function do
     end
   end
 
+  @doc """
+  Returns the first instance of a database column from a function spec
+  or column. Nil if none can be found.
+  """
+  @spec column(t) :: Column.t | nil
+  def column(%Column{constant?: true}), do: nil
+  def column(%Column{} = column), do: column
+  def column({:function, _, args}) do
+    args
+    |> Enum.map(&column/1)
+    |> Enum.filter(&(&1))
+    |> case do
+      [] -> nil
+      [column|_] -> column
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions

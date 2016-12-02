@@ -686,7 +686,7 @@ defmodule Cloak.Aql.Compiler do
     if Function.row_splitting_function?(function_spec) do
       # We are making the simplifying assumption that row splitting functions have
       # the value column returned as part of the first column
-      db_column = case find_db_column(hd(args)) do
+      db_column = case Function.column(hd(args)) do
         nil -> raise CompilationError, message:
           "Function `#{name}` requires that the first argument must be a column."
         value -> value
@@ -700,15 +700,6 @@ defmodule Cloak.Aql.Compiler do
       {_index, args, splitters} = partition_row_splitters(args, index)
       {[{:function, name, args}], splitters}
     end
-  end
-
-  defp find_db_column(%Column{constant?: true}), do: nil
-  defp find_db_column(%Column{} = column), do: column
-  defp find_db_column({:function, _, args}) do
-    args
-    |> Enum.map(&find_db_column/1)
-    |> Enum.filter(&(&1))
-    |> hd()
   end
 
   defp compile_order_by(%Query{order_by: []} = query), do: query
