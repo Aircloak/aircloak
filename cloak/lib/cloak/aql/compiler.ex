@@ -619,9 +619,9 @@ defmodule Cloak.Aql.Compiler do
   defp drop_duplicates(columns) do
     Enum.uniq_by(columns, fn(column) ->
       if Function.contains_row_splitter?(column) do
-        # We don't care about the column in this case, just that it is different from
-        # a) other columns
-        # b) the same row-splitter construct appearing again
+        # We don't care about the column value itself. Knowing it is a column construct containing
+        # a row splitting function, the only thing of importance is that it distinguishes itself from
+        # any other column, as well as repeat occurrences of the same column.
         Kernel.make_ref()
       else
         column
