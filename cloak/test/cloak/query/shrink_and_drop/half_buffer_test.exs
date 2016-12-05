@@ -18,7 +18,7 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer.Test do
 
   test "adding when the user is not in the buffer" do
     buffer = %HalfBuffer{size: 3, min: 10, max: 20, users: %{"user1" => :some_data}}
-    assert {%HalfBuffer{size: 3, users: %{ "user1" => :some_data, "user2" => %{value: 5, rows: [:more_data]}}}, []}
+    assert {%HalfBuffer{size: 3, users: %{"user1" => :some_data, "user2" => %{value: 5, rows: [:more_data]}}}, []}
       = HalfBuffer.add(buffer, 5, "user2", :more_data)
   end
 
