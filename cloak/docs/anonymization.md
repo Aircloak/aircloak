@@ -107,7 +107,9 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
   - The real median is computed.
   - The closest value per-user is extracted from above and below the median,
     from a noisy amount (mean: 5, SD: 1) of distinct users on each side.
-  - The final result is the average of the real median and the extracted values from above and below.
+  - The final result is the average of the real median and the extracted values from above and below,
+    to which an additional noise component is added which has mean 0 and SD equal to a quarter of the
+    standard deviantions of the values used for the median computation
   - In case we don't have enough values available to compute the average, `null` is returned.
 
 ## Example SUM() computation of positive values

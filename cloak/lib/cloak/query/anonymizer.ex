@@ -145,7 +145,7 @@ defmodule Cloak.Query.Anonymizer do
     top_count = config(:top_count)
     {noisy_above_count, anonymizer} = add_noise(anonymizer, top_count)
     noisy_above_count = round(noisy_above_count)
-    {noisy_below_count, _anonymizer} = add_noise(anonymizer, top_count)
+    {noisy_below_count, anonymizer} = add_noise(anonymizer, top_count)
     noisy_below_count = round(noisy_below_count)
 
     middle = round((Enum.count(values) - 1) / 2)
@@ -158,7 +158,10 @@ defmodule Cloak.Query.Anonymizer do
     case noisy_below_count + noisy_above_count + 1 do
       ^middle_values_count ->
         median = Enum.sum(middle_values) / middle_values_count
-        maybe_round_result(median, Enum.at(middle_values, 0))
+        median_variance = (middle_values |> Enum.map(&(:math.pow(&1 - median, 2))) |> Enum.sum()) / middle_values_count
+        quarter_median_stddev = :math.sqrt(median_variance) / 4
+        {noised_median, _anonymizer} = add_noise(anonymizer, {median, quarter_median_stddev})
+        maybe_round_result(noised_median, Enum.at(middle_values, 0))
       _ -> nil
     end
   end
