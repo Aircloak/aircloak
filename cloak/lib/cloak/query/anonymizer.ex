@@ -157,10 +157,7 @@ defmodule Cloak.Query.Anonymizer do
     middle_values_count = Enum.count(middle_values)
     case noisy_below_count + noisy_above_count + 1 do
       ^middle_values_count ->
-        median = Enum.sum(middle_values) / middle_values_count
-        median_variance = (middle_values |> Enum.map(&(:math.pow(&1 - median, 2))) |> Enum.sum()) / middle_values_count
-        quarter_median_stddev = :math.sqrt(median_variance) / 4
-        {noised_median, _anonymizer} = add_noise(anonymizer, {median, quarter_median_stddev})
+        {noised_median, _anonymizer} = noisy_average(middle_values, anonymizer)
         maybe_round_result(noised_median, Enum.at(middle_values, 0))
       _ -> nil
     end
@@ -337,12 +334,18 @@ defmodule Cloak.Query.Anonymizer do
       nil # there weren't enough values in the input to anonymize the result
     else
       top_values = Enum.take(top_values, top_count)
-      top_average = (top_values |> Enum.sum()) / top_count
-      top_variance = (top_values |> Enum.map(&(:math.pow(&1 - top_average, 2))) |> Enum.sum()) / top_count
-      quarter_top_stddev = :math.sqrt(top_variance) / 4
-      {noised_top_average, _anonymizer} = add_noise(anonymizer, {top_average, quarter_top_stddev})
+      {noised_top_average, _anonymizer} = noisy_average(top_values, anonymizer)
       maybe_round_result(noised_top_average, Enum.at(top_values, 0))
     end
+  end
+
+  # Returns the average of a set of values + noise with SD of the quarter of the SD of the input values
+  defp noisy_average(values, anonymizer) do
+    value_count = Enum.count(values)
+    average = Enum.sum(values) / value_count
+    variance = (values |> Enum.map(&(&1 - average) * (&1 - average)) |> Enum.sum()) / value_count
+    quarter_stddev = :math.sqrt(variance) / 4
+    add_noise(anonymizer, {average, quarter_stddev})
   end
 
   # Rounds a value to money style increments (1, 2, 5, 10, 20, 50, 100, ...).
