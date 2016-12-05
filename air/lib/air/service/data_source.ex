@@ -85,7 +85,7 @@ defmodule Air.Service.DataSource do
             ~w(name sql user_id data_source_id)a
           )
       |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
-      |>  Repo.insert()
+      |> Repo.insert()
     end)
   end
 

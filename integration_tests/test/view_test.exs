@@ -33,7 +33,6 @@ defmodule IntegrationTest.ViewTest do
     assert Map.fetch!(result, "rows") == [%{"occurrences" => 100, "row" => ["john"]}]
   end
 
-
   defp unique_view_name(), do:
     "view_#{:erlang.unique_integer([:positive])}"
 
