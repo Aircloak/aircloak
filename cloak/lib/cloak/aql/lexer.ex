@@ -56,6 +56,7 @@ defmodule Cloak.Aql.Lexer do
   defp tokens() do
     many(choice([
       whitespace(),
+      comment(),
       constant(),
       quoted_identifier(),
       identifier(),
@@ -71,6 +72,16 @@ defmodule Cloak.Aql.Lexer do
     |> map(fn({offset, {line, column}}) ->
           %Token{offset: offset, line: line, column: column, category: :eof}
         end)
+  end
+
+  defp comment() do
+    ignore(
+      sequence([
+        string("--"),
+        word_of(~r/.+/),
+        newline() |> increment_line()
+      ])
+    )
   end
 
   defp parameter(), do:
