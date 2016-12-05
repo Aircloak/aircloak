@@ -1,7 +1,7 @@
 defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
-  alias Air.Schemas.{DataSource, Query, User}
+  alias Air.Schemas.{DataSource, Query, User, View}
   alias Air.{DataSourceManager, PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel}
   import Ecto.Query, only: [from: 2]
   require Logger
@@ -13,6 +13,9 @@ defmodule Air.Service.DataSource do
     notify: boolean,
     session_id: String.t | nil
   ]
+
+  @type data_source_operation_error ::
+    {:error, :unauthorized | :not_connected | :internal_error | any}
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -56,70 +59,78 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Asks the cloak to describe the query, and returns the result."
-  @lint {Credo.Check.Design.TagTODO, false}
   @spec describe_query(data_source_id_spec, User.t, String.t, [Protocol.db_value]) ::
-    {:ok, map} | {:error, :unauthorized | :not_connected | :internal_error | any}
+    {:ok, map} | data_source_operation_error
   def describe_query(data_source_id_spec, user, statement, parameters) do
-    with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
-      try do
-        case DataSourceManager.channel_pids(data_source.global_id) do
-          [channel_pid | _] ->
-            data = %{
-              statement: statement,
-              data_source: data_source.global_id,
-              parameters: parameters,
-              views: %{} # TODO: pass views from the database once they are in place
-            }
-            MainChannel.describe_query(channel_pid, data)
-
-          [] -> {:error, :not_connected}
-        end
-      catch type, error ->
-        Logger.error([
-          "Error describing a query: #{inspect(type)}:#{inspect(error)}\n",
-          Exception.format_stacktrace(System.stacktrace())
-        ])
-
-        {:error, :internal_error}
+    on_available_cloak(data_source_id_spec, user,
+      fn(data_source, channel_pid) ->
+        MainChannel.describe_query(channel_pid, %{
+          statement: statement,
+          data_source: data_source.global_id,
+          parameters: parameters,
+          views: user_views_map(user)
+        })
       end
-    end
+    )
+  end
+
+  @doc "Saves the new view in the database."
+  @spec create_view(data_source_id_spec, User.t, String.t, String.t) ::
+    {:ok, View.t} | {:error, Ecto.Changeset.t} | data_source_operation_error
+  def create_view(data_source_id_spec, user, name, sql) do
+    on_cloak_validated_view(data_source_id_spec, user, sql, fn(data_source) ->
+      %View{}
+      |> Ecto.Changeset.cast(
+            %{user_id: user.id, data_source_id: data_source.id, name: name, sql: sql},
+            ~w(name sql user_id data_source_id)a
+          )
+      |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
+      |> Repo.insert()
+    end)
+  end
+
+  @doc "Updates the existing view in the database."
+  @spec update_view(data_source_id_spec, User.t, pos_integer, String.t, String.t) ::
+    {:ok, View.t} | {:error, Ecto.Changeset.t} | data_source_operation_error
+  def update_view(data_source_id_spec, user, view_id, name, sql) do
+    on_cloak_validated_view(data_source_id_spec, user, sql, fn(data_source) ->
+      saved_view = Repo.get!(View, view_id)
+
+      # assert no changes in user and data_source
+      true = (user.id == saved_view.user_id)
+      true = (data_source.id == saved_view.data_source_id)
+
+      saved_view
+      |> Ecto.Changeset.cast(%{name: name, sql: sql}, ~w(name sql)a)
+      |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
+      |> Repo.update()
+    end)
   end
 
   @doc "Starts the query on the given data source as the given user."
   @spec start_query(data_source_id_spec, User.t, String.t, [Protocol.db_value], start_query_options) ::
-    {:ok, Query.t} | {:error, :unauthorized | :not_connected | :internal_error | any}
+    {:ok, Query.t} | data_source_operation_error
   def start_query(data_source_id_spec, user, statement, parameters, opts \\ []) do
     opts = Keyword.merge([audit_meta: %{}, notify: false], opts)
 
-    with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user),
-         query <- create_query(data_source.id, user, statement, parameters, opts[:session_id])
-    do
-      Air.Service.AuditLog.log(user, "Executed query",
-        Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.id}))
+    on_available_cloak(data_source_id_spec, user,
+      fn(data_source, channel_pid) ->
+        query = create_query(data_source.id, user, statement, parameters, opts[:session_id])
 
-      try do
-        case DataSourceManager.channel_pids(query.data_source.global_id) do
-          [channel_pid | _] ->
-            if opts[:notify] == true, do: Air.QueryEvents.subscribe(query.id)
-            with :ok <- MainChannel.run_query(channel_pid, Query.to_cloak_query(query, parameters)), do:
-              {:ok, query}
+        Air.Service.AuditLog.log(user, "Executed query",
+          Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.id}))
 
-          [] -> {:error, :not_connected}
-        end
-      catch type, error ->
-        Logger.error([
-          "Error running a query: #{inspect(type)}:#{inspect(error)}\n",
-          Exception.format_stacktrace(System.stacktrace())
-        ])
+        if opts[:notify] == true, do: Air.QueryEvents.subscribe(query.id)
 
-        {:error, :internal_error}
+        with :ok <- MainChannel.run_query(channel_pid, cloak_query_map(query, user, parameters)), do:
+          {:ok, query}
       end
-    end
+    )
   end
 
   @doc "Runs the query synchronously and returns its result."
   @spec run_query(data_source_id_spec, User.t, String.t, [Protocol.db_value], [audit_meta: %{atom => any}]) ::
-    {:ok, %{}} | {:error, :unauthorized | :not_connected | :internal_error | any}
+    {:ok, map} | data_source_operation_error
   def run_query(data_source_id_spec, user, statement, parameters, opts \\ []) do
     opts = [{:notify, true} | opts]
     with {:ok, %{id: query_id}} <- start_query(data_source_id_spec, user, statement, parameters, opts) do
@@ -188,5 +199,53 @@ defmodule Air.Service.DataSource do
         })
     |> Repo.insert!()
     |> Repo.preload(:data_source)
+  end
+
+  defp on_available_cloak(data_source_id_spec, user, fun) do
+    with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
+      try do
+        case DataSourceManager.channel_pids(data_source.global_id) do
+          [channel_pid | _] -> fun.(data_source, channel_pid)
+          [] -> {:error, :not_connected}
+        end
+      catch type, error ->
+        Logger.error([
+          "Error running a cloak operation: #{inspect(type)}:#{inspect(error)}\n",
+          Exception.format_stacktrace(System.stacktrace())
+        ])
+
+        {:error, :internal_error}
+      end
+    end
+  end
+
+  defp on_cloak_validated_view(data_source_id_spec, user, sql, fun) do
+    on_available_cloak(data_source_id_spec, user,
+      fn(data_source, channel_pid) ->
+        with :ok <- MainChannel.validate_view(channel_pid, %{
+          data_source: data_source.global_id,
+          sql: sql,
+          views: user_views_map(user)
+        }) do
+          fun.(data_source)
+        end
+      end
+    )
+  end
+
+  defp user_views_map(user) do
+    Repo.preload(user, :views).views
+    |> Enum.map(&{&1.name, &1.sql})
+    |> Enum.into(%{})
+  end
+
+  defp cloak_query_map(query, user, parameters) do
+    %{
+      id: query.id,
+      statement: query.statement,
+      data_source: query.data_source.global_id,
+      parameters: parameters,
+      views: user_views_map(user)
+    }
   end
 end
