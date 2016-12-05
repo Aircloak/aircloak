@@ -13,12 +13,11 @@ defmodule Cloak.DataSource.MySQL do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
-  def connect(parameters) do
+  def connect!(parameters) do
     parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, pool: DBConnection.Connection]
-    with {:ok, connection} = Mariaex.start_link(parameters) do
-      {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET sql_mode = 'ANSI,NO_BACKSLASH_ESCAPES'", [])
-      {:ok, connection}
-    end
+    {:ok, connection} = Mariaex.start_link(parameters)
+    {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET sql_mode = 'ANSI,NO_BACKSLASH_ESCAPES'", [])
+    connection
   end
   @doc false
   def disconnect(connection) do
@@ -83,7 +82,7 @@ defmodule Cloak.DataSource.MySQL do
   defp field_mapper(<<1>>), do: true
   @decimal_precision :math.pow(10, 15)
   defp field_mapper(%Decimal{} = value), do:
-    (value |> Decimal.mult(Decimal.new(@decimal_precision)) |> Decimal.to_integer()) / @decimal_precision
+    Cloak.DecimalUtil.to_precision(value, @decimal_precision)
   defp field_mapper(field), do: field
 
   defp error_to_nil({:ok, result}), do: result

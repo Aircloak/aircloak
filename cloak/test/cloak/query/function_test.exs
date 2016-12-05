@@ -6,9 +6,9 @@ defmodule Cloak.Query.FunctionTest do
 
   setup_all do
     Cloak.Test.DB.create_table("heights_ft", "height INTEGER, name TEXT")
-    insert_rows(_user_ids = 1..100, "heights_ft", ["height"], [180])
+    insert_rows(_user_ids = 1..100, "heights_ft", ["height", "name"], [180, "first second third"])
 
-    Cloak.Test.DB.create_table("datetimes_ft", "datetime TIMESTAMP, date_only DATE, time_only TIME")
+    Cloak.Test.DB.create_table("datetimes_ft", "datetime TIMESTAMP, date_only DATE, time_only TIME, empty text")
     insert_rows(_user_ids = 1..10, "datetimes_ft", ["datetime"], [~N[2015-01-02 03:04:05.000000]])
   end
 
@@ -59,26 +59,148 @@ defmodule Cloak.Query.FunctionTest do
   test "extract_match", do:
     assert "First" == apply_elixir_function("extract_match('First word', '\\w+')", "heights_ft")
 
-  test "extract_match is forbidden in subquery" do
-    assert_subquery_function(
-      "extract_match(cast(height as text), '\d+')",
-      "heights_ft",
-      %{error: "Function `extract_match` is not allowed in subqueries."}
+  test "extract_matches can handle nil columns" do
+    assert_query(
+      "SELECT extract_matches(empty, '\\w+') as word FROM datetimes_ft",
+      %{rows: [%{occurrences: 10, row: [nil]}]}
     )
   end
 
-  test "knows that extract_match should be precompiled", do:
-    assert Function.needs_precompiling?("extract_match")
+  test "extract_matches surrounded by aggregate function" do
+    assert_query(
+      "SELECT avg(length(extract_matches(name, '\\w+'))) FROM heights_ft",
+      %{rows: [%{occurrences: 1, row: [average]}]}
+    )
+    assert_in_delta 5.3333, average, 0.0001
+  end
+
+  test "extract_matches alone splits words" do
+    assert_query(
+      "SELECT extract_matches(name, '\\w+') as word FROM heights_ft",
+      %{rows: [
+        %{row: ["first"], occurrences: 100},
+        %{row: ["second"], occurrences: 100},
+        %{row: ["third"], occurrences: 100},
+      ]}
+    )
+  end
+
+  test "extract_matches can have functions inside it" do
+    assert_query(
+      "SELECT extract_matches(cast(height as text), '\\w+') as word FROM heights_ft",
+      %{rows: [
+        %{row: ["180"], occurrences: 100},
+      ]}
+    )
+  end
+
+  test "extract_matches can have functions outside it" do
+    assert_query(
+      "SELECT length(extract_matches(name, '\\w+')) as word_length FROM heights_ft",
+      %{rows: [
+        %{row: [5], occurrences: 200},
+        %{row: [6], occurrences: 100},
+      ]}
+    )
+  end
+
+  test "extract_matches can be nested" do
+    assert_query(
+      "SELECT extract_matches(extract_matches(name, '\\w+'), '\\w') as w FROM heights_ft",
+      %{rows: rows}
+    )
+    expected_result = [
+        %{row: ["f"], occurrences: 100},
+        %{row: ["i"], occurrences: 200},
+        %{row: ["r"], occurrences: 200},
+        %{row: ["s"], occurrences: 200},
+        %{row: ["t"], occurrences: 200},
+        %{row: ["e"], occurrences: 100},
+        %{row: ["c"], occurrences: 100},
+        %{row: ["o"], occurrences: 100},
+        %{row: ["n"], occurrences: 100},
+        %{row: ["d"], occurrences: 200},
+        %{row: ["h"], occurrences: 100},
+      ]
+      |> Enum.sort_by(&(&1.row))
+    received_rows = Enum.sort_by(rows, &(&1.row))
+    assert expected_result == received_rows
+  end
+
+  test "extract_matches can be used multiple times at the same level" do
+    assert_query("""
+      SELECT
+        concat(
+          extract_matches(name, '\\w+'),
+          extract_matches(name, '\\w+')
+        ) as pairs
+      FROM heights_ft
+      """,
+      %{rows: [
+        %{row: ["firstfirst"], occurrences: 100},
+        %{row: ["firstsecond"], occurrences: 100},
+        %{row: ["firstthird"], occurrences: 100},
+        %{row: ["secondfirst"], occurrences: 100},
+        %{row: ["secondsecond"], occurrences: 100},
+        %{row: ["secondthird"], occurrences: 100},
+        %{row: ["thirdfirst"], occurrences: 100},
+        %{row: ["thirdsecond"], occurrences: 100},
+        %{row: ["thirdthird"], occurrences: 100},
+      ]}
+    )
+  end
+
+  test "extract_matches can be used multipel times in the same query" do
+    assert_query("""
+      SELECT
+        extract_matches(name, '\\w+') as word1,
+        extract_matches(name, '\\w+') as word2
+      FROM heights_ft
+      """,
+      %{rows: [
+        %{row: ["first", "first"], occurrences: 100},
+        %{row: ["first", "second"], occurrences: 100},
+        %{row: ["first", "third"], occurrences: 100},
+        %{row: ["second", "first"], occurrences: 100},
+        %{row: ["second", "second"], occurrences: 100},
+        %{row: ["second", "third"], occurrences: 100},
+        %{row: ["third", "first"], occurrences: 100},
+        %{row: ["third", "second"], occurrences: 100},
+        %{row: ["third", "third"], occurrences: 100},
+      ]}
+    )
+  end
+
+  test "extract_matches can handle regular expressions that yield no results" do
+    assert_query(
+      "SELECT extract_matches(name, 'foo') as words FROM heights_ft",
+      %{rows: []}
+    )
+  end
+
+  Enum.each(["extract_match", "extract_matches"], fn(function_name) ->
+    test "#{function_name} is forbidden in subquery" do
+      assert_subquery_function(
+        "#{unquote(function_name)}(cast(height as text), '\d+')",
+        "heights_ft",
+        %{error: "Function `#{unquote(function_name)}` is not allowed in subqueries."}
+      )
+    end
+
+    test "knows that #{function_name} should be precompiled", do:
+      assert Function.needs_precompiling?(unquote(function_name))
+
+    test "gives sensible error message for broken regex for #{function_name}" do
+      assert_query(
+        "SELECT #{unquote(function_name)}(name, '(missing-parenthesis') FROM heights_ft",
+        %{error: message}
+      )
+      assert message =~ ~r/missing \) at character/
+    end
+  end)
+
   test "normal (for example `ceil`) functions don't need precompiling", do:
     refute Function.needs_precompiling?("ceil")
-
-  test "gives sensible error message for broken regex" do
-    assert_query(
-      "SELECT extract_match(name, '(missing-parenthesis') FROM heights_ft",
-      %{error: message}
-    )
-    assert message =~ ~r/missing \) at character/
-  end
 
   test "min(height)", do: assert_subquery_aggregate("min(height)", "heights_ft", 180)
   test "max(height)", do: assert_subquery_aggregate("max(height)", "heights_ft", 180)

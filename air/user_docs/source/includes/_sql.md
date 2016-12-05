@@ -50,7 +50,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
 
   where_expression :=
     column_name equality_operator (value | column_name) |
-    column_name inequality_operator value |
+    column_name inequality_operator (numerical_value | datetime_value) |
     column_name BETWEEN value AND value |
     column_name IS [NOT] NULL |
     column_name IN (constant [, ...])
@@ -387,6 +387,8 @@ LEFT('some text', -2)
 
 ### length
 
+[Requires `math`](#optional-features)
+
 Computes the number of characters in the string.
 
 ```sql
@@ -468,6 +470,74 @@ UPPER('Some Text')
 UCASE('Some Text')
 -- 'SOME TEXT'
 ```
+
+### extract_match
+
+Runs a regular expression over a text column. The first match is extracted and replaces the original value.
+The syntax of the regular expressions [resemble that of Perl](http://erlang.org/doc/man/re.html#regexp_syntax).
+
+All regular expressions are considered case insensitive.
+
+```sql
+EXTRACT_MATCH('Some Text', 'Some')
+-- 'Some'
+
+EXTRACT_MATCH('This or that', 'this|that')
+-- 'This'
+
+EXTRACT_MATCH('This or that', 'Some')
+-- nil
+```
+
+This function is not allowed in subqueries.
+
+### extract_matches
+
+Runs a regular expression over a text column. All matches are extracted and turned into individual rows.
+The syntax of the regular expressions [resemble that of Perl](http://erlang.org/doc/man/re.html#regexp_syntax).
+
+All regular expressions are considered case insensitive.
+
+```sql
+EXTRACT_MATCHES('Some Text', '\w+')
+-- 'Some'
+-- 'Text'
+
+EXTRACT_MATCH('This or that', 'this|that')
+-- 'This'
+-- 'that'
+
+EXTRACT_MATCH('This or that', 'Some')
+# Notice, the row is surpressed when there is no match
+```
+
+This function is not allowed in subqueries.
+
+Keep in mind that this function might affect your analysis in unexpected ways.
+When a column value is split into multiple values, the whole row is replecated.
+This will affect the behaviour of other aggregate functions!
+
+For example, consider the following row coming from the database:
+
+| user-id | price | description |
+|---------|-------|-------------|
+| 1 | 10.00 | purchase of a book |
+| 2 | 15.00 | book of the year |
+
+If used in conjunction with `extract_matches(description, '\w+')`, the input data will be
+converted into the following rows before furhter analysis takes place
+
+| user-id | price | description |
+|---------|-------|-------------|
+| 1 | 10.00 | purchase |
+| 1 | 10.00 | of |
+| 1 | 10.00 | a |
+| 1 | 10.00 | book |
+| 2 | 15.00 | book |
+| 2 | 15.00 | of |
+| 2 | 15.00 | the |
+| 2 | 15.00 | year |
+
 
 ## Casting
 

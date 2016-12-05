@@ -173,13 +173,14 @@ defmodule Cloak.AirSocket do
   defp handle_air_call("run_query", serialized_query, from, state) do
     %{"id" => id, "statement" => statement, "data_source" => data_source} = serialized_query
     parameters = Map.fetch!(serialized_query, "parameters")
+    views = Map.fetch!(serialized_query, "views")
     case Cloak.DataSource.fetch(data_source) do
       :error ->
         respond_to_air(from, :error, "Unknown data source.")
 
       {:ok, data_source} ->
         Logger.info("starting query #{id} ...")
-        Cloak.Query.Runner.start(id, data_source, statement, parameters)
+        Cloak.Query.Runner.start(id, data_source, statement, parameters, views)
         respond_to_air(from, :ok)
     end
     {:ok, state}
@@ -187,14 +188,32 @@ defmodule Cloak.AirSocket do
   defp handle_air_call("describe_query", serialized_query, from, state) do
     %{"statement" => statement, "data_source" => data_source} = serialized_query
     parameters = Map.fetch!(serialized_query, "parameters")
+    views = Map.fetch!(serialized_query, "views")
     case Cloak.DataSource.fetch(data_source) do
       :error ->
         respond_to_air(from, :error, "Unknown data source.")
 
       {:ok, data_source} ->
-        case Cloak.Aql.Query.describe_query(data_source, statement, parameters) do
+        case Cloak.Aql.Query.describe_query(data_source, statement, parameters, views) do
           {:ok, columns, features} -> respond_to_air(from, :ok, %{columns: columns, features: features})
           {:error, reason} -> respond_to_air(from, :ok, reason)
+        end
+    end
+    {:ok, state}
+  end
+  defp handle_air_call("validate_view", serialized_view, from, state) do
+    data_source = Map.fetch!(serialized_view, "data_source")
+    sql = Map.fetch!(serialized_view, "sql")
+    views = Map.fetch!(serialized_view, "views")
+
+    case Cloak.DataSource.fetch(data_source) do
+      :error ->
+        respond_to_air(from, :error, "Unknown data source.")
+
+      {:ok, data_source} ->
+        case Cloak.Aql.Query.validate_view(data_source, sql, views) do
+          :ok -> respond_to_air(from, :ok, %{valid: true})
+          {:error, reason} -> respond_to_air(from, :ok, %{valid: false, error: reason})
         end
     end
     {:ok, state}

@@ -10,7 +10,7 @@ defmodule Air.ResultProcessor do
   """
 
   import Supervisor.Spec, warn: false
-  alias Air.{Repo, Query, Socket.Frontend.UserChannel}
+  alias Air.{Repo, Schemas.Query, Socket.Frontend.UserChannel}
   require Logger
 
 

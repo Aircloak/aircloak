@@ -4,7 +4,7 @@ defmodule Air.Admin.QueryControllerTest do
   use Air.ConnCase, async: false
 
   import Air.{TestConnHelper, TestRepoHelper}
-  alias Air.{Repo, DataSource}
+  alias Air.{Repo, Schemas.DataSource}
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})

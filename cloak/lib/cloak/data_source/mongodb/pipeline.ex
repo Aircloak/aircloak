@@ -32,7 +32,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     {collection, pipeline}
   end
   def build(%Query{from: {:join, _}}), do:
-    raise RuntimeError, message: "Table joins are not supported on 'mongodb' data sources."
+    raise RuntimeError, message: "Table joins are not supported on MongoDB data sources."
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -41,10 +41,8 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   defp parse_query(%Query{subquery?: false} = query), do:
     Projector.map_columns(query.db_columns)
-  defp parse_query(%Query{group_by: [_|_]}), do:
-    raise RuntimeError, message: "Grouping in subqueries is not supported on 'mongodb' data sources."
-  defp parse_query(query), do:
-    Projector.map_columns(query.db_columns) ++
+  defp parse_query(%Query{subquery?: true} = query), do:
+    aggregate_and_project(query) ++
     order_rows(query.order_by, query.db_columns) ++
     offset_rows(query.offset) ++
     limit_rows(query.limit)
@@ -123,4 +121,84 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   defp limit_rows(nil), do: []
   defp limit_rows(amount), do: [%{'$limit': amount}]
+
+  defp extract_aggregator(%Column{aggregate?: true} = column), do: [column]
+  defp extract_aggregator(%Column{db_function: fun} = column) when fun != nil,
+    do: Enum.flat_map(column.db_function_args, &extract_aggregator/1)
+  defp extract_aggregator(_column), do: []
+
+  defp project_properties([]), do: nil
+  defp project_properties(properties) do
+    properties
+    |> Enum.with_index()
+    |> Enum.map(fn ({column, index}) ->
+      Projector.map_column(%Column{column | alias: "property_#{index}"})
+    end)
+    |> Enum.into(%{})
+  end
+
+  defp project_aggregators(aggregators) do
+    aggregators
+    |> Enum.with_index()
+    |> Enum.map(fn ({column, index}) ->
+      Projector.map_column(%Column{column | alias: "aggregated_#{index}"})
+    end)
+    |> Enum.into(%{})
+  end
+
+  # This extracts the upper part of a column that need to be projected after grouping is done.
+  defp extract_column_top(%Column{constant?: true} = column, _aggregators, _groups), do: column
+  defp extract_column_top(%Column{db_function: "count", db_function_args: [{:distinct, _}]} = column, aggregators, _groups) do
+    # For distinct count, we gather values into a set and then project the size of the set.
+    index = Enum.find_index(aggregators, &Column.equals(column, &1))
+    %Column{name: "aggregated_#{index}#", table: :unknown, alias: column.alias}
+  end
+  defp extract_column_top(%Column{db_function_args: [{:distinct, _}]} = column, aggregators, _groups) do
+    # For distinct aggregators, we gather values into a set and then project the aggregator over the set.
+    index = Enum.find_index(aggregators, &Column.equals(column, &1))
+    %Column{column | db_function_args: [%Column{name: "aggregated_#{index}", table: :unknown}]}
+  end
+  defp extract_column_top(column, aggregators, groups) do
+    case Enum.find_index(aggregators, &Column.equals(column, &1)) do
+      nil ->
+        case Enum.find_index(groups, &Column.equals(column, &1)) do
+          nil ->
+            # Has to be a function call since the lookups failed.
+            args = Enum.map(column.db_function_args, &extract_column_top(&1, aggregators, groups))
+            %Column{column | db_function_args: args}
+          index ->
+            %Column{name: "_id.property_#{index}", table: :unknown, alias: column.alias || column.name}
+        end
+      index ->
+        %Column{name: "aggregated_#{index}", table: :unknown, alias: column.alias}
+    end
+  end
+
+  defp extract_column_top_from_condition({:not, condition}, aggregators), do:
+    {:not, extract_column_top_from_condition(condition, aggregators)}
+  defp extract_column_top_from_condition({:comparison, lhs, operator, rhs}, aggregators), do:
+    {:comparison, extract_column_top(lhs, aggregators, []), operator, rhs}
+  defp extract_column_top_from_condition({verb, lhs, rhs}, aggregators) when verb in [:in, :is, :like, :ilike], do:
+    {verb, extract_column_top(lhs, aggregators, []), rhs}
+
+  defp aggregate_and_project(%Query{db_columns: columns, distinct: true}) do
+    properties = project_properties(columns)
+    column_tops = Enum.map(columns, &extract_column_top(&1, [], columns))
+    [%{'$group': %{"_id" => properties}}] ++ Projector.map_columns(column_tops)
+  end
+  defp aggregate_and_project(%Query{db_columns: columns, group_by: groups, having: having}) do
+    aggregators =
+      (columns ++ Enum.map(having, &Comparison.subject/1))
+      |> Enum.flat_map(&extract_aggregator/1)
+      |> Enum.uniq()
+    if aggregators ++ groups == [] do
+      Projector.map_columns(columns)
+    else
+      column_tops = Enum.map(columns, &extract_column_top(&1, aggregators, groups))
+      properties = project_properties(groups)
+      group = aggregators |> project_aggregators() |> Enum.into(%{"_id" => properties})
+      having = Enum.map(having, &extract_column_top_from_condition(&1, aggregators))
+      [%{'$group': group}] ++ parse_where_conditions(having) ++ Projector.map_columns(column_tops)
+    end
+  end
 end

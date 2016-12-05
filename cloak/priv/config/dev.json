@@ -28,6 +28,18 @@
           "db_name": "demographics",
           "user_id": "uid",
           "ignore_unsupported_types": false
+        },
+        "customers": {
+          "db_name": "customers",
+          "user_id": "id"
+        },
+        "accounts": {
+          "db_name": "accounts",
+          "user_id": "customer_id"
+        },
+        "transactions": {
+          "db_name": "transactions",
+          "user_id": "customer_id"
         }
       }
     },
@@ -55,6 +67,18 @@
           "db_name": "demographics",
           "user_id": "uid",
           "ignore_unsupported_types": false
+        },
+        "customers": {
+          "db_name": "customers",
+          "user_id": "id"
+        },
+        "accounts": {
+          "db_name": "accounts",
+          "user_id": "customer_id"
+        },
+        "transactions": {
+          "db_name": "transactions",
+          "user_id": "customer_id"
         }
       }
     }

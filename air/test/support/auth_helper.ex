@@ -2,7 +2,7 @@ defmodule Air.TestAuthHelper do
   @moduledoc "Helpers for working with users."
 
   require Aircloak.DeployConfig
-  alias Air.{ApiToken, Token, User}
+  alias Air.{Schemas.ApiToken, Schemas.User, Token}
 
   defmodule TokenEndpoint do
     @moduledoc false

@@ -9,7 +9,7 @@ defmodule Air.CentralQueryReporter do
 
   import Supervisor.Spec, warn: false
   require Logger
-  alias Air.{Repo, Query}
+  alias Air.{Repo, Schemas.Query}
 
 
   # -------------------------------------------------------------------

@@ -1,7 +1,7 @@
-defmodule Air.ApiTokenTest do
+defmodule Air.Schemas.ApiTokenTest do
   use ExUnit.Case, async: true
-  use Air.ModelCase
-  alias Air.{ApiToken}
+  use Air.SchemaCase
+  alias Air.Schemas.ApiToken
 
   @valid_attrs %{description: "some content", user_id: 1}
   @invalid_attrs %{}

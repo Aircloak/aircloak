@@ -80,6 +80,18 @@ defmodule Cloak.Aql.Column do
   # Fallback to `Enum.at` for larger positions
   def value(column, row), do: Enum.at(row, column.db_row_position)
 
+  @doc "Checks two columns for equality."
+  @spec equals(any, any) :: boolean
+  def equals({:distinct, c1}, {:distinct, c2}), do: equals(c1, c2)
+  def equals(:*, :*), do: true
+  def equals(%__MODULE__{} = c1, %__MODULE__{} = c2), do:
+    c1.table == c2.table and
+    c1.name == c2.name and
+    c1.value == c2.value and
+    c1.db_function == c2.db_function and
+    Enum.zip(c1.db_function_args, c2.db_function_args) |> Enum.all?(fn ({arg1, arg2}) -> equals(arg1, arg2) end)
+  def equals(_c1, _c2), do: false
+
 
   # -------------------------------------------------------------------
   # Internal functions

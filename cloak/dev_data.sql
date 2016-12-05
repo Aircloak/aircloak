@@ -448,6 +448,106 @@ REVOKE ALL ON TABLE demographics FROM postgres;
 GRANT ALL ON TABLE demographics TO postgres;
 GRANT ALL ON TABLE demographics TO cloak;
 
+
+-- Data to simulate an account use case
+
+--
+-- Name: customer; Type: TABLE; Schema: public; Owner: cloak; Tablespace:
+--
+
+CREATE TABLE customers (
+    id integer NOT NULL
+);
+
+ALTER TABLE customers OWNER TO cloak;
+CREATE SEQUENCE customers_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+ALTER TABLE customers_id_seq OWNER TO cloak;
+ALTER SEQUENCE customers_id_seq OWNED BY customers.id;
+ALTER TABLE ONLY customers ALTER COLUMN id SET DEFAULT nextval('customers_id_seq'::regclass);
+
+INSERT INTO customers (id) VALUES (1);
+INSERT INTO customers (id) VALUES (2);
+INSERT INTO customers (id) VALUES (3);
+INSERT INTO customers (id) VALUES (4);
+INSERT INTO customers (id) VALUES (5);
+INSERT INTO customers (id) VALUES (6);
+INSERT INTO customers (id) VALUES (7);
+INSERT INTO customers (id) VALUES (8);
+INSERT INTO customers (id) VALUES (9);
+INSERT INTO customers (id) VALUES (10);
+
+
+CREATE TABLE accounts (
+    id integer NOT NULL,
+    customer_id integer,
+    account_number text,
+    swift varchar(11)
+);
+
+ALTER TABLE accounts OWNER TO cloak;
+CREATE SEQUENCE accounts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+ALTER TABLE accounts_id_seq OWNER TO cloak;
+ALTER SEQUENCE accounts_id_seq OWNED BY accounts.id;
+ALTER TABLE ONLY accounts ALTER COLUMN id SET DEFAULT nextval('accounts_id_seq'::regclass);
+
+INSERT INTO accounts (customer_id, account_number, swift) values (1, 'NL04873206260270312838', 'ABNCNL2AENE');
+INSERT INTO accounts (customer_id, account_number, swift) values (2, 'GB1107265138028543504015', 'SOGEGB22GBS');
+INSERT INTO accounts (customer_id, account_number, swift) values (3, 'DE60864644672838081844070', 'ABNADEFFBER');
+INSERT INTO accounts (customer_id, account_number, swift) values (4, 'NL110635457877705476567445252', 'RGVMNL2RTR2');
+INSERT INTO accounts (customer_id, account_number, swift) values (5, 'DE31638812021143003830768', 'IRVTDEFX');
+INSERT INTO accounts (customer_id, account_number, swift) values (6, 'DE47134410814843108138', 'IRVTDEFX');
+INSERT INTO accounts (customer_id, account_number, swift) values (7, 'NL8620021671548880764', 'ABNCNL2AENE');
+INSERT INTO accounts (customer_id, account_number, swift) values (8, 'GB421161687217187724706', 'ANTSGB2L');
+INSERT INTO accounts (customer_id, account_number, swift) values (9, 'DE4711075686234780338352315', 'TEAMDE77');
+INSERT INTO accounts (customer_id, account_number, swift) values (10, 'DE237533210138420667843027', 'ABNADEFFBER');
+
+
+CREATE TABLE transactions (
+    id integer NOT NULL,
+    customer_id integer,
+    account_id text,
+    amount integer,
+    date timestamp,
+    description text
+);
+
+ALTER TABLE transactions OWNER TO cloak;
+CREATE SEQUENCE transactions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+ALTER TABLE transactions_id_seq OWNER TO cloak;
+ALTER SEQUENCE transactions_id_seq OWNED BY transactions.id;
+ALTER TABLE ONLY transactions ALTER COLUMN id SET DEFAULT nextval('transactions_id_seq'::regclass);
+
+INSERT INTO transactions (customer_id, account_id, amount, date, description) values (1, 1, -1331, '2016-12-23 23:59:57', 'xtWiMYnNbXWVrAUgTAaquXCPpYVMhhtDtDleAcrbAOdYTPLJ');
+INSERT INTO transactions (customer_id, account_id, amount, date, description) values (1, 2, -324, '2016-12-28 14:26:8', 'qVgByrpnSGsfidSGSywusOMhaOSLOFMCa');
+INSERT INTO transactions (customer_id, account_id, amount, date, description) values (2, 3, 18, '2016-12-12 17:45:40', 'iXNNMSAHSoVquGvS');
+INSERT INTO transactions (customer_id, account_id, amount, date, description) values (2, 3, -1000, '2016-12-19 3:1:5', 'Amazon');
+INSERT INTO transactions (customer_id, account_id, amount, date, description) values (3, 7, -121, '2016-12-2 4:19:39', 'Amazon');
+INSERT INTO transactions (customer_id, account_id, amount, date, description) values (4, 10, 15, '2016-12-26 5:20:13', 'EdPeEXWNMfjPslavBmQSfnPCODsMwuGKEXmfpjAfoCTNqHUWu');
+INSERT INTO transactions (customer_id, account_id, amount, date, description) values (5, 13, -196, '2016-12-23 17:42:44', 'Amazon');
+INSERT INTO transactions (customer_id, account_id, amount, date, description) values (5, 13, -225, '2016-12-31 5:41:21', 'IKEA');
+INSERT INTO transactions (customer_id, account_id, amount, date, description) values (6, 17, -49, '2016-12-31 21:56:41', 'XDyuYakpwdrFRKlXOjeCMdiXABdkHSvqyfwmrdEcvjuNOftyIOmJeLwpcwTpNktaawUyqBJhYlhBonoVBoMISla');
+INSERT INTO transactions (customer_id, account_id, amount, date, description) values (6, 17, 0, '2016-12-6 16:34:20', 'yuqtWHUycSulXUTOw');
+INSERT INTO transactions (customer_id, account_id, amount, date, description) values (7, 22, -1331, '2016-12-27 12:40:19', 'BTakOoPmbcUOvObTraBUrJakdBTTErLJQTSNVOjyPhawwgUkpGKlORhQwlRvkbUUTCWNhFnGnKaJ');
+INSERT INTO transactions (customer_id, account_id, amount, date, description) values (8, 27, -17, '2016-12-17 21:12:43', 'nkxbWHjXssbTun');
+INSERT INTO transactions (customer_id, account_id, amount, date, description) values (9, 28, -16, '2016-12-3 19:39:20', 'Amazon');
+INSERT INTO transactions (customer_id, account_id, amount, date, description) values (10, 30, 1, '2016-12-30 16:50:53', 'cIejxImLIDtlO');
+
+
 --
 -- PostgreSQL database dump complete
 --

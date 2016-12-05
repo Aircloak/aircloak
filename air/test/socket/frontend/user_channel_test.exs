@@ -31,14 +31,14 @@ defmodule Air.Socket.Frontend.UserChannelTest do
     query = create_query!(user, %{session_id: session_id})
     UserChannel.broadcast_result(query)
 
-    expected = Air.Query.for_display(query)
+    expected = Air.Schemas.Query.for_display(query)
 
     assert_push("result", ^expected)
   end
 
   test "results of queries are not pushed to other sessions", %{user: user} do
     query = create_query!(user, %{session_id: Ecto.UUID.generate()})
-    result = Air.Query.for_display(query)
+    result = Air.Schemas.Query.for_display(query)
 
     UserChannel.broadcast_result(query)
 
