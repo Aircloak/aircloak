@@ -314,7 +314,7 @@ defmodule Cloak.Query.Anonymizer do
   defp get_max(anonymizer, rows, row_accumulator) do
     {outliers_count, anonymizer} = add_noise(anonymizer, config(:outliers_count))
     outliers_count = outliers_count |> round() |> Kernel.max(config(:min_outliers_count))
-    {top_count, _anonymizer} = add_noise(anonymizer, config(:top_count))
+    {top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
     top_count = round(top_count)
 
     {top_length, top_values} = Enum.reduce(rows, {0, []}, fn
@@ -333,8 +333,12 @@ defmodule Cloak.Query.Anonymizer do
     if top_length < top_count + outliers_count do
       nil # there weren't enough values in the input to anonymize the result
     else
-      top_average = (top_values |> Enum.take(top_count) |> Enum.sum()) / top_count
-      maybe_round_result(top_average, Enum.at(top_values, 0))
+      top_values = Enum.take(top_values, top_count)
+      top_average = (top_values |> Enum.sum()) / top_count
+      top_variance = (top_values |> Enum.map(&(:math.pow(&1 - top_average, 2))) |> Enum.sum()) / top_count
+      quarter_top_stddev = :math.sqrt(top_variance) / 4
+      {noised_top_average, _anonymizer} = add_noise(anonymizer, {top_average, quarter_top_stddev})
+      maybe_round_result(noised_top_average, Enum.at(top_values, 0))
     end
   end
 

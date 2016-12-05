@@ -49,6 +49,8 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
   - The first No users with the maximum / minimum overall values are dropped,
     where No is a noisy number with mean 4, SD 1 and lower bound 1.
   - Take the average value of the top Nt remaining users, where Nt is a noisy number with mean 5 and SD 1.
+  - Add noise to the top average with mean 0 and SD equal a quarter of the standard deviation of the values
+    used for the average calculation.
   - Final result is the maximum / minimum between the result of the previous step and
     the biggest / smallest value that would pass the low-count filter.
   - In case we don't have enough values available to compute the average, `null` is returned.
@@ -102,7 +104,7 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
 ## MEDIAN
 
   - The values are sorted in ascending order.
-  - The real median is computed.  
+  - The real median is computed.
   - The closest value per-user is extracted from above and below the median,
     from a noisy amount (mean: 5, SD: 1) of distinct users on each side.
   - The final result is the average of the real median and the extracted values from above and below.
