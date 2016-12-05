@@ -1,6 +1,6 @@
 defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer do
   @moduledoc """
-  Implements one side of the buffer for the shrink and drop algorithm. For an overwie see "Shrink and drop" in
+  Implements one side of the buffer for the shrink and drop algorithm. For an overview see "Shrink and drop" in
   docs/anonymization.md.
   """
 
