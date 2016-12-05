@@ -155,7 +155,7 @@ defmodule Cloak.Query.Anonymizer do
     middle_values = below_values ++ [middle_value] ++ above_values
 
     middle_values_count = Enum.count(middle_values)
-    case  noisy_below_count + noisy_above_count + 1 do
+    case noisy_below_count + noisy_above_count + 1 do
       ^middle_values_count ->
         median = Enum.sum(middle_values) / middle_values_count
         maybe_round_result(median, Enum.at(middle_values, 0))
