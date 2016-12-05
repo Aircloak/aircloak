@@ -181,7 +181,7 @@ scheme used for the grid is a bit more complex to make the produced aligned
 intervals feel more natural (like a quarter or a full month).
 
 The interval is converted into units since epoch (or midnight for time intervals)
-depending on its size - an interval of a couple minutes will use minutes here,
+depending on its size - an interval of a couple minutes will use minutes,
 while one that is about the length of a month will use months. That converted
 interval is then aligned as described in [Fixed alignment](#fixed_alignment) with
 the caveat that depending on the chosen grain (days, minutes, etc.) a different
@@ -199,12 +199,17 @@ same for both queries.
 The perfect algorithm for this calls for analyzing all possible smaller ranges
 for a given range and then recursively checking any data that remains after
 suppression. Due to problems with implementing such an approach in a streaming
-manner we decided on the following, approximate, approach:
+manner we decided on an approximate appraoch. The overall idea is to keep track
+of a number of users with the highest and lowest values and buffer all records
+of such users. At the end of the stream we decide how many of the most extreme
+values need to be suppressed by producing an aligned range that encompasses most
+of the data seen and rejecting rows that fall outside of it. Details:
 
 * The input is a stream of rows.
-* We buffer top and bottom N values for the scoped column seen.
+* We buffer top and bottom N users with respect to the scoped column seen so far.
 * When a row arrives we check if it's "safe" - that is the value for that row
-is bigger than the bottom N values and smaller than the top N.
+is bigger than the biggest buffered value for the bottom N users and smaller
+than the smallest buffered value for the top N.
 * If it is then we emit it immediately.
 * If it's not then we add it to the buffer. If the row belongs to a user that's
 already in the buffer it is "attached" to that user. Otherwise a new entry for
@@ -218,8 +223,9 @@ of being emitted.
 * At the end of the stream we pick a random number with the same configuration as
 the offset used for determining `low_count` using a seed generated from the set
 of used ids.
-* The number N above is picked in such a way that there is a low probability of
-requiring more than N values at this point.
+* The number N above is picked in such a way that there is a very high probability of
+it being bigger than the number chosen in the previous step so that we have sufficient
+users to perform the calculation after we drop that many users.
 * We skip that number of users from each side of the buffer. We find the smallest
 range that encompasses all non-skipped entries in the buffer and align that range.
 * We emit all buffered data that fits into the aligned range and suppress all data
