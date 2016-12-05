@@ -1,0 +1,12 @@
+<h2>New view</h2>
+
+<%= render "_form.html", changeset: @changeset,
+  action: data_source_view_path(@conn, :create, @data_source_id), conn: @conn %>
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      App.viewEditor({}, document.getElementById("viewEditor"));
+    }
+  };
+</script>

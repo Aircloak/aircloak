@@ -12,4 +12,9 @@ defmodule Air.Schemas.View do
     belongs_to :user, Air.Schemas.User
     belongs_to :data_source, Air.Schemas.User
   end
+
+  @doc "Creates a changeset which can be used in forms."
+  @spec changeset(map) :: Changeset.t
+  def changeset(params \\ %{}), do:
+    cast(%__MODULE__{}, params, [])
 end

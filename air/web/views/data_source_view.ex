@@ -28,4 +28,8 @@ defmodule Air.DataSourceView do
   def tables(data_source) do
     {:safe, data_source |> DataSource.tables() |> Poison.encode!()}
   end
+
+  defp views_for_client(views) do
+    Enum.map(views, &%{name: &1.name})
+  end
 end

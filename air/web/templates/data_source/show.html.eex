@@ -24,7 +24,14 @@
       </div>
     </div>
 
-    <div class="column align-footer col-sm-3" id="table-info"></div>
+    <div class="column align-footer col-sm-3">
+      <div data-spy="affix">
+        <div id="table-info"></div>
+        <a href="<%= data_source_view_path(@conn, :new, @data_source.id) %>">
+          Add a new view
+        </a>
+      </div>
+    </div>
   </div>
 </div>
 

@@ -9,7 +9,7 @@ defmodule IntegrationTest.ViewTest do
   end
 
   test "reporting view error", context do
-    assert {:error, error} = create_view(context.user, "foo", "select")
+    assert {:error, %Ecto.Changeset{errors: [sql: {error, _}]}} = create_view(context.user, "foo", "select")
     assert error =~ ~r/Expected `column definition`/
   end
 
@@ -38,12 +38,10 @@ defmodule IntegrationTest.ViewTest do
     "view_#{:erlang.unique_integer([:positive])}"
 
   defp create_view(user, name, sql), do:
-    Air.Service.DataSource.create_view({:global_id, Manager.data_source_global_id()}, user,
-      name, sql)
+    Air.Service.DataSource.create_view(Manager.data_source_local_id(), user, name, sql)
 
   defp update_view(user, view_id, name, sql), do:
-    Air.Service.DataSource.update_view({:global_id, Manager.data_source_global_id()}, user,
-      view_id, name, sql)
+    Air.Service.DataSource.update_view(user, view_id, name, sql)
 
   defp run_query(user, query, params \\ []), do:
     Air.Service.DataSource.run_query(

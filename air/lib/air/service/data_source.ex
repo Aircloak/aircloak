@@ -80,36 +80,21 @@ defmodule Air.Service.DataSource do
     Repo.all(from view in View, where: view.data_source_id == ^data_source.id and view.user_id == ^user.id)
 
   @doc "Saves the new view in the database."
-  @spec create_view(data_source_id_spec, User.t, String.t, String.t) ::
+  @spec create_view(String.t, User.t, String.t, String.t) ::
     {:ok, View.t} | {:error, Ecto.Changeset.t} | data_source_operation_error
-  def create_view(data_source_id_spec, user, name, sql) do
-    on_cloak_validated_view(data_source_id_spec, user, sql, fn(data_source) ->
-      %View{}
-      |> Ecto.Changeset.cast(
-            %{user_id: user.id, data_source_id: data_source.id, name: name, sql: sql},
-            ~w(name sql user_id data_source_id)a
-          )
-      |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
-      |> Repo.insert()
-    end)
+  def create_view(data_source_id, user, name, sql) do
+    changes = %{data_source_id: data_source_id, user_id: user.id, name: name, sql: sql}
+    with {:ok, changeset} <- validated_view_changeset(user, %View{}, changes, :insert), do:
+      Repo.insert(changeset)
   end
 
   @doc "Updates the existing view in the database."
-  @spec update_view(data_source_id_spec, User.t, pos_integer, String.t, String.t) ::
+  @spec update_view(User.t, pos_integer, String.t, String.t) ::
     {:ok, View.t} | {:error, Ecto.Changeset.t} | data_source_operation_error
-  def update_view(data_source_id_spec, user, view_id, name, sql) do
-    on_cloak_validated_view(data_source_id_spec, user, sql, fn(data_source) ->
-      saved_view = Repo.get!(View, view_id)
-
-      # assert no changes in user and data_source
-      true = (user.id == saved_view.user_id)
-      true = (data_source.id == saved_view.data_source_id)
-
-      saved_view
-      |> Ecto.Changeset.cast(%{name: name, sql: sql}, ~w(name sql)a)
-      |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
-      |> Repo.update()
-    end)
+  def update_view(user, view_id, name, sql) do
+    changes = %{name: name, sql: sql}
+    with {:ok, changeset} <- validated_view_changeset(user, Repo.get!(View, view_id), changes, :update), do:
+      Repo.update(changeset)
   end
 
   @doc "Starts the query on the given data source as the given user."
@@ -225,19 +210,42 @@ defmodule Air.Service.DataSource do
     end
   end
 
-  defp on_cloak_validated_view(data_source_id_spec, user, sql, fun) do
-    on_available_cloak(data_source_id_spec, user,
+  defp validated_view_changeset(user, view, changes, action) do
+    changeset = %Ecto.Changeset{apply_view_changeset(view, changes) | action: action}
+
+    if Enum.empty?(changeset.errors) do
+      final_view = Ecto.Changeset.apply_changes(changeset)
+
+      # make sure the user is correct
+      true = (final_view.user_id == user.id)
+
+      case validate_view_on_cloak(final_view, user) do
+        :ok -> {:ok, changeset}
+        {:error, sql_error} when is_binary(sql_error) ->
+          # SQL error returned by the cloak -> we'll convert into a changeset
+          {:error, Ecto.Changeset.add_error(changeset, :sql, sql_error)}
+        other -> other
+      end
+    else
+      {:error, changeset}
+    end
+  end
+
+  defp apply_view_changeset(view, changes), do:
+    view
+    |> Ecto.Changeset.cast(changes, ~w(name sql user_id data_source_id)a)
+    |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
+
+  defp validate_view_on_cloak(view, user), do:
+    on_available_cloak({:id, view.data_source_id}, user,
       fn(data_source, channel_pid) ->
-        with :ok <- MainChannel.validate_view(channel_pid, %{
+        MainChannel.validate_view(channel_pid, %{
           data_source: data_source.global_id,
-          sql: sql,
+          sql: view.sql,
           views: user_views_map(user)
-        }) do
-          fun.(data_source)
-        end
+        })
       end
     )
-  end
 
   defp user_views_map(user) do
     Repo.preload(user, :views).views

@@ -20,6 +20,8 @@ defmodule IntegrationTest.Manager do
   end
 
   def data_source_global_id(), do: @data_source_global_id
+  def data_source_local_id(), do:
+    Repo.one(from(ds in DataSource, where: ds.global_id == @data_source_global_id)).id
 
   def user_password(), do: @user_password
 

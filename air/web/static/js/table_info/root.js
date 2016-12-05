@@ -45,21 +45,23 @@ class TableInfo extends React.Component {
   }
 
   render() {
-    return (<div data-spy="affix" className="panel panel-default table-info">
-      <div className="panel-heading"><strong>Tables</strong></div>
+    return (
+      <div className="panel panel-default table-info">
+        <div className="panel-heading"><strong>Tables</strong></div>
 
-      <div className="table-info-content">
-        {this.tables().map((table, i) =>
-          <
-            TableView
-            key={i}
-            table={table}
-            expanded={this.expanded(table)}
-            onClick={this.toggleExpand(table)}
-          />
-        )}
+        <div className="table-info-content">
+          {this.tables().map((table, i) =>
+            <
+              TableView
+              key={i}
+              table={table}
+              expanded={this.expanded(table)}
+              onClick={this.toggleExpand(table)}
+            />
+          )}
+        </div>
       </div>
-    </div>);
+    );
   }
 }
 
