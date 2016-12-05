@@ -14,6 +14,7 @@ defmodule IntegrationTest.Manager do
   # -------------------------------------------------------------------
 
   def setup() do
+    await_data_source()
     setup_cloak_database()
     setup_data_source()
   end
@@ -41,6 +42,13 @@ defmodule IntegrationTest.Manager do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp await_data_source() do
+    if Repo.one(from(ds in DataSource, where: ds.global_id == @data_source_global_id)) == nil do
+      :timer.sleep(100)
+      await_data_source()
+    end
+  end
 
   defp setup_cloak_database() do
     Cloak.Test.DB.start_link()
