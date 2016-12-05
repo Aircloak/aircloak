@@ -78,7 +78,7 @@ defmodule Cloak.Query.ShrinkAndDrop do
 
   defp buffer_size do
     # A size that is unlikely to be exceeded by Anonymizer.noisy_lower_bound()
-    {mean, _sigma} = Anonymizer.config(:low_count_soft_lower_bound)
-    3 * mean + 1
+    {mean, sigma} = Anonymizer.config(:low_count_soft_lower_bound)
+    round(mean + 5 * sigma + 1)
   end
 end
