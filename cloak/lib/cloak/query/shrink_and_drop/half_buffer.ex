@@ -71,8 +71,8 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer do
   Returns a number such that all data in the buffer except for the outermost n users is "inside" that number with
   respect to the buffer's comparator.
   """
-  @spec value_dropping(t, non_neg_integer) :: number
-  def value_dropping(%{comparator: comparator, users: users}, n) do
+  @spec values_except_extreme(t, non_neg_integer) :: number
+  def values_except_extreme(%{comparator: comparator, users: users}, n) do
     n = min(Enum.count(users) - 1, n)
     users |> Map.values() |> Enum.map(&(&1[:value])) |> Enum.sort_by(&(&1), comparator) |> Enum.drop(n) |> hd()
   end

@@ -59,10 +59,10 @@ defmodule Cloak.Query.ShrinkAndDrop.Buffer do
   def empty?(%{left: left, right: right}), do: HalfBuffer.empty?(left) && HalfBuffer.empty?(right)
 
   @doc "Returns a pair {x, y} such that when ignoring n outermost entries all data in the buffer is >= x and <= y."
-  @spec range_dropping(t, non_neg_integer) :: FixAlign.interval(number)
-  def range_dropping(%{left: left, right: right}, n) do
-    x = HalfBuffer.value_dropping(left, n)
-    y = HalfBuffer.value_dropping(right, n)
+  @spec range_except_extreme(t, non_neg_integer) :: FixAlign.interval(number)
+  def range_except_extreme(%{left: left, right: right}, n) do
+    x = HalfBuffer.values_except_extreme(left, n)
+    y = HalfBuffer.values_except_extreme(right, n)
     {min(x, y), max(x, y)}
   end
 

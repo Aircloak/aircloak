@@ -56,7 +56,7 @@ defmodule Cloak.Query.ShrinkAndDrop do
     {count, _} = user_ids |> Anonymizer.new() |> Anonymizer.noisy_lower_bound()
     interval =
       buffer
-      |> Buffer.range_dropping(count)
+      |> Buffer.range_except_extreme(count)
       |> case do
         {x, x} -> {x, x + epsilon(x)}
         interval -> FixAlign.align_interval(interval)

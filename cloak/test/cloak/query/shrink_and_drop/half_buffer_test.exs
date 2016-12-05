@@ -49,7 +49,7 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer.Test do
       "user4" => %{value: 4, rows: [:some_data]},
     }}
 
-    assert HalfBuffer.value_dropping(buffer, 2) == 3
+    assert HalfBuffer.values_except_extreme(buffer, 2) == 3
   end
 
   test "inside" do
