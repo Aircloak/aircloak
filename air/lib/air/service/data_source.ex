@@ -74,6 +74,11 @@ defmodule Air.Service.DataSource do
     )
   end
 
+  @doc "Retrieves views of the given user for the given data source."
+  @spec views(DataSource.t, User.t) :: [View.t]
+  def views(data_source, user), do:
+    Repo.all(from view in View, where: view.data_source_id == ^data_source.id and view.user_id == ^user.id)
+
   @doc "Saves the new view in the database."
   @spec create_view(data_source_id_spec, User.t, String.t, String.t) ::
     {:ok, View.t} | {:error, Ecto.Changeset.t} | data_source_operation_error

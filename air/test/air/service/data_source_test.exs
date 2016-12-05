@@ -101,6 +101,30 @@ defmodule Air.Service.DataSourceTest do
       |> Enum.sort() == expected
   end
 
+  test "fetching views", context do
+    insert_view(context.ds1, context.user1, "view_1")
+    insert_view(context.ds1, context.user1, "view_2")
+    insert_view(context.ds2, context.user1, "view_3")
+    insert_view(context.ds2, context.user2, "view_4")
+
+    assert Enum.map(DataSource.views(context.ds1, context.user1), &(&1.name)) == ["view_1", "view_2"]
+    assert Enum.map(DataSource.views(context.ds2, context.user1), &(&1.name)) == ["view_3"]
+
+    assert Enum.map(DataSource.views(context.ds1, context.user2), &(&1.name)) == []
+    assert Enum.map(DataSource.views(context.ds2, context.user2), &(&1.name)) == ["view_4"]
+
+    assert Enum.map(DataSource.views(context.ds1, context.user3), &(&1.name)) == []
+    assert Enum.map(DataSource.views(context.ds2, context.user3), &(&1.name)) == []
+  end
+
+  defp insert_view(data_source, user, name), do:
+    %Air.Schemas.View{}
+    |> Ecto.Changeset.cast(
+          %{user_id: user.id, data_source_id: data_source.id, name: name, sql: "sql for #{name}"},
+          ~w(name sql user_id data_source_id)a
+        )
+    |> Repo.insert!()
+
   defp create_query(user, data_source), do:
     TestRepoHelper.create_query!(user, %{statement: "query content", data_source_id: data_source.id})
 end
