@@ -63,11 +63,12 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer.Test do
   test "inside" do
     buffer = %HalfBuffer{comparator: &Kernel.</2, users: %{
       "user1" => %{value: 1, rows: [{nil, nil, 4, nil}]},
-      "user2" => %{value: 2, rows: [{nil, nil, 4, nil}]},
+      "user2" => %{value: 2, rows: [{nil, nil, 4, nil}, {nil, nil, 5, nil}]},
       "user3" => %{value: 3, rows: [{nil, nil, 1, nil}]},
-      "user4" => %{value: 4, rows: [{nil, nil, 2, nil}]},
+      "user4" => %{value: 4, rows: [{nil, nil, 2, nil}, {nil, nil, 3, nil}]},
     }}
 
-    assert HalfBuffer.inside(buffer, {3, 5}) == [{nil, nil, 4, nil}, {nil, nil, 4, nil}]
+    assert HalfBuffer.inside(buffer, {3, 5}) |> Enum.sort() ==
+      [{nil, nil, 3, nil}, {nil, nil, 4, nil}, {nil, nil, 4, nil}]
   end
 end
