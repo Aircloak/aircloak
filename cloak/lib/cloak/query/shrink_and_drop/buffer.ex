@@ -74,18 +74,45 @@ defmodule Cloak.Query.ShrinkAndDrop.Buffer do
   defp do_add(row = {_, user_id, value, _}, buffer = %{left: left, right: right}) do
     cond do
       HalfBuffer.has_space?(left) && HalfBuffer.has_space?(right) ->
+        # <--LEFT-->    <--RIGHT-->
+        #            x
+        # The buffers have still not reached their capacity, so they need to both be extended with the row.
         {new_left, []} = HalfBuffer.add(left, value, user_id, row)
         {new_right, []} = HalfBuffer.add(right, value, user_id, row)
         {%{buffer | left: new_left, right: new_right}, []}
-      HalfBuffer.over?(left, value) && HalfBuffer.under?(right, value) -> {buffer, [row]}
+
+      HalfBuffer.over?(left, value) && HalfBuffer.under?(right, value) ->
+        # <------LEFT------>  x  <------RIGHT----->
+        # The row is safe to emit, because it won't ever fall into either half of the buffer.
+        {buffer, [row]}
+
       not HalfBuffer.over?(left, value) && not HalfBuffer.under?(right, value) ->
+        # <------LEFT------>
+        #             <------RIGHT----->
+        #               x
+        #
+        # The buffers currently overlap and the row must go into both of them.
         {new_left, popped_left} = HalfBuffer.add(left, value, user_id, row)
         {new_right, popped_right} = HalfBuffer.add(right, value, user_id, row)
         {%{buffer | left: new_left, right: new_right}, popped_left ++ popped_right |> Enum.uniq}
+
       not HalfBuffer.over?(left, value) ->
+        # <------LEFT------>
+        #             <------RIGHT----->
+        #       x
+        #
+        # The row is outside of the right buffer, so it only goes into the left one. They might overlap, but it doesn't
+        # matter.
         {new_left, popped_left} = HalfBuffer.add(left, value, user_id, row)
         {%{buffer | left: new_left}, popped_left}
+
       not HalfBuffer.under?(right, value) ->
+        # <------LEFT------>
+        #             <------RIGHT----->
+        #                        x
+        #
+        # The row is outside of the left buffer, so it only goes into the right one. They might overlap, but it doesn't
+        # matter.
         {new_right, popped_right} = HalfBuffer.add(right, value, user_id, row)
         {%{buffer | right: new_right}, popped_right}
     end
