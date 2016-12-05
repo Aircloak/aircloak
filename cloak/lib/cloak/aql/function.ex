@@ -110,7 +110,7 @@ defmodule Cloak.Aql.Function do
     [{:cast, :date}] =>
       %{type_specs: %{[{:or, [:text, :datetime, :date]}] => :date}},
     [{:cast, :text}] =>
-      %{type_specs: %{[:any] => :text}},
+      %{type_specs: %{[{:or, [:text, :integer, :real, :boolean, :interval]}] => :text}},
     [{:cast, :interval}] =>
       %{type_specs: %{[{:or, [:text, :interval]}] => :interval}},
   }

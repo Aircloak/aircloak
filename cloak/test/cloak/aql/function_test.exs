@@ -357,10 +357,17 @@ defmodule Cloak.Aql.Function.Test do
     assert well_typed?({:cast, :text}, [:boolean])
     assert well_typed?({:cast, :text}, [:real])
     assert well_typed?({:cast, :text}, [:integer])
-    assert well_typed?({:cast, :text}, [:datetime])
-    assert well_typed?({:cast, :text}, [:date])
-    assert well_typed?({:cast, :text}, [:time])
     assert well_typed?({:cast, :text}, [:interval])
+    # Allowing these would allow an analyst to circumvent fixed alignment of dates and times
+    # For example:
+    #   substring(cast(date AS text) FROM 6 FOR 2) AS mon
+    #   substring(cast(date AS text) FOR 4) AS yr
+    #
+    # equals
+    #   WHERE mon = '2' AND yr = '2016'
+    refute well_typed?({:cast, :text}, [:datetime])
+    refute well_typed?({:cast, :text}, [:date])
+    refute well_typed?({:cast, :text}, [:time])
   end
 
   test "cast to text" do
