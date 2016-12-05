@@ -25,6 +25,7 @@ defmodule Cloak.DataSource.MongoDB.Schema do
   @spec array_size_field(String.t) :: String.t
   def array_size_field(name), do: String.replace(name, "#", "")
 
+
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------

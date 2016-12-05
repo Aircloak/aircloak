@@ -4,7 +4,7 @@ defmodule Air.Admin.GroupView do
   # bug in the current Phoenix
   @dialyzer :no_match
 
-  alias Air.{Repo, Group}
+  alias Air.{Repo, Schemas.Group}
 
   def group_name(group) do
     if group.admin do

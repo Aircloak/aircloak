@@ -54,7 +54,7 @@ defmodule Cloak.Aql.Parser.Test do
   # Produces a pattern which matches an AST of a constant.
   defmacrop constant(value) do
     quote do
-      {:constant, _, value}
+      {:constant, _, unquote(value)}
     end
   end
 
@@ -840,6 +840,38 @@ defmodule Cloak.Aql.Parser.Test do
       )
     )
 
+  test "parsing of integer with signs" do
+    assert_parse(
+      "select 1+2, -3, +4, -5--6, -7++8, 9 + 10 FROM foo",
+      select(
+        columns: [
+          {:function, "+", [constant(1), constant(2)]},
+          constant(-3),
+          constant(4),
+          {:function, "-", [constant(-5), constant(-6)]},
+          {:function, "+", [constant(-7), constant(8)]},
+          {:function, "+", [constant(9), constant(10)]}
+        ]
+      )
+    )
+  end
+
+  test "parsing of floats with signs" do
+    assert_parse(
+      "select 1.1+2.1, -3.1, +4.1, -5.1--6.1, -7.1++8.1, 9.1 + 10.1 FROM foo",
+      select(
+        columns: [
+          {:function, "+", [constant(1.1), constant(2.1)]},
+          constant(-3.1),
+          constant(4.1),
+          {:function, "-", [constant(-5.1), constant(-6.1)]},
+          {:function, "+", [constant(-7.1), constant(8.1)]},
+          {:function, "+", [constant(9.1), constant(10.1)]}
+        ]
+      )
+    )
+  end
+
   create_test =
     fn(description, data_source, statement, expected_error, line, column) ->
       test description do
@@ -943,7 +975,7 @@ defmodule Cloak.Aql.Parser.Test do
       {"wrong cast",
         "select cast(foo as bar) from baz", "Expected `type name`", {1, 20}},
       {"bucket size is not constant",
-        "select bucket(foo by bar) from baz", "Expected `integer constant or float constant`", {1, 22}},
+        "select bucket(foo by bar) from baz", "Expected `numeric constant`", {1, 22}},
       {"bad bucket align part",
         "select bucket(foo by 10 by) from baz", "Expected `)`", {1, 25}},
       # unparsed subqueries

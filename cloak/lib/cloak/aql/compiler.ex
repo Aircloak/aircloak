@@ -17,12 +17,26 @@ defmodule Cloak.Aql.Compiler do
   # -------------------------------------------------------------------
 
   @doc "Prepares the parsed SQL query for execution."
-  @spec compile(DataSource.t, Parser.parsed_query, tuple, Features.t) :: {:ok, Query.t} | {:error, String.t}
-  def compile(data_source, parsed_query, parameters, features \\ Features.from_config()) do
+  @spec compile(DataSource.t, Parser.parsed_query, tuple, Query.view_map, Features.t) ::
+    {:ok, Query.t} | {:error, String.t}
+  def compile(data_source, parsed_query, parameters, views, features \\ Features.from_config()) do
     try do
       parsed_query
-      |> to_prepped_query(data_source, features, parameters)
+      |> to_prepped_query(data_source, features, parameters, views)
       |> compile_prepped_query()
+    rescue
+      e in CompilationError -> {:error, e.message}
+    end
+  end
+
+  @doc "Validates a user-defined view."
+  @spec validate_view(DataSource.t, Parser.parsed_query, Query.view_map) :: :ok | {:error, String.t}
+  def validate_view(data_source, parsed_query, views) do
+    try do
+      with {:ok, query} <- compile(data_source, Map.put(parsed_query, :subquery?, true), [], views) do
+        query |> validate_uid("the view") |> validate_offset("The view")
+        :ok
+      end
     rescue
       e in CompilationError -> {:error, e.message}
     end
@@ -33,12 +47,13 @@ defmodule Cloak.Aql.Compiler do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp to_prepped_query(parsed_query, data_source, features, parameters) do
+  defp to_prepped_query(parsed_query, data_source, features, parameters, views) do
     %Query{
       data_source: data_source,
       mode: query_mode(data_source.driver, parsed_query[:from]),
       features: features,
-      parameters: parameters
+      parameters: parameters,
+      views: views
     }
     |> Map.merge(parsed_query)
   end
@@ -85,7 +100,7 @@ defmodule Cloak.Aql.Compiler do
   end
   defp compile_prepped_query(%Query{command: :show} = query) do
     try do
-      {:ok, compile_tables(query)}
+      {:ok, query |> resolve_views() |> compile_subqueries() |> compile_tables()}
     rescue
       e in CompilationError -> {:error, e.message}
     end
@@ -93,6 +108,7 @@ defmodule Cloak.Aql.Compiler do
   defp compile_prepped_query(query) do
     try do
       query = query
+      |> resolve_views()
       |> compile_subqueries()
       |> compile_tables()
       |> compile_columns()
@@ -108,6 +124,7 @@ defmodule Cloak.Aql.Compiler do
       |> verify_having()
       |> partition_where_clauses()
       |> calculate_db_columns()
+      |> partition_row_splitters()
       |> verify_limit()
       |> verify_offset()
       {:ok, query}
@@ -133,37 +150,83 @@ defmodule Cloak.Aql.Compiler do
 
 
   # -------------------------------------------------------------------
+  # Views
+  # -------------------------------------------------------------------
+
+  defp resolve_views(%Query{from: nil} = query), do: query
+  defp resolve_views(query) do
+    compiled = do_resolve_views(query.from, query)
+    %Query{query | from: compiled}
+  end
+
+  defp do_resolve_views({:join, join}, query) do
+    {:join, %{join |
+      lhs: do_resolve_views(join.lhs, query),
+      rhs: do_resolve_views(join.rhs, query)
+    }}
+  end
+  defp do_resolve_views({_, name} = table_or_view, query) when is_binary(name) do
+    case Map.fetch(query.views, name) do
+      {:ok, view_sql} -> view_to_subquery(name, view_sql, query)
+      :error -> table_or_view
+    end
+  end
+  defp do_resolve_views(other, _query), do:
+    other
+
+  def view_to_subquery(view_name, view_sql, query) do
+    if Enum.any?(
+      query.data_source.tables,
+      fn({_id, table}) -> insensitive_equal?(table.name, view_name) end
+    ) do
+      raise CompilationError,
+        message: "There is both a table, and a view named `#{view_name}`. Rename the view to resolve the conflict."
+    end
+
+    case Cloak.Aql.Parser.parse(query.data_source, view_sql) do
+      {:ok, parsed_view} -> {:subquery, %{type: :parsed, ast: parsed_view, alias: view_name}}
+      {:error, error} -> raise CompilationError, message: "Error in the view `#{view_name}`: #{error}"
+    end
+  end
+
+
+  # -------------------------------------------------------------------
   # Subqueries
   # -------------------------------------------------------------------
 
   defp compile_subqueries(%Query{from: nil} = query), do: query
   defp compile_subqueries(query) do
-    compiled = do_compile_subqueries(query.from, query.data_source, query.parameters)
+    compiled = do_compile_subqueries(query.from, query)
     %Query{query | from: compiled, info: query.info ++ gather_info(compiled)}
   end
 
-  defp do_compile_subqueries({:join, join}, data_source, parameters) do
+  defp do_compile_subqueries({:join, join}, query) do
     {:join, %{join |
-      lhs: do_compile_subqueries(join.lhs, data_source, parameters),
-      rhs: do_compile_subqueries(join.rhs, data_source, parameters)
+      lhs: do_compile_subqueries(join.lhs, query),
+      rhs: do_compile_subqueries(join.rhs, query)
     }}
   end
-  defp do_compile_subqueries({:subquery, subquery}, data_source, parameters) do
-    {:subquery, %{subquery | ast: compiled_subquery(data_source, subquery.ast, subquery.alias, parameters)}}
+  defp do_compile_subqueries({:subquery, subquery}, query) do
+    {:subquery, %{subquery | ast: compiled_subquery(subquery.ast, subquery.alias, query)}}
   end
-  defp do_compile_subqueries(identifier = {_, table}, _data_source, _parameters) when is_binary(table), do:
+  defp do_compile_subqueries(identifier = {_, table}, _query) when is_binary(table), do:
     identifier
 
   defp gather_info({:join, %{lhs: lhs, rhs: rhs}}), do: gather_info(rhs) ++ gather_info(lhs)
   defp gather_info({:subquery, subquery}), do: subquery.ast.info
   defp gather_info(_), do: []
 
-  defp compiled_subquery(data_source, parsed_query, alias, parameters) do
-    case compile(data_source, Map.put(parsed_query, :subquery?, :true), parameters) do
+  defp compiled_subquery(parsed_subquery, alias, parent_query) do
+    case compile(
+      parent_query.data_source,
+      Map.put(parsed_subquery, :subquery?, :true),
+      parent_query.parameters,
+      parent_query.views
+    ) do
       {:ok, compiled_query} ->
         compiled_query
-        |> validate_uid(alias)
-        |> validate_offset(alias)
+        |> validate_uid("subquery `#{alias}`")
+        |> validate_offset("Subquery `#{alias}`")
         |> align_limit()
         |> align_offset()
       {:error, error} -> raise CompilationError, message: error
@@ -193,7 +256,7 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp validate_uid(subquery, alias) do
+  defp validate_uid(subquery, display) do
     case Enum.find(subquery.db_columns, &(&1.user_id?)) do
       nil ->
         possible_uid_columns =
@@ -205,15 +268,15 @@ defmodule Cloak.Aql.Compiler do
           end
 
         raise CompilationError, message:
-          "Missing a user id column in the select list of subquery `#{alias}`. " <>
+          "Missing a user id column in the select list of #{display}. " <>
           "To fix this error, add #{possible_uid_columns} to the subquery select list."
       _ ->
         subquery
     end
   end
 
-  defp validate_offset(%{offset: offset, limit: limit}, alias) when is_nil(limit) and offset > 0, do:
-      raise CompilationError, message: "Subquery `#{alias}` has an OFFSET clause without a LIMIT clause."
+  defp validate_offset(%{offset: offset, limit: limit}, display) when is_nil(limit) and offset > 0, do:
+      raise CompilationError, message: "#{display} has an OFFSET clause without a LIMIT clause."
   defp validate_offset(subquery, _), do: subquery
 
 
@@ -255,11 +318,13 @@ defmodule Cloak.Aql.Compiler do
     selected_tables(join.lhs, data_source) ++ selected_tables(join.rhs, data_source)
   end
   defp selected_tables({:subquery, subquery}, _data_source) do
+    user_id = Enum.find(subquery.ast.db_columns, &(&1.user_id?))
+    columns = Enum.map(subquery.ast.db_columns, &{&1.alias || &1.name, &1.type})
     [%{
       name: subquery.alias,
       db_name: nil,
-      columns: Enum.map(subquery.ast.db_columns, &{&1.alias || &1.name, &1.type}),
-      user_id: Enum.find(subquery.ast.db_columns, &(&1.user_id?)).name
+      columns: columns,
+      user_id: user_id.alias || user_id.name
     }]
   end
   defp selected_tables(table_name, data_source) when is_binary(table_name) do
@@ -315,12 +380,20 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp aggregated_column?(column, query), do:
-    Function.aggregate_function?(column) or
-    Column.aggregate_db_function?(column) or
     Enum.member?(query.group_by, column) or
     (
       Function.function?(column) and
-      column |> Function.arguments() |> Enum.any?(&aggregated_column?(&1, query))
+      (
+        Function.aggregate_function?(column) or
+        column |> Function.arguments() |> Enum.any?(&aggregated_column?(&1, query))
+      )
+    ) or
+    (
+      Column.db_function?(column) and
+      (
+        column.aggregate? or
+        Enum.any?(column.db_function_args, &aggregated_column?(&1, query))
+      )
     )
 
   defp constant_column?(column), do:
@@ -473,8 +546,12 @@ defmodule Cloak.Aql.Compiler do
     "Column #{quoted_item(arg.name)} needs"
   defp aggregated_expression_display({:function, _function, args}), do:
     "Columns (#{args |> Enum.map(&(&1.name)) |> quoted_list()}) need"
-  defp aggregated_expression_display(%Column{} = column), do:
-    "Column `#{column.name}` from table `#{column.table.name}` needs"
+  defp aggregated_expression_display(%Column{db_function: fun, db_function_args: args}) when fun != nil do
+    [column | _] = for %Column{constant?: false} = column <- args, do: column
+    aggregated_expression_display(column)
+  end
+  defp aggregated_expression_display(%Column{table: table, name: name}), do:
+    "Column `#{name}` from table `#{table.name}` needs"
 
   defp verify_group_by_functions(query) do
     query.group_by
@@ -530,19 +607,91 @@ defmodule Cloak.Aql.Compiler do
   defp partition_selected_columns(%Query{group_by: groups = [_|_], columns: selected_columns} = query) do
     having_columns = Enum.flat_map(query.having, fn ({:comparison, column, _operator, target}) -> [column, target] end)
     aggregators = filter_aggregators(selected_columns ++ having_columns)
-    %Query{query | property: groups |> Enum.uniq(), aggregators: aggregators |> Enum.uniq()}
+    %Query{query |
+      property: groups |> drop_duplicates(),
+      aggregators: aggregators |> drop_duplicates()
+    }
   end
   defp partition_selected_columns(%Query{columns: selected_columns} = query) do
     case filter_aggregators(selected_columns) do
       [] ->
         %Query{query |
-          property: selected_columns |> Enum.uniq(), aggregators: [{:function, "count", [:*]}], implicit_count: true
+          property: selected_columns |> drop_duplicates(),
+          aggregators: [{:function, "count", [:*]}], implicit_count: true
         }
       aggregators ->
-        %Query{query | property: [], aggregators: aggregators |> Enum.uniq()}
+        %Query{query | property: [], aggregators: aggregators |> drop_duplicates()}
     end
   end
   defp partition_selected_columns(query), do: query
+
+  # This is effectively a special version of Enum.uniq/1. It does not collapse down duplicate
+  # occurrences of columns that contain row splitting functions. This does not affect how many
+  # times database columns are loaded from the database, but allows us to deal with the output
+  # of the row splitting function instances separately.
+  defp drop_duplicates(columns) do
+    Enum.uniq_by(columns, fn(column) ->
+      if Function.contains_row_splitter?(column) do
+        # We don't care about the column value itself. Knowing it is a column construct containing
+        # a row splitting function, the only thing of importance is that it distinguishes itself from
+        # any other column, as well as repeat occurrences of the same column.
+        Kernel.make_ref()
+      else
+        column
+      end
+    end)
+  end
+
+  defp partition_row_splitters(%Query{} = query) do
+    next_available_index = length(query.db_columns)
+    {_index, selected_columns, row_splitters} = partition_row_splitters(query.columns, next_available_index)
+    {_index, property, _splitters} = partition_row_splitters(query.property, next_available_index)
+    {_index, aggregators, _splitters} = partition_row_splitters(query.aggregators, next_available_index)
+    %Query{query |
+      row_splitters: row_splitters,
+      columns: selected_columns,
+      property: property,
+      aggregators: aggregators,
+    }
+  end
+
+  defp partition_row_splitters(columns, next_db_column_index) do
+    Enum.reduce(columns, {next_db_column_index, [], []}, fn(selected_column, {index, columns_acc, row_splitters}) ->
+      case partition_column_on_splitter(selected_column, index) do
+        {columns, []} -> {index, columns_acc ++ columns, row_splitters}
+        {columns, new_row_splitters} ->
+          {:row_splitter, _function, updated_index} = List.last(new_row_splitters)
+          {updated_index + 1, columns_acc ++ columns, row_splitters ++ new_row_splitters}
+      end
+    end)
+  end
+
+  defp partition_column_on_splitter({:distinct, value}, index) do
+    # Distinct is only used on a single column value, and not allowed on functions.
+    {[column], splitters} = partition_column_on_splitter(value, index)
+    {[{:distinct, column}], splitters}
+  end
+  defp partition_column_on_splitter(:*, _index), do: {[:*], []}
+  defp partition_column_on_splitter(%Column{} = column, _index), do: {[column], []}
+  defp partition_column_on_splitter({:function, name, args} = function_spec, index) do
+    if Function.row_splitting_function?(function_spec) do
+      # We are making the simplifying assumption that row splitting functions have
+      # the value column returned as part of the first column
+      db_column = case Function.column(hd(args)) do
+        nil -> raise CompilationError, message:
+          "Function `#{name}` requires that the first argument must be a column."
+        value -> value
+      end
+      column_name = "#{Function.name(function_spec)}_return_value"
+      return_type = Function.return_type(function_spec)
+      # This, most crucially, preserves the DB row position parameter
+      augmented_column = %Column{db_column | name: column_name, type: return_type, db_row_position: index}
+      {[augmented_column], [{:row_splitter, function_spec, index}]}
+    else
+      {_index, args, splitters} = partition_row_splitters(args, index)
+      {[{:function, name, args}], splitters}
+    end
+  end
 
   defp compile_order_by(%Query{order_by: []} = query), do: query
   defp compile_order_by(%Query{columns: columns, order_by: order_by_spec} = query) do
@@ -966,9 +1115,7 @@ defmodule Cloak.Aql.Compiler do
     if Function.aggregate_function?(column) do
       false
     else
-      column
-      |> extract_columns()
-      |> Enum.any?(&(&1 != nil and &1.user_id?))
+      column |> extract_columns() |> Enum.any?(& &1 != nil and &1.user_id?)
     end
   end
 
@@ -994,8 +1141,7 @@ defmodule Cloak.Aql.Compiler do
     # will be resolved in the post-processing phase
     [id_column(query) | query.columns ++ query.group_by ++ query.unsafe_filter_columns ++ query.having]
     |> Enum.flat_map(&extract_columns/1)
-    |> Enum.reject(&(&1 == nil))
-    |> Enum.reject(&(&1.constant?))
+    |> Enum.reject(& &1 == nil or &1.constant?)
   end
   defp select_expressions(%Query{command: :select, subquery?: true} = query) do
     # currently we don't support functions in subqueries
@@ -1025,7 +1171,7 @@ defmodule Cloak.Aql.Compiler do
   defp all_id_columns_from_tables(%Query{command: :select, selected_tables: tables}) do
     Enum.map(tables, fn(table) ->
       user_id = table.user_id
-      {_, type} = Enum.find(table.columns, &match?({^user_id, _}, &1))
+      {_, type} = Enum.find(table.columns, fn ({name, _type}) -> insensitive_equal?(user_id, name) end)
       %Column{table: table, name: user_id, type: type, user_id?: true}
     end)
   end
@@ -1124,11 +1270,9 @@ defmodule Cloak.Aql.Compiler do
   end
   defp verify_where_clauses(query), do: query
 
-  defp verify_where_clause({:comparison, column_a, _, column_b}) do
-    if not Column.constant?(column_a) and not Column.constant?(column_b) and column_a.type != column_b.type do
-      raise CompilationError, message: "Column #{Column.display_name(column_a)} of type `#{column_a.type}` and "
-        <> "column #{Column.display_name(column_b)} of type `#{column_b.type}` cannot be compared."
-    end
+  defp verify_where_clause({:comparison, column_a, comparator, column_b}) do
+    verify_where_clause_types(column_a, column_b)
+    check_for_string_inequalities(comparator, column_b)
   end
   defp verify_where_clause({:like, column, _}) do
     if column.type != :text do
@@ -1138,4 +1282,16 @@ defmodule Cloak.Aql.Compiler do
   end
   defp verify_where_clause({:not, clause}), do: verify_where_clause(clause)
   defp verify_where_clause(_), do: :ok
+
+
+  defp verify_where_clause_types(column_a, column_b) do
+    if not Column.constant?(column_a) and not Column.constant?(column_b) and column_a.type != column_b.type do
+      raise CompilationError, message: "Column #{Column.display_name(column_a)} of type `#{column_a.type}` and "
+        <> "column #{Column.display_name(column_b)} of type `#{column_b.type}` cannot be compared."
+    end
+  end
+
+  defp check_for_string_inequalities(comparator, %Column{type: :text}) when comparator in [:>, :>=, :<, :<=], do:
+    raise CompilationError, message: "Inequalities on string values are currently not supported."
+  defp check_for_string_inequalities(_, _), do: :ok
 end

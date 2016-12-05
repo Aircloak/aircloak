@@ -8,7 +8,7 @@ defmodule Air.Socket.Frontend.UserChannel do
   """
   use Air.Web, :channel
   require Logger
-  alias Air.Query
+  alias Air.Schemas.Query
 
 
   # -------------------------------------------------------------------

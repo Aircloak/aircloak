@@ -1,7 +1,7 @@
-defmodule Air.Query.Test do
+defmodule Air.Schemas.QueryTest do
   use ExUnit.Case, async: true
 
-  alias Air.Query
+  alias Air.Schemas.Query
 
   test "for_display of a finished query" do
     assert %{completed: true} = Query.for_display(%Query{result: %{}})

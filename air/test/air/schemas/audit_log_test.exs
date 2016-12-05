@@ -1,7 +1,7 @@
-defmodule Air.AuditLogTest do
-  use Air.ModelCase, async: true
+defmodule Air.Schemas.AuditLogTest do
+  use Air.SchemaCase, async: true
 
-  alias Air.AuditLog
+  alias Air.Schemas.AuditLog
 
   @valid_attrs %{event: "some content", metadata: %{value: "some content"}, user: "some content"}
   @invalid_attrs %{}

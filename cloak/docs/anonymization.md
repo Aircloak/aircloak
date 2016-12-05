@@ -60,8 +60,10 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
   - The average count of the top Nt remaining users is computed,
     where Nt is a noisy number with mean 5 and SD 1.
   - The total count is the sum of all the remaining counts plus No multiplied by
-    the average count of the top Nt users plus Nv multiplied by the average count
-    of all the remaining users, where Nv is a noisy number with mean 0 and SD 2.
+    the average count of the top Nt users plus Nv multiplied by the maximum value between
+    the average count of the top Nt users and twice the average count of all the remaining users,
+    where Nv is a noisy number with mean 0 and SD 1
+    (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * max(avg(top(remaining, Nt)), 2 * avg(remaining))`).
   - The final result is the maximum between the absolute lower bound of the LCF and the total count.
 
 
@@ -76,8 +78,10 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
     - The average value of the top Nt remaining users is computed,
       where Nt is a noisy number with mean 5 and SD 1.
     - The total sum is the sum of all the remaining values plus No multiplied by
-      the average value of the top Nt users plus Nv multiplied by the average value
-      of all the remaining users, where Nv is a noisy number with mean 0 and SD 2.
+      the average value of the top Nt users plus Nv multiplied by the maximum value between
+      the average value of the top Nt users and twice the average value of all the remaining users,
+      where Nv is a noisy number with mean 0 and SD 1
+      (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * max(avg(top(remaining, Nt)), 2 * avg(remaining))`).
 
 
 ## AVG()
@@ -140,10 +144,10 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
 
 - We compute the noisy value for Nt: `Nt = 3`.
 - We compute the average of the top Nt remaining users: `TopAverage = (1000 + 1000 + 10) / 3 = 670`.
-- We compute the average of the remaining users: `RemainingAverage = (1000 + 1000 + 10 + 10) / 4 = 505`.
 - We compute the noisy value for Nv: `Nv = 0.5`.
 - We compute the sum of all the remaining users: `Sum = 10 + 10 + 1000 + 1000 = 2020`.
-- We compute the final result: `Result = Sum + No * TopAverage + Nv * RemainingAverage = 2020 + 3 * 670 + 0.5 * 505 = 4282.5`.
+- We compute the noise scale: `NoiseScale = max(TopAverage, 2 * GlobalAverage) = max(670, 2 * 505) = 1010`
+- We compute the final result: `Result = Sum + No * TopAverage + Nv * NoiseScale = 2020 + 3 * 670 + 0.5 * 1010 = 4535`.
 
 ## Fixed alignment
 

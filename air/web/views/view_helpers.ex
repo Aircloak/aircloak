@@ -14,9 +14,9 @@ defmodule Air.ViewHelpers do
   end
 
   @doc "Returns true if the currently logged-in user is an administrator."
-  @spec admin?(Plug.Conn.t | Air.User.t) :: boolean
+  @spec admin?(Plug.Conn.t | Air.Schemas.User.t) :: boolean
   def admin?(nil), do: false
-  def admin?(%Air.User{} = user), do: Air.User.admin?(user)
+  def admin?(%Air.Schemas.User{} = user), do: Air.Schemas.User.admin?(user)
   def admin?(%Plug.Conn{} = conn), do: admin?(conn.assigns.current_user)
 
   @doc """

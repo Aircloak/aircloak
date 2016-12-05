@@ -4,7 +4,7 @@ defmodule Air.Admin.DataSourceView do
   # bug in the current Phoenix
   @dialyzer :no_match
 
-  alias Air.{DataSource, DataSourceManager, Repo}
+  alias Air.{Schemas.DataSource, DataSourceManager, Repo}
 
   def available?(data_source), do: DataSourceManager.available?(data_source.global_id)
 

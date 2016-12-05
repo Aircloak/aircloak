@@ -261,34 +261,60 @@ defmodule Cloak.Query.Anonymizer do
     |> Enum.take(amount)
   end
 
+  # This is a micro-optimization for inserting a value into a sorted list, by avoiding a call to Enum.sort/1.
+  # Although the input for this should be very small (less than 10 items), it helps to reduce the amount
+  # of garbage generated during aggregation.
+  defp insert_sorted([], new_value), do: [new_value]
+  defp insert_sorted([head | _tail] = list, new_value) when new_value <= head, do: [new_value | list]
+  defp insert_sorted([head | tail], new_value) when new_value > head, do: [head | insert_sorted(tail, new_value)]
+
   # Given a list of rows, a row accumulator functor and the anonymization parameters,
   # this method will drop the rows with negative values, and, for the remaining rows,
   # will return the anonymized sum plus the required scale for the noise standard deviation.
   defp sum_positives(rows, outliers_count, top_count, row_accumulator) do
+    # The following part is written in a more convoluted way in order to do a single pass through the data.
+    # It improves performance, but also reduces the amount of garbage generated, making the cloak more memory-stable.
+    # The code is roughly equivalent to:
+    # rows
+    #   |> Enum.map(row_accumulator)
+    #   |> Enum.filter(&(&1 >= 0))
+    #   |> Enum.sort(&(&1 > &2))
+    #   |> Enum.split(outliers_count + top_count)
     {sum, count, top_length, top_values} = Enum.reduce(rows, {0, 0, 0, []}, fn
       (row, {sum, count, top_length, top}) when top_length <= outliers_count + top_count ->
+        # This is the case in which the `top_values` list is not full yet and
+        # we need to add the current row_value (if valid) to it.
         row_value = row_accumulator.(row)
-        case row_value >= 0 do
-          true -> {sum, count, top_length + 1, Enum.sort([row_value | top])}
-          false -> {sum, count, top_length, top}
+        if row_value >= 0 do
+          {sum, count, top_length + 1, insert_sorted(top, row_value)}
+        else
+          {sum, count, top_length, top}
         end
       (row, {sum, count, top_length, [top_smallest | top_rest] = top}) ->
-        row_value = Kernel.max(row_accumulator.(row), 0)
-        case row_value > top_smallest do
-          true -> {sum + top_smallest, count + 1, top_length, Enum.sort([row_value | top_rest])}
-          false -> {sum + row_value, count + 1, top_length, top}
+        # This is the case in which our `top_values` list is full and we need to compare the
+        # current `row_value` with the head of the list.
+        row_value = row_accumulator.(row)
+        if row_value >= 0 do
+          if row_value > top_smallest do
+            {sum + top_smallest, count + 1, top_length, insert_sorted(top_rest, row_value)}
+          else
+            {sum + row_value, count + 1, top_length, top}
+          end
+        else
+          {sum, count, top_length, top}
         end
     end)
-    case top_length > outliers_count do
-      false -> {0, 0}
-      true ->
-        top_length  = top_length - outliers_count
-        top_values_sum = top_values |> Enum.take(top_length) |> Enum.sum()
-        top_average = top_values_sum / top_length
-        sum = sum + top_values_sum
-        count = count + top_length
-        average = sum / count
-        {sum + outliers_count * top_average, average}
+
+    if top_length > outliers_count do
+      top_length  = top_length - outliers_count
+      top_values_sum = top_values |> Enum.take(top_length) |> Enum.sum()
+      top_average = top_values_sum / top_length
+      sum = sum + top_values_sum
+      count = count + top_length
+      average = sum / count
+      {sum + outliers_count * top_average, Kernel.max(2 * average, top_average)}
+    else
+      {0, 0} # We don't have enough values to return a result.
     end
   end
 
@@ -303,20 +329,21 @@ defmodule Cloak.Query.Anonymizer do
     {top_length, top_values} = Enum.reduce(rows, {0, []}, fn
       (row, {top_length, top}) when top_length <= outliers_count + top_count ->
         row_value = row_accumulator.(row)
-        {top_length + 1, Enum.sort([row_value | top])}
+        {top_length + 1, insert_sorted(top, row_value)}
       (row, {top_length, [top_smallest | top_rest] = top}) ->
         row_value = row_accumulator.(row)
-        case row_value > top_smallest do
-          true -> {top_length, Enum.sort([row_value | top_rest])}
-          false -> {top_length, top}
+        if row_value > top_smallest do
+          {top_length, insert_sorted(top_rest, row_value)}
+        else
+          {top_length, top}
         end
     end)
 
-    case top_length < top_count + outliers_count do
-      true -> nil # there weren't enough values in the input to anonymize the result
-      false ->
-        top_average = (top_values |> Enum.take(top_count) |> Enum.sum()) / top_count
-        maybe_round_result(top_average, Enum.at(top_values, 0))
+    if top_length < top_count + outliers_count do
+      nil # there weren't enough values in the input to anonymize the result
+    else
+      top_average = (top_values |> Enum.take(top_count) |> Enum.sum()) / top_count
+      maybe_round_result(top_average, Enum.at(top_values, 0))
     end
   end
 

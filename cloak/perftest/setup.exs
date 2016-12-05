@@ -10,8 +10,8 @@ defmodule PerfTest do
 
   defp db_setup() do
     IO.puts ">>> Creating perftest table ..."
-    {:ok, _} = DB.execute("DROP TABLE IF EXISTS #{@table_name}", [])
-    {:ok, _} = DB.execute("CREATE TABLE #{@table_name} (user_id TEXT, item TEXT, price INTEGER)", [])
+    DB.execute!("DROP TABLE IF EXISTS #{@table_name}", [])
+    DB.execute!("CREATE TABLE #{@table_name} (user_id TEXT, item TEXT, price INTEGER)", [])
     IO.puts ">>> Perftest table created succesfully."
     :ok
   end
@@ -25,7 +25,7 @@ defmodule PerfTest do
         |> Enum.map(fn (row_index) -> "('user_#{user_index}', 'item#{row_index}', #{row_index})" end)
         |> Enum.join(",")
       if rem(user_index, 100) == 1, do: IO.puts ">>> Creating data for users #{user_index} to #{user_index + 99}..."
-      {:ok, _} = DB.execute("INSERT INTO #{@table_name} (user_id, item, price ) VALUES #{values}", [])
+      DB.execute!("INSERT INTO #{@table_name} (user_id, item, price ) VALUES #{values}", [])
     end)
     IO.puts ">>> Test data created succesfully."
   end

@@ -1,5 +1,5 @@
 defmodule Air.Service.AuditLogTest do
-  use Air.ModelCase, async: true
+  use Air.SchemaCase, async: true
 
   import Air.TestRepoHelper
   alias Air.{Repo, Service.AuditLog}
@@ -8,7 +8,7 @@ defmodule Air.Service.AuditLogTest do
     user = create_user!()
 
     assert AuditLog.log(user, "event", %{meta: true}) == :ok
-    entry = Repo.one!(Air.AuditLog)
+    entry = Repo.one!(Air.Schemas.AuditLog)
 
     assert entry.event == "event"
     assert entry.user == user.email

@@ -1,15 +1,16 @@
-defmodule Air.Query do
+defmodule Air.Schemas.Query do
   @moduledoc "The query model."
-  use Air.Web, :model
+  use Air.Schemas.Base
 
-  alias Air.{User, Repo, DataSource, PsqlServer.Protocol}
+  alias Air.{Schemas.DataSource, Schemas.User, Repo, PsqlServer.Protocol}
 
   @type t :: %__MODULE__{}
   @type cloak_query :: %{
     id: String.t,
     statement: String.t,
     parameters: [Protocol.db_value],
-    data_source: String.t
+    data_source: String.t,
+    views: %{String.t => String.t}
   }
 
   @primary_key {:id, :binary_id, autogenerate: true}
@@ -51,17 +52,6 @@ defmodule Air.Query do
     |> cast(params, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
     |> foreign_key_constraint(:data_source_id)
-  end
-
-  @doc "Converts the query model to the cloak compliant data."
-  @spec to_cloak_query(t, [any]) :: cloak_query
-  def to_cloak_query(query, parameters) do
-    %{
-      id: query.id,
-      statement: query.statement,
-      data_source: query.data_source.global_id,
-      parameters: parameters
-    }
   end
 
   @doc "Produces a JSON blob of the query and it's result for rendering"

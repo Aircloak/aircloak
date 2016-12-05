@@ -23,7 +23,17 @@ defmodule Cloak.Query.BasicTest do
     tables = Enum.map(table_rows, fn(%{row: [table_name]}) -> table_name end)
 
     [:children, :heights, :heights_alias, :"weird things", :dates]
-    |> Enum.each(&assert(Enum.member?(tables, &1)))
+    |> Enum.each(&assert(Enum.member?(tables, to_string(&1))))
+  end
+
+  test "show tables and views" do
+    assert_query "show tables",
+      [views: %{"v1" => "select user_id, height from heights"}],
+      %{columns: ["name"], rows: table_rows}
+    tables = Enum.map(table_rows, fn(%{row: [table_name]}) -> table_name end)
+
+    [:children, :heights, :heights_alias, :"weird things", :dates, :v1]
+    |> Enum.each(&assert(Enum.member?(tables, to_string(&1))))
   end
 
   test "show columns" do
@@ -33,6 +43,17 @@ defmodule Cloak.Query.BasicTest do
       %{occurrences: 1, row: ["height", :integer]},
       %{occurrences: 1, row: ["male", :boolean]},
       %{occurrences: 1, row: ["name", :text]},
+      %{occurrences: 1, row: ["user_id", :text]}
+    ]
+  end
+
+  test "show columns from a view" do
+    assert_query "show columns from v1",
+      [views: %{"v1" => "select user_id, height from heights"}],
+      %{query_id: "1", columns: ["name", "type"], rows: rows}
+
+    assert Enum.sort_by(rows, &(&1[:row])) == [
+      %{occurrences: 1, row: ["height", :integer]},
       %{occurrences: 1, row: ["user_id", :text]}
     ]
   end
@@ -656,7 +677,8 @@ defmodule Cloak.Query.BasicTest do
               from heights, heights_alias
               where heights.user_id=heights_alias.user_id
             ",
-            []
+            [],
+            %{}
           )
     assert [%Column{name: "user_id"}, %Column{name: "height"}] = query.db_columns
   end
@@ -752,7 +774,40 @@ defmodule Cloak.Query.BasicTest do
 
   test "parameters binding" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    assert_query "select height + $1 as height from heights WHERE $3 = $2", [10, true, true],
+    assert_query "select height + $1 as height from heights WHERE $3 = $2", [parameters: [10, true, true]],
       %{columns: ["height"], rows: [%{row: [190], occurrences: 100}]}
+  end
+
+  test "user id case sensitivity and aliasing" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
+
+    assert_query "select count(*) from (select USER_ID from heights) as t",
+      %{rows: [%{row: [10], occurrences: 1}]}
+    assert_query "select count(*) from (select user_id as uid from heights) as t",
+      %{rows: [%{row: [10], occurrences: 1}]}
+  end
+
+  test "select from a view" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select height from heights_view",
+      [views: %{"heights_view" => "select user_id, height from heights"}],
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "view can be used in another view" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select height from v1",
+      [views: %{
+        "v1" => "select user_id, height from v2",
+        "v2" => "select user_id, height from heights"
+      }],
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "qualified select from a view" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select heights_view.height from heights_view",
+      [views: %{"heights_view" => "select user_id, height from heights"}],
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 end

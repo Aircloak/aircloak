@@ -1,6 +1,6 @@
 defmodule Air.Token.Test do
-  use Air.ModelCase, async: true
-  alias Air.{ApiToken, Token, Repo}
+  use Air.SchemaCase, async: true
+  alias Air.{Schemas.ApiToken, Token, Repo}
   import Air.{TestRepoHelper}
 
   test "should create unique tokens for users" do

@@ -1,19 +1,22 @@
-defmodule Air.AuditLog do
-  @moduledoc "Model for recording events having taken place"
-  use Air.Web, :model
-  require Logger
+defmodule Air.Schemas.CentralCall do
+  @moduledoc """
+  This model holds RPC calls from the air to the central that failed
+  due to the server not being connected, or other temporary glitches.
+  """
+  use Air.Schemas.Base
+
+  alias Ecto.Changeset
 
   @type t :: %__MODULE__{}
 
-  schema "audit_logs" do
+  schema "central_calls" do
     field :event, :string
-    field :user, :string
-    field :metadata, :map
+    field :payload, :map
 
     timestamps
   end
 
-  @required_fields ~w(event user metadata)a
+  @required_fields ~w(event payload)a
   @optional_fields ~w()a
 
   @doc """

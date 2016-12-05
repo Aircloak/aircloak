@@ -8,7 +8,7 @@ defmodule Cloak.Aql.Query do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Aql.{Column, FixAlign, Function, Parser}
+  alias Cloak.Aql.{Column, FixAlign, Compiler, Function, Parser}
 
   @type negatable_condition ::
       {:comparison, Column.t, :=, Column.t}
@@ -23,6 +23,8 @@ defmodule Cloak.Aql.Query do
 
   @type having_clause :: {:comparison, Column.t, Parser.comparator, Column.t}
 
+  @type view_map :: %{view_name :: String.t => view_sql :: String.t}
+
   @type t :: %__MODULE__{
     data_source: DataSource.t,
     features: Cloak.Features.t,
@@ -31,6 +33,22 @@ defmodule Cloak.Aql.Query do
     column_titles: [String.t],
     property: [Function.t],
     aggregators: [Function.t],
+    # When row-splitters are used (like `extract_matches`), the row splitting has to happen
+    # prior to other functions being executed. All function call chains that contain one or
+    # more row-splitters in them are partitioned such that the row-splitters and their child
+    # function applications are contained in the row-splitters. The original function call
+    # chains are then amended to take a virtual column as their input representing the output
+    # of the row-splitters:
+    #
+    #   avg(length(extract_matches(cast(number as text), '\d+')))
+    #
+    # becomes:
+    #
+    #   avg(length(<dummy_column>)
+    #   extract_matches(cast(number as text), '\d+')
+    #
+    # where the latter of these two is contained in the row-splitters.
+    row_splitters: [Function.t],
     implicit_count: boolean,
     unsafe_filter_columns: [Column.t],
     group_by: [Function.t],
@@ -49,15 +67,16 @@ defmodule Cloak.Aql.Query do
     having: [having_clause],
     distinct: boolean,
     ranges: %{Column.t => FixAlign.interval},
-    parameters: [DataSource.field]
+    parameters: [DataSource.field],
+    views: view_map
   }
 
   defstruct [
     columns: [], where: [], lcf_check_conditions: [], unsafe_filter_columns: [], group_by: [],
     order_by: [], column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
-    implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
+    row_splitters: [], implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
     db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct: false,
-    features: nil, encoded_where: [], ranges: %{}, parameters: []
+    features: nil, encoded_where: [], ranges: %{}, parameters: [], views: %{}
   ]
 
 
@@ -70,17 +89,18 @@ defmodule Cloak.Aql.Query do
 
   Raises on error.
   """
-  @spec make!(DataSource.t, String.t, [DataSource.field]) :: t
-  def make!(data_source, string, parameters) do
-    {:ok, query} = make(data_source, string, parameters)
+  @spec make!(DataSource.t, String.t, [DataSource.field], view_map) :: t
+  def make!(data_source, string, parameters, views) do
+    {:ok, query} = make(data_source, string, parameters, views)
     query
   end
 
   @doc "Creates a compiled query from a string representation."
-  @spec make(DataSource.t, String.t, [DataSource.field]) :: {:ok, t} | {:error, String.t}
-  def make(data_source, string, parameters) do
-    with {:ok, parsed_query} <- Cloak.Aql.Parser.parse(data_source, string) do
-      Cloak.Aql.Compiler.compile(data_source, parsed_query, parameters)
+  @spec make(DataSource.t, String.t, [DataSource.field], view_map) ::
+    {:ok, t} | {:error, String.t}
+  def make(data_source, string, parameters, views) do
+    with {:ok, parsed_query} <- Parser.parse(data_source, string) do
+      Compiler.compile(data_source, parsed_query, parameters, views)
     end
   end
 
@@ -112,10 +132,24 @@ defmodule Cloak.Aql.Query do
     }
   end
 
-  @spec describe_query(DataSource.t, String.t, [DataSource.field]) :: {:ok, [String.t], map} | {:error, String.t}
-  def describe_query(data_source, statement, parameters), do:
-    with {:ok, query} <- make(data_source, statement, parameters), do:
+  @doc """
+  Describes the result of a parameterized query.
+
+  This function will return the description of the result, such as column names
+  and types, without executing the query.
+  """
+  @spec describe_query(DataSource.t, String.t, [DataSource.field], view_map) ::
+    {:ok, [String.t], map} | {:error, String.t}
+  def describe_query(data_source, statement, parameters, views), do:
+    with {:ok, query} <- make(data_source, statement, parameters, views), do:
       {:ok, query.column_titles, extract_features(query)}
+
+
+  @doc "Validates a user-defined view."
+  @spec validate_view(DataSource.t, String.t, view_map) :: :ok | {:error, String.t}
+  def validate_view(data_source, sql, views), do:
+    with {:ok, parsed_query} <- Parser.parse(data_source, sql), do:
+      Compiler.validate_view(data_source, parsed_query, views)
 
 
   # -------------------------------------------------------------------

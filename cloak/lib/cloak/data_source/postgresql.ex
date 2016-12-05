@@ -13,11 +13,11 @@ defmodule Cloak.DataSource.PostgreSQL do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
-  def connect(parameters) do
+  def connect!(parameters) do
     parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, pool: DBConnection.Connection]
     with {:ok, connection} = Postgrex.start_link(parameters) do
       {:ok, %Postgrex.Result{}} = Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
-      {:ok, connection}
+      connection
     end
   end
   @doc false
@@ -97,7 +97,7 @@ defmodule Cloak.DataSource.PostgreSQL do
     Time.new(hour, min, sec, usec) |> error_to_nil()
   @decimal_precision :math.pow(10, 15)
   defp field_mapper(%Decimal{} = value), do:
-    (value |> Decimal.mult(Decimal.new(@decimal_precision)) |> Decimal.to_integer()) / @decimal_precision
+    Cloak.DecimalUtil.to_precision(value, @decimal_precision)
   defp field_mapper(field), do: field
 
   defp error_to_nil({:ok, result}), do: result
