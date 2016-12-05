@@ -12,16 +12,24 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer.Test do
     buffer = %HalfBuffer{size: 3, comparator: &Kernel.>/2, min: 10, max: 20, users: %{
       "user1" => %{value: 20, rows: [:some_data]}
     }}
-    assert {%HalfBuffer{min: 10, max: 25, users: %{"user1" => %{value: 25, rows: [:more_data, :some_data]}}}, []} =
+    assert {%HalfBuffer{users: %{"user1" => %{value: 25, rows: [:more_data, :some_data]}}}, []} =
       HalfBuffer.add(buffer, 25, "user1", :more_data)
   end
 
   test "adding when the user is not in the buffer" do
     buffer = %HalfBuffer{size: 3, min: 10, max: 20, users: %{"user1" => :some_data}}
-    assert HalfBuffer.add(buffer, 5, "user2", :more_data) ==
-      {%HalfBuffer{size: 3, min: 5, max: 20, users: %{
-        "user1" => :some_data,
-        "user2" => %{value: 5, rows: [:more_data]}}}, []}
+    assert {%HalfBuffer{size: 3, users: %{ "user1" => :some_data, "user2" => %{value: 5, rows: [:more_data]}}}, []}
+      = HalfBuffer.add(buffer, 5, "user2", :more_data)
+  end
+
+  test "updating min" do
+    buffer = %HalfBuffer{size: 3, min: 10, max: 20, users: %{}}
+    assert {%HalfBuffer{min: 5}, []} = HalfBuffer.add(buffer, 5, "user2", :more_data)
+  end
+
+  test "updating max" do
+    buffer = %HalfBuffer{size: 3, min: 10, max: 20, users: %{}}
+    assert {%HalfBuffer{max: 25}, []} = HalfBuffer.add(buffer, 25, "user2", :more_data)
   end
 
   test "adding to a full buffer" do
