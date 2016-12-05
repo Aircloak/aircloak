@@ -20,11 +20,12 @@ defmodule IntegrationTest.ViewTest do
     {:ok, view} = create_view(context.user, unique_view_name(), "select user_id, name from users")
 
     new_name = unique_view_name()
-    assert {:ok, updated_view} = update_view(context.user, view.id, new_name, "select user_id from users")
+    new_sql = "select user_id from users"
+    assert {:ok, updated_view} = update_view(context.user, view.id, new_name, new_sql)
 
     assert updated_view.id == view.id
     assert updated_view.name == new_name
-    assert updated_view.sql == "select user_id from users"
+    assert updated_view.sql == new_sql
   end
 
   test "selecting from the view", context do
