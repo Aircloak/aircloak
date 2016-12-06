@@ -596,28 +596,27 @@ defmodule Cloak.Aql.Compiler do
     having_columns = Enum.flat_map(query.having, fn ({:comparison, column, _operator, target}) -> [column, target] end)
     aggregators = filter_aggregators(selected_columns ++ having_columns)
     %Query{query |
-      property: groups |> drop_duplicates(),
-      aggregators: aggregators |> drop_duplicates()
+      property: groups |> drop_duplicate_columns_except_row_splitters(),
+      aggregators: aggregators |> drop_duplicate_columns_except_row_splitters()
     }
   end
   defp partition_selected_columns(%Query{columns: selected_columns} = query) do
     case filter_aggregators(selected_columns) do
       [] ->
         %Query{query |
-          property: selected_columns |> drop_duplicates(),
+          property: selected_columns |> drop_duplicate_columns_except_row_splitters(),
           aggregators: [{:function, "count", [:*]}], implicit_count: true
         }
       aggregators ->
-        %Query{query | property: [], aggregators: aggregators |> drop_duplicates()}
+        %Query{query | property: [], aggregators: aggregators |> drop_duplicate_columns_except_row_splitters()}
     end
   end
   defp partition_selected_columns(query), do: query
 
-  # This is effectively a special version of Enum.uniq/1. It does not collapse down duplicate
-  # occurrences of columns that contain row splitting functions. This does not affect how many
-  # times database columns are loaded from the database, but allows us to deal with the output
-  # of the row splitting function instances separately.
-  defp drop_duplicates(columns), do:
+  # Drops all duplicate occurrences of columns, with the exception of columns that are, or contain,
+  # calls to row splitting functions. This does not affect how many times database columns are loaded
+  # from the database, but allows us to deal with the output of the row splitting function instances separately.
+  defp drop_duplicate_columns_except_row_splitters(columns), do:
     Enum.uniq_by(columns, &Lens.map(splitter_functions(), &1, fn(_) -> Kernel.make_ref() end))
 
   defp partition_row_splitters(%Query{} = query) do
