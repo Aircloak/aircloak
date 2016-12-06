@@ -212,7 +212,7 @@ defmodule Cloak.AirSocket do
 
       {:ok, data_source} ->
         case Cloak.Aql.Query.validate_view(data_source, sql, views) do
-          :ok -> respond_to_air(from, :ok, %{valid: true})
+          {:ok, columns} -> respond_to_air(from, :ok, %{valid: true, columns: columns})
           {:error, reason} -> respond_to_air(from, :ok, %{valid: false, error: reason})
         end
     end

@@ -147,10 +147,20 @@ defmodule Cloak.Aql.Query do
 
 
   @doc "Validates a user-defined view."
-  @spec validate_view(DataSource.t, String.t, view_map) :: :ok | {:error, String.t}
-  def validate_view(data_source, sql, views), do:
-    with {:ok, parsed_query} <- Parser.parse(data_source, sql), do:
-      Compiler.validate_view(data_source, parsed_query, views)
+  @spec validate_view(DataSource.t, String.t, view_map) ::
+    {:ok, %{name: String.t, type: String.t, user_id: boolean}} |
+    {:error, String.t}
+  def validate_view(data_source, sql, views) do
+    with {:ok, parsed_query} <- Parser.parse(data_source, sql),
+         {:ok, compiled_query} <- Compiler.validate_view(data_source, parsed_query, views) do
+      {:ok,
+        Enum.zip(compiled_query.column_titles, compiled_query.columns)
+        |> Enum.map(fn({name, column}) ->
+              %{name: name, type: stringify(Function.type(column)), user_id: column.user_id?}
+            end)
+      }
+    end
+  end
 
 
   # -------------------------------------------------------------------

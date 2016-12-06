@@ -137,6 +137,26 @@ defmodule Cloak.Aql.QueryTest do
     assert %{selected_types: ["integer"]} = features_from("SELECT length(name) FROM feat_users")
   end
 
+  test "successful view validation" do
+    assert {:ok, [col1, col2]} = validate_view("select user_id, name from feat_users")
+    assert col1 == %{name: "user_id", type: "text", user_id: true}
+    assert col2 == %{name: "name", type: "text", user_id: false}
+  end
+
+  test "successful validation of a view which uses another view" do
+    assert {:ok, [col1, col2]} = validate_view("select user_id, name from table_view",
+      %{"table_view" => "select user_id, name from feat_users"})
+    assert col1 == %{name: "user_id", type: "text", user_id: true}
+    assert col2 == %{name: "name", type: "text", user_id: false}
+  end
+
+  defp validate_view(sql, views \\ %{}) do
+    [first_ds | rest_ds] = Cloak.DataSource.all()
+    result = Query.validate_view(first_ds, sql, views)
+    Enum.map(rest_ds, &assert(result == Query.validate_view(&1, sql, views)))
+    result
+  end
+
   defp features_from(statement) do
     [first_ds | rest_ds] = Cloak.DataSource.all()
     query = Query.make!(first_ds, statement, [], %{}) |> Map.delete(:data_source)
