@@ -6,14 +6,6 @@ defmodule Air.Admin.DataSourceView do
 
   alias Air.{Schemas.DataSource, DataSourceManager, Repo}
 
-  def data_source_availability_class(data_source) do
-    if available?(data_source) do
-      ""
-    else
-      "warning"
-    end
-  end
-
   def availability_label(data_source) do
     if available?(data_source) do
       content_tag(:span, "Online", class: "label label-success")
