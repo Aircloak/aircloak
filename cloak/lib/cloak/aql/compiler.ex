@@ -828,6 +828,7 @@ defmodule Cloak.Aql.Compiler do
         "The range for column `#{column.name}` has been adjusted to #{left} <= `#{column.name}` < #{right}"
       )
     end
+    |> put_in([Access.key(:ranges), column], {left, right})
   end
 
   defp implement_range?({left, right}, conditions) do
@@ -934,7 +935,10 @@ defmodule Cloak.Aql.Compiler do
       db_columns: Enum.map(query.db_columns, &map_terminal_element(&1, mapper_fun)),
       property: Enum.map(query.property, &map_terminal_element(&1, mapper_fun)),
       aggregators: Enum.map(query.aggregators, &map_terminal_element(&1, mapper_fun)),
-      from: map_join_conditions_columns(query.from, mapper_fun)
+      from: map_join_conditions_columns(query.from, mapper_fun),
+      ranges: query.ranges
+        |> Enum.map(fn {column, range} -> {map_terminal_element(column, mapper_fun), range} end)
+        |> Enum.into(%{})
     }
   end
 
@@ -1103,13 +1107,9 @@ defmodule Cloak.Aql.Compiler do
   defp add_info_message(query, info_message), do: %Query{query | info: [info_message | query.info]}
 
   defp calculate_db_columns(query) do
-    query = %Query{query |
-      db_columns:
-        query
-        |> select_expressions()
-        |> Enum.uniq_by(&db_column_name/1)
-    }
+    select_columns = select_expressions(query) ++ Map.keys(query.ranges) |> Enum.uniq_by(&db_column_name/1)
 
+    query = %Query{query | db_columns: select_columns}
     map_terminal_elements(query, &set_column_db_row_position(&1, query))
   end
 

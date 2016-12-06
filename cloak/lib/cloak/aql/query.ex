@@ -8,7 +8,7 @@ defmodule Cloak.Aql.Query do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Aql.{Column, Compiler, Function, Parser}
+  alias Cloak.Aql.{Column, FixAlign, Compiler, Function, Parser}
 
   @type negatable_condition ::
       {:comparison, Column.t, :=, Column.t}
@@ -66,6 +66,7 @@ defmodule Cloak.Aql.Query do
     offset: non_neg_integer,
     having: [having_clause],
     distinct: boolean,
+    ranges: %{Column.t => FixAlign.interval},
     parameters: [DataSource.field],
     views: view_map
   }
@@ -75,7 +76,7 @@ defmodule Cloak.Aql.Query do
     order_by: [], column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
     row_splitters: [], implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
     db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct: false,
-    features: nil, encoded_where: [], parameters: [], views: %{}
+    features: nil, encoded_where: [], ranges: %{}, parameters: [], views: %{}
   ]
 
 
