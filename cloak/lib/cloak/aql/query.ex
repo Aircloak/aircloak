@@ -48,6 +48,7 @@ defmodule Cloak.Aql.Query do
     offset: non_neg_integer,
     having: [having_clause],
     distinct?: boolean,
+    emulated?: boolean,
     parameters: [DataSource.field]
   }
 
@@ -56,7 +57,7 @@ defmodule Cloak.Aql.Query do
     order_by: [], column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
     implicit_count?: false, data_source: nil, command: nil, show: nil, mode: nil,
     db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
-    features: nil, encoded_where: [], parameters: []
+    features: nil, encoded_where: [], parameters: [], emulated?: false
   ]
 
 

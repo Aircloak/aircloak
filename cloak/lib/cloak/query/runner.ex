@@ -12,7 +12,7 @@ defmodule Cloak.Query.Runner do
 
   alias Cloak.Aql.{Query, Column, Comparison}
   alias Cloak.DataSource
-  alias Cloak.Query.{Aggregator, LCFConditions, Sorter, Result, DataDecoder}
+  alias Cloak.Query.{Aggregator, LCFConditions, Sorter, Result, DataDecoder, DBEmulator}
 
   @supervisor_name Module.concat(__MODULE__, Supervisor)
 
@@ -156,19 +156,66 @@ defmodule Cloak.Query.Runner do
     end
   end
 
-  defp select_rows(query), do:
+  defp select_rows(%Query{subquery?: false, emulated?: false} = query) do
     DataSource.select(query, fn(rows) ->
       Logger.debug("Processing rows ...")
       rows
       |> DataDecoder.decode(query)
-      |> filter_on_encoded_columns(query)
+      |> filter_rows(query.encoded_where)
       |> LCFConditions.apply(query)
       |> Aggregator.aggregate(query)
-      |> Sorter.order(query)
+      |> Sorter.order_buckets(query)
       |> distinct(query)
       |> offset(query)
       |> limit(query)
     end)
+  end
+  defp select_rows(%Query{subquery?: false, emulated?: true} = query) do
+    Logger.debug("Emulating query ...")
+    with {:ok, rows} <- select_rows(query.from) do
+      Logger.debug("Processing rows ...")
+      rows =
+        rows
+        |> filter_rows(query.where)
+        |> LCFConditions.apply(query)
+        |> Aggregator.aggregate(query)
+        |> Sorter.order_buckets(query)
+        |> distinct(query)
+        |> offset(query)
+        |> limit(query)
+      {:ok, rows}
+    end
+  end
+  defp select_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}}) when not is_binary(from) do
+    Logger.debug("Emulating query ...")
+    with {:ok, rows} <- select_rows(from) do
+      Logger.debug("Processing rows ...")
+      rows =
+        rows
+        |> DBEmulator.select(subquery)
+        |> Enum.to_list()
+      {:ok, rows}
+    end
+  end
+  defp select_rows({:subquery, %{ast: subquery}}) do
+    select_rows(subquery)
+  end
+  defp select_rows({:join, join}) do
+    Logger.debug("Emulating join ...")
+    lhs = select_rows(join.lhs.ast)
+    rhs = select_rows(join.rhs.ast)
+    {:ok, DBEmulator.join(lhs, rhs, join) |> Enum.to_list()}
+  end
+  defp select_rows(%Query{} = query) do
+    Logger.debug("Emulating query ...")
+    DataSource.select(%Query{query | subquery?: false}, fn(rows) ->
+      Logger.debug("Processing rows ...")
+      rows
+      |> DataDecoder.decode(query)
+      |> DBEmulator.select(%Query{query | where: query.encoded_where, encoded_where: []})
+      |> Enum.to_list()
+    end)
+  end
 
   defp successful_result(result, query), do: {:ok, result, Enum.reverse(query.info)}
 
@@ -244,8 +291,8 @@ defmodule Cloak.Query.Runner do
     %Result{result | buckets: Enum.map(buckets, &Map.put(&1, :occurrences, 1))}
   defp distinct(result, %Query{distinct?: false}), do: result
 
-  defp filter_on_encoded_columns(stream, %Query{encoded_where: []}), do: stream
-  defp filter_on_encoded_columns(stream, %Query{encoded_where: conditions}) do
+  defp filter_rows(stream, []), do: stream
+  defp filter_rows(stream, conditions) do
     filters = Enum.map(conditions, &Comparison.to_function/1)
     Stream.filter(stream, &Enum.all?(filters, fn (filter) -> filter.(&1) end))
   end

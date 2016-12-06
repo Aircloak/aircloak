@@ -256,7 +256,9 @@ defmodule Cloak.Aql.Compiler do
   end
   defp selected_tables({:subquery, subquery}, _data_source) do
     user_id = Enum.find(subquery.ast.db_columns, &(&1.user_id?))
-    columns = Enum.map(subquery.ast.db_columns, &{&1.alias || &1.name, &1.type})
+    columns =
+        Enum.zip(subquery.ast.column_titles, subquery.ast.db_columns)
+        |> Enum.map(fn ({alias, column}) -> {alias, column.type} end)
     [%{
       name: subquery.alias,
       db_name: nil,
@@ -348,7 +350,7 @@ defmodule Cloak.Aql.Compiler do
     |> expand_star_select()
     |> compile_buckets()
     |> compile_aliases()
-    |> identifiers_to_columns()
+    |> parse_columns()
   end
 
   defp compile_buckets(query) do
@@ -540,7 +542,7 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp partition_selected_columns(%Query{subquery?: true} = query), do: query
+  defp partition_selected_columns(%Query{subquery?: true, emulated?: false} = query), do: query
   defp partition_selected_columns(%Query{group_by: groups = [_|_], columns: selected_columns} = query) do
     having_columns = Enum.flat_map(query.having, fn ({:comparison, column, _operator, target}) -> [column, target] end)
     aggregators = filter_aggregators(selected_columns ++ having_columns)
@@ -580,14 +582,13 @@ defmodule Cloak.Aql.Compiler do
         raise CompilationError,
           message: "#{negative_condition_string(condition)} is not supported in a subquery."
     end
-    case Enum.find(query.where, &Comparison.subject(&1) |> DataDecoder.needs_decoding?()) do
-      nil -> :ok
-      condition ->
-        column = Comparison.subject(condition)
-        raise CompilationError,
-          message: "Column #{Column.display_name(column)} needs decoding and can not be used in a subquery."
-    end
-    query
+
+    # extract conditions using encoded columns
+    {encoded_column_clauses, safe_clauses} = Enum.partition(query.where, &encoded_column_condition?/1)
+    # extract columns needed in the cloak for extra filtering
+    unsafe_filter_columns = Enum.map(encoded_column_clauses, &Comparison.subject/1)
+    %Query{query | where: safe_clauses, unsafe_filter_columns: unsafe_filter_columns,
+      encoded_where: encoded_column_clauses}
   end
   defp partition_where_clauses(query) do
     # extract conditions requiring low-count filtering
@@ -859,16 +860,21 @@ defmodule Cloak.Aql.Compiler do
     do: Enum.map(elements, &map_terminal_element(&1, mapper_fun))
   defp map_terminal_element(constant, mapper_fun), do: mapper_fun.(constant)
 
-  defp identifiers_to_columns(query) do
+  defp parse_columns(query) do
     columns_by_name =
       for table <- query.selected_tables, {column, type} <- table.columns do
         %Column{table: table, name: column, type: type, user_id?: table.user_id == column}
       end
       |> Enum.group_by(&(&1.name))
 
-    query
-    |> map_terminal_elements(&normalize_table_name(&1, query.data_source))
-    |> map_terminal_elements(&identifier_to_column(&1, columns_by_name, query))
+    query = map_terminal_elements(query, &normalize_table_name(&1, query.data_source))
+    parsed_query = map_terminal_elements(query, &identifier_to_column(&1, columns_by_name, query))
+    if needs_emulation?(parsed_query) do
+      query = %Query{query | emulated?: true}
+      map_terminal_elements(query, &identifier_to_column(&1, columns_by_name, query))
+    else
+      parsed_query
+    end
   end
 
   defp normalize_table_name({:identifier, table_identifier = {_, name}, column}, data_source) do
@@ -919,7 +925,8 @@ defmodule Cloak.Aql.Compiler do
       end
     end
   end
-  defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name, %Query{subquery?: true} = query) do
+  defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name,
+      %Query{subquery?: true, emulated?: false} = query) do
     check_function_validity(function_spec, query)
     case Function.return_type(function_spec) do
       nil -> raise CompilationError, message: function_argument_error_message(function_spec)
@@ -976,43 +983,37 @@ defmodule Cloak.Aql.Compiler do
     if Function.aggregate_function?(column) do
       false
     else
-      column |> extract_columns() |> Enum.any?(& &1 != nil and &1.user_id?)
+      column |> extract_columns() |> Enum.any?(& &1.user_id?)
     end
   end
 
+  defp extract_columns(:*), do: []
+  defp extract_columns(%Column{db_function: fun, db_function_args: arguments}) when fun != nil, do:
+    Enum.flat_map(arguments, &extract_columns/1)
   defp extract_columns(%Column{} = column), do: [column]
-  defp extract_columns({:function, "count", [:*]}), do: [nil]
-  defp extract_columns({:function, "count_noise", [:*]}), do: [nil]
   defp extract_columns({:function, _function, arguments}), do: Enum.flat_map(arguments, &extract_columns/1)
   defp extract_columns({:distinct, expression}), do: extract_columns(expression)
   defp extract_columns({:comparison, column, _operator, target}), do: extract_columns(column) ++ extract_columns(target)
-  defp extract_columns([columns]), do: Enum.flat_map(columns, &extract_columns(&1))
 
   defp add_info_message(query, info_message), do: %Query{query | info: [info_message | query.info]}
 
   defp calculate_db_columns(query) do
-    query = %Query{query |
-      db_columns:
-        query
-        |> select_expressions()
-        |> Enum.uniq_by(&db_column_name/1)
-    }
-
+    query = %Query{query | db_columns: select_expressions(query)}
     map_terminal_elements(query, &set_column_db_row_position(&1, query))
   end
 
-  defp select_expressions(%Query{command: :select, subquery?: false} = query) do
-    # top-level query -> we,re fetching only columns, while other expressions (e.g. function calls)
-    # will be resolved in the post-processing phase
-    [id_column(query) | query.columns ++ query.group_by ++ query.unsafe_filter_columns ++ query.having]
-    |> Enum.flat_map(&extract_columns/1)
-    |> Enum.reject(& &1 == nil or &1.constant?)
-  end
-  defp select_expressions(%Query{command: :select, subquery?: true} = query) do
-    # currently we don't support functions in subqueries
-    true = Enum.all?(query.columns, &match?(%Column{}, &1))
+  defp select_expressions(%Query{command: :select, subquery?: true, emulated?: false} = query) do
     Enum.zip(query.column_titles, query.columns)
     |> Enum.map(fn({column_alias, column}) -> %Column{column | alias: column_alias} end)
+  end
+  defp select_expressions(%Query{command: :select} = query) do
+    # top-level query -> we,re fetching only columns, while other expressions (e.g. function calls)
+    # will be resolved in the post-processing phase
+    used_columns =
+      (query.columns ++ query.group_by ++ query.unsafe_filter_columns ++ query.having)
+      |> Enum.flat_map(&extract_columns/1)
+      |> Enum.reject(& &1.constant?)
+    [id_column(query) | used_columns] |> Enum.uniq_by(&db_column_name/1)
   end
 
   defp id_column(query) do
@@ -1159,4 +1160,18 @@ defmodule Cloak.Aql.Compiler do
   defp check_for_string_inequalities(comparator, %Column{type: :text}) when comparator in [:>, :>=, :<, :<=], do:
     raise CompilationError, message: "Inequalities on string values are currently not supported."
   defp check_for_string_inequalities(_, _), do: :ok
+
+  defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
+  defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table) do
+    (query.columns ++ query.group_by ++ query.having)
+    |> Enum.flat_map(&extract_columns/1)
+    |> Enum.any?(&DataDecoder.needs_decoding?/1)
+  end
+  defp needs_emulation?(%Query{from: from}), do: from_needs_emulation?(from)
+
+  defp from_needs_emulation?(table) when is_binary(table), do: false
+  defp from_needs_emulation?({:subquery, %{type: :unparsed}}), do: false
+  defp from_needs_emulation?({:subquery, subquery}), do: subquery.ast.emulated?
+  defp from_needs_emulation?({:join, join}), do:
+    from_needs_emulation?(join.lhs) or from_needs_emulation?(join.rhs)
 end
