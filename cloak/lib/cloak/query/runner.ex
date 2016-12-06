@@ -163,36 +163,13 @@ defmodule Cloak.Query.Runner do
 
   defp select_rows(%Query{subquery?: false, emulated?: false} = query) do
     DataSource.select(query, fn(rows) ->
-      Logger.debug("Processing rows ...")
-      rows
-      |> DataDecoder.decode(query)
-      |> RowSplitters.split(query)
-      |> filter_rows(query.encoded_where)
-      |> LCFConditions.apply(query)
-      |> ShrinkAndDrop.apply(query)
-      |> Aggregator.aggregate(query)
-      |> Sorter.order_buckets(query)
-      |> distinct(query)
-      |> offset(query)
-      |> limit(query)
+      process_final_rows(rows, %Query{query | where: query.encoded_where})
     end)
   end
   defp select_rows(%Query{subquery?: false, emulated?: true} = query) do
     Logger.debug("Emulating query ...")
     with {:ok, rows} <- select_rows(query.from) do
-      Logger.debug("Processing rows ...")
-      rows =
-        rows
-        |> RowSplitters.split(query)
-        |> filter_rows(query.where)
-        |> LCFConditions.apply(query)
-        |> Aggregator.aggregate(query)
-        |> ShrinkAndDrop.apply(query)
-        |> Sorter.order_buckets(query)
-        |> distinct(query)
-        |> offset(query)
-        |> limit(query)
-      {:ok, rows}
+      {:ok, process_final_rows(rows, query)}
     end
   end
   defp select_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}}) when not is_binary(from) do
@@ -272,6 +249,21 @@ defmodule Cloak.Query.Runner do
   defp execution_time_in_seconds(state), do:
     div(:erlang.monotonic_time(:milli_seconds) - state.start_time, 1000)
 
+  defp process_final_rows(rows, query) do
+    Logger.debug("Processing final rows ...")
+    rows
+    |> DataDecoder.decode(query)
+    |> RowSplitters.split(query)
+    |> filter(query)
+    |> LCFConditions.apply(query)
+    |> ShrinkAndDrop.apply(query)
+    |> Aggregator.aggregate(query)
+    |> Sorter.order_buckets(query)
+    |> distinct(query)
+    |> offset(query)
+    |> limit(query)
+  end
+
   defp limit(result, %Query{limit: nil}), do: result
   defp limit(%Result{buckets: buckets} = result, %Query{limit: amount}) do
     limited_buckets = buckets
@@ -300,8 +292,8 @@ defmodule Cloak.Query.Runner do
     %Result{result | buckets: Enum.map(buckets, &Map.put(&1, :occurrences, 1))}
   defp distinct(result, %Query{distinct?: false}), do: result
 
-  defp filter_rows(stream, []), do: stream
-  defp filter_rows(stream, conditions) do
+  defp filter(stream, %Query{where: []}), do: stream
+  defp filter(stream, %Query{where: conditions}) do
     filters = Enum.map(conditions, &Comparison.to_function/1)
     Stream.filter(stream, &Enum.all?(filters, fn (filter) -> filter.(&1) end))
   end
