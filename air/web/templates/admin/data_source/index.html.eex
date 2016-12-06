@@ -19,10 +19,10 @@
     </tr>
   <% end %>
   <%= for data_source <- @data_sources do %>
-    <tr>
+    <tr class="<%= data_source_availability_class(data_source) %>">
       <td><%= data_source.name %></td>
       <td><%= data_source.global_id %></td>
-      <td><%= available?(data_source) %></td>
+      <td><%= availability_label(data_source) %></td>
       <td><%= number_of_tables(data_source) %></td>
       <td><%= Map.get(@users_count, data_source.id, 0) %></td>
       <td><%= Air.Admin.GroupView.names(data_source.groups)%></td>
