@@ -872,6 +872,15 @@ defmodule Cloak.Aql.Parser.Test do
     )
   end
 
+  test "parsing comments" do
+    assert_parse("""
+      -- Full line comment
+      SELECT * -- Partial line comment, foo as bar
+      FROM baz
+      -- Comment at the end...
+    """, select(columns: :*, from: unquoted("baz")))
+  end
+
   create_test =
     fn(description, data_source, statement, expected_error, line, column) ->
       test description do

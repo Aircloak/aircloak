@@ -56,6 +56,7 @@ defmodule Cloak.Aql.Lexer do
   defp tokens() do
     many(choice([
       whitespace(),
+      comment(),
       constant(),
       quoted_identifier(),
       identifier(),
@@ -73,6 +74,16 @@ defmodule Cloak.Aql.Lexer do
         end)
   end
 
+  defp comment() do
+    ignore(
+      sequence([
+        string("--"),
+        word_of(~r/./),
+        linebreak()
+      ])
+    )
+  end
+
   defp parameter(), do:
     word_of(~r/\$[1-9][0-9]*/)
     |> map(fn("$" <> index_str) -> {:parameter, String.to_integer(index_str)} end)
@@ -88,9 +99,13 @@ defmodule Cloak.Aql.Lexer do
     ignore(
       either(
         word_of(~r/[\h]/),
-        newline() |> increment_line()
+        linebreak()
       )
     )
+  end
+
+  defp linebreak() do
+    newline() |> increment_line()
   end
 
   defp constant() do
