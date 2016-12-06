@@ -515,23 +515,6 @@ defmodule Cloak.Aql.Function.Test do
   test "can tell when a function does not split rows", do:
     refute Function.row_splitting_function?({:function, "extract_match", []})
 
-  test "contains_row_splitter? - column", do: refute Function.contains_row_splitter?(%Column{})
-
-  test "contains_row_splitter? - :*", do: refute Function.contains_row_splitter?(:*)
-
-  test "contains_row_splitter? - normal function", do:
-    refute Function.contains_row_splitter?({:function, "ceil", []})
-
-  test "contains_row_splitter? - row splitting function", do:
-    assert Function.contains_row_splitter?({:function, "extract_matches", []})
-
-  test "contains_row_splitter? - row splitting function deeply nested", do:
-    assert Function.contains_row_splitter?({:function, "avg", [
-      {:function, "length", [
-        {:function, "extract_matches", [%Column{}, %Column{}]}
-      ]}
-    ]})
-
   test "knows `ceil` is allowed in a subquery", do:
     assert Function.allowed_in_subquery?({:function, "ceil", []})
 
