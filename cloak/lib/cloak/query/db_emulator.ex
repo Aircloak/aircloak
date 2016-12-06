@@ -9,6 +9,7 @@ defmodule Cloak.Query.DBEmulator do
 
   alias Cloak.Aql.{Query, Comparison, Function}
   alias Cloak.Query.Sorter
+  alias Cloak.Query.Runner.RuntimeError
 
 
   # -------------------------------------------------------------------
@@ -26,7 +27,7 @@ defmodule Cloak.Query.DBEmulator do
     |> limit_rows(query)
   end
 
-  def join(_lhs, _rhs, _join), do: []
+  def join(_lhs, _rhs, _join), do: raise RuntimeError, message: "Emulation of JOINs is not yet supported."
 
 
   # -------------------------------------------------------------------
