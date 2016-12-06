@@ -15,6 +15,8 @@ defmodule Cloak.Query.DBEmulator do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Executes a `SELECT` query over the input stream of rows."
+  @spec select(Enumerable.t, Query.t) :: Enumerable.t
   def select(stream, query) do
     stream
     |> filter_rows(query)
