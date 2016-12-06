@@ -183,9 +183,11 @@ defmodule Cloak.Query.Runner do
       Logger.debug("Processing rows ...")
       rows =
         rows
+        |> RowSplitters.split(query)
         |> filter_rows(query.where)
         |> LCFConditions.apply(query)
         |> Aggregator.aggregate(query)
+        |> ShrinkAndDrop.apply(query)
         |> Sorter.order_buckets(query)
         |> distinct(query)
         |> offset(query)
