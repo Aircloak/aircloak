@@ -1280,19 +1280,7 @@ defmodule Cloak.Aql.Compiler do
     end)
   end
 
-  deflens functions do
-    Lens.match(fn
-      {:function, _, _} -> Lens.seq_both(Lens.root, Lens.at(2) |> functions())
-      {:distinct, _} -> Lens.at(1) |> functions()
-      {_, :as, _} -> Lens.at(0) |> functions()
-      elements when is_list(elements) -> Lens.all() |> functions()
-      _ -> Lens.empty()
-    end)
-  end
-
-  deflens splitter_functions do
-    functions() |> Lens.satisfy(&Function.row_splitting_function?/1)
-  end
+  deflens splitter_functions, do: terminal_elements() |> Lens.satisfy(&Function.row_splitting_function?/1)
 
   deflens buckets, do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
 end
