@@ -226,7 +226,8 @@ of being emitted.
 * We collect the set of user ids from emitted rows.
 * At the end of the stream we pick a random number with the same configuration as
 the offset used for determining `low_count` using a seed generated from the set
-of used ids.
+of used ids extended with the hashed endpoints of the input range (see
+https://github.com/Aircloak/aircloak/issues/870 for an explanation).
 * The number N above is picked in such a way that there is a very high probability of
 it being bigger than the number chosen in the previous step so that we have sufficient
 users to perform the calculation after we drop that many users.
