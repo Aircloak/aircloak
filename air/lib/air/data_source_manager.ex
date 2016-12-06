@@ -41,7 +41,7 @@ defmodule Air.DataSourceManager do
     for {_pid, cloak_info} <- :gproc.lookup_values({:p, :l, {__MODULE__, :cloak}}), do: cloak_info
 
   @doc "Returns the cloak info of cloaks serving a data source"
-  @spec cloaks_for_data_source(String.t) :: [Map.t]
+  @spec cloaks_for_data_source(String.t) :: [map]
   def cloaks_for_data_source(data_source_id), do:
     Enum.filter(cloaks(), &Enum.member?(&1.data_source_ids, data_source_id))
 
