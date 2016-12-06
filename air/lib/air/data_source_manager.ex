@@ -22,7 +22,6 @@ defmodule Air.DataSourceManager do
     :ok
   end
 
-
   @doc "Returns the pids of all the phoenix channels of the cloaks that have the data source"
   @spec channel_pids(String.t) :: [pid()]
   def channel_pids(global_id), do:
