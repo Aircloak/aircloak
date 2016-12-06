@@ -32,7 +32,7 @@ defmodule Air.Socket.Frontend do
     case Guardian.decode_and_verify(token) do
       {:ok, %{"sub" => subject}} ->
         case Guardian.serializer.from_token(subject) do
-          {:ok, %Air.User{} = user} -> {:ok, assign(socket, :user, user)}
+          {:ok, %Air.Schemas.User{} = user} -> {:ok, assign(socket, :user, user)}
           {:error, _reason} -> :error
         end
       {:error, _reason} -> :error

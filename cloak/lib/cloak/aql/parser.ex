@@ -271,7 +271,7 @@ defmodule Cloak.Aql.Parser do
         keyword(:"("),
         column(),
         keyword(:by),
-        constant_of([:integer, :float]),
+        numeric_constant(),
         option(sequence([
           keyword(:align),
           align_type(),
@@ -375,8 +375,8 @@ defmodule Cloak.Aql.Parser do
         keyword(:substring),
         keyword(:"("),
         column(),
-        option(sequence([keyword(:from), constant(:integer)])),
-        option(sequence([keyword(:for), constant(:integer)])),
+        option(sequence([keyword(:from), numeric_constant(:integer)])),
+        option(sequence([keyword(:for), numeric_constant(:integer)])),
         keyword(:")"),
      ],
      fn
@@ -656,7 +656,28 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp any_constant() do
-    constant_of([:string, :integer, :float, :boolean]) |> label("constant")
+    either(
+      constant_of([:string, :boolean]),
+      numeric_constant()
+    )
+    |> label("constant")
+  end
+
+  defp numeric_constant(expected_type \\ :numeric) do
+    # Note that we're resolving explicit sign prefix in the parser and not in the lexer.
+    # Resolving this in the lexer means that e.g. 1+2 would generate tokens `constant(1)` and `constant(2)`,
+    # instead of `constant(1)`, `keyword(+)`, `constant(2)`. In other words, we would require whitespace
+    # after the `+` and `-` characters for them to work as binary operators.
+    map(
+      sequence([option(keyword_of([:+, :-])), constant_of([:integer, :float])]),
+      fn
+        [nil, {:constant, _type, _value} = constant] -> constant
+        [:+, {:constant, _type, _value} = constant] -> constant
+        [:-, {:constant, type, value}] -> {:constant, type, value * -1}
+      end
+    )
+    |> satisfy(fn({:constant, type, _value}) -> expected_type == :numeric || type == expected_type end)
+    |> label("#{expected_type} constant")
   end
 
   defp constant_of(expected_types) do
@@ -726,7 +747,7 @@ defmodule Cloak.Aql.Parser do
   defp inequality_comparator(parser \\ noop()), do:
     parser |> keyword_of([:<, :<=, :>, :>=]) |> label("inequality comparator")
 
-  defp keyword_of(parser, types) do
+  defp keyword_of(parser \\ noop(), types) do
     parser
     |> choice(Enum.map(types, &keyword(&1)))
     |> label(types |> Enum.join(" or "))
@@ -757,7 +778,7 @@ defmodule Cloak.Aql.Parser do
 
   defp optional_limit() do
     switch([
-      {keyword(:limit), constant(:integer)},
+      {keyword(:limit), numeric_constant(:integer)},
       {:else, noop()}
     ])
     |> map(fn {[:limit], [{:constant, :integer, amount}]} -> {:limit, amount} end)
@@ -765,7 +786,7 @@ defmodule Cloak.Aql.Parser do
 
   defp optional_offset() do
     switch([
-      {keyword(:offset), constant(:integer)},
+      {keyword(:offset), numeric_constant(:integer)},
       {:else, noop()}
     ])
     |> map(fn {[:offset], [{:constant, :integer, amount}]} -> {:offset, amount} end)

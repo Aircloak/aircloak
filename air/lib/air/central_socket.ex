@@ -11,7 +11,7 @@ defmodule Air.CentralSocket do
   require Logger
   require Aircloak.DeployConfig
   alias Phoenix.Channels.GenSocketClient
-  alias Air.{CentralCall, Repo}
+  alias Air.{Schemas.CentralCall, Repo}
 
   @behaviour GenSocketClient
 

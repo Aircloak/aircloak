@@ -40,6 +40,7 @@ defmodule Cloak.Mixfile do
       {:poison, "~> 2.2.0", override: true},
       {:httpoison, "~> 0.9.0"},
       {:mongodb, "~> 0.2.0"},
+      {:lens, "~> 0.1.0"},
 
       # Test deps
 
@@ -60,7 +61,7 @@ defmodule Cloak.Mixfile do
       :logger, :gproc, :aircloak_common, :postgrex, :mariaex,
       :phoenix_gen_socket_client, :websocket_client, :combine,
       :runtime_tools, :httpoison, :timex, :poison, :odbc,
-      :crypto, :mongodb, :decimal, :ssl, :public_key
+      :crypto, :mongodb, :decimal, :ssl, :public_key, :lens
     ]
   end
 

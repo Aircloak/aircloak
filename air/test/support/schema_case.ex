@@ -1,4 +1,4 @@
-defmodule Air.ModelCase do
+defmodule Air.SchemaCase do
   @moduledoc """
   This module defines the test case to be used by
   model tests.
@@ -21,7 +21,7 @@ defmodule Air.ModelCase do
       import Ecto
       import Ecto.Changeset
       import Ecto.Query, only: [from: 1, from: 2]
-      import Air.ModelCase
+      import Air.SchemaCase
     end
   end
 

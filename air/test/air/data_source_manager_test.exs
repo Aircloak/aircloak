@@ -1,10 +1,10 @@
 defmodule Air.DataSourceManager.Test do
   use ExUnit.Case, async: false
-  use Air.ModelCase
+  use Air.SchemaCase
 
   import Air.AssertionHelper
 
-  alias Air.{Repo, DataSource, DataSourceManager}
+  alias Air.{Repo, Schemas.DataSource, DataSourceManager}
 
   @data_source_id "data_source_id"
   @data_sources [%{"global_id" => @data_source_id, "tables" => []}]

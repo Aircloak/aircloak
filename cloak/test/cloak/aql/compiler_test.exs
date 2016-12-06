@@ -579,8 +579,8 @@ defmodule Cloak.Aql.Compiler.Test do
   end
 
   test "bucket sizes are aligned, adding an info message" do
-    first = compile!("select bucket(numeric by 0.11) from table", data_source())
-    second = compile!("select bucket(numeric by 0.1) from table", data_source())
+    first = compile!("select bucket(numeric by 0.11) as foo from table", data_source())
+    second = compile!("select bucket(numeric by 0.1) as foo from table", data_source())
 
     assert Map.drop(first, [:info]) == Map.drop(second, [:info])
     assert ["Bucket size adjusted from 0.11 to 0.1"] = first.info
@@ -635,14 +635,66 @@ defmodule Cloak.Aql.Compiler.Test do
       compile!("select table.column.with.dots from table", dotted_data_source())
   end
 
-  defp compile!(query_string, data_source, parameters \\ []) do
-    {:ok, result} = compile(query_string, data_source, parameters)
+  test "view error" do
+    assert {:error, error} = compile("select foo from table_view", data_source(),
+      views: %{"table_view" => "select"})
+
+    assert error == "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
+  end
+
+  test "view error in show columns" do
+    assert {:error, error} = compile("show columns from table_view", data_source(),
+      views: %{"table_view" => "select"})
+
+    assert error == "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
+  end
+
+  test "ambiguous view/table error" do
+    assert {:error, error} = compile("select numeric from table", data_source(),
+      views: %{"table" => "select numeric from table"})
+
+    assert error == "There is both a table, and a view named `table`. Rename the view to resolve the conflict."
+  end
+
+  test "view is treated as a subquery" do
+    assert {:error, error} = compile("select numeric from table_view", data_source(),
+      views: %{"table_view" => "select numeric from table"})
+
+    assert error =~ ~r/Missing a user id column in the select list of subquery `table_view`./
+  end
+
+  test "view validation error" do
+    assert {:error, error} = validate_view("select", data_source())
+    assert error =~ ~r/Expected `column definition`/
+  end
+
+  test "view has the same limitations as the subquery" do
+    assert {:error, error} = validate_view("select uid, extract_match(string, '') from table", data_source())
+    assert error == "Function `extract_match` is not allowed in subqueries."
+  end
+
+  test "successful view validation", do:
+    assert :ok == validate_view("select uid, column from table", data_source())
+
+  test "successful validation of a view which uses another view", do:
+    assert :ok == validate_view("select uid, numeric from table_view", data_source(),
+      views: %{"table_view" => "select uid, numeric from table"})
+
+
+  defp compile!(query_string, data_source, options \\ []) do
+    {:ok, result} = compile(query_string, data_source, options)
     result
   end
 
-  defp compile(query_string, data_source, parameters \\ [], features \\ Cloak.Features.from_config) do
+  defp compile(query_string, data_source, options \\ [], features \\ Cloak.Features.from_config) do
     query = Parser.parse!(data_source, query_string)
-    Compiler.compile(data_source, query, parameters, features)
+    Compiler.compile(data_source, query, Keyword.get(options, :parameters, []),
+      Keyword.get(options, :views, %{}), features)
+  end
+
+  defp validate_view(view_sql, data_source, options \\ []) do
+    with {:ok, parsed_view} <- Parser.parse(data_source, view_sql), do:
+      Compiler.validate_view(data_source, parsed_view, Keyword.get(options, :views, %{}))
   end
 
   defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do

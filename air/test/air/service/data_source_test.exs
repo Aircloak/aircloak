@@ -1,5 +1,5 @@
 defmodule Air.Service.DataSourceTest do
-  use Air.ModelCase, async: false # because of shared mode
+  use Air.SchemaCase, async: false # because of shared mode
 
   alias Air.{Service.DataSource, TestRepoHelper}
 
@@ -28,9 +28,25 @@ defmodule Air.Service.DataSourceTest do
   end
 
   test "fetching user's data sources", context do
-    assert Enum.map(DataSource.for_user(context.user1), &(&1.id)) == [context.ds1.id, context.ds2.id]
+    expected_datasources = Enum.sort([context.ds1.id, context.ds2.id])
+    actual_datasources = DataSource.for_user(context.user1)
+      |> Enum.map(&(&1.id))
+      |> Enum.sort()
+    assert expected_datasources == actual_datasources
     assert Enum.map(DataSource.for_user(context.user2), &(&1.id)) == [context.ds2.id]
     assert Enum.map(DataSource.for_user(context.user3), &(&1.id)) == []
+  end
+
+  test "fetching user's data sources - no duplicates, despite being allowed through multiple groups" do
+    g1 = TestRepoHelper.create_group!()
+    g2 = TestRepoHelper.create_group!()
+    user = TestRepoHelper.create_user!(%{groups: [g1.id, g2.id]})
+    ds = TestRepoHelper.create_data_source!(%{groups: [g1.id, g2.id]})
+    expected_datasources = Enum.sort([ds.id])
+    actual_datasources = DataSource.for_user(user)
+      |> Enum.map(&(&1.id))
+      |> Enum.sort()
+    assert expected_datasources == actual_datasources
   end
 
   test "fetching available data source", context do

@@ -27,6 +27,9 @@ recreate_db:
 	@echo "Assumption: you have a database user called postgres that is a superuser. If not, run: CREATE USER postgres WITH SUPERUSER"
 	./recreate_db.sh
 
+recreate_db_more_data: recreate_db
+	./add_more_test_data.sh
+
 docs:
 	mix docs
 

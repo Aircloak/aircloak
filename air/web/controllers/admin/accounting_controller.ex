@@ -2,7 +2,7 @@ defmodule Air.Admin.AccountingController do
   @moduledoc false
   use Air.Web, :admin_controller
 
-  alias Air.Query
+  alias Air.Schemas.Query
 
 
   # -------------------------------------------------------------------

@@ -1,7 +1,7 @@
-defmodule Air.GroupTest do
-  use Air.ModelCase, async: true
+defmodule Air.Schemas.GroupTest do
+  use Air.SchemaCase, async: true
 
-  alias Air.{Group, User, DataSource, TestRepoHelper, TestUtils}
+  alias Air.{Schemas.Group, Schemas.User, Schemas.DataSource, TestRepoHelper, TestUtils}
 
   @valid_attrs %{name: "group name", admin: false}
   @invalid_attrs %{}

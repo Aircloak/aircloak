@@ -1,7 +1,7 @@
 defmodule Air.Service.AuditLog do
   @moduledoc "Services for using the audit log."
 
-  alias Air.{Repo, AuditLog, DataSource, User}
+  alias Air.{Repo, Schemas.AuditLog, Schemas.DataSource, Schemas.User}
   import Ecto.Query, only: [from: 2]
   require Logger
 
@@ -22,7 +22,7 @@ defmodule Air.Service.AuditLog do
   #-----------------------------------------------------------------------------------------------------------
 
   @doc "Creates an audit log entry."
-  @spec log(nil | Air.User.t, String.t, %{atom => any}) :: :ok | {:error, any}
+  @spec log(nil | User.t, String.t, %{atom => any}) :: :ok | {:error, any}
   def log(user, event, metadata \\ %{}) do
     email = if user != nil, do: user.email, else: "Unknown user"
 

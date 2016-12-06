@@ -79,9 +79,9 @@ defmodule Cloak.Aql.Function do
       %{type_specs: %{[:text, :integer, {:optional, :integer}] => :text}},
     ~w(||) => %{type_specs: %{[:text, :text] => :text}},
     ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
-    # NOTICE: The `not_in_subquery` needs to be set for `extract_match` (whether or not we
-    # can implement it in a subquery). The reason for this is what we have called: WYSIWYC
-    # (what you see is what you count). If `extract_match` is allowed in a subquery it can
+    # NOTICE: The `not_in_subquery` needs to be set for `extract_match` and `extract_matches`
+    # (whether or not we can implement it in a subquery). The reason for this is what we have called:
+    # WYSIWYC (what you see is what you count). If `extract_match` is allowed in a subquery it can
     # effectively be used as an `OR`, whereas if it is used at the top-level the output of
     # the function is directly anonymised, and hence safe.
     # An example attack could look like:
@@ -95,6 +95,8 @@ defmodule Cloak.Aql.Function do
     #
     ~w(extract_match) => %{type_specs: %{[:text, :text] => :text}, not_in_subquery: true,
       precompiled: true},
+    ~w(extract_matches) => %{type_specs: %{[:text, :text] => :text}, not_in_subquery: true,
+      precompiled: true, row_splitting: true},
     [{:cast, :integer}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer}},
     [{:cast, :real}] =>
@@ -136,6 +138,24 @@ defmodule Cloak.Aql.Function do
   @spec aggregate_function?(t) :: boolean
   def aggregate_function?({:function, name, _}), do: @functions |> Map.fetch!(name) |> Map.get(:aggregate, false)
   def aggregate_function?(_), do: false
+
+  @doc "Returns true if the function is one that can split a row into multiple rows, false otherise."
+  @spec row_splitting_function?(t) :: boolean
+  def row_splitting_function?({:function, name, _}), do: @functions |> Map.fetch!(name) |> Map.get(:row_splitting, false)
+  def row_splitting_function?(_), do: false
+
+  @doc "Returns true if a function or column is or contains a row-splitter"
+  @spec contains_row_splitter?(t) :: boolean
+  def contains_row_splitter?({:distinct, column}), do: contains_row_splitter?(column)
+  def contains_row_splitter?(:*), do: false
+  def contains_row_splitter?(%Column{}), do: false
+  def contains_row_splitter?({:function, _name, args} = function_spec) do
+    if row_splitting_function?(function_spec) do
+      true
+    else
+      Enum.any?(args, &contains_row_splitter?/1)
+    end
+  end
 
   @doc "Returns true if the given function call is a cast, false otherwise."
   @spec cast?(t) :: boolean
@@ -232,15 +252,16 @@ defmodule Cloak.Aql.Function do
 
   @doc "Compiles a function so it is ready for execution"
   @spec compile_function(t, function_compilation_callback) :: t | {:error, String.t}
-  def compile_function({:function, "extract_match", [_column, %Column{value: %Regex{}}]
-      } = precompiled_function, _callback), do: precompiled_function
-  def compile_function({:function, "extract_match", [column, pattern_column]}, compilation_callback) do
+  def compile_function({:function, name, [_column, %Column{value: %Regex{}}]} = precompiled_function, _callback)
+    when name in ["extract_match", "extract_matches"], do: precompiled_function
+  def compile_function({:function, name, [column, pattern_column]}, compilation_callback)
+      when name in ["extract_match", "extract_matches"] do
     case Regex.compile(pattern_column.value, "ui") do
       {:ok, regex} ->
         regex_column = %Column{pattern_column | value: regex}
-        {:function, "extract_match", compilation_callback.([column]) ++ [regex_column]}
+        {:function, name, compilation_callback.([column]) ++ [regex_column]}
       {:error, {error, location}} ->
-        {:error, "The regex used in `extract_match` is invalid: #{error} at character #{location}"}
+        {:error, "The regex used in `#{name}` is invalid: #{error} at character #{location}"}
     end
   end
   def compile_function({:function, function, args}, compilation_callback), do:
@@ -285,6 +306,23 @@ defmodule Cloak.Aql.Function do
     case @functions[function] do
       %{not_in_subquery: true} -> false
       _ -> true
+    end
+  end
+
+  @doc """
+  Returns the first instance of a database column from a function spec
+  or column. Nil if none can be found.
+  """
+  @spec column(t) :: Column.t | nil
+  def column(%Column{constant?: true}), do: nil
+  def column(%Column{} = column), do: column
+  def column({:function, _, args}) do
+    args
+    |> Enum.map(&column/1)
+    |> Enum.filter(&(&1))
+    |> case do
+      [] -> nil
+      [column|_] -> column
     end
   end
 
@@ -360,6 +398,9 @@ defmodule Cloak.Aql.Function do
       nil -> nil
     end
   end
+  defp do_apply("extract_matches", [nil, _regex]), do: [nil]
+  defp do_apply("extract_matches", [string, regex]), do:
+    List.flatten(Regex.scan(regex, string, capture: :first))
   defp do_apply("^", [x, y]), do: :math.pow(x, y)
   defp do_apply("*", [x = %Duration{}, y]), do: Duration.scale(x, y)
   defp do_apply("*", [x, y = %Duration{}]), do: do_apply("*", [y, x])

@@ -1,7 +1,7 @@
 defmodule Air.Onboarding.UserControllerTest do
   use Air.ConnCase, async: true
 
-  alias Air.{User, Group}
+  alias Air.Schemas.{User, Group}
 
   @valid_params %{user: %{
       email: "admin@admin.com",

@@ -1,6 +1,6 @@
 [ignore]
 .*/jsonlint-lines-primitives/test/fails/.*
 .*/findup/test/fixture/.*
-<PROJECT_ROOT>/docs/.*
+<PROJECT_ROOT>/user_docs/.*
 <PROJECT_ROOT>/node_modules/fbjs/.*
 <PROJECT_ROOT>/node_modules/mapbox-gl-style-spec/test/fixture/invalidjson.input.json

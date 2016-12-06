@@ -97,7 +97,7 @@ defmodule Cloak.DataSource.PostgreSQL do
     Time.new(hour, min, sec, usec) |> error_to_nil()
   @decimal_precision :math.pow(10, 15)
   defp field_mapper(%Decimal{} = value), do:
-    (value |> Decimal.mult(Decimal.new(@decimal_precision)) |> Decimal.to_integer()) / @decimal_precision
+    Cloak.DecimalUtil.to_precision(value, @decimal_precision)
   defp field_mapper(field), do: field
 
   defp error_to_nil({:ok, result}), do: result

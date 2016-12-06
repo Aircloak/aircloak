@@ -5,7 +5,7 @@ defmodule Air.Admin.DataSourceController do
 
   use Air.Web, :admin_controller
 
-  alias Air.{DataSource, DataSourceManager, User}
+  alias Air.{Schemas.DataSource, Schemas.User, DataSourceManager}
 
   plug :load_data_source when action in [:show, :edit, :update, :delete]
 
