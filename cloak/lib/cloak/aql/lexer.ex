@@ -79,7 +79,7 @@ defmodule Cloak.Aql.Lexer do
       sequence([
         string("--"),
         word_of(~r/./),
-        newline() |> increment_line()
+        linebreak()
       ])
     )
   end
@@ -99,9 +99,13 @@ defmodule Cloak.Aql.Lexer do
     ignore(
       either(
         word_of(~r/[\h]/),
-        newline() |> increment_line()
+        linebreak()
       )
     )
+  end
+
+  defp linebreak() do
+    newline() |> increment_line()
   end
 
   defp constant() do
