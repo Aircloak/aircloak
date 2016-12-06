@@ -617,18 +617,8 @@ defmodule Cloak.Aql.Compiler do
   # occurrences of columns that contain row splitting functions. This does not affect how many
   # times database columns are loaded from the database, but allows us to deal with the output
   # of the row splitting function instances separately.
-  defp drop_duplicates(columns) do
-    Enum.uniq_by(columns, fn(column) ->
-      if Function.contains_row_splitter?(column) do
-        # We don't care about the column value itself. Knowing it is a column construct containing
-        # a row splitting function, the only thing of importance is that it distinguishes itself from
-        # any other column, as well as repeat occurrences of the same column.
-        Kernel.make_ref()
-      else
-        column
-      end
-    end)
-  end
+  defp drop_duplicates(columns), do:
+    Enum.uniq_by(columns, &Lens.map(splitter_functions(), &1, fn(_) -> Kernel.make_ref() end))
 
   defp partition_row_splitters(%Query{} = query) do
     next_available_index = length(query.db_columns)
@@ -1288,6 +1278,20 @@ defmodule Cloak.Aql.Compiler do
       elements when is_list(elements) -> Lens.all() |> terminal_elements()
       _ -> Lens.root
     end)
+  end
+
+  deflens functions do
+    Lens.match(fn
+      {:function, _, _} -> Lens.seq_both(Lens.root, Lens.at(2) |> functions())
+      {:distinct, _} -> Lens.at(1) |> functions()
+      {_, :as, _} -> Lens.at(0) |> functions()
+      elements when is_list(elements) -> Lens.all() |> functions()
+      _ -> Lens.empty()
+    end)
+  end
+
+  deflens splitter_functions do
+    functions() |> Lens.satisfy(&Function.row_splitting_function?/1)
   end
 
   deflens buckets, do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
