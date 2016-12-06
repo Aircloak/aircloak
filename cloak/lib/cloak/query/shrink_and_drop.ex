@@ -26,9 +26,10 @@ defmodule Cloak.Query.ShrinkAndDrop do
   # -------------------------------------------------------------------
 
   @supported_types [:integer, :real]
-  defp suppress_outliers({column, _range}, rows) do
+  defp suppress_outliers({column, {low, high}}, rows) do
     if Enum.member?(@supported_types, Function.type(column)) do
-      initial_state = %{next_id: 0, buffer: Buffer.new(buffer_size()), user_ids: MapSet.new()}
+      seed_items = MapSet.new(["endpoint-#{low}", "endpoint-#{high}"])
+      initial_state = %{next_id: 0, buffer: Buffer.new(buffer_size()), seed_items: seed_items}
 
       rows
       |> Stream.concat([:done])
@@ -38,22 +39,22 @@ defmodule Cloak.Query.ShrinkAndDrop do
     end
   end
 
-  defp do_suppress_outliers(:done, %{buffer: buffer, user_ids: user_ids}, _column) do
+  defp do_suppress_outliers(:done, %{buffer: buffer, seed_items: seed_items}, _column) do
     if Buffer.empty?(buffer) do
       {[], nil}
     else
-      emit_buffer(buffer, user_ids)
+      emit_buffer(buffer, seed_items)
     end
   end
-  defp do_suppress_outliers(row, %{next_id: next_id, user_ids: user_ids, buffer: buffer}, column) do
+  defp do_suppress_outliers(row, %{next_id: next_id, seed_items: seed_items, buffer: buffer}, column) do
     {new_buffer, popped_rows} = row |> decorate_row(next_id, column) |> Buffer.add(buffer)
-    new_user_ids = popped_rows |> Enum.map(fn({_, user_id, _, _}) -> user_id end) |> Enum.into(user_ids)
+    new_seed_items = popped_rows |> Enum.map(fn({_, user_id, _, _}) -> user_id end) |> Enum.into(seed_items)
 
-    {Enum.map(popped_rows, &undecorate_row/1), %{next_id: next_id + 1, user_ids: new_user_ids, buffer: new_buffer}}
+    {Enum.map(popped_rows, &undecorate_row/1), %{next_id: next_id + 1, seed_items: new_seed_items, buffer: new_buffer}}
   end
 
-  defp emit_buffer(buffer, user_ids) do
-    {count, _} = user_ids |> Anonymizer.new() |> Anonymizer.noisy_lower_bound()
+  defp emit_buffer(buffer, seed_items) do
+    {count, _} = seed_items |> Anonymizer.new() |> Anonymizer.noisy_lower_bound()
     interval =
       buffer
       |> Buffer.range_except_extreme(count)
