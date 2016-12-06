@@ -1,19 +1,50 @@
 <h2>Cloaks</h2>
 
-<%= if length(@cloaks) == 0 do %>
+<%= if @count == 0 do %>
   <div><b>There are currently no cloaks registered.</b></div>
 <% else %>
-  <%= for cloak <- @cloaks do %>
-    <div>
-      <div>
-        <h3><%= cloak.name %>
-          <small>since <%= time_ago(cloak.online_since) %></small>
-        </h3>
-        <p>
-          <%= cloak.name %> makes the following data sources available:
-          <strong><%= data_source_names(cloak) %></strong>
-        </p>
-      </div>
+  <%= for group <- @cloak_groups do %>
+    <div class="row">
+      <%= for cloak <- group do %>
+        <div class="col-md-6">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h1 class="panel-title">
+                <%= cloak.name %>
+              </h1>
+            </div>
+            <p class="panel-body">
+              This cloak is online since <%= time_ago(cloak.online_since) %>
+            </p>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Data source name</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for data_source <- cloak.data_sources do %>
+                  <tr>
+                    <td><%= data_source.name %></td>
+                    <td>
+                      <%= link "View data source", to: admin_data_source_path(@conn, :show, data_source.id),
+                        class: "btn btn-default btn-xs" %>
+                    </td>
+                  </tr>
+                <% end %>
+                <%= if length(cloak.data_sources) == 0 do %>
+                  <tr>
+                    <td colspan=2>
+                      This cloak doesn't serve any data sources.
+                    </td>
+                  <tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% end %>
     </div>
   <% end %>
 <% end %>

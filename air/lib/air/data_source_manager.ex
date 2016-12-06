@@ -22,7 +22,6 @@ defmodule Air.DataSourceManager do
     :ok
   end
 
-
   @doc "Returns the pids of all the phoenix channels of the cloaks that have the data source"
   @spec channel_pids(String.t) :: [pid()]
   def channel_pids(global_id), do:
@@ -40,6 +39,11 @@ defmodule Air.DataSourceManager do
   @spec cloaks() :: [Map.t]
   def cloaks(), do:
     for {_pid, cloak_info} <- :gproc.lookup_values({:p, :l, {__MODULE__, :cloak}}), do: cloak_info
+
+  @doc "Returns the cloak info of cloaks serving a data source"
+  @spec cloaks_for_data_source(String.t) :: [map]
+  def cloaks_for_data_source(data_source_id), do:
+    Enum.filter(cloaks(), &Enum.member?(&1.data_source_ids, data_source_id))
 
 
   # -------------------------------------------------------------------

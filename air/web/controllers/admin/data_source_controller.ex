@@ -27,7 +27,7 @@ defmodule Air.Admin.DataSourceController do
 
   def index(conn, _params) do
     data_sources = Repo.all(DataSource) |> Repo.preload([:groups])
-    data_sources = Enum.sort_by(data_sources, &{DataSourceManager.available?(&1.global_id), &1.name})
+    data_sources = Enum.sort_by(data_sources, &{not DataSourceManager.available?(&1.global_id), &1.name})
 
     query = from data_source in DataSource,
       inner_join: group in assoc(data_source, :groups),
@@ -70,7 +70,8 @@ defmodule Air.Admin.DataSourceController do
       inner_join: group in assoc(user, :groups),
       inner_join: data_source in assoc(group, :data_sources),
       where: data_source.id == ^data_source.id,
-      select: user
+      select: user,
+      preload: [:groups]
     users = Repo.all(query)
 
     render(conn, "show.html",

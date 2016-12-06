@@ -225,7 +225,7 @@ defmodule Cloak.Aql.FixAlign do
   defp small_sizes(_, _allow_fractions = false), do: []
   defp small_sizes({x, y}, _allow_fractions = true) do
     start =
-      (y - x)
+      (y - x) / 2
       |> :math.log10()
       |> Float.floor()
       |> round()
