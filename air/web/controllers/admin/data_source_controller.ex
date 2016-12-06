@@ -70,7 +70,8 @@ defmodule Air.Admin.DataSourceController do
       inner_join: group in assoc(user, :groups),
       inner_join: data_source in assoc(group, :data_sources),
       where: data_source.id == ^data_source.id,
-      select: user
+      select: user,
+      preload: [:groups]
     users = Repo.all(query)
 
     render(conn, "show.html",
