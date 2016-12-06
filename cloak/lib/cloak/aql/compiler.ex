@@ -596,39 +596,28 @@ defmodule Cloak.Aql.Compiler do
     having_columns = Enum.flat_map(query.having, fn ({:comparison, column, _operator, target}) -> [column, target] end)
     aggregators = filter_aggregators(selected_columns ++ having_columns)
     %Query{query |
-      property: groups |> drop_duplicates(),
-      aggregators: aggregators |> drop_duplicates()
+      property: groups |> drop_duplicate_columns_except_row_splitters(),
+      aggregators: aggregators |> drop_duplicate_columns_except_row_splitters()
     }
   end
   defp partition_selected_columns(%Query{columns: selected_columns} = query) do
     case filter_aggregators(selected_columns) do
       [] ->
         %Query{query |
-          property: selected_columns |> drop_duplicates(),
+          property: selected_columns |> drop_duplicate_columns_except_row_splitters(),
           aggregators: [{:function, "count", [:*]}], implicit_count: true
         }
       aggregators ->
-        %Query{query | property: [], aggregators: aggregators |> drop_duplicates()}
+        %Query{query | property: [], aggregators: aggregators |> drop_duplicate_columns_except_row_splitters()}
     end
   end
   defp partition_selected_columns(query), do: query
 
-  # This is effectively a special version of Enum.uniq/1. It does not collapse down duplicate
-  # occurrences of columns that contain row splitting functions. This does not affect how many
-  # times database columns are loaded from the database, but allows us to deal with the output
-  # of the row splitting function instances separately.
-  defp drop_duplicates(columns) do
-    Enum.uniq_by(columns, fn(column) ->
-      if Function.contains_row_splitter?(column) do
-        # We don't care about the column value itself. Knowing it is a column construct containing
-        # a row splitting function, the only thing of importance is that it distinguishes itself from
-        # any other column, as well as repeat occurrences of the same column.
-        Kernel.make_ref()
-      else
-        column
-      end
-    end)
-  end
+  # Drops all duplicate occurrences of columns, with the exception of columns that are, or contain,
+  # calls to row splitting functions. This does not affect how many times database columns are loaded
+  # from the database, but allows us to deal with the output of the row splitting function instances separately.
+  defp drop_duplicate_columns_except_row_splitters(columns), do:
+    Enum.uniq_by(columns, &Lens.map(splitter_functions(), &1, fn(_) -> Kernel.make_ref() end))
 
   defp partition_row_splitters(%Query{} = query) do
     next_available_index = length(query.db_columns)
@@ -1289,6 +1278,8 @@ defmodule Cloak.Aql.Compiler do
       _ -> Lens.root
     end)
   end
+
+  deflens splitter_functions, do: terminal_elements() |> Lens.satisfy(&Function.row_splitting_function?/1)
 
   deflens buckets, do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
 end
