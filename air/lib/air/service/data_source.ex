@@ -220,7 +220,8 @@ defmodule Air.Service.DataSource do
       true = (final_view.user_id == user.id)
 
       case validate_view_on_cloak(final_view, user) do
-        :ok -> {:ok, changeset}
+        {:ok, columns} ->
+          {:ok, Ecto.Changeset.put_change(changeset, :result_info, %{columns: columns})}
         {:error, sql_error} when is_binary(sql_error) ->
           # SQL error returned by the cloak -> we'll convert into a changeset
           {:error, Ecto.Changeset.add_error(changeset, :sql, sql_error)}
