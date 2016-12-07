@@ -79,9 +79,14 @@ defmodule Air.Service.DataSource do
   def views(data_source, user), do:
     Repo.all(from view in View, where: view.data_source_id == ^data_source.id and view.user_id == ^user.id)
 
+  @doc "Retrieves the view from the database."
+  @spec view(User.t, pos_integer) :: View.t
+  def view(user, view_id), do:
+    Repo.one(from view in View, where: view.id == ^view_id and view.user_id == ^user.id)
+
   @doc "Saves the new view in the database."
   @spec create_view(String.t, User.t, String.t, String.t) ::
-    {:ok, View.t} | {:error, Ecto.Changeset.t} | data_source_operation_error
+    {:ok, View.t} | {:error, Ecto.Changeset.t}
   def create_view(data_source_id, user, name, sql) do
     changes = %{data_source_id: data_source_id, user_id: user.id, name: name, sql: sql}
     with {:ok, changeset} <- validated_view_changeset(user, %View{}, changes, :insert), do:
@@ -90,7 +95,7 @@ defmodule Air.Service.DataSource do
 
   @doc "Updates the existing view in the database."
   @spec update_view(User.t, pos_integer, String.t, String.t) ::
-    {:ok, View.t} | {:error, Ecto.Changeset.t} | data_source_operation_error
+    {:ok, View.t} | {:error, Ecto.Changeset.t}
   def update_view(user, view_id, name, sql) do
     changes = %{name: name, sql: sql}
     with {:ok, changeset} <- validated_view_changeset(user, Repo.get!(View, view_id), changes, :update), do:
@@ -225,7 +230,10 @@ defmodule Air.Service.DataSource do
         {:error, sql_error} when is_binary(sql_error) ->
           # SQL error returned by the cloak -> we'll convert into a changeset
           {:error, Ecto.Changeset.add_error(changeset, :sql, sql_error)}
-        other -> other
+        {:error, :not_connected} ->
+          # Cloak not available
+          {:error, Ecto.Changeset.add_error(changeset, :sql,
+            "Cannot validate the view SQL since no cloak is available for the given data source.")}
       end
     else
       {:error, changeset}

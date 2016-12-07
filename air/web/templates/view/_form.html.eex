@@ -23,3 +23,11 @@
 </div>
 
 <% end %>
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      App.viewEditor({}, document.getElementById("viewEditor"));
+    }
+  };
+</script>

@@ -15,7 +15,7 @@ defmodule Air.Schemas.View do
   end
 
   @doc "Creates a changeset which can be used in forms."
-  @spec changeset(map) :: Changeset.t
-  def changeset(params \\ %{}), do:
-    cast(%__MODULE__{}, params, [])
+  @spec to_changeset(t) :: Changeset.t
+  def to_changeset(view), do:
+    cast(view, %{}, [])
 end
