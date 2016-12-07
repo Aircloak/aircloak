@@ -3,7 +3,7 @@ defmodule Air.ViewController do
 
   use Air.Web, :controller
 
-  alias Air.Schemas.View
+  alias Air.Service.View
 
 
   # -------------------------------------------------------------------
@@ -19,11 +19,11 @@ defmodule Air.ViewController do
   # -------------------------------------------------------------------
 
   def new(conn, %{"data_source_id" => data_source_id}), do:
-    render(conn, "new.html", changeset: View.to_changeset(%View{}), data_source_id: data_source_id)
+    render(conn, "new.html", changeset: View.new_changeset(), data_source_id: data_source_id)
 
   def edit(conn, %{"data_source_id" => data_source_id, "id" => id}), do:
     render(conn, "edit.html",
-      changeset: View.to_changeset(Air.Service.DataSource.view(conn.assigns.current_user, id)),
+      changeset: View.changeset(id),
       data_source_id: data_source_id,
       view_id: id
     )
@@ -34,7 +34,7 @@ defmodule Air.ViewController do
       "view" => %{"name" => name, "sql" => sql}
     } = params
 
-    case Air.Service.DataSource.create_view(data_source_id, conn.assigns.current_user, name, sql) do
+    case View.create(conn.assigns.current_user, data_source_id, name, sql) do
       {:ok, _view} ->
         redirect(conn, to: data_source_path(conn, :show, data_source_id))
       {:error, changeset} ->
@@ -49,7 +49,10 @@ defmodule Air.ViewController do
       "view" => %{"name" => name, "sql" => sql}
     } = params
 
-    case Air.Service.DataSource.update_view(conn.assigns.current_user, id, name, sql) do
+    view = View.get(id)
+    true = (view.user_id == conn.assigns.current_user.id)
+
+    case View.update(view, conn.assigns.current_user, name, sql) do
       {:ok, _view} ->
         redirect(conn, to: data_source_path(conn, :show, data_source_id))
       {:error, changeset} ->

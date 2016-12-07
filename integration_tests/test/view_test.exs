@@ -21,7 +21,7 @@ defmodule IntegrationTest.ViewTest do
 
     new_name = unique_view_name()
     new_sql = "select user_id from users"
-    assert {:ok, updated_view} = update_view(context.user, view.id, new_name, new_sql)
+    assert {:ok, updated_view} = update_view(view, context.user, new_name, new_sql)
 
     assert updated_view.id == view.id
     assert updated_view.name == new_name
@@ -38,10 +38,10 @@ defmodule IntegrationTest.ViewTest do
     "view_#{:erlang.unique_integer([:positive])}"
 
   defp create_view(user, name, sql), do:
-    Air.Service.DataSource.create_view(Manager.data_source_local_id(), user, name, sql)
+    Air.Service.View.create(user, Manager.data_source_local_id(), name, sql)
 
-  defp update_view(user, view_id, name, sql), do:
-    Air.Service.DataSource.update_view(user, view_id, name, sql)
+  defp update_view(view, user, name, sql), do:
+    Air.Service.View.update(view, user, name, sql)
 
   defp run_query(user, query, params \\ []), do:
     Air.Service.DataSource.run_query(
