@@ -29,16 +29,18 @@ defmodule Cloak.Query.DBEmulator do
 
   def join(_lhs, _rhs, _join), do: raise RuntimeError, message: "Emulation of JOINs is not yet supported."
 
+  @doc "Applies the query conditions over the input stream of rows."
+  @spec filter_rows(Enumerable.t, Query.t) :: Enumerable.t
+  def filter_rows(stream, %Query{where: []}), do: stream
+  def filter_rows(stream, %Query{where: conditions}) do
+    filters = Enum.map(conditions, &Comparison.to_function/1)
+    Stream.filter(stream, &Enum.all?(filters, fn (filter) -> filter.(&1) end))
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp filter_rows(stream, %Query{where: []}), do: stream
-  defp filter_rows(stream, %Query{where: conditions}) do
-    filters = Enum.map(conditions, &Comparison.to_function/1)
-    Stream.filter(stream, &Enum.all?(filters, fn (filter) -> filter.(&1) end))
-  end
 
   defp select_columns(stream, %Query{columns: columns}) do
     Stream.map(stream, fn (row) ->
