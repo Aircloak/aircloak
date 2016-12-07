@@ -49,7 +49,7 @@ defmodule Cloak.Aql.Query do
     #
     # where the latter of these two is contained in the row-splitters.
     row_splitters: [Function.t],
-    implicit_count: boolean,
+    implicit_count?: boolean,
     unsafe_filter_columns: [Column.t],
     group_by: [Function.t],
     where: [where_clause],
@@ -65,7 +65,8 @@ defmodule Cloak.Aql.Query do
     limit: pos_integer | nil,
     offset: non_neg_integer,
     having: [having_clause],
-    distinct: boolean,
+    distinct?: boolean,
+    emulated?: boolean,
     ranges: %{Column.t => FixAlign.interval},
     parameters: [DataSource.field],
     views: view_map
@@ -74,9 +75,9 @@ defmodule Cloak.Aql.Query do
   defstruct [
     columns: [], where: [], lcf_check_conditions: [], unsafe_filter_columns: [], group_by: [],
     order_by: [], column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
-    row_splitters: [], implicit_count: false, data_source: nil, command: nil, show: nil, mode: nil,
-    db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct: false,
-    features: nil, encoded_where: [], ranges: %{}, parameters: [], views: %{}
+    row_splitters: [], implicit_count?: false, data_source: nil, command: nil, show: nil, mode: nil,
+    db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
+    features: nil, encoded_where: [], ranges: %{}, parameters: [], views: %{}, emulated?: false
   ]
 
 

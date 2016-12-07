@@ -60,6 +60,7 @@ defmodule Cloak.Query.DataDecoder do
     end
   end
 
+  defp create_from_config(%{method: method} = decoder) when is_function(method), do: decoder
   defp create_from_config(%{method: "base64", columns: columns}), do:
     %{method: &Base.decode64/1, columns: columns}
   defp create_from_config(%{method: "aes_cbc_128", key: key, columns: columns}), do:

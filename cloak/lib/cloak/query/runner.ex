@@ -12,7 +12,7 @@ defmodule Cloak.Query.Runner do
 
   alias Cloak.Aql.{Query, Column, Comparison}
   alias Cloak.DataSource
-  alias Cloak.Query.{Aggregator, LCFConditions, ShrinkAndDrop, Sorter, Result, DataDecoder, RowSplitters}
+  alias Cloak.Query.{Aggregator, LCFConditions, ShrinkAndDrop, Sorter, Result, DataDecoder, RowSplitters, DBEmulator}
 
   @supervisor_name Module.concat(__MODULE__, Supervisor)
 
@@ -161,21 +161,47 @@ defmodule Cloak.Query.Runner do
     end
   end
 
-  defp select_rows(query), do:
+  defp select_rows(%Query{subquery?: false, emulated?: false} = query) do
     DataSource.select(query, fn(rows) ->
+      process_final_rows(rows, %Query{query | where: query.encoded_where})
+    end)
+  end
+  defp select_rows(%Query{subquery?: false, emulated?: true} = query) do
+    Logger.debug("Emulating query ...")
+    with {:ok, rows} <- select_rows(query.from) do
+      {:ok, process_final_rows(rows, query)}
+    end
+  end
+  defp select_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}}) when not is_binary(from) do
+    Logger.debug("Emulating query ...")
+    with {:ok, rows} <- select_rows(from) do
+      Logger.debug("Processing rows ...")
+      rows =
+        rows
+        |> DBEmulator.select(subquery)
+        |> Enum.to_list()
+      {:ok, rows}
+    end
+  end
+  defp select_rows({:subquery, %{ast: subquery}}) do
+    select_rows(subquery)
+  end
+  defp select_rows({:join, join}) do
+    Logger.debug("Emulating join ...")
+    lhs = select_rows(join.lhs.ast)
+    rhs = select_rows(join.rhs.ast)
+    {:ok, DBEmulator.join(lhs, rhs, join) |> Enum.to_list()}
+  end
+  defp select_rows(%Query{} = query) do
+    Logger.debug("Emulating query ...")
+    DataSource.select(%Query{query | subquery?: false}, fn(rows) ->
       Logger.debug("Processing rows ...")
       rows
       |> DataDecoder.decode(query)
-      |> RowSplitters.split(query)
-      |> filter_on_encoded_columns(query)
-      |> LCFConditions.apply(query)
-      |> ShrinkAndDrop.apply(query)
-      |> Aggregator.aggregate(query)
-      |> Sorter.order(query)
-      |> distinct(query)
-      |> offset(query)
-      |> limit(query)
+      |> DBEmulator.select(%Query{query | where: query.encoded_where, encoded_where: []})
+      |> Enum.to_list()
     end)
+  end
 
   defp successful_result(result, query), do: {:ok, result, Enum.reverse(query.info)}
 
@@ -223,6 +249,21 @@ defmodule Cloak.Query.Runner do
   defp execution_time_in_seconds(state), do:
     div(:erlang.monotonic_time(:milli_seconds) - state.start_time, 1000)
 
+  defp process_final_rows(rows, query) do
+    Logger.debug("Processing final rows ...")
+    rows
+    |> DataDecoder.decode(query)
+    |> RowSplitters.split(query)
+    |> filter(query)
+    |> LCFConditions.apply(query)
+    |> ShrinkAndDrop.apply(query)
+    |> Aggregator.aggregate(query)
+    |> Sorter.order_buckets(query)
+    |> distinct(query)
+    |> offset(query)
+    |> limit(query)
+  end
+
   defp limit(result, %Query{limit: nil}), do: result
   defp limit(%Result{buckets: buckets} = result, %Query{limit: amount}) do
     limited_buckets = buckets
@@ -247,12 +288,12 @@ defmodule Cloak.Query.Runner do
   defp drop([%{occurrences: occurrences} = bucket | rest], amount), do:
     [%{bucket | occurrences: occurrences - amount} | rest]
 
-  defp distinct(%Result{buckets: buckets} = result, %Query{distinct: true}), do:
+  defp distinct(%Result{buckets: buckets} = result, %Query{distinct?: true}), do:
     %Result{result | buckets: Enum.map(buckets, &Map.put(&1, :occurrences, 1))}
-  defp distinct(result, %Query{distinct: false}), do: result
+  defp distinct(result, %Query{distinct?: false}), do: result
 
-  defp filter_on_encoded_columns(stream, %Query{encoded_where: []}), do: stream
-  defp filter_on_encoded_columns(stream, %Query{encoded_where: conditions}) do
+  defp filter(stream, %Query{where: []}), do: stream
+  defp filter(stream, %Query{where: conditions}) do
     filters = Enum.map(conditions, &Comparison.to_function/1)
     Stream.filter(stream, &Enum.all?(filters, fn (filter) -> filter.(&1) end))
   end
