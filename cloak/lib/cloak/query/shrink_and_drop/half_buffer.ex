@@ -46,8 +46,8 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer do
   def add(buffer, value, user_id, row) do
     %{
       buffer |
-      min: min(buffer.min, value),
-      max: max(buffer.max, value),
+      min: Cloak.Data.min(buffer.min, value),
+      max: Cloak.Data.max(buffer.max, value),
       users: Map.update(buffer.users, user_id, %{value: value, rows: [row]}, fn(%{value: old_value, rows: rows}) ->
         %{value: (if buffer.comparator.(old_value, value), do: old_value, else: value), rows: [row | rows]}
       end),
@@ -83,7 +83,7 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer do
     users
     |> Map.values()
     |> Enum.flat_map(&(&1[:rows]))
-    |> Enum.filter(fn({_, _, value, _}) -> x <= value && value < y end)
+    |> Enum.filter(fn({_, _, value, _}) -> Cloak.Data.lt_eq(x, value) && Cloak.Data.gt(y, value) end)
   end
 
 
@@ -104,8 +104,8 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer do
       %{
         buffer |
         users: new_users,
-        min: new_users |> Map.values() |> Enum.map(&(&1[:value])) |> Enum.min(),
-        max: new_users |> Map.values() |> Enum.map(&(&1[:value])) |> Enum.max(),
+        min: new_users |> Map.values() |> Enum.map(&(&1[:value])) |> Enum.reduce(&Cloak.Data.min/2),
+        max: new_users |> Map.values() |> Enum.map(&(&1[:value])) |> Enum.reduce(&Cloak.Data.max/2),
       },
       rows
     }

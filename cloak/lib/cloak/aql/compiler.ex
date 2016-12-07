@@ -805,7 +805,7 @@ defmodule Cloak.Aql.Compiler do
     {left, right} =
       conditions
       |> Enum.map(&Comparison.value/1)
-      |> Enum.sort(&lt_eq/2)
+      |> Enum.sort(&Cloak.Data.lt_eq/2)
       |> List.to_tuple()
       |> FixAlign.align_interval()
 
@@ -845,15 +845,10 @@ defmodule Cloak.Aql.Compiler do
     case Enum.sort_by(comparisons, &Comparison.direction/1, &Kernel.>/2) do
       [cmp1, cmp2] ->
         Comparison.direction(cmp1) != Comparison.direction(cmp2) &&
-          lt_eq(Comparison.value(cmp1), Comparison.value(cmp2))
+          Cloak.Data.lt_eq(Comparison.value(cmp1), Comparison.value(cmp2))
       _ -> false
     end
   end
-
-  defp lt_eq(x = %NaiveDateTime{}, y = %NaiveDateTime{}), do: Timex.diff(x, y) <= 0
-  defp lt_eq(x = %Date{}, y = %Date{}), do: Timex.diff(x, y) <= 0
-  defp lt_eq(x = %Time{}, y = %Time{}), do: Cloak.Time.time_to_seconds(x) <= Cloak.Time.time_to_seconds(y)
-  defp lt_eq(x, y), do: x <= y
 
   @aligned_types ~w(integer real datetime date time)a
   defp inequalities_by_column(where_clauses) do

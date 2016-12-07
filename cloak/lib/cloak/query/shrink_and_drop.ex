@@ -25,18 +25,13 @@ defmodule Cloak.Query.ShrinkAndDrop do
   # Internal functions
   # -------------------------------------------------------------------
 
-  @supported_types [:integer, :real]
   defp suppress_outliers({column, {low, high}}, rows) do
-    if Enum.member?(@supported_types, Function.type(column)) do
-      seed_items = MapSet.new(["endpoint-#{low}", "endpoint-#{high}"])
-      initial_state = %{next_id: 0, buffer: Buffer.new(buffer_size()), seed_items: seed_items}
+    seed_items = MapSet.new(["endpoint-#{low}", "endpoint-#{high}"])
+    initial_state = %{next_id: 0, buffer: Buffer.new(buffer_size()), seed_items: seed_items}
 
-      rows
-      |> Stream.concat([:done])
-      |> Stream.transform(initial_state, &do_suppress_outliers(&1, &2, column))
-    else
-      rows
-    end
+    rows
+    |> Stream.concat([:done])
+    |> Stream.transform(initial_state, &do_suppress_outliers(&1, &2, column))
   end
 
   defp do_suppress_outliers(:done, %{buffer: buffer, seed_items: seed_items}, _column) do
@@ -59,15 +54,12 @@ defmodule Cloak.Query.ShrinkAndDrop do
       buffer
       |> Buffer.range_except_extreme(count)
       |> case do
-        {x, x} -> {x, x + epsilon(x)}
+        {x, x} -> {x, Cloak.Data.plus_epsilon(x)}
         interval -> FixAlign.align_interval(interval)
       end
 
     {buffer |> Buffer.inside(interval) |> Enum.map(&undecorate_row/1), nil}
   end
-
-  # Very small number such that x + epsilon(x) > x
-  defp epsilon(x), do: x / 100_000_000_000_000
 
   defp decorate_row(row, id, column), do: {id, user_id(row), value(row, column), row}
 
