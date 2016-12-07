@@ -8,10 +8,11 @@ import type {Column} from "./columns";
 export type Table = {
   id: string,
   columns: Column[],
+  editLink: string
 };
 
 export const TableView = (props: {table: Table, onClick: () => void, expanded: boolean}) =>
-  <a href="#" onClick={props.onClick} className="list-group-item">
+  <div onClick={props.onClick} className="list-group-item">
     <div className="list-group-item-heading">
       {(() => {
         if (props.expanded) {
@@ -23,7 +24,13 @@ export const TableView = (props: {table: Table, onClick: () => void, expanded: b
 
       &nbsp;
 
-      {props.table.id}
+      {(() => {
+        if (props.table.editLink) {
+          return <a href={props.table.editLink} onClick={e => e.stopPropagation()}>{props.table.id}</a>;
+        } else {
+          return props.table.id;
+        }
+      })()}
     </div>
 
     {(() => {
@@ -33,4 +40,4 @@ export const TableView = (props: {table: Table, onClick: () => void, expanded: b
         return null;
       }
     })()}
-  </a>;
+  </div>;

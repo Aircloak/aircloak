@@ -28,7 +28,7 @@
       <div data-spy="affix">
         <div id="table-info"></div>
         <a href="<%= data_source_view_path(@conn, :new, @data_source.id) %>">
-          Add a new view
+          Create a view
         </a>
       </div>
     </div>
@@ -42,6 +42,7 @@
         lastQuery: <%= to_json(@last_query) %>,
         dataSourceId: <%= @data_source.id %>,
         dataSourceAvailable: <%= available?(@data_source) %>,
+        views: <%= to_json(views_for_client(@conn, @views)) %>,
         CSRFToken: "<%= @csrf_token %>",
         guardianToken: "<%= @guardian_token %>",
         userId: "<%= @current_user.id %>",

@@ -7,7 +7,7 @@ import _ from "lodash";
 import {TableView} from "./table";
 import type {Table} from "./table";
 
-type Props = {tables: Table[]};
+type Props = {tables: Table[], views: Table[]};
 
 class TableInfo extends React.Component {
   props: Props;
@@ -41,7 +41,14 @@ class TableInfo extends React.Component {
   }
 
   tables() {
-    return _.sortBy(this.props.tables, (table) => table.id.toLowerCase());
+    return (
+      _
+      .chain(this.props.views)
+      .map((view) => ({id: view.name, editLink: view.edit_link, columns: view.result_info.columns}))
+      .concat(this.props.tables)
+      .sortBy((table) => table.id.toLowerCase())
+      .value()
+    );
   }
 
   render() {

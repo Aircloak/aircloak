@@ -29,7 +29,7 @@ defmodule Air.DataSourceView do
     {:safe, data_source |> DataSource.tables() |> Poison.encode!()}
   end
 
-  defp views_for_client(views) do
-    Enum.map(views, &%{name: &1.name})
+  defp views_for_client(conn, views) do
+    Enum.map(views, &%{name: &1.name, result_info: &1.result_info, edit_link: data_source_view_path(conn, :edit, &1.data_source_id, &1.id)})
   end
 end
