@@ -38,10 +38,10 @@ defmodule Cloak.Query.ShrinkAndDrop.Buffer do
     {new_buffer, popped} = Enum.reduce(popped, {new_buffer, []}, fn(row = {_, user_id, value, _}, {buffer, popped}) ->
       cond do
         HalfBuffer.includes?(buffer.left, user_id) ->
-          {new_left, popped_left} = HalfBuffer.add(buffer.left, user_id, value, row)
+          {new_left, popped_left} = HalfBuffer.add(buffer.left, value, user_id, row)
           {%{buffer | left: new_left}, popped_left ++ popped}
         HalfBuffer.includes?(buffer.right, user_id) ->
-          {new_right, popped_right} = HalfBuffer.add(buffer.right, user_id, value, row)
+          {new_right, popped_right} = HalfBuffer.add(buffer.right, value, user_id, row)
           {%{buffer | right: new_right}, popped_right ++ popped}
         true -> {buffer, [row | popped]}
       end
