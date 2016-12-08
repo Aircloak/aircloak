@@ -7,6 +7,11 @@ defmodule IntegrationTest.ViewTest do
     {:ok, user: Manager.create_air_user()}
   end
 
+  test "name error", context do
+    assert {:error, %Ecto.Changeset{errors: [name: {error, _}]}} = create_view(context.user, "users", "sql")
+    assert error == "has already been taken"
+  end
+
   test "sql syntax error", context do
     assert {:error, %Ecto.Changeset{errors: [sql: {error, _}]}} = create_view(context.user, "foo", "select")
     assert error =~ ~r/Expected `column definition`/
