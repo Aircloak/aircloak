@@ -29,6 +29,8 @@ defmodule Air.ViewHelpers do
     end
   end
 
+  @doc "Returns an embeddable json representing selectable tables and views."
+  @spec selectables(Plug.Conn.t, Air.Schema.DataSource.t, [Air.Schema.View.t]) :: {:safe, iodata}
   def selectables(conn, data_source, views) do
     to_json(
       Air.Schemas.DataSource.tables(data_source) ++
@@ -47,8 +49,10 @@ defmodule Air.ViewHelpers do
     )
   end
 
-  def to_json(map) do
-    {:safe, Poison.encode!(map)}
+  @doc "Encodes the given term to json which can be safely embedded in .eex templates."
+  @spec to_json(any) :: {:safe, iodata}
+  def to_json(term) do
+    {:safe, Poison.encode!(term)}
   end
 
   defp active_class("/admin", "/admin/cloaks"), do: "active"
