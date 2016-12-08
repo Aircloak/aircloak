@@ -44,7 +44,7 @@ class SelectableInfo extends React.Component {
   render() {
     return (
       <div className="panel panel-default selectable-info">
-        <div className="panel-heading"><strong>Tables</strong></div>
+        <div className="panel-heading"><strong>Tables and views</strong></div>
 
         <div className="selectable-info-content">
           {this.selectables().map((selectable, i) =>

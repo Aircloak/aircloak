@@ -34,6 +34,10 @@ class ViewEditor extends React.Component {
     );
   }
 
+  save() {
+    $("#viewForm").submit();
+  }
+
   render() {
     return (
       <CodeEditor
@@ -43,7 +47,7 @@ class ViewEditor extends React.Component {
         tableNames={this.tableNames()}
         columnNames={this.columnNames()}
         onChange={this.setStatement}
-        onRun={() => {}}
+        onRun={this.save}
         onStop={() => {}}
       />
     );
