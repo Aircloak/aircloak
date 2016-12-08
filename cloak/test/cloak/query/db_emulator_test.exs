@@ -62,7 +62,8 @@ defmodule Cloak.Query.DBEmulatorTest do
 
     assert_query """
       select length(v) as v from
-        (select user_id, left(value, 1) as v from emulated group by user_id, value having length(value) > 1) as t
+        (select user_id, left(value, 1) as v from emulated
+        group by user_id, value having length(value) > 1 and length(value) < 10) as t
       order by v
       """, %{rows: [%{occurrences: 80, row: [1]}]}
 
