@@ -216,17 +216,10 @@ defmodule Cloak.Aql.Compiler do
         |> validate_offset("Subquery `#{alias}`")
         |> align_limit()
         |> align_offset()
-        |> align_having()
+        |> align_ranges(Lens.key(:having))
       {:error, error} -> raise CompilationError, message: error
     end
   end
-
-  defp align_having(query = %Query{having: [_|_] = clauses}) do
-    verify_ranges(clauses)
-
-    query
-  end
-  defp align_having(query), do: query
 
   @minimum_subquery_limit 10
   defp align_limit(query = %{limit: nil}), do: query

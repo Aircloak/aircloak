@@ -646,6 +646,18 @@ defmodule Cloak.Aql.Compiler.Test do
     assert error == "Column `avg` must be limited to a finite range."
   end
 
+  test "having condition ranges are aligned with a message in subqueries" do
+    %{from: {:subquery, %{ast: aligned}}} = compile!("""
+      select count(*) from (select uid from table group by uid having avg(numeric) >= 0.0 and avg(numeric) < 5.0) x
+    """, data_source())
+    %{from: {:subquery, %{ast: unaligned}}} = compile!("""
+      select count(*) from (select uid from table group by uid having avg(numeric) > 0.1 and avg(numeric) <= 4.9) x
+    """, data_source())
+
+    assert Map.drop(aligned, [:info]) == Map.drop(unaligned, [:info])
+    assert unaligned.info == ["The range for column `avg` has been adjusted to 0.0 <= `avg` < 5.0."]
+  end
+
   test "math can be disabled with a config setting" do
     assert {:error, error} = compile("select numeric * 2 from table", data_source(), [], %{math: false})
     assert error =~ ~r/requires feature `math`/
