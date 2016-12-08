@@ -148,7 +148,7 @@ defmodule Cloak.Aql.Query do
 
   @doc "Validates a user-defined view."
   @spec validate_view(DataSource.t, String.t, view_map) ::
-    {:ok, %{name: String.t, type: String.t, user_id: boolean}} |
+    {:ok, [%{name: String.t, type: String.t, user_id: boolean}]} |
     {:error, String.t}
   def validate_view(data_source, sql, views) do
     with {:ok, parsed_query} <- Parser.parse(data_source, sql),
