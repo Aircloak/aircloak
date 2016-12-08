@@ -82,7 +82,7 @@ defmodule Cloak.Query.DBEmulatorTest do
       """, %{rows: [%{occurrences: 1, row: [3]}]}
     assert_query """
         select round(avg(v)) from (select user_id, stddev(length(value)) as v from emulated group by user_id) as t
-      """, %{rows: [%{occurrences: 1, row: [2]}]}
+      """, %{rows: [%{occurrences: 1, row: [1]}]}
     assert_query """
         select round(avg(v)) from (select user_id, median(length(value)) as v from emulated group by user_id) as t
       """, %{rows: [%{occurrences: 1, row: [3]}]}
