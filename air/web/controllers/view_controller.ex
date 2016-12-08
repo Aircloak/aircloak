@@ -49,10 +49,7 @@ defmodule Air.ViewController do
       "view" => %{"name" => name, "sql" => sql}
     } = params
 
-    view = View.get(id)
-    true = (view.user_id == conn.assigns.current_user.id)
-
-    case View.update(view, conn.assigns.current_user, name, sql) do
+    case View.update(id, conn.assigns.current_user, name, sql) do
       {:ok, _view} ->
         redirect(conn, to: data_source_path(conn, :show, data_source_id))
       {:error, changeset} ->

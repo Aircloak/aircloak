@@ -25,9 +25,6 @@ defmodule Air.Service.ViewTest do
     %{u1: u1, u2: u2, u3: u3, ds1: ds1, ds2: ds2, v1: v1, v2: v2, v3: v3, v4: v4}
   end
 
-  test "fetching a single view", context, do:
-    assert View.get(context.v1.id) == context.v1
-
   test "fetching the changeset for the view", context, do:
     assert Ecto.Changeset.apply_changes(View.changeset(context.v1.id)) == context.v1
 

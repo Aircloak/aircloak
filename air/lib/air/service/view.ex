@@ -18,12 +18,7 @@ defmodule Air.Service.View do
   @doc "Returns the changeset representing the view with the given id."
   @spec changeset(integer) :: View.t
   def changeset(view_id), do:
-    Ecto.Changeset.cast(get(view_id), %{}, [])
-
-  @doc "Retrieves the view from the database."
-  @spec get(integer) :: View.t
-  def get(view_id), do:
-    Repo.get!(View, view_id)
+    Ecto.Changeset.cast(Repo.get!(View, view_id), %{}, [])
 
   @doc "Retrieves views of the given user for the given data source."
   @spec all(User.t, DataSource.t) :: [View.t]
@@ -39,8 +34,13 @@ defmodule Air.Service.View do
   end
 
   @doc "Updates the existing view in the database."
-  @spec update(View.t, User.t, String.t, String.t) :: {:ok, View.t} | {:error, Ecto.Changeset.t}
-  def update(view, user, name, sql) do
+  @spec update(integer, User.t, String.t, String.t) :: {:ok, View.t} | {:error, Ecto.Changeset.t}
+  def update(view_id, user, name, sql) do
+    view = Repo.get!(View, view_id)
+
+    # view must be owned by the user
+    true = (view.user_id == user.id)
+
     changes = %{name: name, sql: sql}
     with {:ok, changeset} <- validated_view_changeset(view, user, changes, :update), do:
       Repo.update(changeset)

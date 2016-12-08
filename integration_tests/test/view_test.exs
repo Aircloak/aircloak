@@ -36,7 +36,7 @@ defmodule IntegrationTest.ViewTest do
 
     new_name = unique_view_name()
     new_sql = "select user_id from users"
-    assert {:ok, updated_view} = update_view(view, context.user, new_name, new_sql)
+    assert {:ok, updated_view} = update_view(view.id, context.user, new_name, new_sql)
 
     assert updated_view.id == view.id
     assert updated_view.name == new_name
@@ -55,8 +55,8 @@ defmodule IntegrationTest.ViewTest do
   defp create_view(user, name, sql), do:
     Air.Service.View.create(user, Manager.data_source_local_id(), name, sql)
 
-  defp update_view(view, user, name, sql), do:
-    Air.Service.View.update(view, user, name, sql)
+  defp update_view(view_id, user, name, sql), do:
+    Air.Service.View.update(view_id, user, name, sql)
 
   defp run_query(user, query, params \\ []), do:
     Air.Service.DataSource.run_query(
