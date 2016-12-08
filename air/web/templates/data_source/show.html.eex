@@ -26,7 +26,7 @@
 
     <div class="column align-footer col-sm-3">
       <div data-spy="affix">
-        <div id="table-info"></div>
+        <div id="selectable-info"></div>
         <a href="<%= data_source_view_path(@conn, :new, @data_source.id) %>">
           Create a view
         </a>
@@ -46,10 +46,10 @@
         guardianToken: "<%= @guardian_token %>",
         userId: "<%= @current_user.id %>",
         sessionId: "<%= @session_id %>",
-        tables: <%= to_json(selectables(@conn, @data_source, @views)) %>,
+        selectables: <%= to_json(selectables(@conn, @data_source, @views)) %>,
       };
 
-      App.tableInfo(props, document.getElementById("table-info"));
+      App.selectableInfo(props, document.getElementById("selectable-info"));
       App.queryPage(props, document.getElementById("query-view"));
     }
   };

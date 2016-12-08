@@ -10,7 +10,7 @@ import {CodeEditor} from "../code_editor";
 import {CodeViewer} from "../code_viewer";
 import {Results} from "./results";
 import type {Result} from "./result";
-import type {Table} from "../table_info/table";
+import type {Selectable} from "../selectable_info/selectable";
 import {ResultSocket} from "../result_socket";
 import {HistoryLoader} from "./history_loader";
 import type {History} from "./history_loader";
@@ -21,7 +21,7 @@ type Props = {
   guardianToken: string,
   dataSourceId: number,
   dataSourceAvailable: boolean,
-  tables: Table[],
+  selectables: Selectable[],
   lastQuery: {statement: string},
   CSRFToken: string,
   resultSocket: ResultSocket,
@@ -217,11 +217,11 @@ class QueriesView extends React.Component {
   }
 
   tableNames() {
-    return this.props.tables.map((table) => table.id);
+    return this.props.selectables.map((table) => table.id);
   }
 
   columnNames() {
-    return _.flatMap(this.props.tables, (table) =>
+    return _.flatMap(this.props.selectables, (table) =>
       table.columns.map((column) => column.name)
     );
   }

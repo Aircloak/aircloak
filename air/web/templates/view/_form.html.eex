@@ -28,7 +28,7 @@
 
   <div class="column align-footer col-sm-3">
     <div data-spy="affix">
-      <div id="table-info"></div>
+      <div id="selectable-info"></div>
     </div>
   </div>
 </div>
@@ -38,15 +38,15 @@
     onLoad: function(App) {
       var
         viewEditorProps = {
-          tables: <%= to_json(selectables(@conn, @data_source, @views)) %>
+          selectables: <%= to_json(selectables(@conn, @data_source, @views)) %>
         },
-        tableInfoProps = {
-          tables: <%= to_json(selectables(@conn, @data_source, @views)) %>,
+        selectableInfoProps = {
+          selectables: <%= to_json(selectables(@conn, @data_source, @views)) %>,
           readOnly: true
         }
 
       App.viewEditor(viewEditorProps, document.getElementById("viewEditor"));
-      App.tableInfo(tableInfoProps, document.getElementById("table-info"));
+      App.selectableInfo(selectableInfoProps, document.getElementById("selectable-info"));
     }
   };
 </script>

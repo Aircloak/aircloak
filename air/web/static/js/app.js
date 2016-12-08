@@ -16,12 +16,12 @@
 import "phoenix_html";
 
 import renderQueriesView from "./queries/root";
-import renderTableInfo from "./table_info/root";
+import renderSelectableInfo from "./selectable_info/root";
 import renderViewEditor from "./view/editor";
 
 const App = {
   queryPage: renderQueriesView,
-  tableInfo: renderTableInfo,
+  selectableInfo: renderSelectableInfo,
   viewEditor: renderViewEditor,
 };
 

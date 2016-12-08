@@ -5,14 +5,21 @@ import React from "react";
 import {ColumnsView} from "./columns";
 import type {Column} from "./columns";
 
-export type Table = {
+export type Selectable = {
   id: string,
   columns: Column[],
   edit_link: string,
   delete_html: string
 };
 
-export const TableView = (props: {readOnly: boolean, table: Table, onClick: () => void, expanded: boolean}) =>
+type Props = {
+  readOnly: boolean,
+  selectable: Selectable,
+  onClick: () => void,
+  expanded: boolean
+};
+
+export const SelectableView = (props: Props) =>
   <div
     className="list-group-item"
     onClick={(event) => {
@@ -38,17 +45,17 @@ export const TableView = (props: {readOnly: boolean, table: Table, onClick: () =
       &nbsp;
 
       {(() => {
-        if (!props.readOnly && props.table.edit_link) {
-          return <a href={props.table.edit_link}>{props.table.id}</a>;
+        if (!props.readOnly && props.selectable.edit_link) {
+          return <a href={props.selectable.edit_link}>{props.selectable.id}</a>;
         } else {
-          return props.table.id;
+          return props.selectable.id;
         }
       })()}
 
       {(() => {
-        if (!props.readOnly && props.table.delete_html) {
+        if (!props.readOnly && props.selectable.delete_html) {
           return (
-            <span className="pull-right" dangerouslySetInnerHTML={{__html: props.table.delete_html}} />
+            <span className="pull-right" dangerouslySetInnerHTML={{__html: props.selectable.delete_html}} />
           );
         } else {
           return null;
@@ -58,7 +65,7 @@ export const TableView = (props: {readOnly: boolean, table: Table, onClick: () =
 
     {(() => {
       if (props.expanded) {
-        return <ColumnsView columns={props.table.columns} />;
+        return <ColumnsView columns={props.selectable.columns} />;
       } else {
         return null;
       }

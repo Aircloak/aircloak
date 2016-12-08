@@ -5,11 +5,11 @@ import ReactDOM from "react-dom";
 import $ from "jquery";
 import _ from "lodash";
 import {CodeEditor} from "../code_editor";
-import type {Table} from "../table_info/table";
+import type {Selectable} from "../selectable_info/selectable";
 
 type Props = {
   statement: string,
-  tables: Table[],
+  selectables: Selectable[],
 }
 
 class ViewEditor extends React.Component {
@@ -25,11 +25,11 @@ class ViewEditor extends React.Component {
   }
 
   tableNames() {
-    return this.props.tables.map((table) => table.id);
+    return this.props.selectables.map((table) => table.id);
   }
 
   columnNames() {
-    return _.flatMap(this.props.tables, (table) =>
+    return _.flatMap(this.props.selectables, (table) =>
       table.columns.map((column) => column.name)
     );
   }
