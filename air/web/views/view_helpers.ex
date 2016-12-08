@@ -32,21 +32,23 @@ defmodule Air.ViewHelpers do
   @doc "Returns an embeddable json representing selectable tables and views."
   @spec selectables(Plug.Conn.t, Air.Schema.DataSource.t, [Air.Schema.View.t]) :: {:safe, iodata}
   def selectables(conn, data_source, views) do
-    to_json(
-      Air.Schemas.DataSource.tables(data_source) ++
-        Enum.map(views, &%{
-          id: &1.name,
-          columns: Map.fetch!(&1.result_info, "columns"),
-          edit_link: Air.Router.Helpers.data_source_view_path(conn, :edit, &1.data_source_id, &1.id),
-          delete_html:
-            Phoenix.HTML.safe_to_string(link("delete",
-              to: Air.Router.Helpers.data_source_view_path(conn, :delete, &1.data_source_id, &1.id),
-              method: :delete,
-              "data-confirm": "Delete #{&1.name}?",
-              class: "btn btn-danger btn-xs"
-            ))
-        })
-    )
+    Air.Schemas.DataSource.tables(data_source)
+    |> Kernel.++(
+          Enum.map(views, &%{
+            "id" => &1.name,
+            "columns" => Map.fetch!(&1.result_info, "columns"),
+            "edit_link" => Air.Router.Helpers.data_source_view_path(conn, :edit, &1.data_source_id, &1.id),
+            "delete_html" =>
+              Phoenix.HTML.safe_to_string(link("delete",
+                to: Air.Router.Helpers.data_source_view_path(conn, :delete, &1.data_source_id, &1.id),
+                method: :delete,
+                "data-confirm": "Delete #{&1.name}?",
+                class: "btn btn-danger btn-xs"
+              ))
+          })
+        )
+    |> Enum.sort_by(&Map.fetch(&1, "id"))
+    |> to_json()
   end
 
   @doc "Encodes the given term to json which can be safely embedded in .eex templates."
