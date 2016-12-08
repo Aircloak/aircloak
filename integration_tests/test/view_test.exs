@@ -20,6 +20,12 @@ defmodule IntegrationTest.ViewTest do
     ]
   end
 
+  test "cannot insert two views with the same name", context do
+    {:ok, view} = create_view(context.user, unique_view_name(), "select user_id, name from users")
+    assert {:error, changeset} = create_view(context.user, view.name, "select user_id, name from users")
+    assert {"has already been taken", _} = Keyword.fetch!(changeset.errors, :name)
+  end
+
   test "updating the view", context do
     {:ok, view} = create_view(context.user, unique_view_name(), "select user_id, name from users")
 

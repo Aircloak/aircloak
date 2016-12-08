@@ -80,4 +80,5 @@ defmodule Air.Service.View do
     view
     |> Ecto.Changeset.cast(changes, ~w(name sql user_id data_source_id)a)
     |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
+    |> Ecto.Changeset.unique_constraint(:name, name: :views_user_id_data_source_id_name_index)
 end
