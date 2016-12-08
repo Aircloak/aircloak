@@ -1,4 +1,4 @@
 <h2>Edit view</h2>
 
 <%= render "_form.html", changeset: @changeset,
-  action: data_source_view_path(@conn, :update, @data_source_id, @view_id), conn: @conn %>
+  action: data_source_view_path(@conn, :update, @data_source.id, @changeset.data.id), conn: @conn %>

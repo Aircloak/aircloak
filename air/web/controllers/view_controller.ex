@@ -5,6 +5,8 @@ defmodule Air.ViewController do
 
   alias Air.Service.View
 
+  plug :load_data_source
+
 
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback
@@ -18,47 +20,43 @@ defmodule Air.ViewController do
   # Actions
   # -------------------------------------------------------------------
 
-  def new(conn, %{"data_source_id" => data_source_id}), do:
-    render(conn, "new.html", changeset: View.new_changeset(), data_source_id: data_source_id)
+  def new(conn, _params), do:
+    render(conn, "new.html", changeset: View.new_changeset(), data_source: conn.assigns.data_source)
 
-  def edit(conn, %{"data_source_id" => data_source_id, "id" => id}), do:
-    render(conn, "edit.html",
-      changeset: View.changeset(id),
-      data_source_id: data_source_id,
-      view_id: id
-    )
+  def edit(conn, %{"id" => id}), do:
+    render(conn, "edit.html", changeset: View.changeset(id), data_source: conn.assigns.data_source)
 
-  def create(conn, params) do
-    %{
-      "data_source_id" => data_source_id,
-      "view" => %{"name" => name, "sql" => sql}
-    } = params
-
-    case View.create(conn.assigns.current_user, data_source_id, name, sql) do
+  def create(conn, %{"view" => %{"name" => name, "sql" => sql}}) do
+    case View.create(conn.assigns.current_user, conn.assigns.data_source.id, name, sql) do
       {:ok, _view} ->
-        redirect(conn, to: data_source_path(conn, :show, data_source_id))
+        redirect(conn, to: data_source_path(conn, :show, conn.assigns.data_source.id))
       {:error, changeset} ->
-        render(conn, "new.html", changeset: changeset, data_source_id: data_source_id)
+        render(conn, "new.html", changeset: changeset, data_source: conn.assigns.data_source)
     end
   end
 
-  def update(conn, params) do
-    %{
-      "data_source_id" => data_source_id,
-      "id" => id,
-      "view" => %{"name" => name, "sql" => sql}
-    } = params
-
+  def update(conn, %{"id" => id, "view" => %{"name" => name, "sql" => sql}}) do
     case View.update(id, conn.assigns.current_user, name, sql) do
       {:ok, _view} ->
-        redirect(conn, to: data_source_path(conn, :show, data_source_id))
+        redirect(conn, to: data_source_path(conn, :show, conn.assigns.data_source))
       {:error, changeset} ->
-        render(conn, "edit.html", changeset: changeset, data_source_id: data_source_id, view_id: id)
+        render(conn, "edit.html", changeset: changeset, data_source: conn.assigns.data_source, view_id: id)
     end
   end
 
-  def delete(conn, %{"data_source_id" => data_source_id, "id" => id}) do
+  def delete(conn, %{"id" => id}) do
     View.delete(id, conn.assigns.current_user)
-    redirect(conn, to: data_source_path(conn, :show, data_source_id))
+    redirect(conn, to: data_source_path(conn, :show, conn.assigns.data_source.id))
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp load_data_source(conn, _opts) do
+    %{"data_source_id" => id} = conn.params
+    {:ok, data_source} = Air.Service.DataSource.fetch_as_user({:id, id}, conn.assigns.current_user)
+    assign(conn, :data_source, data_source)
   end
 end

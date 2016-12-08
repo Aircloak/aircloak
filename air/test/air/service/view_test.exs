@@ -47,13 +47,13 @@ defmodule Air.Service.ViewTest do
   end
 
   test "cloak not available error", context do
-    assert {:error, %Ecto.Changeset{errors: errors}} = View.create(context.u1, context.ds1.id, "name", "sql")
+    assert {:error, %Ecto.Changeset{errors: errors}} = View.create(context.u1, context.ds1, "name", "sql")
     assert {error, _} = Keyword.fetch!(errors, :sql)
     assert error == "Cannot validate the view SQL since no cloak is available for the given data source."
   end
 
   test "deleting a view", context do
-    assert {:error, %Ecto.Changeset{errors: errors}} = View.create(context.u1, context.ds1.id, "name", "sql")
+    assert {:error, %Ecto.Changeset{errors: errors}} = View.create(context.u1, context.ds1, "name", "sql")
     assert {error, _} = Keyword.fetch!(errors, :sql)
     assert error == "Cannot validate the view SQL since no cloak is available for the given data source."
   end

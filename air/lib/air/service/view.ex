@@ -26,9 +26,9 @@ defmodule Air.Service.View do
     Repo.all(from view in View, where: view.data_source_id == ^data_source.id and view.user_id == ^user.id)
 
   @doc "Saves the new view in the database."
-  @spec create(User.t, String.t, String.t, String.t) :: {:ok, View.t} | {:error, Ecto.Changeset.t}
-  def create(user, data_source_id, name, sql) do
-    changes = %{data_source_id: data_source_id, user_id: user.id, name: name, sql: sql}
+  @spec create(User.t, DataSource.t, String.t, String.t) :: {:ok, View.t} | {:error, Ecto.Changeset.t}
+  def create(user, data_source, name, sql) do
+    changes = %{data_source_id: data_source.id, user_id: user.id, name: name, sql: sql}
     with {:ok, changeset} <- validated_view_changeset(%View{}, user, changes, :insert), do:
       Repo.insert(changeset)
   end

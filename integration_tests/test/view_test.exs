@@ -53,7 +53,7 @@ defmodule IntegrationTest.ViewTest do
     "view_#{:erlang.unique_integer([:positive])}"
 
   defp create_view(user, name, sql), do:
-    Air.Service.View.create(user, Manager.data_source_local_id(), name, sql)
+    Air.Service.View.create(user, Manager.data_source(), name, sql)
 
   defp update_view(view_id, user, name, sql), do:
     Air.Service.View.update(view_id, user, name, sql)
