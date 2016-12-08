@@ -182,6 +182,8 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query "select avg(distinct height) from heights",
       %{columns: ["avg"], rows: [%{row: [162.5], occurrences: 1}]}
+    assert_query "select avg(distinct abs(height - 100)) from heights",
+      %{columns: ["avg"], rows: [%{row: [62.5], occurrences: 1}]}
   end
 
   test "aggregates of an empty table" do

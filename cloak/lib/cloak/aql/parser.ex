@@ -435,7 +435,7 @@ defmodule Cloak.Aql.Parser do
   end
 
   defp distinct_identifier() do
-    pair_both(keyword(:distinct), qualified_identifier())
+    pair_both(keyword(:distinct), column())
   end
 
   defp from(data_source) do
