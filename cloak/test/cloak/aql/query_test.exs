@@ -156,7 +156,7 @@ defmodule Cloak.Aql.QueryTest do
   defp validate_view(name, sql, views \\ %{}) do
     [first_ds | rest_ds] = Cloak.DataSource.all()
     result = Query.validate_view(first_ds, name, sql, views)
-    Enum.map(rest_ds, &assert(result == Query.validate_view(&1, name, sql, views)))
+    Enum.each(rest_ds, &assert(result == Query.validate_view(&1, name, sql, views)))
     result
   end
 
