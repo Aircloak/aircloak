@@ -2,7 +2,6 @@
 
 import React from "react";
 import ReactDOM from "react-dom";
-import _ from "lodash";
 
 import {TableView} from "./table";
 import type {Table} from "./table";
@@ -39,19 +38,7 @@ class TableInfo extends React.Component {
   }
 
   tables() {
-    return (
-      _
-      .chain(this.props.views)
-      .map((view) => ({
-        id: view.name,
-        columns: view.result_info.columns,
-        editLink: view.edit_link,
-        deleteHtml: view.delete_html,
-      }))
-      .concat(this.props.tables)
-      .sortBy((table) => table.id.toLowerCase())
-      .value()
-    );
+    return this.props.tables;
   }
 
   render() {

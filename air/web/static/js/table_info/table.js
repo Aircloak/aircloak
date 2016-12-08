@@ -8,8 +8,8 @@ import type {Column} from "./columns";
 export type Table = {
   id: string,
   columns: Column[],
-  editLink: string,
-  deleteHtml: string
+  edit_link: string,
+  delete_html: string
 };
 
 export const TableView = (props: {table: Table, onClick: () => void, expanded: boolean}) =>
@@ -38,16 +38,18 @@ export const TableView = (props: {table: Table, onClick: () => void, expanded: b
       &nbsp;
 
       {(() => {
-        if (props.table.editLink) {
-          return <a href={props.table.editLink}>{props.table.id}</a>;
+        if (props.table.edit_link) {
+          return <a href={props.table.edit_link}>{props.table.id}</a>;
         } else {
           return props.table.id;
         }
       })()}
 
       {(() => {
-        if (props.table.deleteHtml) {
-          return (<span className="pull-right" dangerouslySetInnerHTML={{__html: props.table.deleteHtml}} />);
+        if (props.table.delete_html) {
+          return (
+            <span className="pull-right" dangerouslySetInnerHTML={{__html: props.table.delete_html}} />
+          );
         } else {
           return null;
         }

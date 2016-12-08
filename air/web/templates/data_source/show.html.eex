@@ -42,12 +42,11 @@
         lastQuery: <%= to_json(@last_query) %>,
         dataSourceId: <%= @data_source.id %>,
         dataSourceAvailable: <%= available?(@data_source) %>,
-        views: <%= to_json(views_for_client(@conn, @views)) %>,
         CSRFToken: "<%= @csrf_token %>",
         guardianToken: "<%= @guardian_token %>",
         userId: "<%= @current_user.id %>",
         sessionId: "<%= @session_id %>",
-        tables: <%= tables(@data_source) %>,
+        tables: <%= to_json(selectables(@conn, @data_source, @views)) %>,
       };
 
       App.tableInfo(props, document.getElementById("table-info"));
