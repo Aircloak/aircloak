@@ -46,7 +46,7 @@
         guardianToken: "<%= @guardian_token %>",
         userId: "<%= @current_user.id %>",
         sessionId: "<%= @session_id %>",
-        selectables: <%= to_json(selectables(@conn, @data_source, @views)) %>,
+        selectables: <%= selectables(@conn, @data_source, @views) %>,
       };
 
       App.selectableInfo(props, document.getElementById("selectable-info"));

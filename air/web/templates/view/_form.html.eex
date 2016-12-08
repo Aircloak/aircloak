@@ -38,10 +38,10 @@
     onLoad: function(App) {
       var
         viewEditorProps = {
-          selectables: <%= to_json(selectables(@conn, @data_source, @views)) %>
+          selectables: <%= selectables(@conn, @data_source, @views) %>
         },
         selectableInfoProps = {
-          selectables: <%= to_json(selectables(@conn, @data_source, @views)) %>,
+          selectables: <%= selectables(@conn, @data_source, @views) %>,
           readOnly: true
         }
 
