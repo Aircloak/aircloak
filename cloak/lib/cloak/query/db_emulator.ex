@@ -116,6 +116,8 @@ defmodule Cloak.Query.DBEmulator do
     compare(value, operator, target)
   end
 
+  defp compare(nil, _op, _target), do: false
+  defp compare(_value, _op, nil), do: false
   defp compare(value, :=, target), do: value == target
   defp compare(value, :<, target), do: value < target
   defp compare(value, :<=, target), do: value <= target
