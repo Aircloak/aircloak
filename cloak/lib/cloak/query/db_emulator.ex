@@ -80,7 +80,7 @@ defmodule Cloak.Query.DBEmulator do
   end
   defp select_columns(stream, %Query{columns: columns} = query) do
     Stream.map(stream, fn (row) ->
-        Enum.map(columns, &Function.apply_to_db_row(&1, row))
+      Enum.map(columns, &Function.apply_to_db_row(&1, row))
     end)
     |> distinct(query)
   end
