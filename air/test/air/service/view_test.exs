@@ -40,12 +40,19 @@ defmodule Air.Service.ViewTest do
   end
 
   test "view requires name and sql", context do
-    assert {:error, %Ecto.Changeset{errors: errors}} = View.create(context.u1, context.ds1.id, nil, nil)
-    assert {"can't be blank", _} = Keyword.fetch!(errors, :name)
-    assert {"can't be blank", _} = Keyword.fetch!(errors, :sql)
+    previous_views = View.all(context.u1, context.ds1) |> Enum.sort_by(&(&1.id))
+    view = insert_view(context.ds1, context.u1, "view_5")
+    assert :ok == View.delete(view.id, context.u1)
+    assert View.all(context.u1, context.ds1) |> Enum.sort_by(&(&1.id)) == previous_views
   end
 
   test "cloak not available error", context do
+    assert {:error, %Ecto.Changeset{errors: errors}} = View.create(context.u1, context.ds1.id, "name", "sql")
+    assert {error, _} = Keyword.fetch!(errors, :sql)
+    assert error == "Cannot validate the view SQL since no cloak is available for the given data source."
+  end
+
+  test "deleting a view", context do
     assert {:error, %Ecto.Changeset{errors: errors}} = View.create(context.u1, context.ds1.id, "name", "sql")
     assert {error, _} = Keyword.fetch!(errors, :sql)
     assert error == "Cannot validate the view SQL since no cloak is available for the given data source."

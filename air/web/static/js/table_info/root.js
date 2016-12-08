@@ -23,9 +23,7 @@ class TableInfo extends React.Component {
   }
 
   toggleExpand(table) {
-    return (event) => {
-      event.preventDefault();
-
+    return () => {
       const expanded = this.state.expanded;
       if (this.expanded(table)) {
         expanded.delete(table.id);
@@ -44,7 +42,12 @@ class TableInfo extends React.Component {
     return (
       _
       .chain(this.props.views)
-      .map((view) => ({id: view.name, editLink: view.edit_link, columns: view.result_info.columns}))
+      .map((view) => ({
+        id: view.name,
+        columns: view.result_info.columns,
+        editLink: view.edit_link,
+        deleteHtml: view.delete_html,
+      }))
       .concat(this.props.tables)
       .sortBy((table) => table.id.toLowerCase())
       .value()

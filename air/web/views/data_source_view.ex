@@ -31,6 +31,14 @@ defmodule Air.DataSourceView do
 
   defp views_for_client(conn, views) do
     Enum.map(views, &%{name: &1.name, result_info: &1.result_info,
-      edit_link: data_source_view_path(conn, :edit, &1.data_source_id, &1.id)})
+      edit_link: data_source_view_path(conn, :edit, &1.data_source_id, &1.id),
+      delete_html:
+        safe_to_string(link("delete",
+          to: data_source_view_path(conn, :delete, &1.data_source_id, &1.id),
+          method: :delete,
+          "data-confirm": "Delete #{&1.name}?",
+          class: "btn btn-danger btn-xs"
+        ))
+    })
   end
 end

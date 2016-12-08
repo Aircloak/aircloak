@@ -8,11 +8,24 @@ import type {Column} from "./columns";
 export type Table = {
   id: string,
   columns: Column[],
-  editLink: string
+  editLink: string,
+  deleteHtml: string
 };
 
 export const TableView = (props: {table: Table, onClick: () => void, expanded: boolean}) =>
-  <div onClick={props.onClick} className="list-group-item">
+  <div
+    className="list-group-item"
+    onClick={(event) => {
+      // Hacky solution to prevent bubbling from `<a>` elements. Normally, we'd use stopPropagation.
+      // However, the problem here is that we're injecting some html provided by the server, which
+      // internally generates A elements. Therefore, we don't have such option, so we're doing it
+      // here.
+      if (event.target.tagName !== "A") {
+        event.preventDefault();
+        props.onClick();
+      }
+    }}
+  >
     <div className="list-group-item-heading">
       {(() => {
         if (props.expanded) {
@@ -26,9 +39,17 @@ export const TableView = (props: {table: Table, onClick: () => void, expanded: b
 
       {(() => {
         if (props.table.editLink) {
-          return <a href={props.table.editLink} onClick={e => e.stopPropagation()}>{props.table.id}</a>;
+          return <a href={props.table.editLink}>{props.table.id}</a>;
         } else {
           return props.table.id;
+        }
+      })()}
+
+      {(() => {
+        if (props.table.deleteHtml) {
+          return (<span className="pull-right" dangerouslySetInnerHTML={{__html: props.table.deleteHtml}} />);
+        } else {
+          return null;
         }
       })()}
     </div>

@@ -46,6 +46,13 @@ defmodule Air.Service.View do
       Repo.update(changeset)
   end
 
+  @doc "Deletes the given view from the database."
+  @spec delete(integer, User.t) :: :ok
+  def delete(view_id, user) do
+    {1, _} = Repo.delete_all(from view in View, where: view.id == ^view_id and view.user_id == ^user.id)
+    :ok
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions

@@ -56,4 +56,9 @@ defmodule Air.ViewController do
         render(conn, "edit.html", changeset: changeset, data_source_id: data_source_id, view_id: id)
     end
   end
+
+  def delete(conn, %{"data_source_id" => data_source_id, "id" => id}) do
+    View.delete(id, conn.assigns.current_user)
+    redirect(conn, to: data_source_path(conn, :show, data_source_id))
+  end
 end
