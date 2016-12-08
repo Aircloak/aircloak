@@ -67,7 +67,7 @@ defmodule Cloak.Query.DBEmulator do
         groups
         |> Map.get(property, defaults)
         |> Enum.zip(accumulators)
-        |> Enum.map(fn ({value, accumulator}) -> accumulator.(value, row) end)
+        |> Enum.map(fn ({value, accumulator}) -> accumulator.(row, value) end)
       Map.put(groups, property, values)
     end)
     |> Stream.map(fn ({property, values}) ->
@@ -135,58 +135,58 @@ defmodule Cloak.Query.DBEmulator do
   defp aggregator_to_default({:function, "median", [_column]}), do: []
 
   defp aggregator_to_accumulator({:function, _name, [{:distinct, column}]}), do:
-    fn (accumulator, row) ->
+    fn (row, accumulator) ->
       case Function.apply_to_db_row(column, row) do
         nil -> accumulator
         value -> MapSet.put(accumulator, value)
       end
     end
   defp aggregator_to_accumulator({:function, "count", [:*]}), do:
-    fn (count, _row) -> count + 1 end
+    fn (_row, count) -> count + 1 end
   defp aggregator_to_accumulator({:function, "count", [column]}), do:
-    fn (accumulator, row) ->
+    fn (row, accumulator) ->
       case Function.apply_to_db_row(column, row) do
         nil -> accumulator
         _value -> accumulator + 1
       end
     end
   defp aggregator_to_accumulator({:function, "sum", [column]}), do:
-    fn (accumulator, row) ->
+    fn (row, accumulator) ->
       case Function.apply_to_db_row(column, row) do
         nil -> accumulator
         value -> (accumulator || 0) + value
       end
     end
   defp aggregator_to_accumulator({:function, "min", [column]}), do:
-    fn (accumulator, row) ->
+    fn (row, accumulator) ->
       case Function.apply_to_db_row(column, row) do
         nil -> accumulator
         value -> min(accumulator, value)
       end
     end
   defp aggregator_to_accumulator({:function, "max", [column]}), do:
-    fn (accumulator, row) ->
+    fn (row, accumulator) ->
       case Function.apply_to_db_row(column, row) do
         nil -> accumulator
         value -> max(accumulator, value) || value
       end
     end
   defp aggregator_to_accumulator({:function, "avg", [column]}), do:
-    fn ({sum, count}, row) ->
+    fn (row, {sum, count}) ->
       case Function.apply_to_db_row(column, row) do
         nil -> {sum, count}
         value -> {(sum || 0) + value, count + 1}
       end
     end
   defp aggregator_to_accumulator({:function, "stddev", [column]}), do:
-    fn (accumulator, row) ->
+    fn (row, accumulator) ->
       case Function.apply_to_db_row(column, row) do
         nil -> accumulator
         value -> [value | accumulator]
       end
     end
   defp aggregator_to_accumulator({:function, "median", [column]}), do:
-    fn (accumulator, row) ->
+    fn (row, accumulator) ->
       case Function.apply_to_db_row(column, row) do
         nil -> accumulator
         value -> [value | accumulator]
