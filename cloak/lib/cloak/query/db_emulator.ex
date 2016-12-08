@@ -134,64 +134,37 @@ defmodule Cloak.Query.DBEmulator do
   defp aggregator_to_default({:function, "stddev", [_column]}), do: []
   defp aggregator_to_default({:function, "median", [_column]}), do: []
 
-  defp aggregator_to_accumulator({:function, _name, [{:distinct, column}]}), do:
-    fn (row, accumulator) ->
-      case Function.apply_to_db_row(column, row) do
-        nil -> accumulator
-        value -> MapSet.put(accumulator, value)
+  defmacrop null_ignore_accumulator(do: expression) do
+    quote do
+      fn (row, var!(accumulator)) ->
+        case Function.apply_to_db_row(var!(column), row) do
+          nil -> var!(accumulator)
+          var!(value) -> unquote expression
+        end
       end
     end
+  end
+
+  defp aggregator_to_accumulator({:function, _name, [{:distinct, column}]}), do:
+    null_ignore_accumulator do: MapSet.put(accumulator, value)
   defp aggregator_to_accumulator({:function, "count", [:*]}), do:
     fn (_row, count) -> count + 1 end
-  defp aggregator_to_accumulator({:function, "count", [column]}), do:
-    fn (row, accumulator) ->
-      case Function.apply_to_db_row(column, row) do
-        nil -> accumulator
-        _value -> accumulator + 1
-      end
-    end
+  defp aggregator_to_accumulator({:function, "count", [column]}) do
+    null_ignore_accumulator do _ = value; accumulator + 1 end
+  end
   defp aggregator_to_accumulator({:function, "sum", [column]}), do:
-    fn (row, accumulator) ->
-      case Function.apply_to_db_row(column, row) do
-        nil -> accumulator
-        value -> (accumulator || 0) + value
-      end
-    end
+    null_ignore_accumulator do: (accumulator || 0) + value
   defp aggregator_to_accumulator({:function, "min", [column]}), do:
-    fn (row, accumulator) ->
-      case Function.apply_to_db_row(column, row) do
-        nil -> accumulator
-        value -> min(accumulator, value)
-      end
-    end
+    null_ignore_accumulator do: min(accumulator, value)
   defp aggregator_to_accumulator({:function, "max", [column]}), do:
-    fn (row, accumulator) ->
-      case Function.apply_to_db_row(column, row) do
-        nil -> accumulator
-        value -> max(accumulator, value) || value
-      end
-    end
-  defp aggregator_to_accumulator({:function, "avg", [column]}), do:
-    fn (row, {sum, count}) ->
-      case Function.apply_to_db_row(column, row) do
-        nil -> {sum, count}
-        value -> {(sum || 0) + value, count + 1}
-      end
-    end
+    null_ignore_accumulator do: max(accumulator, value) || value
+  defp aggregator_to_accumulator({:function, "avg", [column]}) do
+    null_ignore_accumulator do {sum, count} = accumulator; {(sum || 0) + value, count + 1} end
+  end
   defp aggregator_to_accumulator({:function, "stddev", [column]}), do:
-    fn (row, accumulator) ->
-      case Function.apply_to_db_row(column, row) do
-        nil -> accumulator
-        value -> [value | accumulator]
-      end
-    end
+    null_ignore_accumulator do: [value | accumulator]
   defp aggregator_to_accumulator({:function, "median", [column]}), do:
-    fn (row, accumulator) ->
-      case Function.apply_to_db_row(column, row) do
-        nil -> accumulator
-        value -> [value | accumulator]
-      end
-    end
+    null_ignore_accumulator do: [value | accumulator]
 
   defp aggregator_to_finalizer({:function, "count", [{:distinct, _column}]}), do:
     &MapSet.size(&1)
