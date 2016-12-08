@@ -199,7 +199,7 @@ defmodule Cloak.Query.DBEmulator do
   defp stddev(values) do
     count = Enum.count(values)
     average = Enum.sum(values) / count
-    squared_variances = Enum.map(values, &(&1 - average) * (&1 - average))
-    (Enum.sum(squared_variances) / count) |> :math.sqrt()
+    variances = Enum.map(values, &(&1 - average) * (&1 - average))
+    :math.sqrt(Enum.sum(variances) / count)
   end
 end
