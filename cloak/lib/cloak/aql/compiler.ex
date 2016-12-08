@@ -216,9 +216,17 @@ defmodule Cloak.Aql.Compiler do
         |> validate_offset("Subquery `#{alias}`")
         |> align_limit()
         |> align_offset()
+        |> align_having()
       {:error, error} -> raise CompilationError, message: error
     end
   end
+
+  defp align_having(query = %Query{having: [_|_] = clauses}) do
+    verify_ranges(clauses)
+
+    query
+  end
+  defp align_having(query), do: query
 
   @minimum_subquery_limit 10
   defp align_limit(query = %{limit: nil}), do: query
@@ -780,7 +788,7 @@ defmodule Cloak.Aql.Compiler do
   defp all_join_conditions(_), do: []
 
   defp align_ranges(%Query{where: [_|_] = clauses} = query) do
-    verify_ranges(query)
+    verify_ranges(clauses)
 
     ranges = inequalities_by_column(clauses)
     non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), Comparison.subject(&1)))
@@ -819,12 +827,13 @@ defmodule Cloak.Aql.Compiler do
 
   defp add_where_clause(query, clause), do: %{query | where: [clause | query.where]}
 
-  defp verify_ranges(%Query{where: clauses}) do
+  defp verify_ranges(clauses) do
     clauses
     |> inequalities_by_column()
     |> Enum.reject(fn({_, comparisons}) -> valid_range?(comparisons) end)
     |> case do
-      [{column, _} | _] -> raise CompilationError, message: "Column `#{column.name}` must be limited to a finite range."
+      [{column, _} | _] ->
+        raise CompilationError, message: "Column #{Column.display_name(column)} must be limited to a finite range."
       _ -> :ok
     end
   end

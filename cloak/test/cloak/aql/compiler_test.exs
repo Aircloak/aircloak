@@ -457,34 +457,34 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "rejects inequalities on numeric columns that are not ranges" do
     assert {:error, error} = compile("select * from table where numeric > 5", data_source())
-    assert error == "Column `numeric` must be limited to a finite range."
+    assert error == "Column `numeric` from table `table` must be limited to a finite range."
   end
 
   test "rejects inequalities on numeric columns that are negatives of ranges" do
     assert {:error, error} = compile("select * from table where numeric < 2 and numeric > 5", data_source())
-    assert error == "Column `numeric` must be limited to a finite range."
+    assert error == "Column `numeric` from table `table` must be limited to a finite range."
   end
 
   test "rejects inequalities on datetime columns that are negatives of ranges" do
     assert {:error, error} = compile("select * from table where column < '2015-01-01' and column > '2016-01-01'",
       data_source())
-    assert error == "Column `column` must be limited to a finite range."
+    assert error == "Column `column` from table `table` must be limited to a finite range."
   end
 
   test "rejects inequalities on datetime columns that are not ranges" do
     assert {:error, error} = compile("select * from table where column > '2015-01-01'", data_source())
-    assert error == "Column `column` must be limited to a finite range."
+    assert error == "Column `column` from table `table` must be limited to a finite range."
   end
 
   test "rejects inequalities on date columns that are negatives of ranges" do
     assert {:error, error} = compile("select * from table where column < '2015-01-01' and column > '2016-01-01'",
       date_data_source())
-    assert error == "Column `column` must be limited to a finite range."
+    assert error == "Column `column` from table `table` must be limited to a finite range."
   end
 
   test "rejects inequalities on date columns that are not ranges" do
     assert {:error, error} = compile("select * from table where column > '2015-01-01'", data_source())
-    assert error == "Column `column` must be limited to a finite range."
+    assert error == "Column `column` from table `table` must be limited to a finite range."
   end
 
   test "accepts inequalities on numeric columns that are ranges" do
@@ -631,6 +631,16 @@ defmodule Cloak.Aql.Compiler.Test do
       data_source())
     assert %{from: {:subquery, %{ast: %{offset: 40}}}} = result
     assert ["Offset adjusted from 31 to 40"] = result.info
+  end
+
+  test "having conditions are not adjusted in the root query" do
+    assert {:ok, _} = compile("select count(*) from table group by numeric having avg(numeric) > 3", data_source())
+  end
+
+  test "having condition inequalities must be ranges in subqueries" do
+    assert {:error, error} =
+      compile("select count(*) from (select uid from table group by uid having avg(numeric) > 3) x", data_source())
+    assert error == "Column `avg` must be limited to a finite range."
   end
 
   test "math can be disabled with a config setting" do
