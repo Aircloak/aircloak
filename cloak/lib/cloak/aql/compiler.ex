@@ -319,8 +319,8 @@ defmodule Cloak.Aql.Compiler do
   defp selected_tables({:subquery, subquery}, _data_source) do
     user_id = Enum.find(subquery.ast.db_columns, &(&1.user_id?))
     columns =
-        Enum.zip(subquery.ast.column_titles, subquery.ast.db_columns)
-        |> Enum.map(fn ({alias, column}) -> {alias, column.type} end)
+        Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
+        |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
     [%{
       name: subquery.alias,
       db_name: nil,
