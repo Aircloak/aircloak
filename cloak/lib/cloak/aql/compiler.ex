@@ -195,7 +195,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp compile_subqueries(%Query{from: nil} = query), do: query
   defp compile_subqueries(query) do
-    {info, compiled} = Lens.get_and_map(subqueries(), query, fn(subquery) ->
+    {info, compiled} = Lens.get_and_map(direct_subqueries(), query, fn(subquery) ->
       ast = compiled_subquery(subquery.ast, subquery.alias, query)
       {ast.info, %{subquery | ast: ast}}
     end)
@@ -1289,11 +1289,11 @@ defmodule Cloak.Aql.Compiler do
 
   deflens buckets, do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
 
-  deflens subqueries, do: Lens.key(:from) |> do_subqueries()
+  deflens direct_subqueries, do: Lens.key(:from) |> do_direct_subqueries()
 
-  deflens do_subqueries do
+  deflens do_direct_subqueries do
     Lens.match(fn
-      {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_subqueries()
+      {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_direct_subqueries()
       {:subquery, _} -> Lens.at(1)
       _ -> Lens.empty()
     end)
