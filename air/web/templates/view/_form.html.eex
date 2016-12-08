@@ -13,7 +13,7 @@
 
 <div class="form-group">
   <label>Sql</label>
-  <%= text_input f, :sql, id: "sql", class: "form-control", style: "display:none;"%>
+  <%= textarea f, :sql, id: "sql", class: "form-control", style: "display:none;"%>
   <div id="viewEditor"></div>
   <%= error_tag f, :sql %>
 </div>
