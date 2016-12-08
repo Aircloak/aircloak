@@ -195,27 +195,15 @@ defmodule Cloak.Aql.Compiler do
 
   defp compile_subqueries(%Query{from: nil} = query), do: query
   defp compile_subqueries(query) do
-    compiled = do_compile_subqueries(query.from, query)
-    %Query{query | from: compiled, info: query.info ++ gather_info(compiled)}
+    {info, compiled} = Lens.get_and_map(direct_subqueries(), query, fn(subquery) ->
+      ast = compiled_subquery(subquery.ast, subquery.alias, query)
+      {ast.info, %{subquery | ast: ast}}
+    end)
+
+    %Query{compiled | info: query.info ++ Enum.concat(info)}
   end
 
-  defp do_compile_subqueries({:join, join}, query) do
-    {:join, %{join |
-      lhs: do_compile_subqueries(join.lhs, query),
-      rhs: do_compile_subqueries(join.rhs, query)
-    }}
-  end
-  defp do_compile_subqueries({:subquery, subquery}, query) do
-    {:subquery, %{subquery | ast: compiled_subquery(subquery.ast, subquery.alias, query)}}
-  end
-  defp do_compile_subqueries(identifier = {_, table}, _query) when is_binary(table), do:
-    identifier
-
-  defp gather_info({:join, %{lhs: lhs, rhs: rhs}}), do: gather_info(rhs) ++ gather_info(lhs)
-  defp gather_info({:subquery, subquery}), do: subquery.ast.info
-  defp gather_info(_), do: []
-
-  defp compiled_subquery(parsed_subquery, alias, parent_query) do
+  def compiled_subquery(parsed_subquery, alias, parent_query) do
     case compile(
       parent_query.data_source,
       Map.put(parsed_subquery, :subquery?, :true),
@@ -1300,4 +1288,14 @@ defmodule Cloak.Aql.Compiler do
   deflens splitter_functions, do: terminal_elements() |> Lens.satisfy(&Function.row_splitting_function?/1)
 
   deflens buckets, do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
+
+  deflens direct_subqueries, do: Lens.key(:from) |> do_direct_subqueries()
+
+  deflens do_direct_subqueries do
+    Lens.match(fn
+      {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_direct_subqueries()
+      {:subquery, _} -> Lens.at(1)
+      _ -> Lens.empty()
+    end)
+  end
 end
