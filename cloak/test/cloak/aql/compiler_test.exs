@@ -500,8 +500,8 @@ defmodule Cloak.Aql.Compiler.Test do
     aligned = compile!("select * from table where column > '2015-01-02' and column < '2016-07-01'", data_source())
     assert compile!("select * from table where column > '2015-01-01' and column < '2016-08-02'", data_source()).where
       == aligned.where
-    assert aligned.info == ["The range for column `column` has been adjusted to 2015-01-01 00:00:00.000000"
-      <> " <= `column` < 2017-01-01 00:00:00.000000"]
+    assert aligned.info == ["The range for column `column` from table `table` has been adjusted to "
+      <> "2015-01-01 00:00:00.000000 <= `column` from table `table` < 2017-01-01 00:00:00.000000."]
   end
 
   test "no message when datetime alignment does not require fixing" do
@@ -513,7 +513,8 @@ defmodule Cloak.Aql.Compiler.Test do
     aligned = compile!("select * from table where column > '2015-01-02' and column < '2016-07-01'", date_data_source())
     assert compile!("select * from table where column > '2015-01-01' and column < '2016-08-02'", date_data_source()).
       where == aligned.where
-    assert aligned.info == ["The range for column `column` has been adjusted to 2015-01-01 <= `column` < 2017-01-01"]
+    assert aligned.info == ["The range for column `column` from table `table` has been adjusted to 2015-01-01 <= "
+      <> "`column` from table `table` < 2017-01-01."]
   end
 
   test "fixes alignment of time ranges" do
@@ -521,7 +522,8 @@ defmodule Cloak.Aql.Compiler.Test do
     assert compile!("select * from table where column >= '00:00:00' and column < '00:00:05'", time_data_source()).
       where == aligned.where
     assert aligned.
-      info == ["The range for column `column` has been adjusted to 00:00:00.000000 <= `column` < 00:00:05.000000"]
+      info == ["The range for column `column` from table `table` has been adjusted to 00:00:00.000000 <= "
+        <> "`column` from table `table` < 00:00:05.000000."]
   end
 
   test "no message when time alignment does not require fixing" do
@@ -531,7 +533,8 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "includes an info message when the aligment is fixed" do
     assert [msg] = compile!("select count(*) from table where numeric >= 0.1 and numeric < 1.9", data_source()).info
-    assert msg == "The range for column `numeric` has been adjusted to 0.0 <= `numeric` < 2.0"
+    assert msg == "The range for column `numeric` from table `table` has been adjusted to 0.0 <= `numeric` from table "
+      <> "`table` < 2.0."
   end
 
   test "columns with an inequality are requested for fetching" do

@@ -118,7 +118,7 @@ defmodule Cloak.Aql.Compiler do
       |> verify_joins()
       |> cast_where_clauses()
       |> verify_where_clauses()
-      |> align_ranges()
+      |> align_ranges(Lens.key(:where))
       |> partition_selected_columns()
       |> verify_having()
       |> partition_where_clauses()
@@ -787,17 +787,21 @@ defmodule Cloak.Aql.Compiler do
   end
   defp all_join_conditions(_), do: []
 
-  defp align_ranges(%Query{where: [_|_] = clauses} = query) do
-    verify_ranges(clauses)
+  defp align_ranges(query, lens) do
+    case Lens.get(lens, query) do
+      [] -> query
+      clauses ->
+        verify_ranges(clauses)
 
-    ranges = inequalities_by_column(clauses)
-    non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), Comparison.subject(&1)))
+        ranges = inequalities_by_column(clauses)
+        non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), Comparison.subject(&1)))
 
-    Enum.reduce(ranges, %{query | where: non_range_clauses}, &add_aligned_range/2)
+        query = put_in(query, [lens], non_range_clauses)
+        Enum.reduce(ranges, query, &add_aligned_range(&1, &2, lens))
+    end
   end
-  defp align_ranges(query), do: query
 
-  defp add_aligned_range({column, conditions}, query) do
+  defp add_aligned_range({column, conditions}, query, lens) do
     {left, right} =
       conditions
       |> Enum.map(&Comparison.value/1)
@@ -806,14 +810,14 @@ defmodule Cloak.Aql.Compiler do
       |> FixAlign.align_interval()
 
     if implement_range?({left, right}, conditions) do
-      %{query | where: conditions ++ query.where}
+      Lens.map(lens, query, &(conditions ++ &1))
     else
+      name = Column.display_name(column)
+
       query
-      |> add_where_clause({:comparison, column, :<, Column.constant(column.type, right)})
-      |> add_where_clause({:comparison, column, :>=, Column.constant(column.type, left)})
-      |> add_info_message(
-        "The range for column `#{column.name}` has been adjusted to #{left} <= `#{column.name}` < #{right}"
-      )
+      |> add_clause(lens, {:comparison, column, :<, Column.constant(column.type, right)})
+      |> add_clause(lens, {:comparison, column, :>=, Column.constant(column.type, left)})
+      |> add_info_message("The range for column #{name} has been adjusted to #{left} <= #{name} < #{right}.")
     end
     |> put_in([Access.key(:ranges), column], {left, right})
   end
@@ -825,7 +829,7 @@ defmodule Cloak.Aql.Compiler do
     left_operator == :>= && left_column.value == left && right_operator == :< && right_column.value == right
   end
 
-  defp add_where_clause(query, clause), do: %{query | where: [clause | query.where]}
+  defp add_clause(query, lens, clause), do: Lens.map(lens, query, fn(clauses) -> [clause | clauses] end)
 
   defp verify_ranges(clauses) do
     clauses
