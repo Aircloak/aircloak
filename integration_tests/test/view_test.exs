@@ -2,19 +2,23 @@ defmodule IntegrationTest.ViewTest do
   use ExUnit.Case, async: true
 
   alias IntegrationTest.Manager
-  alias Air.Schemas.View
 
   setup_all do
     {:ok, user: Manager.create_air_user()}
   end
 
-  test "reporting view error", context do
+  test "sql syntax error", context do
     assert {:error, %Ecto.Changeset{errors: [sql: {error, _}]}} = create_view(context.user, "foo", "select")
     assert error =~ ~r/Expected `column definition`/
   end
 
-  test "successful saving of the new view", context, do:
-    assert {:ok, %View{}} = create_view(context.user, unique_view_name(), "select user_id, name from users")
+  test "successful saving of the new view", context do
+    assert {:ok, view} = create_view(context.user, unique_view_name(), "select user_id, name from users")
+    assert view.result_info.columns == [
+      %{"name" => "user_id", "type" => "text", "user_id" => true},
+      %{"name" => "name", "type" => "text", "user_id" => false}
+    ]
+  end
 
   test "updating the view", context do
     {:ok, view} = create_view(context.user, unique_view_name(), "select user_id, name from users")

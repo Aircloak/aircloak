@@ -42,6 +42,18 @@ defmodule Air.Service.ViewTest do
     assert View.all(context.u3, context.ds2) == []
   end
 
+  test "view requires name and sql", context do
+    assert {:error, %Ecto.Changeset{errors: errors}} = View.create(context.u1, context.ds1.id, nil, nil)
+    assert {"can't be blank", _} = Keyword.fetch!(errors, :name)
+    assert {"can't be blank", _} = Keyword.fetch!(errors, :sql)
+  end
+
+  test "cloak not available error", context do
+    assert {:error, %Ecto.Changeset{errors: errors}} = View.create(context.u1, context.ds1.id, "name", "sql")
+    assert {error, _} = Keyword.fetch!(errors, :sql)
+    assert error == "Cannot validate the view SQL since no cloak is available for the given data source."
+  end
+
   defp insert_view(data_source, user, name), do:
     %Air.Schemas.View{}
     |> Ecto.Changeset.cast(
