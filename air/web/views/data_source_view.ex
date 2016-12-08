@@ -6,26 +6,26 @@ defmodule Air.DataSourceView do
 
   alias Air.{Schemas.DataSource, DataSourceManager}
 
-  def available?(data_source) do
+  defp available?(data_source) do
     DataSourceManager.available?(data_source.global_id)
   end
 
-  def number_of_tables(data_source) do
+  defp number_of_tables(data_source) do
     length(DataSource.tables(data_source))
   end
 
-  def sample_of_tables(data_source) do
+  defp sample_of_tables(data_source) do
     DataSource.tables(data_source)
     |> Enum.take(3)
     |> Enum.map(fn(%{"id" => name}) -> name end)
     |> Enum.join(", ")
   end
 
-  def to_json(map) do
+  defp to_json(map) do
     {:safe, Poison.encode!(map)}
   end
 
-  def selectables(conn, data_source, views) do
+  defp selectables(conn, data_source, views) do
     DataSource.tables(data_source) ++
       Enum.map(views, &%{
         id: &1.name,
