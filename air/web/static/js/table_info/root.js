@@ -6,7 +6,7 @@ import ReactDOM from "react-dom";
 import {TableView} from "./table";
 import type {Table} from "./table";
 
-type Props = {tables: Table[], views: Table[]};
+type Props = {readOnly: boolean, tables: Table[]};
 
 class TableInfo extends React.Component {
   props: Props;
@@ -51,6 +51,7 @@ class TableInfo extends React.Component {
             <
               TableView
               key={i}
+              readOnly={this.props.readOnly}
               table={table}
               expanded={this.expanded(table)}
               onClick={this.toggleExpand(table)}

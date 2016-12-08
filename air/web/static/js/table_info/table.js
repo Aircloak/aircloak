@@ -12,7 +12,7 @@ export type Table = {
   delete_html: string
 };
 
-export const TableView = (props: {table: Table, onClick: () => void, expanded: boolean}) =>
+export const TableView = (props: {readOnly: boolean, table: Table, onClick: () => void, expanded: boolean}) =>
   <div
     className="list-group-item"
     onClick={(event) => {
@@ -38,7 +38,7 @@ export const TableView = (props: {table: Table, onClick: () => void, expanded: b
       &nbsp;
 
       {(() => {
-        if (props.table.edit_link) {
+        if (!props.readOnly && props.table.edit_link) {
           return <a href={props.table.edit_link}>{props.table.id}</a>;
         } else {
           return props.table.id;
@@ -46,7 +46,7 @@ export const TableView = (props: {table: Table, onClick: () => void, expanded: b
       })()}
 
       {(() => {
-        if (props.table.delete_html) {
+        if (!props.readOnly && props.table.delete_html) {
           return (
             <span className="pull-right" dangerouslySetInnerHTML={{__html: props.table.delete_html}} />
           );
