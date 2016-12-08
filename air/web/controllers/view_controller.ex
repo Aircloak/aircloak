@@ -55,11 +55,21 @@ defmodule Air.ViewController do
   # -------------------------------------------------------------------
 
   defp load_data_source(conn, _opts) do
-    %{"data_source_id" => id} = conn.params
-    {:ok, data_source} = Air.Service.DataSource.fetch_as_user({:id, id}, conn.assigns.current_user)
+    data_source_id = Map.fetch!(conn.params, "data_source_id")
+    {:ok, data_source} = Air.Service.DataSource.fetch_as_user({:id, data_source_id},
+      conn.assigns.current_user)
+
+    selectable_views = case Map.fetch(conn.params, "id") do
+      :error -> View.all(conn.assigns.current_user, data_source)
+      {:ok, current_view_id_str} ->
+        Enum.reject(
+          View.all(conn.assigns.current_user, data_source),
+          &(&1.id == String.to_integer(current_view_id_str))
+        )
+    end
 
     conn
     |> assign(:data_source, data_source)
-    |> assign(:views, View.all(conn.assigns.current_user, data_source))
+    |> assign(:views, selectable_views)
   end
 end
