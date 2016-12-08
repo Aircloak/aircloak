@@ -57,6 +57,9 @@ defmodule Air.ViewController do
   defp load_data_source(conn, _opts) do
     %{"data_source_id" => id} = conn.params
     {:ok, data_source} = Air.Service.DataSource.fetch_as_user({:id, id}, conn.assigns.current_user)
-    assign(conn, :data_source, data_source)
+
+    conn
+    |> assign(:data_source, data_source)
+    |> assign(:views, View.all(conn.assigns.current_user, data_source))
   end
 end

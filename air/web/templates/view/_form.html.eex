@@ -27,7 +27,10 @@
 <script>
   window.pageConfig = {
     onLoad: function(App) {
-      App.viewEditor({}, document.getElementById("viewEditor"));
+      App.viewEditor(
+        {tables: <%= to_json(selectables(@conn, @data_source, @views)) %>},
+        document.getElementById("viewEditor")
+      );
     }
   };
 </script>

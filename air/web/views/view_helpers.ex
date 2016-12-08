@@ -29,6 +29,26 @@ defmodule Air.ViewHelpers do
     end
   end
 
+  def selectables(conn, data_source, views) do
+    Air.Schemas.DataSource.tables(data_source) ++
+      Enum.map(views, &%{
+        id: &1.name,
+        columns: Map.fetch!(&1.result_info, "columns"),
+        edit_link: Air.Router.Helpers.data_source_view_path(conn, :edit, &1.data_source_id, &1.id),
+        delete_html:
+          Phoenix.HTML.safe_to_string(link("delete",
+            to: Air.Router.Helpers.data_source_view_path(conn, :delete, &1.data_source_id, &1.id),
+            method: :delete,
+            "data-confirm": "Delete #{&1.name}?",
+            class: "btn btn-danger btn-xs"
+          ))
+      })
+  end
+
+  def to_json(map) do
+    {:safe, Poison.encode!(map)}
+  end
+
   defp active_class("/admin", "/admin/cloaks"), do: "active"
   defp active_class(request_path, link_path) do
     if String.starts_with?(request_path, link_path) do
