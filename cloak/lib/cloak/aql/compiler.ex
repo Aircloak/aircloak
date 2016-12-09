@@ -844,12 +844,10 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  @aligned_types ~w(integer real datetime date time)a
   defp inequalities_by_column(where_clauses) do
     where_clauses
     |> Enum.filter(&Comparison.inequality?/1)
     |> Enum.group_by(&Comparison.subject/1)
-    |> Enum.filter(fn({column, _}) -> Enum.member?(@aligned_types, column.type) end)
     |> Enum.map(&discard_redundant_inequalities/1)
     |> Enum.into(%{})
   end
