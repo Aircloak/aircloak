@@ -79,7 +79,9 @@ defmodule Air.Service.View do
         {:error, :not_connected} ->
           # Cloak not available
           {:error, Ecto.Changeset.add_error(changeset, :sql,
-            "Cannot validate the view SQL since no cloak is available for the given data source.")}
+            "The view cannot be saved because no cloak is currently available for the given data source. " <>
+            "Please contact your administrator."
+          )}
       end
     else
       {:error, changeset}
