@@ -781,17 +781,15 @@ defmodule Cloak.Aql.Compiler do
   defp all_join_conditions(_), do: []
 
   defp align_ranges(query, lens) do
-    case Lens.get(lens, query) do
-      [] -> query
-      clauses ->
-        verify_ranges(clauses)
+    clauses = Lens.get(lens, query)
 
-        ranges = inequalities_by_column(clauses)
-        non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), Comparison.subject(&1)))
+    verify_ranges(clauses)
 
-        query = put_in(query, [lens], non_range_clauses)
-        Enum.reduce(ranges, query, &add_aligned_range(&1, &2, lens))
-    end
+    ranges = inequalities_by_column(clauses)
+    non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), Comparison.subject(&1)))
+
+    query = put_in(query, [lens], non_range_clauses)
+    Enum.reduce(ranges, query, &add_aligned_range(&1, &2, lens))
   end
 
   defp add_aligned_range({column, conditions}, query, lens) do
