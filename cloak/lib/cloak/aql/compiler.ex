@@ -32,10 +32,8 @@ defmodule Cloak.Aql.Compiler do
   @spec validate_view(DataSource.t, Parser.parsed_query, Query.view_map) :: :ok | {:error, String.t}
   def validate_view(data_source, parsed_query, views) do
     try do
-      with {:ok, query} <- compile(data_source, Map.put(parsed_query, :subquery?, true), [], views) do
-        query |> validate_uid("the view") |> validate_offset("The view")
-        :ok
-      end
+      with {:ok, query} <- compile(data_source, Map.put(parsed_query, :subquery?, true), [], views), do:
+        {:ok, query |> validate_uid("the view") |> validate_offset("The view")}
     rescue
       e in CompilationError -> {:error, e.message}
     end

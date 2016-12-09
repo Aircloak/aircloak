@@ -129,6 +129,11 @@ defmodule Cloak.DataSource do
     end
   end
 
+  @doc "Returns all table descriptors for the given data source."
+  @spec tables(t) :: [table]
+  def tables(data_source), do:
+    Map.values(data_source.tables)
+
   @doc """
   Executes the specified 'select' query.
 

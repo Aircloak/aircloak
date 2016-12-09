@@ -683,14 +683,6 @@ defmodule Cloak.Aql.Compiler.Test do
     assert error == "Function `extract_match` is not allowed in subqueries."
   end
 
-  test "successful view validation", do:
-    assert :ok == validate_view("select uid, column from table", data_source())
-
-  test "successful validation of a view which uses another view", do:
-    assert :ok == validate_view("select uid, numeric from table_view", data_source(),
-      views: %{"table_view" => "select uid, numeric from table"})
-
-
   defp compile!(query_string, data_source, options \\ []) do
     {:ok, result} = compile(query_string, data_source, options)
     result
