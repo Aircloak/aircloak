@@ -109,6 +109,7 @@ defmodule Cloak.Aql.Compiler do
       |> compile_subqueries()
       |> compile_tables()
       |> compile_columns()
+      |> reject_null_user_ids()
       |> verify_columns()
       |> precompile_functions()
       |> censor_selected_uids()
@@ -777,6 +778,10 @@ defmodule Cloak.Aql.Compiler do
     join.conditions ++ all_join_conditions(join.lhs) ++ all_join_conditions(join.rhs)
   end
   defp all_join_conditions(_), do: []
+
+  defp reject_null_user_ids(query) do
+    %{query | where: [{:not, {:is, id_column(query), :null}} | query.where]}
+  end
 
   defp align_ranges(query, lens) do
     clauses = Lens.get(lens, query)

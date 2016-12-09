@@ -64,37 +64,37 @@ defmodule Cloak.Aql.QueryTest do
   end
 
   test "extracts types of where conditions used - no where conditions" do
-    assert %{where_conditions: []} = features_from("SELECT count(*) FROM feat_users")
+    assert %{where_conditions: ["not null"]} = features_from("SELECT count(*) FROM feat_users")
   end
 
   test "extracts types of where conditions used" do
-    assert %{where_conditions: [">=", "<"]} = features_from("""
+    assert MapSet.new(["<", ">=", "not null"]) == features_from("""
       SELECT height
       FROM feat_users
       WHERE height > 10 and height < 20
-    """)
-    assert %{where_conditions: ["=", "not null", "<>"]} = features_from("""
+    """).where_conditions |> Enum.into(MapSet.new())
+    assert MapSet.new(["=", "<>", "not null"]) == features_from("""
       SELECT height
       FROM feat_users
       WHERE height <> 10 and male = true
-    """)
-    assert %{where_conditions: ["in", "not null", "not in"]} = features_from("""
+    """).where_conditions |> Enum.into(MapSet.new())
+    assert MapSet.new(["in", "not null", "not in"]) == features_from("""
       SELECT height
       FROM feat_users
       WHERE
         height IN (10, 11) and height NOT IN (12, 13) and
         name IN ('bob', 'alice')
-    """)
-    assert %{where_conditions: ["null", "not null"]} = features_from("""
+    """).where_conditions |> Enum.into(MapSet.new())
+    assert MapSet.new(["null", "not null"]) == features_from("""
       SELECT height
       FROM feat_users
       WHERE height IS NULL and name IS NOT NULL
-    """)
-    assert %{where_conditions: ["like", "ilike", "not null", "not like", "not ilike"]} = features_from("""
+    """).where_conditions |> Enum.into(MapSet.new())
+    assert MapSet.new(["like", "ilike", "not null", "not like", "not ilike"]) == features_from("""
       SELECT height
       FROM feat_users
       WHERE name LIKE '%' and name ILIKE '%foo%' and name NOT LIKE '_' and name NOT ILIKE '%bar%'
-    """)
+    """).where_conditions |> Enum.into(MapSet.new())
   end
 
   test "num of group by clauses - no group by" do
