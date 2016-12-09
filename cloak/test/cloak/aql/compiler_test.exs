@@ -457,34 +457,34 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "rejects inequalities on numeric columns that are not ranges" do
     assert {:error, error} = compile("select * from table where numeric > 5", data_source())
-    assert error == "Column `numeric` must be limited to a finite range."
+    assert error == "Column `numeric` from table `table` must be limited to a finite range."
   end
 
   test "rejects inequalities on numeric columns that are negatives of ranges" do
     assert {:error, error} = compile("select * from table where numeric < 2 and numeric > 5", data_source())
-    assert error == "Column `numeric` must be limited to a finite range."
+    assert error == "Column `numeric` from table `table` must be limited to a finite range."
   end
 
   test "rejects inequalities on datetime columns that are negatives of ranges" do
     assert {:error, error} = compile("select * from table where column < '2015-01-01' and column > '2016-01-01'",
       data_source())
-    assert error == "Column `column` must be limited to a finite range."
+    assert error == "Column `column` from table `table` must be limited to a finite range."
   end
 
   test "rejects inequalities on datetime columns that are not ranges" do
     assert {:error, error} = compile("select * from table where column > '2015-01-01'", data_source())
-    assert error == "Column `column` must be limited to a finite range."
+    assert error == "Column `column` from table `table` must be limited to a finite range."
   end
 
   test "rejects inequalities on date columns that are negatives of ranges" do
     assert {:error, error} = compile("select * from table where column < '2015-01-01' and column > '2016-01-01'",
       date_data_source())
-    assert error == "Column `column` must be limited to a finite range."
+    assert error == "Column `column` from table `table` must be limited to a finite range."
   end
 
   test "rejects inequalities on date columns that are not ranges" do
     assert {:error, error} = compile("select * from table where column > '2015-01-01'", data_source())
-    assert error == "Column `column` must be limited to a finite range."
+    assert error == "Column `column` from table `table` must be limited to a finite range."
   end
 
   test "accepts inequalities on numeric columns that are ranges" do
@@ -500,8 +500,8 @@ defmodule Cloak.Aql.Compiler.Test do
     aligned = compile!("select * from table where column > '2015-01-02' and column < '2016-07-01'", data_source())
     assert compile!("select * from table where column > '2015-01-01' and column < '2016-08-02'", data_source()).where
       == aligned.where
-    assert aligned.info == ["The range for column `column` has been adjusted to 2015-01-01 00:00:00.000000"
-      <> " <= `column` < 2017-01-01 00:00:00.000000"]
+    assert aligned.info == ["The range for column `column` from table `table` has been adjusted to "
+      <> "2015-01-01 00:00:00.000000 <= `column` from table `table` < 2017-01-01 00:00:00.000000."]
   end
 
   test "no message when datetime alignment does not require fixing" do
@@ -513,7 +513,8 @@ defmodule Cloak.Aql.Compiler.Test do
     aligned = compile!("select * from table where column > '2015-01-02' and column < '2016-07-01'", date_data_source())
     assert compile!("select * from table where column > '2015-01-01' and column < '2016-08-02'", date_data_source()).
       where == aligned.where
-    assert aligned.info == ["The range for column `column` has been adjusted to 2015-01-01 <= `column` < 2017-01-01"]
+    assert aligned.info == ["The range for column `column` from table `table` has been adjusted to 2015-01-01 <= "
+      <> "`column` from table `table` < 2017-01-01."]
   end
 
   test "fixes alignment of time ranges" do
@@ -521,7 +522,8 @@ defmodule Cloak.Aql.Compiler.Test do
     assert compile!("select * from table where column >= '00:00:00' and column < '00:00:05'", time_data_source()).
       where == aligned.where
     assert aligned.
-      info == ["The range for column `column` has been adjusted to 00:00:00.000000 <= `column` < 00:00:05.000000"]
+      info == ["The range for column `column` from table `table` has been adjusted to 00:00:00.000000 <= "
+        <> "`column` from table `table` < 00:00:05.000000."]
   end
 
   test "no message when time alignment does not require fixing" do
@@ -531,7 +533,8 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "includes an info message when the aligment is fixed" do
     assert [msg] = compile!("select count(*) from table where numeric >= 0.1 and numeric < 1.9", data_source()).info
-    assert msg == "The range for column `numeric` has been adjusted to 0.0 <= `numeric` < 2.0"
+    assert msg == "The range for column `numeric` from table `table` has been adjusted to 0.0 <= `numeric` from table "
+      <> "`table` < 2.0."
   end
 
   test "columns with an inequality are requested for fetching" do
@@ -631,6 +634,28 @@ defmodule Cloak.Aql.Compiler.Test do
       data_source())
     assert %{from: {:subquery, %{ast: %{offset: 40}}}} = result
     assert ["Offset adjusted from 31 to 40"] = result.info
+  end
+
+  test "having conditions are not adjusted in the root query" do
+    assert {:ok, _} = compile("select count(*) from table group by numeric having avg(numeric) > 3", data_source())
+  end
+
+  test "having condition inequalities must be ranges in subqueries" do
+    assert {:error, error} =
+      compile("select count(*) from (select uid from table group by uid having avg(numeric) > 3) x", data_source())
+    assert error == "Column `avg` must be limited to a finite range."
+  end
+
+  test "having condition ranges are aligned with a message in subqueries" do
+    %{from: {:subquery, %{ast: aligned}}} = compile!("""
+      select count(*) from (select uid from table group by uid having avg(numeric) >= 0.0 and avg(numeric) < 5.0) x
+    """, data_source())
+    %{from: {:subquery, %{ast: unaligned}}} = compile!("""
+      select count(*) from (select uid from table group by uid having avg(numeric) > 0.1 and avg(numeric) <= 4.9) x
+    """, data_source())
+
+    assert Map.drop(aligned, [:info]) == Map.drop(unaligned, [:info])
+    assert unaligned.info == ["The range for column `avg` has been adjusted to 0.0 <= `avg` < 5.0."]
   end
 
   test "math can be disabled with a config setting" do

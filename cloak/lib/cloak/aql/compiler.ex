@@ -116,7 +116,7 @@ defmodule Cloak.Aql.Compiler do
       |> verify_joins()
       |> cast_where_clauses()
       |> verify_where_clauses()
-      |> align_ranges()
+      |> align_ranges(Lens.key(:where))
       |> partition_selected_columns()
       |> verify_having()
       |> partition_where_clauses()
@@ -214,6 +214,7 @@ defmodule Cloak.Aql.Compiler do
         |> validate_offset("Subquery `#{alias}`")
         |> align_limit()
         |> align_offset()
+        |> align_ranges(Lens.key(:having))
       {:error, error} -> raise CompilationError, message: error
     end
   end
@@ -777,17 +778,19 @@ defmodule Cloak.Aql.Compiler do
   end
   defp all_join_conditions(_), do: []
 
-  defp align_ranges(%Query{where: [_|_] = clauses} = query) do
-    verify_ranges(query)
+  defp align_ranges(query, lens) do
+    clauses = Lens.get(lens, query)
+
+    verify_ranges(clauses)
 
     ranges = inequalities_by_column(clauses)
     non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), Comparison.subject(&1)))
 
-    Enum.reduce(ranges, %{query | where: non_range_clauses}, &add_aligned_range/2)
+    query = put_in(query, [lens], non_range_clauses)
+    Enum.reduce(ranges, query, &add_aligned_range(&1, &2, lens))
   end
-  defp align_ranges(query), do: query
 
-  defp add_aligned_range({column, conditions}, query) do
+  defp add_aligned_range({column, conditions}, query, lens) do
     {left, right} =
       conditions
       |> Enum.map(&Comparison.value/1)
@@ -796,14 +799,14 @@ defmodule Cloak.Aql.Compiler do
       |> FixAlign.align_interval()
 
     if implement_range?({left, right}, conditions) do
-      %{query | where: conditions ++ query.where}
+      Lens.map(lens, query, &(conditions ++ &1))
     else
+      name = Column.display_name(column)
+
       query
-      |> add_where_clause({:comparison, column, :<, Column.constant(column.type, right)})
-      |> add_where_clause({:comparison, column, :>=, Column.constant(column.type, left)})
-      |> add_info_message(
-        "The range for column `#{column.name}` has been adjusted to #{left} <= `#{column.name}` < #{right}"
-      )
+      |> add_clause(lens, {:comparison, column, :<, Column.constant(column.type, right)})
+      |> add_clause(lens, {:comparison, column, :>=, Column.constant(column.type, left)})
+      |> add_info_message("The range for column #{name} has been adjusted to #{left} <= #{name} < #{right}.")
     end
     |> put_in([Access.key(:ranges), column], {left, right})
   end
@@ -815,14 +818,15 @@ defmodule Cloak.Aql.Compiler do
     left_operator == :>= && left_column.value == left && right_operator == :< && right_column.value == right
   end
 
-  defp add_where_clause(query, clause), do: %{query | where: [clause | query.where]}
+  defp add_clause(query, lens, clause), do: Lens.map(lens, query, fn(clauses) -> [clause | clauses] end)
 
-  defp verify_ranges(%Query{where: clauses}) do
+  defp verify_ranges(clauses) do
     clauses
     |> inequalities_by_column()
     |> Enum.reject(fn({_, comparisons}) -> valid_range?(comparisons) end)
     |> case do
-      [{column, _} | _] -> raise CompilationError, message: "Column `#{column.name}` must be limited to a finite range."
+      [{column, _} | _] ->
+        raise CompilationError, message: "Column #{Column.display_name(column)} must be limited to a finite range."
       _ -> :ok
     end
   end
@@ -836,12 +840,10 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  @aligned_types ~w(integer real datetime date time)a
   defp inequalities_by_column(where_clauses) do
     where_clauses
     |> Enum.filter(&Comparison.inequality?/1)
     |> Enum.group_by(&Comparison.subject/1)
-    |> Enum.filter(fn({column, _}) -> Enum.member?(@aligned_types, column.type) end)
     |> Enum.map(&discard_redundant_inequalities/1)
     |> Enum.into(%{})
   end
