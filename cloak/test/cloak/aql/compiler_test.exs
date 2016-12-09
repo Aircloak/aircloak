@@ -690,6 +690,277 @@ defmodule Cloak.Aql.Compiler.Test do
     assert :ok == validate_view("select uid, numeric from table_view", data_source(),
       views: %{"table_view" => "select uid, numeric from table"})
 
+  describe "rejects queries selecing columns that have seen math, discontinuity and constants" do
+    Enum.each(~w(+ - / * ^), fn(math_function) ->
+      Enum.each(~w(abs ceil floor round trunc sqrt), fn(discontinuous_function) ->
+        test "when on the same level ('#{math_function}' and '#{discontinuous_function}')" do
+          query = """
+            SELECT #{unquote(discontinuous_function)}(numeric #{unquote(math_function)} 3)
+            FROM table
+          """
+          refute select_columns_have_valid_transformations(query)
+        end
+
+        test "when across queries ('#{math_function}' and '#{discontinuous_function}')" do
+          query = """
+            SELECT #{unquote(discontinuous_function)}(num)
+            FROM (
+              SELECT uid, numeric #{unquote(math_function)} 3 as num
+              FROM table
+            ) t
+          """
+          refute select_columns_have_valid_transformations(query)
+        end
+
+        test "ok when no constant ('#{math_function}' and '#{discontinuous_function}')" do
+          query = """
+            SELECT #{unquote(discontinuous_function)}(numeric #{unquote(math_function)} numeric)
+            FROM table
+          """
+          assert select_columns_have_valid_transformations(query)
+        end
+
+        test "ok when math is only with constants ('#{math_function}' and '#{discontinuous_function}')" do
+          query = """
+            SELECT #{unquote(discontinuous_function)}(1 #{unquote(math_function)} 3)
+            FROM table
+          """
+          assert select_columns_have_valid_transformations(query)
+        end
+      end)
+
+      Enum.each(~w(div mod), fn(discontinuous_function) ->
+        test "when on the same level ('#{math_function}' and '#{discontinuous_function}')" do
+          query = """
+            SELECT #{unquote(discontinuous_function)}(numeric, 2) #{unquote(math_function)} 3
+            FROM table
+          """
+          refute select_columns_have_valid_transformations(query)
+        end
+
+        test "when across queries ('#{math_function}' and '#{discontinuous_function}')" do
+          query = """
+            SELECT num #{unquote(math_function)} 3
+            FROM (
+              SELECT uid, #{unquote(discontinuous_function)}(numeric, 2) as num
+              FROM table
+            ) t
+          """
+          refute select_columns_have_valid_transformations(query)
+        end
+
+        test "ok when math is only with constants ('#{math_function}' and '#{discontinuous_function}')" do
+          query = """
+            SELECT #{unquote(discontinuous_function)}(1, 2) #{unquote(math_function)} 3
+            FROM table
+          """
+          assert select_columns_have_valid_transformations(query)
+        end
+      end)
+
+      test "when on the same level ('#{math_function}' and 'bucket')" do
+        query = """
+          SELECT bucket(numeric by 10) #{unquote(math_function)} 3
+          FROM table
+        """
+        refute select_columns_have_valid_transformations(query)
+      end
+
+      test "when across queries ('#{math_function}' and 'bucket')" do
+        query = """
+          SELECT num #{unquote(math_function)} 3
+          FROM (
+            SELECT uid, bucket(numeric by 10) as num
+            FROM table
+          ) t
+        """
+        refute select_columns_have_valid_transformations(query)
+      end
+
+      test "when on the same level ('#{math_function}' and '%')" do
+        query = """
+          SELECT (numeric % 7) #{unquote(math_function)} 3
+          FROM table
+        """
+        refute select_columns_have_valid_transformations(query)
+      end
+
+      test "when across queries ('#{math_function}' and '%')" do
+        query = """
+          SELECT num #{unquote(math_function)} 3
+          FROM (
+            SELECT uid, numeric % 7 as num
+            FROM table
+          ) t
+        """
+        refute select_columns_have_valid_transformations(query)
+      end
+    end)
+  end
+
+  test "/ becomes a dangerous discontinuous function if divisor is touched by a constant" do
+    query = "SELECT numeric / (numeric * 2) FROM table"
+    refute select_columns_have_valid_transformations(query)
+  end
+
+  describe "WHERE-inequalities affected by dangerous math OR discontinuity are forbidden" do
+    Enum.each(~w(abs ceil floor round trunc sqrt), fn(discontinuous_function) ->
+      test "#{discontinuous_function} without constant" do
+        query = """
+          SELECT value FROM (
+            SELECT uid, #{unquote(discontinuous_function)}(numeric) as value
+            FROM table
+          ) t
+          WHERE value >= 10 and value < 20
+        """
+        assert where_columns_have_valid_transformations(query)
+      end
+    end)
+
+    Enum.each(~w(div mod), fn(discontinuous_function) ->
+      test "#{discontinuous_function} with constant" do
+        query = """
+          SELECT numeric FROM (
+            SELECT
+              uid,
+              numeric,
+              #{unquote(discontinuous_function)}(numeric, 3) as value
+            FROM table
+          ) t
+          WHERE value >= 10 and value < 20
+        """
+        refute where_columns_have_valid_transformations(query)
+      end
+
+      test "#{discontinuous_function} without constant" do
+        query = """
+          SELECT value FROM (
+            SELECT uid, #{unquote(discontinuous_function)}(numeric, numeric) as value
+            FROM table
+          ) t
+          WHERE value >= 10 and value < 20
+        """
+        assert where_columns_have_valid_transformations(query)
+      end
+    end)
+
+    Enum.each(~w(+ - / * ^), fn(math_function) ->
+      test "#{math_function} without constant" do
+        query = """
+          SELECT value FROM (
+            SELECT uid, numeric #{unquote(math_function)} numeric as value
+            FROM table
+          ) t
+          WHERE value >= 10 and value < 20
+        """
+        assert where_columns_have_valid_transformations(query)
+      end
+    end)
+
+    # Note: we can't test with / because it is treated as a dangerous discontinuous
+    # function as soon as a constant is involved, and hence halts query compilation.
+    Enum.each(~w(+ - * ^), fn(math_function) ->
+      test "#{math_function} with constant" do
+        query = """
+          SELECT value FROM (
+            SELECT uid, numeric #{unquote(math_function)} 3 as value
+            FROM table
+          ) t
+          WHERE value >= 10 and value < 20
+        """
+        refute where_columns_have_valid_transformations(query)
+      end
+    end)
+
+    test "string and constant converted to number" do
+      query = """
+        SELECT numeric FROM (
+          SELECT
+            uid,
+            numeric,
+            length(btrim(string, 'constant')) as value
+          FROM table
+        ) t
+        WHERE value >= 0 and value < 10
+      """
+      refute where_columns_have_valid_transformations(query)
+    end
+
+    test "cast column" do
+      query = """
+        SELECT numeric FROM (
+          SELECT
+            uid,
+            numeric,
+            cast(string as integer) as value
+          FROM table
+        ) t
+        WHERE value >= 0 and value < 10
+      """
+      refute where_columns_have_valid_transformations(query)
+    end
+  end
+
+  describe "WHERE-equalities on dangerous columns are allowed" do
+    test "unsafe discontinuity" do
+      query = """
+        SELECT numeric FROM (
+          SELECT
+            uid,
+            numeric,
+            length(btrim(string, 'constant')) as value
+          FROM table
+        ) t
+        WHERE value = 0
+      """
+      assert where_columns_have_valid_transformations(query)
+    end
+
+    test "on a cast column" do
+      query = """
+        SELECT numeric FROM (
+          SELECT
+            uid,
+            numeric,
+            cast(string as integer) as value
+          FROM table
+        ) t
+        WHERE value = 10
+      """
+      assert where_columns_have_valid_transformations(query)
+    end
+
+    test "affected by math" do
+      query = """
+        SELECT value FROM (
+          SELECT uid, numeric + 2 as value
+          FROM table
+        ) t
+        WHERE value = 10
+      """
+      assert where_columns_have_valid_transformations(query)
+    end
+  end
+
+  defp select_columns_have_valid_transformations(query) do
+    case compile(query, data_source()) do
+      {:ok, _} -> true
+      {:error, reason} ->
+        not (reason =~ ~r/is influenced by math, a discontinuous function, and a constant/)
+    end
+  end
+
+  defp where_columns_have_valid_transformations(query) do
+    case compile(query, data_source()) do
+      {:ok, _} -> true
+      {:error, reason} ->
+        if reason =~ ~r/WHERE-clause inequalities/ do
+          false
+        else
+          raise "Compilation failed with other reason than illegal WHERE-clause: #{inspect reason}"
+        end
+    end
+  end
 
   defp compile!(query_string, data_source, options \\ []) do
     {:ok, result} = compile(query_string, data_source, options)

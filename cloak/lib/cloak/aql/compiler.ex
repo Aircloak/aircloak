@@ -2,7 +2,7 @@ defmodule Cloak.Aql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
   alias Cloak.{DataSource, Features}
-  alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query}
+  alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query, Typer}
   alias Cloak.Query.DataDecoder
 
   defmodule CompilationError do
@@ -126,6 +126,8 @@ defmodule Cloak.Aql.Compiler do
       |> partition_row_splitters()
       |> verify_limit()
       |> verify_offset()
+      |> verify_function_usage_for_selected_columns()
+      |> verify_function_usage_for_where_clauses()
       {:ok, query}
     rescue
       e in CompilationError -> {:error, e.message}
@@ -1283,6 +1285,36 @@ defmodule Cloak.Aql.Compiler do
   defp from_needs_emulation?({:join, join}), do:
     from_needs_emulation?(join.lhs) or from_needs_emulation?(join.rhs)
 
+  defp verify_function_usage_for_selected_columns(%Query{columns: _columns, subquery?: true} = query), do: query
+  defp verify_function_usage_for_selected_columns(%Query{columns: columns} = query) do
+    Enum.each(columns, fn(column) ->
+      type = Typer.type(column, query)
+      unless Typer.ok_for_display?(type) do
+        raise CompilationError, message: "Queries where a reported value is influenced by math, " <>
+          "a discontinuous function, and a constant are not allowed. In this case the column in " <>
+          "question is #{Column.display_name(column)}"
+      end
+    end)
+    query
+  end
+
+  defp verify_function_usage_for_where_clauses(query) do
+    queries()
+    |> Lens.keys([:where, :lcf_check_conditions])
+    |> where_inequality_columns()
+    |> Lens.satisfy(&(not &1.constant?))
+    |> Lens.to_list(query)
+    |> Enum.each(fn(column) ->
+      type = Typer.type(column, query)
+      unless Typer.ok_for_where_inquality?(type) do
+        raise CompilationError, message: "WHERE-clause inequalities where the column value has either been " <>
+          "influenced by math or a discontinuous function are not allowed. " <>
+          "In this case the column in question is #{Column.display_name(column)}"
+      end
+    end)
+    query
+  end
+
 
   # -------------------------------------------------------------------
   # Lenses into Query
@@ -1305,4 +1337,29 @@ defmodule Cloak.Aql.Compiler do
   deflens splitter_functions, do: terminal_elements() |> Lens.satisfy(&Function.row_splitting_function?/1)
 
   deflens buckets, do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
+
+  deflens direct_subqueries, do: Lens.key(:from) |> do_direct_subqueries()
+
+  deflens do_direct_subqueries do
+    Lens.match(fn
+      {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_direct_subqueries()
+      {:subquery, _} -> Lens.at(1)
+      _ -> Lens.empty()
+    end)
+  end
+
+  deflens queries(), do:
+    Lens.both(direct_subqueries(), Lens.root())
+
+  deflens where_inequality_columns(), do:
+    Lens.match(fn
+      {:comparison, _, check, _} when check in ~w(> >= < <=)a ->
+        Lens.both(
+          Lens.at(1) |> where_inequality_columns(),
+          Lens.at(3) |> where_inequality_columns()
+        )
+      %Column{} -> Lens.root()
+      elements when is_list(elements) -> Lens.all() |> where_inequality_columns()
+      _ -> Lens.empty()
+    end)
 end
