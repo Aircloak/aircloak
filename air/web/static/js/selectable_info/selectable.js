@@ -52,7 +52,7 @@ export const SelectableView = (props: Props) =>
             <span className="pull-right">
               <a className="btn btn-xs" href={props.selectable.edit_link}>Edit</a>
               &nbsp;
-              <span dangerouslySetInnerHTML={{__html: props.selectable.delete_html}}/>
+              <span dangerouslySetInnerHTML={{__html: props.selectable.delete_html}} />
             </span>
           );
         } else {
