@@ -27,7 +27,7 @@ defmodule Air.ViewController do
     render(conn, "edit.html", changeset: View.changeset(id), data_source: conn.assigns.data_source)
 
   def create(conn, %{"view" => %{"name" => name, "sql" => sql}}) do
-    case View.create(conn.assigns.current_user, conn.assigns.data_source.id, name, sql) do
+    case View.create(conn.assigns.current_user, conn.assigns.data_source, name, sql) do
       {:ok, _view} ->
         redirect(conn, to: data_source_path(conn, :show, conn.assigns.data_source.id))
       {:error, changeset} ->
