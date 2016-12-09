@@ -188,8 +188,8 @@ defmodule Cloak.Query.Runner do
   end
   defp select_rows({:join, join}) do
     Logger.debug("Emulating join ...")
-    lhs = select_rows(join.lhs.ast)
-    rhs = select_rows(join.rhs.ast)
+    {:ok, lhs} = select_rows(join.lhs)
+    {:ok, rhs} = select_rows(join.rhs)
     {:ok, DBEmulator.join(lhs, rhs, join) |> Enum.to_list()}
   end
   defp select_rows(%Query{} = query) do

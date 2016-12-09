@@ -1252,19 +1252,19 @@ defmodule Cloak.Aql.Compiler do
     raise CompilationError, message: "Inequalities on string values are currently not supported."
   defp check_for_string_inequalities(_, _), do: :ok
 
-  defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
-  defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table) do
+  defp needs_decoding?(query), do:
     (query.columns ++ query.group_by ++ query.having)
     |> Enum.flat_map(&extract_columns/1)
     |> Enum.any?(&DataDecoder.needs_decoding?/1)
-  end
-  defp needs_emulation?(%Query{from: from}), do: from_needs_emulation?(from)
+
+  defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
+  defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do: needs_decoding?(query)
+  defp needs_emulation?(%Query{from: from} = query), do: from_needs_emulation?(from) or needs_decoding?(query)
 
   defp from_needs_emulation?(table) when is_binary(table), do: false
   defp from_needs_emulation?({:subquery, %{type: :unparsed}}), do: false
   defp from_needs_emulation?({:subquery, subquery}), do: subquery.ast.emulated?
-  defp from_needs_emulation?({:join, join}), do:
-    from_needs_emulation?(join.lhs) or from_needs_emulation?(join.rhs)
+  defp from_needs_emulation?({:join, join}), do: from_needs_emulation?(join.lhs) or from_needs_emulation?(join.rhs)
 
 
   # -------------------------------------------------------------------
