@@ -4,9 +4,8 @@ defmodule Cloak.Query.Aggregator do
   require Logger
 
   alias Cloak.DataSource
-  alias Cloak.Aql.Query
-  alias Cloak.Aql.{Column, Function}
-  alias Cloak.Query.{Anonymizer, Result}
+  alias Cloak.Aql.{Query, Function}
+  alias Cloak.Query.{Anonymizer, Result, DBEmulator}
 
   @typep property_values :: [DataSource.field | :*]
   @typep user_id :: DataSource.field
@@ -242,39 +241,21 @@ defmodule Cloak.Query.Aggregator do
     end)
     [%{row: aggregated_values, occurrences: 1}]
   end
-  defp make_buckets(rows, query) do
-    Logger.debug("Making buckets ...")
-    columns =
-      (query.property ++ query.aggregators)
-      |> Enum.with_index()
-      |> Enum.into(%{})
+  defp make_buckets(rows, %Query{implicit_count?: false} = query) do
+    Logger.debug("Making explicit buckets ...")
     rows
-    |> Enum.filter(&matches_having_clause?(&1, columns, query))
-    |> Enum.map(&make_bucket(&1, columns, query))
+    |> DBEmulator.extract_groups(query)
+    |> Enum.map(&%{row: &1, occurrences: 1})
   end
-
-  defp make_bucket(row, columns, query), do:
-    %{
-      row: selected_values(row, columns, query),
-      occurrences: occurrences(row, columns, query)
-    }
-
-  defp selected_values(row, columns, query), do:
-    for selected_column <- query.columns, do:
-      fetch_bucket_value!(row, columns, selected_column)
-
-  defp occurrences(row, columns, %Query{implicit_count?: true}), do:
-    fetch_bucket_value!(row, columns, {:function, "count", [:*]})
-  defp occurrences(_row, _columns, _query), do: 1
-
-  defp fetch_bucket_value!(row, columns, {:function, _, args} = function), do:
-    if selected?(columns, function),
-      do: Enum.at(row, Map.fetch!(columns, function)),
-      else: Enum.map(args, &fetch_bucket_value!(row, columns, &1)) |> Function.apply(function)
-  defp fetch_bucket_value!(_row, _columns, %Column{constant?: true, value: value}), do: value
-  defp fetch_bucket_value!(row, columns, column), do: Enum.at(row, Map.fetch!(columns, column))
-
-  defp selected?(columns, column), do: Map.has_key?(columns, column)
+  defp make_buckets(rows, %Query{implicit_count?: true} = query) do
+    Logger.debug("Making implicit buckets ...")
+    # We add the implicit "count" to the list of selected columns so that we can
+    # retrieve it afterwards when making the bucket.
+    columns_with_count = [{:function, "count", [:*]} | query.columns]
+    rows
+    |> DBEmulator.extract_groups(%Query{query | columns: columns_with_count})
+    |> Enum.map(fn ([count | row]) -> %{row: row, occurrences: count} end)
+  end
 
   defp number_of_anonymized_users(data) do
     unique_user_ids = data
@@ -288,20 +269,4 @@ defmodule Cloak.Query.Aggregator do
       _ -> 0
     end
   end
-
-  defp matches_having_clause?(row, columns, query), do:
-    Enum.all?(query.having, &matches_having_condition?(row, &1, columns))
-
-  defp matches_having_condition?(row, {:comparison, column, operator, target}, columns) do
-    value = fetch_bucket_value!(row, columns, column)
-    target = fetch_bucket_value!(row, columns, target)
-    compare(value, operator, target)
-  end
-
-  defp compare(value, :=, target), do: value == target
-  defp compare(value, :<, target), do: value < target
-  defp compare(value, :<=, target), do: value <= target
-  defp compare(value, :>, target), do: value > target
-  defp compare(value, :>=, target), do: value >= target
-  defp compare(value, :<>, target), do: value != target
 end
