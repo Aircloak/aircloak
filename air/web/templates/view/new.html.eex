@@ -1,3 +1,4 @@
-<h2>New view</h2>
-
-<%= render "_form.html", Map.put(assigns, :action, data_source_view_path(@conn, :create, @data_source.id)) %>
+<%= render "_form.html", Map.merge(assigns, %{
+  view_name: "New view",
+  action: data_source_view_path(@conn, :create, @data_source.id)
+}) %>

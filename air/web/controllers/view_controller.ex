@@ -21,10 +21,14 @@ defmodule Air.ViewController do
   # -------------------------------------------------------------------
 
   def new(conn, _params), do:
-    render(conn, "new.html", changeset: View.new_changeset(), data_source: conn.assigns.data_source)
+    conn
+    |> put_layout("raw.html")
+    |> render("new.html", changeset: View.new_changeset(), data_source: conn.assigns.data_source)
 
   def edit(conn, %{"id" => id}), do:
-    render(conn, "edit.html", changeset: View.changeset(id), data_source: conn.assigns.data_source)
+    conn
+    |> put_layout("raw.html")
+    |> render("edit.html", changeset: View.changeset(id), data_source: conn.assigns.data_source)
 
   def create(conn, %{"view" => %{"name" => name, "sql" => sql}}) do
     case View.create(conn.assigns.current_user, conn.assigns.data_source, name, sql) do
