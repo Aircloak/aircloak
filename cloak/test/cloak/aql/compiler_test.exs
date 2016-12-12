@@ -14,7 +14,9 @@ defmodule Cloak.Aql.Compiler.Test do
   end
 
   test "adds a non-nil condition on user_id" do
-    assert [{:not, {:is, %{name: "uid"}, :null}}] = compile!("select * from table", data_source()).where
+    query = compile!("select * from table", data_source())
+    assert [{:not, {:is, %{name: "uid"}, :null}}] = query.where
+    assert [] = query.lcf_check_conditions
   end
 
   for first <- [:>, :>=], second <- [:<, :<=] do
