@@ -1092,11 +1092,17 @@ defmodule Cloak.Aql.Compiler do
   defp add_info_message(query, info_message), do: %Query{query | info: [info_message | query.info]}
 
   defp calculate_db_columns(query) do
-    select_columns =
-      (select_expressions(query) ++ Map.keys(query.ranges))
-      |> Enum.uniq_by(&db_column_name/1)
-    query = %Query{query | db_columns: select_columns}
+    query = %Query{query | db_columns: db_columns(query)}
     map_terminal_elements(query, &set_column_db_row_position(&1, query))
+  end
+
+  defp db_columns(query) do
+    if query.subquery? do
+      select_expressions(query)
+    else
+      select_expressions(query) ++ Map.keys(query.ranges)
+    end
+    |> Enum.uniq_by(&db_column_name/1)
   end
 
   defp select_expressions(%Query{command: :select, subquery?: true, emulated?: false} = query) do
