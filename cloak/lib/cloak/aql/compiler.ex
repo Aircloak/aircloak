@@ -932,27 +932,12 @@ defmodule Cloak.Aql.Compiler do
   defp map_join_conditions_columns(raw_table_name, _mapper_fun) when is_binary(raw_table_name),
     do: raw_table_name
 
-  defp map_where_clause({:comparison, lhs, comparator, rhs}, mapper_fun) do
-    {
-      :comparison,
-      map_terminal_element(lhs, mapper_fun),
-      comparator,
-      map_terminal_element(rhs, mapper_fun)
-    }
-  end
-  defp map_where_clause({:not, subclause}, mapper_fun) do
-    {:not, map_where_clause(subclause, mapper_fun)}
-  end
-  Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
-    defp map_where_clause({unquote(keyword), lhs, rhs}, mapper_fun) do
-      {unquote(keyword), map_terminal_element(lhs, mapper_fun), map_terminal_element(rhs, mapper_fun)}
-    end
-  end)
-
   defp map_order_by({identifier, direction}, mapper_fun),
     do: {map_terminal_element(identifier, mapper_fun), direction}
 
-  defp map_terminal_element(x, f), do: Lens.map(terminal_elements(), x, f)
+  defp map_where_clause(clause, f), do: Lens.map(where_terminal_elements(), clause, f)
+
+  defp map_terminal_element(query, f), do: Lens.map(terminal_elements(), query, f)
 
   defp parse_columns(query) do
     columns_by_name =
@@ -1281,6 +1266,14 @@ defmodule Cloak.Aql.Compiler do
       {_, :as, _} -> Lens.at(0)
       elements when is_list(elements) -> Lens.all() |> terminal_elements()
       _ -> Lens.root
+    end)
+  end
+
+  deflens where_terminal_elements do
+    Lens.match(fn
+      {:not, _} -> Lens.at(1) |> where_terminal_elements()
+      {:comparison, _lhs, _comparator, _rhs} -> Lens.both(Lens.at(1), Lens.at(3)) |> terminal_elements()
+      {op, _, _} when op in [:in, :like, :ilike, :is] -> Lens.both(Lens.at(1), Lens.at(2)) |> terminal_elements()
     end)
   end
 
