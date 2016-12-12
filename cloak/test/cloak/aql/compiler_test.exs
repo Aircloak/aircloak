@@ -13,6 +13,12 @@ defmodule Cloak.Aql.Compiler.Test do
     assert %{group_by: []} = compile!("select * from table", data_source())
   end
 
+  test "adds a non-nil condition on user_id" do
+    query = compile!("select * from table", data_source())
+    assert [{:not, {:is, %{name: "uid"}, :null}}] = query.where
+    assert [] = query.lcf_check_conditions
+  end
+
   for first <- [:>, :>=], second <- [:<, :<=] do
     test "rejects inequalities on strings with #{first} and #{second}" do
       {:error, error} = compile("select * from table where string #{unquote(first)} " <>
@@ -35,7 +41,7 @@ defmodule Cloak.Aql.Compiler.Test do
   test "casts datetime where conditions" do
     result = compile!("select * from table where column > '2015-01-01' and column < '2016-01-01'", data_source())
 
-    assert [{:comparison, column("table", "column"), :>=, value}, _] = result.where
+    assert [{:comparison, column("table", "column"), :>=, value} | _] = result.where
     assert value == Column.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
 
@@ -329,11 +335,9 @@ defmodule Cloak.Aql.Compiler.Test do
       """,
       data_source)
     assert [column("table", "column"), {:function, "count", [column("table", "column")]}] = result.columns
-    assert [
-      {:comparison, column("table", "numeric"), :>=, _},
-      {:comparison, column("table", "numeric"), :<, _},
-      {:not, {:is, column("table", "column"), :null}}
-    ] = result.where
+    assert Enum.any?(result.where, &match?({:comparison, column("table", "numeric"), :>=, _}, &1))
+    assert Enum.any?(result.where, &match?({:comparison, column("table", "numeric"), :<, _}, &1))
+    assert Enum.any?(result.where, &match?({:not, {:is, column("table", "column"), :null}}, &1))
     assert [{:not, {:comparison, column("table", "column"), :=, _}}] = result.lcf_check_conditions
     assert [column("table", "column")] = result.unsafe_filter_columns
     assert [column("table", "column")] = result.group_by
@@ -375,10 +379,9 @@ defmodule Cloak.Aql.Compiler.Test do
       """,
       data_source)
     assert [column("t1", "c1")] = result.columns
-    assert [comparison1, comparison2, comparison3] = result.where
-    assert {:comparison, column("t1", "c2"), :>=, _} = comparison1
-    assert {:comparison, column("t1", "c2"), :<, _} = comparison2
-    assert {:comparison, column("t1", "uid"), :=, column("t2", "uid")} = comparison3
+    assert Enum.any?(result.where, &match?({:comparison, column("t1", "c2"), :>=, _}, &1))
+    assert Enum.any?(result.where, &match?({:comparison, column("t1", "c2"), :<, _}, &1))
+    assert Enum.any?(result.where, &match?({:comparison, column("t1", "uid"), :=, column("t2", "uid")}, &1))
     assert [column("t1", "c1"), column("t2", "c3")] = result.group_by
     assert result.order_by == [{0, :desc}]
   end
