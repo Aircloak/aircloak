@@ -1355,11 +1355,11 @@ defmodule Cloak.Aql.Compiler do
     end)
   end
 
-  deflens leaf_tables, do: Lens.key(:from) |> do_direct_tables()
+  deflens leaf_tables, do: Lens.key(:from) |> do_leaf_tables()
 
-  deflens do_direct_tables() do
+  deflens do_leaf_tables() do
     Lens.match(fn
-      {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_direct_tables()
+      {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_leaf_tables()
       {:subquery, _} -> Lens.empty()
       table when is_binary(table) -> Lens.root()
     end)
