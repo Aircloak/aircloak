@@ -107,6 +107,7 @@ defmodule Cloak.Aql.Compiler do
       query = query
       |> compile_from()
       |> compile_columns()
+      |> reject_null_user_ids()
       |> verify_columns()
       |> precompile_functions()
       |> censor_selected_uids()
@@ -837,6 +838,10 @@ defmodule Cloak.Aql.Compiler do
   end
   defp all_join_conditions(_), do: []
 
+  defp reject_null_user_ids(query) do
+    %{query | where: [{:not, {:is, id_column(query), :null}} | query.where]}
+  end
+
   defp align_ranges(query, lens) do
     clauses = Lens.get(lens, query)
 
@@ -986,27 +991,12 @@ defmodule Cloak.Aql.Compiler do
   defp map_join_conditions_columns(raw_table_name, _mapper_fun) when is_binary(raw_table_name),
     do: raw_table_name
 
-  defp map_where_clause({:comparison, lhs, comparator, rhs}, mapper_fun) do
-    {
-      :comparison,
-      map_terminal_element(lhs, mapper_fun),
-      comparator,
-      map_terminal_element(rhs, mapper_fun)
-    }
-  end
-  defp map_where_clause({:not, subclause}, mapper_fun) do
-    {:not, map_where_clause(subclause, mapper_fun)}
-  end
-  Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
-    defp map_where_clause({unquote(keyword), lhs, rhs}, mapper_fun) do
-      {unquote(keyword), map_terminal_element(lhs, mapper_fun), map_terminal_element(rhs, mapper_fun)}
-    end
-  end)
-
   defp map_order_by({identifier, direction}, mapper_fun),
     do: {map_terminal_element(identifier, mapper_fun), direction}
 
-  defp map_terminal_element(x, f), do: Lens.map(terminal_elements(), x, f)
+  defp map_where_clause(clause, f), do: Lens.map(where_terminal_elements(), clause, f)
+
+  defp map_terminal_element(query, f), do: Lens.map(terminal_elements(), query, f)
 
   defp parse_columns(query) do
     columns_by_name =
@@ -1317,13 +1307,7 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.flat_map(&extract_columns/1)
     |> Enum.any?(&DataDecoder.needs_decoding?/1)
   end
-  defp needs_emulation?(%Query{from: from}), do: from_needs_emulation?(from)
-
-  defp from_needs_emulation?(table) when is_binary(table), do: false
-  defp from_needs_emulation?({:subquery, %{type: :unparsed}}), do: false
-  defp from_needs_emulation?({:subquery, subquery}), do: subquery.ast.emulated?
-  defp from_needs_emulation?({:join, join}), do:
-    from_needs_emulation?(join.lhs) or from_needs_emulation?(join.rhs)
+  defp needs_emulation?(query), do: query |> get_in([direct_subqueries() |> parsed()]) |> Enum.any?(&(&1.ast.emulated?))
 
 
   # -------------------------------------------------------------------
@@ -1332,7 +1316,7 @@ defmodule Cloak.Aql.Compiler do
 
   use Lens.Macros
 
-  deflens terminal_elements do
+  deflens terminal_elements() do
     Lens.match(fn
       {:function, "count", :*} -> Lens.empty()
       {:function, "count_noise", :*} -> Lens.empty()
@@ -1344,13 +1328,23 @@ defmodule Cloak.Aql.Compiler do
     end)
   end
 
-  deflens splitter_functions, do: terminal_elements() |> Lens.satisfy(&Function.row_splitting_function?/1)
+  deflens where_terminal_elements() do
+    Lens.match(fn
+      {:not, _} -> Lens.at(1) |> where_terminal_elements()
+      {:comparison, _lhs, _comparator, _rhs} -> Lens.both(Lens.at(1), Lens.at(3)) |> terminal_elements()
+      {op, _, _} when op in [:in, :like, :ilike, :is] -> Lens.both(Lens.at(1), Lens.at(2)) |> terminal_elements()
+    end)
+  end
 
-  deflens buckets, do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
+  deflens splitter_functions(), do: terminal_elements() |> Lens.satisfy(&Function.row_splitting_function?/1)
 
-  deflens direct_subqueries, do: Lens.key(:from) |> do_direct_subqueries()
+  deflens buckets(), do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
 
-  deflens do_direct_subqueries do
+  def parsed(previous), do: Lens.satisfy(previous, &(&1.type == :parsed))
+
+  deflens direct_subqueries(), do: Lens.key(:from) |> do_direct_subqueries()
+
+  deflens do_direct_subqueries() do
     Lens.match(fn
       {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_direct_subqueries()
       {:subquery, _} -> Lens.at(1)
