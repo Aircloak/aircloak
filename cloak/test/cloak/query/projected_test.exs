@@ -14,14 +14,10 @@ defmodule Cloak.Query.ProjectedTest do
       add_user_id: false,
       projection: %{table: "projected_transactions", foreign_key: "transaction_id", primary_key: "id"}
     )
-  end
 
-  setup do
-    Cloak.Test.DB.clear_table("projected_transactions")
-    Cloak.Test.DB.clear_table("projected_accounts")
-    Cloak.Test.DB.clear_table("projected_heights")
-    Cloak.Test.DB.clear_table("projected_notes")
-    :ok
+    Enum.each(1..10, &insert_rows(&1..&1, "projected_accounts", ["id", "name"], [&1, "account_#{&1}"]))
+    Enum.each(1..10, &insert_transaction(&1, 100, "note text"))
+    insert_rows(_user_ids = 1..100, "projected_heights", ["height"], [180])
   end
 
   test "projected tables are included in show tables" do
@@ -50,31 +46,21 @@ defmodule Cloak.Query.ProjectedTest do
   end
 
   test "selecting from a projected table" do
-    Enum.each(1..10, &insert_rows(&1..&1, "projected_accounts", ["id", "name"], [&1, "account_#{&1}"]))
-    Enum.each(1..10, &insert_transaction(&1, 100, "note text"))
     assert_query "select amount from projected_transactions",
       %{columns: ["amount"], rows: [%{row: [100], occurrences: 10}]}
   end
 
   test "selecting from a multiply projected table" do
-    Enum.each(1..10, &insert_rows(&1..&1, "projected_accounts", ["id", "name"], [&1, "account_#{&1}"]))
-    Enum.each(1..10, &insert_transaction(&1, 100, "note text"))
     assert_query "select note from projected_notes",
       %{columns: ["note"], rows: [%{row: ["note text"], occurrences: 10}]}
   end
 
   test "projected table in a subquery" do
-    Enum.each(1..10, &insert_rows(&1..&1, "projected_accounts", ["id", "name"], [&1, "account_#{&1}"]))
-    Enum.each(1..10, &insert_transaction(&1, 100, "note text"))
     assert_query "select amount from (select user_id, amount from projected_transactions) sq_alias",
       %{columns: ["amount"], rows: [%{row: [100], occurrences: 10}]}
   end
 
   test "joining to a projected table" do
-    Enum.each(1..10, &insert_rows(&1..&1, "projected_accounts", ["id", "name"], [&1, "account_#{&1}"]))
-    Enum.each(1..10, &insert_transaction(&1, 100, "note text"))
-    insert_rows(_user_ids = 1..100, "projected_heights", ["height"], [180])
-
     assert_query(
       "
         select height, amount
