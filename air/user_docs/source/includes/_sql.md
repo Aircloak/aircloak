@@ -53,7 +53,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
     column_name inequality_operator (numerical_value | datetime_value) |
     column_name BETWEEN value AND value |
     column_name IS [NOT] NULL |
-    column_name IN (constant [, ...])
+    column_name [NOT] IN (constant [, ...])
     column_name [NOT] LIKE | ILIKE string_pattern
 
   having_expression :=
