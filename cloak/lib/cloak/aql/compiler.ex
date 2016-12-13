@@ -123,6 +123,7 @@ defmodule Cloak.Aql.Compiler do
       |> verify_having()
       |> partition_where_clauses()
       |> calculate_db_columns()
+      |> compile_emulated_joins
       |> partition_row_splitters()
       |> verify_limit()
       |> verify_offset()
@@ -311,9 +312,10 @@ defmodule Cloak.Aql.Compiler do
         |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
     [%{
       name: subquery.alias,
-      db_name: nil,
+      db_name: subquery.alias,
       columns: columns,
-      user_id: user_id.alias || user_id.name
+      user_id: user_id.alias || user_id.name,
+      decoders: []
     }]
   end
   defp selected_tables(table_name, data_source) when is_binary(table_name) do
@@ -1270,6 +1272,68 @@ defmodule Cloak.Aql.Compiler do
   defp from_needs_emulation?({:subquery, %{type: :unparsed}}), do: false
   defp from_needs_emulation?({:subquery, subquery}), do: subquery.ast.emulated?
   defp from_needs_emulation?({:join, join}), do: from_needs_emulation?(join.lhs) or from_needs_emulation?(join.rhs)
+
+  defp compile_emulated_joins(%Query{emulated?: true, from: {:join, _}} = query) do
+    from =
+      query.from
+      |> replace_joined_tables_with_subqueries(query.db_columns, query)
+      |> compile_join_conditions_columns()
+    %Query{query | from: from}
+  end
+  defp compile_emulated_joins(query), do: query
+
+  # For emulated joins, we need to set the `db_row_position` field for the columns in the `ON` clause.
+  defp compile_join_conditions_columns({:join, join}) do
+    # Because this is an emulated query we only have joining of subqueries, as
+    # tables references were previously translated into subqueries.
+    columns = joined_columns({:join, join})
+    mapper_fun = &set_column_db_row_position(&1, columns)
+    conditions = Enum.map(join.conditions, &map_where_clause(&1, mapper_fun))
+    lhs = compile_join_conditions_columns(join.lhs)
+    rhs = compile_join_conditions_columns(join.rhs)
+    {:join, %{join | conditions: conditions, lhs: lhs, rhs: rhs}}
+  end
+  defp compile_join_conditions_columns({:subquery, subquery}), do: {:subquery, subquery}
+
+  defp joined_columns({:join, join}) do
+    joined_columns(join.lhs) ++ joined_columns(join.rhs)
+  end
+  defp joined_columns({:subquery, subquery}) do
+    user_id = Enum.find(subquery.ast.db_columns, &(&1.user_id?))
+    columns =
+        Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
+        |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
+    table = %{
+      name: subquery.alias,
+      db_name: subquery.alias,
+      columns: columns,
+      user_id: user_id.alias || user_id.name,
+      decoders: []
+    }
+    Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
+    |> Enum.map(fn ({alias, column}) ->
+      %Column{table: table, name: alias, type: Function.type(column), user_id?: user_id == column}
+    end)
+  end
+
+  # The DBEmulator modules doesn't know how to select a table directly, so we need
+  # to replace any direct references to joined table with the equivalent subquery.
+  defp replace_joined_tables_with_subqueries(table_name, columns, parrent_query) when is_binary(table_name) do
+    columns = for %Column{table: %{name: ^table_name}} = column <- columns, do:
+      {{:identifier, :unknown, {:quoted, column.name}}, :as, column.alias || column.name}
+    query =
+      %{command: :select, columns: columns, from: {:quoted, table_name}}
+      |> compiled_subquery(table_name, parrent_query)
+    {:subquery, %{type: :parsed, ast: query, alias: table_name}}
+  end
+  defp replace_joined_tables_with_subqueries({:subquery, subquery}, _columns, _parrent_query), do: {:subquery, subquery}
+  defp replace_joined_tables_with_subqueries({:join, join}, db_columns, parrent_query) do
+    on_columns = Enum.flat_map(join.conditions, &extract_columns/1)
+    columns = Enum.uniq_by(db_columns ++ on_columns, &db_column_name/1)
+    lhs = replace_joined_tables_with_subqueries(join.lhs, columns, parrent_query)
+    rhs = replace_joined_tables_with_subqueries(join.rhs, columns, parrent_query)
+    {:join, %{join | lhs: lhs, rhs: rhs}}
+  end
 
 
   # -------------------------------------------------------------------

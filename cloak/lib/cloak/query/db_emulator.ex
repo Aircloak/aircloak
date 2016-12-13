@@ -9,7 +9,6 @@ defmodule Cloak.Query.DBEmulator do
 
   alias Cloak.Aql.{Query, Comparison, Function, Column}
   alias Cloak.Query.Sorter
-  alias Cloak.Query.Runner.RuntimeError
 
 
   # -------------------------------------------------------------------
@@ -27,16 +26,84 @@ defmodule Cloak.Query.DBEmulator do
     |> limit_rows(query)
   end
 
-  @doc "Joins two streams into one using the "
-  @spec join(Enumerable.t, Enumerable.t, Cloak.Aql.Parser.join) :: Enumerable.t
-  def join(_lhs, _rhs, _join), do: raise RuntimeError, message: "Emulation of JOINs is not yet supported."
+  @doc "Joins two streams into one using the specified join type and conditions."
+  @spec join(Enumerable.t, Enumerable.t, map) :: Enumerable.t
+  def join(lhs, rhs, %{type: :cross_join}) do
+    Stream.flat_map(lhs, fn (lhs_row) ->
+      rhs
+      |> Stream.map(fn (rhs_row) -> lhs_row ++ rhs_row end)
+    end)
+  end
+  def join(lhs, rhs, %{conditions: conditions, type: :inner_join}) do
+    filters = Enum.map(conditions, &Comparison.to_function/1)
+    Stream.flat_map(lhs, fn (lhs_row) ->
+      rhs
+      |> Stream.map(fn (rhs_row) -> lhs_row ++ rhs_row end)
+      |> apply_filters(filters)
+    end)
+  end
+  def join(lhs, rhs, %{type: :left_outer_join} = join) do
+    filters = Enum.map(join.conditions, &Comparison.to_function/1)
+    rhs_null_row = List.duplicate(nil, joined_row_size(join.rhs))
+    Stream.flat_map(lhs, fn (lhs_row) ->
+      rhs
+      |> Stream.map(fn (rhs_row) -> lhs_row ++ rhs_row end)
+      |> apply_filters(filters)
+      |> Enum.to_list()
+      |> case do
+        [] -> [lhs_row ++ rhs_null_row]
+        joined_rows -> joined_rows
+      end
+    end)
+  end
+  def join(lhs, rhs, %{type: :right_outer_join} = join) do
+    filters = Enum.map(join.conditions, &Comparison.to_function/1)
+    lhs_null_row = List.duplicate(nil, joined_row_size(join.lhs))
+    Stream.flat_map(rhs, fn (rhs_row) ->
+      lhs
+      |> Stream.map(fn (lhs_row) -> lhs_row ++ rhs_row end)
+      |> apply_filters(filters)
+      |> Enum.to_list()
+      |> case do
+        [] -> [lhs_null_row ++ rhs_row]
+        joined_rows -> joined_rows
+      end
+    end)
+  end
+  def join(lhs, rhs, %{type: :full_outer_join} = join) do
+    filters = Enum.map(join.conditions, &Comparison.to_function/1)
+    lhs_null_row = List.duplicate(nil, joined_row_size(join.lhs))
+    rhs_null_row = List.duplicate(nil, joined_row_size(join.rhs))
+    left_stream =
+      Stream.flat_map(lhs, fn (lhs_row) ->
+        rhs
+        |> Stream.map(fn (rhs_row) -> lhs_row ++ rhs_row end)
+        |> apply_filters(filters)
+        |> Enum.to_list()
+        |> case do
+          [] -> [lhs_row ++ rhs_null_row]
+          joined_rows -> joined_rows
+        end
+      end)
+    right_stream =
+      Stream.flat_map(rhs, fn (rhs_row) ->
+        lhs
+        |> Stream.map(fn (lhs_row) -> lhs_row ++ rhs_row end)
+        |> apply_filters(filters)
+        |> Enum.to_list()
+        |> case do
+          [] -> [lhs_null_row ++ rhs_row]
+          _joined_rows -> []
+        end
+      end)
+    Stream.concat(left_stream, right_stream)
+  end
 
   @doc "Applies the query conditions over the input stream of rows."
   @spec filter_rows(Enumerable.t, Query.t) :: Enumerable.t
-  def filter_rows(stream, %Query{where: []}), do: stream
   def filter_rows(stream, %Query{where: conditions}) do
     filters = Enum.map(conditions, &Comparison.to_function/1)
-    Stream.filter(stream, &Enum.all?(filters, fn (filter) -> filter.(&1) end))
+    apply_filters(stream, filters)
   end
 
   @doc "Selects and filters the rows previously grouped by an aggregator."
@@ -202,4 +269,11 @@ defmodule Cloak.Query.DBEmulator do
     variances = Enum.map(values, &(&1 - average) * (&1 - average))
     :math.sqrt(Enum.sum(variances) / count)
   end
+
+  defp apply_filters(stream, []), do: stream
+  defp apply_filters(stream, filters), do:
+    Stream.filter(stream, &Enum.all?(filters, fn (filter) -> filter.(&1) end))
+
+  defp joined_row_size({:subquery, subquery}), do: Enum.count(subquery.ast.db_columns)
+  defp joined_row_size({:join, join}), do: joined_row_size(join.lhs) + joined_row_size(join.rhs)
 end
