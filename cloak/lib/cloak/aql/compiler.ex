@@ -97,7 +97,7 @@ defmodule Cloak.Aql.Compiler do
   end
   defp compile_prepped_query(%Query{command: :show} = query) do
     try do
-      {:ok, query |> resolve_views() |> compile_subqueries() |> compile_tables()}
+      {:ok, query |> resolve_views() |> normalize_from() |> compile_subqueries() |> resolve_selected_tables()}
     rescue
       e in CompilationError -> {:error, e.message}
     end
@@ -106,8 +106,9 @@ defmodule Cloak.Aql.Compiler do
     try do
       query = query
       |> resolve_views()
+      |> normalize_from()
       |> compile_subqueries()
-      |> compile_tables()
+      |> resolve_selected_tables()
       |> compile_columns()
       |> verify_columns()
       |> precompile_functions()
@@ -270,19 +271,14 @@ defmodule Cloak.Aql.Compiler do
   # Normal validators and compilers
   # -------------------------------------------------------------------
 
-  defp compile_tables(%Query{from: nil} = query), do: query
-  defp compile_tables(query) do
-    normalized = normalize_from(query.from, query.data_source)
-    %Query{query |
-      from: normalized,
-      selected_tables: selected_tables(normalized, query.data_source),
-    }
-  end
+  defp normalize_from(%Query{from: nil} = query), do: query
+  defp normalize_from(%Query{} = query), do:
+    %Query{query | from: normalize_from(query.from, query.data_source)}
 
   defp normalize_from({:join, join = %{lhs: lhs, rhs: rhs}}, data_source) do
     {:join, %{join | lhs: normalize_from(lhs, data_source), rhs: normalize_from(rhs, data_source)}}
   end
-  defp normalize_from(already_compiled_subquery = {:subquery, _}, _data_source), do: already_compiled_subquery
+  defp normalize_from(subquery = {:subquery, _}, _data_source), do: subquery
   defp normalize_from(table_identifier = {_, table_name}, data_source) do
     case table(data_source, table_identifier) do
       nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
@@ -299,6 +295,10 @@ defmodule Cloak.Aql.Compiler do
       nil -> nil
     end
   end
+
+  defp resolve_selected_tables(%Query{from: nil} = query), do: query
+  defp resolve_selected_tables(query), do:
+    %Query{query | selected_tables: selected_tables(query.from, query.data_source)}
 
   defp selected_tables({:join, join}, data_source) do
     selected_tables(join.lhs, data_source) ++ selected_tables(join.rhs, data_source)
