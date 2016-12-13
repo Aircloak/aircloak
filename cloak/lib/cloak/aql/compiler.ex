@@ -687,7 +687,10 @@ defmodule Cloak.Aql.Compiler do
     # extract conditions using encoded columns
     {encoded_column_clauses, safe_clauses} = Enum.partition(query.where, &encoded_column_condition?/1)
     # extract columns needed in the cloak for extra filtering
-    unsafe_filter_columns = Enum.map(encoded_column_clauses, &Comparison.subject/1)
+    unsafe_filter_columns =
+      encoded_column_clauses
+      |> Enum.flat_map(&extract_columns/1)
+      |> Enum.reject(& &1.constant?)
     %Query{query | where: safe_clauses, unsafe_filter_columns: unsafe_filter_columns,
       encoded_where: encoded_column_clauses}
   end
@@ -703,7 +706,10 @@ defmodule Cloak.Aql.Compiler do
     # extract conditions using encoded columns
     {encoded_column_clauses, safe_clauses} = Enum.partition(safe_clauses, &encoded_column_condition?/1)
     # extract columns needed in the cloak for extra filtering
-    unsafe_filter_columns = Enum.map(require_lcf_checks ++ encoded_column_clauses, &Comparison.subject/1)
+    unsafe_filter_columns =
+      (require_lcf_checks ++ encoded_column_clauses)
+      |> Enum.flat_map(&extract_columns/1)
+      |> Enum.reject(& &1.constant?)
 
     %Query{query | where: safe_clauses, lcf_check_conditions: require_lcf_checks,
       unsafe_filter_columns: unsafe_filter_columns, encoded_where: encoded_column_clauses}
@@ -1083,6 +1089,8 @@ defmodule Cloak.Aql.Compiler do
   defp extract_columns({:function, _function, arguments}), do: Enum.flat_map(arguments, &extract_columns/1)
   defp extract_columns({:distinct, expression}), do: extract_columns(expression)
   defp extract_columns({:comparison, column, _operator, target}), do: extract_columns(column) ++ extract_columns(target)
+  defp extract_columns({:not, condition}), do: extract_columns(condition)
+  defp extract_columns({verb, column, _value}) when verb in [:like, :ilike, :is, :in], do: extract_columns(column)
 
   defp add_info_message(query, info_message), do: %Query{query | info: [info_message | query.info]}
 
