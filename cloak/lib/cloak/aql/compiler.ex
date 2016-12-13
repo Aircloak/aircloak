@@ -32,10 +32,8 @@ defmodule Cloak.Aql.Compiler do
   @spec validate_view(DataSource.t, Parser.parsed_query, Query.view_map) :: :ok | {:error, String.t}
   def validate_view(data_source, parsed_query, views) do
     try do
-      with {:ok, query} <- compile(data_source, Map.put(parsed_query, :subquery?, true), [], views) do
-        query |> validate_uid("the view") |> validate_offset("The view")
-        :ok
-      end
+      with {:ok, query} <- compile(data_source, Map.put(parsed_query, :subquery?, true), [], views), do:
+        {:ok, query |> validate_uid("the view") |> validate_offset("The view")}
     rescue
       e in CompilationError -> {:error, e.message}
     end
@@ -111,6 +109,7 @@ defmodule Cloak.Aql.Compiler do
       |> compile_subqueries()
       |> compile_tables()
       |> compile_columns()
+      |> reject_null_user_ids()
       |> verify_columns()
       |> precompile_functions()
       |> censor_selected_uids()
@@ -118,7 +117,7 @@ defmodule Cloak.Aql.Compiler do
       |> verify_joins()
       |> cast_where_clauses()
       |> verify_where_clauses()
-      |> align_ranges()
+      |> align_ranges(Lens.key(:where))
       |> partition_selected_columns()
       |> verify_having()
       |> partition_where_clauses()
@@ -217,6 +216,7 @@ defmodule Cloak.Aql.Compiler do
         |> validate_offset("Subquery `#{alias}`")
         |> align_limit()
         |> align_offset()
+        |> align_ranges(Lens.key(:having))
       {:error, error} -> raise CompilationError, message: error
     end
   end
@@ -787,17 +787,23 @@ defmodule Cloak.Aql.Compiler do
   end
   defp all_join_conditions(_), do: []
 
-  defp align_ranges(%Query{where: [_|_] = clauses} = query) do
-    verify_ranges(query)
+  defp reject_null_user_ids(query) do
+    %{query | where: [{:not, {:is, id_column(query), :null}} | query.where]}
+  end
+
+  defp align_ranges(query, lens) do
+    clauses = Lens.get(lens, query)
+
+    verify_ranges(clauses)
 
     ranges = inequalities_by_column(clauses)
     non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), Comparison.subject(&1)))
 
-    Enum.reduce(ranges, %{query | where: non_range_clauses}, &add_aligned_range/2)
+    query = put_in(query, [lens], non_range_clauses)
+    Enum.reduce(ranges, query, &add_aligned_range(&1, &2, lens))
   end
-  defp align_ranges(query), do: query
 
-  defp add_aligned_range({column, conditions}, query) do
+  defp add_aligned_range({column, conditions}, query, lens) do
     {left, right} =
       conditions
       |> Enum.map(&Comparison.value/1)
@@ -806,14 +812,14 @@ defmodule Cloak.Aql.Compiler do
       |> FixAlign.align_interval()
 
     if implement_range?({left, right}, conditions) do
-      %{query | where: conditions ++ query.where}
+      Lens.map(lens, query, &(conditions ++ &1))
     else
+      name = Column.display_name(column)
+
       query
-      |> add_where_clause({:comparison, column, :<, Column.constant(column.type, right)})
-      |> add_where_clause({:comparison, column, :>=, Column.constant(column.type, left)})
-      |> add_info_message(
-        "The range for column `#{column.name}` has been adjusted to #{left} <= `#{column.name}` < #{right}"
-      )
+      |> add_clause(lens, {:comparison, column, :<, Column.constant(column.type, right)})
+      |> add_clause(lens, {:comparison, column, :>=, Column.constant(column.type, left)})
+      |> add_info_message("The range for column #{name} has been adjusted to #{left} <= #{name} < #{right}.")
     end
     |> put_in([Access.key(:ranges), column], {left, right})
   end
@@ -825,14 +831,15 @@ defmodule Cloak.Aql.Compiler do
     left_operator == :>= && left_column.value == left && right_operator == :< && right_column.value == right
   end
 
-  defp add_where_clause(query, clause), do: %{query | where: [clause | query.where]}
+  defp add_clause(query, lens, clause), do: Lens.map(lens, query, fn(clauses) -> [clause | clauses] end)
 
-  defp verify_ranges(%Query{where: clauses}) do
+  defp verify_ranges(clauses) do
     clauses
     |> inequalities_by_column()
     |> Enum.reject(fn({_, comparisons}) -> valid_range?(comparisons) end)
     |> case do
-      [{column, _} | _] -> raise CompilationError, message: "Column `#{column.name}` must be limited to a finite range."
+      [{column, _} | _] ->
+        raise CompilationError, message: "Column #{Column.display_name(column)} must be limited to a finite range."
       _ -> :ok
     end
   end
@@ -846,12 +853,10 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  @aligned_types ~w(integer real datetime date time)a
   defp inequalities_by_column(where_clauses) do
     where_clauses
     |> Enum.filter(&Comparison.inequality?/1)
     |> Enum.group_by(&Comparison.subject/1)
-    |> Enum.filter(fn({column, _}) -> Enum.member?(@aligned_types, column.type) end)
     |> Enum.map(&discard_redundant_inequalities/1)
     |> Enum.into(%{})
   end
@@ -935,27 +940,12 @@ defmodule Cloak.Aql.Compiler do
   defp map_join_conditions_columns(raw_table_name, _mapper_fun) when is_binary(raw_table_name),
     do: raw_table_name
 
-  defp map_where_clause({:comparison, lhs, comparator, rhs}, mapper_fun) do
-    {
-      :comparison,
-      map_terminal_element(lhs, mapper_fun),
-      comparator,
-      map_terminal_element(rhs, mapper_fun)
-    }
-  end
-  defp map_where_clause({:not, subclause}, mapper_fun) do
-    {:not, map_where_clause(subclause, mapper_fun)}
-  end
-  Enum.each([:in, :like, :ilike, :is], fn(keyword) ->
-    defp map_where_clause({unquote(keyword), lhs, rhs}, mapper_fun) do
-      {unquote(keyword), map_terminal_element(lhs, mapper_fun), map_terminal_element(rhs, mapper_fun)}
-    end
-  end)
-
   defp map_order_by({identifier, direction}, mapper_fun),
     do: {map_terminal_element(identifier, mapper_fun), direction}
 
-  defp map_terminal_element(x, f), do: Lens.map(terminal_elements(), x, f)
+  defp map_where_clause(clause, f), do: Lens.map(where_terminal_elements(), clause, f)
+
+  defp map_terminal_element(query, f), do: Lens.map(terminal_elements(), query, f)
 
   defp parse_columns(query) do
     columns_by_name =
@@ -1266,12 +1256,7 @@ defmodule Cloak.Aql.Compiler do
   defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
   defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do: needs_decoding?(query)
   defp needs_emulation?(%Query{from: {:join, _}, data_source: %{driver: Cloak.DataSource.MongoDB}}), do: true
-  defp needs_emulation?(%Query{from: from} = query), do: from_needs_emulation?(from) or needs_decoding?(query)
-
-  defp from_needs_emulation?(table) when is_binary(table), do: false
-  defp from_needs_emulation?({:subquery, %{type: :unparsed}}), do: false
-  defp from_needs_emulation?({:subquery, subquery}), do: subquery.ast.emulated?
-  defp from_needs_emulation?({:join, join}), do: from_needs_emulation?(join.lhs) or from_needs_emulation?(join.rhs)
+  defp needs_emulation?(query), do: query |> get_in([direct_subqueries() |> parsed()]) |> Enum.any?(&(&1.ast.emulated?))
 
   defp compile_emulated_joins(%Query{emulated?: true, from: {:join, _}} = query) do
     from =
@@ -1342,7 +1327,7 @@ defmodule Cloak.Aql.Compiler do
 
   use Lens.Macros
 
-  deflens terminal_elements do
+  deflens terminal_elements() do
     Lens.match(fn
       {:function, "count", :*} -> Lens.empty()
       {:function, "count_noise", :*} -> Lens.empty()
@@ -1354,13 +1339,23 @@ defmodule Cloak.Aql.Compiler do
     end)
   end
 
-  deflens splitter_functions, do: terminal_elements() |> Lens.satisfy(&Function.row_splitting_function?/1)
+  deflens where_terminal_elements() do
+    Lens.match(fn
+      {:not, _} -> Lens.at(1) |> where_terminal_elements()
+      {:comparison, _lhs, _comparator, _rhs} -> Lens.both(Lens.at(1), Lens.at(3)) |> terminal_elements()
+      {op, _, _} when op in [:in, :like, :ilike, :is] -> Lens.both(Lens.at(1), Lens.at(2)) |> terminal_elements()
+    end)
+  end
 
-  deflens buckets, do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
+  deflens splitter_functions(), do: terminal_elements() |> Lens.satisfy(&Function.row_splitting_function?/1)
 
-  deflens direct_subqueries, do: Lens.key(:from) |> do_direct_subqueries()
+  deflens buckets(), do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
 
-  deflens do_direct_subqueries do
+  def parsed(previous), do: Lens.satisfy(previous, &(&1.type == :parsed))
+
+  deflens direct_subqueries(), do: Lens.key(:from) |> do_direct_subqueries()
+
+  deflens do_direct_subqueries() do
     Lens.match(fn
       {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_direct_subqueries()
       {:subquery, _} -> Lens.at(1)

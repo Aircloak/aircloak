@@ -147,10 +147,25 @@ defmodule Cloak.Aql.Query do
 
 
   @doc "Validates a user-defined view."
-  @spec validate_view(DataSource.t, String.t, view_map) :: :ok | {:error, String.t}
-  def validate_view(data_source, sql, views), do:
-    with {:ok, parsed_query} <- Parser.parse(data_source, sql), do:
-      Compiler.validate_view(data_source, parsed_query, views)
+  @spec validate_view(DataSource.t, String.t, String.t, view_map) ::
+    {:ok, [%{name: String.t, type: String.t, user_id: boolean}]} |
+    {:error, field :: atom, reason :: String.t}
+  def validate_view(data_source, name, sql, views) do
+    with :ok <- view_name_ok?(data_source, name),
+         {:ok, parsed_query} <- Parser.parse(data_source, sql),
+         {:ok, compiled_query} <- Compiler.validate_view(data_source, parsed_query, views)
+    do
+      {:ok,
+        Enum.zip(compiled_query.column_titles, compiled_query.columns)
+        |> Enum.map(fn({name, column}) ->
+              %{name: name, type: stringify(Function.type(column)), user_id: column.user_id?}
+            end)
+      }
+    else
+      {:error, _field, _error} = error -> error
+      {:error, sql_error} -> {:error, :sql, sql_error}
+    end
+  end
 
 
   # -------------------------------------------------------------------
@@ -222,4 +237,12 @@ defmodule Cloak.Aql.Query do
 
   defp stringify(string) when is_binary(string), do: string
   defp stringify(atom) when is_atom(atom), do: Atom.to_string(atom)
+
+  defp view_name_ok?(data_source, view_name) do
+    if Enum.any?(DataSource.tables(data_source), &(&1.name == view_name)) do
+      {:error, :name, "has already been taken"}
+    else
+      :ok
+    end
+  end
 end

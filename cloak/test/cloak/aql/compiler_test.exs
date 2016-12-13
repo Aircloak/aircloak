@@ -13,6 +13,12 @@ defmodule Cloak.Aql.Compiler.Test do
     assert %{group_by: []} = compile!("select * from table", data_source())
   end
 
+  test "adds a non-nil condition on user_id" do
+    query = compile!("select * from table", data_source())
+    assert [{:not, {:is, %{name: "uid"}, :null}}] = query.where
+    assert [] = query.lcf_check_conditions
+  end
+
   for first <- [:>, :>=], second <- [:<, :<=] do
     test "rejects inequalities on strings with #{first} and #{second}" do
       {:error, error} = compile("select * from table where string #{unquote(first)} " <>
@@ -35,7 +41,7 @@ defmodule Cloak.Aql.Compiler.Test do
   test "casts datetime where conditions" do
     result = compile!("select * from table where column > '2015-01-01' and column < '2016-01-01'", data_source())
 
-    assert [{:comparison, column("table", "column"), :>=, value}, _] = result.where
+    assert [{:comparison, column("table", "column"), :>=, value} | _] = result.where
     assert value == Column.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
 
@@ -329,11 +335,9 @@ defmodule Cloak.Aql.Compiler.Test do
       """,
       data_source)
     assert [column("table", "column"), {:function, "count", [column("table", "column")]}] = result.columns
-    assert [
-      {:comparison, column("table", "numeric"), :>=, _},
-      {:comparison, column("table", "numeric"), :<, _},
-      {:not, {:is, column("table", "column"), :null}}
-    ] = result.where
+    assert Enum.any?(result.where, &match?({:comparison, column("table", "numeric"), :>=, _}, &1))
+    assert Enum.any?(result.where, &match?({:comparison, column("table", "numeric"), :<, _}, &1))
+    assert Enum.any?(result.where, &match?({:not, {:is, column("table", "column"), :null}}, &1))
     assert [{:not, {:comparison, column("table", "column"), :=, _}}] = result.lcf_check_conditions
     assert [column("table", "column")] = result.unsafe_filter_columns
     assert [column("table", "column")] = result.group_by
@@ -375,10 +379,9 @@ defmodule Cloak.Aql.Compiler.Test do
       """,
       data_source)
     assert [column("t1", "c1")] = result.columns
-    assert [comparison1, comparison2, comparison3] = result.where
-    assert {:comparison, column("t1", "c2"), :>=, _} = comparison1
-    assert {:comparison, column("t1", "c2"), :<, _} = comparison2
-    assert {:comparison, column("t1", "uid"), :=, column("t2", "uid")} = comparison3
+    assert Enum.any?(result.where, &match?({:comparison, column("t1", "c2"), :>=, _}, &1))
+    assert Enum.any?(result.where, &match?({:comparison, column("t1", "c2"), :<, _}, &1))
+    assert Enum.any?(result.where, &match?({:comparison, column("t1", "uid"), :=, column("t2", "uid")}, &1))
     assert [column("t1", "c1"), column("t2", "c3")] = result.group_by
     assert result.order_by == [{0, :desc}]
   end
@@ -457,34 +460,34 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "rejects inequalities on numeric columns that are not ranges" do
     assert {:error, error} = compile("select * from table where numeric > 5", data_source())
-    assert error == "Column `numeric` must be limited to a finite range."
+    assert error == "Column `numeric` from table `table` must be limited to a finite range."
   end
 
   test "rejects inequalities on numeric columns that are negatives of ranges" do
     assert {:error, error} = compile("select * from table where numeric < 2 and numeric > 5", data_source())
-    assert error == "Column `numeric` must be limited to a finite range."
+    assert error == "Column `numeric` from table `table` must be limited to a finite range."
   end
 
   test "rejects inequalities on datetime columns that are negatives of ranges" do
     assert {:error, error} = compile("select * from table where column < '2015-01-01' and column > '2016-01-01'",
       data_source())
-    assert error == "Column `column` must be limited to a finite range."
+    assert error == "Column `column` from table `table` must be limited to a finite range."
   end
 
   test "rejects inequalities on datetime columns that are not ranges" do
     assert {:error, error} = compile("select * from table where column > '2015-01-01'", data_source())
-    assert error == "Column `column` must be limited to a finite range."
+    assert error == "Column `column` from table `table` must be limited to a finite range."
   end
 
   test "rejects inequalities on date columns that are negatives of ranges" do
     assert {:error, error} = compile("select * from table where column < '2015-01-01' and column > '2016-01-01'",
       date_data_source())
-    assert error == "Column `column` must be limited to a finite range."
+    assert error == "Column `column` from table `table` must be limited to a finite range."
   end
 
   test "rejects inequalities on date columns that are not ranges" do
     assert {:error, error} = compile("select * from table where column > '2015-01-01'", data_source())
-    assert error == "Column `column` must be limited to a finite range."
+    assert error == "Column `column` from table `table` must be limited to a finite range."
   end
 
   test "accepts inequalities on numeric columns that are ranges" do
@@ -500,8 +503,8 @@ defmodule Cloak.Aql.Compiler.Test do
     aligned = compile!("select * from table where column > '2015-01-02' and column < '2016-07-01'", data_source())
     assert compile!("select * from table where column > '2015-01-01' and column < '2016-08-02'", data_source()).where
       == aligned.where
-    assert aligned.info == ["The range for column `column` has been adjusted to 2015-01-01 00:00:00.000000"
-      <> " <= `column` < 2017-01-01 00:00:00.000000"]
+    assert aligned.info == ["The range for column `column` from table `table` has been adjusted to "
+      <> "2015-01-01 00:00:00.000000 <= `column` from table `table` < 2017-01-01 00:00:00.000000."]
   end
 
   test "no message when datetime alignment does not require fixing" do
@@ -513,7 +516,8 @@ defmodule Cloak.Aql.Compiler.Test do
     aligned = compile!("select * from table where column > '2015-01-02' and column < '2016-07-01'", date_data_source())
     assert compile!("select * from table where column > '2015-01-01' and column < '2016-08-02'", date_data_source()).
       where == aligned.where
-    assert aligned.info == ["The range for column `column` has been adjusted to 2015-01-01 <= `column` < 2017-01-01"]
+    assert aligned.info == ["The range for column `column` from table `table` has been adjusted to 2015-01-01 <= "
+      <> "`column` from table `table` < 2017-01-01."]
   end
 
   test "fixes alignment of time ranges" do
@@ -521,7 +525,8 @@ defmodule Cloak.Aql.Compiler.Test do
     assert compile!("select * from table where column >= '00:00:00' and column < '00:00:05'", time_data_source()).
       where == aligned.where
     assert aligned.
-      info == ["The range for column `column` has been adjusted to 00:00:00.000000 <= `column` < 00:00:05.000000"]
+      info == ["The range for column `column` from table `table` has been adjusted to 00:00:00.000000 <= "
+        <> "`column` from table `table` < 00:00:05.000000."]
   end
 
   test "no message when time alignment does not require fixing" do
@@ -531,7 +536,8 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "includes an info message when the aligment is fixed" do
     assert [msg] = compile!("select count(*) from table where numeric >= 0.1 and numeric < 1.9", data_source()).info
-    assert msg == "The range for column `numeric` has been adjusted to 0.0 <= `numeric` < 2.0"
+    assert msg == "The range for column `numeric` from table `table` has been adjusted to 0.0 <= `numeric` from table "
+      <> "`table` < 2.0."
   end
 
   test "columns with an inequality are requested for fetching" do
@@ -633,6 +639,28 @@ defmodule Cloak.Aql.Compiler.Test do
     assert ["Offset adjusted from 31 to 40"] = result.info
   end
 
+  test "having conditions are not adjusted in the root query" do
+    assert {:ok, _} = compile("select count(*) from table group by numeric having avg(numeric) > 3", data_source())
+  end
+
+  test "having condition inequalities must be ranges in subqueries" do
+    assert {:error, error} =
+      compile("select count(*) from (select uid from table group by uid having avg(numeric) > 3) x", data_source())
+    assert error == "Column `avg` must be limited to a finite range."
+  end
+
+  test "having condition ranges are aligned with a message in subqueries" do
+    %{from: {:subquery, %{ast: aligned}}} = compile!("""
+      select count(*) from (select uid from table group by uid having avg(numeric) >= 0.0 and avg(numeric) < 5.0) x
+    """, data_source())
+    %{from: {:subquery, %{ast: unaligned}}} = compile!("""
+      select count(*) from (select uid from table group by uid having avg(numeric) > 0.1 and avg(numeric) <= 4.9) x
+    """, data_source())
+
+    assert Map.drop(aligned, [:info]) == Map.drop(unaligned, [:info])
+    assert unaligned.info == ["The range for column `avg` has been adjusted to 0.0 <= `avg` < 5.0."]
+  end
+
   test "math can be disabled with a config setting" do
     assert {:error, error} = compile("select numeric * 2 from table", data_source(), [], %{math: false})
     assert error =~ ~r/requires feature `math`/
@@ -682,14 +710,6 @@ defmodule Cloak.Aql.Compiler.Test do
     assert {:error, error} = validate_view("select uid, extract_match(string, '') from table", data_source())
     assert error == "Function `extract_match` is not allowed in subqueries."
   end
-
-  test "successful view validation", do:
-    assert :ok == validate_view("select uid, column from table", data_source())
-
-  test "successful validation of a view which uses another view", do:
-    assert :ok == validate_view("select uid, numeric from table_view", data_source(),
-      views: %{"table_view" => "select uid, numeric from table"})
-
 
   defp compile!(query_string, data_source, options \\ []) do
     {:ok, result} = compile(query_string, data_source, options)

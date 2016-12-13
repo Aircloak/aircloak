@@ -203,6 +203,7 @@ defmodule Cloak.AirSocket do
   end
   defp handle_air_call("validate_view", serialized_view, from, state) do
     data_source = Map.fetch!(serialized_view, "data_source")
+    name = Map.fetch!(serialized_view, "name")
     sql = Map.fetch!(serialized_view, "sql")
     views = Map.fetch!(serialized_view, "views")
 
@@ -211,9 +212,9 @@ defmodule Cloak.AirSocket do
         respond_to_air(from, :error, "Unknown data source.")
 
       {:ok, data_source} ->
-        case Cloak.Aql.Query.validate_view(data_source, sql, views) do
-          :ok -> respond_to_air(from, :ok, %{valid: true})
-          {:error, reason} -> respond_to_air(from, :ok, %{valid: false, error: reason})
+        case Cloak.Aql.Query.validate_view(data_source, name, sql, views) do
+          {:ok, columns} -> respond_to_air(from, :ok, %{valid: true, columns: columns})
+          {:error, field, reason} -> respond_to_air(from, :ok, %{valid: false, field: field, error: reason})
         end
     end
     {:ok, state}

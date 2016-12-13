@@ -21,6 +21,9 @@ defmodule IntegrationTest.Manager do
 
   def data_source_global_id(), do: @data_source_global_id
 
+  def data_source(), do:
+    Repo.one(from(ds in DataSource, where: ds.global_id == @data_source_global_id))
+
   def user_password(), do: @user_password
 
   def create_air_user() do

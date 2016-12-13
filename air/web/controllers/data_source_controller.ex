@@ -46,6 +46,7 @@ defmodule Air.DataSourceController do
       |> render(
         "show.html",
         data_source: data_source,
+        views: Air.Service.View.all(conn.assigns.current_user, data_source),
         guardian_token: Guardian.Plug.current_token(conn),
         csrf_token: CSRFProtection.get_csrf_token(),
         last_query: last_query,

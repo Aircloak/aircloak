@@ -2,26 +2,41 @@ defmodule IntegrationTest.ViewTest do
   use ExUnit.Case, async: true
 
   alias IntegrationTest.Manager
-  alias Air.Schemas.View
 
   setup_all do
     {:ok, user: Manager.create_air_user()}
   end
 
-  test "reporting view error", context do
-    assert {:error, error} = create_view(context.user, "foo", "select")
+  test "name error", context do
+    assert {:error, %Ecto.Changeset{errors: [name: {error, _}]}} = create_view(context.user, "users", "sql")
+    assert error == "has already been taken"
+  end
+
+  test "sql syntax error", context do
+    assert {:error, %Ecto.Changeset{errors: [sql: {error, _}]}} = create_view(context.user, "foo", "select")
     assert error =~ ~r/Expected `column definition`/
   end
 
-  test "successful saving of the new view", context, do:
-    assert {:ok, %View{}} = create_view(context.user, unique_view_name(), "select user_id, name from users")
+  test "successful saving of the new view", context do
+    assert {:ok, view} = create_view(context.user, unique_view_name(), "select user_id, name from users")
+    assert view.result_info.columns == [
+      %{"name" => "user_id", "type" => "text", "user_id" => true},
+      %{"name" => "name", "type" => "text", "user_id" => false}
+    ]
+  end
+
+  test "cannot insert two views with the same name", context do
+    {:ok, view} = create_view(context.user, unique_view_name(), "select user_id, name from users")
+    assert {:error, changeset} = create_view(context.user, view.name, "select user_id, name from users")
+    assert {"has already been taken", _} = Keyword.fetch!(changeset.errors, :name)
+  end
 
   test "updating the view", context do
     {:ok, view} = create_view(context.user, unique_view_name(), "select user_id, name from users")
 
     new_name = unique_view_name()
     new_sql = "select user_id from users"
-    assert {:ok, updated_view} = update_view(context.user, view.id, new_name, new_sql)
+    assert {:ok, updated_view} = update_view(view.id, context.user, new_name, new_sql)
 
     assert updated_view.id == view.id
     assert updated_view.name == new_name
@@ -38,12 +53,10 @@ defmodule IntegrationTest.ViewTest do
     "view_#{:erlang.unique_integer([:positive])}"
 
   defp create_view(user, name, sql), do:
-    Air.Service.DataSource.create_view({:global_id, Manager.data_source_global_id()}, user,
-      name, sql)
+    Air.Service.View.create(user, Manager.data_source(), name, sql)
 
-  defp update_view(user, view_id, name, sql), do:
-    Air.Service.DataSource.update_view({:global_id, Manager.data_source_global_id()}, user,
-      view_id, name, sql)
+  defp update_view(view_id, user, name, sql), do:
+    Air.Service.View.update(view_id, user, name, sql)
 
   defp run_query(user, query, params \\ []), do:
     Air.Service.DataSource.run_query(
