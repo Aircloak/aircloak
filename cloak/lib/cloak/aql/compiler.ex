@@ -97,7 +97,7 @@ defmodule Cloak.Aql.Compiler do
   end
   defp compile_prepped_query(%Query{command: :show} = query) do
     try do
-      {:ok, query |> resolve_views() |> normalize_from() |> compile_subqueries() |> resolve_selected_tables()}
+      {:ok, compile_from(query)}
     rescue
       e in CompilationError -> {:error, e.message}
     end
@@ -105,10 +105,7 @@ defmodule Cloak.Aql.Compiler do
   defp compile_prepped_query(query) do
     try do
       query = query
-      |> resolve_views()
-      |> normalize_from()
-      |> compile_subqueries()
-      |> resolve_selected_tables()
+      |> compile_from()
       |> compile_columns()
       |> verify_columns()
       |> precompile_functions()
@@ -270,6 +267,13 @@ defmodule Cloak.Aql.Compiler do
   # -------------------------------------------------------------------
   # Normal validators and compilers
   # -------------------------------------------------------------------
+
+  defp compile_from(query), do:
+    query
+    |> resolve_views()
+    |> normalize_from()
+    |> compile_subqueries()
+    |> resolve_selected_tables()
 
   defp normalize_from(%Query{from: nil} = query), do: query
   defp normalize_from(%Query{} = query), do:
