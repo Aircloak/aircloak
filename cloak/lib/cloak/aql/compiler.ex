@@ -1095,11 +1095,11 @@ defmodule Cloak.Aql.Compiler do
   defp add_info_message(query, info_message), do: %Query{query | info: [info_message | query.info]}
 
   defp calculate_db_columns(query) do
-    select_columns =
+    db_columns =
       (select_expressions(query) ++ Map.keys(query.ranges))
       |> Enum.uniq_by(&db_column_name/1)
-    query = %Query{query | db_columns: select_columns}
-    map_terminal_elements(query, &set_column_db_row_position(&1, query))
+    %Query{query | db_columns: db_columns}
+    |> map_terminal_elements(&set_column_db_row_position(&1, db_columns))
   end
 
   defp select_expressions(%Query{command: :select, subquery?: true, emulated?: false} = query) do
@@ -1150,18 +1150,14 @@ defmodule Cloak.Aql.Compiler do
   defp any_outer_join?({:join, join}),
     do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
 
-  defp set_column_db_row_position(%Column{user_id?: true} = column, _query) do
-    # the user-id columns will collectively all be available in the first position
-    %Column{column | db_row_position: 0}
-  end
-  defp set_column_db_row_position(%Column{} = column, %Query{db_columns: db_columns}) do
-    case Enum.find_index(db_columns, &(db_column_name(&1) == db_column_name(column))) do
+  defp set_column_db_row_position(%Column{} = column, columns) do
+    case Enum.find_index(columns, &(db_column_name(&1) == db_column_name(column))) do
       # It's not actually a selected column, so ignore for the purpose of positioning
       nil -> column
       position -> %Column{column | db_row_position: position}
     end
   end
-  defp set_column_db_row_position(other, _query), do: other
+  defp set_column_db_row_position(other, _columns), do: other
 
   defp db_column_name(%Column{table: :unknown} = column), do: (column.name || column.alias)
   defp db_column_name(column), do: "#{column.table.db_name}.#{column.name}"
