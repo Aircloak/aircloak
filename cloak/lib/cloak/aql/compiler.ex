@@ -1357,7 +1357,7 @@ defmodule Cloak.Aql.Compiler do
 
   deflens leaf_tables, do: Lens.key(:from) |> do_direct_tables()
 
-  deflens do_direct_tables do
+  deflens do_direct_tables() do
     Lens.match(fn
       {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_direct_tables()
       {:subquery, _} -> Lens.empty()
