@@ -27,7 +27,7 @@ defmodule Cloak.Query.ProjectedTest do
   test "projected tables are included in show tables" do
     assert_query "show tables", %{rows: rows}
     assert(Enum.any?(rows, &(hd(&1.row) == "projected_transactions")))
-    assert(Enum.any?(rows, &(hd(&1.row) == "projected_heights")))
+    assert(Enum.any?(rows, &(hd(&1.row) == "projected_notes")))
   end
 
   test "show columns from a projected table" do
