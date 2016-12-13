@@ -1257,7 +1257,7 @@ defmodule Cloak.Aql.Compiler do
 
   use Lens.Macros
 
-  deflens terminal_elements do
+  deflens terminal_elements() do
     Lens.match(fn
       {:function, "count", :*} -> Lens.empty()
       {:function, "count_noise", :*} -> Lens.empty()
@@ -1269,7 +1269,7 @@ defmodule Cloak.Aql.Compiler do
     end)
   end
 
-  deflens where_terminal_elements do
+  deflens where_terminal_elements() do
     Lens.match(fn
       {:not, _} -> Lens.at(1) |> where_terminal_elements()
       {:comparison, _lhs, _comparator, _rhs} -> Lens.both(Lens.at(1), Lens.at(3)) |> terminal_elements()
@@ -1277,15 +1277,15 @@ defmodule Cloak.Aql.Compiler do
     end)
   end
 
-  deflens splitter_functions, do: terminal_elements() |> Lens.satisfy(&Function.row_splitting_function?/1)
+  deflens splitter_functions(), do: terminal_elements() |> Lens.satisfy(&Function.row_splitting_function?/1)
 
-  deflens buckets, do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
+  deflens buckets(), do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
 
   def parsed(previous), do: Lens.satisfy(previous, &(&1.type == :parsed))
 
-  deflens direct_subqueries, do: Lens.key(:from) |> do_direct_subqueries()
+  deflens direct_subqueries(), do: Lens.key(:from) |> do_direct_subqueries()
 
-  deflens do_direct_subqueries do
+  deflens do_direct_subqueries() do
     Lens.match(fn
       {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_direct_subqueries()
       {:subquery, _} -> Lens.at(1)
