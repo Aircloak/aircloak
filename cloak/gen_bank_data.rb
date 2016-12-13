@@ -104,14 +104,14 @@ customers_range.each do |customer_id|
 end
 puts "\\.\n"
 
-puts "COPY transactions (id, customer_id, account_id, amount, date, description) FROM stdin;"
+puts "COPY transactions (id, account_id, amount, date, description) FROM stdin;"
 customers.each do |customer|
   customer[:accounts].each do |account_nr|
     income = rand(2000) + 400
 
     # Generate transaction for income
     transaction_id += 1
-    puts "#{transaction_id}\t#{customer[:id]}\t#{account_nr}\t#{income}\t#{date()}\t#{description(income)}"
+    puts "#{transaction_id}\t#{account_nr}\t#{income}\t#{date()}\t#{description(income)}"
 
     balance = income
 
@@ -120,7 +120,7 @@ customers.each do |customer|
 
       if amount then
         transaction_id += 1
-        puts "#{transaction_id}\t#{customer[:id]}\t#{account_nr}\t#{amount}\t#{date()}\t#{description(amount)}"
+        puts "#{transaction_id}\t#{account_nr}\t#{amount}\t#{date()}\t#{description(amount)}"
       end
     end
   end

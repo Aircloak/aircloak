@@ -30,7 +30,7 @@ defmodule Cloak.DataSource.MongoDBTest do
     end
     tables =
       conn
-      |> MongoDB.load_tables(%{db_name: @table, name: @table, columns: [], user_id: "_id"})
+      |> MongoDB.load_tables(%{db_name: @table, name: @table, columns: [], user_id: "_id", projection: nil})
       |> Enum.map(&{&1.name, &1})
       |> Enum.into(%{})
     GenServer.stop(conn)

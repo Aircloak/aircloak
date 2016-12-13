@@ -69,7 +69,8 @@ defmodule Cloak.Aql.Query do
     emulated?: boolean,
     ranges: %{Column.t => FixAlign.interval},
     parameters: [DataSource.field],
-    views: view_map
+    views: view_map,
+    projected?: boolean
   }
 
   defstruct [
@@ -77,7 +78,8 @@ defmodule Cloak.Aql.Query do
     order_by: [], column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
     row_splitters: [], implicit_count?: false, data_source: nil, command: nil, show: nil, mode: nil,
     db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
-    features: nil, encoded_where: [], ranges: %{}, parameters: [], views: %{}, emulated?: false
+    features: nil, encoded_where: [], ranges: %{}, parameters: [], views: %{}, emulated?: false,
+    projected?: false
   ]
 
 
