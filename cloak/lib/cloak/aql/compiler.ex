@@ -371,7 +371,8 @@ defmodule Cloak.Aql.Compiler do
       name: subquery.alias,
       db_name: nil,
       columns: columns,
-      user_id: user_id.alias || user_id.name
+      user_id: user_id.alias || user_id.name,
+      projection: nil
     }]
   end
   defp selected_tables(table_name, data_source) when is_binary(table_name) do
@@ -1181,6 +1182,8 @@ defmodule Cloak.Aql.Compiler do
       {_, type} = Enum.find(table.columns, fn ({name, _type}) -> insensitive_equal?(user_id, name) end)
       %Column{table: table, name: user_id, type: type, user_id?: true}
     end)
+    # ignore projected tables, since their id columns do not exist in the table
+    |> Enum.reject(&(&1.table.projection != nil))
   end
 
   defp any_outer_join?(table) when is_binary(table), do: false
