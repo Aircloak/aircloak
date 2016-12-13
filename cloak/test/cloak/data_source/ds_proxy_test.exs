@@ -230,7 +230,8 @@ defmodule Cloak.DataSource.DsProxyTest do
           name: "bar",
           db_name: "bar",
           user_id: "user_id",
-          columns: %{"user_id" => :integer, "foo" => :integer, "baz" => :integer}
+          columns: %{"user_id" => :integer, "foo" => :integer, "baz" => :integer},
+          projection: nil
         }
       }
     }

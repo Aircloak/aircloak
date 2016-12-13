@@ -20,7 +20,10 @@ defmodule Cloak.Test.DB do
     GenServer.call(__MODULE__, {:create_table, table_name, definition, opts})
   end
 
-  def add_users_data(table_name, columns, rows) do
+  def add_users_data(table_name, columns, rows), do:
+    insert_data(table_name, ["user_id" | columns], rows)
+
+  def insert_data(table_name, columns, rows) do
     {sql, params} = prepare_insert(table_name, columns, rows)
     execute!(sql, params)
   end
@@ -35,8 +38,19 @@ defmodule Cloak.Test.DB do
     :ok
   end
 
-  def register_test_table(table_id, db_name, decoders \\ []) do
-    table = %{db_name: db_name, user_id: "user_id", decoders: decoders}
+  def register_test_table(table_id, db_name, opts \\ []) do
+    default = %{
+      db_name: db_name,
+      user_id: (if Keyword.get(opts, :add_user_id, true), do: "user_id", else: nil),
+      decoders: [],
+      projection: nil
+    }
+    user_overrides =
+      opts
+      |> Enum.into(%{})
+      |> Map.take([:user_id, :decoders, :projection])
+    table = Map.merge(default, user_overrides)
+
     Application.get_env(:cloak, :data_sources)
     |> Enum.map(&(&1 |> put_in([:tables, table_id], table) |> DataSource.add_tables()))
     |> DataSource.cache_columns()
@@ -56,8 +70,7 @@ defmodule Cloak.Test.DB do
   def handle_call({:create_table, table_name, definition, opts}, _from, state) do
     db_name = opts[:db_name] || table_name
     create_db_table(db_name, definition, opts)
-    decoders = opts[:decoders] || []
-    register_test_table(String.to_atom(table_name), full_table_name(db_name), decoders)
+    register_test_table(String.to_atom(table_name), full_table_name(db_name), opts)
     {:reply, :ok, state}
   end
 
@@ -76,12 +89,13 @@ defmodule Cloak.Test.DB do
     if opts[:skip_db_create] do
       :ok
     else
-      execute!("CREATE TABLE #{sanitized_table(db_name)} (user_id VARCHAR(64), #{definition})")
+      user_id_column = if Keyword.get(opts, :add_user_id, true), do: "user_id VARCHAR(64),", else: ""
+      execute!("CREATE TABLE #{sanitized_table(db_name)} (#{user_id_column} #{definition})")
     end
   end
 
   defp prepare_insert(table_name, columns, rows) do
-    columns = Enum.map(["user_id" | columns], &sanitize_db_object/1)
+    columns = Enum.map(columns, &sanitize_db_object/1)
 
     {
       [

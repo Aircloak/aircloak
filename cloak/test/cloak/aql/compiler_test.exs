@@ -732,37 +732,43 @@ defmodule Cloak.Aql.Compiler.Test do
         user_id: "uid",
         columns: [
           {"uid", :integer}, {"column", :datetime}, {"numeric", :integer}, {"float", :real}, {"string", :text}
-        ]
+        ],
+        projection: nil
       },
       other_table: %{
         db_name: "other_table",
         name: "other_table",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"other_column", :datetime}]
+        columns: [{"uid", :integer}, {"other_column", :datetime}],
+        projection: nil
       },
       t1: %{
         db_name: "t1",
         name: "t1",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"c1", :integer}, {"c2", :integer}]
+        columns: [{"uid", :integer}, {"c1", :integer}, {"c2", :integer}],
+        projection: nil
       },
       t2: %{
         db_name: "t2",
         name: "t2",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"c1", :integer}, {"c3", :integer}]
+        columns: [{"uid", :integer}, {"c1", :integer}, {"c3", :integer}],
+        projection: nil
       },
       t3: %{
         db_name: "t3",
         name: "t3",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"c1", :integer}]
+        columns: [{"uid", :integer}, {"c1", :integer}],
+        projection: nil
       },
       t4: %{
         db_name: "t4",
         name: "t4",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"c1", :integer}]
+        columns: [{"uid", :integer}, {"c1", :integer}],
+        projection: nil
       }
     }}
   end
@@ -773,7 +779,8 @@ defmodule Cloak.Aql.Compiler.Test do
         db_name: "table",
         name: "table",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"column", :time}]
+        columns: [{"uid", :integer}, {"column", :time}],
+        projection: nil
       }
     }}
   end
@@ -784,7 +791,8 @@ defmodule Cloak.Aql.Compiler.Test do
         db_name: "table",
         name: "table",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"column", :date}]
+        columns: [{"uid", :integer}, {"column", :date}],
+        projection: nil
       }
     }}
   end
@@ -795,7 +803,8 @@ defmodule Cloak.Aql.Compiler.Test do
         db_name: "table",
         name: "table",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"column.with.dots", :number}]
+        columns: [{"uid", :integer}, {"column.with.dots", :number}],
+        projection: nil
       }
     }}
   end

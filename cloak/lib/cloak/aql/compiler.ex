@@ -186,6 +186,59 @@ defmodule Cloak.Aql.Compiler do
 
 
   # -------------------------------------------------------------------
+  # Projected tables
+  # -------------------------------------------------------------------
+
+  defp resolve_projected_tables(%Query{from: nil} = query), do: query
+  defp resolve_projected_tables(%Query{projected?: true} = query), do: query
+  defp resolve_projected_tables(query), do:
+    Lens.map(leaf_tables(), query, &resolve_projected_table(&1, query))
+
+  defp resolve_projected_table(table_name, query) do
+    case DataSource.table(query.data_source, table_name) do
+      %{projection: nil} -> table_name
+      projected_table -> projected_table_ast(projected_table, query)
+    end
+  end
+
+  defp projected_table_ast(%{projection: nil} = table, _query), do:
+    {:quoted, table.name}
+  defp projected_table_ast(table, query) do
+    joined_table = DataSource.table(query.data_source, table.projection.table)
+
+    {:subquery, %{
+      type: :parsed,
+      alias: table.name,
+      ast: %{
+        command: :select,
+        projected?: true,
+        columns:
+          [column_ast(joined_table.name, joined_table.user_id) |
+            table.columns
+            |> Enum.map(fn({column_name, _type}) -> column_name end)
+            |> Enum.reject(&(&1 == table.user_id))
+            |> Enum.map(&column_ast(table.name, &1))
+          ],
+        from:
+          {:join, %{
+            type: :inner_join,
+            lhs: {:quoted, table.name},
+            rhs: projected_table_ast(joined_table, query),
+            conditions: [{:comparison,
+              column_ast(table.name, table.projection.foreign_key),
+              :=,
+              column_ast(joined_table.name, table.projection.primary_key)
+            }]
+          }}
+      }
+    }}
+  end
+
+  defp column_ast(table_name, column_name), do:
+    {:identifier, {:quoted, table_name}, {:quoted, column_name}}
+
+
+  # -------------------------------------------------------------------
   # Subqueries
   # -------------------------------------------------------------------
 
@@ -272,6 +325,7 @@ defmodule Cloak.Aql.Compiler do
     query
     |> resolve_views()
     |> normalize_from()
+    |> resolve_projected_tables()
     |> compile_subqueries()
     |> resolve_selected_tables()
 
@@ -720,6 +774,7 @@ defmodule Cloak.Aql.Compiler do
   defp encoded_column_condition?(condition), do:
     Comparison.verb(condition) != :is and Comparison.subject(condition) |> DataDecoder.needs_decoding?()
 
+  defp verify_joins(%Query{projected?: true} = query), do: query
   defp verify_joins(query) do
     join_conditions_scope_check(query.from)
     Enum.each(all_join_conditions(query.from), &verify_supported_join_condition/1)
@@ -1300,6 +1355,16 @@ defmodule Cloak.Aql.Compiler do
       {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_direct_subqueries()
       {:subquery, _} -> Lens.at(1)
       _ -> Lens.empty()
+    end)
+  end
+
+  deflens leaf_tables, do: Lens.key(:from) |> do_direct_tables()
+
+  deflens do_direct_tables do
+    Lens.match(fn
+      {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_direct_tables()
+      {:subquery, _} -> Lens.empty()
+      table when is_binary(table) -> Lens.root()
     end)
   end
 end
