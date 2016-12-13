@@ -39,7 +39,11 @@
         },
         "transactions": {
           "db_name": "transactions",
-          "user_id": "customer_id"
+          "projection": {
+            "table": "accounts",
+            "foreign_key": "account_id",
+            "primary_key": "id"
+          }
         }
       }
     },
@@ -78,7 +82,11 @@
         },
         "transactions": {
           "db_name": "transactions",
-          "user_id": "customer_id"
+          "projection": {
+            "table": "accounts",
+            "foreign_key": "account_id",
+            "primary_key": "id"
+          }
         }
       }
     }

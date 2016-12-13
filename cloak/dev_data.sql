@@ -514,8 +514,7 @@ INSERT INTO accounts (customer_id, account_number, swift) values (10, 'DE2375332
 
 CREATE TABLE transactions (
     id integer NOT NULL,
-    customer_id integer,
-    account_id text,
+    account_id integer,
     amount integer,
     date timestamp,
     description text
@@ -532,20 +531,20 @@ ALTER TABLE transactions_id_seq OWNER TO cloak;
 ALTER SEQUENCE transactions_id_seq OWNED BY transactions.id;
 ALTER TABLE ONLY transactions ALTER COLUMN id SET DEFAULT nextval('transactions_id_seq'::regclass);
 
-INSERT INTO transactions (customer_id, account_id, amount, date, description) values (1, 1, -1331, '2016-12-23 23:59:57', 'xtWiMYnNbXWVrAUgTAaquXCPpYVMhhtDtDleAcrbAOdYTPLJ');
-INSERT INTO transactions (customer_id, account_id, amount, date, description) values (1, 2, -324, '2016-12-28 14:26:8', 'qVgByrpnSGsfidSGSywusOMhaOSLOFMCa');
-INSERT INTO transactions (customer_id, account_id, amount, date, description) values (2, 3, 18, '2016-12-12 17:45:40', 'iXNNMSAHSoVquGvS');
-INSERT INTO transactions (customer_id, account_id, amount, date, description) values (2, 3, -1000, '2016-12-19 3:1:5', 'Amazon');
-INSERT INTO transactions (customer_id, account_id, amount, date, description) values (3, 7, -121, '2016-12-2 4:19:39', 'Amazon');
-INSERT INTO transactions (customer_id, account_id, amount, date, description) values (4, 10, 15, '2016-12-26 5:20:13', 'EdPeEXWNMfjPslavBmQSfnPCODsMwuGKEXmfpjAfoCTNqHUWu');
-INSERT INTO transactions (customer_id, account_id, amount, date, description) values (5, 13, -196, '2016-12-23 17:42:44', 'Amazon');
-INSERT INTO transactions (customer_id, account_id, amount, date, description) values (5, 13, -225, '2016-12-31 5:41:21', 'IKEA');
-INSERT INTO transactions (customer_id, account_id, amount, date, description) values (6, 17, -49, '2016-12-31 21:56:41', 'XDyuYakpwdrFRKlXOjeCMdiXABdkHSvqyfwmrdEcvjuNOftyIOmJeLwpcwTpNktaawUyqBJhYlhBonoVBoMISla');
-INSERT INTO transactions (customer_id, account_id, amount, date, description) values (6, 17, 0, '2016-12-6 16:34:20', 'yuqtWHUycSulXUTOw');
-INSERT INTO transactions (customer_id, account_id, amount, date, description) values (7, 22, -1331, '2016-12-27 12:40:19', 'BTakOoPmbcUOvObTraBUrJakdBTTErLJQTSNVOjyPhawwgUkpGKlORhQwlRvkbUUTCWNhFnGnKaJ');
-INSERT INTO transactions (customer_id, account_id, amount, date, description) values (8, 27, -17, '2016-12-17 21:12:43', 'nkxbWHjXssbTun');
-INSERT INTO transactions (customer_id, account_id, amount, date, description) values (9, 28, -16, '2016-12-3 19:39:20', 'Amazon');
-INSERT INTO transactions (customer_id, account_id, amount, date, description) values (10, 30, 1, '2016-12-30 16:50:53', 'cIejxImLIDtlO');
+INSERT INTO transactions (account_id, amount, date, description) values (1, -1331, '2016-12-23 23:59:57', 'xtWiMYnNbXWVrAUgTAaquXCPpYVMhhtDtDleAcrbAOdYTPLJ');
+INSERT INTO transactions (account_id, amount, date, description) values (1, -324, '2016-12-28 14:26:8', 'qVgByrpnSGsfidSGSywusOMhaOSLOFMCa');
+INSERT INTO transactions (account_id, amount, date, description) values (2, 18, '2016-12-12 17:45:40', 'iXNNMSAHSoVquGvS');
+INSERT INTO transactions (account_id, amount, date, description) values (2, -1000, '2016-12-19 3:1:5', 'Amazon');
+INSERT INTO transactions (account_id, amount, date, description) values (3, -121, '2016-12-2 4:19:39', 'Amazon');
+INSERT INTO transactions (account_id, amount, date, description) values (4, 15, '2016-12-26 5:20:13', 'EdPeEXWNMfjPslavBmQSfnPCODsMwuGKEXmfpjAfoCTNqHUWu');
+INSERT INTO transactions (account_id, amount, date, description) values (5, -196, '2016-12-23 17:42:44', 'Amazon');
+INSERT INTO transactions (account_id, amount, date, description) values (5, -225, '2016-12-31 5:41:21', 'IKEA');
+INSERT INTO transactions (account_id, amount, date, description) values (6, -49, '2016-12-31 21:56:41', 'XDyuYakpwdrFRKlXOjeCMdiXABdkHSvqyfwmrdEcvjuNOftyIOmJeLwpcwTpNktaawUyqBJhYlhBonoVBoMISla');
+INSERT INTO transactions (account_id, amount, date, description) values (6, 0, '2016-12-6 16:34:20', 'yuqtWHUycSulXUTOw');
+INSERT INTO transactions (account_id, amount, date, description) values (7, -1331, '2016-12-27 12:40:19', 'BTakOoPmbcUOvObTraBUrJakdBTTErLJQTSNVOjyPhawwgUkpGKlORhQwlRvkbUUTCWNhFnGnKaJ');
+INSERT INTO transactions (account_id, amount, date, description) values (8, -17, '2016-12-17 21:12:43', 'nkxbWHjXssbTun');
+INSERT INTO transactions (account_id, amount, date, description) values (9, -16, '2016-12-3 19:39:20', 'Amazon');
+INSERT INTO transactions (account_id, amount, date, description) values (10, 1, '2016-12-30 16:50:53', 'cIejxImLIDtlO');
 
 
 --
