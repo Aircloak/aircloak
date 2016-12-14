@@ -42,9 +42,6 @@ defmodule Cloak.Aql.Comparison do
   @spec to_function(Query.where_clause, boolean) :: function
   def to_function(_condition, _truth \\ true)
   def to_function({:not, condition}, truth), do: to_function(condition, not truth)
-  def to_function({:comparison, column, operator, %Column{constant?: true, value: value}}, truth) do
-    fn(row) -> compare(operator, Function.apply_to_db_row(column, row), value) == truth end
-  end
   def to_function({:comparison, column, operator, value}, truth) do
     fn(row) ->
       lhs = Function.apply_to_db_row(column, row)
