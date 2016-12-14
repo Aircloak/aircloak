@@ -64,6 +64,14 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 
+  test "rows with null user_ids are ignored" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    :ok = insert_null_uid_row("heights", ["height"], [180])
+
+    assert_query "select height from heights",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
   test "identifiers are case-insensitive" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query "select HeiGht, Heights.heighT from heIghts",
@@ -176,6 +184,10 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query "select avg(distinct height) from heights",
       %{columns: ["avg"], rows: [%{row: [162.5], occurrences: 1}]}
+    assert_query "select avg(distinct abs(height)) from heights",
+      %{columns: ["avg"], rows: [%{row: [162.5], occurrences: 1}]}
+    assert_query "select avg(distinct height - 100) from heights",
+      %{columns: ["avg"], rows: [%{row: [62.5], occurrences: 1}]}
   end
 
   test "aggregates of an empty table" do

@@ -64,6 +64,8 @@ defmodule Cloak.Aql.Column do
   def display_name(%__MODULE__{constant?: true}), do: nil
   def display_name(%__MODULE__{name: name, table: table}) when is_binary(name), do:
     "`#{name}` from table `#{table.name}`"
+  def display_name(%__MODULE__{alias: alias}) when is_binary(alias), do: "`#{alias}`"
+  def display_name(%__MODULE__{db_function: function}) when is_binary(function), do: "`#{function}`"
 
   @doc "Returns the column value of a database row."
   @spec value(t, DataSource.row) :: DataSource.field

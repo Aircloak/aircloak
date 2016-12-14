@@ -74,38 +74,20 @@ defmodule Air.Service.DataSource do
     )
   end
 
-  @doc "Saves the new view in the database."
-  @spec create_view(data_source_id_spec, User.t, String.t, String.t) ::
-    {:ok, View.t} | {:error, Ecto.Changeset.t} | data_source_operation_error
-  def create_view(data_source_id_spec, user, name, sql) do
-    on_cloak_validated_view(data_source_id_spec, user, sql, fn(data_source) ->
-      %View{}
-      |> Ecto.Changeset.cast(
-            %{user_id: user.id, data_source_id: data_source.id, name: name, sql: sql},
-            ~w(name sql user_id data_source_id)a
-          )
-      |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
-      |> Repo.insert()
-    end)
-  end
-
-  @doc "Updates the existing view in the database."
-  @spec update_view(data_source_id_spec, User.t, pos_integer, String.t, String.t) ::
-    {:ok, View.t} | {:error, Ecto.Changeset.t} | data_source_operation_error
-  def update_view(data_source_id_spec, user, view_id, name, sql) do
-    on_cloak_validated_view(data_source_id_spec, user, sql, fn(data_source) ->
-      saved_view = Repo.get!(View, view_id)
-
-      # assert no changes in user and data_source
-      true = (user.id == saved_view.user_id)
-      true = (data_source.id == saved_view.data_source_id)
-
-      saved_view
-      |> Ecto.Changeset.cast(%{name: name, sql: sql}, ~w(name sql)a)
-      |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
-      |> Repo.update()
-    end)
-  end
+  @doc "Validates the view on the cloak."
+  @spec validate_view(data_source_id_spec, User.t, View.t) ::
+    {:ok, [columns :: map]} | {:error, field :: String.t, reason :: String.t} | data_source_operation_error
+  def validate_view(data_source_id_spec, user, view), do:
+    on_available_cloak(data_source_id_spec, user,
+      fn(data_source, channel_pid) ->
+        MainChannel.validate_view(channel_pid, %{
+          data_source: data_source.global_id,
+          name: view.name,
+          sql: view.sql,
+          views: user_views_map(user)
+        })
+      end
+    )
 
   @doc "Starts the query on the given data source as the given user."
   @spec start_query(data_source_id_spec, User.t, String.t, [Protocol.db_value], start_query_options) ::
@@ -218,20 +200,6 @@ defmodule Air.Service.DataSource do
         {:error, :internal_error}
       end
     end
-  end
-
-  defp on_cloak_validated_view(data_source_id_spec, user, sql, fun) do
-    on_available_cloak(data_source_id_spec, user,
-      fn(data_source, channel_pid) ->
-        with :ok <- MainChannel.validate_view(channel_pid, %{
-          data_source: data_source.global_id,
-          sql: sql,
-          views: user_views_map(user)
-        }) do
-          fun.(data_source)
-        end
-      end
-    )
   end
 
   defp user_views_map(user) do

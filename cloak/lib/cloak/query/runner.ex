@@ -10,7 +10,7 @@ defmodule Cloak.Query.Runner do
   use GenServer
   require Logger
 
-  alias Cloak.Aql.{Query, Column, Comparison}
+  alias Cloak.Aql.{Query, Column}
   alias Cloak.DataSource
   alias Cloak.Query.{Aggregator, LCFConditions, ShrinkAndDrop, Sorter, Result, DataDecoder, RowSplitters, DBEmulator}
 
@@ -188,8 +188,8 @@ defmodule Cloak.Query.Runner do
   end
   defp select_rows({:join, join}) do
     Logger.debug("Emulating join ...")
-    lhs = select_rows(join.lhs.ast)
-    rhs = select_rows(join.rhs.ast)
+    {:ok, lhs} = select_rows(join.lhs)
+    {:ok, rhs} = select_rows(join.rhs)
     {:ok, DBEmulator.join(lhs, rhs, join) |> Enum.to_list()}
   end
   defp select_rows(%Query{} = query) do
@@ -254,7 +254,7 @@ defmodule Cloak.Query.Runner do
     rows
     |> DataDecoder.decode(query)
     |> RowSplitters.split(query)
-    |> filter(query)
+    |> DBEmulator.filter_rows(query)
     |> LCFConditions.apply(query)
     |> ShrinkAndDrop.apply(query)
     |> Aggregator.aggregate(query)
@@ -291,12 +291,6 @@ defmodule Cloak.Query.Runner do
   defp distinct(%Result{buckets: buckets} = result, %Query{distinct?: true}), do:
     %Result{result | buckets: Enum.map(buckets, &Map.put(&1, :occurrences, 1))}
   defp distinct(result, %Query{distinct?: false}), do: result
-
-  defp filter(stream, %Query{where: []}), do: stream
-  defp filter(stream, %Query{where: conditions}) do
-    filters = Enum.map(conditions, &Comparison.to_function/1)
-    Stream.filter(stream, &Enum.all?(filters, fn (filter) -> filter.(&1) end))
-  end
 
 
   # -------------------------------------------------------------------

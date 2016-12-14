@@ -46,7 +46,9 @@ defmodule Air.Router do
 
     resources "/api_tokens", ApiTokenController
 
-    resources "/data_sources", DataSourceController
+    resources "/data_sources", DataSourceController do
+      resources "/views", ViewController
+    end
 
     get "/licenses", LicenseController, :index
     get "/licenses/:realm/:name", LicenseController, :show

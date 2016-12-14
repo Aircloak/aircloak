@@ -148,7 +148,7 @@ defmodule Cloak.Aql.Types.Test do
   end
 
   defp compile(query_string, features \\ Cloak.Features.from_config) do
-    query = Parser.parse!(data_source(), query_string)
+    query = Parser.parse!(query_string)
     Compiler.compile(data_source, query, [], %{}, features)
   end
 
@@ -160,7 +160,8 @@ defmodule Cloak.Aql.Types.Test do
         user_id: "uid",
         columns: [
           {"uid", :integer}, {"column", :datetime}, {"numeric", :integer}, {"float", :real}, {"string", :text}
-        ]
+        ],
+        projection: nil,
       },
     }}
   end

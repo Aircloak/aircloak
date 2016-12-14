@@ -24,8 +24,8 @@ defmodule Cloak.Query.ShrinkAndDrop.Buffer do
   @doc "Returns an empty buffer with the given size limit for each side."
   @spec new(pos_integer) :: t
   def new(size), do: %__MODULE__{
-    left: HalfBuffer.new(size, &Kernel.</2),
-    right: HalfBuffer.new(size, &Kernel.>/2)
+    left: HalfBuffer.new(size, &Cloak.Data.lt_eq/2),
+    right: HalfBuffer.new(size, &Cloak.Data.gt/2)
   }
 
   @doc """
@@ -38,10 +38,10 @@ defmodule Cloak.Query.ShrinkAndDrop.Buffer do
     {new_buffer, popped} = Enum.reduce(popped, {new_buffer, []}, fn(row = {_, user_id, value, _}, {buffer, popped}) ->
       cond do
         HalfBuffer.includes?(buffer.left, user_id) ->
-          {new_left, popped_left} = HalfBuffer.add(buffer.left, user_id, value, row)
+          {new_left, popped_left} = HalfBuffer.add(buffer.left, value, user_id, row)
           {%{buffer | left: new_left}, popped_left ++ popped}
         HalfBuffer.includes?(buffer.right, user_id) ->
-          {new_right, popped_right} = HalfBuffer.add(buffer.right, user_id, value, row)
+          {new_right, popped_right} = HalfBuffer.add(buffer.right, value, user_id, row)
           {%{buffer | right: new_right}, popped_right ++ popped}
         true -> {buffer, [row | popped]}
       end
@@ -63,7 +63,7 @@ defmodule Cloak.Query.ShrinkAndDrop.Buffer do
   def range_except_extreme(%{left: left, right: right}, n) do
     x = HalfBuffer.values_except_extreme(left, n)
     y = HalfBuffer.values_except_extreme(right, n)
-    {min(x, y), max(x, y)}
+    {Cloak.Data.min(x, y), Cloak.Data.max(x, y)}
   end
 
 
