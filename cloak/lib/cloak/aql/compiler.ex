@@ -54,7 +54,9 @@ defmodule Cloak.Aql.Compiler do
     |> Map.merge(parsed_query)
   end
 
-  defp compile_prepped_query(%Query{command: :show} = query) do
+  defp compile_prepped_query(%Query{command: :show, show: :tables} = query), do:
+    {:ok, query}
+  defp compile_prepped_query(%Query{command: :show, show: :columns} = query) do
     try do
       {:ok, compile_from(query)}
     rescue
@@ -93,7 +95,6 @@ defmodule Cloak.Aql.Compiler do
   # Views
   # -------------------------------------------------------------------
 
-  defp resolve_views(%Query{from: nil} = query), do: query
   defp resolve_views(query) do
     compiled = do_resolve_views(query.from, query)
     %Query{query | from: compiled}
@@ -134,7 +135,6 @@ defmodule Cloak.Aql.Compiler do
   # Projected tables
   # -------------------------------------------------------------------
 
-  defp resolve_projected_tables(%Query{from: nil} = query), do: query
   defp resolve_projected_tables(%Query{projected?: true} = query), do: query
   defp resolve_projected_tables(query), do:
     Lens.map(leaf_tables(), query, &resolve_projected_table(&1, query))
@@ -187,7 +187,6 @@ defmodule Cloak.Aql.Compiler do
   # Subqueries
   # -------------------------------------------------------------------
 
-  defp compile_subqueries(%Query{from: nil} = query), do: query
   defp compile_subqueries(query) do
     {info, compiled} = Lens.get_and_map(direct_subqueries(), query, fn(subquery) ->
       ast = compiled_subquery(subquery.ast, subquery.alias, query)
@@ -274,7 +273,6 @@ defmodule Cloak.Aql.Compiler do
     |> compile_subqueries()
     |> resolve_selected_tables()
 
-  defp normalize_from(%Query{from: nil} = query), do: query
   defp normalize_from(%Query{} = query), do:
     %Query{query | from: normalize_from(query.from, query.data_source)}
 
@@ -299,7 +297,6 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp resolve_selected_tables(%Query{from: nil} = query), do: query
   defp resolve_selected_tables(query), do:
     %Query{query | selected_tables: selected_tables(query.from, query.data_source)}
 
