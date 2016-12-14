@@ -20,6 +20,7 @@
         {Credo.Check.Readability.TrailingWhiteSpace},
         {Credo.Check.Readability.MaxLineLength, max_length: 120},
         {Credo.Check.Readability.VariableNames},
+        {Credo.Check.Refactor.FunctionArity, max_arity: 6},
         {Credo.Check.Warning.IExPry},
         {Credo.Check.Warning.IoInspect}
       ] ++ case Mix.env do
