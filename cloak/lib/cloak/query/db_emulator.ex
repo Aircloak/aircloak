@@ -9,7 +9,6 @@ defmodule Cloak.Query.DBEmulator do
 
   alias Cloak.Aql.{Query, Comparison, Function, Column}
   alias Cloak.Query.Sorter
-  alias Cloak.Query.Runner.RuntimeError
 
 
   # -------------------------------------------------------------------
@@ -27,16 +26,19 @@ defmodule Cloak.Query.DBEmulator do
     |> limit_rows(query)
   end
 
-  @doc "Joins two streams into one using the "
-  @spec join(Enumerable.t, Enumerable.t, Cloak.Aql.Parser.join) :: Enumerable.t
-  def join(_lhs, _rhs, _join), do: raise RuntimeError, message: "Emulation of JOINs is not yet supported."
+  @doc "Joins two streams into one using the specified join type and conditions."
+  @spec join(Enumerable.t, Enumerable.t, map) :: Enumerable.t
+  def join(lhs, rhs, %{type: :cross_join}), do: cross_join(lhs, rhs)
+  def join(lhs, rhs, %{type: :inner_join} = join), do: inner_join(lhs, rhs, join)
+  def join(lhs, rhs, %{type: :left_outer_join} = join), do: left_join(lhs, rhs, join)
+  def join(lhs, rhs, %{type: :right_outer_join} = join), do: right_join(lhs, rhs, join)
+  def join(lhs, rhs, %{type: :full_outer_join} = join), do: full_join(lhs, rhs, join)
 
   @doc "Applies the query conditions over the input stream of rows."
   @spec filter_rows(Enumerable.t, Query.t) :: Enumerable.t
-  def filter_rows(stream, %Query{where: []}), do: stream
   def filter_rows(stream, %Query{where: conditions}) do
     filters = Enum.map(conditions, &Comparison.to_function/1)
-    Stream.filter(stream, &Enum.all?(filters, fn (filter) -> filter.(&1) end))
+    apply_filters(stream, filters)
   end
 
   @doc "Selects and filters the rows previously grouped by an aggregator."
@@ -201,5 +203,58 @@ defmodule Cloak.Query.DBEmulator do
     average = Enum.sum(values) / count
     variances = Enum.map(values, &(&1 - average) * (&1 - average))
     :math.sqrt(Enum.sum(variances) / count)
+  end
+
+  defp apply_filters(stream, []), do: stream
+  defp apply_filters(stream, filters), do:
+    Stream.filter(stream, &Enum.all?(filters, fn (filter) -> filter.(&1) end))
+
+  defp joined_row_size({:subquery, subquery}), do: Enum.count(subquery.ast.db_columns)
+  defp joined_row_size({:join, join}), do: joined_row_size(join.lhs) + joined_row_size(join.rhs)
+
+  defp add_prefix_to_rows(stream, row), do: Stream.map(stream, &row ++ &1)
+
+  defp add_suffix_to_rows(stream, row), do: Stream.map(stream, & &1 ++ row)
+
+  defp cross_join(lhs, rhs), do: Stream.flat_map(lhs, &add_prefix_to_rows(rhs, &1))
+
+  defp inner_join(lhs, rhs, join) do
+    filters = Enum.map(join.conditions, &Comparison.to_function/1)
+    Stream.flat_map(lhs, fn (lhs_row) ->
+      rhs
+      |> add_prefix_to_rows(lhs_row)
+      |> apply_filters(filters)
+    end)
+  end
+
+  defp left_join(lhs, rhs, join) do
+    rhs_null_row = List.duplicate(nil, joined_row_size(join.rhs))
+    outer_join(lhs, rhs, join.conditions, &add_prefix_to_rows/2, &[&1 ++ rhs_null_row], & &1)
+  end
+
+  defp right_join(lhs, rhs, join) do
+    lhs_null_row = List.duplicate(nil, joined_row_size(join.lhs))
+    outer_join(rhs, lhs, join.conditions, &add_suffix_to_rows/2, &[lhs_null_row ++ &1], & &1)
+  end
+
+  defp outer_join(lhs, rhs, conditions, rows_combiner, unmatched_handler, matched_handler) do
+    filters = Enum.map(conditions, &Comparison.to_function/1)
+    Stream.flat_map(lhs, fn (lhs_row) ->
+      rhs
+      |> rows_combiner.(lhs_row)
+      |> apply_filters(filters)
+      |> Enum.to_list()
+      |> case do
+        [] -> unmatched_handler.(lhs_row)
+        joined_rows -> matched_handler.(joined_rows)
+      end
+    end)
+  end
+
+  defp full_join(lhs, rhs, join) do
+    lhs_null_row = List.duplicate(nil, joined_row_size(join.lhs))
+    unmatched_rhs = outer_join(rhs, lhs, join.conditions,
+      &add_suffix_to_rows/2, &[lhs_null_row ++ &1], fn (_matches) -> [] end)
+    lhs |> left_join(rhs, join) |> Stream.concat(unmatched_rhs)
   end
 end

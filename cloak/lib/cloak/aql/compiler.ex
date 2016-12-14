@@ -76,6 +76,7 @@ defmodule Cloak.Aql.Compiler do
       |> verify_having()
       |> partition_where_clauses()
       |> calculate_db_columns()
+      |> compile_emulated_joins
       |> partition_row_splitters()
       |> verify_limit()
       |> verify_offset()
@@ -301,9 +302,10 @@ defmodule Cloak.Aql.Compiler do
         |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
     [%{
       name: subquery.alias,
-      db_name: nil,
+      db_name: subquery.alias,
       columns: columns,
       user_id: user_id.alias || user_id.name,
+      decoders: [],
       projection: nil
     }]
   end
@@ -676,7 +678,10 @@ defmodule Cloak.Aql.Compiler do
     # extract conditions using encoded columns
     {encoded_column_clauses, safe_clauses} = Enum.partition(query.where, &encoded_column_condition?/1)
     # extract columns needed in the cloak for extra filtering
-    unsafe_filter_columns = Enum.map(encoded_column_clauses, &Comparison.subject/1)
+    unsafe_filter_columns =
+      encoded_column_clauses
+      |> Enum.flat_map(&extract_columns/1)
+      |> Enum.reject(& &1.constant?)
     %Query{query | where: safe_clauses, unsafe_filter_columns: unsafe_filter_columns,
       encoded_where: encoded_column_clauses}
   end
@@ -692,7 +697,10 @@ defmodule Cloak.Aql.Compiler do
     # extract conditions using encoded columns
     {encoded_column_clauses, safe_clauses} = Enum.partition(safe_clauses, &encoded_column_condition?/1)
     # extract columns needed in the cloak for extra filtering
-    unsafe_filter_columns = Enum.map(require_lcf_checks ++ encoded_column_clauses, &Comparison.subject/1)
+    unsafe_filter_columns =
+      (require_lcf_checks ++ encoded_column_clauses)
+      |> Enum.flat_map(&extract_columns/1)
+      |> Enum.reject(& &1.constant?)
 
     %Query{query | where: safe_clauses, lcf_check_conditions: require_lcf_checks,
       unsafe_filter_columns: unsafe_filter_columns, encoded_where: encoded_column_clauses}
@@ -1061,16 +1069,21 @@ defmodule Cloak.Aql.Compiler do
   defp extract_columns({:function, _function, arguments}), do: Enum.flat_map(arguments, &extract_columns/1)
   defp extract_columns({:distinct, expression}), do: extract_columns(expression)
   defp extract_columns({:comparison, column, _operator, target}), do: extract_columns(column) ++ extract_columns(target)
+  defp extract_columns({:not, condition}), do: extract_columns(condition)
+  defp extract_columns({verb, column, _value}) when verb in [:like, :ilike, :is, :in], do: extract_columns(column)
 
   defp add_info_message(query, info_message), do: %Query{query | info: [info_message | query.info]}
 
   defp calculate_db_columns(query) do
-    query = %Query{query | db_columns: db_columns(query) |> Enum.uniq_by(&db_column_name/1)}
-    map_terminal_elements(query, &set_column_db_row_position(&1, query))
+    db_columns =
+      (select_expressions(query) ++ range_columns(query))
+      |> Enum.uniq_by(&db_column_name/1)
+    %Query{query | db_columns: db_columns}
+    |> map_terminal_elements(&set_column_db_row_position(&1, db_columns))
   end
 
-  defp db_columns(query = %{subquery?: true}), do: select_expressions(query)
-  defp db_columns(query = %{subquery?: false}), do: select_expressions(query) ++ Map.keys(query.ranges)
+  defp range_columns(%{subquery?: true}), do: []
+  defp range_columns(%{subquery?: false, ranges: ranges}), do: Map.keys(ranges)
 
   defp select_expressions(%Query{command: :select, subquery?: true, emulated?: false} = query) do
     Enum.zip(query.column_titles, query.columns)
@@ -1117,18 +1130,14 @@ defmodule Cloak.Aql.Compiler do
   defp any_outer_join?({:join, join}),
     do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
 
-  defp set_column_db_row_position(%Column{user_id?: true} = column, _query) do
-    # the user-id columns will collectively all be available in the first position
-    %Column{column | db_row_position: 0}
-  end
-  defp set_column_db_row_position(%Column{} = column, %Query{db_columns: db_columns}) do
-    case Enum.find_index(db_columns, &(db_column_name(&1) == db_column_name(column))) do
+  defp set_column_db_row_position(%Column{} = column, columns) do
+    case Enum.find_index(columns, &(db_column_name(&1) == db_column_name(column))) do
       # It's not actually a selected column, so ignore for the purpose of positioning
       nil -> column
       position -> %Column{column | db_row_position: position}
     end
   end
-  defp set_column_db_row_position(other, _query), do: other
+  defp set_column_db_row_position(other, _columns), do: other
 
   defp db_column_name(%Column{table: :unknown} = column), do: (column.name || column.alias)
   defp db_column_name(column), do: "#{column.table.db_name}.#{column.name}"
@@ -1227,13 +1236,78 @@ defmodule Cloak.Aql.Compiler do
     raise CompilationError, message: "Inequalities on string values are currently not supported."
   defp check_for_string_inequalities(_, _), do: :ok
 
-  defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
-  defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table) do
+  defp needs_decoding?(query), do:
     (query.columns ++ query.group_by ++ query.having)
     |> Enum.flat_map(&extract_columns/1)
     |> Enum.any?(&DataDecoder.needs_decoding?/1)
-  end
+
+  defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
+  defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do: needs_decoding?(query)
+  defp needs_emulation?(%Query{from: {:join, _}, data_source: %{driver: Cloak.DataSource.MongoDB}}), do: true
   defp needs_emulation?(query), do: query |> get_in([direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?))
+
+  defp compile_emulated_joins(%Query{emulated?: true, from: {:join, _}} = query) do
+    from =
+      query.from
+      |> replace_joined_tables_with_subqueries(query.db_columns, query)
+      |> compile_join_conditions_columns()
+    %Query{query | from: from}
+  end
+  defp compile_emulated_joins(query), do: query
+
+  # For emulated joins, we need to set the `db_row_position` field for the columns in the `ON` clause.
+  defp compile_join_conditions_columns({:join, join}) do
+    # Because this is an emulated query we only have joining of subqueries, as
+    # tables references were previously translated into subqueries.
+    columns = joined_columns({:join, join})
+    mapper_fun = &set_column_db_row_position(&1, columns)
+    conditions = Enum.map(join.conditions, &map_where_clause(&1, mapper_fun))
+    lhs = compile_join_conditions_columns(join.lhs)
+    rhs = compile_join_conditions_columns(join.rhs)
+    {:join, %{join | conditions: conditions, lhs: lhs, rhs: rhs}}
+  end
+  defp compile_join_conditions_columns({:subquery, subquery}), do: {:subquery, subquery}
+
+  defp joined_columns({:join, join}) do
+    joined_columns(join.lhs) ++ joined_columns(join.rhs)
+  end
+  defp joined_columns({:subquery, subquery}) do
+    user_id = Enum.find(subquery.ast.db_columns, &(&1.user_id?))
+    columns =
+        Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
+        |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
+    table = %{
+      name: subquery.alias,
+      db_name: subquery.alias,
+      columns: columns,
+      user_id: user_id.alias || user_id.name,
+      decoders: [],
+      projection: nil
+    }
+    Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
+    |> Enum.map(fn ({alias, column}) ->
+      %Column{table: table, name: alias, type: Function.type(column), user_id?: user_id == column}
+    end)
+  end
+
+  # The DBEmulator modules doesn't know how to select a table directly, so we need
+  # to replace any direct references to joined table with the equivalent subquery.
+  defp replace_joined_tables_with_subqueries(table_name, columns, parrent_query) when is_binary(table_name) do
+    columns = for %Column{table: %{name: ^table_name}} = column <- columns, do:
+      {{:identifier, :unknown, {:quoted, column.name}}, :as, column.alias || column.name}
+    query =
+      %{command: :select, columns: columns, from: {:quoted, table_name}}
+      |> compiled_subquery(table_name, parrent_query)
+    {:subquery, %{type: :parsed, ast: query, alias: table_name}}
+  end
+  defp replace_joined_tables_with_subqueries({:subquery, subquery}, _columns, _parrent_query), do: {:subquery, subquery}
+  defp replace_joined_tables_with_subqueries({:join, join}, db_columns, parrent_query) do
+    on_columns = Enum.flat_map(join.conditions, &extract_columns/1)
+    columns = Enum.uniq_by(db_columns ++ on_columns, &db_column_name/1)
+    lhs = replace_joined_tables_with_subqueries(join.lhs, columns, parrent_query)
+    rhs = replace_joined_tables_with_subqueries(join.rhs, columns, parrent_query)
+    {:join, %{join | lhs: lhs, rhs: rhs}}
+  end
 
 
   # -------------------------------------------------------------------
