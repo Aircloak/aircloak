@@ -102,7 +102,7 @@ defmodule Cloak.Aql.Query do
   @spec make(DataSource.t, String.t, [DataSource.field], view_map) ::
     {:ok, t} | {:error, String.t}
   def make(data_source, string, parameters, views) do
-    with {:ok, parsed_query} <- Parser.parse(data_source, string) do
+    with {:ok, parsed_query} <- Parser.parse(string) do
       Compiler.compile(data_source, parsed_query, parameters, views)
     end
   end
@@ -154,7 +154,7 @@ defmodule Cloak.Aql.Query do
     {:error, field :: atom, reason :: String.t}
   def validate_view(data_source, name, sql, views) do
     with :ok <- view_name_ok?(data_source, name),
-         {:ok, parsed_query} <- Parser.parse(data_source, sql),
+         {:ok, parsed_query} <- Parser.parse(sql),
          {:ok, compiled_query} <- Compiler.validate_view(data_source, parsed_query, views)
     do
       {:ok,

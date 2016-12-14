@@ -3,9 +3,6 @@ defmodule Cloak.Aql.Parser.Test do
 
   alias Cloak.Aql.Parser
 
-  @psql_data_source %{driver: Cloak.DataSource.PostgreSQL}
-  @ds_proxy_data_source %{driver: Cloak.DataSource.DsProxy}
-
 
   # -------------------------------------------------------------------
   # Helper macros
@@ -18,22 +15,21 @@ defmodule Cloak.Aql.Parser.Test do
   # each element in the ast.
 
   # Runs the query string and asserts it matches to the given pattern.
-  defmacrop assert_parse(query_string, expected_pattern, data_source \\ quote(do: @psql_data_source)) do
+  defmacrop assert_parse(query_string, expected_pattern) do
     quote do
-      assert unquote(expected_pattern) = Parser.parse!(unquote(data_source), unquote(query_string))
+      assert unquote(expected_pattern) = Parser.parse!(unquote(query_string))
     end
   end
 
-  defmacrop assert_equal_parse(query1, query2, data_source \\ quote(do: @psql_data_source)) do
+  defmacrop assert_equal_parse(query1, query2) do
     quote do
-      assert Parser.parse(unquote(data_source), unquote(query1)) ==
-        Parser.parse(unquote(data_source), unquote(query2))
+      assert Parser.parse(unquote(query1)) == Parser.parse(unquote(query2))
     end
   end
 
-  defmacrop assert_parse_error(query_string, expected_pattern, data_source \\ quote(do: @psql_data_source)) do
+  defmacrop assert_parse_error(query_string, expected_pattern) do
     quote do
-      assert {:error, unquote(expected_pattern)} = Parser.parse(unquote(data_source), unquote(query_string))
+      assert {:error, unquote(expected_pattern)} = Parser.parse(unquote(query_string))
     end
   end
 
@@ -824,9 +820,9 @@ defmodule Cloak.Aql.Parser.Test do
   end
 
   create_test =
-    fn(description, data_source, statement, expected_error, line, column) ->
+    fn(description, statement, expected_error, line, column) ->
       test description do
-        assert {:error, reason} = Parser.parse(unquote(data_source), unquote(statement))
+        assert {:error, reason} = Parser.parse(unquote(statement))
         assert reason =~ unquote(expected_error)
         assert reason =~ "line #{unquote(line)}, column #{unquote(column)}\."
       end
@@ -932,9 +928,7 @@ defmodule Cloak.Aql.Parser.Test do
     ],
     fn
       {description, statement, expected_error, {line, column}} ->
-        create_test.(description, quote(do: @psql_data_source), statement, expected_error, line, column)
-      {description, data_source, statement, expected_error, {line, column}} ->
-        create_test.(description, data_source, statement, expected_error, line, column)
+        create_test.(description, statement, expected_error, line, column)
     end
   )
 end

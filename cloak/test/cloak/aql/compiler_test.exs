@@ -712,13 +712,13 @@ defmodule Cloak.Aql.Compiler.Test do
   end
 
   defp compile(query_string, data_source, options \\ [], features \\ Cloak.Features.from_config) do
-    query = Parser.parse!(data_source, query_string)
+    query = Parser.parse!(query_string)
     Compiler.compile(data_source, query, Keyword.get(options, :parameters, []),
       Keyword.get(options, :views, %{}), features)
   end
 
   defp validate_view(view_sql, data_source, options \\ []) do
-    with {:ok, parsed_view} <- Parser.parse(data_source, view_sql), do:
+    with {:ok, parsed_view} <- Parser.parse(view_sql), do:
       Compiler.validate_view(data_source, parsed_view, Keyword.get(options, :views, %{}))
   end
 
