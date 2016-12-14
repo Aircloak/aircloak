@@ -843,7 +843,10 @@ defmodule Cloak.Aql.Compiler do
     %{query | ranges:
       query
       |> get_in([direct_subqueries() |> parsed() |> Lens.key(:ast) |> Lens.key(:ranges)])
-      |> Enum.reduce(query.ranges, &Map.merge/2)
+      |> Enum.flat_map(fn(ranges) ->
+        Enum.map(ranges, fn({column, range}) -> {%Column{name: column.alias}, range} end)
+      end)
+      |> Enum.into(query.ranges)
     }
   end
 
