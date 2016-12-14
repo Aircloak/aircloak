@@ -563,9 +563,9 @@ Types can be converted according to the following tables:
 | integer   | ✓    | ✓       | ✓    | ✓       |
 | real      | ✓    | ✓       | ✓    | ✓       |
 | boolean   | ✓    | ✓       | ✓    | ✓       |
-| date      | ✓    |         |      |         |
-| time      | ✓    |         |      |         |
-| datetime  | ✓    |         |      |         |
+| date      |      |         |      |         |
+| time      |      |         |      |         |
+| datetime  |      |         |      |         |
 | interval  | ✓    |         |      |         |
 
 |           |      |      |           |          |
