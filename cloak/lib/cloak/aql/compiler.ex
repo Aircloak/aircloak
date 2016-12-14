@@ -97,7 +97,7 @@ defmodule Cloak.Aql.Compiler do
   end
   defp compile_prepped_query(%Query{command: :show} = query) do
     try do
-      {:ok, query |> resolve_views() |> compile_subqueries() |> compile_tables()}
+      {:ok, compile_from(query)}
     rescue
       e in CompilationError -> {:error, e.message}
     end
@@ -105,9 +105,7 @@ defmodule Cloak.Aql.Compiler do
   defp compile_prepped_query(query) do
     try do
       query = query
-      |> resolve_views()
-      |> compile_subqueries()
-      |> compile_tables()
+      |> compile_from()
       |> compile_columns()
       |> reject_null_user_ids()
       |> verify_columns()
@@ -187,6 +185,59 @@ defmodule Cloak.Aql.Compiler do
       {:error, error} -> raise CompilationError, message: "Error in the view `#{view_name}`: #{error}"
     end
   end
+
+
+  # -------------------------------------------------------------------
+  # Projected tables
+  # -------------------------------------------------------------------
+
+  defp resolve_projected_tables(%Query{from: nil} = query), do: query
+  defp resolve_projected_tables(%Query{projected?: true} = query), do: query
+  defp resolve_projected_tables(query), do:
+    Lens.map(leaf_tables(), query, &resolve_projected_table(&1, query))
+
+  defp resolve_projected_table(table_name, query) do
+    case DataSource.table(query.data_source, table_name) do
+      %{projection: nil} -> table_name
+      projected_table -> projected_table_ast(projected_table, query)
+    end
+  end
+
+  defp projected_table_ast(%{projection: nil} = table, _query), do:
+    {:quoted, table.name}
+  defp projected_table_ast(table, query) do
+    joined_table = DataSource.table(query.data_source, table.projection.table)
+
+    {:subquery, %{
+      type: :parsed,
+      alias: table.name,
+      ast: %{
+        command: :select,
+        projected?: true,
+        columns:
+          [column_ast(joined_table.name, joined_table.user_id) |
+            table.columns
+            |> Enum.map(fn({column_name, _type}) -> column_name end)
+            |> Enum.reject(&(&1 == table.user_id))
+            |> Enum.map(&column_ast(table.name, &1))
+          ],
+        from:
+          {:join, %{
+            type: :inner_join,
+            lhs: {:quoted, table.name},
+            rhs: projected_table_ast(joined_table, query),
+            conditions: [{:comparison,
+              column_ast(table.name, table.projection.foreign_key),
+              :=,
+              column_ast(joined_table.name, table.projection.primary_key)
+            }]
+          }}
+      }
+    }}
+  end
+
+  defp column_ast(table_name, column_name), do:
+    {:identifier, {:quoted, table_name}, {:quoted, column_name}}
 
 
   # -------------------------------------------------------------------
@@ -272,19 +323,22 @@ defmodule Cloak.Aql.Compiler do
   # Normal validators and compilers
   # -------------------------------------------------------------------
 
-  defp compile_tables(%Query{from: nil} = query), do: query
-  defp compile_tables(query) do
-    normalized = normalize_from(query.from, query.data_source)
-    %Query{query |
-      from: normalized,
-      selected_tables: selected_tables(normalized, query.data_source),
-    }
-  end
+  defp compile_from(query), do:
+    query
+    |> resolve_views()
+    |> normalize_from()
+    |> resolve_projected_tables()
+    |> compile_subqueries()
+    |> resolve_selected_tables()
+
+  defp normalize_from(%Query{from: nil} = query), do: query
+  defp normalize_from(%Query{} = query), do:
+    %Query{query | from: normalize_from(query.from, query.data_source)}
 
   defp normalize_from({:join, join = %{lhs: lhs, rhs: rhs}}, data_source) do
     {:join, %{join | lhs: normalize_from(lhs, data_source), rhs: normalize_from(rhs, data_source)}}
   end
-  defp normalize_from(already_compiled_subquery = {:subquery, _}, _data_source), do: already_compiled_subquery
+  defp normalize_from(subquery = {:subquery, _}, _data_source), do: subquery
   defp normalize_from(table_identifier = {_, table_name}, data_source) do
     case table(data_source, table_identifier) do
       nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
@@ -302,6 +356,10 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
+  defp resolve_selected_tables(%Query{from: nil} = query), do: query
+  defp resolve_selected_tables(query), do:
+    %Query{query | selected_tables: selected_tables(query.from, query.data_source)}
+
   defp selected_tables({:join, join}, data_source) do
     selected_tables(join.lhs, data_source) ++ selected_tables(join.rhs, data_source)
   end
@@ -315,7 +373,8 @@ defmodule Cloak.Aql.Compiler do
       db_name: subquery.alias,
       columns: columns,
       user_id: user_id.alias || user_id.name,
-      decoders: []
+      decoders: [],
+      projection: nil
     }]
   end
   defp selected_tables(table_name, data_source) when is_binary(table_name) do
@@ -725,6 +784,7 @@ defmodule Cloak.Aql.Compiler do
   defp encoded_column_condition?(condition), do:
     Comparison.verb(condition) != :is and Comparison.subject(condition) |> DataDecoder.needs_decoding?()
 
+  defp verify_joins(%Query{projected?: true} = query), do: query
   defp verify_joins(query) do
     join_conditions_scope_check(query.from)
     Enum.each(all_join_conditions(query.from), &verify_supported_join_condition/1)
@@ -1088,11 +1148,14 @@ defmodule Cloak.Aql.Compiler do
 
   defp calculate_db_columns(query) do
     db_columns =
-      (select_expressions(query) ++ Map.keys(query.ranges))
+      (select_expressions(query) ++ range_columns(query))
       |> Enum.uniq_by(&db_column_name/1)
     %Query{query | db_columns: db_columns}
     |> map_terminal_elements(&set_column_db_row_position(&1, db_columns))
   end
+
+  defp range_columns(%{subquery?: true}), do: []
+  defp range_columns(%{subquery?: false, ranges: ranges}), do: Map.keys(ranges)
 
   defp select_expressions(%Query{command: :select, subquery?: true, emulated?: false} = query) do
     Enum.zip(query.column_titles, query.columns)
@@ -1132,6 +1195,8 @@ defmodule Cloak.Aql.Compiler do
       {_, type} = Enum.find(table.columns, fn ({name, _type}) -> insensitive_equal?(user_id, name) end)
       %Column{table: table, name: user_id, type: type, user_id?: true}
     end)
+    # ignore projected tables, since their id columns do not exist in the table
+    |> Enum.reject(&(&1.table.projection != nil))
   end
 
   defp any_outer_join?(table) when is_binary(table), do: false
@@ -1293,7 +1358,8 @@ defmodule Cloak.Aql.Compiler do
       db_name: subquery.alias,
       columns: columns,
       user_id: user_id.alias || user_id.name,
-      decoders: []
+      decoders: [],
+      projection: nil
     }
     Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
     |> Enum.map(fn ({alias, column}) ->
@@ -1360,6 +1426,16 @@ defmodule Cloak.Aql.Compiler do
       {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_direct_subqueries()
       {:subquery, _} -> Lens.at(1)
       _ -> Lens.empty()
+    end)
+  end
+
+  deflens leaf_tables, do: Lens.key(:from) |> do_leaf_tables()
+
+  deflens do_leaf_tables() do
+    Lens.match(fn
+      {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_leaf_tables()
+      {:subquery, _} -> Lens.empty()
+      table when is_binary(table) -> Lens.root()
     end)
   end
 end

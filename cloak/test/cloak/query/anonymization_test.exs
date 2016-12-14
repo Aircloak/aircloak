@@ -25,4 +25,18 @@ defmodule Cloak.Query.AnonymizationTest do
     assert_query "select count(*) from anonymizations where number >= 0 and number < 20",
       %{columns: ["count"], rows: [%{row: [100]}]}
   end
+
+  test "range in subquery" do
+    :ok = insert_rows(_user_ids = 1..100, "anonymizations", ["number"], [180])
+
+    assert_query("""
+      SELECT avg(foo)
+      FROM (
+        SELECT user_id, sum(number) as foo
+        FROM anonymizations
+        WHERE number > 0 and number < 200
+        GROUP BY user_id
+      ) x
+    """, %{columns: ["avg"], rows: [%{row: [180.0]}]})
+  end
 end

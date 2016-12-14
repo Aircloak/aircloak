@@ -52,7 +52,8 @@ defmodule Cloak.DataSource do
     user_id: String.t,
     ignore_unsupported_types: boolean,
     columns: [{column, data_type}],
-    decoders: [DataDecoder.t]
+    decoders: [DataDecoder.t],
+    projection: %{table: String.t, primary_key: String.t, foreign_key: String.t} | nil
   }
   @type num_rows :: non_neg_integer
   @type column :: String.t
@@ -253,14 +254,19 @@ defmodule Cloak.DataSource do
         |> Map.put_new(:decoders, [])
       end)
       |> Enum.flat_map(&driver.load_tables(connection, &1))
+      |> Enum.map(&normalize_table_map/1)
       |> Enum.map(&parse_columns(data_source, &1))
       |> Enum.map(&DataDecoder.init/1)
       |> Enum.map(&{String.to_atom(&1.name), &1})
       |> Enum.into(%{})
+      |> resolve_projected_tables(data_source)
     after
       driver.disconnect(connection)
     end
   end
+
+  defp normalize_table_map(table_map), do:
+    Map.merge(%{user_id: nil, projection: nil}, table_map)
 
   defp parse_columns(data_source, table) do
     table.columns
@@ -286,6 +292,7 @@ defmodule Cloak.DataSource do
     end
   end
 
+  defp verify_user_id(%{projection: _}, _columns), do: :ok
   defp verify_user_id(table, columns) do
     user_id = table.user_id
     case List.keyfind(columns, user_id, 0) do
@@ -322,6 +329,79 @@ defmodule Cloak.DataSource do
       nil
     else
       raise "#{msg}\nTo ignore these columns set `ignore_unsupported_types: true` in your table settings"
+    end
+  end
+
+  defp resolve_projected_tables(tables_map, data_source), do:
+    tables_map
+    |> Map.keys()
+    |> Enum.reduce(tables_map, &resolve_projected_table(&2, Map.fetch!(&2, &1), data_source))
+
+  defp resolve_projected_table(tables_map, %{projection: nil}, _data_source), do:
+    tables_map
+  defp resolve_projected_table(tables_map, %{user_id: uid, columns: [{uid, _} | _]}, _data_source), do:
+    # uid column is resolved
+    tables_map
+  defp resolve_projected_table(tables_map, table, data_source) do
+    case validate_projection(tables_map, table) do
+      {:ok, referenced_table} ->
+        # recursively resolve dependent table (this allows the dependent table to be projected as well)
+        tables_map = resolve_projected_table(tables_map, referenced_table, data_source)
+        # refetch the table, since it's maybe updated
+        referenced_table = Map.fetch!(tables_map, String.to_atom(referenced_table.name))
+
+        uid_column_name = referenced_table.user_id
+        uid_column = List.keyfind(referenced_table.columns, uid_column_name, 0)
+
+        Map.put(tables_map, String.to_atom(table.name),
+          table
+          |> Map.put(:user_id, uid_column_name)
+          |> update_in([:columns], &[uid_column | &1])
+        )
+
+      {:error, reason} ->
+        Logger.error("Invalid projection in table `#{table.db_name}` in data source " <>
+          "`#{data_source.global_id}`: #{reason}.")
+        Map.delete(tables_map, String.to_atom(table.name))
+    end
+  end
+
+  defp validate_projection(tables_map, table) do
+    with :ok <- validate_foreign_key(table),
+         {:ok, referenced_table} <- validate_referenced_table(tables_map, table),
+         :ok <- validate_primary_key(table, referenced_table),
+    do: {:ok, referenced_table}
+  end
+
+  defp validate_referenced_table(tables_map, table) do
+    case Map.fetch(tables_map, String.to_atom(table.projection.table)) do
+      :error -> {:error, "referenced table `#{table.projection.table}` not found."}
+      {:ok, referenced_table} -> {:ok, referenced_table}
+    end
+  end
+
+  defp validate_foreign_key(table) do
+    case List.keyfind(table.columns, table.projection.foreign_key, 0) do
+      nil -> {:error, "foreign key column `#{table.projection.foreign_key}` doesn't exist"}
+      _ -> :ok
+    end
+  end
+
+  defp validate_primary_key(table, referenced_table) do
+    {_, foreign_key_type} = List.keyfind(table.columns, table.projection.foreign_key, 0)
+    case List.keyfind(referenced_table.columns, table.projection.primary_key, 0) do
+      nil ->
+        {
+          :error,
+          "primary key column `#{table.projection.primary_key}` not found in table " <>
+            "`#{referenced_table.db_name}`"
+        }
+      {_, primary_key_type} when primary_key_type != foreign_key_type ->
+        {
+          :error,
+          "foreign key type is `#{foreign_key_type}` while primary key type is `#{primary_key_type}`"
+        }
+      {_, ^foreign_key_type} -> :ok
     end
   end
 end
