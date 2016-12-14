@@ -259,11 +259,6 @@ defmodule Cloak.Aql.Compiler.Test do
     )
   end
 
-  test "rejecting outer where clause in queries unchecked sub-select" do
-    assert {:error, "WHERE-clause in outer SELECT is not allowed in combination with a subquery."} =
-      compile("SELECT a FROM (unchecked inner select) t WHERE a > 10", data_source(Cloak.DataSource.DsProxy))
-  end
-
   test "rejecting missing column" do
     assert {:error, "Column `a` doesn't exist in table `table`."} =
       compile("SELECT a FROM table", data_source())

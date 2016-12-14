@@ -40,7 +40,7 @@ defmodule Cloak.Aql.Parser do
 
   @type having_clause :: {:comparison, column, comparator, any}
 
-  @type from_clause :: table | parsed_subquery | unparsed_subquery | join
+  @type from_clause :: table | parsed_subquery | join
 
   @type table :: unqualified_identifier
 
@@ -53,7 +53,6 @@ defmodule Cloak.Aql.Parser do
     }}
 
   @type parsed_subquery :: {:subquery, %{type: :parsed, ast: parsed_query, alias: String.t}}
-  @type unparsed_subquery :: {:subquery, %{type: :unparsed, unparsed_string: String.t}}
 
   @type parsed_query :: %{
     command: :select | :show,
@@ -88,8 +87,7 @@ defmodule Cloak.Aql.Parser do
     with {:ok, tokens} <- Cloak.Aql.Lexer.tokenize(string) do
       case parse_tokens(tokens, parser(data_source)) do
         {:error, _} = error -> error
-        [statement] ->
-          {:ok, map_unparsed_subquery(statement, string)}
+        [statement] -> {:ok, statement}
       end
     end
   end
@@ -97,17 +95,6 @@ defmodule Cloak.Aql.Parser do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp map_unparsed_subquery(%{from: {:subquery, {:unparsed, from, from}}} = statement, _statement_string) do
-    %{statement | from: {:subquery, %{type: :unparsed, unparsed_string: ""}}}
-  end
-  defp map_unparsed_subquery(%{from: {:subquery, {:unparsed, from, to}}} = statement, statement_string) do
-    %{statement | from: {
-      :subquery,
-      %{type: :unparsed, unparsed_string: String.slice(statement_string, from..(to - 1))}
-    }}
-  end
-  defp map_unparsed_subquery(statement, _statement_string), do: statement
 
   defp parser(data_source) do
     statement(data_source)
@@ -539,7 +526,7 @@ defmodule Cloak.Aql.Parser do
     )
   end
 
-  defp parsed_subquery(data_source) do
+  defp subquery(data_source) do
     sequence([
       ignore(keyword(:select)),
       lazy(fn -> select_statement(data_source) end),
@@ -552,30 +539,6 @@ defmodule Cloak.Aql.Parser do
             %{type: :parsed, ast: statement_map(:select, select_statement), alias: alias}
           end
         )
-  end
-
-  defp subquery(%{driver: Cloak.DataSource.DsProxy}), do: unparsed_subquery()
-  defp subquery(other_data_source), do: parsed_subquery(other_data_source)
-
-  defp unparsed_subquery() do
-    sequence([
-      token_offset(),
-      ignore(many1(unparsed_subquery_token()) |> label("subquery expression")),
-      token_offset(),
-      ignore(keyword(:")")),
-      ignore(
-        sequence([option(keyword(:as)), identifier()])
-        |> label("subquery alias")
-      )
-    ])
-    |> map(fn([from, to]) -> {:unparsed, from, to} end)
-  end
-
-  defp unparsed_subquery_token() do
-    either_deepest_error(
-      sequence([keyword(:"("), lazy(fn -> many(unparsed_subquery_token()) end), keyword(:")")]),
-      any_token() |> satisfy(&(&1.category != :")" && &1.category != :eof))
-    )
   end
 
   defp table_with_schema() do

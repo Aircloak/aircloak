@@ -76,12 +76,6 @@ defmodule Cloak.Aql.Parser.Test do
     end
   end
 
-  defmacrop unparsed_subquery(value) do
-    quote do
-      {:subquery, %{type: :unparsed, unparsed_string: unquote(value)}}
-    end
-  end
-
   defmacrop identifier(name) do
     quote do
       {:identifier, _, unquoted(unquote(name))}
@@ -468,58 +462,6 @@ defmodule Cloak.Aql.Parser.Test do
       )
     )
     assert select(columns: [identifier("foo")], from: unquoted("baz")) = sq
-  end
-
-  test "unparsed subquery sql" do
-    assert_parse(
-      "select foo from (select bar from baz) alias",
-      select(columns: [identifier("foo")], from: unparsed_subquery("select bar from baz")),
-      @ds_proxy_data_source
-    )
-  end
-
-  test "unparsed subquery sql with AS" do
-    assert_parse(
-      "select foo from (select bar from baz) as alias",
-      select(columns: [identifier("foo")], from: unparsed_subquery("select bar from baz")),
-      @ds_proxy_data_source
-    )
-  end
-
-  test "subquery sql with semicolon" do
-    assert_parse(
-      "select foo from (select bar from baz) alias;",
-      select(columns: [identifier("foo")], from: unparsed_subquery("select bar from baz")),
-      @ds_proxy_data_source
-    )
-  end
-
-  test "unparsed subquery sql with an unknown token" do
-    assert_parse(
-      "select foo from (select `bar` from baz) alias",
-      select(columns: [identifier("foo")], from: unparsed_subquery("select `bar` from baz")),
-      @ds_proxy_data_source
-    )
-  end
-
-  test "unparsed subquery sql with parens" do
-    assert_parse(
-      "select foo from (select bar, cast(now() as text) from baz) alias",
-      select(
-        columns: [identifier("foo")],
-        from: unparsed_subquery("select bar, cast(now() as text) from baz")
-      ),
-      @ds_proxy_data_source
-    )
-  end
-
-  test "unparsed subquery sql with newlines" do
-    assert_parse(
-      "select foo from (select bar\n, \n\ncast(now()\n as text) from baz\n) alias",
-      select(columns: [identifier("foo")],
-        from: unparsed_subquery("select bar\n, \n\ncast(now()\n as text) from baz\n")),
-      @ds_proxy_data_source
-    )
   end
 
   test "count(distinct column)" do
@@ -987,15 +929,6 @@ defmodule Cloak.Aql.Parser.Test do
         "select bucket(foo by bar) from baz", "Expected `numeric constant`", {1, 22}},
       {"bad bucket align part",
         "select bucket(foo by 10 by) from baz", "Expected `)`", {1, 25}},
-      # unparsed subqueries
-      {"unclosed parens in an unparsed subquery expression", quote(do: @ds_proxy_data_source),
-        "select foo from (select bar from baz", "Expected `)`", {1, 37}},
-      {"empty unparsed subquery expression", quote(do: @ds_proxy_data_source),
-        "select foo from ()", "Expected `subquery expression`", {1, 18}},
-      {"missing alias in an unparsed subquery expression", quote(do: @ds_proxy_data_source),
-        "select foo from (select bar from baz)", "Expected `subquery alias`", {1, 38}},
-      {"missing alias after AS in an unparsed subquery expression", quote(do: @ds_proxy_data_source),
-        "select foo from (select bar from baz) AS", "Expected `subquery alias`", {1, 41}},
     ],
     fn
       {description, statement, expected_error, {line, column}} ->
