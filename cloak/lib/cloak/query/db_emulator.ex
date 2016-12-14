@@ -216,9 +216,9 @@ defmodule Cloak.Query.DBEmulator do
 
   defp add_suffix_to_rows(stream, row), do: Stream.map(stream, & &1 ++ row)
 
-  def cross_join(lhs, rhs), do: Stream.flat_map(lhs, &add_prefix_to_rows(rhs, &1))
+  defp cross_join(lhs, rhs), do: Stream.flat_map(lhs, &add_prefix_to_rows(rhs, &1))
 
-  def inner_join(lhs, rhs, join) do
+  defp inner_join(lhs, rhs, join) do
     filters = Enum.map(join.conditions, &Comparison.to_function/1)
     Stream.flat_map(lhs, fn (lhs_row) ->
       rhs
@@ -227,50 +227,39 @@ defmodule Cloak.Query.DBEmulator do
     end)
   end
 
-  def left_join(lhs, rhs, join) do
-    filters = Enum.map(join.conditions, &Comparison.to_function/1)
+  defp left_join(lhs, rhs, join) do
     rhs_null_row = List.duplicate(nil, joined_row_size(join.rhs))
+    outer_join(lhs, rhs, join.conditions, &add_prefix_to_rows/2, fn
+      ([], row) -> [row ++ rhs_null_row]
+      (joined_rows, _row) -> joined_rows
+    end)
+  end
+
+  defp right_join(lhs, rhs, join) do
+    lhs_null_row = List.duplicate(nil, joined_row_size(join.lhs))
+    outer_join(rhs, lhs, join.conditions, &add_suffix_to_rows/2, fn
+      ([], row) -> [lhs_null_row ++ row]
+      (joined_rows, _row) -> joined_rows
+    end)
+  end
+
+  defp outer_join(lhs, rhs, conditions, rows_combiner, empty_handler) do
+    filters = Enum.map(conditions, &Comparison.to_function/1)
     Stream.flat_map(lhs, fn (lhs_row) ->
       rhs
-      |> add_prefix_to_rows(lhs_row)
+      |> rows_combiner.(lhs_row)
       |> apply_filters(filters)
       |> Enum.to_list()
-      |> case do
-        [] -> [lhs_row ++ rhs_null_row]
-        joined_rows -> joined_rows
-      end
+      |> empty_handler.(lhs_row)
     end)
   end
 
-  def right_join(lhs, rhs, join) do
-    filters = Enum.map(join.conditions, &Comparison.to_function/1)
+  defp full_join(lhs, rhs, join) do
     lhs_null_row = List.duplicate(nil, joined_row_size(join.lhs))
-    Stream.flat_map(rhs, fn (rhs_row) ->
-      lhs
-      |> add_suffix_to_rows(rhs_row)
-      |> apply_filters(filters)
-      |> Enum.to_list()
-      |> case do
-        [] -> [lhs_null_row ++ rhs_row]
-        joined_rows -> joined_rows
-      end
+    unmatched_rhs = outer_join(rhs, lhs, join.conditions, &add_suffix_to_rows/2, fn
+      ([], row) -> [lhs_null_row ++ row]
+      (_joined_rows, _row) -> []
     end)
-  end
-
-  def full_join(lhs, rhs, join) do
-    filters = Enum.map(join.conditions, &Comparison.to_function/1)
-    lhs_null_row = List.duplicate(nil, joined_row_size(join.lhs))
-    unmatched_rhs =
-      Stream.flat_map(rhs, fn (rhs_row) ->
-        lhs
-        |> add_suffix_to_rows(rhs_row)
-        |> apply_filters(filters)
-        |> Enum.to_list()
-        |> case do
-          [] -> [lhs_null_row ++ rhs_row]
-          _joined_rows -> []
-        end
-      end)
     lhs |> left_join(rhs, join) |> Stream.concat(unmatched_rhs)
   end
 end
