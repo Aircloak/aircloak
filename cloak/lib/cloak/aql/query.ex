@@ -58,7 +58,6 @@ defmodule Cloak.Aql.Query do
     order_by: [{pos_integer, :asc | :desc}],
     show: :tables | :columns,
     selected_tables: [DataSource.table],
-    mode: :parsed | :unparsed,
     db_columns: [Column.t],
     from: Parser.from_clause | nil,
     subquery?: boolean,
@@ -76,7 +75,7 @@ defmodule Cloak.Aql.Query do
   defstruct [
     columns: [], where: [], lcf_check_conditions: [], unsafe_filter_columns: [], group_by: [],
     order_by: [], column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
-    row_splitters: [], implicit_count?: false, data_source: nil, command: nil, show: nil, mode: nil,
+    row_splitters: [], implicit_count?: false, data_source: nil, command: nil, show: nil,
     db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
     features: nil, encoded_where: [], ranges: %{}, parameters: [], views: %{}, emulated?: false,
     projected?: false
