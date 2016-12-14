@@ -2,7 +2,6 @@ defmodule Cloak.Aql.Parser do
   @moduledoc "Parser for SQL queries."
   import Combine.Parsers.Base
   import Cloak.Aql.Parsers
-  alias Cloak.DataSource
 
   @type comparator ::
       :=
@@ -40,7 +39,7 @@ defmodule Cloak.Aql.Parser do
 
   @type having_clause :: {:comparison, column, comparator, any}
 
-  @type from_clause :: table | parsed_subquery | unparsed_subquery | join
+  @type from_clause :: table | subquery | join
 
   @type table :: unqualified_identifier
 
@@ -52,8 +51,7 @@ defmodule Cloak.Aql.Parser do
       conditions: [where_clause]
     }}
 
-  @type parsed_subquery :: {:subquery, %{type: :parsed, ast: parsed_query, alias: String.t}}
-  @type unparsed_subquery :: {:subquery, %{type: :unparsed, unparsed_string: String.t}}
+  @type subquery :: {:subquery, %{ast: parsed_query, alias: String.t}}
 
   @type parsed_query :: %{
     command: :select | :show,
@@ -76,20 +74,19 @@ defmodule Cloak.Aql.Parser do
   # -------------------------------------------------------------------
 
   @doc "Parses a SQL query in text form. Raises on error."
-  @spec parse!(DataSource.t, String.t) :: parsed_query
-  def parse!(data_source, string) do
-    {:ok, query} = parse(data_source, string)
+  @spec parse!(String.t) :: parsed_query
+  def parse!(string) do
+    {:ok, query} = parse(string)
     query
   end
 
   @doc "Parses a SQL query in text form."
-  @spec parse(DataSource.t, String.t) :: {:ok, parsed_query} | {:error, any}
-  def parse(data_source, string) do
+  @spec parse(String.t) :: {:ok, parsed_query} | {:error, any}
+  def parse(string) do
     with {:ok, tokens} <- Cloak.Aql.Lexer.tokenize(string) do
-      case parse_tokens(tokens, parser(data_source)) do
+      case parse_tokens(tokens, parser()) do
         {:error, _} = error -> error
-        [statement] ->
-          {:ok, map_unparsed_subquery(statement, string)}
+        [statement] -> {:ok, statement}
       end
     end
   end
@@ -98,26 +95,15 @@ defmodule Cloak.Aql.Parser do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp map_unparsed_subquery(%{from: {:subquery, {:unparsed, from, from}}} = statement, _statement_string) do
-    %{statement | from: {:subquery, %{type: :unparsed, unparsed_string: ""}}}
-  end
-  defp map_unparsed_subquery(%{from: {:subquery, {:unparsed, from, to}}} = statement, statement_string) do
-    %{statement | from: {
-      :subquery,
-      %{type: :unparsed, unparsed_string: String.slice(statement_string, from..(to - 1))}
-    }}
-  end
-  defp map_unparsed_subquery(statement, _statement_string), do: statement
-
-  defp parser(data_source) do
-    statement(data_source)
+  defp parser() do
+    statement()
     |> statement_termination()
     |> end_of_input()
   end
 
-  defp statement(data_source) do
+  defp statement() do
     switch([
-      {keyword(:select), select_statement(data_source)},
+      {keyword(:select), select_statement()},
       {keyword(:show), show_statement()},
       {:else, error_message(fail(""), "Expected `select or show`")}
     ])
@@ -145,11 +131,11 @@ defmodule Cloak.Aql.Parser do
     |> map(fn({[show], data}) -> [{:show, show} | data] end)
   end
 
-  defp select_statement(data_source) do
+  defp select_statement() do
     sequence([
       optional_distinct(),
       select_columns(),
-      from(data_source),
+      from(),
       optional_where(),
       optional_group_by(),
       optional_having(),
@@ -438,16 +424,16 @@ defmodule Cloak.Aql.Parser do
     pair_both(keyword(:distinct), column())
   end
 
-  defp from(data_source) do
+  defp from() do
     pair_both(
       keyword(:from),
-      from_expression(data_source)
+      from_expression()
     )
   end
 
-  defp from_expression(data_source) do
+  defp from_expression() do
     map(
-      comma_delimited(join_expression(data_source) |> map(&join_ast/1)),
+      comma_delimited(join_expression() |> map(&join_ast/1)),
       &cross_joins/1
     )
   end
@@ -473,30 +459,30 @@ defmodule Cloak.Aql.Parser do
   defp cross_joins([table]), do: table
   defp cross_joins([clause | rest]), do: to_join(:cross_join, clause, cross_joins(rest))
 
-  defp join_expression(data_source) do
+  defp join_expression() do
     lazy(fn ->
       sequence([
-        table_or_subquery(data_source),
-        next_join(data_source)
+        table_or_subquery(),
+        next_join()
       ])
     end)
   end
 
-  defp join_expression_with_on_clause(data_source) do
+  defp join_expression_with_on_clause() do
     lazy(fn ->
       sequence([
-        table_or_subquery(data_source),
+        table_or_subquery(),
         keyword(:on),
         where_expressions(),
-        next_join(data_source)
+        next_join()
       ])
     end)
   end
 
-  defp next_join(data_source) do
+  defp next_join() do
     switch([
-      {cross_join(),join_expression(data_source)},
-      {either_deepest_error(inner_join(), outer_join()), join_expression_with_on_clause(data_source)},
+      {cross_join(),join_expression()},
+      {either_deepest_error(inner_join(), outer_join()), join_expression_with_on_clause()},
       {:else, noop()}
     ])
     |> map(&join_clause/1)
@@ -521,9 +507,9 @@ defmodule Cloak.Aql.Parser do
     |> replace(:"#{type}_outer_join")
   end
 
-  defp table_or_subquery(data_source) do
+  defp table_or_subquery() do
     switch([
-      {keyword(:"(") |> map(fn(_) -> :subquery end), subquery(data_source)},
+      {keyword(:"(") |> map(fn(_) -> :subquery end), subquery()},
       {:else, table_name()}
     ])
     |> map(fn
@@ -539,10 +525,10 @@ defmodule Cloak.Aql.Parser do
     )
   end
 
-  defp parsed_subquery(data_source) do
+  defp subquery() do
     sequence([
       ignore(keyword(:select)),
-      lazy(fn -> select_statement(data_source) end),
+      lazy(fn -> select_statement() end),
       ignore(keyword(:")")),
       option(keyword(:as)),
       label(unquoted_identifier(), "subquery alias")
@@ -552,30 +538,6 @@ defmodule Cloak.Aql.Parser do
             %{type: :parsed, ast: statement_map(:select, select_statement), alias: alias}
           end
         )
-  end
-
-  defp subquery(%{driver: Cloak.DataSource.DsProxy}), do: unparsed_subquery()
-  defp subquery(other_data_source), do: parsed_subquery(other_data_source)
-
-  defp unparsed_subquery() do
-    sequence([
-      token_offset(),
-      ignore(many1(unparsed_subquery_token()) |> label("subquery expression")),
-      token_offset(),
-      ignore(keyword(:")")),
-      ignore(
-        sequence([option(keyword(:as)), identifier()])
-        |> label("subquery alias")
-      )
-    ])
-    |> map(fn([from, to]) -> {:unparsed, from, to} end)
-  end
-
-  defp unparsed_subquery_token() do
-    either_deepest_error(
-      sequence([keyword(:"("), lazy(fn -> many(unparsed_subquery_token()) end), keyword(:")")]),
-      any_token() |> satisfy(&(&1.category != :")" && &1.category != :eof))
-    )
   end
 
   defp table_with_schema() do

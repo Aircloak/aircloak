@@ -47,7 +47,6 @@ defmodule Cloak.Aql.Compiler do
   defp to_prepped_query(parsed_query, data_source, features, parameters, views) do
     %Query{
       data_source: data_source,
-      mode: query_mode(data_source.driver, parsed_query[:from]),
       features: features,
       parameters: parameters,
       views: views
@@ -55,56 +54,13 @@ defmodule Cloak.Aql.Compiler do
     |> Map.merge(parsed_query)
   end
 
-  defp query_mode(Cloak.DataSource.DsProxy, {:subquery, %{type: :unparsed}}), do: :unparsed
-  defp query_mode(Cloak.DataSource.DsProxy, from) do
-    validate_dsproxy_from_for_parsed_query!(from)
-    :parsed
-  end
-  defp query_mode(_other_data_source, _from), do: :parsed
-
-  defp validate_dsproxy_from_for_parsed_query!(nil), do: :ok
-  defp validate_dsproxy_from_for_parsed_query!({:join, join}) do
-    validate_dsproxy_from_for_parsed_query!(join.lhs)
-    validate_dsproxy_from_for_parsed_query!(join.rhs)
-  end
-  defp validate_dsproxy_from_for_parsed_query!({:subquery, _}) do
-    raise CompilationError, message: "Joining subqueries is not supported for this data source."
-  end
-  defp validate_dsproxy_from_for_parsed_query!({_, table_name}) when is_binary(table_name), do: :ok
-
-  # Due to the blackbox nature of the subquery, there are a whole lot
-  # of validations we cannot do when using DS proxy. Conversely, there
-  # are also built in cloak functionality that we cannot provide, like
-  # regular, top level WHERE clauses.
-  # We therefore perform custom DS proxy validations, in order to
-  # keep the remaining validations clean, and free from having to
-  # consider the DS Proxy case.
-  defp compile_prepped_query(%Query{command: :select, mode: :unparsed} = query) do
-    ds_proxy_validate_no_wildcard(query)
-    ds_proxy_validate_no_where(query)
-    query = query
-    |> compile_columns()
-    |> verify_columns()
-    |> precompile_functions()
-    |> censor_selected_uids()
-    |> compile_order_by()
-    |> partition_selected_columns()
-    |> verify_having()
-    |> calculate_db_columns()
-    |> verify_limit()
-    |> verify_offset()
+  defp compile_prepped_query(%Query{command: :show, show: :tables} = query), do:
     {:ok, query}
-  end
-  defp compile_prepped_query(%Query{command: :show} = query) do
-    try do
-      {:ok, compile_from(query)}
-    rescue
-      e in CompilationError -> {:error, e.message}
-    end
-  end
-  defp compile_prepped_query(query) do
-    try do
-      query = query
+  defp compile_prepped_query(%Query{command: :show, show: :columns} = query), do:
+    {:ok, compile_from(query)}
+  defp compile_prepped_query(%Query{command: :select} = query), do:
+    {:ok,
+      query
       |> compile_from()
       |> compile_columns()
       |> reject_null_user_ids()
@@ -124,33 +80,13 @@ defmodule Cloak.Aql.Compiler do
       |> partition_row_splitters()
       |> verify_limit()
       |> verify_offset()
-      {:ok, query}
-    rescue
-      e in CompilationError -> {:error, e.message}
-    end
-  end
-
-
-  # -------------------------------------------------------------------
-  # DS Proxy validators.
-  # -------------------------------------------------------------------
-
-  defp ds_proxy_validate_no_wildcard(%Query{command: :select, columns: :*}) do
-    raise CompilationError, message: "Unfortunately wildcard selects are not supported together with subselects."
-  end
-  defp ds_proxy_validate_no_wildcard(_), do: :ok
-
-  defp ds_proxy_validate_no_where(%Query{where: []}), do: :ok
-  defp ds_proxy_validate_no_where(_) do
-    raise CompilationError, message: "WHERE-clause in outer SELECT is not allowed in combination with a subquery."
-  end
+    }
 
 
   # -------------------------------------------------------------------
   # Views
   # -------------------------------------------------------------------
 
-  defp resolve_views(%Query{from: nil} = query), do: query
   defp resolve_views(query) do
     compiled = do_resolve_views(query.from, query)
     %Query{query | from: compiled}
@@ -180,7 +116,7 @@ defmodule Cloak.Aql.Compiler do
         message: "There is both a table, and a view named `#{view_name}`. Rename the view to resolve the conflict."
     end
 
-    case Cloak.Aql.Parser.parse(query.data_source, view_sql) do
+    case Cloak.Aql.Parser.parse(view_sql) do
       {:ok, parsed_view} -> {:subquery, %{type: :parsed, ast: parsed_view, alias: view_name}}
       {:error, error} -> raise CompilationError, message: "Error in the view `#{view_name}`: #{error}"
     end
@@ -191,7 +127,6 @@ defmodule Cloak.Aql.Compiler do
   # Projected tables
   # -------------------------------------------------------------------
 
-  defp resolve_projected_tables(%Query{from: nil} = query), do: query
   defp resolve_projected_tables(%Query{projected?: true} = query), do: query
   defp resolve_projected_tables(query), do:
     Lens.map(leaf_tables(), query, &resolve_projected_table(&1, query))
@@ -244,7 +179,6 @@ defmodule Cloak.Aql.Compiler do
   # Subqueries
   # -------------------------------------------------------------------
 
-  defp compile_subqueries(%Query{from: nil} = query), do: query
   defp compile_subqueries(query) do
     {info, compiled} = Lens.get_and_map(direct_subqueries(), query, fn(subquery) ->
       ast = compiled_subquery(subquery.ast, subquery.alias, query)
@@ -331,7 +265,6 @@ defmodule Cloak.Aql.Compiler do
     |> compile_subqueries()
     |> resolve_selected_tables()
 
-  defp normalize_from(%Query{from: nil} = query), do: query
   defp normalize_from(%Query{} = query), do:
     %Query{query | from: normalize_from(query.from, query.data_source)}
 
@@ -356,7 +289,6 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp resolve_selected_tables(%Query{from: nil} = query), do: query
   defp resolve_selected_tables(query), do:
     %Query{query | selected_tables: selected_tables(query.from, query.data_source)}
 
@@ -404,7 +336,6 @@ defmodule Cloak.Aql.Compiler do
   # Subqueries can produce column-names that are not actually in the table. Without understanding what
   # is being produced by the subquery (currently it is being treated as a blackbox), we cannot validate
   # the outer column selections
-  defp verify_aliases(%Query{command: :select, mode: :unparsed}), do: :ok
   defp verify_aliases(query) do
     aliases = for {_column, :as, name} <- query.columns, do: name
     all_identifiers = aliases ++ all_column_identifiers(query)
@@ -502,7 +433,6 @@ defmodule Cloak.Aql.Compiler do
     query
   end
 
-  defp verify_function_arguments(%Query{mode: :unparsed}), do: :ok
   defp verify_function_arguments(query) do
     query.columns
     |> Enum.flat_map(&expand_arguments/1)
@@ -1032,8 +962,6 @@ defmodule Cloak.Aql.Compiler do
   end
   defp normalize_table_name(x, _), do: x
 
-  defp identifier_to_column({:identifier, :unknown, {_, column_name}}, _columns_by_name, %Query{mode: :unparsed}),
-    do: %Column{name: column_name, table: :unknown}
   defp identifier_to_column({:identifier, :unknown, identifier = {_, column_name}}, columns_by_name, _query) do
     case get_columns(columns_by_name, identifier) do
       [column] -> column
@@ -1184,11 +1112,6 @@ defmodule Cloak.Aql.Compiler do
   def cast_unknown_id(%Column{type: :unknown} = column), do: Column.db_function({:cast, :varbinary}, [column])
   def cast_unknown_id(column), do: column
 
-  defp all_id_columns_from_tables(%Query{command: :select, mode: :unparsed}) do
-    # We don't know the name of the user_id column for an unsafe query, so we're generating
-    # a fake one instead.
-    [%Column{table: :unknown, name: "__aircloak_user_id__", user_id?: true}]
-  end
   defp all_id_columns_from_tables(%Query{command: :select, selected_tables: tables}) do
     Enum.map(tables, fn(table) ->
       user_id = table.user_id
@@ -1321,7 +1244,7 @@ defmodule Cloak.Aql.Compiler do
   defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
   defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do: needs_decoding?(query)
   defp needs_emulation?(%Query{from: {:join, _}, data_source: %{driver: Cloak.DataSource.MongoDB}}), do: true
-  defp needs_emulation?(query), do: query |> get_in([direct_subqueries() |> parsed()]) |> Enum.any?(&(&1.ast.emulated?))
+  defp needs_emulation?(query), do: query |> get_in([direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?))
 
   defp compile_emulated_joins(%Query{emulated?: true, from: {:join, _}} = query) do
     from =
@@ -1416,8 +1339,6 @@ defmodule Cloak.Aql.Compiler do
   deflens splitter_functions(), do: terminal_elements() |> Lens.satisfy(&Function.row_splitting_function?/1)
 
   deflens buckets(), do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
-
-  def parsed(previous), do: Lens.satisfy(previous, &(&1.type == :parsed))
 
   deflens direct_subqueries(), do: Lens.key(:from) |> do_direct_subqueries()
 
