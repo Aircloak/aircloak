@@ -53,7 +53,7 @@ defmodule Cloak.Test.DB do
 
     Application.get_env(:cloak, :data_sources)
     |> Enum.map(&(&1 |> put_in([:tables, table_id], table) |> DataSource.add_tables()))
-    |> DataSource.cache_columns()
+    |> DataSource.store_to_cache()
   end
 
   # -------------------------------------------------------------------
@@ -82,7 +82,7 @@ defmodule Cloak.Test.DB do
   defp clear_test_tables() do
     Application.get_env(:cloak, :data_sources)
     |> Enum.map(&Map.put(&1, :tables, %{}))
-    |> DataSource.cache_columns()
+    |> DataSource.store_to_cache()
   end
 
   defp create_db_table(db_name, definition, opts) do

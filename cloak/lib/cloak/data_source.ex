@@ -103,16 +103,12 @@ defmodule Cloak.DataSource do
   the system will log corresponding errors.
   """
   @spec start() :: :ok
-  def start() do
-    data_sources = for data_source <- Aircloak.DeployConfig.fetch!("data_sources") do
-      data_source
-      |> atomize_keys()
-      |> generate_global_id()
-      |> map_driver()
-      |> add_tables()
-    end
-    cache_columns(data_sources)
-  end
+  def start(), do:
+    Aircloak.DeployConfig.fetch!("data_sources")
+    |> Enum.map(&to_data_source/1)
+    |> Enum.reject(&(&1.driver == nil))
+    |> Enum.map(&add_tables/1)
+    |> store_to_cache()
 
   @doc "Returns the list of defined data sources."
   @spec all() :: [t]
@@ -178,15 +174,23 @@ defmodule Cloak.DataSource do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
+  defp to_data_source(data_source_configuration), do:
+    data_source_configuration
+    |> atomize_keys()
+    |> generate_global_id()
+    |> map_driver()
+
   defp map_driver(data_source) do
     driver_module = case data_source.driver do
       "postgresql" -> Cloak.DataSource.PostgreSQL
       "mysql" -> Cloak.DataSource.MySQL
       "odbc" -> Cloak.DataSource.ODBC
       "mongodb" -> Cloak.DataSource.MongoDB
-      other -> raise("Unknown driver `#{other}` for data source `#{data_source.global_id}`")
+      other ->
+        Logger.error("Unknown driver `#{other}` for data source `#{data_source.global_id}`")
+        nil
     end
-    Map.merge(data_source, %{driver: driver_module})
+    Map.put(data_source, :driver, driver_module)
   end
 
   defp atomize_keys(%{} = map) do
@@ -231,7 +235,7 @@ defmodule Cloak.DataSource do
 
   @doc false
   # load the columns list for all defined tables in all data sources
-  def cache_columns(data_sources) do
+  def store_to_cache(data_sources) do
     Application.put_env(:cloak, :data_sources, data_sources)
   end
 
