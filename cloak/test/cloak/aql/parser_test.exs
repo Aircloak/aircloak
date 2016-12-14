@@ -66,7 +66,7 @@ defmodule Cloak.Aql.Parser.Test do
     Enum.map(values, &quote(do: constant(unquote(&1))))
   end
 
-  defmacrop parsed_subquery(value, alias) do
+  defmacrop subquery(value, alias) do
     quote do
       {:subquery, %{type: :parsed, ast: unquote(value), alias: unquote(alias)}}
     end
@@ -418,7 +418,7 @@ defmodule Cloak.Aql.Parser.Test do
   test "parsed subquery sql" do
     assert_parse(
       "select foo from (select foo from bar) alias",
-      select(columns: [identifier("foo")], from: parsed_subquery(subquery, "alias"))
+      select(columns: [identifier("foo")], from: subquery(subquery, "alias"))
     )
     assert select(columns: [identifier("foo")], from: unquoted("bar")) = subquery
   end
@@ -426,12 +426,12 @@ defmodule Cloak.Aql.Parser.Test do
   test "parsed nested subquery sql" do
     assert_parse(
       "select foo from (select foo from (select foo from bar) inner_alias) outer_alias",
-      select(columns: [identifier("foo")], from: parsed_subquery(subquery, "outer_alias"))
+      select(columns: [identifier("foo")], from: subquery(subquery, "outer_alias"))
     )
 
     assert select(
       columns: [identifier("foo")],
-      from: parsed_subquery(inner_subquery, "inner_alias")
+      from: subquery(inner_subquery, "inner_alias")
     ) = subquery
 
     assert select(columns: [identifier("foo")], from: unquoted("bar")) = inner_subquery
@@ -442,7 +442,7 @@ defmodule Cloak.Aql.Parser.Test do
       "select foo from (select foo from bar) sq1, (select foo from baz) sq2",
       select(
         columns: [identifier("foo")],
-        from: cross_join(parsed_subquery(sq1, "sq1"), parsed_subquery(sq2, "sq2"))
+        from: cross_join(subquery(sq1, "sq1"), subquery(sq2, "sq2"))
       )
     )
     assert select(columns: [identifier("foo")], from: unquoted("bar")) = sq1
@@ -454,7 +454,7 @@ defmodule Cloak.Aql.Parser.Test do
       "select foo from bar inner join (select foo from baz) sq on bar.id = sq.id",
       select(
         columns: [identifier("foo")],
-        from: inner_join(unquoted("bar"), parsed_subquery(sq, "sq"), _comparison)
+        from: inner_join(unquoted("bar"), subquery(sq, "sq"), _comparison)
       )
     )
     assert select(columns: [identifier("foo")], from: unquoted("baz")) = sq

@@ -39,7 +39,7 @@ defmodule Cloak.Aql.Parser do
 
   @type having_clause :: {:comparison, column, comparator, any}
 
-  @type from_clause :: table | parsed_subquery | join
+  @type from_clause :: table | subquery | join
 
   @type table :: unqualified_identifier
 
@@ -51,7 +51,7 @@ defmodule Cloak.Aql.Parser do
       conditions: [where_clause]
     }}
 
-  @type parsed_subquery :: {:subquery, %{type: :parsed, ast: parsed_query, alias: String.t}}
+  @type subquery :: {:subquery, %{ast: parsed_query, alias: String.t}}
 
   @type parsed_query :: %{
     command: :select | :show,
