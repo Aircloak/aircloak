@@ -182,7 +182,6 @@ defmodule Cloak.DataSource do
     driver_module = case data_source.driver do
       "postgresql" -> Cloak.DataSource.PostgreSQL
       "mysql" -> Cloak.DataSource.MySQL
-      "dsproxy" -> Cloak.DataSource.DsProxy
       "odbc" -> Cloak.DataSource.ODBC
       "mongodb" -> Cloak.DataSource.MongoDB
       other -> raise("Unknown driver `#{other}` for data source `#{data_source.global_id}`")
