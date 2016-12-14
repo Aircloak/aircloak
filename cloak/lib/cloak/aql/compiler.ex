@@ -1245,7 +1245,7 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.flat_map(&extract_columns/1)
     |> Enum.any?(&DataDecoder.needs_decoding?/1)
   end
-  defp needs_emulation?(query), do: query |> get_in([direct_subqueries() |> parsed()]) |> Enum.any?(&(&1.ast.emulated?))
+  defp needs_emulation?(query), do: query |> get_in([direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?))
 
 
   # -------------------------------------------------------------------
@@ -1277,8 +1277,6 @@ defmodule Cloak.Aql.Compiler do
   deflens splitter_functions(), do: terminal_elements() |> Lens.satisfy(&Function.row_splitting_function?/1)
 
   deflens buckets(), do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
-
-  def parsed(previous), do: Lens.satisfy(previous, &(&1.type == :parsed))
 
   deflens direct_subqueries(), do: Lens.key(:from) |> do_direct_subqueries()
 
