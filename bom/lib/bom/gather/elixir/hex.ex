@@ -41,12 +41,17 @@ defmodule BOM.Gather.Elixir.Hex do
   # -------------------------------------------------------------------
 
   defp request_package(name, from) do
+    require Logger
+
     case Hex.API.Package.get(name) do
       {200, result, _headers} -> send(from, {:ok, result})
       {404, _content, _headers} -> send(from, {:error, :not_found})
       {429, _content, _headers} ->
         :timer.sleep(:timer.seconds(5))
         request_package(name, from)
+      other ->
+        Logger.error("Received unexpected response from hex.pm.\n#{inspect(other)}")
+        raise "Bad response"
     end
   end
 end
