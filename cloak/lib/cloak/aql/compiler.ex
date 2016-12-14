@@ -56,16 +56,11 @@ defmodule Cloak.Aql.Compiler do
 
   defp compile_prepped_query(%Query{command: :show, show: :tables} = query), do:
     {:ok, query}
-  defp compile_prepped_query(%Query{command: :show, show: :columns} = query) do
-    try do
-      {:ok, compile_from(query)}
-    rescue
-      e in CompilationError -> {:error, e.message}
-    end
-  end
-  defp compile_prepped_query(%Query{command: :select} = query) do
-    try do
-      query = query
+  defp compile_prepped_query(%Query{command: :show, show: :columns} = query), do:
+    {:ok, compile_from(query)}
+  defp compile_prepped_query(%Query{command: :select} = query), do:
+    {:ok,
+      query
       |> compile_from()
       |> compile_columns()
       |> reject_null_user_ids()
@@ -84,11 +79,7 @@ defmodule Cloak.Aql.Compiler do
       |> partition_row_splitters()
       |> verify_limit()
       |> verify_offset()
-      {:ok, query}
-    rescue
-      e in CompilationError -> {:error, e.message}
-    end
-  end
+    }
 
 
   # -------------------------------------------------------------------
