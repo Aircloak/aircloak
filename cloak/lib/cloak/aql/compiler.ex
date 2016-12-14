@@ -118,6 +118,7 @@ defmodule Cloak.Aql.Compiler do
       |> cast_where_clauses()
       |> verify_where_clauses()
       |> align_ranges(Lens.key(:where))
+      |> add_subquery_ranges()
       |> partition_selected_columns()
       |> verify_having()
       |> partition_where_clauses()
@@ -202,7 +203,7 @@ defmodule Cloak.Aql.Compiler do
     %Query{compiled | info: query.info ++ Enum.concat(info)}
   end
 
-  def compiled_subquery(parsed_subquery, alias, parent_query) do
+  defp compiled_subquery(parsed_subquery, alias, parent_query) do
     case compile(
       parent_query.data_source,
       Map.put(parsed_subquery, :subquery?, :true),
@@ -216,9 +217,22 @@ defmodule Cloak.Aql.Compiler do
         |> align_limit()
         |> align_offset()
         |> align_ranges(Lens.key(:having))
+        |> carry_ranges()
       {:error, error} -> raise CompilationError, message: error
     end
   end
+
+  defp carry_ranges(query) do
+    query = update_in(query.ranges, &(
+      &1
+      |> Enum.map(fn({column, range}) -> {%{column | alias: new_carry_alias()}, range} end)
+      |> Enum.into(%{})
+    ))
+
+    %{query | db_columns: query.db_columns ++ Map.keys(query.ranges)}
+  end
+
+  defp new_carry_alias(), do: "carry_#{:crypto.strong_rand_bytes(10) |> Base.encode32}"
 
   @minimum_subquery_limit 10
   defp align_limit(query = %{limit: nil}), do: query
@@ -824,6 +838,14 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp add_clause(query, lens, clause), do: Lens.map(lens, query, fn(clauses) -> [clause | clauses] end)
+
+  defp add_subquery_ranges(query) do
+    %{query | ranges:
+      query
+      |> get_in([direct_subqueries() |> parsed() |> Lens.key(:ast) |> Lens.key(:ranges)])
+      |> Enum.reduce(query.ranges, &Map.merge/2)
+    }
+  end
 
   defp verify_ranges(clauses) do
     clauses

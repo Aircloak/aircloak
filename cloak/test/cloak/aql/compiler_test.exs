@@ -661,6 +661,20 @@ defmodule Cloak.Aql.Compiler.Test do
     assert unaligned.info == ["The range for column `avg` has been adjusted to 0.0 <= `avg` < 5.0."]
   end
 
+  test "propagating ranges for shrink and drop from a singly-nested having" do
+    query = compile!("""
+      select * from (
+        select uid from table group by uid
+        having avg(numeric) >= 0.0 and avg(numeric) < 100.0
+      ) x
+    """, data_source())
+    {:subquery, %{ast: subquery}} = query.from
+
+    assert [column] = Enum.reject(subquery.db_columns, &(&1.name == "uid"))
+    column = %{column | db_row_position: 1}
+    assert %{^column => {0.0, 100.0}} = query.ranges
+  end
+
   test "math can be disabled with a config setting" do
     assert {:error, error} = compile("select numeric * 2 from table", data_source(), [], %{math: false})
     assert error =~ ~r/requires feature `math`/
