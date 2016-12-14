@@ -229,37 +229,32 @@ defmodule Cloak.Query.DBEmulator do
 
   defp left_join(lhs, rhs, join) do
     rhs_null_row = List.duplicate(nil, joined_row_size(join.rhs))
-    outer_join(lhs, rhs, join.conditions, &add_prefix_to_rows/2, fn
-      ([], row) -> [row ++ rhs_null_row]
-      (joined_rows, _row) -> joined_rows
-    end)
+    outer_join(lhs, rhs, join.conditions, &add_prefix_to_rows/2, &[&1 ++ rhs_null_row], & &1)
   end
 
   defp right_join(lhs, rhs, join) do
     lhs_null_row = List.duplicate(nil, joined_row_size(join.lhs))
-    outer_join(rhs, lhs, join.conditions, &add_suffix_to_rows/2, fn
-      ([], row) -> [lhs_null_row ++ row]
-      (joined_rows, _row) -> joined_rows
-    end)
+    outer_join(rhs, lhs, join.conditions, &add_suffix_to_rows/2, &[lhs_null_row ++ &1], & &1)
   end
 
-  defp outer_join(lhs, rhs, conditions, rows_combiner, empty_handler) do
+  defp outer_join(lhs, rhs, conditions, rows_combiner, unmatched_handler, matched_handler) do
     filters = Enum.map(conditions, &Comparison.to_function/1)
     Stream.flat_map(lhs, fn (lhs_row) ->
       rhs
       |> rows_combiner.(lhs_row)
       |> apply_filters(filters)
       |> Enum.to_list()
-      |> empty_handler.(lhs_row)
+      |> case do
+        [] -> unmatched_handler.(lhs_row)
+        joined_rows -> matched_handler.(joined_rows)
+      end
     end)
   end
 
   defp full_join(lhs, rhs, join) do
     lhs_null_row = List.duplicate(nil, joined_row_size(join.lhs))
-    unmatched_rhs = outer_join(rhs, lhs, join.conditions, &add_suffix_to_rows/2, fn
-      ([], row) -> [lhs_null_row ++ row]
-      (_joined_rows, _row) -> []
-    end)
+    unmatched_rhs = outer_join(rhs, lhs, join.conditions,
+      &add_suffix_to_rows/2, &[lhs_null_row ++ &1], fn (_matches) -> [] end)
     lhs |> left_join(rhs, join) |> Stream.concat(unmatched_rhs)
   end
 end
