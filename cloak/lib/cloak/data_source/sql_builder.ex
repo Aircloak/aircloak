@@ -13,13 +13,6 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   @spec build(Query.t, atom) :: String.t
   @doc "Constructs a parametrized SQL query that can be executed against a backend"
-  def build(%Query{mode: :unparsed} = query, sql_dialect) do
-    {:subquery, %{unparsed_string: unsafe_subquery}} = query.from
-    [
-      "SELECT ", columns_sql(query.db_columns, sql_dialect),
-      " FROM (", unsafe_subquery, ") AS unsafe_subquery"
-    ] |> to_string()
-  end
   def build(query, :mysql = sql_dialect) do
     # MySQL and MariaDB do not support FULL joins, so we have to split it into LEFT and RIGHT joins
     # see: http://www.xaprb.com/blog/2006/05/26/how-to-write-full-outer-join-in-mysql/
