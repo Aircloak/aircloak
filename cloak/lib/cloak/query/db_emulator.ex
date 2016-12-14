@@ -260,19 +260,7 @@ defmodule Cloak.Query.DBEmulator do
   def full_join(lhs, rhs, join) do
     filters = Enum.map(join.conditions, &Comparison.to_function/1)
     lhs_null_row = List.duplicate(nil, joined_row_size(join.lhs))
-    rhs_null_row = List.duplicate(nil, joined_row_size(join.rhs))
-    left_stream =
-      Stream.flat_map(lhs, fn (lhs_row) ->
-        rhs
-        |> add_prefix_to_rows(lhs_row)
-        |> apply_filters(filters)
-        |> Enum.to_list()
-        |> case do
-          [] -> [lhs_row ++ rhs_null_row]
-          joined_rows -> joined_rows
-        end
-      end)
-    right_stream =
+    unmatched_rhs =
       Stream.flat_map(rhs, fn (rhs_row) ->
         lhs
         |> add_suffix_to_rows(rhs_row)
@@ -283,6 +271,6 @@ defmodule Cloak.Query.DBEmulator do
           _joined_rows -> []
         end
       end)
-    Stream.concat(left_stream, right_stream)
+    lhs |> left_join(rhs, join) |> Stream.concat(unmatched_rhs)
   end
 end
