@@ -29,16 +29,13 @@ defmodule Cloak.Query.DBEmulator do
   @doc "Joins two streams into one using the specified join type and conditions."
   @spec join(Enumerable.t, Enumerable.t, map) :: Enumerable.t
   def join(lhs, rhs, %{type: :cross_join}) do
-    Stream.flat_map(lhs, fn (lhs_row) ->
-      rhs
-      |> Stream.map(fn (rhs_row) -> lhs_row ++ rhs_row end)
-    end)
+    Stream.flat_map(lhs, &add_prefix_to_rows(rhs, &1))
   end
   def join(lhs, rhs, %{conditions: conditions, type: :inner_join}) do
     filters = Enum.map(conditions, &Comparison.to_function/1)
     Stream.flat_map(lhs, fn (lhs_row) ->
       rhs
-      |> Stream.map(fn (rhs_row) -> lhs_row ++ rhs_row end)
+      |> add_prefix_to_rows(lhs_row)
       |> apply_filters(filters)
     end)
   end
@@ -47,7 +44,7 @@ defmodule Cloak.Query.DBEmulator do
     rhs_null_row = List.duplicate(nil, joined_row_size(join.rhs))
     Stream.flat_map(lhs, fn (lhs_row) ->
       rhs
-      |> Stream.map(fn (rhs_row) -> lhs_row ++ rhs_row end)
+      |> add_prefix_to_rows(lhs_row)
       |> apply_filters(filters)
       |> Enum.to_list()
       |> case do
@@ -61,7 +58,7 @@ defmodule Cloak.Query.DBEmulator do
     lhs_null_row = List.duplicate(nil, joined_row_size(join.lhs))
     Stream.flat_map(rhs, fn (rhs_row) ->
       lhs
-      |> Stream.map(fn (lhs_row) -> lhs_row ++ rhs_row end)
+      |> add_suffix_to_rows(rhs_row)
       |> apply_filters(filters)
       |> Enum.to_list()
       |> case do
@@ -77,7 +74,7 @@ defmodule Cloak.Query.DBEmulator do
     left_stream =
       Stream.flat_map(lhs, fn (lhs_row) ->
         rhs
-        |> Stream.map(fn (rhs_row) -> lhs_row ++ rhs_row end)
+        |> add_prefix_to_rows(lhs_row)
         |> apply_filters(filters)
         |> Enum.to_list()
         |> case do
@@ -88,7 +85,7 @@ defmodule Cloak.Query.DBEmulator do
     right_stream =
       Stream.flat_map(rhs, fn (rhs_row) ->
         lhs
-        |> Stream.map(fn (lhs_row) -> lhs_row ++ rhs_row end)
+        |> add_suffix_to_rows(rhs_row)
         |> apply_filters(filters)
         |> Enum.to_list()
         |> case do
@@ -276,4 +273,8 @@ defmodule Cloak.Query.DBEmulator do
 
   defp joined_row_size({:subquery, subquery}), do: Enum.count(subquery.ast.db_columns)
   defp joined_row_size({:join, join}), do: joined_row_size(join.lhs) + joined_row_size(join.rhs)
+
+  defp add_prefix_to_rows(stream, row), do: Stream.map(stream, &row ++ &1)
+
+  defp add_suffix_to_rows(stream, row), do: Stream.map(stream, & &1 ++ row)
 end
