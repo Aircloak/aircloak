@@ -145,7 +145,8 @@ defmodule Cloak.Query.Runner do
     )
   end
   defp execute_sql_query(%Query{command: :select} = query) do
-    with {:ok, result} <- Select.run(query), do: successful_result(result, query)
+    with {:ok, result} <- Select.run(query), do:
+      successful_result(%Result{result | features: Query.extract_features(query)}, query)
   end
 
   defp successful_result(result, query), do: {:ok, result, Enum.reverse(query.info)}
