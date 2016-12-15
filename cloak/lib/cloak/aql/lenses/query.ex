@@ -70,8 +70,7 @@ defmodule Cloak.Aql.Lenses.Query do
   # Internal lenses
   # -------------------------------------------------------------------
 
-  @doc "Utility lens used by `where_inequality_columns`. Please use that lens instead."
-  deflens do_where_inequality_columns(), do:
+  deflensp do_where_inequality_columns(), do:
     Lens.match(fn
       {:comparison, _, check, _} when check in ~w(> >= < <=)a ->
         Lens.indices([1, 3]) |> do_where_inequality_columns()
@@ -80,7 +79,7 @@ defmodule Cloak.Aql.Lenses.Query do
       _ -> Lens.empty()
     end)
 
-  deflens do_leaf_tables(), do:
+  deflensp do_leaf_tables(), do:
     Lens.match(fn
       {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_leaf_tables()
       {:subquery, _} -> Lens.empty()
