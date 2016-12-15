@@ -21,7 +21,7 @@ defmodule Cloak.Aql.TypeChecker do
   or discontinuous functions.
   """
 
-  alias Cloak.Aql.{Column, Compiler}
+  alias Cloak.Aql.{Column, Lenses}
 
   defmodule Type do
     @moduledoc false
@@ -148,7 +148,7 @@ defmodule Cloak.Aql.TypeChecker do
 
   def expand_from_subquery(column, query, future) do
     %Column{name: column_name, table: %{name: table_name}} = column
-    Lens.to_list(Compiler.direct_subqueries(), query)
+    Lens.to_list(Lenses.Query.direct_subqueries(), query)
     |> Enum.find(&(&1.alias == table_name))
     |> case do
       nil -> column()

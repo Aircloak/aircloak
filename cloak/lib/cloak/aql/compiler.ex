@@ -2,7 +2,7 @@ defmodule Cloak.Aql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
   alias Cloak.{DataSource, Features}
-  alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query, TypeChecker}
+  alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Lenses}
   alias Cloak.Query.DataDecoder
 
   defmodule CompilationError do
@@ -131,7 +131,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp resolve_projected_tables(%Query{projected?: true} = query), do: query
   defp resolve_projected_tables(query), do:
-    Lens.map(leaf_tables(), query, &resolve_projected_table(&1, query))
+    Lens.map(Lenses.Query.leaf_tables(), query, &resolve_projected_table(&1, query))
 
   defp resolve_projected_table(table_name, query) do
     case DataSource.table(query.data_source, table_name) do
@@ -182,7 +182,7 @@ defmodule Cloak.Aql.Compiler do
   # -------------------------------------------------------------------
 
   defp compile_subqueries(query) do
-    {info, compiled} = Lens.get_and_map(direct_subqueries(), query, fn(subquery) ->
+    {info, compiled} = Lens.get_and_map(Lenses.Query.direct_subqueries(), query, fn(subquery) ->
       ast = compiled_subquery(subquery.ast, subquery.alias, query)
       {ast.info, %{subquery | ast: ast}}
     end)
@@ -398,7 +398,8 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp compile_buckets(query) do
-    {messages, columns} = Lens.get_and_map(Lens.all() |> buckets(), query.columns, &align_bucket/1)
+    {messages, columns} = Lens.get_and_map(Lens.all() |> Lenses.Query.buckets(),
+        query.columns, &align_bucket/1)
     %{query | columns: columns, info: Enum.reject(messages, &is_nil/1) ++ query.info}
   end
 
@@ -601,7 +602,7 @@ defmodule Cloak.Aql.Compiler do
   # calls to row splitting functions. This does not affect how many times database columns are loaded
   # from the database, but allows us to deal with the output of the row splitting function instances separately.
   defp drop_duplicate_columns_except_row_splitters(columns), do:
-    Enum.uniq_by(columns, &Lens.map(splitter_functions(), &1, fn(_) -> Kernel.make_ref() end))
+    Enum.uniq_by(columns, &Lens.map(Lenses.Query.splitter_functions(), &1, fn(_) -> Kernel.make_ref() end))
 
   defp partition_row_splitters(%Query{} = query) do
     next_available_index = length(query.db_columns)
@@ -935,9 +936,9 @@ defmodule Cloak.Aql.Compiler do
   defp map_order_by({identifier, direction}, mapper_fun),
     do: {map_terminal_element(identifier, mapper_fun), direction}
 
-  defp map_where_clause(clause, f), do: Lens.map(where_terminal_elements(), clause, f)
+  defp map_where_clause(clause, f), do: Lens.map(Lenses.Query.where_terminal_elements(), clause, f)
 
-  defp map_terminal_element(query, f), do: Lens.map(terminal_elements(), query, f)
+  defp map_terminal_element(query, f), do: Lens.map(Lenses.Query.terminal_elements(), query, f)
 
   defp parse_columns(query) do
     columns_by_name =
@@ -1246,7 +1247,7 @@ defmodule Cloak.Aql.Compiler do
   defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
   defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do: needs_decoding?(query)
   defp needs_emulation?(%Query{from: {:join, _}, data_source: %{driver: Cloak.DataSource.MongoDB}}), do: true
-  defp needs_emulation?(query), do: query |> get_in([direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?))
+  defp needs_emulation?(query), do: query |> get_in([Lenses.Query.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?))
 
   defp compile_emulated_joins(%Query{emulated?: true, from: {:join, _}} = query) do
     from =
@@ -1324,10 +1325,8 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp verify_function_usage_for_where_clauses(query) do
-    queries()
-    |> Lens.keys([:where, :lcf_check_conditions])
-    |> where_inequality_columns()
-    |> Lens.satisfy(&(not &1.constant?))
+    Lenses.Query.queries()
+    |> Lenses.Query.where_inequality_columns()
     |> Lens.to_list(query)
     |> Enum.each(fn(column) ->
       type = TypeChecker.type(column, query)
@@ -1337,68 +1336,5 @@ defmodule Cloak.Aql.Compiler do
       end
     end)
     query
-  end
-
-
-  # -------------------------------------------------------------------
-  # Lenses into Query
-  # -------------------------------------------------------------------
-
-  use Lens.Macros
-
-  deflens terminal_elements() do
-    Lens.match(fn
-      {:function, "count", :*} -> Lens.empty()
-      {:function, "count_noise", :*} -> Lens.empty()
-      {:function, _, _} -> Lens.both(Lens.at(2) |> terminal_elements(), Lens.root())
-      {:distinct, _} -> Lens.both(Lens.at(1) |> terminal_elements(), Lens.root())
-      {_, :as, _} -> Lens.at(0)
-      elements when is_list(elements) -> Lens.all() |> terminal_elements()
-      _ -> Lens.root
-    end)
-  end
-
-  deflens where_terminal_elements() do
-    Lens.match(fn
-      {:not, _} -> Lens.at(1) |> where_terminal_elements()
-      {:comparison, _lhs, _comparator, _rhs} -> Lens.both(Lens.at(1), Lens.at(3)) |> terminal_elements()
-      {op, _, _} when op in [:in, :like, :ilike, :is] -> Lens.both(Lens.at(1), Lens.at(2)) |> terminal_elements()
-    end)
-  end
-
-  deflens splitter_functions(), do: terminal_elements() |> Lens.satisfy(&Function.row_splitting_function?/1)
-
-  deflens buckets(), do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
-
-  deflens direct_subqueries(), do: Lens.key(:from) |> do_direct_subqueries()
-
-  deflens do_direct_subqueries() do
-    Lens.match(fn
-      {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_direct_subqueries()
-      {:subquery, _} -> Lens.at(1)
-      _ -> Lens.empty()
-    end)
-  end
-
-  deflens queries(), do:
-    Lens.both(direct_subqueries(), Lens.root())
-
-  deflens where_inequality_columns(), do:
-    Lens.match(fn
-      {:comparison, _, check, _} when check in ~w(> >= < <=)a ->
-        Lens.indices([1, 3]) |> where_inequality_columns()
-      elements when is_list(elements) -> Lens.all() |> where_inequality_columns()
-      %Column{} -> Lens.root()
-      _ -> Lens.empty()
-    end)
-
-  deflens leaf_tables, do: Lens.key(:from) |> do_leaf_tables()
-
-  deflens do_leaf_tables() do
-    Lens.match(fn
-      {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_leaf_tables()
-      {:subquery, _} -> Lens.empty()
-      table when is_binary(table) -> Lens.root()
-    end)
   end
 end
