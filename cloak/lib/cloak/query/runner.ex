@@ -9,7 +9,7 @@ defmodule Cloak.Query.Runner do
 
   use GenServer
   require Logger
-  alias Cloak.{Aql.Query, DataSource, Query.Result, Query.Runner.Engine}
+  alias Cloak.{Aql.Query, DataSource, Query.Runner.Engine}
 
   @supervisor_name Module.concat(__MODULE__, Supervisor)
 
@@ -116,14 +116,8 @@ defmodule Cloak.Query.Runner do
   defp run_query(data_source, statement, parameters, views) do
     Logger.debug("Parsing statement `#{statement}` ...")
     with {:ok, query} <- Query.make(data_source, statement, parameters, views),
-         {:ok, result} <- Engine.run(query)
-    do
-      {
-        :ok,
-        %Result{result | columns: query.column_titles, features: Query.extract_features(query)},
-        Enum.reverse(query.info)
-      }
-    end
+         {:ok, result} <- Engine.run(query),
+    do: {:ok, result, Enum.reverse(query.info)}
   end
 
 
