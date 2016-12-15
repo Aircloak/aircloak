@@ -89,19 +89,19 @@ defmodule Cloak.Aql.TypeChecker do
   # -------------------------------------------------------------------
 
   defp dangerously_discontinuous?({:bucket, _}, _future, child_types), do:
-    touched_by_constant?(child_types)
+    any_touched_by_constant?(child_types)
   defp dangerously_discontinuous?(name, _future, child_types)
       when name in @discontinuous_math_functions, do:
-    touched_by_constant?(child_types)
+    any_touched_by_constant?(child_types)
   defp dangerously_discontinuous?("/", _future, [_, child_type]), do: child_type.touched_by_constant?
   defp dangerously_discontinuous?({:cast, _}, _future, _child_types), do: true
   defp dangerously_discontinuous?(name, future, child_types)
       when name in @discontinuous_string_functions, do:
-    touched_by_constant?(child_types) and later_turned_into_a_number?(future)
+    any_touched_by_constant?(child_types) and later_turned_into_a_number?(future)
   defp dangerously_discontinuous?(_name, _future, _child_types), do: false
 
   defp performs_dangerous_math?(name, _future, child_types) when name in @math_functions, do:
-    touched_by_constant?(child_types)
+    any_touched_by_constant?(child_types)
   defp performs_dangerous_math?(_, _future, _child_types), do: false
 
 
@@ -112,7 +112,7 @@ defmodule Cloak.Aql.TypeChecker do
   defp later_turned_into_a_number?(future), do:
     Enum.any?(["length", {:cast, :integer}, {:cast, :real}, {:cast, :boolean}], &(Enum.member?(future, &1)))
 
-  defp touched_by_constant?(types), do: Enum.any?(types, &(&1.touched_by_constant?))
+  defp any_touched_by_constant?(types), do: Enum.any?(types, &(&1.touched_by_constant?))
 
   defp constant(), do: %Type{constant?: true, touched_by_constant?: true}
 
@@ -137,7 +137,7 @@ defmodule Cloak.Aql.TypeChecker do
       constant()
     else
       %Type{
-        touched_by_constant?: touched_by_constant?(child_types),
+        touched_by_constant?: any_touched_by_constant?(child_types),
         seen_dangerous_math?: performs_dangerous_math?(name, future, child_types) ||
           Enum.any?(child_types, &(&1.seen_dangerous_math?)),
         dangerously_discontinuous?: dangerously_discontinuous?(name, future, child_types) ||
