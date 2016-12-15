@@ -1,0 +1,111 @@
+defmodule Cloak.Query.Select do
+  @moduledoc "Handles the processing of the `SELECT` statement."
+  alias Cloak.{Aql, DataSource, Query}
+  require Logger
+
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Executes the SELECT query and returns the query result or the corresponding error"
+  @spec run(Aql.Query.t) :: {:ok, Query.Result.t} | {:error, String.t}
+  def run(%Aql.Query{command: :select} = query) do
+    try do
+      with {:ok, result} <- select_rows(query), do:
+        {:ok, %Query.Result{result | columns: query.column_titles, features: Aql.Query.extract_features(query)}}
+    rescue e in [RuntimeError] ->
+      {:error, e.message}
+    end
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp select_rows(%Aql.Query{subquery?: false, emulated?: false} = query) do
+    DataSource.select(query, fn(rows) ->
+      process_final_rows(rows, %Aql.Query{query | where: query.encoded_where})
+    end)
+  end
+  defp select_rows(%Aql.Query{subquery?: false, emulated?: true} = query) do
+    Logger.debug("Emulating query ...")
+    with {:ok, rows} <- select_rows(query.from) do
+      {:ok, process_final_rows(rows, query)}
+    end
+  end
+  defp select_rows({:subquery, %{ast: %Aql.Query{emulated?: true, from: from} = subquery}}) when not is_binary(from) do
+    Logger.debug("Emulating query ...")
+    with {:ok, rows} <- select_rows(from) do
+      Logger.debug("Processing rows ...")
+      rows =
+        rows
+        |> Query.DBEmulator.select(subquery)
+        |> Enum.to_list()
+      {:ok, rows}
+    end
+  end
+  defp select_rows({:subquery, %{ast: subquery}}) do
+    select_rows(subquery)
+  end
+  defp select_rows({:join, join}) do
+    Logger.debug("Emulating join ...")
+    {:ok, lhs} = select_rows(join.lhs)
+    {:ok, rhs} = select_rows(join.rhs)
+    {:ok, Query.DBEmulator.join(lhs, rhs, join) |> Enum.to_list()}
+  end
+  defp select_rows(%Aql.Query{} = query) do
+    Logger.debug("Emulating query ...")
+    DataSource.select(%Aql.Query{query | subquery?: false}, fn(rows) ->
+      Logger.debug("Processing rows ...")
+      rows
+      |> Query.DataDecoder.decode(query)
+      |> Query.DBEmulator.select(%Aql.Query{query | where: query.encoded_where, encoded_where: []})
+      |> Enum.to_list()
+    end)
+  end
+
+  defp process_final_rows(rows, query) do
+    Logger.debug("Processing final rows ...")
+    rows
+    |> Query.DataDecoder.decode(query)
+    |> Query.RowSplitters.split(query)
+    |> Query.DBEmulator.filter_rows(query)
+    |> Query.LCFConditions.apply(query)
+    |> Query.ShrinkAndDrop.apply(query)
+    |> Query.Aggregator.aggregate(query)
+    |> Query.Sorter.order_buckets(query)
+    |> distinct(query)
+    |> offset(query)
+    |> limit(query)
+  end
+
+  defp limit(result, %Aql.Query{limit: nil}), do: result
+  defp limit(%Query.Result{buckets: buckets} = result, %Aql.Query{limit: amount}) do
+    limited_buckets = buckets
+      |> take(amount, [])
+      |> Enum.reverse()
+    %Query.Result{result | buckets: limited_buckets}
+  end
+
+  defp take([], _amount, acc), do: acc
+  defp take([%{occurrences: occurrences} = bucket | rest], amount, acc) when occurrences < amount, do:
+    take(rest, amount - occurrences, [bucket | acc])
+  defp take([%{} = bucket | _rest], amount, acc), do: [%{bucket | occurrences: amount} | acc]
+
+  defp offset(%Query.Result{buckets: buckets} = result, %Aql.Query{offset: amount}) do
+    %Query.Result{result | buckets: drop(buckets, amount)}
+  end
+
+  defp drop(buckets, 0), do: buckets
+  defp drop([], _amount), do: []
+  defp drop([%{occurrences: occurrences} | rest], amount) when occurrences <= amount, do:
+    drop(rest, amount - occurrences)
+  defp drop([%{occurrences: occurrences} = bucket | rest], amount), do:
+    [%{bucket | occurrences: occurrences - amount} | rest]
+
+  defp distinct(%Query.Result{buckets: buckets} = result, %Aql.Query{distinct?: true}), do:
+    %Query.Result{result | buckets: Enum.map(buckets, &Map.put(&1, :occurrences, 1))}
+  defp distinct(result, %Aql.Query{distinct?: false}), do: result
+end
