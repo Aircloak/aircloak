@@ -1390,8 +1390,8 @@ defmodule Cloak.Aql.Compiler do
           Lens.at(1) |> where_inequality_columns(),
           Lens.at(3) |> where_inequality_columns()
         )
-      %Column{} -> Lens.root()
       elements when is_list(elements) -> Lens.all() |> where_inequality_columns()
+      %Column{} -> Lens.root()
       _ -> Lens.empty()
     end)
 
