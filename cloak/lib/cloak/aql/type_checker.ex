@@ -81,7 +81,7 @@ defmodule Cloak.Aql.TypeChecker do
   that have been applied to the expression is what is can make it safe or unsafe in a query.
   """
   @spec type(Column.t, Query.t) :: Type.t
-  def type(column, query), do: construct_type_hierarchy(column, query)
+  def type(column, query), do: construct_type(column, query)
 
 
   # -------------------------------------------------------------------
@@ -118,20 +118,20 @@ defmodule Cloak.Aql.TypeChecker do
 
   defp column(), do: %Type{constant?: false}
 
-  defp construct_type_hierarchy(column, query, future \\ [])
-  defp construct_type_hierarchy({:distinct, column}, query, future), do:
-    construct_type_hierarchy(column, query, ["distinct" | future])
-  defp construct_type_hierarchy(:*, _query, _future), do: column()
-  defp construct_type_hierarchy(%Column{constant?: true}, _query, _future), do: constant()
-  defp construct_type_hierarchy(%Column{db_function: nil} = column, query, future), do:
+  defp construct_type(column, query, future \\ [])
+  defp construct_type({:distinct, column}, query, future), do:
+    construct_type(column, query, ["distinct" | future])
+  defp construct_type(:*, _query, _future), do: column()
+  defp construct_type(%Column{constant?: true}, _query, _future), do: constant()
+  defp construct_type(%Column{db_function: nil} = column, query, future), do:
     expand_from_subquery(column, query, future)
-  defp construct_type_hierarchy(%Column{db_function: name, db_function_args: args}, query, future), do:
+  defp construct_type(%Column{db_function: name, db_function_args: args}, query, future), do:
     type_for_function(name, args, query, future)
-  defp construct_type_hierarchy({:function, name, args}, query, future), do:
+  defp construct_type({:function, name, args}, query, future), do:
     type_for_function(name, args, query, future)
 
   defp type_for_function(name, args, query, future) do
-    child_types = args |> Enum.map(&(construct_type_hierarchy(&1, query, [name | future])))
+    child_types = args |> Enum.map(&(construct_type(&1, query, [name | future])))
     # Prune constants, they don't interest us further
     if Enum.all?(child_types, &(&1.constant?)) do
       constant()
@@ -155,7 +155,7 @@ defmodule Cloak.Aql.TypeChecker do
       %{ast: subquery} ->
         column_index = Enum.find_index(subquery.column_titles, &(&1 == column_name))
         column = Enum.at(subquery.columns, column_index)
-        construct_type_hierarchy(column, subquery, future)
+        construct_type(column, subquery, future)
     end
   end
 end
