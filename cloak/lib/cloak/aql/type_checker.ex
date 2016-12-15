@@ -3,14 +3,14 @@ defmodule Cloak.Aql.TypeChecker do
   Provides functions to check whether selected columns, or expressions
   used in WHERE-clause inequalities have undergone dangerous transformations.
 
-  What transformations are considered dangerous differ based on where
+  What transformations are considered dangerous differs based on where
   an expression is to be used. WHERE-clause inequalities have stricter rules
   applied to them than selected columns.
 
   In particular this module considers whether a column has seen math
   or has had discontinuous functions applied to it. We currently only
   consider math and discontinuous functions dangerous if the inputs
-  to a function have been tainted by an analyst provided constant.
+  to a function have been tainted by an analyst-provided constant.
   Hence for example `abs(<pure-column>)` is ok, whereas
   `abs(<pure-column> + <constant>)` is not.
   Likewise `<pure-column> + <pure-column>` is ok, whereas
@@ -36,7 +36,7 @@ defmodule Cloak.Aql.TypeChecker do
       # were constant.
       touched_by_constant?: boolean,
 
-      # True if the expressions has been processed by a discontinuous function and the
+      # True if the expression has been processed by a discontinuous function and the
       # parameters of the function call were such that the computation is classified
       # as potentially dangerous (i.e. an attack vector).
       # Taints all other later expressions, hence, if a single expression in a function
@@ -44,7 +44,7 @@ defmodule Cloak.Aql.TypeChecker do
       # dangerously discontinous too.
       dangerously_discontinuous?: boolean,
 
-      # Whether there expression has had dangerous math performed on it or not.
+      # Whether the expression has had dangerous math performed on it or not.
       # Math is considered dangerous if any of the expressions in the math application
       # have previously been touched by a constant.
       seen_dangerous_math?: boolean,
@@ -78,7 +78,7 @@ defmodule Cloak.Aql.TypeChecker do
   Produces a type characteristic for an expression by resolving function applications and references
   back to the underlying table columns and constants contributing to the expression.
   The type of the expression itself is not of interest. Rather the class of transformations
-  that have been applied to the expression is what is can make it safe or unsafe in a query.
+  that have been applied to the expression is what can make it safe or unsafe in a query.
   """
   @spec type(Column.t, Query.t) :: Type.t
   def type(column, query), do: construct_type(column, query)
