@@ -79,16 +79,16 @@ defmodule Cloak.Query.DataDecoder do
     %{method: &Base.decode64/1, columns: columns, in: :text, out: :text}
   defp create_from_config(%{method: "aes_cbc_128", key: key, columns: columns}), do:
     %{method: &aes_cbc128_decode(&1, key), columns: columns, in: :text, out: :text}
-  defp create_from_config(%{method: "string_to_integer", columns: columns}), do:
-    %{method: &string_to_integer/1, columns: columns, in: :text, out: :integer}
-  defp create_from_config(%{method: "string_to_real", columns: columns}), do:
-    %{method: &string_to_real/1, columns: columns, in: :text, out: :real}
-  defp create_from_config(%{method: "string_to_datetime", columns: columns}), do:
-    %{method: &string_to_datetime/1, columns: columns, in: :text, out: :datetime}
-  defp create_from_config(%{method: "string_to_date", columns: columns}), do:
-    %{method: &string_to_date/1, columns: columns, in: :text, out: :date}
-  defp create_from_config(%{method: "string_to_time", columns: columns}), do:
-    %{method: &string_to_time/1, columns: columns, in: :text, out: :time}
+  defp create_from_config(%{method: "text_to_integer", columns: columns}), do:
+    %{method: &text_to_integer/1, columns: columns, in: :text, out: :integer}
+  defp create_from_config(%{method: "text_to_real", columns: columns}), do:
+    %{method: &text_to_real/1, columns: columns, in: :text, out: :real}
+  defp create_from_config(%{method: "text_to_datetime", columns: columns}), do:
+    %{method: &text_to_datetime/1, columns: columns, in: :text, out: :datetime}
+  defp create_from_config(%{method: "text_to_date", columns: columns}), do:
+    %{method: &text_to_date/1, columns: columns, in: :text, out: :date}
+  defp create_from_config(%{method: "text_to_time", columns: columns}), do:
+    %{method: &text_to_time/1, columns: columns, in: :text, out: :time}
   defp create_from_config(decoder), do:
     raise "Invalid data decoder definition: `#{inspect(decoder)}`."
 
@@ -136,35 +136,35 @@ defmodule Cloak.Query.DataDecoder do
       else: :error
   end
 
-  defp string_to_integer(value) when is_binary(value) do
+  defp text_to_integer(value) when is_binary(value) do
     case Integer.parse(value) do
       {value, ""} -> {:ok, value}
       :error -> :error
     end
   end
 
-  defp string_to_real(value) when is_binary(value) do
+  defp text_to_real(value) when is_binary(value) do
     case Float.parse(value) do
       {value, ""} -> {:ok, value}
       :error -> :error
     end
   end
 
-  defp string_to_datetime(value) when is_binary(value) do
+  defp text_to_datetime(value) when is_binary(value) do
     case Cloak.Time.parse_datetime(value) do
       {:ok, value} -> {:ok, value}
       {:error, _reason} -> :error
     end
   end
 
-  defp string_to_date(value) when is_binary(value) do
+  defp text_to_date(value) when is_binary(value) do
     case Cloak.Time.parse_date(value) do
       {:ok, value} -> {:ok, value}
       {:error, _reason} -> :error
     end
   end
 
-  defp string_to_time(value) when is_binary(value) do
+  defp text_to_time(value) when is_binary(value) do
     case Cloak.Time.parse_time(value) do
       {:ok, value} -> {:ok, value}
       {:error, _reason} -> :error

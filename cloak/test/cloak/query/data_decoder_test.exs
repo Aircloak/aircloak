@@ -4,7 +4,7 @@ defmodule Cloak.Query.DataDecoderTest do
   import Cloak.Test.QueryHelpers
 
   setup_all do
-    decoder = %{method: "string_to_integer", columns: ["value"]}
+    decoder = %{method: "text_to_integer", columns: ["value"]}
     :ok = Cloak.Test.DB.create_table("encoded", "value TEXT", [decoders: [decoder]])
     :ok
   end
