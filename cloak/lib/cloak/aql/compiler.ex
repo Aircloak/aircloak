@@ -2,7 +2,7 @@ defmodule Cloak.Aql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
   alias Cloak.{DataSource, Features}
-  alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Lenses}
+  alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Lenses, Range}
   alias Cloak.Query.DataDecoder
 
   defmodule CompilationError do
@@ -211,16 +211,14 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp carry_ranges(query) do
-    query = update_in(query.ranges, &(
-      &1
-      |> Enum.map(fn({column, range}) -> {alias_column(column), range} end)
-      |> Enum.into(%{})
-    ))
+    query = update_in(query, [Lens.key(:ranges) |> Lens.all()], fn(range) ->
+      %{range | column: alias_column(range.column)}
+    end)
 
     if query.emulated? do
-      %{query | columns: query.columns ++ Map.keys(query.ranges)}
+      %{query | columns: query.columns ++ Enum.map(query.ranges, &(&1.column))}
     else
-      %{query | db_columns: query.db_columns ++ Map.keys(query.ranges)}
+      %{query | db_columns: query.db_columns ++ Enum.map(query.ranges, &(&1.column))}
     end
   end
 
@@ -835,7 +833,7 @@ defmodule Cloak.Aql.Compiler do
       |> add_clause(lens, {:comparison, column, :>=, Column.constant(column.type, left)})
       |> add_info_message("The range for column #{name} has been adjusted to #{left} <= #{name} < #{right}.")
     end
-    |> put_in([Access.key(:ranges), column], {left, right})
+    |> put_in([Lens.key(:ranges), Lens.front()], Range.new(column, {left, right}))
   end
 
   defp implement_range?({left, right}, conditions) do
@@ -852,7 +850,7 @@ defmodule Cloak.Aql.Compiler do
       query
       |> get_in([Lenses.Query.direct_subqueries() |> Lens.key(:ast) |> Lens.key(:ranges)])
       |> Enum.flat_map(fn(ranges) ->
-        Enum.map(ranges, fn({column, range}) -> {%Column{name: range_alias(column)}, range} end)
+        Enum.map(ranges, fn(range) -> %{range | column: %Column{name: range_alias(range.column)}} end)
       end)
       |> Enum.into(query.ranges)
     }
@@ -951,9 +949,7 @@ defmodule Cloak.Aql.Compiler do
       property: Enum.map(query.property, &map_terminal_element(&1, mapper_fun)),
       aggregators: Enum.map(query.aggregators, &map_terminal_element(&1, mapper_fun)),
       from: map_join_conditions_columns(query.from, mapper_fun),
-      ranges: query.ranges
-        |> Enum.map(fn {column, range} -> {map_terminal_element(column, mapper_fun), range} end)
-        |> Enum.into(%{})
+      ranges: Enum.map(query.ranges, fn(range) -> %{range | column: map_terminal_element(range.column, mapper_fun)} end)
     }
   end
 
@@ -1121,7 +1117,7 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp range_columns(%{subquery?: true}), do: []
-  defp range_columns(%{subquery?: false, ranges: ranges}), do: Map.keys(ranges)
+  defp range_columns(%{subquery?: false, ranges: ranges}), do: Enum.map(ranges, &(&1.column))
 
   defp select_expressions(%Query{command: :select, subquery?: true, emulated?: false} = query) do
     Enum.zip(query.column_titles, query.columns)

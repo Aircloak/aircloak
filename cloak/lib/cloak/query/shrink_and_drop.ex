@@ -4,7 +4,7 @@ defmodule Cloak.Query.ShrinkAndDrop do
   """
 
   alias Cloak.Query.Anonymizer
-  alias Cloak.Aql.{FixAlign, Function, Query}
+  alias Cloak.Aql.{FixAlign, Function, Query, Range}
   alias Cloak.Query.ShrinkAndDrop.Buffer
 
 
@@ -16,7 +16,7 @@ defmodule Cloak.Query.ShrinkAndDrop do
   @spec apply(Stream.t, Query.t) :: Stream.t
   def apply(rows, query) do
     query.ranges
-    |> Enum.sort_by(fn({column, _range}) -> {column.name, column.table} end)
+    |> Enum.sort_by(fn(range) -> {range.column.name, range.column.table} end)
     |> Enum.reduce(rows, &suppress_outliers/2)
   end
 
@@ -25,7 +25,7 @@ defmodule Cloak.Query.ShrinkAndDrop do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp suppress_outliers({column, {low, high}}, rows) do
+  defp suppress_outliers(%Range{column: column, interval: {low, high}}, rows) do
     seed_items = MapSet.new(["endpoint-#{low}", "endpoint-#{high}"])
     initial_state = %{next_id: 0, buffer: Buffer.new(buffer_size()), seed_items: seed_items}
 

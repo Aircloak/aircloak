@@ -668,8 +668,7 @@ defmodule Cloak.Aql.Compiler.Test do
     {:subquery, %{ast: subquery}} = query.from
 
     assert [%{alias: column_alias}] = Enum.reject(subquery.db_columns, &(&1.name == "uid"))
-    assert [%{name: ^column_alias}] = Map.keys(query.ranges)
-    assert [{0.0, 100.0}] = Map.values(query.ranges)
+    assert [%{column: %{name: ^column_alias}, interval: {0.0, 100.0}}] = query.ranges
   end
 
   test "math can be disabled with a config setting" do
@@ -984,7 +983,7 @@ defmodule Cloak.Aql.Compiler.Test do
       |> Lens.satisfy(&(is_map(&1) && Map.has_key?(&1, :alias))),
       Lens.key(:ranges)
       |> Lens.all()
-      |> Lens.at(0)
+      |> Lens.key(:column)
     )
     |> Lens.key(:alias)
   end
