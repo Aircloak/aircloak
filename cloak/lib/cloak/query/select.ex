@@ -13,7 +13,7 @@ defmodule Cloak.Query.Select do
   def run(%Aql.Query{command: :select} = query) do
     try do
       with {:ok, result} <- select_rows(query), do:
-        {:ok, %Query.Result{result | columns: query.column_titles, features: Aql.Query.extract_features(query)}}
+        {:ok, %Query.Result{result | features: Aql.Query.extract_features(query)}}
     rescue e in [RuntimeError] ->
       {:error, e.message}
     end

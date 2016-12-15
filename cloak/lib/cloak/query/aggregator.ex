@@ -51,7 +51,7 @@ defmodule Cloak.Query.Aggregator do
       |> process_low_count_users(query)
       |> aggregate_properties(query)
       |> make_buckets(query)
-    %Result{buckets: aggregated_buckets, users_count: users_count}
+    %Result{columns: query.column_titles, buckets: aggregated_buckets, users_count: users_count}
   end
 
 
