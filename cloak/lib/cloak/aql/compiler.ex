@@ -213,12 +213,19 @@ defmodule Cloak.Aql.Compiler do
   defp carry_ranges(query) do
     query = update_in(query.ranges, &(
       &1
-      |> Enum.map(fn({column, range}) -> {%{column | alias: new_carry_alias()}, range} end)
+      |> Enum.map(fn({column, range}) -> {alias_column(column), range} end)
       |> Enum.into(%{})
     ))
 
-    %{query | db_columns: query.db_columns ++ Map.keys(query.ranges)}
+    if query.emulated? do
+      %{query | columns: query.columns ++ Map.keys(query.ranges)}
+    else
+      %{query | db_columns: query.db_columns ++ Map.keys(query.ranges)}
+    end
   end
+
+  defp alias_column(column = {:function, _, _}), do: {column, :as, new_carry_alias()}
+  defp alias_column(column), do: %{column | alias: new_carry_alias()}
 
   defp new_carry_alias(), do: "carry_#{:crypto.strong_rand_bytes(10) |> Base.encode32}"
 
@@ -845,11 +852,14 @@ defmodule Cloak.Aql.Compiler do
       query
       |> get_in([Lenses.Query.direct_subqueries() |> Lens.key(:ast) |> Lens.key(:ranges)])
       |> Enum.flat_map(fn(ranges) ->
-        Enum.map(ranges, fn({column, range}) -> {%Column{name: column.alias}, range} end)
+        Enum.map(ranges, fn({column, range}) -> {%Column{name: range_alias(column)}, range} end)
       end)
       |> Enum.into(query.ranges)
     }
   end
+
+  defp range_alias({_, :as, alias}), do: alias
+  defp range_alias(column), do: column.alias
 
   defp verify_ranges(clauses) do
     clauses

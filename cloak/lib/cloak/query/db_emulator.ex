@@ -100,7 +100,8 @@ defmodule Cloak.Query.DBEmulator do
     for selected_column <- query.columns, do:
       fetch_value!(row, selected_column, aggregated_columns)
 
-  defp fetch_value!(row,  {:function, _, args} = function, columns) do
+  defp fetch_value!(row, {column, :as, _}, columns), do: fetch_value!(row, column, columns)
+  defp fetch_value!(row, {:function, _, args} = function, columns) do
     case Map.fetch(columns, function) do
       {:ok, index} -> Enum.at(row, index)
       :error -> Enum.map(args, &fetch_value!(row, &1, columns)) |> Function.apply(function)
