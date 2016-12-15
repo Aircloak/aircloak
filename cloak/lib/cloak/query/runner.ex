@@ -9,10 +9,7 @@ defmodule Cloak.Query.Runner do
 
   use GenServer
   require Logger
-
-  alias Cloak.Aql.{Query, Column}
-  alias Cloak.DataSource
-  alias Cloak.Query.{Aggregator, LCFConditions, ShrinkAndDrop, Sorter, Result, DataDecoder, RowSplitters, DBEmulator}
+  alias Cloak.{Aql.Query, DataSource, Query.Runner.Engine}
 
   @supervisor_name Module.concat(__MODULE__, Supervisor)
 
@@ -118,92 +115,10 @@ defmodule Cloak.Query.Runner do
 
   defp run_query(data_source, statement, parameters, views) do
     Logger.debug("Parsing statement `#{statement}` ...")
-    with {:ok, sql_query} <- Query.make(data_source, statement, parameters, views) do
-      execute_sql_query(sql_query)
-    end
+    with {:ok, query} <- Query.make(data_source, statement, parameters, views),
+         {:ok, result} <- Engine.run(query),
+    do: {:ok, result, Query.info_messages(query)}
   end
-
-  defp execute_sql_query(%Query{command: :show, show: :tables} = query) do
-    query = %Query{query | columns: [%Column{table: :unknown, constant?: true, name: "name", type: :text}]}
-    buckets =
-      Map.keys(query.data_source.tables) ++ Map.keys(query.views)
-      |> Enum.map(&%{occurrences: 1, row: [to_string(&1)]})
-
-    successful_result(
-      %Result{columns: ["name"], buckets: buckets, features: Query.extract_features(query)},
-      query
-    )
-  end
-  defp execute_sql_query(%Query{command: :show, show: :columns} = query) do
-    columns = ["name", "type"]
-    query = %Query{query | columns: Enum.map(
-      columns,
-      &%Column{table: :unknown, constant?: true, name: &1, type: :text}
-    )}
-    [table] = query.selected_tables
-    buckets = for {name, type} <- table.columns, do: %{occurrences: 1, row: [name, type]}
-    successful_result(
-      %Result{buckets: buckets, columns: columns, features: Query.extract_features(query)},
-      query
-    )
-  end
-  defp execute_sql_query(%Query{command: :select} = query) do
-    try do
-      with {:ok, result} <- select_rows(query) do
-        result = %Result{result |
-          columns: query.column_titles,
-          features: Query.extract_features(query),
-        }
-        successful_result(result, query)
-      end
-    rescue e in [RuntimeError] ->
-      {:error, e.message}
-    end
-  end
-
-  defp select_rows(%Query{subquery?: false, emulated?: false} = query) do
-    DataSource.select(query, fn(rows) ->
-      process_final_rows(rows, %Query{query | where: query.encoded_where})
-    end)
-  end
-  defp select_rows(%Query{subquery?: false, emulated?: true} = query) do
-    Logger.debug("Emulating query ...")
-    with {:ok, rows} <- select_rows(query.from) do
-      {:ok, process_final_rows(rows, query)}
-    end
-  end
-  defp select_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}}) when not is_binary(from) do
-    Logger.debug("Emulating query ...")
-    with {:ok, rows} <- select_rows(from) do
-      Logger.debug("Processing rows ...")
-      rows =
-        rows
-        |> DBEmulator.select(subquery)
-        |> Enum.to_list()
-      {:ok, rows}
-    end
-  end
-  defp select_rows({:subquery, %{ast: subquery}}) do
-    select_rows(subquery)
-  end
-  defp select_rows({:join, join}) do
-    Logger.debug("Emulating join ...")
-    {:ok, lhs} = select_rows(join.lhs)
-    {:ok, rhs} = select_rows(join.rhs)
-    {:ok, DBEmulator.join(lhs, rhs, join) |> Enum.to_list()}
-  end
-  defp select_rows(%Query{} = query) do
-    Logger.debug("Emulating query ...")
-    DataSource.select(%Query{query | subquery?: false}, fn(rows) ->
-      Logger.debug("Processing rows ...")
-      rows
-      |> DataDecoder.decode(query)
-      |> DBEmulator.select(%Query{query | where: query.encoded_where, encoded_where: []})
-      |> Enum.to_list()
-    end)
-  end
-
-  defp successful_result(result, query), do: {:ok, result, Enum.reverse(query.info)}
 
 
   # -------------------------------------------------------------------
@@ -248,49 +163,6 @@ defmodule Cloak.Query.Runner do
 
   defp execution_time_in_seconds(state), do:
     div(:erlang.monotonic_time(:milli_seconds) - state.start_time, 1000)
-
-  defp process_final_rows(rows, query) do
-    Logger.debug("Processing final rows ...")
-    rows
-    |> DataDecoder.decode(query)
-    |> RowSplitters.split(query)
-    |> DBEmulator.filter_rows(query)
-    |> LCFConditions.apply(query)
-    |> ShrinkAndDrop.apply(query)
-    |> Aggregator.aggregate(query)
-    |> Sorter.order_buckets(query)
-    |> distinct(query)
-    |> offset(query)
-    |> limit(query)
-  end
-
-  defp limit(result, %Query{limit: nil}), do: result
-  defp limit(%Result{buckets: buckets} = result, %Query{limit: amount}) do
-    limited_buckets = buckets
-      |> take(amount, [])
-      |> Enum.reverse()
-    %Result{result | buckets: limited_buckets}
-  end
-
-  defp take([], _amount, acc), do: acc
-  defp take([%{occurrences: occurrences} = bucket | rest], amount, acc) when occurrences < amount, do:
-    take(rest, amount - occurrences, [bucket | acc])
-  defp take([%{} = bucket | _rest], amount, acc), do: [%{bucket | occurrences: amount} | acc]
-
-  defp offset(%Result{buckets: buckets} = result, %Query{offset: amount}) do
-    %Result{result | buckets: drop(buckets, amount)}
-  end
-
-  defp drop(buckets, 0), do: buckets
-  defp drop([], _amount), do: []
-  defp drop([%{occurrences: occurrences} | rest], amount) when occurrences <= amount, do:
-    drop(rest, amount - occurrences)
-  defp drop([%{occurrences: occurrences} = bucket | rest], amount), do:
-    [%{bucket | occurrences: occurrences - amount} | rest]
-
-  defp distinct(%Result{buckets: buckets} = result, %Query{distinct?: true}), do:
-    %Result{result | buckets: Enum.map(buckets, &Map.put(&1, :occurrences, 1))}
-  defp distinct(result, %Query{distinct?: false}), do: result
 
 
   # -------------------------------------------------------------------
