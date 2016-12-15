@@ -9,7 +9,7 @@ defmodule Cloak.Query.Runner do
 
   use GenServer
   require Logger
-  alias Cloak.{Aql.Query, Aql.Column, DataSource, Query.Result, Query.Select}
+  alias Cloak.{Aql.Query, DataSource, Query.Result, Query.Select}
 
   @supervisor_name Module.concat(__MODULE__, Supervisor)
 
@@ -121,26 +121,20 @@ defmodule Cloak.Query.Runner do
   end
 
   defp execute_sql_query(%Query{command: :show, show: :tables} = query) do
-    query = %Query{query | columns: [%Column{table: :unknown, constant?: true, name: "name", type: :text}]}
     buckets =
       Map.keys(query.data_source.tables) ++ Map.keys(query.views)
       |> Enum.map(&%{occurrences: 1, row: [to_string(&1)]})
 
     successful_result(
-      %Result{columns: ["name"], buckets: buckets, features: Query.extract_features(query)},
+      %Result{columns: query.column_titles, buckets: buckets, features: Query.extract_features(query)},
       query
     )
   end
   defp execute_sql_query(%Query{command: :show, show: :columns} = query) do
-    columns = ["name", "type"]
-    query = %Query{query | columns: Enum.map(
-      columns,
-      &%Column{table: :unknown, constant?: true, name: &1, type: :text}
-    )}
     [table] = query.selected_tables
     buckets = for {name, type} <- table.columns, do: %{occurrences: 1, row: [name, type]}
     successful_result(
-      %Result{buckets: buckets, columns: columns, features: Query.extract_features(query)},
+      %Result{buckets: buckets, columns: query.column_titles, features: Query.extract_features(query)},
       query
     )
   end

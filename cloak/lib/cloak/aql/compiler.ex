@@ -55,9 +55,15 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp compile_prepped_query(%Query{command: :show, show: :tables} = query), do:
-    {:ok, query}
+    {:ok, %Query{query |
+      column_titles: ["name"],
+      columns: [%Column{table: :unknown, constant?: true, name: "name", type: :text}]
+    }}
   defp compile_prepped_query(%Query{command: :show, show: :columns} = query), do:
-    {:ok, compile_from(query)}
+    {:ok, %Query{compile_from(query) |
+      column_titles: ["name", "type"],
+      columns: Enum.map(["name", "type"], &%Column{table: :unknown, constant?: true, name: &1, type: :text})
+    }}
   defp compile_prepped_query(%Query{command: :select} = query), do:
     {:ok,
       query
