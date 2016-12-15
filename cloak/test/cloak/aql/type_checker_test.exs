@@ -1,0 +1,170 @@
+defmodule Cloak.Aql.TypeChecker.Test do
+  @moduledoc false
+
+  use ExUnit.Case, async: true
+
+  alias Cloak.Aql.{Compiler, Parser, TypeChecker}
+
+  describe "math is only dangerous if a constant is involved" do
+    Enum.each(~w(+ - * ^ /), fn(math_function) ->
+      test "#{math_function} with no constant" do
+        query = "SELECT numeric #{unquote(math_function)} numeric FROM table"
+        refute seen_dangerous_math?(query)
+      end
+    end)
+
+    # Note: we can't test with / because it is treated as a dangerous discontinuous
+    # function as soon as a constant is involved, and hence halts query compilation.
+    Enum.each(~w(+ - * ^), fn(math_function) ->
+      test "#{math_function} with constant" do
+        query = "SELECT numeric #{unquote(math_function)} 2 FROM table"
+        assert seen_dangerous_math?(query)
+      end
+    end)
+
+    test "pow with no constant" do
+      query = "SELECT pow(numeric, numeric) FROM table"
+      refute seen_dangerous_math?(query)
+    end
+
+    test "pow with constant" do
+      query = "SELECT pow(numeric, 2) FROM table"
+      assert seen_dangerous_math?(query)
+    end
+  end
+
+  describe "Discontinuous functions not dangerous when no constant" do
+    Enum.each(~w(abs ceil floor round trunc sqrt), fn(discontinuous_function) ->
+      test discontinuous_function do
+        query = "SELECT #{unquote(discontinuous_function)}(numeric) FROM table"
+        refute dangerously_discontinuous?(query)
+      end
+    end)
+
+    Enum.each(~w(div mod), fn(discontinuous_function) ->
+      test discontinuous_function do
+        query = "SELECT #{unquote(discontinuous_function)}(numeric, numeric) FROM table"
+        refute dangerously_discontinuous?(query)
+      end
+    end)
+
+    # Note bucket isn't tested here, because it only compiles if the alignment value is a constant.
+  end
+
+  describe "casts are considered dangerously discontinuous" do
+    Enum.each(~w(integer real boolean), fn(cast_target) ->
+      test "cast from integer to #{cast_target}" do
+        query = "SELECT cast(numeric as #{unquote(cast_target)}) FROM table"
+        assert dangerously_discontinuous?(query)
+      end
+    end)
+
+    Enum.each(~w(datetime time date text interval), fn(cast_target) ->
+      test "cast from text to #{cast_target}" do
+        query = "SELECT cast(string as #{unquote(cast_target)}) FROM table"
+        assert dangerously_discontinuous?(query)
+      end
+    end)
+  end
+
+  describe "discontinuous string functions only dangerous if later converted to a number" do
+    Enum.each(~w(btrim ltrim rtrim), fn(discontinuous_function) ->
+      test "first #{discontinuous_function}, but not cast to number" do
+        query = "SELECT #{unquote(discontinuous_function)}(string, 'trim') FROM table"
+        refute dangerously_discontinuous?(query)
+      end
+
+      Enum.each(~w(integer real boolean), fn(cast_target) ->
+        test "first #{discontinuous_function}, then cast to #{cast_target}" do
+          query = """
+          SELECT cast(#{unquote(discontinuous_function)}(string, 'trim') as #{unquote(cast_target)})
+          FROM table
+          """
+          assert dangerously_discontinuous?(query)
+        end
+      end)
+
+      test "first #{discontinuous_function}, then use of length" do
+        query = "SELECT length(#{unquote(discontinuous_function)}(string, 'trim')) FROM table"
+        assert dangerously_discontinuous?(query)
+      end
+    end)
+
+    Enum.each(~w(left right), fn(discontinuous_function) ->
+      test "first #{discontinuous_function}, but not cast to number" do
+        query = "SELECT #{unquote(discontinuous_function)}(string, 2) FROM table"
+        refute dangerously_discontinuous?(query)
+      end
+
+      Enum.each(~w(integer real boolean), fn(cast_target) ->
+        test "first #{discontinuous_function}, then cast to #{cast_target}" do
+          query = """
+          SELECT cast(#{unquote(discontinuous_function)}(string, 2) as #{unquote(cast_target)})
+          FROM table
+          """
+          assert dangerously_discontinuous?(query)
+        end
+      end)
+
+      test "first #{discontinuous_function}, then use of length" do
+        query = "SELECT length(#{unquote(discontinuous_function)}(string, 2)) FROM table"
+        assert dangerously_discontinuous?(query)
+      end
+    end)
+
+    test "first substring, but not cast to number" do
+      query = "SELECT substring(string from 2) FROM table"
+      refute dangerously_discontinuous?(query)
+    end
+
+    Enum.each(~w(integer real boolean), fn(cast_target) ->
+      test "first substring, then cast to #{cast_target}" do
+        query = """
+        SELECT cast(substring(string from 2) as #{unquote(cast_target)})
+        FROM table
+        """
+        assert dangerously_discontinuous?(query)
+      end
+    end)
+
+    test "first substring, then use of length" do
+      query = "SELECT length(substring(string from 2)) FROM table"
+      assert dangerously_discontinuous?(query)
+    end
+  end
+
+  defp dangerously_discontinuous?(query), do:
+    type_first_column(query).dangerously_discontinuous?
+
+  defp seen_dangerous_math?(query), do:
+    type_first_column(query).seen_dangerous_math?
+
+  defp type_first_column(query) do
+    compiled_query = compile!(query)
+    TypeChecker.type(hd(compiled_query.columns), compiled_query)
+  end
+
+  defp compile!(query_string) do
+    {:ok, result} = compile(query_string)
+    result
+  end
+
+  defp compile(query_string, features \\ Cloak.Features.from_config) do
+    query = Parser.parse!(query_string)
+    Compiler.compile(data_source, query, [], %{}, features)
+  end
+
+  defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do
+    %{driver: driver, tables: %{
+      table: %{
+        db_name: "table",
+        name: "table",
+        user_id: "uid",
+        columns: [
+          {"uid", :integer}, {"column", :datetime}, {"numeric", :integer}, {"float", :real}, {"string", :text}
+        ],
+        projection: nil,
+      },
+    }}
+  end
+end
