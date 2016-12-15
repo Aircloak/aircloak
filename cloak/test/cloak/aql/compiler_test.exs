@@ -1,7 +1,9 @@
 defmodule Cloak.Aql.Compiler.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.{Column, Compiler, Parser}
+  import Lens.Macros
+
+  alias Cloak.Aql.{Column, Compiler, Parser, Lenses}
 
   defmacrop column(table_name, column_name) do
     quote do
@@ -647,10 +649,10 @@ defmodule Cloak.Aql.Compiler.Test do
   test "having condition ranges are aligned with a message in subqueries" do
     %{from: {:subquery, %{ast: aligned}}} = compile!("""
       select count(*) from (select uid from table group by uid having avg(numeric) >= 0.0 and avg(numeric) < 5.0) x
-    """, data_source())
+    """, data_source()) |> scrub_aliases()
     %{from: {:subquery, %{ast: unaligned}}} = compile!("""
       select count(*) from (select uid from table group by uid having avg(numeric) > 0.1 and avg(numeric) <= 4.9) x
-    """, data_source())
+    """, data_source()) |> scrub_aliases()
 
     assert Map.drop(aligned, [:info]) == Map.drop(unaligned, [:info])
     assert unaligned.info == ["The range for column `avg` has been adjusted to 0.0 <= `avg` < 5.0."]
@@ -970,6 +972,25 @@ defmodule Cloak.Aql.Compiler.Test do
       """
       assert where_columns_have_valid_transformations(query)
     end
+  end
+
+  defp scrub_aliases(query), do: put_in(query, [aliases()], nil)
+
+  deflens aliases do
+    all_subqueries()
+    |> Lens.both(
+      Lens.keys([:where, :columns, :db_columns])
+      |> Lenses.Query.terminal_elements()
+      |> Lens.satisfy(&(is_map(&1) && Map.has_key?(&1, :alias))),
+      Lens.key(:ranges)
+      |> Lens.all()
+      |> Lens.at(0)
+    )
+    |> Lens.key(:alias)
+  end
+
+  deflens all_subqueries() do
+    Lens.both(Lens.recur(Lenses.Query.direct_subqueries() |> Lens.key(:ast)), Lens.root())
   end
 
   defp select_columns_have_valid_transformations(query) do
