@@ -142,13 +142,13 @@ defmodule Cloak.Aql.Compiler do
   defp resolve_projected_table(table_name, query) do
     case DataSource.table(query.data_source, table_name) do
       %{projection: nil} -> table_name
-      projected_table -> projected_table_ast(projected_table, query)
+      projected_table -> projected_table_ast(projected_table, :all, query)
     end
   end
 
-  defp projected_table_ast(%{projection: nil} = table, _query), do:
+  defp projected_table_ast(%{projection: nil} = table, _column_to_select, _query), do:
     {:quoted, table.name}
-  defp projected_table_ast(table, query) do
+  defp projected_table_ast(table, columns_to_select, query) do
     joined_table = DataSource.table(query.data_source, table.projection.table)
 
     {:subquery, %{
@@ -162,13 +162,14 @@ defmodule Cloak.Aql.Compiler do
             table.columns
             |> Enum.map(fn({column_name, _type}) -> column_name end)
             |> Enum.reject(&(&1 == table.user_id))
+            |> Enum.filter(&(columns_to_select == :all || Enum.member?(columns_to_select, &1)))
             |> Enum.map(&column_ast(table.name, &1))
           ],
         from:
           {:join, %{
             type: :inner_join,
             lhs: {:quoted, table.name},
-            rhs: projected_table_ast(joined_table, query),
+            rhs: projected_table_ast(joined_table, [table.projection.primary_key], query),
             conditions: [{:comparison,
               column_ast(table.name, table.projection.foreign_key),
               :=,
