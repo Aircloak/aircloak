@@ -6,7 +6,7 @@ defmodule Cloak.DataSource.ODBC do
 
   alias Cloak.DataSource.SqlBuilder
   alias Cloak.Query.Runner.RuntimeError
-  alias Cloak.Aql.Column
+  alias Cloak.Query.DataDecoder
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -44,7 +44,8 @@ defmodule Cloak.DataSource.ODBC do
   @doc false
   def select(%__MODULE__{connection: connection, sql_dialect: sql_dialect}, aql_query, result_processor) do
     statement = aql_query |> SqlBuilder.build(sql_dialect) |> to_char_list()
-    field_mappers = for column <- aql_query.db_columns, do: column_to_field_mapper(column, sql_dialect)
+    field_mappers = for column <- aql_query.db_columns, do:
+      column |> DataDecoder.encoded_type() |> type_to_field_mapper(sql_dialect)
     case :odbc.select_count(connection, statement, _timeout = :timer.hours(4)) do
       {:ok, _count} ->
         data_stream = Stream.resource(fn () -> connection end, fn (conn) ->
@@ -112,13 +113,13 @@ defmodule Cloak.DataSource.ODBC do
   defp map_fields([field | rest_fields], [mapper | rest_mappers]), do:
     [mapper.(field) | map_fields(rest_fields, rest_mappers)]
 
-  defp column_to_field_mapper(%Column{type: :datetime}, _sql_dialect), do: &datetime_field_mapper/1
-  defp column_to_field_mapper(%Column{type: :time}, _sql_dialect), do: &time_field_mapper/1
-  defp column_to_field_mapper(%Column{type: :date}, _sql_dialect), do: &date_field_mapper/1
-  defp column_to_field_mapper(%Column{type: :real}, _sql_dialect), do: &numeric_field_mapper/1
-  defp column_to_field_mapper(%Column{type: :integer}, _sql_dialect), do: &numeric_field_mapper/1
-  defp column_to_field_mapper(%Column{type: :text}, :sqlserver), do: &utf16_text_field_mapper/1
-  defp column_to_field_mapper(%Column{}, _sql_dialect), do: &generic_field_mapper/1
+  defp type_to_field_mapper(:datetime, _sql_dialect), do: &datetime_field_mapper/1
+  defp type_to_field_mapper(:time, _sql_dialect), do: &time_field_mapper/1
+  defp type_to_field_mapper(:date, _sql_dialect), do: &date_field_mapper/1
+  defp type_to_field_mapper(:real, _sql_dialect), do: &numeric_field_mapper/1
+  defp type_to_field_mapper(:integer, _sql_dialect), do: &integer_field_mapper/1
+  defp type_to_field_mapper(:text, :sqlserver), do: &utf16_text_field_mapper/1
+  defp type_to_field_mapper(_, _sql_dialect), do: &generic_field_mapper/1
 
   defp generic_field_mapper(:null), do: nil
   defp generic_field_mapper(value), do: value
@@ -149,6 +150,13 @@ defmodule Cloak.DataSource.ODBC do
     value
   end
   defp numeric_field_mapper(value), do: value
+
+  defp integer_field_mapper(:null), do: nil
+  defp integer_field_mapper(value) when is_binary(value) do
+    {value, ""} = Integer.parse(value)
+    value
+  end
+  defp integer_field_mapper(value), do: value
 
   defp utf16_text_field_mapper(:null), do: nil
   defp utf16_text_field_mapper(value) when is_binary(value), do:
