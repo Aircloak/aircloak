@@ -55,13 +55,6 @@ defmodule Cloak.Aql.Column do
   This function should mostly be used when producing error messages.
   """
   @spec display_name(t) :: String.t
-  def display_name({:function, _name, args}) do
-    args
-    |> Enum.map(&display_name/1)
-    |> Enum.filter(&(&1))
-    |> hd()
-  end
-  def display_name(%__MODULE__{constant?: true}), do: nil
   def display_name(%__MODULE__{name: name, table: table}) when is_binary(name), do:
     "`#{name}` from table `#{table.name}`"
   def display_name(%__MODULE__{alias: alias}) when is_binary(alias), do: "`#{alias}`"

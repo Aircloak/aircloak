@@ -1317,8 +1317,7 @@ defmodule Cloak.Aql.Compiler do
       type = TypeChecker.type(column, query)
       unless TypeChecker.ok_for_display?(type) do
         raise CompilationError, message: "Queries where a reported value is influenced by math, " <>
-          "a discontinuous function, and a constant are not allowed. In this case the column in " <>
-          "question is #{Column.display_name(column)}"
+          "a discontinuous function, and a constant are not allowed."
       end
     end)
     query
@@ -1334,8 +1333,7 @@ defmodule Cloak.Aql.Compiler do
       type = TypeChecker.type(column, query)
       unless TypeChecker.ok_for_where_inquality?(type) do
         raise CompilationError, message: "WHERE-clause inequalities where the column value has either been " <>
-          "influenced by math or a discontinuous function are not allowed. " <>
-          "In this case the column in question is #{Column.display_name(column)}"
+          "influenced by math or a discontinuous function are not allowed."
       end
     end)
     query
