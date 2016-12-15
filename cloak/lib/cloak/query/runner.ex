@@ -117,7 +117,7 @@ defmodule Cloak.Query.Runner do
     Logger.debug("Parsing statement `#{statement}` ...")
     with {:ok, query} <- Query.make(data_source, statement, parameters, views),
          {:ok, result} <- Engine.run(query),
-    do: {:ok, result, Enum.reverse(query.info)}
+    do: {:ok, result, Query.info_messages(query)}
   end
 
 

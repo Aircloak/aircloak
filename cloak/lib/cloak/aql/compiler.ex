@@ -191,7 +191,7 @@ defmodule Cloak.Aql.Compiler do
       {ast.info, %{subquery | ast: ast}}
     end)
 
-    %Query{compiled | info: query.info ++ Enum.concat(info)}
+    Query.add_info(compiled, Enum.concat(info))
   end
 
   def compiled_subquery(parsed_subquery, alias, parent_query) do
@@ -218,7 +218,7 @@ defmodule Cloak.Aql.Compiler do
     aligned = limit |> FixAlign.align() |> round() |> max(@minimum_subquery_limit)
     if aligned != limit do
       %{query | limit: aligned}
-      |> add_info_message("Limit adjusted from #{limit} to #{aligned}")
+      |> Query.add_info("Limit adjusted from #{limit} to #{aligned}")
     else
       query
     end
@@ -229,7 +229,7 @@ defmodule Cloak.Aql.Compiler do
     aligned = round(offset / limit) * limit
     if aligned != offset do
       %{query | offset: aligned}
-      |> add_info_message("Offset adjusted from #{offset} to #{aligned}")
+      |> Query.add_info("Offset adjusted from #{offset} to #{aligned}")
     else
       query
     end
@@ -403,7 +403,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp compile_buckets(query) do
     {messages, columns} = Lens.get_and_map(Lens.all() |> buckets(), query.columns, &align_bucket/1)
-    %{query | columns: columns, info: Enum.reject(messages, &is_nil/1) ++ query.info}
+    Query.add_info(%{query | columns: columns}, Enum.reject(messages, &is_nil/1))
   end
 
   defp align_bucket(column) do
@@ -815,7 +815,7 @@ defmodule Cloak.Aql.Compiler do
       query
       |> add_clause(lens, {:comparison, column, :<, Column.constant(column.type, right)})
       |> add_clause(lens, {:comparison, column, :>=, Column.constant(column.type, left)})
-      |> add_info_message("The range for column #{name} has been adjusted to #{left} <= #{name} < #{right}.")
+      |> Query.add_info("The range for column #{name} has been adjusted to #{left} <= #{name} < #{right}.")
     end
     |> put_in([Access.key(:ranges), column], {left, right})
   end
@@ -1077,8 +1077,6 @@ defmodule Cloak.Aql.Compiler do
   defp extract_columns({:comparison, column, _operator, target}), do: extract_columns(column) ++ extract_columns(target)
   defp extract_columns({:not, condition}), do: extract_columns(condition)
   defp extract_columns({verb, column, _value}) when verb in [:like, :ilike, :is, :in], do: extract_columns(column)
-
-  defp add_info_message(query, info_message), do: %Query{query | info: [info_message | query.info]}
 
   defp calculate_db_columns(query) do
     db_columns =
