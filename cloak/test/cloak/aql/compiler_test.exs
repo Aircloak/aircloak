@@ -814,6 +814,39 @@ defmodule Cloak.Aql.Compiler.Test do
     refute select_columns_have_valid_transformations(query)
   end
 
+  describe "casts are considered dangerously discontinuous when a constant is involved" do
+    Enum.each(~w(integer real boolean), fn(cast_target) ->
+      test "cast from integer to #{cast_target}" do
+        query = "SELECT cast(numeric + 1 as #{unquote(cast_target)}) FROM table"
+        refute select_columns_have_valid_transformations(query)
+      end
+    end)
+
+    Enum.each(~w(datetime date), fn(cast_target) ->
+      test "cast from text to #{cast_target}" do
+        query = """
+        SELECT string FROM (
+          SELECT uid, string, cast(rtrim(string, 'constant') as #{unquote(cast_target)}) as danger
+          FROM table
+        ) t
+        WHERE danger >= '2010-01-01' and danger < '2020-01-01'
+        """
+        refute where_columns_have_valid_transformations(query)
+      end
+    end)
+
+    test "cast from text to time" do
+      query = """
+      SELECT string FROM (
+        SELECT uid, string, cast(rtrim(string, 'constant') as time) as danger
+        FROM table
+      ) t
+      WHERE danger >= '10:10:10' and danger < '12:12:12'
+      """
+      refute where_columns_have_valid_transformations(query)
+    end
+  end
+
   describe "WHERE-inequalities affected by dangerous math OR discontinuity are forbidden" do
     Enum.each(~w(abs ceil floor round trunc sqrt), fn(discontinuous_function) ->
       test "#{discontinuous_function} without constant" do
@@ -897,13 +930,13 @@ defmodule Cloak.Aql.Compiler.Test do
       refute where_columns_have_valid_transformations(query)
     end
 
-    test "cast column" do
+    test "dangerous cast column" do
       query = """
         SELECT numeric FROM (
           SELECT
             uid,
             numeric,
-            cast(string as integer) as value
+            cast(btrim(string, 'constant') as integer) as value
           FROM table
         ) t
         WHERE value >= 0 and value < 10
