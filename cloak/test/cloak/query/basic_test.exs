@@ -99,12 +99,6 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["div"], rows: [%{occurrences: 10, row: [1]}]}
   end
 
-  test "a binary function of a column and a constant" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [22])
-    assert_query "select div(height, 3) from heights",
-      %{columns: ["div"], rows: [%{occurrences: 10, row: [7]}]}
-  end
-
   test "select all and order query" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 180, true])
     :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 180, true])
@@ -190,7 +184,9 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query "select avg(distinct height) from heights",
       %{columns: ["avg"], rows: [%{row: [162.5], occurrences: 1}]}
-    assert_query "select avg(distinct abs(height - 100)) from heights",
+    assert_query "select avg(distinct abs(height)) from heights",
+      %{columns: ["avg"], rows: [%{row: [162.5], occurrences: 1}]}
+    assert_query "select avg(distinct height - 100) from heights",
       %{columns: ["avg"], rows: [%{row: [62.5], occurrences: 1}]}
   end
 

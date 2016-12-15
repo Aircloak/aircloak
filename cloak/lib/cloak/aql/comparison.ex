@@ -43,8 +43,11 @@ defmodule Cloak.Aql.Comparison do
   def to_function(_condition, _truth \\ true)
   def to_function({:not, condition}, truth), do: to_function(condition, not truth)
   def to_function({:comparison, column, operator, value}, truth) do
-    value = extract_value(value)
-    fn(row) -> compare(operator, Function.apply_to_db_row(column, row), value) == truth end
+    fn(row) ->
+      lhs = Function.apply_to_db_row(column, row)
+      rhs = Function.apply_to_db_row(value, row)
+      compare(operator, lhs, rhs) == truth
+    end
   end
   def to_function({:like, column, %Column{type: :text, value: pattern}}, truth) do
     regex = pattern |> to_regex() |> Regex.compile!("ums")
@@ -58,7 +61,7 @@ defmodule Cloak.Aql.Comparison do
     fn(row) -> (Function.apply_to_db_row(column, row) == nil) == truth end
   end
   def to_function({:in, column, values}, truth) do
-    values = for value <- values, do: extract_value(value)
+    values = for %Column{constant?: true, value: value} <- values, do: value
     fn(row) -> compare(:in, Function.apply_to_db_row(column, row), values) == truth end
   end
 
@@ -82,9 +85,6 @@ defmodule Cloak.Aql.Comparison do
   #-----------------------------------------------------------------------------------------------------------
 
   defp anchor(pattern), do: "^#{pattern}$"
-
-  defp extract_value(%Column{value: value}), do: value
-  defp extract_value(value), do: value
 
   def to_regex(pattern), do:
     pattern

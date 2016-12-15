@@ -58,7 +58,6 @@ defmodule Cloak.Aql.Query do
     order_by: [{pos_integer, :asc | :desc}],
     show: :tables | :columns,
     selected_tables: [DataSource.table],
-    mode: :parsed | :unparsed,
     db_columns: [Column.t],
     from: Parser.from_clause | nil,
     subquery?: boolean,
@@ -69,15 +68,17 @@ defmodule Cloak.Aql.Query do
     emulated?: boolean,
     ranges: %{Column.t => FixAlign.interval},
     parameters: [DataSource.field],
-    views: view_map
+    views: view_map,
+    projected?: boolean
   }
 
   defstruct [
     columns: [], where: [], lcf_check_conditions: [], unsafe_filter_columns: [], group_by: [],
     order_by: [], column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
-    row_splitters: [], implicit_count?: false, data_source: nil, command: nil, show: nil, mode: nil,
+    row_splitters: [], implicit_count?: false, data_source: nil, command: nil, show: nil,
     db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
-    features: nil, encoded_where: [], ranges: %{}, parameters: [], views: %{}, emulated?: false
+    features: nil, encoded_where: [], ranges: %{}, parameters: [], views: %{}, emulated?: false,
+    projected?: false
   ]
 
 
@@ -100,7 +101,7 @@ defmodule Cloak.Aql.Query do
   @spec make(DataSource.t, String.t, [DataSource.field], view_map) ::
     {:ok, t} | {:error, String.t}
   def make(data_source, string, parameters, views) do
-    with {:ok, parsed_query} <- Parser.parse(data_source, string) do
+    with {:ok, parsed_query} <- Parser.parse(string) do
       Compiler.compile(data_source, parsed_query, parameters, views)
     end
   end
@@ -152,7 +153,7 @@ defmodule Cloak.Aql.Query do
     {:error, field :: atom, reason :: String.t}
   def validate_view(data_source, name, sql, views) do
     with :ok <- view_name_ok?(data_source, name),
-         {:ok, parsed_query} <- Parser.parse(data_source, sql),
+         {:ok, parsed_query} <- Parser.parse(sql),
          {:ok, compiled_query} <- Compiler.validate_view(data_source, parsed_query, views)
     do
       {:ok,

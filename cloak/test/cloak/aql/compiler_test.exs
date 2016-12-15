@@ -259,11 +259,6 @@ defmodule Cloak.Aql.Compiler.Test do
     )
   end
 
-  test "rejecting outer where clause in queries unchecked sub-select" do
-    assert {:error, "WHERE-clause in outer SELECT is not allowed in combination with a subquery."} =
-      compile("SELECT a FROM (unchecked inner select) t WHERE a > 10", data_source(Cloak.DataSource.DsProxy))
-  end
-
   test "rejecting missing column" do
     assert {:error, "Column `a` doesn't exist in table `table`."} =
       compile("SELECT a FROM table", data_source())
@@ -725,19 +720,295 @@ defmodule Cloak.Aql.Compiler.Test do
     assert error == "Function `extract_match` is not allowed in subqueries."
   end
 
+  describe "rejects queries selecing columns that have seen math, discontinuity and constants" do
+    Enum.each(~w(+ - / * ^), fn(math_function) ->
+      Enum.each(~w(abs ceil floor round trunc sqrt), fn(discontinuous_function) ->
+        test "when on the same level ('#{math_function}' and '#{discontinuous_function}')" do
+          query = """
+            SELECT #{unquote(discontinuous_function)}(numeric #{unquote(math_function)} 3)
+            FROM table
+          """
+          refute select_columns_have_valid_transformations(query)
+        end
+
+        test "when across queries ('#{math_function}' and '#{discontinuous_function}')" do
+          query = """
+            SELECT #{unquote(discontinuous_function)}(num)
+            FROM (
+              SELECT uid, numeric #{unquote(math_function)} 3 as num
+              FROM table
+            ) t
+          """
+          refute select_columns_have_valid_transformations(query)
+        end
+
+        test "ok when no constant ('#{math_function}' and '#{discontinuous_function}')" do
+          query = """
+            SELECT #{unquote(discontinuous_function)}(numeric #{unquote(math_function)} numeric)
+            FROM table
+          """
+          assert select_columns_have_valid_transformations(query)
+        end
+
+        test "ok when math is only with constants ('#{math_function}' and '#{discontinuous_function}')" do
+          query = """
+            SELECT #{unquote(discontinuous_function)}(1 #{unquote(math_function)} 3)
+            FROM table
+          """
+          assert select_columns_have_valid_transformations(query)
+        end
+      end)
+
+      Enum.each(~w(div mod), fn(discontinuous_function) ->
+        test "when on the same level ('#{math_function}' and '#{discontinuous_function}')" do
+          query = """
+            SELECT #{unquote(discontinuous_function)}(numeric, 2) #{unquote(math_function)} 3
+            FROM table
+          """
+          refute select_columns_have_valid_transformations(query)
+        end
+
+        test "when across queries ('#{math_function}' and '#{discontinuous_function}')" do
+          query = """
+            SELECT num #{unquote(math_function)} 3
+            FROM (
+              SELECT uid, #{unquote(discontinuous_function)}(numeric, 2) as num
+              FROM table
+            ) t
+          """
+          refute select_columns_have_valid_transformations(query)
+        end
+
+        test "ok when math is only with constants ('#{math_function}' and '#{discontinuous_function}')" do
+          query = """
+            SELECT #{unquote(discontinuous_function)}(1, 2) #{unquote(math_function)} 3
+            FROM table
+          """
+          assert select_columns_have_valid_transformations(query)
+        end
+      end)
+
+      test "when on the same level ('#{math_function}' and 'bucket')" do
+        query = """
+          SELECT bucket(numeric by 10) #{unquote(math_function)} 3
+          FROM table
+        """
+        refute select_columns_have_valid_transformations(query)
+      end
+
+      test "when across queries ('#{math_function}' and 'bucket')" do
+        query = """
+          SELECT num #{unquote(math_function)} 3
+          FROM (
+            SELECT uid, bucket(numeric by 10) as num
+            FROM table
+          ) t
+        """
+        refute select_columns_have_valid_transformations(query)
+      end
+
+      test "when on the same level ('#{math_function}' and '%')" do
+        query = """
+          SELECT (numeric % 7) #{unquote(math_function)} 3
+          FROM table
+        """
+        refute select_columns_have_valid_transformations(query)
+      end
+
+      test "when across queries ('#{math_function}' and '%')" do
+        query = """
+          SELECT num #{unquote(math_function)} 3
+          FROM (
+            SELECT uid, numeric % 7 as num
+            FROM table
+          ) t
+        """
+        refute select_columns_have_valid_transformations(query)
+      end
+    end)
+  end
+
+  test "/ becomes a dangerous discontinuous function if divisor is touched by a constant" do
+    query = "SELECT numeric / (numeric * 2) FROM table"
+    refute select_columns_have_valid_transformations(query)
+  end
+
+  describe "WHERE-inequalities affected by dangerous math OR discontinuity are forbidden" do
+    Enum.each(~w(abs ceil floor round trunc sqrt), fn(discontinuous_function) ->
+      test "#{discontinuous_function} without constant" do
+        query = """
+          SELECT value FROM (
+            SELECT uid, #{unquote(discontinuous_function)}(numeric) as value
+            FROM table
+          ) t
+          WHERE value >= 10 and value < 20
+        """
+        assert where_columns_have_valid_transformations(query)
+      end
+    end)
+
+    Enum.each(~w(div mod), fn(discontinuous_function) ->
+      test "#{discontinuous_function} with constant" do
+        query = """
+          SELECT numeric FROM (
+            SELECT
+              uid,
+              numeric,
+              #{unquote(discontinuous_function)}(numeric, 3) as value
+            FROM table
+          ) t
+          WHERE value >= 10 and value < 20
+        """
+        refute where_columns_have_valid_transformations(query)
+      end
+
+      test "#{discontinuous_function} without constant" do
+        query = """
+          SELECT value FROM (
+            SELECT uid, #{unquote(discontinuous_function)}(numeric, numeric) as value
+            FROM table
+          ) t
+          WHERE value >= 10 and value < 20
+        """
+        assert where_columns_have_valid_transformations(query)
+      end
+    end)
+
+    Enum.each(~w(+ - / * ^), fn(math_function) ->
+      test "#{math_function} without constant" do
+        query = """
+          SELECT value FROM (
+            SELECT uid, numeric #{unquote(math_function)} numeric as value
+            FROM table
+          ) t
+          WHERE value >= 10 and value < 20
+        """
+        assert where_columns_have_valid_transformations(query)
+      end
+    end)
+
+    # Note: we can't test with / because it is treated as a dangerous discontinuous
+    # function as soon as a constant is involved, and hence halts query compilation.
+    Enum.each(~w(+ - * ^), fn(math_function) ->
+      test "#{math_function} with constant" do
+        query = """
+          SELECT value FROM (
+            SELECT uid, numeric #{unquote(math_function)} 3 as value
+            FROM table
+          ) t
+          WHERE value >= 10 and value < 20
+        """
+        refute where_columns_have_valid_transformations(query)
+      end
+    end)
+
+    test "string and constant converted to number" do
+      query = """
+        SELECT numeric FROM (
+          SELECT
+            uid,
+            numeric,
+            length(btrim(string, 'constant')) as value
+          FROM table
+        ) t
+        WHERE value >= 0 and value < 10
+      """
+      refute where_columns_have_valid_transformations(query)
+    end
+
+    test "cast column" do
+      query = """
+        SELECT numeric FROM (
+          SELECT
+            uid,
+            numeric,
+            cast(string as integer) as value
+          FROM table
+        ) t
+        WHERE value >= 0 and value < 10
+      """
+      refute where_columns_have_valid_transformations(query)
+    end
+  end
+
+  describe "WHERE-equalities on dangerous columns are allowed" do
+    test "unsafe discontinuity" do
+      query = """
+        SELECT numeric FROM (
+          SELECT
+            uid,
+            numeric,
+            length(btrim(string, 'constant')) as value
+          FROM table
+        ) t
+        WHERE value = 0
+      """
+      assert where_columns_have_valid_transformations(query)
+    end
+
+    test "on a cast column" do
+      query = """
+        SELECT numeric FROM (
+          SELECT
+            uid,
+            numeric,
+            cast(string as integer) as value
+          FROM table
+        ) t
+        WHERE value = 10
+      """
+      assert where_columns_have_valid_transformations(query)
+    end
+
+    test "affected by math" do
+      query = """
+        SELECT value FROM (
+          SELECT uid, numeric + 2 as value
+          FROM table
+        ) t
+        WHERE value = 10
+      """
+      assert where_columns_have_valid_transformations(query)
+    end
+  end
+
+  defp select_columns_have_valid_transformations(query) do
+    case compile(query, data_source()) do
+      {:ok, _} -> true
+      {:error, reason} ->
+        if reason =~ ~r/is influenced by math, a discontinuous function/ do
+          false
+        else
+          raise "Compilation failed with other reason than illegal math/discontinuity: #{inspect reason}"
+        end
+    end
+  end
+
+  defp where_columns_have_valid_transformations(query) do
+    case compile(query, data_source()) do
+      {:ok, _} -> true
+      {:error, reason} ->
+        if reason =~ ~r/WHERE-clause inequalities/ do
+          false
+        else
+          raise "Compilation failed with other reason than illegal WHERE-clause: #{inspect reason}"
+        end
+    end
+  end
+
   defp compile!(query_string, data_source, options \\ []) do
     {:ok, result} = compile(query_string, data_source, options)
     result
   end
 
   defp compile(query_string, data_source, options \\ [], features \\ Cloak.Features.from_config) do
-    query = Parser.parse!(data_source, query_string)
+    query = Parser.parse!(query_string)
     Compiler.compile(data_source, query, Keyword.get(options, :parameters, []),
       Keyword.get(options, :views, %{}), features)
   end
 
   defp validate_view(view_sql, data_source, options \\ []) do
-    with {:ok, parsed_view} <- Parser.parse(data_source, view_sql), do:
+    with {:ok, parsed_view} <- Parser.parse(view_sql), do:
       Compiler.validate_view(data_source, parsed_view, Keyword.get(options, :views, %{}))
   end
 
@@ -749,37 +1020,43 @@ defmodule Cloak.Aql.Compiler.Test do
         user_id: "uid",
         columns: [
           {"uid", :integer}, {"column", :datetime}, {"numeric", :integer}, {"float", :real}, {"string", :text}
-        ]
+        ],
+        projection: nil
       },
       other_table: %{
         db_name: "other_table",
         name: "other_table",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"other_column", :datetime}]
+        columns: [{"uid", :integer}, {"other_column", :datetime}],
+        projection: nil
       },
       t1: %{
         db_name: "t1",
         name: "t1",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"c1", :integer}, {"c2", :integer}]
+        columns: [{"uid", :integer}, {"c1", :integer}, {"c2", :integer}],
+        projection: nil
       },
       t2: %{
         db_name: "t2",
         name: "t2",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"c1", :integer}, {"c3", :integer}]
+        columns: [{"uid", :integer}, {"c1", :integer}, {"c3", :integer}],
+        projection: nil
       },
       t3: %{
         db_name: "t3",
         name: "t3",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"c1", :integer}]
+        columns: [{"uid", :integer}, {"c1", :integer}],
+        projection: nil
       },
       t4: %{
         db_name: "t4",
         name: "t4",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"c1", :integer}]
+        columns: [{"uid", :integer}, {"c1", :integer}],
+        projection: nil
       }
     }}
   end
@@ -790,7 +1067,8 @@ defmodule Cloak.Aql.Compiler.Test do
         db_name: "table",
         name: "table",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"column", :time}]
+        columns: [{"uid", :integer}, {"column", :time}],
+        projection: nil
       }
     }}
   end
@@ -801,7 +1079,8 @@ defmodule Cloak.Aql.Compiler.Test do
         db_name: "table",
         name: "table",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"column", :date}]
+        columns: [{"uid", :integer}, {"column", :date}],
+        projection: nil
       }
     }}
   end
@@ -812,7 +1091,8 @@ defmodule Cloak.Aql.Compiler.Test do
         db_name: "table",
         name: "table",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"column.with.dots", :number}]
+        columns: [{"uid", :integer}, {"column.with.dots", :number}],
+        projection: nil
       }
     }}
   end

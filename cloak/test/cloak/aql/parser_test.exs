@@ -3,9 +3,6 @@ defmodule Cloak.Aql.Parser.Test do
 
   alias Cloak.Aql.Parser
 
-  @psql_data_source %{driver: Cloak.DataSource.PostgreSQL}
-  @ds_proxy_data_source %{driver: Cloak.DataSource.DsProxy}
-
 
   # -------------------------------------------------------------------
   # Helper macros
@@ -18,22 +15,21 @@ defmodule Cloak.Aql.Parser.Test do
   # each element in the ast.
 
   # Runs the query string and asserts it matches to the given pattern.
-  defmacrop assert_parse(query_string, expected_pattern, data_source \\ quote(do: @psql_data_source)) do
+  defmacrop assert_parse(query_string, expected_pattern) do
     quote do
-      assert unquote(expected_pattern) = Parser.parse!(unquote(data_source), unquote(query_string))
+      assert unquote(expected_pattern) = Parser.parse!(unquote(query_string))
     end
   end
 
-  defmacrop assert_equal_parse(query1, query2, data_source \\ quote(do: @psql_data_source)) do
+  defmacrop assert_equal_parse(query1, query2) do
     quote do
-      assert Parser.parse(unquote(data_source), unquote(query1)) ==
-        Parser.parse(unquote(data_source), unquote(query2))
+      assert Parser.parse(unquote(query1)) == Parser.parse(unquote(query2))
     end
   end
 
-  defmacrop assert_parse_error(query_string, expected_pattern, data_source \\ quote(do: @psql_data_source)) do
+  defmacrop assert_parse_error(query_string, expected_pattern) do
     quote do
-      assert {:error, unquote(expected_pattern)} = Parser.parse(unquote(data_source), unquote(query_string))
+      assert {:error, unquote(expected_pattern)} = Parser.parse(unquote(query_string))
     end
   end
 
@@ -70,15 +66,9 @@ defmodule Cloak.Aql.Parser.Test do
     Enum.map(values, &quote(do: constant(unquote(&1))))
   end
 
-  defmacrop parsed_subquery(value, alias) do
+  defmacrop subquery(value, alias) do
     quote do
       {:subquery, %{type: :parsed, ast: unquote(value), alias: unquote(alias)}}
-    end
-  end
-
-  defmacrop unparsed_subquery(value) do
-    quote do
-      {:subquery, %{type: :unparsed, unparsed_string: unquote(value)}}
     end
   end
 
@@ -428,7 +418,7 @@ defmodule Cloak.Aql.Parser.Test do
   test "parsed subquery sql" do
     assert_parse(
       "select foo from (select foo from bar) alias",
-      select(columns: [identifier("foo")], from: parsed_subquery(subquery, "alias"))
+      select(columns: [identifier("foo")], from: subquery(subquery, "alias"))
     )
     assert select(columns: [identifier("foo")], from: unquoted("bar")) = subquery
   end
@@ -436,12 +426,12 @@ defmodule Cloak.Aql.Parser.Test do
   test "parsed nested subquery sql" do
     assert_parse(
       "select foo from (select foo from (select foo from bar) inner_alias) outer_alias",
-      select(columns: [identifier("foo")], from: parsed_subquery(subquery, "outer_alias"))
+      select(columns: [identifier("foo")], from: subquery(subquery, "outer_alias"))
     )
 
     assert select(
       columns: [identifier("foo")],
-      from: parsed_subquery(inner_subquery, "inner_alias")
+      from: subquery(inner_subquery, "inner_alias")
     ) = subquery
 
     assert select(columns: [identifier("foo")], from: unquoted("bar")) = inner_subquery
@@ -452,7 +442,7 @@ defmodule Cloak.Aql.Parser.Test do
       "select foo from (select foo from bar) sq1, (select foo from baz) sq2",
       select(
         columns: [identifier("foo")],
-        from: cross_join(parsed_subquery(sq1, "sq1"), parsed_subquery(sq2, "sq2"))
+        from: cross_join(subquery(sq1, "sq1"), subquery(sq2, "sq2"))
       )
     )
     assert select(columns: [identifier("foo")], from: unquoted("bar")) = sq1
@@ -464,62 +454,10 @@ defmodule Cloak.Aql.Parser.Test do
       "select foo from bar inner join (select foo from baz) sq on bar.id = sq.id",
       select(
         columns: [identifier("foo")],
-        from: inner_join(unquoted("bar"), parsed_subquery(sq, "sq"), _comparison)
+        from: inner_join(unquoted("bar"), subquery(sq, "sq"), _comparison)
       )
     )
     assert select(columns: [identifier("foo")], from: unquoted("baz")) = sq
-  end
-
-  test "unparsed subquery sql" do
-    assert_parse(
-      "select foo from (select bar from baz) alias",
-      select(columns: [identifier("foo")], from: unparsed_subquery("select bar from baz")),
-      @ds_proxy_data_source
-    )
-  end
-
-  test "unparsed subquery sql with AS" do
-    assert_parse(
-      "select foo from (select bar from baz) as alias",
-      select(columns: [identifier("foo")], from: unparsed_subquery("select bar from baz")),
-      @ds_proxy_data_source
-    )
-  end
-
-  test "subquery sql with semicolon" do
-    assert_parse(
-      "select foo from (select bar from baz) alias;",
-      select(columns: [identifier("foo")], from: unparsed_subquery("select bar from baz")),
-      @ds_proxy_data_source
-    )
-  end
-
-  test "unparsed subquery sql with an unknown token" do
-    assert_parse(
-      "select foo from (select `bar` from baz) alias",
-      select(columns: [identifier("foo")], from: unparsed_subquery("select `bar` from baz")),
-      @ds_proxy_data_source
-    )
-  end
-
-  test "unparsed subquery sql with parens" do
-    assert_parse(
-      "select foo from (select bar, cast(now() as text) from baz) alias",
-      select(
-        columns: [identifier("foo")],
-        from: unparsed_subquery("select bar, cast(now() as text) from baz")
-      ),
-      @ds_proxy_data_source
-    )
-  end
-
-  test "unparsed subquery sql with newlines" do
-    assert_parse(
-      "select foo from (select bar\n, \n\ncast(now()\n as text) from baz\n) alias",
-      select(columns: [identifier("foo")],
-        from: unparsed_subquery("select bar\n, \n\ncast(now()\n as text) from baz\n")),
-      @ds_proxy_data_source
-    )
   end
 
   test "count(distinct column)" do
@@ -882,9 +820,9 @@ defmodule Cloak.Aql.Parser.Test do
   end
 
   create_test =
-    fn(description, data_source, statement, expected_error, line, column) ->
+    fn(description, statement, expected_error, line, column) ->
       test description do
-        assert {:error, reason} = Parser.parse(unquote(data_source), unquote(statement))
+        assert {:error, reason} = Parser.parse(unquote(statement))
         assert reason =~ unquote(expected_error)
         assert reason =~ "line #{unquote(line)}, column #{unquote(column)}\."
       end
@@ -987,21 +925,10 @@ defmodule Cloak.Aql.Parser.Test do
         "select bucket(foo by bar) from baz", "Expected `numeric constant`", {1, 22}},
       {"bad bucket align part",
         "select bucket(foo by 10 by) from baz", "Expected `)`", {1, 25}},
-      # unparsed subqueries
-      {"unclosed parens in an unparsed subquery expression", quote(do: @ds_proxy_data_source),
-        "select foo from (select bar from baz", "Expected `)`", {1, 37}},
-      {"empty unparsed subquery expression", quote(do: @ds_proxy_data_source),
-        "select foo from ()", "Expected `subquery expression`", {1, 18}},
-      {"missing alias in an unparsed subquery expression", quote(do: @ds_proxy_data_source),
-        "select foo from (select bar from baz)", "Expected `subquery alias`", {1, 38}},
-      {"missing alias after AS in an unparsed subquery expression", quote(do: @ds_proxy_data_source),
-        "select foo from (select bar from baz) AS", "Expected `subquery alias`", {1, 41}},
     ],
     fn
       {description, statement, expected_error, {line, column}} ->
-        create_test.(description, quote(do: @psql_data_source), statement, expected_error, line, column)
-      {description, data_source, statement, expected_error, {line, column}} ->
-        create_test.(description, data_source, statement, expected_error, line, column)
+        create_test.(description, statement, expected_error, line, column)
     end
   )
 end

@@ -121,20 +121,6 @@ The data source requires one of each of the following to be present in the `para
 - `hostname`, `server`
 
 The data source setup will fail if this is not the case.
-As DSProxy data sources are only configured with a `url` parameter, you will need to add some extra
-shim entries to make them work. A DSProxy connection could therefore look like:
-
-```json
-"parameters": {
-  "# --": "Required parameter for DSProxy",
-  "url": "<DSProxy host>",
-
-  "# --": "Dummy data to get a globally unique ID",
-  "hostname": "stage",
-  "user": "dsproxy",
-  "database": "database-name"
-}
-```
 
 #### Tables
 

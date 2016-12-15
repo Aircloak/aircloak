@@ -30,7 +30,7 @@ defmodule Cloak.DataSource.MongoDBTest do
     end
     tables =
       conn
-      |> MongoDB.load_tables(%{db_name: @table, name: @table, columns: [], user_id: "_id"})
+      |> MongoDB.load_tables(%{db_name: @table, name: @table, columns: [], user_id: "_id", projection: nil})
       |> Enum.map(&{&1.name, &1})
       |> Enum.into(%{})
     GenServer.stop(conn)
@@ -115,8 +115,8 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "functions in sub-queries", context do
-    assert_query context, "SELECT AVG(age) FROM (SELECT _id, trunc(abs(age) - 30.0) AS age FROM #{@table}) AS t",
-      %{rows: [%{occurrences: 1, row: [0.0]}]}
+    assert_query context, "SELECT AVG(age) FROM (SELECT _id, trunc(abs(age)) AS age FROM #{@table}) AS t",
+      %{rows: [%{occurrences: 1, row: [30.0]}]}
     assert_query context, "SELECT name FROM (SELECT _id, lower(left(name, 4)) AS name FROM #{@table}) AS t",
       %{rows: [%{occurrences: 5, row: [nil]}, %{occurrences: 10, row: ["user"]}]}
   end
