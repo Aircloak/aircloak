@@ -112,13 +112,7 @@ defmodule Cloak.Aql.TypeChecker do
   defp later_turned_into_a_number?(future), do:
     Enum.any?(["length", {:cast, :integer}, {:cast, :real}, {:cast, :boolean}], &(Enum.member?(future, &1)))
 
-  defp is_constant?(types), do: Enum.all?(types, &(&1.constant?))
-
   defp touched_by_constant?(types), do: Enum.any?(types, &(&1.touched_by_constant?))
-
-  def seen_dangerous_math?(types), do: Enum.any?(types, &(&1.seen_dangerous_math?))
-
-  def seen_dangerous_discontinuity?(types), do: Enum.any?(types, &(&1.dangerously_discontinuous?))
 
   defp constant(), do: %Type{constant?: true, touched_by_constant?: true}
 
@@ -139,15 +133,15 @@ defmodule Cloak.Aql.TypeChecker do
   defp type_for_function(name, args, query, future) do
     child_types = args |> Enum.map(&(construct_type_hierarchy(&1, query, [name | future])))
     # Prune constants, they don't interest us further
-    if is_constant?(child_types) do
+    if Enum.all?(child_types, &(&1.constant?)) do
       constant()
     else
       %Type{
         touched_by_constant?: touched_by_constant?(child_types),
-        seen_dangerous_math?:
-          performs_dangerous_math?(name, future, child_types) || seen_dangerous_math?(child_types),
-        dangerously_discontinuous?:
-          dangerously_discontinuous?(name, future, child_types) || seen_dangerous_discontinuity?(child_types),
+        seen_dangerous_math?: performs_dangerous_math?(name, future, child_types) ||
+          Enum.any?(child_types, &(&1.seen_dangerous_math?)),
+        dangerously_discontinuous?: dangerously_discontinuous?(name, future, child_types) ||
+          Enum.any?(child_types, &(&1.dangerously_discontinuous?)),
       }
     end
   end
