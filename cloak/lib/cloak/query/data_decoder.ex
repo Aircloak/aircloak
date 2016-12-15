@@ -10,8 +10,9 @@ defmodule Cloak.Query.DataDecoder do
 
   alias Cloak.Aql.{Query, Column}
 
-  @type decoder :: (String.t -> {:ok, String.t} | :error)
-  @type t :: %{method: decoder, columns: [String.t]}
+  @type type :: Cloak.DataSource.data_type
+  @type decoder :: (type -> {:ok, type} | :error)
+  @type t :: %{method: decoder, columns: [String.t], in: type, out: type}
 
 
   # -------------------------------------------------------------------
@@ -25,7 +26,11 @@ defmodule Cloak.Query.DataDecoder do
       validate_columns(decoder.columns, table.columns)
       create_from_config(decoder)
     end
-    %{table | decoders: decoders}
+    columns = for {name, type} <- table.columns do
+      decoded_type = Enum.reduce(decoders, type, &get_decoded_column_type(&1, name, &2))
+      {name, decoded_type}
+    end
+    %{table | decoders: decoders, columns: columns}
   end
 
   @doc "Decodes encoded data, if needed."
@@ -47,6 +52,15 @@ defmodule Cloak.Query.DataDecoder do
     Enum.any?(decoders, &Enum.member?(&1.columns, name))
   def needs_decoding?(%Column{}), do: false
 
+  @doc "Returns the actual type of the column in the database."
+  @spec encoded_type(Column.t) :: type
+  def encoded_type(%Column{name: name, type: type, table: %{decoders: decoders}}) do
+    decoders
+    |> Enum.reverse()
+    |> Enum.reduce(type, &get_encoded_column_type(&1, name, &2))
+  end
+  def encoded_type(column), do: column.type
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
@@ -54,24 +68,52 @@ defmodule Cloak.Query.DataDecoder do
 
   defp validate_columns(decoded_columns, table_columns) do
     for name <- decoded_columns do
-      unless Enum.member?(table_columns, {name, :text}) do
-        raise "Column `#{name}` is not a valid target for decoding (either is missing or is not of type text)."
+      unless Enum.find(table_columns, &match?({^name, _}, &1)) != nil do
+        raise "Encoded column `#{name}` doesn't exists."
       end
     end
   end
 
   defp create_from_config(%{method: method} = decoder) when is_function(method), do: decoder
   defp create_from_config(%{method: "base64", columns: columns}), do:
-    %{method: &Base.decode64/1, columns: columns}
+    %{method: &Base.decode64/1, columns: columns, in: :text, out: :text}
   defp create_from_config(%{method: "aes_cbc_128", key: key, columns: columns}), do:
-    %{method: &aes_cbc128_decode(&1, key), columns: columns}
+    %{method: &aes_cbc128_decode(&1, key), columns: columns, in: :text, out: :text}
+  defp create_from_config(%{method: "text_to_integer", columns: columns}), do:
+    %{method: &text_to_integer/1, columns: columns, in: :text, out: :integer}
+  defp create_from_config(%{method: "text_to_real", columns: columns}), do:
+    %{method: &text_to_real/1, columns: columns, in: :text, out: :real}
+  defp create_from_config(%{method: "text_to_datetime", columns: columns}), do:
+    %{method: &text_to_datetime/1, columns: columns, in: :text, out: :datetime}
+  defp create_from_config(%{method: "text_to_date", columns: columns}), do:
+    %{method: &text_to_date/1, columns: columns, in: :text, out: :date}
+  defp create_from_config(%{method: "text_to_time", columns: columns}), do:
+    %{method: &text_to_time/1, columns: columns, in: :text, out: :time}
   defp create_from_config(decoder), do:
     raise "Invalid data decoder definition: `#{inspect(decoder)}`."
 
-  defp get_decoders(%Column{name: name, table: table}) do
-    table.decoders
-    |> Enum.map(&if Enum.member?(&1.columns, name), do: &1.method, else: nil)
-    |> Enum.reject(& &1 == nil)
+  defp get_decoders(%Column{name: name, table: table}), do:
+    Enum.filter_map(table.decoders, &Enum.member?(&1.columns, name), & &1.method)
+
+  defp get_decoded_column_type(decoder, name, type) do
+    if Enum.member?(decoder.columns, name) do
+      if decoder.in == type do
+        decoder.out
+      else
+        raise "Invalid input type for column `#{name}`: expected #{decoder.in}, got #{type}."
+      end
+    else
+      type
+    end
+  end
+
+  defp get_encoded_column_type(decoder, name, type) do
+    if Enum.member?(decoder.columns, name) do
+      true = type == decoder.out
+      decoder.in
+    else
+      type
+    end
   end
 
   defp decode_value({nil, _}), do: nil
@@ -92,5 +134,40 @@ defmodule Cloak.Query.DataDecoder do
     if padding == String.duplicate(<<last>>, last),
       do: {:ok, value},
       else: :error
+  end
+
+  defp text_to_integer(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {value, ""} -> {:ok, value}
+      :error -> :error
+    end
+  end
+
+  defp text_to_real(value) when is_binary(value) do
+    case Float.parse(value) do
+      {value, ""} -> {:ok, value}
+      :error -> :error
+    end
+  end
+
+  defp text_to_datetime(value) when is_binary(value) do
+    case Cloak.Time.parse_datetime(value) do
+      {:ok, value} -> {:ok, value}
+      {:error, _reason} -> :error
+    end
+  end
+
+  defp text_to_date(value) when is_binary(value) do
+    case Cloak.Time.parse_date(value) do
+      {:ok, value} -> {:ok, value}
+      {:error, _reason} -> :error
+    end
+  end
+
+  defp text_to_time(value) when is_binary(value) do
+    case Cloak.Time.parse_time(value) do
+      {:ok, value} -> {:ok, value}
+      {:error, _reason} -> :error
+    end
   end
 end
