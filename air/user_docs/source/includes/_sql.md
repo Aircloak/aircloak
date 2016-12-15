@@ -280,8 +280,6 @@ remainder.
 
 ### abs
 
-Computes the absolute value of the given number.
-
 ```sql
 ABS(3)
 -- 3
@@ -290,9 +288,10 @@ ABS(-3)
 -- 3
 ```
 
-### bucket
+Computes the absolute value of the given number.
 
-Rounds the input to the given bucket size.
+
+### bucket
 
 ```sql
 BUCKET(180 BY 50)
@@ -308,18 +307,20 @@ BUCKET(180 BY 50 ALIGN MIDDLE)
 -- 175
 ```
 
-### ceil / ceiling
+Rounds the input to the given bucket size.
 
-Computes the smallest integer that is greater than or equal to its argument.
+
+### ceil / ceiling
 
 ```sql
 CEIL(3.22)
 -- 4
 ```
 
-### div
+Computes the smallest integer that is greater than or equal to its argument.
 
-Performs integer division on its arguments.
+
+### div
 
 ```sql
 DIV(10, 2)
@@ -329,27 +330,30 @@ DIV(10, 3)
 -- 3
 ```
 
-### floor
+Performs integer division on its arguments.
 
-Computes the largest integer that is less than or equal to its argument.
+
+### floor
 
 ```sql
 FLOOR(3.22)
 -- 3
 ```
 
-### mod
+Computes the largest integer that is less than or equal to its argument.
 
-`MOD(a, b)` computes the remainder from `DIV(a, b)`.
+
+### mod
 
 ```sql
 MOD(10, 3)
 -- 1
 ```
 
-### pow
+`MOD(a, b)` computes the remainder from `DIV(a, b)`.
 
-`POW(a, b)` computes `a` to the `b`-th power.
+
+### pow
 
 ```sql
 POW(2, 3)
@@ -359,9 +363,10 @@ POW(2, 3.5)
 -- 11.313708498984761
 ```
 
-### round
+`POW(a, b)` computes `a` to the `b`-th power.
 
-Rounds the given floating-point value to the nearest integer. An optional second argument signifies the precision.
+
+### round
 
 ```sql
 ROUND(3.22)
@@ -374,18 +379,20 @@ ROUND(3.22, 1)
 -- 3.2
 ```
 
-### sqrt
+Rounds the given floating-point value to the nearest integer. An optional second argument signifies the precision.
 
-Computes the square root.
+
+### sqrt
 
 ```sql
 SQRT(2)
 -- 1.4142135623730951
 ```
 
-### trunc
+Computes the square root.
 
-Rounds the given floating-point value towards zero. An optional second argument signifies the precision.
+
+### trunc
 
 ```sql
 TRUNC(3.22)
@@ -398,11 +405,12 @@ TRUNC(3.22, 1)
 -- 3.2
 ```
 
+Rounds the given floating-point value towards zero. An optional second argument signifies the precision.
+
+
 ## String functions
 
 ### btrim
-
-Removes all of the given characters from the beginning and end of the string. The default is to remove spaces.
 
 ```sql
 BTRIM(' some text ')
@@ -412,9 +420,10 @@ BTRIM('xyzsome textzyx', 'xyz')
 -- 'some text'
 ```
 
-### concat
+Removes all of the given characters from the beginning and end of the string. The default is to remove spaces.
 
-Joins the passed strings into one.
+
+### concat
 
 ```sql
 CONCAT('some ', 'text')
@@ -427,9 +436,10 @@ CONCAT('a', 'b', 'c')
 -- 'abc'
 ```
 
-### left
+Joins the passed strings into one.
 
-`LEFT(string, n)` takes n characters from the beginning of the string. If n is negative takes all but the last |n| characters.
+
+### left
 
 ```sql
 LEFT('some text', 4)
@@ -439,18 +449,20 @@ LEFT('some text', -2)
 -- 'some te'
 ```
 
-### length
+`LEFT(string, n)` takes n characters from the beginning of the string. If n is negative takes all but the last |n| characters.
 
-Computes the number of characters in the string.
+
+### length
 
 ```sql
 LENGTH('some text')
 -- 9
 ```
 
-### lower
+Computes the number of characters in the string.
 
-Transforms all characters in the given string into lowercase.
+
+### lower
 
 ```sql
 LOWER('Some Text')
@@ -460,9 +472,10 @@ LCASE('Some Text')
 -- 'some text'
 ```
 
-### ltrim
+Transforms all characters in the given string into lowercase.
 
-Removes all of the given characters from the beginning of the string. The default is to remove spaces.
+
+### ltrim
 
 ```sql
 LTRIM(' some text ')
@@ -472,9 +485,10 @@ LTRIM('xyzsome textzyx', 'xyz')
 -- 'some textzyx'
 ```
 
-### right
+Removes all of the given characters from the beginning of the string. The default is to remove spaces.
 
-`RIGHT(string, n)` takes n characters from the end of the string. If n is negative takes all but the first |n| characters.
+
+### right
 
 ```sql
 RIGHT('some text', 4)
@@ -484,9 +498,10 @@ RIGHT('some text', -2)
 -- 'me text'
 ```
 
-### rtrim
+`RIGHT(string, n)` takes n characters from the end of the string. If n is negative takes all but the first |n| characters.
 
-Removes all of the given characters from the end of the string. The default is to remove spaces.
+
+### rtrim
 
 ```sql
 RTRIM(' some text ')
@@ -496,9 +511,10 @@ RTRIM('xyzsome textzyx', 'xyz')
 -- 'xyzsome text'
 ```
 
-### substring
+Removes all of the given characters from the end of the string. The default is to remove spaces.
 
-Takes a slice of a string.
+
+### substring
 
 ```sql
 SUBSTRING('some text' FROM 3)
@@ -511,9 +527,10 @@ SUBSTRING('some text' FOR 4)
 -- 'some'
 ```
 
-### upper
+Takes a slice of a string.
 
-Transforms all characters in the given string into uppercase.
+
+### upper
 
 ```sql
 UPPER('Some Text')
@@ -523,12 +540,10 @@ UCASE('Some Text')
 -- 'SOME TEXT'
 ```
 
+Transforms all characters in the given string into uppercase.
+
+
 ### extract_match
-
-Runs a regular expression over a text column. The first match is extracted and replaces the original value.
-The syntax of the regular expressions [resemble that of Perl](http://erlang.org/doc/man/re.html#regexp_syntax).
-
-All regular expressions are considered case insensitive.
 
 ```sql
 EXTRACT_MATCH('Some Text', 'Some')
@@ -541,14 +556,14 @@ EXTRACT_MATCH('This or that', 'Some')
 -- nil
 ```
 
-This function is not allowed in subqueries.
-
-### extract_matches
-
-Runs a regular expression over a text column. All matches are extracted and turned into individual rows.
+Runs a regular expression over a text column. The first match is extracted and replaces the original value.
 The syntax of the regular expressions [resemble that of Perl](http://erlang.org/doc/man/re.html#regexp_syntax).
 
 All regular expressions are considered case insensitive.
+
+This function is not allowed in subqueries.
+
+### extract_matches
 
 ```sql
 EXTRACT_MATCHES('Some Text', '\w+')
@@ -562,6 +577,11 @@ EXTRACT_MATCH('This or that', 'this|that')
 EXTRACT_MATCH('This or that', 'Some')
 # Notice, the row is surpressed when there is no match
 ```
+
+Runs a regular expression over a text column. All matches are extracted and turned into individual rows.
+The syntax of the regular expressions [resemble that of Perl](http://erlang.org/doc/man/re.html#regexp_syntax).
+
+All regular expressions are considered case insensitive.
 
 This function is not allowed in subqueries.
 
@@ -593,8 +613,6 @@ converted into the following rows before furhter analysis takes place
 
 ## Casting
 
-You can convert values between different types using a cast expression.
-
 ```sql
 CAST('3' AS INTEGER)
 -- 3
@@ -605,6 +623,8 @@ CAST(3, TEXT)
 CAST('NOT A NUMBER', INTEGER)
 -- NULL
 ```
+
+You can convert values between different types using a cast expression.
 
 Types can be converted according to the following tables:
 
