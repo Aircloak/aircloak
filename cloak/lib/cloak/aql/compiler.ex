@@ -1,7 +1,7 @@
 defmodule Cloak.Aql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
-  alias Cloak.{DataSource}
+  alias Cloak.DataSource
   alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Lenses}
   alias Cloak.Query.DataDecoder
 
