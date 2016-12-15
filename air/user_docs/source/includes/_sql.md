@@ -260,11 +260,6 @@ SELECT EXTRACT(year FROM date_column) FROM table;
 
 ## Mathematical operators
 
-The operators `+`, `-`, `/`, and `*` have their usual meaning of addition, subtraction, division, and
-multiplication respectively. The operator `^` denotes exponentiation. The operator `%` denotes the division
-remainder.
-
-
 ```sql
 1 - 2 + 4 * 3 / 2
 -- 5
@@ -275,6 +270,16 @@ remainder.
 7 % 3
 -- 1
 ```
+
+The operators `+`, `-`, `/`, and `*` have their usual meaning of addition, subtraction, division, and
+multiplication respectively. The operator `^` denotes exponentiation. The operator `%` denotes the division
+remainder.
+
+The operator `/` is considered a [discontinuous function](#discontinuous-function) if the divisor has been influenced by a constant.
+The operator `%` is considered a [discontinuous function](#discontinuous-function).
+
+The operators `+`, `-` and `*` are considered [math functions](#continuous-math).
+
 
 ## Mathematical functions
 
@@ -289,6 +294,8 @@ ABS(-3)
 ```
 
 Computes the absolute value of the given number.
+
+`ABS` is considered a [discontinuous function](#discontinuous-function).
 
 
 ### bucket
@@ -309,6 +316,8 @@ BUCKET(180 BY 50 ALIGN MIDDLE)
 
 Rounds the input to the given bucket size.
 
+`BUCKET` is considered a [discontinuous function](#discontinuous-function).
+
 
 ### ceil / ceiling
 
@@ -318,6 +327,8 @@ CEIL(3.22)
 ```
 
 Computes the smallest integer that is greater than or equal to its argument.
+
+`CEIL` is considered a [discontinuous function](#discontinuous-function).
 
 
 ### div
@@ -332,6 +343,8 @@ DIV(10, 3)
 
 Performs integer division on its arguments.
 
+`DIV` is considered a [discontinuous function](#discontinuous-function).
+
 
 ### floor
 
@@ -342,6 +355,8 @@ FLOOR(3.22)
 
 Computes the largest integer that is less than or equal to its argument.
 
+`FLOOR` is considered a [discontinuous function](#discontinuous-function).
+
 
 ### mod
 
@@ -351,6 +366,8 @@ MOD(10, 3)
 ```
 
 `MOD(a, b)` computes the remainder from `DIV(a, b)`.
+
+`MOD` is considered a [discontinuous function](#discontinuous-function).
 
 
 ### pow
@@ -381,6 +398,8 @@ ROUND(3.22, 1)
 
 Rounds the given floating-point value to the nearest integer. An optional second argument signifies the precision.
 
+`ROUND` is considered a [discontinuous function](#discontinuous-function).
+
 
 ### sqrt
 
@@ -390,6 +409,9 @@ SQRT(2)
 ```
 
 Computes the square root.
+
+`SQRT` is considered a [discontinuous function](#discontinuous-function) because the behaviour is undefined for negative
+numbers.
 
 
 ### trunc
@@ -407,6 +429,8 @@ TRUNC(3.22, 1)
 
 Rounds the given floating-point value towards zero. An optional second argument signifies the precision.
 
+`TRUNC` is considered a [discontinuous function](#discontinuous-function).
+
 
 ## String functions
 
@@ -421,6 +445,8 @@ BTRIM('xyzsome textzyx', 'xyz')
 ```
 
 Removes all of the given characters from the beginning and end of the string. The default is to remove spaces.
+
+`BTRIM` is considered a [discontinuous function](#discontinuous-function) if the expression is later cast to a number.
 
 
 ### concat
@@ -451,6 +477,8 @@ LEFT('some text', -2)
 
 `LEFT(string, n)` takes n characters from the beginning of the string. If n is negative takes all but the last |n| characters.
 
+`LEFT` is considered a [discontinuous function](#discontinuous-function) if the expression is later cast to a number.
+
 
 ### length
 
@@ -460,6 +488,8 @@ LENGTH('some text')
 ```
 
 Computes the number of characters in the string.
+
+`LENGTH` is considered a [discontinuous function](#discontinuous-function) if the expression is later cast to a number.
 
 
 ### lower
@@ -487,6 +517,9 @@ LTRIM('xyzsome textzyx', 'xyz')
 
 Removes all of the given characters from the beginning of the string. The default is to remove spaces.
 
+`LTRIM` is considered a [discontinuous function](#discontinuous-function) if the expression is later cast to a number.
+
+
 
 ### right
 
@@ -500,6 +533,8 @@ RIGHT('some text', -2)
 
 `RIGHT(string, n)` takes n characters from the end of the string. If n is negative takes all but the first |n| characters.
 
+`RIGHT` is considered a [discontinuous function](#discontinuous-function) if the expression is later cast to a number.
+
 
 ### rtrim
 
@@ -512,6 +547,8 @@ RTRIM('xyzsome textzyx', 'xyz')
 ```
 
 Removes all of the given characters from the end of the string. The default is to remove spaces.
+
+`RTRIM` is considered a [discontinuous function](#discontinuous-function) if the expression is later cast to a number.
 
 
 ### substring
@@ -528,6 +565,8 @@ SUBSTRING('some text' FOR 4)
 ```
 
 Takes a slice of a string.
+
+`SUBSTRING` is considered a [discontinuous function](#discontinuous-function) if the expression is later cast to a number.
 
 
 ### upper
@@ -625,6 +664,9 @@ CAST('NOT A NUMBER', INTEGER)
 ```
 
 You can convert values between different types using a cast expression.
+
+Casts are considered [discontinuous functions](#discontinuous-function) if the expression being cast has been influenced
+by a constant.
 
 Types can be converted according to the following tables:
 
