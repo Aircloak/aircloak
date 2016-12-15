@@ -8,8 +8,17 @@ defmodule Cloak.Query.Runner.Engine do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Executes the SELECT query and returns the query result or the corresponding error"
+  @doc "Executes the AQL query and returns the query result or the corresponding error."
   @spec run(Aql.Query.t) :: {:ok, Query.Result.t} | {:error, String.t}
+  def run(%Aql.Query{command: :show, show: :tables} = query), do:
+    {:ok, %Query.Result{buckets:
+      Map.keys(query.data_source.tables) ++ Map.keys(query.views)
+      |> Enum.map(&%{occurrences: 1, row: [to_string(&1)]})
+    }}
+  def run(%Aql.Query{command: :show, show: :columns, selected_tables: [table]}), do:
+    {:ok, %Query.Result{buckets:
+      Enum.map(table.columns, fn({name, type}) -> %{occurrences: 1, row: [name, type]} end)
+    }}
   def run(%Aql.Query{command: :select} = query) do
     try do
       select_rows(query)

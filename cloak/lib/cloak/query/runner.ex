@@ -116,7 +116,7 @@ defmodule Cloak.Query.Runner do
   defp run_query(data_source, statement, parameters, views) do
     Logger.debug("Parsing statement `#{statement}` ...")
     with {:ok, query} <- Query.make(data_source, statement, parameters, views),
-         {:ok, result} <- execute_query(query)
+         {:ok, result} <- Engine.run(query)
     do
       {
         :ok,
@@ -125,18 +125,6 @@ defmodule Cloak.Query.Runner do
       }
     end
   end
-
-  defp execute_query(%Query{command: :show, show: :tables} = query), do:
-    {:ok, %Result{buckets:
-      Map.keys(query.data_source.tables) ++ Map.keys(query.views)
-      |> Enum.map(&%{occurrences: 1, row: [to_string(&1)]})
-    }}
-  defp execute_query(%Query{command: :show, show: :columns, selected_tables: [table]}), do:
-    {:ok, %Result{buckets:
-      Enum.map(table.columns, fn({name, type}) -> %{occurrences: 1, row: [name, type]} end)
-    }}
-  defp execute_query(%Query{command: :select} = query), do:
-    Engine.run(query)
 
 
   # -------------------------------------------------------------------
