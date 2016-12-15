@@ -116,6 +116,93 @@ When using `LIMIT` and `OFFSET` in a subquery:
   adjusted to 200 given a `LIMIT` of 100
 
 
+## Math restrictions
+
+In the following description we use these definitions:
+
+### Discontinuous function
+
+```sql
+abs(-10) = 10 -- removes the sign
+trunc(1.1043) = 1 -- removes the decimal places
+left('hello world', 5) = 'hello' -- removes part of a string
+```
+
+A discontinuous function is one that performs an irreversible operation on a column value. An example of such a function
+would be `trunc` which takes a floating point value and removes the decimal places. It is discontinuous because there is
+no way to get back to the decimal component by applying other functions. Other functions in this family include `left`
+which returns part of a string value, `abs` which removes the sign of a number.
+
+Functions that are supported by Aircloak are marked with whether or not they are discontinuous in this documentation.
+
+### Continuous math
+
+```sql
+1 + 1 -- is continuous, + can be undone with -
+1 * 10 -- is continuous because * can be undone with /
+div(5, 2) -- is NOT continuous, because it truncates the result
+```
+
+A continuous math function are the normal math operations `+`, `-`, `*` and `pow`. We do not count `/` to this list as
+the behaviour is unspecified when dividing by `0`. Likewise, `sqrt` does not belong to this list as it is not defined
+for negative numbers.
+
+### Dangerously discontinuous
+
+```sql
+abs(age) -- not dangerous
+abs(age - 10) -- dangerous because a constant has been involved
+
+left(name, 4) -- ok, despite being discontinuous and with a constant
+length(left(name, 4)) -- dangerously discontinuous, because the expression is later cast to a number
+```
+
+A dangerously discontinuous function expression is defined as one where one or more of the parameters have been
+influenced by a constant.
+
+Discontinuous string functions are only considered dangerous if the resulting expression is later cast to a number.
+
+### Dangerous math
+
+```sql
+age + 1 -- dangerous, because a constant was involved
+age + height -- not dangerous, no constant
+```
+
+We classify math as dangerous if one or more of the parameters have been influenced by a constant.
+
+### Rules
+
+```sql
+-- Prohibited because `age` had:
+-- - dangerous math applied (addition with a constant), prior to a
+-- - dangerously discontinuous function (discontinuous function after
+--   the expression had been influenced by the constant 1
+SELECT avg(age) FROM (
+  SELECT uid, trunc(age + 1) as age
+  FROM users
+) t
+
+-- Prohibited because `age` has been had math with an integer
+-- done to it prior to being used in an WHERE-clause inequality
+SELECT avg(age) FROM (
+  SELECT uid, age + 1 as age
+  FROM users
+) t
+WHERE age >= 10 and age < 20
+```
+
+A column expression that is selected in query cannot have had dangerous math __and__ a dangerously discontinuous function applied
+to it.
+
+A column expression that is used in a WHERE-clause inequality (in other words together with `>`, `>=`, `<` or `<=`) cannot have been
+through a dangerously discontinuous function __nor__ through a dangerous math operation.
+
+If you run into this restriction in your query, please see if it is possible to change the order of operations in your
+query. For example `trunc(age) + 1` is allowed for a column that is to be selected, whereas `trunc(age + 1)` is not. The
+reason being that `trunc` applied to the `age`-column is not considered dangerously discontinuous.
+
+
 ## Understanding query results
 
 `SELECT` queries return anonymized results. The results have a small amount of noise added to them. This is crucial in protecting the privacy of individuals, while sufficiently unobtrusive to provide accurate results during normal use.
