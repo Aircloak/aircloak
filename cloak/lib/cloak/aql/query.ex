@@ -29,7 +29,7 @@ defmodule Cloak.Aql.Query do
     data_source: DataSource.t,
     features: Cloak.Features.t,
     command: :select | :show,
-    columns: [Column.t],
+    columns: [Column.t] | :*,
     column_titles: [String.t],
     property: [Function.t],
     aggregators: [Function.t],
