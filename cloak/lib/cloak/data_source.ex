@@ -35,6 +35,7 @@ defmodule Cloak.DataSource do
   alias Cloak.Aql.Query
   alias Cloak.DataSource.Parameters
   alias Cloak.Query.DataDecoder
+  alias Cloak.Query.Runner.RuntimeError
 
   require Logger
   require Aircloak.DeployConfig
@@ -136,15 +137,20 @@ defmodule Cloak.DataSource do
 
   Besides the query object, this methods also needs a result processing function
   for handling the stream of rows produced as a result of executing the query.
+
+  The function returns the processed result. On error a `RuntimeError` is raised.
   """
-  @spec select(Query.t, result_processor) :: {:ok, processed_result} | {:error, any}
-  def select(%{data_source: data_source} = select_query, result_processor) do
+  @spec select!(Query.t, result_processor) :: processed_result
+  def select!(%{data_source: data_source} = select_query, result_processor) do
     driver = data_source.driver
     Logger.debug("Connecting to `#{data_source.global_id}` ...")
     connection = driver.connect!(data_source.parameters)
     try do
       Logger.debug("Selecting data ...")
-      driver.select(connection, select_query, result_processor)
+      case driver.select(connection, select_query, result_processor) do
+        {:ok, processed_result} -> processed_result
+        {:error, reason} -> raise RuntimeError, message: reason
+      end
     after
       Logger.debug("Disconnecting ...")
       driver.disconnect(connection)
