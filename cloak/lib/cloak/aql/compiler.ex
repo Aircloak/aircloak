@@ -1331,7 +1331,7 @@ defmodule Cloak.Aql.Compiler do
     |> Lens.to_list(query)
     |> Enum.each(fn(column) ->
       type = TypeChecker.type(column, query)
-      unless TypeChecker.ok_for_where_inquality?(type) do
+      unless TypeChecker.ok_for_where_inequality?(type) do
         raise CompilationError, message: "WHERE-clause inequalities where the column value has either been " <>
           "influenced by math or a discontinuous function are not allowed."
       end

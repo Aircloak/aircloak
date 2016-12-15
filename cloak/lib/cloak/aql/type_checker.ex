@@ -71,7 +71,7 @@ defmodule Cloak.Aql.TypeChecker do
     not (type.dangerously_discontinuous? and type.seen_dangerous_math?)
 
   @doc "Returns true if an expression of this type is safe to be used in a WHERE-inequality. False otherwise"
-  def ok_for_where_inquality?(type), do:
+  def ok_for_where_inequality?(type), do:
     not (type.dangerously_discontinuous? or type.seen_dangerous_math?)
 
   @doc """
