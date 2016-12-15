@@ -115,35 +115,28 @@ defmodule Cloak.Query.Runner do
 
   defp run_query(data_source, statement, parameters, views) do
     Logger.debug("Parsing statement `#{statement}` ...")
-    with {:ok, sql_query} <- Query.make(data_source, statement, parameters, views) do
-      execute_sql_query(sql_query)
+    with {:ok, sql_query} <- Query.make(data_source, statement, parameters, views),
+         {:ok, result} <- execute_sql_query(sql_query)
+    do
+      {
+        :ok,
+        %Result{result | columns: sql_query.column_titles, features: Query.extract_features(sql_query)},
+        Enum.reverse(sql_query.info)
+      }
     end
   end
 
-  defp execute_sql_query(%Query{command: :show, show: :tables} = query) do
-    buckets =
+  defp execute_sql_query(%Query{command: :show, show: :tables} = query), do:
+    {:ok, %Result{buckets:
       Map.keys(query.data_source.tables) ++ Map.keys(query.views)
       |> Enum.map(&%{occurrences: 1, row: [to_string(&1)]})
-
-    successful_result(
-      %Result{columns: query.column_titles, buckets: buckets, features: Query.extract_features(query)},
-      query
-    )
-  end
-  defp execute_sql_query(%Query{command: :show, show: :columns} = query) do
-    [table] = query.selected_tables
-    buckets = for {name, type} <- table.columns, do: %{occurrences: 1, row: [name, type]}
-    successful_result(
-      %Result{buckets: buckets, columns: query.column_titles, features: Query.extract_features(query)},
-      query
-    )
-  end
-  defp execute_sql_query(%Query{command: :select} = query) do
-    with {:ok, result} <- Select.run(query), do:
-      successful_result(%Result{result | features: Query.extract_features(query)}, query)
-  end
-
-  defp successful_result(result, query), do: {:ok, result, Enum.reverse(query.info)}
+    }}
+  defp execute_sql_query(%Query{command: :show, show: :columns, selected_tables: [table]}), do:
+    {:ok, %Result{buckets:
+      Enum.map(table.columns, fn({name, type}) -> %{occurrences: 1, row: [name, type]} end)
+    }}
+  defp execute_sql_query(%Query{command: :select} = query), do:
+    Select.run(query)
 
 
   # -------------------------------------------------------------------
