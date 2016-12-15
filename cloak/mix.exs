@@ -40,7 +40,7 @@ defmodule Cloak.Mixfile do
       {:poison, "~> 2.2.0", override: true},
       {:httpoison, "~> 0.9.0"},
       {:mongodb, "~> 0.2.0"},
-      {:lens, "~> 0.1.0"},
+      {:lens, "~> 0.2.0"},
 
       # Test deps
 

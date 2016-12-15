@@ -1386,10 +1386,7 @@ defmodule Cloak.Aql.Compiler do
   deflens where_inequality_columns(), do:
     Lens.match(fn
       {:comparison, _, check, _} when check in ~w(> >= < <=)a ->
-        Lens.both(
-          Lens.at(1) |> where_inequality_columns(),
-          Lens.at(3) |> where_inequality_columns()
-        )
+        Lens.indices([1, 3]) |> where_inequality_columns()
       elements when is_list(elements) -> Lens.all() |> where_inequality_columns()
       %Column{} -> Lens.root()
       _ -> Lens.empty()
