@@ -76,36 +76,8 @@ defmodule Cloak.Query.Select do
     |> Query.ShrinkAndDrop.apply(query)
     |> Query.Aggregator.aggregate(query)
     |> Query.Sorter.order_buckets(query)
-    |> distinct(query)
-    |> offset(query)
-    |> limit(query)
+    |> Query.Result.distinct(query.distinct?)
+    |> Query.Result.offset(query.offset)
+    |> Query.Result.limit(query.limit)
   end
-
-  defp limit(result, %Aql.Query{limit: nil}), do: result
-  defp limit(%Query.Result{buckets: buckets} = result, %Aql.Query{limit: amount}) do
-    limited_buckets = buckets
-      |> take(amount, [])
-      |> Enum.reverse()
-    %Query.Result{result | buckets: limited_buckets}
-  end
-
-  defp take([], _amount, acc), do: acc
-  defp take([%{occurrences: occurrences} = bucket | rest], amount, acc) when occurrences < amount, do:
-    take(rest, amount - occurrences, [bucket | acc])
-  defp take([%{} = bucket | _rest], amount, acc), do: [%{bucket | occurrences: amount} | acc]
-
-  defp offset(%Query.Result{buckets: buckets} = result, %Aql.Query{offset: amount}) do
-    %Query.Result{result | buckets: drop(buckets, amount)}
-  end
-
-  defp drop(buckets, 0), do: buckets
-  defp drop([], _amount), do: []
-  defp drop([%{occurrences: occurrences} | rest], amount) when occurrences <= amount, do:
-    drop(rest, amount - occurrences)
-  defp drop([%{occurrences: occurrences} = bucket | rest], amount), do:
-    [%{bucket | occurrences: occurrences - amount} | rest]
-
-  defp distinct(%Query.Result{buckets: buckets} = result, %Aql.Query{distinct?: true}), do:
-    %Query.Result{result | buckets: Enum.map(buckets, &Map.put(&1, :occurrences, 1))}
-  defp distinct(result, %Aql.Query{distinct?: false}), do: result
 end
