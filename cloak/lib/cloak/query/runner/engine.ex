@@ -37,6 +37,11 @@ defmodule Cloak.Query.Runner.Engine do
   defp run_statement(%Aql.Query{command: :select} = query), do:
     select_rows(query)
 
+
+  # -------------------------------------------------------------------
+  # Handling of `SELECT` statement
+  # -------------------------------------------------------------------
+
   defp select_rows(%Aql.Query{subquery?: false, emulated?: false} = query) do
     DataSource.select!(query, fn(rows) ->
       process_final_rows(rows, %Aql.Query{query | where: query.encoded_where})
