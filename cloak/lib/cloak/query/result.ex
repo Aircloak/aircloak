@@ -4,6 +4,8 @@ defmodule Cloak.Query.Result do
   allows a result to contain meta-data about the query execution.
   """
 
+  alias Cloak.Aql.Query
+
   @type t :: %__MODULE__{
     buckets: [Cloak.Query.Aggregator.bucket],
     columns: [String.t],
@@ -18,6 +20,12 @@ defmodule Cloak.Query.Result do
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Creates the result struct that corresponds to the given query."
+  @spec new(Query.t, [Cloak.Query.Aggregator.bucket], non_neg_integer) :: t
+  def new(query, buckets, users_count \\ 0), do:
+    %__MODULE__{buckets: buckets, users_count: users_count, columns: query.column_titles,
+      features: Query.extract_features(query)}
 
   @doc "Eliminates duplicate rows."
   @spec distinct(t, boolean) :: t

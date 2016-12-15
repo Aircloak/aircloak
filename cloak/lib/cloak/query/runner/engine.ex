@@ -11,8 +11,7 @@ defmodule Cloak.Query.Runner.Engine do
   @doc "Executes the AQL query and returns the query result or the corresponding error."
   @spec run(Aql.Query.t) :: {:ok, Query.Result.t} | {:error, String.t}
   def run(query) do
-    with {:ok, result} <- run_statement(query), do:
-      {:ok, %Query.Result{result | columns: query.column_titles, features: Aql.Query.extract_features(query)}}
+    run_statement(query)
   end
 
 
@@ -21,14 +20,16 @@ defmodule Cloak.Query.Runner.Engine do
   # -------------------------------------------------------------------
 
   defp run_statement(%Aql.Query{command: :show, show: :tables} = query), do:
-    {:ok, %Query.Result{buckets:
-      Map.keys(query.data_source.tables) ++ Map.keys(query.views)
-      |> Enum.map(&%{occurrences: 1, row: [to_string(&1)]})
-    }}
-  defp run_statement(%Aql.Query{command: :show, show: :columns, selected_tables: [table]}), do:
-    {:ok, %Query.Result{buckets:
+    {:ok, Query.Result.new(query,
+      Enum.map(
+        (Map.keys(query.data_source.tables) ++ Map.keys(query.views)),
+        &%{occurrences: 1, row: [to_string(&1)]}
+      )
+    )}
+  defp run_statement(%Aql.Query{command: :show, show: :columns, selected_tables: [table]} = query), do:
+    {:ok, Query.Result.new(query,
       Enum.map(table.columns, fn({name, type}) -> %{occurrences: 1, row: [name, type]} end)
-    }}
+    )}
   defp run_statement(%Aql.Query{command: :select} = query) do
     try do
       select_rows(query)
