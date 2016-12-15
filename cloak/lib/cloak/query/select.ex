@@ -13,7 +13,7 @@ defmodule Cloak.Query.Select do
   def run(%Aql.Query{command: :select} = query) do
     try do
       select_rows(query)
-    rescue e in [RuntimeError] ->
+    rescue e in [Query.Runner.RuntimeError] ->
       {:error, e.message}
     end
   end
