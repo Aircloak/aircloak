@@ -1,5 +1,5 @@
-defmodule Cloak.Query.Select do
-  @moduledoc "Handles the processing of the `SELECT` statement."
+defmodule Cloak.Query.Runner.Engine do
+  @moduledoc "Execution of AQL queries."
   alias Cloak.{Aql, DataSource, Query}
   require Logger
 

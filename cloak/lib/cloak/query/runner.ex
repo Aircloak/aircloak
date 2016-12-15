@@ -9,7 +9,7 @@ defmodule Cloak.Query.Runner do
 
   use GenServer
   require Logger
-  alias Cloak.{Aql.Query, DataSource, Query.Result, Query.Select}
+  alias Cloak.{Aql.Query, DataSource, Query.Result, Query.Runner.Engine}
 
   @supervisor_name Module.concat(__MODULE__, Supervisor)
 
@@ -136,7 +136,7 @@ defmodule Cloak.Query.Runner do
       Enum.map(table.columns, fn({name, type}) -> %{occurrences: 1, row: [name, type]} end)
     }}
   defp execute_query(%Query{command: :select} = query), do:
-    Select.run(query)
+    Engine.run(query)
 
 
   # -------------------------------------------------------------------
