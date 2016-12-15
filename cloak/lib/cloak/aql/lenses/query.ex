@@ -41,13 +41,6 @@ defmodule Cloak.Aql.Lenses.Query do
   @doc "Lens focusing on a query's immediate subqueries"
   deflens direct_subqueries(), do: Lens.key(:from) |> do_direct_subqueries()
 
-  deflens do_direct_subqueries(), do:
-    Lens.match(fn
-      {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_direct_subqueries()
-      {:subquery, _} -> Lens.at(1)
-      _ -> Lens.empty()
-    end)
-
   @doc """
   Lens focusing on all queries found in a query. Also includes the top-level query itself.
   More concretely, given a query containing a subquery, the main query as well as the subquery
@@ -84,5 +77,12 @@ defmodule Cloak.Aql.Lenses.Query do
       {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_leaf_tables()
       {:subquery, _} -> Lens.empty()
       table when is_binary(table) -> Lens.root()
+    end)
+
+  deflensp do_direct_subqueries(), do:
+    Lens.match(fn
+      {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_direct_subqueries()
+      {:subquery, _} -> Lens.at(1)
+      _ -> Lens.empty()
     end)
 end
