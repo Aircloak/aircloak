@@ -656,11 +656,6 @@ defmodule Cloak.Aql.Compiler.Test do
     assert unaligned.info == ["The range for column `avg` has been adjusted to 0.0 <= `avg` < 5.0."]
   end
 
-  test "math can be disabled with a config setting" do
-    assert {:error, error} = compile("select numeric * 2 from table", data_source(), [], %{math: false})
-    assert error =~ ~r/requires feature `math`/
-  end
-
   test "dotted columns can be used unquoted" do
     assert %{columns: [column("table", "column.with.dots")]} =
       compile!("select column.with.dots from table", dotted_data_source())
@@ -987,10 +982,10 @@ defmodule Cloak.Aql.Compiler.Test do
     result
   end
 
-  defp compile(query_string, data_source, options \\ [], features \\ Cloak.Features.from_config) do
+  defp compile(query_string, data_source, options \\ []) do
     query = Parser.parse!(query_string)
     Compiler.compile(data_source, query, Keyword.get(options, :parameters, []),
-      Keyword.get(options, :views, %{}), features)
+      Keyword.get(options, :views, %{}))
   end
 
   defp validate_view(view_sql, data_source, options \\ []) do

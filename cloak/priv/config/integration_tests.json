@@ -1,8 +1,5 @@
 {
   "salt": "test salt which doesn't matter since tests have SD=0",
-  "features": {
-    "math": true
-  },
   "data_sources": [
     {
       "driver": "postgresql",

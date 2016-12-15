@@ -149,10 +149,8 @@ defmodule Cloak.Aql.TypeChecker.Test do
     result
   end
 
-  defp compile(query_string, features \\ Cloak.Features.from_config) do
-    query = Parser.parse!(query_string)
-    Compiler.compile(data_source, query, [], %{}, features)
-  end
+  defp compile(query_string), do:
+    Compiler.compile(data_source, Parser.parse!(query_string), [], %{})
 
   defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do
     %{driver: driver, tables: %{

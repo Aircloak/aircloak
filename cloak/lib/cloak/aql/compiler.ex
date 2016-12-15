@@ -1,7 +1,7 @@
 defmodule Cloak.Aql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
-  alias Cloak.{DataSource, Features}
+  alias Cloak.{DataSource}
   alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Lenses}
   alias Cloak.Query.DataDecoder
 
@@ -16,12 +16,12 @@ defmodule Cloak.Aql.Compiler do
   # -------------------------------------------------------------------
 
   @doc "Prepares the parsed SQL query for execution."
-  @spec compile(DataSource.t, Parser.parsed_query, tuple, Query.view_map, Features.t) ::
+  @spec compile(DataSource.t, Parser.parsed_query, tuple, Query.view_map) ::
     {:ok, Query.t} | {:error, String.t}
-  def compile(data_source, parsed_query, parameters, views, features \\ Features.from_config()) do
+  def compile(data_source, parsed_query, parameters, views) do
     try do
       parsed_query
-      |> to_prepped_query(data_source, features, parameters, views)
+      |> to_prepped_query(data_source, parameters, views)
       |> compile_prepped_query()
     rescue
       e in CompilationError -> {:error, e.message}
@@ -44,10 +44,9 @@ defmodule Cloak.Aql.Compiler do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp to_prepped_query(parsed_query, data_source, features, parameters, views) do
+  defp to_prepped_query(parsed_query, data_source, parameters, views) do
     %Query{
       data_source: data_source,
-      features: features,
       parameters: parameters,
       views: views
     }
@@ -543,21 +542,12 @@ defmodule Cloak.Aql.Compiler do
 
   defp check_function_validity(function, query) do
     verify_function_exists(function)
-    verify_function_supported_feature(function, query)
     verify_function_subquery_usage(function, query)
   end
 
   defp verify_function_exists(function) do
     unless Function.exists?(function) do
       raise CompilationError, message: "Unknown function `#{Function.name(function)}`."
-    end
-  end
-
-  defp verify_function_supported_feature(function, query) do
-    unless Function.valid_feature?(function, query) do
-      raise CompilationError, message:
-        "Function `#{Function.name(function)}` requires feature " <>
-        "`#{Function.required_feature(function)}` to be enabled."
     end
   end
 
