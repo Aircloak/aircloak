@@ -63,7 +63,7 @@ defmodule Cloak.Aql.TypeChecker do
 
   @discontinuous_math_functions ~w(% abs ceil ceiling div floor mod round trunc sqrt)
   @discontinuous_string_functions ~w(btrim left ltrim right rtrim substring)
-  @math_functions ~w(+ - * / ^ pow div)
+  @continuous_math_functions ~w(+ - * / ^ pow)
 
   @doc "Returns true if an expression of this type is safe to be reported. False otherwise"
   @spec ok_for_display?(Type.t) :: boolean
@@ -100,7 +100,7 @@ defmodule Cloak.Aql.TypeChecker do
     any_touched_by_constant?(child_types) and later_turned_into_a_number?(future)
   defp dangerously_discontinuous?(_name, _future, _child_types), do: false
 
-  defp performs_dangerous_math?(name, _future, child_types) when name in @math_functions, do:
+  defp performs_dangerous_math?(name, _future, child_types) when name in @continuous_math_functions, do:
     any_touched_by_constant?(child_types)
   defp performs_dangerous_math?(_, _future, _child_types), do: false
 
