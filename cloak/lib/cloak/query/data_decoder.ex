@@ -86,11 +86,8 @@ defmodule Cloak.Query.DataDecoder do
   defp create_from_config(decoder), do:
     raise "Invalid data decoder definition: `#{inspect(decoder)}`."
 
-  defp get_decoders(%Column{name: name, table: table}) do    
-    table.decoders
-    |> Enum.map(&if Enum.member?(&1.columns, name), do: &1.method, else: nil)
-    |> Enum.reject(& &1 == nil)
-  end
+  defp get_decoders(%Column{name: name, table: table}), do:
+    Enum.filter_map(table.decoders, &Enum.member?(&1.columns, name), & &1.method)
 
   defp get_decoded_column_type(decoder, name, type) do
     if Enum.member?(decoder.columns, name) do
