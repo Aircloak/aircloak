@@ -2,7 +2,7 @@ defmodule Cloak.Aql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
   alias Cloak.{DataSource, Features}
-  alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query, Typer}
+  alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query, TypeChecker}
   alias Cloak.Query.DataDecoder
 
   defmodule CompilationError do
@@ -1314,8 +1314,8 @@ defmodule Cloak.Aql.Compiler do
   defp verify_function_usage_for_selected_columns(%Query{columns: _columns, subquery?: true} = query), do: query
   defp verify_function_usage_for_selected_columns(%Query{columns: columns} = query) do
     Enum.each(columns, fn(column) ->
-      type = Typer.type(column, query)
-      unless Typer.ok_for_display?(type) do
+      type = TypeChecker.type(column, query)
+      unless TypeChecker.ok_for_display?(type) do
         raise CompilationError, message: "Queries where a reported value is influenced by math, " <>
           "a discontinuous function, and a constant are not allowed. In this case the column in " <>
           "question is #{Column.display_name(column)}"
@@ -1331,8 +1331,8 @@ defmodule Cloak.Aql.Compiler do
     |> Lens.satisfy(&(not &1.constant?))
     |> Lens.to_list(query)
     |> Enum.each(fn(column) ->
-      type = Typer.type(column, query)
-      unless Typer.ok_for_where_inquality?(type) do
+      type = TypeChecker.type(column, query)
+      unless TypeChecker.ok_for_where_inquality?(type) do
         raise CompilationError, message: "WHERE-clause inequalities where the column value has either been " <>
           "influenced by math or a discontinuous function are not allowed. " <>
           "In this case the column in question is #{Column.display_name(column)}"

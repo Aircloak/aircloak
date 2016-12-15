@@ -1,7 +1,9 @@
-defmodule Cloak.Aql.Types.Test do
+defmodule Cloak.Aql.TypeChecker.Test do
+  @moduledoc false
+
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.{Compiler, Parser, Typer}
+  alias Cloak.Aql.{Compiler, Parser, TypeChecker}
 
   describe "math is only dangerous if a constant is involved" do
     Enum.each(~w(+ - * ^ /), fn(math_function) ->
@@ -139,7 +141,7 @@ defmodule Cloak.Aql.Types.Test do
 
   defp type_first_column(query) do
     compiled_query = compile!(query)
-    Typer.type(hd(compiled_query.columns), compiled_query)
+    TypeChecker.type(hd(compiled_query.columns), compiled_query)
   end
 
   defp compile!(query_string) do

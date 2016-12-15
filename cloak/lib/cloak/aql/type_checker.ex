@@ -1,4 +1,4 @@
-defmodule Cloak.Aql.Typer do
+defmodule Cloak.Aql.TypeChecker do
   @moduledoc """
   Allows a user to verify whether a column that is to be selected, or
   used as part of a WHERE-clause inequality has seen illegal transformations or not.
