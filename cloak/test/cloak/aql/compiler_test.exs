@@ -962,7 +962,11 @@ defmodule Cloak.Aql.Compiler.Test do
     case compile(query, data_source()) do
       {:ok, _} -> true
       {:error, reason} ->
-        not (reason =~ ~r/is influenced by math, a discontinuous function, and a constant/)
+        if reason =~ ~r/is influenced by math, a discontinuous function/ do
+          false
+        else
+          raise "Compilation failed with other reason than illegal math/discontinuity: #{inspect reason}"
+        end
     end
   end
 
