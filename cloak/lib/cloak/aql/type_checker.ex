@@ -116,12 +116,12 @@ defmodule Cloak.Aql.TypeChecker do
 
   defp constant(), do: %Type{constant?: true, touched_by_constant?: true}
 
-  defp value(), do: %Type{constant?: false}
+  defp column(), do: %Type{constant?: false}
 
   defp construct_type_hierarchy(column, query, future \\ [])
   defp construct_type_hierarchy({:distinct, column}, query, future), do:
     construct_type_hierarchy(column, query, ["distinct" | future])
-  defp construct_type_hierarchy(:*, _query, _future), do: value()
+  defp construct_type_hierarchy(:*, _query, _future), do: column()
   defp construct_type_hierarchy(%Column{constant?: true}, _query, _future), do: constant()
   defp construct_type_hierarchy(%Column{db_function: nil} = column, query, future), do:
     expand_from_subquery(column, query, future)
@@ -151,7 +151,7 @@ defmodule Cloak.Aql.TypeChecker do
     Lens.to_list(Compiler.direct_subqueries(), query)
     |> Enum.find(&(&1.alias == table_name))
     |> case do
-      nil -> value()
+      nil -> column()
       %{ast: subquery} ->
         column_index = Enum.find_index(subquery.column_titles, &(&1 == column_name))
         column = Enum.at(subquery.columns, column_index)
