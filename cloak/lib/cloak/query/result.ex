@@ -7,12 +7,14 @@ defmodule Cloak.Query.Result do
   alias Cloak.Aql.Query
 
   @type t :: %__MODULE__{
-    buckets: [Cloak.Query.Aggregator.bucket],
+    buckets: [bucket],
     columns: [String.t],
     types: [atom],
     users_count: non_neg_integer,
     features: map,
   }
+
+  @type bucket :: %{row: [Cloak.DataSource.field], occurrences: pos_integer}
 
   defstruct buckets: [], columns: [], types: [], users_count: 0, features: %{}
 
@@ -22,7 +24,7 @@ defmodule Cloak.Query.Result do
   # -------------------------------------------------------------------
 
   @doc "Creates the result struct that corresponds to the given query."
-  @spec new(Query.t, [Cloak.Query.Aggregator.bucket], non_neg_integer) :: t
+  @spec new(Query.t, [bucket], non_neg_integer) :: t
   def new(query, buckets, users_count \\ 0), do:
     %__MODULE__{buckets: buckets, users_count: users_count, columns: query.column_titles,
       features: Query.extract_features(query)}
