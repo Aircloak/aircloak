@@ -192,11 +192,9 @@ SELECT avg(age) FROM (
 WHERE age >= 10 and age < 20
 ```
 
-A column expression that is selected in query cannot have had dangerous math __and__ a dangerously discontinuous function applied
-to it.
+You cannot perform dangerous math __and__ dangerous discontinuity on a column expression that is selected by a query.
 
-A column expression that is used in a WHERE-clause inequality (in other words together with `>`, `>=`, `<` or `<=`) cannot have been
-through a dangerously discontinuous function __nor__ through a dangerous math operation.
+Likewise you cannot use a column expression in a WHERE-clause inequality (in other words together with `>`, `>=`, `<` or `<=`) if it has been through a dangerously discontinuous function __or__ through a dangerous math operation.
 
 If you run into this restriction in your query, please see if it is possible to change the order of operations in your
 query. For example `trunc(age) + 1` is allowed for a column that is to be selected, whereas `trunc(age + 1)` is not. The
