@@ -180,6 +180,9 @@ defmodule Cloak.Aql.Compiler do
     }}
   end
 
+  defp column_ast(table_name, column_name), do:
+    {:identifier, {:quoted, table_name}, {:quoted, column_name}}
+
 
   # -------------------------------------------------------------------
   # Subqueries
@@ -235,7 +238,6 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp validate_uid(%Query{projected?: true} = subquery, _display), do: subquery
   defp validate_uid(subquery, display) do
     case Enum.find(subquery.db_columns, &(&1.user_id?)) do
       nil ->
@@ -304,7 +306,6 @@ defmodule Cloak.Aql.Compiler do
   end
   defp selected_tables({:subquery, subquery}, _data_source) do
     user_id = Enum.find(subquery.ast.db_columns, &(&1.user_id?))
-    user_id_name = if user_id != nil, do: user_id.alias || user_id.name, else: nil
     columns =
         Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
         |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
@@ -312,7 +313,7 @@ defmodule Cloak.Aql.Compiler do
       name: subquery.alias,
       db_name: subquery.alias,
       columns: columns,
-      user_id: user_id_name,
+      user_id: user_id.alias || user_id.name,
       decoders: [],
       projection: nil
     }]
@@ -786,12 +787,8 @@ defmodule Cloak.Aql.Compiler do
   end
   defp all_join_conditions(_), do: []
 
-  defp reject_null_user_ids(query) do
-    case id_column(query) do
-      nil -> query
-      user_id -> %{query | where: [{:not, {:is, user_id, :null}} | query.where]}
-    end
-  end
+  defp reject_null_user_ids(query), do:
+    %{query | where: [{:not, {:is, id_column(query), :null}} | query.where]}
 
   defp align_ranges(query, lens) do
     clauses = Lens.get(lens, query)
@@ -1106,23 +1103,18 @@ defmodule Cloak.Aql.Compiler do
       (query.columns ++ query.group_by ++ query.unsafe_filter_columns ++ query.having)
       |> Enum.flat_map(&extract_columns/1)
       |> Enum.reject(& &1.constant?)
-    case id_column(query) do
-      nil -> used_columns
-      user_id -> [user_id | used_columns]
-    end
+    [id_column(query) | used_columns]
   end
 
   defp id_column(query) do
-    query
-    |> all_id_columns_from_tables()
-    |> Enum.map(&cast_unknown_id/1)
-    |> case do
-      [] -> nil
-      id_columns ->
-        if any_outer_join?(query.from),
-          do: Column.db_function("coalesce", id_columns),
-          else: hd(id_columns)
-    end
+    id_columns =
+      query
+      |> all_id_columns_from_tables()
+      |> Enum.map(&cast_unknown_id/1)
+
+    if any_outer_join?(query.from),
+      do: Column.db_function("coalesce", id_columns),
+      else: hd(id_columns)
   end
 
   # We can't directly select a field with an unknown type, so convert it to binary
@@ -1255,12 +1247,6 @@ defmodule Cloak.Aql.Compiler do
     raise CompilationError, message: "Inequalities on string values are currently not supported."
   defp check_for_string_inequalities(_, _), do: :ok
 
-  defp column_ast(table_name, column_name), do:
-    {:identifier, {:quoted, table_name}, {:quoted, column_name}}
-
-  defp column_ast(table_name, column_name, alias), do:
-    {column_ast(table_name, column_name), :as, alias}
-
 
   # -------------------------------------------------------------------
   # Query emulation
@@ -1324,11 +1310,22 @@ defmodule Cloak.Aql.Compiler do
   # The DBEmulator modules doesn't know how to select a table directly, so we need
   # to replace any direct references to joined table with the equivalent subquery.
   defp replace_joined_tables_with_subqueries(table_name, columns, parrent_query) when is_binary(table_name) do
-    columns = for %Column{table: %{name: ^table_name}} = column <- columns, do:
-      column_ast(table_name, column.name, column.alias || column.name)
+    columns =
+      (for %Column{table: %{name: ^table_name}} = column <- columns, do: column)
+      |> Enum.with_index()
+      |> Enum.map(fn ({column, index}) -> %Column{column | db_row_position: index} end)
+    column_titles = for column <- columns, do: column.alias || column.name
     query =
-      %{command: :select, columns: columns, from: {:quoted, table_name}, projected?: parrent_query.projected?}
-      |> compiled_subquery(table_name, parrent_query)
+      %Query{
+        command: :select,
+        subquery?: true,
+        columns: columns,
+        db_columns: columns,
+        column_titles: column_titles,
+        from: table_name,
+        data_source: parrent_query.data_source,
+        selected_tables: [DataSource.table(parrent_query.data_source, table_name)]
+      }
     {:subquery, %{type: :parsed, ast: query, alias: table_name}}
   end
   defp replace_joined_tables_with_subqueries({:subquery, subquery}, _columns, _parrent_query), do: {:subquery, subquery}
