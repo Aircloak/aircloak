@@ -5,7 +5,7 @@ defmodule Air.DataSourceController do
 
   use Air.Web, :controller
 
-  alias Air.{DataSourceManager, Service.DataSource}
+  alias Air.Service.DataSource
   alias Plug.CSRFProtection
 
 
