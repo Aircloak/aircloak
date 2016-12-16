@@ -1,10 +1,11 @@
-if :os.cmd('ps -edaf | grep mongo | grep -v grep') != '' do
 defmodule Cloak.DataSource.MongoDBTest do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.MongoDB
   alias Cloak.Query.Runner
 
+  @moduletag :exclude_in_dev
+  @moduletag :mongodb
   @table "test"
 
   defmacro assert_query(context, query, parameters \\ [], expected_response) do
@@ -150,5 +151,4 @@ defmodule Cloak.DataSource.MongoDBTest do
         SELECT COUNT(*) FROM (SELECT DISTINCT _id, length(bills.issuer) AS value FROM #{@table}_bills_ids) AS t
       """, %{rows: [%{occurrences: 1, row: [10]}]}
   end
-end
 end

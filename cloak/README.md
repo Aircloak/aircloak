@@ -159,6 +159,14 @@ Occasionally you may want to run only some tests. Depending on the kind of test,
 
 Note that when specifying Erlang modules, you need to provide the name of the real module and not the test one. For example, let's say you have the module `anonymizer` and property tests are residing in the `anonymizer_test` module. The corresponding command is `mix proper --module anonymizer` (without the `_test` suffix).
 
+By default, only native PostgreSQL adapter is tested locally, while MongoDb and other drivers are excluded. To change this you can run following commands:
+
+- `mix test --only mongodb` - to run only MongoDB tests
+- `TRAVIS=true mix test` - to use Travis configuration which tests multiple adapters
+- `make test_all` - to run all tests which are running on Travis
+
+In order to have working tests on other drivers, you need to start corresponding database servers locally.
+
 #### Running a local docker container
 
 It is possible to run cloak as a local docker container:
