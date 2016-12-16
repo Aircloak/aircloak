@@ -27,7 +27,6 @@ defmodule Cloak.Aql.Query do
 
   @type t :: %__MODULE__{
     data_source: DataSource.t,
-    features: Cloak.Features.t,
     command: :select | :show,
     columns: [Column.t] | :*,
     column_titles: [String.t],

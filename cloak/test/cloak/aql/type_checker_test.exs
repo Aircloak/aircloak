@@ -51,18 +51,18 @@ defmodule Cloak.Aql.TypeChecker.Test do
     # Note bucket isn't tested here, because it only compiles if the alignment value is a constant.
   end
 
-  describe "casts are considered dangerously discontinuous" do
+  describe "casts are not dangerously discontinuous by themselves" do
     Enum.each(~w(integer real boolean), fn(cast_target) ->
       test "cast from integer to #{cast_target}" do
         query = "SELECT cast(numeric as #{unquote(cast_target)}) FROM table"
-        assert dangerously_discontinuous?(query)
+        refute dangerously_discontinuous?(query)
       end
     end)
 
     Enum.each(~w(datetime time date text interval), fn(cast_target) ->
       test "cast from text to #{cast_target}" do
         query = "SELECT cast(string as #{unquote(cast_target)}) FROM table"
-        assert dangerously_discontinuous?(query)
+        refute dangerously_discontinuous?(query)
       end
     end)
   end
@@ -149,10 +149,8 @@ defmodule Cloak.Aql.TypeChecker.Test do
     result
   end
 
-  defp compile(query_string, features \\ Cloak.Features.from_config) do
-    query = Parser.parse!(query_string)
-    Compiler.compile(data_source, query, [], %{}, features)
-  end
+  defp compile(query_string), do:
+    Compiler.compile(data_source, Parser.parse!(query_string), [], %{})
 
   defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do
     %{driver: driver, tables: %{
