@@ -48,13 +48,13 @@ defmodule Cloak.Query.Runner.Engine do
     end)
   end
   defp select_rows(%Aql.Query{subquery?: false, emulated?: true} = query) do
-    Logger.debug("Emulating query ...")
+    Logger.debug("Emulating top query ...")
     query.from
     |> select_rows()
     |> process_final_rows(query)
   end
   defp select_rows({:subquery, %{ast: %Aql.Query{emulated?: true, from: from} = subquery}}) when not is_binary(from) do
-    Logger.debug("Emulating query ...")
+    Logger.debug("Emulating sub-query ...")
     rows = select_rows(from)
 
     Logger.debug("Processing rows ...")
@@ -70,7 +70,7 @@ defmodule Cloak.Query.Runner.Engine do
     |> Enum.to_list()
   end
   defp select_rows(%Aql.Query{} = query) do
-    Logger.debug("Emulating query ...")
+    Logger.debug("Emulating sub-query ...")
     DataSource.select!(%Aql.Query{query | subquery?: false}, fn(rows) ->
       Logger.debug("Processing rows ...")
       rows

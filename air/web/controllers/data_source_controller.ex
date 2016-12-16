@@ -5,7 +5,7 @@ defmodule Air.DataSourceController do
 
   use Air.Web, :controller
 
-  alias Air.{DataSourceManager, Service.DataSource}
+  alias Air.Service.DataSource
   alias Plug.CSRFProtection
 
 
@@ -26,12 +26,9 @@ defmodule Air.DataSourceController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    data_sources = DataSource.for_user(conn.assigns.current_user)
-    {available_data_sources, unavailable_data_sources} = Enum.partition(data_sources,
-      &(DataSourceManager.available?(&1.global_id)))
+    user_data_sources = DataSource.for_user(conn.assigns.current_user)
     render(conn, "index.html",
-      available_data_sources: available_data_sources,
-      unavailable_data_sources: unavailable_data_sources,
+      user_data_sources: user_data_sources,
       data_source_count: DataSource.count(),
       conn: conn,
     )
