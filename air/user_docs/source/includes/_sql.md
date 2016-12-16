@@ -118,87 +118,61 @@ When using `LIMIT` and `OFFSET` in a subquery:
 
 ## Math restrictions
 
-In the following description we use these definitions:
-
-### Discontinuous function
 
 ```sql
-abs(-10) = 10 -- removes the sign
-trunc(1.1043) = 1 -- removes the decimal places
-left('hello world', 5) = 'hello' -- removes part of a string
+-- The following examples show expressions that are not allowed
+-- for column expressions that are selected:
+
+-- both abs and + influenced by the constant
+abs(age + 1)
+
+-- string function influenced by a constant is used,
+-- later converted to a number and then part of a math
+-- expression that is influenced by a constant.
+length(btrim(name, 'constant')) + 1
+
+
+-- The following examples show expressions that are allowed
+-- for column expressions that are selected, but not allowed in
+-- WHERE-clause inequalities
+
+-- restricted function influenced by a constant but not math
+length(btrim(name, 'constant'))
+
+-- math influenced by a constant but no restricted function
+age / 10
+
+
+-- The following show examples of the restricted functions which are OK
+-- both in column expressions that are selected as well as WHERE-clause
+-- inequalities despite being complex. The reason is that there are no
+-- constants involved
+
+length(btrim(firstname, lastname)) + age
+length(cast(salary + salary / age as text))
 ```
 
-A discontinuous function is a function that performs an irreversible operation on a column value. An example of such a function
-would be `trunc` which takes a floating point value and removes the decimal places. It is discontinuous because there is
-no way to get back to the decimal component by applying other functions. Other functions in this family include `left`
-which returns part of a string value, `abs` which removes the sign of a number.
+Aircloak applies some restrictions on how certain functions and math operators can be used in your queries __when
+constants are involved__.
+As an example consider the function `btrim`. It can always be used directly on a column expression (for example `btrim(name)`),
+but it's usage is restricted when a constant is involved (for example `btrim(name, 'some constant')`).
 
-Functions that are supported by Aircloak are marked with whether or not they are discontinuous in this documentation.
+The restrictions are as follows:
 
-### Continuous math
+- you cannot _select a column_ in your query if the column has been processed by a restricted function in conjunction with a constant __and__
+  there has been performed math with a constant on the column as well
+- you cannot use a column in a WHERE-clause inequality (meaning `>`, `>=`, `<`, or `<=`) if it has had math with a constant performed on it __or__
+  if it has been processed by one of the restricted functions in conjunction with a constant
 
-```sql
-1 + 1 -- is continuous, + can be undone with -
-1 * 10 -- is continuous because * can be undone with /
-div(5, 2) -- is NOT continuous, because it truncates the result
-```
+The numerical functions that receive this kind of special treatment are: `abs`, `bucket`, `ceil`, `div`, `floor`, `mod`, `round`, `sqrt`, `/`, `trunc`, and `cast`'s.
 
-A continuous math function are the normal math operations `+`, `-`, `*` and `pow`. We do not count `/` to this list as
-the behaviour is unspecified when dividing by `0`. Likewise, `sqrt` does not belong to this list as it is not defined
-for negative numbers.
+The following string functions receive this kind of special treatment only if they are later converted to a number:
+`btrim`, `left`, `ltrim`, `right`, `rtrim`, and `substring`.
 
-### Dangerously discontinuous
+The same applies to the following math operations if one or more of their arguments have been influenced by a constant:
+`+`, `-`, `*`, `/`, `^`, `pow`.
 
-```sql
-abs(age) -- not dangerous
-abs(age - 10) -- dangerous because a constant has been involved
-
-left(name, 4) -- ok, despite being discontinuous and with a constant
-length(left(name, 4)) -- dangerously discontinuous, because the expression is later cast to a number
-```
-
-A dangerously discontinuous function expression is defined as one where one or more of the parameters have been
-influenced by a constant.
-
-Discontinuous string functions are only considered dangerous if the resulting expression is later cast to a number.
-
-### Dangerous math
-
-```sql
-age + 1 -- dangerous, because a constant was involved
-age + height -- not dangerous, no constant
-```
-
-We classify math as dangerous if one or more of the parameters have been influenced by a constant.
-
-### Rules
-
-```sql
--- Prohibited because `age` had:
--- - dangerous math applied (addition with a constant), prior to a
--- - dangerously discontinuous function (discontinuous function after
---   the expression had been influenced by the constant 1
-SELECT avg(age) FROM (
-  SELECT uid, trunc(age + 1) as age
-  FROM users
-) t
-
--- Prohibited because `age` has been had math with an integer
--- done to it prior to being used in an WHERE-clause inequality
-SELECT avg(age) FROM (
-  SELECT uid, age + 1 as age
-  FROM users
-) t
-WHERE age >= 10 and age < 20
-```
-
-You cannot perform dangerous math __and__ dangerous discontinuity on a column expression that is selected by a query.
-
-Likewise you cannot use a column expression in a WHERE-clause inequality (in other words together with `>`, `>=`, `<` or `<=`) if it has been through a dangerously discontinuous function __or__ through a dangerous math operation.
-
-If you run into this restriction in your query, please see if it is possible to change the order of operations in your
-query. For example `trunc(age) + 1` is allowed for a column that is to be selected, whereas `trunc(age + 1)` is not. The
-reason being that `trunc` applied to the `age`-column is not considered dangerously discontinuous.
+For some examples see the sidebar.
 
 
 ## Understanding query results
@@ -273,10 +247,7 @@ The operators `+`, `-`, `/`, and `*` have their usual meaning of addition, subtr
 multiplication respectively. The operator `^` denotes exponentiation. The operator `%` denotes the division
 remainder.
 
-The operator `/` is a [discontinuous function](#discontinuous-function) if the divisor has been influenced by a constant.
-The operator `%` is a [discontinuous function](#discontinuous-function).
-
-The operators `+`, `-` and `*` are [math functions](#continuous-math).
+[Restriction in usage apply](#math-restrictions).
 
 
 ## Mathematical functions
@@ -293,7 +264,7 @@ ABS(-3)
 
 Computes the absolute value of the given number.
 
-This function is a [discontinuous function](#discontinuous-function).
+[Restriction in usage apply](#math-restrictions).
 
 
 ### bucket
@@ -314,7 +285,7 @@ BUCKET(180 BY 50 ALIGN MIDDLE)
 
 Rounds the input to the given bucket size.
 
-This function is a [discontinuous function](#discontinuous-function).
+[Restriction in usage apply](#math-restrictions).
 
 
 ### ceil / ceiling
@@ -326,7 +297,7 @@ CEIL(3.22)
 
 Computes the smallest integer that is greater than or equal to its argument.
 
-This function is a [discontinuous function](#discontinuous-function).
+[Restriction in usage apply](#math-restrictions).
 
 
 ### div
@@ -341,7 +312,7 @@ DIV(10, 3)
 
 Performs integer division on its arguments.
 
-This function is a [discontinuous function](#discontinuous-function).
+[Restriction in usage apply](#math-restrictions).
 
 
 ### floor
@@ -353,7 +324,7 @@ FLOOR(3.22)
 
 Computes the largest integer that is less than or equal to its argument.
 
-This function is a [discontinuous function](#discontinuous-function).
+[Restriction in usage apply](#math-restrictions).
 
 
 ### mod
@@ -365,7 +336,7 @@ MOD(10, 3)
 
 `MOD(a, b)` computes the remainder from `DIV(a, b)`.
 
-This function is a [discontinuous function](#discontinuous-function).
+[Restriction in usage apply](#math-restrictions).
 
 
 ### pow
@@ -379,6 +350,8 @@ POW(2, 3.5)
 ```
 
 `POW(a, b)` computes `a` to the `b`-th power.
+
+[Restriction in usage apply](#math-restrictions).
 
 
 ### round
@@ -396,7 +369,7 @@ ROUND(3.22, 1)
 
 Rounds the given floating-point value to the nearest integer. An optional second argument signifies the precision.
 
-This function is a [discontinuous function](#discontinuous-function).
+[Restriction in usage apply](#math-restrictions).
 
 
 ### sqrt
@@ -408,8 +381,7 @@ SQRT(2)
 
 Computes the square root.
 
-This function is a [discontinuous function](#discontinuous-function) because its behaviour is undefined for negative
-numbers.
+[Restriction in usage apply](#math-restrictions).
 
 
 ### trunc
@@ -427,7 +399,7 @@ TRUNC(3.22, 1)
 
 Rounds the given floating-point value towards zero. An optional second argument signifies the precision.
 
-This function is a [discontinuous function](#discontinuous-function).
+[Restriction in usage apply](#math-restrictions).
 
 
 ## String functions
@@ -444,7 +416,7 @@ BTRIM('xyzsome textzyx', 'xyz')
 
 Removes all of the given characters from the beginning and end of the string. The default is to remove spaces.
 
-This function is a [discontinuous function](#discontinuous-function) if later followed by a cast to a number.
+[Restriction in usage apply](#math-restrictions).
 
 ### concat
 
@@ -474,7 +446,7 @@ LEFT('some text', -2)
 
 `LEFT(string, n)` takes n characters from the beginning of the string. If n is negative takes all but the last |n| characters.
 
-This function is a [discontinuous function](#discontinuous-function) if later followed by a cast to a number.
+[Restriction in usage apply](#math-restrictions).
 
 
 ### length
@@ -486,7 +458,7 @@ LENGTH('some text')
 
 Computes the number of characters in the string.
 
-This function is a [discontinuous function](#discontinuous-function) if later followed by a cast to a number.
+[Restriction in usage apply](#math-restrictions).
 
 
 ### lower
@@ -514,8 +486,7 @@ LTRIM('xyzsome textzyx', 'xyz')
 
 Removes all of the given characters from the beginning of the string. The default is to remove spaces.
 
-This function is a [discontinuous function](#discontinuous-function) if later followed by a cast to a number.
-
+[Restriction in usage apply](#math-restrictions).
 
 
 ### right
@@ -530,7 +501,7 @@ RIGHT('some text', -2)
 
 `RIGHT(string, n)` takes n characters from the end of the string. If n is negative takes all but the first |n| characters.
 
-This function is a [discontinuous function](#discontinuous-function) if later followed by a cast to a number.
+[Restriction in usage apply](#math-restrictions).
 
 
 ### rtrim
@@ -545,7 +516,7 @@ RTRIM('xyzsome textzyx', 'xyz')
 
 Removes all of the given characters from the end of the string. The default is to remove spaces.
 
-This function is a [discontinuous function](#discontinuous-function) if later followed by a cast to a number.
+[Restriction in usage apply](#math-restrictions).
 
 
 ### substring
@@ -563,7 +534,7 @@ SUBSTRING('some text' FOR 4)
 
 Takes a slice of a string.
 
-This function is a [discontinuous function](#discontinuous-function) if later followed by a cast to a number.
+[Restriction in usage apply](#math-restrictions).
 
 
 ### upper
@@ -662,8 +633,7 @@ CAST('NOT A NUMBER', INTEGER)
 
 You can convert values between different types using a cast expression.
 
-Casts are considered [discontinuous functions](#discontinuous-function) if the expression being cast has been influenced
-by a constant.
+[Restriction in usage apply](#math-restrictions).
 
 Types can be converted according to the following tables:
 
