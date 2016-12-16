@@ -671,6 +671,24 @@ defmodule Cloak.Aql.Compiler.Test do
     assert [%{column: %{name: ^column_alias}, interval: {0.0, 100.0}}] = query.ranges
   end
 
+  test "propagating ranges for shrink and drop from a singly-nested where" do
+    query = compile!("""
+      select * from (
+        select uid from table
+        where numeric >= 0.0 and numeric < 100.0
+        group by uid
+      ) x
+    """, data_source())
+    {:subquery, %{ast: subquery}} = query.from
+
+    assert [
+      %{db_function: "min", alias: min_alias},
+      %{db_function: "max", alias: max_alias}
+    ] = Enum.reject(subquery.db_columns, &(&1.name == "uid"))
+    assert Enum.any?(query.ranges, &match?(%{column: %{name: ^min_alias}, interval: {0.0, 100.0}}, &1))
+    assert Enum.any?(query.ranges, &match?(%{column: %{name: ^max_alias}, interval: {0.0, 100.0}}, &1))
+  end
+
   test "math can be disabled with a config setting" do
     assert {:error, error} = compile("select numeric * 2 from table", data_source(), [], %{math: false})
     assert error =~ ~r/requires feature `math`/
