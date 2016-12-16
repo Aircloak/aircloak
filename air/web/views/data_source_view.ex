@@ -18,6 +18,7 @@ defmodule Air.DataSourceView do
     |> limited_join(nil, 64)
   end
 
+  defp limited_join([], nil, _length), do: "."
   defp limited_join([value | rest], nil, length), do: limited_join(rest, value, length)
   defp limited_join(_values, accumulator, length) when byte_size(accumulator) > length, do: accumulator <> ", ..."
   defp limited_join([], accumulator, _length), do: accumulator <> "."
