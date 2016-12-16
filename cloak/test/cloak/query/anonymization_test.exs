@@ -41,8 +41,9 @@ defmodule Cloak.Query.AnonymizationTest do
     """, %{columns: ["count"], rows: [%{row: [99]}]})
   end
 
-  test "range in subquery" do
+  test "where range in subquery" do
     :ok = insert_rows(_user_ids = 1..100, "anonymizations", ["number"], [180])
+    :ok = insert_rows(_user_ids = [101], "anonymizations", ["number"], [185])
 
     assert_query("""
       SELECT avg(foo)
