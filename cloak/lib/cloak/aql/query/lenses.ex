@@ -1,4 +1,4 @@
-defmodule Cloak.Aql.Lenses.Query do
+defmodule Cloak.Aql.Query.Lenses do
   @moduledoc "Lenses for traversing queries"
 
   alias Cloak.Aql.{Column, Function}
