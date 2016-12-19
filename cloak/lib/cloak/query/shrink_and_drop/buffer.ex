@@ -25,7 +25,7 @@ defmodule Cloak.Query.ShrinkAndDrop.Buffer do
   @spec new(pos_integer) :: t
   def new(size), do: %__MODULE__{
     left: HalfBuffer.new(size, &Cloak.Data.lt_eq/2),
-    right: HalfBuffer.new(size, &Cloak.Data.gt/2)
+    right: HalfBuffer.new(size, &Cloak.Data.gt_eq/2)
   }
 
   @doc """
