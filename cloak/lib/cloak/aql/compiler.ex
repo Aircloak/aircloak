@@ -1282,6 +1282,7 @@ defmodule Cloak.Aql.Compiler do
     conditions = Enum.map(join.conditions, &map_where_clause(&1, mapper_fun))
     lhs = compile_join_conditions_columns(join.lhs)
     rhs = compile_join_conditions_columns(join.rhs)
+    join = Map.put(join, :columns, columns)
     {:join, %{join | conditions: conditions, lhs: lhs, rhs: rhs}}
   end
   defp compile_join_conditions_columns({:subquery, subquery}), do: {:subquery, subquery}
