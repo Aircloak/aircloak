@@ -1089,11 +1089,19 @@ defmodule Cloak.Aql.Compiler do
     # top-level query -> we,re fetching only columns, while other expressions (e.g. function calls)
     # will be resolved in the post-processing phase
     used_columns =
-      (query.columns ++ query.group_by ++ query.unsafe_filter_columns ++ query.having)
+      query
+      |> needed_columns()
       |> Enum.flat_map(&extract_columns/1)
       |> Enum.reject(& &1.constant?)
     [id_column(query) | used_columns]
   end
+
+  defp needed_columns(query), do:
+    query.columns ++
+    query.group_by ++
+    query.unsafe_filter_columns ++
+    query.having ++
+    if query.emulated?, do: query.where, else: []
 
   defp id_column(query) do
     id_columns =
