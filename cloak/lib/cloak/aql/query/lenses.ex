@@ -16,14 +16,14 @@ defmodule Cloak.Aql.Query.Lenses do
       Lens.keys([:columns, :group_by, :db_columns, :property, :aggregators]),
       Lens.key(:order_by) |> Lens.all() |> Lens.at(0),
       Lens.key(:ranges) |> Lens.all() |> Lens.key(:column),
-      filter_parents(),
+      filters_operands(),
     ])
     |> terminal_elements()
 
   @doc "Lens focusing all terminal elements in a list of conditions."
   deflens conditions_terminals(), do:
     Lens.all()
-    |> conditions_parents()
+    |> operands()
     |> terminal_elements()
 
   @doc "Lens focusing on invocations of row splitting functions"
@@ -63,13 +63,13 @@ defmodule Cloak.Aql.Query.Lenses do
   # Internal lenses
   # -------------------------------------------------------------------
 
-  defp filter_parents(), do:
+  defp filters_operands(), do:
     Lens.multiple([
       Lens.keys([:where, :having, :encoded_where, :lcf_check_conditions]),
       join_conditions()
     ])
     |> Lens.all()
-    |> conditions_parents()
+    |> operands()
 
   defp join_conditions(), do:
     Lens.key(:from)
@@ -87,9 +87,9 @@ defmodule Cloak.Aql.Query.Lenses do
       _ -> Lens.empty()
     end)
 
-  deflensp conditions_parents(), do:
+  deflensp operands(), do:
     Lens.match(fn
-      {:not, _} -> Lens.at(1) |> conditions_parents()
+      {:not, _} -> Lens.at(1) |> operands()
       {:comparison, _lhs, _comparator, _rhs} -> Lens.indices([1, 3])
       {op, _, _} when op in [:in, :like, :ilike, :is] -> Lens.both(Lens.at(1), Lens.at(2))
     end)
