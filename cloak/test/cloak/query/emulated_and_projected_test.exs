@@ -22,6 +22,19 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
     :ok
   end
 
+  test "simple queries" do
+    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value"], [Base.encode64("aaa")])
+    :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value"], [Base.encode64("b")])
+    :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["value"], [nil])
+
+    assert_query "select count(value) from #{@prefix}emulated where value = 'aaa'",
+      %{rows: [%{occurrences: 1, row: [10]}]}
+    assert_query "select count(value) from #{@prefix}emulated where value is not null",
+      %{rows: [%{occurrences: 1, row: [20]}]}
+    assert_query "select length(value) as l from #{@prefix}emulated order by l desc",
+      %{rows: [%{occurrences: 10, row: [nil]}, %{occurrences: 10, row: [3]}, %{occurrences: 10, row: [1]}]}
+  end
+
   test "simple emulated subqueries" do
     :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value"], [Base.encode64("aaa")])
     :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value"], [Base.encode64("bbb")])
