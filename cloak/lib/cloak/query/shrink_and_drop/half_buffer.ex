@@ -29,7 +29,7 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer do
   @doc "Returns true if the value is less than or equal to the smallest value in this buffer, false otherwise."
   @spec under?(t, Buffer.row_value) :: boolean
   def under?(%{min: nil}, _), do: false
-  def under?(%{max: max}, value), do: value <= max
+  def under?(%{min: min}, value), do: value <= min
 
   @doc "Returns true if the value is greater than or equal to the largest value in this buffer, false otherwise."
   @spec over?(t, Buffer.row_value) :: boolean
