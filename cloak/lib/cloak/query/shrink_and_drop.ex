@@ -42,7 +42,7 @@ defmodule Cloak.Query.ShrinkAndDrop do
     end
   end
   defp do_suppress_outliers(row, %{next_id: next_id, seed_items: seed_items, buffer: buffer}, column) do
-    {new_buffer, popped_rows} = row |> decorate_row(next_id, column) |> Buffer.add(buffer)
+    {new_buffer, popped_rows} = Buffer.add(buffer, decorate_row(row, next_id, column))
     new_seed_items = popped_rows |> Enum.map(fn({_, user_id, _, _}) -> user_id end) |> Enum.into(seed_items)
 
     {Enum.map(popped_rows, &undecorate_row/1), %{next_id: next_id + 1, seed_items: new_seed_items, buffer: new_buffer}}

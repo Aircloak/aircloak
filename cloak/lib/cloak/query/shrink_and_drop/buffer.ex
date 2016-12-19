@@ -32,8 +32,8 @@ defmodule Cloak.Query.ShrinkAndDrop.Buffer do
   Adds the row to the buffer. Returns the new state of the buffer along with any rows that needed to be removed and are
   now safe to emit due to the buffer overflowing.
   """
-  @spec add(row, t) :: {t, [row]}
-  def add(row, buffer) do
+  @spec add(t, row) :: {t, [row]}
+  def add(buffer, row) do
     {new_buffer, popped} = do_add(row, buffer)
     {new_buffer, popped} = Enum.reduce(popped, {new_buffer, []}, fn(row = {_, user_id, value, _}, {buffer, popped}) ->
       cond do
