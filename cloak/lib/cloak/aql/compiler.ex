@@ -81,7 +81,7 @@ defmodule Cloak.Aql.Compiler do
       |> verify_having()
       |> partition_where_clauses()
       |> calculate_db_columns()
-      |> compile_emulated_joins
+      |> compile_emulated_joins()
       |> partition_row_splitters()
       |> verify_limit()
       |> verify_offset()
@@ -149,7 +149,6 @@ defmodule Cloak.Aql.Compiler do
     {:quoted, table.name}
   defp projected_table_ast(table, columns_to_select, query) do
     joined_table = DataSource.table(query.data_source, table.projection.table)
-
     {:subquery, %{
       type: :parsed,
       alias: table.name,
