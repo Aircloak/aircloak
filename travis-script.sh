@@ -51,7 +51,7 @@ function banner() {
   make docs
   make lint
   make check_dependent_apps
-  make test
+  make test_all
   make dialyze
   make proper-extended
   popd
