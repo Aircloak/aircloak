@@ -29,8 +29,9 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
 
     assert_query "select count(value) from (select user_id, value from #{@prefix}emulated where value = 'aaa') as t",
       %{rows: [%{occurrences: 1, row: [10]}]}
-    assert_query "select count(value) from (select user_id, value from #{@prefix}emulated where value is not null) as t",
-      %{rows: [%{occurrences: 1, row: [20]}]}
+    assert_query """
+        select count(value) from (select user_id, value from #{@prefix}emulated where value is not null) as t
+      """, %{rows: [%{occurrences: 1, row: [20]}]}
     assert_query "select count(*) from (select user_id, value from #{@prefix}emulated order by value limit 10) as t",
       %{rows: [%{occurrences: 1, row: [10]}]}
     assert_query """
