@@ -11,7 +11,7 @@ defmodule Cloak.Data do
   def gt(x, y), do: not lt_eq(x, y)
 
   @doc """
-  Returns true if the first value is greater than or equal to the second, false otherwise. Orders `Date` and
+  Returns true if the first value is less than or equal to the second, false otherwise. Orders `Date` and
   `NaiveDateTime` structs by their order in time. Orders `Time` structs by distance from midnight. Uses the default
   ordering given by `<=` for other values.
   """
