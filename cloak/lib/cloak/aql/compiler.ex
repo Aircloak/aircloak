@@ -82,7 +82,7 @@ defmodule Cloak.Aql.Compiler do
       |> verify_having()
       |> partition_where_clauses()
       |> calculate_db_columns()
-      |> compile_emulated_joins
+      |> compile_emulated_joins()
       |> partition_row_splitters()
       |> verify_limit()
       |> verify_offset()
@@ -150,7 +150,6 @@ defmodule Cloak.Aql.Compiler do
     {:quoted, table.name}
   defp projected_table_ast(table, columns_to_select, query) do
     joined_table = DataSource.table(query.data_source, table.projection.table)
-
     {:subquery, %{
       type: :parsed,
       alias: table.name,
@@ -337,7 +336,9 @@ defmodule Cloak.Aql.Compiler do
     selected_tables(join.lhs, data_source) ++ selected_tables(join.rhs, data_source)
   end
   defp selected_tables({:subquery, subquery}, _data_source) do
-    user_id = Enum.find(subquery.ast.db_columns, &(&1.user_id?))
+    # In a subquery we should have the `user_id` already in the list of selected columns.
+    user_id_index = Enum.find_index(subquery.ast.columns, &(&1.user_id?))
+    user_id_name = Enum.at(subquery.ast.column_titles, user_id_index)
     columns =
         Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
         |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
@@ -345,7 +346,7 @@ defmodule Cloak.Aql.Compiler do
       name: subquery.alias,
       db_name: subquery.alias,
       columns: columns,
-      user_id: user_id.alias || user_id.name,
+      user_id: user_id_name,
       decoders: [],
       projection: nil
     }]
@@ -359,10 +360,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp compile_aliases(%Query{columns: [_|_] = columns} = query) do
     verify_aliases(query)
-    column_titles = Enum.map(columns, fn
-      ({_column, :as, name}) -> name
-      (column) -> column_title(column)
-    end)
+    column_titles = Enum.map(columns, &column_title/1)
     aliases = for {column, :as, name} <- columns, into: %{}, do: {{:identifier, :unknown, {:unquoted, name}}, column}
     columns = Enum.map(columns, fn
       ({column, :as, _name}) -> column
@@ -1086,6 +1084,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp insensitive_equal?(s1, s2), do: String.downcase(s1) == String.downcase(s2)
 
+  def column_title({_identifier, :as, alias}), do: alias
   def column_title(function = {:function, _, _}), do: Function.name(function)
   def column_title({:distinct, identifier}), do: column_title(identifier)
   def column_title({:identifier, _table, {_, column}}), do: column
@@ -1315,6 +1314,7 @@ defmodule Cloak.Aql.Compiler do
     conditions = Enum.map(join.conditions, &map_where_clause(&1, mapper_fun))
     lhs = compile_join_conditions_columns(join.lhs)
     rhs = compile_join_conditions_columns(join.rhs)
+    join = Map.put(join, :columns, columns)
     {:join, %{join | conditions: conditions, lhs: lhs, rhs: rhs}}
   end
   defp compile_join_conditions_columns({:subquery, subquery}), do: {:subquery, subquery}
@@ -1323,8 +1323,10 @@ defmodule Cloak.Aql.Compiler do
     joined_columns(join.lhs) ++ joined_columns(join.rhs)
   end
   defp joined_columns({:subquery, subquery}) do
-    user_id = Enum.find(subquery.ast.db_columns, &(&1.user_id?))
-    user_id_name = if user_id != nil, do: user_id.alias || user_id.name, else: nil
+    user_id_name = case Enum.find_index(subquery.ast.columns, &(&1.user_id?)) do
+      nil -> nil
+      index -> Enum.at(subquery.ast.column_titles, index)
+    end
     columns =
         Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
         |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
@@ -1338,7 +1340,7 @@ defmodule Cloak.Aql.Compiler do
     }
     Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
     |> Enum.map(fn ({alias, column}) ->
-      %Column{table: table, name: alias, type: Function.type(column), user_id?: user_id == column}
+      %Column{table: table, name: alias, type: Function.type(column), user_id?: user_id_name == alias}
     end)
   end
 

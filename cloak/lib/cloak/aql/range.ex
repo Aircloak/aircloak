@@ -13,5 +13,6 @@ defmodule Cloak.Aql.Range do
   defstruct [:column, :interval, :type]
 
   @doc "Returns a Range with the given column, interval and type."
+  @spec new(Column.t, FixAlign.interval, type) :: t
   def new(column, interval, type), do: %__MODULE__{column: column, interval: interval, type: type}
 end

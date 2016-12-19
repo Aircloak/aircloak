@@ -168,4 +168,36 @@ defmodule Cloak.Query.DBEmulatorTest do
         """, %{rows: [%{occurrences: 1, row: [15]}]}
     end
   end
+
+  test "emulated subqueries with extra dummy columns" do
+    :ok = insert_rows(_user_ids = 1..10, "emulated", ["value"], [Base.encode64("abc")])
+    :ok = insert_rows(_user_ids = 1..10, "joined", ["age"], [30])
+
+    assert_query "select value from (select user_id, '', length(value), value from emulated) as t",
+      %{rows: [%{occurrences: 10, row: ["abc"]}]}
+
+    assert_query "select value from (select '', user_id, left(value, 1) as value from emulated) as t where value = 'a'",
+      %{rows: [%{occurrences: 10, row: ["a"]}]}
+
+    assert_query """
+        select age, value from joined inner join
+        (select '', user_id as uid, value from emulated group by user_id, value) as t on user_id = uid
+      """, %{rows: [%{occurrences: 10, row: [30, "abc"]}]}
+  end
+
+  test "emulated subqueries with different case columns" do
+    :ok = insert_rows(_user_ids = 1..10, "emulated", ["value"], [Base.encode64("abc")])
+    :ok = insert_rows(_user_ids = 1..10, "joined", ["age"], [30])
+
+    assert_query "select Value from (select user_id, length(vaLue), vaLue from emulated) as t",
+      %{rows: [%{occurrences: 10, row: ["abc"]}]}
+
+    assert_query "select Value from (select user_id, left(vaLue, 1) as vAlue from emulated) as t where vALUE = 'a'",
+      %{rows: [%{occurrences: 10, row: ["a"]}]}
+
+    assert_query """
+        select aGe, vaLue from joined inner join
+        (select user_Id as Uid, Value from emulated group by User_id, VaLue) as t on uSer_Id = uId
+      """, %{rows: [%{occurrences: 10, row: [30, "abc"]}]}
+  end
 end

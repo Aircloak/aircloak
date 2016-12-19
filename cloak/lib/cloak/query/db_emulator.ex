@@ -53,6 +53,24 @@ defmodule Cloak.Query.DBEmulator do
     |> Enum.map(&selected_values(&1, aggregated_columns, query))
   end
 
+  @doc "Keeps only the columns needed by the query from the selection target."
+  @spec pick_db_columns(Enumerable.t, Query.t) :: Enumerable.t
+  def pick_db_columns(stream, %Query{db_columns: db_columns, from: {:subquery, subquery}}) do
+    # The column titles in a subquery are not guaranteed to be unique, but that is fine
+    # since, if they are not, they can't be referenced exactly either.
+    indices = for column <- db_columns do
+      Enum.find_index(subquery.ast.column_titles, & &1 == column.name)
+    end
+    pick_columns(stream, indices)
+  end
+  def pick_db_columns(stream, %Query{db_columns: db_columns, from: {:join, join}}) do
+    indices = for column <- db_columns do
+      Enum.find_index(join.columns, &column.table.name == &1.table.name and column.name == &1.name)
+    end
+    pick_columns(stream, indices)
+  end
+  def pick_db_columns(stream, _query), do: stream
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -257,5 +275,11 @@ defmodule Cloak.Query.DBEmulator do
     unmatched_rhs = outer_join(rhs, lhs, join.conditions,
       &add_suffix_to_rows/2, &[lhs_null_row ++ &1], fn (_matches) -> [] end)
     lhs |> left_join(rhs, join) |> Stream.concat(unmatched_rhs)
+  end
+
+  defp pick_columns(stream, indices) do
+    Stream.map(stream, fn (row) ->
+      Enum.map(indices, &Enum.at(row, &1))
+    end)
   end
 end
