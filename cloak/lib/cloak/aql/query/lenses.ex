@@ -63,7 +63,7 @@ defmodule Cloak.Aql.Query.Lenses do
   # Internal lenses
   # -------------------------------------------------------------------
 
-  deflensp filter_parents(), do:
+  defp filter_parents(), do:
     Lens.multiple([
       Lens.keys([:where, :having, :encoded_where, :lcf_check_conditions]),
       join_conditions()
@@ -71,7 +71,7 @@ defmodule Cloak.Aql.Query.Lenses do
     |> Lens.all()
     |> conditions_parents()
 
-  deflensp join_conditions(), do:
+  defp join_conditions(), do:
     Lens.key(:from)
     |> join_elements()
     |> Lens.satisfy(&match?({:join, _}, &1))
