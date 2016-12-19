@@ -2,7 +2,7 @@ defmodule Cloak.Aql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
   alias Cloak.DataSource
-  alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Lenses, Range}
+  alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Range}
   alias Cloak.Query.DataDecoder
 
   defmodule CompilationError do
@@ -137,7 +137,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp resolve_projected_tables(%Query{projected?: true} = query), do: query
   defp resolve_projected_tables(query), do:
-    Lens.map(Lenses.Query.leaf_tables(), query, &resolve_projected_table(&1, query))
+    Lens.map(Query.Lenses.leaf_tables(), query, &resolve_projected_table(&1, query))
 
   defp resolve_projected_table(table_name, query) do
     case DataSource.table(query.data_source, table_name) do
@@ -188,7 +188,7 @@ defmodule Cloak.Aql.Compiler do
   # -------------------------------------------------------------------
 
   defp compile_subqueries(query) do
-    {info, compiled} = Lens.get_and_map(Lenses.Query.direct_subqueries(), query, fn(subquery) ->
+    {info, compiled} = Lens.get_and_map(Query.Lenses.direct_subqueries(), query, fn(subquery) ->
       ast = compiled_subquery(subquery.ast, subquery.alias, query)
       {ast.info, %{subquery | ast: ast}}
     end)
@@ -439,7 +439,7 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp compile_buckets(query) do
-    {messages, columns} = Lens.get_and_map(Lens.all() |> Lenses.Query.buckets(),
+    {messages, columns} = Lens.get_and_map(Lens.all() |> Query.Lenses.buckets(),
         query.columns, &align_bucket/1)
     Query.add_info(%{query | columns: columns}, Enum.reject(messages, &is_nil/1))
   end
@@ -634,7 +634,7 @@ defmodule Cloak.Aql.Compiler do
   # calls to row splitting functions. This does not affect how many times database columns are loaded
   # from the database, but allows us to deal with the output of the row splitting function instances separately.
   defp drop_duplicate_columns_except_row_splitters(columns), do:
-    Enum.uniq_by(columns, &Lens.map(Lenses.Query.splitter_functions(), &1, fn(_) -> Kernel.make_ref() end))
+    Enum.uniq_by(columns, &Lens.map(Query.Lenses.splitter_functions(), &1, fn(_) -> Kernel.make_ref() end))
 
   defp partition_row_splitters(%Query{} = query) do
     next_available_index = length(query.db_columns)
@@ -860,7 +860,7 @@ defmodule Cloak.Aql.Compiler do
   defp add_subquery_ranges(query) do
     %{query | ranges:
       query
-      |> get_in([Lenses.Query.direct_subqueries() |> Lens.key(:ast) |> Lens.key(:ranges)])
+      |> get_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast) |> Lens.key(:ranges)])
       |> Enum.flat_map(fn(ranges) ->
         Enum.map(ranges, fn(range) -> %{range | column: %Column{name: range_alias(range.column)}} end)
       end)
@@ -948,40 +948,8 @@ defmodule Cloak.Aql.Compiler do
     Cloak.Time.parse_datetime(string)
   defp do_parse_time(_, _), do: {:error, :invalid_cast}
 
-  defp map_terminal_elements(query, mapper_fun) do
-    %Query{query |
-      columns: Enum.map(query.columns, &map_terminal_element(&1, mapper_fun)),
-      group_by: Enum.map(query.group_by, &map_terminal_element(&1, mapper_fun)),
-      where: Enum.map(query.where, &map_where_clause(&1, mapper_fun)),
-      lcf_check_conditions: Enum.map(query.lcf_check_conditions, &map_where_clause(&1, mapper_fun)),
-      encoded_where: Enum.map(query.encoded_where, &map_where_clause(&1, mapper_fun)),
-      order_by: Enum.map(query.order_by, &map_order_by(&1, mapper_fun)),
-      having: Enum.map(query.having, &map_where_clause(&1, mapper_fun)),
-      db_columns: Enum.map(query.db_columns, &map_terminal_element(&1, mapper_fun)),
-      property: Enum.map(query.property, &map_terminal_element(&1, mapper_fun)),
-      aggregators: Enum.map(query.aggregators, &map_terminal_element(&1, mapper_fun)),
-      from: map_join_conditions_columns(query.from, mapper_fun),
-      ranges: Enum.map(query.ranges, fn(range) -> %{range | column: map_terminal_element(range.column, mapper_fun)} end)
-    }
-  end
-
-  defp map_join_conditions_columns({:join, join}, mapper_fun) do
-    {:join, %{join |
-      lhs: map_join_conditions_columns(join.lhs, mapper_fun),
-      rhs: map_join_conditions_columns(join.rhs, mapper_fun),
-      conditions: Enum.map(join.conditions, &map_where_clause(&1, mapper_fun))
-    }}
-  end
-  defp map_join_conditions_columns({:subquery, _} = subquery, _mapper_fun), do: subquery
-  defp map_join_conditions_columns(raw_table_name, _mapper_fun) when is_binary(raw_table_name),
-    do: raw_table_name
-
-  defp map_order_by({identifier, direction}, mapper_fun),
-    do: {map_terminal_element(identifier, mapper_fun), direction}
-
-  defp map_where_clause(clause, f), do: Lens.map(Lenses.Query.where_terminal_elements(), clause, f)
-
-  defp map_terminal_element(query, f), do: Lens.map(Lenses.Query.terminal_elements(), query, f)
+  defp map_terminal_elements(query, mapper_fun), do:
+    Lens.map(Query.Lenses.terminals(), query, mapper_fun)
 
   defp parse_columns(query) do
     columns_by_name =
@@ -1198,13 +1166,18 @@ defmodule Cloak.Aql.Compiler do
   defp do_join_conditions_scope_check({:join, join}, selected_tables) do
     selected_tables = do_join_conditions_scope_check(join.lhs, selected_tables)
     selected_tables = do_join_conditions_scope_check(join.rhs, selected_tables)
-    mapper_fun = fn
-      (%Cloak.Aql.Column{table: %{name: table_name}, name: column_name}) ->
-        scope_check(selected_tables, table_name, column_name)
-      ({:identifier, table_name, {_, column_name}}) -> scope_check(selected_tables, table_name, column_name)
-      (_) -> :ok
-    end
-    Enum.each(join.conditions, &map_where_clause(&1, mapper_fun))
+
+    Lens.each(
+      Query.Lenses.conditions_terminals(),
+      join.conditions,
+      fn
+        (%Cloak.Aql.Column{table: %{name: table_name}, name: column_name}) ->
+          scope_check(selected_tables, table_name, column_name)
+        ({:identifier, table_name, {_, column_name}}) -> scope_check(selected_tables, table_name, column_name)
+        (_) -> :ok
+      end
+    )
+
     Enum.each(join.conditions, &verify_where_clause/1)
     selected_tables
   end
@@ -1298,7 +1271,7 @@ defmodule Cloak.Aql.Compiler do
   defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
   defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do: needs_decoding?(query)
   defp needs_emulation?(%Query{from: {:join, _}, data_source: %{driver: Cloak.DataSource.MongoDB}}), do: true
-  defp needs_emulation?(query), do: query |> get_in([Lenses.Query.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?))
+  defp needs_emulation?(query), do: query |> get_in([Query.Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?))
 
   defp compile_emulated_joins(%Query{emulated?: true, from: {:join, _}} = query) do
     from =
@@ -1315,7 +1288,7 @@ defmodule Cloak.Aql.Compiler do
     # tables references were previously translated into subqueries.
     columns = joined_columns({:join, join})
     mapper_fun = &set_column_db_row_position(&1, columns)
-    conditions = Enum.map(join.conditions, &map_where_clause(&1, mapper_fun))
+    conditions = Lens.map(Query.Lenses.conditions_terminals(), join.conditions, mapper_fun)
     lhs = compile_join_conditions_columns(join.lhs)
     rhs = compile_join_conditions_columns(join.rhs)
     join = Map.put(join, :columns, columns)
@@ -1391,8 +1364,8 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp verify_function_usage_for_where_clauses(query) do
-    Lenses.Query.queries()
-    |> Lenses.Query.where_inequality_columns()
+    Query.Lenses.queries()
+    |> Query.Lenses.where_inequality_columns()
     |> Lens.to_list(query)
     |> Enum.each(fn(column) ->
       type = TypeChecker.type(column, query)

@@ -3,7 +3,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   import Lens.Macros
 
-  alias Cloak.Aql.{Column, Compiler, Parser, Lenses}
+  alias Cloak.Aql.{Column, Compiler, Parser, Query}
 
   defmacrop column(table_name, column_name) do
     quote do
@@ -1021,22 +1021,11 @@ defmodule Cloak.Aql.Compiler.Test do
 
   defp scrub_aliases(query), do: put_in(query, [aliases()], nil)
 
-  deflens aliases do
-    all_subqueries()
-    |> Lens.both(
-      Lens.keys([:where, :columns, :db_columns])
-      |> Lenses.Query.terminal_elements()
-      |> Lens.satisfy(&(is_map(&1) && Map.has_key?(&1, :alias))),
-      Lens.key(:ranges)
-      |> Lens.all()
-      |> Lens.key(:column)
-    )
-    |> Lens.key(:alias)
-  end
+  deflens aliases, do:
+    all_subqueries() |> Query.Lenses.terminals() |> Lens.satisfy(&match?(%Column{}, &1)) |> Lens.key(:alias)
 
-  deflens all_subqueries() do
-    Lens.both(Lens.recur(Lenses.Query.direct_subqueries() |> Lens.key(:ast)), Lens.root())
-  end
+  deflens all_subqueries(), do:
+    Lens.both(Lens.recur(Query.Lenses.direct_subqueries() |> Lens.key(:ast)), Lens.root())
 
   defp select_columns_have_valid_transformations(query) do
     case compile(query, data_source()) do
