@@ -33,14 +33,11 @@ defmodule Cloak.Aql.Lenses.Query do
   deflens buckets(), do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
 
   @doc "Lens focusing on a query's immediate subqueries"
-  deflens direct_subqueries(), do: Lens.key(:from) |> do_direct_subqueries()
-
-  deflens do_direct_subqueries(), do:
-    Lens.match(fn
-      {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_direct_subqueries()
-      {:subquery, _} -> Lens.at(1)
-      _ -> Lens.empty()
-    end)
+  deflens direct_subqueries(), do:
+    Lens.key(:from)
+    |> join_elements()
+    |> Lens.satisfy(&match?({:subquery, _}, &1))
+    |> Lens.at(1)
 
   @doc """
   Lens focusing on all queries found in a query. Also includes the top-level query itself.
@@ -57,7 +54,10 @@ defmodule Cloak.Aql.Lenses.Query do
     |> Lens.satisfy(&(not &1.constant?))
 
   @doc "Lens focusing on the tables selected from the database. Does not include subqueries."
-  deflens leaf_tables, do: Lens.key(:from) |> do_leaf_tables()
+  deflens leaf_tables(), do:
+    Lens.key(:from)
+    |> join_elements()
+    |> Lens.satisfy(&is_binary/1)
 
   # -------------------------------------------------------------------
   # Internal lenses
@@ -66,22 +66,17 @@ defmodule Cloak.Aql.Lenses.Query do
   deflensp filter_parents(), do:
     Lens.multiple([
       Lens.keys([:where, :having, :encoded_where, :lcf_check_conditions]),
-      join_conditions(Lens.key(:from))
+      join_conditions()
     ])
     |> Lens.all()
     |> conditions_parents()
 
   deflensp join_conditions(), do:
-    Lens.match(fn
-      {:join, _} ->
-        Lens.at(1)
-        |> Lens.both(
-          Lens.keys([:lhs, :rhs]) |> join_conditions(),
-          Lens.key(:conditions) |> Lens.root()
-        )
-      {:subquery, _} -> Lens.empty()
-      table when is_binary(table) -> Lens.empty()
-    end)
+    Lens.key(:from)
+    |> join_elements()
+    |> Lens.satisfy(&match?({:join, _}, &1))
+    |> Lens.at(1)
+    |> Lens.key(:conditions)
 
   deflensp do_where_inequality_columns(), do:
     Lens.match(fn
@@ -110,10 +105,14 @@ defmodule Cloak.Aql.Lenses.Query do
       _ -> Lens.root
     end)
 
-  deflensp do_leaf_tables(), do:
+  deflensp join_elements(), do:
     Lens.match(fn
-      {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> do_leaf_tables()
-      {:subquery, _} -> Lens.empty()
+      {:join, _} ->
+        Lens.seq_both(
+          Lens.root(),
+          Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> join_elements()
+        )
+      {:subquery, _} -> Lens.root()
       table when is_binary(table) -> Lens.root()
     end)
 end
