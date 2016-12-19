@@ -325,10 +325,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp compile_aliases(%Query{columns: [_|_] = columns} = query) do
     verify_aliases(query)
-    column_titles = Enum.map(columns, fn
-      ({_column, :as, name}) -> name
-      (column) -> column_title(column)
-    end)
+    column_titles = Enum.map(columns, &column_title/1)
     aliases = for {column, :as, name} <- columns, into: %{}, do: {{:identifier, :unknown, {:unquoted, name}}, column}
     columns = Enum.map(columns, fn
       ({column, :as, _name}) -> column
@@ -1044,6 +1041,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp insensitive_equal?(s1, s2), do: String.downcase(s1) == String.downcase(s2)
 
+  def column_title({_identifier, :as, alias}), do: alias
   def column_title(function = {:function, _, _}), do: Function.name(function)
   def column_title({:distinct, identifier}), do: column_title(identifier)
   def column_title({:identifier, _table, {_, column}}), do: column
