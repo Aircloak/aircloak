@@ -10,27 +10,21 @@ defmodule Cloak.Aql.Lenses.Query do
   # Lenses into Query
   # -------------------------------------------------------------------
 
-  @doc "Lens focusing on all terminal elements of a query, including intermediate function invocations."
-  deflens terminal_elements() do
-    Lens.match(fn
-      {:function, "count", :*} -> Lens.empty()
-      {:function, "count_noise", :*} -> Lens.empty()
-      {:function, _, _} -> Lens.both(Lens.at(2) |> terminal_elements(), Lens.root())
-      {:distinct, _} -> Lens.both(Lens.at(1) |> terminal_elements(), Lens.root())
-      {_, :as, _} -> Lens.at(0)
-      elements when is_list(elements) -> Lens.all() |> terminal_elements()
-      _ -> Lens.root
-    end)
-  end
+  @doc "Lens focusing all terminal elements in a query, including intermediate function invocations."
+  deflens terminals(), do:
+    Lens.multiple([
+      Lens.keys([:columns, :group_by, :db_columns, :property, :aggregators]),
+      Lens.key(:order_by) |> Lens.all() |> Lens.at(0),
+      Lens.key(:ranges) |> Lens.all() |> Lens.key(:column),
+      filter_parents(),
+    ])
+    |> terminal_elements()
 
-  @doc "Lens focusing on terminal elements that are part of WHERE-clauses"
-  deflens where_terminal_elements() do
-    Lens.match(fn
-      {:not, _} -> Lens.at(1) |> where_terminal_elements()
-      {:comparison, _lhs, _comparator, _rhs} -> Lens.indices([1, 3]) |> terminal_elements()
-      {op, _, _} when op in [:in, :like, :ilike, :is] -> Lens.both(Lens.at(1), Lens.at(2)) |> terminal_elements()
-    end)
-  end
+  @doc "Lens focusing all terminal elements in a list of conditions."
+  deflens conditions_terminals(), do:
+    Lens.all()
+    |> conditions_parents()
+    |> terminal_elements()
 
   @doc "Lens focusing on invocations of row splitting functions"
   deflens splitter_functions(), do: terminal_elements() |> Lens.satisfy(&Function.row_splitting_function?/1)
@@ -65,10 +59,29 @@ defmodule Cloak.Aql.Lenses.Query do
   @doc "Lens focusing on the tables selected from the database. Does not include subqueries."
   deflens leaf_tables, do: Lens.key(:from) |> do_leaf_tables()
 
-
   # -------------------------------------------------------------------
   # Internal lenses
   # -------------------------------------------------------------------
+
+  deflensp filter_parents(), do:
+    Lens.multiple([
+      Lens.keys([:where, :having, :encoded_where, :lcf_check_conditions]),
+      join_conditions(Lens.key(:from))
+    ])
+    |> Lens.all()
+    |> conditions_parents()
+
+  deflensp join_conditions(), do:
+    Lens.match(fn
+      {:join, _} ->
+        Lens.at(1)
+        |> Lens.both(
+          Lens.keys([:lhs, :rhs]) |> join_conditions(),
+          Lens.key(:conditions) |> Lens.root()
+        )
+      {:subquery, _} -> Lens.empty()
+      table when is_binary(table) -> Lens.empty()
+    end)
 
   deflensp do_where_inequality_columns(), do:
     Lens.match(fn
@@ -77,6 +90,24 @@ defmodule Cloak.Aql.Lenses.Query do
       elements when is_list(elements) -> Lens.all() |> do_where_inequality_columns()
       %Column{} -> Lens.root()
       _ -> Lens.empty()
+    end)
+
+  deflensp conditions_parents(), do:
+    Lens.match(fn
+      {:not, _} -> Lens.at(1) |> conditions_parents()
+      {:comparison, _lhs, _comparator, _rhs} -> Lens.indices([1, 3])
+      {op, _, _} when op in [:in, :like, :ilike, :is] -> Lens.both(Lens.at(1), Lens.at(2))
+    end)
+
+  deflensp terminal_elements(), do:
+    Lens.match(fn
+      {:function, "count", :*} -> Lens.empty()
+      {:function, "count_noise", :*} -> Lens.empty()
+      {:function, _, _} -> Lens.both(Lens.at(2) |> terminal_elements(), Lens.root())
+      {:distinct, _} -> Lens.both(Lens.at(1) |> terminal_elements(), Lens.root())
+      {_, :as, _} -> Lens.at(0)
+      elements when is_list(elements) -> Lens.all() |> terminal_elements()
+      _ -> Lens.root
     end)
 
   deflensp do_leaf_tables(), do:

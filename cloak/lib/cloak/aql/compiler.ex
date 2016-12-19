@@ -897,40 +897,8 @@ defmodule Cloak.Aql.Compiler do
     Cloak.Time.parse_datetime(string)
   defp do_parse_time(_, _), do: {:error, :invalid_cast}
 
-  defp map_terminal_elements(query, mapper_fun) do
-    %Query{query |
-      columns: Enum.map(query.columns, &map_terminal_element(&1, mapper_fun)),
-      group_by: Enum.map(query.group_by, &map_terminal_element(&1, mapper_fun)),
-      where: Enum.map(query.where, &map_where_clause(&1, mapper_fun)),
-      lcf_check_conditions: Enum.map(query.lcf_check_conditions, &map_where_clause(&1, mapper_fun)),
-      encoded_where: Enum.map(query.encoded_where, &map_where_clause(&1, mapper_fun)),
-      order_by: Enum.map(query.order_by, &map_order_by(&1, mapper_fun)),
-      having: Enum.map(query.having, &map_where_clause(&1, mapper_fun)),
-      db_columns: Enum.map(query.db_columns, &map_terminal_element(&1, mapper_fun)),
-      property: Enum.map(query.property, &map_terminal_element(&1, mapper_fun)),
-      aggregators: Enum.map(query.aggregators, &map_terminal_element(&1, mapper_fun)),
-      from: map_join_conditions_columns(query.from, mapper_fun),
-      ranges: Enum.map(query.ranges, fn(range) -> %{range | column: map_terminal_element(range.column, mapper_fun)} end)
-    }
-  end
-
-  defp map_join_conditions_columns({:join, join}, mapper_fun) do
-    {:join, %{join |
-      lhs: map_join_conditions_columns(join.lhs, mapper_fun),
-      rhs: map_join_conditions_columns(join.rhs, mapper_fun),
-      conditions: Enum.map(join.conditions, &map_where_clause(&1, mapper_fun))
-    }}
-  end
-  defp map_join_conditions_columns({:subquery, _} = subquery, _mapper_fun), do: subquery
-  defp map_join_conditions_columns(raw_table_name, _mapper_fun) when is_binary(raw_table_name),
-    do: raw_table_name
-
-  defp map_order_by({identifier, direction}, mapper_fun),
-    do: {map_terminal_element(identifier, mapper_fun), direction}
-
-  defp map_where_clause(clause, f), do: Lens.map(Lenses.Query.where_terminal_elements(), clause, f)
-
-  defp map_terminal_element(query, f), do: Lens.map(Lenses.Query.terminal_elements(), query, f)
+  defp map_terminal_elements(query, mapper_fun), do:
+    Lens.map(Lenses.Query.terminals(), query, mapper_fun)
 
   defp parse_columns(query) do
     columns_by_name =
@@ -1147,13 +1115,18 @@ defmodule Cloak.Aql.Compiler do
   defp do_join_conditions_scope_check({:join, join}, selected_tables) do
     selected_tables = do_join_conditions_scope_check(join.lhs, selected_tables)
     selected_tables = do_join_conditions_scope_check(join.rhs, selected_tables)
-    mapper_fun = fn
-      (%Cloak.Aql.Column{table: %{name: table_name}, name: column_name}) ->
-        scope_check(selected_tables, table_name, column_name)
-      ({:identifier, table_name, {_, column_name}}) -> scope_check(selected_tables, table_name, column_name)
-      (_) -> :ok
-    end
-    Enum.each(join.conditions, &map_where_clause(&1, mapper_fun))
+
+    Lens.each(
+      Lenses.Query.conditions_terminals(),
+      join.conditions,
+      fn
+        (%Cloak.Aql.Column{table: %{name: table_name}, name: column_name}) ->
+          scope_check(selected_tables, table_name, column_name)
+        ({:identifier, table_name, {_, column_name}}) -> scope_check(selected_tables, table_name, column_name)
+        (_) -> :ok
+      end
+    )
+
     Enum.each(join.conditions, &verify_where_clause/1)
     selected_tables
   end
@@ -1264,7 +1237,7 @@ defmodule Cloak.Aql.Compiler do
     # tables references were previously translated into subqueries.
     columns = joined_columns({:join, join})
     mapper_fun = &set_column_db_row_position(&1, columns)
-    conditions = Enum.map(join.conditions, &map_where_clause(&1, mapper_fun))
+    conditions = Lens.map(Lenses.Query.conditions_terminals(), join.conditions, mapper_fun)
     lhs = compile_join_conditions_columns(join.lhs)
     rhs = compile_join_conditions_columns(join.rhs)
     join = Map.put(join, :columns, columns)
