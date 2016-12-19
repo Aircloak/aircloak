@@ -27,9 +27,8 @@ defmodule Cloak.Aql.Query do
 
   @type t :: %__MODULE__{
     data_source: DataSource.t,
-    features: Cloak.Features.t,
     command: :select | :show,
-    columns: [Column.t],
+    columns: [Column.t] | :*,
     column_titles: [String.t],
     property: [Function.t],
     aggregators: [Function.t],
@@ -168,6 +167,14 @@ defmodule Cloak.Aql.Query do
     end
   end
 
+  @doc "Adds one or more info messages to the query."
+  @spec add_info(t, String.t | [String.t]) :: t
+  def add_info(query, info_messages) when is_list(info_messages), do:
+    Enum.reduce(info_messages, query, &add_info(&2, &1))
+  def add_info(query, info_message), do:
+    %__MODULE__{query | info: [info_message | query.info]}
+
+  def info_messages(query), do: Enum.reverse(query.info)
 
   # -------------------------------------------------------------------
   # Internal functions

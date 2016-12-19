@@ -27,8 +27,8 @@ defmodule Cloak.DataSource.MySQL do
   @doc false
   def load_tables(connection, table) do
     query = "SHOW COLUMNS FROM #{table.db_name}"
-    row_mapper = fn [name, type | _others] -> {name, parse_type(type)} end
-    {:ok, columns} = run_query(connection, query, row_mapper, &Enum.to_list/1)
+    column_info_mapper = fn [name, type | _others] -> {name, parse_type(type)} end
+    {:ok, columns} = run_query(connection, query, column_info_mapper, &Enum.to_list/1)
     [%{table | columns: columns}]
   end
 

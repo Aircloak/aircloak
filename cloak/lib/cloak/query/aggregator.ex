@@ -10,7 +10,6 @@ defmodule Cloak.Query.Aggregator do
   @typep property_values :: [DataSource.field | :*]
   @typep user_id :: DataSource.field
   @typep properties :: [{property_values, Anonymizer.t, %{user_id => DataSource.row}}]
-  @type bucket :: %{row: [DataSource.field], occurrences: pos_integer}
 
 
   # -------------------------------------------------------------------
@@ -51,7 +50,8 @@ defmodule Cloak.Query.Aggregator do
       |> process_low_count_users(query)
       |> aggregate_properties(query)
       |> make_buckets(query)
-    %Result{buckets: aggregated_buckets, users_count: users_count}
+
+    Result.new(query, aggregated_buckets, users_count)
   end
 
 

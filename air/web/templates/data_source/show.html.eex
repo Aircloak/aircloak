@@ -10,7 +10,7 @@
         <h2>
           <%= @data_source.name %>
           <%= if not available?(@data_source) do %>
-            <span class="label label-info">currently unavailable</span>
+            <span class="label label-danger">Offline</span>
           <% end %>
         </h2>
 

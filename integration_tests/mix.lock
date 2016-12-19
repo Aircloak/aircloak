@@ -32,7 +32,7 @@
   "inflex": {:hex, :inflex, "1.5.0", "e4ff5d900280b2011b24d1ac1c4590986ee5add2ea644c9894e72213cf93ff0b", [:mix], []},
   "jose": {:hex, :jose, "1.8.0", "1ee027c5c0ff3922e3bfe58f7891509e8f87f771ba609ee859e623cc60237574", [:mix, :rebar3], [{:base64url, "~> 0.0.1", [hex: :base64url, optional: false]}]},
   "jsx": {:hex, :jsx, "2.8.0", "749bec6d205c694ae1786d62cea6cc45a390437e24835fd16d12d74f07097727", [:mix, :rebar], []},
-  "lens": {:hex, :lens, "0.1.1", "e97fdf86c66dbb64a492b904950c91ad93337c651b2c97012ff3e32b2b1e021a", [:mix], []},
+  "lens": {:hex, :lens, "0.2.0", "56b3185932316e785214d3569511dc19a0449904037cf60399a77722fb28a1c4", [:mix], []},
   "lhttpc": {:git, "https://github.com/esl/lhttpc.git", "6530ef818bf904bf4ef615f384d2fc7bae44a6dc", []},
   "mariaex": {:hex, :mariaex, "0.7.7", "620a636ec2276c3fa031ac528039fc9d2bf7992e050e37a56b3c796511e94d6d", [:mix], [{:db_connection, "~> 1.0.0-rc", [hex: :db_connection, optional: false]}, {:decimal, "~> 1.0", [hex: :decimal, optional: false]}]},
   "meck": {:git, "https://github.com/eproxus/meck.git", "dde759050eff19a1a80fd854d7375174b191665d", [tag: "0.8.2"]},

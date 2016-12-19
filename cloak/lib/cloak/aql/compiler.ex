@@ -1,7 +1,7 @@
 defmodule Cloak.Aql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
-  alias Cloak.{DataSource, Features}
+  alias Cloak.DataSource
   alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Lenses, Range}
   alias Cloak.Query.DataDecoder
 
@@ -16,12 +16,12 @@ defmodule Cloak.Aql.Compiler do
   # -------------------------------------------------------------------
 
   @doc "Prepares the parsed SQL query for execution."
-  @spec compile(DataSource.t, Parser.parsed_query, tuple, Query.view_map, Features.t) ::
+  @spec compile(DataSource.t, Parser.parsed_query, Keyword.t, Query.view_map) ::
     {:ok, Query.t} | {:error, String.t}
-  def compile(data_source, parsed_query, parameters, views, features \\ Features.from_config()) do
+  def compile(data_source, parsed_query, parameters, views) do
     try do
       parsed_query
-      |> to_prepped_query(data_source, features, parameters, views)
+      |> to_prepped_query(data_source, parameters, views)
       |> compile_prepped_query()
     rescue
       e in CompilationError -> {:error, e.message}
@@ -44,10 +44,9 @@ defmodule Cloak.Aql.Compiler do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp to_prepped_query(parsed_query, data_source, features, parameters, views) do
+  defp to_prepped_query(parsed_query, data_source, parameters, views) do
     %Query{
       data_source: data_source,
-      features: features,
       parameters: parameters,
       views: views
     }
@@ -55,9 +54,15 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp compile_prepped_query(%Query{command: :show, show: :tables} = query), do:
-    {:ok, query}
+    {:ok, %Query{query |
+      column_titles: ["name"],
+      columns: [%Column{table: :unknown, constant?: true, name: "name", type: :text}]
+    }}
   defp compile_prepped_query(%Query{command: :show, show: :columns} = query), do:
-    {:ok, compile_from(query)}
+    {:ok, %Query{compile_from(query) |
+      column_titles: ["name", "type"],
+      columns: Enum.map(["name", "type"], &%Column{table: :unknown, constant?: true, name: &1, type: :text})
+    }}
   defp compile_prepped_query(%Query{command: :select} = query), do:
     {:ok,
       query
@@ -137,13 +142,13 @@ defmodule Cloak.Aql.Compiler do
   defp resolve_projected_table(table_name, query) do
     case DataSource.table(query.data_source, table_name) do
       %{projection: nil} -> table_name
-      projected_table -> projected_table_ast(projected_table, query)
+      projected_table -> projected_table_ast(projected_table, :all, query)
     end
   end
 
-  defp projected_table_ast(%{projection: nil} = table, _query), do:
+  defp projected_table_ast(%{projection: nil} = table, _column_to_select, _query), do:
     {:quoted, table.name}
-  defp projected_table_ast(table, query) do
+  defp projected_table_ast(table, columns_to_select, query) do
     joined_table = DataSource.table(query.data_source, table.projection.table)
 
     {:subquery, %{
@@ -157,13 +162,14 @@ defmodule Cloak.Aql.Compiler do
             table.columns
             |> Enum.map(fn({column_name, _type}) -> column_name end)
             |> Enum.reject(&(&1 == table.user_id))
+            |> Enum.filter(&(columns_to_select == :all || Enum.member?(columns_to_select, &1)))
             |> Enum.map(&column_ast(table.name, &1))
           ],
         from:
           {:join, %{
             type: :inner_join,
             lhs: {:quoted, table.name},
-            rhs: projected_table_ast(joined_table, query),
+            rhs: projected_table_ast(joined_table, [table.projection.primary_key], query),
             conditions: [{:comparison,
               column_ast(table.name, table.projection.foreign_key),
               :=,
@@ -173,9 +179,6 @@ defmodule Cloak.Aql.Compiler do
       }
     }}
   end
-
-  defp column_ast(table_name, column_name), do:
-    {:identifier, {:quoted, table_name}, {:quoted, column_name}}
 
 
   # -------------------------------------------------------------------
@@ -188,7 +191,7 @@ defmodule Cloak.Aql.Compiler do
       {ast.info, %{subquery | ast: ast}}
     end)
 
-    %Query{compiled | info: query.info ++ Enum.concat(info)}
+    Query.add_info(compiled, Enum.concat(info))
   end
 
   defp compiled_subquery(parsed_subquery, alias, parent_query) do
@@ -247,7 +250,7 @@ defmodule Cloak.Aql.Compiler do
     aligned = limit |> FixAlign.align() |> round() |> max(@minimum_subquery_limit)
     if aligned != limit do
       %{query | limit: aligned}
-      |> add_info_message("Limit adjusted from #{limit} to #{aligned}")
+      |> Query.add_info("Limit adjusted from #{limit} to #{aligned}")
     else
       query
     end
@@ -258,12 +261,13 @@ defmodule Cloak.Aql.Compiler do
     aligned = round(offset / limit) * limit
     if aligned != offset do
       %{query | offset: aligned}
-      |> add_info_message("Offset adjusted from #{offset} to #{aligned}")
+      |> Query.add_info("Offset adjusted from #{offset} to #{aligned}")
     else
       query
     end
   end
 
+  defp validate_uid(%Query{projected?: true} = subquery, _display), do: subquery
   defp validate_uid(subquery, display) do
     case Enum.find(subquery.db_columns, &(&1.user_id?)) do
       nil ->
@@ -332,6 +336,7 @@ defmodule Cloak.Aql.Compiler do
   end
   defp selected_tables({:subquery, subquery}, _data_source) do
     user_id = Enum.find(subquery.ast.db_columns, &(&1.user_id?))
+    user_id_name = if user_id != nil, do: user_id.alias || user_id.name, else: nil
     columns =
         Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
         |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
@@ -339,7 +344,7 @@ defmodule Cloak.Aql.Compiler do
       name: subquery.alias,
       db_name: subquery.alias,
       columns: columns,
-      user_id: user_id.alias || user_id.name,
+      user_id: user_id_name,
       decoders: [],
       projection: nil
     }]
@@ -433,7 +438,7 @@ defmodule Cloak.Aql.Compiler do
   defp compile_buckets(query) do
     {messages, columns} = Lens.get_and_map(Lens.all() |> Lenses.Query.buckets(),
         query.columns, &align_bucket/1)
-    %{query | columns: columns, info: Enum.reject(messages, &is_nil/1) ++ query.info}
+    Query.add_info(%{query | columns: columns}, Enum.reject(messages, &is_nil/1))
   end
 
   defp align_bucket(column) do
@@ -576,21 +581,12 @@ defmodule Cloak.Aql.Compiler do
 
   defp check_function_validity(function, query) do
     verify_function_exists(function)
-    verify_function_supported_feature(function, query)
     verify_function_subquery_usage(function, query)
   end
 
   defp verify_function_exists(function) do
     unless Function.exists?(function) do
       raise CompilationError, message: "Unknown function `#{Function.name(function)}`."
-    end
-  end
-
-  defp verify_function_supported_feature(function, query) do
-    unless Function.valid_feature?(function, query) do
-      raise CompilationError, message:
-        "Function `#{Function.name(function)}` requires feature " <>
-        "`#{Function.required_feature(function)}` to be enabled."
     end
   end
 
@@ -814,7 +810,10 @@ defmodule Cloak.Aql.Compiler do
   defp all_join_conditions(_), do: []
 
   defp reject_null_user_ids(query) do
-    %{query | where: [{:not, {:is, id_column(query), :null}} | query.where]}
+    case id_column(query) do
+      nil -> query
+      user_id -> %{query | where: [{:not, {:is, user_id, :null}} | query.where]}
+    end
   end
 
   defp align_ranges(query, key) do
@@ -845,7 +844,7 @@ defmodule Cloak.Aql.Compiler do
       query
       |> add_clause(key, {:comparison, column, :<, Column.constant(column.type, right)})
       |> add_clause(key, {:comparison, column, :>=, Column.constant(column.type, left)})
-      |> add_info_message("The range for column #{name} has been adjusted to #{left} <= #{name} < #{right}.")
+      |> Query.add_info("The range for column #{name} has been adjusted to #{left} <= #{name} < #{right}.")
     end
     |> put_in([Lens.key(:ranges), Lens.front()], Range.new(column, {left, right}, key))
   end
@@ -1120,8 +1119,6 @@ defmodule Cloak.Aql.Compiler do
   defp extract_columns({:not, condition}), do: extract_columns(condition)
   defp extract_columns({verb, column, _value}) when verb in [:like, :ilike, :is, :in], do: extract_columns(column)
 
-  defp add_info_message(query, info_message), do: %Query{query | info: [info_message | query.info]}
-
   defp calculate_db_columns(query) do
     db_columns =
       (select_expressions(query) ++ range_columns(query))
@@ -1144,14 +1141,23 @@ defmodule Cloak.Aql.Compiler do
       (query.columns ++ query.group_by ++ query.unsafe_filter_columns ++ query.having)
       |> Enum.flat_map(&extract_columns/1)
       |> Enum.reject(& &1.constant?)
-    [id_column(query) | used_columns]
+    case id_column(query) do
+      nil -> used_columns
+      user_id -> [user_id | used_columns]
+    end
   end
 
   defp id_column(query) do
-    all_id_columns = all_id_columns_from_tables(query) |> Enum.map(&cast_unknown_id/1)
-    if any_outer_join?(query.from),
-      do: Column.db_function("coalesce", all_id_columns),
-      else: hd(all_id_columns)
+    query
+    |> all_id_columns_from_tables()
+    |> Enum.map(&cast_unknown_id/1)
+    |> case do
+      [] -> nil
+      id_columns ->
+        if any_outer_join?(query.from),
+          do: Column.db_function("coalesce", id_columns),
+          else: hd(id_columns)
+    end
   end
 
   # We can't directly select a field with an unknown type, so convert it to binary
@@ -1284,6 +1290,17 @@ defmodule Cloak.Aql.Compiler do
     raise CompilationError, message: "Inequalities on string values are currently not supported."
   defp check_for_string_inequalities(_, _), do: :ok
 
+  defp column_ast(table_name, column_name), do:
+    {:identifier, {:quoted, table_name}, {:quoted, column_name}}
+
+  defp column_ast(table_name, column_name, alias), do:
+    {column_ast(table_name, column_name), :as, alias}
+
+
+  # -------------------------------------------------------------------
+  # Query emulation
+  # -------------------------------------------------------------------
+
   defp needs_decoding?(query), do:
     (query.columns ++ query.group_by ++ query.having)
     |> Enum.flat_map(&extract_columns/1)
@@ -1321,6 +1338,7 @@ defmodule Cloak.Aql.Compiler do
   end
   defp joined_columns({:subquery, subquery}) do
     user_id = Enum.find(subquery.ast.db_columns, &(&1.user_id?))
+    user_id_name = if user_id != nil, do: user_id.alias || user_id.name, else: nil
     columns =
         Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
         |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
@@ -1328,7 +1346,7 @@ defmodule Cloak.Aql.Compiler do
       name: subquery.alias,
       db_name: subquery.alias,
       columns: columns,
-      user_id: user_id.alias || user_id.name,
+      user_id: user_id_name,
       decoders: [],
       projection: nil
     }
@@ -1342,9 +1360,9 @@ defmodule Cloak.Aql.Compiler do
   # to replace any direct references to joined table with the equivalent subquery.
   defp replace_joined_tables_with_subqueries(table_name, columns, parrent_query) when is_binary(table_name) do
     columns = for %Column{table: %{name: ^table_name}} = column <- columns, do:
-      {{:identifier, :unknown, {:quoted, column.name}}, :as, column.alias || column.name}
+      column_ast(table_name, column.name, column.alias || column.name)
     query =
-      %{command: :select, columns: columns, from: {:quoted, table_name}}
+      %{command: :select, columns: columns, from: {:quoted, table_name}, projected?: parrent_query.projected?}
       |> compiled_subquery(table_name, parrent_query)
     {:subquery, %{type: :parsed, ast: query, alias: table_name}}
   end

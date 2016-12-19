@@ -1,7 +1,8 @@
 <table class="table table-striped">
   <thead>
     <tr>
-      <th>Data source name</th>
+      <th>Name</th>
+      <th>Status</th>
       <th>Tables</th>
     </tr>
   </thead>
@@ -12,7 +13,10 @@
         <%= link data_source.name, to: data_source_path(@conn, :show, data_source) %>
       </td>
       <td>
-        <strong><%= number_of_tables(data_source) %></strong> tables. Amongst others
+        <%= availability_label(data_source) %>
+      </td>
+      <td>
+        <strong><%= number_of_tables(data_source) %></strong> table(s):
         <strong><%= sample_of_tables(data_source) %></strong>
       </td>
     </tr>

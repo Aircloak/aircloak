@@ -78,7 +78,6 @@ __Notes__:
 - You can restrict the range of returned rows by a query using the `LIMIT` and/or `OFFSET` clauses, but you need to
  provide the ORDER BY clause to ensure a stable order for the rows.
 - Using the `HAVING` clause requires the `GROUP BY` clause to be specified and conditions must not refer to non-aggregated fields.
-- Binary operators are only supported if the `math` feature is enabled in the cloak configuration.
 
 ## JOIN restrictions
 
@@ -109,6 +108,71 @@ A subquery expression must always select the user-id column. For example, assumi
 - __Invalid__: `SELECT name FROM (SELECT name FROM t1) sq`
 
 Operators `<>`, `IN`, and `NOT` (except `IS NOT NULL`) can't be used in subquery `WHERE` expressions.
+
+When using `LIMIT` and `OFFSET` in a subquery:
+
+- `LIMIT` will be adjusted to the closest number in the sequence `[10, 20, 50, 100, 200, 500, 1000, ...]` (i.e. 10e^n, 20e^n, 50e^n for any natural number n larger than 0). For example: 1 or 14 become 10, etc
+- `OFFSET` will automatically be adjusted to the nearest multiple of `LIMIT`. For example an `OFFSET` of 240 will be
+  adjusted to 200 given a `LIMIT` of 100
+
+
+## Math restrictions
+
+
+```sql
+-- The following examples show expressions that are not allowed
+-- for column expressions that are selected:
+
+-- both abs and + influenced by the constant
+abs(age + 1)
+
+-- string function influenced by a constant is used,
+-- later converted to a number and then part of a math
+-- expression that is influenced by a constant.
+length(btrim(name, 'constant')) + 1
+
+
+-- The following examples show expressions that are allowed
+-- for column expressions that are selected, but not allowed in
+-- WHERE-clause inequalities
+
+-- restricted function influenced by a constant but not math
+length(btrim(name, 'constant'))
+
+-- math influenced by a constant but no restricted function
+age / 10
+
+
+-- The following show examples of the restricted functions which are OK
+-- both in column expressions that are selected as well as WHERE-clause
+-- inequalities despite being complex. The reason is that there are no
+-- constants involved
+
+length(btrim(firstname, lastname)) + age
+length(cast(salary + salary / age as text))
+```
+
+Aircloak applies some restrictions on how certain functions and math operators can be used in your queries __when
+constants are involved__.
+As an example consider the function `btrim`. It can always be used directly on a column expression (for example `btrim(name)`),
+but it's usage is restricted when a constant is involved (for example `btrim(name, 'some constant')`).
+
+The restrictions are as follows:
+
+- you cannot _select a column_ in your query if the column has been processed by a restricted function in conjunction with a constant __and__
+  there has been performed math with a constant on the column as well
+- you cannot use a column in a WHERE-clause inequality (meaning `>`, `>=`, `<`, or `<=`) if it has had math with a constant performed on it __or__
+  if it has been processed by one of the restricted functions in conjunction with a constant
+
+The numerical functions that receive this kind of special treatment are: `abs`, `bucket`, `ceil`, `div`, `floor`, `mod`, `round`, `sqrt`, `/`, `trunc`, and `cast`'s.
+
+The following string functions receive this kind of special treatment only if they are later converted to a number:
+`btrim`, `left`, `ltrim`, `right`, `rtrim`, and `substring`.
+
+The same applies to the following math operations if one or more of their arguments have been influenced by a constant:
+`+`, `-`, `*`, `/`, `^`, `pow`.
+
+For some examples see the sidebar.
 
 
 ## Understanding query results
@@ -154,26 +218,6 @@ After low-count values are filtered, some amount of noise is introduced. Conside
 
 The results of aggregate functions, such as `SUM` and `COUNT`, are also anonymized. The returned values will slightly differ from the real values.
 
-## Optional features
-
-Some features of the platform can be enabled/disabled by setting flags in the
-data source configuration located at `[cloak_config_directory]/config.json`.
-These might affect the ease of use, but also the level of anonymization provided.
-Currently the only such feature is `math`, which enables/disables mathematical
-operators and some mathematical functions in queries.
-
-```js
-// All features are disabled by default. To enable:
-
-{
-  ...
-  "features": {
-    "math": true
-  },
-  ...
-}
-
-```
 
 ## Date functions
 
@@ -188,13 +232,6 @@ SELECT EXTRACT(year FROM date_column) FROM table;
 
 ## Mathematical operators
 
-[Requires `math`](#optional-features)
-
-The operators `+`, `-`, `/`, and `*` have their usual meaning of addition, subtraction, division, and
-multiplication respectively. The operator `^` denotes exponentiation. The operator `%` denotes the division
-remainder.
-
-
 ```sql
 1 - 2 + 4 * 3 / 2
 -- 5
@@ -206,13 +243,16 @@ remainder.
 -- 1
 ```
 
+The operators `+`, `-`, `/`, and `*` have their usual meaning of addition, subtraction, division, and
+multiplication respectively. The operator `^` denotes exponentiation. The operator `%` denotes the division
+remainder.
+
+[Restriction in usage apply](#math-restrictions).
+
+
 ## Mathematical functions
 
 ### abs
-
-[Requires `math`](#optional-features)
-
-Computes the absolute value of the given number.
 
 ```sql
 ABS(3)
@@ -222,9 +262,12 @@ ABS(-3)
 -- 3
 ```
 
-### bucket
+Computes the absolute value of the given number.
 
-Rounds the input to the given bucket size.
+[Restriction in usage apply](#math-restrictions).
+
+
+### bucket
 
 ```sql
 BUCKET(180 BY 50)
@@ -240,22 +283,24 @@ BUCKET(180 BY 50 ALIGN MIDDLE)
 -- 175
 ```
 
+Rounds the input to the given bucket size.
+
+[Restriction in usage apply](#math-restrictions).
+
+
 ### ceil / ceiling
-
-[Requires `math`](#optional-features)
-
-Computes the smallest integer that is greater than or equal to its argument.
 
 ```sql
 CEIL(3.22)
 -- 4
 ```
 
+Computes the smallest integer that is greater than or equal to its argument.
+
+[Restriction in usage apply](#math-restrictions).
+
+
 ### div
-
-[Requires `math`](#optional-features)
-
-Performs integer division on its arguments.
 
 ```sql
 DIV(10, 2)
@@ -265,33 +310,36 @@ DIV(10, 3)
 -- 3
 ```
 
+Performs integer division on its arguments.
+
+[Restriction in usage apply](#math-restrictions).
+
+
 ### floor
-
-[Requires `math`](#optional-features)
-
-Computes the largest integer that is less than or equal to its argument.
 
 ```sql
 FLOOR(3.22)
 -- 3
 ```
 
+Computes the largest integer that is less than or equal to its argument.
+
+[Restriction in usage apply](#math-restrictions).
+
+
 ### mod
-
-[Requires `math`](#optional-features)
-
-`MOD(a, b)` computes the remainder from `DIV(a, b)`.
 
 ```sql
 MOD(10, 3)
 -- 1
 ```
 
+`MOD(a, b)` computes the remainder from `DIV(a, b)`.
+
+[Restriction in usage apply](#math-restrictions).
+
+
 ### pow
-
-[Requires `math`](#optional-features)
-
-`POW(a, b)` computes `a` to the `b`-th power.
 
 ```sql
 POW(2, 3)
@@ -301,11 +349,12 @@ POW(2, 3.5)
 -- 11.313708498984761
 ```
 
+`POW(a, b)` computes `a` to the `b`-th power.
+
+[Restriction in usage apply](#math-restrictions).
+
+
 ### round
-
-[Requires `math`](#optional-features)
-
-Rounds the given floating-point value to the nearest integer. An optional second argument signifies the precision.
 
 ```sql
 ROUND(3.22)
@@ -318,20 +367,24 @@ ROUND(3.22, 1)
 -- 3.2
 ```
 
-### sqrt
+Rounds the given floating-point value to the nearest integer. An optional second argument signifies the precision.
 
-Computes the square root.
+[Restriction in usage apply](#math-restrictions).
+
+
+### sqrt
 
 ```sql
 SQRT(2)
 -- 1.4142135623730951
 ```
 
+Computes the square root.
+
+[Restriction in usage apply](#math-restrictions).
+
+
 ### trunc
-
-[Requires `math`](#optional-features)
-
-Rounds the given floating-point value towards zero. An optional second argument signifies the precision.
 
 ```sql
 TRUNC(3.22)
@@ -344,11 +397,14 @@ TRUNC(3.22, 1)
 -- 3.2
 ```
 
+Rounds the given floating-point value towards zero. An optional second argument signifies the precision.
+
+[Restriction in usage apply](#math-restrictions).
+
+
 ## String functions
 
 ### btrim
-
-Removes all of the given characters from the beginning and end of the string. The default is to remove spaces.
 
 ```sql
 BTRIM(' some text ')
@@ -358,9 +414,11 @@ BTRIM('xyzsome textzyx', 'xyz')
 -- 'some text'
 ```
 
-### concat
+Removes all of the given characters from the beginning and end of the string. The default is to remove spaces.
 
-Joins the passed strings into one.
+[Restriction in usage apply](#math-restrictions).
+
+### concat
 
 ```sql
 CONCAT('some ', 'text')
@@ -373,9 +431,10 @@ CONCAT('a', 'b', 'c')
 -- 'abc'
 ```
 
-### left
+Joins the passed strings into one.
 
-`LEFT(string, n)` takes n characters from the beginning of the string. If n is negative takes all but the last |n| characters.
+
+### left
 
 ```sql
 LEFT('some text', 4)
@@ -385,20 +444,24 @@ LEFT('some text', -2)
 -- 'some te'
 ```
 
+`LEFT(string, n)` takes n characters from the beginning of the string. If n is negative takes all but the last |n| characters.
+
+[Restriction in usage apply](#math-restrictions).
+
+
 ### length
-
-[Requires `math`](#optional-features)
-
-Computes the number of characters in the string.
 
 ```sql
 LENGTH('some text')
 -- 9
 ```
 
-### lower
+Computes the number of characters in the string.
 
-Transforms all characters in the given string into lowercase.
+[Restriction in usage apply](#math-restrictions).
+
+
+### lower
 
 ```sql
 LOWER('Some Text')
@@ -408,9 +471,10 @@ LCASE('Some Text')
 -- 'some text'
 ```
 
-### ltrim
+Transforms all characters in the given string into lowercase.
 
-Removes all of the given characters from the beginning of the string. The default is to remove spaces.
+
+### ltrim
 
 ```sql
 LTRIM(' some text ')
@@ -420,9 +484,12 @@ LTRIM('xyzsome textzyx', 'xyz')
 -- 'some textzyx'
 ```
 
-### right
+Removes all of the given characters from the beginning of the string. The default is to remove spaces.
 
-`RIGHT(string, n)` takes n characters from the end of the string. If n is negative takes all but the first |n| characters.
+[Restriction in usage apply](#math-restrictions).
+
+
+### right
 
 ```sql
 RIGHT('some text', 4)
@@ -432,9 +499,12 @@ RIGHT('some text', -2)
 -- 'me text'
 ```
 
-### rtrim
+`RIGHT(string, n)` takes n characters from the end of the string. If n is negative takes all but the first |n| characters.
 
-Removes all of the given characters from the end of the string. The default is to remove spaces.
+[Restriction in usage apply](#math-restrictions).
+
+
+### rtrim
 
 ```sql
 RTRIM(' some text ')
@@ -444,9 +514,12 @@ RTRIM('xyzsome textzyx', 'xyz')
 -- 'xyzsome text'
 ```
 
-### substring
+Removes all of the given characters from the end of the string. The default is to remove spaces.
 
-Takes a slice of a string.
+[Restriction in usage apply](#math-restrictions).
+
+
+### substring
 
 ```sql
 SUBSTRING('some text' FROM 3)
@@ -459,9 +532,12 @@ SUBSTRING('some text' FOR 4)
 -- 'some'
 ```
 
-### upper
+Takes a slice of a string.
 
-Transforms all characters in the given string into uppercase.
+[Restriction in usage apply](#math-restrictions).
+
+
+### upper
 
 ```sql
 UPPER('Some Text')
@@ -471,12 +547,10 @@ UCASE('Some Text')
 -- 'SOME TEXT'
 ```
 
+Transforms all characters in the given string into uppercase.
+
+
 ### extract_match
-
-Runs a regular expression over a text column. The first match is extracted and replaces the original value.
-The syntax of the regular expressions [resemble that of Perl](http://erlang.org/doc/man/re.html#regexp_syntax).
-
-All regular expressions are considered case insensitive.
 
 ```sql
 EXTRACT_MATCH('Some Text', 'Some')
@@ -489,14 +563,14 @@ EXTRACT_MATCH('This or that', 'Some')
 -- nil
 ```
 
-This function is not allowed in subqueries.
-
-### extract_matches
-
-Runs a regular expression over a text column. All matches are extracted and turned into individual rows.
+Runs a regular expression over a text column. The first match is extracted and replaces the original value.
 The syntax of the regular expressions [resemble that of Perl](http://erlang.org/doc/man/re.html#regexp_syntax).
 
 All regular expressions are considered case insensitive.
+
+This function is not allowed in subqueries.
+
+### extract_matches
 
 ```sql
 EXTRACT_MATCHES('Some Text', '\w+')
@@ -510,6 +584,11 @@ EXTRACT_MATCH('This or that', 'this|that')
 EXTRACT_MATCH('This or that', 'Some')
 # Notice, the row is surpressed when there is no match
 ```
+
+Runs a regular expression over a text column. All matches are extracted and turned into individual rows.
+The syntax of the regular expressions [resemble that of Perl](http://erlang.org/doc/man/re.html#regexp_syntax).
+
+All regular expressions are considered case insensitive.
 
 This function is not allowed in subqueries.
 
@@ -541,8 +620,6 @@ converted into the following rows before furhter analysis takes place
 
 ## Casting
 
-You can convert values between different types using a cast expression.
-
 ```sql
 CAST('3' AS INTEGER)
 -- 3
@@ -553,6 +630,10 @@ CAST(3, TEXT)
 CAST('NOT A NUMBER', INTEGER)
 -- NULL
 ```
+
+You can convert values between different types using a cast expression.
+
+[Restriction in usage apply](#math-restrictions).
 
 Types can be converted according to the following tables:
 

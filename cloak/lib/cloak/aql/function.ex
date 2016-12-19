@@ -1,8 +1,8 @@
 defmodule Cloak.Aql.Function do
   @moduledoc "Includes information about functions and implementation of non-aggregation functions."
 
-  alias Cloak.Aql.{Column, Parser, Query}
-  alias Cloak.{DataSource, Features}
+  alias Cloak.Aql.{Column, Parser}
+  alias Cloak.DataSource
   alias Timex.Duration
 
   import Kernel, except: [apply: 2]
@@ -33,19 +33,19 @@ defmodule Cloak.Aql.Function do
       %{type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
     ~w(year month day weekday) =>
       %{type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
-    ~w(floor ceil ceiling) => %{required_feature: :math, type_specs: %{[numeric] => :integer}},
-    ~w(round trunc) => %{required_feature: :math, type_specs: %{
+    ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}},
+    ~w(round trunc) => %{type_specs: %{
       [numeric] => :integer,
       [numeric, :integer] => :real,
     }},
     [{:bucket, :lower}, {:bucket, :upper}, {:bucket, :middle}] => %{type_specs: %{
       [numeric, numeric] => :real,
     }},
-    ~w(abs) => %{required_feature: :math, type_specs: %{[numeric] => :real}},
+    ~w(abs) => %{type_specs: %{[numeric] => :real}},
     ~w(sqrt) => %{type_specs: %{[numeric] => :real}},
-    ~w(div mod %) => %{required_feature: :math, type_specs: %{[:integer, :integer] => :integer}},
-    ~w(pow ^) => %{required_feature: :math, type_specs: %{[numeric, numeric] => :real}},
-    ~w(+) => %{required_feature: :math, type_specs: Map.merge(arithmetic_operation, %{
+    ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}},
+    ~w(pow ^) => %{type_specs: %{[numeric, numeric] => :real}},
+    ~w(+) => %{type_specs: Map.merge(arithmetic_operation, %{
       [:date, :interval] => :datetime,
       [:time, :interval] => :time,
       [:datetime, :interval] => :datetime,
@@ -54,7 +54,7 @@ defmodule Cloak.Aql.Function do
       [:interval, :datetime] => :datetime,
       [:interval, :interval] => :interval,
     })},
-    ~w(-) => %{required_feature: :math, type_specs: Map.merge(arithmetic_operation, %{
+    ~w(-) => %{type_specs: Map.merge(arithmetic_operation, %{
       [:date, :date] => :interval,
       [:time, :time] => :interval,
       [:datetime, :datetime] => :interval,
@@ -63,15 +63,15 @@ defmodule Cloak.Aql.Function do
       [:datetime, :interval] => :datetime,
       [:interval, :interval] => :interval,
     })},
-    ~w(*) => %{required_feature: :math, type_specs: Map.merge(arithmetic_operation, %{
+    ~w(*) => %{type_specs: Map.merge(arithmetic_operation, %{
        [:interval, numeric] => :interval,
        [numeric, :interval] => :interval,
      })},
-    ~w(/) => %{required_feature: :math, type_specs: %{
+    ~w(/) => %{type_specs: %{
       [numeric, numeric] => :real,
       [:interval, {:or, [:integer, :real]}] => :interval,
     }},
-    ~w(length) => %{required_feature: :math, type_specs: %{[:text] => :integer}},
+    ~w(length) => %{type_specs: %{[:text] => :integer}},
     ~w(lower lcase upper ucase) => %{type_specs: %{[:text] => :text}},
     ~w(left right) => %{type_specs: %{[:text, :integer] => :text}},
     ~w(btrim ltrim rtrim) => %{type_specs: %{[:text, {:optional, :text}] => :text}},
@@ -257,30 +257,6 @@ defmodule Cloak.Aql.Function do
   @doc "Returns true if the function is a valid cloak function"
   @spec exists?(t) :: boolean
   def exists?({:function, function, _}), do: @functions[function] !== nil
-
-  @doc """
-  Returns true if the function is supported given the features supported in the query.
-
-  This function expects the caller to already have validated that the function exists.
-  This can be done with the `exists?` function.
-  """
-  @spec valid_feature?(t, Query.t) :: boolean
-  def valid_feature?(function, %Query{features: features}) do
-    case required_feature(function) do
-      nil -> true
-      feature -> Features.has?(features, feature)
-    end
-  end
-
-  @doc "Returns a feature required by a function, or nil if the function has no feature requirements."
-  @spec required_feature(t) :: atom | nil
-  def required_feature({:function, function, _}) do
-    case @functions[function] do
-      %{required_feature: feature} -> feature
-      # No feature requirement
-      _ -> nil
-    end
-  end
 
   @doc """
   Returns true if the function is allowed in sub-queries.

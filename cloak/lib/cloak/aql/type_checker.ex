@@ -94,7 +94,7 @@ defmodule Cloak.Aql.TypeChecker do
       when name in @discontinuous_math_functions, do:
     any_touched_by_constant?(child_types)
   defp dangerously_discontinuous?("/", _future, [_, child_type]), do: child_type.touched_by_constant?
-  defp dangerously_discontinuous?({:cast, _}, _future, _child_types), do: true
+  defp dangerously_discontinuous?({:cast, _}, _future, child_types), do: any_touched_by_constant?(child_types)
   defp dangerously_discontinuous?(name, future, child_types)
       when name in @discontinuous_string_functions, do:
     any_touched_by_constant?(child_types) and later_turned_into_a_number?(future)
