@@ -2,7 +2,6 @@ defmodule Cloak.Query.BasicTest do
   use ExUnit.Case, async: true
 
   import Cloak.Test.QueryHelpers
-  alias Cloak.Aql.Column
 
   setup_all do
     :ok = Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, male BOOLEAN")
@@ -669,24 +668,6 @@ defmodule Cloak.Query.BasicTest do
       ",
       %{columns: ["h1", "h2"], rows: [%{row: [180, 180], occurrences: 100}]}
     )
-  end
-
-  test "same database columns are selected only once in implicit self-join" do
-    {:ok, query} =
-      Application.get_env(:cloak, :data_sources)
-      |> Enum.map(&(&1.global_id))
-      |> hd()
-      |> Cloak.DataSource.fetch!()
-      |> Cloak.Aql.Query.make(
-            "
-              select heights.height as h1, heights_alias.height as h2
-              from heights, heights_alias
-              where heights.user_id=heights_alias.user_id
-            ",
-            [],
-            %{}
-          )
-    assert [%Column{name: "user_id"}, %Column{name: "height"}] = query.db_columns
   end
 
   test "cast" do

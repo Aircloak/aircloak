@@ -96,6 +96,12 @@ defmodule Cloak.Aql.Column do
     Enum.zip(c1.db_function_args, c2.db_function_args) |> Enum.all?(fn ({arg1, arg2}) -> equals(arg1, arg2) end)
   def equals(_c1, _c2), do: false
 
+  @doc "Returns a string id for the specified column."
+  @spec id(t) :: nil | String.t
+  def id(%__MODULE__{table: :unknown, name: nil, alias: alias}), do: alias
+  def id(%__MODULE__{table: :unknown, name: name}), do: name
+  def id(%__MODULE__{table: table, name: name}), do: table.name <> name
+
 
   # -------------------------------------------------------------------
   # Internal functions
