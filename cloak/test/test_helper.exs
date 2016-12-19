@@ -1,3 +1,3 @@
 Cloak.Test.DB.start_link()
-ExUnit.start()
+ExUnit.start(exclude: [:exclude_in_dev])
 ExCheck.start()
