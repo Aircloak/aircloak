@@ -23,6 +23,9 @@ start:
 test:
 	mix test
 
+test_all:
+	TRAVIS=true mix test --include exclude_in_dev
+
 recreate_db:
 	@echo "Assumption: you have a database user called postgres that is a superuser. If not, run: CREATE USER postgres WITH SUPERUSER"
 	./recreate_db.sh
