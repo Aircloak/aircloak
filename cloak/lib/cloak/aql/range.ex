@@ -1,10 +1,10 @@
 defmodule Cloak.Aql.Range do
   @moduledoc "Represents a range the analyst applied in the query that needs to be tracked for ShrinkAndDrop."
 
-  alias Cloak.Aql.{Column, FixAlign}
+  alias Cloak.Aql.{Expression, FixAlign}
 
   @type t :: %__MODULE__{
-    column: Column.t,
+    column: Expression.t,
     interval: FixAlign.interval,
     type: type
   }
@@ -13,6 +13,6 @@ defmodule Cloak.Aql.Range do
   defstruct [:column, :interval, :type]
 
   @doc "Returns a Range with the given column, interval and type."
-  @spec new(Column.t, FixAlign.interval, type) :: t
+  @spec new(Expression.t, FixAlign.interval, type) :: t
   def new(column, interval, type), do: %__MODULE__{column: column, interval: interval, type: type}
 end

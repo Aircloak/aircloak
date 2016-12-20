@@ -13,7 +13,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
 
   Provided arguments list must contain SQL fragments.
   """
-  @spec sql(Cloak.Aql.Column.function, [iodata], Cloak.DataSource.data_type, atom) :: iodata
+  @spec sql(Cloak.Aql.Expression.function, [iodata], Cloak.DataSource.data_type, atom) :: iodata
   def sql({:cast, type}, [arg], _parsed_type, sql_dialect),
     do: sql("cast", [arg, sql_type(type, sql_dialect)], type, sql_dialect)
   def sql(fun_name, fun_args, _parsed_type, sql_dialect), do: function_call(fun_name, fun_args, sql_dialect)

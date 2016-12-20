@@ -1,4 +1,4 @@
-defmodule Cloak.Aql.Column do
+defmodule Cloak.Aql.Expression do
   @moduledoc "Represents a column in a compiled query."
 
   alias Cloak.DataSource
@@ -30,7 +30,7 @@ defmodule Cloak.Aql.Column do
   end
 
   @doc "Creates a column representing a database function call."
-  @spec function(function, [t], column_type, boolean) :: t
+  @spec function(function_name, [t], column_type, boolean) :: t
   def function(function, function_args, type \\ nil, aggregate? \\ false) do
     %__MODULE__{function: function, function_args: function_args, type: type, aggregate?: aggregate?}
   end
