@@ -72,6 +72,16 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer.Test do
       assert HalfBuffer.inside(buffer, {3, 5}) |> Enum.sort() ==
         [{nil, nil, 3, nil}, {nil, nil, 4, nil}, {nil, nil, 4, nil}]
     end
+
+    test "under?" do
+      assert HalfBuffer.under?(%HalfBuffer{min: 10}, 5)
+      refute HalfBuffer.under?(%HalfBuffer{min: 10}, 20)
+    end
+
+    test "over?" do
+      assert HalfBuffer.over?(%HalfBuffer{max: 10}, 20)
+      refute HalfBuffer.over?(%HalfBuffer{max: 10}, 5)
+    end
   end
 
   describe "working with dates" do
@@ -116,6 +126,16 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer.Test do
 
       assert HalfBuffer.inside(buffer, {~D[2016-02-01], ~D[2016-04-01]}) |> Enum.sort() ==
         [{nil, nil, ~D[2016-02-01], nil}, {nil, nil, ~D[2016-03-01], nil}, {nil, nil, ~D[2016-03-02], nil}]
+    end
+
+    test "under?" do
+      assert HalfBuffer.under?(%HalfBuffer{min: ~D[2010-06-01]}, ~D[2009-07-01])
+      refute HalfBuffer.under?(%HalfBuffer{min: ~D[2010-05-16]}, ~D[2010-06-15])
+    end
+
+    test "over?" do
+      refute HalfBuffer.over?(%HalfBuffer{max: ~D[2010-06-01]}, ~D[2009-07-01])
+      assert HalfBuffer.over?(%HalfBuffer{max: ~D[2010-05-16]}, ~D[2010-06-15])
     end
   end
 end

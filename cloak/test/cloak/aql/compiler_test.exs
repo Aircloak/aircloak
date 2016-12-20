@@ -1,7 +1,9 @@
 defmodule Cloak.Aql.Compiler.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.{Column, Compiler, Parser}
+  import Lens.Macros
+
+  alias Cloak.Aql.{Column, Compiler, Parser, Query}
 
   defmacrop column(table_name, column_name) do
     quote do
@@ -647,13 +649,44 @@ defmodule Cloak.Aql.Compiler.Test do
   test "having condition ranges are aligned with a message in subqueries" do
     %{from: {:subquery, %{ast: aligned}}} = compile!("""
       select count(*) from (select uid from table group by uid having avg(numeric) >= 0.0 and avg(numeric) < 5.0) x
-    """, data_source())
+    """, data_source()) |> scrub_aliases()
     %{from: {:subquery, %{ast: unaligned}}} = compile!("""
       select count(*) from (select uid from table group by uid having avg(numeric) > 0.1 and avg(numeric) <= 4.9) x
-    """, data_source())
+    """, data_source()) |> scrub_aliases()
 
     assert Map.drop(aligned, [:info]) == Map.drop(unaligned, [:info])
     assert unaligned.info == ["The range for column `avg` has been adjusted to 0.0 <= `avg` < 5.0."]
+  end
+
+  test "propagating ranges for shrink and drop from a singly-nested having" do
+    query = compile!("""
+      select * from (
+        select uid from table group by uid
+        having avg(numeric) >= 0.0 and avg(numeric) < 100.0
+      ) x
+    """, data_source())
+    {:subquery, %{ast: subquery}} = query.from
+
+    assert [%{alias: column_alias}] = Enum.reject(subquery.db_columns, &(&1.name == "uid"))
+    assert [%{column: %{name: ^column_alias}, interval: {0.0, 100.0}}] = query.ranges
+  end
+
+  test "propagating ranges for shrink and drop from a singly-nested where" do
+    query = compile!("""
+      select * from (
+        select uid from table
+        where numeric >= 0.0 and numeric < 100.0
+        group by uid
+      ) x
+    """, data_source())
+    {:subquery, %{ast: subquery}} = query.from
+
+    assert [
+      %{db_function: "min", alias: min_alias},
+      %{db_function: "max", alias: max_alias}
+    ] = Enum.reject(subquery.db_columns, &(&1.name == "uid"))
+    assert Enum.any?(query.ranges, &match?(%{column: %{name: ^min_alias}, interval: {0.0, 100.0}}, &1))
+    assert Enum.any?(query.ranges, &match?(%{column: %{name: ^max_alias}, interval: {0.0, 100.0}}, &1))
   end
 
   test "dotted columns can be used unquoted" do
@@ -985,6 +1018,14 @@ defmodule Cloak.Aql.Compiler.Test do
       assert where_columns_have_valid_transformations(query)
     end
   end
+
+  defp scrub_aliases(query), do: put_in(query, [aliases()], nil)
+
+  deflens aliases, do:
+    all_subqueries() |> Query.Lenses.terminals() |> Lens.satisfy(&match?(%Column{}, &1)) |> Lens.key(:alias)
+
+  deflens all_subqueries(), do:
+    Lens.both(Lens.recur(Query.Lenses.direct_subqueries() |> Lens.key(:ast)), Lens.root())
 
   defp select_columns_have_valid_transformations(query) do
     case compile(query, data_source()) do

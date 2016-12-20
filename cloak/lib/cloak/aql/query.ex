@@ -158,7 +158,8 @@ defmodule Cloak.Aql.Query do
       {:ok,
         Enum.zip(compiled_query.column_titles, compiled_query.columns)
         |> Enum.map(fn({name, column}) ->
-              %{name: name, type: stringify(Function.type(column)), user_id: column.user_id?}
+              %{name: name, type: stringify(Function.type(column)),
+                user_id: match?(%Column{user_id?: true}, column)}
             end)
       }
     else
