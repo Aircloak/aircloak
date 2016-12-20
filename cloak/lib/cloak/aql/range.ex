@@ -5,12 +5,14 @@ defmodule Cloak.Aql.Range do
 
   @type t :: %__MODULE__{
     column: Column.t,
-    interval: FixAlign.interval
+    interval: FixAlign.interval,
+    type: type
   }
+  @type type :: :having | :where | :nested_min | :nested_max
 
-  defstruct [column: nil, interval: nil]
+  defstruct [:column, :interval, :type]
 
-  @doc "Returns a Range with the given column and interval."
-  @spec new(Column.t, FixAlign.interval) :: t
-  def new(column, interval), do: %__MODULE__{column: column, interval: interval}
+  @doc "Returns a Range with the given column, interval and type."
+  @spec new(Column.t, FixAlign.interval, type) :: t
+  def new(column, interval, type), do: %__MODULE__{column: column, interval: interval, type: type}
 end

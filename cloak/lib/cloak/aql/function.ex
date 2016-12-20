@@ -179,6 +179,7 @@ defmodule Cloak.Aql.Function do
   @doc "Returns the type of the given expression."
   @spec type(t) :: data_type
   def type(function = {:function, _, _}), do: return_type(function)
+  def type({column, :as, _}), do: type(column)
   def type({:distinct, column}), do: type(column)
   def type(%Column{type: type}), do: type
   def type(:*), do: :any

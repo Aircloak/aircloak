@@ -26,8 +26,43 @@ defmodule Cloak.Query.AnonymizationTest do
       %{columns: ["count"], rows: [%{row: [100]}]}
   end
 
-  test "range in subquery" do
+  test "having range in subquery" do
     :ok = insert_rows(_user_ids = 1..100, "anonymizations", ["number"], [180])
+    :ok = insert_rows(_user_ids = [1], "anonymizations", ["number"], [0])
+
+    assert_query("""
+      SELECT count(*)
+      FROM (
+        SELECT user_id
+        FROM anonymizations
+        GROUP BY user_id
+        HAVING avg(number) > 0 AND avg(number) < 200
+      ) x
+    """, %{columns: ["count"], rows: [%{row: [99]}]})
+  end
+
+  test "having range in nested subquery" do
+    :ok = insert_rows(_user_ids = 1..100, "anonymizations", ["number"], [180])
+    :ok = insert_rows(_user_ids = [1], "anonymizations", ["number"], [0])
+
+    assert_query("""
+      SELECT count(*)
+      FROM (
+        SELECT user_id
+        FROM (
+          SELECT user_id
+          FROM anonymizations
+          GROUP BY user_id
+          HAVING avg(number) > 0 AND avg(number) < 200
+        ) y
+        GROUP BY user_id
+      ) x
+    """, %{columns: ["count"], rows: [%{row: [99]}]})
+  end
+
+  test "where range in subquery" do
+    :ok = insert_rows(_user_ids = 1..100, "anonymizations", ["number"], [180])
+    :ok = insert_rows(_user_ids = [101], "anonymizations", ["number"], [185])
 
     assert_query("""
       SELECT avg(foo)
@@ -38,5 +73,24 @@ defmodule Cloak.Query.AnonymizationTest do
         GROUP BY user_id
       ) x
     """, %{columns: ["avg"], rows: [%{row: [180.0]}]})
+  end
+
+  test "where range in nested subquery" do
+    :ok = insert_rows(_user_ids = 1..100, "anonymizations", ["number"], [180])
+    :ok = insert_rows(_user_ids = [101], "anonymizations", ["number"], [185])
+
+    assert_query("""
+      SELECT count(*)
+      FROM (
+        SELECT user_id
+        FROM (
+          SELECT user_id, sum(number)
+          FROM anonymizations
+          WHERE number > 0 and number < 200
+          GROUP BY user_id
+        ) y
+        GROUP BY user_id
+      ) x
+    """, %{columns: ["count"], rows: [%{row: [100]}]})
   end
 end
