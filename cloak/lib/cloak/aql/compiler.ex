@@ -241,9 +241,9 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp min_column(column), do: Column.db_function("min", [column], column.type, true) |> alias_column()
+  defp min_column(column), do: Column.function("min", [column], column.type, true) |> alias_column()
 
-  defp max_column(column), do: Column.db_function("max", [column], column.type, true) |> alias_column()
+  defp max_column(column), do: Column.function("max", [column], column.type, true) |> alias_column()
 
   defp alias_column(column = {:function, _, _}), do: {column, :as, new_carry_alias()}
   defp alias_column(column), do: %{column | alias: new_carry_alias()}
@@ -412,10 +412,10 @@ defmodule Cloak.Aql.Compiler do
       )
     ) or
     (
-      Column.db_function?(column) and
+      Column.function?(column) and
       (
         column.aggregate? or
-        Enum.any?(column.db_function_args, &aggregated_column?(&1, query))
+        Enum.any?(column.function_args, &aggregated_column?(&1, query))
       )
     )
 
@@ -558,7 +558,7 @@ defmodule Cloak.Aql.Compiler do
     "Column #{quoted_item(arg.name)} needs"
   defp aggregated_expression_display({:function, _function, args}), do:
     "Columns (#{args |> Enum.map(&(&1.name)) |> quoted_list()}) need"
-  defp aggregated_expression_display(%Column{db_function: fun, db_function_args: args}) when fun != nil do
+  defp aggregated_expression_display(%Column{function: fun, function_args: args}) when fun != nil do
     [column | _] = for %Column{constant?: false} = column <- args, do: column
     aggregated_expression_display(column)
   end
@@ -1018,7 +1018,7 @@ defmodule Cloak.Aql.Compiler do
     check_function_validity(function_spec, query)
     case Function.return_type(function_spec) do
       nil -> raise CompilationError, message: function_argument_error_message(function_spec)
-      type -> Column.db_function(name, args, type, Function.aggregate_function?(function_spec))
+      type -> Column.function(name, args, type, Function.aggregate_function?(function_spec))
     end
   end
   defp identifier_to_column({:parameter, index}, _columns_by_name, query) do
@@ -1077,7 +1077,7 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp extract_columns(:*), do: []
-  defp extract_columns(%Column{db_function: fun, db_function_args: arguments}) when fun != nil, do:
+  defp extract_columns(%Column{function: fun, function_args: arguments}) when fun != nil, do:
     Enum.flat_map(arguments, &extract_columns/1)
   defp extract_columns(%Column{} = column), do: [column]
   defp extract_columns({:function, _function, arguments}), do: Enum.flat_map(arguments, &extract_columns/1)
@@ -1121,14 +1121,14 @@ defmodule Cloak.Aql.Compiler do
       |> Enum.map(&cast_unknown_id/1)
 
     if any_outer_join?(query.from),
-      do: Column.db_function("coalesce", id_columns),
+      do: Column.function("coalesce", id_columns),
       else: hd(id_columns)
   end
 
   # We can't directly select a field with an unknown type, so convert it to binary
   # This is needed in the case of using the ODBC driver with a GUID user id,
   # as the GUID type is not supported by the Erlang ODBC library
-  def cast_unknown_id(%Column{type: :unknown} = column), do: Column.db_function({:cast, :varbinary}, [column])
+  def cast_unknown_id(%Column{type: :unknown} = column), do: Column.function({:cast, :varbinary}, [column])
   def cast_unknown_id(column), do: column
 
   defp all_id_columns_from_tables(%Query{command: :select, selected_tables: tables}) do
