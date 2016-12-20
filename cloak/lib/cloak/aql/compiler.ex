@@ -1091,8 +1091,9 @@ defmodule Cloak.Aql.Compiler do
     db_columns =
       (select_expressions(query) ++ range_columns(query))
       |> Enum.uniq_by(&db_column_name/1)
-    %Query{query | db_columns: db_columns}
-    |> map_terminal_elements(&set_column_db_row_position(&1, db_columns))
+
+    Lens.map(Query.Lenses.columns(), %Query{query | db_columns: db_columns},
+      &set_column_db_row_position(&1, db_columns))
   end
 
   defp range_columns(%{subquery?: true}), do: []
