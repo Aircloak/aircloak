@@ -21,7 +21,7 @@ defmodule Cloak.Aql.TypeChecker do
   or discontinuous functions.
   """
 
-  alias Cloak.Aql.{Column, Query}
+  alias Cloak.Aql.{Expression, Query}
 
   defmodule Type do
     @moduledoc false
@@ -80,7 +80,7 @@ defmodule Cloak.Aql.TypeChecker do
   The type of the expression itself is not of interest. Rather the class of transformations
   that have been applied to the expression is what can make it safe or unsafe in a query.
   """
-  @spec type(Column.t, Query.t) :: Type.t
+  @spec type(Expression.t, Query.t) :: Type.t
   def type(column, query), do: construct_type(column, query)
 
 
@@ -122,10 +122,10 @@ defmodule Cloak.Aql.TypeChecker do
   defp construct_type({:distinct, column}, query, future), do:
     construct_type(column, query, ["distinct" | future])
   defp construct_type(:*, _query, _future), do: column()
-  defp construct_type(%Column{constant?: true}, _query, _future), do: constant()
-  defp construct_type(%Column{function: nil} = column, query, future), do:
+  defp construct_type(%Expression{constant?: true}, _query, _future), do: constant()
+  defp construct_type(%Expression{function: nil} = column, query, future), do:
     expand_from_subquery(column, query, future)
-  defp construct_type(%Column{function: name, function_args: args}, query, future), do:
+  defp construct_type(%Expression{function: name, function_args: args}, query, future), do:
     type_for_function(name, args, query, future)
   defp construct_type({:function, name, args}, query, future), do:
     type_for_function(name, args, query, future)
@@ -147,7 +147,7 @@ defmodule Cloak.Aql.TypeChecker do
   end
 
   def expand_from_subquery(column, query, future) do
-    %Column{name: column_name, table: %{name: table_name}} = column
+    %Expression{name: column_name, table: %{name: table_name}} = column
     Lens.to_list(Query.Lenses.direct_subqueries(), query)
     |> Enum.find(&(&1.alias == table_name))
     |> case do

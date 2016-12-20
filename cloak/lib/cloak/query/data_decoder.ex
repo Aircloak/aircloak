@@ -8,7 +8,7 @@ defmodule Cloak.Query.DataDecoder do
   ]
   """
 
-  alias Cloak.Aql.{Query, Column}
+  alias Cloak.Aql.{Query, Expression}
 
   @type type :: Cloak.DataSource.data_type
   @type decoder :: (type -> {:ok, type} | :error)
@@ -47,14 +47,14 @@ defmodule Cloak.Query.DataDecoder do
   end
 
   @doc "Checks a column to see if it needs decoding in the cloak before usage."
-  @spec needs_decoding?(Column.t) :: boolean
-  def needs_decoding?(%Column{name: name, table: %{decoders: decoders}}), do:
+  @spec needs_decoding?(Expression.t) :: boolean
+  def needs_decoding?(%Expression{name: name, table: %{decoders: decoders}}), do:
     Enum.any?(decoders, &Enum.member?(&1.columns, name))
-  def needs_decoding?(%Column{}), do: false
+  def needs_decoding?(%Expression{}), do: false
 
   @doc "Returns the actual type of the column in the database."
-  @spec encoded_type(Column.t) :: type
-  def encoded_type(%Column{name: name, type: type, table: %{decoders: decoders}}) do
+  @spec encoded_type(Expression.t) :: type
+  def encoded_type(%Expression{name: name, type: type, table: %{decoders: decoders}}) do
     decoders
     |> Enum.reverse()
     |> Enum.reduce(type, &get_encoded_column_type(&1, name, &2))
@@ -92,7 +92,7 @@ defmodule Cloak.Query.DataDecoder do
   defp create_from_config(decoder), do:
     raise "Invalid data decoder definition: `#{inspect(decoder)}`."
 
-  defp get_decoders(%Column{name: name, table: table}), do:
+  defp get_decoders(%Expression{name: name, table: table}), do:
     Enum.filter_map(table.decoders, &Enum.member?(&1.columns, name), & &1.method)
 
   defp get_decoded_column_type(decoder, name, type) do

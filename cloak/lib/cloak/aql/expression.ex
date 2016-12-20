@@ -1,4 +1,4 @@
-defmodule Cloak.Aql.Column do
+defmodule Cloak.Aql.Expression do
   @moduledoc "Represents a column in a compiled query."
 
   alias Cloak.DataSource

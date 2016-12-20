@@ -1,7 +1,7 @@
 defmodule Cloak.Aql.Comparison do
   @moduledoc "Contains utility functions for working with representations of comparisons."
 
-  alias Cloak.Aql.{Query, Column, Function, Parser}
+  alias Cloak.Aql.{Query, Expression, Function, Parser}
 
   @inequalities [:<, :>, :<=, :>=]
 
@@ -23,7 +23,7 @@ defmodule Cloak.Aql.Comparison do
   def value({:ilike, _lhs, rhs}), do: rhs.value
 
   @doc "Returns the term the given comparison acts on."
-  @spec subject(Query.where_clause | Parser.where_clause) :: Column.t | Parser.column
+  @spec subject(Query.where_clause | Parser.where_clause) :: Expression.t | Parser.column
   def subject({:comparison, lhs, _, _rhs}), do: lhs
   def subject({:not, comparison}), do: subject(comparison)
   def subject({:is, lhs, :null}), do: lhs
@@ -49,11 +49,11 @@ defmodule Cloak.Aql.Comparison do
       compare(operator, lhs, rhs) == truth
     end
   end
-  def to_function({:like, column, %Column{type: :text, value: pattern}}, truth) do
+  def to_function({:like, column, %Expression{type: :text, value: pattern}}, truth) do
     regex = pattern |> to_regex() |> Regex.compile!("ums")
     fn(row) -> compare(:=~, Function.apply_to_db_row(column, row), regex) == truth end
   end
-  def to_function({:ilike, column, %Column{type: :text, value: pattern}}, truth) do
+  def to_function({:ilike, column, %Expression{type: :text, value: pattern}}, truth) do
     regex = pattern |> to_regex() |> Regex.compile!("uims")
     fn(row) -> compare(:=~, Function.apply_to_db_row(column, row), regex) == truth end
   end
@@ -61,7 +61,7 @@ defmodule Cloak.Aql.Comparison do
     fn(row) -> (Function.apply_to_db_row(column, row) == nil) == truth end
   end
   def to_function({:in, column, values}, truth) do
-    values = for %Column{constant?: true, value: value} <- values, do: value
+    values = for %Expression{constant?: true, value: value} <- values, do: value
     fn(row) -> compare(:in, Function.apply_to_db_row(column, row), values) == truth end
   end
 
