@@ -1087,14 +1087,8 @@ defmodule Cloak.Aql.Compiler do
   defp extract_columns({:not, condition}), do: extract_columns(condition)
   defp extract_columns({verb, column, _value}) when verb in [:like, :ilike, :is, :in], do: extract_columns(column)
 
-  defp calculate_db_columns(query) do
-    db_columns =
-      (select_expressions(query) ++ range_columns(query))
-      |> Enum.uniq_by(&Column.db_name/1)
-
-    Lens.map(Query.Lenses.columns(), %Query{query | db_columns: db_columns},
-      &set_column_db_row_position(&1, db_columns))
-  end
+  defp calculate_db_columns(query), do:
+    Enum.reduce(select_expressions(query) ++ range_columns(query), query, &Query.add_db_column(&2, &1))
 
   defp range_columns(%{subquery?: true}), do: []
   defp range_columns(%{subquery?: false, ranges: ranges}), do: Enum.map(ranges, &(&1.column))
@@ -1322,22 +1316,19 @@ defmodule Cloak.Aql.Compiler do
   # The DBEmulator modules doesn't know how to select a table directly, so we need
   # to replace any direct references to joined table with the equivalent subquery.
   defp replace_joined_tables_with_subqueries(table_name, columns, parrent_query) when is_binary(table_name) do
-    columns =
-      (for %Column{table: %{name: ^table_name}} = column <- columns, do: column)
-      |> Enum.with_index()
-      |> Enum.map(fn ({column, index}) -> %Column{column | db_row_position: index} end)
+    columns = for %Column{table: %{name: ^table_name}} = column <- columns, do: column
     column_titles = for column <- columns, do: column.alias || column.name
     query =
       %Query{
         command: :select,
         subquery?: true,
         columns: columns,
-        db_columns: columns,
         column_titles: column_titles,
         from: table_name,
         data_source: parrent_query.data_source,
         selected_tables: [DataSource.table(parrent_query.data_source, table_name)]
       }
+      |> calculate_db_columns()
     {:subquery, %{type: :parsed, ast: query, alias: table_name}}
   end
   defp replace_joined_tables_with_subqueries({:subquery, subquery}, _columns, _parrent_query), do: {:subquery, subquery}
