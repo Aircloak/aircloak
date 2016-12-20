@@ -1090,7 +1090,7 @@ defmodule Cloak.Aql.Compiler do
   defp calculate_db_columns(query) do
     db_columns =
       (select_expressions(query) ++ range_columns(query))
-      |> Enum.uniq_by(&db_column_name/1)
+      |> Enum.uniq_by(&Column.db_name/1)
 
     Lens.map(Query.Lenses.columns(), %Query{query | db_columns: db_columns},
       &set_column_db_row_position(&1, db_columns))
@@ -1149,16 +1149,13 @@ defmodule Cloak.Aql.Compiler do
     do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
 
   defp set_column_db_row_position(%Column{} = column, columns) do
-    case Enum.find_index(columns, &(db_column_name(&1) == db_column_name(column))) do
+    case Enum.find_index(columns, &(Column.db_name(&1) == Column.db_name(column))) do
       # It's not actually a selected column, so ignore for the purpose of positioning
       nil -> column
       position -> %Column{column | db_row_position: position}
     end
   end
   defp set_column_db_row_position(other, _columns), do: other
-
-  defp db_column_name(%Column{table: :unknown} = column), do: (column.name || column.alias)
-  defp db_column_name(column), do: "#{column.table.db_name}.#{column.name}"
 
   defp join_conditions_scope_check(from) do
     do_join_conditions_scope_check(from, [])
@@ -1346,7 +1343,7 @@ defmodule Cloak.Aql.Compiler do
   defp replace_joined_tables_with_subqueries({:subquery, subquery}, _columns, _parrent_query), do: {:subquery, subquery}
   defp replace_joined_tables_with_subqueries({:join, join}, db_columns, parrent_query) do
     on_columns = Enum.flat_map(join.conditions, &extract_columns/1)
-    columns = Enum.uniq_by(db_columns ++ on_columns, &db_column_name/1)
+    columns = Enum.uniq_by(db_columns ++ on_columns, &Column.db_name/1)
     lhs = replace_joined_tables_with_subqueries(join.lhs, columns, parrent_query)
     rhs = replace_joined_tables_with_subqueries(join.rhs, columns, parrent_query)
     {:join, %{join | lhs: lhs, rhs: rhs}}

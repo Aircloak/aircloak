@@ -94,6 +94,11 @@ defmodule Cloak.Aql.Column do
     Enum.zip(c1.db_function_args, c2.db_function_args) |> Enum.all?(fn ({arg1, arg2}) -> equals(arg1, arg2) end)
   def equals(_c1, _c2), do: false
 
+  @doc "Returns the database identifier of the column."
+  @spec db_name(t) :: String.t
+  def db_name(%__MODULE__{table: :unknown} = column), do: (column.name || column.alias)
+  def db_name(column), do: "#{column.table.db_name}.#{column.name}"
+
 
   # -------------------------------------------------------------------
   # Internal functions
