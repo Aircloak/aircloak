@@ -558,7 +558,7 @@ defmodule Cloak.Aql.Compiler do
     "Column #{quoted_item(arg.name)} needs"
   defp aggregated_expression_display({:function, _function, args}), do:
     "Columns (#{args |> Enum.map(&(&1.name)) |> quoted_list()}) need"
-  defp aggregated_expression_display(%Column{db_function: fun, function_args: args}) when fun != nil do
+  defp aggregated_expression_display(%Column{function: fun, function_args: args}) when fun != nil do
     [column | _] = for %Column{constant?: false} = column <- args, do: column
     aggregated_expression_display(column)
   end
@@ -1078,7 +1078,7 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp extract_columns(:*), do: []
-  defp extract_columns(%Column{db_function: fun, function_args: arguments}) when fun != nil, do:
+  defp extract_columns(%Column{function: fun, function_args: arguments}) when fun != nil, do:
     Enum.flat_map(arguments, &extract_columns/1)
   defp extract_columns(%Column{} = column), do: [column]
   defp extract_columns({:function, _function, arguments}), do: Enum.flat_map(arguments, &extract_columns/1)

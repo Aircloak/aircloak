@@ -18,7 +18,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     # see: http://www.xaprb.com/blog/2006/05/26/how-to-write-full-outer-join-in-mysql/
     case split_full_outer_join(query.from) do
       {:union, left_join, right_join} ->
-        [%Column{db_function: "coalesce", function_args: [first_id | _]} | _] = query.db_columns
+        [%Column{function: "coalesce", function_args: [first_id | _]} | _] = query.db_columns
         query1 = %Query{query | from: left_join}
         query2 = %Query{query | from: right_join, where: query.where ++ [{:is, first_id, :null}]}
         build(query1, sql_dialect) <> " UNION ALL " <> build(query2, sql_dialect)
@@ -65,7 +65,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql({:distinct, column}, sql_dialect), do: ["DISTINCT ", column_sql(column, sql_dialect)]
   defp column_sql(%Column{alias: alias} = column, sql_dialect) when alias != nil and alias != "",
     do: [column_sql(%Column{column | alias: nil}, sql_dialect), " AS ", quote_name(alias, sql_dialect)]
-  defp column_sql(%Column{db_function: fun_name, function_args: args, type: type}, sql_dialect)
+  defp column_sql(%Column{function: fun_name, function_args: args, type: type}, sql_dialect)
     when fun_name != nil, do: DbFunction.sql(fun_name,
       Enum.map(args, &column_sql(&1, sql_dialect)), type, sql_dialect)
   defp column_sql(%Column{constant?: true, value: value}, _sql_dialect), do: constant_to_fragment(value)

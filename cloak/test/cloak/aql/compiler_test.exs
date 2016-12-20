@@ -684,8 +684,8 @@ defmodule Cloak.Aql.Compiler.Test do
     {:subquery, %{ast: subquery}} = query.from
 
     assert [
-      %{db_function: "min", alias: min_alias},
-      %{db_function: "max", alias: max_alias}
+      %{function: "min", alias: min_alias},
+      %{function: "max", alias: max_alias}
     ] = Enum.reject(subquery.db_columns, &(&1.name == "uid"))
     assert Enum.any?(query.ranges, &match?(%{column: %{name: ^min_alias}, interval: {0.0, 100.0}}, &1))
     assert Enum.any?(query.ranges, &match?(%{column: %{name: ^max_alias}, interval: {0.0, 100.0}}, &1))

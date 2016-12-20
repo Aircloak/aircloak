@@ -123,7 +123,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp limit_rows(amount), do: [%{'$limit': amount}]
 
   defp extract_aggregator(%Column{aggregate?: true} = column), do: [column]
-  defp extract_aggregator(%Column{db_function: fun} = column) when fun != nil,
+  defp extract_aggregator(%Column{function: fun} = column) when fun != nil,
     do: Enum.flat_map(column.function_args, &extract_aggregator/1)
   defp extract_aggregator(_column), do: []
 
@@ -148,7 +148,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   # This extracts the upper part of a column that need to be projected after grouping is done.
   defp extract_column_top(%Column{constant?: true} = column, _aggregators, _groups), do: column
-  defp extract_column_top(%Column{db_function: "count", function_args: [{:distinct, _}]} = column, aggregators, _groups) do
+  defp extract_column_top(%Column{function: "count", function_args: [{:distinct, _}]} = column, aggregators, _groups) do
     # For distinct count, we gather values into a set and then project the size of the set.
     index = Enum.find_index(aggregators, &Column.equals(column, &1))
     %Column{name: "aggregated_#{index}#", table: :unknown, alias: column.alias}

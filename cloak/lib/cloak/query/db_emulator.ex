@@ -275,7 +275,7 @@ defmodule Cloak.Query.DBEmulator do
     lhs |> left_join(rhs, join) |> Stream.concat(unmatched_rhs)
   end
 
-  defp get_column_index(columns, %Column{db_function: "coalesce", db_function_args: args}), do:
+  defp get_column_index(columns, %Column{function: "coalesce", function_args: args}), do:
     {:coalesce, Enum.map(args, &get_column_index(columns, &1))}
   defp get_column_index(columns, column), do:
     Enum.find_index(columns, &Column.id(column) == Column.id(&1))
