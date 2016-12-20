@@ -100,7 +100,7 @@ defmodule Cloak.Aql.Column do
   @spec id(t) :: nil | String.t
   def id(%__MODULE__{table: :unknown, name: nil, alias: alias}), do: alias
   def id(%__MODULE__{table: :unknown, name: name}), do: name
-  def id(%__MODULE__{table: table, name: name}), do: table.name <> name
+  def id(%__MODULE__{table: table, name: name}), do: "#{table.name}.#{name}"
 
 
   # -------------------------------------------------------------------
