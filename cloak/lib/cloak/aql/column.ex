@@ -16,11 +16,12 @@ defmodule Cloak.Aql.Column do
     value: any,
     db_function: db_function | nil,
     function_args: [t],
+    db_function?: boolean,
     aggregate?: boolean
   }
   defstruct [
     table: :unknown, name: nil, alias: nil, type: nil, user_id?: false, row_index: nil, constant?: false,
-    value: nil, db_function: nil, function_args: [], aggregate?: false
+    value: nil, db_function: nil, function_args: [], db_function?: false, aggregate?: false
   ]
 
   @doc "Returns a column struct representing the constant `value`."
@@ -32,7 +33,8 @@ defmodule Cloak.Aql.Column do
   @doc "Creates a column representing a database function call."
   @spec db_function(db_function, [t], column_type, boolean) :: t
   def db_function(db_function, function_args, type \\ nil, aggregate? \\ false) do
-    %__MODULE__{db_function: db_function, function_args: function_args, type: type, aggregate?: aggregate?}
+    %__MODULE__{db_function: db_function, db_function?: true, function_args: function_args, type: type,
+      aggregate?: aggregate?}
   end
 
   @doc "Returns true if the given term is a constant column, false otherwise."
@@ -42,7 +44,7 @@ defmodule Cloak.Aql.Column do
 
   @doc "Returns true if the given term represents a database function call."
   @spec db_function?(Cloak.Aql.Parser.column | t) :: boolean
-  def db_function?(%__MODULE__{db_function: fun}) when fun != nil, do: true
+  def db_function?(%__MODULE__{db_function?: true}), do: true
   def db_function?(_), do: false
 
   @doc "Returns true if the given term represents a database function call."
