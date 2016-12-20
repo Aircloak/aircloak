@@ -811,6 +811,7 @@ defmodule Cloak.Aql.Compiler do
   end
   defp all_join_conditions(_), do: []
 
+  defp reject_null_user_ids(%Query{subquery?: true} = query), do: query
   defp reject_null_user_ids(query), do:
     %{query | where: [{:not, {:is, id_column(query), :null}} | query.where]}
 

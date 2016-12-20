@@ -15,10 +15,12 @@ defmodule Cloak.Aql.Compiler.Test do
     assert %{group_by: []} = compile!("select * from table", data_source())
   end
 
-  test "adds a non-nil condition on user_id" do
-    query = compile!("select * from table", data_source())
+  test "adds a non-nil condition on user_id for top query" do
+    query = compile!("select * from (select uid, column from table) as t", data_source())
     assert [{:not, {:is, %{name: "uid"}, :null}}] = query.where
     assert [] = query.lcf_check_conditions
+    {:subquery, %{ast: subquery}} = query.from
+    assert [] = subquery.where
   end
 
   for first <- [:>, :>=], second <- [:<, :<=] do
