@@ -679,7 +679,7 @@ defmodule Cloak.Aql.Compiler do
       column_name = "#{Function.name(function_spec)}_return_value"
       return_type = Function.return_type(function_spec)
       # This, most crucially, preserves the DB row position parameter
-      augmented_column = %Column{db_column | name: column_name, type: return_type, db_row_position: index}
+      augmented_column = %Column{db_column | name: column_name, type: return_type, row_index: index}
       {[augmented_column], [{:row_splitter, function_spec, index}]}
     else
       {_index, args, splitters} = partition_row_splitters(args, index)
@@ -1142,14 +1142,14 @@ defmodule Cloak.Aql.Compiler do
   defp any_outer_join?({:join, join}),
     do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
 
-  defp set_column_db_row_position(%Column{} = column, columns) do
+  defp set_column_row_index(%Column{} = column, columns) do
     case Enum.find_index(columns, &(Column.db_name(&1) == Column.db_name(column))) do
       # It's not actually a selected column, so ignore for the purpose of positioning
       nil -> column
-      position -> %Column{column | db_row_position: position}
+      position -> %Column{column | row_index: position}
     end
   end
-  defp set_column_db_row_position(other, _columns), do: other
+  defp set_column_row_index(other, _columns), do: other
 
   defp join_conditions_scope_check(from) do
     do_join_conditions_scope_check(from, [])
@@ -1274,12 +1274,12 @@ defmodule Cloak.Aql.Compiler do
   end
   defp compile_emulated_joins(query), do: query
 
-  # For emulated joins, we need to set the `db_row_position` field for the columns in the `ON` clause.
+  # For emulated joins, we need to set the `row_index` field for the columns in the `ON` clause.
   defp compile_join_conditions_columns({:join, join}) do
     # Because this is an emulated query we only have joining of subqueries, as
     # tables references were previously translated into subqueries.
     columns = joined_columns({:join, join})
-    mapper_fun = &set_column_db_row_position(&1, columns)
+    mapper_fun = &set_column_row_index(&1, columns)
     conditions = Lens.map(Query.Lenses.conditions_terminals(), join.conditions, mapper_fun)
     lhs = compile_join_conditions_columns(join.lhs)
     rhs = compile_join_conditions_columns(join.rhs)

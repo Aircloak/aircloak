@@ -58,7 +58,7 @@ defmodule Cloak.Query.RowSplitters do
     end
   end
   defp apply_function(_row, %Column{constant?: true, value: value}), do: [value]
-  defp apply_function(row, %Column{constant?: false, db_row_position: index}), do:
+  defp apply_function(row, %Column{constant?: false, row_index: index}), do:
     [Enum.at(row, index)]
 
   # Given a list of lists, it will create another list of lists where
