@@ -63,6 +63,8 @@ defmodule Cloak.Aql.Column do
   @doc "Returns the column value of a database row."
   @spec value(t, DataSource.row) :: DataSource.field
   def value(%__MODULE__{constant?: true, value: value}, _row), do: value
+  def value(%__MODULE__{row_index: nil} = column, _row), do:
+    raise "Unindexed column specified: #{inspect(column, pretty: true)}"
   for position <- 0..99 do
     # Generates pattern matching clauses to improve sequential access to a value:
     #
@@ -94,10 +96,11 @@ defmodule Cloak.Aql.Column do
     Enum.zip(c1.db_function_args, c2.db_function_args) |> Enum.all?(fn ({arg1, arg2}) -> equals(arg1, arg2) end)
   def equals(_c1, _c2), do: false
 
-  @doc "Returns the database identifier of the column."
-  @spec db_name(t) :: String.t
-  def db_name(%__MODULE__{table: :unknown} = column), do: (column.name || column.alias)
-  def db_name(column), do: "#{column.table.db_name}.#{column.name}"
+  @doc "Returns a string id for the specified column."
+  @spec id(t) :: nil | String.t
+  def id(%__MODULE__{table: :unknown, name: nil, alias: alias}), do: alias
+  def id(%__MODULE__{table: :unknown, name: name}), do: name
+  def id(%__MODULE__{table: table, name: name}), do: "#{table.name}.#{name}"
 
 
   # -------------------------------------------------------------------

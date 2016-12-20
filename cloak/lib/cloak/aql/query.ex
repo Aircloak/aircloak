@@ -183,10 +183,10 @@ defmodule Cloak.Aql.Query do
   @doc "Adds a database column to the query and updates all references to that column."
   @spec add_db_column(t, Column.t) :: t
   def add_db_column(query, column) do
-    case Enum.find(query.db_columns, &(Column.db_name(&1) == Column.db_name(column))) do
+    case Enum.find(query.db_columns, &(Column.id(&1) == Column.id(column))) do
       nil ->
         Lens.map(
-          Cloak.Aql.Query.Lenses.columns() |> Lens.satisfy(&(Column.db_name(&1) == Column.db_name(column))),
+          Cloak.Aql.Query.Lenses.columns() |> Lens.satisfy(&(Column.id(&1) == Column.id(column))),
           %__MODULE__{query | db_columns: query.db_columns ++ [column]},
           &%{&1 | row_index: query.next_row_index}
         )

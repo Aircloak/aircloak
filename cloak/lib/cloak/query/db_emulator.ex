@@ -58,15 +58,13 @@ defmodule Cloak.Query.DBEmulator do
   def pick_db_columns(stream, %Query{db_columns: db_columns, from: {:subquery, subquery}}) do
     # The column titles in a subquery are not guaranteed to be unique, but that is fine
     # since, if they are not, they can't be referenced exactly either.
-    indices = for column <- db_columns do
+    indices = for column <- db_columns, do:
       Enum.find_index(subquery.ast.column_titles, & &1 == column.name)
-    end
     pick_columns(stream, indices)
   end
   def pick_db_columns(stream, %Query{db_columns: db_columns, from: {:join, join}}) do
-    indices = for column <- db_columns do
-      Enum.find_index(join.columns, &column.table.name == &1.table.name and column.name == &1.name)
-    end
+    indices = for column <- db_columns, do:
+      get_column_index(join.columns, column)
     pick_columns(stream, indices)
   end
   def pick_db_columns(stream, _query), do: stream
@@ -277,9 +275,23 @@ defmodule Cloak.Query.DBEmulator do
     lhs |> left_join(rhs, join) |> Stream.concat(unmatched_rhs)
   end
 
+  defp get_column_index(columns, %Column{db_function: "coalesce", db_function_args: args}), do:
+    {:coalesce, Enum.map(args, &get_column_index(columns, &1))}
+  defp get_column_index(columns, column), do:
+    Enum.find_index(columns, &Column.id(column) == Column.id(&1))
+
+  defp pick_value(_row, {:coalesce, []}), do: nil
+  defp pick_value(row, {:coalesce, [index | rest]}) do
+    case pick_value(row, index)  do
+      nil -> pick_value(row, {:coalesce, rest})
+      value -> value
+    end
+  end
+  defp pick_value(row, index) when is_integer(index), do: Enum.at(row, index)
+
   defp pick_columns(stream, indices) do
     Stream.map(stream, fn (row) ->
-      Enum.map(indices, &Enum.at(row, &1))
+      Enum.map(indices, &pick_value(row, &1))
     end)
   end
 end

@@ -348,7 +348,6 @@ defmodule Cloak.Aql.Compiler do
         |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
     [%{
       name: subquery.alias,
-      db_name: subquery.alias,
       columns: columns,
       user_id: user_id_name,
       decoders: [],
@@ -761,7 +760,7 @@ defmodule Cloak.Aql.Compiler do
     # 3. Find the first pair (uid1, uid2) where there is no path from uid1 to uid2 in the graph.
     # 4. Report an error if something is found in the step 3
 
-    column_key = fn(column) -> {column.name, column.table.db_name} end
+    column_key = fn(column) -> {column.name, column.table.name} end
 
     graph = :digraph.new([:private, :cyclic])
     try do
@@ -1101,11 +1100,19 @@ defmodule Cloak.Aql.Compiler do
     # top-level query -> we,re fetching only columns, while other expressions (e.g. function calls)
     # will be resolved in the post-processing phase
     used_columns =
-      (query.columns ++ query.group_by ++ query.unsafe_filter_columns ++ query.having)
+      query
+      |> needed_columns()
       |> Enum.flat_map(&extract_columns/1)
       |> Enum.reject(& &1.constant?)
     [id_column(query) | used_columns]
   end
+
+  defp needed_columns(query), do:
+    query.columns ++
+    query.group_by ++
+    query.unsafe_filter_columns ++
+    query.having ++
+    if query.emulated?, do: query.where, else: []
 
   defp id_column(query) do
     id_columns =
@@ -1143,8 +1150,8 @@ defmodule Cloak.Aql.Compiler do
     do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
 
   defp set_column_row_index(%Column{} = column, columns) do
-    case Enum.find_index(columns, &(Column.db_name(&1) == Column.db_name(column))) do
-      # It's not actually a selected column, so ignore for the purpose of positioning
+    case Enum.find_index(columns, &Column.id(&1) == Column.id(column)) do
+      # It's not actually a needed column, so ignore for the purpose of positioning
       nil -> column
       position -> %Column{column | row_index: position}
     end
@@ -1263,7 +1270,8 @@ defmodule Cloak.Aql.Compiler do
   defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
   defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do: needs_decoding?(query)
   defp needs_emulation?(%Query{from: {:join, _}, data_source: %{driver: Cloak.DataSource.MongoDB}}), do: true
-  defp needs_emulation?(query), do: query |> get_in([Query.Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?))
+  defp needs_emulation?(query), do:
+    query |> get_in([Query.Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?)) or needs_decoding?(query)
 
   defp compile_emulated_joins(%Query{emulated?: true, from: {:join, _}} = query) do
     from =
@@ -1301,7 +1309,6 @@ defmodule Cloak.Aql.Compiler do
         |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
     table = %{
       name: subquery.alias,
-      db_name: subquery.alias,
       columns: columns,
       user_id: user_id_name,
       decoders: [],
@@ -1334,7 +1341,7 @@ defmodule Cloak.Aql.Compiler do
   defp replace_joined_tables_with_subqueries({:subquery, subquery}, _columns, _parrent_query), do: {:subquery, subquery}
   defp replace_joined_tables_with_subqueries({:join, join}, db_columns, parrent_query) do
     on_columns = Enum.flat_map(join.conditions, &extract_columns/1)
-    columns = Enum.uniq_by(db_columns ++ on_columns, &Column.db_name/1)
+    columns = Enum.uniq_by(db_columns ++ on_columns, &Column.id/1)
     lhs = replace_joined_tables_with_subqueries(join.lhs, columns, parrent_query)
     rhs = replace_joined_tables_with_subqueries(join.rhs, columns, parrent_query)
     {:join, %{join | lhs: lhs, rhs: rhs}}

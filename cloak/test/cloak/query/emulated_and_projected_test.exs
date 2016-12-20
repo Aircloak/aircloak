@@ -1,50 +1,93 @@
-defmodule Cloak.Query.DBEmulatorTest do
+defmodule Cloak.Query.EmulatedAndProjectedTest do
   use ExUnit.Case, async: true
 
   import Cloak.Test.QueryHelpers
 
-  @prefix "db_emulator_"
+  @prefix "emulated_and_projected_"
 
   setup_all do
+    :ok = Cloak.Test.DB.create_table("#{@prefix}main", "dummy BOOLEAN")
     decoder = %{method: "base64", columns: ["value"]}
-    :ok = Cloak.Test.DB.create_table("#{@prefix}emulated", "value TEXT", [decoders: [decoder]])
+    projection = %{table: "#{@prefix}main", foreign_key: "user_id", primary_key: "user_id"}
+    :ok = Cloak.Test.DB.create_table("#{@prefix}emulated", "value TEXT", decoders: [decoder], projection: projection)
     :ok = Cloak.Test.DB.create_table("#{@prefix}joined", "age INTEGER")
     :ok
   end
 
   setup do
     Cloak.Test.DB.clear_table("#{@prefix}emulated")
+    Cloak.Test.DB.clear_table("#{@prefix}main")
     Cloak.Test.DB.clear_table("#{@prefix}joined")
+    :ok = insert_rows(_user_ids = 1..100, "#{@prefix}main", [], [])
     :ok
   end
 
-  test "simple emulated subqueries" do
-    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value"], [Base.encode64("aaa")])
-    :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value"], [Base.encode64("bbb")])
-    :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["value"], [nil])
+  describe "simple queries" do
+    defp simple_setup(_) do
+      :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value"], [Base.encode64("aaa")])
+      :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value"], [Base.encode64("b")])
+      :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["value"], [nil])
+    end
 
-    assert_query "select count(value) from (select user_id, value from #{@prefix}emulated where value = 'aaa') as t",
-      %{rows: [%{occurrences: 1, row: [10]}]}
-    assert_query """
-        select count(value) from (select user_id, value from #{@prefix}emulated where value is not null) as t
-      """, %{rows: [%{occurrences: 1, row: [20]}]}
-    assert_query """
-        select count(*) from (select user_id, value from #{@prefix}emulated order by value limit 10) as t
-      """, %{rows: [%{occurrences: 1, row: [10]}]}
-    assert_query """
-        select count(*) from (select user_id, value from #{@prefix}emulated order by value limit 10 offset 10) as t
-      """, %{rows: [%{occurrences: 1, row: [10]}]}
+    setup [:simple_setup]
+
+    test "where", do:
+      assert_query "select count(value) from #{@prefix}emulated where value = 'aaa'",
+        %{rows: [%{occurrences: 1, row: [10]}]}
+
+    test "non-nulls", do:
+      assert_query "select count(value) from #{@prefix}emulated where value is not null",
+        %{rows: [%{occurrences: 1, row: [20]}]}
+
+    test "order by", do:
+      assert_query "select length(value) as l from #{@prefix}emulated order by l desc",
+        %{rows: [%{occurrences: 10, row: [nil]}, %{occurrences: 10, row: [3]}, %{occurrences: 10, row: [1]}]}
   end
 
-  test "emulated subqueries with functions" do
-    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value"], [Base.encode64("abc")])
-    :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value"], [Base.encode64("x")])
+  describe "simple emulated subqueries" do
+    defp simple_subqueries_setup(_) do
+      :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value"], [Base.encode64("aaa")])
+      :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value"], [Base.encode64("bbb")])
+      :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["value"], [nil])
+    end
 
-    assert_query "select l from (select user_id, length(value) as l from #{@prefix}emulated) as t order by l desc",
-      %{rows: [%{occurrences: 10, row: [3]}, %{occurrences: 10, row: [1]}]}
-    assert_query """
-        select value from (select user_id, left(value, 1) as value from #{@prefix}emulated) as t where value = 'a'
-      """, %{rows: [%{occurrences: 10, row: ["a"]}]}
+    setup [:simple_subqueries_setup]
+
+    test "where", do:
+      assert_query "select count(value) from (select user_id, value from #{@prefix}emulated where value = 'aaa') as t",
+        %{rows: [%{occurrences: 1, row: [10]}]}
+
+    test "non-nulls", do:
+      assert_query """
+          select count(value) from (select user_id, value from #{@prefix}emulated where value is not null) as t
+        """, %{rows: [%{occurrences: 1, row: [20]}]}
+
+    test "limit", do:
+      assert_query "select count(*) from (select user_id, value from #{@prefix}emulated order by value limit 10) as t",
+        %{rows: [%{occurrences: 1, row: [10]}]}
+
+    test "limit and offset", do:
+      assert_query """
+          select count(*) from (select user_id, value from #{@prefix}emulated order by value limit 10 offset 10) as t
+        """, %{rows: [%{occurrences: 1, row: [10]}]}
+  end
+
+  describe "emulated subqueries with functions" do
+    defp subqueries_with_functions_setup(_) do
+      :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value"], [Base.encode64("abc")])
+      :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value"], [Base.encode64("x")])
+    end
+
+    setup [:subqueries_with_functions_setup]
+
+    test "length", do:
+      assert_query "select l from (select user_id, length(value) as l from #{@prefix}emulated) as t order by l desc",
+        %{rows: [%{occurrences: 10, row: [3]}, %{occurrences: 10, row: [1]}]}
+
+    test "left", do:
+      assert_query """
+          select value from (select user_id, left(value, 1) as value from #{@prefix}emulated) as t where value = 'a'
+        """, %{rows: [%{occurrences: 10, row: ["a"]}]}
   end
 
   describe "aggregation in emulated subqueries" do
@@ -224,39 +267,5 @@ defmodule Cloak.Query.DBEmulatorTest do
             on uid1 = uid2
         """, %{rows: [%{occurrences: 1, row: [15]}]}
     end
-  end
-
-  test "emulated subqueries with extra dummy columns" do
-    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value"], [Base.encode64("abc")])
-    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}joined", ["age"], [30])
-
-    assert_query "select value from (select user_id, '', length(value), value from #{@prefix}emulated) as t",
-      %{rows: [%{occurrences: 10, row: ["abc"]}]}
-
-    assert_query """
-        select value from (select '', user_id, left(value, 1) as value from #{@prefix}emulated) as t where value = 'a'
-      """, %{rows: [%{occurrences: 10, row: ["a"]}]}
-
-    assert_query """
-        select age, value from #{@prefix}joined inner join
-        (select '', user_id as uid, value from #{@prefix}emulated group by user_id, value) as t on user_id = uid
-      """, %{rows: [%{occurrences: 10, row: [30, "abc"]}]}
-  end
-
-  test "#{@prefix}emulated subqueries with different case columns" do
-    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value"], [Base.encode64("abc")])
-    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}joined", ["age"], [30])
-
-    assert_query "select Value from (select user_id, length(vaLue), vaLue from #{@prefix}emulated) as t",
-      %{rows: [%{occurrences: 10, row: ["abc"]}]}
-
-    assert_query """
-        select Value from (select user_id, left(vaLue, 1) as vAlue from #{@prefix}emulated) as t where vALUE = 'a'
-      """, %{rows: [%{occurrences: 10, row: ["a"]}]}
-
-    assert_query """
-        select aGe, vaLue from #{@prefix}joined inner join
-        (select user_Id as Uid, Value from #{@prefix}emulated group by User_id, VaLue) as t on uSer_Id = uId
-      """, %{rows: [%{occurrences: 10, row: [30, "abc"]}]}
   end
 end
