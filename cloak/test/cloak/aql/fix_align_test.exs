@@ -59,7 +59,7 @@ defmodule Cloak.Aql.FixAlign.Test do
         if Timex.diff(y, x, :minutes) < 1 do
           Timex.diff(right, left) <= 10 * Timex.diff(y, x)
         else
-          Timex.diff(right, left) <= 6 * Timex.diff(y, x)
+          Timex.diff(right, left) <= 6.1 * Timex.diff(y, x)
         end
       end
     end
