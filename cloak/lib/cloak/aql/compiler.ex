@@ -248,7 +248,7 @@ defmodule Cloak.Aql.Compiler do
   defp alias_column(column = {:function, _, _}), do: {column, :as, new_carry_alias()}
   defp alias_column(column), do: %{column | alias: new_carry_alias()}
 
-  defp new_carry_alias(), do: "carry_#{:crypto.strong_rand_bytes(10) |> Base.encode32}"
+  defp new_carry_alias(), do: "carry_#{System.unique_integer([:positive])}"
 
   @minimum_subquery_limit 10
   defp align_limit(query = %{limit: nil}), do: query
