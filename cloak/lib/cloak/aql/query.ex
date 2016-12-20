@@ -176,6 +176,8 @@ defmodule Cloak.Aql.Query do
   def add_info(query, info_message), do:
     %__MODULE__{query | info: [info_message | query.info]}
 
+  @doc "Returns all info messages in the given query."
+  @spec info_messages(t) :: [String.t]
   def info_messages(query), do: Enum.reverse(query.info)
 
   @doc "Adds a database column to the query and updates all references to that column."
