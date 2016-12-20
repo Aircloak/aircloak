@@ -68,7 +68,8 @@ defmodule Cloak.Aql.Query do
     ranges: [Range.t],
     parameters: [DataSource.field],
     views: view_map,
-    projected?: boolean
+    projected?: boolean,
+    next_db_row_index: non_neg_integer
   }
 
   defstruct [
@@ -77,7 +78,7 @@ defmodule Cloak.Aql.Query do
     row_splitters: [], implicit_count?: false, data_source: nil, command: nil, show: nil,
     db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
     features: nil, encoded_where: [], ranges: %{}, parameters: [], views: %{}, emulated?: false,
-    projected?: false
+    projected?: false, next_db_row_index: 0
   ]
 
 
@@ -182,12 +183,12 @@ defmodule Cloak.Aql.Query do
   def add_db_column(query, column) do
     case Enum.find(query.db_columns, &(Column.db_name(&1) == Column.db_name(column))) do
       nil ->
-        db_row_position = length(query.db_columns)
         Lens.map(
           Cloak.Aql.Query.Lenses.columns() |> Lens.satisfy(&(Column.db_name(&1) == Column.db_name(column))),
           %__MODULE__{query | db_columns: query.db_columns ++ [column]},
-          &%{&1 | db_row_position: db_row_position}
+          &%{&1 | db_row_position: query.next_db_row_index}
         )
+        |> Map.put(:next_db_row_index, query.next_db_row_index + 1)
       _ -> query
     end
   end
