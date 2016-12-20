@@ -679,7 +679,7 @@ defmodule Cloak.Aql.Compiler do
       column_name = "#{Function.name(function_spec)}_return_value"
       return_type = Function.return_type(function_spec)
       # This, most crucially, preserves the DB row position parameter
-      augmented_column = %Column{db_column | name: column_name, type: return_type, db_row_position: index}
+      augmented_column = %Column{db_column | name: column_name, type: return_type, row_index: index}
       {[augmented_column], [{:row_splitter, function_spec, index}]}
     else
       {_index, args, splitters} = partition_row_splitters(args, index)
@@ -1087,13 +1087,8 @@ defmodule Cloak.Aql.Compiler do
   defp extract_columns({:not, condition}), do: extract_columns(condition)
   defp extract_columns({verb, column, _value}) when verb in [:like, :ilike, :is, :in], do: extract_columns(column)
 
-  defp calculate_db_columns(query) do
-    db_columns =
-      (select_expressions(query) ++ range_columns(query))
-      |> Enum.uniq_by(&db_column_name/1)
-    %Query{query | db_columns: db_columns}
-    |> map_terminal_elements(&set_column_db_row_position(&1, db_columns))
-  end
+  defp calculate_db_columns(query), do:
+    Enum.reduce(select_expressions(query) ++ range_columns(query), query, &Query.add_db_column(&2, &1))
 
   defp range_columns(%{subquery?: true}), do: []
   defp range_columns(%{subquery?: false, ranges: ranges}), do: Enum.map(ranges, &(&1.column))
@@ -1147,17 +1142,14 @@ defmodule Cloak.Aql.Compiler do
   defp any_outer_join?({:join, join}),
     do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
 
-  defp set_column_db_row_position(%Column{} = column, columns) do
-    case Enum.find_index(columns, &(db_column_name(&1) == db_column_name(column))) do
+  defp set_column_row_index(%Column{} = column, columns) do
+    case Enum.find_index(columns, &(Column.db_name(&1) == Column.db_name(column))) do
       # It's not actually a selected column, so ignore for the purpose of positioning
       nil -> column
-      position -> %Column{column | db_row_position: position}
+      position -> %Column{column | row_index: position}
     end
   end
-  defp set_column_db_row_position(other, _columns), do: other
-
-  defp db_column_name(%Column{table: :unknown} = column), do: (column.name || column.alias)
-  defp db_column_name(column), do: "#{column.table.db_name}.#{column.name}"
+  defp set_column_row_index(other, _columns), do: other
 
   defp join_conditions_scope_check(from) do
     do_join_conditions_scope_check(from, [])
@@ -1282,12 +1274,12 @@ defmodule Cloak.Aql.Compiler do
   end
   defp compile_emulated_joins(query), do: query
 
-  # For emulated joins, we need to set the `db_row_position` field for the columns in the `ON` clause.
+  # For emulated joins, we need to set the `row_index` field for the columns in the `ON` clause.
   defp compile_join_conditions_columns({:join, join}) do
     # Because this is an emulated query we only have joining of subqueries, as
     # tables references were previously translated into subqueries.
     columns = joined_columns({:join, join})
-    mapper_fun = &set_column_db_row_position(&1, columns)
+    mapper_fun = &set_column_row_index(&1, columns)
     conditions = Lens.map(Query.Lenses.conditions_terminals(), join.conditions, mapper_fun)
     lhs = compile_join_conditions_columns(join.lhs)
     rhs = compile_join_conditions_columns(join.rhs)
@@ -1324,28 +1316,25 @@ defmodule Cloak.Aql.Compiler do
   # The DBEmulator modules doesn't know how to select a table directly, so we need
   # to replace any direct references to joined table with the equivalent subquery.
   defp replace_joined_tables_with_subqueries(table_name, columns, parrent_query) when is_binary(table_name) do
-    columns =
-      (for %Column{table: %{name: ^table_name}} = column <- columns, do: column)
-      |> Enum.with_index()
-      |> Enum.map(fn ({column, index}) -> %Column{column | db_row_position: index} end)
+    columns = for %Column{table: %{name: ^table_name}} = column <- columns, do: column
     column_titles = for column <- columns, do: column.alias || column.name
     query =
       %Query{
         command: :select,
         subquery?: true,
         columns: columns,
-        db_columns: columns,
         column_titles: column_titles,
         from: table_name,
         data_source: parrent_query.data_source,
         selected_tables: [DataSource.table(parrent_query.data_source, table_name)]
       }
+      |> calculate_db_columns()
     {:subquery, %{type: :parsed, ast: query, alias: table_name}}
   end
   defp replace_joined_tables_with_subqueries({:subquery, subquery}, _columns, _parrent_query), do: {:subquery, subquery}
   defp replace_joined_tables_with_subqueries({:join, join}, db_columns, parrent_query) do
     on_columns = Enum.flat_map(join.conditions, &extract_columns/1)
-    columns = Enum.uniq_by(db_columns ++ on_columns, &db_column_name/1)
+    columns = Enum.uniq_by(db_columns ++ on_columns, &Column.db_name/1)
     lhs = replace_joined_tables_with_subqueries(join.lhs, columns, parrent_query)
     rhs = replace_joined_tables_with_subqueries(join.rhs, columns, parrent_query)
     {:join, %{join | lhs: lhs, rhs: rhs}}

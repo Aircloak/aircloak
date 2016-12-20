@@ -68,7 +68,8 @@ defmodule Cloak.Aql.Query do
     ranges: [Range.t],
     parameters: [DataSource.field],
     views: view_map,
-    projected?: boolean
+    projected?: boolean,
+    next_row_index: non_neg_integer
   }
 
   defstruct [
@@ -77,7 +78,7 @@ defmodule Cloak.Aql.Query do
     row_splitters: [], implicit_count?: false, data_source: nil, command: nil, show: nil,
     db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
     features: nil, encoded_where: [], ranges: %{}, parameters: [], views: %{}, emulated?: false,
-    projected?: false
+    projected?: false, next_row_index: 0
   ]
 
 
@@ -175,7 +176,24 @@ defmodule Cloak.Aql.Query do
   def add_info(query, info_message), do:
     %__MODULE__{query | info: [info_message | query.info]}
 
+  @doc "Returns all info messages in the given query."
+  @spec info_messages(t) :: [String.t]
   def info_messages(query), do: Enum.reverse(query.info)
+
+  @doc "Adds a database column to the query and updates all references to that column."
+  @spec add_db_column(t, Column.t) :: t
+  def add_db_column(query, column) do
+    case Enum.find(query.db_columns, &(Column.db_name(&1) == Column.db_name(column))) do
+      nil ->
+        Lens.map(
+          Cloak.Aql.Query.Lenses.columns() |> Lens.satisfy(&(Column.db_name(&1) == Column.db_name(column))),
+          %__MODULE__{query | db_columns: query.db_columns ++ [column]},
+          &%{&1 | row_index: query.next_row_index}
+        )
+        |> Map.put(:next_row_index, query.next_row_index + 1)
+      _ -> query
+    end
+  end
 
   # -------------------------------------------------------------------
   # Internal functions

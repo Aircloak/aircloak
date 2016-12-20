@@ -11,7 +11,7 @@ defmodule Cloak.Aql.Column do
     alias: String.t | nil,
     type: column_type,
     user_id?: boolean,
-    db_row_position: nil | non_neg_integer,
+    row_index: nil | non_neg_integer,
     constant?: boolean,
     value: any,
     db_function: db_function | nil,
@@ -19,7 +19,7 @@ defmodule Cloak.Aql.Column do
     aggregate?: boolean
   }
   defstruct [
-    table: :unknown, name: nil, alias: nil, type: nil, user_id?: false, db_row_position: nil, constant?: false,
+    table: :unknown, name: nil, alias: nil, type: nil, user_id?: false, row_index: nil, constant?: false,
     value: nil, db_function: nil, db_function_args: [], aggregate?: false
   ]
 
@@ -66,9 +66,9 @@ defmodule Cloak.Aql.Column do
   for position <- 0..99 do
     # Generates pattern matching clauses to improve sequential access to a value:
     #
-    #   defp value(%__MODULE__{db_row_position: 0}, [el | _]), do: el
-    #   defp value(%__MODULE__{db_row_position: 1}, [_, el | _]), do: el
-    #   defp value(%__MODULE__{db_row_position: 2}, [_, _, el | _]), do: el
+    #   defp value(%__MODULE__{row_index: 0}, [el | _]), do: el
+    #   defp value(%__MODULE__{row_index: 1}, [_, el | _]), do: el
+    #   defp value(%__MODULE__{row_index: 2}, [_, _, el | _]), do: el
     #   ...
     #
     # This works faster than `Enum.at`, especially if positions are larger.
@@ -76,11 +76,11 @@ defmodule Cloak.Aql.Column do
     matched_row_head = List.duplicate(quote(do: _), position) ++ [matched_value]
     matched_row = quote do: [unquote_splicing(matched_row_head) | _]
 
-    def value(%__MODULE__{db_row_position: unquote(position)}, unquote(matched_row)),
+    def value(%__MODULE__{row_index: unquote(position)}, unquote(matched_row)),
       do: unquote(matched_value)
   end
   # Fallback to `Enum.at` for larger positions
-  def value(column, row), do: Enum.at(row, column.db_row_position)
+  def value(column, row), do: Enum.at(row, column.row_index)
 
   @doc "Checks two columns for equality."
   @spec equals(any, any) :: boolean
@@ -93,6 +93,11 @@ defmodule Cloak.Aql.Column do
     c1.db_function == c2.db_function and
     Enum.zip(c1.db_function_args, c2.db_function_args) |> Enum.all?(fn ({arg1, arg2}) -> equals(arg1, arg2) end)
   def equals(_c1, _c2), do: false
+
+  @doc "Returns the database identifier of the column."
+  @spec db_name(t) :: String.t
+  def db_name(%__MODULE__{table: :unknown} = column), do: (column.name || column.alias)
+  def db_name(column), do: "#{column.table.db_name}.#{column.name}"
 
 
   # -------------------------------------------------------------------
