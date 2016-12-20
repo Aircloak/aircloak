@@ -7,7 +7,7 @@ defmodule Cloak.Query.DBEmulator do
   decoding or if a JOIN requires data from two different data sources).
   """
 
-  alias Cloak.Aql.{Query, Comparison, Function, Column}
+  alias Cloak.Aql.{Query, Comparison, Function, Expression}
   alias Cloak.Query.Sorter
 
 
@@ -123,7 +123,7 @@ defmodule Cloak.Query.DBEmulator do
       :error -> Enum.map(args, &fetch_value!(row, &1, columns)) |> Function.apply(function)
     end
   end
-  defp fetch_value!(_row, %Column{constant?: true, value: value}, _columns), do: value
+  defp fetch_value!(_row, %Expression{constant?: true, value: value}, _columns), do: value
   defp fetch_value!(row, column, columns), do: Enum.at(row, Map.fetch!(columns, column))
 
   defp filter_group(row, columns, query), do:
@@ -275,10 +275,10 @@ defmodule Cloak.Query.DBEmulator do
     lhs |> left_join(rhs, join) |> Stream.concat(unmatched_rhs)
   end
 
-  defp get_column_index(columns, %Column{db_function: "coalesce", db_function_args: args}), do:
+  defp get_column_index(columns, %Expression{function: "coalesce", function_args: args}), do:
     {:coalesce, Enum.map(args, &get_column_index(columns, &1))}
   defp get_column_index(columns, column), do:
-    Enum.find_index(columns, &Column.id(column) == Column.id(&1))
+    Enum.find_index(columns, &Expression.id(column) == Expression.id(&1))
 
   defp pick_value(_row, {:coalesce, []}), do: nil
   defp pick_value(row, {:coalesce, [index | rest]}) do

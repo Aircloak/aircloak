@@ -8,27 +8,27 @@ defmodule Cloak.Aql.Query do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Aql.{Column, Compiler, Function, Parser, Range}
+  alias Cloak.Aql.{Expression, Compiler, Function, Parser, Range}
 
   @type negatable_condition ::
-      {:comparison, Column.t, :=, Column.t}
-    | {:like | :ilike, Column.t, Column.t}
-    | {:is, Column.t, :null}
-    | {:in, Column.t, [Column.t]}
+      {:comparison, Expression.t, :=, Expression.t}
+    | {:like | :ilike, Expression.t, Expression.t}
+    | {:is, Expression.t, :null}
+    | {:in, Expression.t, [Expression.t]}
 
   @type where_clause ::
       negatable_condition
     | {:not, negatable_condition}
-    | {:comparison, Column.t, Parser.comparator, Column.t}
+    | {:comparison, Expression.t, Parser.comparator, Expression.t}
 
-  @type having_clause :: {:comparison, Column.t, Parser.comparator, Column.t}
+  @type having_clause :: {:comparison, Expression.t, Parser.comparator, Expression.t}
 
   @type view_map :: %{view_name :: String.t => view_sql :: String.t}
 
   @type t :: %__MODULE__{
     data_source: DataSource.t,
     command: :select | :show,
-    columns: [Column.t] | :*,
+    columns: [Expression.t] | :*,
     column_titles: [String.t],
     property: [Function.t],
     aggregators: [Function.t],
@@ -49,7 +49,7 @@ defmodule Cloak.Aql.Query do
     # where the latter of these two is contained in the row-splitters.
     row_splitters: [Function.t],
     implicit_count?: boolean,
-    unsafe_filter_columns: [Column.t],
+    unsafe_filter_columns: [Expression.t],
     group_by: [Function.t],
     where: [where_clause],
     lcf_check_conditions: [where_clause],
@@ -57,7 +57,7 @@ defmodule Cloak.Aql.Query do
     order_by: [{pos_integer, :asc | :desc}],
     show: :tables | :columns,
     selected_tables: [DataSource.table],
-    db_columns: [Column.t],
+    db_columns: [Expression.t],
     from: Parser.from_clause | nil,
     subquery?: boolean,
     limit: pos_integer | nil,
@@ -107,7 +107,7 @@ defmodule Cloak.Aql.Query do
   end
 
   @doc "Returns the list of unique columns used in the aggregation process."
-  @spec aggregated_columns(t) :: [Column.t]
+  @spec aggregated_columns(t) :: [Expression.t]
   def aggregated_columns(query) do
     query.aggregators
     |> Enum.flat_map(&Function.arguments/1)
@@ -160,7 +160,7 @@ defmodule Cloak.Aql.Query do
         Enum.zip(compiled_query.column_titles, compiled_query.columns)
         |> Enum.map(fn({name, column}) ->
               %{name: name, type: stringify(Function.type(column)),
-                user_id: match?(%Column{user_id?: true}, column)}
+                user_id: match?(%Expression{user_id?: true}, column)}
             end)
       }
     else
@@ -181,12 +181,12 @@ defmodule Cloak.Aql.Query do
   def info_messages(query), do: Enum.reverse(query.info)
 
   @doc "Adds a database column to the query and updates all references to that column."
-  @spec add_db_column(t, Column.t) :: t
+  @spec add_db_column(t, Expression.t) :: t
   def add_db_column(query, column) do
-    case Enum.find(query.db_columns, &(Column.id(&1) == Column.id(column))) do
+    case Enum.find(query.db_columns, &(Expression.id(&1) == Expression.id(column))) do
       nil ->
         Lens.map(
-          Cloak.Aql.Query.Lenses.columns() |> Lens.satisfy(&(Column.id(&1) == Column.id(column))),
+          Cloak.Aql.Query.Lenses.columns() |> Lens.satisfy(&(Expression.id(&1) == Expression.id(column))),
           %__MODULE__{query | db_columns: query.db_columns ++ [column]},
           &%{&1 | row_index: query.next_row_index}
         )
@@ -223,7 +223,7 @@ defmodule Cloak.Aql.Query do
     |> Enum.flat_map(&extract_function/1)
     |> Enum.uniq()
 
-  defp extract_function(%Column{}), do: []
+  defp extract_function(%Expression{}), do: []
   defp extract_function({:distinct, param}), do: extract_function(param)
   defp extract_function(function = {:function, _, params}), do: [Function.name(function) | extract_functions(params)]
 
@@ -248,9 +248,9 @@ defmodule Cloak.Aql.Query do
     |> Enum.uniq()
     |> Enum.map(&stringify/1)
 
-  defp extract_column_type(%Column{constant?: true, type: type}), do: [type]
-  defp extract_column_type(%Column{table: :unknown}), do: []
-  defp extract_column_type(%Column{table: %{columns: columns}, name: name}), do:
+  defp extract_column_type(%Expression{constant?: true, type: type}), do: [type]
+  defp extract_column_type(%Expression{table: :unknown}), do: []
+  defp extract_column_type(%Expression{table: %{columns: columns}, name: name}), do:
     columns
     |> Enum.filter(& elem(&1, 0) == name)
     |> Enum.map(& elem(&1, 1))
@@ -260,7 +260,7 @@ defmodule Cloak.Aql.Query do
   defp extract_column({:function, _, [:*]}), do: []
   defp extract_column({:function, _, params}), do: extract_columns(params)
   defp extract_column({:distinct, value}), do: extract_column(value)
-  defp extract_column(%Column{} = column), do: [column]
+  defp extract_column(%Expression{} = column), do: [column]
 
   defp stringify(string) when is_binary(string), do: string
   defp stringify(atom) when is_atom(atom), do: Atom.to_string(atom)

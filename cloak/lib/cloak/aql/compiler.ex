@@ -2,7 +2,7 @@ defmodule Cloak.Aql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
   alias Cloak.DataSource
-  alias Cloak.Aql.{Column, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Range}
+  alias Cloak.Aql.{Expression, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Range}
   alias Cloak.Query.DataDecoder
 
   defmodule CompilationError do
@@ -56,12 +56,12 @@ defmodule Cloak.Aql.Compiler do
   defp compile_prepped_query(%Query{command: :show, show: :tables} = query), do:
     {:ok, %Query{query |
       column_titles: ["name"],
-      columns: [%Column{table: :unknown, constant?: true, name: "name", type: :text}]
+      columns: [%Expression{table: :unknown, constant?: true, name: "name", type: :text}]
     }}
   defp compile_prepped_query(%Query{command: :show, show: :columns} = query), do:
     {:ok, %Query{compile_from(query) |
       column_titles: ["name", "type"],
-      columns: Enum.map(["name", "type"], &%Column{table: :unknown, constant?: true, name: &1, type: :text})
+      columns: Enum.map(["name", "type"], &%Expression{table: :unknown, constant?: true, name: &1, type: :text})
     }}
   defp compile_prepped_query(%Query{command: :select} = query), do:
     {:ok,
@@ -241,9 +241,9 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp min_column(column), do: Column.db_function("min", [column], column.type, true) |> alias_column()
+  defp min_column(column), do: Expression.function("min", [column], column.type, true) |> alias_column()
 
-  defp max_column(column), do: Column.db_function("max", [column], column.type, true) |> alias_column()
+  defp max_column(column), do: Expression.function("max", [column], column.type, true) |> alias_column()
 
   defp alias_column(column = {:function, _, _}), do: {column, :as, new_carry_alias()}
   defp alias_column(column), do: %{column | alias: new_carry_alias()}
@@ -278,7 +278,7 @@ defmodule Cloak.Aql.Compiler do
       nil ->
         possible_uid_columns =
           all_id_columns_from_tables(subquery)
-          |> Enum.map(&Column.display_name/1)
+          |> Enum.map(&Expression.display_name/1)
           |> case do
             [column] -> "the column #{column}"
             columns -> "one of the columns #{Enum.join(columns, ", ")}"
@@ -412,15 +412,15 @@ defmodule Cloak.Aql.Compiler do
       )
     ) or
     (
-      Column.db_function?(column) and
+      Expression.function?(column) and
       (
         column.aggregate? or
-        Enum.any?(column.db_function_args, &aggregated_column?(&1, query))
+        Enum.any?(column.function_args, &aggregated_column?(&1, query))
       )
     )
 
   defp constant_column?(column), do:
-    Column.constant?(column) or
+    Expression.constant?(column) or
     (
       Function.function?(column) and
       column |> Function.arguments() |> Enum.all?(&constant_column?/1)
@@ -558,11 +558,11 @@ defmodule Cloak.Aql.Compiler do
     "Column #{quoted_item(arg.name)} needs"
   defp aggregated_expression_display({:function, _function, args}), do:
     "Columns (#{args |> Enum.map(&(&1.name)) |> quoted_list()}) need"
-  defp aggregated_expression_display(%Column{db_function: fun, db_function_args: args}) when fun != nil do
-    [column | _] = for %Column{constant?: false} = column <- args, do: column
+  defp aggregated_expression_display(%Expression{function: fun, function_args: args}) when fun != nil do
+    [column | _] = for %Expression{constant?: false} = column <- args, do: column
     aggregated_expression_display(column)
   end
-  defp aggregated_expression_display(%Column{table: table, name: name}), do:
+  defp aggregated_expression_display(%Expression{table: table, name: name}), do:
     "Column `#{name}` from table `#{table.name}` needs"
 
   defp verify_group_by_functions(query) do
@@ -665,7 +665,7 @@ defmodule Cloak.Aql.Compiler do
     {[{:distinct, column}], splitters}
   end
   defp partition_column_on_splitter(:*, _index), do: {[:*], []}
-  defp partition_column_on_splitter(%Column{} = column, _index), do: {[column], []}
+  defp partition_column_on_splitter(%Expression{} = column, _index), do: {[column], []}
   defp partition_column_on_splitter({:function, name, args} = function_spec, index) do
     if Function.row_splitting_function?(function_spec) do
       # We are making the simplifying assumption that row splitting functions have
@@ -678,7 +678,7 @@ defmodule Cloak.Aql.Compiler do
       column_name = "#{Function.name(function_spec)}_return_value"
       return_type = Function.return_type(function_spec)
       # This, most crucially, preserves the DB row position parameter
-      augmented_column = %Column{db_column | name: column_name, type: return_type, row_index: index}
+      augmented_column = %Expression{db_column | name: column_name, type: return_type, row_index: index}
       {[augmented_column], [{:row_splitter, function_spec, index}]}
     else
       {_index, args, splitters} = partition_row_splitters(args, index)
@@ -765,7 +765,7 @@ defmodule Cloak.Aql.Compiler do
     graph = :digraph.new([:private, :cyclic])
     try do
       # add uid columns as vertices
-      uid_columns = Enum.map(query.selected_tables, &%Column{name: &1.user_id, table: &1})
+      uid_columns = Enum.map(query.selected_tables, &%Expression{name: &1.user_id, table: &1})
       Enum.each(uid_columns, &:digraph.add_vertex(graph, column_key.(&1)))
 
       # add edges for all `uid1 = uid2` filters
@@ -838,11 +838,11 @@ defmodule Cloak.Aql.Compiler do
     if implement_range?({left, right}, conditions) do
       update_in(query, [Lens.key(key)], &(conditions ++ &1))
     else
-      name = Column.display_name(column)
+      name = Expression.display_name(column)
 
       query
-      |> add_clause(key, {:comparison, column, :<, Column.constant(column.type, right)})
-      |> add_clause(key, {:comparison, column, :>=, Column.constant(column.type, left)})
+      |> add_clause(key, {:comparison, column, :<, Expression.constant(column.type, right)})
+      |> add_clause(key, {:comparison, column, :>=, Expression.constant(column.type, left)})
       |> Query.add_info("The range for column #{name} has been adjusted to #{left} <= #{name} < #{right}.")
     end
     |> put_in([Lens.key(:ranges), Lens.front()], Range.new(column, {left, right}, key))
@@ -862,7 +862,7 @@ defmodule Cloak.Aql.Compiler do
       query
       |> get_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast) |> Lens.key(:ranges)])
       |> Enum.flat_map(fn(ranges) ->
-        Enum.map(ranges, fn(range) -> %{range | column: %Column{name: range_alias(range.column)}} end)
+        Enum.map(ranges, fn(range) -> %{range | column: %Expression{name: range_alias(range.column)}} end)
       end)
       |> Enum.into(query.ranges)
     }
@@ -877,7 +877,7 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.reject(fn({_, comparisons}) -> valid_range?(comparisons) end)
     |> case do
       [{column, _} | _] ->
-        raise CompilationError, message: "Column #{Column.display_name(column)} must be limited to a finite range."
+        raise CompilationError, message: "Column #{Expression.display_name(column)} must be limited to a finite range."
       _ -> :ok
     end
   end
@@ -923,7 +923,7 @@ defmodule Cloak.Aql.Compiler do
   defp do_cast_where_clause({:not, subclause}, type), do:
     {:not, do_cast_where_clause(subclause, type)}
   defp do_cast_where_clause({:comparison, identifier, comparator, rhs}, type) when type in @castable_conditions do
-    if Column.constant?(rhs) do
+    if Expression.constant?(rhs) do
       {:comparison, identifier, comparator, parse_time(rhs, type)}
     else
       {:comparison, identifier, comparator, rhs}
@@ -933,18 +933,18 @@ defmodule Cloak.Aql.Compiler do
     {:in, column, Enum.map(values, &parse_time(&1, type))}
   defp do_cast_where_clause(clause, _), do: clause
 
-  defp parse_time(column = %Column{constant?: true, value: string}, type) do
+  defp parse_time(column = %Expression{constant?: true, value: string}, type) do
     case do_parse_time(column, type) do
-      {:ok, result} -> Column.constant(type, result)
+      {:ok, result} -> Expression.constant(type, result)
       _ -> raise CompilationError, message: "Cannot cast `#{string}` to #{type}."
     end
   end
 
-  defp do_parse_time(%Column{type: :text, value: string}, :date), do:
+  defp do_parse_time(%Expression{type: :text, value: string}, :date), do:
     Cloak.Time.parse_date(string)
-  defp do_parse_time(%Column{type: :text, value: string}, :time), do:
+  defp do_parse_time(%Expression{type: :text, value: string}, :time), do:
     Cloak.Time.parse_time(string)
-  defp do_parse_time(%Column{type: :text, value: string}, :datetime), do:
+  defp do_parse_time(%Expression{type: :text, value: string}, :datetime), do:
     Cloak.Time.parse_datetime(string)
   defp do_parse_time(_, _), do: {:error, :invalid_cast}
 
@@ -954,7 +954,7 @@ defmodule Cloak.Aql.Compiler do
   defp parse_columns(query) do
     columns_by_name =
       for table <- query.selected_tables, {column, type} <- table.columns do
-        %Column{table: table, name: column, type: type, user_id?: table.user_id == column}
+        %Expression{table: table, name: column, type: type, user_id?: table.user_id == column}
       end
       |> Enum.group_by(&(&1.name))
 
@@ -1019,7 +1019,7 @@ defmodule Cloak.Aql.Compiler do
     check_function_validity(function_spec, query)
     case Function.return_type(function_spec) do
       nil -> raise CompilationError, message: function_argument_error_message(function_spec)
-      type -> Column.db_function(name, args, type, Function.aggregate_function?(function_spec))
+      type -> Expression.function(name, args, type, Function.aggregate_function?(function_spec))
     end
   end
   defp identifier_to_column({:parameter, index}, _columns_by_name, query) do
@@ -1031,10 +1031,10 @@ defmodule Cloak.Aql.Compiler do
     end
 
     param_value = Enum.at(query.parameters, index - 1)
-    Column.constant(data_type(param_value, index), param_value)
+    Expression.constant(data_type(param_value, index), param_value)
   end
   defp identifier_to_column({:constant, type, value}, _columns_by_name, _query), do:
-    Column.constant(type, value)
+    Expression.constant(type, value)
   defp identifier_to_column(other, _columns_by_name, _query), do: other
 
   defp data_type(value, _index) when is_boolean(value), do: :boolean
@@ -1064,7 +1064,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
     columns = for column <- query.columns, do:
-      if is_uid_column?(column), do: Column.constant(:text, :*), else: column
+      if is_uid_column?(column), do: Expression.constant(:text, :*), else: column
     %Query{query | columns: columns}
   end
   defp censor_selected_uids(query), do: query
@@ -1078,9 +1078,9 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp extract_columns(:*), do: []
-  defp extract_columns(%Column{db_function: fun, db_function_args: arguments}) when fun != nil, do:
+  defp extract_columns(%Expression{function: fun, function_args: arguments}) when fun != nil, do:
     Enum.flat_map(arguments, &extract_columns/1)
-  defp extract_columns(%Column{} = column), do: [column]
+  defp extract_columns(%Expression{} = column), do: [column]
   defp extract_columns({:function, _function, arguments}), do: Enum.flat_map(arguments, &extract_columns/1)
   defp extract_columns({:distinct, expression}), do: extract_columns(expression)
   defp extract_columns({:comparison, column, _operator, target}), do: extract_columns(column) ++ extract_columns(target)
@@ -1095,7 +1095,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp select_expressions(%Query{command: :select, subquery?: true, emulated?: false} = query) do
     Enum.zip(query.column_titles, query.columns)
-    |> Enum.map(fn({column_alias, column}) -> %Column{column | alias: column_alias} end)
+    |> Enum.map(fn({column_alias, column}) -> %Expression{column | alias: column_alias} end)
   end
   defp select_expressions(%Query{command: :select} = query) do
     # top-level query -> we,re fetching only columns, while other expressions (e.g. function calls)
@@ -1122,21 +1122,21 @@ defmodule Cloak.Aql.Compiler do
       |> Enum.map(&cast_unknown_id/1)
 
     if any_outer_join?(query.from),
-      do: Column.db_function("coalesce", id_columns),
+      do: Expression.function("coalesce", id_columns),
       else: hd(id_columns)
   end
 
   # We can't directly select a field with an unknown type, so convert it to binary
   # This is needed in the case of using the ODBC driver with a GUID user id,
   # as the GUID type is not supported by the Erlang ODBC library
-  def cast_unknown_id(%Column{type: :unknown} = column), do: Column.db_function({:cast, :varbinary}, [column])
+  def cast_unknown_id(%Expression{type: :unknown} = column), do: Expression.function({:cast, :varbinary}, [column])
   def cast_unknown_id(column), do: column
 
   defp all_id_columns_from_tables(%Query{command: :select, selected_tables: tables}) do
     Enum.map(tables, fn(table) ->
       user_id = table.user_id
       {_, type} = Enum.find(table.columns, fn ({name, _type}) -> insensitive_equal?(user_id, name) end)
-      %Column{table: table, name: user_id, type: type, user_id?: true}
+      %Expression{table: table, name: user_id, type: type, user_id?: true}
     end)
     # ignore projected tables, since their id columns do not exist in the table
     |> Enum.reject(&(&1.table.projection != nil))
@@ -1150,11 +1150,11 @@ defmodule Cloak.Aql.Compiler do
   defp any_outer_join?({:join, join}),
     do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
 
-  defp set_column_row_index(%Column{} = column, columns) do
-    case Enum.find_index(columns, &Column.id(&1) == Column.id(column)) do
+  defp set_column_row_index(%Expression{} = column, columns) do
+    case Enum.find_index(columns, &Expression.id(&1) == Expression.id(column)) do
       # It's not actually a needed column, so ignore for the purpose of positioning
       nil -> column
-      position -> %Column{column | row_index: position}
+      position -> %Expression{column | row_index: position}
     end
   end
   defp set_column_row_index(other, _columns), do: other
@@ -1171,7 +1171,7 @@ defmodule Cloak.Aql.Compiler do
       Query.Lenses.conditions_terminals(),
       join.conditions,
       fn
-        (%Cloak.Aql.Column{table: %{name: table_name}, name: column_name}) ->
+        (%Cloak.Aql.Expression{table: %{name: table_name}, name: column_name}) ->
           scope_check(selected_tables, table_name, column_name)
         ({:identifier, table_name, {_, column_name}}) -> scope_check(selected_tables, table_name, column_name)
         (_) -> :ok
@@ -1223,7 +1223,7 @@ defmodule Cloak.Aql.Compiler do
       for term <- [column, target], do:
         if individual_column?(term, query), do:
           raise CompilationError,
-            message: "`HAVING` clause can not be applied over column #{Column.display_name(term)}."
+            message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
     query
   end
   defp verify_having(query), do: query
@@ -1240,21 +1240,21 @@ defmodule Cloak.Aql.Compiler do
   end
   defp verify_where_clause({:like, column, _}) do
     if column.type != :text do
-      raise CompilationError,
-        message: "Column #{Column.display_name(column)} of type `#{column.type}` cannot be used in a LIKE expression."
+      raise CompilationError, message:
+        "Column #{Expression.display_name(column)} of type `#{column.type}` cannot be used in a LIKE expression."
     end
   end
   defp verify_where_clause({:not, clause}), do: verify_where_clause(clause)
   defp verify_where_clause(_), do: :ok
 
   defp verify_where_clause_types(column_a, column_b) do
-    if not Column.constant?(column_a) and not Column.constant?(column_b) and column_a.type != column_b.type do
-      raise CompilationError, message: "Column #{Column.display_name(column_a)} of type `#{column_a.type}` and "
-        <> "column #{Column.display_name(column_b)} of type `#{column_b.type}` cannot be compared."
+    if not Expression.constant?(column_a) and not Expression.constant?(column_b) and column_a.type != column_b.type do
+      raise CompilationError, message: "Column #{Expression.display_name(column_a)} of type `#{column_a.type}` and "
+        <> "column #{Expression.display_name(column_b)} of type `#{column_b.type}` cannot be compared."
     end
   end
 
-  defp check_for_string_inequalities(comparator, %Column{type: :text}) when comparator in [:>, :>=, :<, :<=], do:
+  defp check_for_string_inequalities(comparator, %Expression{type: :text}) when comparator in [:>, :>=, :<, :<=], do:
     raise CompilationError, message: "Inequalities on string values are currently not supported."
   defp check_for_string_inequalities(_, _), do: :ok
 
@@ -1317,14 +1317,14 @@ defmodule Cloak.Aql.Compiler do
     }
     Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
     |> Enum.map(fn ({alias, column}) ->
-      %Column{table: table, name: alias, type: Function.type(column), user_id?: user_id_name == alias}
+      %Expression{table: table, name: alias, type: Function.type(column), user_id?: user_id_name == alias}
     end)
   end
 
   # The DBEmulator modules doesn't know how to select a table directly, so we need
   # to replace any direct references to joined table with the equivalent subquery.
   defp replace_joined_tables_with_subqueries(table_name, columns, parrent_query) when is_binary(table_name) do
-    columns = for %Column{table: %{name: ^table_name}} = column <- columns, do: column
+    columns = for %Expression{table: %{name: ^table_name}} = column <- columns, do: column
     column_titles = for column <- columns, do: column.alias || column.name
     query =
       %Query{
@@ -1342,7 +1342,7 @@ defmodule Cloak.Aql.Compiler do
   defp replace_joined_tables_with_subqueries({:subquery, subquery}, _columns, _parrent_query), do: {:subquery, subquery}
   defp replace_joined_tables_with_subqueries({:join, join}, db_columns, parrent_query) do
     on_columns = Enum.flat_map(join.conditions, &extract_columns/1)
-    columns = Enum.uniq_by(db_columns ++ on_columns, &Column.id/1)
+    columns = Enum.uniq_by(db_columns ++ on_columns, &Expression.id/1)
     lhs = replace_joined_tables_with_subqueries(join.lhs, columns, parrent_query)
     rhs = replace_joined_tables_with_subqueries(join.rhs, columns, parrent_query)
     {:join, %{join | lhs: lhs, rhs: rhs}}

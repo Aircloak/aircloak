@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.MongoDB.Projector do
   @moduledoc "MongoDB helper functions for projecting columns into the aggregation pipeline."
 
-  alias Cloak.Aql.Column
+  alias Cloak.Aql.Expression
   alias Cloak.Query.Runner.RuntimeError
   alias Cloak.DataSource.MongoDB.Schema
 
@@ -11,7 +11,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   #-----------------------------------------------------------------------------------------------------------
 
   @doc "Creates a MongoDB projection from a list of selected columns."
-  @spec map_columns([Column.t]) :: [map]
+  @spec map_columns([Expression.t]) :: [map]
   def map_columns(columns), do:
     [%{'$project': columns |> Enum.map(&map_column/1) |> Enum.into(%{"_id" => false})}]
 
@@ -30,9 +30,9 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   end
 
   @doc "Creates a MongoDB projection from a column."
-  @spec map_column(Column.t) :: {String.t, atom | map}
-  def map_column(%Column{name: name, alias: nil}), do: {name, true}
-  def map_column(%Column{aggregate?: true, db_function: fun, db_function_args: [arg], alias: alias}), do:
+  @spec map_column(Expression.t) :: {String.t, atom | map}
+  def map_column(%Expression{name: name, alias: nil}), do: {name, true}
+  def map_column(%Expression{aggregate?: true, function: fun, function_args: [arg], alias: alias}), do:
     {get_field_name(alias), parse_function(fun, begin_parse_column(arg))}
   def map_column(column), do: {get_field_name(column.alias), begin_parse_column(column)}
 
@@ -43,7 +43,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
 
   defp map_array_size(name), do: %{'$size': %{'$ifNull': ["$" <> name, []]}}
 
-  defp begin_parse_column(%Column{db_function: fun} = column) when fun != nil do
+  defp begin_parse_column(%Expression{function: fun} = column) when fun != nil do
     non_null_args =
       column
       |> extract_fields()
@@ -67,23 +67,23 @@ defmodule Cloak.DataSource.MongoDB.Projector do
 
   defp extract_fields({:distinct, column}), do: extract_fields(column)
   defp extract_fields(:*), do: []
-  defp extract_fields(%Column{constant?: true}), do: []
-  defp extract_fields(%Column{db_function: fun, db_function_args: args}) when fun != nil, do:
+  defp extract_fields(%Expression{constant?: true}), do: []
+  defp extract_fields(%Expression{function: fun, function_args: args}) when fun != nil, do:
     Enum.flat_map(args, &extract_fields/1)
-  defp extract_fields(%Column{name: name}) when is_binary(name), do: [name]
+  defp extract_fields(%Expression{name: name}) when is_binary(name), do: [name]
 
   defp parse_column(:*), do: :*
   defp parse_column({:distinct, column}), do: {:distinct, parse_column(column)}
-  defp parse_column(%Column{constant?: true, value: value}), do: %{'$literal': value}
-  defp parse_column(%Column{db_function: "length", db_function_args: [%Column{name: name}]})
+  defp parse_column(%Expression{constant?: true, value: value}), do: %{'$literal': value}
+  defp parse_column(%Expression{function: "length", function_args: [%Expression{name: name}]})
     when is_binary(name), do: "$" <> name <> ".length"
-  defp parse_column(%Column{db_function: {:cast, type}, db_function_args: [value]}), do:
+  defp parse_column(%Expression{function: {:cast, type}, function_args: [value]}), do:
     parse_function("cast", [parse_column(value), value.type, type])
-  defp parse_column(%Column{db_function: fun, db_function_args: [arg]}) when fun != nil, do:
+  defp parse_column(%Expression{function: fun, function_args: [arg]}) when fun != nil, do:
     parse_function(fun, parse_column(arg))
-  defp parse_column(%Column{db_function: fun, db_function_args: args}) when fun != nil, do:
+  defp parse_column(%Expression{function: fun, function_args: args}) when fun != nil, do:
     parse_function(fun, Enum.map(args, &parse_column/1))
-  defp parse_column(%Column{name: name}) when is_binary(name), do:
+  defp parse_column(%Expression{name: name}) when is_binary(name), do:
     if Schema.is_array_size?(name),
       do: name |> Schema.array_size_field() |> map_array_size(),
       else: "$" <> name
