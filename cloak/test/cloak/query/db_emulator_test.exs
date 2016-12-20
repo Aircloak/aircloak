@@ -130,37 +130,44 @@ defmodule Cloak.Query.DBEmulatorTest do
     end
   end
 
-  test "distinct in emulated subqueries" do
-    :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("abc")])
-    :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("x")])
-    :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("xyx")])
-    :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("abcde")])
-    :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("1234")])
-    :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [nil])
+  describe "distinct in emulated subqueries" do
+    defp distinct_setup(_) do
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("abc")])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("x")])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("xyx")])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("abcde")])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("1234")])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [nil])
+    end
 
-    assert_query """
-        select avg(v) from (select user_id, count(distinct value) as v from #{@prefix}emulated group by user_id) as t
-      """, %{rows: [%{occurrences: 1, row: [5.0]}]}
+    setup [:distinct_setup]
 
-    assert_query """
-        select avg(v) from
-        (select user_id, count(distinct left(value, 1)) as v from #{@prefix}emulated group by user_id) as t
-      """, %{rows: [%{occurrences: 1, row: [4.0]}]}
+    test "count(distinct value)", do:
+      assert_query """
+          select avg(v) from (select user_id, count(distinct value) as v from #{@prefix}emulated group by user_id) as t
+        """, %{rows: [%{occurrences: 1, row: [5.0]}]}
 
-    assert_query "select v from (select distinct user_id, length(value) as v from #{@prefix}emulated) as t",
-      %{rows: [
-        %{occurrences: 20, row: [1]}, %{occurrences: 20, row: [3]}, %{occurrences: 20, row: [4]},
-        %{occurrences: 20, row: [5]}, %{occurrences: 20, row: [nil]}
-      ]}
+    test "count(distinct left(value))", do:
+      assert_query """
+          select avg(v) from
+          (select user_id, count(distinct left(value, 1)) as v from #{@prefix}emulated group by user_id) as t
+        """, %{rows: [%{occurrences: 1, row: [4.0]}]}
 
-    assert_query """
-        select avg(v) from
-        (select user_id, avg(distinct length(value)) as v from #{@prefix}emulated group by user_id) as t
-      """, %{rows: [%{occurrences: 1, row: [3.25]}]}
+    test "select distinct", do:
+      assert_query "select v from (select distinct user_id, length(value) as v from #{@prefix}emulated) as t",
+        %{rows: [
+          %{occurrences: 20, row: [1]}, %{occurrences: 20, row: [3]}, %{occurrences: 20, row: [4]},
+          %{occurrences: 20, row: [5]}, %{occurrences: 20, row: [nil]}
+        ]}
+
+    test "avg(distinct)", do:
+      assert_query """
+          select avg(v) from
+          (select user_id, avg(distinct length(value)) as v from #{@prefix}emulated group by user_id) as t
+        """, %{rows: [%{occurrences: 1, row: [3.25]}]}
   end
 
   describe "emulated joins" do
-
     defp join_setup(_) do
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("abc")])
       :ok = insert_rows(_user_ids = 11..25, "#{@prefix}joined", ["age"], [30])
