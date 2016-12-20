@@ -525,7 +525,7 @@ defmodule Cloak.Aql.Function.Test do
   test "column - nil if given constant column", do: refute Function.column(%Column{constant?: true})
 
   test "column - first db column if one present" do
-    return_column = %Column{db_row_position: 1}
+    return_column = %Column{row_index: 1}
     assert return_column == Function.column({:function, "f", [
         {:function, "f", [%Column{constant?: true}]},
         {:function, "f", [%Column{constant?: true}, return_column]},

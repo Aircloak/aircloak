@@ -26,6 +26,10 @@ defmodule Cloak.Aql.Query.Lenses do
     |> operands()
     |> terminal_elements()
 
+  @doc "Lens focusing all column elements in the query (subqueries are not included)."
+  deflens columns(), do:
+    Lens.satisfy(terminals(), &match?(%Column{}, &1))
+
   @doc "Lens focusing on invocations of row splitting functions"
   deflens splitter_functions(), do: terminal_elements() |> Lens.satisfy(&Function.row_splitting_function?/1)
 
