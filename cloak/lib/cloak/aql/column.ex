@@ -64,7 +64,7 @@ defmodule Cloak.Aql.Column do
   @spec value(t, DataSource.row) :: DataSource.field
   def value(%__MODULE__{constant?: true, value: value}, _row), do: value
   def value(%__MODULE__{db_row_position: nil} = column, _row), do:
-    raise "Invalid column specified: #{inspect(column, pretty: true)}"
+    raise "Unindexed column specified: #{inspect(column, pretty: true)}"
   for position <- 0..99 do
     # Generates pattern matching clauses to improve sequential access to a value:
     #
