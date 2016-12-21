@@ -224,6 +224,17 @@ defmodule Cloak.Query.DBEmulatorTest do
             on uid1 = uid2
         """, %{rows: [%{occurrences: 1, row: [15]}]}
     end
+
+    test "join with a row splitter function" do
+      assert_query """
+          select extract_matches(value, '.') from
+            #{@prefix}emulated inner join (select user_id as uid from #{@prefix}joined) as t on user_id = uid
+        """, %{rows: rows}
+
+      assert length(rows) == 3
+      Enum.zip(["a", "b", "c"], rows)
+      |> Enum.each(fn({value, row}) -> assert %{occurrences: 10, row: [^value]} = row end)
+    end
   end
 
   test "emulated subqueries with extra dummy columns" do
