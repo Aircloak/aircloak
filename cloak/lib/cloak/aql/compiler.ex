@@ -615,11 +615,11 @@ defmodule Cloak.Aql.Compiler do
       aggregators: aggregators |> drop_duplicate_columns_except_row_splitters()
     }
   end
-  defp partition_selected_columns(%Query{columns: selected_columns} = query) do
-    case filter_aggregators(selected_columns) do
+  defp partition_selected_columns(query) do
+    case filter_aggregators(query.columns) do
       [] ->
         %Query{query |
-          property: selected_columns |> drop_duplicate_columns_except_row_splitters(),
+          property: query.columns |> drop_duplicate_columns_except_row_splitters(),
           aggregators: [{:function, "count", [:*]}],
           implicit_count?: true
         }
@@ -627,7 +627,6 @@ defmodule Cloak.Aql.Compiler do
         %Query{query | property: [], aggregators: aggregators |> drop_duplicate_columns_except_row_splitters()}
     end
   end
-  defp partition_selected_columns(query), do: query
 
   # Drops all duplicate occurrences of columns, with the exception of columns that are, or contain,
   # calls to row splitting functions. This does not affect how many times database columns are loaded
