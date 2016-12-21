@@ -42,18 +42,6 @@ defmodule Cloak.Query.DBEmulator do
     apply_filters(stream, filters)
   end
 
-  @doc "Selects and filters the rows previously grouped by an aggregator."
-  @spec extract_groups(Enumerable.t, Query.t) :: Enumerable.t
-  def extract_groups(stream, query) do
-    aggregated_columns =
-      (query.property ++ query.aggregators)
-      |> Enum.with_index()
-      |> Enum.into(%{})
-    stream
-    |> Enum.filter(&filter_group(&1, aggregated_columns, query))
-    |> Enum.map(&selected_values(&1, aggregated_columns, query))
-  end
-
   @doc "Keeps only the columns needed by the query from the selection target."
   @spec pick_db_columns(Enumerable.t, Query.t) :: Enumerable.t
   def pick_db_columns(stream, %Query{db_columns: db_columns, from: {:subquery, subquery}}) do
@@ -95,7 +83,7 @@ defmodule Cloak.Query.DBEmulator do
         |> Enum.map(fn ({value, finalizer}) -> finalizer.(value) end)
       property ++ values
     end)
-    |> extract_groups(query)
+    |> Cloak.Query.Aggregator.extract_groups(query)
   end
   defp select_columns(stream, %Query{columns: columns} = query) do
     Stream.map(stream, fn (row) ->
@@ -112,38 +100,6 @@ defmodule Cloak.Query.DBEmulator do
 
   defp distinct(stream, %Query{distinct?: false}), do: stream
   defp distinct(stream, %Query{distinct?: true}), do: stream |> Enum.to_list() |> Enum.uniq()
-
-  defp selected_values(row, aggregated_columns, query), do:
-    for selected_column <- query.columns, do:
-      fetch_value!(row, selected_column, aggregated_columns)
-
-  defp fetch_value!(row, {column, :as, _}, columns), do: fetch_value!(row, column, columns)
-  defp fetch_value!(row, {:function, _, args} = function, columns) do
-    case Map.fetch(columns, function) do
-      {:ok, index} -> Enum.at(row, index)
-      :error -> Enum.map(args, &fetch_value!(row, &1, columns)) |> Function.apply(function)
-    end
-  end
-  defp fetch_value!(_row, %Expression{constant?: true, value: value}, _columns), do: value
-  defp fetch_value!(row, column, columns), do: Enum.at(row, Map.fetch!(columns, column))
-
-  defp filter_group(row, columns, query), do:
-    Enum.all?(query.having, &matches_having_condition?(row, &1, columns))
-
-  defp matches_having_condition?(row, {:comparison, column, operator, target}, columns) do
-    value = fetch_value!(row, column, columns)
-    target = fetch_value!(row, target, columns)
-    compare(value, operator, target)
-  end
-
-  defp compare(nil, _op, _target), do: false
-  defp compare(_value, _op, nil), do: false
-  defp compare(value, :=, target), do: value == target
-  defp compare(value, :<, target), do: value < target
-  defp compare(value, :<=, target), do: value <= target
-  defp compare(value, :>, target), do: value > target
-  defp compare(value, :>=, target), do: value >= target
-  defp compare(value, :<>, target), do: value != target
 
   defp aggregator_to_default({:function, _name, [{:distinct, _column}]}), do: MapSet.new()
   defp aggregator_to_default({:function, "count", [_column]}), do: 0
