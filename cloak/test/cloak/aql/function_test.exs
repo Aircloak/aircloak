@@ -2,7 +2,7 @@ defmodule Cloak.Aql.Function.Test do
   require Integer
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.{Column, Function}
+  alias Cloak.Aql.{Expression, Function}
   alias Timex.Duration
 
   test "sqrt", do:
@@ -295,7 +295,7 @@ defmodule Cloak.Aql.Function.Test do
     assert apply_function("whatever", [1, :*, "thing"]) == :*
 
   test "typechecking a nested function call" do
-    assert Function.well_typed?({:function, "avg", [{:function, "abs", [Column.constant(:integer, 3)]}]})
+    assert Function.well_typed?({:function, "avg", [{:function, "abs", [Expression.constant(:integer, 3)]}]})
     refute Function.well_typed?({:function, "avg", [{:function, "concat", []}]})
   end
 
@@ -493,13 +493,13 @@ defmodule Cloak.Aql.Function.Test do
 
   Enum.map(["extract_match", "extract_matches"], fn(function_name) ->
     test "compiling #{function_name} function creates regex of regex pattern" do
-      function = {:function, unquote(function_name), [%Column{}, %Column{value: "regex_pattern"}]}
+      function = {:function, unquote(function_name), [%Expression{}, %Expression{value: "regex_pattern"}]}
       callback = fn(a) -> a end
-      assert {:function, _, [_, %Column{value: %Regex{}}]} = Function.compile_function(function, callback)
+      assert {:function, _, [_, %Expression{value: %Regex{}}]} = Function.compile_function(function, callback)
     end
 
     test "compiling already compiled #{function_name} function does nothing" do
-      function = {:function, unquote(function_name), [%Column{}, %Column{value: "regex_pattern"}]}
+      function = {:function, unquote(function_name), [%Expression{}, %Expression{value: "regex_pattern"}]}
       callback = fn(a) -> a end
       compiled_function = Function.compile_function(function, callback)
       assert Function.compile_function(compiled_function, callback) == compiled_function
@@ -522,24 +522,24 @@ defmodule Cloak.Aql.Function.Test do
 
   test "returns false if function does not exists", do: refute Function.exists?({:function, "foobar", []})
 
-  test "column - nil if given constant column", do: refute Function.column(%Column{constant?: true})
+  test "column - nil if given constant column", do: refute Function.column(%Expression{constant?: true})
 
   test "column - first db column if one present" do
-    return_column = %Column{row_index: 1}
+    return_column = %Expression{row_index: 1}
     assert return_column == Function.column({:function, "f", [
-        {:function, "f", [%Column{constant?: true}]},
-        {:function, "f", [%Column{constant?: true}, return_column]},
+        {:function, "f", [%Expression{constant?: true}]},
+        {:function, "f", [%Expression{constant?: true}, return_column]},
       ]})
   end
 
   defp return_type(name, arg_types), do:
-    Function.return_type({:function, name, Enum.map(arg_types, &Column.constant(&1, nil))})
+    Function.return_type({:function, name, Enum.map(arg_types, &Expression.constant(&1, nil))})
 
   defp apply_function(name, args), do:
     Function.apply(args, {:function, name, nil})
 
   defp well_typed?(name, types), do:
-    Function.well_typed?({:function, name, Enum.map(types, &Column.constant(&1, nil))})
+    Function.well_typed?({:function, name, Enum.map(types, &Expression.constant(&1, nil))})
 
   defp pow(_, 0), do: 1
   defp pow(x, n) when Integer.is_odd(n), do: x * pow(x, n - 1)

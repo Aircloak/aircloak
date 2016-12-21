@@ -18,8 +18,8 @@ defmodule Cloak.DataSourceTest do
   end
 
   test "data retrieval" do
-    id_column = %Cloak.Aql.Column{table: %{db_name: "test", name: "test"}, name: "user_id"}
-    data_column = %Cloak.Aql.Column{table: %{db_name: "test", name: "test"}, name: "value"}
+    id_column = %Cloak.Aql.Expression{table: %{db_name: "test", name: "test"}, name: "user_id"}
+    data_column = %Cloak.Aql.Expression{table: %{db_name: "test", name: "test"}, name: "value"}
     query = %Query{
       command: :select,
       columns: [data_column],

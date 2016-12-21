@@ -1,10 +1,13 @@
-defmodule Cloak.Aql.Column do
-  @moduledoc "Represents a column in a compiled query."
+defmodule Cloak.Aql.Expression do
+  @moduledoc """
+  Represents an expression in a compiled query. Variants of this struct can be used to represent constants, columns or
+  function calls with their arguments which are expressions themselves.
+  """
 
   alias Cloak.DataSource
 
   @type column_type :: DataSource.data_type | nil
-  @type db_function :: String.t | {:cast, DataSource.data_type | :varbinary}
+  @type function_name :: String.t | {:cast, DataSource.data_type | :varbinary}
   @type t :: %__MODULE__{
     table: :unknown | DataSource.table,
     name: String.t | :constant | nil,
@@ -14,13 +17,14 @@ defmodule Cloak.Aql.Column do
     row_index: nil | Cloak.Aql.Query.row_index,
     constant?: boolean,
     value: any,
-    db_function: db_function | nil,
-    db_function_args: [t],
+    function: function_name | nil,
+    function_args: [t],
+    db_function?: boolean,
     aggregate?: boolean
   }
   defstruct [
     table: :unknown, name: nil, alias: nil, type: nil, user_id?: false, row_index: nil, constant?: false,
-    value: nil, db_function: nil, db_function_args: [], aggregate?: false
+    value: nil, function: nil, function_args: [], db_function?: false, aggregate?: false
   ]
 
   @doc "Returns a column struct representing the constant `value`."
@@ -29,10 +33,15 @@ defmodule Cloak.Aql.Column do
     %__MODULE__{constant?: true, value: value, type: normalize_type(type), name: :constant}
   end
 
+  @doc "Creates a column representing a function call."
+  @spec function(function_name, [t], column_type, boolean) :: t
+  def function(function_name, function_args, type \\ nil, aggregate? \\ false), do:
+    %__MODULE__{function: function_name, function_args: function_args, type: type, aggregate?: aggregate?}
+
   @doc "Creates a column representing a database function call."
-  @spec db_function(db_function, [t], column_type, boolean) :: t
-  def db_function(db_function, db_function_args, type \\ nil, aggregate? \\ false) do
-    %__MODULE__{db_function: db_function, db_function_args: db_function_args, type: type, aggregate?: aggregate?}
+  @spec db_function(function_name, [t], column_type, boolean) :: t
+  def db_function(function_name, function_args, type \\ nil, aggregate? \\ false) do
+    %__MODULE__{function(function_name, function_args, type, aggregate?) | db_function?: true}
   end
 
   @doc "Returns true if the given term is a constant column, false otherwise."
@@ -40,9 +49,14 @@ defmodule Cloak.Aql.Column do
   def constant?(%__MODULE__{constant?: true}), do: true
   def constant?(_), do: false
 
+  @doc "Returns true if the given term represents a function call."
+  @spec function?(Cloak.Aql.Parser.column | t) :: boolean
+  def function?(%__MODULE__{function: function}) when function != nil, do: true
+  def function?(_), do: false
+
   @doc "Returns true if the given term represents a database function call."
   @spec db_function?(Cloak.Aql.Parser.column | t) :: boolean
-  def db_function?(%__MODULE__{db_function: fun}) when fun != nil, do: true
+  def db_function?(%__MODULE__{db_function?: true}), do: true
   def db_function?(_), do: false
 
   @doc "Returns true if the given term represents a database function call."
@@ -58,7 +72,7 @@ defmodule Cloak.Aql.Column do
   def display_name(%__MODULE__{name: name, table: table}) when is_binary(name), do:
     "`#{name}` from table `#{table.name}`"
   def display_name(%__MODULE__{alias: alias}) when is_binary(alias), do: "`#{alias}`"
-  def display_name(%__MODULE__{db_function: function}) when is_binary(function), do: "`#{function}`"
+  def display_name(%__MODULE__{function: function}) when is_binary(function), do: "`#{function}`"
 
   @doc "Returns the column value of a database row."
   @spec value(t, DataSource.row) :: DataSource.field
@@ -92,8 +106,8 @@ defmodule Cloak.Aql.Column do
     c1.table == c2.table and
     c1.name == c2.name and
     c1.value == c2.value and
-    c1.db_function == c2.db_function and
-    Enum.zip(c1.db_function_args, c2.db_function_args) |> Enum.all?(fn ({arg1, arg2}) -> equals(arg1, arg2) end)
+    c1.function == c2.function and
+    Enum.zip(c1.function_args, c2.function_args) |> Enum.all?(fn ({arg1, arg2}) -> equals(arg1, arg2) end)
   def equals(_c1, _c2), do: false
 
   @doc "Returns a string id for the specified column."

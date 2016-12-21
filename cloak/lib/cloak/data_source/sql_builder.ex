@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   @moduledoc "Provides functionality for constructing an SQL query from a compiled query."
 
   alias Cloak.Aql.Query
-  alias Cloak.Aql.Column
+  alias Cloak.Aql.Expression
   alias Cloak.DataSource.SqlBuilder.DbFunction
   alias Cloak.Query.Runner.RuntimeError
 
@@ -18,7 +18,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     # see: http://www.xaprb.com/blog/2006/05/26/how-to-write-full-outer-join-in-mysql/
     case split_full_outer_join(query.from) do
       {:union, left_join, right_join} ->
-        [%Column{db_function: "coalesce", db_function_args: [first_id | _]} | _] = query.db_columns
+        [%Expression{db_function?: true, function: "coalesce", function_args: [first_id | _]} | _] = query.db_columns
         query1 = %Query{query | from: left_join}
         query2 = %Query{query | from: right_join, where: query.where ++ [{:is, first_id, :null}]}
         build(query1, sql_dialect) <> " UNION ALL " <> build(query2, sql_dialect)
@@ -30,8 +30,8 @@ defmodule Cloak.DataSource.SqlBuilder do
   end
 
   @doc "Returns a name uniquely identifying a column in the generated query."
-  @spec column_name(Column.t, atom) :: String.t
-  def column_name(%Column{table: :unknown, name: name}, sql_dialect), do: quote_name(name, sql_dialect)
+  @spec column_name(Expression.t, atom) :: String.t
+  def column_name(%Expression{table: :unknown, name: name}, sql_dialect), do: quote_name(name, sql_dialect)
   def column_name(column, sql_dialect), do:
     "#{quote_name(column.table.name, sql_dialect)}.#{quote_name(column.name, sql_dialect)}"
 
@@ -63,12 +63,12 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp column_sql(:*, _sql_dialect), do: "*"
   defp column_sql({:distinct, column}, sql_dialect), do: ["DISTINCT ", column_sql(column, sql_dialect)]
-  defp column_sql(%Column{alias: alias} = column, sql_dialect) when alias != nil and alias != "",
-    do: [column_sql(%Column{column | alias: nil}, sql_dialect), " AS ", quote_name(alias, sql_dialect)]
-  defp column_sql(%Column{db_function: fun_name, db_function_args: args, type: type}, sql_dialect)
+  defp column_sql(%Expression{alias: alias} = column, sql_dialect) when alias != nil and alias != "",
+    do: [column_sql(%Expression{column | alias: nil}, sql_dialect), " AS ", quote_name(alias, sql_dialect)]
+  defp column_sql(%Expression{db_function?: true, function: fun_name, function_args: args, type: type}, sql_dialect)
     when fun_name != nil, do: DbFunction.sql(fun_name,
       Enum.map(args, &column_sql(&1, sql_dialect)), type, sql_dialect)
-  defp column_sql(%Column{constant?: true, value: value}, _sql_dialect), do: constant_to_fragment(value)
+  defp column_sql(%Expression{constant?: true, value: value}, _sql_dialect), do: constant_to_fragment(value)
   defp column_sql(column, sql_dialect), do: column_name(column, sql_dialect)
 
   defp from_clause({:join, join}, query, sql_dialect) do
@@ -134,8 +134,8 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp to_fragment(string, _sql_dialect) when is_binary(string), do: string
   defp to_fragment(atom, _sql_dialect) when is_atom(atom), do: to_string(atom) |> String.upcase()
-  defp to_fragment(%Column{constant?: true, value: value}, _sql_dialect), do: constant_to_fragment(value)
-  defp to_fragment(%Column{} = column, sql_dialect), do: column_sql(column, sql_dialect)
+  defp to_fragment(%Expression{constant?: true, value: value}, _sql_dialect), do: constant_to_fragment(value)
+  defp to_fragment(%Expression{} = column, sql_dialect), do: column_sql(column, sql_dialect)
 
   defp escape_string(string), do: String.replace(string, "'", "''")
 

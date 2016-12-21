@@ -3,7 +3,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   import Lens.Macros
 
-  alias Cloak.Aql.{Column, Compiler, Parser, Query}
+  alias Cloak.Aql.{Expression, Compiler, Parser, Query}
 
   defmacrop column(table_name, column_name) do
     quote do
@@ -46,7 +46,7 @@ defmodule Cloak.Aql.Compiler.Test do
     result = compile!("select * from table where column > '2015-01-01' and column < '2016-01-01'", data_source())
 
     assert [{:comparison, column("table", "column"), :>=, value} | _] = result.where
-    assert value == Column.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
+    assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
 
   test "allows comparing datetime columns to other datetime columns" do
@@ -56,13 +56,13 @@ defmodule Cloak.Aql.Compiler.Test do
   test "casts time where conditions" do
     assert %{where: [{:comparison, column("table", "column"), :>=, value} | _]} =
       compile!("select * from table where column >= '01:00:00' and column < '02:00:00'", time_data_source())
-    assert value == Column.constant(:time, ~T[01:00:00.000000])
+    assert value == Expression.constant(:time, ~T[01:00:00.000000])
   end
 
   test "casts date where conditions" do
     assert %{where: [{:comparison, column("table", "column"), :>=, value} | _]} =
       compile!("select * from table where column >= '2015-01-01' and column < '2016-01-01'", date_data_source())
-    assert value == Column.constant(:date, ~D[2015-01-01])
+    assert value == Expression.constant(:date, ~D[2015-01-01])
   end
 
   test "casts datetime in `in` conditions" do
@@ -78,7 +78,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
     assert [{:not, {:comparison, column("table", "column"), :=, value}}] =
       result.lcf_check_conditions
-    assert value == Column.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
+    assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
 
   test "reports malformed datetimes" do
@@ -697,8 +697,8 @@ defmodule Cloak.Aql.Compiler.Test do
     {:subquery, %{ast: subquery}} = query.from
 
     assert [
-      %{db_function: "min", alias: min_alias},
-      %{db_function: "max", alias: max_alias}
+      %{function: "min", alias: min_alias},
+      %{function: "max", alias: max_alias}
     ] = Enum.reject(subquery.db_columns, &(&1.name == "uid"))
     assert Enum.any?(query.ranges, &match?(%{column: %{name: ^min_alias}, interval: {0.0, 100.0}}, &1))
     assert Enum.any?(query.ranges, &match?(%{column: %{name: ^max_alias}, interval: {0.0, 100.0}}, &1))
@@ -1037,7 +1037,7 @@ defmodule Cloak.Aql.Compiler.Test do
   defp scrub_aliases(query), do: put_in(query, [aliases()], nil)
 
   deflens aliases, do:
-    all_subqueries() |> Query.Lenses.terminals() |> Lens.satisfy(&match?(%Column{}, &1)) |> Lens.key(:alias)
+    all_subqueries() |> Query.Lenses.terminals() |> Lens.satisfy(&match?(%Expression{}, &1)) |> Lens.key(:alias)
 
   deflens all_subqueries(), do:
     Lens.both(Lens.recur(Query.Lenses.direct_subqueries() |> Lens.key(:ast)), Lens.root())

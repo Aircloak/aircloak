@@ -21,7 +21,7 @@ defmodule Cloak.Query.RowSplitters do
     `splitter(function1(function2(value)))`
   """
 
-  alias Cloak.Aql.{Query, Column, Function}
+  alias Cloak.Aql.{Query, Expression, Function}
 
 
   # -------------------------------------------------------------------
@@ -59,8 +59,8 @@ defmodule Cloak.Query.RowSplitters do
       Enum.map(inputs, &Function.apply(&1, function_spec))
     end
   end
-  defp apply_function(_row, %Column{constant?: true, value: value}), do: [value]
-  defp apply_function(row, %Column{constant?: false, row_index: row_index}), do:
+  defp apply_function(_row, %Expression{constant?: true, value: value}), do: [value]
+  defp apply_function(row, %Expression{constant?: false, row_index: row_index}), do:
     [Enum.at(row, row_index)]
 
   # Given a list of lists, it will create another list of lists where
