@@ -40,14 +40,15 @@ defmodule Cloak.Query.RowSplitters do
 
   defp split_row(row, query) do
     Enum.reduce(query.row_splitters, [row], fn(splitter, rows_acc) ->
-      Enum.flat_map(rows_acc, &apply_function(&1, splitter))
+      Enum.flat_map(rows_acc, &apply_top_most_row_splitter(&1, splitter))
     end)
   end
 
-  defp apply_function(row, {:row_splitter, function_spec, index}) do
+  defp apply_top_most_row_splitter(row, {:row_splitter, function_spec, index}) do
     row = row ++ List.duplicate(nil, index - (length(row) - 1))
     for cell_value <- apply_function(row, function_spec), do: List.replace_at(row, index, cell_value)
   end
+
   defp apply_function(row, {:function, _, args} = function_spec) do
     inner_functions_results = for arg <- args, do: apply_function(row, arg)
     inputs = all_input_combinations(inner_functions_results)
