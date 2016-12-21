@@ -22,11 +22,6 @@ defmodule Cloak.Query.DbEmulator do
     |> select_emulated_rows()
     |> Selector.pick_db_columns(query)
 
-  @doc "Applies the query conditions over the input stream of rows."
-  @spec filter_rows(Enumerable.t, Query.t) :: Enumerable.t
-  def filter_rows(rows, query), do:
-    Selector.filter_rows(rows, query)
-
 
   # -------------------------------------------------------------------
   # Internal functions

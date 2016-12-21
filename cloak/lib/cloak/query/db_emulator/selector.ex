@@ -4,7 +4,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   """
 
   alias Cloak.Aql.{Query, Comparison, Function, Expression}
-  alias Cloak.Query.Sorter
+  alias Cloak.Query.{Filter, Sorter}
   alias Cloak.Data
 
 
@@ -16,7 +16,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   @spec select(Enumerable.t, Query.t) :: Enumerable.t
   def select(stream, query) do
     stream
-    |> filter_rows(query)
+    |> Filter.apply_query_filters(query)
     |> select_columns(query)
     |> Sorter.order_rows(query)
     |> offset_rows(query)
@@ -30,13 +30,6 @@ defmodule Cloak.Query.DbEmulator.Selector do
   def join(lhs, rhs, %{type: :left_outer_join} = join), do: left_join(lhs, rhs, join)
   def join(lhs, rhs, %{type: :right_outer_join} = join), do: right_join(lhs, rhs, join)
   def join(lhs, rhs, %{type: :full_outer_join} = join), do: full_join(lhs, rhs, join)
-
-  @doc "Applies the query conditions over the input stream of rows."
-  @spec filter_rows(Enumerable.t, Query.t) :: Enumerable.t
-  def filter_rows(stream, %Query{where: conditions}) do
-    filters = Enum.map(conditions, &Comparison.to_function/1)
-    apply_filters(stream, filters)
-  end
 
   @doc "Keeps only the columns needed by the query from the selection target."
   @spec pick_db_columns(Enumerable.t, Query.t) :: Enumerable.t
@@ -175,10 +168,6 @@ defmodule Cloak.Query.DbEmulator.Selector do
     :math.sqrt(Enum.sum(variances) / count)
   end
 
-  defp apply_filters(stream, []), do: stream
-  defp apply_filters(stream, filters), do:
-    Stream.filter(stream, &Enum.all?(filters, fn (filter) -> filter.(&1) end))
-
   defp joined_row_size({:subquery, subquery}), do: Enum.count(subquery.ast.db_columns)
   defp joined_row_size({:join, join}), do: joined_row_size(join.lhs) + joined_row_size(join.rhs)
 
@@ -193,7 +182,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
     Stream.flat_map(lhs, fn (lhs_row) ->
       rhs
       |> add_prefix_to_rows(lhs_row)
-      |> apply_filters(filters)
+      |> Filter.apply_filters(filters)
     end)
   end
 
@@ -212,7 +201,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
     Stream.flat_map(lhs, fn (lhs_row) ->
       rhs
       |> rows_combiner.(lhs_row)
-      |> apply_filters(filters)
+      |> Filter.apply_filters(filters)
       |> Enum.to_list()
       |> case do
         [] -> unmatched_handler.(lhs_row)
