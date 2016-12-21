@@ -659,11 +659,9 @@ defmodule Cloak.Aql.Compiler do
     end)
   end
 
-  defp partition_column_on_splitter({:distinct, value}, index) do
+  defp partition_column_on_splitter({:distinct, value}, _index), do:
     # Distinct is only used on a single column value, and not allowed on functions.
-    {[column], splitters} = partition_column_on_splitter(value, index)
-    {[{:distinct, column}], splitters}
-  end
+    {[{:distinct, value}], []}
   defp partition_column_on_splitter(:*, _index), do: {[:*], []}
   defp partition_column_on_splitter(%Column{} = column, _index), do: {[column], []}
   defp partition_column_on_splitter({:function, name, args} = function_spec, index) do
