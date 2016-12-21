@@ -636,25 +636,26 @@ defmodule Cloak.Aql.Compiler do
     Enum.uniq_by(columns, &Lens.map(Query.Lenses.splitter_functions(), &1, fn(_) -> Kernel.make_ref() end))
 
   defp partition_row_splitters(%Query{} = query) do
-    next_available_index = length(query.db_columns)
-    {_index, columns, row_splitters} = partition_row_splitters(query.columns, next_available_index)
-    %Query{query | row_splitters: row_splitters, columns: columns}
+    {transformed_columns, query} = partition_row_splitters(query, query.columns)
+    %Query{query | columns: transformed_columns}
   end
 
-  defp partition_row_splitters(columns, next_db_column_index) do
-    Enum.reduce(columns, {next_db_column_index, [], []}, fn(selected_column, {index, columns_acc, row_splitters}) ->
-      case partition_column_on_splitter(selected_column, index) do
-        {columns, []} -> {index, columns_acc ++ columns, row_splitters}
-        {columns, new_row_splitters} ->
-          {List.last(new_row_splitters).row_index + 1, columns_acc ++ columns, row_splitters ++ new_row_splitters}
-      end
-    end)
+  defp partition_row_splitters(query, columns) do
+    {reversed_transformed_columns, final_query} =
+      Enum.reduce(columns, {[], query},
+        fn(column, {columns_acc, query_acc}) ->
+          {transformed_column, transformed_query} = partition_column_on_splitter(column, query_acc)
+          {[transformed_column | columns_acc], transformed_query}
+        end
+      )
+    {Enum.reverse(reversed_transformed_columns), final_query}
   end
 
-  defp partition_column_on_splitter({:function, name, args} = function_spec, index) do
+  defp partition_column_on_splitter({:function, name, args} = function_spec, query) do
     if Function.row_splitting_function?(function_spec) do
       # We are making the simplifying assumption that row splitting functions have
       # the value column returned as part of the first column
+      {splitter_row_index, query} = add_row_splitter(query, function_spec)
       db_column = case Function.column(hd(args)) do
         nil -> raise CompilationError, message:
           "Function `#{name}` requires that the first argument must be a column."
@@ -663,25 +664,21 @@ defmodule Cloak.Aql.Compiler do
       column_name = "#{Function.name(function_spec)}_return_value"
       return_type = Function.return_type(function_spec)
       # This, most crucially, preserves the DB row position parameter
-      augmented_column = %Column{db_column | name: column_name, type: return_type, row_index: index}
-      {[augmented_column], [%{function_spec: function_spec, row_index: index}]}
+      augmented_column = %Column{db_column | name: column_name, type: return_type, row_index: splitter_row_index}
+      {augmented_column, query}
     else
-      {transformed_args, splitters, _index} =
-        Enum.reduce(args, {[], [], index},
-          fn(column, {columns_acc, splitters_acc, index_acc}) ->
-            case partition_column_on_splitter(column, index_acc) do
-              {[^column], []} ->
-                {columns_acc ++ [column], splitters_acc, index}
-              {[transformed_column], [new_splitter]} ->
-                {columns_acc ++ [transformed_column], splitters_acc ++ [new_splitter], new_splitter.row_index + 1}
-            end
-          end
-        )
-      {[{:function, name, transformed_args}], splitters}
+      {transformed_args, query} = partition_row_splitters(query, args)
+      {{:function, name, transformed_args}, query}
     end
   end
-  defp partition_column_on_splitter(other, _index), do:
-    {[other], []}
+  defp partition_column_on_splitter(other, query), do:
+    {other, query}
+
+  defp add_row_splitter(query, function_spec) do
+    {splitter_row_index, query} = Query.next_row_index(query)
+    new_splitter = %{function_spec: function_spec, row_index: splitter_row_index}
+    {new_splitter.row_index, %Query{query | row_splitters: query.row_splitters ++ [new_splitter]}}
+  end
 
   defp compile_order_by(%Query{order_by: []} = query), do: query
   defp compile_order_by(%Query{columns: columns, order_by: order_by_spec} = query) do
