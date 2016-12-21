@@ -637,15 +637,8 @@ defmodule Cloak.Aql.Compiler do
 
   defp partition_row_splitters(%Query{} = query) do
     next_available_index = length(query.db_columns)
-    {_index, selected_columns, row_splitters} = partition_row_splitters(query.columns, next_available_index)
-    {_index, property, _splitters} = partition_row_splitters(query.property, next_available_index)
-    {_index, aggregators, _splitters} = partition_row_splitters(query.aggregators, next_available_index)
-    %Query{query |
-      row_splitters: row_splitters,
-      columns: selected_columns,
-      property: property,
-      aggregators: aggregators,
-    }
+    {_index, columns, row_splitters} = partition_row_splitters(query.columns, next_available_index)
+    %Query{query | row_splitters: row_splitters, columns: columns}
   end
 
   defp partition_row_splitters(columns, next_db_column_index) do
