@@ -653,8 +653,7 @@ defmodule Cloak.Aql.Compiler do
       case partition_column_on_splitter(selected_column, index) do
         {columns, []} -> {index, columns_acc ++ columns, row_splitters}
         {columns, new_row_splitters} ->
-          {:row_splitter, _function, updated_index} = List.last(new_row_splitters)
-          {updated_index + 1, columns_acc ++ columns, row_splitters ++ new_row_splitters}
+          {List.last(new_row_splitters).row_index + 1, columns_acc ++ columns, row_splitters ++ new_row_splitters}
       end
     end)
   end
@@ -672,7 +671,7 @@ defmodule Cloak.Aql.Compiler do
       return_type = Function.return_type(function_spec)
       # This, most crucially, preserves the DB row position parameter
       augmented_column = %Column{db_column | name: column_name, type: return_type, row_index: index}
-      {[augmented_column], [{:row_splitter, function_spec, index}]}
+      {[augmented_column], [%{function_spec: function_spec, row_index: index}]}
     else
       {transformed_args, splitters, _index} =
         Enum.reduce(args, {[], [], index},
@@ -680,8 +679,8 @@ defmodule Cloak.Aql.Compiler do
             case partition_column_on_splitter(column, index_acc) do
               {[^column], []} ->
                 {columns_acc ++ [column], splitters_acc, index}
-              {[transformed_column], [{_, splitter_index} = new_splitter]} ->
-                {columns_acc ++ [transformed_column], splitters_acc ++ [new_splitter], splitter_index + 1}
+              {[transformed_column], [new_splitter]} ->
+                {columns_acc ++ [transformed_column], splitters_acc ++ [new_splitter], new_splitter.row_index + 1}
             end
           end
         )

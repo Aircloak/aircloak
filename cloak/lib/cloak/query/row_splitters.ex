@@ -44,9 +44,10 @@ defmodule Cloak.Query.RowSplitters do
     end)
   end
 
-  defp apply_top_most_row_splitter(row, {:row_splitter, function_spec, index}) do
-    row = row ++ List.duplicate(nil, index - (length(row) - 1))
-    for cell_value <- apply_function(row, function_spec), do: List.replace_at(row, index, cell_value)
+  defp apply_top_most_row_splitter(row, splitter) do
+    row = row ++ List.duplicate(nil, splitter.row_index - (length(row) - 1))
+    for cell_value <- apply_function(row, splitter.function_spec), do:
+      List.replace_at(row, splitter.row_index, cell_value)
   end
 
   defp apply_function(row, {:function, _, args} = function_spec) do
@@ -59,8 +60,8 @@ defmodule Cloak.Query.RowSplitters do
     end
   end
   defp apply_function(_row, %Column{constant?: true, value: value}), do: [value]
-  defp apply_function(row, %Column{constant?: false, row_index: index}), do:
-    [Enum.at(row, index)]
+  defp apply_function(row, %Column{constant?: false, row_index: row_index}), do:
+    [Enum.at(row, row_index)]
 
   # Given a list of lists, it will create another list of lists where
   # each sublist contains an item from each of the input sublists, in

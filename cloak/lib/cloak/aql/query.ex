@@ -25,6 +25,8 @@ defmodule Cloak.Aql.Query do
 
   @type view_map :: %{view_name :: String.t => view_sql :: String.t}
 
+  @type row_index :: non_neg_integer
+
   @type t :: %__MODULE__{
     data_source: DataSource.t,
     command: :select | :show,
@@ -47,7 +49,7 @@ defmodule Cloak.Aql.Query do
     #   extract_matches(cast(number as text), '\d+')
     #
     # where the latter of these two is contained in the row-splitters.
-    row_splitters: [Function.t],
+    row_splitters: [{Function.t, row_index}],
     implicit_count?: boolean,
     unsafe_filter_columns: [Column.t],
     group_by: [Function.t],
@@ -69,7 +71,7 @@ defmodule Cloak.Aql.Query do
     parameters: [DataSource.field],
     views: view_map,
     projected?: boolean,
-    next_row_index: non_neg_integer
+    next_row_index: row_index
   }
 
   defstruct [
@@ -197,7 +199,7 @@ defmodule Cloak.Aql.Query do
   end
 
   @doc "Returns the next row index and the transformed query with incremented row index."
-  @spec next_row_index(t) :: {non_neg_integer, t}
+  @spec next_row_index(t) :: {row_index, t}
   def next_row_index(query), do:
     {query.next_row_index, %__MODULE__{query | next_row_index: query.next_row_index + 1}}
 
