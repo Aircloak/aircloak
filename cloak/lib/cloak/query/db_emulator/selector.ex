@@ -1,4 +1,4 @@
-defmodule Cloak.Query.DBEmulator do
+defmodule Cloak.Query.DBEmulator.Selector do
   @moduledoc """
   Database emulator for executing non-anonymized queries in the cloak.
 

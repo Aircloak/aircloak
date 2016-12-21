@@ -51,7 +51,7 @@ defmodule Cloak.Query.Runner.Engine do
     Logger.debug("Emulating top query ...")
     query.from
     |> select_rows()
-    |> Query.DBEmulator.pick_db_columns(query)
+    |> Query.DBEmulator.Selector.pick_db_columns(query)
     |> process_final_rows(query)
   end
   defp select_rows({:subquery, %{ast: %Aql.Query{emulated?: true, from: from} = subquery}}) when not is_binary(from) do
@@ -59,15 +59,15 @@ defmodule Cloak.Query.Runner.Engine do
     rows = select_rows(from)
     Logger.debug("Processing rows ...")
     rows
-    |> Query.DBEmulator.pick_db_columns(subquery)
-    |> Query.DBEmulator.select(subquery)
+    |> Query.DBEmulator.Selector.pick_db_columns(subquery)
+    |> Query.DBEmulator.Selector.select(subquery)
     |> Enum.to_list()
   end
   defp select_rows({:subquery, %{ast: subquery}}), do:
     select_rows(subquery)
   defp select_rows({:join, join}) do
     Logger.debug("Emulating join ...")
-    Query.DBEmulator.join(select_rows(join.lhs), select_rows(join.rhs), join)
+    Query.DBEmulator.Selector.join(select_rows(join.lhs), select_rows(join.rhs), join)
     |> Enum.to_list()
   end
   defp select_rows(%Aql.Query{} = query) do
@@ -76,7 +76,7 @@ defmodule Cloak.Query.Runner.Engine do
       Logger.debug("Processing rows ...")
       rows
       |> Query.DataDecoder.decode(query)
-      |> Query.DBEmulator.select(%Aql.Query{query | where: query.encoded_where, encoded_where: []})
+      |> Query.DBEmulator.Selector.select(%Aql.Query{query | where: query.encoded_where, encoded_where: []})
       |> Enum.to_list()
     end)
   end
@@ -86,7 +86,7 @@ defmodule Cloak.Query.Runner.Engine do
     rows
     |> Query.DataDecoder.decode(query)
     |> Query.RowSplitters.split(query)
-    |> Query.DBEmulator.filter_rows(query)
+    |> Query.DBEmulator.Selector.filter_rows(query)
     |> Query.LCFConditions.apply(query)
     |> Query.ShrinkAndDrop.apply(query)
     |> Query.Aggregator.aggregate(query)
