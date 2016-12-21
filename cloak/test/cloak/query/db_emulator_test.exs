@@ -6,8 +6,8 @@ defmodule Cloak.Query.DBEmulatorTest do
   @prefix "db_emulator_"
 
   setup_all do
-    decoder = %{method: "base64", columns: ["value"]}
-    :ok = Cloak.Test.DB.create_table("#{@prefix}emulated", "value TEXT", [decoders: [decoder]])
+    decoders = [%{method: "base64", columns: ["value"]}, %{method: "text_to_date", columns: ["date"]}]
+    :ok = Cloak.Test.DB.create_table("#{@prefix}emulated", "value TEXT, date TEXT", [decoders: decoders])
     :ok = Cloak.Test.DB.create_table("#{@prefix}joined", "age INTEGER")
     :ok
   end
@@ -49,12 +49,18 @@ defmodule Cloak.Query.DBEmulatorTest do
 
   describe "aggregation in emulated subqueries" do
     def aggregation_setup(_) do
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("abc")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("x")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("xyx")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("abcde")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("1234")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [nil])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
+        ["value", "date"], [Base.encode64("abc"), "2016-11-02"])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
+        ["value", "date"], [Base.encode64("x"), "2015-01-30"])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
+        ["value", "date"], [Base.encode64("xyz"), "2014-02-04"])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
+        ["value", "date"], [Base.encode64("abcde"), "2013-02-08"])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
+        ["value", "date"], [Base.encode64("1234"), "2013-12-04"])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
+        ["value", "date"], [nil, nil])
     end
 
     setup [:aggregation_setup]
@@ -96,18 +102,6 @@ defmodule Cloak.Query.DBEmulatorTest do
         """, %{rows: [%{occurrences: 1, row: [16.0]}]}
     end
 
-    test "min" do
-      assert_query """
-          select v from (select user_id, min(length(value)) as v from #{@prefix}emulated group by user_id) as t
-        """, %{rows: [%{occurrences: 20, row: [1]}]}
-    end
-
-    test "max" do
-      assert_query """
-          select v from (select user_id, max(length(value)) as v from #{@prefix}emulated group by user_id) as t
-        """, %{rows: [%{occurrences: 20, row: [5]}]}
-    end
-
     test "avg" do
       assert_query """
           select round(avg(v)) from
@@ -122,11 +116,25 @@ defmodule Cloak.Query.DBEmulatorTest do
         """, %{rows: [%{occurrences: 1, row: [1]}]}
     end
 
-    test "median" do
+    test "min/max/median with numbers" do
       assert_query """
-          select round(avg(v)) from
-          (select user_id, median(length(value)) as v from #{@prefix}emulated group by user_id) as t
-        """, %{rows: [%{occurrences: 1, row: [3]}]}
+          select * from (select user_id, min(length(value)), max(length(value)), median(length(value))
+            from #{@prefix}emulated group by user_id) as t
+        """, %{rows: [%{occurrences: 20, row: [:*, 1, 5, 3]}]}
+    end
+
+    test "min/max/median with text" do
+      assert_query """
+          select * from (select user_id, min(value), max(value), median(value)
+          from #{@prefix}emulated group by user_id) as t
+        """, %{rows: [%{occurrences: 20, row: [:*, "1234", "xyz", "abcde"]}]}
+    end
+
+    test "min/max/median with date" do
+      assert_query """
+          select * from (select user_id, min(date), max(date), median(date)
+          from #{@prefix}emulated group by user_id) as t
+        """, %{rows: [%{occurrences: 20, row: [:*, ~D[2013-02-08], ~D[2016-11-02], ~D[2013-12-04]]}]}
     end
   end
 
@@ -134,7 +142,7 @@ defmodule Cloak.Query.DBEmulatorTest do
     defp distinct_setup(_) do
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("abc")])
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("x")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("xyx")])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("xyz")])
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("abcde")])
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("1234")])
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [nil])
@@ -223,6 +231,17 @@ defmodule Cloak.Query.DBEmulatorTest do
             (select user_id as uid2, age as x from #{@prefix}joined) as t2
             on uid1 = uid2
         """, %{rows: [%{occurrences: 1, row: [15]}]}
+    end
+
+    test "join with a row splitter function" do
+      assert_query """
+          select extract_matches(value, '.') from
+            #{@prefix}emulated inner join (select user_id as uid from #{@prefix}joined) as t on user_id = uid
+        """, %{rows: rows}
+
+      assert length(rows) == 3
+      Enum.zip(["a", "b", "c"], rows)
+      |> Enum.each(fn({value, row}) -> assert %{occurrences: 10, row: [^value]} = row end)
     end
   end
 

@@ -17,16 +17,17 @@ defmodule Cloak.Aql.Function do
 
   @functions %{
     ~w(count count_noise) => %{aggregate: true, type_specs: %{[:any] => :integer}},
-    ~w(sum median sum_noise) => %{aggregate: true, type_specs: %{
+    ~w(sum sum_noise) => %{aggregate: true, type_specs: %{
       [:integer] => :integer,
       [:real] => :real,
     }},
-    ~w(min max) => %{aggregate: true, type_specs: %{
+    ~w(min max median) => %{aggregate: true, type_specs: %{
       [:integer] => :integer,
       [:real] => :real,
       [:date] => :date,
       [:time] => :time,
       [:datetime] => :datetime,
+      [:text] => :text,
     }},
     ~w(avg stddev avg_noise stddev_noise) => %{aggregate: true, type_specs: %{[numeric] => :real}},
     ~w(hour minute second) =>

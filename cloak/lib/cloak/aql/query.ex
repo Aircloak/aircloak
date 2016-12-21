@@ -8,7 +8,7 @@ defmodule Cloak.Aql.Query do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Aql.{Expression, Compiler, Function, Parser, Range}
+  alias Cloak.Aql.{Expression, Compiler, Function, Parser, Query.Lenses, Range}
 
   @type negatable_condition ::
       {:comparison, Expression.t, :=, Expression.t}
@@ -24,6 +24,8 @@ defmodule Cloak.Aql.Query do
   @type having_clause :: {:comparison, Expression.t, Parser.comparator, Expression.t}
 
   @type view_map :: %{view_name :: String.t => view_sql :: String.t}
+
+  @type row_index :: non_neg_integer
 
   @type t :: %__MODULE__{
     data_source: DataSource.t,
@@ -47,7 +49,7 @@ defmodule Cloak.Aql.Query do
     #   extract_matches(cast(number as text), '\d+')
     #
     # where the latter of these two is contained in the row-splitters.
-    row_splitters: [Function.t],
+    row_splitters: [%{function_spec: Parser.function_spec, row_index: row_index}],
     implicit_count?: boolean,
     unsafe_filter_columns: [Expression.t],
     group_by: [Function.t],
@@ -69,7 +71,7 @@ defmodule Cloak.Aql.Query do
     parameters: [DataSource.field],
     views: view_map,
     projected?: boolean,
-    next_row_index: non_neg_integer
+    next_row_index: row_index
   }
 
   defstruct [
@@ -185,15 +187,21 @@ defmodule Cloak.Aql.Query do
   def add_db_column(query, column) do
     case Enum.find(query.db_columns, &(Expression.id(&1) == Expression.id(column))) do
       nil ->
+        {next_row_index, query} = next_row_index(query)
         Lens.map(
-          Cloak.Aql.Query.Lenses.columns() |> Lens.satisfy(&(Expression.id(&1) == Expression.id(column))),
+          Lenses.columns() |> Lens.satisfy(&(Expression.id(&1) == Expression.id(column))) |> Lens.key(:row_index),
           %__MODULE__{query | db_columns: query.db_columns ++ [column]},
-          &%{&1 | row_index: query.next_row_index}
+          fn(_) -> next_row_index end
         )
-        |> Map.put(:next_row_index, query.next_row_index + 1)
-      _ -> query
+      _ ->
+        query
     end
   end
+
+  @doc "Returns the next row index and the transformed query with incremented row index."
+  @spec next_row_index(t) :: {row_index, t}
+  def next_row_index(query), do:
+    {query.next_row_index, %__MODULE__{query | next_row_index: query.next_row_index + 1}}
 
   # -------------------------------------------------------------------
   # Internal functions

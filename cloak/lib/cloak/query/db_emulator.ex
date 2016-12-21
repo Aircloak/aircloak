@@ -9,6 +9,7 @@ defmodule Cloak.Query.DBEmulator do
 
   alias Cloak.Aql.{Query, Comparison, Function, Expression}
   alias Cloak.Query.Sorter
+  alias Cloak.Data
 
 
   # -------------------------------------------------------------------
@@ -174,9 +175,9 @@ defmodule Cloak.Query.DBEmulator do
   defp aggregator_to_accumulator({:function, "sum", [column]}), do:
     null_ignore_accumulator do: (accumulator || 0) + value
   defp aggregator_to_accumulator({:function, "min", [column]}), do:
-    null_ignore_accumulator do: min(accumulator, value)
+    null_ignore_accumulator do: Data.min(accumulator, value)
   defp aggregator_to_accumulator({:function, "max", [column]}), do:
-    null_ignore_accumulator do: max(accumulator, value) || value
+    null_ignore_accumulator do: Data.max(accumulator, value)
   defp aggregator_to_accumulator({:function, "avg", [column]}) do
     null_ignore_accumulator do {sum, count} = accumulator; {(sum || 0) + value, count + 1} end
   end

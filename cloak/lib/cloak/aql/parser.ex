@@ -22,9 +22,11 @@ defmodule Cloak.Aql.Parser do
   @type column ::
       qualified_identifier
     | {:distinct, qualified_identifier}
-    | {:function, function_name, [column]}
+    | function_spec
     | {:constant, data_type, any}
     | {:parameter, pos_integer}
+
+  @type function_spec :: {:function, function_name, [column]}
 
   @type negatable_condition ::
       {:comparison, String.t, :=, any}

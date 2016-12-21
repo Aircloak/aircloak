@@ -14,7 +14,7 @@ defmodule Cloak.Aql.Expression do
     alias: String.t | nil,
     type: column_type,
     user_id?: boolean,
-    row_index: nil | non_neg_integer,
+    row_index: nil | Cloak.Aql.Query.row_index,
     constant?: boolean,
     value: any,
     function: function_name | nil,

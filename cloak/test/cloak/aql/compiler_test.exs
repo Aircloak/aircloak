@@ -86,7 +86,7 @@ defmodule Cloak.Aql.Compiler.Test do
       compile("select * from table where column > 'something stupid'", data_source())
   end
 
-  for function <- ~w(sum median) do
+  for function <- ~w(sum) do
     test "allowing #{function} on numeric columns" do
       assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
     end
@@ -98,14 +98,27 @@ defmodule Cloak.Aql.Compiler.Test do
     end
   end
 
-  for function <- ~w(min max) do
+  for function <- ~w(min max median) do
     test "allowing #{function} on numeric columns" do
       assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
     end
 
-    test "rejecting #{function} on non-numerical columns" do
-      assert {:error, error} = compile("select #{unquote(function)}(string) from table", data_source())
-      assert error == "Arguments of type (`text`) are incorrect for `#{unquote(function)}`."
+    test "allowing #{function} on text columns in subqueries" do
+      assert {:ok, _} =
+        compile("select * from (select uid, #{unquote(function)}(string) from table group by uid) t", data_source())
+    end
+
+    test "allowing #{function} on datetime columns in subqueries" do
+      assert {:ok, _} =
+        compile("select * from (select uid, #{unquote(function)}(column) from table group by uid) t", data_source())
+    end
+
+    test "rejecting #{function} on text columns in top query" do
+      assert {:error, _} = compile("select #{unquote(function)}(string) from table", data_source())
+    end
+
+    test "rejecting #{function} on datetime columns in top query" do
+      assert {:error, _} = compile("select #{unquote(function)}(column) from table", data_source())
     end
   end
 
