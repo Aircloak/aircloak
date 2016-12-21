@@ -1,10 +1,6 @@
 defmodule Cloak.Query.DBEmulator.Selector do
   @moduledoc """
-  Database emulator for executing non-anonymized queries in the cloak.
-
-  There are some cases in which we wish to execute a non-anonymized query inside the cloak,
-  as opposed to sending it to the database server (for example, if some columns require
-  decoding or if a JOIN requires data from two different data sources).
+  Data retrieval for emulated queries.
   """
 
   alias Cloak.Aql.{Query, Comparison, Function, Expression}
