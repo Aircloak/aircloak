@@ -82,12 +82,12 @@ defmodule Cloak.Aql.Compiler do
       |> partition_where_clauses()
       |> calculate_db_columns()
       |> compile_emulated_joins()
-      |> parse_row_splitters()
-      |> partition_selected_columns()
       |> verify_limit()
       |> verify_offset()
       |> verify_function_usage_for_selected_columns()
       |> verify_function_usage_for_where_clauses()
+      |> parse_row_splitters()
+      |> partition_selected_columns()
     }
 
 
