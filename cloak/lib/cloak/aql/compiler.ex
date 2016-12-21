@@ -659,11 +659,6 @@ defmodule Cloak.Aql.Compiler do
     end)
   end
 
-  defp partition_column_on_splitter({:distinct, value}, _index), do:
-    # Distinct is only used on a single column value, and not allowed on functions.
-    {[{:distinct, value}], []}
-  defp partition_column_on_splitter(:*, _index), do: {[:*], []}
-  defp partition_column_on_splitter(%Column{} = column, _index), do: {[column], []}
   defp partition_column_on_splitter({:function, name, args} = function_spec, index) do
     if Function.row_splitting_function?(function_spec) do
       # We are making the simplifying assumption that row splitting functions have
@@ -683,6 +678,8 @@ defmodule Cloak.Aql.Compiler do
       {[{:function, name, args}], splitters}
     end
   end
+  defp partition_column_on_splitter(other, _index), do:
+    {[other], []}
 
   defp compile_order_by(%Query{order_by: []} = query), do: query
   defp compile_order_by(%Query{columns: columns, order_by: order_by_spec} = query) do
