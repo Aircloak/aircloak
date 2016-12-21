@@ -11,7 +11,7 @@ defmodule Cloak.Query.Filter do
   end
 
   @doc "Applies all filters to each row and returns a stream of rows passing all the filters."
-  @spec apply_filters(Enumerable.t, [function]) :: Enumerable.t
+  @spec apply_filters(Enumerable.t, [(any -> boolean)]) :: Enumerable.t
   def apply_filters(rows, []), do: rows
   def apply_filters(rows, filters), do:
     Stream.filter(rows, &Enum.all?(filters, fn(filter) -> filter.(&1) end))
