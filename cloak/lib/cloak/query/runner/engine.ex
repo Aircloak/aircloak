@@ -42,43 +42,16 @@ defmodule Cloak.Query.Runner.Engine do
   # Handling of `SELECT` statement
   # -------------------------------------------------------------------
 
-  defp select_rows(%Aql.Query{subquery?: false, emulated?: false} = query) do
+  defp select_rows(%Aql.Query{emulated?: false} = query) do
     DataSource.select!(query, fn(rows) ->
       process_final_rows(rows, %Aql.Query{query | where: query.encoded_where})
     end)
   end
-  defp select_rows(%Aql.Query{subquery?: false, emulated?: true} = query) do
-    Logger.debug("Emulating top query ...")
-    query.from
-    |> select_rows()
-    |> Query.DBEmulator.pick_db_columns(query)
+  defp select_rows(%Aql.Query{emulated?: true} = query) do
+    Logger.debug("Emulating query ...")
+    query
+    |> Query.DbEmulator.select_rows()
     |> process_final_rows(query)
-  end
-  defp select_rows({:subquery, %{ast: %Aql.Query{emulated?: true, from: from} = subquery}}) when not is_binary(from) do
-    Logger.debug("Emulating sub-query ...")
-    rows = select_rows(from)
-    Logger.debug("Processing rows ...")
-    rows
-    |> Query.DBEmulator.pick_db_columns(subquery)
-    |> Query.DBEmulator.select(subquery)
-    |> Enum.to_list()
-  end
-  defp select_rows({:subquery, %{ast: subquery}}), do:
-    select_rows(subquery)
-  defp select_rows({:join, join}) do
-    Logger.debug("Emulating join ...")
-    Query.DBEmulator.join(select_rows(join.lhs), select_rows(join.rhs), join)
-    |> Enum.to_list()
-  end
-  defp select_rows(%Aql.Query{} = query) do
-    Logger.debug("Emulating sub-query ...")
-    DataSource.select!(%Aql.Query{query | subquery?: false}, fn(rows) ->
-      Logger.debug("Processing rows ...")
-      rows
-      |> Query.DataDecoder.decode(query)
-      |> Query.DBEmulator.select(%Aql.Query{query | where: query.encoded_where, encoded_where: []})
-      |> Enum.to_list()
-    end)
   end
 
   defp process_final_rows(rows, query) do
@@ -86,7 +59,7 @@ defmodule Cloak.Query.Runner.Engine do
     rows
     |> Query.DataDecoder.decode(query)
     |> Query.RowSplitters.split(query)
-    |> Query.DBEmulator.filter_rows(query)
+    |> Query.Filter.apply_query_filters(query)
     |> Query.LCFConditions.apply(query)
     |> Query.ShrinkAndDrop.apply(query)
     |> Query.Aggregator.aggregate(query)
