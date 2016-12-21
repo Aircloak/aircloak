@@ -592,6 +592,11 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
+  defp verify_function_subquery_usage({:function, function, [%Column{type: type}]}, %Query{subquery?: false})
+      when function in ["min", "max", "median"] and type in [:text, :date, :time, :datetime] do
+    raise CompilationError, message:
+      "Function `#{function}` is allowed over arguments of type `#{type}` only in subqueries."
+  end
   defp verify_function_subquery_usage(_function, %Query{subquery?: false}), do: :ok
   defp verify_function_subquery_usage(function, %Query{subquery?: true}) do
     unless Function.allowed_in_subquery?(function) do
