@@ -82,7 +82,7 @@ defmodule Cloak.Aql.Compiler do
       |> partition_where_clauses()
       |> calculate_db_columns()
       |> compile_emulated_joins()
-      |> partition_row_splitters()
+      |> parse_row_splitters()
       |> partition_selected_columns()
       |> verify_limit()
       |> verify_offset()
@@ -635,23 +635,23 @@ defmodule Cloak.Aql.Compiler do
   defp drop_duplicate_columns_except_row_splitters(columns), do:
     Enum.uniq_by(columns, &Lens.map(Query.Lenses.splitter_functions(), &1, fn(_) -> Kernel.make_ref() end))
 
-  defp partition_row_splitters(%Query{} = query) do
-    {transformed_columns, query} = partition_row_splitters(query, query.columns)
+  defp parse_row_splitters(%Query{} = query) do
+    {transformed_columns, query} = transform_splitter_columns(query, query.columns)
     %Query{query | columns: transformed_columns}
   end
 
-  defp partition_row_splitters(query, columns) do
+  defp transform_splitter_columns(query, columns) do
     {reversed_transformed_columns, final_query} =
       Enum.reduce(columns, {[], query},
         fn(column, {columns_acc, query_acc}) ->
-          {transformed_column, transformed_query} = partition_column_on_splitter(column, query_acc)
+          {transformed_column, transformed_query} = transform_splitter_column(column, query_acc)
           {[transformed_column | columns_acc], transformed_query}
         end
       )
     {Enum.reverse(reversed_transformed_columns), final_query}
   end
 
-  defp partition_column_on_splitter({:function, name, args} = function_spec, query) do
+  defp transform_splitter_column({:function, name, args} = function_spec, query) do
     if Function.row_splitting_function?(function_spec) do
       # We are making the simplifying assumption that row splitting functions have
       # the value column returned as part of the first column
@@ -667,11 +667,11 @@ defmodule Cloak.Aql.Compiler do
       augmented_column = %Column{db_column | name: column_name, type: return_type, row_index: splitter_row_index}
       {augmented_column, query}
     else
-      {transformed_args, query} = partition_row_splitters(query, args)
+      {transformed_args, query} = transform_splitter_columns(query, args)
       {{:function, name, transformed_args}, query}
     end
   end
-  defp partition_column_on_splitter(other, query), do:
+  defp transform_splitter_column(other, query), do:
     {other, query}
 
   defp add_row_splitter(query, function_spec) do
