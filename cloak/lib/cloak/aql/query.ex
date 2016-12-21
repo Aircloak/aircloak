@@ -185,15 +185,21 @@ defmodule Cloak.Aql.Query do
   def add_db_column(query, column) do
     case Enum.find(query.db_columns, &(Column.id(&1) == Column.id(column))) do
       nil ->
+        {next_row_index, query} = next_row_index(query)
         Lens.map(
           Cloak.Aql.Query.Lenses.columns() |> Lens.satisfy(&(Column.id(&1) == Column.id(column))),
           %__MODULE__{query | db_columns: query.db_columns ++ [column]},
-          &%{&1 | row_index: query.next_row_index}
+          &%{&1 | row_index: next_row_index}
         )
-        |> Map.put(:next_row_index, query.next_row_index + 1)
-      _ -> query
+      _ ->
+        query
     end
   end
+
+  @doc "Returns the next row index and the transformed query with incremented row index."
+  @spec next_row_index(t) :: {non_neg_integer, t}
+  def next_row_index(query), do:
+    {query.next_row_index, %__MODULE__{query | next_row_index: query.next_row_index + 1}}
 
   # -------------------------------------------------------------------
   # Internal functions
