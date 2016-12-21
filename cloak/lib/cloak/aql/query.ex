@@ -8,7 +8,7 @@ defmodule Cloak.Aql.Query do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Aql.{Column, Compiler, Function, Parser, Range}
+  alias Cloak.Aql.{Column, Compiler, Function, Parser, Query.Lenses, Range}
 
   @type negatable_condition ::
       {:comparison, Column.t, :=, Column.t}
@@ -189,9 +189,9 @@ defmodule Cloak.Aql.Query do
       nil ->
         {next_row_index, query} = next_row_index(query)
         Lens.map(
-          Cloak.Aql.Query.Lenses.columns() |> Lens.satisfy(&(Column.id(&1) == Column.id(column))),
+          Lenses.columns() |> Lens.satisfy(&(Column.id(&1) == Column.id(column))) |> Lens.key(:row_index),
           %__MODULE__{query | db_columns: query.db_columns ++ [column]},
-          &%{&1 | row_index: next_row_index}
+          fn(_) -> next_row_index end
         )
       _ ->
         query
