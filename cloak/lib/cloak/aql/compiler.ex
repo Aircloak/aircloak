@@ -674,8 +674,18 @@ defmodule Cloak.Aql.Compiler do
       augmented_column = %Column{db_column | name: column_name, type: return_type, row_index: index}
       {[augmented_column], [{:row_splitter, function_spec, index}]}
     else
-      {_index, args, splitters} = partition_row_splitters(args, index)
-      {[{:function, name, args}], splitters}
+      {transformed_args, splitters, _index} =
+        Enum.reduce(args, {[], [], index},
+          fn(column, {columns_acc, splitters_acc, index_acc}) ->
+            case partition_column_on_splitter(column, index_acc) do
+              {[^column], []} ->
+                {columns_acc ++ [column], splitters_acc, index}
+              {[transformed_column], [{_, splitter_index} = new_splitter]} ->
+                {columns_acc ++ [transformed_column], splitters_acc ++ [new_splitter], splitter_index + 1}
+            end
+          end
+        )
+      {[{:function, name, transformed_args}], splitters}
     end
   end
   defp partition_column_on_splitter(other, _index), do:
