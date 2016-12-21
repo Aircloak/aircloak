@@ -1,4 +1,4 @@
-defmodule Cloak.Query.DBEmulator.Selector do
+defmodule Cloak.Query.DbEmulator.Selector do
   @moduledoc """
   Data retrieval for emulated queries.
   """

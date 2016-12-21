@@ -8,7 +8,7 @@ defmodule Cloak.Query.DbEmulator do
   """
   require Logger
 
-  alias Cloak.{Aql.Query, DataSource, Query.DBEmulator.Selector}
+  alias Cloak.{Aql.Query, DataSource, Query.DbEmulator.Selector}
 
 
   # -------------------------------------------------------------------
