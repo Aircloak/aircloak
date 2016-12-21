@@ -50,27 +50,28 @@ defmodule Cloak.Query.Runner.Engine do
   defp select_rows(%Aql.Query{subquery?: false, emulated?: true} = query) do
     Logger.debug("Emulating top query ...")
     query.from
-    |> select_rows()
+    |> select_emulated_rows()
     |> Query.DBEmulator.Selector.pick_db_columns(query)
     |> process_final_rows(query)
   end
-  defp select_rows({:subquery, %{ast: %Aql.Query{emulated?: true, from: from} = subquery}}) when not is_binary(from) do
+
+  defp select_emulated_rows({:subquery, %{ast: %Aql.Query{emulated?: true, from: from} = subquery}}) when not is_binary(from) do
     Logger.debug("Emulating sub-query ...")
-    rows = select_rows(from)
+    rows = select_emulated_rows(from)
     Logger.debug("Processing rows ...")
     rows
     |> Query.DBEmulator.Selector.pick_db_columns(subquery)
     |> Query.DBEmulator.Selector.select(subquery)
     |> Enum.to_list()
   end
-  defp select_rows({:subquery, %{ast: subquery}}), do:
-    select_rows(subquery)
-  defp select_rows({:join, join}) do
+  defp select_emulated_rows({:subquery, %{ast: subquery}}), do:
+    select_emulated_rows(subquery)
+  defp select_emulated_rows({:join, join}) do
     Logger.debug("Emulating join ...")
-    Query.DBEmulator.Selector.join(select_rows(join.lhs), select_rows(join.rhs), join)
+    Query.DBEmulator.Selector.join(select_emulated_rows(join.lhs), select_emulated_rows(join.rhs), join)
     |> Enum.to_list()
   end
-  defp select_rows(%Aql.Query{} = query) do
+  defp select_emulated_rows(%Aql.Query{} = query) do
     Logger.debug("Emulating sub-query ...")
     DataSource.select!(%Aql.Query{query | subquery?: false}, fn(rows) ->
       Logger.debug("Processing rows ...")
