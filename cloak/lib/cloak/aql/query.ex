@@ -49,7 +49,7 @@ defmodule Cloak.Aql.Query do
     #   extract_matches(cast(number as text), '\d+')
     #
     # where the latter of these two is contained in the row-splitters.
-    row_splitters: [{Function.t, row_index}],
+    row_splitters: [%{function_spec: Parser.function_spec, row_index: row_index}],
     implicit_count?: boolean,
     unsafe_filter_columns: [Column.t],
     group_by: [Function.t],
