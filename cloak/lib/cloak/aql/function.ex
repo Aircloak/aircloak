@@ -1,7 +1,7 @@
 defmodule Cloak.Aql.Function do
   @moduledoc "Includes information about functions and implementation of non-aggregation functions."
 
-  alias Cloak.Aql.{Column, Parser}
+  alias Cloak.Aql.{Expression, Parser}
   alias Cloak.DataSource
   alias Timex.Duration
 
@@ -117,7 +117,7 @@ defmodule Cloak.Aql.Function do
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
 
-  @type t :: Parser.column | Column.t
+  @type t :: Parser.column | Expression.t
   @type data_type :: :any | DataSource.data_type
   @type argument_type :: data_type | {:optional, data_type} | {:many1, data_type} | {:or, [data_type]}
   @type function_compilation_callback :: (list(t)) :: list(t) | no_return
@@ -154,7 +154,7 @@ defmodule Cloak.Aql.Function do
   def argument_types({:function, function, _}), do: @functions[function].type_specs |> Map.keys()
 
   @doc "Returns the argument specifiaction of the given function call."
-  @spec arguments(t) :: [Column.t]
+  @spec arguments(t) :: [Expression.t]
   def arguments({:function, _, arguments}), do: arguments
   def arguments(_), do: []
 
@@ -181,7 +181,7 @@ defmodule Cloak.Aql.Function do
   def type(function = {:function, _, _}), do: return_type(function)
   def type({column, :as, _}), do: type(column)
   def type({:distinct, column}), do: type(column)
-  def type(%Column{type: type}), do: type
+  def type(%Expression{type: type}), do: type
   def type(:*), do: :any
 
   @doc "Returns true if the arguments to the given function call match the expected argument types, false otherwise."
@@ -193,8 +193,8 @@ defmodule Cloak.Aql.Function do
 
   @doc "Applies the function to the database row and returns its result."
   @spec apply_to_db_row(t, DataSource.row) :: term
-  def apply_to_db_row(%Column{} = column, row),
-    do: Column.value(column, row)
+  def apply_to_db_row(%Expression{} = column, row),
+    do: Expression.value(column, row)
   def apply_to_db_row({:distinct, column}, row),
     do: apply_to_db_row(column, row)
   def apply_to_db_row(function, row) do
@@ -240,13 +240,13 @@ defmodule Cloak.Aql.Function do
 
   @doc "Compiles a function so it is ready for execution"
   @spec compile_function(t, function_compilation_callback) :: t | {:error, String.t}
-  def compile_function({:function, name, [_column, %Column{value: %Regex{}}]} = precompiled_function, _callback)
+  def compile_function({:function, name, [_column, %Expression{value: %Regex{}}]} = precompiled_function, _callback)
     when name in ["extract_match", "extract_matches"], do: precompiled_function
   def compile_function({:function, name, [column, pattern_column]}, compilation_callback)
       when name in ["extract_match", "extract_matches"] do
     case Regex.compile(pattern_column.value, "ui") do
       {:ok, regex} ->
-        regex_column = %Column{pattern_column | value: regex}
+        regex_column = %Expression{pattern_column | value: regex}
         {:function, name, compilation_callback.([column]) ++ [regex_column]}
       {:error, {error, location}} ->
         {:error, "The regex used in `#{name}` is invalid: #{error} at character #{location}"}
@@ -277,9 +277,9 @@ defmodule Cloak.Aql.Function do
   Returns the first instance of a database column from a function spec
   or column. Nil if none can be found.
   """
-  @spec column(t) :: Column.t | nil
-  def column(%Column{constant?: true}), do: nil
-  def column(%Column{} = column), do: column
+  @spec column(t) :: Expression.t | nil
+  def column(%Expression{constant?: true}), do: nil
+  def column(%Expression{} = column), do: column
   def column({:function, _, args}) do
     args
     |> Enum.map(&column/1)

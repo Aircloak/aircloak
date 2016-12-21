@@ -1,7 +1,7 @@
 defmodule Cloak.Aql.Query.Lenses do
   @moduledoc "Lenses for traversing queries"
 
-  alias Cloak.Aql.{Column, Function}
+  alias Cloak.Aql.{Expression, Function}
 
   use Lens.Macros
 
@@ -28,7 +28,7 @@ defmodule Cloak.Aql.Query.Lenses do
 
   @doc "Lens focusing all column elements in the query (subqueries are not included)."
   deflens columns(), do:
-    Lens.satisfy(terminals(), &match?(%Column{}, &1))
+    Lens.satisfy(terminals(), &match?(%Expression{}, &1))
 
   @doc "Lens focusing on invocations of row splitting functions"
   deflens splitter_functions(), do: terminal_elements() |> Lens.satisfy(&Function.row_splitting_function?/1)
@@ -87,7 +87,7 @@ defmodule Cloak.Aql.Query.Lenses do
       {:comparison, _, check, _} when check in ~w(> >= < <=)a ->
         Lens.indices([1, 3]) |> do_where_inequality_columns()
       elements when is_list(elements) -> Lens.all() |> do_where_inequality_columns()
-      %Column{} -> Lens.root()
+      %Expression{} -> Lens.root()
       _ -> Lens.empty()
     end)
 

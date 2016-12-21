@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.MongoDB.Pipeline do
   @moduledoc "MongoDB helper functions for mapping a query to an aggregation pipeline."
 
-  alias Cloak.Aql.{Query, Column, Comparison}
+  alias Cloak.Aql.{Query, Expression, Comparison}
   alias Cloak.Query.Runner.RuntimeError
   alias Cloak.DataSource.MongoDB.{Schema, Projector}
 
@@ -65,25 +65,25 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   end
   defp map_parameter(%Date{} = date), do:
     BSON.DateTime.from_datetime({Date.to_erl(date), {0, 0, 0, 0}})
-  defp map_parameter(%Column{value: value}), do: value
+  defp map_parameter(%Expression{value: value}), do: value
 
-  defp parse_where_condition({:comparison, %Column{name: field}, operator, value}), do:
+  defp parse_where_condition({:comparison, %Expression{name: field}, operator, value}), do:
     %{field => %{parse_operator(operator) => map_parameter(value)}}
-  defp parse_where_condition({:not, {:comparison, %Column{name: field}, :=, value}}), do:
+  defp parse_where_condition({:not, {:comparison, %Expression{name: field}, :=, value}}), do:
     %{field => %{'$neq': map_parameter(value)}}
-  defp parse_where_condition({:is, %Column{name: field}, :null}), do: %{field => nil}
-  defp parse_where_condition({:not, {:is, %Column{name: field}, :null}}), do: %{field => %{'$exists': true}}
-  defp parse_where_condition({:in, %Column{name: field}, values}), do:
+  defp parse_where_condition({:is, %Expression{name: field}, :null}), do: %{field => nil}
+  defp parse_where_condition({:not, {:is, %Expression{name: field}, :null}}), do: %{field => %{'$exists': true}}
+  defp parse_where_condition({:in, %Expression{name: field}, values}), do:
     %{field => %{'$in': Enum.map(values, &map_parameter/1)}}
-  defp parse_where_condition({:not, {:in, %Column{name: field}, values}}), do:
+  defp parse_where_condition({:not, {:in, %Expression{name: field}, values}}), do:
     %{field => %{'$nin': Enum.map(values, &map_parameter/1)}}
-  defp parse_where_condition({:like, %Column{name: field}, %Column{value: pattern}}), do:
+  defp parse_where_condition({:like, %Expression{name: field}, %Expression{value: pattern}}), do:
     %{field => %{'$regex': Comparison.to_regex(pattern), '$options': "ms"}}
-  defp parse_where_condition({:ilike, %Column{name: field}, %Column{value: pattern}}), do:
+  defp parse_where_condition({:ilike, %Expression{name: field}, %Expression{value: pattern}}), do:
     %{field => %{'$regex': Comparison.to_regex(pattern), '$options': "msi"}}
-  defp parse_where_condition({:not, {:like, %Column{name: field}, %Column{value: pattern}}}), do:
+  defp parse_where_condition({:not, {:like, %Expression{name: field}, %Expression{value: pattern}}}), do:
     %{field => %{'$not': %{'$regex': Comparison.to_regex(pattern), '$options': "ms"}}}
-  defp parse_where_condition({:not, {:ilike, %Column{name: field}, %Column{value: pattern}}}), do:
+  defp parse_where_condition({:not, {:ilike, %Expression{name: field}, %Expression{value: pattern}}}), do:
     %{field => %{'$not': %{'$regex': Comparison.to_regex(pattern), '$options': "msi"}}}
 
   defp split_conditions([], conditions) do
@@ -122,8 +122,8 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp limit_rows(nil), do: []
   defp limit_rows(amount), do: [%{'$limit': amount}]
 
-  defp extract_aggregator(%Column{aggregate?: true} = column), do: [column]
-  defp extract_aggregator(%Column{function: fun} = column) when fun != nil,
+  defp extract_aggregator(%Expression{aggregate?: true} = column), do: [column]
+  defp extract_aggregator(%Expression{function: fun} = column) when fun != nil,
     do: Enum.flat_map(column.function_args, &extract_aggregator/1)
   defp extract_aggregator(_column), do: []
 
@@ -132,7 +132,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     properties
     |> Enum.with_index()
     |> Enum.map(fn ({column, index}) ->
-      Projector.map_column(%Column{column | alias: "property_#{index}"})
+      Projector.map_column(%Expression{column | alias: "property_#{index}"})
     end)
     |> Enum.into(%{})
   end
@@ -141,36 +141,36 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     aggregators
     |> Enum.with_index()
     |> Enum.map(fn ({column, index}) ->
-      Projector.map_column(%Column{column | alias: "aggregated_#{index}"})
+      Projector.map_column(%Expression{column | alias: "aggregated_#{index}"})
     end)
     |> Enum.into(%{})
   end
 
   # This extracts the upper part of a column that need to be projected after grouping is done.
-  defp extract_column_top(%Column{constant?: true} = column, _aggregators, _groups), do: column
-  defp extract_column_top(%Column{function: "count", function_args: [{:distinct, _}]} = column, aggregators, _groups) do
+  defp extract_column_top(%Expression{constant?: true} = column, _aggregators, _groups), do: column
+  defp extract_column_top(%Expression{function: "count", function_args: [{:distinct, _}]} = column, aggregators, _groups) do
     # For distinct count, we gather values into a set and then project the size of the set.
-    index = Enum.find_index(aggregators, &Column.equals(column, &1))
-    %Column{name: "aggregated_#{index}#", table: :unknown, alias: column.alias}
+    index = Enum.find_index(aggregators, &Expression.equals(column, &1))
+    %Expression{name: "aggregated_#{index}#", table: :unknown, alias: column.alias}
   end
-  defp extract_column_top(%Column{function_args: [{:distinct, _}]} = column, aggregators, _groups) do
+  defp extract_column_top(%Expression{function_args: [{:distinct, _}]} = column, aggregators, _groups) do
     # For distinct aggregators, we gather values into a set and then project the aggregator over the set.
-    index = Enum.find_index(aggregators, &Column.equals(column, &1))
-    %Column{column | function_args: [%Column{name: "aggregated_#{index}", table: :unknown}]}
+    index = Enum.find_index(aggregators, &Expression.equals(column, &1))
+    %Expression{column | function_args: [%Expression{name: "aggregated_#{index}", table: :unknown}]}
   end
   defp extract_column_top(column, aggregators, groups) do
-    case Enum.find_index(aggregators, &Column.equals(column, &1)) do
+    case Enum.find_index(aggregators, &Expression.equals(column, &1)) do
       nil ->
-        case Enum.find_index(groups, &Column.equals(column, &1)) do
+        case Enum.find_index(groups, &Expression.equals(column, &1)) do
           nil ->
             # Has to be a function call since the lookups failed.
             args = Enum.map(column.function_args, &extract_column_top(&1, aggregators, groups))
-            %Column{column | function_args: args}
+            %Expression{column | function_args: args}
           index ->
-            %Column{name: "_id.property_#{index}", table: :unknown, alias: column.alias || column.name}
+            %Expression{name: "_id.property_#{index}", table: :unknown, alias: column.alias || column.name}
         end
       index ->
-        %Column{name: "aggregated_#{index}", table: :unknown, alias: column.alias}
+        %Expression{name: "aggregated_#{index}", table: :unknown, alias: column.alias}
     end
   end
 
