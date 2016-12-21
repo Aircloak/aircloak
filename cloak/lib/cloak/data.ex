@@ -5,11 +5,11 @@ defmodule Cloak.Data do
 
   @doc "Returns the smaller of the two values according to the order given by `lt_eq`."
   @spec min(t, t) :: t
-  def min(x, y), do: if lt_eq(x, y), do: x, else: y
+  def min(x, y), do: if lt_eq(x, y), do: x, else: y || x
 
   @doc "Returns the greater of the two values according to the order given by `lt_eq`."
   @spec max(t, t) :: t
-  def max(x, y), do: if lt_eq(x, y), do: y, else: x
+  def max(x, y), do: if lt_eq(x, y), do: y, else: x || y
 
   @doc "Convenience for `not lt_eq`."
   @spec gt(t, t) :: boolean
