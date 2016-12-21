@@ -1,5 +1,8 @@
 defmodule Cloak.Aql.Expression do
-  @moduledoc "Represents a column in a compiled query."
+  @moduledoc """
+  Represents an expression in a compiled query. Variants of this struct can be used to represent constants, columns or
+  function calls with their arguments which are expressions themselves.
+  """
 
   alias Cloak.DataSource
 
