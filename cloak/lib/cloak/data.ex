@@ -1,7 +1,7 @@
 defmodule Cloak.Data do
   @moduledoc "Contains functions for uniformly working with numbers and datetime types."
 
-  @type t :: %NaiveDateTime{} | %Date{} | %Time{} | number
+  @type t :: %NaiveDateTime{} | %Date{} | %Time{} | number | String.t | nil
 
   @doc "Returns the smaller of the two values according to the order given by `lt_eq`."
   @spec min(t, t) :: t
@@ -30,6 +30,8 @@ defmodule Cloak.Data do
   def lt_eq(x = %NaiveDateTime{}, y = %NaiveDateTime{}), do: Timex.diff(x, y) <= 0
   def lt_eq(x = %Date{}, y = %Date{}), do: Timex.diff(x, y) <= 0
   def lt_eq(x = %Time{}, y = %Time{}), do: Cloak.Time.time_to_seconds(x) <= Cloak.Time.time_to_seconds(y)
+  def lt_eq(nil, _), do: false
+  def lt_eq(_, nil), do: false
   def lt_eq(x, y), do: x <= y
 
   @doc """
@@ -43,5 +45,5 @@ defmodule Cloak.Data do
   def plus_epsilon(x = %NaiveDateTime{}), do: Timex.shift(x, seconds: 1)
   def plus_epsilon(x = %Date{}), do: Timex.shift(x, days: 1)
   def plus_epsilon(x = %Time{}), do: %{x | second: x.second + 1}
-  def plus_epsilon(x), do: x + x / 100_000_000_000_000
+  def plus_epsilon(x) when is_number(x), do: x + x / 100_000_000_000_000
 end
