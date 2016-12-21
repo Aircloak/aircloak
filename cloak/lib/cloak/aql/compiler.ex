@@ -78,12 +78,12 @@ defmodule Cloak.Aql.Compiler do
       |> verify_where_clauses()
       |> align_ranges(:where)
       |> add_subquery_ranges()
-      |> partition_selected_columns()
       |> verify_having()
       |> partition_where_clauses()
       |> calculate_db_columns()
       |> compile_emulated_joins()
-      |> partition_row_splitters()
+      |> parse_row_splitters()
+      |> partition_selected_columns()
       |> verify_limit()
       |> verify_offset()
       |> verify_function_usage_for_selected_columns()
@@ -615,11 +615,11 @@ defmodule Cloak.Aql.Compiler do
       aggregators: aggregators |> drop_duplicate_columns_except_row_splitters()
     }
   end
-  defp partition_selected_columns(%Query{columns: selected_columns} = query) do
-    case filter_aggregators(selected_columns) do
+  defp partition_selected_columns(query) do
+    case filter_aggregators(query.columns) do
       [] ->
         %Query{query |
-          property: selected_columns |> drop_duplicate_columns_except_row_splitters(),
+          property: query.columns |> drop_duplicate_columns_except_row_splitters(),
           aggregators: [{:function, "count", [:*]}],
           implicit_count?: true
         }
@@ -627,7 +627,6 @@ defmodule Cloak.Aql.Compiler do
         %Query{query | property: [], aggregators: aggregators |> drop_duplicate_columns_except_row_splitters()}
     end
   end
-  defp partition_selected_columns(query), do: query
 
   # Drops all duplicate occurrences of columns, with the exception of columns that are, or contain,
   # calls to row splitting functions. This does not affect how many times database columns are loaded
@@ -635,41 +634,27 @@ defmodule Cloak.Aql.Compiler do
   defp drop_duplicate_columns_except_row_splitters(columns), do:
     Enum.uniq_by(columns, &Lens.map(Query.Lenses.splitter_functions(), &1, fn(_) -> Kernel.make_ref() end))
 
-  defp partition_row_splitters(%Query{} = query) do
-    next_available_index = length(query.db_columns)
-    {_index, selected_columns, row_splitters} = partition_row_splitters(query.columns, next_available_index)
-    {_index, property, _splitters} = partition_row_splitters(query.property, next_available_index)
-    {_index, aggregators, _splitters} = partition_row_splitters(query.aggregators, next_available_index)
-    %Query{query |
-      row_splitters: row_splitters,
-      columns: selected_columns,
-      property: property,
-      aggregators: aggregators,
-    }
+  defp parse_row_splitters(%Query{} = query) do
+    {transformed_columns, query} = transform_splitter_columns(query, query.columns)
+    %Query{query | columns: transformed_columns}
   end
 
-  defp partition_row_splitters(columns, next_db_column_index) do
-    Enum.reduce(columns, {next_db_column_index, [], []}, fn(selected_column, {index, columns_acc, row_splitters}) ->
-      case partition_column_on_splitter(selected_column, index) do
-        {columns, []} -> {index, columns_acc ++ columns, row_splitters}
-        {columns, new_row_splitters} ->
-          {:row_splitter, _function, updated_index} = List.last(new_row_splitters)
-          {updated_index + 1, columns_acc ++ columns, row_splitters ++ new_row_splitters}
-      end
-    end)
+  defp transform_splitter_columns(query, columns) do
+    {reversed_transformed_columns, final_query} =
+      Enum.reduce(columns, {[], query},
+        fn(column, {columns_acc, query_acc}) ->
+          {transformed_column, transformed_query} = transform_splitter_column(column, query_acc)
+          {[transformed_column | columns_acc], transformed_query}
+        end
+      )
+    {Enum.reverse(reversed_transformed_columns), final_query}
   end
 
-  defp partition_column_on_splitter({:distinct, value}, index) do
-    # Distinct is only used on a single column value, and not allowed on functions.
-    {[column], splitters} = partition_column_on_splitter(value, index)
-    {[{:distinct, column}], splitters}
-  end
-  defp partition_column_on_splitter(:*, _index), do: {[:*], []}
-  defp partition_column_on_splitter(%Column{} = column, _index), do: {[column], []}
-  defp partition_column_on_splitter({:function, name, args} = function_spec, index) do
+  defp transform_splitter_column({:function, name, args} = function_spec, query) do
     if Function.row_splitting_function?(function_spec) do
       # We are making the simplifying assumption that row splitting functions have
       # the value column returned as part of the first column
+      {splitter_row_index, query} = add_row_splitter(query, function_spec)
       db_column = case Function.column(hd(args)) do
         nil -> raise CompilationError, message:
           "Function `#{name}` requires that the first argument must be a column."
@@ -678,12 +663,20 @@ defmodule Cloak.Aql.Compiler do
       column_name = "#{Function.name(function_spec)}_return_value"
       return_type = Function.return_type(function_spec)
       # This, most crucially, preserves the DB row position parameter
-      augmented_column = %Column{db_column | name: column_name, type: return_type, row_index: index}
-      {[augmented_column], [{:row_splitter, function_spec, index}]}
+      augmented_column = %Column{db_column | name: column_name, type: return_type, row_index: splitter_row_index}
+      {augmented_column, query}
     else
-      {_index, args, splitters} = partition_row_splitters(args, index)
-      {[{:function, name, args}], splitters}
+      {transformed_args, query} = transform_splitter_columns(query, args)
+      {{:function, name, transformed_args}, query}
     end
+  end
+  defp transform_splitter_column(other, query), do:
+    {other, query}
+
+  defp add_row_splitter(query, function_spec) do
+    {splitter_row_index, query} = Query.next_row_index(query)
+    new_splitter = %{function_spec: function_spec, row_index: splitter_row_index}
+    {new_splitter.row_index, %Query{query | row_splitters: query.row_splitters ++ [new_splitter]}}
   end
 
   defp compile_order_by(%Query{order_by: []} = query), do: query

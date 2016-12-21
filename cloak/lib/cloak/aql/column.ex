@@ -11,7 +11,7 @@ defmodule Cloak.Aql.Column do
     alias: String.t | nil,
     type: column_type,
     user_id?: boolean,
-    row_index: nil | non_neg_integer,
+    row_index: nil | Cloak.Aql.Query.row_index,
     constant?: boolean,
     value: any,
     db_function: db_function | nil,
