@@ -236,7 +236,7 @@ defmodule Cloak.Query.DBEmulatorTest do
     test "join with a row splitter function" do
       assert_query """
           select extract_matches(value, '.') from
-            #{@prefix}emulated inner join (select user_id as uid from #{@prefix}joined) as t on user_id = uid
+            #{@prefix}joined inner join (select user_id as uid, value from #{@prefix}emulated) as t on user_id = uid
         """, %{rows: rows}
 
       assert length(rows) == 3
