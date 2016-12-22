@@ -51,7 +51,7 @@ defmodule Cloak.Query.DbEmulator do
     Logger.debug("Emulating join ...")
     rhs_task = Task.async(fn() -> select_rows(join.rhs) end)
     lhs_rows = select_rows(join.lhs)
-    rhs_rows = Task.await(rhs_task)
+    rhs_rows = Task.await(rhs_task, :infinity)
     Selector.join(lhs_rows, rhs_rows, join)
   end
 end
