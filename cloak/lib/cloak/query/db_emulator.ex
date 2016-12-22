@@ -66,53 +66,34 @@ defmodule Cloak.Query.DbEmulator do
   # -------------------------------------------------------------------
 
   defp compile_emulated_joins(%Query{emulated?: true, from: {:join, _}} = query) do
-    from =
-      query.from
-      |> replace_joined_tables_with_subqueries(query.db_columns, query)
-      |> compile_join_conditions_columns()
-    %Query{query | from: from}
+    query
+    |> update_in([Query.Lenses.leaf_tables()], &joined_table_to_subquery(&1, query))
+    |> update_in([Query.Lenses.joins()], &compute_columns_to_select/1)
+    |> update_in([Query.Lenses.joins()], &update_join_conditions/1)
   end
   defp compile_emulated_joins(query), do: query
 
-  # The DBEmulator modules doesn't know how to select a table directly, so we need
-  # to replace any direct references to joined table with the equivalent subquery.
-  defp replace_joined_tables_with_subqueries(table_name, columns, parent_query) when is_binary(table_name) do
-    query =
-      Cloak.Aql.Compiler.make_select_query(
-        parent_query.data_source,
-        table_name,
-        (for %Expression{table: %{name: ^table_name}} = column <- columns, do: column),
-        subquery?: true
-      )
+  defp joined_table_to_subquery(table_name, query) do
+    required_columns =
+      (query.db_columns ++ get_in(query, [Query.Lenses.join_conditions_terminals()]))
+      |> get_in([Query.Lenses.leaf_expressions()])
+      |> Enum.filter(&(&1.table.name == table_name))
+      |> Enum.uniq_by(&Expression.id/1)
+
+    query = Cloak.Aql.Compiler.make_select_query(query.data_source, table_name, required_columns, subquery?: true)
     {:subquery, %{type: :parsed, ast: query, alias: table_name}}
   end
-  defp replace_joined_tables_with_subqueries({:subquery, subquery}, _columns, _parent_query), do: {:subquery, subquery}
-  defp replace_joined_tables_with_subqueries({:join, join}, db_columns, parent_query) do
-    on_columns = get_in(join.conditions, [Query.Lenses.leaf_expressions()])
-    columns = Enum.uniq_by(db_columns ++ on_columns, &Expression.id/1)
-    lhs = replace_joined_tables_with_subqueries(join.lhs, columns, parent_query)
-    rhs = replace_joined_tables_with_subqueries(join.rhs, columns, parent_query)
-    {:join, %{join | lhs: lhs, rhs: rhs}}
-  end
 
-  # For emulated joins, we need to set the `row_index` field for the columns in the `ON` clause.
-  defp compile_join_conditions_columns({:join, join}) do
-    # Because this is an emulated query we only have joining of subqueries, as
-    # tables references were previously translated into subqueries.
-    columns = joined_columns({:join, join})
-    mapper_fun = &set_column_row_index(&1, columns)
-    conditions = Lens.map(Query.Lenses.conditions_terminals(), join.conditions, mapper_fun)
-    lhs = compile_join_conditions_columns(join.lhs)
-    rhs = compile_join_conditions_columns(join.rhs)
-    join = Map.put(join, :columns, columns)
-    {:join, %{join | conditions: conditions, lhs: lhs, rhs: rhs}}
-  end
-  defp compile_join_conditions_columns({:subquery, subquery}), do: {:subquery, subquery}
+  defp compute_columns_to_select(join), do:
+    Map.put(join, :columns, columns_needed_for_join({:join, join}))
 
-  defp joined_columns({:join, join}) do
-    joined_columns(join.lhs) ++ joined_columns(join.rhs)
-  end
-  defp joined_columns({:subquery, subquery}) do
+  defp update_join_conditions(join), do:
+    %{join | conditions: Lens.map(Query.Lenses.conditions_terminals(), join.conditions,
+      &set_column_row_index(&1, join.columns))}
+
+  defp columns_needed_for_join({:join, join}), do:
+    columns_needed_for_join(join.lhs) ++ columns_needed_for_join(join.rhs)
+  defp columns_needed_for_join({:subquery, subquery}) do
     user_id_name = case Enum.find_index(subquery.ast.columns, &(&1.user_id?)) do
       nil -> nil
       index -> Enum.at(subquery.ast.column_titles, index)
