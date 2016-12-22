@@ -848,7 +848,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp implement_range?({left, right}, conditions) do
     [{_, _, left_operator, left_column}, {_, _, right_operator, right_column}] =
-      Enum.sort_by(conditions, &Comparison.value/1)
+      Enum.sort_by(conditions, &Comparison.value/1, &Cloak.Data.lt_eq/2)
 
     left_operator == :>= && left_column.value == left && right_operator == :< && right_column.value == right
   end
