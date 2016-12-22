@@ -34,6 +34,12 @@ defmodule Cloak.Aql.Query.Lenses do
   deflens expressions(), do:
     Lens.satisfy(Lens.root(), &match?(%Expression{}, &1))
 
+  @doc "Lens focusing leaf (non-functions) expressions in a list of expressions."
+  deflens leaf_expressions(), do:
+    Lens.both(terminal_elements(), conditions_terminals())
+    |> expressions()
+    |> do_leaf_expressions()
+
   @doc "Lens focusing on expressions with the same id as the given expression."
   deflens expressions_like(other_expression), do:
     Lens.satisfy(expressions(), &(Expression.id(&1) == Expression.id(other_expression)))
@@ -104,6 +110,7 @@ defmodule Cloak.Aql.Query.Lenses do
       {:not, _} -> Lens.at(1) |> operands()
       {:comparison, _lhs, _comparator, _rhs} -> Lens.indices([1, 3])
       {op, _, _} when op in [:in, :like, :ilike, :is] -> Lens.both(Lens.at(1), Lens.at(2))
+      _ -> Lens.empty()
     end)
 
   deflensp terminal_elements(), do:
@@ -115,6 +122,17 @@ defmodule Cloak.Aql.Query.Lenses do
       {_, :as, _} -> Lens.at(0)
       elements when is_list(elements) -> Lens.all() |> terminal_elements()
       _ -> Lens.root
+    end)
+
+  deflensp do_leaf_expressions(), do:
+    Lens.match(fn
+      %Expression{function: nil} -> Lens.root()
+      _function_expression ->
+        Lens.key(:function_args)
+        |> Lens.all()
+        |> terminal_elements()
+        |> expressions()
+        |> do_leaf_expressions()
     end)
 
   deflensp join_elements(), do:

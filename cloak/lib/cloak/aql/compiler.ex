@@ -712,7 +712,7 @@ defmodule Cloak.Aql.Compiler do
     # extract columns needed in the cloak for extra filtering
     unsafe_filter_columns =
       encoded_column_clauses
-      |> Enum.flat_map(&extract_columns/1)
+      |> extract_columns()
       |> Enum.reject(& &1.constant?)
     %Query{query | where: safe_clauses, unsafe_filter_columns: unsafe_filter_columns,
       encoded_where: encoded_column_clauses}
@@ -731,7 +731,7 @@ defmodule Cloak.Aql.Compiler do
     # extract columns needed in the cloak for extra filtering
     unsafe_filter_columns =
       (require_lcf_checks ++ encoded_column_clauses)
-      |> Enum.flat_map(&extract_columns/1)
+      |> extract_columns()
       |> Enum.reject(& &1.constant?)
 
     %Query{query | where: safe_clauses, lcf_check_conditions: require_lcf_checks,
@@ -1071,19 +1071,12 @@ defmodule Cloak.Aql.Compiler do
     if Function.aggregate_function?(column) do
       false
     else
-      column |> extract_columns() |> Enum.any?(& &1.user_id?)
+      [column] |> extract_columns() |> Enum.any?(& &1.user_id?)
     end
   end
 
-  defp extract_columns(:*), do: []
-  defp extract_columns(%Expression{function: fun, function_args: arguments}) when fun != nil, do:
-    Enum.flat_map(arguments, &extract_columns/1)
-  defp extract_columns(%Expression{} = column), do: [column]
-  defp extract_columns({:function, _function, arguments}), do: Enum.flat_map(arguments, &extract_columns/1)
-  defp extract_columns({:distinct, expression}), do: extract_columns(expression)
-  defp extract_columns({:comparison, column, _operator, target}), do: extract_columns(column) ++ extract_columns(target)
-  defp extract_columns({:not, condition}), do: extract_columns(condition)
-  defp extract_columns({verb, column, _value}) when verb in [:like, :ilike, :is, :in], do: extract_columns(column)
+  defp extract_columns(columns), do:
+    get_in(columns, [Query.Lenses.leaf_expressions()])
 
   defp calculate_db_columns(query), do:
     Enum.reduce(select_expressions(query) ++ range_columns(query), query, &Query.add_db_column(&2, &1))
@@ -1101,7 +1094,7 @@ defmodule Cloak.Aql.Compiler do
     used_columns =
       query
       |> needed_columns()
-      |> Enum.flat_map(&extract_columns/1)
+      |> extract_columns()
       |> Enum.reject(& &1.constant?)
     [id_column(query) | used_columns]
   end
@@ -1263,7 +1256,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp needs_decoding?(query), do:
     (query.columns ++ query.group_by ++ query.having)
-    |> Enum.flat_map(&extract_columns/1)
+    |> extract_columns()
     |> Enum.any?(&DataDecoder.needs_decoding?/1)
 
   defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
@@ -1340,7 +1333,7 @@ defmodule Cloak.Aql.Compiler do
   end
   defp replace_joined_tables_with_subqueries({:subquery, subquery}, _columns, _parrent_query), do: {:subquery, subquery}
   defp replace_joined_tables_with_subqueries({:join, join}, db_columns, parrent_query) do
-    on_columns = Enum.flat_map(join.conditions, &extract_columns/1)
+    on_columns = extract_columns(join.conditions)
     columns = Enum.uniq_by(db_columns ++ on_columns, &Expression.id/1)
     lhs = replace_joined_tables_with_subqueries(join.lhs, columns, parrent_query)
     rhs = replace_joined_tables_with_subqueries(join.rhs, columns, parrent_query)
