@@ -36,15 +36,8 @@ defmodule Cloak.Query.DbEmulator do
     |> Selector.select(subquery)
     |> Enum.to_list()
   end
-  defp select_emulated_rows({:subquery, %{ast: subquery}}), do:
-    select_emulated_rows(subquery)
-  defp select_emulated_rows({:join, join}) do
-    Logger.debug("Emulating join ...")
-    Selector.join(select_emulated_rows(join.lhs), select_emulated_rows(join.rhs), join)
-    |> Enum.to_list()
-  end
-  defp select_emulated_rows(%Query{} = query) do
-    Logger.debug("Emulating sub-query ...")
+  defp select_emulated_rows({:subquery, %{ast: %Query{} = query}}) do
+    Logger.debug("Loading sub-query through data source ...")
     DataSource.select!(%Query{query | subquery?: false}, fn(rows) ->
       Logger.debug("Processing rows ...")
       rows
@@ -52,5 +45,10 @@ defmodule Cloak.Query.DbEmulator do
       |> Selector.select(%Query{query | where: query.encoded_where, encoded_where: []})
       |> Enum.to_list()
     end)
+  end
+  defp select_emulated_rows({:join, join}) do
+    Logger.debug("Emulating join ...")
+    Selector.join(select_emulated_rows(join.lhs), select_emulated_rows(join.rhs), join)
+    |> Enum.to_list()
   end
 end
