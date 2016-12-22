@@ -136,15 +136,15 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp aggregator_to_finalizer({:function, "sum", [{:distinct, _column}]}), do:
     &if MapSet.size(&1) == 0, do: nil, else: Enum.sum(&1)
   defp aggregator_to_finalizer({:function, "min", [{:distinct, _column}]}), do:
-    &if MapSet.size(&1) == 0, do: nil, else: Enum.min(&1)
+    &if MapSet.size(&1) == 0, do: nil, else: set_min(&1)
   defp aggregator_to_finalizer({:function, "max", [{:distinct, _column}]}), do:
-    &if MapSet.size(&1) == 0, do: nil, else: Enum.max(&1)
+    &if MapSet.size(&1) == 0, do: nil, else: set_max(&1)
   defp aggregator_to_finalizer({:function, "avg", [{:distinct, _column}]}), do:
     &if MapSet.size(&1) == 0, do: nil, else: Enum.sum(&1) / MapSet.size(&1)
   defp aggregator_to_finalizer({:function, "stddev", [{:distinct, _column}]}), do:
     &if MapSet.size(&1) == 0, do: nil, else: stddev(&1)
-  defp aggregator_to_finalizer({:function, "median", [{:distinct, _column}]}), do:
-    &if MapSet.size(&1) == 0, do: nil, else: &1 |> MapSet.to_list() |> Enum.at(&1 |> MapSet.size() |> div(2))
+  defp aggregator_to_finalizer({:function, "median", [{:distinct, column}]}), do:
+    &if MapSet.size(&1) == 0, do: nil, else: &1 |> sort_set(column.type) |> Enum.at(&1 |> MapSet.size() |> div(2))
   defp aggregator_to_finalizer({:function, "count", [_column]}), do: & &1
   defp aggregator_to_finalizer({:function, "sum", [_column]}), do: & &1
   defp aggregator_to_finalizer({:function, "min", [_column]}), do: & &1
@@ -167,6 +167,13 @@ defmodule Cloak.Query.DbEmulator.Selector do
     variances = Enum.map(values, &(&1 - average) * (&1 - average))
     :math.sqrt(Enum.sum(variances) / count)
   end
+
+  defp sort_set(set, type) when type in [:date, :time, :datetime], do: Enum.sort(set, &Data.lt_eq/2)
+  defp sort_set(set, _type), do: MapSet.to_list(set)
+
+  defp set_min(set), do: Enum.reduce(set, &Data.min/2)
+
+  defp set_max(set), do: Enum.reduce(set, &Data.max/2)
 
   defp joined_row_size({:subquery, subquery}), do: Enum.count(subquery.ast.db_columns)
   defp joined_row_size({:join, join}), do: joined_row_size(join.lhs) + joined_row_size(join.rhs)
