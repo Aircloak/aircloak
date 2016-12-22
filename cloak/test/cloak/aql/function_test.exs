@@ -535,8 +535,13 @@ defmodule Cloak.Aql.Function.Test do
   defp return_type(name, arg_types), do:
     Function.return_type({:function, name, Enum.map(arg_types, &Expression.constant(&1, nil))})
 
-  defp apply_function(name, args), do:
-    Function.apply(args, {:function, name, nil})
+  defp apply_function(name, args) do
+    val1 = Function.apply(args, {:function, name, nil})
+    expression = Expression.function(name, Enum.map(args, &Expression.constant(nil, &1)))
+    val2 = Expression.value(expression, [])
+    assert val1 == val2
+    val1
+  end
 
   defp well_typed?(name, types), do:
     Function.well_typed?({:function, name, Enum.map(types, &Expression.constant(&1, nil))})
