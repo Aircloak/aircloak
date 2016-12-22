@@ -394,7 +394,7 @@ defmodule Cloak.Aql.Compiler do
     Enum.filter(query.columns, &individual_column?(&1, query))
   defp invalid_individual_columns(%Query{command: :select} = query) do
     query.columns
-    |> Enum.reject(&constant_column?/1)
+    |> Enum.reject(&Expression.constant?/1)
     |> Enum.partition(&aggregated_column?(&1, query))
     |> case  do
       {[_|_] = _aggregates, [_|_] = individual_columns} -> individual_columns
@@ -405,29 +405,15 @@ defmodule Cloak.Aql.Compiler do
   defp aggregated_column?(column, query), do:
     Enum.member?(query.group_by, column) or
     (
-      Function.function?(column) and
-      (
-        Function.aggregate_function?(column) or
-        column |> Function.arguments() |> Enum.any?(&aggregated_column?(&1, query))
-      )
-    ) or
-    (
-      Expression.db_function?(column) and
+      Expression.function?(column) and
       (
         column.aggregate? or
         Enum.any?(column.function_args, &aggregated_column?(&1, query))
       )
     )
 
-  defp constant_column?(column), do:
-    Expression.constant?(column) or
-    (
-      Function.function?(column) and
-      column |> Function.arguments() |> Enum.all?(&constant_column?/1)
-    )
-
   defp individual_column?(column, query), do:
-    not constant_column?(column) and not aggregated_column?(column, query)
+    not Expression.constant?(column) and not aggregated_column?(column, query)
 
   defp compile_columns(query) do
     query
@@ -495,9 +481,9 @@ defmodule Cloak.Aql.Compiler do
         "Cannot cast value of type `#{cast_source}` to type `#{cast_target}`."
       many_overloads?(function_call) ->
         "Arguments of type (#{function_call |> actual_types() |> quoted_list()}) are incorrect"
-          <> " for `#{Function.name(function_call)}`."
+          <> " for `#{column_title(function_call)}`."
       true ->
-        "Function `#{Function.name(function_call)}` requires arguments of type #{expected_types(function_call)}"
+        "Function `#{column_title(function_call)}` requires arguments of type #{expected_types(function_call)}"
           <> ", but got (#{function_call |> actual_types() |> quoted_list()})."
     end
   end
@@ -567,7 +553,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp verify_group_by_functions(query) do
     query.group_by
-    |> Enum.filter(&Function.aggregate_function?/1)
+    |> Enum.filter(&(Expression.function?(&1) and &1.aggregate?))
     |> case do
       [] -> :ok
       [function | _] -> raise CompilationError,
@@ -601,7 +587,7 @@ defmodule Cloak.Aql.Compiler do
   defp verify_function_subquery_usage(function, %Query{subquery?: true}) do
     unless Function.allowed_in_subquery?(function) do
       raise CompilationError, message:
-        "Function `#{Function.name(function)}` is not allowed in subqueries."
+        "Function `#{column_title(function)}` is not allowed in subqueries."
     end
   end
 
@@ -1012,12 +998,16 @@ defmodule Cloak.Aql.Compiler do
       end
     end
   end
-  defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name,
-      %Query{subquery?: true, emulated?: false} = query) do
+  defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name, query) do
     check_function_validity(function_spec, query)
     case Function.return_type(function_spec) do
       nil -> raise CompilationError, message: function_argument_error_message(function_spec)
-      type -> Expression.db_function(name, args, type, Function.aggregate_function?(function_spec))
+      type ->
+        if query.subquery? do
+          Expression.db_function(name, args, type, Function.aggregate_function?(function_spec))
+        else
+          Expression.function(name, args, type, Function.aggregate_function?(function_spec))
+        end
     end
   end
   defp identifier_to_column({:parameter, index}, _columns_by_name, query) do
@@ -1055,7 +1045,9 @@ defmodule Cloak.Aql.Compiler do
   defp insensitive_equal?(s1, s2), do: String.downcase(s1) == String.downcase(s2)
 
   def column_title({_identifier, :as, alias}), do: alias
-  def column_title(function = {:function, _, _}), do: Function.name(function)
+  def column_title({:function, {:cast, _}, _}), do: "cast"
+  def column_title({:function, {:bucket, _}, _}), do: "bucket"
+  def column_title({:function, name, _}), do: name
   def column_title({:distinct, identifier}), do: column_title(identifier)
   def column_title({:identifier, _table, {_, column}}), do: column
   def column_title({:constant, _, _}), do: ""

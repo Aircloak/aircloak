@@ -48,6 +48,8 @@ defmodule Cloak.Aql.Expression do
   @doc "Returns true if the given term is a constant column, false otherwise."
   @spec constant?(Cloak.Aql.Parser.column | t) :: boolean
   def constant?(%__MODULE__{constant?: true}), do: true
+  def constant?(%__MODULE__{function: function, function_args: args}) when function != nil, do:
+    Enum.all?(args, &constant?/1)
   def constant?(_), do: false
 
   @doc "Returns true if the given term represents a function call."

@@ -161,9 +161,9 @@ defmodule Cloak.Aql.Function do
 
   @doc "Returns the function name of the given function call."
   @spec name(t) :: String.t
-  def name({:function, {:cast, _}, _}), do: "cast"
-  def name({:function, {:bucket, _}, _}), do: "bucket"
-  def name({:function, name, _}), do: name
+  def name(%Expression{function: {:cast, _}}), do: "cast"
+  def name(%Expression{function: {:bucket, _}}), do: "bucket"
+  def name(%Expression{function: name}), do: name
 
   @doc "Returns the return type of the given function call."
   @spec return_type(t) :: data_type | nil
