@@ -101,24 +101,35 @@ defmodule Cloak.Aql.Compiler.Test do
   for function <- ~w(min max median) do
     test "allowing #{function} on numeric columns" do
       assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
+      assert {:ok, _} = compile("select #{unquote(function)}(distinct numeric) from table", data_source())
     end
 
     test "allowing #{function} on text columns in subqueries" do
-      assert {:ok, _} =
-        compile("select * from (select uid, #{unquote(function)}(string) from table group by uid) t", data_source())
+      assert {:ok, _} = compile("""
+          select * from (select uid, #{unquote(function)}(string) from table group by uid) t
+        """, data_source())
+      assert {:ok, _} = compile("""
+          select * from (select uid, #{unquote(function)}(distinct string) from table group by uid) t
+        """, data_source())
     end
 
     test "allowing #{function} on datetime columns in subqueries" do
-      assert {:ok, _} =
-        compile("select * from (select uid, #{unquote(function)}(column) from table group by uid) t", data_source())
+      assert {:ok, _} = compile("""
+          select * from (select uid, #{unquote(function)}(column) from table group by uid) t
+        """, data_source())
+      assert {:ok, _} = compile("""
+          select * from (select uid, #{unquote(function)}(distinct column) from table group by uid) t
+        """, data_source())
     end
 
     test "rejecting #{function} on text columns in top query" do
       assert {:error, _} = compile("select #{unquote(function)}(string) from table", data_source())
+      assert {:error, _} = compile("select #{unquote(function)}(distinct string) from table", data_source())
     end
 
     test "rejecting #{function} on datetime columns in top query" do
       assert {:error, _} = compile("select #{unquote(function)}(column) from table", data_source())
+      assert {:error, _} = compile("select #{unquote(function)}(distinct column) from table", data_source())
     end
   end
 
