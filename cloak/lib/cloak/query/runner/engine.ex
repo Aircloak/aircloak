@@ -59,7 +59,7 @@ defmodule Cloak.Query.Runner.Engine do
     rows
     |> Query.DataDecoder.decode(query)
     |> Query.RowSplitters.split(query)
-    |> Query.Filter.apply_query_filters(query)
+    |> Query.Rows.apply_query_filters(query)
     |> Query.LCFConditions.apply(query)
     |> Query.ShrinkAndDrop.apply(query)
     |> Query.Aggregator.aggregate(query)

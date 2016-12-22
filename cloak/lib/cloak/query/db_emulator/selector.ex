@@ -4,7 +4,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   """
 
   alias Cloak.Aql.{Query, Comparison, Function, Expression}
-  alias Cloak.Query.{Filter, Sorter}
+  alias Cloak.Query.{Rows, Sorter}
   alias Cloak.Data
 
 
@@ -16,7 +16,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   @spec select(Enumerable.t, Query.t) :: Enumerable.t
   def select(stream, query) do
     stream
-    |> Filter.apply_query_filters(query)
+    |> Rows.apply_query_filters(query)
     |> select_columns(query)
     |> Sorter.order_rows(query)
     |> offset_rows(query)
@@ -72,7 +72,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
         |> Enum.map(fn ({value, finalizer}) -> finalizer.(value) end)
       property ++ values
     end)
-    |> Cloak.Query.Aggregator.extract_groups(query)
+    |> Cloak.Query.Rows.extract_groups(query)
   end
   defp select_columns(stream, %Query{columns: columns} = query) do
     Stream.map(stream, fn (row) ->
@@ -182,7 +182,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
     Stream.flat_map(lhs, fn (lhs_row) ->
       rhs
       |> add_prefix_to_rows(lhs_row)
-      |> Filter.apply_filters(filters)
+      |> Rows.apply_filters(filters)
     end)
   end
 
@@ -201,7 +201,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
     Stream.flat_map(lhs, fn (lhs_row) ->
       rhs
       |> rows_combiner.(lhs_row)
-      |> Filter.apply_filters(filters)
+      |> Rows.apply_filters(filters)
       |> Enum.to_list()
       |> case do
         [] -> unmatched_handler.(lhs_row)
