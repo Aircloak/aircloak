@@ -49,7 +49,9 @@ defmodule Cloak.Query.DbEmulator do
   end
   defp select_rows({:join, join}) do
     Logger.debug("Emulating join ...")
-    Selector.join(select_rows(join.lhs), select_rows(join.rhs), join)
-    |> Enum.to_list()
+    rhs_task = Task.async(fn() -> select_rows(join.rhs) end)
+    lhs_rows = select_rows(join.lhs)
+    rhs_rows = Task.await(rhs_task)
+    Selector.join(lhs_rows, rhs_rows, join)
   end
 end
