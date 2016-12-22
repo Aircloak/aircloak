@@ -189,7 +189,7 @@ defmodule Cloak.Aql.Query do
       nil ->
         {next_row_index, query} = next_row_index(query)
         Lens.map(
-          Lenses.columns() |> Lens.satisfy(&(Expression.id(&1) == Expression.id(column))) |> Lens.key(:row_index),
+          Lenses.query_expressions() |> Lenses.expressions_like(column) |> Lens.key(:row_index),
           %__MODULE__{query | db_columns: query.db_columns ++ [column]},
           fn(_) -> next_row_index end
         )
