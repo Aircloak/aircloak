@@ -37,6 +37,7 @@ defmodule Cloak.Query.DbEmulator do
     |> Enum.to_list()
   end
   defp select_rows({:subquery, %{ast: %Query{} = query}}) do
+    # either a non-emulated subquery, or a subquery selecting from a single table
     Logger.debug("Loading sub-query through data source ...")
     DataSource.select!(%Query{query | subquery?: false}, fn(rows) ->
       Logger.debug("Processing rows ...")
