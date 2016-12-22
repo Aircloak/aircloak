@@ -59,7 +59,7 @@ defmodule Cloak.Query.Runner.Engine do
     rows
     |> Query.DataDecoder.decode(query)
     |> Query.RowSplitters.split(query)
-    |> Query.Rows.apply_query_filters(query)
+    |> Query.Rows.filter(Enum.map(query.where, &Aql.Comparison.to_function/1))
     |> Query.LCFConditions.apply(query)
     |> Query.ShrinkAndDrop.apply(query)
     |> Query.Aggregator.aggregate(query)

@@ -1,23 +1,16 @@
 defmodule Cloak.Query.Rows do
   @moduledoc "Functions for row processing, such as filtering and grouping."
-  alias Cloak.Aql.{Comparison, Expression, Function, Query}
+  alias Cloak.Aql.{Expression, Function, Query}
 
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Applies all filters to each row and returns a stream of rows passing all the filters."
-  @spec apply_query_filters(Enumerable.t, Query.t) :: Enumerable.t
-  def apply_query_filters(rows, %Query{where: conditions}) do
-    filters = Enum.map(conditions, &Comparison.to_function/1)
-    apply_filters(rows, filters)
-  end
-
-  @doc "Applies all filters to each row and returns a stream of rows passing all the filters."
-  @spec apply_filters(Enumerable.t, [(any -> boolean)]) :: Enumerable.t
-  def apply_filters(rows, []), do: rows
-  def apply_filters(rows, filters), do:
+  @doc "Returns a stream of rows passing all the given filters."
+  @spec filter(Enumerable.t, [(any -> boolean)]) :: Enumerable.t
+  def filter(rows, []), do: rows
+  def filter(rows, filters), do:
     Stream.filter(rows, &Enum.all?(filters, fn(filter) -> filter.(&1) end))
 
   @doc "Selects and filters the rows according to query aggregators and properties."

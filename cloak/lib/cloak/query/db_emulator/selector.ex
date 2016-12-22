@@ -16,7 +16,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   @spec select(Enumerable.t, Query.t) :: Enumerable.t
   def select(stream, query) do
     stream
-    |> Rows.apply_query_filters(query)
+    |> Rows.filter(Enum.map(query.where, &Comparison.to_function/1))
     |> select_columns(query)
     |> Sorter.order_rows(query)
     |> offset_rows(query)
@@ -182,7 +182,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
     Stream.flat_map(lhs, fn (lhs_row) ->
       rhs
       |> add_prefix_to_rows(lhs_row)
-      |> Rows.apply_filters(filters)
+      |> Rows.filter(filters)
     end)
   end
 
@@ -201,7 +201,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
     Stream.flat_map(lhs, fn (lhs_row) ->
       rhs
       |> rows_combiner.(lhs_row)
-      |> Rows.apply_filters(filters)
+      |> Rows.filter(filters)
       |> Enum.to_list()
       |> case do
         [] -> unmatched_handler.(lhs_row)
