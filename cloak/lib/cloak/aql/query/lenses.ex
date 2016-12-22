@@ -30,10 +30,6 @@ defmodule Cloak.Aql.Query.Lenses do
   deflens query_expressions(), do:
     terminals() |> expressions()
 
-  @doc "Lens focusing on expressions."
-  deflens expressions(), do:
-    Lens.satisfy(Lens.root(), &match?(%Expression{}, &1))
-
   @doc "Lens focusing leaf (non-functions) expressions in a list of expressions."
   deflens leaf_expressions(), do:
     Lens.both(terminal_elements(), conditions_terminals())
@@ -123,6 +119,9 @@ defmodule Cloak.Aql.Query.Lenses do
       elements when is_list(elements) -> Lens.all() |> terminal_elements()
       _ -> Lens.root
     end)
+
+  deflensp expressions(), do:
+    Lens.satisfy(Lens.root(), &match?(%Expression{}, &1))
 
   deflensp do_leaf_expressions(), do:
     Lens.match(fn
