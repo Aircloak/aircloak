@@ -520,7 +520,7 @@ defmodule Cloak.Aql.Compiler.Test do
   end
 
   test "no message when datetime alignment does not require fixing" do
-    assert compile!("select * from table where column >= '2014-01-01' and column < '2016-01-01'", data_source()).
+    assert compile!("select * from table where column >= '2006-05-31' and column < '2006-06-01'", data_source()).
       info == []
   end
 
