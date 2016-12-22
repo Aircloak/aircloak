@@ -50,7 +50,7 @@ defmodule Cloak.Query.Runner.Engine do
   defp select_rows(%Aql.Query{emulated?: true} = query) do
     Logger.debug("Emulating query ...")
     query
-    |> Query.DbEmulator.select_rows()
+    |> Query.DbEmulator.select()
     |> process_final_rows(query)
   end
 
@@ -59,7 +59,7 @@ defmodule Cloak.Query.Runner.Engine do
     rows
     |> Query.DataDecoder.decode(query)
     |> Query.RowSplitters.split(query)
-    |> Query.Filter.apply_query_filters(query)
+    |> Query.Rows.filter(Enum.map(query.where, &Aql.Comparison.to_function/1))
     |> Query.LCFConditions.apply(query)
     |> Query.ShrinkAndDrop.apply(query)
     |> Query.Aggregator.aggregate(query)
