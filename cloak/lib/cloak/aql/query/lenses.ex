@@ -27,8 +27,16 @@ defmodule Cloak.Aql.Query.Lenses do
     |> terminal_elements()
 
   @doc "Lens focusing all column elements in the query (subqueries are not included)."
-  deflens columns(), do:
-    Lens.satisfy(terminals(), &match?(%Expression{}, &1))
+  deflens query_expressions(), do:
+    terminals() |> expressions()
+
+  @doc "Lens focusing on expressions."
+  deflens expressions(), do:
+    Lens.satisfy(Lens.root(), &match?(%Expression{}, &1))
+
+  @doc "Lens focusing on expressions with the same id as the given expression."
+  deflens expressions_like(other_expression), do:
+    Lens.satisfy(expressions(), &(Expression.id(&1) == Expression.id(other_expression)))
 
   @doc "Lens focusing on invocations of row splitting functions"
   deflens splitter_functions(), do: terminal_elements() |> Lens.satisfy(&Function.row_splitting_function?/1)
