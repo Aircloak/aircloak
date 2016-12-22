@@ -16,10 +16,10 @@ defmodule Cloak.Query.DbEmulator do
   # -------------------------------------------------------------------
 
   @doc "Retrieves rows according to the specification in the emulated query."
-  @spec select_rows(Query.t) :: Enumerable.t
-  def select_rows(%Query{emulated?: true} = query), do:
+  @spec select(Query.t) :: Enumerable.t
+  def select(%Query{emulated?: true} = query), do:
     query.from
-    |> select_emulated_rows()
+    |> select_rows()
     |> Selector.pick_db_columns(query)
 
 
@@ -27,16 +27,16 @@ defmodule Cloak.Query.DbEmulator do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp select_emulated_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}}) when not is_binary(from) do
+  defp select_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}}) when not is_binary(from) do
     Logger.debug("Emulating sub-query ...")
-    rows = select_emulated_rows(from)
+    rows = select_rows(from)
     Logger.debug("Processing rows ...")
     rows
     |> Selector.pick_db_columns(subquery)
     |> Selector.select(subquery)
     |> Enum.to_list()
   end
-  defp select_emulated_rows({:subquery, %{ast: %Query{} = query}}) do
+  defp select_rows({:subquery, %{ast: %Query{} = query}}) do
     Logger.debug("Loading sub-query through data source ...")
     DataSource.select!(%Query{query | subquery?: false}, fn(rows) ->
       Logger.debug("Processing rows ...")
@@ -46,9 +46,9 @@ defmodule Cloak.Query.DbEmulator do
       |> Enum.to_list()
     end)
   end
-  defp select_emulated_rows({:join, join}) do
+  defp select_rows({:join, join}) do
     Logger.debug("Emulating join ...")
-    Selector.join(select_emulated_rows(join.lhs), select_emulated_rows(join.rhs), join)
+    Selector.join(select_rows(join.lhs), select_rows(join.rhs), join)
     |> Enum.to_list()
   end
 end

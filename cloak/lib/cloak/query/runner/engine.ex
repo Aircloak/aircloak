@@ -50,7 +50,7 @@ defmodule Cloak.Query.Runner.Engine do
   defp select_rows(%Aql.Query{emulated?: true} = query) do
     Logger.debug("Emulating query ...")
     query
-    |> Query.DbEmulator.select_rows()
+    |> Query.DbEmulator.select()
     |> process_final_rows(query)
   end
 
