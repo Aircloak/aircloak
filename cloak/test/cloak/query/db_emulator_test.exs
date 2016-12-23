@@ -140,12 +140,18 @@ defmodule Cloak.Query.DBEmulatorTest do
 
   describe "distinct in emulated subqueries" do
     defp distinct_setup(_) do
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("abc")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("x")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("xyz")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("abcde")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("1234")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [nil])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
+        ["value", "date"], [Base.encode64("abc"), "2016-11-02"])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
+        ["value", "date"], [Base.encode64("x"), "2015-01-30"])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
+        ["value", "date"], [Base.encode64("xyz"), "2014-02-04"])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
+        ["value", "date"], [Base.encode64("abcde"), "2013-02-08"])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
+        ["value", "date"], [Base.encode64("1234"), "2013-12-04"])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
+        ["value", "date"], [nil, nil])
     end
 
     setup [:distinct_setup]
@@ -173,6 +179,20 @@ defmodule Cloak.Query.DBEmulatorTest do
           select avg(v) from
           (select user_id, avg(distinct length(value)) as v from #{@prefix}emulated group by user_id) as t
         """, %{rows: [%{occurrences: 1, row: [3.25]}]}
+
+    test "distinct min/max/median with text" do
+      assert_query """
+          select * from (select user_id, min(distinct value), max(distinct value), median(distinct value)
+          from #{@prefix}emulated group by user_id) as t
+        """, %{rows: [%{occurrences: 20, row: [:*, "1234", "xyz", "abcde"]}]}
+    end
+
+    test "distinct min/max/median with date" do
+      assert_query """
+          select * from (select user_id, min(distinct date), max(distinct date), median(distinct date)
+          from #{@prefix}emulated group by user_id) as t
+        """, %{rows: [%{occurrences: 20, row: [:*, ~D[2013-02-08], ~D[2016-11-02], ~D[2014-02-04]]}]}
+    end
   end
 
   describe "emulated joins" do
