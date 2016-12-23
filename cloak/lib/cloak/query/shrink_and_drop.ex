@@ -13,7 +13,7 @@ defmodule Cloak.Query.ShrinkAndDrop do
   # -------------------------------------------------------------------
 
   @doc "Applies the shrink and drop algorithm in a streaming manner."
-  @spec apply(Stream.t, Query.t) :: Stream.t
+  @spec apply(Enumerable.t, Query.t) :: Enumerable.t
   def apply(rows, query) do
     query.ranges
     |> Enum.sort_by(fn(range) -> {range.column.name, range.column.table} end)

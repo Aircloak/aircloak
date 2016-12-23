@@ -15,7 +15,7 @@ defmodule Cloak.Aql.Parser do
 
   @type qualified_identifier :: {:identifier, :unknown | table, unqualified_identifier}
 
-  @type data_type :: DataSource.data_type | :interval
+  @type data_type :: Cloak.DataSource.data_type | :interval
 
   @type function_name :: String.t | {:bucket, atom} | {:cast, data_type}
 
