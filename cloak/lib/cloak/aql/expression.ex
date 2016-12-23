@@ -20,12 +20,13 @@ defmodule Cloak.Aql.Expression do
     value: any,
     function: function_name | nil,
     function_args: [t],
+    function?: boolean,
     db_function?: boolean,
     aggregate?: boolean
   }
   defstruct [
     table: :unknown, name: nil, alias: nil, type: nil, user_id?: false, row_index: nil, constant?: false,
-    value: nil, function: nil, function_args: [], db_function?: false, aggregate?: false
+    value: nil, function: nil, function_args: [], db_function?: false, aggregate?: false, function?: false,
   ]
 
   @doc "Returns a column struct representing the constant `value`."
@@ -37,25 +38,20 @@ defmodule Cloak.Aql.Expression do
   @doc "Creates a column representing a function call."
   @spec function(function_name, [t], column_type, boolean) :: t
   def function(function_name, function_args, type \\ nil, aggregate? \\ false), do:
-    %__MODULE__{function: function_name, function_args: function_args, type: type, aggregate?: aggregate?}
+    %__MODULE__{
+      function: function_name, function_args: function_args, type: type, aggregate?: aggregate?, function?: true
+    }
 
   @doc "Creates a column representing a database function call."
   @spec db_function(function_name, [t], column_type, boolean) :: t
-  def db_function(function_name, function_args, type \\ nil, aggregate? \\ false) do
+  def db_function(function_name, function_args, type \\ nil, aggregate? \\ false), do:
     %__MODULE__{function(function_name, function_args, type, aggregate?) | db_function?: true}
-  end
 
   @doc "Returns true if the given term is a constant column, false otherwise."
   @spec constant?(Cloak.Aql.Parser.column | t) :: boolean
   def constant?(%__MODULE__{constant?: true}), do: true
-  def constant?(%__MODULE__{function: function, function_args: args}) when function != nil, do:
-    Enum.all?(args, &constant?/1)
+  def constant?(%__MODULE__{function?: true, function_args: args}), do: Enum.all?(args, &constant?/1)
   def constant?(_), do: false
-
-  @doc "Returns true if the given term represents a function call."
-  @spec function?(Cloak.Aql.Parser.column | t) :: boolean
-  def function?(%__MODULE__{function: function}) when function != nil, do: true
-  def function?(_), do: false
 
   @doc "Returns true if the given term represents a database function call."
   @spec db_function?(Cloak.Aql.Parser.column | t) :: boolean

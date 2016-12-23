@@ -419,7 +419,7 @@ defmodule Cloak.Aql.Compiler do
   defp aggregated_column?(column, query), do:
     Enum.member?(query.group_by, column) or
     (
-      Expression.function?(column) and
+      column.function? and
       (
         column.aggregate? or
         Enum.any?(column.function_args, &aggregated_column?(&1, query))
@@ -555,7 +555,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp verify_group_by_functions(query) do
     query.group_by
-    |> Enum.filter(&(Expression.function?(&1) and &1.aggregate?))
+    |> Enum.filter(&(&1.function? and &1.aggregate?))
     |> case do
       [] -> :ok
       [function | _] -> raise CompilationError,
