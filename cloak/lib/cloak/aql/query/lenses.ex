@@ -73,6 +73,20 @@ defmodule Cloak.Aql.Query.Lenses do
     |> join_elements()
     |> Lens.satisfy(&is_binary/1)
 
+  @doc "Lens focusing on all join elements of a query."
+  deflens joins(), do:
+    Lens.key(:from)
+    |> join_elements()
+    |> Lens.satisfy(&match?({:join, _}, &1))
+    |> Lens.at(1)
+
+  @doc "Lens focusing on all terminal elements in all join conditions of a query."
+  deflens join_conditions_terminals(), do:
+    joins()
+    |> Lens.key(:conditions)
+    |> conditions_terminals()
+
+
   # -------------------------------------------------------------------
   # Internal lenses
   # -------------------------------------------------------------------

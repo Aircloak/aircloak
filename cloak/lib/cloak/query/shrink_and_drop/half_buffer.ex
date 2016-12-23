@@ -78,7 +78,7 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer do
   end
 
   @doc "Returns all data in the buffer for which the value is included in the given interval."
-  @spec inside(t, FixAlign.interval(number)) :: [Buffer.row_data]
+  @spec inside(t, Cloak.Aql.FixAlign.interval(number)) :: [Buffer.row_data]
   def inside(%{users: users}, {x, y}) do
     users
     |> Map.values()

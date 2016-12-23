@@ -39,6 +39,21 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
+  @doc "Creates the query which describes a SELECT statement from a single table."
+  @spec make_select_query(DataSource.t, String.t, [Expression.t], [subquery?: boolean]) :: Query.t
+  def make_select_query(data_source, table_name, select_expressions, options \\ []) do
+    column_titles = for expression <- select_expressions, do: expression.alias || expression.name
+    calculate_db_columns(%Query{
+      command: :select,
+      subquery?: Keyword.get(options, :subquery?, false),
+      columns: select_expressions,
+      column_titles: column_titles,
+      from: table_name,
+      data_source: data_source,
+      selected_tables: [DataSource.table(data_source, table_name)]
+    })
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -81,7 +96,6 @@ defmodule Cloak.Aql.Compiler do
       |> verify_having()
       |> partition_where_clauses()
       |> calculate_db_columns()
-      |> compile_emulated_joins()
       |> verify_limit()
       |> verify_offset()
       |> verify_function_usage_for_selected_columns()
@@ -566,10 +580,14 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp verify_function_subquery_usage({:function, function, [%Expression{type: type}]}, %Query{subquery?: false})
-      when function in ["min", "max", "median"] and type in [:text, :date, :time, :datetime] do
-    raise CompilationError, message:
-      "Function `#{function}` is allowed over arguments of type `#{type}` only in subqueries."
+  defp verify_function_subquery_usage({:function, function, [argument]}, %Query{subquery?: false})
+      when function in ["min", "max", "median"] do
+    type = Function.type(argument)
+    if Enum.member?([:text, :date, :time, :datetime], type) do
+      raise CompilationError, message:
+        "Function `#{function}` is allowed over arguments of type `#{type}` only in subqueries."
+    end
+    :ok
   end
   defp verify_function_subquery_usage(_function, %Query{subquery?: false}), do: :ok
   defp verify_function_subquery_usage(function, %Query{subquery?: true}) do
@@ -822,7 +840,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp implement_range?({left, right}, conditions) do
     [{_, _, left_operator, left_column}, {_, _, right_operator, right_column}] =
-      Enum.sort_by(conditions, &Comparison.value/1)
+      Enum.sort_by(conditions, &Comparison.value/1, &Cloak.Data.lt_eq/2)
 
     left_operator == :>= && left_column.value == left && right_operator == :< && right_column.value == right
   end
@@ -1121,14 +1139,6 @@ defmodule Cloak.Aql.Compiler do
   defp any_outer_join?({:join, join}),
     do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
 
-  defp set_column_row_index(%Expression{} = column, columns) do
-    case Enum.find_index(columns, &Expression.id(&1) == Expression.id(column)) do
-      # It's not actually a needed column, so ignore for the purpose of positioning
-      nil -> column
-      position -> %Expression{column | row_index: position}
-    end
-  end
-  defp set_column_row_index(other, _columns), do: other
 
   defp join_conditions_scope_check(from) do
     do_join_conditions_scope_check(from, [])
@@ -1245,80 +1255,6 @@ defmodule Cloak.Aql.Compiler do
   defp needs_emulation?(query), do:
     query |> get_in([Query.Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?)) or
     (query.subquery? and needs_decoding?(query))
-
-  defp compile_emulated_joins(%Query{emulated?: true, from: {:join, _}} = query) do
-    from =
-      query.from
-      |> replace_joined_tables_with_subqueries(query.db_columns, query)
-      |> compile_join_conditions_columns()
-    %Query{query | from: from}
-  end
-  defp compile_emulated_joins(query), do: query
-
-  # For emulated joins, we need to set the `row_index` field for the columns in the `ON` clause.
-  defp compile_join_conditions_columns({:join, join}) do
-    # Because this is an emulated query we only have joining of subqueries, as
-    # tables references were previously translated into subqueries.
-    columns = joined_columns({:join, join})
-    mapper_fun = &set_column_row_index(&1, columns)
-    conditions = Lens.map(Query.Lenses.conditions_terminals(), join.conditions, mapper_fun)
-    lhs = compile_join_conditions_columns(join.lhs)
-    rhs = compile_join_conditions_columns(join.rhs)
-    join = Map.put(join, :columns, columns)
-    {:join, %{join | conditions: conditions, lhs: lhs, rhs: rhs}}
-  end
-  defp compile_join_conditions_columns({:subquery, subquery}), do: {:subquery, subquery}
-
-  defp joined_columns({:join, join}) do
-    joined_columns(join.lhs) ++ joined_columns(join.rhs)
-  end
-  defp joined_columns({:subquery, subquery}) do
-    user_id_name = case Enum.find_index(subquery.ast.columns, &(&1.user_id?)) do
-      nil -> nil
-      index -> Enum.at(subquery.ast.column_titles, index)
-    end
-    columns =
-        Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
-        |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
-    table = %{
-      name: subquery.alias,
-      columns: columns,
-      user_id: user_id_name,
-      decoders: [],
-      projection: nil
-    }
-    Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
-    |> Enum.map(fn ({alias, column}) ->
-      %Expression{table: table, name: alias, type: Function.type(column), user_id?: user_id_name == alias}
-    end)
-  end
-
-  # The DBEmulator modules doesn't know how to select a table directly, so we need
-  # to replace any direct references to joined table with the equivalent subquery.
-  defp replace_joined_tables_with_subqueries(table_name, columns, parrent_query) when is_binary(table_name) do
-    columns = for %Expression{table: %{name: ^table_name}} = column <- columns, do: column
-    column_titles = for column <- columns, do: column.alias || column.name
-    query =
-      %Query{
-        command: :select,
-        subquery?: true,
-        columns: columns,
-        column_titles: column_titles,
-        from: table_name,
-        data_source: parrent_query.data_source,
-        selected_tables: [DataSource.table(parrent_query.data_source, table_name)]
-      }
-      |> calculate_db_columns()
-    {:subquery, %{type: :parsed, ast: query, alias: table_name}}
-  end
-  defp replace_joined_tables_with_subqueries({:subquery, subquery}, _columns, _parrent_query), do: {:subquery, subquery}
-  defp replace_joined_tables_with_subqueries({:join, join}, db_columns, parrent_query) do
-    on_columns = extract_columns(join.conditions)
-    columns = Enum.uniq_by(db_columns ++ on_columns, &Expression.id/1)
-    lhs = replace_joined_tables_with_subqueries(join.lhs, columns, parrent_query)
-    rhs = replace_joined_tables_with_subqueries(join.rhs, columns, parrent_query)
-    {:join, %{join | lhs: lhs, rhs: rhs}}
-  end
 
   defp verify_function_usage_for_selected_columns(%Query{columns: _columns, subquery?: true} = query), do: query
   defp verify_function_usage_for_selected_columns(%Query{columns: columns} = query) do
