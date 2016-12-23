@@ -131,6 +131,7 @@ defmodule Cloak.Aql.Query.Lenses do
       {:distinct, _} -> Lens.both(Lens.at(1) |> terminal_elements(), Lens.root())
       {_, :as, _} -> Lens.at(0)
       elements when is_list(elements) -> Lens.all() |> terminal_elements()
+      %Expression{function?: true} -> Lens.both(Lens.key(:function_args) |> terminal_elements, Lens.root())
       _ -> Lens.root
     end)
 
