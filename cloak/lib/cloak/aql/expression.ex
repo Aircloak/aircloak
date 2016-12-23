@@ -42,6 +42,10 @@ defmodule Cloak.Aql.Expression do
       function: function_name, function_args: function_args, type: type, aggregate?: aggregate?, function?: true
     }
 
+  @doc "Returns an expression representing a count(*)."
+  @spec count_star() :: t
+  def count_star(), do: function("count", [:*], nil, true)
+
   @doc "Creates a column representing a database function call."
   @spec db_function(function_name, [t], column_type, boolean) :: t
   def db_function(function_name, function_args, type \\ nil, aggregate? \\ false), do:

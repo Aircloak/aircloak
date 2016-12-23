@@ -617,7 +617,7 @@ defmodule Cloak.Aql.Compiler do
       [] ->
         %Query{query |
           property: query.columns |> drop_duplicate_columns_except_row_splitters(),
-          aggregators: [{:function, "count", [:*]}],
+          aggregators: [Expression.count_star()],
           implicit_count?: true
         }
       aggregators ->

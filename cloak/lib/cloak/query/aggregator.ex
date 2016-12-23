@@ -251,7 +251,7 @@ defmodule Cloak.Query.Aggregator do
     Logger.debug("Making implicit buckets ...")
     # We add the implicit "count" to the list of selected columns so that we can
     # retrieve it afterwards when making the bucket.
-    columns_with_count = [%Expression{function: "count", function_args: [:*]} | query.columns]
+    columns_with_count = [Expression.count_star() | query.columns]
     rows
     |> Rows.extract_groups(%Query{query | columns: columns_with_count})
     |> Enum.map(fn ([count | row]) -> %{row: row, occurrences: count} end)
