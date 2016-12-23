@@ -458,26 +458,14 @@ defmodule Cloak.Aql.Compiler do
     verify_functions(query)
     verify_aggregated_columns(query)
     verify_group_by_functions(query)
-    verify_function_arguments(query)
     query
-  end
-
-  defp verify_function_arguments(query) do
-    query.columns
-    |> Enum.flat_map(&expand_arguments/1)
-    |> Enum.reject(&Function.well_typed?/1)
-    |> case do
-      [] -> :ok
-      [function_call | _rest] ->
-        raise CompilationError, message: function_argument_error_message(function_call)
-    end
   end
 
   defp function_argument_error_message(function_call) do
     cond do
       Function.cast?(function_call) ->
         [cast_source] = actual_types(function_call)
-        cast_target = Function.return_type(function_call)
+        cast_target = Function.cast_target(function_call)
         "Cannot cast value of type `#{cast_source}` to type `#{cast_target}`."
       many_overloads?(function_call) ->
         "Arguments of type (#{function_call |> actual_types() |> quoted_list()}) are incorrect"

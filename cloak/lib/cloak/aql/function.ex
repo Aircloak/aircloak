@@ -150,6 +150,10 @@ defmodule Cloak.Aql.Function do
   def cast?({:function, {:cast, _}, _}), do: true
   def cast?(_), do: false
 
+  @doc "Returns the target type of the given cast."
+  @spec cast_target(t) :: argument_type
+  def cast_target({:function, {:cast, target}, _}), do: target
+
   @doc "Returns a list of possible argument lists required by the given function call."
   @spec argument_types(t) :: [[argument_type]]
   def argument_types({:function, function, _}), do: @functions[function].type_specs |> Map.keys()
@@ -165,9 +169,8 @@ defmodule Cloak.Aql.Function do
   def name(%Expression{function: {:bucket, _}}), do: "bucket"
   def name(%Expression{function: name}), do: name
 
-  @doc "Returns the return type of the given function call."
+  @doc "Returns the return type of the given function call or nil if it is badly typed."
   @spec return_type(t) :: data_type | nil
-  def return_type({:function, {:cast, type}, _}), do: type
   def return_type(function = {:function, name, _}) do
     @functions[name].type_specs
     |> Enum.find(fn({arguments, _}) -> do_well_typed?(function, arguments) end)
