@@ -112,7 +112,7 @@ defmodule Cloak.Aql.Query do
   @spec aggregated_columns(t) :: [Expression.t]
   def aggregated_columns(query) do
     query.aggregators
-    |> Enum.flat_map(&Function.arguments/1)
+    |> Enum.flat_map(&(&1.function_args))
     |> Enum.uniq()
   end
 
