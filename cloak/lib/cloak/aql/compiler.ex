@@ -466,7 +466,7 @@ defmodule Cloak.Aql.Compiler do
   defp filter_aggregators(columns), do:
     columns
     |> Enum.flat_map(&expand_arguments/1)
-    |> Enum.filter(&(&1.function? && &1.aggregate?))
+    |> Enum.filter(&(match?(%Expression{}, &1) && &1.function? && &1.aggregate?))
 
   defp verify_columns(query) do
     verify_functions(query)
@@ -519,10 +519,10 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.join(" or ")
 
   defp actual_types(function_call), do:
-    Function.arguments(function_call) |> Enum.map(&Function.type/1)
+    Function.arguments(function_call) |> Enum.map(&(&1.type))
 
   defp expand_arguments(column) do
-    (column |> Function.arguments() |> Enum.flat_map(&expand_arguments/1)) ++ [column]
+    (column |> Expression.arguments() |> Enum.flat_map(&expand_arguments/1)) ++ [column]
   end
 
   defp quoted_list(items), do:
@@ -1065,13 +1065,8 @@ defmodule Cloak.Aql.Compiler do
   end
   defp censor_selected_uids(query), do: query
 
-  defp is_uid_column?(column) do
-    if Function.aggregate_function?(column) do
-      false
-    else
-      [column] |> extract_columns() |> Enum.any?(& &1.user_id?)
-    end
-  end
+  defp is_uid_column?(%Expression{function?: true, aggregate?: true}), do: false
+  defp is_uid_column?(column), do: [column] |> extract_columns() |> Enum.any?(& &1.user_id?)
 
   defp extract_columns(columns), do:
     get_in(columns, [Query.Lenses.leaf_expressions()])

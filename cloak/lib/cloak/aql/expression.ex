@@ -121,6 +121,11 @@ defmodule Cloak.Aql.Expression do
   def id(%__MODULE__{table: :unknown, name: name}), do: name
   def id(%__MODULE__{table: table, name: name}), do: "#{table.name}.#{name}"
 
+  @doc "Returns the list of arguments if the given Expression is a function expression, [] otherwise."
+  @spec arguments(t) :: [t]
+  def arguments(%__MODULE__{function?: true, function_args: args}), do: args
+  def arguments(_), do: []
+
 
   # -------------------------------------------------------------------
   # Internal functions
