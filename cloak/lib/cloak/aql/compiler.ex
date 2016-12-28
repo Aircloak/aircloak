@@ -558,8 +558,8 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.filter(&(&1.function? and &1.aggregate?))
     |> case do
       [] -> :ok
-      [function | _] -> raise CompilationError,
-        message: "Aggregate function `#{Function.name(function)}` can not be used in the `GROUP BY` clause."
+      [expression | _] -> raise CompilationError, message:
+        "Aggregate function `#{Function.readable_name(expression.function)}` can not be used in the `GROUP BY` clause."
     end
   end
 
@@ -574,9 +574,9 @@ defmodule Cloak.Aql.Compiler do
     verify_function_subquery_usage(function, query)
   end
 
-  defp verify_function_exists(function) do
+  defp verify_function_exists(function = {_, name, _}) do
     unless Function.exists?(function) do
-      raise CompilationError, message: "Unknown function `#{Function.name(function)}`."
+      raise CompilationError, message: "Unknown function `#{Function.readable_name(name)}`."
     end
   end
 
@@ -657,7 +657,7 @@ defmodule Cloak.Aql.Compiler do
           "Function `#{name}` requires that the first argument must be a column."
         value -> value
       end
-      column_name = "#{Function.name(function_spec)}_return_value"
+      column_name = "#{Function.readable_name(name)}_return_value"
       return_type = Function.return_type(function_spec)
       # This, most crucially, preserves the DB row position parameter
       augmented_column = %Expression{db_column | name: column_name, type: return_type, row_index: splitter_row_index}

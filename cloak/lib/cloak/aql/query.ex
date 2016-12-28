@@ -231,8 +231,8 @@ defmodule Cloak.Aql.Query do
     |> Enum.flat_map(&extract_function/1)
     |> Enum.uniq()
 
-  defp extract_function(function = %Expression{function?: true, function_args: args}), do:
-    [Function.name(function) | extract_functions(args)]
+  defp extract_function(%Expression{function?: true, function: function, function_args: args}), do:
+    [Function.readable_name(function) | extract_functions(args)]
   defp extract_function(%Expression{}), do: []
   defp extract_function({:distinct, param}), do: extract_function(param)
 

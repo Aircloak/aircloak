@@ -163,11 +163,11 @@ defmodule Cloak.Aql.Function do
   def arguments({:function, _, arguments}), do: arguments
   def arguments(_), do: []
 
-  @doc "Returns the function name of the given function call."
-  @spec name(t) :: String.t
-  def name(%Expression{function: {:cast, _}}), do: "cast"
-  def name(%Expression{function: {:bucket, _}}), do: "bucket"
-  def name(%Expression{function: name}), do: name
+  @doc "Returns a stringified version of the given function identifier."
+  @spec readable_name(Parser.function_name) :: String.t
+  def readable_name({:cast, _}), do: "cast"
+  def readable_name({:bucket, _}), do: "bucket"
+  def readable_name(name), do: name
 
   @doc "Returns the return type of the given function call or nil if it is badly typed."
   @spec return_type(t) :: data_type | nil
