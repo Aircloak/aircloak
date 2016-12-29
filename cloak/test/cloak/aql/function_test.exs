@@ -529,16 +529,6 @@ defmodule Cloak.Aql.Function.Test do
 
   test "returns false if function does not exists", do: refute Function.exists?({:function, "foobar", []})
 
-  test "column - nil if given constant column", do: refute Function.column(%Expression{constant?: true})
-
-  test "column - first db column if one present" do
-    return_column = %Expression{row_index: 1}
-    assert return_column == Function.column(Expression.function("f", [
-      Expression.function("f", [%Expression{constant?: true}]),
-      Expression.function("f", [%Expression{constant?: true}, return_column]),
-    ]))
-  end
-
   defp return_type(name, arg_types), do:
     Function.return_type({:function, name, Enum.map(arg_types, &Expression.constant(&1, nil))})
 

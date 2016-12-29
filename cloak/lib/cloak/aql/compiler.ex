@@ -652,7 +652,7 @@ defmodule Cloak.Aql.Compiler do
       # We are making the simplifying assumption that row splitting functions have
       # the value column returned as part of the first column
       {splitter_row_index, query} = add_row_splitter(query, expression)
-      db_column = case expression |> Expression.arguments() |> hd() |> Function.column() do
+      db_column = case expression |> Expression.arguments() |> hd() |> Expression.first_column() do
         nil -> raise CompilationError, message:
           "Function `#{Function.readable_name(expression.function)}` requires that the first argument must be a column."
         value -> value

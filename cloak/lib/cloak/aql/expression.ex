@@ -136,6 +136,20 @@ defmodule Cloak.Aql.Expression do
     end
   end
 
+  @doc "Returns the first instance of a database column from the given expression. Nil if none can be found."
+  @spec first_column(t) :: t | nil
+  def first_column(%__MODULE__{constant?: true}), do: nil
+  def first_column(%__MODULE__{function?: true, function_args: args}) do
+    args
+    |> Enum.map(&first_column/1)
+    |> Enum.filter(&(&1))
+    |> case do
+      [] -> nil
+      [column|_] -> column
+    end
+  end
+  def first_column(%__MODULE__{} = column), do: column
+
 
   # -------------------------------------------------------------------
   # Internal functions
