@@ -41,7 +41,10 @@ defmodule Cloak.Aql.Query.Lenses do
     Lens.satisfy(expressions(), &(Expression.id(&1) == Expression.id(other_expression)))
 
   @doc "Lens focusing on invocations of row splitting functions"
-  deflens splitter_functions(), do: terminal_elements() |> Lens.satisfy(&Function.row_splitting_function?/1)
+  deflens splitter_functions(), do:
+    terminal_elements()
+    |> Lens.satisfy(&match?(%Expression{function?: true}, &1))
+    |> Lens.satisfy(&Function.row_splitting_function?(&1.name))
 
   @doc "Lens focusing on invocations of the bucket function"
   deflens buckets(), do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)

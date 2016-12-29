@@ -50,10 +50,10 @@ defmodule Cloak.Query.RowSplitters do
       List.replace_at(row, splitter.row_index, cell_value)
   end
 
-  defp apply_function(row, {:function, _, args} = function_spec) do
+  defp apply_function(row, {:function, name, args} = function_spec) do
     inner_functions_results = for arg <- args, do: apply_function(row, arg)
     inputs = all_input_combinations(inner_functions_results)
-    if Function.row_splitting_function?(function_spec) do
+    if Function.row_splitting_function?(name) do
       Enum.flat_map(inputs, &Function.apply(&1, function_spec))
     else
       Enum.map(inputs, &Function.apply(&1, function_spec))

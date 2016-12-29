@@ -141,9 +141,8 @@ defmodule Cloak.Aql.Function do
   def aggregate_function?(_), do: false
 
   @doc "Returns true if the function is one that can split a row into multiple rows, false otherise."
-  @spec row_splitting_function?(t) :: boolean
-  def row_splitting_function?({:function, name, _}), do: @functions |> Map.fetch!(name) |> Map.get(:row_splitting, false)
-  def row_splitting_function?(_), do: false
+  @spec row_splitting_function?(Parser.function_name) :: boolean
+  def row_splitting_function?(name), do: !!@functions[name][:row_splitting]
 
   @doc "Returns true if the given function call is a cast, false otherwise."
   @spec cast?(t) :: boolean
@@ -171,6 +170,8 @@ defmodule Cloak.Aql.Function do
 
   @doc "Returns the return type of the given function call or nil if it is badly typed."
   @spec return_type(t) :: data_type | nil
+  def return_type(%Expression{function?: true, function: name, function_args: args}), do:
+    return_type({:function, name, args})
   def return_type(function = {:function, name, _}) do
     @functions[name].type_specs
     |> Enum.find(fn({arguments, _}) -> do_well_typed?(function, arguments) end)
@@ -244,20 +245,20 @@ defmodule Cloak.Aql.Function do
 
   @doc "Compiles a function so it is ready for execution"
   @spec compile_function(t, function_compilation_callback) :: t | {:error, String.t}
-  def compile_function({:function, name, [_column, %Expression{value: %Regex{}}]} = precompiled_function, _callback)
-    when name in ["extract_match", "extract_matches"], do: precompiled_function
-  def compile_function({:function, name, [column, pattern_column]}, compilation_callback)
+  def compile_function(%Expression{function: name, function_args: [_, %Expression{value: %Regex{}}]} = expression, _)
+    when name in ["extract_match", "extract_matches"], do: expression
+  def compile_function(%Expression{function: name, function_args: [column, pattern_column]} = expression, callback)
       when name in ["extract_match", "extract_matches"] do
     case Regex.compile(pattern_column.value, "ui") do
       {:ok, regex} ->
         regex_column = %Expression{pattern_column | value: regex}
-        {:function, name, compilation_callback.([column]) ++ [regex_column]}
+        %{expression | function_args: callback.([column]) ++ [regex_column]}
       {:error, {error, location}} ->
         {:error, "The regex used in `#{name}` is invalid: #{error} at character #{location}"}
     end
   end
-  def compile_function({:function, function, args}, compilation_callback), do:
-    {:function, function, compilation_callback.(args)}
+  def compile_function(expression, callback), do:
+    %{expression | function_args: callback.(expression.function_args)}
 
   @doc "Returns true if the function is a valid cloak function"
   @spec exists?(t) :: boolean

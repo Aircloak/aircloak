@@ -500,8 +500,8 @@ defmodule Cloak.Aql.Compiler do
   defp precompile_functions(columns), do:
     Enum.map(columns, &precompile_function/1)
 
-  defp precompile_function({:function, _function, _args} = function_spec) do
-    case Function.compile_function(function_spec, &precompile_functions/1) do
+  defp precompile_function(expression = %Expression{function?: true}) do
+    case Function.compile_function(expression, &precompile_functions/1) do
       {:error, message} -> raise CompilationError, message: message
       compiled_function -> compiled_function
     end
@@ -647,24 +647,24 @@ defmodule Cloak.Aql.Compiler do
     {Enum.reverse(reversed_transformed_columns), final_query}
   end
 
-  defp transform_splitter_column({:function, name, args} = function_spec, query) do
-    if Function.row_splitting_function?(function_spec) do
+  defp transform_splitter_column(expression = %Expression{function?: true}, query) do
+    if Function.row_splitting_function?(expression.function) do
       # We are making the simplifying assumption that row splitting functions have
       # the value column returned as part of the first column
-      {splitter_row_index, query} = add_row_splitter(query, function_spec)
-      db_column = case Function.column(hd(args)) do
+      {splitter_row_index, query} = add_row_splitter(query, expression)
+      db_column = case expression |> Expression.arguments() |> hd() |> Function.column() do
         nil -> raise CompilationError, message:
-          "Function `#{name}` requires that the first argument must be a column."
+          "Function `#{Function.readable_name(expression.function)}` requires that the first argument must be a column."
         value -> value
       end
-      column_name = "#{Function.readable_name(name)}_return_value"
-      return_type = Function.return_type(function_spec)
+      column_name = "#{Function.readable_name(expression.function)}_return_value"
+      return_type = Function.return_type(expression)
       # This, most crucially, preserves the DB row position parameter
       augmented_column = %Expression{db_column | name: column_name, type: return_type, row_index: splitter_row_index}
       {augmented_column, query}
     else
-      {transformed_args, query} = transform_splitter_columns(query, args)
-      {{:function, name, transformed_args}, query}
+      {transformed_args, query} = transform_splitter_columns(query, Expression.arguments(expression))
+      {%{expression | function_args: transformed_args}, query}
     end
   end
   defp transform_splitter_column(other, query), do:

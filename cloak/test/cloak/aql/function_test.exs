@@ -486,20 +486,27 @@ defmodule Cloak.Aql.Function.Test do
   end
 
   test "compiling function that doesn't need compilation does nothing" do
-    function = {:function, "no_compilation", [:args1, :args2]}
+    function = %Expression{function: "no_compilation", function_args: [:args1, :args2]}
     callback = fn(a) -> a end
     assert function == Function.compile_function(function, callback)
   end
 
   Enum.map(["extract_match", "extract_matches"], fn(function_name) ->
     test "compiling #{function_name} function creates regex of regex pattern" do
-      function = {:function, unquote(function_name), [%Expression{}, %Expression{value: "regex_pattern"}]}
+      function = %Expression{
+        function: unquote(function_name),
+        function_args: [%Expression{}, %Expression{value: "regex_pattern"}]
+      }
       callback = fn(a) -> a end
-      assert {:function, _, [_, %Expression{value: %Regex{}}]} = Function.compile_function(function, callback)
+      assert %Expression{function_args: [_, %Expression{value: %Regex{}}]}
+        = Function.compile_function(function, callback)
     end
 
     test "compiling already compiled #{function_name} function does nothing" do
-      function = {:function, unquote(function_name), [%Expression{}, %Expression{value: "regex_pattern"}]}
+      function = %Expression{
+        function: unquote(function_name),
+        function_args: [%Expression{}, %Expression{value: "regex_pattern"}]
+      }
       callback = fn(a) -> a end
       compiled_function = Function.compile_function(function, callback)
       assert Function.compile_function(compiled_function, callback) == compiled_function
@@ -510,10 +517,10 @@ defmodule Cloak.Aql.Function.Test do
   end)
 
   test "can tell when a function splits rows", do:
-    assert Function.row_splitting_function?({:function, "extract_matches", []})
+    assert Function.row_splitting_function?("extract_matches")
 
   test "can tell when a function does not split rows", do:
-    refute Function.row_splitting_function?({:function, "extract_match", []})
+    refute Function.row_splitting_function?("extract_match")
 
   test "knows `ceil` is allowed in a subquery", do:
     assert Function.allowed_in_subquery?({:function, "ceil", []})

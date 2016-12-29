@@ -880,7 +880,11 @@ defmodule Cloak.Aql.Compiler.Test do
     assert [%Expression{name: "extract_matches_return_value", row_index: ^index}] = query.property
     assert Enum.any?(query.db_columns, &match?(%Expression{name: "string"}, &1))
     assert [%{
-      function_spec: {:function, "extract_matches", [%Expression{name: "string"}, %Expression{value: ~r/thing/ui}]},
+      function_spec: %Expression{
+        function?: true,
+        function: "extract_matches",
+        function_args: [%Expression{name: "string"}, %Expression{value: ~r/thing/ui}]
+      },
       row_index: ^index
     }] = query.row_splitters
   end
