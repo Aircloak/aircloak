@@ -284,8 +284,7 @@ defmodule Cloak.Aql.Function do
   """
   @spec column(t) :: Expression.t | nil
   def column(%Expression{constant?: true}), do: nil
-  def column(%Expression{} = column), do: column
-  def column({:function, _, args}) do
+  def column(%Expression{function?: true, function_args: args}) do
     args
     |> Enum.map(&column/1)
     |> Enum.filter(&(&1))
@@ -294,6 +293,7 @@ defmodule Cloak.Aql.Function do
       [column|_] -> column
     end
   end
+  def column(%Expression{} = column), do: column
 
 
   # -------------------------------------------------------------------

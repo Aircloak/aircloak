@@ -533,10 +533,10 @@ defmodule Cloak.Aql.Function.Test do
 
   test "column - first db column if one present" do
     return_column = %Expression{row_index: 1}
-    assert return_column == Function.column({:function, "f", [
-        {:function, "f", [%Expression{constant?: true}]},
-        {:function, "f", [%Expression{constant?: true}, return_column]},
-      ]})
+    assert return_column == Function.column(Expression.function("f", [
+      Expression.function("f", [%Expression{constant?: true}]),
+      Expression.function("f", [%Expression{constant?: true}, return_column]),
+    ]))
   end
 
   defp return_type(name, arg_types), do:
