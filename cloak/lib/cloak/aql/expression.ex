@@ -80,8 +80,8 @@ defmodule Cloak.Aql.Expression do
   @doc "Returns the column value of a database row."
   @spec value(t, DataSource.row) :: DataSource.field
   def value(%__MODULE__{constant?: true, value: value}, _row), do: value
-  def value(%__MODULE__{function: function, function_args: args, row_index: nil}, row) when not is_nil(function), do:
-    apply_function(function, Enum.map(args, &value(&1, row)))
+  def value(expression = %__MODULE__{function?: true, function_args: args}, row), do:
+    apply_function(expression, Enum.map(args, &value(&1, row)))
   def value(%__MODULE__{row_index: nil} = column, _row), do:
     raise "Unindexed column specified: #{inspect(column, pretty: true)}"
   for position <- 0..99 do
@@ -126,6 +126,16 @@ defmodule Cloak.Aql.Expression do
   def arguments(%__MODULE__{function?: true, function_args: args}), do: args
   def arguments(_), do: []
 
+  @doc "Returns the result of applying the given function expression to the given list of arguments."
+  @spec apply_function(t, [any]) :: any
+  def apply_function(expression = %__MODULE__{function?: true}, args) do
+    try do
+      if Enum.member?(args, :*), do: :*, else: do_apply(expression.function, args)
+    rescue
+      _ -> nil
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -134,14 +144,6 @@ defmodule Cloak.Aql.Expression do
   defp normalize_type(:string), do: :text
   defp normalize_type(:float), do: :real
   defp normalize_type(type), do: type
-
-  defp apply_function(name, args) do
-    try do
-      if Enum.member?(args, :*), do: :*, else: do_apply(name, args)
-    rescue
-      _ -> nil
-    end
-  end
 
   defp do_apply("year", [value]), do: value.year
   defp do_apply("month", [value]), do: value.month
