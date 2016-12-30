@@ -259,7 +259,6 @@ defmodule Cloak.Aql.Compiler do
 
   defp max_column(column), do: Expression.db_function("max", [column], column.type, true) |> alias_column()
 
-  defp alias_column(column = {:function, _, _}), do: {column, :as, new_carry_alias()}
   defp alias_column(column), do: %{column | alias: new_carry_alias()}
 
   defp new_carry_alias(), do: "carry_#{System.unique_integer([:positive])}"
