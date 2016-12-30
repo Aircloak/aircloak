@@ -3,6 +3,23 @@ defmodule Cloak.Aql.Expression.Test do
 
   alias Cloak.Aql.Expression
 
+  describe "coalesce" do
+    test "nil if all nil" do
+      assert nil == Expression.value(Expression.function("coalesce", [
+        Expression.constant(:integer, nil),
+        Expression.constant(:integer, nil),
+      ]), [])
+    end
+
+    test "first non nil value if exists" do
+      assert 3 = Expression.value(Expression.function("coalesce", [
+        Expression.constant(:integer, nil),
+        Expression.constant(:integer, 3),
+        Expression.constant(:integer, nil),
+      ]), [])
+    end
+  end
+
   describe "first_column" do
     test "nil if given constant column", do: assert nil == Expression.first_column(%Expression{constant?: true})
 

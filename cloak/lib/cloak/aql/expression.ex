@@ -237,6 +237,7 @@ defmodule Cloak.Aql.Expression do
     Float.ceil(value / bucket_size) * bucket_size
   defp do_apply({:bucket, :middle}, [value, bucket_size]), do:
     Float.floor(value / bucket_size) * bucket_size + 0.5 * bucket_size
+  defp do_apply("coalesce", values), do: Enum.find(values, &(&1))
 
   defp do_trunc(value, 0), do: trunc(value)
   defp do_trunc(value, precision) when value < 0, do: value |> :erlang.float() |> Float.ceil(precision)
