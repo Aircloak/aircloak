@@ -3,7 +3,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   Data retrieval for emulated queries.
   """
 
-  alias Cloak.Aql.{Query, Comparison, Function, Expression}
+  alias Cloak.Aql.{Query, Comparison, Expression}
   alias Cloak.Query.{Rows, Sorter}
   alias Cloak.Data
 
@@ -58,7 +58,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
     finalizers = Enum.map(query.aggregators, &aggregator_to_finalizer/1)
     stream
     |> Enum.reduce(%{}, fn(row, groups) ->
-      property = Enum.map(query.property, &Function.apply_to_db_row(&1, row))
+      property = Enum.map(query.property, &Expression.value(&1, row))
       values =
         groups
         |> Map.get(property, defaults)
@@ -76,7 +76,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   end
   defp select_columns(stream, %Query{columns: columns} = query) do
     Stream.map(stream, fn (row) ->
-      Enum.map(columns, &Function.apply_to_db_row(&1, row))
+      Enum.map(columns, &Expression.value(&1, row))
     end)
     |> distinct(query)
   end
@@ -90,19 +90,19 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp distinct(stream, %Query{distinct?: false}), do: stream
   defp distinct(stream, %Query{distinct?: true}), do: stream |> Enum.to_list() |> Enum.uniq()
 
-  defp aggregator_to_default({:function, _name, [{:distinct, _column}]}), do: MapSet.new()
-  defp aggregator_to_default({:function, "count", [_column]}), do: 0
-  defp aggregator_to_default({:function, "min", [_column]}), do: nil
-  defp aggregator_to_default({:function, "max", [_column]}), do: nil
-  defp aggregator_to_default({:function, "sum", [_column]}), do: nil
-  defp aggregator_to_default({:function, "avg", [_column]}), do: {nil, 0}
-  defp aggregator_to_default({:function, "stddev", [_column]}), do: []
-  defp aggregator_to_default({:function, "median", [_column]}), do: []
+  defp aggregator_to_default(%Expression{function?: true, function_args: [{:distinct, _column}]}), do: MapSet.new()
+  defp aggregator_to_default(%Expression{function?: true, function: "count", function_args: [_column]}), do: 0
+  defp aggregator_to_default(%Expression{function?: true, function: "min", function_args: [_column]}), do: nil
+  defp aggregator_to_default(%Expression{function?: true, function: "max", function_args: [_column]}), do: nil
+  defp aggregator_to_default(%Expression{function?: true, function: "sum", function_args: [_column]}), do: nil
+  defp aggregator_to_default(%Expression{function?: true, function: "avg", function_args: [_column]}), do: {nil, 0}
+  defp aggregator_to_default(%Expression{function?: true, function: "stddev", function_args: [_column]}), do: []
+  defp aggregator_to_default(%Expression{function?: true, function: "median", function_args: [_column]}), do: []
 
   defmacrop null_ignore_accumulator(do: expression) do
     quote do
       fn (row, var!(accumulator)) ->
-        case Function.apply_to_db_row(var!(column), row) do
+        case Expression.value(var!(column), row) do
           nil -> var!(accumulator)
           var!(value) -> unquote expression
         end
@@ -110,50 +110,50 @@ defmodule Cloak.Query.DbEmulator.Selector do
     end
   end
 
-  defp aggregator_to_accumulator({:function, _name, [{:distinct, column}]}), do:
+  defp aggregator_to_accumulator(%Expression{function?: true, function_args: [{:distinct, column}]}), do:
     null_ignore_accumulator do: MapSet.put(accumulator, value)
-  defp aggregator_to_accumulator({:function, "count", [:*]}), do:
+  defp aggregator_to_accumulator(%Expression{function?: true, function: "count", function_args: [:*]}), do:
     fn (_row, count) -> count + 1 end
-  defp aggregator_to_accumulator({:function, "count", [column]}) do
+  defp aggregator_to_accumulator(%Expression{function?: true, function: "count", function_args: [column]}) do
     null_ignore_accumulator do _ = value; accumulator + 1 end
   end
-  defp aggregator_to_accumulator({:function, "sum", [column]}), do:
+  defp aggregator_to_accumulator(%Expression{function?: true, function: "sum", function_args: [column]}), do:
     null_ignore_accumulator do: (accumulator || 0) + value
-  defp aggregator_to_accumulator({:function, "min", [column]}), do:
+  defp aggregator_to_accumulator(%Expression{function?: true, function: "min", function_args: [column]}), do:
     null_ignore_accumulator do: Data.min(accumulator, value)
-  defp aggregator_to_accumulator({:function, "max", [column]}), do:
+  defp aggregator_to_accumulator(%Expression{function?: true, function: "max", function_args: [column]}), do:
     null_ignore_accumulator do: Data.max(accumulator, value)
-  defp aggregator_to_accumulator({:function, "avg", [column]}) do
+  defp aggregator_to_accumulator(%Expression{function?: true, function: "avg", function_args: [column]}) do
     null_ignore_accumulator do {sum, count} = accumulator; {(sum || 0) + value, count + 1} end
   end
-  defp aggregator_to_accumulator({:function, "stddev", [column]}), do:
+  defp aggregator_to_accumulator(%Expression{function?: true, function: "stddev", function_args: [column]}), do:
     null_ignore_accumulator do: [value | accumulator]
-  defp aggregator_to_accumulator({:function, "median", [column]}), do:
+  defp aggregator_to_accumulator(%Expression{function?: true, function: "median", function_args: [column]}), do:
     null_ignore_accumulator do: [value | accumulator]
 
-  defp aggregator_to_finalizer({:function, "count", [{:distinct, _column}]}), do:
-    &MapSet.size(&1)
-  defp aggregator_to_finalizer({:function, "sum", [{:distinct, _column}]}), do:
-    &if MapSet.size(&1) == 0, do: nil, else: Enum.sum(&1)
-  defp aggregator_to_finalizer({:function, "min", [{:distinct, _column}]}), do:
-    &if MapSet.size(&1) == 0, do: nil, else: set_min(&1)
-  defp aggregator_to_finalizer({:function, "max", [{:distinct, _column}]}), do:
-    &if MapSet.size(&1) == 0, do: nil, else: set_max(&1)
-  defp aggregator_to_finalizer({:function, "avg", [{:distinct, _column}]}), do:
-    &if MapSet.size(&1) == 0, do: nil, else: Enum.sum(&1) / MapSet.size(&1)
-  defp aggregator_to_finalizer({:function, "stddev", [{:distinct, _column}]}), do:
-    &if MapSet.size(&1) == 0, do: nil, else: stddev(&1)
-  defp aggregator_to_finalizer({:function, "median", [{:distinct, column}]}), do:
-    &if MapSet.size(&1) == 0, do: nil, else: &1 |> sort_set(column.type) |> Enum.at(&1 |> MapSet.size() |> div(2))
-  defp aggregator_to_finalizer({:function, "count", [_column]}), do: & &1
-  defp aggregator_to_finalizer({:function, "sum", [_column]}), do: & &1
-  defp aggregator_to_finalizer({:function, "min", [_column]}), do: & &1
-  defp aggregator_to_finalizer({:function, "max", [_column]}), do: & &1
-  defp aggregator_to_finalizer({:function, "avg", [_column]}), do:
+  defp aggregator_to_finalizer(%Expression{function?: true, function: "count", function_args: [{:distinct, _column}]}),
+    do: &MapSet.size(&1)
+  defp aggregator_to_finalizer(%Expression{function?: true, function: "sum", function_args: [{:distinct, _column}]}),
+    do: &if MapSet.size(&1) == 0, do: nil, else: Enum.sum(&1)
+  defp aggregator_to_finalizer(%Expression{function?: true, function: "min", function_args: [{:distinct, _column}]}),
+    do: &if MapSet.size(&1) == 0, do: nil, else: set_min(&1)
+  defp aggregator_to_finalizer(%Expression{function?: true, function: "max", function_args: [{:distinct, _column}]}),
+    do: &if MapSet.size(&1) == 0, do: nil, else: set_max(&1)
+  defp aggregator_to_finalizer(%Expression{function?: true, function: "avg", function_args: [{:distinct, _column}]}),
+    do: &if MapSet.size(&1) == 0, do: nil, else: Enum.sum(&1) / MapSet.size(&1)
+  defp aggregator_to_finalizer(%Expression{function?: true, function: "stddev", function_args: [{:distinct, _column}]}),
+    do: &if MapSet.size(&1) == 0, do: nil, else: stddev(&1)
+  defp aggregator_to_finalizer(%Expression{function?: true, function: "median", function_args: [{:distinct, column}]}),
+    do: &if MapSet.size(&1) == 0, do: nil, else: &1 |> sort_set(column.type) |> Enum.at(&1 |> MapSet.size() |> div(2))
+  defp aggregator_to_finalizer(%Expression{function?: true, function: "count", function_args: [_column]}), do: & &1
+  defp aggregator_to_finalizer(%Expression{function?: true, function: "sum", function_args: [_column]}), do: & &1
+  defp aggregator_to_finalizer(%Expression{function?: true, function: "min", function_args: [_column]}), do: & &1
+  defp aggregator_to_finalizer(%Expression{function?: true, function: "max", function_args: [_column]}), do: & &1
+  defp aggregator_to_finalizer(%Expression{function?: true, function: "avg", function_args: [_column]}), do:
     fn ({nil, 0}) -> nil; ({sum, count}) -> sum / count end
-  defp aggregator_to_finalizer({:function, "stddev", [_column]}), do:
+  defp aggregator_to_finalizer(%Expression{function?: true, function: "stddev", function_args: [_column]}), do:
     fn ([]) -> nil; (values) -> stddev(values) end
-  defp aggregator_to_finalizer({:function, "median", [_column]}), do:
+  defp aggregator_to_finalizer(%Expression{function?: true, function: "median", function_args: [_column]}), do:
     fn
       ([]) ->
         nil
