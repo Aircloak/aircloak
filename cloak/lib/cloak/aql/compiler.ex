@@ -465,7 +465,7 @@ defmodule Cloak.Aql.Compiler do
   defp filter_aggregators(columns), do:
     columns
     |> Enum.flat_map(&expand_arguments/1)
-    |> Enum.filter(&(match?(%Expression{}, &1) && &1.function? && &1.aggregate?))
+    |> Enum.filter(&(match?(%Expression{function?: true, aggregate?: true}, &1)))
 
   defp verify_columns(query) do
     verify_functions(query)
