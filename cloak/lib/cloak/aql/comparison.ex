@@ -99,9 +99,9 @@ defmodule Cloak.Aql.Comparison do
   defp compare(:in, target, values) when is_list(values), do: Enum.member?(values, target)
   defp compare(:=, target, value), do: target == value
   defp compare(:<>, target, value), do: target != value
-  defp compare(:>, target, value), do: target > value
-  defp compare(:<, target, value), do: target < value
-  defp compare(:>=, target, value), do: target >= value
-  defp compare(:<=, target, value), do: target <= value
+  defp compare(:>, target, value), do: Cloak.Data.gt(target, value)
+  defp compare(:<, target, value), do: Cloak.Data.lt(target, value)
+  defp compare(:>=, target, value), do: Cloak.Data.gt_eq(target, value)
+  defp compare(:<=, target, value), do: Cloak.Data.lt_eq(target, value)
   defp compare(:=~, target, value), do: target =~ value
 end
