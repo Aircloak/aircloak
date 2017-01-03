@@ -112,7 +112,7 @@ defmodule Cloak.Aql.Query do
   @spec aggregated_columns(t) :: [Expression.t]
   def aggregated_columns(query) do
     query.aggregators
-    |> Enum.flat_map(&Function.arguments/1)
+    |> Enum.flat_map(&(&1.function_args))
     |> Enum.uniq()
   end
 
@@ -231,9 +231,10 @@ defmodule Cloak.Aql.Query do
     |> Enum.flat_map(&extract_function/1)
     |> Enum.uniq()
 
+  defp extract_function(%Expression{function?: true, function: function, function_args: args}), do:
+    [Function.readable_name(function) | extract_functions(args)]
   defp extract_function(%Expression{}), do: []
   defp extract_function({:distinct, param}), do: extract_function(param)
-  defp extract_function(function = {:function, _, params}), do: [Function.name(function) | extract_functions(params)]
 
   defp extract_where_conditions(clauses), do:
     clauses
@@ -265,9 +266,9 @@ defmodule Cloak.Aql.Query do
 
   defp extract_columns(columns), do: Enum.flat_map(columns, &extract_column/1)
 
-  defp extract_column({:function, _, [:*]}), do: []
-  defp extract_column({:function, _, params}), do: extract_columns(params)
   defp extract_column({:distinct, value}), do: extract_column(value)
+  defp extract_column(%Expression{function?: true, function_args: [:*]}), do: []
+  defp extract_column(%Expression{function?: true, function_args: args}), do: extract_columns(args)
   defp extract_column(%Expression{} = column), do: [column]
 
   defp stringify(string) when is_binary(string), do: string

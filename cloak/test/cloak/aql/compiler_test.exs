@@ -242,8 +242,8 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "rejecting a function in select when another function is grouped" do
     assert {:error, error} = compile("select div(numeric, numeric) from table group by abs(numeric)", data_source())
-    assert error ==
-      "Columns (`numeric`, `numeric`) need to appear in the `GROUP BY` clause or be used in an aggregate function."
+    assert error == "Column `numeric` from table `table` needs to appear in the `GROUP BY` clause or be used in an " <>
+      "aggregate function."
   end
 
   test "rejecting concat on non-strings" do
@@ -343,7 +343,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   Enum.each(["count", "min", "max", "median", "stddev"], fn(function) ->
     test "allows qualified identifiers in function calls (function #{function})" do
-      assert %{columns: [{:function, unquote(function), [column("table", "numeric")]}]} =
+      assert %{columns: [%Expression{function: unquote(function), function_args: [column("table", "numeric")]}]} =
         compile!("select #{unquote(function)}(table.numeric) from table", data_source())
     end
   end)
@@ -357,7 +357,8 @@ defmodule Cloak.Aql.Compiler.Test do
         ORDER BY count(column) DESC, count(table.column) DESC
       """,
       data_source)
-    assert [column("table", "column"), {:function, "count", [column("table", "column")]}] = result.columns
+    assert [column("table", "column"), %Expression{function: "count", function_args: [column("table", "column")]}] =
+      result.columns
     assert Enum.any?(result.where, &match?({:comparison, column("table", "numeric"), :>=, _}, &1))
     assert Enum.any?(result.where, &match?({:comparison, column("table", "numeric"), :<, _}, &1))
     assert Enum.any?(result.where, &match?({:not, {:is, column("table", "column"), :null}}, &1))
@@ -879,7 +880,11 @@ defmodule Cloak.Aql.Compiler.Test do
     assert [%Expression{name: "extract_matches_return_value", row_index: ^index}] = query.property
     assert Enum.any?(query.db_columns, &match?(%Expression{name: "string"}, &1))
     assert [%{
-      function_spec: {:function, "extract_matches", [%Expression{name: "string"}, %Expression{value: ~r/thing/ui}]},
+      function_spec: %Expression{
+        function?: true,
+        function: "extract_matches",
+        function_args: [%Expression{name: "string"}, %Expression{value: ~r/thing/ui}]
+      },
       row_index: ^index
     }] = query.row_splitters
   end

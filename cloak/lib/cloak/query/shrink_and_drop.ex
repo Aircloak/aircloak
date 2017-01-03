@@ -4,7 +4,7 @@ defmodule Cloak.Query.ShrinkAndDrop do
   """
 
   alias Cloak.Query.Anonymizer
-  alias Cloak.Aql.{FixAlign, Function, Query, Range}
+  alias Cloak.Aql.{FixAlign, Expression, Query, Range}
   alias Cloak.Query.ShrinkAndDrop.Buffer
 
 
@@ -61,13 +61,11 @@ defmodule Cloak.Query.ShrinkAndDrop do
     {buffer |> Buffer.inside(interval) |> Enum.map(&undecorate_row/1), nil}
   end
 
-  defp decorate_row(row, id, column), do: {id, user_id(row), value(row, column), row}
+  defp decorate_row(row, id, column), do: {id, user_id(row), Expression.value(column, row), row}
 
   defp undecorate_row({_, _, _, row}), do: row
 
   defp user_id([id | _rest]), do: id
-
-  defp value(row, column), do: Function.apply_to_db_row(column, row)
 
   defp buffer_size do
     # A size that is unlikely to be exceeded by Anonymizer.noisy_lower_bound()

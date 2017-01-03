@@ -1,6 +1,6 @@
 defmodule Cloak.Query.Rows do
   @moduledoc "Functions for row processing, such as filtering and grouping."
-  alias Cloak.Aql.{Expression, Function, Query}
+  alias Cloak.Aql.{Expression, Query}
 
 
   # -------------------------------------------------------------------
@@ -35,10 +35,10 @@ defmodule Cloak.Query.Rows do
       fetch_value!(row, selected_column, aggregated_columns)
 
   defp fetch_value!(row, {column, :as, _}, columns), do: fetch_value!(row, column, columns)
-  defp fetch_value!(row, {:function, _, args} = function, columns) do
+  defp fetch_value!(row, %Expression{function?: true, function_args: args} = function, columns) do
     case Map.fetch(columns, function) do
       {:ok, index} -> Enum.at(row, index)
-      :error -> Enum.map(args, &fetch_value!(row, &1, columns)) |> Function.apply(function)
+      :error -> Expression.apply_function(function, Enum.map(args, &fetch_value!(row, &1, columns)))
     end
   end
   defp fetch_value!(_row, %Expression{constant?: true, value: value}, _columns), do: value

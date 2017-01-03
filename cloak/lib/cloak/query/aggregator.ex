@@ -4,7 +4,7 @@ defmodule Cloak.Query.Aggregator do
   require Logger
 
   alias Cloak.DataSource
-  alias Cloak.Aql.{Query, Function}
+  alias Cloak.Aql.{Query, Expression}
   alias Cloak.Query.{Anonymizer, Rows, Result}
 
   @typep property_values :: [DataSource.field | :*]
@@ -72,7 +72,7 @@ defmodule Cloak.Query.Aggregator do
     Logger.debug("Grouping rows ...")
     rows
     |> Enum.reduce(%{}, fn(row, accumulator) ->
-      property = for column <- query.property, do: Function.apply_to_db_row(column, row)
+      property = for column <- query.property, do: Expression.value(column, row)
       user_id = user_id(row)
       values = for column <- Query.aggregated_columns(query), do: aggregated_value_list(row, column)
       Map.update(accumulator, property, %{user_id => values}, fn (user_values_map) ->
@@ -84,7 +84,7 @@ defmodule Cloak.Query.Aggregator do
 
   defp aggregated_value_list(_row, :*), do: [:*]
   defp aggregated_value_list(row, {:distinct, column}), do: aggregated_value_list(row, column)
-  defp aggregated_value_list(row, column), do: List.wrap(Function.apply_to_db_row(column, row))
+  defp aggregated_value_list(row, column), do: List.wrap(Expression.value(column, row))
 
   defp user_id([user_id | _rest]), do: user_id
 
@@ -130,7 +130,7 @@ defmodule Cloak.Query.Aggregator do
   defp aggregate_property({property_values, anonymizer, users_rows}, query) do
     aggregated_columns = Query.aggregated_columns(query)
 
-    aggregation_results = for {:function, function, [column]}  <- query.aggregators do
+    aggregation_results = for %Expression{function: function, function_args: [column]}  <- query.aggregators do
       values_index = Enum.find_index(aggregated_columns, &column == &1)
       aggregated_values =
         users_rows
@@ -236,8 +236,8 @@ defmodule Cloak.Query.Aggregator do
     # If there are no results for a global aggregation, we'll produce one row.
     # All results will be `nil`-ed except for `count` which will have the value of 0.
     aggregated_values = Enum.map(query.aggregators, fn
-      {:function, "count", _args} -> 0
-      {:function, _name, _args} -> nil
+      %Expression{function: "count"} -> 0
+      %Expression{} -> nil
     end)
     [%{row: aggregated_values, occurrences: 1}]
   end
@@ -251,7 +251,7 @@ defmodule Cloak.Query.Aggregator do
     Logger.debug("Making implicit buckets ...")
     # We add the implicit "count" to the list of selected columns so that we can
     # retrieve it afterwards when making the bucket.
-    columns_with_count = [{:function, "count", [:*]} | query.columns]
+    columns_with_count = [Expression.count_star() | query.columns]
     rows
     |> Rows.extract_groups(%Query{query | columns: columns_with_count})
     |> Enum.map(fn ([count | row]) -> %{row: row, occurrences: count} end)

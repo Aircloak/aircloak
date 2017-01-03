@@ -236,7 +236,7 @@ defmodule Cloak.Aql.Compiler do
       %{
         query |
         columns: query.columns ++ Enum.map(query.ranges, &(&1.column)),
-        column_titles: query.column_titles ++ Enum.map(query.ranges, fn(%{column: {_, :as, alias}}) -> alias end),
+        column_titles: query.column_titles ++ Enum.map(query.ranges, fn(%{column: column}) -> column.alias end),
       }
     else
       %{query | db_columns: query.db_columns ++ Enum.map(query.ranges, &(&1.column))}
@@ -259,7 +259,6 @@ defmodule Cloak.Aql.Compiler do
 
   defp max_column(column), do: Expression.db_function("max", [column], column.type, true) |> alias_column()
 
-  defp alias_column(column = {:function, _, _}), do: {column, :as, new_carry_alias()}
   defp alias_column(column), do: %{column | alias: new_carry_alias()}
 
   defp new_carry_alias(), do: "carry_#{System.unique_integer([:positive])}"
@@ -408,7 +407,7 @@ defmodule Cloak.Aql.Compiler do
     Enum.filter(query.columns, &individual_column?(&1, query))
   defp invalid_individual_columns(%Query{command: :select} = query) do
     query.columns
-    |> Enum.reject(&constant_column?/1)
+    |> Enum.reject(&Expression.constant?/1)
     |> Enum.partition(&aggregated_column?(&1, query))
     |> case  do
       {[_|_] = _aggregates, [_|_] = individual_columns} -> individual_columns
@@ -419,29 +418,15 @@ defmodule Cloak.Aql.Compiler do
   defp aggregated_column?(column, query), do:
     Enum.member?(query.group_by, column) or
     (
-      Function.function?(column) and
-      (
-        Function.aggregate_function?(column) or
-        column |> Function.arguments() |> Enum.any?(&aggregated_column?(&1, query))
-      )
-    ) or
-    (
-      Expression.db_function?(column) and
+      column.function? and
       (
         column.aggregate? or
         Enum.any?(column.function_args, &aggregated_column?(&1, query))
       )
     )
 
-  defp constant_column?(column), do:
-    Expression.constant?(column) or
-    (
-      Function.function?(column) and
-      column |> Function.arguments() |> Enum.all?(&constant_column?/1)
-    )
-
   defp individual_column?(column, query), do:
-    not constant_column?(column) and not aggregated_column?(column, query)
+    not Expression.constant?(column) and not aggregated_column?(column, query)
 
   defp compile_columns(query) do
     query
@@ -480,38 +465,26 @@ defmodule Cloak.Aql.Compiler do
   defp filter_aggregators(columns), do:
     columns
     |> Enum.flat_map(&expand_arguments/1)
-    |> Enum.filter(&Function.aggregate_function?/1)
+    |> Enum.filter(&(match?(%Expression{function?: true, aggregate?: true}, &1)))
 
   defp verify_columns(query) do
     verify_functions(query)
     verify_aggregated_columns(query)
     verify_group_by_functions(query)
-    verify_function_arguments(query)
     query
-  end
-
-  defp verify_function_arguments(query) do
-    query.columns
-    |> Enum.flat_map(&expand_arguments/1)
-    |> Enum.reject(&Function.well_typed?/1)
-    |> case do
-      [] -> :ok
-      [function_call | _rest] ->
-        raise CompilationError, message: function_argument_error_message(function_call)
-    end
   end
 
   defp function_argument_error_message(function_call) do
     cond do
       Function.cast?(function_call) ->
         [cast_source] = actual_types(function_call)
-        cast_target = Function.return_type(function_call)
+        cast_target = Function.cast_target(function_call)
         "Cannot cast value of type `#{cast_source}` to type `#{cast_target}`."
       many_overloads?(function_call) ->
         "Arguments of type (#{function_call |> actual_types() |> quoted_list()}) are incorrect"
-          <> " for `#{Function.name(function_call)}`."
+          <> " for `#{column_title(function_call)}`."
       true ->
-        "Function `#{Function.name(function_call)}` requires arguments of type #{expected_types(function_call)}"
+        "Function `#{column_title(function_call)}` requires arguments of type #{expected_types(function_call)}"
           <> ", but got (#{function_call |> actual_types() |> quoted_list()})."
     end
   end
@@ -526,8 +499,8 @@ defmodule Cloak.Aql.Compiler do
   defp precompile_functions(columns), do:
     Enum.map(columns, &precompile_function/1)
 
-  defp precompile_function({:function, _function, _args} = function_spec) do
-    case Function.compile_function(function_spec, &precompile_functions/1) do
+  defp precompile_function(expression = %Expression{function?: true}) do
+    case Function.compile_function(expression, &precompile_functions/1) do
       {:error, message} -> raise CompilationError, message: message
       compiled_function -> compiled_function
     end
@@ -545,10 +518,10 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.join(" or ")
 
   defp actual_types(function_call), do:
-    Function.arguments(function_call) |> Enum.map(&Function.type/1)
+    Function.arguments(function_call) |> Enum.map(&(&1.type))
 
   defp expand_arguments(column) do
-    (column |> Function.arguments() |> Enum.flat_map(&expand_arguments/1)) ++ [column]
+    (column |> Expression.arguments() |> Enum.flat_map(&expand_arguments/1)) ++ [column]
   end
 
   defp quoted_list(items), do:
@@ -581,11 +554,11 @@ defmodule Cloak.Aql.Compiler do
 
   defp verify_group_by_functions(query) do
     query.group_by
-    |> Enum.filter(&Function.aggregate_function?/1)
+    |> Enum.filter(&(&1.function? and &1.aggregate?))
     |> case do
       [] -> :ok
-      [function | _] -> raise CompilationError,
-        message: "Aggregate function `#{Function.name(function)}` can not be used in the `GROUP BY` clause."
+      [expression | _] -> raise CompilationError, message:
+        "Aggregate function `#{Function.readable_name(expression.function)}` can not be used in the `GROUP BY` clause."
     end
   end
 
@@ -600,9 +573,9 @@ defmodule Cloak.Aql.Compiler do
     verify_function_subquery_usage(function, query)
   end
 
-  defp verify_function_exists(function) do
+  defp verify_function_exists(function = {_, name, _}) do
     unless Function.exists?(function) do
-      raise CompilationError, message: "Unknown function `#{Function.name(function)}`."
+      raise CompilationError, message: "Unknown function `#{Function.readable_name(name)}`."
     end
   end
 
@@ -619,7 +592,7 @@ defmodule Cloak.Aql.Compiler do
   defp verify_function_subquery_usage(function, %Query{subquery?: true}) do
     unless Function.allowed_in_subquery?(function) do
       raise CompilationError, message:
-        "Function `#{Function.name(function)}` is not allowed in subqueries."
+        "Function `#{column_title(function)}` is not allowed in subqueries."
     end
   end
 
@@ -643,7 +616,7 @@ defmodule Cloak.Aql.Compiler do
       [] ->
         %Query{query |
           property: query.columns |> drop_duplicate_columns_except_row_splitters(),
-          aggregators: [{:function, "count", [:*]}],
+          aggregators: [Expression.count_star()],
           implicit_count?: true
         }
       aggregators ->
@@ -673,24 +646,24 @@ defmodule Cloak.Aql.Compiler do
     {Enum.reverse(reversed_transformed_columns), final_query}
   end
 
-  defp transform_splitter_column({:function, name, args} = function_spec, query) do
-    if Function.row_splitting_function?(function_spec) do
+  defp transform_splitter_column(expression = %Expression{function?: true}, query) do
+    if Function.row_splitting_function?(expression.function) do
       # We are making the simplifying assumption that row splitting functions have
       # the value column returned as part of the first column
-      {splitter_row_index, query} = add_row_splitter(query, function_spec)
-      db_column = case Function.column(hd(args)) do
+      {splitter_row_index, query} = add_row_splitter(query, expression)
+      db_column = case expression |> Expression.arguments() |> hd() |> Expression.first_column() do
         nil -> raise CompilationError, message:
-          "Function `#{name}` requires that the first argument must be a column."
+          "Function `#{Function.readable_name(expression.function)}` requires that the first argument must be a column."
         value -> value
       end
-      column_name = "#{Function.name(function_spec)}_return_value"
-      return_type = Function.return_type(function_spec)
+      column_name = "#{Function.readable_name(expression.function)}_return_value"
+      return_type = Function.return_type(expression)
       # This, most crucially, preserves the DB row position parameter
       augmented_column = %Expression{db_column | name: column_name, type: return_type, row_index: splitter_row_index}
       {augmented_column, query}
     else
-      {transformed_args, query} = transform_splitter_columns(query, args)
-      {{:function, name, transformed_args}, query}
+      {transformed_args, query} = transform_splitter_columns(query, Expression.arguments(expression))
+      {%{expression | function_args: transformed_args}, query}
     end
   end
   defp transform_splitter_column(other, query), do:
@@ -1030,12 +1003,16 @@ defmodule Cloak.Aql.Compiler do
       end
     end
   end
-  defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name,
-      %Query{subquery?: true, emulated?: false} = query) do
+  defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name, query) do
     check_function_validity(function_spec, query)
     case Function.return_type(function_spec) do
       nil -> raise CompilationError, message: function_argument_error_message(function_spec)
-      type -> Expression.db_function(name, args, type, Function.aggregate_function?(function_spec))
+      type ->
+        if query.subquery? do
+          Expression.db_function(name, args, type, Function.aggregate_function?(function_spec))
+        else
+          Expression.function(name, args, type, Function.aggregate_function?(function_spec))
+        end
     end
   end
   defp identifier_to_column({:parameter, index}, _columns_by_name, query) do
@@ -1073,7 +1050,9 @@ defmodule Cloak.Aql.Compiler do
   defp insensitive_equal?(s1, s2), do: String.downcase(s1) == String.downcase(s2)
 
   def column_title({_identifier, :as, alias}), do: alias
-  def column_title(function = {:function, _, _}), do: Function.name(function)
+  def column_title({:function, {:cast, _}, _}), do: "cast"
+  def column_title({:function, {:bucket, _}, _}), do: "bucket"
+  def column_title({:function, name, _}), do: name
   def column_title({:distinct, identifier}), do: column_title(identifier)
   def column_title({:identifier, _table, {_, column}}), do: column
   def column_title({:constant, _, _}), do: ""
@@ -1085,13 +1064,8 @@ defmodule Cloak.Aql.Compiler do
   end
   defp censor_selected_uids(query), do: query
 
-  defp is_uid_column?(column) do
-    if Function.aggregate_function?(column) do
-      false
-    else
-      [column] |> extract_columns() |> Enum.any?(& &1.user_id?)
-    end
-  end
+  defp is_uid_column?(%Expression{function?: true, aggregate?: true}), do: false
+  defp is_uid_column?(column), do: [column] |> extract_columns() |> Enum.any?(& &1.user_id?)
 
   defp extract_columns(columns), do:
     get_in(columns, [Query.Lenses.leaf_expressions()])
