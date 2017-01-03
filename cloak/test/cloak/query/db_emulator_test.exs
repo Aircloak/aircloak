@@ -94,6 +94,16 @@ defmodule Cloak.Query.DBEmulatorTest do
         """, %{rows: [%{occurrences: 20, row: [1]}]}
     end
 
+    test "where inequality" do
+      assert_query """
+        select length(v) as v from
+          (select user_id, left(value, 1) as v from #{@prefix}emulated
+          where date >= '2015-01-01' and date < '2016-01-01'
+          group by user_id, value) as t
+        order by v
+        """, %{rows: [%{occurrences: 20, row: [1]}]}
+    end
+
     test "having equality" do
       assert_query """
           select avg(v) from

@@ -237,6 +237,7 @@ defmodule Cloak.Aql.Compiler do
         query |
         columns: query.columns ++ Enum.map(query.ranges, &(&1.column)),
         column_titles: query.column_titles ++ Enum.map(query.ranges, fn(%{column: column}) -> column.alias end),
+        aggregators: query.aggregators ++ (query.ranges |> Enum.map(&(&1.column)) |> Enum.filter(&(&1.aggregate?))),
       }
     else
       %{query | db_columns: query.db_columns ++ Enum.map(query.ranges, &(&1.column))}
