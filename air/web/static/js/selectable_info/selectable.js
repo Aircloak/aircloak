@@ -20,20 +20,20 @@ type Props = {
 };
 
 export const SelectableView = (props: Props) =>
-  <div
-    className="list-group-item"
-    onClick={(event) => {
-      // Hacky solution to prevent bubbling from `<a>` elements. Normally, we'd use stopPropagation.
-      // However, the problem here is that we're injecting some html provided by the server, which
-      // internally generates A elements. Therefore, we don't have such option, so we're doing it
-      // here.
-      if (event.target.tagName !== "A") {
-        event.preventDefault();
-        props.onClick();
-      }
-    }}
-  >
-    <div className="list-group-item-heading">
+  <div className="list-group-item">
+    <div
+      onClick={(event) => {
+        // Hacky solution to prevent bubbling from `<a>` elements. Normally, we'd use stopPropagation.
+        // However, the problem here is that we're injecting some html provided by the server, which
+        // internally generates A elements. Therefore, we don't have such option, so we're doing it
+        // here.
+        if (event.target.tagName !== "A") {
+          event.preventDefault();
+          props.onClick();
+        }
+      }}
+      className="list-group-item-heading"
+    >
       {(() => {
         if (props.expanded) {
           return <span className="glyphicon glyphicon-minus"></span>;
