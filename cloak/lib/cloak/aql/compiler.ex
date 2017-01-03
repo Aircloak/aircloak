@@ -852,14 +852,11 @@ defmodule Cloak.Aql.Compiler do
       query
       |> get_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast) |> Lens.key(:ranges)])
       |> Enum.flat_map(fn(ranges) ->
-        Enum.map(ranges, fn(range) -> %{range | column: %Expression{name: range_alias(range.column)}} end)
+        Enum.map(ranges, fn(range) -> %{range | column: %Expression{name: range.column.alias}} end)
       end)
       |> Enum.into(query.ranges)
     }
   end
-
-  defp range_alias({_, :as, alias}), do: alias
-  defp range_alias(column), do: column.alias
 
   defp verify_ranges(clauses) do
     clauses
