@@ -20,8 +20,12 @@ defmodule Cloak.Aql.Compiler do
     {:ok, Query.t} | {:error, String.t}
   def compile(data_source, parsed_query, parameters, views) do
     try do
-      parsed_query
-      |> to_prepped_query(data_source, parameters, views)
+      %Query{
+        data_source: data_source,
+        parameters: parameters,
+        views: views
+      }
+      |> Map.merge(parsed_query)
       |> compile_prepped_query()
     rescue
       e in CompilationError -> {:error, e.message}
@@ -58,15 +62,6 @@ defmodule Cloak.Aql.Compiler do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp to_prepped_query(parsed_query, data_source, parameters, views) do
-    %Query{
-      data_source: data_source,
-      parameters: parameters,
-      views: views
-    }
-    |> Map.merge(parsed_query)
-  end
 
   defp compile_prepped_query(%Query{command: :show, show: :tables} = query), do:
     {:ok, %Query{query |
