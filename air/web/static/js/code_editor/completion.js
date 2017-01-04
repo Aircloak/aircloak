@@ -53,6 +53,8 @@ const wordEnd = (string, start) => {
   return end;
 };
 
+const escapeWord = (word) => word.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+
 export default function completionList(
   curLine: string,
   curPos: number,
@@ -70,7 +72,10 @@ export default function completionList(
   // we take the full document into account), lose the location info of
   // where the match starts, when prepping and creating the RegExp match string.
   // This could be worked around, but it seems only for marginal gains.
-  const codeWords = curLine.slice(0, end).split(/\s/);
+  const codeWords = _.chain(curLine.slice(0, end)).
+    split(/\s/).
+    map(escapeWord).
+    value();
   const potentialMatchSequences = [];
   for (let i = codeWords.length; i >= 0; i--) {
     const wordsToUse = [];
@@ -116,5 +121,12 @@ export default function completionList(
     sortBy(longestFirst).
     value();
 
-  return {list};
+  if (list.length > 0) {
+    // CodeMirror expects there being a global from/to pair, despite these being
+    // declared as part of the suggestion itself. We take this from the first
+    // provided suggestion for lack of better alternatives.
+    return {list, from: list[0].from, to: list[0].to};
+  } else {
+    return {list};
+  }
 }

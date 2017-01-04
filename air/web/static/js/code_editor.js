@@ -24,43 +24,49 @@ export class CodeEditor extends React.Component {
     super(props);
     this.setupComponent = this.setupComponent.bind(this);
     this.completionList = this.completionList.bind(this);
-
-    // The CodeMirror editor instance.
-    // We need to keep track of it in order to provide
-    // proper code hints, etc.
-    // The variable is initialized in a callback from
-    // the react component.
-    this.editor = undefined;
-  }
-
-  setupComponent(codeMirrorComponent: {getCodeMirrorInstance: () => Codemirror}) {
-    this.editor = codeMirrorComponent.getCodeMirrorInstance();
-    this.editor.commands.run = (_cm) => {
-      this.props.onRun();
-    };
-    this.editor.commands.stop = (_cm) => {
-      this.props.onStop();
-    };
-    this.editor.commands.autoComplete = (cm) => {
-      cm.showHint({hint: this.completionList});
-    };
+    window.insertWordInEditor = this.insertWordInEditor.bind(this);
   }
 
   props: Props;
   setupComponent: () => void;
+  reactCodeMirrorComponent: Codemirror;
+  codeMirrorClass: () => Codemirror;
   completionList: () => void;
-  editor: Codemirror;
+  insertWordInEditor: () => void;
+
+  setupComponent(codeMirrorComponent: {getCodeMirrorInstance: () => Codemirror}) {
+    const codeMirrorClass = codeMirrorComponent.getCodeMirrorInstance();
+    codeMirrorClass.commands.run = (_cm) => {
+      this.props.onRun();
+    };
+    codeMirrorClass.commands.stop = (_cm) => {
+      this.props.onStop();
+    };
+    codeMirrorClass.commands.autoComplete = (cm) => {
+      cm.showHint({hint: this.completionList});
+    };
+
+    this.reactCodeMirrorComponent = codeMirrorComponent;
+    this.codeMirrorClass = codeMirrorClass;
+  }
 
   completionList(cm: Codemirror) {
     return completions(
       cm.getLine(cm.getCursor().line),
       cm.getCursor().ch,
       /* eslint-disable new-cap */
-      (pos) => this.editor.Pos(cm.getCursor().line, pos),
+      (pos) => this.codeMirrorClass.Pos(cm.getCursor().line, pos),
       /* eslint-enable new-cap */
       this.props.tableNames,
       this.props.columnNames
     );
+  }
+
+  insertWordInEditor(word: String) {
+    const editor = this.reactCodeMirrorComponent.getCodeMirror();
+    const doc = editor.getDoc();
+    doc.replaceSelection(word);
+    editor.focus();
   }
 
   render() {
@@ -86,6 +92,7 @@ export class CodeEditor extends React.Component {
         "Ctrl-Esc": "stop",
         "Cmd-Esc": "stop",
         "Ctrl-Space": "autoComplete",
+        "Cmd-Space": "autoComplete",
       },
     });
 

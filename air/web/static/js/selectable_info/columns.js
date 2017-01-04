@@ -20,7 +20,15 @@ export const ColumnsView = (props: {columns: Column[]}) =>
     <tbody>
       {props.columns.map((column, i) =>
         <tr key={i}>
-          <td className={column.user_id ? "id-column" : "name-column"}>{column.name}</td>
+          <td
+            onClick={(event) => {
+              event.preventDefault();
+              window.insertWordInEditor(column.name);
+            }}
+            className={column.user_id ? "id-column" : "name-column"}
+          >
+            {column.name}
+          </td>
           <td>{column.type}</td>
         </tr>
       )}
