@@ -53,6 +53,13 @@ const wordEnd = (string, start) => {
   return end;
 };
 
+const escapeWord = (word) =>
+  _.chain(word).
+    replace("\\", "\\\\").
+    replace("(", "\\(").
+    replace(")", "\\)").
+    value();
+
 export default function completionList(
   curLine: string,
   curPos: number,
@@ -70,7 +77,10 @@ export default function completionList(
   // we take the full document into account), lose the location info of
   // where the match starts, when prepping and creating the RegExp match string.
   // This could be worked around, but it seems only for marginal gains.
-  const codeWords = curLine.slice(0, end).split(/\s/);
+  const codeWords = _.chain(curLine.slice(0, end)).
+    split(/\s/).
+    map(escapeWord).
+    value();
   const potentialMatchSequences = [];
   for (let i = codeWords.length; i >= 0; i--) {
     const wordsToUse = [];
