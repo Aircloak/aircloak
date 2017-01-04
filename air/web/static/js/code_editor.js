@@ -48,7 +48,6 @@ export class CodeEditor extends React.Component {
 
     this.reactCodeMirrorComponent = codeMirrorComponent;
     this.codeMirrorClass = codeMirrorClass;
-    window.instance = codeMirrorComponent;
   }
 
   completionList(cm: Codemirror) {
