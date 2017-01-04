@@ -34,6 +34,7 @@ defmodule Cloak.DataSource.MongoDBTest do
     tables =
       conn
       |> MongoDB.load_tables(table_config)
+      |> Enum.map(&Cloak.Query.DataDecoder.init/1)
       |> Enum.map(&{&1.name, &1})
       |> Enum.into(%{})
     GenServer.stop(conn)
@@ -145,7 +146,7 @@ defmodule Cloak.DataSource.MongoDBTest do
     assert_query context, """
         SELECT COUNT(*), SUM(value) FROM
         (SELECT _id, SUM(DISTINCT bills.ids) AS value FROM #{@table}_bills_ids GROUP BY _id) AS t
-      """, %{rows: [%{occurrences: 1, row: [10, 30]}]}
+      """, %{rows: [%{occurrences: 1, row: [10, 30.0]}]}
   end
 
   test "distinct in sub-queries", context do
