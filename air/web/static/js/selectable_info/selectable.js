@@ -16,56 +16,76 @@ type Props = {
   readOnly: boolean,
   selectable: Selectable,
   onClick: () => void,
-  expanded: boolean
+  expanded: boolean,
+  filterText: string,
 };
 
-export const SelectableView = (props: Props) =>
-  <div className="list-group-item">
-    <div
-      onClick={(event) => {
-        // Hacky solution to prevent bubbling from `<a>` elements. Normally, we'd use stopPropagation.
-        // However, the problem here is that we're injecting some html provided by the server, which
-        // internally generates A elements. Therefore, we don't have such option, so we're doing it
-        // here.
-        if (event.target.tagName !== "A") {
-          event.preventDefault();
-          props.onClick();
-        }
-      }}
-      className="list-group-item-heading"
-    >
-      {(() => {
-        if (props.expanded) {
-          return <span className="glyphicon glyphicon-minus"></span>;
-        } else {
-          return <span className="glyphicon glyphicon-plus"></span>;
-        }
-      })()}
+export class SelectableView extends React.Component {
+  handleToggleClick: () => void;
+  isView: () => boolean;
+  renderMenuItems: () => void;
 
-      &nbsp;
+  constructor(props: Props) {
+    super(props);
 
-      {props.selectable.id}
+    this.handleToggleClick = this.handleToggleClick.bind(this);
+    this.isView = this.isView.bind(this);
+    this.renderMenuItems = this.renderMenuItems.bind(this);
+  }
 
-      {(() => {
-        if (!props.readOnly && props.selectable.edit_link && props.selectable.delete_html) {
-          return (
-            <span className="pull-right">
-              <a className="btn btn-xs btn-default" href={props.selectable.edit_link}>Edit</a>
-              &nbsp;
-              <span dangerouslySetInnerHTML={{__html: props.selectable.delete_html}} />
-            </span>
-          );
-        } else {
-          return null;
-        }
-      })()}
-    </div>
+  handleToggleClick(event: {target: Element, preventDefault: () => void}) {
+    // Hacky solution to prevent bubbling from `<a>` elements. Normally, we'd use stopPropagation.
+    // However, the problem here is that we're injecting some html provided by the server, which
+    // internally generates A elements. Therefore, we don't have such option, so we're doing it
+    // here.
+    if (event.target.tagName !== "A") {
+      event.preventDefault();
+      this.props.onClick();
+    }
+  }
 
-    {(() => {
-      if (props.expanded) {
-        return <ColumnsView columns={props.selectable.columns} />;
-      } else {
-        return null;
-      }
-    })()}
-  </div>;
+  isView() {
+    return !this.props.readOnly &&
+      this.props.selectable.edit_link &&
+      this.props.selectable.delete_html;
+  }
+
+  renderMenuItems() {
+    if (this.isView()) {
+      return (
+        <span className="pull-right">
+          <a className="btn btn-xs btn-default" href={this.props.selectable.edit_link}>Edit</a>
+          &nbsp;
+          <span
+            dangerouslySetInnerHTML={{__html: this.props.selectable.delete_html}}
+            onClick={(event) => event.preventDefault()}
+          />
+        </span>
+      );
+    } else {
+      return null;
+    }
+  }
+
+  render() {
+    const glyphType = this.props.expanded ? "glyphicon glyphicon-minus" : "glyphicon glyphicon-plus";
+    return (
+      <div className="list-group-item">
+        <div onClick={this.handleToggleClick} className="list-group-item-heading">
+          <span className={glyphType} />
+          &nbsp;
+          {this.props.selectable.id}
+          {this.renderMenuItems()}
+        </div>
+
+        {(() => {
+          if (this.props.expanded) {
+            return <ColumnsView columns={this.props.selectable.columns} />;
+          } else {
+            return null;
+          }
+        })()}
+      </div>
+    );
+  }
+}
