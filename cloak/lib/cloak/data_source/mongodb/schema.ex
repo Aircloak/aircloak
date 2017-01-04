@@ -56,12 +56,16 @@ defmodule Cloak.DataSource.MongoDB.Schema do
     columns =
       Enum.reject(parent_columns, fn ({name, _type}) -> is_array_size?(name) end) ++
       Enum.map(schema.base, fn ({name, type}) -> {to_string(table.array_path) <> name, type} end)
+    arrays = Map.keys(schema) -- [:base]
     array_tables =
-      for array <- Map.keys(schema) -- [:base] do
-        array_table = %{table | name: build_table_name(table.name, array), array_path: table.array_path ++ [array]}
+      for array <- arrays do
+        decoders = reject_array_decoders(table.decoders, table.array_path, arrays -- [array])
+        array_table = %{table | name: build_table_name(table.name, array),
+          array_path: table.array_path ++ [array], decoders: decoders}
         build_tables(schema[array], array_table, columns)
       end
-    [%{table | columns: columns} | List.flatten(array_tables)]
+    decoders = reject_array_decoders(table.decoders, table.array_path, arrays)
+    [%{table | columns: columns, decoders: decoders} | List.flatten(array_tables)]
   end
   defp build_tables(type, table, parent_columns) do
     columns =
@@ -72,4 +76,14 @@ defmodule Cloak.DataSource.MongoDB.Schema do
 
   defp build_table_name(parent, "." <> array), do: build_table_name(parent, array)
   defp build_table_name(parent, array), do: "#{parent}_#{array}"
+
+  defp reject_array_decoders(decoders, path, arrays) do
+    arrays = for array <- arrays, do: to_string(path ++ [array])
+    prefixes = for array <- arrays, do: array <> "."
+    decoders
+    |> Enum.map(fn (decoder) ->
+      %{decoder | columns: Enum.reject(decoder.columns, &String.starts_with?(&1, prefixes) || Enum.member?(arrays, &1))}
+    end)
+    |> Enum.reject(&Enum.empty?(&1.columns))
+  end
 end

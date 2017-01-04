@@ -23,15 +23,18 @@ defmodule Cloak.DataSource.MongoDBTest do
     {:ok, conn} = Mongo.start_link(parameters)
     Mongo.delete_many(conn, @table, %{})
     for i <- 1..10 do
-      value = %{name: "user#{i}", age: 30, male: true, bills: [%{issuer: "vendor", ids: [1, 2]}]}
+      value = %{name: "user#{i}", age: 30, male: true, bills: [%{issuer: "vendor", ids: ["1", "2"]}]}
       Mongo.insert_one!(conn, @table, value)
     end
     for _i <- 11..15 do
       Mongo.insert_one!(conn, @table, %{})
     end
+    decoder = %{method: "text_to_real", columns: ["bills.ids"]}
+    table_config = %{db_name: @table, name: @table, columns: [], user_id: "_id", projection: nil, decoders: [decoder]}
     tables =
       conn
-      |> MongoDB.load_tables(%{db_name: @table, name: @table, columns: [], user_id: "_id", projection: nil})
+      |> MongoDB.load_tables(table_config)
+      |> Enum.map(&Cloak.Query.DataDecoder.init/1)
       |> Enum.map(&{&1.name, &1})
       |> Enum.into(%{})
     GenServer.stop(conn)
@@ -143,7 +146,7 @@ defmodule Cloak.DataSource.MongoDBTest do
     assert_query context, """
         SELECT COUNT(*), SUM(value) FROM
         (SELECT _id, SUM(DISTINCT bills.ids) AS value FROM #{@table}_bills_ids GROUP BY _id) AS t
-      """, %{rows: [%{occurrences: 1, row: [10, 30]}]}
+      """, %{rows: [%{occurrences: 1, row: [10, 30.0]}]}
   end
 
   test "distinct in sub-queries", context do
