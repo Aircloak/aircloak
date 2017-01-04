@@ -93,6 +93,7 @@ export class CodeEditor extends React.Component {
         "Ctrl-Esc": "stop",
         "Cmd-Esc": "stop",
         "Ctrl-Space": "autoComplete",
+        "Cmd-Space": "autoComplete",
       },
     });
 
