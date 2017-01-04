@@ -50,7 +50,7 @@ export const SelectableView = (props: Props) =>
         if (!props.readOnly && props.selectable.edit_link && props.selectable.delete_html) {
           return (
             <span className="pull-right">
-              <a className="btn btn-xs" href={props.selectable.edit_link}>Edit</a>
+              <a className="btn btn-xs btn-default" href={props.selectable.edit_link}>Edit</a>
               &nbsp;
               <span dangerouslySetInnerHTML={{__html: props.selectable.delete_html}} />
             </span>
