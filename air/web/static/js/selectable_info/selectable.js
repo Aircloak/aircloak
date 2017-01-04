@@ -3,6 +3,7 @@
 import React from "react";
 
 import {ColumnsView} from "./columns";
+import {Filter} from "./filter";
 import type {Column} from "./columns";
 
 export type Selectable = {
@@ -17,20 +18,24 @@ type Props = {
   selectable: Selectable,
   onClick: () => void,
   expanded: boolean,
-  filterText: string,
+  filter: Filter,
 };
 
 export class SelectableView extends React.Component {
   handleToggleClick: () => void;
   isView: () => boolean;
   renderMenuItems: () => void;
+  renderSelectableView: () => void;
+  hasRenderableContent: () => boolean;
 
   constructor(props: Props) {
     super(props);
 
     this.handleToggleClick = this.handleToggleClick.bind(this);
     this.isView = this.isView.bind(this);
+    this.hasRenderableContent = this.hasRenderableContent.bind(this);
     this.renderMenuItems = this.renderMenuItems.bind(this);
+    this.renderSelectableView = this.renderSelectableView.bind(this);
   }
 
   handleToggleClick(event: {target: Element, preventDefault: () => void}) {
@@ -50,6 +55,10 @@ export class SelectableView extends React.Component {
       this.props.selectable.delete_html;
   }
 
+  hasRenderableContent() {
+    return this.props.filter.anyColumnMatches(this.props.selectable.columns);
+  }
+
   renderMenuItems() {
     if (this.isView()) {
       return (
@@ -67,7 +76,7 @@ export class SelectableView extends React.Component {
     }
   }
 
-  render() {
+  renderSelectableView() {
     const glyphType = this.props.expanded ? "glyphicon glyphicon-minus" : "glyphicon glyphicon-plus";
     return (
       <div className="list-group-item">
@@ -80,12 +89,20 @@ export class SelectableView extends React.Component {
 
         {(() => {
           if (this.props.expanded) {
-            return <ColumnsView columns={this.props.selectable.columns} />;
+            return <ColumnsView columns={this.props.selectable.columns} filter={this.props.filter} />;
           } else {
             return null;
           }
         })()}
       </div>
     );
+  }
+
+  render() {
+    if (this.hasRenderableContent()) {
+      return this.renderSelectableView();
+    } else {
+      return null;
+    }
   }
 }

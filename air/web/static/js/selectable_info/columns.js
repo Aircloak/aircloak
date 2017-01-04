@@ -2,13 +2,15 @@
 
 import React from "react";
 
+import {Filter} from "./filter";
+
 export type Column = {
   name: string,
   type: string,
   user_id: boolean,
 };
 
-export const ColumnsView = (props: {columns: Column[]}) =>
+export const ColumnsView = (props: {filter: Filter, columns: Column[]}) =>
   <table className="table table-condensed">
     <thead>
       <tr>
@@ -18,7 +20,7 @@ export const ColumnsView = (props: {columns: Column[]}) =>
     </thead>
 
     <tbody>
-      {props.columns.map((column, i) =>
+      {props.filter.filterColumns(props.columns).map((column, i) =>
         <tr key={i}>
           <td
             onClick={(event) => {
