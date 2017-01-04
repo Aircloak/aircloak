@@ -116,5 +116,12 @@ export default function completionList(
     sortBy(longestFirst).
     value();
 
-  return {list};
+  if (list.length > 0) {
+    // CodeMirror expects there being a global from/to pair, despite these being
+    // declared as part of the suggestion itself. We take this from the first
+    // provided suggestion for lack of better alternatives.
+    return {list, from: list[0].from, to: list[0].to};
+  } else {
+    return {list};
+  }
 }
