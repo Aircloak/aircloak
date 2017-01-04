@@ -130,7 +130,7 @@ defmodule Cloak.Query.Runner do
       result
       |> format_result()
       |> Map.put(:query_id, state.query_id)
-      |> Map.put(:execution_time, execution_time_in_seconds(state))
+      |> Map.put(:execution_time, execution_time(state))
     log_completion(result)
     Cloak.ResultSender.send_result(state.result_target, result)
   end
@@ -161,8 +161,7 @@ defmodule Cloak.Query.Runner do
     format_result({:error, "Unknown cloak error."})
   end
 
-  defp execution_time_in_seconds(state), do:
-    div(:erlang.monotonic_time(:milli_seconds) - state.start_time, 1000)
+  defp execution_time(state), do: :erlang.monotonic_time(:milli_seconds) - state.start_time
 
 
   # -------------------------------------------------------------------
