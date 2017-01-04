@@ -850,10 +850,8 @@ defmodule Cloak.Aql.Compiler do
   defp add_subquery_ranges(query) do
     %{query | ranges:
       query
-      |> get_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast) |> Lens.key(:ranges)])
-      |> Enum.flat_map(fn(ranges) ->
-        Enum.map(ranges, fn(range) -> %{range | column: %Expression{name: range.column.alias}} end)
-      end)
+      |> get_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast) |> Lens.key(:ranges) |> Lens.all()])
+      |> Enum.map(&(%{&1 | column: %Expression{name: &1.column.alias}}))
       |> Enum.into(query.ranges)
     }
   end
