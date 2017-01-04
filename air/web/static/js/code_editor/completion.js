@@ -53,12 +53,7 @@ const wordEnd = (string, start) => {
   return end;
 };
 
-const escapeWord = (word) =>
-  _.chain(word).
-    replace("\\", "\\\\").
-    replace("(", "\\(").
-    replace(")", "\\)").
-    value();
+const escapeWord = (word) => word.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
 
 export default function completionList(
   curLine: string,

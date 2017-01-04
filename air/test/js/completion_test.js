@@ -120,7 +120,11 @@ it("escapes closing parenthesis", () => {
   assert.deepEqual(
     completions("count(*)", 8, _.identity, [], []),
     {
-      list: [],
+      list: [
+        {text: "COUNT(*)", from: 0, to: 8},
+      ],
+      from: 0,
+      to: 8,
     }
   );
 });
