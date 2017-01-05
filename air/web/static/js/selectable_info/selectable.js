@@ -23,7 +23,7 @@ type Props = {
 
 export class SelectableView extends React.Component {
   handleToggleClick: () => void;
-  isView: () => boolean;
+  isDatabaseView: () => boolean;
   renderMenuItems: () => void;
   renderSelectableView: () => void;
   hasRenderableContent: () => boolean;
@@ -32,7 +32,7 @@ export class SelectableView extends React.Component {
     super(props);
 
     this.handleToggleClick = this.handleToggleClick.bind(this);
-    this.isView = this.isView.bind(this);
+    this.isDatabaseView = this.isDatabaseView.bind(this);
     this.hasRenderableContent = this.hasRenderableContent.bind(this);
     this.renderMenuItems = this.renderMenuItems.bind(this);
     this.renderSelectableView = this.renderSelectableView.bind(this);
@@ -49,7 +49,7 @@ export class SelectableView extends React.Component {
     }
   }
 
-  isView() {
+  isDatabaseView() {
     return !this.props.readOnly &&
       this.props.selectable.edit_link &&
       this.props.selectable.delete_html;
@@ -60,7 +60,7 @@ export class SelectableView extends React.Component {
   }
 
   renderMenuItems() {
-    if (this.isView()) {
+    if (this.isDatabaseView()) {
       return (
         <span className="pull-right">
           <a className="btn btn-xs btn-default" href={this.props.selectable.edit_link}>Edit</a>
