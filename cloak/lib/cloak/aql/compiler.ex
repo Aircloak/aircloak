@@ -231,16 +231,17 @@ defmodule Cloak.Aql.Compiler do
 
   defp carry_ranges(query) do
     query = %{query | ranges: Enum.flat_map(query.ranges, &carrying_ranges/1)}
+    range_columns = Enum.map(query.ranges, &(&1.column))
 
     if query.emulated? do
       %{
         query |
-        columns: query.columns ++ Enum.map(query.ranges, &(&1.column)),
-        column_titles: query.column_titles ++ Enum.map(query.ranges, fn(%{column: column}) -> column.alias end),
-        aggregators: query.aggregators ++ (query.ranges |> Enum.map(&(&1.column)) |> Enum.filter(&(&1.aggregate?))),
+        columns: query.columns ++ range_columns,
+        column_titles: query.column_titles ++ Enum.map(range_columns, &(&1.alias)),
+        aggregators: query.aggregators ++ Enum.filter(range_columns, &(&1.aggregate?)),
       }
     else
-      %{query | db_columns: query.db_columns ++ Enum.map(query.ranges, &(&1.column))}
+      %{query | db_columns: query.db_columns ++ range_columns}
     end
   end
 
