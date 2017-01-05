@@ -15,7 +15,7 @@ defmodule Central.Schemas.User do
     field :hashed_password, :string
     field :name, :string
 
-    timestamps
+    timestamps()
 
     # These virtual fields are used for validation,
     # but never persisted to the database

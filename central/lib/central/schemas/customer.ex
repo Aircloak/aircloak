@@ -13,7 +13,7 @@ defmodule Central.Schemas.Customer do
 
     has_many :queries, Central.Schemas.Query
 
-    timestamps
+    timestamps()
   end
 
   @required_fields ~w(name)a
