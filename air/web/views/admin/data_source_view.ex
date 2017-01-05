@@ -18,7 +18,6 @@ defmodule Air.Admin.DataSourceView do
 
   def number_of_tables(data_source), do: length(DataSource.tables(data_source))
 
-  # @lint false
   defp checkbox_mapper(form, field, input_opts, group, label_opts, _opts) do
     content_tag(:div, class: "checkbox") do
       label(form, field, label_opts) do

@@ -6,7 +6,6 @@ defmodule Air.Admin.UserView do
 
   alias Air.Repo
 
-  @lint false
   defp checkbox_mapper(form, field, input_opts, group, label_opts, _opts) do
     content_tag(:div, class: "checkbox") do
       label(form, field, label_opts) do
