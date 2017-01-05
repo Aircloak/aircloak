@@ -14,7 +14,7 @@ export class Filter {
   regex: RegExp;
   anyColumnMatches: (columns: Column[]) => boolean;
   filterColumns: (columns: Column[]) => Column[];
-  filterFun: () => RegExp;
+  filterFun: (column: Column) => RegExp;
 
   constructor(filterText: string) {
     this.compileRegex(filterText);
@@ -36,7 +36,7 @@ export class Filter {
     }
   }
 
-  filterFun(column: Column) {
+  filterFun(column: Column): boolean {
     return this.regex === undefined || this.regex.test(column.name) || this.regex.test(column.type);
   }
 
