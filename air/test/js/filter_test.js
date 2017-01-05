@@ -12,22 +12,22 @@ it("constructs successfully", () => {
 });
 
 describe("anyColumnMatches", () => {
-  it("true for column name match", () => {
+  it("is true for column name match", () => {
     const filter = new Filter("name");
     assert(filter.anyColumnMatches(columns));
   });
 
-  it("true for column type match", () => {
+  it("is true for column type match", () => {
     const filter = new Filter("type");
     assert(filter.anyColumnMatches(columns));
   });
 
-  it("false for not matching on type or name", () => {
+  it("is false for not matching on type or name", () => {
     const filter = new Filter("other");
     assert.notEqual(filter.anyColumnMatches(columns), true);
   });
 
-  it("true when incomplete regex", () => {
+  it("is true when incomplete regex", () => {
     const filter = new Filter("name(");
     assert(filter.anyColumnMatches(columns));
   });
@@ -44,17 +44,17 @@ describe("filterColumns", () => {
     assert.deepEqual(filter.filterColumns(columns), [column1]);
   });
 
-  it("empty array for no match", () => {
+  it("returns an empty array when there is no match", () => {
     const filter = new Filter("other");
     assert.deepEqual(filter.filterColumns(columns), []);
   });
 
-  it("full array when all match", () => {
+  it("returns the full array when all columns match", () => {
     const filter = new Filter("name");
     assert.deepEqual(filter.filterColumns(columns), columns);
   });
 
-  it("full array when incomplete regex", () => {
+  it("returns the full array when the filter is an incomplete regex", () => {
     const filter = new Filter("name(");
     assert.deepEqual(filter.filterColumns(columns), columns);
   });
