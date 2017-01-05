@@ -24,7 +24,7 @@ type Props = {
 export class SelectableView extends React.Component {
   handleToggleClick: () => void;
   isDatabaseView: () => boolean;
-  renderMenuItems: () => void;
+  renderDatabaseViewMenu: () => void;
   renderSelectableView: () => void;
   hasRenderableContent: () => boolean;
 
@@ -34,7 +34,7 @@ export class SelectableView extends React.Component {
     this.handleToggleClick = this.handleToggleClick.bind(this);
     this.isDatabaseView = this.isDatabaseView.bind(this);
     this.hasRenderableContent = this.hasRenderableContent.bind(this);
-    this.renderMenuItems = this.renderMenuItems.bind(this);
+    this.renderDatabaseViewMenu = this.renderDatabaseViewMenu.bind(this);
     this.renderSelectableView = this.renderSelectableView.bind(this);
   }
 
@@ -59,21 +59,17 @@ export class SelectableView extends React.Component {
     return this.props.filter.anyColumnMatches(this.props.selectable.columns);
   }
 
-  renderMenuItems() {
-    if (this.isDatabaseView()) {
-      return (
-        <span className="pull-right">
-          <a className="btn btn-xs btn-default" href={this.props.selectable.edit_link}>Edit</a>
-          &nbsp;
-          <span
-            dangerouslySetInnerHTML={{__html: this.props.selectable.delete_html}}
-            onClick={(event) => event.preventDefault()}
-          />
-        </span>
-      );
-    } else {
-      return null;
-    }
+  renderDatabaseViewMenu() {
+    return (
+      <span className="pull-right">
+        <a className="btn btn-xs btn-default" href={this.props.selectable.edit_link}>Edit</a>
+        &nbsp;
+        <span
+          dangerouslySetInnerHTML={{__html: this.props.selectable.delete_html}}
+          onClick={(event) => event.preventDefault()}
+        />
+      </span>
+    );
   }
 
   renderSelectableView() {
@@ -84,7 +80,7 @@ export class SelectableView extends React.Component {
           <span className={glyphType} />
           &nbsp;
           {this.props.selectable.id}
-          {this.renderMenuItems()}
+          {this.isDatabaseView() ? this.renderDatabaseViewMenu() : null}
         </div>
 
         {(() => {
