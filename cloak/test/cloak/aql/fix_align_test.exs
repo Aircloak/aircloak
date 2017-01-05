@@ -38,7 +38,7 @@ defmodule Cloak.Aql.FixAlign.Test do
   end
 
   property "an aligned interval is not much larger than the input" do
-    for_all {x, y} in float_interval do
+    for_all {x, y} in float_interval() do
       interval = {x / 10, y / 10}
       10 * width(interval) >= interval |> FixAlign.align_interval() |> width()
     end
@@ -66,7 +66,7 @@ defmodule Cloak.Aql.FixAlign.Test do
   end
 
   property "an aligned time interval contains both ends of the input" do
-    for_all {x, y} in time_interval do
+    for_all {x, y} in time_interval() do
       {left, right} = FixAlign.align_interval({x, y})
       lt_eq(left, x) && lt_eq(y, right)
     end
@@ -104,21 +104,21 @@ defmodule Cloak.Aql.FixAlign.Test do
   end
 
   property "numbers are money-aligned" do
-    for_all x in (such_that y in float when y != 0) do
+    for_all x in (such_that y in float() when y != 0) do
       result = x |> FixAlign.align() |> abs()
       even_power_of_10?(result) || even_power_of_10?(result / 2) || even_power_of_10?(result / 5)
     end
   end
 
   property "money-aligned numbers are close to the input" do
-    for_all x in (such_that y in float when y != 0) do
+    for_all x in (such_that y in float() when y != 0) do
       result = x |> FixAlign.align()
       abs(result - x) <= 0.45 * abs(x)
     end
   end
 
   property "align is idempotent" do
-    for_all x in float do
+    for_all x in float() do
       x |> FixAlign.align() == x |> FixAlign.align() |> FixAlign.align()
     end
   end
@@ -129,28 +129,28 @@ defmodule Cloak.Aql.FixAlign.Test do
     assert FixAlign.align(15) == 20
   end
 
-  defp interval(:int), do: int_interval
-  defp interval(:float), do: float_interval
-  defp interval(:datetime), do: datetime_interval
-  defp interval(:date), do: date_interval
-  defp interval(:time), do: time_interval
+  defp interval(:int), do: int_interval()
+  defp interval(:float), do: float_interval()
+  defp interval(:datetime), do: datetime_interval()
+  defp interval(:date), do: date_interval()
+  defp interval(:time), do: time_interval()
 
-  defp int_interval, do: such_that({x, y} in {int, int} when x < y)
+  defp int_interval, do: such_that({x, y} in {int(), int()} when x < y)
 
-  defp float_interval, do: such_that({x, y} in {float, float} when x < y)
+  defp float_interval, do: such_that({x, y} in {float(), float()} when x < y)
 
-  defp datetime_interval, do: such_that({x, y} in {datetime, datetime} when Timex.diff(x, y) < 0)
+  defp datetime_interval, do: such_that({x, y} in {datetime(), datetime()} when Timex.diff(x, y) < 0)
 
-  defp date_interval, do: such_that({x, y} in {date, date} when Timex.diff(x, y) < 0)
+  defp date_interval, do: such_that({x, y} in {date(), date()} when Timex.diff(x, y) < 0)
 
-  defp time_interval, do: such_that({x, y} in {time, time} when lt_eq(x, y) and x != y)
+  defp time_interval, do: such_that({x, y} in {time(), time()} when lt_eq(x, y) and x != y)
 
   defp datetime do
     domain(
       :datetime,
       _generate = fn(domain, size) ->
         size = size |> :math.pow(4) |> round()
-        {domain, Timex.shift(~N[2000-06-15 12:20:30], seconds: draw(int, size))}
+        {domain, Timex.shift(~N[2000-06-15 12:20:30], seconds: draw(int(), size))}
       end,
       _shrink = fn(domain, item) -> {domain, item} end
     )
@@ -161,7 +161,7 @@ defmodule Cloak.Aql.FixAlign.Test do
       :datetime,
       _generate = fn(domain, size) ->
         size = size |> :math.pow(2) |> round()
-        {domain, Timex.shift(~D[2000-06-15], days: draw(int, size))}
+        {domain, Timex.shift(~D[2000-06-15], days: draw(int(), size))}
       end,
       _shrink = fn(domain, item) -> {domain, item} end
     )
@@ -173,7 +173,7 @@ defmodule Cloak.Aql.FixAlign.Test do
       :time,
       _generate = fn(domain, size) ->
         size = size |> :math.pow(2.5) |> round() |> min(@seconds_in_day - 1)
-        {domain, draw(pos_integer, size) |> Cloak.Time.seconds_to_time()}
+        {domain, draw(pos_integer(), size) |> Cloak.Time.seconds_to_time()}
       end,
       _shrink = fn(domain, item) -> {domain, item} end
     )

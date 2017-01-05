@@ -13,7 +13,7 @@ defmodule Air.Mixfile do
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
       aliases: aliases(Mix.env),
-      deps: deps,
+      deps: deps(),
       elixirc_options: elixirc_options(Mix.env),
       erlc_paths: erlc_paths(Mix.env),
       erlc_options: erlc_options(Mix.env),
@@ -118,9 +118,9 @@ defmodule Air.Mixfile do
   # this list.
   defp dialyzer_required_deps, do: [:plug, :poolboy]
 
-  defp elixirc_options(:test), do: [debug_info: true, docs: true] ++ common_elixirc_options
-  defp elixirc_options(:dev), do: [debug_info: true, docs: true] ++ common_elixirc_options
-  defp elixirc_options(:prod), do: common_elixirc_options
+  defp elixirc_options(:test), do: [debug_info: true, docs: true] ++ common_elixirc_options()
+  defp elixirc_options(:dev), do: [debug_info: true, docs: true] ++ common_elixirc_options()
+  defp elixirc_options(:prod), do: common_elixirc_options()
 
   defp common_elixirc_options, do: [ignore_module_conflict: true]
 

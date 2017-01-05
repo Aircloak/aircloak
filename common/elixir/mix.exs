@@ -11,7 +11,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       erlc_options: erlc_options(Mix.env),
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
-      deps: deps,
+      deps: deps(),
       aliases: [
         "test.standard": ["test", "eunit", "proper --level simple"],
         "lint": ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env), ",")}"]

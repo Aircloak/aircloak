@@ -25,7 +25,7 @@ defmodule Air.Schemas.Group do
       on_delete: :delete_all,
       on_replace: :delete
 
-    timestamps
+    timestamps()
   end
 
   @required_fields ~w(name admin)a

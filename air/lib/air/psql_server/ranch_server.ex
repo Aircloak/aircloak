@@ -110,7 +110,7 @@ defmodule Air.PsqlServer.RanchServer do
 
   @doc false
   def init({ref, socket, transport, opts, behaviour_mod, behaviour_init_arg}) do
-    send(self, {:after_init, behaviour_init_arg})
+    send(self(), {:after_init, behaviour_init_arg})
     {:ok, %__MODULE__{
       ref: ref,
       socket: socket,

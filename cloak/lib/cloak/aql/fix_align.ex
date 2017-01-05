@@ -218,7 +218,7 @@ defmodule Cloak.Aql.FixAlign do
   defp floor_to(x, grid), do: Float.floor(x / grid) * grid
 
   defp sizes(interval, size_factors, allow_fractions) do
-    Stream.concat(small_sizes(interval, allow_fractions), large_sizes)
+    Stream.concat(small_sizes(interval, allow_fractions), large_sizes())
     |> Stream.flat_map(&(for factor <- size_factors, do: &1 * factor))
   end
 

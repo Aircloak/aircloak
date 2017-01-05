@@ -8,7 +8,7 @@ defmodule Cloak.Mixfile do
       elixir: "~> 1.3",
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
-      deps: deps,
+      deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env),
       preferred_cli_env: [
         :test, dialyze: :dev, "coveralls.html": :test,

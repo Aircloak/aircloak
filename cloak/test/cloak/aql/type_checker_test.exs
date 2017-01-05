@@ -150,7 +150,7 @@ defmodule Cloak.Aql.TypeChecker.Test do
   end
 
   defp compile(query_string), do:
-    Compiler.compile(data_source, Parser.parse!(query_string), [], %{})
+    Compiler.compile(data_source(), Parser.parse!(query_string), [], %{})
 
   defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do
     %{driver: driver, tables: %{
