@@ -8,6 +8,7 @@ import type {Column} from "./columns";
 type Props = {
   value: string,
   onFilterChange: () => void,
+  handleClose: () => void,
 };
 
 export class Filter {
@@ -73,13 +74,6 @@ export class FilterView extends React.Component {
         <form className="form-inline">
           <div className="form-group">
             <div className="input-group">
-              <div className="input-group-addon">
-                <span
-                  className="glyphicon glyphicon-search"
-                  aria-hidden="true"
-                  aria-label="Filter columns"
-                />
-              </div>
               <input
                 onChange={(event) => this.filterTextChange(event.target.value)}
                 type="text"
@@ -87,6 +81,12 @@ export class FilterView extends React.Component {
                 placeholder="Filter columns"
                 value={this.state.filterText}
               />
+              <div className="input-group-addon" onClick={this.props.handleClose}>
+                <span
+                  className="glyphicon glyphicon-remove"
+                  aria-hidden="true"
+                />
+              </div>
             </div>
           </div>
         </form>

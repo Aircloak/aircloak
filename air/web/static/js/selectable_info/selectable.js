@@ -62,6 +62,7 @@ export class SelectableView extends React.Component {
   renderDatabaseViewMenu() {
     return (
       <span className="pull-right">
+        &nbsp;
         <a className="btn btn-xs btn-default" href={this.props.selectable.edit_link}>Edit</a>
         &nbsp;
         <span

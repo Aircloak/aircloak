@@ -11,9 +11,10 @@ type Props = {readOnly: boolean, selectables: Selectable[]};
 
 class SelectableInfo extends React.Component {
   props: Props;
-  state: {expanded: Set<string>, filter: Filter};
-  onFilterChange: (filter: Filter) => void;
+  state: {expanded: Set<string>, filter: Filter, filterVisible: boolean};
   toggleExpand: (t: Selectable) => (() => void);
+  onFilterChange: (filter: Filter) => void;
+  toggleFilterVisibility: () => void;
 
   constructor(props) {
     super(props);
@@ -21,10 +22,12 @@ class SelectableInfo extends React.Component {
     this.state = {
       expanded: new Set(),
       filter: new EmptyFilter(),
+      filterVisible: false,
     };
 
     this.toggleExpand = this.toggleExpand.bind(this);
     this.onFilterChange = this.onFilterChange.bind(this);
+    this.toggleFilterVisibility = this.toggleFilterVisibility.bind(this);
   }
 
   onFilterChange(filter: Filter) {
@@ -51,27 +54,58 @@ class SelectableInfo extends React.Component {
     return this.props.selectables;
   }
 
+  conditionallyRenderFilter() {
+    if (this.state.filterVisible) {
+      return <FilterView onFilterChange={this.onFilterChange} handleClose={this.toggleFilterVisibility} />;
+    } else {
+      return null;
+    }
+  }
+
+  conditionallyRenderFilterToggle() {
+    if (! this.state.filterVisible) {
+      return (<span
+        onClick={this.toggleFilterVisibility}
+        className="pull-right glyphicon glyphicon-search"
+        aria-hidden="true"
+      />);
+    } else {
+      return null;
+    }
+  }
+
+  toggleFilterVisibility() {
+    if (this.state.filterVisible) {
+      this.setState({filter: new EmptyFilter(), filterVisible: false});
+    } else {
+      this.setState({filterVisible: true});
+    }
+  }
+
   render() {
     return (
-      <div className="panel panel-default selectable-info">
-        <div className="panel-heading">
-          <strong>Tables and views</strong>
-        </div>
+      <div>
+        {this.conditionallyRenderFilter()}
 
-        <FilterView onFilterChange={this.onFilterChange} />
+        <div className="panel panel-default selectable-info">
+          <div className="panel-heading">
+            <strong>Tables and views</strong>
+            {this.conditionallyRenderFilterToggle()}
+          </div>
 
-        <div className="selectable-info-content">
-          {this.selectables().map((selectable, i) =>
-            <
-              SelectableView
-              key={i}
-              readOnly={this.props.readOnly}
-              filter={this.state.filter}
-              selectable={selectable}
-              expanded={this.expanded(selectable)}
-              onClick={this.toggleExpand(selectable)}
-            />
-          )}
+          <div className="selectable-info-content">
+            {this.selectables().map((selectable, i) =>
+              <
+                SelectableView
+                key={i}
+                readOnly={this.props.readOnly}
+                filter={this.state.filter}
+                selectable={selectable}
+                expanded={this.expanded(selectable)}
+                onClick={this.toggleExpand(selectable)}
+              />
+            )}
+          </div>
         </div>
       </div>
     );
