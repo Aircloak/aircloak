@@ -4,7 +4,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 
 import {SelectableView} from "./selectable";
-import {FilterView, Filter} from "./filter";
+import {FilterView, Filter, EmptyFilter} from "./filter";
 import type {Selectable} from "./selectable";
 
 type Props = {readOnly: boolean, selectables: Selectable[]};
@@ -20,7 +20,7 @@ class SelectableInfo extends React.Component {
 
     this.state = {
       expanded: new Set(),
-      filter: new Filter(""),
+      filter: new EmptyFilter(),
     };
 
     this.toggleExpand = this.toggleExpand.bind(this);

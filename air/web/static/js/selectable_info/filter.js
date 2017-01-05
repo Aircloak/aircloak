@@ -16,28 +16,16 @@ export class Filter {
   filterColumns: (columns: Column[]) => Column[];
   filterFun: (column: Column) => RegExp;
 
-  constructor(filterText: string) {
-    this.compileRegex(filterText);
+  constructor(regex: RegExp) {
+    this.regex = regex;
 
     this.anyColumnMatches = this.anyColumnMatches.bind(this);
     this.filterColumns = this.filterColumns.bind(this);
     this.filterFun = this.filterFun.bind(this);
   }
 
-  compileRegex(filterText: string) {
-    if (filterText !== "") {
-      try {
-        this.regex = new RegExp(filterText);
-      } catch (SyntaxError) {
-        // If the regular expression doesn't compile, it's
-        // probably due to it not being finished yet, hence we
-        // ignore the error, and don't compile the regex.
-      }
-    }
-  }
-
   filterFun(column: Column): boolean {
-    return this.regex === undefined || this.regex.test(column.name) || this.regex.test(column.type);
+    return this.regex.test(column.name) || this.regex.test(column.type);
   }
 
   anyColumnMatches(columns: Column[]): boolean {
@@ -48,6 +36,9 @@ export class Filter {
     return _.filter(columns, this.filterFun);
   }
 }
+
+export const EmptyFilter = () =>
+  new Filter(new RegExp(""));
 
 export class FilterView extends React.Component {
   state: {filterText: string};
@@ -65,7 +56,15 @@ export class FilterView extends React.Component {
 
   filterTextChange(filterText: string) {
     this.setState({filterText});
-    this.props.onFilterChange(new Filter(filterText));
+
+    try {
+      const regex = new RegExp(filterText);
+      this.props.onFilterChange(new Filter(regex));
+    } catch (SyntaxError) {
+      // If the regular expression doesn't compile, it's
+      // probably due to it not being finished yet, hence we
+      // ignore the error, and leave the old filter in place.
+    }
   }
 
   render() {
