@@ -58,4 +58,9 @@ describe("filterColumns", () => {
     const filter = new Filter("name(");
     assert.deepEqual(filter.filterColumns(columns), columns);
   });
+
+  it("allows filters using regex capabilities", () => {
+    const filter = new Filter("name(1|3)");
+    assert.deepEqual(filter.filterColumns(columns), [column1]);
+  });
 });
