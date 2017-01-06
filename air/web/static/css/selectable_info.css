@@ -30,3 +30,8 @@
   word-break: break-all;
   font-weight: bold;
 }
+
+.column-filter {
+  padding: 5px;
+  background-color: #ccc;
+}

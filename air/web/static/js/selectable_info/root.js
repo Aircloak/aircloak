@@ -93,6 +93,8 @@ class SelectableInfo extends React.Component {
             {this.conditionallyRenderFilterToggle()}
           </div>
 
+          <FilterView onFilterChange={this.onFilterChange} handleClose={this.toggleFilterVisibility} />
+
           <div className="selectable-info-content">
             {this.selectables().map((selectable, i) =>
               <

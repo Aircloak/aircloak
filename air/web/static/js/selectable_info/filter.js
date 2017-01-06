@@ -70,7 +70,7 @@ export class FilterView extends React.Component {
 
   render() {
     return (
-      <div className="list-group-item">
+      <div className="column-filter">
         <form className="form-inline">
           <div className="form-group">
             <div className="input-group">
