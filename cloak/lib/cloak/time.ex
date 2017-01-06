@@ -2,7 +2,7 @@ defmodule Cloak.Time do
   @moduledoc "Contains utilities for normalizing date/times"
 
   @doc "Parses string as an ISO8601 time."
-  @spec parse_time(String.t) :: {:ok, Time.t} | {:error, atom}
+  @spec parse_time(String.t) :: {:ok, Calendar.time} | {:error, atom}
   def parse_time(string) do
     case Time.from_iso8601(string) do
       {:ok, result} -> {:ok, max_precision(result)}
@@ -23,7 +23,7 @@ defmodule Cloak.Time do
   end
 
   @doc "Parses string as an ISO8601 date with time."
-  @spec parse_date(String.t) :: {:ok, Date.t} | {:error, atom}
+  @spec parse_date(String.t) :: {:ok, Calendar.date} | {:error, atom}
   def parse_date(string), do: Date.from_iso8601(string)
 
   @doc "Sets the microsecond precision of the given Time or NaiveDateTime to 6."
@@ -32,10 +32,10 @@ defmodule Cloak.Time do
     %{datetime | microsecond: {usecs, 6}}
 
   @doc "Converts a %Time{} into the number of seconds since midnight"
-  @spec time_to_seconds(Time.t) :: pos_integer
+  @spec time_to_seconds(Calendar.time) :: pos_integer
   def time_to_seconds(x), do: x |> Time.to_erl() |> :calendar.time_to_seconds()
 
   @doc "Converts a number of seconds since midnight to a %Time{}"
-  @spec seconds_to_time(pos_integer) :: Time.t
+  @spec seconds_to_time(pos_integer) :: Calendar.time
   def seconds_to_time(x), do: x |> :calendar.seconds_to_time() |> Time.from_erl!()
 end
