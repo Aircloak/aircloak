@@ -7,7 +7,10 @@ defmodule Cloak.Query.DBEmulatorTest do
 
   setup_all do
     decoders = [%{method: "base64", columns: ["value"]}, %{method: "text_to_date", columns: ["date"]}]
-    :ok = Cloak.Test.DB.create_table("#{@prefix}emulated", "value TEXT, date TEXT", [decoders: decoders])
+    :ok = Cloak.Test.DB.create_table(
+       "#{@prefix}emulated", "value TEXT, date TEXT, number INTEGER",
+       [decoders: decoders]
+     )
     :ok = Cloak.Test.DB.create_table("#{@prefix}joined", "age INTEGER")
     :ok
   end
@@ -295,6 +298,19 @@ defmodule Cloak.Query.DBEmulatorTest do
       assert length(rows) == 3
       Enum.zip(["a", "b", "c"], rows)
       |> Enum.each(fn({value, row}) -> assert %{occurrences: 10, row: [^value]} = row end)
+    end
+
+    test "where inequality" do
+      :ok = insert_rows(_user_ids = 21..25, "#{@prefix}emulated", ["number"], [3])
+
+      assert_query """
+        select count(*), age from
+          (select user_id from #{@prefix}emulated where number >= 0 and number < 10 group by user_id) x
+          inner join
+          (select user_id, age from #{@prefix}joined group by user_id, age) y
+          on x.user_id = y.user_id
+        group by age
+        """, %{rows: [%{occurrences: 1, row: [5, 30]}]}
     end
   end
 
