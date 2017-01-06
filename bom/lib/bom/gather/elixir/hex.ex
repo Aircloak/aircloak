@@ -1,7 +1,8 @@
 defmodule BOM.Gather.Elixir.Hex do
-  @moduledoc "Wraps Hex, serializing access and taking care of rate limiting."
+  @moduledoc "Queries hex.pm, serializing access and taking care of rate limiting."
 
   use GenServer
+  @endpoint "https://hex.pm/api/packages"
 
 
   # -------------------------------------------------------------------
@@ -43,15 +44,23 @@ defmodule BOM.Gather.Elixir.Hex do
   defp request_package(name, from) do
     require Logger
 
-    case Hex.API.Package.get(name) do
-      {200, result, _headers} -> send(from, {:ok, result})
-      {404, _content, _headers} -> send(from, {:error, :not_found})
-      {429, _content, _headers} ->
+    case do_request_package(name) do
+      {200, result} -> send(from, {:ok, result})
+      {404, _content} -> send(from, {:error, :not_found})
+      {429, _content} ->
         :timer.sleep(:timer.seconds(5))
         request_package(name, from)
       other ->
         Logger.error("Received unexpected response from hex.pm.\n#{inspect(other)}")
         raise "Bad response"
+    end
+  end
+
+  defp do_request_package(name) do
+    with {:ok, response} <- HTTPoison.get("#{@endpoint}/#{name}"),
+      {:ok, content} <- Poison.decode(response.body)
+    do
+      {response.status_code, content}
     end
   end
 end
