@@ -44,7 +44,9 @@ defmodule Cloak.Query.Runner.Engine do
 
   defp select_rows(%Aql.Query{emulated?: false} = query) do
     DataSource.select!(query, fn(rows) ->
-      process_final_rows(rows, %Aql.Query{query | where: query.encoded_where})
+      rows
+      |> Query.DataDecoder.decode(query)
+      |> process_final_rows(%Aql.Query{query | where: query.encoded_where})
     end)
   end
   defp select_rows(%Aql.Query{emulated?: true} = query) do
@@ -57,7 +59,6 @@ defmodule Cloak.Query.Runner.Engine do
   defp process_final_rows(rows, query) do
     Logger.debug("Processing final rows ...")
     rows
-    |> Query.DataDecoder.decode(query)
     |> Query.RowSplitters.split(query)
     |> Query.Rows.filter(Enum.map(query.where, &Aql.Comparison.to_function/1))
     |> Query.LCFConditions.apply(query)
