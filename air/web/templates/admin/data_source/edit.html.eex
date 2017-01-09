@@ -1,3 +1,8 @@
+<ol class="breadcrumb">
+  <li><%= link "Data sources", to: admin_data_source_path(@conn, :index) %></li>
+  <li class="active"><%= @data_source.name %></li>
+</ol>
+
 <h2>Edit <%= @changeset.data.name %></h2>
 
 <%= form_for @changeset, admin_data_source_path(@conn, :update, @changeset.data.id), fn f -> %>
