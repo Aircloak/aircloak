@@ -19,7 +19,7 @@ defmodule Bom.Mixfile do
   def application do
     [
       mod: {BOM, []},
-      applications: [:logger, :aircloak_common, :hex],
+      applications: [:logger, :aircloak_common, :httpoison],
     ]
   end
 
@@ -36,7 +36,8 @@ defmodule Bom.Mixfile do
     [
       {:poison, "~> 2.2.0", override: true},
       {:aircloak_common, path: "../common/elixir"},
-      {:hex, "~> 0.13.0", git: "https://github.com/Aircloak/hex.git"},
+      {:hackney, "1.6.3"},
+      {:httpoison, "0.10.0"},
     ]
   end
 

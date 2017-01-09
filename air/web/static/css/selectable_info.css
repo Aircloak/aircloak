@@ -4,7 +4,7 @@
 
 .selectable-info .selectable-info-content {
   max-height: calc(100vh - 190px);
-  overflow: scroll;
+  overflow: auto;
 }
 
 .selectable-info .list-group-item {
