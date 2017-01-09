@@ -4,21 +4,31 @@ import React from "react";
 import ReactDOM from "react-dom";
 
 import {SelectableView} from "./selectable";
+import {FilterView, Filter, EmptyFilter} from "./filter";
 import type {Selectable} from "./selectable";
 
 type Props = {readOnly: boolean, selectables: Selectable[]};
 
 class SelectableInfo extends React.Component {
   props: Props;
-  state: {expanded: Set<string>};
+  state: {expanded: Set<string>, filter: Filter};
   toggleExpand: (t: Selectable) => (() => void);
+  onFilterChange: (filter: Filter) => void;
 
   constructor(props) {
     super(props);
 
-    this.state = {expanded: new Set()};
+    this.state = {
+      expanded: new Set(),
+      filter: new EmptyFilter(),
+    };
 
     this.toggleExpand = this.toggleExpand.bind(this);
+    this.onFilterChange = this.onFilterChange.bind(this);
+  }
+
+  onFilterChange(filter: Filter) {
+    this.setState({filter});
   }
 
   toggleExpand(selectable) {
@@ -43,20 +53,27 @@ class SelectableInfo extends React.Component {
 
   render() {
     return (
-      <div className="panel panel-default selectable-info">
-        <div className="panel-heading"><strong>Tables and views</strong></div>
+      <div>
+        <div className="panel panel-default selectable-info">
+          <div className="panel-heading">
+            <strong>Tables and views</strong>
+          </div>
 
-        <div className="selectable-info-content">
-          {this.selectables().map((selectable, i) =>
-            <
-              SelectableView
-              key={i}
-              readOnly={this.props.readOnly}
-              selectable={selectable}
-              expanded={this.expanded(selectable)}
-              onClick={this.toggleExpand(selectable)}
-            />
-          )}
+          <FilterView onFilterChange={this.onFilterChange} />
+
+          <div className="selectable-info-content">
+            {this.selectables().map((selectable, i) =>
+              <
+                SelectableView
+                key={i}
+                readOnly={this.props.readOnly}
+                filter={this.state.filter}
+                selectable={selectable}
+                expanded={this.expanded(selectable)}
+                onClick={this.toggleExpand(selectable)}
+              />
+            )}
+          </div>
         </div>
       </div>
     );
