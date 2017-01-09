@@ -127,7 +127,7 @@ defmodule Cloak.DataSource.MongoDB do
   defp parse_type(type), do: {:unsupported, type}
 
   defp execute!(conn, command) do
-    case Mongo.command(conn, command, timeout: 5 * 60_000) do
+    case Mongo.command(conn, command, timeout: :timer.minutes(5)) do
       {:ok, %{"results" => results}} -> results
       {:ok, %{"result" => result}} -> result
       {:error, %Mongo.Error{message: error}} -> raise RuntimeError, "MongoDB execute command error: #{error}"
