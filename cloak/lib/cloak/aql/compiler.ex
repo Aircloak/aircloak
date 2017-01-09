@@ -90,6 +90,7 @@ defmodule Cloak.Aql.Compiler do
       |> add_subquery_ranges()
       |> verify_having()
       |> partition_where_clauses()
+      |> set_emulation_flag()
       |> calculate_db_columns()
       |> verify_limit()
       |> verify_offset()
@@ -598,7 +599,6 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp partition_selected_columns(%Query{subquery?: true, emulated?: false} = query), do: query
   defp partition_selected_columns(%Query{group_by: groups = [_|_], columns: selected_columns} = query) do
     having_columns = Enum.flat_map(query.having, fn ({:comparison, column, _operator, target}) -> [column, target] end)
     aggregators = filter_aggregators(selected_columns ++ having_columns)
@@ -948,15 +948,8 @@ defmodule Cloak.Aql.Compiler do
         %Expression{table: table, name: column, type: type, user_id?: table.user_id == column}
       end
       |> Enum.group_by(&(&1.name))
-
     query = map_terminal_elements(query, &normalize_table_name(&1, query.data_source))
-    parsed_query = map_terminal_elements(query, &identifier_to_column(&1, columns_by_name, query))
-    if needs_emulation?(parsed_query) do
-      query = %Query{query | emulated?: true}
-      map_terminal_elements(query, &identifier_to_column(&1, columns_by_name, query))
-    else
-      parsed_query
-    end
+    map_terminal_elements(query, &identifier_to_column(&1, columns_by_name, query))
   end
 
   defp normalize_table_name({:identifier, table_identifier = {_, name}, column}, data_source) do
@@ -1239,6 +1232,8 @@ defmodule Cloak.Aql.Compiler do
   # -------------------------------------------------------------------
   # Query emulation
   # -------------------------------------------------------------------
+
+  defp set_emulation_flag(query), do: %Query{query | emulated?: needs_emulation?(query)}
 
   defp needs_decoding?(query), do:
     (query.columns ++ query.group_by ++ query.having)
