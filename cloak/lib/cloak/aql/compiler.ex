@@ -327,14 +327,14 @@ defmodule Cloak.Aql.Compiler do
   end
   defp normalize_from(subquery = {:subquery, _}, _data_source), do: subquery
   defp normalize_from(table_identifier = {_, table_name}, data_source) do
-    case table(data_source, table_identifier) do
+    case find_table(data_source, table_identifier) do
       nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
       table -> table.name
     end
   end
 
-  defp table(data_source, {:quoted, name}), do: DataSource.table(data_source, name)
-  defp table(data_source, {:unquoted, name}) do
+  defp find_table(data_source, {:quoted, name}), do: DataSource.table(data_source, name)
+  defp find_table(data_source, {:unquoted, name}) do
     data_source.tables
     |> Enum.find(fn({_id, table}) -> insensitive_equal?(table.name, name) end)
     |> case do
@@ -953,7 +953,7 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp normalize_table_name({:identifier, table_identifier = {_, name}, column}, data_source) do
-    case table(data_source, table_identifier) do
+    case find_table(data_source, table_identifier) do
       nil -> {:identifier, name, column}
       table -> {:identifier, table.name, column}
     end
