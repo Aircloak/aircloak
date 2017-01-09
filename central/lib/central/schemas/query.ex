@@ -14,7 +14,7 @@ defmodule Central.Schemas.Query do
 
     belongs_to :customer, Central.Schemas.Customer
 
-    timestamps
+    timestamps()
   end
 
   @required_fields ~w()a

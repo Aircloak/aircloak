@@ -52,7 +52,6 @@ defmodule Cloak.Query.Runner do
   is sent to the required destination. If an error occurs, the result will contain
   error information.
   """
-  @lint {Credo.Check.Refactor.FunctionArity, false}
   @spec start(String.t, DataSource.t, String.t, [DataSource.field], Query.view_map,
     Cloak.ResultSender.target) :: :ok
   def start(query_id, data_source, statement, parameters, views, result_target \\ :air_socket) do

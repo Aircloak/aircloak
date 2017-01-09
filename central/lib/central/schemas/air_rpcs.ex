@@ -12,7 +12,7 @@ defmodule Central.Schemas.AirRPC do
   schema "air_rpcs" do
     field :result, :binary
 
-    timestamps
+    timestamps()
   end
 
   @required_fields ~w(id result)a

@@ -21,7 +21,7 @@ defmodule Air.Schemas.ApiToken do
     field :description, :string
     belongs_to :user, Air.Schemas.User, references: :id
 
-    timestamps
+    timestamps()
   end
 
   @required_fields ~w(description user_id)a

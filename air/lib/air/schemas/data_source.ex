@@ -17,7 +17,7 @@ defmodule Air.Schemas.DataSource do
       on_delete: :delete_all,
       on_replace: :delete
 
-    timestamps
+    timestamps()
   end
 
   @required_fields ~w(name tables global_id)a

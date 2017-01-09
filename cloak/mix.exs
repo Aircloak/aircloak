@@ -8,7 +8,7 @@ defmodule Cloak.Mixfile do
       elixir: "~> 1.3",
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
-      deps: deps,
+      deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env),
       preferred_cli_env: [
         :test, dialyze: :dev, "coveralls.html": :test,
@@ -47,7 +47,7 @@ defmodule Cloak.Mixfile do
       {:phoenix, "~> 1.1.6", only: :test},
       {:cowboy, "~> 1.0", only: :test},
       {:bypass, "~> 0.5.1", only: :test},
-      {:excheck, "~> 0.5", only: :test},
+      {:excheck, "~> 0.5.3", only: :test},
       {:triq, github: "triqng/triq", only: :test}
     ]
   end
@@ -84,5 +84,5 @@ defmodule Cloak.Mixfile do
   defp ignored_credo_checks(:test), do:
     ["ModuleDoc" | ignored_credo_checks(:dev)]
   defp ignored_credo_checks(_), do:
-    ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
+    ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting", "FunctionArity"]
 end

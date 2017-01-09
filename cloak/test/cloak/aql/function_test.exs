@@ -2,7 +2,6 @@ defmodule Cloak.Aql.Function.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.Aql.{Expression, Function}
-  alias Timex.Duration
 
   for function <- ~w(floor ceil ceiling) do
     test "#{function} argument types" do
@@ -135,10 +134,7 @@ defmodule Cloak.Aql.Function.Test do
     assert return_type("+", [:datetime, :interval]) == :datetime
   end
 
-  for {type, value} <- %{time: ~T[10:20:30], date: ~D[2015-01-02], datetime: ~N[2015-01-02 10:20:30]} do
-    @value value
-    @interval Duration.parse!("P10DT10M")
-
+  for {type, _value} <- %{time: ~T[10:20:30], date: ~D[2015-01-02], datetime: ~N[2015-01-02 10:20:30]} do
     test "#{type} - interval", do:
       assert well_typed?("-", [unquote(type), :interval])
 
