@@ -6,11 +6,12 @@ defmodule Cloak.Query.DBEmulatorTest do
   @prefix "db_emulator_"
 
   setup_all do
-    decoders = [%{method: "base64", columns: ["value"]}, %{method: "text_to_date", columns: ["date"]}]
-    :ok = Cloak.Test.DB.create_table(
-       "#{@prefix}emulated", "value TEXT, date TEXT, number INTEGER",
-       [decoders: decoders]
-     )
+    decoders = [
+      %{method: "base64", columns: ["value"]},
+      %{method: "text_to_date", columns: ["date"]},
+      %{method: "text_to_integer", columns: ["number"]},
+    ]
+    :ok = Cloak.Test.DB.create_table("#{@prefix}emulated", "value TEXT, date TEXT, number TEXT", [decoders: decoders])
     :ok = Cloak.Test.DB.create_table("#{@prefix}joined", "age INTEGER")
     :ok
   end
@@ -301,16 +302,29 @@ defmodule Cloak.Query.DBEmulatorTest do
     end
 
     test "where inequality" do
-      :ok = insert_rows(_user_ids = 21..25, "#{@prefix}emulated", ["number"], [3])
+      :ok = insert_rows(_user_ids = 21..25, "#{@prefix}emulated", ["number"], ["3"])
 
       assert_query """
-        select count(*), age from
+        select count(*) from
           (select user_id from #{@prefix}emulated where number >= 0 and number < 10 group by user_id) x
           inner join
-          (select user_id, age from #{@prefix}joined group by user_id, age) y
+          (select user_id from #{@prefix}joined group by user_id) y
           on x.user_id = y.user_id
-        group by age
-        """, %{rows: [%{occurrences: 1, row: [5, 30]}]}
+        """, %{rows: [%{occurrences: 1, row: [5]}]}
+    end
+
+    test "nested where inequality" do
+      :ok = insert_rows(_user_ids = 21..25, "#{@prefix}emulated", ["number"], ["3"])
+
+      assert_query """
+        select count(*) from
+          (select user_id from
+            (select user_id from #{@prefix}emulated where number >= 0 and number < 10 group by user_id) z
+          group by user_id) x
+          inner join
+          (select user_id from #{@prefix}joined group by user_id) y
+          on x.user_id = y.user_id
+        """, %{rows: [%{occurrences: 1, row: [5]}]}
     end
   end
 
