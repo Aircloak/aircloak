@@ -131,10 +131,10 @@ defmodule Cloak.Query.FunctionTest do
     assert_query("""
       SELECT
         concat(
-          extract_matches(name, '\\w+'),
-          extract_matches(name, '\\w+')
+          extract_matches(word1, '\\w+'),
+          extract_matches(word2, '\\w+')
         ) as pairs
-      FROM heights_ft
+      FROM (SELECT user_id, name AS word1, name AS word2 FROM heights_ft) AS t
       """,
       %{rows: [
         %{row: ["firstfirst"], occurrences: 100},
@@ -153,9 +153,9 @@ defmodule Cloak.Query.FunctionTest do
   test "extract_matches can be used multipel times in the same query" do
     assert_query("""
       SELECT
-        extract_matches(name, '\\w+') as word1,
-        extract_matches(name, '\\w+') as word2
-      FROM heights_ft
+        extract_matches(word1, '\\w+'),
+        extract_matches(word2, '\\w+')
+      FROM (SELECT user_id, name AS word1, name AS word2 FROM heights_ft) AS t
       """,
       %{rows: [
         %{row: ["first", "first"], occurrences: 100},
@@ -166,6 +166,21 @@ defmodule Cloak.Query.FunctionTest do
         %{row: ["second", "third"], occurrences: 100},
         %{row: ["third", "first"], occurrences: 100},
         %{row: ["third", "second"], occurrences: 100},
+        %{row: ["third", "third"], occurrences: 100},
+      ]}
+    )
+  end
+
+  test "extract_matches on the same column are identical" do
+    assert_query("""
+      SELECT
+        extract_matches(name, '\\w+'),
+        extract_matches(name, '\\w+')
+      FROM heights_ft
+      """,
+      %{rows: [
+        %{row: ["first", "first"], occurrences: 100},
+        %{row: ["second", "second"], occurrences: 100},
         %{row: ["third", "third"], occurrences: 100},
       ]}
     )
@@ -198,6 +213,28 @@ defmodule Cloak.Query.FunctionTest do
       assert message =~ ~r/missing \) at character/
     end
   end)
+
+  test "extract_matches alias works" do
+    assert_query(
+      "SELECT extract_matches(name, '\\w+') AS word, count(*) FROM heights_ft GROUP BY word ORDER BY word",
+      %{rows: [
+        %{row: ["first", 100], occurrences: 1},
+        %{row: ["second", 100], occurrences: 1},
+        %{row: ["third", 100], occurrences: 1},
+      ]}
+    )
+  end
+
+  test "extract_matches in group by" do
+    assert_query(
+      "SELECT left(extract_matches(name, '\\w+'), 1), count(*) FROM heights_ft GROUP BY extract_matches(name, '\\w+')",
+      %{rows: [
+        %{row: ["f", 100], occurrences: 1},
+        %{row: ["s", 100], occurrences: 1},
+        %{row: ["t", 100], occurrences: 1},
+      ]}
+    )
+  end
 
   test "normal (for example `ceil`) functions don't need precompiling", do:
     refute Function.needs_precompiling?("ceil")
