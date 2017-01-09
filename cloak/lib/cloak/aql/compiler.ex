@@ -1237,7 +1237,7 @@ defmodule Cloak.Aql.Compiler do
   # -------------------------------------------------------------------
 
   defp needs_decoding?(query), do:
-    (query.columns ++ query.group_by ++ query.having)
+    (query.columns ++ query.group_by ++ query.having ++ query.where)
     |> extract_columns()
     |> Enum.any?(&DataDecoder.needs_decoding?/1)
 
