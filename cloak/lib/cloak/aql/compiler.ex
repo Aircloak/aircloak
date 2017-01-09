@@ -1251,8 +1251,11 @@ defmodule Cloak.Aql.Compiler do
     Enum.each(columns, fn(column) ->
       type = TypeChecker.type(column, query)
       unless TypeChecker.ok_for_display?(type) do
+        explanation = type.narrative_breadcrumbs
+        |> filter_for_offensive_actions([:dangerously_discontinuous, :dangerous_math])
+        |> construct_explanation()
         raise CompilationError, message: "Queries where a reported value is influenced by math, " <>
-          "a discontinuous function, and a constant are not allowed."
+          "a discontinuous function, and a constant are not allowed. #{explanation}"
       end
     end)
     query
@@ -1265,10 +1268,43 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.each(fn(column) ->
       type = TypeChecker.type(column, query)
       unless TypeChecker.ok_for_where_inequality?(type) do
+        explanation = construct_explanation(type.narrative_breadcrumbs)
         raise CompilationError, message: "WHERE-clause inequalities where the column value has either been " <>
-          "influenced by math or a discontinuous function are not allowed."
+          "influenced by math or a discontinuous function are not allowed. #{explanation}"
       end
     end)
     query
   end
+
+  defp construct_explanation(columns) when is_list(columns) do
+    problematic_columns = columns
+    |> Enum.map(&construct_explanation(&1))
+    |> Enum.join(". ")
+    """
+    The following column usage is problematic because it involved a constant
+    in one or more of the function calls or math invocations: #{problematic_columns}.
+    """
+  end
+  defp construct_explanation({expression, offenses}), do:
+    "#{Expression.display_name(expression)} was processed by #{human_readable_offenses(offenses)}"
+
+  defp human_readable_offenses(offenses), do:
+    offenses
+    |> Enum.reverse()
+    |> Enum.map(fn
+      ({:dangerously_discontinuous, function}) ->
+        "discontinuous function '#{Function.readable_name(function)}'"
+      ({:dangerous_math, name}) -> "math function '#{name}'"
+    end)
+    |> Enum.join(" and ")
+
+  # Removes columns that haven't had all of a list of offenses applied to them
+  defp filter_for_offensive_actions(columns, required_offenses), do:
+    columns
+    |> Enum.filter(fn({_expression, offenses}) ->
+      offenses
+      |> Enum.map(fn({name, _}) -> name end)
+      |> Enum.reduce(required_offenses, &(&2 -- [&1])) == []
+    end)
+
 end

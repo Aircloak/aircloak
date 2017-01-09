@@ -26,6 +26,9 @@ defmodule Cloak.Aql.TypeChecker do
   defmodule Type do
     @moduledoc false
 
+    @type function_name :: String.t
+    @type offense :: {Expression.t, [{:dangerously_discontinuous | :dangerous_math, function_name}]}
+
     @type t :: %__MODULE__{
       # Whether the expressions is a constant. As soon as a constant expression
       # interacts with a non-constant expression through math or function application
@@ -48,11 +51,17 @@ defmodule Cloak.Aql.TypeChecker do
       # Math is considered dangerous if any of the expressions in the math application
       # have previously been touched by a constant.
       seen_dangerous_math?: boolean,
+
+      # We keep track of the dangerous transformations each column has undergone in order
+      # to later produce a narrative to the analyst explaining what particular steps led to
+      # a query expression being rejected.
+      narrative_breadcrumbs: [offense],
     }
 
     defstruct [
       constant?: false, dangerously_discontinuous?: false,
       seen_dangerous_math?: false, touched_by_constant?: false,
+      narrative_breadcrumbs: [],
     ]
   end
 
@@ -116,12 +125,12 @@ defmodule Cloak.Aql.TypeChecker do
 
   defp constant(), do: %Type{constant?: true, touched_by_constant?: true}
 
-  defp column(), do: %Type{constant?: false}
+  defp column(expression), do: %Type{constant?: false, narrative_breadcrumbs: [{expression, []}]}
 
   defp construct_type(column, query, future \\ [])
   defp construct_type({:distinct, column}, query, future), do:
     construct_type(column, query, ["distinct" | future])
-  defp construct_type(:*, _query, _future), do: column()
+  defp construct_type(:*, _query, _future), do: column(:*)
   defp construct_type(%Expression{constant?: true}, _query, _future), do: constant()
   defp construct_type(%Expression{function: nil} = column, query, future), do:
     expand_from_subquery(column, query, future)
@@ -136,12 +145,29 @@ defmodule Cloak.Aql.TypeChecker do
     if Enum.all?(child_types, &(&1.constant?)) do
       constant()
     else
+      # This constructs a history of what has happened to a column in order to be able to later
+      # produce a narrative for an analyst of the type: "column a underwent discontinuous functions
+      # X prior to math Y, which is considered an offensive action".
+      updated_narrative_breadcrumbs = child_types
+      |> Enum.flat_map(&(&1.narrative_breadcrumbs))
+      |> Enum.uniq()
+      |> Enum.map(fn({expression, breadcrumbs}) ->
+        cond do
+          dangerously_discontinuous?(name, future, child_types) ->
+            {expression, [{:dangerously_discontinuous, name} | breadcrumbs]}
+          performs_dangerous_math?(name, future, child_types) ->
+            {expression, [{:dangerous_math, name} | breadcrumbs]}
+          true ->
+            {expression, breadcrumbs}
+        end
+      end)
       %Type{
         touched_by_constant?: any_touched_by_constant?(child_types),
         seen_dangerous_math?: performs_dangerous_math?(name, future, child_types) ||
           Enum.any?(child_types, &(&1.seen_dangerous_math?)),
         dangerously_discontinuous?: dangerously_discontinuous?(name, future, child_types) ||
           Enum.any?(child_types, &(&1.dangerously_discontinuous?)),
+        narrative_breadcrumbs: updated_narrative_breadcrumbs,
       }
     end
   end
@@ -151,7 +177,7 @@ defmodule Cloak.Aql.TypeChecker do
     Lens.to_list(Query.Lenses.direct_subqueries(), query)
     |> Enum.find(&(&1.alias == table_name))
     |> case do
-      nil -> column()
+      nil -> column(column)
       %{ast: subquery} ->
         column_index = Enum.find_index(subquery.column_titles, &(&1 == column_name))
         column = Enum.at(subquery.columns, column_index)

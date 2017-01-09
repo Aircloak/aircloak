@@ -3,7 +3,7 @@ defmodule Cloak.Aql.TypeChecker.Test do
 
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.{Compiler, Parser, TypeChecker}
+  alias Cloak.Aql.{Compiler, Parser, TypeChecker, Expression}
 
   describe "math is only dangerous if a constant is involved" do
     Enum.each(~w(+ - * ^ /), fn(math_function) ->
@@ -130,6 +130,73 @@ defmodule Cloak.Aql.TypeChecker.Test do
     test "first substring, then use of length" do
       query = "SELECT length(substring(string from 2)) FROM table"
       assert dangerously_discontinuous?(query)
+    end
+  end
+
+  def expression_name(breadcrumb_trail), do:
+    breadcrumb_trail
+    |> Enum.map(fn({expression, _}) -> expression end)
+    |> Enum.map(&(&1.name))
+
+  describe "knows which columns were involved" do
+    test "when a column is selected" do
+      type = type_first_column("SELECT numeric FROM table")
+      assert expression_name(type.narrative_breadcrumbs) == ["numeric"]
+    end
+
+    test "when a column is selected inside a function" do
+      type = type_first_column("SELECT abs(numeric) FROM table")
+      assert expression_name(type.narrative_breadcrumbs) == ["numeric"]
+    end
+
+    test "when a column is selected in a subquery" do
+      type = type_first_column("SELECT col FROM (SELECT uid, numeric as col FROM table) t")
+      assert expression_name(type.narrative_breadcrumbs) == ["numeric"]
+    end
+
+    test "when multiple columns are selected" do
+      type = type_first_column("SELECT concat(string, cast(numeric as text)) FROM table")
+      assert expression_name(type.narrative_breadcrumbs) == ["string", "numeric"]
+    end
+  end
+
+  describe "records a trail of narrative breadcrumbs" do
+    test "empty narrative for queries without functions or math" do
+      type = type_first_column("SELECT numeric FROM table")
+      assert [{%Expression{name: "numeric"}, []}] = type.narrative_breadcrumbs
+    end
+
+    test "for function with discontinuious function div" do
+      type = type_first_column("SELECT div(numeric, 10) FROM table")
+      assert [{%Expression{name: "numeric"}, [{:dangerously_discontinuous, "div"}]}] = type.narrative_breadcrumbs
+    end
+
+    test "even when multiple occur" do
+      type = type_first_column("SELECT sqrt(div(numeric, 10)) FROM table")
+      [{%Expression{name: "numeric"}, [
+         {:dangerously_discontinuous, "sqrt"},
+         {:dangerously_discontinuous, "div"}]
+      }] = type.narrative_breadcrumbs
+    end
+
+    test "does not record discontinuous functions that aren't dangerous" do
+      type = type_first_column("SELECT div(cast(sqrt(numeric) as integer), 10) FROM table")
+      [{%Expression{name: "numeric"}, [{:dangerously_discontinuous, "div"}]}] = type.narrative_breadcrumbs
+    end
+
+    test "records math influenced by a constant as a potential offense" do
+      type = type_first_column("SELECT numeric + 10 FROM table")
+      [{%Expression{name: "numeric"}, [{:dangerous_math, "+"}]}] = type.narrative_breadcrumbs
+    end
+
+    test "does not record math between non-constant influenced columns" do
+      type = type_first_column("SELECT numeric + numeric FROM table")
+      assert [{_column_expressions, []}] = type.narrative_breadcrumbs
+    end
+
+    test "records multiple math offenses" do
+      type = type_first_column("SELECT numeric + 10 FROM (SELECT uid, numeric - 1 as numeric FROM table) t")
+      [{%Expression{name: "numeric"}, [{:dangerous_math, "+"}, {:dangerous_math, "-"}]}] = type.narrative_breadcrumbs
     end
   end
 

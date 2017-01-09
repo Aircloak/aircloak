@@ -1061,6 +1061,30 @@ defmodule Cloak.Aql.Compiler.Test do
     end
   end
 
+  describe "constructs a narrative based on column usage when a query is considered dangerous" do
+    test "affected by math" do
+      query = """
+        SELECT value FROM (
+          SELECT uid, numeric + 2 as value
+          FROM table
+        ) t
+        WHERE value > 10 and value <= 20
+      """
+      assert get_compilation_error(query) =~ ~r/math function '\+'/
+    end
+
+    test "affected by discontinuity" do
+      query = """
+        SELECT value FROM (
+          SELECT uid, div(numeric, 2) as value
+          FROM table
+        ) t
+        WHERE value > 10 and value <= 20
+      """
+      assert get_compilation_error(query) =~ ~r/discontinuous function 'div'/
+    end
+  end
+
   defp scrub_aliases(query), do: put_in(query, [aliases()], nil)
 
   deflens aliases, do:
@@ -1078,6 +1102,13 @@ defmodule Cloak.Aql.Compiler.Test do
         else
           raise "Compilation failed with other reason than illegal math/discontinuity: #{inspect reason}"
         end
+    end
+  end
+
+  defp get_compilation_error(query) do
+    case compile(query, data_source()) do
+      {:ok, _} -> raise "Expected query compilation to fail, but it didn't"
+      {:error, reason} -> reason
     end
   end
 
