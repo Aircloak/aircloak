@@ -104,7 +104,7 @@ class QueriesView extends React.Component {
   }
 
   addResult(result, replace = true) {
-    const existingResult = this.state.sessionResults.find((item) => item.id === result.id);
+    const existingResult = _.find(this.state.sessionResults, (item) => item.id === result.id);
     if (existingResult === undefined) {
       this.setResults([result].concat(this.state.sessionResults));
     } else if (replace) {
