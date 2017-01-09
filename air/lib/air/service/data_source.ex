@@ -188,8 +188,10 @@ defmodule Air.Service.DataSource do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
       try do
         case DataSourceManager.channel_pids(data_source.global_id) do
-          [channel_pid | _] -> fun.(data_source, channel_pid)
           [] -> {:error, :not_connected}
+          channel_pids ->
+            channel_pid = Enum.random(channel_pids)
+            fun.(data_source, channel_pid)
         end
       catch type, error ->
         Logger.error([
