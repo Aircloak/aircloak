@@ -221,9 +221,10 @@ class QueriesView extends React.Component {
   }
 
   columnNames() {
-    return _.flatMap(this.props.selectables, (table) =>
-      table.columns.map((column) => column.name)
-    );
+    return _.chain(this.props.selectables).
+      flatMap((table) => table.columns.map((column) => column.name)).
+      uniq().
+      value();
   }
 
   renderCodeEditorOrViewer() {
