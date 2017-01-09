@@ -20,8 +20,12 @@ defmodule Cloak.Aql.Compiler do
     {:ok, Query.t} | {:error, String.t}
   def compile(data_source, parsed_query, parameters, views) do
     try do
-      parsed_query
-      |> to_prepped_query(data_source, parameters, views)
+      %Query{
+        data_source: data_source,
+        parameters: parameters,
+        views: views
+      }
+      |> Map.merge(parsed_query)
       |> compile_prepped_query()
     rescue
       e in CompilationError -> {:error, e.message}
@@ -58,15 +62,6 @@ defmodule Cloak.Aql.Compiler do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp to_prepped_query(parsed_query, data_source, parameters, views) do
-    %Query{
-      data_source: data_source,
-      parameters: parameters,
-      views: views
-    }
-    |> Map.merge(parsed_query)
-  end
 
   defp compile_prepped_query(%Query{command: :show, show: :tables} = query), do:
     {:ok, %Query{query |
@@ -662,19 +657,25 @@ defmodule Cloak.Aql.Compiler do
       return_type = Function.return_type(expression)
       # This, most crucially, preserves the DB row position parameter
       augmented_column = %Expression{db_column | name: column_name, type: return_type, row_index: splitter_row_index}
+      # We need to update all other references to this column (group by, propeprty, etc.)
+      query = update_in(query, [Query.Lenses.query_expressions()], &if &1 == expression do augmented_column else &1 end)
       {augmented_column, query}
     else
       {transformed_args, query} = transform_splitter_columns(query, Expression.arguments(expression))
       {%{expression | function_args: transformed_args}, query}
     end
   end
-  defp transform_splitter_column(other, query), do:
-    {other, query}
+  defp transform_splitter_column(other, query), do: {other, query}
 
   defp add_row_splitter(query, function_spec) do
-    {splitter_row_index, query} = Query.next_row_index(query)
-    new_splitter = %{function_spec: function_spec, row_index: splitter_row_index}
-    {new_splitter.row_index, %Query{query | row_splitters: query.row_splitters ++ [new_splitter]}}
+    case Enum.find(query.row_splitters, &function_spec == &1.function_spec) do
+      %{row_index: splitter_row_index} ->
+        {splitter_row_index, query}
+      nil ->
+        {splitter_row_index, query} = Query.next_row_index(query)
+        new_splitter = %{function_spec: function_spec, row_index: splitter_row_index}
+        {new_splitter.row_index, %Query{query | row_splitters: query.row_splitters ++ [new_splitter]}}
+    end
   end
 
   defp compile_order_by(%Query{order_by: []} = query), do: query

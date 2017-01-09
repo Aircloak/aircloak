@@ -34,7 +34,6 @@ defmodule Cloak.Query.DbEmulator do
     Logger.debug("Emulating sub-query ...")
     subquery = compile_emulated_joins(subquery)
     rows = select_rows(subquery.from)
-
     Logger.debug("Processing rows ...")
     rows
     |> Selector.pick_db_columns(subquery)

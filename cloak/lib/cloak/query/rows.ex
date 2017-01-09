@@ -34,7 +34,6 @@ defmodule Cloak.Query.Rows do
     for selected_column <- query.columns, do:
       fetch_value!(row, selected_column, aggregated_columns)
 
-  defp fetch_value!(row, {column, :as, _}, columns), do: fetch_value!(row, column, columns)
   defp fetch_value!(row, %Expression{function?: true, function_args: args} = function, columns) do
     case Map.fetch(columns, function) do
       {:ok, index} -> Enum.at(row, index)

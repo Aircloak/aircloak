@@ -3,8 +3,8 @@
 }
 
 .selectable-info .selectable-info-content {
-  max-height: calc(100vh - 153px);
-  overflow: scroll;
+  max-height: calc(100vh - 190px);
+  overflow: auto;
 }
 
 .selectable-info .list-group-item {
@@ -29,4 +29,9 @@
 .selectable-info .id-column {
   word-break: break-all;
   font-weight: bold;
+}
+
+.column-filter {
+  padding: 5px;
+  background-color: #ccc;
 }

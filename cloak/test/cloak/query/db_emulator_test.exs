@@ -253,7 +253,7 @@ defmodule Cloak.Query.DBEmulatorTest do
 
     test "left join between table and subquery" do
       assert_query """
-          select count(*) from
+          select count(value) from
           #{@prefix}emulated left join (select user_id as uid from #{@prefix}joined) as t on user_id = uid
         """, %{rows: [%{occurrences: 1, row: [20]}]}
 

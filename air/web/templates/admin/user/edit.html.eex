@@ -1,3 +1,8 @@
+<ol class="breadcrumb">
+  <li><%= link "Users", to: admin_user_path(@conn, :index) %></li>
+  <li class="active"><%= @changeset.data.name %></li>
+</ol>
+
 <h2>Edit <%= @changeset.data.name %></h2>
 
 <%= render "_form.html", changeset: @changeset,
