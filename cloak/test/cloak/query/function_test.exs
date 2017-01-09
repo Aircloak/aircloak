@@ -131,10 +131,10 @@ defmodule Cloak.Query.FunctionTest do
     assert_query("""
       SELECT
         concat(
-          extract_matches(name, '\\w+'),
-          extract_matches(name, '\\w+')
+          extract_matches(word1, '\\w+'),
+          extract_matches(word2, '\\w+')
         ) as pairs
-      FROM heights_ft
+      FROM (SELECT user_id, name AS word1, name AS word2 FROM heights_ft) AS t
       """,
       %{rows: [
         %{row: ["firstfirst"], occurrences: 100},
@@ -153,9 +153,9 @@ defmodule Cloak.Query.FunctionTest do
   test "extract_matches can be used multipel times in the same query" do
     assert_query("""
       SELECT
-        extract_matches(name, '\\w+') as word1,
-        extract_matches(name, '\\w+') as word2
-      FROM heights_ft
+        extract_matches(word1, '\\w+'),
+        extract_matches(word2, '\\w+')
+      FROM (SELECT user_id, name AS word1, name AS word2 FROM heights_ft) AS t
       """,
       %{rows: [
         %{row: ["first", "first"], occurrences: 100},
@@ -166,6 +166,21 @@ defmodule Cloak.Query.FunctionTest do
         %{row: ["second", "third"], occurrences: 100},
         %{row: ["third", "first"], occurrences: 100},
         %{row: ["third", "second"], occurrences: 100},
+        %{row: ["third", "third"], occurrences: 100},
+      ]}
+    )
+  end
+
+  test "extract_matches on the same column are identical" do
+    assert_query("""
+      SELECT
+        extract_matches(name, '\\w+'),
+        extract_matches(name, '\\w+')
+      FROM heights_ft
+      """,
+      %{rows: [
+        %{row: ["first", "first"], occurrences: 100},
+        %{row: ["second", "second"], occurrences: 100},
         %{row: ["third", "third"], occurrences: 100},
       ]}
     )

@@ -666,9 +666,14 @@ defmodule Cloak.Aql.Compiler do
     {other, query}
 
   defp add_row_splitter(query, function_spec) do
-    {splitter_row_index, query} = Query.next_row_index(query)
-    new_splitter = %{function_spec: function_spec, row_index: splitter_row_index}
-    {new_splitter.row_index, %Query{query | row_splitters: query.row_splitters ++ [new_splitter]}}
+    case Enum.find(query.row_splitters, &function_spec == &1.function_spec) do
+      %{row_index: splitter_row_index} ->
+        {splitter_row_index, query}
+      nil ->
+        {splitter_row_index, query} = Query.next_row_index(query)
+        new_splitter = %{function_spec: function_spec, row_index: splitter_row_index}
+        {new_splitter.row_index, %Query{query | row_splitters: query.row_splitters ++ [new_splitter]}}
+    end
   end
 
   defp compile_order_by(%Query{order_by: []} = query), do: query
