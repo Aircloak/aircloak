@@ -214,6 +214,28 @@ defmodule Cloak.Query.FunctionTest do
     end
   end)
 
+  test "extract_matches alias works" do
+    assert_query(
+      "SELECT extract_matches(name, '\\w+') AS word, count(*) FROM heights_ft GROUP BY word ORDER BY word",
+      %{rows: [
+        %{row: ["first", 100], occurrences: 1},
+        %{row: ["second", 100], occurrences: 1},
+        %{row: ["third", 100], occurrences: 1},
+      ]}
+    )
+  end
+
+  test "extract_matches in group by" do
+    assert_query(
+      "SELECT left(extract_matches(name, '\\w+'), 1), count(*) FROM heights_ft GROUP BY extract_matches(name, '\\w+')",
+      %{rows: [
+        %{row: ["f", 100], occurrences: 1},
+        %{row: ["s", 100], occurrences: 1},
+        %{row: ["t", 100], occurrences: 1},
+      ]}
+    )
+  end
+
   test "normal (for example `ceil`) functions don't need precompiling", do:
     refute Function.needs_precompiling?("ceil")
 
