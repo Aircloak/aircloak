@@ -1,3 +1,8 @@
+<ol class="breadcrumb">
+  <li><%= link "Groups", to: admin_group_path(@conn, :index) %></li>
+  <li class="active"><%= @data.group.name %></li>
+</ol>
+
 <h2>Edit <%= @data.group.name %></h2>
 
 <%= form_for @data.changeset, admin_group_path(@conn, :update, @data.group), [class: "form-horizontal"], fn f -> %>

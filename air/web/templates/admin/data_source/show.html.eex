@@ -1,3 +1,8 @@
+<ol class="breadcrumb">
+  <li><%= link "Data sources", to: admin_data_source_path(@conn, :index) %></li>
+  <li class="active"><%= @data_source.name %></li>
+</ol>
+
 <h2>
   <%= @data_source.name %> (<%= @data_source.global_id %>) <%= availability_label(@data_source) %>
 </h2>
