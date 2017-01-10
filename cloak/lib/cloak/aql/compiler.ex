@@ -599,6 +599,7 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
+  defp partition_selected_columns(%Query{subquery?: true, emulated?: false} = query), do: query
   defp partition_selected_columns(%Query{group_by: groups = [_|_], columns: selected_columns} = query) do
     having_columns = Enum.flat_map(query.having, fn ({:comparison, column, _operator, target}) -> [column, target] end)
     aggregators = filter_aggregators(selected_columns ++ having_columns)
