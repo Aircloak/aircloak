@@ -43,12 +43,12 @@ defmodule Cloak.DataSource.MongoDB do
   @doc false
   def connect!(parameters) do
     self = self()
-    parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true,
+    parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, timeout: :timer.hours(1),
       pool: DBConnection.Connection, after_connect: fn (_) -> send self, :connected end]
     {:ok, connection} = Mongo.start_link(parameters)
     receive do
       :connected -> connection
-    after :timer.seconds(3)
+    after :timer.seconds(5)
       ->
         GenServer.stop(connection)
         raise RuntimeError, message: "Could not connect to the MongoDB server!"
