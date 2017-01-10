@@ -6,8 +6,12 @@ defmodule Cloak.Query.DBEmulatorTest do
   @prefix "db_emulator_"
 
   setup_all do
-    decoders = [%{method: "base64", columns: ["value"]}, %{method: "text_to_date", columns: ["date"]}]
-    :ok = Cloak.Test.DB.create_table("#{@prefix}emulated", "value TEXT, date TEXT", [decoders: decoders])
+    decoders = [
+      %{method: "base64", columns: ["value"]},
+      %{method: "text_to_date", columns: ["date"]},
+      %{method: "text_to_integer", columns: ["number"]},
+    ]
+    :ok = Cloak.Test.DB.create_table("#{@prefix}emulated", "value TEXT, date TEXT, number TEXT", [decoders: decoders])
     :ok = Cloak.Test.DB.create_table("#{@prefix}joined", "age INTEGER")
     :ok
   end
@@ -94,12 +98,35 @@ defmodule Cloak.Query.DBEmulatorTest do
         """, %{rows: [%{occurrences: 20, row: [1]}]}
     end
 
+    test "nested having inequality" do
+      assert_query """
+        select length(v) as v from
+          (select user_id, v from
+            (select user_id, left(value, 1) as v from #{@prefix}emulated
+            group by user_id, value having length(value) >= 1 and length(value) < 2) as t
+          group by user_id, v) as foo
+        order by v
+        """, %{rows: [%{occurrences: 20, row: [1]}]}
+    end
+
     test "where inequality" do
       assert_query """
         select length(v) as v from
           (select user_id, left(value, 1) as v from #{@prefix}emulated
           where date >= '2015-01-01' and date < '2016-01-01'
           group by user_id, value) as t
+        order by v
+        """, %{rows: [%{occurrences: 20, row: [1]}]}
+    end
+
+    test "nested where inequality" do
+      assert_query """
+        select length(v) as v from
+          (select user_id, v from
+            (select user_id, left(value, 1) as v from #{@prefix}emulated
+            where date >= '2015-01-01' and date < '2016-01-01'
+            group by user_id, value) as t
+          group by user_id, v) as foo
         order by v
         """, %{rows: [%{occurrences: 20, row: [1]}]}
     end
@@ -272,6 +299,32 @@ defmodule Cloak.Query.DBEmulatorTest do
       assert length(rows) == 3
       Enum.zip(["a", "b", "c"], rows)
       |> Enum.each(fn({value, row}) -> assert %{occurrences: 10, row: [^value]} = row end)
+    end
+
+    test "where inequality" do
+      :ok = insert_rows(_user_ids = 21..25, "#{@prefix}emulated", ["number"], ["3"])
+
+      assert_query """
+        select count(*) from
+          (select user_id from #{@prefix}emulated where number >= 0 and number < 10 group by user_id) x
+          inner join
+          (select user_id from #{@prefix}joined group by user_id) y
+          on x.user_id = y.user_id
+        """, %{rows: [%{occurrences: 1, row: [5]}]}
+    end
+
+    test "nested where inequality" do
+      :ok = insert_rows(_user_ids = 21..25, "#{@prefix}emulated", ["number"], ["3"])
+
+      assert_query """
+        select count(*) from
+          (select user_id from
+            (select user_id from #{@prefix}emulated where number >= 0 and number < 10 group by user_id) z
+          group by user_id) x
+          inner join
+          (select user_id from #{@prefix}joined group by user_id) y
+          on x.user_id = y.user_id
+        """, %{rows: [%{occurrences: 1, row: [5]}]}
     end
 
     test "join between emulated subquery and subquery with aggregation", do:

@@ -227,16 +227,17 @@ defmodule Cloak.Aql.Compiler do
 
   defp carry_ranges(query) do
     query = %{query | ranges: Enum.flat_map(query.ranges, &carrying_ranges/1)}
+    range_columns = Enum.map(query.ranges, &(&1.column))
 
     if query.emulated? do
       %{
         query |
-        columns: query.columns ++ Enum.map(query.ranges, &(&1.column)),
-        column_titles: query.column_titles ++ Enum.map(query.ranges, fn(%{column: column}) -> column.alias end),
-        aggregators: query.aggregators ++ (query.ranges |> Enum.map(&(&1.column)) |> Enum.filter(&(&1.aggregate?))),
+        columns: query.columns ++ range_columns,
+        column_titles: query.column_titles ++ Enum.map(range_columns, &(&1.alias)),
+        aggregators: query.aggregators ++ Enum.filter(range_columns, &(&1.aggregate?)),
       }
     else
-      %{query | db_columns: query.db_columns ++ Enum.map(query.ranges, &(&1.column))}
+      %{query | db_columns: query.db_columns ++ range_columns}
     end
   end
 
@@ -599,7 +600,6 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp partition_selected_columns(%Query{subquery?: true, emulated?: false} = query), do: query
   defp partition_selected_columns(%Query{group_by: groups = [_|_], columns: selected_columns} = query) do
     having_columns = Enum.flat_map(query.having, fn ({:comparison, column, _operator, target}) -> [column, target] end)
     aggregators = filter_aggregators(selected_columns ++ having_columns)
@@ -852,16 +852,11 @@ defmodule Cloak.Aql.Compiler do
   defp add_subquery_ranges(query) do
     %{query | ranges:
       query
-      |> get_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast) |> Lens.key(:ranges)])
-      |> Enum.flat_map(fn(ranges) ->
-        Enum.map(ranges, fn(range) -> %{range | column: %Expression{name: range_alias(range.column)}} end)
-      end)
+      |> get_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast) |> Lens.key(:ranges) |> Lens.all()])
+      |> Enum.map(&(%{&1 | column: %Expression{name: &1.column.alias}}))
       |> Enum.into(query.ranges)
     }
   end
-
-  defp range_alias({_, :as, alias}), do: alias
-  defp range_alias(column), do: column.alias
 
   defp verify_ranges(clauses) do
     clauses
@@ -1069,8 +1064,8 @@ defmodule Cloak.Aql.Compiler do
   defp calculate_db_columns(query), do:
     Enum.reduce(select_expressions(query) ++ range_columns(query), query, &Query.add_db_column(&2, &1))
 
-  defp range_columns(%{subquery?: true}), do: []
-  defp range_columns(%{subquery?: false, ranges: ranges}), do: Enum.map(ranges, &(&1.column))
+  defp range_columns(%{subquery?: true, emulated?: false}), do: []
+  defp range_columns(%{ranges: ranges}), do: Enum.map(ranges, &(&1.column))
 
   defp select_expressions(%Query{command: :select, subquery?: true, emulated?: false} = query) do
     Enum.zip(query.column_titles, query.columns)
@@ -1237,7 +1232,7 @@ defmodule Cloak.Aql.Compiler do
   defp set_emulation_flag(query), do: %Query{query | emulated?: needs_emulation?(query)}
 
   defp needs_decoding?(query), do:
-    (query.columns ++ query.group_by ++ query.having)
+    (query.columns ++ query.group_by ++ query.having ++ query.where)
     |> extract_columns()
     |> Enum.any?(&DataDecoder.needs_decoding?/1)
 

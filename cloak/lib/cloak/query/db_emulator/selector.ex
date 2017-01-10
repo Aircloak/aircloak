@@ -227,7 +227,8 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp get_column_index(columns, %Expression{function: "coalesce", function_args: args}), do:
     {:coalesce, Enum.map(args, &get_column_index(columns, &1))}
   defp get_column_index(columns, column), do:
-    Enum.find_index(columns, &Expression.id(column) == Expression.id(&1))
+    Enum.find_index(columns, &Expression.id(column) == Expression.id(&1)) ||
+      Enum.find_index(columns, &Expression.id(column) == &1.name)
 
   defp pick_value(_row, {:coalesce, []}), do: nil
   defp pick_value(row, {:coalesce, [index | rest]}) do

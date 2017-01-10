@@ -40,8 +40,12 @@ defmodule Cloak.Query.Rows do
       :error -> Expression.apply_function(function, Enum.map(args, &fetch_value!(row, &1, columns)))
     end
   end
-  defp fetch_value!(_row, %Expression{constant?: true, value: value}, _columns), do: value
-  defp fetch_value!(row, column, columns), do: Enum.at(row, Map.fetch!(columns, column))
+  defp fetch_value!(row, column, columns) do
+    case Map.fetch(columns, column) do
+      {:ok, index} -> Enum.at(row, index)
+      :error -> Expression.value(column, row)
+    end
+  end
 
   defp filter_group(row, columns, query), do:
     Enum.all?(query.having, &matches_having_condition?(row, &1, columns))
