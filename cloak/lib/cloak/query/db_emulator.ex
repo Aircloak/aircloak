@@ -32,7 +32,6 @@ defmodule Cloak.Query.DbEmulator do
   # -------------------------------------------------------------------
 
   defp select_rows({:subquery, %{ast: %Query{emulated?: false} = query}}) do
-    # non-emulated subquery
     Logger.debug("Loading sub-query through data source ...")
     DataSource.select!(query, fn(rows) ->
       rows
@@ -42,7 +41,6 @@ defmodule Cloak.Query.DbEmulator do
     end)
   end
   defp select_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}}) when not is_binary(from) do
-    # emulated intermediate sub-query
     Logger.debug("Emulating intermediate sub-query ...")
     subquery = compile_emulated_joins(subquery)
     rows = select_rows(subquery.from)
@@ -53,7 +51,6 @@ defmodule Cloak.Query.DbEmulator do
     |> Enum.to_list()
   end
   defp select_rows({:subquery, %{ast: %Query{emulated?: true} = query}}) do
-    # emulated leaf sub-query
     Logger.debug("Emulating leaf sub-query ...")
     DataSource.select!(%Query{query | subquery?: false}, fn(rows) ->
       Logger.debug("Processing rows ...")
