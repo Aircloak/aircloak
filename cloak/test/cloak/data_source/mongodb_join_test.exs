@@ -60,15 +60,22 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
   test "left join with table and sub-query in top-query", context do
     assert_query context, """
         SELECT age FROM "left" INNER JOIN (SELECT id AS rid, salary FROM "right") AS t ON id = rid
-        WHERE salary IN (100, 200)
-      """, %{rows: [%{occurrences: 14, row: [30]}]}
+      """, %{rows: [%{occurrences: 20, row: [30]}]}
+  end
+
+  test "left join with table and filtered sub-query in filtered top-query", context do
+    assert_query context, """
+        SELECT age FROM "left" INNER JOIN
+        (SELECT id AS rid, salary FROM "right" WHERE salary = 100) AS t
+        ON id = rid WHERE salary >= 0 AND salary < 500
+      """, %{rows: [%{occurrences: 7, row: [30]}]}
   end
 
   test "full join with tables in sub-query", context do
     assert_query context, """
         SELECT COUNT(name) FROM
         (SELECT "left".id, name, salary FROM "left" FULL JOIN "right" ON "left".id = "right".id) AS t
-        WHERE salary >= 0 AND salary < 500
+        WHERE salary IN (100, 200)
       """, %{rows: [%{occurrences: 1, row: [14]}]}
   end
 end

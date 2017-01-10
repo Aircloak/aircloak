@@ -89,6 +89,7 @@ defmodule Cloak.Aql.Compiler do
       |> align_ranges(:where)
       |> add_subquery_ranges()
       |> verify_having()
+      |> set_emulation_flag()
       |> partition_where_clauses()
       |> calculate_db_columns()
       |> verify_limit()
@@ -326,14 +327,14 @@ defmodule Cloak.Aql.Compiler do
   end
   defp normalize_from(subquery = {:subquery, _}, _data_source), do: subquery
   defp normalize_from(table_identifier = {_, table_name}, data_source) do
-    case table(data_source, table_identifier) do
+    case find_table(data_source, table_identifier) do
       nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
       table -> table.name
     end
   end
 
-  defp table(data_source, {:quoted, name}), do: DataSource.table(data_source, name)
-  defp table(data_source, {:unquoted, name}) do
+  defp find_table(data_source, {:quoted, name}), do: DataSource.table(data_source, name)
+  defp find_table(data_source, {:unquoted, name}) do
     data_source.tables
     |> Enum.find(fn({_id, table}) -> insensitive_equal?(table.name, name) end)
     |> case do
@@ -948,19 +949,12 @@ defmodule Cloak.Aql.Compiler do
         %Expression{table: table, name: column, type: type, user_id?: table.user_id == column}
       end
       |> Enum.group_by(&(&1.name))
-
     query = map_terminal_elements(query, &normalize_table_name(&1, query.data_source))
-    parsed_query = map_terminal_elements(query, &identifier_to_column(&1, columns_by_name, query))
-    if needs_emulation?(parsed_query) do
-      query = %Query{query | emulated?: true}
-      map_terminal_elements(query, &identifier_to_column(&1, columns_by_name, query))
-    else
-      parsed_query
-    end
+    map_terminal_elements(query, &identifier_to_column(&1, columns_by_name, query))
   end
 
   defp normalize_table_name({:identifier, table_identifier = {_, name}, column}, data_source) do
-    case table(data_source, table_identifier) do
+    case find_table(data_source, table_identifier) do
       nil -> {:identifier, name, column}
       table -> {:identifier, table.name, column}
     end
@@ -1239,6 +1233,8 @@ defmodule Cloak.Aql.Compiler do
   # -------------------------------------------------------------------
   # Query emulation
   # -------------------------------------------------------------------
+
+  defp set_emulation_flag(query), do: %Query{query | emulated?: needs_emulation?(query)}
 
   defp needs_decoding?(query), do:
     (query.columns ++ query.group_by ++ query.having)
