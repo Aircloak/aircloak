@@ -101,39 +101,26 @@ it("completes mid-word", () => {
   );
 });
 
-it("escapes opening parenthesis", () => {
-  assert.deepEqual(
-    completions("count(", 6, _.identity, [], []),
-    {
-      list: [
-        {text: "COUNT(distinct columnName)", from: 0, to: 6},
-        {text: "COUNT(columnName)", from: 0, to: 6},
-        {text: "COUNT(*)", from: 0, to: 6},
-      ],
-      from: 0,
-      to: 6,
-    }
-  );
-});
-
-it("escapes closing parenthesis", () => {
-  assert.deepEqual(
-    completions("count(*)", 8, _.identity, [], []),
-    {
-      list: [
-        {text: "COUNT(*)", from: 0, to: 8},
-      ],
-      from: 0,
-      to: 8,
-    }
-  );
-});
-
 it("escapes escape sequences", () => {
   assert.deepEqual(
     completions("\\", 1, _.identity, [], []),
     {
       list: [],
+    }
+  );
+});
+
+it("completes after parens", () => {
+  assert.deepEqual(
+    completions("count(coun", 10, _.identity, [], []),
+    {
+      list: [
+        {text: "COUNT(distinct columnName)", from: 6, to: 10},
+        {text: "COUNT(columnName)", from: 6, to: 10},
+        {text: "COUNT(*)", from: 6, to: 10},
+      ],
+      from: 6,
+      to: 10,
     }
   );
 });

@@ -73,7 +73,7 @@ export default function completionList(
   // where the match starts, when prepping and creating the RegExp match string.
   // This could be worked around, but it seems only for marginal gains.
   const codeWords = _.chain(curLine.slice(0, end)).
-    split(/\s/).
+    split(/[\s\(]/).
     map(escapeWord).
     value();
   const potentialMatchSequences = [];
