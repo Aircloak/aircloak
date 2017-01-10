@@ -1263,8 +1263,12 @@ defmodule Cloak.Aql.Compiler do
         explanation = type.narrative_breadcrumbs
         |> filter_for_offensive_actions([:dangerously_discontinuous, :dangerous_math])
         |> construct_explanation()
-        raise CompilationError, message: "Queries where a reported value is influenced by math, " <>
-          "a discontinuous function, and a constant are not allowed. #{explanation}"
+        raise CompilationError, message: """
+          #{explanation}
+
+          Queries where a reported value is influenced by math and a discontinuous function
+          in conjunction with a constant are not allowed.
+          """
       end
     end)
     query
@@ -1278,24 +1282,25 @@ defmodule Cloak.Aql.Compiler do
       type = TypeChecker.type(column, query)
       unless TypeChecker.ok_for_where_inequality?(type) do
         explanation = construct_explanation(type.narrative_breadcrumbs)
-        raise CompilationError, message: "WHERE-clause inequalities where the column value has either been " <>
-          "influenced by math or a discontinuous function are not allowed. #{explanation}"
+        raise CompilationError, message: """
+          #{explanation}.
+
+          WHERE-clause inequalities where the column value has either been
+          influenced by math or a discontinuous function in conjunction with
+          a constsant as not allowed.
+          """
       end
     end)
     query
   end
 
-  defp construct_explanation(columns) when is_list(columns) do
-    problematic_columns = columns
-    |> Enum.map(&construct_explanation(&1))
-    |> Enum.join(". ")
-    """
-    The following column usage is problematic because it involved a constant
-    in one or more of the function calls or math invocations: #{problematic_columns}.
-    """
-  end
+  defp construct_explanation(columns) when is_list(columns), do:
+    Enum.map(columns, &construct_explanation(&1))
   defp construct_explanation({expression, offenses}), do:
-    "#{Expression.display_name(expression)} was processed by #{human_readable_offenses(offenses)}"
+    """
+    Column #{Expression.display_name(expression)} is processed by #{human_readable_offenses(offenses)}
+    together with a constant value.
+    """
 
   defp human_readable_offenses(offenses), do:
     offenses
