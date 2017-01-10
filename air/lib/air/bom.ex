@@ -25,7 +25,7 @@ defmodule Air.BOM do
 
   defp read_bom do
     Application.app_dir(:air)
-    |> Path.join(bom_path)
+    |> Path.join(bom_path())
     |> File.read!()
     |> Poison.decode!()
   end

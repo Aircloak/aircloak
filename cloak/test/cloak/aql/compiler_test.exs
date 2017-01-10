@@ -154,7 +154,7 @@ defmodule Cloak.Aql.Compiler.Test do
   for function <- ~w(count avg min max sum stddev median) do
     test "rejecting #{function} in group by" do
       query = "select #{unquote(function)}(numeric) from table group by #{unquote(function)}(numeric)"
-      assert {:error, error} = compile(query, data_source)
+      assert {:error, error} = compile(query, data_source())
       assert error == "Aggregate function `#{unquote(function)}` can not be used in the `GROUP BY` clause."
     end
   end
@@ -167,7 +167,7 @@ defmodule Cloak.Aql.Compiler.Test do
     test "allowing #{function} in group by" do
       assert {:ok, _} = compile(
         "select #{unquote(function)}(column) from table group by #{unquote(function)}(column)",
-        data_source
+        data_source()
       )
     end
 
@@ -273,17 +273,17 @@ defmodule Cloak.Aql.Compiler.Test do
 
     assert {:ok, _} = compile(
       "SELECT t1.c1 from t1, t2, t3 WHERE t1.uid = t2.uid AND t2.uid = t3.uid",
-      data_source
+      data_source()
     )
 
     assert {:ok, _} = compile(
       "SELECT t1.c1 from t1, t2, t3 WHERE t3.uid = t1.uid AND t3.uid = t2.uid",
-      data_source
+      data_source()
     )
 
     assert {:ok, _} = compile(
       "SELECT t1.c1 from t1, t2, t3, t4 WHERE t3.uid = t1.uid AND t3.uid = t2.uid AND t1.uid = t4.uid",
-      data_source
+      data_source()
     )
   end
 
@@ -336,7 +336,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
     assert {:error, error} = compile(
       "SELECT t1.c1 from t1, t2, t3, t4 WHERE t1.uid = t2.uid AND t3.uid = t4.uid",
-      data_source
+      data_source()
     )
     assert error =~ ~r/Missing where comparison.*`t2` and `t3`/
   end
@@ -356,7 +356,7 @@ defmodule Cloak.Aql.Compiler.Test do
         GROUP BY column
         ORDER BY count(column) DESC, count(table.column) DESC
       """,
-      data_source)
+      data_source())
     assert [column("table", "column"), %Expression{function: "count", function_args: [column("table", "column")]}] =
       result.columns
     assert Enum.any?(result.where, &match?({:comparison, column("table", "numeric"), :>=, _}, &1))
@@ -401,7 +401,7 @@ defmodule Cloak.Aql.Compiler.Test do
         GROUP BY t1.c1, c3
         ORDER BY t1.c1 DESC
       """,
-      data_source)
+      data_source())
     assert [column("t1", "c1")] = result.columns
     assert Enum.any?(result.where, &match?({:comparison, column("t1", "c2"), :>=, _}, &1))
     assert Enum.any?(result.where, &match?({:comparison, column("t1", "c2"), :<, _}, &1))

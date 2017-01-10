@@ -4,9 +4,6 @@ defmodule Air.ApiTokenControllerTest do
   import Air.{TestConnHelper, TestRepoHelper, TestAuthHelper}
   alias Air.Schemas.ApiToken
 
-  @invalid_attrs %{name: ""}
-  @api_token_params %{api_token: %{description: "Token description"}}
-
   test "api token pages require an authenticated user", %{conn: conn} do
     conn = add_auth_to_conn(conn)
     user = create_user!()

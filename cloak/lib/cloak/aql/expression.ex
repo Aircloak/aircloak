@@ -159,6 +159,7 @@ defmodule Cloak.Aql.Expression do
   defp normalize_type(:float), do: :real
   defp normalize_type(type), do: type
 
+  @dialyzer {:nowarn_function, do_apply: 2} # https://github.com/elixir-lang/elixir/issues/5634
   defp do_apply("year", [value]), do: value.year
   defp do_apply("month", [value]), do: value.month
   defp do_apply("day", [value]), do: value.day
@@ -262,6 +263,7 @@ defmodule Cloak.Aql.Expression do
   defp substring(string, from, count), do:
     String.slice(string, from - 1, count || String.length(string))
 
+  @dialyzer {:nowarn_function, add_to_time: 2} # https://github.com/elixir-lang/elixir/issues/5634
   defp add_to_time(time, duration) do
     NaiveDateTime.from_erl!({_arbitrary_date = {100, 1, 1}, Time.to_erl(time)})
     |> Timex.add(duration_time_part(duration))
@@ -338,6 +340,7 @@ defmodule Cloak.Aql.Expression do
   defp cast(value, :interval) when is_binary(value), do:
     value |> Duration.parse() |> error_to_nil()
 
+  @dialyzer {:nowarn_function, duration_time_part: 1} # https://github.com/elixir-lang/elixir/issues/5634
   defp duration_time_part(duration) do
     {hours, days, seconds, microseconds} = Duration.to_clock(duration)
     Duration.from_clock({rem(hours, 24), days, seconds, microseconds})

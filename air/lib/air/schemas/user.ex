@@ -25,7 +25,7 @@ defmodule Air.Schemas.User do
       on_replace: :delete
     has_many :views, Air.Schemas.View
 
-    timestamps
+    timestamps()
 
     # These virtual fields are used for validation,
     # but never persisted to the database

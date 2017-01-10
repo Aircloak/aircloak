@@ -10,7 +10,7 @@ defmodule Air.Schemas.AuditLog do
     field :user, :string
     field :metadata, :map
 
-    timestamps
+    timestamps()
   end
 
   @required_fields ~w(event user metadata)a

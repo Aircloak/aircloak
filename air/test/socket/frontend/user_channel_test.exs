@@ -16,7 +16,7 @@ defmodule Air.Socket.Frontend.UserChannelTest do
       socket("user", %{user: user})
       |> subscribe_and_join(UserChannel, "session:" <> session)
 
-    {:ok, socket: socket, user: user, session: session}
+    {:ok, socket: socket(), user: user, session: session}
   end
 
   test "allows joining session with any UUID", %{socket: socket} do
