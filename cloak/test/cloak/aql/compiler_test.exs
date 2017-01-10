@@ -42,6 +42,11 @@ defmodule Cloak.Aql.Compiler.Test do
     assert error == "Column `numeric` from table `table` of type `integer` cannot be used in a LIKE expression."
   end
 
+  test "rejects usage of * in function requiring argument of known type" do
+    {:error, error} = compile("select length(*) from table", data_source())
+    assert error =~ ~r/unspecified type/
+  end
+
   test "casts datetime where conditions" do
     result = compile!("select * from table where column > '2015-01-01' and column < '2016-01-01'", data_source())
 

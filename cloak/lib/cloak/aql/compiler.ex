@@ -514,7 +514,11 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.join(" or ")
 
   defp actual_types(function_call), do:
-    Function.arguments(function_call) |> Enum.map(&(&1.type))
+    Function.arguments(function_call)
+    |> Enum.map(fn
+      (%Expression{} = expression) -> expression.type
+      (:*) -> "unspecified type"
+    end)
 
   defp expand_arguments(column) do
     (column |> Expression.arguments() |> Enum.flat_map(&expand_arguments/1)) ++ [column]
