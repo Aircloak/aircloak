@@ -268,6 +268,12 @@ defmodule Air.PsqlServer.Protocol do
   # Handling of messages in the `:ready` state
   #-----------------------------------------------------------------------------------------------------------
 
+  defp handle_ready_message(state, :flush, _), do:
+    transition_after_message(state, :ready)
+  defp handle_ready_message(state, :sync, _), do:
+    state
+    |> request_send(ready_for_query())
+    |> transition_after_message(:ready)
   defp handle_ready_message(state, :terminate, _), do:
     close(state, :normal)
   defp handle_ready_message(state, :query, payload), do:
@@ -304,6 +310,10 @@ defmodule Air.PsqlServer.Protocol do
     |> add_action({:run_query, prepared_statement.query, prepared_statement.params, execute_data.max_rows})
     |> next_state(:running_prepared_statement)
   end
+  defp handle_ready_message(state, :close, _), do:
+    state
+    |> request_send(close_complete())
+    |> transition_after_message(:ready)
 
 
   #-----------------------------------------------------------------------------------------------------------

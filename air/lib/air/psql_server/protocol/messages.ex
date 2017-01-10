@@ -27,6 +27,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
     |> Enum.into(%{})
   end
 
+  def decode_message(:close, <<type, name::binary>>), do:
+    %{type: type, name: name}
   def decode_message(:bind, message), do:
     decode_bind_message(message)
   def decode_message(:describe, <<type, describe_data::binary>>) do
@@ -63,8 +65,10 @@ defmodule Air.PsqlServer.Protocol.Messages do
   for {message_name, message_byte} <-
       %{
         bind: ?B,
+        close: ?C,
         describe: ?D,
         execute: ?E,
+        flush: ?H,
         parse: ?P,
         password: ?p,
         query: ?Q,
@@ -145,6 +149,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   def bind_complete(), do: server_message(:bind_complete, <<>>)
 
+  def close_complete(), do: server_message(:close_complete, <<>>)
+
   def command_complete(tag), do: server_message(:command_complete, null_terminate(tag))
 
   def data_row(values) do
@@ -207,6 +213,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
       %{
         authentication: ?R,
         bind_complete: ?2,
+        close_complete: ?3,
         command_complete: ?C,
         data_row: ?D,
         error_response: ?E,

@@ -96,9 +96,9 @@ defmodule Air.PsqlServer do
     # we're ignoring set for now
     {true, RanchServer.set_query_result(conn, nil)}
   defp handle_special_query(conn, query) do
-    if query =~ ~r/^select.+from pg_type/ do
+    if query =~ ~r/^select.+from pg_type/s do
       # select ... from pg_type ...
-      {true, RanchServer.set_query_result(conn, %{columns: [], rows: []})}
+      {true, RanchServer.set_query_result(conn, special_query(query))}
     else
       false
     end
@@ -134,4 +134,31 @@ defmodule Air.PsqlServer do
     defp type_atom(unquote(aql_type)), do: unquote(psql_type)
   end
   defp type_atom(_other), do: :unknown
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Handling of special queries
+  #-----------------------------------------------------------------------------------------------------------
+
+  # These queries are issued by clients to query `pg_type` and associated tables. Currently, we don't parse
+  # queries, so we have to hardcode results for each client we want to support.
+
+  # postgrex pg_type query
+  defp special_query("select t.oid, t.typname, t.typsend, t.typreceive, t.typoutput, t.typinput,\n       t.typelem, 0, array (\n  select a.atttypid\n  from pg_attribute as a\n  where a.attrelid = t.typrelid and a.attnum > 0 and not a.attisdropped\n  order by a.attnum\n)\nfrom pg_type as t\n\n\n") do
+    %{
+      columns:
+        ~w(oid typname typsend typreceive typoutput typinput typelem coalesce array)
+        |> Enum.map(&%{name: &1, type: :text}),
+      rows:
+        [
+          ~w(16 bool boolsend boolrecv boolout boolin 0 0 {}),
+          ~w(20 int8 int8send int8recv int8out int8in 0 0 {}),
+          ~w(23 int4 int4send int4recv int4out int4in 0 0 {}),
+          ~w(25 text textsend textrecv textout textin 0 0 {}),
+          ~w(705 unknown unknownsend unknownrecv unknownout unknownin 0 0 {})
+        ]
+    }
+  end
+  defp special_query(_), do:
+    %{columns: [], rows: []}
 end
