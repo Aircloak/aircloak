@@ -273,6 +273,22 @@ defmodule Cloak.Query.DBEmulatorTest do
       Enum.zip(["a", "b", "c"], rows)
       |> Enum.each(fn({value, row}) -> assert %{occurrences: 10, row: [^value]} = row end)
     end
+
+    test "join between emulated subquery and subquery with aggregation", do:
+      assert_query """
+          select count(*), avg(rows) from
+          (select user_id, value from #{@prefix}emulated) as t1 inner join
+          (select user_id as uid, count(*) as rows from #{@prefix}joined group by user_id) as t2 on user_id = uid
+        """, %{rows: [%{occurrences: 1, row: [10, 1.0]}]}
+
+    test "join between emulated table and subquery with subquery", do:
+      assert_query """
+          select count(*), avg(age) from
+          (select user_id, value from #{@prefix}emulated) as t1 inner join
+          (select user_id as uid, age + 1 as age from
+            (select user_id, age * 2 as age from #{@prefix}joined) as t
+          ) as t2 on user_id = uid
+        """, %{rows: [%{occurrences: 1, row: [10, 61.0]}]}
   end
 
   test "emulated subqueries with extra dummy columns" do
