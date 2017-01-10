@@ -154,9 +154,9 @@ defmodule Cloak.Aql.TypeChecker do
       |> Enum.map(fn({expression, breadcrumbs}) ->
         cond do
           dangerously_discontinuous?(name, future, child_types) ->
-            {expression, [{:dangerously_discontinuous, name} | breadcrumbs]}
+            {expression, [{:dangerously_discontinuous, name} | breadcrumbs] |> Enum.uniq()}
           performs_dangerous_math?(name, future, child_types) ->
-            {expression, [{:dangerous_math, name} | breadcrumbs]}
+            {expression, [{:dangerous_math, name} | breadcrumbs] |> Enum.uniq()}
           true ->
             {expression, breadcrumbs}
         end

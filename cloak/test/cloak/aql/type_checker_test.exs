@@ -196,7 +196,19 @@ defmodule Cloak.Aql.TypeChecker.Test do
 
     test "records multiple math offenses" do
       type = type_first_column("SELECT numeric + 10 FROM (SELECT uid, numeric - 1 as numeric FROM table) t")
-      [{%Expression{name: "numeric"}, [{:dangerous_math, "+"}, {:dangerous_math, "-"}]}] = type.narrative_breadcrumbs
+      assert [{%Expression{name: "numeric"}, [{:dangerous_math, "+"}, {:dangerous_math, "-"}]}] =
+        type.narrative_breadcrumbs
+    end
+
+    test "deduplicates offenses - math" do
+      type = type_first_column("SELECT numeric + 10 + 10 FROM table")
+      assert [{%Expression{name: "numeric"}, [{:dangerous_math, "+"}]}] = type.narrative_breadcrumbs
+    end
+
+    test "deduplicates offenses - discontinuity" do
+      type = type_first_column("SELECT numeric % 2 % 2 FROM table")
+      assert [{%Expression{name: "numeric"}, [{:dangerously_discontinuous, "%"}]}] =
+        type.narrative_breadcrumbs
     end
   end
 
