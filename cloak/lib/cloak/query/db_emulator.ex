@@ -8,8 +8,9 @@ defmodule Cloak.Query.DbEmulator do
   """
   require Logger
 
-  alias Cloak.{DataSource, Query.DbEmulator.Selector}
-  alias Cloak.Aql.{Query, Expression, Function}
+  alias Cloak.DataSource
+  alias Cloak.Aql.{Query, Comparison, Expression, Function}
+  alias Cloak.Query.{Rows, DataDecoder, DbEmulator.Selector}
 
 
   # -------------------------------------------------------------------
@@ -30,8 +31,19 @@ defmodule Cloak.Query.DbEmulator do
   # Selection of rows from subparts of an emulated query
   # -------------------------------------------------------------------
 
+  defp select_rows({:subquery, %{ast: %Query{emulated?: false} = query}}) do
+    # non-emulated subquery
+    Logger.debug("Loading sub-query through data source ...")
+    DataSource.select!(query, fn(rows) ->
+      rows
+      |> DataDecoder.decode(query)
+      |> Rows.filter(Enum.map(query.encoded_where, &Comparison.to_function/1))
+      |> Enum.to_list()
+    end)
+  end
   defp select_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}}) when not is_binary(from) do
-    Logger.debug("Emulating sub-query ...")
+    # emulated intermediate sub-query
+    Logger.debug("Emulating intermediate sub-query ...")
     subquery = compile_emulated_joins(subquery)
     rows = select_rows(subquery.from)
     Logger.debug("Processing rows ...")
@@ -40,13 +52,13 @@ defmodule Cloak.Query.DbEmulator do
     |> Selector.select(subquery)
     |> Enum.to_list()
   end
-  defp select_rows({:subquery, %{ast: %Query{} = query}}) do
-    # either a non-emulated subquery, or a subquery selecting from a single table
-    Logger.debug("Loading sub-query through data source ...")
+  defp select_rows({:subquery, %{ast: %Query{emulated?: true} = query}}) do
+    # emulated leaf sub-query
+    Logger.debug("Emulating leaf sub-query ...")
     DataSource.select!(%Query{query | subquery?: false}, fn(rows) ->
       Logger.debug("Processing rows ...")
       rows
-      |> Cloak.Query.DataDecoder.decode(query)
+      |> DataDecoder.decode(query)
       |> Selector.select(%Query{query | where: query.encoded_where, encoded_where: []})
       |> Enum.to_list()
     end)
@@ -78,7 +90,6 @@ defmodule Cloak.Query.DbEmulator do
       |> get_in([Query.Lenses.leaf_expressions()])
       |> Enum.filter(&(&1.table.name == table_name))
       |> Enum.uniq_by(&Expression.id/1)
-
     query = Cloak.Aql.Compiler.make_select_query(query.data_source, table_name, required_columns, subquery?: true)
     {:subquery, %{type: :parsed, ast: query, alias: table_name}}
   end
