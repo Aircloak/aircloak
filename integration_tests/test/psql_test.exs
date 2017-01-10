@@ -64,6 +64,16 @@ defmodule IntegrationTest.PsqlTest do
     assert Enum.uniq(rows) == [{'john', '181'}]
   end
 
+  test "select a boolean", context do
+    {:ok, conn} = connect(context.user)
+    assert {:selected, ['x'], rows} = :odbc.param_query(
+      conn,
+      'select cast($1 as boolean) as x from users',
+      [{:sql_integer, [1]}]
+    )
+    assert Enum.uniq(rows) == [{true}]
+  end
+
   test "select error", context do
     {:ok, conn} = connect(context.user)
     ExUnit.CaptureLog.capture_log(fn -> assert {:error, _} = :odbc.sql_query(conn, 'invalid query') end)

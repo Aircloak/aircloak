@@ -127,6 +127,7 @@ defmodule Air.PsqlServer do
   end
 
   for {aql_type, psql_type} <- %{
+    "boolean" => :boolean,
     "integer" => :int8,
     "text" => :text
   } do
