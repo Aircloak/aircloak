@@ -1250,6 +1250,11 @@ defmodule Cloak.Aql.Compiler do
     query |> get_in([Query.Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?)) or
     (query.subquery? and needs_decoding?(query))
 
+
+  # -------------------------------------------------------------------
+  # Validation of usage of restricted functions and maths
+  # -------------------------------------------------------------------
+
   defp verify_function_usage_for_selected_columns(%Query{columns: _columns, subquery?: true} = query), do: query
   defp verify_function_usage_for_selected_columns(%Query{columns: columns} = query) do
     Enum.each(columns, fn(column) ->
