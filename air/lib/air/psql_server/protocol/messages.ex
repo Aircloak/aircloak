@@ -113,8 +113,11 @@ defmodule Air.PsqlServer.Protocol.Messages do
     {[], bind_message_data}
   defp decode_format_codes(num_format_codes, <<format_code::16, bind_message_data::binary>>) do
     {rest_codes, bind_message_data} = decode_format_codes(num_format_codes - 1, bind_message_data)
-    {[format_code | rest_codes], bind_message_data}
+    {[format_code_atom(format_code) | rest_codes], bind_message_data}
   end
+
+  defp format_code_atom(0), do: :text
+  defp format_code_atom(1), do: :binary
 
   defp decode_result_codes(0, bind_message_data), do:
     {[], bind_message_data}
