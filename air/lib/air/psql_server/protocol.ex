@@ -364,6 +364,7 @@ defmodule Air.PsqlServer.Protocol do
     Enum.map(Enum.zip(values, Stream.cycle(formats)), &encode_value/1)
 
   defp encode_value({nil, _}), do: <<-1::32>>
+  defp encode_value({integer, :binary}) when is_integer(integer), do: <<integer::signed-64>>
   defp encode_value({binary, :binary}) when is_binary(binary), do: binary
   defp encode_value({other, :text}), do: to_string(other)
 end
