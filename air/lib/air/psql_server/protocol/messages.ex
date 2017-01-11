@@ -51,7 +51,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
       num_params: num_params,
       param_types: param_types,
       params: nil,
-      parsed_param_types: []
+      parsed_param_types: [],
+      result_codes: nil
     }
   end
   def decode_message(:password, password_message) do
@@ -123,7 +124,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
     {[], bind_message_data}
   defp decode_result_codes(num_result_codes, <<result_code::16, bind_message_data::binary>>) do
     {rest_codes, bind_message_data} = decode_result_codes(num_result_codes - 1, bind_message_data)
-    {[result_code | rest_codes], bind_message_data}
+    {[format_code_atom(result_code) | rest_codes], bind_message_data}
   end
 
   defp decode_params(0, bind_message_data), do:

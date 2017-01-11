@@ -50,7 +50,8 @@ defmodule Air.PsqlServer.Protocol do
     num_params: non_neg_integer,
     param_types: [psql_type],
     parsed_param_types: [psql_type],
-    params: [db_value]
+    params: [db_value],
+    result_codes: [:text | :binary]
   }
 
 
@@ -253,12 +254,13 @@ defmodule Air.PsqlServer.Protocol do
     |> request_send(row_description(description.columns))
     |> transition_after_message(:ready)
   # :running_prepared_statement -> awaiting result of an executed prepared statement
-  defp handle_event(state, :running_prepared_statement, {:query_result, result}), do:
+  defp handle_event(state, {:running_prepared_statement, name}, {:query_result, result}) do
     state
-    |> send_rows(result.rows)
+    |> send_rows(result.rows, Map.fetch!(state.prepared_statements, name).result_codes)
     |> request_send(command_complete("SELECT #{length(result.rows)}"))
     |> request_send(ready_for_query())
     |> transition_after_message(:syncing)
+  end
 
   # :syncing -> ignoring all message until sync arrives
   defp handle_event(state, :syncing, {:message, %{type: :sync}}), do:
@@ -301,7 +303,8 @@ defmodule Air.PsqlServer.Protocol do
     params = convert_params(bind_data.params, bind_data.format_codes, param_types)
 
     state
-    |> put_in([:prepared_statements, bind_data.name], %{prepared_statement | params: params})
+    |> put_in([:prepared_statements, bind_data.name],
+        %{prepared_statement | params: params, result_codes: bind_data.result_codes})
     |> request_send(bind_complete())
     |> transition_after_message(:ready)
   end
@@ -317,7 +320,7 @@ defmodule Air.PsqlServer.Protocol do
 
     state
     |> add_action({:run_query, prepared_statement.query, prepared_statement.params, execute_data.max_rows})
-    |> next_state(:running_prepared_statement)
+    |> next_state({:running_prepared_statement, execute_data.name})
   end
   defp handle_ready_message(state, :close, _), do:
     state
@@ -334,13 +337,13 @@ defmodule Air.PsqlServer.Protocol do
   defp send_result(state, %{rows: rows, columns: columns}), do:
     state
     |> request_send(row_description(columns))
-    |> send_rows(rows)
+    |> send_rows(rows, [:text])
     |> request_send(command_complete("SELECT #{length(rows)}"))
   defp send_result(state, %{error: error}), do:
     request_send(state, error_message("ERROR", "42P01", error))
 
-  defp send_rows(state, rows), do:
-    Enum.reduce(rows, state, &request_send(&2, data_row(encode_values(&1))))
+  defp send_rows(state, rows, formats), do:
+    Enum.reduce(rows, state, &request_send(&2, data_row(encode_values(&1, formats))))
 
   defp convert_params(params, format_codes, param_types) do
     true = (length(params) == length(param_types))
@@ -357,8 +360,10 @@ defmodule Air.PsqlServer.Protocol do
   defp decode_value({:text, _, param}) when is_binary(param), do: param
   defp decode_value({:unknown, _, param}) when is_binary(param), do: param
 
-  defp encode_values(values), do: Enum.map(values, &encode_value/1)
+  defp encode_values(values, formats), do:
+    Enum.map(Enum.zip(values, Stream.cycle(formats)), &encode_value/1)
 
-  defp encode_value(nil), do: <<-1::32>>
-  defp encode_value(other), do: to_string(other)
+  defp encode_value({nil, _}), do: <<-1::32>>
+  defp encode_value({binary, :binary}) when is_binary(binary), do: binary
+  defp encode_value({other, :text}), do: to_string(other)
 end
