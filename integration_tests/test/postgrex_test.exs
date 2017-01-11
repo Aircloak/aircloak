@@ -10,21 +10,13 @@ defmodule IntegrationTest.PostgrexTest do
   end
 
   test "select a string", context do
-    result = Postgrex.query!(
-      context.conn,
-      "select cast($1 as text) from users",
-      ["foobar"]
-    )
+    result = Postgrex.query!(context.conn, "select cast($1 as text) from users", ["foobar"])
     assert result.columns == ["cast"]
     assert Enum.uniq(result.rows) == [["foobar"]]
   end
 
   test "select an integer", context do
-    result = Postgrex.query!(
-      context.conn,
-      "select cast($1 as integer) from users",
-      [42]
-    )
+    result = Postgrex.query!(context.conn, "select cast($1 as integer) from users", [42])
     assert result.columns == ["cast"]
     assert Enum.uniq(result.rows) == [[42]]
   end
