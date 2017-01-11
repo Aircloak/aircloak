@@ -340,20 +340,25 @@ defmodule Air.PsqlServer.Protocol do
     request_send(state, error_message("ERROR", "42P01", error))
 
   defp send_rows(state, rows), do:
-    Enum.reduce(rows, state, &request_send(&2, data_row(&1)))
+    Enum.reduce(rows, state, &request_send(&2, data_row(encode_values(&1))))
 
   defp convert_params(params, format_codes, param_types) do
     true = (length(params) == length(param_types))
     [param_types, format_codes, params]
     |> Enum.zip()
-    |> Enum.map(&convert_param/1)
+    |> Enum.map(&decode_value/1)
   end
 
-  defp convert_param({_, _, nil}), do: nil
-  defp convert_param({:int4, :text, param}), do: String.to_integer(param)
-  defp convert_param({:int4, :binary, <<value::signed-32>>}), do: value
-  defp convert_param({:int8, :text, param}), do: String.to_integer(param)
-  defp convert_param({:int8, :binary, <<value::signed-64>>}), do: value
-  defp convert_param({:text, _, param}) when is_binary(param), do: param
-  defp convert_param({:unknown, _, param}) when is_binary(param), do: param
+  defp decode_value({_, _, nil}), do: nil
+  defp decode_value({:int4, :text, param}), do: String.to_integer(param)
+  defp decode_value({:int4, :binary, <<value::signed-32>>}), do: value
+  defp decode_value({:int8, :text, param}), do: String.to_integer(param)
+  defp decode_value({:int8, :binary, <<value::signed-64>>}), do: value
+  defp decode_value({:text, _, param}) when is_binary(param), do: param
+  defp decode_value({:unknown, _, param}) when is_binary(param), do: param
+
+  defp encode_values(values), do: Enum.map(values, &encode_value/1)
+
+  defp encode_value(nil), do: <<-1::32>>
+  defp encode_value(other), do: to_string(other)
 end

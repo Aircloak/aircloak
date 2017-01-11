@@ -160,7 +160,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
   def data_row(values) do
     encoded_row =
       values
-      |> Enum.map(&value_to_text/1)
+      |> Enum.map(&<<byte_size(&1)::32, &1::binary>>)
       |> IO.iodata_to_binary()
 
     server_message(:data_row, <<length(values)::16, encoded_row::binary>>)
@@ -260,12 +260,6 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
     defp type_name(unquote(meta.oid)), do: unquote(type)
     defp type_oid(unquote(type)), do: unquote(meta.oid)
-  end
-
-  defp value_to_text(nil), do: <<-1::32>>
-  defp value_to_text(other) do
-    string_representation = to_string(other)
-    <<byte_size(string_representation)::32, string_representation::binary>>
   end
 
 
