@@ -721,6 +721,19 @@ defmodule Cloak.Aql.Compiler.Test do
     assert Enum.any?(query.ranges, &match?(%{column: %{name: ^max_alias}, interval: {0.0, 100.0}}, &1))
   end
 
+  test "propagating ranges for shrink and drop from a singly-nested where without aggregation" do
+    query = compile!("""
+      select * from (
+        select uid from table
+        where numeric >= 0.0 and numeric < 100.0
+      ) x
+    """, data_source())
+    {:subquery, %{ast: subquery}} = query.from
+
+    assert [%{alias: alias}] = Enum.reject(subquery.db_columns, &(&1.name == "uid"))
+    assert Enum.any?(query.ranges, &match?(%{column: %{name: ^alias}, interval: {0.0, 100.0}}, &1))
+  end
+
   test "dotted columns can be used unquoted" do
     assert %{columns: [column("table", "column.with.dots")]} =
       compile!("select column.with.dots from table", dotted_data_source())
