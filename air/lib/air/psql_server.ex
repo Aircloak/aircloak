@@ -83,7 +83,7 @@ defmodule Air.PsqlServer do
   def handle_message(%{assigns: %{query_runner: %Task{ref: ref}}} = conn, {ref, query_result}), do:
     RanchServer.set_query_result(conn, parse_response(query_result))
   def handle_message(%{assigns: %{query_describer: %Task{ref: ref}}} = conn, {ref, query_result}), do:
-    RanchServer.set_describe_result(conn, parse_response(query_result).columns)
+    RanchServer.set_describe_result(conn, Map.take(parse_response(query_result), [:columns, :param_types]))
   def handle_message(conn, _message), do:
     conn
 
@@ -119,7 +119,12 @@ defmodule Air.PsqlServer do
       rows:
         query_result
         |> Map.get("rows", [])
-        |> Enum.flat_map(&List.duplicate(Map.fetch!(&1, "row"), Map.fetch!(&1, "occurrences")))
+        |> Enum.flat_map(&List.duplicate(Map.fetch!(&1, "row"), Map.fetch!(&1, "occurrences"))),
+      param_types:
+        query_result
+        |> Map.fetch!("features")
+        |> Map.fetch!("parameter_types")
+        |> Enum.map(&type_atom/1)
     }
   defp parse_response(other) do
     Logger.error("Error running a query: #{inspect other}")

@@ -49,6 +49,7 @@ defmodule Air.PsqlServer.Protocol do
     query: String.t,
     num_params: non_neg_integer,
     param_types: [psql_type],
+    parsed_param_types: [psql_type],
     params: [db_value]
   }
 
@@ -245,9 +246,11 @@ defmodule Air.PsqlServer.Protocol do
     |> request_send(ready_for_query())
     |> transition_after_message(:ready)
   # :describing_statement -> awaiting describe result
-  defp handle_event(state, :describing_statement, {:describe_result, columns}), do:
+  defp handle_event(state, {:describing_statement, name}, {:describe_result, description}), do:
     state
-    |> request_send(row_description(columns))
+    |> put_in([:prepared_statements, name, :parsed_param_types], description.param_types)
+    |> request_send(parameter_description(description.param_types))
+    |> request_send(row_description(description.columns))
     |> transition_after_message(:ready)
   # :running_prepared_statement -> awaiting result of an executed prepared statement
   defp handle_event(state, :running_prepared_statement, {:query_result, result}), do:
@@ -288,7 +291,7 @@ defmodule Air.PsqlServer.Protocol do
   end
   defp handle_ready_message(state, :bind, bind_data) do
     prepared_statement = Map.fetch!(state.prepared_statements, bind_data.name)
-    params = convert_params(bind_data.params, prepared_statement.param_types)
+    params = convert_params(bind_data.params, prepared_statement.parsed_param_types)
 
     state
     |> put_in([:prepared_statements, bind_data.name], %{prepared_statement | params: params})
@@ -299,9 +302,8 @@ defmodule Air.PsqlServer.Protocol do
     prepared_statement = Map.fetch!(state.prepared_statements, describe_data.name)
 
     state
-    |> request_send(parameter_description(prepared_statement.param_types))
     |> add_action({:describe_statement, prepared_statement.query, prepared_statement.params})
-    |> next_state(:describing_statement)
+    |> next_state({:describing_statement, describe_data.name})
   end
   defp handle_ready_message(state, :execute, execute_data) do
     prepared_statement = Map.fetch!(state.prepared_statements, execute_data.name)
@@ -333,8 +335,8 @@ defmodule Air.PsqlServer.Protocol do
   defp send_rows(state, rows), do:
     Enum.reduce(rows, state, &request_send(&2, data_row(&1)))
 
-  defp convert_params(params, param_types) when length(params) == length(param_types), do:
-    Enum.map(Enum.zip(param_types, params), &convert_param/1)
+  defp convert_params(params, parsed_param_types) when length(params) == length(parsed_param_types), do:
+    Enum.map(Enum.zip(parsed_param_types, params), &convert_param/1)
 
   defp convert_param({_, nil}), do: nil
   defp convert_param({:int4, param}) when is_binary(param), do: String.to_integer(param)
