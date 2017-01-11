@@ -28,7 +28,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
   end
 
   def decode_message(:close, <<type, name::binary>>), do:
-    %{type: type, name: name}
+    %{type: type, name: hd(:binary.split(name, <<0>>))}
   def decode_message(:bind, message), do:
     decode_bind_message(message)
   def decode_message(:describe, <<type, describe_data::binary>>) do

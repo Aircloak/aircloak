@@ -324,8 +324,9 @@ defmodule Air.PsqlServer.Protocol do
     |> add_action({:run_query, prepared_statement.query, prepared_statement.params, execute_data.max_rows})
     |> next_state({:running_prepared_statement, execute_data.name})
   end
-  defp handle_ready_message(state, :close, _), do:
+  defp handle_ready_message(state, :close, close_data), do:
     state
+    |> update_in([:prepared_statements], &Map.delete(&1, close_data.name))
     |> request_send(close_complete())
     |> transition_after_message(:ready)
 
