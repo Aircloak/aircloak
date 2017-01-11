@@ -516,7 +516,11 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.join(" or ")
 
   defp actual_types(function_call), do:
-    Function.arguments(function_call) |> Enum.map(&(&1.type))
+    Function.arguments(function_call)
+    |> Enum.map(fn
+      (%Expression{} = expression) -> expression.type
+      (:*) -> "unspecified type"
+    end)
 
   defp expand_arguments(column) do
     (column |> Expression.arguments() |> Enum.flat_map(&expand_arguments/1)) ++ [column]
@@ -1243,13 +1247,25 @@ defmodule Cloak.Aql.Compiler do
     query |> get_in([Query.Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?)) or
     (query.subquery? and needs_decoding?(query))
 
+
+  # -------------------------------------------------------------------
+  # Validation of usage of restricted functions and maths
+  # -------------------------------------------------------------------
+
   defp verify_function_usage_for_selected_columns(%Query{columns: _columns, subquery?: true} = query), do: query
   defp verify_function_usage_for_selected_columns(%Query{columns: columns} = query) do
     Enum.each(columns, fn(column) ->
       type = TypeChecker.type(column, query)
       unless TypeChecker.ok_for_display?(type) do
-        raise CompilationError, message: "Queries where a reported value is influenced by math, " <>
-          "a discontinuous function, and a constant are not allowed."
+        explanation = type.narrative_breadcrumbs
+        |> filter_for_offensive_actions([:dangerously_discontinuous, :dangerous_math])
+        |> construct_explanation()
+        raise CompilationError, message: """
+          #{explanation}
+
+          Queries where a reported value is influenced by math and a discontinuous function
+          in conjunction with a constant are not allowed.
+          """
       end
     end)
     query
@@ -1262,10 +1278,44 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.each(fn(column) ->
       type = TypeChecker.type(column, query)
       unless TypeChecker.ok_for_where_inequality?(type) do
-        raise CompilationError, message: "WHERE-clause inequalities where the column value has either been " <>
-          "influenced by math or a discontinuous function are not allowed."
+        explanation = construct_explanation(type.narrative_breadcrumbs)
+        raise CompilationError, message: """
+          #{explanation}.
+
+          WHERE-clause inequalities where the column value has either been
+          influenced by math or a discontinuous function in conjunction with
+          a constsant as not allowed.
+          """
       end
     end)
     query
   end
+
+  defp construct_explanation(columns) when is_list(columns), do:
+    Enum.map(columns, &construct_explanation(&1))
+  defp construct_explanation({expression, offenses}), do:
+    """
+    Column #{Expression.display_name(expression)} is processed by #{human_readable_offenses(offenses)}
+    together with a constant value.
+    """
+
+  defp human_readable_offenses(offenses), do:
+    offenses
+    |> Enum.reverse()
+    |> Enum.map(fn
+      ({:dangerously_discontinuous, function}) ->
+        "discontinuous function '#{Function.readable_name(function)}'"
+      ({:dangerous_math, name}) -> "math function '#{name}'"
+    end)
+    |> Enum.join(" and ")
+
+  # Removes columns that haven't had all of a list of offenses applied to them
+  defp filter_for_offensive_actions(columns, required_offenses), do:
+    columns
+    |> Enum.filter(fn({_expression, offenses}) ->
+      offenses
+      |> Enum.map(fn({name, _}) -> name end)
+      |> Enum.reduce(required_offenses, &(&2 -- [&1])) == []
+    end)
+
 end

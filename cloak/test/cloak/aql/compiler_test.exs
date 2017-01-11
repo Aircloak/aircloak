@@ -42,6 +42,11 @@ defmodule Cloak.Aql.Compiler.Test do
     assert error == "Column `numeric` from table `table` of type `integer` cannot be used in a LIKE expression."
   end
 
+  test "rejects usage of * in function requiring argument of known type" do
+    {:error, error} = compile("select length(*) from table", data_source())
+    assert error =~ ~r/unspecified type/
+  end
+
   test "casts datetime where conditions" do
     result = compile!("select * from table where column > '2015-01-01' and column < '2016-01-01'", data_source())
 
@@ -1061,6 +1066,30 @@ defmodule Cloak.Aql.Compiler.Test do
     end
   end
 
+  describe "constructs a narrative based on column usage when a query is considered dangerous" do
+    test "affected by math" do
+      query = """
+        SELECT value FROM (
+          SELECT uid, numeric + 2 as value
+          FROM table
+        ) t
+        WHERE value > 10 and value <= 20
+      """
+      assert get_compilation_error(query) =~ ~r/math function '\+'/
+    end
+
+    test "affected by discontinuity" do
+      query = """
+        SELECT value FROM (
+          SELECT uid, div(numeric, 2) as value
+          FROM table
+        ) t
+        WHERE value > 10 and value <= 20
+      """
+      assert get_compilation_error(query) =~ ~r/discontinuous function 'div'/
+    end
+  end
+
   defp scrub_aliases(query), do: put_in(query, [aliases()], nil)
 
   deflens aliases, do:
@@ -1073,11 +1102,18 @@ defmodule Cloak.Aql.Compiler.Test do
     case compile(query, data_source()) do
       {:ok, _} -> true
       {:error, reason} ->
-        if reason =~ ~r/is influenced by math, a discontinuous function/ do
+        if reason =~ ~r/is influenced by math and a discontinuous function/ do
           false
         else
           raise "Compilation failed with other reason than illegal math/discontinuity: #{inspect reason}"
         end
+    end
+  end
+
+  defp get_compilation_error(query) do
+    case compile(query, data_source()) do
+      {:ok, _} -> raise "Expected query compilation to fail, but it didn't"
+      {:error, reason} -> reason
     end
   end
 
