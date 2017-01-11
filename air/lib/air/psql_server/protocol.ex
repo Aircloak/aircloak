@@ -351,7 +351,9 @@ defmodule Air.PsqlServer.Protocol do
 
   defp convert_param({_, _, nil}), do: nil
   defp convert_param({:int4, :text, param}), do: String.to_integer(param)
+  defp convert_param({:int4, :binary, <<value::signed-32>>}), do: value
   defp convert_param({:int8, :text, param}), do: String.to_integer(param)
+  defp convert_param({:int8, :binary, <<value::signed-64>>}), do: value
   defp convert_param({:text, _, param}) when is_binary(param), do: param
   defp convert_param({:unknown, _, param}) when is_binary(param), do: param
 end
