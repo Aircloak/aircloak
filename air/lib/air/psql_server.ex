@@ -83,7 +83,10 @@ defmodule Air.PsqlServer do
   def handle_message(%{assigns: %{query_runner: %Task{ref: ref}}} = conn, {ref, query_result}), do:
     RanchServer.set_query_result(conn, parse_response(query_result))
   def handle_message(%{assigns: %{query_describer: %Task{ref: ref}}} = conn, {ref, query_result}), do:
-    RanchServer.set_describe_result(conn, Map.take(parse_response(query_result), [:columns, :param_types]))
+    RanchServer.set_describe_result(
+      conn,
+      Map.take(parse_response(query_result), [:columns, :param_types, :error])
+    )
   def handle_message(conn, _message), do:
     conn
 

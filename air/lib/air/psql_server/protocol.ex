@@ -170,7 +170,7 @@ defmodule Air.PsqlServer.Protocol do
       |> next_state(:ssl)
     else
       state
-      |> request_send(error_message("FATAL", "28000", "Only SSL connections are allowed!"))
+      |> request_send(fatal_error_message("Only SSL connections are allowed!"))
       |> close(:required_ssl)
     end
   end
@@ -235,7 +235,7 @@ defmodule Air.PsqlServer.Protocol do
     # should be done this way. However, this approach produces a nicer error message, and it's the same
     # in PostgreSQL server (determined by wireshark).
     |> request_send(authentication_ok())
-    |> request_send(error_message("FATAL", "28000", "Authentication failed!"))
+    |> request_send(fatal_error_message("Authentication failed!"))
     |> close(:not_authenticated)
   # :ready -> handling of various client messages
   defp handle_event(state, :ready, {:message, message}), do:
@@ -248,12 +248,19 @@ defmodule Air.PsqlServer.Protocol do
     |> transition_after_message(:ready)
   # :describing_statement -> awaiting describe result
   defp handle_event(state, {:describing_statement, name}, {:describe_result, description}) do
-    result_codes = (state.prepared_statements |> Map.fetch!(name)).result_codes || [:text]
-    state
-    |> put_in([:prepared_statements, name, :parsed_param_types], description.param_types)
-    |> request_send(parameter_description(description.param_types))
-    |> request_send(row_description(description.columns, result_codes))
-    |> transition_after_message(:ready)
+    if Map.has_key?(description, :error) do
+      state
+      |> request_send(syntax_error_message(description.error))
+      |> request_send(ready_for_query())
+      |> transition_after_message(:ready)
+    else
+      result_codes = (state.prepared_statements |> Map.fetch!(name)).result_codes || [:text]
+      state
+      |> put_in([:prepared_statements, name, :parsed_param_types], description.param_types)
+      |> request_send(parameter_description(description.param_types))
+      |> request_send(row_description(description.columns, result_codes))
+      |> transition_after_message(:ready)
+    end
   end
   # :running_prepared_statement -> awaiting result of an executed prepared statement
   defp handle_event(state, {:running_prepared_statement, name}, {:query_result, result}) do
@@ -343,7 +350,7 @@ defmodule Air.PsqlServer.Protocol do
     |> send_rows(rows, [:text])
     |> request_send(command_complete("SELECT #{length(rows)}"))
   defp send_result(state, %{error: error}), do:
-    request_send(state, error_message("ERROR", "42P01", error))
+    request_send(state, syntax_error_message(error))
 
   defp send_rows(state, rows, formats), do:
     Enum.reduce(rows, state, &request_send(&2, data_row(encode_values(&1, formats))))

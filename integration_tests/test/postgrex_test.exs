@@ -9,6 +9,11 @@ defmodule IntegrationTest.PostgrexTest do
     {:ok, user: user, conn: conn}
   end
 
+  test "error in describe", context do
+    assert {:error, error} = Postgrex.query(context.conn, "select $1 from users", ["foobar"])
+    assert error.postgres.message == "The type for the `$1` parameter cannot be determined."
+  end
+
   test "select a string", context do
     result = Postgrex.query!(context.conn, "select cast($1 as text) from users", ["foobar"])
     assert result.columns == ["cast"]

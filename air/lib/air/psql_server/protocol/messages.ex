@@ -167,7 +167,13 @@ defmodule Air.PsqlServer.Protocol.Messages do
     server_message(:data_row, <<length(values)::16, encoded_row::binary>>)
   end
 
-  def error_message(severity, code, message), do:
+  def syntax_error_message(error), do:
+    error_message("ERROR", "42601", error)
+
+  def fatal_error_message(reason), do:
+    error_message("FATAL", "28000", reason)
+
+  defp error_message(severity, code, message), do:
     server_message(:error_response, <<
       ?S, null_terminate(severity)::binary,
       ?C, null_terminate(code)::binary,

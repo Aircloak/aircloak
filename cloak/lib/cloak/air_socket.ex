@@ -196,7 +196,7 @@ defmodule Cloak.AirSocket do
       {:ok, data_source} ->
         case Cloak.Aql.Query.describe_query(data_source, statement, parameters, views) do
           {:ok, columns, features} -> respond_to_air(from, :ok, %{columns: columns, features: features})
-          {:error, reason} -> respond_to_air(from, :ok, reason)
+          {:error, reason} -> respond_to_air(from, :ok, %{error: reason})
         end
     end
     {:ok, state}
