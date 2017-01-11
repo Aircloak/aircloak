@@ -114,17 +114,17 @@ defmodule Air.PsqlServer.Protocol.Messages do
     {[], bind_message_data}
   defp decode_format_codes(num_format_codes, <<format_code::16, bind_message_data::binary>>) do
     {rest_codes, bind_message_data} = decode_format_codes(num_format_codes - 1, bind_message_data)
-    {[format_code_atom(format_code) | rest_codes], bind_message_data}
+    {[decode_format_code(format_code) | rest_codes], bind_message_data}
   end
 
-  defp format_code_atom(0), do: :text
-  defp format_code_atom(1), do: :binary
+  defp decode_format_code(0), do: :text
+  defp decode_format_code(1), do: :binary
 
   defp decode_result_codes(0, bind_message_data), do:
     {[], bind_message_data}
   defp decode_result_codes(num_result_codes, <<result_code::16, bind_message_data::binary>>) do
     {rest_codes, bind_message_data} = decode_result_codes(num_result_codes - 1, bind_message_data)
-    {[format_code_atom(result_code) | rest_codes], bind_message_data}
+    {[decode_format_code(result_code) | rest_codes], bind_message_data}
   end
 
   defp decode_params(0, bind_message_data), do:
@@ -181,9 +181,10 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   def require_ssl(), do: <<?S>>
 
-  def row_description(columns) do
+  def row_description(columns, result_codes) do
     columns_descriptions =
       columns
+      |> Enum.zip(Stream.cycle(result_codes))
       |> Enum.map(&column_description/1)
       |> IO.iodata_to_binary()
 
@@ -248,7 +249,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
     text: %{oid: 25, len: -1},
     unknown: %{oid: 705, len: -1}
   } do
-    defp column_description(%{type: unquote(type)} = column), do:
+    defp column_description({%{type: unquote(type)} = column, result_code}), do:
       <<
         null_terminate(column.name)::binary,
         0::32,
@@ -256,12 +257,15 @@ defmodule Air.PsqlServer.Protocol.Messages do
         unquote(meta.oid)::32,
         unquote(meta.len)::16,
         -1::32,
-        0::16
+        encode_format_code(result_code)::16
       >>
 
     defp type_name(unquote(meta.oid)), do: unquote(type)
     defp type_oid(unquote(type)), do: unquote(meta.oid)
   end
+
+  defp encode_format_code(:text), do: 0
+  defp encode_format_code(:binary), do: 1
 
 
   #-----------------------------------------------------------------------------------------------------------

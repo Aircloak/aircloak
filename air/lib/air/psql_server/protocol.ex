@@ -247,12 +247,14 @@ defmodule Air.PsqlServer.Protocol do
     |> request_send(ready_for_query())
     |> transition_after_message(:ready)
   # :describing_statement -> awaiting describe result
-  defp handle_event(state, {:describing_statement, name}, {:describe_result, description}), do:
+  defp handle_event(state, {:describing_statement, name}, {:describe_result, description}) do
+    result_codes = (state.prepared_statements |> Map.fetch!(name)).result_codes || [:text]
     state
     |> put_in([:prepared_statements, name, :parsed_param_types], description.param_types)
     |> request_send(parameter_description(description.param_types))
-    |> request_send(row_description(description.columns))
+    |> request_send(row_description(description.columns, result_codes))
     |> transition_after_message(:ready)
+  end
   # :running_prepared_statement -> awaiting result of an executed prepared statement
   defp handle_event(state, {:running_prepared_statement, name}, {:query_result, result}) do
     state
@@ -336,7 +338,7 @@ defmodule Air.PsqlServer.Protocol do
     request_send(state, command_complete(""))
   defp send_result(state, %{rows: rows, columns: columns}), do:
     state
-    |> request_send(row_description(columns))
+    |> request_send(row_description(columns, [:text]))
     |> send_rows(rows, [:text])
     |> request_send(command_complete("SELECT #{length(rows)}"))
   defp send_result(state, %{error: error}), do:
