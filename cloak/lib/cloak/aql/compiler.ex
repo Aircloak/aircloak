@@ -1208,10 +1208,11 @@ defmodule Cloak.Aql.Compiler do
     verify_where_clause_types(column_a, column_b)
     check_for_string_inequalities(comparator, column_b)
   end
-  defp verify_where_clause({:like, column, _}) do
+  defp verify_where_clause({verb, column, _}) when verb in [:like, :ilike] do
     if column.type != :text do
+      verb = verb |> to_string() |> String.upcase()
       raise CompilationError, message:
-        "Column #{Expression.display_name(column)} of type `#{column.type}` cannot be used in a LIKE expression."
+        "Column #{Expression.display_name(column)} of type `#{column.type}` cannot be used in a #{verb} expression."
     end
   end
   defp verify_where_clause({:not, clause}), do: verify_where_clause(clause)
