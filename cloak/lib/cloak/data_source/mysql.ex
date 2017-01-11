@@ -59,6 +59,7 @@ defmodule Cloak.DataSource.MySQL do
   defp parse_type("bit(1)"), do: :boolean
   defp parse_type("int" <> _size), do: :integer
   defp parse_type("tinyint" <> _size), do: :integer
+  defp parse_type("smallint" <> _size), do: :integer
   defp parse_type("mediumint" <> _size), do: :integer
   defp parse_type("bigint" <> _size), do: :integer
   defp parse_type("float"), do: :real
