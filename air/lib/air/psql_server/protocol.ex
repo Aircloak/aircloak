@@ -54,6 +54,8 @@ defmodule Air.PsqlServer.Protocol do
     result_codes: [:text | :binary]
   }
 
+  @type describe_result :: %{error: String.t} | %{columns: [column], param_types: [psql_type]}
+
 
   #-----------------------------------------------------------------------------------------------------------
   # API
@@ -114,9 +116,9 @@ defmodule Air.PsqlServer.Protocol do
     dispatch_event(state, {:query_result, result})
 
   @doc "Should be invoked by the driver when the describe result is available."
-  @spec describe_result(t, [column]) :: t
-  def describe_result(state, columns), do:
-    dispatch_event(state, {:describe_result, columns})
+  @spec describe_result(t, describe_result) :: t
+  def describe_result(state, describe_result), do:
+    dispatch_event(state, {:describe_result, describe_result})
 
 
   #-----------------------------------------------------------------------------------------------------------
