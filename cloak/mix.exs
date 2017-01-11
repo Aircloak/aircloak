@@ -32,7 +32,7 @@ defmodule Cloak.Mixfile do
       {:gproc, "~> 0.5.0"},
       {:meck, github: "eproxus/meck", tag: "0.8.2", override: true, warn_missing: false},
       {:postgrex, "~> 0.11"},
-      {:mariaex, "~> 0.8.1"},
+      {:mariaex, "~> 0.8"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client"},
       {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0"},
       {:combine, "~> 0.9.2"},
