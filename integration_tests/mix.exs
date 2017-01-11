@@ -14,7 +14,7 @@ defmodule IntegrationTests.Mixfile do
   end
 
   def application do
-    [applications: [:logger, :odbc, :air, :cloak]]
+    [applications: [:logger, :odbc, :air, :cloak, :postgrex]]
   end
 
   defp deps do
