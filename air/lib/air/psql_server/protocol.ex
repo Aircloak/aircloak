@@ -359,6 +359,8 @@ defmodule Air.PsqlServer.Protocol do
   defp decode_value({:int4, :binary, <<value::signed-32>>}), do: value
   defp decode_value({:int8, :text, param}), do: String.to_integer(param)
   defp decode_value({:int8, :binary, <<value::signed-64>>}), do: value
+  defp decode_value({:boolean, :binary, <<0>>}), do: false
+  defp decode_value({:boolean, :binary, <<1>>}), do: true
   defp decode_value({:text, _, param}) when is_binary(param), do: param
   defp decode_value({:unknown, _, param}) when is_binary(param), do: param
 
@@ -368,5 +370,7 @@ defmodule Air.PsqlServer.Protocol do
   defp encode_value({nil, _}), do: <<-1::32>>
   defp encode_value({integer, :binary}) when is_integer(integer), do: <<integer::signed-64>>
   defp encode_value({binary, :binary}) when is_binary(binary), do: binary
+  defp encode_value({false, :binary}), do: <<0>>
+  defp encode_value({true, :binary}), do: <<1>>
   defp encode_value({other, :text}), do: to_string(other)
 end

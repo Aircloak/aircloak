@@ -21,6 +21,12 @@ defmodule IntegrationTest.PostgrexTest do
     assert Enum.uniq(result.rows) == [[42]]
   end
 
+  test "select a boolean", context do
+    result = Postgrex.query!(context.conn, "select cast($1 as boolean) from users", [true])
+    assert result.columns == ["cast"]
+    assert Enum.uniq(result.rows) == [[true]]
+  end
+
   defp connect(user) do
     Postgrex.start_link(
       hostname: "localhost",
