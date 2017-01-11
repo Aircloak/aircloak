@@ -153,6 +153,15 @@ defmodule Cloak.Aql.QueryTest do
   test "view can't have the same name as the table", do:
     assert {:error, :name, "has already been taken"} == validate_view("feat_users", "")
 
+  test "describe query" do
+    assert {:ok, columns, capabilities} = describe_query("select name, $1 from feat_users", [true])
+    assert columns == ["name", ""]
+    assert capabilities.column_types == ["text", "boolean"]
+  end
+
+  defp describe_query(statement, parameters), do:
+    Query.describe_query(hd(Cloak.DataSource.all()), statement, parameters, %{})
+
   defp validate_view(name, sql, views \\ %{}) do
     [first_ds | rest_ds] = Cloak.DataSource.all()
     result = Query.validate_view(first_ds, name, sql, views)
