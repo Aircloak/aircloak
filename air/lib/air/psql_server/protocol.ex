@@ -291,7 +291,7 @@ defmodule Air.PsqlServer.Protocol do
   end
   defp handle_ready_message(state, :bind, bind_data) do
     prepared_statement = Map.fetch!(state.prepared_statements, bind_data.name)
-    params = convert_params(bind_data.params, prepared_statement.parsed_param_types)
+    params = convert_params(bind_data.params, bind_data.format_codes, prepared_statement.parsed_param_types)
 
     state
     |> put_in([:prepared_statements, bind_data.name], %{prepared_statement | params: params})
@@ -335,12 +335,16 @@ defmodule Air.PsqlServer.Protocol do
   defp send_rows(state, rows), do:
     Enum.reduce(rows, state, &request_send(&2, data_row(&1)))
 
-  defp convert_params(params, parsed_param_types) when length(params) == length(parsed_param_types), do:
-    Enum.map(Enum.zip(parsed_param_types, params), &convert_param/1)
+  defp convert_params(params, format_codes, parsed_param_types) do
+    true = (length(params) == length(parsed_param_types))
+    [parsed_param_types, format_codes, params]
+    |> Enum.zip()
+    |> Enum.map(&convert_param/1)
+  end
 
-  defp convert_param({_, nil}), do: nil
-  defp convert_param({:int4, param}) when is_binary(param), do: String.to_integer(param)
-  defp convert_param({:int8, param}) when is_binary(param), do: String.to_integer(param)
-  defp convert_param({:text, param}) when is_binary(param), do: param
-  defp convert_param({:unknown, param}) when is_binary(param), do: param
+  defp convert_param({_, _, nil}), do: nil
+  defp convert_param({:int4, 0, param}) when is_binary(param), do: String.to_integer(param)
+  defp convert_param({:int8, 0, param}) when is_binary(param), do: String.to_integer(param)
+  defp convert_param({:text, _, param}) when is_binary(param), do: param
+  defp convert_param({:unknown, _, param}) when is_binary(param), do: param
 end
