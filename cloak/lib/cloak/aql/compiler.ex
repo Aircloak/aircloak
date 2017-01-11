@@ -16,7 +16,7 @@ defmodule Cloak.Aql.Compiler do
   # -------------------------------------------------------------------
 
   @doc "Prepares the parsed SQL query for execution."
-  @spec compile(DataSource.t, Parser.parsed_query, Keyword.t, Query.view_map) ::
+  @spec compile(DataSource.t, Parser.parsed_query, [DataSource.field] | nil, Query.view_map) ::
     {:ok, Query.t} | {:error, String.t}
   def compile(data_source, parsed_query, parameters, views) do
     try do
@@ -77,6 +77,7 @@ defmodule Cloak.Aql.Compiler do
     {:ok,
       query
       |> compile_from()
+      |> compile_parameter_types()
       |> compile_columns()
       |> reject_null_user_ids()
       |> verify_columns()
@@ -1011,26 +1012,14 @@ defmodule Cloak.Aql.Compiler do
     end
   end
   defp identifier_to_column({:parameter, index}, _columns_by_name, query) do
-    if index > length(query.parameters) do
-      message =
-        "The query references the `$#{index}` parameter, " <>
-        "but only #{length(query.parameters)} parameters are passed."
-      raise CompilationError, message: message
-    end
-
-    param_value = Enum.at(query.parameters, index - 1)
-    Expression.constant(data_type(param_value, index), param_value)
+    param_value = if query.parameters != nil, do: Enum.at(query.parameters, index - 1)
+    param_type = Query.parameter_type(query, index)
+    if param_type == :unknown, do: parameter_error(index)
+    Expression.constant(param_type, param_value)
   end
   defp identifier_to_column({:constant, type, value}, _columns_by_name, _query), do:
     Expression.constant(type, value)
   defp identifier_to_column(other, _columns_by_name, _query), do: other
-
-  defp data_type(value, _index) when is_boolean(value), do: :boolean
-  defp data_type(value, _index) when is_integer(value), do: :integer
-  defp data_type(value, _index) when is_float(value), do: :real
-  defp data_type(value, _index) when is_binary(value), do: :text
-  defp data_type(_value, index), do:
-    raise CompilationError, message: "Invalid value for the parameter `$#{index}`"
 
   defp get_columns(columns_by_name, {:unquoted, name}) do
     columns_by_name
@@ -1320,4 +1309,65 @@ defmodule Cloak.Aql.Compiler do
       |> Enum.reduce(required_offenses, &(&2 -- [&1])) == []
     end)
 
+
+  # -------------------------------------------------------------------
+  # Compiling of parameter types
+  # -------------------------------------------------------------------
+
+  defp compile_parameter_types(query), do:
+    query
+    |> resolve_parameter_types()
+    |> check_missing_parameter_types()
+
+  defp resolve_parameter_types(%Query{parameters: parameters} = query) when is_list(parameters), do:
+    # Parameters are bound, so we just determine types from their values.
+    parameters
+    |> Enum.with_index()
+    |> Enum.map(fn({value, index}) -> {index + 1, data_type(value, index + 1)} end)
+    |> Enum.reduce(query, fn({index, type}, query) -> Query.set_parameter_type(query, index, type) end)
+  defp resolve_parameter_types(%Query{parameters: nil} = query), do:
+    # Parameters are not bound. This is possible if PostgreSQL client issues a describe command before it
+    # binds parameters, which is allowed by the protocol. In this case, we'll derive parameter types from
+    # cast expressions. In other words, with late binding the parameter must be explicitly casted, so we
+    # can determine its type.
+    query
+    |> add_parameter_types_from_subqueries()
+    |> add_parameter_types_from_casts()
+
+  defp data_type(value, _index) when is_boolean(value), do: :boolean
+  defp data_type(value, _index) when is_integer(value), do: :integer
+  defp data_type(value, _index) when is_float(value), do: :real
+  defp data_type(value, _index) when is_binary(value), do: :text
+  defp data_type(_value, index), do:
+    raise CompilationError, message: "Invalid value for the parameter `$#{index}`"
+
+  defp add_parameter_types_from_subqueries(query), do:
+    Enum.reduce(
+      get_in(query, [Query.Lenses.direct_subqueries()]),
+      query,
+      &Query.merge_parameter_types(&2, &1.ast)
+    )
+
+  defp add_parameter_types_from_casts(query), do:
+    Enum.reduce(
+      get_in(query, [Query.Lenses.raw_parameter_casts()]),
+      query,
+      fn({:function, {:cast, type}, [{:parameter, index}]}, query) ->
+        Query.set_parameter_type(query, index, type)
+      end
+    )
+
+  defp check_missing_parameter_types(%Query{subquery?: true} = query), do:
+    query
+  defp check_missing_parameter_types(%Query{subquery?: false} = query) do
+    # This verifies whether there's a missing parameter type. This can happen if a late bound parameter has
+    # not been casted, or if it's omitted from the query.
+    case Enum.find_index(Query.parameter_types(query), &(&1 == :unknown)) do
+      nil -> query
+      index -> parameter_error(index + 1)
+    end
+  end
+
+  defp parameter_error(parameter_index), do:
+    raise(CompilationError, message: "The type for the `$#{parameter_index}` parameter cannot be determined.")
 end

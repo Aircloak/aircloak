@@ -68,7 +68,7 @@ defmodule Cloak.Aql.Query do
     distinct?: boolean,
     emulated?: boolean,
     ranges: [Range.t],
-    parameters: [DataSource.field],
+    parameters: [DataSource.field] | nil,
     views: view_map,
     projected?: boolean,
     next_row_index: row_index
@@ -80,7 +80,7 @@ defmodule Cloak.Aql.Query do
     row_splitters: [], implicit_count?: false, data_source: nil, command: nil, show: nil,
     db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
     features: nil, encoded_where: [], ranges: %{}, parameters: [], views: %{}, emulated?: false,
-    projected?: false, next_row_index: 0
+    projected?: false, next_row_index: 0, parameter_types: %{}
   ]
 
 
@@ -102,11 +102,8 @@ defmodule Cloak.Aql.Query do
   @doc "Creates a compiled query from a string representation."
   @spec make(DataSource.t, String.t, [DataSource.field], view_map) ::
     {:ok, t} | {:error, String.t}
-  def make(data_source, string, parameters, views) do
-    with {:ok, parsed_query} <- Parser.parse(string) do
-      Compiler.compile(data_source, parsed_query, parameters, views)
-    end
-  end
+  def make(data_source, string, parameters, views) when is_list(parameters), do:
+    make_query(data_source, string, parameters, views)
 
   @doc "Returns the list of unique columns used in the aggregation process."
   @spec aggregated_columns(t) :: [Expression.t]
@@ -133,6 +130,7 @@ defmodule Cloak.Aql.Query do
       where_conditions: extract_where_conditions(query.where ++ query.lcf_check_conditions ++ query.encoded_where),
       column_types: extract_column_types(query.columns),
       selected_types: selected_types(query.columns),
+      parameter_types: Enum.map(parameter_types(query), &stringify/1)
     }
   end
 
@@ -142,10 +140,10 @@ defmodule Cloak.Aql.Query do
   This function will return the description of the result, such as column names
   and types, without executing the query.
   """
-  @spec describe_query(DataSource.t, String.t, [DataSource.field], view_map) ::
+  @spec describe_query(DataSource.t, String.t, [DataSource.field] | nil, view_map) ::
     {:ok, [String.t], map} | {:error, String.t}
   def describe_query(data_source, statement, parameters, views), do:
-    with {:ok, query} <- make(data_source, statement, parameters, views), do:
+    with {:ok, query} <- make_query(data_source, statement, parameters, views), do:
       {:ok, query.column_titles, extract_features(query)}
 
 
@@ -203,9 +201,37 @@ defmodule Cloak.Aql.Query do
   def next_row_index(query), do:
     {query.next_row_index, %__MODULE__{query | next_row_index: query.next_row_index + 1}}
 
+  @doc "Sets the parameter type."
+  @spec set_parameter_type(t, pos_integer, DataSource.data_type) :: t
+  def set_parameter_type(query, parameter_index, type), do:
+    %__MODULE__{query | parameter_types: Map.put(query.parameter_types, parameter_index, type)}
+
+  @doc "Merges parameter types of other query into this query."
+  @spec merge_parameter_types(t, t) :: t
+  def merge_parameter_types(query, other_query), do:
+    %__MODULE__{query | parameter_types: Map.merge(query.parameter_types, other_query.parameter_types)}
+
+  @doc "Retrieves the parameter type."
+  @spec parameter_type(t, pos_integer) :: DataSource.data_type
+  def parameter_type(query, parameter_index), do:
+    Map.get(query.parameter_types, parameter_index, :unknown)
+
+  @doc "Returns the ordered list of parameter types."
+  @spec parameter_types(t) :: [DataSource.t]
+  def parameter_types(query), do:
+    query.parameter_types
+    |> Enum.reduce(:array.new(default: :unknown), fn({index, type}, acc) -> :array.set(index - 1, type, acc) end)
+    |> :array.to_list()
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp make_query(data_source, query_string, parameters, views) do
+    with {:ok, parsed_query} <- Parser.parse(query_string) do
+      Compiler.compile(data_source, parsed_query, parameters, views)
+    end
+  end
 
   defp selected_types(columns), do:
     columns

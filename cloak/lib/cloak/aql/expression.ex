@@ -22,17 +22,20 @@ defmodule Cloak.Aql.Expression do
     function_args: [t],
     function?: boolean,
     db_function?: boolean,
-    aggregate?: boolean
+    aggregate?: boolean,
+    parameter_index: pos_integer | nil
   }
   defstruct [
     table: :unknown, name: nil, alias: nil, type: nil, user_id?: false, row_index: nil, constant?: false,
     value: nil, function: nil, function_args: [], db_function?: false, aggregate?: false, function?: false,
+    parameter_index: nil
   ]
 
   @doc "Returns a column struct representing the constant `value`."
-  @spec constant(column_type, any) :: t
-  def constant(type, value) do
-    %__MODULE__{constant?: true, value: value, type: normalize_type(type), name: :constant}
+  @spec constant(column_type, any, pos_integer | nil) :: t
+  def constant(type, value, parameter_index \\ nil) do
+    %__MODULE__{constant?: true, value: value, type: normalize_type(type), name: :constant,
+      parameter_index: parameter_index}
   end
 
   @doc "Creates a column representing a function call."
