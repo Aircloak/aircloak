@@ -17,7 +17,6 @@
     "plotly.js": "^1.17.2",
     "react": "^15.0.1",
     "react-codemirror": "git://github.com/sslotsky/react-codemirror#940bdfab59cb7c295f57c7f6c9aa7bb24d395277",
-    "react-datepicker": "^0.29.0",
     "react-dom": "^15.0.1",
     "uglify-js-brunch": "~1.7.0"
   },

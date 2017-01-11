@@ -27,3 +27,7 @@
 .filter input {
   width: 300px;
 }
+
+.time {
+  white-space: nowrap;
+}

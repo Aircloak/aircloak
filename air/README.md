@@ -47,12 +47,13 @@ In order to run the system you need the following components:
 - Erlang and Elixir (see [here](../README.md#prerequisites) for details)
 - Ruby 2.x and bundler (for building API docs)
 - Docker 1.11 (+ [Docker for Mac](https://docs.docker.com/docker-for-mac/) if on macOS)
+- Yarn (see [https://yarnpkg.com/](https://yarnpkg.com/))
 
 Once you have all the main components, you also need the elixir and node.js dependencies required by our
 application. Node.js is included to compile our javascript and css dependencies.
 
 - `mix deps.get` installs our elixir and erlang dependencies
-- `npm install` installs our node dependencies
+- `yarn install` installs our node dependencies
 
 Before you run the application for the first time, you also need to make sure you initialize the database
 with `make recreate_db`
