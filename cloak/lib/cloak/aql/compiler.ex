@@ -1051,6 +1051,7 @@ defmodule Cloak.Aql.Compiler do
   def column_title({:distinct, identifier}), do: column_title(identifier)
   def column_title({:identifier, _table, {_, column}}), do: column
   def column_title({:constant, _, _}), do: ""
+  def column_title({:parameter, _}), do: ""
 
   defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
     columns = for column <- query.columns, do:
