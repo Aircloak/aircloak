@@ -219,6 +219,9 @@ defmodule Cloak.Aql.Query do
   @doc "Returns the ordered list of parameter types."
   @spec parameter_types(t) :: [DataSource.t]
   def parameter_types(query), do:
+    # Using `:array` here ensures that we capture unresolved params. E.g. in a query
+    #   `select cast($1 as integer), $3, cast($4 as boolean)`
+    # this function will correctly return `[:integer, :unknown, :unknown, :boolean]`.
     query.parameter_types
     |> Enum.reduce(:array.new(default: :unknown), fn({index, type}, acc) -> :array.set(index - 1, type, acc) end)
     |> :array.to_list()
