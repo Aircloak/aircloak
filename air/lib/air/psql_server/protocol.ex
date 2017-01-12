@@ -261,10 +261,12 @@ defmodule Air.PsqlServer.Protocol do
       |> request_send(syntax_error_message(description.error))
       |> transition_after_message(:ready)
     else
-      result_codes = (state.prepared_statements |> Map.fetch!(name)).result_codes || [:text]
+      prepared_statement = Map.fetch!(state.prepared_statements, name)
+
+      result_codes = prepared_statement.result_codes || [:text]
       state
       |> put_in([:prepared_statements, name, :parsed_param_types], description.param_types)
-      |> request_send(parameter_description(description.param_types))
+      |> send_parameter_descriptions(prepared_statement, description.param_types)
       |> request_send(row_description(description.columns, result_codes))
       |> transition_after_message(:ready)
     end
@@ -348,6 +350,13 @@ defmodule Air.PsqlServer.Protocol do
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp send_parameter_descriptions(state, %{params: nil}, param_types), do:
+    # parameters are not bound -> send parameter descriptions
+    request_send(state, parameter_description(param_types))
+  defp send_parameter_descriptions(state, _, _), do:
+    # parameters are already bound -> client is not expecting parameter descriptions
+    state
 
   defp send_result(state, nil), do:
     request_send(state, command_complete(""))
