@@ -117,6 +117,8 @@ it("escapes escape sequences", () => {
     completions("\\", 1, _.identity, [], [], ""),
     {
       list: [],
+      from: 0,
+      to: 0,
     }
   );
 });

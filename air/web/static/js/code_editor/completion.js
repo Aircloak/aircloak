@@ -134,6 +134,6 @@ export default function completionList(
     // provided suggestion for lack of better alternatives.
     return {list, from: list[0].from, to: list[0].to};
   } else {
-    return {list};
+    return {list, from: posBuilder(0), to: posBuilder(0)};
   }
 }
