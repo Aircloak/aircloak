@@ -287,7 +287,7 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp validate_uid(subquery, display) do
-    case Enum.find(subquery.db_columns, &(&1.user_id?)) do
+    case Enum.find(subquery.columns, &(&1.user_id?)) do
       nil ->
         possible_uid_columns =
           all_id_columns_from_tables(subquery)
