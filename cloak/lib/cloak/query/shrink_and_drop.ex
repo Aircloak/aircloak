@@ -30,6 +30,8 @@ defmodule Cloak.Query.ShrinkAndDrop do
     initial_state = %{next_id: 0, buffer: Buffer.new(buffer_size()), seed_items: seed_items}
 
     rows
+    |> Stream.filter(&Cloak.Data.lt_eq(low, Expression.value(column, &1)))
+    |> Stream.filter(&Cloak.Data.lt(Expression.value(column, &1), high))
     |> Stream.concat([:done])
     |> Stream.transform(initial_state, &do_suppress_outliers(&1, &2, column))
   end
