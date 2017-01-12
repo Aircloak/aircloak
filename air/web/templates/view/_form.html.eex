@@ -52,14 +52,13 @@
 <script>
   window.pageConfig = {
     onLoad: function(App) {
-      var
-        viewEditorProps = {
-          selectables: <%= selectables(@conn, @data_source, @views) %>
-        },
-        selectableInfoProps = {
-          selectables: <%= selectables(@conn, @data_source, @views) %>,
-          readOnly: true
-        }
+      const viewEditorProps = {
+        selectables: <%= selectables(@conn, @data_source, @views) %>
+      };
+      const selectableInfoProps = {
+        selectables: <%= selectables(@conn, @data_source, @views) %>,
+        readOnly: true
+      };
 
       App.viewEditor(viewEditorProps, document.getElementById("viewEditor"));
       App.selectableInfo(selectableInfoProps, document.getElementById("selectable-info"));
