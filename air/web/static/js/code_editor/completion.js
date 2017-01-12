@@ -60,7 +60,7 @@ export default function completionList(
   curPos: number,
   posBuilder: (x: number) => any,
   tableNames: string[],
-  columnNames: string[]
+  columnNames: string[],
 ) {
   const end = wordEnd(curLine, curPos);
 
@@ -118,6 +118,7 @@ export default function completionList(
       }
     }).
     reject((candidate) => candidate === null).
+    uniqBy((candidate) => _.upperCase(candidate.text)).
     sortBy(longestFirst).
     value();
 

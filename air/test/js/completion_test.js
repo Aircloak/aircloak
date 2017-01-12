@@ -87,6 +87,17 @@ it("completes column names", () => {
   );
 });
 
+it("deduplicates suggestions", () => {
+  assert.deepEqual(
+    completions("col", 3, _.identity, [], ["column", "column"]),
+    {
+      list: [{text: "column", from: 0, to: 3}],
+      from: 0,
+      to: 3,
+    }
+  );
+});
+
 it("completes mid-word", () => {
   assert.deepEqual(
     completions("col rest", 2, _.identity, [], ["column1", "column2"]),
