@@ -3,7 +3,6 @@ MAINTAINER Aircloak
 
 # Install dependencies and configure UTF-8
 RUN \
-  apt-get update && \
   apt-get install jq ruby-full -y && \
   gem install bundle
 

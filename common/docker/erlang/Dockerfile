@@ -1,9 +1,7 @@
 FROM aircloak/base:$DEBIAN_VERSION
 MAINTAINER Aircloak
 
-RUN \
-  apt-get update && \
-  apt-get install -y libz-dev autoconf libncurses-dev build-essential libssl-dev unixodbc-dev
+RUN apt-get install -y libz-dev autoconf libncurses-dev build-essential libssl-dev unixodbc-dev
 
 RUN \
   . /tmp/build_config/proxies.sh && \

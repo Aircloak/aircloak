@@ -3,7 +3,7 @@ MAINTAINER Aircloak
 
 MPI_INIT
 
-RUN apt-get update && apt-get install -y locales unzip
+RUN apt-get install -y locales unzip
 
 RUN \
   . /tmp/build_config/proxies.sh && \
