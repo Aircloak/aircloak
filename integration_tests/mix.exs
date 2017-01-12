@@ -19,6 +19,7 @@ defmodule IntegrationTests.Mixfile do
 
   defp deps do
     [
+      {:mariaex, "~> 0.8", override: true},
       {:cloak, path: "../cloak"},
       {:air, path: "../air"},
       {:phoenix_live_reload, "~> 1.0", only: :dev},

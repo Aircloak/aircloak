@@ -14,7 +14,9 @@ defmodule Cloak.DataSource.MySQL do
 
   @doc false
   def connect!(parameters) do
-    parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, pool: DBConnection.Connection]
+    parameters =
+      Enum.to_list(parameters) ++
+      [types: true, sync_connect: true, pool: DBConnection.Connection, timeout: :timer.hours(2)]
     {:ok, connection} = Mariaex.start_link(parameters)
     {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET sql_mode = 'ANSI,NO_BACKSLASH_ESCAPES'", [])
     connection
@@ -43,11 +45,12 @@ defmodule Cloak.DataSource.MySQL do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp run_query(connection, statement, decode_mapper, result_processor) do
-    options = [decode_mapper: decode_mapper, timeout: :timer.hours(4)]
-    with {:ok, %Mariaex.Result{rows: rows}} <- Mariaex.query(connection, statement, [], options) do
-      {:ok, result_processor.(rows)}
-    end
+  defp run_query(pool, statement, decode_mapper, result_processor) do
+    Mariaex.transaction(pool, fn(connection) ->
+      Mariaex.stream(connection, statement, [], [decode_mapper: decode_mapper, max_rows: 25_000])
+      |> Stream.flat_map(fn (%Mariaex.Result{rows: rows}) -> rows end)
+      |> result_processor.()
+    end, [timeout: :timer.hours(2)])
   end
 
   defp parse_type("varchar" <> _size), do: :text
@@ -56,6 +59,7 @@ defmodule Cloak.DataSource.MySQL do
   defp parse_type("bit(1)"), do: :boolean
   defp parse_type("int" <> _size), do: :integer
   defp parse_type("tinyint" <> _size), do: :integer
+  defp parse_type("smallint" <> _size), do: :integer
   defp parse_type("mediumint" <> _size), do: :integer
   defp parse_type("bigint" <> _size), do: :integer
   defp parse_type("float"), do: :real
