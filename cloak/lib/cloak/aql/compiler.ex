@@ -1304,6 +1304,9 @@ defmodule Cloak.Aql.Compiler do
     offenses
     |> Enum.reverse()
     |> Enum.map(fn
+      ({:dangerously_discontinuous, "/"}) ->
+        "discontinuous function '/' ('/' can behave like a discontinuous function " <>
+          "when the divisor has been influenced by a constant value)"
       ({:dangerously_discontinuous, function}) ->
         "discontinuous function '#{Function.readable_name(function)}'"
       ({:dangerous_math, name}) -> "math function '#{name}'"
