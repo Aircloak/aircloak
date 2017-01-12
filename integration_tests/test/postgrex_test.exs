@@ -36,6 +36,18 @@ defmodule IntegrationTest.PostgrexTest do
     assert Enum.uniq(result.rows) == [[true]]
   end
 
+  test "multiple queries on the same connection", context do
+    Postgrex.query(context.conn, "select $1 from users", ["foobar"])
+    Postgrex.query!(context.conn, "select cast($1 as text) from users", ["foobar"])
+    Postgrex.query(context.conn, "select $1 from users", ["foobar"])
+    Postgrex.query!(context.conn, "select cast($1 as text) from users", ["foobar"])
+  end
+
+  test "recovery after an error", context do
+    Postgrex.query(context.conn, "select $1 from users", ["foobar"])
+    Postgrex.query!(context.conn, "select cast($1 as text) from users", ["foobar"])
+  end
+
   defp connect(user) do
     Postgrex.start_link(
       hostname: "localhost",

@@ -259,7 +259,6 @@ defmodule Air.PsqlServer.Protocol do
     if Map.has_key?(description, :error) do
       state
       |> request_send(syntax_error_message(description.error))
-      |> request_send(ready_for_query())
       |> transition_after_message(:ready)
     else
       result_codes = (state.prepared_statements |> Map.fetch!(name)).result_codes || [:text]
