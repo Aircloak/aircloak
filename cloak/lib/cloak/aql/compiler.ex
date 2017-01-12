@@ -226,7 +226,7 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp carry_ranges(query) do
-    query = %{query | ranges: Enum.flat_map(query.ranges, &carrying_ranges/1)}
+    query = %{query | ranges: Enum.flat_map(query.ranges, &carrying_ranges(query, &1))}
     range_columns = Enum.map(query.ranges, &(&1.column))
 
     if query.emulated? do
@@ -241,7 +241,8 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp carrying_ranges(range = %{type: type, column: column}) do
+  defp carrying_ranges(%{implicit_count?: true}, range), do: [%{range | column: alias_column(range.column)}]
+  defp carrying_ranges(_query, range = %{type: type, column: column}) do
     case type do
       :having -> [%{range | type: :where, column: alias_column(column)}]
       :nested_min -> [%{range | column: min_column(column)}]
