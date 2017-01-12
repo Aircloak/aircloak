@@ -58,7 +58,8 @@ export class CodeEditor extends React.Component {
       (pos) => this.codeMirrorClass.Pos(cm.getCursor().line, pos),
       /* eslint-enable new-cap */
       this.props.tableNames,
-      this.props.columnNames
+      this.props.columnNames,
+      this.props.statement,
     );
   }
 
