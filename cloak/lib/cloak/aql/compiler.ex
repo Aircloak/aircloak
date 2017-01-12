@@ -1284,9 +1284,9 @@ defmodule Cloak.Aql.Compiler do
         raise CompilationError, message: """
           #{explanation}.
 
-          WHERE-clause inequalities where the column value has either been
-          influenced by math or a discontinuous function in conjunction with
-          a constsant as not allowed.
+          WHERE-clause inequalities where the column value has either had
+          math with a constant applied to it, or been through a discontinuous function
+          where one of the parameters was a constant, are not allowed.
           """
       end
     end)
@@ -1305,6 +1305,10 @@ defmodule Cloak.Aql.Compiler do
     offenses
     |> Enum.reverse()
     |> Enum.map(fn
+      ({:dangerously_discontinuous, "/"}) ->
+        "discontinuous function '/' ('/' can behave like a discontinuous function " <>
+          "when the divisor is an expression that combines both a column value and " <>
+          "a constant value)"
       ({:dangerously_discontinuous, function}) ->
         "discontinuous function '#{Function.readable_name(function)}'"
       ({:dangerous_math, name}) -> "math function '#{name}'"

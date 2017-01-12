@@ -892,19 +892,9 @@ defmodule Cloak.Aql.Compiler.Test do
     refute select_columns_have_valid_transformations(query)
   end
 
-  test "compilation of row splitters" do
-    {:ok, query} = compile("select extract_matches(string, 'thing') from table", data_source())
-    assert [%Expression{name: "extract_matches_return_value", row_index: index}] = query.columns
-    assert [%Expression{name: "extract_matches_return_value", row_index: ^index}] = query.property
-    assert Enum.any?(query.db_columns, &match?(%Expression{name: "string"}, &1))
-    assert [%{
-      function_spec: %Expression{
-        function?: true,
-        function: "extract_matches",
-        function_args: [%Expression{name: "string"}, %Expression{value: ~r/thing/ui}]
-      },
-      row_index: ^index
-    }] = query.row_splitters
+  test "/ is not dangerous discontinuous function if divisor is a pure constant" do
+    query = "SELECT numeric / 2 FROM table"
+    assert select_columns_have_valid_transformations(query)
   end
 
   describe "casts are considered dangerously discontinuous when a constant is involved" do
@@ -1101,7 +1091,29 @@ defmodule Cloak.Aql.Compiler.Test do
       """
       assert get_compilation_error(query) =~ ~r/discontinuous function 'div'/
     end
+
+    test "affected by discontinuity and dangerous math at the same time" do
+      query = "SELECT numeric / (numeric + 10) FROM table"
+      assert get_compilation_error(query) =~ ~r/discontinuous function '\/'/
+      assert get_compilation_error(query) =~ ~r/math function '\/'/
+    end
   end
+
+  test "compilation of row splitters" do
+    {:ok, query} = compile("select extract_matches(string, 'thing') from table", data_source())
+    assert [%Expression{name: "extract_matches_return_value", row_index: index}] = query.columns
+    assert [%Expression{name: "extract_matches_return_value", row_index: ^index}] = query.property
+    assert Enum.any?(query.db_columns, &match?(%Expression{name: "string"}, &1))
+    assert [%{
+      function_spec: %Expression{
+        function?: true,
+        function: "extract_matches",
+        function_args: [%Expression{name: "string"}, %Expression{value: ~r/thing/ui}]
+      },
+      row_index: ^index
+    }] = query.row_splitters
+  end
+
 
   defp scrub_aliases(query), do: put_in(query, [aliases()], nil)
 

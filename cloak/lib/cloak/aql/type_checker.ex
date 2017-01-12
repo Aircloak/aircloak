@@ -102,7 +102,9 @@ defmodule Cloak.Aql.TypeChecker do
   defp dangerously_discontinuous?(name, _future, child_types)
       when name in @discontinuous_math_functions, do:
     any_touched_by_constant?(child_types)
-  defp dangerously_discontinuous?("/", _future, [_, child_type]), do: child_type.touched_by_constant?
+  defp dangerously_discontinuous?("/", _future, [_, child_type]), do:
+    # This allows division by a pure constant, but not by a column influenced by a constant
+    child_type.touched_by_constant? && not child_type.constant?
   defp dangerously_discontinuous?({:cast, _}, _future, child_types), do: any_touched_by_constant?(child_types)
   defp dangerously_discontinuous?(name, future, child_types)
       when name in @discontinuous_string_functions, do:
@@ -152,14 +154,17 @@ defmodule Cloak.Aql.TypeChecker do
       |> Enum.flat_map(&(&1.narrative_breadcrumbs))
       |> Enum.uniq()
       |> Enum.map(fn({expression, breadcrumbs}) ->
-        cond do
-          dangerously_discontinuous?(name, future, child_types) ->
-            {expression, [{:dangerously_discontinuous, name} | breadcrumbs] |> Enum.uniq()}
-          performs_dangerous_math?(name, future, child_types) ->
-            {expression, [{:dangerous_math, name} | breadcrumbs] |> Enum.uniq()}
-          true ->
-            {expression, breadcrumbs}
+        breadcrumbs = if dangerously_discontinuous?(name, future, child_types) do
+          [{:dangerously_discontinuous, name} | breadcrumbs] |> Enum.uniq()
+        else
+          breadcrumbs
         end
+        breadcrumbs = if performs_dangerous_math?(name, future, child_types) do
+          [{:dangerous_math, name} | breadcrumbs] |> Enum.uniq()
+        else
+          breadcrumbs
+        end
+        {expression, breadcrumbs}
       end)
       %Type{
         touched_by_constant?: any_touched_by_constant?(child_types),
