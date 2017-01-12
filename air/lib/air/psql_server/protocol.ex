@@ -17,6 +17,7 @@ defmodule Air.PsqlServer.Protocol do
   """
 
   import Air.PsqlServer.Protocol.Messages
+  require Logger
 
   @opaque t :: %{
     name: atom,
@@ -160,6 +161,11 @@ defmodule Air.PsqlServer.Protocol do
   defp dispatch_event(state, event), do:
     handle_event(state, state.name, event)
 
+  defp dispatch_client_message(state, type, payload \\ nil) do
+    Logger.debug("psql server: client message #{type}: #{inspect payload}")
+    dispatch_event(state, {:message, %{type: type, payload: payload}})
+  end
+
   # :closed -> ignore all actions
   defp handle_event(state, :closed, _), do:
     state
@@ -186,14 +192,14 @@ defmodule Air.PsqlServer.Protocol do
     else
       state
       |> next_state(next_state_name)
-      |> dispatch_event({:message, %{type: message_header.type, payload: nil}})
+      |> dispatch_client_message(message_header.type)
     end
   end
   # :message_payload -> awaiting a message payload
   defp handle_event(state, {:message_payload, next_state_name, message_type}, {:message, payload}), do:
     state
     |> next_state(next_state_name)
-    |> dispatch_event({:message, %{type: message_type, payload: decode_message(message_type, payload)}})
+    |> dispatch_client_message(message_type, decode_message(message_type, payload))
   # :ssl -> waiting for the connection to be upgraded to SSL
   defp handle_event(state, :ssl, :ssl_negotiated), do:
     next_state(state, :startup_message, 8)
