@@ -37,15 +37,15 @@ defmodule IntegrationTest.PostgrexTest do
   end
 
   test "multiple queries on the same connection", context do
-    Postgrex.query(context.conn, "select $1 from users", ["foobar"])
-    Postgrex.query!(context.conn, "select cast($1 as text) from users", ["foobar"])
-    Postgrex.query(context.conn, "select $1 from users", ["foobar"])
-    Postgrex.query!(context.conn, "select cast($1 as text) from users", ["foobar"])
+    assert {:error, _} = Postgrex.query(context.conn, "select $1 from users", ["foobar"])
+    assert {:ok, _} = Postgrex.query(context.conn, "select cast($1 as text) from users", ["foobar"])
+    assert {:error, _} = Postgrex.query(context.conn, "select $1 from users", ["foobar"])
+    assert {:ok, _} = Postgrex.query(context.conn, "select cast($1 as text) from users", ["foobar"])
   end
 
   test "recovery after an error", context do
-    Postgrex.query(context.conn, "select $1 from users", ["foobar"])
-    Postgrex.query!(context.conn, "select cast($1 as text) from users", ["foobar"])
+    assert {:error, _} = Postgrex.query(context.conn, "select $1 from users", ["foobar"])
+    assert {:ok, _} = Postgrex.query(context.conn, "select cast($1 as text) from users", ["foobar"])
   end
 
   defp connect(user) do
