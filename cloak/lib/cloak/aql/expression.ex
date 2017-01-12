@@ -23,12 +23,12 @@ defmodule Cloak.Aql.Expression do
     function?: boolean,
     db_function?: boolean,
     aggregate?: boolean,
-    parameter_index: pos_integer | nil
+    parameter_index: pos_integer | nil,
   }
   defstruct [
     table: :unknown, name: nil, alias: nil, type: nil, user_id?: false, row_index: nil, constant?: false,
     value: nil, function: nil, function_args: [], db_function?: false, aggregate?: false, function?: false,
-    parameter_index: nil
+    parameter_index: nil,
   ]
 
   @doc "Returns a column struct representing the constant `value`."
