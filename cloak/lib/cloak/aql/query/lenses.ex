@@ -46,6 +46,11 @@ defmodule Cloak.Aql.Query.Lenses do
     |> Lens.satisfy(&match?(%Expression{function?: true}, &1))
     |> Lens.satisfy(&Function.row_splitting_function?(&1.name))
 
+  @doc "Lens focusing on raw (uncompiled) casts of parameters."
+  deflens raw_parameter_casts(), do:
+    terminals()
+    |> Lens.satisfy(&match?({:function, {:cast, _type}, [{:parameter, _index}]}, &1))
+
   @doc "Lens focusing on invocations of the bucket function"
   deflens buckets(), do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
 

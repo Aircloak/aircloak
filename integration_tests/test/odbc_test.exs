@@ -1,4 +1,4 @@
-defmodule IntegrationTest.PsqlTest do
+defmodule IntegrationTest.OdbcTest do
   use ExUnit.Case, async: true
 
   alias IntegrationTest.Manager
@@ -62,6 +62,16 @@ defmodule IntegrationTest.PsqlTest do
       [{:sql_integer, [1]}, {:sql_integer, [180]}]
     )
     assert Enum.uniq(rows) == [{'john', '181'}]
+  end
+
+  test "select a boolean", context do
+    {:ok, conn} = connect(context.user)
+    assert {:selected, ['x'], rows} = :odbc.param_query(
+      conn,
+      'select cast($1 as boolean) as x from users',
+      [{:sql_integer, [1]}]
+    )
+    assert Enum.uniq(rows) == [{true}]
   end
 
   test "select error", context do

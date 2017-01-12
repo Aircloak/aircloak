@@ -27,6 +27,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
     |> Enum.into(%{})
   end
 
+  def decode_message(:close, <<type, name::binary>>), do:
+    %{type: type, name: hd(:binary.split(name, <<0>>))}
   def decode_message(:bind, message), do:
     decode_bind_message(message)
   def decode_message(:describe, <<type, describe_data::binary>>) do
@@ -48,7 +50,9 @@ defmodule Air.PsqlServer.Protocol.Messages do
       query: query,
       num_params: num_params,
       param_types: param_types,
-      params: []
+      params: nil,
+      parsed_param_types: [],
+      result_codes: nil
     }
   end
   def decode_message(:password, password_message) do
@@ -63,8 +67,10 @@ defmodule Air.PsqlServer.Protocol.Messages do
   for {message_name, message_byte} <-
       %{
         bind: ?B,
+        close: ?C,
         describe: ?D,
         execute: ?E,
+        flush: ?H,
         parse: ?P,
         password: ?p,
         query: ?Q,
@@ -108,14 +114,17 @@ defmodule Air.PsqlServer.Protocol.Messages do
     {[], bind_message_data}
   defp decode_format_codes(num_format_codes, <<format_code::16, bind_message_data::binary>>) do
     {rest_codes, bind_message_data} = decode_format_codes(num_format_codes - 1, bind_message_data)
-    {[format_code | rest_codes], bind_message_data}
+    {[decode_format_code(format_code) | rest_codes], bind_message_data}
   end
+
+  defp decode_format_code(0), do: :text
+  defp decode_format_code(1), do: :binary
 
   defp decode_result_codes(0, bind_message_data), do:
     {[], bind_message_data}
   defp decode_result_codes(num_result_codes, <<result_code::16, bind_message_data::binary>>) do
     {rest_codes, bind_message_data} = decode_result_codes(num_result_codes - 1, bind_message_data)
-    {[result_code | rest_codes], bind_message_data}
+    {[decode_format_code(result_code) | rest_codes], bind_message_data}
   end
 
   defp decode_params(0, bind_message_data), do:
@@ -145,18 +154,26 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   def bind_complete(), do: server_message(:bind_complete, <<>>)
 
+  def close_complete(), do: server_message(:close_complete, <<>>)
+
   def command_complete(tag), do: server_message(:command_complete, null_terminate(tag))
 
   def data_row(values) do
     encoded_row =
       values
-      |> Enum.map(&value_to_text/1)
+      |> Enum.map(&<<byte_size(&1)::32, &1::binary>>)
       |> IO.iodata_to_binary()
 
     server_message(:data_row, <<length(values)::16, encoded_row::binary>>)
   end
 
-  def error_message(severity, code, message), do:
+  def syntax_error_message(error), do:
+    error_message("ERROR", "42601", error)
+
+  def fatal_error_message(reason), do:
+    error_message("FATAL", "28000", reason)
+
+  defp error_message(severity, code, message), do:
     server_message(:error_response, <<
       ?S, null_terminate(severity)::binary,
       ?C, null_terminate(code)::binary,
@@ -170,9 +187,10 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   def require_ssl(), do: <<?S>>
 
-  def row_description(columns) do
+  def row_description(columns, result_codes) do
     columns_descriptions =
       columns
+      |> Enum.zip(Stream.cycle(result_codes))
       |> Enum.map(&column_description/1)
       |> IO.iodata_to_binary()
 
@@ -207,6 +225,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
       %{
         authentication: ?R,
         bind_complete: ?2,
+        close_complete: ?3,
         command_complete: ?C,
         data_row: ?D,
         error_response: ?E,
@@ -230,12 +249,13 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   for {type, meta} <- %{
     # Obtained as `select typname, oid, typlen from pg_type`
+    boolean: %{oid: 16, len: 1},
     int8: %{oid: 20, len: 8},
     int4: %{oid: 23, len: 4},
     text: %{oid: 25, len: -1},
     unknown: %{oid: 705, len: -1}
   } do
-    defp column_description(%{type: unquote(type)} = column), do:
+    defp column_description({%{type: unquote(type)} = column, result_code}), do:
       <<
         null_terminate(column.name)::binary,
         0::32,
@@ -243,18 +263,15 @@ defmodule Air.PsqlServer.Protocol.Messages do
         unquote(meta.oid)::32,
         unquote(meta.len)::16,
         -1::32,
-        0::16
+        encode_format_code(result_code)::16
       >>
 
     defp type_name(unquote(meta.oid)), do: unquote(type)
     defp type_oid(unquote(type)), do: unquote(meta.oid)
   end
 
-  defp value_to_text(nil), do: <<-1::32>>
-  defp value_to_text(other) do
-    string_representation = to_string(other)
-    <<byte_size(string_representation)::32, string_representation::binary>>
-  end
+  defp encode_format_code(:text), do: 0
+  defp encode_format_code(:binary), do: 1
 
 
   #-----------------------------------------------------------------------------------------------------------

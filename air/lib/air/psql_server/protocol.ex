@@ -17,6 +17,7 @@ defmodule Air.PsqlServer.Protocol do
   """
 
   import Air.PsqlServer.Protocol.Messages
+  require Logger
 
   @opaque t :: %{
     name: atom,
@@ -38,7 +39,7 @@ defmodule Air.PsqlServer.Protocol do
 
   @type authentication_method :: :cleartext
 
-  @type psql_type :: :int4 | :int8 | :text | :unknown
+  @type psql_type :: :boolean | :int4 | :int8 | :text | :unknown
 
   @type column :: %{name: String.t, type: psql_type}
 
@@ -49,8 +50,12 @@ defmodule Air.PsqlServer.Protocol do
     query: String.t,
     num_params: non_neg_integer,
     param_types: [psql_type],
-    params: [db_value]
+    parsed_param_types: [psql_type],
+    params: [db_value],
+    result_codes: [:text | :binary]
   }
+
+  @type describe_result :: %{error: String.t} | %{columns: [column], param_types: [psql_type]}
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -112,9 +117,9 @@ defmodule Air.PsqlServer.Protocol do
     dispatch_event(state, {:query_result, result})
 
   @doc "Should be invoked by the driver when the describe result is available."
-  @spec describe_result(t, [column]) :: t
-  def describe_result(state, columns), do:
-    dispatch_event(state, {:describe_result, columns})
+  @spec describe_result(t, describe_result) :: t
+  def describe_result(state, describe_result), do:
+    dispatch_event(state, {:describe_result, describe_result})
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -156,6 +161,11 @@ defmodule Air.PsqlServer.Protocol do
   defp dispatch_event(state, event), do:
     handle_event(state, state.name, event)
 
+  defp dispatch_client_message(state, type, payload \\ nil) do
+    Logger.debug("psql server: client message #{type}: #{inspect payload}")
+    dispatch_event(state, {:message, %{type: type, payload: payload}})
+  end
+
   # :closed -> ignore all actions
   defp handle_event(state, :closed, _), do:
     state
@@ -168,7 +178,7 @@ defmodule Air.PsqlServer.Protocol do
       |> next_state(:ssl)
     else
       state
-      |> request_send(error_message("FATAL", "28000", "Only SSL connections are allowed!"))
+      |> request_send(fatal_error_message("Only SSL connections are allowed!"))
       |> close(:required_ssl)
     end
   end
@@ -182,14 +192,14 @@ defmodule Air.PsqlServer.Protocol do
     else
       state
       |> next_state(next_state_name)
-      |> dispatch_event({:message, %{type: message_header.type, payload: nil}})
+      |> dispatch_client_message(message_header.type)
     end
   end
   # :message_payload -> awaiting a message payload
   defp handle_event(state, {:message_payload, next_state_name, message_type}, {:message, payload}), do:
     state
     |> next_state(next_state_name)
-    |> dispatch_event({:message, %{type: message_type, payload: decode_message(message_type, payload)}})
+    |> dispatch_client_message(message_type, decode_message(message_type, payload))
   # :ssl -> waiting for the connection to be upgraded to SSL
   defp handle_event(state, :ssl, :ssl_negotiated), do:
     next_state(state, :startup_message, 8)
@@ -233,7 +243,7 @@ defmodule Air.PsqlServer.Protocol do
     # should be done this way. However, this approach produces a nicer error message, and it's the same
     # in PostgreSQL server (determined by wireshark).
     |> request_send(authentication_ok())
-    |> request_send(error_message("FATAL", "28000", "Authentication failed!"))
+    |> request_send(fatal_error_message("Authentication failed!"))
     |> close(:not_authenticated)
   # :ready -> handling of various client messages
   defp handle_event(state, :ready, {:message, message}), do:
@@ -245,17 +255,28 @@ defmodule Air.PsqlServer.Protocol do
     |> request_send(ready_for_query())
     |> transition_after_message(:ready)
   # :describing_statement -> awaiting describe result
-  defp handle_event(state, :describing_statement, {:describe_result, columns}), do:
-    state
-    |> request_send(row_description(columns))
-    |> transition_after_message(:ready)
+  defp handle_event(state, {:describing_statement, name}, {:describe_result, description}) do
+    if Map.has_key?(description, :error) do
+      state
+      |> request_send(syntax_error_message(description.error))
+      |> transition_after_message(:ready)
+    else
+      result_codes = (state.prepared_statements |> Map.fetch!(name)).result_codes || [:text]
+      state
+      |> put_in([:prepared_statements, name, :parsed_param_types], description.param_types)
+      |> request_send(parameter_description(description.param_types))
+      |> request_send(row_description(description.columns, result_codes))
+      |> transition_after_message(:ready)
+    end
+  end
   # :running_prepared_statement -> awaiting result of an executed prepared statement
-  defp handle_event(state, :running_prepared_statement, {:query_result, result}), do:
+  defp handle_event(state, {:running_prepared_statement, name}, {:query_result, result}) do
     state
-    |> send_rows(result.rows)
+    |> send_rows(result.rows, Map.fetch!(state.prepared_statements, name).result_codes)
     |> request_send(command_complete("SELECT #{length(result.rows)}"))
     |> request_send(ready_for_query())
     |> transition_after_message(:syncing)
+  end
 
   # :syncing -> ignoring all message until sync arrives
   defp handle_event(state, :syncing, {:message, %{type: :sync}}), do:
@@ -268,6 +289,12 @@ defmodule Air.PsqlServer.Protocol do
   # Handling of messages in the `:ready` state
   #-----------------------------------------------------------------------------------------------------------
 
+  defp handle_ready_message(state, :flush, _), do:
+    transition_after_message(state, :ready)
+  defp handle_ready_message(state, :sync, _), do:
+    state
+    |> request_send(ready_for_query())
+    |> transition_after_message(:ready)
   defp handle_ready_message(state, :terminate, _), do:
     close(state, :normal)
   defp handle_ready_message(state, :query, payload), do:
@@ -282,10 +309,18 @@ defmodule Air.PsqlServer.Protocol do
   end
   defp handle_ready_message(state, :bind, bind_data) do
     prepared_statement = Map.fetch!(state.prepared_statements, bind_data.name)
-    params = convert_params(bind_data.params, prepared_statement.param_types)
+
+    param_types =
+      case prepared_statement.param_types do
+        [_|_] -> prepared_statement.param_types
+        [] -> prepared_statement.parsed_param_types
+      end
+
+    params = convert_params(bind_data.params, bind_data.format_codes, param_types)
 
     state
-    |> put_in([:prepared_statements, bind_data.name], %{prepared_statement | params: params})
+    |> put_in([:prepared_statements, bind_data.name],
+        %{prepared_statement | params: params, result_codes: bind_data.result_codes})
     |> request_send(bind_complete())
     |> transition_after_message(:ready)
   end
@@ -293,17 +328,21 @@ defmodule Air.PsqlServer.Protocol do
     prepared_statement = Map.fetch!(state.prepared_statements, describe_data.name)
 
     state
-    |> request_send(parameter_description(prepared_statement.param_types))
     |> add_action({:describe_statement, prepared_statement.query, prepared_statement.params})
-    |> next_state(:describing_statement)
+    |> next_state({:describing_statement, describe_data.name})
   end
   defp handle_ready_message(state, :execute, execute_data) do
     prepared_statement = Map.fetch!(state.prepared_statements, execute_data.name)
 
     state
     |> add_action({:run_query, prepared_statement.query, prepared_statement.params, execute_data.max_rows})
-    |> next_state(:running_prepared_statement)
+    |> next_state({:running_prepared_statement, execute_data.name})
   end
+  defp handle_ready_message(state, :close, close_data), do:
+    state
+    |> update_in([:prepared_statements], &Map.delete(&1, close_data.name))
+    |> request_send(close_complete())
+    |> transition_after_message(:ready)
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -314,21 +353,39 @@ defmodule Air.PsqlServer.Protocol do
     request_send(state, command_complete(""))
   defp send_result(state, %{rows: rows, columns: columns}), do:
     state
-    |> request_send(row_description(columns))
-    |> send_rows(rows)
+    |> request_send(row_description(columns, [:text]))
+    |> send_rows(rows, [:text])
     |> request_send(command_complete("SELECT #{length(rows)}"))
   defp send_result(state, %{error: error}), do:
-    request_send(state, error_message("ERROR", "42P01", error))
+    request_send(state, syntax_error_message(error))
 
-  defp send_rows(state, rows), do:
-    Enum.reduce(rows, state, &request_send(&2, data_row(&1)))
+  defp send_rows(state, rows, formats), do:
+    Enum.reduce(rows, state, &request_send(&2, data_row(encode_values(&1, formats))))
 
-  defp convert_params(params, param_types) when length(params) == length(param_types), do:
-    Enum.map(Enum.zip(param_types, params), &convert_param/1)
+  defp convert_params(params, format_codes, param_types) do
+    true = (length(params) == length(param_types))
+    [param_types, format_codes, params]
+    |> Enum.zip()
+    |> Enum.map(&decode_value/1)
+  end
 
-  defp convert_param({_, nil}), do: nil
-  defp convert_param({:int4, param}) when is_binary(param), do: String.to_integer(param)
-  defp convert_param({:int8, param}) when is_binary(param), do: String.to_integer(param)
-  defp convert_param({:text, param}) when is_binary(param), do: param
-  defp convert_param({:unknown, param}) when is_binary(param), do: param
+  defp decode_value({_, _, nil}), do: nil
+  defp decode_value({:int4, :text, param}), do: String.to_integer(param)
+  defp decode_value({:int4, :binary, <<value::signed-32>>}), do: value
+  defp decode_value({:int8, :text, param}), do: String.to_integer(param)
+  defp decode_value({:int8, :binary, <<value::signed-64>>}), do: value
+  defp decode_value({:boolean, :binary, <<0>>}), do: false
+  defp decode_value({:boolean, :binary, <<1>>}), do: true
+  defp decode_value({:text, _, param}) when is_binary(param), do: param
+  defp decode_value({:unknown, _, param}) when is_binary(param), do: param
+
+  defp encode_values(values, formats), do:
+    Enum.map(Enum.zip(values, Stream.cycle(formats)), &encode_value/1)
+
+  defp encode_value({nil, _}), do: <<-1::32>>
+  defp encode_value({integer, :binary}) when is_integer(integer), do: <<integer::signed-64>>
+  defp encode_value({binary, :binary}) when is_binary(binary), do: binary
+  defp encode_value({false, :binary}), do: <<0>>
+  defp encode_value({true, :binary}), do: <<1>>
+  defp encode_value({other, :text}), do: to_string(other)
 end
