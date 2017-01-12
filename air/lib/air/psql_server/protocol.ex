@@ -363,6 +363,8 @@ defmodule Air.PsqlServer.Protocol do
     Enum.reduce(rows, state, &request_send(&2, data_row(encode_values(&1, formats))))
 
   defp convert_params(params, format_codes, param_types) do
+    # per protocol, if param types are empty, all parameters are encoded as text
+    param_types = if param_types == [], do: Enum.map(params, fn(_) -> :text end), else: param_types
     true = (length(params) == length(param_types))
     [param_types, format_codes, params]
     |> Enum.zip()
