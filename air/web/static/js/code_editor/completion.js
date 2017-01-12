@@ -61,6 +61,7 @@ export default function completionList(
   posBuilder: (x: number) => any,
   tableNames: string[],
   columnNames: string[],
+  statement: string,
 ) {
   const end = wordEnd(curLine, curPos);
 
@@ -72,10 +73,8 @@ export default function completionList(
   // we take the full document into account), lose the location info of
   // where the match starts, when prepping and creating the RegExp match string.
   // This could be worked around, but it seems only for marginal gains.
-  const codeWords = _.chain(curLine.slice(0, end)).
-    split(/[\s\(]/).
-    map(escapeWord).
-    value();
+  const rawCodeWords = _.split(curLine.slice(0, end), /[\s\(]/);
+  const codeWords = _.map(rawCodeWords, escapeWord);
   const potentialMatchSequences = [];
   for (let i = codeWords.length; i >= 0; i--) {
     const wordsToUse = [];
@@ -92,6 +91,12 @@ export default function completionList(
     join("").
     value();
 
+  const keywordsFromStatement = _.chain(statement).
+    split(/[\s\(\)]/).
+    reject((word) => word.length < 3).
+    reject((word) => _.last(rawCodeWords) === word).
+    value();
+
   const matcher = new RegExp(finalClause, "i");
 
   const showColumnsFromTables =
@@ -105,6 +110,7 @@ export default function completionList(
     concat(showColumnsFromTables).
     concat(fromWithTables).
     concat(columnNames).
+    concat(keywordsFromStatement).
     map((candidate) => {
       const bestMatch = candidate.match(matcher).shift();
       if (bestMatch === "") {

@@ -59,6 +59,7 @@ export class CodeEditor extends React.Component {
       /* eslint-enable new-cap */
       this.props.tableNames,
       this.props.columnNames,
+      this.props.statement,
     );
   }
 
