@@ -152,14 +152,17 @@ defmodule Cloak.Aql.TypeChecker do
       |> Enum.flat_map(&(&1.narrative_breadcrumbs))
       |> Enum.uniq()
       |> Enum.map(fn({expression, breadcrumbs}) ->
-        cond do
-          dangerously_discontinuous?(name, future, child_types) ->
-            {expression, [{:dangerously_discontinuous, name} | breadcrumbs] |> Enum.uniq()}
-          performs_dangerous_math?(name, future, child_types) ->
-            {expression, [{:dangerous_math, name} | breadcrumbs] |> Enum.uniq()}
-          true ->
-            {expression, breadcrumbs}
+        breadcrumbs = if dangerously_discontinuous?(name, future, child_types) do
+          [{:dangerously_discontinuous, name} | breadcrumbs] |> Enum.uniq()
+        else
+          breadcrumbs
         end
+        breadcrumbs = if performs_dangerous_math?(name, future, child_types) do
+          [{:dangerous_math, name} | breadcrumbs] |> Enum.uniq()
+        else
+          breadcrumbs
+        end
+        {expression, breadcrumbs}
       end)
       %Type{
         touched_by_constant?: any_touched_by_constant?(child_types),

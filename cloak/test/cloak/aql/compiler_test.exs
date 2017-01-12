@@ -1088,6 +1088,12 @@ defmodule Cloak.Aql.Compiler.Test do
       """
       assert get_compilation_error(query) =~ ~r/discontinuous function 'div'/
     end
+
+    test "affected by discontinuity and dangerous math at the same time" do
+      query = "SELECT numeric / 10 FROM table"
+      assert get_compilation_error(query) =~ ~r/discontinuous function '\/'/
+      assert get_compilation_error(query) =~ ~r/math function '\/'/
+    end
   end
 
   defp scrub_aliases(query), do: put_in(query, [aliases()], nil)
