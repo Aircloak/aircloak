@@ -5,8 +5,12 @@ defmodule IntegrationTest.PostgrexTest do
 
   setup_all do
     user = Manager.create_air_user()
-    {:ok, conn} = connect(user)
-    {:ok, user: user, conn: conn}
+    {:ok, user: user}
+  end
+
+  setup context do
+    {:ok, conn} = connect(context.user)
+    {:ok, Map.put(context, :conn, conn)}
   end
 
   test "error in describe", context do
