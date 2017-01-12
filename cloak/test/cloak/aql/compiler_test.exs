@@ -879,6 +879,11 @@ defmodule Cloak.Aql.Compiler.Test do
     refute select_columns_have_valid_transformations(query)
   end
 
+  test "/ is not dangerous discontinuous function if divisor is a pure constant" do
+    query = "SELECT numeric / 2 FROM table"
+    assert select_columns_have_valid_transformations(query)
+  end
+
   describe "casts are considered dangerously discontinuous when a constant is involved" do
     Enum.each(~w(integer real boolean), fn(cast_target) ->
       test "cast from integer to #{cast_target}" do
@@ -1075,7 +1080,7 @@ defmodule Cloak.Aql.Compiler.Test do
     end
 
     test "affected by discontinuity and dangerous math at the same time" do
-      query = "SELECT numeric / 10 FROM table"
+      query = "SELECT numeric / (numeric + 10) FROM table"
       assert get_compilation_error(query) =~ ~r/discontinuous function '\/'/
       assert get_compilation_error(query) =~ ~r/math function '\/'/
     end

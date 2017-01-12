@@ -102,7 +102,9 @@ defmodule Cloak.Aql.TypeChecker do
   defp dangerously_discontinuous?(name, _future, child_types)
       when name in @discontinuous_math_functions, do:
     any_touched_by_constant?(child_types)
-  defp dangerously_discontinuous?("/", _future, [_, child_type]), do: child_type.touched_by_constant?
+  defp dangerously_discontinuous?("/", _future, [_, child_type]), do:
+    # This allows division by a pure constant, but not by a column influenced by a constant
+    child_type.touched_by_constant? && not child_type.constant?
   defp dangerously_discontinuous?({:cast, _}, _future, child_types), do: any_touched_by_constant?(child_types)
   defp dangerously_discontinuous?(name, future, child_types)
       when name in @discontinuous_string_functions, do:
