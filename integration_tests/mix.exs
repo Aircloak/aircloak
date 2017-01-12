@@ -21,7 +21,6 @@ defmodule IntegrationTests.Mixfile do
     [
       {:cloak, path: "../cloak"},
       {:air, path: "../air"},
-      {:phoenix_live_reload, "~> 1.0", only: :dev},
     ]
   end
 
