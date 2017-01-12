@@ -30,10 +30,14 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
     column_name |
     aggregation_function([DISTINCT] column_name) |
     function(column_expression) |
-    column_expression binary_operator column_expression
+    column_expression binary_operator column_expression |
+    column_expression::data_type
 
   binary_operator :=
     + | - | * | / | ^ | %
+
+  data_type :=
+    integer | real | text | boolean | datetime | date | time
 
   from_expression :=
     table | join
@@ -621,13 +625,16 @@ converted into the following rows before furhter analysis takes place
 ## Casting
 
 ```sql
-CAST('3' AS INTEGER)
+CAST('3' AS integer)
 -- 3
 
-CAST(3, TEXT)
+'3'::integer
+-- 3
+
+CAST(3, text)
 -- '3'
 
-CAST('NOT A NUMBER', INTEGER)
+CAST('NOT A NUMBER', integer)
 -- NULL
 ```
 
