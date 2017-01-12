@@ -15,7 +15,7 @@ defmodule IntegrationTest.PostgrexTest do
 
   test "error in describe", context do
     assert {:error, error} = Postgrex.query(context.conn, "select $1 from users", ["foobar"])
-    assert error.postgres.message == "The type for the `$1` parameter cannot be determined."
+    assert error.postgres.message == "The type for parameter `$1` cannot be determined."
   end
 
   test "select a string", context do

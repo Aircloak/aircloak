@@ -178,12 +178,12 @@ defmodule Cloak.Aql.QueryTest do
 
   test "late bound parameters must be casted" do
     assert {:error, error} = describe_query("select $1 from feat_users")
-    assert error == "The type for the `$1` parameter cannot be determined."
+    assert error == "The type for parameter `$1` cannot be determined."
   end
 
   test "all parameters must be supplied" do
     assert {:error, error} = describe_query("select cast($2 as boolean) from feat_users")
-    assert error == "The type for the `$1` parameter cannot be determined."
+    assert error == "The type for parameter `$1` cannot be determined."
   end
 
   defp describe_query(statement, parameters \\ nil), do:

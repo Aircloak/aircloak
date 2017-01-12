@@ -1339,7 +1339,7 @@ defmodule Cloak.Aql.Compiler do
   defp data_type(value, _index) when is_float(value), do: :real
   defp data_type(value, _index) when is_binary(value), do: :text
   defp data_type(_value, index), do:
-    raise CompilationError, message: "Invalid value for the parameter `$#{index}`"
+    raise CompilationError, message: "Invalid value for parameter `$#{index}`"
 
   defp add_parameter_types_from_subqueries(query), do:
     Enum.reduce(
@@ -1369,5 +1369,5 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp parameter_error(parameter_index), do:
-    raise(CompilationError, message: "The type for the `$#{parameter_index}` parameter cannot be determined.")
+    raise(CompilationError, message: "The type for parameter `$#{parameter_index}` cannot be determined.")
 end
