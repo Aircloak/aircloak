@@ -68,7 +68,7 @@ defmodule IntegrationTest.OdbcTest do
     {:ok, conn} = connect(context.user)
     assert {:selected, ['x'], rows} = :odbc.param_query(
       conn,
-      'select cast($1 as boolean) as x from users',
+      'select $1::boolean as x from users',
       [{:sql_integer, [1]}]
     )
     assert Enum.uniq(rows) == [{true}]

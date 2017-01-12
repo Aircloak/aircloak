@@ -167,7 +167,15 @@ defmodule Cloak.Aql.Parser do
   end
 
   def exponentiation_expression() do
-    infix_expression([keyword(:^)], simple_expression())
+    infix_expression([keyword(:^)], infix_cast_expression())
+  end
+
+  defp infix_cast_expression() do
+    infix_expression([keyword(:"::")], simple_expression(), data_type())
+    |> map(fn
+      {:function, "::", [expr, type]} -> {:function, {:cast, type}, [expr]}
+      other -> other
+    end)
   end
 
   defp simple_expression() do
@@ -384,11 +392,11 @@ defmodule Cloak.Aql.Parser do
     infix_expression([keyword(:||)], either_deepest_error(field_or_parameter(), constant_column()))
   end
 
-  defp infix_expression(operators, inner_expression) do
+  defp infix_expression(operators, left_parser, right_parser \\ nil) do
     pipe(
       [
-        inner_expression,
-        many(sequence([choice(operators), inner_expression])),
+        left_parser,
+        many(sequence([choice(operators), right_parser || left_parser])),
       ],
       fn[first, rest] -> Enum.reduce(rest, first,
         fn([operator, right], left) -> {:function, to_string(operator), [left, right]} end)

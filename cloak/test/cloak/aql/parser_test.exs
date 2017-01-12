@@ -726,6 +726,11 @@ defmodule Cloak.Aql.Parser.Test do
   test "cast to datetime", do:
     assert_parse "select cast(a as datetime) from bar", select(columns: [{:function, {:cast, :datetime}, _}])
 
+  test "cast with ::" do
+    assert_parse "select a::integer from bar",
+      select(columns: [{:function, {:cast, :integer}, [identifier("a")]}])
+  end
+
   for word <- ~w(date time timestamp) do
     test "#{word} as a column name" do
       assert_parse "select #{unquote(word)} from bar",

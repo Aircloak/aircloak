@@ -19,33 +19,33 @@ defmodule IntegrationTest.PostgrexTest do
   end
 
   test "select a string", context do
-    result = Postgrex.query!(context.conn, "select cast($1 as text) from users", ["foobar"])
+    result = Postgrex.query!(context.conn, "select $1::text from users", ["foobar"])
     assert result.columns == ["cast"]
     assert Enum.uniq(result.rows) == [["foobar"]]
   end
 
   test "select an integer", context do
-    result = Postgrex.query!(context.conn, "select cast($1 as integer) from users", [42])
+    result = Postgrex.query!(context.conn, "select $1::integer from users", [42])
     assert result.columns == ["cast"]
     assert Enum.uniq(result.rows) == [[42]]
   end
 
   test "select a boolean", context do
-    result = Postgrex.query!(context.conn, "select cast($1 as boolean) from users", [true])
+    result = Postgrex.query!(context.conn, "select $1::boolean from users", [true])
     assert result.columns == ["cast"]
     assert Enum.uniq(result.rows) == [[true]]
   end
 
   test "multiple queries on the same connection", context do
     assert {:error, _} = Postgrex.query(context.conn, "select $1 from users", ["foobar"])
-    assert {:ok, _} = Postgrex.query(context.conn, "select cast($1 as text) from users", ["foobar"])
+    assert {:ok, _} = Postgrex.query(context.conn, "select $1::text from users", ["foobar"])
     assert {:error, _} = Postgrex.query(context.conn, "select $1 from users", ["foobar"])
-    assert {:ok, _} = Postgrex.query(context.conn, "select cast($1 as text) from users", ["foobar"])
+    assert {:ok, _} = Postgrex.query(context.conn, "select $1::text from users", ["foobar"])
   end
 
   test "recovery after an error", context do
     assert {:error, _} = Postgrex.query(context.conn, "select $1 from users", ["foobar"])
-    assert {:ok, _} = Postgrex.query(context.conn, "select cast($1 as text) from users", ["foobar"])
+    assert {:ok, _} = Postgrex.query(context.conn, "select $1::text from users", ["foobar"])
   end
 
   defp connect(user) do

@@ -14,7 +14,7 @@ defmodule IntegrationTests.Mixfile do
   end
 
   def application do
-    [applications: [:logger, :odbc, :air, :cloak, :postgrex]]
+    [extra_applications: [:logger, :odbc]]
   end
 
   defp deps do
@@ -22,7 +22,6 @@ defmodule IntegrationTests.Mixfile do
       {:mariaex, "~> 0.8", override: true},
       {:cloak, path: "../cloak"},
       {:air, path: "../air"},
-      {:phoenix_live_reload, "~> 1.0", only: :dev},
     ]
   end
 
