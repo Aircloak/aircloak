@@ -252,6 +252,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
     boolean: %{oid: 16, len: 1},
     int8: %{oid: 20, len: 8},
     int4: %{oid: 23, len: 4},
+    float4: %{oid: 700, len: 4},
+    float8: %{oid: 701, len: 8},
     text: %{oid: 25, len: -1},
     unknown: %{oid: 705, len: -1}
   } do

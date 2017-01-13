@@ -31,4 +31,4 @@ Another use-case is to allow clients to query data sources from their own code (
 
 ### Other notable missing features
 
-- When receiving and sending data, we only support integer (`int4` and `int8`), `text`, and `boolean` parameters. We need to support additional types, such as `real`, and `datetime`.
+- When receiving and sending data, we only support integer (`int4` and `int8`), real, `text`, and `boolean` parameters. We need to support additional types, such as `datetime`.

@@ -74,6 +74,16 @@ defmodule IntegrationTest.OdbcTest do
     assert Enum.uniq(rows) == [{true}]
   end
 
+  test "select a real", context do
+    {:ok, conn} = connect(context.user)
+    assert {:selected, ['x'], rows} = :odbc.param_query(
+      conn,
+      'select $1 as x from users',
+      [{:sql_real, [3.14]}]
+    )
+    assert Enum.uniq(rows) == [{3.14}]
+  end
+
   test "select error", context do
     {:ok, conn} = connect(context.user)
     ExUnit.CaptureLog.capture_log(fn -> assert {:error, _} = :odbc.sql_query(conn, 'invalid query') end)

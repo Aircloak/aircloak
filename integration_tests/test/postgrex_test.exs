@@ -36,6 +36,12 @@ defmodule IntegrationTest.PostgrexTest do
     assert Enum.uniq(result.rows) == [[true]]
   end
 
+  test "select a real", context do
+    result = Postgrex.query!(context.conn, "select $1::real from users", [3.14])
+    assert result.columns == ["cast"]
+    assert Enum.uniq(result.rows) == [[3.14]]
+  end
+
   test "multiple queries on the same connection", context do
     assert {:error, _} = Postgrex.query(context.conn, "select $1 from users", ["foobar"])
     assert {:ok, _} = Postgrex.query(context.conn, "select $1::text from users", ["foobar"])
