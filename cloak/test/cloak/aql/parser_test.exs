@@ -378,6 +378,13 @@ defmodule Cloak.Aql.Parser.Test do
     )
   end
 
+  test "having clause with parens" do
+    assert_equal_parse(
+      "select foo from bar having (a = 1 and b = 3) and (c = 4)",
+      "select foo from bar having a = 1 and b = 3 and c = 4"
+    )
+  end
+
   test "it's valid to have a identifier contain a keyword" do
     assert_parse(
       "SELECT INvalid, selectiscious FROM whereables",
@@ -472,6 +479,13 @@ defmodule Cloak.Aql.Parser.Test do
       )
     )
     assert select(columns: [identifier("foo")], from: unquoted("baz")) = sq
+  end
+
+  test "join condition with parens" do
+    assert_equal_parse(
+      "select foo from bar inner join baz on (a = 1 and (b = 2))",
+      "select foo from bar inner join baz on a = 1 and b = 2"
+    )
   end
 
   test "count(distinct column)" do

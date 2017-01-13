@@ -568,21 +568,7 @@ defmodule Cloak.Aql.Parser do
         end)
   end
 
-  defp where_expressions() do
-    choice_deepest_error([
-      and_delimited(where_expression()),
-      sequence([where_expression(), keyword(:and), lazy(&where_expressions/0)]),
-      sequence([keyword(:"("), lazy(&where_expressions/0), keyword(:")"), keyword(:and), lazy(&where_expressions/0)]),
-      sequence([keyword(:"("), lazy(&where_expressions/0), keyword(:")")]),
-      error_message(fail(""), "Invalid where expression"),
-    ])
-    |> map(fn
-      [result, :and, results] -> [result | results]
-      [:"(", results1, :")", :and, results2] -> results1 ++ results2
-      [:"(", results, :")"] -> results
-      results -> results
-    end)
-  end
+  defp where_expressions(), do: conjunction_expression(where_expression(), "Invalid where expression.")
 
   defp where_expression() do
     switch([
@@ -750,8 +736,22 @@ defmodule Cloak.Aql.Parser do
     sep_by1_eager(term_parser, keyword(:","))
   end
 
-  defp and_delimited(term_parser) do
-    sep_by1_eager(term_parser, keyword(:and))
+  defp conjunction_expression(term_parser, error_message) do
+    recur = lazy(fn -> conjunction_expression(term_parser, error_message) end)
+
+    choice_deepest_error([
+      sep_by1_eager(term_parser, keyword(:and)),
+      sequence([term_parser, keyword(:and), recur]),
+      sequence([keyword(:"("), recur, keyword(:")"), keyword(:and), recur]),
+      sequence([keyword(:"("), recur, keyword(:")")]),
+      error_message(fail(""), error_message),
+    ])
+    |> map(fn
+      [result, :and, results] -> [result | results]
+      [:"(", results1, :")", :and, results2] -> results1 ++ results2
+      [:"(", results, :")"] -> results
+      results -> results
+    end)
   end
 
   defp end_of_input(parser) do
@@ -789,7 +789,7 @@ defmodule Cloak.Aql.Parser do
         end)
   end
 
-  defp having_expressions(), do: and_delimited(having_expression())
+  defp having_expressions(), do: conjunction_expression(having_expression(), "Invalid having expression.")
 
   defp having_expression() do
     switch([
