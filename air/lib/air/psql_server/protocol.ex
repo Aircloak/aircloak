@@ -412,18 +412,10 @@ defmodule Air.PsqlServer.Protocol do
   defp decode_text(:unknown, param) when is_binary(param), do: param
 
   defp decode_binary(type, value), do:
-    Map.fetch!(postgrex_extensions(), type).decode(nil, value, nil, :reference)
+    Map.fetch!(postgrex_extensions(), type).decode(type_info(type), value, nil, :reference)
     |> normalize_postgrex_decoded_value()
 
   defp normalize_postgrex_decoded_value(%Decimal{} = value), do: Decimal.to_float(value)
-  defp normalize_postgrex_decoded_value(%Postgrex.Date{} = date) do
-    {:ok, date} = Date.new(date.year, date.month, date.day)
-    date
-  end
-  defp normalize_postgrex_decoded_value(%Postgrex.Time{} = time) do
-    {:ok, time} = Time.new(time.hour, time.min, time.sec, time.usec)
-    time
-  end
   defp normalize_postgrex_decoded_value(value), do: value
 
   defp postgrex_extensions(), do:
@@ -432,8 +424,7 @@ defmodule Air.PsqlServer.Protocol do
       float4: Postgrex.Extensions.Float4, float8: Postgrex.Extensions.Float8,
       numeric: Postgrex.Extensions.Numeric,
       boolean: Postgrex.Extensions.Bool,
-      date: Postgrex.Extensions.Date,
-      time: Postgrex.Extensions.Time,
+      date: Postgrex.Extensions.Calendar, time: Postgrex.Extensions.Calendar,
       text: Postgrex.Extensions.Raw
     }
 
@@ -443,22 +434,16 @@ defmodule Air.PsqlServer.Protocol do
   defp encode_value({nil, _, _}), do: <<-1::32>>
   defp encode_value({value, _, :text}), do: to_string(value)
   defp encode_value({value, type, :binary}) do
-    encode_info = case type do
-      :time -> %Postgrex.TypeInfo{send: "time_send"}
-      _ -> nil
-    end
     value = normalize_for_postgrex_encoding(type, value)
-    Map.fetch!(postgrex_extensions(), type).encode(encode_info, value, nil, nil)
+    Map.fetch!(postgrex_extensions(), type).encode(type_info(type), value, nil, nil)
   end
 
   defp normalize_for_postgrex_encoding(:numeric, value), do: Decimal.new(value)
-  defp normalize_for_postgrex_encoding(:date, value) do
-    date = Date.from_iso8601!(value)
-    %Postgrex.Date{year: date.year, month: date.month, day: date.day}
-  end
-  defp normalize_for_postgrex_encoding(:time, value) do
-    time = Time.from_iso8601!(value)
-    %Postgrex.Time{hour: time.hour, min: time.minute, sec: time.second, usec: elem(time.microsecond, 0)}
-  end
+  defp normalize_for_postgrex_encoding(:date, value), do: Date.from_iso8601!(value)
+  defp normalize_for_postgrex_encoding(:time, value), do: Time.from_iso8601!(value)
   defp normalize_for_postgrex_encoding(_, value), do: value
+
+  defp type_info(:date), do: %Postgrex.TypeInfo{send: "date_send"}
+  defp type_info(:time), do: %Postgrex.TypeInfo{send: "time_send"}
+  defp type_info(_), do: nil
 end
