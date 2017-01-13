@@ -1264,8 +1264,7 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp verify_function_usage_for_where_clauses(query) do
-    Query.Lenses.queries()
-    |> Query.Lenses.where_inequality_columns()
+    Query.Lenses.where_inequality_columns()
     |> Lens.to_list(query)
     |> Enum.each(fn(column) ->
       type = TypeChecker.type(column, query)
