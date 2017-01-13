@@ -53,14 +53,10 @@ defmodule IntegrationTest.OdbcTest do
       assert Enum.uniq(rows) == [{'john', '180'}]
     end
 
-    test "extended query", context do
-      assert {:selected, ['name', 'height'], rows} = :odbc.param_query(
-        context.conn,
-        'select name, height + $1 as height from users where height = $2',
-        [{:sql_integer, [1]}, {:sql_integer, [180]}]
-      )
-      assert Enum.uniq(rows) == [{'john', '181'}]
-    end
+    test "select an integer", context, do:
+      # The reason that the result is a string is because the server returns `int8`, and it appears that
+      # either the ODBC driver, or ODBC itself converts this into a string.
+      assert param_select(context.conn, :sql_integer, 42) == '42'
 
     test "select a boolean", context, do:
       assert param_select(context.conn, :sql_bit, true) == true
