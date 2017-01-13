@@ -61,14 +61,6 @@ defmodule Cloak.Aql.Query.Lenses do
     |> Lens.satisfy(&match?({:subquery, _}, &1))
     |> Lens.at(1)
 
-  @doc """
-  Lens focusing on all queries found in a query. Also includes the top-level query itself.
-  More concretely, given a query containing a subquery, the main query as well as the subquery
-  will be given focus.
-  """
-  deflens queries(), do:
-    Lens.both(direct_subqueries(), Lens.root())
-
   @doc "Lens focusing on all WHERE-clause inequalities in a query."
   deflens where_inequality_columns(), do:
     Lens.keys([:where, :lcf_check_conditions])
