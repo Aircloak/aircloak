@@ -412,36 +412,35 @@ defmodule Air.PsqlServer.Protocol do
   defp decode_text(:unknown, param) when is_binary(param), do: param
 
   defp decode_binary(type, value), do:
-    Map.fetch!(postgrex_extensions(), type).decode(type_info(type), value, nil, :reference)
+    postgrex_extension(type).decode(type_info(type), value, nil, :reference)
     |> normalize_postgrex_decoded_value()
 
   defp normalize_postgrex_decoded_value(%Decimal{} = value), do: Decimal.to_float(value)
   defp normalize_postgrex_decoded_value(value), do: value
-
-  defp postgrex_extensions(), do:
-    %{
-      int2: Postgrex.Extensions.Int2, int4: Postgrex.Extensions.Int4, int8: Postgrex.Extensions.Int8,
-      float4: Postgrex.Extensions.Float4, float8: Postgrex.Extensions.Float8,
-      numeric: Postgrex.Extensions.Numeric,
-      boolean: Postgrex.Extensions.Bool,
-      date: Postgrex.Extensions.Calendar, time: Postgrex.Extensions.Calendar,
-      text: Postgrex.Extensions.Raw
-    }
 
   defp encode_values(values, column_types, formats), do:
     Enum.map(Enum.zip([values, column_types, Stream.cycle(formats)]), &encode_value/1)
 
   defp encode_value({nil, _, _}), do: <<-1::32>>
   defp encode_value({value, _, :text}), do: to_string(value)
-  defp encode_value({value, type, :binary}) do
-    value = normalize_for_postgrex_encoding(type, value)
-    Map.fetch!(postgrex_extensions(), type).encode(type_info(type), value, nil, nil)
-  end
+  defp encode_value({value, type, :binary}), do:
+    postgrex_extension(type).encode(type_info(type), normalize_for_postgrex_encoding(type, value), nil, nil)
 
   defp normalize_for_postgrex_encoding(:numeric, value), do: Decimal.new(value)
   defp normalize_for_postgrex_encoding(:date, value), do: Date.from_iso8601!(value)
   defp normalize_for_postgrex_encoding(:time, value), do: Time.from_iso8601!(value)
   defp normalize_for_postgrex_encoding(_, value), do: value
+
+  for {type, extension} <- [
+    int2: Postgrex.Extensions.Int2, int4: Postgrex.Extensions.Int4, int8: Postgrex.Extensions.Int8,
+    float4: Postgrex.Extensions.Float4, float8: Postgrex.Extensions.Float8,
+    numeric: Postgrex.Extensions.Numeric,
+    boolean: Postgrex.Extensions.Bool,
+    date: Postgrex.Extensions.Calendar, time: Postgrex.Extensions.Calendar,
+    text: Postgrex.Extensions.Raw
+  ] do
+    defp postgrex_extension(unquote(type)), do: unquote(extension)
+  end
 
   defp type_info(:date), do: %Postgrex.TypeInfo{send: "date_send"}
   defp type_info(:time), do: %Postgrex.TypeInfo{send: "time_send"}
