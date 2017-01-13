@@ -1274,9 +1274,10 @@ defmodule Cloak.Aql.Compiler do
         raise CompilationError, message: """
           #{explanation}.
 
-          WHERE-clause inequalities where the column value has either had
-          math with a constant applied to it, or been through a discontinuous function
-          where one of the parameters was a constant, are not allowed.
+          Inequality clauses used to filter the data (like WHERE, HAVING and JOIN-condition where >,
+          >=, < or <= are used) are not allowed if the column value has either been calculated on by
+          a math function or processed by a discontinuous function where one of the other parameters
+          was a constant.
           """
       end
     end)

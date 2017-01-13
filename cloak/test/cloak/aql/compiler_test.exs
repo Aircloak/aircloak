@@ -1205,10 +1205,10 @@ defmodule Cloak.Aql.Compiler.Test do
     case compile(query, data_source()) do
       {:ok, _} -> true
       {:error, reason} ->
-        if reason =~ ~r/WHERE-clause inequalities/ do
+        if reason =~ ~r/Inequality clauses used to filter the data/ do
           false
         else
-          raise "Compilation failed with other reason than illegal WHERE-clause: #{inspect reason}"
+          raise "Compilation failed with other reason than illegal condition-inequality: #{inspect reason}"
         end
     end
   end
