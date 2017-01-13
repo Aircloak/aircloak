@@ -39,7 +39,7 @@ defmodule Air.PsqlServer.Protocol do
 
   @type authentication_method :: :cleartext
 
-  @type psql_type :: :boolean | :int2 | :int4 | :int8 | :float4 | :float8 | :numeric | :text | :unknown
+  @type psql_type :: :boolean | :int2 | :int4 | :int8 | :float4 | :float8 | :numeric | :text | :date | :unknown
 
   @type column :: %{name: String.t, type: psql_type}
 
@@ -414,6 +414,12 @@ defmodule Air.PsqlServer.Protocol do
   defp decode_value({:boolean, :binary, <<0>>}), do: false
   defp decode_value({:boolean, :binary, <<1>>}), do: true
   defp decode_value({:text, _, param}) when is_binary(param), do: param
+  defp decode_value({:date, :binary, <<days::signed-32>>}) do
+    epoch = :calendar.date_to_gregorian_days({2000, 1, 1})
+    {year, month, day} = :calendar.gregorian_days_to_date(days + epoch)
+    {:ok, date} = Date.new(year, month, day)
+    date
+  end
   defp decode_value({:unknown, _, param}) when is_binary(param), do: param
 
   defp encode_values(values, column_types, formats), do:
@@ -424,6 +430,11 @@ defmodule Air.PsqlServer.Protocol do
   defp encode_value({float, :float8, :binary}), do: <<float::float-64>>
   defp encode_value({false, :boolean, :binary}), do: <<0>>
   defp encode_value({true, :boolean, :binary}), do: <<1>>
+  defp encode_value({date_str, :date, :binary}) do
+    epoch = :calendar.date_to_gregorian_days({2000, 1, 1})
+    date = Date.from_iso8601!(date_str)
+    <<:calendar.date_to_gregorian_days({date.year, date.month, date.day}) - epoch :: signed-32>>
+  end
   defp encode_value({value, :text, _}), do: to_string(value)
   defp encode_value({value, _, :text}), do: to_string(value)
 end

@@ -256,6 +256,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
     float8: %{oid: 701, len: 8},
     numeric: %{oid: 1700, len: -1},
     text: %{oid: 25, len: -1},
+    date: %{oid: 1082, len: 4},
     unknown: %{oid: 705, len: -1}
   } do
     defp column_description({%{type: unquote(type)} = column, result_code}), do:
