@@ -53,6 +53,12 @@ defmodule IntegrationTest.OdbcTest do
       assert Enum.uniq(rows) == [{'john', '180'}]
     end
 
+    test "parameterized query with a tiny integer", context, do:
+      assert param_select(context.conn, :sql_tinyint, 42) == '42'
+
+    test "parameterized query with a small integer", context, do:
+      assert param_select(context.conn, :sql_smallint, 42) == '42'
+
     test "parameterized query with an integer", context, do:
       # The reason that the result is a string is because the server returns `int8`, and it appears that
       # either the ODBC driver, or ODBC itself converts this into a string.

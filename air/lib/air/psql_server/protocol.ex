@@ -39,7 +39,7 @@ defmodule Air.PsqlServer.Protocol do
 
   @type authentication_method :: :cleartext
 
-  @type psql_type :: :boolean | :int4 | :int8 | :float8 | :text | :unknown
+  @type psql_type :: :boolean | :int2 | :int4 | :int8 | :float8 | :text | :unknown
 
   @type column :: %{name: String.t, type: psql_type}
 
@@ -381,6 +381,8 @@ defmodule Air.PsqlServer.Protocol do
   end
 
   defp decode_value({_, _, nil}), do: nil
+  defp decode_value({:int2, :text, param}), do: String.to_integer(param)
+  defp decode_value({:int2, :binary, <<value::signed-16>>}), do: value
   defp decode_value({:int4, :text, param}), do: String.to_integer(param)
   defp decode_value({:int4, :binary, <<value::signed-32>>}), do: value
   defp decode_value({:int8, :text, param}), do: String.to_integer(param)

@@ -250,8 +250,9 @@ defmodule Air.PsqlServer.Protocol.Messages do
   for {type, meta} <- %{
     # Obtained as `select typname, oid, typlen from pg_type`
     boolean: %{oid: 16, len: 1},
-    int8: %{oid: 20, len: 8},
+    int2: %{oid: 21, len: 2},
     int4: %{oid: 23, len: 4},
+    int8: %{oid: 20, len: 8},
     float4: %{oid: 700, len: 4},
     float8: %{oid: 701, len: 8},
     text: %{oid: 25, len: -1},
