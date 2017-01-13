@@ -39,7 +39,7 @@ defmodule Air.PsqlServer.Protocol do
 
   @type authentication_method :: :cleartext
 
-  @type psql_type :: :boolean | :int2 | :int4 | :int8 | :float8 | :text | :unknown
+  @type psql_type :: :boolean | :int2 | :int4 | :int8 | :float4 | :float8 | :text | :unknown
 
   @type column :: %{name: String.t, type: psql_type}
 
