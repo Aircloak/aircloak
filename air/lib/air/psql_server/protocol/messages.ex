@@ -157,14 +157,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   def command_complete(tag), do: server_message(:command_complete, null_terminate(tag))
 
-  def data_row(values) do
-    encoded_row =
-      values
-      |> Enum.map(&<<byte_size(&1)::32, &1::binary>>)
-      |> IO.iodata_to_binary()
-
-    server_message(:data_row, <<length(values)::16, encoded_row::binary>>)
-  end
+  def data_row(row, column_types, formats), do:
+    server_message(:data_row, <<length(row)::16, encode_row(row, column_types, formats)::binary>>)
 
   def syntax_error_message(error), do:
     error_message("ERROR", "42601", error)
@@ -279,6 +273,92 @@ defmodule Air.PsqlServer.Protocol.Messages do
   defp encode_format_code(:text), do: 0
   defp encode_format_code(:binary), do: 1
 
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Params conversion
+  #-----------------------------------------------------------------------------------------------------------
+
+  def convert_params(params, format_codes, param_types) do
+    # per protocol, if param types are empty, all parameters are encoded as text
+    param_types = if param_types == [], do: Enum.map(params, fn(_) -> :text end), else: param_types
+    true = (length(params) == length(param_types))
+    Enum.map(Enum.zip([format_codes, param_types, params]), &convert_param/1)
+  end
+
+  defp convert_param({_, _, nil}), do: nil
+  defp convert_param({:text, type, value}), do: convert_text_param(type, value)
+  defp convert_param({:binary, type, value}), do: convert_binary_param(type, value)
+
+  defp convert_text_param(:int2, param), do: String.to_integer(param)
+  defp convert_text_param(:int4, param), do: String.to_integer(param)
+  defp convert_text_param(:int8, param), do: String.to_integer(param)
+  defp convert_text_param(:float4, value), do: String.to_float(value)
+  defp convert_text_param(:float8, value), do: String.to_float(value)
+  defp convert_text_param(:numeric, value), do: value |> Decimal.new() |> Decimal.to_float()
+  defp convert_text_param(:boolean, "1"), do: true
+  defp convert_text_param(:boolean, text), do: String.downcase(text) == "true"
+  defp convert_text_param(:text, param) when is_binary(param), do: param
+  defp convert_text_param(:unknown, param) when is_binary(param), do: param
+
+  defp convert_binary_param(type, value), do:
+    postgrex_extension(type).decode(type_info(type), value, nil, extension_opts(type))
+    |> normalize_postgrex_decoded_value()
+
+  defp normalize_postgrex_decoded_value(%Decimal{} = value), do: Decimal.to_float(value)
+  defp normalize_postgrex_decoded_value(value), do: value
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Row encoding
+  #-----------------------------------------------------------------------------------------------------------
+
+  defp encode_row(row, column_types, formats), do:
+    Enum.zip([Stream.cycle(formats), column_types, row])
+    |> Enum.map(&encode_value/1)
+    |> Enum.map(&<<byte_size(&1)::32, &1::binary>>)
+    |> IO.iodata_to_binary()
+
+  defp encode_value({_, _, nil}), do: <<-1::32>>
+  defp encode_value({:text, _, value}), do: to_string(value)
+  defp encode_value({:binary, type, value}), do:
+    postgrex_extension(type).encode(type_info(type), normalize_for_postgrex_encoding(type, value), nil, nil)
+
+  defp normalize_for_postgrex_encoding(:numeric, value), do: Decimal.new(value)
+  defp normalize_for_postgrex_encoding(:date, value), do: Date.from_iso8601!(value)
+  defp normalize_for_postgrex_encoding(:time, value), do: Time.from_iso8601!(value)
+  defp normalize_for_postgrex_encoding(:timestamp, value), do: NaiveDateTime.from_iso8601!(value)
+  defp normalize_for_postgrex_encoding(_, value), do: value
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Helpers for postgrex extensions
+  #-----------------------------------------------------------------------------------------------------------
+
+  # We're using postgrex extensions to encode/decode binary values. This is somewhat hacky, since the
+  # interface is not documented, but it allows us to freely reuse a lot of logic.
+
+  for {type, extension} <- [
+    int2: Postgrex.Extensions.Int2, int4: Postgrex.Extensions.Int4, int8: Postgrex.Extensions.Int8,
+    float4: Postgrex.Extensions.Float4, float8: Postgrex.Extensions.Float8,
+    numeric: Postgrex.Extensions.Numeric,
+    boolean: Postgrex.Extensions.Bool,
+    date: Postgrex.Extensions.Calendar, time: Postgrex.Extensions.Calendar, timestamp: Postgrex.Extensions.Calendar,
+    text: Postgrex.Extensions.Raw
+  ] do
+    defp postgrex_extension(unquote(type)), do: unquote(extension)
+  end
+
+  defp type_info(:date), do: %Postgrex.TypeInfo{send: "date_send"}
+  defp type_info(:time), do: %Postgrex.TypeInfo{send: "time_send"}
+  defp type_info(:timestamp), do: %Postgrex.TypeInfo{send: "timestamp_send"}
+  defp type_info(_), do: nil
+
+  defp extension_opts(type) do
+    case postgrex_extension(type) do
+      Postgrex.Extensions.Raw -> :reference
+      _ -> nil
+    end
+  end
 
   #-----------------------------------------------------------------------------------------------------------
   # Other helpers

@@ -384,80 +384,9 @@ defmodule Air.PsqlServer.Protocol do
   defp send_result(state, %{error: error}), do:
     request_send(state, syntax_error_message(error))
 
-  defp send_rows(state, rows, columns, formats) do
-    column_types =
-      case columns do
-        nil -> Stream.cycle([:text])
-        _ -> Enum.map(columns, &(&1.type))
-      end
-    Enum.reduce(rows, state, &request_send(&2, data_row(encode_values(&1, column_types, formats))))
-  end
+  defp send_rows(state, rows, columns, formats), do:
+    Enum.reduce(rows, state, &request_send(&2, data_row(&1, column_types(columns), formats)))
 
-  defp convert_params(params, format_codes, param_types) do
-    # per protocol, if param types are empty, all parameters are encoded as text
-    param_types = if param_types == [], do: Enum.map(params, fn(_) -> :text end), else: param_types
-    true = (length(params) == length(param_types))
-    [param_types, format_codes, params]
-    |> Enum.zip()
-    |> Enum.map(&decode_value/1)
-  end
-
-  defp decode_value({_, _, nil}), do: nil
-  defp decode_value({type, :text, value}), do: decode_text(type, value)
-  defp decode_value({type, :binary, value}), do: decode_binary(type, value)
-
-  defp decode_text(:int2, param), do: String.to_integer(param)
-  defp decode_text(:int4, param), do: String.to_integer(param)
-  defp decode_text(:int8, param), do: String.to_integer(param)
-  defp decode_text(:float4, value), do: String.to_float(value)
-  defp decode_text(:float8, value), do: String.to_float(value)
-  defp decode_text(:numeric, value), do: value |> Decimal.new() |> Decimal.to_float()
-  defp decode_text(:boolean, "1"), do: true
-  defp decode_text(:boolean, text), do: String.downcase(text) == "true"
-  defp decode_text(:text, param) when is_binary(param), do: param
-  defp decode_text(:unknown, param) when is_binary(param), do: param
-
-  defp decode_binary(type, value), do:
-    postgrex_extension(type).decode(type_info(type), value, nil, extension_opts(type))
-    |> normalize_postgrex_decoded_value()
-
-  defp normalize_postgrex_decoded_value(%Decimal{} = value), do: Decimal.to_float(value)
-  defp normalize_postgrex_decoded_value(value), do: value
-
-  defp encode_values(values, column_types, formats), do:
-    Enum.map(Enum.zip([values, column_types, Stream.cycle(formats)]), &encode_value/1)
-
-  defp encode_value({nil, _, _}), do: <<-1::32>>
-  defp encode_value({value, _, :text}), do: to_string(value)
-  defp encode_value({value, type, :binary}), do:
-    postgrex_extension(type).encode(type_info(type), normalize_for_postgrex_encoding(type, value), nil, nil)
-
-  defp normalize_for_postgrex_encoding(:numeric, value), do: Decimal.new(value)
-  defp normalize_for_postgrex_encoding(:date, value), do: Date.from_iso8601!(value)
-  defp normalize_for_postgrex_encoding(:time, value), do: Time.from_iso8601!(value)
-  defp normalize_for_postgrex_encoding(:timestamp, value), do: NaiveDateTime.from_iso8601!(value)
-  defp normalize_for_postgrex_encoding(_, value), do: value
-
-  for {type, extension} <- [
-    int2: Postgrex.Extensions.Int2, int4: Postgrex.Extensions.Int4, int8: Postgrex.Extensions.Int8,
-    float4: Postgrex.Extensions.Float4, float8: Postgrex.Extensions.Float8,
-    numeric: Postgrex.Extensions.Numeric,
-    boolean: Postgrex.Extensions.Bool,
-    date: Postgrex.Extensions.Calendar, time: Postgrex.Extensions.Calendar, timestamp: Postgrex.Extensions.Calendar,
-    text: Postgrex.Extensions.Raw
-  ] do
-    defp postgrex_extension(unquote(type)), do: unquote(extension)
-  end
-
-  defp type_info(:date), do: %Postgrex.TypeInfo{send: "date_send"}
-  defp type_info(:time), do: %Postgrex.TypeInfo{send: "time_send"}
-  defp type_info(:timestamp), do: %Postgrex.TypeInfo{send: "timestamp_send"}
-  defp type_info(_), do: nil
-
-  defp extension_opts(type) do
-    case postgrex_extension(type) do
-      Postgrex.Extensions.Raw -> :reference
-      _ -> nil
-    end
-  end
+  defp column_types(nil), do: Stream.cycle([:text])
+  defp column_types(columns), do: Enum.map(columns, &(&1.type))
 end
