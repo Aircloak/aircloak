@@ -568,7 +568,21 @@ defmodule Cloak.Aql.Parser do
         end)
   end
 
-  defp where_expressions(), do: and_delimited(where_expression())
+  defp where_expressions() do
+    choice_deepest_error([
+      and_delimited(where_expression()),
+      sequence([where_expression(), keyword(:and), lazy(&where_expressions/0)]),
+      sequence([keyword(:"("), lazy(&where_expressions/0), keyword(:")"), keyword(:and), lazy(&where_expressions/0)]),
+      sequence([keyword(:"("), lazy(&where_expressions/0), keyword(:")")]),
+      error_message(fail(""), "Invalid where expression"),
+    ])
+    |> map(fn
+      [result, :and, results] -> [result | results]
+      [:"(", results1, :")", :and, results2] -> results1 ++ results2
+      [:"(", results, :")"] -> results
+      results -> results
+    end)
+  end
 
   defp where_expression() do
     switch([

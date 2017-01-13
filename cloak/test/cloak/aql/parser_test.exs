@@ -353,6 +353,20 @@ defmodule Cloak.Aql.Parser.Test do
     )
   end
 
+  test "where clause with parens" do
+    assert_equal_parse(
+      "select foo from bar where (a = 2 and b = 3)",
+      "select foo from bar where a = 2 and b = 3"
+    )
+  end
+
+  test "where sub-clause with parens" do
+    assert_equal_parse(
+      "select foo from bar where a = 1 and ((b = 2) and c = 3)",
+      "select foo from bar where a = 1 and b = 2 and c = 3"
+    )
+  end
+
   test "boolean values are allowed in comparisons" do
     assert_parse(
       "select foo from bar where a = true and b in (true, false)",
