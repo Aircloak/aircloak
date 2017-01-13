@@ -53,15 +53,15 @@ defmodule IntegrationTest.OdbcTest do
       assert Enum.uniq(rows) == [{'john', '180'}]
     end
 
-    test "select an integer", context, do:
+    test "parameterized query with an integer", context, do:
       # The reason that the result is a string is because the server returns `int8`, and it appears that
       # either the ODBC driver, or ODBC itself converts this into a string.
       assert param_select(context.conn, :sql_integer, 42) == '42'
 
-    test "select a boolean", context, do:
+    test "parameterized query with a boolean", context, do:
       assert param_select(context.conn, :sql_bit, true) == true
 
-    test "select a real", context, do:
+    test "parameterized query with a real", context, do:
       assert param_select(context.conn, :sql_real, 3.14) == 3.14
 
     test "select error", context, do:
