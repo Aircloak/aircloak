@@ -39,7 +39,7 @@ defmodule Air.PsqlServer.Protocol do
 
   @type authentication_method :: :cleartext
 
-  @type psql_type :: :boolean | :int2 | :int4 | :int8 | :float4 | :float8 | :text | :unknown
+  @type psql_type :: :boolean | :int2 | :int4 | :int8 | :float4 | :float8 | :numeric | :text | :unknown
 
   @type column :: %{name: String.t, type: psql_type}
 
@@ -391,6 +391,9 @@ defmodule Air.PsqlServer.Protocol do
   defp decode_value({:float8, :text, value}), do: String.to_float(value)
   defp decode_value({:float4, :binary, <<value::float-32>>}), do: value
   defp decode_value({:float8, :binary, <<value::float-64>>}), do: value
+  defp decode_value({:numeric, :text, value}), do: value |> Decimal.new() |> Decimal.to_float()
+  defp decode_value({:numeric, :binary, value}), do:
+    Decimal.to_float(Decimal.Postgrex.Extensions.Numeric.decode(nil, value, nil, nil))
   defp decode_value({:boolean, :text, "1"}), do: true
   defp decode_value({:boolean, :text, text}), do: String.downcase(text) == "true"
   defp decode_value({:boolean, :binary, <<0>>}), do: false

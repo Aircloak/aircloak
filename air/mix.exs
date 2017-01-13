@@ -73,6 +73,7 @@ defmodule Air.Mixfile do
       {:phoenix_mtm, "~> 0.5.0"},
       {:scrivener_ecto, "~> 1.0"},
       {:scrivener_html, "~> 1.1"},
+      {:decimal, "~> 1.3.0"},
     ]
   end
 

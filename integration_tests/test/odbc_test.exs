@@ -73,6 +73,9 @@ defmodule IntegrationTest.OdbcTest do
     test "parameterized query with a double", context, do:
       assert param_select(context.conn, :sql_double, 3.14, "::real") == 3.14
 
+    test "parameterized query with a decimal", context, do:
+      assert param_select(context.conn, {:sql_decimal, 10, 2}, 3.14) == 3.14
+
     test "parameterized query with a real", context, do:
       assert param_select(context.conn, :sql_real, 3.14) == 3.14
 

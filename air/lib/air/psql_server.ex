@@ -168,6 +168,7 @@ defmodule Air.PsqlServer do
           ~w(700 float4 float4send float4recv float4out float4in 0 0 {}),
           ~w(701 float8 float8send float8recv float8out float8in 0 0 {}),
           ~w(705 unknown unknownsend unknownrecv unknownout unknownin 0 0 {}),
+          ~w(1700 numeric numeric_send numeric_recv numeric_out numeric_in 0 0 {})
         ]
     }
   end
