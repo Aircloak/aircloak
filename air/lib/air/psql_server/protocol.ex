@@ -412,7 +412,7 @@ defmodule Air.PsqlServer.Protocol do
   defp decode_text(:unknown, param) when is_binary(param), do: param
 
   defp decode_binary(type, value), do:
-    postgrex_extension(type).decode(type_info(type), value, nil, :reference)
+    postgrex_extension(type).decode(type_info(type), value, nil, extension_opts(type))
     |> normalize_postgrex_decoded_value()
 
   defp normalize_postgrex_decoded_value(%Decimal{} = value), do: Decimal.to_float(value)
@@ -445,4 +445,11 @@ defmodule Air.PsqlServer.Protocol do
   defp type_info(:date), do: %Postgrex.TypeInfo{send: "date_send"}
   defp type_info(:time), do: %Postgrex.TypeInfo{send: "time_send"}
   defp type_info(_), do: nil
+
+  defp extension_opts(type) do
+    case postgrex_extension(type) do
+      Postgrex.Extensions.Raw -> :reference
+      _ -> nil
+    end
+  end
 end
