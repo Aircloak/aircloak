@@ -29,59 +29,50 @@ defmodule IntegrationTest.OdbcTest do
     assert {:ok, _} = connect(context.user, sslmode: "allow")
   end
 
-  test "disconnecting", context do
-    {:ok, conn} = connect(context.user)
-    assert :ok = :odbc.disconnect(conn)
-  end
+  describe "connection tests" do
+    setup context do
+      {:ok, conn} = connect(context.user)
+      {:ok, Map.put(context, :conn, conn)}
+    end
 
-  test "show tables", context do
-    {:ok, conn} = connect(context.user)
-    assert :odbc.sql_query(conn, 'show tables') == {:selected, ['name'], [{'users'}]}
-  end
+    test "disconnecting", context, do:
+      assert :ok = :odbc.disconnect(context.conn)
 
-  test "show columns", context do
-    {:ok, conn} = connect(context.user)
-    assert :odbc.sql_query(conn, 'show columns from users') == {:selected, ['name', 'type'], [
-      {'user_id', 'text'},
-      {'name', 'text'},
-      {'height', 'integer'}
-    ]}
-  end
+    test "show tables", context, do:
+      assert :odbc.sql_query(context.conn, 'show tables') == {:selected, ['name'], [{'users'}]}
 
-  test "select", context do
-    {:ok, conn} = connect(context.user)
-    assert {:selected, ['name', 'height'], rows} = :odbc.sql_query(conn, 'select name, height from users')
-    assert Enum.uniq(rows) == [{'john', '180'}]
-  end
+    test "show columns", context, do:
+      assert :odbc.sql_query(context.conn, 'show columns from users') == {:selected, ['name', 'type'], [
+        {'user_id', 'text'},
+        {'name', 'text'},
+        {'height', 'integer'}
+      ]}
 
-  test "extended query", context do
-    {:ok, conn} = connect(context.user)
-    assert {:selected, ['name', 'height'], rows} = :odbc.param_query(
-      conn,
-      'select name, height + $1 as height from users where height = $2',
-      [{:sql_integer, [1]}, {:sql_integer, [180]}]
-    )
-    assert Enum.uniq(rows) == [{'john', '181'}]
-  end
+    test "select", context do
+      assert {:selected, ['name', 'height'], rows} = :odbc.sql_query(context.conn, 'select name, height from users')
+      assert Enum.uniq(rows) == [{'john', '180'}]
+    end
 
-  test "select a boolean", context do
-    {:ok, conn} = connect(context.user)
-    assert param_select(conn, :sql_bit, true) == true
-  end
+    test "extended query", context do
+      assert {:selected, ['name', 'height'], rows} = :odbc.param_query(
+        context.conn,
+        'select name, height + $1 as height from users where height = $2',
+        [{:sql_integer, [1]}, {:sql_integer, [180]}]
+      )
+      assert Enum.uniq(rows) == [{'john', '181'}]
+    end
 
-  test "select a real", context do
-    {:ok, conn} = connect(context.user)
-    assert param_select(conn, :sql_real, 3.14) == 3.14
-  end
+    test "select a boolean", context, do:
+      assert param_select(context.conn, :sql_bit, true) == true
 
-  test "select error", context do
-    {:ok, conn} = connect(context.user)
-    ExUnit.CaptureLog.capture_log(fn -> assert {:error, _} = :odbc.sql_query(conn, 'invalid query') end)
-  end
+    test "select a real", context, do:
+      assert param_select(context.conn, :sql_real, 3.14) == 3.14
 
-  test "extended query error", context do
-    {:ok, conn} = connect(context.user)
-    ExUnit.CaptureLog.capture_log(fn -> assert {:error, _} = :odbc.param_query(conn, 'invalid query', []) end)
+    test "select error", context, do:
+      ExUnit.CaptureLog.capture_log(fn -> assert {:error, _} = :odbc.sql_query(context.conn, 'invalid query') end)
+
+    test "extended query error", context, do:
+      ExUnit.CaptureLog.capture_log(fn -> assert {:error, _} = :odbc.param_query(context.conn, 'invalid query', []) end)
   end
 
 
