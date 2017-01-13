@@ -62,9 +62,8 @@ defmodule Cloak.Aql.TypeChecker do
     }
 
     defstruct [
-      constant?: false, dangerously_discontinuous?: false,
-      seen_dangerous_math?: false, constant_involved?: false,
-      narrative_breadcrumbs: [], been_through_datetime_function?: false,
+      constant?: false, constant_involved?: false, been_through_datetime_function?: false,
+      dangerously_discontinuous?: false, seen_dangerous_math?: false, narrative_breadcrumbs: [],
     ]
   end
 
