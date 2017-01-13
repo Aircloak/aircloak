@@ -66,22 +66,12 @@ defmodule IntegrationTest.OdbcTest do
 
   test "select a boolean", context do
     {:ok, conn} = connect(context.user)
-    assert {:selected, ['x'], rows} = :odbc.param_query(
-      conn,
-      'select $1 as x from users',
-      [{:sql_bit, [true]}]
-    )
-    assert Enum.uniq(rows) == [{true}]
+    assert param_select(conn, :sql_bit, true) == true
   end
 
   test "select a real", context do
     {:ok, conn} = connect(context.user)
-    assert {:selected, ['x'], rows} = :odbc.param_query(
-      conn,
-      'select $1 as x from users',
-      [{:sql_real, [3.14]}]
-    )
-    assert Enum.uniq(rows) == [{3.14}]
+    assert param_select(conn, :sql_real, 3.14) == 3.14
   end
 
   test "select error", context do
@@ -94,6 +84,12 @@ defmodule IntegrationTest.OdbcTest do
     ExUnit.CaptureLog.capture_log(fn -> assert {:error, _} = :odbc.param_query(conn, 'invalid query', []) end)
   end
 
+
+  defp param_select(conn, type, value) do
+    {:selected, ['x'], rows} = :odbc.param_query(conn, 'select $1 as x from users', [{type, [value]}])
+    [{result}] = Enum.uniq(rows)
+    result
+  end
 
   defp connect(user, params \\ []) do
     params = Keyword.merge(
