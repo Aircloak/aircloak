@@ -396,17 +396,19 @@ defmodule Air.PsqlServer.Protocol do
   end
 
   defp decode_value({_, _, nil}), do: nil
+  defp decode_value({type, :text, value}), do: decode_text(type, value)
   defp decode_value({type, :binary, value}), do: decode_binary(type, value)
-  defp decode_value({:int2, :text, param}), do: String.to_integer(param)
-  defp decode_value({:int4, :text, param}), do: String.to_integer(param)
-  defp decode_value({:int8, :text, param}), do: String.to_integer(param)
-  defp decode_value({:float4, :text, value}), do: String.to_float(value)
-  defp decode_value({:float8, :text, value}), do: String.to_float(value)
-  defp decode_value({:numeric, :text, value}), do: value |> Decimal.new() |> Decimal.to_float()
-  defp decode_value({:boolean, :text, "1"}), do: true
-  defp decode_value({:boolean, :text, text}), do: String.downcase(text) == "true"
-  defp decode_value({:text, :text, param}) when is_binary(param), do: param
-  defp decode_value({:unknown, :text, param}) when is_binary(param), do: param
+
+  defp decode_text(:int2, param), do: String.to_integer(param)
+  defp decode_text(:int4, param), do: String.to_integer(param)
+  defp decode_text(:int8, param), do: String.to_integer(param)
+  defp decode_text(:float4, value), do: String.to_float(value)
+  defp decode_text(:float8, value), do: String.to_float(value)
+  defp decode_text(:numeric, value), do: value |> Decimal.new() |> Decimal.to_float()
+  defp decode_text(:boolean, "1"), do: true
+  defp decode_text(:boolean, text), do: String.downcase(text) == "true"
+  defp decode_text(:text, param) when is_binary(param), do: param
+  defp decode_text(:unknown, param) when is_binary(param), do: param
 
   defp decode_binary(type, value), do:
     Map.fetch!(postgrex_decoders(), type).decode(nil, value, nil, :reference)
