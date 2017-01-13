@@ -43,7 +43,9 @@ defmodule Air.PsqlServer.Protocol.Messages do
     [name, parse_data] = :binary.split(parse_data, <<0>>)
     [query, parse_data] = :binary.split(parse_data, <<0>>)
     <<num_params::16, parse_data::binary>> = parse_data
-    param_types = for <<oid::32 <- parse_data>>, do: type_name(oid)
+    param_types = for <<oid::32 <- parse_data>> do
+      if oid == 0, do: :unknown, else: type_name(oid)
+    end
 
     %{
       name: name,
