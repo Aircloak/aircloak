@@ -37,7 +37,7 @@ defmodule Cloak.Aql.TypeChecker do
 
       # True if any of the expressions it has come in contact with through functions
       # were constant.
-      touched_by_constant?: boolean,
+      constant_involved?: boolean,
 
       # If a function like year, month, etc has been used on the value.
       been_through_datetime_function?: boolean,
@@ -63,7 +63,7 @@ defmodule Cloak.Aql.TypeChecker do
 
     defstruct [
       constant?: false, dangerously_discontinuous?: false,
-      seen_dangerous_math?: false, touched_by_constant?: false,
+      seen_dangerous_math?: false, constant_involved?: false,
       narrative_breadcrumbs: [], been_through_datetime_function?: false,
     ]
   end
@@ -108,7 +108,7 @@ defmodule Cloak.Aql.TypeChecker do
     any_touched_by_constant?(child_types)
   defp dangerously_discontinuous?("/", _future, [_, child_type]), do:
     # This allows division by a pure constant, but not by a column influenced by a constant
-    child_type.touched_by_constant? && not child_type.constant?
+    child_type.constant_involved? && not child_type.constant?
   defp dangerously_discontinuous?({:cast, _}, _future, child_types), do: any_touched_by_constant?(child_types)
   defp dangerously_discontinuous?(name, future, child_types)
       when name in @discontinuous_string_functions, do:
@@ -129,9 +129,9 @@ defmodule Cloak.Aql.TypeChecker do
   defp later_turned_into_a_number?(future), do:
     Enum.any?(["length", {:cast, :integer}, {:cast, :real}, {:cast, :boolean}], &(Enum.member?(future, &1)))
 
-  defp any_touched_by_constant?(types), do: Enum.any?(types, &(&1.touched_by_constant?))
+  defp any_touched_by_constant?(types), do: Enum.any?(types, &(&1.constant_involved?))
 
-  defp constant(), do: %Type{constant?: true, touched_by_constant?: true}
+  defp constant(), do: %Type{constant?: true, constant_involved?: true}
 
   defp column(expression), do: %Type{constant?: false, narrative_breadcrumbs: [{expression, []}]}
 
@@ -173,7 +173,7 @@ defmodule Cloak.Aql.TypeChecker do
         {expression, breadcrumbs}
       end)
       %Type{
-        touched_by_constant?: any_touched_by_constant?(child_types),
+        constant_involved?: any_touched_by_constant?(child_types),
         seen_dangerous_math?: performs_dangerous_math?(name, future, child_types) ||
           Enum.any?(child_types, &(&1.seen_dangerous_math?)),
         dangerously_discontinuous?: dangerously_discontinuous?(name, future, child_types) ||
