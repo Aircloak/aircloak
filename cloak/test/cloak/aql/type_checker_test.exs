@@ -160,6 +160,20 @@ defmodule Cloak.Aql.TypeChecker.Test do
     end
   end
 
+  describe "detection of datetime functions" do
+    Enum.each(~w(year month day hour minute second weekday), fn(datetime_function) ->
+      test "#{datetime_function} triggers datetime function recognition" do
+        type = type_first_column("SELECT #{unquote(datetime_function)}(column) FROM table")
+        assert type.been_through_datetime_function?
+      end
+    end)
+
+    test "does not triggers datetime function recognition when none is used" do
+      type = type_first_column("SELECT column FROM table")
+      refute type.been_through_datetime_function?
+    end
+  end
+
   describe "records a trail of narrative breadcrumbs" do
     test "empty narrative for queries without functions or math" do
       type = type_first_column("SELECT numeric FROM table")

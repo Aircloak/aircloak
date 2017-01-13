@@ -39,6 +39,9 @@ defmodule Cloak.Aql.TypeChecker do
       # were constant.
       touched_by_constant?: boolean,
 
+      # If a function like year, month, etc has been used on the value.
+      been_through_datetime_function?: boolean,
+
       # True if the expression has been processed by a discontinuous function and the
       # parameters of the function call were such that the computation is classified
       # as potentially dangerous (i.e. an attack vector).
@@ -61,7 +64,7 @@ defmodule Cloak.Aql.TypeChecker do
     defstruct [
       constant?: false, dangerously_discontinuous?: false,
       seen_dangerous_math?: false, touched_by_constant?: false,
-      narrative_breadcrumbs: [],
+      narrative_breadcrumbs: [], been_through_datetime_function?: false,
     ]
   end
 
@@ -73,6 +76,7 @@ defmodule Cloak.Aql.TypeChecker do
   @discontinuous_math_functions ~w(% abs ceil ceiling div floor mod round trunc sqrt)
   @discontinuous_string_functions ~w(btrim left ltrim right rtrim substring)
   @continuous_math_functions ~w(+ - * / ^ pow)
+  @datetime_functions ~w(year month day hour minute second weekday)
 
   @doc "Returns true if an expression of this type is safe to be reported. False otherwise"
   @spec ok_for_display?(Type.t) :: boolean
@@ -114,6 +118,8 @@ defmodule Cloak.Aql.TypeChecker do
   defp performs_dangerous_math?(name, _future, child_types) when name in @continuous_math_functions, do:
     any_touched_by_constant?(child_types)
   defp performs_dangerous_math?(_, _future, _child_types), do: false
+
+  defp performs_datetime_function?(name), do: name in @datetime_functions
 
 
   # -------------------------------------------------------------------
@@ -173,6 +179,8 @@ defmodule Cloak.Aql.TypeChecker do
         dangerously_discontinuous?: dangerously_discontinuous?(name, future, child_types) ||
           Enum.any?(child_types, &(&1.dangerously_discontinuous?)),
         narrative_breadcrumbs: updated_narrative_breadcrumbs,
+        been_through_datetime_function?: performs_datetime_function?(name) ||
+          Enum.any?(child_types, &(&1.been_through_datetime_function?)),
       }
     end
   end
