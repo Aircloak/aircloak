@@ -55,7 +55,7 @@ defmodule Cloak.Query.ShrinkAndDrop do
       |> Buffer.range_except_extreme(count)
       |> case do
         {x, x} -> {x, Cloak.Data.plus_epsilon(x)}
-        interval -> FixAlign.align_interval(interval)
+        {x, y} -> {x, Cloak.Data.plus_epsilon(y)} |> FixAlign.align_interval()
       end
 
     {buffer |> Buffer.inside(interval) |> Enum.map(&undecorate_row/1), nil}

@@ -29,7 +29,7 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer do
   @doc "Returns true if the value is less than or equal to the smallest value in this buffer, false otherwise."
   @spec under?(t, Buffer.row_value) :: boolean
   def under?(%{min: nil}, _), do: false
-  def under?(%{min: min}, value), do: Cloak.Data.lt_eq(value, min)
+  def under?(%{min: min}, value), do: Cloak.Data.lt(value, min)
 
   @doc "Returns true if the value is greater than or equal to the largest value in this buffer, false otherwise."
   @spec over?(t, Buffer.row_value) :: boolean
@@ -95,9 +95,7 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer do
     if Enum.count(users) > size, do: pop(buffer), else: {buffer, []}
 
   defp pop(buffer) do
-    {user_to_pop, _} = Enum.reduce(buffer.users, Enum.at(buffer.users, 0), fn
-      (user = {_, %{value: x}}, found = {_, %{value: y}}) -> if buffer.comparator.(y, x), do: user, else: found
-    end)
+    {user_to_pop, _} = Enum.reduce(buffer.users, Enum.at(buffer.users, 0), &to_pop(buffer.comparator, &1, &2))
     {%{rows: rows}, new_users} = Map.pop(buffer.users, user_to_pop)
 
     {
@@ -110,4 +108,7 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer do
       rows
     }
   end
+
+  defp to_pop(comparator, x = {_, %{value: x_value}}, y = {_, %{value: y_value}}), do:
+    if comparator.(y_value, x_value), do: x, else: y
 end
