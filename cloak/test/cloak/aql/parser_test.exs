@@ -353,6 +353,20 @@ defmodule Cloak.Aql.Parser.Test do
     )
   end
 
+  test "where clause with parens" do
+    assert_equal_parse(
+      "select foo from bar where (a = 2 and b = 3)",
+      "select foo from bar where a = 2 and b = 3"
+    )
+  end
+
+  test "where sub-clause with parens" do
+    assert_equal_parse(
+      "select foo from bar where a = 1 and ((b = 2) and c = 3)",
+      "select foo from bar where a = 1 and b = 2 and c = 3"
+    )
+  end
+
   test "boolean values are allowed in comparisons" do
     assert_parse(
       "select foo from bar where a = true and b in (true, false)",
@@ -361,6 +375,13 @@ defmodule Cloak.Aql.Parser.Test do
         where: [{:comparison, identifier("a"), :=, constant(true)},
           {:in, identifier("b"), constants([true, false])}]
       )
+    )
+  end
+
+  test "having clause with parens" do
+    assert_equal_parse(
+      "select foo from bar having (a = 1 and b = 3) and (c = 4)",
+      "select foo from bar having a = 1 and b = 3 and c = 4"
     )
   end
 
@@ -458,6 +479,13 @@ defmodule Cloak.Aql.Parser.Test do
       )
     )
     assert select(columns: [identifier("foo")], from: unquoted("baz")) = sq
+  end
+
+  test "join condition with parens" do
+    assert_equal_parse(
+      "select foo from bar inner join baz on (a = 1 and (b = 2))",
+      "select foo from bar inner join baz on a = 1 and b = 2"
+    )
   end
 
   test "count(distinct column)" do
