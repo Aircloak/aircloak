@@ -19,16 +19,26 @@ defmodule Cloak.Query.ShrinkAndDrop.Test do
     assert ShrinkAndDrop.apply(data, query) |> Enum.sort() == Enum.sort(data)
   end
 
+  test "when all values are clustered at ends of an aligned interval nothing is dropped" do
+    data = [["user1", 10], ["user2", 10], ["user3", 10], ["user4", 20], ["user5", 20], ["user6", 20]]
+    query = %{ranges: [Range.new(%Expression{type: :integer, row_index: 1}, {0, 50}, :having)]}
+
+    assert ShrinkAndDrop.apply(data, query) |> Enum.sort() == Enum.sort(data)
+  end
+
   test "a basic scenario" do
-    data = [["user1", 10], ["user1", 15], ["user2", 20], ["user2", 25], ["user3", 30]]
+    data = [
+      ["user1", 10], ["user2", 20], ["user3", 20], ["user4", 20], ["user5", 25], ["user6", 25],
+      ["user7", 25], ["user100", 30]
+    ]
     query = %{ranges: [Range.new(%Expression{type: :integer, row_index: 1}, {0, 50}, :having)]}
 
     assert ShrinkAndDrop.apply(data, query) |> Enum.sort() ==
-      [["user1", 10], ["user1", 15], ["user2", 20], ["user2", 25]]
+      [["user2", 20], ["user3", 20], ["user4", 20], ["user5", 25], ["user6", 25], ["user7", 25]]
   end
 
   property "order-independence" do
-    for_all data in data_stream(0, 100) do
+    for_all data in data_stream(0, 50) do
       query = %{ranges: [Range.new(%Expression{type: :integer, row_index: 1}, {0, 100}, :having)]}
 
       :rand.seed(:exsplus, {1, 2, 3})
