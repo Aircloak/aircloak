@@ -96,7 +96,7 @@ defmodule Cloak.Aql.Compiler do
       |> verify_limit()
       |> verify_offset()
       |> verify_function_usage_for_selected_columns()
-      |> verify_function_usage_for_where_clauses()
+      |> verify_function_usage_for_condition_clauses()
       |> parse_row_splitters()
       |> partition_selected_columns()
     }
@@ -1263,8 +1263,9 @@ defmodule Cloak.Aql.Compiler do
     query
   end
 
-  defp verify_function_usage_for_where_clauses(query) do
-    Query.Lenses.where_inequality_columns()
+  defp verify_function_usage_for_condition_clauses(query) do
+    inequality_conditions_lens_sources(query)
+    |> Query.Lenses.inequality_condition_columns()
     |> Lens.to_list(query)
     |> Enum.each(fn(column) ->
       type = TypeChecker.type(column, query)
@@ -1281,6 +1282,11 @@ defmodule Cloak.Aql.Compiler do
     end)
     query
   end
+
+  defp inequality_conditions_lens_sources(%Query{subquery?: false}), do:
+    Query.Lenses.sources_of_operands_except_having()
+  defp inequality_conditions_lens_sources(_query), do:
+    Query.Lenses.sources_of_operands()
 
   defp construct_explanation(columns) when is_list(columns), do:
     Enum.map(columns, &construct_explanation(&1))

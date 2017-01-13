@@ -62,9 +62,8 @@ defmodule Cloak.Aql.Query.Lenses do
     |> Lens.at(1)
 
   @doc "Lens focusing on all WHERE-clause inequalities in a query."
-  deflens where_inequality_columns(), do:
-    Lens.keys([:where, :lcf_check_conditions])
-    |> do_where_inequality_columns()
+  deflens inequality_condition_columns(), do:
+    do_inequality_columns()
     |> Lens.satisfy(&(not &1.constant?))
 
   @doc "Lens focusing on the tables selected from the database. Does not include subqueries."
@@ -86,16 +85,28 @@ defmodule Cloak.Aql.Query.Lenses do
     |> Lens.key(:conditions)
     |> conditions_terminals()
 
+  @doc "Lens focusing on all sources in a query where condition operands can be found"
+  def sources_of_operands(), do:
+    Lens.multiple([sources_of_operands_except_having(), Lens.key(:having)])
+
+  @doc """
+  Lens focusing on all sources in a query where condition operands can be found
+  with the exception of in HAVING clauses. If HAVING clauses should also be
+  included, use `sources_of_operands` instead
+  """
+  def sources_of_operands_except_having(), do:
+    Lens.multiple([
+      Lens.keys([:where, :encoded_where, :lcf_check_conditions]),
+      join_conditions()
+    ])
+
 
   # -------------------------------------------------------------------
   # Internal lenses
   # -------------------------------------------------------------------
 
   defp filters_operands(), do:
-    Lens.multiple([
-      Lens.keys([:where, :having, :encoded_where, :lcf_check_conditions]),
-      join_conditions()
-    ])
+    sources_of_operands()
     |> Lens.all()
     |> operands()
 
@@ -106,11 +117,11 @@ defmodule Cloak.Aql.Query.Lenses do
     |> Lens.at(1)
     |> Lens.key(:conditions)
 
-  deflensp do_where_inequality_columns(), do:
+  deflensp do_inequality_columns(), do:
     Lens.match(fn
       {:comparison, _, check, _} when check in ~w(> >= < <=)a ->
-        Lens.indices([1, 3]) |> do_where_inequality_columns()
-      elements when is_list(elements) -> Lens.all() |> do_where_inequality_columns()
+        Lens.indices([1, 3]) |> do_inequality_columns()
+      elements when is_list(elements) -> Lens.all() |> do_inequality_columns()
       %Expression{} -> Lens.root()
       _ -> Lens.empty()
     end)
@@ -157,6 +168,7 @@ defmodule Cloak.Aql.Query.Lenses do
           Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> join_elements()
         )
       {:subquery, _} -> Lens.root()
+      nil -> Lens.empty()
       table when is_binary(table) -> Lens.root()
     end)
 end
