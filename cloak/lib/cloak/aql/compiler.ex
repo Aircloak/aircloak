@@ -1344,6 +1344,7 @@ defmodule Cloak.Aql.Compiler do
   defp data_type(value, _index) when is_float(value), do: :real
   defp data_type(value, _index) when is_binary(value), do: :text
   defp data_type(%Date{}, _index), do: :date
+  defp data_type(%Time{}, _index), do: :time
   defp data_type(_value, index), do:
     raise CompilationError, message: "Invalid value for parameter `$#{index}`"
 
