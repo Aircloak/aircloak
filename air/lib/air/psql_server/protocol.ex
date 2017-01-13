@@ -40,7 +40,13 @@ defmodule Air.PsqlServer.Protocol do
   @type authentication_method :: :cleartext
 
   @type psql_type ::
-    :boolean | :int2 | :int4 | :int8 | :float4 | :float8 | :numeric | :text | :date | :time | :unknown
+    :boolean
+    | :int2 | :int4 | :int8
+    | :float4 | :float8
+    | :numeric
+    | :text
+    | :date | :time | :timestamp
+    | :unknown
 
   @type column :: %{name: String.t, type: psql_type}
 
@@ -429,6 +435,7 @@ defmodule Air.PsqlServer.Protocol do
   defp normalize_for_postgrex_encoding(:numeric, value), do: Decimal.new(value)
   defp normalize_for_postgrex_encoding(:date, value), do: Date.from_iso8601!(value)
   defp normalize_for_postgrex_encoding(:time, value), do: Time.from_iso8601!(value)
+  defp normalize_for_postgrex_encoding(:timestamp, value), do: NaiveDateTime.from_iso8601!(value)
   defp normalize_for_postgrex_encoding(_, value), do: value
 
   for {type, extension} <- [
@@ -436,7 +443,7 @@ defmodule Air.PsqlServer.Protocol do
     float4: Postgrex.Extensions.Float4, float8: Postgrex.Extensions.Float8,
     numeric: Postgrex.Extensions.Numeric,
     boolean: Postgrex.Extensions.Bool,
-    date: Postgrex.Extensions.Calendar, time: Postgrex.Extensions.Calendar,
+    date: Postgrex.Extensions.Calendar, time: Postgrex.Extensions.Calendar, timestamp: Postgrex.Extensions.Calendar,
     text: Postgrex.Extensions.Raw
   ] do
     defp postgrex_extension(unquote(type)), do: unquote(extension)
@@ -444,6 +451,7 @@ defmodule Air.PsqlServer.Protocol do
 
   defp type_info(:date), do: %Postgrex.TypeInfo{send: "date_send"}
   defp type_info(:time), do: %Postgrex.TypeInfo{send: "time_send"}
+  defp type_info(:timestamp), do: %Postgrex.TypeInfo{send: "timestamp_send"}
   defp type_info(_), do: nil
 
   defp extension_opts(type) do

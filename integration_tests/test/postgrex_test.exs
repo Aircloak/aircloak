@@ -56,6 +56,13 @@ defmodule IntegrationTest.PostgrexTest do
     assert Enum.uniq(result.rows) == [[%Postgrex.Time{hour: 1, min: 2, sec: 3, usec: 4}]]
   end
 
+  test "select a datetime", context do
+    result = Postgrex.query!(context.conn, "select $1::datetime from users",
+      [%Postgrex.Timestamp{year: 2017, month: 1, day: 31, hour: 1, min: 2, sec: 3, usec: 4}])
+    assert result.columns == ["cast"]
+    assert Enum.uniq(result.rows) == [[%Postgrex.Timestamp{year: 2017, month: 1, day: 31, hour: 1, min: 2, sec: 3, usec: 4}]]
+  end
+
   test "multiple queries on the same connection", context do
     assert {:error, _} = Postgrex.query(context.conn, "select $1 from users", ["foobar"])
     assert {:ok, _} = Postgrex.query(context.conn, "select $1::text from users", ["foobar"])

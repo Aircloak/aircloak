@@ -141,6 +141,7 @@ defmodule Air.PsqlServer do
     "text" => :text,
     "date" => :date,
     "time" => :time,
+    "datetime" => :timestamp,
   } do
     defp type_atom(unquote(aql_type)), do: unquote(psql_type)
   end
@@ -172,6 +173,7 @@ defmodule Air.PsqlServer do
           ~w(705 unknown unknownsend unknownrecv unknownout unknownin 0 0 {}),
           ~w(1082 date date_send date_recv date_out date_in 0 0 {}),
           ~w(1083 time time_send time_recv time_out time_in 0 0 {}),
+          ~w(1114 timestamp timestamp_send timestamp_recv timestamp_out timestamp_in 0 0 {}),
           ~w(1700 numeric numeric_send numeric_recv numeric_out numeric_in 0 0 {})
         ]
     }
