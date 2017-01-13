@@ -172,7 +172,7 @@ defmodule Cloak.AirSocket do
 
   defp handle_air_call("run_query", serialized_query, from, state) do
     %{"id" => id, "statement" => statement, "data_source" => data_source} = serialized_query
-    parameters = Map.fetch!(serialized_query, "parameters")
+    parameters = decode_params(Map.fetch!(serialized_query, "parameters"))
     views = Map.fetch!(serialized_query, "views")
     case Cloak.DataSource.fetch(data_source) do
       :error ->
@@ -187,7 +187,7 @@ defmodule Cloak.AirSocket do
   end
   defp handle_air_call("describe_query", serialized_query, from, state) do
     %{"statement" => statement, "data_source" => data_source} = serialized_query
-    parameters = Map.fetch!(serialized_query, "parameters")
+    parameters = decode_params(Map.fetch!(serialized_query, "parameters"))
     views = Map.fetch!(serialized_query, "views")
     case Cloak.DataSource.fetch(data_source) do
       :error ->
@@ -230,6 +230,8 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp decode_params(params), do: :erlang.binary_to_term(Base.decode16!(params))
 
   defp air_socket_url(cloak_params) do
     # deploy specific configuration takes precedence over OTP app configuration
