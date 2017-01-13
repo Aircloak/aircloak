@@ -304,6 +304,11 @@ defmodule Air.PsqlServer.Protocol do
     |> add_action({:run_query, payload, [], 0})
     |> next_state(:running_query)
   defp handle_ready_message(state, :parse, prepared_statement) do
+    prepared_statement = Map.merge(
+      prepared_statement,
+      %{params: nil, parsed_param_types: [], result_codes: nil}
+    )
+
     state
     |> put_in([:prepared_statements, prepared_statement.name], prepared_statement)
     |> request_send(parse_complete())

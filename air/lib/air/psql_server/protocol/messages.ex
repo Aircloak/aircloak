@@ -52,9 +52,6 @@ defmodule Air.PsqlServer.Protocol.Messages do
       query: query,
       num_params: num_params,
       param_types: param_types,
-      params: nil,
-      parsed_param_types: [],
-      result_codes: nil
     }
   end
   def decode_message(:password, password_message) do
