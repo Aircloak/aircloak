@@ -52,7 +52,7 @@ defmodule Air.PsqlServer.Protocol do
     param_types: [psql_type],
     parsed_param_types: [psql_type],
     params: [db_value],
-    result_codes: [:text | :binary]
+    result_codes: nil | [:text | :binary]
   }
 
   @type describe_result :: %{error: String.t} | %{columns: [column], param_types: [psql_type]}
