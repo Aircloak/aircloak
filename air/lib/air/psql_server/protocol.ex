@@ -396,31 +396,38 @@ defmodule Air.PsqlServer.Protocol do
   end
 
   defp decode_value({_, _, nil}), do: nil
+  defp decode_value({type, :binary, value}), do: decode_binary(type, value)
   defp decode_value({:int2, :text, param}), do: String.to_integer(param)
-  defp decode_value({:int2, :binary, <<value::signed-16>>}), do: value
   defp decode_value({:int4, :text, param}), do: String.to_integer(param)
-  defp decode_value({:int4, :binary, <<value::signed-32>>}), do: value
   defp decode_value({:int8, :text, param}), do: String.to_integer(param)
-  defp decode_value({:int8, :binary, <<value::signed-64>>}), do: value
   defp decode_value({:float4, :text, value}), do: String.to_float(value)
   defp decode_value({:float8, :text, value}), do: String.to_float(value)
-  defp decode_value({:float4, :binary, <<value::float-32>>}), do: value
-  defp decode_value({:float8, :binary, <<value::float-64>>}), do: value
   defp decode_value({:numeric, :text, value}), do: value |> Decimal.new() |> Decimal.to_float()
-  defp decode_value({:numeric, :binary, value}), do:
-    Decimal.to_float(Decimal.Postgrex.Extensions.Numeric.decode(nil, value, nil, nil))
   defp decode_value({:boolean, :text, "1"}), do: true
   defp decode_value({:boolean, :text, text}), do: String.downcase(text) == "true"
-  defp decode_value({:boolean, :binary, <<0>>}), do: false
-  defp decode_value({:boolean, :binary, <<1>>}), do: true
-  defp decode_value({:text, _, param}) when is_binary(param), do: param
-  defp decode_value({:date, :binary, <<days::signed-32>>}) do
-    epoch = :calendar.date_to_gregorian_days({2000, 1, 1})
-    {year, month, day} = :calendar.gregorian_days_to_date(days + epoch)
-    {:ok, date} = Date.new(year, month, day)
+  defp decode_value({:text, :text, param}) when is_binary(param), do: param
+  defp decode_value({:unknown, :text, param}) when is_binary(param), do: param
+
+  defp decode_binary(type, value), do:
+    Map.fetch!(postgrex_decoders(), type).decode(nil, value, nil, :reference)
+    |> normalize_postgrex_decoded_value()
+
+  defp normalize_postgrex_decoded_value(%Decimal{} = value), do: Decimal.to_float(value)
+  defp normalize_postgrex_decoded_value(%Postgrex.Date{} = date) do
+    {:ok, date} = Date.new(date.year, date.month, date.day)
     date
   end
-  defp decode_value({:unknown, _, param}) when is_binary(param), do: param
+  defp normalize_postgrex_decoded_value(value), do: value
+
+  defp postgrex_decoders(), do:
+    %{
+      int2: Postgrex.Extensions.Int2, int4: Postgrex.Extensions.Int4, int8: Postgrex.Extensions.Int8,
+      float4: Postgrex.Extensions.Float4, float8: Postgrex.Extensions.Float8,
+      numeric: Postgrex.Extensions.Numeric,
+      boolean: Postgrex.Extensions.Bool,
+      date: Postgrex.Extensions.Date,
+      text: Postgrex.Extensions.Raw
+    }
 
   defp encode_values(values, column_types, formats), do:
     Enum.map(Enum.zip([values, column_types, Stream.cycle(formats)]), &encode_value/1)
