@@ -70,6 +70,12 @@ defmodule IntegrationTest.OdbcTest do
     test "parameterized query with a real", context, do:
       assert param_select(context.conn, :sql_real, 3.14) == 3.14
 
+    test "parameterized query with a varchar", context, do:
+      assert param_select(context.conn, {:sql_varchar, 6}, 'foobar') == 'foobar'
+
+    test "parameterized query with a char", context, do:
+      assert param_select(context.conn, {:sql_char, 6}, 'foobar') == 'foobar'
+
     test "select error", context, do:
       ExUnit.CaptureLog.capture_log(fn -> assert {:error, _} = :odbc.sql_query(context.conn, 'invalid query') end)
 
