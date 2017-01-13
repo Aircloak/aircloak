@@ -389,6 +389,8 @@ defmodule Air.PsqlServer.Protocol do
   defp decode_value({:float8, :text, value}), do: String.to_float(value)
   defp decode_value({:float4, :binary, <<value::float-32>>}), do: value
   defp decode_value({:float8, :binary, <<value::float-64>>}), do: value
+  defp decode_value({:boolean, :text, "1"}), do: true
+  defp decode_value({:boolean, :text, text}), do: String.downcase(text) == "true"
   defp decode_value({:boolean, :binary, <<0>>}), do: false
   defp decode_value({:boolean, :binary, <<1>>}), do: true
   defp decode_value({:text, _, param}) when is_binary(param), do: param
