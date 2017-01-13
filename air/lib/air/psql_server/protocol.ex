@@ -411,7 +411,7 @@ defmodule Air.PsqlServer.Protocol do
   defp decode_text(:unknown, param) when is_binary(param), do: param
 
   defp decode_binary(type, value), do:
-    Map.fetch!(postgrex_decoders(), type).decode(nil, value, nil, :reference)
+    Map.fetch!(postgrex_extensions(), type).decode(nil, value, nil, :reference)
     |> normalize_postgrex_decoded_value()
 
   defp normalize_postgrex_decoded_value(%Decimal{} = value), do: Decimal.to_float(value)
@@ -421,7 +421,7 @@ defmodule Air.PsqlServer.Protocol do
   end
   defp normalize_postgrex_decoded_value(value), do: value
 
-  defp postgrex_decoders(), do:
+  defp postgrex_extensions(), do:
     %{
       int2: Postgrex.Extensions.Int2, int4: Postgrex.Extensions.Int4, int8: Postgrex.Extensions.Int8,
       float4: Postgrex.Extensions.Float4, float8: Postgrex.Extensions.Float8,
@@ -435,15 +435,14 @@ defmodule Air.PsqlServer.Protocol do
     Enum.map(Enum.zip([values, column_types, Stream.cycle(formats)]), &encode_value/1)
 
   defp encode_value({nil, _, _}), do: <<-1::32>>
-  defp encode_value({integer, :int8, :binary}), do: <<integer::signed-64>>
-  defp encode_value({float, :float8, :binary}), do: <<float::float-64>>
-  defp encode_value({false, :boolean, :binary}), do: <<0>>
-  defp encode_value({true, :boolean, :binary}), do: <<1>>
-  defp encode_value({date_str, :date, :binary}) do
-    epoch = :calendar.date_to_gregorian_days({2000, 1, 1})
-    date = Date.from_iso8601!(date_str)
-    <<:calendar.date_to_gregorian_days({date.year, date.month, date.day}) - epoch :: signed-32>>
-  end
-  defp encode_value({value, :text, _}), do: to_string(value)
+  defp encode_value({value, type, :binary}), do:
+    Map.fetch!(postgrex_extensions(), type).encode(nil, normalize_for_postgrex_encoding(type, value), nil, nil)
   defp encode_value({value, _, :text}), do: to_string(value)
+
+  defp normalize_for_postgrex_encoding(:numeric, value), do: Decimal.new(value)
+  defp normalize_for_postgrex_encoding(:date, value) do
+    date = Date.from_iso8601!(value)
+    %Postgrex.Date{year: date.year, month: date.month, day: date.day}
+  end
+  defp normalize_for_postgrex_encoding(_, value), do: value
 end
