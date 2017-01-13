@@ -836,12 +836,11 @@ defmodule Cloak.Aql.Compiler do
     if implement_range?({left, right}, conditions) do
       update_in(query, [Lens.key(key)], &(conditions ++ &1))
     else
-      name = Expression.display_name(column)
-
       query
       |> add_clause(key, {:comparison, column, :<, Expression.constant(column.type, right)})
       |> add_clause(key, {:comparison, column, :>=, Expression.constant(column.type, left)})
-      |> Query.add_info("The range for column #{name} has been adjusted to #{left} <= #{name} < #{right}.")
+      |> Query.add_info("The range for column #{Expression.display_name(column)} has been adjusted to #{left} <= "
+        <> "#{Expression.short_name(column)} < #{right}.")
     end
     |> put_in([Lens.key(:ranges), Lens.front()], Range.new(column, {left, right}, key))
   end

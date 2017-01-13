@@ -533,7 +533,7 @@ defmodule Cloak.Aql.Compiler.Test do
     assert compile!("select * from table where column > '2015-01-01' and column < '2016-08-02'", data_source()).where
       == aligned.where
     assert aligned.info == ["The range for column `column` from table `table` has been adjusted to "
-      <> "2015-01-01 00:00:00.000000 <= `column` from table `table` < 2017-01-01 00:00:00.000000."]
+      <> "2015-01-01 00:00:00.000000 <= `column` < 2017-01-01 00:00:00.000000."]
   end
 
   test "no message when datetime alignment does not require fixing" do
@@ -546,7 +546,7 @@ defmodule Cloak.Aql.Compiler.Test do
     assert compile!("select * from table where column > '2015-01-01' and column < '2016-08-02'", date_data_source()).
       where == aligned.where
     assert aligned.info == ["The range for column `column` from table `table` has been adjusted to 2015-01-01 <= "
-      <> "`column` from table `table` < 2017-01-01."]
+      <> "`column` < 2017-01-01."]
   end
 
   test "fixes alignment of time ranges" do
@@ -555,7 +555,7 @@ defmodule Cloak.Aql.Compiler.Test do
       where == aligned.where
     assert aligned.
       info == ["The range for column `column` from table `table` has been adjusted to 00:00:00.000000 <= "
-        <> "`column` from table `table` < 00:00:05.000000."]
+        <> "`column` < 00:00:05.000000."]
   end
 
   test "no message when time alignment does not require fixing" do
@@ -565,8 +565,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
   test "includes an info message when the aligment is fixed" do
     assert [msg] = compile!("select count(*) from table where numeric >= 0.1 and numeric < 1.9", data_source()).info
-    assert msg == "The range for column `numeric` from table `table` has been adjusted to 0.0 <= `numeric` from table "
-      <> "`table` < 2.0."
+    assert msg == "The range for column `numeric` from table `table` has been adjusted to 0.0 <= `numeric` < 2.0."
   end
 
   test "columns with an inequality are requested for fetching" do
