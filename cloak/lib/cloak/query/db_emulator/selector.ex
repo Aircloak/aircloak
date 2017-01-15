@@ -175,7 +175,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp set_max(set), do: Enum.reduce(set, &Data.max/2)
 
-  defp joined_row_size({:subquery, subquery}), do: Enum.count(subquery.ast.db_columns)
+  defp joined_row_size({:subquery, subquery}), do: Enum.count(subquery.ast.columns)
   defp joined_row_size({:join, join}), do: joined_row_size(join.lhs) + joined_row_size(join.rhs)
 
   defp add_prefix_to_rows(stream, row), do: Stream.map(stream, &row ++ &1)
