@@ -930,6 +930,21 @@ defmodule Cloak.Aql.Compiler.Test do
     end
   end
 
+  describe "Condition-inequalities affected by datetime extractors are forbidden" do
+    Enum.each(~w(year month day hour minute second weekday), fn(extractor_fun) ->
+      test "it is forbidden to use the result of function #{extractor_fun} in an inequality" do
+        query = """
+          SELECT value FROM (
+            SELECT uid, #{unquote(extractor_fun)}(column) as value
+            FROM table
+          ) t
+          WHERE value >= 10 and value < 20
+        """
+        refute condition_columns_have_valid_transformations(query)
+      end
+    end)
+  end
+
   describe "Condition-inequalities affected by dangerous math OR discontinuity are forbidden" do
     Enum.each(~w(abs ceil floor round trunc sqrt), fn(discontinuous_function) ->
       test "#{discontinuous_function} without constant used in WHERE" do
@@ -1028,8 +1043,8 @@ defmodule Cloak.Aql.Compiler.Test do
     end
   end
 
-  describe "WHERE-equalities on dangerous columns are allowed" do
-    test "unsafe discontinuity" do
+  describe "WHERE-equalities on processed columns" do
+    test "unsafe discontinuity is allowed in equality" do
       query = """
         SELECT numeric FROM (
           SELECT
@@ -1043,7 +1058,7 @@ defmodule Cloak.Aql.Compiler.Test do
       assert condition_columns_have_valid_transformations(query)
     end
 
-    test "on a cast column" do
+    test "on a cast column is allowed in equality" do
       query = """
         SELECT numeric FROM (
           SELECT
@@ -1057,7 +1072,7 @@ defmodule Cloak.Aql.Compiler.Test do
       assert condition_columns_have_valid_transformations(query)
     end
 
-    test "affected by math" do
+    test "affected by math is allowed in equality" do
       query = """
         SELECT value FROM (
           SELECT uid, numeric + 2 as value
@@ -1067,6 +1082,19 @@ defmodule Cloak.Aql.Compiler.Test do
       """
       assert condition_columns_have_valid_transformations(query)
     end
+
+    Enum.each(~w(year month day hour minute second weekday), fn(extractor_fun) ->
+      test "it is forbidden to use the result of function #{extractor_fun} in an equality" do
+        query = """
+          SELECT value FROM (
+            SELECT uid, #{unquote(extractor_fun)}(column) as value
+            FROM table
+          ) t
+          WHERE value = 10
+        """
+        refute condition_columns_have_valid_transformations(query)
+      end
+    end)
   end
 
   describe "constructs a narrative based on column usage when a query is considered dangerous" do
@@ -1097,6 +1125,19 @@ defmodule Cloak.Aql.Compiler.Test do
       assert get_compilation_error(query) =~ ~r/discontinuous function '\/'/
       assert get_compilation_error(query) =~ ~r/math function '\/'/
     end
+
+    Enum.each(~w(year month day hour minute second weekday), fn(extractor_fun) ->
+      test "constructs a narrative mentioning usage of function #{extractor_fun}" do
+        query = """
+          SELECT value FROM (
+            SELECT uid, #{unquote(extractor_fun)}(column) as value
+            FROM table
+          ) t
+          WHERE value = 10
+        """
+        assert get_compilation_error(query) =~ Regex.compile!(unquote(extractor_fun))
+      end
+    end)
   end
 
   describe "Rejects conditions used in subqueries" do
@@ -1208,7 +1249,11 @@ defmodule Cloak.Aql.Compiler.Test do
         if reason =~ ~r/Inequality clauses used to filter the data/ do
           false
         else
-          raise "Compilation failed with other reason than illegal condition-inequality: #{inspect reason}"
+          if reason =~ ~r/Equality clauses \(like WHERE/ do
+            false
+          else
+            raise "Compilation failed with other reason than illegal filtering condition: #{inspect reason}"
+          end
         end
     end
   end

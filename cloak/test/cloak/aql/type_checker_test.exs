@@ -208,6 +208,11 @@ defmodule Cloak.Aql.TypeChecker.Test do
       assert [{_column_expressions, []}] = type.narrative_breadcrumbs
     end
 
+    test "records usage of datetime functions as a potential offense" do
+      type = type_first_column("SELECT year(column) FROM table")
+      [{%Expression{name: "column"}, [{:datetime_extractor, "year"}]}] = type.narrative_breadcrumbs
+    end
+
     test "records multiple math offenses" do
       type = type_first_column("SELECT numeric + 10 FROM (SELECT uid, numeric - 1 as numeric FROM table) t")
       assert [{%Expression{name: "numeric"}, [{:dangerous_math, "+"}, {:dangerous_math, "-"}]}] =

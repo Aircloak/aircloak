@@ -27,7 +27,9 @@ defmodule Cloak.Aql.TypeChecker do
     @moduledoc false
 
     @type function_name :: String.t
-    @type offense :: {Expression.t, [{:dangerously_discontinuous | :dangerous_math, function_name}]}
+    @type offense :: {Expression.t, [
+      {:dangerously_discontinuous | :dangerous_math | :datetime_extractor, function_name}
+    ]}
 
     @type t :: %__MODULE__{
       # Whether the expressions is a constant. As soon as a constant expression
@@ -82,9 +84,19 @@ defmodule Cloak.Aql.TypeChecker do
   def ok_for_display?(type), do:
     not (type.dangerously_discontinuous? and type.seen_dangerous_math?)
 
-  @doc "Returns true if an expression of this type is safe to be used in a WHERE-inequality. False otherwise"
-  def ok_for_where_inequality?(type), do:
-    not (type.dangerously_discontinuous? or type.seen_dangerous_math?)
+  @doc """
+  Returns true if an expression of this type is safe to be used in a inequality filer condition.
+  False otherwise
+  """
+  def ok_for_inequality_condition?(type), do:
+    not (type.dangerously_discontinuous? or type.seen_dangerous_math? or
+      type.been_through_datetime_function?)
+
+  @doc """
+  Returns true if an expression of this type is safe to be used in a equality filer condition.
+  False otherwise
+  """
+  def ok_for_equality_condition?(type), do: not type.been_through_datetime_function?
 
   @doc """
   Produces a type characteristic for an expression by resolving function applications and references
@@ -166,6 +178,11 @@ defmodule Cloak.Aql.TypeChecker do
         end
         breadcrumbs = if performs_dangerous_math?(name, future, child_types) do
           [{:dangerous_math, name} | breadcrumbs] |> Enum.uniq()
+        else
+          breadcrumbs
+        end
+        breadcrumbs = if performs_datetime_function?(name) do
+          [{:datetime_extractor, name} | breadcrumbs] |> Enum.uniq()
         else
           breadcrumbs
         end
