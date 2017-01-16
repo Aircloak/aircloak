@@ -42,7 +42,7 @@ defmodule Cloak.Aql.TypeChecker do
       constant_involved?: boolean,
 
       # If a function like year, month, etc has been used on the value.
-      been_through_datetime_function?: boolean,
+      is_result_of_datetime_function?: boolean,
 
       # True if the expression has been processed by a discontinuous function and the
       # parameters of the function call were such that the computation is classified
@@ -64,7 +64,7 @@ defmodule Cloak.Aql.TypeChecker do
     }
 
     defstruct [
-      constant?: false, constant_involved?: false, been_through_datetime_function?: false,
+      constant?: false, constant_involved?: false, is_result_of_datetime_function?: false,
       dangerously_discontinuous?: false, seen_dangerous_math?: false, narrative_breadcrumbs: [],
     ]
   end
@@ -90,13 +90,13 @@ defmodule Cloak.Aql.TypeChecker do
   """
   def ok_for_inequality_condition?(type), do:
     not (type.dangerously_discontinuous? or type.seen_dangerous_math? or
-      type.been_through_datetime_function?)
+      type.is_result_of_datetime_function?)
 
   @doc """
   Returns true if an expression of this type is safe to be used in a equality filer condition.
   False otherwise
   """
-  def ok_for_equality_condition?(type), do: not type.been_through_datetime_function?
+  def ok_for_equality_condition?(type), do: not type.is_result_of_datetime_function?
 
   @doc """
   Produces a type characteristic for an expression by resolving function applications and references
@@ -195,8 +195,8 @@ defmodule Cloak.Aql.TypeChecker do
         dangerously_discontinuous?: dangerously_discontinuous?(name, future, child_types) ||
           Enum.any?(child_types, &(&1.dangerously_discontinuous?)),
         narrative_breadcrumbs: updated_narrative_breadcrumbs,
-        been_through_datetime_function?: performs_datetime_function?(name) ||
-          Enum.any?(child_types, &(&1.been_through_datetime_function?)),
+        is_result_of_datetime_function?: performs_datetime_function?(name) ||
+          Enum.any?(child_types, &(&1.is_result_of_datetime_function?)),
       }
     end
   end
