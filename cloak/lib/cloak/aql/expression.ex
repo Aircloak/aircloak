@@ -70,6 +70,15 @@ defmodule Cloak.Aql.Expression do
   def aggregate_db_function?(column), do: db_function?(column) && column.aggregate?
 
   @doc """
+  Returns a shorter version of the display name of the column.
+
+  This function should mostly be used when producing error messages.
+  """
+  @spec short_name(t) :: String.t
+  def short_name(%__MODULE__{name: name}) when is_binary(name), do: "`#{name}`"
+  def short_name(x), do: display_name(x)
+
+  @doc """
   Returns a display name of the column.
 
   This function should mostly be used when producing error messages.
