@@ -272,9 +272,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
     # Get best equality comparison between left and right columns (preferring user id columns).
     [{subject, target} | _] =
       (for {:comparison, subject, :=, target} <- join.conditions, subject != target, do: {subject, target})
-      |> Enum.sort(fn (condition1, condition2) ->
-        condition_evaluator(condition1) >= condition_evaluator(condition2)
-      end)
+      |> Enum.sort_by(&condition_evaluator/1, &>=/2)
     # Make sure we return the columns in the correct order ({left_branch, right_branch}).
     if table_is_in_join_branch?(subject.table.name, join.lhs) do
       true = table_is_in_join_branch?(target.table.name, join.rhs)
