@@ -46,7 +46,6 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       {:dialyze, "~> 0.2.1", warn_missing: false, runtime: false},
       {:excoveralls, "~> 0.5.5", warn_missing: false, runtime: false},
       {:exrm, "~> 1.0.8", warn_missing: false, runtime: false},
-      {:ranch, "~> 1.0", optional: true, only: [:dev, :test]},
       {:phoenix, "~> 1.1.6", only: :test},
       {:cowboy, "~> 1.0", only: :test},
     ]
