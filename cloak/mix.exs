@@ -29,7 +29,6 @@ defmodule Cloak.Mixfile do
   defp deps do
     [
       {:aircloak_common, path: "../common/elixir"},
-      {:gproc, "~> 0.5.0"},
       {:meck, github: "eproxus/meck", tag: "0.8.2", override: true, warn_missing: false, runtime: false},
       {:postgrex, "~> 0.11"},
       {:mariaex, "~> 0.8"},
