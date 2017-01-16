@@ -32,8 +32,8 @@ defmodule Air.PsqlServer.Protocol do
     {:close, reason :: any} |
     {:login_params, map} |
     {:authenticate, password :: binary} |
-    {:run_query, String.t, [db_value], non_neg_integer} |
-    {:describe_statement, String.t, [db_value]}
+    {:run_query, String.t, [%{type: psql_type, value: db_value}], non_neg_integer} |
+    {:describe_statement, String.t, [%{type: psql_type, value: db_value}] | nil}
 
   @type db_value :: String.t | number | boolean | nil
 
@@ -346,14 +346,15 @@ defmodule Air.PsqlServer.Protocol do
     prepared_statement = Map.fetch!(state.prepared_statements, describe_data.name)
 
     state
-    |> add_action({:describe_statement, prepared_statement.query, prepared_statement.params})
+    |> add_action({:describe_statement, prepared_statement.query, params_with_types(prepared_statement)})
     |> next_state({:describing_statement, describe_data.name})
   end
   defp handle_ready_message(state, :execute, execute_data) do
     prepared_statement = Map.fetch!(state.prepared_statements, execute_data.name)
 
     state
-    |> add_action({:run_query, prepared_statement.query, prepared_statement.params, execute_data.max_rows})
+    |> add_action({:run_query, prepared_statement.query, params_with_types(prepared_statement),
+      execute_data.max_rows})
     |> next_state({:running_prepared_statement, execute_data.name})
   end
   defp handle_ready_message(state, :close, close_data), do:
@@ -389,4 +390,17 @@ defmodule Air.PsqlServer.Protocol do
 
   defp column_types(nil), do: Stream.cycle([:text])
   defp column_types(columns), do: Enum.map(columns, &(&1.type))
+
+  defp params_with_types(%{params: nil}), do:
+    nil
+  defp params_with_types(prepared_statement) do
+    param_types =
+      cond do
+        match?([_|_], prepared_statement.param_types) -> prepared_statement.param_types
+        match?([_|_], prepared_statement.parsed_param_types) -> prepared_statement.parsed_param_types
+        true -> Stream.cycle([:unknown])
+      end
+
+    Enum.zip(param_types, prepared_statement.params)
+  end
 end
