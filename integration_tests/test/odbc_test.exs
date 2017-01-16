@@ -68,10 +68,10 @@ defmodule IntegrationTest.OdbcTest do
       assert param_select(context.conn, :sql_bit, true) == true
 
     test "parameterized query with a float", context, do:
-      assert param_select(context.conn, {:sql_float, 32}, 3.14, "::real") == 3.14
+      assert param_select(context.conn, {:sql_float, 32}, 3.14, "real") == 3.14
 
     test "parameterized query with a double", context, do:
-      assert param_select(context.conn, :sql_double, 3.14, "::real") == 3.14
+      assert param_select(context.conn, :sql_double, 3.14, "real") == 3.14
 
     test "parameterized query with a decimal", context, do:
       assert param_select(context.conn, {:sql_decimal, 10, 2}, 3.14) == 3.14
@@ -93,7 +93,8 @@ defmodule IntegrationTest.OdbcTest do
   end
 
 
-  defp param_select(conn, type, value, cast \\ "") do
+  defp param_select(conn, type, value, cast \\ nil) do
+    cast = if cast != nil, do: "::#{cast}"
     {:selected, ['x'], rows} = :odbc.param_query(conn, 'select $1#{cast} as x from users', [{type, [value]}])
     [{result}] = Enum.uniq(rows)
     result
