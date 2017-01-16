@@ -29,23 +29,23 @@ defmodule Aircloak.ElixirCommon.Mixfile do
   end
 
   def application do
-    [applications: applications(Mix.env)]
+    [extra_applications: [:logger, :poison, :gproc]]
   end
 
   defp deps do
     [
       {:poison, "~> 2.2.0"},
       {:gproc, "~> 0.5.0"},
-      {:protobuffs, github: "basho/erlang_protobuffs", tag: "0.8.2", warn_missing: false},
-      {:ex_doc, "~> 0.13", warn_missing: false},
-      {:earmark, "~> 1.0", warn_missing: false},
-      {:meck, github: "eproxus/meck", tag: "0.8.2", override: true, warn_missing: false},
-      {:credo, "~> 0.4.8", warn_missing: false},
-      {:eunit_formatters, "~> 0.3.0", warn_missing: false},
-      {:proper, github: "manopapad/proper", warn_missing: false},
-      {:dialyze, "~> 0.2.1", warn_missing: false},
-      {:excoveralls, "~> 0.5.5", warn_missing: false},
-      {:exrm, "~> 1.0.8", warn_missing: false},
+      {:protobuffs, github: "basho/erlang_protobuffs", tag: "0.8.2", warn_missing: false, runtime: false},
+      {:ex_doc, "~> 0.13", warn_missing: false, runtime: false},
+      {:earmark, "~> 1.0", warn_missing: false, runtime: false},
+      {:meck, github: "eproxus/meck", tag: "0.8.2", override: true, warn_missing: false, runtime: false},
+      {:credo, "~> 0.4.8", warn_missing: false, runtime: false},
+      {:eunit_formatters, "~> 0.3.0", warn_missing: false, runtime: false},
+      {:proper, github: "manopapad/proper", warn_missing: false, runtime: false},
+      {:dialyze, "~> 0.2.1", warn_missing: false, runtime: false},
+      {:excoveralls, "~> 0.5.5", warn_missing: false, runtime: false},
+      {:exrm, "~> 1.0.8", warn_missing: false, runtime: false},
       {:ranch, "~> 1.0", optional: true, only: [:dev, :test]},
       {:phoenix, "~> 1.1.6", only: :test},
       {:cowboy, "~> 1.0", only: :test},
@@ -62,10 +62,6 @@ defmodule Aircloak.ElixirCommon.Mixfile do
   defp erlc_options(:test), do: [:debug_info, {:d, :TEST}]
   defp erlc_options(:dev), do: [:debug_info]
   defp erlc_options(:prod), do: []
-
-  defp applications(:test), do: [:logger, :gproc, :phoenix, :cowboy, :poison, :ex_unit, :ranch]
-  defp applications(:dev), do: [:ranch | applications(:prod)]
-  defp applications(_), do: [:logger, :gproc, :poison]
 
   defp ignored_credo_checks(:test), do:
     ["ModuleDoc" | ignored_credo_checks(:dev)]
