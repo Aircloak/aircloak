@@ -65,7 +65,6 @@ defmodule Air.Mixfile do
       {:comeonin, "~> 2.5"},
       {:guardian, "~> 0.13.0"},
       {:lhttpc, github: "esl/lhttpc", override: true},
-      {:exrm, "~> 1.0.8", warn_missing: false},
       {:timex, "~> 3.1.3"},
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
