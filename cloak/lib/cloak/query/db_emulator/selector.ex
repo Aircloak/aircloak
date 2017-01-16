@@ -248,7 +248,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
     end)
   end
 
-  # This method returns a functor that pre-filters right side rows in order to drastically improve join performance.
+  # This function returns a functor that pre-filters right side rows in order to drastically improve join performance.
   # It does that by grouping rows by one of the matching columns in the join conditions.
   # For now, we assume at least an equality condition for the join always exists.
   defp create_join_pre_filter(rhs_rows, join) do
