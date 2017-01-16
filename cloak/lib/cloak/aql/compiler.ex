@@ -1303,7 +1303,7 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp conditions_lens_sources(%Query{subquery?: false}), do:
-    Query.Lenses.sources_of_operands_except_having()
+    Query.Lenses.sources_of_operands_except([:having])
   defp conditions_lens_sources(_query), do:
     Query.Lenses.sources_of_operands()
 

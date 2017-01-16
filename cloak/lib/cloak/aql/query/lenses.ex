@@ -91,17 +91,16 @@ defmodule Cloak.Aql.Query.Lenses do
     |> conditions_terminals()
 
   @doc "Lens focusing on all sources in a query where condition operands can be found"
-  def sources_of_operands(), do:
-    Lens.multiple([sources_of_operands_except_having(), Lens.key(:having)])
+  def sources_of_operands(), do: sources_of_operands_except([])
 
   @doc """
   Lens focusing on all sources in a query where condition operands can be found
   with the exception of in HAVING clauses. If HAVING clauses should also be
   included, use `sources_of_operands` instead
   """
-  def sources_of_operands_except_having(), do:
+  def sources_of_operands_except(operands_to_exclude), do:
     Lens.multiple([
-      Lens.keys([:where, :encoded_where, :lcf_check_conditions]),
+      Lens.keys([:where, :encoded_where, :lcf_check_conditions, :having] -- operands_to_exclude),
       join_conditions()
     ])
 
