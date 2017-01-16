@@ -79,23 +79,17 @@ defmodule Cloak.Aql.TypeChecker do
   @continuous_math_functions ~w(+ - * / ^ pow)
   @datetime_functions ~w(year month day hour minute second weekday)
 
-  @doc "Returns true if an expression of this type is safe to be reported. False otherwise"
+  @doc "Returns true if an expression of this type is safe to be reported"
   @spec ok_for_display?(Type.t) :: boolean
   def ok_for_display?(type), do:
     not (type.dangerously_discontinuous? and type.seen_dangerous_math?)
 
-  @doc """
-  Returns true if an expression of this type is safe to be used in a inequality filer condition.
-  False otherwise
-  """
+  @doc "Returns true if an expression of this type is safe to be used in a inequality filter condition"
   def ok_for_inequality_condition?(type), do:
     not (type.dangerously_discontinuous? or type.seen_dangerous_math? or
       type.is_result_of_datetime_function?)
 
-  @doc """
-  Returns true if an expression of this type is safe to be used in a equality filer condition.
-  False otherwise
-  """
+  @doc "Returns true if an expression of this type is safe to be used in a equality filter condition"
   def ok_for_equality_condition?(type), do: not type.is_result_of_datetime_function?
 
   @doc """
