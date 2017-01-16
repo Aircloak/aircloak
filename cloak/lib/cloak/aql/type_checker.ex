@@ -120,11 +120,11 @@ defmodule Cloak.Aql.TypeChecker do
     any_touched_by_constant?(child_types) and later_turned_into_a_number?(future)
   defp dangerously_discontinuous?(_name, _future, _child_types), do: false
 
-  defp performs_dangerous_math?(name, _future, child_types) when name in @continuous_math_functions, do:
+  defp is_dangerous_math?(name, _future, child_types) when name in @continuous_math_functions, do:
     any_touched_by_constant?(child_types)
-  defp performs_dangerous_math?(_, _future, _child_types), do: false
+  defp is_dangerous_math?(_, _future, _child_types), do: false
 
-  defp performs_datetime_function?(name), do: name in @datetime_functions
+  defp is_datetime_function?(name), do: name in @datetime_functions
 
 
   # -------------------------------------------------------------------
@@ -170,12 +170,12 @@ defmodule Cloak.Aql.TypeChecker do
         else
           breadcrumbs
         end
-        breadcrumbs = if performs_dangerous_math?(name, future, child_types) do
+        breadcrumbs = if is_dangerous_math?(name, future, child_types) do
           [{:dangerous_math, name} | breadcrumbs] |> Enum.uniq()
         else
           breadcrumbs
         end
-        breadcrumbs = if performs_datetime_function?(name) do
+        breadcrumbs = if is_datetime_function?(name) do
           [{:datetime_extractor, name} | breadcrumbs] |> Enum.uniq()
         else
           breadcrumbs
@@ -184,12 +184,12 @@ defmodule Cloak.Aql.TypeChecker do
       end)
       %Type{
         constant_involved?: any_touched_by_constant?(child_types),
-        seen_dangerous_math?: performs_dangerous_math?(name, future, child_types) ||
+        seen_dangerous_math?: is_dangerous_math?(name, future, child_types) ||
           Enum.any?(child_types, &(&1.seen_dangerous_math?)),
         dangerously_discontinuous?: dangerously_discontinuous?(name, future, child_types) ||
           Enum.any?(child_types, &(&1.dangerously_discontinuous?)),
         narrative_breadcrumbs: updated_narrative_breadcrumbs,
-        is_result_of_datetime_function?: performs_datetime_function?(name) ||
+        is_result_of_datetime_function?: is_datetime_function?(name) ||
           Enum.any?(child_types, &(&1.is_result_of_datetime_function?)),
       }
     end
