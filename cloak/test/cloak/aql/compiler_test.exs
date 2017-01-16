@@ -913,7 +913,7 @@ defmodule Cloak.Aql.Compiler.Test do
         ) t
         WHERE danger >= '2010-01-01' and danger < '2020-01-01'
         """
-        refute where_columns_have_valid_transformations(query)
+        refute condition_columns_have_valid_transformations(query)
       end
     end)
 
@@ -925,13 +925,28 @@ defmodule Cloak.Aql.Compiler.Test do
       ) t
       WHERE danger >= '10:10:10' and danger < '12:12:12'
       """
-      refute where_columns_have_valid_transformations(query)
+      refute condition_columns_have_valid_transformations(query)
     end
   end
 
-  describe "WHERE-inequalities affected by dangerous math OR discontinuity are forbidden" do
+  describe "Condition-inequalities affected by datetime extractors are forbidden" do
+    Enum.each(~w(year month day hour minute second weekday), fn(extractor_fun) ->
+      test "it is forbidden to use the result of function #{extractor_fun} in an inequality" do
+        query = """
+          SELECT value FROM (
+            SELECT uid, #{unquote(extractor_fun)}(column) as value
+            FROM table
+          ) t
+          WHERE value >= 10 and value < 20
+        """
+        refute condition_columns_have_valid_transformations(query)
+      end
+    end)
+  end
+
+  describe "Condition-inequalities affected by dangerous math OR discontinuity are forbidden" do
     Enum.each(~w(abs ceil floor round trunc sqrt), fn(discontinuous_function) ->
-      test "#{discontinuous_function} without constant" do
+      test "#{discontinuous_function} without constant used in WHERE" do
         query = """
           SELECT value FROM (
             SELECT uid, #{unquote(discontinuous_function)}(numeric) as value
@@ -939,7 +954,7 @@ defmodule Cloak.Aql.Compiler.Test do
           ) t
           WHERE value >= 10 and value < 20
         """
-        assert where_columns_have_valid_transformations(query)
+        assert condition_columns_have_valid_transformations(query)
       end
     end)
 
@@ -955,7 +970,7 @@ defmodule Cloak.Aql.Compiler.Test do
           ) t
           WHERE value >= 10 and value < 20
         """
-        refute where_columns_have_valid_transformations(query)
+        refute condition_columns_have_valid_transformations(query)
       end
 
       test "#{discontinuous_function} without constant" do
@@ -966,7 +981,7 @@ defmodule Cloak.Aql.Compiler.Test do
           ) t
           WHERE value >= 10 and value < 20
         """
-        assert where_columns_have_valid_transformations(query)
+        assert condition_columns_have_valid_transformations(query)
       end
     end)
 
@@ -979,7 +994,7 @@ defmodule Cloak.Aql.Compiler.Test do
           ) t
           WHERE value >= 10 and value < 20
         """
-        assert where_columns_have_valid_transformations(query)
+        assert condition_columns_have_valid_transformations(query)
       end
     end)
 
@@ -994,7 +1009,7 @@ defmodule Cloak.Aql.Compiler.Test do
           ) t
           WHERE value >= 10 and value < 20
         """
-        refute where_columns_have_valid_transformations(query)
+        refute condition_columns_have_valid_transformations(query)
       end
     end)
 
@@ -1009,7 +1024,7 @@ defmodule Cloak.Aql.Compiler.Test do
         ) t
         WHERE value >= 0 and value < 10
       """
-      refute where_columns_have_valid_transformations(query)
+      refute condition_columns_have_valid_transformations(query)
     end
 
     test "dangerous cast column" do
@@ -1023,12 +1038,12 @@ defmodule Cloak.Aql.Compiler.Test do
         ) t
         WHERE value >= 0 and value < 10
       """
-      refute where_columns_have_valid_transformations(query)
+      refute condition_columns_have_valid_transformations(query)
     end
   end
 
-  describe "WHERE-equalities on dangerous columns are allowed" do
-    test "unsafe discontinuity" do
+  describe "WHERE-equalities on processed columns" do
+    test "unsafe discontinuity is allowed in equality" do
       query = """
         SELECT numeric FROM (
           SELECT
@@ -1039,10 +1054,10 @@ defmodule Cloak.Aql.Compiler.Test do
         ) t
         WHERE value = 0
       """
-      assert where_columns_have_valid_transformations(query)
+      assert condition_columns_have_valid_transformations(query)
     end
 
-    test "on a cast column" do
+    test "on a cast column is allowed in equality" do
       query = """
         SELECT numeric FROM (
           SELECT
@@ -1053,10 +1068,10 @@ defmodule Cloak.Aql.Compiler.Test do
         ) t
         WHERE value = 10
       """
-      assert where_columns_have_valid_transformations(query)
+      assert condition_columns_have_valid_transformations(query)
     end
 
-    test "affected by math" do
+    test "affected by math is allowed in equality" do
       query = """
         SELECT value FROM (
           SELECT uid, numeric + 2 as value
@@ -1064,8 +1079,21 @@ defmodule Cloak.Aql.Compiler.Test do
         ) t
         WHERE value = 10
       """
-      assert where_columns_have_valid_transformations(query)
+      assert condition_columns_have_valid_transformations(query)
     end
+
+    Enum.each(~w(year month day hour minute second weekday), fn(extractor_fun) ->
+      test "it is forbidden to use the result of function #{extractor_fun} in an equality" do
+        query = """
+          SELECT value FROM (
+            SELECT uid, #{unquote(extractor_fun)}(column) as value
+            FROM table
+          ) t
+          WHERE value = 10
+        """
+        refute condition_columns_have_valid_transformations(query)
+      end
+    end)
   end
 
   describe "constructs a narrative based on column usage when a query is considered dangerous" do
@@ -1095,6 +1123,78 @@ defmodule Cloak.Aql.Compiler.Test do
       query = "SELECT numeric / (numeric + 10) FROM table"
       assert get_compilation_error(query) =~ ~r/discontinuous function '\/'/
       assert get_compilation_error(query) =~ ~r/math function '\/'/
+    end
+
+    Enum.each(~w(year month day hour minute second weekday), fn(extractor_fun) ->
+      test "constructs a narrative mentioning usage of function #{extractor_fun}" do
+        query = """
+          SELECT value FROM (
+            SELECT uid, #{unquote(extractor_fun)}(column) as value
+            FROM table
+          ) t
+          WHERE value = 10
+        """
+        assert get_compilation_error(query) =~ Regex.compile!(unquote(extractor_fun))
+      end
+    end)
+  end
+
+  describe "Rejects conditions used in subqueries" do
+    test "math on a column used in a JOIN condition in top-level query" do
+      query = """
+        SELECT count(*)
+        FROM (
+          SELECT uid, numeric + 1 as value
+          FROM table
+        ) t1 INNER JOIN (
+          SELECT uid, numeric
+          FROM table
+        ) t2 ON t1.uid = t2.uid and t1.value >= 10 and t1.value < 20
+      """
+      refute condition_columns_have_valid_transformations(query)
+    end
+
+    test "math on a column used in a JOIN condition in subquery" do
+      query = """
+        SELECT count(*) FROM (
+          SELECT t1.uid
+          FROM (
+            SELECT uid, numeric + 1 as value
+            FROM table
+          ) t1 INNER JOIN (
+            SELECT uid, numeric
+            FROM table
+          ) t2 ON t1.uid = t2.uid and t1.value >= 10 and t1.value < 20
+        ) t
+      """
+      refute condition_columns_have_valid_transformations(query)
+    end
+
+    test "math on a column used in a HAVING clause in subquery" do
+      query = """
+        SELECT count(*) FROM (
+          SELECT uid, value, count(*)
+          FROM (
+            SELECT uid, numeric + 1 as value
+            FROM table
+          ) t
+          GROUP BY uid, value
+          HAVING value >= 0 and value < 10
+        ) t
+      """
+      refute condition_columns_have_valid_transformations(query)
+    end
+
+    test "math on a column used in a HAVING clause in main query is allowed" do
+      query = """
+        SELECT value, count(*) FROM (
+          SELECT uid, numeric + 1 as value
+          FROM table
+        ) t
+        GROUP BY value
+        HAVING value > 10
+      """
+      assert condition_columns_have_valid_transformations(query)
     end
   end
 
@@ -1141,14 +1241,18 @@ defmodule Cloak.Aql.Compiler.Test do
     end
   end
 
-  defp where_columns_have_valid_transformations(query) do
+  defp condition_columns_have_valid_transformations(query) do
     case compile(query, data_source()) do
       {:ok, _} -> true
       {:error, reason} ->
-        if reason =~ ~r/WHERE-clause inequalities/ do
+        if reason =~ ~r/Inequality clauses used to filter the data/ do
           false
         else
-          raise "Compilation failed with other reason than illegal WHERE-clause: #{inspect reason}"
+          if reason =~ ~r/Equality clauses \(like WHERE/ do
+            false
+          else
+            raise "Compilation failed with other reason than illegal filtering condition: #{inspect reason}"
+          end
         end
     end
   end

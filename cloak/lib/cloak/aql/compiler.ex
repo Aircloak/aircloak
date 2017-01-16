@@ -96,7 +96,7 @@ defmodule Cloak.Aql.Compiler do
       |> verify_limit()
       |> verify_offset()
       |> verify_function_usage_for_selected_columns()
-      |> verify_function_usage_for_where_clauses()
+      |> verify_function_usage_for_condition_clauses()
       |> parse_row_splitters()
       |> partition_selected_columns()
     }
@@ -1262,33 +1262,54 @@ defmodule Cloak.Aql.Compiler do
     query
   end
 
-  defp verify_function_usage_for_where_clauses(query) do
-    Query.Lenses.queries()
-    |> Query.Lenses.where_inequality_columns()
+  defp verify_function_usage_for_condition_clauses(query) do
+    conditions_lens_sources(query)
+    |> Query.Lenses.order_condition_columns()
     |> Lens.to_list(query)
     |> Enum.each(fn(column) ->
       type = TypeChecker.type(column, query)
-      unless TypeChecker.ok_for_where_inequality?(type) do
+      unless TypeChecker.ok_for_order_condition?(type) do
         explanation = construct_explanation(type.narrative_breadcrumbs)
         raise CompilationError, message: """
-          #{explanation}.
+          #{explanation}
 
-          WHERE-clause inequalities where the column value has either had
-          math with a constant applied to it, or been through a discontinuous function
-          where one of the parameters was a constant, are not allowed.
+          Inequality clauses used to filter the data (like WHERE, HAVING and JOIN-condition where >,
+          >=, < or <= are used) are not allowed if the column value has either been transformed by
+          a math function or a discontinuous function where one of the other parameters was a constant.
+          Furthermore, the usage of `year`, `month` and other functions that extract parts of a date or
+          time column are not allowed on columns used in inequalities.
+          """
+      end
+    end)
+    conditions_lens_sources(query)
+    |> Query.Lenses.match_condition_columns()
+    |> Lens.to_list(query)
+    |> Enum.each(fn(column) ->
+      type = TypeChecker.type(column, query)
+      unless TypeChecker.ok_for_match_condition?(type) do
+        explanation = construct_explanation(type.narrative_breadcrumbs)
+        raise CompilationError, message: """
+          #{explanation}
+
+          Equality clauses (like WHERE, HAVING and JOIN-conditions) on date and time columns
+          that have been processed by a function which extracts a part of the value are not allowed.
+          If applicable, please use an inequality (like >, >=, < and <=) with a date or time range
+          instead.
           """
       end
     end)
     query
   end
 
+  defp conditions_lens_sources(%Query{subquery?: false}), do:
+    Query.Lenses.sources_of_operands_except([:having])
+  defp conditions_lens_sources(_query), do:
+    Query.Lenses.sources_of_operands()
+
   defp construct_explanation(columns) when is_list(columns), do:
     Enum.map(columns, &construct_explanation(&1))
   defp construct_explanation({expression, offenses}), do:
-    """
-    Column #{Expression.display_name(expression)} is processed by #{human_readable_offenses(offenses)}
-    together with a constant value.
-    """
+    "Column #{Expression.display_name(expression)} is processed by #{human_readable_offenses(offenses)}."
 
   defp human_readable_offenses(offenses), do:
     offenses
@@ -1301,6 +1322,7 @@ defmodule Cloak.Aql.Compiler do
       ({:dangerously_discontinuous, function}) ->
         "discontinuous function '#{Function.readable_name(function)}'"
       ({:dangerous_math, name}) -> "math function '#{name}'"
+      ({:datetime_extractor, name}) -> "date or time extraction function '#{name}'"
     end)
     |> Enum.join(" and ")
 

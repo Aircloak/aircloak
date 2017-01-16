@@ -120,36 +120,42 @@ When using `LIMIT` and `OFFSET` in a subquery:
   adjusted to 200 given a `LIMIT` of 100
 
 
-## Math restrictions
+## Math and function application restrictions
 
 
 ```sql
 -- The following examples show expressions that are not allowed
 -- for column expressions that are selected:
 
--- both abs and + influenced by the constant
+-- both abs and + run on a value in combination with a constant
 abs(age + 1)
 
--- string function influenced by a constant is used,
--- later converted to a number and then part of a math
--- expression that is influenced by a constant.
+-- string function used in combination with a constant value,
+-- and later part of a math expression with a constant.
 length(btrim(name, 'constant')) + 1
+
+-- both sides of the math expression are values that have been
+-- processed with a constant value. This expression is
+-- forbidden because the columns, in addition to the math have
+-- been processed by a discontinuous string function together with
+-- a constant value.
+length(btrim(first_name, 'constant')) + length(btrim(last_name, 'constant'))
 
 
 -- The following examples show expressions that are allowed
 -- for column expressions that are selected, but not allowed in
--- WHERE-clause inequalities
+-- filter condition inequality clauses
 
--- restricted function influenced by a constant but not math
+-- restricted function with a constant
 length(btrim(name, 'constant'))
 
--- math influenced by a constant but no restricted function
-age / 10
+-- math with a constant
+age * 10
 
 
 -- The following show examples of the restricted functions which are OK
--- both in column expressions that are selected as well as WHERE-clause
--- inequalities despite being complex. The reason is that there are no
+-- both in column expressions that are selected as well as filtering
+-- clauses, despite being complex. The reason is that there are no
 -- constants involved
 
 length(btrim(firstname, lastname)) + age
@@ -157,7 +163,7 @@ length(cast(salary + salary / age as text))
 ```
 
 Aircloak applies some restrictions on how certain functions and math operators can be used in your queries __when
-constants are involved__.
+they are used together with constant values__.
 As an example consider the function `btrim`. It can always be used directly on a column expression (for example `btrim(name)`),
 but it's usage is restricted when a constant is involved (for example `btrim(name, 'some constant')`).
 
@@ -165,18 +171,24 @@ The restrictions are as follows:
 
 - you cannot _select a column_ in your query if the column has been processed by a restricted function in conjunction with a constant __and__
   there has been performed math with a constant on the column as well
-- you cannot use a column in a WHERE-clause inequality (meaning `>`, `>=`, `<`, or `<=`) if it has had math with a constant performed on it __or__
-  if it has been processed by one of the restricted functions in conjunction with a constant
+- you cannot use a column in a filter condition clause inequality (meaning `>`, `>=`, `<`, or `<=` in a `WHERE`-, `JOIN`- or `HAVING`-clause)
+  if it has had math with a constant performed on it __or__ if it has been processed by one of the restricted functions together with a constant
+- you cannot use the result of applying a date or time extraction function (like `year`, `hour` etc) on a `date`, `time` or `datetime` column in a
+  filter condition clause (neither equality nor inequality).
 
 The numerical functions that receive this kind of special treatment are: `abs`, `bucket`, `ceil`, `div`, `floor`, `mod`, `round`, `sqrt`, `/`, `trunc`, and `cast`'s.
 
 The following string functions receive this kind of special treatment only if they are later converted to a number:
 `btrim`, `left`, `ltrim`, `right`, `rtrim`, and `substring`.
 
-The same applies to the following math operations if one or more of their arguments have been influenced by a constant:
+The same applies to the following math operations if one or more of their arguments are a constant or is the result of
+a column having been processed together with a constant:
 `+`, `-`, `*`, `/`, `^`, `pow`.
 
-For some examples see the sidebar.
+The following date and time functions:
+`year`, `month`, `day`, `hour`, `minute`, `second`, `weekday`
+
+For examples see the sidebar.
 
 
 ## Understanding query results
