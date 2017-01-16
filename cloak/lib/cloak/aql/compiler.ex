@@ -1265,11 +1265,11 @@ defmodule Cloak.Aql.Compiler do
 
   defp verify_function_usage_for_condition_clauses(query) do
     conditions_lens_sources(query)
-    |> Query.Lenses.inequality_condition_columns()
+    |> Query.Lenses.order_condition_columns()
     |> Lens.to_list(query)
     |> Enum.each(fn(column) ->
       type = TypeChecker.type(column, query)
-      unless TypeChecker.ok_for_inequality_condition?(type) do
+      unless TypeChecker.ok_for_order_condition?(type) do
         explanation = construct_explanation(type.narrative_breadcrumbs)
         raise CompilationError, message: """
           #{explanation}
@@ -1283,11 +1283,11 @@ defmodule Cloak.Aql.Compiler do
       end
     end)
     conditions_lens_sources(query)
-    |> Query.Lenses.equality_condition_columns()
+    |> Query.Lenses.match_condition_columns()
     |> Lens.to_list(query)
     |> Enum.each(fn(column) ->
       type = TypeChecker.type(column, query)
-      unless TypeChecker.ok_for_equality_condition?(type) do
+      unless TypeChecker.ok_for_match_condition?(type) do
         explanation = construct_explanation(type.narrative_breadcrumbs)
         raise CompilationError, message: """
           #{explanation}

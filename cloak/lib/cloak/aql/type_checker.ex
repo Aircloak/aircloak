@@ -84,13 +84,13 @@ defmodule Cloak.Aql.TypeChecker do
   def ok_for_display?(type), do:
     not (type.dangerously_discontinuous? and type.seen_dangerous_math?)
 
-  @doc "Returns true if an expression of this type is safe to be used in a inequality filter condition"
-  def ok_for_inequality_condition?(type), do:
+  @doc "Returns true if an expression of this type is safe to be used in a order filter condition"
+  def ok_for_order_condition?(type), do:
     not (type.dangerously_discontinuous? or type.seen_dangerous_math? or
       type.is_result_of_datetime_function?)
 
-  @doc "Returns true if an expression of this type is safe to be used in a equality filter condition"
-  def ok_for_equality_condition?(type), do: not type.is_result_of_datetime_function?
+  @doc "Returns true if an expression of this type is safe to be used in a match filter condition"
+  def ok_for_match_condition?(type), do: not type.is_result_of_datetime_function?
 
   @doc """
   Produces a type characteristic for an expression by resolving function applications and references
