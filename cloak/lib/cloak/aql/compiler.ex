@@ -16,7 +16,7 @@ defmodule Cloak.Aql.Compiler do
   # -------------------------------------------------------------------
 
   @doc "Prepares the parsed SQL query for execution."
-  @spec compile(DataSource.t, Parser.parsed_query, [DataSource.field] | nil, Query.view_map) ::
+  @spec compile(DataSource.t, Parser.parsed_query, [Query.parameter] | nil, Query.view_map) ::
     {:ok, Query.t} | {:error, String.t}
   def compile(data_source, parsed_query, parameters, views) do
     try do
@@ -1012,7 +1012,7 @@ defmodule Cloak.Aql.Compiler do
     end
   end
   defp identifier_to_column({:parameter, index}, _columns_by_name, query) do
-    param_value = if query.parameters != nil, do: Enum.at(query.parameters, index - 1)
+    param_value = if query.parameters != nil, do: Enum.at(query.parameters, index - 1).value
     param_type = Query.parameter_type(query, index)
     if param_type == :unknown, do: parameter_error(index)
     Expression.constant(param_type, param_value)
@@ -1324,11 +1324,10 @@ defmodule Cloak.Aql.Compiler do
     |> check_missing_parameter_types()
 
   defp resolve_parameter_types(%Query{parameters: parameters} = query) when is_list(parameters), do:
-    # Parameters are bound, so we just determine types from their values.
+    # Parameters are bound
     parameters
     |> Enum.with_index()
-    |> Enum.map(fn({value, index}) -> {index + 1, data_type(value, index + 1)} end)
-    |> Enum.reduce(query, fn({index, type}, query) -> Query.set_parameter_type(query, index, type) end)
+    |> Enum.reduce(query, fn({param, index}, query) -> Query.set_parameter_type(query, index + 1, param.type) end)
   defp resolve_parameter_types(%Query{parameters: nil} = query), do:
     # Parameters are not bound. This is possible if PostgreSQL client issues a describe command before it
     # binds parameters, which is allowed by the protocol. In this case, we'll derive parameter types from
@@ -1337,16 +1336,6 @@ defmodule Cloak.Aql.Compiler do
     query
     |> add_parameter_types_from_subqueries()
     |> add_parameter_types_from_casts()
-
-  defp data_type(value, _index) when is_boolean(value), do: :boolean
-  defp data_type(value, _index) when is_integer(value), do: :integer
-  defp data_type(value, _index) when is_float(value), do: :real
-  defp data_type(value, _index) when is_binary(value), do: :text
-  defp data_type(%Date{}, _index), do: :date
-  defp data_type(%Time{}, _index), do: :time
-  defp data_type(%NaiveDateTime{}, _index), do: :datetime
-  defp data_type(_value, index), do:
-    raise CompilationError, message: "Invalid value for parameter `$#{index}`"
 
   defp add_parameter_types_from_subqueries(query), do:
     Enum.reduce(

@@ -27,6 +27,8 @@ defmodule Cloak.Aql.Query do
 
   @type row_index :: non_neg_integer
 
+  @type parameter :: %{value: DataSource.field, type: DataSource.data_type}
+
   @type t :: %__MODULE__{
     data_source: DataSource.t,
     command: :select | :show,
@@ -68,7 +70,7 @@ defmodule Cloak.Aql.Query do
     distinct?: boolean,
     emulated?: boolean,
     ranges: [Range.t],
-    parameters: [DataSource.field] | nil,
+    parameters: [parameter] | nil,
     views: view_map,
     projected?: boolean,
     next_row_index: row_index
@@ -93,14 +95,14 @@ defmodule Cloak.Aql.Query do
 
   Raises on error.
   """
-  @spec make!(DataSource.t, String.t, [DataSource.field], view_map) :: t
+  @spec make!(DataSource.t, String.t, [parameter], view_map) :: t
   def make!(data_source, string, parameters, views) do
     {:ok, query} = make(data_source, string, parameters, views)
     query
   end
 
   @doc "Creates a compiled query from a string representation."
-  @spec make(DataSource.t, String.t, [DataSource.field], view_map) ::
+  @spec make(DataSource.t, String.t, [parameter], view_map) ::
     {:ok, t} | {:error, String.t}
   def make(data_source, string, parameters, views) when is_list(parameters), do:
     make_query(data_source, string, parameters, views)
@@ -140,7 +142,7 @@ defmodule Cloak.Aql.Query do
   This function will return the description of the result, such as column names
   and types, without executing the query.
   """
-  @spec describe_query(DataSource.t, String.t, [DataSource.field] | nil, view_map) ::
+  @spec describe_query(DataSource.t, String.t, [parameter] | nil, view_map) ::
     {:ok, [String.t], map} | {:error, String.t}
   def describe_query(data_source, statement, parameters, views), do:
     with {:ok, query} <- make_query(data_source, statement, parameters, views), do:

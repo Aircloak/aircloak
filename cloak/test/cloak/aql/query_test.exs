@@ -154,7 +154,7 @@ defmodule Cloak.Aql.QueryTest do
     assert {:error, :name, "has already been taken"} == validate_view("feat_users", "")
 
   test "describe query with early binding" do
-    assert {:ok, columns, capabilities} = describe_query("select $1 from feat_users", [true])
+    assert {:ok, columns, capabilities} = describe_query("select $1 from feat_users", [%{type: :boolean, value: true}])
     assert columns == [""]
     assert capabilities.selected_types == ["boolean"]
     assert capabilities.parameter_types == ["boolean"]
