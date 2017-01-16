@@ -1275,10 +1275,10 @@ defmodule Cloak.Aql.Compiler do
           #{explanation}
 
           Inequality clauses used to filter the data (like WHERE, HAVING and JOIN-condition where >,
-          >=, < or <= are used) are not allowed if the column value has either been calculated on by
-          a math function or processed by a discontinuous function where one of the other parameters
-          was a constant. Furthermore, the usage of `year`, `month` and other functions that extract
-          parts of a date or time column are not allowed on columns used in inequalities.
+          >=, < or <= are used) are not allowed if the column value has either been transformed by
+          a math function or a discontinuous function where one of the other parameters was a constant.
+          Furthermore, the usage of `year`, `month` and other functions that extract parts of a date or
+          time column are not allowed on columns used in inequalities.
           """
       end
     end)
