@@ -175,7 +175,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp set_max(set), do: Enum.reduce(set, &Data.max/2)
 
-  defp joined_row_size({:subquery, subquery}), do: Enum.count(subquery.ast.db_columns)
+  defp joined_row_size({:subquery, subquery}), do: Enum.count(subquery.ast.columns)
   defp joined_row_size({:join, join}), do: joined_row_size(join.lhs) + joined_row_size(join.rhs)
 
   defp add_prefix_to_rows(stream, row), do: Stream.map(stream, &row ++ &1)
@@ -185,9 +185,11 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp cross_join(lhs, rhs), do: Stream.flat_map(lhs, &add_prefix_to_rows(rhs, &1))
 
   defp inner_join(lhs, rhs, join) do
+    rhs_pre_filter = create_join_pre_filter(rhs, join)
     filters = Enum.map(join.conditions, &Comparison.to_function/1)
     Stream.flat_map(lhs, fn (lhs_row) ->
-      rhs
+      lhs_row
+      |> rhs_pre_filter.()
       |> add_prefix_to_rows(lhs_row)
       |> Rows.filter(filters)
     end)
@@ -195,18 +197,20 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp left_join(lhs, rhs, join) do
     rhs_null_row = List.duplicate(nil, joined_row_size(join.rhs))
-    outer_join(lhs, rhs, join.conditions, &add_prefix_to_rows/2, &[&1 ++ rhs_null_row], & &1)
+    outer_join(lhs, rhs, join, &add_prefix_to_rows/2, &[&1 ++ rhs_null_row], & &1)
   end
 
   defp right_join(lhs, rhs, join) do
     lhs_null_row = List.duplicate(nil, joined_row_size(join.lhs))
-    outer_join(rhs, lhs, join.conditions, &add_suffix_to_rows/2, &[lhs_null_row ++ &1], & &1)
+    outer_join(rhs, lhs, join, &add_suffix_to_rows/2, &[lhs_null_row ++ &1], & &1)
   end
 
-  defp outer_join(lhs, rhs, conditions, rows_combiner, unmatched_handler, matched_handler) do
-    filters = Enum.map(conditions, &Comparison.to_function/1)
+  defp outer_join(lhs, rhs, join, rows_combiner, unmatched_handler, matched_handler) do
+    rhs_pre_filter = create_join_pre_filter(rhs, join)
+    filters = Enum.map(join.conditions, &Comparison.to_function/1)
     Stream.flat_map(lhs, fn (lhs_row) ->
-      rhs
+      lhs_row
+      |> rhs_pre_filter.()
       |> rows_combiner.(lhs_row)
       |> Rows.filter(filters)
       |> Enum.to_list()
@@ -219,8 +223,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp full_join(lhs, rhs, join) do
     lhs_null_row = List.duplicate(nil, joined_row_size(join.lhs))
-    unmatched_rhs = outer_join(rhs, lhs, join.conditions,
-      &add_suffix_to_rows/2, &[lhs_null_row ++ &1], fn (_matches) -> [] end)
+    unmatched_rhs = outer_join(rhs, lhs, join, &add_suffix_to_rows/2, &[lhs_null_row ++ &1], fn (_matches) -> [] end)
     lhs |> left_join(rhs, join) |> Stream.concat(unmatched_rhs)
   end
 
@@ -244,4 +247,45 @@ defmodule Cloak.Query.DbEmulator.Selector do
       Enum.map(indices, &pick_value(row, &1))
     end)
   end
+
+  # This function returns a functor that pre-filters right side rows in order to drastically improve join performance.
+  # It does that by grouping rows by one of the matching columns in the join conditions.
+  # For now, we assume at least an equality condition for the join always exists.
+  defp create_join_pre_filter(rhs_rows, join) do
+    {%Expression{row_index: lhs_match_index}, %Expression{row_index: rhs_match_index}} =
+      extract_matching_columns_from_join(join)
+    rhs_match_index = rhs_match_index - joined_row_size(join.lhs)
+    rhs_rows_map = Enum.group_by(rhs_rows, &Enum.at(&1, rhs_match_index))
+    fn (lhs_row) ->
+      lhs_match_value = Enum.at(lhs_row, lhs_match_index)
+      Map.get(rhs_rows_map, lhs_match_value, [])
+    end
+  end
+
+  defp column_evaluator(%Expression{user_id?: true}), do: 1
+  defp column_evaluator(_), do: 0
+
+  defp condition_evaluator({subject, target}), do:
+    column_evaluator(subject) + column_evaluator(target)
+
+  defp extract_matching_columns_from_join(join) do
+    # Get best equality comparison between left and right columns (preferring user id columns).
+    [{subject, target} | _] =
+      (for {:comparison, subject, :=, target} <- join.conditions, subject != target, do: {subject, target})
+      |> Enum.sort_by(&condition_evaluator/1, &>=/2)
+    # Make sure we return the columns in the correct order ({left_branch, right_branch}).
+    if table_is_in_join_branch?(subject.table.name, join.lhs) do
+      true = table_is_in_join_branch?(target.table.name, join.rhs)
+      {subject, target}
+    else
+      true = table_is_in_join_branch?(target.table.name, join.lhs)
+      true = table_is_in_join_branch?(subject.table.name, join.rhs)
+      {target, subject}
+    end
+  end
+
+  defp table_is_in_join_branch?(table_name, {:join, join}), do:
+    table_is_in_join_branch?(table_name, join.lhs) or table_is_in_join_branch?(table_name, join.rhs)
+  defp table_is_in_join_branch?(table_name, {:subquery, %{alias: subquery_alias}}), do: table_name == subquery_alias
+  defp table_is_in_join_branch?(table_name, joined_table), do: table_name == joined_table
 end

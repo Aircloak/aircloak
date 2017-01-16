@@ -85,7 +85,7 @@ defmodule Cloak.Query.DbEmulator do
     required_columns =
       (query.db_columns ++ get_in(query, [Query.Lenses.join_conditions_terminals()]))
       |> get_in([Query.Lenses.leaf_expressions()])
-      |> Enum.filter(&(&1.table.name == table_name))
+      |> Enum.filter(& &1.table != :unknown and &1.table.name == table_name)
       |> Enum.uniq_by(&Expression.id/1)
     query = Cloak.Aql.Compiler.make_select_query(query.data_source, table_name, required_columns, subquery?: true)
     {:subquery, %{type: :parsed, ast: query, alias: table_name}}
