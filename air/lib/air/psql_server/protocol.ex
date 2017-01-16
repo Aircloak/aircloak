@@ -39,7 +39,14 @@ defmodule Air.PsqlServer.Protocol do
 
   @type authentication_method :: :cleartext
 
-  @type psql_type :: :boolean | :int4 | :int8 | :text | :unknown
+  @type psql_type ::
+    :boolean
+    | :int2 | :int4 | :int8
+    | :float4 | :float8
+    | :numeric
+    | :text
+    | :date | :time | :timestamp
+    | :unknown
 
   @type column :: %{name: String.t, type: psql_type}
 
@@ -52,7 +59,8 @@ defmodule Air.PsqlServer.Protocol do
     param_types: [psql_type],
     parsed_param_types: [psql_type],
     params: [db_value],
-    result_codes: [:text | :binary]
+    result_codes: nil | [:text | :binary],
+    columns: nil | column
   }
 
   @type describe_result :: %{error: String.t} | %{columns: [column], param_types: [psql_type]}
@@ -266,6 +274,7 @@ defmodule Air.PsqlServer.Protocol do
       result_codes = prepared_statement.result_codes || [:text]
       state
       |> put_in([:prepared_statements, name, :parsed_param_types], description.param_types)
+      |> put_in([:prepared_statements, name, :columns], description.columns)
       |> send_parameter_descriptions(prepared_statement, description.param_types)
       |> request_send(row_description(description.columns, result_codes))
       |> transition_after_message(:ready)
@@ -273,8 +282,10 @@ defmodule Air.PsqlServer.Protocol do
   end
   # :running_prepared_statement -> awaiting result of an executed prepared statement
   defp handle_event(state, {:running_prepared_statement, name}, {:query_result, result}) do
+    statement = Map.fetch!(state.prepared_statements, name)
+
     state
-    |> send_rows(result.rows, Map.fetch!(state.prepared_statements, name).result_codes)
+    |> send_rows(result.rows, statement.columns, statement.result_codes)
     |> request_send(command_complete("SELECT #{length(result.rows)}"))
     |> request_send(ready_for_query())
     |> transition_after_message(:syncing)
@@ -304,6 +315,11 @@ defmodule Air.PsqlServer.Protocol do
     |> add_action({:run_query, payload, [], 0})
     |> next_state(:running_query)
   defp handle_ready_message(state, :parse, prepared_statement) do
+    prepared_statement = Map.merge(
+      prepared_statement,
+      %{params: nil, parsed_param_types: [], result_codes: nil, columns: nil}
+    )
+
     state
     |> put_in([:prepared_statements, prepared_statement.name], prepared_statement)
     |> request_send(parse_complete())
@@ -363,40 +379,14 @@ defmodule Air.PsqlServer.Protocol do
   defp send_result(state, %{rows: rows, columns: columns}), do:
     state
     |> request_send(row_description(columns, [:text]))
-    |> send_rows(rows, [:text])
+    |> send_rows(rows, columns, [:text])
     |> request_send(command_complete("SELECT #{length(rows)}"))
   defp send_result(state, %{error: error}), do:
     request_send(state, syntax_error_message(error))
 
-  defp send_rows(state, rows, formats), do:
-    Enum.reduce(rows, state, &request_send(&2, data_row(encode_values(&1, formats))))
+  defp send_rows(state, rows, columns, formats), do:
+    Enum.reduce(rows, state, &request_send(&2, data_row(&1, column_types(columns), formats)))
 
-  defp convert_params(params, format_codes, param_types) do
-    # per protocol, if param types are empty, all parameters are encoded as text
-    param_types = if param_types == [], do: Enum.map(params, fn(_) -> :text end), else: param_types
-    true = (length(params) == length(param_types))
-    [param_types, format_codes, params]
-    |> Enum.zip()
-    |> Enum.map(&decode_value/1)
-  end
-
-  defp decode_value({_, _, nil}), do: nil
-  defp decode_value({:int4, :text, param}), do: String.to_integer(param)
-  defp decode_value({:int4, :binary, <<value::signed-32>>}), do: value
-  defp decode_value({:int8, :text, param}), do: String.to_integer(param)
-  defp decode_value({:int8, :binary, <<value::signed-64>>}), do: value
-  defp decode_value({:boolean, :binary, <<0>>}), do: false
-  defp decode_value({:boolean, :binary, <<1>>}), do: true
-  defp decode_value({:text, _, param}) when is_binary(param), do: param
-  defp decode_value({:unknown, _, param}) when is_binary(param), do: param
-
-  defp encode_values(values, formats), do:
-    Enum.map(Enum.zip(values, Stream.cycle(formats)), &encode_value/1)
-
-  defp encode_value({nil, _}), do: <<-1::32>>
-  defp encode_value({integer, :binary}) when is_integer(integer), do: <<integer::signed-64>>
-  defp encode_value({binary, :binary}) when is_binary(binary), do: binary
-  defp encode_value({false, :binary}), do: <<0>>
-  defp encode_value({true, :binary}), do: <<1>>
-  defp encode_value({other, :text}), do: to_string(other)
+  defp column_types(nil), do: Stream.cycle([:text])
+  defp column_types(columns), do: Enum.map(columns, &(&1.type))
 end

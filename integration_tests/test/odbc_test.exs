@@ -29,61 +29,76 @@ defmodule IntegrationTest.OdbcTest do
     assert {:ok, _} = connect(context.user, sslmode: "allow")
   end
 
-  test "disconnecting", context do
-    {:ok, conn} = connect(context.user)
-    assert :ok = :odbc.disconnect(conn)
+  describe "connection tests" do
+    setup context do
+      {:ok, conn} = connect(context.user)
+      {:ok, Map.put(context, :conn, conn)}
+    end
+
+    test "disconnecting", context, do:
+      assert :ok = :odbc.disconnect(context.conn)
+
+    test "show tables", context, do:
+      assert :odbc.sql_query(context.conn, 'show tables') == {:selected, ['name'], [{'users'}]}
+
+    test "show columns", context, do:
+      assert :odbc.sql_query(context.conn, 'show columns from users') == {:selected, ['name', 'type'], [
+        {'user_id', 'text'},
+        {'name', 'text'},
+        {'height', 'integer'}
+      ]}
+
+    test "select", context do
+      assert {:selected, ['name', 'height'], rows} = :odbc.sql_query(context.conn, 'select name, height from users')
+      assert Enum.uniq(rows) == [{'john', '180'}]
+    end
+
+    test "parameterized query with a tiny integer", context, do:
+      assert param_select(context.conn, :sql_tinyint, 42) == '42'
+
+    test "parameterized query with a small integer", context, do:
+      assert param_select(context.conn, :sql_smallint, 42) == '42'
+
+    test "parameterized query with an integer", context, do:
+      # The reason that the result is a string is because the server returns `int8`, and it appears that
+      # either the ODBC driver, or ODBC itself converts this into a string.
+      assert param_select(context.conn, :sql_integer, 42) == '42'
+
+    test "parameterized query with a boolean", context, do:
+      assert param_select(context.conn, :sql_bit, true) == true
+
+    test "parameterized query with a float", context, do:
+      assert param_select(context.conn, {:sql_float, 32}, 3.14, "real") == 3.14
+
+    test "parameterized query with a double", context, do:
+      assert param_select(context.conn, :sql_double, 3.14, "real") == 3.14
+
+    test "parameterized query with a decimal", context, do:
+      assert param_select(context.conn, {:sql_decimal, 10, 2}, 3.14) == 3.14
+
+    test "parameterized query with a real", context, do:
+      assert param_select(context.conn, :sql_real, 3.14) == 3.14
+
+    test "parameterized query with a varchar", context, do:
+      assert param_select(context.conn, {:sql_varchar, 6}, 'foobar') == 'foobar'
+
+    test "parameterized query with a char", context, do:
+      assert param_select(context.conn, {:sql_char, 6}, 'foobar') == 'foobar'
+
+    test "select error", context, do:
+      ExUnit.CaptureLog.capture_log(fn -> assert {:error, _} = :odbc.sql_query(context.conn, 'invalid query') end)
+
+    test "extended query error", context, do:
+      ExUnit.CaptureLog.capture_log(fn -> assert {:error, _} = :odbc.param_query(context.conn, 'invalid query', []) end)
   end
 
-  test "show tables", context do
-    {:ok, conn} = connect(context.user)
-    assert :odbc.sql_query(conn, 'show tables') == {:selected, ['name'], [{'users'}]}
-  end
 
-  test "show columns", context do
-    {:ok, conn} = connect(context.user)
-    assert :odbc.sql_query(conn, 'show columns from users') == {:selected, ['name', 'type'], [
-      {'user_id', 'text'},
-      {'name', 'text'},
-      {'height', 'integer'}
-    ]}
+  defp param_select(conn, type, value, cast \\ nil) do
+    cast = if cast != nil, do: "::#{cast}"
+    {:selected, ['x'], rows} = :odbc.param_query(conn, 'select $1#{cast} as x from users', [{type, [value]}])
+    [{result}] = Enum.uniq(rows)
+    result
   end
-
-  test "select", context do
-    {:ok, conn} = connect(context.user)
-    assert {:selected, ['name', 'height'], rows} = :odbc.sql_query(conn, 'select name, height from users')
-    assert Enum.uniq(rows) == [{'john', '180'}]
-  end
-
-  test "extended query", context do
-    {:ok, conn} = connect(context.user)
-    assert {:selected, ['name', 'height'], rows} = :odbc.param_query(
-      conn,
-      'select name, height + $1 as height from users where height = $2',
-      [{:sql_integer, [1]}, {:sql_integer, [180]}]
-    )
-    assert Enum.uniq(rows) == [{'john', '181'}]
-  end
-
-  test "select a boolean", context do
-    {:ok, conn} = connect(context.user)
-    assert {:selected, ['x'], rows} = :odbc.param_query(
-      conn,
-      'select $1::boolean as x from users',
-      [{:sql_integer, [1]}]
-    )
-    assert Enum.uniq(rows) == [{true}]
-  end
-
-  test "select error", context do
-    {:ok, conn} = connect(context.user)
-    ExUnit.CaptureLog.capture_log(fn -> assert {:error, _} = :odbc.sql_query(conn, 'invalid query') end)
-  end
-
-  test "extended query error", context do
-    {:ok, conn} = connect(context.user)
-    ExUnit.CaptureLog.capture_log(fn -> assert {:error, _} = :odbc.param_query(conn, 'invalid query', []) end)
-  end
-
 
   defp connect(user, params \\ []) do
     params = Keyword.merge(

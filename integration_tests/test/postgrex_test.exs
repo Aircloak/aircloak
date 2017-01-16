@@ -18,22 +18,31 @@ defmodule IntegrationTest.PostgrexTest do
     assert error.postgres.message == "The type for parameter `$1` cannot be determined."
   end
 
-  test "select a string", context do
-    result = Postgrex.query!(context.conn, "select $1::text from users", ["foobar"])
-    assert result.columns == ["cast"]
-    assert Enum.uniq(result.rows) == [["foobar"]]
-  end
+  test "select a string", context, do:
+    assert param_select(context.conn, "foobar", "text") == "foobar"
 
-  test "select an integer", context do
-    result = Postgrex.query!(context.conn, "select $1::integer from users", [42])
-    assert result.columns == ["cast"]
-    assert Enum.uniq(result.rows) == [[42]]
-  end
+  test "select an integer", context, do:
+    assert param_select(context.conn, 42, "integer") == 42
 
   test "select a boolean", context do
-    result = Postgrex.query!(context.conn, "select $1::boolean from users", [true])
-    assert result.columns == ["cast"]
-    assert Enum.uniq(result.rows) == [[true]]
+    assert param_select(context.conn, true, "boolean") == true
+    assert param_select(context.conn, false, "boolean") == false
+  end
+
+  test "select a real", context, do:
+    assert param_select(context.conn, 3.14, "real") == 3.14
+
+  test "select a date", context, do:
+    assert param_select(context.conn, %Postgrex.Date{year: 2017, month: 1, day: 31}, "date") ==
+      %Postgrex.Date{year: 2017, month: 1, day: 31}
+
+  test "select a time", context, do:
+    assert param_select(context.conn, %Postgrex.Time{hour: 1, min: 2, sec: 3, usec: 4}, "time") ==
+      %Postgrex.Time{hour: 1, min: 2, sec: 3, usec: 4}
+
+  test "select a datetime", context do
+    datetime = %Postgrex.Timestamp{year: 2017, month: 1, day: 31, hour: 1, min: 2, sec: 3, usec: 4}
+    assert param_select(context.conn, datetime, "datetime") == datetime
   end
 
   test "multiple queries on the same connection", context do
@@ -46,6 +55,12 @@ defmodule IntegrationTest.PostgrexTest do
   test "recovery after an error", context do
     assert {:error, _} = Postgrex.query(context.conn, "select $1 from users", ["foobar"])
     assert {:ok, _} = Postgrex.query(context.conn, "select $1::text from users", ["foobar"])
+  end
+
+  defp param_select(conn, value, cast) do
+    result = Postgrex.query!(conn, "select $1::#{cast} from users", [value])
+    [[value]] = Enum.uniq(result.rows)
+    value
   end
 
   defp connect(user) do

@@ -137,7 +137,11 @@ defmodule Air.PsqlServer do
   for {aql_type, psql_type} <- %{
     "boolean" => :boolean,
     "integer" => :int8,
-    "text" => :text
+    "real" => :float8,
+    "text" => :text,
+    "date" => :date,
+    "time" => :time,
+    "datetime" => :timestamp,
   } do
     defp type_atom(unquote(aql_type)), do: unquote(psql_type)
   end
@@ -160,10 +164,17 @@ defmodule Air.PsqlServer do
       rows:
         [
           ~w(16 bool boolsend boolrecv boolout boolin 0 0 {}),
-          ~w(20 int8 int8send int8recv int8out int8in 0 0 {}),
+          ~w(21 int2 int2send int2recv int2out int2in 0 0 {}),
           ~w(23 int4 int4send int4recv int4out int4in 0 0 {}),
+          ~w(20 int8 int8send int8recv int8out int8in 0 0 {}),
           ~w(25 text textsend textrecv textout textin 0 0 {}),
-          ~w(705 unknown unknownsend unknownrecv unknownout unknownin 0 0 {})
+          ~w(700 float4 float4send float4recv float4out float4in 0 0 {}),
+          ~w(701 float8 float8send float8recv float8out float8in 0 0 {}),
+          ~w(705 unknown unknownsend unknownrecv unknownout unknownin 0 0 {}),
+          ~w(1082 date date_send date_recv date_out date_in 0 0 {}),
+          ~w(1083 time time_send time_recv time_out time_in 0 0 {}),
+          ~w(1114 timestamp timestamp_send timestamp_recv timestamp_out timestamp_in 0 0 {}),
+          ~w(1700 numeric numeric_send numeric_recv numeric_out numeric_in 0 0 {})
         ]
     }
   end

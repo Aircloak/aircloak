@@ -27,8 +27,4 @@ Tableau integration is not yet fully possible. We can connect to the Air from Ta
 
 ### Support for language drivers
 
-Another use-case is to allow clients to query data sources from their own code (e.g. Ruby, Python, Java, ...) using available PostgreSQL drivers. This is already possible to some extent, as demonstrated in integration tests, where Elixir code queries cloak using Erlang ODBC client library. However, this functionality should be further tested and extended as needed. We need to add more integration tests (e.g. using `Postgrex` in Elixir, and other drivers in other languages), and if needed extend the implementation.
-
-### Other notable missing features
-
-- When receiving and sending data, we only support integer (`int4` and `int8`), `text`, and `boolean` parameters. We need to support additional types, such as `real`, and `datetime`.
+Another use-case is to allow clients to query data sources from their own code (e.g. Ruby, Python, Java, ...) using available PostgreSQL drivers. This is already possible to some extent, as demonstrated in integration tests, where Elixir code queries cloak using Erlang ODBC client library and Postgrex. However, this functionality should be further tested and extended as needed. We need to add more integration tests (e.g. using other drivers in other languages), and if needed extend the implementation.
