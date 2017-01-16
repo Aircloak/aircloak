@@ -63,7 +63,7 @@ defmodule Air.PsqlServer do
           conn,
           :query_runner,
           Task.async(fn ->
-            DataSource.run_query(conn.assigns.data_source_id, conn.assigns.user, query, params)
+            DataSource.run_query(conn.assigns.data_source_id, conn.assigns.user, query, convert_params(params))
           end)
         )
     end
@@ -75,7 +75,7 @@ defmodule Air.PsqlServer do
       conn,
       :query_describer,
       Task.async(fn ->
-        DataSource.describe_query(conn.assigns.data_source_id, conn.assigns.user, query, params)
+        DataSource.describe_query(conn.assigns.data_source_id, conn.assigns.user, query, convert_params(params))
       end)
     )
 
@@ -118,7 +118,7 @@ defmodule Air.PsqlServer do
           Map.fetch!(query_result, "columns"),
           query_result |> Map.fetch!("features") |> Map.fetch!("selected_types")
         )
-        |> Enum.map(fn({name, type}) -> %{name: name, type: type_atom(type)} end),
+        |> Enum.map(fn({name, aql_type}) -> %{name: name, type: psql_type(aql_type)} end),
       rows:
         query_result
         |> Map.get("rows", [])
@@ -127,12 +127,46 @@ defmodule Air.PsqlServer do
         query_result
         |> Map.fetch!("features")
         |> Map.fetch!("parameter_types")
-        |> Enum.map(&type_atom/1)
+        |> Enum.map(&psql_type/1)
     }
   defp parse_response(other) do
     Logger.error("Error running a query: #{inspect other}")
     %{error: "System error!"}
   end
+
+  defp convert_params(nil), do: nil
+  defp convert_params(params), do:
+    Enum.map(params, fn({type, value}) -> %{type: aql_type(type, value), value: value} end)
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Type conversions
+  #-----------------------------------------------------------------------------------------------------------
+
+  for {psql_type, aql_type} <- %{
+    boolean: :boolean,
+    int2: :integer,
+    int4: :integer,
+    int8: :integer,
+    float4: :real,
+    float8: :real,
+    numeric: :real,
+    date: :date,
+    time: :time,
+    timestamp: :datetime,
+    text: :text
+  } do
+    defp aql_type(unquote(psql_type), _value), do: unquote(aql_type)
+  end
+  defp aql_type(:unknown, value), do: aql_type_from_value(value)
+
+  defp aql_type_from_value(value) when is_boolean(value), do: :boolean
+  defp aql_type_from_value(value) when is_integer(value), do: :integer
+  defp aql_type_from_value(value) when is_float(value), do: :real
+  defp aql_type_from_value(value) when is_binary(value), do: :text
+  defp aql_type_from_value(%Date{}), do: :date
+  defp aql_type_from_value(%Time{}), do: :time
+  defp aql_type_from_value(%NaiveDateTime{}), do: :datetime
 
   for {aql_type, psql_type} <- %{
     "boolean" => :boolean,
@@ -143,9 +177,9 @@ defmodule Air.PsqlServer do
     "time" => :time,
     "datetime" => :timestamp,
   } do
-    defp type_atom(unquote(aql_type)), do: unquote(psql_type)
+    defp psql_type(unquote(aql_type)), do: unquote(psql_type)
   end
-  defp type_atom(_other), do: :unknown
+  defp psql_type(_other), do: :unknown
 
 
   #-----------------------------------------------------------------------------------------------------------

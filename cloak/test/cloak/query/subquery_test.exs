@@ -107,7 +107,7 @@ defmodule Cloak.Query.SubqueryTest do
   test "binding parameters in a subquery" do
     assert_query(
       "select height + $1 as height from (select user_id, height + $2 as height from heights_sq) alias",
-      [parameters: [10, 20]],
+      [parameters: [%{type: :integer, value: 10}, %{type: :integer, value: 20}]],
       %{columns: ["height"], rows: [%{row: [210], occurrences: 100}]}
     )
   end

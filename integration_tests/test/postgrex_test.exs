@@ -45,6 +45,11 @@ defmodule IntegrationTest.PostgrexTest do
     assert param_select(context.conn, datetime, "datetime") == datetime
   end
 
+  for type <- ["text", "integer", "real", "boolean", "date", "time", "datetime"] do
+    test "select null as #{type}", context, do:
+      assert param_select(context.conn, nil, unquote(type)) == nil
+  end
+
   test "multiple queries on the same connection", context do
     assert {:error, _} = Postgrex.query(context.conn, "select $1 from users", ["foobar"])
     assert {:ok, _} = Postgrex.query(context.conn, "select $1::text from users", ["foobar"])

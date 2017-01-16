@@ -315,13 +315,16 @@ defmodule Air.PsqlServer.Protocol.Messages do
   defp encode_row(row, column_types, formats), do:
     Enum.zip([Stream.cycle(formats), column_types, row])
     |> Enum.map(&encode_value/1)
-    |> Enum.map(&<<byte_size(&1)::32, &1::binary>>)
     |> IO.iodata_to_binary()
 
   defp encode_value({_, _, nil}), do: <<-1::32>>
-  defp encode_value({:text, _, value}), do: to_string(value)
+  defp encode_value({:text, _, value}), do: with_size(to_string(value))
   defp encode_value({:binary, type, value}), do:
     postgrex_extension(type).encode(type_info(type), normalize_for_postgrex_encoding(type, value), nil, nil)
+    |> with_size()
+
+  defp with_size(encoded), do:
+    <<byte_size(encoded)::32, encoded::binary>>
 
   defp normalize_for_postgrex_encoding(:numeric, value), do: Decimal.new(value)
   defp normalize_for_postgrex_encoding(:date, value), do: Date.from_iso8601!(value)

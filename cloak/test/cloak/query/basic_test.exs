@@ -761,7 +761,8 @@ defmodule Cloak.Query.BasicTest do
 
   test "parameters binding" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    assert_query "select height + $1 as height from heights WHERE $3 = $2", [parameters: [10, true, true]],
+    assert_query "select height + $1 as height from heights WHERE $3 = $2",
+      [parameters: [%{type: :integer, value: 10}, %{type: :boolean, value: true}, %{type: :boolean, value: true}]],
       %{columns: ["height"], rows: [%{row: [190], occurrences: 100}]}
   end
 
