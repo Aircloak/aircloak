@@ -1,6 +1,6 @@
 defmodule Cloak.Query.Rows do
   @moduledoc "Functions for row processing, such as filtering and grouping."
-  alias Cloak.Aql.{Expression, Query}
+  alias Cloak.Sql.{Expression, Query}
 
 
   # -------------------------------------------------------------------

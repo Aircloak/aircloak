@@ -1,9 +1,9 @@
-defmodule Cloak.Aql.Compiler.Test do
+defmodule Cloak.Sql.Compiler.Test do
   use ExUnit.Case, async: true
 
   import Lens.Macros
 
-  alias Cloak.Aql.{Expression, Compiler, Parser, Query}
+  alias Cloak.Sql.{Expression, Compiler, Parser, Query}
 
   defmacrop column(table_name, column_name) do
     quote do

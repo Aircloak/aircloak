@@ -1,7 +1,7 @@
-defmodule Cloak.Aql.Parser.Test do
+defmodule Cloak.Sql.Parser.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.Parser
+  alias Cloak.Sql.Parser
 
 
   # -------------------------------------------------------------------

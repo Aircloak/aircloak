@@ -1,7 +1,7 @@
-defmodule Cloak.Aql.Parser do
+defmodule Cloak.Sql.Parser do
   @moduledoc "Parser for SQL queries."
   import Combine.Parsers.Base
-  import Cloak.Aql.Parsers
+  import Cloak.Sql.Parsers
 
   @type comparator ::
       :=
@@ -85,7 +85,7 @@ defmodule Cloak.Aql.Parser do
   @doc "Parses a SQL query in text form."
   @spec parse(String.t) :: {:ok, parsed_query} | {:error, any}
   def parse(string) do
-    with {:ok, tokens} <- Cloak.Aql.Lexer.tokenize(string) do
+    with {:ok, tokens} <- Cloak.Sql.Lexer.tokenize(string) do
       case parse_tokens(tokens, parser()) do
         {:error, _} = error -> error
         [statement] -> {:ok, statement}

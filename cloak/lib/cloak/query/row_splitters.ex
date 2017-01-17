@@ -21,7 +21,7 @@ defmodule Cloak.Query.RowSplitters do
     `splitter(function1(function2(value)))`
   """
 
-  alias Cloak.Aql.{Query, Expression, Function}
+  alias Cloak.Sql.{Query, Expression, Function}
 
 
   # -------------------------------------------------------------------

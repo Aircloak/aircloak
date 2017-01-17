@@ -29,7 +29,7 @@ defmodule Cloak.DataSource.MongoDB do
     name of the table being the base table name suffixed with the array name, separated by `_`.
   """
 
-  alias Cloak.Aql.Expression
+  alias Cloak.Sql.Expression
   alias Cloak.Query.Runner.RuntimeError
   alias Cloak.DataSource.MongoDB.{Schema, Pipeline}
 

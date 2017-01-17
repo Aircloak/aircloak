@@ -2,7 +2,7 @@ defmodule Cloak.Query.ShrinkAndDrop.Test do
   use ExUnit.Case, async: true
   use ExCheck
 
-  alias Cloak.Aql.{Expression, Range}
+  alias Cloak.Sql.{Expression, Range}
   alias Cloak.Query.ShrinkAndDrop
 
   test "when the stream is empty the result is empty" do

@@ -194,7 +194,7 @@ defmodule Cloak.AirSocket do
         respond_to_air(from, :error, "Unknown data source.")
 
       {:ok, data_source} ->
-        case Cloak.Aql.Query.describe_query(data_source, statement, parameters, views) do
+        case Cloak.Sql.Query.describe_query(data_source, statement, parameters, views) do
           {:ok, columns, features} -> respond_to_air(from, :ok, %{columns: columns, features: features})
           {:error, reason} -> respond_to_air(from, :ok, %{error: reason})
         end
@@ -212,7 +212,7 @@ defmodule Cloak.AirSocket do
         respond_to_air(from, :error, "Unknown data source.")
 
       {:ok, data_source} ->
-        case Cloak.Aql.Query.validate_view(data_source, name, sql, views) do
+        case Cloak.Sql.Query.validate_view(data_source, name, sql, views) do
           {:ok, columns} -> respond_to_air(from, :ok, %{valid: true, columns: columns})
           {:error, field, reason} -> respond_to_air(from, :ok, %{valid: false, field: field, error: reason})
         end

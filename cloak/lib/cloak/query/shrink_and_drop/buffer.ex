@@ -5,7 +5,7 @@ defmodule Cloak.Query.ShrinkAndDrop.Buffer do
   """
 
   alias Cloak.Query.ShrinkAndDrop.HalfBuffer
-  alias Cloak.Aql.FixAlign
+  alias Cloak.Sql.FixAlign
 
   defstruct [:left, :right]
 

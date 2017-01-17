@@ -9,7 +9,7 @@ defmodule Cloak.Query.LCFConditions do
   """
 
   alias Cloak.Query.Anonymizer
-  alias Cloak.Aql.{Query, Comparison}
+  alias Cloak.Sql.{Query, Comparison}
 
 
   # -------------------------------------------------------------------

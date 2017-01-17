@@ -1,7 +1,7 @@
-defmodule Cloak.Aql.Query.Lenses do
+defmodule Cloak.Sql.Query.Lenses do
   @moduledoc "Lenses for traversing queries"
 
-  alias Cloak.Aql.{Expression, Function}
+  alias Cloak.Sql.{Expression, Function}
 
   use Lens.Macros
 

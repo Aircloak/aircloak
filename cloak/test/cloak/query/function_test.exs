@@ -2,7 +2,7 @@ defmodule Cloak.Query.FunctionTest do
   use ExUnit.Case, async: true
 
   import Cloak.Test.QueryHelpers
-  alias Cloak.Aql.Function
+  alias Cloak.Sql.Function
 
   setup_all do
     Cloak.Test.DB.create_table("heights_ft", "height INTEGER, name TEXT")

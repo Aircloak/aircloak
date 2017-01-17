@@ -9,7 +9,7 @@ defmodule Cloak.Query.DbEmulator do
   require Logger
 
   alias Cloak.DataSource
-  alias Cloak.Aql.{Query, Comparison, Expression, Function}
+  alias Cloak.Sql.{Query, Comparison, Expression, Function}
   alias Cloak.Query.{Rows, DataDecoder, DbEmulator.Selector}
 
 
@@ -87,7 +87,7 @@ defmodule Cloak.Query.DbEmulator do
       |> get_in([Query.Lenses.leaf_expressions()])
       |> Enum.filter(& &1.table != :unknown and &1.table.name == table_name)
       |> Enum.uniq_by(&Expression.id/1)
-    query = Cloak.Aql.Compiler.make_select_query(query.data_source, table_name, required_columns, subquery?: true)
+    query = Cloak.Sql.Compiler.make_select_query(query.data_source, table_name, required_columns, subquery?: true)
     {:subquery, %{type: :parsed, ast: query, alias: table_name}}
   end
 

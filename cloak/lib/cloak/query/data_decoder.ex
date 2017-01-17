@@ -8,7 +8,7 @@ defmodule Cloak.Query.DataDecoder do
   ]
   """
 
-  alias Cloak.Aql.{Query, Expression}
+  alias Cloak.Sql.{Query, Expression}
 
   @type type :: Cloak.DataSource.data_type
   @type decoder :: (type -> {:ok, type} | :error)
