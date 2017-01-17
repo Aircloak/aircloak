@@ -45,9 +45,17 @@ defmodule Air.ViewController do
     end
   end
 
-  def delete(conn, %{"id" => id}) do
+  def delete(%Plug.Conn{req_headers: headers} = conn, %{"id" => id}) do
     View.delete(id, conn.assigns.current_user)
-    redirect(conn, to: data_source_path(conn, :show, conn.assigns.data_source.id))
+    return_path = headers
+    |> Enum.find_value(fn
+      ({"referer", referer}) -> referer
+      ({_header, _value}) -> nil
+    end)
+    |> case do
+      nil -> redirect(conn, to: data_source_path(conn, :show, conn.assigns.data_source.id))
+      url -> redirect(conn, external: url)
+    end
   end
 
 
