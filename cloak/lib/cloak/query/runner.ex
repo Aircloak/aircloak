@@ -12,6 +12,7 @@ defmodule Cloak.Query.Runner do
   alias Cloak.{Aql.Query, DataSource, Query.Runner.Engine}
 
   @supervisor_name Module.concat(__MODULE__, Supervisor)
+  @registry_name Module.concat(__MODULE__, Registry)
 
   defmodule RuntimeError do
     @moduledoc """
@@ -40,8 +41,14 @@ defmodule Cloak.Query.Runner do
     import Supervisor.Spec, warn: false
 
     supervisor(Supervisor, [
-      [worker(GenServer, [__MODULE__], restart: :temporary)],
-      [id: @supervisor_name, name: @supervisor_name, strategy: :simple_one_for_one]
+      [
+        supervisor(Registry, [:unique, @registry_name]),
+        supervisor(Supervisor, [
+          [worker(GenServer, [__MODULE__], restart: :temporary)],
+          [id: @supervisor_name, name: @supervisor_name, strategy: :simple_one_for_one]
+        ])
+      ],
+      [id: Module.concat(__MODULE__, TopLevelSupervisor), strategy: :rest_for_one]
     ])
   end
 
@@ -172,8 +179,8 @@ defmodule Cloak.Query.Runner do
       run_query(data_source, statement, parameters, views)
 
     # tests run the same query in parallel, so we make the process name unique to avoid conflicts
-    def worker_name(_query_id), do: {:via, :gproc, {:n, :l, {__MODULE__, :erlang.unique_integer()}}}
+    def worker_name(_query_id), do: {:via, Registry, {@registry_name, :erlang.unique_integer()}}
   else
-    def worker_name(query_id), do: {:via, :gproc, {:n, :l, {__MODULE__, query_id}}}
+    def worker_name(query_id), do: {:via, Registry, {@registry_name, query_id}}
   end
 end
