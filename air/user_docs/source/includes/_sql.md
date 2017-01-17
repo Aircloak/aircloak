@@ -153,6 +153,18 @@ length(btrim(name, 'constant'))
 age * 10
 
 
+-- The following examples show expressions that are allowed
+-- for column expressions that are selected, but not allowed in
+-- a filter condition irrespective of whether they are match conditions
+-- or inequality conditions, because they extract parts of a date or time
+
+-- cast of a date
+left(cast(date as text), 7)
+
+-- extract part of a date
+year(date)
+
+
 -- The following show examples of the restricted functions which are OK
 -- both in column expressions that are selected as well as filtering
 -- clauses, despite being complex. The reason is that there are no
@@ -173,8 +185,8 @@ The restrictions are as follows:
   there has been performed math with a constant on the column as well
 - you cannot use a column in a filter condition clause inequality (meaning `>`, `>=`, `<`, or `<=` in a `WHERE`-, `JOIN`- or `HAVING`-clause)
   if it has had math with a constant performed on it __or__ if it has been processed by one of the restricted functions together with a constant
-- you cannot use the result of applying a date or time extraction function (like `year`, `hour` etc) on a `date`, `time` or `datetime` column in a
-  filter condition clause (neither equality nor inequality).
+- you cannot use the result of a cast or of applying a date or time extraction function (like `year`, `hour` etc)
+  on a `date`, `time` or `datetime` column in a filter condition clause (neither match nor inequality clause).
 
 The numerical functions that receive this kind of special treatment are: `abs`, `bucket`, `ceil`, `div`, `floor`, `mod`, `round`, `sqrt`, `/`, `trunc`, and `cast`'s.
 
