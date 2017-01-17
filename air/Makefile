@@ -52,6 +52,3 @@ eslint:
 
 mocha:
 	NODE_PATH=test/js:web/static/js npm test
-
-check_dependent_apps:
-	mix check_dependent_apps
