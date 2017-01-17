@@ -63,7 +63,6 @@
       };
       const selectableInfoProps = {
         selectables: <%= selectables(@conn, @data_source, @views) %>,
-        readOnly: true,
         newViewURL: "<%= data_source_view_path(@conn, :new, @data_source.id) %>"
       };
 

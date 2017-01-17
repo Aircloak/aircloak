@@ -8,7 +8,6 @@ import {FilterView, Filter, EmptyFilter} from "./filter";
 import type {Selectable} from "./selectable";
 
 type Props = {
-  readOnly: boolean,
   selectables: Selectable[],
   newViewURL: string,
 };
@@ -75,7 +74,6 @@ class SelectableInfo extends React.Component {
               <
                 SelectableView
                 key={i}
-                readOnly={this.props.readOnly}
                 filter={this.state.filter}
                 selectable={selectable}
                 expanded={this.expanded(selectable)}

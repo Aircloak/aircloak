@@ -14,7 +14,6 @@ export type Selectable = {
 };
 
 type Props = {
-  readOnly: boolean,
   selectable: Selectable,
   onClick: () => void,
   expanded: boolean,
@@ -50,9 +49,7 @@ export class SelectableView extends React.Component {
   }
 
   isDatabaseView() {
-    return !this.props.readOnly &&
-      this.props.selectable.edit_link &&
-      this.props.selectable.delete_html;
+    return this.props.selectable.edit_link && this.props.selectable.delete_html;
   }
 
   hasRenderableContent() {
