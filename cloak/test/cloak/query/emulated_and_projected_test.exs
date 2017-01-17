@@ -118,8 +118,8 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
         select v from
           (select user_id, left(value, 1) as v from #{@prefix}emulated group by user_id, left(value, 1)) as t
         order by v
-        """, %{rows: [%{occurrences: 20, row: [""]}, %{occurrences: 20, row: ["1"]},
-              %{occurrences: 20, row: ["a"]}, %{occurrences: 20, row: ["x"]}]}
+        """, %{rows: [%{occurrences: 20, row: ["1"]}, %{occurrences: 20, row: ["a"]},
+              %{occurrences: 20, row: ["x"]}, %{occurrences: 20, row: [nil]}]}
     end
 
     test "having inequality" do
@@ -194,7 +194,7 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
       assert_query """
           select avg(v) from
           (select user_id, count(distinct left(value, 1)) as v from #{@prefix}emulated group by user_id) as t
-        """, %{rows: [%{occurrences: 1, row: [4.0]}]}
+        """, %{rows: [%{occurrences: 1, row: [3.0]}]}
 
     test "select distinct", do:
       assert_query "select v from (select distinct user_id, length(value) as v from #{@prefix}emulated) as t",
