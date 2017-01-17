@@ -18,6 +18,10 @@
   margin: -15px -15px 0 -15px;
 }
 
+.result-table {
+  overflow-x: auto;
+}
+
 .panel-danger .ReactCodeMirror {
   border-bottom: 1px solid rgb(235, 204, 209);
 }
