@@ -261,19 +261,21 @@ export class ResultView extends React.Component {
         <div className="panel-body">
           <CodeViewer statement={this.props.statement} />
           <Info info={this.props.info} />
-          <table className="table table-striped table-hover">
-            <thead>
-              <tr>
-                {this.props.columns.map((column, i) =>
-                  <th key={i}>{column}</th>
-                )}
-              </tr>
-            </thead>
+          <div className="result-table">
+            <table className="table table-striped table-hover">
+              <thead>
+                <tr>
+                  {this.props.columns.map((column, i) =>
+                    <th key={i}>{column}</th>
+                  )}
+                </tr>
+              </thead>
 
-            <tbody>
-              {this.renderRows()}
-            </tbody>
-          </table>
+              <tbody>
+                {this.renderRows()}
+              </tbody>
+            </table>
+          </div>
           {this.renderShowAll()}
           {this.renderOptionMenu()}
           {this.conditionallyRenderChart()}
