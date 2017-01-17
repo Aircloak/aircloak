@@ -62,7 +62,6 @@ defmodule Central.Mixfile do
       {:cowboy, "~> 1.0"},
       {:comeonin, "~> 2.5"},
       {:guardian, "~> 0.13.0"},
-      {:exrm, "~> 1.0.8", warn_missing: false},
       {:timex, "~> 3.1"},
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
