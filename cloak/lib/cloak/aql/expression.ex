@@ -256,10 +256,14 @@ defmodule Cloak.Aql.Expression do
   defp do_trunc(value, precision) when value < 0, do: value |> :erlang.float() |> Float.ceil(precision)
   defp do_trunc(value, precision), do: value |> :erlang.float() |> Float.floor(precision)
 
+  defp left(nil, _), do: nil
+  defp left(_, nil), do: nil
   defp left(string, count) when count < 0, do:
     String.slice(string, 0, max(String.length(string) + count, 0))
   defp left(string, count), do: String.slice(string, 0, count)
 
+  defp right(nil, _), do: nil
+  defp right(_, nil), do: nil
   defp right(string, count) when count < 0, do: String.slice(string, -count, String.length(string))
   defp right(string, count), do: String.slice(string, String.length(string) - count, count)
 
@@ -270,6 +274,8 @@ defmodule Cloak.Aql.Expression do
   defp rtrim(string, chars), do: Regex.replace(~r/[#{Regex.escape(chars)}]*$/, string, "")
 
   defp substring(string, from, count \\ nil)
+  defp substring(nil, _, _), do: nil
+  defp substring(_, nil, _), do: nil
   defp substring(string, from, count) when from < 1, do: substring(string, 1, count + from - 1)
   defp substring(_string, _from, count) when count < 0, do: ""
   defp substring(string, from, count), do:
