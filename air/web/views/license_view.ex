@@ -28,7 +28,6 @@ defmodule Air.LicenseView do
   def license_name("zlib"),                      do: "The zlib/libpng License"
   def license_name("boost"),                     do: "Boost Software License 1.0"
   def license_name("do_what_the_fuck_you_want"), do: "Do What the Fuck You Want To Public License"
-  def license_name("epl_1_1"),                   do: "Erlang Public License Version 1.1"
   def license_name("mpl_2_0"),                   do: "Mozilla Public License, Version 2.0"
   def license_name(type),                        do: type
 end
