@@ -66,8 +66,8 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
   test "left join with table and filtered sub-query in filtered top-query", context do
     assert_query context, """
         SELECT age FROM "left" INNER JOIN
-        (SELECT id AS rid, salary FROM "right" WHERE salary = 100) AS t
-        ON id = rid WHERE salary >= 0 AND salary < 500
+        (SELECT id AS rid, salary FROM "right" WHERE salary >= 0 AND salary < 500) AS t
+        ON id = rid WHERE salary = 100
       """, %{rows: [%{occurrences: 7, row: [30]}]}
   end
 

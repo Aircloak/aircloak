@@ -67,7 +67,7 @@ defmodule Air.Service.DataSource do
         MainChannel.describe_query(channel_pid, %{
           statement: statement,
           data_source: data_source.global_id,
-          parameters: parameters,
+          parameters: encode_parameters(parameters),
           views: user_views_map(user)
         })
       end
@@ -215,8 +215,12 @@ defmodule Air.Service.DataSource do
       id: query.id,
       statement: query.statement,
       data_source: query.data_source.global_id,
-      parameters: parameters,
+      parameters: encode_parameters(parameters),
       views: user_views_map(user)
     }
   end
+
+  defp encode_parameters(parameters), do:
+    # JSON won't work for types such as date, time, and datetime, so we're encoding parameter array to BERT.
+    Base.encode16(:erlang.term_to_binary(parameters))
 end

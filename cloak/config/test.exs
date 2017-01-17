@@ -40,3 +40,5 @@ config :cloak, :anonymizer,
 
   # The standard deviation for the noisy top average added to summed values.
   sum_noise_sigma: 0
+
+config :excheck, :number_iterations, 200

@@ -61,9 +61,6 @@ release:
 release-local: release
 	cp rel/cloak/lib/cloak-0.1.0/priv/config/dev.json rel/cloak/lib/cloak-0.1.0/priv/config/config.json
 
-check_dependent_apps:
-	mix check_dependent_apps
-
 perftest:
 	MIX_ENV=test mix run perftest/main.exs "${QUERY}"
 

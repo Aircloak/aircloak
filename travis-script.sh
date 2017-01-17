@@ -26,7 +26,6 @@ function banner() {
   pushd common/elixir
   make docs
   make lint
-  make check_dependent_apps
   make test
   make dialyze
   popd
@@ -38,7 +37,6 @@ function banner() {
   pushd air
   make docs
   make lint
-  make check_dependent_apps
   make test
   make dialyze
   popd
@@ -50,7 +48,6 @@ function banner() {
   pushd cloak
   make docs
   make lint
-  make check_dependent_apps
   make test_all
   make dialyze
   make proper-extended
@@ -63,7 +60,6 @@ function banner() {
   pushd bom
   make docs
   make lint
-  make check_dependent_apps
   make test
   make dialyze
   mix bom --elixir ../cloak/deps --elixir ../air/deps --node ../air/node_modules bom.json
@@ -76,7 +72,6 @@ function banner() {
   pushd central
   make docs
   make lint
-  make check_dependent_apps
   make test
   make dialyze
   popd

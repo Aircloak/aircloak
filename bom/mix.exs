@@ -19,7 +19,7 @@ defmodule Bom.Mixfile do
   def application do
     [
       mod: {BOM, []},
-      applications: [:logger, :aircloak_common, :httpoison],
+      extra_applications: [:logger],
     ]
   end
 

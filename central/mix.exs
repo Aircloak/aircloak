@@ -24,7 +24,6 @@ defmodule Central.Mixfile do
       preferred_cli_env: [
         eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev, release: :prod,
         "phoenix.digest": :prod, site_release: :prod, "test.standard": :test, dialyze_retry: :dev,
-        check_dependent_apps: :prod
       ],
       test_coverage: [tool: ExCoveralls],
       docs: [
@@ -39,7 +38,7 @@ defmodule Central.Mixfile do
   def application do
     [
       mod: {Central, []},
-      applications: applications(Mix.env)
+      extra_applications: extra_applications(Mix.env)
     ]
   end
 
@@ -62,7 +61,6 @@ defmodule Central.Mixfile do
       {:cowboy, "~> 1.0"},
       {:comeonin, "~> 2.5"},
       {:guardian, "~> 0.13.0"},
-      {:exrm, "~> 1.0.8", warn_missing: false},
       {:timex, "~> 3.1"},
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
@@ -94,16 +92,12 @@ defmodule Central.Mixfile do
   defp ignored_credo_checks(_), do:
     ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
 
-  defp applications(:test), do: [:phoenix_gen_socket_client, :websocket_client | common_applications()]
-  defp applications(:dev), do: common_applications() ++ dialyzer_required_deps()
-  defp applications(:prod), do: common_applications()
+  defp extra_applications(:test), do: common_extra_applications()
+  defp extra_applications(:dev), do: common_extra_applications() ++ dialyzer_required_deps()
+  defp extra_applications(:prod), do: common_extra_applications()
 
-  defp common_applications do
-    [
-      :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
-      :guardian, :inets, :timex, :aircloak_common, :inflex, :httpoison, :phoenix_pubsub,
-    ]
-  end
+  defp common_extra_applications(), do:
+    [:logger, :inets]
 
   # These are indirect dependencies (deps of deps) which are not automatically included in the generated PLT.
   # By adding them explicitly to the applications list, we make sure that they are included in the PLT.

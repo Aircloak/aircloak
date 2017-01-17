@@ -70,6 +70,15 @@ defmodule Cloak.Aql.Expression do
   def aggregate_db_function?(column), do: db_function?(column) && column.aggregate?
 
   @doc """
+  Returns a shorter version of the display name of the column.
+
+  This function should mostly be used when producing error messages.
+  """
+  @spec short_name(t) :: String.t
+  def short_name(%__MODULE__{name: name}) when is_binary(name), do: "`#{name}`"
+  def short_name(x), do: display_name(x)
+
+  @doc """
   Returns a display name of the column.
 
   This function should mostly be used when producing error messages.
@@ -247,10 +256,14 @@ defmodule Cloak.Aql.Expression do
   defp do_trunc(value, precision) when value < 0, do: value |> :erlang.float() |> Float.ceil(precision)
   defp do_trunc(value, precision), do: value |> :erlang.float() |> Float.floor(precision)
 
+  defp left(nil, _), do: nil
+  defp left(_, nil), do: nil
   defp left(string, count) when count < 0, do:
     String.slice(string, 0, max(String.length(string) + count, 0))
   defp left(string, count), do: String.slice(string, 0, count)
 
+  defp right(nil, _), do: nil
+  defp right(_, nil), do: nil
   defp right(string, count) when count < 0, do: String.slice(string, -count, String.length(string))
   defp right(string, count), do: String.slice(string, String.length(string) - count, count)
 
@@ -261,6 +274,8 @@ defmodule Cloak.Aql.Expression do
   defp rtrim(string, chars), do: Regex.replace(~r/[#{Regex.escape(chars)}]*$/, string, "")
 
   defp substring(string, from, count \\ nil)
+  defp substring(nil, _, _), do: nil
+  defp substring(_, nil, _), do: nil
   defp substring(string, from, count) when from < 1, do: substring(string, 1, count + from - 1)
   defp substring(_string, _from, count) when count < 0, do: ""
   defp substring(string, from, count), do:

@@ -10,8 +10,10 @@ defmodule Cloak.Aql.Expression.Test do
     assert 3 = apply_function("coalesce", [nil, 3, nil])
   end
 
-  test "sqrt", do:
+  test "sqrt" do
     assert_in_delta(apply_function("sqrt", [3]), 1.73, 0.1)
+    assert apply_function("sqrt", [nil]) === nil
+  end
 
   test "floor" do
     assert apply_function("floor", [3.99]) === 3
@@ -19,6 +21,7 @@ defmodule Cloak.Aql.Expression.Test do
     assert apply_function("floor", [-3.99]) === -4
     assert apply_function("floor", [3]) === 3
     assert apply_function("floor", [pow(10, 5000)]) === pow(10, 5000)
+    assert apply_function("floor", [nil]) === nil
   end
 
   test "ceil" do
@@ -29,6 +32,7 @@ defmodule Cloak.Aql.Expression.Test do
     assert apply_function("ceiling", [3.01]) === 4
     assert apply_function("ceiling", [3]) === 3
     assert apply_function("ceil", [pow(10, 5000)]) === pow(10, 5000)
+    assert apply_function("ceil", [nil]) === nil
   end
 
   test "abs" do
@@ -36,6 +40,7 @@ defmodule Cloak.Aql.Expression.Test do
     assert apply_function("abs", [-1.2]) == 1.2
     assert apply_function("abs", [1]) == 1
     assert apply_function("abs", [-1]) == 1
+    assert apply_function("abs", [nil]) == nil
   end
 
   test "round" do
@@ -43,6 +48,7 @@ defmodule Cloak.Aql.Expression.Test do
     assert apply_function("round", [3.01]) == 3
     assert apply_function("round", [3]) == 3
     assert apply_function("round", [pow(10, 5000)]) === pow(10, 5000)
+    assert apply_function("round", [nil]) == nil
   end
 
   test "binary round" do
@@ -52,6 +58,8 @@ defmodule Cloak.Aql.Expression.Test do
     assert apply_function("round", [3.99, 4]) == 3.99
     assert apply_function("round", [3, 1]) == 3
     assert apply_function("round", [pow(10, 5000), 1]) === pow(10, 5000)
+    assert apply_function("round", [nil, 1]) == nil
+    assert apply_function("round", [3.5, nil]) == nil
   end
 
   test "trunc" do
@@ -59,6 +67,7 @@ defmodule Cloak.Aql.Expression.Test do
     assert apply_function("trunc", [-3.99]) == -3
     assert apply_function("trunc", [3]) == 3
     assert apply_function("trunc", [pow(10, 5000)]) === pow(10, 5000)
+    assert apply_function("trunc", [nil]) == nil
   end
 
   test "binary trunc" do
@@ -68,55 +77,75 @@ defmodule Cloak.Aql.Expression.Test do
     assert apply_function("trunc", [3.99, 4]) == 3.99
     assert apply_function("trunc", [3, 4]) == 3
     assert apply_function("trunc", [pow(10, 5000), 1]) === pow(10, 5000)
+    assert apply_function("trunc", [nil, 4]) == nil
   end
 
   test "div" do
     assert apply_function("div", [12, 3]) == 4
     assert apply_function("div", [13, 3]) == 4
+    assert apply_function("div", [nil, 3]) == nil
+    assert apply_function("div", [2, nil]) == nil
   end
 
-  test "mod", do:
+  test "mod" do
     assert apply_function("mod", [13, 3]) == 1
+    assert apply_function("mod", [nil, 3]) == nil
+    assert apply_function("mod", [13, nil]) == nil
+  end
 
-  test "pow", do:
+  test "pow" do
     assert apply_function("pow", [2, 3]) == 8
+    assert apply_function("pow", [2, nil]) == nil
+    assert apply_function("pow", [nil, 3]) == nil
+  end
 
-  test "length", do:
+  test "length" do
     assert apply_function("length", ["a string"]) == 8
+    assert apply_function("length", [nil]) == nil
+  end
 
   test "left" do
     assert apply_function("left", ["a string", 2]) == "a "
     assert apply_function("left", ["a string", -2]) == "a stri"
     assert apply_function("left", ["a string", -10]) == ""
+    assert apply_function("left", [nil, 2]) == nil
+    assert apply_function("left", ["a string", nil]) == nil
   end
 
   test "right" do
     assert apply_function("right", ["a string", 2]) == "ng"
     assert apply_function("right", ["a string", -2]) == "string"
+    assert apply_function("right", [nil, 0]) == nil
+    assert apply_function("right", ["a string", nil]) == nil
   end
 
   test "lower" do
     assert apply_function("lower", ["A sTrinG"]) == "a string"
     assert apply_function("lcase", ["A sTrinG"]) == "a string"
+    assert apply_function("lower", [nil]) == nil
   end
 
   test "upper" do
     assert apply_function("upper", ["A sTrinG"]) == "A STRING"
     assert apply_function("ucase", ["A sTrinG"]) == "A STRING"
+    assert apply_function("upper", [nil]) == nil
   end
 
   test "btrim" do
     assert apply_function("btrim", ["  a string "]) == "a string"
     assert apply_function("btrim", ["xyxa stringxyx", "xy"]) == "a string"
+    assert apply_function("btrim", [nil]) == nil
   end
 
   test "ltrim" do
     assert apply_function("ltrim", ["  a string "]) == "a string "
     assert apply_function("ltrim", ["xyxa stringxyx", "xy"]) == "a stringxyx"
+    assert apply_function("ltrim", [nil]) == nil
   end
 
   test "rtrim" do
     assert apply_function("rtrim", ["  a string "]) == "  a string"
+    assert apply_function("rtrim", [nil]) == nil
     assert apply_function("rtrim", ["xyxa stringxyx", "xy"]) == "xyxa string"
   end
 
@@ -127,11 +156,12 @@ defmodule Cloak.Aql.Expression.Test do
     assert apply_function("substring", ["a string", -1, 4]) == "a "
     assert apply_function("substring", ["a string", 3, -2]) == ""
     assert apply_function("substring_for", ["a string", 3]) == "a s"
+    assert apply_function("substring", [nil, 0, 1]) == nil
+    assert apply_function("substring", ["  ", nil]) == nil
   end
 
-  test "concat" do
+  test "concat", do:
     assert apply_function("concat", ["a", " ", "string"]) == "a string"
-  end
 
   test "||", do:
     assert apply_function("||", ["a ", "string"]) == "a string"
@@ -271,10 +301,12 @@ defmodule Cloak.Aql.Expression.Test do
     end
   end
 
-  test "functions return nil when called with bad arguments" do
-    assert apply_function("length", [nil]) == nil
+  test "math functions return nil when called with bad arguments" do
     assert apply_function("+", [1, nil]) == nil
+    assert apply_function("*", [nil, 1]) == nil
     assert apply_function("/", [1, 0]) == nil
+    assert apply_function("sqrt", [-1.0]) === nil
+    assert apply_function("div", [12, 0]) == nil
   end
 
   describe "first_column" do

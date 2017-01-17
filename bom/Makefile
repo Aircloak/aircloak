@@ -23,6 +23,3 @@ docs:
 lint:
 	MIX_ENV=dev mix lint
 	MIX_ENV=test mix lint
-
-check_dependent_apps:
-	mix check_dependent_apps

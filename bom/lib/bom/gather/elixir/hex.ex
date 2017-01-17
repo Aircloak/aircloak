@@ -47,13 +47,17 @@ defmodule BOM.Gather.Elixir.Hex do
     case do_request_package(name) do
       {200, result} -> send(from, {:ok, result})
       {404, _content} -> send(from, {:error, :not_found})
-      {429, _content} ->
-        :timer.sleep(:timer.seconds(5))
-        request_package(name, from)
+      {429, _content} -> retry(name, from)
+      {:error, %{reason: :timeout}} -> retry(name, from)
       other ->
         Logger.error("Received unexpected response from hex.pm.\n#{inspect(other)}")
         raise "Bad response"
     end
+  end
+
+  defp retry(name, from) do
+    :timer.sleep(:timer.seconds(5))
+    request_package(name, from)
   end
 
   defp do_request_package(name) do

@@ -27,7 +27,9 @@ defmodule Cloak.Aql.TypeChecker do
     @moduledoc false
 
     @type function_name :: String.t
-    @type offense :: {Expression.t, [{:dangerously_discontinuous | :dangerous_math, function_name}]}
+    @type offense :: {Expression.t, [
+      {:dangerously_discontinuous | :dangerous_math | :datetime_processing, function_name}
+    ]}
 
     @type t :: %__MODULE__{
       # Whether the expressions is a constant. As soon as a constant expression
@@ -37,7 +39,15 @@ defmodule Cloak.Aql.TypeChecker do
 
       # True if any of the expressions it has come in contact with through functions
       # were constant.
-      touched_by_constant?: boolean,
+      constant_involved?: boolean,
+
+      # Whether the expression represents a date, time or datetime value, or one of
+      # the expressions in this expressions past represented such a value.
+      datetime_involved?: boolean,
+
+      # If a function like year, month, etc has been used on the value, or the value
+      # has in some other way been manipulated, like having been cast.
+      is_result_of_datetime_processing?: boolean,
 
       # True if the expression has been processed by a discontinuous function and the
       # parameters of the function call were such that the computation is classified
@@ -59,9 +69,9 @@ defmodule Cloak.Aql.TypeChecker do
     }
 
     defstruct [
-      constant?: false, dangerously_discontinuous?: false,
-      seen_dangerous_math?: false, touched_by_constant?: false,
-      narrative_breadcrumbs: [],
+      constant?: false, constant_involved?: false, datetime_involved?: false,
+      is_result_of_datetime_processing?: false, dangerously_discontinuous?: false,
+      seen_dangerous_math?: false, narrative_breadcrumbs: [],
     ]
   end
 
@@ -73,15 +83,20 @@ defmodule Cloak.Aql.TypeChecker do
   @discontinuous_math_functions ~w(% abs ceil ceiling div floor mod round trunc sqrt)
   @discontinuous_string_functions ~w(btrim left ltrim right rtrim substring)
   @continuous_math_functions ~w(+ - * / ^ pow)
+  @datetime_functions ~w(year month day hour minute second weekday)
 
-  @doc "Returns true if an expression of this type is safe to be reported. False otherwise"
+  @doc "Returns true if an expression of this type is safe to be reported"
   @spec ok_for_display?(Type.t) :: boolean
   def ok_for_display?(type), do:
     not (type.dangerously_discontinuous? and type.seen_dangerous_math?)
 
-  @doc "Returns true if an expression of this type is safe to be used in a WHERE-inequality. False otherwise"
-  def ok_for_where_inequality?(type), do:
-    not (type.dangerously_discontinuous? or type.seen_dangerous_math?)
+  @doc "Returns true if an expression of this type is safe to be used in a order filter condition"
+  def ok_for_order_condition?(type), do:
+    not (type.dangerously_discontinuous? or type.seen_dangerous_math? or
+      type.is_result_of_datetime_processing?)
+
+  @doc "Returns true if an expression of this type is safe to be used in a match filter condition"
+  def ok_for_match_condition?(type), do: not type.is_result_of_datetime_processing?
 
   @doc """
   Produces a type characteristic for an expression by resolving function applications and references
@@ -104,16 +119,19 @@ defmodule Cloak.Aql.TypeChecker do
     any_touched_by_constant?(child_types)
   defp dangerously_discontinuous?("/", _future, [_, child_type]), do:
     # This allows division by a pure constant, but not by a column influenced by a constant
-    child_type.touched_by_constant? && not child_type.constant?
+    child_type.constant_involved? && not child_type.constant?
   defp dangerously_discontinuous?({:cast, _}, _future, child_types), do: any_touched_by_constant?(child_types)
   defp dangerously_discontinuous?(name, future, child_types)
       when name in @discontinuous_string_functions, do:
     any_touched_by_constant?(child_types) and later_turned_into_a_number?(future)
   defp dangerously_discontinuous?(_name, _future, _child_types), do: false
 
-  defp performs_dangerous_math?(name, _future, child_types) when name in @continuous_math_functions, do:
+  defp is_dangerous_math?(name, _future, child_types) when name in @continuous_math_functions, do:
     any_touched_by_constant?(child_types)
-  defp performs_dangerous_math?(_, _future, _child_types), do: false
+  defp is_dangerous_math?(_, _future, _child_types), do: false
+
+  defp performs_datetime_processing?(name, child_types), do:
+    any_touched_by_datetime?(child_types) and (name in @datetime_functions or match?({:cast, _}, name))
 
 
   # -------------------------------------------------------------------
@@ -123,11 +141,21 @@ defmodule Cloak.Aql.TypeChecker do
   defp later_turned_into_a_number?(future), do:
     Enum.any?(["length", {:cast, :integer}, {:cast, :real}, {:cast, :boolean}], &(Enum.member?(future, &1)))
 
-  defp any_touched_by_constant?(types), do: Enum.any?(types, &(&1.touched_by_constant?))
+  defp any_touched_by_constant?(types), do: Enum.any?(types, &(&1.constant_involved?))
 
-  defp constant(), do: %Type{constant?: true, touched_by_constant?: true}
+  defp any_touched_by_datetime?(types), do: Enum.any?(types, &(&1.datetime_involved?))
 
-  defp column(expression), do: %Type{constant?: false, narrative_breadcrumbs: [{expression, []}]}
+  defp constant(), do: %Type{constant?: true, constant_involved?: true}
+
+  defp datetime_type?(:*), do: false
+  defp datetime_type?(%Expression{type: type}), do: type in [:datetime, :date, :time]
+
+  defp column(expression), do:
+    %Type{
+      constant?: false,
+      narrative_breadcrumbs: [{expression, []}],
+      datetime_involved?: datetime_type?(expression),
+    }
 
   defp construct_type(column, query, future \\ [])
   defp construct_type({:distinct, column}, query, future), do:
@@ -159,20 +187,28 @@ defmodule Cloak.Aql.TypeChecker do
         else
           breadcrumbs
         end
-        breadcrumbs = if performs_dangerous_math?(name, future, child_types) do
+        breadcrumbs = if is_dangerous_math?(name, future, child_types) do
           [{:dangerous_math, name} | breadcrumbs] |> Enum.uniq()
+        else
+          breadcrumbs
+        end
+        breadcrumbs = if performs_datetime_processing?(name, child_types) do
+          [{:datetime_processing, name} | breadcrumbs] |> Enum.uniq()
         else
           breadcrumbs
         end
         {expression, breadcrumbs}
       end)
       %Type{
-        touched_by_constant?: any_touched_by_constant?(child_types),
-        seen_dangerous_math?: performs_dangerous_math?(name, future, child_types) ||
+        constant_involved?: any_touched_by_constant?(child_types),
+        datetime_involved?: any_touched_by_datetime?(child_types),
+        seen_dangerous_math?: is_dangerous_math?(name, future, child_types) ||
           Enum.any?(child_types, &(&1.seen_dangerous_math?)),
         dangerously_discontinuous?: dangerously_discontinuous?(name, future, child_types) ||
           Enum.any?(child_types, &(&1.dangerously_discontinuous?)),
         narrative_breadcrumbs: updated_narrative_breadcrumbs,
+        is_result_of_datetime_processing?: performs_datetime_processing?(name, child_types) ||
+          Enum.any?(child_types, &(&1.is_result_of_datetime_processing?)),
       }
     end
   end

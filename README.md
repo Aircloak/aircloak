@@ -38,6 +38,15 @@ Deploying will always publish all __pushed__ changes from your current local bra
 
 You can also deploy each component separately using `./cloak/production.sh` and `./air/production.sh` scripts. Run these scripts without any argument for instructions.
 
+## Producing production containers
+
+The following two commands will build, tag, and upload new production `air` and `cloak` images to quay. It should be run from the root folder.
+
+```
+air/production.sh aircloak publish
+cloak/production.sh aircloak publish
+```
+
 ### Rolling back
 
 If something is wrong with the deployed version, you can easily rollback to a previously built version. This must be done for each component separately, using the `production.sh` helper script.
