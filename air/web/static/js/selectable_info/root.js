@@ -61,9 +61,7 @@ class SelectableInfo extends React.Component {
           <div className="panel-heading">
             <strong>Tables and views</strong>
             <a href={this.props.newViewURL} className="btn btn-default btn-xs pull-right">
-              <span className="glyphicon glyphicon-plus" aria-hidden="true" />
-              {' '}
-              View
+              New view
             </a>
           </div>
 
