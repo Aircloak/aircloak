@@ -162,15 +162,29 @@ defmodule Cloak.Aql.TypeChecker.Test do
 
   describe "detection of datetime functions" do
     Enum.each(~w(year month day hour minute second weekday), fn(datetime_function) ->
-      test "#{datetime_function} triggers datetime function recognition" do
+      test "#{datetime_function} triggers datetime function recognition on a datetime column" do
         type = type_first_column("SELECT #{unquote(datetime_function)}(column) FROM table")
-        assert type.is_result_of_datetime_function?
+        assert type.is_result_of_datetime_processing?
+      end
+    end)
+
+    Enum.each(~w(hour minute second), fn(datetime_function) ->
+      test "#{datetime_function} triggers datetime function recognition on a time column" do
+        type = type_first_column("SELECT #{unquote(datetime_function)}(time) FROM table")
+        assert type.is_result_of_datetime_processing?
+      end
+    end)
+
+    Enum.each(~w(year month day weekday), fn(datetime_function) ->
+      test "#{datetime_function} triggers datetime function recognition on a date column" do
+        type = type_first_column("SELECT #{unquote(datetime_function)}(date) FROM table")
+        assert type.is_result_of_datetime_processing?
       end
     end)
 
     test "does not triggers datetime function recognition when none is used" do
       type = type_first_column("SELECT column FROM table")
-      refute type.is_result_of_datetime_function?
+      refute type.is_result_of_datetime_processing?
     end
   end
 
@@ -210,7 +224,12 @@ defmodule Cloak.Aql.TypeChecker.Test do
 
     test "records usage of datetime functions as a potential offense" do
       type = type_first_column("SELECT year(column) FROM table")
-      [{%Expression{name: "column"}, [{:datetime_extractor, "year"}]}] = type.narrative_breadcrumbs
+      [{%Expression{name: "column"}, [{:datetime_processing, "year"}]}] = type.narrative_breadcrumbs
+    end
+
+    test "records casts of datetime's as a potential offense" do
+      type = type_first_column("SELECT cast(column as text) FROM table")
+      [{%Expression{name: "column"}, [{:datetime_processing, {:cast, :text}}]}] = type.narrative_breadcrumbs
     end
 
     test "records multiple math offenses" do
@@ -257,7 +276,8 @@ defmodule Cloak.Aql.TypeChecker.Test do
         name: "table",
         user_id: "uid",
         columns: [
-          {"uid", :integer}, {"column", :datetime}, {"numeric", :integer}, {"float", :real}, {"string", :text}
+          {"uid", :integer}, {"column", :datetime}, {"numeric", :integer},
+          {"float", :real}, {"string", :text}, {"time", :time}, {"date", :date},
         ],
         projection: nil,
       },

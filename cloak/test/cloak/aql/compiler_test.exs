@@ -1137,6 +1137,17 @@ defmodule Cloak.Aql.Compiler.Test do
         assert get_compilation_error(query) =~ Regex.compile!(unquote(extractor_fun))
       end
     end)
+
+    test "constructs a narrative mentioning usage cast datetime column" do
+      query = """
+        SELECT value FROM (
+          SELECT uid, length(cast(column as text)) as value
+          FROM table
+        ) t
+        WHERE value = 10
+      """
+      assert get_compilation_error(query) =~ ~r/a cast to/
+    end
   end
 
   describe "Rejects conditions used in subqueries" do
