@@ -7,10 +7,17 @@ defmodule Air.DataSourceManager do
 
   alias Air.{Repo, Schemas.DataSource}
 
+  @registry_name Module.concat(__MODULE__, Registry)
+
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Starts the data source manager process."
+  @spec start_link() :: GenServer.on_start
+  def start_link(), do:
+    Registry.start_link(:duplicate, @registry_name)
 
   @doc """
   Registers a data source (if needed), and associates the calling cloak with the data source
@@ -18,14 +25,14 @@ defmodule Air.DataSourceManager do
   @spec register_cloak(Map.t, Map.t) :: :ok
   def register_cloak(cloak_info, data_sources) do
     data_source_ids = register_data_sources(cloak_info, data_sources)
-    :gproc.reg({:p, :l, {__MODULE__, :cloak}}, Map.put(cloak_info, :data_source_ids, data_source_ids))
+    Registry.register(@registry_name, :cloak, Map.put(cloak_info, :data_source_ids, data_source_ids))
     :ok
   end
 
   @doc "Returns the pids of all the phoenix channels of the cloaks that have the data source"
   @spec channel_pids(String.t) :: [pid()]
   def channel_pids(global_id), do:
-    :gproc.lookup_pids({:p, :l, {__MODULE__, :data_source, global_id}})
+    Enum.map(Registry.lookup(@registry_name, {:data_source, global_id}), fn({pid, _value}) -> pid end)
 
   @doc "Whether or not a data source is available for querying. True if it has one or more cloaks online"
   @spec available?(String.t) :: boolean
@@ -38,7 +45,7 @@ defmodule Air.DataSourceManager do
   """
   @spec cloaks() :: [Map.t]
   def cloaks(), do:
-    for {_pid, cloak_info} <- :gproc.lookup_values({:p, :l, {__MODULE__, :cloak}}), do: cloak_info
+    for {_pid, cloak_info} <- Registry.lookup(@registry_name, :cloak), do: cloak_info
 
   @doc "Returns the cloak info of cloaks serving a data source"
   @spec cloaks_for_data_source(String.t) :: [map]
@@ -67,7 +74,7 @@ defmodule Air.DataSourceManager do
           end))
       |> Enum.map(&Task.await/1)
 
-    Enum.each(data_source_ids, &:gproc.reg({:p, :l, {__MODULE__, :data_source, &1}}, cloak_info))
+    Enum.each(data_source_ids, &Registry.register(@registry_name, {:data_source, &1}, cloak_info))
 
     data_source_ids
   end

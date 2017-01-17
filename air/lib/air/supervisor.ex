@@ -5,6 +5,7 @@ defmodule Air.Supervisor do
     import Supervisor.Spec, warn: false
 
     children = [
+      supervisor(Air.DataSourceManager, []),
       Air.ResultProcessor.supervisor_spec(),
       supervisor(Air.Repo, []),
       worker(Air.Repo.Migrator, [], restart: :transient),
