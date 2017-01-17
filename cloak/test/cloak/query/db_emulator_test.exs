@@ -49,6 +49,9 @@ defmodule Cloak.Query.DBEmulatorTest do
     assert_query """
         select value from (select user_id, left(value, 1) as value from #{@prefix}emulated) as t where value = 'a'
       """, %{rows: [%{occurrences: 10, row: ["a"]}]}
+    assert_query """
+        select value from (select user_id, value from #{@prefix}emulated where length(value) = 3) as t
+      """, %{rows: [%{occurrences: 10, row: ["abc"]}]}
   end
 
   describe "aggregation in emulated subqueries" do
@@ -87,6 +90,13 @@ defmodule Cloak.Query.DBEmulatorTest do
         order by v
         """, %{rows: [%{occurrences: 20, row: ["1"]}, %{occurrences: 20, row: ["a"]},
           %{occurrences: 20, row: ["x"]}, %{occurrences: 20, row: [nil]}]}
+    end
+
+    test "where function" do
+      assert_query """
+          select avg(v) from (select user_id, count(value) as v from
+          #{@prefix}emulated where length(value) = 3 group by user_id) as t
+        """, %{rows: [%{occurrences: 1, row: [2.0]}]}
     end
 
     test "having inequality" do

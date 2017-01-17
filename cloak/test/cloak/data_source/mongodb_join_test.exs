@@ -78,4 +78,10 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
         WHERE salary IN (100, 200)
       """, %{rows: [%{occurrences: 1, row: [14]}]}
   end
+
+  test "function in inner join condition", context do
+    assert_query context, """
+        SELECT AVG(salary) FROM "left" INNER JOIN "right" ON "left".id = "right".id AND age + 1 = 31
+      """, %{rows: [%{occurrences: 1, row: [95.0]}]}
+  end
 end

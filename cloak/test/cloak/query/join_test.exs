@@ -106,4 +106,18 @@ defmodule Cloak.Query.JoinTest do
     assert error == "Column `name` from table `heights_join` of type `text` and column `age` from table "
       <> "`children_join` of type `integer` cannot be compared."
   end
+
+  test "functions in JOIN condition" do
+    :ok = insert_rows(_user_ids = 0..100, "heights_join", ["height"], [180])
+    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
+    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [-100])
+
+    assert_query """
+      SELECT max(height), max(price)
+      FROM heights_join INNER JOIN purchases
+      ON heights_join.user_id = purchases.user_id AND abs(price) = 100
+    """,
+      %{columns: ["max", "max"], rows: rows}
+    assert rows == [%{row: [180, -100], occurrences: 1}]
+  end
 end

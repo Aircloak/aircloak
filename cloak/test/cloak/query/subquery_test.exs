@@ -32,6 +32,16 @@ defmodule Cloak.Query.SubqueryTest do
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 
+  test "where in a subquery" do
+    assert_query "select height from (select user_id, height from heights_sq where height >= 0 and height < 200) alias",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "function in where in a subquery" do
+    assert_query "select height from (select user_id, height from heights_sq where height / 2 = 90) alias",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
   test "joining two subqueries" do
     assert_query(
       """

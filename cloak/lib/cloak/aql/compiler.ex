@@ -744,7 +744,10 @@ defmodule Cloak.Aql.Compiler do
   defp requires_lcf_check?(_other), do: false
 
   defp encoded_column_condition?(condition), do:
-    Comparison.verb(condition) != :is and Comparison.subject(condition) |> DataDecoder.needs_decoding?()
+    Comparison.verb(condition) != :is and
+    [Comparison.subject(condition)]
+    |> extract_columns()
+    |> Enum.any?(&DataDecoder.needs_decoding?/1)
 
   defp verify_joins(%Query{projected?: true} = query), do: query
   defp verify_joins(query) do
