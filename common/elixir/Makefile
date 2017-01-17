@@ -43,6 +43,3 @@ lint:
 release:
 	rm -rf rel/cloak
 	MIX_ENV=prod mix do compile, release --no-confirm-missing
-
-check_dependent_apps:
-	mix check_dependent_apps

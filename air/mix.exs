@@ -24,7 +24,6 @@ defmodule Air.Mixfile do
       preferred_cli_env: [
         eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev, release: :prod,
         "phoenix.digest": :prod, site_release: :prod, "test.standard": :test, dialyze_retry: :dev,
-        check_dependent_apps: :prod
       ],
       test_coverage: [tool: ExCoveralls],
       docs: [
@@ -39,7 +38,7 @@ defmodule Air.Mixfile do
   def application do
     [
       mod: {Air, []},
-      applications: applications(Mix.env)
+      extra_applications: extra_applications(Mix.env)
     ]
   end
 
@@ -65,7 +64,6 @@ defmodule Air.Mixfile do
       {:comeonin, "~> 2.5"},
       {:guardian, "~> 0.13.0"},
       {:lhttpc, github: "esl/lhttpc", override: true},
-      {:exrm, "~> 1.0.8", warn_missing: false},
       {:timex, "~> 3.1.3"},
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
@@ -99,25 +97,19 @@ defmodule Air.Mixfile do
   defp ignored_credo_checks(_), do:
     ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting", "FunctionArity"]
 
-  defp applications(:test), do: [:odbc | common_applications()]
-  defp applications(:dev), do: common_applications() ++ dialyzer_required_deps()
-  defp applications(:prod), do: common_applications()
+  defp extra_applications(:test), do: [:odbc | extra_common_applications()]
+  defp extra_applications(:dev), do: extra_common_applications() ++ dialyzer_required_deps()
+  defp extra_applications(:prod), do: extra_common_applications()
 
-  defp common_applications do
-    [
-      :phoenix, :phoenix_html, :cowboy, :logger, :gettext, :phoenix_ecto, :postgrex, :comeonin,
-      :lhttpc, :guardian, :inets, :timex, :aircloak_common, :inflex, :csv,
-      :phoenix_pubsub, :phoenix_mtm, :ranch, :phoenix_gen_socket_client, :websocket_client,
-      :scrivener_ecto, :scrivener_html,
-    ]
-  end
+  defp extra_common_applications(), do:
+    [:logger, :inets]
 
   # These are indirect dependencies (deps of deps) which are not automatically included in the generated PLT.
   # By adding them explicitly to the applications list, we make sure that they are included in the PLT.
   # This is usually not needed, but in some cases it's required if our code directly relies on
   # types and behaviours from indirect dependencies. In such case, simply add the needed application to
   # this list.
-  defp dialyzer_required_deps, do: [:plug, :poolboy]
+  defp dialyzer_required_deps, do: [:plug, :poolboy, :ranch]
 
   defp elixirc_options(:test), do: [debug_info: true, docs: true] ++ common_elixirc_options()
   defp elixirc_options(:dev), do: [debug_info: true, docs: true] ++ common_elixirc_options()

@@ -12,7 +12,7 @@ defmodule Cloak.Mixfile do
       elixirc_paths: elixirc_paths(Mix.env),
       preferred_cli_env: [
         :test, dialyze: :dev, "coveralls.html": :test,
-        dialyze_retry: :dev, check_dependent_apps: :prod
+        dialyze_retry: :dev
       ],
       aliases: aliases(Mix.env),
       test_coverage: [tool: ExCoveralls]
@@ -21,7 +21,7 @@ defmodule Cloak.Mixfile do
 
   def application do
     [
-      applications: applications(Mix.env),
+      extra_applications: extra_applications(Mix.env),
       mod: {Cloak, []}
     ]
   end
@@ -29,8 +29,7 @@ defmodule Cloak.Mixfile do
   defp deps do
     [
       {:aircloak_common, path: "../common/elixir"},
-      {:gproc, "~> 0.5.0"},
-      {:meck, github: "eproxus/meck", tag: "0.8.2", override: true, warn_missing: false},
+      {:meck, github: "eproxus/meck", tag: "0.8.2", override: true, warn_missing: false, runtime: false},
       {:postgrex, "~> 0.11"},
       {:mariaex, "~> 0.8"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client"},
@@ -52,18 +51,12 @@ defmodule Cloak.Mixfile do
     ]
   end
 
-  defp applications(:test), do: [:phoenix, :cowboy, :bypass | common_applications()]
-  defp applications(:dev), do: [:os_mon | common_applications()]
-  defp applications(:prod), do: [:os_mon | common_applications()]
+  defp extra_applications(:test), do: common_extra_applications()
+  defp extra_applications(:dev), do: [:os_mon | common_extra_applications()]
+  defp extra_applications(:prod), do: [:os_mon | common_extra_applications()]
 
-  defp common_applications do
-    [
-      :logger, :gproc, :aircloak_common, :postgrex, :mariaex,
-      :phoenix_gen_socket_client, :websocket_client, :combine,
-      :runtime_tools, :httpoison, :timex, :poison, :odbc,
-      :crypto, :mongodb, :decimal, :ssl, :public_key, :lens
-    ]
-  end
+  defp common_extra_applications(), do:
+    [:logger, :runtime_tools, :odbc, :crypto, :ssl, :public_key]
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
