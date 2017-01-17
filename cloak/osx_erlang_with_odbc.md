@@ -28,15 +28,15 @@ You need to reinstall Erlang and make it link to ODBC. At the time of writing th
 Assuming you're using `asdf`, you first need to uninstall Erlang:
 
 ```
-asdf uninstall erlang 19.1
+asdf uninstall erlang 19.2
 ```
 
 Next, you need to fetch Erlang source:
 
 ```
 cd /tmp
-wget http://erlang.org/download/otp_src_19.1.tar.gz && tar xzvf otp_src_19.1.tar.gz
-cd otp_src_19.1
+wget http://erlang.org/download/otp_src_19.2.tar.gz && tar xzvf otp_src_19.2.tar.gz
+cd otp_src_19.2
 ```
 
 Now comes the hacky part. Open the entire folder in editor, search for `iodbc`, and replace the occurrences with `odbc`. The changes should be in `lib/odbc/configure` and `lib/odbc/configure.in`.
@@ -47,7 +47,7 @@ Now you can build Erlang and install it to `~/.asdf` folder:
 ./configure \
   CFLAGS="-I/usr/local/opt/unixodbc/include" \
   LDFLAGS="-L/usr/local/opt/unixodbc/lib -lodbc" \
-  --prefix=$HOME/.asdf/installs/erlang/19.1/ \
+  --prefix=$HOME/.asdf/installs/erlang/19.2/ \
   --disable-hipe \
   --with-odbc=/usr/local/opt/unixodbc \
   --with-ssl=/usr/local/opt/openssl
