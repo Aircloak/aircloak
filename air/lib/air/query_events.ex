@@ -43,7 +43,9 @@ defmodule Air.QueryEvents do
     # notify dedicated listener for this query first
     case Registry.lookup(@registry_name, Map.fetch!(payload, "query_id")) do
       [] -> :ok
-      [{pid, nil}] -> send(pid, {:query_result, payload})
+      [{pid, nil}] ->
+        send(pid, {:query_result, payload})
+        :ok
     end
 
     # notify all result observers
