@@ -7,7 +7,11 @@ import {SelectableView} from "./selectable";
 import {FilterView, Filter, EmptyFilter} from "./filter";
 import type {Selectable} from "./selectable";
 
-type Props = {readOnly: boolean, selectables: Selectable[]};
+type Props = {
+  readOnly: boolean,
+  selectables: Selectable[],
+  newViewURL: string,
+};
 
 class SelectableInfo extends React.Component {
   props: Props;
@@ -57,6 +61,11 @@ class SelectableInfo extends React.Component {
         <div className="panel panel-default selectable-info">
           <div className="panel-heading">
             <strong>Tables and views</strong>
+            <a href={this.props.newViewURL} className="btn btn-default btn-xs pull-right">
+              <span className="glyphicon glyphicon-plus" aria-hidden="true" />
+              {' '}
+              View
+            </a>
           </div>
 
           <FilterView onFilterChange={this.onFilterChange} />
