@@ -258,7 +258,7 @@ export class ResultView extends React.Component {
     return (
       <div className="panel panel-success">
         <div className="panel-heading" />
-        <div className="panel-body result-body">
+        <div className="panel-body">
           <CodeViewer statement={this.props.statement} />
           <Info info={this.props.info} />
           <div className="result-table">
