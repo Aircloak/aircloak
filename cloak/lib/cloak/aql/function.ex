@@ -209,14 +209,6 @@ defmodule Cloak.Aql.Function do
   @spec bucket_size(t) :: number
   def bucket_size({:function, {:bucket, _}, [_, {:constant, _, size}]}), do: size
 
-  @doc """
-  Returns true if the function needs precompiling. Precompiling is useful if there is a costly
-  preprocessing step needed that should only be done once, or if static query parameters can
-  be validated prior to query execution.
-  """
-  @spec needs_precompiling?(String.t) :: boolean
-  def needs_precompiling?(function), do: Map.get(@functions[function], :precompiled, false)
-
   @doc "Compiles a function so it is ready for execution"
   @spec compile_function(t, function_compilation_callback) :: t | {:error, String.t}
   def compile_function(%Expression{function: name, function_args: [_, %Expression{value: %Regex{}}]} = expression, _)

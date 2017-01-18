@@ -202,9 +202,6 @@ defmodule Cloak.Query.FunctionTest do
       )
     end
 
-    test "knows that #{function_name} should be precompiled", do:
-      assert Function.needs_precompiling?(unquote(function_name))
-
     test "gives sensible error message for broken regex for #{function_name}" do
       assert_query(
         "SELECT #{unquote(function_name)}(name, '(missing-parenthesis') FROM heights_ft",
@@ -235,9 +232,6 @@ defmodule Cloak.Query.FunctionTest do
       ]}
     )
   end
-
-  test "normal (for example `ceil`) functions don't need precompiling", do:
-    refute Function.needs_precompiling?("ceil")
 
   test "min(height)", do: assert_subquery_aggregate("min(height)", "heights_ft", 180)
   test "max(height)", do: assert_subquery_aggregate("max(height)", "heights_ft", 180)
