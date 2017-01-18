@@ -489,13 +489,8 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp precompile_functions(%Query{} = query) do
-    %Query{query |
-      columns: precompile_functions(query.columns),
-      group_by: precompile_functions(query.group_by),
-      order_by: (for {column, direction} <- query.order_by, do: {precompile_function(column), direction}),
-    }
-  end
+  defp precompile_functions(%Query{} = query), do:
+    update_in(query, [Query.Lenses.query_expressions()], &precompile_function/1)
   defp precompile_functions(columns), do:
     Enum.map(columns, &precompile_function/1)
 
