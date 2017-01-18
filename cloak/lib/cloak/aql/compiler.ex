@@ -578,20 +578,19 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp verify_function_subquery_usage({:function, function, [argument]}, %Query{subquery?: false})
-      when function in ["min", "max", "median"] do
+  defp verify_function_subquery_usage({:function, name, [argument]}, %Query{subquery?: false})
+      when name in ["min", "max", "median"] do
     type = Function.type(argument)
     if Enum.member?([:text, :date, :time, :datetime], type) do
       raise CompilationError, message:
-        "Function `#{function}` is allowed over arguments of type `#{type}` only in subqueries."
+        "Function `#{name}` is allowed over arguments of type `#{type}` only in subqueries."
     end
     :ok
   end
   defp verify_function_subquery_usage(_function, %Query{subquery?: false}), do: :ok
-  defp verify_function_subquery_usage(function, %Query{subquery?: true}) do
-    unless Function.allowed_in_subquery?(function) do
-      raise CompilationError, message:
-        "Function `#{column_title(function)}` is not allowed in subqueries."
+  defp verify_function_subquery_usage({:function, name, _}, %Query{subquery?: true}) do
+    if Function.has_attribute?(name, :not_in_subquery) do
+      raise CompilationError, message: "Function `#{name}` is not allowed in subqueries."
     end
   end
 
@@ -645,7 +644,7 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp transform_splitter_column(expression = %Expression{function?: true}, query) do
-    if Function.row_splitting_function?(expression.function) do
+    if Function.has_attribute?(expression, :row_splitter) do
       # We are making the simplifying assumption that row splitting functions have
       # the value column returned as part of the first column
       {splitter_row_index, query} = add_row_splitter(query, expression)
@@ -997,11 +996,11 @@ defmodule Cloak.Aql.Compiler do
       end
     end
   end
-  defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name, query) do
-    check_function_validity(function_spec, query)
-    case Function.return_type(function_spec) do
-      nil -> raise CompilationError, message: function_argument_error_message(function_spec)
-      type -> Expression.function(name, args, type, Function.aggregate_function?(function_spec))
+  defp identifier_to_column({:function, name, args} = function, _columns_by_name, query) do
+    check_function_validity(function, query)
+    case Function.return_type(function) do
+      nil -> raise CompilationError, message: function_argument_error_message(function)
+      type -> Expression.function(name, args, type, Function.has_attribute?(name, :aggregator))
     end
   end
   defp identifier_to_column({:parameter, index}, _columns_by_name, query) do

@@ -44,7 +44,7 @@ defmodule Cloak.Aql.Query.Lenses do
   deflens splitter_functions(), do:
     terminal_elements()
     |> Lens.satisfy(&match?(%Expression{function?: true}, &1))
-    |> Lens.satisfy(&Function.row_splitting_function?(&1.name))
+    |> Lens.satisfy(&Function.has_attribute?(&1.name, :row_splitter))
 
   @doc "Lens focusing on raw (uncompiled) casts of parameters."
   deflens raw_parameter_casts(), do:

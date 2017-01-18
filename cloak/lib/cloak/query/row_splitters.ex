@@ -53,7 +53,7 @@ defmodule Cloak.Query.RowSplitters do
   defp apply_function(row, expression = %Expression{function?: true}) do
     inner_functions_results = for arg <- expression.function_args, do: apply_function(row, arg)
     inputs = all_input_combinations(inner_functions_results)
-    if Function.row_splitting_function?(expression.function) do
+    if Function.has_attribute?(expression.function, :row_splitter) do
       Enum.flat_map(inputs, &Expression.apply_function(expression, &1))
     else
       Enum.map(inputs, &Expression.apply_function(expression, &1))
