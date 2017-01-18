@@ -19,6 +19,13 @@ function banner() {
   # versions of Erlang, Elixir and NodeJS
   . ~/.asdf/asdf.sh
 
+  # These folders might be left over in the Travis cache. If they're present,
+  # the BOM task will fail, since it picks up all dependecies in the deps folder.
+  # Since gproc is no longer used, we can safely remove these folders from the
+  # cache.
+  rm -rf cloak/deps/gproc || true
+  rm -rf air/deps/gproc || true
+  rm -rf bom/deps/gproc || true
 
   # common/elixir -----------------------------------------------------
 

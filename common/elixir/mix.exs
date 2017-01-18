@@ -29,13 +29,12 @@ defmodule Aircloak.ElixirCommon.Mixfile do
   end
 
   def application do
-    [extra_applications: [:logger, :poison, :gproc]]
+    [extra_applications: [:logger, :poison]]
   end
 
   defp deps do
     [
       {:poison, "~> 2.2.0"},
-      {:gproc, "~> 0.5.0"},
       {:protobuffs, github: "basho/erlang_protobuffs", tag: "0.8.2", warn_missing: false, runtime: false},
       {:ex_doc, "~> 0.13", warn_missing: false, runtime: false},
       {:earmark, "~> 1.0", warn_missing: false, runtime: false},
