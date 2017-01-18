@@ -34,6 +34,7 @@
 
 # blacklist some stuff
 air/priv/repo/seeds.exs
+air/user_docs/vendor
 
 # We don't want runtime config included. It needs to be provided through a
 # mounted volume
