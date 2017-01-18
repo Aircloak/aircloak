@@ -52,7 +52,7 @@ cd $ROOT_DIR/cloak
 mkdir -p artifacts/rel
 rm -rf artifacts/rel/*
 builder_container_id=$(docker create $(aircloak_image_name cloak_release_builder):latest)
-docker cp $builder_container_id:/aircloak/cloak/rel/cloak/releases/0.1.0/cloak.tar.gz artifacts/rel/
+docker cp $builder_container_id:/aircloak/cloak/_build/prod/rel/cloak/releases/0.1.0/cloak.tar.gz artifacts/rel/
 docker stop $builder_container_id > /dev/null
 docker rm -v $builder_container_id > /dev/null
 cd artifacts/rel && \
