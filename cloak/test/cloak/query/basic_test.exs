@@ -610,6 +610,13 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 
+  test "function usage in where" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 1..50, "heights", ["height"], [100])
+    assert_query "select height from heights where sqrt(height) * 2 = 20",
+      %{columns: ["height"], rows: [%{row: [100], occurrences: 50}]}
+  end
+
   test "extended trim" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["bob"])
     assert_query "select trim(both 'b' from name) from heights",

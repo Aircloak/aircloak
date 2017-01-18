@@ -150,7 +150,7 @@ defmodule Cloak.Query.FunctionTest do
     )
   end
 
-  test "extract_matches can be used multipel times in the same query" do
+  test "extract_matches can be used multiple times in the same query" do
     assert_query("""
       SELECT
         extract_matches(word1, '\\w+'),

@@ -255,9 +255,9 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp min_column(column), do: Expression.db_function("min", [column], column.type, true) |> alias_column()
+  defp min_column(column), do: Expression.function("min", [column], column.type, true) |> alias_column()
 
-  defp max_column(column), do: Expression.db_function("max", [column], column.type, true) |> alias_column()
+  defp max_column(column), do: Expression.function("max", [column], column.type, true) |> alias_column()
 
   defp alias_column(column), do: %{column | alias: new_carry_alias()}
 
@@ -744,7 +744,10 @@ defmodule Cloak.Aql.Compiler do
   defp requires_lcf_check?(_other), do: false
 
   defp encoded_column_condition?(condition), do:
-    Comparison.verb(condition) != :is and Comparison.subject(condition) |> DataDecoder.needs_decoding?()
+    Comparison.verb(condition) != :is and
+    [Comparison.subject(condition)]
+    |> extract_columns()
+    |> Enum.any?(&DataDecoder.needs_decoding?/1)
 
   defp verify_joins(%Query{projected?: true} = query), do: query
   defp verify_joins(query) do
@@ -1003,12 +1006,7 @@ defmodule Cloak.Aql.Compiler do
     check_function_validity(function_spec, query)
     case Function.return_type(function_spec) do
       nil -> raise CompilationError, message: function_argument_error_message(function_spec)
-      type ->
-        if query.subquery? do
-          Expression.db_function(name, args, type, Function.aggregate_function?(function_spec))
-        else
-          Expression.function(name, args, type, Function.aggregate_function?(function_spec))
-        end
+      type -> Expression.function(name, args, type, Function.aggregate_function?(function_spec))
     end
   end
   defp identifier_to_column({:parameter, index}, _columns_by_name, query) do
@@ -1090,14 +1088,14 @@ defmodule Cloak.Aql.Compiler do
       |> Enum.map(&cast_unknown_id/1)
 
     if any_outer_join?(query.from),
-      do: Expression.db_function("coalesce", id_columns),
+      do: Expression.function("coalesce", id_columns),
       else: hd(id_columns)
   end
 
   # We can't directly select a field with an unknown type, so convert it to binary
   # This is needed in the case of using the ODBC driver with a GUID user id,
   # as the GUID type is not supported by the Erlang ODBC library
-  def cast_unknown_id(%Expression{type: :unknown} = column), do: Expression.db_function({:cast, :varbinary}, [column])
+  def cast_unknown_id(%Expression{type: :unknown} = column), do: Expression.function({:cast, :varbinary}, [column])
   def cast_unknown_id(column), do: column
 
   defp all_id_columns_from_tables(%Query{command: :select, selected_tables: tables}) do
