@@ -21,6 +21,6 @@ defmodule Mix.Tasks.SiteRelease do
     brunch_bin = Path.join([cwd, "node_modules/brunch/bin/brunch"])
     {_, 0} = System.cmd(brunch_bin, ["build", "--production"])
     :ok = Mix.Task.run("phoenix.digest")
-    :ok = Mix.Task.run("release", ["--no-confirm-missing"])
+    :ok = Mix.Task.run("release")
   end
 end

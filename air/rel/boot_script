@@ -1,8 +1,0 @@
-#!/bin/sh
-
-# Set default variables
-export RELX_REPLACE_OS_VARS=true
-export AIR_HOST_NAME=${AIR_HOST_NAME:-"127.0.0.1"}
-
-# call the control script
-$(dirname "$0")/release $@

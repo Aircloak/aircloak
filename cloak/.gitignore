@@ -1,7 +1,6 @@
 *.beam
 .eunit
 ebin/*
-rel/cloak
 dev
 apps/cloak/src/*
 .DS_Store

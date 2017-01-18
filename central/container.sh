@@ -21,7 +21,6 @@ DOCKER_START_ARGS="
   -p 7443:7443
   --link central_db_dev:central_db
 "
-if [ "$CENTRAL_HOST_NAME" != "" ]; then DOCKER_START_ARGS="$DOCKER_START_ARGS -e CENTRAL_HOST_NAME=$CENTRAL_HOST_NAME"; fi
 
 CONTAINER_NAME="central"
 REMOTE_CONSOLE_COMMAND="bin/central remote_console"

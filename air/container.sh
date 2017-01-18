@@ -21,7 +21,6 @@ DOCKER_START_ARGS="
   -p 8443:8443
   --link air_db_dev:air_db
 "
-if [ "$AIR_HOST_NAME" != "" ]; then DOCKER_START_ARGS="$DOCKER_START_ARGS -e AIR_HOST_NAME=$AIR_HOST_NAME"; fi
 
 CONTAINER_NAME="air"
 REMOTE_CONSOLE_COMMAND="bin/air remote_console"
