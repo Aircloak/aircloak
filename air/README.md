@@ -56,7 +56,7 @@ application. Node.js is included to compile our javascript and css dependencies.
 - `yarn install` installs our node dependencies
 
 Before you run the application for the first time, you also need to make sure you initialize the database
-with `make recreate_db`
+with `make recreate-db`
 (make sure that [required common components are started](../README.md#starting-the-required-components)).
 
 
@@ -69,8 +69,8 @@ Note that there's no need to migrate the database. This will happen automaticall
 However, if you do need to manually migrate/rollback (for example while creating a new migration), you can do
 it with `make migrate` and `make rollback` respectively.
 
-If you need to repopulate the database, you can run `make recreate_db`. Keep in mind that this will erase all
-of your existing data, so use with caution. To recreate the test database, you can run `MIX_ENV=test make recreate_db`
+If you need to repopulate the database, you can run `make recreate-db`. Keep in mind that this will erase all
+of your existing data, so use with caution. To recreate the test database, you can run `MIX_ENV=test make recreate-db`
 
 #### HTTPS endpoint
 
@@ -93,7 +93,7 @@ __macOS users__: see [here](../macos_docker.md) for additional instructions.
 - dialyzer: `make dialyze`
 - documentation: `make docs`
 - lint: `make lint`
-- building a release: `make release`
+- building a release: `make release` (`make release-local` on dev machine)
 
 ### Deploying
 
