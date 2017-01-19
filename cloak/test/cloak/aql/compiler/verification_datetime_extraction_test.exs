@@ -4,6 +4,78 @@ defmodule Cloak.Aql.Compiler.VerificationDatetimeExtraction.Test do
   alias Cloak.Aql.{Compiler, Parser}
 
   describe "Condition affected by datetime extractors are forbidden" do
+    test "it is forbidden to cast a date to text and then use it in a WHERE inequality" do
+      query = """
+      SELECT value FROM (
+        SELECT uid, length(cast(column as text)) as value
+        FROM table
+      ) t
+      WHERE value >= 10 and value < 20
+      """
+      refute condition_columns_have_valid_transformations(query)
+    end
+
+    test "it is forbidden to cast a date to text and then use it in a WHERE equality" do
+      query = """
+      SELECT value FROM (
+        SELECT uid, cast(column as text) as value
+        FROM table
+      ) t
+      WHERE value = '2017-01-19'
+      """
+      refute condition_columns_have_valid_transformations(query)
+    end
+
+    test "it is forbidden to cast a date to text and then use it in a HAVING inequality" do
+      query = """
+      SELECT value FROM (
+        SELECT uid, value, count(*)
+        FROM (
+          SELECT uid, length(cast(column as text)) as value
+          FROM table
+        ) t
+        GROUP BY uid, value
+        HAVING value >= 10 and value < 20
+      ) t
+      """
+      refute condition_columns_have_valid_transformations(query)
+    end
+
+    test "it is forbidden to cast a date to text and then use it in a HAVING equality" do
+      query = """
+      SELECT value FROM (
+        SELECT uid, value, count(*)
+        FROM (
+          SELECT uid, cast(column as text) as value
+          FROM table
+        ) t
+        GROUP BY uid, value
+        HAVING value = '2017-01-19'
+      ) t
+      """
+      refute condition_columns_have_valid_transformations(query)
+    end
+
+    test "it is forbidden to cast a date to text and then use it in a JOIN inequality" do
+      query = """
+      SELECT value FROM (
+        SELECT uid, length(cast(column as text)) as value
+        FROM table
+      ) t INNER JOIN table ON table.uid = t.uid and t.value >= 0 and t.value < 10
+      """
+      refute condition_columns_have_valid_transformations(query)
+    end
+
+    test "it is forbidden to cast a date to text and then use it in a JOIN equality" do
+      query = """
+      SELECT value FROM (
+        SELECT uid, cast(column as text) as value
+        FROM table
+      ) t INNER JOIN table ON table.uid = t.uid and t.value = '2017-01-19'
+      """
+      refute condition_columns_have_valid_transformations(query)
+    end
+
     Enum.each(~w(year month day hour minute second weekday), fn(extractor_fun) ->
       test "it is forbidden to use the result of function #{extractor_fun} in a WHERE inequality" do
         query = """
