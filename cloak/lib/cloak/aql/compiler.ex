@@ -1276,6 +1276,7 @@ defmodule Cloak.Aql.Compiler do
       unless TypeChecker.ok_for_display?(type) do
         explanation = type.narrative_breadcrumbs
         |> filter_for_offensive_actions([:dangerously_discontinuous, :dangerous_math])
+        |> reject_all_but_relevant_offensive_actions([:dangerously_discontinuous, :dangerous_math])
         |> construct_explanation()
         raise CompilationError, message: """
           #{explanation}
@@ -1295,7 +1296,13 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.each(fn(column) ->
       type = TypeChecker.type(column, query)
       unless TypeChecker.ok_for_order_condition?(type) do
-        explanation = construct_explanation(type.narrative_breadcrumbs)
+        explanation = type.narrative_breadcrumbs
+        |> reject_all_but_relevant_offensive_actions([
+          :dangerously_discontinuous,
+          :datetime_processing,
+          :dangerous_math
+        ])
+        |> construct_explanation()
         raise CompilationError, message: """
           #{explanation}
 
@@ -1313,7 +1320,13 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.each(fn(column) ->
       type = TypeChecker.type(column, query)
       unless TypeChecker.ok_for_match_condition?(type) do
-        explanation = construct_explanation(type.narrative_breadcrumbs)
+        explanation = type.narrative_breadcrumbs
+        |> reject_all_but_relevant_offensive_actions([
+          :dangerously_discontinuous,
+          :datetime_processing,
+          :dangerous_math
+        ])
+        |> construct_explanation()
         raise CompilationError, message: """
           #{explanation}
 
