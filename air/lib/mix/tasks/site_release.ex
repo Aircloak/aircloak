@@ -15,12 +15,12 @@ defmodule Mix.Tasks.SiteRelease do
   @dialyzer :no_undefined_callbacks
 
   @doc false
-  def run(_args) do
+  def run(args) do
     File.rm_rf!("rel/air")
     {:ok, cwd} = File.cwd()
     brunch_bin = Path.join([cwd, "node_modules/brunch/bin/brunch"])
     {_, 0} = System.cmd(brunch_bin, ["build", "--production"])
     :ok = Mix.Task.run("phoenix.digest")
-    :ok = Mix.Task.run("release")
+    :ok = Mix.Task.run("release", args)
   end
 end

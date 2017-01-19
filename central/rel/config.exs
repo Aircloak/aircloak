@@ -7,15 +7,22 @@ Path.join(["rel", "plugins", "*.exs"])
 |> Enum.map(&Code.eval_file(&1))
 
 use Mix.Releases.Config,
-    # This sets the default release built by `mix release`
-    default_release: :central,
-    # This sets the default environment used by `mix release`
-    default_environment: :prod
+  # This sets the default release built by `mix release`
+  default_release: :central,
+  # This sets the default environment used by `mix release`
+  default_environment: :prod
 
 environment :prod do
   set include_erts: true
   set include_src: false
   set cookie: "central"
+end
+
+environment :local do
+  set dev_mode: true
+  set include_erts: true
+  set cookie: "air"
+  set config: "config/local_release.exs"
 end
 
 release :central do

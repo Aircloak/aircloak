@@ -55,10 +55,10 @@ lint:
 	MIX_ENV=test mix lint
 
 release:
-	MIX_ENV=prod mix do compile, release
+	mix release
 
-release-local: release
-	cp _build/prod/rel/cloak/lib/cloak-0.1.0/priv/config/dev.json _build/prod/rel/cloak/lib/cloak-0.1.0/priv/config/config.json
+release-local:
+	mix release --env=local --no-tar
 
 perftest:
 	MIX_ENV=test mix run perftest/main.exs "${QUERY}"

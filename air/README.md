@@ -93,7 +93,7 @@ __macOS users__: see [here](../macos_docker.md) for additional instructions.
 - dialyzer: `make dialyze`
 - documentation: `make docs`
 - lint: `make lint`
-- building a release: `make release`
+- building a release: `make release` (`make release-local` on dev machine)
 
 ### Deploying
 
