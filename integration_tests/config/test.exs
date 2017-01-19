@@ -1,5 +1,8 @@
 use Mix.Config
 
+config :air, :deploy_config_file, "test.json"
+config :cloak, :deploy_config_file, "test.json"
+
 # Print only errors during test
 config :logger,
   level: :error,

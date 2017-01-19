@@ -5,75 +5,76 @@ defmodule Aircloak.DeployConfig do
   This module exposes macros which can be used to fetch deploy-specific application
   parameters. To use the module, you need to `require Aircloak.DeployConfig`. Then
   you can invoke provided macros, which will fetch configuration for the current
-  application (the one where the macro is invoked), and the current build environment.
+  application (the one where the macro is invoked).
 
   The parameters are fetched from files which are residing in the `priv/config`
-  folder of the caller app. For development and test environments, files `dev.json` and
-  `test.json` are used. For production, the file `config.json` is used. On Travis,
-  the file `travis.json` is used.
+  folder of the caller app. The name of the file is obtained from the
+  `:deploy_config_file` configuration of the application. In test environment on
+  travis the file `travis.json` is used. For integration tests on travis, the file
+  `integration_tests.json` is used.
 
-  You shouldn't keep `config.json` in the repository, because it is specific for
-  each deployment. In contrast, `dev.json`, `test.json` and `travis.json` should be
-  committed to have out-of-the-box default configurations for developers.
+  You shouldn't keep production config file in the repository, because it is
+  specific for each deployment. In contrast, test and development configurations
+  should be committed to have out-of-the-box default configurations for developers.
   """
 
 
   # -------------------------------------------------------------------
-  # API macros
+  # API macros and functions
   # -------------------------------------------------------------------
 
-  @doc "Retrieves a deploy-specific configuration value, raises if it's not found."
+  @doc "Retrieves a deploy-specific configuration value of the calling app, raises if it's not found."
   defmacro fetch!(key), do:
-    quote(do: Map.fetch!(unquote(__MODULE__).read_config!(), unquote(key)))
+    quote(do: unquote(__MODULE__).fetch!(unquote(Mix.Project.config[:app]), unquote(key)))
 
-  @doc "Retrieves a deploy-specific configuration value."
+  @doc "Retrieves a deploy-specific configuration value of the calling app."
   defmacro fetch(key), do:
-    quote(do: Map.fetch(unquote(__MODULE__).read_config!(), unquote(key)))
+    quote(do: unquote(__MODULE__).fetch(unquote(Mix.Project.config[:app]), unquote(key)))
 
-  @doc "Retrieves a deploy-specific configuration value, returns a default value if not found."
-  defmacro get(key, default \\ nil), do:
-    quote(do: Map.get(unquote(__MODULE__).read_config!(), unquote(key), unquote(default)))
+  @doc "Retrieves a deploy-specific configuration value of the given app, raises if it's not found."
+  @spec fetch!(atom, any) :: any
+  def fetch!(app, key), do:
+    app |> read_config!() |> Map.fetch!(key)
+
+  @doc "Retrieves a deploy-specific configuration value of the given app."
+  @spec fetch(atom, any) :: {:ok, any} | :error
+  def fetch(app, key), do:
+    app |> read_config!() |> Map.fetch(key)
 
 
   # -------------------------------------------------------------------
-  # Internal macros and functions
+  # Internal functions
   # -------------------------------------------------------------------
 
-  @doc false
-  defmacro read_config!(), do:
-    quote(do: unquote(__MODULE__).do_read_config(
-      unquote(Mix.Project.config[:app]),
-      Application.fetch_env!(:aircloak_common, :env)
-    ))
-
-  @doc false
-  def do_read_config(app, env) do
+  defp read_config!(app) do
     case Application.fetch_env(app, __MODULE__) do
       {:ok, config} ->
         config
 
       :error ->
-        config = read_config_from_file(app, env)
+        config = read_config_from_file(app)
         Application.put_env(app, __MODULE__, config)
         config
     end
   end
 
-  defp read_config_from_file(app, env) do
-    data_sources_file_name =
-      case env do
-        :dev -> "dev.json"
-        :test ->
-          if System.get_env("TRAVIS") == "true" do
-            if System.get_env("INTEGRATION_TEST") == "true", do: "integration_tests.json", else: "travis.json"
-          else
-            "test.json"
-          end
-        :prod -> "config.json"
-      end
-
-    Path.join([Application.app_dir(app, "priv"), "config", data_sources_file_name])
+  defp read_config_from_file(app), do:
+    config_file(app)
     |> File.read!()
     |> Poison.decode!()
+
+  defp config_file(app), do:
+    Path.join([Application.app_dir(app, "priv"), "config", config_file_name(app)])
+
+  defp config_file_name(app) do
+    case {
+      Application.fetch_env!(:aircloak_common, :env),
+      System.get_env("TRAVIS"),
+      System.get_env("INTEGRATION_TEST")
+    } do
+      {:test, "true", "true"} -> "integration_tests.json"
+      {:test, "true", _} -> "travis.json"
+      _ -> Application.fetch_env!(app, :deploy_config_file)
+    end
   end
 end

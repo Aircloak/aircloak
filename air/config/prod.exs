@@ -1,5 +1,7 @@
 use Mix.Config
 
+config :air, :deploy_config_file, "config.json"
+
 config :air, Air.Endpoint,
   cache_static_manifest: "priv/static/manifest.json"
 

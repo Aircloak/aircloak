@@ -1,5 +1,7 @@
 use Mix.Config
 
+config :air, :deploy_config_file, "test.json"
+
 config :air, Air.Endpoint,
   http: [port: 8081],
   server: true
