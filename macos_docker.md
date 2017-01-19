@@ -4,8 +4,8 @@ On macOS, we're using Docker for Mac, so some additional setting up is needed. I
 1. Then in your Docker for Mac settings you need to share this project folder and `/docker_volumes`.
 1. Build the images by running `air/db/build-image.sh`, `air/build-image.sh`, and `cloak/build-image.sh`.
 1. Start air dependencies with `air/start_dependencies.sh`.
-1. Create the air database: `cd air && make recreate_db`.
-1. Create the cloak container database: `cd cloak && DB_PORT=20002 ./regenerate_db.sh`
+1. Create the air database: `cd air && make recreate-db`.
+1. Create the cloak container database: `cd cloak && DB_PORT=20002 ./regenerate-db.sh`
 
 If all went well, you will be able to run air tests and start local air (both use the containerized database). To test containerized air and cloak, run `air/container.sh console` followed by `cloak/container.sh console`.
 

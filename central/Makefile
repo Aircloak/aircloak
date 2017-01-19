@@ -1,4 +1,4 @@
-.PHONY: all compile deps clean start start2 start3 test recreate_db migrate rollback dialyze docs release release-local lint mocha
+.PHONY: all compile deps clean start start2 start3 test recreate-db migrate rollback dialyze docs release release-local lint mocha
 
 all: deps compile
 
@@ -18,7 +18,7 @@ start:
 test: mocha
 	mix test.standard
 
-recreate_db:
+recreate-db:
 	mix rollback --all
 	mix seed
 

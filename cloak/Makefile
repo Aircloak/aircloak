@@ -1,7 +1,7 @@
 SHELL=/bin/bash -o pipefail
 
 .PHONY: sandbox deps docs proper proper-std proper-extended test clean all compile
-.PHONY: regenerate_db dialyze lint release release-local perftest perftest-setup
+.PHONY: regenerate-db dialyze lint release release-local perftest perftest-setup
 
 all: deps compile
 
@@ -26,11 +26,11 @@ test:
 test_all:
 	TRAVIS=true mix test --include exclude_in_dev
 
-recreate_db:
+recreate-db:
 	@echo "Assumption: you have a database user called postgres that is a superuser. If not, run: CREATE USER postgres WITH SUPERUSER"
-	./recreate_db.sh
+	./recreate-db.sh
 
-recreate_db_more_data: recreate_db
+recreate-db-more-data: recreate-db
 	./add_more_test_data.sh
 
 docs:
