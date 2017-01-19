@@ -489,13 +489,8 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp precompile_functions(%Query{} = query) do
-    %Query{query |
-      columns: precompile_functions(query.columns),
-      group_by: precompile_functions(query.group_by),
-      order_by: (for {column, direction} <- query.order_by, do: {precompile_function(column), direction}),
-    }
-  end
+  defp precompile_functions(%Query{} = query), do:
+    update_in(query, [Query.Lenses.query_expressions()], &precompile_function/1)
   defp precompile_functions(columns), do:
     Enum.map(columns, &precompile_function/1)
 
@@ -583,20 +578,19 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
-  defp verify_function_subquery_usage({:function, function, [argument]}, %Query{subquery?: false})
-      when function in ["min", "max", "median"] do
+  defp verify_function_subquery_usage({:function, name, [argument]}, %Query{subquery?: false})
+      when name in ["min", "max", "median"] do
     type = Function.type(argument)
     if Enum.member?([:text, :date, :time, :datetime], type) do
       raise CompilationError, message:
-        "Function `#{function}` is allowed over arguments of type `#{type}` only in subqueries."
+        "Function `#{name}` is allowed over arguments of type `#{type}` only in subqueries."
     end
     :ok
   end
   defp verify_function_subquery_usage(_function, %Query{subquery?: false}), do: :ok
-  defp verify_function_subquery_usage(function, %Query{subquery?: true}) do
-    unless Function.allowed_in_subquery?(function) do
-      raise CompilationError, message:
-        "Function `#{column_title(function)}` is not allowed in subqueries."
+  defp verify_function_subquery_usage({:function, name, _}, %Query{subquery?: true}) do
+    if Function.has_attribute?(name, :not_in_subquery) do
+      raise CompilationError, message: "Function `#{name}` is not allowed in subqueries."
     end
   end
 
@@ -635,6 +629,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp parse_row_splitters(%Query{} = query) do
     {transformed_columns, query} = transform_splitter_columns(query, query.columns)
+    validate_row_splitters_conditions(query)
     %Query{query | columns: transformed_columns}
   end
 
@@ -650,7 +645,7 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp transform_splitter_column(expression = %Expression{function?: true}, query) do
-    if Function.row_splitting_function?(expression.function) do
+    if Function.has_attribute?(expression, :row_splitter) do
       # We are making the simplifying assumption that row splitting functions have
       # the value column returned as part of the first column
       {splitter_row_index, query} = add_row_splitter(query, expression)
@@ -684,6 +679,16 @@ defmodule Cloak.Aql.Compiler do
     end
   end
 
+  defp validate_row_splitters_conditions(%Query{emulated_where: conditions}) do
+    conditions
+    |> get_in([Query.Lenses.conditions_terminals()])
+    |> Enum.any?(&Function.has_attribute?(&1, :row_splitter))
+    |> if do
+      raise CompilationError, message:
+        "Row splitter function used in the `WHERE` clause has to be first used identically in the `SELECT` clause."
+    end
+  end
+
   defp compile_order_by(%Query{order_by: []} = query), do: query
   defp compile_order_by(%Query{columns: columns, order_by: order_by_spec} = query) do
     invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) -> Enum.member?(columns, column) end)
@@ -707,15 +712,15 @@ defmodule Cloak.Aql.Compiler do
           message: "#{negative_condition_string(condition)} is not supported in a subquery."
     end
 
-    # extract conditions using encoded columns
-    {encoded_column_clauses, safe_clauses} = Enum.partition(query.where, &encoded_column_condition?/1)
+    # extract conditions using emulated expressions
+    {emulated_column_clauses, safe_clauses} = Enum.partition(query.where, &emulated_expression_condition?/1)
     # extract columns needed in the cloak for extra filtering
     unsafe_filter_columns =
-      encoded_column_clauses
+      emulated_column_clauses
       |> extract_columns()
       |> Enum.reject(& &1.constant?)
     %Query{query | where: safe_clauses, unsafe_filter_columns: unsafe_filter_columns,
-      encoded_where: encoded_column_clauses}
+      emulated_where: emulated_column_clauses}
   end
   defp partition_where_clauses(query) do
     # extract conditions requiring low-count filtering
@@ -727,27 +732,21 @@ defmodule Cloak.Aql.Compiler do
     # forward normal conditions, positive LCF conditions and `IS NOT NULL` checks for negative LCF conditions to driver
     safe_clauses = Enum.uniq(safe_clauses ++ positive_lcf_checks ++ filter_null_lcf_columns)
     # extract conditions using encoded columns
-    {encoded_column_clauses, safe_clauses} = Enum.partition(safe_clauses, &encoded_column_condition?/1)
+    {emulated_column_clauses, safe_clauses} = Enum.partition(safe_clauses, &emulated_expression_condition?/1)
     # extract columns needed in the cloak for extra filtering
     unsafe_filter_columns =
-      (require_lcf_checks ++ encoded_column_clauses)
+      (require_lcf_checks ++ emulated_column_clauses)
       |> extract_columns()
       |> Enum.reject(& &1.constant?)
 
     %Query{query | where: safe_clauses, lcf_check_conditions: require_lcf_checks,
-      unsafe_filter_columns: unsafe_filter_columns, encoded_where: encoded_column_clauses}
+      unsafe_filter_columns: unsafe_filter_columns, emulated_where: emulated_column_clauses}
   end
 
   defp requires_lcf_check?({:not, {:is, _, :null}}), do: false
   defp requires_lcf_check?({:not, _other}), do: true
   defp requires_lcf_check?({:in, _column, _values}), do: true
   defp requires_lcf_check?(_other), do: false
-
-  defp encoded_column_condition?(condition), do:
-    Comparison.verb(condition) != :is and
-    [Comparison.subject(condition)]
-    |> extract_columns()
-    |> Enum.any?(&DataDecoder.needs_decoding?/1)
 
   defp verify_joins(%Query{projected?: true} = query), do: query
   defp verify_joins(query) do
@@ -1002,11 +1001,11 @@ defmodule Cloak.Aql.Compiler do
       end
     end
   end
-  defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name, query) do
-    check_function_validity(function_spec, query)
-    case Function.return_type(function_spec) do
-      nil -> raise CompilationError, message: function_argument_error_message(function_spec)
-      type -> Expression.function(name, args, type, Function.aggregate_function?(function_spec))
+  defp identifier_to_column({:function, name, args} = function, _columns_by_name, query) do
+    check_function_validity(function, query)
+    case Function.return_type(function) do
+      nil -> raise CompilationError, message: function_argument_error_message(function)
+      type -> Expression.function(name, args, type, Function.has_attribute?(name, :aggregator))
     end
   end
   defp identifier_to_column({:parameter, index}, _columns_by_name, query) do
@@ -1222,19 +1221,29 @@ defmodule Cloak.Aql.Compiler do
   # Query emulation
   # -------------------------------------------------------------------
 
+  defp emulated_expression?(expression), do:
+    DataDecoder.needs_decoding?(expression) or Function.has_attribute?(expression, :emulated)
+
+  defp emulated_expression_condition?(condition), do:
+    Comparison.verb(condition) != :is and
+    [condition]
+    |> get_in([Query.Lenses.conditions_terminals()])
+    |> Enum.any?(&emulated_expression?/1)
+
   defp set_emulation_flag(query), do: %Query{query | emulated?: needs_emulation?(query)}
 
-  defp needs_decoding?(query), do:
+  defp has_emulated_expressions?(query), do:
     (query.columns ++ query.group_by ++ query.having ++ query.where)
-    |> extract_columns()
-    |> Enum.any?(&DataDecoder.needs_decoding?/1)
+    |> get_in([Query.Lenses.all_expressions()])
+    |> Enum.any?(&emulated_expression?/1)
 
   defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
-  defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do: needs_decoding?(query)
+  defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do:
+    has_emulated_expressions?(query)
   defp needs_emulation?(%Query{from: {:join, _}, data_source: %{driver: Cloak.DataSource.MongoDB}}), do: true
   defp needs_emulation?(query), do:
     query |> get_in([Query.Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?)) or
-    (query.subquery? and needs_decoding?(query))
+    (query.subquery? and has_emulated_expressions?(query))
 
 
   # -------------------------------------------------------------------

@@ -2,7 +2,6 @@ defmodule Cloak.Query.FunctionTest do
   use ExUnit.Case, async: true
 
   import Cloak.Test.QueryHelpers
-  alias Cloak.Aql.Function
 
   setup_all do
     Cloak.Test.DB.create_table("heights_ft", "height INTEGER, name TEXT")
@@ -58,6 +57,27 @@ defmodule Cloak.Query.FunctionTest do
 
   test "extract_match", do:
     assert "First" == apply_elixir_function("extract_match('First word', '\\w+')", "heights_ft")
+
+  test "extract_match in order by" do
+    assert_query(
+      "SELECT extract_match(name, '\\w+') FROM heights_ft ORDER BY extract_match(name, '\\w+')",
+      %{rows: [%{occurrences: 100, row: ["first"]}]}
+    )
+  end
+
+  test "extract_match in group by" do
+    assert_query(
+      "SELECT extract_match(name, '\\w+') FROM heights_ft GROUP BY extract_match(name, '\\w+')",
+      %{rows: [%{occurrences: 1, row: ["first"]}]}
+    )
+  end
+
+  test "extract_match in where" do
+    assert_query(
+      "SELECT count(*) FROM heights_ft WHERE extract_match(name, '\\w+') = 'first'",
+      %{rows: [%{occurrences: 1, row: [100]}]}
+    )
+  end
 
   test "extract_matches can handle nil columns" do
     assert_query(
@@ -186,6 +206,25 @@ defmodule Cloak.Query.FunctionTest do
     )
   end
 
+  test "extract_matches in where clause" do
+    assert_query("""
+      SELECT extract_matches(name, '\\w+')
+      FROM heights_ft
+      WHERE extract_matches(name, '\\w+') IN ('first', 'third')
+      """,
+      %{rows: [
+        %{row: ["first"], occurrences: 100},
+        %{row: ["third"], occurrences: 100},
+      ]}
+    )
+  end
+
+  test "invalid extract_matches usage in where clause" do
+    assert_query("SELECT extract_matches(name, '\\w+') FROM heights_ft WHERE extract_matches(name, '[a-z]') = 'first'",
+      %{error: "Row splitter function used in the `WHERE` clause"
+        <> " has to be first used identically in the `SELECT` clause."})
+  end
+
   test "extract_matches can handle regular expressions that yield no results" do
     assert_query(
       "SELECT extract_matches(name, 'foo') as words FROM heights_ft",
@@ -201,9 +240,6 @@ defmodule Cloak.Query.FunctionTest do
         %{error: "Function `#{unquote(function_name)}` is not allowed in subqueries."}
       )
     end
-
-    test "knows that #{function_name} should be precompiled", do:
-      assert Function.needs_precompiling?(unquote(function_name))
 
     test "gives sensible error message for broken regex for #{function_name}" do
       assert_query(
@@ -235,9 +271,6 @@ defmodule Cloak.Query.FunctionTest do
       ]}
     )
   end
-
-  test "normal (for example `ceil`) functions don't need precompiling", do:
-    refute Function.needs_precompiling?("ceil")
 
   test "min(height)", do: assert_subquery_aggregate("min(height)", "heights_ft", 180)
   test "max(height)", do: assert_subquery_aggregate("max(height)", "heights_ft", 180)
