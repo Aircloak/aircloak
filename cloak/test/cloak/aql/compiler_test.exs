@@ -779,8 +779,8 @@ defmodule Cloak.Aql.Compiler.Test do
   end
 
   describe "rejects queries selecing columns that have seen math, discontinuity and constants" do
-    Enum.each(~w(+ - / * ^), fn(math_function) ->
-      Enum.each(~w(abs ceil floor round trunc sqrt), fn(discontinuous_function) ->
+    Enum.each(~w(+ - * ^), fn(math_function) ->
+      Enum.each(~w(abs ceil floor round trunc), fn(discontinuous_function) ->
         test "when on the same level ('#{math_function}' and '#{discontinuous_function}')" do
           query = """
             SELECT #{unquote(discontinuous_function)}(numeric #{unquote(math_function)} 3)
@@ -884,16 +884,6 @@ defmodule Cloak.Aql.Compiler.Test do
         refute select_columns_have_valid_transformations(query)
       end
     end)
-  end
-
-  test "/ becomes a dangerous discontinuous function if divisor is touched by a constant" do
-    query = "SELECT numeric / (numeric * 2) FROM table"
-    refute select_columns_have_valid_transformations(query)
-  end
-
-  test "/ is not dangerous discontinuous function if divisor is a pure constant" do
-    query = "SELECT numeric / 2 FROM table"
-    assert select_columns_have_valid_transformations(query)
   end
 
   describe "casts are considered dangerously discontinuous when a constant is involved" do
@@ -1121,8 +1111,7 @@ defmodule Cloak.Aql.Compiler.Test do
 
     test "affected by discontinuity and dangerous math at the same time" do
       query = "SELECT numeric / (numeric + 10) FROM table"
-      assert get_compilation_error(query) =~ ~r/discontinuous function '\/'/
-      assert get_compilation_error(query) =~ ~r/math function '\/'/
+      assert get_compilation_error(query) =~ ~r/divisor that could be zero/
     end
 
     Enum.each(~w(year month day hour minute second weekday), fn(extractor_fun) ->

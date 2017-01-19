@@ -95,6 +95,7 @@ defmodule Cloak.Aql.Compiler do
       |> calculate_db_columns()
       |> verify_limit()
       |> verify_offset()
+      |> verify_usage_of_potentially_crashing_functions()
       |> verify_function_usage_for_selected_columns()
       |> verify_function_usage_for_condition_clauses()
       |> parse_row_splitters()
@@ -1241,6 +1242,33 @@ defmodule Cloak.Aql.Compiler do
   # Validation of usage of restricted functions and maths
   # -------------------------------------------------------------------
 
+  defp verify_usage_of_potentially_crashing_functions(%Query{columns: columns} = query) do
+    conditions_lens_sources(query)
+    |> Query.Lenses.condition_columns()
+    |> Lens.to_list(query)
+    |> Enum.concat(columns)
+    |> Enum.each(fn(column) ->
+      type = TypeChecker.type(column, query)
+      if TypeChecker.risk_of_crashing_function?(type) do
+        explanation = type.narrative_breadcrumbs
+        |> filter_for_offensive_actions([:potentially_crashing_function])
+        |> reject_all_but_relevant_offensive_actions([:potentially_crashing_function])
+        |> construct_explanation()
+        raise CompilationError, message: """
+          #{explanation}
+
+          Functions are not allowed to be used in ways that could cause a database exception
+          to be raised in a way controllable by the analyst.
+          This situation arises when a column or constant value is divided (`/`) by an expression
+          that both contains a user data column as well as a constant value (for example `age / (age - 20)`),
+          or if the square root is taken of an expression that contains a user data column
+          as well as a constant value (for example `sqrt(age - 20)`).
+          """
+      end
+    end)
+    query
+  end
+
   defp verify_function_usage_for_selected_columns(%Query{columns: _columns, subquery?: true} = query), do: query
   defp verify_function_usage_for_selected_columns(%Query{columns: columns} = query) do
     Enum.each(columns, fn(column) ->
@@ -1305,7 +1333,9 @@ defmodule Cloak.Aql.Compiler do
     Query.Lenses.sources_of_operands()
 
   defp construct_explanation(columns) when is_list(columns), do:
-    Enum.map(columns, &construct_explanation(&1))
+    columns
+    |> Enum.map(&construct_explanation(&1))
+    |> Enum.join(" ")
   defp construct_explanation({expression, offenses}), do:
     "Column #{Expression.display_name(expression)} is processed by #{human_readable_offenses(offenses)}."
 
@@ -1322,6 +1352,8 @@ defmodule Cloak.Aql.Compiler do
       ({:dangerous_math, name}) -> "math function '#{name}'"
       ({:datetime_processing, {:cast, target}}) -> "a cast to '#{target}'"
       ({:datetime_processing, name}) -> "date or time processing function '#{Function.readable_name(name)}'"
+      ({:potentially_crashing_function, "sqrt"}) -> "function 'sqrt' on a value that could be negative"
+      ({:potentially_crashing_function, "/"}) -> "math function '/' with a divisor that could be zero"
     end)
     |> Enum.join(" and ")
 
@@ -1332,6 +1364,13 @@ defmodule Cloak.Aql.Compiler do
       offenses
       |> Enum.map(fn({name, _}) -> name end)
       |> Enum.reduce(required_offenses, &(&2 -- [&1])) == []
+    end)
+
+  defp reject_all_but_relevant_offensive_actions(columns, relevant_offenses), do:
+    Enum.map(columns, fn({expression, offenses}) ->
+      {expression, Enum.filter(offenses, fn({offense_name, _}) ->
+        Enum.member?(relevant_offenses, offense_name)
+      end)}
     end)
 
 
