@@ -94,9 +94,9 @@ defmodule Cloak.Aql.Function do
     #   )
     #
     ~w(extract_match) => %{type_specs: %{[:text, :text] => :text},
-      attributes: [:not_in_subquery, :precompiled]},
+      attributes: [:not_in_subquery, :precompiled, :emulated]},
     ~w(extract_matches) => %{type_specs: %{[:text, :text] => :text},
-      attributes: [:not_in_subquery, :precompiled, :row_splitter]},
+      attributes: [:not_in_subquery, :precompiled, :row_splitter, :emulated]},
     [{:cast, :integer}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer}},
     [{:cast, :real}] =>

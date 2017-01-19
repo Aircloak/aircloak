@@ -701,15 +701,15 @@ defmodule Cloak.Aql.Compiler do
           message: "#{negative_condition_string(condition)} is not supported in a subquery."
     end
 
-    # extract conditions using encoded columns
-    {encoded_column_clauses, safe_clauses} = Enum.partition(query.where, &encoded_column_condition?/1)
+    # extract conditions using emulated expressions
+    {emulated_column_clauses, safe_clauses} = Enum.partition(query.where, &emulated_expression_condition?/1)
     # extract columns needed in the cloak for extra filtering
     unsafe_filter_columns =
-      encoded_column_clauses
+      emulated_column_clauses
       |> extract_columns()
       |> Enum.reject(& &1.constant?)
     %Query{query | where: safe_clauses, unsafe_filter_columns: unsafe_filter_columns,
-      encoded_where: encoded_column_clauses}
+      emulated_where: emulated_column_clauses}
   end
   defp partition_where_clauses(query) do
     # extract conditions requiring low-count filtering
@@ -721,27 +721,21 @@ defmodule Cloak.Aql.Compiler do
     # forward normal conditions, positive LCF conditions and `IS NOT NULL` checks for negative LCF conditions to driver
     safe_clauses = Enum.uniq(safe_clauses ++ positive_lcf_checks ++ filter_null_lcf_columns)
     # extract conditions using encoded columns
-    {encoded_column_clauses, safe_clauses} = Enum.partition(safe_clauses, &encoded_column_condition?/1)
+    {emulated_column_clauses, safe_clauses} = Enum.partition(safe_clauses, &emulated_expression_condition?/1)
     # extract columns needed in the cloak for extra filtering
     unsafe_filter_columns =
-      (require_lcf_checks ++ encoded_column_clauses)
+      (require_lcf_checks ++ emulated_column_clauses)
       |> extract_columns()
       |> Enum.reject(& &1.constant?)
 
     %Query{query | where: safe_clauses, lcf_check_conditions: require_lcf_checks,
-      unsafe_filter_columns: unsafe_filter_columns, encoded_where: encoded_column_clauses}
+      unsafe_filter_columns: unsafe_filter_columns, emulated_where: emulated_column_clauses}
   end
 
   defp requires_lcf_check?({:not, {:is, _, :null}}), do: false
   defp requires_lcf_check?({:not, _other}), do: true
   defp requires_lcf_check?({:in, _column, _values}), do: true
   defp requires_lcf_check?(_other), do: false
-
-  defp encoded_column_condition?(condition), do:
-    Comparison.verb(condition) != :is and
-    [Comparison.subject(condition)]
-    |> extract_columns()
-    |> Enum.any?(&DataDecoder.needs_decoding?/1)
 
   defp verify_joins(%Query{projected?: true} = query), do: query
   defp verify_joins(query) do
@@ -1216,19 +1210,29 @@ defmodule Cloak.Aql.Compiler do
   # Query emulation
   # -------------------------------------------------------------------
 
+  defp emulated_expression?(expression), do:
+    DataDecoder.needs_decoding?(expression) or Function.has_attribute?(expression, :emulated)
+
+  defp emulated_expression_condition?(condition), do:
+    Comparison.verb(condition) != :is and
+    [condition]
+    |> get_in([Query.Lenses.conditions_terminals()])
+    |> Enum.any?(&emulated_expression?/1)
+
   defp set_emulation_flag(query), do: %Query{query | emulated?: needs_emulation?(query)}
 
-  defp needs_decoding?(query), do:
+  defp has_emulated_expressions?(query), do:
     (query.columns ++ query.group_by ++ query.having ++ query.where)
-    |> extract_columns()
-    |> Enum.any?(&DataDecoder.needs_decoding?/1)
+    |> get_in([Query.Lenses.all_expressions()])
+    |> Enum.any?(&emulated_expression?/1)
 
   defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
-  defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do: needs_decoding?(query)
+  defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do:
+    has_emulated_expressions?(query)
   defp needs_emulation?(%Query{from: {:join, _}, data_source: %{driver: Cloak.DataSource.MongoDB}}), do: true
   defp needs_emulation?(query), do:
     query |> get_in([Query.Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?)) or
-    (query.subquery? and needs_decoding?(query))
+    (query.subquery? and has_emulated_expressions?(query))
 
 
   # -------------------------------------------------------------------

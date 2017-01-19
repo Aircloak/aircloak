@@ -36,7 +36,7 @@ defmodule Cloak.Query.DbEmulator do
     DataSource.select!(query, fn(rows) ->
       rows
       |> DataDecoder.decode(query)
-      |> Rows.filter(Enum.map(query.encoded_where, &Comparison.to_function/1))
+      |> Rows.filter(Enum.map(query.emulated_where, &Comparison.to_function/1))
       |> Enum.to_list()
     end)
   end
@@ -56,7 +56,7 @@ defmodule Cloak.Query.DbEmulator do
       Logger.debug("Processing rows ...")
       rows
       |> DataDecoder.decode(query)
-      |> Selector.select(%Query{query | where: query.encoded_where, encoded_where: []})
+      |> Selector.select(%Query{query | where: query.emulated_where, emulated_where: []})
       |> Enum.to_list()
     end)
   end

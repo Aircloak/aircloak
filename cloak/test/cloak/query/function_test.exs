@@ -58,6 +58,27 @@ defmodule Cloak.Query.FunctionTest do
   test "extract_match", do:
     assert "First" == apply_elixir_function("extract_match('First word', '\\w+')", "heights_ft")
 
+  test "extract_match in order by" do
+    assert_query(
+      "SELECT extract_match(name, '\\w+') FROM heights_ft ORDER BY extract_match(name, '\\w+')",
+      %{rows: [%{occurrences: 100, row: ["first"]}]}
+    )
+  end
+
+  test "extract_match in group by" do
+    assert_query(
+      "SELECT extract_match(name, '\\w+') FROM heights_ft GROUP BY extract_match(name, '\\w+')",
+      %{rows: [%{occurrences: 1, row: ["first"]}]}
+    )
+  end
+
+  test "extract_match in where" do
+    assert_query(
+      "SELECT count(*) FROM heights_ft WHERE extract_match(name, '\\w+') = 'first'",
+      %{rows: [%{occurrences: 1, row: [100]}]}
+    )
+  end
+
   test "extract_matches can handle nil columns" do
     assert_query(
       "SELECT extract_matches(empty, '\\w+') as word FROM datetimes_ft",
@@ -181,6 +202,19 @@ defmodule Cloak.Query.FunctionTest do
         %{row: ["first", "first"], occurrences: 100},
         %{row: ["second", "second"], occurrences: 100},
         %{row: ["third", "third"], occurrences: 100},
+      ]}
+    )
+  end
+
+  test "extract_matches in where clause" do
+    assert_query("""
+      SELECT extract_matches(name, '\\w+')
+      FROM heights_ft
+      WHERE extract_matches(name, '\\w+') IN ('first', 'third')
+      """,
+      %{rows: [
+        %{row: ["first"], occurrences: 100},
+        %{row: ["third"], occurrences: 100},
       ]}
     )
   end

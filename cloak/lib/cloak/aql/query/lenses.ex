@@ -36,6 +36,11 @@ defmodule Cloak.Aql.Query.Lenses do
     |> expressions()
     |> do_leaf_expressions()
 
+  @doc "Lens focusing all expressions in a list of expressions."
+  deflens all_expressions(), do:
+    Lens.both(terminal_elements(), conditions_terminals())
+    |> expressions()
+
   @doc "Lens focusing on expressions with the same id as the given expression."
   deflens expressions_like(other_expression), do:
     Lens.satisfy(expressions(), &(Expression.id(&1) == Expression.id(other_expression)))
@@ -100,7 +105,7 @@ defmodule Cloak.Aql.Query.Lenses do
   """
   def sources_of_operands_except(operands_to_exclude), do:
     Lens.multiple([
-      Lens.keys([:where, :encoded_where, :lcf_check_conditions, :having] -- operands_to_exclude),
+      Lens.keys([:where, :emulated_where, :lcf_check_conditions, :having] -- operands_to_exclude),
       join_conditions()
     ])
 
