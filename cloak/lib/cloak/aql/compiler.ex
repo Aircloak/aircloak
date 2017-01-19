@@ -96,6 +96,7 @@ defmodule Cloak.Aql.Compiler do
       |> verify_limit()
       |> verify_offset()
       |> verify_usage_of_potentially_crashing_functions()
+      |> verify_usage_of_datetime_extraction_clauses()
       |> verify_function_usage_for_selected_columns()
       |> verify_function_usage_for_condition_clauses()
       |> parse_row_splitters()
@@ -1269,6 +1270,32 @@ defmodule Cloak.Aql.Compiler do
     query
   end
 
+  defp verify_usage_of_datetime_extraction_clauses(query) do
+    conditions_lens_sources(query)
+    |> Lens.both(
+      Query.Lenses.order_condition_columns(),
+      Query.Lenses.match_condition_columns()
+    )
+    |> Lens.to_list(query)
+    |> Enum.each(fn(column) ->
+      type = TypeChecker.type(column, query)
+      if TypeChecker.illegal_datetime_for_filter_condition?(type) do
+        explanation = type.narrative_breadcrumbs
+        |> reject_all_but_relevant_offensive_actions([:datetime_processing])
+        |> construct_explanation()
+        raise CompilationError, message: """
+          #{explanation}
+
+          The results of functions that extract a component of a date, time, or datetime column
+          cannot be used in filter conditions (like WHERE, HAVING and JOIN-conditions).
+          If applicable, consider using a range on the native column.
+          For example: column >= 'YYYY-MM-DD' and column < 'YYYY-MM-DD'.
+          """
+      end
+    end)
+    query
+  end
+
   defp verify_function_usage_for_selected_columns(%Query{columns: _columns, subquery?: true} = query), do: query
   defp verify_function_usage_for_selected_columns(%Query{columns: columns} = query) do
     Enum.each(columns, fn(column) ->
@@ -1299,7 +1326,6 @@ defmodule Cloak.Aql.Compiler do
         explanation = type.narrative_breadcrumbs
         |> reject_all_but_relevant_offensive_actions([
           :dangerously_discontinuous,
-          :datetime_processing,
           :dangerous_math
         ])
         |> construct_explanation()
@@ -1309,31 +1335,6 @@ defmodule Cloak.Aql.Compiler do
           Inequality clauses used to filter the data (like WHERE, HAVING and JOIN-condition where >,
           >=, < or <= are used) are not allowed if the column value has either been transformed by
           a math function or a discontinuous function where one of the other parameters was a constant.
-          Furthermore, the usage of `year`, `month` and other functions that extract parts of a date or
-          time column are not allowed on columns used in inequalities.
-          """
-      end
-    end)
-    conditions_lens_sources(query)
-    |> Query.Lenses.match_condition_columns()
-    |> Lens.to_list(query)
-    |> Enum.each(fn(column) ->
-      type = TypeChecker.type(column, query)
-      unless TypeChecker.ok_for_match_condition?(type) do
-        explanation = type.narrative_breadcrumbs
-        |> reject_all_but_relevant_offensive_actions([
-          :dangerously_discontinuous,
-          :datetime_processing,
-          :dangerous_math
-        ])
-        |> construct_explanation()
-        raise CompilationError, message: """
-          #{explanation}
-
-          Equality clauses (like WHERE, HAVING and JOIN-conditions) on date and time columns
-          that have been processed by a function which extracts a part of the value are not allowed.
-          If applicable, please use an inequality (like >, >=, < and <=) with a date or time range
-          instead.
           """
       end
     end)

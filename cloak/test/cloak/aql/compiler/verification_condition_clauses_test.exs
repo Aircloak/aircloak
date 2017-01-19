@@ -101,19 +101,6 @@ defmodule Cloak.Aql.Compiler.VerificationConditionClauses.Test do
       """
       assert condition_columns_have_valid_transformations(query)
     end
-
-    Enum.each(~w(year month day hour minute second weekday), fn(extractor_fun) ->
-      test "it is forbidden to use the result of function #{extractor_fun} in an equality" do
-        query = """
-          SELECT value FROM (
-            SELECT uid, #{unquote(extractor_fun)}(column) as value
-            FROM table
-          ) t
-          WHERE value = 10
-        """
-        refute condition_columns_have_valid_transformations(query)
-      end
-    end)
   end
 
   describe "Condition-inequalities affected by dangerous math OR discontinuity are forbidden" do
@@ -212,21 +199,6 @@ defmodule Cloak.Aql.Compiler.VerificationConditionClauses.Test do
       """
       refute condition_columns_have_valid_transformations(query)
     end
-  end
-
-  describe "Condition-inequalities affected by datetime extractors are forbidden" do
-    Enum.each(~w(year month day hour minute second weekday), fn(extractor_fun) ->
-      test "it is forbidden to use the result of function #{extractor_fun} in an inequality" do
-        query = """
-          SELECT value FROM (
-            SELECT uid, #{unquote(extractor_fun)}(column) as value
-            FROM table
-          ) t
-          WHERE value >= 10 and value < 20
-        """
-        refute condition_columns_have_valid_transformations(query)
-      end
-    end)
   end
 
   defp condition_columns_have_valid_transformations(query) do

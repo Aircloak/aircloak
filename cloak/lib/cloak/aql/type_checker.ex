@@ -102,6 +102,13 @@ defmodule Cloak.Aql.TypeChecker do
   @spec risk_of_crashing_function?(Type.t) :: boolean
   def risk_of_crashing_function?(type), do: type.is_result_of_potentially_crashing_function?
 
+  @doc """
+  Returns true if a datetime extractor has been used on a column expression making
+  it unsafe for filtering conditions.
+  """
+  @spec illegal_datetime_for_filter_condition?(Type.t) :: boolean
+  def illegal_datetime_for_filter_condition?(type), do: type.is_result_of_datetime_processing?
+
   @doc "Returns true if an expression of this type is safe to be reported"
   @spec ok_for_display?(Type.t) :: boolean
   def ok_for_display?(type), do:
@@ -109,11 +116,7 @@ defmodule Cloak.Aql.TypeChecker do
 
   @doc "Returns true if an expression of this type is safe to be used in a order filter condition"
   def ok_for_order_condition?(type), do:
-    not (type.dangerously_discontinuous? or type.seen_dangerous_math? or
-      type.is_result_of_datetime_processing?)
-
-  @doc "Returns true if an expression of this type is safe to be used in a match filter condition"
-  def ok_for_match_condition?(type), do: not type.is_result_of_datetime_processing?
+    not (type.dangerously_discontinuous? or type.seen_dangerous_math?)
 
   @doc """
   Produces a type characteristic for an expression by resolving function applications and references
