@@ -30,6 +30,29 @@ defmodule IntegrationTest.QueryTest do
     assert Map.fetch!(result, "rows") == [%{"occurrences" => 100, "row" => ["john", 180]}]
   end
 
+  test "retrieval of query results as csv", context do
+    {:ok, %{"query_id" => query_id}} = run_query(context.user, "select name, height from users")
+
+    assert [["name", "height"], ["john", "180"]] ==
+      air_api_get!(context.user, "queries/#{query_id}.csv")
+      |> Map.fetch!(:body)
+      |> String.split("\r\n")
+      |> Enum.reject(&(&1 == ""))
+      |> CSV.decode()
+      |> Enum.uniq()
+  end
+
+  defp air_api_get!(user, path), do:
+    HTTPoison.get!(
+      "http://localhost:#{air_http_port()}/api/#{path}",
+      %{"auth-token" => Air.Token.create_api_token(user, "test token")}
+    )
+
+  defp air_http_port(), do:
+    Application.fetch_env!(:air, Air.Endpoint)
+    |> Keyword.fetch!(:http)
+    |> Keyword.fetch!(:port)
+
   defp run_query(user, query, params \\ []), do:
     Air.Service.DataSource.run_query(
       {:global_id, Manager.data_source_global_id()},
