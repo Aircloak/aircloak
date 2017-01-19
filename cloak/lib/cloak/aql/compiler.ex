@@ -629,6 +629,7 @@ defmodule Cloak.Aql.Compiler do
 
   defp parse_row_splitters(%Query{} = query) do
     {transformed_columns, query} = transform_splitter_columns(query, query.columns)
+    validate_row_splitters_conditions(query)
     %Query{query | columns: transformed_columns}
   end
 
@@ -675,6 +676,16 @@ defmodule Cloak.Aql.Compiler do
         {splitter_row_index, query} = Query.next_row_index(query)
         new_splitter = %{function_spec: function_spec, row_index: splitter_row_index}
         {new_splitter.row_index, %Query{query | row_splitters: query.row_splitters ++ [new_splitter]}}
+    end
+  end
+
+  defp validate_row_splitters_conditions(%Query{emulated_where: conditions}) do
+    conditions
+    |> get_in([Query.Lenses.conditions_terminals()])
+    |> Enum.any?(&Function.has_attribute?(&1, :row_splitter))
+    |> if do
+      raise CompilationError, message:
+        "Row splitter function used in the `WHERE` clause has to be first used identically in the `SELECT` clause."
     end
   end
 
