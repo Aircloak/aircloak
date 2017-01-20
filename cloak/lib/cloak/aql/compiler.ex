@@ -87,7 +87,8 @@ defmodule Cloak.Aql.Compiler do
       |> verify_joins()
       |> cast_where_clauses()
       |> verify_where_clauses()
-      |> align_ranges(:where)
+      |> align_ranges(Lens.key(:where), :where)
+      |> align_join_ranges()
       |> add_subquery_ranges()
       |> verify_having()
       |> set_emulation_flag()
@@ -220,7 +221,7 @@ defmodule Cloak.Aql.Compiler do
         |> validate_offset("Subquery `#{alias}`")
         |> align_limit()
         |> align_offset()
-        |> align_ranges(:having)
+        |> align_ranges(Lens.key(:having), :having)
         |> carry_ranges()
       {:error, error} -> raise CompilationError, message: error
     end
@@ -816,19 +817,24 @@ defmodule Cloak.Aql.Compiler do
   defp reject_null_user_ids(query), do:
     %{query | where: [{:not, {:is, id_column(query), :null}} | query.where]}
 
-  defp align_ranges(query, key) do
-    clauses = Lens.get(Lens.key(key), query)
+  defp align_join_ranges(query), do:
+    query
+    |> Query.Lenses.join_condition_lenses()
+    |> Enum.reduce(query, fn(lens, query) -> align_ranges(query, lens, :where) end)
+
+  defp align_ranges(query, lens, range_type) do
+    clauses = Lens.get(lens, query)
 
     verify_ranges(clauses)
 
     ranges = inequalities_by_column(clauses)
     non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), Comparison.subject(&1)))
 
-    query = put_in(query, [Lens.key(key)], non_range_clauses)
-    Enum.reduce(ranges, query, &add_aligned_range(&1, &2, key))
+    query = put_in(query, [lens], non_range_clauses)
+    Enum.reduce(ranges, query, &add_aligned_range(&1, &2, lens, range_type))
   end
 
-  defp add_aligned_range({column, conditions}, query, key) do
+  defp add_aligned_range({column, conditions}, query, lens, range_type) do
     {left, right} =
       conditions
       |> Enum.map(&Comparison.value/1)
@@ -837,15 +843,15 @@ defmodule Cloak.Aql.Compiler do
       |> FixAlign.align_interval()
 
     if implement_range?({left, right}, conditions) do
-      update_in(query, [Lens.key(key)], &(conditions ++ &1))
+      update_in(query, [lens], &(conditions ++ &1))
     else
       query
-      |> add_clause(key, {:comparison, column, :<, Expression.constant(column.type, right)})
-      |> add_clause(key, {:comparison, column, :>=, Expression.constant(column.type, left)})
+      |> add_clause(lens, {:comparison, column, :<, Expression.constant(column.type, right)})
+      |> add_clause(lens, {:comparison, column, :>=, Expression.constant(column.type, left)})
       |> Query.add_info("The range for column #{Expression.display_name(column)} has been adjusted to #{left} <= "
         <> "#{Expression.short_name(column)} < #{right}.")
     end
-    |> put_in([Lens.key(:ranges), Lens.front()], Range.new(column, {left, right}, key))
+    |> put_in([Lens.key(:ranges), Lens.front()], Range.new(column, {left, right}, range_type))
   end
 
   defp implement_range?({left, right}, conditions) do
@@ -855,7 +861,7 @@ defmodule Cloak.Aql.Compiler do
     left_operator == :>= && left_column.value == left && right_operator == :< && right_column.value == right
   end
 
-  defp add_clause(query, key, clause), do: update_in(query, [Lens.key(key)], fn(clauses) -> [clause | clauses] end)
+  defp add_clause(query, lens, clause), do: put_in(query, [lens, Lens.front()], clause)
 
   defp add_subquery_ranges(query) do
     %{query | ranges:
