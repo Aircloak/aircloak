@@ -21,7 +21,7 @@ defmodule Cloak.Aql.TypeChecker do
   or discontinuous functions.
   """
 
-  alias Cloak.Aql.{Expression, Query}
+  alias Cloak.Aql.{Expression, Query, TypeChecker.Narrative}
 
   defmodule Type do
     @moduledoc false
@@ -216,29 +216,16 @@ defmodule Cloak.Aql.TypeChecker do
     end
   end
 
-  defp extend_narrative_breadcrumbs(name, future, child_types) do
-    # This constructs a history of what has happened to a column in order to be able to later
-    # produce a narrative for an analyst of the type: "column A underwent discontinuous functions
-    # X prior to math Y, which is considered an offensive action".
-    child_types
-    |> Enum.flat_map(&(&1.narrative_breadcrumbs))
-    |> Enum.uniq()
-    |> Enum.map(fn({expression, breadcrumbs}) ->
-      breadcrumbs = [
-        {dangerously_discontinuous?(name, future, child_types), :dangerously_discontinuous},
-        {is_dangerous_math?(name, future, child_types), :dangerous_math},
-        {performs_datetime_processing?(name, child_types), :datetime_processing},
-        {performs_potentially_crashing_function?(name, child_types), :potentially_crashing_function},
-      ]
-      |> Enum.reduce(breadcrumbs, fn
-        ({true, offense}, breadcrumbs_acc) -> [{offense, name} | breadcrumbs_acc] |> Enum.uniq()
-        ({false, _}, breadcrumbs_acc) -> breadcrumbs_acc
-      end)
-      {expression, breadcrumbs}
-    end)
-  end
+  defp extend_narrative_breadcrumbs(name, future, child_types), do:
+    Narrative.extend(child_types, [
+      {dangerously_discontinuous?(name, future, child_types), {:dangerously_discontinuous, name}},
+      {is_dangerous_math?(name, future, child_types), {:dangerous_math, name}},
+      {performs_datetime_processing?(name, child_types), {:datetime_processing, name}},
+      {performs_potentially_crashing_function?(name, child_types),
+        {:potentially_crashing_function, name}},
+    ])
 
-  def expand_from_subquery(column, query, future) do
+  defp expand_from_subquery(column, query, future) do
     %Expression{name: column_name, table: %{name: table_name}} = column
     Lens.to_list(Query.Lenses.direct_subqueries(), query)
     |> Enum.find(&(&1.alias == table_name))

@@ -1346,30 +1346,8 @@ defmodule Cloak.Aql.Compiler do
   defp conditions_lens_sources(_query), do:
     Query.Lenses.sources_of_operands()
 
-  defp construct_explanation(columns) when is_list(columns), do:
-    columns
-    |> Enum.map(&construct_explanation(&1))
-    |> Enum.join(" ")
-  defp construct_explanation({expression, offenses}), do:
-    "Column #{Expression.display_name(expression)} is processed by #{human_readable_offenses(offenses)}."
-
-  defp human_readable_offenses(offenses), do:
-    offenses
-    |> Enum.reverse()
-    |> Enum.map(fn
-      ({:dangerously_discontinuous, "/"}) ->
-        "discontinuous function '/' ('/' can behave like a discontinuous function " <>
-          "when the divisor is an expression that combines both a column value and " <>
-          "a constant value)"
-      ({:dangerously_discontinuous, function}) ->
-        "discontinuous function '#{Function.readable_name(function)}'"
-      ({:dangerous_math, name}) -> "math function '#{name}'"
-      ({:datetime_processing, {:cast, target}}) -> "a cast to '#{target}'"
-      ({:datetime_processing, name}) -> "date or time processing function '#{Function.readable_name(name)}'"
-      ({:potentially_crashing_function, "sqrt"}) -> "function 'sqrt' on a value that could be negative"
-      ({:potentially_crashing_function, "/"}) -> "math function '/' with a divisor that could be zero"
-    end)
-    |> Enum.join(" and ")
+  defp construct_explanation(columns), do:
+    Enum.join(TypeChecker.Narrative.construct(columns), " ")
 
   # Removes columns that haven't had all of a list of offenses applied to them
   defp filter_for_offensive_actions(columns, required_offenses), do:
