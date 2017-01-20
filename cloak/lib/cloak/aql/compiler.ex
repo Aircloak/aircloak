@@ -1260,10 +1260,10 @@ defmodule Cloak.Aql.Compiler do
 
           Functions are not allowed to be used in ways that could cause a database exception
           to be raised in a way controllable by the analyst.
-          This situation arises when a column or constant value is divided (`/`) by an expression
-          that both contains a user data column as well as a constant value (for example `age / (age - 20)`),
-          or if the square root is taken of an expression that contains a user data column
-          as well as a constant value (for example `sqrt(age - 20)`).
+          For example this situation arises when a column or constant value is divided (`/`)
+          by an expression that both contains a user data column as well as a constant value
+          (for example `age / (age - 20)`), or if the square root is taken of an expression that
+          contains a user data column as well as a constant value (for example `sqrt(age - 20)`).
           """
       end
     end)
