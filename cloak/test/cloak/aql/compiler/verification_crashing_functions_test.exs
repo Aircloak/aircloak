@@ -110,7 +110,8 @@ defmodule Cloak.Aql.Compiler.VerificationCrashingFunctions.Test do
       assert expressions_potentially_crash(query)
     end
 
-    test "/ is not allowed when selected only in a subquery with constant infected expression, but not top-level-query" do
+    test "/ is not allowed when selected only in a subquery with constant infected expression, " <>
+        "but not top-level-query" do
       query = """
       SELECT count(*) FROM (
         SELECT uid, value FROM (

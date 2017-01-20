@@ -3,7 +3,7 @@ defmodule Cloak.Aql.Compiler.VerificationDatetimeExtraction.Test do
 
   alias Cloak.Aql.{Compiler, Parser}
 
-  describe "Condition affected by datetime extractors are forbidden" do
+  describe "Condition affected by datetime extractors are forbidden when a constant is involved" do
     test "it is forbidden to cast a date to text and then use it in a WHERE inequality" do
       query = """
       SELECT value FROM (
