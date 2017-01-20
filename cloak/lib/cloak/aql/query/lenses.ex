@@ -1,7 +1,7 @@
 defmodule Cloak.Aql.Query.Lenses do
   @moduledoc "Lenses for traversing queries"
 
-  alias Cloak.Aql.{Expression, Function}
+  alias Cloak.Aql.{Expression, Function, Query}
 
   use Lens.Macros
 
@@ -104,10 +104,21 @@ defmodule Cloak.Aql.Query.Lenses do
       join_conditions()
     ])
 
+  @doc "Returns a list of lenses focusing on sets of join conditions of the given query."
+  @spec join_condition_lenses(Query.t) :: [Lens.t]
+  def join_condition_lenses(query), do: do_join_condition_lenses(query.from, Lens.key(:from))
 
   # -------------------------------------------------------------------
   # Internal lenses
   # -------------------------------------------------------------------
+
+  defp do_join_condition_lenses({:join, %{lhs: lhs, rhs: rhs}}, path) do
+    base = path |> Lens.at(1)
+    [base |> Lens.key(:conditions)] ++
+      do_join_condition_lenses(lhs, base |> Lens.key(:lhs)) ++
+      do_join_condition_lenses(rhs, base |> Lens.key(:rhs))
+  end
+  defp do_join_condition_lenses(_, _), do: []
 
   defp filters_operands(), do:
     sources_of_operands()
