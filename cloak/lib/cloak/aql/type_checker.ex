@@ -200,35 +200,6 @@ defmodule Cloak.Aql.TypeChecker do
     if Enum.all?(child_types, &(&1.constant?)) do
       constant()
     else
-      # This constructs a history of what has happened to a column in order to be able to later
-      # produce a narrative for an analyst of the type: "column a underwent discontinuous functions
-      # X prior to math Y, which is considered an offensive action".
-      updated_narrative_breadcrumbs = child_types
-      |> Enum.flat_map(&(&1.narrative_breadcrumbs))
-      |> Enum.uniq()
-      |> Enum.map(fn({expression, breadcrumbs}) ->
-        breadcrumbs = if dangerously_discontinuous?(name, future, child_types) do
-          [{:dangerously_discontinuous, name} | breadcrumbs] |> Enum.uniq()
-        else
-          breadcrumbs
-        end
-        breadcrumbs = if is_dangerous_math?(name, future, child_types) do
-          [{:dangerous_math, name} | breadcrumbs] |> Enum.uniq()
-        else
-          breadcrumbs
-        end
-        breadcrumbs = if performs_datetime_processing?(name, child_types) do
-          [{:datetime_processing, name} | breadcrumbs] |> Enum.uniq()
-        else
-          breadcrumbs
-        end
-        breadcrumbs = if performs_potentially_crashing_function?(name, child_types) do
-          [{:potentially_crashing_function, name} | breadcrumbs] |> Enum.uniq()
-        else
-          breadcrumbs
-        end
-        {expression, breadcrumbs}
-      end)
       %Type{
         constant_involved?: any_touched_by_constant?(child_types),
         datetime_involved?: any_touched_by_datetime?(child_types),
@@ -238,11 +209,33 @@ defmodule Cloak.Aql.TypeChecker do
           Enum.any?(child_types, &(&1.seen_dangerous_math?)),
         dangerously_discontinuous?: dangerously_discontinuous?(name, future, child_types) ||
           Enum.any?(child_types, &(&1.dangerously_discontinuous?)),
-        narrative_breadcrumbs: updated_narrative_breadcrumbs,
+        narrative_breadcrumbs: extend_narrative_breadcrumbs(name, future, child_types),
         is_result_of_datetime_processing?: performs_datetime_processing?(name, child_types) ||
           Enum.any?(child_types, &(&1.is_result_of_datetime_processing?)),
       }
     end
+  end
+
+  defp extend_narrative_breadcrumbs(name, future, child_types) do
+    # This constructs a history of what has happened to a column in order to be able to later
+    # produce a narrative for an analyst of the type: "column A underwent discontinuous functions
+    # X prior to math Y, which is considered an offensive action".
+    child_types
+    |> Enum.flat_map(&(&1.narrative_breadcrumbs))
+    |> Enum.uniq()
+    |> Enum.map(fn({expression, breadcrumbs}) ->
+      breadcrumbs = [
+        {dangerously_discontinuous?(name, future, child_types), :dangerously_discontinuous},
+        {is_dangerous_math?(name, future, child_types), :dangerous_math},
+        {performs_datetime_processing?(name, child_types), :datetime_processing},
+        {performs_potentially_crashing_function?(name, child_types), :potentially_crashing_function},
+      ]
+      |> Enum.reduce(breadcrumbs, fn
+        ({true, offense}, breadcrumbs_acc) -> [{offense, name} | breadcrumbs_acc] |> Enum.uniq()
+        ({false, _}, breadcrumbs_acc) -> breadcrumbs_acc
+      end)
+      {expression, breadcrumbs}
+    end)
   end
 
   def expand_from_subquery(column, query, future) do
