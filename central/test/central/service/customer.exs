@@ -4,11 +4,6 @@ defmodule Central.Service.CustomerTest do
   alias Central.Schemas
   alias Central.Service.Customer
 
-  @valid_attrs %{
-    name: "customer name",
-  }
-  @invalid_attrs %{}
-
   test "returns customers - none when none exist" do
     assert Customer.all() == []
   end
@@ -77,9 +72,9 @@ defmodule Central.Service.CustomerTest do
     features = %{"some" => "feature"}
     aux = %{"other" => "data"}
     params = %{
-      metrics,
-      features,
-      aux,
+      metrics: metrics,
+      features: features,
+      aux: aux,
     }
     customer = create_customer()
     assert :ok == Customer.record_query(customer, params)
