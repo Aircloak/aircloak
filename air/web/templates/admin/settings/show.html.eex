@@ -1,0 +1,14 @@
+<h2>Settings</h2>
+
+<%= form_for @conn, admin_settings_path(@conn, :update), [as: :settings], fn f -> %>
+  <div class="form-group">
+    <label>Query retention time (days)</label>
+    <p class="help-block">Use 0 or blank for unlimited retention.</p>
+
+    <%= text_input f, :query_retention_days, class: "form-control" %>
+  </div>
+
+  <div class="form-group">
+    <%= submit "Save", class: "btn btn-primary" %>
+  </div>
+<% end %>
