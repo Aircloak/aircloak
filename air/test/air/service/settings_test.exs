@@ -17,4 +17,10 @@ defmodule Air.Service.Settings.Test do
     Air.Service.Settings.update(%{query_retention_days: 120})
     assert Air.Service.Settings.read() == %Air.Settings{query_retention_days: 120}
   end
+
+  test "updating retention back to unlimited" do
+    Air.Service.Settings.update(%{query_retention_days: 120})
+    Air.Service.Settings.update(%{query_retention_days: :unlimited})
+    assert Air.Service.Settings.read() == %Air.Settings{query_retention_days: :unlimited}
+  end
 end

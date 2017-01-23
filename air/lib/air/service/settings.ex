@@ -12,13 +12,16 @@ defmodule Air.Service.Settings do
   end
 
   defp parse(data) do
-    %Air.Settings{query_retention_days: Map.get(data, :query_retention_days, :unlimited)}
+    %Air.Settings{query_retention_days: Map.get(data, :query_retention_days) |> unserialize_retention_days()}
   end
 
   defp latest_settings() do
     import Ecto.Query
     Air.Schemas.Settings |> last() |> Air.Repo.one()
   end
+
+  defp unserialize_retention_days(nil), do: :unlimited
+  defp unserialize_retention_days(days), do: days
 
   defp serialize_retention_days(:unlimited), do: nil
   defp serialize_retention_days(days), do: days
