@@ -332,6 +332,21 @@ defmodule Cloak.Aql.Compiler.Test do
       compile("SELECT column FROM table WHERE other_table.other_column <> ''", data_source())
   end
 
+  test "rejecting joins with only one side of a range" do
+    assert {:error, "Column `numeric` from table `table` must be limited to a finite range."} =
+      compile("SELECT * FROM table JOIN other_table ON table.uid = other_table.uid AND numeric > 3", data_source())
+  end
+
+  test "aligning ranges in joins" do
+    query1 = compile!("SELECT * FROM table JOIN other_table ON table.uid = other_table.uid AND numeric > 3" <>
+      " AND numeric < 9", data_source())
+    query2 = compile!("SELECT * FROM table JOIN other_table ON table.uid = other_table.uid AND numeric >= 0" <>
+      " AND numeric < 10", data_source())
+    assert query1.info ==
+      ["The range for column `numeric` from table `table` has been adjusted to 0.0 <= `numeric` < 10.0."]
+    assert query1.from == query2.from
+  end
+
   test "rejecting improper joins" do
     assert {:error, error} = compile("SELECT t1.c1 from t1, t2", data_source())
     assert error =~ ~r/Missing where comparison.*`t1` and `t2`/
@@ -444,7 +459,7 @@ defmodule Cloak.Aql.Compiler.Test do
       SELECT t1.c1
       FROM
         t1 INNER JOIN t2 ON t1.uid = t2.uid
-           INNER JOIN t3 ON t3.uid = t1.uid AND t1.c2 > 10
+           INNER JOIN t3 ON t3.uid = t1.uid AND t1.c2 > 10 AND t1.c2 < 20
     """, data_source())
   end
 
