@@ -128,6 +128,7 @@ mkdir -p /aircloak/cloak/config/
 cat << EOF > /aircloak/cloak/config/config.json
   {
     "air_site": "ws://air:8080",
+    "salt": salt,
     "data_sources": [
       {
         "driver": "postgresql",
@@ -151,6 +152,8 @@ EOF
 ```
 
 The `air_site` parameter holds the address of the air site. In this particular case, the provided address (`air`) will be available, because we'll link the cloak container to the air container.
+
+The `salt` parameter is used for anonymization purposes. Make sure to create a strongly random secret for this parameter, for example with the following command: `cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1`.
 
 In the `data_sources` section we're specifying databases and tables which need to be open to analysts for querying. In this tutorial, we're keeping things simple by using `air_db` as the single queryable database.
 
