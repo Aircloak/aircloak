@@ -22,6 +22,7 @@ defmodule IntegrationTests.Mixfile do
       {:mariaex, "~> 0.8", override: true},
       {:cloak, path: "../cloak"},
       {:air, path: "../air"},
+      {:httpoison, "~> 0.10.0", only: :test},
     ]
   end
 

@@ -37,7 +37,6 @@ defmodule Cloak.Mixfile do
       {:combine, "~> 0.9.2"},
       {:timex, "~> 3.1.3"},
       {:poison, "~> 2.2.0", override: true},
-      {:httpoison, "~> 0.9.0"},
       {:mongodb, "~> 0.2.0"},
       {:lens, "~> 0.2.0"},
 
