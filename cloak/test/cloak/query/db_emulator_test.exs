@@ -11,7 +11,7 @@ defmodule Cloak.Query.DBEmulatorTest do
       %{method: "text_to_date", columns: ["date"]},
       %{method: "text_to_integer", columns: ["number"]},
     ]
-    :ok = Cloak.Test.DB.create_table("#{@prefix}emulated", "value TEXT, date TEXT, number TEXT, raw_number INTEGER",
+    :ok = Cloak.Test.DB.create_table("#{@prefix}emulated", "value TEXT, date TEXT, number TEXT",
       [decoders: decoders])
     :ok = Cloak.Test.DB.create_table("#{@prefix}joined", "age INTEGER")
     :ok
@@ -339,20 +339,20 @@ defmodule Cloak.Query.DBEmulatorTest do
     end
 
     test "range in a join condition" do
-      :ok = insert_rows(_user_ids = 21..25, "#{@prefix}emulated", ["number", "raw_number"], ["3", 3])
+      :ok = insert_rows(_user_ids = 21..25, "#{@prefix}emulated", ["number"], ["3"])
 
       assert_query """
         select count(*) from
           #{@prefix}emulated
           join #{@prefix}joined
           on #{@prefix}emulated.user_id = #{@prefix}joined.user_id
-          and #{@prefix}emulated.raw_number >= 0 and #{@prefix}emulated.raw_number < 10
+          and #{@prefix}emulated.number >= 0 and #{@prefix}emulated.number < 10
           where number = 3
         """, %{rows: [%{occurrences: 1, row: [5]}]}
     end
 
     test "range in a nested join condition" do
-      :ok = insert_rows(_user_ids = 21..25, "#{@prefix}emulated", ["number", "raw_number"], ["3", 3])
+      :ok = insert_rows(_user_ids = 21..25, "#{@prefix}emulated", ["number"], ["3"])
 
       assert_query """
         select count(*) from (
@@ -360,7 +360,7 @@ defmodule Cloak.Query.DBEmulatorTest do
             #{@prefix}emulated
             join #{@prefix}joined
             on #{@prefix}emulated.user_id = #{@prefix}joined.user_id
-            and #{@prefix}emulated.raw_number >= 0 and #{@prefix}emulated.raw_number < 10
+            and #{@prefix}emulated.number >= 0 and #{@prefix}emulated.number < 10
             where number = 3
         ) x
         """, %{rows: [%{occurrences: 1, row: [5]}]}
