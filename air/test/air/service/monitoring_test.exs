@@ -8,6 +8,13 @@ defmodule Air.Service.Monitoring.Test do
   end
 
   describe "assemble_info" do
+    test "uptime" do
+      uptime1 = Monitoring.assemble_info().uptime
+      uptime2 = Monitoring.assemble_info().uptime
+
+      assert uptime2 > uptime1
+    end
+
     test "list of group names" do
       group = TestRepoHelper.create_group!()
       assert group.name in Monitoring.assemble_info().groups

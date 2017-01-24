@@ -5,11 +5,16 @@ defmodule Air.Service.Monitoring do
 
   def assemble_info() do
     %{
-      groups: fetch_group_names()
+      uptime: fetch_uptime(),
+      groups: fetch_group_names(),
     }
   end
 
-  defp fetch_group_names() do
+  defp fetch_group_names(), do:
     Group |> select([g], g.name) |> Repo.all()
+
+  defp fetch_uptime() do
+    {total, _since_last_call} = :erlang.statistics(:wall_clock)
+    total
   end
 end
