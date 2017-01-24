@@ -11,12 +11,12 @@ defmodule Air.Service.View do
   # -------------------------------------------------------------------
 
   @doc "Returns the changeset representing an empty view."
-  @spec new_changeset() :: View.t
+  @spec new_changeset() :: Changeset.t
   def new_changeset(), do:
     Ecto.Changeset.cast(%View{}, %{}, [])
 
   @doc "Returns the changeset representing the view with the given id."
-  @spec changeset(integer) :: View.t
+  @spec changeset(integer) :: Changeset.t
   def changeset(view_id), do:
     Ecto.Changeset.cast(Repo.get!(View, view_id), %{}, [])
 

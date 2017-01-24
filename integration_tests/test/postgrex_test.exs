@@ -33,15 +33,13 @@ defmodule IntegrationTest.PostgrexTest do
     assert param_select(context.conn, 3.14, "real") == 3.14
 
   test "select a date", context, do:
-    assert param_select(context.conn, %Postgrex.Date{year: 2017, month: 1, day: 31}, "date") ==
-      %Postgrex.Date{year: 2017, month: 1, day: 31}
+    assert param_select(context.conn, ~D[2017-01-31], "date") == ~D[2017-01-31]
 
   test "select a time", context, do:
-    assert param_select(context.conn, %Postgrex.Time{hour: 1, min: 2, sec: 3, usec: 4}, "time") ==
-      %Postgrex.Time{hour: 1, min: 2, sec: 3, usec: 4}
+    assert param_select(context.conn, ~T[01:02:03.004000], "time") == ~T[01:02:03.004000]
 
   test "select a datetime", context do
-    datetime = %Postgrex.Timestamp{year: 2017, month: 1, day: 31, hour: 1, min: 2, sec: 3, usec: 4}
+    datetime = ~N[2017-01-31 01:02:03.0040000]
     assert param_select(context.conn, datetime, "datetime") == datetime
   end
 
