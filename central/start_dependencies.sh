@@ -5,6 +5,12 @@ set -eo pipefail
 cd $(dirname ${BASH_SOURCE[0]})
 . ../docker/docker_helper.sh
 
+./db/build-image.sh
+
+echo "Starting databases for central"
+DB_ENV="dev" ./db/container.sh ensure_started
+DB_ENV="test" ./db/container.sh ensure_started
+
 if ! named_container_running aircloak_elasticsearch ; then
   printf "Starting elasticsearch "
   docker run -d --name aircloak_elasticsearch -p 9200:9200 elasticsearch:5.0.0 > /dev/null
