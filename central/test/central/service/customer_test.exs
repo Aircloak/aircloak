@@ -67,6 +67,19 @@ defmodule Central.Service.CustomerTest do
     assert {:error, :invalid_token} = Customer.from_token("bogus token")
   end
 
+  test "storing air status" do
+    customer = create_customer()
+    assert :ok == Customer.update_air_status(customer, "air1", :online)
+    assert 1 == Repo.one!(from(a in "airs", where: a.name == "air1", select: a.status))
+  end
+
+  test "updating air status" do
+    customer = create_customer()
+    assert :ok == Customer.update_air_status(customer, "air1", :online)
+    assert :ok == Customer.update_air_status(customer, "air1", :offline)
+    assert 0 == Repo.one!(from(a in "airs", where: a.name == "air1", select: a.status))
+  end
+
   test "records query executions" do
     metrics = %{"user_count" => 10}
     features = %{"some" => "feature"}

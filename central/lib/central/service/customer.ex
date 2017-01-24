@@ -96,6 +96,25 @@ defmodule Central.Service.Customer do
     end
   end
 
+  @doc "Updates the air status."
+  @spec update_air_status(Customer.t, String.t, :offline | :online) :: :ok
+  def update_air_status(customer, air_name, status) do
+    encoded_status = encode_air_status(status)
+    mtime = NaiveDateTime.utc_now()
+    {1, _} = Repo.insert_all("airs",
+      [%{
+        name: air_name,
+        customer_id: customer.id,
+        status: encoded_status,
+        inserted_at: mtime,
+        updated_at: mtime
+      }],
+      on_conflict: [set: [status: encoded_status, updated_at: mtime]],
+      conflict_target: [:name, :customer_id]
+    )
+    :ok
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -108,4 +127,7 @@ defmodule Central.Service.Customer do
   defp secret_key_base() do
     Central.site_setting("endpoint_key_base")
   end
+
+  defp encode_air_status(:offline), do: 0
+  defp encode_air_status(:online), do: 1
 end
