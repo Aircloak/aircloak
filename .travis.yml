@@ -28,6 +28,7 @@ cache:
   - $HOME/.yarn-cache
 services:
   - mongodb
+  - elasticsearch
 addons:
   postgresql: "9.5"
   mariadb: "10.0"
