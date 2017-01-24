@@ -19,5 +19,12 @@ defmodule Air.Service.Monitoring.Test do
       group = TestRepoHelper.create_group!()
       assert group.name in Monitoring.assemble_info().groups
     end
+
+    test "list of users with group names" do
+      group = TestRepoHelper.create_group!()
+      user = TestRepoHelper.create_user!(%{groups: [group.id]})
+
+      assert %{email: user.email, name: user.name, groups: [group.name]} in Monitoring.assemble_info().users
+    end
   end
 end
