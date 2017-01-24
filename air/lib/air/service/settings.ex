@@ -1,9 +1,24 @@
 defmodule Air.Service.Settings do
+  @moduledoc "Services for reading and writing Air-wide options."
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # API functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  @doc "Returns the current version of the settings."
+  @spec read() :: Air.Settings.t
   def read(), do: parse(latest_settings() || %{})
 
-  def update(settings) do
+  @doc "Updates the specified fields in the settings."
+  @spec update(%{optional(atom) => any()}) :: :ok
+  def update(settings), do:
     read() |> Map.merge(settings) |> write()
-  end
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Internal functions
+  #-----------------------------------------------------------------------------------------------------------
 
   defp write(%Air.Settings{query_retention_days: days}) do
     %Air.Schemas.Settings{}

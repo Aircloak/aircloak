@@ -1,4 +1,6 @@
 defmodule Air.Schemas.Settings do
+  @moduledoc "Schema for serializing Air.Settings into the DB."
+
   use Air.Schemas.Base
 
   schema "settings" do
