@@ -1,4 +1,5 @@
 sudo: false
+dist: trusty
 language: c
 env:
   global:
@@ -35,7 +36,7 @@ addons:
   apt:
     sources:
     - ubuntu-toolchain-r-test
-    - mongodb-3.2-precise
+    - mongodb-3.2-trusty
     packages:
     - jq
     - gcc-4.8
