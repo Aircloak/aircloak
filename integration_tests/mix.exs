@@ -14,15 +14,24 @@ defmodule IntegrationTests.Mixfile do
   end
 
   def application do
-    [extra_applications: [:logger, :odbc]]
+    [
+      mod: {IntegrationTest.Manager, []},
+      # We're not starting these apps automatically, since we need to do additional setup before they are
+      # started. However, we're specifying them as included to ensure they are loaded and configured.
+      included_applications: [:cloak, :air, :central],
+      extra_applications: [:logger, :odbc],
+    ]
   end
 
   defp deps do
     [
+      {:cloak, path: "../cloak", runtime: false},
+      {:air, path: "../air", runtime: false},
+      {:central, path: "../central", runtime: false},
+      # resolving clashed dependencies
       {:mariaex, "~> 0.8", override: true},
-      {:cloak, path: "../cloak"},
-      {:air, path: "../air"},
-      {:httpoison, "~> 0.10.0", only: :test},
+      {:ecto, "~> 2.1", override: true},
+      {:postgrex, "~> 0.13.0", override: true},
     ]
   end
 

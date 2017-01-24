@@ -8,16 +8,23 @@ defmodule IntegrationTest.Manager do
   @user_password "1234"
   @data_source_global_id "postgres/cloaktest1-native@localhost"
 
+  def start(_type, _args) do
+    Application.ensure_all_started(:central)
+    setup_central()
+
+    Application.ensure_all_started(:air)
+    Application.ensure_all_started(:cloak)
+    await_data_source()
+    setup_cloak_database()
+    setup_data_source()
+
+    # dummy supervisor to have a top-level process
+    Supervisor.start_link([], strategy: :one_for_one)
+  end
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
-
-  def setup() do
-    await_data_source()
-    setup_cloak_database()
-    setup_data_source()
-  end
 
   def data_source_global_id(), do: @data_source_global_id
 
@@ -83,5 +90,12 @@ defmodule IntegrationTest.Manager do
 
   defp insert_rows(user_id_range, table, columns, values) do
     Cloak.Test.DB.add_users_data(table, columns, Enum.map(user_id_range, &["user#{&1}" | values]))
+  end
+
+  defp setup_central() do
+    Central.Repo.delete_all(Central.Schemas.Customer)
+    {:ok, customer} = Central.Service.Customer.create(%{name: "integration tests customer"})
+    {:ok, token} = Central.Service.Customer.generate_token(customer)
+    Aircloak.DeployConfig.update(:air, "site", &%{&1 | "customer_token" => token})
   end
 end
