@@ -54,9 +54,6 @@ config :phoenix, :serve_endpoints, true
 config :air, Air.BOM,
   location: "priv/bom.json"
 
-config :air, Air.PsqlServer,
-  port: 5432
-
 # Where to expect the Central endpoint to be located
 config :air, :central,
   central_site: "wss://central.aircloak.com",

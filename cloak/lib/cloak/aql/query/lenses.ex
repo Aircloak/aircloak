@@ -1,7 +1,7 @@
 defmodule Cloak.Aql.Query.Lenses do
   @moduledoc "Lenses for traversing queries"
 
-  alias Cloak.Aql.{Expression, Function}
+  alias Cloak.Aql.{Expression, Function, Query}
 
   use Lens.Macros
 
@@ -66,6 +66,11 @@ defmodule Cloak.Aql.Query.Lenses do
     |> Lens.satisfy(&match?({:subquery, _}, &1))
     |> Lens.at(1)
 
+  @doc "Lens focusing on all condition-clauses in a query."
+  deflens condition_columns(), do:
+    Lens.both(do_order_condition_columns(), do_match_condition_columns())
+    |> Lens.satisfy(&(not &1.constant?))
+
   @doc "Lens focusing on all inequality condition-clauses in a query."
   deflens order_condition_columns(), do:
     do_order_condition_columns()
@@ -109,10 +114,21 @@ defmodule Cloak.Aql.Query.Lenses do
       join_conditions()
     ])
 
+  @doc "Returns a list of lenses focusing on sets of join conditions of the given query."
+  @spec join_condition_lenses(Query.t) :: [Lens.t]
+  def join_condition_lenses(query), do: do_join_condition_lenses(query.from, Lens.key(:from))
 
   # -------------------------------------------------------------------
   # Internal lenses
   # -------------------------------------------------------------------
+
+  defp do_join_condition_lenses({:join, %{lhs: lhs, rhs: rhs}}, path) do
+    base = path |> Lens.at(1)
+    [base |> Lens.key(:conditions)] ++
+      do_join_condition_lenses(lhs, base |> Lens.key(:lhs)) ++
+      do_join_condition_lenses(rhs, base |> Lens.key(:rhs))
+  end
+  defp do_join_condition_lenses(_, _), do: []
 
   defp filters_operands(), do:
     sources_of_operands()
@@ -120,10 +136,7 @@ defmodule Cloak.Aql.Query.Lenses do
     |> operands()
 
   defp join_conditions(), do:
-    Lens.key(:from)
-    |> join_elements()
-    |> Lens.satisfy(&match?({:join, _}, &1))
-    |> Lens.at(1)
+    joins()
     |> Lens.key(:conditions)
 
   deflensp do_order_condition_columns(), do:

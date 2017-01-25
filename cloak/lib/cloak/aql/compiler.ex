@@ -87,7 +87,8 @@ defmodule Cloak.Aql.Compiler do
       |> verify_joins()
       |> cast_where_clauses()
       |> verify_where_clauses()
-      |> align_ranges(:where)
+      |> align_ranges(Lens.key(:where), :where)
+      |> align_join_ranges()
       |> add_subquery_ranges()
       |> verify_having()
       |> set_emulation_flag()
@@ -95,6 +96,8 @@ defmodule Cloak.Aql.Compiler do
       |> calculate_db_columns()
       |> verify_limit()
       |> verify_offset()
+      |> verify_usage_of_potentially_crashing_functions()
+      |> verify_usage_of_datetime_extraction_clauses()
       |> verify_function_usage_for_selected_columns()
       |> verify_function_usage_for_condition_clauses()
       |> parse_row_splitters()
@@ -220,7 +223,7 @@ defmodule Cloak.Aql.Compiler do
         |> validate_offset("Subquery `#{alias}`")
         |> align_limit()
         |> align_offset()
-        |> align_ranges(:having)
+        |> align_ranges(Lens.key(:having), :having)
         |> carry_ranges()
       {:error, error} -> raise CompilationError, message: error
     end
@@ -815,19 +818,24 @@ defmodule Cloak.Aql.Compiler do
   defp reject_null_user_ids(query), do:
     %{query | where: [{:not, {:is, id_column(query), :null}} | query.where]}
 
-  defp align_ranges(query, key) do
-    clauses = Lens.get(Lens.key(key), query)
+  defp align_join_ranges(query), do:
+    query
+    |> Query.Lenses.join_condition_lenses()
+    |> Enum.reduce(query, fn(lens, query) -> align_ranges(query, lens, :where) end)
+
+  defp align_ranges(query, lens, range_type) do
+    clauses = Lens.get(lens, query)
 
     verify_ranges(clauses)
 
     ranges = inequalities_by_column(clauses)
     non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), Comparison.subject(&1)))
 
-    query = put_in(query, [Lens.key(key)], non_range_clauses)
-    Enum.reduce(ranges, query, &add_aligned_range(&1, &2, key))
+    query = put_in(query, [lens], non_range_clauses)
+    Enum.reduce(ranges, query, &add_aligned_range(&1, &2, lens, range_type))
   end
 
-  defp add_aligned_range({column, conditions}, query, key) do
+  defp add_aligned_range({column, conditions}, query, lens, range_type) do
     {left, right} =
       conditions
       |> Enum.map(&Comparison.value/1)
@@ -836,15 +844,15 @@ defmodule Cloak.Aql.Compiler do
       |> FixAlign.align_interval()
 
     if implement_range?({left, right}, conditions) do
-      update_in(query, [Lens.key(key)], &(conditions ++ &1))
+      update_in(query, [lens], &(conditions ++ &1))
     else
       query
-      |> add_clause(key, {:comparison, column, :<, Expression.constant(column.type, right)})
-      |> add_clause(key, {:comparison, column, :>=, Expression.constant(column.type, left)})
+      |> add_clause(lens, {:comparison, column, :<, Expression.constant(column.type, right)})
+      |> add_clause(lens, {:comparison, column, :>=, Expression.constant(column.type, left)})
       |> Query.add_info("The range for column #{Expression.display_name(column)} has been adjusted to #{left} <= "
         <> "#{Expression.short_name(column)} < #{right}.")
     end
-    |> put_in([Lens.key(:ranges), Lens.front()], Range.new(column, {left, right}, key))
+    |> put_in([Lens.key(:ranges), Lens.front()], Range.new(column, {left, right}, range_type))
   end
 
   defp implement_range?({left, right}, conditions) do
@@ -854,7 +862,7 @@ defmodule Cloak.Aql.Compiler do
     left_operator == :>= && left_column.value == left && right_operator == :< && right_column.value == right
   end
 
-  defp add_clause(query, key, clause), do: update_in(query, [Lens.key(key)], fn(clauses) -> [clause | clauses] end)
+  defp add_clause(query, lens, clause), do: put_in(query, [lens, Lens.front()], clause)
 
   defp add_subquery_ranges(query) do
     %{query | ranges:
@@ -1237,18 +1245,77 @@ defmodule Cloak.Aql.Compiler do
     |> get_in([Query.Lenses.all_expressions()])
     |> Enum.any?(&emulated_expression?/1)
 
+  defp has_emulated_join_conditions?(query), do:
+    all_join_conditions(query.from)
+    |> get_in([Query.Lenses.all_expressions()])
+    |> Enum.any?(&emulated_expression?/1)
+
   defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
   defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do:
     has_emulated_expressions?(query)
   defp needs_emulation?(%Query{from: {:join, _}, data_source: %{driver: Cloak.DataSource.MongoDB}}), do: true
   defp needs_emulation?(query), do:
     query |> get_in([Query.Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?)) or
-    (query.subquery? and has_emulated_expressions?(query))
+    (query.subquery? and has_emulated_expressions?(query)) or
+    has_emulated_join_conditions?(query)
 
 
   # -------------------------------------------------------------------
   # Validation of usage of restricted functions and maths
   # -------------------------------------------------------------------
+
+  defp verify_usage_of_potentially_crashing_functions(%Query{columns: columns} = query) do
+    conditions_lens_sources(query)
+    |> Query.Lenses.condition_columns()
+    |> Lens.to_list(query)
+    |> Enum.concat(columns)
+    |> Enum.each(fn(column) ->
+      type = TypeChecker.type(column, query)
+      if TypeChecker.risk_of_crashing_function?(type) do
+        explanation = type.narrative_breadcrumbs
+        |> filter_for_offensive_actions([:potentially_crashing_function])
+        |> reject_all_but_relevant_offensive_actions([:potentially_crashing_function])
+        |> construct_explanation()
+        raise CompilationError, message: """
+          #{explanation}
+
+          Functions are not allowed to be used in ways that could cause a database exception
+          to be raised in a way controllable by the analyst.
+          For example this situation arises when a column or constant value is divided (`/`)
+          by an expression that both contains a user data column as well as a constant value
+          (for example `age / (age - 20)`), or if the square root is taken of an expression that
+          contains a user data column as well as a constant value (for example `sqrt(age - 20)`).
+          """
+      end
+    end)
+    query
+  end
+
+  defp verify_usage_of_datetime_extraction_clauses(query) do
+    conditions_lens_sources(query)
+    |> Lens.both(
+      Query.Lenses.order_condition_columns(),
+      Query.Lenses.match_condition_columns()
+    )
+    |> Lens.to_list(query)
+    |> Enum.each(fn(column) ->
+      type = TypeChecker.type(column, query)
+      if TypeChecker.illegal_datetime_for_filter_condition?(type) do
+        explanation = type.narrative_breadcrumbs
+        |> reject_all_but_relevant_offensive_actions([:datetime_processing])
+        |> construct_explanation()
+        raise CompilationError, message: """
+          #{explanation}
+
+          The results of functions that extract a component of a date, time, or datetime column
+          cannot be used in filter conditions (like WHERE, HAVING and JOIN-conditions).
+          If applicable, consider using a range on the native column.
+          For example: column >= 'YYYY-MM-DD' and column < 'YYYY-MM-DD'.
+          """
+      end
+    end)
+    query
+  end
 
   defp verify_function_usage_for_selected_columns(%Query{columns: _columns, subquery?: true} = query), do: query
   defp verify_function_usage_for_selected_columns(%Query{columns: columns} = query) do
@@ -1257,6 +1324,7 @@ defmodule Cloak.Aql.Compiler do
       unless TypeChecker.ok_for_display?(type) do
         explanation = type.narrative_breadcrumbs
         |> filter_for_offensive_actions([:dangerously_discontinuous, :dangerous_math])
+        |> reject_all_but_relevant_offensive_actions([:dangerously_discontinuous, :dangerous_math])
         |> construct_explanation()
         raise CompilationError, message: """
           #{explanation}
@@ -1276,32 +1344,18 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.each(fn(column) ->
       type = TypeChecker.type(column, query)
       unless TypeChecker.ok_for_order_condition?(type) do
-        explanation = construct_explanation(type.narrative_breadcrumbs)
+        explanation = type.narrative_breadcrumbs
+        |> reject_all_but_relevant_offensive_actions([
+          :dangerously_discontinuous,
+          :dangerous_math
+        ])
+        |> construct_explanation()
         raise CompilationError, message: """
           #{explanation}
 
           Inequality clauses used to filter the data (like WHERE, HAVING and JOIN-condition where >,
           >=, < or <= are used) are not allowed if the column value has either been transformed by
           a math function or a discontinuous function where one of the other parameters was a constant.
-          Furthermore, the usage of `year`, `month` and other functions that extract parts of a date or
-          time column are not allowed on columns used in inequalities.
-          """
-      end
-    end)
-    conditions_lens_sources(query)
-    |> Query.Lenses.match_condition_columns()
-    |> Lens.to_list(query)
-    |> Enum.each(fn(column) ->
-      type = TypeChecker.type(column, query)
-      unless TypeChecker.ok_for_match_condition?(type) do
-        explanation = construct_explanation(type.narrative_breadcrumbs)
-        raise CompilationError, message: """
-          #{explanation}
-
-          Equality clauses (like WHERE, HAVING and JOIN-conditions) on date and time columns
-          that have been processed by a function which extracts a part of the value are not allowed.
-          If applicable, please use an inequality (like >, >=, < and <=) with a date or time range
-          instead.
           """
       end
     end)
@@ -1313,26 +1367,8 @@ defmodule Cloak.Aql.Compiler do
   defp conditions_lens_sources(_query), do:
     Query.Lenses.sources_of_operands()
 
-  defp construct_explanation(columns) when is_list(columns), do:
-    Enum.map(columns, &construct_explanation(&1))
-  defp construct_explanation({expression, offenses}), do:
-    "Column #{Expression.display_name(expression)} is processed by #{human_readable_offenses(offenses)}."
-
-  defp human_readable_offenses(offenses), do:
-    offenses
-    |> Enum.reverse()
-    |> Enum.map(fn
-      ({:dangerously_discontinuous, "/"}) ->
-        "discontinuous function '/' ('/' can behave like a discontinuous function " <>
-          "when the divisor is an expression that combines both a column value and " <>
-          "a constant value)"
-      ({:dangerously_discontinuous, function}) ->
-        "discontinuous function '#{Function.readable_name(function)}'"
-      ({:dangerous_math, name}) -> "math function '#{name}'"
-      ({:datetime_processing, {:cast, target}}) -> "a cast to '#{target}'"
-      ({:datetime_processing, name}) -> "date or time processing function '#{Function.readable_name(name)}'"
-    end)
-    |> Enum.join(" and ")
+  defp construct_explanation(columns), do:
+    Enum.join(TypeChecker.Narrative.construct(columns), " ")
 
   # Removes columns that haven't had all of a list of offenses applied to them
   defp filter_for_offensive_actions(columns, required_offenses), do:
@@ -1341,6 +1377,13 @@ defmodule Cloak.Aql.Compiler do
       offenses
       |> Enum.map(fn({name, _}) -> name end)
       |> Enum.reduce(required_offenses, &(&2 -- [&1])) == []
+    end)
+
+  defp reject_all_but_relevant_offensive_actions(columns, relevant_offenses), do:
+    Enum.map(columns, fn({expression, offenses}) ->
+      {expression, Enum.filter(offenses, fn({offense_name, _}) ->
+        Enum.member?(relevant_offenses, offense_name)
+      end)}
     end)
 
 
