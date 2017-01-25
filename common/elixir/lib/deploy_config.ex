@@ -41,7 +41,6 @@ defmodule Aircloak.DeployConfig do
   def fetch(app, key), do:
     app |> read_config!() |> Map.fetch(key)
 
-
   @doc "Updates cached configuration value of the given app."
   @spec update(atom, any, (any -> any)) :: :ok
   def update(app, key, fun), do:
