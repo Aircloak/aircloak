@@ -131,10 +131,7 @@ defmodule Cloak.Aql.Query.Lenses do
     |> operands()
 
   defp join_conditions(), do:
-    Lens.key(:from)
-    |> join_elements()
-    |> Lens.satisfy(&match?({:join, _}, &1))
-    |> Lens.at(1)
+    joins()
     |> Lens.key(:conditions)
 
   deflensp do_order_condition_columns(), do:
