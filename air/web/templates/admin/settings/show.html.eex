@@ -5,7 +5,11 @@
     <%= form_for @conn, admin_settings_path(@conn, :update), [method: :put, as: :settings], fn f -> %>
       <div class="form-group">
         <label>Query retention time (days)</label>
-        <p class="help-block">Leave blank for unlimited retention</p>
+        <p class="help-block">
+          Query results will be kept for this many days. After that they will be deleted and unavailable
+          when you "Load previous queries" or under Failed Queries. However, they will remain in the
+          Audit Log. Leave blank to never delete queries.
+        </p>
 
         <%= number_input f, :query_retention_days, value: @settings.query_retention_days, class: "form-control" %>
       </div>
