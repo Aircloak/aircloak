@@ -12,8 +12,9 @@ defmodule Cloak.Aql.TypeChecker.Narrative do
   # -------------------------------------------------------------------
 
   @doc "Constructs an explanation per column about why their usage is not allowed"
-  @spec construct([TypeChecker.Type.offense]) :: [String.t]
-  def construct(columns) when is_list(columns), do: Enum.map(columns, &construct_explanation(&1))
+  @spec construct([TypeChecker.Type.offense]) :: String.t
+  def construct(columns) when is_list(columns), do:
+     Enum.map_join(columns, " ", &construct_explanation(&1))
 
   @doc """
   Extends an existing narrative with additional potential offenses, allowing

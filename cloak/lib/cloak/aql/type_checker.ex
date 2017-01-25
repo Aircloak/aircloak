@@ -21,74 +21,12 @@ defmodule Cloak.Aql.TypeChecker do
   or discontinuous functions.
   """
 
-  alias Cloak.Aql.{Expression, Query, TypeChecker.Narrative}
-
-  defmodule Type do
-    @moduledoc false
-
-    @type function_name :: String.t
-    @type offense_type :: {
-        :dangerously_discontinuous
-      | :dangerous_math
-      | :datetime_processing
-      | :potentially_crashing_function,
-      function_name
-    }
-    @type offense :: {Expression.t, [offense_type]}
-
-    @type t :: %__MODULE__{
-      # Whether the expressions is a constant. As soon as a constant expression
-      # interacts with a non-constant expression through math or function application
-      # it ceases to be constant.
-      constant?: boolean,
-
-      # True if any of the expressions it has come in contact with through functions
-      # were constant.
-      constant_involved?: boolean,
-
-      # Whether the expression represents a date, time or datetime value, or one of
-      # the expressions in this expressions past represented such a value.
-      datetime_involved?: boolean,
-
-      # If a function like year, month, etc has been used on the value, or the value
-      # has in some other way been manipulated, like having been cast.
-      is_result_of_datetime_processing?: boolean,
-
-      # sqrt and / are functions which are illdefined for certain values. sqrt of negative values,
-      # or division by 0. When these functions occur with values that have been manipulated
-      # using constants (to potentially construct a failure condition), we mark them as
-      # potentially crashing.
-      is_result_of_potentially_crashing_function?: boolean,
-
-      # True if the expression has been processed by a discontinuous function and the
-      # parameters of the function call were such that the computation is classified
-      # as potentially dangerous (i.e. an attack vector).
-      # Taints all other later expressions, hence, if a single expression in a function
-      # application is dangerously discontinuous, then the result of the function is
-      # dangerously discontinous too.
-      dangerously_discontinuous?: boolean,
-
-      # Whether the expression has had dangerous math performed on it or not.
-      # Math is considered dangerous if any of the expressions in the math application
-      # have previously been touched by a constant.
-      seen_dangerous_math?: boolean,
-
-      # We keep track of the dangerous transformations each column has undergone in order
-      # to later produce a narrative to the analyst explaining what particular steps led to
-      # a query expression being rejected.
-      narrative_breadcrumbs: [offense],
-    }
-
-    defstruct [
-      constant?: false, constant_involved?: false, datetime_involved?: false,
-      is_result_of_datetime_processing?: false, is_result_of_potentially_crashing_function?: false,
-      dangerously_discontinuous?: false, seen_dangerous_math?: false, narrative_breadcrumbs: [],
-    ]
-  end
+  alias Cloak.Aql.{Compiler.CompilationError, Expression, Query}
+  alias Cloak.Aql.TypeChecker.{Narrative, Type}
 
 
   # -------------------------------------------------------------------
-  # API and rules
+  # Function and operator classifications
   # -------------------------------------------------------------------
 
   @discontinuous_math_functions ~w(% abs ceil ceiling div floor mod round trunc)
@@ -96,37 +34,123 @@ defmodule Cloak.Aql.TypeChecker do
   @continuous_math_functions ~w(+ - * / ^ pow)
   @datetime_functions ~w(year month day hour minute second weekday)
 
-  @doc """
-  Returns false if the function in the form it is used could cause an exception
-  in the database given certain user data, and hence used as a low hanging timing attack.
-  """
-  @spec risk_of_crashing_function?(Type.t) :: boolean
-  def risk_of_crashing_function?(type), do: type.is_result_of_potentially_crashing_function?
 
-  @doc """
-  Returns true if a datetime extractor has been used on a column expression making
-  it unsafe for filtering conditions.
-  """
-  @spec illegal_datetime_for_filter_condition?(Type.t) :: boolean
-  def illegal_datetime_for_filter_condition?(type), do: type.is_result_of_datetime_processing?
+  # -------------------------------------------------------------------
+  # API
+  # -------------------------------------------------------------------
 
-  @doc "Returns true if an expression of this type is safe to be reported"
-  @spec ok_for_display?(Type.t) :: boolean
-  def ok_for_display?(type), do:
-    not (type.dangerously_discontinuous? and type.seen_dangerous_math?)
+  @spec validate_allowed_usage_of_math_and_functions(Query.t) :: Query.t
+  def validate_allowed_usage_of_math_and_functions(query) do
+    verify_usage_of_potentially_crashing_functions(query)
+    verify_usage_of_datetime_extraction_clauses(query)
+    verify_function_usage_for_selected_columns(query)
+    verify_function_usage_for_condition_clauses(query)
+    query
+  end
 
-  @doc "Returns true if an expression of this type is safe to be used in a order filter condition"
-  def ok_for_order_condition?(type), do:
-    not (type.dangerously_discontinuous? or type.seen_dangerous_math?)
 
-  @doc """
-  Produces a type characteristic for an expression by resolving function applications and references
-  back to the underlying table columns and constants contributing to the expression.
-  The type of the expression itself is not of interest. Rather the class of transformations
-  that have been applied to the expression is what can make it safe or unsafe in a query.
-  """
-  @spec type(Expression.t, Query.t) :: Type.t
-  def type(column, query), do: construct_type(column, query)
+  # -------------------------------------------------------------------
+  # Top-level checks
+  # -------------------------------------------------------------------
+
+  defp verify_usage_of_potentially_crashing_functions(%Query{columns: columns} = query), do:
+    conditions_lens_sources(query)
+    |> Query.Lenses.condition_columns()
+    |> Lens.to_list(query)
+    |> Enum.concat(columns)
+    |> Enum.each(fn(column) ->
+      type = establish_type(column, query)
+      if type.is_result_of_potentially_crashing_function? do
+        explanation = type.narrative_breadcrumbs
+        |> filter_for_offensive_actions([:potentially_crashing_function])
+        |> reject_all_but_relevant_offensive_actions([:potentially_crashing_function])
+        |> Narrative.construct()
+        raise CompilationError, message: """
+          #{explanation}
+
+          Functions are not allowed to be used in ways that could cause a database exception
+          to be raised in a way controllable by the analyst.
+          For example this situation arises when a column or constant value is divided (`/`)
+          by an expression that both contains a user data column as well as a constant value
+          (for example `age / (age - 20)`), or if the square root is taken of an expression that
+          contains a user data column as well as a constant value (for example `sqrt(age - 20)`).
+          """
+      end
+    end)
+
+  defp verify_usage_of_datetime_extraction_clauses(query), do:
+    conditions_lens_sources(query)
+    |> Query.Lenses.comparisons()
+    |> Lens.to_list(query)
+    |> Enum.each(fn(comparison) ->
+      types = comparison
+      |> coexisting_columns()
+      |> List.flatten()
+      |> Enum.map(&establish_type(&1, query))
+      if Enum.any?(types, & &1.is_result_of_datetime_processing?) and
+          Enum.any?(types, & &1.constant? or &1.constant_involved?) do
+        explanations = types
+        |> Enum.filter(& &1.is_result_of_datetime_processing?)
+        |> Enum.map_join(" ", fn(type) ->
+          type.narrative_breadcrumbs
+          |> reject_all_but_relevant_offensive_actions([:datetime_processing])
+          |> Narrative.construct()
+        end)
+        raise CompilationError, message: """
+          #{explanations}
+
+          The results of functions that extract a component of a date, time, or datetime column
+          cannot be used in filter conditions (like WHERE, HAVING and JOIN-conditions) when the
+          value it is compared against is a constant or an expression involving a constant.
+
+          If applicable, consider using a range on the native column instead.
+          For example: column >= 'YYYY-MM-DD' and column < 'YYYY-MM-DD'.
+          """
+      end
+    end)
+
+  defp verify_function_usage_for_selected_columns(%Query{columns: _columns, subquery?: true} = query), do: query
+  defp verify_function_usage_for_selected_columns(%Query{columns: columns} = query), do:
+    Enum.each(columns, fn(column) ->
+      type = establish_type(column, query)
+      if type.dangerously_discontinuous? and type.seen_dangerous_math? do
+        explanation = type.narrative_breadcrumbs
+        |> filter_for_offensive_actions([:dangerously_discontinuous, :dangerous_math])
+        |> reject_all_but_relevant_offensive_actions([:dangerously_discontinuous, :dangerous_math])
+        |> Narrative.construct()
+        raise CompilationError, message: """
+          #{explanation}
+
+          Queries where a reported value is influenced by math and a discontinuous function
+          in conjunction with a constant are not allowed.
+          """
+      end
+    end)
+
+  defp verify_function_usage_for_condition_clauses(query), do:
+    conditions_lens_sources(query)
+    |> Query.Lenses.order_condition_columns()
+    |> Lens.to_list(query)
+    |> Enum.each(fn(column) ->
+      type = establish_type(column, query)
+      if type.dangerously_discontinuous? or type.seen_dangerous_math? do
+        explanation = type.narrative_breadcrumbs
+        |> reject_all_but_relevant_offensive_actions([
+          :dangerously_discontinuous,
+          :dangerous_math
+        ])
+        |> Narrative.construct()
+        raise CompilationError, message: """
+          #{explanation}
+
+          Inequality clauses used to filter the data (like WHERE, HAVING and JOIN-condition where >,
+          >=, < or <= are used) are not allowed if the column value has either been transformed by
+          a math function or a discontinuous function where one of the other parameters was a constant.
+          """
+      end
+    end)
+
+  def establish_type(column, query), do: construct_type(column, query)
 
 
   # -------------------------------------------------------------------
@@ -239,4 +263,30 @@ defmodule Cloak.Aql.TypeChecker do
         construct_type(column, subquery, future)
     end
   end
+
+  defp coexisting_columns({:comparison, a, _check, b}), do: [a, b]
+  defp coexisting_columns({like, a, b}) when like in ~w(like ilike)a, do: [a, b]
+  defp coexisting_columns({:is, a, b}), do: [a, b]
+  defp coexisting_columns({:in, a, b}), do: [a, b]
+
+  defp conditions_lens_sources(%Query{subquery?: false}), do:
+    Query.Lenses.sources_of_operands_except([:having])
+  defp conditions_lens_sources(_query), do:
+    Query.Lenses.sources_of_operands()
+
+  # Removes columns that haven't had all of a list of offenses applied to them
+  defp filter_for_offensive_actions(columns, required_offenses), do:
+    columns
+    |> Enum.filter(fn({_expression, offenses}) ->
+      offenses
+      |> Enum.map(fn({name, _}) -> name end)
+      |> Enum.reduce(required_offenses, &(&2 -- [&1])) == []
+    end)
+
+  defp reject_all_but_relevant_offensive_actions(columns, relevant_offenses), do:
+    Enum.map(columns, fn({expression, offenses}) ->
+      {expression, Enum.filter(offenses, fn({offense_name, _}) ->
+        Enum.member?(relevant_offenses, offense_name)
+      end)}
+    end)
 end
