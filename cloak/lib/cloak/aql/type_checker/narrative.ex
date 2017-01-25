@@ -19,7 +19,7 @@ defmodule Cloak.Aql.TypeChecker.Narrative do
   Extends an existing narrative with additional potential offenses, allowing
   a narrative to be created in case a query usage violation has occurred.
   """
-  @spec extend([{boolean, TypeChecker.Type.offense}], [TypeChecker.Type.t]) :: [TypeChecker.Type.offense]
+  @spec extend([TypeChecker.Type.t], [{boolean, TypeChecker.Type.offense_type}]) :: [TypeChecker.Type.offense]
   def extend(child_types, potential_offenses), do:
     child_types
     |> Enum.flat_map(&(&1.narrative_breadcrumbs))

@@ -27,13 +27,14 @@ defmodule Cloak.Aql.TypeChecker do
     @moduledoc false
 
     @type function_name :: String.t
-    @type offense :: {Expression.t, [{
+    @type offense_type :: {
         :dangerously_discontinuous
       | :dangerous_math
       | :datetime_processing
       | :potentially_crashing_function,
       function_name
-    }]}
+    }
+    @type offense :: {Expression.t, [offense_type]}
 
     @type t :: %__MODULE__{
       # Whether the expressions is a constant. As soon as a constant expression
