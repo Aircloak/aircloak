@@ -6,7 +6,7 @@
       <div class="form-group">
         <label>Query retention time (days)</label>
         <p class="help-block">
-          Query results will be kept for this many days. After that they will be deleted and unavailable
+          Past queries will be kept for this many days. After that they will be deleted and unavailable
           when you "Load previous queries" or under Failed Queries. However, they will remain in the
           Audit Log. Leave blank to never delete queries.
         </p>
