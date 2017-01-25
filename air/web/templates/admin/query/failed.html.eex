@@ -6,7 +6,7 @@
 
 <% else %>
 
-  <%= pagination_links @failed_queries %>
+  <%= if @failed_queries.total_pages > 1, do: pagination_links @failed_queries %>
 
   <div id="query-view">
     <%= for query <- @failed_queries do %>
@@ -23,6 +23,6 @@
     <% end %>
   </div>
 
-  <%= pagination_links @failed_queries %>
+  <%= if @failed_queries.total_pages > 1, do: pagination_links @failed_queries %>
 
 <% end %>
