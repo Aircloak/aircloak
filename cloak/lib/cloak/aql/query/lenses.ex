@@ -66,6 +66,11 @@ defmodule Cloak.Aql.Query.Lenses do
     |> Lens.satisfy(&match?({:subquery, _}, &1))
     |> Lens.at(1)
 
+  @doc "Lens focusing on all condition-clauses in a query."
+  deflens condition_columns(), do:
+    Lens.both(do_order_condition_columns(), do_match_condition_columns())
+    |> Lens.satisfy(&(not &1.constant?))
+
   @doc "Lens focusing on all inequality condition-clauses in a query."
   deflens order_condition_columns(), do:
     do_order_condition_columns()

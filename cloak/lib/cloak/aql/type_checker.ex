@@ -21,15 +21,20 @@ defmodule Cloak.Aql.TypeChecker do
   or discontinuous functions.
   """
 
-  alias Cloak.Aql.{Expression, Query}
+  alias Cloak.Aql.{Expression, Query, TypeChecker.Narrative}
 
   defmodule Type do
     @moduledoc false
 
     @type function_name :: String.t
-    @type offense :: {Expression.t, [
-      {:dangerously_discontinuous | :dangerous_math | :datetime_processing, function_name}
-    ]}
+    @type offense_type :: {
+        :dangerously_discontinuous
+      | :dangerous_math
+      | :datetime_processing
+      | :potentially_crashing_function,
+      function_name
+    }
+    @type offense :: {Expression.t, [offense_type]}
 
     @type t :: %__MODULE__{
       # Whether the expressions is a constant. As soon as a constant expression
@@ -48,6 +53,12 @@ defmodule Cloak.Aql.TypeChecker do
       # If a function like year, month, etc has been used on the value, or the value
       # has in some other way been manipulated, like having been cast.
       is_result_of_datetime_processing?: boolean,
+
+      # sqrt and / are functions which are illdefined for certain values. sqrt of negative values,
+      # or division by 0. When these functions occur with values that have been manipulated
+      # using constants (to potentially construct a failure condition), we mark them as
+      # potentially crashing.
+      is_result_of_potentially_crashing_function?: boolean,
 
       # True if the expression has been processed by a discontinuous function and the
       # parameters of the function call were such that the computation is classified
@@ -70,8 +81,8 @@ defmodule Cloak.Aql.TypeChecker do
 
     defstruct [
       constant?: false, constant_involved?: false, datetime_involved?: false,
-      is_result_of_datetime_processing?: false, dangerously_discontinuous?: false,
-      seen_dangerous_math?: false, narrative_breadcrumbs: [],
+      is_result_of_datetime_processing?: false, is_result_of_potentially_crashing_function?: false,
+      dangerously_discontinuous?: false, seen_dangerous_math?: false, narrative_breadcrumbs: [],
     ]
   end
 
@@ -80,10 +91,24 @@ defmodule Cloak.Aql.TypeChecker do
   # API and rules
   # -------------------------------------------------------------------
 
-  @discontinuous_math_functions ~w(% abs ceil ceiling div floor mod round trunc sqrt)
+  @discontinuous_math_functions ~w(% abs ceil ceiling div floor mod round trunc)
   @discontinuous_string_functions ~w(btrim left ltrim right rtrim substring)
   @continuous_math_functions ~w(+ - * / ^ pow)
   @datetime_functions ~w(year month day hour minute second weekday)
+
+  @doc """
+  Returns false if the function in the form it is used could cause an exception
+  in the database given certain user data, and hence used as a low hanging timing attack.
+  """
+  @spec risk_of_crashing_function?(Type.t) :: boolean
+  def risk_of_crashing_function?(type), do: type.is_result_of_potentially_crashing_function?
+
+  @doc """
+  Returns true if a datetime extractor has been used on a column expression making
+  it unsafe for filtering conditions.
+  """
+  @spec illegal_datetime_for_filter_condition?(Type.t) :: boolean
+  def illegal_datetime_for_filter_condition?(type), do: type.is_result_of_datetime_processing?
 
   @doc "Returns true if an expression of this type is safe to be reported"
   @spec ok_for_display?(Type.t) :: boolean
@@ -92,11 +117,7 @@ defmodule Cloak.Aql.TypeChecker do
 
   @doc "Returns true if an expression of this type is safe to be used in a order filter condition"
   def ok_for_order_condition?(type), do:
-    not (type.dangerously_discontinuous? or type.seen_dangerous_math? or
-      type.is_result_of_datetime_processing?)
-
-  @doc "Returns true if an expression of this type is safe to be used in a match filter condition"
-  def ok_for_match_condition?(type), do: not type.is_result_of_datetime_processing?
+    not (type.dangerously_discontinuous? or type.seen_dangerous_math?)
 
   @doc """
   Produces a type characteristic for an expression by resolving function applications and references
@@ -117,9 +138,6 @@ defmodule Cloak.Aql.TypeChecker do
   defp dangerously_discontinuous?(name, _future, child_types)
       when name in @discontinuous_math_functions, do:
     any_touched_by_constant?(child_types)
-  defp dangerously_discontinuous?("/", _future, [_, child_type]), do:
-    # This allows division by a pure constant, but not by a column influenced by a constant
-    child_type.constant_involved? && not child_type.constant?
   defp dangerously_discontinuous?({:cast, _}, _future, child_types), do: any_touched_by_constant?(child_types)
   defp dangerously_discontinuous?(name, future, child_types)
       when name in @discontinuous_string_functions, do:
@@ -132,6 +150,14 @@ defmodule Cloak.Aql.TypeChecker do
 
   defp performs_datetime_processing?(name, child_types), do:
     any_touched_by_datetime?(child_types) and (name in @datetime_functions or match?({:cast, _}, name))
+
+  defp performs_potentially_crashing_function?("/", [_, child_type]), do:
+    # This allows division by a pure constant, but not by a column influenced by a constant
+    child_type.constant_involved? && not child_type.constant?
+  defp performs_potentially_crashing_function?("sqrt", [child_type]), do:
+    # This allows usage of square root on a pure constant, but not by a column influenced by a constant
+    child_type.constant_involved? && not child_type.constant?
+  defp performs_potentially_crashing_function?(_other, _child_type), do: false
 
 
   # -------------------------------------------------------------------
@@ -175,45 +201,32 @@ defmodule Cloak.Aql.TypeChecker do
     if Enum.all?(child_types, &(&1.constant?)) do
       constant()
     else
-      # This constructs a history of what has happened to a column in order to be able to later
-      # produce a narrative for an analyst of the type: "column a underwent discontinuous functions
-      # X prior to math Y, which is considered an offensive action".
-      updated_narrative_breadcrumbs = child_types
-      |> Enum.flat_map(&(&1.narrative_breadcrumbs))
-      |> Enum.uniq()
-      |> Enum.map(fn({expression, breadcrumbs}) ->
-        breadcrumbs = if dangerously_discontinuous?(name, future, child_types) do
-          [{:dangerously_discontinuous, name} | breadcrumbs] |> Enum.uniq()
-        else
-          breadcrumbs
-        end
-        breadcrumbs = if is_dangerous_math?(name, future, child_types) do
-          [{:dangerous_math, name} | breadcrumbs] |> Enum.uniq()
-        else
-          breadcrumbs
-        end
-        breadcrumbs = if performs_datetime_processing?(name, child_types) do
-          [{:datetime_processing, name} | breadcrumbs] |> Enum.uniq()
-        else
-          breadcrumbs
-        end
-        {expression, breadcrumbs}
-      end)
       %Type{
         constant_involved?: any_touched_by_constant?(child_types),
         datetime_involved?: any_touched_by_datetime?(child_types),
+        is_result_of_potentially_crashing_function?: performs_potentially_crashing_function?(name, child_types) ||
+          Enum.any?(child_types, &(&1.is_result_of_potentially_crashing_function?)),
         seen_dangerous_math?: is_dangerous_math?(name, future, child_types) ||
           Enum.any?(child_types, &(&1.seen_dangerous_math?)),
         dangerously_discontinuous?: dangerously_discontinuous?(name, future, child_types) ||
           Enum.any?(child_types, &(&1.dangerously_discontinuous?)),
-        narrative_breadcrumbs: updated_narrative_breadcrumbs,
+        narrative_breadcrumbs: extend_narrative_breadcrumbs(name, future, child_types),
         is_result_of_datetime_processing?: performs_datetime_processing?(name, child_types) ||
           Enum.any?(child_types, &(&1.is_result_of_datetime_processing?)),
       }
     end
   end
 
-  def expand_from_subquery(column, query, future) do
+  defp extend_narrative_breadcrumbs(name, future, child_types), do:
+    Narrative.extend(child_types, [
+      {dangerously_discontinuous?(name, future, child_types), {:dangerously_discontinuous, name}},
+      {is_dangerous_math?(name, future, child_types), {:dangerous_math, name}},
+      {performs_datetime_processing?(name, child_types), {:datetime_processing, name}},
+      {performs_potentially_crashing_function?(name, child_types),
+        {:potentially_crashing_function, name}},
+    ])
+
+  defp expand_from_subquery(column, query, future) do
     %Expression{name: column_name, table: %{name: table_name}} = column
     Lens.to_list(Query.Lenses.direct_subqueries(), query)
     |> Enum.find(&(&1.alias == table_name))
