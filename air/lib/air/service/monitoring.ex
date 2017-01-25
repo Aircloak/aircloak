@@ -33,13 +33,17 @@ defmodule Air.Service.Monitoring do
 
   defp fetch_cloaks() do
     for cloak <- DataSourceManager.cloaks() do
-      %{name: cloak.name}
+      %{
+        name: cloak.name,
+        data_sources: cloak.data_source_ids,
+      }
     end
   end
 
   defp fetch_data_sources(now) do
     for data_source <- DataSource |> Repo.all() do
       %{
+        id: data_source.global_id,
         name: data_source.name,
         queries: query_stats(Query |> where([q], q.data_source_id == ^data_source.id), now)
       }

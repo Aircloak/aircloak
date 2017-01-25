@@ -1,11 +1,8 @@
 defmodule Air.Service.Monitoring.Test do
   use ExUnit.Case, async: false
+  use Air.SchemaCase
 
-  alias Air.{Repo, Service.Monitoring, TestRepoHelper}
-
-  setup do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
-  end
+  alias Air.{Service.Monitoring, TestRepoHelper}
 
   describe "assemble_info" do
     test "uptime" do
@@ -29,9 +26,12 @@ defmodule Air.Service.Monitoring.Test do
 
     test "list of cloaks" do
       cloak_info = cloak_info()
-      :ok = Air.DataSourceManager.register_cloak(cloak_info, [])
+      :ok = Air.DataSourceManager.register_cloak(cloak_info, [%{"global_id" => "a very global id", "tables" => []}])
 
-      assert %{name: cloak_info.name} in Monitoring.assemble_info().cloaks
+      assert %{
+        name: cloak_info.name,
+        data_sources: ["a very global id"],
+      } in Monitoring.assemble_info().cloaks
     end
 
     test "list of datasources" do
@@ -39,6 +39,7 @@ defmodule Air.Service.Monitoring.Test do
       TestRepoHelper.create_query!(TestRepoHelper.create_user!(), %{data_source_id: data_source.id})
 
       assert %{
+        id: data_source.global_id,
         name: data_source.name,
         queries: %{
           last_5_minutes: 0,
