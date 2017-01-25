@@ -1,6 +1,8 @@
 defmodule Air.Service.Settings do
   @moduledoc "Services for reading and writing Air-wide options."
 
+  alias Air.Service.AuditLog
+
 
   #-----------------------------------------------------------------------------------------------------------
   # API functions
@@ -11,9 +13,12 @@ defmodule Air.Service.Settings do
   def read(), do: parse(latest_settings() || %{})
 
   @doc "Updates the specified fields in the settings."
-  @spec update(%{optional(atom) => any()}) :: :ok
-  def update(settings), do:
+  @spec update(nil | User.t, %{optional(atom) => any()}) :: :ok
+  def update(user, settings) do
     read() |> Map.merge(settings) |> write()
+    AuditLog.log(user, "Updated settings", settings)
+    :ok
+  end
 
 
   #-----------------------------------------------------------------------------------------------------------
