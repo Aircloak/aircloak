@@ -265,6 +265,7 @@ defmodule Cloak.DataSource do
       |> Enum.flat_map(&driver.load_tables(connection, &1))
       |> Enum.map(&normalize_table_map/1)
       |> Enum.map(&parse_columns(data_source, &1))
+      |> Enum.filter(&(&1 != nil))
       |> Enum.map(&DataDecoder.init/1)
       |> Enum.map(&{String.to_atom(&1.name), &1})
       |> Enum.into(%{})
@@ -301,7 +302,7 @@ defmodule Cloak.DataSource do
     end
   end
 
-  defp verify_user_id(%{projection: _}, _columns), do: :ok
+  defp verify_user_id(%{projection: projection}, _columns) when projection != nil, do: :ok
   defp verify_user_id(table, columns) do
     user_id = table.user_id
     case List.keyfind(columns, user_id, 0) do

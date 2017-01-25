@@ -1,7 +1,7 @@
 defmodule Cloak.Aql.Query.Lenses do
   @moduledoc "Lenses for traversing queries"
 
-  alias Cloak.Aql.{Expression, Function}
+  alias Cloak.Aql.{Expression, Function, Query}
 
   use Lens.Macros
 
@@ -36,6 +36,11 @@ defmodule Cloak.Aql.Query.Lenses do
     |> expressions()
     |> do_leaf_expressions()
 
+  @doc "Lens focusing all expressions in a list of expressions."
+  deflens all_expressions(), do:
+    Lens.both(terminal_elements(), conditions_terminals())
+    |> expressions()
+
   @doc "Lens focusing on expressions with the same id as the given expression."
   deflens expressions_like(other_expression), do:
     Lens.satisfy(expressions(), &(Expression.id(&1) == Expression.id(other_expression)))
@@ -44,7 +49,7 @@ defmodule Cloak.Aql.Query.Lenses do
   deflens splitter_functions(), do:
     terminal_elements()
     |> Lens.satisfy(&match?(%Expression{function?: true}, &1))
-    |> Lens.satisfy(&Function.row_splitting_function?(&1.name))
+    |> Lens.satisfy(&Function.has_attribute?(&1.name, :row_splitter))
 
   @doc "Lens focusing on raw (uncompiled) casts of parameters."
   deflens raw_parameter_casts(), do:
@@ -105,7 +110,7 @@ defmodule Cloak.Aql.Query.Lenses do
   """
   def sources_of_operands_except(operands_to_exclude), do:
     Lens.multiple([
-      Lens.keys([:where, :encoded_where, :lcf_check_conditions, :having] -- operands_to_exclude),
+      Lens.keys([:where, :emulated_where, :lcf_check_conditions, :having] -- operands_to_exclude),
       join_conditions()
     ])
 
@@ -127,10 +132,22 @@ defmodule Cloak.Aql.Query.Lenses do
       _ -> Lens.empty()
     end)
 
+  @doc "Returns a list of lenses focusing on sets of join conditions of the given query."
+  @spec join_condition_lenses(Query.t) :: [Lens.t]
+  def join_condition_lenses(query), do: do_join_condition_lenses(query.from, Lens.key(:from))
+
 
   # -------------------------------------------------------------------
   # Internal lenses
   # -------------------------------------------------------------------
+
+  defp do_join_condition_lenses({:join, %{lhs: lhs, rhs: rhs}}, path) do
+    base = path |> Lens.at(1)
+    [base |> Lens.key(:conditions)] ++
+      do_join_condition_lenses(lhs, base |> Lens.key(:lhs)) ++
+      do_join_condition_lenses(rhs, base |> Lens.key(:rhs))
+  end
+  defp do_join_condition_lenses(_, _), do: []
 
   defp filters_operands(), do:
     sources_of_operands()
@@ -138,10 +155,7 @@ defmodule Cloak.Aql.Query.Lenses do
     |> operands()
 
   defp join_conditions(), do:
-    Lens.key(:from)
-    |> join_elements()
-    |> Lens.satisfy(&match?({:join, _}, &1))
-    |> Lens.at(1)
+    joins()
     |> Lens.key(:conditions)
 
   deflensp do_order_condition_columns(), do:

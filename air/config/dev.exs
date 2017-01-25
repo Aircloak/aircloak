@@ -1,5 +1,7 @@
 use Mix.Config
 
+config :air, :deploy_config_file, "dev.json"
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #

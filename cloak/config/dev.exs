@@ -1,5 +1,7 @@
 use Mix.Config
 
+config :cloak, :deploy_config_file, "dev.json"
+
 config :cloak, :api, address: '0.0.0.0'
 
 config :cloak, :air,

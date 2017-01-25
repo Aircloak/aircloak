@@ -1,4 +1,4 @@
-.PHONY: all compile deps clean start start2 start3 test recreate_db migrate rollback dialyze docs release lint mocha
+.PHONY: all compile deps clean start start2 start3 test recreate-db migrate rollback dialyze docs release release-local lint mocha
 
 all: deps compile
 
@@ -18,7 +18,7 @@ start:
 test: mocha
 	mix test.standard
 
-recreate_db:
+recreate-db:
 	mix rollback --all
 	mix seed
 
@@ -38,6 +38,9 @@ docs:
 
 release:
 	NODE_ENV=production MIX_ENV=prod mix do compile, site_release
+
+release-local:
+	NODE_ENV=production MIX_ENV=prod mix do compile, site_release --env=local --no-tar
 
 lint: eslint flow
 	MIX_ENV=dev mix lint

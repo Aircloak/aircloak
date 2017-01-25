@@ -45,7 +45,7 @@ function banner() {
   mix compile --warnings-as-errors
   MIX_ENV=test mix compile --warnings-as-errors
   MIX_ENV=prod mix compile --warnings-as-errors
-  MIX_ENV=test make recreate_db
+  MIX_ENV=test make recreate-db
   popd
 
 
@@ -82,7 +82,7 @@ function banner() {
   mix compile --warnings-as-errors
   MIX_ENV=test mix compile --warnings-as-errors
   MIX_ENV=prod mix compile --warnings-as-errors
-  MIX_ENV=test make recreate_db
+  MIX_ENV=test make recreate-db
   popd
 
 

@@ -11,7 +11,7 @@ defmodule Cloak.Mixfile do
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env),
       preferred_cli_env: [
-        :test, dialyze: :dev, "coveralls.html": :test,
+        :test, dialyze: :dev, "coveralls.html": :test, release: :prod,
         dialyze_retry: :dev
       ],
       aliases: aliases(Mix.env),
@@ -29,7 +29,7 @@ defmodule Cloak.Mixfile do
   defp deps do
     [
       {:aircloak_common, path: "../common/elixir"},
-      {:meck, github: "eproxus/meck", tag: "0.8.2", override: true, warn_missing: false, runtime: false},
+      {:meck, github: "eproxus/meck", tag: "0.8.2", override: true, runtime: false},
       {:postgrex, "~> 0.11"},
       {:mariaex, "~> 0.8"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client"},
