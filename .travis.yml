@@ -6,6 +6,10 @@ env:
     - COMPILER=g++-4.8
     - CXX="g++-4.8"
     - CC="gcc-4.8"
+  matrix:
+    - TEST="common"
+    - TEST="air"
+    - TEST="cloak"
 cache:
   directories:
   - common/elixir/deps

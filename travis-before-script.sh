@@ -33,64 +33,84 @@ function banner() {
 
   # air ---------------------------------------------------------------
 
-  banner "air"
-  pushd air
+  if [[ "$TEST" == "air" || "$TEST" == "common" ]]; then
 
-  psql -U postgres -c "CREATE USER airtest CREATEDB;"
-  psql -U postgres -c "CREATE DATABASE air_test ENCODING 'UTF8';"
-  psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE air_test TO airtest;"
-  psql -U postgres -c "ALTER DATABASE air_test OWNER TO airtest;"
+    banner "air"
+    pushd air
 
-  make deps
-  mix compile --warnings-as-errors
-  MIX_ENV=test mix compile --warnings-as-errors
-  MIX_ENV=prod mix compile --warnings-as-errors
-  MIX_ENV=test make recreate-db
-  popd
+    psql -U postgres -c "CREATE USER airtest CREATEDB;"
+    psql -U postgres -c "CREATE DATABASE air_test ENCODING 'UTF8';"
+    psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE air_test TO airtest;"
+    psql -U postgres -c "ALTER DATABASE air_test OWNER TO airtest;"
+
+    make deps
+    mix compile --warnings-as-errors
+    MIX_ENV=test mix compile --warnings-as-errors
+    MIX_ENV=prod mix compile --warnings-as-errors
+    MIX_ENV=test make recreate-db
+    popd
+
+  fi
 
 
   # cloak -------------------------------------------------------------
 
-  banner "cloak"
-  pushd cloak
-  make deps
-  mix compile --warnings-as-errors
-  MIX_ENV=test make all
-  popd
+  if [[ "$TEST" == "cloak" || "$TEST" == "common" ]]; then
+
+    banner "cloak"
+    pushd cloak
+    make deps
+    mix compile --warnings-as-errors
+    MIX_ENV=test make all
+    popd
+
+  fi
 
 
   # bom ---------------------------------------------------------------
 
-  banner "bom"
-  pushd bom
-  make deps
-  mix compile --warnings-as-errors
-  popd
+  if [[ "$TEST" == "common" ]]; then
+
+    banner "bom"
+    pushd bom
+    make deps
+    mix compile --warnings-as-errors
+    popd
+
+  fi
 
 
   # central -----------------------------------------------------------
 
-  banner "central"
-  pushd central
+  if [[ "$TEST" == "common" ]]; then
 
-  psql -U postgres -c "CREATE USER central_test CREATEDB;"
-  psql -U postgres -c "CREATE DATABASE central_test ENCODING 'UTF8';"
-  psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE central_test TO central_test;"
-  psql -U postgres -c "ALTER DATABASE central_test OWNER TO central_test;"
+    banner "central"
+    pushd central
 
-  make deps
-  mix compile --warnings-as-errors
-  MIX_ENV=test mix compile --warnings-as-errors
-  MIX_ENV=prod mix compile --warnings-as-errors
-  MIX_ENV=test make recreate-db
-  popd
+    psql -U postgres -c "CREATE USER central_test CREATEDB;"
+    psql -U postgres -c "CREATE DATABASE central_test ENCODING 'UTF8';"
+    psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE central_test TO central_test;"
+    psql -U postgres -c "ALTER DATABASE central_test OWNER TO central_test;"
+
+    make deps
+    mix compile --warnings-as-errors
+    MIX_ENV=test mix compile --warnings-as-errors
+    MIX_ENV=prod mix compile --warnings-as-errors
+    MIX_ENV=test make recreate-db
+    popd
+
+  fi
 
 
   # integration_tests ---------------------------------------------------------------
 
-  banner "integration_tests"
-  pushd integration_tests
-  MIX_ENV=test mix deps.get
-  MIX_ENV=test mix compile
-  popd
+  if [[ "$TEST" == "common" ]]; then
+
+    banner "integration_tests"
+    pushd integration_tests
+    MIX_ENV=test mix deps.get
+    MIX_ENV=test mix compile
+    popd
+
+  fi
 )

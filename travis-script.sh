@@ -22,65 +22,89 @@ function banner() {
 
   # common/elixir -----------------------------------------------------
 
-  banner "common/elixir"
-  pushd common/elixir
-  make docs
-  make lint
-  make test
-  make dialyze
-  popd
+  if [[ "$TEST" == "common" ]]; then
+
+    banner "common/elixir"
+    pushd common/elixir
+    make docs
+    make lint
+    make test
+    make dialyze
+    popd
+
+  fi
 
 
   # air ---------------------------------------------------------------
 
-  banner "air"
-  pushd air
-  make docs
-  make lint
-  make test
-  make dialyze
-  popd
+  if [[ "$TEST" == "air" ]]; then
+
+    banner "air"
+    pushd air
+    make docs
+    make lint
+    make test
+    make dialyze
+    popd
+
+  fi
 
 
   # cloak -------------------------------------------------------------
 
-  banner "cloak"
-  pushd cloak
-  make docs
-  make lint
-  make test_all
-  make dialyze
-  make proper-extended
-  popd
+  if [[ "$TEST" == "cloak" ]]; then
+
+    banner "cloak"
+    pushd cloak
+    make docs
+    make lint
+    make test_all
+    make dialyze
+    make proper-extended
+    popd
+
+  fi
 
 
   # bom ---------------------------------------------------------------
 
-  banner "bom"
-  pushd bom
-  make docs
-  make lint
-  make test
-  make dialyze
-  mix bom --elixir ../cloak/deps --elixir ../air/deps --node ../air/node_modules bom.json
-  popd
+  if [[ "$TEST" == "common" ]]; then
+
+    banner "bom"
+    pushd bom
+    make docs
+    make lint
+    make test
+    make dialyze
+    mix bom --elixir ../cloak/deps --elixir ../air/deps --node ../air/node_modules bom.json
+    popd
+
+  fi
 
 
   # central -----------------------------------------------------------
 
-  banner "central"
-  pushd central
-  make docs
-  make lint
-  make test
-  make dialyze
-  popd
+  if [[ "$TEST" == "common" ]]; then
+
+    banner "central"
+    pushd central
+    make docs
+    make lint
+    make test
+    make dialyze
+    popd
+
+  fi
 
 
   # integration_tests -----------------------------------------------------------
 
-  banner "integration_tests"
-  pushd integration_tests
-  INTEGRATION_TEST=true mix test
-  popd
+  if [[ "$TEST" == "common" ]]; then
+
+    banner "integration_tests"
+    pushd integration_tests
+    INTEGRATION_TEST=true mix test
+    popd
+
+  fi
 )
