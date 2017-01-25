@@ -12,7 +12,6 @@ config :cloak, :air,
   air_site: "wss://127.0.0.1:8444",
   min_reconnect_interval: 50,
   max_reconnect_interval: 50,
-  return_url: 'https://infrastructure-api.aircloak.com/results',
   serializer: Phoenix.Channels.GenSocketClient.Serializer.GzipJson
 
 config :cloak, :anonymizer,
