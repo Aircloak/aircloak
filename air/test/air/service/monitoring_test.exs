@@ -27,7 +27,12 @@ defmodule Air.Service.Monitoring.Test do
       assert %{email: user.email, name: user.name, groups: [group.name]} in Monitoring.assemble_info().users
     end
 
-    test "list of cloaks"
+    test "list of cloaks" do
+      cloak_info = cloak_info()
+      :ok = Air.DataSourceManager.register_cloak(cloak_info, [])
+
+      assert %{name: cloak_info.name} in Monitoring.assemble_info().cloaks
+    end
 
     test "list of datasources" do
       data_source = TestRepoHelper.create_data_source!()
@@ -47,4 +52,12 @@ defmodule Air.Service.Monitoring.Test do
   end
 
   defp in_minutes(minutes), do: NaiveDateTime.utc_now() |> Timex.shift(minutes: minutes)
+
+  defp cloak_info() do
+    %{
+      id: "cloak_id_#{:erlang.unique_integer()}",
+      name: "cloak_name",
+      online_since: Timex.now()
+    }
+  end
 end

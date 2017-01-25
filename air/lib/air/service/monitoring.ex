@@ -1,7 +1,7 @@
 defmodule Air.Service.Monitoring do
   import Ecto.Query
 
-  alias Air.{Repo, Schemas.Group, Schemas.User, Schemas.DataSource, Schemas.Query}
+  alias Air.{Repo, Schemas.Group, Schemas.User, Schemas.DataSource, Schemas.Query, DataSourceManager}
 
   def assemble_info(now \\ NaiveDateTime.utc_now()) do
     %{
@@ -9,6 +9,7 @@ defmodule Air.Service.Monitoring do
       groups: fetch_group_names(),
       users: fetch_users(),
       data_sources: fetch_data_sources(now),
+      cloaks: fetch_cloaks(),
     }
   end
 
@@ -27,6 +28,12 @@ defmodule Air.Service.Monitoring do
         email: user.email,
         groups: user.groups |> Enum.map(&(&1.name))
       }
+    end
+  end
+
+  defp fetch_cloaks() do
+    for cloak <- DataSourceManager.cloaks() do
+      %{name: cloak.name}
     end
   end
 
