@@ -71,6 +71,10 @@ defmodule Cloak.Aql.Query.Lenses do
     Lens.both(do_order_condition_columns(), do_match_condition_columns())
     |> Lens.satisfy(&(not &1.constant?))
 
+  @doc "Lens focusing on query's immediate projected subqueries"
+  deflens direct_projected_subqueries(), do:
+    Lens.satisfy(direct_subqueries(), &(&1.ast.projected?))
+
   @doc "Lens focusing on all inequality condition-clauses in a query."
   deflens order_condition_columns(), do:
     do_order_condition_columns()

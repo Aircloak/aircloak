@@ -808,6 +808,28 @@ defmodule Cloak.Aql.Compiler.Test do
     }] = query.row_splitters
   end
 
+  test "only needed columns are fetched from a projected table" do
+    assert ["table.uid", "projected_table.a"] ==
+      projected_table_db_column_names(compile!("select a from projected_table", data_source()))
+
+    assert ["table.uid", "projected_table.a", "projected_table.b"] ==
+      projected_table_db_column_names(compile!("select a, b from projected_table", data_source()))
+  end
+
+  test "filtered column is not retrieved from a projected table", do:
+    assert ["table.uid", "projected_table.a"] ==
+      projected_table_db_column_names(compile!("select a from projected_table where a=b", data_source()))
+
+  test "filtered column with negative condition is retrieved from a projected table", do:
+    assert ["table.uid", "projected_table.a", "projected_table.b"] ==
+      projected_table_db_column_names(compile!("select a from projected_table where b <> 0", data_source()))
+
+  defp projected_table_db_column_names(query), do:
+    query
+    |> get_in([all_subqueries()])
+    |> Enum.find(&match?({:join, %{lhs: "projected_table"}}, &1.from))
+    |> Map.fetch!(:db_columns)
+    |> Enum.map(&"#{&1.table.name}.#{&1.name}")
 
   defp scrub_aliases(query), do: put_in(query, [aliases()], nil)
 
@@ -850,6 +872,13 @@ defmodule Cloak.Aql.Compiler.Test do
         user_id: "uid",
         columns: [{"uid", :integer}, {"other_column", :datetime}],
         projection: nil
+      },
+      projected_table: %{
+        db_name: "projected_table",
+        name: "projected_table",
+        user_id: "uid",
+        columns: [{"fk", :integer}, {"a", :integer}, {"b", :integer}],
+        projection: %{table: "table", foreign_key: "fk", primary_key: "numeric"}
       },
       t1: %{
         db_name: "t1",

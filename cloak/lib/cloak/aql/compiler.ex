@@ -100,6 +100,7 @@ defmodule Cloak.Aql.Compiler do
       |> verify_usage_of_datetime_extraction_clauses()
       |> verify_function_usage_for_selected_columns()
       |> verify_function_usage_for_condition_clauses()
+      |> optimize_columns_from_projected_tables()
       |> parse_row_splitters()
       |> partition_selected_columns()
     }
@@ -195,6 +196,53 @@ defmodule Cloak.Aql.Compiler do
 
   defp column_ast(table_name, column_name), do:
     {:identifier, {:quoted, table_name}, {:quoted, column_name}}
+
+  defp optimize_columns_from_projected_tables(%Query{projected?: false} = query), do:
+    # We're reducing the amount of selected columns from projected subqueries to only
+    # those columns which we in fact need in the outer query (`query`).
+    #
+    # Notice that this has to be done after all verifications have been performed. The reason is that we're
+    # conflating the list of selected columns and the list of available columns in the field `columns`.
+    # Therefore, we need to perform all checks with all projected table columns selected, and only then can
+    # we optimize the list of selected columns from the projected subquery.
+    #
+    # These two fields should likely be separated, and then we could invoke this function earlier. However,
+    # even then, this function can only be invoked after `db_columns` have been calculated, because that is
+    # the field we use to decide which columns from projected tables do we in fact need.
+    Lens.map(Query.Lenses.direct_projected_subqueries(), query,
+      fn(projected_subquery) ->
+        update_in(
+          projected_subquery.ast,
+          &optimized_projected_subquery_ast(&1, required_column_names(query, projected_subquery))
+        )
+      end
+    )
+  defp optimize_columns_from_projected_tables(%Query{projected?: true} = query), do:
+    # If this query is projected, then the list was already optimized when the ast for this query
+    # has been initially generated, so no need to do anything.
+    query
+
+  defp required_column_names(query, projected_subquery), do:
+    # all db columns of the outer query which are from this projected table
+    query.db_columns
+    |> Enum.filter(&match?(%{table: %{name: _}}, &1))
+    |> Enum.filter(&(&1.table.name == projected_subquery.alias))
+    |> Enum.map(&(&1.name))
+    |> Enum.concat([
+      # append uid column
+      DataSource.table(projected_subquery.ast.data_source, projected_subquery.alias).user_id
+    ])
+    |> Enum.into(MapSet.new())
+
+  defp optimized_projected_subquery_ast(ast, required_column_names), do:
+    %Query{ast |
+      columns:
+        Enum.filter(ast.columns, &MapSet.member?(required_column_names, &1.name)),
+      db_columns:
+        Enum.filter(ast.db_columns, &MapSet.member?(required_column_names, &1.name)),
+      column_titles:
+        Enum.filter(ast.column_titles, &MapSet.member?(required_column_names, &1))
+    }
 
 
   # -------------------------------------------------------------------
