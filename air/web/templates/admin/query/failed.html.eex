@@ -1,20 +1,28 @@
 <h2>Failed queries</h2>
 
-<%= pagination_links @failed_queries %>
+<%= if @failed_queries.total_entries == 0 do %>
 
-<div id="query-view">
-  <%= for query <- @failed_queries do %>
-    <div>
+  <div><b>There are currently no failed queries.</b></div>
+
+<% else %>
+
+  <%= pagination_links @failed_queries %>
+
+  <div id="query-view">
+    <%= for query <- @failed_queries do %>
       <div>
-        <b>Time</b>: <%= Air.Utils.DateTime.time_ago(query.inserted_at) %>
+        <div>
+          <b>Time</b>: <%= Air.Utils.DateTime.time_ago(query.inserted_at) %>
+        </div>
+        <div><b>Data source</b>: <%= query.data_source %></div>
+        <div><b>Error</b>: <%= query.error %></div>
+        <br />
+        <pre><%= query.statement %></pre>
+        <hr />
       </div>
-      <div><b>Data source</b>: <%= query.data_source %></div>
-      <div><b>Error</b>: <%= query.error %></div>
-      <br />
-      <pre><%= query.statement %></pre>
-      <hr />
-    </div>
-  <% end %>
-</div>
+    <% end %>
+  </div>
 
-<%= pagination_links @failed_queries %>
+  <%= pagination_links @failed_queries %>
+
+<% end %>
