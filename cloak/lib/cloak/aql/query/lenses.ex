@@ -118,24 +118,6 @@ defmodule Cloak.Aql.Query.Lenses do
       join_conditions()
     ])
 
-  @doc """
-  Lens focusing on match conditions where where multiple column expressions
-  are compared. An example being A = B. Returns the full expression
-  rather than the sub-components of the match condition individually.
-
-  Order conditions like for exampel > and < are excluded.
-  """
-  deflens comparisons(), do:
-    Lens.match(fn
-      {:comparison, _, _check, _} -> Lens.root()
-      {like, _, _} when like in ~w(like ilike)a -> Lens.root()
-      {:is, _, _} -> Lens.root()
-      {:in, _, _} -> Lens.root()
-      {:not, _} -> Lens.at(1) |> comparisons()
-      elements when is_list(elements) -> Lens.all() |> comparisons()
-      _ -> Lens.empty()
-    end)
-
   @doc "Returns a list of lenses focusing on sets of join conditions of the given query."
   @spec join_condition_lenses(Query.t) :: [Lens.t]
   def join_condition_lenses(query), do: do_join_condition_lenses(query.from, Lens.key(:from))

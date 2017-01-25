@@ -21,7 +21,7 @@ defmodule Cloak.Aql.TypeChecker do
   or discontinuous functions.
   """
 
-  alias Cloak.Aql.{Compiler.CompilationError, Expression, Query}
+  alias Cloak.Aql.{Compiler.CompilationError, Comparison, Expression, Query}
   alias Cloak.Aql.TypeChecker.{Narrative, Type}
 
 
@@ -80,13 +80,13 @@ defmodule Cloak.Aql.TypeChecker do
 
   defp verify_usage_of_datetime_extraction_clauses(query), do:
     conditions_lens_sources(query)
-    |> Query.Lenses.comparisons()
     |> Lens.to_list(query)
+    |> List.flatten()
     |> Enum.each(fn(comparison) ->
-      types = comparison
-      |> coexisting_columns()
-      |> List.flatten()
-      |> Enum.map(&establish_type(&1, query))
+      types = Enum.map(
+        [Comparison.subject(comparison) | Comparison.targets(comparison)],
+        &establish_type(&1, query)
+      )
       if Enum.any?(types, & &1.is_result_of_datetime_processing?) and
           Enum.any?(types, & &1.constant? or &1.constant_involved?) do
         explanations = types
@@ -263,11 +263,6 @@ defmodule Cloak.Aql.TypeChecker do
         construct_type(column, subquery, future)
     end
   end
-
-  defp coexisting_columns({:comparison, a, _check, b}), do: [a, b]
-  defp coexisting_columns({like, a, b}) when like in ~w(like ilike)a, do: [a, b]
-  defp coexisting_columns({:is, a, b}), do: [a, b]
-  defp coexisting_columns({:in, a, b}), do: [a, b]
 
   defp conditions_lens_sources(%Query{subquery?: false}), do:
     Query.Lenses.sources_of_operands_except([:having])
