@@ -814,10 +814,15 @@ defmodule Cloak.Aql.Compiler.Test do
 
     assert ["table.uid", "projected_table.a", "projected_table.b"] ==
       projected_table_db_column_names(compile!("select a, b from projected_table", data_source()))
+  end
 
+  test "filtered column is not retrieved from a projected table", do:
     assert ["table.uid", "projected_table.a"] ==
       projected_table_db_column_names(compile!("select a from projected_table where a=b", data_source()))
-  end
+
+  test "filtered column with negative condition is retrieved from a projected table", do:
+    assert ["table.uid", "projected_table.a", "projected_table.b"] ==
+      projected_table_db_column_names(compile!("select a from projected_table where b <> 0", data_source()))
 
   defp projected_table_db_column_names(query), do:
     query
