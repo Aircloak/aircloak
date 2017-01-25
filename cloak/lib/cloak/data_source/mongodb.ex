@@ -63,7 +63,7 @@ defmodule Cloak.DataSource.MongoDB do
   def load_tables(connection, table) do
     map_code = """
       function() {
-        m_sub = function(base, object) {
+        map_subfield = function(base, object) {
           if (object === undefined || object == null) {
             return;
           } else if (object instanceof Date) {
@@ -73,17 +73,17 @@ defmodule Cloak.DataSource.MongoDB do
           } else if (object instanceof BinData) {
             emit(base, "bin_data");
           } else if (Array.isArray(object)) {
-            m_sub(base + "[]", object[0]);
+            map_subfield(base + "[]", object[0]);
           } else if (typeof object == "object") {
             for(var key in object) {
-              m_sub(base + "." + key, object[key]);
+              map_subfield(base + "." + key, object[key]);
             }
           } else {
             emit(base, typeof object);
           }
         };
         for(var key in this) {
-          m_sub(key, this[key]);
+          map_subfield(key, this[key]);
         }
       }
     """
