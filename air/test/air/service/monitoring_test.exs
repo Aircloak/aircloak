@@ -26,5 +26,25 @@ defmodule Air.Service.Monitoring.Test do
 
       assert %{email: user.email, name: user.name, groups: [group.name]} in Monitoring.assemble_info().users
     end
+
+    test "list of cloaks"
+
+    test "list of datasources" do
+      data_source = TestRepoHelper.create_data_source!()
+      TestRepoHelper.create_query!(TestRepoHelper.create_user!(), %{data_source_id: data_source.id})
+
+      assert %{
+        name: data_source.name,
+        queries: %{
+          last_5_minutes: 0,
+          last_15_minutes: 0,
+          last_30_minutes: 0,
+          last_1_hour: 1,
+          last_1_day: 1,
+        }
+      } in Monitoring.assemble_info(in_minutes(45)).data_sources
+    end
   end
+
+  defp in_minutes(minutes), do: NaiveDateTime.utc_now() |> Timex.shift(minutes: minutes)
 end

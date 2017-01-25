@@ -1,13 +1,14 @@
 defmodule Air.Service.Monitoring do
   import Ecto.Query
 
-  alias Air.{Repo, Schemas.Group, Schemas.User}
+  alias Air.{Repo, Schemas.Group, Schemas.User, Schemas.DataSource, Schemas.Query}
 
-  def assemble_info() do
+  def assemble_info(now \\ NaiveDateTime.utc_now()) do
     %{
       uptime: fetch_uptime(),
       groups: fetch_group_names(),
       users: fetch_users(),
+      data_sources: fetch_data_sources(now),
     }
   end
 
@@ -28,4 +29,25 @@ defmodule Air.Service.Monitoring do
       }
     end
   end
+
+  defp fetch_data_sources(now) do
+    for data_source <- DataSource |> Repo.all() do
+      %{
+        name: data_source.name,
+        queries: query_stats(Query |> where([q], q.data_source_id == ^data_source.id), now)
+      }
+    end
+  end
+
+  defp query_stats(queries, now) do
+    %{
+      last_5_minutes: queries |> where([q], q.inserted_at > ^Timex.shift(now, minutes: -5)) |> count(),
+      last_15_minutes: queries |> where([q], q.inserted_at > ^Timex.shift(now, minutes: -15)) |> count(),
+      last_30_minutes: queries |> where([q], q.inserted_at > ^Timex.shift(now, minutes: -30)) |> count(),
+      last_1_hour: queries |> where([q], q.inserted_at > ^Timex.shift(now, hours: -1)) |> count(),
+      last_1_day: queries |> where([q], q.inserted_at > ^Timex.shift(now, days: -1)) |> count(),
+    }
+  end
+
+  defp count(queryable), do: queryable |> select([x], count(x.id)) |> Repo.one!()
 end
