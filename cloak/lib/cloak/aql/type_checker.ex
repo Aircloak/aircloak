@@ -184,6 +184,7 @@ defmodule Cloak.Aql.TypeChecker do
     }
 
   defp construct_type(column, query, future \\ [])
+  defp construct_type(:null, _query, _future), do: constant()
   defp construct_type({:distinct, column}, query, future), do:
     construct_type(column, query, ["distinct" | future])
   defp construct_type(:*, _query, _future), do: column(:*)

@@ -1270,31 +1270,46 @@ defmodule Cloak.Aql.Compiler do
     query
   end
 
+  # The problem here is that if
+  # - there is an equality of datetime processing style, where an equality
+  #   is done with another processed by
   defp verify_usage_of_datetime_extraction_clauses(query) do
     conditions_lens_sources(query)
-    |> Lens.both(
-      Query.Lenses.order_condition_columns(),
-      Query.Lenses.match_condition_columns()
-    )
+    |> Query.Lenses.comparisons()
     |> Lens.to_list(query)
-    |> Enum.each(fn(column) ->
-      type = TypeChecker.type(column, query)
-      if TypeChecker.illegal_datetime_for_filter_condition?(type) do
-        explanation = type.narrative_breadcrumbs
-        |> reject_all_but_relevant_offensive_actions([:datetime_processing])
-        |> construct_explanation()
+    |> Enum.each(fn(comparison) ->
+      types = comparison
+      |> coexisting_columns()
+      |> List.flatten()
+      |> Enum.map(&TypeChecker.type(&1, query))
+      if Enum.any?(types, & &1.is_result_of_datetime_processing?) and
+          Enum.any?(types, & &1.constant? or &1.constant_involved?) do
+        explanations = types
+        |> Enum.filter(& &1.is_result_of_datetime_processing?)
+        |> Enum.map_join(" ", fn(type) ->
+          type.narrative_breadcrumbs
+          |> reject_all_but_relevant_offensive_actions([:datetime_processing])
+          |> construct_explanation()
+        end)
         raise CompilationError, message: """
-          #{explanation}
+          #{explanations}
 
           The results of functions that extract a component of a date, time, or datetime column
-          cannot be used in filter conditions (like WHERE, HAVING and JOIN-conditions).
-          If applicable, consider using a range on the native column.
+          cannot be used in filter conditions (like WHERE, HAVING and JOIN-conditions) when the
+          value it is compared against is a constant or an expression involving a constant.
+
+          If applicable, consider using a range on the native column instead.
           For example: column >= 'YYYY-MM-DD' and column < 'YYYY-MM-DD'.
           """
       end
     end)
     query
   end
+
+  defp coexisting_columns({:comparison, a, _check, b}), do: [a, b]
+  defp coexisting_columns({like, a, b}) when like in ~w(like ilike)a, do: [a, b]
+  defp coexisting_columns({:is, a, b}), do: [a, b]
+  defp coexisting_columns({:in, a, b}), do: [a, b]
 
   defp verify_function_usage_for_selected_columns(%Query{columns: _columns, subquery?: true} = query), do: query
   defp verify_function_usage_for_selected_columns(%Query{columns: columns} = query) do
