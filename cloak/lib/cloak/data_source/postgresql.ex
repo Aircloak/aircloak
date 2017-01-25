@@ -14,7 +14,8 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   @doc false
   def connect!(parameters) do
-    parameters = Enum.to_list(parameters) ++ [types: Postgrex.DefaultTypes, sync_connect: true, pool: DBConnection.Connection]
+    parameters = Enum.to_list(parameters) ++
+      [types: Postgrex.DefaultTypes, sync_connect: true, pool: DBConnection.Connection]
     with {:ok, connection} = Postgrex.start_link(parameters) do
       {:ok, %Postgrex.Result{}} = Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
       connection
