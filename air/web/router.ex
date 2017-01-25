@@ -65,6 +65,7 @@ defmodule Air.Router do
     resources "/groups", GroupController
     resources "/data_sources", DataSourceController
     resources "/accounting", AccountingController, singleton: true
+    resources "/settings", SettingsController, singleton: true
 
     get "/audit_log", AuditLogController, :index
 
