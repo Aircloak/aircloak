@@ -321,6 +321,12 @@ defmodule Cloak.Aql.Expression.Test do
     end
   end
 
+  describe "value" do
+    test "precomputed functions" do
+      assert :result = Expression.value(%{Expression.function("f", []) | row_index: 0}, [:result])
+    end
+  end
+
   defp apply_function(name, args) do
     name
     |> Expression.function(Enum.map(args, &Expression.constant(nil, &1)))
