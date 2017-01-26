@@ -32,7 +32,7 @@ defmodule Cloak.Aql.Comparison do
   def subject({:ilike, lhs, _rhs}), do: lhs
 
   @doc "Returns the terms the comparison is checked against."
-  @spec targets(QUery.where_clause | Parser.where_clause) :: [Expression.t | Parser.column]
+  @spec targets(Query.where_clause | Parser.where_clause) :: [Expression.t | Parser.column]
   def targets({:comparison, _lhs, _, rhs}), do: [rhs]
   def targets({:not, comparison}), do: targets(comparison)
   def targets({:is, _lhs, :null}), do: [:null]
