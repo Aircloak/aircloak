@@ -96,10 +96,8 @@ defmodule Cloak.Aql.Compiler do
       |> calculate_db_columns()
       |> verify_limit()
       |> verify_offset()
-      |> verify_usage_of_potentially_crashing_functions()
-      |> verify_usage_of_datetime_extraction_clauses()
-      |> verify_function_usage_for_selected_columns()
-      |> verify_function_usage_for_condition_clauses()
+      |> TypeChecker.validate_allowed_usage_of_math_and_functions()
+      |> optimize_columns_from_projected_tables()
       |> parse_row_splitters()
       |> partition_selected_columns()
     }
@@ -195,6 +193,53 @@ defmodule Cloak.Aql.Compiler do
 
   defp column_ast(table_name, column_name), do:
     {:identifier, {:quoted, table_name}, {:quoted, column_name}}
+
+  defp optimize_columns_from_projected_tables(%Query{projected?: false} = query), do:
+    # We're reducing the amount of selected columns from projected subqueries to only
+    # those columns which we in fact need in the outer query (`query`).
+    #
+    # Notice that this has to be done after all verifications have been performed. The reason is that we're
+    # conflating the list of selected columns and the list of available columns in the field `columns`.
+    # Therefore, we need to perform all checks with all projected table columns selected, and only then can
+    # we optimize the list of selected columns from the projected subquery.
+    #
+    # These two fields should likely be separated, and then we could invoke this function earlier. However,
+    # even then, this function can only be invoked after `db_columns` have been calculated, because that is
+    # the field we use to decide which columns from projected tables do we in fact need.
+    Lens.map(Query.Lenses.direct_projected_subqueries(), query,
+      fn(projected_subquery) ->
+        update_in(
+          projected_subquery.ast,
+          &optimized_projected_subquery_ast(&1, required_column_names(query, projected_subquery))
+        )
+      end
+    )
+  defp optimize_columns_from_projected_tables(%Query{projected?: true} = query), do:
+    # If this query is projected, then the list was already optimized when the ast for this query
+    # has been initially generated, so no need to do anything.
+    query
+
+  defp required_column_names(query, projected_subquery), do:
+    # all db columns of the outer query which are from this projected table
+    query.db_columns
+    |> Enum.filter(&match?(%{table: %{name: _}}, &1))
+    |> Enum.filter(&(&1.table.name == projected_subquery.alias))
+    |> Enum.map(&(&1.name))
+    |> Enum.concat([
+      # append uid column
+      DataSource.table(projected_subquery.ast.data_source, projected_subquery.alias).user_id
+    ])
+    |> Enum.into(MapSet.new())
+
+  defp optimized_projected_subquery_ast(ast, required_column_names), do:
+    %Query{ast |
+      columns:
+        Enum.filter(ast.columns, &MapSet.member?(required_column_names, &1.name)),
+      db_columns:
+        Enum.filter(ast.db_columns, &MapSet.member?(required_column_names, &1.name)),
+      column_titles:
+        Enum.filter(ast.column_titles, &MapSet.member?(required_column_names, &1))
+    }
 
 
   # -------------------------------------------------------------------
@@ -1258,133 +1303,6 @@ defmodule Cloak.Aql.Compiler do
     query |> get_in([Query.Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?)) or
     (query.subquery? and has_emulated_expressions?(query)) or
     has_emulated_join_conditions?(query)
-
-
-  # -------------------------------------------------------------------
-  # Validation of usage of restricted functions and maths
-  # -------------------------------------------------------------------
-
-  defp verify_usage_of_potentially_crashing_functions(%Query{columns: columns} = query) do
-    conditions_lens_sources(query)
-    |> Query.Lenses.condition_columns()
-    |> Lens.to_list(query)
-    |> Enum.concat(columns)
-    |> Enum.each(fn(column) ->
-      type = TypeChecker.type(column, query)
-      if TypeChecker.risk_of_crashing_function?(type) do
-        explanation = type.narrative_breadcrumbs
-        |> filter_for_offensive_actions([:potentially_crashing_function])
-        |> reject_all_but_relevant_offensive_actions([:potentially_crashing_function])
-        |> construct_explanation()
-        raise CompilationError, message: """
-          #{explanation}
-
-          Functions are not allowed to be used in ways that could cause a database exception
-          to be raised in a way controllable by the analyst.
-          For example this situation arises when a column or constant value is divided (`/`)
-          by an expression that both contains a user data column as well as a constant value
-          (for example `age / (age - 20)`), or if the square root is taken of an expression that
-          contains a user data column as well as a constant value (for example `sqrt(age - 20)`).
-          """
-      end
-    end)
-    query
-  end
-
-  defp verify_usage_of_datetime_extraction_clauses(query) do
-    conditions_lens_sources(query)
-    |> Lens.both(
-      Query.Lenses.order_condition_columns(),
-      Query.Lenses.match_condition_columns()
-    )
-    |> Lens.to_list(query)
-    |> Enum.each(fn(column) ->
-      type = TypeChecker.type(column, query)
-      if TypeChecker.illegal_datetime_for_filter_condition?(type) do
-        explanation = type.narrative_breadcrumbs
-        |> reject_all_but_relevant_offensive_actions([:datetime_processing])
-        |> construct_explanation()
-        raise CompilationError, message: """
-          #{explanation}
-
-          The results of functions that extract a component of a date, time, or datetime column
-          cannot be used in filter conditions (like WHERE, HAVING and JOIN-conditions).
-          If applicable, consider using a range on the native column.
-          For example: column >= 'YYYY-MM-DD' and column < 'YYYY-MM-DD'.
-          """
-      end
-    end)
-    query
-  end
-
-  defp verify_function_usage_for_selected_columns(%Query{columns: _columns, subquery?: true} = query), do: query
-  defp verify_function_usage_for_selected_columns(%Query{columns: columns} = query) do
-    Enum.each(columns, fn(column) ->
-      type = TypeChecker.type(column, query)
-      unless TypeChecker.ok_for_display?(type) do
-        explanation = type.narrative_breadcrumbs
-        |> filter_for_offensive_actions([:dangerously_discontinuous, :dangerous_math])
-        |> reject_all_but_relevant_offensive_actions([:dangerously_discontinuous, :dangerous_math])
-        |> construct_explanation()
-        raise CompilationError, message: """
-          #{explanation}
-
-          Queries where a reported value is influenced by math and a discontinuous function
-          in conjunction with a constant are not allowed.
-          """
-      end
-    end)
-    query
-  end
-
-  defp verify_function_usage_for_condition_clauses(query) do
-    conditions_lens_sources(query)
-    |> Query.Lenses.order_condition_columns()
-    |> Lens.to_list(query)
-    |> Enum.each(fn(column) ->
-      type = TypeChecker.type(column, query)
-      unless TypeChecker.ok_for_order_condition?(type) do
-        explanation = type.narrative_breadcrumbs
-        |> reject_all_but_relevant_offensive_actions([
-          :dangerously_discontinuous,
-          :dangerous_math
-        ])
-        |> construct_explanation()
-        raise CompilationError, message: """
-          #{explanation}
-
-          Inequality clauses used to filter the data (like WHERE, HAVING and JOIN-condition where >,
-          >=, < or <= are used) are not allowed if the column value has either been transformed by
-          a math function or a discontinuous function where one of the other parameters was a constant.
-          """
-      end
-    end)
-    query
-  end
-
-  defp conditions_lens_sources(%Query{subquery?: false}), do:
-    Query.Lenses.sources_of_operands_except([:having])
-  defp conditions_lens_sources(_query), do:
-    Query.Lenses.sources_of_operands()
-
-  defp construct_explanation(columns), do:
-    Enum.join(TypeChecker.Narrative.construct(columns), " ")
-
-  # Removes columns that haven't had all of a list of offenses applied to them
-  defp filter_for_offensive_actions(columns, required_offenses), do:
-    columns
-    |> Enum.filter(fn({_expression, offenses}) ->
-      offenses
-      |> Enum.map(fn({name, _}) -> name end)
-      |> Enum.reduce(required_offenses, &(&2 -- [&1])) == []
-    end)
-
-  defp reject_all_but_relevant_offensive_actions(columns, relevant_offenses), do:
-    Enum.map(columns, fn({expression, offenses}) ->
-      {expression, Enum.filter(offenses, fn({offense_name, _}) ->
-        Enum.member?(relevant_offenses, offense_name)
-      end)}
-    end)
 
 
   # -------------------------------------------------------------------

@@ -151,6 +151,85 @@ defmodule Cloak.Aql.Compiler.VerificationDatetimeExtraction.Test do
     end)
   end
 
+  describe "Condition affected by datetime extractors are allowed when compared against non-constant entities" do
+    test "it is OK to cast a date to text and then use it in a WHERE equality when no constant is involved" do
+      query = """
+      SELECT value FROM (
+        SELECT uid, cast(column as text) as value, string
+        FROM table
+      ) t
+      WHERE value = string
+      """
+      assert condition_columns_have_valid_transformations(query)
+    end
+
+    test "it is OK to cast a date to text and then use it in a HAVING equality when no constant is involved" do
+      query = """
+      SELECT value FROM (
+        SELECT uid, value, count(*)
+        FROM (
+          SELECT uid, cast(column as text) as value, string
+          FROM table
+        ) t
+        GROUP BY uid, value, string
+        HAVING value = string
+      ) t
+      """
+      assert condition_columns_have_valid_transformations(query)
+    end
+
+    test "it is OK to cast a date to text and then use it in a JOIN equality when no constant is involved" do
+      query = """
+      SELECT value FROM (
+        SELECT uid, cast(column as text) as value
+        FROM table
+      ) t INNER JOIN table ON table.uid = t.uid and t.value = table.string
+      """
+      assert condition_columns_have_valid_transformations(query)
+    end
+
+    Enum.each(~w(year month day hour minute second weekday), fn(extractor_fun) ->
+      test "it is OK to use the result of function #{extractor_fun} in a WHERE equality " <>
+          "when no constants are involved" do
+        query = """
+        SELECT value FROM (
+          SELECT uid, #{unquote(extractor_fun)}(column) as value, numeric
+          FROM table
+        ) t
+        WHERE value = numeric
+        """
+        assert condition_columns_have_valid_transformations(query)
+      end
+
+      test "it is OK to use the result of function #{extractor_fun} in a HAVING equality " <>
+          "when no constant is involved" do
+        query = """
+        SELECT value FROM (
+          SELECT uid, value, count(*)
+          FROM (
+            SELECT uid, #{unquote(extractor_fun)}(column) as value, numeric
+            FROM table
+          ) t
+          GROUP BY uid, value, numeric
+          HAVING value = numeric
+        ) t
+        """
+        assert condition_columns_have_valid_transformations(query)
+      end
+
+      test "it is OK to use the result of function #{extractor_fun} in a JOIN equality " <>
+          "when no constant is involved" do
+        query = """
+        SELECT value FROM (
+          SELECT uid, #{unquote(extractor_fun)}(column) as value
+          FROM table
+        ) t INNER JOIN table ON table.uid = t.uid and t.value = table.numeric
+        """
+        assert condition_columns_have_valid_transformations(query)
+      end
+    end)
+  end
+
   defp condition_columns_have_valid_transformations(query) do
     case compile(query, data_source()) do
       {:ok, _} -> true
