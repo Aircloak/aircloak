@@ -4,13 +4,11 @@ defmodule Air.Service.Monitoring.Test do
 
   alias Air.{Service.Monitoring, TestRepoHelper}
 
-  describe "assemble_info" do
-    test "uptime" do
-      uptime1 = Monitoring.assemble_info().uptime
-      uptime2 = Monitoring.assemble_info().uptime
+  @seconds_in_minute 60
 
-      assert uptime2 > uptime1
-    end
+  describe "assemble_info" do
+    test "uptime", do:
+      assert is_integer(Monitoring.assemble_info().uptime)
 
     test "list of group names" do
       group = TestRepoHelper.create_group!()
@@ -29,9 +27,11 @@ defmodule Air.Service.Monitoring.Test do
       :ok = Air.DataSourceManager.register_cloak(cloak_info, [%{"global_id" => "a very global id", "tables" => []}])
       TestRepoHelper.create_query!(TestRepoHelper.create_user!(), %{cloak_id: cloak_info.id})
 
-      assert %{
-        name: cloak_info.name,
+      cloak_name = cloak_info.name
+      assert [%{
+        name: ^cloak_name,
         data_sources: ["a very global id"],
+        uptime: uptime,
         queries: %{
           last_5_minutes: 0,
           last_15_minutes: 0,
@@ -39,7 +39,9 @@ defmodule Air.Service.Monitoring.Test do
           last_1_hour: 1,
           last_1_day: 1,
         }
-      } in Monitoring.assemble_info(in_minutes(20)).cloaks
+      }] = Monitoring.assemble_info(in_minutes(20)).cloaks
+      assert uptime >= 20 * @seconds_in_minute
+      assert uptime <= 21 * @seconds_in_minute
     end
 
     test "list of datasources" do

@@ -3,6 +3,8 @@ defmodule Air.Service.Monitoring do
 
   alias Air.{Repo, Schemas.Group, Schemas.User, Schemas.DataSource, Schemas.Query, DataSourceManager}
 
+  @miliseconds_in_second 1000
+
   def assemble_info(now \\ NaiveDateTime.utc_now()) do
     %{
       uptime: fetch_uptime(),
@@ -18,7 +20,7 @@ defmodule Air.Service.Monitoring do
 
   defp fetch_uptime() do
     {total, _since_last_call} = :erlang.statistics(:wall_clock)
-    total
+    div(total, @miliseconds_in_second)
   end
 
   defp fetch_users() do
@@ -35,6 +37,7 @@ defmodule Air.Service.Monitoring do
     for cloak <- DataSourceManager.cloaks() do
       %{
         name: cloak.name,
+        uptime: Timex.diff(now, cloak.online_since, :seconds),
         data_sources: cloak.data_source_ids,
         queries: query_stats(Query |> where([q], q.cloak_id == ^cloak.id), now),
       }
