@@ -85,6 +85,5 @@ defmodule Air.Router do
 
     resources "/queries", Air.QueryController
     resources "/data_sources", Air.API.DataSourceController
-    get "/monitoring", Air.API.MonitoringController, :index
   end
 end

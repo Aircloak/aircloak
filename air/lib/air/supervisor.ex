@@ -14,6 +14,7 @@ defmodule Air.Supervisor do
       worker(Air.Monitoring.FailedQueries, []),
       Air.ResultProcessor.observer_spec(),
       worker(Air.Endpoint, []),
+      worker(Air.MonitoringEndpoint, []),
       worker(Air.BOM, []),
       Air.PsqlServer.child_spec()
     ] ++ system_processes()
