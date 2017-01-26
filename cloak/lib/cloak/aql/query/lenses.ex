@@ -122,6 +122,7 @@ defmodule Cloak.Aql.Query.Lenses do
   @spec join_condition_lenses(Query.t) :: [Lens.t]
   def join_condition_lenses(query), do: do_join_condition_lenses(query.from, Lens.key(:from))
 
+
   # -------------------------------------------------------------------
   # Internal lenses
   # -------------------------------------------------------------------

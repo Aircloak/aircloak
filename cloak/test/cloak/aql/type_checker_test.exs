@@ -258,7 +258,7 @@ defmodule Cloak.Aql.TypeChecker.Test do
 
   defp type_first_column(query) do
     compiled_query = compile!(query)
-    TypeChecker.type(hd(compiled_query.columns), compiled_query)
+    TypeChecker.establish_type(hd(compiled_query.columns), compiled_query)
   end
 
   defp compile!(query_string) do
