@@ -45,11 +45,12 @@ defmodule Air.Service.Monitoring do
   end
 
   defp fetch_data_sources(now) do
-    for data_source <- DataSource |> Repo.all() do
+    for data_source <- DataSource |> Repo.all() |> Repo.preload(:groups) do
       %{
         id: data_source.global_id,
         name: data_source.name,
-        queries: query_stats(Query |> where([q], q.data_source_id == ^data_source.id), now)
+        queries: query_stats(Query |> where([q], q.data_source_id == ^data_source.id), now),
+        groups: data_source.groups |> Enum.map(&(&1.name)),
       }
     end
   end

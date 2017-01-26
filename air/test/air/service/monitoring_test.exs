@@ -2,7 +2,7 @@ defmodule Air.Service.Monitoring.Test do
   use ExUnit.Case, async: false
   use Air.SchemaCase
 
-  alias Air.{Service.Monitoring, TestRepoHelper}
+  alias Air.{Service.Monitoring, TestRepoHelper, Schemas.Group}
 
   @seconds_in_minute 60
 
@@ -46,6 +46,7 @@ defmodule Air.Service.Monitoring.Test do
 
     test "list of datasources" do
       data_source = TestRepoHelper.create_data_source!()
+      group = create_group_for_data_source!(data_source)
       TestRepoHelper.create_query!(TestRepoHelper.create_user!(), %{data_source_id: data_source.id})
 
       assert %{
@@ -57,7 +58,8 @@ defmodule Air.Service.Monitoring.Test do
           last_30_minutes: 0,
           last_1_hour: 1,
           last_1_day: 1,
-        }
+        },
+        groups: [group.name],
       } in Monitoring.assemble_info(in_minutes(45)).data_sources
     end
   end
@@ -70,5 +72,13 @@ defmodule Air.Service.Monitoring.Test do
       name: "cloak_name",
       online_since: Timex.now()
     }
+  end
+
+  defp create_group_for_data_source!(data_source) do
+    TestRepoHelper.create_group!()
+    |> Repo.preload(:data_sources)
+    |> Group.changeset()
+    |> put_assoc(:data_sources, [data_source])
+    |> Repo.update!()
   end
 end
