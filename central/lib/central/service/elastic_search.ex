@@ -29,14 +29,18 @@ defmodule Central.Service.ElasticSearch do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp record(index, type, data) do
-    elastic_endpoint = Central.site_setting("elastic_search_endpoint")
-    url = "#{elastic_endpoint}/#{index}/#{type}"
-    case HTTPoison.post(url, Poison.encode!(data)) do
-      {:ok, _} -> :ok
-      other ->
-        Logger.error("Got unexpected response from ElasticSearch: #{inspect other}")
-        :error
+  if Mix.env == :test do
+    defp record(_index, _type, _data), do: :ok
+  else
+    defp record(index, type, data) do
+      elastic_endpoint = Central.site_setting("elastic_search_endpoint")
+      url = "#{elastic_endpoint}/#{index}/#{type}"
+      case HTTPoison.post(url, Poison.encode!(data)) do
+        {:ok, _} -> :ok
+        other ->
+          Logger.error("Got unexpected response from ElasticSearch: #{inspect other}")
+          :error
+      end
     end
   end
 end

@@ -14,7 +14,8 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   @doc false
   def connect!(parameters) do
-    parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, pool: DBConnection.Connection]
+    parameters = Enum.to_list(parameters) ++
+      [types: Postgrex.DefaultTypes, sync_connect: true, pool: DBConnection.Connection]
     with {:ok, connection} = Postgrex.start_link(parameters) do
       {:ok, %Postgrex.Result{}} = Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
       connection
@@ -89,19 +90,10 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   defp row_mapper(row), do: for field <- row, do: field_mapper(field)
 
-  defp field_mapper(%Postgrex.Timestamp{year: year, month: month, day: day, hour: hour, min: min, sec: sec, usec: usec}), do:
-    NaiveDateTime.new(year, month, day, hour, min, sec, usec) |> error_to_nil()
-  defp field_mapper(%Postgrex.Date{year: year, month: month, day: day}), do:
-    Date.new(year, month, day) |> error_to_nil()
-  defp field_mapper(%Postgrex.Time{hour: hour, min: min, sec: sec, usec: usec}), do:
-    Time.new(hour, min, sec, usec) |> error_to_nil()
   @decimal_precision :math.pow(10, 15)
   defp field_mapper(%Decimal{} = value), do:
     Cloak.DecimalUtil.to_precision(value, @decimal_precision)
   defp field_mapper(field), do: field
-
-  defp error_to_nil({:ok, result}), do: result
-  defp error_to_nil({:error, _reason}), do: nil
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -109,15 +101,6 @@ defmodule Cloak.DataSource.PostgreSQL do
   #-----------------------------------------------------------------------------------------------------------
 
   @doc false
-  def execute(connection, statement, parameters) do
-    parameters = Enum.map(parameters, &parameter_mapper/1)
+  def execute(connection, statement, parameters), do:
     Postgrex.query(connection, statement, parameters, [timeout: :timer.minutes(2)])
-  end
-
-  defp parameter_mapper(%NaiveDateTime{} = dt), do:
-    %Postgrex.Timestamp{year: dt.year, month: dt.month, day: dt.day,
-      hour: dt.hour, min: dt.minute, sec: dt.second, usec: 0}
-  defp parameter_mapper(%Date{} = d), do: %Postgrex.Date{year: d.year, month: d.month, day: d.day}
-  defp parameter_mapper(%Time{} = t), do: %Postgrex.Time{hour: t.hour, min: t.minute, sec: t.second, usec: 0}
-  defp parameter_mapper(value), do: value
 end

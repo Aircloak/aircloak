@@ -1,7 +1,12 @@
 defmodule Air.Token.Test do
-  use Air.SchemaCase, async: true
+  use Air.SchemaCase, async: false
   alias Air.{Schemas.ApiToken, Token, Repo}
   import Air.{TestRepoHelper}
+
+  setup do
+    Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
+    :ok
+  end
 
   test "should create unique tokens for users" do
     user = create_user!()
