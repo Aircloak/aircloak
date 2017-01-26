@@ -232,14 +232,29 @@ defmodule Cloak.Aql.Compiler do
     |> Enum.into(MapSet.new())
 
   defp optimized_projected_subquery_ast(ast, required_column_names), do:
-    %Query{ast |
+    reindex_db_columns(%Query{ast |
       columns:
         Enum.filter(ast.columns, &MapSet.member?(required_column_names, &1.name)),
       db_columns:
         Enum.filter(ast.db_columns, &MapSet.member?(required_column_names, &1.name)),
       column_titles:
         Enum.filter(ast.column_titles, &MapSet.member?(required_column_names, &1))
-    }
+    })
+
+  defp reindex_db_columns(query), do:
+    # This is a somewhat dirty fix which brings the query into a consistent state after we've removed some
+    # columns from the selection. In this case, column indices are sparse (e.g. 0, 2, 4), so we need to
+    # reindex to make them sequential again (e.g. 0, 1, 2).
+    #
+    # A better solution would be to resolve projected tables after the compilation is done. Then,
+    # we can treat projected table as a regular table in the compiler, and after compilation we
+    # know which columns are exactly needed, so we can substitute the table with the corresponding
+    # subquery and get correct indices computed.
+    Enum.reduce(
+      query.db_columns,
+      %Query{query | next_row_index: 0, db_columns: []},
+      &Query.add_db_column(&2, &1)
+    )
 
 
   # -------------------------------------------------------------------

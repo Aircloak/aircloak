@@ -816,6 +816,14 @@ defmodule Cloak.Aql.Compiler.Test do
       projected_table_db_column_names(compile!("select a, b from projected_table", data_source()))
   end
 
+  test "reindexing in projected tables" do
+    assert [0, 1] ==
+      projected_table_db_column_indices(compile!("select a from projected_table", data_source()))
+
+    assert [0, 1, 2] ==
+      projected_table_db_column_indices(compile!("select a, b from projected_table", data_source()))
+  end
+
   test "filtered column is not retrieved from a projected table", do:
     assert ["table.uid", "projected_table.a"] ==
       projected_table_db_column_names(compile!("select a from projected_table where a=b", data_source()))
@@ -824,12 +832,18 @@ defmodule Cloak.Aql.Compiler.Test do
     assert ["table.uid", "projected_table.a", "projected_table.b"] ==
       projected_table_db_column_names(compile!("select a from projected_table where b <> 0", data_source()))
 
-  defp projected_table_db_column_names(query), do:
+  defp projected_table_db_columns(query), do:
     query
     |> get_in([all_subqueries()])
     |> Enum.find(&match?({:join, %{lhs: "projected_table"}}, &1.from))
     |> Map.fetch!(:db_columns)
-    |> Enum.map(&"#{&1.table.name}.#{&1.name}")
+
+  defp projected_table_db_column_names(query), do:
+    Enum.map(projected_table_db_columns(query), &"#{&1.table.name}.#{&1.name}")
+
+  defp projected_table_db_column_indices(query), do:
+    Enum.map(projected_table_db_columns(query), &(&1.row_index))
+
 
   defp scrub_aliases(query), do: put_in(query, [aliases()], nil)
 
