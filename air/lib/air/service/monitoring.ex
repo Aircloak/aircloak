@@ -9,7 +9,7 @@ defmodule Air.Service.Monitoring do
       groups: fetch_group_names(),
       users: fetch_users(),
       data_sources: fetch_data_sources(now),
-      cloaks: fetch_cloaks(),
+      cloaks: fetch_cloaks(now),
     }
   end
 
@@ -31,11 +31,12 @@ defmodule Air.Service.Monitoring do
     end
   end
 
-  defp fetch_cloaks() do
+  defp fetch_cloaks(now) do
     for cloak <- DataSourceManager.cloaks() do
       %{
         name: cloak.name,
         data_sources: cloak.data_source_ids,
+        queries: query_stats(Query |> where([q], q.cloak_id == ^cloak.id), now),
       }
     end
   end

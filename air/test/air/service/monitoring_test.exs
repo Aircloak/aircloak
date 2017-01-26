@@ -27,11 +27,19 @@ defmodule Air.Service.Monitoring.Test do
     test "list of cloaks" do
       cloak_info = cloak_info()
       :ok = Air.DataSourceManager.register_cloak(cloak_info, [%{"global_id" => "a very global id", "tables" => []}])
+      TestRepoHelper.create_query!(TestRepoHelper.create_user!(), %{cloak_id: cloak_info.id})
 
       assert %{
         name: cloak_info.name,
         data_sources: ["a very global id"],
-      } in Monitoring.assemble_info().cloaks
+        queries: %{
+          last_5_minutes: 0,
+          last_15_minutes: 0,
+          last_30_minutes: 1,
+          last_1_hour: 1,
+          last_1_day: 1,
+        }
+      } in Monitoring.assemble_info(in_minutes(20)).cloaks
     end
 
     test "list of datasources" do
