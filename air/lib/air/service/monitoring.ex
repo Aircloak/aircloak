@@ -1,10 +1,19 @@
 defmodule Air.Service.Monitoring do
+  @moduledoc "Service gathering information for the monitoring endpoint."
+
   import Ecto.Query
 
   alias Air.{Repo, Schemas.Group, Schemas.User, Schemas.DataSource, Schemas.Query, DataSourceManager}
 
   @miliseconds_in_second 1000
 
+
+  #-----------------------------------------------------------------------------------------------------------
+  # API functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  @doc "Returns a structure describing the health of the application. See user_guides/monitoring.md for details."
+  @spec assemble_info(NaiveDateTime.t) :: map()
   def assemble_info(now \\ NaiveDateTime.utc_now()) do
     %{
       uptime: fetch_uptime(),
@@ -14,6 +23,11 @@ defmodule Air.Service.Monitoring do
       cloaks: fetch_cloaks(now),
     }
   end
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Internal functions
+  #-----------------------------------------------------------------------------------------------------------
 
   defp fetch_group_names(), do:
     Group |> select([g], g.name) |> Repo.all()
