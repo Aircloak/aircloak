@@ -64,5 +64,5 @@ config :air, :central,
   serializer: Phoenix.Channels.GenSocketClient.Serializer.GzipJson
 
 config :quantum, cron: [
-  "0 * * * *": fn -> Air.Service.Cleanup.cleanup_old_queries() end
+  "0 * * * *": {Air.Service.Cleanup, :cleanup_old_queries}
 ]
