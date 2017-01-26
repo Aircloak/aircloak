@@ -22,18 +22,22 @@ function banner() {
 
   # common/elixir -----------------------------------------------------
 
-  banner "common/elixir"
-  # common/elixir
-  pushd common/elixir
-  mix deps.get
-  mix compile --warnings-as-errors
-  MIX_ENV=test make all
-  popd
+  if [[ "$TEST" == "aux" ]]; then
+
+    banner "common/elixir"
+    # common/elixir
+    pushd common/elixir
+    mix deps.get
+    mix compile --warnings-as-errors
+    MIX_ENV=test make all
+    popd
+
+  fi
 
 
   # air ---------------------------------------------------------------
 
-  if [[ "$TEST" == "air" || "$TEST" == "common" ]]; then
+  if [[ "$TEST" == "air" ]]; then
 
     banner "air"
     pushd air
@@ -55,7 +59,7 @@ function banner() {
 
   # cloak -------------------------------------------------------------
 
-  if [[ "$TEST" == "cloak" || "$TEST" == "common" ]]; then
+  if [[ "$TEST" == "cloak" ]]; then
 
     banner "cloak"
     pushd cloak
@@ -69,7 +73,7 @@ function banner() {
 
   # bom ---------------------------------------------------------------
 
-  if [[ "$TEST" == "common" ]]; then
+  if [[ "$TEST" == "aux" ]]; then
 
     banner "bom"
     pushd bom
@@ -82,7 +86,7 @@ function banner() {
 
   # central -----------------------------------------------------------
 
-  if [[ "$TEST" == "common" ]]; then
+  if [[ "$TEST" == "central" ]]; then
 
     banner "central"
     pushd central
@@ -104,7 +108,7 @@ function banner() {
 
   # integration_tests ---------------------------------------------------------------
 
-  if [[ "$TEST" == "common" ]]; then
+  if [[ "$TEST" == "integration" ]]; then
 
     banner "integration_tests"
     pushd integration_tests

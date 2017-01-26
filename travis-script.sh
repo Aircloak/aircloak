@@ -22,7 +22,7 @@ function banner() {
 
   # common/elixir -----------------------------------------------------
 
-  if [[ "$TEST" == "common" ]]; then
+  if [[ "$TEST" == "aux" ]]; then
 
     banner "common/elixir"
     pushd common/elixir
@@ -68,7 +68,7 @@ function banner() {
 
   # bom ---------------------------------------------------------------
 
-  if [[ "$TEST" == "common" ]]; then
+  if [[ "$TEST" == "aux" ]]; then
 
     banner "bom"
     pushd bom
@@ -84,7 +84,7 @@ function banner() {
 
   # central -----------------------------------------------------------
 
-  if [[ "$TEST" == "common" ]]; then
+  if [[ "$TEST" == "central" ]]; then
 
     banner "central"
     pushd central
@@ -99,7 +99,7 @@ function banner() {
 
   # integration_tests -----------------------------------------------------------
 
-  if [[ "$TEST" == "common" ]]; then
+  if [[ "$TEST" == "integration" ]]; then
 
     banner "integration_tests"
     pushd integration_tests

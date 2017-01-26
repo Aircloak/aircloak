@@ -7,9 +7,11 @@ env:
     - CXX="g++-4.8"
     - CC="gcc-4.8"
   matrix:
-    - TEST="common"
+    - TEST="integration"
     - TEST="air"
     - TEST="cloak"
+    - TEST="aux"
+    - TEST="central"
 cache:
   directories:
   - common/elixir/deps
