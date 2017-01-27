@@ -76,7 +76,7 @@ defmodule Cloak.Aql.Expression do
   @doc "Returns the column value of a database row."
   @spec value(t, DataSource.row) :: DataSource.field
   def value(%__MODULE__{constant?: true, value: value}, _row), do: value
-  def value(expression = %__MODULE__{function?: true, row_index: nil, function_args: args}, row), do:
+  def value(expression = %__MODULE__{function?: true, function_args: args}, row), do:
     apply_function(expression, Enum.map(args, &value(&1, row)))
   def value(%__MODULE__{row_index: nil} = column, _row), do:
     raise "Unindexed column specified: #{inspect(column, pretty: true)}"
