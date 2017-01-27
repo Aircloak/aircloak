@@ -1124,7 +1124,7 @@ defmodule Cloak.Aql.Compiler do
     Enum.reduce(select_expressions(query) ++ range_columns(query), query, &Query.add_db_column(&2, &1))
 
   defp range_columns(%{subquery?: true, emulated?: false}), do: []
-  defp range_columns(%{ranges: ranges}), do: Enum.map(ranges, &(&1.column))
+  defp range_columns(%{ranges: ranges}), do: ranges |> Enum.map(&(&1.column)) |> extract_columns()
 
   defp select_expressions(%Query{command: :select, subquery?: true, emulated?: false} = query) do
     Enum.zip(query.column_titles, query.columns)
