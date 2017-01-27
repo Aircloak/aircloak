@@ -21,7 +21,7 @@ defmodule Central.Service.ElasticSearch do
       update_in(params, [:aux], &Map.put(&1 || %{}, :customer, %{id: customer.id, name: customer.name})))
 
   @doc "Records air presence in elastic search."
-  @spec record_air_presence(Customer.t, String.t, :online | :offline) :: :ok | :error
+  @spec record_air_presence(Customer.t, String.t, Central.Service.Customer.air_status) :: :ok | :error
   def record_air_presence(customer, air_name, status), do:
     record(:customer, :air, %{
       name: air_name,

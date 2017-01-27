@@ -1,27 +1,21 @@
 defmodule IntegrationTest.CentralTest do
   use ExUnit.Case, async: false
 
-  alias Central.Repo
-  import Ecto.Query
-
   test "air status is stored in database" do
-    assert air_status() == 1
+    assert air().status == :online
 
     Supervisor.terminate_child(Air.Supervisor, Air.CentralSocket)
     :timer.sleep(100)
-    assert air_status() == 0
+    assert air().status == :offline
 
     Supervisor.restart_child(Air.Supervisor, Air.CentralSocket)
     :timer.sleep(100)
-    assert air_status() == 1
+    assert air().status == :online
   end
 
-  defp air_status() do
-    Repo.one!(from(
-      a in "airs",
-      join: c in Central.Schemas.Customer, on: a.customer_id == c.id,
-      where: c.name == "integration tests customer",
-      select: a.status
-    ))
-  end
+  defp air(), do:
+    Enum.find(
+      Central.Service.Customer.airs(),
+      &(&1.customer.name == "integration tests customer")
+    )
 end

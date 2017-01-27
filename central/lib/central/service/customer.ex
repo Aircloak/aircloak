@@ -8,6 +8,11 @@ defmodule Central.Service.Customer do
   alias Central.Repo
   alias Central.Schemas.{Customer, Query}
 
+  import Ecto.Query, only: [from: 2]
+
+  @type air :: %{name: String.t, status: air_status, customer: Customer.t}
+  @type air_status :: :offline | :online
+
   #-----------------------------------------------------------------------------------------------------------
   # API functions
   #-----------------------------------------------------------------------------------------------------------
@@ -97,7 +102,7 @@ defmodule Central.Service.Customer do
   end
 
   @doc "Updates the air status."
-  @spec update_air_status(Customer.t, String.t, :offline | :online) :: :ok
+  @spec update_air_status(Customer.t, String.t, air_status) :: :ok
   def update_air_status(customer, air_name, status) do
     encoded_status = encode_air_status(status)
     mtime = NaiveDateTime.utc_now()
@@ -115,6 +120,18 @@ defmodule Central.Service.Customer do
     :ok
   end
 
+  @doc "Returns the list of all known airs."
+  @spec airs() :: [air]
+  def airs() do
+    from(
+      a in "airs",
+      join: c in Central.Schemas.Customer, on: a.customer_id == c.id,
+      select: %{name: a.name, status: a.status, customer: c}
+    )
+    |> Repo.all()
+    |> Enum.map(&%{&1 | status: decode_air_status(&1.status)})
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -130,4 +147,7 @@ defmodule Central.Service.Customer do
 
   defp encode_air_status(:offline), do: 0
   defp encode_air_status(:online), do: 1
+
+  defp decode_air_status(0), do: :offline
+  defp decode_air_status(1), do: :online
 end
