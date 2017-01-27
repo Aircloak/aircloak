@@ -71,10 +71,11 @@ defmodule Central.AirConnectionMonitor do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp update_air_status(state, status), do:
-    Task.Supervisor.start_child(@task_sup_name,
-      Central.Service.Customer,
-      :update_air_status,
-      [state.customer, state.air_name, status]
-    )
+  defp update_air_status(state, status) do
+    Task.Supervisor.start_child(@task_sup_name, Central.Service.Customer, :update_air_status,
+      [state.customer, state.air_name, status])
+
+    Task.Supervisor.start_child(@task_sup_name, Central.Service.ElasticSearch, :record_air_presence,
+      [state.customer, state.air_name, status])
+  end
 end
