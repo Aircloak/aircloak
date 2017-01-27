@@ -55,6 +55,14 @@ defmodule Cloak.Query.DBEmulatorTest do
       """, %{rows: [%{occurrences: 10, row: ["abc"]}]}
   end
 
+  test "where inequality with functions" do
+    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["number"], ["-3"])
+    :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["number"], ["-11"])
+
+    assert_query "select count(*) from #{@prefix}emulated where abs(number) > 0 and abs(number) < 10",
+      %{rows: [%{row: [10]}]}
+  end
+
   describe "aggregation in emulated subqueries" do
     def aggregation_setup(_) do
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
