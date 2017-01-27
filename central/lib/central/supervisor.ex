@@ -8,7 +8,7 @@ defmodule Central.Supervisor do
       supervisor(Central.Repo, []),
       worker(Central.Repo.Migrator, [], restart: :transient),
       supervisor(Central.AirStats, []),
-      worker(Central.Endpoint, []),
+      supervisor(Central.Endpoint, [], function: :start_site),
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Central.Supervisor)

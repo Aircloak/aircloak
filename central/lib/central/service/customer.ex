@@ -120,6 +120,13 @@ defmodule Central.Service.Customer do
     :ok
   end
 
+  @doc "Resets statuses of all known airs to offline."
+  @spec reset_air_statuses() :: :ok
+  def reset_air_statuses() do
+    Repo.update_all("airs", set: [status: encode_air_status(:offline)])
+    :ok
+  end
+
   @doc "Returns the list of all known airs."
   @spec airs() :: [air]
   def airs() do
