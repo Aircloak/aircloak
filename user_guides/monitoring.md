@@ -1,10 +1,10 @@
 # Monitoring
 
 The air component exposes a monitoring endpoint on port 8081. If you want to use it you will have to forward that port
-when starting your docker container (see user_guides/installation.md). You will also need to generate an authentication
-token for an admin user by going to `/api_tokens` in the web application.
+when starting your docker container (see [the installation guide](./installation.md)). You will also need to generate
+an authentication token for an admin user by going to `/api_tokens` in the web application.
 
-After that the endpoint can be accessed at `air.endpoint:8081/?auth_token=<your auth token>`.
+After that the endpoint can be accessed at `http://air.endpoint:8081/?auth_token=<your auth token>`.
 
 ## Data format
 
