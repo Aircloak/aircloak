@@ -22,13 +22,15 @@ defmodule Air.Plug.Session do
 
     @doc false
     def call(conn, _opts) do
-      case Plug.Conn.get_req_header(conn, "auth-token") do
-        [] ->
+      conn = Plug.Conn.fetch_query_params(conn)
+
+      case get_token(conn) do
+        :error ->
           conn
           |> put_status(Plug.Conn.Status.code(:unauthorized))
           |> Phoenix.Controller.json(%{success: false, description: missing_auth_header_error()})
           |> halt()
-        [token] ->
+        token ->
           case Air.Token.user_for_token(token) do
             :error ->
               conn
@@ -56,6 +58,18 @@ defmodule Air.Plug.Session do
       "Invalid auth-token. This could be a result of the auth-token being incorrectly sent to the API backend, " <>
       "or the auth-token having been revoked. You can validate that your auth-token is still valid by visiting " <>
       "https://insights.aircloak.com/api_tokens."
+    end
+
+
+    # -------------------------------------------------------------------
+    # Internal functions
+    # -------------------------------------------------------------------
+
+    def get_token(conn) do
+      case Plug.Conn.get_req_header(conn, "auth-token") do
+        [token] -> token
+        _ -> Map.get(conn.params, "auth_token", :error)
+      end
     end
   end
 
