@@ -17,3 +17,5 @@ config :central, Central.Repo,
   prepare: :unnamed
 
 config :central, :https_port, 7444
+
+config :central, air_status_logging_interval: :timer.seconds(10)

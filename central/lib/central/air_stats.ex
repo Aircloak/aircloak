@@ -16,6 +16,7 @@ defmodule Central.AirStats do
         worker(Registry, [:unique, Central.AirStats.Registry]),
         supervisor(Task.Supervisor, [[name: Central.AirStats.TaskSup]]),
         supervisor(Central.AirStats.ConnectionMonitor, []),
+        worker(Central.AirStats.PeriodicLogger, []),
       ],
       strategy: :rest_for_one
     )
