@@ -7,7 +7,7 @@ defmodule Central.Supervisor do
     children = [
       supervisor(Central.Repo, []),
       worker(Central.Repo.Migrator, [], restart: :transient),
-      supervisor(Central.AirConnectionMonitor, []),
+      supervisor(Central.AirStats, []),
       worker(Central.Endpoint, []),
     ]
 

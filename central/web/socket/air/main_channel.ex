@@ -25,7 +25,7 @@ defmodule Central.Socket.Air.MainChannel do
     Process.flag(:trap_exit, true)
     customer = socket.assigns.customer
     Logger.info("air for '#{customer.name}' (id: #{customer.id}) joined central")
-    Central.AirConnectionMonitor.monitor_channel(customer, socket.assigns.air_name)
+    Central.AirStats.ConnectionMonitor.monitor_channel(customer, socket.assigns.air_name)
     {:ok, %{}, socket}
   end
 

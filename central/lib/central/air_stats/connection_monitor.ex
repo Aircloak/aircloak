@@ -1,15 +1,11 @@
-defmodule Central.AirConnectionMonitor do
-  @moduledoc "Monitoring of air connections."
+defmodule Central.AirStats.ConnectionMonitor do
+  @moduledoc "Monitoring of connected airs."
 
   use GenServer
 
-  @registry_name Module.concat(__MODULE__, Registry)
-  @task_sup_name Module.concat(__MODULE__, TaskSup)
-  @monitor_sup_name Module.concat(__MODULE__, MonitorSup)
-
 
   # -------------------------------------------------------------------
-  # Api functions
+  # API functions
   # -------------------------------------------------------------------
 
   @doc "Starts the supervisor of connection monitors."
@@ -18,15 +14,9 @@ defmodule Central.AirConnectionMonitor do
     import Supervisor.Spec, warn: false
 
     Supervisor.start_link(
-      [
-        worker(Registry, [:unique, @registry_name]),
-        supervisor(Task.Supervisor, [[name: @task_sup_name]]),
-        supervisor(Supervisor, [
-          [worker(GenServer, [__MODULE__], restart: :temporary)],
-          [id: @monitor_sup_name, name: @monitor_sup_name, strategy: :simple_one_for_one]
-        ])
-      ],
-      strategy: :rest_for_one
+      [worker(GenServer, [__MODULE__], restart: :temporary)],
+      name: __MODULE__,
+      strategy: :simple_one_for_one
     )
   end
 
@@ -34,10 +24,11 @@ defmodule Central.AirConnectionMonitor do
   @spec monitor_channel(Central.Schemas.Customer.t, String.t) :: :ok
   def monitor_channel(customer, air_name) do
     {:ok, _} =
-      Supervisor.start_child(@monitor_sup_name, [
+      Supervisor.start_child(__MODULE__, [
         {customer, air_name, self()},
-        [name: {:via, Registry, {@registry_name, {customer.id, air_name}}}]
+        [name: {:via, Registry, {Central.AirStats.Registry, {customer.id, air_name}}}]
       ])
+
     :ok
   end
 
@@ -72,10 +63,10 @@ defmodule Central.AirConnectionMonitor do
   # -------------------------------------------------------------------
 
   defp update_air_status(state, status) do
-    Task.Supervisor.start_child(@task_sup_name, Central.Service.Customer, :update_air_status,
+    Task.Supervisor.start_child(Central.AirStats.TaskSup, Central.Service.Customer, :update_air_status,
       [state.customer, state.air_name, status])
 
-    Task.Supervisor.start_child(@task_sup_name, Central.Service.ElasticSearch, :record_air_presence,
+    Task.Supervisor.start_child(Central.AirStats.TaskSup, Central.Service.ElasticSearch, :record_air_presence,
       [state.customer, state.air_name, status])
   end
 end
