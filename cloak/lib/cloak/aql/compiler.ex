@@ -519,9 +519,7 @@ defmodule Cloak.Aql.Compiler do
   end
 
   defp expand_star_select(%Query{columns: :*} = query) do
-    columns = all_column_identifiers(query)
-    column_names = for {:identifier, _table, {_, name}} <- columns, do: name
-    %Query{query | columns: columns, column_titles: column_names}
+    %Query{query | columns: all_column_identifiers(query)}
   end
   defp expand_star_select(query), do: query
 
