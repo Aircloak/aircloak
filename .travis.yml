@@ -74,6 +74,7 @@ matrix:
         - .mix
         - cloak/deps
         - cloak/_build
+        - $HOME/.asdf
       services:
       - mongodb
       addons:
@@ -107,6 +108,7 @@ matrix:
         - .mix
         - bom/deps
         - bom/_build
+        - $HOME/.asdf
       addons:
         apt:
           packages:
