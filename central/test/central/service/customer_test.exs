@@ -93,6 +93,7 @@ defmodule Central.Service.CustomerTest do
     customer = create_customer()
     assert :ok == Customer.update_air_status(customer, "air1", :online)
     assert :ok == Customer.update_cloak_status(customer, "air1", "cloak1", :online)
+    assert :online == cloak_data(customer, "air1", "cloak1").status
   end
 
   test "records query executions" do
@@ -120,4 +121,7 @@ defmodule Central.Service.CustomerTest do
 
   defp air_data(customer, air_name), do:
     Enum.find(Customer.airs(), &(&1.name == air_name && &1.customer.id == customer.id))
+
+  defp cloak_data(customer, air_name, cloak_name), do:
+    Enum.find(air_data(customer, air_name).cloaks, &(&1.name == cloak_name))
 end
