@@ -222,6 +222,7 @@ defmodule Cloak.Aql.Compiler do
   defp required_column_names(query, projected_subquery), do:
     # all db columns of the outer query which are from this projected table
     query.db_columns
+    |> get_in([Query.Lenses.leaf_expressions()])
     |> Enum.filter(&match?(%{table: %{name: _}}, &1))
     |> Enum.filter(&(&1.table.name == projected_subquery.alias))
     |> Enum.map(&(&1.name))

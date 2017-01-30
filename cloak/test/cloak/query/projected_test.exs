@@ -55,9 +55,22 @@ defmodule Cloak.Query.ProjectedTest do
       %{columns: ["note"], rows: [%{row: ["note text"], occurrences: 10}]}
   end
 
+  test "expression in a projected table" do
+    assert_query "select abs(amount) from projected_transactions",
+      %{columns: ["abs"], rows: [%{row: [100], occurrences: 10}]}
+  end
+
   test "projected table in a subquery" do
     assert_query "select amount from (select user_id, amount from projected_transactions) sq_alias",
       %{columns: ["amount"], rows: [%{row: [100], occurrences: 10}]}
+  end
+
+  test "expression in a subquery using a projected table" do
+    assert_query "select x from (select user_id, abs(amount) as x from projected_transactions) t",
+      %{columns: ["x"], rows: [%{row: [100], occurrences: 10}]}
+
+    assert_query "select x from (select user_id, sqrt(abs(amount)) as x from projected_transactions) t",
+      %{columns: ["x"], rows: [%{row: [10.0], occurrences: 10}]}
   end
 
   test "joining to a projected table" do
