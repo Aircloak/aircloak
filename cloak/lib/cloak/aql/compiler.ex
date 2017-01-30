@@ -459,10 +459,14 @@ defmodule Cloak.Aql.Compiler do
   # the outer column selections
   defp verify_aliases(query) do
     aliases = for {_column, :as, name} <- query.columns, do: name
-    all_identifiers = aliases ++ all_column_identifiers(query)
-    referenced_names = (for {{:identifier, _table, {_, name}}, _direction} <- query.order_by, do: name) ++
-      query.group_by
-    ambiguous_names = for name <- referenced_names, Enum.count(all_identifiers, &name == &1) > 1, do: name
+    all_columns = for {:identifier, _table, {:unquoted, name}} <- all_column_identifiers(query), do: name
+    possible_identifiers = aliases ++ all_columns
+    referenced_identifiers =
+      (for {identifier, _direction} <- query.order_by, do: identifier) ++
+      query.group_by ++
+      get_in(query.where ++ query.having, [Query.Lenses.conditions_terminals()])
+    ambiguous_names = for {:identifier, :unknown, {_, name}} <- referenced_identifiers,
+      Enum.count(possible_identifiers, &name == &1) > 1, do: name
     case ambiguous_names do
       [] -> :ok
       [name | _rest] -> raise CompilationError, message: "Usage of `#{name}` is ambiguous."

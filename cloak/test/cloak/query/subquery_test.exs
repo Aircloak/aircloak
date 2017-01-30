@@ -87,8 +87,8 @@ defmodule Cloak.Query.SubqueryTest do
 
   test "group by with having in subqueries" do
     assert_query """
-        select count(height) from
-        (select user_id, avg(height) as height from heights_sq
+        select count(h) from
+        (select user_id, avg(height) as h from heights_sq
         group by user_id
         having max(height) = min(height)) alias
         """,
