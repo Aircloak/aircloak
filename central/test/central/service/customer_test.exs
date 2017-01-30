@@ -70,14 +70,23 @@ defmodule Central.Service.CustomerTest do
   test "storing air status" do
     customer = create_customer()
     assert :ok == Customer.update_air_status(customer, "air1", :online)
-    assert 1 == Repo.one!(from(a in "airs", where: a.name == "air1", select: a.status))
+    assert :online == air_data(customer, "air1").status
   end
 
   test "updating air status" do
     customer = create_customer()
-    assert :ok == Customer.update_air_status(customer, "air1", :online)
-    assert :ok == Customer.update_air_status(customer, "air1", :offline)
-    assert 0 == Repo.one!(from(a in "airs", where: a.name == "air1", select: a.status))
+    Customer.update_air_status(customer, "air1", :online)
+    Customer.update_air_status(customer, "air1", :offline)
+    assert :offline == air_data(customer, "air1").status
+  end
+
+  test "resetting air statuses" do
+    customer = create_customer()
+    Customer.update_air_status(customer, "air1", :online)
+    Customer.update_air_status(customer, "air2", :online)
+    Customer.reset_air_statuses()
+    assert :offline == air_data(customer, "air1").status
+    assert :offline == air_data(customer, "air2").status
   end
 
   test "records query executions" do
@@ -102,4 +111,7 @@ defmodule Central.Service.CustomerTest do
     assert {:ok, customer} = Repo.insert(Schemas.Customer.changeset(%Schemas.Customer{}, %{name: name}))
     customer
   end
+
+  defp air_data(customer, air_name), do:
+    Enum.find(Customer.airs(), &(&1.name == air_name && &1.customer.id == customer.id))
 end
