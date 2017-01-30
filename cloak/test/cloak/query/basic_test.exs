@@ -604,6 +604,24 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["c", "c"], rows: [%{row: [30, 30], occurrences: 1}]}
   end
 
+  test "alias usage in where" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
+
+    assert_query "select height as h from heights where h = 170",
+      %{columns: ["h"], rows: [%{row: [170], occurrences: 10}]}
+    assert_query "select round(height) as h from heights where abs(h) = 170",
+      %{columns: ["h"], rows: [%{row: [170], occurrences: 10}]}
+  end
+
+  test "alias usage in having" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
+
+    assert_query "select height as h from heights group by h having abs(h) = 170",
+      %{columns: ["h"], rows: [%{row: [170], occurrences: 1}]}
+  end
+
   test "select comparing two columns" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query "select height from heights where height = height",
