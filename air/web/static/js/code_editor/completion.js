@@ -28,7 +28,7 @@ const KEYWORDS = [
   "BUCKET(numericalColumn by numericalConstant align LOWER)",
   "BUCKET(numericalColumn by numericalConstant align MIDDLE)",
   "BUCKET(numericalColumn by numericalConstant align UPPER)",
-  "SHOW TABLES;",
+  "SHOW TABLES",
   "LEFT JOIN", "LEFT INNER JOIN", "RIGHT INNER JOIN",
   "OUTER JOIN", "FULL OUTER JOIN", "LEFT OUTER JOIN", "RIGHT OUTER JOIN",
   "WHERE", "AND",
@@ -100,10 +100,10 @@ export default function completionList(
   const matcher = new RegExp(finalClause, "i");
 
   const showColumnsFromTables =
-    _.map(tableNames, tableName => `SHOW COLUMNS FROM ${tableName};`);
+    _.map(tableNames, tableName => `SHOW COLUMNS FROM ${tableName}`);
 
   const fromWithTables =
-    _.map(tableNames, tableName => `FROM ${tableName};`);
+    _.map(tableNames, tableName => `FROM ${tableName}`);
 
   const list = _.chain(KEYWORDS).
     concat(tableNames).
