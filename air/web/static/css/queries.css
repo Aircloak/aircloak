@@ -38,15 +38,15 @@
   margin-top: 20px;
 }
 
-#aql-editor {
+#sql-editor {
   margin-bottom: 3em;
 }
 
-#aql-editor .right-align {
+#sql-editor .right-align {
   float: right;
 }
 
-#aql-editor select {
+#sql-editor select {
   width: auto;
 }
 

@@ -264,7 +264,7 @@ class QueriesView extends React.Component {
       </div>);
     }
     return (<div>
-      <div id="aql-editor">
+      <div id="sql-editor">
         {this.renderCodeEditorOrViewer()}
 
         {button}
