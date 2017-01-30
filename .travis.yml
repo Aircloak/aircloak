@@ -2,10 +2,10 @@ sudo: false
 language: c
 env:
   global:
-    - MIX_HOME=$(pwd)/.mix
-    - COMPILER=g++-4.8
-    - CXX="g++-4.8"
-    - CC="gcc-4.8"
+  - MIX_HOME=$(pwd)/.mix
+  - COMPILER=g++-4.8
+  - CXX="g++-4.8"
+  - CC="gcc-4.8"
 matrix:
   include:
     - env: TEST="integration"
@@ -39,9 +39,11 @@ matrix:
           - unixodbc
           - unixodbc-dev
           - odbc-postgresql
+        hosts:
+        - travis.aircloak.local
       before_install:
-        - psql -c "CREATE DATABASE cloaktest1 ENCODING 'UTF8';" -U postgres
-        - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
+      - psql -c "CREATE DATABASE cloaktest1 ENCODING 'UTF8';" -U postgres
+      - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
     - env: TEST="air"
       cache:
         directories:
@@ -54,10 +56,10 @@ matrix:
       addons:
         postgresql: "9.5"
         apt:
-          sources:
-          - ubuntu-toolchain-r-test
           packages:
           - jq
+        hosts:
+        - travis.aircloak.local
     - env: TEST="cloak"
       cache:
         directories:
@@ -65,8 +67,10 @@ matrix:
         - cloak/deps
         - cloak/_build
       services:
-        - mongodb
+      - mongodb
       addons:
+        hosts:
+        - travis.aircloak.local
         postgresql: "9.5"
         mariadb: "10.0"
         apt:
@@ -82,9 +86,9 @@ matrix:
           - odbc-postgresql
           - mongodb-org-server
       before_install:
-        - psql -c "CREATE DATABASE cloaktest1 ENCODING 'UTF8';" -U postgres
-        - mysql -e "CREATE DATABASE cloaktest1 DEFAULT CHARACTER SET utf8;" -u root
-        - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
+      - psql -c "CREATE DATABASE cloaktest1 ENCODING 'UTF8';" -U postgres
+      - mysql -e "CREATE DATABASE cloaktest1 DEFAULT CHARACTER SET utf8;" -u root
+      - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
     - env: TEST="aux"
       cache:
         directories:
@@ -97,6 +101,8 @@ matrix:
         apt:
           packages:
           - jq
+        hosts:
+        - travis.aircloak.local
     - env: TEST="central"
       cache:
         directories:
@@ -108,13 +114,11 @@ matrix:
       addons:
         postgresql: "9.5"
         mariadb: "10.0"
-      addons:
         apt:
           packages:
           - jq
-addons:
-  hosts:
-    - travis.aircloak.local
+        hosts:
+        - travis.aircloak.local
 before_install:
   - ./travis-asdf-setup.sh
   - npm i -g yarn@0.16.1
