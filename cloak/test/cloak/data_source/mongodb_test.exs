@@ -26,6 +26,10 @@ defmodule Cloak.DataSource.MongoDBTest do
       value = %{name: "user#{i}", age: 30, male: true, bills: [%{issuer: "vendor", ids: ["1", "2"]}]}
       Mongo.insert_one!(conn, @table, value)
     end
+    Mongo.insert_one!(conn, @table, %{name: nil, male: nil, mixed: true, bills: nil})
+    Mongo.insert_one!(conn, @table, %{mixed: "dummy"})
+    Mongo.insert_one!(conn, @table, %{mixed: [1, 2, 3]})
+    Mongo.insert_one!(conn, @table, %{mixed: %{a: 1, b: 2}})
     for _i <- 11..15 do
       Mongo.insert_one!(conn, @table, %{})
     end
@@ -55,23 +59,26 @@ defmodule Cloak.DataSource.MongoDBTest do
       {"age", :real},
       {"bills#", :integer},
       {"male", :boolean},
-      {"name", :text}
+      {"mixed", :unknown},
+      {"name", :text},
     ]
     assert bills.columns == [
       {"_id", :text},
       {"age", :real},
       {"male", :boolean},
+      {"mixed", :unknown},
       {"name", :text},
       {"bills.ids#", :integer},
-      {"bills.issuer", :text}
+      {"bills.issuer", :text},
     ]
     assert ids.columns == [
       {"_id", :text},
       {"age", :real},
       {"male", :boolean},
+      {"mixed", :unknown},
       {"name", :text},
       {"bills.issuer", :text},
-      {"bills.ids", :real}
+      {"bills.ids", :real},
     ]
   end
 
@@ -122,21 +129,21 @@ defmodule Cloak.DataSource.MongoDBTest do
     assert_query context, "SELECT AVG(age) FROM (SELECT _id, trunc(abs(age)) AS age FROM #{@table}) AS t",
       %{rows: [%{occurrences: 1, row: [30.0]}]}
     assert_query context, "SELECT name FROM (SELECT _id, lower(left(name, 4)) AS name FROM #{@table}) AS t",
-      %{rows: [%{occurrences: 5, row: [nil]}, %{occurrences: 10, row: ["user"]}]}
+      %{rows: [%{occurrences: 9, row: [nil]}, %{occurrences: 10, row: ["user"]}]}
   end
 
   test "aggregation in sub-queries", context do
     assert_query context, """
         SELECT COUNT(*), SUM(value) FROM (SELECT _id, COUNT(*) AS value FROM #{@table} GROUP BY _id) AS t
-      """, %{rows: [%{occurrences: 1, row: [15, 15]}]}
+      """, %{rows: [%{occurrences: 1, row: [19, 19]}]}
 
     assert_query context, """
         SELECT COUNT(*), SUM(value) FROM (SELECT _id, COUNT(age) AS value FROM #{@table} GROUP BY _id) AS t
-      """, %{rows: [%{occurrences: 1, row: [15, 10]}]}
+      """, %{rows: [%{occurrences: 1, row: [19, 10]}]}
 
     assert_query context, """
         SELECT COUNT(*), SUM(value) FROM (SELECT _id, AVG(age) AS value FROM #{@table} GROUP BY _id) AS t
-      """, %{rows: [%{occurrences: 1, row: [15, 300.0]}]}
+      """, %{rows: [%{occurrences: 1, row: [19, 300.0]}]}
 
     assert_query context, """
         SELECT COUNT(*), SUM(value) FROM

@@ -2,9 +2,22 @@ defmodule Central.Endpoint do
   @moduledoc "Implements the HTTP server for insights.aircloak.com."
 
   use Phoenix.Endpoint, otp_app: :central
+  require Logger
 
   # bug in the current Phoenix -> should be fixed with the next version
   @dialyzer :no_unused
+
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Starts the site supervision tree."
+  @spec start_site() :: Supervisor.on_start
+  def start_site() do
+    reset_air_statuses()
+    start_link()
+  end
 
 
   # -------------------------------------------------------------------
@@ -47,4 +60,20 @@ defmodule Central.Endpoint do
     signing_salt: "hkTRmL2h"
 
   plug Central.Router
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp reset_air_statuses() do
+    try do
+      Central.Service.Customer.reset_air_statuses()
+    catch type, error ->
+      Logger.error([
+        "Error resetting air statuses: #{inspect(type)}:#{inspect(error)}\n",
+        Exception.format_stacktrace(System.stacktrace())
+      ])
+    end
+  end
 end

@@ -29,10 +29,9 @@ defmodule Air.DataSourceManager do
     :ok
   end
 
-  @doc "Returns the pids of all the phoenix channels of the cloaks that have the data source"
-  @spec channel_pids(String.t) :: [pid()]
-  def channel_pids(global_id), do:
-    Enum.map(Registry.lookup(@registry_name, {:data_source, global_id}), fn({pid, _value}) -> pid end)
+  @doc "Returns pairs of the form {channel_pid, cloak_info} the cloaks that have the given data source."
+  @spec channel_pids(String.t) :: [{pid(), Map.t}]
+  def channel_pids(global_id), do: Registry.lookup(@registry_name, {:data_source, global_id})
 
   @doc "Whether or not a data source is available for querying. True if it has one or more cloaks online"
   @spec available?(String.t) :: boolean

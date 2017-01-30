@@ -16,6 +16,11 @@ config :air, Air.Endpoint,
   pubsub: [name: Air.PubSub,
            adapter: Phoenix.PubSub.PG2]
 
+config :air, Air.MonitoringEndpoint,
+  check_origin: false,
+  http: [port: 8081],
+  render_errors: [accepts: ~w(json)]
+
 config :air, :https_port, 8443
 
 # Configures Elixir's Logger
@@ -64,5 +69,5 @@ config :air, :central,
   serializer: Phoenix.Channels.GenSocketClient.Serializer.GzipJson
 
 config :quantum, cron: [
-  "0 * * * *": fn -> Air.Service.Cleanup.cleanup_old_queries() end
+  "0 * * * *": {Air.Service.Cleanup, :cleanup_old_queries}
 ]

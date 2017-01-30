@@ -287,7 +287,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   defp convert_param({_, _, nil}), do: nil
   defp convert_param({:text, type, value}), do: convert_text_param(type, value)
-  defp convert_param({:binary, type, value}), do: convert_binary_param(type, value)
+  defp convert_param({:binary, type, value}), do: normalize_postgrex_decoded_value(binary_decode(type, value))
 
   defp convert_text_param(:int2, param), do: String.to_integer(param)
   defp convert_text_param(:int4, param), do: String.to_integer(param)
@@ -299,10 +299,6 @@ defmodule Air.PsqlServer.Protocol.Messages do
   defp convert_text_param(:boolean, text), do: String.downcase(text) == "true"
   defp convert_text_param(:text, param) when is_binary(param), do: param
   defp convert_text_param(:unknown, param) when is_binary(param), do: param
-
-  defp convert_binary_param(type, value), do:
-    postgrex_extension(type).decode(type_info(type), value, nil, extension_opts(type))
-    |> normalize_postgrex_decoded_value()
 
   defp normalize_postgrex_decoded_value(%Decimal{} = value), do: Decimal.to_float(value)
   defp normalize_postgrex_decoded_value(value), do: value
@@ -320,8 +316,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
   defp encode_value({_, _, nil}), do: <<-1::32>>
   defp encode_value({:text, _, value}), do: with_size(to_string(value))
   defp encode_value({:binary, type, value}), do:
-    postgrex_extension(type).encode(type_info(type), normalize_for_postgrex_encoding(type, value), nil, nil)
-    |> with_size()
+    binary_encode(type, normalize_for_postgrex_encoding(type, value))
 
   defp with_size(encoded), do:
     <<byte_size(encoded)::32, encoded::binary>>
@@ -340,28 +335,25 @@ defmodule Air.PsqlServer.Protocol.Messages do
   # We're using postgrex extensions to encode/decode binary values. This is somewhat hacky, since the
   # interface is not documented, but it allows us to freely reuse a lot of logic.
 
-  for {type, extension} <- [
-    int2: Postgrex.Extensions.Int2, int4: Postgrex.Extensions.Int4, int8: Postgrex.Extensions.Int8,
-    float4: Postgrex.Extensions.Float4, float8: Postgrex.Extensions.Float8,
-    numeric: Postgrex.Extensions.Numeric,
-    boolean: Postgrex.Extensions.Bool,
-    date: Postgrex.Extensions.Calendar, time: Postgrex.Extensions.Calendar, timestamp: Postgrex.Extensions.Calendar,
-    text: Postgrex.Extensions.Raw
+  for {psql_type, extension, extension_arg} <- [
+    {:int2, Int2, nil}, {:int4, Int4, nil}, {:int8, Int8, nil},
+    {:float4, Float4, nil}, {:float8, Float8, nil},
+    {:numeric, Numeric, nil},
+    {:boolean, Bool, nil},
+    {:date, Date, :elixir}, {:time, Time, :elixir}, {:timestamp, Timestamp, :elixir},
+    {:text, Raw, :reference}
   ] do
-    defp postgrex_extension(unquote(type)), do: unquote(extension)
-  end
+    extension = Module.concat(Postgrex.Extensions, extension)
 
-  defp type_info(:date), do: %Postgrex.TypeInfo{send: "date_send"}
-  defp type_info(:time), do: %Postgrex.TypeInfo{send: "time_send"}
-  defp type_info(:timestamp), do: %Postgrex.TypeInfo{send: "timestamp_send"}
-  defp type_info(_), do: nil
+    defp binary_decode(unquote(psql_type), param) do
+      case with_size(param), do: unquote(extension.decode(extension_arg))
+    end
 
-  defp extension_opts(type) do
-    case postgrex_extension(type) do
-      Postgrex.Extensions.Raw -> :reference
-      _ -> nil
+    defp binary_encode(unquote(psql_type), value) do
+      case value, do: unquote(extension.encode(extension_arg))
     end
   end
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Other helpers

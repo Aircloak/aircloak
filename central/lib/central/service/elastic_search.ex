@@ -16,27 +16,36 @@ defmodule Central.Service.ElasticSearch do
   query features
   """
   @spec record_query(Customer.t, Map.t) :: :ok | :error
-  def record_query(customer, params) do
-    aux = Map.get(params, :aux, %{})
-      |> Map.put(:customer, %{id: customer.id, name: customer.name})
-    params = params
-      |> Map.put(:aux, aux)
-      |> Map.put(:timestamp, Timex.format!(Timex.now(), "{ISO:Extended}"))
-    record(:customer, :query, params)
-  end
+  def record_query(customer, params), do:
+    record(:customer, :query,
+      update_in(params, [:aux], &Map.put(&1 || %{}, :customer, %{id: customer.id, name: customer.name})))
+
+  @doc "Records air presence in elastic search."
+  @spec record_air_presence(Customer.t, String.t, Central.Service.Customer.air_status) :: :ok | :error
+  def record_air_presence(customer, air_name, status), do:
+    record(:customer, :air, %{
+      name: air_name,
+      status: status,
+      customer: %{id: customer.id, name: customer.name}
+    })
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp record(index, type, data) do
-    elastic_endpoint = Central.site_setting("elastic_search_endpoint")
-    url = "#{elastic_endpoint}/#{index}/#{type}"
-    case HTTPoison.post(url, Poison.encode!(data)) do
-      {:ok, _} -> :ok
-      other ->
-        Logger.error("Got unexpected response from ElasticSearch: #{inspect other}")
-        :error
+  if Mix.env == :test do
+    defp record(_index, _type, _data), do: :ok
+  else
+    defp record(index, type, data) do
+      elastic_endpoint = Central.site_setting("elastic_search_endpoint")
+      url = "#{elastic_endpoint}/#{index}/#{type}"
+      data = Map.put(data, :timestamp, Timex.format!(Timex.now(), "{ISO:Extended}"))
+      case HTTPoison.post(url, Poison.encode!(data)) do
+        {:ok, _} -> :ok
+        other ->
+          Logger.error("Got unexpected response from ElasticSearch: #{inspect other}")
+          :error
+      end
     end
   end
 end

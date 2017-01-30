@@ -1,5 +1,18 @@
 This document serves to describe breaking changes and provide upgrade hints when major changes are introduced. When you're creating a pull with some major changes, please add brief upgrade instructions here.
 
+## Upgraded local central database image to PostgreSQL 9.5
+
+To apply the change locally:
+
+  1. `DB_ENV="dev" central/db/container.sh stop`
+  2. `DB_ENV="test" central/db/container.sh stop`
+  3. `mv /docker_volumes/central_db_dev /tmp/ && mv /docker_volumes/central_db_test /tmp/`
+  5. `central/db/build-image.sh`
+  6. `./start-dependencies.sh`
+  7. `cd central && make recreate-db`
+
+Notice that this will regenerate your central database from scratch, and you'll lose all the data you previously had.
+
 ## Migration to Erlang 19 & Elixir 1.3.4
 
 - OS X users: manually install Erlang (see [here](./osx_erlang_with_odbc.md) for instructions)

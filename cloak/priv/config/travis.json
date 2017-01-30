@@ -30,7 +30,8 @@
       "parameters": {
         "hostname": "localhost",
         "username": "root",
-        "database": "cloaktest1"
+        "database": "cloaktest1",
+        "password": ""
       },
       "tables": {
       }
