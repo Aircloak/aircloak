@@ -6,55 +6,116 @@ env:
     - COMPILER=g++-4.8
     - CXX="g++-4.8"
     - CC="gcc-4.8"
-  matrix:
-    - TEST="integration"
-    - TEST="air"
-    - TEST="cloak"
-    - TEST="aux"
-    - TEST="central"
-cache:
-  directories:
-  - common/elixir/deps
-  - common/elixir/_build
-  - air/deps
-  - air/_build
-  - air/node_modules
-  - air/user_docs/vendor/bundle
-  - .mix
-  - cloak/deps
-  - cloak/_build
-  - bom/deps
-  - bom/_build
-  - central/deps
-  - central/_build
-  - central/node_modules
-  - integration_tests/deps
-  - integration_tests/_build
-  - $HOME/.asdf
-  - $HOME/.yarn-cache
-services:
-  - mongodb
+matrix:
+  include:
+    - env: TEST="integration"
+      cache:
+        directories:
+        - common/elixir/deps
+        - common/elixir/_build
+        - air/deps
+        - air/_build
+        - air/node_modules
+        - air/user_docs/vendor/bundle
+        - .mix
+        - cloak/deps
+        - cloak/_build
+        - central/deps
+        - central/_build
+        - central/node_modules
+        - integration_tests/deps
+        - integration_tests/_build
+        - $HOME/.asdf
+        - $HOME/.yarn-cache
+      addons:
+        postgresql: "9.5"
+        apt:
+          sources:
+          - ubuntu-toolchain-r-test
+          packages:
+          - jq
+          - gcc-4.8
+          - g++-4.8
+          - unixodbc
+          - unixodbc-dev
+          - odbc-postgresql
+      before_install:
+        - psql -c "CREATE DATABASE cloaktest1 ENCODING 'UTF8';" -U postgres
+        - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
+    - env: TEST="air"
+      cache:
+        directories:
+        - air/deps
+        - air/_build
+        - air/node_modules
+        - air/user_docs/vendor/bundle
+        - $HOME/.asdf
+        - $HOME/.yarn-cache
+      addons:
+        postgresql: "9.5"
+        apt:
+          sources:
+          - ubuntu-toolchain-r-test
+          packages:
+          - jq
+    - env: TEST="cloak"
+      cache:
+        directories:
+        - .mix
+        - cloak/deps
+        - cloak/_build
+      services:
+        - mongodb
+      addons:
+        postgresql: "9.5"
+        mariadb: "10.0"
+        apt:
+          sources:
+          - ubuntu-toolchain-r-test
+          - mongodb-3.2-precise
+          packages:
+          - jq
+          - gcc-4.8
+          - g++-4.8
+          - unixodbc
+          - unixodbc-dev
+          - odbc-postgresql
+          - mongodb-org-server
+      before_install:
+        - psql -c "CREATE DATABASE cloaktest1 ENCODING 'UTF8';" -U postgres
+        - mysql -e "CREATE DATABASE cloaktest1 DEFAULT CHARACTER SET utf8;" -u root
+        - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
+    - env: TEST="aux"
+      cache:
+        directories:
+        - common/elixir/deps
+        - common/elixir/_build
+        - .mix
+        - bom/deps
+        - bom/_build
+      addons:
+        apt:
+          packages:
+          - jq
+    - env: TEST="central"
+      cache:
+        directories:
+        - central/deps
+        - central/_build
+        - central/node_modules
+        - $HOME/.asdf
+        - $HOME/.yarn-cache
+      addons:
+        postgresql: "9.5"
+        mariadb: "10.0"
+      addons:
+        apt:
+          packages:
+          - jq
 addons:
-  postgresql: "9.4"
-  mariadb: "10.0"
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    - mongodb-3.2-precise
-    packages:
-    - jq
-    - gcc-4.8
-    - g++-4.8
-    - unixodbc
-    - unixodbc-dev
-    - odbc-postgresql
-    - mongodb-org-server
   hosts:
     - travis.aircloak.local
 before_install:
-  - psql -c "CREATE DATABASE cloaktest1 ENCODING 'UTF8';" -U postgres
-  - mysql -e "CREATE DATABASE cloaktest1 DEFAULT CHARACTER SET utf8;" -u root
-  - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
   - ./travis-asdf-setup.sh
   - npm i -g yarn@0.16.1
 before_script:
