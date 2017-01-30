@@ -447,7 +447,10 @@ defmodule Cloak.Aql.Compiler do
     end)
     order_by = for {column, direction} <- query.order_by, do: {Map.get(aliases, column, column), direction}
     group_by = for identifier <- query.group_by, do: Map.get(aliases, identifier, identifier)
-    %Query{query | column_titles: column_titles, columns: columns, group_by: group_by, order_by: order_by}
+    where = update_in(query.where, [Query.Lenses.conditions_terminals()], &Map.get(aliases, &1, &1))
+    having = update_in(query.having, [Query.Lenses.conditions_terminals()], &Map.get(aliases, &1, &1))
+    %Query{query | column_titles: column_titles, columns: columns,
+      group_by: group_by, order_by: order_by, where: where, having: having}
   end
   defp compile_aliases(query), do: query
 
