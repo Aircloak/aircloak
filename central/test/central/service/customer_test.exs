@@ -89,6 +89,12 @@ defmodule Central.Service.CustomerTest do
     assert :offline == air_data(customer, "air2").status
   end
 
+  test "storing cloak status" do
+    customer = create_customer()
+    assert :ok == Customer.update_air_status(customer, "air1", :online)
+    assert :ok == Customer.update_cloak_status(customer, "air1", "cloak1", :online)
+  end
+
   test "records query executions" do
     metrics = %{"user_count" => 10}
     features = %{"some" => "feature"}

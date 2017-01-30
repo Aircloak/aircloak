@@ -10,8 +10,8 @@ defmodule Central.Service.Customer do
 
   import Ecto.Query, only: [from: 2]
 
-  @type air :: %{name: String.t, status: air_status, customer: Customer.t}
-  @type air_status :: :offline | :online
+  @type air :: %{name: String.t, status: online_status, customer: Customer.t}
+  @type online_status :: :offline | :online
 
   #-----------------------------------------------------------------------------------------------------------
   # API functions
@@ -102,9 +102,9 @@ defmodule Central.Service.Customer do
   end
 
   @doc "Updates the air status."
-  @spec update_air_status(Customer.t, String.t, air_status) :: :ok
+  @spec update_air_status(Customer.t, String.t, online_status) :: :ok
   def update_air_status(customer, air_name, status) do
-    encoded_status = encode_air_status(status)
+    encoded_status = encode_online_status(status)
     mtime = NaiveDateTime.utc_now()
     {1, _} = Repo.insert_all("airs",
       [%{
@@ -123,7 +123,7 @@ defmodule Central.Service.Customer do
   @doc "Resets statuses of all known airs to offline."
   @spec reset_air_statuses() :: :ok
   def reset_air_statuses() do
-    Repo.update_all("airs", set: [status: encode_air_status(:offline)])
+    Repo.update_all("airs", set: [status: encode_online_status(:offline)])
     :ok
   end
 
@@ -136,7 +136,33 @@ defmodule Central.Service.Customer do
       select: %{name: a.name, status: a.status, customer: c}
     )
     |> Repo.all()
-    |> Enum.map(&%{&1 | status: decode_air_status(&1.status)})
+    |> Enum.map(&%{&1 | status: decode_online_status(&1.status)})
+  end
+
+  @doc "Updates the cloak status."
+  @spec update_cloak_status(Customer.t, String.t, String.t, online_status) :: :ok
+  def update_cloak_status(customer, air_name, cloak_name, status) do
+    air_id = Repo.one!(
+      from air in "airs",
+      where: air.customer_id == ^(customer.id) and air.name == ^air_name,
+      select: air.id
+    )
+
+    encoded_status = encode_online_status(status)
+    mtime = NaiveDateTime.utc_now()
+    {1, _} = Repo.insert_all("cloaks",
+      [%{
+        name: cloak_name,
+        air_id: air_id,
+        status: encoded_status,
+        inserted_at: mtime,
+        updated_at: mtime
+      }],
+      on_conflict: [set: [status: encoded_status, updated_at: mtime]],
+      conflict_target: [:name, :air_id]
+    )
+
+    :ok
   end
 
 
@@ -152,9 +178,9 @@ defmodule Central.Service.Customer do
     Central.site_setting("endpoint_key_base")
   end
 
-  defp encode_air_status(:offline), do: 0
-  defp encode_air_status(:online), do: 1
+  defp encode_online_status(:offline), do: 0
+  defp encode_online_status(:online), do: 1
 
-  defp decode_air_status(0), do: :offline
-  defp decode_air_status(1), do: :online
+  defp decode_online_status(0), do: :offline
+  defp decode_online_status(1), do: :online
 end

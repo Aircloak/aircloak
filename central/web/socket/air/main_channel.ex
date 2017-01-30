@@ -149,12 +149,14 @@ defmodule Central.Socket.Air.MainChannel do
     }
     Customer.record_query(customer, params)
   end
-  defp handle_call_with_retry("cloak_online", cloak_info, _socket) do
-    Logger.info("Cloak online #{Map.fetch!(cloak_info, "name")}")
+  defp handle_call_with_retry("cloak_online", cloak_info, socket) do
+    Central.Service.Customer.update_cloak_status(socket.assigns.customer, socket.assigns.air_name,
+      Map.fetch!(cloak_info, "name"), :online)
     :ok
   end
-  defp handle_call_with_retry("cloak_offline", cloak_info, _socket) do
-    Logger.info("Cloak offline #{Map.fetch!(cloak_info, "name")}")
+  defp handle_call_with_retry("cloak_offline", cloak_info, socket) do
+    Central.Service.Customer.update_cloak_status(socket.assigns.customer, socket.assigns.air_name,
+      Map.fetch!(cloak_info, "name"), :offline)
     :ok
   end
 
