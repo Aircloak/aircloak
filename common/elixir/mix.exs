@@ -29,7 +29,10 @@ defmodule Aircloak.ElixirCommon.Mixfile do
   end
 
   def application do
-    [extra_applications: [:logger, :poison]]
+    [
+      mod: {Aircloak, []},
+      extra_applications: [:logger, :poison]
+    ]
   end
 
   defp deps do

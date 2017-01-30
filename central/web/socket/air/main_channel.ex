@@ -156,6 +156,6 @@ defmodule Central.Socket.Air.MainChannel do
     defp monitor_channel(_customer, _air_name), do: :ok
   else
     defp monitor_channel(customer, air_name), do:
-      Central.AirStats.ConnectionMonitor.monitor_channel(customer, air_name)
+      Central.AirStats.register(customer, air_name)
   end
 end
