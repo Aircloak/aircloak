@@ -19,6 +19,29 @@ function banner() {
   # versions of Erlang, Elixir and NodeJS
   . ~/.asdf/asdf.sh
 
+  # setup database roles ----------------------------------------------
+
+  if [[ "$TEST" == "air" || "$TEST" == "integration" ]]; then
+
+    banner "air DB roles"
+
+    psql -U postgres -c "CREATE USER airtest CREATEDB;"
+    psql -U postgres -c "CREATE DATABASE air_test ENCODING 'UTF8';"
+    psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE air_test TO airtest;"
+    psql -U postgres -c "ALTER DATABASE air_test OWNER TO airtest;"
+
+  fi
+
+  if [[ "$TEST" == "central" || "$TEST" == "integration" ]]; then
+
+    banner "central DB roles"
+
+    psql -U postgres -c "CREATE USER central_test CREATEDB;"
+    psql -U postgres -c "CREATE DATABASE central_test ENCODING 'UTF8';"
+    psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE central_test TO central_test;"
+    psql -U postgres -c "ALTER DATABASE central_test OWNER TO central_test;"
+
+  fi
 
   # common/elixir -----------------------------------------------------
 
@@ -41,11 +64,6 @@ function banner() {
 
     banner "air"
     pushd air
-
-    psql -U postgres -c "CREATE USER airtest CREATEDB;"
-    psql -U postgres -c "CREATE DATABASE air_test ENCODING 'UTF8';"
-    psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE air_test TO airtest;"
-    psql -U postgres -c "ALTER DATABASE air_test OWNER TO airtest;"
 
     make deps
     mix compile --warnings-as-errors
@@ -86,15 +104,10 @@ function banner() {
 
   # central -----------------------------------------------------------
 
-  if [[ "$TEST" == "central" || "$TEST" == "integration" ]]; then
+  if [[ "$TEST" == "central" ]]; then
 
     banner "central"
     pushd central
-
-    psql -U postgres -c "CREATE USER central_test CREATEDB;"
-    psql -U postgres -c "CREATE DATABASE central_test ENCODING 'UTF8';"
-    psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE central_test TO central_test;"
-    psql -U postgres -c "ALTER DATABASE central_test OWNER TO central_test;"
 
     make deps
     mix compile --warnings-as-errors
