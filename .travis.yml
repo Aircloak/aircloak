@@ -28,7 +28,7 @@ matrix:
         - $HOME/.asdf
         - $HOME/.yarn-cache
       addons:
-        postgresql: "9.5"
+        postgresql: "9.4"
         apt:
           sources:
           - ubuntu-toolchain-r-test
@@ -56,7 +56,7 @@ matrix:
         - $HOME/.asdf
         - $HOME/.yarn-cache
       addons:
-        postgresql: "9.5"
+        postgresql: "9.4"
         apt:
           packages:
           - jq
@@ -76,7 +76,7 @@ matrix:
       addons:
         hosts:
         - travis.aircloak.local
-        postgresql: "9.5"
+        postgresql: "9.4"
         mariadb: "10.0"
         apt:
           sources:
@@ -120,7 +120,7 @@ matrix:
         - $HOME/.asdf
         - $HOME/.yarn-cache
       addons:
-        postgresql: "9.5"
+        postgresql: "9.4"
         mariadb: "10.0"
         apt:
           packages:
