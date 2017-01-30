@@ -35,6 +35,21 @@ defmodule Cloak.Query.ErrorTest do
     assert ~s/Usage of `x` is ambiguous./ == error
   end
 
+  test "reports an error on collision between alias and column in order by" do
+    assert_query "select count(height) as height from test_errors order by height", %{error: error}
+    assert ~s/Usage of `height` is ambiguous./ == error
+  end
+
+  test "reports an error on collision between alias and column in where" do
+    assert_query "select abs(height) as height from test_errors where height = 20", %{error: error}
+    assert ~s/Usage of `height` is ambiguous./ == error
+  end
+
+  test "reports an error on collision between alias and column in group by" do
+    assert_query "select abs(height) as height from test_errors group by height", %{error: error}
+    assert ~s/Usage of `height` is ambiguous./ == error
+  end
+
   test "query reports an error on invalid statement" do
     assert_query "invalid statement", %{error: "Expected `select or show` at line 1, column 1."}
   end
