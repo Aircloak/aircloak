@@ -86,7 +86,7 @@ function banner() {
 
   # central -----------------------------------------------------------
 
-  if [[ "$TEST" == "central" ]]; then
+  if [[ "$TEST" == "central" || "$TEST" == "integration" ]]; then
 
     banner "central"
     pushd central
