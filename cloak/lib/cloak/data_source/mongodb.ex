@@ -63,7 +63,7 @@ defmodule Cloak.DataSource.MongoDB do
   def load_tables(connection, table) do
     map_code = """
       function() {
-        m_sub = function(base, object) {
+        map_subfield = function(base, object) {
           if (object === undefined || object == null) {
             return;
           } else if (object instanceof Date) {
@@ -71,19 +71,21 @@ defmodule Cloak.DataSource.MongoDB do
           } else if (object instanceof ObjectId) {
             emit(base, "object_id");
           } else if (object instanceof BinData) {
-            emit(base, "bin_data");
+            emit(base, "string");
           } else if (Array.isArray(object)) {
-            m_sub(base + "[]", object[0]);
+            emit(base, "array");
+            map_subfield(base + "[]", object[0]);
           } else if (typeof object == "object") {
+            emit(base, "object");
             for(var key in object) {
-              m_sub(base + "." + key, object[key]);
+              map_subfield(base + "." + key, object[key]);
             }
           } else {
             emit(base, typeof object);
           }
         };
         for(var key in this) {
-          m_sub(key, this[key]);
+          map_subfield(key, this[key]);
         }
       }
     """
@@ -94,9 +96,10 @@ defmodule Cloak.DataSource.MongoDB do
     """
     connection
     |> execute!([{:mapreduce, table.db_name}, {:map, map_code}, {:reduce, reduce_code}, {:out, %{inline: 1}}])
-    |> Enum.map(fn (%{"_id" => name, "value" => type}) ->
-      {name, parse_type(type)}
-    end)
+    # 'array' and 'object' type values are only used for detection of 'mixed' type fields
+    |> Enum.reject(fn (%{"value" => type}) -> type == "array" or type == "object" end)
+    |> Enum.map(fn (%{"_id" => name, "value" => type}) -> {name, parse_type(type)} end)
+    |> drop_unknown_subfields()
     |> Schema.build(table)
   end
 
@@ -121,8 +124,7 @@ defmodule Cloak.DataSource.MongoDB do
   defp parse_type("number"), do: :real
   defp parse_type("boolean"), do: :boolean
   defp parse_type("string"), do: :text
-  defp parse_type("bin_data"), do: :text
-  defp parse_type("mixed"), do: :text
+  defp parse_type("mixed"), do: :unknown
   defp parse_type("date"), do: :datetime
   defp parse_type(type), do: {:unsupported, type}
 
@@ -151,4 +153,16 @@ defmodule Cloak.DataSource.MongoDB do
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _reason}), do: nil
+
+  # In the case of arrays or objects with mixed types, we need to drop all their subfields.
+  defp drop_unknown_subfields(fields) do
+    (for {name, :unknown} <- fields, do: name)
+    |> Enum.reduce(fields, fn (unknown_field, filtered_fields) ->
+        array_prefix = unknown_field <> "[]"
+        object_prefix = unknown_field <> "."
+        Enum.reject(filtered_fields, fn ({name, _type}) ->
+          String.starts_with?(name, array_prefix) or String.starts_with?(name, object_prefix)
+        end)
+    end)
+  end
 end

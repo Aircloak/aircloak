@@ -200,9 +200,9 @@ defmodule Cloak.Sql.TypeChecker.Test do
     end
 
     test "even when multiple occur" do
-      type = type_first_column("SELECT sqrt(div(numeric, 10)) FROM table")
+      type = type_first_column("SELECT abs(div(numeric, 10)) FROM table")
       [{%Expression{name: "numeric"}, [
-         {:dangerously_discontinuous, "sqrt"},
+         {:dangerously_discontinuous, "abs"},
          {:dangerously_discontinuous, "div"}]
       }] = type.narrative_breadcrumbs
     end
@@ -258,7 +258,7 @@ defmodule Cloak.Sql.TypeChecker.Test do
 
   defp type_first_column(query) do
     compiled_query = compile!(query)
-    TypeChecker.type(hd(compiled_query.columns), compiled_query)
+    TypeChecker.establish_type(hd(compiled_query.columns), compiled_query)
   end
 
   defp compile!(query_string) do

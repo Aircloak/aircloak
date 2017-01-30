@@ -305,17 +305,17 @@ defmodule Cloak.Sql.Function.Test do
     end
 
     test "knows `#{function_name}` isn't allowed in a subquery", do:
-      refute Function.allowed_in_subquery?({:function, unquote(function_name), []})
+      assert Function.has_attribute?({:function, unquote(function_name), []}, :not_in_subquery)
   end)
 
   test "can tell when a function splits rows", do:
-    assert Function.row_splitting_function?("extract_matches")
+    assert Function.has_attribute?("extract_matches", :row_splitter)
 
   test "can tell when a function does not split rows", do:
-    refute Function.row_splitting_function?("extract_match")
+    refute Function.has_attribute?("extract_match", :row_splitter)
 
   test "knows `ceil` is allowed in a subquery", do:
-    assert Function.allowed_in_subquery?({:function, "ceil", []})
+    refute Function.has_attribute?({:function, "ceil", []}, :not_in_subquery)
 
   test "returns true if function exists", do: assert Function.exists?({:function, "*", []})
 

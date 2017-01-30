@@ -5,10 +5,12 @@ defmodule Cloak.Query.AnonymizationTest do
 
   setup_all do
     :ok = Cloak.Test.DB.create_table("anonymizations", "number REAL")
+    :ok = Cloak.Test.DB.create_table("other_table", "dummy BOOLEAN")
   end
 
   setup do
     Cloak.Test.DB.clear_table("anonymizations")
+    Cloak.Test.DB.clear_table("other_table")
     :ok
   end
 
@@ -16,6 +18,13 @@ defmodule Cloak.Query.AnonymizationTest do
     :ok = insert_rows(_user_ids = 1..100, "anonymizations", ["number"], [6])
     :ok = insert_rows(_user_ids = 0..0, "anonymizations", ["number"], [2])
     assert_query "select count(*) from anonymizations where number >= 0 and number < 10",
+      %{columns: ["count"], rows: [%{row: [100]}]}
+  end
+
+  test "shrink and drop on a function" do
+    :ok = insert_rows(_user_ids = 1..100, "anonymizations", ["number"], [-6])
+    :ok = insert_rows(_user_ids = 0..0, "anonymizations", ["number"], [-2])
+    assert_query "select count(*) from anonymizations where abs(number) >= 0 and abs(number) < 10",
       %{columns: ["count"], rows: [%{row: [100]}]}
   end
 
@@ -91,6 +100,43 @@ defmodule Cloak.Query.AnonymizationTest do
         ) y
         GROUP BY user_id
       ) x
+    """, %{columns: ["count"], rows: [%{row: [100]}]})
+  end
+
+  test "range in join condition" do
+    :ok = insert_rows(_user_ids = 1..100, "anonymizations", ["number"], [180])
+    :ok = insert_rows(_user_ids = [101], "anonymizations", ["number"], [185])
+    :ok = insert_rows(_user_ids = 1..101, "other_table", [], [])
+
+    assert_query("""
+      SELECT count(*)
+      FROM (
+        SELECT anonymizations.user_id
+        FROM anonymizations
+        JOIN other_table
+          ON anonymizations.user_id = other_table.user_id
+          AND anonymizations.number > 0
+          AND anonymizations.number < 200
+      ) x
+    """, %{columns: ["count"], rows: [%{row: [100]}]})
+  end
+
+  test "range in nested join condition" do
+    :ok = insert_rows(_user_ids = 1..100, "anonymizations", ["number"], [180])
+    :ok = insert_rows(_user_ids = [101], "anonymizations", ["number"], [185])
+    :ok = insert_rows(_user_ids = 1..101, "other_table", [], [])
+
+    assert_query("""
+      SELECT count(*) FROM (
+        SELECT user_id FROM (
+          SELECT anonymizations.user_id AS user_id
+          FROM anonymizations
+          JOIN other_table
+            ON anonymizations.user_id = other_table.user_id
+            AND anonymizations.number > 0
+            AND anonymizations.number < 200
+        ) x
+      ) y
     """, %{columns: ["count"], rows: [%{row: [100]}]})
   end
 end

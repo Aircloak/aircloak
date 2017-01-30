@@ -38,6 +38,12 @@
             <kbd>Ctrl + Enter</kbd>
           </div>
         <% end %>
+
+        <div class="footer">
+          <div class="content">
+            <small><a href="<%= license_path(@conn, :index) %>">Third Party Licenses</a></small>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -57,7 +63,7 @@
       };
       const selectableInfoProps = {
         selectables: <%= selectables(@conn, @data_source, @views) %>,
-        readOnly: true
+        newViewURL: "<%= data_source_view_path(@conn, :new, @data_source.id) %>"
       };
 
       App.viewEditor(viewEditorProps, document.getElementById("viewEditor"));

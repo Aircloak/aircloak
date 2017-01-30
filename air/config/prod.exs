@@ -1,5 +1,7 @@
 use Mix.Config
 
+config :air, :deploy_config_file, "config.json"
+
 config :air, Air.Endpoint,
   cache_static_manifest: "priv/static/manifest.json"
 
@@ -51,9 +53,6 @@ config :phoenix, :serve_endpoints, true
 
 config :air, Air.BOM,
   location: "priv/bom.json"
-
-config :air, Air.PsqlServer,
-  port: 5432
 
 # Where to expect the Central endpoint to be located
 config :air, :central,

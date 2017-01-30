@@ -23,6 +23,7 @@ defmodule Air.Schemas.Query do
     field :features, :map
     field :session_id, Ecto.UUID
     field :parameters, :map
+    field :cloak_id, :string
 
     belongs_to :user, User
     belongs_to :data_source, DataSource
@@ -32,7 +33,7 @@ defmodule Air.Schemas.Query do
 
   @required_fields ~w()a
   @optional_fields ~w(
-    statement data_source_id tables result execution_time users_count features session_id parameters
+    cloak_id statement data_source_id tables result execution_time users_count features session_id parameters
   )a
 
 
@@ -64,8 +65,7 @@ defmodule Air.Schemas.Query do
 
   @doc "Exports the query as CSV"
   @spec to_csv_stream(t) :: Enumerable.t
-  def to_csv_stream(%{result: result_json}) do
-    result = Poison.decode!(result_json)
+  def to_csv_stream(%{result: result}) do
     header = result["columns"]
     rows = Enum.flat_map(result["rows"],
       fn(%{"occurrences" => occurrences, "row" => row}) -> List.duplicate(row, occurrences) end)

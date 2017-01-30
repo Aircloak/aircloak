@@ -1,5 +1,7 @@
 use Mix.Config
 
+config :air, :deploy_config_file, "dev.json"
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #
@@ -35,4 +37,4 @@ config :phoenix, :stacktrace_depth, 20
 config :air, :central,
   central_site: "ws://localhost:7080",
   min_reconnect_interval: 1000,
-  max_reconnect_interval: 50000
+  max_reconnect_interval: 1000

@@ -4,11 +4,6 @@ defmodule Central.Service.CustomerTest do
   alias Central.Schemas
   alias Central.Service.Customer
 
-  @valid_attrs %{
-    name: "customer name",
-  }
-  @invalid_attrs %{}
-
   test "returns customers - none when none exist" do
     assert Customer.all() == []
   end
@@ -72,14 +67,36 @@ defmodule Central.Service.CustomerTest do
     assert {:error, :invalid_token} = Customer.from_token("bogus token")
   end
 
+  test "storing air status" do
+    customer = create_customer()
+    assert :ok == Customer.update_air_status(customer, "air1", :online)
+    assert :online == air_data(customer, "air1").status
+  end
+
+  test "updating air status" do
+    customer = create_customer()
+    Customer.update_air_status(customer, "air1", :online)
+    Customer.update_air_status(customer, "air1", :offline)
+    assert :offline == air_data(customer, "air1").status
+  end
+
+  test "resetting air statuses" do
+    customer = create_customer()
+    Customer.update_air_status(customer, "air1", :online)
+    Customer.update_air_status(customer, "air2", :online)
+    Customer.reset_air_statuses()
+    assert :offline == air_data(customer, "air1").status
+    assert :offline == air_data(customer, "air2").status
+  end
+
   test "records query executions" do
     metrics = %{"user_count" => 10}
     features = %{"some" => "feature"}
     aux = %{"other" => "data"}
     params = %{
-      metrics,
-      features,
-      aux,
+      metrics: metrics,
+      features: features,
+      aux: aux,
     }
     customer = create_customer()
     assert :ok == Customer.record_query(customer, params)
@@ -94,4 +111,7 @@ defmodule Central.Service.CustomerTest do
     assert {:ok, customer} = Repo.insert(Schemas.Customer.changeset(%Schemas.Customer{}, %{name: name}))
     customer
   end
+
+  defp air_data(customer, air_name), do:
+    Enum.find(Customer.airs(), &(&1.name == air_name && &1.customer.id == customer.id))
 end

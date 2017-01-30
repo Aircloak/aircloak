@@ -27,9 +27,6 @@
     <div class="column align-footer col-sm-3">
       <div data-spy="affix">
         <div id="selectable-info"></div>
-        <a href="<%= data_source_view_path(@conn, :new, @data_source.id) %>">
-          Create a view
-        </a>
       </div>
     </div>
   </div>
@@ -47,6 +44,7 @@
         userId: "<%= @current_user.id %>",
         sessionId: "<%= @session_id %>",
         selectables: <%= selectables(@conn, @data_source, @views) %>,
+        newViewURL: "<%= data_source_view_path(@conn, :new, @data_source.id) %>"
       };
 
       App.selectableInfo(props, document.getElementById("selectable-info"));

@@ -11,7 +11,8 @@ defmodule Cloak.Query.DBEmulatorTest do
       %{method: "text_to_date", columns: ["date"]},
       %{method: "text_to_integer", columns: ["number"]},
     ]
-    :ok = Cloak.Test.DB.create_table("#{@prefix}emulated", "value TEXT, date TEXT, number TEXT", [decoders: decoders])
+    :ok = Cloak.Test.DB.create_table("#{@prefix}emulated", "value TEXT, date TEXT, number TEXT",
+      [decoders: decoders])
     :ok = Cloak.Test.DB.create_table("#{@prefix}joined", "age INTEGER")
     :ok
   end
@@ -49,6 +50,17 @@ defmodule Cloak.Query.DBEmulatorTest do
     assert_query """
         select value from (select user_id, left(value, 1) as value from #{@prefix}emulated) as t where value = 'a'
       """, %{rows: [%{occurrences: 10, row: ["a"]}]}
+    assert_query """
+        select value from (select user_id, value from #{@prefix}emulated where length(value) = 3) as t
+      """, %{rows: [%{occurrences: 10, row: ["abc"]}]}
+  end
+
+  test "where inequality with functions" do
+    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["number"], ["-3"])
+    :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["number"], ["-11"])
+
+    assert_query "select count(*) from #{@prefix}emulated where abs(number) > 0 and abs(number) < 10",
+      %{rows: [%{row: [10]}]}
   end
 
   describe "aggregation in emulated subqueries" do
@@ -87,6 +99,13 @@ defmodule Cloak.Query.DBEmulatorTest do
         order by v
         """, %{rows: [%{occurrences: 20, row: ["1"]}, %{occurrences: 20, row: ["a"]},
           %{occurrences: 20, row: ["x"]}, %{occurrences: 20, row: [nil]}]}
+    end
+
+    test "where function" do
+      assert_query """
+          select avg(v) from (select user_id, count(value) as v from
+          #{@prefix}emulated where length(value) = 3 group by user_id) as t
+        """, %{rows: [%{occurrences: 1, row: [2.0]}]}
     end
 
     test "having inequality" do
@@ -324,6 +343,34 @@ defmodule Cloak.Query.DBEmulatorTest do
           inner join
           (select user_id from #{@prefix}joined group by user_id) y
           on x.user_id = y.user_id
+        """, %{rows: [%{occurrences: 1, row: [5]}]}
+    end
+
+    test "range in a join condition" do
+      :ok = insert_rows(_user_ids = 21..25, "#{@prefix}emulated", ["number"], ["3"])
+
+      assert_query """
+        select count(*) from
+          #{@prefix}emulated
+          join #{@prefix}joined
+          on #{@prefix}emulated.user_id = #{@prefix}joined.user_id
+          and #{@prefix}emulated.number >= 0 and #{@prefix}emulated.number < 10
+          where number = 3
+        """, %{rows: [%{occurrences: 1, row: [5]}]}
+    end
+
+    test "range in a nested join condition" do
+      :ok = insert_rows(_user_ids = 21..25, "#{@prefix}emulated", ["number"], ["3"])
+
+      assert_query """
+        select count(*) from (
+          select #{@prefix}emulated.user_id from
+            #{@prefix}emulated
+            join #{@prefix}joined
+            on #{@prefix}emulated.user_id = #{@prefix}joined.user_id
+            and #{@prefix}emulated.number >= 0 and #{@prefix}emulated.number < 10
+            where number = 3
+        ) x
         """, %{rows: [%{occurrences: 1, row: [5]}]}
     end
 

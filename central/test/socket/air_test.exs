@@ -31,7 +31,7 @@ defmodule Central.Socket.AirTest do
   end
 
   defp connect!(params \\ %{}) do
-    TestSocketHelper.connect!(Map.merge(default_params, params))
+    TestSocketHelper.connect!(Map.merge(default_params(), params))
   end
 
   defp join_main_channel(socket) do

@@ -87,7 +87,8 @@ defmodule Cloak.Sql.Compiler do
       |> verify_joins()
       |> cast_where_clauses()
       |> verify_where_clauses()
-      |> align_ranges(:where)
+      |> align_ranges(Lens.key(:where), :where)
+      |> align_join_ranges()
       |> add_subquery_ranges()
       |> verify_having()
       |> set_emulation_flag()
@@ -95,8 +96,8 @@ defmodule Cloak.Sql.Compiler do
       |> calculate_db_columns()
       |> verify_limit()
       |> verify_offset()
-      |> verify_function_usage_for_selected_columns()
-      |> verify_function_usage_for_condition_clauses()
+      |> TypeChecker.validate_allowed_usage_of_math_and_functions()
+      |> optimize_columns_from_projected_tables()
       |> parse_row_splitters()
       |> partition_selected_columns()
     }
@@ -193,6 +194,68 @@ defmodule Cloak.Sql.Compiler do
   defp column_ast(table_name, column_name), do:
     {:identifier, {:quoted, table_name}, {:quoted, column_name}}
 
+  defp optimize_columns_from_projected_tables(%Query{projected?: false} = query), do:
+    # We're reducing the amount of selected columns from projected subqueries to only
+    # those columns which we in fact need in the outer query (`query`).
+    #
+    # Notice that this has to be done after all verifications have been performed. The reason is that we're
+    # conflating the list of selected columns and the list of available columns in the field `columns`.
+    # Therefore, we need to perform all checks with all projected table columns selected, and only then can
+    # we optimize the list of selected columns from the projected subquery.
+    #
+    # These two fields should likely be separated, and then we could invoke this function earlier. However,
+    # even then, this function can only be invoked after `db_columns` have been calculated, because that is
+    # the field we use to decide which columns from projected tables do we in fact need.
+    Lens.map(Query.Lenses.direct_projected_subqueries(), query,
+      fn(projected_subquery) ->
+        update_in(
+          projected_subquery.ast,
+          &optimized_projected_subquery_ast(&1, required_column_names(query, projected_subquery))
+        )
+      end
+    )
+  defp optimize_columns_from_projected_tables(%Query{projected?: true} = query), do:
+    # If this query is projected, then the list was already optimized when the ast for this query
+    # has been initially generated, so no need to do anything.
+    query
+
+  defp required_column_names(query, projected_subquery), do:
+    # all db columns of the outer query which are from this projected table
+    query.db_columns
+    |> Enum.filter(&match?(%{table: %{name: _}}, &1))
+    |> Enum.filter(&(&1.table.name == projected_subquery.alias))
+    |> Enum.map(&(&1.name))
+    |> Enum.concat([
+      # append uid column
+      DataSource.table(projected_subquery.ast.data_source, projected_subquery.alias).user_id
+    ])
+    |> Enum.into(MapSet.new())
+
+  defp optimized_projected_subquery_ast(ast, required_column_names), do:
+    reindex_db_columns(%Query{ast |
+      columns:
+        Enum.filter(ast.columns, &MapSet.member?(required_column_names, &1.name)),
+      db_columns:
+        Enum.filter(ast.db_columns, &MapSet.member?(required_column_names, &1.name)),
+      column_titles:
+        Enum.filter(ast.column_titles, &MapSet.member?(required_column_names, &1))
+    })
+
+  defp reindex_db_columns(query), do:
+    # This is a somewhat dirty fix which brings the query into a consistent state after we've removed some
+    # columns from the selection. In this case, column indices are sparse (e.g. 0, 2, 4), so we need to
+    # reindex to make them sequential again (e.g. 0, 1, 2).
+    #
+    # A better solution would be to resolve projected tables after the compilation is done. Then,
+    # we can treat projected table as a regular table in the compiler, and after compilation we
+    # know which columns are exactly needed, so we can substitute the table with the corresponding
+    # subquery and get correct indices computed.
+    Enum.reduce(
+      query.db_columns,
+      %Query{query | next_row_index: 0, db_columns: []},
+      &Query.add_db_column(&2, &1)
+    )
+
 
   # -------------------------------------------------------------------
   # Subqueries
@@ -220,7 +283,7 @@ defmodule Cloak.Sql.Compiler do
         |> validate_offset("Subquery `#{alias}`")
         |> align_limit()
         |> align_offset()
-        |> align_ranges(:having)
+        |> align_ranges(Lens.key(:having), :having)
         |> carry_ranges()
       {:error, error} -> raise CompilationError, message: error
     end
@@ -255,9 +318,9 @@ defmodule Cloak.Sql.Compiler do
     end
   end
 
-  defp min_column(column), do: Expression.db_function("min", [column], column.type, true) |> alias_column()
+  defp min_column(column), do: Expression.function("min", [column], column.type, true) |> alias_column()
 
-  defp max_column(column), do: Expression.db_function("max", [column], column.type, true) |> alias_column()
+  defp max_column(column), do: Expression.function("max", [column], column.type, true) |> alias_column()
 
   defp alias_column(column), do: %{column | alias: new_carry_alias()}
 
@@ -489,13 +552,8 @@ defmodule Cloak.Sql.Compiler do
     end
   end
 
-  defp precompile_functions(%Query{} = query) do
-    %Query{query |
-      columns: precompile_functions(query.columns),
-      group_by: precompile_functions(query.group_by),
-      order_by: (for {column, direction} <- query.order_by, do: {precompile_function(column), direction}),
-    }
-  end
+  defp precompile_functions(%Query{} = query), do:
+    update_in(query, [Query.Lenses.query_expressions()], &precompile_function/1)
   defp precompile_functions(columns), do:
     Enum.map(columns, &precompile_function/1)
 
@@ -583,20 +641,19 @@ defmodule Cloak.Sql.Compiler do
     end
   end
 
-  defp verify_function_subquery_usage({:function, function, [argument]}, %Query{subquery?: false})
-      when function in ["min", "max", "median"] do
+  defp verify_function_subquery_usage({:function, name, [argument]}, %Query{subquery?: false})
+      when name in ["min", "max", "median"] do
     type = Function.type(argument)
     if Enum.member?([:text, :date, :time, :datetime], type) do
       raise CompilationError, message:
-        "Function `#{function}` is allowed over arguments of type `#{type}` only in subqueries."
+        "Function `#{name}` is allowed over arguments of type `#{type}` only in subqueries."
     end
     :ok
   end
   defp verify_function_subquery_usage(_function, %Query{subquery?: false}), do: :ok
-  defp verify_function_subquery_usage(function, %Query{subquery?: true}) do
-    unless Function.allowed_in_subquery?(function) do
-      raise CompilationError, message:
-        "Function `#{column_title(function)}` is not allowed in subqueries."
+  defp verify_function_subquery_usage({:function, name, _}, %Query{subquery?: true}) do
+    if Function.has_attribute?(name, :not_in_subquery) do
+      raise CompilationError, message: "Function `#{name}` is not allowed in subqueries."
     end
   end
 
@@ -635,6 +692,7 @@ defmodule Cloak.Sql.Compiler do
 
   defp parse_row_splitters(%Query{} = query) do
     {transformed_columns, query} = transform_splitter_columns(query, query.columns)
+    validate_row_splitters_conditions(query)
     %Query{query | columns: transformed_columns}
   end
 
@@ -650,7 +708,7 @@ defmodule Cloak.Sql.Compiler do
   end
 
   defp transform_splitter_column(expression = %Expression{function?: true}, query) do
-    if Function.row_splitting_function?(expression.function) do
+    if Function.has_attribute?(expression, :row_splitter) do
       # We are making the simplifying assumption that row splitting functions have
       # the value column returned as part of the first column
       {splitter_row_index, query} = add_row_splitter(query, expression)
@@ -684,6 +742,16 @@ defmodule Cloak.Sql.Compiler do
     end
   end
 
+  defp validate_row_splitters_conditions(%Query{emulated_where: conditions}) do
+    conditions
+    |> get_in([Query.Lenses.conditions_terminals()])
+    |> Enum.any?(&Function.has_attribute?(&1, :row_splitter))
+    |> if do
+      raise CompilationError, message:
+        "Row splitter function used in the `WHERE` clause has to be first used identically in the `SELECT` clause."
+    end
+  end
+
   defp compile_order_by(%Query{order_by: []} = query), do: query
   defp compile_order_by(%Query{columns: columns, order_by: order_by_spec} = query) do
     invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) -> Enum.member?(columns, column) end)
@@ -707,15 +775,15 @@ defmodule Cloak.Sql.Compiler do
           message: "#{negative_condition_string(condition)} is not supported in a subquery."
     end
 
-    # extract conditions using encoded columns
-    {encoded_column_clauses, safe_clauses} = Enum.partition(query.where, &encoded_column_condition?/1)
+    # extract conditions using emulated expressions
+    {emulated_column_clauses, safe_clauses} = Enum.partition(query.where, &emulated_expression_condition?/1)
     # extract columns needed in the cloak for extra filtering
     unsafe_filter_columns =
-      encoded_column_clauses
+      emulated_column_clauses
       |> extract_columns()
       |> Enum.reject(& &1.constant?)
     %Query{query | where: safe_clauses, unsafe_filter_columns: unsafe_filter_columns,
-      encoded_where: encoded_column_clauses}
+      emulated_where: emulated_column_clauses}
   end
   defp partition_where_clauses(query) do
     # extract conditions requiring low-count filtering
@@ -727,24 +795,21 @@ defmodule Cloak.Sql.Compiler do
     # forward normal conditions, positive LCF conditions and `IS NOT NULL` checks for negative LCF conditions to driver
     safe_clauses = Enum.uniq(safe_clauses ++ positive_lcf_checks ++ filter_null_lcf_columns)
     # extract conditions using encoded columns
-    {encoded_column_clauses, safe_clauses} = Enum.partition(safe_clauses, &encoded_column_condition?/1)
+    {emulated_column_clauses, safe_clauses} = Enum.partition(safe_clauses, &emulated_expression_condition?/1)
     # extract columns needed in the cloak for extra filtering
     unsafe_filter_columns =
-      (require_lcf_checks ++ encoded_column_clauses)
+      (require_lcf_checks ++ emulated_column_clauses)
       |> extract_columns()
       |> Enum.reject(& &1.constant?)
 
     %Query{query | where: safe_clauses, lcf_check_conditions: require_lcf_checks,
-      unsafe_filter_columns: unsafe_filter_columns, encoded_where: encoded_column_clauses}
+      unsafe_filter_columns: unsafe_filter_columns, emulated_where: emulated_column_clauses}
   end
 
   defp requires_lcf_check?({:not, {:is, _, :null}}), do: false
   defp requires_lcf_check?({:not, _other}), do: true
   defp requires_lcf_check?({:in, _column, _values}), do: true
   defp requires_lcf_check?(_other), do: false
-
-  defp encoded_column_condition?(condition), do:
-    Comparison.verb(condition) != :is and Comparison.subject(condition) |> DataDecoder.needs_decoding?()
 
   defp verify_joins(%Query{projected?: true} = query), do: query
   defp verify_joins(query) do
@@ -813,19 +878,24 @@ defmodule Cloak.Sql.Compiler do
   defp reject_null_user_ids(query), do:
     %{query | where: [{:not, {:is, id_column(query), :null}} | query.where]}
 
-  defp align_ranges(query, key) do
-    clauses = Lens.get(Lens.key(key), query)
+  defp align_join_ranges(query), do:
+    query
+    |> Query.Lenses.join_condition_lenses()
+    |> Enum.reduce(query, fn(lens, query) -> align_ranges(query, lens, :where) end)
+
+  defp align_ranges(query, lens, range_type) do
+    clauses = Lens.get(lens, query)
 
     verify_ranges(clauses)
 
     ranges = inequalities_by_column(clauses)
     non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), Comparison.subject(&1)))
 
-    query = put_in(query, [Lens.key(key)], non_range_clauses)
-    Enum.reduce(ranges, query, &add_aligned_range(&1, &2, key))
+    query = put_in(query, [lens], non_range_clauses)
+    Enum.reduce(ranges, query, &add_aligned_range(&1, &2, lens, range_type))
   end
 
-  defp add_aligned_range({column, conditions}, query, key) do
+  defp add_aligned_range({column, conditions}, query, lens, range_type) do
     {left, right} =
       conditions
       |> Enum.map(&Comparison.value/1)
@@ -834,15 +904,15 @@ defmodule Cloak.Sql.Compiler do
       |> FixAlign.align_interval()
 
     if implement_range?({left, right}, conditions) do
-      update_in(query, [Lens.key(key)], &(conditions ++ &1))
+      update_in(query, [lens], &(conditions ++ &1))
     else
       query
-      |> add_clause(key, {:comparison, column, :<, Expression.constant(column.type, right)})
-      |> add_clause(key, {:comparison, column, :>=, Expression.constant(column.type, left)})
+      |> add_clause(lens, {:comparison, column, :<, Expression.constant(column.type, right)})
+      |> add_clause(lens, {:comparison, column, :>=, Expression.constant(column.type, left)})
       |> Query.add_info("The range for column #{Expression.display_name(column)} has been adjusted to #{left} <= "
         <> "#{Expression.short_name(column)} < #{right}.")
     end
-    |> put_in([Lens.key(:ranges), Lens.front()], Range.new(column, {left, right}, key))
+    |> put_in([Lens.key(:ranges), Lens.front()], Range.new(column, {left, right}, range_type))
   end
 
   defp implement_range?({left, right}, conditions) do
@@ -852,7 +922,7 @@ defmodule Cloak.Sql.Compiler do
     left_operator == :>= && left_column.value == left && right_operator == :< && right_column.value == right
   end
 
-  defp add_clause(query, key, clause), do: update_in(query, [Lens.key(key)], fn(clauses) -> [clause | clauses] end)
+  defp add_clause(query, lens, clause), do: put_in(query, [lens, Lens.front()], clause)
 
   defp add_subquery_ranges(query) do
     %{query | ranges:
@@ -999,16 +1069,11 @@ defmodule Cloak.Sql.Compiler do
       end
     end
   end
-  defp identifier_to_column({:function, name, args} = function_spec, _columns_by_name, query) do
-    check_function_validity(function_spec, query)
-    case Function.return_type(function_spec) do
-      nil -> raise CompilationError, message: function_argument_error_message(function_spec)
-      type ->
-        if query.subquery? do
-          Expression.db_function(name, args, type, Function.aggregate_function?(function_spec))
-        else
-          Expression.function(name, args, type, Function.aggregate_function?(function_spec))
-        end
+  defp identifier_to_column({:function, name, args} = function, _columns_by_name, query) do
+    check_function_validity(function, query)
+    case Function.return_type(function) do
+      nil -> raise CompilationError, message: function_argument_error_message(function)
+      type -> Expression.function(name, args, type, Function.has_attribute?(name, :aggregator))
     end
   end
   defp identifier_to_column({:parameter, index}, _columns_by_name, query) do
@@ -1059,7 +1124,7 @@ defmodule Cloak.Sql.Compiler do
     Enum.reduce(select_expressions(query) ++ range_columns(query), query, &Query.add_db_column(&2, &1))
 
   defp range_columns(%{subquery?: true, emulated?: false}), do: []
-  defp range_columns(%{ranges: ranges}), do: Enum.map(ranges, &(&1.column))
+  defp range_columns(%{ranges: ranges}), do: ranges |> Enum.map(&(&1.column)) |> extract_columns()
 
   defp select_expressions(%Query{command: :select, subquery?: true, emulated?: false} = query) do
     Enum.zip(query.column_titles, query.columns)
@@ -1090,14 +1155,14 @@ defmodule Cloak.Sql.Compiler do
       |> Enum.map(&cast_unknown_id/1)
 
     if any_outer_join?(query.from),
-      do: Expression.db_function("coalesce", id_columns),
+      do: Expression.function("coalesce", id_columns),
       else: hd(id_columns)
   end
 
   # We can't directly select a field with an unknown type, so convert it to binary
   # This is needed in the case of using the ODBC driver with a GUID user id,
   # as the GUID type is not supported by the Erlang ODBC library
-  def cast_unknown_id(%Expression{type: :unknown} = column), do: Expression.db_function({:cast, :varbinary}, [column])
+  def cast_unknown_id(%Expression{type: :unknown} = column), do: Expression.function({:cast, :varbinary}, [column])
   def cast_unknown_id(column), do: column
 
   defp all_id_columns_from_tables(%Query{command: :select, selected_tables: tables}) do
@@ -1224,117 +1289,35 @@ defmodule Cloak.Sql.Compiler do
   # Query emulation
   # -------------------------------------------------------------------
 
+  defp emulated_expression?(expression), do:
+    DataDecoder.needs_decoding?(expression) or Function.has_attribute?(expression, :emulated)
+
+  defp emulated_expression_condition?(condition), do:
+    Comparison.verb(condition) != :is and
+    [condition]
+    |> get_in([Query.Lenses.conditions_terminals()])
+    |> Enum.any?(&emulated_expression?/1)
+
   defp set_emulation_flag(query), do: %Query{query | emulated?: needs_emulation?(query)}
 
-  defp needs_decoding?(query), do:
+  defp has_emulated_expressions?(query), do:
     (query.columns ++ query.group_by ++ query.having ++ query.where)
-    |> extract_columns()
-    |> Enum.any?(&DataDecoder.needs_decoding?/1)
+    |> get_in([Query.Lenses.all_expressions()])
+    |> Enum.any?(&emulated_expression?/1)
+
+  defp has_emulated_join_conditions?(query), do:
+    all_join_conditions(query.from)
+    |> get_in([Query.Lenses.all_expressions()])
+    |> Enum.any?(&emulated_expression?/1)
 
   defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
-  defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do: needs_decoding?(query)
+  defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do:
+    has_emulated_expressions?(query)
   defp needs_emulation?(%Query{from: {:join, _}, data_source: %{driver: Cloak.DataSource.MongoDB}}), do: true
   defp needs_emulation?(query), do:
     query |> get_in([Query.Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?)) or
-    (query.subquery? and needs_decoding?(query))
-
-
-  # -------------------------------------------------------------------
-  # Validation of usage of restricted functions and maths
-  # -------------------------------------------------------------------
-
-  defp verify_function_usage_for_selected_columns(%Query{columns: _columns, subquery?: true} = query), do: query
-  defp verify_function_usage_for_selected_columns(%Query{columns: columns} = query) do
-    Enum.each(columns, fn(column) ->
-      type = TypeChecker.type(column, query)
-      unless TypeChecker.ok_for_display?(type) do
-        explanation = type.narrative_breadcrumbs
-        |> filter_for_offensive_actions([:dangerously_discontinuous, :dangerous_math])
-        |> construct_explanation()
-        raise CompilationError, message: """
-          #{explanation}
-
-          Queries where a reported value is influenced by math and a discontinuous function
-          in conjunction with a constant are not allowed.
-          """
-      end
-    end)
-    query
-  end
-
-  defp verify_function_usage_for_condition_clauses(query) do
-    conditions_lens_sources(query)
-    |> Query.Lenses.order_condition_columns()
-    |> Lens.to_list(query)
-    |> Enum.each(fn(column) ->
-      type = TypeChecker.type(column, query)
-      unless TypeChecker.ok_for_order_condition?(type) do
-        explanation = construct_explanation(type.narrative_breadcrumbs)
-        raise CompilationError, message: """
-          #{explanation}
-
-          Inequality clauses used to filter the data (like WHERE, HAVING and JOIN-condition where >,
-          >=, < or <= are used) are not allowed if the column value has either been transformed by
-          a math function or a discontinuous function where one of the other parameters was a constant.
-          Furthermore, the usage of `year`, `month` and other functions that extract parts of a date or
-          time column are not allowed on columns used in inequalities.
-          """
-      end
-    end)
-    conditions_lens_sources(query)
-    |> Query.Lenses.match_condition_columns()
-    |> Lens.to_list(query)
-    |> Enum.each(fn(column) ->
-      type = TypeChecker.type(column, query)
-      unless TypeChecker.ok_for_match_condition?(type) do
-        explanation = construct_explanation(type.narrative_breadcrumbs)
-        raise CompilationError, message: """
-          #{explanation}
-
-          Equality clauses (like WHERE, HAVING and JOIN-conditions) on date and time columns
-          that have been processed by a function which extracts a part of the value are not allowed.
-          If applicable, please use an inequality (like >, >=, < and <=) with a date or time range
-          instead.
-          """
-      end
-    end)
-    query
-  end
-
-  defp conditions_lens_sources(%Query{subquery?: false}), do:
-    Query.Lenses.sources_of_operands_except([:having])
-  defp conditions_lens_sources(_query), do:
-    Query.Lenses.sources_of_operands()
-
-  defp construct_explanation(columns) when is_list(columns), do:
-    Enum.map(columns, &construct_explanation(&1))
-  defp construct_explanation({expression, offenses}), do:
-    "Column #{Expression.display_name(expression)} is processed by #{human_readable_offenses(offenses)}."
-
-  defp human_readable_offenses(offenses), do:
-    offenses
-    |> Enum.reverse()
-    |> Enum.map(fn
-      ({:dangerously_discontinuous, "/"}) ->
-        "discontinuous function '/' ('/' can behave like a discontinuous function " <>
-          "when the divisor is an expression that combines both a column value and " <>
-          "a constant value)"
-      ({:dangerously_discontinuous, function}) ->
-        "discontinuous function '#{Function.readable_name(function)}'"
-      ({:dangerous_math, name}) -> "math function '#{name}'"
-      ({:datetime_processing, {:cast, target}}) -> "a cast to '#{target}'"
-      ({:datetime_processing, name}) -> "date or time processing function '#{Function.readable_name(name)}'"
-    end)
-    |> Enum.join(" and ")
-
-  # Removes columns that haven't had all of a list of offenses applied to them
-  defp filter_for_offensive_actions(columns, required_offenses), do:
-    columns
-    |> Enum.filter(fn({_expression, offenses}) ->
-      offenses
-      |> Enum.map(fn({name, _}) -> name end)
-      |> Enum.reduce(required_offenses, &(&2 -- [&1])) == []
-    end)
+    (query.subquery? and has_emulated_expressions?(query)) or
+    has_emulated_join_conditions?(query)
 
 
   # -------------------------------------------------------------------

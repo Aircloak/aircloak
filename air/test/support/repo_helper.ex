@@ -24,10 +24,11 @@ defmodule Air.TestRepoHelper do
   end
 
   @doc "Creates a group with default parameters with a random group name to avoid clashes"
-  @spec create_group!() :: Group.t
-  def create_group!() do
+  @spec create_group!(map()) :: Group.t
+  def create_group!(additional_changes \\ %{}) do
     %Group{}
     |> Group.changeset(%{name: "group-#{random_string()}", admin: false})
+    |> Group.changeset(additional_changes)
     |> Repo.insert!()
   end
 

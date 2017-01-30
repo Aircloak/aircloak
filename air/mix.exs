@@ -51,6 +51,8 @@ defmodule Air.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:ecto, "~> 2.1", override: true},
+      {:postgrex, "~> 0.13.0", override: true},
       {:phoenix, "~> 1.2.1"},
       {:phoenix_pubsub, "~> 1.0"},
       {:postgrex, ">= 0.0.0"},
@@ -72,6 +74,7 @@ defmodule Air.Mixfile do
       {:scrivener_ecto, "~> 1.0"},
       {:scrivener_html, "~> 1.1"},
       {:decimal, "~> 1.3.0"},
+      {:quantum, "~> 1.8.0"},
     ]
   end
 

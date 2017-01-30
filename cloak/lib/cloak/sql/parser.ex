@@ -572,12 +572,12 @@ defmodule Cloak.Sql.Parser do
 
   defp where_expression() do
     switch([
-      {field_or_parameter() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]), constant(:string)},
-      {field_or_parameter() |> option(keyword(:not)) |> keyword(:in), in_values()},
-      {field_or_parameter() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
-      {field_or_parameter() |> keyword(:between), allowed_where_range()},
-      {field_or_parameter() |> inequality_comparator(), any_constant()},
-      {field_or_parameter() |> equality_comparator(), allowed_where_value()},
+      {column() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]), constant(:string)},
+      {column() |> option(keyword(:not)) |> keyword(:in), in_values()},
+      {column() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
+      {column() |> keyword(:between), allowed_where_range()},
+      {column() |> inequality_comparator(), any_constant()},
+      {column() |> equality_comparator(), allowed_where_value()},
       {:else, error_message(fail(""), "Invalid where expression.")}
     ])
     |> map(fn
@@ -597,7 +597,7 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp allowed_where_value() do
-    either(field_or_parameter(), any_constant())
+    either(column(), any_constant())
     |> label("comparison value")
   end
 

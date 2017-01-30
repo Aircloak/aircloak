@@ -15,12 +15,12 @@ defmodule Cloak.Sql.Function do
   }
 
   @functions %{
-    ~w(count count_noise) => %{aggregate: true, type_specs: %{[:any] => :integer}},
-    ~w(sum sum_noise) => %{aggregate: true, type_specs: %{
+    ~w(count count_noise) => %{attributes: [:aggregator], type_specs: %{[:any] => :integer}},
+    ~w(sum sum_noise) => %{attributes: [:aggregator], type_specs: %{
       [:integer] => :integer,
       [:real] => :real,
     }},
-    ~w(min max median) => %{aggregate: true, type_specs: %{
+    ~w(min max median) => %{attributes: [:aggregator], type_specs: %{
       [:integer] => :integer,
       [:real] => :real,
       [:date] => :date,
@@ -28,7 +28,7 @@ defmodule Cloak.Sql.Function do
       [:datetime] => :datetime,
       [:text] => :text,
     }},
-    ~w(avg stddev avg_noise stddev_noise) => %{aggregate: true, type_specs: %{[numeric] => :real}},
+    ~w(avg stddev avg_noise stddev_noise) => %{attributes: [:aggregator], type_specs: %{[numeric] => :real}},
     ~w(hour minute second) =>
       %{type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
     ~w(year month day weekday) =>
@@ -93,10 +93,10 @@ defmodule Cloak.Sql.Function do
     #     WHERE match is not null
     #   )
     #
-    ~w(extract_match) => %{type_specs: %{[:text, :text] => :text}, not_in_subquery: true,
-      precompiled: true},
-    ~w(extract_matches) => %{type_specs: %{[:text, :text] => :text}, not_in_subquery: true,
-      precompiled: true, row_splitting: true},
+    ~w(extract_match) => %{type_specs: %{[:text, :text] => :text},
+      attributes: [:not_in_subquery, :precompiled, :emulated]},
+    ~w(extract_matches) => %{type_specs: %{[:text, :text] => :text},
+      attributes: [:not_in_subquery, :precompiled, :row_splitter, :emulated]},
     [{:cast, :integer}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer}},
     [{:cast, :real}] =>
@@ -132,16 +132,12 @@ defmodule Cloak.Sql.Function do
   def function?({:function, _, _}), do: true
   def function?(_), do: false
 
-  @doc """
-  Returns true if the given column definition is a function call to an aggregate function, false otherwise.
-  """
-  @spec aggregate_function?(t) :: boolean
-  def aggregate_function?({:function, name, _}), do: @functions |> Map.fetch!(name) |> Map.get(:aggregate, false)
-  def aggregate_function?(_), do: false
-
-  @doc "Returns true if the function is one that can split a row into multiple rows, false otherise."
-  @spec row_splitting_function?(Parser.function_name) :: boolean
-  def row_splitting_function?(name), do: !!@functions[name][:row_splitting]
+  @doc "Returns true if the function has the specified attribute, false otherise."
+  @spec has_attribute?(t | String.t | nil, atom) :: boolean
+  def has_attribute?({:function, name, _}, attribute), do: has_attribute?(name, attribute)
+  def has_attribute?(%Expression{function?: true, function: name}, attribute), do: has_attribute?(name, attribute)
+  def has_attribute?(name, attribute) when is_binary(name), do: attribute in Map.get(@functions[name], :attributes, [])
+  def has_attribute?(_, _attribute), do: false
 
   @doc "Returns true if the given function call is a cast, false otherwise."
   @spec cast?(t) :: boolean
@@ -209,14 +205,6 @@ defmodule Cloak.Sql.Function do
   @spec bucket_size(t) :: number
   def bucket_size({:function, {:bucket, _}, [_, {:constant, _, size}]}), do: size
 
-  @doc """
-  Returns true if the function needs precompiling. Precompiling is useful if there is a costly
-  preprocessing step needed that should only be done once, or if static query parameters can
-  be validated prior to query execution.
-  """
-  @spec needs_precompiling?(String.t) :: boolean
-  def needs_precompiling?(function), do: Map.get(@functions[function], :precompiled, false)
-
   @doc "Compiles a function so it is ready for execution"
   @spec compile_function(t, function_compilation_callback) :: t | {:error, String.t}
   def compile_function(%Expression{function: name, function_args: [_, %Expression{value: %Regex{}}]} = expression, _)
@@ -237,20 +225,6 @@ defmodule Cloak.Sql.Function do
   @doc "Returns true if the function is a valid cloak function"
   @spec exists?(t) :: boolean
   def exists?({:function, function, _}), do: @functions[function] !== nil
-
-  @doc """
-  Returns true if the function is allowed in sub-queries.
-
-  This function expects the caller to already have validated that the function exists.
-  This can be done with the `exists?` function.
-  """
-  @spec allowed_in_subquery?(t) :: boolean
-  def allowed_in_subquery?({:function, function, _}) do
-    case @functions[function] do
-      %{not_in_subquery: true} -> false
-      _ -> true
-    end
-  end
 
 
   # -------------------------------------------------------------------

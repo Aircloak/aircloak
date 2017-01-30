@@ -1,7 +1,7 @@
 SHELL=/bin/bash -o pipefail
 
 .PHONY: sandbox deps docs proper proper-std proper-extended test clean all compile
-.PHONY: regenerate_db dialyze lint release release-local perftest perftest-setup
+.PHONY: regenerate-db dialyze lint release release-local perftest perftest-setup
 
 all: deps compile
 
@@ -26,11 +26,11 @@ test:
 test_all:
 	TRAVIS=true mix test --include exclude_in_dev
 
-recreate_db:
+recreate-db:
 	@echo "Assumption: you have a database user called postgres that is a superuser. If not, run: CREATE USER postgres WITH SUPERUSER"
-	./recreate_db.sh
+	./recreate-db.sh
 
-recreate_db_more_data: recreate_db
+recreate-db-more-data: recreate-db
 	./add_more_test_data.sh
 
 docs:
@@ -55,11 +55,10 @@ lint:
 	MIX_ENV=test mix lint
 
 release:
-	rm -rf rel/cloak
-	MIX_ENV=prod mix do compile, release --no-confirm-missing
+	mix release
 
-release-local: release
-	cp rel/cloak/lib/cloak-0.1.0/priv/config/dev.json rel/cloak/lib/cloak-0.1.0/priv/config/config.json
+release-local:
+	mix release --env=local --no-tar
 
 perftest:
 	MIX_ENV=test mix run perftest/main.exs "${QUERY}"
