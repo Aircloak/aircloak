@@ -39,9 +39,18 @@ defmodule Air.CentralSocket do
 
   @doc "Records a completed query in the central - useful for billing and stats"
   @spec record_query(Map.t) :: :ok
-  def record_query(payload) do
+  def record_query(payload), do:
     cast_with_retry(__MODULE__, "query_execution", payload)
-  end
+
+  @doc "Records a connection of a cloak in the central."
+  @spec record_cloak_online(String.t) :: :ok
+  def record_cloak_online(cloak_name), do:
+    cast_with_retry(__MODULE__, "cloak_online", %{name: cloak_name})
+
+  @doc "Records a disconnection of a cloak in the central."
+  @spec record_cloak_offline(String.t) :: :ok
+  def record_cloak_offline(cloak_name), do:
+    cast_with_retry(__MODULE__, "cloak_offline", %{name: cloak_name})
 
 
   # -------------------------------------------------------------------

@@ -65,6 +65,9 @@ defmodule Air.Socket.Cloak.MainChannel do
     data_sources = Map.fetch!(cloak_info, "data_sources")
     Air.DataSourceManager.register_cloak(cloak, data_sources)
 
+    Air.CentralSocket.record_cloak_online(cloak.name)
+    Aircloak.ProcessMonitor.on_exit(fn -> Air.CentralSocket.record_cloak_offline(cloak.name) end)
+
     {:ok, %{}, assign(socket, :pending_calls, %{})}
   end
 

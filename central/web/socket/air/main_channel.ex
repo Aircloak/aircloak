@@ -149,6 +149,14 @@ defmodule Central.Socket.Air.MainChannel do
     }
     Customer.record_query(customer, params)
   end
+  defp handle_call_with_retry("cloak_online", cloak_info, _socket) do
+    Logger.info("Cloak online #{Map.fetch!(cloak_info, "name")}")
+    :ok
+  end
+  defp handle_call_with_retry("cloak_offline", cloak_info, _socket) do
+    Logger.info("Cloak offline #{Map.fetch!(cloak_info, "name")}")
+    :ok
+  end
 
   if Mix.env == :test do
     # We avoid monitoring in test env, since this will start asynchronous processes storing
