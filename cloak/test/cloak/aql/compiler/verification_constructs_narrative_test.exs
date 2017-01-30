@@ -1,7 +1,7 @@
-defmodule Cloak.Aql.Compiler.VerificationConstructsNarrative.Test do
+defmodule Cloak.Sql.Compiler.VerificationConstructsNarrative.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.{Compiler, Parser}
+  alias Cloak.Sql.{Compiler, Parser}
 
   describe "constructs a narrative based on column usage when a query is considered dangerous" do
     test "affected by math" do

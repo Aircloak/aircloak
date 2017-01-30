@@ -1,8 +1,8 @@
 defmodule Cloak.DataSource.SqlBuilder do
   @moduledoc "Provides functionality for constructing an SQL query from a compiled query."
 
-  alias Cloak.Aql.Query
-  alias Cloak.Aql.Expression
+  alias Cloak.Sql.Query
+  alias Cloak.Sql.Expression
   alias Cloak.DataSource.SqlBuilder.DbFunction
   alias Cloak.Query.Runner.RuntimeError
 

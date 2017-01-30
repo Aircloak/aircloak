@@ -1,8 +1,8 @@
-defmodule Cloak.Aql.FixAlign.Test do
+defmodule Cloak.Sql.FixAlign.Test do
   use ExUnit.Case, async: true
   use ExCheck
 
-  alias Cloak.Aql.FixAlign
+  alias Cloak.Sql.FixAlign
 
   for interval_type <- [:int, :float] do
     property "aligned #{interval_type} interval contains both ends of input" do
@@ -89,12 +89,12 @@ defmodule Cloak.Aql.FixAlign.Test do
   end
 
   test "aligning dates doesn't consider half-days" do
-    assert Cloak.Aql.FixAlign.align_interval({~D[2000-06-10], ~D[2000-06-13]}) == {~D[2000-06-07], ~D[2000-06-17]}
+    assert Cloak.Sql.FixAlign.align_interval({~D[2000-06-10], ~D[2000-06-13]}) == {~D[2000-06-07], ~D[2000-06-17]}
   end
 
   test "aligning intervals before epoch" do
-    assert Cloak.Aql.FixAlign.align_interval({~D[1956-11-25], ~D[1957-11-04]}) == {~D[1956-01-01], ~D[1958-01-01]}
-    assert Cloak.Aql.FixAlign.align_interval({~D[1959-09-14], ~D[1963-12-14]}) == {~D[1955-01-01], ~D[1965-01-01]}
+    assert Cloak.Sql.FixAlign.align_interval({~D[1956-11-25], ~D[1957-11-04]}) == {~D[1956-01-01], ~D[1958-01-01]}
+    assert Cloak.Sql.FixAlign.align_interval({~D[1959-09-14], ~D[1963-12-14]}) == {~D[1955-01-01], ~D[1965-01-01]}
   end
 
   test "align time intervals" do

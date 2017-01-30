@@ -4,7 +4,7 @@ defmodule Cloak.Query.Aggregator do
   require Logger
 
   alias Cloak.DataSource
-  alias Cloak.Aql.{Query, Expression}
+  alias Cloak.Sql.{Query, Expression}
   alias Cloak.Query.{Anonymizer, Rows, Result}
 
   @typep property_values :: [DataSource.field | :*]

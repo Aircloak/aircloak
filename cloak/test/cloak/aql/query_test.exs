@@ -1,7 +1,7 @@
-defmodule Cloak.Aql.QueryTest do
+defmodule Cloak.Sql.QueryTest do
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.Query
+  alias Cloak.Sql.Query
 
   setup_all do
     :ok = Cloak.Test.DB.create_table("feat_users", "height INTEGER, name TEXT, male BOOLEAN")

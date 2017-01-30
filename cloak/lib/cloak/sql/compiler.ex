@@ -1,8 +1,8 @@
-defmodule Cloak.Aql.Compiler do
+defmodule Cloak.Sql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
   alias Cloak.DataSource
-  alias Cloak.Aql.{Expression, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Range}
+  alias Cloak.Sql.{Expression, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Range}
   alias Cloak.Query.DataDecoder
 
   defmodule CompilationError do
@@ -136,7 +136,7 @@ defmodule Cloak.Aql.Compiler do
         message: "There is both a table, and a view named `#{view_name}`. Rename the view to resolve the conflict."
     end
 
-    case Cloak.Aql.Parser.parse(view_sql) do
+    case Cloak.Sql.Parser.parse(view_sql) do
       {:ok, parsed_view} -> {:subquery, %{type: :parsed, ast: parsed_view, alias: view_name}}
       {:error, error} -> raise CompilationError, message: "Error in the view `#{view_name}`: #{error}"
     end
@@ -1196,7 +1196,7 @@ defmodule Cloak.Aql.Compiler do
       Query.Lenses.conditions_terminals(),
       join.conditions,
       fn
-        (%Cloak.Aql.Expression{table: %{name: table_name}, name: column_name}) ->
+        (%Cloak.Sql.Expression{table: %{name: table_name}, name: column_name}) ->
           scope_check(selected_tables, table_name, column_name)
         ({:identifier, table_name, {_, column_name}}) -> scope_check(selected_tables, table_name, column_name)
         (_) -> :ok

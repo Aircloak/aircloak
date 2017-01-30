@@ -1,7 +1,7 @@
 defmodule Cloak.DataSourceTest do
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.Query
+  alias Cloak.Sql.Query
   alias Cloak.DataSource
 
   setup_all do
@@ -18,8 +18,8 @@ defmodule Cloak.DataSourceTest do
   end
 
   test "data retrieval" do
-    id_column = %Cloak.Aql.Expression{table: %{db_name: "test", name: "test"}, name: "user_id"}
-    data_column = %Cloak.Aql.Expression{table: %{db_name: "test", name: "test"}, name: "value"}
+    id_column = %Cloak.Sql.Expression{table: %{db_name: "test", name: "test"}, name: "user_id"}
+    data_column = %Cloak.Sql.Expression{table: %{db_name: "test", name: "test"}, name: "value"}
     query = %Query{
       command: :select,
       columns: [data_column],

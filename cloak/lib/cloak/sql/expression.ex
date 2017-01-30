@@ -1,4 +1,4 @@
-defmodule Cloak.Aql.Expression do
+defmodule Cloak.Sql.Expression do
   @moduledoc """
   Represents an expression in a compiled query. Variants of this struct can be used to represent constants, columns or
   function calls with their arguments which are expressions themselves.
@@ -15,7 +15,7 @@ defmodule Cloak.Aql.Expression do
     alias: String.t | nil,
     type: column_type,
     user_id?: boolean,
-    row_index: nil | Cloak.Aql.Query.row_index,
+    row_index: nil | Cloak.Sql.Query.row_index,
     constant?: boolean,
     value: any,
     function: function_name | nil,
@@ -48,7 +48,7 @@ defmodule Cloak.Aql.Expression do
   def count_star(), do: function("count", [:*], nil, true)
 
   @doc "Returns true if the given term is a constant column, false otherwise."
-  @spec constant?(Cloak.Aql.Parser.column | t) :: boolean
+  @spec constant?(Cloak.Sql.Parser.column | t) :: boolean
   def constant?(%__MODULE__{constant?: true}), do: true
   def constant?(%__MODULE__{function?: true, function_args: args}), do: Enum.all?(args, &constant?/1)
   def constant?(_), do: false

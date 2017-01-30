@@ -1,7 +1,7 @@
-defmodule Cloak.Aql.Compiler.VerificationConditionClauses.Test do
+defmodule Cloak.Sql.Compiler.VerificationConditionClauses.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.{Compiler, Parser}
+  alias Cloak.Sql.{Compiler, Parser}
 
   describe "Rejects conditions used in subqueries" do
     test "math on a column used in a JOIN condition in top-level query" do

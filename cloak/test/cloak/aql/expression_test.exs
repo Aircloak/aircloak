@@ -1,8 +1,8 @@
-defmodule Cloak.Aql.Expression.Test do
+defmodule Cloak.Sql.Expression.Test do
   require Integer
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.Expression
+  alias Cloak.Sql.Expression
   alias Timex.Duration
 
   test "coalesce" do
