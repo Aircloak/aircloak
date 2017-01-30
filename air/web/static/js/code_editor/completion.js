@@ -92,7 +92,7 @@ export default function completionList(
     value();
 
   const keywordsFromStatement = _.chain(statement).
-    split(/[\s\(\)]/).
+    split(/[\s\(\),]/).
     reject((word) => word.length < 3).
     reject((word) => _.last(rawCodeWords) === word).
     value();

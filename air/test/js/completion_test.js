@@ -159,3 +159,14 @@ it("completes based on what else has been written in query but excludes the curr
     }
   );
 });
+
+it("completions based on written query do not contain trailing comman", () => {
+  assert.deepEqual(
+    completions("alias", 5, _.identity, [], [], "SELECT alias as aliased_name, other FROM"),
+    {
+      list: [{text: "aliased_name", from: 0, to: 5}],
+      from: 0,
+      to: 5,
+    }
+  );
+});
