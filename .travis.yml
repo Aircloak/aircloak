@@ -44,6 +44,8 @@ matrix:
       before_install:
       - psql -c "CREATE DATABASE cloaktest1 ENCODING 'UTF8';" -U postgres
       - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
+      - ./travis-asdf-setup.sh
+      - npm i -g yarn@0.16.1
     - env: TEST="air"
       cache:
         directories:
@@ -60,6 +62,9 @@ matrix:
           - jq
         hosts:
         - travis.aircloak.local
+      before_install:
+      - ./travis-asdf-setup.sh
+      - npm i -g yarn@0.16.1
     - env: TEST="cloak"
       cache:
         directories:
@@ -89,6 +94,7 @@ matrix:
       - psql -c "CREATE DATABASE cloaktest1 ENCODING 'UTF8';" -U postgres
       - mysql -e "CREATE DATABASE cloaktest1 DEFAULT CHARACTER SET utf8;" -u root
       - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
+      - ./travis-asdf-setup.sh
     - env: TEST="aux"
       cache:
         directories:
@@ -103,6 +109,8 @@ matrix:
           - jq
         hosts:
         - travis.aircloak.local
+      before_install:
+      - ./travis-asdf-setup.sh
     - env: TEST="central"
       cache:
         directories:
@@ -119,9 +127,9 @@ matrix:
           - jq
         hosts:
         - travis.aircloak.local
-before_install:
-  - ./travis-asdf-setup.sh
-  - npm i -g yarn@0.16.1
+      before_install:
+      - ./travis-asdf-setup.sh
+      - npm i -g yarn@0.16.1
 before_script:
   - ./travis-before-script.sh
 script:
