@@ -198,6 +198,7 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("substring_for", [string, count]), do: substring(string, 1, count)
   defp do_apply("||", args), do: Enum.join(args)
   defp do_apply("concat", args), do: Enum.join(args)
+  defp do_apply("hex", [string]), do: Base.encode16(string, case: :lower)
   defp do_apply("extract_match", [string, regex]) do
     case Regex.run(regex, string, capture: :first) do
       [capture] -> capture
