@@ -37,6 +37,7 @@ defmodule Central.Service.ElasticSearch do
     Enum.each(air.cloaks, &record(:customer, :cloak, %{
       name: &1.name,
       status: &1.status,
+      data_sources: &1.data_sources,
       air_name: air.name,
       customer: %{id: air.customer.id, name: air.customer.name}
     }))

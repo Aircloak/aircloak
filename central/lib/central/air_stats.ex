@@ -22,7 +22,7 @@ defmodule Central.AirStats do
   end
 
   @doc "Should be started from the air channel process to monitor the connection."
-  @spec register(Central.Schemas.Customer.t, String.t, [String.t]) :: :ok
+  @spec register(Central.Schemas.Customer.t, String.t, [%{name: String.t, data_sources: non_neg_integer}]) :: :ok
   def register(customer, air_name, online_cloaks) do
     # log information in a separate task to prevent blocking or crashing the main channel process
     Task.Supervisor.start_child(Central.AirStats.TaskSup, Customer, :mark_air_online,

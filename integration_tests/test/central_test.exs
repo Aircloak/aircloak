@@ -6,11 +6,13 @@ defmodule IntegrationTest.CentralTest do
     assert length(air().cloaks) == 1
     assert hd(air().cloaks).name == hd(Air.DataSourceManager.cloaks()).name
     assert hd(air().cloaks).status == :online
+    assert hd(air().cloaks).data_sources == 1
 
     Supervisor.terminate_child(Air.Supervisor, Air.CentralSocket)
     :timer.sleep(100)
     assert air().status == :offline
     assert hd(air().cloaks).status == :offline
+    assert hd(air().cloaks).data_sources == 1
 
     Supervisor.restart_child(Air.Supervisor, Air.CentralSocket)
     :timer.sleep(100)

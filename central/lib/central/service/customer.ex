@@ -101,11 +101,12 @@ defmodule Central.Service.Customer do
   end
 
   @doc "Marks air and associated cloaks as online."
-  @spec mark_air_online(Customer.t, String.t, [String.t]) :: :ok
+  @spec mark_air_online(Customer.t, String.t, [%{name: String.t, data_sources: non_neg_integer}]) :: :ok
   def mark_air_online(customer, air_name, online_cloaks) do
     {:ok, air} = Repo.transaction(fn ->
       air = update_air_status(customer, air_name, :online)
-      Enum.each(online_cloaks, &update_cloak_status(customer, air_name, &1, :online))
+      Enum.each(online_cloaks, &update_cloak(customer, air_name, &1.name,
+        status: :online, data_sources: &1.data_sources))
       air
     end)
 
@@ -148,13 +149,13 @@ defmodule Central.Service.Customer do
     Repo.all(from Air, preload: [:customer, :cloaks])
 
   @doc "Updates the cloak status."
-  @spec update_cloak_status(Customer.t, String.t, String.t, OnlineStatus.t) :: :ok
-  def update_cloak_status(customer, air_name, cloak_name, status) do
-    Repo.insert!(
-      %Cloak{air: Repo.get_by!(Ecto.assoc(customer, :airs), name: air_name), name: cloak_name, status: status},
-      on_conflict: [set: [status: status]],
-      conflict_target: [:name, :air_id]
+  @spec update_cloak(Customer.t, String.t, String.t, [status: OnlineStatus.t, data_sources: non_neg_integer]) :: :ok
+  def update_cloak(customer, air_name, cloak_name, updates) do
+    cloak = Map.merge(
+      %Cloak{air: Repo.get_by!(Ecto.assoc(customer, :airs), name: air_name), name: cloak_name},
+      updates |> Keyword.take([:status, :data_sources]) |> Enum.into(%{})
     )
+    Repo.insert!(cloak, on_conflict: [set: updates], conflict_target: [:name, :air_id])
 
     :ok
   end

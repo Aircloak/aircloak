@@ -25,7 +25,11 @@ defmodule Central.Socket.Air.MainChannel do
     Process.flag(:trap_exit, true)
     customer = socket.assigns.customer
     Logger.info("air for '#{customer.name}' (id: #{customer.id}) joined central")
-    monitor_channel(customer, socket.assigns.air_name, Map.get(air_info, "online_cloaks", []))
+    monitor_channel(customer, socket.assigns.air_name,
+      air_info
+      |> Map.get("online_cloaks", [])
+      |> Enum.map(&%{name: Map.fetch!(&1, "name"), data_sources: Map.fetch!(&1, "data_sources")})
+    )
     {:ok, %{}, socket}
   end
 
@@ -150,13 +154,13 @@ defmodule Central.Socket.Air.MainChannel do
     Customer.record_query(customer, params)
   end
   defp handle_call_with_retry("cloak_online", cloak_info, socket) do
-    Central.Service.Customer.update_cloak_status(socket.assigns.customer, socket.assigns.air_name,
-      Map.fetch!(cloak_info, "name"), :online)
+    Central.Service.Customer.update_cloak(socket.assigns.customer, socket.assigns.air_name,
+      Map.fetch!(cloak_info, "name"), status: :online, data_sources: Map.fetch!(cloak_info, "data_sources"))
     :ok
   end
   defp handle_call_with_retry("cloak_offline", cloak_info, socket) do
-    Central.Service.Customer.update_cloak_status(socket.assigns.customer, socket.assigns.air_name,
-      Map.fetch!(cloak_info, "name"), :offline)
+    Central.Service.Customer.update_cloak(socket.assigns.customer, socket.assigns.air_name,
+      Map.fetch!(cloak_info, "name"), status: :offline)
     :ok
   end
 
