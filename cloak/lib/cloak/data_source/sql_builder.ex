@@ -52,8 +52,8 @@ defmodule Cloak.DataSource.SqlBuilder do
     ]
   end
 
-  defp distinct(%Query{distinct?: true}), do: "DISTINCT "
-  defp distinct(%Query{distinct?: false}), do: ""
+  defp distinct(%Query{distinct?: true, subquery?: true}), do: "DISTINCT "
+  defp distinct(%Query{}), do: ""
 
   defp columns_sql(columns, sql_dialect) do
     columns
