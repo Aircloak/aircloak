@@ -25,13 +25,21 @@ defmodule Central.Service.ElasticSearch do
   @doc "Records air presence in elastic search."
   @spec record_air_presence(Air.t) :: :ok | :error
   def record_air_presence(air) do
-    air = Repo.preload(air, :customer)
+    air = Repo.preload(air, [:customer, :cloaks])
 
     record(:customer, :air, %{
       name: air.name,
       status: air.status,
+      online_cloaks: air.cloaks |> Enum.filter(&(&1.status == :online)) |> Enum.count(),
       customer: %{id: air.customer.id, name: air.customer.name}
     })
+
+    Enum.each(air.cloaks, &record(:customer, :cloak, %{
+      name: &1.name,
+      status: &1.status,
+      air_name: air.name,
+      customer: %{id: air.customer.id, name: air.customer.name}
+    }))
   end
 
   # -------------------------------------------------------------------
