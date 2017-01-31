@@ -329,12 +329,30 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["count", "max"], rows: [%{row: [100, 180], occurrences: 1}]}
   end
 
-  test "should allow ranges for where clause" do
+  test "should allow ranges in where clause" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
 
     assert_query "select count(*) from heights where height >= 180 and height < 190",
+      %{query_id: "1", columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
+  end
+
+  test "should allow between in where clause" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+
+    assert_query "select count(*) from heights where height between 180 and 190",
+      %{query_id: "1", columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
+  end
+
+  test "should allow reversed inequalities in where clause" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+
+    assert_query "select count(*) from heights where 180 <= height and 190 > height",
       %{query_id: "1", columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
   end
 
