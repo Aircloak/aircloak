@@ -61,12 +61,21 @@ function banner() {
 
   # air ---------------------------------------------------------------
 
+  if [[ "$TEST" == "air" || "$TEST" == "aux" ]]; then
+
+    banner "air deps"
+    pushd air
+
+    make deps
+    popd
+
+  fi
+
   if [[ "$TEST" == "air" ]]; then
 
     banner "air"
     pushd air
 
-    make deps
     mix compile --warnings-as-errors
     MIX_ENV=test mix compile --warnings-as-errors
     MIX_ENV=prod mix compile --warnings-as-errors
@@ -78,11 +87,19 @@ function banner() {
 
   # cloak -------------------------------------------------------------
 
+  if [[ "$TEST" == "cloak" || "$TEST" == "aux" ]]; then
+
+    banner "cloak deps"
+    pushd cloak
+    make deps
+    popd
+
+  fi
+
   if [[ "$TEST" == "cloak" ]]; then
 
     banner "cloak"
     pushd cloak
-    make deps
     mix compile --warnings-as-errors
     MIX_ENV=test make all
     popd
