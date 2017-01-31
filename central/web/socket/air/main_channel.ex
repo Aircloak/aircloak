@@ -21,11 +21,11 @@ defmodule Central.Socket.Air.MainChannel do
 
   @doc false
   @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
-  def join("main", _air_info, socket) do
+  def join("main", air_info, socket) do
     Process.flag(:trap_exit, true)
     customer = socket.assigns.customer
     Logger.info("air for '#{customer.name}' (id: #{customer.id}) joined central")
-    monitor_channel(customer, socket.assigns.air_name)
+    monitor_channel(customer, socket.assigns.air_name, Map.get(air_info, "online_cloaks", []))
     {:ok, %{}, socket}
   end
 
@@ -163,9 +163,9 @@ defmodule Central.Socket.Air.MainChannel do
   if Mix.env == :test do
     # We avoid monitoring in test env, since this will start asynchronous processes storing
     # to the database, which will in turn lead to noisy errors in test output.
-    defp monitor_channel(_customer, _air_name), do: :ok
+    defp monitor_channel(_customer, _air_name, _online_cloaks), do: :ok
   else
-    defp monitor_channel(customer, air_name), do:
-      Central.AirStats.register(customer, air_name)
+    defp monitor_channel(customer, air_name, online_cloaks), do:
+      Central.AirStats.register(customer, air_name, online_cloaks)
   end
 end

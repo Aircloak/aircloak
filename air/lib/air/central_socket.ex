@@ -143,7 +143,9 @@ defmodule Air.CentralSocket do
     {:connect, state}
   end
   def handle_info({:join, topic}, transport, state) do
-    case GenSocketClient.join(transport, topic, %{}) do
+    case GenSocketClient.join(transport, topic,
+      %{online_cloaks: Enum.map(Air.DataSourceManager.cloaks(), &(&1.name))})
+    do
       {:error, reason} ->
         Logger.error("error joining the topic #{topic}: #{inspect reason}")
         Process.send_after(self(), {:join, topic}, config(:rejoin_interval))

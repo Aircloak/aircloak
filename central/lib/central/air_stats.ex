@@ -21,10 +21,10 @@ defmodule Central.AirStats do
   end
 
   @doc "Should be started from the air channel process to monitor the connection."
-  @spec register(Central.Schemas.Customer.t, String.t) :: :ok
-  def register(customer, air_name) do
-    update_air_status(customer, air_name, :online)
-    Aircloak.ProcessMonitor.on_exit(fn -> update_air_status(customer, air_name, :offline) end)
+  @spec register(Central.Schemas.Customer.t, String.t, [String.t]) :: :ok
+  def register(customer, air_name, online_cloaks) do
+    mark_air_online(customer, air_name, online_cloaks)
+    Aircloak.ProcessMonitor.on_exit(fn -> mark_air_offline(customer, air_name) end)
   end
 
 
@@ -32,11 +32,16 @@ defmodule Central.AirStats do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp update_air_status(customer, air_name, status) do
-    Task.Supervisor.start_child(Central.AirStats.TaskSup, Central.Service.Customer, :update_air_status,
-      [customer, air_name, status])
-
-    Task.Supervisor.start_child(Central.AirStats.TaskSup, Central.Service.ElasticSearch, :record_air_presence,
-      [customer, air_name, status])
+  defp mark_air_online(customer, air_name, online_cloaks) do
+    start_task(Central.Service.Customer, :mark_air_online, [customer, air_name, online_cloaks])
+    start_task(Central.Service.ElasticSearch, :record_air_presence, [customer, air_name, :online])
   end
+
+  defp mark_air_offline(customer, air_name) do
+    start_task(Central.Service.Customer, :mark_air_offline, [customer, air_name])
+    start_task(Central.Service.ElasticSearch, :record_air_presence, [customer, air_name, :offline])
+  end
+
+  defp start_task(module, fun, args), do:
+    Task.Supervisor.start_child(Central.AirStats.TaskSup, module, fun, args)
 end

@@ -99,18 +99,23 @@ defmodule Central.Service.Customer do
     end
   end
 
-  @doc "Updates the air status."
-  @spec update_air_status(Customer.t, String.t, OnlineStatus.t) :: :ok
-  def update_air_status(customer, air_name, status) do
-    Repo.transaction(fn ->
-      air = Repo.insert!(
-        %Air{name: air_name, customer: customer, status: status},
-        on_conflict: [set: [status: status]],
-        conflict_target: [:name, :customer_id]
-      )
+  @doc "Marks air and associated cloaks as online."
+  @spec mark_air_online(Customer.t, String.t, [String.t]) :: :ok
+  def mark_air_online(customer, air_name, online_cloaks) do
+    {:ok, _} = Repo.transaction(fn ->
+      update_air_status(customer, air_name, :online)
+      Enum.each(online_cloaks, &update_cloak_status(customer, air_name, &1, :online))
+    end)
 
-      if status == :offline, do:
-        Repo.update_all(from(c in Cloak, where: c.air_id == ^air.id), set: [status: :offline])
+    :ok
+  end
+
+  @doc "Marks air and all known cloaks as offline."
+  @spec mark_air_offline(Customer.t, String.t) :: :ok
+  def mark_air_offline(customer, air_name) do
+    {:ok, _} = Repo.transaction(fn ->
+      air = update_air_status(customer, air_name, :offline)
+      Repo.update_all(from(c in Cloak, where: c.air_id == ^air.id), set: [status: :offline])
     end)
 
     :ok
@@ -159,4 +164,11 @@ defmodule Central.Service.Customer do
   defp secret_key_base() do
     Central.site_setting("endpoint_key_base")
   end
+
+  defp update_air_status(customer, air_name, status), do:
+    Repo.insert!(
+      %Air{name: air_name, customer: customer, status: status},
+      on_conflict: [set: [status: status]],
+      conflict_target: [:name, :customer_id]
+    )
 end
