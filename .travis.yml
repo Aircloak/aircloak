@@ -112,6 +112,7 @@ matrix:
         - bom/deps
         - bom/_build
         - $HOME/.asdf
+        - $HOME/.yarn-cache
       addons:
         apt:
           packages:
@@ -120,6 +121,7 @@ matrix:
         - travis.aircloak.local
       before_install:
       - ./travis-asdf-setup.sh
+      - npm i -g yarn@0.16.1
     - env: TEST="central"
       services:
       - elasticsearch
