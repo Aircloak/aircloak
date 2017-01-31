@@ -286,7 +286,7 @@ defmodule Cloak.Sql.Parser.Test do
         columns: [identifier("foo")], from: unquoted("bar"),
         where: [
           {:comparison, identifier("a"), :>=, constant(10)},
-          {:comparison, identifier("a"), :<=, constant(20)}
+          {:comparison, identifier("a"), :<, constant(20)}
         ]
       )
     )
