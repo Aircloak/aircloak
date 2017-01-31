@@ -80,13 +80,30 @@ defmodule Central.Service.CustomerTest do
     assert :offline == air_data(customer, "air1").status
   end
 
+  test "updating air status to offline will set cloaks to offline as well" do
+    customer = create_customer()
+    Customer.update_air_status(customer, "air1", :online)
+    Customer.update_cloak_status(customer, "air1", "cloak1", :online)
+    Customer.update_cloak_status(customer, "air1", "cloak2", :online)
+
+    Customer.update_air_status(customer, "air1", :offline)
+    assert :offline == cloak_data(customer, "air1", "cloak1").status
+    assert :offline == cloak_data(customer, "air1", "cloak2").status
+  end
+
   test "resetting air statuses" do
     customer = create_customer()
     Customer.update_air_status(customer, "air1", :online)
     Customer.update_air_status(customer, "air2", :online)
+    Customer.update_cloak_status(customer, "air1", "cloak1", :online)
+    Customer.update_cloak_status(customer, "air1", "cloak2", :online)
+
     Customer.reset_air_statuses()
+
     assert :offline == air_data(customer, "air1").status
     assert :offline == air_data(customer, "air2").status
+    assert :offline == cloak_data(customer, "air1", "cloak1").status
+    assert :offline == cloak_data(customer, "air1", "cloak2").status
   end
 
   test "storing cloak status" do

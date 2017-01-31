@@ -102,19 +102,31 @@ defmodule Central.Service.Customer do
   @doc "Updates the air status."
   @spec update_air_status(Customer.t, String.t, OnlineStatus.t) :: :ok
   def update_air_status(customer, air_name, status) do
-    Repo.insert!(
-      %Air{name: air_name, customer: customer, status: status},
-      on_conflict: [set: [status: status]],
-      conflict_target: [:name, :customer_id]
-    )
+    Repo.transaction(fn ->
+      air = Repo.insert!(
+        %Air{name: air_name, customer: customer, status: status},
+        on_conflict: [set: [status: status]],
+        conflict_target: [:name, :customer_id]
+      )
+
+      if status == :offline, do:
+        Repo.update_all(from(c in Cloak, where: c.air_id == ^air.id), set: [status: :offline])
+    end)
 
     :ok
   end
 
-  @doc "Resets statuses of all known airs to offline."
+  # Error in current Ecto: https://github.com/elixir-ecto/ecto/issues/1882
+  @dialyzer {:no_opaque, reset_air_statuses: 0}
+  @doc "Resets statuses of all known airs and associated cloaks to offline."
   @spec reset_air_statuses() :: :ok
   def reset_air_statuses() do
-    Repo.update_all(Air, set: [status: :offline])
+    {:ok, _} =
+      Ecto.Multi.new()
+      |> Ecto.Multi.update_all(:set_airs_offline, Air, set: [status: :offline])
+      |> Ecto.Multi.update_all(:set_cloaks_offline, Cloak, set: [status: :offline])
+      |> Repo.transaction()
+
     :ok
   end
 
