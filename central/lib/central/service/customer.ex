@@ -7,6 +7,7 @@ defmodule Central.Service.Customer do
   alias Ecto.Changeset
   alias Central.Repo
   alias Central.Schemas.{Air, Cloak, Customer, Query, OnlineStatus}
+  alias Central.Service.ElasticSearch
 
   import Ecto.Query, only: [from: 2]
 
@@ -86,7 +87,7 @@ defmodule Central.Service.Customer do
   @doc "Records a query execution associated with a customer"
   @spec record_query(Customer.t, Map.t) :: :ok | :error
   def record_query(customer, params) do
-    Central.Service.ElasticSearch.record_query(customer, params)
+    ElasticSearch.record_query(customer, params)
     changeset = customer
       |> Ecto.build_assoc(:queries)
       |> Query.changeset(params)
@@ -102,10 +103,13 @@ defmodule Central.Service.Customer do
   @doc "Marks air and associated cloaks as online."
   @spec mark_air_online(Customer.t, String.t, [String.t]) :: :ok
   def mark_air_online(customer, air_name, online_cloaks) do
-    {:ok, _} = Repo.transaction(fn ->
-      update_air_status(customer, air_name, :online)
+    {:ok, air} = Repo.transaction(fn ->
+      air = update_air_status(customer, air_name, :online)
       Enum.each(online_cloaks, &update_cloak_status(customer, air_name, &1, :online))
+      air
     end)
+
+    ElasticSearch.record_air_presence(air)
 
     :ok
   end
@@ -113,10 +117,13 @@ defmodule Central.Service.Customer do
   @doc "Marks air and all known cloaks as offline."
   @spec mark_air_offline(Customer.t, String.t) :: :ok
   def mark_air_offline(customer, air_name) do
-    {:ok, _} = Repo.transaction(fn ->
+    {:ok, air} = Repo.transaction(fn ->
       air = update_air_status(customer, air_name, :offline)
       Repo.update_all(from(c in Cloak, where: c.air_id == ^air.id), set: [status: :offline])
+      air
     end)
+
+    ElasticSearch.record_air_presence(air)
 
     :ok
   end

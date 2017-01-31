@@ -48,5 +48,5 @@ defmodule Central.AirStats.PeriodicLogger do
   end
 
   defp log_connected_airs(), do:
-    Enum.each(Customer.airs(), &ElasticSearch.record_air_presence(&1.customer, &1.name, &1.status))
+    Enum.each(Customer.airs(), &ElasticSearch.record_air_presence/1)
 end

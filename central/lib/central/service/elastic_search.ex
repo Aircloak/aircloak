@@ -2,6 +2,8 @@ defmodule Central.Service.ElasticSearch do
   @moduledoc "Service module for interacting with elasticsearch"
 
   require Logger
+  alias Central.Repo
+  alias Central.Schemas.{Air, Customer}
 
 
   # -------------------------------------------------------------------
@@ -21,13 +23,16 @@ defmodule Central.Service.ElasticSearch do
       update_in(params, [:aux], &Map.put(&1 || %{}, :customer, %{id: customer.id, name: customer.name})))
 
   @doc "Records air presence in elastic search."
-  @spec record_air_presence(Customer.t, String.t, Central.Service.Customer.air_status) :: :ok | :error
-  def record_air_presence(customer, air_name, status), do:
+  @spec record_air_presence(Air.t) :: :ok | :error
+  def record_air_presence(air) do
+    air = Repo.preload(air, :customer)
+
     record(:customer, :air, %{
-      name: air_name,
-      status: status,
-      customer: %{id: customer.id, name: customer.name}
+      name: air.name,
+      status: air.status,
+      customer: %{id: air.customer.id, name: air.customer.name}
     })
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
