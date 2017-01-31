@@ -37,6 +37,7 @@ defmodule Central.Router do
     get "/", KibanaProxyController, :redirect_to_web_interface
     get "/*path", KibanaProxyController, :get
     post "/*path", KibanaProxyController, :post
+    put "/*path", KibanaProxyController, :put
   end
 
   scope "/", Central do
