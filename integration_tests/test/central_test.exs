@@ -8,16 +8,30 @@ defmodule IntegrationTest.CentralTest do
     assert hd(air().cloaks).status == :online
     assert hd(air().cloaks).data_sources == 1
 
-    Supervisor.terminate_child(Air.Supervisor, Air.CentralSocket)
+    Supervisor.terminate_child(Air.Supervisor, Air.CentralClient)
     :timer.sleep(100)
     assert air().status == :offline
     assert hd(air().cloaks).status == :offline
     assert hd(air().cloaks).data_sources == 1
 
-    Supervisor.restart_child(Air.Supervisor, Air.CentralSocket)
+    Supervisor.restart_child(Air.Supervisor, Air.CentralClient)
     :timer.sleep(100)
     assert air().status == :online
     assert hd(air().cloaks).status == :online
+  end
+
+  test "usage info is sent" do
+    import Ecto.Query, only: [from: 2]
+
+    Central.Repo.delete_all("usage_info")
+    :timer.sleep(Application.fetch_env!(:air, :usage_report_interval) + 100)
+
+    assert air().id == Central.Repo.one(
+      from u in "usage_info",
+      select: u.air_id,
+      order_by: [desc: u.id],
+      limit: 1
+    )
   end
 
   defp air(), do:

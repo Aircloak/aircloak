@@ -33,12 +33,7 @@ defmodule Air.Supervisor do
     # Processes which we don't want to start in the test environment
     defp system_processes do
       import Supervisor.Spec, warn: false
-
-      [
-        worker(Air.CentralSocket, []),
-        Air.CentralQueryReporter.supervisor_spec(),
-        Air.CentralQueryReporter.observer_spec(),
-      ]
+      [supervisor(Air.CentralClient, [])]
     end
   end
 end

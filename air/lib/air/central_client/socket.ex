@@ -1,4 +1,4 @@
-defmodule Air.CentralSocket do
+defmodule Air.CentralClient.Socket do
   @moduledoc """
   Client side of the socket connection to the Central system.
 
@@ -51,6 +51,11 @@ defmodule Air.CentralSocket do
   @spec record_cloak_offline(String.t) :: :ok
   def record_cloak_offline(cloak_name), do:
     cast_with_retry(__MODULE__, "cloak_offline", %{name: cloak_name})
+
+  @doc "Sends usage info to central."
+  @spec send_usage_info(Map.t) :: :ok
+  def send_usage_info(usage_info), do:
+    cast_with_retry(__MODULE__, "usage_info", usage_info)
 
 
   # -------------------------------------------------------------------

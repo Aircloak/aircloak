@@ -37,3 +37,5 @@ config :air, :central,
   central_site: "ws://localhost:7081",
   min_reconnect_interval: 1000,
   max_reconnect_interval: 50000
+
+config :air, :usage_report_interval, 100

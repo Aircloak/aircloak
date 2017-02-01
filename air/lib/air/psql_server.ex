@@ -19,10 +19,7 @@ defmodule Air.PsqlServer do
       Application.fetch_env!(:air, Air.PsqlServer)[:port],
       __MODULE__,
       nil,
-      ssl: [
-        certfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_cert.pem"]),
-        keyfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_key.pem"])
-      ]
+      ranch_opts()
     )
 
 
@@ -94,6 +91,14 @@ defmodule Air.PsqlServer do
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp ranch_opts(), do:
+    Application.get_env(:air, Air.PsqlServer, [])
+    |> Keyword.get(:ranch_opts, [])
+    |> Keyword.merge(ssl: [
+        certfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_cert.pem"]),
+        keyfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_key.pem"])
+      ])
 
   defp handle_special_query(conn, "set " <> _), do:
     # we're ignoring set for now
