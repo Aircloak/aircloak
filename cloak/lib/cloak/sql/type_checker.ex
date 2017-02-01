@@ -1,4 +1,4 @@
-defmodule Cloak.Aql.TypeChecker do
+defmodule Cloak.Sql.TypeChecker do
   @moduledoc """
   Provides functions to check whether selected columns, or expressions
   used in WHERE-clause inequalities have undergone dangerous transformations.
@@ -21,8 +21,8 @@ defmodule Cloak.Aql.TypeChecker do
   or discontinuous functions.
   """
 
-  alias Cloak.Aql.{Compiler.CompilationError, Comparison, Expression, Query}
-  alias Cloak.Aql.TypeChecker.{Narrative, Type}
+  alias Cloak.Sql.{Compiler.CompilationError, Comparison, Expression, Query}
+  alias Cloak.Sql.TypeChecker.{Narrative, Type}
 
 
   # -------------------------------------------------------------------
@@ -83,10 +83,9 @@ defmodule Cloak.Aql.TypeChecker do
     |> Lens.to_list(query)
     |> List.flatten()
     |> Enum.each(fn(comparison) ->
-      types = Enum.map(
-        [Comparison.subject(comparison) | Comparison.targets(comparison)],
-        &establish_type(&1, query)
-      )
+      types = [Comparison.subject(comparison) | Comparison.targets(comparison)]
+      |> Enum.map(&establish_type(&1, query))
+      |> Enum.uniq()
       if Enum.any?(types, & &1.is_result_of_datetime_processing?) and
           Enum.any?(types, & &1.constant? or &1.constant_involved?) do
         explanations = types

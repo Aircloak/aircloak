@@ -1,4 +1,4 @@
-defmodule Cloak.Aql.FixAlign do
+defmodule Cloak.Sql.FixAlign do
   @moduledoc "Implements fixing the alignment of ranges to a predetermined grid."
 
   @type interval(x) :: {x, x}

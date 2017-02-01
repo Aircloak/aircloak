@@ -1,7 +1,7 @@
-defmodule Cloak.Aql.Query.Lenses.Test do
+defmodule Cloak.Sql.Query.Lenses.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.Query.Lenses
+  alias Cloak.Sql.Query.Lenses
 
   describe "join_condition_lenses" do
     test "a simple join" do

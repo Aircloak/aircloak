@@ -21,11 +21,15 @@ defmodule Central.Socket.Air.MainChannel do
 
   @doc false
   @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
-  def join("main", _air_info, socket) do
+  def join("main", air_info, socket) do
     Process.flag(:trap_exit, true)
     customer = socket.assigns.customer
     Logger.info("air for '#{customer.name}' (id: #{customer.id}) joined central")
-    Central.AirConnectionMonitor.monitor_channel(customer, socket.assigns.air_name)
+    monitor_channel(customer, socket.assigns.air_name,
+      air_info
+      |> Map.get("online_cloaks", [])
+      |> Enum.map(&%{name: Map.fetch!(&1, "name"), data_sources: Map.fetch!(&1, "data_sources")})
+    )
     {:ok, %{}, socket}
   end
 
@@ -148,5 +152,24 @@ defmodule Central.Socket.Air.MainChannel do
       aux: payload["aux"],
     }
     Customer.record_query(customer, params)
+  end
+  defp handle_call_with_retry("cloak_online", cloak_info, socket) do
+    Central.Service.Customer.update_cloak(socket.assigns.customer, socket.assigns.air_name,
+      Map.fetch!(cloak_info, "name"), status: :online, data_sources: Map.fetch!(cloak_info, "data_sources"))
+    :ok
+  end
+  defp handle_call_with_retry("cloak_offline", cloak_info, socket) do
+    Central.Service.Customer.update_cloak(socket.assigns.customer, socket.assigns.air_name,
+      Map.fetch!(cloak_info, "name"), status: :offline)
+    :ok
+  end
+
+  if Mix.env == :test do
+    # We avoid monitoring in test env, since this will start asynchronous processes storing
+    # to the database, which will in turn lead to noisy errors in test output.
+    defp monitor_channel(_customer, _air_name, _online_cloaks), do: :ok
+  else
+    defp monitor_channel(customer, air_name, online_cloaks), do:
+      Central.AirStats.register(customer, air_name, online_cloaks)
   end
 end

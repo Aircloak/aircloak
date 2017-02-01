@@ -1,7 +1,7 @@
-defmodule Cloak.Aql.Parser.Test do
+defmodule Cloak.Sql.Parser.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.Parser
+  alias Cloak.Sql.Parser
 
 
   # -------------------------------------------------------------------
@@ -286,7 +286,7 @@ defmodule Cloak.Aql.Parser.Test do
         columns: [identifier("foo")], from: unquoted("bar"),
         where: [
           {:comparison, identifier("a"), :>=, constant(10)},
-          {:comparison, identifier("a"), :<=, constant(20)}
+          {:comparison, identifier("a"), :<, constant(20)}
         ]
       )
     )

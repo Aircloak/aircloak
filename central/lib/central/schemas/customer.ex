@@ -12,6 +12,7 @@ defmodule Central.Schemas.Customer do
     field :name, :string
 
     has_many :queries, Central.Schemas.Query
+    has_many :airs, Central.Schemas.Air
 
     timestamps()
   end

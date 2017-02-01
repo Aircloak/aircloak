@@ -1,7 +1,7 @@
-defmodule Cloak.Aql.Function do
+defmodule Cloak.Sql.Function do
   @moduledoc "Includes information about functions and implementation of non-aggregation functions."
 
-  alias Cloak.Aql.{Expression, Parser}
+  alias Cloak.Sql.{Expression, Parser}
   alias Cloak.DataSource
 
   import Kernel, except: [apply: 2]
@@ -79,6 +79,7 @@ defmodule Cloak.Aql.Function do
       %{type_specs: %{[:text, :integer, {:optional, :integer}] => :text}},
     ~w(||) => %{type_specs: %{[:text, :text] => :text}},
     ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
+    ~w(hex) => %{type_specs: %{[:text] => :text}},
     # NOTICE: The `not_in_subquery` needs to be set for `extract_match` and `extract_matches`
     # (whether or not we can implement it in a subquery). The reason for this is what we have called:
     # WYSIWYC (what you see is what you count). If `extract_match` is allowed in a subquery it can

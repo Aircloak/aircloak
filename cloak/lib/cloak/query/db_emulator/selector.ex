@@ -3,7 +3,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   Data retrieval for emulated queries.
   """
 
-  alias Cloak.Aql.{Query, Comparison, Expression}
+  alias Cloak.Sql.{Query, Comparison, Expression}
   alias Cloak.Query.{Rows, Sorter}
   alias Cloak.Data
 

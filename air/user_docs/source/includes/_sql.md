@@ -1,6 +1,6 @@
-# Aircloak Query Language
+# Query Language
 
-To write queries, you can use Aircloak Query Language (AQL). AQL is a subset of standard SQL, implemented to prevent leakage of sensitive data.
+To write queries you use SQL. Aircloak supports a subset of standard SQL, implemented in a way that prevents leakage of sensitive data.
 
 
 ## Exploring the database

@@ -1,4 +1,4 @@
-defmodule Cloak.Aql.Parsers do
+defmodule Cloak.Sql.Parsers do
   @moduledoc """
   Additional parsers not supplied by the `Combine` library.
   """

@@ -1,7 +1,7 @@
 defmodule Cloak.Query.SorterTest do
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.Query
+  alias Cloak.Sql.Query
   alias Cloak.Query.{Sorter, Result}
 
   defp list_to_buckets(values), do: for value <- values, do: %{row: [value]}

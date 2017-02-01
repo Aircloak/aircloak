@@ -2,6 +2,8 @@ defmodule Central.Service.ElasticSearch do
   @moduledoc "Service module for interacting with elasticsearch"
 
   require Logger
+  alias Central.Repo
+  alias Central.Schemas.{Air, Customer}
 
 
   # -------------------------------------------------------------------
@@ -16,13 +18,29 @@ defmodule Central.Service.ElasticSearch do
   query features
   """
   @spec record_query(Customer.t, Map.t) :: :ok | :error
-  def record_query(customer, params) do
-    aux = Map.get(params, :aux, %{})
-      |> Map.put(:customer, %{id: customer.id, name: customer.name})
-    params = params
-      |> Map.put(:aux, aux)
-      |> Map.put(:timestamp, Timex.format!(Timex.now(), "{ISO:Extended}"))
-    record(:customer, :query, params)
+  def record_query(customer, params), do:
+    record(:customer, :query,
+      update_in(params, [:aux], &Map.put(&1 || %{}, :customer, %{id: customer.id, name: customer.name})))
+
+  @doc "Records air presence in elastic search."
+  @spec record_air_presence(Air.t) :: :ok | :error
+  def record_air_presence(air) do
+    air = Repo.preload(air, [:customer, :cloaks])
+
+    record(:customer, :air, %{
+      name: air.name,
+      status: air.status,
+      online_cloaks: air.cloaks |> Enum.filter(&(&1.status == :online)) |> Enum.count(),
+      customer: %{id: air.customer.id, name: air.customer.name}
+    })
+
+    Enum.each(air.cloaks, &record(:customer, :cloak, %{
+      name: &1.name,
+      status: &1.status,
+      data_sources: &1.data_sources,
+      air_name: air.name,
+      customer: %{id: air.customer.id, name: air.customer.name}
+    }))
   end
 
   # -------------------------------------------------------------------
@@ -35,6 +53,7 @@ defmodule Central.Service.ElasticSearch do
     defp record(index, type, data) do
       elastic_endpoint = Central.site_setting("elastic_search_endpoint")
       url = "#{elastic_endpoint}/#{index}/#{type}"
+      data = Map.put(data, :timestamp, Timex.format!(Timex.now(), "{ISO:Extended}"))
       case HTTPoison.post(url, Poison.encode!(data)) do
         {:ok, _} -> :ok
         other ->

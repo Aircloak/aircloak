@@ -1,7 +1,7 @@
-defmodule Cloak.Aql.Compiler.VerificationDatetimeExtraction.Test do
+defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.{Compiler, Parser}
+  alias Cloak.Sql.{Compiler, Parser}
 
   describe "Condition affected by datetime extractors are forbidden when a constant is involved" do
     test "it is forbidden to cast a date to text and then use it in a WHERE inequality" do

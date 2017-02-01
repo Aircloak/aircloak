@@ -1,7 +1,7 @@
-defmodule Cloak.Aql.Function.Test do
+defmodule Cloak.Sql.Function.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.{Expression, Function}
+  alias Cloak.Sql.{Expression, Function}
 
   for function <- ~w(floor ceil ceiling) do
     test "#{function} argument types" do

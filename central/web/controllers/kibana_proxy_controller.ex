@@ -12,7 +12,11 @@ defmodule Central.KibanaProxyController do
   end
 
   def post(conn, params) do
-    HTTPoison.post(url(conn, params), conn.private[:raw_body], trimmed_headers(conn)) |> handle_response(conn)
+    HTTPoison.post(url(conn, params), body_or_nil(conn), trimmed_headers(conn)) |> handle_response(conn)
+  end
+
+  def put(conn, params) do
+    HTTPoison.put(url(conn, params), body_or_nil(conn), trimmed_headers(conn)) |> handle_response(conn)
   end
 
   def redirect_to_web_interface(conn, _params) do
@@ -24,18 +28,18 @@ defmodule Central.KibanaProxyController do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp handle_response({:ok, result}, conn) do
+  defp body_or_nil(conn), do: conn.private[:raw_body] || ""
+
+  defp handle_response({:ok, result}, conn), do:
     conn
     |> merge_resp_headers(result.headers)
     # Because we are requesting resources cross domains
     |> put_private(:plug_skip_csrf_protection, true)
     |> send_resp(result.status_code, result.body)
-  end
-  defp handle_response({:error, error}, conn) do
+  defp handle_response({:error, error}, conn), do:
     conn
     |> put_resp_content_type("text/plain")
     |> send_resp(501, "Could not proxy to Kibana: #{error.reason}")
-  end
 
   defp url(conn, params) do
     query_string = conn.query_string

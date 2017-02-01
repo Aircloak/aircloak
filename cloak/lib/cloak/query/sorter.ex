@@ -2,7 +2,7 @@ defmodule Cloak.Query.Sorter do
   @moduledoc "Sorts buckets according to the query specification."
 
   alias Cloak.Query.Result
-  alias Cloak.Aql.Query
+  alias Cloak.Sql.Query
 
 
   # -------------------------------------------------------------------

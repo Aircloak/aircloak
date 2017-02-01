@@ -4,7 +4,7 @@ defmodule Cloak.Query.Result do
   allows a result to contain meta-data about the query execution.
   """
 
-  alias Cloak.Aql.Query
+  alias Cloak.Sql.Query
 
   @type t :: %__MODULE__{
     buckets: [bucket],

@@ -1,8 +1,8 @@
-defmodule Cloak.Aql.Expression.Test do
+defmodule Cloak.Sql.Expression.Test do
   require Integer
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.Expression
+  alias Cloak.Sql.Expression
   alias Timex.Duration
 
   test "coalesce" do
@@ -318,12 +318,6 @@ defmodule Cloak.Aql.Expression.Test do
         Expression.function("f", [%Expression{constant?: true}]),
         Expression.function("f", [%Expression{constant?: true}, return_column]),
       ]))
-    end
-  end
-
-  describe "value" do
-    test "precomputed functions" do
-      assert :result = Expression.value(%{Expression.function("f", []) | row_index: 0}, [:result])
     end
   end
 

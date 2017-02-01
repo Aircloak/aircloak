@@ -64,6 +64,7 @@ defmodule Air.Socket.Cloak.MainChannel do
     }
     data_sources = Map.fetch!(cloak_info, "data_sources")
     Air.DataSourceManager.register_cloak(cloak, data_sources)
+    report_online_status_to_central(cloak, data_sources)
 
     {:ok, %{}, assign(socket, :pending_calls, %{})}
   end
@@ -174,6 +175,16 @@ defmodule Air.Socket.Cloak.MainChannel do
         exit(reason)
     after timeout ->
       exit(:timeout)
+    end
+  end
+
+  if Mix.env == :test do
+    # do nothing in tests to suppress a lot of noisy errors
+    defp report_online_status_to_central(_cloak, _data_sources), do: :ok
+  else
+    defp report_online_status_to_central(cloak, data_sources) do
+      Air.CentralSocket.record_cloak_online(cloak.name, length(data_sources))
+      Aircloak.ProcessMonitor.on_exit(fn -> Air.CentralSocket.record_cloak_offline(cloak.name) end)
     end
   end
 end

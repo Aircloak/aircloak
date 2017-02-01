@@ -42,7 +42,13 @@ defmodule Cloak.ResultSender do
   # -------------------------------------------------------------------
 
   defp send_reply(:air_socket, reply) do
-    Elixir.Cloak.AirSocket.send_query_result(reply)
+    case Elixir.Cloak.AirSocket.send_query_result(reply) do
+      :ok -> :ok
+      {:error, %Poison.EncodeError{}} ->
+        reply = %{error: "Result could not be encoded as JSON.", query_id: reply.query_id}
+        Elixir.Cloak.AirSocket.send_query_result(reply)
+      {:error, error} -> {:error, error}
+    end
   end
   defp send_reply({:process, pid}, reply) do
     send(pid, {:reply, reply})
