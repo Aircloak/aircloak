@@ -170,7 +170,7 @@ defmodule Cloak.Sql.Query.Lenses do
     Lens.match(fn
       {:not, _} -> Lens.at(1) |> operands()
       {:comparison, _lhs, _comparator, _rhs} -> Lens.indices([1, 3])
-      {:is, _, :null}-> Lens.at(1)
+      {:is, _, :null} -> Lens.at(1)
       {op, _, _} when op in [:in, :like, :ilike] -> Lens.both(Lens.at(1), Lens.at(2))
       _ -> Lens.empty()
     end)
