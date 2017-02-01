@@ -39,11 +39,17 @@ config :air, :central,
   min_reconnect_interval: 1000,
   max_reconnect_interval: 1000
 
-# Use less acceptors in dev. We shouldn't issue a huge load in dev mode anyway, and
-# less acceptors makes the supervision tree view in observer nicer.
+# Use smaller pools in dev for endpoints and repo. We shouldn't issue a huge load in dev mode anyway, and
+# less processes makes the supervision tree view in observer nicer.
 config :air, Air.Endpoint,
-  http: [acceptors: 5],
-  https: [acceptors: 5]
+  http: [acceptors: 2],
+  https: [acceptors: 2]
+
+config :air, Air.MonitoringEndpoint,
+  http: [acceptors: 2]
 
 config :air, Air.PsqlServer,
-  ranch_opts: [num_acceptors: 5]
+  ranch_opts: [num_acceptors: 2]
+
+config :air, Air.Repo,
+  pool_size: 2
