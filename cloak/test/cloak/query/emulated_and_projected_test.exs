@@ -124,10 +124,10 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
 
     test "having inequality" do
       assert_query """
-        select length(v) as v from
+        select length(v) as l from
           (select user_id, left(value, 1) as v from #{@prefix}emulated
           group by user_id, value having length(value) >= 1 and length(value) < 2) as t
-        order by v
+        order by l
         """, %{rows: [%{occurrences: 20, row: [1]}]}
     end
 

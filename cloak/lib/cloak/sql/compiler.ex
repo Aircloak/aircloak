@@ -448,7 +448,10 @@ defmodule Cloak.Sql.Compiler do
     end)
     order_by = for {column, direction} <- query.order_by, do: {Map.get(aliases, column, column), direction}
     group_by = for identifier <- query.group_by, do: Map.get(aliases, identifier, identifier)
-    %Query{query | column_titles: column_titles, columns: columns, group_by: group_by, order_by: order_by}
+    where = update_in(query.where, [Query.Lenses.conditions_terminals()], &Map.get(aliases, &1, &1))
+    having = update_in(query.having, [Query.Lenses.conditions_terminals()], &Map.get(aliases, &1, &1))
+    %Query{query | column_titles: column_titles, columns: columns,
+      group_by: group_by, order_by: order_by, where: where, having: having}
   end
   defp compile_aliases(query), do: query
 
@@ -457,10 +460,14 @@ defmodule Cloak.Sql.Compiler do
   # the outer column selections
   defp verify_aliases(query) do
     aliases = for {_column, :as, name} <- query.columns, do: name
-    all_identifiers = aliases ++ all_column_identifiers(query)
-    referenced_names = (for {{:identifier, _table, {_, name}}, _direction} <- query.order_by, do: name) ++
-      query.group_by
-    ambiguous_names = for name <- referenced_names, Enum.count(all_identifiers, &name == &1) > 1, do: name
+    all_columns = for {:identifier, _table, {:unquoted, name}} <- all_column_identifiers(query), do: name
+    possible_identifiers = aliases ++ all_columns
+    referenced_identifiers =
+      (for {identifier, _direction} <- query.order_by, do: identifier) ++
+      query.group_by ++
+      get_in(query.where ++ query.having, [Query.Lenses.conditions_terminals()])
+    ambiguous_names = for {:identifier, :unknown, {_, name}} <- referenced_identifiers,
+      Enum.count(possible_identifiers, &name == &1) > 1, do: name
     case ambiguous_names do
       [] -> :ok
       [name | _rest] -> raise CompilationError, message: "Usage of `#{name}` is ambiguous."
@@ -520,9 +527,7 @@ defmodule Cloak.Sql.Compiler do
   end
 
   defp expand_star_select(%Query{columns: :*} = query) do
-    columns = all_column_identifiers(query)
-    column_names = for {:identifier, _table, {_, name}} <- columns, do: name
-    %Query{query | columns: columns, column_titles: column_names}
+    %Query{query | columns: all_column_identifiers(query)}
   end
   defp expand_star_select(query), do: query
 
@@ -1256,6 +1261,15 @@ defmodule Cloak.Sql.Compiler do
 
   defp verify_where_clauses(%Query{where: clauses = [_|_]} = query) do
     Enum.each(clauses, &verify_where_clause/1)
+    clauses
+    |> get_in([Query.Lenses.conditions_terminals()])
+    |> Enum.filter(& &1.aggregate?)
+    |> case do
+      [] -> :ok
+      [column | _rest] ->
+        raise CompilationError, message:
+          "Expression #{Expression.display_name(column)} is not valid in the `WHERE` clause."
+    end
     query
   end
   defp verify_where_clauses(query), do: query
