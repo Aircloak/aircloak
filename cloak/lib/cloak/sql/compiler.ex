@@ -1261,6 +1261,15 @@ defmodule Cloak.Sql.Compiler do
 
   defp verify_where_clauses(%Query{where: clauses = [_|_]} = query) do
     Enum.each(clauses, &verify_where_clause/1)
+    clauses
+    |> get_in([Query.Lenses.conditions_terminals()])
+    |> Enum.filter(& &1.aggregate?)
+    |> case do
+      [] -> :ok
+      [column | _rest] ->
+        raise CompilationError, message:
+          "Expression #{Expression.display_name(column)} is not valid in the `WHERE` clause."
+    end
     query
   end
   defp verify_where_clauses(query), do: query

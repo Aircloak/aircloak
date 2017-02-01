@@ -158,7 +158,7 @@ defmodule Cloak.Sql.Query.Lenses do
       {:comparison, _, check, _} when check in ~w(> >= < <=)a -> Lens.empty()
       {:comparison, _, _check, _} -> Lens.indices([1, 3]) |> do_match_condition_columns()
       {like, _, _} when like in ~w(like ilike)a -> Lens.indices([1, 2]) |> do_match_condition_columns()
-      {:is, _, _} -> Lens.index(1) |> do_match_condition_columns()
+      {:is, _, :null} -> Lens.index(1) |> do_match_condition_columns()
       {:in, _, _} -> Lens.indices([1, 2]) |> do_match_condition_columns()
       {:not, _} -> Lens.index(1) |> do_match_condition_columns()
       elements when is_list(elements) -> Lens.all() |> do_match_condition_columns()
@@ -170,7 +170,8 @@ defmodule Cloak.Sql.Query.Lenses do
     Lens.match(fn
       {:not, _} -> Lens.at(1) |> operands()
       {:comparison, _lhs, _comparator, _rhs} -> Lens.indices([1, 3])
-      {op, _, _} when op in [:in, :like, :ilike, :is] -> Lens.both(Lens.at(1), Lens.at(2))
+      {:is, _, :null}-> Lens.at(1)
+      {op, _, _} when op in [:in, :like, :ilike] -> Lens.both(Lens.at(1), Lens.at(2))
       _ -> Lens.empty()
     end)
 

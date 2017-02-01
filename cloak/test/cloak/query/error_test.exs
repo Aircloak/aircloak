@@ -104,4 +104,9 @@ defmodule Cloak.Query.ErrorTest do
     assert_query "select name from test_errors having count(*) >= 10", %{error: error}
     assert ~s/Using the `HAVING` clause requires the `GROUP BY` clause to be specified./ == error
   end
+
+  test "query reports error on invalid where clause" do
+    assert_query "select name from test_errors where max(height) >= 100", %{error: error}
+    assert ~s/Expression `max` is not valid in the `WHERE` clause./ == error
+  end
 end
