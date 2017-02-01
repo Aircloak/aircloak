@@ -71,3 +71,5 @@ config :air, :central,
 config :quantum, cron: [
   "0 * * * *": {Air.Service.Cleanup, :cleanup_old_queries}
 ]
+
+config :air, :usage_report_interval, :timer.minutes(1)

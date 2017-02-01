@@ -163,6 +163,8 @@ defmodule Central.Socket.Air.MainChannel do
       Map.fetch!(cloak_info, "name"), status: :offline)
     :ok
   end
+  defp handle_call_with_retry("usage_info", _uptime_info, _socket), do:
+    :ok
 
   if Mix.env == :test do
     # We avoid monitoring in test env, since this will start asynchronous processes storing
