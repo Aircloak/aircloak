@@ -19,7 +19,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
     field_expression [, ...]
     FROM from_expression [, ...]
     [ WHERE where_expression [AND ...] ]
-    [ GROUP BY column_name [, ...] ]
+    [ GROUP BY column_expression [, ...] ]
     [ HAVING having_expression [AND ...] ]
     [ ORDER BY column_name [ASC | DESC] [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
 
@@ -53,12 +53,12 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
     COUNT | SUM | AVG | MIN | MAX | STDDEV | MEDIAN
 
   where_expression :=
-    column_name equality_operator (value | column_name) |
-    column_name inequality_operator (numerical_value | datetime_value) |
-    column_name BETWEEN value AND value |
-    column_name IS [NOT] NULL |
-    column_name [NOT] IN (constant [, ...])
-    column_name [NOT] LIKE | ILIKE string_pattern
+    column_expression equality_operator (value | column_expression) |
+    column_expression inequality_operator (numerical_value | datetime_value) |
+    column_expression BETWEEN value AND value |
+    column_expression IS [NOT] NULL |
+    column_expression [NOT] IN (constant [, ...])
+    column_expression [NOT] LIKE | ILIKE string_pattern
 
   having_expression :=
       column_expression comparison_operator (value | column_expression)
@@ -82,6 +82,8 @@ __Notes__:
 - You can restrict the range of returned rows by a query using the `LIMIT` and/or `OFFSET` clauses, but you need to
  provide the ORDER BY clause to ensure a stable order for the rows.
 - Using the `HAVING` clause requires the `GROUP BY` clause to be specified and conditions must not refer to non-aggregated fields.
+- Aliases can be used in the `WHERE`, `GROUP BY`, `ORDER BY` and `HAVING` clauses, as long as the alias doesn't conflict
+ with a column name in one of the selected tables.
 
 ## JOIN restrictions
 
