@@ -163,8 +163,15 @@ defmodule Central.Socket.Air.MainChannel do
       Map.fetch!(cloak_info, "name"), status: :offline)
     :ok
   end
-  defp handle_call_with_retry("usage_info", _uptime_info, _socket), do:
+  defp handle_call_with_retry("usage_info", uptime_info, socket) do
+    Central.Service.Customer.store_uptime_info(
+      socket.assigns.customer,
+      socket.assigns.air_name,
+      NaiveDateTime.from_iso8601!(Map.fetch!(uptime_info, "air_utc_time")),
+      Map.delete(uptime_info, "air_utc_time")
+    )
     :ok
+  end
 
   if Mix.env == :test do
     # We avoid monitoring in test env, since this will start asynchronous processes storing

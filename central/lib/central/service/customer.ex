@@ -160,6 +160,23 @@ defmodule Central.Service.Customer do
     :ok
   end
 
+  @doc "Stores the uptime info sent from air."
+  @spec store_uptime_info(Customer.t, String.t, NaiveDateTime.t, Map.t) :: :ok
+  def store_uptime_info(customer, air_name, air_utc_time, data) do
+    mtime = NaiveDateTime.utc_now()
+
+    Repo.insert_all("usage_info", [[
+      customer_id: customer.id,
+      air_id: Repo.get_by!(Ecto.assoc(customer, :airs), name: air_name).id,
+      air_utc_time: air_utc_time,
+      data: data,
+      inserted_at: mtime,
+      updated_at: mtime,
+    ]])
+
+    :ok
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions

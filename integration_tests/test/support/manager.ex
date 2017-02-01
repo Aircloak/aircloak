@@ -93,6 +93,7 @@ defmodule IntegrationTest.Manager do
   end
 
   defp setup_central() do
+    Central.Repo.delete_all("usage_info")
     Central.Repo.delete_all(Central.Schemas.Customer)
     {:ok, customer} = Central.Service.Customer.create(%{name: "integration tests customer"})
     {:ok, token} = Central.Service.Customer.generate_token(customer)
