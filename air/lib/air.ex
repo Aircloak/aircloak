@@ -30,16 +30,17 @@ defmodule Air do
         {:secret_key_base, site_setting("endpoint_key_base")},
         {:api_token_salt, site_setting("api_token_salt")}
         | config
-      ] ++ https_config()
+      ] ++ https_config(Keyword.get(config, :https, []))
     end)
   end
 
-  defp https_config() do
+  defp https_config(previous_https_config) do
     keyfile = Path.join([Application.app_dir(:air, "priv"), "config", "ssl_key.pem"])
     certfile = Path.join([Application.app_dir(:air, "priv"), "config", "ssl_cert.pem"])
 
     if File.exists?(keyfile) && File.exists?(certfile) do
-      [https: [port: Application.fetch_env!(:air, :https_port), keyfile: keyfile, certfile: certfile]]
+      [https: Keyword.merge(previous_https_config,
+        port: Application.fetch_env!(:air, :https_port), keyfile: keyfile, certfile: certfile)]
     else
       []
     end

@@ -38,3 +38,12 @@ config :air, :central,
   central_site: "ws://localhost:7080",
   min_reconnect_interval: 1000,
   max_reconnect_interval: 1000
+
+# Use less acceptors in dev. We shouldn't issue a huge load in dev mode anyway, and
+# less acceptors makes the supervision tree view in observer nicer.
+config :air, Air.Endpoint,
+  http: [acceptors: 5],
+  https: [acceptors: 5]
+
+config :air, Air.PsqlServer,
+  ranch_opts: [num_acceptors: 5]
