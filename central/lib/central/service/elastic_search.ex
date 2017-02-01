@@ -2,6 +2,8 @@ defmodule Central.Service.ElasticSearch do
   @moduledoc "Service module for interacting with elasticsearch"
 
   require Logger
+  alias Central.Repo
+  alias Central.Schemas.{Air, Customer}
 
 
   # -------------------------------------------------------------------
@@ -21,13 +23,25 @@ defmodule Central.Service.ElasticSearch do
       update_in(params, [:aux], &Map.put(&1 || %{}, :customer, %{id: customer.id, name: customer.name})))
 
   @doc "Records air presence in elastic search."
-  @spec record_air_presence(Customer.t, String.t, Central.Service.Customer.air_status) :: :ok | :error
-  def record_air_presence(customer, air_name, status), do:
+  @spec record_air_presence(Air.t) :: :ok | :error
+  def record_air_presence(air) do
+    air = Repo.preload(air, [:customer, :cloaks])
+
     record(:customer, :air, %{
-      name: air_name,
-      status: status,
-      customer: %{id: customer.id, name: customer.name}
+      name: air.name,
+      status: air.status,
+      online_cloaks: air.cloaks |> Enum.filter(&(&1.status == :online)) |> Enum.count(),
+      customer: %{id: air.customer.id, name: air.customer.name}
     })
+
+    Enum.each(air.cloaks, &record(:customer, :cloak, %{
+      name: &1.name,
+      status: &1.status,
+      data_sources: &1.data_sources,
+      air_name: air.name,
+      customer: %{id: air.customer.id, name: air.customer.name}
+    }))
+  end
 
   # -------------------------------------------------------------------
   # Internal functions

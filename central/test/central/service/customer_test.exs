@@ -69,24 +69,56 @@ defmodule Central.Service.CustomerTest do
 
   test "storing air status" do
     customer = create_customer()
-    assert :ok == Customer.update_air_status(customer, "air1", :online)
+    assert :ok == Customer.mark_air_online(customer, "air1", [])
     assert :online == air_data(customer, "air1").status
+  end
+
+  test "storing air status with online cloaks" do
+    customer = create_customer()
+    assert :ok == Customer.mark_air_online(customer, "air1", online_cloaks())
+    assert :online == air_data(customer, "air1").status
+    assert :online == cloak_data(customer, "air1", "cloak1").status
+    assert :online == cloak_data(customer, "air1", "cloak2").status
   end
 
   test "updating air status" do
     customer = create_customer()
-    Customer.update_air_status(customer, "air1", :online)
-    Customer.update_air_status(customer, "air1", :offline)
+    Customer.mark_air_online(customer, "air1", [])
+    Customer.mark_air_offline(customer, "air1")
     assert :offline == air_data(customer, "air1").status
+  end
+
+  test "updating air status to offline will set cloaks to offline as well" do
+    customer = create_customer()
+    Customer.mark_air_online(customer, "air1", online_cloaks())
+    Customer.mark_air_offline(customer, "air1")
+    assert :offline == cloak_data(customer, "air1", "cloak1").status
+    assert :offline == cloak_data(customer, "air1", "cloak2").status
   end
 
   test "resetting air statuses" do
     customer = create_customer()
-    Customer.update_air_status(customer, "air1", :online)
-    Customer.update_air_status(customer, "air2", :online)
+    Customer.mark_air_online(customer, "air1", online_cloaks())
+    Customer.mark_air_online(customer, "air2", [])
     Customer.reset_air_statuses()
     assert :offline == air_data(customer, "air1").status
     assert :offline == air_data(customer, "air2").status
+    assert :offline == cloak_data(customer, "air1", "cloak1").status
+    assert :offline == cloak_data(customer, "air1", "cloak2").status
+  end
+
+  test "storing cloak status" do
+    customer = create_customer()
+    assert :ok == Customer.mark_air_online(customer, "air1", [])
+    assert :ok == Customer.update_cloak(customer, "air1", "cloak1", status: :online)
+    assert :online == cloak_data(customer, "air1", "cloak1").status
+  end
+
+  test "updating cloak status" do
+    customer = create_customer()
+    assert :ok == Customer.mark_air_online(customer, "air1", online_cloaks())
+    Customer.update_cloak(customer, "air1", "cloak1", status: :offline)
+    assert :offline == cloak_data(customer, "air1", "cloak1").status
   end
 
   test "records query executions" do
@@ -114,4 +146,10 @@ defmodule Central.Service.CustomerTest do
 
   defp air_data(customer, air_name), do:
     Enum.find(Customer.airs(), &(&1.name == air_name && &1.customer.id == customer.id))
+
+  defp cloak_data(customer, air_name, cloak_name), do:
+    Enum.find(air_data(customer, air_name).cloaks, &(&1.name == cloak_name))
+
+  defp online_cloaks(), do:
+    [%{name: "cloak1", data_sources: 1}, %{name: "cloak2", data_sources: 2}]
 end

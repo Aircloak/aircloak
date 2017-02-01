@@ -6,12 +6,11 @@ defmodule Central.Service.Customer do
 
   alias Ecto.Changeset
   alias Central.Repo
-  alias Central.Schemas.{Customer, Query}
+  alias Central.Schemas.{Air, Cloak, Customer, Query, OnlineStatus}
+  alias Central.Service.ElasticSearch
 
   import Ecto.Query, only: [from: 2]
 
-  @type air :: %{name: String.t, status: air_status, customer: Customer.t}
-  @type air_status :: :offline | :online
 
   #-----------------------------------------------------------------------------------------------------------
   # API functions
@@ -88,7 +87,7 @@ defmodule Central.Service.Customer do
   @doc "Records a query execution associated with a customer"
   @spec record_query(Customer.t, Map.t) :: :ok | :error
   def record_query(customer, params) do
-    Central.Service.ElasticSearch.record_query(customer, params)
+    ElasticSearch.record_query(customer, params)
     changeset = customer
       |> Ecto.build_assoc(:queries)
       |> Query.changeset(params)
@@ -101,42 +100,64 @@ defmodule Central.Service.Customer do
     end
   end
 
-  @doc "Updates the air status."
-  @spec update_air_status(Customer.t, String.t, air_status) :: :ok
-  def update_air_status(customer, air_name, status) do
-    encoded_status = encode_air_status(status)
-    mtime = NaiveDateTime.utc_now()
-    {1, _} = Repo.insert_all("airs",
-      [%{
-        name: air_name,
-        customer_id: customer.id,
-        status: encoded_status,
-        inserted_at: mtime,
-        updated_at: mtime
-      }],
-      on_conflict: [set: [status: encoded_status, updated_at: mtime]],
-      conflict_target: [:name, :customer_id]
-    )
+  @doc "Marks air and associated cloaks as online."
+  @spec mark_air_online(Customer.t, String.t, [%{name: String.t, data_sources: non_neg_integer}]) :: :ok
+  def mark_air_online(customer, air_name, online_cloaks) do
+    {:ok, air} = Repo.transaction(fn ->
+      air = update_air_status(customer, air_name, :online)
+      Enum.each(online_cloaks, &update_cloak(customer, air_name, &1.name,
+        status: :online, data_sources: &1.data_sources))
+      air
+    end)
+
+    ElasticSearch.record_air_presence(air)
+
     :ok
   end
 
-  @doc "Resets statuses of all known airs to offline."
+  @doc "Marks air and all known cloaks as offline."
+  @spec mark_air_offline(Customer.t, String.t) :: :ok
+  def mark_air_offline(customer, air_name) do
+    {:ok, air} = Repo.transaction(fn ->
+      air = update_air_status(customer, air_name, :offline)
+      Repo.update_all(from(c in Cloak, where: c.air_id == ^air.id), set: [status: :offline])
+      air
+    end)
+
+    ElasticSearch.record_air_presence(air)
+
+    :ok
+  end
+
+  # Error in current Ecto: https://github.com/elixir-ecto/ecto/issues/1882
+  @dialyzer {:no_opaque, reset_air_statuses: 0}
+  @doc "Resets statuses of all known airs and associated cloaks to offline."
   @spec reset_air_statuses() :: :ok
   def reset_air_statuses() do
-    Repo.update_all("airs", set: [status: encode_air_status(:offline)])
+    {:ok, _} =
+      Ecto.Multi.new()
+      |> Ecto.Multi.update_all(:set_airs_offline, Air, set: [status: :offline])
+      |> Ecto.Multi.update_all(:set_cloaks_offline, Cloak, set: [status: :offline])
+      |> Repo.transaction()
+
     :ok
   end
 
   @doc "Returns the list of all known airs."
-  @spec airs() :: [air]
-  def airs() do
-    from(
-      a in "airs",
-      join: c in Central.Schemas.Customer, on: a.customer_id == c.id,
-      select: %{name: a.name, status: a.status, customer: c}
+  @spec airs() :: [Air.t]
+  def airs(), do:
+    Repo.all(from Air, preload: [:customer, :cloaks])
+
+  @doc "Updates the cloak status."
+  @spec update_cloak(Customer.t, String.t, String.t, [status: OnlineStatus.t, data_sources: non_neg_integer]) :: :ok
+  def update_cloak(customer, air_name, cloak_name, updates) do
+    cloak = Map.merge(
+      %Cloak{air: Repo.get_by!(Ecto.assoc(customer, :airs), name: air_name), name: cloak_name},
+      updates |> Keyword.take([:status, :data_sources]) |> Enum.into(%{})
     )
-    |> Repo.all()
-    |> Enum.map(&%{&1 | status: decode_air_status(&1.status)})
+    Repo.insert!(cloak, on_conflict: [set: updates], conflict_target: [:name, :air_id])
+
+    :ok
   end
 
 
@@ -152,9 +173,10 @@ defmodule Central.Service.Customer do
     Central.site_setting("endpoint_key_base")
   end
 
-  defp encode_air_status(:offline), do: 0
-  defp encode_air_status(:online), do: 1
-
-  defp decode_air_status(0), do: :offline
-  defp decode_air_status(1), do: :online
+  defp update_air_status(customer, air_name, status), do:
+    Repo.insert!(
+      %Air{name: air_name, customer: customer, status: status},
+      on_conflict: [set: [status: status]],
+      conflict_target: [:name, :customer_id]
+    )
 end
