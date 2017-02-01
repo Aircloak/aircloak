@@ -1,4 +1,4 @@
-defmodule Air.CentralSocket do
+defmodule Air.CentralClient.Socket do
   @moduledoc """
   Client side of the socket connection to the Central system.
 

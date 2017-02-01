@@ -1,4 +1,4 @@
-defmodule Air.CentralQueryReporter do
+defmodule Air.CentralClient.QueryReporter do
   @moduledoc """
   Reports query executions to the Airport Central
   for book keeping and stats.
@@ -7,9 +7,10 @@ defmodule Air.CentralQueryReporter do
   cannot be delivered successfully.
   """
 
-  import Supervisor.Spec, warn: false
   require Logger
   alias Air.{Repo, Schemas.Query}
+
+  @task_supervisor Module.concat(__MODULE__, TaskSup)
 
 
   # -------------------------------------------------------------------
@@ -17,35 +18,34 @@ defmodule Air.CentralQueryReporter do
   # -------------------------------------------------------------------
 
   @doc """
-  Returns a supervisor specification for the supervisor of query reporter.
+  Starts the reporter supervision tree.
 
-  All query reporters will be running under this supervisor as temporary workers. If
+  All query reporters will be running under a dedicated Task supervisor as temporary workers. If
   a processor crashes, an error will be logged, but there won't be any attempts
   to retry the job.
   """
-  @spec supervisor_spec() :: Supervisor.Spec.spec
-  def supervisor_spec() do
-    supervisor(Task.Supervisor, [[name: __MODULE__, restart: :temporary]], [id: :central_query_reporter])
-  end
+  @spec start_link() :: Supervisor.on_start
+  def start_link() do
+    import Supervisor.Spec, warn: false
 
-  @doc "Returns a worker specification for the query result processor"
-  @spec observer_spec() :: Supervisor.Spec.spec
-  def observer_spec do
-    worker(Task, [fn() ->
-      for {:result, result} <- Air.QueryEvents.stream, do: start_processor(result)
-    end], id: :central_query_reporter_worker)
-  end
-
-  @doc "Starts a result processor."
-  @spec start_processor(%{String.t => any}) :: {:ok, pid}
-  def start_processor(result) do
-    Task.Supervisor.start_child(__MODULE__, fn() -> process_result(result) end)
+    Supervisor.start_link(
+      [
+        supervisor(Task.Supervisor, [[name: @task_supervisor, restart: :temporary]], [id: @task_supervisor]),
+        worker(Task, [&handle_query_events/0], id: Module.concat(__MODULE__, Worker))
+      ],
+      strategy: :one_for_one
+    )
   end
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp handle_query_events(), do:
+    Enum.map(Air.QueryEvents.stream(), fn({:result, result}) ->
+      Task.Supervisor.start_child(@task_supervisor, fn() -> process_result(result) end)
+    end)
 
   defp process_result(result) do
     query = Repo.get!(Query, result["query_id"]) |> Repo.preload([:user, :data_source])
@@ -77,7 +77,7 @@ defmodule Air.CentralQueryReporter do
         }
       },
     }
-    Air.CentralSocket.record_query(payload)
+    Air.CentralClient.Socket.record_query(payload)
   end
 end
 

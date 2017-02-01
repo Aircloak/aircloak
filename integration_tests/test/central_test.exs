@@ -8,13 +8,13 @@ defmodule IntegrationTest.CentralTest do
     assert hd(air().cloaks).status == :online
     assert hd(air().cloaks).data_sources == 1
 
-    Supervisor.terminate_child(Air.Supervisor, Air.CentralSocket)
+    Supervisor.terminate_child(Air.CentralClient, Air.CentralClient.Socket)
     :timer.sleep(100)
     assert air().status == :offline
     assert hd(air().cloaks).status == :offline
     assert hd(air().cloaks).data_sources == 1
 
-    Supervisor.restart_child(Air.Supervisor, Air.CentralSocket)
+    Supervisor.restart_child(Air.CentralClient, Air.CentralClient.Socket)
     :timer.sleep(100)
     assert air().status == :online
     assert hd(air().cloaks).status == :online

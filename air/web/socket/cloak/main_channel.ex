@@ -183,8 +183,8 @@ defmodule Air.Socket.Cloak.MainChannel do
     defp report_online_status_to_central(_cloak, _data_sources), do: :ok
   else
     defp report_online_status_to_central(cloak, data_sources) do
-      Air.CentralSocket.record_cloak_online(cloak.name, length(data_sources))
-      Aircloak.ProcessMonitor.on_exit(fn -> Air.CentralSocket.record_cloak_offline(cloak.name) end)
+      Air.CentralClient.Socket.record_cloak_online(cloak.name, length(data_sources))
+      Aircloak.ProcessMonitor.on_exit(fn -> Air.CentralClient.Socket.record_cloak_offline(cloak.name) end)
     end
   end
 end
