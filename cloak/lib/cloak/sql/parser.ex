@@ -292,6 +292,7 @@ defmodule Cloak.Sql.Parser do
 
   defp raw_identifier_of(words) do
     unquoted_identifier()
+    |> map(&String.downcase/1)
     |> satisfy(&Enum.member?(words, &1))
     |> map(&String.to_atom/1)
   end
