@@ -1,8 +1,8 @@
 # ignore everything by default
 *
 
-# whitelist only needed folders
-!air/VERSION
+# whitelist only needed folders and files
+!VERSION
 !air/tmp/image_shell_init.sh
 !air/brunch-config.js
 !air/package.json

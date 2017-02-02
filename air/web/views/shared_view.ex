@@ -5,6 +5,4 @@ defmodule Air.SharedView do
   @dialyzer :no_match
 
   def version(), do: Air.Mixfile.version()
-
-  def release_name(), do: Air.Mixfile.release_name()
 end

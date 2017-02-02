@@ -2,11 +2,9 @@
 *
 
 
-# Whitelist only needed folders
-
-# The folders not copied in the base image
+# Whitelist only needed files and folders
 !common
-!cloak/VERSION
+!VERSION
 !cloak/Makefile
 !cloak/mix.exs
 !cloak/mix.lock

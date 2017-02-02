@@ -1,13 +1,11 @@
 defmodule Cloak.Mixfile do
   use Mix.Project
 
-  with version <- File.read!("VERSION") |> String.trim(),
-       release_name <- File.read!("../RELEASE_NAME") |> String.trim() do
+  with version <- File.read!("../VERSION") |> String.trim() do
     def project do
       [
         app: :cloak,
         version: unquote(version),
-        release_name: unquote(release_name),
         elixir: "~> 1.3",
         build_embedded: Mix.env == :prod,
         start_permanent: Mix.env == :prod,
@@ -26,10 +24,6 @@ defmodule Cloak.Mixfile do
   @doc "Returns the version of the cloak application"
   @spec version() :: String.t
   def version(), do: Keyword.get(project(), :version)
-
-  @doc "Returns the major Aircloak release name."
-  @spec release_name() :: String.t
-  def release_name(), do: Keyword.get(project(), :release_name)
 
   def application do
     [
