@@ -802,6 +802,12 @@ defmodule Cloak.Sql.Parser.Test do
     assert_equal_parse "select bucket(foo by 10) from bar", "select bucket(foo by 10 align lower) from bar"
   end
 
+  test "align type case insensivity" do
+    assert_parse "select bucket(foo by 10 align MIDDlE) from bar", select(columns: [
+      {:function, {:bucket, :middle}, [identifier("foo"), constant(:integer, 10)]}
+    ])
+  end
+
   test "query parameters", do:
     assert_parse(
       "select $1, $2 + 1 FROM foo WHERE $3 = $4",
