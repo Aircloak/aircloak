@@ -157,10 +157,12 @@ class QueriesView extends React.Component {
           };
           this.addResult(result, false /* replace */);
         } else {
-          this.addError(statement, response.reason);
+          this.addError(statement, `Error connecting to server. Reported reason: ${response.reason}.`);
         }
       },
-      error: (error) => this.addError(statement, error.statusText),
+      error: (error) => {
+        this.addError(statement, `Error connecting to server. Reported reason: ${error.statusText}.`);
+      },
     });
   }
 
