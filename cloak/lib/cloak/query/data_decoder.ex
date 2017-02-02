@@ -80,8 +80,10 @@ defmodule Cloak.Query.DataDecoder do
   defp create_from_config(%{method: method} = decoder) when is_function(method), do: decoder
   defp create_from_config(%{method: "base64", columns: columns}), do:
     %{method: &Base.decode64/1, columns: columns, in: :text, out: :text}
-  defp create_from_config(%{method: "aes_cbc_128", key: key, columns: columns}), do:
+  defp create_from_config(%{method: "aes_cbc_128", key: key, columns: columns}) do
+    if byte_size(key) != 16, do: raise "Decryption key `#{key}` has an invalid length."
     %{method: &aes_cbc128_decode(&1, key), columns: columns, in: :text, out: :text}
+  end
   defp create_from_config(%{method: "text_to_integer", columns: columns}), do:
     %{method: &text_to_integer/1, columns: columns, in: :text, out: :integer}
   defp create_from_config(%{method: "text_to_real", columns: columns}), do:
