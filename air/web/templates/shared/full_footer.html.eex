@@ -1,0 +1,5 @@
+<div class="footer">
+  <div class="container">
+    <%= render "_footer_content.html", conn: @conn %>
+  </div>
+</div>
