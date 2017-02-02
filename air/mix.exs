@@ -1,36 +1,49 @@
 defmodule Air.Mixfile do
   use Mix.Project
 
-  def project do
-    [
-      app: :air,
-      version: "0.0.1",
-      elixir: "~> 1.3",
-      elixirc_paths: elixirc_paths(Mix.env),
-      compilers: [
-        :phoenix, :gettext, :yecc, :leex, :erlang, :elixir, :user_docs, :app
-      ],
-      build_embedded: Mix.env == :prod,
-      start_permanent: Mix.env == :prod,
-      aliases: aliases(Mix.env),
-      deps: deps(),
-      elixirc_options: elixirc_options(Mix.env),
-      erlc_paths: erlc_paths(Mix.env),
-      erlc_options: erlc_options(Mix.env),
-      eunit_options: [
-        :no_tty,
-        {:report, {:eunit_progress, [:colored]}}
-      ],
-      preferred_cli_env: [
-        eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev, release: :prod,
-        "phoenix.digest": :prod, site_release: :prod, "test.standard": :test, dialyze_retry: :dev,
-      ],
-      test_coverage: [tool: ExCoveralls],
-      docs: [
-        extras: ["README.md"]
+  with version <- File.read!("VERSION") |> String.trim(),
+       release_name <- File.read!("../RELEASE_NAME") |> String.trim() do
+    def project do
+      [
+        app: :air,
+        version: unquote(version),
+        release_name: unquote(release_name),
+        elixir: "~> 1.3",
+        elixirc_paths: elixirc_paths(Mix.env),
+        compilers: [
+          :phoenix, :gettext, :yecc, :leex, :erlang, :elixir, :user_docs, :app
+        ],
+        build_embedded: Mix.env == :prod,
+        start_permanent: Mix.env == :prod,
+        aliases: aliases(Mix.env),
+        deps: deps(),
+        elixirc_options: elixirc_options(Mix.env),
+        erlc_paths: erlc_paths(Mix.env),
+        erlc_options: erlc_options(Mix.env),
+        eunit_options: [
+          :no_tty,
+          {:report, {:eunit_progress, [:colored]}}
+        ],
+        preferred_cli_env: [
+          eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev, release: :prod,
+          "phoenix.digest": :prod, site_release: :prod, "test.standard": :test, dialyze_retry: :dev,
+          version: :prod,
+        ],
+        test_coverage: [tool: ExCoveralls],
+        docs: [
+          extras: ["README.md"]
+        ]
       ]
-    ]
+    end
   end
+
+  @doc "Returns the version of the air application"
+  @spec version() :: String.t
+  def version(), do: Keyword.get(project(), :version)
+
+  @doc "Returns the major Aircloak release name."
+  @spec release_name() :: String.t
+  def release_name(), do: Keyword.get(project(), :release_name)
 
   # Configuration for the OTP application.
   #

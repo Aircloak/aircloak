@@ -1,23 +1,35 @@
 defmodule Cloak.Mixfile do
   use Mix.Project
 
-  def project do
-    [
-      app: :cloak,
-      version: "0.1.0",
-      elixir: "~> 1.3",
-      build_embedded: Mix.env == :prod,
-      start_permanent: Mix.env == :prod,
-      deps: deps(),
-      elixirc_paths: elixirc_paths(Mix.env),
-      preferred_cli_env: [
-        :test, dialyze: :dev, "coveralls.html": :test, release: :prod,
-        dialyze_retry: :dev
-      ],
-      aliases: aliases(Mix.env),
-      test_coverage: [tool: ExCoveralls]
-    ]
+  with version <- File.read!("VERSION") |> String.trim(),
+       release_name <- File.read!("../RELEASE_NAME") |> String.trim() do
+    def project do
+      [
+        app: :cloak,
+        version: unquote(version),
+        release_name: unquote(release_name),
+        elixir: "~> 1.3",
+        build_embedded: Mix.env == :prod,
+        start_permanent: Mix.env == :prod,
+        deps: deps(),
+        elixirc_paths: elixirc_paths(Mix.env),
+        preferred_cli_env: [
+          :test, dialyze: :dev, "coveralls.html": :test, release: :prod,
+          dialyze_retry: :dev
+        ],
+        aliases: aliases(Mix.env),
+        test_coverage: [tool: ExCoveralls]
+      ]
+    end
   end
+
+  @doc "Returns the version of the cloak application"
+  @spec version() :: String.t
+  def version(), do: Keyword.get(project(), :version)
+
+  @doc "Returns the major Aircloak release name."
+  @spec release_name() :: String.t
+  def release_name(), do: Keyword.get(project(), :release_name)
 
   def application do
     [

@@ -126,3 +126,13 @@ h2 {
   margin-top: 10px;
   margin-right: 0px;
 }
+
+.footer small {
+  border-right: thin solid #ccc;
+  padding-right: 10px;
+  margin-right: 10px;
+}
+
+.footer small:last-of-type {
+  border-right: none;
+}
