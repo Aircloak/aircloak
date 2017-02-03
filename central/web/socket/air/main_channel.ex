@@ -22,10 +22,10 @@ defmodule Central.Socket.Air.MainChannel do
   @doc false
   @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
   def join("main", air_info, socket) do
+    Logger.metadata(customer: socket.assigns.customer.name, air: socket.assigns.air_name)
     Process.flag(:trap_exit, true)
-    customer = socket.assigns.customer
-    Logger.info("air for '#{customer.name}' (id: #{customer.id}) joined central")
-    monitor_channel(customer, socket.assigns.air_name,
+    Logger.info("joined central")
+    monitor_channel(socket.assigns.customer, socket.assigns.air_name,
       air_info
       |> Map.get("online_cloaks", [])
       |> Enum.map(&%{name: Map.fetch!(&1, "name"), data_sources: Map.fetch!(&1, "data_sources")})
@@ -36,8 +36,7 @@ defmodule Central.Socket.Air.MainChannel do
   @doc false
   @dialyzer {:nowarn_function, terminate: 2} # Phoenix bug, fixed in master
   def terminate(_reason, socket) do
-    customer = socket.assigns.customer
-    Logger.info("air for '#{customer.name}' (id: #{customer.id}) left central")
+    Logger.info("left central")
     {:ok, socket}
   end
 
@@ -64,8 +63,7 @@ defmodule Central.Socket.Air.MainChannel do
     handle_air_call(request["event"], request["payload"], request["request_id"], socket)
   end
   def handle_in(event, _payload, socket) do
-    air_name = socket.assigns.air_name
-    Logger.warn("unknown event #{event} from '#{air_name}'")
+    Logger.warn("unknown event #{event}")
     {:noreply, socket}
   end
 
@@ -82,7 +80,7 @@ defmodule Central.Socket.Air.MainChannel do
   def handle_info({:call_timeout, request_id}, socket) do
     # We're just removing entries here without responding. It is the responsibility of the
     # client code to give up at some point.
-    Logger.warn("#{request_id} sync call timeout on #{socket.assigns.air_id}")
+    Logger.warn("#{request_id} sync call timeout")
     pending_calls = Map.delete(socket.assigns.pending_calls, request_id)
     {:noreply, assign(socket, :pending_calls, pending_calls)}
   end
@@ -93,8 +91,7 @@ defmodule Central.Socket.Air.MainChannel do
   def handle_info({:DOWN, ref, :process, _pid, _reason}, socket = %{assigns: %{manager_ref: ref}}), do:
     {:stop, :data_source_manager_down, socket}
   def handle_info(message, socket) do
-    air_id = socket.assigns.air_id
-    Logger.info("unhandled info #{inspect(message)} from '#{air_id}'")
+    Logger.info("unhandled info #{inspect(message)}")
     {:noreply, socket}
   end
 
