@@ -26,7 +26,7 @@ config :central, Central.Endpoint,
   ]
 
 # Do not include metadata nor timestamps in development logs
-config :logger, :console, format: "[$level] $message\n"
+config :logger, :console, format: "[$level] $metadata $message\n", metadata: [:customer, :air]
 
 # Set a higher stacktrace during development.
 # Do not configure such in production as keeping
