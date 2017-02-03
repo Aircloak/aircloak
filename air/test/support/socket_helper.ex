@@ -12,6 +12,14 @@ defmodule Air.TestSocketHelper do
   @doc "Opens a socket and waits for the connection status."
   @spec connect!(%{}) :: {status::any, GenServer.on_start}
   def connect(params) do
+    params = case params["version"] do
+      nil ->
+        # We default to the current version. Tests that explicitly
+        # set the version are likely to want to test connection
+        # failure upon a wrong version number
+        Map.put(params, "version", File.read!("../VERSION"))
+      _ -> params
+    end
     {:ok, socket} = TestSocket.start_link(GenSocketClient.Transport.WebSocketClient, url(params), true,
         serializer: GenSocketClient.Serializer.GzipJson)
     {TestSocket.wait_connect_status(socket), socket}
