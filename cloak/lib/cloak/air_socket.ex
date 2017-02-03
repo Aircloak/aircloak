@@ -287,7 +287,7 @@ defmodule Cloak.AirSocket do
   end
 
   defp cloak_params() do
-    %{cloak_name: cloak_name()}
+    %{cloak_name: cloak_name(), version: Cloak.Mixfile.version()}
   end
 
   defp cloak_name() do

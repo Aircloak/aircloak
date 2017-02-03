@@ -24,7 +24,8 @@ defmodule Central.Socket.Air.MainChannel do
   def join("main", air_info, socket) do
     Process.flag(:trap_exit, true)
     customer = socket.assigns.customer
-    Logger.info("air for '#{customer.name}' (id: #{customer.id}) joined central")
+    version = Map.get(air_info, "version", "unknown version")
+    Logger.info("air for '#{customer.name}' (id: #{customer.id}) at version #{version} joined central")
     monitor_channel(customer, socket.assigns.air_name,
       air_info
       |> Map.get("online_cloaks", [])
