@@ -152,6 +152,7 @@ function build_aircloak_image {
     echo "[aircloak] building $full_image_name"
     cat $dockerfile |
       dockerfile_content |
+      sed "s|\$RELEASE_VERSION|$SYSTEM_VERSION|" |
       sed "s/\$DEBIAN_VERSION/$(debian_version)/" |
       sed "s/\$ERLANG_VERSION/$(erlang_version)/" |
       sed "s/\$ELIXIR_VERSION/$(elixir_version)/" |

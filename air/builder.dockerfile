@@ -13,6 +13,7 @@ COPY air/config /aircloak/air/config
 COPY common /aircloak/common
 COPY air/fetch_deps.sh /aircloak/air/
 COPY air/user_docs /aircloak/air/user_docs
+COPY VERSION /aircloak/
 
 RUN \
   . /tmp/build_config/proxies.sh && \

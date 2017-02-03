@@ -8,6 +8,6 @@ function log {
 }
 
 log "Booting container."
-mkdir -p /aircloak/air/lib/air-0.0.1/priv/config/
-cp -rp /runtime_config/* /aircloak/air/lib/air-0.0.1/priv/config/
+mkdir -p /aircloak/air/lib/air-$VERSION/priv/config/
+cp -rp /runtime_config/* /aircloak/air/lib/air-$VERSION/priv/config/
 exec gosu deployer /aircloak/air/bin/air foreground
