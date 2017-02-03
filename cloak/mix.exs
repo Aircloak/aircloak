@@ -1,24 +1,22 @@
 defmodule Cloak.Mixfile do
   use Mix.Project
 
-  with version <- File.read!("../VERSION") |> String.trim() do
-    def project do
-      [
-        app: :cloak,
-        version: unquote(version),
-        elixir: "~> 1.3",
-        build_embedded: Mix.env == :prod,
-        start_permanent: Mix.env == :prod,
-        deps: deps(),
-        elixirc_paths: elixirc_paths(Mix.env),
-        preferred_cli_env: [
-          :test, dialyze: :dev, "coveralls.html": :test, release: :prod,
-          dialyze_retry: :dev
-        ],
-        aliases: aliases(Mix.env),
-        test_coverage: [tool: ExCoveralls]
-      ]
-    end
+  def project do
+    [
+      app: :cloak,
+      version: File.read!("../VERSION") |> String.trim(),
+      elixir: "~> 1.3",
+      build_embedded: Mix.env == :prod,
+      start_permanent: Mix.env == :prod,
+      deps: deps(),
+      elixirc_paths: elixirc_paths(Mix.env),
+      preferred_cli_env: [
+        :test, dialyze: :dev, "coveralls.html": :test, release: :prod,
+        dialyze_retry: :dev
+      ],
+      aliases: aliases(Mix.env),
+      test_coverage: [tool: ExCoveralls]
+    ]
   end
 
   def application do

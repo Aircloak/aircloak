@@ -1,38 +1,36 @@
 defmodule Air.Mixfile do
   use Mix.Project
 
-  with version <- File.read!("../VERSION") |> String.trim() do
-    def project do
-      [
-        app: :air,
-        version: unquote(version),
-        elixir: "~> 1.3",
-        elixirc_paths: elixirc_paths(Mix.env),
-        compilers: [
-          :phoenix, :gettext, :yecc, :leex, :erlang, :elixir, :user_docs, :app
-        ],
-        build_embedded: Mix.env == :prod,
-        start_permanent: Mix.env == :prod,
-        aliases: aliases(Mix.env),
-        deps: deps(),
-        elixirc_options: elixirc_options(Mix.env),
-        erlc_paths: erlc_paths(Mix.env),
-        erlc_options: erlc_options(Mix.env),
-        eunit_options: [
-          :no_tty,
-          {:report, {:eunit_progress, [:colored]}}
-        ],
-        preferred_cli_env: [
-          eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev, release: :prod,
-          "phoenix.digest": :prod, site_release: :prod, "test.standard": :test, dialyze_retry: :dev,
-          version: :prod,
-        ],
-        test_coverage: [tool: ExCoveralls],
-        docs: [
-          extras: ["README.md"]
-        ]
+  def project do
+    [
+      app: :air,
+      version: File.read!("../VERSION") |> String.trim(),
+      elixir: "~> 1.3",
+      elixirc_paths: elixirc_paths(Mix.env),
+      compilers: [
+        :phoenix, :gettext, :yecc, :leex, :erlang, :elixir, :user_docs, :app
+      ],
+      build_embedded: Mix.env == :prod,
+      start_permanent: Mix.env == :prod,
+      aliases: aliases(Mix.env),
+      deps: deps(),
+      elixirc_options: elixirc_options(Mix.env),
+      erlc_paths: erlc_paths(Mix.env),
+      erlc_options: erlc_options(Mix.env),
+      eunit_options: [
+        :no_tty,
+        {:report, {:eunit_progress, [:colored]}}
+      ],
+      preferred_cli_env: [
+        eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev, release: :prod,
+        "phoenix.digest": :prod, site_release: :prod, "test.standard": :test, dialyze_retry: :dev,
+        version: :prod,
+      ],
+      test_coverage: [tool: ExCoveralls],
+      docs: [
+        extras: ["README.md"]
       ]
-    end
+    ]
   end
 
   # Configuration for the OTP application.
