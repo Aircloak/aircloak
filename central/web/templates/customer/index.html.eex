@@ -20,7 +20,7 @@
   <% else %>
     <%= for customer <- @customers do %>
       <tr>
-        <td><%= customer.name %></td>
+        <td><a href="<%= customer_path(@conn, :show, customer) %>"><%= customer.name %></a></td>
         <td><%= length(Customer.online_airs(customer)) %> / <%= length(customer.airs) %></td>
         <td><%= length(Customer.online_cloaks(customer)) %> / <%= length(Customer.cloaks(customer)) %></td>
         <td><%= length(Customer.online_data_sources(customer)) %> / <%= length(Customer.data_sources(customer)) %></td>

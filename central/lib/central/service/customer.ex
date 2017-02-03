@@ -50,7 +50,7 @@ defmodule Central.Service.Customer do
   def get(id) do
     case Repo.get(Customer, id) do
       nil -> {:error, :not_found}
-      user -> {:ok, user}
+      customer -> {:ok, Repo.preload(customer, [{:airs, :cloaks}])}
     end
   end
 
