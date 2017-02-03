@@ -71,6 +71,18 @@ defmodule Central.Schemas.Customer do
     |> all_cloaks()
     |> onlines()
 
+  def data_sources(customer), do:
+    customer
+    |> cloaks()
+    |> all_data_sources()
+    |> Enum.uniq()
+
+  def online_data_sources(customer), do:
+    customer
+    |> online_cloaks()
+    |> all_data_sources()
+    |> Enum.uniq()
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -78,6 +90,9 @@ defmodule Central.Schemas.Customer do
 
   defp all_cloaks(airs), do:
     Enum.flat_map(airs, &(&1.cloaks))
+
+  defp all_data_sources(cloaks), do:
+    Enum.flat_map(cloaks, &(&1.data_source_names))
 
   defp onlines(collection), do:
     Enum.filter(collection, &(&1.status == :online))
