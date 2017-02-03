@@ -19,7 +19,7 @@ defmodule Central.Service.Customer do
   @doc "Returns all registered customers"
   @spec all() :: [Customer.t]
   def all() do
-    Repo.all(Customer)
+    Repo.all(from Customer, preload: [{:airs, :cloaks}])
   end
 
   @doc "Creates a customer"

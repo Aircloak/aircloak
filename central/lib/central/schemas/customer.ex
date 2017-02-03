@@ -4,15 +4,15 @@ defmodule Central.Schemas.Customer do
   use Central.Web, :model
 
   alias Ecto.Changeset
-  alias Central.Schemas.Customer
+  alias Central.Schemas.{Air, Query, Cloak}
 
   @type t :: %__MODULE__{}
 
   schema "customers" do
     field :name, :string
 
-    has_many :queries, Central.Schemas.Query
-    has_many :airs, Central.Schemas.Air
+    has_many :queries, Query
+    has_many :airs, Air
 
     timestamps()
   end
@@ -50,6 +50,35 @@ defmodule Central.Schemas.Customer do
   @doc "Returns an empty changeset to use in forms"
   @spec empty_changeset() :: Changeset.t
   def empty_changeset() do
-    changeset(%Customer{})
+    changeset(%__MODULE__{})
   end
+
+  @doc "Returns the list of online airs."
+  @spec online_airs(t) :: [Air.t]
+  def online_airs(customer), do:
+    onlines(customer.airs)
+
+  @doc "Returns the list of all cloaks."
+  @spec cloaks(t) :: [Cloak.t]
+  def cloaks(customer), do:
+    all_cloaks(customer.airs)
+
+  @doc "Returns the list of online cloaks."
+  @spec online_cloaks(t) :: [Cloak.t]
+  def online_cloaks(customer), do:
+    customer
+    |> online_airs()
+    |> all_cloaks()
+    |> onlines()
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp all_cloaks(airs), do:
+    Enum.flat_map(airs, &(&1.cloaks))
+
+  defp onlines(collection), do:
+    Enum.filter(collection, &(&1.status == :online))
 end
