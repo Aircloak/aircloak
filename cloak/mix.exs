@@ -21,10 +21,6 @@ defmodule Cloak.Mixfile do
     end
   end
 
-  @doc "Returns the version of the cloak application"
-  @spec version() :: String.t
-  def version(), do: Keyword.get(project(), :version)
-
   def application do
     [
       extra_applications: extra_applications(Mix.env),

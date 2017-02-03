@@ -35,10 +35,6 @@ defmodule Air.Mixfile do
     end
   end
 
-  @doc "Returns the version of the air application"
-  @spec version() :: String.t
-  def version(), do: Keyword.get(project(), :version)
-
   # Configuration for the OTP application.
   #
   # Type `mix help compile.app` for more information.
