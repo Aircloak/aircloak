@@ -69,4 +69,14 @@ defmodule Air.ViewHelpers do
   def logged_in?(conn) do
     conn.assigns.current_user != nil
   end
+
+  def show_expiry_critical?(), do: Air.Service.Version.expiry_critical?()
+
+  def show_expiry_imminent?(conn), do: Air.Service.Version.expiry_imminent?() and admin?(conn)
+
+  def show_expiry_eventually?(conn), do: Air.Service.Version.expiry_eventually?() and admin?(conn)
+
+  def expiry_date(), do: Date.to_string(Air.Service.Version.expiry_date())
+
+  def days_until_expiry(), do: Air.Service.Version.days_until_expiry()
 end

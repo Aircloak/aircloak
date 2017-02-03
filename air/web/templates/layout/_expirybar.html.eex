@@ -1,0 +1,24 @@
+<%= if show_expiry_eventually?(@conn) do %>
+  <div class="expiry-bar expiry-eventually">
+    Please note that the Aircloak version you are using expires on <%= expiry_date() %>. Please update to a newer version.
+  </div>
+<% end %>
+
+<%= if show_expiry_imminent?(@conn) do %>
+  <div class="expiry-bar expiry-imminent">
+    The version of Aircloak you are using expires in <%= days_until_expiry() %> days. Please update to a newer version.
+    Not updating in time will cause disruption to service.
+  </div>
+<% end %>
+
+<%= if show_expiry_critical?() do %>
+  <div class="expiry-bar expiry-critical">
+    <%= if admin?(@conn) do %>
+      Your Aircloak expires in <%= days_until_expiry() %> days! Please update to the latest version.
+      Failing to do so will leave your users without the ability to use the system.
+    <% else %>
+      The Aircloak is severely out of date. Service will shortly be disrupted.
+      Please contact your system administrators and request they update to the latest version.
+    <% end %>
+  </div>
+<% end %>
