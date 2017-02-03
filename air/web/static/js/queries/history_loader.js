@@ -3,6 +3,7 @@
 import React from "react";
 
 export type History = {
+  before: string,
   loaded: boolean,
   loading: boolean,
   error?: boolean
