@@ -52,7 +52,12 @@ defmodule Air.QueryController do
   end
 
   def load_history(conn, params) do
-    case DataSource.history(data_source_id_spec(params), conn.assigns.current_user, 10) do
+    before = case params["before"] do
+      nil -> NaiveDateTime.utc_now()
+      "" -> NaiveDateTime.utc_now()
+      string -> NaiveDateTime.from_iso8601!(string)
+    end
+    case DataSource.history(data_source_id_spec(params), conn.assigns.current_user, 10, before) do
       {:ok, queries} ->
         json(conn, queries)
       _ ->

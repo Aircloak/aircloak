@@ -59,7 +59,7 @@ defmodule Air.Schemas.Query do
   @spec for_display(t) :: Map.t
   def for_display(query) do
     query
-    |> Map.take([:id, :data_source_id, :statement, :session_id])
+    |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at])
     |> Map.merge(result_map(query))
   end
 
@@ -73,12 +73,12 @@ defmodule Air.Schemas.Query do
   end
 
   @doc "Loads the most recent queries for a given user"
-  @spec load_recent_queries(User.t, DataSource.t, integer) :: [Query.t]
-  def load_recent_queries(user, data_source, recent_count) do
+  @spec load_recent_queries(User.t, DataSource.t, pos_integer, NaiveDateTime.t) :: [Query.t]
+  def load_recent_queries(user, data_source, recent_count, before) do
     user
     |> for_user()
     |> for_data_source(data_source)
-    |> recent(recent_count)
+    |> recent(recent_count, before)
     |> Repo.all
     |> Enum.map(&for_display/1)
   end
@@ -103,9 +103,10 @@ defmodule Air.Schemas.Query do
   end
 
   @doc "Adds a query filter limiting the number of selected queries"
-  @spec recent(Ecto.Queryable.t, non_neg_integer) :: Ecto.Queryable.t
-  def recent(query \\ __MODULE__, count) do
+  @spec recent(Ecto.Queryable.t, pos_integer, NaiveDateTime.t) :: Ecto.Queryable.t
+  def recent(query \\ __MODULE__, count, before) do
     from q in query,
+    where: q.inserted_at < ^before,
     order_by: [desc: q.inserted_at],
     limit: ^count
   end
