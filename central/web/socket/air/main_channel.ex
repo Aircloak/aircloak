@@ -169,6 +169,11 @@ defmodule Central.Socket.Air.MainChannel do
     )
     :ok
   end
+  defp handle_call_with_retry(other, data, _socket) do
+    Logger.warn("unknown call `#{other}` (#{inspect(data)})")
+    # Responding with ok, because the client can't fix this issue by retrying
+    :ok
+  end
 
   if Mix.env == :test do
     # We avoid monitoring in test env, since this will start asynchronous processes storing
