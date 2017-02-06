@@ -773,54 +773,15 @@ defmodule Cloak.Sql.Compiler do
     end
   end
 
-  defp partition_where_clauses(%Query{subquery?: true} = query) do
-    case Enum.find(query.where, &requires_lcf_check?/1) do
-      nil -> :ok
-      condition ->
-        raise CompilationError,
-          message: "#{negative_condition_string(condition)} is not supported in a subquery."
-    end
-
-    # extract conditions using emulated expressions
-    {emulated_column_clauses, safe_clauses} = Enum.partition(query.where, &emulated_expression_condition?/1)
-    # extract columns needed in the cloak for extra filtering
-    unsafe_filter_columns =
-      emulated_column_clauses
-      |> extract_columns()
-      |> Enum.reject(& &1.constant?)
-    %Query{query | where: safe_clauses, unsafe_filter_columns: unsafe_filter_columns,
-      emulated_where: emulated_column_clauses}
-  end
   defp partition_where_clauses(query) do
-    # extract conditions requiring low-count filtering
-    {require_lcf_checks, safe_clauses} = Enum.partition(query.where, &requires_lcf_check?/1)
-    # split LCF conditions into positives and negatives
-    {negative_lcf_checks, positive_lcf_checks} = Enum.partition(require_lcf_checks, &Comparison.negative?/1)
-    # convert negative LCF conditions into checks for `IS NOT NULL`
-    filter_null_lcf_columns = Enum.map(negative_lcf_checks, &{:not, {:is, Comparison.subject(&1), :null}})
-    # forward normal conditions, positive LCF conditions and `IS NOT NULL` checks for negative LCF conditions to driver
-    safe_clauses = Enum.uniq(safe_clauses ++ positive_lcf_checks ++ filter_null_lcf_columns)
     # extract conditions using encoded columns
-    {emulated_column_clauses, safe_clauses} = Enum.partition(safe_clauses, &emulated_expression_condition?/1)
-    # extract columns needed in the cloak for extra filtering
-    unsafe_filter_columns =
-      (require_lcf_checks ++ emulated_column_clauses)
-      |> extract_columns()
-      |> Enum.reject(& &1.constant?)
-
-    %Query{query | where: safe_clauses, lcf_check_conditions: require_lcf_checks,
-      unsafe_filter_columns: unsafe_filter_columns, emulated_where: emulated_column_clauses}
+    {emulated_column_clauses, safe_clauses} = Enum.partition(query.where, &emulated_expression_condition?/1)
+    %Query{query | where: safe_clauses, emulated_where: emulated_column_clauses}
   end
-
-  defp requires_lcf_check?({:not, {:is, _, :null}}), do: false
-  defp requires_lcf_check?({:not, _other}), do: true
-  defp requires_lcf_check?({:in, _column, _values}), do: true
-  defp requires_lcf_check?(_other), do: false
 
   defp verify_joins(%Query{projected?: true} = query), do: query
   defp verify_joins(query) do
     join_conditions_scope_check(query.from)
-    Enum.each(all_join_conditions(query.from), &verify_supported_join_condition/1)
 
     # Algorithm for finding improperly joined tables:
     #
@@ -1150,7 +1111,7 @@ defmodule Cloak.Sql.Compiler do
   defp needed_columns(query), do:
     query.columns ++
     query.group_by ++
-    query.unsafe_filter_columns ++
+    query.emulated_where ++
     query.having ++
     if query.emulated?, do: query.where, else: []
 
@@ -1223,17 +1184,6 @@ defmodule Cloak.Sql.Compiler do
       _ -> raise CompilationError, message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
     end
   end
-
-  defp verify_supported_join_condition(join_condition) do
-    if requires_lcf_check?(join_condition), do:
-      raise CompilationError, message: "#{negative_condition_string(join_condition)} not supported in joins."
-  end
-
-  defp negative_condition_string({:not, {:like, _, _}}), do: "NOT LIKE"
-  defp negative_condition_string({:not, {:ilike, _, _}}), do: "NOT ILIKE"
-  defp negative_condition_string({:not, {:comparison, _, :=, _}}), do: "<>"
-  defp negative_condition_string({:not, {:in, _, _}}), do: "NOT IN"
-  defp negative_condition_string({:in, _, _}), do: "IN"
 
   defp verify_limit(%Query{command: :select, limit: amount}) when amount <= 0, do:
     raise CompilationError, message: "`LIMIT` clause expects a positive value."

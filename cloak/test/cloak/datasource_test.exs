@@ -24,7 +24,6 @@ defmodule Cloak.DataSourceTest do
       command: :select,
       columns: [data_column],
       db_columns: [id_column, data_column],
-      unsafe_filter_columns: [],
       where: [],
       group_by: [],
       data_source: nil,
