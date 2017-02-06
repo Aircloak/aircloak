@@ -379,6 +379,9 @@ function verify_version() {
     head -n 1
   )
 
+  # Note: we're explicitly testing PERFORM_VERSION_CHECK against false. As a result, this value is by default
+  # true if not specified, or even if there's a typo. This is a safer choice, because it reduces a chance of
+  # accidentally disabling the version check (which we want to do when deploying to production).
   if [ "$PERFORM_VERSION_CHECK" != "false" ] && [ "$more_recent_version" == "$latest_pushed_version" ]; then
     echo "Can't publish $image_name:$new_version because $latest_pushed_version is already published." >&2
     exit 1
