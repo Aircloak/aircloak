@@ -347,14 +347,7 @@ function check_registry {
 #     you need to force the new version to be pushed, you can delete the local
 #     image.
 function build_and_push_to_registry {
-  new_version=$(cat ../VERSION)
-
-  latest_registry_version=$(
-        registry_v2_req $image_name/tags/list |
-        jq --raw-output ".tags | select(. != null) | .[]" |
-        sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
-        head -n 1
-      )
+  new_version=$(verify_version)
 
   # build new image
   echo "Building $image_name:$new_version"
@@ -368,6 +361,30 @@ function build_and_push_to_registry {
   # also tag with latest
   docker tag "$new_image_id" "quay.io/$image_name:latest"
   docker push "quay.io/$image_name:latest"
+}
+
+function verify_version() {
+  latest_pushed_version=$(
+        registry_v2_req $image_name/tags/list |
+        jq --raw-output ".tags | select(. != null) | .[]" |
+        sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
+        head -n 1
+      )
+
+  new_version=$(cat ../VERSION)
+
+  more_recent_version=$(
+    printf '%s\n' $new_version $latest_pushed_version |
+    sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
+    head -n 1
+  )
+
+  if [ "$more_recent_version" == "$latest_pushed_version" ]; then
+    echo "Can't publish $image_name:$new_version because $latest_pushed_version is already published." >&2
+    exit 1
+  else
+    echo "$new_version"
+  fi
 }
 
 function registry_v2_req {
