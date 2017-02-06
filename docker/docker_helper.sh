@@ -379,7 +379,7 @@ function verify_version() {
     head -n 1
   )
 
-  if [ "$more_recent_version" == "$latest_pushed_version" ]; then
+  if [ "$VERSION_CHECK" != "false" ] && [ "$more_recent_version" == "$latest_pushed_version" ]; then
     echo "Can't publish $image_name:$new_version because $latest_pushed_version is already published." >&2
     exit 1
   else
