@@ -34,7 +34,7 @@ function build_image {
     git checkout $(build_branch)
     git reset --hard origin/$(build_branch)
     echo 'Building the image'
-    CONTAINER_ENV=prod IMAGE_CATEGORY=$DEPLOYMENT_NAME VERSION_CHECK=$VERSION_CHECK $(build_folder $2)/package.sh
+    CONTAINER_ENV=prod IMAGE_CATEGORY=$DEPLOYMENT_NAME PERFORM_VERSION_CHECK=$PERFORM_VERSION_CHECK $(build_folder $2)/package.sh
   "
 }
 
