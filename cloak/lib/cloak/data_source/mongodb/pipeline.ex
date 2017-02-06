@@ -58,7 +58,6 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_operator(:<=), do: :'$lte'
   defp parse_operator(:<>), do: :'$neq'
 
-  @dialyzer {:nowarn_function, map_parameter: 1} # https://github.com/elixir-lang/elixir/issues/5634
   defp map_parameter(%NaiveDateTime{} = datetime) do
     {date, {hour, minute, second}} = NaiveDateTime.to_erl(datetime)
     {usec, _precision} = datetime.microsecond

@@ -46,7 +46,6 @@ defmodule Cloak.Sql.FixAlign do
     (for example to [..., 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, ...])
   """
   @spec align_interval(interval(x), Keyword.t) :: interval(x) when x: var
-  @dialyzer {:nowarn_function, align_interval: 2} # https://github.com/elixir-lang/elixir/issues/5634
   def align_interval(interval, opts \\ [])
   def align_interval({x, y}, _) when is_number(x) and is_number(y) and x > y, do: raise "Invalid interval"
   def align_interval(interval = {x, y}, opts) when is_number(x) and is_number(y) do
@@ -69,7 +68,6 @@ defmodule Cloak.Sql.FixAlign do
   # Internal functions for Dates and NaiveDateTimes
   # -------------------------------------------------------------------
 
-  @dialyzer {:nowarn_function, time_to_datetime: 1} # https://github.com/elixir-lang/elixir/issues/5634
   defp time_to_datetime({x, y}) do
     if Cloak.Time.time_to_seconds(x) < Cloak.Time.time_to_seconds(y) do
       {time_to_datetime(x), time_to_datetime(y)}
@@ -79,7 +77,6 @@ defmodule Cloak.Sql.FixAlign do
   end
   defp time_to_datetime(%Time{hour: h, minute: m, second: s}), do: %{@epoch | hour: h, minute: m, second: s}
 
-  @dialyzer {:nowarn_function, datetime_to_time: 1} # https://github.com/elixir-lang/elixir/issues/5634
   defp datetime_to_time({x, y}) do
     if Timex.diff(x, y, :seconds) |> abs() >= @seconds_in_day do
       @full_day
@@ -89,7 +86,6 @@ defmodule Cloak.Sql.FixAlign do
   end
   defp datetime_to_time(%NaiveDateTime{hour: h, minute: m, second: s}), do: %Time{hour: h, minute: m, second: s}
 
-  @dialyzer {:nowarn_function, cap_midnight: 1} # https://github.com/elixir-lang/elixir/issues/5634
   defp cap_midnight({x, y}) do
     if Cloak.Time.time_to_seconds(x) > Cloak.Time.time_to_seconds(y) do
       {x, @just_before_midnight}
