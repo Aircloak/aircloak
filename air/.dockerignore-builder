@@ -3,6 +3,7 @@
 
 # whitelist only needed folders and files
 !VERSION
+!RELEASE_EXPIRY_DATE
 !air/tmp/image_shell_init.sh
 !air/brunch-config.js
 !air/package.json
