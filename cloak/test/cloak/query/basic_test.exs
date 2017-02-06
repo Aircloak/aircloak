@@ -403,46 +403,6 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["count"], rows: [%{row: [60], occurrences: 1}]}
   end
 
-  test "should drop IN clauses that could expose individuals" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 20..21, "heights", ["height"], [190])
-    :ok = insert_rows(_user_ids = 22..23, "heights", ["height"], [191])
-    :ok = insert_rows(_user_ids = 24..25, "heights", ["height"], [192])
-    :ok = insert_rows(_user_ids = 26..27, "heights", ["height"], [193])
-
-    assert_query "select count(*) from heights where height IN (170, 180, 190, 191, 192, 193)",
-      %{columns: ["count"], rows: [%{row: [40], occurrences: 1}]}
-  end
-
-  test "should not drop NOT IN clauses for which there are not enough users" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 20..21, "heights", ["height"], [190])
-    :ok = insert_rows(_user_ids = 22..23, "heights", ["height"], [191])
-    :ok = insert_rows(_user_ids = 24..25, "heights", ["height"], [192])
-    :ok = insert_rows(_user_ids = 26..27, "heights", ["height"], [193])
-
-    assert_query "select count(*) from heights where height NOT IN (170, 180, 190, 191, 192, 193)",
-      %{columns: ["count"], rows: [%{row: [8], occurrences: 1}]}
-  end
-
-  test "negative filters dominate positive ones" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 20..21, "heights", ["height"], [190])
-    :ok = insert_rows(_user_ids = 22..23, "heights", ["height"], [191])
-    :ok = insert_rows(_user_ids = 24..25, "heights", ["height"], [192])
-    :ok = insert_rows(_user_ids = 26..27, "heights", ["height"], [193])
-
-    assert_query """
-      SELECT count(*) FROM heights
-      WHERE
-        height IN (170, 180, 190, 191, 192, 193) AND
-        height NOT IN (170, 180, 190, 191, 192, 193)
-    """, %{columns: ["count"], rows: [%{row: [8], occurrences: 1}]}
-  end
-
   test "should allow NOT IN in where clause" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
@@ -460,15 +420,6 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query "select count(*) from heights where height <> 180",
       %{columns: ["count"], rows: [%{row: [40], occurrences: 1}]}
-  end
-
-  test "should drop <> conditions if they would expose small groups" do
-    :ok = insert_rows(_user_ids = 0..9, "heights", ["name"], ["Alice"])
-    :ok = insert_rows(_user_ids = 10..11, "heights", ["name"], ["Bob"])
-    :ok = insert_rows(_user_ids = 12..19, "heights", ["name"], [nil])
-
-    assert_query "select count(*) from heights where name <> 'Bob'",
-      %{columns: ["count"], rows: [%{row: [12], occurrences: 1}]}
   end
 
   test "<> conditions count unique users" do

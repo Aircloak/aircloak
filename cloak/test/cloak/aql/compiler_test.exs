@@ -18,7 +18,6 @@ defmodule Cloak.Sql.Compiler.Test do
   test "adds a non-nil condition on user_id for top query" do
     query = compile!("select * from (select uid, column from table) as t", data_source())
     assert [{:not, {:is, %{name: "uid"}, :null}}] = query.where
-    assert [] = query.lcf_check_conditions
     {:subquery, %{ast: subquery}} = query.from
     assert [] = subquery.where
   end
@@ -73,7 +72,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "casts datetime in `in` conditions" do
     result = compile!("select * from table where column in ('2015-01-01', '2015-01-02')", data_source())
 
-    assert [{:in, column("table", "column"), times}] = result.lcf_check_conditions
+    assert [{:not, {:is, column("table", "uid"), :null}}, {:in, column("table", "column"), times}] = result.where
     assert times |> Enum.map(&(&1.value)) |> Enum.sort() ==
       [~N[2015-01-01 00:00:00.000000], ~N[2015-01-02 00:00:00.000000]]
   end
@@ -81,8 +80,8 @@ defmodule Cloak.Sql.Compiler.Test do
   test "casts datetime in negated conditions" do
     result = compile!("select * from table where column <> '2015-01-01'", data_source())
 
-    assert [{:not, {:comparison, column("table", "column"), :=, value}}] =
-      result.lcf_check_conditions
+    assert [{:not, {:is, column("table", "uid"), :null}},
+      {:not, {:comparison, column("table", "column"), :=, value}}] = result.where
     assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
 
@@ -381,9 +380,8 @@ defmodule Cloak.Sql.Compiler.Test do
       result.columns
     assert Enum.any?(result.where, &match?({:comparison, column("table", "numeric"), :>=, _}, &1))
     assert Enum.any?(result.where, &match?({:comparison, column("table", "numeric"), :<, _}, &1))
-    assert Enum.any?(result.where, &match?({:not, {:is, column("table", "column"), :null}}, &1))
-    assert [{:not, {:comparison, column("table", "column"), :=, _}}] = result.lcf_check_conditions
-    assert [column("table", "column")] = result.unsafe_filter_columns
+    assert Enum.any?(result.where, &match?({:not, {:is, column("table", "uid"), :null}}, &1))
+    assert Enum.any?(result.where, &match?({:not, {:comparison, column("table", "column"), :=, _}}, &1))
     assert [column("table", "column")] = result.group_by
     assert result.order_by == [{1, :desc}, {1, :desc}]
   end
@@ -475,11 +473,6 @@ defmodule Cloak.Sql.Compiler.Test do
   test "subquery must return a user_id" do
     assert {:error, error} = compile("select c1 from (select c1 from t1) alias", data_source())
     assert error =~ "Missing a user id column"
-  end
-
-  test "negative condition in subquery is not supported" do
-    assert {:error, error} = compile("select c1 from (select uid, c1 from t1 where c1 <> 100) alias", data_source())
-    assert error =~ "<> is not supported in a subquery."
   end
 
   test "missing group by in a subquery" do
@@ -827,10 +820,6 @@ defmodule Cloak.Sql.Compiler.Test do
   test "filtered column is not retrieved from a projected table", do:
     assert ["table.uid", "projected_table.a"] ==
       projected_table_db_column_names(compile!("select a from projected_table where a=b", data_source()))
-
-  test "filtered column with negative condition is retrieved from a projected table", do:
-    assert ["table.uid", "projected_table.a", "projected_table.b"] ==
-      projected_table_db_column_names(compile!("select a from projected_table where b <> 0", data_source()))
 
   defp projected_table_db_columns(query), do:
     query
