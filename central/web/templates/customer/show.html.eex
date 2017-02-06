@@ -1,3 +1,8 @@
+<ol class="breadcrumb">
+  <li><%= link "Customers", to: customer_path(@conn, :index) %></li>
+  <li class="active"><%= @customer.name %></li>
+</ol>
+
 <table class="table table-striped">
   <thead>
     <th>Air</th>
@@ -26,5 +31,3 @@
     <% end %>
   </tbody>
 </table>
-
-<a href="<%= customer_path(@conn, :index) %>">Back</a>
