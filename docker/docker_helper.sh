@@ -347,6 +347,8 @@ function check_registry {
 #     you need to force the new version to be pushed, you can delete the local
 #     image.
 function build_and_push_to_registry {
+  new_version=$(cat ../VERSION)
+
   latest_registry_version=$(
         registry_v2_req $image_name/tags/list |
         jq --raw-output ".tags | select(. != null) | .[]" |
@@ -355,34 +357,17 @@ function build_and_push_to_registry {
       )
 
   # build new image
-  last_built_image_id=$(find_images $image_name ^latest$)
-  eval "$2"
+  echo "Building $image_name:$new_version"
+  ./build-image.sh
   new_image_id=$(find_images $image_name ^latest$)
 
-  # determine the next version
-  major_minor=$3
-  if [[ $latest_registry_version != $major_minor* ]]; then
-    # different major/minor version
-    new_version="$major_minor.0"
-  elif [ "$last_built_image_id" != "$new_image_id" ]; then
-    # same major/minor, but the image id is changed (i.e. there were changes in the image)
-    last_patch_version=$(echo "$latest_registry_version" | sed s/^$major_minor\.//)
-    new_version="$major_minor.$(($last_patch_version + 1))"
-  else
-    echo "No changes for $image_name"
-    new_version=""
-  fi
+  echo "Pushing $image_name:$new_version to the registry"
+  docker tag "$new_image_id" "quay.io/$image_name:$new_version"
+  docker push "quay.io/$image_name:$new_version"
 
-  # push if needed
-  if [ "$new_version" != "" ]; then
-    echo "Pushing $image_name:$new_version to the registry"
-    docker tag -f "$new_image_id" "quay.io/$image_name:$new_version"
-    docker push "quay.io/$image_name:$new_version"
-
-    # also tag with latest
-    docker tag -f "$new_image_id" "quay.io/$image_name:latest"
-    docker push "quay.io/$image_name:latest"
-  fi
+  # also tag with latest
+  docker tag "$new_image_id" "quay.io/$image_name:latest"
+  docker push "quay.io/$image_name:latest"
 }
 
 function registry_v2_req {
@@ -469,6 +454,6 @@ function package_image {
 
   image_name=$(./container.sh image_name)
   check_registry
-  build_and_push_to_registry $image_name "./build-image.sh" $(cat ./VERSION)
+  build_and_push_to_registry
   untag_registry_tags "$image_name"
 }
