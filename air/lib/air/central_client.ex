@@ -30,7 +30,8 @@ defmodule Air.CentralClient do
   defp send_usage_info(seconds_online), do:
     Air.CentralClient.Socket.send_usage_info(%{
       air_utc_time: NaiveDateTime.utc_now(),
+      air_version: Aircloak.Version.for_app(:air) |> Aircloak.Version.to_string(),
       seconds_online: seconds_online,
-      cloaks: Enum.map(Air.DataSourceManager.cloaks(), &Map.take(&1, [:name, :data_source_ids]))
+      cloaks: Enum.map(Air.DataSourceManager.cloaks(), &Map.take(&1, [:name, :data_source_ids, :version]))
     })
 end
