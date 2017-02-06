@@ -28,7 +28,7 @@ defmodule Central.Socket.Air.MainChannel do
     monitor_channel(socket.assigns.customer, socket.assigns.air_name,
       air_info
       |> Map.get("online_cloaks", [])
-      |> Enum.map(&%{name: Map.fetch!(&1, "name"), data_sources: Map.fetch!(&1, "data_sources")})
+      |> Enum.map(&%{name: Map.fetch!(&1, "name"), data_source_names: Map.get(&1, "data_source_names", [])})
     )
     {:ok, %{}, socket}
   end
@@ -152,7 +152,9 @@ defmodule Central.Socket.Air.MainChannel do
   end
   defp handle_call_with_retry("cloak_online", cloak_info, socket) do
     Central.Service.Customer.update_cloak(socket.assigns.customer, socket.assigns.air_name,
-      Map.fetch!(cloak_info, "name"), status: :online, data_sources: Map.fetch!(cloak_info, "data_sources"))
+      Map.fetch!(cloak_info, "name"),
+      status: :online, data_source_names: Map.get(cloak_info, "data_source_names", [])
+    )
     :ok
   end
   defp handle_call_with_retry("cloak_offline", cloak_info, socket) do

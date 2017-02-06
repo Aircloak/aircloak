@@ -151,5 +151,5 @@ defmodule Central.Service.CustomerTest do
     Enum.find(air_data(customer, air_name).cloaks, &(&1.name == cloak_name))
 
   defp online_cloaks(), do:
-    [%{name: "cloak1", data_sources: 1}, %{name: "cloak2", data_sources: 2}]
+    [%{name: "cloak1", data_source_names: ["ds1"]}, %{name: "cloak2", data_source_names: ["ds1", "ds2"]}]
 end
