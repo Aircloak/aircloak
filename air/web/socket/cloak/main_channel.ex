@@ -5,6 +5,8 @@ defmodule Air.Socket.Cloak.MainChannel do
   use Phoenix.Channel
   require Logger
 
+  alias Air.CentralClient.Socket
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -184,8 +186,8 @@ defmodule Air.Socket.Cloak.MainChannel do
     defp report_online_status_to_central(_cloak, _data_sources), do: :ok
   else
     defp report_online_status_to_central(cloak, data_sources) do
-      Air.CentralClient.Socket.record_cloak_online(cloak.name, length(data_sources))
-      Aircloak.ProcessMonitor.on_exit(fn -> Air.CentralClient.Socket.record_cloak_offline(cloak.name) end)
+      Socket.record_cloak_online(cloak.name, Enum.map(data_sources, &Map.fetch!(&1, "global_id")))
+      Aircloak.ProcessMonitor.on_exit(fn -> Socket.record_cloak_offline(cloak.name) end)
     end
   end
 end

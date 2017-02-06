@@ -43,9 +43,9 @@ defmodule Air.CentralClient.Socket do
     cast_with_retry(__MODULE__, "query_execution", payload)
 
   @doc "Records a connection of a cloak in the central."
-  @spec record_cloak_online(String.t, non_neg_integer) :: :ok
-  def record_cloak_online(cloak_name, data_sources), do:
-    cast_with_retry(__MODULE__, "cloak_online", %{name: cloak_name, data_sources: data_sources})
+  @spec record_cloak_online(String.t, [String.t]) :: :ok
+  def record_cloak_online(cloak_name, data_source_names), do:
+    cast_with_retry(__MODULE__, "cloak_online", %{name: cloak_name, data_source_names: data_source_names})
 
   @doc "Records a disconnection of a cloak in the central."
   @spec record_cloak_offline(String.t) :: :ok
@@ -297,7 +297,7 @@ defmodule Air.CentralClient.Socket do
   end
 
   defp online_cloaks(), do:
-    Enum.map(Air.DataSourceManager.cloaks(), &%{name: &1.name, data_sources: length(&1.data_source_ids)})
+    Enum.map(Air.DataSourceManager.cloaks(), &%{name: &1.name, data_source_names: &1.data_source_ids})
 
   if Mix.env == :dev do
     # suppressing of some common log messages in dev env to avoid excessive noise
