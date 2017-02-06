@@ -4,6 +4,17 @@ defmodule Central.CustomerView do
   # bug in the current Phoenix
   @dialyzer :no_match
 
-  defp ensure_non_empty_list([], default_el), do: [default_el]
-  defp ensure_non_empty_list([_|_] = list, _default_el), do: list
+  alias Central.Schemas.Air
+
+  defp air_and_cloak_rows(customer) do
+    for air <- customer.airs |> Enum.map(&normalize_air/1) |> Enum.sort_by(&(&1.name)),
+        {cloak, cloak_index} <- air.cloaks |> Enum.sort_by(&(&1.name)) |> Enum.with_index() do
+      %{air: air, cloak: cloak, first_cloak?: cloak_index == 0}
+    end
+  end
+
+  defp normalize_air(%Air{cloaks: []} = air), do:
+    %Air{air | cloaks: [%{name: "", status: :offline, data_source_names: []}]}
+  defp normalize_air(%Air{cloaks: [_|_]} = air), do:
+    air
 end

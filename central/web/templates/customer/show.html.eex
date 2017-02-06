@@ -10,22 +10,16 @@
     <th>Data source</th>
   </thead>
   <tbody>
-    <%= for air <- Enum.sort_by(@customer.airs, &(&1.name)),
-      cloaks =
-        air.cloaks
-        |> ensure_non_empty_list(%{name: "", status: :offline, data_source_names: []})
-        |> Enum.sort_by(&(&1.name)),
-      {cloak, cloak_index} <- Enum.with_index(cloaks)
-    do %>
+    <%= for row <- air_and_cloak_rows(@customer) do %>
       <tr>
-        <%= if cloak_index == 0 do %>
-          <td class="<%= air.status %>" rowspan="<%= length(cloaks) %>"><%= air.name %></td>
+        <%= if row.first_cloak? do %>
+          <td class="<%= row.air.status %>" rowspan="<%= length(row.air.cloaks) %>"><%= row.air.name %></td>
         <% end %>
 
-        <td class="<%= cloak.status %>"><%= cloak.name %></td>
+        <td class="<%= row.cloak.status %>"><%= row.cloak.name %></td>
 
-        <td class="<%= cloak.status %>">
-          <%= cloak.data_source_names |> Enum.sort() |> Enum.intersperse(raw("<br/>")) %>
+        <td class="<%= row.cloak.status %>">
+          <%= row.cloak.data_source_names |> Enum.sort() |> Enum.intersperse(raw("<br/>")) %>
         </td>
       </tr>
     <% end %>
