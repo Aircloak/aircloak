@@ -365,11 +365,11 @@ function build_and_push_to_registry {
 
 function verify_version() {
   latest_pushed_version=$(
-        registry_v2_req $image_name/tags/list |
-        jq --raw-output ".tags | select(. != null) | .[]" |
-        sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
-        head -n 1
-      )
+    registry_v2_req $image_name/tags/list |
+    jq --raw-output ".tags | select(. != null) | .[]" |
+    sort -t "." -k "1,1rn" -k "2,2rn" -k "3,3rn" |
+    head -n 1
+  )
 
   new_version=$(cat ../VERSION)
 
