@@ -53,10 +53,8 @@ defmodule Cloak.Sql.Query do
     # where the latter of these two is contained in the row-splitters.
     row_splitters: [%{function_spec: Parser.function_spec, row_index: row_index}],
     implicit_count?: boolean,
-    unsafe_filter_columns: [Expression.t],
     group_by: [Function.t],
     where: [where_clause],
-    lcf_check_conditions: [where_clause],
     emulated_where: [where_clause],
     order_by: [{pos_integer, :asc | :desc}],
     show: :tables | :columns,
@@ -77,10 +75,9 @@ defmodule Cloak.Sql.Query do
   }
 
   defstruct [
-    columns: [], where: [], lcf_check_conditions: [], unsafe_filter_columns: [], group_by: [],
-    order_by: [], column_titles: [], info: [], selected_tables: [], property: [], aggregators: [],
-    row_splitters: [], implicit_count?: false, data_source: nil, command: nil, show: nil,
-    db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
+    columns: [], where: [], group_by: [], order_by: [], column_titles: [], property: [], aggregators: [],
+    info: [], selected_tables: [], row_splitters: [], implicit_count?: false, data_source: nil, command: nil,
+    show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
     features: nil, emulated_where: [], ranges: %{}, parameters: [], views: %{}, emulated?: false,
     projected?: false, next_row_index: 0, parameter_types: %{}
   ]
@@ -129,7 +126,7 @@ defmodule Cloak.Sql.Query do
       num_tables: num_tables(query.selected_tables),
       num_group_by: num_group_by(query),
       functions: extract_functions(query.columns),
-      where_conditions: extract_where_conditions(query.where ++ query.lcf_check_conditions ++ query.emulated_where),
+      where_conditions: extract_where_conditions(query.where ++ query.emulated_where),
       column_types: extract_column_types(query.columns),
       selected_types: selected_types(query.columns),
       parameter_types: Enum.map(parameter_types(query), &stringify/1)

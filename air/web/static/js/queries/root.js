@@ -36,8 +36,9 @@ class QueriesView extends React.Component {
       sessionResults: [],
 
       history: {
-        loading: false,
+        before: "",
         loaded: false,
+        loading: false,
       },
     };
 
@@ -157,10 +158,12 @@ class QueriesView extends React.Component {
           };
           this.addResult(result, false /* replace */);
         } else {
-          this.addError(statement, response.reason);
+          this.addError(statement, `Error connecting to server. Reported reason: ${response.reason}.`);
         }
       },
-      error: (error) => this.addError(statement, error.statusText),
+      error: (error) => {
+        this.addError(statement, `Error connecting to server. Reported reason: ${error.statusText}.`);
+      },
     });
   }
 
@@ -180,20 +183,27 @@ class QueriesView extends React.Component {
   }
 
   handleLoadHistory() {
+    const before = this.state.history.before;
     const history = {
+      before,
       loaded: false,
       loading: true,
     };
     this.setState({history});
-    $.ajax(`/queries/load_history/${this.props.dataSourceId}`, {
+    $.ajax(`/queries/load_history/${this.props.dataSourceId}?before=${before}`, {
       method: "GET",
       headers: {
         "X-CSRF-TOKEN": this.props.CSRFToken,
         "Content-Type": "application/json",
       },
       success: (response) => {
-        const successHistory = {
+        const successHistory = (response.length < 10) ? {
+          before: "",
           loaded: true,
+          loading: false,
+        } : {
+          before: response[response.length - 1].inserted_at,
+          loaded: false,
           loading: false,
         };
         const sessionResults = this.state.sessionResults;
@@ -202,7 +212,8 @@ class QueriesView extends React.Component {
       },
       error: (_error) => {
         const errorHistory = {
-          loaded: false,
+          before: "",
+          loaded: true,
           loading: false,
           error: true,
         };

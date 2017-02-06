@@ -61,7 +61,6 @@ defmodule Cloak.Query.Runner.Engine do
     rows
     |> Query.RowSplitters.split(query)
     |> Query.Rows.filter(Enum.map(query.where, &Sql.Comparison.to_function/1))
-    |> Query.LCFConditions.apply(query)
     |> Query.ShrinkAndDrop.apply(query)
     |> Query.Aggregator.aggregate(query)
     |> Query.Sorter.order_buckets(query)

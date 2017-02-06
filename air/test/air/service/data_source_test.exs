@@ -67,14 +67,15 @@ defmodule Air.Service.DataSourceTest do
     _other_user_queries = Enum.map(1..5, fn(_) -> create_query(context.user2, context.ds2) end)
 
     for count <- 1..6 do
-      assert {:ok, history} = DataSource.history({:id, context.ds2.id}, context.user1, count)
+      assert {:ok, history} = DataSource.history({:id, context.ds2.id}, context.user1, count, NaiveDateTime.utc_now())
       assert Enum.map(history, &(&1.id)) ==
         queries |> Enum.reverse() |> Enum.take(min(5, count)) |> Enum.map(&(&1.id))
     end
   end
 
   test "fetching history for the unavailable data source", context, do:
-    assert {:error, :unauthorized} == DataSource.history({:id, context.ds2.id}, context.user3, 1)
+    assert {:error, :unauthorized} ==
+      DataSource.history({:id, context.ds2.id}, context.user3, 1, NaiveDateTime.utc_now())
 
   test "fetching last query", context do
     queries = Enum.map(1..5, fn(_) -> create_query(context.user1, context.ds2) end)
