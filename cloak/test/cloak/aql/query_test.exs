@@ -6,6 +6,9 @@ defmodule Cloak.Sql.QueryTest do
   setup_all do
     :ok = Cloak.Test.DB.create_table("feat_users", "height INTEGER, name TEXT, male BOOLEAN")
     :ok = Cloak.Test.DB.create_table("feat_purchases", "price INTEGER, name TEXT, datetime TIMESTAMP")
+    :ok = Cloak.Test.DB.create_table("feat_emulated_users", "height TEXT", decoders: [
+      %{method: "text_to_integer", columns: ["height"]}
+    ])
     :ok
   end
 
@@ -135,6 +138,10 @@ defmodule Cloak.Sql.QueryTest do
 
   test "returns type of selected columns - when function" do
     assert %{selected_types: ["integer"]} = features_from("SELECT length(name) FROM feat_users")
+  end
+
+  test "returns a list of used decoders" do
+    assert %{decoders: ["text_to_integer"]} = features_from("SELECT height + 1 FROM feat_emulated_users")
   end
 
   test "successful view validation" do
