@@ -21,15 +21,23 @@ defmodule Central.Socket.Air.MainChannel do
 
   @doc false
   @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
-  def join("main", air_info, socket) do
+  def join("main", raw_air_info, socket) do
     Logger.metadata(customer: socket.assigns.customer.name, air: socket.assigns.air_name)
     Process.flag(:trap_exit, true)
     Logger.info("joined central")
-    monitor_channel(socket.assigns.customer, socket.assigns.air_name,
-      air_info
-      |> Map.get("online_cloaks", [])
-      |> Enum.map(&%{name: Map.fetch!(&1, "name"), data_source_names: Map.get(&1, "data_source_names", [])})
-    )
+    online_cloaks = raw_air_info
+    |> Map.get("online_cloaks", [])
+    |> Enum.map(&%{
+      name: Map.fetch!(&1, "name"),
+      version: Map.fetch!(&1, "version"),
+      data_source_names: Map.get(&1, "data_source_names", []),
+    })
+    air_version = Map.get(raw_air_info, "air_version", "Unknown")
+    air_info = %{
+      air_version: air_version,
+      online_cloaks: online_cloaks,
+    }
+    monitor_channel(socket.assigns.customer, socket.assigns.air_name, air_info)
     {:ok, %{}, socket}
   end
 
@@ -153,7 +161,8 @@ defmodule Central.Socket.Air.MainChannel do
   defp handle_call_with_retry("cloak_online", cloak_info, socket) do
     Central.Service.Customer.update_cloak(socket.assigns.customer, socket.assigns.air_name,
       Map.fetch!(cloak_info, "name"),
-      status: :online, data_source_names: Map.get(cloak_info, "data_source_names", [])
+      status: :online, data_source_names: Map.get(cloak_info, "data_source_names", []),
+        version: Map.get(cloak_info, "version", "Unknown")
     )
     :ok
   end
@@ -180,9 +189,9 @@ defmodule Central.Socket.Air.MainChannel do
   if Mix.env == :test do
     # We avoid monitoring in test env, since this will start asynchronous processes storing
     # to the database, which will in turn lead to noisy errors in test output.
-    defp monitor_channel(_customer, _air_name, _online_cloaks), do: :ok
+    defp monitor_channel(_customer, _air_name, _air_info), do: :ok
   else
-    defp monitor_channel(customer, air_name, online_cloaks), do:
-      Central.AirStats.register(customer, air_name, online_cloaks)
+    defp monitor_channel(customer, air_name, air_info), do:
+      Central.AirStats.register(customer, air_name, air_info)
   end
 end

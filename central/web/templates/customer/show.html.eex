@@ -15,13 +15,13 @@
         <%= if row.first_cloak? do %>
           <td class="<%= row.air.status %>" rowspan="<%= length(row.air.cloaks) %>">
             <%= row.air.name %>
-            <span class="label label-default"><%= row.air_version %></span>
+            <span class="label label-default"><%= row.air.version %></span>
           </td>
         <% end %>
 
         <td class="<%= row.cloak.status %>">
           <%= row.cloak.name %>
-          <span class="label label-default"><%= row.cloak_version %></span>
+          <span class="label label-default"><%= row.cloak.version %></span>
         </td>
 
         <td class="<%= row.cloak.status %>">
