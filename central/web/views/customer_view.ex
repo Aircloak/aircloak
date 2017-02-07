@@ -7,17 +7,10 @@ defmodule Central.CustomerView do
   alias Central.Schemas.Air
 
   defp air_and_cloak_rows(customer) do
-    customer.airs
-    |> Enum.map(&normalize_air/1)
-    |> Enum.sort_by(&(&1.name))
-    |> Enum.flat_map(fn(air) ->
-      air.cloaks
-      |> Enum.sort_by(&(&1.name))
-      |> Enum.with_index()
-      |> Enum.map(fn({cloak, cloak_index}) ->
-        %{air: air, cloak: cloak, first_cloak?: cloak_index == 0}
-      end)
-    end)
+    for air <- customer.airs |> Enum.map(&normalize_air/1) |> Enum.sort_by(&(&1.name)),
+        {cloak, cloak_index} <- air.cloaks |> Enum.sort_by(&(&1.name)) |> Enum.with_index() do
+      %{air: air, cloak: cloak, first_cloak?: cloak_index == 0}
+    end
   end
 
   defp normalize_air(%Air{cloaks: []} = air), do:
