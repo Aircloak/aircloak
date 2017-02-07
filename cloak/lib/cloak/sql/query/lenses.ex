@@ -189,7 +189,7 @@ defmodule Cloak.Sql.Query.Lenses do
   deflensp expressions(), do:
     Lens.satisfy(Lens.root(), &match?(%Expression{}, &1))
 
-  deflensp do_leaf_expressions(lens), do: lens |> Lens.satisfy(&match?(%Expression{function?: false}, &1))
+  def do_leaf_expressions(lens), do: lens |> Lens.satisfy(&match?(%Expression{function?: false}, &1))
 
   deflensp join_elements(), do:
     Lens.match(fn
