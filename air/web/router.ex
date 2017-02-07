@@ -56,6 +56,8 @@ defmodule Air.Router do
     get "/licenses/:realm/:name", LicenseController, :show
 
     resources "/profile", ProfileController, singleton: true, only: [:edit, :update]
+
+    get "/changelog", ChangelogController, :index
   end
 
   scope "/admin", Air.Admin, as: :admin do

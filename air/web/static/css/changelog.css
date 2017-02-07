@@ -1,0 +1,14 @@
+.changelog h2 {
+  font-size: 1.5em;
+  padding-top: 1.5em;
+  padding-bottom: 0.5em;
+}
+
+.changelog .pending {
+  background-color: blue;
+  color: white;
+}
+
+.changelog h3 {
+  font-size: 1.2em;
+}
