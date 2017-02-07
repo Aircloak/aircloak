@@ -188,16 +188,6 @@ defmodule Central.Service.Customer do
     :ok
   end
 
-  @doc "Returns the latest usage info record for an air and associated cloaks"
-  @spec latest_usage_info(Air.t) :: UsageInfo.t
-  def latest_usage_info(air) do
-    Repo.one(from usage_info in UsageInfo,
-      where: usage_info.air_id == ^air.id,
-      order_by: [desc: usage_info.inserted_at],
-      limit: 1
-    )
-  end
-
 
   # -------------------------------------------------------------------
   # Internal functions
