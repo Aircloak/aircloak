@@ -301,10 +301,11 @@ defmodule Cloak.Sql.Query do
   defp extract_column(%Expression{} = column), do: [column]
 
   defp extract_decoders(query) do
-    Lenses.query_expressions()
+    Lens.both(Lens.root(), Lenses.subqueries() |> Lens.key(:ast))
+    |> Lenses.query_expressions()
     |> Lens.satisfy(&match?(%Expression{function?: false, constant?: false, table: %{decoders: [_|_]}}, &1))
     |> Lens.satisfy(&decoded?/1)
-    |> Lens.get(query)
+    |> Lens.to_list(query)
     |> Enum.map(&decoder/1)
     |> Enum.uniq()
   end

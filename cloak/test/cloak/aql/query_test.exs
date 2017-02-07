@@ -142,11 +142,16 @@ defmodule Cloak.Sql.QueryTest do
   end
 
   test "returns a list of used decoders" do
-    assert %{decoders: ["text_to_integer"]} = features_from("SELECT height + 1 FROM feat_emulated_users")
+    assert %{decoders: ["text_to_integer"]} = features_from("SELECT height FROM feat_emulated_users")
   end
 
   test "handles decoders specified as a function" do
-    assert %{decoders: ["&Base.decode64/1"]} = features_from("SELECT width + 1 FROM feat_emulated_users")
+    assert %{decoders: ["&Base.decode64/1"]} = features_from("SELECT width FROM feat_emulated_users")
+  end
+
+  test "returns a list of decoders used in subqueries" do
+    assert features_from("SELECT * FROM (SELECT user_id, height FROM feat_emulated_users) foo").decoders ==
+      features_from("SELECT height FROM feat_emulated_users").decoders
   end
 
   test "successful view validation" do

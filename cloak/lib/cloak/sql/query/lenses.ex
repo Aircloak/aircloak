@@ -55,6 +55,9 @@ defmodule Cloak.Sql.Query.Lenses do
   @doc "Lens focusing on invocations of the bucket function"
   deflens buckets(), do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
 
+  @doc "Lens focusing on all subqueries of a query."
+  deflens subqueries(), do: direct_subqueries() |> Lens.recur()
+
   @doc "Lens focusing on a query's immediate subqueries"
   deflens direct_subqueries(), do:
     Lens.key(:from)
