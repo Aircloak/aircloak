@@ -215,9 +215,14 @@ defmodule Cloak.Sql.QueryTest do
 
   defp features_from(statement) do
     [first_ds | rest_ds] = Cloak.DataSource.all()
-    query = Query.make!(first_ds, statement, [], %{}) |> Map.delete(:data_source)
+    query = Query.make!(first_ds, statement, [], %{}) |> scrub_data_source()
     for data_source <- rest_ds, do:
-      assert(query == Query.make!(data_source, statement, [], %{}) |> Map.delete(:data_source))
+      assert(query == Query.make!(data_source, statement, [], %{}) |> scrub_data_source())
     Query.extract_features(query)
+  end
+
+  defp scrub_data_source(query) do
+    data_source_lens = Lens.both(Lens.root(), Query.Lenses.subqueries() |> Lens.key(:ast)) |> Lens.key(:data_source)
+    put_in(query, [data_source_lens], nil)
   end
 end
