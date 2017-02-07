@@ -312,7 +312,7 @@ defmodule Cloak.Sql.Query do
   defp decoder(%{name: name, table: %{decoders: decoders}}) do
     case Enum.find(decoders, &(name in &1.columns)) do
       nil -> nil
-      decoder -> decoder.spec
+      decoder -> stringify(decoder.spec)
     end
   end
 
@@ -320,6 +320,7 @@ defmodule Cloak.Sql.Query do
 
   defp stringify(string) when is_binary(string), do: string
   defp stringify(atom) when is_atom(atom), do: Atom.to_string(atom)
+  defp stringify(function) when is_function(function), do: inspect(function)
 
   defp view_name_ok?(data_source, view_name) do
     if Enum.any?(DataSource.tables(data_source), &(&1.name == view_name)) do
