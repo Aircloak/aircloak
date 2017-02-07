@@ -27,27 +27,11 @@ defmodule Air.Service.Version do
 
   @doc "The number of days until the version expires"
   @spec days_until_expiry() :: integer
-  def days_until_expiry() do
-    {days, _time} = :calendar.time_difference(
-      date_to_erlang(Date.utc_today()),
-      date_to_erlang(expiry_date())
-    )
-    days
-  end
+  def days_until_expiry(), do: Timex.diff(expiry_date(), Date.utc_today, :days)
 
   @doc "Returns the date at which the system will expire."
   @spec expiry_date() :: Date.t
   def expiry_date(), do:
     Application.fetch_env!(:air, Air.Service.Version)
     |> Keyword.get(:version_expiry)
-
-
-  #-----------------------------------------------------------------------------------------------------------
-  # Internal functions
-  #-----------------------------------------------------------------------------------------------------------
-
-  defp date_to_erlang(date) do
-    erlang_date = Date.to_erl(date)
-    {erlang_date, {0,0,0}}
-  end
 end
