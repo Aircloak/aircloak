@@ -24,6 +24,9 @@ config :air, Air.Endpoint,
   pubsub: [name: Air.PubSub,
            adapter: Phoenix.PubSub.PG2]
 
+config :air, Air.Service.Version,
+  version_expiry: ~D[2100-01-01]
+
 config :air, :https_port, 8444
 
 config :air, Air.PsqlServer, port: 8433
