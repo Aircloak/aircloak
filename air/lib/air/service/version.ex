@@ -1,6 +1,7 @@
 defmodule Air.Service.Version do
   @moduledoc "Services for verifying whether or not the current Aircloak version is up to date."
 
+
   #-----------------------------------------------------------------------------------------------------------
   # API functions
   #-----------------------------------------------------------------------------------------------------------
