@@ -1,6 +1,8 @@
 defmodule Air.Service.Version do
   @moduledoc "Services for verifying whether or not the current Aircloak version is up to date."
 
+  @type expiry_status :: :valid | :expired | :will_expire | :expires_shortly | :imminent
+
 
   #-----------------------------------------------------------------------------------------------------------
   # API functions
@@ -8,19 +10,20 @@ defmodule Air.Service.Version do
 
   @doc "Returns true if the version has expired"
   @spec expired?() :: boolean
-  def expired?(), do: days_until_expiry() <= 0
+  def expired?(), do: expiry_status() == :expired
 
-  @doc "Returns true if the software will expire in less than a month"
-  @spec expiry_eventually?() :: boolean
-  def expiry_eventually?(), do: days_until_expiry() < 30
-
-  @doc "Returns true if the software will expire in less than two weeks"
-  @spec expiry_imminent?() :: boolean
-  def expiry_imminent?(), do: days_until_expiry() < 14
-
-  @doc "Returns true if the software will expire in less than a week"
-  @spec expiry_critical?() :: boolean
-  def expiry_critical?(), do: days_until_expiry() < 7
+  @doc "Returns information about the state of the current version."
+  @spec expiry_status() :: expiry_status
+  def expiry_status() do
+    days_until_expiry = days_until_expiry()
+    cond do
+      days_until_expiry < 0 -> :expired
+      days_until_expiry < 7 -> :imminent
+      days_until_expiry < 14 -> :expires_shortly
+      days_until_expiry < 30 -> :will_expire
+      true -> :valid
+    end
+  end
 
   @doc "The number of days until the version expires"
   @spec days_until_expiry() :: integer
@@ -37,6 +40,7 @@ defmodule Air.Service.Version do
   def expiry_date(), do:
     Application.fetch_env!(:air, Air.Service.Version)
     |> Keyword.get(:version_expiry)
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions

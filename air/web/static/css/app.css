@@ -169,19 +169,19 @@ body.outdated {
   z-index: 1000;
 }
 
-.expiry-eventually {
+.will_expire {
   background-color: green;
   color: white;
   font-size: 1.2em;
 }
 
-.expiry-imminent {
+.expires_shortly {
   background-color: orange;
   color: black;
   font-size: 1.4em;
 }
 
-.expiry-critical {
+.imminent {
   background-color: red;
   color: white;
   font-size: 2em;
