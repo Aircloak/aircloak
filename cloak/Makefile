@@ -1,11 +1,15 @@
 SHELL=/bin/bash -o pipefail
 
-.PHONY: sandbox deps docs proper proper-std proper-extended test clean all compile
+.PHONY: sandbox deps docs proper proper-std proper-extended test clean all app compile
 .PHONY: regenerate-db dialyze lint release release-local perftest perftest-setup
 
 all: deps compile
 
-compile:
+app:
+	@# We're forcing the `.app` file regeneration, to make sure that the app version is properly updated.
+	mix compile.app --force
+
+compile: app
 	mix compile
 
 sandbox:
@@ -17,7 +21,7 @@ deps:
 clean:
 	mix clean --deps
 
-start:
+start: app
 	iex -S mix
 
 test:
@@ -55,9 +59,11 @@ lint:
 	MIX_ENV=test mix lint
 
 release:
+	MIX_ENV=prod mix compile.app --force
 	mix release
 
 release-local:
+	MIX_ENV=prod mix compile.app --force
 	mix release --env=local --no-tar
 
 perftest:
