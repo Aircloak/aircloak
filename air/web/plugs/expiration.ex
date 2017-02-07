@@ -17,6 +17,7 @@ defmodule Air.Plug.Expiration do
   def call(conn, _opts) do
     if Version.expired?() do
       conn
+      |> put_status(Plug.Conn.Status.code(:upgrade_required))
       |> Phoenix.Controller.render(Air.OutOfDateView, :expired, layout: false)
       |> halt()
     else
