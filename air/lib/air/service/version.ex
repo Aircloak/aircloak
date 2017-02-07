@@ -1,0 +1,41 @@
+defmodule Air.Service.Version do
+  @moduledoc "Services for verifying whether or not the current Aircloak version is up to date."
+
+  @type expiry_status :: :valid | :expired | :will_expire | :expires_shortly | :imminent
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # API functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  @doc "Returns true if the version has expired"
+  @spec expired?() :: boolean
+  def expired?(), do: expiry_status() == :expired
+
+  @doc "Returns information about the state of the current version."
+  @spec expiry_status() :: expiry_status
+  def expiry_status() do
+    days_until_expiry = days_until_expiry()
+    cond do
+      # This should really be < 0. As it currently stands, we are expiring
+      # the build one day too early. The reason is because of a faulty typespec
+      # in Timex. A pull has been submitted, and this function will later
+      # be updated accordingly: https://github.com/bitwalker/timex/pull/274
+      days_until_expiry <= 0 -> :expired
+      days_until_expiry < 7 -> :imminent
+      days_until_expiry < 14 -> :expires_shortly
+      days_until_expiry < 30 -> :will_expire
+      true -> :valid
+    end
+  end
+
+  @doc "The number of days until the version expires"
+  @spec days_until_expiry() :: integer
+  def days_until_expiry(), do: Timex.diff(expiry_date(), Date.utc_today, :days)
+
+  @doc "Returns the date at which the system will expire."
+  @spec expiry_date() :: Date.t
+  def expiry_date(), do:
+    Application.fetch_env!(:air, Air.Service.Version)
+    |> Keyword.get(:version_expiry)
+end

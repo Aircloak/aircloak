@@ -37,6 +37,5 @@ defmodule Cloak.Time do
 
   @doc "Converts a number of seconds since midnight to a %Time{}"
   @spec seconds_to_time(pos_integer) :: Calendar.time
-  @dialyzer {:nowarn_function, seconds_to_time: 1} # https://github.com/elixir-lang/elixir/issues/5634
   def seconds_to_time(x), do: x |> :calendar.seconds_to_time() |> Time.from_erl!()
 end

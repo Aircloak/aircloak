@@ -5,13 +5,15 @@ defmodule Central.Schemas.Cloak do
 
   @type t :: %__MODULE__{
     name: String.t,
+    version: String.t,
     status: Central.Schemas.OnlineStatus.t,
     air: Central.Schemas.Air.t,
-    data_source_names: [String.t]
+    data_source_names: [String.t],
   }
 
   schema "cloaks" do
     field :name, :string
+    field :version, :string
     field :status, Central.Schemas.OnlineStatus
     field :data_source_names, {:array, :string}
 
