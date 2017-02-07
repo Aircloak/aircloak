@@ -13,10 +13,16 @@
     <%= for row <- air_and_cloak_rows(@customer) do %>
       <tr>
         <%= if row.first_cloak? do %>
-          <td class="<%= row.air.status %>" rowspan="<%= length(row.air.cloaks) %>"><%= row.air.name %></td>
+          <td class="<%= row.air.status %>" rowspan="<%= length(row.air.cloaks) %>">
+            <%= row.air.name %>
+            <span class="label label-default"><%= row.air.version %></span>
+          </td>
         <% end %>
 
-        <td class="<%= row.cloak.status %>"><%= row.cloak.name %></td>
+        <td class="<%= row.cloak.status %>">
+          <%= row.cloak.name %>
+          <span class="label label-default"><%= row.cloak.version %></span>
+        </td>
 
         <td class="<%= row.cloak.status %>">
           <%= row.cloak.data_source_names |> Enum.sort() |> Enum.intersperse(raw("<br/>")) %>

@@ -43,9 +43,10 @@ defmodule Air.CentralClient.Socket do
     cast_with_retry(__MODULE__, "query_execution", payload)
 
   @doc "Records a connection of a cloak in the central."
-  @spec record_cloak_online(String.t, [String.t]) :: :ok
-  def record_cloak_online(cloak_name, data_source_names), do:
-    cast_with_retry(__MODULE__, "cloak_online", %{name: cloak_name, data_source_names: data_source_names})
+  @spec record_cloak_online(String.t, [String.t], String.t) :: :ok
+  def record_cloak_online(cloak_name, data_source_names, version), do:
+    cast_with_retry(__MODULE__, "cloak_online", %{
+      name: cloak_name, data_source_names: data_source_names, version: version})
 
   @doc "Records a disconnection of a cloak in the central."
   @spec record_cloak_offline(String.t) :: :ok
@@ -148,7 +149,11 @@ defmodule Air.CentralClient.Socket do
     {:connect, state}
   end
   def handle_info({:join, topic}, transport, state) do
-    case GenSocketClient.join(transport, topic, %{online_cloaks: online_cloaks()}) do
+    join_message = %{
+      air_version: Aircloak.Version.for_app(:air) |> Aircloak.Version.to_string(),
+      online_cloaks: online_cloaks(),
+    }
+    case GenSocketClient.join(transport, topic, join_message) do
       {:error, reason} ->
         Logger.error("error joining the topic #{topic}: #{inspect reason}")
         Process.send_after(self(), {:join, topic}, config(:rejoin_interval))
@@ -297,7 +302,12 @@ defmodule Air.CentralClient.Socket do
   end
 
   defp online_cloaks(), do:
-    Enum.map(Air.DataSourceManager.cloaks(), &%{name: &1.name, data_source_names: &1.data_source_ids})
+    Air.DataSourceManager.cloaks()
+    |> Enum.map(&%{
+      name: &1.name,
+      data_source_names: &1.data_source_ids,
+      version: &1.version,
+    })
 
   if Mix.env == :dev do
     # suppressing of some common log messages in dev env to avoid excessive noise
