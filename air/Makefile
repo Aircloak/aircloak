@@ -1,8 +1,12 @@
-.PHONY: all compile deps clean start start2 start3 test recreate-db migrate rollback dialyze docs release release-local lint mocha
+.PHONY: all app compile deps clean start start2 start3 test recreate-db migrate rollback dialyze docs release release-local lint mocha
 
 all: deps compile
 
-compile:
+app:
+	@# We're forcing the `.app` file regeneration, to make sure that the app version is properly updated.
+	mix compile.app --force
+
+compile: app
 	mix compile
 
 deps:
@@ -12,7 +16,7 @@ deps:
 clean:
 	mix clean --deps
 
-start:
+start: app
 	iex -S mix phoenix.server
 
 test: mocha
@@ -37,9 +41,11 @@ docs:
 	mix docs.all
 
 release:
+	MIX_ENV=prod mix compile.app --force
 	NODE_ENV=production MIX_ENV=prod mix do compile, site_release
 
 release-local:
+	MIX_ENV=prod mix compile.app --force
 	NODE_ENV=production MIX_ENV=prod mix do compile, site_release --env=local --no-tar
 
 lint: eslint flow
