@@ -110,6 +110,26 @@ defmodule Cloak.Sql.Parsers do
     |> Map.put(:offset, Map.get(state, :offset, 0) + state.column)
   end
 
+  @doc """
+  Initializes the parser state for token parsing.
+
+  This is a hacky workaround that properly initializes parser to match the position
+  of the first token. Combine always initializes the position to col 0, line 1.
+  When parsing tokens, that's not always correct, since there might be some ignored
+  whitespaces before the first token. This parser will properly initialize the
+  position without consuming any token. It should be invoked only at the beginning of
+  the parse tree.
+  """
+  @spec init_token_parser(Combine.previous_parser) :: Combine.parser
+  defparser init_token_parser(%ParserState{status: :ok} = state) do
+    case state.input do
+      [%Token{} = first_token | _] ->
+        %{state | line: first_token.line, column: first_token.column}
+
+      _ -> state
+    end
+  end
+
   @doc "Consumes a token of the given category."
   @spec token(Combine.previous_parser, any) :: Combine.parser
   defparser token(%ParserState{status: :ok, input: input, results: results} = state, category) do
