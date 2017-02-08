@@ -29,7 +29,7 @@ defmodule Central.Socket.Air.MainChannel do
     |> Map.get("online_cloaks", [])
     |> Enum.map(&%{
       name: Map.fetch!(&1, "name"),
-      version: Map.fetch!(&1, "version"),
+      version: Map.get(&1, "version", "Unknown"),
       data_source_names: Map.get(&1, "data_source_names", []),
     })
     air_version = Map.get(raw_air_info, "air_version", "Unknown")
