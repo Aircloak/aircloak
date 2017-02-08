@@ -14,7 +14,7 @@ defmodule Central.CustomerView do
   end
 
   defp normalize_air(%Air{cloaks: []} = air), do:
-    %Air{air | cloaks: [%{name: "", status: :offline, data_source_names: []}]}
+    %Air{air | cloaks: [%{name: "", status: :offline, data_source_names: [], version: "Unknown"}]}
   defp normalize_air(%Air{cloaks: [_|_]} = air), do:
     air
 end
