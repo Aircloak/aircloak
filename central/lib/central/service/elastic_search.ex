@@ -18,9 +18,10 @@ defmodule Central.Service.ElasticSearch do
   query features
   """
   @spec record_query(Customer.t, Map.t) :: :ok | :error
-  def record_query(customer, params), do:
-    record(:customer, :query,
-      update_in(params, [:aux], &Map.put(&1 || %{}, :customer, %{id: customer.id, name: customer.name})))
+  def record_query(customer, params) do
+    data = update_in(params, [:aux], &Map.put(&1 || %{}, :customer, %{id: customer.id, name: customer.name}))
+    record(:customer, :query, data, parse_time(params[:aux]["finished_at"] || ""))
+  end
 
   @doc "Records air presence in elastic search."
   @spec record_air_presence(Air.t) :: :ok | :error
@@ -47,13 +48,20 @@ defmodule Central.Service.ElasticSearch do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp parse_time(string) do
+    case NaiveDateTime.from_iso8601(string) do
+      {:error, _} -> Timex.now()
+      {:ok, result} -> result
+    end
+  end
+
   if Mix.env == :test do
-    defp record(_index, _type, _data), do: :ok
+    defp record(_index, _type, _data, _timestamp \\ nil), do: :ok
   else
-    defp record(index, type, data) do
+    defp record(index, type, data, timestamp \\ Timex.now()) do
       elastic_endpoint = Central.site_setting("elastic_search_endpoint")
       url = "#{elastic_endpoint}/#{index}/#{type}"
-      data = Map.put(data, :timestamp, Timex.format!(Timex.now(), "{ISO:Extended}"))
+      data = Map.put(data, :timestamp, Timex.format!(timestamp, "{ISO:Extended}"))
       case HTTPoison.post(url, Poison.encode!(data)) do
         {:ok, _} -> :ok
         other ->

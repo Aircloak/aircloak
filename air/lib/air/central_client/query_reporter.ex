@@ -50,8 +50,8 @@ defmodule Air.CentralClient.QueryReporter do
   defp process_result(result) do
     query = Repo.get!(Query, result["query_id"]) |> Repo.preload([:user, :data_source])
     user = query.user || %{
-      name: "Uknown user",
-      email: "Uknown email",
+      name: "Unknown user",
+      email: "Unknown email",
     }
     data_source = query.data_source || %{
       name: "Unknown data source",
@@ -74,7 +74,9 @@ defmodule Air.CentralClient.QueryReporter do
         data_source: %{
           name: data_source.name,
           id: data_source.global_id,
-        }
+        },
+        started_at: query.inserted_at,
+        finished_at: NaiveDateTime.utc_now(),
       },
     }
     Air.CentralClient.Socket.record_query(payload)
