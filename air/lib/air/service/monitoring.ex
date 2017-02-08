@@ -16,6 +16,7 @@ defmodule Air.Service.Monitoring do
   @spec assemble_info(NaiveDateTime.t) :: map()
   def assemble_info(now \\ NaiveDateTime.utc_now()) do
     %{
+      version: fetch_version(),
       uptime: fetch_uptime(),
       groups: fetch_group_names(),
       users: fetch_users(),
@@ -28,6 +29,9 @@ defmodule Air.Service.Monitoring do
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp fetch_version(), do:
+    Aircloak.Version.for_app(:air) |> Aircloak.Version.to_string()
 
   defp fetch_group_names(), do:
     Group |> select([g], g.name) |> Repo.all()
@@ -51,6 +55,7 @@ defmodule Air.Service.Monitoring do
     for cloak <- DataSourceManager.cloaks() do
       %{
         name: cloak.name,
+        version: cloak.version,
         uptime: Timex.diff(now, cloak.online_since, :seconds),
         data_sources: cloak.data_source_ids,
         queries: query_stats(Query |> where([q], q.cloak_id == ^cloak.id), now),

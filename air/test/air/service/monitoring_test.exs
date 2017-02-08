@@ -7,6 +7,9 @@ defmodule Air.Service.Monitoring.Test do
   @seconds_in_minute 60
 
   describe "assemble_info" do
+    test "has air version", do:
+      refute is_nil(Monitoring.assemble_info().version)
+
     test "uptime", do:
       assert is_integer(Monitoring.assemble_info().uptime)
 
@@ -30,6 +33,7 @@ defmodule Air.Service.Monitoring.Test do
       cloak_name = cloak_info.name
       assert [%{
         name: ^cloak_name,
+        version: "17.1.0",
         data_sources: ["a very global id"],
         uptime: uptime,
         queries: %{
@@ -69,6 +73,7 @@ defmodule Air.Service.Monitoring.Test do
   defp cloak_info() do
     %{
       id: "cloak_id_#{:erlang.unique_integer()}",
+      version: "17.1.0",
       name: "cloak_name",
       online_since: Timex.now()
     }
