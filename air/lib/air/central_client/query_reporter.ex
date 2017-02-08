@@ -74,7 +74,9 @@ defmodule Air.CentralClient.QueryReporter do
         data_source: %{
           name: data_source.name,
           id: data_source.global_id,
-        }
+        },
+        started_at: query.inserted_at,
+        finished_at: NaiveDateTime.utc_now(),
       },
     }
     Air.CentralClient.Socket.record_query(payload)
