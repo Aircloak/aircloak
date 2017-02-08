@@ -1,4 +1,4 @@
-## Upcoming changes: Version 17.2.0
+## Non-released changes (next version: Version 17.2.0)
 {: .pending}
 
 ### Enhancements
