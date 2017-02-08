@@ -12,6 +12,7 @@ The endpoint presents data as the following JSON structure:
 
 ```json
 {
+  version: <the air version>,
   uptime: <time in seconds since the air component started>,
   groups: <list of group names>,
 
@@ -27,6 +28,7 @@ The endpoint presents data as the following JSON structure:
   cloaks: [
     {
       name: <name of the cloak>,
+      version: <the cloak version>
       uptime: <time in seconds since this cloak connected to the air component>,
       data_sources: <list of ids of data sources the cloak provides access to>,
       queries: {
