@@ -22,4 +22,30 @@ defmodule Cloak.Sql.Query.Lenses.Test do
       assert [:conditions1, :conditions2, :conditions3] = Enum.map(lenses, &Lens.get(&1, query))
     end
   end
+
+  describe "subqueries" do
+    test "a single subquery" do
+      query = %{from: {:subquery, %{from: "table"}}}
+
+      assert %{from: "table"} = Lens.get(Lenses.subqueries(), query)
+    end
+
+    test "nested subqueries" do
+      query = %{from: {:subquery, %{
+        from: {:join, %{
+          lhs: {:subquery, %{from: "table1"}},
+          rhs: {:subquery, %{from: {:subquery, %{from: "table2"}}}}}}}}}
+
+      assert [
+        %{
+          from: {:join, %{
+            lhs: {:subquery, %{from: "table1"}},
+            rhs: {:subquery, %{from: {:subquery, %{from: "table2"}}}}}}
+        },
+        %{from: {:subquery, %{from: "table2"}}},
+        %{from: "table1"},
+        %{from: "table2"},
+      ] = Lens.get(Lenses.subqueries(), query) |> Enum.sort()
+    end
+  end
 end

@@ -1,11 +1,15 @@
 defmodule Cloak.Sql.QueryTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Cloak.Sql.Query
 
   setup_all do
     :ok = Cloak.Test.DB.create_table("feat_users", "height INTEGER, name TEXT, male BOOLEAN")
     :ok = Cloak.Test.DB.create_table("feat_purchases", "price INTEGER, name TEXT, datetime TIMESTAMP")
+    :ok = Cloak.Test.DB.create_table("feat_emulated_users", "height TEXT, width TEXT", decoders: [
+      %{method: "text_to_integer", columns: ["height"]},
+      %{in: :text, out: :integer, method: &Base.decode64/1, columns: ["width"]},
+    ])
     :ok
   end
 
@@ -137,6 +141,19 @@ defmodule Cloak.Sql.QueryTest do
     assert %{selected_types: ["integer"]} = features_from("SELECT length(name) FROM feat_users")
   end
 
+  test "returns a list of used decoders" do
+    assert %{decoders: ["text_to_integer"]} = features_from("SELECT height FROM feat_emulated_users")
+  end
+
+  test "handles decoders specified as a function" do
+    assert %{decoders: ["&Base.decode64/1"]} = features_from("SELECT width FROM feat_emulated_users")
+  end
+
+  test "returns a list of decoders used in subqueries" do
+    assert features_from("SELECT * FROM (SELECT user_id, height FROM feat_emulated_users) foo").decoders ==
+      features_from("SELECT height FROM feat_emulated_users").decoders
+  end
+
   test "successful view validation" do
     assert {:ok, [col1, col2]} = validate_view("v1", "select user_id, name from feat_users")
     assert col1 == %{name: "user_id", type: "text", user_id: true}
@@ -198,9 +215,14 @@ defmodule Cloak.Sql.QueryTest do
 
   defp features_from(statement) do
     [first_ds | rest_ds] = Cloak.DataSource.all()
-    query = Query.make!(first_ds, statement, [], %{}) |> Map.delete(:data_source)
+    query = Query.make!(first_ds, statement, [], %{}) |> scrub_data_source()
     for data_source <- rest_ds, do:
-      assert(query == Query.make!(data_source, statement, [], %{}) |> Map.delete(:data_source))
+      assert(query == Query.make!(data_source, statement, [], %{}) |> scrub_data_source())
     Query.extract_features(query)
+  end
+
+  defp scrub_data_source(query) do
+    data_source_lens = Lens.both(Lens.root(), Query.Lenses.subqueries() |> Lens.key(:ast)) |> Lens.key(:data_source)
+    put_in(query, [data_source_lens], nil)
   end
 end

@@ -27,14 +27,10 @@ defmodule Cloak.Sql.Query.Lenses do
     |> terminal_elements()
 
   @doc "Lens focusing all column elements in the query (subqueries are not included)."
-  deflens query_expressions(), do:
-    terminals() |> expressions()
+  deflens query_expressions(), do: terminals() |> expressions()
 
   @doc "Lens focusing leaf (non-functions) expressions in a list of expressions."
-  deflens leaf_expressions(), do:
-    Lens.both(terminal_elements(), conditions_terminals())
-    |> expressions()
-    |> do_leaf_expressions()
+  deflens leaf_expressions(), do: all_expressions() |> do_leaf_expressions()
 
   @doc "Lens focusing all expressions in a list of expressions."
   deflens all_expressions(), do:
@@ -58,6 +54,9 @@ defmodule Cloak.Sql.Query.Lenses do
 
   @doc "Lens focusing on invocations of the bucket function"
   deflens buckets(), do: terminal_elements() |> Lens.satisfy(&Function.bucket?/1)
+
+  @doc "Lens focusing on all subqueries of a query."
+  deflens subqueries(), do: direct_subqueries() |> Lens.recur()
 
   @doc "Lens focusing on a query's immediate subqueries"
   deflens direct_subqueries(), do:
@@ -190,16 +189,7 @@ defmodule Cloak.Sql.Query.Lenses do
   deflensp expressions(), do:
     Lens.satisfy(Lens.root(), &match?(%Expression{}, &1))
 
-  deflensp do_leaf_expressions(), do:
-    Lens.match(fn
-      %Expression{function: nil} -> Lens.root()
-      _function_expression ->
-        Lens.key(:function_args)
-        |> Lens.all()
-        |> terminal_elements()
-        |> expressions()
-        |> do_leaf_expressions()
-    end)
+  def do_leaf_expressions(lens), do: lens |> Lens.satisfy(&match?(%Expression{function?: false}, &1))
 
   deflensp join_elements(), do:
     Lens.match(fn
