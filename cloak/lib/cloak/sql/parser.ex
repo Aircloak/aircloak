@@ -86,7 +86,7 @@ defmodule Cloak.Sql.Parser do
   @spec parse(String.t) :: {:ok, parsed_query} | {:error, any}
   def parse(string) do
     with {:ok, tokens} <- Cloak.Sql.Lexer.tokenize(string) do
-      case parse_tokens(tokens, parser()) do
+      case Combine.parse(tokens, parser()) do
         {:error, _} = error -> error
         [statement] -> {:ok, statement}
       end
@@ -98,13 +98,15 @@ defmodule Cloak.Sql.Parser do
   # -------------------------------------------------------------------
 
   defp parser() do
-    statement()
+    init_token_parser()
+    |> statement()
     |> statement_termination()
     |> end_of_input()
   end
 
-  defp statement() do
-    switch([
+  defp statement(parser) do
+    parser
+    |> switch([
       {keyword(:select), select_statement()},
       {keyword(:show), show_statement()},
       {:else, error_message(fail(""), "Expected `select or show`")}
@@ -827,33 +829,4 @@ defmodule Cloak.Sql.Parser do
   defp invert_inequality(:>), do: :<=
   defp invert_inequality(:<=), do: :>
   defp invert_inequality(:>=), do: :<
-
-
-  # -------------------------------------------------------------------
-  # Work around invalid combine spec (see below)
-  # -------------------------------------------------------------------
-
-  # Temporary hack, since per spec Combine.parse accepts only string, which
-  # leads to many dialyzer errors. A couple of functions are copy-pasted here
-  # from combine. Once our changes are merged upstream, we should replace this
-  # with a regular combine
-
-  defp parse_tokens([first_token | _] = tokens, parser) do
-    alias Combine.ParserState
-
-    case parser.(%ParserState{input: tokens, line: first_token.line, column: first_token.column}) do
-      %ParserState{status: :ok, results: res} ->
-        res |> Enum.reverse |> Enum.filter_map(&ignore_filter/1, &filter_ignores/1)
-      %ParserState{error: res} ->
-        {:error, res}
-    end
-  end
-
-  defp ignore_filter(:__ignore), do: false
-  defp ignore_filter(_), do: true
-
-  defp filter_ignores(element) when is_list(element) do
-    Enum.filter_map(element, &ignore_filter/1, &filter_ignores/1)
-  end
-  defp filter_ignores(element), do: element
 end
