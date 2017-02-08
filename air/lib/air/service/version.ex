@@ -17,11 +17,7 @@ defmodule Air.Service.Version do
   def expiry_status() do
     days_until_expiry = days_until_expiry()
     cond do
-      # This should really be < 0. As it currently stands, we are expiring
-      # the build one day too early. The reason is because of a faulty typespec
-      # in Timex. A pull has been submitted, and this function will later
-      # be updated accordingly: https://github.com/bitwalker/timex/pull/274
-      days_until_expiry <= 0 -> :expired
+      days_until_expiry < 0 -> :expired
       days_until_expiry < 7 -> :imminent
       days_until_expiry < 14 -> :expires_shortly
       days_until_expiry < 30 -> :will_expire
