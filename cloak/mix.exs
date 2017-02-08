@@ -34,7 +34,7 @@ defmodule Cloak.Mixfile do
       {:mariaex, "~> 0.8"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client"},
       {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0"},
-      {:combine, "~> 0.9.2"},
+      {:combine, "~> 0.9.6"},
       {:timex, "~> 3.1"},
       {:poison, "~> 2.2.0", override: true},
       {:mongodb, "~> 0.2.0"},
