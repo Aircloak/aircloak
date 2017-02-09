@@ -44,7 +44,7 @@ defmodule Cloak.DataSource.MongoDB do
   def connect!(parameters) do
     self = self()
     parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, timeout: :timer.hours(1),
-      pool: DBConnection.Connection, after_connect: fn (_) -> send self, :connected end]
+      pool: DBConnection.Connection, pool_timeout: :timer.hours(1), after_connect: fn (_) -> send self, :connected end]
     {:ok, connection} = Mongo.start_link(parameters)
     receive do
       :connected -> connection
