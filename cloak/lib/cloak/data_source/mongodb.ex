@@ -109,7 +109,7 @@ defmodule Cloak.DataSource.MongoDB do
     columns = for %Expression{name: name, alias: alias} <- query.db_columns, do: String.split(alias || name, ".")
     result =
       connection
-      |> Mongo.aggregate(collection, pipeline, max_time: :timer.hours(1), batch_size: 25_000)
+      |> Mongo.aggregate(collection, pipeline, max_time: :timer.hours(1), batch_size: 25_000, allow_disk_use: true)
       |> Stream.map(&extract_fields(&1, columns))
       |> result_processor.()
     {:ok, result}
