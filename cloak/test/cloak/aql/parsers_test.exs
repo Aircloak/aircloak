@@ -1,8 +1,8 @@
-defmodule Cloak.Aql.Parsers.Test do
+defmodule Cloak.Sql.Parsers.Test do
   use ExUnit.Case, async: true
 
   import Combine.Parsers.Text
-  import Cloak.Aql.Parsers
+  import Cloak.Sql.Parsers
 
   describe "sep_by1_eager" do
     test "a single item", do:

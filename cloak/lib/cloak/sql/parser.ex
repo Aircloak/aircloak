@@ -1,7 +1,7 @@
-defmodule Cloak.Aql.Parser do
+defmodule Cloak.Sql.Parser do
   @moduledoc "Parser for SQL queries."
   import Combine.Parsers.Base
-  import Cloak.Aql.Parsers
+  import Cloak.Sql.Parsers
 
   @type comparator ::
       :=
@@ -85,7 +85,7 @@ defmodule Cloak.Aql.Parser do
   @doc "Parses a SQL query in text form."
   @spec parse(String.t) :: {:ok, parsed_query} | {:error, any}
   def parse(string) do
-    with {:ok, tokens} <- Cloak.Aql.Lexer.tokenize(string) do
+    with {:ok, tokens} <- Cloak.Sql.Lexer.tokenize(string) do
       case parse_tokens(tokens, parser()) do
         {:error, _} = error -> error
         [statement] -> {:ok, statement}
@@ -292,6 +292,7 @@ defmodule Cloak.Aql.Parser do
 
   defp raw_identifier_of(words) do
     unquoted_identifier()
+    |> map(&String.downcase/1)
     |> satisfy(&Enum.member?(words, &1))
     |> map(&String.to_atom/1)
   end
@@ -576,6 +577,7 @@ defmodule Cloak.Aql.Parser do
       {column() |> option(keyword(:not)) |> keyword(:in), in_values()},
       {column() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
       {column() |> keyword(:between), allowed_where_range()},
+      {any_constant() |> inequality_comparator(), column()},
       {column() |> inequality_comparator(), any_constant()},
       {column() |> equality_comparator(), allowed_where_value()},
       {:else, error_message(fail(""), "Invalid where expression.")}
@@ -590,8 +592,10 @@ defmodule Cloak.Aql.Parser do
           {[identifier, :is, nil], [:null]} -> {:is, identifier, :null}
           {[identifier, :is, :not], [:null]} -> {:not, {:is, identifier, :null}}
           {[identifier, :between], [{min, max}]} ->
-            [{:comparison, identifier, :>=, min}, {:comparison, identifier, :<=, max}]
+            [{:comparison, identifier, :>=, min}, {:comparison, identifier, :<, max}]
           {[identifier, :<>], [value]} -> {:not, {:comparison, identifier, :=, value}}
+          {[{:constant, _, _} = value, inequality_comparator], [identifier]} ->
+            {:comparison, identifier, invert_inequality(inequality_comparator), value}
           {[identifier, comparator], [value]} -> {:comparison, identifier, comparator, value}
         end)
   end
@@ -603,7 +607,7 @@ defmodule Cloak.Aql.Parser do
 
   defp allowed_where_range() do
     pipe(
-      [allowed_where_value(), keyword(:and), allowed_where_value()],
+      [any_constant(), keyword(:and), any_constant()],
       fn([min, :and, max]) -> {min, max} end
     )
   end
@@ -818,6 +822,11 @@ defmodule Cloak.Aql.Parser do
     |> map(&{:parameter, &1.value})
     |> label("expected parameter")
   end
+
+  defp invert_inequality(:<), do: :>=
+  defp invert_inequality(:>), do: :<=
+  defp invert_inequality(:<=), do: :>
+  defp invert_inequality(:>=), do: :<
 
 
   # -------------------------------------------------------------------

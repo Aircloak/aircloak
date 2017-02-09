@@ -1,6 +1,6 @@
 use Mix.Config
 
-config :cloak, :deploy_config_file, "config.json"
+config :central, :deploy_config_file, "config.json"
 
 config :central, Central.Endpoint,
   cache_static_manifest: "priv/static/manifest.json"

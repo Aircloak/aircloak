@@ -1,10 +1,10 @@
-defmodule Cloak.Aql.TypeChecker.Narrative do
+defmodule Cloak.Sql.TypeChecker.Narrative do
   @moduledoc """
   Provides functions for creating a narrative around a column expression
   being used in illegal ways.
   """
 
-  alias Cloak.Aql.{Expression, Function, TypeChecker}
+  alias Cloak.Sql.{Expression, Function, TypeChecker}
 
 
   # -------------------------------------------------------------------

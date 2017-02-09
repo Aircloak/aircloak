@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.MongoDB.Projector do
   @moduledoc "MongoDB helper functions for projecting columns into the aggregation pipeline."
 
-  alias Cloak.Aql.Expression
+  alias Cloak.Sql.Expression
   alias Cloak.Query.Runner.RuntimeError
   alias Cloak.DataSource.MongoDB.Schema
 

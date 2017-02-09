@@ -4,7 +4,7 @@ defmodule Cloak.Query.ShrinkAndDrop do
   """
 
   alias Cloak.Query.Anonymizer
-  alias Cloak.Aql.{FixAlign, Expression, Query, Range}
+  alias Cloak.Sql.{FixAlign, Expression, Query, Range}
   alias Cloak.Query.ShrinkAndDrop.Buffer
 
 

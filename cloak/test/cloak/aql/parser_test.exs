@@ -1,7 +1,7 @@
-defmodule Cloak.Aql.Parser.Test do
+defmodule Cloak.Sql.Parser.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.Parser
+  alias Cloak.Sql.Parser
 
 
   # -------------------------------------------------------------------
@@ -286,7 +286,7 @@ defmodule Cloak.Aql.Parser.Test do
         columns: [identifier("foo")], from: unquoted("bar"),
         where: [
           {:comparison, identifier("a"), :>=, constant(10)},
-          {:comparison, identifier("a"), :<=, constant(20)}
+          {:comparison, identifier("a"), :<, constant(20)}
         ]
       )
     )
@@ -800,6 +800,12 @@ defmodule Cloak.Aql.Parser.Test do
 
   test "bucket aligns lower by default" do
     assert_equal_parse "select bucket(foo by 10) from bar", "select bucket(foo by 10 align lower) from bar"
+  end
+
+  test "align type case insensivity" do
+    assert_parse "select bucket(foo by 10 align MIDDlE) from bar", select(columns: [
+      {:function, {:bucket, :middle}, [identifier("foo"), constant(:integer, 10)]}
+    ])
   end
 
   test "query parameters", do:

@@ -1,7 +1,7 @@
-defmodule Cloak.Aql.Comparison do
+defmodule Cloak.Sql.Comparison do
   @moduledoc "Contains utility functions for working with representations of comparisons."
 
-  alias Cloak.Aql.{Query, Expression, Parser}
+  alias Cloak.Sql.{Query, Expression, Parser}
 
   @inequalities [:<, :>, :<=, :>=]
 

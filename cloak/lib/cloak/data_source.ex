@@ -32,7 +32,7 @@ defmodule Cloak.DataSource do
   The data source schema will also be sent to air, so it can be referenced by incoming tasks.
   """
 
-  alias Cloak.Aql.Query
+  alias Cloak.Sql.Query
   alias Cloak.DataSource.Parameters
   alias Cloak.Query.DataDecoder
   alias Cloak.Query.Runner.RuntimeError

@@ -38,3 +38,18 @@ config :air, :central,
   central_site: "ws://localhost:7080",
   min_reconnect_interval: 1000,
   max_reconnect_interval: 1000
+
+# Use smaller pools in dev for endpoints and repo. We shouldn't issue a huge load in dev mode anyway, and
+# less processes makes the supervision tree view in observer nicer.
+config :air, Air.Endpoint,
+  http: [acceptors: 2],
+  https: [acceptors: 2]
+
+config :air, Air.MonitoringEndpoint,
+  http: [acceptors: 2]
+
+config :air, Air.PsqlServer,
+  ranch_opts: [num_acceptors: 2]
+
+config :air, Air.Repo,
+  pool_size: 2

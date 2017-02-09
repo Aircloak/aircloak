@@ -3,7 +3,7 @@ use Mix.Config
 config :air, :deploy_config_file, "test.json"
 
 config :air, Air.Endpoint,
-  http: [port: 8081],
+  http: [port: 8082],
   server: true
 
 config :air, :https_port, 8444

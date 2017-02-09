@@ -22,6 +22,11 @@ defmodule Cloak.Query.SubqueryTest do
       %{columns: ["h"], rows: [%{row: [180], occurrences: 100}]}
   end
 
+  test "where alias in a subquery" do
+    assert_query "select h from (select user_id, height as h from heights_sq where h = 180) alias",
+      %{columns: ["h"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
   test "user_id can be in any position in a subquery" do
     assert_query "select height from (select height, user_id from heights_sq) alias",
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
@@ -87,8 +92,8 @@ defmodule Cloak.Query.SubqueryTest do
 
   test "group by with having in subqueries" do
     assert_query """
-        select count(height) from
-        (select user_id, avg(height) as height from heights_sq
+        select count(h) from
+        (select user_id, avg(height) as h from heights_sq
         group by user_id
         having max(height) = min(height)) alias
         """,

@@ -41,16 +41,16 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Returns most recent queries executed on the given data source by the given user."
-  @spec history(data_source_id_spec, User.t, pos_integer) :: {:ok, [Query.t]} | {:error, :unauthorized}
-  def history(data_source_id_spec, user, count) do
+  @spec history(data_source_id_spec, User.t, pos_integer, NaiveDateTime.t) :: {:ok, [Query.t]} | {:error, :unauthorized}
+  def history(data_source_id_spec, user, count, before) do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user), do:
-      {:ok, Query.load_recent_queries(user, data_source, count)}
+      {:ok, Query.load_recent_queries(user, data_source, count, before)}
   end
 
   @doc "Returns the last query executed on the given data source by the given user."
   @spec last_query(data_source_id_spec, User.t) :: {:ok, Query.t | nil} | {:error, :unauthorized}
   def last_query(data_source_id_spec, user) do
-    with {:ok, queries} <- history(data_source_id_spec, user, 1) do
+    with {:ok, queries} <- history(data_source_id_spec, user, 1, NaiveDateTime.utc_now()) do
       case queries do
         [query] -> {:ok, query}
         [] -> {:ok, nil}
@@ -63,7 +63,7 @@ defmodule Air.Service.DataSource do
     {:ok, map} | data_source_operation_error
   def describe_query(data_source_id_spec, user, statement, parameters) do
     on_available_cloak(data_source_id_spec, user,
-      fn(data_source, channel_pid) ->
+      fn(_cloak, data_source, channel_pid) ->
         MainChannel.describe_query(channel_pid, %{
           statement: statement,
           data_source: data_source.global_id,
@@ -79,7 +79,7 @@ defmodule Air.Service.DataSource do
     {:ok, [columns :: map]} | {:error, field :: String.t, reason :: String.t} | data_source_operation_error
   def validate_view(data_source_id_spec, user, view), do:
     on_available_cloak(data_source_id_spec, user,
-      fn(data_source, channel_pid) ->
+      fn(_cloak, data_source, channel_pid) ->
         MainChannel.validate_view(channel_pid, %{
           data_source: data_source.global_id,
           name: view.name,
@@ -96,8 +96,8 @@ defmodule Air.Service.DataSource do
     opts = Keyword.merge([audit_meta: %{}, notify: false], opts)
 
     on_available_cloak(data_source_id_spec, user,
-      fn(data_source, channel_pid) ->
-        query = create_query(data_source.id, user, statement, parameters, opts[:session_id])
+      fn(cloak, data_source, channel_pid) ->
+        query = create_query(cloak.id, data_source.id, user, statement, parameters, opts[:session_id])
 
         Air.Service.AuditLog.log(user, "Executed query",
           Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.id}))
@@ -132,7 +132,7 @@ defmodule Air.Service.DataSource do
 
     try do
       if DataSourceManager.available?(query.data_source.global_id) do
-        for channel <- DataSourceManager.channel_pids(query.data_source.global_id), do:
+        for {channel, _cloak_info} <- DataSourceManager.channel_pids(query.data_source.global_id), do:
           MainChannel.stop_query(channel, query.id)
         :ok
       else
@@ -171,10 +171,11 @@ defmodule Air.Service.DataSource do
   defp user_data_source(user, {:global_id, global_id}), do:
     from data_source in users_data_sources(user), where: data_source.global_id == ^global_id
 
-  defp create_query(data_source_id, user, statement, parameters, session_id) do
+  defp create_query(cloak_id, data_source_id, user, statement, parameters, session_id) do
     user
     |> Ecto.build_assoc(:queries)
     |> Query.changeset(%{
+          cloak_id: cloak_id,
           data_source_id: data_source_id,
           statement: statement,
           parameters: %{values: parameters},
@@ -190,8 +191,8 @@ defmodule Air.Service.DataSource do
         case DataSourceManager.channel_pids(data_source.global_id) do
           [] -> {:error, :not_connected}
           channel_pids ->
-            channel_pid = Enum.random(channel_pids)
-            fun.(data_source, channel_pid)
+            {channel_pid, cloak} = Enum.random(channel_pids)
+            fun.(cloak, data_source, channel_pid)
         end
       catch type, error ->
         Logger.error([

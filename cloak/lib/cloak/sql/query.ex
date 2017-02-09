@@ -1,6 +1,6 @@
-defmodule Cloak.Aql.Query do
+defmodule Cloak.Sql.Query do
   @moduledoc """
-  Represents a compiled AQL query.
+  Represents a compiled SQL query.
 
   The struct defined by this module fully describes the goal of the query. It
   is used in various query execution phases, for example to fetch data from the
@@ -8,7 +8,7 @@ defmodule Cloak.Aql.Query do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Aql.{Expression, Compiler, Function, Parser, Query.Lenses, Range}
+  alias Cloak.Sql.{Expression, Compiler, Function, Parser, Query.Lenses, Range}
 
   @type negatable_condition ::
       {:comparison, Expression.t, :=, Expression.t}

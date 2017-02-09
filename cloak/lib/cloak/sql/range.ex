@@ -1,7 +1,7 @@
-defmodule Cloak.Aql.Range do
+defmodule Cloak.Sql.Range do
   @moduledoc "Represents a range the analyst applied in the query that needs to be tracked for ShrinkAndDrop."
 
-  alias Cloak.Aql.{Expression, FixAlign}
+  alias Cloak.Sql.{Expression, FixAlign}
 
   @type t :: %__MODULE__{
     column: Expression.t,

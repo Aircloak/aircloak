@@ -329,12 +329,30 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["count", "max"], rows: [%{row: [100, 180], occurrences: 1}]}
   end
 
-  test "should allow ranges for where clause" do
+  test "should allow ranges in where clause" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
 
     assert_query "select count(*) from heights where height >= 180 and height < 190",
+      %{query_id: "1", columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
+  end
+
+  test "should allow between in where clause" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+
+    assert_query "select count(*) from heights where height between 180 and 190",
+      %{query_id: "1", columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
+  end
+
+  test "should allow reversed inequalities in where clause" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+
+    assert_query "select count(*) from heights where 180 <= height and 190 > height",
       %{query_id: "1", columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
   end
 
@@ -602,6 +620,24 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["h"], rows: [%{row: [170], occurrences: 1}, %{row: [180], occurrences: 1}]}
     assert_query "select count(*) as c, count(height) as c from heights",
       %{columns: ["c", "c"], rows: [%{row: [30, 30], occurrences: 1}]}
+  end
+
+  test "alias usage in where" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
+
+    assert_query "select height as h from heights where h = 170",
+      %{columns: ["h"], rows: [%{row: [170], occurrences: 10}]}
+    assert_query "select round(height) as h from heights where abs(h) = 170",
+      %{columns: ["h"], rows: [%{row: [170], occurrences: 10}]}
+  end
+
+  test "alias usage in having" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
+
+    assert_query "select height as h from heights group by h having abs(h) = 170",
+      %{columns: ["h"], rows: [%{row: [170], occurrences: 1}]}
   end
 
   test "select comparing two columns" do

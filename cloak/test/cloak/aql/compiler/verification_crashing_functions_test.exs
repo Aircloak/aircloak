@@ -1,7 +1,7 @@
-defmodule Cloak.Aql.Compiler.VerificationCrashingFunctions.Test do
+defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.Aql.{Compiler, Parser}
+  alias Cloak.Sql.{Compiler, Parser}
 
   describe "/ and sqrt can crash irrespective of where they are used" do
     test "/ is allowed when selected in subquery purely with constant" do

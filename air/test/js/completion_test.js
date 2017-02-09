@@ -22,7 +22,7 @@ it("completes expressions", () => {
   assert.deepEqual(
     completions("show tab| rest", 8, _.identity, [], [], ""),
     {
-      list: [{text: "SHOW TABLES;", from: 0, to: 8}],
+      list: [{text: "SHOW TABLES", from: 0, to: 8}],
       from: 0,
       to: 8,
     }
@@ -34,8 +34,8 @@ it("completes 'show columns from <table>'", () => {
     completions("show col| rest", 8, _.identity, ["table1", "table2"], ["a column"], ""),
     {
       list: [
-        {text: "SHOW COLUMNS FROM table1;", from: 0, to: 8},
-        {text: "SHOW COLUMNS FROM table2;", from: 0, to: 8},
+        {text: "SHOW COLUMNS FROM table1", from: 0, to: 8},
+        {text: "SHOW COLUMNS FROM table2", from: 0, to: 8},
       ],
       from: 0,
       to: 8,
@@ -48,8 +48,8 @@ it("completes 'from <table>'", () => {
     completions("fr| rest", 2, _.identity, ["table1", "table2"], [], ""),
     {
       list: [
-        {text: "FROM table1;", from: 0, to: 2},
-        {text: "FROM table2;", from: 0, to: 2},
+        {text: "FROM table1", from: 0, to: 2},
+        {text: "FROM table2", from: 0, to: 2},
         {text: "FROM", from: 0, to: 2},
       ],
       from: 0,
@@ -63,7 +63,7 @@ it("completes table names", () => {
     completions("show tab| rest", 8, _.identity, ["table1", "table2"], [], ""),
     {
       list: [
-        {text: "SHOW TABLES;", from: 0, to: 8},
+        {text: "SHOW TABLES", from: 0, to: 8},
         {text: "table1", from: 5, to: 8},
         {text: "table2", from: 5, to: 8},
       ],
@@ -152,6 +152,17 @@ it("completes based on what else has been written in query", () => {
 it("completes based on what else has been written in query but excludes the current word", () => {
   assert.deepEqual(
     completions("alias", 5, _.identity, [], [], "SELECT alias as aliased_name"),
+    {
+      list: [{text: "aliased_name", from: 0, to: 5}],
+      from: 0,
+      to: 5,
+    }
+  );
+});
+
+it("completions based on written query do not contain trailing comman", () => {
+  assert.deepEqual(
+    completions("alias", 5, _.identity, [], [], "SELECT alias as aliased_name, other FROM"),
     {
       list: [{text: "aliased_name", from: 0, to: 5}],
       from: 0,

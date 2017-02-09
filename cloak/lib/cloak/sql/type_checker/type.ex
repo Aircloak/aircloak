@@ -1,7 +1,7 @@
-defmodule Cloak.Aql.TypeChecker.Type do
+defmodule Cloak.Sql.TypeChecker.Type do
   @moduledoc false
 
-  alias Cloak.Aql.Expression
+  alias Cloak.Sql.Expression
 
   @type function_name :: String.t
   @type offense_type :: {

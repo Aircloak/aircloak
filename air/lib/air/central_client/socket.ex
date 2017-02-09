@@ -1,4 +1,4 @@
-defmodule Air.CentralSocket do
+defmodule Air.CentralClient.Socket do
   @moduledoc """
   Client side of the socket connection to the Central system.
 
@@ -39,9 +39,23 @@ defmodule Air.CentralSocket do
 
   @doc "Records a completed query in the central - useful for billing and stats"
   @spec record_query(Map.t) :: :ok
-  def record_query(payload) do
+  def record_query(payload), do:
     cast_with_retry(__MODULE__, "query_execution", payload)
-  end
+
+  @doc "Records a connection of a cloak in the central."
+  @spec record_cloak_online(String.t, [String.t]) :: :ok
+  def record_cloak_online(cloak_name, data_source_names), do:
+    cast_with_retry(__MODULE__, "cloak_online", %{name: cloak_name, data_source_names: data_source_names})
+
+  @doc "Records a disconnection of a cloak in the central."
+  @spec record_cloak_offline(String.t) :: :ok
+  def record_cloak_offline(cloak_name), do:
+    cast_with_retry(__MODULE__, "cloak_offline", %{name: cloak_name})
+
+  @doc "Sends usage info to central."
+  @spec send_usage_info(Map.t) :: :ok
+  def send_usage_info(usage_info), do:
+    cast_with_retry(__MODULE__, "usage_info", usage_info)
 
 
   # -------------------------------------------------------------------
@@ -134,7 +148,7 @@ defmodule Air.CentralSocket do
     {:connect, state}
   end
   def handle_info({:join, topic}, transport, state) do
-    case GenSocketClient.join(transport, topic, %{}) do
+    case GenSocketClient.join(transport, topic, %{online_cloaks: online_cloaks()}) do
       {:error, reason} ->
         Logger.error("error joining the topic #{topic}: #{inspect reason}")
         Process.send_after(self(), {:join, topic}, config(:rejoin_interval))
@@ -281,6 +295,9 @@ defmodule Air.CentralSocket do
   defp config(key) do
     Application.get_env(:air, :central) |> Keyword.fetch!(key)
   end
+
+  defp online_cloaks(), do:
+    Enum.map(Air.DataSourceManager.cloaks(), &%{name: &1.name, data_source_names: &1.data_source_ids})
 
   if Mix.env == :dev do
     # suppressing of some common log messages in dev env to avoid excessive noise
