@@ -56,7 +56,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_operator(:>=), do: :'$gte'
   defp parse_operator(:<), do: :'$lt'
   defp parse_operator(:<=), do: :'$lte'
-  defp parse_operator(:<>), do: :'$neq'
+  defp parse_operator(:<>), do: :'$ne'
 
   defp map_parameter(%NaiveDateTime{} = datetime) do
     {date, {hour, minute, second}} = NaiveDateTime.to_erl(datetime)
@@ -70,7 +70,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_where_condition({:comparison, %Expression{name: field}, operator, value}), do:
     %{field => %{parse_operator(operator) => map_parameter(value)}}
   defp parse_where_condition({:not, {:comparison, %Expression{name: field}, :=, value}}), do:
-    %{field => %{'$neq': map_parameter(value)}}
+    %{field => %{'$ne': map_parameter(value)}}
   defp parse_where_condition({:is, %Expression{name: field}, :null}), do: %{field => nil}
   defp parse_where_condition({:not, {:is, %Expression{name: field}, :null}}), do: %{field => %{'$exists': true}}
   defp parse_where_condition({:in, %Expression{name: field}, values}), do:
