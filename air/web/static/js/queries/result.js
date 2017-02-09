@@ -8,6 +8,7 @@ import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
 import {GraphData} from "./graph_data";
 import type {GraphDataT} from "./graph_data";
+import type {Error} from "./error";
 
 export type Row = {
   occurrences: number,
@@ -23,7 +24,8 @@ export type Result = {
   rows: Row[],
   row_count: number,
   info: string[],
-  pendingResult: boolean
+  pendingResult: boolean,
+  error: Error,
 };
 
 export class ResultView extends React.Component {

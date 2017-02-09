@@ -2,6 +2,7 @@ defmodule Cloak.Sql.Compiler.VerificationConditionClauses.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.Sql.{Compiler, Parser}
+  alias Cloak.Query.Error
 
   describe "Rejects conditions used in subqueries" do
     test "math on a column used in a JOIN condition in top-level query" do
@@ -204,7 +205,7 @@ defmodule Cloak.Sql.Compiler.VerificationConditionClauses.Test do
   defp condition_columns_have_valid_transformations(query) do
     case compile(query, data_source()) do
       {:ok, _} -> true
-      {:error, reason} ->
+      %Error{human_description: reason} ->
         if reason =~ ~r/Inequality clauses used to filter the data/ do
           false
         else

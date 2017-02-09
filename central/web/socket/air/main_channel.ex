@@ -155,6 +155,7 @@ defmodule Central.Socket.Air.MainChannel do
       metrics: payload["metrics"],
       features: payload["features"],
       aux: payload["aux"],
+      error: payload["error"],
     }
     Customer.record_query(customer, params)
   end

@@ -114,7 +114,7 @@ defmodule Air.PsqlServer do
 
   defp parse_response({:error, :not_connected}), do:
     %{error: "Data source is not available!"}
-  defp parse_response({:ok, %{"error" => error}}), do:
+  defp parse_response({:ok, %{"error" => %{"human_description" => error}}}), do:
     %{error: error}
   defp parse_response({:ok, query_result}), do:
     %{
