@@ -40,11 +40,13 @@ defmodule Cloak.DataSource.MongoDB do
 
   @behaviour Cloak.DataSource.Driver
 
+  @timeout :timer.hours(1)
+
   @doc false
   def connect!(parameters) do
     self = self()
-    parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, timeout: :timer.hours(1),
-      pool: DBConnection.Connection, pool_timeout: :timer.hours(1), after_connect: fn (_) -> send self, :connected end]
+    parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, timeout: @timeout,
+      pool: DBConnection.Connection, pool_timeout: @timeout, after_connect: fn (_) -> send self, :connected end]
     {:ok, connection} = Mongo.start_link(parameters)
     receive do
       :connected -> connection
@@ -107,9 +109,10 @@ defmodule Cloak.DataSource.MongoDB do
   def select(connection, query, result_processor) do
     {collection, pipeline} = Pipeline.build(query)
     columns = for %Expression{name: name, alias: alias} <- query.db_columns, do: String.split(alias || name, ".")
+    options = [max_time: @timeout, timeout: @timeout, batch_size: 25_000, allow_disk_use: true]
     result =
       connection
-      |> Mongo.aggregate(collection, pipeline, max_time: :timer.hours(1), batch_size: 25_000, allow_disk_use: true)
+      |> Mongo.aggregate(collection, pipeline, options)
       |> Stream.map(&extract_fields(&1, columns))
       |> result_processor.()
     {:ok, result}
@@ -129,7 +132,7 @@ defmodule Cloak.DataSource.MongoDB do
   defp parse_type(type), do: {:unsupported, type}
 
   defp execute!(conn, command) do
-    case Mongo.command(conn, command, timeout: :timer.minutes(45)) do
+    case Mongo.command(conn, command, timeout: @timeout) do
       {:ok, %{"results" => results}} -> results
       {:ok, %{"result" => result}} -> result
       {:error, %Mongo.Error{message: error}} -> raise RuntimeError, "MongoDB execute command error: #{error}"
