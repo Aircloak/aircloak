@@ -45,6 +45,27 @@ defmodule Cloak.LoggerTranslatorTest do
     end
   end
 
+  describe "other OTP process" do
+    setup do
+      {:ok, pid} = Task.start(__MODULE__, :start_task_loop, ["sensitive_data"])
+      [pid: pid]
+    end
+
+    test "stacktrace is logged on crash", %{pid: pid}, do:
+      assert crash_task(pid, fn(_) -> raise "foo" end) =~ ~r/#{Path.basename(__ENV__.file)}:#{__ENV__.line}/
+
+    test "sensitive data is removed from the exception message", %{pid: pid}, do:
+      refute crash_task(pid, fn(_) -> Enum.count("sensitive data") end) =~ ~r/sensitive data/
+
+    test "sensitive data is removed from the stacktrace", %{pid: pid}, do:
+      refute crash_task(pid, fn(_) -> List.last("sensitive data") end) =~ ~r/sensitive data/
+
+    def start_task_loop(arg) do
+      :proc_lib.init_ack({:ok, self()})
+      task_loop(arg)
+    end
+  end
+
   defp capture_process_failure(pid, fun, timeout \\ :timer.seconds(1)) do
     ExUnit.CaptureLog.capture_log(fn ->
       mref = Process.monitor(pid)
