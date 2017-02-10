@@ -66,7 +66,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   end
   defp map_parameter(%Date{} = date), do:
     BSON.DateTime.from_datetime({Date.to_erl(date), {0, 0, 0, 0}})
-  defp map_parameter(%Expression{value: value}), do: value
+  defp map_parameter(%Expression{constant?: true, value: value}), do: value
 
   defp parse_where_condition({:comparison, %Expression{name: field}, operator, value}), do:
     %{field => %{parse_operator(operator) => map_parameter(value)}}
@@ -89,14 +89,15 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   defp split_conditions([], conditions) do
     {array_size_conditions, non_array_size_conditions} =
-      Enum.partition(conditions, &Comparison.subject(&1).name |> Schema.is_array_size?())
+      Enum.partition(conditions, &(Comparison.subject(&1).name || "") |> Schema.is_array_size?())
     {non_array_size_conditions, [], array_size_conditions}
   end
   defp split_conditions([array | _], conditions) do
     {array_size_conditions, non_array_size_conditions} =
-      Enum.partition(conditions, &Comparison.subject(&1).name |> Schema.is_array_size?())
+      Enum.partition(conditions, &(Comparison.subject(&1).name || "") |> Schema.is_array_size?())
     {array_conditions, base_conditions} =
-      Enum.partition(non_array_size_conditions, &Comparison.subject(&1).name |> String.starts_with?(array <> "."))
+      Enum.partition(non_array_size_conditions,
+        &(Comparison.subject(&1).name || "") |> String.starts_with?(array <> "."))
     {base_conditions, array_conditions, array_size_conditions}
   end
 

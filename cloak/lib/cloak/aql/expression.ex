@@ -11,7 +11,7 @@ defmodule Cloak.Aql.Expression do
   @type function_name :: String.t | {:cast, DataSource.data_type | :varbinary}
   @type t :: %__MODULE__{
     table: :unknown | DataSource.table,
-    name: String.t | :constant | nil,
+    name: String.t | nil,
     alias: String.t | nil,
     type: column_type,
     user_id?: boolean,
@@ -31,10 +31,10 @@ defmodule Cloak.Aql.Expression do
 
   @doc "Returns a column struct representing the constant `value`."
   @spec constant(column_type, any, pos_integer | nil) :: t
-  def constant(type, value, parameter_index \\ nil) do
-    %__MODULE__{constant?: true, value: value, type: normalize_type(type), name: :constant,
-      parameter_index: parameter_index}
-  end
+  def constant(type, value, parameter_index \\ nil), do:
+    %__MODULE__{
+      constant?: true, value: value, type: normalize_type(type), parameter_index: parameter_index
+    }
 
   @doc "Creates a column representing a function call."
   @spec function(function_name, [t | :*], column_type, boolean) :: t
