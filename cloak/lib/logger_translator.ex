@@ -18,6 +18,8 @@ defmodule Cloak.LoggerTranslator do
   ## ----------------------------------------------------------------
 
   @doc false
+  def translate(_min_level, :error, :format, _message), do:
+    :skip
   def translate(min_level, level, kind, message), do:
     Logger.Translator.translate(min_level, level, kind, message)
 end
