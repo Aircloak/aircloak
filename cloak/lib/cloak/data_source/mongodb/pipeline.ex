@@ -40,7 +40,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   #-----------------------------------------------------------------------------------------------------------
 
   defp parse_query(%Query{subquery?: false} = query), do:
-    Projector.map_columns(query.db_columns)
+    Projector.project_columns(query.db_columns)
   defp parse_query(%Query{subquery?: true} = query), do:
     aggregate_and_project(query) ++
     order_rows(query.order_by, query.db_columns) ++
@@ -134,7 +134,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     properties
     |> Enum.with_index()
     |> Enum.map(fn ({column, index}) ->
-      Projector.map_column(%Expression{column | alias: "property_#{index}"})
+      Projector.project_column(%Expression{column | alias: "property_#{index}"})
     end)
     |> Enum.into(%{})
   end
@@ -143,7 +143,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     aggregators
     |> Enum.with_index()
     |> Enum.map(fn ({column, index}) ->
-      Projector.map_column(%Expression{column | alias: "aggregated_#{index}"})
+      Projector.project_column(%Expression{column | alias: "aggregated_#{index}"})
     end)
     |> Enum.into(%{})
   end
@@ -186,7 +186,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp aggregate_and_project(%Query{db_columns: columns, distinct?: true}) do
     properties = project_properties(columns)
     column_tops = Enum.map(columns, &extract_column_top(&1, [], columns))
-    [%{'$group': %{"_id" => properties}}] ++ Projector.map_columns(column_tops)
+    [%{'$group': %{"_id" => properties}}] ++ Projector.project_columns(column_tops)
   end
   defp aggregate_and_project(%Query{db_columns: columns, group_by: groups, having: having}) do
     aggregators =
@@ -194,13 +194,13 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       |> Enum.flat_map(&extract_aggregator/1)
       |> Enum.uniq()
     if aggregators ++ groups == [] do
-      Projector.map_columns(columns)
+      Projector.project_columns(columns)
     else
       column_tops = Enum.map(columns, &extract_column_top(&1, aggregators, groups))
       properties = project_properties(groups)
       group = aggregators |> project_aggregators() |> Enum.into(%{"_id" => properties})
       having = Enum.map(having, &extract_column_top_from_condition(&1, aggregators))
-      [%{'$group': group}] ++ parse_where_conditions(having) ++ Projector.map_columns(column_tops)
+      [%{'$group': group}] ++ parse_where_conditions(having) ++ Projector.project_columns(column_tops)
     end
   end
 end
