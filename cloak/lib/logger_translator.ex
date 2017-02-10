@@ -35,6 +35,8 @@ defmodule Cloak.LoggerTranslator do
 
   defp filter_error_message({'** Generic server ' ++ _ = msg, [name, _last, _state, reason]}), do:
     {:ok, {msg, [name, "filtered", "filtered", filter_reason(reason)]}}
+  defp filter_error_message({'** Task ' ++ _ = msg, [name, starter, function, args, reason]}), do:
+    {:ok, {msg, [name, starter, function, Enum.map(args, fn(_) -> "filtered" end), filter_reason(reason)]}}
   defp filter_error_message(_), do: :skip
 
   defp filter_reason({_exception, stacktrace}), do:
