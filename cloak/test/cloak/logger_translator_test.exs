@@ -1,6 +1,11 @@
 defmodule Cloak.LoggerTranslatorTest do
   use ExUnit.Case, async: false
 
+  setup_all do
+    Application.put_env(:cloak, :sanitize_otp_errors, true)
+    on_exit(fn -> Application.put_env(:cloak, :sanitize_otp_errors, false) end)
+  end
+
   describe "GenServer" do
     setup do
       {:ok, pid} = Agent.start(fn -> "sensitive data" end)

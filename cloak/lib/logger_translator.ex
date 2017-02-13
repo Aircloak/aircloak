@@ -19,11 +19,11 @@ defmodule Cloak.LoggerTranslator do
 
   @doc false
   def translate(min_level, level, kind, message) do
-    try do
-      with {:ok, filtered_message} <- filter_message(level, kind, message), do:
-        Logger.Translator.translate(min_level, level, kind, filtered_message)
-    catch type, _reason ->
-      {:ok, translation_error(level, kind, type, :erlang.get_stacktrace())}
+    if Application.fetch_env!(:cloak, :sanitize_otp_errors) do
+      sanitize(min_level, level, kind, message)
+    else
+      # dev/test: just forward to logger
+      :none
     end
   end
 
@@ -31,6 +31,15 @@ defmodule Cloak.LoggerTranslator do
   ## ----------------------------------------------------------------
   ## Internal functions
   ## ----------------------------------------------------------------
+
+  defp sanitize(min_level, level, kind, message) do
+    try do
+      with {:ok, filtered_message} <- filter_message(level, kind, message), do:
+        Logger.Translator.translate(min_level, level, kind, filtered_message)
+    catch type, _reason ->
+      {:ok, translation_error(level, kind, type, :erlang.get_stacktrace())}
+    end
+  end
 
   defp translation_error(level, kind, error_type, error_stacktrace), do:
     [
