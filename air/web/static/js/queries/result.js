@@ -6,8 +6,8 @@ import {Bar} from "react-chartjs-2";
 
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
-import {GraphData} from "./graph_data";
-import type {GraphDataT} from "./graph_data";
+import {GraphData, GraphInfo} from "./graph_data";
+import type {GraphDataT, GraphInfoT} from "./graph_data";
 import type {Error} from "./error";
 
 export type Row = {
@@ -53,6 +53,7 @@ export class ResultView extends React.Component {
     this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
     this.showingMinimumNumberOfManyRows = this.showingMinimumNumberOfManyRows.bind(this);
 
+    this.graphInfo = new GraphInfo(this.props.columns, this.props.rows);
     this.graphData = new GraphData(this.props.rows, this.props.columns, this.formatValue);
   }
 
@@ -60,6 +61,7 @@ export class ResultView extends React.Component {
   props: Result;
   minRowsToShow: number;
   graphData: GraphDataT;
+  graphInfo: GraphInfoT;
   formatValue: (value: any) => string | number;
   handleClickMoreRows: () => void;
   handleClickLessRows: () => void;
@@ -190,7 +192,7 @@ export class ResultView extends React.Component {
   }
 
   renderChartButton() {
-    if (this.graphData.charteable()) {
+    if (this.graphInfo.chartable()) {
       const chartButtonText = this.state.showChart ? "Hide chart" : "Show chart";
       return (
         <button

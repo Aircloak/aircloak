@@ -1,7 +1,7 @@
 import _ from "lodash";
 import assert from "assert";
 
-import {GraphData} from "queries/graph_data";
+import {GraphData, GraphInfo} from "queries/graph_data";
 
 const columnNames = prepper => _.map(prepper.traces("line"), trace => trace.name);
 
@@ -133,50 +133,56 @@ it("line graphs with noise data contain error traces centered around real value 
   assert.deepEqual(errorTrace3.y, [3, 7, -1, -1]);
 });
 
-it("can chart if an x and a y column", () => {
-  const rows = [{row: ["a", 1]}, {row: ["b", 2]}];
-  const columns = ["x", "y"];
-  const prepper = new GraphData(rows, columns);
-  assert.ok(prepper.charteable());
-});
-
-it("can chart up to 1000 rows", () => {
-  const rows = [];
-  for (let i = 0; i < 1000; i++) {
-    rows.push({row: ["a", 1]});
-  }
-  const columns = ["x", "y"];
-  const prepper = new GraphData(rows, columns);
-  assert.ok(prepper.charteable());
-  rows.push({row: ["b", 2]}); // now we have 1001 lines which is over the limit
-  const prepper2 = new GraphData(rows, columns);
-  assert.equal(prepper2.charteable(), false);
-});
-
-it("not charteable if only one column", () => {
-  const rows = [{row: [1]}, {row: [2]}];
-  const columns = ["x"];
-  const prepper = new GraphData(rows, columns);
-  assert.equal(prepper.charteable(), false);
-});
-
-it("not charteable if only one row", () => {
-  const rows = [{row: [1, 2, 3]}];
-  const columns = ["x", "y", "z"];
-  const prepper = new GraphData(rows, columns);
-  assert.equal(prepper.charteable(), false);
-});
-
-it("not charteable if none of the columns are numerical", () => {
-  const rows = [{row: ["a", "b"]}, {row: ["c", "d"]}];
-  const columns = ["x", "y"];
-  const prepper = new GraphData(rows, columns);
-  assert.equal(prepper.charteable(), false);
-});
-
 it("can produce an x-axis label", () => {
   const rows = [{row: ["a", "b", 3]}, {row: ["c", "d", 6]}];
   const columns = ["x", "y", "z"];
   const prepper = new GraphData(rows, columns);
   assert.equal(prepper.xAxisLabel(), "x, y");
+});
+
+describe("GraphInfo", () => {
+  it("lists all columns as candidates for x-axis", () => {
+    const info = new GraphInfo(["col1", "col2"], [])
+    assert.deepEqual(["col1", "col2"], info.xColumns());
+  });
+
+  it("lists numeric columns as candidates for y-axis", () => {
+    const info = new GraphInfo(["col1", "col2", "col3"], [{row: [0, "something", 1.1]}])
+    assert.deepEqual(["col1", "col3"], info.yColumns());
+  });
+
+  describe("chartable", () => {
+    it("is true if there's at least one possible x and y axis", () => {
+      const info = new GraphInfo(["col1", "col2", "col3"], [{row: [0, "something", 1.1]}, {row: [null, null, null]}]);
+      assert.equal(info.chartable(), true);
+    });
+
+    it("is false otherwise", () => {
+      const info = new GraphInfo(["col1", "col2", "col3"], [{row: ["a", "b", "c"]}, {row: [null, null, null]}]);
+      assert.equal(info.chartable(), false);
+    });
+
+    it("can chart up to 1000 rows", () => {
+      const rows = [];
+      for (let i = 0; i < 1000; i++) {
+        rows.push({row: ["a", 1]});
+      }
+      const columns = ["x", "y"];
+      const info = new GraphInfo(columns, rows);
+      assert.ok(info.chartable());
+      rows.push({row: ["b", 2]}); // now we have 1001 lines which is over the limit
+      const info2 = new GraphInfo(columns, rows);
+      assert.equal(info2.chartable(), false);
+    });
+
+    it("is false if only one column", () => {
+      const info = new GraphInfo(["col1"], [{row: [1]}, {row: [2]}]);
+      assert.equal(info.chartable(), false);
+    });
+
+    it("is false if only one row", () => {
+      const info = new GraphInfo(["x", "y", "z"], [{row: [1, 2, 3]}]);
+      assert.equal(info.chartable(), false);
+    });
+  });
 });

@@ -22,8 +22,6 @@ export const GraphData = (rows: Row[], columns: Column[], valueFormatter: ValueF
 
   const isNumeric = (n) => typeof(n) === "number" && isFinite(n);
 
-  const hasNumericalColumn = () => _.some(rows[0].row, value => isNumeric(value));
-
   const errorTraceWithSD = (value, yValues, xAxisValues, n, colour, showByDefault) => {
     const yErrorData = rows.map((accumulateRow) => accumulateRow.row[value.noise.index]);
     const combinedData = _.zip(yValues, yErrorData);
@@ -204,12 +202,6 @@ export const GraphData = (rows: Row[], columns: Column[], valueFormatter: ValueF
   // Exportable API functions
   // ----------------------------------------------------------------
 
-  const charteable = (): boolean =>
-    columns.length >= 2 &&
-    rows.length > 1 &&
-    rows.length <= 1000 &&
-    hasNumericalColumn();
-
   const traces = (mode: string): any[] => {
     const xAxisValues = produceXAxisValues();
     return _.flatMap(yColumns(), value => produceTrace(value, xAxisValues, mode));
@@ -223,5 +215,31 @@ export const GraphData = (rows: Row[], columns: Column[], valueFormatter: ValueF
       .value();
   };
 
-  return {charteable, traces, xAxisLabel};
+  return {traces, xAxisLabel};
+};
+
+export const GraphInfo = (columns: Column[], rows: Row[]) => {
+
+
+  // ----------------------------------------------------------------
+  // Internal functions
+  // ----------------------------------------------------------------
+
+  const isNumeric = (n) => typeof(n) === "number" && isFinite(n);
+
+  // ----------------------------------------------------------------
+  // API
+  // ----------------------------------------------------------------
+
+  const xColumns = () => columns;
+
+  const yColumns = () => _.filter(columns, (column, i) => isNumeric(rows[0].row[i]));
+
+  const chartable = () =>
+    columns.length >= 2 &&
+    rows.length > 1 &&
+    rows.length <= 1000 &&
+    ! _.isEmpty(yColumns());
+
+  return {xColumns, yColumns, chartable};
 };
