@@ -37,6 +37,8 @@ defmodule BOM.License do
   def allowed_type?(:mpl_2_0), do: true
   # Avoid dependencies with epl license for legal reasons (see https://github.com/Aircloak/aircloak/issues/753)
   def allowed_type?(:epl_1_1), do: false
+  # Avoid dependencies with boost license for legal reasons (see https://github.com/Aircloak/aircloak/issues/752)
+  def allowed_type?(:boost), do: false
   def allowed_type?(_), do: false
 
   @doc "Returns struct representing an unknown license."
