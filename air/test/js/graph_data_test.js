@@ -146,9 +146,17 @@ describe("GraphInfo", () => {
     assert.deepEqual(["col1", "col2"], info.xColumns());
   });
 
-  it("lists numeric columns as candidates for y-axis", () => {
-    const info = new GraphInfo(["col1", "col2", "col3"], [{row: [0, "something", 1.1]}])
-    assert.deepEqual(["col1", "col3"], info.yColumns());
+  describe("usableAsY", () => {
+    it("is true for numeric columns", () => {
+      const info = new GraphInfo(["col1", "col2", "col3"], [{row: [0, "something", 1.1]}])
+      assert.ok(info.usableAsY("col1"))
+      assert.ok(info.usableAsY("col3"))
+    });
+
+    it("is false otherwise", () => {
+      const info = new GraphInfo(["col1", "col2", "col3"], [{row: [0, "something", 1.1]}])
+      assert.equal(info.usableAsY("col2"), false)
+    });
   });
 
   describe("chartable", () => {

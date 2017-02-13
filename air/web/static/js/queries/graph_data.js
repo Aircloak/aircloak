@@ -233,13 +233,16 @@ export const GraphInfo = (columns: Column[], rows: Row[]) => {
 
   const xColumns = () => columns;
 
-  const yColumns = () => _.filter(columns, (column, i) => isNumeric(rows[0].row[i]));
+  const usableAsY = (column) => {
+    const index = columns.findIndex((x) => x === column);
+    return isNumeric(rows[0].row[index]);
+  }
 
   const chartable = () =>
     columns.length >= 2 &&
     rows.length > 1 &&
     rows.length <= 1000 &&
-    ! _.isEmpty(yColumns());
+    _.some(columns, usableAsY);
 
-  return {xColumns, yColumns, chartable};
+  return {xColumns, usableAsY, chartable};
 };

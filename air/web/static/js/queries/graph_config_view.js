@@ -13,7 +13,7 @@ export const GraphConfigView = (props: {graphInfo: GraphInfoT}) =>
           <div className="col-sm-9 btn-group" role="group">
             <button type="button" className="btn btn-info">None</button>
             <button type="button" className="btn btn-default">X</button>
-            <button type="button" className="btn btn-default">Y</button>
+            <button type="button" className="btn btn-default" disabled={!props.graphInfo.usableAsY(column)}>Y</button>
           </div>
         </div>
       )
