@@ -58,34 +58,40 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_operator(:<=), do: :'$lte'
   defp parse_operator(:<>), do: :'$ne'
 
-  @dialyzer {:nowarn_function, map_parameter: 1} # https://github.com/elixir-lang/elixir/issues/5634
-  defp map_parameter(%NaiveDateTime{} = datetime) do
+  @dialyzer {:nowarn_function, map_constant: 1} # https://github.com/elixir-lang/elixir/issues/5634
+  defp map_constant(%NaiveDateTime{} = datetime) do
     {date, {hour, minute, second}} = NaiveDateTime.to_erl(datetime)
     {usec, _precision} = datetime.microsecond
     BSON.DateTime.from_datetime({date, {hour, minute, second, usec}})
   end
-  defp map_parameter(%Date{} = date), do:
+  defp map_constant(%Date{} = date), do:
     BSON.DateTime.from_datetime({Date.to_erl(date), {0, 0, 0, 0}})
-  defp map_parameter(%Expression{constant?: true, value: value}), do: value
+  defp map_constant(%Expression{constant?: true, value: value}), do: value
+  defp map_constant(_), do:
+    raise RuntimeError, message: "The condition target on a MongoDB data source has to be a constant."
 
-  defp parse_where_condition({:comparison, %Expression{name: field}, operator, value}), do:
-    %{field => %{parse_operator(operator) => map_parameter(value)}}
-  defp parse_where_condition({:not, {:comparison, %Expression{name: field}, :=, value}}), do:
-    %{field => %{'$ne': map_parameter(value)}}
-  defp parse_where_condition({:is, %Expression{name: field}, :null}), do: %{field => nil}
-  defp parse_where_condition({:not, {:is, %Expression{name: field}, :null}}), do: %{field => %{'$exists': true}}
-  defp parse_where_condition({:in, %Expression{name: field}, values}), do:
-    %{field => %{'$in': Enum.map(values, &map_parameter/1)}}
-  defp parse_where_condition({:not, {:in, %Expression{name: field}, values}}), do:
-    %{field => %{'$nin': Enum.map(values, &map_parameter/1)}}
-  defp parse_where_condition({:like, %Expression{name: field}, %Expression{value: pattern}}), do:
-    %{field => %{'$regex': Comparison.to_regex(pattern), '$options': "ms"}}
-  defp parse_where_condition({:ilike, %Expression{name: field}, %Expression{value: pattern}}), do:
-    %{field => %{'$regex': Comparison.to_regex(pattern), '$options': "msi"}}
-  defp parse_where_condition({:not, {:like, %Expression{name: field}, %Expression{value: pattern}}}), do:
-    %{field => %{'$not': %{'$regex': Comparison.to_regex(pattern), '$options': "ms"}}}
-  defp parse_where_condition({:not, {:ilike, %Expression{name: field}, %Expression{value: pattern}}}), do:
-    %{field => %{'$not': %{'$regex': Comparison.to_regex(pattern), '$options': "msi"}}}
+  defp map_field(%Expression{name: field}) when is_binary(field), do: field
+  defp map_field(_), do:
+    raise RuntimeError, message: "The condition subject on a MongoDB data source has to be a table column."
+
+  defp parse_where_condition({:comparison, subject, operator, value}), do:
+    %{map_field(subject) => %{parse_operator(operator) => map_constant(value)}}
+  defp parse_where_condition({:not, {:comparison, subject, :=, value}}), do:
+    %{map_field(subject) => %{'$ne': map_constant(value)}}
+  defp parse_where_condition({:is, subject, :null}), do: %{map_field(subject) => nil}
+  defp parse_where_condition({:not, {:is, subject, :null}}), do: %{map_field(subject) => %{'$exists': true}}
+  defp parse_where_condition({:in, subject, values}), do:
+    %{map_field(subject) => %{'$in': Enum.map(values, &map_constant/1)}}
+  defp parse_where_condition({:not, {:in, subject, values}}), do:
+    %{map_field(subject) => %{'$nin': Enum.map(values, &map_constant/1)}}
+  defp parse_where_condition({:like, subject, pattern}), do:
+    %{map_field(subject) => %{'$regex': Comparison.to_regex(map_constant(pattern)), '$options': "ms"}}
+  defp parse_where_condition({:ilike, subject, pattern}), do:
+    %{map_field(subject) => %{'$regex': Comparison.to_regex(map_constant(pattern)), '$options': "msi"}}
+  defp parse_where_condition({:not, {:like, subject, pattern}}), do:
+    %{map_field(subject) => %{'$not': %{'$regex': Comparison.to_regex(map_constant(pattern)), '$options': "ms"}}}
+  defp parse_where_condition({:not, {:ilike, subject, pattern}}), do:
+    %{map_field(subject) => %{'$not': %{'$regex': Comparison.to_regex(map_constant(pattern)), '$options': "msi"}}}
 
   defp split_conditions([], conditions) do
     {array_size_conditions, non_array_size_conditions} =
