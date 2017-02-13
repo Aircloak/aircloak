@@ -40,7 +40,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   #-----------------------------------------------------------------------------------------------------------
 
   defp parse_query(%Query{subquery?: false} = query), do:
-    Projector.map_columns(query.db_columns)
+    Projector.project_columns(query.db_columns)
   defp parse_query(%Query{subquery?: true} = query), do:
     aggregate_and_project(query) ++
     order_rows(query.order_by, query.db_columns) ++
@@ -58,45 +58,52 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_operator(:<=), do: :'$lte'
   defp parse_operator(:<>), do: :'$ne'
 
-  @dialyzer {:nowarn_function, map_parameter: 1} # https://github.com/elixir-lang/elixir/issues/5634
-  defp map_parameter(%NaiveDateTime{} = datetime) do
+  @dialyzer {:nowarn_function, map_constant: 1} # https://github.com/elixir-lang/elixir/issues/5634
+  defp map_constant(%NaiveDateTime{} = datetime) do
     {date, {hour, minute, second}} = NaiveDateTime.to_erl(datetime)
     {usec, _precision} = datetime.microsecond
     BSON.DateTime.from_datetime({date, {hour, minute, second, usec}})
   end
-  defp map_parameter(%Date{} = date), do:
+  defp map_constant(%Date{} = date), do:
     BSON.DateTime.from_datetime({Date.to_erl(date), {0, 0, 0, 0}})
-  defp map_parameter(%Expression{value: value}), do: value
+  defp map_constant(%Expression{constant?: true, value: value}), do: value
+  defp map_constant(_), do:
+    raise RuntimeError, message: "The right side of a condition on a MongoDB data source has to be a constant."
 
-  defp parse_where_condition({:comparison, %Expression{name: field}, operator, value}), do:
-    %{field => %{parse_operator(operator) => map_parameter(value)}}
-  defp parse_where_condition({:not, {:comparison, %Expression{name: field}, :=, value}}), do:
-    %{field => %{'$ne': map_parameter(value)}}
-  defp parse_where_condition({:is, %Expression{name: field}, :null}), do: %{field => nil}
-  defp parse_where_condition({:not, {:is, %Expression{name: field}, :null}}), do: %{field => %{'$exists': true}}
-  defp parse_where_condition({:in, %Expression{name: field}, values}), do:
-    %{field => %{'$in': Enum.map(values, &map_parameter/1)}}
-  defp parse_where_condition({:not, {:in, %Expression{name: field}, values}}), do:
-    %{field => %{'$nin': Enum.map(values, &map_parameter/1)}}
-  defp parse_where_condition({:like, %Expression{name: field}, %Expression{value: pattern}}), do:
-    %{field => %{'$regex': Comparison.to_regex(pattern), '$options': "ms"}}
-  defp parse_where_condition({:ilike, %Expression{name: field}, %Expression{value: pattern}}), do:
-    %{field => %{'$regex': Comparison.to_regex(pattern), '$options': "msi"}}
-  defp parse_where_condition({:not, {:like, %Expression{name: field}, %Expression{value: pattern}}}), do:
-    %{field => %{'$not': %{'$regex': Comparison.to_regex(pattern), '$options': "ms"}}}
-  defp parse_where_condition({:not, {:ilike, %Expression{name: field}, %Expression{value: pattern}}}), do:
-    %{field => %{'$not': %{'$regex': Comparison.to_regex(pattern), '$options': "msi"}}}
+  defp map_field(%Expression{name: field}) when is_binary(field), do: field
+  defp map_field(_), do:
+    raise RuntimeError, message: "The left side of a condition on a MongoDB data source has to be a table column."
+
+  defp parse_where_condition({:comparison, subject, operator, value}), do:
+    %{map_field(subject) => %{parse_operator(operator) => map_constant(value)}}
+  defp parse_where_condition({:not, {:comparison, subject, :=, value}}), do:
+    %{map_field(subject) => %{'$ne': map_constant(value)}}
+  defp parse_where_condition({:is, subject, :null}), do: %{map_field(subject) => nil}
+  defp parse_where_condition({:not, {:is, subject, :null}}), do: %{map_field(subject) => %{'$exists': true}}
+  defp parse_where_condition({:in, subject, values}), do:
+    %{map_field(subject) => %{'$in': Enum.map(values, &map_constant/1)}}
+  defp parse_where_condition({:not, {:in, subject, values}}), do:
+    %{map_field(subject) => %{'$nin': Enum.map(values, &map_constant/1)}}
+  defp parse_where_condition({:like, subject, pattern}), do:
+    %{map_field(subject) => %{'$regex': Comparison.to_regex(map_constant(pattern)), '$options': "ms"}}
+  defp parse_where_condition({:ilike, subject, pattern}), do:
+    %{map_field(subject) => %{'$regex': Comparison.to_regex(map_constant(pattern)), '$options': "msi"}}
+  defp parse_where_condition({:not, {:like, subject, pattern}}), do:
+    %{map_field(subject) => %{'$not': %{'$regex': Comparison.to_regex(map_constant(pattern)), '$options': "ms"}}}
+  defp parse_where_condition({:not, {:ilike, subject, pattern}}), do:
+    %{map_field(subject) => %{'$not': %{'$regex': Comparison.to_regex(map_constant(pattern)), '$options': "msi"}}}
 
   defp split_conditions([], conditions) do
     {array_size_conditions, non_array_size_conditions} =
-      Enum.partition(conditions, &Comparison.subject(&1).name |> Schema.is_array_size?())
+      Enum.partition(conditions, &(Comparison.subject(&1).name || "") |> Schema.is_array_size?())
     {non_array_size_conditions, [], array_size_conditions}
   end
   defp split_conditions([array | _], conditions) do
     {array_size_conditions, non_array_size_conditions} =
-      Enum.partition(conditions, &Comparison.subject(&1).name |> Schema.is_array_size?())
+      Enum.partition(conditions, &(Comparison.subject(&1).name || "") |> Schema.is_array_size?())
     {array_conditions, base_conditions} =
-      Enum.partition(non_array_size_conditions, &Comparison.subject(&1).name |> String.starts_with?(array <> "."))
+      Enum.partition(non_array_size_conditions,
+        &(Comparison.subject(&1).name || "") |> String.starts_with?(array <> "."))
     {base_conditions, array_conditions, array_size_conditions}
   end
 
@@ -133,7 +140,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     properties
     |> Enum.with_index()
     |> Enum.map(fn ({column, index}) ->
-      Projector.map_column(%Expression{column | alias: "property_#{index}"})
+      Projector.project_column(%Expression{column | alias: "property_#{index}"})
     end)
     |> Enum.into(%{})
   end
@@ -142,7 +149,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     aggregators
     |> Enum.with_index()
     |> Enum.map(fn ({column, index}) ->
-      Projector.map_column(%Expression{column | alias: "aggregated_#{index}"})
+      Projector.project_column(%Expression{column | alias: "aggregated_#{index}"})
     end)
     |> Enum.into(%{})
   end
@@ -185,7 +192,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp aggregate_and_project(%Query{db_columns: columns, distinct?: true}) do
     properties = project_properties(columns)
     column_tops = Enum.map(columns, &extract_column_top(&1, [], columns))
-    [%{'$group': %{"_id" => properties}}] ++ Projector.map_columns(column_tops)
+    [%{'$group': %{"_id" => properties}}] ++ Projector.project_columns(column_tops)
   end
   defp aggregate_and_project(%Query{db_columns: columns, group_by: groups, having: having}) do
     aggregators =
@@ -193,13 +200,13 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       |> Enum.flat_map(&extract_aggregator/1)
       |> Enum.uniq()
     if aggregators ++ groups == [] do
-      Projector.map_columns(columns)
+      Projector.project_columns(columns)
     else
       column_tops = Enum.map(columns, &extract_column_top(&1, aggregators, groups))
       properties = project_properties(groups)
       group = aggregators |> project_aggregators() |> Enum.into(%{"_id" => properties})
       having = Enum.map(having, &extract_column_top_from_condition(&1, aggregators))
-      [%{'$group': group}] ++ parse_where_conditions(having) ++ Projector.map_columns(column_tops)
+      [%{'$group': group}] ++ parse_where_conditions(having) ++ Projector.project_columns(column_tops)
     end
   end
 end

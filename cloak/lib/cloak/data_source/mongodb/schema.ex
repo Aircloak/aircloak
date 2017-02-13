@@ -19,11 +19,11 @@ defmodule Cloak.DataSource.MongoDB.Schema do
 
   @doc "Checks to see if the column name refers to the size of an array."
   @spec is_array_size?(String.t) :: boolean
-  def is_array_size?(name), do: String.contains?(name, "#")
+  def is_array_size?(name) when is_binary(name), do: String.contains?(name, "#")
 
   @doc "Returns the name of the MongoDB array mapped to the given virtual column."
   @spec array_size_field(String.t) :: String.t
-  def array_size_field(name), do: String.replace(name, "#", "")
+  def array_size_field(name) when is_binary(name), do: String.replace(name, "#", "")
 
 
   #-----------------------------------------------------------------------------------------------------------
