@@ -7,6 +7,7 @@ import {Bar} from "react-chartjs-2";
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
 import {GraphData, GraphInfo} from "./graph_data";
+import {GraphConfigView} from "./graph_config_view";
 import type {GraphDataT, GraphInfoT} from "./graph_data";
 import type {Error} from "./error";
 
@@ -47,6 +48,8 @@ export class ResultView extends React.Component {
     this.renderOptionMenu = this.renderOptionMenu.bind(this);
 
     this.conditionallyRenderChart = this.conditionallyRenderChart.bind(this);
+    this.chartData = this.chartData.bind(this);
+    this.chartOptions = this.chartOptions.bind(this);
     this.formatValue = this.formatValue.bind(this);
 
     this.showingAllOfFewRows = this.showingAllOfFewRows.bind(this);
@@ -110,38 +113,42 @@ export class ResultView extends React.Component {
 
   conditionallyRenderChart() {
     if (this.state.showChart) {
-      const data = this.graphData.traces("bar")[0];
-
       return (
-        <Bar
-          data={{
-            labels: data.x,
-            datasets: [
-              {
-                label: data.name,
-                data: data.y,
-              },
-            ],
-          }}
-
-          options={{
-            scales: {
-              xAxes: [{
-                scaleLabel: {
-                  display: true,
-                  labelString: this.graphData.xAxisLabel(),
-                },
-              }],
-            },
-          }}
-
-          width={714}
-          height={600}
-        />
+        <div>
+          <GraphConfigView graphInfo={this.graphInfo} />
+          <Bar data={this.chartData()} options={this.chartOptions()} width={714} height={600} />
+        </div>
       );
     } else {
       return null;
     }
+  }
+
+  chartData() {
+    const data = this.graphData.traces("bar")[0];
+
+    return {
+      labels: data.x,
+      datasets: [
+        {
+          label: data.name,
+          data: data.y,
+        },
+      ],
+    };
+  }
+
+  chartOptions() {
+    return {
+      scales: {
+        xAxes: [{
+          scaleLabel: {
+            display: true,
+            labelString: this.graphData.xAxisLabel(),
+          },
+        }],
+      },
+    };
   }
 
   renderRows() {
