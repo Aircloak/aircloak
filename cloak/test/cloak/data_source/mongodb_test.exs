@@ -92,6 +92,10 @@ defmodule Cloak.DataSource.MongoDBTest do
   test "conditions on root table", context do
     assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE male = false",
       %{rows: [%{occurrences: 1, row: [0]}]}
+    assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE false <> male",
+      %{rows: [%{occurrences: 1, row: [10]}]}
+    assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE 30 = age",
+      %{rows: [%{occurrences: 1, row: [10]}]}
   end
 
   test "virtual tables", context do
@@ -168,13 +172,11 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "error on invalid conditions", context do
-    assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE 30 = age",
-      %{error: "The left side of a condition on a MongoDB data source has to be a table column."}
     assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE true = true",
-      %{error: "The left side of a condition on a MongoDB data source has to be a table column."}
+      %{error: "Conditions on MongoDB data sources have to be between a table column and a constant."}
     assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE age = abs(age)",
-      %{error: "The right side of a condition on a MongoDB data source has to be a constant."}
+      %{error: "Conditions on MongoDB data sources have to be between a table column and a constant."}
     assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE 2 * abs(age) = 60",
-      %{error: "The left side of a condition on a MongoDB data source has to be a table column."}
+      %{error: "Conditions on MongoDB data sources have to be between a table column and a constant."}
   end
 end

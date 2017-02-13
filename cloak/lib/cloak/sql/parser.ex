@@ -595,10 +595,7 @@ defmodule Cloak.Sql.Parser do
           {[identifier, :is, :not], [:null]} -> {:not, {:is, identifier, :null}}
           {[identifier, :between], [{min, max}]} ->
             [{:comparison, identifier, :>=, min}, {:comparison, identifier, :<, max}]
-          {[identifier, :<>], [value]} -> {:not, {:comparison, identifier, :=, value}}
-          {[{:constant, _, _} = value, inequality_comparator], [identifier]} ->
-            {:comparison, identifier, invert_inequality(inequality_comparator), value}
-          {[identifier, comparator], [value]} -> {:comparison, identifier, comparator, value}
+          {[lhs, comparator], [rhs]} -> create_comparison(lhs, comparator, rhs)
         end)
   end
 
@@ -825,8 +822,16 @@ defmodule Cloak.Sql.Parser do
     |> label("expected parameter")
   end
 
-  defp invert_inequality(:<), do: :>=
-  defp invert_inequality(:>), do: :<=
-  defp invert_inequality(:<=), do: :>
-  defp invert_inequality(:>=), do: :<
+  defp invert_comparator(:<), do: :>=
+  defp invert_comparator(:>), do: :<=
+  defp invert_comparator(:<=), do: :>
+  defp invert_comparator(:>=), do: :<
+  defp invert_comparator(:=), do: :=
+
+  defp create_comparison(lhs, :<>, rhs), do:
+    {:not, create_comparison(lhs, :=, rhs)}
+  defp create_comparison({:constant, _, _} = lhs, comparator, rhs), do:
+    {:comparison, rhs, invert_comparator(comparator), lhs}
+  defp create_comparison(lhs, comparator, rhs), do:
+    {:comparison, lhs, comparator, rhs}
 end
