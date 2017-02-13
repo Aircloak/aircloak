@@ -32,12 +32,13 @@ defmodule BOM.License do
     name = Path.basename(path) |> String.to_atom
     def allowed_type?(unquote(name)), do: true
   end
-  def allowed_type?(:boost), do: true
   def allowed_type?(:do_what_the_fuck_you_want), do: true
   def allowed_type?(:zlib), do: true
   def allowed_type?(:mpl_2_0), do: true
   # Avoid dependencies with epl license for legal reasons (see https://github.com/Aircloak/aircloak/issues/753)
   def allowed_type?(:epl_1_1), do: false
+  # Avoid dependencies with boost license for legal reasons (see https://github.com/Aircloak/aircloak/issues/752)
+  def allowed_type?(:boost), do: false
   def allowed_type?(_), do: false
 
   @doc "Returns struct representing an unknown license."
