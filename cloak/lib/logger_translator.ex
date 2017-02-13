@@ -39,6 +39,8 @@ defmodule Cloak.LoggerTranslator do
     {:ok, {msg, [name, starter, function, Enum.map(args, fn(_) -> "filtered" end), filter_reason(reason)]}}
   defp filter_error_message({'Error in process ' ++ _ = msg, [pid, reason]}), do:
     {:ok, {msg, [pid, filter_reason(reason)]}}
+  defp filter_error_message({'** gen_event handler ' ++ _ = msg, [name, manager, _last, _state, reason]}), do:
+    {:ok, {msg, [name, manager, "filtered", "filtered", filter_reason(reason)]}}
   defp filter_error_message(_), do: :skip
 
   defp filter_reason({_exception, stacktrace}), do:

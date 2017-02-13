@@ -66,6 +66,41 @@ defmodule Cloak.LoggerTranslatorTest do
     end
   end
 
+  describe "GenEvent" do
+    setup do
+      {:ok, pid} = GenEvent.start()
+      GenEvent.add_mon_handler(pid, Module.concat(__MODULE__, GenEventHandler), nil)
+
+      [pid: pid]
+    end
+
+    test "stacktrace is logged on crash", %{pid: pid}, do:
+      assert crash_event_handler(pid, fn(_) -> raise "foo" end) =~ ~r/#{Path.basename(__ENV__.file)}:#{__ENV__.line}/
+
+    test "sensitive data is removed from the exception message", %{pid: pid}, do:
+      refute crash_event_handler(pid, fn(_) -> Enum.count("sensitive data") end) =~ ~r/sensitive data/
+
+    test "sensitive data is removed from the stacktrace", %{pid: pid}, do:
+      refute crash_event_handler(pid, fn(_) -> List.last("sensitive data") end) =~ ~r/sensitive data/
+
+    defp crash_event_handler(pid, fun) do
+      ExUnit.CaptureLog.capture_log(fn ->
+        GenEvent.notify(pid, {:fun, fun})
+        receive do
+          {:gen_event_EXIT, _handler, _reason} -> :ok
+          after :timer.seconds(1) -> raise "GenEvent handler didn't exit."
+        end
+      end)
+    end
+
+    defmodule GenEventHandler do
+      use GenEvent
+
+      def handle_event({:fun, fun}, state), do:
+        {:ok, fun.(state)}
+    end
+  end
+
   defp capture_process_failure(pid, fun, timeout \\ :timer.seconds(1)) do
     ExUnit.CaptureLog.capture_log(fn ->
       mref = Process.monitor(pid)
