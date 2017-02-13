@@ -32,7 +32,6 @@ defmodule BOM.License do
     name = Path.basename(path) |> String.to_atom
     def allowed_type?(unquote(name)), do: true
   end
-  def allowed_type?(:boost), do: true
   def allowed_type?(:do_what_the_fuck_you_want), do: true
   def allowed_type?(:zlib), do: true
   def allowed_type?(:mpl_2_0), do: true
