@@ -2,6 +2,7 @@
 
 import React from "react";
 import _ from "lodash";
+import {Bar} from "react-chartjs-2";
 
 import Plotly from "../plotly.js";
 import {CodeViewer} from "../code_viewer";
@@ -164,6 +165,8 @@ export class ResultView extends React.Component {
 
   conditionallyRenderChart() {
     if (this.state.showChart) {
+      const data = this.graphData.traces("bar")[0];
+
       return (
         <div>
           Show as: <select onChange={this.changeGraphType}>
@@ -174,6 +177,29 @@ export class ResultView extends React.Component {
             ref={this.setChartDataOnRef}
             className="plotlyGraph"
           />
+          <Bar data={
+            {
+              labels: data.x,
+              datasets: [
+                {
+                  label: data.name,
+                  data: data.y
+                }
+              ],
+            }
+          }
+          options={
+            {
+              scales: {
+                xAxes: [{
+                  scaleLabel: {
+                    display: true,
+                    labelString: this.graphData.xAxisLabel()
+                  }
+                }]
+              }
+            }
+          } width={714} height={600} />
         </div>
       );
     } else {
