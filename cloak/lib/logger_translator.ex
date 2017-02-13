@@ -11,6 +11,9 @@ defmodule Cloak.LoggerTranslator do
   which should ensure that all crashes are logged only if allowed by this translator.
   """
 
+  require Aircloak.DeployConfig
+
+
   ## ----------------------------------------------------------------
   ## API functions
   ## ----------------------------------------------------------------
@@ -27,7 +30,7 @@ defmodule Cloak.LoggerTranslator do
 
   @doc false
   def translate(min_level, level, kind, message) do
-    if Application.fetch_env!(:cloak, :sanitize_otp_errors) do
+    if Aircloak.DeployConfig.override_app_env!(:cloak, :sanitize_otp_errors) do
       sanitize(min_level, level, kind, message)
     else
       # dev/test: just forward to logger

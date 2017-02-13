@@ -31,6 +31,10 @@ defmodule Aircloak.DeployConfig do
   defmacro fetch(key), do:
     quote(do: unquote(__MODULE__).fetch(unquote(Mix.Project.config[:app]), unquote(key)))
 
+  @doc "Retrieves a deploy-specific configuration or the value from the calling app environment."
+  defmacro override_app_env!(key), do:
+    quote(do: unquote(__MODULE__).override_app_env!(unquote(Mix.Project.config[:app]), unquote(key)))
+
   @doc "Retrieves a deploy-specific configuration value of the given app, raises if it's not found."
   @spec fetch!(atom, any) :: any
   def fetch!(app, key), do:
@@ -40,6 +44,15 @@ defmodule Aircloak.DeployConfig do
   @spec fetch(atom, any) :: {:ok, any} | :error
   def fetch(app, key), do:
     app |> read_config!() |> Map.fetch(key)
+
+  @doc "Retrieves a deploy-specific configuration or the value from the application environment."
+  @spec override_app_env!(atom, atom) :: any
+  def override_app_env!(app, key) do
+    case fetch(app, to_string(key)) do
+      {:ok, value} -> value
+      :error -> Application.fetch_env!(app, key)
+    end
+  end
 
   @doc "Updates cached configuration value of the given app."
   @spec update(atom, any, (any -> any)) :: :ok
