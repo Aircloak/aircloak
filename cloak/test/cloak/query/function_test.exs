@@ -36,14 +36,16 @@ defmodule Cloak.Query.FunctionTest do
     assert_subquery_function(
       "count(*)",
       "heights_ft",
-      %{error: "Column `user_id` from table `heights_ft` needs to appear in the `GROUP BY`" <> _}
+      %{error: %{
+        human_description: "Column `user_id` from table `heights_ft` needs to appear in the `GROUP BY`" <> _
+      }}
     )
   end
 
   test "detect unknown function" do
     assert_query(
       "select foo(height) from heights_ft",
-      %{error: "Unknown function `foo`."}
+      %{error: %{human_description: "Unknown function `foo`."}}
     )
   end
 
@@ -51,7 +53,7 @@ defmodule Cloak.Query.FunctionTest do
     assert_subquery_function(
       "foo(height)",
       "heights_ft",
-      %{error: "Unknown function `foo`."}
+      %{error: %{human_description: "Unknown function `foo`."}}
     )
   end
 
@@ -221,8 +223,8 @@ defmodule Cloak.Query.FunctionTest do
 
   test "invalid extract_matches usage in where clause" do
     assert_query("SELECT extract_matches(name, '\\w+') FROM heights_ft WHERE extract_matches(name, '[a-z]') = 'first'",
-      %{error: "Row splitter function used in the `WHERE` clause"
-        <> " has to be first used identically in the `SELECT` clause."})
+      %{error: %{human_description: "Row splitter function used in the `WHERE` clause"
+        <> " has to be first used identically in the `SELECT` clause."}})
   end
 
   test "extract_matches can handle regular expressions that yield no results" do
@@ -237,14 +239,14 @@ defmodule Cloak.Query.FunctionTest do
       assert_subquery_function(
         "#{unquote(function_name)}(cast(height as text), '\d+')",
         "heights_ft",
-        %{error: "Function `#{unquote(function_name)}` is not allowed in subqueries."}
+        %{error: %{human_description: "Function `#{unquote(function_name)}` is not allowed in subqueries."}}
       )
     end
 
     test "gives sensible error message for broken regex for #{function_name}" do
       assert_query(
         "SELECT #{unquote(function_name)}(name, '(missing-parenthesis') FROM heights_ft",
-        %{error: message}
+        %{error: %{human_description: message}}
       )
       assert message =~ ~r/missing \) at character/
     end

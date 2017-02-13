@@ -22,7 +22,11 @@ defmodule Cloak.Test.QueryHelpers do
         |> Enum.map(&Task.await/1)
         # ignore differing execution times and data sources not supporting this query
         |> Enum.map(&Map.drop(&1, [:execution_time]))
-        |> Enum.reject(&Regex.match?(~r/not supported on '[\w\d\s]+' data sources\.$/, Map.get(&1, :error, "")))
+        |> Enum.reject(&Regex.match?(
+            ~r/not supported on '[\w\d\s]+' data sources\.$/,
+            get_in(&1, [:error, :human_description]) || ""
+          )
+        )
 
       # make sure responses from all data_sources are equal
       for other_response <- other_responses, do: assert(first_response == other_response)

@@ -2,6 +2,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.Sql.{Compiler, Parser}
+  alias Cloak.Query.Error
 
   describe "/ and sqrt can crash irrespective of where they are used" do
     test "/ is allowed when selected in subquery purely with constant" do
@@ -211,7 +212,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
   defp expressions_potentially_crash(query) do
     case compile(query, data_source()) do
       {:ok, _} -> raise "Expected query compilation failure due to potentially crashing function usage."
-      {:error, reason} ->
+      %Error{human_description: reason} ->
         if reason =~ ~r/database exception/ do
           true
         else
@@ -223,7 +224,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
   defp compiles_without_potential_crash_error(query) do
     case compile(query, data_source()) do
       {:ok, _} -> true
-      {:error, reason} -> not (reason =~ ~r/database exception/)
+      %Error{human_description: reason} -> not (reason =~ ~r/database exception/)
     end
   end
 

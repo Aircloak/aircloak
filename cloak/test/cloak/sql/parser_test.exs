@@ -29,7 +29,7 @@ defmodule Cloak.Sql.Parser.Test do
 
   defmacrop assert_parse_error(query_string, expected_pattern) do
     quote do
-      assert {:error, unquote(expected_pattern)} = Parser.parse(unquote(query_string))
+      assert unquote(expected_pattern) = Parser.parse(unquote(query_string)).human_description
     end
   end
 
@@ -861,9 +861,9 @@ defmodule Cloak.Sql.Parser.Test do
   create_test =
     fn(description, statement, expected_error, line, column) ->
       test description do
-        assert {:error, reason} = Parser.parse(unquote(statement))
-        assert reason =~ unquote(expected_error)
-        assert reason =~ "line #{unquote(line)}, column #{unquote(column)}\."
+        error = Parser.parse(unquote(statement))
+        assert error.human_description =~ unquote(expected_error)
+        assert error.human_description =~ "line #{unquote(line)}, column #{unquote(column)}\."
       end
     end
 

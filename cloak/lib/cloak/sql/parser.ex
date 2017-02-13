@@ -3,6 +3,8 @@ defmodule Cloak.Sql.Parser do
   import Combine.Parsers.Base
   import Cloak.Sql.Parsers
 
+  alias Cloak.Query.Error
+
   @type comparator ::
       :=
     | :<
@@ -83,11 +85,17 @@ defmodule Cloak.Sql.Parser do
   end
 
   @doc "Parses a SQL query in text form."
-  @spec parse(String.t) :: {:ok, parsed_query} | {:error, any}
+  @spec parse(String.t) :: {:ok, parsed_query} | %Error{}
   def parse(string) do
     with {:ok, tokens} <- Cloak.Sql.Lexer.tokenize(string) do
       case Combine.parse(tokens, parser()) do
-        {:error, _} = error -> error
+        {:error, description} ->
+          %Error{
+            type: :invalid,
+            context: "parsing error",
+            location: __MODULE__,
+            human_description: description,
+          }
         [statement] -> {:ok, statement}
       end
     end

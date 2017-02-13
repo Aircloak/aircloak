@@ -76,7 +76,7 @@ defmodule Air.Service.DataSource do
 
   @doc "Validates the view on the cloak."
   @spec validate_view(data_source_id_spec, User.t, View.t) ::
-    {:ok, [columns :: map]} | {:error, field :: String.t, reason :: String.t} | data_source_operation_error
+    {:ok, [columns :: map]} | {:error, field :: String.t, Map.t} | data_source_operation_error
   def validate_view(data_source_id_spec, user, view), do:
     on_available_cloak(data_source_id_spec, user,
       fn(_cloak, data_source, channel_pid) ->

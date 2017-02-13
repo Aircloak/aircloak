@@ -3,11 +3,11 @@ defmodule Cloak.Sql.Compiler do
 
   alias Cloak.DataSource
   alias Cloak.Sql.{Expression, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Range}
-  alias Cloak.Query.DataDecoder
+  alias Cloak.Query.{DataDecoder, Error}
 
   defmodule CompilationError do
     @moduledoc false
-    defexception message: "Error during compiling query"
+    defexception message: "Error during query compilation", type: :unknown, context: "unknown context"
   end
 
 
@@ -17,7 +17,7 @@ defmodule Cloak.Sql.Compiler do
 
   @doc "Prepares the parsed SQL query for execution."
   @spec compile(DataSource.t, Parser.parsed_query, [Query.parameter] | nil, Query.view_map) ::
-    {:ok, Query.t} | {:error, String.t}
+    {:ok, Query.t} | Error.t
   def compile(data_source, parsed_query, parameters, views) do
     try do
       %Query{
@@ -28,18 +28,30 @@ defmodule Cloak.Sql.Compiler do
       |> Map.merge(parsed_query)
       |> compile_prepped_query()
     rescue
-      e in CompilationError -> {:error, e.message}
+      e in CompilationError ->
+        %Error{
+          type: e.type,
+          location: __MODULE__,
+          context: e.context,
+          human_description: e.message,
+        }
     end
   end
 
   @doc "Validates a user-defined view."
-  @spec validate_view(DataSource.t, Parser.parsed_query, Query.view_map) :: :ok | {:error, String.t}
+  @spec validate_view(DataSource.t, Parser.parsed_query, Query.view_map) :: :ok | Error.t
   def validate_view(data_source, parsed_query, views) do
     try do
       with {:ok, query} <- compile(data_source, Map.put(parsed_query, :subquery?, true), [], views), do:
         {:ok, query |> validate_uid("the view") |> validate_offset("The view")}
     rescue
-      e in CompilationError -> {:error, e.message}
+      e in CompilationError ->
+        %Error{
+          type: e.type,
+          location: __MODULE__,
+          context: e.context,
+          human_description: e.message,
+        }
     end
   end
 
@@ -133,12 +145,19 @@ defmodule Cloak.Sql.Compiler do
       fn({_id, table}) -> insensitive_equal?(table.name, view_name) end
     ) do
       raise CompilationError,
-        message: "There is both a table, and a view named `#{view_name}`. Rename the view to resolve the conflict."
+        message:
+          "There is both a table, and a view named `#{view_name}`. Rename the view to resolve the conflict.",
+        type: :ambiguous,
+        context: "name collision"
     end
 
     case Cloak.Sql.Parser.parse(view_sql) do
       {:ok, parsed_view} -> {:subquery, %{type: :parsed, ast: parsed_view, alias: view_name}}
-      {:error, error} -> raise CompilationError, message: "Error in the view `#{view_name}`: #{error}"
+      %Error{} = error ->
+        raise CompilationError,
+          message: "Error in the view `#{view_name}`: #{error.human_description}",
+          type: :invalid,
+          context: "view validation error"
     end
   end
 
@@ -286,7 +305,8 @@ defmodule Cloak.Sql.Compiler do
         |> align_offset()
         |> align_ranges(Lens.key(:having), :having)
         |> carry_ranges()
-      {:error, error} -> raise CompilationError, message: error
+      %Error{} = error ->
+        raise CompilationError, message: error.human_description, type: error.type, context: error.context
     end
   end
 
@@ -361,16 +381,22 @@ defmodule Cloak.Sql.Compiler do
             columns -> "one of the columns #{Enum.join(columns, ", ")}"
           end
 
-        raise CompilationError, message:
-          "Missing a user id column in the select list of #{display}. " <>
-          "To fix this error, add #{possible_uid_columns} to the subquery select list."
+        raise CompilationError,
+          message:
+            "Missing a user id column in the select list of #{display}. " <>
+            "To fix this error, add #{possible_uid_columns} to the subquery select list.",
+          type: :incomplete,
+          context: "missing uid in subquery"
       _ ->
         subquery
     end
   end
 
   defp validate_offset(%{offset: offset, limit: limit}, display) when is_nil(limit) and offset > 0, do:
-      raise CompilationError, message: "#{display} has an OFFSET clause without a LIMIT clause."
+    raise CompilationError,
+      message: "#{display} has an OFFSET clause without a LIMIT clause.",
+      type: :invalid,
+      context: "offset-clause"
   defp validate_offset(subquery, _), do: subquery
 
 
@@ -395,7 +421,11 @@ defmodule Cloak.Sql.Compiler do
   defp normalize_from(subquery = {:subquery, _}, _data_source), do: subquery
   defp normalize_from(table_identifier = {_, table_name}, data_source) do
     case find_table(data_source, table_identifier) do
-      nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
+      nil ->
+        raise CompilationError,
+          message: "Table `#{table_name}` doesn't exist.",
+          type: :invalid,
+          context: "missing table"
       table -> table.name
     end
   end
@@ -433,7 +463,11 @@ defmodule Cloak.Sql.Compiler do
   end
   defp selected_tables(table_name, data_source) when is_binary(table_name) do
     case DataSource.table(data_source, table_name) do
-      nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
+      nil ->
+        raise CompilationError,
+          message: "Table `#{table_name}` doesn't exist.",
+          type: :invalid,
+          context: "missing table"
       table -> [table]
     end
   end
@@ -470,7 +504,11 @@ defmodule Cloak.Sql.Compiler do
       Enum.count(possible_identifiers, &name == &1) > 1, do: name
     case ambiguous_names do
       [] -> :ok
-      [name | _rest] -> raise CompilationError, message: "Usage of `#{name}` is ambiguous."
+      [name | _rest] ->
+        raise CompilationError,
+          message: "Usage of `#{name}` is ambiguous.",
+          type: :ambiguous,
+          context: "ambiguious name usage"
     end
   end
 
@@ -515,7 +553,10 @@ defmodule Cloak.Sql.Compiler do
 
   defp align_bucket(column) do
     if Function.bucket_size(column) <= 0 do
-      raise CompilationError, message: "Bucket size #{Function.bucket_size(column)} must be > 0"
+      raise CompilationError,
+        message: "Bucket size #{Function.bucket_size(column)} must be > 0",
+        type: :invalid,
+        context: "bucket size"
     end
 
     aligned = Function.update_bucket_size(column, &FixAlign.align/1)
@@ -565,7 +606,11 @@ defmodule Cloak.Sql.Compiler do
 
   defp precompile_function(expression = %Expression{function?: true}) do
     case Function.compile_function(expression, &precompile_functions/1) do
-      {:error, message} -> raise CompilationError, message: message
+      {:error, message} ->
+        raise CompilationError,
+          message: message,
+          type: :invalid,
+          context: "failed function precompilation"
       compiled_function -> compiled_function
     end
   end
@@ -604,8 +649,11 @@ defmodule Cloak.Sql.Compiler do
     case invalid_individual_columns(query) do
       [] -> :ok
       [column | _rest] ->
-        raise CompilationError, message: "#{aggregated_expression_display(column)} " <>
-          "to appear in the `GROUP BY` clause or be used in an aggregate function."
+        raise CompilationError,
+          message: "#{aggregated_expression_display(column)} " <>
+            "to appear in the `GROUP BY` clause or be used in an aggregate function.",
+          type: :incomplete,
+          context: "aggregate missing from GROUP BY"
     end
   end
 
@@ -625,8 +673,12 @@ defmodule Cloak.Sql.Compiler do
     |> Enum.filter(&(&1.function? and &1.aggregate?))
     |> case do
       [] -> :ok
-      [expression | _] -> raise CompilationError, message:
-        "Aggregate function `#{Function.readable_name(expression.function)}` can not be used in the `GROUP BY` clause."
+      [expression | _] ->
+        raise CompilationError,
+          message: "Aggregate function `#{Function.readable_name(expression.function)}` " <>
+            "can not be used in the `GROUP BY` clause.",
+          type: :invalid,
+          context: "aggregate in GROUP BY"
     end
   end
 
@@ -643,7 +695,10 @@ defmodule Cloak.Sql.Compiler do
 
   defp verify_function_exists(function = {_, name, _}) do
     unless Function.exists?(function) do
-      raise CompilationError, message: "Unknown function `#{Function.readable_name(name)}`."
+      raise CompilationError,
+        message: "Unknown function `#{Function.readable_name(name)}`.",
+        type: :invalid,
+        context: "missing function"
     end
   end
 
@@ -651,15 +706,20 @@ defmodule Cloak.Sql.Compiler do
       when name in ["min", "max", "median"] do
     type = Function.type(argument)
     if Enum.member?([:text, :date, :time, :datetime], type) do
-      raise CompilationError, message:
-        "Function `#{name}` is allowed over arguments of type `#{type}` only in subqueries."
+      raise CompilationError,
+        message: "Function `#{name}` is allowed over arguments of type `#{type}` only in subqueries.",
+        type: :type_error,
+        context: "illegal function argument type in subquery"
     end
     :ok
   end
   defp verify_function_subquery_usage(_function, %Query{subquery?: false}), do: :ok
   defp verify_function_subquery_usage({:function, name, _}, %Query{subquery?: true}) do
     if Function.has_attribute?(name, :not_in_subquery) do
-      raise CompilationError, message: "Function `#{name}` is not allowed in subqueries."
+      raise CompilationError,
+        message: "Function `#{name}` is not allowed in subqueries.",
+        type: :illegal,
+        context: "illegal function in subquery"
     end
   end
 
@@ -719,8 +779,12 @@ defmodule Cloak.Sql.Compiler do
       # the value column returned as part of the first column
       {splitter_row_index, query} = add_row_splitter(query, expression)
       db_column = case expression |> Expression.arguments() |> hd() |> Expression.first_column() do
-        nil -> raise CompilationError, message:
-          "Function `#{Function.readable_name(expression.function)}` requires that the first argument must be a column."
+        nil ->
+          raise CompilationError,
+            message: "Function `#{Function.readable_name(expression.function)}` requires " <>
+              "that the first argument must be a column.",
+            type: :invalid,
+            context: "splitter function argument"
         value -> value
       end
       column_name = "#{Function.readable_name(expression.function)}_return_value"
@@ -753,8 +817,11 @@ defmodule Cloak.Sql.Compiler do
     |> get_in([Query.Lenses.conditions_terminals()])
     |> Enum.any?(&Function.has_attribute?(&1, :row_splitter))
     |> if do
-      raise CompilationError, message:
-        "Row splitter function used in the `WHERE` clause has to be first used identically in the `SELECT` clause."
+      raise CompilationError,
+        message:
+          "Row splitter function used in the `WHERE` clause has to be first used identically in the `SELECT` clause.",
+        type: :invalid,
+        context: "splitter used in WHERE but not selected"
     end
   end
 
@@ -769,7 +836,10 @@ defmodule Cloak.Sql.Compiler do
         end
         %Query{query | order_by: order_list}
       [{_column, _direction} | _rest] ->
-        raise CompilationError, message: "Non-selected column specified in `ORDER BY` clause."
+        raise CompilationError,
+          message: "Non-selected column specified in `ORDER BY` clause.",
+          type: :invalid,
+          context: "non-selected column used in ORDER BY"
     end
   end
 
@@ -827,7 +897,9 @@ defmodule Cloak.Sql.Compiler do
                 message:
                   "Missing where comparison for uid columns of tables `#{table1}` and `#{table2}`. " <>
                   "You can fix the error by adding `#{table1}.#{column1.name} = #{table2}.#{column2.name}` " <>
-                  "condition to the `WHERE` clause."
+                  "condition to the `WHERE` clause.",
+                type: :incomplete,
+                context: "missing uid comparison"
           end
     after
       # digraph is powered by ets tables, so we need to make sure they are deleted once we don't need them
@@ -906,7 +978,10 @@ defmodule Cloak.Sql.Compiler do
     |> Enum.reject(fn({_, comparisons}) -> valid_range?(comparisons) end)
     |> case do
       [{column, _} | _] ->
-        raise CompilationError, message: "Column #{Expression.display_name(column)} must be limited to a finite range."
+        raise CompilationError,
+          message: "Column #{Expression.display_name(column)} must be limited to a finite range.",
+          type: :incomplete,
+          context: "where-clause range"
       _ -> :ok
     end
   end
@@ -965,7 +1040,11 @@ defmodule Cloak.Sql.Compiler do
   defp parse_time(column = %Expression{constant?: true, value: string}, type) do
     case do_parse_time(column, type) do
       {:ok, result} -> Expression.constant(type, result)
-      _ -> raise CompilationError, message: "Cannot cast `#{string}` to #{type}."
+      {:error, _} ->
+        raise CompilationError,
+          message: "Cannot cast `#{string}` to #{type}.",
+          type: :type_error,
+          context: "invalid cast"
     end
   end
 
@@ -1001,7 +1080,11 @@ defmodule Cloak.Sql.Compiler do
   defp identifier_to_column({:identifier, :unknown, identifier = {_, column_name}}, columns_by_name, _query) do
     case get_columns(columns_by_name, identifier) do
       [column] -> column
-      [_|_] -> raise CompilationError, message: "Column `#{column_name}` is ambiguous."
+      [_|_] ->
+        raise CompilationError,
+          message: "Column `#{column_name}` is ambiguous.",
+          type: :ambigious,
+          context: "ambiguous column"
       nil ->
         columns_by_name
         |> Map.values()
@@ -1010,9 +1093,15 @@ defmodule Cloak.Sql.Compiler do
         |> Enum.uniq()
         |> case do
             [table] ->
-              raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table.name}`."
+              raise CompilationError,
+                message: "Column `#{column_name}` doesn't exist in table `#{table.name}`.",
+                type: :invalid,
+                context: "missing column"
             [_|_] ->
-              raise CompilationError, message: "Column `#{column_name}` doesn't exist in any of the selected tables."
+              raise CompilationError,
+                message: "Column `#{column_name}` doesn't exist in any of the selected tables.",
+                type: :invalid,
+                context: "missing column"
           end
     end
   end
@@ -1020,26 +1109,44 @@ defmodule Cloak.Sql.Compiler do
     if Enum.any?(query.selected_tables, &(&1.name == table)) do
       case get_columns(columns_by_name, identifier) do
         nil ->
-          raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
+          raise CompilationError,
+            message: "Column `#{column_name}` doesn't exist in table `#{table}`.",
+            type: :invalid,
+            context: "missing column"
         columns ->
           case Enum.find(columns, &insensitive_equal?(&1.table.name, table)) do
             nil ->
-              raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
+              raise CompilationError,
+                message: "Column `#{column_name}` doesn't exist in table `#{table}`.",
+                type: :invalid,
+                context: "missing column"
             column -> column
           end
       end
     else
       case get_columns(columns_by_name, {:unquoted, "#{table}.#{column_name}"}) do
         [column] -> column
-        [_|_] -> raise CompilationError, message: "Column `#{table}.#{column_name}` is ambiguous."
-        nil -> raise CompilationError, message: "Missing FROM clause entry for table `#{table}`."
+        [_|_] ->
+          raise CompilationError,
+            message: "Column `#{table}.#{column_name}` is ambiguous.",
+            type: :ambiguous,
+            context: "column name"
+        nil ->
+          raise CompilationError,
+            message: "Missing FROM clause entry for table `#{table}`.",
+            type: :incomplete,
+            context: "missing from clause"
       end
     end
   end
   defp identifier_to_column({:function, name, args} = function, _columns_by_name, query) do
     check_function_validity(function, query)
     case Function.return_type(function) do
-      nil -> raise CompilationError, message: function_argument_error_message(function)
+      nil ->
+        raise CompilationError,
+          message: function_argument_error_message(function),
+          type: :type_error,
+          context: "function usage"
       type -> Expression.function(name, args, type, Function.has_attribute?(name, :aggregator))
     end
   end
@@ -1181,30 +1288,51 @@ defmodule Cloak.Sql.Compiler do
   defp scope_check(tables_in_scope, table_name, column_name) do
     case Enum.member?(tables_in_scope, table_name) do
       true -> :ok
-      _ -> raise CompilationError, message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
+      _ ->
+        raise CompilationError,
+          message: "Column `#{column_name}` of table `#{table_name}` is used out of scope.",
+          type: :invalid,
+          context: "scope-check for column"
     end
   end
 
   defp verify_limit(%Query{command: :select, limit: amount}) when amount <= 0, do:
-    raise CompilationError, message: "`LIMIT` clause expects a positive value."
+    raise CompilationError,
+      message: "`LIMIT` clause expects a positive value.",
+      type: :invalid,
+      context: "limit-clause"
   defp verify_limit(%Query{command: :select, order_by: [], limit: amount}) when amount != nil, do:
-    raise CompilationError, message: "Using the `LIMIT` clause requires the `ORDER BY` clause to be specified."
+    raise CompilationError,
+      message: "Using the `LIMIT` clause requires the `ORDER BY` clause to be specified.",
+      type: :incomplete,
+      context: "limit-clause"
   defp verify_limit(query), do: query
 
   defp verify_offset(%Query{command: :select, offset: amount}) when amount < 0, do:
-    raise CompilationError, message: "`OFFSET` clause expects a non-negative value."
+    raise CompilationError,
+      message: "`OFFSET` clause expects a non-negative value.",
+      type: :invalid,
+      context: "offset-clause"
   defp verify_offset(%Query{command: :select, order_by: [], offset: amount}) when amount > 0, do:
-    raise CompilationError, message: "Using the `OFFSET` clause requires the `ORDER BY` clause to be specified."
+    raise CompilationError,
+      message: "Using the `OFFSET` clause requires the `ORDER BY` clause to be specified.",
+      type: :incomplete,
+      context: "offset-clause"
   defp verify_offset(query), do: query
 
   defp verify_having(%Query{command: :select, group_by: [], having: [_|_]}), do:
-    raise CompilationError, message: "Using the `HAVING` clause requires the `GROUP BY` clause to be specified."
+    raise CompilationError,
+      message: "Using the `HAVING` clause requires the `GROUP BY` clause to be specified.",
+      type: :invalid,
+      context: "having-clause"
   defp verify_having(%Query{command: :select, having: [_|_]} = query) do
     for {:comparison, column, _operator, target} <- query.having, do:
       for term <- [column, target], do:
         if individual_column?(term, query), do:
           raise CompilationError,
-            message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
+            message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}.",
+            type: :invalid,
+            context: "having-clause"
     query
   end
   defp verify_having(query), do: query
@@ -1217,8 +1345,10 @@ defmodule Cloak.Sql.Compiler do
     |> case do
       [] -> :ok
       [column | _rest] ->
-        raise CompilationError, message:
-          "Expression #{Expression.display_name(column)} is not valid in the `WHERE` clause."
+        raise CompilationError,
+          message: "Expression #{Expression.display_name(column)} is not valid in the `WHERE` clause.",
+          type: :invalid,
+          context: "where-clause"
     end
     query
   end
@@ -1231,8 +1361,11 @@ defmodule Cloak.Sql.Compiler do
   defp verify_where_clause({verb, column, _}) when verb in [:like, :ilike] do
     if column.type != :text do
       verb = verb |> to_string() |> String.upcase()
-      raise CompilationError, message:
-        "Column #{Expression.display_name(column)} of type `#{column.type}` cannot be used in a #{verb} expression."
+      raise CompilationError,
+        message: "Column #{Expression.display_name(column)} of type `#{column.type}` "
+          <> "cannot be used in a #{verb} expression.",
+        type: :type_error,
+        context: "where-clause"
     end
   end
   defp verify_where_clause({:not, clause}), do: verify_where_clause(clause)
@@ -1240,13 +1373,19 @@ defmodule Cloak.Sql.Compiler do
 
   defp verify_where_clause_types(column_a, column_b) do
     if not Expression.constant?(column_a) and not Expression.constant?(column_b) and column_a.type != column_b.type do
-      raise CompilationError, message: "Column #{Expression.display_name(column_a)} of type `#{column_a.type}` and "
-        <> "column #{Expression.display_name(column_b)} of type `#{column_b.type}` cannot be compared."
+      raise CompilationError,
+        message: "Column #{Expression.display_name(column_a)} of type `#{column_a.type}` and "
+          <> "column #{Expression.display_name(column_b)} of type `#{column_b.type}` cannot be compared.",
+        type: :type_error,
+        context: "where-clause"
     end
   end
 
   defp check_for_string_inequalities(comparator, %Expression{type: :text}) when comparator in [:>, :>=, :<, :<=], do:
-    raise CompilationError, message: "Inequalities on string values are currently not supported."
+    raise CompilationError,
+      message: "Inequalities on string values are currently not supported.",
+      type: :type_error,
+      context: "where-clause"
   defp check_for_string_inequalities(_, _), do: :ok
 
 
@@ -1336,5 +1475,8 @@ defmodule Cloak.Sql.Compiler do
   end
 
   defp parameter_error(parameter_index), do:
-    raise(CompilationError, message: "The type for parameter `$#{parameter_index}` cannot be determined.")
+    raise CompilationError,
+      message: "The type for parameter `$#{parameter_index}` cannot be determined.",
+      type: :type_error,
+      context: "compiling parameters"
 end

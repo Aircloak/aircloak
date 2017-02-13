@@ -2,6 +2,7 @@ defmodule Cloak.Sql.Compiler.VerificationConstructsNarrative.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.Sql.{Compiler, Parser}
+  alias Cloak.Query.Error
 
   describe "constructs a narrative based on column usage when a query is considered dangerous" do
     test "affected by math" do
@@ -59,7 +60,7 @@ defmodule Cloak.Sql.Compiler.VerificationConstructsNarrative.Test do
   defp get_compilation_error(query) do
     case compile(query, data_source()) do
       {:ok, _} -> raise "Expected query compilation to fail, but it didn't"
-      {:error, reason} -> reason
+      %Error{} = error -> error.human_description
     end
   end
 

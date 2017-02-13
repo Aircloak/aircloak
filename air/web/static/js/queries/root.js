@@ -223,7 +223,7 @@ class QueriesView extends React.Component {
   }
 
   addError(statement, text) {
-    const result = {statement, error: text};
+    const result = {statement, error: {human_description: text}};
     this.setResults([result].concat(this.state.sessionResults));
   }
 

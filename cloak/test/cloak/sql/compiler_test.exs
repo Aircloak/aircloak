@@ -4,6 +4,7 @@ defmodule Cloak.Sql.Compiler.Test do
   import Lens.Macros
 
   alias Cloak.Sql.{Expression, Compiler, Parser, Query}
+  alias Cloak.Query.Error
 
   defmacrop column(table_name, column_name) do
     quote do
@@ -24,27 +25,23 @@ defmodule Cloak.Sql.Compiler.Test do
 
   for first <- [:>, :>=], second <- [:<, :<=] do
     test "rejects inequalities on strings with #{first} and #{second}" do
-      {:error, error} = compile("select * from table where string #{unquote(first)} " <>
+      error = compile("select * from table where string #{unquote(first)} " <>
         "'CEO' and string #{unquote(second)} 'CEP'", data_source())
-      assert error == "Inequalities on string values are currently not supported."
+      assert error.human_description == "Inequalities on string values are currently not supported."
     end
   end
 
-  test "rejects mistyped where conditions" do
-    {:error, error} = compile("select * from table where numeric = column", data_source())
-    assert error == "Column `numeric` from table `table` of type `integer` and column `column` from table `table` "
+  test "rejects mistyped where conditions", do:
+    assert compile("select * from table where numeric = column", data_source()).human_description ==
+      "Column `numeric` from table `table` of type `integer` and column `column` from table `table` "
       <> "of type `datetime` cannot be compared."
-  end
 
-  test "rejects mistyped like conditions" do
-    {:error, error} = compile("select * from table where numeric like 'something'", data_source())
-    assert error == "Column `numeric` from table `table` of type `integer` cannot be used in a LIKE expression."
-  end
+  test "rejects mistyped like conditions", do:
+    assert compile("select * from table where numeric like 'something'", data_source()).human_description ==
+      "Column `numeric` from table `table` of type `integer` cannot be used in a LIKE expression."
 
-  test "rejects usage of * in function requiring argument of known type" do
-    {:error, error} = compile("select length(*) from table", data_source())
-    assert error =~ ~r/unspecified type/
-  end
+  test "rejects usage of * in function requiring argument of known type", do:
+    assert compile("select length(*) from table", data_source()).human_description =~ ~r/unspecified type/
 
   test "casts datetime where conditions" do
     result = compile!("select * from table where column > '2015-01-01' and column < '2016-01-01'", data_source())
@@ -85,21 +82,18 @@ defmodule Cloak.Sql.Compiler.Test do
     assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
 
-  test "reports malformed datetimes" do
-    assert {:error, "Cannot cast `something stupid` to datetime."} =
-      compile("select * from table where column > 'something stupid'", data_source())
-  end
+  test "reports malformed datetimes", do:
+    assert compile("select * from table where column > 'something stupid'", data_source()).human_description ==
+      "Cannot cast `something stupid` to datetime."
 
   for function <- ~w(sum) do
     test "allowing #{function} on numeric columns" do
       assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
     end
 
-    test "rejecting #{function} on non-numerical columns" do
-      assert {:error, error} = compile("select #{unquote(function)}(string) from table", data_source())
-      assert error ==
+    test "rejecting #{function} on non-numerical columns", do:
+      assert compile("select #{unquote(function)}(string) from table", data_source()).human_description ==
         "Function `#{unquote(function)}` requires arguments of type (`integer`) or (`real`), but got (`text`)."
-    end
   end
 
   for function <- ~w(min max median) do
@@ -127,13 +121,13 @@ defmodule Cloak.Sql.Compiler.Test do
     end
 
     test "rejecting #{function} on text columns in top query" do
-      assert {:error, _} = compile("select #{unquote(function)}(string) from table", data_source())
-      assert {:error, _} = compile("select #{unquote(function)}(distinct string) from table", data_source())
+      assert %Error{} = compile("select #{unquote(function)}(string) from table", data_source())
+      assert %Error{} = compile("select #{unquote(function)}(distinct string) from table", data_source())
     end
 
     test "rejecting #{function} on datetime columns in top query" do
-      assert {:error, _} = compile("select #{unquote(function)}(column) from table", data_source())
-      assert {:error, _} = compile("select #{unquote(function)}(distinct column) from table", data_source())
+      assert %Error{} = compile("select #{unquote(function)}(column) from table", data_source())
+      assert %Error{} = compile("select #{unquote(function)}(distinct column) from table", data_source())
     end
   end
 
@@ -142,11 +136,9 @@ defmodule Cloak.Sql.Compiler.Test do
       assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
     end
 
-    test "rejecting #{function} on non-numerical columns" do
-      assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
-      assert error ==
+    test "rejecting #{function} on non-numerical columns", do:
+      assert compile("select #{unquote(function)}(column) from table", data_source()).human_description ==
         "Function `#{unquote(function)}` requires arguments of type (`integer` | `real`), but got (`datetime`)."
-    end
   end
 
   for function <- ~w(count) do
@@ -158,8 +150,8 @@ defmodule Cloak.Sql.Compiler.Test do
   for function <- ~w(count avg min max sum stddev median) do
     test "rejecting #{function} in group by" do
       query = "select #{unquote(function)}(numeric) from table group by #{unquote(function)}(numeric)"
-      assert {:error, error} = compile(query, data_source())
-      assert error == "Aggregate function `#{unquote(function)}` can not be used in the `GROUP BY` clause."
+      assert compile(query, data_source()).human_description ==
+        "Aggregate function `#{unquote(function)}` can not be used in the `GROUP BY` clause."
     end
   end
 
@@ -182,18 +174,15 @@ defmodule Cloak.Sql.Compiler.Test do
 
   for function <- ~w(hour minute second) do
     test "rejecting #{function} on non-datetime columns" do
-      assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source())
-      assert error ==
+      assert compile("select #{unquote(function)}(numeric) from table", data_source()).human_description ==
         "Function `#{unquote(function)}` requires arguments of type (`datetime` | `time`), but got (`integer`)."
     end
   end
 
   for function <- ~w(year month day weekday) do
-    test "rejecting #{function} on non-datetime columns" do
-      assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source())
-      assert error ==
+    test "rejecting #{function} on non-datetime columns", do:
+      assert compile("select #{unquote(function)}(numeric) from table", data_source()).human_description ==
         "Function `#{unquote(function)}` requires arguments of type (`datetime` | `date`), but got (`integer`)."
-    end
   end
 
   for function <- ~w(floor ceil ceiling) do
@@ -201,11 +190,9 @@ defmodule Cloak.Sql.Compiler.Test do
       assert {:ok, _} = compile("select #{unquote(function)}(float) from table", data_source())
     end
 
-    test "rejecting #{function} on non-numeric columns" do
-      assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
-      assert error ==
+    test "rejecting #{function} on non-numeric columns", do:
+      assert compile("select #{unquote(function)}(column) from table", data_source()).human_description ==
         "Function `#{unquote(function)}` requires arguments of type (`integer` | `real`), but got (`datetime`)."
-    end
   end
 
   for function <- ~w(trunc round) do
@@ -213,57 +200,45 @@ defmodule Cloak.Sql.Compiler.Test do
       assert {:ok, _} = compile("select #{unquote(function)}(float) from table", data_source())
     end
 
-    test "rejecting #{function} on non-numeric columns" do
-      assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
-      assert error == "Function `#{unquote(function)}` requires arguments of type"
-       <> " (`integer` | `real`) or (`integer` | `real`, `integer`), but got (`datetime`)."
-    end
+    test "rejecting #{function} on non-numeric columns", do:
+      assert compile("select #{unquote(function)}(column) from table", data_source()).human_description ==
+        "Function `#{unquote(function)}` requires arguments of type"
+        <> " (`integer` | `real`) or (`integer` | `real`, `integer`), but got (`datetime`)."
   end
 
-  test "multiarg function argument verification" do
-    assert {:error, error} = compile("select div(numeric, column) from table", data_source())
-    assert error ==
+  test "multiarg function argument verification", do:
+    assert compile("select div(numeric, column) from table", data_source()).human_description ==
       "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`, `datetime`)."
-  end
 
-  test "rejecting a function with too many arguments" do
-    assert {:error, error} = compile("select avg(numeric, column) from table", data_source())
-    assert error ==
+  test "rejecting a function with too many arguments", do:
+    assert compile("select avg(numeric, column) from table", data_source()).human_description ==
       "Function `avg` requires arguments of type (`integer` | `real`), but got (`integer`, `datetime`)."
-  end
 
-  test "rejecting a function with too few arguments" do
-    assert {:error, error} = compile("select div(numeric) from table", data_source())
-    assert error == "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`)."
-  end
+  test "rejecting a function with too few arguments", do:
+    assert compile("select div(numeric) from table", data_source()).human_description ==
+      "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`)."
 
-  test "rejecting a column in select when its function is grouped" do
-    assert {:error, error} = compile("select column from table group by day(column)", data_source())
-    assert error ==
+  test "rejecting a column in select when its function is grouped", do:
+    assert compile("select column from table group by day(column)", data_source()).human_description ==
       "Column `column` from table `table` needs to appear in the `GROUP BY` clause" <>
       " or be used in an aggregate function."
-  end
 
-  test "rejecting a function in select when another function is grouped" do
-    assert {:error, error} = compile("select div(numeric, numeric) from table group by abs(numeric)", data_source())
-    assert error == "Column `numeric` from table `table` needs to appear in the `GROUP BY` clause or be used in an " <>
+  test "rejecting a function in select when another function is grouped", do:
+    assert compile("select div(numeric, numeric) from table group by abs(numeric)", data_source()).human_description ==
+      "Column `numeric` from table `table` needs to appear in the `GROUP BY` clause or be used in an " <>
       "aggregate function."
-  end
 
-  test "rejecting concat on non-strings" do
-    assert {:error, error} = compile("select concat(numeric) from table", data_source())
-    assert error == "Function `concat` requires arguments of type ([`text`]+), but got (`integer`)."
-  end
+  test "rejecting concat on non-strings", do:
+    assert compile("select concat(numeric) from table", data_source()).human_description ==
+      "Function `concat` requires arguments of type ([`text`]+), but got (`integer`)."
 
-  test "rejecting ill-typed nested function calls" do
-    assert {:error, error} = compile("select concat(avg(numeric)) from table", data_source())
-    assert error == "Function `concat` requires arguments of type ([`text`]+), but got (`real`)."
-  end
+  test "rejecting ill-typed nested function calls", do:
+    assert compile("select concat(avg(numeric)) from table", data_source()).human_description ==
+      "Function `concat` requires arguments of type ([`text`]+), but got (`real`)."
 
-  test "typechecking nested function calls recursively" do
-    assert {:error, error} = compile("select sqrt(abs(avg(column))) from table", data_source())
-    assert error == "Function `avg` requires arguments of type (`integer` | `real`), but got (`datetime`)."
-  end
+  test "typechecking nested function calls recursively", do:
+    assert compile("select sqrt(abs(avg(column))) from table", data_source()).human_description ==
+      "Function `avg` requires arguments of type (`integer` | `real`), but got (`datetime`)."
 
   test "accepting constants as aggregated", do:
     assert {:ok, _} = compile("select count(*), 1, abs(1) from table", data_source())
@@ -291,50 +266,42 @@ defmodule Cloak.Sql.Compiler.Test do
     )
   end
 
-  test "rejecting missing column" do
-    assert {:error, "Column `a` doesn't exist in table `table`."} =
-      compile("SELECT a FROM table", data_source())
-  end
+  test "rejecting missing column", do:
+    assert compile("SELECT a FROM table", data_source()).human_description ==
+      "Column `a` doesn't exist in table `table`."
 
-  test "rejecting missing column on join" do
-    assert {:error, "Column `a` doesn't exist in any of the selected tables."} =
-      compile("SELECT a FROM t1, t2", data_source())
-  end
+  test "rejecting missing column on join", do:
+    assert compile("SELECT a FROM t1, t2", data_source()).human_description ==
+      "Column `a` doesn't exist in any of the selected tables."
 
-  test "rejecting missing qualified column" do
-    assert {:error, "Column `a` doesn't exist in table `table`."} =
-      compile("SELECT table.a FROM table", data_source())
-  end
+  test "rejecting missing qualified column", do:
+    assert compile("SELECT table.a FROM table", data_source()).human_description ==
+      "Column `a` doesn't exist in table `table`."
 
-  test "rejecting qualified SELECT from not selected table" do
-    assert {:error, "Missing FROM clause entry for table `other_table`."} =
-      compile("SELECT other_table.other_column FROM table", data_source())
-  end
+  test "rejecting qualified SELECT from not selected table", do:
+    assert compile("SELECT other_table.other_column FROM table", data_source()).human_description ==
+      "Missing FROM clause entry for table `other_table`."
 
-  test "rejecting qualified SELECT from not selected table when join" do
-    assert {:error, "Missing FROM clause entry for table `other_table`."} =
-      compile("SELECT other_table.other_column FROM t1, t2", data_source())
-  end
+  test "rejecting qualified SELECT from not selected table when join", do:
+    assert compile("SELECT other_table.other_column FROM t1, t2", data_source()).human_description ==
+      "Missing FROM clause entry for table `other_table`."
 
-  test "rejecting qualified ORDER BY from not selected table" do
-    assert {:error, "Missing FROM clause entry for table `other_table`."} =
-      compile("SELECT column FROM table ORDER BY other_table.other_column", data_source())
-  end
+  test "rejecting qualified ORDER BY from not selected table", do:
+    assert compile("SELECT column FROM table ORDER BY other_table.other_column", data_source()).human_description ==
+      "Missing FROM clause entry for table `other_table`."
 
-  test "rejecting qualified GROUP BY from not selected table" do
-    assert {:error, "Missing FROM clause entry for table `other_table`."} =
-      compile("SELECT column FROM table GROUP BY other_table.other_column", data_source())
-  end
+  test "rejecting qualified GROUP BY from not selected table", do:
+    assert compile("SELECT column FROM table GROUP BY other_table.other_column", data_source()).human_description ==
+      "Missing FROM clause entry for table `other_table`."
 
-  test "rejecting qualified WHERE from not selected table" do
-    assert {:error, "Missing FROM clause entry for table `other_table`."} =
-      compile("SELECT column FROM table WHERE other_table.other_column <> ''", data_source())
-  end
+  test "rejecting qualified WHERE from not selected table", do:
+    assert compile("SELECT column FROM table WHERE other_table.other_column <> ''", data_source()).human_description ==
+      "Missing FROM clause entry for table `other_table`."
 
-  test "rejecting joins with only one side of a range" do
-    assert {:error, "Column `numeric` from table `table` must be limited to a finite range."} =
-      compile("SELECT * FROM table JOIN other_table ON table.uid = other_table.uid AND numeric > 3", data_source())
-  end
+  test "rejecting joins with only one side of a range", do:
+    assert compile("SELECT * FROM table JOIN other_table ON table.uid = other_table.uid AND numeric > 3",
+      data_source()).human_description ==
+        "Column `numeric` from table `table` must be limited to a finite range."
 
   test "aligning ranges in joins" do
     query1 = compile!("SELECT * FROM table JOIN other_table ON table.uid = other_table.uid AND numeric > 3" <>
@@ -347,17 +314,16 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejecting improper joins" do
-    assert {:error, error} = compile("SELECT t1.c1 from t1, t2", data_source())
-    assert error =~ ~r/Missing where comparison.*`t1` and `t2`/
+    assert compile("SELECT t1.c1 from t1, t2", data_source()).human_description =~
+      ~r/Missing where comparison.*`t1` and `t2`/
 
-    assert {:error, error} = compile("SELECT t1.c1 from t1, t2, t3 WHERE t1.uid = t2.uid", data_source())
-    assert error =~ ~r/Missing where comparison.*`t2` and `t3`/
+    assert compile("SELECT t1.c1 from t1, t2, t3 WHERE t1.uid = t2.uid", data_source()).human_description =~
+      ~r/Missing where comparison.*`t2` and `t3`/
 
-    assert {:error, error} = compile(
+    assert compile(
       "SELECT t1.c1 from t1, t2, t3, t4 WHERE t1.uid = t2.uid AND t3.uid = t4.uid",
       data_source()
-    )
-    assert error =~ ~r/Missing where comparison.*`t2` and `t3`/
+    ).human_description =~ ~r/Missing where comparison.*`t2` and `t3`/
   end
 
   Enum.each(["count", "min", "max", "median", "stddev"], fn(function) ->
@@ -386,10 +352,9 @@ defmodule Cloak.Sql.Compiler.Test do
     assert result.order_by == [{1, :desc}, {1, :desc}]
   end
 
-  test "complains when tables don't exist" do
-    assert {:error, "Table `t_doesnt_exist` doesn't exist."} =
-      compile("SELECT c1 FROM t1, t_doesnt_exist", data_source())
-  end
+  test "complains when tables don't exist", do:
+    assert compile("SELECT c1 FROM t1, t_doesnt_exist", data_source()).human_description ==
+      "Table `t_doesnt_exist` doesn't exist."
 
   test "expands all columns for all tables when joining" do
     result = compile!("SELECT * FROM t1, t2 JOIN t3 on t2.uid = t3.uid WHERE t1.uid = t2.uid", data_source())
@@ -405,10 +370,8 @@ defmodule Cloak.Sql.Compiler.Test do
     ] = result.columns
   end
 
-  test "complains when an unqualified identifier cannot be pinned down" do
-    assert {:error, "Column `c1` is ambiguous."} =
-      compile("SELECT c1 FROM t1, t2", data_source())
-  end
+  test "complains when an unqualified identifier cannot be pinned down", do:
+    assert compile("SELECT c1 FROM t1, t2", data_source()).human_description == "Column `c1` is ambiguous."
 
   test "allows for where, order by and group by when performing cross join" do
     result = compile!("""
@@ -429,27 +392,27 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "complains when conditions not on columns of JOINed tables" do
-    assert {:error, "Column `c3` of table `t2` is used out of scope."} = compile("""
+    assert compile("""
       SELECT t1.c1
       FROM
         t1 INNER JOIN t3 ON t1.uid = t3.uid and t2.c3 > 10,
         t2
       WHERE t2.uid = t1.uid
-    """, data_source())
-    assert {:error, "Column `c3` of table `t2` is used out of scope."} = compile("""
+    """, data_source()).human_description == "Column `c3` of table `t2` is used out of scope."
+    assert compile("""
       SELECT t1.c1
       FROM
         t1 INNER JOIN t3 ON t1.uid = t3.uid and c3 > 10,
         t2
       WHERE t2.uid = t1.uid
-    """, data_source())
+    """, data_source()).human_description == "Column `c3` of table `t2` is used out of scope."
   end
 
   test "complains on ambiguous JOIN on condition" do
-    assert {:error, "Column `c1` is ambiguous."} = compile("""
+    assert compile("""
       SELECT t1.c1
       FROM t1 INNER JOIN t2 ON t1.uid = t2.uid and c1 > 10
-    """, data_source())
+    """, data_source()).human_description == "Column `c1` is ambiguous."
   end
 
   test "Can JOIN on columns from earlier JOIN" do
@@ -461,71 +424,57 @@ defmodule Cloak.Sql.Compiler.Test do
     """, data_source())
   end
 
-  test "rejecting invalid casts" do
-    assert {:error, error} = compile("select cast(column as integer) from table", data_source())
-    assert error == "Cannot cast value of type `datetime` to type `integer`."
-  end
+  test "rejecting invalid casts", do:
+    assert compile("select cast(column as integer) from table", data_source()).human_description ==
+      "Cannot cast value of type `datetime` to type `integer`."
 
-  test "accepting valid casts" do
+  test "accepting valid casts", do:
     assert {:ok, _} = compile("select cast(column as date) from table", data_source())
-  end
 
-  test "subquery must return a user_id" do
-    assert {:error, error} = compile("select c1 from (select c1 from t1) alias", data_source())
-    assert error =~ "Missing a user id column"
-  end
+  test "subquery must return a user_id", do:
+    assert compile("select c1 from (select c1 from t1) alias", data_source()).human_description =~
+      "Missing a user id column"
 
-  test "missing group by in a subquery" do
-    assert {:error, error} = compile("select c1 from (select uid, count(*) from t1) alias", data_source())
-    assert error =~ "Column `uid` from table `t1` needs to appear in the `GROUP BY`"
-  end
+  test "missing group by in a subquery", do:
+    assert compile("select c1 from (select uid, count(*) from t1) alias", data_source()).human_description =~
+      "Column `uid` from table `t1` needs to appear in the `GROUP BY`"
 
   test "integer operations are valid on sums of integer columns" do
     assert {:ok, _} = compile("select sum(numeric) % 3 from table", data_source())
   end
 
-  test "integer operations are invalid on sums of real columns" do
-    assert {:error, error} = compile("select sum(float) % 3 from table", data_source())
-    assert error ==
-        "Function `%` requires arguments of type (`integer`, `integer`), but got (`real`, `integer`)."
-  end
+  test "integer operations are invalid on sums of real columns", do:
+    assert compile("select sum(float) % 3 from table", data_source()).human_description ==
+      "Function `%` requires arguments of type (`integer`, `integer`), but got (`real`, `integer`)."
 
-  test "incorrect application of +" do
-    assert {:error, error} = compile("select 'a' + 'b' from table", data_source())
-    assert error == "Arguments of type (`text`, `text`) are incorrect for `+`."
-  end
+  test "incorrect application of +", do:
+    assert compile("select 'a' + 'b' from table", data_source()).human_description ==
+      "Arguments of type (`text`, `text`) are incorrect for `+`."
 
-  test "rejects inequalities on numeric columns that are not ranges" do
-    assert {:error, error} = compile("select * from table where numeric > 5", data_source())
-    assert error == "Column `numeric` from table `table` must be limited to a finite range."
-  end
+  test "rejects inequalities on numeric columns that are not ranges", do:
+    assert compile("select * from table where numeric > 5", data_source()).human_description ==
+      "Column `numeric` from table `table` must be limited to a finite range."
 
-  test "rejects inequalities on numeric columns that are negatives of ranges" do
-    assert {:error, error} = compile("select * from table where numeric < 2 and numeric > 5", data_source())
-    assert error == "Column `numeric` from table `table` must be limited to a finite range."
-  end
+  test "rejects inequalities on numeric columns that are negatives of ranges", do:
+    assert compile("select * from table where numeric < 2 and numeric > 5", data_source()).human_description ==
+      "Column `numeric` from table `table` must be limited to a finite range."
 
-  test "rejects inequalities on datetime columns that are negatives of ranges" do
-    assert {:error, error} = compile("select * from table where column < '2015-01-01' and column > '2016-01-01'",
-      data_source())
-    assert error == "Column `column` from table `table` must be limited to a finite range."
-  end
+  test "rejects inequalities on datetime columns that are negatives of ranges", do:
+    assert compile("select * from table where column < '2015-01-01' and column > '2016-01-01'",
+      data_source()).human_description ==
+        "Column `column` from table `table` must be limited to a finite range."
 
-  test "rejects inequalities on datetime columns that are not ranges" do
-    assert {:error, error} = compile("select * from table where column > '2015-01-01'", data_source())
-    assert error == "Column `column` from table `table` must be limited to a finite range."
-  end
+  test "rejects inequalities on datetime columns that are not ranges", do:
+    assert compile("select * from table where column > '2015-01-01'", data_source()).human_description ==
+      "Column `column` from table `table` must be limited to a finite range."
 
-  test "rejects inequalities on date columns that are negatives of ranges" do
-    assert {:error, error} = compile("select * from table where column < '2015-01-01' and column > '2016-01-01'",
-      date_data_source())
-    assert error == "Column `column` from table `table` must be limited to a finite range."
-  end
+  test "rejects inequalities on date columns that are negatives of ranges", do:
+    assert compile("select * from table where column < '2015-01-01' and column > '2016-01-01'",
+      date_data_source()).human_description == "Column `column` from table `table` must be limited to a finite range."
 
-  test "rejects inequalities on date columns that are not ranges" do
-    assert {:error, error} = compile("select * from table where column > '2015-01-01'", data_source())
-    assert error == "Column `column` from table `table` must be limited to a finite range."
-  end
+  test "rejects inequalities on date columns that are not ranges", do:
+    assert compile("select * from table where column > '2015-01-01'", data_source()).human_description ==
+      "Column `column` from table `table` must be limited to a finite range."
 
   test "accepts inequalities on numeric columns that are ranges" do
     assert {:ok, _} = compile("select * from table where numeric > 5 and numeric < 8", data_source())
@@ -602,10 +551,8 @@ defmodule Cloak.Sql.Compiler.Test do
     assert first == second
   end
 
-  test "quoted columns are case-sensitite" do
-    assert {:error, reason} = compile("select \"CoLumn\" from table", data_source())
-    assert reason =~ ~r/Column `CoLumn` doesn't exist/
-  end
+  test "quoted columns are case-sensitite", do:
+    assert compile("select \"CoLumn\" from table", data_source()).human_description =~ ~r/Column `CoLumn` doesn't exist/
 
   test "unquoted qualified columns are case-insensitive" do
     first = "select table.CoLumn from table" |> compile!(data_source()) |> Map.drop([:column_titles])
@@ -613,10 +560,9 @@ defmodule Cloak.Sql.Compiler.Test do
     assert first == second
   end
 
-  test "quoted qualified columns are case-sensitite" do
-    assert {:error, reason} = compile("select table.\"CoLumn\" from table", data_source())
-    assert reason =~ ~r/Column `CoLumn` doesn't exist/
-  end
+  test "quoted qualified columns are case-sensitite", do:
+    assert compile("select table.\"CoLumn\" from table", data_source()).human_description =~
+      ~r/Column `CoLumn` doesn't exist/
 
   test "unquoted tables are case-insensitive" do
     first = "select tAbLe.column from tabLe" |> compile!(data_source()) |> Map.drop([:column_titles])
@@ -625,9 +571,9 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "quoted tables are case-sensitive" do
-    assert {:error, _} = compile("select table.column from \"tabLe\"", data_source())
-    assert {:error, reason} = compile("select \"tAbLe\".column from table", data_source())
-    assert reason =~ ~r/Missing FROM clause entry for table `tAbLe`/
+    assert %Error{} = compile("select table.column from \"tabLe\"", data_source())
+    assert compile("select \"tAbLe\".column from table", data_source()).human_description =~
+      ~r/Missing FROM clause entry for table `tAbLe`/
   end
 
   test "bucket sizes are aligned, adding an info message" do
@@ -640,9 +586,9 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "negative and 0 bucket sizes are not allowed" do
-    assert {:error, _} = compile("select bucket(numeric by 0) from table", data_source())
-    assert {:error, error} = compile("select bucket(numeric by -10) from table", data_source())
-    assert error =~ ~r/Bucket size -10 must be > 0/
+    assert %Error{} = compile("select bucket(numeric by 0) from table", data_source())
+    assert compile("select bucket(numeric by -10) from table", data_source()).human_description =~
+      ~r/Bucket size -10 must be > 0/
   end
 
   test "limit is aligned with a message in subqueries" do
@@ -662,11 +608,10 @@ defmodule Cloak.Sql.Compiler.Test do
     assert result.limit == 9
   end
 
-  test "offset requires limit in subqueries" do
-    assert {:error, error} = compile("select count(*) from (select * from table order by numeric offset 20) foo",
-      data_source())
-    assert error =~ ~r/Subquery `foo` has an OFFSET clause without a LIMIT clause/
-  end
+  test "offset requires limit in subqueries", do:
+    assert compile("select count(*) from (select * from table order by numeric offset 20) foo",
+      data_source()).human_description =~
+        ~r/Subquery `foo` has an OFFSET clause without a LIMIT clause/
 
   test "offset must be a multiple of limit post-alignment" do
     result = compile!("select count(*) from (select * from table order by numeric limit 20 offset 31) foo",
@@ -679,11 +624,9 @@ defmodule Cloak.Sql.Compiler.Test do
     assert {:ok, _} = compile("select count(*) from table group by numeric having avg(numeric) > 3", data_source())
   end
 
-  test "having condition inequalities must be ranges in subqueries" do
-    assert {:error, error} =
-      compile("select count(*) from (select uid from table group by uid having avg(numeric) > 3) x", data_source())
-    assert error == "Column `avg` must be limited to a finite range."
-  end
+  test "having condition inequalities must be ranges in subqueries", do:
+    assert compile("select count(*) from (select uid from table group by uid having avg(numeric) > 3) x",
+      data_source()).human_description == "Column `avg` must be limited to a finite range."
 
   test "having condition ranges are aligned with a message in subqueries" do
     %{from: {:subquery, %{ast: aligned}}} = compile!("""
@@ -748,43 +691,31 @@ defmodule Cloak.Sql.Compiler.Test do
       compile!("select table.column.with.dots from table", dotted_data_source())
   end
 
-  test "view error" do
-    assert {:error, error} = compile("select foo from table_view", data_source(),
-      views: %{"table_view" => "select"})
+  test "view error", do:
+    assert compile("select foo from table_view", data_source(), views: %{"table_view" => "select"}).human_description ==
+      "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
 
-    assert error == "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
-  end
+  test "view error in show columns", do:
+    assert compile("show columns from table_view", data_source(),
+      views: %{"table_view" => "select"}).human_description ==
+        "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
 
-  test "view error in show columns" do
-    assert {:error, error} = compile("show columns from table_view", data_source(),
-      views: %{"table_view" => "select"})
+  test "ambiguous view/table error", do:
+    assert compile("select numeric from table", data_source(),
+      views: %{"table" => "select numeric from table"}).human_description ==
+        "There is both a table, and a view named `table`. Rename the view to resolve the conflict."
 
-    assert error == "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
-  end
+  test "view is treated as a subquery", do:
+    assert compile("select numeric from table_view", data_source(),
+      views: %{"table_view" => "select numeric from table"}).human_description =~
+        ~r/Missing a user id column in the select list of subquery `table_view`./
 
-  test "ambiguous view/table error" do
-    assert {:error, error} = compile("select numeric from table", data_source(),
-      views: %{"table" => "select numeric from table"})
+  test "view validation error", do:
+    assert validate_view("select", data_source()).human_description =~ ~r/Expected `column definition`/
 
-    assert error == "There is both a table, and a view named `table`. Rename the view to resolve the conflict."
-  end
-
-  test "view is treated as a subquery" do
-    assert {:error, error} = compile("select numeric from table_view", data_source(),
-      views: %{"table_view" => "select numeric from table"})
-
-    assert error =~ ~r/Missing a user id column in the select list of subquery `table_view`./
-  end
-
-  test "view validation error" do
-    assert {:error, error} = validate_view("select", data_source())
-    assert error =~ ~r/Expected `column definition`/
-  end
-
-  test "view has the same limitations as the subquery" do
-    assert {:error, error} = validate_view("select uid, extract_match(string, '') from table", data_source())
-    assert error == "Function `extract_match` is not allowed in subqueries."
-  end
+  test "view has the same limitations as the subquery", do:
+    assert validate_view("select uid, extract_match(string, '') from table", data_source()).human_description ==
+      "Function `extract_match` is not allowed in subqueries."
 
   test "compilation of row splitters" do
     {:ok, query} = compile("select extract_matches(string, 'thing') from table", data_source())
