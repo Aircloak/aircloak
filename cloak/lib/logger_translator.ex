@@ -18,20 +18,24 @@ defmodule Cloak.LoggerTranslator do
   ## ----------------------------------------------------------------
 
   @doc false
-  def translate(min_level, :error, :format, message) do
-    with {:ok, filtered_message} <- filter_error_message(message), do:
-      forward_translate(min_level, :error, :format, filtered_message)
+  def translate(min_level, level, kind, message) do
+    try do
+      with {:ok, filtered_message} <- filter_message(level, kind, message), do:
+        Logger.Translator.translate(min_level, level, kind, filtered_message)
+    catch _type, _reason ->
+      :skip
+    end
   end
-  def translate(min_level, level, kind, message), do:
-    forward_translate(min_level, level, kind, message)
 
 
   ## ----------------------------------------------------------------
   ## Internal functions
   ## ----------------------------------------------------------------
 
-  defp forward_translate(min_level, level, kind, message), do:
-    Logger.Translator.translate(min_level, level, kind, message)
+  def filter_message(:error, :format, message), do:
+    filter_error_message(message)
+  def filter_message(_level, _kind, _message), do:
+    :skip
 
   defp filter_error_message({'** Generic server ' ++ _ = msg, [name, _last, _state, reason]}), do:
     {:ok, {msg, [name, "filtered", "filtered", filter_reason(reason)]}}
