@@ -11,9 +11,9 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   #-----------------------------------------------------------------------------------------------------------
 
   @doc "Creates a MongoDB projection from a list of selected columns."
-  @spec map_columns([Expression.t]) :: [map]
-  def map_columns(columns), do:
-    [%{'$project': columns |> Enum.map(&map_column/1) |> Enum.into(%{"_id" => false})}]
+  @spec project_columns([Expression.t]) :: [map]
+  def project_columns(columns), do:
+    [%{'$project': columns |> Enum.map(&project_column/1) |> Enum.into(%{"_id" => false})}]
 
   @doc "Creates a MongoDB projection for the array size columns in a table."
   @spec map_array_sizes(map) :: [map]
@@ -30,11 +30,11 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   end
 
   @doc "Creates a MongoDB projection from a column."
-  @spec map_column(Expression.t) :: {String.t, atom | map}
-  def map_column(%Expression{name: name, alias: nil}), do: {name, true}
-  def map_column(%Expression{aggregate?: true, function?: true, function: fun, function_args: [arg], alias: alias}), do:
+  @spec project_column(Expression.t) :: {String.t, atom | map}
+  def project_column(%Expression{name: name, alias: nil}), do: {name, true}
+  def project_column(%Expression{aggregate?: true, function?: true, function: fun, function_args: [arg], alias: alias}), do:
     {get_field_name(alias), parse_function(fun, begin_parse_column(arg))}
-  def map_column(column), do: {get_field_name(column.alias), begin_parse_column(column)}
+  def project_column(column), do: {get_field_name(column.alias), begin_parse_column(column)}
 
 
   #-----------------------------------------------------------------------------------------------------------

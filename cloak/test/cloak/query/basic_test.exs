@@ -454,6 +454,13 @@ defmodule Cloak.Query.BasicTest do
       %{query_id: "1", columns: ["height", "male"], rows: [%{row: [180, true], occurrences: 10}]}
   end
 
+  test "select with constant filter" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 180, true])
+
+    assert_query "select height, male from heights where true = true",
+      %{query_id: "1", columns: ["height", "male"], rows: [%{row: [180, true], occurrences: 10}]}
+  end
+
   test "should order rows when instructed" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [190])

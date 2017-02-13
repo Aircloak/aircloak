@@ -89,6 +89,15 @@ defmodule Cloak.DataSource.MongoDBTest do
       %{rows: [%{occurrences: 1, row: [true]}]}
   end
 
+  test "conditions on root table", context do
+    assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE male = false",
+      %{rows: [%{occurrences: 1, row: [0]}]}
+    assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE false <> male",
+      %{rows: [%{occurrences: 1, row: [10]}]}
+    assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE 30 = age",
+      %{rows: [%{occurrences: 1, row: [10]}]}
+  end
+
   test "virtual tables", context do
     assert_query context, "SELECT COUNT(name) FROM #{@table}_bills", %{rows: [%{occurrences: 1, row: [10]}]}
     assert_query context, "SELECT COUNT(name) FROM #{@table}_bills_ids", %{rows: [%{occurrences: 1, row: [20]}]}
@@ -160,5 +169,14 @@ defmodule Cloak.DataSource.MongoDBTest do
     assert_query context, """
         SELECT COUNT(*) FROM (SELECT DISTINCT _id, length(bills.issuer) AS value FROM #{@table}_bills_ids) AS t
       """, %{rows: [%{occurrences: 1, row: [10]}]}
+  end
+
+  test "error on invalid conditions", context do
+    assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE true = true",
+      %{error: "Conditions on MongoDB data sources have to be between a table column and a constant."}
+    assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE age = abs(age)",
+      %{error: "Conditions on MongoDB data sources have to be between a table column and a constant."}
+    assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE 2 * abs(age) = 60",
+      %{error: "Conditions on MongoDB data sources have to be between a table column and a constant."}
   end
 end
