@@ -8,7 +8,7 @@ defmodule Cloak.Query.DataDecoder do
   ]
   """
 
-  alias Cloak.Aql.{Query, Expression}
+  alias Cloak.Sql.{Query, Expression}
 
   @type type :: Cloak.DataSource.data_type
   @type decoder :: (type -> {:ok, type} | :error)
@@ -24,7 +24,7 @@ defmodule Cloak.Query.DataDecoder do
   def init(table) do
     decoders = for decoder <- table.decoders do
       validate_columns(decoder.columns, table.columns)
-      create_from_config(decoder)
+      create_from_config(table, decoder)
     end
     columns = for {name, type} <- table.columns do
       decoded_type = Enum.reduce(decoders, type, &get_decoded_column_type(&1, name, &2))
@@ -77,22 +77,27 @@ defmodule Cloak.Query.DataDecoder do
     end
   end
 
-  defp create_from_config(%{method: method} = decoder) when is_function(method), do: decoder
-  defp create_from_config(%{method: "base64", columns: columns}), do:
+  defp create_from_config(table, %{method: method} = decoder), do:
+    do_create_from_config(table, decoder) |> Map.put(:spec, method)
+
+  defp do_create_from_config(_table, %{method: method} = decoder) when is_function(method), do: decoder
+  defp do_create_from_config(_table, %{method: "base64", columns: columns}), do:
     %{method: &Base.decode64/1, columns: columns, in: :text, out: :text}
-  defp create_from_config(%{method: "aes_cbc_128", key: key, columns: columns}), do:
+  defp do_create_from_config(table, %{method: "aes_cbc_128", key: key, columns: columns}) do
+    if byte_size(key) != 16, do: raise "Decryption key from table `#{table.name}` has an invalid length."
     %{method: &aes_cbc128_decode(&1, key), columns: columns, in: :text, out: :text}
-  defp create_from_config(%{method: "text_to_integer", columns: columns}), do:
+  end
+  defp do_create_from_config(_table, %{method: "text_to_integer", columns: columns}), do:
     %{method: &text_to_integer/1, columns: columns, in: :text, out: :integer}
-  defp create_from_config(%{method: "text_to_real", columns: columns}), do:
+  defp do_create_from_config(_table, %{method: "text_to_real", columns: columns}), do:
     %{method: &text_to_real/1, columns: columns, in: :text, out: :real}
-  defp create_from_config(%{method: "text_to_datetime", columns: columns}), do:
+  defp do_create_from_config(_table, %{method: "text_to_datetime", columns: columns}), do:
     %{method: &text_to_datetime/1, columns: columns, in: :text, out: :datetime}
-  defp create_from_config(%{method: "text_to_date", columns: columns}), do:
+  defp do_create_from_config(_table, %{method: "text_to_date", columns: columns}), do:
     %{method: &text_to_date/1, columns: columns, in: :text, out: :date}
-  defp create_from_config(%{method: "text_to_time", columns: columns}), do:
+  defp do_create_from_config(_table, %{method: "text_to_time", columns: columns}), do:
     %{method: &text_to_time/1, columns: columns, in: :text, out: :time}
-  defp create_from_config(decoder), do:
+  defp do_create_from_config(_table, decoder), do:
     raise "Invalid data decoder definition: `#{inspect(decoder)}`."
 
   defp get_decoders(%Expression{table: :unknown}), do: []

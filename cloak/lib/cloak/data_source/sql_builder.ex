@@ -1,8 +1,8 @@
 defmodule Cloak.DataSource.SqlBuilder do
   @moduledoc "Provides functionality for constructing an SQL query from a compiled query."
 
-  alias Cloak.Aql.Query
-  alias Cloak.Aql.Expression
+  alias Cloak.Sql.Query
+  alias Cloak.Sql.Expression
   alias Cloak.DataSource.SqlBuilder.DbFunction
   alias Cloak.Query.Runner.RuntimeError
 
@@ -52,8 +52,8 @@ defmodule Cloak.DataSource.SqlBuilder do
     ]
   end
 
-  defp distinct(%Query{distinct?: true}), do: "DISTINCT "
-  defp distinct(%Query{distinct?: false}), do: ""
+  defp distinct(%Query{distinct?: true, subquery?: true}), do: "DISTINCT "
+  defp distinct(%Query{}), do: ""
 
   defp columns_sql(columns, sql_dialect) do
     columns
@@ -110,8 +110,6 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp conditions_to_fragments({:in, what, values}, sql_dialect),
     do: [to_fragment(what, sql_dialect), " IN (",
       Enum.map(values, &to_fragment(&1, sql_dialect)) |> join(", "), ")"]
-  defp conditions_to_fragments({:not, {:is, what, match}}, sql_dialect),
-    do: [to_fragment(what, sql_dialect), " IS NOT ", to_fragment(match, sql_dialect)]
   defp conditions_to_fragments({:like, what, match}, :mysql = sql_dialect),
     do: [to_fragment(what, sql_dialect), " COLLATE latin1_general_cs LIKE ", to_fragment(match, sql_dialect)]
   defp conditions_to_fragments({:like, what, match}, :sqlserver = sql_dialect),
@@ -126,11 +124,8 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: [to_fragment(what, sql_dialect), " COLLATE Latin1_General_CI_AS LIKE ", to_fragment(match, sql_dialect)]
   defp conditions_to_fragments({:is, what, match}, sql_dialect),
     do: [to_fragment(what, sql_dialect), " IS ", to_fragment(match, sql_dialect)]
-  defp conditions_to_fragments({condition, _what, _match}, sql_dialect) do
-    condition = condition |> to_string() |> String.upcase()
-    raise RuntimeError, message:
-      "'#{condition}' conditions are not supported on '#{sql_dialect}' data sources."
-  end
+  defp conditions_to_fragments({:not, condition}, sql_dialect),
+    do: [" NOT ", conditions_to_fragments(condition, sql_dialect)]
 
   defp to_fragment(string, _sql_dialect) when is_binary(string), do: string
   defp to_fragment(atom, _sql_dialect) when is_atom(atom), do: to_string(atom) |> String.upcase()

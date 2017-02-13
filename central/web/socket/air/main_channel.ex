@@ -21,19 +21,30 @@ defmodule Central.Socket.Air.MainChannel do
 
   @doc false
   @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
-  def join("main", _air_info, socket) do
+  def join("main", raw_air_info, socket) do
+    Logger.metadata(customer: socket.assigns.customer.name, air: socket.assigns.air_name)
     Process.flag(:trap_exit, true)
-    customer = socket.assigns.customer
-    Logger.info("air for '#{customer.name}' (id: #{customer.id}) joined central")
-    Central.AirConnectionMonitor.monitor_channel(customer, socket.assigns.air_name)
+    Logger.info("joined central")
+    online_cloaks = raw_air_info
+    |> Map.get("online_cloaks", [])
+    |> Enum.map(&%{
+      name: Map.fetch!(&1, "name"),
+      version: Map.get(&1, "version", "Unknown"),
+      data_source_names: Map.get(&1, "data_source_names", []),
+    })
+    air_version = Map.get(raw_air_info, "air_version", "Unknown")
+    air_info = %{
+      air_version: air_version,
+      online_cloaks: online_cloaks,
+    }
+    monitor_channel(socket.assigns.customer, socket.assigns.air_name, air_info)
     {:ok, %{}, socket}
   end
 
   @doc false
   @dialyzer {:nowarn_function, terminate: 2} # Phoenix bug, fixed in master
   def terminate(_reason, socket) do
-    customer = socket.assigns.customer
-    Logger.info("air for '#{customer.name}' (id: #{customer.id}) left central")
+    Logger.info("left central")
     {:ok, socket}
   end
 
@@ -60,8 +71,7 @@ defmodule Central.Socket.Air.MainChannel do
     handle_air_call(request["event"], request["payload"], request["request_id"], socket)
   end
   def handle_in(event, _payload, socket) do
-    air_name = socket.assigns.air_name
-    Logger.warn("unknown event #{event} from '#{air_name}'")
+    Logger.warn("unknown event #{event}")
     {:noreply, socket}
   end
 
@@ -78,7 +88,7 @@ defmodule Central.Socket.Air.MainChannel do
   def handle_info({:call_timeout, request_id}, socket) do
     # We're just removing entries here without responding. It is the responsibility of the
     # client code to give up at some point.
-    Logger.warn("#{request_id} sync call timeout on #{socket.assigns.air_id}")
+    Logger.warn("#{request_id} sync call timeout")
     pending_calls = Map.delete(socket.assigns.pending_calls, request_id)
     {:noreply, assign(socket, :pending_calls, pending_calls)}
   end
@@ -89,8 +99,7 @@ defmodule Central.Socket.Air.MainChannel do
   def handle_info({:DOWN, ref, :process, _pid, _reason}, socket = %{assigns: %{manager_ref: ref}}), do:
     {:stop, :data_source_manager_down, socket}
   def handle_info(message, socket) do
-    air_id = socket.assigns.air_id
-    Logger.info("unhandled info #{inspect(message)} from '#{air_id}'")
+    Logger.info("unhandled info #{inspect(message)}")
     {:noreply, socket}
   end
 
@@ -148,5 +157,41 @@ defmodule Central.Socket.Air.MainChannel do
       aux: payload["aux"],
     }
     Customer.record_query(customer, params)
+  end
+  defp handle_call_with_retry("cloak_online", cloak_info, socket) do
+    Central.Service.Customer.update_cloak(socket.assigns.customer, socket.assigns.air_name,
+      Map.fetch!(cloak_info, "name"),
+      status: :online, data_source_names: Map.get(cloak_info, "data_source_names", []),
+        version: Map.get(cloak_info, "version", "Unknown")
+    )
+    :ok
+  end
+  defp handle_call_with_retry("cloak_offline", cloak_info, socket) do
+    Central.Service.Customer.update_cloak(socket.assigns.customer, socket.assigns.air_name,
+      Map.fetch!(cloak_info, "name"), status: :offline)
+    :ok
+  end
+  defp handle_call_with_retry("usage_info", uptime_info, socket) do
+    Central.Service.Customer.store_uptime_info(
+      socket.assigns.customer,
+      socket.assigns.air_name,
+      NaiveDateTime.from_iso8601!(Map.fetch!(uptime_info, "air_utc_time")),
+      Map.delete(uptime_info, "air_utc_time")
+    )
+    :ok
+  end
+  defp handle_call_with_retry(other, data, _socket) do
+    Logger.warn("unknown call `#{other}` (#{inspect(data)})")
+    # Responding with ok, because the client can't fix this issue by retrying
+    :ok
+  end
+
+  if Mix.env == :test do
+    # We avoid monitoring in test env, since this will start asynchronous processes storing
+    # to the database, which will in turn lead to noisy errors in test output.
+    defp monitor_channel(_customer, _air_name, _air_info), do: :ok
+  else
+    defp monitor_channel(customer, air_name, air_info), do:
+      Central.AirStats.register(customer, air_name, air_info)
   end
 end

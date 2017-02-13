@@ -4,7 +4,7 @@ defmodule Cloak.Mixfile do
   def project do
     [
       app: :cloak,
-      version: "0.1.0",
+      version: File.read!("../VERSION") |> String.trim(),
       elixir: "~> 1.3",
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
@@ -34,8 +34,8 @@ defmodule Cloak.Mixfile do
       {:mariaex, "~> 0.8"},
       {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client"},
       {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0"},
-      {:combine, "~> 0.9.2"},
-      {:timex, "~> 3.1.3"},
+      {:combine, "~> 0.9.6"},
+      {:timex, "~> 3.1"},
       {:poison, "~> 2.2.0", override: true},
       {:mongodb, "~> 0.2.0"},
       {:lens, "~> 0.2.0"},

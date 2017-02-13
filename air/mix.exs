@@ -4,7 +4,7 @@ defmodule Air.Mixfile do
   def project do
     [
       app: :air,
-      version: "0.0.1",
+      version: File.read!("../VERSION") |> String.trim(),
       elixir: "~> 1.3",
       elixirc_paths: elixirc_paths(Mix.env),
       compilers: [
@@ -24,6 +24,7 @@ defmodule Air.Mixfile do
       preferred_cli_env: [
         eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev, release: :prod,
         "phoenix.digest": :prod, site_release: :prod, "test.standard": :test, dialyze_retry: :dev,
+        version: :prod,
       ],
       test_coverage: [tool: ExCoveralls],
       docs: [
@@ -66,7 +67,7 @@ defmodule Air.Mixfile do
       {:comeonin, "~> 2.5"},
       {:guardian, "~> 0.13.0"},
       {:lhttpc, github: "esl/lhttpc", override: true},
-      {:timex, "~> 3.1.3"},
+      {:timex, ">= 3.1.10 and < 4.0.0"},
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
       {:csv, "~> 1.4.2"},

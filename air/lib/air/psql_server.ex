@@ -19,10 +19,7 @@ defmodule Air.PsqlServer do
       Application.fetch_env!(:air, Air.PsqlServer)[:port],
       __MODULE__,
       nil,
-      ssl: [
-        certfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_cert.pem"]),
-        keyfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_key.pem"])
-      ]
+      ranch_opts()
     )
 
 
@@ -95,6 +92,14 @@ defmodule Air.PsqlServer do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
+  defp ranch_opts(), do:
+    Application.get_env(:air, Air.PsqlServer, [])
+    |> Keyword.get(:ranch_opts, [])
+    |> Keyword.merge(ssl: [
+        certfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_cert.pem"]),
+        keyfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_key.pem"])
+      ])
+
   defp handle_special_query(conn, "set " <> _), do:
     # we're ignoring set for now
     {true, RanchServer.set_query_result(conn, nil)}
@@ -118,7 +123,7 @@ defmodule Air.PsqlServer do
           Map.fetch!(query_result, "columns"),
           query_result |> Map.fetch!("features") |> Map.fetch!("selected_types")
         )
-        |> Enum.map(fn({name, aql_type}) -> %{name: name, type: psql_type(aql_type)} end),
+        |> Enum.map(fn({name, sql_type}) -> %{name: name, type: psql_type(sql_type)} end),
       rows:
         query_result
         |> Map.get("rows", [])
@@ -136,14 +141,14 @@ defmodule Air.PsqlServer do
 
   defp convert_params(nil), do: nil
   defp convert_params(params), do:
-    Enum.map(params, fn({type, value}) -> %{type: aql_type(type, value), value: value} end)
+    Enum.map(params, fn({type, value}) -> %{type: sql_type(type, value), value: value} end)
 
 
   #-----------------------------------------------------------------------------------------------------------
   # Type conversions
   #-----------------------------------------------------------------------------------------------------------
 
-  for {psql_type, aql_type} <- %{
+  for {psql_type, sql_type} <- %{
     boolean: :boolean,
     int2: :integer,
     int4: :integer,
@@ -156,19 +161,19 @@ defmodule Air.PsqlServer do
     timestamp: :datetime,
     text: :text
   } do
-    defp aql_type(unquote(psql_type), _value), do: unquote(aql_type)
+    defp sql_type(unquote(psql_type), _value), do: unquote(sql_type)
   end
-  defp aql_type(:unknown, value), do: aql_type_from_value(value)
+  defp sql_type(:unknown, value), do: sql_type_from_value(value)
 
-  defp aql_type_from_value(value) when is_boolean(value), do: :boolean
-  defp aql_type_from_value(value) when is_integer(value), do: :integer
-  defp aql_type_from_value(value) when is_float(value), do: :real
-  defp aql_type_from_value(value) when is_binary(value), do: :text
-  defp aql_type_from_value(%Date{}), do: :date
-  defp aql_type_from_value(%Time{}), do: :time
-  defp aql_type_from_value(%NaiveDateTime{}), do: :datetime
+  defp sql_type_from_value(value) when is_boolean(value), do: :boolean
+  defp sql_type_from_value(value) when is_integer(value), do: :integer
+  defp sql_type_from_value(value) when is_float(value), do: :real
+  defp sql_type_from_value(value) when is_binary(value), do: :text
+  defp sql_type_from_value(%Date{}), do: :date
+  defp sql_type_from_value(%Time{}), do: :time
+  defp sql_type_from_value(%NaiveDateTime{}), do: :datetime
 
-  for {aql_type, psql_type} <- %{
+  for {sql_type, psql_type} <- %{
     "boolean" => :boolean,
     "integer" => :int8,
     "real" => :float8,
@@ -177,7 +182,7 @@ defmodule Air.PsqlServer do
     "time" => :time,
     "datetime" => :timestamp,
   } do
-    defp psql_type(unquote(aql_type)), do: unquote(psql_type)
+    defp psql_type(unquote(sql_type)), do: unquote(psql_type)
   end
   defp psql_type(_other), do: :unknown
 

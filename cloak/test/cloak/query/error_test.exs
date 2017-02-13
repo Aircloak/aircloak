@@ -35,6 +35,21 @@ defmodule Cloak.Query.ErrorTest do
     assert ~s/Usage of `x` is ambiguous./ == error
   end
 
+  test "reports an error on collision between alias and column in order by" do
+    assert_query "select count(height) as height from test_errors order by height", %{error: error}
+    assert ~s/Usage of `height` is ambiguous./ == error
+  end
+
+  test "reports an error on collision between alias and column in where" do
+    assert_query "select abs(height) as height from test_errors where height = 20", %{error: error}
+    assert ~s/Usage of `height` is ambiguous./ == error
+  end
+
+  test "reports an error on collision between alias and column in group by" do
+    assert_query "select abs(height) as height from test_errors group by height", %{error: error}
+    assert ~s/Usage of `height` is ambiguous./ == error
+  end
+
   test "query reports an error on invalid statement" do
     assert_query "invalid statement", %{error: "Expected `select or show` at line 1, column 1."}
   end
@@ -88,5 +103,10 @@ defmodule Cloak.Query.ErrorTest do
     assert ~s/`HAVING` clause can not be applied over column `height` from table `test_errors`./ == error
     assert_query "select name from test_errors having count(*) >= 10", %{error: error}
     assert ~s/Using the `HAVING` clause requires the `GROUP BY` clause to be specified./ == error
+  end
+
+  test "query reports error on invalid where clause" do
+    assert_query "select name from test_errors where max(height) >= 100", %{error: error}
+    assert ~s/Expression `max` is not valid in the `WHERE` clause./ == error
   end
 end

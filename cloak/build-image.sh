@@ -27,6 +27,15 @@ cd $ROOT_DIR
 
 common/docker/elixir/build-image.sh
 
+# We need the VERSION file to exist inside the container that is used to
+# fetch and build the cloak dependencies. Due to how we are mounting a
+# variety of distinct folders, we resort to the hacky approach of first
+# copying it into the cloak directory and then inside the container
+# moving the file from the mounted directory into the container itself.
+# This results in the cleanup of the exdtra VERSION file happening as part of the
+# dependency building and resolution phase.
+cp VERSION cloak/
+
 # build deps
 echo "Building dependencies"
 mkdir -p docker_cache/cloak/deps
@@ -37,7 +46,7 @@ docker run --rm -i \
   -v $(pwd)/docker_cache/cloak/deps:/aircloak/cloak/deps \
   -v $(pwd)/docker_cache/cloak/_build:/aircloak/cloak/_build \
   aircloak/elixir:$(elixir_version) \
-  /bin/bash -c ". ~/.asdf/asdf.sh && cd /aircloak/cloak && MIX_ENV=prod ./fetch_deps.sh --only prod && MIX_ENV=prod mix compile"
+  /bin/bash -c ". ~/.asdf/asdf.sh && mv /aircloak/cloak/VERSION /aircloak/ && cd /aircloak/cloak && MIX_ENV=prod ./fetch_deps.sh --only prod && MIX_ENV=prod mix compile"
 
 # build the release
 echo "Building the release"
@@ -46,13 +55,15 @@ build_aircloak_image \
   cloak/docker/release-builder.dockerfile \
   cloak/docker/.dockerignore-release-builder
 
+current_version=$(cat VERSION)
+
 # Start the instance of the release image and copy the release back to the disk
 echo "Building the release image"
 cd $ROOT_DIR/cloak
 mkdir -p artifacts/rel
 rm -rf artifacts/rel/*
 builder_container_id=$(docker create $(aircloak_image_name cloak_release_builder):latest)
-docker cp $builder_container_id:/aircloak/cloak/_build/prod/rel/cloak/releases/0.1.0/cloak.tar.gz artifacts/rel/
+docker cp $builder_container_id:/aircloak/cloak/_build/prod/rel/cloak/releases/$current_version/cloak.tar.gz artifacts/rel/
 docker stop $builder_container_id > /dev/null
 docker rm -v $builder_container_id > /dev/null
 cd artifacts/rel && \
@@ -60,5 +71,5 @@ cd artifacts/rel && \
   rm cloak.tar.gz
 
 cd $ROOT_DIR
-SYSTEM_VERSION=$(cat cloak/VERSION) \
+SYSTEM_VERSION=$current_version \
   build_aircloak_image cloak cloak/docker/release.dockerfile cloak/docker/.dockerignore-release

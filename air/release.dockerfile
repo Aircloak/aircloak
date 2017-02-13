@@ -12,6 +12,7 @@ WORKDIR /aircloak/air
 
 COPY air/artifacts/rel /aircloak/air
 COPY air/docker/start.sh /aircloak/
+RUN sed -i 's|$VERSION|$RELEASE_VERSION|g' /aircloak/start.sh
 
 RUN chown -R deployer:deployer /aircloak/air && chown -R deployer:deployer /var/run/
 

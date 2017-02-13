@@ -149,10 +149,16 @@ defmodule Cloak.AirSocket do
   end
   def handle_info({{__MODULE__, :call}, timeout, from, event, payload}, transport, state) do
     request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
-    GenSocketClient.push(transport, "main", "cloak_call",
-      %{request_id: request_id, event: event, payload: payload})
-    timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
-    {:ok, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
+    try do
+      GenSocketClient.push(transport, "main", "cloak_call", %{request_id: request_id, event: event, payload: payload})
+      timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
+      {:ok, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
+    rescue
+      error in Poison.EncodeError ->
+        Logger.error("Message could not be encoded: #{Exception.message(error)}")
+        respond_to_internal_request(from, {:error, error})
+        {:ok, state}
+    end
   end
   def handle_info({:call_timeout, request_id}, _transport, state) do
     # We're just removing entries here without responding. It is the responsibility of the
@@ -194,7 +200,7 @@ defmodule Cloak.AirSocket do
         respond_to_air(from, :error, "Unknown data source.")
 
       {:ok, data_source} ->
-        case Cloak.Aql.Query.describe_query(data_source, statement, parameters, views) do
+        case Cloak.Sql.Query.describe_query(data_source, statement, parameters, views) do
           {:ok, columns, features} -> respond_to_air(from, :ok, %{columns: columns, features: features})
           {:error, reason} -> respond_to_air(from, :ok, %{error: reason})
         end
@@ -212,7 +218,7 @@ defmodule Cloak.AirSocket do
         respond_to_air(from, :error, "Unknown data source.")
 
       {:ok, data_source} ->
-        case Cloak.Aql.Query.validate_view(data_source, name, sql, views) do
+        case Cloak.Sql.Query.validate_view(data_source, name, sql, views) do
           {:ok, columns} -> respond_to_air(from, :ok, %{valid: true, columns: columns})
           {:error, field, reason} -> respond_to_air(from, :ok, %{valid: false, field: field, error: reason})
         end
@@ -281,7 +287,7 @@ defmodule Cloak.AirSocket do
   end
 
   defp cloak_params() do
-    %{cloak_name: cloak_name()}
+    %{cloak_name: cloak_name(), version: Aircloak.Version.for_app(:cloak) |> Aircloak.Version.to_string()}
   end
 
   defp cloak_name() do

@@ -24,6 +24,9 @@ config :air, Air.Endpoint,
   pubsub: [name: Air.PubSub,
            adapter: Phoenix.PubSub.PG2]
 
+config :air, Air.Service.Version,
+  version_expiry: ~D[2100-01-01]
+
 config :air, :https_port, 8444
 
 config :air, Air.PsqlServer, port: 8433
@@ -37,3 +40,5 @@ config :air, :central,
   central_site: "ws://localhost:7081",
   min_reconnect_interval: 1000,
   max_reconnect_interval: 50000
+
+config :air, :usage_report_interval, 100

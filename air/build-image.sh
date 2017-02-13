@@ -19,8 +19,10 @@ common/docker/phoenix/build-image.sh
 #    and create the release container. Here, we just copy the release, without
 #    the need to install Erlang.
 
+current_version=$(cat VERSION)
+
 # Build deps locally
-SYSTEM_VERSION=$(cat air/VERSION) \
+SYSTEM_VERSION=$current_version \
   build_aircloak_image air_build air/builder.dockerfile air/.dockerignore-builder
 
 # Start the instance of the builder image and copy the generated release back to the disk
@@ -28,7 +30,7 @@ cd $ROOT_DIR/air
 mkdir -p artifacts/rel
 rm -rf artifacts/rel/*
 builder_container_id=$(docker create $(aircloak_image_name air_build):latest)
-docker cp $builder_container_id:/aircloak/air/_build/prod/rel/air/releases/0.0.1/air.tar.gz artifacts/rel/
+docker cp $builder_container_id:/aircloak/air/_build/prod/rel/air/releases/$current_version/air.tar.gz artifacts/rel/
 docker stop $builder_container_id > /dev/null
 docker rm -v $builder_container_id > /dev/null
 cd artifacts/rel && \
@@ -37,5 +39,5 @@ cd artifacts/rel && \
 
 # Build the release image
 cd $ROOT_DIR
-SYSTEM_VERSION=$(cat air/VERSION) \
+SYSTEM_VERSION=$current_version \
   build_aircloak_image air air/release.dockerfile air/.dockerignore-release

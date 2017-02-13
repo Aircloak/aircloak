@@ -7,6 +7,7 @@ all: deps compile
 
 compile:
 	mix compile
+	mix compile.app --force
 
 sandbox:
 	mix compile.sandbox
@@ -17,7 +18,7 @@ deps:
 clean:
 	mix clean --deps
 
-start:
+start: compile
 	iex -S mix
 
 test:
@@ -55,9 +56,13 @@ lint:
 	MIX_ENV=test mix lint
 
 release:
+	MIX_ENV=prod mix compile
+	MIX_ENV=prod mix compile.app --force
 	mix release
 
 release-local:
+	MIX_ENV=prod mix compile
+	MIX_ENV=prod mix compile.app --force
 	mix release --env=local --no-tar
 
 perftest:

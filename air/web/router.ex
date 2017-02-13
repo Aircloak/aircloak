@@ -8,10 +8,12 @@ defmodule Air.Router do
     plug :fetch_flash
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug Air.Plug.Expiration
   end
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug Air.Plug.Expiration
     plug Air.Plug.Session.ApiAuth
   end
 
@@ -54,6 +56,8 @@ defmodule Air.Router do
     get "/licenses/:realm/:name", LicenseController, :show
 
     resources "/profile", ProfileController, singleton: true, only: [:edit, :update]
+
+    get "/changelog", ChangelogController, :index
   end
 
   scope "/admin", Air.Admin, as: :admin do

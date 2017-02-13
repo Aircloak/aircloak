@@ -9,7 +9,7 @@ defmodule Cloak.Query.Runner do
 
   use GenServer
   require Logger
-  alias Cloak.{Aql.Query, DataSource, Query.Runner.Engine}
+  alias Cloak.{Sql.Query, DataSource, Query.Runner.Engine}
 
   @supervisor_name Module.concat(__MODULE__, Supervisor)
   @registry_name Module.concat(__MODULE__, Registry)

@@ -1,6 +1,6 @@
 defmodule Cloak.Query.Runner.Engine do
-  @moduledoc "Execution of AQL queries."
-  alias Cloak.{Aql, DataSource, Query}
+  @moduledoc "Execution of SQL queries."
+  alias Cloak.{Sql, DataSource, Query}
   require Logger
 
 
@@ -8,8 +8,8 @@ defmodule Cloak.Query.Runner.Engine do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Executes the AQL query and returns the query result or the corresponding error."
-  @spec run(Aql.Query.t) :: {:ok, Query.Result.t} | {:error, String.t}
+  @doc "Executes the SQL query and returns the query result or the corresponding error."
+  @spec run(Sql.Query.t) :: {:ok, Query.Result.t} | {:error, String.t}
   def run(query) do
     try do
       {:ok, run_statement(query)}
@@ -23,18 +23,18 @@ defmodule Cloak.Query.Runner.Engine do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp run_statement(%Aql.Query{command: :show, show: :tables} = query), do:
+  defp run_statement(%Sql.Query{command: :show, show: :tables} = query), do:
     Query.Result.new(query,
       Enum.map(
         (Map.keys(query.data_source.tables) ++ Map.keys(query.views)),
         &%{occurrences: 1, row: [to_string(&1)]}
       )
     )
-  defp run_statement(%Aql.Query{command: :show, show: :columns, selected_tables: [table]} = query), do:
+  defp run_statement(%Sql.Query{command: :show, show: :columns, selected_tables: [table]} = query), do:
     Query.Result.new(query,
       Enum.map(table.columns, fn({name, type}) -> %{occurrences: 1, row: [name, type]} end)
     )
-  defp run_statement(%Aql.Query{command: :select} = query), do:
+  defp run_statement(%Sql.Query{command: :select} = query), do:
     select_rows(query)
 
 
@@ -42,14 +42,14 @@ defmodule Cloak.Query.Runner.Engine do
   # Handling of `SELECT` statement
   # -------------------------------------------------------------------
 
-  defp select_rows(%Aql.Query{emulated?: false} = query) do
+  defp select_rows(%Sql.Query{emulated?: false} = query) do
     DataSource.select!(query, fn(rows) ->
       rows
       |> Query.DataDecoder.decode(query)
-      |> process_final_rows(%Aql.Query{query | where: query.emulated_where})
+      |> process_final_rows(%Sql.Query{query | where: query.emulated_where})
     end)
   end
-  defp select_rows(%Aql.Query{emulated?: true} = query) do
+  defp select_rows(%Sql.Query{emulated?: true} = query) do
     Logger.debug("Emulating query ...")
     query
     |> Query.DbEmulator.select()
@@ -60,8 +60,7 @@ defmodule Cloak.Query.Runner.Engine do
     Logger.debug("Processing final rows ...")
     rows
     |> Query.RowSplitters.split(query)
-    |> Query.Rows.filter(Enum.map(query.where, &Aql.Comparison.to_function/1))
-    |> Query.LCFConditions.apply(query)
+    |> Query.Rows.filter(Enum.map(query.where, &Sql.Comparison.to_function/1))
     |> Query.ShrinkAndDrop.apply(query)
     |> Query.Aggregator.aggregate(query)
     |> Query.Sorter.order_buckets(query)

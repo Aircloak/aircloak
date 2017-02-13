@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.MongoDB.Pipeline do
   @moduledoc "MongoDB helper functions for mapping a query to an aggregation pipeline."
 
-  alias Cloak.Aql.{Query, Expression, Comparison}
+  alias Cloak.Sql.{Query, Expression, Comparison}
   alias Cloak.Query.Runner.RuntimeError
   alias Cloak.DataSource.MongoDB.{Schema, Projector}
 
@@ -58,7 +58,6 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_operator(:<=), do: :'$lte'
   defp parse_operator(:<>), do: :'$ne'
 
-  @dialyzer {:nowarn_function, map_constant: 1} # https://github.com/elixir-lang/elixir/issues/5634
   defp map_constant(%NaiveDateTime{} = datetime) do
     {date, {hour, minute, second}} = NaiveDateTime.to_erl(datetime)
     {usec, _precision} = datetime.microsecond

@@ -13,7 +13,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
 
   Provided arguments list must contain SQL fragments.
   """
-  @spec sql(Cloak.Aql.Expression.function_name, [iodata], Cloak.DataSource.data_type, atom) :: iodata
+  @spec sql(Cloak.Sql.Expression.function_name, [iodata], Cloak.DataSource.data_type, atom) :: iodata
   def sql({:cast, type}, [arg], _parsed_type, sql_dialect),
     do: sql("cast", [arg, sql_type(type, sql_dialect)], type, sql_dialect)
   def sql(fun_name, fun_args, _parsed_type, sql_dialect), do: function_call(fun_name, fun_args, sql_dialect)
@@ -56,6 +56,8 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   defp function_call("trunc", [arg1], :mysql), do: ["TRUNCATE(", arg1, ", 0)"]
   defp function_call("btrim", [arg1], :mysql), do: ["TRIM(", arg1, ")"]
   defp function_call("div", [arg1, arg2], :mysql), do: [arg1, " DIV ", arg2]
+  defp function_call("hex", [arg], :postgresql), do: ["ENCODE(", arg, "::bytea, 'hex')"]
+  defp function_call("hex", [arg], :sqlserver), do: ["CONVERT(nvarchar, CAST(", arg, " AS varbinary), 2)"]
   defp function_call({:bucket, :lower}, [arg1, arg2], sql_dialect), do:
     # floor(arg1 / arg2) * arg2
     function_call("*", [

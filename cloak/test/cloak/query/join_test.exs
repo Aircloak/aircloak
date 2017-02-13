@@ -39,17 +39,6 @@ defmodule Cloak.Query.JoinTest do
     assert rows == [%{row: [180, 200], occurrences: 1}]
   end
 
-  for negative_condition <- ["<>", "NOT LIKE", "NOT ILIKE"] do
-    test "#{negative_condition} not supported in a join" do
-      assert_query """
-        SELECT max(height), max(price)
-        FROM heights_join JOIN purchases ON heights_join.user_id = purchases.user_id AND
-        heights_join.user_id #{unquote(negative_condition)} ''
-      """,
-        %{error: "#{unquote(negative_condition)} not supported in joins."}
-    end
-  end
-
   test "selecting using complex JOIN" do
     :ok = insert_rows(_user_ids = 0..100, "heights_join", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])

@@ -16,6 +16,14 @@ config :air, Air.Endpoint,
   pubsub: [name: Air.PubSub,
            adapter: Phoenix.PubSub.PG2]
 
+config :air, Air.Service.Version,
+  version_expiry: File.read!("../RELEASE_EXPIRY_DATE") |> String.trim() |> Date.from_iso8601!()
+
+config :air, Air.MonitoringEndpoint,
+  check_origin: false,
+  http: [port: 8081],
+  render_errors: [accepts: ~w(json)]
+
 config :air, :https_port, 8443
 
 # Configures Elixir's Logger
@@ -66,3 +74,5 @@ config :air, :central,
 config :quantum, cron: [
   "0 * * * *": {Air.Service.Cleanup, :cleanup_old_queries}
 ]
+
+config :air, :usage_report_interval, :timer.minutes(1)

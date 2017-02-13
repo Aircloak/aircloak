@@ -4,6 +4,7 @@ all: deps compile
 
 compile:
 	mix compile
+	mix compile.app --force
 
 deps:
 	mix deps.get
@@ -12,7 +13,7 @@ deps:
 clean:
 	mix clean --deps
 
-start:
+start: compile
 	iex -S mix phoenix.server
 
 test: mocha
@@ -37,9 +38,13 @@ docs:
 	mix docs.all
 
 release:
-	NODE_ENV=production MIX_ENV=prod mix do compile, site_release
+	MIX_ENV=prod mix compile
+	MIX_ENV=prod mix compile.app --force
+	NODE_ENV=production MIX_ENV=prod mix site_release
 
 release-local:
+	MIX_ENV=prod mix compile
+	MIX_ENV=prod mix compile.app --force
 	NODE_ENV=production MIX_ENV=prod mix do compile, site_release --env=local --no-tar
 
 lint: eslint flow

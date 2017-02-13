@@ -41,8 +41,8 @@ defmodule Cloak.DataSource.PostgreSQL do
   end
 
   @doc false
-  def select(connection, aql_query, result_processor) do
-    statement = SqlBuilder.build(aql_query, :postgresql)
+  def select(connection, sql_query, result_processor) do
+    statement = SqlBuilder.build(sql_query, :postgresql)
     run_query(connection, statement, &row_mapper/1, result_processor)
   end
 

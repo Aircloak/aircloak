@@ -14,6 +14,7 @@ defmodule Air.Supervisor do
       worker(Air.Monitoring.FailedQueries, []),
       Air.ResultProcessor.observer_spec(),
       worker(Air.Endpoint, []),
+      worker(Air.MonitoringEndpoint, []),
       worker(Air.BOM, []),
       Air.PsqlServer.child_spec()
     ] ++ system_processes()
@@ -32,12 +33,7 @@ defmodule Air.Supervisor do
     # Processes which we don't want to start in the test environment
     defp system_processes do
       import Supervisor.Spec, warn: false
-
-      [
-        worker(Air.CentralSocket, []),
-        Air.CentralQueryReporter.supervisor_spec(),
-        Air.CentralQueryReporter.observer_spec(),
-      ]
+      [supervisor(Air.CentralClient, [])]
     end
   end
 end
