@@ -169,12 +169,12 @@ defmodule Cloak.DataSource.MongoDBTest do
 
   test "error on invalid conditions", context do
     assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE 30 = age",
-      %{error: "The condition subject on a MongoDB data source has to be a table column."}
+      %{error: "The left side of a condition on a MongoDB data source has to be a table column."}
     assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE true = true",
-      %{error: "The condition subject on a MongoDB data source has to be a table column."}
+      %{error: "The left side of a condition on a MongoDB data source has to be a table column."}
     assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE age = abs(age)",
-      %{error: "The condition target on a MongoDB data source has to be a constant."}
+      %{error: "The right side of a condition on a MongoDB data source has to be a constant."}
     assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE 2 * abs(age) = 60",
-      %{error: "The condition subject on a MongoDB data source has to be a table column."}
+      %{error: "The left side of a condition on a MongoDB data source has to be a table column."}
   end
 end

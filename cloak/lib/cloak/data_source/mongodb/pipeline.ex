@@ -68,11 +68,11 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     BSON.DateTime.from_datetime({Date.to_erl(date), {0, 0, 0, 0}})
   defp map_constant(%Expression{constant?: true, value: value}), do: value
   defp map_constant(_), do:
-    raise RuntimeError, message: "The condition target on a MongoDB data source has to be a constant."
+    raise RuntimeError, message: "The right side of a condition on a MongoDB data source has to be a constant."
 
   defp map_field(%Expression{name: field}) when is_binary(field), do: field
   defp map_field(_), do:
-    raise RuntimeError, message: "The condition subject on a MongoDB data source has to be a table column."
+    raise RuntimeError, message: "The left side of a condition on a MongoDB data source has to be a table column."
 
   defp parse_where_condition({:comparison, subject, operator, value}), do:
     %{map_field(subject) => %{parse_operator(operator) => map_constant(value)}}
