@@ -22,8 +22,8 @@ defmodule Cloak.LoggerTranslator do
     try do
       with {:ok, filtered_message} <- filter_message(level, kind, message), do:
         Logger.Translator.translate(min_level, level, kind, filtered_message)
-    catch _type, _reason ->
-      :skip
+    catch type, _reason ->
+      {:ok, translation_error(level, kind, type, :erlang.get_stacktrace())}
     end
   end
 
@@ -31,6 +31,12 @@ defmodule Cloak.LoggerTranslator do
   ## ----------------------------------------------------------------
   ## Internal functions
   ## ----------------------------------------------------------------
+
+  defp translation_error(level, kind, error_type, error_stacktrace), do:
+    [
+      "Error `#{error_type}` translating `#{level}`:`#{kind}`: ",
+      Exception.format_stacktrace(filtered_stacktrace(error_stacktrace))
+    ]
 
   def filter_message(:error, :format, message), do:
     filter_error_message(message)
@@ -48,13 +54,14 @@ defmodule Cloak.LoggerTranslator do
   defp filter_error_message(_), do: :skip
 
   defp filter_reason({_exception, stacktrace}), do:
-    {"filtered",
-      stacktrace
-      |> Enum.map(fn
-        {_mod, _fun, arity, _location} = entry when is_integer(arity) -> entry
-        {mod, fun, args, location} when is_list(args) -> {mod, fun, length(args), location}
-        _other -> nil
-      end)
-      |> Enum.filter(&(&1 != nil))
-    }
+    {"filtered", filtered_stacktrace(stacktrace)}
+
+  defp filtered_stacktrace(stacktrace), do:
+    stacktrace
+    |> Enum.map(fn
+      {_mod, _fun, arity, _location} = entry when is_integer(arity) -> entry
+      {mod, fun, args, location} when is_list(args) -> {mod, fun, length(args), location}
+      _other -> nil
+    end)
+    |> Enum.filter(&(&1 != nil))
 end
