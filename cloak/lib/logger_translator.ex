@@ -1,6 +1,14 @@
 defmodule Cloak.LoggerTranslator do
   @moduledoc """
   Custom logger translator which ensures that sensitive data is not logged on process crashes.
+
+  This translator is installed in front of standard Logger translator. In production it will blacklist all
+  logs, except for the ones which are explicitly whitelisted here. The whitelisted logs are sanitized to
+  remove the privacy sensitive data. This amounts to removing an exception reason, process state, or arguments
+  in the function call. Consequently, crash reports will contain only stack traces of functions with arity.
+
+  Note that this is coupled with the global configuration setting `config :sasl, :sasl_error_logger, false`,
+  which should ensure that all crashes are logged only if allowed by this translator.
   """
 
   ## ----------------------------------------------------------------
