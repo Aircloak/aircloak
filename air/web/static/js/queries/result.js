@@ -109,29 +109,31 @@ export class ResultView extends React.Component {
       const data = this.graphData.traces("bar")[0];
 
       return (
-        <Bar data={
-          {
+        <Bar
+          data={{
             labels: data.x,
             datasets: [
               {
                 label: data.name,
-                data: data.y
-              }
+                data: data.y,
+              },
             ],
-          }
-        }
-        options={
-          {
+          }}
+
+          options={{
             scales: {
               xAxes: [{
                 scaleLabel: {
                   display: true,
-                  labelString: this.graphData.xAxisLabel()
-                }
-              }]
-            }
-          }
-        } width={714} height={600} />
+                  labelString: this.graphData.xAxisLabel(),
+                },
+              }],
+            },
+          }}
+
+          width={714}
+          height={600}
+        />
       );
     } else {
       return null;
