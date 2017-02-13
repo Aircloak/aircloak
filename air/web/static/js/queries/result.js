@@ -4,7 +4,6 @@ import React from "react";
 import _ from "lodash";
 import {Bar} from "react-chartjs-2";
 
-import Plotly from "../plotly.js";
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
 import {GraphData} from "./graph_data";
@@ -36,8 +35,6 @@ export class ResultView extends React.Component {
     this.state = {
       rowsToShowCount: this.minRowsToShow,
       showChart: false,
-      mode: "bar",
-      chartIsStale: true, // Hack to avoid slow Plotly redraws
     };
 
     this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
@@ -48,9 +45,6 @@ export class ResultView extends React.Component {
     this.renderOptionMenu = this.renderOptionMenu.bind(this);
 
     this.conditionallyRenderChart = this.conditionallyRenderChart.bind(this);
-    this.setChartDataOnRef = this.setChartDataOnRef.bind(this);
-    this.plotChart = this.plotChart.bind(this);
-    this.changeGraphType = this.changeGraphType.bind(this);
     this.formatValue = this.formatValue.bind(this);
 
     this.showingAllOfFewRows = this.showingAllOfFewRows.bind(this);
@@ -60,11 +54,10 @@ export class ResultView extends React.Component {
     this.graphData = new GraphData(this.props.rows, this.props.columns, this.formatValue);
   }
 
-  state: {rowsToShowCount: number, showChart: boolean, mode: string, chartIsStale: boolean};
+  state: {rowsToShowCount: number, showChart: boolean};
   props: Result;
   minRowsToShow: number;
   graphData: GraphDataT;
-  chartRef: Node;
   formatValue: (value: any) => string | number;
   handleClickMoreRows: () => void;
   handleClickLessRows: () => void;
@@ -72,55 +65,9 @@ export class ResultView extends React.Component {
   renderShowAll: () => void;
   renderOptionMenu: () => void;
   conditionallyRenderChart: () => void;
-  setChartDataOnRef: () => void;
-  plotChart: () => void;
-  changeGraphType: () => void;
   showingAllOfFewRows: () => void;
   showingAllOfManyRows: () => void;
   showingMinimumNumberOfManyRows: () => void;
-
-  componentDidUpdate() {
-    this.plotChart();
-  }
-
-  setChartDataOnRef(ref: Node) {
-    this.chartRef = ref;
-    this.plotChart();
-  }
-
-  plotChart() {
-    if (! this.state.showChart || ! this.chartRef || ! this.state.chartIsStale) {
-      return;
-    }
-    const traces = this.graphData.traces(this.state.mode);
-    const layout = {
-      // This excessive amount of margin is currently
-      // needed as long label names otherwise don't fit
-      // inside the graph. Unfortunately this is somewhat
-      // of a magic value, that seems to accommodate most
-      // long strings, while at the same time, not leaving
-      // all too much white space under the graph when
-      // short labels are used.
-      margin: {
-        b: 200,
-      },
-      width: 714,
-      xaxis: {
-        title: this.graphData.xAxisLabel(),
-      },
-      showlegend: true,
-      legend: {
-        x: 100,
-        y: 100,
-        orientation: "h",
-      },
-    };
-    const displayOptions = {
-      staticPlot: true,
-    };
-    Plotly.newPlot(this.chartRef, traces, layout, displayOptions);
-    this.setState({chartIsStale: false});
-  }
 
   handleClickMoreRows() {
     this.setState({rowsToShowCount: Math.min(this.state.rowsToShowCount * 2, this.props.row_count)});
@@ -157,50 +104,34 @@ export class ResultView extends React.Component {
     return typeof(n) === "number" && isFinite(n);
   }
 
-  changeGraphType(e: Event) {
-    if (e.target instanceof HTMLSelectElement) {
-      this.setState({mode: e.target.value, chartIsStale: true});
-    }
-  }
-
   conditionallyRenderChart() {
     if (this.state.showChart) {
       const data = this.graphData.traces("bar")[0];
 
       return (
-        <div>
-          Show as: <select onChange={this.changeGraphType}>
-            <option value="bar">Bar chart</option>
-            <option value="line">Line chart</option>
-          </select>
-          <div
-            ref={this.setChartDataOnRef}
-            className="plotlyGraph"
-          />
-          <Bar data={
-            {
-              labels: data.x,
-              datasets: [
-                {
-                  label: data.name,
-                  data: data.y
+        <Bar data={
+          {
+            labels: data.x,
+            datasets: [
+              {
+                label: data.name,
+                data: data.y
+              }
+            ],
+          }
+        }
+        options={
+          {
+            scales: {
+              xAxes: [{
+                scaleLabel: {
+                  display: true,
+                  labelString: this.graphData.xAxisLabel()
                 }
-              ],
+              }]
             }
           }
-          options={
-            {
-              scales: {
-                xAxes: [{
-                  scaleLabel: {
-                    display: true,
-                    labelString: this.graphData.xAxisLabel()
-                  }
-                }]
-              }
-            }
-          } width={714} height={600} />
-        </div>
+        } width={714} height={600} />
       );
     } else {
       return null;
