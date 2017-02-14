@@ -156,6 +156,13 @@ defmodule Cloak.AirSocket do
       {:ok, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
     rescue
       error in Poison.EncodeError ->
+        error =
+          if Aircloak.DeployConfig.override_app_env!(:cloak, :sanitize_otp_errors) do
+            Poison.EncodeError.exception(message: "Poison encode error", value: "`sanitized`")
+          else
+            error
+          end
+
         Logger.error("Message could not be encoded: #{Exception.message(error)}")
         respond_to_internal_request(from, {:error, error})
         {:ok, state}
