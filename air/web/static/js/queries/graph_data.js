@@ -6,9 +6,31 @@ import type {Row, Column} from "./result";
 type ValueFormatter = (value: any) => any;
 
 export const GraphData = (columns: Column[], rows: Row[], graphConfig: GraphConfigT) => {
-  const ready = () => false;
 
-  return {ready};
+
+  // ----------------------------------------------------------------
+  // Internal functions
+  // ----------------------------------------------------------------
+
+  const indices = {};
+  columns.forEach((column, index) => indices[column] = index);
+
+
+  // ----------------------------------------------------------------
+  // API
+  // ----------------------------------------------------------------
+
+  const ready = () => graphConfig.xColumns().length > 0 && graphConfig.yColumns().length > 0;
+
+  const x = () => rows.map(({row}) =>
+    graphConfig.xColumns().map((column) => row[indices[column]]).join(", "));
+
+  const series = () => graphConfig.yColumns().map((column) => { return {
+    label: column,
+    data: rows.map(({row}) => row[indices[column]]),
+  }});
+
+  return {ready, x, series};
 }
 
 export const GraphInfo = (columns: Column[], rows: Row[]) => {

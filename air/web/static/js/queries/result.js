@@ -156,23 +156,16 @@ export class ResultView extends React.Component {
 
   renderConfiguredChart() {
     if (this.graphData.ready()) {
-      return <Bar data={this.chartData()} options={this.chartOptions()} width={714} height={600} />
+      return <Bar data={this.chartData()} options={this.chartOptions()} width={714} height={600} redraw={true} />
     } else {
       return <div className="alert alert-warning">Select at least one X and Y axis.</div>
     }
   }
 
   chartData() {
-    const data = this.graphData.traces("bar")[0];
-
     return {
-      labels: data.x,
-      datasets: [
-        {
-          label: data.name,
-          data: data.y,
-        },
-      ],
+      labels: this.graphData.x(),
+      datasets: this.graphData.series(),
     };
   }
 
@@ -182,7 +175,7 @@ export class ResultView extends React.Component {
         xAxes: [{
           scaleLabel: {
             display: true,
-            labelString: this.graphData.xAxisLabel(),
+            labelString: this.state.graphConfig.xColumns().join(", "),
           },
         }],
       },

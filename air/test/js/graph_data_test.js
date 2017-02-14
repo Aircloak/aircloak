@@ -1,7 +1,66 @@
 import _ from "lodash";
 import assert from "assert";
 
-import {GraphInfo, GraphConfig} from "queries/graph_data";
+import {GraphData, GraphInfo, GraphConfig} from "queries/graph_data";
+
+describe("GraphData", () => {
+  describe("ready", () => {
+    it("is true when an x and y axis has been selected", () => {
+      const data = new GraphData([], [], {xColumns: () => ["col1"], yColumns: () => ["col2"]})
+      assert.equal(data.ready(), true);
+    });
+
+    it("is false when no x axis selected", () => {
+      const data = new GraphData([], [], {xColumns: () => [], yColumns: () => ["col2"]})
+      assert.equal(data.ready(), false);
+    });
+
+    it("is false when no y axis selected", () => {
+      const data = new GraphData([], [], {xColumns: () => ["col1"], yColumns: () => []})
+      assert.equal(data.ready(), false);
+    });
+  });
+
+  describe("x", () => {
+    it("is all possible values for a single column", () => {
+      const data = new GraphData(
+        ["col1", "col2"],
+        [{row: [null, "foo"]}, {row: [null, "bar"]}],
+        {xColumns: () => ["col2"], yColumns: () => []}
+      )
+      assert.deepEqual(data.x(), ["foo", "bar"]);
+    });
+
+    it("is all possible combinations for a multiple", () => {
+      const data = new GraphData(
+        ["col1", "col2", "col3"],
+        [{row: [null, "foo", 2]}, {row: [null, "bar", 3]}],
+        {xColumns: () => ["col2", "col3"], yColumns: () => []}
+      )
+      assert.deepEqual(data.x(), ["foo, 2", "bar, 3"]);
+    });
+  });
+
+  describe("series", () => {
+    it("works for single columns", () => {
+      const data = new GraphData(
+        ["col1", "col2", "col3"],
+        [{row: [null, "foo", 2]}, {row: [null, "bar", 3]}],
+        {xColumns: () => [], yColumns: () => ["col3"]}
+      )
+      assert.deepEqual(data.series(), [{label: "col3", data: [2, 3]}]);
+    });
+
+    it("works for multiple y columns", () => {
+      const data = new GraphData(
+        ["col1", "col2", "col3"],
+        [{row: [null, "foo", 2]}, {row: [null, "bar", 3]}],
+        {xColumns: () => [], yColumns: () => ["col1", "col3"]}
+      )
+      assert.deepEqual(data.series(), [{label: "col1", data: [null, null]}, {label: "col3", data: [2, 3]}]);
+    });
+  });
+});
 
 describe("GraphInfo", () => {
   it("lists all columns as candidates for x-axis", () => {
