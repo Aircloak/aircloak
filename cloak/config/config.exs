@@ -12,7 +12,7 @@ config :logger,
   backends: [:console],
   console: [
     format: "$time [$level] $metadata$message\n",
-    metadata: []
+    metadata: [:query_id]
   ]
 
 config :kernel,
