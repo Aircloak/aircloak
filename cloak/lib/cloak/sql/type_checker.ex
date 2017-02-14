@@ -74,9 +74,7 @@ defmodule Cloak.Sql.TypeChecker do
           by an expression that both contains a user data column as well as a constant value
           (for example `age / (age - 20)`), or if the square root is taken of an expression that
           contains a user data column as well as a constant value (for example `sqrt(age - 20)`).
-          """,
-          context: :illegal,
-          type: "crashing functions usage"
+          """
       end
     end)
 
@@ -106,9 +104,7 @@ defmodule Cloak.Sql.TypeChecker do
 
           If applicable, consider using a range on the native column instead.
           For example: column >= 'YYYY-MM-DD' and column < 'YYYY-MM-DD'.
-          """,
-          context: :illegal,
-          type: "datetime extraction"
+          """
       end
     end)
 
@@ -126,9 +122,7 @@ defmodule Cloak.Sql.TypeChecker do
 
           Queries where a reported value is influenced by math and a discontinuous function
           in conjunction with a constant are not allowed.
-          """,
-          context: :illegal,
-          type: "selected columns"
+          """
       end
     end)
 
@@ -151,9 +145,7 @@ defmodule Cloak.Sql.TypeChecker do
           Inequality clauses used to filter the data (like WHERE, HAVING and JOIN-condition where >,
           >=, < or <= are used) are not allowed if the column value has either been transformed by
           a math function or a discontinuous function where one of the other parameters was a constant.
-          """,
-          context: :illegal,
-          type: "condition clauses"
+          """
       end
     end)
 

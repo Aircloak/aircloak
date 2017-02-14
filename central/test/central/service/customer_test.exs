@@ -143,12 +143,10 @@ defmodule Central.Service.CustomerTest do
     metrics = %{"user_count" => 10}
     features = %{"some" => "feature"}
     aux = %{"other" => "data"}
-    error = %{"some" => "error"}
     params = %{
       metrics: metrics,
       features: features,
       aux: aux,
-      error: error,
     }
     customer = create_customer()
     assert :ok == Customer.record_query(customer, params)
@@ -157,7 +155,6 @@ defmodule Central.Service.CustomerTest do
     assert query.metrics == metrics
     assert query.features == features
     assert query.aux == aux
-    assert query.error == error
   end
 
   defp create_customer(name \\ "default customer") do

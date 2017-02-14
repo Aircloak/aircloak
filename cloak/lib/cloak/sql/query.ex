@@ -9,7 +9,6 @@ defmodule Cloak.Sql.Query do
 
   alias Cloak.DataSource
   alias Cloak.Sql.{Expression, Compiler, Function, Parser, Query.Lenses, Range}
-  alias Cloak.Query.Error
 
   @type negatable_condition ::
       {:comparison, Expression.t, :=, Expression.t}
@@ -100,7 +99,8 @@ defmodule Cloak.Sql.Query do
   end
 
   @doc "Creates a compiled query from a string representation."
-  @spec make(DataSource.t, String.t, [parameter], view_map) :: {:ok, t} | Error.t
+  @spec make(DataSource.t, String.t, [parameter], view_map) ::
+    {:ok, t} | {:error, String.t}
   def make(data_source, string, parameters, views) when is_list(parameters), do:
     make_query(data_source, string, parameters, views)
 
@@ -141,7 +141,7 @@ defmodule Cloak.Sql.Query do
   and types, without executing the query.
   """
   @spec describe_query(DataSource.t, String.t, [parameter] | nil, view_map) ::
-    {:ok, [String.t], map} | %Error{}
+    {:ok, [String.t], map} | {:error, String.t}
   def describe_query(data_source, statement, parameters, views), do:
     with {:ok, query} <- make_query(data_source, statement, parameters, views), do:
       {:ok, query.column_titles, extract_features(query)}
@@ -164,8 +164,8 @@ defmodule Cloak.Sql.Query do
             end)
       }
     else
-      {:error, _field, %Error{}} = error -> error
-      %Error{} = error -> {:error, :sql, error}
+      {:error, _field, _error} = error -> error
+      {:error, sql_error} -> {:error, :sql, sql_error}
     end
   end
 
@@ -325,13 +325,7 @@ defmodule Cloak.Sql.Query do
 
   defp view_name_ok?(data_source, view_name) do
     if Enum.any?(DataSource.tables(data_source), &(&1.name == view_name)) do
-      error = %Error{
-        type: :invalid,
-        context: "invalid view name",
-        location: __MODULE__,
-        human_description: "has already been taken",
-      }
-      {:error, :name, error}
+      {:error, :name, "has already been taken"}
     else
       :ok
     end

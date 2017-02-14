@@ -2,7 +2,6 @@ defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.Sql.{Compiler, Parser}
-  alias Cloak.Query.Error
 
   describe "Condition affected by datetime extractors are forbidden when a constant is involved" do
     test "it is forbidden to cast a date to text and then use it in a WHERE inequality" do
@@ -234,7 +233,7 @@ defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
   defp condition_columns_have_valid_transformations(query) do
     case compile(query, data_source()) do
       {:ok, _} -> true
-      %Error{human_description: reason} ->
+      {:error, reason} ->
         if reason =~ ~r/functions that extract a component of a date/ do
           false
         else
