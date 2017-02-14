@@ -11,8 +11,8 @@ config :logger,
   level: :info,
   backends: [:console],
   console: [
-    format: {Cloak.Logger.Formatter, :format},
-    metadata: [:file_name, :line_no, :log_level, :file, :line]
+    format: "$time [$level] $metadata$message\n",
+    metadata: []
   ]
 
 config :kernel,
