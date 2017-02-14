@@ -77,9 +77,14 @@ defmodule Air.CentralClient.QueryReporter do
         },
         started_at: query.inserted_at,
         finished_at: NaiveDateTime.utc_now(),
+        has_error: not is_nil(result["error"]),
+        error: filter_error(result["error"]),
       },
     }
     Air.CentralClient.Socket.record_query(payload)
   end
+
+  defp filter_error(nil), do: nil
+  defp filter_error(error), do: Air.Service.Redacter.filter_query_error(error)
 end
 
