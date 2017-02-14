@@ -41,12 +41,15 @@ export class ResultView extends React.Component {
       graphConfig: new GraphConfig(),
     };
 
+    this.componentDidUpdate = this.componentDidUpdate.bind(this);
+
     this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
     this.handleClickLessRows = this.handleClickLessRows.bind(this);
 
     this.renderRows = this.renderRows.bind(this);
     this.renderShowAll = this.renderShowAll.bind(this);
     this.renderOptionMenu = this.renderOptionMenu.bind(this);
+    this.renderConfiguredChart = this.renderConfiguredChart.bind(this);
 
     this.conditionallyRenderChart = this.conditionallyRenderChart.bind(this);
     this.chartData = this.chartData.bind(this);
@@ -58,7 +61,7 @@ export class ResultView extends React.Component {
     this.showingMinimumNumberOfManyRows = this.showingMinimumNumberOfManyRows.bind(this);
 
     this.graphInfo = new GraphInfo(this.props.columns, this.props.rows);
-    this.graphData = new GraphData(this.props.rows, this.props.columns, this.formatValue);
+    this.graphData = new GraphData(this.props.columns, this.props.rows, this.state.graphConfig);
 
     this.addX = this.addX.bind(this);
     this.addY = this.addY.bind(this);
@@ -80,6 +83,10 @@ export class ResultView extends React.Component {
   showingAllOfFewRows: () => void;
   showingAllOfManyRows: () => void;
   showingMinimumNumberOfManyRows: () => void;
+
+  componentDidUpdate() {
+    this.graphData = new GraphData(this.props.columns, this.props.rows, this.state.graphConfig);
+  }
 
   handleClickMoreRows() {
     this.setState({rowsToShowCount: Math.min(this.state.rowsToShowCount * 2, this.props.row_count)});
@@ -139,11 +146,19 @@ export class ResultView extends React.Component {
             addY={this.addY}
             remove={this.removeColumn}
           />
-          <Bar data={this.chartData()} options={this.chartOptions()} width={714} height={600} />
+          {this.renderConfiguredChart()}
         </div>
       );
     } else {
       return null;
+    }
+  }
+
+  renderConfiguredChart() {
+    if (this.graphData.ready()) {
+      return <Bar data={this.chartData()} options={this.chartOptions()} width={714} height={600} />
+    } else {
+      return <div className="alert alert-warning">Select at least one X and Y axis.</div>
     }
   }
 
