@@ -125,7 +125,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp conditions_to_fragments({:is, what, match}, sql_dialect),
     do: [to_fragment(what, sql_dialect), " IS ", to_fragment(match, sql_dialect)]
   defp conditions_to_fragments({:not, condition}, sql_dialect),
-    do: [" NOT ", conditions_to_fragments(condition, sql_dialect)]
+    do: ["NOT ", conditions_to_fragments(condition, sql_dialect)]
 
   defp to_fragment(string, _sql_dialect) when is_binary(string), do: string
   defp to_fragment(atom, _sql_dialect) when is_atom(atom), do: to_string(atom) |> String.upcase()
