@@ -6,7 +6,7 @@ import {Bar} from "react-chartjs-2";
 
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
-import {GraphData, GraphInfo} from "./graph_data";
+import {GraphData, GraphInfo, GraphConfig} from "./graph_data";
 import {GraphConfigView} from "./graph_config_view";
 import type {GraphDataT, GraphInfoT} from "./graph_data";
 import type {Error} from "./error";
@@ -38,6 +38,7 @@ export class ResultView extends React.Component {
     this.state = {
       rowsToShowCount: this.minRowsToShow,
       showChart: false,
+      graphConfig: new GraphConfig(),
     };
 
     this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
@@ -58,9 +59,13 @@ export class ResultView extends React.Component {
 
     this.graphInfo = new GraphInfo(this.props.columns, this.props.rows);
     this.graphData = new GraphData(this.props.rows, this.props.columns, this.formatValue);
+
+    this.addX = this.addX.bind(this);
+    this.addY = this.addY.bind(this);
+    this.removeColumn = this.removeColumn.bind(this);
   }
 
-  state: {rowsToShowCount: number, showChart: boolean};
+  state: {rowsToShowCount: number, showChart: boolean, graphConfig: GraphConfigT};
   props: Result;
   minRowsToShow: number;
   graphData: GraphDataT;
@@ -97,6 +102,18 @@ export class ResultView extends React.Component {
     return this.state.rowsToShowCount === this.minRowsToShow && this.props.row_count > this.minRowsToShow;
   }
 
+  addX(col) {
+    return () => this.setState({graphConfig: this.state.graphConfig.addX(col)});
+  }
+
+  addY(col) {
+    return () => this.setState({graphConfig: this.state.graphConfig.addY(col)});
+  }
+
+  removeColumn(col) {
+    return () => this.setState({graphConfig: this.state.graphConfig.remove(col)});
+  }
+
   formatValue(value: any): number | string {
     if (value === null) {
       return "<null>";
@@ -115,7 +132,13 @@ export class ResultView extends React.Component {
     if (this.state.showChart) {
       return (
         <div>
-          <GraphConfigView graphInfo={this.graphInfo} />
+          <GraphConfigView
+            graphInfo={this.graphInfo}
+            graphConfig={this.state.graphConfig}
+            addX={this.addX}
+            addY={this.addY}
+            remove={this.removeColumn}
+          />
           <Bar data={this.chartData()} options={this.chartOptions()} width={714} height={600} />
         </div>
       );

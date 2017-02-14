@@ -247,31 +247,30 @@ export const GraphInfo = (columns: Column[], rows: Row[]) => {
   return {xColumns, usableAsY, chartable};
 };
 
-export const GraphConfig = () => {
+export class GraphConfig {
 
 
   // ----------------------------------------------------------------
   // State
   // ----------------------------------------------------------------
 
-  const _xColumns = new Set();
-
-  const _yColumns = new Set();
+  constructor() {
+    this._xColumns = new Set();
+    this._yColumns = new Set();
+  }
 
 
   // ----------------------------------------------------------------
   // API
   // ----------------------------------------------------------------
 
-  const xColumns = () => [..._xColumns];
+  xColumns() { return [...this._xColumns]; }
 
-  const yColumns = () => [..._yColumns];
+  yColumns() { return [...this._yColumns]; }
 
-  const addX = (col) => { _yColumns.delete(col); _xColumns.add(col); };
+  addX(col) { this._yColumns.delete(col); this._xColumns.add(col); return this; };
 
-  const addY = (col) => { _xColumns.delete(col); _yColumns.add(col); };
+  addY(col) { this._xColumns.delete(col); this._yColumns.add(col); return this; };
 
-  const remove = (col) => { _xColumns.delete(col); _yColumns.delete(col); };
-
-  return {xColumns, yColumns, addX, addY, remove};
+  remove(col) { this._xColumns.delete(col); this._yColumns.delete(col); return this; };
 }

@@ -243,4 +243,9 @@ describe("GraphConfig", () => {
     assert.deepEqual(config.xColumns(), []);
     assert.deepEqual(config.yColumns(), []);
   });
+
+  it("returns this from mutators", () => {
+    const config = new GraphConfig();
+    assert.deepEqual(config.addX("col1").addY("col2").remove("col2").xColumns(), ["col1"]);
+  });
 });
