@@ -11,3 +11,4 @@ config :cloak, :air,
   max_reconnect_interval: 100
 
 config :cloak, :in_development, true
+config :cloak, :sanitize_otp_errors, false

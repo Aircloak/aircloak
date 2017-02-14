@@ -7,6 +7,7 @@ defmodule Cloak do
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
+    Cloak.LoggerTranslator.install()
     set_salt()
     if Aircloak.DeployConfig.fetch("debug") === {:ok, true} do Logger.configure(level: :debug) end
     :ok = Cloak.DataSource.start()

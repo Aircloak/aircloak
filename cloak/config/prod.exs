@@ -10,3 +10,5 @@ config :cloak, :air,
   # they arrive at and stay at this max interval.
   min_reconnect_interval: :timer.seconds(10),
   max_reconnect_interval: :timer.minutes(1)
+
+config :cloak, :sanitize_otp_errors, true

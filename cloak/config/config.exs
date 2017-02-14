@@ -4,7 +4,7 @@ use Mix.Config
 
 config :aircloak_common, :env, Mix.env
 
-# turn off sasl error logger
+# Turn off sasl error logger. Do not change this, because data privacy might be compromised.
 config :sasl, :sasl_error_logger, false
 
 config :logger,

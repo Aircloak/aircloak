@@ -44,3 +44,4 @@ config :cloak, :anonymizer,
   sum_noise_sigma: 0
 
 config :excheck, :number_iterations, 200
+config :cloak, :sanitize_otp_errors, false
