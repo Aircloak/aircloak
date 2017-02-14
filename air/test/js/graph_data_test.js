@@ -1,7 +1,7 @@
 import _ from "lodash";
 import assert from "assert";
 
-import {GraphData, GraphInfo} from "queries/graph_data";
+import {GraphData, GraphInfo, GraphConfig} from "queries/graph_data";
 
 const columnNames = prepper => _.map(prepper.traces("line"), trace => trace.name);
 
@@ -192,5 +192,55 @@ describe("GraphInfo", () => {
       const info = new GraphInfo(["x", "y", "z"], [{row: [1, 2, 3]}]);
       assert.equal(info.chartable(), false);
     });
+  });
+});
+
+describe("GraphConfig", () => {
+  it("does not include any column by default", () => {
+    const config = new GraphConfig();
+    assert.deepEqual(config.xColumns(), []);
+    assert.deepEqual(config.yColumns(), []);
+  })
+
+  it("can add x columns", () => {
+    const config = new GraphConfig();
+    config.addX("col1");
+    config.addX("col2");
+    assert.deepEqual(config.xColumns(), ["col1", "col2"]);
+    assert.deepEqual(config.yColumns(), []);
+  });
+
+  it("can add y columns", () => {
+    const config = new GraphConfig();
+    config.addY("col1");
+    config.addY("col2");
+    assert.deepEqual(config.xColumns(), []);
+    assert.deepEqual(config.yColumns(), ["col1", "col2"]);
+  });
+
+  it("can move columns from x to y", () => {
+    const config = new GraphConfig();
+    config.addX("col1");
+    config.addX("col2");
+    config.addY("col2");
+    assert.deepEqual(config.xColumns(), ["col1"]);
+    assert.deepEqual(config.yColumns(), ["col2"]);
+  });
+
+  it("can move columns from y to x", () => {
+    const config = new GraphConfig();
+    config.addY("col1");
+    config.addY("col2");
+    config.addX("col2");
+    assert.deepEqual(config.xColumns(), ["col2"]);
+    assert.deepEqual(config.yColumns(), ["col1"]);
+  });
+
+  it("can remove columns", () => {
+    const config = new GraphConfig();
+    config.addX("col1");
+    config.remove("col1");
+    assert.deepEqual(config.xColumns(), []);
+    assert.deepEqual(config.yColumns(), []);
   });
 });

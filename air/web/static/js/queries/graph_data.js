@@ -246,3 +246,32 @@ export const GraphInfo = (columns: Column[], rows: Row[]) => {
 
   return {xColumns, usableAsY, chartable};
 };
+
+export const GraphConfig = () => {
+
+
+  // ----------------------------------------------------------------
+  // State
+  // ----------------------------------------------------------------
+
+  const _xColumns = new Set();
+
+  const _yColumns = new Set();
+
+
+  // ----------------------------------------------------------------
+  // API
+  // ----------------------------------------------------------------
+
+  const xColumns = () => [..._xColumns];
+
+  const yColumns = () => [..._yColumns];
+
+  const addX = (col) => { _yColumns.delete(col); _xColumns.add(col); };
+
+  const addY = (col) => { _xColumns.delete(col); _yColumns.add(col); };
+
+  const remove = (col) => { _xColumns.delete(col); _yColumns.delete(col); };
+
+  return {xColumns, yColumns, addX, addY, remove};
+}
