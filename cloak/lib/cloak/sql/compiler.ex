@@ -318,8 +318,8 @@ defmodule Cloak.Sql.Compiler do
       %{
         query |
         columns: query.columns ++ range_columns,
-        column_titles: query.column_titles ++ Enum.map(range_columns, &(&1.alias)),
-        aggregators: query.aggregators ++ Enum.filter(range_columns, &(&1.aggregate?)),
+        column_titles: query.column_titles ++ Enum.map(range_columns, & &1.alias),
+        aggregators: query.aggregators ++ Enum.filter(range_columns, & &1.aggregate?),
       }
     else
       %{query | db_columns: query.db_columns ++ range_columns}
@@ -670,7 +670,7 @@ defmodule Cloak.Sql.Compiler do
 
   defp verify_group_by_functions(query) do
     query.group_by
-    |> Enum.filter(&(&1.function? and &1.aggregate?))
+    |> Enum.filter(& &1.aggregate?)
     |> case do
       [] -> :ok
       [expression | _] ->
@@ -1188,7 +1188,7 @@ defmodule Cloak.Sql.Compiler do
   end
   defp censor_selected_uids(query), do: query
 
-  defp is_uid_column?(%Expression{function?: true, aggregate?: true}), do: false
+  defp is_uid_column?(%Expression{aggregate?: true}), do: false
   defp is_uid_column?(column), do: [column] |> extract_columns() |> Enum.any?(& &1.user_id?)
 
   defp extract_columns(columns), do:

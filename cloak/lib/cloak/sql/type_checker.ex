@@ -54,7 +54,8 @@ defmodule Cloak.Sql.TypeChecker do
   # -------------------------------------------------------------------
 
   defp verify_usage_of_potentially_crashing_functions(%Query{columns: columns} = query), do:
-    conditions_lens_sources(query)
+    Query.Lenses.db_filter_clauses()
+    |> Lens.all()
     |> Query.Lenses.condition_columns()
     |> Lens.to_list(query)
     |> Enum.concat(columns)
@@ -81,9 +82,9 @@ defmodule Cloak.Sql.TypeChecker do
     end)
 
   defp verify_usage_of_datetime_extraction_clauses(query), do:
-    conditions_lens_sources(query)
+    Query.Lenses.db_filter_clauses()
+    |> Lens.all()
     |> Lens.to_list(query)
-    |> List.flatten()
     |> Enum.each(fn(comparison) ->
       types = [Comparison.subject(comparison) | Comparison.targets(comparison)]
       |> Enum.map(&establish_type(&1, query))
@@ -133,7 +134,8 @@ defmodule Cloak.Sql.TypeChecker do
     end)
 
   defp verify_function_usage_for_condition_clauses(query), do:
-    conditions_lens_sources(query)
+    Query.Lenses.db_filter_clauses()
+    |> Lens.all()
     |> Query.Lenses.order_condition_columns()
     |> Lens.to_list(query)
     |> Enum.each(fn(column) ->
@@ -270,11 +272,6 @@ defmodule Cloak.Sql.TypeChecker do
         construct_type(column, subquery, future)
     end
   end
-
-  defp conditions_lens_sources(%Query{subquery?: false}), do:
-    Query.Lenses.sources_of_operands_except([:having])
-  defp conditions_lens_sources(_query), do:
-    Query.Lenses.sources_of_operands()
 
   # Removes columns that haven't had all of a list of offenses applied to them
   defp filter_for_offensive_actions(columns, required_offenses), do:

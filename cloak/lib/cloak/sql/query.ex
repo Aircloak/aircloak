@@ -10,6 +10,7 @@ defmodule Cloak.Sql.Query do
   alias Cloak.DataSource
   alias Cloak.Sql.{Expression, Compiler, Function, Parser, Query.Lenses, Range}
   alias Cloak.Query.Error
+  require Logger
 
   @type negatable_condition ::
       {:comparison, Expression.t, :=, Expression.t}
@@ -225,6 +226,17 @@ defmodule Cloak.Sql.Query do
     query.parameter_types
     |> Enum.reduce(:array.new(default: :unknown), fn({index, type}, acc) -> :array.set(index - 1, type, acc) end)
     |> :array.to_list()
+
+  @doc "When debug logging is enabled, logs the query and the specified message."
+  @spec debug_log(t, String.t) :: t
+  def debug_log(query, message) do
+    Logger.debug(fn () ->
+      statement = DataSource.SqlBuilder.build(%__MODULE__{query | subquery?: true}, :postgresql)
+      "#{message}: `#{statement}` ..."
+    end)
+    query
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
