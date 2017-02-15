@@ -82,7 +82,7 @@ export class ResultView extends React.Component {
   showingMinimumNumberOfManyRows: () => void;
 
   componentDidUpdate() {
-    this.graphData = new GraphData(this.props.columns, this.props.rows, this.state.graphConfig);
+    this.graphData = new GraphData(this.props.columns, this.props.rows, this.state.graphConfig, this.formatValue);
   }
 
   handleClickMoreRows() {

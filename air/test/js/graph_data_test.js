@@ -39,6 +39,16 @@ describe("GraphData", () => {
       )
       assert.deepEqual(data.x(), ["foo, 2", "bar, 3"]);
     });
+
+    it("transforms the values through the value formatter if provided", () => {
+      const data = new GraphData(
+        ["col1", "col2"],
+        [{row: [1, 2]}, {row: [3, 4]}],
+        {xColumns: () => ["col1", "col2"], yColumns: () => []},
+        (value) => `formatted-${value}`
+      );
+      assert.deepEqual(data.x(), ["formatted-1, formatted-2", "formatted-3, formatted-4"]);
+    });
   });
 
   describe("series", () => {

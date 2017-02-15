@@ -5,7 +5,7 @@ import type {Row, Column} from "./result";
 
 type ValueFormatter = (value: any) => any;
 
-export const GraphData = (columns: Column[], rows: Row[], graphConfig: GraphConfigT) => {
+export const GraphData = (columns: Column[], rows: Row[], graphConfig: GraphConfigT, formatter: ValueFormatter) => {
 
 
   // ----------------------------------------------------------------
@@ -15,6 +15,8 @@ export const GraphData = (columns: Column[], rows: Row[], graphConfig: GraphConf
   const indices = {};
   columns.forEach((column, index) => indices[column] = index);
 
+  const valueFormatter = formatter || _.identity
+
 
   // ----------------------------------------------------------------
   // API
@@ -23,7 +25,7 @@ export const GraphData = (columns: Column[], rows: Row[], graphConfig: GraphConf
   const ready = () => graphConfig.xColumns().length > 0 && graphConfig.yColumns().length > 0;
 
   const x = () => rows.map(({row}) =>
-    graphConfig.xColumns().map((column) => row[indices[column]]).join(", "));
+    graphConfig.xColumns().map((column) => row[indices[column]]).map(valueFormatter).join(", "));
 
   const series = () => graphConfig.yColumns().map((column) => { return {
     label: column,
