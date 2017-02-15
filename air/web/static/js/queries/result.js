@@ -38,6 +38,7 @@ export class ResultView extends React.Component {
     this.state = {
       rowsToShowCount: this.minRowsToShow,
       showChart: false,
+      showChartConfig: true,
       graphConfig: new GraphConfig(),
     };
 
@@ -48,9 +49,12 @@ export class ResultView extends React.Component {
 
     this.renderRows = this.renderRows.bind(this);
     this.renderShowAll = this.renderShowAll.bind(this);
+    this.renderChartButton = this.renderChartButton.bind(this);
+    this.renderAxesButton = this.renderAxesButton.bind(this);
     this.renderOptionMenu = this.renderOptionMenu.bind(this);
 
     this.conditionallyRenderChart = this.conditionallyRenderChart.bind(this);
+    this.conditionallyRenderChartConfig = this.conditionallyRenderChartConfig.bind(this);
     this.formatValue = this.formatValue.bind(this);
 
     this.showingAllOfFewRows = this.showingAllOfFewRows.bind(this);
@@ -65,7 +69,7 @@ export class ResultView extends React.Component {
     this.removeColumn = this.removeColumn.bind(this);
   }
 
-  state: {rowsToShowCount: number, showChart: boolean, graphConfig: GraphConfigT};
+  state: {rowsToShowCount: number, showChart: boolean, showChartConfig: boolean, graphConfig: GraphConfigT};
   props: Result;
   minRowsToShow: number;
   graphData: GraphDataT;
@@ -134,24 +138,26 @@ export class ResultView extends React.Component {
 
   conditionallyRenderChart() {
     if (this.state.showChart) {
-      return (
-        <div>
-          <GraphConfigView
-            graphInfo={this.graphInfo}
-            graphConfig={this.state.graphConfig}
-            addX={this.addX}
-            addY={this.addY}
-            remove={this.removeColumn}
-          />
-          <GraphView graphData={this.graphData} graphConfig={this.state.graphConfig} width={714} height={600} />
-        </div>
-      );
+      return <GraphView graphData={this.graphData} graphConfig={this.state.graphConfig} width={714} height={600} />;
     } else {
       return null;
     }
   }
 
-  renderConfiguredChart() {
+  conditionallyRenderChartConfig() {
+    if (this.state.showChart && this.state.showChartConfig) {
+      return (
+        <GraphConfigView
+          graphInfo={this.graphInfo}
+          graphConfig={this.state.graphConfig}
+          addX={this.addX}
+          addY={this.addY}
+          remove={this.removeColumn}
+        />
+      );
+    } else {
+      return null;
+    }
   }
 
   renderRows() {
@@ -217,12 +223,30 @@ export class ResultView extends React.Component {
     }
   }
 
+  renderAxesButton() {
+    if (this.state.showChart) {
+      const text = this.state.showChartConfig ? "Hide axes" : "Show axes";
+      return (
+        <button
+          className="btn btn-default btn-xs"
+          onClick={() => this.setState({showChartConfig: ! this.state.showChartConfig})}
+        >
+          {text}
+        </button>
+      );
+    } else {
+      return null;
+    }
+  }
+
   renderOptionMenu() {
     return (
       <div className="options-menu">
         <a className="btn btn-default btn-xs" href={`/queries/${this.props.id}.csv`}>Download as CSV</a>
         &nbsp;
         {this.renderChartButton()}
+        &nbsp;
+        {this.renderAxesButton()}
       </div>
     );
   }
@@ -251,6 +275,7 @@ export class ResultView extends React.Component {
           </div>
           {this.renderShowAll()}
           {this.renderOptionMenu()}
+          {this.conditionallyRenderChartConfig()}
           {this.conditionallyRenderChart()}
         </div>
       </div>

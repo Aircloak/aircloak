@@ -22,8 +22,6 @@ const yClass = (graphConfig, column) => graphConfig.yColumns().includes(column) 
 
 export const GraphConfigView = (props: Props) =>
   <form className="form-horizontal">
-    <h2>Axes</h2>
-
     {props.graphInfo.xColumns().map((column, i) => {
       return (
         <div key={i} className="form-group">
