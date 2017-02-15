@@ -21,3 +21,5 @@ config :cloak, :anonymizer,
   min_outliers_count: 1,
   top_count: {5, 0},
   sum_noise_sigma: 0
+
+config :cloak, :sanitize_otp_errors, false
