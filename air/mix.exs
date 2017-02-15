@@ -76,6 +76,7 @@ defmodule Air.Mixfile do
       {:scrivener_html, "~> 1.1"},
       {:decimal, "~> 1.3.0"},
       {:quantum, "~> 1.8.0"},
+      {:remote_ip, "~> 0.1.0"},
     ]
   end
 
