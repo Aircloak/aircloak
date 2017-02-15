@@ -9,6 +9,7 @@
 
 .selectable-info {
   min-width: 200px;
+  display: table;
 }
 
 .selectable-info .selectable-info-content {

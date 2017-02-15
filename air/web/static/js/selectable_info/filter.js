@@ -70,25 +70,21 @@ export class FilterView extends React.Component {
   render() {
     return (
       <div className="column-filter">
-        <form className="form-inline">
-          <div className="form-group">
-            <div className="input-group">
-              <input
-                onChange={(event) => this.filterTextChange(event.target.value)}
-                type="text"
-                className="form-control"
-                placeholder="Filter columns"
-                value={this.state.filterText}
-              />
-              <div
-                className="input-group-addon"
-                onClick={() => this.filterTextChange("")}
-              >
-                <span className="glyphicon glyphicon-remove" aria-hidden="true" />
-              </div>
-            </div>
+        <div className="input-group">
+          <input
+            onChange={(event) => this.filterTextChange(event.target.value)}
+            type="text"
+            className="form-control"
+            placeholder="Filter columns"
+            value={this.state.filterText}
+          />
+          <div
+            className="input-group-addon"
+            onClick={() => this.filterTextChange("")}
+          >
+            <span className="glyphicon glyphicon-remove" aria-hidden="true" />
           </div>
-        </form>
+        </div>
       </div>
     );
   }
