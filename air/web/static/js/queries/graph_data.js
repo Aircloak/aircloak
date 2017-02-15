@@ -5,47 +5,21 @@ import type {Row, Column} from "./result";
 
 type ValueFormatter = (value: any) => any;
 
-export type GraphDataT = {};
-export type GraphInfoT = {};
+type Series = {label: Column, data: number[]};
 
-export const GraphData = (
-  columns: Column[],
-  rows: Row[],
-  graphConfig: GraphConfigT,
-  formatter: ValueFormatter
-) => {
-  // ----------------------------------------------------------------
-  // Internal functions
-  // ----------------------------------------------------------------
-
-  const indices = {};
-  columns.forEach((column, index) => { indices[column] = index; });
-
-  const valueFormatter = formatter || _.identity;
-
-
-  // ----------------------------------------------------------------
-  // API
-  // ----------------------------------------------------------------
-
-  const ready = () => graphConfig.xColumns().length > 0 && graphConfig.yColumns().length > 0;
-
-  const x = () => rows.map(({row}) =>
-    graphConfig.xColumns().map((column) =>
-      row[indices[column]]).
-        map(valueFormatter).
-        join(", ")
-    );
-
-  const series = () => graphConfig.yColumns().map((column) => ({
-    label: column,
-    data: rows.map(({row}) => row[indices[column]]),
-  }));
-
-  return {ready, x, series};
+export type GraphDataT = {
+  ready: () => boolean,
+  x: () => Column[],
+  series: () => Series[],
 };
 
-export const GraphInfo = (columns: Column[], rows: Row[]) => {
+export type GraphInfoT = {
+  xColumns: () => Column[],
+  usableAsY: (col: Column) => boolean,
+  chartable: () => boolean,
+};
+
+export const GraphInfo = (columns: Column[], rows: Row[]): GraphInfoT => {
   // ----------------------------------------------------------------
   // Internal functions
   // ----------------------------------------------------------------
@@ -83,6 +57,9 @@ export class GraphConfig {
     this._yColumns = new Set();
   }
 
+  _xColumns: Set<Column>;
+  _yColumns: Set<Column>;
+
 
   // ----------------------------------------------------------------
   // API
@@ -92,9 +69,46 @@ export class GraphConfig {
 
   yColumns() { return [...this._yColumns]; }
 
-  addX(col) { this._yColumns.delete(col); this._xColumns.add(col); return this; }
+  addX(col: Column) { this._yColumns.delete(col); this._xColumns.add(col); return this; }
 
-  addY(col) { this._xColumns.delete(col); this._yColumns.add(col); return this; }
+  addY(col: Column) { this._xColumns.delete(col); this._yColumns.add(col); return this; }
 
-  remove(col) { this._xColumns.delete(col); this._yColumns.delete(col); return this; }
+  remove(col: Column) { this._xColumns.delete(col); this._yColumns.delete(col); return this; }
 }
+
+export const GraphData = (
+  columns: Column[],
+  rows: Row[],
+  graphConfig: GraphConfig,
+  formatter: ValueFormatter
+): GraphDataT => {
+  // ----------------------------------------------------------------
+  // Internal functions
+  // ----------------------------------------------------------------
+
+  const indices = {};
+  columns.forEach((column, index) => { indices[column] = index; });
+
+  const valueFormatter = formatter || _.identity;
+
+
+  // ----------------------------------------------------------------
+  // API
+  // ----------------------------------------------------------------
+
+  const ready = () => graphConfig.xColumns().length > 0 && graphConfig.yColumns().length > 0;
+
+  const x = () => rows.map(({row}) =>
+    graphConfig.xColumns().map((column) =>
+      row[indices[column]]).
+        map(valueFormatter).
+        join(", ")
+    );
+
+  const series = () => graphConfig.yColumns().map((column) => ({
+    label: column,
+    data: rows.map(({row}) => row[indices[column]]),
+  }));
+
+  return {ready, x, series};
+};

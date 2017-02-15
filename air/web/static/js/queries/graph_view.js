@@ -4,6 +4,9 @@ import React from "react";
 import {Bar} from "react-chartjs-2";
 import _ from "lodash";
 
+import {GraphConfig} from "./graph_data";
+import type {GraphDataT} from "./graph_data";
+
 const fillColors = [
   "rgba(170, 100, 100, 0.1)",
   "rgba(148, 193, 26, 0.1)",
@@ -43,17 +46,9 @@ const options = (graphConfig) => ({
   },
 });
 
-export const GraphView = (props: Props) => {
+export const GraphView = (props: {graphData: GraphDataT, graphConfig: GraphConfig}) => {
   if (props.graphData.ready()) {
-    return (
-      <Bar
-        data={data(props.graphData)}
-        options={options(props.graphConfig)}
-        height={props.height}
-        width={props.width}
-        redraw
-      />
-    );
+    return <Bar data={data(props.graphData)} options={options(props.graphConfig)} redraw />;
   } else {
     return <div className="alert alert-warning">Select at least one X and Y axis.</div>;
   }

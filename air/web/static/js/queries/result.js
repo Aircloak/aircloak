@@ -62,14 +62,14 @@ export class ResultView extends React.Component {
     this.showingMinimumNumberOfManyRows = this.showingMinimumNumberOfManyRows.bind(this);
 
     this.graphInfo = new GraphInfo(this.props.columns, this.props.rows);
-    this.graphData = new GraphData(this.props.columns, this.props.rows, this.state.graphConfig);
+    this.rebuildGraphData();
 
     this.addX = this.addX.bind(this);
     this.addY = this.addY.bind(this);
     this.removeColumn = this.removeColumn.bind(this);
   }
 
-  state: {rowsToShowCount: number, showChart: boolean, showChartConfig: boolean, graphConfig: GraphConfigT};
+  state: {rowsToShowCount: number, showChart: boolean, showChartConfig: boolean, graphConfig: GraphConfig};
   props: Result;
   minRowsToShow: number;
   graphData: GraphDataT;
@@ -84,8 +84,20 @@ export class ResultView extends React.Component {
   showingAllOfFewRows: () => void;
   showingAllOfManyRows: () => void;
   showingMinimumNumberOfManyRows: () => void;
+  componentDidUpdate: () => void;
+  renderChartButton: () => void;
+  renderAxesButton: () => void;
+  conditionallyRenderChartConfig: () => void;
+  rebuildGraphData: () => void;
+  addX: (col: Column) => () => void;
+  addY: (col: Column) => () => void;
+  removeColumn: (col: Column) => () => void;
 
   componentDidUpdate() {
+    this.rebuildGraphData();
+  }
+
+  rebuildGraphData() {
     this.graphData = new GraphData(
       this.props.columns,
       this.props.rows,
@@ -115,15 +127,15 @@ export class ResultView extends React.Component {
     return this.state.rowsToShowCount === this.minRowsToShow && this.props.row_count > this.minRowsToShow;
   }
 
-  addX(col) {
+  addX(col: Column) {
     return () => this.setState({graphConfig: this.state.graphConfig.addX(col)});
   }
 
-  addY(col) {
+  addY(col: Column) {
     return () => this.setState({graphConfig: this.state.graphConfig.addY(col)});
   }
 
-  removeColumn(col) {
+  removeColumn(col: Column) {
     return () => this.setState({graphConfig: this.state.graphConfig.remove(col)});
   }
 

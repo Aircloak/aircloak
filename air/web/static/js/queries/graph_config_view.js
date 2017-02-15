@@ -2,11 +2,14 @@
 
 import React from "react";
 
+import type {GraphInfoT} from "./graph_data";
+import {GraphConfig} from "./graph_data";
+
 type ColumnAction = (column: string) => () => void;
 
 type Props = {
   graphInfo: GraphInfoT,
-  graphConfig: GraphConfigT,
+  graphConfig: GraphConfig,
   addX: ColumnAction,
   addY: ColumnAction,
   remove: ColumnAction
