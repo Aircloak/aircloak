@@ -3,12 +3,7 @@ use Mix.Config
 config :cloak, :deploy_config_file, "test.json"
 
 # Print only errors during test
-config :logger,
-  level: :error,
-  console: [
-    format: {Cloak.Logger.Formatter, :format},
-    metadata: [:file_name, :line_no, :log_level]
-  ]
+config :logger, level: :error
 
 config :cloak, :alarm_handler, install: false
 

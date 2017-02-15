@@ -44,7 +44,7 @@ defmodule Cloak.AirSocket do
   """
   @spec send_query_result(GenServer.server, map) :: :ok | {:error, any}
   def send_query_result(socket \\ __MODULE__, result) do
-    Logger.info("sending result for query #{result.query_id} to Air")
+    Logger.info("sending query result to Air", query_id: result.query_id)
     case call(socket, "query_result", result, :timer.seconds(5)) do
       {:ok, _} -> :ok
       error -> error
@@ -192,7 +192,7 @@ defmodule Cloak.AirSocket do
         respond_to_air(from, :error, "Unknown data source.")
 
       {:ok, data_source} ->
-        Logger.info("starting query #{id} ...")
+        Logger.info("starting query", query_id: id)
         Cloak.Query.Runner.start(id, data_source, statement, parameters, views)
         respond_to_air(from, :ok)
     end
@@ -233,7 +233,7 @@ defmodule Cloak.AirSocket do
     {:ok, state}
   end
   defp handle_air_call("stop_query", query_id, from, state) do
-    Logger.info("stopping query #{query_id} ...")
+    Logger.info("stopping query ...", query_id: query_id)
     Cloak.Query.Runner.stop(query_id)
     respond_to_air(from, :ok)
     {:ok, state}

@@ -78,6 +78,7 @@ defmodule Cloak.Query.Runner do
 
   @doc false
   def init({query_id, data_source, statement, parameters, views, result_target}) do
+    Logger.metadata(query_id: query_id)
     Process.flag(:trap_exit, true)
     {:ok, %{
       query_id: query_id,
@@ -87,7 +88,7 @@ defmodule Cloak.Query.Runner do
       # We're starting the runner as a direct child.
       # This GenServer will wait for the runner to return or crash. Such approach allows us to
       # detect a failure no matter how the query fails (even if the runner process is for example killed).
-      runner: Task.async(fn() -> run_query(data_source, statement, parameters, views) end)
+      runner: Task.async(fn() -> run_query(query_id, data_source, statement, parameters, views) end)
     }}
   end
 
@@ -119,7 +120,8 @@ defmodule Cloak.Query.Runner do
   ## Query runner
   ## ----------------------------------------------------------------
 
-  defp run_query(data_source, statement, parameters, views) do
+  defp run_query(query_id, data_source, statement, parameters, views) do
+    Logger.metadata(query_id: query_id)
     Logger.debug("Parsing statement `#{statement}` ...")
     with {:ok, query} <- Query.make(data_source, statement, parameters, views),
          {:ok, result} <- Engine.run(query),
@@ -175,9 +177,6 @@ defmodule Cloak.Query.Runner do
   # -------------------------------------------------------------------
 
   if Mix.env == :test do
-    def run_sync(data_source, statement, parameters, views), do:
-      run_query(data_source, statement, parameters, views)
-
     # tests run the same query in parallel, so we make the process name unique to avoid conflicts
     def worker_name(_query_id), do: {:via, Registry, {@registry_name, :erlang.unique_integer()}}
   else
