@@ -63,8 +63,12 @@ defmodule Cloak.DataSource.MongoDB do
 
   @doc false
   def load_tables(connection, table) do
+    sample_rate = table[:sample_rate] || 100
+    unless is_integer(sample_rate) and sample_rate >= 1 and sample_rate <= 100, do:
+      raise RuntimeError, "Sample rate for schema detection has to be an integer between 1 and 100."
     map_code = """
       function() {
+        if (Math.random() * 100 > #{sample_rate}) return;
         map_subfield = function(base, object) {
           if (object === undefined || object == null) {
             return;
