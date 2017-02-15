@@ -5,6 +5,10 @@
 # is restricted to this project.
 use Mix.Config
 
+# Turn off sasl error logger. Crashes are usually logged through standard OTP error reports, so SASL only
+# adds to the noise.
+config :sasl, :sasl_error_logger, false
+
 config :aircloak_common, :env, Mix.env
 
 # Configures the endpoint

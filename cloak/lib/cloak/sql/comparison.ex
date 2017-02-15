@@ -88,6 +88,11 @@ defmodule Cloak.Sql.Comparison do
   def verb({:like, _lhs, _rhs}), do: :like
   def verb({:ilike, _lhs, _rhs}), do: :ilike
 
+  @doc "Negates a condition."
+  @spec negate(Query.where_clause) :: Query.where_clause
+  def negate({:not, condition}), do: condition
+  def negate(condition), do: {:not, condition}
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions

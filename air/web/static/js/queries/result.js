@@ -9,7 +9,6 @@ import {GraphData, GraphInfo, GraphConfig} from "./graph_data";
 import {GraphConfigView} from "./graph_config_view";
 import {GraphView} from "./graph_view";
 import type {GraphDataT, GraphInfoT} from "./graph_data";
-import type {Error} from "./error";
 
 export type Row = {
   occurrences: number,
@@ -25,8 +24,7 @@ export type Result = {
   rows: Row[],
   row_count: number,
   info: string[],
-  pendingResult: boolean,
-  error: Error,
+  pendingResult: boolean
 };
 
 export class ResultView extends React.Component {

@@ -1,6 +1,6 @@
 defmodule Cloak.Query.Runner.Engine do
   @moduledoc "Execution of SQL queries."
-  alias Cloak.{Sql, DataSource, Query, Query.Error}
+  alias Cloak.{Sql, DataSource, Query}
   require Logger
 
 
@@ -9,17 +9,12 @@ defmodule Cloak.Query.Runner.Engine do
   # -------------------------------------------------------------------
 
   @doc "Executes the SQL query and returns the query result or the corresponding error."
-  @spec run(Sql.Query.t) :: {:ok, Query.Result.t} | %Error{}
+  @spec run(Sql.Query.t) :: {:ok, Query.Result.t} | {:error, String.t}
   def run(query) do
     try do
       {:ok, run_statement(query)}
     rescue e in [Query.Runner.RuntimeError] ->
-      %Error{
-        type: :crash,
-        context: "query failure",
-        location: __MODULE__,
-        human_description: e.message,
-      }
+      {:error, e.message}
     end
   end
 

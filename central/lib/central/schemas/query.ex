@@ -11,7 +11,6 @@ defmodule Central.Schemas.Query do
     field :metrics, :map
     field :features, :map
     field :aux, :map
-    field :error, :map
 
     belongs_to :customer, Central.Schemas.Customer
 
@@ -19,7 +18,7 @@ defmodule Central.Schemas.Query do
   end
 
   @required_fields ~w()a
-  @optional_fields ~w(metrics features aux error)a
+  @optional_fields ~w(metrics features aux)a
 
 
   # -------------------------------------------------------------------

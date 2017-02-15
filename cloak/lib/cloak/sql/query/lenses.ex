@@ -21,10 +21,7 @@ defmodule Cloak.Sql.Query.Lenses do
     |> terminal_elements()
 
   @doc "Lens focusing all terminal elements in a list of conditions."
-  deflens conditions_terminals(), do:
-    Lens.all()
-    |> operands()
-    |> terminal_elements()
+  deflens conditions_terminals(), do: Lens.all() |> operands() |> terminal_elements()
 
   @doc "Lens focusing all column elements in the query (subqueries are not included)."
   deflens query_expressions(), do: terminals() |> expressions()
@@ -103,17 +100,21 @@ defmodule Cloak.Sql.Query.Lenses do
     |> Lens.key(:conditions)
     |> conditions_terminals()
 
-  @doc "Lens focusing on all sources in a query where condition operands can be found"
-  def sources_of_operands(), do: sources_of_operands_except([])
-
-  @doc """
-  Lens focusing on all sources in a query where condition operands can be found
-  with the exception of in HAVING clauses. If HAVING clauses should also be
-  included, use `sources_of_operands` instead
-  """
-  def sources_of_operands_except(operands_to_exclude), do:
+  @doc "Lens focusing on all sources in a query where conditions can be found."
+  deflens filter_clauses(), do:
     Lens.multiple([
-      Lens.keys([:where, :emulated_where, :having] -- operands_to_exclude),
+      Lens.keys([:where, :emulated_where, :having]),
+      join_conditions()
+    ])
+
+  @doc "Lens focusing on all sources in a query where database conditions can be found."
+  deflens db_filter_clauses(), do:
+    Lens.multiple([
+      Lens.match(fn
+        %Query{subquery?: true} -> Lens.keys([:where, :emulated_where, :having])
+        %Query{subquery?: false} -> Lens.keys([:where, :emulated_where])
+        _ -> Lens.empty()
+      end),
       join_conditions()
     ])
 
@@ -134,14 +135,9 @@ defmodule Cloak.Sql.Query.Lenses do
   end
   defp do_join_condition_lenses(_, _), do: []
 
-  defp filters_operands(), do:
-    sources_of_operands()
-    |> Lens.all()
-    |> operands()
+  defp filters_operands(), do: filter_clauses() |> Lens.all() |> operands()
 
-  defp join_conditions(), do:
-    joins()
-    |> Lens.key(:conditions)
+  defp join_conditions(), do: joins() |> Lens.key(:conditions)
 
   deflensp do_order_condition_columns(), do:
     Lens.match(fn
@@ -189,7 +185,7 @@ defmodule Cloak.Sql.Query.Lenses do
   deflensp expressions(), do:
     Lens.satisfy(Lens.root(), &match?(%Expression{}, &1))
 
-  def do_leaf_expressions(lens), do: lens |> Lens.satisfy(&match?(%Expression{function?: false}, &1))
+  defp do_leaf_expressions(lens), do: lens |> Lens.satisfy(&match?(%Expression{function?: false}, &1))
 
   deflensp join_elements(), do:
     Lens.match(fn

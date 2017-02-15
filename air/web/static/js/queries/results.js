@@ -5,7 +5,7 @@ import React from "react";
 import {ResultView} from "./result";
 import type {Result} from "./result";
 import {PendingResult} from "./pending_result";
-import {ErrorView} from "./error";
+import {Error} from "./error";
 
 export const Results = (props: {results: Result[]}) =>
   <div>
@@ -15,7 +15,7 @@ export const Results = (props: {results: Result[]}) =>
       } else if (result.columns) {
         return <ResultView key={i} {...result} />;
       } else {
-        return <ErrorView key={i} {...result} />;
+        return <Error key={i} {...result} />;
       }
     })}
   </div>;

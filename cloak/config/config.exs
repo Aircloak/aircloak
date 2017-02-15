@@ -4,15 +4,15 @@ use Mix.Config
 
 config :aircloak_common, :env, Mix.env
 
-# turn off sasl error logger
+# Turn off sasl error logger. Do not change this, because data privacy might be compromised.
 config :sasl, :sasl_error_logger, false
 
 config :logger,
   level: :info,
   backends: [:console],
   console: [
-    format: {Cloak.Logger.Formatter, :format},
-    metadata: [:file_name, :line_no, :log_level, :file, :line]
+    format: "$time [$level] $metadata$message\n",
+    metadata: [:query_id]
   ]
 
 config :kernel,

@@ -59,7 +59,6 @@ defmodule Air.CentralClient.QueryReporter do
     }
 
     row_count = (result["rows"] || []) |> Enum.map(&(&1["occurrences"])) |> Enum.sum
-
     payload = %{
       metrics: %{
         users_count: result["users_count"],
@@ -78,21 +77,14 @@ defmodule Air.CentralClient.QueryReporter do
         },
         started_at: query.inserted_at,
         finished_at: NaiveDateTime.utc_now(),
+        has_error: not is_nil(result["error"]),
+        error: filter_error(result["error"]),
       },
-      error: only_whitelisted_fields(result["error"]),
     }
     Air.CentralClient.Socket.record_query(payload)
   end
 
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  # The :human_description field contains potentially sensitive data that we shouldn't
-  # see, so it is removed. In this case it's sensitive in the sense of potential business
-  # intelligence/IP since it has the potential to reveal the design of the customer database.
-  defp only_whitelisted_fields(nil), do: nil
-  defp only_whitelisted_fields(error), do: Map.take(error, ["type", "location", "context"])
+  defp filter_error(nil), do: nil
+  defp filter_error(error), do: Air.Service.Redacter.filter_query_error(error)
 end
 

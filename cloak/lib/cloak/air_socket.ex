@@ -11,7 +11,6 @@ defmodule Cloak.AirSocket do
   require Logger
   require Aircloak.DeployConfig
   alias Phoenix.Channels.GenSocketClient
-  alias Cloak.Query.Error
 
   @behaviour GenSocketClient
 
@@ -45,7 +44,7 @@ defmodule Cloak.AirSocket do
   """
   @spec send_query_result(GenServer.server, map) :: :ok | {:error, any}
   def send_query_result(socket \\ __MODULE__, result) do
-    Logger.info("sending result for query #{result.query_id} to Air")
+    Logger.info("sending query result to Air", query_id: result.query_id)
     case call(socket, "query_result", result, :timer.seconds(5)) do
       {:ok, _} -> :ok
       error -> error
@@ -156,6 +155,13 @@ defmodule Cloak.AirSocket do
       {:ok, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
     rescue
       error in Poison.EncodeError ->
+        error =
+          if Aircloak.DeployConfig.override_app_env!(:cloak, :sanitize_otp_errors) do
+            Poison.EncodeError.exception(message: "Poison encode error", value: "`sanitized`")
+          else
+            error
+          end
+
         Logger.error("Message could not be encoded: #{Exception.message(error)}")
         respond_to_internal_request(from, {:error, error})
         {:ok, state}
@@ -186,7 +192,7 @@ defmodule Cloak.AirSocket do
         respond_to_air(from, :error, "Unknown data source.")
 
       {:ok, data_source} ->
-        Logger.info("starting query #{id} ...")
+        Logger.info("starting query", query_id: id)
         Cloak.Query.Runner.start(id, data_source, statement, parameters, views)
         respond_to_air(from, :ok)
     end
@@ -203,7 +209,7 @@ defmodule Cloak.AirSocket do
       {:ok, data_source} ->
         case Cloak.Sql.Query.describe_query(data_source, statement, parameters, views) do
           {:ok, columns, features} -> respond_to_air(from, :ok, %{columns: columns, features: features})
-          %Error{} = error -> respond_to_air(from, :ok, %{error: Error.to_map(error)})
+          {:error, reason} -> respond_to_air(from, :ok, %{error: reason})
         end
     end
     {:ok, state}
@@ -221,14 +227,13 @@ defmodule Cloak.AirSocket do
       {:ok, data_source} ->
         case Cloak.Sql.Query.validate_view(data_source, name, sql, views) do
           {:ok, columns} -> respond_to_air(from, :ok, %{valid: true, columns: columns})
-          {:error, field, error} ->
-            respond_to_air(from, :ok, %{valid: false, field: field, error: Error.to_map(error)})
+          {:error, field, reason} -> respond_to_air(from, :ok, %{valid: false, field: field, error: reason})
         end
     end
     {:ok, state}
   end
   defp handle_air_call("stop_query", query_id, from, state) do
-    Logger.info("stopping query #{query_id} ...")
+    Logger.info("stopping query ...", query_id: query_id)
     Cloak.Query.Runner.stop(query_id)
     respond_to_air(from, :ok)
     {:ok, state}
