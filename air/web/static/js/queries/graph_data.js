@@ -5,17 +5,23 @@ import type {Row, Column} from "./result";
 
 type ValueFormatter = (value: any) => any;
 
-export const GraphData = (columns: Column[], rows: Row[], graphConfig: GraphConfigT, formatter: ValueFormatter) => {
+export type GraphDataT = {};
+export type GraphInfoT = {};
 
-
+export const GraphData = (
+  columns: Column[],
+  rows: Row[],
+  graphConfig: GraphConfigT,
+  formatter: ValueFormatter
+) => {
   // ----------------------------------------------------------------
   // Internal functions
   // ----------------------------------------------------------------
 
   const indices = {};
-  columns.forEach((column, index) => indices[column] = index);
+  columns.forEach((column, index) => { indices[column] = index; });
 
-  const valueFormatter = formatter || _.identity
+  const valueFormatter = formatter || _.identity;
 
 
   // ----------------------------------------------------------------
@@ -25,24 +31,27 @@ export const GraphData = (columns: Column[], rows: Row[], graphConfig: GraphConf
   const ready = () => graphConfig.xColumns().length > 0 && graphConfig.yColumns().length > 0;
 
   const x = () => rows.map(({row}) =>
-    graphConfig.xColumns().map((column) => row[indices[column]]).map(valueFormatter).join(", "));
+    graphConfig.xColumns().map((column) =>
+      row[indices[column]]).
+        map(valueFormatter).
+        join(", ")
+    );
 
-  const series = () => graphConfig.yColumns().map((column) => { return {
+  const series = () => graphConfig.yColumns().map((column) => ({
     label: column,
     data: rows.map(({row}) => row[indices[column]]),
-  }});
+  }));
 
   return {ready, x, series};
-}
+};
 
 export const GraphInfo = (columns: Column[], rows: Row[]) => {
-
-
   // ----------------------------------------------------------------
   // Internal functions
   // ----------------------------------------------------------------
 
   const isNumeric = (n) => typeof(n) === "number" && isFinite(n);
+
 
   // ----------------------------------------------------------------
   // API
@@ -53,7 +62,7 @@ export const GraphInfo = (columns: Column[], rows: Row[]) => {
   const usableAsY = (column) => {
     const index = columns.findIndex((x) => x === column);
     return isNumeric(rows[0].row[index]);
-  }
+  };
 
   const chartable = () =>
     columns.length >= 2 &&
@@ -65,8 +74,6 @@ export const GraphInfo = (columns: Column[], rows: Row[]) => {
 };
 
 export class GraphConfig {
-
-
   // ----------------------------------------------------------------
   // State
   // ----------------------------------------------------------------
@@ -85,9 +92,9 @@ export class GraphConfig {
 
   yColumns() { return [...this._yColumns]; }
 
-  addX(col) { this._yColumns.delete(col); this._xColumns.add(col); return this; };
+  addX(col) { this._yColumns.delete(col); this._xColumns.add(col); return this; }
 
-  addY(col) { this._xColumns.delete(col); this._yColumns.add(col); return this; };
+  addY(col) { this._xColumns.delete(col); this._yColumns.add(col); return this; }
 
-  remove(col) { this._xColumns.delete(col); this._yColumns.delete(col); return this; };
+  remove(col) { this._xColumns.delete(col); this._yColumns.delete(col); return this; }
 }

@@ -86,7 +86,12 @@ export class ResultView extends React.Component {
   showingMinimumNumberOfManyRows: () => void;
 
   componentDidUpdate() {
-    this.graphData = new GraphData(this.props.columns, this.props.rows, this.state.graphConfig, this.formatValue);
+    this.graphData = new GraphData(
+      this.props.columns,
+      this.props.rows,
+      this.state.graphConfig,
+      this.formatValue
+    );
   }
 
   handleClickMoreRows() {
@@ -138,7 +143,14 @@ export class ResultView extends React.Component {
 
   conditionallyRenderChart() {
     if (this.state.showChart) {
-      return <GraphView graphData={this.graphData} graphConfig={this.state.graphConfig} width={714} height={600} />;
+      return (
+        <GraphView
+          graphData={this.graphData}
+          graphConfig={this.state.graphConfig}
+          width={714}
+          height={600}
+        />
+      );
     } else {
       return null;
     }

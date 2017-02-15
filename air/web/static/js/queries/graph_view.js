@@ -18,34 +18,30 @@ const borderColors = [
   "rgba(0,170,150, 0.4)",
 ];
 
-const data = (graphData) => {
-  return {
-    labels: graphData.x(),
-    datasets: graphData.series().map((series, i) =>
-      _.merge(series, {
-        backgroundColor: fillColors[i % fillColors.length],
-        borderColor: borderColors[i % borderColors.length],
-        borderWidth: 2,
-      })
-    ),
-  };
-};
+const data = (graphData) => ({
+  labels: graphData.x(),
+  datasets: graphData.series().map((series, i) =>
+    _.merge(series, {
+      backgroundColor: fillColors[i % fillColors.length],
+      borderColor: borderColors[i % borderColors.length],
+      borderWidth: 2,
+    })
+  ),
+});
 
-const options = (graphConfig) => {
-  return {
-    scales: {
-      xAxes: [{
-        ticks: {
-          beginAtZero: true,
-        },
-        scaleLabel: {
-          display: true,
-          labelString: graphConfig.xColumns().join(", "),
-        },
-      }],
-    },
-  };
-};
+const options = (graphConfig) => ({
+  scales: {
+    xAxes: [{
+      ticks: {
+        beginAtZero: true,
+      },
+      scaleLabel: {
+        display: true,
+        labelString: graphConfig.xColumns().join(", "),
+      },
+    }],
+  },
+});
 
 export const GraphView = (props: Props) => {
   if (props.graphData.ready()) {
@@ -55,10 +51,10 @@ export const GraphView = (props: Props) => {
         options={options(props.graphConfig)}
         height={props.height}
         width={props.width}
-        redraw={true}
+        redraw
       />
     );
   } else {
-    return <div className="alert alert-warning">Select at least one X and Y axis.</div>
+    return <div className="alert alert-warning">Select at least one X and Y axis.</div>;
   }
-}
+};

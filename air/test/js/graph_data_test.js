@@ -1,4 +1,3 @@
-import _ from "lodash";
 import assert from "assert";
 
 import {GraphData, GraphInfo, GraphConfig} from "queries/graph_data";
@@ -6,17 +5,17 @@ import {GraphData, GraphInfo, GraphConfig} from "queries/graph_data";
 describe("GraphData", () => {
   describe("ready", () => {
     it("is true when an x and y axis has been selected", () => {
-      const data = new GraphData([], [], {xColumns: () => ["col1"], yColumns: () => ["col2"]})
+      const data = new GraphData([], [], {xColumns: () => ["col1"], yColumns: () => ["col2"]});
       assert.equal(data.ready(), true);
     });
 
     it("is false when no x axis selected", () => {
-      const data = new GraphData([], [], {xColumns: () => [], yColumns: () => ["col2"]})
+      const data = new GraphData([], [], {xColumns: () => [], yColumns: () => ["col2"]});
       assert.equal(data.ready(), false);
     });
 
     it("is false when no y axis selected", () => {
-      const data = new GraphData([], [], {xColumns: () => ["col1"], yColumns: () => []})
+      const data = new GraphData([], [], {xColumns: () => ["col1"], yColumns: () => []});
       assert.equal(data.ready(), false);
     });
   });
@@ -27,7 +26,7 @@ describe("GraphData", () => {
         ["col1", "col2"],
         [{row: [null, "foo"]}, {row: [null, "bar"]}],
         {xColumns: () => ["col2"], yColumns: () => []}
-      )
+      );
       assert.deepEqual(data.x(), ["foo", "bar"]);
     });
 
@@ -36,7 +35,7 @@ describe("GraphData", () => {
         ["col1", "col2", "col3"],
         [{row: [null, "foo", 2]}, {row: [null, "bar", 3]}],
         {xColumns: () => ["col2", "col3"], yColumns: () => []}
-      )
+      );
       assert.deepEqual(data.x(), ["foo, 2", "bar, 3"]);
     });
 
@@ -57,7 +56,7 @@ describe("GraphData", () => {
         ["col1", "col2", "col3"],
         [{row: [null, "foo", 2]}, {row: [null, "bar", 3]}],
         {xColumns: () => [], yColumns: () => ["col3"]}
-      )
+      );
       assert.deepEqual(data.series(), [{label: "col3", data: [2, 3]}]);
     });
 
@@ -66,7 +65,7 @@ describe("GraphData", () => {
         ["col1", "col2", "col3"],
         [{row: [null, "foo", 2]}, {row: [null, "bar", 3]}],
         {xColumns: () => [], yColumns: () => ["col1", "col3"]}
-      )
+      );
       assert.deepEqual(data.series(), [{label: "col1", data: [null, null]}, {label: "col3", data: [2, 3]}]);
     });
   });
@@ -74,31 +73,37 @@ describe("GraphData", () => {
 
 describe("GraphInfo", () => {
   it("lists all columns as candidates for x-axis", () => {
-    const info = new GraphInfo(["col1", "col2"], [])
+    const info = new GraphInfo(["col1", "col2"], []);
     assert.deepEqual(["col1", "col2"], info.xColumns());
   });
 
   describe("usableAsY", () => {
     it("is true for numeric columns", () => {
-      const info = new GraphInfo(["col1", "col2", "col3"], [{row: [0, "something", 1.1]}])
-      assert.ok(info.usableAsY("col1"))
-      assert.ok(info.usableAsY("col3"))
+      const info = new GraphInfo(["col1", "col2", "col3"], [{row: [0, "something", 1.1]}]);
+      assert.ok(info.usableAsY("col1"));
+      assert.ok(info.usableAsY("col3"));
     });
 
     it("is false otherwise", () => {
-      const info = new GraphInfo(["col1", "col2", "col3"], [{row: [0, "something", 1.1]}])
-      assert.equal(info.usableAsY("col2"), false)
+      const info = new GraphInfo(["col1", "col2", "col3"], [{row: [0, "something", 1.1]}]);
+      assert.equal(info.usableAsY("col2"), false);
     });
   });
 
   describe("chartable", () => {
     it("is true if there's at least one possible x and y axis", () => {
-      const info = new GraphInfo(["col1", "col2", "col3"], [{row: [0, "something", 1.1]}, {row: [null, null, null]}]);
+      const info = new GraphInfo(
+        ["col1", "col2", "col3"],
+        [{row: [0, "something", 1.1]}, {row: [null, null, null]}]
+      );
       assert.equal(info.chartable(), true);
     });
 
     it("is false otherwise", () => {
-      const info = new GraphInfo(["col1", "col2", "col3"], [{row: ["a", "b", "c"]}, {row: [null, null, null]}]);
+      const info = new GraphInfo(
+        ["col1", "col2", "col3"],
+        [{row: ["a", "b", "c"]}, {row: [null, null, null]}]
+      );
       assert.equal(info.chartable(), false);
     });
 
@@ -132,7 +137,7 @@ describe("GraphConfig", () => {
     const config = new GraphConfig();
     assert.deepEqual(config.xColumns(), []);
     assert.deepEqual(config.yColumns(), []);
-  })
+  });
 
   it("can add x columns", () => {
     const config = new GraphConfig();
@@ -178,6 +183,13 @@ describe("GraphConfig", () => {
 
   it("returns this from mutators", () => {
     const config = new GraphConfig();
-    assert.deepEqual(config.addX("col1").addY("col2").remove("col2").xColumns(), ["col1"]);
+    assert.deepEqual(
+      config.
+        addX("col1").
+        addY("col2").
+        remove("col2").
+        xColumns(),
+      ["col1"]
+    );
   });
 });
