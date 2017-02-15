@@ -11,7 +11,7 @@ defmodule Air.Service.Redacter do
   @safe_terms [
     "select or show",
     # Common syntax
-    "GROUP BY", "WHERE", "SELECT", "ORDER BY", "HAVING", "SHOW", "LIMIT", 
+    "GROUP BY", "WHERE", "SELECT", "ORDER BY", "HAVING", "SHOW", "LIMIT",
     "JOIN", "CROSS JOIN", "INNER JOIN", "LEFT JOIN", "RIGHT JOIN", "OUTER JOIN",
     # Supported types
     "text", "integer", "real", "boolean", "datetime", "date", "time", "uuid", "unknown",
