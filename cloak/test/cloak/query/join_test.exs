@@ -91,7 +91,7 @@ defmodule Cloak.Query.JoinTest do
     assert_query """
       SELECT count(*) FROM heights_join FULL OUTER JOIN children_join ON heights_join.user_id = children_join.user_id
       AND heights_join.name = children_join.age
-    """, %{error: %{human_description: error}}
+    """, %{error: error}
     assert error == "Column `name` from table `heights_join` of type `text` and column `age` from table "
       <> "`children_join` of type `integer` cannot be compared."
   end

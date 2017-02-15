@@ -11,7 +11,6 @@ defmodule Cloak.AirSocket do
   require Logger
   require Aircloak.DeployConfig
   alias Phoenix.Channels.GenSocketClient
-  alias Cloak.Query.Error
 
   @behaviour GenSocketClient
 
@@ -210,7 +209,7 @@ defmodule Cloak.AirSocket do
       {:ok, data_source} ->
         case Cloak.Sql.Query.describe_query(data_source, statement, parameters, views) do
           {:ok, columns, features} -> respond_to_air(from, :ok, %{columns: columns, features: features})
-          %Error{} = error -> respond_to_air(from, :ok, %{error: Error.to_map(error)})
+          {:error, reason} -> respond_to_air(from, :ok, %{error: reason})
         end
     end
     {:ok, state}
@@ -228,8 +227,7 @@ defmodule Cloak.AirSocket do
       {:ok, data_source} ->
         case Cloak.Sql.Query.validate_view(data_source, name, sql, views) do
           {:ok, columns} -> respond_to_air(from, :ok, %{valid: true, columns: columns})
-          {:error, field, error} ->
-            respond_to_air(from, :ok, %{valid: false, field: field, error: Error.to_map(error)})
+          {:error, field, reason} -> respond_to_air(from, :ok, %{valid: false, field: field, error: reason})
         end
     end
     {:ok, state}

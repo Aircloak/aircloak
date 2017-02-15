@@ -70,10 +70,10 @@ defmodule Air.Service.View do
       case DataSource.validate_view({:id, final_view.data_source_id}, user, final_view) do
         {:ok, columns} ->
           {:ok, Ecto.Changeset.put_change(changeset, :result_info, %{columns: columns})}
-        {:error, "name", %{"human_description" => name_error}} ->
+        {:error, "name", name_error} ->
           # Name error returned by the cloak -> we'll convert into a changeset
           {:error, Ecto.Changeset.add_error(changeset, :name, name_error)}
-        {:error, "sql", %{"human_description" => sql_error}} ->
+        {:error, "sql", sql_error} ->
           # SQL error returned by the cloak -> we'll convert into a changeset
           {:error, Ecto.Changeset.add_error(changeset, :sql, sql_error)}
         {:error, :not_connected} ->

@@ -167,10 +167,8 @@ defmodule Cloak.Sql.QueryTest do
     assert col2 == %{name: "name", type: "text", user_id: false}
   end
 
-  test "view can't have the same name as the table" do
-    {:error, :name, error} = validate_view("feat_users", "")
-    assert error.human_description == "has already been taken"
-  end
+  test "view can't have the same name as the table", do:
+    assert {:error, :name, "has already been taken"} == validate_view("feat_users", "")
 
   test "describe query with early binding" do
     assert {:ok, columns, capabilities} = describe_query("select $1 from feat_users", [%{type: :boolean, value: true}])
@@ -195,13 +193,15 @@ defmodule Cloak.Sql.QueryTest do
     assert capabilities.parameter_types == ["boolean"]
   end
 
-  test "late bound parameters must be casted", do:
-    assert describe_query("select $1 from feat_users").human_description ==
-      "The type for parameter `$1` cannot be determined."
+  test "late bound parameters must be casted" do
+    assert {:error, error} = describe_query("select $1 from feat_users")
+    assert error == "The type for parameter `$1` cannot be determined."
+  end
 
-  test "all parameters must be supplied", do:
-    assert describe_query("select cast($2 as boolean) from feat_users").human_description ==
-      "The type for parameter `$1` cannot be determined."
+  test "all parameters must be supplied" do
+    assert {:error, error} = describe_query("select cast($2 as boolean) from feat_users")
+    assert error == "The type for parameter `$1` cannot be determined."
+  end
 
   defp describe_query(statement, parameters \\ nil), do:
     Query.describe_query(hd(Cloak.DataSource.all()), statement, parameters, %{})

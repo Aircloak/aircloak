@@ -19,14 +19,7 @@ defmodule Central.Service.ElasticSearch do
   """
   @spec record_query(Customer.t, Map.t) :: :ok | :error
   def record_query(customer, params) do
-    data = params
-    |> update_in([:aux], &Map.put(&1 || %{}, :customer, %{id: customer.id, name: customer.name}))
-    # Lucene search has no support for "not null", so we explicitly have to
-    # add an "is there an error?" field.
-    |> update_in([:error], fn
-      (nil) -> %{has_error: false}
-      (error) -> Map.put(error, :has_error, true)
-    end)
+    data = update_in(params, [:aux], &Map.put(&1 || %{}, :customer, %{id: customer.id, name: customer.name}))
     record(:customer, :query, data, parse_time(params[:aux]["finished_at"] || ""))
   end
 

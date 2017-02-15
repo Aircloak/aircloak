@@ -9,7 +9,7 @@ defmodule Cloak.Query.Runner do
 
   use GenServer
   require Logger
-  alias Cloak.{Sql.Query, DataSource, Query.Runner.Engine, Query.Error}
+  alias Cloak.{Sql.Query, DataSource, Query.Runner.Engine}
 
   @supervisor_name Module.concat(__MODULE__, Supervisor)
   @registry_name Module.concat(__MODULE__, Registry)
@@ -95,7 +95,7 @@ defmodule Cloak.Query.Runner do
   @doc false
   def handle_info({:EXIT, runner_pid, reason}, %{runner: %Task{pid: runner_pid}} = state) do
     if reason != :normal do
-      report_result(state, Error.unknown_cloak_error())
+      report_result(state, {:error, "Unknown cloak error."})
     end
 
     # Note: we're always exiting with a reason normal. If a query crashed, the error will be
@@ -111,12 +111,7 @@ defmodule Cloak.Query.Runner do
 
   def handle_cast(:stop_query, %{runner: task} = state) do
     Task.shutdown(task)
-    error = %Error{
-      context: "query cancelled",
-      location: __MODULE__,
-      human_description: "Cancelled.",
-    }
-    report_result(state, error)
+    report_result(state, {:error, "Cancelled."})
     {:stop, :normal, %{state | runner: nil}}
   end
 
@@ -169,11 +164,11 @@ defmodule Cloak.Query.Runner do
       users_count: result.users_count,
       features: result.features,
     }
-  defp format_result(%Error{} = error), do:
-    %{error: Error.to_map(error)}
+  defp format_result({:error, reason}) when is_binary(reason), do:
+    %{error: reason}
   defp format_result({:error, reason}) do
     Logger.error("Unknown query error: #{inspect(reason)}")
-    format_result(Error.unknown_cloak_error())
+    format_result({:error, "Unknown cloak error."})
   end
 
 
