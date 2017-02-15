@@ -11,4 +11,19 @@ defmodule Air.Service.RedacterTest do
 
   test "should leave non-sensitive information unaltered", do:
     assert Redacter.filter_query_error("this isn't sensitive `this is`") =~ ~r/this isn't sensitive /
+
+  test "should not be greedy in redacting" do
+    redacted = Redacter.filter_query_error("Column `bar` doesn't exist in table `players`.")
+    assert redacted == "Column `redacted` doesn't exist in table `redacted`."
+  end
+
+  test "should support whitelisting" do
+    error = "Expected `select or show` at"
+    assert error == Redacter.filter_query_error(error)
+  end
+
+  test "should replace line and column references" do
+    error = "Expected `select or show` at line 1, column 1."
+    assert Redacter.filter_query_error(error) =~ ~r/at line X, column Y/
+  end
 end
