@@ -1,5 +1,15 @@
+.selectable-heading {
+  width: 100%;
+  display: table;
+}
+
+.selectable-heading a {
+  float: right;
+}
+
 .selectable-info {
   min-width: 200px;
+  display: table;
 }
 
 .selectable-info .selectable-info-content {
@@ -34,4 +44,13 @@
 .column-filter {
   padding: 5px;
   background-color: #ccc;
+}
+
+.column-filter .form-group {
+  display: block;
+}
+
+.column-filter .input-group {
+  display: table;
+  width: 100%;
 }
