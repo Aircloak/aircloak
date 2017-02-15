@@ -16,4 +16,9 @@ defmodule Air.Service.RedacterTest do
     redacted = Redacter.filter_query_error("Column `bar` doesn't exist in table `players`.")
     assert redacted == "Column `redacted` doesn't exist in table `redacted`."
   end
+
+  test "should support whitelisting" do
+    error = "Expected `select or show` at line 1, column 1."
+    assert error == Redacter.filter_query_error(error)
+  end
 end
