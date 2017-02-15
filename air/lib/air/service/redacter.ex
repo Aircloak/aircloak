@@ -39,12 +39,17 @@ defmodule Air.Service.Redacter do
 
   @doc "Filters sensitive column and table names from error messages so they can be communicated to Aircloak"
   @spec filter_query_error(String.t) :: String.t
-  def filter_query_error(error), do: Regex.replace(~r/`.*?`/, error, &redaction_checker/1, global: true)
+  def filter_query_error(error), do:
+    error
+    |> filter_sensitive_fields()
 
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp filter_sensitive_fields(error), do:
+    Regex.replace(~r/`.*?`/, error, &redaction_checker/1, global: true)
 
   defp redaction_checker(string) do
     if String.downcase(string) in @safe_terms do
