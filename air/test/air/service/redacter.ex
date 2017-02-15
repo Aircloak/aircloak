@@ -11,4 +11,9 @@ defmodule Air.Service.RedacterTest do
 
   test "should leave non-sensitive information unaltered", do:
     assert Redacter.filter_query_error("this isn't sensitive `this is`") =~ ~r/this isn't sensitive /
+
+  test "should not be greedy in redacting" do
+    redacted = Redacter.filter_query_error("Column `bar` doesn't exist in table `players`.")
+    assert redacted == "Column `redacted` doesn't exist in table `redacted`."
+  end
 end
