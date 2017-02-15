@@ -2,12 +2,12 @@
 
 import React from "react";
 import _ from "lodash";
-import {Bar} from "react-chartjs-2";
 
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
 import {GraphData, GraphInfo, GraphConfig} from "./graph_data";
 import {GraphConfigView} from "./graph_config_view";
+import {GraphView} from "./graph_view";
 import type {GraphDataT, GraphInfoT} from "./graph_data";
 import type {Error} from "./error";
 
@@ -49,11 +49,8 @@ export class ResultView extends React.Component {
     this.renderRows = this.renderRows.bind(this);
     this.renderShowAll = this.renderShowAll.bind(this);
     this.renderOptionMenu = this.renderOptionMenu.bind(this);
-    this.renderConfiguredChart = this.renderConfiguredChart.bind(this);
 
     this.conditionallyRenderChart = this.conditionallyRenderChart.bind(this);
-    this.chartData = this.chartData.bind(this);
-    this.chartOptions = this.chartOptions.bind(this);
     this.formatValue = this.formatValue.bind(this);
 
     this.showingAllOfFewRows = this.showingAllOfFewRows.bind(this);
@@ -146,7 +143,7 @@ export class ResultView extends React.Component {
             addY={this.addY}
             remove={this.removeColumn}
           />
-          {this.renderConfiguredChart()}
+          <GraphView graphData={this.graphData} graphConfig={this.state.graphConfig} width={714} height={600} />
         </div>
       );
     } else {
@@ -155,31 +152,6 @@ export class ResultView extends React.Component {
   }
 
   renderConfiguredChart() {
-    if (this.graphData.ready()) {
-      return <Bar data={this.chartData()} options={this.chartOptions()} width={714} height={600} redraw={true} />
-    } else {
-      return <div className="alert alert-warning">Select at least one X and Y axis.</div>
-    }
-  }
-
-  chartData() {
-    return {
-      labels: this.graphData.x(),
-      datasets: this.graphData.series(),
-    };
-  }
-
-  chartOptions() {
-    return {
-      scales: {
-        xAxes: [{
-          scaleLabel: {
-            display: true,
-            labelString: this.state.graphConfig.xColumns().join(", "),
-          },
-        }],
-      },
-    };
   }
 
   renderRows() {
