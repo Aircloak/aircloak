@@ -50,5 +50,9 @@ defmodule Air.Endpoint do
     key: "_air_key",
     signing_salt: "hkTRmL2h"
 
+  # As per the Plug.Conn documentation, the remote_ip parameter is not automatically set
+  # but should instead be set manually by a plug.
+  plug RemoteIp
+
   plug Air.Router
 end
