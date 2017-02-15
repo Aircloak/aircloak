@@ -95,6 +95,7 @@ matrix:
           - odbc-postgresql
           - mongodb-org-server
       before_install:
+      - sleep 3
       - psql -c "CREATE DATABASE cloaktest1 ENCODING 'UTF8';" -U postgres
       - echo "USE mysql;\nUPDATE user SET password=PASSWORD('') WHERE user='root';\nFLUSH PRIVILEGES;\n" | mysql -u root
       - mysql -e "CREATE DATABASE cloaktest1 DEFAULT CHARACTER SET utf8;" -u root --password=''
