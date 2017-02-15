@@ -18,7 +18,12 @@ defmodule Air.Service.RedacterTest do
   end
 
   test "should support whitelisting" do
-    error = "Expected `select or show` at line 1, column 1."
+    error = "Expected `select or show` at"
     assert error == Redacter.filter_query_error(error)
+  end
+
+  test "should replace line and column references" do
+    error = "Expected `select or show` at line 1, column 1."
+    assert Redacter.filter_query_error(error) =~ ~r/at line X, column Y/
   end
 end

@@ -37,16 +37,22 @@ defmodule Air.Service.Redacter do
   # API functions
   #-----------------------------------------------------------------------------------------------------------
 
-  @doc "Filters sensitive column and table names from error messages so they can be communicated to Aircloak"
+  @doc "Alters error messages by removing sensitive and redundant information."
   @spec filter_query_error(String.t) :: String.t
   def filter_query_error(error), do:
     error
     |> filter_sensitive_fields()
+    |> replace_line_numbers()
 
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp replace_line_numbers(error), do:
+    error
+    |> String.replace(~r/line \d+/i, "line X", global: true)
+    |> String.replace(~r/column \d+/i, "column Y", global: true)
 
   defp filter_sensitive_fields(error), do:
     Regex.replace(~r/`.*?`/, error, &redaction_checker/1, global: true)
