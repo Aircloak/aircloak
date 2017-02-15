@@ -35,6 +35,9 @@ const options = (graphConfig) => {
   return {
     scales: {
       xAxes: [{
+        ticks: {
+          beginAtZero: true,
+        },
         scaleLabel: {
           display: true,
           labelString: graphConfig.xColumns().join(", "),
