@@ -74,6 +74,7 @@ defmodule Air.Router do
     get "/audit_log", AuditLogController, :index
 
     resources "/cloaks", CloaksController
+    get "/activity_monitor", ActivityMonitorController, :index
     get "/", CloaksController, :index
   end
 

@@ -18,11 +18,13 @@ import "phoenix_html";
 import renderQueriesView from "./queries/root";
 import renderSelectableInfo from "./selectable_info/root";
 import renderViewEditor from "./view/editor";
+import renderActivityMonitorView from "./activity_monitor/root";
 
 const App = {
   queryPage: renderQueriesView,
   selectableInfo: renderSelectableInfo,
   viewEditor: renderViewEditor,
+  activityMonitor: renderActivityMonitorView,
 };
 
 if (window.pageConfig !== undefined) {
