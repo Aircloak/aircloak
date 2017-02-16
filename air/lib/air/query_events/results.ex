@@ -37,7 +37,7 @@ defmodule Air.QueryEvents.Results do
   def unsubscribe(query_id), do:
     Registry.unregister(@registry_name, query_id)
 
-  @doc "Triggers a :result event, indicating a result has been returned from the cloak for the query."
+  @doc "Triggers a :query_result event, indicating a result has been returned from the cloak for the query."
   @spec trigger_result(%{}) :: :ok
   def trigger_result(payload) do
     # notify dedicated listener for this query first
@@ -49,7 +49,7 @@ defmodule Air.QueryEvents.Results do
     end
 
     # notify all result observers
-    GenEvent.ack_notify(__MODULE__, {:result, payload})
+    GenEvent.ack_notify(__MODULE__, {:query_result, payload})
   end
 
   @doc "Returns a stream of all events."

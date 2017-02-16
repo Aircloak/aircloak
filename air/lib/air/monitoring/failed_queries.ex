@@ -13,7 +13,7 @@ defmodule Air.Monitoring.FailedQueries do
   # -------------------------------------------------------------------
 
   defp work do
-    for {:result, result} <- Results.stream do
+    for {:query_result, result} <- Results.stream do
       if result["error"], do: log_error(result)
     end
   end
