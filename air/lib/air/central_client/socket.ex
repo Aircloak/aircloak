@@ -11,7 +11,7 @@ defmodule Air.CentralClient.Socket do
   require Logger
   require Aircloak.DeployConfig
   alias Phoenix.Channels.GenSocketClient
-  alias Air.{Schemas.CentralCall, Repo}
+  alias Air.Service.Central
 
   @behaviour GenSocketClient
 
@@ -214,20 +214,9 @@ defmodule Air.CentralClient.Socket do
   end
 
   defp cast_with_retry(socket, event, payload) do
-    case persist_rpc(event, payload) do
+    case Central.store_pending_call(event, payload) do
       {:ok, rpc} -> perform_cast_with_retry(socket, rpc)
       :error -> :error
-    end
-  end
-
-  defp persist_rpc(event, payload) do
-    changeset = CentralCall.changeset(%CentralCall{}, %{event: event, payload: payload})
-    case Repo.insert(changeset) do
-      {:error, changeset} ->
-        Logger.error("Unable to persist RPC call to central to guarantee delivery. Aborting RPC. "
-          <> "Failure: #{inspect changeset}")
-        :error
-      {:ok, _} = result -> result
     end
   end
 
@@ -241,7 +230,7 @@ defmodule Air.CentralClient.Socket do
       case call(socket, "call_with_retry", payload) do
         {:error, reason} ->
           Logger.error("RPC '#{rpc.event}' to central failed: #{inspect reason}. Will retry later.")
-        {:ok, _} -> Repo.delete!(rpc)
+        {:ok, _} -> Central.remove_pending_call!(rpc)
       end
     end)
     :ok
@@ -249,7 +238,7 @@ defmodule Air.CentralClient.Socket do
 
   defp reattempt_pending_rpcs() do
     Logger.info("Checking for buffered RPC calls to central")
-    for rpc <- Repo.all(CentralCall) do
+    for rpc <- Central.pending_calls() do
       perform_cast_with_retry(__MODULE__, rpc)
     end
   end
