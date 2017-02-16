@@ -1,6 +1,7 @@
 defmodule Air.Service.Central do
   @moduledoc "Service functions related to central calls."
   require Logger
+  import Ecto.Query, only: [from: 2]
   alias Air.Repo
   alias Air.Schemas.CentralCall
 
@@ -31,4 +32,52 @@ defmodule Air.Service.Central do
   @spec pending_calls() :: [CentralCall.t]
   def pending_calls(), do:
     Repo.all(CentralCall)
+
+  @doc "Exports all pending calls, returning export binary payload on success."
+  @dialyzer {:no_opaque, export_pending_calls: 0} # Error in current Ecto: https://github.com/elixir-ecto/ecto/issues/1882
+  @spec export_pending_calls() :: {:ok, binary} | {:error, :nothing_to_export | :database_error}
+  def export_pending_calls() do
+    with {:ok, calls_to_export} <- calls_to_export() do
+      max_pending_call_id = calls_to_export |> Stream.map(&(&1.id)) |> Enum.max()
+      export_row = export_row(calls_to_export)
+
+      Ecto.Multi.new()
+      |> Ecto.Multi.insert_all(:store_export, "exported_central_calls", [export_row])
+      |> Ecto.Multi.delete_all(:delete_exported, from(c in CentralCall, where: c.id <= ^max_pending_call_id))
+      |> Repo.transaction()
+      |> case do
+        {:ok, _} -> {:ok, Keyword.fetch!(export_row, :payload)}
+        other ->
+          Logger.error("Error storing export to the database #{inspect other}")
+          {:error, :database_error}
+      end
+    end
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp calls_to_export() do
+    case pending_calls() do
+      [] -> {:error, :nothing_to_export}
+      calls_to_export -> {:ok, calls_to_export}
+    end
+  end
+
+  defp export_row(calls_to_export) do
+    now = NaiveDateTime.utc_now()
+    [
+      inserted_at: now,
+      updated_at: now,
+      payload:
+        %{
+          last_exported_id: Repo.one(from exported in "exported_central_calls", select: max(exported.id)),
+          rpcs: Enum.map(calls_to_export, &CentralCall.export/1)
+        }
+        |> Poison.encode!()
+        |> :zlib.gzip()
+    ]
+  end
 end
