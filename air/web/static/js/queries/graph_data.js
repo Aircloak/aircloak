@@ -41,7 +41,6 @@ export const GraphInfo = (columns: Column[], rows: Row[]): GraphInfoT => {
   const chartable = () =>
     columns.length >= 2 &&
     rows.length > 1 &&
-    rows.length <= 1000 &&
     _.some(columns, usableAsY);
 
   return {xColumns, usableAsY, chartable};

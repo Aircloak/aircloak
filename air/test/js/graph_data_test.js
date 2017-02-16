@@ -107,19 +107,6 @@ describe("GraphInfo", () => {
       assert.equal(info.chartable(), false);
     });
 
-    it("can chart up to 1000 rows", () => {
-      const rows = [];
-      for (let i = 0; i < 1000; i++) {
-        rows.push({row: ["a", 1]});
-      }
-      const columns = ["x", "y"];
-      const info = new GraphInfo(columns, rows);
-      assert.ok(info.chartable());
-      rows.push({row: ["b", 2]}); // now we have 1001 lines which is over the limit
-      const info2 = new GraphInfo(columns, rows);
-      assert.equal(info2.chartable(), false);
-    });
-
     it("is false if only one column", () => {
       const info = new GraphInfo(["col1"], [{row: [1]}, {row: [2]}]);
       assert.equal(info.chartable(), false);
