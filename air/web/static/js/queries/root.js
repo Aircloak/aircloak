@@ -55,7 +55,7 @@ class QueriesView extends React.Component {
     this.tableNames = this.tableNames.bind(this);
 
     this.bindKeysWithoutEditorFocus();
-    this.props.querySocket.start({
+    this.props.querySocket.joinSessionChannel({
       handleEvent: this.resultReceived,
     });
   }

@@ -11,14 +11,14 @@ export class QuerySocket {
     this.socket = new Socket("/frontend/socket", {params: {token: userToken}});
     this.socket.connect();
 
-    this.start = this.start.bind(this);
+    this.joinSessionChannel = this.joinSessionChannel.bind(this);
   }
 
   sessionId: string;
   socket: Socket;
-  start: (callbacks: Callbacks) => void;
+  joinSessionChannel: (callbacks: Callbacks) => void;
 
-  start(callbacks: Callbacks) {
+  joinSessionChannel(callbacks: Callbacks) {
     const channel = this.socket.channel(`session:${this.sessionId}`, {});
     const noop = () => {};
     const {
