@@ -147,6 +147,22 @@ describe("GraphConfig", () => {
     assert.deepEqual(config.yColumns(), []);
   });
 
+  it("doesn't matter in what order you add columns", () => {
+    const config1 = new GraphConfig().
+      addX("col1").
+      addX("col2").
+      addY("col3").
+      addY("col4");
+    const config2 = new GraphConfig().
+      addX("col2").
+      addX("col1").
+      addY("col4").
+      addY("col3");
+
+    assert.deepEqual(config1.xColumns(), config2.xColumns());
+    assert.deepEqual(config1.yColumns(), config2.yColumns());
+  });
+
   it("can add y columns", () => {
     const config = new GraphConfig();
     config.addY("col1");

@@ -65,9 +65,9 @@ export class GraphConfig {
   // API
   // ----------------------------------------------------------------
 
-  xColumns() { return [...this._xColumns]; }
+  xColumns() { return [...this._xColumns].sort(); }
 
-  yColumns() { return [...this._yColumns]; }
+  yColumns() { return [...this._yColumns].sort(); }
 
   addX(col: Column) { this._yColumns.delete(col); this._xColumns.add(col); return this; }
 
