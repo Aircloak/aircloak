@@ -1,5 +1,5 @@
-defmodule Air.QueryEvents do
-  @moduledoc "Allows reporting and receiving lifetime events about Queries."
+defmodule Air.QueryEvents.Results do
+  @moduledoc "Allows reporting and subscribing to query results."
 
   use GenEvent
 

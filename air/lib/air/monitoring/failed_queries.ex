@@ -5,7 +5,7 @@ defmodule Air.Monitoring.FailedQueries do
   @spec start_link() :: {:ok, pid}
   def start_link, do: Task.start_link(&work/0)
 
-  alias Air.{Repo, Schemas.Query, QueryEvents}
+  alias Air.{Repo, Schemas.Query, QueryEvents.Results}
 
 
   # -------------------------------------------------------------------
@@ -13,7 +13,7 @@ defmodule Air.Monitoring.FailedQueries do
   # -------------------------------------------------------------------
 
   defp work do
-    for {:result, result} <- QueryEvents.stream do
+    for {:result, result} <- Results.stream do
       if result["error"], do: log_error(result)
     end
   end

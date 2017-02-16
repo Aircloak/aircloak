@@ -43,7 +43,7 @@ defmodule Air.CentralClient.QueryReporter do
   # -------------------------------------------------------------------
 
   defp handle_query_events(), do:
-    Enum.map(Air.QueryEvents.stream(), fn({:result, result}) ->
+    Enum.map(Air.QueryEvents.Results.stream(), fn({:query_result, result}) ->
       Task.Supervisor.start_child(@task_supervisor, fn() -> process_result(result) end)
     end)
 
