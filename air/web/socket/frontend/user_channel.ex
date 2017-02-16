@@ -9,7 +9,8 @@ defmodule Air.Socket.Frontend.UserChannel do
   """
   use Air.Web, :channel
 
-  alias Air.Schemas.Query
+  alias Air.Schemas
+  alias Air.Service
 
 
   # -------------------------------------------------------------------
@@ -19,9 +20,10 @@ defmodule Air.Socket.Frontend.UserChannel do
   @doc """
   Broadcasts the results of a query execution to all listening clients.
   """
-  @spec broadcast_result(Query.t) :: :ok
+  @spec broadcast_result(Schemas.Query.t) :: :ok
   def broadcast_result(query) do
-    Air.Endpoint.broadcast_from!(self(), "session:#{query.session_id}", "result", Query.for_display(query))
+    Air.Endpoint.broadcast_from!(self(), "session:#{query.session_id}", "result",
+      Schemas.Query.for_display(query))
     :ok
   end
 
@@ -58,16 +60,8 @@ defmodule Air.Socket.Frontend.UserChannel do
   # -------------------------------------------------------------------
 
   defp message_for_event(:started, query_id) do
-    {:ok, query} = Air.Service.Query.get(query_id)
-    query_data = %{
-      started_at: query.inserted_at,
-      user: %{
-        name: query.user.name,
-      },
-      data_source: %{
-        name: query.data_source.name,
-      },
-    }
+    {:ok, query} = Service.Query.get(query_id)
+    query_data = Service.Query.format_for_activity_monitor_view([query]) |> hd()
     %{query_id: query_id, event: :started, query: query_data}
   end
   defp message_for_event(:completed, query_id), do:

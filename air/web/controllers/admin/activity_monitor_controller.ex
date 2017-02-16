@@ -6,6 +6,7 @@ defmodule Air.Admin.ActivityMonitorController do
   use Air.Web, :admin_controller
 
   alias Plug.CSRFProtection
+  alias Air.Service.Query
 
 
   # -------------------------------------------------------------------
@@ -24,11 +25,16 @@ defmodule Air.Admin.ActivityMonitorController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
+    queries = Query.currently_running()
+    |> Enum.concat(Query.recently_completed())
+    |> Query.format_for_activity_monitor_view()
+
     render(
       conn,
       "index.html",
       csrf_token: CSRFProtection.get_csrf_token(),
       guardian_token: Guardian.Plug.current_token(conn),
+      queries: queries,
     )
   end
 end

@@ -8,7 +8,8 @@
       var props = {
         CSRFToken: "<%= @csrf_token %>",
         guardianToken: "<%= @guardian_token %>",
-        userId: "<%= @current_user.id %>"
+        userId: "<%= @current_user.id %>",
+        queries: <%= to_json(@queries) %>
       };
 
       App.activityMonitor(props, document.getElementById("activity-monitor-view"));

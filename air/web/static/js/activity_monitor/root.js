@@ -15,6 +15,7 @@ type Props = {
   guardianToken: string,
   CSRFToken: string,
   querySocket: QuerySocket,
+  queries: Query[],
 };
 
 class ActivityMonitorView extends React.Component {
@@ -22,7 +23,7 @@ class ActivityMonitorView extends React.Component {
     super(props);
 
     this.state = {
-      queries: [],
+      queries: this.props.queries,
     };
 
     this.handleQueryEvent = this.handleQueryEvent.bind(this);
@@ -41,14 +42,7 @@ class ActivityMonitorView extends React.Component {
     var queries = this.state.queries;
 
     if (queryEvent.event == "started") {
-      const query = {
-        id: queryEvent.query_id,
-        analyst_name: queryEvent.query.user.name,
-        data_source_name: queryEvent.query.data_source.name,
-        state: queryEvent.event,
-      }
-      queries.unshift(query);
-
+      queries.unshift(queryEvent.query);
     } else {
       queries = _.map(queries, (existingQuery) => {
         if (existingQuery.id == queryEvent.query_id) {

@@ -69,6 +69,7 @@ defmodule Air.ResultProcessor do
       execution_time: result["execution_time"],
       users_count: result["users_count"],
       features: result["features"],
+      completed: true,
     })
     |> Repo.update!()
     |> UserChannel.broadcast_result()
