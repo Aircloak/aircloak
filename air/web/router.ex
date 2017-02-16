@@ -75,7 +75,7 @@ defmodule Air.Router do
 
     resources "/cloaks", CloaksController
     get "/activity_monitor", ActivityMonitorController, :index
-    get "/", CloaksController, :index
+    get "/", ActivityMonitorController, :index
   end
 
   scope "/onboarding", Air.Onboarding, as: :onboarding do
