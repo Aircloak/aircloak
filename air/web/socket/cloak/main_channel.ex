@@ -6,6 +6,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   require Logger
 
   alias Air.CentralClient.Socket
+  alias Air.QueryEvents
 
 
   # -------------------------------------------------------------------
@@ -141,9 +142,11 @@ defmodule Air.Socket.Cloak.MainChannel do
   # -------------------------------------------------------------------
 
   defp handle_cloak_call("query_result", query_result, request_id, socket) do
-    Logger.info("received result for query #{query_result["query_id"]}")
+    query_id = query_result["query_id"]
+    Logger.info("received result for query #{query_id}")
     respond_to_cloak(socket, request_id, :ok)
-    Air.QueryEvents.Results.trigger_result(query_result)
+    QueryEvents.Results.trigger_result(query_result)
+    QueryEvents.StateChanges.trigger_event(query_id, :completed)
     {:noreply, socket}
   end
 
