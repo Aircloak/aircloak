@@ -52,6 +52,19 @@ class ActivityMonitorView extends React.Component {
       });
     }
 
+    // Only keep the last 10 completed queries
+    var completedKept = 0;
+    queries = _.filter(queries, (query) => {
+      if (query.state == "completed") {
+        if (completedKept >= 10) {
+          return false;
+        } else {
+          completedKept = completedKept + 1;
+        }
+      }
+      return true;
+    });
+
     this.setState({queries});
   }
 

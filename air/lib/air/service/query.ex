@@ -35,7 +35,7 @@ defmodule Air.Service.Query do
       where: query.completed and
         fragment("? < now() - INTERVAL '10 minutes'", query.updated_at),
       order_by: [desc: query.inserted_at],
-      limit: 20
+      limit: 10
     )
   end
 
