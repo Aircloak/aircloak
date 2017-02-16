@@ -11,13 +11,19 @@ export class QuerySocket {
     this.socket.connect();
 
     this.joinSessionChannel = this.joinSessionChannel.bind(this);
+    this.joinAllQueryEventsChannel = this.joinAllQueryEventsChannel.bind(this);
   }
 
   socket: Socket;
   joinSessionChannel: (sessionId: string, callbacks: Callbacks) => void;
+  joinAllQueryEventsChannel: (callbacks: Callbacks) => void;
 
   joinSessionChannel(sessionId: string, callbacks: Callbacks) {
     this.joinChannel(callbacks, `session:${sessionId}`, "result");
+  }
+
+  joinAllQueryEventsChannel(callbacks: Callbacks) {
+    this.joinChannel(callbacks, "state_changes:all", "state_change");
   }
 
   joinChannel(callbacks: Callbacks, channelName: string, eventName: string) {

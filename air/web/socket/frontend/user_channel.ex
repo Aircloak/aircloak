@@ -5,9 +5,10 @@ defmodule Air.Socket.Frontend.UserChannel do
   but we do support two outgoing type of messages:
 
   - __result__: reports new results as queries finish executing
+  - __state_change__: reports the state changes of a query
   """
   use Air.Web, :channel
-  require Logger
+
   alias Air.Schemas.Query
 
 
@@ -37,4 +38,38 @@ defmodule Air.Socket.Frontend.UserChannel do
       _ -> {:error, %{success: false, description: "Channel not found"}}
     end
   end
+  def join("state_changes:all", _, socket) do
+    send(self(), {:stream_state_changes, :all})
+    {:ok, socket}
+  end
+
+  def handle_info({:stream_state_changes, :all}, socket) do
+    Task.start_link(fn() ->
+      for {:query_event, query_id, event} <- Air.QueryEvents.StateChanges.stream() do
+        push(socket, "state_change", message_for_event(event, query_id))
+      end
+    end)
+    {:noreply, socket}
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp message_for_event(:started, query_id) do
+    {:ok, query} = Air.Service.Query.get(query_id)
+    query_data = %{
+      started_at: query.inserted_at,
+      user: %{
+        name: query.user.name,
+      },
+      data_source: %{
+        name: query.data_source.name,
+      },
+    }
+    %{query_id: query_id, event: :started, query: query_data}
+  end
+  defp message_for_event(:completed, query_id), do:
+    %{query_id: query_id, event: :completed}
 end
