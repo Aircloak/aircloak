@@ -222,12 +222,7 @@ defmodule Air.CentralClient.Socket do
 
   defp perform_cast_with_retry(socket, rpc) do
     Task.start(fn() ->
-      payload = %{
-        id: rpc.id,
-        event: rpc.event,
-        event_payload: rpc.payload,
-      }
-      case call(socket, "call_with_retry", payload) do
+      case call(socket, "call_with_retry", Air.Schemas.CentralCall.export(rpc)) do
         {:error, reason} ->
           Logger.error("RPC '#{rpc.event}' to central failed: #{inspect reason}. Will retry later.")
         {:ok, _} -> Central.remove_pending_call!(rpc)

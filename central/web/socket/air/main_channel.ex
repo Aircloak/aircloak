@@ -112,7 +112,7 @@ defmodule Central.Socket.Air.MainChannel do
     id = construct_rpc_id(payload, socket)
     result = case Repo.get(AirRPC, id) do
       nil ->
-        result = handle_call_with_retry(payload["event"], payload["event_payload"], socket)
+        result = handle_call_with_retry(payload["event"], payload["payload"], socket)
         binary_result = :erlang.term_to_binary(result)
         changeset = AirRPC.changeset(%AirRPC{}, %{id: id, result: binary_result})
         Repo.insert!(changeset)
