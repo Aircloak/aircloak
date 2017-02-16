@@ -56,7 +56,7 @@ class QueriesView extends React.Component {
 
     this.bindKeysWithoutEditorFocus();
     this.props.resultSocket.start({
-      result: this.resultReceived,
+      handleEvent: this.resultReceived,
     });
   }
 
