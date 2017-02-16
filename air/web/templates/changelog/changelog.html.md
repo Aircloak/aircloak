@@ -1,6 +1,11 @@
 ## Non-released changes (next version: Version 17.2.0)
 {: .pending}
 
+### New features
+
+- Adds an Activity Monitor that allows an administrator to see all queries running in the system across all
+  analysts.
+
 ### Enhancements
 
 - Allow unlimited recall of past query history
