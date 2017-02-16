@@ -2,7 +2,6 @@
 
 import React from "react";
 import ReactDOM from "react-dom";
-import $ from "jquery";
 import _ from "lodash";
 
 import {QueriesView} from "./queries";
@@ -39,23 +38,26 @@ class ActivityMonitorView extends React.Component {
   handleQueryEvent: () => void;
 
   handleQueryEvent(queryEvent) {
-    var queries = this.state.queries;
+    let queries = this.state.queries;
 
-    if (queryEvent.event == "started") {
+    if (queryEvent.event === "started") {
       queries.unshift(queryEvent.query);
     } else {
       queries = _.map(queries, (existingQuery) => {
-        if (existingQuery.id == queryEvent.query_id) {
-          existingQuery.state = queryEvent.event;
+        if (existingQuery.id === queryEvent.query_id) {
+          const alteredQuery = _.clone(existingQuery);
+          alteredQuery.state = queryEvent.event;
+          return alteredQuery;
+        } else {
+          return existingQuery;
         }
-        return existingQuery;
       });
     }
 
     // Only keep the last 10 completed queries
-    var completedKept = 0;
+    let completedKept = 0;
     queries = _.filter(queries, (query) => {
-      if (query.state == "completed") {
+      if (query.state === "completed") {
         if (completedKept >= 10) {
           return false;
         } else {

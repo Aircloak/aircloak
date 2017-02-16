@@ -6,19 +6,10 @@ export type State = {
   state: string,
 };
 
-export class StateView extends React.Component {
-  constructor(props: State) {
-    super(props);
+export const StateView = (props: State) => {
+  if (props.state === "completed") {
+    return (<span className="label label-success">{props.state}</span>);
+  } else {
+    return (<span className="label label-info">{props.state}</span>);
   }
-
-  props: State;
-
-  render() {
-    var labelType = "info";
-    if (this.props.state == "completed") {
-      labelType = "success";
-    }
-    return (<span className={'label label-' + labelType}>{this.props.state}</span>);
-  }
-}
-
+};

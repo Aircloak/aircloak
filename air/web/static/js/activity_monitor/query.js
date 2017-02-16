@@ -11,20 +11,9 @@ export type Query = {
   data_source_name: string,
 };
 
-export class QueryView extends React.Component {
-  constructor(props: Query) {
-    super(props);
-  }
-
-  props: Query;
-
-  render() {
-    return (
-      <tr>
-        <td>{this.props.data_source_name}</td>
-        <td>{this.props.analyst_name}</td>
-        <td><StateView state={this.props.state} /></td>
-      </tr>
-    );
-  }
-}
+export const QueryView = (props: Query) =>
+  <tr>
+    <td>{props.data_source_name}</td>
+    <td>{props.analyst_name}</td>
+    <td><StateView state={props.state} /></td>
+  </tr>;
