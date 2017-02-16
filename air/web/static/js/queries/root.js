@@ -55,7 +55,7 @@ class QueriesView extends React.Component {
     this.tableNames = this.tableNames.bind(this);
 
     this.bindKeysWithoutEditorFocus();
-    this.props.querySocket.joinSessionChannel({
+    this.props.querySocket.joinSessionChannel(props.sessionId, {
       handleEvent: this.resultReceived,
     });
   }
@@ -289,6 +289,6 @@ class QueriesView extends React.Component {
 }
 
 export default function renderQueriesView(data: Props, elem: Node) {
-  const socket = new QuerySocket(data.sessionId, data.guardianToken);
+  const socket = new QuerySocket(data.guardianToken);
   ReactDOM.render(<QueriesView querySocket={socket} {...data} />, elem);
 }
