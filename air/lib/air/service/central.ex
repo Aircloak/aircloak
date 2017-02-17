@@ -33,6 +33,15 @@ defmodule Air.Service.Central do
   def pending_calls(), do:
     Repo.all(CentralCall)
 
+  @doc "Returns the time of oldest pending call."
+  @spec oldest_pending_call_time() :: nil | NaiveDateTime.t
+  def oldest_pending_call_time() do
+    case Repo.one(from c in CentralCall, select: min(c.inserted_at)) do
+      nil -> nil
+      oldest_pending_call_time -> oldest_pending_call_time
+    end
+  end
+
   @doc "Exports all pending calls, returning export binary payload on success."
   @dialyzer {:no_opaque, export_pending_calls: 0} # Error in current Ecto: https://github.com/elixir-ecto/ecto/issues/1882
   @spec export_pending_calls() :: {:ok, binary} | {:error, :nothing_to_export | :database_error}

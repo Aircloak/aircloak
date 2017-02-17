@@ -41,4 +41,12 @@ defmodule Air.Service.CentralTest do
   test "export error when there are no pending calls" do
     assert {:error, :nothing_to_export} == Central.export_pending_calls()
   end
+
+  test "oldest pending call time" do
+    assert nil == Central.oldest_pending_call_time()
+
+    {:ok, oldest_entry} = Central.store_pending_call("event1", %{some: "payload"})
+    {:ok, _} = Central.store_pending_call("event2", %{another: "payload"})
+    assert oldest_entry.inserted_at == Central.oldest_pending_call_time()
+  end
 end
