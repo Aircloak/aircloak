@@ -51,7 +51,7 @@ defmodule Air.Service.Central do
       export_row = export_row(calls_to_export)
 
       Ecto.Multi.new()
-      |> Ecto.Multi.insert_all(:store_export, "exported_central_calls", [export_row])
+      |> Ecto.Multi.insert_all(:store_export, "exports_for_aircloak", [export_row])
       |> Ecto.Multi.delete_all(:delete_exported, from(c in CentralCall, where: c.id <= ^max_pending_call_id))
       |> Repo.transaction()
       |> case do
@@ -82,7 +82,7 @@ defmodule Air.Service.Central do
       updated_at: now,
       payload:
         %{
-          last_exported_id: Repo.one(from exported in "exported_central_calls", select: max(exported.id)),
+          last_exported_id: Repo.one(from exported in "exports_for_aircloak", select: max(exported.id)),
           rpcs: Enum.map(calls_to_export, &CentralCall.export/1)
         }
         |> Poison.encode!()
