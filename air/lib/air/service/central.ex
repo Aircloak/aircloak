@@ -42,20 +42,20 @@ defmodule Air.Service.Central do
     end
   end
 
-  @doc "Exports all pending calls, returning export binary payload on success."
+  @doc "Exports all pending calls, returning export schema on success."
   @dialyzer {:no_opaque, export_pending_calls: 0} # Error in current Ecto: https://github.com/elixir-ecto/ecto/issues/1882
-  @spec export_pending_calls() :: {:ok, binary} | {:error, :nothing_to_export | :database_error}
+  @spec export_pending_calls() :: {:ok, ExportForAircloak.t} | {:error, :nothing_to_export | :database_error}
   def export_pending_calls() do
     with {:ok, calls_to_export} <- calls_to_export() do
       max_pending_call_id = calls_to_export |> Stream.map(&(&1.id)) |> Enum.max()
-      export_row = %ExportForAircloak{payload: payload(calls_to_export)}
 
       Ecto.Multi.new()
-      |> Ecto.Multi.insert(:store_export, export_row)
+      |> Ecto.Multi.insert(:stored_export, %ExportForAircloak{payload: payload(calls_to_export)})
       |> Ecto.Multi.delete_all(:delete_exported, from(c in CentralCall, where: c.id <= ^max_pending_call_id))
       |> Repo.transaction()
       |> case do
-        {:ok, _} -> {:ok, export_row.payload}
+        {:ok, results} ->
+          {:ok, results.stored_export}
         other ->
           Logger.error("Error storing export to the database #{inspect other}")
           {:error, :database_error}

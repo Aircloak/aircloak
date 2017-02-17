@@ -27,8 +27,8 @@ defmodule Air.Admin.CentralController do
 
   def new_export(conn, _params) do
     case Central.export_pending_calls() do
-      {:ok, payload} ->
-        send_attachment(conn, "export_for_aircloak.acd", payload)
+      {:ok, export} ->
+        send_attachment(conn, "export_for_aircloak.acd", export.payload)
       {:error, :nothing_to_export} ->
         conn
         |> put_flash(:error, "Nothing to export")
