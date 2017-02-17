@@ -9,4 +9,7 @@ defmodule Air.Schemas.ExportForAircloak do
 
     timestamps()
   end
+
+  def file_name(export), do:
+    Timex.format!(export.inserted_at, "export_for_aircloak_{YYYY}{0M}{0D}{0h24}{0m}.acd")
 end
