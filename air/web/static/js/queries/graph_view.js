@@ -30,6 +30,9 @@ const options = (graphConfig) => ({
         display: true,
         labelString: graphConfig.xColumns().join(", "),
       },
+      gridLines: {
+        display: false,
+      },
     }],
   },
 });
