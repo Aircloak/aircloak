@@ -22,6 +22,11 @@ const data = (graphData) => ({
 
 const options = (graphConfig) => ({
   scales: {
+    yAxes: [{
+      ticks: {
+        beginAtZero: true,
+      },
+    }],
     xAxes: [{
       ticks: {
         beginAtZero: true,
