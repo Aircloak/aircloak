@@ -1,7 +1,7 @@
 defmodule Air.Socket.Frontend.UserChannelTest do
   alias Air.Socket.Frontend.UserChannel
 
-  import Air.{TestRepoHelper}
+  import Air.TestRepoHelper
 
   use Air.ChannelCase, async: true
 
