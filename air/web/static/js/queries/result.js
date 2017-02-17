@@ -2,12 +2,13 @@
 
 import React from "react";
 import _ from "lodash";
-import {Bar} from "react-chartjs-2";
 
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
-import {GraphData} from "./graph_data";
-import type {GraphDataT} from "./graph_data";
+import {GraphData, GraphInfo, GraphConfig} from "./graph_data";
+import {GraphConfigView} from "./graph_config_view";
+import {GraphView} from "./graph_view";
+import type {GraphDataT, GraphInfoT} from "./graph_data";
 
 export type Row = {
   occurrences: number,
@@ -35,29 +36,42 @@ export class ResultView extends React.Component {
     this.state = {
       rowsToShowCount: this.minRowsToShow,
       showChart: false,
+      showChartConfig: true,
+      graphConfig: new GraphConfig(),
     };
+
+    this.componentDidUpdate = this.componentDidUpdate.bind(this);
 
     this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
     this.handleClickLessRows = this.handleClickLessRows.bind(this);
 
     this.renderRows = this.renderRows.bind(this);
     this.renderShowAll = this.renderShowAll.bind(this);
+    this.renderChartButton = this.renderChartButton.bind(this);
+    this.renderAxesButton = this.renderAxesButton.bind(this);
     this.renderOptionMenu = this.renderOptionMenu.bind(this);
 
     this.conditionallyRenderChart = this.conditionallyRenderChart.bind(this);
+    this.conditionallyRenderChartConfig = this.conditionallyRenderChartConfig.bind(this);
     this.formatValue = this.formatValue.bind(this);
 
     this.showingAllOfFewRows = this.showingAllOfFewRows.bind(this);
     this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
     this.showingMinimumNumberOfManyRows = this.showingMinimumNumberOfManyRows.bind(this);
 
-    this.graphData = new GraphData(this.props.rows, this.props.columns, this.formatValue);
+    this.graphInfo = new GraphInfo(this.props.columns, this.props.rows);
+    this.rebuildGraphData();
+
+    this.addX = this.addX.bind(this);
+    this.addY = this.addY.bind(this);
+    this.removeColumn = this.removeColumn.bind(this);
   }
 
-  state: {rowsToShowCount: number, showChart: boolean};
+  state: {rowsToShowCount: number, showChart: boolean, showChartConfig: boolean, graphConfig: GraphConfig};
   props: Result;
   minRowsToShow: number;
   graphData: GraphDataT;
+  graphInfo: GraphInfoT;
   formatValue: (value: any) => string | number;
   handleClickMoreRows: () => void;
   handleClickLessRows: () => void;
@@ -68,6 +82,27 @@ export class ResultView extends React.Component {
   showingAllOfFewRows: () => void;
   showingAllOfManyRows: () => void;
   showingMinimumNumberOfManyRows: () => void;
+  componentDidUpdate: () => void;
+  renderChartButton: () => void;
+  renderAxesButton: () => void;
+  conditionallyRenderChartConfig: () => void;
+  rebuildGraphData: () => void;
+  addX: (col: Column) => () => void;
+  addY: (col: Column) => () => void;
+  removeColumn: (col: Column) => () => void;
+
+  componentDidUpdate() {
+    this.rebuildGraphData();
+  }
+
+  rebuildGraphData() {
+    this.graphData = new GraphData(
+      this.props.columns,
+      this.props.rows,
+      this.state.graphConfig,
+      this.formatValue
+    );
+  }
 
   handleClickMoreRows() {
     this.setState({rowsToShowCount: Math.min(this.state.rowsToShowCount * 2, this.props.row_count)});
@@ -90,6 +125,18 @@ export class ResultView extends React.Component {
     return this.state.rowsToShowCount === this.minRowsToShow && this.props.row_count > this.minRowsToShow;
   }
 
+  addX(col: Column) {
+    return () => this.setState({graphConfig: this.state.graphConfig.addX(col)});
+  }
+
+  addY(col: Column) {
+    return () => this.setState({graphConfig: this.state.graphConfig.addY(col)});
+  }
+
+  removeColumn(col: Column) {
+    return () => this.setState({graphConfig: this.state.graphConfig.remove(col)});
+  }
+
   formatValue(value: any): number | string {
     if (value === null) {
       return "<null>";
@@ -106,33 +153,28 @@ export class ResultView extends React.Component {
 
   conditionallyRenderChart() {
     if (this.state.showChart) {
-      const data = this.graphData.traces("bar")[0];
-
       return (
-        <Bar
-          data={{
-            labels: data.x,
-            datasets: [
-              {
-                label: data.name,
-                data: data.y,
-              },
-            ],
-          }}
-
-          options={{
-            scales: {
-              xAxes: [{
-                scaleLabel: {
-                  display: true,
-                  labelString: this.graphData.xAxisLabel(),
-                },
-              }],
-            },
-          }}
-
+        <GraphView
+          graphData={this.graphData}
+          graphConfig={this.state.graphConfig}
           width={714}
           height={600}
+        />
+      );
+    } else {
+      return null;
+    }
+  }
+
+  conditionallyRenderChartConfig() {
+    if (this.state.showChart && this.state.showChartConfig) {
+      return (
+        <GraphConfigView
+          graphInfo={this.graphInfo}
+          graphConfig={this.state.graphConfig}
+          addX={this.addX}
+          addY={this.addY}
+          remove={this.removeColumn}
         />
       );
     } else {
@@ -188,7 +230,7 @@ export class ResultView extends React.Component {
   }
 
   renderChartButton() {
-    if (this.graphData.charteable()) {
+    if (this.graphInfo.chartable()) {
       const chartButtonText = this.state.showChart ? "Hide chart" : "Show chart";
       return (
         <button
@@ -203,12 +245,30 @@ export class ResultView extends React.Component {
     }
   }
 
+  renderAxesButton() {
+    if (this.state.showChart) {
+      const text = this.state.showChartConfig ? "Hide axes" : "Show axes";
+      return (
+        <button
+          className="btn btn-default btn-xs"
+          onClick={() => this.setState({showChartConfig: ! this.state.showChartConfig})}
+        >
+          {text}
+        </button>
+      );
+    } else {
+      return null;
+    }
+  }
+
   renderOptionMenu() {
     return (
       <div className="options-menu">
         <a className="btn btn-default btn-xs" href={`/queries/${this.props.id}.csv`}>Download as CSV</a>
         &nbsp;
         {this.renderChartButton()}
+        &nbsp;
+        {this.renderAxesButton()}
       </div>
     );
   }
@@ -237,6 +297,7 @@ export class ResultView extends React.Component {
           </div>
           {this.renderShowAll()}
           {this.renderOptionMenu()}
+          {this.conditionallyRenderChartConfig()}
           {this.conditionallyRenderChart()}
         </div>
       </div>

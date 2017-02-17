@@ -23,6 +23,7 @@ module.exports = {
     "react/sort-comp": ["off"],
     /* Handled by plugin-import */
     "no-duplicate-imports": ["off"],
+    "no-underscore-dangle": ["off"],
   },
   "settings": {
     "flowtype": {

@@ -8,6 +8,11 @@
 - Adds an endpoint for monitoring by external tools
 - Adds a setting pane with the ability to specify the retention time for past queries
 
+### Changes
+
+- Remove charting of errors and automatic detection of axes. Instead it's possible to
+select which columns to plot.
+
 ## Version 17.1.0
 
 Initial public release.
