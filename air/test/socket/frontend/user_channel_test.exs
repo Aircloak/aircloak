@@ -3,10 +3,12 @@ defmodule Air.Socket.Frontend.UserChannelTest do
 
   import Air.TestRepoHelper
 
-  use Air.ChannelCase, async: true
+  use Air.ChannelCase, async: false
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Air.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Air.Repo, {:shared, self()})
+    :ok
   end
 
   describe "Joining session channel" do
@@ -54,7 +56,32 @@ defmodule Air.Socket.Frontend.UserChannelTest do
     end
   end
 
+  describe "Receiving query states" do
+    setup [:with_user, :made_admin, :with_socket, :subscribed_to_all_state_changes]
+
+    test "receive query data for new query" do
+      data_source = create_data_source!()
+      some_user = create_user!()
+      query = create_query!(some_user, %{completed: true, data_source_id: data_source.id})
+      Air.QueryEvents.StateChanges.trigger_event(query.id, :started)
+      assert_push("state_change", message)
+      assert message[:query_id] == query.id
+      assert message[:event] == :started
+      assert message[:query] == hd(Air.Service.Query.format_for_activity_monitor_view([query]))
+    end
+
+    test "receive event when query completes", context do
+      query = create_query!(context[:user])
+      Air.QueryEvents.StateChanges.trigger_event(query.id, :completed)
+      assert_push("state_change", message)
+      assert message[:query_id] == query.id
+      assert message[:event] == :completed
+    end
+  end
+
   defp with_user(_), do: {:ok, user: create_user!()}
+
+  defp made_admin(context), do: {:ok, user: make_admin!(context[:user])}
 
   defp with_session(_), do: {:ok, session: Ecto.UUID.generate()}
 
@@ -62,6 +89,11 @@ defmodule Air.Socket.Frontend.UserChannelTest do
 
   defp subscribed_to_sessions(context) do
     {:ok, _, _} = subscribe_and_join(context[:socket], UserChannel, "session:" <> context[:session])
+    :ok
+  end
+
+  defp subscribed_to_all_state_changes(context) do
+    {:ok, _, _} = subscribe_and_join(context[:socket], UserChannel, "state_changes:all")
     :ok
   end
 end
