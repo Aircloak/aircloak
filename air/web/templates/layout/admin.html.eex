@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="">
     <meta name="author" content="">
+    <%= if @conn.assigns[:refresh] do %>
+      <meta http-equiv="refresh" content="1;url=<%= @conn.assigns[:refresh] %>">
+    <% end %>
 
     <title>Aircloak – Admin - Air control</title>
     <link rel="shortcut icon" href="<%= static_path(@conn, "/images/favicon.ico") %>" type="image/x-icon">

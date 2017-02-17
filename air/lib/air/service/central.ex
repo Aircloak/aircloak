@@ -63,6 +63,11 @@ defmodule Air.Service.Central do
     end
   end
 
+  @doc "Retrieves the existing export."
+  @spec get_export!(non_neg_integer) :: ExportForAircloak.t
+  def get_export!(export_id), do:
+    Repo.get!(ExportForAircloak, export_id)
+
 
   # -------------------------------------------------------------------
   # Internal functions

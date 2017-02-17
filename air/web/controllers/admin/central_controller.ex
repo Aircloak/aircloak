@@ -21,30 +21,45 @@ defmodule Air.Admin.CentralController do
   # Actions
   # -------------------------------------------------------------------
 
-  def export(conn, _params) do
-    render conn, oldest_pending_call_time: Central.oldest_pending_call_time()
-  end
+  def export(conn, _params), do:
+    conn
+    |> maybe_download_generated_export()
+    |> render(oldest_pending_call_time: Central.oldest_pending_call_time())
 
   def new_export(conn, _params) do
     case Central.export_pending_calls() do
       {:ok, export} ->
-        send_attachment(conn, Air.Schemas.ExportForAircloak.file_name(export), export.payload)
-      {:error, :nothing_to_export} ->
         conn
-        |> put_flash(:error, "Nothing to export")
-        |> redirect(to: admin_central_path(conn, :export))
+        |> put_session("download_generated_export", export.id)
+        |> put_flash(:info, "Export generated successfully, download will begin shortly.")
+      {:error, :nothing_to_export} ->
+        put_flash(conn, :error, "Nothing to export")
       other_error ->
         Logger.error("Export for aircloak error: #{inspect other_error}")
-        conn
-        |> put_flash(:error, "An error has occurred, export not generated.")
-        |> redirect(to: admin_central_path(conn, :export))
+        put_flash(conn, :error, "An error has occurred, export not generated.")
     end
+    |> redirect(to: admin_central_path(conn, :export))
+  end
+
+  def download_export(conn, %{"export_id" => export_id}) do
+    export = Central.get_export!(export_id)
+    send_attachment(conn, Air.Schemas.ExportForAircloak.file_name(export), export.payload)
   end
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp maybe_download_generated_export(conn) do
+    case get_session(conn, "download_generated_export") do
+      nil -> conn
+      export_id ->
+        conn
+        |> assign(:refresh, admin_central_path(conn, :download_export, export_id))
+        |> delete_session("download_generated_export")
+    end
+  end
 
   defp send_attachment(conn, file_name, data), do:
     conn

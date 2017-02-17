@@ -38,6 +38,13 @@ defmodule Air.Service.CentralTest do
     assert [] == Central.pending_calls()
   end
 
+  test "retrieving an export calls" do
+    {:ok, _} = Central.store_pending_call("event1", %{some: "payload"})
+    {:ok, _} = Central.store_pending_call("event2", %{another: "payload"})
+    {:ok, export} = Central.export_pending_calls()
+    assert export == Central.get_export!(export.id)
+  end
+
   test "export error when there are no pending calls" do
     assert {:error, :nothing_to_export} == Central.export_pending_calls()
   end

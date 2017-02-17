@@ -79,6 +79,7 @@ defmodule Air.Router do
 
     get "/central/export_for_aircloak", CentralController, :export
     get "/central/new_export", CentralController, :new_export
+    get "/central/download_export/:export_id", CentralController, :download_export
   end
 
   scope "/onboarding", Air.Onboarding, as: :onboarding do
