@@ -6,7 +6,7 @@
       <div>
         <b>Data not exported since <%= Timex.format!(@oldest_pending_call_time, "{YYYY}-{0M}-{0D}") %></b>
       </div>
-      <a class="btn btn-primary" href="">Export</a>
+      <a class="btn btn-primary" href="<%= admin_central_path(@conn, :new_export) %>">Export</a>
     <% end %>
   </div>
 </div>

@@ -78,6 +78,7 @@ defmodule Air.Router do
     get "/", ActivityMonitorController, :index
 
     get "/central/export_for_aircloak", CentralController, :export
+    get "/central/new_export", CentralController, :new_export
   end
 
   scope "/onboarding", Air.Onboarding, as: :onboarding do
