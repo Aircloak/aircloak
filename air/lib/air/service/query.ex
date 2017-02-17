@@ -12,12 +12,16 @@ defmodule Air.Service.Query do
   #-----------------------------------------------------------------------------------------------------------
 
   @doc "Returns a query without associations preloaded"
-  @spec get(String.t) :: {:ok, Query.t} | {:error, :not_found}
+  @spec get(String.t) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
   def get(id) do
-    case Repo.get(Query, id) do
-      nil -> {:error, :not_found}
-      query ->
-        {:ok, query}
+    try do
+      case Repo.get(Query, id) do
+        nil -> {:error, :not_found}
+        query ->
+          {:ok, query}
+      end
+    rescue Ecto.Query.CastError ->
+      {:error, :invalid_id}
     end
   end
 
@@ -33,14 +37,14 @@ defmodule Air.Service.Query do
     Repo.all(
       from query in Query,
       where: query.completed and
-        fragment("? < now() - INTERVAL '10 minutes'", query.updated_at),
+        fragment("? > now() - INTERVAL '10 minutes'", query.updated_at),
       order_by: [desc: query.inserted_at],
       limit: 10
     )
   end
 
   @doc "Formats the queries to be shown in the activity monitor"
-  @spec format_for_activity_monitor_view([Query.t]) :: Map.t
+  @spec format_for_activity_monitor_view([Query.t]) :: [Map.t]
   def format_for_activity_monitor_view(queries) do
     queries
     |> Repo.preload([:user, :data_source])
