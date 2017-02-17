@@ -39,6 +39,21 @@ defmodule Air.Socket.Frontend.UserChannelTest do
     end
   end
 
+  describe "Subscribing to state changes channel" do
+    test "can't join when not an admin" do
+      user = create_user!()
+      {:ok, [socket: socket]} = with_socket(%{user: user})
+      assert {:error, _} = subscribe_and_join(socket, UserChannel, "state_changes:all")
+    end
+
+    test "can join as an admin" do
+      user = create_user!()
+      admin = make_admin!(user)
+      {:ok, [socket: socket]} = with_socket(%{user: admin})
+      assert {:ok, _, _} = subscribe_and_join(socket, UserChannel, "state_changes:all")
+    end
+  end
+
   defp with_user(_), do: {:ok, user: create_user!()}
 
   defp with_session(_), do: {:ok, session: Ecto.UUID.generate()}

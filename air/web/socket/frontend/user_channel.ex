@@ -41,8 +41,13 @@ defmodule Air.Socket.Frontend.UserChannel do
     end
   end
   def join("state_changes:all", _, socket) do
-    send(self(), {:stream_state_changes, :all})
-    {:ok, socket}
+    user = socket.assigns.user
+    if Air.Schemas.User.admin?(user) do
+      send(self(), {:stream_state_changes, :all})
+      {:ok, socket}
+    else
+      {:error, %{reason: "Only admin users are allowed to connect"}}
+    end
   end
 
   def handle_info({:stream_state_changes, :all}, socket) do
