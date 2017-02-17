@@ -33,11 +33,7 @@ defmodule Air.Supervisor do
     defp system_processes do
       import Supervisor.Spec, warn: false
 
-      [
-        worker(Air.CentralSocket, []),
-        Air.CentralQueryReporter.supervisor_spec(),
-        Air.CentralQueryReporter.observer_spec(),
-      ]
+      []
     end
   end
 end
