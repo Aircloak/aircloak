@@ -14,6 +14,8 @@ const fillColors = [
   "rgba(0, 170, 150, 0.4)",
 ];
 
+const maxTicksShown = 20;
+
 const data = (graphData) => ({
   labels: graphData.x(),
   datasets: graphData.series().map((series, i) =>
@@ -27,9 +29,11 @@ const options = (graphConfig) => ({
         beginAtZero: true,
       },
     }],
+
     xAxes: [{
       ticks: {
         beginAtZero: true,
+        maxTicksLimit: maxTicksShown,
       },
       scaleLabel: {
         display: true,
