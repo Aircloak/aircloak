@@ -74,6 +74,20 @@ defmodule Air.Socket.Frontend.UserChannelTest do
       Air.QueryEvents.StateChanges.trigger_event(query_id, :completed)
       assert_push("state_change", %{query_id: ^query_id, event: :completed})
     end
+
+    test "receive event when query is cancelled", context do
+      query = create_query!(context[:user])
+      query_id = query.id
+      Air.QueryEvents.StateChanges.trigger_event(query_id, :completed, %{"error" => "Cancelled."})
+      assert_push("state_change", %{query_id: ^query_id, event: :cancelled})
+    end
+
+    test "receive event when query errors", context do
+      query = create_query!(context[:user])
+      query_id = query.id
+      Air.QueryEvents.StateChanges.trigger_event(query_id, :completed, %{"error" => "foo bar"})
+      assert_push("state_change", %{query_id: ^query_id, event: :error})
+    end
   end
 
   defp with_user(_), do: {:ok, user: create_user!()}
