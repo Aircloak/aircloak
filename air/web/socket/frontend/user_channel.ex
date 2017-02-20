@@ -9,8 +9,7 @@ defmodule Air.Socket.Frontend.UserChannel do
   """
   use Air.Web, :channel
 
-  alias Air.Schemas
-  alias Air.Service
+  alias Air.{Schemas, Service}
 
 
   # -------------------------------------------------------------------
