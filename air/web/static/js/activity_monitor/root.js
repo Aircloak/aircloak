@@ -32,6 +32,7 @@ class ActivityMonitorView extends React.Component {
     };
 
     this.handleQueryEvent = this.handleQueryEvent.bind(this);
+    this.handleRemoveQuery = this.handleRemoveQuery.bind(this);
 
     this.props.querySocket.joinAllQueryEventsChannel({
       handleEvent: this.handleQueryEvent,
@@ -42,24 +43,23 @@ class ActivityMonitorView extends React.Component {
     queries: Query[],
   };
   handleQueryEvent: (queryEvent: QueryEvent) => void;
-  keepCompleted: (query: Query[], n: number) => Query[];
+  handleRemoveQuery: (query: Query) => void;
 
-  keepCompleted(queries, n) {
-    let completedKept = 0;
-    return _.filter(queries, (query) => {
-      if (query.state === "completed") {
-        if (completedKept >= 10) {
-          return false;
-        } else {
-          completedKept = completedKept + 1;
-        }
-      }
-      return true;
-    });
+  handleRemoveQuery(queryId) {
+    const queries = _.reject(this.state.queries, (query) => query.id === queryId);
+    this.setState({queries});
+  }
+
+  conditionallyScheduleQueryRemoval(queryEvent) {
+    if (queryEvent.event === "completed") {
+      setTimeout(() => this.handleRemoveQuery(queryEvent.query_id), 10000);
+    }
   }
 
   handleQueryEvent(queryEvent) {
     let queries = _.cloneDeep(this.state.queries);
+
+    this.conditionallyScheduleQueryRemoval(queryEvent);
 
     if (queryEvent.event === "started") {
       queries.unshift(queryEvent.query);
@@ -75,7 +75,7 @@ class ActivityMonitorView extends React.Component {
       });
     }
 
-    this.setState({queries: this.keepCompleted(queries, 10)});
+    this.setState({queries});
   }
 
   render() {
