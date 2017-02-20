@@ -5,7 +5,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   alias Cloak.Sql.{Query, Comparison, Expression}
   alias Cloak.Query.{Rows, Sorter}
-  alias Cloak.Data
+  alias Cloak.{Data, Stats}
 
 
   # -------------------------------------------------------------------
@@ -134,17 +134,19 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp aggregator_to_finalizer(%Expression{function?: true, function: "count", function_args: [{:distinct, _column}]}),
     do: &MapSet.size(&1)
   defp aggregator_to_finalizer(%Expression{function?: true, function: "sum", function_args: [{:distinct, _column}]}),
-    do: &if MapSet.size(&1) == 0, do: nil, else: Enum.sum(&1)
+    do: & &1 |> MapSet.to_list() |> Stats.sum()
   defp aggregator_to_finalizer(%Expression{function?: true, function: "min", function_args: [{:distinct, _column}]}),
     do: &if MapSet.size(&1) == 0, do: nil, else: set_min(&1)
   defp aggregator_to_finalizer(%Expression{function?: true, function: "max", function_args: [{:distinct, _column}]}),
     do: &if MapSet.size(&1) == 0, do: nil, else: set_max(&1)
   defp aggregator_to_finalizer(%Expression{function?: true, function: "avg", function_args: [{:distinct, _column}]}),
-    do: &if MapSet.size(&1) == 0, do: nil, else: Enum.sum(&1) / MapSet.size(&1)
+    do: & &1 |> MapSet.to_list() |> Stats.mean()
   defp aggregator_to_finalizer(%Expression{function?: true, function: "stddev", function_args: [{:distinct, _column}]}),
-    do: &if MapSet.size(&1) == 0, do: nil, else: stddev(&1)
-  defp aggregator_to_finalizer(%Expression{function?: true, function: "median", function_args: [{:distinct, column}]}),
-    do: &if MapSet.size(&1) == 0, do: nil, else: &1 |> sort_set(column.type) |> Enum.at(&1 |> MapSet.size() |> div(2))
+    do: & &1 |> MapSet.to_list() |> Stats.stddev()
+  defp aggregator_to_finalizer(%Expression{function?: true, function: "median",
+    function_args: [{:distinct, %Expression{type: :number}}]}), do: & &1 |> MapSet.to_list() |> Stats.median()
+  defp aggregator_to_finalizer(%Expression{function?: true, function: "median", function_args: [{:distinct, _column}]}),
+    do: &if MapSet.size(&1) == 0, do: nil, else: &1 |> sort() |> Enum.at(&1 |> MapSet.size() |> div(2))
   defp aggregator_to_finalizer(%Expression{function?: true, function: "count", function_args: [_column]}), do: & &1
   defp aggregator_to_finalizer(%Expression{function?: true, function: "sum", function_args: [_column]}), do: & &1
   defp aggregator_to_finalizer(%Expression{function?: true, function: "min", function_args: [_column]}), do: & &1
@@ -152,28 +154,17 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp aggregator_to_finalizer(%Expression{function?: true, function: "avg", function_args: [_column]}), do:
     fn ({nil, 0}) -> nil; ({sum, count}) -> sum / count end
   defp aggregator_to_finalizer(%Expression{function?: true, function: "stddev", function_args: [_column]}), do:
-    fn ([]) -> nil; (values) -> stddev(values) end
+    &Stats.stddev/1
+  defp aggregator_to_finalizer(%Expression{function?: true, function: "median",
+    function_args: [%Expression{type: :number}]}), do: &Stats.median/1
   defp aggregator_to_finalizer(%Expression{function?: true, function: "median", function_args: [_column]}), do:
-    fn
-      ([]) ->
-        nil
-      (values) ->
-        values |> Enum.sort() |> Enum.at(values |> Enum.count() |> div(2))
-    end
-
-  defp stddev(values) do
-    count = Enum.count(values)
-    average = Enum.sum(values) / count
-    variances = Enum.map(values, &(&1 - average) * (&1 - average))
-    :math.sqrt(Enum.sum(variances) / count)
-  end
-
-  defp sort_set(set, type) when type in [:date, :time, :datetime], do: Enum.sort(set, &Data.lt_eq/2)
-  defp sort_set(set, _type), do: MapSet.to_list(set)
+    &if &1 == [], do: nil, else: &1 |> sort() |> Enum.at(&1 |> Enum.count() |> div(2))
 
   defp set_min(set), do: Enum.reduce(set, &Data.min/2)
 
   defp set_max(set), do: Enum.reduce(set, &Data.max/2)
+
+  defp sort(values), do: Enum.sort(values, &Data.lt_eq/2)
 
   defp joined_row_size({:subquery, subquery}), do: Enum.count(subquery.ast.columns)
   defp joined_row_size({:join, join}), do: joined_row_size(join.lhs) + joined_row_size(join.rhs)
