@@ -55,7 +55,7 @@ class ActivityMonitorView extends React.Component {
   }
 
   conditionallyScheduleQueryRemoval(queryEvent) {
-    if (queryEvent.event === "completed") {
+    if (_.includes(["error", "cancelled", "completed"], queryEvent.event)) {
       setTimeout(() => this.handleRemoveQuery(queryEvent.query_id), this.queryRemovalTime);
     }
   }

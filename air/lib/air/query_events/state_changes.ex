@@ -9,7 +9,7 @@ defmodule Air.QueryEvents.StateChanges do
   #-----------------------------------------------------------------------------------------------------------
 
   @doc "Triggers a :query_event indicating the state of a query."
-  @spec trigger_event(String.t, event) :: :ok
-  def trigger_event(query_id, event), do:
-    Air.Socket.Frontend.UserChannel.broadcast_query_state_change(query_id, event)
+  @spec trigger_event(String.t, event, Map.t) :: :ok
+  def trigger_event(query_id, event, metadata \\ %{}), do:
+    Air.Socket.Frontend.UserChannel.broadcast_query_state_change(query_id, event, metadata)
 end

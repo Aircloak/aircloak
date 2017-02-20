@@ -29,9 +29,10 @@ defmodule Air.Socket.Frontend.UserChannel do
   @doc """
   Broadcasts a query state change to all listening clients.
   """
-  @spec broadcast_query_state_change(String.t, Air.QueryEvents.StateChanges.event) :: :ok
-  def broadcast_query_state_change(query_id, state) do
-    Air.Endpoint.broadcast_from!(self(), "state_changes:all", "state_change", message_for_event(query_id, state))
+  @spec broadcast_query_state_change(String.t, Air.QueryEvents.StateChanges.event, Map.t) :: :ok
+  def broadcast_query_state_change(query_id, state, metadata) do
+    Air.Endpoint.broadcast_from!(self(), "state_changes:all", "state_change",
+      message_for_event(query_id, state, metadata))
     :ok
   end
 
@@ -61,12 +62,21 @@ defmodule Air.Socket.Frontend.UserChannel do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp message_for_event(query_id, :started) do
+  defp message_for_event(query_id, :started, _) do
     {:ok, query} = Service.Query.get(query_id)
     %{query_id: query_id, event: :started, query: format_query(query)}
   end
-  defp message_for_event(query_id, :completed), do:
-    %{query_id: query_id, event: :completed}
+  defp message_for_event(query_id, :completed, metadata), do:
+    %{query_id: query_id, event: status_from_completed_query(metadata)}
+
+  defp status_from_completed_query(metadata) do
+    error = metadata["error"]
+    cond do
+      is_nil(error) -> :completed
+      error =~ ~r/cancelled/i -> :cancelled
+      not is_nil(error) -> :error
+    end
+  end
 
   def format_query(query), do:
     hd(Air.Admin.ActivityMonitorView.format_queries([query]))
