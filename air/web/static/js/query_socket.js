@@ -2,7 +2,7 @@
 
 import {Socket} from "phoenix";
 
-type Callback = () => void;
+type Callback = (event: any) => void;
 type Callbacks = {joined?: Callback, failedJoin?: Callback, handleEvent?: Callback};
 
 export class QuerySocket {
