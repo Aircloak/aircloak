@@ -1,0 +1,17 @@
+.activity-monitor-queries-enter {
+  opacity: 0.01;
+}
+
+.activity-monitor-queries-enter.activity-monitor-queries-enter-active {
+  opacity: 1;
+  transition: opacity 500ms ease-in;
+}
+
+.activity-monitor-queries-leave {
+  opacity: 1;
+}
+
+.activity-monitor-queries-leave.activity-monitor-queries-leave-active {
+  opacity: 0.01;
+  transition: opacity 300ms ease-in;
+}

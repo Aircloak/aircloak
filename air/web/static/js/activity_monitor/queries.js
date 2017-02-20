@@ -1,6 +1,7 @@
 // @flow
 
 import React from "react";
+import ReactCSSTransitionGroup from "react-addons-css-transition-group";
 
 import {QueryView} from "./query";
 import type {Query} from "./query";
@@ -34,9 +35,14 @@ export const QueriesView = (props: {queries: Query[]}) => {
             <th>Query state</th>
           </tr>
         </thead>
-        <tbody>
+        <ReactCSSTransitionGroup
+          component="tbody"
+          transitionName="activity-monitor-queries"
+          transitionEnterTimeout={500}
+          transitionLeaveTimeout={300}
+        >
           {queries}
-        </tbody>
+        </ReactCSSTransitionGroup>
       </table>
     </div>
   );
