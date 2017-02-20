@@ -67,7 +67,7 @@ defmodule Air.Socket.Frontend.UserChannelTest do
       assert_push("state_change", message)
       assert message[:query_id] == query.id
       assert message[:event] == :started
-      assert message[:query] == hd(Air.Service.Query.format_for_activity_monitor_view([query]))
+      assert message[:query].id == query.id
     end
 
     test "receive event when query completes", context do

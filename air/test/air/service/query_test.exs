@@ -36,16 +36,4 @@ defmodule Air.Service.QueryTest do
       assert [] == Query.currently_running()
     end
   end
-
-  describe "format_for_activity_monitor_view" do
-    test "returns a list of maps for a list of queries" do
-      data_source = create_data_source!()
-      user = create_user!()
-      query = create_query!(user, %{completed: true, data_source_id: data_source.id})
-      assert [map] = Query.format_for_activity_monitor_view([query])
-      assert map.id == query.id
-      assert map.analyst_name == user.name
-      assert map.data_source_name == data_source.name
-    end
-  end
 end

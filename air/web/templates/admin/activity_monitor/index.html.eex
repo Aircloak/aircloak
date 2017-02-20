@@ -9,7 +9,7 @@
         CSRFToken: "<%= @csrf_token %>",
         guardianToken: "<%= @guardian_token %>",
         userId: "<%= @current_user.id %>",
-        queries: <%= to_json(@queries) %>
+        queries: <%= to_json(format_queries(@running_queries)) %>
       };
 
       App.activityMonitor(props, document.getElementById("activity-monitor-view"));

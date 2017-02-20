@@ -30,31 +30,4 @@ defmodule Air.Service.Query do
   def currently_running() do
     Repo.all(from query in Query, where: not query.completed)
   end
-
-  @doc "Formats the queries to be shown in the activity monitor"
-  @spec format_for_activity_monitor_view([Query.t]) :: [Map.t]
-  def format_for_activity_monitor_view(queries) do
-    queries
-    |> Repo.preload([:user, :data_source])
-    |> Enum.map(fn(query) ->
-      %{
-        id: query.id,
-        analyst_name: query.user.name,
-        data_source_name: query.data_source.name,
-        state: query_state(query),
-      }
-    end)
-  end
-
-  #-----------------------------------------------------------------------------------------------------------
-  # Internal functions
-  #-----------------------------------------------------------------------------------------------------------
-
-  defp query_state(query) do
-    if query.completed do
-      "completed"
-    else
-      "started"
-    end
-  end
 end
