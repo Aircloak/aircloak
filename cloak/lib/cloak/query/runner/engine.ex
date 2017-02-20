@@ -8,11 +8,17 @@ defmodule Cloak.Query.Runner.Engine do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Executes the SQL query and returns the query result or the corresponding error."
-  @spec run(Sql.Query.t) :: {:ok, Query.Result.t} | {:error, String.t}
-  def run(query) do
+  @doc "Executes the SQL query and returns the query result with info messages or the corresponding error."
+  @spec run(String.t, DataSource.t, String.t, [DataSource.field], Sql.Query.view_map) ::
+    {:ok, Sql.Query.Result.t, [String.t]} | {:error, String.t}
+  def run(query_id, data_source, statement, parameters, views) do
     try do
-      {:ok, run_statement(query)}
+      Logger.metadata(query_id: query_id)
+      Logger.debug("Parsing statement `#{statement}` ...")
+
+      with {:ok, query} <- Sql.Query.make(data_source, statement, parameters, views) do
+        {:ok, run_statement(query), Sql.Query.info_messages(query)}
+      end
     rescue e in [Query.Runner.RuntimeError] ->
       {:error, e.message}
     end
