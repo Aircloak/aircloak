@@ -58,7 +58,7 @@ defmodule Cloak.Stats do
     variance = (count * sum_squares - sum * sum) / (count * (count - 1))
     sigma = :math.sqrt(variance)
     # initialize and fill the bins
-    bins = :ets.new(:bins, [:private, :ordered_set, read_concurrency: false, write_concurrency: false])
+    bins = :ets.new(:bins, [:private, :set, read_concurrency: false, write_concurrency: false])
     :ets.insert(bins, {:left_count, 0})
     for i <- 0..@bins_count, do: :ets.insert(bins, {i, 0})
     fill_bins(bins, values, mean, sigma)
