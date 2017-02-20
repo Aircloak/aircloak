@@ -47,6 +47,12 @@ defmodule Cloak.Stats do
     |> Enum.at(values |> length() |> div(2))
   def median(values) do
     # Uses binmedian algorithm from http://www.stat.cmu.edu/~ryantibs/papers/median.pdf
+    # TL,DR:
+    #     - median is guaranteed to be in interval [mean - sigma, mean + sigma]
+    #     - we split that interval into bins and count the number of values in each bin
+    #     - we find the bin holding the median and rank of the median value in that bin
+    #     - original algorithm is recursive and re-splits the bin holding the median
+    #     - here, instead, we select and order all the values in the median bin and then return the median
     {count, sum, sum_squares} = count_and_sums(values, 0, 0, 0)
     mean = sum / count
     variance = (count * sum_squares - sum * sum) / (count * (count - 1))
