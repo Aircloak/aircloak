@@ -10,8 +10,8 @@ const hasQueries = (queries: Query[]) => queries.length > 0;
 export const QueriesView = (props: {queries: Query[]}) => {
   let queries = "";
   if (hasQueries(props.queries)) {
-    queries = props.queries.map((query, i) =>
-      <QueryView key={i} {...query} />
+    queries = props.queries.map((query) =>
+      <QueryView key={query.id} {...query} />
     );
   } else {
     queries = (
