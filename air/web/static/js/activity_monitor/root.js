@@ -9,6 +9,12 @@ import type {Query} from "./query";
 
 import {QuerySocket} from "../query_socket";
 
+type QueryEvent = {
+  query_id: string,
+  event: string,
+  query: Query,
+};
+
 type Props = {
   userId: number,
   guardianToken: string,
@@ -35,7 +41,7 @@ class ActivityMonitorView extends React.Component {
   state: {
     queries: Query[],
   };
-  handleQueryEvent: () => void;
+  handleQueryEvent: (queryEvent: QueryEvent) => void;
   keepCompleted: (query: Query[], n: number) => Query[];
 
   keepCompleted(queries, n) {
