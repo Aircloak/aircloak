@@ -9,13 +9,13 @@ import {Error} from "./error";
 
 export const Results = (props: {results: Result[]}) =>
   <div>
-    {props.results.map((result, i) => {
+    {props.results.map((result) => {
       if (result.pendingResult) {
-        return <PendingResult key={i} {...result} />;
+        return <PendingResult key={result.id} {...result} />;
       } else if (result.columns) {
-        return <ResultView key={i} {...result} />;
+        return <ResultView key={result.id} {...result} />;
       } else {
-        return <Error key={i} {...result} />;
+        return <Error key={result.id} {...result} />;
       }
     })}
   </div>;

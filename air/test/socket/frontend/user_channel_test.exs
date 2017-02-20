@@ -63,19 +63,16 @@ defmodule Air.Socket.Frontend.UserChannelTest do
       data_source = create_data_source!()
       some_user = create_user!()
       query = create_query!(some_user, %{query_state: :completed, data_source_id: data_source.id})
-      Air.QueryEvents.StateChanges.trigger_event(query.id, :started)
-      assert_push("state_change", message)
-      assert message[:query_id] == query.id
-      assert message[:event] == :started
-      assert message[:query].id == query.id
+      query_id = query.id
+      Air.QueryEvents.StateChanges.trigger_event(query_id, :started)
+      assert_push("state_change", %{query_id: ^query_id, event: :started, query: %{id: ^query_id}})
     end
 
     test "receive event when query completes", context do
       query = create_query!(context[:user])
-      Air.QueryEvents.StateChanges.trigger_event(query.id, :completed)
-      assert_push("state_change", message)
-      assert message[:query_id] == query.id
-      assert message[:event] == :completed
+      query_id = query.id
+      Air.QueryEvents.StateChanges.trigger_event(query_id, :completed)
+      assert_push("state_change", %{query_id: ^query_id, event: :completed})
     end
   end
 

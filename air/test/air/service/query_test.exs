@@ -8,9 +8,8 @@ defmodule Air.Service.QueryTest do
     test "loads existing queries" do
       user = create_user!()
       query = create_query!(user)
-
-      assert {:ok, loaded_query} = Query.get(query.id)
-      assert loaded_query.id == query.id
+      query_id = query.id
+      assert {:ok, %Air.Schemas.Query{id: ^query_id}} = Query.get(query_id)
     end
 
     test "of invalid id when the ID is garbage" do
@@ -26,8 +25,8 @@ defmodule Air.Service.QueryTest do
     test "returns running queries" do
       user = create_user!()
       query = create_query!(user)
-      assert [running_query] = Query.currently_running()
-      assert query.id == running_query.id
+      query_id = query.id
+      assert [%Air.Schemas.Query{id: ^query_id}] = Query.currently_running()
     end
 
     test "does not return not running queries" do

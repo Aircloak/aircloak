@@ -134,13 +134,11 @@ defmodule Cloak.Query.Anonymizer do
   """
   @spec stddev(t, Enumerable.t) :: {float, float}
   def stddev(anonymizer, rows) do
-    real_sum = rows |> Stream.map(&Enum.sum(&1)) |> Enum.sum()
-    real_count = rows |> Stream.map(&Enum.count(&1)) |> Enum.sum()
-    real_avg = real_sum / real_count
-
-    get_variance = fn (value) -> (real_avg - value) * (real_avg - value) end
-    variances = Stream.map(rows, &Stream.map(&1, get_variance))
-
+    {count, sum} = Enum.reduce(rows, {0, 0}, fn (row, acc) ->
+      Enum.reduce(row, acc, fn (value, {acc_count, acc_sum}) -> {acc_count + 1, acc_sum + value} end)
+    end)
+    mean = sum / count
+    variances = Stream.map(rows, &Stream.map(&1, fn (value) -> (mean - value) * (mean - value) end))
     {avg_variance, noise_sigma_variance} = avg(anonymizer, variances)
     {:math.sqrt(avg_variance), :math.sqrt(noise_sigma_variance)}
   end

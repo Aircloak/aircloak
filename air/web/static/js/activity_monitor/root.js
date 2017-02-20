@@ -27,6 +27,9 @@ class ActivityMonitorView extends React.Component {
   constructor(props: Props) {
     super(props);
 
+    // How long to display a query after it has completed
+    this.queryRemovalTime = 10000; // 10 seconds
+
     this.state = {
       queries: this.props.queries,
     };
@@ -42,6 +45,7 @@ class ActivityMonitorView extends React.Component {
   state: {
     queries: Query[],
   };
+  queryRemovalTime: number;
   handleQueryEvent: (queryEvent: QueryEvent) => void;
   handleRemoveQuery: (query: Query) => void;
 
@@ -52,7 +56,7 @@ class ActivityMonitorView extends React.Component {
 
   conditionallyScheduleQueryRemoval(queryEvent) {
     if (queryEvent.event === "completed") {
-      setTimeout(() => this.handleRemoveQuery(queryEvent.query_id), 10000);
+      setTimeout(() => this.handleRemoveQuery(queryEvent.query_id), this.queryRemovalTime);
     }
   }
 
