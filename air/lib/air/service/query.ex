@@ -31,18 +31,6 @@ defmodule Air.Service.Query do
     Repo.all(from query in Query, where: not query.completed)
   end
 
-  @doc "Returns queries completed within the last 10 minutes"
-  @spec recently_completed() :: [Query.t]
-  def recently_completed() do
-    Repo.all(
-      from query in Query,
-      where: query.completed and
-        fragment("? > now() - INTERVAL '10 minutes'", query.updated_at),
-      order_by: [desc: query.inserted_at],
-      limit: 10
-    )
-  end
-
   @doc "Formats the queries to be shown in the activity monitor"
   @spec format_for_activity_monitor_view([Query.t]) :: [Map.t]
   def format_for_activity_monitor_view(queries) do

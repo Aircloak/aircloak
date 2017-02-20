@@ -37,34 +37,6 @@ defmodule Air.Service.QueryTest do
     end
   end
 
-  describe "recently_completed" do
-    test "returns queries finished within last 10 minutes" do
-      user = create_user!()
-      query = create_query!(user, %{completed: true, updated_at: NaiveDateTime.utc_now()})
-      assert [completed_query] = Query.recently_completed()
-      assert query.id == completed_query.id
-    end
-
-    test "does not return running queries" do
-      user = create_user!()
-      create_query!(user)
-      assert [] == Query.recently_completed()
-    end
-
-    test "does not return old queries" do
-      user = create_user!()
-      query = create_query!(user, %{completed: true})
-      {sql, params} = Ecto.Adapters.SQL.to_sql(:update_all, Air.Repo,
-        from(query in Air.Schemas.Query,
-          where: query.id == ^query.id,
-          update: [set: [updated_at: ^~N[2017-01-01 15:00:01]]]
-        )
-      )
-      assert {:ok, _} = Ecto.Adapters.SQL.query(Air.Repo, sql, params)
-      assert [] == Query.recently_completed()
-    end
-  end
-
   describe "format_for_activity_monitor_view" do
     test "returns a list of maps for a list of queries" do
       data_source = create_data_source!()

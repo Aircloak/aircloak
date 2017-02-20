@@ -26,7 +26,6 @@ defmodule Air.Admin.ActivityMonitorController do
 
   def index(conn, _params) do
     queries = Query.currently_running()
-    |> Enum.concat(Query.recently_completed())
     |> Query.format_for_activity_monitor_view()
 
     render(
