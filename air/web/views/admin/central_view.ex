@@ -4,6 +4,8 @@ defmodule Air.Admin.CentralView do
   # bug in the current Phoenix
   @dialyzer :no_match
 
+  import Scrivener.HTML
+
   defp allow_new_export?(nil), do: false
   defp allow_new_export?(_), do: true
 end

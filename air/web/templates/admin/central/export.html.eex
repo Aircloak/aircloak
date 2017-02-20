@@ -3,10 +3,27 @@
     <h2>Exports for Aircloak</h2>
 
     <%= if allow_new_export?(@oldest_pending_call_time) do %>
-      <div>
-        <b>Data not exported since <%= Timex.format!(@oldest_pending_call_time, "{YYYY}-{0M}-{0D}") %></b>
+      <div class="form-group">
+        <div>
+          <b>Data not exported since <%= Timex.format!(@oldest_pending_call_time, "{YYYY}-{0M}-{0D}") %></b>
+        </div>
+        <a class="btn btn-primary" href="<%= admin_central_path(@conn, :new_export) %>">Export</a>
       </div>
-      <a class="btn btn-primary" href="<%= admin_central_path(@conn, :new_export) %>">Export</a>
+    <% end %>
+
+    <%= if Enum.count(@exports) > 0 do %>
+      <div>
+        <%= for export <- @exports do %>
+          <div>
+            <a href="<%= admin_central_path(@conn, :download_export, export.id) %>">
+              <%= Timex.format!(export.inserted_at, "{YYYY}-{0M}-{0D} {0h24}:{0m}") %>
+            </a>
+          </div>
+        <% end %>
+      </div>
+      <%= if @exports.total_pages > 1, do: pagination_links @exports, path: fn(_conn, _action, opts) ->
+        admin_central_path(@conn, :export, page: Keyword.get(opts, :page))
+      end %>
     <% end %>
   </div>
 </div>

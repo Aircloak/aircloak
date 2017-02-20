@@ -21,10 +21,10 @@ defmodule Air.Admin.CentralController do
   # Actions
   # -------------------------------------------------------------------
 
-  def export(conn, _params), do:
+  def export(conn, params), do:
     conn
     |> maybe_download_generated_export()
-    |> render(oldest_pending_call_time: Central.oldest_pending_call_time())
+    |> render(oldest_pending_call_time: Central.oldest_pending_call_time(), exports: exports(params))
 
   def new_export(conn, _params) do
     case Central.export_pending_calls() do
@@ -66,4 +66,7 @@ defmodule Air.Admin.CentralController do
     |> put_resp_content_type("application/octet-stream")
     |> put_resp_header("content-disposition", ~s[attachment; filename="#{file_name}"])
     |> send_resp(200, data)
+
+  defp exports(params), do:
+    Central.exports(String.to_integer(params["page"] || "1"), 10)
 end

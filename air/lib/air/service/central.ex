@@ -68,6 +68,14 @@ defmodule Air.Service.Central do
   def get_export!(export_id), do:
     Repo.get!(ExportForAircloak, export_id)
 
+  @doc "Retrieves exports of the given page."
+  @spec exports(pos_integer, pos_integer) :: Scrivener.Page.t
+  def exports(page, page_size), do:
+    Repo.paginate(
+      from(e in ExportForAircloak, select: e, order_by: [desc: e.id]),
+      page: page, page_size: page_size
+    )
+
 
   # -------------------------------------------------------------------
   # Internal functions
