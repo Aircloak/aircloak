@@ -59,7 +59,7 @@ class ActivityMonitorView extends React.Component {
   }
 
   handleQueryEvent(queryEvent) {
-    let queries = this.state.queries;
+    let queries = _.cloneDeep(this.state.queries);
 
     if (queryEvent.event === "started") {
       queries.unshift(queryEvent.query);
