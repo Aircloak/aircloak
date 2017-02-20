@@ -2,11 +2,11 @@
 
 import React from "react";
 
-export type State = {
+type QueryState = {
   state: string,
 };
 
-export const StateView = (props: State) => {
+export const StateView = (props: QueryState) => {
   if (props.state === "completed") {
     return (<span className="label label-success">{props.state}</span>);
   } else {
