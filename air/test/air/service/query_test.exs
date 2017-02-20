@@ -32,7 +32,7 @@ defmodule Air.Service.QueryTest do
 
     test "does not return not running queries" do
       user = create_user!()
-      create_query!(user, %{completed: true})
+      create_query!(user, %{query_state: :completed})
       assert [] == Query.currently_running()
     end
   end

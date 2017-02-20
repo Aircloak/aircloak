@@ -4,6 +4,9 @@ defmodule Air.Schemas.Query do
 
   alias Air.{Schemas.DataSource, Schemas.User, Repo, PsqlServer.Protocol}
 
+  require EctoEnum
+  EctoEnum.defenum QueryStatus, :query_state, [:started, :completed]
+
   @type t :: %__MODULE__{}
   @type cloak_query :: %{
     id: String.t,
@@ -11,7 +14,7 @@ defmodule Air.Schemas.Query do
     parameters: [Protocol.db_value],
     data_source: String.t,
     views: %{String.t => String.t},
-    completed: boolean,
+    query_state: __MODULE__.QueryStatus.t,
   }
 
   @primary_key {:id, :binary_id, autogenerate: true}
@@ -25,7 +28,7 @@ defmodule Air.Schemas.Query do
     field :session_id, Ecto.UUID
     field :parameters, :map
     field :cloak_id, :string
-    field :completed, :boolean
+    field :query_state, __MODULE__.QueryStatus
 
     belongs_to :user, User
     belongs_to :data_source, DataSource
@@ -36,7 +39,7 @@ defmodule Air.Schemas.Query do
   @required_fields ~w()a
   @optional_fields ~w(
     cloak_id statement data_source_id tables result execution_time users_count
-    features session_id parameters completed
+    features session_id parameters query_state
   )a
 
 
