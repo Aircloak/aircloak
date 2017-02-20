@@ -59,21 +59,24 @@ defmodule Cloak.Stats do
     sigma = :math.sqrt(variance)
     # initialize and fill the bins
     bins = :ets.new(:bins, [:private, :set, read_concurrency: false, write_concurrency: false])
-    :ets.insert(bins, {:left_count, 0})
-    for i <- 0..@bins_count, do: :ets.insert(bins, {i, 0})
-    fill_bins(bins, values, mean, sigma)
-    # identify the bin holding the median and the rank of the median in that bin
-    left_count = :ets.lookup_element(bins, :left_count, 2)
-    position = (length(values) |> div(2)) - left_count
-    {median_bin, median_position_in_bin} = find_median_position(bins, 0, position)
-    :ets.delete(bins)
-    # retrieve the values in the bin containing the median, sort them and return the median
-    bin_min = mean - sigma + median_bin * (2 * sigma) / @bins_count
-    bin_max = bin_min + (2 * sigma) / @bins_count
-    values
-    |> find_values_in_range(bin_min, bin_max, [])
-    |> Enum.sort()
-    |> Enum.at(median_position_in_bin)
+    try do
+      :ets.insert(bins, {:left_count, 0})
+      for i <- 0..@bins_count, do: :ets.insert(bins, {i, 0})
+      fill_bins(bins, values, mean, sigma)
+      # identify the bin holding the median and the rank of the median in that bin
+      left_count = :ets.lookup_element(bins, :left_count, 2)
+      position = (length(values) |> div(2)) - left_count
+      {median_bin, median_position_in_bin} = find_median_position(bins, 0, position)
+      # retrieve the values in the bin containing the median, sort them and return the median
+      bin_min = mean - sigma + median_bin * (2 * sigma) / @bins_count
+      bin_max = bin_min + (2 * sigma) / @bins_count
+      values
+      |> find_values_in_range(bin_min, bin_max, [])
+      |> Enum.sort()
+      |> Enum.at(median_position_in_bin)
+    after
+      :ets.delete(bins)
+    end
   end
 
 
