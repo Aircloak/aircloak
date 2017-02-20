@@ -36,6 +36,21 @@ class ActivityMonitorView extends React.Component {
     queries: Query[],
   };
   handleQueryEvent: () => void;
+  keepCompleted: (query: Query[], n: number) => Query[];
+
+  keepCompleted(queries, n) {
+    let completedKept = 0;
+    return _.filter(queries, (query) => {
+      if (query.state === "completed") {
+        if (completedKept >= 10) {
+          return false;
+        } else {
+          completedKept = completedKept + 1;
+        }
+      }
+      return true;
+    });
+  }
 
   handleQueryEvent(queryEvent) {
     let queries = this.state.queries;
@@ -54,20 +69,7 @@ class ActivityMonitorView extends React.Component {
       });
     }
 
-    // Only keep the last 10 completed queries
-    let completedKept = 0;
-    queries = _.filter(queries, (query) => {
-      if (query.state === "completed") {
-        if (completedKept >= 10) {
-          return false;
-        } else {
-          completedKept = completedKept + 1;
-        }
-      }
-      return true;
-    });
-
-    this.setState({queries});
+    this.setState({queries: this.keepCompleted(queries, 10)});
   }
 
   render() {
