@@ -9,7 +9,7 @@ defmodule Air.Supervisor do
       Air.ResultProcessor.supervisor_spec(),
       supervisor(Air.Repo, []),
       worker(Air.Repo.Migrator, [], restart: :transient),
-      supervisor(Air.QueryEvents, []),
+      supervisor(Air.QueryEvents.Results, []),
       supervisor(Task.Supervisor, [[name: Air.ApiTokenTimestampUpdater]], [id: :api_token_updater]),
       worker(Air.Monitoring.FailedQueries, []),
       Air.ResultProcessor.observer_spec(),

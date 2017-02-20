@@ -11,7 +11,7 @@ import {CodeViewer} from "../code_viewer";
 import {Results} from "./results";
 import type {Result} from "./result";
 import type {Selectable} from "../selectable_info/selectable";
-import {ResultSocket} from "../result_socket";
+import {QuerySocket} from "../query_socket";
 import {HistoryLoader} from "./history_loader";
 import type {History} from "./history_loader";
 
@@ -24,7 +24,7 @@ type Props = {
   selectables: Selectable[],
   lastQuery: {statement: string},
   CSRFToken: string,
-  resultSocket: ResultSocket,
+  querySocket: QuerySocket,
 };
 
 class QueriesView extends React.Component {
@@ -55,8 +55,8 @@ class QueriesView extends React.Component {
     this.tableNames = this.tableNames.bind(this);
 
     this.bindKeysWithoutEditorFocus();
-    this.props.resultSocket.start({
-      result: this.resultReceived,
+    this.props.querySocket.joinSessionChannel(props.sessionId, {
+      handleEvent: this.resultReceived,
     });
   }
 
@@ -289,6 +289,6 @@ class QueriesView extends React.Component {
 }
 
 export default function renderQueriesView(data: Props, elem: Node) {
-  const socket = new ResultSocket(data.sessionId, data.guardianToken);
-  ReactDOM.render(<QueriesView resultSocket={socket} {...data} />, elem);
+  const socket = new QuerySocket(data.guardianToken);
+  ReactDOM.render(<QueriesView querySocket={socket} {...data} />, elem);
 }

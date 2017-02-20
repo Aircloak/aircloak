@@ -10,7 +10,8 @@ defmodule Air.Schemas.Query do
     statement: String.t,
     parameters: [Protocol.db_value],
     data_source: String.t,
-    views: %{String.t => String.t}
+    views: %{String.t => String.t},
+    completed: boolean,
   }
 
   @primary_key {:id, :binary_id, autogenerate: true}
@@ -24,6 +25,7 @@ defmodule Air.Schemas.Query do
     field :session_id, Ecto.UUID
     field :parameters, :map
     field :cloak_id, :string
+    field :completed, :boolean
 
     belongs_to :user, User
     belongs_to :data_source, DataSource
@@ -33,7 +35,8 @@ defmodule Air.Schemas.Query do
 
   @required_fields ~w()a
   @optional_fields ~w(
-    cloak_id statement data_source_id tables result execution_time users_count features session_id parameters
+    cloak_id statement data_source_id tables result execution_time users_count
+    features session_id parameters completed
   )a
 
 

@@ -2,7 +2,7 @@ defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
   alias Air.Schemas.{DataSource, Query, User, View}
-  alias Air.{DataSourceManager, PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel}
+  alias Air.{DataSourceManager, PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, QueryEvents}
   import Ecto.Query, only: [from: 2]
   require Logger
 
@@ -98,11 +98,12 @@ defmodule Air.Service.DataSource do
     on_available_cloak(data_source_id_spec, user,
       fn(cloak, data_source, channel_pid) ->
         query = create_query(cloak.id, data_source.id, user, statement, parameters, opts[:session_id])
+        QueryEvents.StateChanges.trigger_event(query.id, :started)
 
         Air.Service.AuditLog.log(user, "Executed query",
           Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.id}))
 
-        if opts[:notify] == true, do: Air.QueryEvents.subscribe(query.id)
+        if opts[:notify] == true, do: QueryEvents.Results.subscribe(query.id)
 
         with :ok <- MainChannel.run_query(channel_pid, cloak_query_map(query, user, parameters)), do:
           {:ok, query}
@@ -118,7 +119,7 @@ defmodule Air.Service.DataSource do
     with {:ok, %{id: query_id}} <- start_query(data_source_id_spec, user, statement, parameters, opts) do
       receive do
         {:query_result, %{"query_id" => ^query_id} = result} ->
-          Air.QueryEvents.unsubscribe(query_id)
+          QueryEvents.Results.unsubscribe(query_id)
           {:ok, result}
       end
     end

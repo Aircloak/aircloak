@@ -57,7 +57,7 @@ defmodule Air.ViewHelpers do
     {:safe, Poison.encode!(term)}
   end
 
-  defp active_class("/admin", "/admin/cloaks"), do: "active"
+  defp active_class(path, "/admin/activity_monitor") when path in ["/admin", "/admin/"], do: "active"
   defp active_class(request_path, link_path) do
     if String.starts_with?(request_path, link_path) do
       "active"

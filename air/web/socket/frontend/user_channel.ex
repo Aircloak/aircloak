@@ -2,13 +2,14 @@ defmodule Air.Socket.Frontend.UserChannel do
   @moduledoc """
   Channel used for communicating events related to queries.
   For the time being no incoming messages are supported,
-  but we do support two outgoing type of messages:
+  but we do support two outgoing types of messages:
 
   - __result__: reports new results as queries finish executing
+  - __state_change__: reports the state changes of a query
   """
   use Air.Web, :channel
-  require Logger
-  alias Air.Schemas.Query
+
+  alias Air.{Schemas, Service}
 
 
   # -------------------------------------------------------------------
@@ -18,9 +19,19 @@ defmodule Air.Socket.Frontend.UserChannel do
   @doc """
   Broadcasts the results of a query execution to all listening clients.
   """
-  @spec broadcast_result(Query.t) :: :ok
+  @spec broadcast_result(Schemas.Query.t) :: :ok
   def broadcast_result(query) do
-    Air.Endpoint.broadcast_from!(self(), "session:#{query.session_id}", "result", Query.for_display(query))
+    Air.Endpoint.broadcast_from!(self(), "session:#{query.session_id}", "result",
+      Schemas.Query.for_display(query))
+    :ok
+  end
+
+  @doc """
+  Broadcasts a query state change to all listening clients.
+  """
+  @spec broadcast_query_state_change(String.t, Air.QueryEvents.StateChanges.event) :: :ok
+  def broadcast_query_state_change(query_id, state) do
+    Air.Endpoint.broadcast_from!(self(), "state_changes:all", "state_change", message_for_event(query_id, state))
     :ok
   end
 
@@ -37,4 +48,26 @@ defmodule Air.Socket.Frontend.UserChannel do
       _ -> {:error, %{success: false, description: "Channel not found"}}
     end
   end
+  def join("state_changes:all", _, socket) do
+    if Air.Schemas.User.admin?(socket.assigns.user) do
+      {:ok, socket}
+    else
+      {:error, %{reason: "Only admin users are allowed to connect"}}
+    end
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp message_for_event(query_id, :started) do
+    {:ok, query} = Service.Query.get(query_id)
+    %{query_id: query_id, event: :started, query: format_query(query)}
+  end
+  defp message_for_event(query_id, :completed), do:
+    %{query_id: query_id, event: :completed}
+
+  def format_query(query), do:
+    hd(Air.Admin.ActivityMonitorView.format_queries([query]))
 end
