@@ -2,7 +2,7 @@ defmodule Air.Socket.Frontend.UserChannel do
   @moduledoc """
   Channel used for communicating events related to queries.
   For the time being no incoming messages are supported,
-  but we do support two outgoing type of messages:
+  but we do support two outgoing types of messages:
 
   - __result__: reports new results as queries finish executing
   - __state_change__: reports the state changes of a query

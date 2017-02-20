@@ -17,7 +17,7 @@ defmodule Air.QueryEvents.StateChanges do
     Supervisor.start_link([worker(GenEvent, [[name: __MODULE__]])], strategy: :one_for_one)
   end
 
-  @doc "Triggers a :query_result event, indicating a result has been returned from the cloak for the query."
+  @doc "Triggers a :query_event indicating the state of a query."
   @spec trigger_event(String.t, event) :: :ok
   def trigger_event(query_id, event), do:
     GenEvent.ack_notify(__MODULE__, {:query_event, query_id, event})
