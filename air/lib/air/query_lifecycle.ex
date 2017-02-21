@@ -1,4 +1,4 @@
-defmodule Air.ResultProcessor do
+defmodule Air.QueryLifecycle do
   @moduledoc """
   Concurrent processing of query results.
 
