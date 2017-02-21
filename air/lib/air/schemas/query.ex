@@ -5,7 +5,9 @@ defmodule Air.Schemas.Query do
   alias Air.{Schemas.DataSource, Schemas.User, Repo, PsqlServer.Protocol}
 
   require EctoEnum
-  EctoEnum.defenum QueryState, :query_state, [:started, :completed]
+  EctoEnum.defenum QueryState, :query_state, [
+    :started, :parsing, :compiling, :awaiting_data, :processing, :completed, :error, :cancelled
+  ]
 
   @type t :: %__MODULE__{}
   @type cloak_query :: %{
