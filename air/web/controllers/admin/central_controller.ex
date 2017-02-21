@@ -5,6 +5,8 @@ defmodule Air.Admin.CentralController do
 
   require Logger
 
+  plug :verify_manual_export_allowed when action in [:export, :new_export, :download_export]
+
 
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback
@@ -50,6 +52,16 @@ defmodule Air.Admin.CentralController do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp verify_manual_export_allowed(conn, _params) do
+    if Central.manual_export?() do
+      conn
+    else
+      conn
+      |> redirect(to: admin_user_path(conn, :index))
+      |> halt()
+    end
+  end
 
   defp maybe_download_generated_export(conn) do
     case get_session(conn, "download_generated_export") do

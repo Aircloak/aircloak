@@ -10,6 +10,21 @@ defmodule Air.Service.Central do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Returns true if auto export mode is used to communicate with central."
+  @spec auto_export?() :: boolean
+  def auto_export?(), do:
+    Aircloak.DeployConfig.override_app_env!(:air, :auto_aircloak_export)
+
+  @doc "Returns true if manual export mode is used to communicate with central."
+  @spec manual_export?() :: boolean
+  if Mix.env == :dev do
+    # In dev mode, we're having both, auto and manual export enabled for easier development. Note that we're
+    # note returning `true` explicitly to suppress some dialyzer warnings.
+    def manual_export?(), do: auto_export?()
+  else
+    def manual_export?(), do: not auto_export?()
+  end
+
   @doc "Records a completed query in the central - useful for billing and stats"
   @spec record_query(Map.t) :: :ok
   def record_query(payload), do:
@@ -114,14 +129,16 @@ defmodule Air.Service.Central do
   end
 
   defp start_rpc(central_call) do
-    Task.start(fn() ->
-      case Air.CentralClient.Socket.rpc(CentralCall.export(central_call)) do
-        {:ok, _} ->
-          remove_pending_call!(central_call)
-        {:error, reason} ->
-          Logger.error("RPC '#{central_call.event}' to central failed: #{inspect reason}. Will retry later.")
-      end
-    end)
+    if auto_export?() do
+      Task.start(fn() ->
+        case Air.CentralClient.Socket.rpc(CentralCall.export(central_call)) do
+          {:ok, _} ->
+            remove_pending_call!(central_call)
+          {:error, reason} ->
+            Logger.error("RPC '#{central_call.event}' to central failed: #{inspect reason}. Will retry later.")
+        end
+      end)
+    end
     :ok
   end
 
