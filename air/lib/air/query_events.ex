@@ -52,6 +52,11 @@ defmodule Air.QueryEvents do
     GenEvent.ack_notify(__MODULE__, {:query_result, payload})
   end
 
+  @doc "Triggers a :state_change event, indicating an update in the processing state of the query."
+  @spec trigger_state_change(String.t, Air.Schemas.Query.QueryStatus.t) :: :ok
+  def trigger_state_change(query_id, state), do:
+    GenEvent.ack_notify(__MODULE__, {:query_state_change, query_id, state})
+
   @doc "Returns a stream of all events."
   @spec stream() :: GenEvent.Stream.t
   def stream do

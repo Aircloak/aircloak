@@ -2,7 +2,7 @@ defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
   alias Air.Schemas.{DataSource, Query, User, View}
-  alias Air.{DataSourceManager, PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel}
+  alias Air.{DataSourceManager, PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, QueryEvents}
   import Ecto.Query, only: [from: 2]
   require Logger
 
@@ -98,6 +98,8 @@ defmodule Air.Service.DataSource do
     on_available_cloak(data_source_id_spec, user,
       fn(cloak, data_source, channel_pid) ->
         query = create_query(cloak.id, data_source.id, user, statement, parameters, opts[:session_id])
+
+        QueryEvents.trigger_state_change(query.id, :started)
 
         Air.Service.AuditLog.log(user, "Executed query",
           Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.id}))

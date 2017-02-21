@@ -51,7 +51,7 @@ defmodule Air.Socket.Frontend.UserChannel do
 
   def handle_info({:stream_state_changes, :all}, socket) do
     Task.start_link(fn() ->
-      for {:query_event, query_id, event} <- Air.QueryEvents.StateChanges.stream() do
+      for {:query_state_change, query_id, event} <- Air.QueryEvents.stream() do
         push(socket, "state_change", message_for_event(event, query_id))
       end
     end)

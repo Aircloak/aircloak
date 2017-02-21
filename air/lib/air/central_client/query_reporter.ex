@@ -42,10 +42,11 @@ defmodule Air.CentralClient.QueryReporter do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp handle_query_events(), do:
-    Enum.map(Air.QueryEvents.stream(), fn({:result, result}) ->
+  defp handle_query_events() do
+    for {:query_result, result} <- Air.QueryEvents.stream() do
       Task.Supervisor.start_child(@task_supervisor, fn() -> process_result(result) end)
-    end)
+    end
+  end
 
   defp process_result(result) do
     query = Repo.get!(Query, result["query_id"]) |> Repo.preload([:user, :data_source])
