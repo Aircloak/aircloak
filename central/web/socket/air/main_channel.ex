@@ -108,18 +108,20 @@ defmodule Central.Socket.Air.MainChannel do
   # Handling air sync calls
   # -------------------------------------------------------------------
 
-  defp handle_air_call("call_with_retry", payload, request_id, socket) do
-    id = construct_rpc_id(payload, socket)
+  defp handle_air_call("call_with_retry", call_data, request_id, socket) do
+    id = construct_rpc_id(call_data, socket)
     result = case Repo.get(AirRPC, id) do
       nil ->
-        result = handle_call_with_retry(payload["event"], payload["payload"], socket)
+        # We look for event_payload for backwards compatibility with older airs
+        payload = call_data["payload"] || call_data["event_payload"]
+        result = handle_call_with_retry(call_data["event"], payload, socket)
         binary_result = :erlang.term_to_binary(result)
         changeset = AirRPC.changeset(%AirRPC{}, %{id: id, result: binary_result})
         Repo.insert!(changeset)
         result
       rpc ->
         Logger.info("Received a repeast RPC call for RPC id '#{rpc.id}'. The RPC was not re-executed. " <>
-          "The type of the incoming RPC was '#{payload["event"]}'")
+          "The type of the incoming RPC was '#{call_data["event"]}'")
         :erlang.binary_to_term(rpc.result)
     end
     respond_to_air(socket, request_id, result)
@@ -144,8 +146,8 @@ defmodule Central.Socket.Air.MainChannel do
     send(client_pid, {mref, response})
   end
 
-  defp construct_rpc_id(payload, socket) do
-    "#{socket.assigns.air_name}|#{payload["id"]}"
+  defp construct_rpc_id(call_data, socket) do
+    "#{socket.assigns.air_name}|#{call_data["id"]}"
   end
 
   defp handle_call_with_retry("query_execution", payload, socket) do
