@@ -28,7 +28,7 @@ defmodule Air.CentralClient do
   end
 
   defp send_usage_info(seconds_online), do:
-    Air.CentralClient.Socket.send_usage_info(%{
+    Air.Service.Central.send_usage_info(%{
       air_utc_time: NaiveDateTime.utc_now(),
       air_version: Aircloak.Version.for_app(:air) |> Aircloak.Version.to_string(),
       seconds_online: seconds_online,

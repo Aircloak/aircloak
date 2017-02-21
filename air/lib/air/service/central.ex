@@ -10,6 +10,31 @@ defmodule Air.Service.Central do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Records a completed query in the central - useful for billing and stats"
+  @spec record_query(Map.t) :: :ok
+  def record_query(payload), do:
+    enqueue_pending_call("query_execution", payload)
+
+  @doc "Records a connection of a cloak in the central."
+  @spec record_cloak_online(String.t, [String.t], String.t) :: :ok
+  def record_cloak_online(cloak_name, data_source_names, version), do:
+    enqueue_pending_call("cloak_online", %{name: cloak_name, data_source_names: data_source_names, version: version})
+
+  @doc "Records a disconnection of a cloak in the central."
+  @spec record_cloak_offline(String.t) :: :ok
+  def record_cloak_offline(cloak_name), do:
+    enqueue_pending_call("cloak_offline", %{name: cloak_name})
+
+  @doc "Sends usage info to central."
+  @spec send_usage_info(Map.t) :: :ok
+  def send_usage_info(usage_info), do:
+    enqueue_pending_call("usage_info", usage_info)
+
+  @doc "Forwards all pending calls to the central."
+  @spec reattempt_pending_calls() :: :ok
+  def reattempt_pending_calls(), do:
+    Enum.each(pending_calls(), &start_rpc/1)
+
   @doc "Persists a pending central call."
   @spec store_pending_call(String.t, map) :: {:ok, CentralCall.t} | :error
   def store_pending_call(event, payload) do
@@ -24,9 +49,11 @@ defmodule Air.Service.Central do
   end
 
   @doc "Removes a pending central call."
-  @spec remove_pending_call!(CentralCall.t) :: CentralCall.t
-  def remove_pending_call!(central_call), do:
-    Repo.delete!(central_call)
+  @spec remove_pending_call!(CentralCall.t) :: :ok
+  def remove_pending_call!(central_call) do
+    Repo.delete_all(from c in CentralCall, where: c.id == ^central_call.id)
+    :ok
+  end
 
   @doc "Returns all pending central calls."
   @spec pending_calls() :: [CentralCall.t]
@@ -80,6 +107,23 @@ defmodule Air.Service.Central do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp enqueue_pending_call(event, payload) do
+    with {:ok, central_call} <- store_pending_call(event, payload), do:
+      start_rpc(central_call)
+  end
+
+  defp start_rpc(central_call) do
+    Task.start(fn() ->
+      case Air.CentralClient.Socket.rpc(CentralCall.export(central_call)) do
+        {:ok, _} ->
+          remove_pending_call!(central_call)
+        {:error, reason} ->
+          Logger.error("RPC '#{central_call.event}' to central failed: #{inspect reason}. Will retry later.")
+      end
+    end)
+    :ok
+  end
 
   defp calls_to_export() do
     case pending_calls() do

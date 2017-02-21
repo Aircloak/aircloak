@@ -81,7 +81,7 @@ defmodule Air.CentralClient.QueryReporter do
         error: filter_error(result["error"]),
       },
     }
-    Air.CentralClient.Socket.record_query(payload)
+    Air.Service.Central.record_query(payload)
   end
 
   defp filter_error(nil), do: nil
