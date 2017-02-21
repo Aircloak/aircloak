@@ -149,6 +149,12 @@ defmodule Air.Socket.Cloak.MainChannel do
 
     {:noreply, socket}
   end
+  defp handle_cloak_call(other, payload, request_id, socket) do
+    Logger.warn("Received unknown cloak call #{inspect(other)} with payload #{inspect(payload)}")
+
+    respond_to_cloak(socket, request_id, :ok)
+    {:noreply, socket}
+  end
 
 
   # -------------------------------------------------------------------
