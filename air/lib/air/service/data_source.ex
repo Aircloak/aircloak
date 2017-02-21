@@ -102,7 +102,7 @@ defmodule Air.Service.DataSource do
         Air.Service.AuditLog.log(user, "Executed query",
           Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.id}))
 
-        if opts[:notify] == true, do: Air.QueryEvents.Results.subscribe(query.id)
+        if opts[:notify] == true, do: Air.QueryEvents.subscribe(query.id)
 
         with :ok <- MainChannel.run_query(channel_pid, cloak_query_map(query, user, parameters)), do:
           {:ok, query}
@@ -118,7 +118,7 @@ defmodule Air.Service.DataSource do
     with {:ok, %{id: query_id}} <- start_query(data_source_id_spec, user, statement, parameters, opts) do
       receive do
         {:query_result, %{"query_id" => ^query_id} = result} ->
-          Air.QueryEvents.Results.unsubscribe(query_id)
+          Air.QueryEvents.unsubscribe(query_id)
           {:ok, result}
       end
     end
