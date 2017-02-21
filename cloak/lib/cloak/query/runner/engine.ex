@@ -13,7 +13,7 @@ defmodule Cloak.Query.Runner.Engine do
   def run(query) do
     try do
       {:ok, run_statement(query)}
-    rescue e in [Query.Runner.RuntimeError] ->
+    rescue e in [Query.Runner.RuntimeError, RuntimeError] ->
       {:error, e.message}
     end
   end
