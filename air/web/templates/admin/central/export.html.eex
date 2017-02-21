@@ -3,12 +3,14 @@
     <h2>Exports for Aircloak</h2>
 
     <%= if allow_new_export?(@oldest_pending_call_time) do %>
-      <div class="form-group">
-        <div>
-          <b>Data not exported since <%= Timex.format!(@oldest_pending_call_time, "{YYYY}-{0M}-{0D}") %></b>
+      <%= form_tag(admin_central_path(@conn, :new_export)) do %>
+        <div class="form-group">
+          <div>
+            <b>Data not exported since <%= Timex.format!(@oldest_pending_call_time, "{YYYY}-{0M}-{0D}") %></b>
+          </div>
+          <%= submit "Export", class: "btn btn-primary" %>
         </div>
-        <a class="btn btn-primary" href="<%= admin_central_path(@conn, :new_export) %>">Export</a>
-      </div>
+      <% end %>
     <% end %>
 
     <%= if Enum.count(@exports) > 0 do %>

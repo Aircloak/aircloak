@@ -78,7 +78,7 @@ defmodule Air.Router do
     get "/", ActivityMonitorController, :index
 
     get "/central/export_for_aircloak", CentralController, :export
-    get "/central/new_export", CentralController, :new_export
+    post "/central/new_export", CentralController, :new_export
     get "/central/download_export/:export_id", CentralController, :download_export
   end
 

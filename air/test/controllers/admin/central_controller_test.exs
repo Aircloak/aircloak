@@ -27,10 +27,10 @@ defmodule Air.Admin.CentralControllerTest do
 
     # go to the export page and verify that the export link is visible
     initial_conn = login(create_admin_user!()) |> get("/admin/central/export_for_aircloak")
-    assert initial_conn.resp_body =~ ~s(href="/admin/central/new_export")
+    assert initial_conn.resp_body =~ ~s(action="/admin/central/new_export")
 
     # "click" on the new export link
-    export_conn = initial_conn |> recycle() |> get("/admin/central/new_export")
+    export_conn = initial_conn |> recycle() |> post("/admin/central/new_export")
     assert redirected_to(export_conn) == "/admin/central/export_for_aircloak"
     assert get_flash(export_conn)["info"] =~ "Export generated successfully"
 
@@ -57,7 +57,7 @@ defmodule Air.Admin.CentralControllerTest do
     refute refreshed_conn.resp_body =~ ~r(<meta http-equiv="refresh".*)
 
     # "click" on the new export link again and verify that it errors
-    export_conn = refreshed_conn |> recycle() |> get("/admin/central/new_export")
+    export_conn = refreshed_conn |> recycle() |> post("/admin/central/new_export")
     assert redirected_to(export_conn) == "/admin/central/export_for_aircloak"
     assert get_flash(export_conn)["error"] =~ "Nothing to export"
   end
