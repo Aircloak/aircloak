@@ -1,0 +1,75 @@
+defmodule Cloak.MemoryReader.MemoryProjector do
+  @moduledoc """
+  Allows parsing the information returned when reading /proc/meminfo
+  on a linux machine.
+
+  All memory values returned are in kB.
+  """
+
+  alias Cloak.MemoryReader.MemoryProjector
+
+  @readings_to_keep 20
+
+  @type measurement :: non_neg_integer
+  @type timestamp :: non_neg_integer
+
+  @type t :: %{
+    last_reading: {measurement, timestamp},
+    changes: [integer],
+  }
+
+  defstruct last_reading: nil, changes: []
+
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Creates a new and empty memory projector"
+  @spec new() :: t
+  def new(), do: %__MODULE__{}
+
+  @doc "Records a memory reading"
+  @spec add_reading(t, measurement, timestamp) :: t
+  def add_reading(storage, measurement, timestamp) do
+    storage
+    |> extend_changes(measurement, timestamp)
+    |> retain_current_reading(measurement, timestamp)
+  end
+
+  @doc """
+  The number of expected units of time until we reach a given lower memory limit.
+  The time units are the same as used when adding new measurements.
+  """
+  @spec time_until_limit(t, non_neg_integer) :: :infinity | {:ok, non_neg_integer}
+  def time_until_limit(%MemoryProjector{changes: []}, _), do: :infinity
+  def time_until_limit(%MemoryProjector{changes: changes, last_reading: {free_memory, _}}, memory_limit) do
+    weighted_values = changes
+    |> Enum.reverse()
+    |> Enum.with_index()
+    |> Enum.flat_map(fn({value, count}) -> List.duplicate(value, count + 1) end)
+    average_change = Integer.floor_div(Enum.sum(weighted_values), Enum.count(weighted_values))
+    if average_change > 0 do
+      :infinity
+    else
+      {:ok, div(free_memory - memory_limit, abs(average_change))}
+    end
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp extend_changes(%MemoryProjector{last_reading: nil} = state, _measurement, _timestamp), do: state
+  defp extend_changes(%MemoryProjector{last_reading: {previou_measurement, previous_timestamp},
+    changes: changes} = state, new_measurement, new_timestamp) do
+    time_since_last_reading = new_timestamp - previous_timestamp
+    measured_difference = new_measurement - previou_measurement
+    change = div(measured_difference, time_since_last_reading)
+    %MemoryProjector{state | changes: Enum.take([change | changes], @readings_to_keep)}
+  end
+
+  defp retain_current_reading(state, measurement, timestamp), do:
+    %MemoryProjector{state | last_reading: {measurement, timestamp}}
+end
