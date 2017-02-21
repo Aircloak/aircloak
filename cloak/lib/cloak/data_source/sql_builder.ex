@@ -72,8 +72,8 @@ defmodule Cloak.DataSource.SqlBuilder do
   # We can't directly select a field with an unknown type, so convert it to binary
   # This is needed in the case of using the ODBC driver with a GUID user id,
   # as the GUID type is not supported by the Erlang ODBC library
-  #defp column_sql(%Expression{type: :unknown, name: name} = column, :sqlserver) when name != nil, do:
-  #  DbFunction.sql({:cast, :varbinary}, [column_name(column, :sqlserver)], :unknown, :sqlserver)
+  defp column_sql(%Expression{type: :unknown, name: name} = column, :sqlserver) when name != nil, do:
+    DbFunction.sql({:cast, :varbinary}, [column_name(column, :sqlserver)], :unknown, :sqlserver)
   defp column_sql(column, sql_dialect), do: column_name(column, sql_dialect)
 
   defp from_clause({:join, join}, query, sql_dialect) do
