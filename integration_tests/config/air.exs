@@ -42,3 +42,5 @@ config :air, :central,
   max_reconnect_interval: 50000
 
 config :air, :usage_report_interval, 100
+
+config :air, :auto_aircloak_export, true
