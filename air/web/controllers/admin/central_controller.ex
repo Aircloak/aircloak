@@ -38,7 +38,7 @@ defmodule Air.Admin.CentralController do
         put_flash(conn, :error, "Nothing to export")
       other_error ->
         Logger.error("Export for aircloak error: #{inspect other_error}")
-        put_flash(conn, :error, "An error has occurred, export not generated.")
+        put_flash(conn, :error, "An error has occurred. No export was generated.")
     end
     |> redirect(to: admin_central_path(conn, :export))
   end
