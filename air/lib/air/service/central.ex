@@ -85,7 +85,8 @@ defmodule Air.Service.Central do
   end
 
   @doc "Exports all pending calls, returning export schema on success."
-  @dialyzer {:no_opaque, export_pending_calls: 0} # Error in current Ecto: https://github.com/elixir-ecto/ecto/issues/1882
+  # Error in current Ecto: https://github.com/elixir-ecto/ecto/issues/1882
+  @dialyzer {:no_opaque, export_pending_calls: 0}
   @spec export_pending_calls() :: {:ok, ExportForAircloak.t} | {:error, :nothing_to_export | :database_error}
   def export_pending_calls() do
     with {:ok, calls_to_export} <- calls_to_export() do
