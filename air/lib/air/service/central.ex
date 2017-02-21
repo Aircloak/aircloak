@@ -19,7 +19,7 @@ defmodule Air.Service.Central do
   @spec manual_export?() :: boolean
   if Mix.env == :dev do
     # In dev mode, we're having both, auto and manual export enabled for easier development. Note that we're
-    # note returning `true` explicitly to suppress some dialyzer warnings.
+    # not returning `true` explicitly to suppress some dialyzer warnings.
     def manual_export?(), do: auto_export?()
   else
     def manual_export?(), do: not auto_export?()
