@@ -1,6 +1,6 @@
 defmodule Cloak.Query.Runner.Engine do
   @moduledoc "Execution of SQL queries."
-  alias Cloak.{Sql, DataSource, Query}
+  alias Cloak.{Sql, DataSource, Query, ResultSender}
   require Logger
 
 
@@ -9,14 +9,15 @@ defmodule Cloak.Query.Runner.Engine do
   # -------------------------------------------------------------------
 
   @doc "Executes the SQL query and returns the query result with info messages or the corresponding error."
-  @spec run(String.t, DataSource.t, String.t, [DataSource.field], Sql.Query.view_map) ::
+  @spec run(String.t, DataSource.t, String.t, [DataSource.field], Sql.Query.view_map, Cloak.ResultSender.target) ::
     {:ok, Sql.Query.Result.t, [String.t]} | {:error, String.t}
-  def run(query_id, data_source, statement, parameters, views) do
+  def run(query_id, data_source, statement, parameters, views, update_target) do
     try do
       Logger.metadata(query_id: query_id)
       Logger.debug("Parsing statement `#{statement}` ...")
 
       with {:ok, query} <- Sql.Query.make(data_source, statement, parameters, views) do
+        ResultSender.send_state(update_target, query_id, :awaiting_data)
         {:ok, run_statement(query), Sql.Query.info_messages(query)}
       end
     rescue e in [Query.Runner.RuntimeError] ->

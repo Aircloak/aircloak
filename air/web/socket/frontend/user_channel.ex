@@ -67,8 +67,8 @@ defmodule Air.Socket.Frontend.UserChannel do
     {:ok, query} = Service.Query.get(query_id)
     %{query_id: query_id, event: :started, query: format_query(query)}
   end
-  defp message_for_event(:completed, query_id), do:
-    %{query_id: query_id, event: :completed}
+  defp message_for_event(event, query_id), do:
+    %{query_id: query_id, event: event}
 
   def format_query(query), do:
     hd(Air.Admin.ActivityMonitorView.format_queries([query]))
