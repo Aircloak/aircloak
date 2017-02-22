@@ -61,6 +61,9 @@ defmodule Cloak.DataSource.ODBC do
     end
   end
 
+  @doc false
+  def supports_query?(_query), do: true
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions

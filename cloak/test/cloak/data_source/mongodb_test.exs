@@ -23,7 +23,7 @@ defmodule Cloak.DataSource.MongoDBTest do
     {:ok, conn} = Mongo.start_link(parameters)
     Mongo.delete_many(conn, @table, %{})
     for i <- 1..10 do
-      value = %{name: "user#{i}", age: 30, male: true, date: %BSON.DateTime{utc: 1437940203000},
+      value = %{name: "user#{i}", age: 30, male: true, date: %BSON.DateTime{utc: 1_437_940_203_000},
         bills: [%{issuer: "vendor", ids: ["1", "2"]}]}
       Mongo.insert_one!(conn, @table, value)
     end
@@ -139,8 +139,8 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "functions in sub-queries", context do
-    assert_query context, "SELECT AVG(age) FROM (SELECT _id, trunc(abs(age)) AS age FROM #{@table}) AS t",
-      %{rows: [%{occurrences: 1, row: [30.0]}]}
+    assert_query context, "SELECT AVG(age) FROM (SELECT _id, age * 2 + 1 AS age FROM #{@table}) AS t",
+      %{rows: [%{occurrences: 1, row: [61.0]}]}
     assert_query context, "SELECT name FROM (SELECT _id, lower(left(name, 4)) AS name FROM #{@table}) AS t",
       %{rows: [%{occurrences: 9, row: [nil]}, %{occurrences: 10, row: ["user"]}]}
   end
@@ -190,5 +190,10 @@ defmodule Cloak.DataSource.MongoDBTest do
     assert_query context, """
         SELECT max(year) FROM (SELECT _id, year(date) FROM #{@table} WHERE date = '2015-07-26 19:50:03') AS t
       """, %{rows: [%{occurrences: 1, row: [2015]}]}
+  end
+
+  test "unsupported functions in sub-queries are emulated", context do
+    assert_query context, "SELECT AVG(age) FROM (SELECT _id, round(age) AS age FROM #{@table}) AS t",
+      %{rows: [%{occurrences: 1, row: [30.0]}]}
   end
 end

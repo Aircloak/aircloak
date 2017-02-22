@@ -1267,9 +1267,9 @@ defmodule Cloak.Sql.Compiler do
 
   defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
   defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do:
-    has_emulated_expressions?(query)
-  defp needs_emulation?(%Query{from: {:join, _}, data_source: %{driver: Cloak.DataSource.MongoDB}}), do: true
+    not query.data_source.driver.supports_query?(query) or has_emulated_expressions?(query)
   defp needs_emulation?(query), do:
+    not query.data_source.driver.supports_query?(query) or
     query |> get_in([Query.Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?)) or
     (query.subquery? and has_emulated_expressions?(query)) or
     has_emulated_join_conditions?(query)
