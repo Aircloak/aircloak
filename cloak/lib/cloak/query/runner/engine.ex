@@ -15,12 +15,12 @@ defmodule Cloak.Query.Runner.Engine do
     {:ok, Sql.Query.Result.t, [String.t]} | {:error, String.t}
   def run(data_source, statement, parameters, views, state_updater) do
     try do
-      state_updater.(:parsing)
-
-      with {:ok, query} <- Sql.Query.make(data_source, statement, parameters, views) do
-        state_updater.(:awaiting_data)
-        {:ok, run_statement(query, state_updater), Sql.Query.info_messages(query)}
-      end
+      with state_updater.(:parsing),
+        {:ok, parsed} <- Sql.Parser.parse(statement),
+        state_updater.(:compiling),
+        {:ok, query} <- Sql.Compiler.compile(data_source, parsed, parameters, views),
+        state_updater.(:awaiting_data),
+      do: {:ok, run_statement(query, state_updater), Sql.Query.info_messages(query)}
     rescue e in [Query.Runner.RuntimeError] ->
       {:error, e.message}
     end
