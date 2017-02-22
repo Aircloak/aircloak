@@ -9,7 +9,7 @@ defmodule Air.Socket.Frontend.UserChannel do
   """
   use Air.Web, :channel
 
-  alias Air.{Schemas, Service}
+  alias Air.Schemas
 
 
   # -------------------------------------------------------------------
@@ -31,8 +31,7 @@ defmodule Air.Socket.Frontend.UserChannel do
   """
   @spec broadcast_state_change(Schemas.Query.t) :: :ok
   def broadcast_state_change(query) do
-    Air.Endpoint.broadcast_from!(self(), "state_changes:all", "state_change",
-      message_for_event(query.query_state, query.id))
+    Air.Endpoint.broadcast_from!(self(), "state_changes:all", "state_change", state_change_message(query))
     :ok
   end
 
@@ -62,12 +61,8 @@ defmodule Air.Socket.Frontend.UserChannel do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp message_for_event(:started, query_id) do
-    {:ok, query} = Service.Query.get(query_id)
-    %{query_id: query_id, event: :started, query: format_query(query)}
-  end
-  defp message_for_event(event, query_id), do:
-    %{query_id: query_id, event: event}
+  defp state_change_message(query), do:
+    %{query_id: query.id, event: query.query_state, query: format_query(query)}
 
   def format_query(query), do:
     hd(Air.Admin.ActivityMonitorView.format_queries([query]))

@@ -62,21 +62,12 @@ defmodule Air.Socket.Frontend.UserChannelTest do
     test "receive query data for new query" do
       data_source = create_data_source!()
       some_user = create_user!()
-      query = create_query!(some_user, %{query_state: :completed, data_source_id: data_source.id})
+      query = create_query!(some_user, %{query_state: :started, data_source_id: data_source.id})
       query_id = query.id
 
-      Air.QueryEvents.trigger_state_change(query_id, :started)
+      UserChannel.broadcast_state_change(query)
 
       assert_push("state_change", %{query_id: ^query_id, event: :started, query: %{id: ^query_id}})
-    end
-
-    test "receive event when query completes", context do
-      query = create_query!(context[:user])
-      query_id = query.id
-
-      Air.QueryEvents.trigger_state_change(query_id, :completed)
-
-      assert_push("state_change", %{query_id: ^query_id, event: :completed})
     end
   end
 

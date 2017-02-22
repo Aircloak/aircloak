@@ -38,7 +38,7 @@ defmodule Air.Service.QueryTest do
 
   describe "update_state" do
     test "changes the query_state" do
-      query = create_query!(create_user!(), %{query_state: :started})
+      query = create_query!(create_user!(), %{query_state: :started, data_source_id: create_data_source!().id})
 
       Query.update_state(query.id, :processing)
 
@@ -46,7 +46,7 @@ defmodule Air.Service.QueryTest do
     end
 
     test "it's impossible to change to an earlier state" do
-      query = create_query!(create_user!(), %{query_state: :completed})
+      query = create_query!(create_user!(), %{query_state: :completed, data_source_id: create_data_source!().id})
 
       Query.update_state(query.id, :processing)
 
@@ -56,7 +56,7 @@ defmodule Air.Service.QueryTest do
 
   describe "process_result" do
     test "processing a successful result" do
-      query = create_query!(create_user!(), %{query_state: :started})
+      query = create_query!(create_user!(), %{query_state: :started, data_source_id: create_data_source!().id})
 
       Query.process_result(%{
         "query_id" => query.id,
@@ -86,7 +86,7 @@ defmodule Air.Service.QueryTest do
     end
 
     test "processing an error result" do
-      query = create_query!(create_user!(), %{query_state: :started})
+      query = create_query!(create_user!(), %{query_state: :started, data_source_id: create_data_source!().id})
 
       Query.process_result(%{
         "query_id" => query.id,
@@ -105,7 +105,7 @@ defmodule Air.Service.QueryTest do
     end
 
     test "processing a cancelled result" do
-      query = create_query!(create_user!(), %{query_state: :started})
+      query = create_query!(create_user!(), %{query_state: :started, data_source_id: create_data_source!().id})
 
       Query.process_result(%{
         "query_id" => query.id,
