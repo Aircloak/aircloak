@@ -1,12 +1,9 @@
 defmodule Air.QueryLifecycle do
   @moduledoc """
-  Concurrent processing of query results.
+  Serialized processing of query events.
 
-  Processing of a query result requires multiple actions, such as interpreting
-  data, storing the information into the database, and notifying interested
-  parties. Since many things can go wrong here, we're doing the job concurrently
-  to limit the effect of a possible failure. If processing of a single result
-  fails, nothing else is taken down.
+  Since there might be multiple parallel events regarding a single query, such as results or state changes, we
+  serialize these changes through this process.
   """
 
   import Supervisor.Spec, warn: false
@@ -18,30 +15,12 @@ defmodule Air.QueryLifecycle do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc """
-  Returns a supervisor specification for the supervisor of result processors.
-
-  All result processors will be running under this supervisor as temporary workers. If
-  a processor crashes, an error will be logged, but there won't be any attempts
-  to retry the job.
-  """
-  @spec supervisor_spec() :: Supervisor.Spec.spec
-  def supervisor_spec() do
-    supervisor(Task.Supervisor, [[name: __MODULE__, restart: :temporary]], [id: :result_processor])
-  end
-
   @doc "Returns a worker specification for the query result processor"
   @spec observer_spec() :: Supervisor.Spec.spec
   def observer_spec do
     worker(Task, [fn() ->
-      for {:query_result, result} <- Air.QueryEvents.stream, do: start_processor(result)
+      for {:query_result, result} <- Air.QueryEvents.stream, do: process_result(result)
     end])
-  end
-
-  @doc "Starts a result processor."
-  @spec start_processor(%{String.t => any}) :: {:ok, pid}
-  def start_processor(result) do
-    Task.Supervisor.start_child(__MODULE__, fn() -> process_result(result) end)
   end
 
 

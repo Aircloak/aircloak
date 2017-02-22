@@ -6,7 +6,6 @@ defmodule Air.Supervisor do
 
     children = [
       supervisor(Air.DataSourceManager, []),
-      Air.QueryLifecycle.supervisor_spec(),
       supervisor(Air.Repo, []),
       worker(Air.Repo.Migrator, [], restart: :transient),
       supervisor(Air.QueryEvents, []),
