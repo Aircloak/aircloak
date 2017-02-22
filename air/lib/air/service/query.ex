@@ -1,10 +1,10 @@
 defmodule Air.Service.Query do
   @moduledoc "Services for retrieving queries."
 
-  alias Air.Repo
-  alias Air.Schemas.Query
+  alias Air.{Repo, Schemas.Query, Socket.Frontend.UserChannel}
 
   import Ecto.Query, only: [from: 2]
+  require Logger
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -46,6 +46,40 @@ defmodule Air.Service.Query do
 
       :ok
     end
+  end
+
+  @doc """
+  Stores the given result sent by the cloak for the appropriate query and sets its state to "completed". The query id
+  is taken from `result["query_id"]`.
+  """
+  @spec process_result(map) :: :ok
+  def process_result(result) do
+    query = Repo.get!(Query, result["query_id"])
+
+    row_count = (result["rows"] || []) |> Enum.map(&(&1["occurrences"])) |> Enum.sum
+
+    storable_result = %{
+      columns: result["columns"],
+      types: result["features"]["selected_types"],
+      rows: result["rows"],
+      error: result["error"],
+      info: result["info"],
+      row_count: row_count,
+    }
+
+    query
+    |> Query.changeset(%{
+      result: storable_result,
+      execution_time: result["execution_time"],
+      users_count: result["users_count"],
+      features: result["features"],
+      query_state: :completed,
+    })
+    |> Repo.update!()
+    |> UserChannel.broadcast_result()
+
+    Logger.info("processed result for query #{result["query_id"]}")
+    :ok
   end
 
 
