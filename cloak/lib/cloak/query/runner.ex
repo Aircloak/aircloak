@@ -9,7 +9,7 @@ defmodule Cloak.Query.Runner do
 
   use GenServer
   require Logger
-  alias Cloak.{Sql.Query, DataSource, Query.Runner.Engine}
+  alias Cloak.{Sql.Query, DataSource, Query.Runner.Engine, ResultSender}
 
   @supervisor_name Module.concat(__MODULE__, Supervisor)
   @registry_name Module.concat(__MODULE__, Registry)
@@ -88,7 +88,7 @@ defmodule Cloak.Query.Runner do
       # We're starting the runner as a direct child.
       # This GenServer will wait for the runner to return or crash. Such approach allows us to
       # detect a failure no matter how the query fails (even if the runner process is for example killed).
-      runner: Task.async(fn() -> Engine.run(query_id, data_source, statement, parameters, views, result_target) end)
+      runner: Task.async(fn() -> run_query(query_id, data_source, statement, parameters, views, result_target) end)
     }}
   end
 
@@ -113,6 +113,18 @@ defmodule Cloak.Query.Runner do
     Task.shutdown(task)
     report_result(state, {:error, "Cancelled."})
     {:stop, :normal, %{state | runner: nil}}
+  end
+
+
+  # -------------------------------------------------------------------
+  # Query running
+  # -------------------------------------------------------------------
+
+  defp run_query(query_id, data_source, statement, parameters, views, result_target) do
+    Logger.metadata(query_id: query_id)
+    Logger.debug("Running statement `#{statement}` ...")
+
+    Engine.run(data_source, statement, parameters, views, &ResultSender.send_state(result_target, query_id, &1))
   end
 
 

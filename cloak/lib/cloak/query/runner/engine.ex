@@ -3,22 +3,23 @@ defmodule Cloak.Query.Runner.Engine do
   alias Cloak.{Sql, DataSource, Query, ResultSender}
   require Logger
 
+  @type state_updater :: (ResultSender.query_state -> any)
+
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Executes the SQL query and returns the query result with info messages or the corresponding error."
-  @spec run(String.t, DataSource.t, String.t, [DataSource.field], Sql.Query.view_map, Cloak.ResultSender.target) ::
+  @spec run(DataSource.t, String.t, [DataSource.field], Sql.Query.view_map, state_updater) ::
     {:ok, Sql.Query.Result.t, [String.t]} | {:error, String.t}
-  def run(query_id, data_source, statement, parameters, views, update_target) do
+  def run(data_source, statement, parameters, views, state_updater) do
     try do
-      Logger.metadata(query_id: query_id)
-      Logger.debug("Parsing statement `#{statement}` ...")
+      state_updater.(:parsing)
 
       with {:ok, query} <- Sql.Query.make(data_source, statement, parameters, views) do
-        ResultSender.send_state(update_target, query_id, :awaiting_data)
-        {:ok, run_statement(query), Sql.Query.info_messages(query)}
+        state_updater.(:awaiting_data)
+        {:ok, run_statement(query, state_updater), Sql.Query.info_messages(query)}
       end
     rescue e in [Query.Runner.RuntimeError] ->
       {:error, e.message}
@@ -30,41 +31,42 @@ defmodule Cloak.Query.Runner.Engine do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp run_statement(%Sql.Query{command: :show, show: :tables} = query), do:
+  defp run_statement(%Sql.Query{command: :show, show: :tables} = query, _state_updater), do:
     Query.Result.new(query,
       Enum.map(
         (Map.keys(query.data_source.tables) ++ Map.keys(query.views)),
         &%{occurrences: 1, row: [to_string(&1)]}
       )
     )
-  defp run_statement(%Sql.Query{command: :show, show: :columns, selected_tables: [table]} = query), do:
+  defp run_statement(%Sql.Query{command: :show, show: :columns, selected_tables: [table]} = query, _state_updater), do:
     Query.Result.new(query,
       Enum.map(table.columns, fn({name, type}) -> %{occurrences: 1, row: [name, type]} end)
     )
-  defp run_statement(%Sql.Query{command: :select} = query), do:
-    select_rows(query)
+  defp run_statement(%Sql.Query{command: :select} = query, state_updater), do:
+    select_rows(query, state_updater)
 
 
   # -------------------------------------------------------------------
   # Handling of `SELECT` statement
   # -------------------------------------------------------------------
 
-  defp select_rows(%Sql.Query{emulated?: false} = query) do
+  defp select_rows(%Sql.Query{emulated?: false} = query, state_updater) do
     DataSource.select!(query, fn(rows) ->
       rows
       |> Query.DataDecoder.decode(query)
-      |> process_final_rows(%Sql.Query{query | where: query.emulated_where})
+      |> process_final_rows(%Sql.Query{query | where: query.emulated_where}, state_updater)
     end)
   end
-  defp select_rows(%Sql.Query{emulated?: true} = query) do
+  defp select_rows(%Sql.Query{emulated?: true} = query, state_updater) do
     Logger.debug("Emulating query ...")
     query
     |> Query.DbEmulator.select()
-    |> process_final_rows(query)
+    |> process_final_rows(query, state_updater)
   end
 
-  defp process_final_rows(rows, query) do
+  defp process_final_rows(rows, query, state_updater) do
     Logger.debug("Processing final rows ...")
+
     rows
     |> Query.RowSplitters.split(query)
     |> Query.Rows.filter(Enum.map(query.where, &Sql.Comparison.to_function/1))
