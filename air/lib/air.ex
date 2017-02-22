@@ -1,26 +1,18 @@
 defmodule Air do
-  @moduledoc false
+  @moduledoc "Air application behaviour and some common helper functions."
   use Application
   require Aircloak.DeployConfig
 
-  # See http://elixir-lang.org/docs/stable/elixir/Application.html
-  # for more information on OTP Applications
-  def start(_type, _args) do
-    configure_secrets()
-    Air.Repo.configure()
-    Air.Supervisor.start_link()
-  end
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
 
-  # Tell Phoenix to update the endpoint configuration
-  # whenever the application is updated.
-  def config_change(changed, _new, removed) do
-    Air.Endpoint.config_change(changed, removed)
-    :ok
-  end
-
-  # returns the site setting from the current deployment configuration (config.json)
+  @doc "Returns the site setting from the current deployment configuration (config.json)."
+  @spec site_setting(any) :: any
   def site_setting(name), do: Map.fetch!(Aircloak.DeployConfig.fetch!("site"), name)
 
+  @doc "Returns the name of this air instance"
+  @spec instance_name() :: String.t
   def instance_name() do
     vm_short_name =
       Node.self()
@@ -32,8 +24,32 @@ defmodule Air do
     "#{vm_short_name}@#{hostname}"
   end
 
+  @doc "Returns the customer token"
+  @spec customer_token() :: String.t
   def customer_token(), do: site_setting("customer_token")
 
+
+  # -------------------------------------------------------------------
+  # Application behaviour functions
+  # -------------------------------------------------------------------
+
+  @doc false
+  def start(_type, _args) do
+    configure_secrets()
+    Air.Repo.configure()
+    Air.Supervisor.start_link()
+  end
+
+  @doc false
+  def config_change(changed, _new, removed) do
+    Air.Endpoint.config_change(changed, removed)
+    :ok
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp configure_secrets do
     Air.Utils.update_app_env(:guardian, Guardian,
