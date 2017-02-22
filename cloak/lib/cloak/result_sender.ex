@@ -63,6 +63,6 @@ defmodule Cloak.ResultSender do
   end
   defp send_reply(:air_socket, :state, {query_id, query_state}), do:
     Elixir.Cloak.AirSocket.send_query_state(query_id, query_state)
-  defp send_reply({:process, pid}, _, reply), do:
-    send(pid, {:reply, reply})
+  defp send_reply({:process, pid}, type, reply), do:
+    send(pid, {type, reply})
 end

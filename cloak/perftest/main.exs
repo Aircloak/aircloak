@@ -28,8 +28,8 @@ defmodule PerfTest do
     {duration, row} = :timer.tc(fn () ->
       :ok = Cloak.Query.Runner.start("1", data_source, statement, [], %{}, {:process, self()})
       receive do
-        {:reply, %{rows: [%{occurrences: 1, row: row}]}} -> row
-        {:reply, %{error: error}} -> raise "Query failed with error: #{error}."
+        {:result, %{rows: [%{occurrences: 1, row: row}]}} -> row
+        {:result, %{error: error}} -> raise "Query failed with error: #{error}."
       end
     end)
     duration = (duration / 1_000_000) |> Float.round(3)
