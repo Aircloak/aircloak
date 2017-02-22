@@ -97,13 +97,30 @@ defmodule Air.Service.QueryTest do
 
       {:ok, query} = Query.get(query.id)
       assert %{
-        query_state: :completed,
+        query_state: :error,
         execution_time: 123,
         features: %{"selected_types" => ["some types"]},
         result: %{"error" => "some reason"},
       } = query
     end
 
-    test "processing a cancelled result"
+    test "processing a cancelled result" do
+      query = create_query!(create_user!(), %{query_state: :started})
+
+      Query.process_result(%{
+        "query_id" => query.id,
+        "features" => %{"selected_types" => ["some types"]},
+        "execution_time" => 123,
+        "cancelled" => true,
+      })
+
+      {:ok, query} = Query.get(query.id)
+      assert %{
+        query_state: :cancelled,
+        execution_time: 123,
+        features: %{"selected_types" => ["some types"]},
+        result: %{"error" => "Cancelled."},
+      } = query
+    end
   end
 end

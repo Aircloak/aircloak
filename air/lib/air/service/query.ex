@@ -62,7 +62,7 @@ defmodule Air.Service.Query do
       columns: result["columns"],
       types: result["features"]["selected_types"],
       rows: result["rows"],
-      error: result["error"],
+      error: error_text(result),
       info: result["info"],
       row_count: row_count,
     }
@@ -73,7 +73,7 @@ defmodule Air.Service.Query do
       execution_time: result["execution_time"],
       users_count: result["users_count"],
       features: result["features"],
-      query_state: :completed,
+      query_state: query_state(result),
     })
     |> Repo.update!()
     |> UserChannel.broadcast_result()
@@ -90,4 +90,12 @@ defmodule Air.Service.Query do
   @state_order [:started, :parsing, :compiling, :awaiting_data, :processing, :cancelled, :error, :completed]
   defp valid_state_transition?(current_state, next_state), do:
     Enum.find_index(@state_order, &(&1 == current_state)) < Enum.find_index(@state_order, &(&1 == next_state))
+
+  defp query_state(%{"error" => error}) when is_binary(error), do: :error
+  defp query_state(%{"cancelled" => true}), do: :cancelled
+  defp query_state(_), do: :completed
+
+  defp error_text(%{"error" => error}) when is_binary(error), do: error
+  defp error_text(%{"cancelled" => true}), do: "Cancelled."
+  defp error_text(_), do: nil
 end

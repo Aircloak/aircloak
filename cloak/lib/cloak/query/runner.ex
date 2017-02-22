@@ -111,7 +111,7 @@ defmodule Cloak.Query.Runner do
 
   def handle_cast(:stop_query, %{runner: task} = state) do
     Task.shutdown(task)
-    report_result(state, {:error, "Cancelled."})
+    report_result(state, :cancelled)
     {:stop, :normal, %{state | runner: nil}}
   end
 
@@ -165,6 +165,8 @@ defmodule Cloak.Query.Runner do
     }
   defp format_result({:error, reason}) when is_binary(reason), do:
     %{error: reason}
+  defp format_result(:cancelled), do:
+    %{cancelled: true}
   defp format_result({:error, reason}) do
     Logger.error("Unknown query error: #{inspect(reason)}")
     format_result({:error, "Unknown cloak error."})
