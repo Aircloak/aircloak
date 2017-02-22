@@ -36,8 +36,11 @@ defmodule Cloak.MemoryReader.MemoryProjectorTest do
       |> MemoryProjector.time_until_limit(10)
 
     test "weights recent readings higher over older", do:
+      # This will produce a weighted average of:
+      # 40 * 10 + 20 * 11 + 10 * 12 = 22.
+      # Hence in 1 time unit we will go from 30 to 8 (or well 7)
       assert {:ok, 1} == add_measurements([100, 60, 40, 30])
-      |> MemoryProjector.time_until_limit(11)
+      |> MemoryProjector.time_until_limit(7)
   end
 
   defp add_measurements(initial_storage \\ MemoryProjector.new(), measurements), do:
