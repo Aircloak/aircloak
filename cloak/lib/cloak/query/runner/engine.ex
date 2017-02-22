@@ -68,6 +68,7 @@ defmodule Cloak.Query.Runner.Engine do
     Logger.debug("Processing final rows ...")
 
     rows
+    |> Cloak.Stream.side_effect_after_first(fn() -> state_updater.(:processing) end)
     |> Query.RowSplitters.split(query)
     |> Query.Rows.filter(Enum.map(query.where, &Sql.Comparison.to_function/1))
     |> Query.ShrinkAndDrop.apply(query)
