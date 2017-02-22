@@ -21,6 +21,20 @@ defmodule Air do
   # returns the site setting from the current deployment configuration (config.json)
   def site_setting(name), do: Map.fetch!(Aircloak.DeployConfig.fetch!("site"), name)
 
+  def instance_name() do
+    vm_short_name =
+      Node.self()
+      |> Atom.to_string()
+      |> String.split("@")
+      |> hd()
+    {:ok, hostname} = :inet.gethostname()
+
+    "#{vm_short_name}@#{hostname}"
+  end
+
+  def customer_token(), do: site_setting("customer_token")
+
+
   defp configure_secrets do
     Air.Utils.update_app_env(:guardian, Guardian,
       &[{:secret_key, site_setting("auth_secret")} | &1])
