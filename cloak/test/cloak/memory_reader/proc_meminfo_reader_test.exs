@@ -1,10 +1,10 @@
-defmodule Cloak.MemoryReader.MemInfoTest do
+defmodule Cloak.MemoryReader.ProcMeminfoReaderTest do
   use ExUnit.Case, async: true
 
-  alias Cloak.MemoryReader.MemInfo
+  alias Cloak.MemoryReader.{MemInfo, ProcMeminfoReader}
 
   test "parses meminfo data" do
-    assert %MemInfo{total_memory: 2047144, free_memory: 1768660} == MemInfo.parse(meminfo())
+    assert %MemInfo{total_memory: 2047144, free_memory: 1768660} == ProcMeminfoReader.parse(meminfo())
   end
 
   def meminfo() do
