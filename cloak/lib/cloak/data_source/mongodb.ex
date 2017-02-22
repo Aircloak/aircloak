@@ -119,7 +119,7 @@ defmodule Cloak.DataSource.MongoDB do
   def select(connection, query, result_processor) do
     {collection, pipeline} = Pipeline.build(query)
     columns = for %Expression{name: name, alias: alias} <- query.db_columns, do: String.split(alias || name, ".")
-    options = [max_time: @timeout, timeout: @timeout, batch_size: 25_000, allow_disk_use: true]
+    options = [max_time: @timeout, timeout: @timeout, pool_timeout: @timeout, batch_size: 25_000, allow_disk_use: true]
     result =
       connection
       |> Mongo.aggregate(collection, pipeline, options)
