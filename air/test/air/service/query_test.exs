@@ -53,4 +53,57 @@ defmodule Air.Service.QueryTest do
       assert {:ok, %{query_state: :completed}} = Query.get(query.id)
     end
   end
+
+  describe "process_result" do
+    test "processing a successful result" do
+      query = create_query!(create_user!(), %{query_state: :started})
+
+      Query.process_result(%{
+        "query_id" => query.id,
+        "columns" => ["col1", "col2"],
+        "rows" => [%{"occurrences" => 10, "row" => [1, 1]}],
+        "info" => ["some info"],
+        "users_count" => 2,
+        "features" => %{"selected_types" => ["some types"]},
+        "execution_time" => 123,
+      })
+
+      {:ok, query} = Query.get(query.id)
+      assert %{
+        query_state: :completed,
+        execution_time: 123,
+        users_count: 2,
+        features: %{"selected_types" => ["some types"]},
+      } = query
+      assert %{
+        "columns" => ["col1", "col2"],
+        "rows" => [%{"occurrences" => 10, "row" => [1, 1]}],
+        "info" => ["some info"],
+        "row_count" => 10,
+        "error" => nil,
+        "types" => ["some types"],
+      } = query.result
+    end
+
+    test "processing an error result" do
+      query = create_query!(create_user!(), %{query_state: :started})
+
+      Query.process_result(%{
+        "query_id" => query.id,
+        "features" => %{"selected_types" => ["some types"]},
+        "execution_time" => 123,
+        "error" => "some reason",
+      })
+
+      {:ok, query} = Query.get(query.id)
+      assert %{
+        query_state: :completed,
+        execution_time: 123,
+        features: %{"selected_types" => ["some types"]},
+        result: %{"error" => "some reason"},
+      } = query
+    end
+
+    test "processing a cancelled result"
+  end
 end
