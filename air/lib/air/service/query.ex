@@ -42,6 +42,7 @@ defmodule Air.Service.Query do
         query
         |> Query.changeset(%{query_state: state})
         |> Repo.update!()
+        |> UserChannel.broadcast_state_change()
       end
 
       :ok
@@ -67,7 +68,7 @@ defmodule Air.Service.Query do
       row_count: row_count,
     }
 
-    query
+    query = query
     |> Query.changeset(%{
       result: storable_result,
       execution_time: result["execution_time"],
@@ -76,7 +77,9 @@ defmodule Air.Service.Query do
       query_state: query_state(result),
     })
     |> Repo.update!()
-    |> UserChannel.broadcast_result()
+
+    UserChannel.broadcast_result(query)
+    UserChannel.broadcast_state_change(query)
 
     Logger.info("processed result for query #{result["query_id"]}")
     :ok

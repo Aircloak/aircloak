@@ -26,6 +26,16 @@ defmodule Air.Socket.Frontend.UserChannel do
     :ok
   end
 
+  @doc """
+  Broadcasts the change in the state of a query to all listening clients.
+  """
+  @spec broadcast_state_change(Schemas.Query.t) :: :ok
+  def broadcast_state_change(query) do
+    Air.Endpoint.broadcast_from!(self(), "state_changes:all", "state_change",
+      message_for_event(query.query_state, query.id))
+    :ok
+  end
+
 
   # -------------------------------------------------------------------
   # Phoenix.Channel callback functions
@@ -42,22 +52,11 @@ defmodule Air.Socket.Frontend.UserChannel do
   def join("state_changes:all", _, socket) do
     user = socket.assigns.user
     if Air.Schemas.User.admin?(user) do
-      send(self(), {:stream_state_changes, :all})
       {:ok, socket}
     else
       {:error, %{reason: "Only admin users are allowed to connect"}}
     end
   end
-
-  def handle_info({:stream_state_changes, :all}, socket) do
-    Task.start_link(fn() ->
-      for {:query_state_change, query_id, event} <- Air.QueryEvents.stream() do
-        push(socket, "state_change", message_for_event(event, query_id))
-      end
-    end)
-    {:noreply, socket}
-  end
-
 
   # -------------------------------------------------------------------
   # Internal functions

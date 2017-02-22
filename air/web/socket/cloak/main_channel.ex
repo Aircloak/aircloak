@@ -145,7 +145,6 @@ defmodule Air.Socket.Cloak.MainChannel do
     respond_to_cloak(socket, request_id, :ok)
 
     Air.QueryEvents.trigger_result(query_result)
-    Air.QueryEvents.trigger_state_change(query_result["query_id"], :completed)
 
     {:noreply, socket}
   end
