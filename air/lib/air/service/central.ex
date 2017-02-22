@@ -153,7 +153,9 @@ defmodule Air.Service.Central do
   defp payload(calls_to_export), do:
     %{
       last_exported_id: Repo.one(from exported in ExportForAircloak, select: max(exported.id)),
-      rpcs: Enum.map(calls_to_export, &CentralCall.export/1)
+      rpcs: Enum.map(calls_to_export, &CentralCall.export/1),
+      air_name: Air.instance_name(),
+      customer_token: Air.customer_token()
     }
     |> Poison.encode!()
     |> :zlib.gzip()
