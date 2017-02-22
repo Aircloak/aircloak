@@ -35,4 +35,22 @@ defmodule Air.Service.QueryTest do
       assert [] == Query.currently_running()
     end
   end
+
+  describe "update_state" do
+    test "changes the query_state" do
+      query = create_query!(create_user!(), %{query_state: :started})
+
+      Query.update_state(query.id, :processing)
+
+      assert {:ok, %{query_state: :processing}} = Query.get(query.id)
+    end
+
+    test "it's impossible to change to an earlier state" do
+      query = create_query!(create_user!(), %{query_state: :completed})
+
+      Query.update_state(query.id, :processing)
+
+      assert {:ok, %{query_state: :completed}} = Query.get(query.id)
+    end
+  end
 end

@@ -30,4 +30,30 @@ defmodule Air.Service.Query do
   def currently_running() do
     Repo.all(from query in Query, where: query.query_state != "completed")
   end
+
+  @doc """
+  Updates the state of the query with the given id to the given state. Only performs the update if the given state can
+  occur after the current state of the query (for example "completed" after "started"). Does nothing otherwise.
+  """
+  @spec update_state(String.t, Query.QueryState.t) :: :ok | {:error, :not_found | :invalid_id}
+  def update_state(query_id, state) do
+    with {:ok, query} <- get(query_id) do
+      if valid_state_transition?(query.query_state, state) do
+        query
+        |> Query.changeset(%{query_state: state})
+        |> Repo.update!()
+      end
+
+      :ok
+    end
+  end
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Internal functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  @state_order [:started, :parsing, :compiling, :awaiting_data, :processing, :cancelled, :error, :completed]
+  defp valid_state_transition?(current_state, next_state), do:
+    Enum.find_index(@state_order, &(&1 == current_state)) < Enum.find_index(@state_order, &(&1 == next_state))
 end

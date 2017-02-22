@@ -17,16 +17,22 @@ defmodule Air.QueryLifecycle do
 
   @doc "Returns a worker specification for the query result processor"
   @spec observer_spec() :: Supervisor.Spec.spec
-  def observer_spec do
-    worker(Task, [fn() ->
-      for {:query_result, result} <- Air.QueryEvents.stream, do: process_result(result)
-    end])
-  end
+  def observer_spec, do: worker(Task, [&run/0])
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp run() do
+    for event <- Air.QueryEvents.stream do
+      case event do
+        {:query_result, result} -> process_result(result)
+        {:query_state_change, query_id, state} -> Air.Service.Query.update_state(query_id, state)
+        _ -> :ignore
+      end
+    end
+  end
 
   defp process_result(result) do
     query = Repo.get!(Query, result["query_id"])
