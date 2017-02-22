@@ -23,7 +23,8 @@ defmodule Cloak.DataSource.MongoDBTest do
     {:ok, conn} = Mongo.start_link(parameters)
     Mongo.delete_many(conn, @table, %{})
     for i <- 1..10 do
-      value = %{name: "user#{i}", age: 30, male: true, bills: [%{issuer: "vendor", ids: ["1", "2"]}]}
+      value = %{name: "user#{i}", age: 30, male: true, date: %BSON.DateTime{utc: 1437940203000},
+        bills: [%{issuer: "vendor", ids: ["1", "2"]}]}
       Mongo.insert_one!(conn, @table, value)
     end
     Mongo.insert_one!(conn, @table, %{name: nil, male: nil, mixed: true, bills: nil})
@@ -58,6 +59,7 @@ defmodule Cloak.DataSource.MongoDBTest do
       {"_id", :text},
       {"age", :real},
       {"bills#", :integer},
+      {"date", :datetime},
       {"male", :boolean},
       {"mixed", :unknown},
       {"name", :text},
@@ -65,6 +67,7 @@ defmodule Cloak.DataSource.MongoDBTest do
     assert bills.columns == [
       {"_id", :text},
       {"age", :real},
+      {"date", :datetime},
       {"male", :boolean},
       {"mixed", :unknown},
       {"name", :text},
@@ -74,6 +77,7 @@ defmodule Cloak.DataSource.MongoDBTest do
     assert ids.columns == [
       {"_id", :text},
       {"age", :real},
+      {"date", :datetime},
       {"male", :boolean},
       {"mixed", :unknown},
       {"name", :text},
@@ -178,5 +182,13 @@ defmodule Cloak.DataSource.MongoDBTest do
       %{error: "Conditions on MongoDB data sources have to be between a table column and a constant."}
     assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE 2 * abs(age) = 60",
       %{error: "Conditions on MongoDB data sources have to be between a table column and a constant."}
+  end
+
+  test "datetime support", context do
+    assert_query context, "SELECT DISTINCT date FROM #{@table} WHERE date IS NOT NULL",
+      %{rows: [%{occurrences: 1, row: [~N"2015-07-26 19:50:03"]}]}
+    assert_query context, """
+        SELECT max(year) FROM (SELECT _id, year(date) FROM #{@table} WHERE date = '2015-07-26 19:50:03') AS t
+      """, %{rows: [%{occurrences: 1, row: [2015]}]}
   end
 end

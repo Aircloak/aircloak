@@ -160,7 +160,8 @@ defmodule Cloak.DataSource.MongoDB do
   defp map_field(%BSON.Binary{binary: value}), do: value
   defp map_field(%BSON.DateTime{} = value) do
     {{year, month, day}, {hour, minute, second, usec}} = BSON.DateTime.to_datetime(value)
-    NaiveDateTime.new(year, month, day, hour, minute, second, {usec, 6}) |> error_to_nil()
+    usec = if usec == 0, do: {0, 0}, else: {usec, 3}
+    NaiveDateTime.new(year, month, day, hour, minute, second, usec) |> error_to_nil()
   end
   defp map_field(value), do: value
 
