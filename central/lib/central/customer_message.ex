@@ -1,9 +1,7 @@
 defmodule Central.CustomerMessage do
   @moduledoc "Decoding and handling of messages sent by air."
   require Logger
-  alias Central.Repo
   alias Central.Service.Customer
-  alias Central.Schemas.AirRPC
 
 
   # -------------------------------------------------------------------
@@ -13,17 +11,17 @@ defmodule Central.CustomerMessage do
   @doc "Handles a message sent by the customer's air."
   @spec handle(map, Customer.t, String.t) :: any
   def handle(message, customer, air_name) do
-    id = "#{air_name}|#{message["id"]}"
-    case Repo.get(AirRPC, id) do
+    message_id = Map.fetch!(message, "id")
+    case Customer.rpc(customer, air_name, message_id) do
       nil ->
         # We look for event_payload for backwards compatibility with older airs
         payload = message["payload"] || message["event_payload"]
         result = handle(message["event"], payload, customer, air_name)
-        changeset = AirRPC.changeset(%AirRPC{}, %{id: id, result: :erlang.term_to_binary(result)})
-        Repo.insert!(changeset)
+        Customer.store_rpc!(customer, air_name, message_id, result)
         result
+
       rpc ->
-        Logger.info("Received a repeat RPC call for RPC id '#{id}'. The RPC was not re-executed. " <>
+        Logger.info("Received a repeat RPC call for RPC id '#{rpc.id}'. The RPC was not re-executed. " <>
           "The type of the incoming RPC was '#{message["event"]}'")
         :erlang.binary_to_term(rpc.result)
     end
