@@ -32,6 +32,8 @@ defmodule Air.Socket.Frontend.UserChannel do
   @spec broadcast_state_change(Schemas.Query.t) :: :ok
   def broadcast_state_change(query) do
     Air.Endpoint.broadcast_from!(self(), "state_changes:all", "state_change", state_change_message(query))
+    Air.Endpoint.broadcast_from!(self(), "session:#{query.session_id}", "state_change",
+      Schemas.Query.for_display(query))
     :ok
   end
 

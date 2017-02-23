@@ -67,7 +67,7 @@ defmodule Air.Schemas.Query do
   @spec for_display(t) :: Map.t
   def for_display(query) do
     query
-    |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at])
+    |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at, :query_state])
     |> Map.merge(result_map(query))
   end
 
