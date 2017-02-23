@@ -41,9 +41,14 @@ defmodule Central.ImportController do
     case Central.CustomerMessage.import_customer_data(export_data) do
       {:error, reason} ->
         Logger.error("Error importing customer data: #{inspect reason}")
-        {:error, "Error importing customer data."}
+        {:error, import_error(reason)}
       {:ok, _} = success ->
         success
     end
   end
+
+  defp import_error(:invalid_format), do: "Invalid file format!"
+  defp import_error(:invalid_token), do: "Invalid customer token!"
+  defp import_error(:already_imported), do: "Already imported!"
+  defp import_error(:missing_previous_export), do: "Missing previous export!"
 end
