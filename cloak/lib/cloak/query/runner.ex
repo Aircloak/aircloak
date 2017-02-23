@@ -67,9 +67,9 @@ defmodule Cloak.Query.Runner do
     :ok
   end
 
-  @spec stop(String.t) :: :ok
-  def stop(query_id), do:
-    query_id |> worker_name() |> GenServer.cast(:stop_query)
+  @spec stop(String.t, :cancel | :oom) :: :ok
+  def stop(query_id, reason), do:
+    query_id |> worker_name() |> GenServer.cast({:stop_query, reason})
 
 
   # -------------------------------------------------------------------
@@ -109,9 +109,12 @@ defmodule Cloak.Query.Runner do
   def handle_info(_other, state), do:
     {:noreply, state}
 
-  def handle_cast(:stop_query, %{runner: task} = state) do
+  def handle_cast({:stop_query, reason}, %{runner: task} = state) do
     Task.shutdown(task)
-    report_result(state, {:error, "Cancelled."})
+    case reason do
+      :cancel -> report_result(state, {:error, "Cancelled."})
+      :oom -> report_result(state, {:error, "Query aborted due to low memory."})
+    end
     {:stop, :normal, %{state | runner: nil}}
   end
 

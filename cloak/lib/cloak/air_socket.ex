@@ -234,7 +234,7 @@ defmodule Cloak.AirSocket do
   end
   defp handle_air_call("stop_query", query_id, from, state) do
     Logger.info("stopping query ...", query_id: query_id)
-    Cloak.Query.Runner.stop(query_id)
+    Cloak.Query.Runner.stop(query_id, :cancel)
     respond_to_air(from, :ok)
     {:ok, state}
   end
