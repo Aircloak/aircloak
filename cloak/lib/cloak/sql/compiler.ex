@@ -207,13 +207,7 @@ defmodule Cloak.Sql.Compiler do
     # even then, this function can only be invoked after `db_columns` have been calculated, because that is
     # the field we use to decide which columns from projected tables do we in fact need.
     Lens.map(Query.Lenses.direct_projected_subqueries(), query,
-      fn(projected_subquery) ->
-        update_in(
-          projected_subquery.ast,
-          &optimized_projected_subquery_ast(&1, required_column_names(query, projected_subquery))
-        )
-      end
-    )
+        &%{&1 | ast: optimized_projected_subquery_ast(&1.ast, required_column_names(query, &1))})
   defp optimize_columns_from_projected_tables(%Query{projected?: true} = query), do:
     # If this query is projected, then the list was already optimized when the ast for this query
     # has been initially generated, so no need to do anything.
@@ -224,20 +218,19 @@ defmodule Cloak.Sql.Compiler do
     query.db_columns
     |> get_in([Query.Lenses.leaf_expressions()])
     |> Enum.filter(&match?(%{table: %{name: _}}, &1))
-    |> Enum.filter(&(&1.table.name == projected_subquery.alias))
-    |> Enum.map(&(&1.name))
+    |> Enum.filter(& &1.table.name == projected_subquery.alias)
+    |> Enum.map(& &1.name)
     |> Enum.concat([
       # append uid column
       DataSource.table(projected_subquery.ast.data_source, projected_subquery.alias).user_id
     ])
-    |> Enum.into(MapSet.new())
 
   defp optimized_projected_subquery_ast(ast, required_column_names), do:
     %Query{ast |
       next_row_index: 0,
       db_columns: [],
-      columns: Enum.filter(ast.columns, &MapSet.member?(required_column_names, &1.name)),
-      column_titles: Enum.filter(ast.column_titles, &MapSet.member?(required_column_names, &1))
+      columns: Enum.filter(ast.columns, & &1.name in required_column_names),
+      column_titles: Enum.filter(ast.column_titles, & &1 in required_column_names)
     }
     |> calculate_db_columns()
 
