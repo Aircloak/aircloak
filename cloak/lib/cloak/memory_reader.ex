@@ -11,7 +11,7 @@ defmodule Cloak.MemoryReader do
 
   use GenServer
 
-  alias Cloak.MemoryReader.{MemInfo, MemoryProjector}
+  alias Cloak.MemoryReader.MemoryProjector
 
   require Logger
 
@@ -44,7 +44,6 @@ defmodule Cloak.MemoryReader do
     schedule_check()
     {:ok, %{
       memory_projector: MemoryProjector.new(),
-      memory_reader: memory_reader(),
       queries: [],
     }}
   end
@@ -58,12 +57,19 @@ defmodule Cloak.MemoryReader do
   @doc false
   def handle_info({:DOWN, _monitor_ref, :process, pid, _info}, %{queries: queries} = state), do:
     {:noreply, %{state | queries: Enum.reject(queries, & &1 == pid)}}
-  def handle_info(:read_memory, %{memory_reader: nil} = state), do:
-    {:noreply, state}
-  def handle_info(:read_memory, %{memory_projector: projector, memory_reader: reader} = state) do
+  def handle_info(:read_memory, state) do
+    pid = self()
+    Task.start_link(fn() ->
+      reading = :memsup.get_system_memory_data()
+      send(pid, {:record_memory_reading, reading})
+    end)
     schedule_check()
-    %MemInfo{free_memory: free_memory} = reader.read()
-    projector = MemoryProjector.add_reading(projector, free_memory, System.monotonic_time(:millisecond))
+    {:noreply, state}
+  end
+  def handle_info({:record_memory_reading, reading}, %{memory_projector: projector} = state) do
+    time = System.monotonic_time(:millisecond)
+    free_memory = Keyword.get(reading, :free_memory)
+    projector = MemoryProjector.add_reading(projector, free_memory, time)
     state = %{state | memory_projector: projector}
     perform_memory_check(free_memory, state)
   end
@@ -100,22 +106,4 @@ defmodule Cloak.MemoryReader do
   end
 
   defp schedule_check(), do: Process.send_after(self(), :read_memory, @memory_check_interval)
-
-  defp has_proc_meminfo?(), do: File.exists?("/proc/meminfo")
-
-  defp has_vm_stat?(), do: File.exists?("/usr/bin/vm_stat")
-
-  defp memory_reader() do
-    cond do
-      has_proc_meminfo?() ->
-        Logger.debug("Memory reader using /proc/meminfo as memory source")
-        Cloak.MemoryReader.ProcMeminfoReader
-      has_vm_stat?() ->
-        Logger.debug("Memory reader using /usr/bin/vm_stat as memory source")
-        Cloak.MemoryReader.VMStatReader
-      true ->
-        Logger.warn("Can't find a memory reader")
-        nil
-    end
-  end
 end
