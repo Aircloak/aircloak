@@ -27,7 +27,12 @@ defmodule Cloak.MemoryReader do
 
   @doc "Starts the memory reader server"
   @spec start_link() :: GenServer.on_start
-  def start_link(), do: GenServer.start_link(__MODULE__, [])
+  def start_link(), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
+
+  @doc "Registers a query such that it can later be killed in case of a low memory event"
+  @spec register_query() :: :ok
+  def register_query(), do:
+    GenServer.cast(__MODULE__, {:register_query, self()})
 
 
   # -------------------------------------------------------------------
@@ -36,35 +41,65 @@ defmodule Cloak.MemoryReader do
 
   @doc false
   def init(_) do
-    :timer.send_interval(@memory_check_interval, self(), :read_memory)
-    {:ok, %{memory_projector: MemoryProjector.new(), memory_reader: memory_reader()}}
+    schedule_check()
+    {:ok, %{
+      memory_projector: MemoryProjector.new(),
+      memory_reader: memory_reader(),
+      queries: [],
+    }}
   end
 
   @doc false
-  def handle_info(:read_memory, %{memory_reader: nil} = state) do
-    {:noreply, state}
+  def handle_cast({:register_query, pid}, %{queries: queries} = state) do
+    Process.monitor(pid)
+    {:noreply, %{state | queries: [pid | queries]}}
   end
-  def handle_info(:read_memory, %{memory_projector: projector, memory_reader: reader} = state) do
-    %MemInfo{free_memory: free_memory} = reader.read()
-    updated_projector = MemoryProjector.add_reading(projector, free_memory, System.monotonic_time(:millisecond))
 
-    if free_memory < @limit_to_start_checks do
-      case MemoryProjector.time_until_limit(updated_projector, @limit_to_check_for) do
-        :infinity -> :ok
-        {:ok, time} ->
-          if time <= @allowed_minimum_time_to_limit do
-            seconds = trunc(time / 1000)
-            Logger.error("Anticipating running out of memory in #{seconds} seconds. Free memory: #{free_memory}kB")
-          end
-      end
-    end
-    {:noreply, %{state | memory_projector: updated_projector}}
+  @doc false
+  def handle_info({:DOWN, _monitor_ref, :process, pid, _info}, %{queries: queries} = state), do:
+    {:noreply, %{state | queries: Enum.reject(queries, & &1 == pid)}}
+  def handle_info(:read_memory, %{memory_reader: nil} = state), do:
+    {:noreply, state}
+  def handle_info(:read_memory, %{memory_projector: projector, memory_reader: reader} = state) do
+    schedule_check()
+    %MemInfo{free_memory: free_memory} = reader.read()
+    projector = MemoryProjector.add_reading(projector, free_memory, System.monotonic_time(:millisecond))
+    state = %{state | memory_projector: projector}
+    perform_memory_check(free_memory, state)
   end
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp perform_memory_check(free_memory, state) when free_memory > @limit_to_start_checks, do:
+    {:noreply, state}
+  defp perform_memory_check(free_memory, %{memory_projector: projector} = state) do
+    case MemoryProjector.time_until_limit(projector, @limit_to_check_for) do
+      {:ok, time} when time <= @allowed_minimum_time_to_limit ->
+        Logger.error("Anticipating reaching low memory threshold (#{to_mb(@limit_to_check_for)} Mb) " <>
+          "in #{to_sec(time)} seconds. Free memory: #{to_mb(free_memory)} Mb")
+        kill_query(state)
+      _ -> {:noreply, state}
+    end
+  end
+
+  defp to_mb(kb), do: trunc(kb / 1024)
+
+  defp to_sec(ms), do: max(trunc(ms / 1000), 0)
+
+  defp kill_query(%{queries: []} = state) do
+    Logger.warn("No queries to abort")
+    {:noreply, state}
+  end
+  defp kill_query(%{queries: [query | queries]} = state) do
+    Logger.warn("Killed a query as 'out of memory'")
+    Cloak.Query.Runner.stop(query, :oom)
+    {:noreply, %{state | queries: queries}}
+  end
+
+  defp schedule_check(), do: Process.send_after(self(), :read_memory, @memory_check_interval)
 
   defp has_proc_meminfo?(), do: File.exists?("/proc/meminfo")
 

@@ -67,9 +67,11 @@ defmodule Cloak.Query.Runner do
     :ok
   end
 
-  @spec stop(String.t, :cancel | :oom) :: :ok
+  @spec stop(String.t | pid, :cancel | :oom) :: :ok
+  def stop(query_pid, reason) when is_pid(query_pid), do:
+    GenServer.cast(query_pid, {:stop_query, reason})
   def stop(query_id, reason), do:
-    query_id |> worker_name() |> GenServer.cast({:stop_query, reason})
+    GenServer.cast(worker_name(query_id), {:stop_query, reason})
 
 
   # -------------------------------------------------------------------
@@ -80,6 +82,7 @@ defmodule Cloak.Query.Runner do
   def init({query_id, data_source, statement, parameters, views, result_target}) do
     Logger.metadata(query_id: query_id)
     Process.flag(:trap_exit, true)
+    Cloak.MemoryReader.register_query()
     {:ok, %{
       query_id: query_id,
       result_target: result_target,
