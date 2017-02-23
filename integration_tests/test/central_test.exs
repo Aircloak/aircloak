@@ -57,13 +57,21 @@ defmodule IntegrationTest.CentralTest do
     test "duplicate export" do
       export = poll_for_export()
       {:ok, _} = import_to_central(export)
-      assert {:error, :already_imported} = import_to_central(export)
+      assert {:error, :already_imported} == import_to_central(export)
     end
 
-    test "missing export" do
+    test "missing first export" do
       _export1 = poll_for_export()
       export2 = poll_for_export()
-      assert {:error, :missing_previous_export} = import_to_central(export2)
+      assert {:error, {:missing_previous_export, nil}} == import_to_central(export2)
+    end
+
+    test "missing second export" do
+      export1 = poll_for_export()
+      import_to_central(export1)
+      _export2 = poll_for_export()
+      export3 = poll_for_export()
+      assert {:error, {:missing_previous_export, export1.inserted_at}} == import_to_central(export3)
     end
 
     defp import_to_central(export), do:

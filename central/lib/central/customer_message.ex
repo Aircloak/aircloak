@@ -3,7 +3,11 @@ defmodule Central.CustomerMessage do
   require Logger
   alias Central.Service.Customer
 
-  @type import_error :: :invalid_format | :invalid_token | :already_imported | :missing_previous_export
+  @type import_error ::
+    :invalid_format |
+    :invalid_token |
+    :already_imported |
+    {:missing_previous_export, NaiveDateTime.t | nil}
 
   # -------------------------------------------------------------------
   # API functions
@@ -81,7 +85,11 @@ defmodule Central.CustomerMessage do
     cond do
       Customer.imported?(customer, export.id) -> {:error, :already_imported}
       export.last_exported_id != nil && not Customer.imported?(customer, export.last_exported_id) ->
-        {:error, :missing_previous_export}
+        last_export_time = case Customer.most_recent_export(customer) do
+          nil -> nil
+          export -> export.created_at
+        end
+        {:error, {:missing_previous_export, last_export_time}}
       true -> :ok
     end
   end

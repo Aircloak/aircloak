@@ -50,5 +50,9 @@ defmodule Central.ImportController do
   defp import_error(:invalid_format), do: "Invalid file format!"
   defp import_error(:invalid_token), do: "Invalid customer token!"
   defp import_error(:already_imported), do: "Already imported!"
-  defp import_error(:missing_previous_export), do: "Missing previous export!"
+  defp import_error({:missing_previous_export, nil}), do: "Missing all previous exports for this customer!"
+  defp import_error({:missing_previous_export, since}), do:
+    "Missing previous exports for this customer! " <>
+    "The last known export has been generated on " <>
+    Timex.format!(since, "{YYYY}/{0M}/{0D} {0h24}:{0m}") <> "."
 end

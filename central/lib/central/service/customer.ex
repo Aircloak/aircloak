@@ -212,6 +212,15 @@ defmodule Central.Service.Customer do
   def imported?(customer, export_id), do:
     Repo.one(from(c in CustomerExport, where: c.export_id == ^export_id and c.customer_id == ^customer.id)) != nil
 
+  @doc "Returns the last imported export for the given customer."
+  @spec most_recent_export(Customer.t) :: CustomerExport.t | nil
+  def most_recent_export(customer), do:
+    Repo.one(from c in CustomerExport,
+      where: c.customer_id == ^customer.id,
+      order_by: [desc: c.id],
+      limit: 1
+    )
+
 
   # -------------------------------------------------------------------
   # Internal functions
