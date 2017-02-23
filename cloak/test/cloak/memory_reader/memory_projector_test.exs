@@ -23,16 +23,16 @@ defmodule Cloak.MemoryReader.MemoryProjectorTest do
   end
 
   describe "Projecting the future" do
-    test "projection without data yields infinity", do:
-      assert :infinity == MemoryProjector.new()
+    test "projection with insufficient data yields no prediction", do:
+      assert :no_prediction == add_measurements(20..10)
       |> MemoryProjector.time_until_limit(0)
 
     test "detects growth of free memory", do:
-      assert :infinity == add_measurements(1..20)
+      assert :infinity == add_measurements(1..21)
       |> MemoryProjector.time_until_limit(0)
 
     test "predicts decline in memory", do:
-      assert {:ok, 10} == add_measurements(40..20)
+      assert {:ok, 10} == add_measurements(50..20)
       |> MemoryProjector.time_until_limit(10)
 
     test "weights recent readings higher over older", do:
