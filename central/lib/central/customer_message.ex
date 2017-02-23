@@ -87,7 +87,6 @@ defmodule Central.CustomerMessage do
 
   defp handle("query_execution", payload, customer, _air_name) do
     Logger.info("Received query execution update with payload: #{inspect payload}")
-    customer = customer
     params = %{
       metrics: payload["metrics"],
       features: payload["features"],
