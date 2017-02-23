@@ -411,7 +411,7 @@ defmodule Cloak.Sql.Compiler do
   end
 
   defp resolve_selected_tables(query), do:
-    %Query{query | selected_tables: selected_tables(query.from, query.data_source)}
+    %Query{query | selected_tables: selected_tables(query.from, query.data_source) |> Enum.uniq()}
 
   defp selected_tables({:join, join}, data_source) do
     selected_tables(join.lhs, data_source) ++ selected_tables(join.rhs, data_source)
