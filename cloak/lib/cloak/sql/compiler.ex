@@ -44,12 +44,12 @@ defmodule Cloak.Sql.Compiler do
   end
 
   @doc "Creates the query which describes a SELECT statement from a single table."
-  @spec make_select_query(DataSource.t, String.t, [Expression.t], [subquery?: boolean]) :: Query.t
-  def make_select_query(data_source, table_name, select_expressions, options \\ []) do
+  @spec make_select_query(DataSource.t, String.t, [Expression.t]) :: Query.t
+  def make_select_query(data_source, table_name, select_expressions) do
     column_titles = for expression <- select_expressions, do: expression.alias || expression.name
     calculate_db_columns(%Query{
       command: :select,
-      subquery?: Keyword.get(options, :subquery?, false),
+      subquery?: true,
       columns: select_expressions,
       column_titles: column_titles,
       from: table_name,
