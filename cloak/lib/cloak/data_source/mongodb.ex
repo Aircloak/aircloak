@@ -35,7 +35,7 @@ defmodule Cloak.DataSource.MongoDB do
     name of the table being the base table name suffixed with the array name, separated by `_`.
   """
 
-  alias Cloak.Sql.Expression
+  alias Cloak.Sql.{Expression, Query}
   alias Cloak.Query.Runner.RuntimeError
   alias Cloak.DataSource.MongoDB.{Schema, Pipeline}
 
@@ -119,7 +119,7 @@ defmodule Cloak.DataSource.MongoDB do
   def select(connection, query, result_processor) do
     {collection, pipeline} = Pipeline.build(query)
     columns = for %Expression{name: name, alias: alias} <- query.db_columns, do: String.split(alias || name, ".")
-    options = [max_time: @timeout, timeout: @timeout, batch_size: 25_000, allow_disk_use: true]
+    options = [max_time: @timeout, timeout: @timeout, pool_timeout: @timeout, batch_size: 25_000, allow_disk_use: true]
     result =
       connection
       |> Mongo.aggregate(collection, pipeline, options)
@@ -127,6 +127,20 @@ defmodule Cloak.DataSource.MongoDB do
       |> result_processor.()
     {:ok, result}
   end
+
+  # we only support the functions available in Mongo 3.0
+  @supported_functions ~w(+ - * ^ / % mod div trunc length left count sum min max avg
+    substring || concat lower upper lcase ucase year month day weekday hour minute second)
+  @doc false
+  def supports_query?(%Query{from: {:join, _}}), do: false
+  def supports_query?(%Query{subquery?: true} = query), do:
+    (
+      Query.Lenses.query_expressions()
+      |> Lens.satisfy(& &1.function?)
+      |> Lens.to_list(query)
+      |> Enum.map(& &1.function)
+    ) -- @supported_functions == []
+  def supports_query?(_query), do: true
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -160,7 +174,8 @@ defmodule Cloak.DataSource.MongoDB do
   defp map_field(%BSON.Binary{binary: value}), do: value
   defp map_field(%BSON.DateTime{} = value) do
     {{year, month, day}, {hour, minute, second, usec}} = BSON.DateTime.to_datetime(value)
-    NaiveDateTime.new(year, month, day, hour, minute, second, {usec, 6}) |> error_to_nil()
+    usec = if usec == 0, do: {0, 0}, else: {usec, 3}
+    NaiveDateTime.new(year, month, day, hour, minute, second, usec) |> error_to_nil()
   end
   defp map_field(value), do: value
 
