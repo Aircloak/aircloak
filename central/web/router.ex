@@ -51,5 +51,7 @@ defmodule Central.Router do
 
     get "/", StatsController, :index
     delete "/logout", SessionController, :delete
+
+    resources "/imports", ImportController
   end
 end

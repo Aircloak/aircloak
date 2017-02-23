@@ -71,12 +71,16 @@ defmodule Central.Schemas.Customer do
     |> all_cloaks()
     |> onlines()
 
+  @doc "Returns the list of all known data sources."
+  @spec data_sources(t) :: [String.t]
   def data_sources(customer), do:
     customer
     |> cloaks()
     |> all_data_sources()
     |> Enum.uniq()
 
+  @doc "Returns the list of online data sources."
+  @spec online_data_sources(t) :: [String.t]
   def online_data_sources(customer), do:
     customer
     |> online_cloaks()

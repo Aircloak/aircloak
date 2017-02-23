@@ -6,7 +6,7 @@ defmodule Central.Service.Customer do
 
   alias Ecto.Changeset
   alias Central.Repo
-  alias Central.Schemas.{Air, Cloak, Customer, Query, OnlineStatus}
+  alias Central.Schemas.{Air, AirRPC, Cloak, Customer, CustomerExport, Query, OnlineStatus}
   alias Central.Service.ElasticSearch
 
   import Ecto.Query, only: [from: 2]
@@ -188,6 +188,39 @@ defmodule Central.Service.Customer do
     :ok
   end
 
+  @doc "Retrieves an RPC identified by the given id."
+  @spec rpc(Customer.t, String.t, String.t) :: nil | AirRPC.t
+  def rpc(customer, air_name, message_id), do:
+    Repo.get(AirRPC, rpc_id(customer, air_name, message_id))
+
+  @doc "Stores an RPC into the database."
+  @spec store_rpc!(Customer.t, String.t, String.t, any) :: AirRPC.t
+  def store_rpc!(customer, air_name, message_id, result), do:
+    %AirRPC{}
+    |> AirRPC.changeset(%{id: rpc_id(customer, air_name, message_id), result: :erlang.term_to_binary(result)})
+    |> Repo.insert!()
+
+  @doc "Marks export as imported."
+  @spec mark_export_as_imported!(Customer.t, integer, NaiveDateTime.t) :: :ok
+  def mark_export_as_imported!(customer, export_id, created_at) do
+    Repo.insert!(%CustomerExport{export_id: export_id, created_at: created_at, customer: customer})
+    :ok
+  end
+
+  @doc "Returns true if the given export has been imported"
+  @spec imported?(Customer.t, integer) :: boolean
+  def imported?(customer, export_id), do:
+    Repo.one(from(c in CustomerExport, where: c.export_id == ^export_id and c.customer_id == ^customer.id)) != nil
+
+  @doc "Returns the last imported export for the given customer."
+  @spec most_recent_export(Customer.t) :: CustomerExport.t | nil
+  def most_recent_export(customer), do:
+    Repo.one(from c in CustomerExport,
+      where: c.customer_id == ^customer.id,
+      order_by: [desc: c.id],
+      limit: 1
+    )
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -200,4 +233,7 @@ defmodule Central.Service.Customer do
   defp secret_key_base() do
     Central.site_setting("endpoint_key_base")
   end
+
+  defp rpc_id(customer, air_name, message_id), do:
+    Enum.join([customer.id, air_name, message_id], "|")
 end

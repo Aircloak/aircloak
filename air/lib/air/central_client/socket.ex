@@ -220,25 +220,12 @@ defmodule Air.CentralClient.Socket do
   end
 
   defp air_params() do
-    %{air_name: air_name(), token: customer_token()}
-  end
-
-  defp air_name() do
-    vm_short_name =
-      Node.self()
-      |> Atom.to_string()
-      |> String.split("@")
-      |> hd()
-    {:ok, hostname} = :inet.gethostname()
-
-    "#{vm_short_name}@#{hostname}"
+    %{air_name: Air.instance_name(), token: Air.customer_token()}
   end
 
   defp next_interval(current_interval) do
     min(current_interval * 2, config(:max_reconnect_interval))
   end
-
-  defp customer_token(), do: Air.site_setting("customer_token")
 
   defp config(key) do
     Application.get_env(:air, :central) |> Keyword.fetch!(key)
