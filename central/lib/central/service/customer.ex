@@ -6,7 +6,7 @@ defmodule Central.Service.Customer do
 
   alias Ecto.Changeset
   alias Central.Repo
-  alias Central.Schemas.{Air, AirRPC, Cloak, Customer, Query, OnlineStatus}
+  alias Central.Schemas.{Air, AirRPC, Cloak, Customer, CustomerExport, Query, OnlineStatus}
   alias Central.Service.ElasticSearch
 
   import Ecto.Query, only: [from: 2]
@@ -199,6 +199,13 @@ defmodule Central.Service.Customer do
     %AirRPC{}
     |> AirRPC.changeset(%{id: rpc_id(customer, air_name, message_id), result: :erlang.term_to_binary(result)})
     |> Repo.insert!()
+
+  @doc "Marks export as imported."
+  @spec mark_export_as_imported!(Customer.t, integer) :: :ok
+  def mark_export_as_imported!(customer, export_id) do
+    Repo.insert!(%CustomerExport{export_id: export_id, customer: customer})
+    :ok
+  end
 
 
   # -------------------------------------------------------------------

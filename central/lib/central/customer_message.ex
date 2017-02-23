@@ -14,6 +14,7 @@ defmodule Central.CustomerMessage do
     with {:ok, export} <- decode_exported_data(air_export),
          {:ok, customer} <- Customer.from_token(export.customer_token) do
       Enum.each(export.rpcs, &handle(&1, customer, export.air_name))
+      Customer.mark_export_as_imported!(customer, export.id)
       {:ok, length(export.rpcs)}
     end
   end
