@@ -23,5 +23,5 @@ defmodule Air.Schemas.ExportForAircloak do
   @doc "Returns the binary content of this export."
   @spec content(t) :: binary
   def content(export), do:
-    :erlang.term_to_binary(%{id: export.id, payload: export.payload})
+    :erlang.term_to_binary(%{id: export.id, payload: export.payload, created_at: export.inserted_at})
 end

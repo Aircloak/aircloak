@@ -17,7 +17,7 @@ defmodule Central.CustomerMessage do
          :ok <- validate_export(customer, export)
         do
       Enum.each(export.rpcs, &handle(&1, customer, export.air_name))
-      Customer.mark_export_as_imported!(customer, export.id)
+      Customer.mark_export_as_imported!(customer, export.id, export.created_at)
       {:ok, length(export.rpcs)}
     end
   end
@@ -48,7 +48,7 @@ defmodule Central.CustomerMessage do
 
   defp decode_exported_data(air_export) do
     try do
-      %{id: id, payload: payload} = :erlang.binary_to_term(air_export)
+      %{id: id, payload: payload, created_at: created_at} = :erlang.binary_to_term(air_export)
 
       %{
         "last_exported_id" => last_exported_id,
@@ -63,6 +63,7 @@ defmodule Central.CustomerMessage do
       {:ok, %{
         id: id,
         last_exported_id: last_exported_id,
+        created_at: created_at,
         air_name: air_name,
         customer_token: customer_token,
         rpcs: rpcs,

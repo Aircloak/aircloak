@@ -201,9 +201,9 @@ defmodule Central.Service.Customer do
     |> Repo.insert!()
 
   @doc "Marks export as imported."
-  @spec mark_export_as_imported!(Customer.t, integer) :: :ok
-  def mark_export_as_imported!(customer, export_id) do
-    Repo.insert!(%CustomerExport{export_id: export_id, customer: customer})
+  @spec mark_export_as_imported!(Customer.t, integer, NaiveDateTime.t) :: :ok
+  def mark_export_as_imported!(customer, export_id, created_at) do
+    Repo.insert!(%CustomerExport{export_id: export_id, created_at: created_at, customer: customer})
     :ok
   end
 
