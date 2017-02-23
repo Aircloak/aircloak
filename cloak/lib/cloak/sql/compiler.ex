@@ -1138,7 +1138,6 @@ defmodule Cloak.Sql.Compiler do
   defp any_outer_join?({:join, join}),
     do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
 
-
   defp join_conditions_scope_check(from) do
     do_join_conditions_scope_check(from, [])
   end
