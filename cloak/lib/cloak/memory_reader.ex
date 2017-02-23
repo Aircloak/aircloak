@@ -2,6 +2,11 @@ defmodule Cloak.MemoryReader do
   @moduledoc """
   Periodically reads the memory available on the server in order to
   determine if we are about to run out of memory or not.
+
+  Once the free memory drops below a certain threshold, it will
+  start looking at projections of future memory developments.
+  If the memory is deemed to shortly reach critical levels,
+  running queries will be cancelled.
   """
 
   use GenServer
@@ -11,8 +16,9 @@ defmodule Cloak.MemoryReader do
   require Logger
 
   @memory_check_interval 100
+  @limit_to_start_checks 500_000 # 500Mb
   @limit_to_check_for 100_000 # 100Mb
-  @allowed_minimum_time_to_limit 3_000 # 30s
+  @allowed_minimum_time_to_limit 3_000 # 3s
 
 
   # -------------------------------------------------------------------
@@ -42,13 +48,15 @@ defmodule Cloak.MemoryReader do
     %MemInfo{free_memory: free_memory} = reader.read()
     updated_projector = MemoryProjector.add_reading(projector, free_memory, System.monotonic_time(:millisecond))
 
-    case MemoryProjector.time_until_limit(updated_projector, @limit_to_check_for) do
-      :infinity -> :ok
-      {:ok, time} ->
-        if time <= @allowed_minimum_time_to_limit do
-          seconds = trunc(time / 1000)
-          Logger.error("Anticipating running out of memory in #{seconds} seconds. Free memory: #{free_memory}kB")
-        end
+    if free_memory < @limit_to_start_checks do
+      case MemoryProjector.time_until_limit(updated_projector, @limit_to_check_for) do
+        :infinity -> :ok
+        {:ok, time} ->
+          if time <= @allowed_minimum_time_to_limit do
+            seconds = trunc(time / 1000)
+            Logger.error("Anticipating running out of memory in #{seconds} seconds. Free memory: #{free_memory}kB")
+          end
+      end
     end
     {:noreply, %{state | memory_projector: updated_projector}}
   end
