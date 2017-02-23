@@ -155,7 +155,7 @@ class QueriesView extends React.Component {
           const result = {
             statement,
             id: response.query_id,
-            pendingResult: true,
+            query_state: "started",
           };
           this.addResult(result, false /* replace */);
         } else {
