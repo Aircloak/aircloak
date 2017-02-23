@@ -100,7 +100,6 @@ defmodule Cloak.MemoryReader do
     {:noreply, state}
   end
   defp kill_query(%{queries: [query | queries]} = state) do
-    Logger.warn("Killed a query as 'out of memory'")
     Cloak.Query.Runner.stop(query, :oom)
     {:noreply, %{state | queries: queries}}
   end
