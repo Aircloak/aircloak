@@ -6,7 +6,7 @@ defmodule Cloak.MemoryReader.MemInfo do
   All memory values returned are in kB.
   """
 
-  @type t :: %{
+  @type t :: %__MODULE__{
     total_memory: non_neg_integer,
     free_memory: non_neg_integer,
   }

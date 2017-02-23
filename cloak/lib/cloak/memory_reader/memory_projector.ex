@@ -13,8 +13,8 @@ defmodule Cloak.MemoryReader.MemoryProjector do
   @type measurement :: non_neg_integer
   @type timestamp :: non_neg_integer
 
-  @type t :: %{
-    last_reading: {measurement, timestamp},
+  @type t :: %__MODULE__{
+    last_reading: {measurement, timestamp} | nil,
     changes: [integer],
   }
 
