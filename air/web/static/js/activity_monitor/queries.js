@@ -30,7 +30,8 @@ export const QueriesView = (props: {queries: Query[]}) =>
         <tr>
           <th>Data source</th>
           <th>Analyst</th>
-          <th>Query state</th>
+          <th>Query</th>
+          <th>State</th>
         </tr>
       </thead>
       <ReactCSSTransitionGroup
