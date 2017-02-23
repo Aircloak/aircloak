@@ -15,7 +15,11 @@
 }
 
 .panel-body .ReactCodeMirror {
-  margin: -15px -15px 0 -15px;
+  margin: -15px -15px 20px -15px;
+}
+
+.panel-success .panel-body .ReactCodeMirror {
+  margin: -15px -15px 0px -15px;
 }
 
 .result-table {
@@ -28,6 +32,10 @@
 
 .panel-success .ReactCodeMirror {
   border-bottom: 1px solid rgb(214, 233, 198);
+}
+
+.panel-warning .ReactCodeMirror {
+  border-bottom: 1px solid rgb(250, 235, 204);
 }
 
 .panel-info .ReactCodeMirror {
