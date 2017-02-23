@@ -4,7 +4,7 @@ defmodule Cloak.MemoryReader.ProcMeminfoReaderTest do
   alias Cloak.MemoryReader.{MemInfo, ProcMeminfoReader}
 
   test "parses meminfo data" do
-    assert %MemInfo{total_memory: 2047144, free_memory: 1768660} == ProcMeminfoReader.parse(meminfo())
+    assert %MemInfo{total_memory: 2_047_144, free_memory: 1_768_660} == ProcMeminfoReader.parse(meminfo())
   end
 
   def meminfo() do

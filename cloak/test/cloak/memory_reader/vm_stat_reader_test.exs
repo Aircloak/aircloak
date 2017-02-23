@@ -4,7 +4,7 @@ defmodule Cloak.MemoryReader.VMStatReaderTest do
   alias Cloak.MemoryReader.{MemInfo, VMStatReader}
 
   test "parses vm_stat data" do
-    assert %MemInfo{total_memory: 7293832, free_memory: 2783756} == VMStatReader.parse(meminfo())
+    assert %MemInfo{total_memory: 7_293_832, free_memory: 2_783_756} == VMStatReader.parse(meminfo())
   end
 
   def meminfo() do
