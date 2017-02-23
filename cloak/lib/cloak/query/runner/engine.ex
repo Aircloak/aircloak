@@ -21,7 +21,7 @@ defmodule Cloak.Query.Runner.Engine do
         {:ok, query} <- Sql.Compiler.compile(data_source, parsed, parameters, views),
         state_updater.(:awaiting_data),
       do: {:ok, run_statement(query, state_updater), Sql.Query.info_messages(query)}
-    rescue e in [Query.Runner.RuntimeError] ->
+    rescue e in [Query.Runner.RuntimeError, RuntimeError] ->
       {:error, e.message}
     end
   end

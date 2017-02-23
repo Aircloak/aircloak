@@ -11,7 +11,7 @@ defmodule Air.CentralClient.Socket do
   require Logger
   require Aircloak.DeployConfig
   alias Phoenix.Channels.GenSocketClient
-  alias Air.{Schemas.CentralCall, Repo}
+  alias Air.Service.Central
 
   @behaviour GenSocketClient
 
@@ -19,6 +19,11 @@ defmodule Air.CentralClient.Socket do
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Makes a synchronous rpc call to the central."
+  @spec rpc(map) :: {:ok, any} | {:error, any}
+  def rpc(rpc), do:
+    call(__MODULE__, "call_with_retry", rpc)
 
   @doc "Starts the socket client."
   @spec start_link(Map.t, GenServer.options) :: GenServer.on_start
@@ -36,27 +41,6 @@ defmodule Air.CentralClient.Socket do
       gen_server_opts
     )
   end
-
-  @doc "Records a completed query in the central - useful for billing and stats"
-  @spec record_query(Map.t) :: :ok
-  def record_query(payload), do:
-    cast_with_retry(__MODULE__, "query_execution", payload)
-
-  @doc "Records a connection of a cloak in the central."
-  @spec record_cloak_online(String.t, [String.t], String.t) :: :ok
-  def record_cloak_online(cloak_name, data_source_names, version), do:
-    cast_with_retry(__MODULE__, "cloak_online", %{
-      name: cloak_name, data_source_names: data_source_names, version: version})
-
-  @doc "Records a disconnection of a cloak in the central."
-  @spec record_cloak_offline(String.t) :: :ok
-  def record_cloak_offline(cloak_name), do:
-    cast_with_retry(__MODULE__, "cloak_offline", %{name: cloak_name})
-
-  @doc "Sends usage info to central."
-  @spec send_usage_info(Map.t) :: :ok
-  def send_usage_info(usage_info), do:
-    cast_with_retry(__MODULE__, "usage_info", usage_info)
 
 
   # -------------------------------------------------------------------
@@ -95,7 +79,7 @@ defmodule Air.CentralClient.Socket do
   def handle_joined(topic, _payload, _transport, state) do
     Logger.info("joined the topic #{topic}")
     initial_interval = config(:min_reconnect_interval)
-    reattempt_pending_rpcs()
+    Central.reattempt_pending_calls()
     {:ok, %{state | rejoin_interval: initial_interval}}
   end
 
@@ -175,7 +159,7 @@ defmodule Air.CentralClient.Socket do
     {:ok, update_in(state.pending_calls, &Map.delete(&1, request_id))}
   end
   def handle_info(:check_for_pending_rpcs, _transport, state) do
-    reattempt_pending_rpcs()
+    Central.reattempt_pending_calls()
     {:ok, state}
   end
   def handle_info(message, _transport, state) do
@@ -210,47 +194,6 @@ defmodule Air.CentralClient.Socket do
         exit(reason)
     after timeout ->
       exit(:timeout)
-    end
-  end
-
-  defp cast_with_retry(socket, event, payload) do
-    case persist_rpc(event, payload) do
-      {:ok, rpc} -> perform_cast_with_retry(socket, rpc)
-      :error -> :error
-    end
-  end
-
-  defp persist_rpc(event, payload) do
-    changeset = CentralCall.changeset(%CentralCall{}, %{event: event, payload: payload})
-    case Repo.insert(changeset) do
-      {:error, changeset} ->
-        Logger.error("Unable to persist RPC call to central to guarantee delivery. Aborting RPC. "
-          <> "Failure: #{inspect changeset}")
-        :error
-      {:ok, _} = result -> result
-    end
-  end
-
-  defp perform_cast_with_retry(socket, rpc) do
-    Task.start(fn() ->
-      payload = %{
-        id: rpc.id,
-        event: rpc.event,
-        event_payload: rpc.payload,
-      }
-      case call(socket, "call_with_retry", payload) do
-        {:error, reason} ->
-          Logger.error("RPC '#{rpc.event}' to central failed: #{inspect reason}. Will retry later.")
-        {:ok, _} -> Repo.delete!(rpc)
-      end
-    end)
-    :ok
-  end
-
-  defp reattempt_pending_rpcs() do
-    Logger.info("Checking for buffered RPC calls to central")
-    for rpc <- Repo.all(CentralCall) do
-      perform_cast_with_retry(__MODULE__, rpc)
     end
   end
 

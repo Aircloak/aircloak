@@ -31,4 +31,9 @@ defmodule Air.Schemas.CentralCall do
     |> cast(params, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
   end
+
+  @doc "Exports a model instance into a JSON encodable map."
+  @spec export(t) :: map
+  def export(model), do:
+    %{id: model.id, event: model.event, payload: model.payload}
 end
