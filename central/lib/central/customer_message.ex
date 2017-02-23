@@ -69,7 +69,7 @@ defmodule Central.CustomerMessage do
       }}
     catch type, error ->
       Logger.error([
-        "Error decoding import data: #{inspect(type)}:#{inspect(error)}\n",
+        "Error decoding Air data: #{inspect(type)}:#{inspect(error)}\n",
         Exception.format_stacktrace(System.stacktrace())
       ])
       {:error, :invalid_format}

@@ -1,4 +1,4 @@
-<h2>Import customer data</h2>
+<h2>Import Air data</h2>
 
 <%= form_tag(import_path(@conn, :create), multipart: true) do %>
   <div class="form-group">
