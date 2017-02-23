@@ -2,7 +2,7 @@ defmodule IntegrationTest.Manager do
   import Ecto.Query, only: [from: 2]
 
   alias Air.Repo
-  alias Air.Schemas.{DataSource, Group, User, View}
+  alias Air.Schemas.{DataSource, ExportForAircloak, Group, User, View}
 
   @admin_group_name "admins"
   @user_password "1234"
@@ -16,7 +16,7 @@ defmodule IntegrationTest.Manager do
     Application.ensure_all_started(:cloak)
     await_data_source()
     setup_cloak_database()
-    setup_data_source()
+    setup_air_database()
 
     # dummy supervisor to have a top-level process
     Supervisor.start_link([], strategy: :one_for_one)
@@ -66,7 +66,7 @@ defmodule IntegrationTest.Manager do
     :ok = insert_rows(1..100, "users", ["name", "height"], ["john", 180])
   end
 
-  defp setup_data_source() do
+  defp setup_air_database() do
     # delete previous entries
     Repo.delete_all(View)
     Repo.delete_all("data_sources_groups")
@@ -86,6 +86,8 @@ defmodule IntegrationTest.Manager do
     |> Repo.preload([:groups])
     |> DataSource.changeset(%{groups: [admin_group.id]})
     |> Repo.update!()
+
+    Repo.delete_all(ExportForAircloak)
   end
 
   defp insert_rows(user_id_range, table, columns, values) do
@@ -95,6 +97,7 @@ defmodule IntegrationTest.Manager do
   defp setup_central() do
     Central.Repo.delete_all("usage_info")
     Central.Repo.delete_all(Central.Schemas.AirRPC)
+    Central.Repo.delete_all(Central.Schemas.CustomerExport)
     Central.Repo.delete_all(Central.Schemas.Customer)
     {:ok, customer} = Central.Service.Customer.create(%{name: "integration tests customer"})
     {:ok, token} = Central.Service.Customer.generate_token(customer)

@@ -207,6 +207,11 @@ defmodule Central.Service.Customer do
     :ok
   end
 
+  @doc "Returns true if the given export has been imported"
+  @spec imported?(Customer.t, integer) :: boolean
+  def imported?(customer, export_id), do:
+    Repo.one(from(c in CustomerExport, where: c.export_id == ^export_id and c.customer_id == ^customer.id)) != nil
+
 
   # -------------------------------------------------------------------
   # Internal functions
