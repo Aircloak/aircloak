@@ -30,6 +30,7 @@ export const QueriesView = (props: {queries: Query[]}) =>
         <tr>
           <th>Data source</th>
           <th>Analyst</th>
+          <th>Query</th>
           <th>Query state</th>
         </tr>
       </thead>
