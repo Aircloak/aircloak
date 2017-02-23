@@ -9,6 +9,8 @@ defmodule Cloak.MemoryReader.MemoryProjector do
   alias Cloak.MemoryReader.MemoryProjector
 
   @readings_to_keep 20
+  @reading_weights [5, 5, 4, 4, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+  @reading_weights_sum 42
 
   @type measurement :: non_neg_integer
   @type timestamp :: non_neg_integer
@@ -47,11 +49,11 @@ defmodule Cloak.MemoryReader.MemoryProjector do
   def time_until_limit(%MemoryProjector{changes: changes, last_reading: {free_memory, _}}, memory_limit) do
     # We produce a weighted average where the most recent value counts 3 times as much
     # as the oldest. This value is experimentally set, and probably needs furhter adjusting.
-    weighted_values = changes
-    |> Enum.reverse()
-    |> Enum.with_index()
-    |> Enum.flat_map(fn({value, count}) -> List.duplicate(value, count + 10) end)
-    average_change = Integer.floor_div(Enum.sum(weighted_values), Enum.count(weighted_values))
+    weighted_values_sum = changes
+    |> Enum.zip(@reading_weights)
+    |> Enum.map(fn({value, weight}) -> value * weight end)
+    |> Enum.sum()
+    average_change = div(weighted_values_sum, @reading_weights_sum)
     if average_change >= 0 do
       :infinity
     else
