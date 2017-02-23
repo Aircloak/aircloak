@@ -2,14 +2,13 @@
 
 import React from "react";
 
-type QueryState = {
-  state: string,
+const stateClasses = {
+  "completed": "label label-success",
+  "error": "label label-danger",
+  "cancelled": "label label-warning",
 };
 
-export const StateView = (props: QueryState) => {
-  if (props.state === "completed") {
-    return (<span className="label label-success">{props.state}</span>);
-  } else {
-    return (<span className="label label-info">{props.state}</span>);
-  }
-};
+const stateClass = (state) => stateClasses[state] || "label label-info";
+
+export const StateView = (props: {state: string}) =>
+  <span className={stateClass(props.state)}>{props.state}</span>;
