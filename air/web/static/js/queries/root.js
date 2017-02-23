@@ -14,6 +14,7 @@ import type {Selectable} from "../selectable_info/selectable";
 import {QuerySocket} from "../query_socket";
 import {HistoryLoader} from "./history_loader";
 import type {History} from "./history_loader";
+import {isPending} from "./state";
 
 type Props = {
   userId: number,
@@ -134,7 +135,7 @@ class QueriesView extends React.Component {
   }
 
   isQueryPending() {
-    return this.state.sessionResults.length > 0 && this.state.sessionResults[0].pendingResult;
+    return this.state.sessionResults.length > 0 && isPending(this.state.sessionResults[0].query_state);
   }
 
   runQuery() {

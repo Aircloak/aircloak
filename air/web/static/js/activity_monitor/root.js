@@ -8,6 +8,7 @@ import {QueriesView} from "./queries";
 import type {Query} from "./query";
 
 import {QuerySocket} from "../query_socket";
+import {isFinished} from "../queries/state";
 
 type QueryEvent = {
   query_id: string,
@@ -22,8 +23,6 @@ type Props = {
   querySocket: QuerySocket,
   queries: Query[],
 };
-
-const finalStates = ["completed", "cancelled", "error"];
 
 class ActivityMonitorView extends React.Component {
   constructor(props: Props) {
@@ -57,7 +56,7 @@ class ActivityMonitorView extends React.Component {
   }
 
   conditionallyScheduleQueryRemoval(queryEvent) {
-    if (finalStates.includes(queryEvent.event)) {
+    if (isFinished(queryEvent.event)) {
       setTimeout(() => this.handleRemoveQuery(queryEvent.query_id), this.queryRemovalTime);
     }
   }
