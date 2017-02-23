@@ -1128,8 +1128,6 @@ defmodule Cloak.Sql.Compiler do
       {_, type} = Enum.find(table.columns, fn ({name, _type}) -> insensitive_equal?(user_id, name) end)
       %Expression{table: table, name: user_id, type: type, user_id?: true}
     end)
-    # ignore projected tables, since their id columns do not exist in the table
-    |> Enum.reject(&(&1.table.projection != nil))
   end
 
   defp any_outer_join?(table) when is_binary(table), do: false
