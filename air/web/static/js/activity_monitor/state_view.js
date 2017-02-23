@@ -3,9 +3,9 @@
 import React from "react";
 
 const stateClasses = {
-  "completed": "label label-success",
-  "error": "label label-danger",
-  "cancelled": "label label-warning",
+  completed: "label label-success",
+  error: "label label-danger",
+  cancelled: "label label-warning",
 };
 
 const stateClass = (state) => stateClasses[state] || "label label-info";

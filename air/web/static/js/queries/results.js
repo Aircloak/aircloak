@@ -7,7 +7,6 @@ import type {Result} from "./result";
 import {PendingResult} from "./pending_result";
 import {Error} from "./error";
 import {Cancelled} from "./cancelled";
-import {format} from "./state";
 
 export const Results = (props: {results: Result[]}) =>
   <div>

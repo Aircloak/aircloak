@@ -24,6 +24,8 @@ export type Result = {
   rows: Row[],
   row_count: number,
   info: string[],
+  error: string,
+  query_state: string,
 };
 
 export class ResultView extends React.Component {
