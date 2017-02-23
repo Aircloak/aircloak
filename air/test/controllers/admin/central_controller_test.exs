@@ -2,6 +2,7 @@ defmodule Air.Admin.CentralControllerTest do
   use Air.ConnCase, async: false
 
   import Air.{TestRepoHelper, TestConnHelper}
+  alias Air.Schemas.ExportForAircloak
 
   setup do
     Application.put_env(:air, :auto_aircloak_export, false)
@@ -83,8 +84,8 @@ defmodule Air.Admin.CentralControllerTest do
 
     assert response(conn, 200)
     assert hd(get_resp_header(conn, "content-disposition")) ==
-      "attachment; filename=\"#{Air.Schemas.ExportForAircloak.file_name(export)}\""
-    assert conn.resp_body == export.payload
+      "attachment; filename=\"#{ExportForAircloak.file_name(export)}\""
+    assert conn.resp_body == ExportForAircloak.content(export)
   end
 
 

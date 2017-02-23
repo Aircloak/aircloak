@@ -2,6 +2,7 @@ defmodule Air.Admin.CentralController do
   @moduledoc false
   use Air.Web, :admin_controller
   alias Air.Service.Central
+  alias Air.Schemas.ExportForAircloak
 
   require Logger
 
@@ -45,7 +46,7 @@ defmodule Air.Admin.CentralController do
 
   def download_export(conn, %{"export_id" => export_id}) do
     export = Central.get_export!(export_id)
-    send_attachment(conn, Air.Schemas.ExportForAircloak.file_name(export), export.payload)
+    send_attachment(conn, ExportForAircloak.file_name(export), ExportForAircloak.content(export))
   end
 
 

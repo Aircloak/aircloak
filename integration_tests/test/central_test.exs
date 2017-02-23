@@ -36,9 +36,15 @@ defmodule IntegrationTest.CentralTest do
 
   test "manual export to central" do
     Application.put_env(:air, :auto_aircloak_export, false)
-    export = poll_for_export()
-    assert {:ok, number} = Central.CustomerMessage.import_customer_data(export.payload)
-    assert number > 0
+    try do
+      assert {:ok, number} =
+        poll_for_export()
+        |> Air.Schemas.ExportForAircloak.content()
+        |> Central.CustomerMessage.import_customer_data()
+      assert number > 0
+    after
+      Application.put_env(:air, :auto_aircloak_export, true)
+    end
   end
 
   defp poll_for_export() do
