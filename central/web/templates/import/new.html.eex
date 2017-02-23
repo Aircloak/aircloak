@@ -1,0 +1,10 @@
+<h2>Import customer data</h2>
+
+<%= form_tag(import_path(@conn, :create), multipart: true) do %>
+  <div class="form-group">
+    <%= file_input(:import, :file, class: "form-control") %>
+  </div>
+  <div class="form-group">
+    <%= submit "Import", class: "btn btn-primary" %>
+  </div>
+<% end %>
