@@ -82,7 +82,6 @@ defmodule Cloak.Query.Runner do
   def init({query_id, data_source, statement, parameters, views, result_target}) do
     Logger.metadata(query_id: query_id)
     Process.flag(:trap_exit, true)
-    Cloak.MemoryReader.register_query()
     {:ok, %{
       query_id: query_id,
       result_target: result_target,
@@ -128,10 +127,13 @@ defmodule Cloak.Query.Runner do
 
   defp run_query(query_id, data_source, statement, parameters, views) do
     Logger.metadata(query_id: query_id)
+    Cloak.MemoryReader.register_query()
     Logger.debug("Parsing statement `#{statement}` ...")
     with {:ok, query} <- Query.make(data_source, statement, parameters, views),
-         {:ok, result} <- Engine.run(query),
-    do: {:ok, result, Query.info_messages(query)}
+         {:ok, result} <- Engine.run(query) do
+      Cloak.MemoryReader.unregister_query()
+      {:ok, result, Query.info_messages(query)}
+    end
   end
 
 

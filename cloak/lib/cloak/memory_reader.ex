@@ -34,6 +34,11 @@ defmodule Cloak.MemoryReader do
   def register_query(), do:
     GenServer.cast(__MODULE__, {:register_query, self()})
 
+  @doc "Removes a query from the list of queries that are cancellable."
+  @spec unregister_query() :: :ok
+  def unregister_query(), do:
+    GenServer.cast(__MODULE__, {:unregister_query, self()})
+
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -49,6 +54,8 @@ defmodule Cloak.MemoryReader do
   end
 
   @doc false
+  def handle_cast({:unregister_query, pid}, %{queries: queries} = state), do:
+    {:noreply, %{state | queries: Enum.reject(queries, & &1 == pid)}}
   def handle_cast({:register_query, pid}, %{queries: queries} = state) do
     Process.monitor(pid)
     {:noreply, %{state | queries: [pid | queries]}}
