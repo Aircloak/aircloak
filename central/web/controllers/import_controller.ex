@@ -53,6 +53,6 @@ defmodule Central.ImportController do
   defp import_error({:missing_previous_export, nil}), do: "Missing all previous exports for this customer!"
   defp import_error({:missing_previous_export, since}), do:
     "Missing previous exports for this customer! " <>
-    "The last known export has been generated on " <>
+    "The last known export was generated on " <>
     Timex.format!(since, "{YYYY}/{0M}/{0D} {0h24}:{0m}") <> "."
 end
