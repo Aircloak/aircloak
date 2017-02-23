@@ -23,7 +23,7 @@ const queryExcerpt = (statement: string) => {
   } else {
     return statement;
   }
-}
+};
 
 export const QueryView = (props: Query) =>
   <tr>
