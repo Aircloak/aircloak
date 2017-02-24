@@ -221,25 +221,6 @@ defmodule Central.Service.Customer do
     :ok
   end
 
-  @doc "Retrieves an RPC identified by the given id."
-  @spec rpc(Customer.t, String.t, String.t) :: nil | AirRPC.t
-  def rpc(customer, air_name, message_id), do:
-    Repo.get(AirRPC, rpc_id(customer, air_name, message_id))
-
-  @doc "Stores an RPC into the database."
-  @spec store_rpc!(Customer.t, String.t, String.t, any) :: AirRPC.t
-  def store_rpc!(customer, air_name, message_id, result), do:
-    %AirRPC{}
-    |> AirRPC.changeset(%{id: rpc_id(customer, air_name, message_id), result: :erlang.term_to_binary(result)})
-    |> Repo.insert!()
-
-  @doc "Marks export as imported."
-  @spec mark_export_as_imported!(Customer.t, integer, NaiveDateTime.t) :: :ok
-  def mark_export_as_imported!(customer, export_id, created_at) do
-    Repo.insert!(%CustomerExport{export_id: export_id, created_at: created_at, customer: customer})
-    :ok
-  end
-
   @doc "Returns true if the given export has been imported"
   @spec imported?(Customer.t, integer) :: boolean
   def imported?(customer, export_id), do:
@@ -266,6 +247,17 @@ defmodule Central.Service.Customer do
   defp secret_key_base() do
     Central.site_setting("endpoint_key_base")
   end
+
+  defp mark_export_as_imported!(customer, export_id, created_at), do:
+    Repo.insert!(%CustomerExport{export_id: export_id, created_at: created_at, customer: customer})
+
+  defp rpc(customer, air_name, message_id), do:
+    Repo.get(AirRPC, rpc_id(customer, air_name, message_id))
+
+  defp store_rpc!(customer, air_name, message_id, result), do:
+    %AirRPC{}
+    |> AirRPC.changeset(%{id: rpc_id(customer, air_name, message_id), result: :erlang.term_to_binary(result)})
+    |> Repo.insert!()
 
   defp rpc_id(customer, air_name, message_id), do:
     Enum.join([customer.id, air_name, message_id], "|")
