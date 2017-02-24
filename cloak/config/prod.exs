@@ -16,7 +16,7 @@ config :cloak, :sanitize_otp_errors, true
 config :cloak, :memory_limits,
   # The number of ms between consecutive memory checks.
   # This is the lower bound at which memory checks are performed.
-  check_interval: 100,
+  check_interval: 250,
   # Once we reach this threshold, we actively start projecting
   # the memory usage and take actions if we are afraid of
   # running out of memory. The threshold is in bytes.
