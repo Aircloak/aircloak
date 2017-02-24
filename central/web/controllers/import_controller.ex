@@ -38,7 +38,7 @@ defmodule Central.ImportController do
   end
 
   defp import_data(export_data) do
-    case Central.CustomerMessage.import_customer_data(export_data) do
+    case Central.Service.Customer.Message.import_customer_data(export_data) do
       {:error, reason} ->
         Logger.error("Error importing customer data: #{inspect reason}")
         {:error, import_error(reason)}
