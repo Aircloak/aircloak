@@ -102,9 +102,9 @@ defmodule Cloak.MemoryReader do
     end
   end
 
-  defp to_mb(bytes), do: trunc(bytes / 1000000)
+  defp to_mb(bytes), do: trunc(bytes / 1_000_000)
 
-  defp to_sec(ms), do: max(trunc(ms / 1000), 0)
+  defp to_sec(ms), do: max(trunc(ms / 1_000), 0)
 
   defp kill_query(%{queries: []} = state), do:
     {:noreply, state}
