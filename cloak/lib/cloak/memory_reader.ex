@@ -15,6 +15,8 @@ defmodule Cloak.MemoryReader do
 
   require Logger
 
+  @query_kill_cooloff_cycles 10
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -42,7 +44,11 @@ defmodule Cloak.MemoryReader do
     state = %{
       memory_projector: MemoryProjector.new(),
       queries: [],
-      params: read_params()
+      params: read_params(),
+      # It's bumped on every kill, and then slowly reduced over time.
+      # This causes there to be a pause between query killings as to avoid
+      # a massacre.
+      kill_cooloff: 0,
     }
     schedule_check(state)
     {:ok, state}
@@ -71,9 +77,10 @@ defmodule Cloak.MemoryReader do
   def handle_info({:record_memory_reading, reading}, %{memory_projector: projector} = state) do
     time = System.monotonic_time(:millisecond)
     free_memory = Keyword.get(reading, :free_memory)
-    projector = MemoryProjector.add_reading(projector, free_memory, time)
-    state = %{state | memory_projector: projector}
-    perform_memory_check(free_memory, state)
+    state
+    |> Map.put(:memory_projector, MemoryProjector.add_reading(projector, free_memory, time))
+    |> reduce_kill_cooloff()
+    |> perform_memory_check(free_memory)
   end
 
 
@@ -81,14 +88,14 @@ defmodule Cloak.MemoryReader do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp perform_memory_check(free_memory, %{params: %{limit_to_start_checks: limit_to_start_checks}} = state)
+  defp perform_memory_check(%{params: %{limit_to_start_checks: limit_to_start_checks}} = state, free_memory)
       when free_memory > limit_to_start_checks, do:
     {:noreply, state}
-  defp perform_memory_check(free_memory, %{params: %{limit_to_check_for: memory_limit}} = state)
+  defp perform_memory_check(%{params: %{limit_to_check_for: memory_limit}} = state, free_memory)
       when free_memory < memory_limit, do:
     kill_query(state)
-  defp perform_memory_check(free_memory, %{params: %{limit_to_check_for: memory_limit,
-      allowed_minimum_time_to_limit: time_limit}, memory_projector: projector} = state) do
+  defp perform_memory_check(%{params: %{limit_to_check_for: memory_limit, allowed_minimum_time_to_limit: time_limit},
+      memory_projector: projector} = state, free_memory) do
     case MemoryProjector.time_until_limit(projector, memory_limit) do
       {:ok, time} when time <= time_limit ->
         Logger.error("Dangerous memory situation. Anticipating reaching the low memory threshold " <>
@@ -102,11 +109,13 @@ defmodule Cloak.MemoryReader do
 
   defp to_sec(ms), do: max(trunc(ms / 1_000), 0)
 
+  defp kill_query(%{kill_cooloff: cooloff} = state) when cooloff > 0, do:
+    {:noreply, state}
   defp kill_query(%{queries: []} = state), do:
     {:noreply, state}
   defp kill_query(%{queries: [query | queries]} = state) do
     Cloak.Query.Runner.stop(query, :oom)
-    {:noreply, %{state | queries: queries}}
+    {:noreply, %{state | queries: queries, kill_cooloff: @query_kill_cooloff_cycles}}
   end
 
   defp schedule_check(%{params: %{check_interval: interval}}), do: Process.send_after(self(), :read_memory, interval)
@@ -131,4 +140,7 @@ defmodule Cloak.MemoryReader do
       "#{config.allowed_minimum_time_to_limit} ms")
     config
   end
+
+  defp reduce_kill_cooloff(%{kill_cooloff: 0} = state), do: state
+  defp reduce_kill_cooloff(%{kill_cooloff: cooloff} = state), do: %{state | kill_cooloff: cooloff - 1}
 end
