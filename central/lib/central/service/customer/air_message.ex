@@ -1,4 +1,4 @@
-defmodule Central.Service.Customer.Message do
+defmodule Central.Service.Customer.AirMessage do
   @moduledoc "Decoding and handling of messages sent by air."
   require Logger
   alias Central.Service.Customer
