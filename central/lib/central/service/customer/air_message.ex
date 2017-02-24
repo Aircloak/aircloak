@@ -20,8 +20,6 @@ defmodule Central.Service.Customer.AirMessage do
     :already_imported |
     {:missing_previous_export, NaiveDateTime.t | nil}
 
-  @type message_result :: any
-
   known_messages = ~w(query_execution cloak_online cloak_offline usage_info)
 
 
@@ -30,18 +28,18 @@ defmodule Central.Service.Customer.AirMessage do
   # -------------------------------------------------------------------
 
   @doc "Handles an Air message"
-  @spec handle(rpc) :: message_result
+  @spec handle(rpc) :: :ok | :error
   for message_name <- known_messages do
     def handle(%{"event" => unquote(message_name)} = message, customer, air_name) do
       # We look for event_payload for backwards compatibility with older airs
       payload = message["payload"] || message["event_payload"]
       unquote(String.to_atom(message_name))(%{payload: payload, customer: customer, air_name: air_name})
+      :ok
     end
   end
   def handle(unknown_message) do
     Logger.error("unknown air message: #{inspect unknown_message}")
-    # Responding with ok, because the client can't fix this issue by retrying
-    :ok
+    :error
   end
 
   @doc "Decodes an Air export."
@@ -107,28 +105,22 @@ defmodule Central.Service.Customer.AirMessage do
     Customer.record_query(message.customer, params)
   end
 
-  defp cloak_online(message) do
+  defp cloak_online(message), do:
     Central.Service.Customer.update_cloak(message.customer, message.air_name,
       Map.fetch!(message.payload, "name"),
       status: :online, data_source_names: Map.get(message.payload, "data_source_names", []),
         version: Map.get(message.payload, "version", "Unknown")
     )
-    :ok
-  end
 
-  defp cloak_offline(message) do
+  defp cloak_offline(message), do:
     Central.Service.Customer.update_cloak(message.customer, message.air_name,
       Map.fetch!(message.payload, "name"), status: :offline)
-    :ok
-  end
 
-  defp usage_info(message) do
+  defp usage_info(message), do:
     Central.Service.Customer.store_uptime_info(
       message.customer,
       message.air_name,
       NaiveDateTime.from_iso8601!(Map.fetch!(message.payload, "air_utc_time")),
       Map.delete(message.payload, "air_utc_time")
     )
-    :ok
-  end
 end
