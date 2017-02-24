@@ -15,6 +15,8 @@ defmodule Cloak.MemoryReader do
 
   require Logger
 
+  @type query_killer_callbacks :: {(() -> :ok), (() -> :ok)}
+
   @query_kill_cooloff_cycles 10
 
 
@@ -27,11 +29,13 @@ defmodule Cloak.MemoryReader do
   def start_link(), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
 
   @doc "Registers a query such that it can later be killed in case of a low memory event"
-  @spec register_query() :: (() -> :ok)
-  def register_query() do
+  @spec query_registering_callbacks() :: query_killer_callbacks
+  def query_registering_callbacks() do
     query_pid = self()
-    GenServer.cast(__MODULE__, {:register_query, query_pid})
-    fn() -> GenServer.cast(__MODULE__, {:unregister_query, query_pid}) end
+    {
+      fn() -> GenServer.cast(__MODULE__, {:register_query, query_pid}) end,
+      fn() -> GenServer.cast(__MODULE__, {:unregister_query, query_pid}) end
+    }
   end
 
 
