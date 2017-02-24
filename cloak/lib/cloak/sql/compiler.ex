@@ -44,12 +44,12 @@ defmodule Cloak.Sql.Compiler do
   end
 
   @doc "Creates the query which describes a SELECT statement from a single table."
-  @spec make_select_query(DataSource.t, String.t, [Expression.t], [subquery?: boolean]) :: Query.t
-  def make_select_query(data_source, table_name, select_expressions, options \\ []) do
+  @spec make_select_query(DataSource.t, String.t, [Expression.t]) :: Query.t
+  def make_select_query(data_source, table_name, select_expressions) do
     column_titles = for expression <- select_expressions, do: expression.alias || expression.name
     calculate_db_columns(%Query{
       command: :select,
-      subquery?: Keyword.get(options, :subquery?, false),
+      subquery?: true,
       columns: select_expressions,
       column_titles: column_titles,
       from: table_name,
@@ -207,55 +207,28 @@ defmodule Cloak.Sql.Compiler do
     # even then, this function can only be invoked after `db_columns` have been calculated, because that is
     # the field we use to decide which columns from projected tables do we in fact need.
     Lens.map(Query.Lenses.direct_projected_subqueries(), query,
-      fn(projected_subquery) ->
-        update_in(
-          projected_subquery.ast,
-          &optimized_projected_subquery_ast(&1, required_column_names(query, projected_subquery))
-        )
-      end
-    )
+        &%{&1 | ast: optimized_projected_subquery_ast(&1.ast, required_column_names(query, &1))})
   defp optimize_columns_from_projected_tables(%Query{projected?: true} = query), do:
     # If this query is projected, then the list was already optimized when the ast for this query
     # has been initially generated, so no need to do anything.
     query
 
   defp required_column_names(query, projected_subquery), do:
-    # all db columns of the outer query which are from this projected table
-    query.db_columns
-    |> get_in([Query.Lenses.leaf_expressions()])
-    |> Enum.filter(&match?(%{table: %{name: _}}, &1))
-    |> Enum.filter(&(&1.table.name == projected_subquery.alias))
-    |> Enum.map(&(&1.name))
-    |> Enum.concat([
+    [
       # append uid column
-      DataSource.table(projected_subquery.ast.data_source, projected_subquery.alias).user_id
-    ])
-    |> Enum.into(MapSet.new())
+      DataSource.table(projected_subquery.ast.data_source, projected_subquery.alias).user_id |
+      # all db columns of the outer query which are from this projected table
+      query |> Query.required_columns_from_table(projected_subquery.alias) |> Enum.map(& &1.name)
+    ]
 
   defp optimized_projected_subquery_ast(ast, required_column_names), do:
-    reindex_db_columns(%Query{ast |
-      columns:
-        Enum.filter(ast.columns, &MapSet.member?(required_column_names, &1.name)),
-      db_columns:
-        Enum.filter(ast.db_columns, &MapSet.member?(required_column_names, &1.name)),
-      column_titles:
-        Enum.filter(ast.column_titles, &MapSet.member?(required_column_names, &1))
-    })
-
-  defp reindex_db_columns(query), do:
-    # This is a somewhat dirty fix which brings the query into a consistent state after we've removed some
-    # columns from the selection. In this case, column indices are sparse (e.g. 0, 2, 4), so we need to
-    # reindex to make them sequential again (e.g. 0, 1, 2).
-    #
-    # A better solution would be to resolve projected tables after the compilation is done. Then,
-    # we can treat projected table as a regular table in the compiler, and after compilation we
-    # know which columns are exactly needed, so we can substitute the table with the corresponding
-    # subquery and get correct indices computed.
-    Enum.reduce(
-      query.db_columns,
-      %Query{query | next_row_index: 0, db_columns: []},
-      &Query.add_db_column(&2, &1)
-    )
+    %Query{ast |
+      next_row_index: 0,
+      db_columns: [],
+      columns: Enum.filter(ast.columns, & &1.name in required_column_names),
+      column_titles: Enum.filter(ast.column_titles, & &1 in required_column_names)
+    }
+    |> calculate_db_columns()
 
 
   # -------------------------------------------------------------------
@@ -411,7 +384,7 @@ defmodule Cloak.Sql.Compiler do
   end
 
   defp resolve_selected_tables(query), do:
-    %Query{query | selected_tables: selected_tables(query.from, query.data_source)}
+    %Query{query | selected_tables: selected_tables(query.from, query.data_source) |> Enum.uniq()}
 
   defp selected_tables({:join, join}, data_source) do
     selected_tables(join.lhs, data_source) ++ selected_tables(join.rhs, data_source)
@@ -1116,21 +1089,11 @@ defmodule Cloak.Sql.Compiler do
     if query.emulated?, do: query.where, else: []
 
   defp id_column(query) do
-    id_columns =
-      query
-      |> all_id_columns_from_tables()
-      |> Enum.map(&cast_unknown_id/1)
-
+    id_columns = all_id_columns_from_tables(query)
     if any_outer_join?(query.from),
       do: Expression.function("coalesce", id_columns),
       else: hd(id_columns)
   end
-
-  # We can't directly select a field with an unknown type, so convert it to binary
-  # This is needed in the case of using the ODBC driver with a GUID user id,
-  # as the GUID type is not supported by the Erlang ODBC library
-  def cast_unknown_id(%Expression{type: :unknown} = column), do: Expression.function({:cast, :varbinary}, [column])
-  def cast_unknown_id(column), do: column
 
   defp all_id_columns_from_tables(%Query{command: :select, selected_tables: tables}) do
     Enum.map(tables, fn(table) ->
@@ -1138,8 +1101,6 @@ defmodule Cloak.Sql.Compiler do
       {_, type} = Enum.find(table.columns, fn ({name, _type}) -> insensitive_equal?(user_id, name) end)
       %Expression{table: table, name: user_id, type: type, user_id?: true}
     end)
-    # ignore projected tables, since their id columns do not exist in the table
-    |> Enum.reject(&(&1.table.projection != nil))
   end
 
   defp any_outer_join?(table) when is_binary(table), do: false
@@ -1149,7 +1110,6 @@ defmodule Cloak.Sql.Compiler do
     do: true
   defp any_outer_join?({:join, join}),
     do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
-
 
   defp join_conditions_scope_check(from) do
     do_join_conditions_scope_check(from, [])
@@ -1277,9 +1237,9 @@ defmodule Cloak.Sql.Compiler do
 
   defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
   defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do:
-    has_emulated_expressions?(query)
-  defp needs_emulation?(%Query{from: {:join, _}, data_source: %{driver: Cloak.DataSource.MongoDB}}), do: true
+    not query.data_source.driver.supports_query?(query) or has_emulated_expressions?(query)
   defp needs_emulation?(query), do:
+    not query.data_source.driver.supports_query?(query) or
     query |> get_in([Query.Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?)) or
     (query.subquery? and has_emulated_expressions?(query)) or
     has_emulated_join_conditions?(query)

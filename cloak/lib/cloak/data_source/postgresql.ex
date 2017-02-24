@@ -46,6 +46,9 @@ defmodule Cloak.DataSource.PostgreSQL do
     run_query(connection, statement, &row_mapper/1, result_processor)
   end
 
+  @doc false
+  def supports_query?(_query), do: true
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions

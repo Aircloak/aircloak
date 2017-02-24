@@ -9,7 +9,7 @@ defmodule Air.Socket.Frontend.UserChannel do
   """
   use Air.Web, :channel
 
-  alias Air.{Schemas, Service}
+  alias Air.Schemas
 
 
   # -------------------------------------------------------------------
@@ -27,11 +27,13 @@ defmodule Air.Socket.Frontend.UserChannel do
   end
 
   @doc """
-  Broadcasts a query state change to all listening clients.
+  Broadcasts the change in the state of a query to all listening clients.
   """
-  @spec broadcast_query_state_change(String.t, Air.QueryEvents.StateChanges.event) :: :ok
-  def broadcast_query_state_change(query_id, state) do
-    Air.Endpoint.broadcast_from!(self(), "state_changes:all", "state_change", message_for_event(query_id, state))
+  @spec broadcast_state_change(Schemas.Query.t) :: :ok
+  def broadcast_state_change(query) do
+    Air.Endpoint.broadcast_from!(self(), "state_changes:all", "state_change", state_change_message(query))
+    Air.Endpoint.broadcast_from!(self(), "session:#{query.session_id}", "state_change",
+      Schemas.Query.for_display(query))
     :ok
   end
 
@@ -49,24 +51,20 @@ defmodule Air.Socket.Frontend.UserChannel do
     end
   end
   def join("state_changes:all", _, socket) do
-    if Air.Schemas.User.admin?(socket.assigns.user) do
+    user = socket.assigns.user
+    if Air.Schemas.User.admin?(user) do
       {:ok, socket}
     else
       {:error, %{reason: "Only admin users are allowed to connect"}}
     end
   end
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp message_for_event(query_id, :started) do
-    {:ok, query} = Service.Query.get(query_id)
-    %{query_id: query_id, event: :started, query: format_query(query)}
-  end
-  defp message_for_event(query_id, :completed), do:
-    %{query_id: query_id, event: :completed}
+  defp state_change_message(query), do:
+    %{query_id: query.id, event: query.query_state, query: format_query(query)}
 
   def format_query(query), do:
     hd(Air.Admin.ActivityMonitorView.format_queries([query]))

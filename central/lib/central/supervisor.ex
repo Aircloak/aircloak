@@ -7,6 +7,7 @@ defmodule Central.Supervisor do
     children = [
       supervisor(Central.Repo, []),
       worker(Central.Repo.Migrator, [], restart: :transient),
+      Central.Service.Customer.supervisor_spec(),
       supervisor(Central.AirStats, []),
       supervisor(Central.Endpoint, [], function: :start_site),
     ]

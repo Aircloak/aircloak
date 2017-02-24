@@ -145,6 +145,8 @@ function banner() {
     pushd integration_tests
     MIX_ENV=test mix deps.get
     MIX_ENV=test mix compile
+    # Start Air to let it migrate the DB
+    MIX_ENV=test mix run --no-start -e 'Application.ensure_all_started(:air)'
     popd
 
   fi

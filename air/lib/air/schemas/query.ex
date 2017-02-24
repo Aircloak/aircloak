@@ -4,6 +4,11 @@ defmodule Air.Schemas.Query do
 
   alias Air.{Schemas.DataSource, Schemas.User, Repo, PsqlServer.Protocol}
 
+  require EctoEnum
+  EctoEnum.defenum QueryState, :query_state, [
+    :started, :parsing, :compiling, :awaiting_data, :processing, :completed, :error, :cancelled
+  ]
+
   @type t :: %__MODULE__{}
   @type cloak_query :: %{
     id: String.t,
@@ -11,7 +16,7 @@ defmodule Air.Schemas.Query do
     parameters: [Protocol.db_value],
     data_source: String.t,
     views: %{String.t => String.t},
-    completed: boolean,
+    query_state: __MODULE__.QueryState.t,
   }
 
   @primary_key {:id, :binary_id, autogenerate: true}
@@ -25,7 +30,7 @@ defmodule Air.Schemas.Query do
     field :session_id, Ecto.UUID
     field :parameters, :map
     field :cloak_id, :string
-    field :completed, :boolean
+    field :query_state, __MODULE__.QueryState
 
     belongs_to :user, User
     belongs_to :data_source, DataSource
@@ -36,7 +41,7 @@ defmodule Air.Schemas.Query do
   @required_fields ~w()a
   @optional_fields ~w(
     cloak_id statement data_source_id tables result execution_time users_count
-    features session_id parameters completed
+    features session_id parameters query_state
   )a
 
 
@@ -62,7 +67,7 @@ defmodule Air.Schemas.Query do
   @spec for_display(t) :: Map.t
   def for_display(query) do
     query
-    |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at])
+    |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at, :query_state])
     |> Map.merge(result_map(query))
   end
 

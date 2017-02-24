@@ -6,7 +6,6 @@ defmodule Air.Socket.Cloak.MainChannel do
   require Logger
 
   alias Air.CentralClient.Socket
-  alias Air.QueryEvents
 
 
   # -------------------------------------------------------------------
@@ -142,11 +141,24 @@ defmodule Air.Socket.Cloak.MainChannel do
   # -------------------------------------------------------------------
 
   defp handle_cloak_call("query_result", query_result, request_id, socket) do
-    query_id = query_result["query_id"]
-    Logger.info("received result for query #{query_id}")
+    Logger.info("received result for query #{query_result["query_id"]}")
     respond_to_cloak(socket, request_id, :ok)
-    QueryEvents.Results.trigger_result(query_result)
-    QueryEvents.StateChanges.trigger_event(query_id, :completed)
+
+    Air.QueryEvents.trigger_result(query_result)
+
+    {:noreply, socket}
+  end
+  defp handle_cloak_call("query_state", %{"query_id" => query_id, "query_state" => state}, request_id, socket) do
+    respond_to_cloak(socket, request_id, :ok)
+
+    Air.QueryEvents.trigger_state_change(query_id, String.to_existing_atom(state))
+
+    {:noreply, socket}
+  end
+  defp handle_cloak_call(other, payload, request_id, socket) do
+    Logger.warn("Received unknown cloak call #{inspect(other)} with payload #{inspect(payload, pretty: true)}")
+
+    respond_to_cloak(socket, request_id, :ok)
     {:noreply, socket}
   end
 
@@ -189,8 +201,9 @@ defmodule Air.Socket.Cloak.MainChannel do
     defp report_online_status_to_central(_cloak, _data_sources, _version), do: :ok
   else
     defp report_online_status_to_central(cloak, data_sources, version) do
-      Socket.record_cloak_online(cloak.name, Enum.map(data_sources, &Map.fetch!(&1, "global_id")), version)
-      Aircloak.ProcessMonitor.on_exit(fn -> Socket.record_cloak_offline(cloak.name) end)
+      alias Air.Service.Central
+      Central.record_cloak_online(cloak.name, Enum.map(data_sources, &Map.fetch!(&1, "global_id")), version)
+      Aircloak.ProcessMonitor.on_exit(fn -> Central.record_cloak_offline(cloak.name) end)
     end
   end
 end

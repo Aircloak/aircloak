@@ -35,4 +35,5 @@
   </tbody>
 </table>
 
-<%= link "Add customer", to: customer_path(@conn, :new) %>
+<%= link "Add customer", to: customer_path(@conn, :new) %><br/>
+<%= link "Import Air data", to: import_path(@conn, :new) %>

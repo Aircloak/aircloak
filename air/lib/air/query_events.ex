@@ -1,5 +1,5 @@
-defmodule Air.QueryEvents.Results do
-  @moduledoc "Allows reporting and subscribing to query results."
+defmodule Air.QueryEvents do
+  @moduledoc "Allows reporting and receiving lifetime events about Queries."
 
   use GenEvent
 
@@ -51,6 +51,11 @@ defmodule Air.QueryEvents.Results do
     # notify all result observers
     GenEvent.ack_notify(__MODULE__, {:query_result, payload})
   end
+
+  @doc "Triggers a :state_change event, indicating an update in the processing state of the query."
+  @spec trigger_state_change(String.t, Air.Schemas.Query.QueryStatus.t) :: :ok
+  def trigger_state_change(query_id, state), do:
+    GenEvent.ack_notify(__MODULE__, {:query_state_change, query_id, state})
 
   @doc "Returns a stream of all events."
   @spec stream() :: GenEvent.Stream.t

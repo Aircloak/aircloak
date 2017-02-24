@@ -88,6 +88,9 @@ defmodule Cloak.DataSource do
     @doc "Driver specific implementation for the `DataSource.select` functionality."
     @callback select(connection, Query.t, Cloak.DataSource.result_processor)
       :: {:ok, Cloak.DataSource.processed_result} | {:error, any}
+
+    @doc "Checks to see if the driver is able to handle all the SQL features used by the query."
+    @callback supports_query?(Query.t) :: boolean
   end
 
 

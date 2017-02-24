@@ -14,6 +14,7 @@ defmodule Cloak.AirSocket do
 
   @behaviour GenSocketClient
 
+  @timeout :timer.seconds(5)
 
   # -------------------------------------------------------------------
   # API functions
@@ -45,11 +46,18 @@ defmodule Cloak.AirSocket do
   @spec send_query_result(GenServer.server, map) :: :ok | {:error, any}
   def send_query_result(socket \\ __MODULE__, result) do
     Logger.info("sending query result to Air", query_id: result.query_id)
-    case call(socket, "query_result", result, :timer.seconds(5)) do
-      {:ok, _} -> :ok
-      error -> error
-    end
+    call(socket, "query_result", result)
   end
+
+  @doc """
+  Sends a query status update to the Air.
+
+  The function returns when the Air responds. If the timeout occurs, it is
+  still possible that the Air has received the request.
+  """
+  @spec send_query_state(GenServer.server, String.t, atom) :: :ok | {:error, any}
+  def send_query_state(socket \\ __MODULE__, query_id, query_state), do:
+    call(socket, "query_state", %{query_id: query_id, query_state: query_state})
 
 
   # -------------------------------------------------------------------
@@ -234,7 +242,7 @@ defmodule Cloak.AirSocket do
   end
   defp handle_air_call("stop_query", query_id, from, state) do
     Logger.info("stopping query ...", query_id: query_id)
-    Cloak.Query.Runner.stop(query_id, :cancel)
+    Cloak.Query.Runner.stop(query_id, :cancelled)
     respond_to_air(from, :ok)
     {:ok, state}
   end
@@ -278,8 +286,15 @@ defmodule Cloak.AirSocket do
     send(client_pid, {mref, response})
   end
 
-  @spec call(GenServer.server, String.t, map, pos_integer) :: {:ok, any} | {:error, any}
-  defp call(socket, event, payload, timeout) do
+  @spec call(GenServer.server, String.t, map) :: :ok | {:error, any}
+  defp call(socket, event, payload) do
+    case do_call(socket, event, payload, @timeout) do
+      {:ok, _} -> :ok
+      error -> error
+    end
+  end
+
+  defp do_call(socket, event, payload, timeout) do
     mref = Process.monitor(socket)
     send(socket, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})
     receive do

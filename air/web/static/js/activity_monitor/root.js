@@ -8,6 +8,7 @@ import {QueriesView} from "./queries";
 import type {Query} from "./query";
 
 import {QuerySocket} from "../query_socket";
+import {isFinished} from "../queries/state";
 
 type QueryEvent = {
   query_id: string,
@@ -55,7 +56,7 @@ class ActivityMonitorView extends React.Component {
   }
 
   conditionallyScheduleQueryRemoval(queryEvent) {
-    if (queryEvent.event === "completed") {
+    if (isFinished(queryEvent.event)) {
       setTimeout(() => this.handleRemoveQuery(queryEvent.query_id), this.queryRemovalTime);
     }
   }

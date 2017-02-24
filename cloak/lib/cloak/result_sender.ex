@@ -2,6 +2,7 @@ defmodule Cloak.ResultSender do
   @moduledoc "Handles returning the result of a query back to the requester"
 
   @type target :: {:process, pid()} | :air_socket
+  @type query_state :: :parsing | :compiling | :awaiting_data | :processing
 
   # -------------------------------------------------------------------
   # Callbacks
@@ -17,8 +18,8 @@ defmodule Cloak.ResultSender do
   end
 
   @doc false
-  def start_link(target, reply) do
-    Task.start_link(fn -> send_reply(target, reply) end)
+  def start_link(target, type, payload) do
+    Task.start_link(fn -> send_reply(target, type, payload) end)
   end
 
 
@@ -27,12 +28,22 @@ defmodule Cloak.ResultSender do
   # -------------------------------------------------------------------
 
   @doc """
-  Sends the reply to the target. Uses a normal process send if target is `{:process, pid}`. Uses
-  the Air <-> Cloak socket if it's :air_socket.
+  Sends a query state update to the target. Uses a normal process send if target is `{:process, pid}`.
+  Uses the Air <-> Cloak socket if it's :air_socket.
+  """
+  @spec send_state(target(), String.t, query_state()) :: :ok
+  def send_state(target, query_id, query_state) do
+    {:ok, _} = Supervisor.start_child(__MODULE__, [target, :state, {query_id, query_state}])
+    :ok
+  end
+
+  @doc """
+  Sends the reply to the target. Uses a normal process send if target is `{:process, pid}`.
+  Uses the Air <-> Cloak socket if it's :air_socket.
   """
   @spec send_result(target(), term()) :: :ok
   def send_result(target, reply) do
-    {:ok, _} = Supervisor.start_child(__MODULE__, [target, reply])
+    {:ok, _} = Supervisor.start_child(__MODULE__, [target, :result, reply])
     :ok
   end
 
@@ -41,7 +52,7 @@ defmodule Cloak.ResultSender do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp send_reply(:air_socket, reply) do
+  defp send_reply(:air_socket, :result, reply) do
     case Elixir.Cloak.AirSocket.send_query_result(reply) do
       :ok -> :ok
       {:error, %Poison.EncodeError{}} ->
@@ -50,7 +61,8 @@ defmodule Cloak.ResultSender do
       {:error, error} -> {:error, error}
     end
   end
-  defp send_reply({:process, pid}, reply) do
-    send(pid, {:reply, reply})
-  end
+  defp send_reply(:air_socket, :state, {query_id, query_state}), do:
+    Elixir.Cloak.AirSocket.send_query_state(query_id, query_state)
+  defp send_reply({:process, pid}, type, reply), do:
+    send(pid, {type, reply})
 end

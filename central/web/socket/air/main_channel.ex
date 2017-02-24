@@ -5,8 +5,6 @@ defmodule Central.Socket.Air.MainChannel do
   use Phoenix.Channel
   require Logger
   alias Central.Service.Customer
-  alias Central.Schemas.AirRPC
-  alias Central.Repo
 
 
   # -------------------------------------------------------------------
@@ -108,21 +106,9 @@ defmodule Central.Socket.Air.MainChannel do
   # Handling air sync calls
   # -------------------------------------------------------------------
 
-  defp handle_air_call("call_with_retry", payload, request_id, socket) do
-    id = construct_rpc_id(payload, socket)
-    result = case Repo.get(AirRPC, id) do
-      nil ->
-        result = handle_call_with_retry(payload["event"], payload["event_payload"], socket)
-        binary_result = :erlang.term_to_binary(result)
-        changeset = AirRPC.changeset(%AirRPC{}, %{id: id, result: binary_result})
-        Repo.insert!(changeset)
-        result
-      rpc ->
-        Logger.info("Received a repeast RPC call for RPC id '#{rpc.id}'. The RPC was not re-executed. " <>
-          "The type of the incoming RPC was '#{payload["event"]}'")
-        :erlang.binary_to_term(rpc.result)
-    end
-    respond_to_air(socket, request_id, result)
+  defp handle_air_call("call_with_retry", call_data, request_id, socket) do
+    Customer.start_air_message_handler(call_data, socket.assigns.customer, socket.assigns.air_name)
+    respond_to_air(socket, request_id, :ok)
     {:noreply, socket}
   end
 
@@ -142,48 +128,6 @@ defmodule Central.Socket.Air.MainChannel do
 
   defp respond_to_internal_request({client_pid, mref}, response) do
     send(client_pid, {mref, response})
-  end
-
-  defp construct_rpc_id(payload, socket) do
-    "#{socket.assigns.air_name}|#{payload["id"]}"
-  end
-
-  defp handle_call_with_retry("query_execution", payload, socket) do
-    Logger.info("Received query execution update with payload: #{inspect payload}")
-    customer = socket.assigns.customer
-    params = %{
-      metrics: payload["metrics"],
-      features: payload["features"],
-      aux: payload["aux"],
-    }
-    Customer.record_query(customer, params)
-  end
-  defp handle_call_with_retry("cloak_online", cloak_info, socket) do
-    Central.Service.Customer.update_cloak(socket.assigns.customer, socket.assigns.air_name,
-      Map.fetch!(cloak_info, "name"),
-      status: :online, data_source_names: Map.get(cloak_info, "data_source_names", []),
-        version: Map.get(cloak_info, "version", "Unknown")
-    )
-    :ok
-  end
-  defp handle_call_with_retry("cloak_offline", cloak_info, socket) do
-    Central.Service.Customer.update_cloak(socket.assigns.customer, socket.assigns.air_name,
-      Map.fetch!(cloak_info, "name"), status: :offline)
-    :ok
-  end
-  defp handle_call_with_retry("usage_info", uptime_info, socket) do
-    Central.Service.Customer.store_uptime_info(
-      socket.assigns.customer,
-      socket.assigns.air_name,
-      NaiveDateTime.from_iso8601!(Map.fetch!(uptime_info, "air_utc_time")),
-      Map.delete(uptime_info, "air_utc_time")
-    )
-    :ok
-  end
-  defp handle_call_with_retry(other, data, _socket) do
-    Logger.warn("unknown call `#{other}` (#{inspect(data)})")
-    # Responding with ok, because the client can't fix this issue by retrying
-    :ok
   end
 
   if Mix.env == :test do
