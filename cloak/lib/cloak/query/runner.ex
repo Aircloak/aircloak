@@ -130,7 +130,8 @@ defmodule Cloak.Query.Runner do
     Logger.metadata(query_id: query_id)
     Logger.debug("Running statement `#{statement}` ...")
 
-    result = Engine.run(data_source, statement, parameters, views, &ResultSender.send_state(result_target, query_id, &1))
+    result = Engine.run(data_source, statement, parameters, views,
+        &ResultSender.send_state(result_target, query_id, &1))
     query_killing_cancel_callback.()
     result
   end
