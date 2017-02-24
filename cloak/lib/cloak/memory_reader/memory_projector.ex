@@ -10,7 +10,6 @@ defmodule Cloak.MemoryReader.MemoryProjector do
 
   @readings_to_keep 20
   @reading_weights [5, 5, 4, 4, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-  @reading_weights_sum 42
 
   @type measurement :: non_neg_integer
   @type timestamp :: non_neg_integer
@@ -53,7 +52,7 @@ defmodule Cloak.MemoryReader.MemoryProjector do
     |> Enum.zip(@reading_weights)
     |> Enum.map(fn({value, weight}) -> value * weight end)
     |> Enum.sum()
-    average_change = div(weighted_values_sum, @reading_weights_sum)
+    average_change = div(weighted_values_sum, Enum.sum(@reading_weights))
     if average_change >= 0 do
       :infinity
     else
