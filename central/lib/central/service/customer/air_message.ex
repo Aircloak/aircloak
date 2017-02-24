@@ -29,11 +29,11 @@ defmodule Central.Service.Customer.AirMessage do
 
   @doc "Handles an Air message"
   @spec handle(rpc) :: :ok | :error
-  for message_name <- known_messages do
+  for message_name <- known_messages, function_name = String.to_atom(message_name) do
     def handle(%{"event" => unquote(message_name)} = message, customer, air_name) do
       # We look for event_payload for backwards compatibility with older airs
       payload = message["payload"] || message["event_payload"]
-      unquote(String.to_atom(message_name))(%{payload: payload, customer: customer, air_name: air_name})
+      unquote(function_name)(%{payload: payload, customer: customer, air_name: air_name})
       :ok
     end
   end
