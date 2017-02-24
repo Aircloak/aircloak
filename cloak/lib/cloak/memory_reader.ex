@@ -69,17 +69,10 @@ defmodule Cloak.MemoryReader do
   @doc false
   def handle_info({:DOWN, _monitor_ref, :process, pid, _info}, %{queries: queries} = state), do:
     {:noreply, %{state | queries: Enum.reject(queries, & &1 == pid)}}
-  def handle_info(:read_memory, state) do
-    pid = self()
-    Task.start_link(fn() ->
-      reading = :memsup.get_system_memory_data()
-      send(pid, {:record_memory_reading, reading})
-    end)
-    schedule_check(state)
-    {:noreply, state}
-  end
-  def handle_info({:record_memory_reading, reading}, %{memory_projector: projector} = state) do
+  def handle_info(:read_memory, %{memory_projector: projector} = state) do
+    reading = :memsup.get_system_memory_data()
     time = System.monotonic_time(:millisecond)
+    schedule_check(state)
     free_memory = Keyword.get(reading, :free_memory)
     state
     |> Map.put(:memory_projector, MemoryProjector.add_reading(projector, free_memory, time))
