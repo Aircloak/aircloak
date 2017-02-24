@@ -12,7 +12,7 @@ defmodule Cloak.Test.QueryHelpers do
           Query.Runner.start("1", data_source, unquote(query), unquote(parameters), unquote(views),
             {:process, self()})
           receive do
-            {:reply, response} -> response
+            {:result, response} -> response
           end
         end
 

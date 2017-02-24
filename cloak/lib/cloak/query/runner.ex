@@ -9,7 +9,7 @@ defmodule Cloak.Query.Runner do
 
   use GenServer
   require Logger
-  alias Cloak.{Sql.Query, DataSource, Query.Runner.Engine}
+  alias Cloak.{Sql.Query, DataSource, Query.Runner.Engine, ResultSender}
 
   @supervisor_name Module.concat(__MODULE__, Supervisor)
   @registry_name Module.concat(__MODULE__, Registry)
@@ -88,7 +88,7 @@ defmodule Cloak.Query.Runner do
       # We're starting the runner as a direct child.
       # This GenServer will wait for the runner to return or crash. Such approach allows us to
       # detect a failure no matter how the query fails (even if the runner process is for example killed).
-      runner: Task.async(fn() -> run_query(query_id, data_source, statement, parameters, views) end)
+      runner: Task.async(fn() -> run_query(query_id, data_source, statement, parameters, views, result_target) end)
     }}
   end
 
@@ -111,21 +111,20 @@ defmodule Cloak.Query.Runner do
 
   def handle_cast(:stop_query, %{runner: task} = state) do
     Task.shutdown(task)
-    report_result(state, {:error, "Cancelled."})
+    report_result(state, :cancelled)
     {:stop, :normal, %{state | runner: nil}}
   end
 
 
-  ## ----------------------------------------------------------------
-  ## Query runner
-  ## ----------------------------------------------------------------
+  # -------------------------------------------------------------------
+  # Query running
+  # -------------------------------------------------------------------
 
-  defp run_query(query_id, data_source, statement, parameters, views) do
+  defp run_query(query_id, data_source, statement, parameters, views, result_target) do
     Logger.metadata(query_id: query_id)
-    Logger.debug("Parsing statement `#{statement}` ...")
-    with {:ok, query} <- Query.make(data_source, statement, parameters, views),
-         {:ok, result} <- Engine.run(query),
-    do: {:ok, result, Query.info_messages(query)}
+    Logger.debug("Running statement `#{statement}` ...")
+
+    Engine.run(data_source, statement, parameters, views, &ResultSender.send_state(result_target, query_id, &1))
   end
 
 
@@ -166,6 +165,8 @@ defmodule Cloak.Query.Runner do
     }
   defp format_result({:error, reason}) when is_binary(reason), do:
     %{error: reason}
+  defp format_result(:cancelled), do:
+    %{cancelled: true}
   defp format_result({:error, reason}) do
     Logger.error("Unknown query error: #{inspect(reason)}")
     format_result({:error, "Unknown cloak error."})

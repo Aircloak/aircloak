@@ -5,7 +5,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   use Phoenix.Channel
   require Logger
 
-  alias Air.QueryEvents
+  alias Air.CentralClient.Socket
 
 
   # -------------------------------------------------------------------
@@ -141,11 +141,24 @@ defmodule Air.Socket.Cloak.MainChannel do
   # -------------------------------------------------------------------
 
   defp handle_cloak_call("query_result", query_result, request_id, socket) do
-    query_id = query_result["query_id"]
-    Logger.info("received result for query #{query_id}")
+    Logger.info("received result for query #{query_result["query_id"]}")
     respond_to_cloak(socket, request_id, :ok)
-    QueryEvents.Results.trigger_result(query_result)
-    QueryEvents.StateChanges.trigger_event(query_id, :completed)
+
+    Air.QueryEvents.trigger_result(query_result)
+
+    {:noreply, socket}
+  end
+  defp handle_cloak_call("query_state", %{"query_id" => query_id, "query_state" => state}, request_id, socket) do
+    respond_to_cloak(socket, request_id, :ok)
+
+    Air.QueryEvents.trigger_state_change(query_id, String.to_existing_atom(state))
+
+    {:noreply, socket}
+  end
+  defp handle_cloak_call(other, payload, request_id, socket) do
+    Logger.warn("Received unknown cloak call #{inspect(other)} with payload #{inspect(payload, pretty: true)}")
+
+    respond_to_cloak(socket, request_id, :ok)
     {:noreply, socket}
   end
 

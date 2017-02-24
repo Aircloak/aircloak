@@ -16,6 +16,7 @@ defmodule BOM.Whitelist do
       {"scrivener_ecto",  "1.0.2"}  => %{type: :mit,     text: :standard},
       {"scrivener_html",  "1.3.3"}  => %{type: :mit,     text: :standard},
       {"excoveralls",     "0.5.5"}  => %{type: :mit,     text: :standard},
+      {"ecto_enum",       "1.0.1"}  => %{type: :mit,     text: :provided},
     },
     :node => %{
       {"base64-js",                 "0.0.2"}  => %{type: :mit,           text: :provided},

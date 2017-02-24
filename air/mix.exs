@@ -77,6 +77,7 @@ defmodule Air.Mixfile do
       {:decimal, "~> 1.3.0"},
       {:quantum, "~> 1.8.0"},
       {:remote_ip, "~> 0.1.0"},
+      {:ecto_enum, "~> 1.0.0"},
     ]
   end
 

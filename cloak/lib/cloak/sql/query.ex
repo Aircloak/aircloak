@@ -95,15 +95,9 @@ defmodule Cloak.Sql.Query do
   """
   @spec make!(DataSource.t, String.t, [parameter], view_map) :: t
   def make!(data_source, string, parameters, views) do
-    {:ok, query} = make(data_source, string, parameters, views)
+    {:ok, query} = make_query(data_source, string, parameters, views)
     query
   end
-
-  @doc "Creates a compiled query from a string representation."
-  @spec make(DataSource.t, String.t, [parameter], view_map) ::
-    {:ok, t} | {:error, String.t}
-  def make(data_source, string, parameters, views) when is_list(parameters), do:
-    make_query(data_source, string, parameters, views)
 
   @doc "Returns the list of unique columns used in the aggregation process."
   @spec aggregated_columns(t) :: [Expression.t]

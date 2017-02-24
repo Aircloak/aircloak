@@ -11,7 +11,7 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
     quote do
       Runner.start("1", unquote(context).data_source, unquote(query), unquote(parameters), %{}, {:process, self()})
       response = receive do
-        {:reply, response} -> response
+        {:result, response} -> response
       end
       assert unquote(expected_response) = response
     end

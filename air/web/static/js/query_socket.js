@@ -19,14 +19,14 @@ export class QuerySocket {
   joinAllQueryEventsChannel: (callbacks: Callbacks) => void;
 
   joinSessionChannel(sessionId: string, callbacks: Callbacks) {
-    this.joinChannel(callbacks, `session:${sessionId}`, "result");
+    this.joinChannel(callbacks, `session:${sessionId}`, ["result", "state_change"]);
   }
 
   joinAllQueryEventsChannel(callbacks: Callbacks) {
-    this.joinChannel(callbacks, "state_changes:all", "state_change");
+    this.joinChannel(callbacks, "state_changes:all", ["state_change"]);
   }
 
-  joinChannel(callbacks: Callbacks, channelName: string, eventName: string) {
+  joinChannel(callbacks: Callbacks, channelName: string, eventNames: string[]) {
     const channel = this.socket.channel(channelName, {});
     const noop = () => {};
     const {
@@ -38,6 +38,6 @@ export class QuerySocket {
     channel.join()
       .receive("ok", joined)
       .receive("error", failedJoin);
-    channel.on(eventName, handleEvent);
+    eventNames.forEach((name) => { channel.on(name, handleEvent); });
   }
 }

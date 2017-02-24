@@ -31,7 +31,7 @@ defmodule Air.CentralClient.QueryReporter do
     Supervisor.start_link(
       [
         supervisor(Task.Supervisor, [[name: @task_supervisor, restart: :temporary]], [id: @task_supervisor]),
-        worker(Task, [&handle_query_events/0], id: Module.concat(__MODULE__, Worker))
+        worker(Task, [&handle_query_results/0], id: Module.concat(__MODULE__, Worker))
       ],
       strategy: :one_for_one
     )
@@ -42,10 +42,11 @@ defmodule Air.CentralClient.QueryReporter do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp handle_query_events(), do:
-    Enum.map(Air.QueryEvents.Results.stream(), fn({:query_result, result}) ->
+  defp handle_query_results() do
+    for {:query_result, result} <- Air.QueryEvents.stream() do
       Task.Supervisor.start_child(@task_supervisor, fn() -> process_result(result) end)
-    end)
+    end
+  end
 
   defp process_result(result) do
     query = Repo.get!(Query, result["query_id"]) |> Repo.preload([:user, :data_source])
