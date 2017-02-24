@@ -71,7 +71,7 @@ defmodule Cloak.MemoryReader.MemoryProjector do
       changes: changes} = state, new_measurement, new_timestamp) do
     time_since_last_reading = new_timestamp - previous_timestamp
     measured_difference = new_measurement - previous_measurement
-    change = div(measured_difference, time_since_last_reading)
+    change = div(measured_difference, max(time_since_last_reading, 1))
     %MemoryProjector{state | changes: Enum.take([change | changes], @readings_to_keep)}
   end
 
