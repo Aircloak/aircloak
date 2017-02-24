@@ -4,6 +4,7 @@ defmodule Central.Socket.Air.MainChannel do
   """
   use Phoenix.Channel
   require Logger
+  alias Central.Service.Customer
 
 
   # -------------------------------------------------------------------
@@ -106,8 +107,8 @@ defmodule Central.Socket.Air.MainChannel do
   # -------------------------------------------------------------------
 
   defp handle_air_call("call_with_retry", call_data, request_id, socket) do
-    result = Central.CustomerMessage.handle(call_data, socket.assigns.customer, socket.assigns.air_name)
-    respond_to_air(socket, request_id, result)
+    Customer.start_air_message_handler(call_data, socket.assigns.customer, socket.assigns.air_name)
+    respond_to_air(socket, request_id, :ok)
     {:noreply, socket}
   end
 
