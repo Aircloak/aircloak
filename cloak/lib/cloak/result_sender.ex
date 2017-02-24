@@ -28,8 +28,8 @@ defmodule Cloak.ResultSender do
   # -------------------------------------------------------------------
 
   @doc """
-  Sends a query state update to the target. Uses a normal process send if target is `{:process, pid}`. Uses
-  the Air <-> Cloak socket if it's :air_socket.
+  Sends a query state update to the target. Uses a normal process send if target is `{:process, pid}`.
+  Uses the Air <-> Cloak socket if it's :air_socket.
   """
   @spec send_state(target(), String.t, query_state()) :: :ok
   def send_state(target, query_id, query_state) do
@@ -38,8 +38,8 @@ defmodule Cloak.ResultSender do
   end
 
   @doc """
-  Sends the reply to the target. Uses a normal process send if target is `{:process, pid}`. Uses
-  the Air <-> Cloak socket if it's :air_socket.
+  Sends the reply to the target. Uses a normal process send if target is `{:process, pid}`.
+  Uses the Air <-> Cloak socket if it's :air_socket.
   """
   @spec send_result(target(), term()) :: :ok
   def send_result(target, reply) do
