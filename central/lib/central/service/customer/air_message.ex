@@ -22,6 +22,8 @@ defmodule Central.Service.Customer.AirMessage do
 
   @type message_result :: any
 
+  known_messages = ~w(query_execution cloak_online cloak_offline usage_info)
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -29,8 +31,15 @@ defmodule Central.Service.Customer.AirMessage do
 
   @doc "Handles an Air message"
   @spec handle(String.t, map, Customer.t, String.t) :: message_result
-  def handle(message, payload, customer, air_name), do:
-    do_handle(message, payload, customer, air_name)
+  for message_name <- known_messages do
+    def handle(unquote(message_name), payload, customer, air_name), do:
+      unquote(String.to_atom(message_name))(payload, customer, air_name)
+  end
+  def handle(unknown_message, data, _customer, _air_name) do
+    Logger.error("unknown air message `#{unknown_message}` (#{inspect(data)})")
+    # Responding with ok, because the client can't fix this issue by retrying
+    :ok
+  end
 
   @doc "Decodes an Air export."
   @spec decode_exported_data(binary) :: {:ok, export} | {:error, :invalid_format}
@@ -85,7 +94,7 @@ defmodule Central.Service.Customer.AirMessage do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp do_handle("query_execution", payload, customer, _air_name) do
+  defp query_execution(payload, customer, _air_name) do
     Logger.info("Received query execution update with payload: #{inspect payload}")
     params = %{
       metrics: payload["metrics"],
@@ -94,7 +103,8 @@ defmodule Central.Service.Customer.AirMessage do
     }
     Customer.record_query(customer, params)
   end
-  defp do_handle("cloak_online", cloak_info, customer, air_name) do
+
+  defp cloak_online(cloak_info, customer, air_name) do
     Central.Service.Customer.update_cloak(customer, air_name,
       Map.fetch!(cloak_info, "name"),
       status: :online, data_source_names: Map.get(cloak_info, "data_source_names", []),
@@ -102,23 +112,20 @@ defmodule Central.Service.Customer.AirMessage do
     )
     :ok
   end
-  defp do_handle("cloak_offline", cloak_info, customer, air_name) do
+
+  defp cloak_offline(cloak_info, customer, air_name) do
     Central.Service.Customer.update_cloak(customer, air_name,
       Map.fetch!(cloak_info, "name"), status: :offline)
     :ok
   end
-  defp do_handle("usage_info", uptime_info, customer, air_name) do
+
+  defp usage_info(uptime_info, customer, air_name) do
     Central.Service.Customer.store_uptime_info(
       customer,
       air_name,
       NaiveDateTime.from_iso8601!(Map.fetch!(uptime_info, "air_utc_time")),
       Map.delete(uptime_info, "air_utc_time")
     )
-    :ok
-  end
-  defp do_handle(other, data, _customer, _air_name) do
-    Logger.warn("unknown call `#{other}` (#{inspect(data)})")
-    # Responding with ok, because the client can't fix this issue by retrying
     :ok
   end
 end
