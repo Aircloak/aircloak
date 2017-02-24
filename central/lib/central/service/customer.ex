@@ -36,9 +36,7 @@ defmodule Central.Service.Customer do
     message_id = Map.fetch!(message, "id")
     case rpc(customer, air_name, message_id) do
       nil ->
-        # We look for event_payload for backwards compatibility with older airs
-        payload = message["payload"] || message["event_payload"]
-        result = AirMessage.handle(message["event"], payload, customer, air_name)
+        result = AirMessage.handle(message, customer, air_name)
         store_rpc!(customer, air_name, message_id, result)
         result
 

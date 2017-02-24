@@ -30,13 +30,16 @@ defmodule Central.Service.Customer.AirMessage do
   # -------------------------------------------------------------------
 
   @doc "Handles an Air message"
-  @spec handle(String.t, map, Customer.t, String.t) :: message_result
+  @spec handle(rpc) :: message_result
   for message_name <- known_messages do
-    def handle(unquote(message_name), payload, customer, air_name), do:
-      unquote(String.to_atom(message_name))(payload, customer, air_name)
+    def handle(%{"event" => unquote(message_name)} = message, customer, air_name) do
+      # We look for event_payload for backwards compatibility with older airs
+      payload = message["payload"] || message["event_payload"]
+      unquote(String.to_atom(message_name))(%{payload: payload, customer: customer, air_name: air_name})
+    end
   end
-  def handle(unknown_message, data, _customer, _air_name) do
-    Logger.error("unknown air message `#{unknown_message}` (#{inspect(data)})")
+  def handle(unknown_message) do
+    Logger.error("unknown air message: #{inspect unknown_message}")
     # Responding with ok, because the client can't fix this issue by retrying
     :ok
   end
@@ -94,37 +97,37 @@ defmodule Central.Service.Customer.AirMessage do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp query_execution(payload, customer, _air_name) do
-    Logger.info("Received query execution update with payload: #{inspect payload}")
+  defp query_execution(message) do
+    Logger.info("Received query execution update with payload: #{inspect message.payload}")
     params = %{
-      metrics: payload["metrics"],
-      features: payload["features"],
-      aux: payload["aux"],
+      metrics: message.payload["metrics"],
+      features: message.payload["features"],
+      aux: message.payload["aux"],
     }
-    Customer.record_query(customer, params)
+    Customer.record_query(message.customer, params)
   end
 
-  defp cloak_online(cloak_info, customer, air_name) do
-    Central.Service.Customer.update_cloak(customer, air_name,
-      Map.fetch!(cloak_info, "name"),
-      status: :online, data_source_names: Map.get(cloak_info, "data_source_names", []),
-        version: Map.get(cloak_info, "version", "Unknown")
+  defp cloak_online(message) do
+    Central.Service.Customer.update_cloak(message.customer, message.air_name,
+      Map.fetch!(message.payload, "name"),
+      status: :online, data_source_names: Map.get(message.payload, "data_source_names", []),
+        version: Map.get(message.payload, "version", "Unknown")
     )
     :ok
   end
 
-  defp cloak_offline(cloak_info, customer, air_name) do
-    Central.Service.Customer.update_cloak(customer, air_name,
-      Map.fetch!(cloak_info, "name"), status: :offline)
+  defp cloak_offline(message) do
+    Central.Service.Customer.update_cloak(message.customer, message.air_name,
+      Map.fetch!(message.payload, "name"), status: :offline)
     :ok
   end
 
-  defp usage_info(uptime_info, customer, air_name) do
+  defp usage_info(message) do
     Central.Service.Customer.store_uptime_info(
-      customer,
-      air_name,
-      NaiveDateTime.from_iso8601!(Map.fetch!(uptime_info, "air_utc_time")),
-      Map.delete(uptime_info, "air_utc_time")
+      message.customer,
+      message.air_name,
+      NaiveDateTime.from_iso8601!(Map.fetch!(message.payload, "air_utc_time")),
+      Map.delete(message.payload, "air_utc_time")
     )
     :ok
   end
