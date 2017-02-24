@@ -82,6 +82,7 @@ defmodule Cloak.Query.Runner do
   def init({query_id, data_source, statement, parameters, views, result_target}) do
     Logger.metadata(query_id: query_id)
     Process.flag(:trap_exit, true)
+    cancel_callback = Cloak.MemoryReader.register_query()
     {:ok, %{
       query_id: query_id,
       result_target: result_target,
@@ -90,7 +91,9 @@ defmodule Cloak.Query.Runner do
       # We're starting the runner as a direct child.
       # This GenServer will wait for the runner to return or crash. Such approach allows us to
       # detect a failure no matter how the query fails (even if the runner process is for example killed).
-      runner: Task.async(fn() -> run_query(query_id, data_source, statement, parameters, views) end)
+      runner: Task.async(fn() ->
+        run_query(query_id, data_source, statement, parameters, views, cancel_callback)
+      end)
     }}
   end
 
@@ -125,13 +128,12 @@ defmodule Cloak.Query.Runner do
   ## Query runner
   ## ----------------------------------------------------------------
 
-  defp run_query(query_id, data_source, statement, parameters, views) do
+  defp run_query(query_id, data_source, statement, parameters, views, query_killing_cancel_callback) do
     Logger.metadata(query_id: query_id)
-    Cloak.MemoryReader.register_query()
     Logger.debug("Parsing statement `#{statement}` ...")
     with {:ok, query} <- Query.make(data_source, statement, parameters, views),
          {:ok, result} <- Engine.run(query) do
-      Cloak.MemoryReader.unregister_query()
+      query_killing_cancel_callback.()
       {:ok, result, Query.info_messages(query)}
     end
   end
