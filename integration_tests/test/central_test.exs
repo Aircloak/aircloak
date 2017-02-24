@@ -77,7 +77,7 @@ defmodule IntegrationTest.CentralTest do
     defp import_to_central(export), do:
       export
       |> Air.Schemas.ExportForAircloak.content()
-      |> Central.Service.Customer.Message.import_customer_data()
+      |> Central.Service.Customer.import_customer_data()
 
     defp poll_for_export() do
       case Air.Service.Central.export_pending_calls() do
