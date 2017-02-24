@@ -29,7 +29,7 @@ defmodule Central.Service.Customer.AirMessage do
 
   @doc "Handles an Air message"
   @spec handle(rpc) :: :ok | :error
-  for message_name <- known_messages, function_name = String.to_atom(message_name) do
+  for message_name <- known_messages, function_name = :"handle_#{message_name}" do
     def handle(%{"event" => unquote(message_name)} = message, customer, air_name) do
       # We look for event_payload for backwards compatibility with older airs
       payload = message["payload"] || message["event_payload"]
@@ -95,7 +95,7 @@ defmodule Central.Service.Customer.AirMessage do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp query_execution(message) do
+  defp handle_query_execution(message) do
     Logger.info("Received query execution update with payload: #{inspect message.payload}")
     params = %{
       metrics: message.payload["metrics"],
@@ -105,18 +105,18 @@ defmodule Central.Service.Customer.AirMessage do
     Customer.record_query(message.customer, params)
   end
 
-  defp cloak_online(message), do:
+  defp handle_cloak_online(message), do:
     Central.Service.Customer.update_cloak(message.customer, message.air_name,
       Map.fetch!(message.payload, "name"),
       status: :online, data_source_names: Map.get(message.payload, "data_source_names", []),
         version: Map.get(message.payload, "version", "Unknown")
     )
 
-  defp cloak_offline(message), do:
+  defp handle_cloak_offline(message), do:
     Central.Service.Customer.update_cloak(message.customer, message.air_name,
       Map.fetch!(message.payload, "name"), status: :offline)
 
-  defp usage_info(message), do:
+  defp handle_usage_info(message), do:
     Central.Service.Customer.store_uptime_info(
       message.customer,
       message.air_name,
