@@ -94,10 +94,6 @@ defmodule Cloak.MemoryReader do
         Logger.error("Dangerous memory situation. Anticipating reaching the low memory threshold " <>
           "(#{to_mb(memory_limit)} MB) in #{to_sec(time)} seconds. Free memory: #{to_mb(free_memory)} MB")
         kill_query(state)
-      {:ok, time} ->
-        Logger.debug("Anticipating reaching the low memory threshold (#{to_mb(memory_limit)} MB) " <>
-          "in #{to_sec(time)} seconds. Free memory: #{to_mb(free_memory)} MB")
-        kill_query(state)
       _ -> {:noreply, state}
     end
   end
