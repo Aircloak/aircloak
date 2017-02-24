@@ -141,11 +141,10 @@ defmodule Cloak.Query.Runner do
   # -------------------------------------------------------------------
 
   defp report_result(state, result) do
-    result =
-      result
-      |> format_result()
-      |> Map.put(:query_id, state.query_id)
-      |> Map.put(:execution_time, :erlang.monotonic_time(:milli_seconds) - state.start_time)
+    result = result
+    |> format_result()
+    |> Map.put(:query_id, state.query_id)
+    |> Map.put(:execution_time, :erlang.monotonic_time(:milli_seconds) - state.start_time)
     log_completion(result)
     # send execution time in seconds, to avoid timing attacks
     result = %{result | execution_time: div(result.execution_time, 1000)}
