@@ -214,16 +214,12 @@ defmodule Cloak.Sql.Compiler do
     query
 
   defp required_column_names(query, projected_subquery), do:
-    # all db columns of the outer query which are from this projected table
-    query.db_columns
-    |> get_in([Query.Lenses.leaf_expressions()])
-    |> Enum.filter(&match?(%{table: %{name: _}}, &1))
-    |> Enum.filter(& &1.table.name == projected_subquery.alias)
-    |> Enum.map(& &1.name)
-    |> Enum.concat([
+    [
       # append uid column
-      DataSource.table(projected_subquery.ast.data_source, projected_subquery.alias).user_id
-    ])
+      DataSource.table(projected_subquery.ast.data_source, projected_subquery.alias).user_id |
+      # all db columns of the outer query which are from this projected table
+      query |> Query.required_columns_from_table(projected_subquery.alias) |> Enum.map(& &1.name)
+    ]
 
   defp optimized_projected_subquery_ast(ast, required_column_names), do:
     %Query{ast |
