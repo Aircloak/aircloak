@@ -3,7 +3,7 @@ defmodule Air.PsqlServer.RanchServer do
   Ranch powered TCP server which understands the PostgreSQL message protocol.
 
   This module can be used to serve PostgreSQL clients, such as the `psql`
-  command-line tool, or ODBC drivers. The module is implemented as the behaviour
+  command-line tool, or ODBC drivers. The module is implemented as a behaviour
   which allows easy plugging of system specific logic. The module will drive
   the common workflow of PostgreSQL connection, invoking callback module's
   functions for specific tasks, such as authentication or query execution.

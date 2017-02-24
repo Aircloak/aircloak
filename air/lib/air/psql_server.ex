@@ -2,7 +2,7 @@ defmodule Air.PsqlServer do
   @moduledoc "Server for PostgreSQL protocol which allows PostgreSQL clients to query cloaks."
 
   alias Air.PsqlServer.RanchServer
-  alias Air.Service.{User, DataSource}
+  alias Air.Service.{User, DataSource, Version}
   require Logger
 
   @behaviour RanchServer
@@ -33,7 +33,8 @@ defmodule Air.PsqlServer do
 
   @doc false
   def login(conn, password) do
-    with data_source_id <- {:global_id, conn.login_params["database"]},
+    with false <- Version.expired?(),
+         data_source_id <- {:global_id, conn.login_params["database"]},
          {:ok, user} <- User.login(conn.login_params["user"], password),
          {:ok, _} <- DataSource.fetch_as_user(data_source_id, user)
     do
