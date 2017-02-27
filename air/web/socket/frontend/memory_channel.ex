@@ -11,13 +11,8 @@ defmodule Air.Socket.Frontend.MemoryChannel do
   @spec broadcast_memory_reading(String.t, Map.t) :: :ok
   def broadcast_memory_reading(cloak_id, memory_reading) do
     for cloak <- Air.DataSourceManager.cloaks(), cloak[:id] == cloak_id do
-      payload = %{
-        total_memory: memory_reading["total_memory"],
-        free_memory: memory_reading["free_memory"],
-        name: cloak.name,
-        id: cloak_id,
-      }
-      Air.Endpoint.broadcast_from!(self(), "memory_readings", "new_reading", payload)
+      formatted_cloak = Air.Admin.ActivityMonitorView.format_cloak(cloak, memory_reading)
+      Air.Endpoint.broadcast_from!(self(), "memory_readings", "new_reading", formatted_cloak)
     end
     :ok
   end

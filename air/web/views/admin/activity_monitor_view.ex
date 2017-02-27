@@ -18,4 +18,10 @@ defmodule Air.Admin.ActivityMonitorView do
         statement: query.statement,
       }
     end)
+
+  def format_cloaks(cloaks), do:
+    Enum.map(cloaks, &format_cloak/1)
+
+  def format_cloak(cloak, reading \\ %{total_memory: nil, free_memory: nil}), do:
+    Map.merge(reading, Map.take(cloak, [:id, :name]))
 end
