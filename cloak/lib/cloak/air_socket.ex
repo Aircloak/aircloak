@@ -79,7 +79,6 @@ defmodule Cloak.AirSocket do
   def handle_connected(_transport, state) do
     Logger.info("connected")
     send(self(), {:join, "main"})
-    # send(self(), {:join, "memory_reporter"})
     initial_interval = config(:min_reconnect_interval)
     {:ok, %{state | reconnect_interval: initial_interval}}
   end
