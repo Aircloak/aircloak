@@ -113,7 +113,7 @@ defmodule Cloak.MemoryReader do
     state = %{
       # This adds an artificial cool down period between consecutive killings, proposional
       # to the length of the memory projection buffer.
-      projector: MemoryProjector.clear(state.projector),
+      projector: MemoryProjector.drop(state.projector, num_measurements_to_drop(state)),
       queries: queries,
     }
     {:noreply, state}
@@ -147,4 +147,7 @@ defmodule Cloak.MemoryReader do
   end
 
   defp record_reading(state, reading), do: %{state | last_reading: reading}
+
+  defp num_measurements_to_drop(%{params: %{check_interval: interval, time_between_abortions: pause}}), do:
+    div(pause, interval)
 end
