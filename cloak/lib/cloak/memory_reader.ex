@@ -17,8 +17,6 @@ defmodule Cloak.MemoryReader do
 
   @type query_killer_callbacks :: {(() -> :ok), (() -> :ok)}
 
-  @query_kill_cooloff_cycles 10
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -49,10 +47,6 @@ defmodule Cloak.MemoryReader do
       memory_projector: MemoryProjector.new(),
       queries: [],
       params: read_params(),
-      # It's bumped on every kill, and then slowly reduced over time.
-      # This causes there to be a pause between query killings as to avoid
-      # a massacre.
-      kill_cooloff: 0,
       last_reading: [],
     }
     :timer.send_interval(:timer.seconds(1), :report_memory_stats)
@@ -79,7 +73,6 @@ defmodule Cloak.MemoryReader do
     state
     |> record_reading(reading)
     |> Map.put(:memory_projector, MemoryProjector.add_reading(projector, free_memory, time))
-    |> reduce_kill_cooloff()
     |> perform_memory_check(free_memory)
   end
   def handle_info(:report_memory_stats, state) do
@@ -113,13 +106,17 @@ defmodule Cloak.MemoryReader do
 
   defp to_sec(ms), do: max(trunc(ms / 1_000), 0)
 
-  defp kill_query(%{kill_cooloff: cooloff} = state) when cooloff > 0, do:
-    {:noreply, state}
   defp kill_query(%{queries: []} = state), do:
     {:noreply, state}
   defp kill_query(%{queries: [query | queries]} = state) do
     Cloak.Query.Runner.stop(query, :oom)
-    {:noreply, %{state | queries: queries, kill_cooloff: @query_kill_cooloff_cycles}}
+    state = %{
+      # This adds an artificial cool down period between consecutive killings, proposional
+      # to the length of the memory projection buffer.
+      projector: MemoryProjector.clear(state.projector),
+      queries: queries,
+    }
+    {:noreply, state}
   end
 
   defp schedule_check(%{params: %{check_interval: interval}}), do: Process.send_after(self(), :read_memory, interval)
@@ -146,7 +143,4 @@ defmodule Cloak.MemoryReader do
   end
 
   defp record_reading(state, reading), do: %{state | last_reading: reading}
-
-  defp reduce_kill_cooloff(%{kill_cooloff: 0} = state), do: state
-  defp reduce_kill_cooloff(%{kill_cooloff: cooloff} = state), do: %{state | kill_cooloff: cooloff - 1}
 end
