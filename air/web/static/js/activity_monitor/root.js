@@ -9,6 +9,7 @@ import type {Query} from "./query";
 
 import {QuerySocket} from "../query_socket";
 import {isFinished} from "../queries/state";
+import {Disconnected} from "../disconnected";
 
 type QueryEvent = {
   query_id: string,
@@ -86,6 +87,7 @@ class ActivityMonitorView extends React.Component {
   render() {
     return (
       <div>
+        <Disconnected socket={this.props.querySocket} />
         <QueriesView queries={this.state.queries} />
       </div>
     );
