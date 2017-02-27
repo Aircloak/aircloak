@@ -93,8 +93,8 @@ class ActivityMonitorView extends React.Component {
     this.setState({queries});
   }
 
-  handleMemoryReading(cloak: Cloak) {
-    const cloaks = _.chain([cloak, ...this.state.cloaks]).
+  handleMemoryReading(newOrUpdatedCloak: Cloak) {
+    const cloaks = _.chain([newOrUpdatedCloak, ...this.state.cloaks]).
       uniqBy((cloak) => cloak.id).
       sortBy((cloak) => cloak.name).
       value();

@@ -9,14 +9,13 @@ export type Cloak = {
   total_memory: number,
 };
 
-const toMb = (memory_bytes: number) => {
-  if (memory_bytes === null) {
+const toMb = (memoryInBytes: number) => {
+  if (memoryInBytes === null) {
     return "Unknown";
   } else {
-    return `${Math.floor(memory_bytes / (1024 * 1024))} MB`;
+    return `${Math.floor(memoryInBytes / (1024 * 1024))} MB`;
   }
-
-}
+};
 
 export const CloakView = (props: Cloak) =>
   <tr>
