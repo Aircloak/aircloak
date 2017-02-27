@@ -53,7 +53,9 @@ defmodule Cloak.MemoryReader do
       # This causes there to be a pause between query killings as to avoid
       # a massacre.
       kill_cooloff: 0,
+      last_reading: [],
     }
+    :timer.send_interval(:timer.seconds(1), :report_memory_stats)
     schedule_check(state)
     {:ok, state}
   end
@@ -75,9 +77,14 @@ defmodule Cloak.MemoryReader do
     schedule_check(state)
     free_memory = Keyword.get(reading, :free_memory)
     state
+    |> record_reading(reading)
     |> Map.put(:memory_projector, MemoryProjector.add_reading(projector, free_memory, time))
     |> reduce_kill_cooloff()
     |> perform_memory_check(free_memory)
+  end
+  def handle_info(:report_memory_stats, state) do
+    Cloak.AirSocket.send_memory_stats(state.last_reading)
+    {:noreply, state}
   end
 
 
@@ -137,6 +144,8 @@ defmodule Cloak.MemoryReader do
       "#{config.allowed_minimum_time_to_limit} ms")
     config
   end
+
+  defp record_reading(state, reading), do: %{state | last_reading: reading}
 
   defp reduce_kill_cooloff(%{kill_cooloff: 0} = state), do: state
   defp reduce_kill_cooloff(%{kill_cooloff: cooloff} = state), do: %{state | kill_cooloff: cooloff - 1}
