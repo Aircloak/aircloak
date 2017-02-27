@@ -13,7 +13,7 @@ const toMb = (memory_bytes: number) => {
   if (memory_bytes === null) {
     return "Unknown";
   } else {
-    return `${memory_bytes / (1024 * 1024)} MB`;
+    return `${Math.floor(memory_bytes / (1024 * 1024))} MB`;
   }
 
 }
