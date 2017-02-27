@@ -2,7 +2,7 @@ defmodule Air.Service.View do
   @moduledoc "Service module for working with views."
 
   alias Air.Schemas.{User, View}
-  alias Air.{Repo, Service.DataSource}
+  alias Air.{Repo, Service.DataSource, Version}
   import Ecto.Query, only: [from: 2]
 
 
@@ -81,6 +81,11 @@ defmodule Air.Service.View do
           {:error, Ecto.Changeset.add_error(changeset, :sql,
             "The view cannot be saved because no cloak is currently available for the given data source. " <>
             "Please contact your administrator."
+          )}
+        {:error, :expired} ->
+          {:error, Ecto.Changeset.add_error(changeset, :sql,
+            "Your Aircloak installation is running version #{Air.SharedView.version()} " <>
+            "which expired on #{Version.expiry_date()}."
           )}
       end
     else

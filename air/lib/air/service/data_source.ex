@@ -16,7 +16,7 @@ defmodule Air.Service.DataSource do
   ]
 
   @type data_source_operation_error ::
-    {:error, :expired, :unauthorized | :not_connected | :internal_error | any}
+    {:error, :expired | :unauthorized | :not_connected | :internal_error | any}
 
 
   #-----------------------------------------------------------------------------------------------------------
