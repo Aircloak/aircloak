@@ -38,9 +38,18 @@ defmodule Cloak.MemoryReader.MemoryProjector do
     |> retain_current_reading(measurement, timestamp)
   end
 
-  @doc "Clear alls memory readings"
-  @spec clear(t) :: t
-  def clear(storage), do: %__MODULE__{storage | changes: []}
+  @doc """
+  Drops a number of changes from the oldest to the most recent.
+
+  The number of items dropped depends on the amount of items in the buffer.
+  More specifically the larger of MAX_BUFFER_SIZE - NUM_TO_DROP and 0 items
+  of the original buffer are kept.
+  """
+  @spec drop(t, non_neg_integer) :: t
+  def drop(storage, number) do
+    num_items_to_keep = max(@readings_to_keep - number, 0)
+    %__MODULE__{storage | changes: Enum.take(storage.changes, num_items_to_keep)}
+  end
 
   @doc """
   The number of expected units of time until we reach a given lower memory limit.
