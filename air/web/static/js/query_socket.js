@@ -18,6 +18,8 @@ export class QuerySocket {
   joinSessionChannel: (sessionId: string, callbacks: Callbacks) => void;
   joinAllQueryEventsChannel: (callbacks: Callbacks) => void;
 
+  isConnected() { return this.socket.isConnected(); }
+
   joinSessionChannel(sessionId: string, callbacks: Callbacks) {
     this.joinChannel(callbacks, `session:${sessionId}`, ["result", "state_change"]);
   }
