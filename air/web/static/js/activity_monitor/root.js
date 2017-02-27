@@ -9,7 +9,7 @@ import type {Query} from "./query";
 import {CloaksView} from "./cloaks";
 import type {Cloak} from "./cloak";
 
-import {QuerySocket} from "../query_socket";
+import {FrontendSocket} from "../frontend_socket";
 import {isFinished} from "../queries/state";
 
 type QueryEvent = {
@@ -22,7 +22,7 @@ type Props = {
   userId: number,
   guardianToken: string,
   CSRFToken: string,
-  querySocket: QuerySocket,
+  frontendSocket: FrontendSocket,
   queries: Query[],
   cloaks: Cloak[],
 };
@@ -42,7 +42,7 @@ class ActivityMonitorView extends React.Component {
     this.handleQueryEvent = this.handleQueryEvent.bind(this);
     this.handleRemoveQuery = this.handleRemoveQuery.bind(this);
 
-    this.props.querySocket.joinAllQueryEventsChannel({
+    this.props.frontendSocket.joinAllQueryEventsChannel({
       handleEvent: this.handleQueryEvent,
     });
   }
@@ -99,6 +99,6 @@ class ActivityMonitorView extends React.Component {
 }
 
 export default function renderACtivityMonitorView(data: Props, elem: Node) {
-  const socket = new QuerySocket(data.guardianToken);
-  ReactDOM.render(<ActivityMonitorView querySocket={socket} {...data} />, elem);
+  const socket = new FrontendSocket(data.guardianToken);
+  ReactDOM.render(<ActivityMonitorView frontendSocket={socket} {...data} />, elem);
 }
