@@ -22,6 +22,9 @@ defmodule Air.Socket.Cloak.MemoryChannel do
   end
 
   @doc false
+  def handle_in("reading", _reading, socket) do
+    {:noreply, socket}
+  end
   def handle_in(event, _payload, socket) do
     cloak_id = socket.assigns.cloak_id
     Logger.warn("unknown event #{event} from '#{cloak_id}'")

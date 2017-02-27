@@ -16,6 +16,7 @@ defmodule Cloak.AirSocket do
 
   @timeout :timer.seconds(5)
 
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -58,6 +59,11 @@ defmodule Cloak.AirSocket do
   @spec send_query_state(GenServer.server, String.t, atom) :: :ok | {:error, any}
   def send_query_state(socket \\ __MODULE__, query_id, query_state), do:
     call(socket, "main", "query_state", %{query_id: query_id, query_state: query_state})
+
+  @doc "Sends cloak memory stats to the air."
+  @spec send_memory_stats(GenServer.server, Keyword.t) :: :ok | {:error, any}
+  def send_memory_stats(socket \\ __MODULE__, memory_reading), do:
+    cast(socket, "memory_channel", "reading", memory_reading |> Enum.into(%{}))
 
 
   # -------------------------------------------------------------------
@@ -155,6 +161,23 @@ defmodule Cloak.AirSocket do
       {:ok, _ref} -> :ok
     end
     {:ok, state}
+  end
+  def handle_info({{__MODULE__, :cast}, topic, event, payload}, transport, state) do
+    try do
+      GenSocketClient.push(transport, topic, event, payload)
+      {:ok, state}
+    rescue
+      error in Poison.EncodeError ->
+        error =
+          if Aircloak.DeployConfig.override_app_env!(:cloak, :sanitize_otp_errors) do
+            Poison.EncodeError.exception(message: "Poison encode error", value: "`sanitized`")
+          else
+            error
+          end
+
+        Logger.error("Message could not be encoded: #{Exception.message(error)}")
+        {:ok, state}
+    end
   end
   def handle_info({{__MODULE__, :call}, topic, timeout, from, event, payload}, transport, state) do
     request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
@@ -285,6 +308,12 @@ defmodule Cloak.AirSocket do
 
   defp respond_to_internal_request({client_pid, mref}, response) do
     send(client_pid, {mref, response})
+  end
+
+  @spec cast(GenServer.server, String.t, String.t, map) :: :ok
+  defp cast(socket, topic, event, payload) do
+    send(socket, {{__MODULE__, :cast}, topic, event, payload})
+    :ok
   end
 
   @spec call(GenServer.server, String.t, String.t, map) :: :ok | {:error, any}
