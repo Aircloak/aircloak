@@ -127,7 +127,10 @@ defmodule Cloak.MemoryReader do
 
     config = case Aircloak.DeployConfig.fetch(:cloak, "memory_limits") do
       {:ok, analyst_config} ->
-        [:check_interval, :limit_to_start_checks, :limit_to_check_for, :allowed_minimum_time_to_limit]
+        [
+          :check_interval, :limit_to_start_checks, :limit_to_check_for,
+          :allowed_minimum_time_to_limit, :time_between_abortions
+        ]
         |> Enum.reduce(%{}, fn(parameter, config) ->
           value = Map.get(analyst_config, Atom.to_string(parameter), defaults[parameter])
           Map.put(config, parameter, value)
@@ -137,8 +140,9 @@ defmodule Cloak.MemoryReader do
 
     Logger.debug("The low memory monitor is configured with: check_interval: #{config.check_interval} ms, " <>
       "limit_to_start_checks: #{config.limit_to_start_checks} bytes, limit_to_check_for: " <>
-      "#{config.limit_to_check_for} bytes, and allowed_minimum_time_to_limit: " <>
-      "#{config.allowed_minimum_time_to_limit} ms")
+      "#{config.limit_to_check_for} bytes, allowed_minimum_time_to_limit: " <>
+      "#{config.allowed_minimum_time_to_limit} ms, and up to #{config.time_between_abortions} ms " <>
+      "of time waited between consecutive query abortions.")
     config
   end
 
