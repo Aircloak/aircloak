@@ -110,10 +110,10 @@ defmodule Cloak.MemoryReader do
     {:noreply, state}
   defp kill_query(%{queries: [query | queries]} = state) do
     Cloak.Query.Runner.stop(query, :oom)
-    state = %{
+    state = %{state |
       # This adds an artificial cool down period between consecutive killings, proposional
       # to the length of the memory projection buffer.
-      projector: MemoryProjector.drop(state.projector, num_measurements_to_drop(state)),
+      memory_projector: MemoryProjector.drop(state.memory_projector, num_measurements_to_drop(state)),
       queries: queries,
     }
     {:noreply, state}
