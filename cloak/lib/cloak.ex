@@ -43,7 +43,8 @@ defmodule Cloak do
       import Supervisor.Spec, warn: false
 
       [
-        worker(Cloak.AirSocket, [])
+        worker(Cloak.AirSocket, []),
+        worker(Cloak.MemoryReader, [])
       ]
     end
   end

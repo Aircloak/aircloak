@@ -67,9 +67,11 @@ defmodule Cloak.Query.Runner do
     :ok
   end
 
-  @spec stop(String.t) :: :ok
-  def stop(query_id), do:
-    query_id |> worker_name() |> GenServer.cast(:stop_query)
+  @spec stop(String.t | pid, :cancelled | :oom) :: :ok
+  def stop(query_pid, reason) when is_pid(query_pid), do:
+    GenServer.cast(query_pid, {:stop_query, reason})
+  def stop(query_id, reason), do:
+    GenServer.cast(worker_name(query_id), {:stop_query, reason})
 
 
   # -------------------------------------------------------------------
@@ -80,6 +82,7 @@ defmodule Cloak.Query.Runner do
   def init({query_id, data_source, statement, parameters, views, result_target}) do
     Logger.metadata(query_id: query_id)
     Process.flag(:trap_exit, true)
+    memory_callbacks = Cloak.MemoryReader.query_registering_callbacks()
     {:ok, %{
       query_id: query_id,
       result_target: result_target,
@@ -88,7 +91,9 @@ defmodule Cloak.Query.Runner do
       # We're starting the runner as a direct child.
       # This GenServer will wait for the runner to return or crash. Such approach allows us to
       # detect a failure no matter how the query fails (even if the runner process is for example killed).
-      runner: Task.async(fn() -> run_query(query_id, data_source, statement, parameters, views, result_target) end)
+      runner: Task.async(fn() ->
+        run_query(query_id, data_source, statement, parameters, views, result_target, memory_callbacks)
+      end)
     }}
   end
 
@@ -109,9 +114,10 @@ defmodule Cloak.Query.Runner do
   def handle_info(_other, state), do:
     {:noreply, state}
 
-  def handle_cast(:stop_query, %{runner: task} = state) do
+  def handle_cast({:stop_query, reason}, %{runner: task} = state) do
     Task.shutdown(task)
-    report_result(state, :cancelled)
+    Logger.warn("Asked to stop query. Reason: #{inspect reason}")
+    report_result(state, reason)
     {:stop, :normal, %{state | runner: nil}}
   end
 
@@ -120,11 +126,12 @@ defmodule Cloak.Query.Runner do
   # Query running
   # -------------------------------------------------------------------
 
-  defp run_query(query_id, data_source, statement, parameters, views, result_target) do
+  defp run_query(query_id, data_source, statement, parameters, views, result_target, memory_callbacks) do
     Logger.metadata(query_id: query_id)
     Logger.debug("Running statement `#{statement}` ...")
 
-    Engine.run(data_source, statement, parameters, views, &ResultSender.send_state(result_target, query_id, &1))
+    Engine.run(data_source, statement, parameters, views,
+      &ResultSender.send_state(result_target, query_id, &1), memory_callbacks)
   end
 
 
@@ -133,11 +140,10 @@ defmodule Cloak.Query.Runner do
   # -------------------------------------------------------------------
 
   defp report_result(state, result) do
-    result =
-      result
-      |> format_result()
-      |> Map.put(:query_id, state.query_id)
-      |> Map.put(:execution_time, :erlang.monotonic_time(:milli_seconds) - state.start_time)
+    result = result
+    |> format_result()
+    |> Map.put(:query_id, state.query_id)
+    |> Map.put(:execution_time, :erlang.monotonic_time(:milli_seconds) - state.start_time)
     log_completion(result)
     # send execution time in seconds, to avoid timing attacks
     result = %{result | execution_time: div(result.execution_time, 1000)}
@@ -165,6 +171,8 @@ defmodule Cloak.Query.Runner do
     }
   defp format_result({:error, reason}) when is_binary(reason), do:
     %{error: reason}
+  defp format_result(:oom), do:
+    %{error: "Query aborted due to low memory."}
   defp format_result(:cancelled), do:
     %{cancelled: true}
   defp format_result({:error, reason}) do
