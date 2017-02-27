@@ -44,7 +44,7 @@ defmodule Cloak do
 
       [
         worker(Cloak.AirSocket, []),
-        worker(Cloak.MemoryReader, [])
+        worker(Cloak.MemoryReader, []),
       ]
     end
   end
