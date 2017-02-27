@@ -2,7 +2,7 @@ defmodule Air.PsqlServer do
   @moduledoc "Server for PostgreSQL protocol which allows PostgreSQL clients to query cloaks."
 
   alias Air.PsqlServer.RanchServer
-  alias Air.Service.{User, DataSource}
+  alias Air.Service.{User, DataSource, Version}
   require Logger
 
   @behaviour RanchServer
@@ -114,6 +114,11 @@ defmodule Air.PsqlServer do
 
   defp parse_response({:error, :not_connected}), do:
     %{error: "Data source is not available!"}
+  defp parse_response({:error, :expired}), do:
+    %{
+      error: "Your Aircloak installation is running version #{Air.SharedView.version()} " <>
+        "which expired on #{Version.expiry_date()}."
+    }
   defp parse_response({:ok, %{"error" => error}}), do:
     %{error: error}
   defp parse_response({:ok, query_result}), do:
