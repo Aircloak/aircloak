@@ -49,7 +49,7 @@ defmodule Cloak.MemoryReader do
       params: read_params(),
       last_reading: [],
     }
-    :timer.send_interval(:timer.seconds(1), :report_memory_stats)
+    :timer.send_interval(:timer.seconds(5), :report_memory_stats)
     schedule_check(state)
     {:ok, state}
   end
