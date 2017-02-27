@@ -15,6 +15,7 @@ import {QuerySocket} from "../query_socket";
 import {HistoryLoader} from "./history_loader";
 import type {History} from "./history_loader";
 import {isPending} from "./state";
+import {Disconnected} from "../disconnected";
 
 type Props = {
   userId: number,
@@ -35,7 +36,6 @@ class QueriesView extends React.Component {
     this.state = {
       statement: this.props.lastQuery ? this.props.lastQuery.statement : "",
       sessionResults: [],
-      isConnected: true,
 
       history: {
         before: "",
@@ -55,11 +55,8 @@ class QueriesView extends React.Component {
     this.replaceResult = this.replaceResult.bind(this);
     this.columnNames = this.columnNames.bind(this);
     this.tableNames = this.tableNames.bind(this);
-    this.updateConnected = this.updateConnected.bind(this);
-    this.componentWillUnmount = this.componentWillUnmount.bind(this);
 
     this.bindKeysWithoutEditorFocus();
-    this.connectedInterval = setInterval(this.updateConnected, 1000 /* 1 second */);
     this.props.querySocket.joinSessionChannel(props.sessionId, {
       handleEvent: this.resultReceived,
     });
@@ -69,9 +66,7 @@ class QueriesView extends React.Component {
     statement: string,
     sessionResults: Result[],
     history: History,
-    isConnected: boolean,
   }
-  connectedInterval: number;
 
   setStatement: () => void;
   runQuery: () => void;
@@ -84,12 +79,6 @@ class QueriesView extends React.Component {
   replaceResult: () => void;
   columnNames: () => void;
   tableNames: () => void;
-  componentWillUnmount: () => void;
-  updateConnected: () => void;
-
-  componentWillUnmount() {
-    clearInterval(this.connectedInterval);
-  }
 
   setStatement(statement) {
     this.setState({statement});
@@ -97,10 +86,6 @@ class QueriesView extends React.Component {
 
   setResults(results) {
     this.setState({sessionResults: results.slice(0, 5)});
-  }
-
-  updateConnected() {
-    this.setState({isConnected: this.props.querySocket.isConnected()});
   }
 
   replaceResult(result) {
@@ -270,14 +255,6 @@ class QueriesView extends React.Component {
     }
   }
 
-  renderDisconnected() {
-    if (!this.state.isConnected) {
-      return <p className="alert alert-warning">Connection lost</p>;
-    } else {
-      return null;
-    }
-  }
-
   render() {
     let button;
     if (this.isQueryPending()) {
@@ -301,7 +278,7 @@ class QueriesView extends React.Component {
       </div>);
     }
     return (<div>
-      {this.renderDisconnected()}
+      <Disconnected socket={this.props.querySocket} />
       <div id="sql-editor">
         {this.renderCodeEditorOrViewer()}
 
