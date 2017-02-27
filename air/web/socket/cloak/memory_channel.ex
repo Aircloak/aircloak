@@ -23,8 +23,7 @@ defmodule Air.Socket.Cloak.MemoryChannel do
 
   @doc false
   def handle_in("reading", reading, socket) do
-    payload = Map.put(reading, :cloak_id, socket.assigns.cloak_id)
-    Air.Socket.Frontend.MemoryChannel.broadcast_memory_reading(payload)
+    Air.Socket.Frontend.MemoryChannel.broadcast_memory_reading(socket.assigns.cloak_id, reading)
     {:noreply, socket}
   end
   def handle_in(event, _payload, socket) do
