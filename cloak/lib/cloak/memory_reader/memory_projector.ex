@@ -38,6 +38,10 @@ defmodule Cloak.MemoryReader.MemoryProjector do
     |> retain_current_reading(measurement, timestamp)
   end
 
+  @doc "Clear alls memory readings"
+  @spec clear(t) :: t
+  def clear(storage), do: %__MODULE__{storage | changes: []}
+
   @doc """
   The number of expected units of time until we reach a given lower memory limit.
   The time units are the same as used when adding new measurements.

@@ -3,7 +3,7 @@ defmodule Cloak.MemoryReader.MemoryProjectorTest do
 
   alias Cloak.MemoryReader.MemoryProjector
 
-  describe "Adding measurements" do
+  describe "Adding and clear measurements" do
     test "creates new empty projectors", do:
       assert %MemoryProjector{changes: []} = MemoryProjector.new()
 
@@ -20,6 +20,9 @@ defmodule Cloak.MemoryReader.MemoryProjectorTest do
       %MemoryProjector{changes: changes} = add_measurements(1..100)
       assert length(changes) == 20
     end
+
+    test "Can clear measurements", do:
+      assert %MemoryProjector{changes: []} = MemoryProjector.clear(add_measurements(1..100))
   end
 
   describe "Projecting the future" do
