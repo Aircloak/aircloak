@@ -11,16 +11,22 @@ defmodule Cloak.Query.Runner.Engine do
   # -------------------------------------------------------------------
 
   @doc "Executes the SQL query and returns the query result with info messages or the corresponding error."
-  @spec run(DataSource.t, String.t, [DataSource.field], Sql.Query.view_map, state_updater) ::
-    {:ok, Sql.Query.Result.t, [String.t]} | {:error, String.t}
-  def run(data_source, statement, parameters, views, state_updater) do
+  @spec run(DataSource.t, String.t, [DataSource.field], Sql.Query.view_map, state_updater,
+    Cloak.MemoryReader.query_killer_callbacks) :: {:ok, Sql.Query.Result.t, [String.t]} | {:error, String.t}
+  def run(data_source, statement, parameters, views, state_updater,
+      {query_killer_reg, query_killer_unreg}) do
     try do
       with state_updater.(:parsing),
         {:ok, parsed} <- Sql.Parser.parse(statement),
         state_updater.(:compiling),
         {:ok, query} <- Sql.Compiler.compile(data_source, parsed, parameters, views),
-        state_updater.(:awaiting_data),
-      do: {:ok, run_statement(query, state_updater), Sql.Query.info_messages(query)}
+        state_updater.(:awaiting_data)
+      do
+        query_killer_reg.()
+        result = run_statement(query, state_updater)
+        query_killer_unreg.()
+        {:ok, result, Sql.Query.info_messages(query)}
+      end
     rescue e in [Query.Runner.RuntimeError, RuntimeError] ->
       {:error, e.message}
     end
