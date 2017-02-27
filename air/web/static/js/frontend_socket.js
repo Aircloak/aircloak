@@ -5,7 +5,7 @@ import {Socket} from "phoenix";
 type Callback = (event: any) => void;
 type Callbacks = {joined?: Callback, failedJoin?: Callback, handleEvent?: Callback};
 
-export class QuerySocket {
+export class FrontendSocket {
   constructor(userToken: string) {
     this.socket = new Socket("/frontend/socket", {params: {token: userToken}});
     this.socket.connect();
