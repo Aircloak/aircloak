@@ -25,12 +25,22 @@ defmodule Air.Admin.ActivityMonitorController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
+    cloaks = Air.DataSourceManager.cloaks()
+    |> Enum.map(fn(cloak) ->
+      cloak
+      |> Map.take([:id, :name])
+      |> Map.merge(%{
+        total_memory: nil,
+        free_memory: nil,
+      })
+    end)
     render(
       conn,
       "index.html",
       csrf_token: CSRFProtection.get_csrf_token(),
       guardian_token: Guardian.Plug.current_token(conn),
       running_queries: Query.currently_running(),
+      cloaks: cloaks,
     )
   end
 end

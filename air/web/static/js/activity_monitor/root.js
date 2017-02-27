@@ -6,6 +6,8 @@ import _ from "lodash";
 
 import {QueriesView} from "./queries";
 import type {Query} from "./query";
+import {CloaksView} from "./cloaks";
+import type {Cloak} from "./cloak";
 
 import {QuerySocket} from "../query_socket";
 import {isFinished} from "../queries/state";
@@ -22,6 +24,7 @@ type Props = {
   CSRFToken: string,
   querySocket: QuerySocket,
   queries: Query[],
+  cloaks: Cloak[],
 };
 
 class ActivityMonitorView extends React.Component {
@@ -33,6 +36,7 @@ class ActivityMonitorView extends React.Component {
 
     this.state = {
       queries: this.props.queries,
+      cloaks: this.props.cloaks,
     };
 
     this.handleQueryEvent = this.handleQueryEvent.bind(this);
@@ -45,6 +49,7 @@ class ActivityMonitorView extends React.Component {
 
   state: {
     queries: Query[],
+    cloaks: Cloak[],
   };
   queryRemovalTime: number;
   handleQueryEvent: (queryEvent: QueryEvent) => void;
@@ -86,6 +91,7 @@ class ActivityMonitorView extends React.Component {
   render() {
     return (
       <div>
+        <CloaksView cloaks={this.state.cloaks} />
         <QueriesView queries={this.state.queries} />
       </div>
     );
