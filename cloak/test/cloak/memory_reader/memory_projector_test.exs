@@ -22,6 +22,22 @@ defmodule Cloak.MemoryReader.MemoryProjectorTest do
     end
   end
 
+  describe "Dropping measurements" do
+    test "Dropping from an empty buffer has no effect", do:
+      assert %MemoryProjector{changes: []} = MemoryProjector.drop(add_measurements([]), 10)
+
+    test "Dropping more measurements than exists empties buffer", do:
+      assert %MemoryProjector{changes: []} = MemoryProjector.drop(add_measurements(1..10), 20)
+
+    test "Dropping less measurements than there is free space in the buffer has no effect", do:
+      assert %MemoryProjector{changes: [250, 250, 250]} =
+        MemoryProjector.drop(add_measurements([500, 750, 1000, 1250]), 3)
+
+    test "Drops the oldest measurements", do:
+      assert %MemoryProjector{changes: [250, 250, 250]} =
+        MemoryProjector.drop(add_measurements(List.duplicate(250, 20) ++ [500, 750, 1000]), 17)
+  end
+
   describe "Projecting the future" do
     test "projection with insufficient data yields no prediction", do:
       assert :no_prediction == add_measurements(20..10)

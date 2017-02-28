@@ -28,4 +28,6 @@ config :cloak, :memory_limits,
   # The amount of time (in ms) we are projecting into the future.
   # If we reach the minimum memory threshold within this window
   # of time, then we start killing queries.
-  allowed_minimum_time_to_limit: 3_000
+  allowed_minimum_time_to_limit: 3_000,
+  # Time in seconds to wait between consecutive memory related query abortions
+  time_between_abortions: 1_000

@@ -57,21 +57,20 @@ defmodule Air.DataSourceManager do
   # -------------------------------------------------------------------
 
   defp register_data_sources(cloak_info, data_sources) do
-    data_source_ids =
-      data_sources
-      |> Enum.map(&Task.async(fn ->
-            global_id = Map.fetch!(&1, "global_id")
+    data_source_ids = data_sources
+    |> Enum.map(&Task.async(fn ->
+      global_id = Map.fetch!(&1, "global_id")
 
-            # locking on a local node to prevent two simultaneous db registrations of the same datasource
-            :global.trans(
-              {{__MODULE__, :create_or_update_datastore, global_id}, self()},
-              fn -> create_or_update_datastore(global_id, &1) end,
-              [node()]
-            )
+      # locking on a local node to prevent two simultaneous db registrations of the same datasource
+      :global.trans(
+        {{__MODULE__, :create_or_update_datastore, global_id}, self()},
+        fn -> create_or_update_datastore(global_id, &1) end,
+        [node()]
+      )
 
-            global_id
-          end))
-      |> Enum.map(&Task.await/1)
+      global_id
+    end))
+    |> Enum.map(&Task.await/1)
 
     Enum.each(data_source_ids, &Registry.register(@registry_name, {:data_source, &1}, cloak_info))
 

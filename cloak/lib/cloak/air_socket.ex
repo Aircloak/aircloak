@@ -16,6 +16,7 @@ defmodule Cloak.AirSocket do
 
   @timeout :timer.seconds(5)
 
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -46,7 +47,7 @@ defmodule Cloak.AirSocket do
   @spec send_query_result(GenServer.server, map) :: :ok | {:error, any}
   def send_query_result(socket \\ __MODULE__, result) do
     Logger.info("sending query result to Air", query_id: result.query_id)
-    call(socket, "query_result", result)
+    call(socket, "main", "query_result", result)
   end
 
   @doc """
@@ -57,7 +58,12 @@ defmodule Cloak.AirSocket do
   """
   @spec send_query_state(GenServer.server, String.t, atom) :: :ok | {:error, any}
   def send_query_state(socket \\ __MODULE__, query_id, query_state), do:
-    call(socket, "query_state", %{query_id: query_id, query_state: query_state})
+    call(socket, "main", "query_state", %{query_id: query_id, query_state: query_state})
+
+  @doc "Sends cloak memory stats to the air."
+  @spec send_memory_stats(GenServer.server, Keyword.t) :: :ok | {:error, any}
+  def send_memory_stats(socket \\ __MODULE__, memory_reading), do:
+    cast(socket, "memory_channel", "reading", memory_reading |> Enum.into(%{}))
 
 
   # -------------------------------------------------------------------
@@ -79,6 +85,7 @@ defmodule Cloak.AirSocket do
   def handle_connected(_transport, state) do
     Logger.info("connected")
     send(self(), {:join, "main"})
+    send(self(), {:join, "memory_channel"})
     initial_interval = config(:min_reconnect_interval)
     {:ok, %{state | reconnect_interval: initial_interval}}
   end
@@ -155,10 +162,27 @@ defmodule Cloak.AirSocket do
     end
     {:ok, state}
   end
-  def handle_info({{__MODULE__, :call}, timeout, from, event, payload}, transport, state) do
+  def handle_info({{__MODULE__, :cast}, topic, event, payload}, transport, state) do
+    try do
+      GenSocketClient.push(transport, topic, event, payload)
+      {:ok, state}
+    rescue
+      error in Poison.EncodeError ->
+        error =
+          if Aircloak.DeployConfig.override_app_env!(:cloak, :sanitize_otp_errors) do
+            Poison.EncodeError.exception(message: "Poison encode error", value: "`sanitized`")
+          else
+            error
+          end
+
+        Logger.error("Message could not be encoded: #{Exception.message(error)}")
+        {:ok, state}
+    end
+  end
+  def handle_info({{__MODULE__, :call}, topic, timeout, from, event, payload}, transport, state) do
     request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
     try do
-      GenSocketClient.push(transport, "main", "cloak_call", %{request_id: request_id, event: event, payload: payload})
+      GenSocketClient.push(transport, topic, "cloak_call", %{request_id: request_id, event: event, payload: payload})
       timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
       {:ok, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
     rescue
@@ -286,17 +310,23 @@ defmodule Cloak.AirSocket do
     send(client_pid, {mref, response})
   end
 
-  @spec call(GenServer.server, String.t, map) :: :ok | {:error, any}
-  defp call(socket, event, payload) do
-    case do_call(socket, event, payload, @timeout) do
+  @spec cast(GenServer.server, String.t, String.t, map) :: :ok
+  defp cast(socket, topic, event, payload) do
+    send(socket, {{__MODULE__, :cast}, topic, event, payload})
+    :ok
+  end
+
+  @spec call(GenServer.server, String.t, String.t, map) :: :ok | {:error, any}
+  defp call(socket, topic, event, payload) do
+    case do_call(socket, topic, event, payload, @timeout) do
       {:ok, _} -> :ok
       error -> error
     end
   end
 
-  defp do_call(socket, event, payload, timeout) do
+  defp do_call(socket, topic, event, payload, timeout) do
     mref = Process.monitor(socket)
-    send(socket, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})
+    send(socket, {{__MODULE__, :call}, topic, timeout, {self(), mref}, event, payload})
     receive do
       {^mref, response} ->
         Process.demonitor(mref, [:flush])

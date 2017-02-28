@@ -11,13 +11,11 @@ defmodule Cloak.MemoryReader do
 
   use GenServer
 
-  alias Cloak.MemoryReader.MemoryProjector
+  alias Cloak.MemoryReader.{MemoryProjector, Readings}
 
   require Logger
 
   @type query_killer_callbacks :: {(() -> :ok), (() -> :ok)}
-
-  @query_kill_cooloff_cycles 10
 
 
   # -------------------------------------------------------------------
@@ -49,11 +47,17 @@ defmodule Cloak.MemoryReader do
       memory_projector: MemoryProjector.new(),
       queries: [],
       params: read_params(),
-      # It's bumped on every kill, and then slowly reduced over time.
-      # This causes there to be a pause between query killings as to avoid
-      # a massacre.
-      kill_cooloff: 0,
+      last_reading: nil,
+      readings: Readings.new([
+        {"current", 1},
+        {"last_five_seconds", 5 * measurements_per_second(%{params: read_params()})},
+        {"last_minute", 12},
+        {"last_five_minutes", 5},
+        {"last_fifteen_minutes", 15},
+        {"last_hour", 4},
+      ]),
     }
+    :timer.send_interval(:timer.seconds(5), :report_memory_stats)
     schedule_check(state)
     {:ok, state}
   end
@@ -75,9 +79,19 @@ defmodule Cloak.MemoryReader do
     schedule_check(state)
     free_memory = Keyword.get(reading, :free_memory)
     state
+    |> record_reading(reading)
     |> Map.put(:memory_projector, MemoryProjector.add_reading(projector, free_memory, time))
-    |> reduce_kill_cooloff()
     |> perform_memory_check(free_memory)
+  end
+  def handle_info(:report_memory_stats, %{last_reading: nil} = state), do:
+    {:noreply, state}
+  def handle_info(:report_memory_stats, state) do
+    payload = %{
+      total_memory: Keyword.get(state.last_reading, :total_memory),
+      free_memory: Readings.values(state.readings),
+    }
+    Cloak.AirSocket.send_memory_stats(payload)
+    {:noreply, state}
   end
 
 
@@ -106,13 +120,17 @@ defmodule Cloak.MemoryReader do
 
   defp to_sec(ms), do: max(trunc(ms / 1_000), 0)
 
-  defp kill_query(%{kill_cooloff: cooloff} = state) when cooloff > 0, do:
-    {:noreply, state}
   defp kill_query(%{queries: []} = state), do:
     {:noreply, state}
   defp kill_query(%{queries: [query | queries]} = state) do
     Cloak.Query.Runner.stop(query, :oom)
-    {:noreply, %{state | queries: queries, kill_cooloff: @query_kill_cooloff_cycles}}
+    state = %{state |
+      # This adds an artificial cool down period between consecutive killings, proportional
+      # to the length of the memory projection buffer.
+      memory_projector: MemoryProjector.drop(state.memory_projector, num_measurements_to_drop(state)),
+      queries: queries,
+    }
+    {:noreply, state}
   end
 
   defp schedule_check(%{params: %{check_interval: interval}}), do: Process.send_after(self(), :read_memory, interval)
@@ -123,7 +141,10 @@ defmodule Cloak.MemoryReader do
 
     config = case Aircloak.DeployConfig.fetch(:cloak, "memory_limits") do
       {:ok, analyst_config} ->
-        [:check_interval, :limit_to_start_checks, :limit_to_check_for, :allowed_minimum_time_to_limit]
+        [
+          :check_interval, :limit_to_start_checks, :limit_to_check_for,
+          :allowed_minimum_time_to_limit, :time_between_abortions
+        ]
         |> Enum.reduce(%{}, fn(parameter, config) ->
           value = Map.get(analyst_config, Atom.to_string(parameter), defaults[parameter])
           Map.put(config, parameter, value)
@@ -133,11 +154,21 @@ defmodule Cloak.MemoryReader do
 
     Logger.debug("The low memory monitor is configured with: check_interval: #{config.check_interval} ms, " <>
       "limit_to_start_checks: #{config.limit_to_start_checks} bytes, limit_to_check_for: " <>
-      "#{config.limit_to_check_for} bytes, and allowed_minimum_time_to_limit: " <>
-      "#{config.allowed_minimum_time_to_limit} ms")
+      "#{config.limit_to_check_for} bytes, allowed_minimum_time_to_limit: " <>
+      "#{config.allowed_minimum_time_to_limit} ms, and up to #{config.time_between_abortions} ms " <>
+      "of time waited between consecutive query abortions.")
     config
   end
 
-  defp reduce_kill_cooloff(%{kill_cooloff: 0} = state), do: state
-  defp reduce_kill_cooloff(%{kill_cooloff: cooloff} = state), do: %{state | kill_cooloff: cooloff - 1}
+  defp record_reading(state, reading) do
+    %{state |
+      last_reading: reading,
+      readings: Readings.add_reading(state.readings, Keyword.get(reading, :free_memory)),
+    }
+  end
+
+  defp measurements_per_second(%{params: %{check_interval: interval}}), do: div(1_000, interval)
+
+  defp num_measurements_to_drop(%{params: %{check_interval: interval, time_between_abortions: pause}}), do:
+    div(pause, interval)
 end
