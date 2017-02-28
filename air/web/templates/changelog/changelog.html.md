@@ -4,7 +4,8 @@
 ### New features
 
 - Adds an Activity Monitor that allows an administrator to see all queries running in the system across all
-  analysts.
+  analysts as well as the memory usage across all connected cloaks.
+- Show indication of progress when a query is executing.
 
 ### Enhancements
 
@@ -12,6 +13,7 @@
 - Produces an error message when a data source is configured with an invalid decryption key
 - Adds an endpoint for monitoring by external tools
 - Adds a setting pane with the ability to specify the retention time for past queries
+- Cloak's terminate queries when about to run out of memory, rather than crash.
 
 ### Changes
 
