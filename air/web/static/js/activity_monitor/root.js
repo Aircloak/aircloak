@@ -3,6 +3,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import _ from "lodash";
+import {Channel} from "phoenix";
 
 import {QueriesView} from "./queries";
 import type {Query} from "./query";
@@ -11,6 +12,7 @@ import type {Cloak} from "./cloak";
 
 import {FrontendSocket} from "../frontend_socket";
 import {isFinished} from "../queries/state";
+import {Disconnected} from "../disconnected";
 
 type QueryEvent = {
   query_id: string,
@@ -43,7 +45,7 @@ class ActivityMonitorView extends React.Component {
     this.handleRemoveQuery = this.handleRemoveQuery.bind(this);
     this.handleMemoryReading = this.handleMemoryReading.bind(this);
 
-    this.props.frontendSocket.joinAllQueryEventsChannel({
+    this.channel = this.props.frontendSocket.joinAllQueryEventsChannel({
       handleEvent: this.handleQueryEvent,
     });
     this.props.frontendSocket.joinMemoryChannel({
@@ -56,6 +58,8 @@ class ActivityMonitorView extends React.Component {
     cloaks: Cloak[],
   };
   queryRemovalTime: number;
+  channel: Channel;
+
   handleQueryEvent: (queryEvent: QueryEvent) => void;
   handleRemoveQuery: (query: Query) => void;
   handleMemoryReading: (cloak: Cloak) => void;
@@ -104,6 +108,7 @@ class ActivityMonitorView extends React.Component {
   render() {
     return (
       <div>
+        <Disconnected channel={this.channel} />
         <CloaksView cloaks={this.state.cloaks} />
         <QueriesView queries={this.state.queries} />
       </div>

@@ -35,6 +35,9 @@ export class CodeEditor extends React.Component {
   insertWordInEditor: () => void;
 
   setupComponent(codeMirrorComponent: {getCodeMirrorInstance: () => Codemirror}) {
+    // This appears to happen when the component disappears
+    if (codeMirrorComponent === null) return;
+
     const codeMirrorClass = codeMirrorComponent.getCodeMirrorInstance();
     codeMirrorClass.commands.run = (_cm) => {
       this.props.onRun();

@@ -20,12 +20,14 @@ export class FrontendSocket {
   joinAllQueryEventsChannel: (callbacks: Callbacks) => void;
   joinMemoryChannel: (callbacks: Callbacks) => void;
 
+  isConnected() { return this.socket.isConnected(); }
+
   joinSessionChannel(sessionId: string, callbacks: Callbacks) {
-    this.joinChannel(callbacks, `session:${sessionId}`, ["result", "state_change"]);
+    return this.joinChannel(callbacks, `session:${sessionId}`, ["result", "state_change"]);
   }
 
   joinAllQueryEventsChannel(callbacks: Callbacks) {
-    this.joinChannel(callbacks, "state_changes:all", ["state_change"]);
+    return this.joinChannel(callbacks, "state_changes:all", ["state_change"]);
   }
 
   joinMemoryChannel(callbacks: Callbacks) {
@@ -45,5 +47,7 @@ export class FrontendSocket {
       .receive("ok", joined)
       .receive("error", failedJoin);
     eventNames.forEach((name) => { channel.on(name, handleEvent); });
+
+    return channel;
   }
 }
