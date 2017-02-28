@@ -35,7 +35,8 @@ defmodule Air.Router do
   scope "/", Air do
     pipe_through [:browser, :browser_auth]
 
-    get "/", QueryController, :index
+    get "/", DataSourceController, :redirect_to_last_used
+
     post "/queries", QueryController, :create
     post "/queries/cancel", QueryController, :cancel
     get "/queries/load_history/:data_source_id", QueryController, :load_history

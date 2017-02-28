@@ -5,6 +5,7 @@ defmodule Air.DataSourceController do
 
   use Air.Web, :controller
 
+  alias Air.{Schemas.Query, Repo, Service.DataSource}
   alias Air.Service.DataSource
   alias Plug.CSRFProtection
 
@@ -15,7 +16,7 @@ defmodule Air.DataSourceController do
 
   def permissions do
     %{
-      user: [:index, :show],
+      user: [:index, :show, :redirect_to_last_used],
       admin: :all
     }
   end
@@ -55,6 +56,19 @@ defmodule Air.DataSourceController do
         |> put_flash(:error, "Not permitted to access data source")
         |> redirect(to: data_source_path(conn, :index))
         |> halt()
+    end
+  end
+
+  def redirect_to_last_used(conn, _params) do
+    conn.assigns.current_user
+    |> Query.for_user()
+    |> Query.last()
+    |> Repo.one()
+    |> case do
+      %Query{data_source_id: data_source_id} when data_source_id != nil ->
+        redirect(conn, to: "/data_sources/#{data_source_id}")
+      _ ->
+        redirect(conn, to: "/data_sources")
     end
   end
 end

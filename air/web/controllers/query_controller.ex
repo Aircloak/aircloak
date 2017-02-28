@@ -14,7 +14,7 @@ defmodule Air.QueryController do
 
   def permissions do
     %{
-      user: [:index, :create, :show, :load_history],
+      user: [:create, :show, :load_history],
       admin: :all
     }
   end
@@ -23,19 +23,6 @@ defmodule Air.QueryController do
   # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------
-
-  def index(conn, _params) do
-    conn.assigns.current_user
-    |> Query.for_user()
-    |> Query.last()
-    |> Repo.one()
-    |> case do
-      %Query{data_source_id: data_source_id} when data_source_id != nil ->
-        redirect(conn, to: "/data_sources/#{data_source_id}")
-      _ ->
-        redirect(conn, to: "/data_sources")
-    end
-  end
 
   def create(conn, %{"query" => params}) do
     case DataSource.start_query(
