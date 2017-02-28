@@ -257,10 +257,9 @@ class QueriesView extends React.Component {
     }
   }
 
-  render() {
-    let button;
+  renderButton() {
     if (this.isQueryPending()) {
-      button = (<div className="right-align">
+      return (<div className="right-align">
         <button
           className="btn btn-small btn-warning"
           onClick={this.stopQuery}
@@ -269,7 +268,7 @@ class QueriesView extends React.Component {
         <kbd>Ctrl + Escape</kbd>
       </div>);
     } else {
-      button = (<div className="right-align">
+      return (<div className="right-align">
         <button
           className="btn btn-primary"
           onClick={this.runQuery}
@@ -279,12 +278,15 @@ class QueriesView extends React.Component {
         <kbd>Ctrl + Enter</kbd>
       </div>);
     }
+  }
+
+  render() {
     return (<div>
       <Disconnected channel={this.channel} />
+
       <div id="sql-editor">
         {this.renderCodeEditorOrViewer()}
-
-        {button}
+        {this.renderButton()}
       </div>
 
       <Results results={this.state.sessionResults} />
