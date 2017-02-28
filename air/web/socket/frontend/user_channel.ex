@@ -21,8 +21,9 @@ defmodule Air.Socket.Frontend.UserChannel do
   """
   @spec broadcast_result(Schemas.Query.t) :: :ok
   def broadcast_result(query) do
-    Air.Endpoint.broadcast_from!(self(), "session:#{query.session_id}", "result",
-      Schemas.Query.for_display(query))
+    payload = Schemas.Query.for_display(query)
+    Air.Endpoint.broadcast_from!(self(), "session:#{query.session_id}", "result", payload)
+    Air.Endpoint.broadcast_from!(self(), "query:#{query.id}", "result", payload)
     :ok
   end
 
@@ -56,6 +57,17 @@ defmodule Air.Socket.Frontend.UserChannel do
       {:ok, socket}
     else
       {:error, %{reason: "Only admin users are allowed to connect"}}
+    end
+  end
+  def join("query:" <> query_id, _, socket) do
+    user = socket.assigns.user
+    user_id = user.id
+    case {Air.Schemas.User.admin?(user), Air.Service.Query.get(query_id)} do
+      {true, {:ok, _}} -> {:ok, socket}
+      {true, _} -> {:error, %{reason: "The query could not be found or the query id was invalid"}}
+      {false, {:ok, %Schemas.Query{user_id: ^user_id}}} -> {:ok, socket}
+      {false, _} ->
+        {:error, %{reason: "The query doesn't exist, the ID is invalid or you aren't authorized to see it."}}
     end
   end
 

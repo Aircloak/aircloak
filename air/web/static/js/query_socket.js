@@ -23,7 +23,7 @@ export class QuerySocket {
   }
 
   joinUpdatesForQuery(queryId: string, callbacks: Callbacks) {
-    this.joinChannel(callbacks, `query:${queryId}`, ["query_update"]);
+    this.joinChannel(callbacks, `query:${queryId}`, ["result"]);
   }
 
   joinAllQueryEventsChannel(callbacks: Callbacks) {
