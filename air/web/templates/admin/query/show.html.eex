@@ -1,0 +1,23 @@
+<ol class="breadcrumb">
+  <li><a href="/admin">Activity monitor</a></li>
+  <li class="active">
+    ID: <strong><%= @query.id %></strong>
+  </li>
+</ol>
+
+<h2>Query view</h2>
+
+<div id="query-view"></div>
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      var props = {
+        result: <%= to_json(@query) %>,
+        guardianToken: "<%= @guardian_token %>",
+      };
+
+      App.queryShowPage(props, document.getElementById("query-view"));
+    }
+  };
+</script>

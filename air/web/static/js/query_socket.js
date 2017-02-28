@@ -22,6 +22,10 @@ export class QuerySocket {
     this.joinChannel(callbacks, `session:${sessionId}`, ["result", "state_change"]);
   }
 
+  joinUpdatesForQuery(queryId: string, callbacks: Callbacks) {
+    this.joinChannel(callbacks, `query:${queryId}`, ["query_update"]);
+  }
+
   joinAllQueryEventsChannel(callbacks: Callbacks) {
     this.joinChannel(callbacks, "state_changes:all", ["state_change"]);
   }

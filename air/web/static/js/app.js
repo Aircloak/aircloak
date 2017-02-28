@@ -16,12 +16,14 @@
 import "phoenix_html";
 
 import renderQueriesView from "./queries/root";
+import renderQueryView from "./queries/single_query_root";
 import renderSelectableInfo from "./selectable_info/root";
 import renderViewEditor from "./view/editor";
 import renderActivityMonitorView from "./activity_monitor/root";
 
 const App = {
   queryPage: renderQueriesView,
+  queryShowPage: renderQueryView,
   selectableInfo: renderSelectableInfo,
   viewEditor: renderViewEditor,
   activityMonitor: renderActivityMonitorView,

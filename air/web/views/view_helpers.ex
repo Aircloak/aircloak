@@ -58,6 +58,7 @@ defmodule Air.ViewHelpers do
   end
 
   defp active_class(path, "/admin/activity_monitor") when path in ["/admin", "/admin/"], do: "active"
+  defp active_class("/admin/queries/" <> _, "/admin/activity_monitor"), do: "active"
   defp active_class(request_path, link_path) do
     if String.starts_with?(request_path, link_path) do
       "active"

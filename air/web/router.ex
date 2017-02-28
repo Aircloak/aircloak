@@ -64,6 +64,7 @@ defmodule Air.Router do
     pipe_through [:browser, :browser_auth]
 
     get "/queries/failed", QueryController, :failed
+    get "/queries/:id", QueryController, :show
 
     resources "/users", UserController
     resources "/groups", GroupController
