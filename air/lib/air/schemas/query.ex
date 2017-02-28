@@ -133,10 +133,12 @@ defmodule Air.Schemas.Query do
   def failed(query \\ __MODULE__) do
     from q in query,
     join: ds in assoc(q, :data_source),
+    join: user in assoc(q, :user),
     select: %{
       id: q.id,
       inserted_at: q.inserted_at,
       data_source: ds.name,
+      user: user.name,
       statement: q.statement,
       error: fragment("?->>'error'", q.result)
     },
