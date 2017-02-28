@@ -37,6 +37,7 @@ class QueriesView extends React.Component {
     this.state = {
       statement: this.props.lastQuery ? this.props.lastQuery.statement : "",
       sessionResults: [],
+      connected: true,
 
       history: {
         before: "",
@@ -56,19 +57,24 @@ class QueriesView extends React.Component {
     this.replaceResult = this.replaceResult.bind(this);
     this.columnNames = this.columnNames.bind(this);
     this.tableNames = this.tableNames.bind(this);
+    this.runEnabled = this.runEnabled.bind(this);
+    this.updateConnected = this.updateConnected.bind(this);
 
     this.bindKeysWithoutEditorFocus();
     this.channel = this.props.querySocket.joinSessionChannel(props.sessionId, {
       handleEvent: this.resultReceived,
     });
+    this.connectedInterval = setInterval(this.updateConnected, 1000 /* 1 second */);
   }
 
   state: {
     statement: string,
     sessionResults: Result[],
     history: History,
+    connected: boolean,
   }
   channel: Channel;
+  connectedInterval: number;
 
   setStatement: () => void;
   runQuery: () => void;
@@ -81,6 +87,21 @@ class QueriesView extends React.Component {
   replaceResult: () => void;
   columnNames: () => void;
   tableNames: () => void;
+  updateConnected: () => void;
+
+  runEnabled: () => boolean;
+
+  componentWillUnmount() {
+    clearInterval(this.connectedInterval);
+  }
+
+  updateConnected() {
+    this.setState({connected: this.channel.isJoined()});
+  }
+
+  runEnabled() {
+    return this.props.dataSourceAvailable && this.state.connected;
+  }
 
   setStatement(statement) {
     this.setState({statement});
@@ -143,7 +164,7 @@ class QueriesView extends React.Component {
   }
 
   runQuery() {
-    if (! this.props.dataSourceAvailable) return;
+    if (! this.runEnabled()) return;
     if (this.isQueryPending()) return;
 
     const statement = this.state.statement;
@@ -173,7 +194,7 @@ class QueriesView extends React.Component {
   }
 
   stopQuery() {
-    if (! this.props.dataSourceAvailable) return;
+    if (! this.runEnabled()) return;
     if (! this.isQueryPending()) return;
 
     const queryId = this.state.sessionResults[0].id;
@@ -243,7 +264,7 @@ class QueriesView extends React.Component {
   }
 
   renderCodeEditorOrViewer() {
-    if (this.props.dataSourceAvailable) {
+    if (this.runEnabled()) {
       return (<CodeEditor
         onRun={this.runQuery}
         onStop={this.stopQuery}
@@ -272,7 +293,7 @@ class QueriesView extends React.Component {
         <button
           className="btn btn-primary"
           onClick={this.runQuery}
-          disabled={!this.props.dataSourceAvailable}
+          disabled={!this.runEnabled()}
         >Run</button>
         <span> or </span>
         <kbd>Ctrl + Enter</kbd>
