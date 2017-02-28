@@ -5,6 +5,7 @@ import ReactDOM from "react-dom";
 import $ from "jquery";
 import _ from "lodash";
 import Mousetrap from "mousetrap";
+import Channel from "phoenix";
 
 import {CodeEditor} from "../code_editor";
 import {CodeViewer} from "../code_viewer";
@@ -57,7 +58,7 @@ class QueriesView extends React.Component {
     this.tableNames = this.tableNames.bind(this);
 
     this.bindKeysWithoutEditorFocus();
-    this.props.querySocket.joinSessionChannel(props.sessionId, {
+    this.channel = this.props.querySocket.joinSessionChannel(props.sessionId, {
       handleEvent: this.resultReceived,
     });
   }
@@ -67,6 +68,7 @@ class QueriesView extends React.Component {
     sessionResults: Result[],
     history: History,
   }
+  channel: Channel;
 
   setStatement: () => void;
   runQuery: () => void;
@@ -278,7 +280,7 @@ class QueriesView extends React.Component {
       </div>);
     }
     return (<div>
-      <Disconnected socket={this.props.querySocket} />
+      <Disconnected channel={this.channel} />
       <div id="sql-editor">
         {this.renderCodeEditorOrViewer()}
 

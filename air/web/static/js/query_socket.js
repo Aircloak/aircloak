@@ -21,11 +21,11 @@ export class QuerySocket {
   isConnected() { return this.socket.isConnected(); }
 
   joinSessionChannel(sessionId: string, callbacks: Callbacks) {
-    this.joinChannel(callbacks, `session:${sessionId}`, ["result", "state_change"]);
+    return this.joinChannel(callbacks, `session:${sessionId}`, ["result", "state_change"]);
   }
 
   joinAllQueryEventsChannel(callbacks: Callbacks) {
-    this.joinChannel(callbacks, "state_changes:all", ["state_change"]);
+    return this.joinChannel(callbacks, "state_changes:all", ["state_change"]);
   }
 
   joinChannel(callbacks: Callbacks, channelName: string, eventNames: string[]) {
@@ -41,5 +41,7 @@ export class QuerySocket {
       .receive("ok", joined)
       .receive("error", failedJoin);
     eventNames.forEach((name) => { channel.on(name, handleEvent); });
+
+    return channel;
   }
 }

@@ -2,10 +2,10 @@
 
 import React from "react";
 
-import {QuerySocket} from "./query_socket";
+import {Channel} from "phoenix";
 
 export class Disconnected extends React.Component {
-  constructor(props: {socket: QuerySocket}) {
+  constructor(props: {channel: Channel}) {
     super(props);
 
     this.state = {isConnected: true};
@@ -29,7 +29,7 @@ export class Disconnected extends React.Component {
   }
 
   updateConnected() {
-    this.setState({isConnected: this.props.socket.isConnected()});
+    this.setState({isConnected: this.props.channel.isJoined()});
   }
 
   render() {
