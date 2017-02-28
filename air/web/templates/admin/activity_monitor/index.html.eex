@@ -9,7 +9,8 @@
         CSRFToken: "<%= @csrf_token %>",
         guardianToken: "<%= @guardian_token %>",
         userId: "<%= @current_user.id %>",
-        queries: <%= to_json(format_queries(@running_queries)) %>
+        queries: <%= to_json(format_queries(@running_queries)) %>,
+        cloaks: <%= to_json(format_cloaks(@cloaks)) %>
       };
 
       App.activityMonitor(props, document.getElementById("activity-monitor-view"));

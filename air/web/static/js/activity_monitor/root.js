@@ -3,11 +3,14 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import _ from "lodash";
+import {Channel} from "phoenix";
 
 import {QueriesView} from "./queries";
 import type {Query} from "./query";
+import {CloaksView} from "./cloaks";
+import type {Cloak} from "./cloak";
 
-import {QuerySocket} from "../query_socket";
+import {FrontendSocket} from "../frontend_socket";
 import {isFinished} from "../queries/state";
 import {Disconnected} from "../disconnected";
 
@@ -21,8 +24,9 @@ type Props = {
   userId: number,
   guardianToken: string,
   CSRFToken: string,
-  querySocket: QuerySocket,
+  frontendSocket: FrontendSocket,
   queries: Query[],
+  cloaks: Cloak[],
 };
 
 class ActivityMonitorView extends React.Component {
@@ -34,22 +38,31 @@ class ActivityMonitorView extends React.Component {
 
     this.state = {
       queries: this.props.queries,
+      cloaks: this.props.cloaks,
     };
 
     this.handleQueryEvent = this.handleQueryEvent.bind(this);
     this.handleRemoveQuery = this.handleRemoveQuery.bind(this);
+    this.handleMemoryReading = this.handleMemoryReading.bind(this);
 
-    this.props.querySocket.joinAllQueryEventsChannel({
+    this.channel = this.props.frontendSocket.joinAllQueryEventsChannel({
       handleEvent: this.handleQueryEvent,
+    });
+    this.props.frontendSocket.joinMemoryChannel({
+      handleEvent: this.handleMemoryReading,
     });
   }
 
   state: {
     queries: Query[],
+    cloaks: Cloak[],
   };
   queryRemovalTime: number;
+  channel: Channel;
+
   handleQueryEvent: (queryEvent: QueryEvent) => void;
   handleRemoveQuery: (query: Query) => void;
+  handleMemoryReading: (cloak: Cloak) => void;
 
   handleRemoveQuery(queryId) {
     const queries = _.reject(this.state.queries, (query) => query.id === queryId);
@@ -84,10 +97,19 @@ class ActivityMonitorView extends React.Component {
     this.setState({queries});
   }
 
+  handleMemoryReading(newOrUpdatedCloak: Cloak) {
+    const cloaks = _.chain([newOrUpdatedCloak, ...this.state.cloaks]).
+      uniqBy((cloak) => cloak.id).
+      sortBy((cloak) => cloak.name).
+      value();
+    this.setState({cloaks});
+  }
+
   render() {
     return (
       <div>
-        <Disconnected socket={this.props.querySocket} />
+        <Disconnected channel={this.channel} />
+        <CloaksView cloaks={this.state.cloaks} />
         <QueriesView queries={this.state.queries} />
       </div>
     );
@@ -95,6 +117,6 @@ class ActivityMonitorView extends React.Component {
 }
 
 export default function renderACtivityMonitorView(data: Props, elem: Node) {
-  const socket = new QuerySocket(data.guardianToken);
-  ReactDOM.render(<ActivityMonitorView querySocket={socket} {...data} />, elem);
+  const socket = new FrontendSocket(data.guardianToken);
+  ReactDOM.render(<ActivityMonitorView frontendSocket={socket} {...data} />, elem);
 }

@@ -12,7 +12,7 @@ import {CodeViewer} from "../code_viewer";
 import {Results} from "./results";
 import type {Result} from "./result";
 import type {Selectable} from "../selectable_info/selectable";
-import {QuerySocket} from "../query_socket";
+import {FrontendSocket} from "../frontend_socket";
 import {HistoryLoader} from "./history_loader";
 import type {History} from "./history_loader";
 import {isPending} from "./state";
@@ -27,7 +27,7 @@ type Props = {
   selectables: Selectable[],
   lastQuery: {statement: string},
   CSRFToken: string,
-  querySocket: QuerySocket,
+  frontendSocket: FrontendSocket,
 };
 
 class QueriesView extends React.Component {
@@ -61,7 +61,7 @@ class QueriesView extends React.Component {
     this.updateConnected = this.updateConnected.bind(this);
 
     this.bindKeysWithoutEditorFocus();
-    this.channel = this.props.querySocket.joinSessionChannel(props.sessionId, {
+    this.channel = this.props.frontendSocket.joinSessionChannel(props.sessionId, {
       handleEvent: this.resultReceived,
     });
     this.connectedInterval = setInterval(this.updateConnected, 1000 /* 1 second */);
@@ -318,6 +318,6 @@ class QueriesView extends React.Component {
 }
 
 export default function renderQueriesView(data: Props, elem: Node) {
-  const socket = new QuerySocket(data.guardianToken);
-  ReactDOM.render(<QueriesView querySocket={socket} {...data} />, elem);
+  const socket = new FrontendSocket(data.guardianToken);
+  ReactDOM.render(<QueriesView frontendSocket={socket} {...data} />, elem);
 }
