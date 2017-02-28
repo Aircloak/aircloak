@@ -21,6 +21,8 @@ defmodule Air.Repo.Migrations.AddIngestingAndPostProcessingQueryStates do
     alter table(:queries) do
       add :query_state, :query_state, default: "started"
     end
+    create index(:queries, [:query_state])
+
     execute "UPDATE queries SET query_state = 'completed'"
   end
 
@@ -35,6 +37,7 @@ defmodule Air.Repo.Migrations.AddIngestingAndPostProcessingQueryStates do
     alter table(:queries) do
       add :query_state, :query_state, default: "started"
     end
+
     execute "UPDATE queries SET query_state = 'completed'"
   end
 end
