@@ -6,12 +6,12 @@ import ReactDOM from "react-dom";
 import {Results} from "./results";
 import {PropertiesView} from "./properties";
 import type {Result} from "./result";
-import {QuerySocket} from "../query_socket";
+import {FrontendSocket} from "../frontend_socket";
 
 type Props = {
   result: Result,
   guardianToken: string,
-  querySocket: QuerySocket,
+  frontendSocket: FrontendSocket,
 };
 
 class QueryView extends React.Component {
@@ -24,7 +24,7 @@ class QueryView extends React.Component {
 
     this.resultReceived = this.resultReceived.bind(this);
 
-    this.props.querySocket.joinUpdatesForQuery(props.result.id, {
+    this.props.frontendSocket.joinUpdatesForQuery(props.result.id, {
       handleEvent: this.resultReceived,
     });
   }
@@ -50,6 +50,6 @@ class QueryView extends React.Component {
 }
 
 export default function renderQueryView(data: Props, elem: Node) {
-  const socket = new QuerySocket(data.guardianToken);
-  ReactDOM.render(<QueryView querySocket={socket} {...data} />, elem);
+  const socket = new FrontendSocket(data.guardianToken);
+  ReactDOM.render(<QueryView frontendSocket={socket} {...data} />, elem);
 }
