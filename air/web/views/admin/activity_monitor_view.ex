@@ -22,6 +22,6 @@ defmodule Air.Admin.ActivityMonitorView do
   def format_cloaks(cloaks), do:
     Enum.map(cloaks, &format_cloak/1)
 
-  def format_cloak(cloak, reading \\ %{total_memory: nil, free_memory: nil}), do:
+  def format_cloak(cloak, reading \\ %{total_memory: nil, free_memory: %{}}), do:
     Map.merge(reading, Map.take(cloak, [:id, :name]))
 end
