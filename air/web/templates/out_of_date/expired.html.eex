@@ -68,8 +68,8 @@ docker restart cloak</pre>
             </p>
 
             <p>
-              Never versions also contain important security fixes in the Linux subsystem used.
-              It is recommended that you always run the latest version provided,
+              Newer versions also contain important security fixes in the Linux subsystem used.
+              It is recommended that you always run the latest version available,
               but ample time is provided so you can upgrade your installation on a schedule matching
               your internal requirements.
             </p>

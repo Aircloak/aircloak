@@ -33,8 +33,7 @@ defmodule Air.PsqlServer do
 
   @doc false
   def login(conn, password) do
-    with false <- Version.expired?(),
-         data_source_id <- {:global_id, conn.login_params["database"]},
+    with data_source_id <- {:global_id, conn.login_params["database"]},
          {:ok, user} <- User.login(conn.login_params["user"], password),
          {:ok, _} <- DataSource.fetch_as_user(data_source_id, user)
     do
@@ -115,6 +114,11 @@ defmodule Air.PsqlServer do
 
   defp parse_response({:error, :not_connected}), do:
     %{error: "Data source is not available!"}
+  defp parse_response({:error, :expired}), do:
+    %{
+      error: "Your Aircloak installation is running version #{Air.SharedView.version()} " <>
+        "which expired on #{Version.expiry_date()}."
+    }
   defp parse_response({:ok, %{"error" => error}}), do:
     %{error: error}
   defp parse_response({:ok, query_result}), do:

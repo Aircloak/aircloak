@@ -5,16 +5,18 @@ import ReactDOM from "react-dom";
 import $ from "jquery";
 import _ from "lodash";
 import Mousetrap from "mousetrap";
+import Channel from "phoenix";
 
 import {CodeEditor} from "../code_editor";
 import {CodeViewer} from "../code_viewer";
 import {Results} from "./results";
 import type {Result} from "./result";
 import type {Selectable} from "../selectable_info/selectable";
-import {QuerySocket} from "../query_socket";
+import {FrontendSocket} from "../frontend_socket";
 import {HistoryLoader} from "./history_loader";
 import type {History} from "./history_loader";
 import {isPending} from "./state";
+import {Disconnected} from "../disconnected";
 
 type Props = {
   userId: number,
@@ -25,8 +27,10 @@ type Props = {
   selectables: Selectable[],
   lastQuery: {statement: string},
   CSRFToken: string,
-  querySocket: QuerySocket,
+  frontendSocket: FrontendSocket,
 };
+
+const upgradeRequired = 426;
 
 class QueriesView extends React.Component {
   constructor(props: Props) {
@@ -35,6 +39,7 @@ class QueriesView extends React.Component {
     this.state = {
       statement: this.props.lastQuery ? this.props.lastQuery.statement : "",
       sessionResults: [],
+      connected: true,
 
       history: {
         before: "",
@@ -54,18 +59,25 @@ class QueriesView extends React.Component {
     this.replaceResult = this.replaceResult.bind(this);
     this.columnNames = this.columnNames.bind(this);
     this.tableNames = this.tableNames.bind(this);
+    this.runEnabled = this.runEnabled.bind(this);
+    this.updateConnected = this.updateConnected.bind(this);
 
     this.bindKeysWithoutEditorFocus();
-    this.props.querySocket.joinSessionChannel(props.sessionId, {
+    this.channel = this.props.frontendSocket.joinSessionChannel(props.sessionId, {
       handleEvent: this.resultReceived,
     });
+    this.connectedInterval = setInterval(this.updateConnected, 1000 /* 1 second */);
   }
 
   state: {
     statement: string,
     sessionResults: Result[],
     history: History,
+    connected: boolean,
   }
+  channel: Channel;
+  connectedInterval: number;
+
   setStatement: () => void;
   runQuery: () => void;
   stopQuery: () => void;
@@ -77,6 +89,21 @@ class QueriesView extends React.Component {
   replaceResult: () => void;
   columnNames: () => void;
   tableNames: () => void;
+  updateConnected: () => void;
+
+  runEnabled: () => boolean;
+
+  componentWillUnmount() {
+    clearInterval(this.connectedInterval);
+  }
+
+  updateConnected() {
+    this.setState({connected: this.channel.isJoined()});
+  }
+
+  runEnabled() {
+    return this.props.dataSourceAvailable && this.state.connected;
+  }
 
   setStatement(statement) {
     this.setState({statement});
@@ -139,7 +166,7 @@ class QueriesView extends React.Component {
   }
 
   runQuery() {
-    if (! this.props.dataSourceAvailable) return;
+    if (! this.runEnabled()) return;
     if (this.isQueryPending()) return;
 
     const statement = this.state.statement;
@@ -164,12 +191,13 @@ class QueriesView extends React.Component {
       },
       error: (error) => {
         this.addError(statement, `Error connecting to server. Reported reason: ${error.statusText}.`);
+        if (error.status === upgradeRequired) { window.location.reload(); }
       },
     });
   }
 
   stopQuery() {
-    if (! this.props.dataSourceAvailable) return;
+    if (! this.runEnabled()) return;
     if (! this.isQueryPending()) return;
 
     const queryId = this.state.sessionResults[0].id;
@@ -239,7 +267,7 @@ class QueriesView extends React.Component {
   }
 
   renderCodeEditorOrViewer() {
-    if (this.props.dataSourceAvailable) {
+    if (this.runEnabled()) {
       return (<CodeEditor
         onRun={this.runQuery}
         onStop={this.stopQuery}
@@ -253,10 +281,9 @@ class QueriesView extends React.Component {
     }
   }
 
-  render() {
-    let button;
+  renderButton() {
     if (this.isQueryPending()) {
-      button = (<div className="right-align">
+      return (<div className="right-align">
         <button
           className="btn btn-small btn-warning"
           onClick={this.stopQuery}
@@ -265,21 +292,25 @@ class QueriesView extends React.Component {
         <kbd>Ctrl + Escape</kbd>
       </div>);
     } else {
-      button = (<div className="right-align">
+      return (<div className="right-align">
         <button
           className="btn btn-primary"
           onClick={this.runQuery}
-          disabled={!this.props.dataSourceAvailable}
+          disabled={!this.runEnabled()}
         >Run</button>
         <span> or </span>
         <kbd>Ctrl + Enter</kbd>
       </div>);
     }
+  }
+
+  render() {
     return (<div>
+      <Disconnected channel={this.channel} />
+
       <div id="sql-editor">
         {this.renderCodeEditorOrViewer()}
-
-        {button}
+        {this.renderButton()}
       </div>
 
       <Results results={this.state.sessionResults} />
@@ -290,6 +321,6 @@ class QueriesView extends React.Component {
 }
 
 export default function renderQueriesView(data: Props, elem: Node) {
-  const socket = new QuerySocket(data.guardianToken);
-  ReactDOM.render(<QueriesView querySocket={socket} {...data} />, elem);
+  const socket = new FrontendSocket(data.guardianToken);
+  ReactDOM.render(<QueriesView frontendSocket={socket} {...data} />, elem);
 }

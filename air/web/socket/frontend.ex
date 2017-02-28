@@ -23,6 +23,7 @@ defmodule Air.Socket.Frontend do
   channel "session:*", Air.Socket.Frontend.UserChannel
   channel "query:*", Air.Socket.Frontend.UserChannel
   channel "state_changes:*", Air.Socket.Frontend.UserChannel
+  channel "memory_readings", Air.Socket.Frontend.MemoryChannel
 
 
   # -------------------------------------------------------------------
