@@ -4,6 +4,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 
 import {Results} from "./results";
+import {PropertiesView} from "./properties";
 import type {Result} from "./result";
 import {QuerySocket} from "../query_socket";
 
@@ -39,6 +40,10 @@ class QueryView extends React.Component {
 
   render() {
     return (<div>
+      <h3>Properties</h3>
+      <PropertiesView {...this.state.result} />
+
+      <h3>Query</h3>
       <Results results={[this.state.result]} />
     </div>);
   }

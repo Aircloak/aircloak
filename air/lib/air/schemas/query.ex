@@ -66,9 +66,13 @@ defmodule Air.Schemas.Query do
   @doc "Produces a JSON blob of the query and it's result for rendering"
   @spec for_display(t) :: Map.t
   def for_display(query) do
+    query = Repo.preload(query, [:user, :data_source])
     query
+    |> Repo.preload([:user, :data_source])
     |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at, :query_state])
     |> Map.merge(result_map(query))
+    |> Map.merge(data_source_info(query))
+    |> Map.merge(user_info(query))
   end
 
   @doc "Exports the query as CSV"
@@ -157,4 +161,10 @@ defmodule Air.Schemas.Query do
 
   defp result_map(%{result: nil}), do: %{rows: [], columns: [], completed: false}
   defp result_map(%{result: result_json}), do: Map.put(result_json, :completed, true)
+
+  defp data_source_info(query), do:
+    %{data_source: %{name: Map.get(query.data_source || %{}, :name, "Unknown data source")}}
+
+  defp user_info(query), do:
+    %{user: %{name: Map.get(query.user || %{}, :name, "Unknown user")}}
 end
