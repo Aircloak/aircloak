@@ -11,7 +11,7 @@ defmodule Cloak.MemoryReader do
 
   use GenServer
 
-  alias Cloak.MemoryReader.MemoryProjector
+  alias Cloak.MemoryReader.{MemoryProjector, Readings}
 
   require Logger
 
@@ -47,7 +47,15 @@ defmodule Cloak.MemoryReader do
       memory_projector: MemoryProjector.new(),
       queries: [],
       params: read_params(),
-      last_reading: [],
+      last_reading: nil,
+      readings: Readings.new([
+        {"current", 1},
+        {"last_five_seconds", 5 * measurements_per_second(%{params: read_params()})},
+        {"last_minute", 12},
+        {"last_five_minutes", 5},
+        {"last_fifteen_minutes", 15},
+        {"last_hour", 4},
+      ]),
     }
     :timer.send_interval(:timer.seconds(5), :report_memory_stats)
     schedule_check(state)
@@ -75,8 +83,14 @@ defmodule Cloak.MemoryReader do
     |> Map.put(:memory_projector, MemoryProjector.add_reading(projector, free_memory, time))
     |> perform_memory_check(free_memory)
   end
+  def handle_info(:report_memory_stats, %{last_reading: nil} = state), do:
+    {:noreply, state}
   def handle_info(:report_memory_stats, state) do
-    Cloak.AirSocket.send_memory_stats(state.last_reading)
+    payload = %{
+      total_memory: Keyword.get(state.last_reading, :total_memory),
+      free_memory: Readings.values(state.readings),
+    }
+    Cloak.AirSocket.send_memory_stats(payload)
     {:noreply, state}
   end
 
@@ -146,7 +160,14 @@ defmodule Cloak.MemoryReader do
     config
   end
 
-  defp record_reading(state, reading), do: %{state | last_reading: reading}
+  defp record_reading(state, reading) do
+    %{state |
+      last_reading: reading,
+      readings: Readings.add_reading(state.readings, Keyword.get(reading, :free_memory)),
+    }
+  end
+
+  defp measurements_per_second(%{params: %{check_interval: interval}}), do: div(1_000, interval)
 
   defp num_measurements_to_drop(%{params: %{check_interval: interval, time_between_abortions: pause}}), do:
     div(pause, interval)
