@@ -30,6 +30,8 @@ type Props = {
   frontendSocket: FrontendSocket,
 };
 
+const upgradeRequired = 426;
+
 class QueriesView extends React.Component {
   constructor(props: Props) {
     super(props);
@@ -189,6 +191,7 @@ class QueriesView extends React.Component {
       },
       error: (error) => {
         this.addError(statement, `Error connecting to server. Reported reason: ${error.statusText}.`);
+        if (error.status === upgradeRequired) { window.location.reload(); }
       },
     });
   }

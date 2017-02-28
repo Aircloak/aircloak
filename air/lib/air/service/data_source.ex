@@ -3,6 +3,7 @@ defmodule Air.Service.DataSource do
 
   alias Air.Schemas.{DataSource, Query, User, View}
   alias Air.{DataSourceManager, PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, Socket.Frontend.UserChannel}
+  alias Air.Service.Version
   import Ecto.Query, only: [from: 2]
   require Logger
 
@@ -15,7 +16,7 @@ defmodule Air.Service.DataSource do
   ]
 
   @type data_source_operation_error ::
-    {:error, :unauthorized | :not_connected | :internal_error | any}
+    {:error, :expired | :unauthorized | :not_connected | :internal_error | any}
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -188,7 +189,15 @@ defmodule Air.Service.DataSource do
     |> Repo.preload(:data_source)
   end
 
-  defp on_available_cloak(data_source_id_spec, user, fun) do
+  defp on_available_cloak(data_source_id, user, fun) do
+    if Version.expired?() do
+      {:error, :expired}
+    else
+      do_on_available_cloak(data_source_id, user, fun)
+    end
+  end
+
+  defp do_on_available_cloak(data_source_id_spec, user, fun) do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
       try do
         case DataSourceManager.channel_pids(data_source.global_id) do
