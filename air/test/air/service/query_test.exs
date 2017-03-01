@@ -16,7 +16,7 @@ defmodule Air.Service.QueryTest do
     end
 
     test "does not find other user's queries", %{user: user} do
-      query = create_query!(create_user!())
+      query = create_query!(_other_user = create_user!())
       assert {:error, :not_found} = Query.get_as_user(user, query.id)
     end
 
@@ -32,6 +32,29 @@ defmodule Air.Service.QueryTest do
 
     test "of non-existent query returns not found", %{user: user} do
       assert {:error, :not_found} == Query.get_as_user(user, Ecto.UUID.generate())
+    end
+  end
+
+  describe "last_for_user" do
+    test "returns last query the user issued" do
+      user = create_user!()
+      _previous_one = create_query!(user)
+      last_one = create_query!(user)
+      _later_one_by_another_user = create_query!(create_user!())
+
+      assert last_one.id == Query.last_for_user(user).id
+    end
+
+    test "ignores other queries visible to an admin" do
+      user = create_admin_user!()
+      last_one = create_query!(user)
+      _later_one_by_another_user = create_query!(create_user!())
+
+      assert last_one.id == Query.last_for_user(user).id
+    end
+
+    test "nil if the user has no queries" do
+      assert nil == Query.last_for_user(create_user!())
     end
   end
 

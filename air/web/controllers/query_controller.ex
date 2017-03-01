@@ -54,8 +54,8 @@ defmodule Air.QueryController do
 
   def show(conn, %{"id" => id_type}) do
     [id | extension] = String.split(id_type, ".", parts: 2)
-    case find_query(conn.assigns.current_user, id) do
-      %Query{} = query ->
+    case Air.Service.Query.get_as_user(conn.assigns.current_user, id) do
+      {:ok, query} ->
         case extension do
           ["csv"] ->
             conn = put_resp_content_type(conn, "text/csv")
@@ -67,7 +67,7 @@ defmodule Air.QueryController do
             end)
           _ -> json(conn, %{query: Query.for_display(query)})
         end
-      nil ->
+      _ ->
         conn = put_status(conn, Status.code(:not_found))
         error_text = "A query with that id does not exist"
         case extension do
@@ -78,14 +78,17 @@ defmodule Air.QueryController do
   end
 
   def cancel(conn, %{"id" => query_id}) do
-    query = find_query(conn.assigns.current_user, query_id) |> Repo.preload(:data_source)
-    if query == nil do
-      send_resp(conn, Status.code(:not_found), "A query with that id does not exist")
-    else
-      case DataSource.stop_query(query, conn.assigns.current_user, audit_log_meta(conn)) do
-        :ok -> json(conn, %{success: true})
-        {:error, reason} -> query_error(conn, reason)
-      end
+    case Air.Service.Query.get_as_user(conn.assigns.current_user, query_id) do
+      {:ok, query} ->
+        query
+        |> Repo.preload(:data_source)
+        |> DataSource.stop_query(conn.assigns.current_user, audit_log_meta(conn))
+        |> case do
+          :ok -> json(conn, %{success: true})
+          {:error, reason} -> query_error(conn, reason)
+        end
+      _ ->
+        send_resp(conn, Status.code(:not_found), "A query with that id does not exist")
     end
   end
 
@@ -96,12 +99,6 @@ defmodule Air.QueryController do
 
   defp data_source_id_spec(%{"data_source_id" => id}), do: {:id, id}
   defp data_source_id_spec(%{"data_source_token" => global_id}), do: {:global_id, global_id}
-
-  defp find_query(user, id) do
-    user
-    |> Query.for_user()
-    |> Repo.get(id)
-  end
 
   defp query_error(conn, :unauthorized), do:
     send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")

@@ -1,7 +1,7 @@
 defmodule Air.Service.Query do
   @moduledoc "Services for retrieving queries."
 
-  alias Air.{Repo, Schemas.Query, Schemas.User, Socket.Frontend.UserChannel}
+  alias Air.{Repo, Schemas.DataSource, Schemas.Query, Schemas.User, Socket.Frontend.UserChannel}
 
   import Ecto.Query
   require Logger
@@ -49,6 +49,26 @@ defmodule Air.Service.Query do
     rescue Ecto.Query.CastError ->
       {:error, :invalid_id}
     end
+  end
+
+  @doc "Returns the last query the given user issued, or nil if the user did not issue any queries."
+  @spec last_for_user(User.t) :: Query.t | nil
+  def last_for_user(user) do
+    Query
+    |> started_by(user)
+    |> last(:inserted_at)
+    |> Repo.one()
+  end
+
+  @doc "Loads the most recent queries for a given user"
+  @spec load_recent_queries(User.t, DataSource.t, pos_integer, NaiveDateTime.t) :: [Query.t]
+  def load_recent_queries(user, data_source, recent_count, before) do
+    Query
+    |> started_by(user)
+    |> Query.for_data_source(data_source)
+    |> Query.recent(recent_count, before)
+    |> Repo.all()
+    |> Enum.map(&Query.for_display/1)
   end
 
   @doc "Returns a list of the queries that are currently executing"
@@ -132,14 +152,18 @@ defmodule Air.Service.Query do
     if User.admin?(user) do
       Query
     else
-      Query |> where([q], q.user_id == ^user.id)
+      started_by(Query, user)
     end
   end
 
-  def get(id) do
+  defp get(id) do
     case Repo.get(Query, id) do
       nil -> {:error, :not_found}
       query -> {:ok, query}
     end
+  end
+
+  defp started_by(scope, user) do
+    where(scope, [q], q.user_id == ^user.id)
   end
 end

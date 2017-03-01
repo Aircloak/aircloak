@@ -45,7 +45,7 @@ defmodule Air.Service.DataSource do
   @spec history(data_source_id_spec, User.t, pos_integer, NaiveDateTime.t) :: {:ok, [Query.t]} | {:error, :unauthorized}
   def history(data_source_id_spec, user, count, before) do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user), do:
-      {:ok, Query.load_recent_queries(user, data_source, count, before)}
+      {:ok, Air.Service.Query.load_recent_queries(user, data_source, count, before)}
   end
 
   @doc "Returns the last query executed on the given data source by the given user."
