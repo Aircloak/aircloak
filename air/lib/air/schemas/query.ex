@@ -85,30 +85,12 @@ defmodule Air.Schemas.Query do
     CSV.encode([header | rows])
   end
 
-  @doc "Loads the most recent queries for a given user"
-  @spec load_recent_queries(User.t, DataSource.t, pos_integer, NaiveDateTime.t) :: [Query.t]
-  def load_recent_queries(user, data_source, recent_count, before) do
-    user
-    |> for_user()
-    |> for_data_source(data_source)
-    |> recent(recent_count, before)
-    |> Repo.all
-    |> Enum.map(&for_display/1)
-  end
-
 
   # -------------------------------------------------------------------
   # Query functions
   # -------------------------------------------------------------------
 
-  @doc "Adds a query filter selecting only those for the given user"
-  @spec for_user(Ecto.Queryable.t, User.t) :: Ecto.Queryable.t
-  def for_user(query \\ __MODULE__, user) do
-    from q in query,
-    where: q.user_id == ^user.id
-  end
-
-  @doc "Adds a query filter selecting only those for the given user"
+  @doc "Adds a query filter selecting only those for the given data source"
   @spec for_data_source(Ecto.Queryable.t, DataSource.t) :: Ecto.Queryable.t
   def for_data_source(query \\ __MODULE__, data_source) do
     from q in query,
@@ -122,14 +104,6 @@ defmodule Air.Schemas.Query do
     where: q.inserted_at < ^before,
     order_by: [desc: q.inserted_at],
     limit: ^count
-  end
-
-  @doc "Return the last query made by a user"
-  @spec last(Ecto.Queryable.t) :: Ecto.Queryable.t
-  def last(query \\ __MODULE__) do
-    from q in query,
-    order_by: [desc: q.inserted_at],
-    limit: 1
   end
 
 

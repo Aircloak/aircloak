@@ -76,6 +76,15 @@ defmodule Air.TestRepoHelper do
     |> Repo.insert!()
   end
 
+  @doc "Retrieves a query from the database by id."
+  @spec get_query(String.t) :: {:ok, Air.Schemas.Query.t} | {:error, :not_found}
+  def get_query(id) do
+    case Air.Repo.get(Air.Schemas.Query, id) do
+      nil -> {:error, :not_found}
+      query -> {:ok, query}
+    end
+  end
+
   defp random_string,
     do: Base.encode16(:crypto.strong_rand_bytes(10))
 end

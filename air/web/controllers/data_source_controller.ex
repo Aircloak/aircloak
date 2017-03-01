@@ -5,7 +5,7 @@ defmodule Air.DataSourceController do
 
   use Air.Web, :controller
 
-  alias Air.{Schemas.Query, Repo, Service.DataSource}
+  alias Air.{Service.Query, Service.DataSource}
   alias Air.Service.DataSource
   alias Plug.CSRFProtection
 
@@ -61,11 +61,9 @@ defmodule Air.DataSourceController do
 
   def redirect_to_last_used(conn, _params) do
     conn.assigns.current_user
-    |> Query.for_user()
-    |> Query.last()
-    |> Repo.one()
+    |> Query.last_for_user()
     |> case do
-      %Query{data_source_id: data_source_id} when data_source_id != nil ->
+      %{data_source_id: data_source_id} when data_source_id != nil ->
         redirect(conn, to: data_source_path(conn, :show, data_source_id))
       _ ->
         redirect(conn, to: data_source_path(conn, :index))
