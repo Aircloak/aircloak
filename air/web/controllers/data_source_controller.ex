@@ -66,9 +66,9 @@ defmodule Air.DataSourceController do
     |> Repo.one()
     |> case do
       %Query{data_source_id: data_source_id} when data_source_id != nil ->
-        redirect(conn, to: "/data_sources/#{data_source_id}")
+        redirect(conn, to: data_source_path(conn, :show, data_source_id))
       _ ->
-        redirect(conn, to: "/data_sources")
+        redirect(conn, to: data_source_path(conn, :index))
     end
   end
 end
