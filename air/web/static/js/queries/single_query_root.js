@@ -10,9 +10,12 @@ import {FrontendSocket} from "../frontend_socket";
 
 type Props = {
   result: Result,
-  guardianToken: string,
   frontendSocket: FrontendSocket,
 };
+
+type AppProperties = {
+  guardianToken: string,
+} & Props
 
 class QueryView extends React.Component {
   constructor(props: Props) {
@@ -49,7 +52,7 @@ class QueryView extends React.Component {
   }
 }
 
-export default function renderQueryView(data: Props, elem: Node) {
+export default function renderQueryView(data: AppProperties, elem: Node) {
   const socket = new FrontendSocket(data.guardianToken);
   ReactDOM.render(<QueryView frontendSocket={socket} {...data} />, elem);
 }
