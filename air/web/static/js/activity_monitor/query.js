@@ -3,6 +3,7 @@
 import React from "react";
 
 import {StateView} from "./state_view";
+import {cancel} from "../request";
 
 export type Query = {
   id: string,
@@ -10,6 +11,7 @@ export type Query = {
   analyst_name: string,
   data_source_name: string,
   statement: string,
+  CSRFToken: string,
 };
 
 const maxExcerptLength = 40;
@@ -27,6 +29,11 @@ const queryExcerpt = (statement: string) => {
 
 const queryViewUrl = (props) => `/admin/queries/${props.id}`;
 
+const stopQuery = (props) => (event) => {
+  event.preventDefault();
+  cancel(props.id, props.CSRFToken);
+};
+
 export const QueryView = (props: Query) =>
   <tr>
     <td>{props.data_source_name}</td>
@@ -36,4 +43,5 @@ export const QueryView = (props: Query) =>
     </td>
     <td><StateView state={props.state} /></td>
     <td><a href={queryViewUrl(props)}>view</a></td>
+    <td><a onClick={stopQuery(props)} href="#">cancel</a></td>
   </tr>;

@@ -110,7 +110,7 @@ class ActivityMonitorView extends React.Component {
       <div>
         <Disconnected channel={this.channel} />
         <CloaksView cloaks={this.state.cloaks} />
-        <QueriesView queries={this.state.queries} />
+        <QueriesView queries={this.state.queries} CSRFToken={this.props.CSRFToken} />
       </div>
     );
   }

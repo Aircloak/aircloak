@@ -17,6 +17,7 @@ import {HistoryLoader} from "./history_loader";
 import type {History} from "./history_loader";
 import {isPending} from "./state";
 import {Disconnected} from "../disconnected";
+import {cancel} from "../request";
 
 type Props = {
   userId: number,
@@ -200,15 +201,7 @@ class QueriesView extends React.Component {
     if (! this.runEnabled()) return;
     if (! this.isQueryPending()) return;
 
-    const queryId = this.state.sessionResults[0].id;
-    $.ajax("/queries/cancel", {
-      method: "POST",
-      headers: {
-        "X-CSRF-TOKEN": this.props.CSRFToken,
-        "Content-Type": "application/json",
-      },
-      data: JSON.stringify({id: queryId}),
-    });
+    cancel(this.state.sessionResults[0].id, this.props.CSRFToken);
   }
 
   handleLoadHistory() {
