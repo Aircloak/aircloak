@@ -52,7 +52,17 @@ defmodule Air.Socket.Frontend.UserChannel do
       _ -> {:error, %{success: false, description: "Channel not found"}}
     end
   end
-  def join("state_changes:all", _, socket) do
+  def join("state_changes:all", _, socket), do:
+    accept_join_for_admins(socket)
+  def join("query:" <> _query_id, _, socket), do:
+    accept_join_for_admins(socket)
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp accept_join_for_admins(socket) do
     user = socket.assigns.user
     if Air.Schemas.User.admin?(user) do
       {:ok, socket}
@@ -60,21 +70,6 @@ defmodule Air.Socket.Frontend.UserChannel do
       {:error, %{reason: "Only admin users are allowed to connect"}}
     end
   end
-  def join("query:" <> query_id, _, socket) do
-    user = socket.assigns.user
-    user_id = user.id
-    case {Air.Schemas.User.admin?(user), Air.Service.Query.get(query_id)} do
-      {true, {:ok, _}} -> {:ok, socket}
-      {true, _} -> {:error, %{reason: "The query could not be found or the query id was invalid"}}
-      {false, {:ok, %Schemas.Query{user_id: ^user_id}}} -> {:ok, socket}
-      {false, _} ->
-        {:error, %{reason: "The query doesn't exist, the ID is invalid or you aren't authorized to see it."}}
-    end
-  end
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
 
   defp state_change_message(query), do:
     %{query_id: query.id, event: query.query_state, query: format_query(query)}
