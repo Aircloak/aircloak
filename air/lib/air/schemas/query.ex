@@ -123,31 +123,6 @@ defmodule Air.Schemas.Query do
     limit: ^count
   end
 
-  @doc """
-  Adds a query filter returning recent queries which failed on cloak.
-
-  The queryable returned by this function will select a map with fields
-  `id`, `inserted_at`, `data_source`, `statement`, and `error`.
-  """
-  @spec failed(Ecto.Queryable.t) :: Ecto.Queryable.t
-  def failed(query \\ __MODULE__) do
-    from q in query,
-    join: ds in assoc(q, :data_source),
-    join: user in assoc(q, :user),
-    select: %{
-      id: q.id,
-      inserted_at: q.inserted_at,
-      data_source: ds.name,
-      user: user.name,
-      statement: q.statement,
-      error: fragment("?->>'error'", q.result)
-    },
-    where:
-      not is_nil(q.statement) and q.statement != "" and
-      fragment("?->>'error' <> ''", q.result),
-    order_by: [desc: q.inserted_at]
-  end
-
   @doc "Return the last query made by a user"
   @spec last(Ecto.Queryable.t) :: Ecto.Queryable.t
   def last(query \\ __MODULE__) do

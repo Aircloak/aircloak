@@ -4,7 +4,7 @@ defmodule Air.Admin.QueryController do
   use Timex
 
   require Logger
-  alias Air.{Schemas.Query, Repo}
+  alias Air.Schemas.Query
 
 
   # -------------------------------------------------------------------
@@ -40,7 +40,7 @@ defmodule Air.Admin.QueryController do
 
   def failed(conn, params) do
     page = params["page"] || 1
-    failed_queries = Repo.paginate(Query.failed(), page: page)
+    failed_queries = Air.Service.Query.paginated_failed_queries(page)
     render(conn, "failed.html", failed_queries: failed_queries)
   end
 end
