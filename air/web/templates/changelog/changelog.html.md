@@ -6,6 +6,7 @@
 - Adds an Activity Monitor that allows an administrator to see all queries running in the system across all
   analysts as well as the memory usage across all connected cloaks.
 - Show indication of progress when a query is executing.
+- Ability to export usage logs rather than have an open connection to Aircloak Central.
 
 ### Enhancements
 
@@ -14,6 +15,9 @@
 - Adds an endpoint for monitoring by external tools
 - Adds a setting pane with the ability to specify the retention time for past queries
 - Cloaks terminate queries when about to run out of memory, rather than crash.
+- Ability to speed up schema detection of MongoDB collections by sampling a subset of the data.
+- Logs produced by the `Cloak`s are sanitized to accidental leakage of sensitive data.
+- The performance of computing medians in emulated database queries is improved. In representative use cases by more than a factor of two.
 
 ### Changes
 
