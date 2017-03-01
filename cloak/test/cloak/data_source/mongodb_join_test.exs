@@ -59,13 +59,19 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
 
   test "left join with table and sub-query in top-query", context do
     assert_query context, """
-        SELECT age FROM "left" INNER JOIN (SELECT id AS rid, salary FROM "right") AS t ON id = rid
-      """, %{rows: [%{occurrences: 20, row: [30]}]}
+        SELECT age FROM "left" LEFT JOIN (SELECT id AS rid, salary FROM "right") AS t ON id = rid
+      """, %{rows: [%{occurrences: 20, row: [30]}, %{occurrences: 5, row: [nil]}]}
+  end
+
+  test "join in top-query with emulated where", context do
+    assert_query context, """
+        SELECT count(age) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE salary <> 200
+      """, %{rows: [%{occurrences: 1, row: [13]}]}
   end
 
   test "left join with table and filtered sub-query in filtered top-query", context do
     assert_query context, """
-        SELECT age FROM "left" INNER JOIN
+        SELECT age FROM "left" LEFT JOIN
         (SELECT id AS rid, salary FROM "right" WHERE salary >= 0 AND salary < 500) AS t
         ON id = rid WHERE salary = 100
       """, %{rows: [%{occurrences: 7, row: [30]}]}
