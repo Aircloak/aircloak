@@ -13,7 +13,7 @@
 - Produces an error message when a data source is configured with an invalid decryption key
 - Adds an endpoint for monitoring by external tools
 - Adds a setting pane with the ability to specify the retention time for past queries
-- Cloak's terminate queries when about to run out of memory, rather than crash.
+- Cloaks terminate queries when about to run out of memory, rather than crash.
 
 ### Changes
 
