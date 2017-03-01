@@ -26,6 +26,10 @@ export class FrontendSocket {
     return this.joinChannel(callbacks, `session:${sessionId}`, ["result", "state_change"]);
   }
 
+  joinUpdatesForQuery(queryId: string, callbacks: Callbacks) {
+    this.joinChannel(callbacks, `query:${queryId}`, ["result", "state_change"]);
+  }
+
   joinAllQueryEventsChannel(callbacks: Callbacks) {
     return this.joinChannel(callbacks, "state_changes:all", ["state_change"]);
   }

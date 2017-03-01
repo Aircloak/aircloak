@@ -31,7 +31,8 @@ defmodule Air.SessionController do
   def create(conn, params) do
     case Air.Service.User.login(params["email"], params["password"], audit_log_meta(conn)) do
       {:ok, user} ->
-        return_path = get_session(conn, :return_path) || query_path(conn, :index)
+        return_path = get_session(conn, :return_path) ||
+          data_source_path(conn, :redirect_to_last_used)
         conn
         |> Guardian.Plug.sign_in(user)
         |> conditionally_create_persistent_login(params)

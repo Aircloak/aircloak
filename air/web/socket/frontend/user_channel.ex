@@ -21,8 +21,9 @@ defmodule Air.Socket.Frontend.UserChannel do
   """
   @spec broadcast_result(Schemas.Query.t) :: :ok
   def broadcast_result(query) do
-    Air.Endpoint.broadcast_from!(self(), "session:#{query.session_id}", "result",
-      Schemas.Query.for_display(query))
+    payload = Schemas.Query.for_display(query)
+    Air.Endpoint.broadcast_from!(self(), "session:#{query.session_id}", "result", payload)
+    Air.Endpoint.broadcast_from!(self(), "query:#{query.id}", "result", payload)
     :ok
   end
 
@@ -32,8 +33,9 @@ defmodule Air.Socket.Frontend.UserChannel do
   @spec broadcast_state_change(Schemas.Query.t) :: :ok
   def broadcast_state_change(query) do
     Air.Endpoint.broadcast_from!(self(), "state_changes:all", "state_change", state_change_message(query))
-    Air.Endpoint.broadcast_from!(self(), "session:#{query.session_id}", "state_change",
-      Schemas.Query.for_display(query))
+    payload = Schemas.Query.for_display(query)
+    Air.Endpoint.broadcast_from!(self(), "session:#{query.session_id}", "state_change", payload)
+    Air.Endpoint.broadcast_from!(self(), "query:#{query.id}", "state_change", payload)
     :ok
   end
 
@@ -50,7 +52,17 @@ defmodule Air.Socket.Frontend.UserChannel do
       _ -> {:error, %{success: false, description: "Channel not found"}}
     end
   end
-  def join("state_changes:all", _, socket) do
+  def join("state_changes:all", _, socket), do:
+    accept_join_for_admins(socket)
+  def join("query:" <> _query_id, _, socket), do:
+    accept_join_for_admins(socket)
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp accept_join_for_admins(socket) do
     user = socket.assigns.user
     if Air.Schemas.User.admin?(user) do
       {:ok, socket}
@@ -58,10 +70,6 @@ defmodule Air.Socket.Frontend.UserChannel do
       {:error, %{reason: "Only admin users are allowed to connect"}}
     end
   end
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
 
   defp state_change_message(query), do:
     %{query_id: query.id, event: query.query_state, query: format_query(query)}

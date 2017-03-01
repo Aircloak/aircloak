@@ -66,9 +66,13 @@ defmodule Air.Schemas.Query do
   @doc "Produces a JSON blob of the query and it's result for rendering"
   @spec for_display(t) :: Map.t
   def for_display(query) do
+    query = Repo.preload(query, [:user, :data_source])
     query
+    |> Repo.preload([:user, :data_source])
     |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at, :query_state])
     |> Map.merge(result_map(query))
+    |> Map.merge(data_source_info(query))
+    |> Map.merge(user_info(query))
   end
 
   @doc "Exports the query as CSV"
@@ -119,29 +123,6 @@ defmodule Air.Schemas.Query do
     limit: ^count
   end
 
-  @doc """
-  Adds a query filter returning recent queries which failed on cloak.
-
-  The queryable returned by this function will select a map with fields
-  `id`, `inserted_at`, `data_source`, `statement`, and `error`.
-  """
-  @spec failed(Ecto.Queryable.t) :: Ecto.Queryable.t
-  def failed(query \\ __MODULE__) do
-    from q in query,
-    join: ds in assoc(q, :data_source),
-    select: %{
-      id: q.id,
-      inserted_at: q.inserted_at,
-      data_source: ds.name,
-      statement: q.statement,
-      error: fragment("?->>'error'", q.result)
-    },
-    where:
-      not is_nil(q.statement) and q.statement != "" and
-      fragment("?->>'error' <> ''", q.result),
-    order_by: [desc: q.inserted_at]
-  end
-
   @doc "Return the last query made by a user"
   @spec last(Ecto.Queryable.t) :: Ecto.Queryable.t
   def last(query \\ __MODULE__) do
@@ -157,4 +138,10 @@ defmodule Air.Schemas.Query do
 
   defp result_map(%{result: nil}), do: %{rows: [], columns: [], completed: false}
   defp result_map(%{result: result_json}), do: Map.put(result_json, :completed, true)
+
+  defp data_source_info(query), do:
+    %{data_source: %{name: Map.get(query.data_source || %{}, :name, "Unknown data source")}}
+
+  defp user_info(query), do:
+    %{user: %{name: Map.get(query.user || %{}, :name, "Unknown user")}}
 end

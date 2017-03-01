@@ -26,6 +26,13 @@ export type Result = {
   info: string[],
   error: string,
   query_state: string,
+  data_source: {
+    name: string,
+  },
+  user: {
+    name: string,
+  },
+  inserted_at: string,
 };
 
 export class ResultView extends React.Component {

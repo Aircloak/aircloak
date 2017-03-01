@@ -14,6 +14,7 @@
         <div>
           <b>Time</b>: <%= Air.Utils.DateTime.time_ago(query.inserted_at) %>
         </div>
+        <div><b>User</b>: <%= query.user %></div>
         <div><b>Data source</b>: <%= query.data_source %></div>
         <div><b>Error</b>: <%= query.error %></div>
         <br />

@@ -25,6 +25,8 @@ const queryExcerpt = (statement: string) => {
   }
 };
 
+const queryViewUrl = (props) => `/admin/queries/${props.id}`;
+
 export const QueryView = (props: Query) =>
   <tr>
     <td>{props.data_source_name}</td>
@@ -33,4 +35,5 @@ export const QueryView = (props: Query) =>
       <code>{queryExcerpt(props.statement)}</code>
     </td>
     <td><StateView state={props.state} /></td>
+    <td><a href={queryViewUrl(props)}>view</a></td>
   </tr>;

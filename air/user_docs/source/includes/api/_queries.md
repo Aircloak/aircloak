@@ -85,6 +85,7 @@ This endpoint returns the status of the query started by the [run query endpoint
 {
   "query": {
     "completed": true,
+    "query_state": "<the execution phase of the query>",
     "id": "<query-id>",
     "statement": "<query-statement>",
     "error": "<error-message>",
@@ -102,6 +103,16 @@ The API return value contains information about the query.
 
 - If the query is still running, the `completed` field will be set to false. In this case, the client needs to
 repeat the request a bit later.
+- The `query_state` parameter indicates how far along the query execution has come.
+It can be one of:
+  - `started` - The query has been scheduled, but has not yet started executing
+  - `parsing` - The query syntax is being validated
+  - `compiling` - The query semantics is validated and transformed into an internal form for execution
+  - `awaiting_data` - The Cloak has made a database request for data, but has not yet received any data to process
+  - `processing` - The Cloak is receiving data and is aggregating and anonymizing it
+  - `completed` - The query execution has completed. The `completed` field will also be set to true in this state.
+  - `error` - The query execution failed. The `completed` field will also be set to true in this state.
+  - `cancelled` - The query was cancelled by a user. The `completed` field will also be set to true in this state.
 - If the query has completed, the `completed` field will be set to true.
   - If the query succeeded, the result can be obtained in fields `columns`, `row_count`, and `rows`.
   - If the query failed, the `error` field will contain a descriptive error message.

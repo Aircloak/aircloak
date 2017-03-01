@@ -11,6 +11,33 @@ defmodule Air.Service.Query do
   # API functions
   #-----------------------------------------------------------------------------------------------------------
 
+  @doc """
+  Returns information about failed queries in a paginated form.
+
+  The data returned by this function will select a map with fields
+  `id`, `inserted_at`, `data_source`, `user`, `statement`, and `error`.
+  """
+  @spec paginated_failed_queries(non_neg_integer) :: Scrivener.Page.t
+  def paginated_failed_queries(page) do
+    query = from q in Query,
+      join: ds in assoc(q, :data_source),
+      join: user in assoc(q, :user),
+      select: %{
+        id: q.id,
+        inserted_at: q.inserted_at,
+        data_source: ds.name,
+        user: user.name,
+        statement: q.statement,
+        error: fragment("?->>'error'", q.result)
+      },
+      where:
+        not is_nil(q.statement) and q.statement != "" and
+        fragment("?->>'error' <> ''", q.result),
+      order_by: [desc: q.inserted_at]
+
+    Repo.paginate(query, page: page)
+  end
+
   @doc "Returns a query without associations preloaded"
   @spec get(String.t) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
   def get(id) do

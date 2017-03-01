@@ -14,7 +14,7 @@ const renderQueries = (queries: Query[]) => {
   } else {
     return (
       <tr>
-        <td colSpan="3">
+        <td colSpan="5">
           Currently there are no queries running.
         </td>
       </tr>
@@ -32,6 +32,7 @@ export const QueriesView = (props: {queries: Query[]}) =>
           <th>Analyst</th>
           <th>Query</th>
           <th>State</th>
+          <th></th>
         </tr>
       </thead>
       <ReactCSSTransitionGroup
