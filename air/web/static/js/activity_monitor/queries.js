@@ -9,7 +9,7 @@ import type {Query} from "./query";
 const renderQueries = (queries: Query[], CSRFToken) => {
   if (queries.length > 0) {
     return queries.map((query) =>
-      <QueryView key={query.id} CSRFToken={CSRFToken} {...query} />
+      <QueryView key={query.id} query={query} CSRFToken={CSRFToken} />
     );
   } else {
     return (

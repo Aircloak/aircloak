@@ -11,7 +11,6 @@ export type Query = {
   analyst_name: string,
   data_source_name: string,
   statement: string,
-  CSRFToken: string,
 };
 
 const maxExcerptLength = 40;
@@ -29,19 +28,19 @@ const queryExcerpt = (statement: string) => {
 
 const queryViewUrl = (props) => `/admin/queries/${props.id}`;
 
-const stopQuery = (props) => (event) => {
+const stopQuery = ({id}, CSRFToken) => (event) => {
   event.preventDefault();
-  cancel(props.id, props.CSRFToken);
+  cancel(id, CSRFToken);
 };
 
-export const QueryView = (props: Query) =>
+export const QueryView = ({query, CSRFToken}: {query: Query, CSRFToken: string}) =>
   <tr>
-    <td>{props.data_source_name}</td>
-    <td>{props.analyst_name}</td>
+    <td>{query.data_source_name}</td>
+    <td>{query.analyst_name}</td>
     <td>
-      <code>{queryExcerpt(props.statement)}</code>
+      <code>{queryExcerpt(query.statement)}</code>
     </td>
-    <td><StateView state={props.state} /></td>
-    <td><a href={queryViewUrl(props)}>view</a></td>
-    <td><a onClick={stopQuery(props)} href="#">cancel</a></td>
+    <td><StateView state={query.state} /></td>
+    <td><a href={queryViewUrl(query)}>view</a></td>
+    <td><a onClick={stopQuery(query, CSRFToken)} href="#">cancel</a></td>
   </tr>;
