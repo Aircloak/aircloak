@@ -4,6 +4,7 @@ import React from "react";
 
 import {StateView} from "./state_view";
 import {cancel} from "../request";
+import {isFinished} from "../queries/state";
 
 export type Query = {
   id: string,
@@ -41,6 +42,12 @@ export const QueryView = ({query, CSRFToken}: {query: Query, CSRFToken: string})
       <code>{queryExcerpt(query.statement)}</code>
     </td>
     <td><StateView state={query.state} /></td>
+    <td>
+      <button
+        className="btn btn-warning btn-xs"
+        onClick={stopQuery(query, CSRFToken)}
+        disabled={isFinished(query.state)}
+      > cancel </button>
+    </td>
     <td><a href={queryViewUrl(query)}>view</a></td>
-    <td><a onClick={stopQuery(query, CSRFToken)} href="#">cancel</a></td>
   </tr>;
