@@ -66,7 +66,7 @@ defmodule Air.Socket.Cloak.MainChannel do
       online_since: Timex.now(),
     }
     data_sources = Map.fetch!(cloak_info, "data_sources")
-    Air.DataSourceManager.register_cloak(cloak, data_sources)
+    Air.Service.Cloak.register_cloak(cloak, data_sources)
     report_online_status_to_central(cloak, data_sources, socket.assigns.version)
 
     {:ok, %{}, assign(socket, :pending_calls, %{})}

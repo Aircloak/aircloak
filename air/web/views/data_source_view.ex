@@ -4,9 +4,9 @@ defmodule Air.DataSourceView do
   # bug in the current Phoenix
   @dialyzer :no_match
 
-  alias Air.{Schemas.DataSource, DataSourceManager}
+  alias Air.{Schemas.DataSource, Service.Cloak}
 
-  defp available?(data_source), do: DataSourceManager.available?(data_source.global_id)
+  defp available?(data_source), do: Cloak.available?(data_source.global_id)
 
   defp number_of_tables(data_source) do
     length(DataSource.tables(data_source))

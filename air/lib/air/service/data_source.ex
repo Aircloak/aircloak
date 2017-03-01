@@ -2,8 +2,8 @@ defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
   alias Air.Schemas.{DataSource, Query, User, View}
-  alias Air.{DataSourceManager, PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, Socket.Frontend.UserChannel}
-  alias Air.Service.Version
+  alias Air.{PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, Socket.Frontend.UserChannel}
+  alias Air.Service.{Version, Cloak}
   import Ecto.Query, only: [from: 2]
   require Logger
 
@@ -134,8 +134,8 @@ defmodule Air.Service.DataSource do
       Map.merge(audit_meta, %{query: query.statement, data_source: query.data_source.id}))
 
     try do
-      if DataSourceManager.available?(query.data_source.global_id) do
-        for {channel, _cloak_info} <- DataSourceManager.channel_pids(query.data_source.global_id), do:
+      if Cloak.available?(query.data_source.global_id) do
+        for {channel, _cloak_info} <- Cloak.channel_pids(query.data_source.global_id), do:
           MainChannel.stop_query(channel, query.id)
         :ok
       else
@@ -224,7 +224,7 @@ defmodule Air.Service.DataSource do
   defp do_on_available_cloak(data_source_id_spec, user, fun) do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
       try do
-        case DataSourceManager.channel_pids(data_source.global_id) do
+        case Cloak.channel_pids(data_source.global_id) do
           [] -> {:error, :not_connected}
           channel_pids ->
             {channel_pid, cloak} = Enum.random(channel_pids)

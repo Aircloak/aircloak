@@ -115,7 +115,7 @@
       <% else %>
         <table class="table">
           <tbody>
-            <%= for cloak_info <- DataSourceManager.cloaks_for_data_source(@data_source.global_id) do %>
+            <%= for cloak_info <- Air.Service.Cloak.cloaks_for_data_source(@data_source.global_id) do %>
               <tr>
                 <td><%= cloak_info.name %></td>
                 <td>Available since <%= Timex.from_now(cloak_info.online_since) %></td>

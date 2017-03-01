@@ -1,6 +1,6 @@
-defmodule Air.DataSourceManager do
+defmodule Air.Service.Cloak do
   @moduledoc """
-  The DataSourceManager holds metadata about cloaks and their datastores as well as facilities
+  The Cloak service holds metadata about cloaks and their datastores as well as facilities
   for registering them with the database backing the air system.
   """
   require Logger

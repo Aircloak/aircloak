@@ -27,7 +27,7 @@ defmodule Air.Service.Monitoring.Test do
 
     test "list of cloaks" do
       cloak_info = cloak_info()
-      :ok = Air.DataSourceManager.register_cloak(cloak_info, [%{"global_id" => "a very global id", "tables" => []}])
+      :ok = Air.Service.Cloak.register_cloak(cloak_info, [%{"global_id" => "a very global id", "tables" => []}])
       TestRepoHelper.create_query!(TestRepoHelper.create_user!(), %{cloak_id: cloak_info.id})
 
       cloak_name = cloak_info.name

@@ -6,7 +6,7 @@ defmodule Air.Admin.ActivityMonitorController do
   use Air.Web, :admin_controller
 
   alias Plug.CSRFProtection
-  alias Air.Service.Query
+  alias Air.Service.{Cloak, Query}
 
 
   # -------------------------------------------------------------------
@@ -31,7 +31,7 @@ defmodule Air.Admin.ActivityMonitorController do
       csrf_token: CSRFProtection.get_csrf_token(),
       guardian_token: Guardian.Plug.current_token(conn),
       running_queries: Query.currently_running(),
-      cloaks: Air.DataSourceManager.cloaks(),
+      cloaks: Cloak.cloaks(),
     )
   end
 end

@@ -3,7 +3,7 @@ defmodule Air.Service.Monitoring do
 
   import Ecto.Query
 
-  alias Air.{Repo, Schemas.Group, Schemas.User, Schemas.DataSource, Schemas.Query, DataSourceManager}
+  alias Air.{Repo, Schemas.Group, Schemas.User, Schemas.DataSource, Schemas.Query, Service.Cloak}
 
   @miliseconds_in_second 1000
 
@@ -52,7 +52,7 @@ defmodule Air.Service.Monitoring do
   end
 
   defp fetch_cloaks(now) do
-    for cloak <- DataSourceManager.cloaks() do
+    for cloak <- Cloak.cloaks() do
       %{
         name: cloak.name,
         version: cloak.version,

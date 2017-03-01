@@ -4,7 +4,7 @@ defmodule Air.Admin.DataSourceView do
   # bug in the current Phoenix
   @dialyzer :no_match
 
-  alias Air.{Schemas.DataSource, DataSourceManager, Repo}
+  alias Air.{Schemas.DataSource, Service.Cloak, Repo}
 
   def availability_label(data_source) do
     if available?(data_source) do
@@ -14,7 +14,7 @@ defmodule Air.Admin.DataSourceView do
     end
   end
 
-  def available?(data_source), do: DataSourceManager.available?(data_source.global_id)
+  def available?(data_source), do: Cloak.available?(data_source.global_id)
 
   def number_of_tables(data_source), do: length(DataSource.tables(data_source))
 
