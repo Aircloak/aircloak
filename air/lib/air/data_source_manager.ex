@@ -5,7 +5,7 @@ defmodule Air.DataSourceManager do
   """
   require Logger
 
-  alias Air.{Repo, Schemas.DataSource}
+  alias Air.{Repo, Service.DataSource}
 
   @registry_name Module.concat(__MODULE__, Registry)
 
@@ -60,11 +60,12 @@ defmodule Air.DataSourceManager do
     data_source_ids = data_sources
     |> Enum.map(&Task.async(fn ->
       global_id = Map.fetch!(&1, "global_id")
+      tables = Map.fetch!(&1, "tables")
 
       # locking on a local node to prevent two simultaneous db registrations of the same datasource
       :global.trans(
         {{__MODULE__, :create_or_update_datastore, global_id}, self()},
-        fn -> create_or_update_datastore(global_id, &1) end,
+        fn -> DataSource.create_or_update_data_source(global_id, tables) end,
         [node()]
       )
 
@@ -75,27 +76,5 @@ defmodule Air.DataSourceManager do
     Enum.each(data_source_ids, &Registry.register(@registry_name, {:data_source, &1}, cloak_info))
 
     data_source_ids
-  end
-
-  defp create_or_update_datastore(global_id, data) do
-    case Repo.get_by(DataSource, global_id: global_id) do
-      nil ->
-        params = %{
-          global_id: global_id,
-          name: global_id,
-          tables: Poison.encode!(Map.fetch!(data, "tables")),
-        }
-        %DataSource{}
-        |> DataSource.changeset(params)
-        |> Repo.insert!()
-
-      data_source ->
-        params = %{
-          tables: Poison.encode!(Map.fetch!(data, "tables")),
-        }
-        data_source
-        |> DataSource.changeset(params)
-        |> Repo.update!()
-    end
   end
 end

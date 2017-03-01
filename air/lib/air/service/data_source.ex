@@ -157,6 +157,30 @@ defmodule Air.Service.DataSource do
       where: data_source.id in ^ids)
   end
 
+  @doc "Creates or updates a data source, returning the updated data source"
+  @spec create_or_update_data_source(String.t, Map.t) :: DataSource.t
+  def create_or_update_data_source(global_id, tables) do
+    case Repo.get_by(DataSource, global_id: global_id) do
+      nil ->
+        params = %{
+          global_id: global_id,
+          name: global_id,
+          tables: Poison.encode!(tables)
+        }
+        %DataSource{}
+        |> DataSource.changeset(params)
+        |> Repo.insert!()
+
+      data_source ->
+        params = %{
+          tables: Poison.encode!(tables)
+        }
+        data_source
+        |> DataSource.changeset(params)
+        |> Repo.update!()
+    end
+  end
+
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
