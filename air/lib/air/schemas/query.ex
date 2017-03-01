@@ -6,7 +6,8 @@ defmodule Air.Schemas.Query do
 
   require EctoEnum
   EctoEnum.defenum QueryState, :query_state, [
-    :started, :parsing, :compiling, :awaiting_data, :processing, :completed, :error, :cancelled
+    :started, :parsing, :compiling, :awaiting_data, :ingesting_data, :processing, :post_processing, :completed,
+    :error, :cancelled
   ]
 
   @type t :: %__MODULE__{}
