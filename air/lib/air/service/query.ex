@@ -1,9 +1,9 @@
 defmodule Air.Service.Query do
   @moduledoc "Services for retrieving queries."
 
-  alias Air.{Repo, Schemas.Query, Socket.Frontend.UserChannel}
+  alias Air.{Repo, Schemas.Query, Schemas.User, Socket.Frontend.UserChannel}
 
-  import Ecto.Query, only: [from: 2]
+  import Ecto.Query
   require Logger
 
 
@@ -38,14 +38,13 @@ defmodule Air.Service.Query do
     Repo.paginate(query, page: page)
   end
 
-  @doc "Returns a query without associations preloaded"
-  @spec get(String.t) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
-  def get(id) do
+  @doc "Returns a query if accessible by the given user, without associations preloaded."
+  @spec get_as_user(User.t, String.t) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
+  def get_as_user(user, id) do
     try do
-      case Repo.get(Query, id) do
+      case user |> query_scope() |> Repo.get(id) do
         nil -> {:error, :not_found}
-        query ->
-          {:ok, query}
+        query -> {:ok, query}
       end
     rescue Ecto.Query.CastError ->
       {:error, :invalid_id}
@@ -128,4 +127,19 @@ defmodule Air.Service.Query do
   defp error_text(%{"error" => error}) when is_binary(error), do: error
   defp error_text(%{"cancelled" => true}), do: "Cancelled."
   defp error_text(_), do: nil
+
+  defp query_scope(user) do
+    if User.admin?(user) do
+      Query
+    else
+      Query |> where([q], q.user_id == ^user.id)
+    end
+  end
+
+  def get(id) do
+    case Repo.get(Query, id) do
+      nil -> {:error, :not_found}
+      query -> {:ok, query}
+    end
+  end
 end
