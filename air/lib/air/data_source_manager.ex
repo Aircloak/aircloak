@@ -62,7 +62,9 @@ defmodule Air.DataSourceManager do
       global_id = Map.fetch!(&1, "global_id")
       tables = Map.fetch!(&1, "tables")
 
-      # locking on a local node to prevent two simultaneous db registrations of the same datasource
+      # Locking on a local node to prevent two simultaneous db registrations of the same datasource.
+      # The database maintains a uniqueness constraint already, but this is in place to avoid
+      # unnecessary retries.
       :global.trans(
         {{__MODULE__, :create_or_update_datastore, global_id}, self()},
         fn -> DataSource.create_or_update_data_source(global_id, tables) end,
