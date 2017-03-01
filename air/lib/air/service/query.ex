@@ -42,10 +42,7 @@ defmodule Air.Service.Query do
   @spec get_as_user(User.t, String.t) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
   def get_as_user(user, id) do
     try do
-      case user |> query_scope() |> Repo.get(id) do
-        nil -> {:error, :not_found}
-        query -> {:ok, query}
-      end
+      user |> query_scope() |> get(id)
     rescue Ecto.Query.CastError ->
       {:error, :invalid_id}
     end
@@ -156,8 +153,8 @@ defmodule Air.Service.Query do
     end
   end
 
-  defp get(id) do
-    case Repo.get(Query, id) do
+  defp get(scope \\ Query, id) do
+    case Repo.get(scope, id) do
       nil -> {:error, :not_found}
       query -> {:ok, query}
     end
