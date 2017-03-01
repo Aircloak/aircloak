@@ -1,6 +1,8 @@
 // @flow
 
-export const cancel = (queryId, csrfToken) =>
+import $ from "jquery";
+
+export const cancel = (queryId: string, csrfToken: string) =>
   $.ajax("/queries/cancel", {
     method: "POST",
     headers: {

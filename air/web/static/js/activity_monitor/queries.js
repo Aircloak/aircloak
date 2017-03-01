@@ -22,7 +22,7 @@ const renderQueries = (queries: Query[], CSRFToken) => {
   }
 };
 
-export const QueriesView = (props: {queries: Query[]}) =>
+export const QueriesView = (props: {queries: Query[], CSRFToken: string}) =>
   <div>
     <h3>Queries</h3>
     <table className="table">
