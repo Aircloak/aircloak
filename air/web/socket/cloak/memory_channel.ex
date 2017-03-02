@@ -24,6 +24,7 @@ defmodule Air.Socket.Cloak.MemoryChannel do
   @doc false
   @dialyzer {:nowarn_function, handle_in: 3} # Phoenix bug, fixed in master
   def handle_in("reading", reading, socket) do
+    Air.Service.Cloak.record_memory(reading)
     Air.Socket.Frontend.MemoryChannel.broadcast_memory_reading(socket.assigns.cloak_id, reading)
     {:noreply, socket}
   end
