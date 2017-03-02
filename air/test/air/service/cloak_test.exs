@@ -87,6 +87,24 @@ defmodule Air.Service.Cloak.Test do
     end
   end
 
+  describe "recording memory stats" do
+    test "doesn't fail for unregistered cloak" do
+      assert :ok == Cloak.record_memory(%{reading: true})
+    end
+
+    test "records memory for registered cloak" do
+      Cloak.register(cloak_info(), @data_sources)
+      reading = %{reading: true}
+      Cloak.record_memory(reading)
+      assert {:ok, %{memory: ^reading}} = Cloak.get_info(self())
+    end
+
+    test "has uninitialized memory reading by default" do
+      Cloak.register(cloak_info(), @data_sources)
+      assert {:ok, %{memory: %{}}} = Cloak.get_info(self())
+    end
+  end
+
   defp cloak_info() do
     %{
       id: "cloak_id_#{:erlang.unique_integer()}",

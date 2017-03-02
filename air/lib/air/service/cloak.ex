@@ -24,9 +24,17 @@ defmodule Air.Service.Cloak do
   @spec register(Map.t, Map.t) :: :ok
   def register(cloak_info, data_sources) do
     data_source_ids = register_data_sources(data_sources)
-    cloak_info = Map.put(cloak_info, :data_source_ids, data_source_ids)
+    cloak_info = Map.merge(cloak_info, %{
+      data_source_ids: data_source_ids,
+      memory: %{},
+    })
     GenServer.cast(__MODULE__, {:register, self(), cloak_info})
   end
+
+  @doc "Records cloak memory readings"
+  @spec record_memory(Map.t) :: :ok
+  def record_memory(reading), do:
+    GenServer.cast(__MODULE__, {:record_memory, self(), reading})
 
   @doc "Returns the cloak info for a specific cloak"
   @spec get_info(pid) :: {:ok, Map.t} | {:error, :not_found}
@@ -68,6 +76,13 @@ defmodule Air.Service.Cloak do
   def handle_cast({:register, pid, cloak_info}, %{cloaks: cloaks} = state) do
     Process.monitor(pid)
     cloaks = Map.put(cloaks, pid, cloak_info)
+    {:noreply, %{state | cloaks: cloaks}}
+  end
+  def handle_cast({:record_memory, pid, reading}, %{cloaks: cloaks} = state) do
+    cloaks = case Map.fetch(cloaks, pid) do
+      {:ok, cloak_info} -> Map.put(cloaks, pid, Map.put(cloak_info, :memory, reading))
+      :error -> cloaks
+    end
     {:noreply, %{state | cloaks: cloaks}}
   end
 
