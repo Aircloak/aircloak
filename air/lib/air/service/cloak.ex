@@ -5,9 +5,9 @@ defmodule Air.Service.Cloak do
   """
   require Logger
 
-  alias Air.{Repo, Service.DataSource}
+  use GenServer
 
-  @registry_name Module.concat(__MODULE__, Registry)
+  alias Air.Service.DataSource
 
 
   # -------------------------------------------------------------------
@@ -16,22 +16,22 @@ defmodule Air.Service.Cloak do
 
   @doc "Starts the data source manager process."
   @spec start_link() :: GenServer.on_start
-  def start_link(), do:
-    Registry.start_link(:duplicate, @registry_name)
+  def start_link(), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
 
   @doc """
   Registers a data source (if needed), and associates the calling cloak with the data source
   """
   @spec register_cloak(Map.t, Map.t) :: :ok
   def register_cloak(cloak_info, data_sources) do
-    data_source_ids = register_data_sources(cloak_info, data_sources)
-    Registry.register(@registry_name, :cloak, Map.put(cloak_info, :data_source_ids, data_source_ids))
-    :ok
+    data_source_ids = register_data_sources(data_sources)
+    cloak_info = Map.put(cloak_info, :data_source_ids, data_source_ids)
+    GenServer.cast(__MODULE__, {:register_cloak, self(), cloak_info})
   end
 
   @doc "Returns pairs of the form {channel_pid, cloak_info} the cloaks that have the given data source."
   @spec channel_pids(String.t) :: [{pid(), Map.t}]
-  def channel_pids(global_id), do: Registry.lookup(@registry_name, {:data_source, global_id})
+  def channel_pids(global_id), do:
+    GenServer.call(__MODULE__, {:lookup, {:data_source, global_id}})
 
   @doc "Whether or not a data source is available for querying. True if it has one or more cloaks online"
   @spec available?(String.t) :: boolean
@@ -44,7 +44,7 @@ defmodule Air.Service.Cloak do
   """
   @spec cloaks() :: [Map.t]
   def cloaks(), do:
-    for {_pid, cloak_info} <- Registry.lookup(@registry_name, :cloak), do: cloak_info
+    for {_pid, cloak_info} <- GenServer.call(__MODULE__, {:lookup, :cloaks}), do: cloak_info
 
   @doc "Returns the cloak info of cloaks serving a data source"
   @spec cloaks_for_data_source(String.t) :: [map]
@@ -53,10 +53,43 @@ defmodule Air.Service.Cloak do
 
 
   # -------------------------------------------------------------------
+  # GenServer callbacks
+  # -------------------------------------------------------------------
+
+  @doc false
+  def init(_) do
+    state = %{
+      cloaks: Map.new(),
+    }
+    {:ok, state}
+  end
+
+  def handle_cast({:register_cloak, pid, cloak_info}, %{cloaks: cloaks} = state) do
+    Process.monitor(pid)
+    cloaks = Map.put(cloaks, pid, cloak_info)
+    {:noreply, %{state | cloaks: cloaks}}
+  end
+
+  def handle_call({:lookup, {:data_source, global_id}}, _from, %{cloaks: cloaks} = state) do
+    reply = Enum.filter(cloaks, fn({_pid, %{data_source_ids: ids}}) -> Enum.any?(ids, & &1 == global_id) end)
+    {:reply, reply, state}
+  end
+  def handle_call({:lookup, :cloaks}, _from, %{cloaks: cloaks} = state) do
+    cloaks = Enum.to_list(cloaks)
+    {:reply, cloaks, state}
+  end
+
+  def handle_info({:DOWN, _monitor_ref, :process, pid, _info}, %{cloaks: cloaks} = state) do
+    cloaks = Map.delete(cloaks, pid)
+    {:noreply, %{state | cloaks: cloaks}}
+  end
+
+
+  # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp register_data_sources(cloak_info, data_sources) do
+  defp register_data_sources(data_sources) do
     data_source_ids = data_sources
     |> Enum.map(&Task.async(fn ->
       global_id = Map.fetch!(&1, "global_id")
@@ -74,8 +107,6 @@ defmodule Air.Service.Cloak do
       global_id
     end))
     |> Enum.map(&Task.await/1)
-
-    Enum.each(data_source_ids, &Registry.register(@registry_name, {:data_source, &1}, cloak_info))
 
     data_source_ids
   end
