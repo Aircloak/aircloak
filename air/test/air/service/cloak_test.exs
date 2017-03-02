@@ -66,6 +66,15 @@ defmodule Air.Service.Cloak.Test do
     assert cloak.data_source_ids == [@data_source_id]
   end
 
+  test "returns a list of cloaks for a data sources" do
+    cloak_info = cloak_info()
+    Cloak.register(cloak_info, @data_sources)
+    [cloak] = Cloak.cloak_infos_for_data_source(@data_source_id)
+    assert cloak.id == cloak_info.id
+    assert cloak.name == cloak_info.name
+    assert cloak.data_source_ids == [@data_source_id]
+  end
+
   describe "getting cloak info" do
     test "when cloak is registered" do
       %{id: cloak_id} = cloak_info = cloak_info()
