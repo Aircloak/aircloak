@@ -76,6 +76,21 @@ defmodule Air.TestRepoHelper do
     |> Repo.insert!()
   end
 
+  @doc "Registers a cloak a serving a data source, returning the data source id"
+  @spec create_and_register_data_source() :: String.t
+  def create_and_register_data_source() do
+    data_source_id = "data_source_id_#{:erlang.unique_integer()}"
+    data_sources = [%{"global_id" => data_source_id, "tables" => []}]
+    cloak_info = %{
+      id: "cloak_id_#{:erlang.unique_integer()}",
+      name: "cloak_name",
+      online_since: Timex.now()
+    }
+    Air.Service.Cloak.register(cloak_info, data_sources)
+    data_source_id
+  end
+
+
   defp random_string,
     do: Base.encode16(:crypto.strong_rand_bytes(10))
 end

@@ -4,7 +4,7 @@ defmodule Air.Admin.DataSourceView do
   # bug in the current Phoenix
   @dialyzer :no_match
 
-  alias Air.{Schemas.DataSource, Service.Cloak, Repo}
+  alias Air.{Schemas, Service, Repo}
 
   def availability_label(data_source) do
     if available?(data_source) do
@@ -14,9 +14,9 @@ defmodule Air.Admin.DataSourceView do
     end
   end
 
-  def available?(data_source), do: Cloak.available?(data_source.global_id)
+  def available?(data_source), do: Service.DataSource.available?(data_source.global_id)
 
-  def number_of_tables(data_source), do: length(DataSource.tables(data_source))
+  def number_of_tables(data_source), do: length(Schemas.DataSource.tables(data_source))
 
   defp checkbox_mapper(form, field, input_opts, group, label_opts, _opts) do
     content_tag(:div, class: "checkbox") do

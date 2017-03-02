@@ -5,7 +5,7 @@ defmodule Air.Admin.DataSourceController do
 
   use Air.Web, :admin_controller
 
-  alias Air.{Schemas.DataSource, Schemas.User, Service.Cloak}
+  alias Air.{Schemas.DataSource, Schemas.User}
 
   plug :load_data_source when action in [:show, :edit, :update, :delete]
 
@@ -27,7 +27,8 @@ defmodule Air.Admin.DataSourceController do
 
   def index(conn, _params) do
     data_sources = Repo.all(DataSource) |> Repo.preload([:groups])
-    data_sources = Enum.sort_by(data_sources, &{not Cloak.available?(&1.global_id), &1.name})
+    data_sources = Enum.sort_by(data_sources,
+      &{not Air.Service.DataSource.available?(&1.global_id), &1.name})
 
     query = from data_source in DataSource,
       inner_join: group in assoc(data_source, :groups),

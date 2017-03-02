@@ -57,15 +57,6 @@ defmodule Air.Service.Cloak.Test do
     assert soon([pid2] == Cloak.channel_pids(@data_source_id) |> Enum.map(& elem(&1, 0)))
   end
 
-  test "should be able to tell when a data source is available" do
-    Cloak.register(cloak_info(), @data_sources)
-    assert Cloak.available?(@data_source_id)
-  end
-
-  test "should be able to tell when a data source is not available" do
-    refute Cloak.available?(@data_source_id)
-  end
-
   test "returns a list of cloaks and their data sources" do
     cloak_info = cloak_info()
     Cloak.register(cloak_info, @data_sources)

@@ -33,10 +33,6 @@ defmodule Air.Service.Cloak do
   def channel_pids(global_id), do:
     GenServer.call(__MODULE__, {:lookup, {:data_source, global_id}})
 
-  @doc "Whether or not a data source is available for querying. True if it has one or more cloaks online"
-  @spec available?(String.t) :: boolean
-  def available?(data_source_id), do: channel_pids(data_source_id) !== []
-
   @doc """
   Returns a list of the connected cloaks. The element returned for each cloak
   corresponds to the cloak info that was used to register the cloak, but is

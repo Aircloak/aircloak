@@ -134,7 +134,7 @@ defmodule Air.Service.DataSource do
       Map.merge(audit_meta, %{query: query.statement, data_source: query.data_source.id}))
 
     try do
-      if Cloak.available?(query.data_source.global_id) do
+      if available?(query.data_source.global_id) do
         for {channel, _cloak_info} <- Cloak.channel_pids(query.data_source.global_id), do:
           MainChannel.stop_query(channel, query.id)
         :ok
@@ -180,6 +180,11 @@ defmodule Air.Service.DataSource do
         |> Repo.update!()
     end
   end
+
+  @doc "Whether or not a data source is available for querying. True if it has one or more cloaks online"
+  @spec available?(String.t) :: boolean
+  def available?(data_source_id), do: Cloak.channel_pids(data_source_id) !== []
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
