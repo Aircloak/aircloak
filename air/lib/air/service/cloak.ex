@@ -48,8 +48,8 @@ defmodule Air.Service.Cloak do
     GenServer.call(__MODULE__, {:lookup, :cloak_infos})
 
   @doc "Returns the cloak info of cloaks serving a data source"
-  @spec cloaks_for_data_source(String.t) :: [Map.t]
-  def cloaks_for_data_source(global_id), do:
+  @spec cloak_infos_for_data_source(String.t) :: [Map.t]
+  def cloak_infos_for_data_source(global_id), do:
     for {_pid, cloak_info} <- GenServer.call(__MODULE__, {:lookup, {:data_source, global_id}}), do: cloak_info
 
 
