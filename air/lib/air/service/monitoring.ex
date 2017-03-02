@@ -52,13 +52,13 @@ defmodule Air.Service.Monitoring do
   end
 
   defp fetch_cloaks(now) do
-    for cloak <- Cloak.cloaks() do
+    for cloak_info <- Cloak.all_cloak_infos() do
       %{
-        name: cloak.name,
-        version: cloak.version,
-        uptime: Timex.diff(now, cloak.online_since, :seconds),
-        data_sources: cloak.data_source_ids,
-        queries: query_stats(Query |> where([q], q.cloak_id == ^cloak.id), now),
+        name: cloak_info.name,
+        version: cloak_info.version,
+        uptime: Timex.diff(now, cloak_info.online_since, :seconds),
+        data_sources: cloak_info.data_source_ids,
+        queries: query_stats(Query |> where([q], q.cloak_id == ^cloak_info.id), now),
       }
     end
   end

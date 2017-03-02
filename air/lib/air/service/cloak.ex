@@ -43,14 +43,14 @@ defmodule Air.Service.Cloak do
   corresponds to the cloak info that was used to register the cloak, but is
   additionally augmented with a list of the IDs of the data sources served by the cloak
   """
-  @spec cloaks() :: [Map.t]
-  def cloaks(), do:
-    for {_pid, cloak_info} <- GenServer.call(__MODULE__, {:lookup, :cloaks}), do: cloak_info
+  @spec all_cloak_infos() :: [Map.t]
+  def all_cloak_infos(), do:
+    GenServer.call(__MODULE__, {:lookup, :cloak_infos})
 
   @doc "Returns the cloak info of cloaks serving a data source"
   @spec cloaks_for_data_source(String.t) :: [map]
   def cloaks_for_data_source(data_source_id), do:
-    Enum.filter(cloaks(), &Enum.member?(&1.data_source_ids, data_source_id))
+    Enum.filter(all_cloak_infos(), &Enum.member?(&1.data_source_ids, data_source_id))
 
 
   # -------------------------------------------------------------------
@@ -77,10 +77,8 @@ defmodule Air.Service.Cloak do
     |> Enum.map(& elem(&1, 0))
     {:reply, reply, state}
   end
-  def handle_call({:lookup, :cloaks}, _from, %{cloaks: cloaks} = state) do
-    cloaks = Enum.to_list(cloaks)
-    {:reply, cloaks, state}
-  end
+  def handle_call({:lookup, :cloak_infos}, _from, %{cloaks: cloaks} = state), do:
+    {:reply, Map.values(cloaks), state}
   def handle_call({:lookup, {:cloak, pid}}, _from, %{cloaks: cloaks} = state) do
     reply = case Map.fetch(cloaks, pid) do
       {:ok, _} = cloak -> cloak

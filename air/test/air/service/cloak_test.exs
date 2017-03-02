@@ -60,7 +60,7 @@ defmodule Air.Service.Cloak.Test do
   test "returns a list of cloaks and their data sources" do
     cloak_info = cloak_info()
     Cloak.register(cloak_info, @data_sources)
-    [cloak] = Cloak.cloaks()
+    [cloak] = Cloak.all_cloak_infos()
     assert cloak.id == cloak_info.id
     assert cloak.name == cloak_info.name
     assert cloak.data_source_ids == [@data_source_id]

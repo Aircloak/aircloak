@@ -37,6 +37,6 @@ defmodule Air.CentralClient do
       air_utc_time: NaiveDateTime.utc_now(),
       air_version: Aircloak.Version.for_app(:air) |> Aircloak.Version.to_string(),
       seconds_online: seconds_online,
-      cloaks: Enum.map(Air.Service.Cloak.cloaks(), &Map.take(&1, [:name, :data_source_ids, :version]))
+      cloaks: Enum.map(Air.Service.Cloak.all_cloak_infos(), &Map.take(&1, [:name, :data_source_ids, :version]))
     })
 end

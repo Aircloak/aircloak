@@ -31,7 +31,7 @@ defmodule Air.Admin.ActivityMonitorController do
       csrf_token: CSRFProtection.get_csrf_token(),
       guardian_token: Guardian.Plug.current_token(conn),
       running_queries: Query.currently_running(),
-      cloaks: Cloak.cloaks(),
+      cloaks: Cloak.all_cloak_infos(),
     )
   end
 end

@@ -23,7 +23,7 @@ defmodule Air.Admin.CloaksController do
 
   def index(conn, _params) do
     cloak_groups =
-      Cloak.cloaks()
+      Cloak.all_cloak_infos()
       |> Enum.map(&load_data_sources/1)
       |> Enum.with_index()
       |> Enum.group_by(fn({_cloak, index}) -> trunc(index / 2) end)
@@ -31,7 +31,7 @@ defmodule Air.Admin.CloaksController do
           {cloaks, _} = Enum.unzip(cloaks)
           cloaks
         end)
-    render(conn, "index.html", cloak_groups: cloak_groups, count: length(Cloak.cloaks()))
+    render(conn, "index.html", cloak_groups: cloak_groups, count: length(Cloak.all_cloak_infos()))
   end
 
 
