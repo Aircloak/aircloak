@@ -15,7 +15,7 @@ defmodule Air.Service.Cloak.Test do
   end
 
   test "should register data sources in the database" do
-    Cloak.register_cloak(cloak_info(), @data_sources)
+    Cloak.register(cloak_info(), @data_sources)
     assert Repo.get_by!(DataSource, global_id: @data_source_id).global_id == @data_source_id
   end
 
@@ -29,7 +29,7 @@ defmodule Air.Service.Cloak.Test do
   end
 
   test "should return a cloak channel pid given a registered data source" do
-    Cloak.register_cloak(cloak_info(), @data_sources)
+    Cloak.register(cloak_info(), @data_sources)
     assert [self()] == Cloak.channel_pids(@data_source_id) |> Enum.map(& elem(&1, 0))
   end
 
@@ -58,7 +58,7 @@ defmodule Air.Service.Cloak.Test do
   end
 
   test "should be able to tell when a data source is available" do
-    Cloak.register_cloak(cloak_info(), @data_sources)
+    Cloak.register(cloak_info(), @data_sources)
     assert Cloak.available?(@data_source_id)
   end
 
@@ -68,7 +68,7 @@ defmodule Air.Service.Cloak.Test do
 
   test "returns a list of cloaks and their data sources" do
     cloak_info = cloak_info()
-    Cloak.register_cloak(cloak_info, @data_sources)
+    Cloak.register(cloak_info, @data_sources)
     [cloak] = Cloak.cloaks()
     assert cloak.id == cloak_info.id
     assert cloak.name == cloak_info.name
@@ -88,7 +88,7 @@ defmodule Air.Service.Cloak.Test do
     ref = make_ref()
 
     pid = spawn_link(fn ->
-      registration_result = Cloak.register_cloak(cloak_info, data_sources)
+      registration_result = Cloak.register(cloak_info, data_sources)
       send(parent, {ref, registration_result})
       :timer.sleep(:infinity)
     end)

@@ -21,11 +21,11 @@ defmodule Air.Service.Cloak do
   @doc """
   Registers a data source (if needed), and associates the calling cloak with the data source
   """
-  @spec register_cloak(Map.t, Map.t) :: :ok
-  def register_cloak(cloak_info, data_sources) do
+  @spec register(Map.t, Map.t) :: :ok
+  def register(cloak_info, data_sources) do
     data_source_ids = register_data_sources(data_sources)
     cloak_info = Map.put(cloak_info, :data_source_ids, data_source_ids)
-    GenServer.cast(__MODULE__, {:register_cloak, self(), cloak_info})
+    GenServer.cast(__MODULE__, {:register, self(), cloak_info})
   end
 
   @doc "Returns pairs of the form {channel_pid, cloak_info} the cloaks that have the given data source."
@@ -64,7 +64,7 @@ defmodule Air.Service.Cloak do
     {:ok, state}
   end
 
-  def handle_cast({:register_cloak, pid, cloak_info}, %{cloaks: cloaks} = state) do
+  def handle_cast({:register, pid, cloak_info}, %{cloaks: cloaks} = state) do
     Process.monitor(pid)
     cloaks = Map.put(cloaks, pid, cloak_info)
     {:noreply, %{state | cloaks: cloaks}}

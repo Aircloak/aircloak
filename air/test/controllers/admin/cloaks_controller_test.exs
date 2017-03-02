@@ -27,7 +27,7 @@ defmodule Air.Admin.CloaksControllerTest do
     }
 
     data_sources = [%{"global_id" => "global_id", "tables" => []}]
-    Cloak.register_cloak(cloak_info, data_sources)
+    Cloak.register(cloak_info, data_sources)
 
     # verify that it's in the list
     html_response = login(admin) |> get("/admin/cloaks") |> response(200)
@@ -54,7 +54,7 @@ defmodule Air.Admin.CloaksControllerTest do
     }
 
     data_sources = [%{"global_id" => "global_id", "tables" => []}]
-    Cloak.register_cloak(cloak_info, data_sources)
+    Cloak.register(cloak_info, data_sources)
 
     # verify that it's in the list
     assert login(user) |> get("/admin/cloaks") |> redirected_to() === "/"
