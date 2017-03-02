@@ -59,6 +59,7 @@ defmodule Air.Service.Monitoring do
         uptime: Timex.diff(now, cloak_info.online_since, :seconds),
         data_sources: cloak_info.data_source_ids,
         queries: query_stats(Query |> where([q], q.cloak_id == ^cloak_info.id), now),
+        memory: cloak_info.memory,
       }
     end
   end
