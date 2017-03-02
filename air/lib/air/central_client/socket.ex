@@ -182,7 +182,7 @@ defmodule Air.CentralClient.Socket do
   # -------------------------------------------------------------------
 
   @spec call(GenServer.server, String.t, Map.t, pos_integer) :: {:ok, any} | {:error, any}
-  defp call(socket, event, payload, timeout \\ :timer.seconds(5)) do
+  defp call(socket, event, payload, timeout \\ config(:call_timeout)) do
     mref = Process.monitor(socket)
     send(socket, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})
     receive do
