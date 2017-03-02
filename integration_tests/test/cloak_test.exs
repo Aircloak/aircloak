@@ -17,9 +17,8 @@ defmodule IntegrationTest.CloakTest do
     ExUnit.CaptureLog.capture_log(fn ->
       # kill air socket process
       Manager.data_source_global_id()
-      |> Air.DataSourceManager.channel_pids()
+      |> Air.Service.Cloak.channel_pids()
       |> hd()
-      |> elem(0)
       |> Process.info()
       |> Keyword.fetch!(:dictionary)
       |> Keyword.fetch!(:"$ancestors")
@@ -30,7 +29,7 @@ defmodule IntegrationTest.CloakTest do
       assert_receive {:trace, _, :call, {AirSocket, :handle_disconnected, _}}, :timer.seconds(1)
       assert_receive {:trace, _, :call, {AirSocket, :handle_connected, _}}, :timer.seconds(1)
       assert_receive {:trace, _, :call, {AirSocket, :handle_joined, _}}, :timer.seconds(1)
-      assert length(Air.DataSourceManager.channel_pids(Manager.data_source_global_id())) == 1
+      assert length(Air.Service.Cloak.channel_pids(Manager.data_source_global_id())) == 1
     end)
   end
 
@@ -41,15 +40,14 @@ defmodule IntegrationTest.CloakTest do
 
     ExUnit.CaptureLog.capture_log(fn ->
       # kill air channel process
-      Air.DataSourceManager.channel_pids(Manager.data_source_global_id())
+      Air.Service.Cloak.channel_pids(Manager.data_source_global_id())
       |> hd()
-      |> elem(0)
       |> Process.exit(:kill)
 
       # verify that cloak socket rejoins the main channel
       refute_receive {:trace, _, :call, {AirSocket, :handle_disconnected, _}}
       assert_receive {:trace, _, :call, {AirSocket, :handle_joined, _}}, :timer.seconds(1)
-      assert length(Air.DataSourceManager.channel_pids(Manager.data_source_global_id())) == 1
+      assert length(Air.Service.Cloak.channel_pids(Manager.data_source_global_id())) == 1
     end)
   end
 end

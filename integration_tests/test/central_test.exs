@@ -4,7 +4,7 @@ defmodule IntegrationTest.CentralTest do
   test "air status is stored in database" do
     assert air().status == :online
     assert length(air().cloaks) == 1
-    assert hd(air().cloaks).name == hd(Air.DataSourceManager.cloaks()).name
+    assert hd(air().cloaks).name == hd(Air.Service.Cloak.all_cloak_infos()).name
     assert hd(air().cloaks).status == :online
     assert hd(air().cloaks).data_source_names == [IntegrationTest.Manager.data_source_global_id()]
 
