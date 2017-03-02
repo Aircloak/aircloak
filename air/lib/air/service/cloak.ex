@@ -28,6 +28,11 @@ defmodule Air.Service.Cloak do
     GenServer.cast(__MODULE__, {:register, self(), cloak_info})
   end
 
+  @doc "Returns the cloak info for a specific cloak"
+  @spec get_info(pid) :: {:ok, Map.t} | {:error, :not_found}
+  def get_info(pid), do:
+    GenServer.call(__MODULE__, {:lookup, {:cloak, pid}})
+
   @doc "Returns pairs of the form {channel_pid, cloak_info} the cloaks that have the given data source."
   @spec channel_pids(String.t) :: [{pid(), Map.t}]
   def channel_pids(global_id), do:
@@ -73,6 +78,13 @@ defmodule Air.Service.Cloak do
   def handle_call({:lookup, :cloaks}, _from, %{cloaks: cloaks} = state) do
     cloaks = Enum.to_list(cloaks)
     {:reply, cloaks, state}
+  end
+  def handle_call({:lookup, {:cloak, pid}}, _from, %{cloaks: cloaks} = state) do
+    reply = case Map.fetch(cloaks, pid) do
+      {:ok, _} = cloak -> cloak
+      :error -> {:error, :not_found}
+    end
+    {:reply, reply, state}
   end
 
   def handle_info({:DOWN, _monitor_ref, :process, pid, _info}, %{cloaks: cloaks} = state) do

@@ -66,6 +66,18 @@ defmodule Air.Service.Cloak.Test do
     assert cloak.data_source_ids == [@data_source_id]
   end
 
+  describe "getting cloak info" do
+    test "when cloak is registered" do
+      %{id: cloak_id} = cloak_info = cloak_info()
+      Cloak.register(cloak_info, @data_sources)
+      assert {:ok, %{id: ^cloak_id}} = Cloak.get_info(self())
+    end
+
+    test "when cloak doesn't exist" do
+      assert {:error, :not_found} == Cloak.get_info(self())
+    end
+  end
+
   defp cloak_info() do
     %{
       id: "cloak_id_#{:erlang.unique_integer()}",
