@@ -3,6 +3,8 @@
 import React from "react";
 
 import {StateView} from "./state_view";
+import {cancel} from "../request";
+import {isFinished} from "../queries/state";
 
 export type Query = {
   id: string,
@@ -27,13 +29,25 @@ const queryExcerpt = (statement: string) => {
 
 const queryViewUrl = (props) => `/admin/queries/${props.id}`;
 
-export const QueryView = (props: Query) =>
+const stopQuery = ({id}, CSRFToken) => (event) => {
+  event.preventDefault();
+  cancel(id, CSRFToken);
+};
+
+export const QueryView = ({query, CSRFToken}: {query: Query, CSRFToken: string}) =>
   <tr>
-    <td>{props.data_source_name}</td>
-    <td>{props.analyst_name}</td>
+    <td>{query.data_source_name}</td>
+    <td>{query.analyst_name}</td>
     <td>
-      <code>{queryExcerpt(props.statement)}</code>
+      <code>{queryExcerpt(query.statement)}</code>
     </td>
-    <td><StateView state={props.state} /></td>
-    <td><a href={queryViewUrl(props)}>view</a></td>
+    <td><StateView state={query.state} /></td>
+    <td>
+      <button
+        className="btn btn-warning btn-xs"
+        onClick={stopQuery(query, CSRFToken)}
+        disabled={isFinished(query.state)}
+      > cancel </button>
+    </td>
+    <td><a href={queryViewUrl(query)}>view</a></td>
   </tr>;

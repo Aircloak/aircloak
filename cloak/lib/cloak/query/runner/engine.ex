@@ -60,11 +60,12 @@ defmodule Cloak.Query.Runner.Engine do
     DataSource.select!(query, fn(rows) ->
       rows
       |> Query.DataDecoder.decode(query)
-      |> process_final_rows(%Sql.Query{query | where: query.emulated_where}, state_updater)
+      |> process_final_rows(query, state_updater)
     end)
   end
   defp select_rows(%Sql.Query{emulated?: true} = query, state_updater) do
     Logger.debug("Emulating query ...")
+    query = %Sql.Query{query | emulated_where: query.where ++ query.emulated_where}
     query
     |> Query.DbEmulator.select()
     |> process_final_rows(query, state_updater)
@@ -72,13 +73,14 @@ defmodule Cloak.Query.Runner.Engine do
 
   defp process_final_rows(rows, query, state_updater) do
     Logger.debug("Processing final rows ...")
-
     rows
-    |> Cloak.Stream.side_effect_after_first(fn() -> state_updater.(:processing) end)
+    |> Cloak.Stream.side_effect_after_first(fn() -> state_updater.(:ingesting_data) end)
+    |> Cloak.Stream.side_effect_after_last(fn() -> state_updater.(:processing) end)
     |> Query.RowSplitters.split(query)
-    |> Query.Rows.filter(Enum.map(query.where, &Sql.Comparison.to_function/1))
+    |> Query.Rows.filter(Enum.map(query.emulated_where, &Sql.Comparison.to_function/1))
     |> Query.ShrinkAndDrop.apply(query)
     |> Query.Aggregator.aggregate(query)
+    |> fn(rows) -> state_updater.(:post_processing); rows end.()
     |> Query.Sorter.order_buckets(query)
     |> Query.Result.distinct(query.distinct?)
     |> Query.Result.offset(query.offset)

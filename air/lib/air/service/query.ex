@@ -1,9 +1,9 @@
 defmodule Air.Service.Query do
   @moduledoc "Services for retrieving queries."
 
-  alias Air.{Repo, Schemas.Query, Socket.Frontend.UserChannel}
+  alias Air.{Repo, Schemas.DataSource, Schemas.Query, Schemas.User, Socket.Frontend.UserChannel}
 
-  import Ecto.Query, only: [from: 2]
+  import Ecto.Query
   require Logger
 
 
@@ -38,18 +38,34 @@ defmodule Air.Service.Query do
     Repo.paginate(query, page: page)
   end
 
-  @doc "Returns a query without associations preloaded"
-  @spec get(String.t) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
-  def get(id) do
+  @doc "Returns a query if accessible by the given user, without associations preloaded."
+  @spec get_as_user(User.t, String.t) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
+  def get_as_user(user, id) do
     try do
-      case Repo.get(Query, id) do
-        nil -> {:error, :not_found}
-        query ->
-          {:ok, query}
-      end
+      user |> query_scope() |> get(id)
     rescue Ecto.Query.CastError ->
       {:error, :invalid_id}
     end
+  end
+
+  @doc "Returns the last query the given user issued, or nil if the user did not issue any queries."
+  @spec last_for_user(User.t) :: Query.t | nil
+  def last_for_user(user) do
+    Query
+    |> started_by(user)
+    |> last(:inserted_at)
+    |> Repo.one()
+  end
+
+  @doc "Loads the most recent queries for a given user"
+  @spec load_recent_queries(User.t, DataSource.t, pos_integer, NaiveDateTime.t) :: [Query.t]
+  def load_recent_queries(user, data_source, recent_count, before) do
+    Query
+    |> started_by(user)
+    |> Query.for_data_source(data_source)
+    |> Query.recent(recent_count, before)
+    |> Repo.all()
+    |> Enum.map(&Query.for_display/1)
   end
 
   @doc "Returns a list of the queries that are currently executing"
@@ -117,7 +133,10 @@ defmodule Air.Service.Query do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  @state_order [:started, :parsing, :compiling, :awaiting_data, :processing, :cancelled, :error, :completed]
+  @state_order [
+    :started, :parsing, :compiling, :awaiting_data, :ingesting_data, :processing, :post_processing, :cancelled,
+    :error, :completed
+  ]
   defp valid_state_transition?(current_state, next_state), do:
     Enum.find_index(@state_order, &(&1 == current_state)) < Enum.find_index(@state_order, &(&1 == next_state))
 
@@ -128,4 +147,23 @@ defmodule Air.Service.Query do
   defp error_text(%{"error" => error}) when is_binary(error), do: error
   defp error_text(%{"cancelled" => true}), do: "Cancelled."
   defp error_text(_), do: nil
+
+  defp query_scope(user) do
+    if User.admin?(user) do
+      Query
+    else
+      started_by(Query, user)
+    end
+  end
+
+  defp get(scope \\ Query, id) do
+    case Repo.get(scope, id) do
+      nil -> {:error, :not_found}
+      query -> {:ok, query}
+    end
+  end
+
+  defp started_by(scope, user) do
+    where(scope, [q], q.user_id == ^user.id)
+  end
 end

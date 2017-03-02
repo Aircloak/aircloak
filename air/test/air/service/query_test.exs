@@ -4,20 +4,57 @@ defmodule Air.Service.QueryTest do
   import Air.TestRepoHelper
   alias Air.Service.Query
 
-  describe "get" do
-    test "loads existing queries" do
-      user = create_user!()
+  describe "get_as_user" do
+    setup do
+      {:ok, %{user: create_user!()}}
+    end
+
+    test "loads existing queries", %{user: user} do
       query = create_query!(user)
       query_id = query.id
-      assert {:ok, %Air.Schemas.Query{id: ^query_id}} = Query.get(query_id)
+      assert {:ok, %Air.Schemas.Query{id: ^query_id}} = Query.get_as_user(user, query_id)
     end
 
-    test "of invalid id when the ID is garbage" do
-      assert {:error, :invalid_id} == Query.get("missing")
+    test "does not find other user's queries", %{user: user} do
+      query = create_query!(_other_user = create_user!())
+      assert {:error, :not_found} = Query.get_as_user(user, query.id)
     end
 
-    test "of non-existent query returns not found" do
-      assert {:error, :not_found} == Query.get(Ecto.UUID.generate())
+    test "finds all queries for admins", %{user: user} do
+      query = create_query!(user)
+      query_id = query.id
+      assert {:ok, %Air.Schemas.Query{id: ^query_id}} = Query.get_as_user(create_admin_user!(), query_id)
+    end
+
+    test "of invalid id when the ID is garbage", %{user: user} do
+      assert {:error, :invalid_id} == Query.get_as_user(user, "missing")
+    end
+
+    test "of non-existent query returns not found", %{user: user} do
+      assert {:error, :not_found} == Query.get_as_user(user, Ecto.UUID.generate())
+    end
+  end
+
+  describe "last_for_user" do
+    test "returns last query the user issued" do
+      user = create_user!()
+      _previous_one = create_query!(user)
+      last_one = create_query!(user)
+      _later_one_by_another_user = create_query!(create_user!())
+
+      assert last_one.id == Query.last_for_user(user).id
+    end
+
+    test "ignores other queries visible to an admin" do
+      user = create_admin_user!()
+      last_one = create_query!(user)
+      _later_one_by_another_user = create_query!(create_user!())
+
+      assert last_one.id == Query.last_for_user(user).id
+    end
+
+    test "nil if the user has no queries" do
+      assert nil == Query.last_for_user(create_user!())
     end
   end
 
@@ -45,7 +82,7 @@ defmodule Air.Service.QueryTest do
 
       Query.update_state(query.id, :processing)
 
-      assert {:ok, %{query_state: :processing}} = Query.get(query.id)
+      assert {:ok, %{query_state: :processing}} = get_query(query.id)
     end
 
     test "it's impossible to change to an earlier state" do
@@ -53,7 +90,7 @@ defmodule Air.Service.QueryTest do
 
       Query.update_state(query.id, :processing)
 
-      assert {:ok, %{query_state: :completed}} = Query.get(query.id)
+      assert {:ok, %{query_state: :completed}} = get_query(query.id)
     end
   end
 
@@ -71,7 +108,7 @@ defmodule Air.Service.QueryTest do
         "execution_time" => 123,
       })
 
-      {:ok, query} = Query.get(query.id)
+      {:ok, query} = get_query(query.id)
       assert %{
         query_state: :completed,
         execution_time: 123,
@@ -98,7 +135,7 @@ defmodule Air.Service.QueryTest do
         "error" => "some reason",
       })
 
-      {:ok, query} = Query.get(query.id)
+      {:ok, query} = get_query(query.id)
       assert %{
         query_state: :error,
         execution_time: 123,
@@ -117,7 +154,7 @@ defmodule Air.Service.QueryTest do
         "cancelled" => true,
       })
 
-      {:ok, query} = Query.get(query.id)
+      {:ok, query} = get_query(query.id)
       assert %{
         query_state: :cancelled,
         execution_time: 123,
