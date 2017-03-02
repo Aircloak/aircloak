@@ -56,6 +56,38 @@ const freeMemoryDisplayClasses = (memoryInBytes) => {
   }
 };
 
+const renderFreeMemory = (freeMemory) => {
+  if (freeMemory === null) {
+    return (
+      <td>
+        <span className={freeMemoryDisplayClasses(0)}>
+          Uknown
+        </span>
+      </td>
+    );
+  } else {
+    return (
+      <td>
+        <span className={freeMemoryDisplayClasses(freeMemory.last_five_seconds)}>
+          5 sec - {toGBstring(freeMemory.last_five_seconds)}
+        </span>
+        {' '}
+        <span className={freeMemoryDisplayClasses(freeMemory.last_five_minutes)}>
+          5 min - {toGBstring(freeMemory.last_five_minutes)}
+        </span>
+        {' '}
+        <span className={freeMemoryDisplayClasses(freeMemory.last_fifteen_minutes)}>
+          15 min - {toGBstring(freeMemory.last_fifteen_minutes)}
+        </span>
+        {' '}
+        <span className={freeMemoryDisplayClasses(freeMemory.last_hour)}>
+          1 hour - {toGBstring(freeMemory.last_hour)}
+        </span>
+      </td>
+    );
+  }
+};
+
 export const CloakView = (props: Cloak) =>
   <tr>
     <td>{props.name}</td>
@@ -64,21 +96,5 @@ export const CloakView = (props: Cloak) =>
         {toGBstring(props.total_memory)}
       </span>
     </td>
-    <td>
-      <span className={freeMemoryDisplayClasses(props.free_memory.last_five_seconds)}>
-        5 sec - {toGBstring(props.free_memory.last_five_seconds)}
-      </span>
-      {' '}
-      <span className={freeMemoryDisplayClasses(props.free_memory.last_five_minutes)}>
-        5 min - {toGBstring(props.free_memory.last_five_minutes)}
-      </span>
-      {' '}
-      <span className={freeMemoryDisplayClasses(props.free_memory.last_fifteen_minutes)}>
-        15 min - {toGBstring(props.free_memory.last_fifteen_minutes)}
-      </span>
-      {' '}
-      <span className={freeMemoryDisplayClasses(props.free_memory.last_hour)}>
-        1 hour - {toGBstring(props.free_memory.last_hour)}
-      </span>
-    </td>
+    {renderFreeMemory(props.free_memory)}
   </tr>;

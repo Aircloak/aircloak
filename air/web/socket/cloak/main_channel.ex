@@ -81,6 +81,12 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   @doc false
+  def handle_in("memory_reading", reading, socket) do
+    reading = reading_with_atom_keys(reading)
+    Air.Service.Cloak.record_memory(reading)
+    Air.Socket.Frontend.MemoryChannel.broadcast_memory_reading(socket.assigns.cloak_id, reading)
+    {:noreply, socket}
+  end
   def handle_in("call_response", payload, socket) do
     request_id = payload["request_id"]
 
@@ -205,5 +211,12 @@ defmodule Air.Socket.Cloak.MainChannel do
       Central.record_cloak_online(cloak.name, Enum.map(data_sources, &Map.fetch!(&1, "global_id")), version)
       Aircloak.ProcessMonitor.on_exit(fn -> Central.record_cloak_offline(cloak.name) end)
     end
+  end
+
+  defp reading_with_atom_keys(reading) do
+    %{
+      total_memory: reading["total_memory"],
+      free_memory: reading["free_memory"] |> Enum.map(fn({k, v}) -> {String.to_atom(k), v} end) |> Enum.into(%{}),
+    }
   end
 end
