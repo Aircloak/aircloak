@@ -64,7 +64,7 @@ defmodule Air.Service.DataSource do
     {:ok, map} | data_source_operation_error
   def describe_query(data_source_id_spec, user, statement, parameters) do
     on_available_cloak(data_source_id_spec, user,
-      fn(_cloak, data_source, channel_pid) ->
+      fn(data_source, channel_pid) ->
         MainChannel.describe_query(channel_pid, %{
           statement: statement,
           data_source: data_source.global_id,
@@ -80,7 +80,7 @@ defmodule Air.Service.DataSource do
     {:ok, [columns :: map]} | {:error, field :: String.t, reason :: String.t} | data_source_operation_error
   def validate_view(data_source_id_spec, user, view), do:
     on_available_cloak(data_source_id_spec, user,
-      fn(_cloak, data_source, channel_pid) ->
+      fn(data_source, channel_pid) ->
         MainChannel.validate_view(channel_pid, %{
           data_source: data_source.global_id,
           name: view.name,
@@ -97,8 +97,9 @@ defmodule Air.Service.DataSource do
     opts = Keyword.merge([audit_meta: %{}, notify: false], opts)
 
     on_available_cloak(data_source_id_spec, user,
-      fn(cloak, data_source, channel_pid) ->
-        query = create_query(cloak.id, data_source.id, user, statement, parameters, opts[:session_id])
+      fn(data_source, channel_pid) ->
+        {:ok, %{id: cloak_id}} = Cloak.get_info(channel_pid)
+        query = create_query(cloak_id, data_source.id, user, statement, parameters, opts[:session_id])
 
         UserChannel.broadcast_state_change(query)
 
@@ -135,7 +136,7 @@ defmodule Air.Service.DataSource do
 
     try do
       if available?(query.data_source.global_id) do
-        for {channel, _cloak_info} <- Cloak.channel_pids(query.data_source.global_id), do:
+        for channel <- Cloak.channel_pids(query.data_source.global_id), do:
           MainChannel.stop_query(channel, query.id)
         :ok
       else
@@ -232,8 +233,8 @@ defmodule Air.Service.DataSource do
         case Cloak.channel_pids(data_source.global_id) do
           [] -> {:error, :not_connected}
           channel_pids ->
-            {channel_pid, cloak} = Enum.random(channel_pids)
-            fun.(cloak, data_source, channel_pid)
+            channel_pid = Enum.random(channel_pids)
+            fun.(data_source, channel_pid)
         end
       catch type, error ->
         Logger.error([

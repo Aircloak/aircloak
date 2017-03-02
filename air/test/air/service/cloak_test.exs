@@ -30,7 +30,7 @@ defmodule Air.Service.Cloak.Test do
 
   test "should return a cloak channel pid given a registered data source" do
     Cloak.register(cloak_info(), @data_sources)
-    assert [self()] == Cloak.channel_pids(@data_source_id) |> Enum.map(& elem(&1, 0))
+    assert [self()] == Cloak.channel_pids(@data_source_id)
   end
 
   test "should allow assigning multiple cloaks to the same data source" do
@@ -54,7 +54,7 @@ defmodule Air.Service.Cloak.Test do
     Process.unlink(pid1)
     Process.exit(pid1, :exit)
 
-    assert soon([pid2] == Cloak.channel_pids(@data_source_id) |> Enum.map(& elem(&1, 0)))
+    assert soon([pid2] == Cloak.channel_pids(@data_source_id))
   end
 
   test "returns a list of cloaks and their data sources" do

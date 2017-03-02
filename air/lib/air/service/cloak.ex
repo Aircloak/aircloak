@@ -33,10 +33,10 @@ defmodule Air.Service.Cloak do
   def get_info(pid), do:
     GenServer.call(__MODULE__, {:lookup, {:cloak, pid}})
 
-  @doc "Returns pairs of the form {channel_pid, cloak_info} the cloaks that have the given data source."
-  @spec channel_pids(String.t) :: [{pid(), Map.t}]
+  @doc "Returns a list of cloak channel pids for a given data source."
+  @spec channel_pids(String.t) :: [pid()]
   def channel_pids(global_id), do:
-    GenServer.call(__MODULE__, {:lookup, {:data_source, global_id}})
+    GenServer.call(__MODULE__, {:lookup, {:data_source_pids, global_id}})
 
   @doc """
   Returns a list of the connected cloaks. The element returned for each cloak
@@ -71,8 +71,10 @@ defmodule Air.Service.Cloak do
     {:noreply, %{state | cloaks: cloaks}}
   end
 
-  def handle_call({:lookup, {:data_source, global_id}}, _from, %{cloaks: cloaks} = state) do
-    reply = Enum.filter(cloaks, fn({_pid, %{data_source_ids: ids}}) -> Enum.any?(ids, & &1 == global_id) end)
+  def handle_call({:lookup, {:data_source_pids, global_id}}, _from, %{cloaks: cloaks} = state) do
+    reply = cloaks
+    |> Enum.filter(fn({_pid, %{data_source_ids: ids}}) -> Enum.any?(ids, & &1 == global_id) end)
+    |> Enum.map(& elem(&1, 0))
     {:reply, reply, state}
   end
   def handle_call({:lookup, :cloaks}, _from, %{cloaks: cloaks} = state) do
