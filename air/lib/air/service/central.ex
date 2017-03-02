@@ -49,7 +49,7 @@ defmodule Air.Service.Central do
   @doc "Forwards all pending calls to the central."
   @spec reattempt_pending_calls() :: :ok
   def reattempt_pending_calls(), do:
-    Enum.each(pending_calls(), &start_rpc/1)
+    if auto_export?(), do: Enum.each(pending_calls(), &start_rpc/1)
 
   @doc "Persists a pending central call."
   @spec store_pending_call(String.t, map) :: {:ok, CentralCall.t} | :error
