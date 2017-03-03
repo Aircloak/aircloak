@@ -196,4 +196,10 @@ defmodule Cloak.DataSource.MongoDBTest do
     assert_query context, "SELECT AVG(age) FROM (SELECT _id, round(age) AS age FROM #{@table}) AS t",
       %{rows: [%{occurrences: 1, row: [30.0]}]}
   end
+
+  test "dotted names", context do
+    assert_query context, """
+        SELECT count(bills.issuer) FROM (SELECT _id, bills.issuer FROM #{@table}_bills_ids) AS t
+      """, %{rows: [%{occurrences: 1, row: [20]}]}
+  end
 end

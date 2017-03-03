@@ -253,13 +253,12 @@ defmodule Cloak.Sql.TypeChecker do
     ])
 
   defp expand_from_subquery(column, query, future) do
-    %Expression{name: column_name, table: %{name: table_name}} = column
     Lens.to_list(Query.Lenses.direct_subqueries(), query)
-    |> Enum.find(&(&1.alias == table_name))
+    |> Enum.find(&(&1.alias == column.table.name))
     |> case do
       nil -> column(column)
       %{ast: subquery} ->
-        column_index = Enum.find_index(subquery.column_titles, &(&1 == column_name))
+        column_index = Enum.find_index(subquery.column_titles, &(&1 == column.name))
         column = Enum.at(subquery.columns, column_index)
         construct_type(column, subquery, future)
     end
