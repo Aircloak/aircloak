@@ -2,7 +2,7 @@ defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
   alias Air.Schemas.{DataSource, Query, User, View}
-  alias Air.{PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, Socket.Frontend.UserChannel}
+  alias Air.{PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, Socket.Frontend.UserChannel, QueryEvents}
   alias Air.Service.{Version, Cloak}
   import Ecto.Query, only: [from: 2]
   require Logger
@@ -138,6 +138,8 @@ defmodule Air.Service.DataSource do
       if available?(query.data_source.global_id) do
         for channel <- Cloak.channel_pids(query.data_source.global_id), do:
           MainChannel.stop_query(channel, query.id)
+        QueryEvents.trigger_state_change(query.id, :cancelled)
+
         :ok
       else
         {:error, :not_connected}
