@@ -37,6 +37,17 @@ The endpoint presents data as the following JSON structure:
         "last_30_minutes": ...,
         "last_1_hour": ...,
         "last_1_day": ...
+      },
+      "memory": {
+        "total_memory": <number of bytes>,
+        "free_memory": {
+          "current": <number of free bytes>,
+          "last_five_seconds": <number of free bytes>,
+          "last_minute": <number of free bytes>,
+          "last_five_minutes": <number of free bytes>,
+          "last_fifteen_minutes": <number of free bytes>,
+          "last_hour": <number of free bytes>
+        }
       }
     },
     ...
@@ -58,3 +69,6 @@ The endpoint presents data as the following JSON structure:
   ]
 }
 ```
+
+Please note that the memory statistics given for the cloaks are the minimum values seen within the
+given time period. Furthermore all the measurements are in bytes.

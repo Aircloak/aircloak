@@ -2,8 +2,8 @@ defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
   alias Air.Schemas.{DataSource, Query, User, View}
-  alias Air.{DataSourceManager, PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, Socket.Frontend.UserChannel}
-  alias Air.Service.Version
+  alias Air.{PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, Socket.Frontend.UserChannel}
+  alias Air.Service.{Version, Cloak}
   import Ecto.Query, only: [from: 2]
   require Logger
 
@@ -64,7 +64,7 @@ defmodule Air.Service.DataSource do
     {:ok, map} | data_source_operation_error
   def describe_query(data_source_id_spec, user, statement, parameters) do
     on_available_cloak(data_source_id_spec, user,
-      fn(_cloak, data_source, channel_pid) ->
+      fn(data_source, channel_pid) ->
         MainChannel.describe_query(channel_pid, %{
           statement: statement,
           data_source: data_source.global_id,
@@ -80,7 +80,7 @@ defmodule Air.Service.DataSource do
     {:ok, [columns :: map]} | {:error, field :: String.t, reason :: String.t} | data_source_operation_error
   def validate_view(data_source_id_spec, user, view), do:
     on_available_cloak(data_source_id_spec, user,
-      fn(_cloak, data_source, channel_pid) ->
+      fn(data_source, channel_pid) ->
         MainChannel.validate_view(channel_pid, %{
           data_source: data_source.global_id,
           name: view.name,
@@ -97,8 +97,9 @@ defmodule Air.Service.DataSource do
     opts = Keyword.merge([audit_meta: %{}, notify: false], opts)
 
     on_available_cloak(data_source_id_spec, user,
-      fn(cloak, data_source, channel_pid) ->
-        query = create_query(cloak.id, data_source.id, user, statement, parameters, opts[:session_id])
+      fn(data_source, channel_pid) ->
+        {:ok, %{id: cloak_id}} = Cloak.get_info(channel_pid)
+        query = create_query(cloak_id, data_source.id, user, statement, parameters, opts[:session_id])
 
         UserChannel.broadcast_state_change(query)
 
@@ -134,8 +135,8 @@ defmodule Air.Service.DataSource do
       Map.merge(audit_meta, %{query: query.statement, data_source: query.data_source.id}))
 
     try do
-      if DataSourceManager.available?(query.data_source.global_id) do
-        for {channel, _cloak_info} <- DataSourceManager.channel_pids(query.data_source.global_id), do:
+      if available?(query.data_source.global_id) do
+        for channel <- Cloak.channel_pids(query.data_source.global_id), do:
           MainChannel.stop_query(channel, query.id)
         :ok
       else
@@ -156,6 +157,35 @@ defmodule Air.Service.DataSource do
     Repo.all(from data_source in DataSource,
       where: data_source.id in ^ids)
   end
+
+  @doc "Creates or updates a data source, returning the updated data source"
+  @spec create_or_update_data_source(String.t, Map.t) :: DataSource.t
+  def create_or_update_data_source(global_id, tables) do
+    case Repo.get_by(DataSource, global_id: global_id) do
+      nil ->
+        params = %{
+          global_id: global_id,
+          name: global_id,
+          tables: Poison.encode!(tables)
+        }
+        %DataSource{}
+        |> DataSource.changeset(params)
+        |> Repo.insert!()
+
+      data_source ->
+        params = %{
+          tables: Poison.encode!(tables)
+        }
+        data_source
+        |> DataSource.changeset(params)
+        |> Repo.update!()
+    end
+  end
+
+  @doc "Whether or not a data source is available for querying. True if it has one or more cloaks online"
+  @spec available?(String.t) :: boolean
+  def available?(data_source_id), do: Cloak.channel_pids(data_source_id) !== []
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
@@ -200,11 +230,11 @@ defmodule Air.Service.DataSource do
   defp do_on_available_cloak(data_source_id_spec, user, fun) do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
       try do
-        case DataSourceManager.channel_pids(data_source.global_id) do
+        case Cloak.channel_pids(data_source.global_id) do
           [] -> {:error, :not_connected}
           channel_pids ->
-            {channel_pid, cloak} = Enum.random(channel_pids)
-            fun.(cloak, data_source, channel_pid)
+            channel_pid = Enum.random(channel_pids)
+            fun.(data_source, channel_pid)
         end
       catch type, error ->
         Logger.error([

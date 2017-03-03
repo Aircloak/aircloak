@@ -10,8 +10,8 @@ defmodule Air.Socket.Frontend.MemoryChannel do
   @doc "Broadcasts the latest cloak memory readings."
   @spec broadcast_memory_reading(String.t, Map.t) :: :ok
   def broadcast_memory_reading(cloak_id, memory_reading) do
-    for cloak <- Air.DataSourceManager.cloaks(), cloak[:id] == cloak_id do
-      formatted_cloak = Air.Admin.ActivityMonitorView.format_cloak(cloak, memory_reading)
+    for cloak_info <- Air.Service.Cloak.all_cloak_infos(), cloak_info[:id] == cloak_id do
+      formatted_cloak = Air.Admin.ActivityMonitorView.format_cloak(cloak_info, memory_reading)
       Air.Endpoint.broadcast_from!(self(), "memory_readings", "new_reading", formatted_cloak)
     end
     :ok

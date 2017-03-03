@@ -63,7 +63,7 @@ defmodule Cloak.AirSocket do
   @doc "Sends cloak memory stats to the air."
   @spec send_memory_stats(GenServer.server, Keyword.t) :: :ok | {:error, any}
   def send_memory_stats(socket \\ __MODULE__, memory_reading), do:
-    cast(socket, "memory_channel", "reading", memory_reading |> Enum.into(%{}))
+    cast(socket, "main", "memory_reading", memory_reading |> Enum.into(%{}))
 
 
   # -------------------------------------------------------------------
@@ -85,7 +85,6 @@ defmodule Cloak.AirSocket do
   def handle_connected(_transport, state) do
     Logger.info("connected")
     send(self(), {:join, "main"})
-    send(self(), {:join, "memory_channel"})
     initial_interval = config(:min_reconnect_interval)
     {:ok, %{state | reconnect_interval: initial_interval}}
   end

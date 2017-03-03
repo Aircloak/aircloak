@@ -232,7 +232,7 @@ defmodule Air.CentralClient.Socket do
   end
 
   defp online_cloaks(), do:
-    Air.DataSourceManager.cloaks()
+    Air.Service.Cloak.all_cloak_infos()
     |> Enum.map(&%{
       name: &1.name,
       data_source_names: &1.data_source_ids,

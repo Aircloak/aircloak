@@ -3,7 +3,7 @@ defmodule Air.Service.Monitoring do
 
   import Ecto.Query
 
-  alias Air.{Repo, Schemas.Group, Schemas.User, Schemas.DataSource, Schemas.Query, DataSourceManager}
+  alias Air.{Repo, Schemas.Group, Schemas.User, Schemas.DataSource, Schemas.Query, Service.Cloak}
 
   @miliseconds_in_second 1000
 
@@ -52,13 +52,14 @@ defmodule Air.Service.Monitoring do
   end
 
   defp fetch_cloaks(now) do
-    for cloak <- DataSourceManager.cloaks() do
+    for cloak_info <- Cloak.all_cloak_infos() do
       %{
-        name: cloak.name,
-        version: cloak.version,
-        uptime: Timex.diff(now, cloak.online_since, :seconds),
-        data_sources: cloak.data_source_ids,
-        queries: query_stats(Query |> where([q], q.cloak_id == ^cloak.id), now),
+        name: cloak_info.name,
+        version: cloak_info.version,
+        uptime: Timex.diff(now, cloak_info.online_since, :seconds),
+        data_sources: cloak_info.data_source_ids,
+        queries: query_stats(Query |> where([q], q.cloak_id == ^cloak_info.id), now),
+        memory: cloak_info.memory,
       }
     end
   end

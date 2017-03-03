@@ -18,7 +18,6 @@ defmodule Air.Socket.Cloak do
 
   # List of exposed channels
   channel "main", Air.Socket.Cloak.MainChannel
-  channel "memory_channel", Air.Socket.Cloak.MemoryChannel
 
 
   # -------------------------------------------------------------------

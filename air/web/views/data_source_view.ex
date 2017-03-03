@@ -4,16 +4,16 @@ defmodule Air.DataSourceView do
   # bug in the current Phoenix
   @dialyzer :no_match
 
-  alias Air.{Schemas.DataSource, DataSourceManager}
+  alias Air.{Schemas, Service}
 
-  defp available?(data_source), do: DataSourceManager.available?(data_source.global_id)
+  defp available?(data_source), do: Service.DataSource.available?(data_source.global_id)
 
   defp number_of_tables(data_source) do
-    length(DataSource.tables(data_source))
+    length(Schemas.DataSource.tables(data_source))
   end
 
   defp sample_of_tables(data_source) do
-    DataSource.tables(data_source)
+    Schemas.DataSource.tables(data_source)
     |> Enum.map(fn(%{"id" => name}) -> name end)
     |> limited_join(nil, 64)
   end

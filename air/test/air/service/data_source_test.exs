@@ -1,7 +1,8 @@
 defmodule Air.Service.DataSourceTest do
   use Air.SchemaCase, async: false # because of shared mode
 
-  alias Air.{Service.DataSource, TestRepoHelper}
+  alias Air.Service.DataSource
+  alias Air.TestRepoHelper
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
@@ -100,6 +101,31 @@ defmodule Air.Service.DataSourceTest do
     assert DataSource.by_ids([ds1.id, ds2.id])
       |> Enum.map(&(&1.id))
       |> Enum.sort() == expected
+  end
+
+  describe "create or update data source" do
+    test "should update existing data source" do
+      table = %{table: true}
+      global_id = "global_id"
+      data_source = DataSource.create_or_update_data_source(global_id, table)
+      assert data_source.id == DataSource.create_or_update_data_source(global_id, table).id
+    end
+
+    test "should create new data source if none exists" do
+      table = %{table: true}
+      global_id = "new_global_id"
+      refute Repo.all(Air.Schemas.DataSource) |> Enum.any?(& &1.global_id == global_id)
+      assert %Air.Schemas.DataSource{} = DataSource.create_or_update_data_source(global_id, table)
+    end
+  end
+
+  test "should be able to tell when a data source is available" do
+    data_source_id = TestRepoHelper.create_and_register_data_source()
+    assert DataSource.available?(data_source_id)
+  end
+
+  test "should be able to tell when a data source is not available" do
+    refute DataSource.available?("some_id")
   end
 
   defp create_query(user, data_source), do:

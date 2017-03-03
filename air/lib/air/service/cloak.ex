@@ -1,0 +1,135 @@
+defmodule Air.Service.Cloak do
+  @moduledoc """
+  The Cloak service holds metadata about cloaks and their datastores as well as facilities
+  for registering them with the database backing the air system.
+  """
+  require Logger
+
+  use GenServer
+
+  alias Air.Service.DataSource
+
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Starts the data source manager process."
+  @spec start_link() :: GenServer.on_start
+  def start_link(), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
+
+  @doc """
+  Registers a data source (if needed), and associates the calling cloak with the data source
+  """
+  @spec register(Map.t, Map.t) :: :ok
+  def register(cloak_info, data_sources) do
+    data_source_ids = register_data_sources(data_sources)
+    cloak_info = Map.merge(cloak_info, %{
+      data_source_ids: data_source_ids,
+      memory: %{},
+    })
+    GenServer.cast(__MODULE__, {:register, self(), cloak_info})
+  end
+
+  @doc "Records cloak memory readings"
+  @spec record_memory(Map.t) :: :ok
+  def record_memory(reading), do:
+    GenServer.cast(__MODULE__, {:record_memory, self(), reading})
+
+  @doc "Returns the cloak info for a specific cloak"
+  @spec get_info(pid) :: {:ok, Map.t} | {:error, :not_found}
+  def get_info(pid), do:
+    GenServer.call(__MODULE__, {:lookup, {:cloak, pid}})
+
+  @doc "Returns a list of cloak channel pids for a given data source."
+  @spec channel_pids(String.t) :: [pid()]
+  def channel_pids(global_id), do:
+    for {pid, _cloak_info} <- GenServer.call(__MODULE__, {:lookup, {:data_source, global_id}}), do: pid
+
+  @doc """
+  Returns a list of the connected cloaks. The element returned for each cloak
+  corresponds to the cloak info that was used to register the cloak, but is
+  additionally augmented with a list of the IDs of the data sources served by the cloak
+  """
+  @spec all_cloak_infos() :: [Map.t]
+  def all_cloak_infos(), do:
+    GenServer.call(__MODULE__, {:lookup, :cloak_infos})
+
+  @doc "Returns the cloak info of cloaks serving a data source"
+  @spec cloak_infos_for_data_source(String.t) :: [Map.t]
+  def cloak_infos_for_data_source(global_id), do:
+    for {_pid, cloak_info} <- GenServer.call(__MODULE__, {:lookup, {:data_source, global_id}}), do: cloak_info
+
+
+  # -------------------------------------------------------------------
+  # GenServer callbacks
+  # -------------------------------------------------------------------
+
+  @doc false
+  def init(_) do
+    state = %{
+      cloaks: Map.new(),
+    }
+    {:ok, state}
+  end
+
+  def handle_cast({:register, pid, cloak_info}, %{cloaks: cloaks} = state) do
+    Process.monitor(pid)
+    cloaks = Map.put(cloaks, pid, cloak_info)
+    {:noreply, %{state | cloaks: cloaks}}
+  end
+  def handle_cast({:record_memory, pid, reading}, %{cloaks: cloaks} = state) do
+    cloaks = case Map.fetch(cloaks, pid) do
+      {:ok, cloak_info} -> Map.put(cloaks, pid, Map.put(cloak_info, :memory, reading))
+      :error -> cloaks
+    end
+    {:noreply, %{state | cloaks: cloaks}}
+  end
+
+  def handle_call({:lookup, {:data_source, global_id}}, _from, %{cloaks: cloaks} = state) do
+    reply = cloaks
+    |> Enum.filter(fn({_pid, %{data_source_ids: ids}}) -> Enum.any?(ids, & &1 == global_id) end)
+    {:reply, reply, state}
+  end
+  def handle_call({:lookup, :cloak_infos}, _from, %{cloaks: cloaks} = state), do:
+    {:reply, Map.values(cloaks), state}
+  def handle_call({:lookup, {:cloak, pid}}, _from, %{cloaks: cloaks} = state) do
+    reply = case Map.fetch(cloaks, pid) do
+      {:ok, _} = cloak -> cloak
+      :error -> {:error, :not_found}
+    end
+    {:reply, reply, state}
+  end
+
+  def handle_info({:DOWN, _monitor_ref, :process, pid, _info}, %{cloaks: cloaks} = state) do
+    cloaks = Map.delete(cloaks, pid)
+    {:noreply, %{state | cloaks: cloaks}}
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp register_data_sources(data_sources) do
+    data_source_ids = data_sources
+    |> Enum.map(&Task.async(fn ->
+      global_id = Map.fetch!(&1, "global_id")
+      tables = Map.fetch!(&1, "tables")
+
+      # Locking on a local node to prevent two simultaneous db registrations of the same datasource.
+      # The database maintains a uniqueness constraint already, but this is in place to avoid
+      # unnecessary retries.
+      :global.trans(
+        {{__MODULE__, :create_or_update_datastore, global_id}, self()},
+        fn -> DataSource.create_or_update_data_source(global_id, tables) end,
+        [node()]
+      )
+
+      global_id
+    end))
+    |> Enum.map(&Task.await/1)
+
+    data_source_ids
+  end
+end

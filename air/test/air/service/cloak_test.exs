@@ -1,10 +1,10 @@
-defmodule Air.DataSourceManager.Test do
+defmodule Air.Service.Cloak.Test do
   use ExUnit.Case, async: false
   use Air.SchemaCase
 
   import Air.AssertionHelper
 
-  alias Air.{Repo, Schemas.DataSource, DataSourceManager}
+  alias Air.{Repo, Schemas.DataSource, Service.Cloak}
 
   @data_source_id "data_source_id"
   @data_sources [%{"global_id" => @data_source_id, "tables" => []}]
@@ -15,7 +15,7 @@ defmodule Air.DataSourceManager.Test do
   end
 
   test "should register data sources in the database" do
-    DataSourceManager.register_cloak(cloak_info(), @data_sources)
+    Cloak.register(cloak_info(), @data_sources)
     assert Repo.get_by!(DataSource, global_id: @data_source_id).global_id == @data_source_id
   end
 
@@ -25,13 +25,12 @@ defmodule Air.DataSourceManager.Test do
   end
 
   test "should return an empty list of channel_pids for a data source with no cloaks" do
-    assert [] == DataSourceManager.channel_pids("missing data source")
+    assert [] == Cloak.channel_pids("missing data source")
   end
 
   test "should return a cloak channel pid given a registered data source" do
-    cloak_info = cloak_info()
-    DataSourceManager.register_cloak(cloak_info, @data_sources)
-    assert [{self(), cloak_info}] == DataSourceManager.channel_pids(@data_source_id)
+    Cloak.register(cloak_info(), @data_sources)
+    assert [self()] == Cloak.channel_pids(@data_source_id)
   end
 
   test "should allow assigning multiple cloaks to the same data source" do
@@ -44,7 +43,7 @@ defmodule Air.DataSourceManager.Test do
     Process.unlink(pid)
     Process.exit(pid, :exit)
 
-    assert soon([] == DataSourceManager.channel_pids(@data_source_id))
+    assert soon([] == Cloak.channel_pids(@data_source_id))
   end
 
   test "should unregister cloak when channel closes, but retain alternative cloaks" do
@@ -55,25 +54,55 @@ defmodule Air.DataSourceManager.Test do
     Process.unlink(pid1)
     Process.exit(pid1, :exit)
 
-    assert soon([{pid2, cloak_info}] == DataSourceManager.channel_pids(@data_source_id))
-  end
-
-  test "should be able to tell when a data source is available" do
-    DataSourceManager.register_cloak(cloak_info(), @data_sources)
-    assert DataSourceManager.available?(@data_source_id)
-  end
-
-  test "should be able to tell when a data source is not available" do
-    refute DataSourceManager.available?(@data_source_id)
+    assert soon([pid2] == Cloak.channel_pids(@data_source_id))
   end
 
   test "returns a list of cloaks and their data sources" do
     cloak_info = cloak_info()
-    DataSourceManager.register_cloak(cloak_info, @data_sources)
-    [cloak] = DataSourceManager.cloaks()
+    Cloak.register(cloak_info, @data_sources)
+    [cloak] = Cloak.all_cloak_infos()
     assert cloak.id == cloak_info.id
     assert cloak.name == cloak_info.name
     assert cloak.data_source_ids == [@data_source_id]
+  end
+
+  test "returns a list of cloaks for a data sources" do
+    cloak_info = cloak_info()
+    Cloak.register(cloak_info, @data_sources)
+    [cloak] = Cloak.cloak_infos_for_data_source(@data_source_id)
+    assert cloak.id == cloak_info.id
+    assert cloak.name == cloak_info.name
+    assert cloak.data_source_ids == [@data_source_id]
+  end
+
+  describe "getting cloak info" do
+    test "when cloak is registered" do
+      %{id: cloak_id} = cloak_info = cloak_info()
+      Cloak.register(cloak_info, @data_sources)
+      assert {:ok, %{id: ^cloak_id}} = Cloak.get_info(self())
+    end
+
+    test "when cloak doesn't exist" do
+      assert {:error, :not_found} == Cloak.get_info(self())
+    end
+  end
+
+  describe "recording memory stats" do
+    test "doesn't fail for unregistered cloak" do
+      assert :ok == Cloak.record_memory(%{reading: true})
+    end
+
+    test "records memory for registered cloak" do
+      Cloak.register(cloak_info(), @data_sources)
+      reading = %{reading: true}
+      Cloak.record_memory(reading)
+      assert {:ok, %{memory: ^reading}} = Cloak.get_info(self())
+    end
+
+    test "has uninitialized memory reading by default" do
+      Cloak.register(cloak_info(), @data_sources)
+      assert {:ok, %{memory: %{}}} = Cloak.get_info(self())
+    end
   end
 
   defp cloak_info() do
@@ -89,7 +118,7 @@ defmodule Air.DataSourceManager.Test do
     ref = make_ref()
 
     pid = spawn_link(fn ->
-      registration_result = DataSourceManager.register_cloak(cloak_info, data_sources)
+      registration_result = Cloak.register(cloak_info, data_sources)
       send(parent, {ref, registration_result})
       :timer.sleep(:infinity)
     end)

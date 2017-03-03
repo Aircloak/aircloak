@@ -66,7 +66,7 @@ defmodule Air.Socket.Cloak.MainChannel do
       online_since: Timex.now(),
     }
     data_sources = Map.fetch!(cloak_info, "data_sources")
-    Air.DataSourceManager.register_cloak(cloak, data_sources)
+    Air.Service.Cloak.register(cloak, data_sources)
     report_online_status_to_central(cloak, data_sources, socket.assigns.version)
 
     {:ok, %{}, assign(socket, :pending_calls, %{})}
@@ -81,6 +81,12 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   @doc false
+  def handle_in("memory_reading", reading, socket) do
+    reading = atomize_keys(reading)
+    Air.Service.Cloak.record_memory(reading)
+    Air.Socket.Frontend.MemoryChannel.broadcast_memory_reading(socket.assigns.cloak_id, reading)
+    {:noreply, socket}
+  end
   def handle_in("call_response", payload, socket) do
     request_id = payload["request_id"]
 
@@ -206,4 +212,11 @@ defmodule Air.Socket.Cloak.MainChannel do
       Aircloak.ProcessMonitor.on_exit(fn -> Central.record_cloak_offline(cloak.name) end)
     end
   end
+
+  def atomize_keys(list) when is_list(list), do: Enum.map(list, & atomize_keys(&1))
+  def atomize_keys(map) when is_map(map), do:
+    map
+    |> Enum.map(fn({key, value}) -> {String.to_atom(key), atomize_keys(value)} end)
+    |> Enum.into(%{})
+  def atomize_keys(other), do: other
 end
