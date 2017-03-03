@@ -29,6 +29,7 @@ export const QueriesView = (props: {queries: Query[], CSRFToken: string}) =>
       <thead>
         <tr>
           <th>Data source</th>
+          <th>Cloak</th>
           <th>Analyst</th>
           <th>Query</th>
           <th>State</th>

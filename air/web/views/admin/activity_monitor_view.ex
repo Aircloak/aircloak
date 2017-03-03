@@ -14,6 +14,7 @@ defmodule Air.Admin.ActivityMonitorView do
         id: query.id,
         analyst_name: query.user.name,
         data_source_name: query.data_source.name,
+        cloak_name: query.cloak_id,
         state: query.query_state,
         statement: query.statement,
       }
