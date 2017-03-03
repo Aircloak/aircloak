@@ -134,7 +134,7 @@ defmodule Air.Service.DataSource do
     Air.Service.AuditLog.log(user, "Stopped query",
       Map.merge(audit_meta, %{query: query.statement, data_source: query.data_source.id}))
 
-    try do
+    Air.Error.exception_to_tuple(fn() ->
       if available?(query.data_source.global_id) do
         for channel <- Cloak.channel_pids(query.data_source.global_id), do:
           MainChannel.stop_query(channel, query.id)
@@ -142,13 +142,7 @@ defmodule Air.Service.DataSource do
       else
         {:error, :not_connected}
       end
-    catch type, error ->
-      Logger.error([
-        "Error stopping query: #{inspect(type)}:#{inspect(error)}\n",
-        Exception.format_stacktrace(System.stacktrace())
-      ])
-      {:error, :internal_error}
-    end
+    end)
   end
 
   @doc "Returns a list of data sources given their ids"
@@ -229,21 +223,14 @@ defmodule Air.Service.DataSource do
 
   defp do_on_available_cloak(data_source_id_spec, user, fun) do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
-      try do
+      Air.Error.exception_to_tuple(fn() ->
         case Cloak.channel_pids(data_source.global_id) do
           [] -> {:error, :not_connected}
           channel_pids ->
             channel_pid = Enum.random(channel_pids)
             fun.(data_source, channel_pid)
         end
-      catch type, error ->
-        Logger.error([
-          "Error running a cloak operation: #{inspect(type)}:#{inspect(error)}\n",
-          Exception.format_stacktrace(System.stacktrace())
-        ])
-
-        {:error, :internal_error}
-      end
+      end)
     end
   end
 
