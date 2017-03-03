@@ -772,7 +772,7 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query "select count(*) from (select USER_ID from heights) as t",
       %{rows: [%{row: [10], occurrences: 1}]}
-    assert_query "select count(*) from (select user_id as uid from heights) as t",
+    assert_query "select count(T.uId) from (select user_id as uid from heights) as t",
       %{rows: [%{row: [10], occurrences: 1}]}
   end
 

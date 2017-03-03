@@ -367,21 +367,14 @@ defmodule Cloak.Sql.Compiler do
   end
   defp normalize_from(subquery = {:subquery, _}, _data_source), do: subquery
   defp normalize_from(table_identifier = {_, table_name}, data_source) do
-    case find_table(data_source, table_identifier) do
+    case data_source.tables |> Map.values() |> find_table(table_identifier) do
       nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
       table -> table.name
     end
   end
 
-  defp find_table(data_source, {:quoted, name}), do: DataSource.table(data_source, name)
-  defp find_table(data_source, {:unquoted, name}) do
-    data_source.tables
-    |> Enum.find(fn({_id, table}) -> insensitive_equal?(table.name, name) end)
-    |> case do
-      {_id, table} -> table
-      nil -> nil
-    end
-  end
+  defp find_table(tables, {:quoted, name}), do: Enum.find(tables, &name == &1.name)
+  defp find_table(tables, {:unquoted, name}), do: Enum.find(tables, &insensitive_equal?(name, &1.name))
 
   defp resolve_selected_tables(query), do:
     %Query{query | selected_tables: selected_tables(query.from, query.data_source) |> Enum.uniq()}
@@ -413,17 +406,14 @@ defmodule Cloak.Sql.Compiler do
 
   defp compile_aliases(%Query{columns: [_|_] = columns} = query) do
     verify_aliases(query)
-    column_titles = Enum.map(columns, &column_title/1)
+    column_titles = Enum.map(columns, &column_title(&1, query.selected_tables))
     aliases = for {column, :as, name} <- columns, into: %{}, do: {{:identifier, :unknown, {:unquoted, name}}, column}
-    columns = Enum.map(columns, fn
-      ({column, :as, _name}) -> column
-      (column) -> column
-    end)
+    columns = Enum.map(query.columns, fn ({column, :as, _name}) -> column; (column) -> column end)
     order_by = for {column, direction} <- query.order_by, do: {Map.get(aliases, column, column), direction}
     group_by = for identifier <- query.group_by, do: Map.get(aliases, identifier, identifier)
     where = update_in(query.where, [Query.Lenses.conditions_terminals()], &Map.get(aliases, &1, &1))
     having = update_in(query.having, [Query.Lenses.conditions_terminals()], &Map.get(aliases, &1, &1))
-    %Query{query | column_titles: column_titles, columns: columns,
+    %Query{query | columns: columns, column_titles: column_titles,
       group_by: group_by, order_by: order_by, where: where, having: having}
   end
   defp compile_aliases(query), do: query
@@ -516,7 +506,7 @@ defmodule Cloak.Sql.Compiler do
     query
   end
 
-  defp function_argument_error_message(function_call) do
+  defp function_argument_error_message({:function, name, _} = function_call) do
     cond do
       Function.cast?(function_call) ->
         [cast_source] = actual_types(function_call)
@@ -524,9 +514,9 @@ defmodule Cloak.Sql.Compiler do
         "Cannot cast value of type `#{cast_source}` to type `#{cast_target}`."
       many_overloads?(function_call) ->
         "Arguments of type (#{function_call |> actual_types() |> quoted_list()}) are incorrect"
-          <> " for `#{column_title(function_call)}`."
+          <> " for `#{Function.readable_name(name)}`."
       true ->
-        "Function `#{column_title(function_call)}` requires arguments of type #{expected_types(function_call)}"
+        "Function `#{Function.readable_name(name)}` requires arguments of type #{expected_types(function_call)}"
           <> ", but got (#{function_call |> actual_types() |> quoted_list()})."
     end
   end
@@ -959,12 +949,12 @@ defmodule Cloak.Sql.Compiler do
         %Expression{table: table, name: column, type: type, user_id?: table.user_id == column}
       end
       |> Enum.group_by(&(&1.name))
-    query = map_terminal_elements(query, &normalize_table_name(&1, query.data_source))
+    query = map_terminal_elements(query, &normalize_table_name(&1, query.selected_tables))
     map_terminal_elements(query, &identifier_to_column(&1, columns_by_name, query))
   end
 
-  defp normalize_table_name({:identifier, table_identifier = {_, name}, column}, data_source) do
-    case find_table(data_source, table_identifier) do
+  defp normalize_table_name({:identifier, table_identifier = {_, name}, column}, selected_tables) do
+    case find_table(selected_tables, table_identifier) do
       nil -> {:identifier, name, column}
       table -> {:identifier, table.name, column}
     end
@@ -1038,14 +1028,17 @@ defmodule Cloak.Sql.Compiler do
 
   defp insensitive_equal?(s1, s2), do: String.downcase(s1) == String.downcase(s2)
 
-  def column_title({_identifier, :as, alias}), do: alias
-  def column_title({:function, {:cast, _}, _}), do: "cast"
-  def column_title({:function, {:bucket, _}, _}), do: "bucket"
-  def column_title({:function, name, _}), do: name
-  def column_title({:distinct, identifier}), do: column_title(identifier)
-  def column_title({:identifier, _table, {_, column}}), do: column
-  def column_title({:constant, _, _}), do: ""
-  def column_title({:parameter, _}), do: ""
+  def column_title({_identifier, :as, alias}, _selected_tables), do: alias
+  def column_title({:function, {:cast, _}, _}, _selected_tables), do: "cast"
+  def column_title({:function, {:bucket, _}, _}, _selected_tables), do: "bucket"
+  def column_title({:function, name, _}, _selected_tables), do: name
+  def column_title({:distinct, identifier}, selected_tables), do: column_title(identifier, selected_tables)
+  # This is needed for data sources that support dotted names for fields (MongoDB)
+  def column_title({:identifier, {:unquoted, table}, {:unquoted, column}}, selected_tables), do:
+    if find_table(selected_tables, {:unquoted, table}) == nil, do: "#{table}.#{column}", else: column
+  def column_title({:identifier, _table, {_, column}}, _selected_tables), do: column
+  def column_title({:constant, _, _}, _selected_tables), do: ""
+  def column_title({:parameter, _}, _selected_tables), do: ""
 
   defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
     columns = for column <- query.columns, do:
