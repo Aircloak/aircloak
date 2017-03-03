@@ -82,7 +82,7 @@ defmodule Air.Socket.Cloak.MainChannel do
 
   @doc false
   def handle_in("memory_reading", reading, socket) do
-    reading = reading_with_atom_keys(reading)
+    reading = atomize_keys(reading)
     Air.Service.Cloak.record_memory(reading)
     Air.Socket.Frontend.MemoryChannel.broadcast_memory_reading(socket.assigns.cloak_id, reading)
     {:noreply, socket}
@@ -213,10 +213,10 @@ defmodule Air.Socket.Cloak.MainChannel do
     end
   end
 
-  defp reading_with_atom_keys(reading) do
-    %{
-      total_memory: reading["total_memory"],
-      free_memory: reading["free_memory"] |> Enum.map(fn({k, v}) -> {String.to_atom(k), v} end) |> Enum.into(%{}),
-    }
-  end
+  def atomize_keys(list) when is_list(list), do: Enum.map(list, & atomize_keys(&1))
+  def atomize_keys(map) when is_map(map), do:
+    map
+    |> Enum.map(fn({key, value}) -> {String.to_atom(key), atomize_keys(value)} end)
+    |> Enum.into(%{})
+  def atomize_keys(other), do: other
 end
