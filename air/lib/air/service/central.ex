@@ -4,6 +4,7 @@ defmodule Air.Service.Central do
   import Ecto.Query, only: [from: 2]
   alias Air.Repo
   alias Air.Schemas.{CentralCall, ExportForAircloak}
+  alias Air.Service.Central.Worker
 
 
   # -------------------------------------------------------------------
@@ -48,7 +49,7 @@ defmodule Air.Service.Central do
   @doc "Forwards all pending calls to the central."
   @spec reattempt_pending_calls() :: :ok
   def reattempt_pending_calls(), do:
-    Enum.each(pending_calls(), &start_rpc/1)
+    if auto_export?(), do: Enum.each(pending_calls(), &start_rpc/1)
 
   @doc "Persists a pending central call."
   @spec store_pending_call(String.t, map) :: {:ok, CentralCall.t} | :error
@@ -61,13 +62,6 @@ defmodule Air.Service.Central do
         :error
       {:ok, _} = result -> result
     end
-  end
-
-  @doc "Removes a pending central call."
-  @spec remove_pending_call!(CentralCall.t) :: :ok
-  def remove_pending_call!(central_call) do
-    Repo.delete_all(from c in CentralCall, where: c.id == ^central_call.id)
-    :ok
   end
 
   @doc "Returns all pending central calls."
@@ -130,16 +124,7 @@ defmodule Air.Service.Central do
   end
 
   defp start_rpc(central_call) do
-    if auto_export?() do
-      Task.start(fn() ->
-        case Air.CentralClient.Socket.rpc(CentralCall.export(central_call)) do
-          {:ok, _} ->
-            remove_pending_call!(central_call)
-          {:error, reason} ->
-            Logger.error("RPC '#{central_call.event}' to central failed: #{inspect reason}. Will retry later.")
-        end
-      end)
-    end
+    if auto_export?(), do: Worker.perform_rpc(central_call)
     :ok
   end
 

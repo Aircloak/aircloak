@@ -39,7 +39,8 @@ config :air, :central,
   serializer: Phoenix.Channels.GenSocketClient.Serializer.GzipJson,
   central_site: "ws://localhost:7081",
   min_reconnect_interval: 1000,
-  max_reconnect_interval: 50000
+  max_reconnect_interval: 50000,
+  call_timeout: 100
 
 config :air, :usage_report_interval, 100
 

@@ -79,7 +79,6 @@ defmodule Air.CentralClient.Socket do
   def handle_joined(topic, _payload, _transport, state) do
     Logger.info("joined the topic #{topic}")
     initial_interval = config(:min_reconnect_interval)
-    Central.reattempt_pending_calls()
     {:ok, %{state | rejoin_interval: initial_interval}}
   end
 
@@ -183,7 +182,7 @@ defmodule Air.CentralClient.Socket do
   # -------------------------------------------------------------------
 
   @spec call(GenServer.server, String.t, Map.t, pos_integer) :: {:ok, any} | {:error, any}
-  defp call(socket, event, payload, timeout \\ :timer.seconds(5)) do
+  defp call(socket, event, payload, timeout \\ config(:call_timeout)) do
     mref = Process.monitor(socket)
     send(socket, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})
     receive do
