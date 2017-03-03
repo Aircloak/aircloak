@@ -408,7 +408,7 @@ defmodule Cloak.Sql.Compiler do
     verify_aliases(query)
     column_titles = Enum.map(columns, &column_title(&1, query.selected_tables))
     aliases = for {column, :as, name} <- columns, into: %{}, do: {{:identifier, :unknown, {:unquoted, name}}, column}
-    columns = Enum.map(query.columns, fn ({column, :as, _name}) -> column; (column) -> column end)
+    columns = Enum.map(columns, fn ({column, :as, _name}) -> column; (column) -> column end)
     order_by = for {column, direction} <- query.order_by, do: {Map.get(aliases, column, column), direction}
     group_by = for identifier <- query.group_by, do: Map.get(aliases, identifier, identifier)
     where = update_in(query.where, [Query.Lenses.conditions_terminals()], &Map.get(aliases, &1, &1))
