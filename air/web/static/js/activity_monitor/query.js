@@ -11,6 +11,7 @@ export type Query = {
   state: string,
   analyst_name: string,
   data_source_name: string,
+  cloak_name: string,
   statement: string,
 };
 
@@ -37,6 +38,7 @@ const stopQuery = ({id}, CSRFToken) => (event) => {
 export const QueryView = ({query, CSRFToken}: {query: Query, CSRFToken: string}) =>
   <tr>
     <td>{query.data_source_name}</td>
+    <td>{query.cloak_name}</td>
     <td>{query.analyst_name}</td>
     <td>
       <code>{queryExcerpt(query.statement)}</code>
