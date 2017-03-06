@@ -9,6 +9,8 @@ import {GraphData, GraphInfo, GraphConfig} from "./graph_data";
 import {GraphConfigView} from "./graph_config_view";
 import {GraphView} from "./graph_view";
 import type {GraphDataT, GraphInfoT} from "./graph_data";
+import {TableAligner} from "./table_aligner";
+import type {TableAlignerT} from "./table_aligner";
 
 export type Row = {
   occurrences: number,
@@ -46,6 +48,7 @@ export class ResultView extends React.Component {
       showChart: false,
       showChartConfig: true,
       graphConfig: new GraphConfig(),
+      tableAligner: new TableAligner(props.rows),
     };
 
     this.componentDidUpdate = this.componentDidUpdate.bind(this);
@@ -75,7 +78,13 @@ export class ResultView extends React.Component {
     this.removeColumn = this.removeColumn.bind(this);
   }
 
-  state: {rowsToShowCount: number, showChart: boolean, showChartConfig: boolean, graphConfig: GraphConfig};
+  state: {
+    rowsToShowCount: number,
+    showChart: boolean,
+    showChartConfig: boolean,
+    graphConfig: GraphConfig,
+    tableAligner: TableAlignerT,
+  };
   props: Result;
   minRowsToShow: number;
   graphData: GraphDataT;
@@ -197,7 +206,13 @@ export class ResultView extends React.Component {
       return _.range(occurrencesForAccumulateRow).map((occurrenceCount) => {
         remainingRowsToProduce -= 1;
         return (<tr key={`${i}-${occurrenceCount}`}>
-          {accumulateRow.row.map((value, j) => <td key={j}>{this.formatValue(value)}</td>)}
+          {accumulateRow.row.map((value, j) => {
+            return (
+              <td key={j} className={this.state.tableAligner.alignmentClass(j)}>
+                {this.formatValue(value)}
+              </td>
+            );
+          })}
         </tr>);
       });
     });
@@ -293,7 +308,7 @@ export class ResultView extends React.Component {
               <thead>
                 <tr>
                   {this.props.columns.map((column, i) =>
-                    <th key={i}>{column}</th>
+                    <th key={i} className={this.state.tableAligner.alignmentClass(i)}>{column}</th>
                   )}
                 </tr>
               </thead>
