@@ -27,7 +27,7 @@ export class FrontendSocket {
   }
 
   joinUpdatesForQuery(queryId: string, callbacks: Callbacks) {
-    this.joinChannel(callbacks, `query:${queryId}`, ["result", "state_change"]);
+    return this.joinChannel(callbacks, `query:${queryId}`, ["result", "state_change"]);
   }
 
   joinAllQueryEventsChannel(callbacks: Callbacks) {
@@ -35,7 +35,7 @@ export class FrontendSocket {
   }
 
   joinMemoryChannel(callbacks: Callbacks) {
-    this.joinChannel(callbacks, "memory_readings", ["new_reading"]);
+    return this.joinChannel(callbacks, "memory_readings", ["new_reading"]);
   }
 
   joinChannel(callbacks: Callbacks, channelName: string, eventNames: string[]) {
