@@ -208,13 +208,11 @@ export class ResultView extends React.Component {
       return _.range(occurrencesForAccumulateRow).map((occurrenceCount) => {
         remainingRowsToProduce -= 1;
         return (<tr key={`${i}-${occurrenceCount}`}>
-          {accumulateRow.row.map((value, j) => {
-            return (
-              <td key={j} className={this.state.tableAligner.alignmentClass(j)}>
-                {this.formatValue(value)}
-              </td>
-            );
-          })}
+          {accumulateRow.row.map((value, j) =>
+            <td key={j} className={this.state.tableAligner.alignmentClass(j)}>
+              {this.formatValue(value)}
+            </td>
+          )}
         </tr>);
       });
     });

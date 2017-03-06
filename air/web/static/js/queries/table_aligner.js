@@ -1,7 +1,7 @@
 // @flow
 
 import _ from "lodash";
-import type {Row, Column} from "./result";
+import type {Row} from "./result";
 
 export type TableAlignerT = {
   alignmentClass: (columnIndex: number) => string,
