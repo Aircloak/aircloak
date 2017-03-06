@@ -147,6 +147,27 @@ defmodule Air.Service.DataSource do
     end)
   end
 
+  @doc """
+  Returns {:ok, true} if the query is still processed by any cloak. Returns {:ok, false} if it's not.
+  Returns {:error, reason if an error occured while trying to find that out.
+  """
+  def alive?(query) do
+    Air.Error.exception_to_tuple(fn() ->
+      if available?(query.data_source.global_id) do
+        results = for channel <- Cloak.channel_pids(query.data_source.global_id), do:
+          MainChannel.query_alive?(channel, query.id)
+
+        cond do
+          Enum.any?(results, &match?({:ok, true}, &1)) -> {:ok, true}
+          Enum.any?(results, &match?({:error, _}, &1)) -> Enum.find(results, &match?({:error, _}, &1))
+          true -> {:ok, false}
+        end
+      else
+        {:error, :not_connected}
+      end
+    end)
+  end
+
   @doc "Returns a list of data sources given their ids"
   @spec by_ids([non_neg_integer]) :: [DataSource.t]
   def by_ids(ids \\ []) do

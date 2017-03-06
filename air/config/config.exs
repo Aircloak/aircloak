@@ -77,7 +77,8 @@ config :air, :central,
   call_timeout: :timer.seconds(5)
 
 config :quantum, cron: [
-  "0 * * * *": {Air.Service.Cleanup, :cleanup_old_queries}
+  "0 * * * *": {Air.Service.Cleanup, :cleanup_old_queries},
+  "*/5 * * * *": {Air.Service.Cleanup, :cleanup_dead_queries},
 ]
 
 config :air, :usage_report_interval, :timer.minutes(1)
