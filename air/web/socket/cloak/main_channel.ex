@@ -49,6 +49,14 @@ defmodule Air.Socket.Cloak.MainChannel do
     with {:ok, _} <- call(channel_pid, "stop_query", query_id, :timer.seconds(5)), do: :ok
   end
 
+  @doc """
+  Returns {:ok, true} if the given query is still being processed, {:ok, false} if it's not.
+  Returns {:error, reason} if there was a communication failure.
+  """
+  @spec query_alive?(pid | nil, String.t) :: {:ok, boolean} | {:error, any}
+  def query_alive?(channel_pid, query_id), do:
+    call(channel_pid, "is_alive", query_id, :timer.seconds(5))
+
 
   # -------------------------------------------------------------------
   # Phoenix.Channel callback functions

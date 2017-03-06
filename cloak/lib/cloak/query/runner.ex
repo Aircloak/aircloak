@@ -73,6 +73,15 @@ defmodule Cloak.Query.Runner do
   def stop(query_id, reason), do:
     GenServer.cast(worker_name(query_id), {:stop_query, reason})
 
+  @doc "Returns true if the worker for the given query is still alive, false otherwise."
+  @spec alive?(String.t) :: boolean
+  def alive?(query_id) do
+    case Registry.lookup(@registry_name, query_id) do
+      [] -> false
+      [_ | _] -> true
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # GenServer callbacks
