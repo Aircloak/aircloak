@@ -306,7 +306,7 @@ export class ResultView extends React.Component {
           <CodeViewer statement={this.props.statement} />
           <Info info={this.props.info} />
           <div className="result-table">
-            <table className="table table-condensed table-hover">
+            <table className="table table-striped table-condensed table-hover">
               <thead>
                 <tr>
                   {this.props.columns.map((column, i) =>
