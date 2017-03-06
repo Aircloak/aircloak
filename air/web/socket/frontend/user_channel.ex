@@ -52,6 +52,13 @@ defmodule Air.Socket.Frontend.UserChannel do
       _ -> {:error, %{success: false, description: "Channel not found"}}
     end
   end
+  def join("user_queries:" <> user_id, _, socket) do
+    current_user_id = socket.assigns.user.id
+    case Integer.parse(user_id) do
+      {^current_user_id, ""} -> {:ok, socket}
+      _ -> {:error, %{success: false, description: "Forbidden"}}
+    end
+  end
   def join("state_changes:all", _, socket), do:
     accept_join_for_admins(socket)
   def join("query:" <> _query_id, _, socket), do:

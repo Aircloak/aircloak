@@ -41,6 +41,18 @@ defmodule Air.Socket.Frontend.UserChannelTest do
     end
   end
 
+  describe "joining user_queries" do
+    setup [:with_user, :with_socket]
+
+    test "allows joining own channel", %{user: user, socket: socket} do
+      assert {:ok, _, _} = subscribe_and_join(socket, UserChannel, "user_queries:#{user.id}")
+    end
+
+    test "can't join another's channel", %{user: user, socket: socket} do
+      assert {:error, _} = subscribe_and_join(socket, UserChannel, "user_queries:#{user.id + 1}")
+    end
+  end
+
   describe "Subscribing to state changes channel" do
     test "can't join when not an admin" do
       user = create_user!()
