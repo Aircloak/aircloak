@@ -23,6 +23,7 @@
 }
 
 .result-table {
+  padding-top: 10px;
   overflow-x: auto;
 }
 
