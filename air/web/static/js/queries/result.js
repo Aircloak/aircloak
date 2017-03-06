@@ -37,6 +37,14 @@ export type Result = {
   inserted_at: string,
 };
 
+type State = {
+  rowsToShowCount: number,
+  showChart: boolean,
+  showChartConfig: boolean,
+  graphConfig: GraphConfig,
+  tableAligner: TableAlignerT,
+};
+
 export class ResultView extends React.Component {
   constructor(props: Result) {
     super(props);
@@ -78,13 +86,7 @@ export class ResultView extends React.Component {
     this.removeColumn = this.removeColumn.bind(this);
   }
 
-  state: {
-    rowsToShowCount: number,
-    showChart: boolean,
-    showChartConfig: boolean,
-    graphConfig: GraphConfig,
-    tableAligner: TableAlignerT,
-  };
+  state: State;
   props: Result;
   minRowsToShow: number;
   graphData: GraphDataT;
@@ -99,7 +101,7 @@ export class ResultView extends React.Component {
   showingAllOfFewRows: () => void;
   showingAllOfManyRows: () => void;
   showingMinimumNumberOfManyRows: () => void;
-  componentDidUpdate: () => void;
+  componentDidUpdate: (prevProps: Result, prevState: State) => void;
   renderChartButton: () => void;
   renderAxesButton: () => void;
   conditionallyRenderChartConfig: () => void;
