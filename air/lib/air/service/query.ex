@@ -128,6 +128,26 @@ defmodule Air.Service.Query do
     :ok
   end
 
+  def query_died(query_id) do
+    query = Repo.get!(Query, query_id)
+
+    if valid_state_transition?(query.query_state, :error) do
+      query = query
+      |> Query.changeset(%{
+        query_state: :error,
+        result: %{error: "Query died."},
+      })
+      |> Repo.update!()
+
+      UserChannel.broadcast_result(query)
+      UserChannel.broadcast_state_change(query)
+    else
+      :ignore
+    end
+
+    :ok
+  end
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
