@@ -9,21 +9,14 @@ export class FrontendSocket {
   constructor(userToken: string) {
     this.socket = new Socket("/frontend/socket", {params: {token: userToken}});
     this.socket.connect();
-
-    this.joinSessionChannel = this.joinSessionChannel.bind(this);
-    this.joinAllQueryEventsChannel = this.joinAllQueryEventsChannel.bind(this);
-    this.joinMemoryChannel = this.joinMemoryChannel.bind(this);
   }
 
   socket: Socket;
-  joinSessionChannel: (sessionId: string, callbacks: Callbacks) => void;
-  joinAllQueryEventsChannel: (callbacks: Callbacks) => void;
-  joinMemoryChannel: (callbacks: Callbacks) => void;
 
   isConnected() { return this.socket.isConnected(); }
 
-  joinSessionChannel(sessionId: string, callbacks: Callbacks) {
-    return this.joinChannel(callbacks, `session:${sessionId}`, ["result", "state_change"]);
+  joinUserQueriesChannel(userId: number, callbacks: Callbacks) {
+    return this.joinChannel(callbacks, `user_queries:${userId}`, ["result", "state_change"]);
   }
 
   joinUpdatesForQuery(queryId: string, callbacks: Callbacks) {

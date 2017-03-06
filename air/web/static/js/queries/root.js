@@ -64,7 +64,7 @@ class QueriesView extends React.Component {
     this.updateConnected = this.updateConnected.bind(this);
 
     this.bindKeysWithoutEditorFocus();
-    this.channel = this.props.frontendSocket.joinSessionChannel(props.sessionId, {
+    this.channel = this.props.frontendSocket.joinUserQueriesChannel(this.props.userId, {
       handleEvent: this.resultReceived,
     });
     this.connectedInterval = setInterval(this.updateConnected, 1000 /* 1 second */);
