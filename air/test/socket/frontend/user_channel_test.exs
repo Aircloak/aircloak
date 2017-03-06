@@ -53,6 +53,44 @@ defmodule Air.Socket.Frontend.UserChannelTest do
     end
   end
 
+  describe "notifications on user_queries" do
+    setup [:with_user, :with_session, :with_socket, :subscribed_to_user_queries]
+
+    test "receiving results", %{user: user} do
+      query = create_query!(user)
+
+      UserChannel.broadcast_result(query)
+
+      expected = Air.Schemas.Query.for_display(query)
+      assert_push("result", ^expected)
+    end
+
+    test "no results for queries belonging to other users" do
+      query = create_query!(_other_user = create_user!())
+
+      UserChannel.broadcast_result(query)
+
+      refute_push("result", _)
+    end
+
+    test "receiving state updates", %{user: user} do
+      query = create_query!(user, %{data_source_id: create_data_source!().id})
+
+      UserChannel.broadcast_state_change(query)
+
+      expected = Air.Schemas.Query.for_display(query)
+      assert_push("state_change", ^expected)
+    end
+
+    test "no state updates for queries belonging to other users" do
+      query = create_query!(_other_user = create_user!(), %{data_source_id: create_data_source!().id})
+
+      UserChannel.broadcast_state_change(query)
+
+      refute_push("state_change", _)
+    end
+  end
+
   describe "Subscribing to state changes channel" do
     test "can't join when not an admin" do
       user = create_user!()
@@ -98,6 +136,11 @@ defmodule Air.Socket.Frontend.UserChannelTest do
 
   defp subscribed_to_all_state_changes(context) do
     {:ok, _, _} = subscribe_and_join(context[:socket], UserChannel, "state_changes:all")
+    :ok
+  end
+
+  defp subscribed_to_user_queries(context) do
+    {:ok, _, _} = subscribe_and_join(context.socket, UserChannel, "user_queries:#{context.user.id}")
     :ok
   end
 end

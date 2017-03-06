@@ -23,6 +23,7 @@ defmodule Air.Socket.Frontend.UserChannel do
   def broadcast_result(query) do
     payload = Schemas.Query.for_display(query)
     Air.Endpoint.broadcast_from!(self(), "session:#{query.session_id}", "result", payload)
+    Air.Endpoint.broadcast_from!(self(), "user_queries:#{query.user_id}", "result", payload)
     Air.Endpoint.broadcast_from!(self(), "query:#{query.id}", "result", payload)
     :ok
   end
@@ -35,6 +36,7 @@ defmodule Air.Socket.Frontend.UserChannel do
     Air.Endpoint.broadcast_from!(self(), "state_changes:all", "state_change", state_change_message(query))
     payload = Schemas.Query.for_display(query)
     Air.Endpoint.broadcast_from!(self(), "session:#{query.session_id}", "state_change", payload)
+    Air.Endpoint.broadcast_from!(self(), "user_queries:#{query.user_id}", "state_change", payload)
     Air.Endpoint.broadcast_from!(self(), "query:#{query.id}", "state_change", payload)
     :ok
   end
