@@ -8,6 +8,8 @@ export type TableAlignerT = {
 };
 
 export const TableAligner = (rows: Row[]): TableAlignerT => {
+
+
   // ----------------------------------------------------------------
   // Internal functions
   // ----------------------------------------------------------------
