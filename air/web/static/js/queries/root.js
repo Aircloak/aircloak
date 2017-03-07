@@ -37,6 +37,8 @@ const runQueryTimeout = 500; // ms
 
 const recentResultsToShow = 5;
 
+const historyPageSize = 10;
+
 class QueriesView extends React.Component {
   constructor(props: Props) {
     super(props);
@@ -218,14 +220,16 @@ class QueriesView extends React.Component {
       loading: true,
     };
     this.setState({history});
+
     $.ajax(`/queries/load_history/${this.props.dataSourceId}?before=${before}`, {
       method: "GET",
       headers: {
         "X-CSRF-TOKEN": this.props.CSRFToken,
         "Content-Type": "application/json",
       },
+
       success: (response) => {
-        const successHistory = (response.length < 10) ? {
+        const successHistory = (response.length < historyPageSize) ? {
           before: "",
           loaded: true,
           loading: false,
@@ -234,10 +238,10 @@ class QueriesView extends React.Component {
           loaded: false,
           loading: false,
         };
-        const sessionResults = this.state.sessionResults;
-        sessionResults.push.apply(sessionResults, response);
+        const sessionResults = _.uniqBy(this.state.sessionResults.concat(response), "id");
         this.setState({sessionResults, history: successHistory});
       },
+
       error: (_error) => {
         const errorHistory = {
           before: "",
