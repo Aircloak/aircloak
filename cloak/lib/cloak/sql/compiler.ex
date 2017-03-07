@@ -687,6 +687,8 @@ defmodule Cloak.Sql.Compiler do
   end
 
   defp transform_splitter_column(expression = %Expression{function?: true}, query) do
+    {transformed_args, query} = transform_splitter_columns(query, Expression.arguments(expression))
+    expression = %{expression | function_args: transformed_args}
     if Function.has_attribute?(expression, :row_splitter) do
       # We are making the simplifying assumption that row splitting functions have
       # the value column returned as part of the first column
@@ -704,8 +706,7 @@ defmodule Cloak.Sql.Compiler do
       query = update_in(query, [Query.Lenses.query_expressions()], &if &1 == expression do augmented_column else &1 end)
       {augmented_column, query}
     else
-      {transformed_args, query} = transform_splitter_columns(query, Expression.arguments(expression))
-      {%{expression | function_args: transformed_args}, query}
+      {expression, query}
     end
   end
   defp transform_splitter_column(other, query), do: {other, query}

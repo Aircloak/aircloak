@@ -21,7 +21,7 @@ defmodule Cloak.Query.RowSplitters do
     `splitter(function1(function2(value)))`
   """
 
-  alias Cloak.Sql.{Query, Expression, Function}
+  alias Cloak.Sql.{Query, Expression}
 
 
   # -------------------------------------------------------------------
@@ -49,44 +49,7 @@ defmodule Cloak.Query.RowSplitters do
   end
 
   defp apply_top_most_row_splitter(row, splitter) do
-    for cell_value <- apply_function(row, splitter.function_spec), do:
+    for cell_value <- Expression.value(splitter.function_spec, row), do:
       List.replace_at(row, splitter.row_index, cell_value)
   end
-
-  defp apply_function(row, expression = %Expression{function?: true}) do
-    inner_functions_results = for arg <- expression.function_args, do: apply_function(row, arg)
-    inputs = all_input_combinations(inner_functions_results)
-    if Function.has_attribute?(expression.function, :row_splitter) do
-      Enum.flat_map(inputs, &Expression.apply_function(expression, &1))
-    else
-      Enum.map(inputs, &Expression.apply_function(expression, &1))
-    end
-  end
-  defp apply_function(_row, %Expression{constant?: true, value: value}), do: [value]
-  defp apply_function(row, %Expression{constant?: false, row_index: row_index}), do:
-    [Enum.at(row, row_index)]
-
-  # Given a list of lists, it will create another list of lists where
-  # each sublist contains an item from each of the input sublists, in
-  # such a way that all possible combinations are produced.
-  #
-  #   iex(3)> all_input_combinations([[:a], [:b, :c], [true, false]])
-  #   [
-  #     [:a, :c, false],
-  #     [:a, :c, true],
-  #     [:a, :b, false],
-  #     [:a, :b, true]
-  #   ]
-  #
-  def all_input_combinations(args, acc \\ [], accs \\ [])
-  # Done :)
-  def all_input_combinations([], [], accs), do: accs
-  # We have a completed sequence with one value from each input category, keep it
-  def all_input_combinations([], acc, accs), do: [Enum.reverse(acc) | accs]
-  # We ran out of options for the first value, hence the acc is incomplete and must be discarded
-  def all_input_combinations([[] | _options], _acc, accs), do: accs
-  # We attempt once with the first value in the first category, and once skipping the first value
-  def all_input_combinations([[option | other_options] | later_options], acc, accs), do:
-    all_input_combinations([other_options | later_options], acc,
-      all_input_combinations(later_options, [option | acc], accs))
 end
