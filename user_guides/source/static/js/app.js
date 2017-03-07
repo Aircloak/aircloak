@@ -9,14 +9,14 @@
       wrapInDiv(preElements[i]);
     }
 
-    new Clipboard('.copy-button', {target: function(trigger) {return trigger.previousElementSibling;}}).
-      on('success', function(event) {
-        event.clearSelection();
-        event.trigger.textContent = 'Copied';
-        window.setTimeout(function() {
-          event.trigger.textContent = 'Copy';
-        }, 1000);
-      });
+    var clipboard = new Clipboard('.copy-button', {target: function(trigger) {return trigger.previousElementSibling;}});
+    clipboard.on('success', function(event) {
+      event.clearSelection();
+      event.trigger.textContent = 'Copied';
+      window.setTimeout(function() {
+        event.trigger.textContent = 'Copy';
+      }, 1000);
+    });
   }
 
   newCopyButton = function() {
