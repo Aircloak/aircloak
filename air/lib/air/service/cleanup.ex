@@ -22,7 +22,7 @@ defmodule Air.Service.Cleanup do
   def cleanup_dead_queries() do
     Air.Service.Query.currently_running()
     |> Air.Repo.preload(:data_source)
-    |> Enum.filter(&match?({:ok, false}, Air.Service.DataSource.alive?(&1)))
+    |> Enum.filter(&match?({:ok, false}, Air.Service.DataSource.query_alive?(&1)))
     |> Enum.each(&Air.QueryEvents.trigger_query_died(&1.id))
 
     :ok

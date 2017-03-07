@@ -148,10 +148,13 @@ defmodule Air.Service.DataSource do
   end
 
   @doc """
+  Can be used to check if the query is still being processed.
+
   Returns {:ok, true} if the query is still processed by any cloak. Returns {:ok, false} if it's not.
-  Returns {:error, reason if an error occured while trying to find that out.
+  Returns {:error, reason} if an error occured while trying to find that out.
   """
-  def alive?(query) do
+  @spec query_alive?(Query.t) :: {:ok, boolean} | {:error, any}
+  def query_alive?(query) do
     exception_to_tuple(fn() ->
       if available?(query.data_source.global_id) do
         results = for channel <- Cloak.channel_pids(query.data_source.global_id), do:
