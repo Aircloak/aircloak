@@ -16,23 +16,11 @@ defmodule Mix.Tasks.Compile.Guides do
     Mix.Shell.IO.info("Compiled user guides can be found in the `_build/guides` folder.")
   end
 
-  EEx.function_from_string :defp, :content,
-    """
-      <html>
-        <head>
-          <script src="static/js/clipboard.min.js"></script>
-          <script src="static/js/app.js"></script>
-          <link rel="stylesheet" href="static/css/app.css">
-        </head>
-        <body>
-          <div class="content">
-            <%= guide_content() %>
-          </div>
-        </body>
-      </html>
-    """,
-    []
+  defp content(), do:
+    "source/installation.md"
+    |> File.read!()
+    |> Earmark.as_html!()
+    |> layout()
 
-  defp guide_content(), do:
-    Earmark.as_html!(File.read!("source/installation.md"))
+  EEx.function_from_string :defp, :layout, File.read!("source/layout.html.eex"), [:content]
 end
