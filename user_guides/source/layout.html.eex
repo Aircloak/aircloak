@@ -7,12 +7,12 @@
     <title>Aircloak installation instructions for version <%= version %></title>
   </head>
   <body>
-    <div class="header">Aircloak installation instructions for version <%= version %>.</div>
+    <header>Aircloak installation instructions for version <%= version %></header>
 
     <div class="content">
       <%= content %>
     </div>
 
-    <div class="footer">Aircloak installation instructions for version <%= version %>.</div>
+    <footer>Aircloak installation instructions for version <%= version %></footer>
   </body>
 </html>
