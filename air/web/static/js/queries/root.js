@@ -16,6 +16,7 @@ import {FrontendSocket} from "../frontend_socket";
 import {HistoryLoader} from "./history_loader";
 import type {History} from "./history_loader";
 import {Disconnected} from "../disconnected";
+import {isFinished} from "./state";
 
 type Props = {
   userId: number,
@@ -33,6 +34,8 @@ type Props = {
 const upgradeRequired = 426;
 
 const runQueryTimeout = 500; // ms
+
+const recentResultsToShow = 5;
 
 class QueriesView extends React.Component {
   constructor(props: Props) {
@@ -110,7 +113,12 @@ class QueriesView extends React.Component {
   }
 
   setResults(results) {
-    this.setState({sessionResults: results.slice(0, 5)});
+    let completed = 0;
+    const recentResults = _.takeWhile(results, (result) => {
+      if (isFinished(result.query_state)) { completed++; }
+      return completed <= recentResultsToShow;
+    });
+    this.setState({sessionResults: recentResults});
   }
 
   replaceResult(result) {
