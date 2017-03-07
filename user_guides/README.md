@@ -1,19 +1,13 @@
 # UserGuides
 
-**TODO: Add description**
+This project is used to build shippable html guides for our clients. In most cases a more appropriate place for guides is inside the `air` project. However, in some cases (e.g. installation guides), this is not possible, so you can use this project instead.
 
-## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `user_guides` to your list of dependencies in `mix.exs`:
+## Releasing the guides
 
-```elixir
-def deps do
-  [{:user_guides, "~> 0.1.0"}]
-end
-```
+You can release the guides by running `make release`. This will create the `/tmp/aircloak_guides-X.Y.Z.tar.gz` tarball, which you can e-mail directly to clients.
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/user_guides](https://hexdocs.pm/user_guides).
 
+## Local development
+
+You'll need to run `make` once, which will fetch dependencies and build the guides in the `_build/guides` folder. Then, you need to open the HTML file in your browser. Now, you can modify sources in the `source` folder. Keep in mind that you need to rebuild HTML on every change using `make` or `make compile` (the latter doesn't refetch the dependencies).
