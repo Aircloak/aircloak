@@ -15,6 +15,7 @@
       var props = {
         result: <%= to_json(@query) %>,
         guardianToken: "<%= @guardian_token %>",
+        CSRFToken: "<%= @csrf_token %>",
       };
 
       App.queryShowPage(props, document.getElementById("query-view"));

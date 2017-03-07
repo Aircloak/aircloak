@@ -8,7 +8,7 @@ import {PendingResult} from "./pending_result";
 import {Error} from "./error";
 import {Cancelled} from "./cancelled";
 
-export const Results = (props: {results: Result[]}) =>
+export const Results = (props: {CSRFToken: string, results: Result[]}) =>
   <div>
     {props.results.map((result) => {
       switch (result.query_state) {
@@ -19,7 +19,7 @@ export const Results = (props: {results: Result[]}) =>
         case "error":
           return <Error key={result.id} {...result} />;
         default:
-          return <PendingResult key={result.id} {...result} />;
+          return <PendingResult key={result.id} result={result} CSRFToken={props.CSRFToken} />;
       }
     })}
   </div>;

@@ -5,6 +5,7 @@ defmodule Air.Admin.QueryController do
 
   require Logger
   alias Air.Schemas.Query
+  alias Plug.CSRFProtection
 
 
   # -------------------------------------------------------------------
@@ -28,6 +29,7 @@ defmodule Air.Admin.QueryController do
         render(conn, %{
           query: Query.for_display(query),
           guardian_token: Guardian.Plug.current_token(conn),
+          csrf_token: CSRFProtection.get_csrf_token(),
         })
       {:error, _} ->
         conn

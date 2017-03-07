@@ -319,7 +319,7 @@ class QueriesView extends React.Component {
         {this.renderButton()}
       </div>
 
-      <Results results={this.state.sessionResults} />
+      <Results results={this.state.sessionResults} CSRFToken={this.props.CSRFToken} />
 
       <HistoryLoader history={this.state.history} handleLoadHistory={this.handleLoadHistory} />
     </div>);
