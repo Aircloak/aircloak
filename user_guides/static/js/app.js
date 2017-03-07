@@ -2,6 +2,8 @@ function initClipboard() {
   var preElements = document.getElementsByTagName('pre');
   for (var i = 0; i < preElements.length; i++) {
     preElements[i].appendChild(newCopyButton());
+    // need to wrap the element inside a div so we can add some styling
+    wrapInDiv(preElements[i]);
   }
 
   new Clipboard('.copy-button', {
@@ -24,6 +26,18 @@ function newCopyButton() {
   button.textContent = 'Copy';
   return button;
 }
+
+function wrapInDiv(el) {
+  var wrapper = document.createElement('div');
+  wrapper.className = "codeBlock";
+
+  if (el.nextSibling) {
+    el.parentNode.insertBefore(wrapper, el.nextSibling);
+  } else {
+    el.parentNode.appendChild(wrapper);
+  }
+  return wrapper.appendChild(el);
+};
 
 document.onreadystatechange = function() {
   if (document.readyState === 'complete') {

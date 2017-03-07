@@ -22,9 +22,12 @@ defmodule Mix.Tasks.Compile.Guides do
         <head>
           <script src="static/js/clipboard.min.js"></script>
           <script src="static/js/app.js"></script>
+          <link rel="stylesheet" href="static/css/app.css">
         </head>
         <body>
-          <%= guide_content() %>
+          <div class="content">
+            <%= guide_content() %>
+          </div>
         </body>
       </html>
     """,
