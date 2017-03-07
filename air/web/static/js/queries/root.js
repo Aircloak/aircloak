@@ -15,9 +15,7 @@ import type {Selectable} from "../selectable_info/selectable";
 import {FrontendSocket} from "../frontend_socket";
 import {HistoryLoader} from "./history_loader";
 import type {History} from "./history_loader";
-import {isPending} from "./state";
 import {Disconnected} from "../disconnected";
-import {cancel} from "../request";
 
 type Props = {
   userId: number,
@@ -52,7 +50,6 @@ class QueriesView extends React.Component {
 
     this.setStatement = this.setStatement.bind(this);
     this.runQuery = this.runQuery.bind(this);
-    this.stopQuery = this.stopQuery.bind(this);
     this.queryData = this.queryData.bind(this);
     this.addResult = this.addResult.bind(this);
     this.resultReceived = this.resultReceived.bind(this);
@@ -82,7 +79,6 @@ class QueriesView extends React.Component {
 
   setStatement: () => void;
   runQuery: () => void;
-  stopQuery: () => void;
   queryData: () => void;
   addResult: () => void;
   resultReceived: () => void;
@@ -162,7 +158,6 @@ class QueriesView extends React.Component {
 
   bindKeysWithoutEditorFocus() {
     Mousetrap.bind(["command+enter", "ctrl+enter"], this.runQuery);
-    Mousetrap.bind(["command+escape", "ctrl+escape"], this.stopQuery);
   }
 
   queryData() {
@@ -175,13 +170,8 @@ class QueriesView extends React.Component {
     });
   }
 
-  isQueryPending() {
-    return this.state.sessionResults.length > 0 && isPending(this.state.sessionResults[0].query_state);
-  }
-
   runQuery() {
     if (! this.runEnabled()) return;
-    if (this.isQueryPending()) return;
 
     const statement = this.state.statement;
     $.ajax("/queries", {
@@ -208,13 +198,6 @@ class QueriesView extends React.Component {
         if (error.status === upgradeRequired) { window.location.reload(); }
       },
     });
-  }
-
-  stopQuery() {
-    if (! this.runEnabled()) return;
-    if (! this.isQueryPending()) return;
-
-    cancel(this.state.sessionResults[0].id, this.props.CSRFToken);
   }
 
   handleLoadHistory() {
@@ -276,7 +259,6 @@ class QueriesView extends React.Component {
     if (this.runEnabled()) {
       return (<CodeEditor
         onRun={this.runQuery}
-        onStop={this.stopQuery}
         onChange={this.setStatement}
         statement={this.state.statement}
         tableNames={this.tableNames()}
@@ -288,26 +270,15 @@ class QueriesView extends React.Component {
   }
 
   renderButton() {
-    if (this.isQueryPending()) {
-      return (<div className="right-align">
-        <button
-          className="btn btn-small btn-warning"
-          onClick={this.stopQuery}
-        >Cancel</button>
-        <span> or </span>
-        <kbd>Ctrl + Escape</kbd>
-      </div>);
-    } else {
-      return (<div className="right-align">
-        <button
-          className="btn btn-primary"
-          onClick={this.runQuery}
-          disabled={!this.runEnabled()}
-        >Run</button>
-        <span> or </span>
-        <kbd>Ctrl + Enter</kbd>
-      </div>);
-    }
+    return (<div className="right-align">
+      <button
+        className="btn btn-primary"
+        onClick={this.runQuery}
+        disabled={!this.runEnabled()}
+      >Run</button>
+      <span> or </span>
+      <kbd>Ctrl + Enter</kbd>
+    </div>);
   }
 
   render() {
