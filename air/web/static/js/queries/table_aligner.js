@@ -18,12 +18,14 @@ export const TableAligner = (rows: Row[]): TableAlignerT => {
 
   const ignorableValues = ["*", null, undefined];
 
-  const firstResultCell = (columnIndex) =>
-    _.chain(rows).
-      dropWhile((rowData) => _.includes(ignorableValues, rowData.row[columnIndex])).
-      head().
-      value().
-      row[columnIndex];
+  const firstResultCell = (columnIndex) => {
+    const firstValue = _.find(rows, (rowData) => ! _.includes(ignorableValues, rowData.row[columnIndex]));
+    if (firstValue === undefined) {
+      return undefined;
+    } else {
+      return firstValue.row[columnIndex];
+    }
+  }
 
 
   // ----------------------------------------------------------------

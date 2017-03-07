@@ -37,4 +37,11 @@ describe("TableAligner", () => {
     );
     assert.equal(data.alignmentClass(0), "text-right");
   });
+
+  it("returns left align if there are no real values", () => {
+    const data = new TableAligner(
+      [{row: ["*"]}, {row: [null]}, {row: [undefined]}],
+    );
+    assert.equal(data.alignmentClass(0), "text-left");
+  });
 });
