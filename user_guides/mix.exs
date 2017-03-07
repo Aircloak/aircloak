@@ -15,6 +15,8 @@ defmodule UserGuides.Mixfile do
   end
 
   defp deps do
-    []
+    [
+      {:earmark, "~> 1.1.1"}
+    ]
   end
 end
