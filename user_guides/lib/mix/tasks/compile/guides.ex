@@ -15,5 +15,5 @@ defmodule Mix.Tasks.Compile.Guides do
   end
 
   defp content(), do:
-    Earmark.as_html!(File.read!("installation.md"))
+    Earmark.as_html!(File.read!("guides/installation.md"))
 end
