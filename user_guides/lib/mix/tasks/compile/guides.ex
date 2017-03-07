@@ -7,6 +7,8 @@ defmodule Mix.Tasks.Compile.Guides do
   # Mix.Task behaviour is not in PLT since Mix is not a runtime dep, so we disable the warning
   @dialyzer :no_undefined_callbacks
 
+  @external_resource "source/layout.html.eex"
+
   @doc false
   def run(_args) do
     File.rm_rf("_build/guides")
