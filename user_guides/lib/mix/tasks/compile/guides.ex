@@ -22,7 +22,10 @@ defmodule Mix.Tasks.Compile.Guides do
     "source/installation.md"
     |> File.read!()
     |> Earmark.as_html!()
-    |> layout()
+    |> layout(version())
 
-  EEx.function_from_string :defp, :layout, File.read!("source/layout.html.eex"), [:content]
+  defp version(), do:
+    File.read!("../VERSION") |> String.split("\n") |> hd()
+
+  EEx.function_from_string :defp, :layout, File.read!("source/layout.html.eex"), [:content, :version]
 end
