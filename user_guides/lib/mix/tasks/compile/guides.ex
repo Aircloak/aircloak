@@ -9,11 +9,11 @@ defmodule Mix.Tasks.Compile.Guides do
 
   @doc false
   def run(_args) do
-    File.rm_rf("html")
-    File.mkdir_p!("html")
-    File.write!("html/installation.html", content())
-    File.cp_r!("static", "html/static")
-    Mix.Shell.IO.info("Compiled user guides can be found in the `html` folder.")
+    File.rm_rf("_build/guides")
+    File.mkdir_p!("_build/guides")
+    File.write!("_build/guides/installation.html", content())
+    File.cp_r!("source/static", "_build/guides/static")
+    Mix.Shell.IO.info("Compiled user guides can be found in the `_build/guides` folder.")
   end
 
   EEx.function_from_string :defp, :content,
@@ -34,5 +34,5 @@ defmodule Mix.Tasks.Compile.Guides do
     []
 
   defp guide_content(), do:
-    Earmark.as_html!(File.read!("guides/installation.md"))
+    Earmark.as_html!(File.read!("source/installation.md"))
 end
