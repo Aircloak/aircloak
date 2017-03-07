@@ -134,7 +134,7 @@ defmodule Air.Service.DataSource do
     Air.Service.AuditLog.log(user, "Stopped query",
       Map.merge(audit_meta, %{query: query.statement, data_source: query.data_source.id}))
 
-    Air.Error.exception_to_tuple(fn() ->
+    exception_to_tuple(fn() ->
       if available?(query.data_source.global_id) do
         for channel <- Cloak.channel_pids(query.data_source.global_id), do:
           MainChannel.stop_query(channel, query.id)
@@ -152,7 +152,7 @@ defmodule Air.Service.DataSource do
   Returns {:error, reason if an error occured while trying to find that out.
   """
   def alive?(query) do
-    Air.Error.exception_to_tuple(fn() ->
+    exception_to_tuple(fn() ->
       if available?(query.data_source.global_id) do
         results = for channel <- Cloak.channel_pids(query.data_source.global_id), do:
           MainChannel.query_alive?(channel, query.id)
@@ -246,7 +246,7 @@ defmodule Air.Service.DataSource do
 
   defp do_on_available_cloak(data_source_id_spec, user, fun) do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
-      Air.Error.exception_to_tuple(fn() ->
+      exception_to_tuple(fn() ->
         case Cloak.channel_pids(data_source.global_id) do
           [] -> {:error, :not_connected}
           channel_pids ->
@@ -276,4 +276,17 @@ defmodule Air.Service.DataSource do
   defp encode_parameters(parameters), do:
     # JSON won't work for types such as date, time, and datetime, so we're encoding parameter array to BERT.
     Base.encode16(:erlang.term_to_binary(parameters))
+
+  defp exception_to_tuple(fun) do
+    try do
+      fun.()
+    catch type, error ->
+      Logger.error([
+        "Error encountered #{inspect(type)} : #{inspect(error)}\n",
+        Exception.format_stacktrace(System.stacktrace())
+      ])
+
+      {:error, :internal_error}
+    end
+  end
 end
