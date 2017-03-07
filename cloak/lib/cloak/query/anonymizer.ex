@@ -140,7 +140,7 @@ defmodule Cloak.Query.Anonymizer do
     mean = sum / count
     variances = Stream.map(rows, &Stream.map(&1, fn (value) -> (mean - value) * (mean - value) end))
     {avg_variance, noise_sigma_variance} = avg(anonymizer, variances)
-    {:math.sqrt(avg_variance), :math.sqrt(noise_sigma_variance)}
+    {:math.sqrt(abs(avg_variance)), :math.sqrt(noise_sigma_variance)}
   end
 
   @doc "Computes the median value of all values in rows, where each row is an enumerable of numbers."
