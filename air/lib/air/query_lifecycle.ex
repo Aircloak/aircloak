@@ -28,6 +28,7 @@ defmodule Air.QueryLifecycle do
       case event do
         {:query_result, result} -> Query.process_result(result)
         {:query_state_change, query_id, state} -> Query.update_state(query_id, state)
+        {:query_died, query_id} -> Query.query_died(query_id)
         _ -> :ignore
       end
     end

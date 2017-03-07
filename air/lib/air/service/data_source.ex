@@ -2,7 +2,7 @@ defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
   alias Air.Schemas.{DataSource, Query, User, View}
-  alias Air.{PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, Socket.Frontend.UserChannel}
+  alias Air.{PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, Socket.Frontend.UserChannel, QueryEvents}
   alias Air.Service.{Version, Cloak}
   import Ecto.Query, only: [from: 2]
   require Logger
@@ -134,21 +134,41 @@ defmodule Air.Service.DataSource do
     Air.Service.AuditLog.log(user, "Stopped query",
       Map.merge(audit_meta, %{query: query.statement, data_source: query.data_source.id}))
 
-    try do
+    exception_to_tuple(fn() ->
       if available?(query.data_source.global_id) do
         for channel <- Cloak.channel_pids(query.data_source.global_id), do:
           MainChannel.stop_query(channel, query.id)
+        QueryEvents.trigger_state_change(query.id, :cancelled)
+
         :ok
       else
         {:error, :not_connected}
       end
-    catch type, error ->
-      Logger.error([
-        "Error stopping query: #{inspect(type)}:#{inspect(error)}\n",
-        Exception.format_stacktrace(System.stacktrace())
-      ])
-      {:error, :internal_error}
-    end
+    end)
+  end
+
+  @doc """
+  Can be used to check if the query is still being processed.
+
+  Returns {:ok, true} if the query is still processed by any cloak. Returns {:ok, false} if it's not.
+  Returns {:error, reason} if an error occured while trying to find that out.
+  """
+  @spec query_alive?(Query.t) :: {:ok, boolean} | {:error, any}
+  def query_alive?(query) do
+    exception_to_tuple(fn() ->
+      if available?(query.data_source.global_id) do
+        results = for channel <- Cloak.channel_pids(query.data_source.global_id), do:
+          MainChannel.query_alive?(channel, query.id)
+
+        cond do
+          Enum.any?(results, &match?({:ok, true}, &1)) -> {:ok, true}
+          Enum.any?(results, &match?({:error, _}, &1)) -> Enum.find(results, &match?({:error, _}, &1))
+          true -> {:ok, false}
+        end
+      else
+        {:error, :not_connected}
+      end
+    end)
   end
 
   @doc "Returns a list of data sources given their ids"
@@ -229,21 +249,14 @@ defmodule Air.Service.DataSource do
 
   defp do_on_available_cloak(data_source_id_spec, user, fun) do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
-      try do
+      exception_to_tuple(fn() ->
         case Cloak.channel_pids(data_source.global_id) do
           [] -> {:error, :not_connected}
           channel_pids ->
             channel_pid = Enum.random(channel_pids)
             fun.(data_source, channel_pid)
         end
-      catch type, error ->
-        Logger.error([
-          "Error running a cloak operation: #{inspect(type)}:#{inspect(error)}\n",
-          Exception.format_stacktrace(System.stacktrace())
-        ])
-
-        {:error, :internal_error}
-      end
+      end)
     end
   end
 
@@ -266,4 +279,17 @@ defmodule Air.Service.DataSource do
   defp encode_parameters(parameters), do:
     # JSON won't work for types such as date, time, and datetime, so we're encoding parameter array to BERT.
     Base.encode16(:erlang.term_to_binary(parameters))
+
+  defp exception_to_tuple(fun) do
+    try do
+      fun.()
+    catch type, error ->
+      Logger.error([
+        "Error encountered #{inspect(type)} : #{inspect(error)}\n",
+        Exception.format_stacktrace(System.stacktrace())
+      ])
+
+      {:error, :internal_error}
+    end
+  end
 end

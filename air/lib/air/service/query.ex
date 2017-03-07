@@ -6,6 +6,8 @@ defmodule Air.Service.Query do
   import Ecto.Query
   require Logger
 
+  @type query_id :: String.t
+
 
   #-----------------------------------------------------------------------------------------------------------
   # API functions
@@ -39,7 +41,7 @@ defmodule Air.Service.Query do
   end
 
   @doc "Returns a query if accessible by the given user, without associations preloaded."
-  @spec get_as_user(User.t, String.t) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
+  @spec get_as_user(User.t, query_id) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
   def get_as_user(user, id) do
     try do
       user |> query_scope() |> get(id)
@@ -78,7 +80,7 @@ defmodule Air.Service.Query do
   Updates the state of the query with the given id to the given state. Only performs the update if the given state can
   occur after the current state of the query (for example "completed" after "started"). Does nothing otherwise.
   """
-  @spec update_state(String.t, Query.QueryState.t) :: :ok | {:error, :not_found | :invalid_id}
+  @spec update_state(query_id, Query.QueryState.t) :: :ok | {:error, :not_found | :invalid_id}
   def update_state(query_id, state) do
     with {:ok, query} <- get(query_id) do
       if valid_state_transition?(query.query_state, state) do
@@ -125,6 +127,29 @@ defmodule Air.Service.Query do
     UserChannel.broadcast_state_change(query)
 
     Logger.info("processed result for query #{result["query_id"]}")
+    :ok
+  end
+
+  @doc """
+  Marks the query as errored due to unknown reasons. This can happen when for example the cloak goes down during
+  processing and a normal error result is not received.
+  """
+  @spec query_died(query_id) :: :ok
+  def query_died(query_id) do
+    query = Repo.get!(Query, query_id)
+
+    if valid_state_transition?(query.query_state, :error) do
+      query = query
+      |> Query.changeset(%{
+        query_state: :error,
+        result: %{error: "Query died."},
+      })
+      |> Repo.update!()
+
+      UserChannel.broadcast_result(query)
+      UserChannel.broadcast_state_change(query)
+    end
+
     :ok
   end
 

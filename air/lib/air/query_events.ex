@@ -57,6 +57,13 @@ defmodule Air.QueryEvents do
   def trigger_state_change(query_id, state), do:
     GenEvent.ack_notify(__MODULE__, {:query_state_change, query_id, state})
 
+  @doc """
+  Triggers a :query_died event, indicating the process responsible for the query went away without sending a result.
+  """
+  @spec trigger_query_died(String.t) :: :ok
+  def trigger_query_died(query_id), do:
+    GenEvent.ack_notify(__MODULE__, {:query_died, query_id})
+
   @doc "Returns a stream of all events."
   @spec stream() :: GenEvent.Stream.t
   def stream do
