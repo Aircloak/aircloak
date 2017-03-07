@@ -27,6 +27,7 @@ type Props = {
   dataSourceAvailable: boolean,
   selectables: Selectable[],
   lastQuery: {statement: string},
+  pendingQueries: Result[],
   CSRFToken: string,
   frontendSocket: FrontendSocket,
 };
@@ -39,7 +40,7 @@ class QueriesView extends React.Component {
 
     this.state = {
       statement: this.props.lastQuery ? this.props.lastQuery.statement : "",
-      sessionResults: [],
+      sessionResults: this.props.pendingQueries,
       connected: true,
 
       history: {
@@ -126,11 +127,23 @@ class QueriesView extends React.Component {
   }
 
   resultReceived(result) {
-    if (result.data_source_id === this.props.dataSourceId) {
+    if (this.shouldDisplayResult(result)) {
       this.addResult(result, true /* replace */);
     } else {
       // Ignore result
     }
+  }
+
+  shouldDisplayResult(result) {
+    return this.createdInThisSession(result) || this.alreadyDisplayed(result);
+  }
+
+  createdInThisSession(result) {
+    return result.session_id === this.props.sessionId;
+  }
+
+  alreadyDisplayed(result) {
+    return _.some(this.state.sessionResults, (sessionResult) => sessionResult.id === result.id);
   }
 
   addResult(result, replace = true) {

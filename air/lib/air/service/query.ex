@@ -70,8 +70,15 @@ defmodule Air.Service.Query do
 
   @doc "Returns a list of the queries that are currently executing"
   @spec currently_running() :: [Query.t]
-  def currently_running() do
-    Repo.all(from query in Query, where: not query.query_state in ["completed", "error", "cancelled"])
+  def currently_running(), do: pending() |> Repo.all()
+
+  @doc "Returns a list of queries that are currently executing, started by the given user on the given data source."
+  @spec currently_running(User.t, DataSource.t) :: [Query.t]
+  def currently_running(user, data_source) do
+    pending()
+    |> started_by(user)
+    |> Query.for_data_source(data_source)
+    |> Repo.all()
   end
 
   @doc """
@@ -165,5 +172,9 @@ defmodule Air.Service.Query do
 
   defp started_by(scope, user) do
     where(scope, [q], q.user_id == ^user.id)
+  end
+
+  defp pending(scope \\ Query) do
+    where(scope, [q], not q.query_state in ["completed", "error", "cancelled"])
   end
 end
