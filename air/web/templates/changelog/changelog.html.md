@@ -18,6 +18,7 @@
 - Ability to speed up schema detection of MongoDB collections by sampling a subset of the data.
 - Logs produced by the `Cloak`s are sanitized to accidental leakage of sensitive data.
 - The performance of computing medians in emulated database queries is improved. In representative use cases by more than a factor of two.
+- Improved performance by 30% when using `extract_matches` function.
 
 ### Changes
 
