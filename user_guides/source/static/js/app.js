@@ -14,7 +14,7 @@
       event.clearSelection();
       event.trigger.textContent = 'Copied';
       window.setTimeout(function() {
-        event.trigger.textContent = 'Copy';
+        event.trigger.textContent = 'Copy to clipboard';
       }, 1000);
     });
   }
@@ -22,7 +22,7 @@
   newCopyButton = function() {
     var button = document.createElement('button');
     button.className = 'copy-button';
-    button.textContent = 'Copy';
+    button.textContent = 'Copy to clipboard';
     return button;
   }
 
