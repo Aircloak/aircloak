@@ -8,8 +8,6 @@ export type TableAlignerT = {
 };
 
 export const TableAligner = (rows: Row[]): TableAlignerT => {
-
-
   // ----------------------------------------------------------------
   // Internal functions
   // ----------------------------------------------------------------
@@ -25,7 +23,7 @@ export const TableAligner = (rows: Row[]): TableAlignerT => {
     } else {
       return firstValue.row[columnIndex];
     }
-  }
+  };
 
 
   // ----------------------------------------------------------------
