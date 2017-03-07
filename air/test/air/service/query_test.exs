@@ -195,6 +195,29 @@ defmodule Air.Service.QueryTest do
     end
   end
 
+  describe "query_died" do
+    test "ignores completed queries" do
+      query = create_query!(create_user!(), %{query_state: :completed, data_source_id: create_data_source!().id})
+
+      Query.query_died(query.id)
+
+      {:ok, query} = get_query(query.id)
+      assert %{query_state: :completed} = query
+    end
+
+    test "sets the result" do
+      query = create_query!(create_user!(), %{query_state: :started, data_source_id: create_data_source!().id})
+
+      Query.query_died(query.id)
+
+      {:ok, query} = get_query(query.id)
+      assert %{
+        query_state: :error,
+        result: %{"error" => "Query died."}
+      } = query
+    end
+  end
+
   def with_user(_context) do
     {:ok, user: create_user!()}
   end
