@@ -32,6 +32,8 @@ type Props = {
 
 const upgradeRequired = 426;
 
+const runQueryTimeout = 500; // ms
+
 class QueriesView extends React.Component {
   constructor(props: Props) {
     super(props);
@@ -49,7 +51,7 @@ class QueriesView extends React.Component {
     };
 
     this.setStatement = this.setStatement.bind(this);
-    this.runQuery = this.runQuery.bind(this);
+    this.runQuery = _.debounce(this.runQuery.bind(this), runQueryTimeout, {leading: true, trailing: false});
     this.queryData = this.queryData.bind(this);
     this.addResult = this.addResult.bind(this);
     this.resultReceived = this.resultReceived.bind(this);
