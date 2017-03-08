@@ -82,7 +82,7 @@ The air container listens on port 8080 (HTTP). However, it will also serve HTTPS
 
 If everything was properly configured, you should be able to access air on port 8080, and create the administrator user using the master password provided in the `config.json`. In the case of problems, you can check log with `docker logs air`.
 
-### Installing the cloak component
+### Configuring the cloak component
 
 Once the air component is setup, we need to create the configuration for the cloak component:
 
@@ -106,7 +106,69 @@ The `air_site` parameter holds the address of the air site. In this particular c
 
 The `salt` parameter is used for anonymization purposes. Make sure to create a strongly random secret for this parameter, for example with the following command: `cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1`.
 
-In the `data_sources` section we're specifying databases and tables which need to be open to analysts for querying.
+In the `data_sources` section we're specifying databases and tables which need to be open to analysts for querying. Each `data_source_x` is itself a json in the form of:
+
+```
+{
+  "marker": marker,
+  "driver": driver,
+  "parameters": {
+    "hostname": database_host,
+    "username": database_user,
+    "database": database_name,
+    "password": password
+  },
+  "tables": tables
+}
+```
+The `marker` parameter is a string which will be included in the display name of your data source. The `driver` parameter can be one of the following: `mongodb`, `postgresql`, `mysql`, `odbc`. Next, you need to specify the database connection parameters.
+
+Finally, you need to specify queryable tables in the `tables` option. This is a JSON object that looks as follows:
+
+```
+"tables": {
+  table_name_1: {
+    "db_name": db_name_1,
+    "user_id": user_id_column,
+    "ignore_unsupported_types": true_or_false
+  },
+  table_name_2: ...
+}
+```
+
+The `table_name_x` is a string that defines a display name of the table. The table can be accessed through cloak by that name. The `db_name_x` is the name of the table in the underlying database. In most cases you can use the same name, but the distinction allows some special scenarios, such as exposing a table under a simpler name, or exposing the same database table multiple times under different names.
+
+The `user_id` field is the name of the column that uniquely identifies users - the people or entities whose anonymity should be preserved. See also Projected tables section below.
+
+Finally, `ignore_unsupported_types` should be `true` or `false`. If the value is `true`, cloak will ignore the columns of unsupported data types. If this value is `false`, cloak will refuse to start if there's at least one column of an unsupported data type.
+
+#### Projected tables
+
+In some cases a table doesn't have the `user_id` column itself, but is instead related to another table with such column. For example, you could have the table `accounts` which has the `user_id` column, and the table `transactions` which has `account_id` column.
+
+Now the question is how can you set `user_id` column for the `transactions` table. The answer is to set up the table _projection_. In the `transactions` table definition, you need to specify that `user_id` is obtained from the `accounts` table:
+
+```
+"tables": {
+  "accounts": {
+    "db_name": "accounts",
+    "user_id": "customer_id"
+  },
+  "transactions": {
+    "db_name": "transactions",
+    "projection": {
+      "table": "accounts",
+      "foreign_key": "account_id",
+      "primary_key": "id"
+    }
+  },
+  ...
+}
+```
+
+Here, we're specifying that the `transaction` table is projected to user through the `accounts` table. The `account_id` field of the `transactions` table corresponds to the `id` field of the `accounts` table. As the result, the `transactions` table in the cloak will be queryable by the cloak, and the results will be properly anonymized. As a side-effect, the `transactions` table as seen by cloak users will also contain the `customer_id` column.
+
+### Running the cloak container
 
 With this configuration specified, we can start the cloak container as:
 
