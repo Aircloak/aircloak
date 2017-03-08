@@ -17,9 +17,10 @@ To keep things simple, in this tutorial, we'll be running the air and the cloak 
 
 Before installing components, make sure that the following prerequisites are met:
 
-- Docker 1.8 or higher should be installed on the host machines.
+- Docker 1.11 or higher should be installed on the host machines.
 - The user which installs the components is logged into `quay.io` with `docker login` using credentials provided by Aircloak.
 - You have your Aircloak provided `customer-token` available.
+- PostgreSQL 9.4 or higher is installed on some machine.
 
 ### Installing the air component
 
