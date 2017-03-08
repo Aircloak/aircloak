@@ -277,7 +277,7 @@ The operators `+`, `-`, `/`, and `*` have their usual meaning of addition, subtr
 multiplication respectively. The operator `^` denotes exponentiation. The operator `%` denotes the division
 remainder.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ## Mathematical functions
@@ -294,7 +294,7 @@ ABS(-3)
 
 Computes the absolute value of the given number.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### bucket
@@ -315,7 +315,7 @@ BUCKET(180 BY 50 ALIGN MIDDLE)
 
 Rounds the input to the given bucket size.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### ceil / ceiling
@@ -327,7 +327,7 @@ CEIL(3.22)
 
 Computes the smallest integer that is greater than or equal to its argument.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### div
@@ -342,7 +342,7 @@ DIV(10, 3)
 
 Performs integer division on its arguments.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### floor
@@ -354,7 +354,7 @@ FLOOR(3.22)
 
 Computes the largest integer that is less than or equal to its argument.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### mod
@@ -366,7 +366,7 @@ MOD(10, 3)
 
 `MOD(a, b)` computes the remainder from `DIV(a, b)`.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### pow
@@ -381,7 +381,7 @@ POW(2, 3.5)
 
 `POW(a, b)` computes `a` to the `b`-th power.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### round
@@ -399,7 +399,7 @@ ROUND(3.22, 1)
 
 Rounds the given floating-point value to the nearest integer. An optional second argument signifies the precision.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### sqrt
@@ -411,7 +411,7 @@ SQRT(2)
 
 Computes the square root.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### trunc
@@ -429,7 +429,7 @@ TRUNC(3.22, 1)
 
 Rounds the given floating-point value towards zero. An optional second argument signifies the precision.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ## String functions
@@ -446,7 +446,7 @@ BTRIM('xyzsome textzyx', 'xyz')
 
 Removes all of the given characters from the beginning and end of the string. The default is to remove spaces.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 ### concat
 
@@ -476,7 +476,7 @@ LEFT('some text', -2)
 
 `LEFT(string, n)` takes n characters from the beginning of the string. If n is negative takes all but the last |n| characters.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### length
@@ -488,7 +488,7 @@ LENGTH('some text')
 
 Computes the number of characters in the string.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### lower
@@ -516,7 +516,7 @@ LTRIM('xyzsome textzyx', 'xyz')
 
 Removes all of the given characters from the beginning of the string. The default is to remove spaces.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### right
@@ -531,7 +531,7 @@ RIGHT('some text', -2)
 
 `RIGHT(string, n)` takes n characters from the end of the string. If n is negative takes all but the first |n| characters.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### rtrim
@@ -546,7 +546,7 @@ RTRIM('xyzsome textzyx', 'xyz')
 
 Removes all of the given characters from the end of the string. The default is to remove spaces.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### substring
@@ -564,7 +564,7 @@ SUBSTRING('some text' FOR 4)
 
 Takes a slice of a string.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### upper
@@ -666,7 +666,7 @@ CAST('NOT A NUMBER', integer)
 
 You can convert values between different types using a cast expression.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 Types can be converted according to the following tables:
 
