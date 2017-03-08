@@ -91,7 +91,7 @@ mkdir -p /aircloak/cloak/config/
 
 cat << EOF > /aircloak/cloak/config/config.json
   {
-    "air_site": "ws://air:8080",
+    "air_site": air_site,
     "salt": salt,
     "data_sources": [
       data_source_1,
@@ -102,7 +102,7 @@ cat << EOF > /aircloak/cloak/config/config.json
 EOF
 ```
 
-The `air_site` parameter holds the address of the air site. In this particular case, the provided address (`air`) will be available, because we'll link the cloak container to the air container.
+The `air_site` parameter holds the address of the air site it can be in the form of `"ws://air_host_name:port"` or `wss://air_host_name:port`, where `air_host_name` is the address of the machine where air container is running.
 
 The `salt` parameter is used for anonymization purposes. Make sure to create a strongly random secret for this parameter, for example with the following command: `cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1`.
 
@@ -175,12 +175,9 @@ With this configuration specified, we can start the cloak container as:
 ```bash
 docker run -d --name cloak \
   -v /aircloak/cloak/config:/runtime_config \
-  --link air:air \
   quay.io/aircloak/cloak:latest
 ```
 
 Similarly to the air component, we need to map the configuration folder to `/runtime_config`.
-
-__Note__: Just like with the air container, here we're using links only to quickly make the air and air_db containers accessible to the cloak.
 
 Assuming everything was setup properly, the cloak should be visible in the air system. You can open the local air site in your browser, and verify that the data source is displayed in the list of data sources. In the case of problems, you can check cloak log by running `docker logs cloak`.
