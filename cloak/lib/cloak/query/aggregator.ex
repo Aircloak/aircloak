@@ -71,12 +71,13 @@ defmodule Cloak.Query.Aggregator do
 
   defp group_by_property(rows, query, state_updater) do
     Logger.debug("Grouping rows ...")
+    aggregated_columns = Query.aggregated_columns(query)
     rows
     |> Enum.reduce(%{}, fn(row, accumulator) ->
       if Map.size(accumulator) == 0, do: state_updater.(:ingesting_data)
       property = for column <- query.property, do: Expression.value(column, row)
       user_id = user_id(row)
-      values = for column <- Query.aggregated_columns(query), do: aggregated_value_list(row, column)
+      values = for column <- aggregated_columns, do: aggregated_value_list(row, column)
       Map.update(accumulator, property, %{user_id => values}, fn (user_values_map) ->
         Map.update(user_values_map, user_id, values, &add_values_to_columns(values, &1))
       end)
