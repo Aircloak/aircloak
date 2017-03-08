@@ -72,7 +72,7 @@ Once air is properly configured you can start the air container with the followi
 ```bash
 docker run -d --name air \
  -v /aircloak/air/config:/runtime_config \
- -p 8080:8080 \
+ -p desired_port:8080 \
  quay.io/aircloak/air:latest
 ```
 
@@ -80,7 +80,7 @@ The most important part here is the mapping of the `/aircloak/air/config` folder
 
 The air container listens on port 8080 (HTTP). However, it will also serve HTTPS requests on port 8443 if the private key and the certificate are provided in files named `ssl_key.pem` and `ssl_cert.pem` in the configuration folder. In this case, you'll also need to map the port 8443 to the host.
 
-If everything was properly configured, you should be able to access air on port 8080, and create the administrator user using the master password provided in the `config.json`. In the case of problems, you can check log with `docker logs air`.
+In the command above, you need to replace the `desired_port` with the actual port on which you want you air to be accessible. If everything was properly configured, you should be able to access air on that port, and create the administrator user using the master password provided in the `config.json`. In the case of problems, you can check log with `docker logs air`.
 
 ### Configuring the cloak component
 
