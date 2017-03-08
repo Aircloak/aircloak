@@ -75,12 +75,7 @@ defmodule Cloak.Query.Aggregator do
     rows
     |> Enum.reduce(%{}, fn(row, accumulator) ->
       if Map.size(accumulator) == 0, do: state_updater.(:ingesting_data)
-      property = for column <- query.property, do: Expression.value(column, row)
-      user_id = user_id(row)
-      values = for column <- aggregated_columns, do: aggregated_value_list(row, column)
-      Map.update(accumulator, property, %{user_id => values}, fn (user_values_map) ->
-        Map.update(user_values_map, user_id, values, &add_values_to_columns(values, &1))
-      end)
+      group_row(accumulator, row, query.property, aggregated_columns)
     end)
     |> fn(rows) -> state_updater.(:processing); rows end.()
     |> init_anonymizer()
@@ -89,6 +84,15 @@ defmodule Cloak.Query.Aggregator do
   defp aggregated_value_list(_row, :*), do: [:*]
   defp aggregated_value_list(row, {:distinct, column}), do: aggregated_value_list(row, column)
   defp aggregated_value_list(row, column), do: List.wrap(Expression.value(column, row))
+
+  defp group_row(accumulator, row, property_columns, aggregated_columns) do
+    property = for column <- property_columns, do: Expression.value(column, row)
+    user_id = user_id(row)
+    values = for column <- aggregated_columns, do: aggregated_value_list(row, column)
+    Map.update(accumulator, property, %{user_id => values}, fn (user_values_map) ->
+      Map.update(user_values_map, user_id, values, &add_values_to_columns(values, &1))
+    end)
+  end
 
   defp user_id([user_id | _rest]), do: user_id
 
