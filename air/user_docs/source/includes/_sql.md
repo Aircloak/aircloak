@@ -117,6 +117,7 @@ Operators `<>`, `IN`, and `NOT` (except `IS NOT NULL`) can't be used in subquery
 
 When using `LIMIT` and `OFFSET` in a subquery:
 
+- `LIMIT` is required if `OFFSET` is specified
 - `LIMIT` will be adjusted to the closest number in the sequence `[10, 20, 50, 100, 200, 500, 1000, ...]` (i.e. 10e^n, 20e^n, 50e^n for any natural number n larger than 0). For example: 1 or 14 become 10, etc
 - `OFFSET` will automatically be adjusted to the nearest multiple of `LIMIT`. For example an `OFFSET` of 240 will be
   adjusted to 200 given a `LIMIT` of 100
