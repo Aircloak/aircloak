@@ -43,7 +43,7 @@
       </div>
     </div>
 
-    <div class="column align-footer col-sm-3">
+    <div class="column col-sm-3">
       <div data-spy="affix">
         <div id="selectable-info"></div>
       </div>

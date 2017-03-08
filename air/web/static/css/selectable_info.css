@@ -1,3 +1,12 @@
+/* Workaround for the side column becoming superimposed on the main column and
+ * blocking buttons on narrow displays. Setting the columns's z-index lower
+ * doesn't work, since its content is unclickable when on a wider display. */
+@media (max-width: 767px) {
+  #selectable-column {
+    display: none;
+  }
+}
+
 .selectable-heading {
   width: 100%;
   display: table;

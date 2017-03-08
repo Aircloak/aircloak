@@ -13,10 +13,6 @@ html, body {
   position: relative;
 }
 
-.align-footer {
-  z-index: -1;
-}
-
 .footer {
   position: absolute;
   bottom: 0;
