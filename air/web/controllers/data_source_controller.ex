@@ -40,7 +40,7 @@ defmodule Air.DataSourceController do
          {:ok, last_query} <- DataSource.last_query({:id, id}, conn.assigns.current_user)
     do
       pending_queries = Air.Service.Query.currently_running(conn.assigns.current_user, data_source)
-        |> Enum.map(&Air.Schemas.Query.for_display/1)
+      |> Enum.map(&Air.Schemas.Query.for_display/1)
 
       conn
       |> put_layout("raw.html")
