@@ -11,6 +11,7 @@ import {FrontendSocket} from "../frontend_socket";
 type Props = {
   result: Result,
   frontendSocket: FrontendSocket,
+  CSRFToken: string,
 };
 
 type AppProperties = {
@@ -47,7 +48,7 @@ class QueryView extends React.Component {
       <PropertiesView {...this.state.result} />
 
       <h3>Query</h3>
-      <Results results={[this.state.result]} />
+      <Results results={[this.state.result]} CSRFToken={this.props.CSRFToken} />
     </div>);
   }
 }

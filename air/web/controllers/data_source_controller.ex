@@ -39,12 +39,16 @@ defmodule Air.DataSourceController do
     with {:ok, data_source} <- DataSource.fetch_as_user({:id, id}, conn.assigns.current_user),
          {:ok, last_query} <- DataSource.last_query({:id, id}, conn.assigns.current_user)
     do
+      pending_queries = Air.Service.Query.currently_running(conn.assigns.current_user, data_source)
+      |> Enum.map(&Air.Schemas.Query.for_display/1)
+
       conn
       |> put_layout("raw.html")
       |> render(
         "show.html",
         data_source: data_source,
         views: Air.Service.View.all(conn.assigns.current_user, data_source),
+        pending_queries: pending_queries,
         guardian_token: Guardian.Plug.current_token(conn),
         csrf_token: CSRFProtection.get_csrf_token(),
         last_query: last_query,

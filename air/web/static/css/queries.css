@@ -51,12 +51,12 @@
   margin-bottom: 3em;
 }
 
-#sql-editor .right-align {
-  float: right;
-}
-
 #sql-editor select {
   width: auto;
+}
+
+.right-align {
+  float: right;
 }
 
 .options-menu {

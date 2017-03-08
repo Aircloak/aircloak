@@ -48,7 +48,6 @@ class ViewEditor extends React.Component {
         columnNames={this.columnNames()}
         onChange={this.setStatement}
         onRun={this.save}
-        onStop={() => {}}
       />
     );
   }

@@ -11,33 +11,53 @@ defmodule Air.Socket.Frontend.UserChannelTest do
     :ok
   end
 
-  describe "Joining session channel" do
-    setup [:with_user, :with_session, :with_socket]
+  describe "joining user_queries" do
+    setup [:with_user, :with_socket]
 
-    test "allows joining session with any UUID", %{socket: socket} do
-      assert {:ok, _, _} = subscribe_and_join(socket, UserChannel, "session:#{Ecto.UUID.generate()}")
+    test "allows joining own channel", %{user: user, socket: socket} do
+      assert {:ok, _, _} = subscribe_and_join(socket, UserChannel, "user_queries:#{user.id}")
     end
 
-    test "does not allow joining sessions that are not valid UUIDs", %{socket: socket} do
-      assert {:error, _} = subscribe_and_join(socket, UserChannel, "session:some_id")
+    test "can't join another's channel", %{user: user, socket: socket} do
+      assert {:error, _} = subscribe_and_join(socket, UserChannel, "user_queries:#{user.id + 1}")
     end
   end
 
-  describe "Query results on session channel" do
-    setup [:with_user, :with_session, :with_socket, :subscribed_to_sessions]
+  describe "notifications on user_queries" do
+    setup [:with_user, :with_socket, :subscribed_to_user_queries]
 
-    test "receive results on session channel", %{user: user, session: session_id} do
-      query = create_query!(user, %{session_id: session_id})
+    test "receiving results", %{user: user} do
+      query = create_query!(user)
+
       UserChannel.broadcast_result(query)
+
       expected = Air.Schemas.Query.for_display(query)
       assert_push("result", ^expected)
     end
 
-    test "no results for queries belonging to other sessions", %{user: user} do
-      query = create_query!(user, %{session_id: Ecto.UUID.generate()})
-      result = Air.Schemas.Query.for_display(query)
+    test "no results for queries belonging to other users" do
+      query = create_query!(_other_user = create_user!())
+
       UserChannel.broadcast_result(query)
-      refute_push("result", ^result)
+
+      refute_push("result", _)
+    end
+
+    test "receiving state updates", %{user: user} do
+      query = create_query!(user, %{data_source_id: create_data_source!().id})
+
+      UserChannel.broadcast_state_change(query)
+
+      expected = Air.Schemas.Query.for_display(query)
+      assert_push("state_change", ^expected)
+    end
+
+    test "no state updates for queries belonging to other users" do
+      query = create_query!(_other_user = create_user!(), %{data_source_id: create_data_source!().id})
+
+      UserChannel.broadcast_state_change(query)
+
+      refute_push("state_change", _)
     end
   end
 
@@ -75,17 +95,15 @@ defmodule Air.Socket.Frontend.UserChannelTest do
 
   defp made_admin(context), do: {:ok, user: make_admin!(context[:user])}
 
-  defp with_session(_), do: {:ok, session: Ecto.UUID.generate()}
-
   defp with_socket(context), do: {:ok, socket: socket("user", %{user: context[:user]})}
-
-  defp subscribed_to_sessions(context) do
-    {:ok, _, _} = subscribe_and_join(context[:socket], UserChannel, "session:" <> context[:session])
-    :ok
-  end
 
   defp subscribed_to_all_state_changes(context) do
     {:ok, _, _} = subscribe_and_join(context[:socket], UserChannel, "state_changes:all")
+    :ok
+  end
+
+  defp subscribed_to_user_queries(context) do
+    {:ok, _, _} = subscribe_and_join(context.socket, UserChannel, "user_queries:#{context.user.id}")
     :ok
   end
 end

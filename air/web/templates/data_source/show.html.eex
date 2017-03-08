@@ -20,7 +20,7 @@
       </div>
     </div>
 
-    <div class="column align-footer col-sm-3">
+    <div id="selectable-column" class="column col-sm-3">
       <div data-spy="affix">
         <div id="selectable-info"></div>
       </div>
@@ -33,6 +33,7 @@
     onLoad: function(App) {
       var props = {
         lastQuery: <%= to_json(@last_query) %>,
+        pendingQueries: <%= to_json(@pending_queries) %>,
         dataSourceId: <%= @data_source.id %>,
         dataSourceAvailable: <%= available?(@data_source) %>,
         CSRFToken: "<%= @csrf_token %>",

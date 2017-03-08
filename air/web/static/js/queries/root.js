@@ -15,9 +15,8 @@ import type {Selectable} from "../selectable_info/selectable";
 import {FrontendSocket} from "../frontend_socket";
 import {HistoryLoader} from "./history_loader";
 import type {History} from "./history_loader";
-import {isPending} from "./state";
 import {Disconnected} from "../disconnected";
-import {cancel} from "../request";
+import {isFinished} from "./state";
 
 type Props = {
   userId: number,
@@ -27,11 +26,16 @@ type Props = {
   dataSourceAvailable: boolean,
   selectables: Selectable[],
   lastQuery: {statement: string},
+  pendingQueries: Result[],
   CSRFToken: string,
   frontendSocket: FrontendSocket,
 };
 
 const upgradeRequired = 426;
+
+const runQueryTimeout = 500; // ms
+
+const recentResultsToShow = 5;
 
 class QueriesView extends React.Component {
   constructor(props: Props) {
@@ -39,7 +43,7 @@ class QueriesView extends React.Component {
 
     this.state = {
       statement: this.props.lastQuery ? this.props.lastQuery.statement : "",
-      sessionResults: [],
+      sessionResults: this.props.pendingQueries,
       connected: true,
 
       history: {
@@ -50,8 +54,7 @@ class QueriesView extends React.Component {
     };
 
     this.setStatement = this.setStatement.bind(this);
-    this.runQuery = this.runQuery.bind(this);
-    this.stopQuery = this.stopQuery.bind(this);
+    this.runQuery = _.debounce(this.runQuery.bind(this), runQueryTimeout, {leading: true, trailing: false});
     this.queryData = this.queryData.bind(this);
     this.addResult = this.addResult.bind(this);
     this.resultReceived = this.resultReceived.bind(this);
@@ -64,7 +67,7 @@ class QueriesView extends React.Component {
     this.updateConnected = this.updateConnected.bind(this);
 
     this.bindKeysWithoutEditorFocus();
-    this.channel = this.props.frontendSocket.joinSessionChannel(props.sessionId, {
+    this.channel = this.props.frontendSocket.joinUserQueriesChannel(this.props.userId, {
       handleEvent: this.resultReceived,
     });
     this.connectedInterval = setInterval(this.updateConnected, 1000 /* 1 second */);
@@ -81,7 +84,6 @@ class QueriesView extends React.Component {
 
   setStatement: () => void;
   runQuery: () => void;
-  stopQuery: () => void;
   queryData: () => void;
   addResult: () => void;
   resultReceived: () => void;
@@ -111,7 +113,12 @@ class QueriesView extends React.Component {
   }
 
   setResults(results) {
-    this.setState({sessionResults: results.slice(0, 5)});
+    let completed = 0;
+    const recentResults = _.takeWhile(results, (result) => {
+      if (isFinished(result.query_state)) { completed++; }
+      return completed <= recentResultsToShow;
+    });
+    this.setState({sessionResults: recentResults});
   }
 
   replaceResult(result) {
@@ -126,11 +133,23 @@ class QueriesView extends React.Component {
   }
 
   resultReceived(result) {
-    if (result.data_source_id === this.props.dataSourceId) {
+    if (this.shouldDisplayResult(result)) {
       this.addResult(result, true /* replace */);
     } else {
       // Ignore result
     }
+  }
+
+  shouldDisplayResult(result) {
+    return this.createdInThisSession(result) || this.alreadyDisplayed(result);
+  }
+
+  createdInThisSession(result) {
+    return result.session_id === this.props.sessionId;
+  }
+
+  alreadyDisplayed(result) {
+    return _.some(this.state.sessionResults, (sessionResult) => sessionResult.id === result.id);
   }
 
   addResult(result, replace = true) {
@@ -149,7 +168,6 @@ class QueriesView extends React.Component {
 
   bindKeysWithoutEditorFocus() {
     Mousetrap.bind(["command+enter", "ctrl+enter"], this.runQuery);
-    Mousetrap.bind(["command+escape", "ctrl+escape"], this.stopQuery);
   }
 
   queryData() {
@@ -162,13 +180,8 @@ class QueriesView extends React.Component {
     });
   }
 
-  isQueryPending() {
-    return this.state.sessionResults.length > 0 && isPending(this.state.sessionResults[0].query_state);
-  }
-
   runQuery() {
     if (! this.runEnabled()) return;
-    if (this.isQueryPending()) return;
 
     const statement = this.state.statement;
     $.ajax("/queries", {
@@ -195,13 +208,6 @@ class QueriesView extends React.Component {
         if (error.status === upgradeRequired) { window.location.reload(); }
       },
     });
-  }
-
-  stopQuery() {
-    if (! this.runEnabled()) return;
-    if (! this.isQueryPending()) return;
-
-    cancel(this.state.sessionResults[0].id, this.props.CSRFToken);
   }
 
   handleLoadHistory() {
@@ -245,7 +251,7 @@ class QueriesView extends React.Component {
   }
 
   addError(statement, text) {
-    const result = {statement, error: text};
+    const result = {statement, query_state: "error", error: text};
     this.setResults([result].concat(this.state.sessionResults));
   }
 
@@ -263,7 +269,6 @@ class QueriesView extends React.Component {
     if (this.runEnabled()) {
       return (<CodeEditor
         onRun={this.runQuery}
-        onStop={this.stopQuery}
         onChange={this.setStatement}
         statement={this.state.statement}
         tableNames={this.tableNames()}
@@ -275,26 +280,15 @@ class QueriesView extends React.Component {
   }
 
   renderButton() {
-    if (this.isQueryPending()) {
-      return (<div className="right-align">
-        <button
-          className="btn btn-small btn-warning"
-          onClick={this.stopQuery}
-        >Cancel</button>
-        <span> or </span>
-        <kbd>Ctrl + Escape</kbd>
-      </div>);
-    } else {
-      return (<div className="right-align">
-        <button
-          className="btn btn-primary"
-          onClick={this.runQuery}
-          disabled={!this.runEnabled()}
-        >Run</button>
-        <span> or </span>
-        <kbd>Ctrl + Enter</kbd>
-      </div>);
-    }
+    return (<div className="right-align">
+      <button
+        className="btn btn-primary"
+        onClick={this.runQuery}
+        disabled={!this.runEnabled()}
+      >Run</button>
+      <span> or </span>
+      <kbd>Ctrl + Enter</kbd>
+    </div>);
   }
 
   render() {
@@ -306,7 +300,7 @@ class QueriesView extends React.Component {
         {this.renderButton()}
       </div>
 
-      <Results results={this.state.sessionResults} />
+      <Results results={this.state.sessionResults} CSRFToken={this.props.CSRFToken} />
 
       <HistoryLoader history={this.state.history} handleLoadHistory={this.handleLoadHistory} />
     </div>);

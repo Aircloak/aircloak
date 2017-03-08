@@ -13,8 +13,6 @@ export const format = (state: string) => {
 
 export const isFinished = (state: string) => finalStates.includes(state);
 
-export const isPending = (state: string) => !isFinished(state);
-
 export const pendingStates = [
   "started", "parsing", "compiling", "awaiting_data", "ingesting_data", "processing", "post_processing",
 ];

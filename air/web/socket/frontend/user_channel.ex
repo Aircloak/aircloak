@@ -22,7 +22,7 @@ defmodule Air.Socket.Frontend.UserChannel do
   @spec broadcast_result(Schemas.Query.t) :: :ok
   def broadcast_result(query) do
     payload = Schemas.Query.for_display(query)
-    Air.Endpoint.broadcast_from!(self(), "session:#{query.session_id}", "result", payload)
+    Air.Endpoint.broadcast_from!(self(), "user_queries:#{query.user_id}", "result", payload)
     Air.Endpoint.broadcast_from!(self(), "query:#{query.id}", "result", payload)
     :ok
   end
@@ -34,7 +34,7 @@ defmodule Air.Socket.Frontend.UserChannel do
   def broadcast_state_change(query) do
     Air.Endpoint.broadcast_from!(self(), "state_changes:all", "state_change", state_change_message(query))
     payload = Schemas.Query.for_display(query)
-    Air.Endpoint.broadcast_from!(self(), "session:#{query.session_id}", "state_change", payload)
+    Air.Endpoint.broadcast_from!(self(), "user_queries:#{query.user_id}", "state_change", payload)
     Air.Endpoint.broadcast_from!(self(), "query:#{query.id}", "state_change", payload)
     :ok
   end
@@ -46,10 +46,11 @@ defmodule Air.Socket.Frontend.UserChannel do
 
   @doc false
   @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
-  def join("session:" <> session_id, _, socket) do
-    case Ecto.UUID.cast(session_id) do
-      {:ok, _} -> {:ok, socket}
-      _ -> {:error, %{success: false, description: "Channel not found"}}
+  def join("user_queries:" <> user_id, _, socket) do
+    current_user_id = socket.assigns.user.id
+    case Integer.parse(user_id) do
+      {^current_user_id, ""} -> {:ok, socket}
+      _ -> {:error, %{success: false, description: "Forbidden"}}
     end
   end
   def join("state_changes:all", _, socket), do:

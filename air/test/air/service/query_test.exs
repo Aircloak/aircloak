@@ -58,7 +58,7 @@ defmodule Air.Service.QueryTest do
     end
   end
 
-  describe "currently_running" do
+  describe "currently_running/0" do
     test "returns running queries" do
       user = create_user!()
       query = create_query!(user)
@@ -73,6 +73,37 @@ defmodule Air.Service.QueryTest do
       create_query!(user, %{query_state: :cancelled})
 
       assert [] == Query.currently_running()
+    end
+  end
+
+  describe "currently_running/2" do
+    setup [:with_user, :with_data_source]
+
+    test "returns running queries on the given data source", context do
+      query = create_query!(context.user, %{data_source_id: context.data_source.id})
+
+      query_id = query.id
+      assert [%Air.Schemas.Query{id: ^query_id}] = Query.currently_running(context.user, context.data_source)
+    end
+
+    test "does not return not running queries", context do
+      create_query!(context.user, %{data_source_id: context.data_source.id, query_state: :completed})
+      create_query!(context.user, %{data_source_id: context.data_source.id, query_state: :error})
+      create_query!(context.user, %{data_source_id: context.data_source.id, query_state: :cancelled})
+
+      assert [] == Query.currently_running(context.user, context.data_source)
+    end
+
+    test "does not return other users' queries", context do
+      create_query!(_other_user = create_user!(), %{data_source_id: context.data_source.id})
+
+      assert [] = Query.currently_running(context.user, context.data_source)
+    end
+
+    test "does not return queries to other data sources", context do
+      create_query!(context.user, %{data_source_id: _other_source = create_data_source!().id})
+
+      assert [] = Query.currently_running(context.user, context.data_source)
     end
   end
 
@@ -185,5 +216,13 @@ defmodule Air.Service.QueryTest do
         result: %{"error" => "Query died."}
       } = query
     end
+  end
+
+  def with_user(_context) do
+    {:ok, user: create_user!()}
+  end
+
+  def with_data_source(_context) do
+    {:ok, data_source: create_data_source!()}
   end
 end
