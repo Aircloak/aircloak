@@ -30,32 +30,30 @@ Before installing the air component, you need to create the air user and the dat
 
 #### Configuration
 
-With database in place, we can create the air configuration by running the following commands:
+With database in place, we can create the air configuration, which looks as follows:
 
-```bash
-$ mkdir -p /aircloak/air/config/
-
-$ cat << EOF > /aircloak/air/config/config.json
-  {
-    "site": {
-      "auth_secret": auth_secret,
-      "endpoint_key_base": endpoint_key_base,
-      "api_token_salt": api_token_salt,
-      "master_password": master_password,
-      "customer_token": customer_token
-    },
-
-    "database": {
-      "host": database_host_name,
-      "port": database_port_name,
-      "ssl": true_or_false,
-      "name": air_database_name,
-      "user": air_user_name,
-      "password": air_user_password
-    }
-  }
-EOF
 ```
+{
+  "site": {
+    "auth_secret": auth_secret,
+    "endpoint_key_base": endpoint_key_base,
+    "api_token_salt": api_token_salt,
+    "master_password": master_password,
+    "customer_token": customer_token
+  },
+
+  "database": {
+    "host": database_host_name,
+    "port": database_port_name,
+    "ssl": true_or_false,
+    "name": air_database_name,
+    "user": air_user_name,
+    "password": air_user_password
+  }
+}
+```
+
+The configuration needs to be saved under the name `config.json` in some folder.
 
 The configuration consists of the following settings:
 
@@ -71,36 +69,34 @@ Once air is properly configured you can start the air container with the followi
 
 ```bash
 docker run -d --name air \
- -v /aircloak/air/config:/runtime_config \
- -p desired_port:8080 \
+ -v configuration_folder:/runtime_config \
+ -p desired_http_port:8080 \
  quay.io/aircloak/air:latest
 ```
 
-The most important part here is the mapping of the `/aircloak/air/config` folder to the `/runtime_config` folder in the container. This is how you can pass your configuration to the container. At the very least, this folder must contain the `config.json` file.
+In the command above, the `configuration_folder` is the absolute path to the folder where `config.json` is residing.
 
-The air container listens on port 8080 (HTTP). However, it will also serve HTTPS requests on port 8443 if the private key and the certificate are provided in files named `ssl_key.pem` and `ssl_cert.pem` in the configuration folder. In this case, you'll also need to map the port 8443 to the host.
+The `desired_http_port` parameter is the port on which you want to expose HTTP requests. It is also possible to expose air as HTTPS. In this case, you need to store `ssl_key.pem` and `ssl_cert.pem` files to the `configuration_folder`. Then you can provide `-p desired_https_port:8443` option. In this case, you can optionally omit the HTTP port mapping, if you want to serve traffic only through HTTPS.
 
-In the command above, you need to replace the `desired_port` with the actual port on which you want you air to be accessible. If everything was properly configured, you should be able to access air on that port, and create the administrator user using the master password provided in the `config.json`. In the case of problems, you can check log with `docker logs air`.
+If everything was properly configured, you should be able to access air on that port, and create the administrator user using the master password provided in the `config.json`. In the case of problems, you can check log with `docker logs air`.
 
 ### Configuring the cloak component
 
 Once the air component is setup, we need to create the configuration for the cloak component:
 
-```bash
-mkdir -p /aircloak/cloak/config/
-
-cat << EOF > /aircloak/cloak/config/config.json
-  {
-    "air_site": air_site,
-    "salt": salt,
-    "data_sources": [
-      data_source_1,
-      data_source_2,
-      ...
-    ]
-  }
-EOF
 ```
+{
+  "air_site": air_site,
+  "salt": salt,
+  "data_sources": [
+    data_source_1,
+    data_source_2,
+    ...
+  ]
+}
+```
+
+The configuration needs to be saved under the name `config.json` in some folder.
 
 The `air_site` parameter holds the address of the air site it can be in the form of `"ws://air_host_name:port"` or `wss://air_host_name:port`, where `air_host_name` is the address of the machine where air container is running.
 
@@ -174,10 +170,10 @@ With this configuration specified, we can start the cloak container as:
 
 ```bash
 docker run -d --name cloak \
-  -v /aircloak/cloak/config:/runtime_config \
+  -v configuration_folder:/runtime_config \
   quay.io/aircloak/cloak:latest
 ```
 
-Similarly to the air component, we need to map the configuration folder to `/runtime_config`.
+In the command above, you need to replace `configuration_folder` with the full path to the folder where `config.json` is residing.
 
-Assuming everything was setup properly, the cloak should be visible in the air system. You can open the local air site in your browser, and verify that the data source is displayed in the list of data sources. In the case of problems, you can check cloak log by running `docker logs cloak`.
+Assuming everything was setup properly, the cloak should be visible in the air system. You can open the local air site in your browser, and verify that configured data sources are displayed in the list of data sources. In the case of problems, you can check cloak log by running `docker logs cloak`.
