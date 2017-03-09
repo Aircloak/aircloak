@@ -198,4 +198,13 @@ docker run -d --name cloak \
 
 In the command above, you need to replace `configuration_folder` with the full path to the folder where `config.json` is residing.
 
-Assuming everything was setup properly, the cloak should be visible in the air system. You can open the local air site in your browser, and verify that configured data sources are displayed in the list of data sources. In the case of problems, you can check cloak log by running `docker logs cloak`.
+### Configuring data access
+
+If everything is properly setup, the cloak will connect to the air system. However, data sources configured in the cloak are by default not queryable by any user. To configure proper access do the following:
+
+1. Open the air page in your browser.
+1. Click on the gear button, and the admin link.
+1. Select _Data sources_ in the menu on the left side. The list of data sources will appear in the central area.
+1. Click the _Edit_ button for the desired data source.
+
+You will see the list of available user groups, and you can provide query access to each group by ticking the corresponding checkbox. Make sure to click the _Save_ button after you make your changes.
