@@ -205,6 +205,64 @@ The following date and time functions:
 
 For examples see the sidebar.
 
+## Inequality restrictions
+
+### Ranges
+
+```sql
+-- Correct - a range is used
+SELECT COUNT(*) FROM table WHERE column > 10 AND column < 20
+
+-- Incorrect - only one side of the range provided
+SELECT COUNT(*) FROM table WHERE column > 10
+
+-- Incorrect - the lower end of the range is bigger than the upper end
+SELECT COUNT(*) FROM table WHERE column > 10 AND column < 0
+
+-- Incorrect - the inequalities are over different expressions
+SELECT COUNT(*) FROM table WHERE column + 1 > 10 AND column - 1 < 20
+```
+
+Whenever using an inequality (`>`, `>=`, `<`, or `<=`) in a `WHERE`-, `JOIN`- or `HAVING`-clause the query actually needs to contain two
+inequalities involving the same column or expression that form a range. That is one `>` or `>=` inequality and one `<` or `<=` inequality,
+limiting the column/expression from bottom and top.
+
+### Range alignment
+
+```sql
+SELECT COUNT(*) FROM table WHERE column > 10 AND column < 20
+-- Adjusted to 10 <= column < 20
+
+SELECT COUNT(*) FROM table WHERE column >= 10 AND column < 19
+-- Adjusted to 10 <= column < 20
+
+SELECT COUNT(*) FROM table WHERE column >= 9 AND column < 19
+-- Adjusted to 0 <= column < 20
+
+SELECT COUNT(*) FROM table WHERE column >= 16 AND column < 24
+-- Adjusted to 15 <= column < 25
+
+SELECT COUNT(*) FROM table WHERE date >= '2016-01-01' AND date < '2016-01-29'
+-- Adjusted to 2016-01-01 <= date < 2016-02-01
+
+SELECT COUNT(*) FROM table WHERE datetime >= '2016-01-01 12:27:00' AND date < '2016-01-01 12:31:00'
+-- Adjusted to 2016-01-01 12:22:30 <= datetime < 2016-01-01 12:37:30
+```
+
+Furthermore the specified range will be aligned to the closest predefined grid that contains the whole range. The range will also be modified
+to be closed on the left (`>=`) and open on the right (`<`). If any such modifications take place an appropriate notice will be displayed
+in the web interface.
+
+The grids available depend on the type of the column that is being limited by the range. For numerical columns the grid sizes are
+`[..., 0.1, 0.2, 0.5, 1, 2, 5, 10, ...]`. For date/time columns they are `[1, 2, 5, ...]` years, `[1, 2, 6, 12]` months, `[1, 2, 5, ...]` days,
+`[1, 2, 6, 12, 24]` hours, `[1, 2, 5, 15, 30, 60]` minutes, and `[1, 2, 5, 15, 30, 60]` seconds.
+
+To arrive at the final range the system finds the smallest grid size that will contain the given range. Then it shifts the lower end of the
+range to be a multiple of half of the grid size. The upper end is just the lower end plus the grid size. In some cases halving the grid size
+is not allowed and the lower end needs to be a multiple of the whole grid size instead - for example it is not allowed to halve days in
+case the underlying data type is `date` and cannot represent such halving. See the sidebar for examples of adjustment.
+
+For best results design your queries so that they take this adjustment into account and mostly use ranges that are already adjusted.
 
 ## Understanding query results
 
