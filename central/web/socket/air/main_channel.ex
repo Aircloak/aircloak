@@ -19,7 +19,7 @@ defmodule Central.Socket.Air.MainChannel do
 
   @doc false
   @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
-  def join("main", raw_air_info, socket) do
+  def join("main" <> version, raw_air_info, socket) do
     Logger.metadata(customer: socket.assigns.customer.name, air: socket.assigns.air_name)
     Process.flag(:trap_exit, true)
     Logger.info("joined central")

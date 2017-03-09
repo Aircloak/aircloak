@@ -63,7 +63,7 @@ defmodule Air.CentralClient.Socket do
   @doc false
   def handle_connected(_transport, state) do
     Logger.info("connected")
-    send(self(), {:join, "main"})
+    send(self(), {:join, "main:#{version()}"})
     initial_interval = config(:min_reconnect_interval)
     {:ok, %{state | reconnect_interval: initial_interval}}
   end
@@ -246,4 +246,6 @@ defmodule Air.CentralClient.Socket do
     defp log_connect(), do: Logger.info("connecting")
     defp log_disconnected(reason), do: Logger.error("disconnected: #{inspect reason}")
   end
+
+  defp version(), do: Aircloak.Version.for_app(:air) |> Aircloak.Version.to_string()
 end
