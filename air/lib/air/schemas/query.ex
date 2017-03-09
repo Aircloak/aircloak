@@ -64,7 +64,7 @@ defmodule Air.Schemas.Query do
     |> foreign_key_constraint(:data_source_id)
   end
 
-  @doc "Produces a JSON blob of the query and it's result for rendering"
+  @doc "Produces a JSON blob of the query and its result for rendering"
   @spec for_display(t) :: Map.t
   def for_display(query) do
     query = Repo.preload(query, [:user, :data_source])
