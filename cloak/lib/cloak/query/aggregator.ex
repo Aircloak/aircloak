@@ -6,6 +6,7 @@ defmodule Cloak.Query.Aggregator do
   alias Cloak.DataSource
   alias Cloak.Sql.{Query, Expression}
   alias Cloak.Query.{Anonymizer, Rows, Result}
+  alias Cloak.Query.Runner.Engine
 
   @typep property_values :: [DataSource.field | :*]
   @typep user_id :: DataSource.field
@@ -42,9 +43,9 @@ defmodule Cloak.Query.Aggregator do
 
   Each output row will consist of columns `foo`, `count(*)`, and `avg(bar)`.
   """
-  @spec aggregate(Enumerable.t, Query.t) :: Result.t
-  def aggregate(rows, query) do
-    rows_by_property = group_by_property(rows, query)
+  @spec aggregate(Enumerable.t, Query.t, Engine.state_updater) :: Result.t
+  def aggregate(rows, query, state_updater) do
+    rows_by_property = group_by_property(rows, query, state_updater)
     users_count = number_of_anonymized_users(rows_by_property)
     aggregated_buckets = rows_by_property
       |> process_low_count_users(query)
@@ -68,23 +69,30 @@ defmodule Cloak.Query.Aggregator do
     [[value | prev_values] | add_values_to_columns(rest_values, rest_prev_values)]
   end
 
-  defp group_by_property(rows, query) do
+  defp group_by_property(rows, query, state_updater) do
     Logger.debug("Grouping rows ...")
+    aggregated_columns = Query.aggregated_columns(query)
     rows
     |> Enum.reduce(%{}, fn(row, accumulator) ->
-      property = for column <- query.property, do: Expression.value(column, row)
-      user_id = user_id(row)
-      values = for column <- Query.aggregated_columns(query), do: aggregated_value_list(row, column)
-      Map.update(accumulator, property, %{user_id => values}, fn (user_values_map) ->
-        Map.update(user_values_map, user_id, values, &add_values_to_columns(values, &1))
-      end)
+      if Map.size(accumulator) == 0, do: state_updater.(:ingesting_data)
+      group_row(accumulator, row, query.property, aggregated_columns)
     end)
+    |> fn(rows) -> state_updater.(:processing); rows end.()
     |> init_anonymizer()
   end
 
   defp aggregated_value_list(_row, :*), do: [:*]
   defp aggregated_value_list(row, {:distinct, column}), do: aggregated_value_list(row, column)
   defp aggregated_value_list(row, column), do: List.wrap(Expression.value(column, row))
+
+  defp group_row(accumulator, row, property_columns, aggregated_columns) do
+    property = for column <- property_columns, do: Expression.value(column, row)
+    user_id = user_id(row)
+    values = for column <- aggregated_columns, do: aggregated_value_list(row, column)
+    Map.update(accumulator, property, %{user_id => values}, fn (user_values_map) ->
+      Map.update(user_values_map, user_id, values, &add_values_to_columns(values, &1))
+    end)
+  end
 
   defp user_id([user_id | _rest]), do: user_id
 

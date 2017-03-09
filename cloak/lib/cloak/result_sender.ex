@@ -2,7 +2,7 @@ defmodule Cloak.ResultSender do
   @moduledoc "Handles returning the result of a query back to the requester"
 
   @type target :: {:process, pid()} | :air_socket
-  @type query_state :: :parsing | :compiling | :awaiting_data | :processing
+  @type query_state :: :parsing | :compiling | :awaiting_data | :ingesting_data | :processing | :post_processing
 
   # -------------------------------------------------------------------
   # Callbacks
