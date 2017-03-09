@@ -117,7 +117,7 @@ In the `data_sources` section we're specifying databases and tables which need t
   "tables": tables
 }
 ```
-The `marker` parameter is a string which will be included in the display name of your data source. The `driver` parameter can be one of the following: `mongodb`, `postgresql`, `mysql`, `odbc`. Next, you need to specify the database connection parameters.
+The `marker` parameter is a string which will be included in the id of the data source. The `driver` parameter can be one of the following: `mongodb`, `postgresql`, `mysql`, `odbc`. Next, you need to specify the database connection parameters.
 
 Finally, you need to specify queryable tables in the `tables` option. This is a JSON object that looks as follows:
 
