@@ -9,7 +9,7 @@ The Aircloak system consists of two components:
 - air - the web site which allows analysts to run anonymized queries in a cloak.
 - cloak - the anonymizing query engine.
 
-The access to the cloak component should be highly restricted, since this component has complete read access to the sensitive data. The air component does not require such privileges, so you can safely run it on another machine, and maybe even in another network, as long as the cloak component can connect to the air server.
+These components should run on separate machines. In addition, the access to the cloak component should be highly restricted, since this component has complete read access to the sensitive data. The air component does not require such privileges, so you can optionally run it in another network, as long as the cloak component can connect to the air server.
 
 ## Installation
 
