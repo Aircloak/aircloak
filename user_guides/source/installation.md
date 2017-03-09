@@ -140,11 +140,11 @@ The database tables that should be made available are defined in the tables sect
 
 The `table_name_x` is the name the table will be available under when querying the data source through Aircloak. The `db_name_x` is the name of the table in the underlying database. In most cases you can use the same name, but the distinction allows some special scenarios, such as exposing a table under a simpler name, or exposing the same database table multiple times under different names.
 
-The `user_id` field is the name of the column that uniquely identifies users - the people or entities whose anonymity should be preserved. See also Projected tables section below.
+The `user_id` field is the name of the column that uniquely identifies users - the people or entities whose anonymity should be preserved. See also [Projected tables](#projected_tables) section below.
 
 Finally, `ignore_unsupported_types` should be `true` or `false`. If the value is `true`, the cloak will ignore columns of unsupported data types. If this value is `false`, the cloak will refuse to start if there are one or more columns of an unsupported data type.
 
-#### Projected tables
+#### <a name="projected_tables"></a>Projected tables
 
 In some cases a table does not have the `user_id` column itself, but is instead related to another table with such column. For example, you could have the table `accounts` which has the `user_id` column, and the table `transactions` which has `account_id` column.
 
