@@ -46,9 +46,9 @@ With the database in place, we can create the air configuration, which looks as 
     "host": database_host_name,
     "port": database_port_name,
     "ssl": true_or_false,
-    "name": air_database_name,
-    "user": air_user_name,
-    "password": air_user_password
+    "name": database_name,
+    "user": user_name,
+    "password": user_password
   }
 }
 ```
