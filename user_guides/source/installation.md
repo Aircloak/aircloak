@@ -9,7 +9,7 @@ The Aircloak system consists of two components:
 - air - the web site which allows analysts to run anonymized queries in a cloak.
 - cloak - the anonymizing query engine.
 
-These components should run on separate machines. In addition, the access to the cloak component should be highly restricted, since this component has complete read access to the sensitive data. The air component does not require such privileges, so you can optionally run it in another network, as long as the cloak component can connect to the air server.
+These components should run on separate machines. In addition, the access to the cloak component should be highly restricted, since this component has complete read access to the sensitive data. The air component does not require such privileges, so you can optionally run it in another network, as long as the cloak component can connect to the air component.
 
 ## Installation
 
@@ -82,7 +82,7 @@ docker run -d --name air \
 
 In the command above, the `configuration_folder` is the absolute path to the folder where `config.json` is residing.
 
-The `desired_http_port` parameter is the port on which you want to expose HTTP requests. It is also possible to expose air over HTTPS. In this case, you need to store `ssl_key.pem` and `ssl_cert.pem` files in the `configuration_folder`. You will also need to provide `-p desired_https_port:8443` option. In this case, you can optionally omit the HTTP port mapping, if you want to serve traffic only through HTTPS.
+The `desired_http_port` parameter is the port you want to expose for HTTP requests. It is also possible to expose air over HTTPS. In this case, you need to store `ssl_key.pem` and `ssl_cert.pem` files in the `configuration_folder`. Then, you also need to provide `-p desired_https_port:8443` option in your docker command, as well as, or instead of, the option for HTTP.
 
 If everything was properly configured, you should be able to access air on that port, and create the administrator user using the master password provided in the `config.json`. In the case of problems, you can check the logs with `docker logs air`.
 
@@ -104,7 +104,7 @@ Once the air component is setup, we need to create the configuration for the clo
 
 The configuration needs to be saved under the name `config.json` in some folder.
 
-The `air_site` parameter holds the address of the air site it can be in the form of `"ws://air_host_name:port"` or `wss://air_host_name:port`, where `air_host_name` is the address of the machine where air container is running. You should use the `ws` prefix if air is serving traffic through HTTP protocol, while `wss` should be used for HTTPS protocol.
+The `air_site` parameter holds the address of the air site it can be in the form of `"ws://air_host_name:port"` or `wss://air_host_name:port`, where `air_host_name` is the address of the machine where air container is running. You should use the `ws` prefix if air is serving traffic over HTTP, while `wss` should be used for the HTTPS protocol.
 
 The `salt` parameter is used for anonymization purposes. Make sure to create a strongly random secret for this parameter, for example with the following command: `cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1`.
 
@@ -146,7 +146,7 @@ Finally, `ignore_unsupported_types` should be `true` or `false`. If the value is
 
 #### <a name="projected_tables"></a>Projected tables
 
-In some cases a table does not have the `user_id` column itself, but is instead related to another table with such column. For example, you could have the table `accounts` which has the `user_id` column, and the table `transactions` which has `account_id` column.
+In some cases a table does not have a `user_id` column but is related to another table that does. You could for example have an `accounts` table with a `user_id` column, and a table named `transactions` with an `account_id` column.
 
 To get a `user_id` column in the `transactions` table, the cloak needs to be configured to derive it from the `accounts` table:
 
@@ -172,7 +172,7 @@ Here, we are specifying that the `transactions` table derives its `user_id` colu
 
 #### Table sample rate (only for MongoDb)
 
-For MongoDb database, every table is initially scanned to determine the table schema. This can take a long time for larger tables, which might lead to increased cloak startup time. In this case, you can instruct cloak to analyze only a fraction of table data by providing the `sample_rate` option:
+For MongoDb database, every table is initially scanned to determine the table schema. This can take a long time for larger tables, which might lead to increased cloak startup times. You can instruct the cloak to analyze only a fraction of the data in the MongoDb collection by providing the `sample_rate` option:
 
 ```
 "tables": {
@@ -184,7 +184,7 @@ For MongoDb database, every table is initially scanned to determine the table sc
 }
 ```
 
-Where `sample_rate` is an integer between 1 and 100, representing a percentage of data which is going to be sampled.
+Where `sample_rate` is an integer between 1 and 100, representing the percentage of data which is going to be sampled.
 
 ### Running the cloak container
 
@@ -211,4 +211,4 @@ You will see the list of available user groups, and you can provide query access
 
 ### Troubleshooting
 
-In the case of problems, you can examine logs by running `docker logs cloak` or `docker logs air`, depending on which part of the system are you troubleshooting. In addition, you can enable debug log messages for the cloak component by including `"debug": true` in cloak `config.json` file. You need to restart the component after you change the configuration file.
+In the case of problems, you can examine logs by running `docker logs cloak` or `docker logs air`, depending on which part of the system you are troubleshooting. In addition, you can enable debug log messages for the cloak component by including `"debug": true` in cloak `config.json` file. You need to restart the component after you change the configuration file.
