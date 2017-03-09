@@ -9,9 +9,9 @@ The Aircloak system consists of two components:
 - air - the web site which allows analysts to run anonymized queries in a cloak.
 - cloak - the anonymizing query engine.
 
-The access to the cloak component should be highly restricted, since this component has complete read access to the sensitive data. The air component doesn't require such privileges, so you can safely run it on another machine, and maybe even in another network, as long as the cloak component can connect to the air server.
+The access to the cloak component should be highly restricted, since this component has complete read access to the sensitive data. The air component does not require such privileges, so you can safely run it on another machine, and maybe even in another network, as long as the cloak component can connect to the air server.
 
-To keep things simple, in this tutorial, we'll be running the air and the cloak containers on the same machine. Moreover, we'll use the Aircloak test-only database server image.
+To keep things simple, in this tutorial, we will be running the air and the cloak containers on the same machine. Moreover, we will use the Aircloak test-only database server image.
 
 ## Installation
 
@@ -57,7 +57,7 @@ The configuration needs to be saved under the name `config.json` in some folder.
 
 The configuration consists of the following settings:
 
-- site secrets (`auth_secret`, `endpoint_key_base`, `api_token_salt` under the `site` key) - These are used to sign and encrypt various data exchanged with the clients. All secrets should consist of at least 64 characters. For example, you can generate a random secret with the following command: `cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1`
+- site secrets (`auth_secret`, `endpoint_key_base`, `api_token_salt` under the `site` key) - These are used to sign and encrypt various data exchanged with users of the system. All secrets should consist of at least 64 characters. For example, you can generate a random secret with the following command:
 - master site password - you will need this password to create the first user in your site
 - customer token - this identifies your `air` installation with the central Aircloak systems
 - database settings for the air database (host, port, ssl, database name, user name and password)
@@ -76,9 +76,9 @@ docker run -d --name air \
 
 In the command above, the `configuration_folder` is the absolute path to the folder where `config.json` is residing.
 
-The `desired_http_port` parameter is the port on which you want to expose HTTP requests. It is also possible to expose air over HTTPS. In this case, you need to store `ssl_key.pem` and `ssl_cert.pem` files to the `configuration_folder`. Then you can provide `-p desired_https_port:8443` option. In this case, you can optionally omit the HTTP port mapping, if you want to serve traffic only through HTTPS.
+The `desired_http_port` parameter is the port on which you want to expose HTTP requests. It is also possible to expose air over HTTPS. In this case, you need to store `ssl_key.pem` and `ssl_cert.pem` files in the `configuration_folder`. You will also need to provide `-p desired_https_port:8443` option. In this case, you can optionally omit the HTTP port mapping, if you want to serve traffic only through HTTPS.
 
-If everything was properly configured, you should be able to access air on that port, and create the administrator user using the master password provided in the `config.json`. In the case of problems, you can check log with `docker logs air`.
+If everything was properly configured, you should be able to access air on that port, and create the administrator user using the master password provided in the `config.json`. In the case of problems, you can check the logs with `docker logs air`.
 
 ### Configuring the cloak component
 
@@ -102,7 +102,7 @@ The `air_site` parameter holds the address of the air site it can be in the form
 
 The `salt` parameter is used for anonymization purposes. Make sure to create a strongly random secret for this parameter, for example with the following command: `cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1`.
 
-In the `data_sources` section we're specifying databases and tables which need to be open to analysts for querying. Each `data_source_x` is itself a json in the form of:
+The `data_sources` section configures the databases and tables that will be made available to analysts for querying. Each `data_source_x` is itself a json in the form of:
 
 ```
 {
@@ -119,7 +119,7 @@ In the `data_sources` section we're specifying databases and tables which need t
 ```
 The `marker` parameter is a string which will be included in the id of the data source. The `driver` parameter can be one of the following: `mongodb`, `postgresql`, `mysql`, `odbc`. Next, you need to specify the database connection parameters.
 
-Finally, you need to specify queryable tables in the `tables` option. This is a JSON object that looks as follows:
+The database tables that should be made available are defined in the tables section of the cloak config. It should be a JSON object that looks as follows:
 
 ```
 "tables": {
@@ -132,17 +132,17 @@ Finally, you need to specify queryable tables in the `tables` option. This is a 
 }
 ```
 
-The `table_name_x` is a string that defines a display name of the table. The table can be accessed through cloak by that name. The `db_name_x` is the name of the table in the underlying database. In most cases you can use the same name, but the distinction allows some special scenarios, such as exposing a table under a simpler name, or exposing the same database table multiple times under different names.
+The `table_name_x` is the name the table will be available under when querying the data source through Aircloak. The `db_name_x` is the name of the table in the underlying database. In most cases you can use the same name, but the distinction allows some special scenarios, such as exposing a table under a simpler name, or exposing the same database table multiple times under different names.
 
 The `user_id` field is the name of the column that uniquely identifies users - the people or entities whose anonymity should be preserved. See also Projected tables section below.
 
-Finally, `ignore_unsupported_types` should be `true` or `false`. If the value is `true`, cloak will ignore the columns of unsupported data types. If this value is `false`, cloak will refuse to start if there's at least one column of an unsupported data type.
+Finally, `ignore_unsupported_types` should be `true` or `false`. If the value is `true`, the cloak will ignore columns of unsupported data types. If this value is `false`, the cloak will refuse to start if there are one or more columns of an unsupported data type.
 
 #### Projected tables
 
-In some cases a table doesn't have the `user_id` column itself, but is instead related to another table with such column. For example, you could have the table `accounts` which has the `user_id` column, and the table `transactions` which has `account_id` column.
+In some cases a table does not have the `user_id` column itself, but is instead related to another table with such column. For example, you could have the table `accounts` which has the `user_id` column, and the table `transactions` which has `account_id` column.
 
-Now the question is how can you set `user_id` column for the `transactions` table. The answer is to set up the table _projection_. In the `transactions` table definition, you need to specify that `user_id` is obtained from the `accounts` table:
+To get a `user_id` column in the `transactions` table, the cloak needs to be configured to derive it from the `accounts` table:
 
 ```
 "tables": {
@@ -162,7 +162,7 @@ Now the question is how can you set `user_id` column for the `transactions` tabl
 }
 ```
 
-Here, we're specifying that the `transaction` table is projected to user through the `accounts` table. The `account_id` field of the `transactions` table corresponds to the `id` field of the `accounts` table. As the result, the `transactions` table in the cloak will be queryable by the cloak, and the results will be properly anonymized. As a side-effect, the `transactions` table as seen by cloak users will also contain the `customer_id` column.
+Here, we are specifying that the `transactions` table derives its `user_id` column from the `accounts` table. The `account_id` field of the `transactions` table corresponds to the `id` field of the `accounts` table. This results in the `transactions` table getting an extra column called `customer_id`.
 
 ### Running the cloak container
 
