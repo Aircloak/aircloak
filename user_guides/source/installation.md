@@ -170,6 +170,22 @@ To get a `user_id` column in the `transactions` table, the cloak needs to be con
 
 Here, we are specifying that the `transactions` table derives its `user_id` column from the `accounts` table. The `account_id` field of the `transactions` table corresponds to the `id` field of the `accounts` table. This results in the `transactions` table getting an extra column called `customer_id`.
 
+#### Table sample rate (only for MongoDb)
+
+For MongoDb database, every table is initially scanned to determine the table schema. This can take a long time for larger tables, which might lead to increased cloak startup time. In this case, you can instruct cloak to analyze only a fraction of table data by providing the `sample_rate` option:
+
+```
+"tables": {
+  "some_table": {
+    "sample_rate": sample_rate,
+    ...
+  },
+  ...
+}
+```
+
+Where `sample_rate` is an integer between 1 and 100, representing a percentage of data which is going to be sampled.
+
 ### Running the cloak container
 
 With this configuration specified, we can start the cloak container as:
