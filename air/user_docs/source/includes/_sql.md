@@ -223,9 +223,9 @@ SELECT COUNT(*) FROM table WHERE column > 10 AND column < 0
 SELECT COUNT(*) FROM table WHERE column + 1 > 10 AND column - 1 < 20
 ```
 
-Whenever using an inequality (`>`, `>=`, `<`, or `<=`) in a `WHERE`-, `JOIN`- or `HAVING`-clause the query actually needs to contain two
-inequalities involving the same column or expression that form a range. That is one `>` or `>=` inequality and one `<` or `<=` inequality,
-limiting the column/expression from bottom and top.
+Whenever an inequality (`>`, `>=`, `<`, or `<=`) is used in a `WHERE`-, `JOIN`- or `HAVING`-clause that clause actually needs to contain two
+inequalities. These two should form a range on a single column or expression. That is, one `>` or `>=` inequality and one `<` or `<=`
+inequality, limiting the column/expression from bottom and top.
 
 ### Range alignment
 
@@ -249,9 +249,12 @@ SELECT COUNT(*) FROM table WHERE datetime >= '2016-01-01 12:27:00' AND date < '2
 -- Adjusted to 2016-01-01 12:22:30 <= datetime < 2016-01-01 12:37:30
 ```
 
-Furthermore the specified range will be aligned to the closest predefined grid that contains the whole range. The range will also be modified
-to be closed on the left (`>=`) and open on the right (`<`). If any such modifications take place an appropriate notice will be displayed
-in the web interface.
+The system will adjust ranges provided in queries. The adjustment will "snap" the range to a fixed, predefined grid. It will always
+make sure that the specified range is included in the adjusted range. The range will also be modified to be closed on the left (`>=`)
+and open on the right (`<`).
+
+If any such modifications take place an appropriate notice will be displayed in the web interface. When using the API the notice will
+be included under the `info` key of the result. The notice will _not_ appear when using the Postgres interface.
 
 The grids available depend on the type of the column that is being limited by the range. For numerical columns the grid sizes are
 `[..., 0.1, 0.2, 0.5, 1, 2, 5, 10, ...]`. For date/time columns they are `[1, 2, 5, ...]` years, `[1, 2, 6, 12]` months, `[1, 2, 5, ...]` days,
