@@ -82,7 +82,7 @@ docker run -d --name air \
 
 In the command above, the `configuration_folder` is the absolute path to the folder where `config.json` is residing.
 
-The `desired_http_port` parameter is the port you want to expose for HTTP requests. It is also possible to expose air over HTTPS. In this case, you need to store `ssl_key.pem` and `ssl_cert.pem` files in the `configuration_folder`. Then, you also need to provide `-p desired_https_port:8443` option in your docker command, as well as, or instead of, the option for HTTP.
+The `desired_http_port` parameter is the port you want to expose for HTTP requests. It is also possible to expose air over HTTPS. In this case, you need to store `ssl_key.pem` and `ssl_cert.pem` files in the `configuration_folder`. Then, you also need to provide the `-p desired_https_port:8443` option in your docker command, as well as, or instead of, the option for HTTP.
 
 If everything was properly configured, you should be able to access air on that port, and create the administrator user using the master password provided in the `config.json`. In the case of problems, you can check the logs with `docker logs air`.
 
@@ -172,7 +172,7 @@ Here, we are specifying that the `transactions` table derives its `user_id` colu
 
 #### Table sample rate (only for MongoDb)
 
-For MongoDb database, every table is initially scanned to determine the table schema. This can take a long time for larger tables, which might lead to increased cloak startup times. You can instruct the cloak to analyze only a fraction of the data in the MongoDb collection by providing the `sample_rate` option:
+For MongoDb databases, every collection is initially scanned to determine the collection schema. This can take a long time for larger collections, which might lead to increased cloak startup times. You can instruct the cloak to analyze only a fraction of the data in the MongoDb collection by providing the `sample_rate` option:
 
 ```
 "tables": {
