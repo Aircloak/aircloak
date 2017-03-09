@@ -76,7 +76,7 @@ docker run -d --name air \
 
 In the command above, the `configuration_folder` is the absolute path to the folder where `config.json` is residing.
 
-The `desired_http_port` parameter is the port on which you want to expose HTTP requests. It is also possible to expose air as HTTPS. In this case, you need to store `ssl_key.pem` and `ssl_cert.pem` files to the `configuration_folder`. Then you can provide `-p desired_https_port:8443` option. In this case, you can optionally omit the HTTP port mapping, if you want to serve traffic only through HTTPS.
+The `desired_http_port` parameter is the port on which you want to expose HTTP requests. It is also possible to expose air over HTTPS. In this case, you need to store `ssl_key.pem` and `ssl_cert.pem` files to the `configuration_folder`. Then you can provide `-p desired_https_port:8443` option. In this case, you can optionally omit the HTTP port mapping, if you want to serve traffic only through HTTPS.
 
 If everything was properly configured, you should be able to access air on that port, and create the administrator user using the master password provided in the `config.json`. In the case of problems, you can check log with `docker logs air`.
 
