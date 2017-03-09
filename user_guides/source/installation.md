@@ -1,6 +1,6 @@
-# Installation tutorial
+# Installation guide
 
-This tutorial describes how to install and configure the Aircloak components.
+This guide describes how to install and configure the Aircloak components.
 
 ## General overview
 
@@ -10,8 +10,6 @@ The Aircloak system consists of two components:
 - cloak - the anonymizing query engine.
 
 The access to the cloak component should be highly restricted, since this component has complete read access to the sensitive data. The air component does not require such privileges, so you can safely run it on another machine, and maybe even in another network, as long as the cloak component can connect to the air server.
-
-To keep things simple, in this tutorial, we will be running the air and the cloak containers on the same machine. Moreover, we will use the Aircloak test-only database server image.
 
 ## Installation
 
