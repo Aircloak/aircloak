@@ -1,6 +1,6 @@
-# Installation tutorial
+# Installation guide
 
-This tutorial describes how to install and configure the Aircloak components.
+This guide describes how to install and configure the Aircloak components.
 
 ## General overview
 
@@ -9,17 +9,18 @@ The Aircloak system consists of two components:
 - air - the web site which allows analysts to run anonymized queries in a cloak.
 - cloak - the anonymizing query engine.
 
-The access to the cloak component should be highly restricted, since this component has complete read access to the sensitive data. The air component doesn't require such privileges, so you can safely run it on another machine, and maybe even in another network, as long as the cloak component can connect to the air server.
-
-To keep things simple, in this tutorial, we'll be running the air and the cloak containers on the same machine. Moreover, we'll use the Aircloak test-only database server image.
+These components should run on separate machines. In addition, the access to the cloak component should be highly restricted, since this component has complete read access to the sensitive data. The air component does not require such privileges, so you can optionally run it in another network, as long as the cloak component can connect to the air component.
 
 ## Installation
 
 Before installing components, make sure that the following prerequisites are met:
 
-- Docker 1.8 or higher should be installed on the host machines.
+- Docker 1.11 or higher is installed on the host machines.
 - The user which installs the components is logged into `quay.io` with `docker login` using credentials provided by Aircloak.
 - You have your Aircloak provided `customer-token` available.
+- A database in a Postgres server running version 9.4 or higher.
+- The air component requires at least 2GB of RAM.
+- The cloak component requires at least 8GB of RAM. However, for more complex queries on a larger dataset, more memory might be needed.
 
 ### Installing the air component
 
@@ -27,148 +28,187 @@ Before installing components, make sure that the following prerequisites are met
 
 Before installing the air component, you need to create the air user and the database on some PostgreSQL server. You can use arbitrary names for the user and the database. The air user requires full privileges to the air database.
 
-In this tutorial we will run a local PostgreSQL server using the `aircloak/air_db` image.
-__Note__: this image is meant to be used for test purposes only. Do not run production database server based on this image.
-
-Before starting the test database server, you need to create the configuration file describing the user and the database:
-
-```bash
-$ mkdir -p /aircloak/air/db/config/
-
-$ cat << EOF > /aircloak/air/db/config/config.json
-  {
-    "database": {
-      "name": "air",
-      "user": "air",
-      "password": ""
-    }
-  }
-EOF
-```
-
-With these parameters, we can now start the container:
-
-```bash
-$ mkdir -p /aircloak/air/db/data
-
-$ docker run -d --name air_db \
-  -v /aircloak/air/db/data:/var/lib/postgresql/data \
-  -v /aircloak/air/db/config:/runtime_config \
-  -p 5432:5432 \
-  quay.io/aircloak/air_db:latest
-```
-
-During the first boot, the air user and database will be created, using values from `config.json`. You can verify if everything is fine by checking the container log with `docker logs air_db`.
-
 #### Configuration
 
-With database in place, we can create the air configuration by running the following commands:
+With the database in place, we can create the air configuration, which looks as follows:
 
-```bash
-$ mkdir -p /aircloak/air/config/
-
-$ cat << EOF > /aircloak/air/config/config.json
-  {
-    "site": {
-      "auth_secret": auth_secret,
-      "endpoint_key_base": endpoint_key_base,
-      "api_token_salt": api_token_salt,
-      "master_password": master_password,
-      "customer_token": customer_token
-    },
-
-    "database": {
-      "host": "air_db",
-      "port": 5432,
-      "ssl": false,
-      "name": "air",
-      "user": "air",
-      "password": ""
-    }
-  }
-EOF
 ```
+{
+  "site": {
+    "auth_secret": auth_secret,
+    "endpoint_key_base": endpoint_key_base,
+    "api_token_salt": api_token_salt,
+    "master_password": master_password,
+    "customer_token": customer_token
+  },
+
+  "database": {
+    "host": database_host_name,
+    "port": database_port_name,
+    "ssl": true_or_false,
+    "name": database_name,
+    "user": user_name,
+    "password": user_password
+  }
+}
+```
+
+The configuration needs to be saved under the name `config.json` in some folder.
 
 The configuration consists of the following settings:
 
-- site secrets (`auth_secret`, `endpoint_key_base`, `api_token_salt` under the `site` key) - These are used to sign and encrypt various data exchanged with the clients. All secrets should consist of at least 64 characters. For example, you can generate a random secret with the following command: `cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1`
+- site secrets (`auth_secret`, `endpoint_key_base`, `api_token_salt` under the `site` key) - These are used to sign and encrypt various data exchanged with users of the system. All secrets should consist of at least 64 characters. For example, you can generate a random secret with the following command:
+```
+cat /dev/urandom |
+  LC_CTYPE=C tr -dc 'a-zA-Z0-9' |
+  fold -w 64 |
+  head -n 1
+```
 - master site password - you will need this password to create the first user in your site
 - customer token - this identifies your `air` installation with the central Aircloak systems
-- database settings for the air database
+- database settings for the air database (host, port, ssl, database name, user name and password)
 
-The values chosen above will suffice for this simple demo. In particular the database parameters point to the test-only local database which we configured in the previous step.
 
 #### Running the Air container
 
-Once the database container is running, you can start the air container with the following command:
+Once air is properly configured you can start the air container with the following command:
 
 ```bash
 docker run -d --name air \
- -v /aircloak/air/config:/runtime_config \
- -p 8080:8080 \
- --link air_db:air_db \
+ -v configuration_folder:/runtime_config \
+ -p desired_http_port:8080 \
  quay.io/aircloak/air:latest
 ```
 
-The most important part here is the mapping of the `/aircloak/air/config` folder to the `/runtime_config` folder in the container. This is how you can pass your configuration to the container. At the very least, this folder must contain the `config.json` file.
+In the command above, the `configuration_folder` is the absolute path to the folder where `config.json` is residing.
 
-The air container listens on port 8080 (HTTP). However, it will also serve HTTPS requests on port 8443 if the private key and the certificate are provided in files named `ssl_key.pem` and `ssl_cert.pem` in the configuration folder. In this case, you'll also need to map the port 8443 to the host.
+The `desired_http_port` parameter is the port you want to expose for HTTP requests. It is also possible to expose air over HTTPS. In this case, you need to store `ssl_key.pem` and `ssl_cert.pem` files in the `configuration_folder`. Then, you also need to provide the `-p desired_https_port:8443` option in your docker command, as well as, or instead of, the option for HTTP.
 
-__Note__: the `--link air_db:air_db` is just a quick hack to link the air container to the air database. You should normally run the air database server on a separate machine, in which case you won't need to link air to other containers.
+If everything was properly configured, you should be able to access air on that port, and create the administrator user using the master password provided in the `config.json`. In the case of problems, you can check the logs with `docker logs air`.
 
-If everything was properly configured, you should be able to access air on port 8080, and create the administrator user using the master password provided in the `config.json`. In the case of problems, you can check log with `docker logs air`.
-
-### Installing the cloak component
+### Configuring the cloak component
 
 Once the air component is setup, we need to create the configuration for the cloak component:
 
-```bash
-mkdir -p /aircloak/cloak/config/
-
-cat << EOF > /aircloak/cloak/config/config.json
-  {
-    "air_site": "ws://air:8080",
-    "salt": salt,
-    "data_sources": [
-      {
-        "driver": "postgresql",
-        "parameters": {
-          "hostname": "air_db",
-          "username": "air",
-          "database": "air",
-          "password": ""
-        },
-        "tables": {
-          "users": {
-            "db_name": "users",
-            "user_id": "id",
-            "ignore_unsupported_types": false
-          }
-        }
-      }
-    ]
-  }
-EOF
+```
+{
+  "air_site": air_site,
+  "salt": salt,
+  "data_sources": [
+    data_source_1,
+    data_source_2,
+    ...
+  ]
+}
 ```
 
-The `air_site` parameter holds the address of the air site. In this particular case, the provided address (`air`) will be available, because we'll link the cloak container to the air container.
+The configuration needs to be saved under the name `config.json` in some folder.
+
+The `air_site` parameter holds the address of the air site it can be in the form of `"ws://air_host_name:port"` or `wss://air_host_name:port`, where `air_host_name` is the address of the machine where air container is running. You should use the `ws` prefix if air is serving traffic over HTTP, while `wss` should be used for the HTTPS protocol.
 
 The `salt` parameter is used for anonymization purposes. Make sure to create a strongly random secret for this parameter, for example with the following command: `cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1`.
 
-In the `data_sources` section we're specifying databases and tables which need to be open to analysts for querying. In this tutorial, we're keeping things simple by using `air_db` as the single queryable database.
+The `data_sources` section configures the databases and tables that will be made available to analysts for querying. Each `data_source_x` is itself a json in the form of:
+
+```
+{
+  "marker": marker,
+  "driver": driver,
+  "parameters": {
+    "hostname": database_host,
+    "username": database_user,
+    "database": database_name,
+    "password": password
+  },
+  "tables": tables
+}
+```
+The `marker` parameter is a string which will be included in the id of the data source. The `driver` parameter can be one of the following: `mongodb`, `postgresql`, `mysql`, `odbc`. Next, you need to specify the database connection parameters.
+
+The database tables that should be made available are defined in the tables section of the cloak config. It should be a JSON object that looks as follows:
+
+```
+"tables": {
+  table_name_1: {
+    "db_name": db_name_1,
+    "user_id": user_id_column,
+    "ignore_unsupported_types": true_or_false
+  },
+  table_name_2: ...
+}
+```
+
+The `table_name_x` is the name the table will be available under when querying the data source through Aircloak. The `db_name_x` is the name of the table in the underlying database. In most cases you can use the same name, but the distinction allows some special scenarios, such as exposing a table under a simpler name, or exposing the same database table multiple times under different names.
+
+The `user_id` field is the name of the column that uniquely identifies users - the people or entities whose anonymity should be preserved. See also [Projected tables](#projected_tables) section below.
+
+Finally, `ignore_unsupported_types` should be `true` or `false`. If the value is `true`, the cloak will ignore columns of unsupported data types. If this value is `false`, the cloak will refuse to start if there are one or more columns of an unsupported data type.
+
+#### <a name="projected_tables"></a>Projected tables
+
+In some cases a table does not have a `user_id` column but is related to another table that does. You could for example have an `accounts` table with a `user_id` column, and a table named `transactions` with an `account_id` column.
+
+To get a `user_id` column in the `transactions` table, the cloak needs to be configured to derive it from the `accounts` table:
+
+```
+"tables": {
+  "accounts": {
+    "db_name": "accounts",
+    "user_id": "customer_id"
+  },
+  "transactions": {
+    "db_name": "transactions",
+    "projection": {
+      "table": "accounts",
+      "foreign_key": "account_id",
+      "primary_key": "id"
+    }
+  },
+  ...
+}
+```
+
+Here, we are specifying that the `transactions` table derives its `user_id` column from the `accounts` table. The `account_id` field of the `transactions` table corresponds to the `id` field of the `accounts` table. This results in the `transactions` table getting an extra column called `customer_id`.
+
+#### Table sample rate (only for MongoDb)
+
+For MongoDb databases, every collection is initially scanned to determine the collection schema. This can take a long time for larger collections, which might lead to increased cloak startup times. You can instruct the cloak to analyze only a fraction of the data in the MongoDb collection by providing the `sample_rate` option:
+
+```
+"tables": {
+  "some_table": {
+    "sample_rate": sample_rate,
+    ...
+  },
+  ...
+}
+```
+
+Where `sample_rate` is an integer between 1 and 100, representing the percentage of data which is going to be sampled.
+
+### Running the cloak container
 
 With this configuration specified, we can start the cloak container as:
 
 ```bash
 docker run -d --name cloak \
-  -v /aircloak/cloak/config:/runtime_config \
-  --link air_db:air_db \
-  --link air:air \
+  -v configuration_folder:/runtime_config \
   quay.io/aircloak/cloak:latest
 ```
 
-Similarly to the air component, we need to map the configuration folder to `/runtime_config`.
+In the command above, you need to replace `configuration_folder` with the full path to the folder where `config.json` is residing.
 
-__Note__: Just like with the air container, here we're using links only to quickly make the air and air_db containers accessible to the cloak.
+### Configuring data access
 
-Assuming everything was setup properly, the cloak should be visible in the air system. You can open the local air site in your browser, and verify that the data source is displayed in the list of data sources. In the case of problems, you can check cloak log by running `docker logs cloak`.
+If everything is properly setup, the cloak will connect to the air system. However, data sources configured in the cloak are by default not queryable by any user. To configure proper access do the following:
+
+1. Open the air page in your browser.
+1. Click on the gear button, and the admin link.
+1. Select _Data sources_ in the menu on the left side. The list of data sources will appear in the central area.
+1. Click the _Edit_ button for the desired data source.
+
+You will see the list of available user groups, and you can provide query access to each group by ticking the corresponding checkbox. Make sure to click the _Save_ button after you make your changes.
+
+### Troubleshooting
+
+In the case of problems, you can examine logs by running `docker logs cloak` or `docker logs air`, depending on which part of the system you are troubleshooting. In addition, you can enable debug log messages for the cloak component by including `"debug": true` in cloak `config.json` file. You need to restart the component after you change the configuration file.
