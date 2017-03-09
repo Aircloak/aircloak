@@ -117,6 +117,7 @@ Operators `<>`, `IN`, and `NOT` (except `IS NOT NULL`) can't be used in subquery
 
 When using `LIMIT` and `OFFSET` in a subquery:
 
+- `LIMIT` is required if `OFFSET` is specified
 - `LIMIT` will be adjusted to the closest number in the sequence `[10, 20, 50, 100, 200, 500, 1000, ...]` (i.e. 10e^n, 20e^n, 50e^n for any natural number n larger than 0). For example: 1 or 14 become 10, etc
 - `OFFSET` will automatically be adjusted to the nearest multiple of `LIMIT`. For example an `OFFSET` of 240 will be
   adjusted to 200 given a `LIMIT` of 100
@@ -204,6 +205,67 @@ The following date and time functions:
 
 For examples see the sidebar.
 
+## Inequality restrictions
+
+### Ranges
+
+```sql
+-- Correct - a range is used
+SELECT COUNT(*) FROM table WHERE column > 10 AND column < 20
+
+-- Incorrect - only one side of the range provided
+SELECT COUNT(*) FROM table WHERE column > 10
+
+-- Incorrect - the lower end of the range is bigger than the upper end
+SELECT COUNT(*) FROM table WHERE column > 10 AND column < 0
+
+-- Incorrect - the inequalities are over different expressions
+SELECT COUNT(*) FROM table WHERE column + 1 > 10 AND column - 1 < 20
+```
+
+Whenever an inequality (`>`, `>=`, `<`, or `<=`) is used in a `WHERE`-, `JOIN`- or `HAVING`-clause that clause actually needs to contain two
+inequalities. These should form a range on a single column or expression. That is, one `>` or `>=` inequality and one `<` or `<=`
+inequality, limiting the column/expression from bottom and top.
+
+### Range alignment
+
+```sql
+SELECT COUNT(*) FROM table WHERE column > 10 AND column < 20
+-- Adjusted to 10 <= column < 20
+
+SELECT COUNT(*) FROM table WHERE column >= 10 AND column < 19
+-- Adjusted to 10 <= column < 20
+
+SELECT COUNT(*) FROM table WHERE column >= 9 AND column < 19
+-- Adjusted to 0 <= column < 20
+
+SELECT COUNT(*) FROM table WHERE column >= 16 AND column < 24
+-- Adjusted to 15 <= column < 25
+
+SELECT COUNT(*) FROM table WHERE date >= '2016-01-01' AND date < '2016-01-29'
+-- Adjusted to 2016-01-01 <= date < 2016-02-01
+
+SELECT COUNT(*) FROM table WHERE datetime >= '2016-01-01 12:27:00' AND date < '2016-01-01 12:31:00'
+-- Adjusted to 2016-01-01 12:22:30 <= datetime < 2016-01-01 12:37:30
+```
+
+The system will adjust ranges provided in queries. The adjustment will "snap" the range to a fixed, predefined grid. It will always
+make sure that the specified range is included in the adjusted range. The range will also be modified to be closed on the left (`>=`)
+and open on the right (`<`).
+
+If any such modifications take place an appropriate notice will be displayed in the web interface. When using the API the notice will
+be included under the `info` key of the result. The notice will _not_ appear when using the Postgres interface.
+
+The grids available depend on the type of the column that is being limited by the range. For numerical columns the grid sizes are
+`[..., 0.1, 0.2, 0.5, 1, 2, 5, 10, ...]`. For date/time columns they are `[1, 2, 5, ...]` years, `[1, 2, 6, 12]` months, `[1, 2, 5, ...]` days,
+`[1, 2, 6, 12, 24]` hours, `[1, 2, 5, 15, 30, 60]` minutes, and `[1, 2, 5, 15, 30, 60]` seconds.
+
+To arrive at the final range the system finds the smallest grid size that will contain the given range. Then it shifts the lower end of the
+range to be a multiple of half of the grid size. The upper end is just the lower end plus the grid size. In some cases halving the grid size
+is not allowed and the lower end needs to be a multiple of the whole grid size instead - for example it is not allowed to halve days in
+case the underlying data type is `date` and cannot represent such halving. See the sidebar for examples of adjustment.
+
+For best results design your queries so that they take this adjustment into account and mostly use ranges that are already adjusted.
 
 ## Understanding query results
 
@@ -277,7 +339,7 @@ The operators `+`, `-`, `/`, and `*` have their usual meaning of addition, subtr
 multiplication respectively. The operator `^` denotes exponentiation. The operator `%` denotes the division
 remainder.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ## Mathematical functions
@@ -294,7 +356,7 @@ ABS(-3)
 
 Computes the absolute value of the given number.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### bucket
@@ -315,7 +377,7 @@ BUCKET(180 BY 50 ALIGN MIDDLE)
 
 Rounds the input to the given bucket size.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### ceil / ceiling
@@ -327,7 +389,7 @@ CEIL(3.22)
 
 Computes the smallest integer that is greater than or equal to its argument.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### div
@@ -342,7 +404,7 @@ DIV(10, 3)
 
 Performs integer division on its arguments.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### floor
@@ -354,7 +416,7 @@ FLOOR(3.22)
 
 Computes the largest integer that is less than or equal to its argument.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### mod
@@ -366,7 +428,7 @@ MOD(10, 3)
 
 `MOD(a, b)` computes the remainder from `DIV(a, b)`.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### pow
@@ -381,7 +443,7 @@ POW(2, 3.5)
 
 `POW(a, b)` computes `a` to the `b`-th power.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### round
@@ -399,7 +461,7 @@ ROUND(3.22, 1)
 
 Rounds the given floating-point value to the nearest integer. An optional second argument signifies the precision.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### sqrt
@@ -411,7 +473,7 @@ SQRT(2)
 
 Computes the square root.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### trunc
@@ -429,7 +491,7 @@ TRUNC(3.22, 1)
 
 Rounds the given floating-point value towards zero. An optional second argument signifies the precision.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ## String functions
@@ -446,7 +508,7 @@ BTRIM('xyzsome textzyx', 'xyz')
 
 Removes all of the given characters from the beginning and end of the string. The default is to remove spaces.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 ### concat
 
@@ -476,7 +538,7 @@ LEFT('some text', -2)
 
 `LEFT(string, n)` takes n characters from the beginning of the string. If n is negative takes all but the last |n| characters.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### length
@@ -488,7 +550,7 @@ LENGTH('some text')
 
 Computes the number of characters in the string.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### lower
@@ -516,7 +578,7 @@ LTRIM('xyzsome textzyx', 'xyz')
 
 Removes all of the given characters from the beginning of the string. The default is to remove spaces.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### right
@@ -531,7 +593,7 @@ RIGHT('some text', -2)
 
 `RIGHT(string, n)` takes n characters from the end of the string. If n is negative takes all but the first |n| characters.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### rtrim
@@ -546,7 +608,7 @@ RTRIM('xyzsome textzyx', 'xyz')
 
 Removes all of the given characters from the end of the string. The default is to remove spaces.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### substring
@@ -564,7 +626,7 @@ SUBSTRING('some text' FOR 4)
 
 Takes a slice of a string.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 
 ### upper
@@ -666,7 +728,7 @@ CAST('NOT A NUMBER', integer)
 
 You can convert values between different types using a cast expression.
 
-[Restriction in usage apply](#math-restrictions).
+[Restrictions in usage apply](#math-and-function-application-restrictions).
 
 Types can be converted according to the following tables:
 
