@@ -20,7 +20,7 @@ Before installing components, make sure that the following prerequisites are met
 - Docker 1.11 or higher is installed on the host machines.
 - The user which installs the components is logged into `quay.io` with `docker login` using credentials provided by Aircloak.
 - You have your Aircloak provided `customer-token` available.
-- PostgreSQL 9.4 or higher is installed on some machine.
+- A database in a Postgres server running version 9.4 or higher.
 
 ### Installing the air component
 
@@ -98,7 +98,7 @@ Once the air component is setup, we need to create the configuration for the clo
 
 The configuration needs to be saved under the name `config.json` in some folder.
 
-The `air_site` parameter holds the address of the air site it can be in the form of `"ws://air_host_name:port"` or `wss://air_host_name:port`, where `air_host_name` is the address of the machine where air container is running.
+The `air_site` parameter holds the address of the air site it can be in the form of `"ws://air_host_name:port"` or `wss://air_host_name:port`, where `air_host_name` is the address of the machine where air container is running. You should use the `ws` prefix if air is serving traffic through HTTP protocol, while `wss` should be used for HTTPS protocol.
 
 The `salt` parameter is used for anonymization purposes. Make sure to create a strongly random secret for this parameter, for example with the following command: `cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1`.
 
