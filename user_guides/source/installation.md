@@ -208,3 +208,7 @@ If everything is properly setup, the cloak will connect to the air system. Howev
 1. Click the _Edit_ button for the desired data source.
 
 You will see the list of available user groups, and you can provide query access to each group by ticking the corresponding checkbox. Make sure to click the _Save_ button after you make your changes.
+
+### Troubleshooting
+
+In the case of problems, you can examine logs by running `docker logs cloak` or `docker logs air`, depending on which part of the system are you troubleshooting. In addition, you can enable debug log messages for the cloak component by including `"debug": true` in cloak `config.json` file. You need to restart the component after you change the configuration file.
