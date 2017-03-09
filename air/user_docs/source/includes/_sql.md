@@ -224,7 +224,7 @@ SELECT COUNT(*) FROM table WHERE column + 1 > 10 AND column - 1 < 20
 ```
 
 Whenever an inequality (`>`, `>=`, `<`, or `<=`) is used in a `WHERE`-, `JOIN`- or `HAVING`-clause that clause actually needs to contain two
-inequalities. These two should form a range on a single column or expression. That is, one `>` or `>=` inequality and one `<` or `<=`
+inequalities. These should form a range on a single column or expression. That is, one `>` or `>=` inequality and one `<` or `<=`
 inequality, limiting the column/expression from bottom and top.
 
 ### Range alignment
