@@ -58,6 +58,12 @@ The configuration needs to be saved under the name `config.json` in some folder.
 The configuration consists of the following settings:
 
 - site secrets (`auth_secret`, `endpoint_key_base`, `api_token_salt` under the `site` key) - These are used to sign and encrypt various data exchanged with users of the system. All secrets should consist of at least 64 characters. For example, you can generate a random secret with the following command:
+```
+cat /dev/urandom |
+  LC_CTYPE=C tr -dc 'a-zA-Z0-9' |
+  fold -w 64 |
+  head -n 1
+```
 - master site password - you will need this password to create the first user in your site
 - customer token - this identifies your `air` installation with the central Aircloak systems
 - database settings for the air database (host, port, ssl, database name, user name and password)
