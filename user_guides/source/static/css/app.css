@@ -37,8 +37,4 @@ h3:before {counter-increment: h3; content: counter(h2) "." counter(h3) ". "}
   .copy-button {
     display: none;
   }
-
-  .page-break {
-    page-break-before: always;
-  }
 }
