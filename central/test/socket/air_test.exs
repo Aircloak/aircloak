@@ -56,7 +56,17 @@ defmodule Central.Socket.AirTest do
         wait_for_cleanup()
       end
 
-      test "cloak_offline"
+      test "cloak_offline", %{air: air, socket: socket} do
+        cloak_name = Ecto.UUID.generate()
+        request_id = push_air_call(socket, "cloak_offline", %{name: cloak_name})
+
+        assert_push "call_response", %{request_id: ^request_id, status: :ok}
+        assert soon(fn() -> match?(
+          %{status: :offline},
+          Repo.get_by(Cloak, name: cloak_name, air_id: air.id)
+        ) end)
+        wait_for_cleanup()
+      end
 
       test "query_execution"
 
