@@ -13,6 +13,7 @@ includes:
   - api/data_sources
   - api/queries
   - api/errors
+  - monitoring
 
 search: true
 ---

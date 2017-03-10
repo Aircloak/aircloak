@@ -1,7 +1,7 @@
 # Monitoring
 
 The air component exposes a monitoring endpoint on port 8081. If you want to use it you will have to forward that port
-when starting your docker container (see [the installation guide](./installation.md)). You will also need to generate
+when starting your docker container. You will also need to generate
 an authentication token for an admin user by going to `/api_tokens` in the web application.
 
 After that the endpoint can be accessed at `http://air.endpoint:8081/?auth_token=<your auth token>`.
@@ -10,7 +10,8 @@ After that the endpoint can be accessed at `http://air.endpoint:8081/?auth_token
 
 The endpoint presents data as the following JSON structure:
 
-```json
+<pre class="inlined">
+  <code>
 {
   "version": "<the air version>",
   "uptime": "<time in seconds since the air component started>",
@@ -68,7 +69,8 @@ The endpoint presents data as the following JSON structure:
     }
   ]
 }
-```
+  </code>
+</pre>
 
 Please note that the memory statistics given for the cloaks are the minimum values seen within the
 given time period. Furthermore all the measurements are in bytes.
