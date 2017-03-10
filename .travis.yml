@@ -59,7 +59,9 @@ matrix:
         - $HOME/.asdf
         - $HOME/.yarn-cache
       addons:
-        postgresql: "9.5"
+        # Note: this is the minimum version we require for Air. If you're changing this version, make sure
+        # that the installation guide is updated, and all the customers are notified about the new requirements.
+        postgresql: "9.4"
         apt:
           packages:
           - jq
