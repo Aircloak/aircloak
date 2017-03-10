@@ -1,12 +1,13 @@
 defmodule Central.Socket.AirTest do
   # `async: false` because shared sandbox mode is used
   # (see https://hexdocs.pm/ecto/Ecto.Adapters.SQL.Sandbox.html)
-  use ExUnit.Case, async: false
+  use Central.ChannelCase, async: false
 
   alias Phoenix.Channels.GenSocketClient
   alias GenSocketClient.TestSocket
   alias Central.{TestSocketHelper, Repo}
   alias Central.Service.Customer
+  alias Central.Schemas.{Air, Cloak}
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
@@ -30,6 +31,41 @@ defmodule Central.Socket.AirTest do
     assert {:ok, %{}} == join_main_channel(socket)
   end
 
+  # These tests are used to lock down the API for a given topic. Unless there is a bug they should probably not be
+  # changed to ensure older airs can still communicate with central. A new topic should be introduced instead that
+  # newer airs will talk to.
+  for topic <- ~w(main main:17.1.0 main:17.2.0) do
+    describe topic do
+      setup do: {:ok, topic: unquote(topic)}
+
+      setup [:with_customer, :with_air, :joined_topic]
+
+      test "cloak_online", %{air: air, socket: socket} do
+        cloak_name = Ecto.UUID.generate()
+        request_id = push_air_call(socket, "cloak_online", %{
+          name: cloak_name,
+          data_source_names: ["ds1", "ds2"],
+          version: "129",
+        })
+
+        assert_push "call_response", %{request_id: ^request_id, status: :ok}
+        assert soon(fn() -> match?(
+          %{data_source_names: ["ds1", "ds2"], version: "129", status: :online},
+          Repo.get_by(Cloak, name: cloak_name, air_id: air.id)
+        ) end)
+        wait_for_cleanup()
+      end
+
+      test "cloak_offline"
+
+      test "query_execution"
+
+      test "usage_info"
+
+      test "a duplicate message"
+    end
+  end
+
   defp connect!(params \\ %{}) do
     TestSocketHelper.connect!(Map.merge(default_params(), params))
   end
@@ -42,5 +78,48 @@ defmodule Central.Socket.AirTest do
     {:ok, customer} = Customer.create(%{name: "test customer"})
     {:ok, token} = Customer.generate_token(customer)
     %{air_name: "air_1", token: token}
+  end
+
+  defp with_customer(_context) do
+    {:ok, customer} = Customer.create(%{name: "test customer"})
+    {:ok, customer: customer}
+  end
+
+  defp with_air(%{customer: customer}), do:
+    {:ok, air: %Air{name: "air_1", customer_id: customer.id, status: :online} |> Repo.insert!()}
+
+  defp joined_topic(%{topic: topic, customer: customer, air: air}) do
+    {:ok, token} = Customer.generate_token(customer)
+    {:ok, socket} = Phoenix.ChannelTest.connect(Central.Socket.Air, %{token: token, air_name: air.name})
+    {:ok, _, socket} = Phoenix.ChannelTest.subscribe_and_join(socket, topic, %{})
+    {:ok, socket: socket}
+  end
+
+  defp push_air_call(socket, event, payload) do
+    request_id = Ecto.UUID.generate()
+    message_id = Ecto.UUID.generate()
+
+    push(socket, "air_call", %{request_id: request_id, event: "call_with_retry", payload: %{
+      id: message_id, event: event, payload: payload}})
+
+    request_id
+  end
+
+  defp wait_for_cleanup() do
+    # This tries to avoid messages about abandoned connections
+    :timer.sleep(10)
+  end
+
+  defp soon(check, timeout \\ 100), do:
+    perform_soon_check(check, 10, div(timeout, 10))
+
+  defp perform_soon_check(_check, 0, _repeat_wait_time), do: false
+  defp perform_soon_check(check, remaining_attempts, repeat_wait_time) do
+    if check.() do
+      true
+    else
+      :timer.sleep(repeat_wait_time)
+      perform_soon_check(check, remaining_attempts - 1, repeat_wait_time)
+    end
   end
 end
