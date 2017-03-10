@@ -31,4 +31,8 @@ header, footer {
   .copy-button {
     display: none;
   }
+
+  .page-break {
+    page-break-before: always;
+  }
 }
