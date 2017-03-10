@@ -2,7 +2,7 @@
 
 This guide describes how to install and configure the Aircloak components.
 
-## General overview
+## Overview
 
 The Aircloak system consists of two components:
 
@@ -10,8 +10,6 @@ The Aircloak system consists of two components:
 - cloak - the anonymizing query engine.
 
 These components should run on separate machines. In addition, the access to the cloak component should be highly restricted, since this component has complete read access to the sensitive data. The air component does not require such privileges, so you can optionally run it in another network, as long as the cloak component can connect to the air component.
-
-## Installation
 
 Before installing components, make sure that the following prerequisites are met:
 
@@ -22,13 +20,9 @@ Before installing components, make sure that the following prerequisites are met
 - The air component requires at least 2GB of RAM.
 - The cloak component requires at least 8GB of RAM. However, for more complex queries on a larger dataset, more memory might be needed.
 
-### Installing the air component
-
-#### Setting up the air database
+## Installing the air component
 
 Before installing the air component, you need to create the air user and the database on some PostgreSQL server. You can use arbitrary names for the user and the database. The air user requires full privileges to the air database.
-
-#### Configuration
 
 With the database in place, we can create the air configuration, which looks as follows:
 
@@ -69,7 +63,7 @@ cat /dev/urandom |
 - database settings for the air database (host, port, ssl, database name, user name and password)
 
 
-#### Running the Air container
+### Starting the container
 
 Once air is properly configured you can start the air container with the following command:
 
@@ -86,7 +80,7 @@ The `desired_http_port` parameter is the port you want to expose for HTTP reques
 
 If everything was properly configured, you should be able to access air on that port, and create the administrator user using the master password provided in the `config.json`. In the case of problems, you can check the logs with `docker logs air`.
 
-### Configuring the cloak component
+## Installing the cloak component
 
 Once the air component is setup, we need to create the configuration for the cloak component:
 
@@ -144,7 +138,7 @@ The `user_id` field is the name of the column that uniquely identifies users - t
 
 Finally, `ignore_unsupported_types` should be `true` or `false`. If the value is `true`, the cloak will ignore columns of unsupported data types. If this value is `false`, the cloak will refuse to start if there are one or more columns of an unsupported data type.
 
-#### <a name="projected_tables"></a>Projected tables
+### <a name="projected_tables"></a>Projected tables
 
 In some cases a table does not have a `user_id` column but is related to another table that does. You could for example have an `accounts` table with a `user_id` column, and a table named `transactions` with an `account_id` column.
 
@@ -170,7 +164,7 @@ To get a `user_id` column in the `transactions` table, the cloak needs to be con
 
 Here, we are specifying that the `transactions` table derives its `user_id` column from the `accounts` table. The `account_id` field of the `transactions` table corresponds to the `id` field of the `accounts` table. This results in the `transactions` table getting an extra column called `customer_id`.
 
-#### Table sample rate (only for MongoDb)
+### Table sample rate (only for MongoDb)
 
 For MongoDb databases, every collection is initially scanned to determine the collection schema. This can take a long time for larger collections, which might lead to increased cloak startup times. You can instruct the cloak to analyze only a fraction of the data in the MongoDb collection by providing the `sample_rate` option:
 
@@ -186,7 +180,7 @@ For MongoDb databases, every collection is initially scanned to determine the co
 
 Where `sample_rate` is an integer between 1 and 100, representing the percentage of data which is going to be sampled.
 
-### Running the cloak container
+### Starting the container
 
 With this configuration specified, we can start the cloak container as:
 
@@ -198,7 +192,7 @@ docker run -d --name cloak \
 
 In the command above, you need to replace `configuration_folder` with the full path to the folder where `config.json` is residing.
 
-### Configuring data access
+## Configuring data access
 
 If everything is properly setup, the cloak will connect to the air system. However, data sources configured in the cloak are by default not queryable by any user. To configure proper access do the following:
 
@@ -209,6 +203,6 @@ If everything is properly setup, the cloak will connect to the air system. Howev
 
 You will see the list of available user groups, and you can provide query access to each group by ticking the corresponding checkbox. Make sure to click the _Save_ button after you make your changes.
 
-### Troubleshooting
+## Troubleshooting
 
 In the case of problems, you can examine logs by running `docker logs cloak` or `docker logs air`, depending on which part of the system you are troubleshooting. In addition, you can enable debug log messages for the cloak component by including `"debug": true` in cloak `config.json` file. You need to restart the component after you change the configuration file.

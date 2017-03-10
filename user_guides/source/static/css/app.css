@@ -26,3 +26,15 @@ header, footer {
   font-style: italic;
   padding: 20px 0px;
 }
+
+/* Numbering of headings */
+body {counter-reset: h2}
+h2 {counter-reset: h3}
+h2:before {counter-increment: h2; content: counter(h2) ". "}
+h3:before {counter-increment: h3; content: counter(h2) "." counter(h3) ". "}
+
+@media print {
+  .copy-button {
+    display: none;
+  }
+}
