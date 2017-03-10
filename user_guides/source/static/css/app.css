@@ -26,3 +26,9 @@ header, footer {
   font-style: italic;
   padding: 20px 0px;
 }
+
+@media print {
+  .copy-button {
+    display: none;
+  }
+}
