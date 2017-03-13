@@ -45,3 +45,5 @@ config :air, :central,
 config :air, :usage_report_interval, 100
 
 config :air, :auto_aircloak_export, true
+
+config :air, :central_retry_delay, 1

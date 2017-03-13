@@ -84,3 +84,5 @@ config :quantum, cron: [
 config :air, :usage_report_interval, :timer.minutes(1)
 
 config :air, :auto_aircloak_export, true
+
+config :air, :central_retry_delay, :timer.minutes(1)

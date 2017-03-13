@@ -26,7 +26,7 @@ defmodule Air.Service.Central.Worker do
   @doc false
   def init(_) do
     Process.flag(:trap_exit, true)
-    {:ok, %{current_send: nil, queue: :queue.new()}}
+    {:ok, %{current_send: nil, send_paused?: false, queue: :queue.new()}}
   end
 
   @doc false
@@ -35,6 +35,8 @@ defmodule Air.Service.Central.Worker do
 
   def handle_info({:EXIT, pid, reason}, %{current_send: %{pid: pid}} = state), do:
     {:noreply, send_finished(state, reason)}
+  def handle_info(:resume_send, state), do:
+    {:noreply, %{state | send_paused?: false}}
   def handle_info(msg, state) do
     Logger.warn("Unhandled message #{inspect msg}")
     {:noreply, state}
@@ -60,6 +62,8 @@ defmodule Air.Service.Central.Worker do
   defp tag_with_unique_id(central_call), do:
     %CentralCall{central_call | id: :erlang.unique_integer()}
 
+  defp maybe_start_rpc_task(%{send_paused?: true} = state), do:
+    state
   defp maybe_start_rpc_task(%{current_send: current_send} = state) when current_send != nil, do:
     state
   defp maybe_start_rpc_task(state) do
@@ -86,6 +90,13 @@ defmodule Air.Service.Central.Worker do
   defp handle_finished_reason(state, :normal), do: state
   defp handle_finished_reason(%{current_send: %{central_call: central_call}} = state, abnormal_reason) do
     Logger.error("RPC '#{central_call.event}' to central failed: #{inspect abnormal_reason}. Will retry later.")
-    push_to_queue_front(state, central_call)
+    state
+    |> pause_send()
+    |> push_to_queue_front(central_call)
+  end
+
+  defp pause_send(state) do
+    Process.send_after(self(), :resume_send, Application.fetch_env!(:air, :central_retry_delay))
+    %{state | send_paused?: true}
   end
 end
