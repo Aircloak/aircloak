@@ -19,7 +19,7 @@ defmodule Air.Service.Central.Worker do
 
   @doc "Schedules the given central call to be performed asynchronously."
   @spec perform_rpc(CentralCall.t) :: :ok
-  def perform_rpc(central_call), do: GenServer.cast(__MODULE__, {:perform_rpc, central_call})
+  def perform_rpc(central_call), do: GenServer.call(__MODULE__, {:perform_rpc, central_call})
 
 
   # -------------------------------------------------------------------
@@ -33,8 +33,8 @@ defmodule Air.Service.Central.Worker do
   end
 
   @doc false
-  def handle_cast({:perform_rpc, central_call}, state), do:
-    {:noreply, perform_rpc(state, central_call)}
+  def handle_call({:perform_rpc, central_call}, _from, state), do:
+    {:reply, :ok, perform_rpc(state, central_call)}
 
   def handle_info({:EXIT, pid, reason}, %{current_send: %{pid: pid}} = state), do:
     {:noreply, send_finished(state, reason)}
