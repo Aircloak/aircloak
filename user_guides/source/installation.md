@@ -78,6 +78,8 @@ In the command above, the `configuration_folder` is the absolute path to the fol
 
 The `desired_http_port` parameter is the port you want to expose for HTTP requests. It is also possible to expose air over HTTPS. In this case, you need to store `ssl_key.pem` and `ssl_cert.pem` files in the `configuration_folder`. Then, you also need to provide the `-p desired_https_port:8443` option in your docker command, as well as, or instead of, the option for HTTP.
 
+The air component also exposes a monitoring endpoint over HTTP. If you want to use it, you need to provide the `-p desired_monitoring_port:8081` option.
+
 If everything was properly configured, you should be able to access air on that port, and create the administrator user using the master password provided in the `config.json`. In the case of problems, you can check the logs with `docker logs air`.
 
 ## Installing the cloak component
