@@ -34,7 +34,7 @@ defmodule Central.Service.Customer do
          {:ok, customer} <- from_token(export.customer_token),
          :ok <- AirMessage.validate_export(customer, export)
         do
-      Enum.each(export.rpcs, &AirMessage.Default.handle(&1, customer, export.air_name))
+      Enum.each(export.rpcs, &air_handler(export.air_version).handle(&1, customer, export.air_name))
       mark_export_as_imported!(customer, export.id, export.created_at)
       {:ok, length(export.rpcs)}
     end

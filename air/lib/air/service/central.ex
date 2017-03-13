@@ -140,7 +140,8 @@ defmodule Air.Service.Central do
       last_exported_id: Repo.one(from exported in ExportForAircloak, select: max(exported.id)),
       rpcs: Enum.map(calls_to_export, &CentralCall.export/1),
       air_name: Air.instance_name(),
-      customer_token: Air.customer_token()
+      air_version: Aircloak.Version.for_app(:air) |> Aircloak.Version.to_string(),
+      customer_token: Air.customer_token(),
     }
     |> Poison.encode!()
     |> :zlib.gzip()

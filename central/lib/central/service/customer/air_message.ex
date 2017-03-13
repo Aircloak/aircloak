@@ -32,7 +32,7 @@ defmodule Central.Service.Customer.AirMessage do
     try do
       %{id: id, payload: payload, created_at: created_at} = :erlang.binary_to_term(air_export)
 
-      %{
+      decoded = %{
         "last_exported_id" => last_exported_id,
         "air_name" => air_name,
         "customer_token" => customer_token,
@@ -47,6 +47,7 @@ defmodule Central.Service.Customer.AirMessage do
         last_exported_id: last_exported_id,
         created_at: created_at,
         air_name: air_name,
+        air_version: Map.get(decoded, "air_version", "Unknown"),
         customer_token: customer_token,
         rpcs: rpcs,
       }}
