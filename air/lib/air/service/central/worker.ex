@@ -47,12 +47,18 @@ defmodule Air.Service.Central.Worker do
 
   defp perform_rpc(state, central_call) do
     state
-    |> enqueue_central_call(central_call)
+    |> push_to_queue_back(central_call)
     |> maybe_start_rpc_task()
   end
 
-  defp enqueue_central_call(state, central_call), do:
-    %{state | queue: :queue.in(%CentralCall{central_call | id: :erlang.unique_integer()}, state.queue)}
+  defp push_to_queue_front(state, central_call), do:
+    %{state | queue: :queue.in_r(tag_with_unique_id(central_call), state.queue)}
+
+  defp push_to_queue_back(state, central_call), do:
+    %{state | queue: :queue.in(tag_with_unique_id(central_call), state.queue)}
+
+  defp tag_with_unique_id(central_call), do:
+    %CentralCall{central_call | id: :erlang.unique_integer()}
 
   defp maybe_start_rpc_task(%{current_send: current_send} = state) when current_send != nil, do:
     state
@@ -80,6 +86,6 @@ defmodule Air.Service.Central.Worker do
   defp handle_finished_reason(state, :normal), do: state
   defp handle_finished_reason(%{current_send: %{central_call: central_call}} = state, abnormal_reason) do
     Logger.error("RPC '#{central_call.event}' to central failed: #{inspect abnormal_reason}. Will retry later.")
-    state
+    push_to_queue_front(state, central_call)
   end
 end
