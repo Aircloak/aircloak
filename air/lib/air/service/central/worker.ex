@@ -27,17 +27,19 @@ defmodule Air.Service.Central.Worker do
   # -------------------------------------------------------------------
 
   @doc false
-  def init(_), do: {:ok, nil}
+  def init(_) do
+    Process.flag(:trap_exit, true)
+    {:ok, %{current_send: nil, queue: :queue.new()}}
+  end
 
   @doc false
-  def handle_cast({:perform_rpc, central_call}, state) do
-    case Air.CentralClient.Socket.rpc(CentralCall.export(central_call)) do
-      {:ok, _} ->
-        remove_pending_call!(central_call)
-      {:error, reason} ->
-        Logger.error("RPC '#{central_call.event}' to central failed: #{inspect reason}. Will retry later.")
-    end
+  def handle_cast({:perform_rpc, central_call}, state), do:
+    {:noreply, perform_rpc(state, central_call)}
 
+  def handle_info({:EXIT, pid, reason}, %{current_send: %{pid: pid}} = state), do:
+    {:noreply, send_finished(state, reason)}
+  def handle_info(msg, state) do
+    Logger.warn("Unhandled message #{inspect msg}")
     {:noreply, state}
   end
 
@@ -46,8 +48,43 @@ defmodule Air.Service.Central.Worker do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp remove_pending_call!(central_call) do
+  defp perform_rpc(state, central_call) do
+    state
+    |> enqueue_central_call(central_call)
+    |> maybe_start_rpc_task()
+  end
+
+  defp enqueue_central_call(state, central_call), do:
+    %{state | queue: :queue.in(central_call, state.queue)}
+
+  defp maybe_start_rpc_task(%{current_send: current_send} = state) when current_send != nil, do:
+    state
+  defp maybe_start_rpc_task(state) do
+    case :queue.out(state.queue) do
+      {:empty, _} -> state
+      {{:value, central_call}, queue} ->
+        {:ok, pid} = Task.start_link(fn -> send_to_central(central_call) end)
+        %{state |
+          current_send: %{pid: pid, central_call: central_call},
+          queue: queue
+        }
+    end
+  end
+
+  defp send_to_central(central_call) do
+    {:ok, _} = Air.CentralClient.Socket.rpc(CentralCall.export(central_call))
     Repo.delete_all(from c in CentralCall, where: c.id == ^central_call.id)
-    :ok
+  end
+
+  defp send_finished(state, reason), do:
+    state
+    |> handle_finished_reason(reason)
+    |> Map.put(:current_send, nil)
+    |> maybe_start_rpc_task()
+
+  defp handle_finished_reason(state, :normal), do: state
+  defp handle_finished_reason(%{current_send: %{central_call: central_call}} = state, abnormal_reason) do
+    Logger.error("RPC '#{central_call.event}' to central failed: #{inspect abnormal_reason}. Will retry later.")
+    state
   end
 end
