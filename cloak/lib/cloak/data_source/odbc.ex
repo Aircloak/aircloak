@@ -49,7 +49,7 @@ defmodule Cloak.DataSource.ODBC do
     case :odbc.select_count(connection, statement, _timeout = :timer.hours(4)) do
       {:ok, _count} ->
         data_stream = Stream.resource(fn () -> connection end, fn (conn) ->
-          case :odbc.select(conn, :next, _rows_per_batch = 25_000, _timeout = :timer.minutes(5)) do
+          case :odbc.select(conn, :next, _rows_per_batch = 25_000, _timeout = :timer.minutes(30)) do
             {:selected, _columns, []} -> {:halt, conn}
             {:selected, _columns, rows} -> {Enum.map(rows, &map_fields(&1, field_mappers)), conn}
             {:error, reason} -> raise to_string(reason)
