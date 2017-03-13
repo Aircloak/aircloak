@@ -98,7 +98,19 @@ defmodule Central.Socket.AirTest do
         wait_for_cleanup()
       end
 
-      test "a duplicate message"
+      test "a duplicate message", %{socket: socket, air: air} do
+        cloak_name = Ecto.UUID.generate()
+        message_id = Ecto.UUID.generate()
+
+        push_air_call(socket, "cloak_online", %{name: cloak_name, data_source_names: [], version: "129"}, message_id)
+        :timer.sleep(50)
+        push_air_call(socket, "cloak_offline", %{name: cloak_name})
+        :timer.sleep(50)
+        push_air_call(socket, "cloak_online", %{name: cloak_name, data_source_names: [], version: "129"}, message_id)
+
+        :timer.sleep(50)
+        assert %{status: :offline} = Repo.get_by(Cloak, name: cloak_name, air_id: air.id)
+      end
     end
   end
 
@@ -131,9 +143,8 @@ defmodule Central.Socket.AirTest do
     {:ok, socket: socket}
   end
 
-  defp push_air_call(socket, event, payload) do
+  defp push_air_call(socket, event, payload, message_id \\ Ecto.UUID.generate()) do
     request_id = Ecto.UUID.generate()
-    message_id = Ecto.UUID.generate()
 
     push(socket, "air_call", %{request_id: request_id, event: "call_with_retry", payload: %{
       id: message_id, event: event, payload: payload}})
