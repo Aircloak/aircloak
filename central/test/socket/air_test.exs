@@ -31,14 +31,15 @@ defmodule Central.Socket.AirTest do
     assert {:ok, %{}} == join_main_channel(socket)
   end
 
-  # These tests are used to lock down the API for a given topic. Unless there is a bug they should probably not be
-  # changed to ensure older airs can still communicate with central. A new topic should be introduced instead that
-  # newer airs will talk to.
-  for topic <- ~w(main main:17.1.0 main:17.2.0) do
-    describe topic do
-      setup do: {:ok, topic: unquote(topic)}
+  # These tests are used to lock down the API for a given air version. Unless there is a bug they should probably not
+  # be changed to ensure older airs can still communicate with central. Separate handling for newer airs should be
+  # introduced instead along with appropriate tests. They can be removed once a given air version is no longer
+  # supported.
+  for version <- ~w(17.1.0 17.2.0) do
+    describe "messaging in #{version}" do
+      setup do: {:ok, version: unquote(version)}
 
-      setup [:with_customer, :with_air, :joined_topic]
+      setup [:with_customer, :with_air, :joined_main]
 
       test "cloak_online", %{air: air, socket: socket} do
         cloak_name = Ecto.UUID.generate()
@@ -136,10 +137,10 @@ defmodule Central.Socket.AirTest do
   defp with_air(%{customer: customer}), do:
     {:ok, air: %Air{name: "air_1", customer_id: customer.id, status: :online} |> Repo.insert!()}
 
-  defp joined_topic(%{topic: topic, customer: customer, air: air}) do
+  defp joined_main(%{version: version, customer: customer, air: air}) do
     {:ok, token} = Customer.generate_token(customer)
     {:ok, socket} = Phoenix.ChannelTest.connect(Central.Socket.Air, %{token: token, air_name: air.name})
-    {:ok, _, socket} = Phoenix.ChannelTest.subscribe_and_join(socket, topic, %{})
+    {:ok, _, socket} = Phoenix.ChannelTest.subscribe_and_join(socket, "main", %{air_version: version})
     {:ok, socket: socket}
   end
 

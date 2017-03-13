@@ -20,8 +20,6 @@ defmodule Central.Socket.Air do
 
   # List of exposed channels
   channel "main", Central.Socket.Air.MainChannel
-  channel "main:17.1.*", Central.Socket.Air.MainChannel
-  channel "main:17.2.*", Central.Socket.Air.MainChannel
 
 
   # -------------------------------------------------------------------

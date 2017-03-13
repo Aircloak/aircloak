@@ -133,7 +133,7 @@ defmodule Air.CentralClient.Socket do
   end
   def handle_info({:join, topic}, transport, state) do
     join_message = %{
-      air_version: Aircloak.Version.for_app(:air) |> Aircloak.Version.to_string(),
+      air_version: version(),
       online_cloaks: online_cloaks(),
     }
     case GenSocketClient.join(transport, topic, join_message) do
@@ -247,7 +247,7 @@ defmodule Air.CentralClient.Socket do
     defp log_disconnected(reason), do: Logger.error("disconnected: #{inspect reason}")
   end
 
-  defp main_topic(), do: "main:#{version()}"
+  defp main_topic(), do: "main"
 
   defp version(), do: Aircloak.Version.for_app(:air) |> Aircloak.Version.to_string()
 end
