@@ -6,7 +6,7 @@ defmodule Central.Service.Customer do
 
   alias Ecto.Changeset
   alias Central.Repo
-  alias Central.Schemas.{Air, AirRPC, Cloak, Customer, CustomerExport, Query, OnlineStatus}
+  alias Central.Schemas.{Air, Cloak, Customer, CustomerExport, Query, OnlineStatus}
   alias Central.Service.ElasticSearch
   alias Central.Service.Customer.AirMessage
 
@@ -34,7 +34,7 @@ defmodule Central.Service.Customer do
          {:ok, customer} <- from_token(export.customer_token),
          :ok <- AirMessage.validate_export(customer, export)
         do
-      Enum.each(export.rpcs, &handle_air_message(&1, customer, export.air_name))
+      Enum.each(export.rpcs, &AirMessage.handle(&1, customer, export.air_name))
       mark_export_as_imported!(customer, export.id, export.created_at)
       {:ok, length(export.rpcs)}
     end
@@ -43,7 +43,7 @@ defmodule Central.Service.Customer do
   @doc "Starts an asynchronous handler of an Air message."
   @spec start_air_message_handler(AirMessage.rpc, Customer.t, String.t) :: {:ok, pid}
   def start_air_message_handler(message, customer, air_name), do:
-    Task.Supervisor.start_child(@message_handler_sup, fn -> handle_air_message(message, customer, air_name) end)
+    Task.Supervisor.start_child(@message_handler_sup, fn -> AirMessage.handle(message, customer, air_name) end)
 
   @doc "Returns all registered customers"
   @spec all() :: [Customer.t]
@@ -246,30 +246,4 @@ defmodule Central.Service.Customer do
 
   defp mark_export_as_imported!(customer, export_id, created_at), do:
     Repo.insert!(%CustomerExport{export_id: export_id, created_at: created_at, customer: customer})
-
-  defp rpc(customer, air_name, message_id), do:
-    Repo.get(AirRPC, rpc_id(customer, air_name, message_id))
-
-  defp store_rpc!(customer, air_name, message_id, result), do:
-    %AirRPC{}
-    |> AirRPC.changeset(%{id: rpc_id(customer, air_name, message_id), result: :erlang.term_to_binary(result)})
-    |> Repo.insert!()
-
-  defp rpc_id(customer, air_name, message_id), do:
-    Enum.join([customer.id, air_name, message_id], "|")
-
-  defp handle_air_message(message, customer, air_name) do
-    message_id = Map.fetch!(message, "id")
-    case rpc(customer, air_name, message_id) do
-      nil ->
-        result = AirMessage.handle(message, customer, air_name)
-        store_rpc!(customer, air_name, message_id, result)
-        result
-
-      rpc ->
-        Logger.info("Received a repeat RPC call for RPC id '#{rpc.id}'. The RPC was not re-executed. " <>
-          "The type of the incoming RPC was '#{message["event"]}'")
-        :erlang.binary_to_term(rpc.result)
-    end
-  end
 end
