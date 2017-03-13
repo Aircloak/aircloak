@@ -83,7 +83,20 @@ defmodule Central.Socket.AirTest do
         wait_for_cleanup()
       end
 
-      test "usage_info"
+      test "usage_info", %{socket: socket, customer: customer} do
+        request_id = push_air_call(socket, "query_execution", %{
+          metrics: %{"some" => "metrics"},
+          features: %{"some" => "features"},
+          aux: %{"some" => "data"},
+        })
+
+        assert_push "call_response", %{request_id: ^request_id, status: :ok}
+        assert soon(fn() -> match?(
+          %{metrics: %{"some" => "metrics"}, features: %{"some" => "features"}, aux: %{"some" => "data"}},
+          Repo.get_by(Query, customer_id: customer.id)
+        ) end)
+        wait_for_cleanup()
+      end
 
       test "a duplicate message"
     end
