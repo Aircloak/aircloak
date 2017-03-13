@@ -2,10 +2,7 @@ defmodule Air.Service.Central.Worker do
   @moduledoc "Serializes requests to central."
 
   use GenServer
-
-  alias Air.{Repo, Schemas.CentralCall}
-
-  import Ecto.Query
+  alias Air.Schemas.CentralCall
   require Logger
 
 
@@ -55,7 +52,7 @@ defmodule Air.Service.Central.Worker do
   end
 
   defp enqueue_central_call(state, central_call), do:
-    %{state | queue: :queue.in(central_call, state.queue)}
+    %{state | queue: :queue.in(%CentralCall{central_call | id: :erlang.unique_integer()}, state.queue)}
 
   defp maybe_start_rpc_task(%{current_send: current_send} = state) when current_send != nil, do:
     state
@@ -71,10 +68,8 @@ defmodule Air.Service.Central.Worker do
     end
   end
 
-  defp send_to_central(central_call) do
+  defp send_to_central(central_call), do:
     {:ok, _} = Air.CentralClient.Socket.rpc(CentralCall.export(central_call))
-    Repo.delete_all(from c in CentralCall, where: c.id == ^central_call.id)
-  end
 
   defp send_finished(state, reason), do:
     state

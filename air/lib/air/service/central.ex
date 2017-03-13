@@ -46,11 +46,6 @@ defmodule Air.Service.Central do
   def send_usage_info(usage_info), do:
     enqueue_pending_call("usage_info", usage_info)
 
-  @doc "Forwards all pending calls to the central."
-  @spec reattempt_pending_calls() :: :ok
-  def reattempt_pending_calls(), do:
-    if auto_export?(), do: Enum.each(pending_calls(), &start_rpc/1)
-
   @doc "Persists a pending central call."
   @spec store_pending_call(String.t, map) :: {:ok, CentralCall.t} | :error
   def store_pending_call(event, payload) do
@@ -119,13 +114,12 @@ defmodule Air.Service.Central do
   # -------------------------------------------------------------------
 
   defp enqueue_pending_call(event, payload) do
-    with {:ok, central_call} <- store_pending_call(event, payload), do:
-      start_rpc(central_call)
-  end
-
-  defp start_rpc(central_call) do
-    if auto_export?(), do: Worker.perform_rpc(central_call)
-    :ok
+    if auto_export?() do
+      Worker.perform_rpc(%CentralCall{event: event, payload: payload})
+    else
+      {:ok, _} = store_pending_call(event, payload)
+      :ok
+    end
   end
 
   defp calls_to_export() do

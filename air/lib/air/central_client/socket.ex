@@ -11,7 +11,6 @@ defmodule Air.CentralClient.Socket do
   require Logger
   require Aircloak.DeployConfig
   alias Phoenix.Channels.GenSocketClient
-  alias Air.Service.Central
 
   @behaviour GenSocketClient
 
@@ -55,7 +54,6 @@ defmodule Air.CentralClient.Socket do
       reconnect_interval: initial_interval,
       rejoin_interval: initial_interval
     }
-    :timer.send_interval(:timer.minutes(5), :check_for_pending_rpcs)
     Logger.debug("Trying to connect to Central on #{central_socket_url}")
     {:connect, central_socket_url, state}
   end
@@ -156,10 +154,6 @@ defmodule Air.CentralClient.Socket do
     # client code to give up at some point.
     Logger.warn("#{request_id} sync call timeout")
     {:ok, update_in(state.pending_calls, &Map.delete(&1, request_id))}
-  end
-  def handle_info(:check_for_pending_rpcs, _transport, state) do
-    Central.reattempt_pending_calls()
-    {:ok, state}
   end
   def handle_info(message, _transport, state) do
     Logger.warn("unhandled message #{inspect message}")
