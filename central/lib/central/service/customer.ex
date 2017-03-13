@@ -34,16 +34,18 @@ defmodule Central.Service.Customer do
          {:ok, customer} <- from_token(export.customer_token),
          :ok <- AirMessage.validate_export(customer, export)
         do
-      Enum.each(export.rpcs, &AirMessage.handle(&1, customer, export.air_name))
+      Enum.each(export.rpcs, &AirMessage.Default.handle(&1, customer, export.air_name))
       mark_export_as_imported!(customer, export.id, export.created_at)
       {:ok, length(export.rpcs)}
     end
   end
 
   @doc "Starts an asynchronous handler of an Air message."
-  @spec start_air_message_handler(AirMessage.rpc, Customer.t, String.t) :: {:ok, pid}
-  def start_air_message_handler(message, customer, air_name), do:
-    Task.Supervisor.start_child(@message_handler_sup, fn -> AirMessage.handle(message, customer, air_name) end)
+  @spec start_air_message_handler(AirMessage.rpc, Customer.t, String.t, String.t) :: {:ok, pid}
+  def start_air_message_handler(message, customer, air_name, air_version), do:
+    Task.Supervisor.start_child(@message_handler_sup, fn() ->
+      air_handler(air_version).handle(message, customer, air_name)
+    end)
 
   @doc "Returns all registered customers"
   @spec all() :: [Customer.t]
@@ -246,4 +248,10 @@ defmodule Central.Service.Customer do
 
   defp mark_export_as_imported!(customer, export_id, created_at), do:
     Repo.insert!(%CustomerExport{export_id: export_id, created_at: created_at, customer: customer})
+
+  defp air_handler(air_version) do
+    %{
+      "17.2.0" => AirMessage.V17_2_0,
+    } |> Map.get(air_version, AirMessage.Default)
+  end
 end

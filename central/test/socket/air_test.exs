@@ -140,7 +140,7 @@ defmodule Central.Socket.AirTest do
   defp joined_main(%{version: version, customer: customer, air: air}) do
     {:ok, token} = Customer.generate_token(customer)
     {:ok, socket} = Phoenix.ChannelTest.connect(Central.Socket.Air, %{token: token, air_name: air.name})
-    {:ok, _, socket} = Phoenix.ChannelTest.subscribe_and_join(socket, "main", %{air_version: version})
+    {:ok, _, socket} = Phoenix.ChannelTest.subscribe_and_join(socket, "main", %{"air_version" => version})
     {:ok, socket: socket}
   end
 
