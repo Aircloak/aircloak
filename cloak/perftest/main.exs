@@ -25,15 +25,15 @@ defmodule PerfTest do
 
   defp run_query(statement) do
     data_source = Cloak.DataSource.fetch!("postgres/cloaktest1-native@localhost")
-    {duration, row} = :timer.tc(fn () ->
+    {duration, result} = :timer.tc(fn () ->
       :ok = Cloak.Query.Runner.start("1", data_source, statement, [], %{}, {:process, self()})
       receive do
-        {:result, %{rows: [%{occurrences: 1, row: row}]}} -> row
+        {:result, %{rows: rows}} -> rows |> Enum.map(&"#{&1.occurrences} x #{inspect &1.row}") |> Enum.join(", ")
         {:result, %{error: error}} -> raise "Query failed with error: #{error}."
       end
     end)
     duration = (duration / 1_000_000) |> Float.round(3)
-    IO.puts ">>> Query finished with result #{inspect row} in #{duration} seconds."
+    IO.puts ">>> Query finished with result: #{result} in #{duration} seconds."
     duration
   end
 end
