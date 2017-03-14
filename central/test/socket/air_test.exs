@@ -50,11 +50,9 @@ defmodule Central.Socket.AirTest do
         })
 
         assert_push "call_response", %{request_id: ^request_id, status: :ok}
-        assert soon(fn() -> match?(
-          %{data_source_names: ["ds1", "ds2"], version: "129", status: :online},
-          Repo.get_by(Cloak, name: cloak_name, air_id: air.id)
-        ) end)
-        wait_for_cleanup()
+        assert %{
+          data_source_names: ["ds1", "ds2"], version: "129", status: :online
+        } = Repo.get_by(Cloak, name: cloak_name, air_id: air.id)
       end
 
       test "cloak_offline", %{air: air, socket: socket} do
@@ -62,11 +60,7 @@ defmodule Central.Socket.AirTest do
         request_id = push_air_call(socket, "cloak_offline", %{name: cloak_name})
 
         assert_push "call_response", %{request_id: ^request_id, status: :ok}
-        assert soon(fn() -> match?(
-          %{status: :offline},
-          Repo.get_by(Cloak, name: cloak_name, air_id: air.id)
-        ) end)
-        wait_for_cleanup()
+        assert %{status: :offline} = Repo.get_by(Cloak, name: cloak_name, air_id: air.id)
       end
 
       test "query_execution", %{socket: socket, customer: customer} do
@@ -77,11 +71,9 @@ defmodule Central.Socket.AirTest do
         })
 
         assert_push "call_response", %{request_id: ^request_id, status: :ok}
-        assert soon(fn() -> match?(
-          %{metrics: %{"some" => "metrics"}, features: %{"some" => "features"}, aux: %{"some" => "data"}},
-          Repo.get_by(Query, customer_id: customer.id)
-        ) end)
-        wait_for_cleanup()
+        assert %{
+          metrics: %{"some" => "metrics"}, features: %{"some" => "features"}, aux: %{"some" => "data"}
+        } = Repo.get_by(Query, customer_id: customer.id)
       end
 
       test "usage_info", %{socket: socket, customer: customer} do
@@ -92,11 +84,9 @@ defmodule Central.Socket.AirTest do
         })
 
         assert_push "call_response", %{request_id: ^request_id, status: :ok}
-        assert soon(fn() -> match?(
-          %{metrics: %{"some" => "metrics"}, features: %{"some" => "features"}, aux: %{"some" => "data"}},
-          Repo.get_by(Query, customer_id: customer.id)
-        ) end)
-        wait_for_cleanup()
+        assert %{
+          metrics: %{"some" => "metrics"}, features: %{"some" => "features"}, aux: %{"some" => "data"}
+        } = Repo.get_by(Query, customer_id: customer.id)
       end
 
       test "a duplicate message", %{socket: socket, air: air} do
@@ -104,12 +94,9 @@ defmodule Central.Socket.AirTest do
         message_id = Ecto.UUID.generate()
 
         push_air_call(socket, "cloak_online", %{name: cloak_name, data_source_names: [], version: "129"}, message_id)
-        :timer.sleep(50)
         push_air_call(socket, "cloak_offline", %{name: cloak_name})
-        :timer.sleep(50)
         push_air_call(socket, "cloak_online", %{name: cloak_name, data_source_names: [], version: "129"}, message_id)
 
-        :timer.sleep(50)
         assert %{status: :offline} = Repo.get_by(Cloak, name: cloak_name, air_id: air.id)
       end
     end
@@ -149,25 +136,8 @@ defmodule Central.Socket.AirTest do
 
     push(socket, "air_call", %{request_id: request_id, event: "call_with_retry", payload: %{
       id: message_id, event: event, payload: payload}})
+    :timer.sleep(50)
 
     request_id
-  end
-
-  defp wait_for_cleanup() do
-    # This tries to avoid messages about abandoned connections
-    :timer.sleep(10)
-  end
-
-  defp soon(check, timeout \\ 100), do:
-    perform_soon_check(check, 10, div(timeout, 10))
-
-  defp perform_soon_check(_check, 0, _repeat_wait_time), do: false
-  defp perform_soon_check(check, remaining_attempts, repeat_wait_time) do
-    if check.() do
-      true
-    else
-      :timer.sleep(repeat_wait_time)
-      perform_soon_check(check, remaining_attempts - 1, repeat_wait_time)
-    end
   end
 end
