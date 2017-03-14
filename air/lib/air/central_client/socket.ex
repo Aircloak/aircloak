@@ -63,7 +63,7 @@ defmodule Air.CentralClient.Socket do
   @doc false
   def handle_connected(_transport, state) do
     Logger.info("connected")
-    send(self(), {:join, main_topic()})
+    send(self(), {:join, "main"})
     initial_interval = config(:min_reconnect_interval)
     {:ok, %{state | reconnect_interval: initial_interval}}
   end
@@ -96,10 +96,10 @@ defmodule Air.CentralClient.Socket do
   end
 
   @doc false
-  def handle_message(_, "central_call", request, transport, state) do
+  def handle_message("main", "central_call", request, transport, state) do
     handle_central_call(request["event"], request["payload"], {transport, request["request_id"]}, state)
   end
-  def handle_message(_, "call_response", payload, _transport, state) do
+  def handle_message("main", "call_response", payload, _transport, state) do
     request_id = payload["request_id"]
     case Map.fetch(state.pending_calls, request_id) do
       {:ok, request_data} ->
@@ -146,7 +146,7 @@ defmodule Air.CentralClient.Socket do
   end
   def handle_info({{__MODULE__, :call}, timeout, from, event, payload}, transport, state) do
     request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
-    GenSocketClient.push(transport, main_topic(), "air_call",
+    GenSocketClient.push(transport, "main", "air_call",
       %{request_id: request_id, event: event, payload: payload})
     timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
     {:ok, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
@@ -246,8 +246,6 @@ defmodule Air.CentralClient.Socket do
     defp log_connect(), do: Logger.info("connecting")
     defp log_disconnected(reason), do: Logger.error("disconnected: #{inspect reason}")
   end
-
-  defp main_topic(), do: "main"
 
   defp version(), do: Aircloak.Version.for_app(:air) |> Aircloak.Version.to_string()
 end
