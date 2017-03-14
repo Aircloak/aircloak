@@ -25,7 +25,7 @@ defmodule Cloak.DataSource.ODBC do
       set_dialect(sql_dialect, connection)
       %__MODULE__{sql_dialect: sql_dialect, connection: connection}
     else
-      {:error, reason} -> raise RuntimeError, message: to_string(reason)
+      {:error, reason} -> raise RuntimeError, message: "`#{to_string(reason)}`"
     end
   end
 
@@ -36,9 +36,12 @@ defmodule Cloak.DataSource.ODBC do
 
   @doc false
   def load_tables(%__MODULE__{connection: connection}, table) do
-    {:ok, columns} = :odbc.describe_table(connection, to_char_list(table.db_name), _timeout = :timer.seconds(15))
-    columns = for {name, type} <- columns, do: {to_string(name), parse_type(type)}
-    [%{table | columns: columns}]
+    case :odbc.describe_table(connection, to_char_list(table.db_name), _timeout = :timer.seconds(15)) do
+      {:ok, columns} ->
+        columns = for {name, type} <- columns, do: {to_string(name), parse_type(type)}
+        [%{table | columns: columns}]
+      {:error, reason} -> raise RuntimeError, message: "`#{to_string(reason)}`"
+    end
   end
 
   @doc false
@@ -52,7 +55,7 @@ defmodule Cloak.DataSource.ODBC do
           case :odbc.select(conn, :next, _rows_per_batch = 25_000, _timeout = :timer.minutes(30)) do
             {:selected, _columns, []} -> {:halt, conn}
             {:selected, _columns, rows} -> {Enum.map(rows, &map_fields(&1, field_mappers)), conn}
-            {:error, reason} -> raise to_string(reason)
+            {:error, reason} -> raise RuntimeError, message: "`#{to_string(reason)}`"
           end
         end, fn (_conn) -> :ok end)
         {:ok, result_processor.(data_stream)}
@@ -73,7 +76,7 @@ defmodule Cloak.DataSource.ODBC do
     parameters
     |> Enum.map(fn({key, value}) ->
       if String.contains?(value, [";", "{"]), do:
-        raise "The characters ';' and '{' are not allowed inside ODBC driver parameters!"
+        raise RuntimeError, message: "The characters ';' and '{' are not allowed inside ODBC driver parameters!"
       "#{Atom.to_string(key)}=#{value}"
     end)
     |> Enum.join(";")

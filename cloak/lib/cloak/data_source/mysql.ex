@@ -5,6 +5,8 @@ defmodule Cloak.DataSource.MySQL do
   """
 
   alias Cloak.DataSource.SqlBuilder
+  alias Cloak.Query.Runner.RuntimeError
+
 
   #-----------------------------------------------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -14,12 +16,20 @@ defmodule Cloak.DataSource.MySQL do
 
   @doc false
   def connect!(parameters) do
+    self = self()
     parameters =
-      Enum.to_list(parameters) ++
-      [types: true, sync_connect: true, pool: DBConnection.Connection, timeout: :timer.hours(2)]
+      Enum.to_list(parameters) ++ [types: true, sync_connect: true,
+        pool: DBConnection.Connection, timeout: :timer.hours(2), after_connect: fn (_) -> send self, :connected end]
     {:ok, connection} = Mariaex.start_link(parameters)
-    {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET sql_mode = 'ANSI,NO_BACKSLASH_ESCAPES'", [])
-    connection
+    receive do
+      :connected ->
+        {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET sql_mode = 'ANSI,NO_BACKSLASH_ESCAPES'", [])
+        connection
+    after :timer.seconds(5)
+      ->
+        GenServer.stop(connection)
+        raise RuntimeError, message: "unknown failure during database connection process"
+    end
   end
   @doc false
   def disconnect(connection) do
@@ -49,11 +59,15 @@ defmodule Cloak.DataSource.MySQL do
   #-----------------------------------------------------------------------------------------------------------
 
   defp run_query(pool, statement, decode_mapper, result_processor) do
-    Mariaex.transaction(pool, fn(connection) ->
-      Mariaex.stream(connection, statement, [], [decode_mapper: decode_mapper, max_rows: 25_000])
-      |> Stream.flat_map(fn (%Mariaex.Result{rows: rows}) -> rows end)
-      |> result_processor.()
-    end, [timeout: :timer.hours(2)])
+    try do
+      Mariaex.transaction(pool, fn(connection) ->
+        Mariaex.stream(connection, statement, [], [decode_mapper: decode_mapper, max_rows: 25_000])
+        |> Stream.flat_map(fn (%Mariaex.Result{rows: rows}) -> rows end)
+        |> result_processor.()
+      end, [timeout: :timer.hours(2)])
+    rescue
+      error in Mariaex.Error -> raise RuntimeError, message: "`#{Exception.message(error)}`"
+    end
   end
 
   defp parse_type("varchar" <> _size), do: :text

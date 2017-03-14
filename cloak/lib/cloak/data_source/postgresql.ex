@@ -5,6 +5,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   """
 
   alias Cloak.DataSource.SqlBuilder
+  alias Cloak.Query.Runner.RuntimeError
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -15,11 +16,18 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   @doc false
   def connect!(parameters) do
-    parameters = Enum.to_list(parameters) ++
-      [types: Postgrex.DefaultTypes, sync_connect: true, pool: DBConnection.Connection]
-    with {:ok, connection} = Postgrex.start_link(parameters) do
-      {:ok, %Postgrex.Result{}} = Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
-      connection
+    self = self()
+    parameters = Enum.to_list(parameters) ++ [types: Postgrex.DefaultTypes, sync_connect: true,
+      pool: DBConnection.Connection, after_connect: fn (_) -> send self, :connected end]
+    {:ok, connection} = Postgrex.start_link(parameters)
+    receive do
+      :connected ->
+        {:ok, %Postgrex.Result{}} = Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
+        connection
+    after :timer.seconds(5)
+      ->
+        GenServer.stop(connection)
+        raise RuntimeError, message: "unknown failure during database connection process"
     end
   end
   @doc false
@@ -36,8 +44,11 @@ defmodule Cloak.DataSource.PostgreSQL do
     query = "SELECT column_name, udt_name FROM information_schema.columns " <>
       "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}'"
     row_mapper = fn [name, type_name] -> {name, parse_type(type_name)} end
-    {:ok, columns} = run_query(connection, query, row_mapper, &Enum.to_list/1)
-    [%{table | columns: columns}]
+    case run_query(connection, query, row_mapper, &Enum.to_list/1) do
+      {:ok, []} -> raise RuntimeError, message: "table `#{table.db_name}` does not exist"
+      {:ok, columns} -> [%{table | columns: columns}]
+      {:error, reason} -> raise RuntimeError, message: "`#{reason}`"
+    end
   end
 
   @doc false
