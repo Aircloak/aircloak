@@ -14,7 +14,7 @@ defmodule Air.Service.Central.Worker do
   @spec start_link(Keyword.t) :: GenServer.on_start
   def start_link(options \\ []) do
     options = Keyword.merge(default_options(), options)
-    GenServer.start_link(__MODULE__, options, name: Keyword.fetch!(options, :name))
+    GenServer.start_link(__MODULE__, Map.new(options), name: Keyword.fetch!(options, :name))
   end
 
   @doc "Schedules the given central call to be performed asynchronously."
@@ -52,14 +52,7 @@ defmodule Air.Service.Central.Worker do
   # -------------------------------------------------------------------
 
   defp default_options(), do:
-    [
-      name: __MODULE__,
-      sender_fun: &send_to_central/1,
-      central_retry_delay: Application.fetch_env!(:air, :central_retry_delay)
-    ]
-
-  defp option(state, name), do:
-    Keyword.fetch!(state.options, name)
+    [name: __MODULE__, sender_fun: &send_to_central/1] ++ Application.fetch_env!(:air, :central_queue)
 
   defp do_perform_rpc(state, central_call) do
     state
@@ -91,7 +84,7 @@ defmodule Air.Service.Central.Worker do
         {:ok, pid} = Task.start_link(fn ->
           central_call
           |> CentralCall.export()
-          |> option(state, :sender_fun).()
+          |> state.options.sender_fun.()
         end)
         %{state |
           current_send: %{pid: pid, central_call: central_call},
@@ -107,6 +100,7 @@ defmodule Air.Service.Central.Worker do
     state
     |> handle_finished_reason(reason)
     |> Map.put(:current_send, nil)
+    |> limit_queue()
     |> maybe_start_rpc_task()
 
   defp handle_finished_reason(state, :normal), do:
@@ -119,7 +113,19 @@ defmodule Air.Service.Central.Worker do
   end
 
   defp pause_send(state) do
-    Process.send_after(self(), :resume_send, option(state, :central_retry_delay))
+    Process.send_after(self(), :resume_send, state.options.retry_delay)
     %{state | send_paused?: true}
+  end
+
+  defp limit_queue(%{options: %{max_size: max_size}, pending_count: pending_count} = state)
+    when pending_count < max_size, do: state
+  defp limit_queue(state), do:
+    state
+    |> remove_oldest_item()
+    |> limit_queue()
+
+  defp remove_oldest_item(%{current_send: nil} = state) do
+    {{:value, _}, queue} = :queue.out(state.queue)
+    dec_pending_count(%{state | queue: queue})
   end
 end

@@ -54,9 +54,29 @@ defmodule Air.Service.Central.WorkerTest do
     assert :sys.get_state(pid).pending_count == 0
   end
 
+  test "removing items on queue overflow" do
+    pid = start_worker(max_size: 2)
+    call1 = unique_call(type: :delay, delay: 50)
+    call2 = unique_call(type: :delay, delay: 50)
+    call3 = unique_call(type: :delay, delay: 50)
+    call4 = unique_call(type: :delay, delay: 50)
+    Worker.perform_rpc(pid, call1)
+    Worker.perform_rpc(pid, call2)
+    Worker.perform_rpc(pid, call3)
+    Worker.perform_rpc(pid, call4)
+
+    assert_receive {:rpc, rpc1}
+    assert rpc1 == CentralCall.export(call1)
+
+    assert_receive {:rpc, rpc4}
+    assert rpc4 == CentralCall.export(call4)
+
+    refute_receive {:rpc, _}
+  end
+
   test "error message is not sent" do
     ExUnit.CaptureLog.capture_log(fn ->
-      pid = start_worker(central_retry_delay: :timer.hours(1))
+      pid = start_worker(retry_delay: :timer.hours(1))
       Worker.perform_rpc(pid, unique_call(type: :error, num_errors: 1))
       refute_receive {:rpc, _}
     end)
@@ -64,7 +84,7 @@ defmodule Air.Service.Central.WorkerTest do
 
   test "retry sending of an error message" do
     ExUnit.CaptureLog.capture_log(fn ->
-      pid = start_worker(central_retry_delay: 1)
+      pid = start_worker(retry_delay: 1)
       call = unique_call(type: :error, num_errors: 10)
       Worker.perform_rpc(pid, call)
 
@@ -76,7 +96,7 @@ defmodule Air.Service.Central.WorkerTest do
 
   test "ordering is preserved on send error" do
     ExUnit.CaptureLog.capture_log(fn ->
-      pid = start_worker(central_retry_delay: 5)
+      pid = start_worker(retry_delay: 5)
       call1 = unique_call(type: :error, num_errors: 5)
       call2 = unique_call()
       Worker.perform_rpc(pid, call1)
