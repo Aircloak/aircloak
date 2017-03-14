@@ -1,4 +1,4 @@
-defmodule Central.Service.Customer.AirMessage.V17x2x0 do
+defmodule Central.Service.Customer.AirMessage.V170200 do
   @moduledoc "Decoding and handling of messages sent by air in version 17.2.0"
 
   @doc false
