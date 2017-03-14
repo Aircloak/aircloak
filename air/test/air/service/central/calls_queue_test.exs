@@ -1,7 +1,7 @@
-defmodule Air.Service.Central.WorkerTest do
+defmodule Air.Service.Central.CallsQueueTest do
   use ExUnit.Case, async: true
 
-  alias Air.Service.Central.Worker
+  alias Air.Service.Central.CallsQueue
   alias Air.Schemas.CentralCall
 
   setup_all do
@@ -25,7 +25,7 @@ defmodule Air.Service.Central.WorkerTest do
 
   test "message is sent only once on success" do
     pid = start_worker()
-    Worker.perform_rpc(pid, unique_call())
+    CallsQueue.perform_rpc(pid, unique_call())
 
     assert_receive {:rpc, _}
     refute_receive {:rpc, _}
@@ -46,7 +46,7 @@ defmodule Air.Service.Central.WorkerTest do
 
   test "queue size" do
     pid = start_worker()
-    Worker.perform_rpc(pid, unique_call(type: :delay, delay: 50))
+    CallsQueue.perform_rpc(pid, unique_call(type: :delay, delay: 50))
 
     assert :sys.get_state(pid).pending_count == 1
     assert_receive {:rpc, _}
@@ -66,7 +66,7 @@ defmodule Air.Service.Central.WorkerTest do
   test "error message is not sent" do
     ExUnit.CaptureLog.capture_log(fn ->
       pid = start_worker(retry_delay: :timer.hours(1))
-      Worker.perform_rpc(pid, unique_call(type: :error, num_errors: 1))
+      CallsQueue.perform_rpc(pid, unique_call(type: :error, num_errors: 1))
       refute_receive {:rpc, _}
     end)
   end
@@ -100,12 +100,12 @@ defmodule Air.Service.Central.WorkerTest do
   end
 
   defp perform_rpcs(pid, calls) do
-    Enum.each(calls, &Worker.perform_rpc(pid, &1))
+    Enum.each(calls, &CallsQueue.perform_rpc(pid, &1))
     Enum.map(calls, &CentralCall.export/1)
   end
 
   defp start_worker(opts \\ []) do
-    {:ok, pid} = Worker.start_link(Keyword.merge([name: nil, sender_fun: test_sender()], opts))
+    {:ok, pid} = CallsQueue.start_link(Keyword.merge([name: nil, sender_fun: test_sender()], opts))
     pid
   end
 

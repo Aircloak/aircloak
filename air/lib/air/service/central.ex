@@ -4,7 +4,7 @@ defmodule Air.Service.Central do
   import Ecto.Query, only: [from: 2]
   alias Air.Repo
   alias Air.Schemas.{CentralCall, ExportForAircloak}
-  alias Air.Service.Central.Worker
+  alias Air.Service.Central.CallsQueue
 
 
   # -------------------------------------------------------------------
@@ -115,7 +115,7 @@ defmodule Air.Service.Central do
 
   defp enqueue_pending_call(event, payload) do
     if auto_export?() do
-      Worker.perform_rpc(CentralCall.new(event, payload))
+      CallsQueue.perform_rpc(CentralCall.new(event, payload))
     else
       {:ok, _} = store_pending_call(event, payload)
       :ok

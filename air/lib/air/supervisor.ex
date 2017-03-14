@@ -15,7 +15,7 @@ defmodule Air.Supervisor do
       worker(Air.Endpoint, []),
       worker(Air.MonitoringEndpoint, []),
       worker(Air.BOM, []),
-      worker(Air.Service.Central.Worker, []),
+      worker(Air.Service.Central.CallsQueue, []),
       Air.PsqlServer.child_spec()
     ] ++ system_processes()
 

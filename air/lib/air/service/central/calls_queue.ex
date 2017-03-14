@@ -1,4 +1,4 @@
-defmodule Air.Service.Central.Worker do
+defmodule Air.Service.Central.CallsQueue do
   @moduledoc "Serializes requests to central."
 
   use GenServer
