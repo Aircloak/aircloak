@@ -54,13 +54,10 @@ defmodule Air.Service.Central.Worker do
   end
 
   defp push_to_queue_front(state, central_call), do:
-    %{state | queue: :queue.in_r(tag_with_unique_id(central_call), state.queue)}
+    %{state | queue: :queue.in_r(central_call, state.queue)}
 
   defp push_to_queue_back(state, central_call), do:
-    %{state | queue: :queue.in(tag_with_unique_id(central_call), state.queue)}
-
-  defp tag_with_unique_id(central_call), do:
-    %CentralCall{central_call | id: :erlang.unique_integer()}
+    %{state | queue: :queue.in(central_call, state.queue)}
 
   defp maybe_start_rpc_task(%{send_paused?: true} = state), do:
     state

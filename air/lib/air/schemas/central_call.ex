@@ -32,6 +32,17 @@ defmodule Air.Schemas.CentralCall do
     |> validate_required(@required_fields)
   end
 
+  @doc """
+  Creates a new instance of the `CentralCall` struct with the given event and payload.
+
+  The new instance will have a weak unique id (unique only in the scope of this BEAM instance).
+  """
+  @spec new(String.t, map) :: t
+  def new(event, payload) do
+    now = NaiveDateTime.utc_now()
+    %__MODULE__{id: :erlang.unique_integer, event: event, payload: payload, inserted_at: now, updated_at: now}
+  end
+
   @doc "Exports a model instance into a JSON encodable map."
   @spec export(t) :: map
   def export(model), do:

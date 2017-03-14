@@ -115,7 +115,7 @@ defmodule Air.Service.Central do
 
   defp enqueue_pending_call(event, payload) do
     if auto_export?() do
-      Worker.perform_rpc(%CentralCall{event: event, payload: payload})
+      Worker.perform_rpc(CentralCall.new(event, payload))
     else
       {:ok, _} = store_pending_call(event, payload)
       :ok
