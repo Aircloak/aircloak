@@ -1,5 +1,24 @@
 defmodule Air.Service.Central.CallsQueue do
-  @moduledoc "Serializes requests to central."
+  @moduledoc """
+  Queue of calls to central.
+
+  This module powers the process which holds a queue of calls that must be sent to central.
+  The queue has following properties:
+
+    - preserved ordering
+    - retry logic on send error
+    - overflow control
+
+  The current implementation is fairly simple and naive, with following known deficiencies:
+
+    - Queue is not persisted. If the queue process crashes (or the system is restarted), pending messages
+      are lost.
+    - There is no support for progressive backoff.
+    - Retry is dumb. A single item which repeatedly causes a send failure will not be removed until
+      queue is overflowed.
+    - Overflow control is done after the item is sent (regardless of success or failure). This is still
+      prone to increased memory usage when sending is slow while clients push a lot of items frequently.
+  """
 
   use GenServer
   alias Air.Schemas.CentralCall
@@ -10,7 +29,7 @@ defmodule Air.Service.Central.CallsQueue do
   # API
   # -------------------------------------------------------------------
 
-  @doc false
+  @doc "Starts the queue process."
   @spec start_link(Keyword.t) :: GenServer.on_start
   def start_link(options \\ []) do
     options = Keyword.merge(default_options(), options)
