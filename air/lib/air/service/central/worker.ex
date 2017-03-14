@@ -11,12 +11,16 @@ defmodule Air.Service.Central.Worker do
   # -------------------------------------------------------------------
 
   @doc false
-  @spec start_link() :: GenServer.on_start
-  def start_link(), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  @spec start_link(Keyword.t) :: GenServer.on_start
+  def start_link(options \\ []) do
+    options = Keyword.merge(default_options(), options)
+    GenServer.start_link(__MODULE__, options, name: Keyword.fetch!(options, :name))
+  end
 
   @doc "Schedules the given central call to be performed asynchronously."
-  @spec perform_rpc(CentralCall.t) :: :ok
-  def perform_rpc(central_call), do: GenServer.call(__MODULE__, {:perform_rpc, central_call})
+  @spec perform_rpc(pid | __MODULE__, CentralCall.t) :: :ok
+  def perform_rpc(pid \\ __MODULE__, central_call), do:
+    GenServer.call(pid, {:perform_rpc, central_call})
 
 
   # -------------------------------------------------------------------
@@ -24,19 +28,19 @@ defmodule Air.Service.Central.Worker do
   # -------------------------------------------------------------------
 
   @doc false
-  def init(_) do
+  def init(options) do
     Process.flag(:trap_exit, true)
-    {:ok, %{current_send: nil, send_paused?: false, queue: :queue.new()}}
+    {:ok, %{current_send: nil, send_paused?: false, queue: :queue.new(), options: options}}
   end
 
   @doc false
   def handle_call({:perform_rpc, central_call}, _from, state), do:
-    {:reply, :ok, perform_rpc(state, central_call)}
+    {:reply, :ok, do_perform_rpc(state, central_call)}
 
   def handle_info({:EXIT, pid, reason}, %{current_send: %{pid: pid}} = state), do:
     {:noreply, send_finished(state, reason)}
   def handle_info(:resume_send, state), do:
-    {:noreply, %{state | send_paused?: false}}
+    {:noreply, maybe_start_rpc_task(%{state | send_paused?: false})}
   def handle_info(msg, state) do
     Logger.warn("Unhandled message #{inspect msg}")
     {:noreply, state}
@@ -47,7 +51,17 @@ defmodule Air.Service.Central.Worker do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp perform_rpc(state, central_call) do
+  defp default_options(), do:
+    [
+      name: __MODULE__,
+      sender_fun: &send_to_central/1,
+      central_retry_delay: Application.fetch_env!(:air, :central_retry_delay)
+    ]
+
+  defp option(state, name), do:
+    Keyword.fetch!(state.options, name)
+
+  defp do_perform_rpc(state, central_call) do
     state
     |> push_to_queue_back(central_call)
     |> maybe_start_rpc_task()
@@ -67,7 +81,11 @@ defmodule Air.Service.Central.Worker do
     case :queue.out(state.queue) do
       {:empty, _} -> state
       {{:value, central_call}, queue} ->
-        {:ok, pid} = Task.start_link(fn -> send_to_central(central_call) end)
+        {:ok, pid} = Task.start_link(fn ->
+          central_call
+          |> CentralCall.export()
+          |> option(state, :sender_fun).()
+        end)
         %{state |
           current_send: %{pid: pid, central_call: central_call},
           queue: queue
@@ -76,7 +94,7 @@ defmodule Air.Service.Central.Worker do
   end
 
   defp send_to_central(central_call), do:
-    {:ok, _} = Air.CentralClient.Socket.rpc(CentralCall.export(central_call))
+    {:ok, _} = Air.CentralClient.Socket.rpc(central_call)
 
   defp send_finished(state, reason), do:
     state
@@ -93,7 +111,7 @@ defmodule Air.Service.Central.Worker do
   end
 
   defp pause_send(state) do
-    Process.send_after(self(), :resume_send, Application.fetch_env!(:air, :central_retry_delay))
+    Process.send_after(self(), :resume_send, option(state, :central_retry_delay))
     %{state | send_paused?: true}
   end
 end
