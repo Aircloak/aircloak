@@ -36,7 +36,7 @@ defmodule Central.Socket.Air.MainChannel do
       online_cloaks: online_cloaks,
     }
     monitor_channel(socket.assigns.customer, socket.assigns.air_name, air_info)
-    {:ok, %{}, socket}
+    {:ok, %{}, socket |> assign(:air_version, air_version)}
   end
 
   @doc false
@@ -107,7 +107,13 @@ defmodule Central.Socket.Air.MainChannel do
   # -------------------------------------------------------------------
 
   defp handle_air_call("call_with_retry", call_data, request_id, socket) do
-    Customer.start_air_message_handler(call_data, socket.assigns.customer, socket.assigns.air_name)
+    Customer.start_air_message_handler(
+      call_data,
+      socket.assigns.customer,
+      socket.assigns.air_name,
+      socket.assigns.air_version
+    )
+
     respond_to_air(socket, request_id, :ok)
     {:noreply, socket}
   end
