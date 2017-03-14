@@ -2,6 +2,9 @@ defmodule Air.Schemas.CentralCallTest do
   use ExUnit.Case, async: true
   alias Air.Schemas.CentralCall
 
+  # Bug in Credo, since functions can have side effects, or inconsistent results (e.g. if they depend on
+  # random).
+  @lint {Credo.Check.Warning.OperationOnSameValues, false}
   test "export is consistent" do
     call = CentralCall.new("event", %{"some" => "payload"})
     assert CentralCall.export(call) == CentralCall.export(call)
