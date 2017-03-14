@@ -45,7 +45,8 @@ defmodule Cloak.DataSource do
     global_id: atom,
     driver: module,
     parameters: Cloak.DataSource.Driver.parameters,
-    tables: %{atom => table}
+    tables: %{atom => table},
+    errors: [String.t]
   }
   @type table :: %{
     name: String.t, # table name as seen by the user
@@ -110,15 +111,12 @@ defmodule Cloak.DataSource do
   def start(), do:
     Aircloak.DeployConfig.fetch!("data_sources")
     |> Enum.map(&to_data_source/1)
-    |> Enum.reject(&(&1.driver == nil))
     |> Enum.map(&add_tables/1)
     |> store_to_cache()
 
   @doc "Returns the list of defined data sources."
   @spec all() :: [t]
-  def all() do
-    Application.get_env(:cloak, :data_sources)
-  end
+  def all(), do: Application.get_env(:cloak, :data_sources)
 
   @doc "Returns the table descriptor for the given table."
   @spec table(t, atom | String.t) :: table | nil
@@ -132,8 +130,7 @@ defmodule Cloak.DataSource do
 
   @doc "Returns all table descriptors for the given data source."
   @spec tables(t) :: [table]
-  def tables(data_source), do:
-    Map.values(data_source.tables)
+  def tables(data_source), do: Map.values(data_source.tables)
 
   @doc """
   Executes the specified 'select' query.
@@ -183,22 +180,23 @@ defmodule Cloak.DataSource do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp to_data_source(data_source_configuration), do:
-    data_source_configuration
+  defp to_data_source(data_source) do
+    data_source
     |> atomize_keys()
+    |> Map.put(:errors, [])
     |> generate_global_id()
     |> map_driver()
+  end
 
   defp map_driver(data_source) do
-    driver_module = case data_source.driver do
-      "postgresql" -> Cloak.DataSource.PostgreSQL
-      "mysql" -> Cloak.DataSource.MySQL
-      "odbc" -> Cloak.DataSource.ODBC
-      "mongodb" -> Cloak.DataSource.MongoDB
-      other ->
-        Logger.error("Unknown driver `#{other}` for data source `#{data_source.global_id}`")
-        nil
-    end
+    driver_module =
+      case data_source.driver do
+        "postgresql" -> Cloak.DataSource.PostgreSQL
+        "mysql" -> Cloak.DataSource.MySQL
+        "odbc" -> Cloak.DataSource.ODBC
+        "mongodb" -> Cloak.DataSource.MongoDB
+        other -> raise RuntimeError, message: "Unknown driver `#{other}` for data source `#{data_source.global_id}`"
+      end
     Map.put(data_source, :driver, driver_module)
   end
 
@@ -216,30 +214,31 @@ defmodule Cloak.DataSource do
   end
   defp atomize_keys(other), do: other
 
-  defp generate_global_id(data) do
+  defp generate_global_id(data_source) do
     # We want the global ID to take the form of:
     # <database-user>/<database-name>[-<aircloak data source marker>]@<database-host>[:<database-port>]
     # The data source marker is useful when we you want to force identical data sources to get
     # distinct global IDs. This can be used for exampel in staging and test environments.
 
-    user = Parameters.get_one_of(data.parameters, ["uid", "user", "username"]) || "anon"
-    database = Parameters.get_one_of(data.parameters, ["database"])
-    host = Parameters.get_one_of(data.parameters, ["hostname", "server", "host"])
+    user = Parameters.get_one_of(data_source.parameters, ["uid", "user", "username"]) || "anon"
+    database = Parameters.get_one_of(data_source.parameters, ["database"])
+    host = Parameters.get_one_of(data_source.parameters, ["hostname", "server", "host"])
 
     if Enum.any?([database, host], &(is_nil(&1))) do
-      raise "Misconfigured data source: database and hostname parameters are required."
+      raise RuntimeError, message:
+        "Invalid data source parameters: database and hostname are missing (#{inspect(data_source.parameters)})."
     end
 
-    marker = case Map.get(data, :marker) do
+    marker = case Map.get(data_source, :marker) do
       nil -> ""
       marker -> "-#{marker}"
     end
-    port = case Parameters.get_one_of(data.parameters, ["port"]) do
+    port = case Parameters.get_one_of(data_source.parameters, ["port"]) do
       nil -> ""
       port -> ":#{port}"
     end
     global_id = "#{user}/#{database}#{marker}@#{host}#{port}"
-    Map.merge(data, %{global_id: global_id})
+    Map.merge(data_source, %{global_id: global_id})
   end
 
   @doc false
@@ -249,78 +248,83 @@ defmodule Cloak.DataSource do
   end
 
   @doc false
-  def add_tables(data_source), do:
-    Map.put(data_source, :tables, load_tables(data_source))
-
-  defp load_tables(data_source) do
-    driver = data_source.driver
+  def add_tables(data_source) do
     Logger.info("Loading tables from #{data_source.global_id} ...")
-    connection = driver.connect!(data_source.parameters)
+    driver = data_source.driver
     try do
-      data_source.tables
-      |> Enum.map(fn ({table_id, table}) ->
-        table
-        |> Map.put(:columns, [])
-        |> Map.put(:name, to_string(table_id))
-        |> Map.put_new(:db_name, to_string(table_id))
-        |> Map.put_new(:decoders, [])
-      end)
-      |> Enum.flat_map(&driver.load_tables(connection, &1))
-      |> Enum.map(&normalize_table_map/1)
-      |> Enum.map(&parse_columns(data_source, &1))
-      |> Enum.filter(&(&1 != nil))
-      |> Enum.map(&DataDecoder.init/1)
-      |> Enum.map(&{String.to_atom(&1.name), &1})
-      |> Enum.into(%{})
-      |> resolve_projected_tables(data_source)
-    after
-      driver.disconnect(connection)
+      connection = driver.connect!(data_source.parameters)
+      try do
+        {tables, errors} =
+          Enum.reduce(data_source.tables, {[], []}, fn (table, {tables, errors}) ->
+            try do
+              {tables ++ load_tables(data_source, connection, table), errors}
+            rescue
+              error in RuntimeError ->
+                {table_id, _} = table
+                message = "Load error for table `#{table_id}`: #{Exception.message(error)}."
+                Logger.error("Data source `#{data_source.global_id}`: #{message}")
+                {tables, errors ++ [message]}
+            end
+          end)
+        %{data_source | errors: errors, tables: Enum.into(tables, %{})}
+        |> resolve_projected_tables()
+      after
+        driver.disconnect(connection)
+      end
+    rescue
+      error in RuntimeError ->
+        message = "Connection error: #{Exception.message(error)}."
+        Logger.error("Data source `#{data_source.global_id}`: #{message}")
+        %{data_source | errors: [message], tables: []}
     end
   end
 
-  defp normalize_table_map(table_map), do:
-    Map.merge(%{user_id: nil, projection: nil}, table_map)
+  defp load_tables(data_source, connection, {table_id, table}) do
+    table_id = to_string(table_id)
+    table =
+      table
+      |> Map.put(:columns, [])
+      |> Map.put(:name, table_id)
+      |> Map.put_new(:db_name, table_id)
+      |> Map.put_new(:decoders, [])
+      |> Map.put_new(:user_id, nil)
+      |> Map.put_new(:projection, nil)
+
+    data_source.driver.load_tables(connection, table)
+    |> Enum.map(&parse_columns(data_source, &1))
+    |> Enum.map(&DataDecoder.init/1)
+    |> Enum.map(&{String.to_atom(&1.name), &1})
+  end
 
   defp parse_columns(data_source, table) do
     table.columns
     |> Enum.reject(&supported?/1)
     |> validate_unsupported_columns(data_source, table)
-    case verify_columns(table) do
-      {:ok, table} ->
-        table
-      {:error, reason} ->
-        Logger.error("Error fetching columns for table #{data_source.global_id}/#{table.db_name}: #{reason}")
-        nil
-    end
+    columns = for {name, _type} = column <- table.columns, do:
+      if supported?(column), do: column, else: {name, :unknown}
+    table = %{table | columns: columns}
+    verify_columns(table)
+    table
   end
 
   defp verify_columns(table) do
-    columns = for {name, _type} = column <- table.columns, do:
-      if supported?(column), do: column, else: {name, :unknown}
-    with :ok <- verify_user_id(table, columns) do
-      case columns do
-        [] -> {:error, "no data columns found in table"}
-        [_|_] -> {:ok, %{table | columns: columns}}
-      end
-    end
+    verify_user_id(table)
+    if table.columns == [], do: raise RuntimeError, message: "no data columns found in table"
   end
 
-  defp verify_user_id(%{projection: projection}, _columns) when projection != nil, do: :ok
-  defp verify_user_id(table, columns) do
+  defp verify_user_id(%{projection: projection}) when projection != nil, do: :ok
+  defp verify_user_id(table) do
     user_id = table.user_id
-    case List.keyfind(columns, user_id, 0) do
+    case List.keyfind(table.columns, user_id, 0) do
       {^user_id, type} ->
-        if type in [:integer, :text, :uuid, :real, :unknown] do
-          :ok
-        else
-          {:error, "unsupported user id type: #{type}"}
-        end
+        unless type in [:integer, :text, :uuid, :real, :unknown], do:
+          raise RuntimeError, message: "unsupported user id type: #{type}"
       _ ->
         columns_string =
-          columns
+          table.columns
           |> Enum.map(fn({column_name, _}) -> "`#{column_name}`" end)
           |> Enum.join(", ")
-        {:error, "invalid user id column specified `#{user_id}`\n  columns: #{columns_string}"}
+        raise RuntimeError, message: "invalid user id column specified: `#{user_id}` (columns: #{columns_string})"
     end
   end
 
@@ -331,51 +335,49 @@ defmodule Cloak.DataSource do
   defp validate_unsupported_columns(unsupported, data_source, table) do
     columns_string =
       unsupported
-      |> Enum.map(fn({column_name, {:unsupported, type}}) -> "  #{column_name} :: #{inspect(type)}" end)
-      |> Enum.join("\n")
-
-    msg = "The following columns from table `#{table[:db_name]}` in data source `#{data_source.global_id}` " <>
-      "have unsupported types:\n" <> columns_string
+      |> Enum.map(fn({column_name, {:unsupported, type}}) -> "`#{column_name}`::#{inspect(type)}" end)
+      |> Enum.join(", ")
 
     if table[:ignore_unsupported_types] do
-      Logger.warn(msg)
+      Logger.warn("The following columns from table `#{table[:db_name]}` in data source `#{data_source.global_id}` " <>
+        "have unsupported types:\n" <> columns_string)
       nil
     else
-      raise "#{msg}\nTo ignore these columns set `ignore_unsupported_types: true` in your table settings"
+      raise RuntimeError, message: "unsupported types for columns: #{columns_string} "
+        <> "(to ignore these columns set 'ignore_unsupported_types: true' in your table settings)"
     end
   end
 
-  defp resolve_projected_tables(tables_map, data_source), do:
-    tables_map
+  defp resolve_projected_tables(data_source), do:
+    data_source.tables
     |> Map.keys()
-    |> Enum.reduce(tables_map, &resolve_projected_table(&2, Map.fetch!(&2, &1), data_source))
+    |> Enum.reduce(data_source, &resolve_projected_table(Map.fetch!(&2.tables, &1), &2))
 
-  defp resolve_projected_table(tables_map, %{projection: nil}, _data_source), do:
-    tables_map
-  defp resolve_projected_table(tables_map, %{user_id: uid, columns: [{uid, _} | _]}, _data_source), do:
-    # uid column is resolved
-    tables_map
-  defp resolve_projected_table(tables_map, table, data_source) do
-    case validate_projection(tables_map, table) do
+  defp resolve_projected_table(%{projection: nil}, data_source), do: data_source
+  defp resolve_projected_table(%{user_id: uid, columns: [{uid, _} | _]}, data_source), do:
+    data_source # uid column is resolved
+  defp resolve_projected_table(table, data_source) do
+    case validate_projection(data_source.tables, table) do
       {:ok, referenced_table} ->
         # recursively resolve dependent table (this allows the dependent table to be projected as well)
-        tables_map = resolve_projected_table(tables_map, referenced_table, data_source)
+        data_source = resolve_projected_table(referenced_table, data_source)
         # refetch the table, since it's maybe updated
-        referenced_table = Map.fetch!(tables_map, String.to_atom(referenced_table.name))
+        referenced_table = Map.fetch!(data_source.tables, String.to_atom(referenced_table.name))
 
         uid_column_name = referenced_table.user_id
         uid_column = List.keyfind(referenced_table.columns, uid_column_name, 0)
-
-        Map.put(tables_map, String.to_atom(table.name),
+        table =
           table
           |> Map.put(:user_id, uid_column_name)
           |> update_in([:columns], &[uid_column | &1])
-        )
+        tables = Map.put(data_source.tables, String.to_atom(table.name), table)
+        %{data_source | tables: tables}
 
       {:error, reason} ->
-        Logger.error("Invalid projection in table `#{table.db_name}` in data source " <>
-          "`#{data_source.global_id}`: #{reason}.")
-        Map.delete(tables_map, String.to_atom(table.name))
+        message = "Projection error in table `#{table.name}`: #{reason}."
+        Logger.error("Data source `#{data_source.global_id}`: #{message}")
+        tables = Map.delete(data_source.tables, String.to_atom(table.name))
+        %{data_source | tables: tables, errors: data_source.errors ++ [message]}
     end
   end
 
