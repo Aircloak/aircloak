@@ -10,6 +10,7 @@ defmodule Air.Schemas.DataSource do
     field :global_id, :string
     field :name, :string
     field :tables, :string
+    field :errors, :string
 
     has_many :queries, Air.Schemas.Query
     many_to_many :groups, Group,
@@ -21,7 +22,7 @@ defmodule Air.Schemas.DataSource do
   end
 
   @required_fields ~w(name tables global_id)a
-  @optional_fields ~w()a
+  @optional_fields ~w(errors)a
 
 
   # -------------------------------------------------------------------
@@ -37,6 +38,15 @@ defmodule Air.Schemas.DataSource do
     end
   end
 
+  @doc "Returns a list of the data source errors"
+  @spec errors(t) :: [String.t]
+  def errors(data_source) do
+    case Poison.decode(data_source.errors) do
+      {:ok, errors} -> errors
+      _ -> []
+    end
+  end
+
   @doc "Format a data source as a map"
   @spec to_map(t) :: Map.t
   def to_map(data_source) do
@@ -45,6 +55,7 @@ defmodule Air.Schemas.DataSource do
       token: data_source.global_id,
       name: data_source.name,
       tables: tables(data_source),
+      errors: errors(data_source),
     }
   end
 
