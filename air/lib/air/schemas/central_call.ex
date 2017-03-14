@@ -19,6 +19,11 @@ defmodule Air.Schemas.CentralCall do
   @required_fields ~w(event payload)a
   @optional_fields ~w()a
 
+
+  # -------------------------------------------------------------------
+  # API
+  # -------------------------------------------------------------------
+
   @doc """
   Creates a changeset based on the `model` and `params`.
 
@@ -46,5 +51,19 @@ defmodule Air.Schemas.CentralCall do
   @doc "Exports a model instance into a JSON encodable map."
   @spec export(t) :: map
   def export(model), do:
-    %{id: model.id, event: model.event, payload: model.payload}
+    %{id: rpc_id(model), event: model.event, payload: model.payload}
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp rpc_id(model), do:
+    # Generation of an almost unique id passed to the central. We can't use database ids, since in auto export
+    # mode we're not storing RPCs to database. So instead, we're computing sha256 of the model. Since the
+    # model consists of timestamps, payload content, and (at least weak) unique id (see new/2), it's very
+    # unlikely that two different RPCs will have the same generated id. Even if that happens, the damage is
+    # not big, since it will lead to one message not being imported into central - a property which already
+    # exists, since we're not persisting pending RPCs in auto export mode.
+    Base.encode64(:crypto.hash(:sha256, :erlang.term_to_binary(model)))
 end
