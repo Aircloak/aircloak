@@ -4,19 +4,11 @@ defmodule Air.Admin.DataSourceView do
   # bug in the current Phoenix
   @dialyzer :no_match
 
-  alias Air.{Schemas, Service, Repo}
+  alias Air.Repo
 
-  def availability_label(data_source) do
-    if available?(data_source) do
-      content_tag(:span, "Online", class: "label label-success")
-    else
-      content_tag(:span, "Offline", class: "label label-danger")
-    end
-  end
-
-  def available?(data_source), do: Service.DataSource.available?(data_source.global_id)
-
-  def number_of_tables(data_source), do: length(Schemas.DataSource.tables(data_source))
+  defdelegate availability_label(data_source), to: Air.DataSourceView
+  defdelegate available?(data_source), to: Air.DataSourceView
+  defdelegate number_of_tables(data_source), to: Air.DataSourceView
 
   defp checkbox_mapper(form, field, input_opts, group, label_opts, _opts) do
     content_tag(:div, class: "checkbox") do
