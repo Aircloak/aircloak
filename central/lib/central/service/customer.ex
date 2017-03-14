@@ -32,9 +32,10 @@ defmodule Central.Service.Customer do
   def import_customer_data(air_export) do
     with {:ok, export} <- AirMessage.decode_exported_data(air_export),
          {:ok, customer} <- from_token(export.customer_token),
-         :ok <- AirMessage.validate_export(customer, export)
+         :ok <- AirMessage.validate_export(customer, export),
+         {:ok, handler} = air_handler(export.air_version)
         do
-      Enum.each(export.rpcs, &air_handler(export.air_version).handle(&1, customer, export.air_name))
+      Enum.each(export.rpcs, &handler.handle(&1, customer, export.air_name))
       mark_export_as_imported!(customer, export.id, export.created_at)
       {:ok, length(export.rpcs)}
     end
@@ -44,7 +45,8 @@ defmodule Central.Service.Customer do
   @spec start_air_message_handler(AirMessage.rpc, Customer.t, String.t, String.t) :: {:ok, pid}
   def start_air_message_handler(message, customer, air_name, air_version), do:
     Task.Supervisor.start_child(@message_handler_sup, fn() ->
-      air_handler(air_version).handle(message, customer, air_name)
+      {:ok, handler} = air_handler(air_version)
+      handler.handle(message, customer, air_name)
     end)
 
   @doc "Returns all registered customers"
@@ -249,9 +251,11 @@ defmodule Central.Service.Customer do
   defp mark_export_as_imported!(customer, export_id, created_at), do:
     Repo.insert!(%CustomerExport{export_id: export_id, created_at: created_at, customer: customer})
 
+  defp air_handler(nil), do: {:ok, AirMessage.Default}
   defp air_handler(air_version) do
     %{
-      "17.2.0" => AirMessage.V170200,
-    } |> Map.get(air_version, AirMessage.Default)
+      "17.1.0" => {:ok, AirMessage.Default},
+      "17.2.0" => {:ok, AirMessage.V170200}
+    } |> Map.get(air_version, {:error, :invalid_version})
   end
 end
