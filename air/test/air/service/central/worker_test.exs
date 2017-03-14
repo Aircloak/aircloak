@@ -9,13 +9,18 @@ defmodule Air.Service.Central.WorkerTest do
     :ok
   end
 
+  defmacrop assert_next_rpc(expected_rpc) do
+    quote do
+      assert_receive {:rpc, rpc}, 1000
+      assert rpc == unquote(expected_rpc)
+    end
+  end
+
   test "sending a message" do
     pid = start_worker()
-    call = unique_call()
-    Worker.perform_rpc(pid, call)
+    rpc = perform_rpc(pid, unique_call())
 
-    assert_receive {:rpc, rpc}
-    assert rpc == CentralCall.export(call)
+    assert_next_rpc rpc
   end
 
   test "message is sent only once on success" do
@@ -28,21 +33,15 @@ defmodule Air.Service.Central.WorkerTest do
 
   test "proper message ordering" do
     pid = start_worker()
-    call1 = unique_call(type: :delay, delay: 50)
-    call2 = unique_call(type: :delay, delay: 5)
-    call3 = unique_call()
-    Worker.perform_rpc(pid, call1)
-    Worker.perform_rpc(pid, call2)
-    Worker.perform_rpc(pid, call3)
+    [rpc1, rpc2, rpc3] = perform_rpcs(pid, [
+      unique_call(type: :delay, delay: 50),
+      unique_call(type: :delay, delay: 5),
+      unique_call()
+    ])
 
-    assert_receive {:rpc, rpc1}
-    assert rpc1 == CentralCall.export(call1)
-
-    assert_receive {:rpc, rpc2}
-    assert rpc2 == CentralCall.export(call2)
-
-    assert_receive {:rpc, rpc3}
-    assert rpc3 == CentralCall.export(call3)
+    assert_next_rpc(rpc1)
+    assert_next_rpc(rpc2)
+    assert_next_rpc(rpc3)
   end
 
   test "queue size" do
@@ -56,20 +55,10 @@ defmodule Air.Service.Central.WorkerTest do
 
   test "removing items on queue overflow" do
     pid = start_worker(max_size: 2)
-    call1 = unique_call(type: :delay, delay: 50)
-    call2 = unique_call(type: :delay, delay: 50)
-    call3 = unique_call(type: :delay, delay: 50)
-    call4 = unique_call(type: :delay, delay: 50)
-    Worker.perform_rpc(pid, call1)
-    Worker.perform_rpc(pid, call2)
-    Worker.perform_rpc(pid, call3)
-    Worker.perform_rpc(pid, call4)
+    [rpc1, _, _, rpc4] = perform_rpcs(pid, Enum.map(1..4, fn _ -> unique_call(type: :delay, delay: 50) end))
 
-    assert_receive {:rpc, rpc1}
-    assert rpc1 == CentralCall.export(call1)
-
-    assert_receive {:rpc, rpc4}
-    assert rpc4 == CentralCall.export(call4)
+    assert_next_rpc(rpc1)
+    assert_next_rpc(rpc4)
 
     refute_receive {:rpc, _}
   end
@@ -85,11 +74,9 @@ defmodule Air.Service.Central.WorkerTest do
   test "retry sending of an error message" do
     ExUnit.CaptureLog.capture_log(fn ->
       pid = start_worker(retry_delay: 1)
-      call = unique_call(type: :error, num_errors: 10)
-      Worker.perform_rpc(pid, call)
+      rpc = perform_rpc(pid, unique_call(type: :error, num_errors: 10))
 
-      assert_receive {:rpc, rpc}, 1000
-      assert rpc == CentralCall.export(call)
+      assert_next_rpc rpc
       refute_receive {:rpc, _}
     end)
   end
@@ -97,17 +84,24 @@ defmodule Air.Service.Central.WorkerTest do
   test "ordering is preserved on send error" do
     ExUnit.CaptureLog.capture_log(fn ->
       pid = start_worker(retry_delay: 5)
-      call1 = unique_call(type: :error, num_errors: 5)
-      call2 = unique_call()
-      Worker.perform_rpc(pid, call1)
-      Worker.perform_rpc(pid, call2)
+      [rpc1, rpc2] = perform_rpcs(pid, [
+        unique_call(type: :error, num_errors: 5),
+        unique_call()
+      ])
 
-      assert_receive {:rpc, rpc1}, 1000
-      assert rpc1 == CentralCall.export(call1)
-
-      assert_receive {:rpc, rpc2}
-      assert rpc2 == CentralCall.export(call2)
+      assert_next_rpc rpc1
+      assert_next_rpc rpc2
     end)
+  end
+
+  defp perform_rpc(pid, call) do
+    [rpc] = perform_rpcs(pid, [call])
+    rpc
+  end
+
+  defp perform_rpcs(pid, calls) do
+    Enum.each(calls, &Worker.perform_rpc(pid, &1))
+    Enum.map(calls, &CentralCall.export/1)
   end
 
   defp start_worker(opts \\ []) do
