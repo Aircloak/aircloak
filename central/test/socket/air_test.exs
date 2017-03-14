@@ -35,9 +35,11 @@ defmodule Central.Socket.AirTest do
   # be changed to ensure older airs can still communicate with central. Separate handling for newer airs should be
   # introduced instead along with appropriate tests. They can be removed once a given air version is no longer
   # supported.
-  for version <- ~w(17.1.0 17.2.0) do
-    describe "messaging in #{version}" do
-      setup do: {:ok, version: unquote(version)}
+  for join_options <- [%{}, %{"air_version" => "17.1.0"}, %{"air_version" => "17.2.0"}] do
+    @join_options join_options
+
+    describe "main topic with #{inspect join_options}" do
+      setup do: {:ok, join_options: @join_options}
 
       setup [:with_customer, :with_air, :joined_main]
 
@@ -124,10 +126,10 @@ defmodule Central.Socket.AirTest do
   defp with_air(%{customer: customer}), do:
     {:ok, air: %Air{name: "air_1", customer_id: customer.id, status: :online} |> Repo.insert!()}
 
-  defp joined_main(%{version: version, customer: customer, air: air}) do
+  defp joined_main(%{join_options: join_options, customer: customer, air: air}) do
     {:ok, token} = Customer.generate_token(customer)
     {:ok, socket} = Phoenix.ChannelTest.connect(Central.Socket.Air, %{token: token, air_name: air.name})
-    {:ok, _, socket} = Phoenix.ChannelTest.subscribe_and_join(socket, "main", %{"air_version" => version})
+    {:ok, _, socket} = Phoenix.ChannelTest.subscribe_and_join(socket, "main", join_options)
     {:ok, socket: socket}
   end
 

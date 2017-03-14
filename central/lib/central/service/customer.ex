@@ -251,7 +251,7 @@ defmodule Central.Service.Customer do
   defp mark_export_as_imported!(customer, export_id, created_at), do:
     Repo.insert!(%CustomerExport{export_id: export_id, created_at: created_at, customer: customer})
 
-  defp air_handler(nil), do: {:ok, AirMessage.Default}
+  defp air_handler("Unknown"), do: {:ok, AirMessage.Default}
   defp air_handler(air_version) do
     %{
       "17.1.0" => {:ok, AirMessage.Default},
