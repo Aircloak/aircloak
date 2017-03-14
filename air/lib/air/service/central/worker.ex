@@ -30,7 +30,7 @@ defmodule Air.Service.Central.Worker do
   @doc false
   def init(options) do
     Process.flag(:trap_exit, true)
-    {:ok, %{current_send: nil, send_paused?: false, queue: :queue.new(), options: options}}
+    {:ok, %{current_send: nil, send_paused?: false, queue: :queue.new(), pending_count: 0, options: options}}
   end
 
   @doc false
@@ -64,6 +64,7 @@ defmodule Air.Service.Central.Worker do
   defp do_perform_rpc(state, central_call) do
     state
     |> push_to_queue_back(central_call)
+    |> inc_pending_count()
     |> maybe_start_rpc_task()
   end
 
@@ -72,6 +73,12 @@ defmodule Air.Service.Central.Worker do
 
   defp push_to_queue_back(state, central_call), do:
     %{state | queue: :queue.in(central_call, state.queue)}
+
+  defp inc_pending_count(state), do:
+    %{state | pending_count: state.pending_count + 1}
+
+  defp dec_pending_count(state), do:
+    %{state | pending_count: state.pending_count - 1}
 
   defp maybe_start_rpc_task(%{send_paused?: true} = state), do:
     state
@@ -102,7 +109,8 @@ defmodule Air.Service.Central.Worker do
     |> Map.put(:current_send, nil)
     |> maybe_start_rpc_task()
 
-  defp handle_finished_reason(state, :normal), do: state
+  defp handle_finished_reason(state, :normal), do:
+    dec_pending_count(state)
   defp handle_finished_reason(%{current_send: %{central_call: central_call}} = state, abnormal_reason) do
     Logger.error("RPC '#{central_call.event}' to central failed: #{inspect abnormal_reason}. Will retry later.")
     state

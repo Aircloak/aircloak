@@ -45,6 +45,15 @@ defmodule Air.Service.Central.WorkerTest do
     assert rpc3 == CentralCall.export(call3)
   end
 
+  test "queue size" do
+    pid = start_worker()
+    Worker.perform_rpc(pid, unique_call(type: :delay, delay: 50))
+
+    assert :sys.get_state(pid).pending_count == 1
+    assert_receive {:rpc, _}
+    assert :sys.get_state(pid).pending_count == 0
+  end
+
   test "error message is not sent" do
     ExUnit.CaptureLog.capture_log(fn ->
       pid = start_worker(central_retry_delay: :timer.hours(1))
