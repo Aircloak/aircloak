@@ -8,7 +8,7 @@ defmodule Central.Service.Customer.AirMessage do
     last_exported_id: integer,
     created_at: NaiveDateTime.t,
     air_name: String.t,
-    air_version: Stirng.t,
+    air_version: String.t,
     customer_token: String.t,
     rpcs: [rpc]
   }
