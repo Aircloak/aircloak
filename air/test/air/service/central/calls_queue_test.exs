@@ -18,14 +18,14 @@ defmodule Air.Service.Central.CallsQueueTest do
 
   test "sending a message" do
     pid = start_worker()
-    rpc = perform_rpc(pid, unique_call())
+    rpc = push_call(pid, unique_call())
 
     assert_next_rpc rpc
   end
 
   test "message is sent only once on success" do
     pid = start_worker()
-    CallsQueue.perform_rpc(pid, unique_call())
+    CallsQueue.push(pid, unique_call())
 
     assert_receive {:rpc, _}
     refute_receive {:rpc, _}
@@ -33,7 +33,7 @@ defmodule Air.Service.Central.CallsQueueTest do
 
   test "proper message ordering" do
     pid = start_worker()
-    [rpc1, rpc2, rpc3] = perform_rpcs(pid, [
+    [rpc1, rpc2, rpc3] = push_calls(pid, [
       unique_call(type: :delay, delay: 50),
       unique_call(type: :delay, delay: 5),
       unique_call()
@@ -46,7 +46,7 @@ defmodule Air.Service.Central.CallsQueueTest do
 
   test "queue size" do
     pid = start_worker()
-    CallsQueue.perform_rpc(pid, unique_call(type: :delay, delay: 50))
+    CallsQueue.push(pid, unique_call(type: :delay, delay: 50))
 
     assert :sys.get_state(pid).pending_count == 1
     assert_receive {:rpc, _}
@@ -55,7 +55,7 @@ defmodule Air.Service.Central.CallsQueueTest do
 
   test "removing items on queue overflow" do
     pid = start_worker(max_size: 2)
-    [rpc1, _, _, rpc4] = perform_rpcs(pid, Enum.map(1..4, fn _ -> unique_call(type: :delay, delay: 50) end))
+    [rpc1, _, _, rpc4] = push_calls(pid, Enum.map(1..4, fn _ -> unique_call(type: :delay, delay: 50) end))
 
     assert_next_rpc(rpc1)
     assert_next_rpc(rpc4)
@@ -66,7 +66,7 @@ defmodule Air.Service.Central.CallsQueueTest do
   test "error message is not sent" do
     ExUnit.CaptureLog.capture_log(fn ->
       pid = start_worker(retry_delay: :timer.hours(1))
-      CallsQueue.perform_rpc(pid, unique_call(type: :error, num_errors: 1))
+      CallsQueue.push(pid, unique_call(type: :error, num_errors: 1))
       refute_receive {:rpc, _}
     end)
   end
@@ -74,7 +74,7 @@ defmodule Air.Service.Central.CallsQueueTest do
   test "retry sending of an error message" do
     ExUnit.CaptureLog.capture_log(fn ->
       pid = start_worker(retry_delay: 1)
-      rpc = perform_rpc(pid, unique_call(type: :error, num_errors: 10))
+      rpc = push_call(pid, unique_call(type: :error, num_errors: 10))
 
       assert_next_rpc rpc
       refute_receive {:rpc, _}
@@ -84,7 +84,7 @@ defmodule Air.Service.Central.CallsQueueTest do
   test "ordering is preserved on send error" do
     ExUnit.CaptureLog.capture_log(fn ->
       pid = start_worker(retry_delay: 5)
-      [rpc1, rpc2] = perform_rpcs(pid, [
+      [rpc1, rpc2] = push_calls(pid, [
         unique_call(type: :error, num_errors: 5),
         unique_call()
       ])
@@ -94,13 +94,13 @@ defmodule Air.Service.Central.CallsQueueTest do
     end)
   end
 
-  defp perform_rpc(pid, call) do
-    [rpc] = perform_rpcs(pid, [call])
+  defp push_call(pid, call) do
+    [rpc] = push_calls(pid, [call])
     rpc
   end
 
-  defp perform_rpcs(pid, calls) do
-    Enum.each(calls, &CallsQueue.perform_rpc(pid, &1))
+  defp push_calls(pid, calls) do
+    Enum.each(calls, &CallsQueue.push(pid, &1))
     Enum.map(calls, &CentralCall.export/1)
   end
 

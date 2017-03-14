@@ -18,9 +18,9 @@ defmodule Air.Service.Central.CallsQueue do
   end
 
   @doc "Schedules the given central call to be performed asynchronously."
-  @spec perform_rpc(pid | __MODULE__, CentralCall.t) :: :ok
-  def perform_rpc(pid \\ __MODULE__, central_call), do:
-    GenServer.call(pid, {:perform_rpc, central_call})
+  @spec push(pid | __MODULE__, CentralCall.t) :: :ok
+  def push(pid \\ __MODULE__, central_call), do:
+    GenServer.call(pid, {:push, central_call})
 
 
   # -------------------------------------------------------------------
@@ -34,8 +34,8 @@ defmodule Air.Service.Central.CallsQueue do
   end
 
   @doc false
-  def handle_call({:perform_rpc, central_call}, _from, state), do:
-    {:reply, :ok, do_perform_rpc(state, central_call)}
+  def handle_call({:push, central_call}, _from, state), do:
+    {:reply, :ok, handle_push(state, central_call)}
 
   def handle_info({:EXIT, pid, reason}, %{current_send: %{pid: pid}} = state), do:
     {:noreply, send_finished(state, reason)}
@@ -54,7 +54,7 @@ defmodule Air.Service.Central.CallsQueue do
   defp default_options(), do:
     [name: __MODULE__, sender_fun: &send_to_central/1] ++ Application.fetch_env!(:air, :central_queue)
 
-  defp do_perform_rpc(state, central_call) do
+  defp handle_push(state, central_call) do
     state
     |> push_to_queue_back(central_call)
     |> inc_pending_count()
