@@ -1,8 +1,8 @@
-defmodule Air.Service.Central.CallsQueue do
+defmodule Air.Service.Central.RpcQueue do
   @moduledoc """
-  Queue of calls to central.
+  Queue of RPCs to central.
 
-  This module powers the process which holds a queue of calls that must be sent to central.
+  This module powers the process which holds a queue of RPCs that must be sent to central.
   The queue has following properties:
 
     - preserved ordering
@@ -33,7 +33,7 @@ defmodule Air.Service.Central.CallsQueue do
     GenServer.start_link(__MODULE__, Map.new(options), name: Keyword.fetch!(options, :name))
   end
 
-  @doc "Schedules the given central call to be performed asynchronously."
+  @doc "Schedules an RPC with the given event and a payload to be delivered asynchronously."
   @spec push(pid | __MODULE__, String.t, map) :: :ok
   def push(pid \\ __MODULE__, event, payload), do:
     GenServer.call(pid, {:push, event, payload})

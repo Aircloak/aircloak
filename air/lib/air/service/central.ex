@@ -5,7 +5,7 @@ defmodule Air.Service.Central do
   import Ecto.Query, only: [from: 2]
   alias Air.Repo
   alias Air.Schemas.{CentralCall, ExportForAircloak}
-  alias Air.Service.Central.CallsQueue
+  alias Air.Service.Central.RpcQueue
 
   @type rpc :: %{id: String.t, event: String.t, payload: map}
 
@@ -19,7 +19,7 @@ defmodule Air.Service.Central do
   def supervisor_spec() do
     children = case auto_export?() do
       false -> []
-      true -> [worker(CallsQueue, [])]
+      true -> [worker(RpcQueue, [])]
     end ++ [supervisor(Air.CentralClient, [])]
 
     supervisor(Supervisor, [children, [strategy: :one_for_one, name: __MODULE__]], [id: __MODULE__])
@@ -144,7 +144,7 @@ defmodule Air.Service.Central do
 
   defp enqueue_pending_call(event, payload) do
     if auto_export?() do
-      CallsQueue.push(event, payload)
+      RpcQueue.push(event, payload)
     else
       {:ok, _} = store_pending_call(event, payload)
       :ok
