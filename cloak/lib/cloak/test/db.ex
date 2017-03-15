@@ -17,7 +17,7 @@ defmodule Cloak.Test.DB do
   end
 
   def create_table(table_name, definition, opts \\ []) do
-    GenServer.call(__MODULE__, {:create_table, table_name, definition, opts})
+    GenServer.call(__MODULE__, {:create_table, table_name, definition, opts}, :infinity)
   end
 
   def add_users_data(table_name, columns, rows), do:

@@ -6,7 +6,7 @@
   <%= for group <- @cloak_groups do %>
     <div class="row">
       <%= for cloak <- group do %>
-        <div class="col-md-6">
+        <div class="col-md-9">
           <div class="panel panel-default">
             <div class="panel-heading">
               <h1 class="panel-title">
@@ -19,7 +19,8 @@
             <table class="table">
               <thead>
                 <tr>
-                  <th>Data source name</th>
+                  <th>Data sources</th>
+                  <th></th>
                   <th></th>
                 </tr>
               </thead>
@@ -27,8 +28,9 @@
                 <%= for data_source <- cloak.data_sources do %>
                   <tr>
                     <td><%= data_source.name %></td>
+                    <td><%= availability_label(data_source) %></td>
                     <td>
-                      <%= link "View data source", to: admin_data_source_path(@conn, :show, data_source.id),
+                      <%= link "Show", to: admin_data_source_path(@conn, :show, data_source.id),
                         class: "btn btn-default btn-xs" %>
                     </td>
                   </tr>

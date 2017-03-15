@@ -7,6 +7,14 @@
   <%= @data_source.name %> (<%= @data_source.global_id %>) <%= availability_label(@data_source) %>
 </h2>
 
+<%= if Air.Schemas.DataSource.errors(@data_source) != [] do %>
+  <div class="alert alert-danger">
+    <%= for error <- Air.Schemas.DataSource.errors(@data_source) do %>
+      <div><%= error %></div>
+    <% end %>
+  </div>
+<% end %>
+
 <div class="row">
   <div class="col-md-7">
     <div class="panel panel-default">
@@ -89,7 +97,7 @@
       <% else %>
         <table class="table">
           <tbody>
-            <%= for table <- DataSource.tables(@data_source) do %>
+            <%= for table <- Air.Schemas.DataSource.tables(@data_source) do %>
               <tr>
                 <td><%= table["id"] %></td>
                 <td><%= length(table["columns"]) %> columns</td>

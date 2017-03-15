@@ -179,14 +179,15 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Creates or updates a data source, returning the updated data source"
-  @spec create_or_update_data_source(String.t, Map.t) :: DataSource.t
-  def create_or_update_data_source(global_id, tables) do
+  @spec create_or_update_data_source(String.t, Map.t, [String.t]) :: DataSource.t
+  def create_or_update_data_source(global_id, tables, errors) do
     case Repo.get_by(DataSource, global_id: global_id) do
       nil ->
         params = %{
           global_id: global_id,
           name: global_id,
-          tables: Poison.encode!(tables)
+          tables: Poison.encode!(tables),
+          errors: Poison.encode!(errors),
         }
         %DataSource{}
         |> DataSource.changeset(params)
@@ -194,7 +195,8 @@ defmodule Air.Service.DataSource do
 
       data_source ->
         params = %{
-          tables: Poison.encode!(tables)
+          tables: Poison.encode!(tables),
+          errors: Poison.encode!(errors),
         }
         data_source
         |> DataSource.changeset(params)

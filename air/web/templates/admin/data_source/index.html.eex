@@ -9,7 +9,7 @@
       <th>Tables</th>
       <th>Users</th>
       <th>Groups</th>
-      <th></th>
+      <th style="min-width:150px"></th>
     </tr>
   </thead>
   <tbody>

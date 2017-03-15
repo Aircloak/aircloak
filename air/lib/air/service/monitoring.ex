@@ -71,6 +71,7 @@ defmodule Air.Service.Monitoring do
         name: data_source.name,
         queries: query_stats(Query |> where([q], q.data_source_id == ^data_source.id), now),
         groups: data_source.groups |> Enum.map(&(&1.name)),
+        errors: DataSource.errors(data_source),
       }
     end
   end

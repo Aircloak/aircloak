@@ -6,11 +6,9 @@ defmodule Air.DataSourceView do
 
   alias Air.{Schemas, Service}
 
-  defp available?(data_source), do: Service.DataSource.available?(data_source.global_id)
+  def available?(data_source), do: Service.DataSource.available?(data_source.global_id)
 
-  defp number_of_tables(data_source) do
-    length(Schemas.DataSource.tables(data_source))
-  end
+  def number_of_tables(data_source), do: length(Schemas.DataSource.tables(data_source))
 
   defp sample_of_tables(data_source) do
     Schemas.DataSource.tables(data_source)
@@ -26,7 +24,11 @@ defmodule Air.DataSourceView do
 
   def availability_label(data_source) do
     if available?(data_source) do
-      content_tag(:span, "Online", class: "label label-success")
+      if Schemas.DataSource.errors(data_source) != [] do
+        content_tag(:span, "Broken", class: "label label-warning")
+      else
+        content_tag(:span, "Online", class: "label label-success")
+      end
     else
       content_tag(:span, "Offline", class: "label label-danger")
     end

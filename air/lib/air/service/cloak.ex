@@ -116,13 +116,14 @@ defmodule Air.Service.Cloak do
     |> Enum.map(&Task.async(fn ->
       global_id = Map.fetch!(&1, "global_id")
       tables = Map.fetch!(&1, "tables")
+      errors = Map.get(&1, "errors", [])
 
       # Locking on a local node to prevent two simultaneous db registrations of the same datasource.
       # The database maintains a uniqueness constraint already, but this is in place to avoid
       # unnecessary retries.
       :global.trans(
         {{__MODULE__, :create_or_update_datastore, global_id}, self()},
-        fn -> DataSource.create_or_update_data_source(global_id, tables) end,
+        fn -> DataSource.create_or_update_data_source(global_id, tables, errors) end,
         [node()]
       )
 

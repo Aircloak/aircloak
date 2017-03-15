@@ -67,6 +67,7 @@ defmodule Air.Service.Monitoring.Test do
           last_1_day: 1,
         },
         groups: [group.name],
+        errors: [],
       } in Monitoring.assemble_info(in_minutes(45)).data_sources
     end
   end

@@ -59,7 +59,7 @@ defmodule Cloak.DataSource.MongoDB do
     after :timer.seconds(5)
       ->
         GenServer.stop(connection)
-        raise RuntimeError, message: "Could not connect to the MongoDB server!"
+        raise RuntimeError, message: "unknown failure during database connection process"
     end
   end
 
@@ -71,7 +71,7 @@ defmodule Cloak.DataSource.MongoDB do
   def load_tables(connection, table) do
     sample_rate = table[:sample_rate] || 100
     unless is_integer(sample_rate) and sample_rate >= 1 and sample_rate <= 100, do:
-      raise RuntimeError, "Sample rate for schema detection has to be an integer between 1 and 100."
+      raise RuntimeError, message: "Sample rate for schema detection has to be an integer between 1 and 100."
     map_code = """
       function() {
         if (Math.random() * 100 > #{sample_rate}) return;
@@ -159,7 +159,7 @@ defmodule Cloak.DataSource.MongoDB do
     case Mongo.command(conn, command, timeout: @timeout) do
       {:ok, %{"results" => results}} -> results
       {:ok, %{"result" => result}} -> result
-      {:error, %Mongo.Error{message: error}} -> raise RuntimeError, "MongoDB execute command error: #{error}"
+      {:error, %Mongo.Error{message: error}} -> raise RuntimeError, message: "MongoDB execute command error: #{error}"
     end
   end
 

@@ -107,15 +107,15 @@ defmodule Air.Service.DataSourceTest do
     test "should update existing data source" do
       table = %{table: true}
       global_id = "global_id"
-      data_source = DataSource.create_or_update_data_source(global_id, table)
-      assert data_source.id == DataSource.create_or_update_data_source(global_id, table).id
+      data_source = DataSource.create_or_update_data_source(global_id, table, [])
+      assert data_source.id == DataSource.create_or_update_data_source(global_id, table, []).id
     end
 
     test "should create new data source if none exists" do
       table = %{table: true}
       global_id = "new_global_id"
       refute Repo.all(Air.Schemas.DataSource) |> Enum.any?(& &1.global_id == global_id)
-      assert %Air.Schemas.DataSource{} = DataSource.create_or_update_data_source(global_id, table)
+      assert %Air.Schemas.DataSource{} = DataSource.create_or_update_data_source(global_id, table, [])
     end
   end
 

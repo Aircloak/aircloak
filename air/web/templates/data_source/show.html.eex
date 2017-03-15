@@ -9,9 +9,7 @@
 
         <h2>
           <%= @data_source.name %>
-          <%= if not available?(@data_source) do %>
-            <span class="label label-danger">Offline</span>
-          <% end %>
+          <%= availability_label(@data_source) %>
         </h2>
 
         <div id="query-view"></div>
