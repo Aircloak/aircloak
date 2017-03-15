@@ -68,14 +68,6 @@ defmodule Air.Service.Central.CallsQueueTest do
     end)
   end
 
-  test "error message is not sent" do
-    ExUnit.CaptureLog.capture_log(fn ->
-      pid = start_worker(retry_delay: :timer.hours(1))
-      CallsQueue.push(pid, unique_call(type: :error, num_errors: 1))
-      refute_receive {:rpc, _}
-    end)
-  end
-
   test "retry sending of an error message" do
     ExUnit.CaptureLog.capture_log(fn ->
       pid = start_worker(retry_delay: 1)
