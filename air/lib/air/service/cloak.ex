@@ -23,12 +23,7 @@ defmodule Air.Service.Cloak do
   """
   @spec register(Map.t, Map.t) :: :ok
   def register(cloak_info, data_sources) do
-    data_source_ids = register_data_sources(data_sources)
-    cloak_info = Map.merge(cloak_info, %{
-      data_source_ids: data_source_ids,
-      memory: %{},
-    })
-    GenServer.cast(__MODULE__, {:register, self(), cloak_info})
+    GenServer.call(__MODULE__, {:register, self(), cloak_info, data_sources})
   end
 
   @doc "Records cloak memory readings"
@@ -73,11 +68,6 @@ defmodule Air.Service.Cloak do
     {:ok, state}
   end
 
-  def handle_cast({:register, pid, cloak_info}, %{cloaks: cloaks} = state) do
-    Process.monitor(pid)
-    cloaks = Map.put(cloaks, pid, cloak_info)
-    {:noreply, %{state | cloaks: cloaks}}
-  end
   def handle_cast({:record_memory, pid, reading}, %{cloaks: cloaks} = state) do
     cloaks = case Map.fetch(cloaks, pid) do
       {:ok, cloak_info} -> Map.put(cloaks, pid, Map.put(cloak_info, :memory, reading))
@@ -86,6 +76,18 @@ defmodule Air.Service.Cloak do
     {:noreply, %{state | cloaks: cloaks}}
   end
 
+  def handle_call({:register, pid, cloak_info, data_sources}, _from, %{cloaks: cloaks} = state) do
+    Process.monitor(pid)
+
+    data_source_ids = register_data_sources(data_sources)
+    cloak_info = Map.merge(cloak_info, %{
+      data_source_ids: data_source_ids,
+      memory: %{},
+    })
+
+    cloaks = Map.put(cloaks, pid, cloak_info)
+    {:reply, :ok, %{state | cloaks: cloaks}}
+  end
   def handle_call({:lookup, {:data_source, global_id}}, _from, %{cloaks: cloaks} = state) do
     reply = cloaks
     |> Enum.filter(fn({_pid, %{data_source_ids: ids}}) -> Enum.any?(ids, & &1 == global_id) end)
@@ -112,25 +114,14 @@ defmodule Air.Service.Cloak do
   # -------------------------------------------------------------------
 
   defp register_data_sources(data_sources) do
-    data_source_ids = data_sources
-    |> Enum.map(&Task.async(fn ->
-      global_id = Map.fetch!(&1, "global_id")
-      tables = Map.fetch!(&1, "tables")
-      errors = Map.get(&1, "errors", [])
+    for data_source <- data_sources do
+      global_id = Map.fetch!(data_source, "global_id")
+      tables = Map.fetch!(data_source, "tables")
+      errors = Map.get(data_source, "errors", [])
 
-      # Locking on a local node to prevent two simultaneous db registrations of the same datasource.
-      # The database maintains a uniqueness constraint already, but this is in place to avoid
-      # unnecessary retries.
-      :global.trans(
-        {{__MODULE__, :create_or_update_datastore, global_id}, self()},
-        fn -> DataSource.create_or_update_data_source(global_id, tables, errors) end,
-        [node()]
-      )
+      DataSource.create_or_update_data_source(global_id, tables, errors)
 
       global_id
-    end))
-    |> Enum.map(&Task.await/1)
-
-    data_source_ids
+    end
   end
 end
