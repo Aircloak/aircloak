@@ -16,8 +16,6 @@ defmodule Air.Service.Central.CallsQueue do
     - There is no support for progressive backoff.
     - Retry is dumb. A single item which repeatedly causes a send failure will not be removed until
       queue is overflowed.
-    - Overflow control is done after the item is sent (regardless of success or failure). This is still
-      prone to increased memory usage when sending is slow while clients push a lot of items frequently.
   """
 
   use GenServer
@@ -49,7 +47,7 @@ defmodule Air.Service.Central.CallsQueue do
   @doc false
   def init(options) do
     Process.flag(:trap_exit, true)
-    {:ok, %{current_send: nil, send_paused?: false, queue: :queue.new(), pending_count: 0, options: options}}
+    {:ok, %{current_send: nil, send_paused?: false, queue: Aircloak.Queue.new(), options: options}}
   end
 
   @doc false
@@ -73,43 +71,26 @@ defmodule Air.Service.Central.CallsQueue do
   defp default_options(), do:
     [name: __MODULE__, sender_fun: &send_to_central/1] ++ Application.fetch_env!(:air, :central_queue)
 
-  defp handle_push(state, central_call) do
+  defp handle_push(state, central_call), do:
     state
-    |> push_to_queue_back(central_call)
-    |> inc_pending_count()
+    |> update_in([:queue], &Aircloak.Queue.push(&1, central_call))
+    |> update_in([:queue], &Aircloak.Queue.drop_while(&1, fn(queue) -> queue.size > state.options.max_size end))
     |> maybe_start_rpc_task()
-  end
-
-  defp push_to_queue_front(state, central_call), do:
-    %{state | queue: :queue.in_r(central_call, state.queue)}
-
-  defp push_to_queue_back(state, central_call), do:
-    %{state | queue: :queue.in(central_call, state.queue)}
-
-  defp inc_pending_count(state), do:
-    %{state | pending_count: state.pending_count + 1}
-
-  defp dec_pending_count(state), do:
-    %{state | pending_count: state.pending_count - 1}
 
   defp maybe_start_rpc_task(%{send_paused?: true} = state), do:
     state
   defp maybe_start_rpc_task(%{current_send: current_send} = state) when current_send != nil, do:
     state
+  defp maybe_start_rpc_task(%{queue: %Aircloak.Queue{size: 0}} = state), do:
+    state
   defp maybe_start_rpc_task(state) do
-    case :queue.out(state.queue) do
-      {:empty, _} -> state
-      {{:value, central_call}, queue} ->
-        {:ok, pid} = Task.start_link(fn ->
-          central_call
-          |> CentralCall.export()
-          |> state.options.sender_fun.()
-        end)
-        %{state |
-          current_send: %{pid: pid, central_call: central_call},
-          queue: queue
-        }
-    end
+    {:value, central_call} = Aircloak.Queue.peek(state.queue)
+    {:ok, pid} = Task.start_link(fn ->
+      central_call
+      |> CentralCall.export()
+      |> state.options.sender_fun.()
+    end)
+    %{state | current_send: %{pid: pid, central_call: central_call}}
   end
 
   defp send_to_central(central_call), do:
@@ -119,32 +100,18 @@ defmodule Air.Service.Central.CallsQueue do
     state
     |> handle_finished_reason(reason)
     |> Map.put(:current_send, nil)
-    |> limit_queue()
     |> maybe_start_rpc_task()
 
   defp handle_finished_reason(state, :normal), do:
-    dec_pending_count(state)
-  defp handle_finished_reason(%{current_send: %{central_call: central_call}} = state, abnormal_reason) do
+    %{state | queue: Aircloak.Queue.drop_if(state.queue, &(&1 == state.current_send.central_call))}
+  defp handle_finished_reason(state, abnormal_reason) do
+    central_call = state.current_send.central_call
     Logger.error("RPC '#{central_call.event}' to central failed: #{inspect abnormal_reason}. Will retry later.")
-    state
-    |> pause_send()
-    |> push_to_queue_front(central_call)
+    pause_send(state)
   end
 
   defp pause_send(state) do
     Process.send_after(self(), :resume_send, state.options.retry_delay)
     %{state | send_paused?: true}
-  end
-
-  defp limit_queue(%{options: %{max_size: max_size}, pending_count: pending_count} = state)
-    when pending_count < max_size, do: state
-  defp limit_queue(state), do:
-    state
-    |> remove_oldest_item()
-    |> limit_queue()
-
-  defp remove_oldest_item(%{current_send: nil} = state) do
-    {{:value, _}, queue} = :queue.out(state.queue)
-    dec_pending_count(%{state | queue: queue})
   end
 end
