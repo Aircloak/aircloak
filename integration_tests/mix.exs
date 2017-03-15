@@ -32,6 +32,7 @@ defmodule IntegrationTests.Mixfile do
       {:mariaex, "~> 0.8", override: true},
       {:ecto, "~> 2.1", override: true},
       {:postgrex, "~> 0.13.0", override: true},
+      {:poison, github: "cristianberneanu/poison", override: true},
     ]
   end
 
