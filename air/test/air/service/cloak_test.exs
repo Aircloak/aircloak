@@ -29,8 +29,13 @@ defmodule Air.Service.Cloak.Test do
   end
 
   test "should return a cloak channel pid given a registered data source" do
-    Cloak.register(cloak_info(), @data_sources)
-    assert [self()] == Cloak.channel_pids(@data_source_id)
+    cloak_info = cloak_info()
+
+    Cloak.register(cloak_info, @data_sources)
+
+    cloak_id = cloak_info.id
+    this = self()
+    assert [{^this, %{id: ^cloak_id}}] = Cloak.channel_pids(@data_source_id)
   end
 
   test "should allow assigning multiple cloaks to the same data source" do
@@ -54,7 +59,7 @@ defmodule Air.Service.Cloak.Test do
     Process.unlink(pid1)
     Process.exit(pid1, :exit)
 
-    assert soon([pid2] == Cloak.channel_pids(@data_source_id))
+    assert soon(match?([{^pid2, _}], Cloak.channel_pids(@data_source_id)))
   end
 
   test "returns a list of cloaks and their data sources" do
@@ -75,18 +80,6 @@ defmodule Air.Service.Cloak.Test do
     assert cloak.data_source_ids == [@data_source_id]
   end
 
-  describe "getting cloak info" do
-    test "when cloak is registered" do
-      %{id: cloak_id} = cloak_info = cloak_info()
-      Cloak.register(cloak_info, @data_sources)
-      assert {:ok, %{id: ^cloak_id}} = Cloak.get_info(self())
-    end
-
-    test "when cloak doesn't exist" do
-      assert {:error, :not_found} == Cloak.get_info(self())
-    end
-  end
-
   describe "recording memory stats" do
     test "doesn't fail for unregistered cloak" do
       assert :ok == Cloak.record_memory(%{reading: true})
@@ -96,12 +89,12 @@ defmodule Air.Service.Cloak.Test do
       Cloak.register(cloak_info(), @data_sources)
       reading = %{reading: true}
       Cloak.record_memory(reading)
-      assert {:ok, %{memory: ^reading}} = Cloak.get_info(self())
+      assert [%{memory: ^reading}] = Cloak.all_cloak_infos()
     end
 
     test "has uninitialized memory reading by default" do
       Cloak.register(cloak_info(), @data_sources)
-      assert {:ok, %{memory: %{}}} = Cloak.get_info(self())
+      assert [%{memory: %{}}] = Cloak.all_cloak_infos()
     end
   end
 

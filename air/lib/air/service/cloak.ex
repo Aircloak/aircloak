@@ -9,37 +9,60 @@ defmodule Air.Service.Cloak do
 
   alias Air.Service.DataSource
 
+  @serializer_name __MODULE__.Serializer
+  @main_registry_name __MODULE__.MainRegistry
+  @memory_registry_name __MODULE__.MemoryRegistry
+  @all_cloak_registry_name __MODULE__.AllCloakRegistry
+
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Starts the data source manager process."
+  @doc "Returns the supervisor specification for this service."
+  @spec supervisor_spec() :: Supervisor.Spec.spec
+  def supervisor_spec() do
+    import Supervisor.Spec
+
+    children = [
+      worker(__MODULE__, []),
+      worker(Registry, [:duplicate, @main_registry_name], id: @main_registry_name),
+      worker(Registry, [:unique, @memory_registry_name], id: @memory_registry_name),
+      worker(Registry, [:duplicate, @all_cloak_registry_name], id: @all_cloak_registry_name),
+    ]
+
+    supervisor(Supervisor, [children, [strategy: :one_for_one, name: __MODULE__]])
+  end
+
+  @doc "Starts the data source serializer process."
   @spec start_link() :: GenServer.on_start
-  def start_link(), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  def start_link(), do: GenServer.start_link(__MODULE__, [], name: @serializer_name)
 
   @doc """
   Registers a data source (if needed), and associates the calling cloak with the data source
   """
   @spec register(Map.t, Map.t) :: :ok
   def register(cloak_info, data_sources) do
-    GenServer.call(__MODULE__, {:register, self(), cloak_info, data_sources})
+    {data_source_ids, cloak_info} = GenServer.call(@serializer_name, {:register, cloak_info, data_sources})
+
+    Registry.register(@all_cloak_registry_name, :all_cloaks, cloak_info)
+    for global_id <- data_source_ids do
+      Registry.register(@main_registry_name, global_id, cloak_info)
+    end
+
+    :ok
   end
 
   @doc "Records cloak memory readings"
   @spec record_memory(Map.t) :: :ok
-  def record_memory(reading), do:
-    GenServer.cast(__MODULE__, {:record_memory, self(), reading})
+  def record_memory(reading) do
+    Registry.register(@memory_registry_name, self(), reading)
+    :ok
+  end
 
-  @doc "Returns the cloak info for a specific cloak"
-  @spec get_info(pid) :: {:ok, Map.t} | {:error, :not_found}
-  def get_info(pid), do:
-    GenServer.call(__MODULE__, {:lookup, {:cloak, pid}})
-
-  @doc "Returns a list of cloak channel pids for a given data source."
-  @spec channel_pids(String.t) :: [pid()]
-  def channel_pids(global_id), do:
-    for {pid, _cloak_info} <- GenServer.call(__MODULE__, {:lookup, {:data_source, global_id}}), do: pid
+  @doc "Returns a list of cloak channels for a given data source. The list consists of pairs `{pid, cloak_info}`."
+  @spec channel_pids(String.t) :: [{pid(), Map.t}]
+  def channel_pids(global_id), do: Registry.lookup(@main_registry_name, global_id)
 
   @doc """
   Returns a list of the connected cloaks. The element returned for each cloak
@@ -48,12 +71,12 @@ defmodule Air.Service.Cloak do
   """
   @spec all_cloak_infos() :: [Map.t]
   def all_cloak_infos(), do:
-    GenServer.call(__MODULE__, {:lookup, :cloak_infos})
+    for {pid, info} <- Registry.lookup(@all_cloak_registry_name, :all_cloaks), do: lookup_memory(pid, info)
 
   @doc "Returns the cloak info of cloaks serving a data source"
   @spec cloak_infos_for_data_source(String.t) :: [Map.t]
   def cloak_infos_for_data_source(global_id), do:
-    for {_pid, cloak_info} <- GenServer.call(__MODULE__, {:lookup, {:data_source, global_id}}), do: cloak_info
+    for {pid, cloak_info} <- Registry.lookup(@main_registry_name, global_id), do: lookup_memory(pid, cloak_info)
 
 
   # -------------------------------------------------------------------
@@ -61,51 +84,16 @@ defmodule Air.Service.Cloak do
   # -------------------------------------------------------------------
 
   @doc false
-  def init(_) do
-    state = %{
-      cloaks: Map.new(),
-    }
-    {:ok, state}
-  end
+  def init(_), do: {:ok, nil}
 
-  def handle_cast({:record_memory, pid, reading}, %{cloaks: cloaks} = state) do
-    cloaks = case Map.fetch(cloaks, pid) do
-      {:ok, cloak_info} -> Map.put(cloaks, pid, Map.put(cloak_info, :memory, reading))
-      :error -> cloaks
-    end
-    {:noreply, %{state | cloaks: cloaks}}
-  end
-
-  def handle_call({:register, pid, cloak_info, data_sources}, _from, %{cloaks: cloaks} = state) do
-    Process.monitor(pid)
-
+  def handle_call({:register, cloak_info, data_sources}, _from, state) do
     data_source_ids = register_data_sources(data_sources)
     cloak_info = Map.merge(cloak_info, %{
       data_source_ids: data_source_ids,
       memory: %{},
     })
 
-    cloaks = Map.put(cloaks, pid, cloak_info)
-    {:reply, :ok, %{state | cloaks: cloaks}}
-  end
-  def handle_call({:lookup, {:data_source, global_id}}, _from, %{cloaks: cloaks} = state) do
-    reply = cloaks
-    |> Enum.filter(fn({_pid, %{data_source_ids: ids}}) -> Enum.any?(ids, & &1 == global_id) end)
-    {:reply, reply, state}
-  end
-  def handle_call({:lookup, :cloak_infos}, _from, %{cloaks: cloaks} = state), do:
-    {:reply, Map.values(cloaks), state}
-  def handle_call({:lookup, {:cloak, pid}}, _from, %{cloaks: cloaks} = state) do
-    reply = case Map.fetch(cloaks, pid) do
-      {:ok, _} = cloak -> cloak
-      :error -> {:error, :not_found}
-    end
-    {:reply, reply, state}
-  end
-
-  def handle_info({:DOWN, _monitor_ref, :process, pid, _info}, %{cloaks: cloaks} = state) do
-    cloaks = Map.delete(cloaks, pid)
-    {:noreply, %{state | cloaks: cloaks}}
+    {:reply, {data_source_ids, cloak_info}, state}
   end
 
 
@@ -122,6 +110,13 @@ defmodule Air.Service.Cloak do
       DataSource.create_or_update_data_source(global_id, tables, errors)
 
       global_id
+    end
+  end
+
+  defp lookup_memory(pid, cloak_info) do
+    case Registry.lookup(@memory_registry_name, pid) do
+      [{_, memory}] -> cloak_info |> Map.put(:memory, memory)
+      _ -> cloak_info |> Map.put(:memory, %{})
     end
   end
 end
