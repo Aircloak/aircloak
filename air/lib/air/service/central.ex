@@ -7,6 +7,8 @@ defmodule Air.Service.Central do
   alias Air.Schemas.{CentralCall, ExportForAircloak}
   alias Air.Service.Central.CallsQueue
 
+  @type rpc :: %{id: String.t, event: String.t, payload: map}
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -120,6 +122,21 @@ defmodule Air.Service.Central do
       page: page, page_size: page_size
     )
 
+  @doc """
+  Generates a new RPC entry which can be sent to the Central component.
+
+  The `id` field can be of arbitrary type (including tuples, and refs) and size. Different RPCs need to have
+  different ids, while the same RPC should always have the same id. The caller is responsible for choosing the
+  `id` value which ensures these properties.
+  """
+  @spec new_rpc(any, String.t, map) :: rpc
+  def new_rpc(id, event, payload), do:
+    %{
+      id: Base.encode64(:erlang.term_to_binary(id)),
+      event: event,
+      payload: payload
+    }
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -127,7 +144,7 @@ defmodule Air.Service.Central do
 
   defp enqueue_pending_call(event, payload) do
     if auto_export?() do
-      CallsQueue.push(CentralCall.new(event, payload))
+      CallsQueue.push(event, payload)
     else
       {:ok, _} = store_pending_call(event, payload)
       :ok
@@ -144,7 +161,7 @@ defmodule Air.Service.Central do
   defp payload(calls_to_export), do:
     %{
       last_exported_id: Repo.one(from exported in ExportForAircloak, select: max(exported.id)),
-      rpcs: Enum.map(calls_to_export, &CentralCall.export/1),
+      rpcs: Enum.map(calls_to_export, &new_rpc(&1.id, &1.event, &1.payload)),
       air_name: Air.instance_name(),
       air_version: Aircloak.Version.for_app(:air) |> Aircloak.Version.to_string(),
       customer_token: Air.customer_token(),

@@ -19,7 +19,6 @@ defmodule Air.Service.Central.CallsQueue do
   """
 
   use GenServer
-  alias Air.Schemas.CentralCall
   require Logger
 
 
@@ -35,9 +34,9 @@ defmodule Air.Service.Central.CallsQueue do
   end
 
   @doc "Schedules the given central call to be performed asynchronously."
-  @spec push(pid | __MODULE__, CentralCall.t) :: :ok
-  def push(pid \\ __MODULE__, central_call), do:
-    GenServer.call(pid, {:push, central_call})
+  @spec push(pid | __MODULE__, String.t, map) :: :ok
+  def push(pid \\ __MODULE__, event, payload), do:
+    GenServer.call(pid, {:push, event, payload})
 
 
   # -------------------------------------------------------------------
@@ -51,8 +50,8 @@ defmodule Air.Service.Central.CallsQueue do
   end
 
   @doc false
-  def handle_call({:push, central_call}, _from, state), do:
-    {:reply, :ok, handle_push(state, central_call)}
+  def handle_call({:push, event, payload}, _from, state), do:
+    {:reply, :ok, handle_push(state, event, payload)}
 
   def handle_info({:EXIT, pid, reason}, %{current_send: %{pid: pid}} = state), do:
     {:noreply, send_finished(state, reason)}
@@ -71,11 +70,23 @@ defmodule Air.Service.Central.CallsQueue do
   defp default_options(), do:
     [name: __MODULE__, sender_fun: &send_to_central/1] ++ Application.fetch_env!(:air, :central_queue)
 
-  defp handle_push(state, central_call), do:
+  defp handle_push(state, event, payload), do:
     state
-    |> update_in([:queue], &Aircloak.Queue.push(&1, central_call))
+    |> update_in([:queue], &Aircloak.Queue.push(&1, new_rpc(event, payload)))
     |> update_in([:queue], &Aircloak.Queue.drop_while(&1, fn(queue) -> queue.size > state.options.max_size end))
     |> maybe_start_rpc_task()
+
+  defp new_rpc(event, payload), do:
+    Air.Service.Central.new_rpc(
+      # Generation of an almost unique id passed to the central. We can't use database ids, since in auto
+      # export mode we're not storing RPCs to database. So instead, we're choosing id based on BEAM instance
+      # unique integer and current time, which reduces the likelihood of two different RPCs with the same id.
+      # Even if that happens, the damage is not big, since it will lead to one message not being imported into
+      # central - a property which already exists, since we're not persisting pending RPCs.
+      {:erlang.unique_integer(), NaiveDateTime.utc_now()},
+      event,
+      payload
+    )
 
   defp maybe_start_rpc_task(%{send_paused?: true} = state), do:
     state
@@ -84,17 +95,13 @@ defmodule Air.Service.Central.CallsQueue do
   defp maybe_start_rpc_task(%{queue: %Aircloak.Queue{size: 0}} = state), do:
     state
   defp maybe_start_rpc_task(state) do
-    {:value, central_call} = Aircloak.Queue.peek(state.queue)
-    {:ok, pid} = Task.start_link(fn ->
-      central_call
-      |> CentralCall.export()
-      |> state.options.sender_fun.()
-    end)
-    %{state | current_send: %{pid: pid, central_call: central_call}}
+    {:value, rpc} = Aircloak.Queue.peek(state.queue)
+    {:ok, pid} = Task.start_link(fn -> state.options.sender_fun.(rpc) end)
+    %{state | current_send: %{pid: pid, rpc: rpc}}
   end
 
-  defp send_to_central(central_call), do:
-    {:ok, _} = Air.CentralClient.Socket.rpc(central_call)
+  defp send_to_central(rpc), do:
+    {:ok, _} = Air.CentralClient.Socket.rpc(rpc)
 
   defp send_finished(state, reason), do:
     state
@@ -103,10 +110,10 @@ defmodule Air.Service.Central.CallsQueue do
     |> maybe_start_rpc_task()
 
   defp handle_finished_reason(state, :normal), do:
-    %{state | queue: Aircloak.Queue.drop_if(state.queue, &(&1 == state.current_send.central_call))}
+    %{state | queue: Aircloak.Queue.drop_if(state.queue, &(&1 == state.current_send.rpc))}
   defp handle_finished_reason(state, abnormal_reason) do
-    central_call = state.current_send.central_call
-    Logger.error("RPC '#{central_call.event}' to central failed: #{inspect abnormal_reason}. Will retry later.")
+    rpc = state.current_send.rpc
+    Logger.error("RPC '#{rpc.event}' to central failed: #{inspect abnormal_reason}. Will retry later.")
     pause_send(state)
   end
 

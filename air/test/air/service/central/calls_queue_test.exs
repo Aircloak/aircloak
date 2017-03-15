@@ -2,7 +2,6 @@ defmodule Air.Service.Central.CallsQueueTest do
   use ExUnit.Case, async: true
 
   alias Air.Service.Central.CallsQueue
-  alias Air.Schemas.CentralCall
 
   setup_all do
     :ets.new(__MODULE__, [:public, :set, :named_table])
@@ -11,8 +10,10 @@ defmodule Air.Service.Central.CallsQueueTest do
 
   defmacrop assert_next_rpc(expected_rpc) do
     quote do
+      expected_rpc = unquote(expected_rpc)
       assert_receive {:rpc, rpc}, 1000
-      assert rpc == unquote(expected_rpc)
+      assert rpc.event == expected_rpc.event
+      assert rpc.payload == expected_rpc.payload
     end
   end
 
@@ -25,7 +26,7 @@ defmodule Air.Service.Central.CallsQueueTest do
 
   test "message is sent only once on success" do
     pid = start_worker()
-    CallsQueue.push(pid, unique_call())
+    push_call(pid, unique_call())
 
     assert_receive {:rpc, _}
     refute_receive {:rpc, _}
@@ -97,8 +98,8 @@ defmodule Air.Service.Central.CallsQueueTest do
   end
 
   defp push_calls(pid, calls) do
-    Enum.each(calls, &CallsQueue.push(pid, &1))
-    Enum.map(calls, &CentralCall.export/1)
+    Enum.each(calls, &CallsQueue.push(pid, &1.event, &1.payload))
+    Enum.map(calls, &Air.Service.Central.new_rpc(nil, &1.event, &1.payload))
   end
 
   defp start_worker(opts \\ []) do
@@ -129,8 +130,11 @@ defmodule Air.Service.Central.CallsQueueTest do
   end
 
   defp unique_call(opts \\ []) do
-    payload = Map.new(Keyword.merge([id: :erlang.unique_integer(), type: :normal], opts))
-    CentralCall.new(Base.encode64(:crypto.strong_rand_bytes(8)), payload)
+    unique_piece = to_string(:erlang.unique_integer())
+    %{
+      event: unique_piece,
+      payload: Map.new(Keyword.merge([id: unique_piece, type: :normal], opts))
+    }
   end
 
   defp dec_error_counter(error_payload) do
