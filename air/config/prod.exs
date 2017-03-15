@@ -59,3 +59,5 @@ config :air, :central,
   central_site: "wss://central.aircloak.com",
   min_reconnect_interval: 1,
   max_reconnect_interval: 100
+
+config :air, :auto_aircloak_export, true

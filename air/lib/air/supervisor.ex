@@ -15,25 +15,10 @@ defmodule Air.Supervisor do
       worker(Air.Endpoint, []),
       worker(Air.MonitoringEndpoint, []),
       worker(Air.BOM, []),
-      worker(Air.Service.Central.Worker, []),
+      Air.Service.Central.supervisor_spec(),
       Air.PsqlServer.child_spec()
-    ] ++ system_processes()
+    ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Air.Supervisor)
-  end
-
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  if Mix.env == :test do
-    defp system_processes, do: []
-  else
-    # Processes which we don't want to start in the test environment
-    defp system_processes do
-      import Supervisor.Spec, warn: false
-      [supervisor(Air.CentralClient, [])]
-    end
   end
 end

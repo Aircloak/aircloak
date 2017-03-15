@@ -19,3 +19,5 @@ config :comeonin, :pbkdf2_rounds, 1
 
 config :air, Air.PsqlServer,
   port: 8433
+
+config :air, :auto_aircloak_export, false

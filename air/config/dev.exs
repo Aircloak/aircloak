@@ -53,3 +53,5 @@ config :air, Air.PsqlServer,
 
 config :air, Air.Repo,
   pool_size: 2
+
+config :air, :auto_aircloak_export, true
