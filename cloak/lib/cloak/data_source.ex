@@ -254,19 +254,8 @@ defmodule Cloak.DataSource do
     try do
       connection = driver.connect!(data_source.parameters)
       try do
-        {tables, errors} =
-          Enum.reduce(data_source.tables, {[], []}, fn (table, {tables, errors}) ->
-            try do
-              {tables ++ load_tables(data_source, connection, table), errors}
-            rescue
-              error in RuntimeError ->
-                {table_id, _} = table
-                message = "Load error for table `#{table_id}`: #{Exception.message(error)}."
-                Logger.error("Data source `#{data_source.global_id}`: #{message}")
-                {tables, errors ++ [message]}
-            end
-          end)
-        %{data_source | errors: errors, tables: Enum.into(tables, %{})}
+        data_source
+        |> scan_tables(connection)
         |> resolve_projected_tables()
       after
         driver.disconnect(connection)
@@ -277,6 +266,22 @@ defmodule Cloak.DataSource do
         Logger.error("Data source `#{data_source.global_id}`: #{message}")
         %{data_source | errors: [message], tables: []}
     end
+  end
+
+  defp scan_tables(data_source, connection) do
+    {tables, errors} =
+      Enum.reduce(data_source.tables, {[], []}, fn (table, {tables, errors}) ->
+        try do
+          {tables ++ load_tables(data_source, connection, table), errors}
+        rescue
+          error in RuntimeError ->
+            {table_id, _} = table
+            message = "Load error for table `#{table_id}`: #{Exception.message(error)}."
+            Logger.error("Data source `#{data_source.global_id}`: #{message}")
+            {tables, errors ++ [message]}
+        end
+      end)
+    %{data_source | errors: errors, tables: Enum.into(tables, %{})}
   end
 
   defp load_tables(data_source, connection, {table_id, table}) do
