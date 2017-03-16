@@ -29,9 +29,7 @@ defmodule Air.Token do
             preload: [{:user, :groups}],
             select: token) do
           %{} = token ->
-            Task.Supervisor.start_child(Air.ApiTokenTimestampUpdater, fn() ->
-              Repo.update(ApiToken.touch(token))
-            end)
+            touch_token(token)
             token.user
           _ -> :error
         end
@@ -46,5 +44,16 @@ defmodule Air.Token do
 
   defp api_token_salt do
     Application.get_env(:air, Air.Endpoint) |> Keyword.fetch!(:api_token_salt)
+  end
+
+  if Mix.env == :test do
+    # Starting an async task that uses the DB plays badly with the Ecto Sandbox
+    defp touch_token(_), do: :ok
+  else
+    defp touch_token(token) do
+      Task.Supervisor.start_child(Air.ApiTokenTimestampUpdater, fn() ->
+        Repo.update(ApiToken.touch(token))
+      end)
+    end
   end
 end
