@@ -5,7 +5,9 @@ defmodule Air.Service.Central do
   import Ecto.Query, only: [from: 2]
   alias Air.Repo
   alias Air.Schemas.{CentralCall, ExportForAircloak}
-  alias Air.Service.Central.CallsQueue
+  alias Air.Service.Central.RpcQueue
+
+  @type rpc :: %{id: String.t, event: String.t, payload: map}
 
 
   # -------------------------------------------------------------------
@@ -17,7 +19,7 @@ defmodule Air.Service.Central do
   def supervisor_spec() do
     children = case auto_export?() do
       false -> []
-      true -> [worker(CallsQueue, [])]
+      true -> [worker(RpcQueue, [])]
     end ++ [supervisor(Air.CentralClient, [])]
 
     supervisor(Supervisor, [children, [strategy: :one_for_one, name: __MODULE__]], [id: __MODULE__])
@@ -120,6 +122,21 @@ defmodule Air.Service.Central do
       page: page, page_size: page_size
     )
 
+  @doc """
+  Generates a new RPC entry which can be sent to the Central component.
+
+  The `id` field can be of arbitrary type (including tuples, and refs) and size. Different RPCs need to have
+  different ids, while the same RPC should always have the same id. The caller is responsible for choosing the
+  `id` value which ensures these properties.
+  """
+  @spec new_rpc(any, String.t, map) :: rpc
+  def new_rpc(id, event, payload), do:
+    %{
+      id: Base.encode64(:erlang.term_to_binary(id)),
+      event: event,
+      payload: payload
+    }
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -127,7 +144,7 @@ defmodule Air.Service.Central do
 
   defp enqueue_pending_call(event, payload) do
     if auto_export?() do
-      CallsQueue.push(CentralCall.new(event, payload))
+      RpcQueue.push(event, payload)
     else
       {:ok, _} = store_pending_call(event, payload)
       :ok
@@ -144,7 +161,7 @@ defmodule Air.Service.Central do
   defp payload(calls_to_export), do:
     %{
       last_exported_id: Repo.one(from exported in ExportForAircloak, select: max(exported.id)),
-      rpcs: Enum.map(calls_to_export, &CentralCall.export/1),
+      rpcs: Enum.map(calls_to_export, &new_rpc(&1.id, &1.event, &1.payload)),
       air_name: Air.instance_name(),
       air_version: Aircloak.Version.for_app(:air) |> Aircloak.Version.to_string(),
       customer_token: Air.customer_token(),
