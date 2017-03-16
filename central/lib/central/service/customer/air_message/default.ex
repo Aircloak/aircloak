@@ -24,7 +24,7 @@ defmodule Central.Service.Customer.AirMessage.Default do
     else
       result = do_handle(message, customer, air_name)
       if check_rpc?(options), do:
-        Customer.store_rpc!(customer, air_name, message_id, result)
+        Customer.store_rpc!(customer, air_name, message_id)
       result
     end
   end

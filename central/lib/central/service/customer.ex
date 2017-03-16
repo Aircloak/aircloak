@@ -246,10 +246,10 @@ defmodule Central.Service.Customer do
     Repo.get(AirRPC, rpc_id(customer, air_name, message_id))
 
   @doc "Stores the RPC into the database."
-  @spec store_rpc!(Customer.t, String.t, String.t, any) :: AirRPC.t
-  def store_rpc!(customer, air_name, message_id, result), do:
+  @spec store_rpc!(Customer.t, String.t, String.t) :: AirRPC.t
+  def store_rpc!(customer, air_name, message_id), do:
     %AirRPC{}
-    |> AirRPC.changeset(%{id: rpc_id(customer, air_name, message_id), result: :erlang.term_to_binary(result)})
+    |> AirRPC.changeset(%{id: rpc_id(customer, air_name, message_id)})
     |> Repo.insert!()
 
 

@@ -10,12 +10,10 @@ defmodule Central.Schemas.AirRPC do
   @primary_key {:id, :string, []}
   @derive {Phoenix.Param, key: :id}
   schema "air_rpcs" do
-    field :result, :binary
-
     timestamps()
   end
 
-  @required_fields ~w(id result)a
+  @required_fields ~w(id)a
   @optional_fields ~w()a
 
 
