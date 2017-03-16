@@ -157,6 +157,51 @@ defmodule Central.Service.CustomerTest do
     assert query.aux == aux
   end
 
+  test "store_rpc!" do
+    rpc = Customer.store_rpc!(create_customer(), "foo", "bar")
+    assert Repo.get(Schemas.AirRPC, rpc.id) != nil
+  end
+
+  test "rpc_imported? returns false if customer doesn't match" do
+    Customer.store_rpc!(create_customer("c1"), "foo", "bar")
+    assert Customer.rpc_imported?(create_customer("c2"), "foo", "bar") == false
+  end
+
+  test "rpc_imported? returns false if air name doesn't match" do
+    customer = create_customer()
+    Customer.store_rpc!(customer, "air", "id")
+    assert Customer.rpc_imported?(customer, "another_air", "id") == false
+  end
+
+  test "rpc_imported? returns false if id doesn't match" do
+    customer = create_customer()
+    Customer.store_rpc!(customer, "air", "id")
+    assert Customer.rpc_imported?(customer, "air", "another_id") == false
+  end
+
+  test "rpc_imported? returns true if all fields match" do
+    customer = create_customer()
+    Customer.store_rpc!(customer, "air", "id")
+    assert Customer.rpc_imported?(customer, "air", "id") == true
+  end
+
+  test "delete old rpcs" do
+    rpc1 = insert_rpc(-:timer.minutes(1))
+    rpc2 = insert_rpc(:timer.minutes(1))
+    assert Customer.delete_old_rpcs() == :ok
+    assert Repo.get(Schemas.AirRPC, rpc1.id) == nil
+    assert Repo.get(Schemas.AirRPC, rpc2.id) != nil
+  end
+
+  defp insert_rpc(msecs_after_cleanup_boundary) do
+    mtime =
+      NaiveDateTime.utc_now()
+      |> NaiveDateTime.add(-Application.fetch_env!(:central, :delete_air_rpcs_after), :millisecond)
+      |> NaiveDateTime.add(msecs_after_cleanup_boundary * :timer.hours(24), :millisecond)
+
+    Repo.insert!(%Schemas.AirRPC{id: Ecto.UUID.generate(), inserted_at: mtime, updated_at: mtime})
+  end
+
   defp create_customer(name \\ "default customer") do
     assert {:ok, customer} = Repo.insert(Schemas.Customer.changeset(%Schemas.Customer{}, %{name: name}))
     customer

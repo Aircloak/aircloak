@@ -6,7 +6,7 @@ defmodule Central.Service.Customer do
 
   alias Ecto.Changeset
   alias Central.Repo
-  alias Central.Schemas.{Air, Cloak, Customer, CustomerExport, Query, OnlineStatus}
+  alias Central.Schemas.{Air, AirRPC, Cloak, Customer, CustomerExport, Query, OnlineStatus}
   alias Central.Service.ElasticSearch
   alias Central.Service.Customer.AirMessage
 
@@ -36,8 +36,12 @@ defmodule Central.Service.Customer do
          :ok <- AirMessage.validate_export(customer, export),
          {:ok, handler} <- air_handler(export.air_version)
         do
-      Enum.each(export.rpcs, &handler.handle(&1, customer, export.air_name))
-      mark_export_as_imported!(customer, export.id, export.created_at)
+      {:ok, _} = Repo.transaction(fn ->
+        # We don't need to check for duplicate rpcs, because we verified that the export has not already been
+        # imported, and because the export is imported atomically (all or nothing).
+        Enum.each(export.rpcs, &handler.handle(&1, customer, export.air_name, check_duplicate_rpc?: false))
+        mark_export_as_imported!(customer, export.id, export.created_at)
+      end)
       {:ok, length(export.rpcs)}
     end
   end
@@ -47,7 +51,7 @@ defmodule Central.Service.Customer do
   def start_air_message_handler(message, customer, air_name, air_version), do:
     Task.Supervisor.start_child(@message_handler_sup, fn() ->
       {:ok, handler} = air_handler(air_version)
-      handler.handle(message, customer, air_name)
+      handler.handle(message, customer, air_name, check_duplicate_rpc?: true)
     end)
 
   @doc "Returns all registered customers"
@@ -236,10 +240,35 @@ defmodule Central.Service.Customer do
       limit: 1
     )
 
+  @doc "Determines if the RPC for the given customer, air, and with the given id is already imported."
+  @spec rpc_imported?(Customer.t, String.t, String.t) :: boolean
+  def rpc_imported?(customer, air_name, message_id), do:
+    Repo.get(AirRPC, rpc_id(customer, air_name, message_id)) != nil
+
+  @doc "Stores the RPC into the database."
+  @spec store_rpc!(Customer.t, String.t, String.t) :: AirRPC.t
+  def store_rpc!(customer, air_name, message_id), do:
+    Repo.insert!(%AirRPC{id: rpc_id(customer, air_name, message_id)})
+
+  @doc "Deletes old RPCs from the database."
+  @spec delete_old_rpcs() :: :ok
+  def delete_old_rpcs() do
+    delete_after = -Application.fetch_env!(:central, :delete_air_rpcs_after)
+    {num_deleted, _} = Repo.delete_all(
+      from rpc in AirRPC,
+        where: rpc.inserted_at < from_now(^delete_after, "millisecond")
+    )
+    Logger.info("deleted #{num_deleted} Air RPC entries from the database")
+    :ok
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp rpc_id(customer, air_name, message_id), do:
+    Enum.join([customer.id, air_name, message_id], "|")
 
   defp customer_token_salt() do
     Central.site_setting("customer_token_salt")

@@ -19,3 +19,5 @@ config :central, Central.Repo,
 config :central, :https_port, 7444
 
 config :central, air_status_logging_interval: :timer.seconds(10)
+
+config :central, :delete_air_rpcs_after, :timer.hours(24) * 7

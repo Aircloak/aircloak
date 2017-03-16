@@ -2,9 +2,10 @@ defmodule Central.Service.Customer.AirMessage.Default do
   @moduledoc "Decoding and handling of messages sent by air pre-versioning."
   require Logger
   alias Central.Service.Customer
-  alias Central.{Repo, Schemas.AirRPC}
 
   known_messages = ~w(query_execution cloak_online cloak_offline usage_info)
+
+  @type options :: [check_duplicate_rpc?: boolean]
 
 
   # -------------------------------------------------------------------
@@ -12,19 +13,19 @@ defmodule Central.Service.Customer.AirMessage.Default do
   # -------------------------------------------------------------------
 
   @doc "Handles an Air message"
-  @spec handle(Customer.AirMessage.rpc, Central.Schemas.Customer.t, String.t) :: :ok | :error
-  def handle(message, customer, air_name) do
+  @spec handle(Customer.AirMessage.rpc, Central.Schemas.Customer.t, String.t, options) ::
+    :ok | {:error, :duplicate_rpc}
+  def handle(message, customer, air_name, options) do
+    options = Keyword.merge([check_duplicate_rpc?: true], options)
     message_id = Map.fetch!(message, "id")
-    case rpc(customer, air_name, message_id) do
-      nil ->
-        result = do_handle(message, customer, air_name)
-        store_rpc!(customer, air_name, message_id, result)
-        result
-
-      rpc ->
-        Logger.info("Received a repeat RPC call for RPC id '#{rpc.id}'. The RPC was not re-executed. " <>
-          "The type of the incoming RPC was '#{message["event"]}'")
-        :erlang.binary_to_term(rpc.result)
+    if check_duplicate_rpc?(options) && Customer.rpc_imported?(customer, air_name, message_id) do
+      Logger.info("Received a repeated RPC call. The RPC was not re-executed.")
+      {:error, :duplicate_rpc}
+    else
+      result = do_handle(message, customer, air_name)
+      if check_duplicate_rpc?(options), do:
+        Customer.store_rpc!(customer, air_name, message_id)
+      result
     end
   end
 
@@ -32,6 +33,9 @@ defmodule Central.Service.Customer.AirMessage.Default do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp check_duplicate_rpc?(options), do:
+    Keyword.fetch!(options, :check_duplicate_rpc?)
 
   for message_name <- known_messages, function_name = :"handle_#{message_name}" do
     def do_handle(%{"event" => unquote(message_name)} = message, customer, air_name) do
@@ -74,15 +78,4 @@ defmodule Central.Service.Customer.AirMessage.Default do
       NaiveDateTime.from_iso8601!(Map.fetch!(message.payload, "air_utc_time")),
       Map.delete(message.payload, "air_utc_time")
     )
-
-  defp rpc(customer, air_name, message_id), do:
-    Repo.get(AirRPC, rpc_id(customer, air_name, message_id))
-
-  defp store_rpc!(customer, air_name, message_id, result), do:
-    %AirRPC{}
-    |> AirRPC.changeset(%{id: rpc_id(customer, air_name, message_id), result: :erlang.term_to_binary(result)})
-    |> Repo.insert!()
-
-  defp rpc_id(customer, air_name, message_id), do:
-    Enum.join([customer.id, air_name, message_id], "|")
 end
