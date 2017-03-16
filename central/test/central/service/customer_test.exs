@@ -157,6 +157,45 @@ defmodule Central.Service.CustomerTest do
     assert query.aux == aux
   end
 
+  test "store_rpc!" do
+    rpc = Customer.store_rpc!(create_customer(), "foo", "bar")
+    assert Repo.get(Schemas.AirRPC, rpc.id) != nil
+  end
+
+  test "rpc_imported? returns false if customer doesn't match" do
+    Customer.store_rpc!(create_customer("c1"), "foo", "bar")
+    assert Customer.rpc_imported?(create_customer("c2"), "foo", "bar") == false
+  end
+
+  test "rpc_imported? returns false if air name doesn't match" do
+    customer = create_customer()
+    Customer.store_rpc!(customer, "air", "id")
+    assert Customer.rpc_imported?(customer, "another_air", "id") == false
+  end
+
+  test "rpc_imported? returns false if id doesn't match" do
+    customer = create_customer()
+    Customer.store_rpc!(customer, "air", "id")
+    assert Customer.rpc_imported?(customer, "air", "another_id") == false
+  end
+
+  test "rpc_imported? returns true if all fields match" do
+    customer = create_customer()
+    Customer.store_rpc!(customer, "air", "id")
+    assert Customer.rpc_imported?(customer, "air", "id") == true
+  end
+
+  test "rpc_imported? returns false" do
+    c1 = create_customer("c1")
+    c2 = create_customer("c2")
+
+    Customer.store_rpc!(c1, "_", "bar")
+    Customer.store_rpc!(c1, "foo", "_")
+    Customer.store_rpc!(c2, "foo", "bar")
+
+    assert Customer.rpc_imported?(c1, "foo", "bar") == false
+  end
+
   test "delete old rpcs" do
     rpc1 = insert_rpc(-:timer.minutes(1))
     rpc2 = insert_rpc(:timer.minutes(1))
