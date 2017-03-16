@@ -254,7 +254,11 @@ defmodule Central.Service.Customer do
   @spec delete_old_rpcs() :: :ok
   def delete_old_rpcs() do
     delete_after = -Application.fetch_env!(:central, :delete_air_rpcs_after)
-    Repo.delete_all(from rpc in AirRPC, where: rpc.inserted_at < from_now(^delete_after, "millisecond"))
+    {num_deleted, _} = Repo.delete_all(
+      from rpc in AirRPC,
+        where: rpc.inserted_at < from_now(^delete_after, "millisecond")
+    )
+    Logger.info("deleted #{num_deleted} Air RPC entries from the database")
     :ok
   end
 
