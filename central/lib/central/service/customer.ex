@@ -250,6 +250,14 @@ defmodule Central.Service.Customer do
   def store_rpc!(customer, air_name, message_id), do:
     Repo.insert!(%AirRPC{id: rpc_id(customer, air_name, message_id)})
 
+  @doc "Deletes old RPCs from the database."
+  @spec delete_old_rpcs() :: :ok
+  def delete_old_rpcs() do
+    delete_after = -Application.fetch_env!(:central, :delete_air_rpcs_after)
+    Repo.delete_all(from rpc in AirRPC, where: rpc.inserted_at < from_now(^delete_after, "millisecond"))
+    :ok
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions

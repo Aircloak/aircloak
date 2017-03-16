@@ -157,6 +157,23 @@ defmodule Central.Service.CustomerTest do
     assert query.aux == aux
   end
 
+  test "delete old rpcs" do
+    rpc1 = insert_rpc(-:timer.minutes(1))
+    rpc2 = insert_rpc(:timer.minutes(1))
+    assert Customer.delete_old_rpcs() == :ok
+    assert Repo.get(Schemas.AirRPC, rpc1.id) == nil
+    assert Repo.get(Schemas.AirRPC, rpc2.id) != nil
+  end
+
+  defp insert_rpc(msecs_after_cleanup_boundary) do
+    mtime =
+      NaiveDateTime.utc_now()
+      |> NaiveDateTime.add(-Application.fetch_env!(:central, :delete_air_rpcs_after), :millisecond)
+      |> NaiveDateTime.add(msecs_after_cleanup_boundary * :timer.hours(24), :millisecond)
+
+    Repo.insert!(%Schemas.AirRPC{id: Ecto.UUID.generate(), inserted_at: mtime, updated_at: mtime})
+  end
+
   defp create_customer(name \\ "default customer") do
     assert {:ok, customer} = Repo.insert(Schemas.Customer.changeset(%Schemas.Customer{}, %{name: name}))
     customer
