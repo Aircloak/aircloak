@@ -182,6 +182,49 @@ For MongoDb databases, every collection is initially scanned to determine the co
 
 Where `sample_rate` is an integer between 1 and 100, representing the percentage of data which is going to be sampled.
 
+### Data decoding
+
+Some tables might contain encoded data, which is difficult or impossible to work with directly by analysts. The cloak has support for decoding the data before the query is executed. The decoders are set in the table section. Each one will be applied, sequentially, in the specified order. If an error is encountered by a decoder, processing is skipped and the input value is returned by that decoder.
+Be careful when using this feature and only decode data in the cloak when there is no other alternative, as any query accessing an encoded column will be executed fully in the cloak, with greatly reduced performance.
+
+#### Data decryption
+
+The cloak can decrypt columns encrypted using AES-CBC-128. To activate decryption, specify the `aes_cbc_128` decoder, the decryption key and the list of columns that need to be decrypted, like this:
+
+```
+tables": {
+  "some_table": {
+    "decoders": [
+      {"method": "aes_cbc_128", "key": "some_decryption_key", "columns": ["some_column_name", ...]},
+      ...
+    ],
+    ...
+  },
+  ...
+}
+```
+
+#### Type conversion
+
+The cloak can convert columns from one type into into another, exposing the new type in the columns list provided to analysts. Currently, the following type conversion decoders are available: `text_to_integer`, `text_to_real`, `text_to_datetime`, `text_to_date`, `text_to_time`. An example conversion of a column from text to integer would look like this:
+
+```
+tables": {
+  "some_table": {
+    "decoders": [
+      {"method": "text_to_integer", "columns": ["some_column_name", ...]},
+      ...
+    ],
+    ...
+  },
+  ...
+}
+```
+
+#### Base-64 decoding
+
+There also exists a `base64` decoder capable of converting a column from a Base-64 encoding to plain text.
+
 ### Starting the container
 
 With this configuration specified, we can start the cloak container as:
