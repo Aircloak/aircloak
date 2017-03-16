@@ -10,6 +10,7 @@ defmodule Air.Service.Cloak.Test do
   @data_sources [%{"global_id" => @data_source_id, "tables" => []}]
 
   setup do
+    wait_for_cleanup()
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
     :ok
   end
@@ -120,4 +121,9 @@ defmodule Air.Service.Cloak.Test do
       {^ref, registration_result} -> {registration_result, pid}
     end
   end
+
+  # It seems that when the tests run too fast sometimes the (shared) GenServer under test manages to checkout a
+  # connection that belongs to a test process that already died. I couldn't find an asynchronous operation that
+  # would cause this, as the only operation on the GenServer is a call.
+  defp wait_for_cleanup(), do: :timer.sleep(10)
 end
