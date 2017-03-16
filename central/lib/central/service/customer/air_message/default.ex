@@ -5,7 +5,7 @@ defmodule Central.Service.Customer.AirMessage.Default do
 
   known_messages = ~w(query_execution cloak_online cloak_offline usage_info)
 
-  @type options :: [check_rpc?: boolean]
+  @type options :: [check_duplicate_rpc?: boolean]
 
 
   # -------------------------------------------------------------------
@@ -16,14 +16,14 @@ defmodule Central.Service.Customer.AirMessage.Default do
   @spec handle(Customer.AirMessage.rpc, Central.Schemas.Customer.t, String.t, options) ::
     :ok | {:error, :duplicate_rpc}
   def handle(message, customer, air_name, options) do
-    options = Keyword.merge([check_rpc?: true], options)
+    options = Keyword.merge([check_duplicate_rpc?: true], options)
     message_id = Map.fetch!(message, "id")
-    if check_rpc?(options) && Customer.rpc(customer, air_name, message_id) != nil do
+    if check_duplicate_rpc?(options) && Customer.rpc(customer, air_name, message_id) != nil do
       Logger.info("Received a repeated RPC call. The RPC was not re-executed.")
       {:error, :duplicate_rpc}
     else
       result = do_handle(message, customer, air_name)
-      if check_rpc?(options), do:
+      if check_duplicate_rpc?(options), do:
         Customer.store_rpc!(customer, air_name, message_id)
       result
     end
@@ -34,8 +34,8 @@ defmodule Central.Service.Customer.AirMessage.Default do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp check_rpc?(options), do:
-    Keyword.fetch!(options, :check_rpc?)
+  defp check_duplicate_rpc?(options), do:
+    Keyword.fetch!(options, :check_duplicate_rpc?)
 
   for message_name <- known_messages, function_name = :"handle_#{message_name}" do
     def do_handle(%{"event" => unquote(message_name)} = message, customer, air_name) do

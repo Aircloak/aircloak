@@ -39,7 +39,7 @@ defmodule Central.Service.Customer do
       {:ok, _} = Repo.transaction(fn ->
         # We don't need to check for duplicate rpcs, because we verified that the export has not already been
         # imported, and because the export is imported atomically (all or nothing).
-        Enum.each(export.rpcs, &handler.handle(&1, customer, export.air_name, check_rpc?: false))
+        Enum.each(export.rpcs, &handler.handle(&1, customer, export.air_name, check_duplicate_rpc?: false))
         mark_export_as_imported!(customer, export.id, export.created_at)
       end)
       {:ok, length(export.rpcs)}
@@ -51,7 +51,7 @@ defmodule Central.Service.Customer do
   def start_air_message_handler(message, customer, air_name, air_version), do:
     Task.Supervisor.start_child(@message_handler_sup, fn() ->
       {:ok, handler} = air_handler(air_version)
-      handler.handle(message, customer, air_name, check_rpc?: true)
+      handler.handle(message, customer, air_name, check_duplicate_rpc?: true)
     end)
 
   @doc "Returns all registered customers"
