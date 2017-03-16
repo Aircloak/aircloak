@@ -185,17 +185,6 @@ defmodule Central.Service.CustomerTest do
     assert Customer.rpc_imported?(customer, "air", "id") == true
   end
 
-  test "rpc_imported? returns false" do
-    c1 = create_customer("c1")
-    c2 = create_customer("c2")
-
-    Customer.store_rpc!(c1, "_", "bar")
-    Customer.store_rpc!(c1, "foo", "_")
-    Customer.store_rpc!(c2, "foo", "bar")
-
-    assert Customer.rpc_imported?(c1, "foo", "bar") == false
-  end
-
   test "delete old rpcs" do
     rpc1 = insert_rpc(-:timer.minutes(1))
     rpc2 = insert_rpc(:timer.minutes(1))
