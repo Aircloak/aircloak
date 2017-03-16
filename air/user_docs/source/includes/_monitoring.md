@@ -59,6 +59,7 @@ The endpoint presents data as the following JSON structure:
       "id": id of the data source,
       "name": "name of the data source",
       "groups": ["group with access to the data source"],
+      "errors": ["error encountered during data source initialization"],
       "queries": {
         "last_5_minutes": number of queries made to this data source in the last 5 minutes,
         "last_15_minutes": ...,
