@@ -240,10 +240,10 @@ defmodule Central.Service.Customer do
       limit: 1
     )
 
-  @doc "Retrieves the RPC from the database."
-  @spec rpc(Customer.t, String.t, String.t) :: nil | AirRPC.t
-  def rpc(customer, air_name, message_id), do:
-    Repo.get(AirRPC, rpc_id(customer, air_name, message_id))
+  @doc "Determines if the RPC for the given customer, air, and with the given id is already imported."
+  @spec rpc_imported?(Customer.t, String.t, String.t) :: boolean
+  def rpc_imported?(customer, air_name, message_id), do:
+    Repo.get(AirRPC, rpc_id(customer, air_name, message_id)) != nil
 
   @doc "Stores the RPC into the database."
   @spec store_rpc!(Customer.t, String.t, String.t) :: AirRPC.t

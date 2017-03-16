@@ -18,7 +18,7 @@ defmodule Central.Service.Customer.AirMessage.Default do
   def handle(message, customer, air_name, options) do
     options = Keyword.merge([check_duplicate_rpc?: true], options)
     message_id = Map.fetch!(message, "id")
-    if check_duplicate_rpc?(options) && Customer.rpc(customer, air_name, message_id) != nil do
+    if check_duplicate_rpc?(options) && Customer.rpc_imported?(customer, air_name, message_id) do
       Logger.info("Received a repeated RPC call. The RPC was not re-executed.")
       {:error, :duplicate_rpc}
     else
