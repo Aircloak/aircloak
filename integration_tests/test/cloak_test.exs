@@ -19,6 +19,7 @@ defmodule IntegrationTest.CloakTest do
       Manager.data_source_global_id()
       |> Air.Service.Cloak.channel_pids()
       |> hd()
+      |> elem(0)
       |> Process.info()
       |> Keyword.fetch!(:dictionary)
       |> Keyword.fetch!(:"$ancestors")
@@ -42,6 +43,7 @@ defmodule IntegrationTest.CloakTest do
       # kill air channel process
       Air.Service.Cloak.channel_pids(Manager.data_source_global_id())
       |> hd()
+      |> elem(0)
       |> Process.exit(:kill)
 
       # verify that cloak socket rejoins the main channel
