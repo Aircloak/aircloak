@@ -248,9 +248,7 @@ defmodule Central.Service.Customer do
   @doc "Stores the RPC into the database."
   @spec store_rpc!(Customer.t, String.t, String.t) :: AirRPC.t
   def store_rpc!(customer, air_name, message_id), do:
-    %AirRPC{}
-    |> AirRPC.changeset(%{id: rpc_id(customer, air_name, message_id)})
-    |> Repo.insert!()
+    Repo.insert!(%AirRPC{id: rpc_id(customer, air_name, message_id)})
 
 
   # -------------------------------------------------------------------
