@@ -6,7 +6,7 @@ defmodule Central.Service.Customer do
 
   alias Ecto.Changeset
   alias Central.Repo
-  alias Central.Schemas.{Air, Cloak, Customer, CustomerExport, Query, OnlineStatus}
+  alias Central.Schemas.{Air, AirRPC, Cloak, Customer, CustomerExport, Query, OnlineStatus}
   alias Central.Service.ElasticSearch
   alias Central.Service.Customer.AirMessage
 
@@ -240,10 +240,25 @@ defmodule Central.Service.Customer do
       limit: 1
     )
 
+  @doc "Retrieves the RPC from the database."
+  @spec rpc(Customer.t, String.t, String.t) :: nil | AirRPC.t
+  def rpc(customer, air_name, message_id), do:
+    Repo.get(AirRPC, rpc_id(customer, air_name, message_id))
+
+  @doc "Stores the RPC into the database."
+  @spec store_rpc!(Customer.t, String.t, String.t, any) :: AirRPC.t
+  def store_rpc!(customer, air_name, message_id, result), do:
+    %AirRPC{}
+    |> AirRPC.changeset(%{id: rpc_id(customer, air_name, message_id), result: :erlang.term_to_binary(result)})
+    |> Repo.insert!()
+
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp rpc_id(customer, air_name, message_id), do:
+    Enum.join([customer.id, air_name, message_id], "|")
 
   defp customer_token_salt() do
     Central.site_setting("customer_token_salt")

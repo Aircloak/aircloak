@@ -2,7 +2,6 @@ defmodule Central.Service.Customer.AirMessage.Default do
   @moduledoc "Decoding and handling of messages sent by air pre-versioning."
   require Logger
   alias Central.Service.Customer
-  alias Central.{Repo, Schemas.AirRPC}
 
   known_messages = ~w(query_execution cloak_online cloak_offline usage_info)
 
@@ -19,13 +18,13 @@ defmodule Central.Service.Customer.AirMessage.Default do
   def handle(message, customer, air_name, options) do
     options = Keyword.merge([check_rpc?: true], options)
     message_id = Map.fetch!(message, "id")
-    if check_rpc?(options) && rpc(customer, air_name, message_id) != nil do
+    if check_rpc?(options) && Customer.rpc(customer, air_name, message_id) != nil do
       Logger.info("Received a repeated RPC call. The RPC was not re-executed.")
       {:error, :duplicate_rpc}
     else
       result = do_handle(message, customer, air_name)
       if check_rpc?(options), do:
-        store_rpc!(customer, air_name, message_id, result)
+        Customer.store_rpc!(customer, air_name, message_id, result)
       result
     end
   end
@@ -79,15 +78,4 @@ defmodule Central.Service.Customer.AirMessage.Default do
       NaiveDateTime.from_iso8601!(Map.fetch!(message.payload, "air_utc_time")),
       Map.delete(message.payload, "air_utc_time")
     )
-
-  defp rpc(customer, air_name, message_id), do:
-    Repo.get(AirRPC, rpc_id(customer, air_name, message_id))
-
-  defp store_rpc!(customer, air_name, message_id, result), do:
-    %AirRPC{}
-    |> AirRPC.changeset(%{id: rpc_id(customer, air_name, message_id), result: :erlang.term_to_binary(result)})
-    |> Repo.insert!()
-
-  defp rpc_id(customer, air_name, message_id), do:
-    Enum.join([customer.id, air_name, message_id], "|")
 end
