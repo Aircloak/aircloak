@@ -10,7 +10,7 @@ defmodule Air.Service.Cloak do
   alias Air.Service.DataSource
 
   @serializer_name __MODULE__.Serializer
-  @main_registry_name __MODULE__.MainRegistry
+  @data_source_registry_name __MODULE__.DataSourceRegistry
   @memory_registry_name __MODULE__.MemoryRegistry
   @all_cloak_registry_name __MODULE__.AllCloakRegistry
 
@@ -26,7 +26,7 @@ defmodule Air.Service.Cloak do
 
     children = [
       worker(GenServer, [__MODULE__, [], [name: @serializer_name]], id: @serializer_name),
-      worker(Registry, [:duplicate, @main_registry_name], id: @main_registry_name),
+      worker(Registry, [:duplicate, @data_source_registry_name], id: @data_source_registry_name),
       worker(Registry, [:unique, @memory_registry_name], id: @memory_registry_name),
       worker(Registry, [:duplicate, @all_cloak_registry_name], id: @all_cloak_registry_name),
     ]
@@ -43,7 +43,7 @@ defmodule Air.Service.Cloak do
 
     Registry.register(@all_cloak_registry_name, :all_cloaks, cloak_info)
     for global_id <- data_source_ids do
-      Registry.register(@main_registry_name, global_id, cloak_info)
+      Registry.register(@data_source_registry_name, global_id, cloak_info)
     end
 
     :ok
@@ -58,7 +58,7 @@ defmodule Air.Service.Cloak do
 
   @doc "Returns a list of cloak channels for a given data source. The list consists of pairs `{pid, cloak_info}`."
   @spec channel_pids(String.t) :: [{pid(), Map.t}]
-  def channel_pids(global_id), do: Registry.lookup(@main_registry_name, global_id)
+  def channel_pids(global_id), do: Registry.lookup(@data_source_registry_name, global_id)
 
   @doc """
   Returns a list of the connected cloaks. The element returned for each cloak
@@ -72,7 +72,7 @@ defmodule Air.Service.Cloak do
   @doc "Returns the cloak info of cloaks serving a data source"
   @spec cloak_infos_for_data_source(String.t) :: [Map.t]
   def cloak_infos_for_data_source(global_id), do:
-    for {pid, cloak_info} <- Registry.lookup(@main_registry_name, global_id), do: lookup_memory(pid, cloak_info)
+    for {pid, cloak_info} <- Registry.lookup(@data_source_registry_name, global_id), do: lookup_memory(pid, cloak_info)
 
 
   # -------------------------------------------------------------------
