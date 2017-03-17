@@ -37,6 +37,7 @@ defmodule Air do
   def start(_type, _args) do
     configure_secrets()
     Air.Repo.configure()
+    configure_periodic_jobs()
     Air.Supervisor.start_link()
   end
 
@@ -74,5 +75,16 @@ defmodule Air do
     else
       []
     end
+  end
+
+  defp configure_periodic_jobs() do
+    import Crontab.CronExpression
+
+    [
+      {"0 * * * *", {Air.Service.Cleanup, :cleanup_old_queries}},
+      {"*/5 * * * *", {Air.Service.Cleanup, :cleanup_dead_queries}},
+      {~e[*/10 * * * * * *]e, {Air.Socket.Frontend.DataSourceChannel, :push_updates}},
+    ]
+    |> Enum.each(fn({schedule, job}) -> Quantum.add_job(schedule, job) end)
   end
 end
