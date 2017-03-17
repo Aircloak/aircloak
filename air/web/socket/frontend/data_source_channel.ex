@@ -10,12 +10,12 @@ defmodule Air.Socket.Frontend.DataSourceChannel do
   @doc "Broadcasts an online or offline message for each known data source."
   @spec push_updates() :: :ok
   def push_updates() do
-    for %{global_id: global_id} <- Air.Service.DataSource.all() do
+    for %{id: id, global_id: global_id} <- Air.Service.DataSource.all() do
       status = case Air.Service.DataSource.available?(global_id) do
         true -> "online"
         false -> "offline"
       end
-      Air.Endpoint.broadcast!("data_source:#{global_id}", status, %{})
+      Air.Endpoint.broadcast!("data_source:#{id}", status, %{})
     end
 
     :ok
@@ -28,8 +28,8 @@ defmodule Air.Socket.Frontend.DataSourceChannel do
 
   @doc false
   @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
-  def join("data_source:" <> global_id, _, socket) do
-    case Air.Service.DataSource.fetch_as_user({:global_id, global_id}, socket.assigns.user) do
+  def join("data_source:" <> id, _, socket) do
+    case Air.Service.DataSource.fetch_as_user({:id, id}, socket.assigns.user) do
       {:ok, _} -> {:ok, socket}
       {:error, :unauthorized} -> {:error, %{success: false, description: "Unauthorized to access channel"}}
     end
