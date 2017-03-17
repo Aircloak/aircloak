@@ -77,14 +77,18 @@ defmodule Air do
     end
   end
 
-  defp configure_periodic_jobs() do
-    import Crontab.CronExpression
+  if Mix.env == :test do
+    defp configure_periodic_jobs(), do: :ok
+  else
+    defp configure_periodic_jobs() do
+      import Crontab.CronExpression
 
-    [
-      {"0 * * * *", {Air.Service.Cleanup, :cleanup_old_queries}},
-      {"*/5 * * * *", {Air.Service.Cleanup, :cleanup_dead_queries}},
-      {~e[*/10 * * * * * *]e, {Air.Socket.Frontend.DataSourceChannel, :push_updates}},
-    ]
-    |> Enum.each(fn({schedule, job}) -> Quantum.add_job(schedule, job) end)
+      [
+        {"0 * * * *", {Air.Service.Cleanup, :cleanup_old_queries}},
+        {"*/5 * * * *", {Air.Service.Cleanup, :cleanup_dead_queries}},
+        {~e[*/10 * * * * * *]e, {Air.Socket.Frontend.DataSourceChannel, :push_updates}},
+      ]
+      |> Enum.each(fn({schedule, job}) -> Quantum.add_job(schedule, job) end)
+    end
   end
 end
