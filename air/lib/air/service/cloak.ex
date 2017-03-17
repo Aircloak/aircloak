@@ -112,7 +112,7 @@ defmodule Air.Service.Cloak do
   defp lookup_memory(pid, cloak_info) do
     case Registry.lookup(@memory_registry_name, pid) do
       [{_, memory}] -> cloak_info |> Map.put(:memory, memory)
-      _ -> cloak_info |> Map.put(:memory, %{})
+      [] -> cloak_info |> Map.put(:memory, %{})
     end
   end
 end
