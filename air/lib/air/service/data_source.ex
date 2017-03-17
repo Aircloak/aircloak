@@ -28,6 +28,10 @@ defmodule Air.Service.DataSource do
   def count(), do:
     Repo.one!(from data_source in DataSource, select: count(data_source.id))
 
+  @doc "Returns all known data sources."
+  @spec all() :: [DataSource.t]
+  def all(), do: Repo.all(DataSource) |> Repo.preload([:groups])
+
   @doc "Returns all data sources belonging to the given user."
   @spec for_user(User.t) :: [DataSource.t]
   def for_user(user), do: Repo.all(users_data_sources(user))
