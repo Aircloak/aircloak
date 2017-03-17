@@ -22,15 +22,23 @@ defmodule Air.DataSourceView do
   defp limited_join([], accumulator, _length), do: accumulator <> "."
   defp limited_join([value | rest], accumulator, length), do: limited_join(rest, "#{accumulator}, #{value}", length)
 
-  def availability_label(data_source) do
+  def status(data_source) do
     if available?(data_source) do
       if Schemas.DataSource.errors(data_source) != [] do
-        content_tag(:span, "Broken", class: "label label-warning")
+        :broken
       else
-        content_tag(:span, "Online", class: "label label-success")
+        :online
       end
     else
-      content_tag(:span, "Offline", class: "label label-danger")
+      :offline
+    end
+  end
+
+  def availability_label(data_source) do
+    case status(data_source) do
+      :broken -> content_tag(:span, "Broken", class: "label label-warning")
+      :online -> content_tag(:span, "Online", class: "label label-success")
+      :offline -> content_tag(:span, "Offline", class: "label label-danger")
     end
   end
 end

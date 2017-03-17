@@ -269,6 +269,14 @@ class QueriesView extends React.Component {
     );
   }
 
+  renderAvailabilityLabel() {
+    switch(this.props.dataSourceStatus) {
+      case "online": return <span className="label label-success">Online</span>;
+      case "offline": return <span className="label label-danger">Offline</span>;
+      default: return <span className="label label-warning">Broken</span>;
+    }
+  }
+
   renderCodeEditorOrViewer() {
     if (this.runEnabled()) {
       return (<CodeEditor
@@ -297,6 +305,12 @@ class QueriesView extends React.Component {
 
   render() {
     return (<div>
+      <h2>
+        {this.props.dataSourceName}
+        &nbsp;
+        {this.renderAvailabilityLabel()}
+      </h2>
+
       <Disconnected channel={this.channel} />
 
       <div id="sql-editor">
