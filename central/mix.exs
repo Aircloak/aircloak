@@ -99,7 +99,7 @@ defmodule Central.Mixfile do
   defp extra_applications(:prod), do: common_extra_applications()
 
   defp common_extra_applications(), do:
-    [:logger, :inets]
+    [:logger, :inets, :crontab]
 
   # These are indirect dependencies (deps of deps) which are not automatically included in the generated PLT.
   # By adding them explicitly to the applications list, we make sure that they are included in the PLT.
