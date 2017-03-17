@@ -27,6 +27,10 @@ export class FrontendSocket {
     return this.joinChannel(callbacks, "state_changes:all", ["state_change"]);
   }
 
+  joinDataSourceChannel(dataSourceId: number, callbacks: Callbacks) {
+    return this.joinChannel(callbacks, `data_source:${dataSourceId}`, ["status"]);
+  }
+
   joinMemoryChannel(callbacks: Callbacks) {
     return this.joinChannel(callbacks, "memory_readings", ["new_reading"]);
   }

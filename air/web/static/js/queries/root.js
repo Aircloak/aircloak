@@ -23,6 +23,8 @@ type Props = {
   sessionId: string,
   guardianToken: string,
   dataSourceId: number,
+  dataSourceName: string,
+  dataSourceStatus: string,
   dataSourceAvailable: boolean,
   selectables: Selectable[],
   lastQuery: {statement: string},
@@ -47,6 +49,7 @@ class QueriesView extends React.Component {
       statement: this.props.lastQuery ? this.props.lastQuery.statement : "",
       sessionResults: this.props.pendingQueries,
       connected: true,
+      dataSourceStatus: this.props.dataSourceStatus,
 
       history: {
         before: "",
@@ -59,7 +62,6 @@ class QueriesView extends React.Component {
     this.runQuery = _.debounce(this.runQuery.bind(this), runQueryTimeout, {leading: true, trailing: false});
     this.queryData = this.queryData.bind(this);
     this.addResult = this.addResult.bind(this);
-    this.resultReceived = this.resultReceived.bind(this);
     this.setResults = this.setResults.bind(this);
     this.handleLoadHistory = this.handleLoadHistory.bind(this);
     this.replaceResult = this.replaceResult.bind(this);
@@ -69,8 +71,11 @@ class QueriesView extends React.Component {
     this.updateConnected = this.updateConnected.bind(this);
 
     this.bindKeysWithoutEditorFocus();
+    this.props.frontendSocket.joinDataSourceChannel(this.props.dataSourceId, {
+      handleEvent: (event) => this.dataSourceStatusReceived(event),
+    });
     this.channel = this.props.frontendSocket.joinUserQueriesChannel(this.props.userId, {
-      handleEvent: this.resultReceived,
+      handleEvent: (event) => this.resultReceived(event),
     });
     this.connectedInterval = setInterval(this.updateConnected, 1000 /* 1 second */);
   }
@@ -80,6 +85,7 @@ class QueriesView extends React.Component {
     sessionResults: Result[],
     history: History,
     connected: boolean,
+    dataSourceStatus: string,
   }
   channel: Channel;
   connectedInterval: number;
@@ -88,7 +94,6 @@ class QueriesView extends React.Component {
   runQuery: () => void;
   queryData: () => void;
   addResult: () => void;
-  resultReceived: () => void;
   setResults: () => void;
   handleLoadHistory: () => void;
   replaceResult: () => void;
@@ -140,6 +145,10 @@ class QueriesView extends React.Component {
     } else {
       // Ignore result
     }
+  }
+
+  dataSourceStatusReceived({status}) {
+    this.setState({dataSourceStatus: status});
   }
 
   shouldDisplayResult(result) {
@@ -270,7 +279,7 @@ class QueriesView extends React.Component {
   }
 
   renderAvailabilityLabel() {
-    switch(this.props.dataSourceStatus) {
+    switch (this.state.dataSourceStatus) {
       case "online": return <span className="label label-success">Online</span>;
       case "offline": return <span className="label label-danger">Offline</span>;
       default: return <span className="label label-warning">Broken</span>;
