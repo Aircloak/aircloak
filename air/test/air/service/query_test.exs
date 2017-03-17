@@ -5,9 +5,7 @@ defmodule Air.Service.QueryTest do
   alias Air.Service.Query
 
   describe "get_as_user" do
-    setup do
-      {:ok, %{user: create_user!()}}
-    end
+    setup [:with_user]
 
     test "loads existing queries", %{user: user} do
       query = create_query!(user)

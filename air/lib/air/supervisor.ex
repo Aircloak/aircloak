@@ -5,7 +5,7 @@ defmodule Air.Supervisor do
     import Supervisor.Spec, warn: false
 
     children = [
-      supervisor(Air.Service.Cloak, []),
+      Air.Service.Cloak.supervisor_spec(),
       supervisor(Air.Repo, []),
       worker(Air.Repo.Migrator, [], restart: :transient),
       supervisor(Air.QueryEvents, []),
