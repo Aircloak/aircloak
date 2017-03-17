@@ -25,7 +25,7 @@ defmodule Air.Service.Cloak do
     import Supervisor.Spec
 
     children = [
-      worker(__MODULE__, []),
+      worker(GenServer, [__MODULE__, [], [name: @serializer_name]], id: @serializer_name),
       worker(Registry, [:duplicate, @main_registry_name], id: @main_registry_name),
       worker(Registry, [:unique, @memory_registry_name], id: @memory_registry_name),
       worker(Registry, [:duplicate, @all_cloak_registry_name], id: @all_cloak_registry_name),
@@ -33,10 +33,6 @@ defmodule Air.Service.Cloak do
 
     supervisor(Supervisor, [children, [strategy: :one_for_one, name: __MODULE__]])
   end
-
-  @doc "Starts the data source serializer process."
-  @spec start_link() :: GenServer.on_start
-  def start_link(), do: GenServer.start_link(__MODULE__, [], name: @serializer_name)
 
   @doc """
   Registers a data source (if needed), and associates the calling cloak with the data source
