@@ -162,7 +162,7 @@ defmodule Air.Service.DataSource do
   def query_alive?(query) do
     exception_to_tuple(fn() ->
       if available?(query.data_source.global_id) do
-        results = for channel <- Cloak.channel_pids(query.data_source.global_id), do:
+        results = for {channel, _cloak} <- Cloak.channel_pids(query.data_source.global_id), do:
           MainChannel.query_alive?(channel, query.id)
 
         cond do

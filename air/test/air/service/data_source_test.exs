@@ -2,7 +2,7 @@ defmodule Air.Service.DataSourceTest do
   use Air.SchemaCase, async: false # because of shared mode
 
   alias Air.Service.DataSource
-  alias Air.TestRepoHelper
+  alias Air.{TestRepoHelper, TestSocketHelper}
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
@@ -126,6 +126,37 @@ defmodule Air.Service.DataSourceTest do
 
   test "should be able to tell when a data source is not available" do
     refute DataSource.available?("some_id")
+  end
+
+  describe "query_alive?" do
+    setup [:with_user, :with_data_source, :with_query, :with_socket]
+
+    test "when the query is alive on some cloak", context do
+      task = Task.async(fn() -> DataSource.query_alive?(context.query |> Repo.preload(:data_source)) end)
+      TestSocketHelper.respond_to_query_alive!(context.socket, context.query.id, true)
+
+      assert {:ok, true} = Task.await(task)
+    end
+
+    test "when the query is not alive on any cloak", context do
+      task = Task.async(fn() -> DataSource.query_alive?(context.query |> Repo.preload(:data_source)) end)
+      TestSocketHelper.respond_to_query_alive!(context.socket, context.query.id, false)
+
+      assert {:ok, false} = Task.await(task)
+    end
+  end
+
+  defp with_user(_context), do: {:ok, user: TestRepoHelper.create_user!()}
+
+  defp with_data_source(_context), do: {:ok, data_source: TestRepoHelper.create_data_source!()}
+
+  defp with_query(%{user: user, data_source: data_source}), do: {:ok, query: create_query(user, data_source)}
+
+  defp with_socket(%{data_source: data_source}) do
+    socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
+    TestSocketHelper.join!(socket, "main",
+      %{data_sources: [%{"global_id" => data_source.global_id, "tables" => []}]})
+    {:ok, socket: socket}
   end
 
   defp create_query(user, data_source), do:
