@@ -17,6 +17,7 @@ import {HistoryLoader} from "./history_loader";
 import type {History} from "./history_loader";
 import {Disconnected} from "../disconnected";
 import {isFinished} from "./state";
+import {AuthenticationProvider} from "../authentication_provider";
 
 type Props = {
   userId: number,
@@ -336,5 +337,11 @@ class QueriesView extends React.Component {
 
 export default function renderQueriesView(data: Props, elem: Node) {
   const socket = new FrontendSocket(data.guardianToken);
-  ReactDOM.render(<QueriesView frontendSocket={socket} {...data} />, elem);
+  const authentication = {CSRFToken: data.CSRFToken};
+  ReactDOM.render(
+    <AuthenticationProvider authentication={authentication}>
+      <QueriesView frontendSocket={socket} {...data} />
+    </AuthenticationProvider>,
+    elem
+  );
 }
