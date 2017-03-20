@@ -7,11 +7,6 @@
           <li class="active"><%= @data_source.name %></li>
         </ol>
 
-        <h2>
-          <%= @data_source.name %>
-          <%= availability_label(@data_source) %>
-        </h2>
-
         <div id="query-view"></div>
 
         <%= render Air.SharedView, "footer.html", conn: @conn %>
@@ -33,6 +28,8 @@
         lastQuery: <%= to_json(@last_query) %>,
         pendingQueries: <%= to_json(@pending_queries) %>,
         dataSourceId: <%= @data_source.id %>,
+        dataSourceName: "<%= @data_source.name %>",
+        dataSourceStatus: "<%= status(@data_source) %>",
         dataSourceAvailable: <%= available?(@data_source) %>,
         CSRFToken: "<%= @csrf_token %>",
         guardianToken: "<%= @guardian_token %>",

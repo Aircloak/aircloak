@@ -18,6 +18,8 @@ defmodule Air.Service.DataSource do
   @type data_source_operation_error ::
     {:error, :expired | :unauthorized | :not_connected | :internal_error | any}
 
+  @type data_source_status :: :online | :offline | :broken
+
 
   #-----------------------------------------------------------------------------------------------------------
   # API functions
@@ -27,6 +29,10 @@ defmodule Air.Service.DataSource do
   @spec count() :: non_neg_integer
   def count(), do:
     Repo.one!(from data_source in DataSource, select: count(data_source.id))
+
+  @doc "Returns all known data sources."
+  @spec all() :: [DataSource.t]
+  def all(), do: Repo.all(DataSource) |> Repo.preload([:groups])
 
   @doc "Returns all data sources belonging to the given user."
   @spec for_user(User.t) :: [DataSource.t]
@@ -206,6 +212,20 @@ defmodule Air.Service.DataSource do
   @doc "Whether or not a data source is available for querying. True if it has one or more cloaks online"
   @spec available?(String.t) :: boolean
   def available?(data_source_id), do: Cloak.channel_pids(data_source_id) !== []
+
+  @doc "Describes the current availability of the given data source."
+  @spec status(DataSource.t) :: data_source_status
+  def status(data_source) do
+    if available?(data_source.global_id) do
+      if DataSource.errors(data_source) != [] do
+        :broken
+      else
+        :online
+      end
+    else
+      :offline
+    end
+  end
 
 
   #-----------------------------------------------------------------------------------------------------------

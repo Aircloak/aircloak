@@ -6,6 +6,8 @@ defmodule Air.DataSourceView do
 
   alias Air.{Schemas, Service}
 
+  defdelegate status(data_source), to: Air.Service.DataSource
+
   def available?(data_source), do: Service.DataSource.available?(data_source.global_id)
 
   def number_of_tables(data_source), do: length(Schemas.DataSource.tables(data_source))
@@ -23,14 +25,10 @@ defmodule Air.DataSourceView do
   defp limited_join([value | rest], accumulator, length), do: limited_join(rest, "#{accumulator}, #{value}", length)
 
   def availability_label(data_source) do
-    if available?(data_source) do
-      if Schemas.DataSource.errors(data_source) != [] do
-        content_tag(:span, "Broken", class: "label label-warning")
-      else
-        content_tag(:span, "Online", class: "label label-success")
-      end
-    else
-      content_tag(:span, "Offline", class: "label label-danger")
+    case status(data_source) do
+      :broken -> content_tag(:span, "Broken", class: "label label-warning")
+      :online -> content_tag(:span, "Online", class: "label label-success")
+      :offline -> content_tag(:span, "Offline", class: "label label-danger")
     end
   end
 end
