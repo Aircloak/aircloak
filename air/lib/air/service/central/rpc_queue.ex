@@ -68,7 +68,11 @@ defmodule Air.Service.Central.RpcQueue do
   # -------------------------------------------------------------------
 
   defp default_options(), do:
-    [name: __MODULE__, sender_fun: &send_to_central/1] ++ Application.fetch_env!(:air, :central_queue)
+    [
+      name: __MODULE__,
+      sender_fun: &send_to_central/1,
+      connected_fun: &Air.CentralClient.Socket.connected?/0
+    ] ++ Application.fetch_env!(:air, :central_queue)
 
   defp handle_push(state, event, payload), do:
     state
@@ -95,9 +99,13 @@ defmodule Air.Service.Central.RpcQueue do
   defp maybe_start_rpc_task(%{queue: %Aircloak.Queue{size: 0}} = state), do:
     state
   defp maybe_start_rpc_task(state) do
-    {:value, rpc} = Aircloak.Queue.peek(state.queue)
-    {:ok, pid} = Task.start_link(fn -> state.options.sender_fun.(rpc) end)
-    %{state | current_send: %{pid: pid, rpc: rpc}}
+    if state.options.connected_fun.() do
+      {:value, rpc} = Aircloak.Queue.peek(state.queue)
+      {:ok, pid} = Task.start_link(fn -> state.options.sender_fun.(rpc) end)
+      %{state | current_send: %{pid: pid, rpc: rpc}}
+    else
+      pause_send(state)
+    end
   end
 
   defp send_to_central(rpc), do:

@@ -19,6 +19,15 @@ defmodule Air.CentralClient.Socket do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Returns true if Air is connected to the main channel of the socket process."
+  @spec connected?() :: boolean
+  def connected?() do
+    case Registry.lookup(Air.Service.Central.Registry, __MODULE__) do
+      [{_pid, connected?}] -> connected?
+      [] -> false
+    end
+  end
+
   @doc "Makes a synchronous rpc call to the central."
   @spec rpc(map) :: {:ok, any} | {:error, any}
   def rpc(rpc), do:
@@ -48,6 +57,7 @@ defmodule Air.CentralClient.Socket do
 
   @doc false
   def init(central_socket_url) do
+    {:ok, _} = Registry.register(Air.Service.Central.Registry, __MODULE__, false)
     initial_interval = config(:min_reconnect_interval)
     state = %{
       pending_calls: %{},
@@ -63,6 +73,7 @@ defmodule Air.CentralClient.Socket do
     Logger.info("connected")
     send(self(), {:join, "main"})
     initial_interval = config(:min_reconnect_interval)
+    set_connected(false)
     {:ok, %{state | reconnect_interval: initial_interval}}
   end
 
@@ -70,6 +81,7 @@ defmodule Air.CentralClient.Socket do
   def handle_disconnected(reason, %{reconnect_interval: interval} = state) do
     log_disconnected(reason)
     Process.send_after(self(), :connect, interval)
+    set_connected(false)
     {:ok, %{state | reconnect_interval: next_interval(interval)}}
   end
 
@@ -77,6 +89,7 @@ defmodule Air.CentralClient.Socket do
   def handle_joined(topic, _payload, _transport, state) do
     Logger.info("joined the topic #{topic}")
     initial_interval = config(:min_reconnect_interval)
+    if topic == "main", do: set_connected(true)
     {:ok, %{state | rejoin_interval: initial_interval}}
   end
 
@@ -90,6 +103,7 @@ defmodule Air.CentralClient.Socket do
   def handle_channel_closed(topic, payload, _transport, %{rejoin_interval: interval} = state) do
     Logger.error("disconnected from the topic #{topic}: #{inspect payload}")
     Process.send_after(self(), {:join, topic}, interval)
+    if topic == "main", do: set_connected(false)
     {:ok, %{state | rejoin_interval: next_interval(interval)}}
   end
 
@@ -174,6 +188,9 @@ defmodule Air.CentralClient.Socket do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp set_connected(value), do:
+    {^value, _} = Registry.update_value(Air.Service.Central.Registry, __MODULE__, fn(_) -> value end)
 
   @spec call(GenServer.server, String.t, Map.t, pos_integer) :: {:ok, any} | {:error, any}
   defp call(socket, event, payload, timeout \\ config(:call_timeout)) do
