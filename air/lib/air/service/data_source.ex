@@ -141,7 +141,7 @@ defmodule Air.Service.DataSource do
 
     exception_to_tuple(fn() ->
       if available?(query.data_source.global_id) do
-        for channel <- Cloak.channel_pids(query.data_source.global_id), do:
+        for {channel, _cloak} <- Cloak.channel_pids(query.data_source.global_id), do:
           MainChannel.stop_query(channel, query.id)
         QueryEvents.trigger_state_change(query.id, :cancelled)
 
@@ -162,7 +162,7 @@ defmodule Air.Service.DataSource do
   def query_alive?(query) do
     exception_to_tuple(fn() ->
       if available?(query.data_source.global_id) do
-        results = for channel <- Cloak.channel_pids(query.data_source.global_id), do:
+        results = for {channel, _cloak} <- Cloak.channel_pids(query.data_source.global_id), do:
           MainChannel.query_alive?(channel, query.id)
 
         cond do

@@ -5,6 +5,7 @@ defmodule Air.QueryControllerTest do
 
   import Air.{TestConnHelper, TestRepoHelper}
   alias Air.{TestSocketHelper, Repo, Schemas.DataSource, Schemas.User}
+  alias Phoenix.Channels.GenSocketClient.TestSocket
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
@@ -28,10 +29,7 @@ defmodule Air.QueryControllerTest do
   end
 
   test "can run a query", context do
-    # Open the cloak mock socket
-    socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
-    TestSocketHelper.join!(socket, "main",
-      %{data_sources: [%{"global_id" => "data_source_global_id", "tables" => []}]})
+    socket = open_cloak_mock_socket(context.data_source)
 
     query_data_params = %{
       query: %{statement: "Query code", data_source_id: context[:data_source].id}
@@ -41,6 +39,17 @@ defmodule Air.QueryControllerTest do
     TestSocketHelper.respond_to_start_task_request!(socket, "ok")
 
     assert %{"success" => true} = Poison.decode!(Task.await(task))
+  end
+
+  test "can cancel a query", context do
+    socket = open_cloak_mock_socket(context.data_source)
+    query = create_query!(context.user, %{data_source_id: context.data_source.id})
+
+    Task.start_link(fn -> login(context[:user]) |> post("/queries/cancel", %{"id" => query.id}) |> response(200) end)
+
+    query_id = query.id
+    assert {:ok, {"main", "air_call", %{"event" => "stop_query", "payload" => ^query_id}}} =
+      TestSocket.await_message(socket)
   end
 
   test "returns unauthorized when not authorized to query data source", context do
@@ -57,5 +66,12 @@ defmodule Air.QueryControllerTest do
       query: %{statement: "Query code", data_source_id: context[:data_source].id}
     }
     login(context[:user]) |> post("/queries", query_data_params) |> response(503)
+  end
+
+  defp open_cloak_mock_socket(data_source) do
+    socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
+    TestSocketHelper.join!(socket, "main",
+      %{data_sources: [%{"global_id" => data_source.global_id, "tables" => []}]})
+    socket
   end
 end

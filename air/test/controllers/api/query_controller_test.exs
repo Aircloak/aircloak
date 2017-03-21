@@ -11,30 +11,19 @@ defmodule Air.API.QueryController.Test do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
   end
 
-  test "can run a query" do
-    group = create_group!()
-    user = create_user!()
-    |> User.changeset(%{groups: [group.id]})
-    |> Repo.update!()
-    token = create_token!(user)
+  describe "running a query" do
+    setup [:with_group, :with_user, :with_token, :with_socket]
 
-    # Open the cloak mock socket
-    socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
-    TestSocketHelper.join!(socket, "main", %{data_sources: [%{"global_id" => "data_source", "tables" => []}]})
+    test "can run a query", context do
+      query_data_params = %{
+        query: %{statement: "Query code", data_source_id: context.data_source.id}
+      }
+      task = Task.async(fn -> api_conn(context.token) |> post("/api/queries", query_data_params) |> response(200) end)
 
-    data_source = Repo.one(DataSource)
-    |> Repo.preload([:groups])
-    |> DataSource.changeset(%{groups: [group.id]})
-    |> Repo.update!()
+      TestSocketHelper.respond_to_start_task_request!(context.socket, "ok")
 
-    query_data_params = %{
-      query: %{statement: "Query code", data_source_id: data_source.id}
-    }
-    task = Task.async(fn -> api_conn(token) |> post("/api/queries", query_data_params) |> response(200) end)
-
-    TestSocketHelper.respond_to_start_task_request!(socket, "ok")
-
-    assert %{"success" => true} = JSON.decode!(Task.await(task))
+      assert %{"success" => true} = JSON.decode!(Task.await(task))
+    end
   end
 
   test "show a query of the token's user" do
@@ -55,5 +44,31 @@ defmodule Air.API.QueryController.Test do
     result = api_conn(token) |> get("/api/queries/#{query.id}") |> response(404)
 
     assert %{"error" => _} = JSON.decode!(result)
+  end
+
+  defp with_group(_context), do: {:ok, group: create_group!()}
+
+  defp with_user(%{group: group}) do
+    user =
+      create_user!()
+      |> User.changeset(%{groups: [group.id]})
+      |> Repo.update!()
+    {:ok, user: user}
+  end
+
+  defp with_token(%{user: user}), do: %{token: create_token!(user)}
+
+  defp with_socket(%{group: group}) do
+    # Open the cloak mock socket
+    socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
+    TestSocketHelper.join!(socket, "main", %{data_sources: [%{"global_id" => "data_source", "tables" => []}]})
+
+    data_source =
+      Repo.one(DataSource)
+      |> Repo.preload([:groups])
+      |> DataSource.changeset(%{groups: [group.id]})
+      |> Repo.update!()
+
+    {:ok, socket: socket, data_source: data_source}
   end
 end
