@@ -1,7 +1,6 @@
 // @flow
 
 import React from "react";
-import $ from "jquery";
 import _ from "lodash";
 import Mousetrap from "mousetrap";
 import Channel from "phoenix";
@@ -17,6 +16,7 @@ import type {History} from "./history_loader";
 import {Disconnected} from "../disconnected";
 import {isFinished} from "./state";
 import {startQuery, loadHistory} from "../request";
+import type {QueryData} from "../request";
 
 type Props = {
   userId: number,
@@ -91,7 +91,7 @@ export default class QueriesView extends React.Component {
 
   setStatement: () => void;
   runQuery: () => void;
-  queryData: () => void;
+  queryData: () => QueryData;
   addResult: () => void;
   setResults: () => void;
   handleLoadHistory: () => void;
@@ -114,11 +114,11 @@ export default class QueriesView extends React.Component {
     return this.props.dataSourceAvailable && this.state.connected;
   }
 
-  setStatement(statement) {
+  setStatement(statement: string) {
     this.setState({statement});
   }
 
-  setResults(results) {
+  setResults(results: Result[]) {
     let completed = 0;
     const recentResults = _.takeWhile(results, (result) => {
       if (isFinished(result.query_state)) { completed++; }
@@ -127,7 +127,7 @@ export default class QueriesView extends React.Component {
     this.setState({sessionResults: recentResults});
   }
 
-  replaceResult(result) {
+  replaceResult(result: Result) {
     const sessionResults = this.state.sessionResults.map((item) => {
       if (item.id === result.id) {
         return result;
@@ -138,7 +138,7 @@ export default class QueriesView extends React.Component {
     this.setResults(sessionResults);
   }
 
-  resultReceived(result) {
+  resultReceived(result: Result) {
     if (this.shouldDisplayResult(result)) {
       this.addResult(result, true /* replace */);
     } else {
@@ -146,23 +146,23 @@ export default class QueriesView extends React.Component {
     }
   }
 
-  dataSourceStatusReceived({status}) {
-    this.setState({dataSourceStatus: status});
+  dataSourceStatusReceived(event: {status: string}) {
+    this.setState({dataSourceStatus: event.status});
   }
 
-  shouldDisplayResult(result) {
+  shouldDisplayResult(result: Result) {
     return this.createdInThisSession(result) || this.alreadyDisplayed(result);
   }
 
-  createdInThisSession(result) {
+  createdInThisSession(result: Result) {
     return result.session_id === this.props.sessionId;
   }
 
-  alreadyDisplayed(result) {
+  alreadyDisplayed(result: Result) {
     return _.some(this.state.sessionResults, (sessionResult) => sessionResult.id === result.id);
   }
 
-  addResult(result, replace = true) {
+  addResult(result: Result, replace: boolean = true) {
     const existingResult = _.find(this.state.sessionResults, (item) => item.id === result.id);
     if (existingResult === undefined) {
       this.setResults([result].concat(this.state.sessionResults));
@@ -252,7 +252,7 @@ export default class QueriesView extends React.Component {
     });
   }
 
-  addError(statement, text) {
+  addError(statement: string, text: string) {
     const result = {statement, query_state: "error", error: text};
     this.setResults([result].concat(this.state.sessionResults));
   }

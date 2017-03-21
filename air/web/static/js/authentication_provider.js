@@ -12,6 +12,11 @@ export class AuthenticationProvider extends React.Component {
   }
 }
 
+AuthenticationProvider.propTypes = {
+  children: React.PropTypes.element,
+  authentication: React.PropTypes.object.isRequired,
+};
+
 AuthenticationProvider.childContextTypes = {
   authentication: React.PropTypes.object.isRequired,
-}
+};

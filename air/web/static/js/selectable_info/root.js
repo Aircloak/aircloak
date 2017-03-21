@@ -17,7 +17,7 @@ export default class SelectableInfo extends React.Component {
   toggleExpand: (t: Selectable) => (() => void);
   onFilterChange: (filter: Filter) => void;
 
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     this.state = {
@@ -33,7 +33,7 @@ export default class SelectableInfo extends React.Component {
     this.setState({filter});
   }
 
-  toggleExpand(selectable) {
+  toggleExpand(selectable: Selectable) {
     return () => {
       const expanded = this.state.expanded;
       if (this.expanded(selectable)) {
@@ -45,7 +45,7 @@ export default class SelectableInfo extends React.Component {
     };
   }
 
-  expanded(selectable) {
+  expanded(selectable: Selectable) {
     return this.state.expanded.has(selectable.id);
   }
 

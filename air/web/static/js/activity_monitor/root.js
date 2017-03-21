@@ -59,21 +59,21 @@ export default class ActivityMonitorView extends React.Component {
   channel: Channel;
 
   handleQueryEvent: (queryEvent: QueryEvent) => void;
-  handleRemoveQuery: (query: Query) => void;
+  handleRemoveQuery: (queryId: string) => void;
   handleMemoryReading: (cloak: Cloak) => void;
 
-  handleRemoveQuery(queryId) {
+  handleRemoveQuery(queryId: string) {
     const queries = _.reject(this.state.queries, (query) => query.id === queryId);
     this.setState({queries});
   }
 
-  conditionallyScheduleQueryRemoval(queryEvent) {
+  conditionallyScheduleQueryRemoval(queryEvent: QueryEvent) {
     if (isFinished(queryEvent.event)) {
       setTimeout(() => this.handleRemoveQuery(queryEvent.query_id), this.queryRemovalTime);
     }
   }
 
-  handleQueryEvent(queryEvent) {
+  handleQueryEvent(queryEvent: QueryEvent) {
     let queries = _.cloneDeep(this.state.queries);
 
     this.conditionallyScheduleQueryRemoval(queryEvent);
