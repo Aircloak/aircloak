@@ -215,24 +215,24 @@ defmodule Cloak.Query.Aggregator do
   # For min / max aggregators, if there is a value which passes the LCF and
   # it is lower / greater than the aggregated result, we want to show that instead.
   defp post_process_result(result, "max", users_rows, values_index) do
-    group_values(users_rows, fn (rows) ->
-      rows |> Enum.at(values_index) |> Enum.filter(& &1 > result)
-    end)
+    users_rows
+    |> group_values(& &1 > result, values_index)
     |> Stream.concat([result])
     |> Enum.max()
   end
   defp post_process_result(result, "min", users_rows, values_index) do
-    group_values(users_rows, fn (rows) ->
-      rows |> Enum.at(values_index) |> Enum.filter(& &1 < result)
-    end)
+    users_rows
+    |> group_values(& &1 < result, values_index)
     |> Stream.concat([result])
     |> Enum.min()
   end
   defp post_process_result(result, _function, _users_rows, _values_index), do: result
 
-  defp group_values(users_rows, rows_reducer) do
+  defp group_values(users_rows, filter_fun, values_index) do
     users_rows
-    |> Enum.map(fn ({user, rows}) -> {user, rows_reducer.(rows)} end)
+    |> Enum.map(fn ({user, rows}) ->
+      {user, rows |> Enum.at(values_index) |> Enum.filter(filter_fun) |> Enum.uniq()}
+    end)
     |> Enum.reduce(%{}, fn ({user, values}, acc) ->
       Enum.reduce(values, acc, fn (value, acc) -> Map.update(acc, value, [user], &[user | &1]) end)
     end)
