@@ -16,6 +16,7 @@ import {HistoryLoader} from "./history_loader";
 import type {History} from "./history_loader";
 import {Disconnected} from "../disconnected";
 import {isFinished} from "./state";
+import {startQuery, loadHistory} from "../request";
 
 type Props = {
   userId: number,
@@ -193,13 +194,8 @@ export default class QueriesView extends React.Component {
     if (! this.runEnabled()) return;
 
     const statement = this.state.statement;
-    $.ajax("/queries", {
-      method: "POST",
-      headers: {
-        "X-CSRF-TOKEN": this.context.authentication.CSRFToken,
-        "Content-Type": "application/json",
-      },
-      data: this.queryData(),
+
+    startQuery(this.queryData(), this.context.authentication.CSRFToken, {
       success: (response) => {
         if (response.success) {
           const result = {
@@ -212,6 +208,7 @@ export default class QueriesView extends React.Component {
           this.addError(statement, `Error connecting to server. Reported reason: ${response.reason}.`);
         }
       },
+
       error: (error) => {
         this.addError(statement, `Error connecting to server. Reported reason: ${error.statusText}.`);
         if (error.status === upgradeRequired) { window.location.reload(); }
@@ -228,13 +225,7 @@ export default class QueriesView extends React.Component {
     };
     this.setState({history});
 
-    $.ajax(`/queries/load_history/${this.props.dataSourceId}?before=${before}`, {
-      method: "GET",
-      headers: {
-        "X-CSRF-TOKEN": this.context.authentication.CSRFToken,
-        "Content-Type": "application/json",
-      },
-
+    loadHistory(this.props.dataSourceId, before, this.context.authentication.CSRFToken, {
       success: (response) => {
         const successHistory = (response.length < historyPageSize) ? {
           before: "",
