@@ -4,11 +4,9 @@ defmodule Air.DataSourceView do
   # bug in the current Phoenix
   @dialyzer :no_match
 
-  alias Air.{Schemas, Service}
+  alias Air.Schemas
 
   defdelegate status(data_source), to: Air.Service.DataSource
-
-  def available?(data_source), do: Service.DataSource.available?(data_source.global_id)
 
   def number_of_tables(data_source), do: length(Schemas.DataSource.tables(data_source))
 

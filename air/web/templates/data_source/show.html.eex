@@ -30,7 +30,6 @@
         dataSourceId: <%= @data_source.id %>,
         dataSourceName: "<%= @data_source.name %>",
         dataSourceStatus: "<%= status(@data_source) %>",
-        dataSourceAvailable: <%= available?(@data_source) %>,
         CSRFToken: "<%= @csrf_token %>",
         guardianToken: "<%= @guardian_token %>",
         userId: "<%= @current_user.id %>",

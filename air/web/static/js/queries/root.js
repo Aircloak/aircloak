@@ -25,7 +25,6 @@ type Props = {
   dataSourceId: number,
   dataSourceName: string,
   dataSourceStatus: string,
-  dataSourceAvailable: boolean,
   selectables: Selectable[],
   lastQuery: {statement: string},
   pendingQueries: Result[],
@@ -112,7 +111,11 @@ class QueriesView extends React.Component {
   }
 
   runEnabled() {
-    return this.props.dataSourceAvailable && this.state.connected;
+    return this.dataSourceAvailable() && this.state.connected;
+  }
+
+  dataSourceAvailable() {
+    return this.state.dataSourceStatus !== "offline";
   }
 
   setStatement(statement) {
