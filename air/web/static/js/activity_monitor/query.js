@@ -43,7 +43,7 @@ export const QueryView = ({query}: {query: Query}, context: {authentication: Aut
     <td>
       <button
         className="btn btn-warning btn-xs"
-        onClick={() => cancel(query.id, context.authentication.CSRFToken)}
+        onClick={() => cancel(query.id, context.authentication)}
         disabled={isFinished(query.state)}
       > cancel </button>
     </td>

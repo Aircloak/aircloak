@@ -195,7 +195,7 @@ export default class QueriesView extends React.Component {
 
     const statement = this.state.statement;
 
-    startQuery(this.queryData(), this.context.authentication.CSRFToken, {
+    startQuery(this.queryData(), this.context.authentication, {
       success: (response) => {
         if (response.success) {
           const result = {
@@ -225,7 +225,7 @@ export default class QueriesView extends React.Component {
     };
     this.setState({history});
 
-    loadHistory(this.props.dataSourceId, before, this.context.authentication.CSRFToken, {
+    loadHistory(this.props.dataSourceId, before, this.context.authentication, {
       success: (response) => {
         const successHistory = (response.length < historyPageSize) ? {
           before: "",

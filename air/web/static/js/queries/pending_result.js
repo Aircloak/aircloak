@@ -39,7 +39,7 @@ export const PendingResult = (props: Props, context: Context) =>
       <div className="right-align">
         <a
           className="btn btn-small btn-warning"
-          onClick={() => cancel(props.result.id, context.authentication.CSRFToken)}
+          onClick={() => cancel(props.result.id, context.authentication)}
         >Cancel</a>
       </div>
     </div>

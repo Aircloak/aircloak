@@ -13,7 +13,5 @@ export class AuthenticationProvider extends React.Component {
 }
 
 AuthenticationProvider.childContextTypes = {
-  authentication: React.PropTypes.shape({
-    CSRFToken: React.PropTypes.string
-  })
+  authentication: React.PropTypes.object.isRequired,
 }
