@@ -32,6 +32,29 @@ defmodule Air.Service.Central.RpcQueueTest do
     refute_receive {:rpc, _}
   end
 
+  test "message is not sent if the socket is disconnected" do
+    pid = start_worker(connected_fun: fn -> false end)
+    push_rpc(pid, unique_rpc())
+
+    refute_receive {:rpc, _}
+  end
+
+  test "message is sent after the socket is connected" do
+    me = self()
+    connected_fun = fn ->
+      {:dictionary, [connected: connected]} = Process.info(me, :dictionary)
+      connected
+    end
+
+    Process.put(:connected, false)
+    pid = start_worker(connected_fun: connected_fun, retry_delay: 50)
+    rpc = push_rpc(pid, unique_rpc())
+    :timer.sleep(100)
+    Process.put(:connected, true)
+
+    assert_next_rpc rpc
+  end
+
   test "proper message ordering" do
     pid = start_worker()
     [rpc1, rpc2, rpc3] = push_rpcs(pid, [
@@ -103,7 +126,10 @@ defmodule Air.Service.Central.RpcQueueTest do
   end
 
   defp start_worker(opts \\ []) do
-    {:ok, pid} = RpcQueue.start_link(Keyword.merge([name: nil, sender_fun: test_sender()], opts))
+    {:ok, pid} = RpcQueue.start_link(Keyword.merge(
+      [name: nil, sender_fun: test_sender(), connected_fun: fn -> true end],
+      opts
+    ))
     pid
   end
 
