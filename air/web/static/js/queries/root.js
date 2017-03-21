@@ -28,7 +28,6 @@ type Props = {
   selectables: Selectable[],
   lastQuery: {statement: string},
   pendingQueries: Result[],
-  CSRFToken: string,
   frontendSocket: FrontendSocket,
 };
 
@@ -197,7 +196,7 @@ export default class QueriesView extends React.Component {
     $.ajax("/queries", {
       method: "POST",
       headers: {
-        "X-CSRF-TOKEN": this.props.CSRFToken,
+        "X-CSRF-TOKEN": this.context.authentication.CSRFToken,
         "Content-Type": "application/json",
       },
       data: this.queryData(),
@@ -232,7 +231,7 @@ export default class QueriesView extends React.Component {
     $.ajax(`/queries/load_history/${this.props.dataSourceId}?before=${before}`, {
       method: "GET",
       headers: {
-        "X-CSRF-TOKEN": this.props.CSRFToken,
+        "X-CSRF-TOKEN": this.context.authentication.CSRFToken,
         "Content-Type": "application/json",
       },
 
@@ -326,9 +325,13 @@ export default class QueriesView extends React.Component {
         {this.renderButton()}
       </div>
 
-      <Results results={this.state.sessionResults} CSRFToken={this.props.CSRFToken} />
+      <Results results={this.state.sessionResults} />
 
       <HistoryLoader history={this.state.history} handleLoadHistory={this.handleLoadHistory} />
     </div>);
   }
 }
+
+QueriesView.contextTypes = {
+  authentication: React.PropTypes.object.isRequired,
+};

@@ -4,6 +4,7 @@ import React from "react";
 
 import {StateView} from "./state_view";
 import {cancel} from "../request";
+import type {Authentication} from "../request";
 import {isFinished} from "../queries/state";
 
 export type Query = {
@@ -30,12 +31,7 @@ const queryExcerpt = (statement: string) => {
 
 const queryViewUrl = (props) => `/admin/queries/${props.id}`;
 
-const stopQuery = ({id}, CSRFToken) => (event) => {
-  event.preventDefault();
-  cancel(id, CSRFToken);
-};
-
-export const QueryView = ({query, CSRFToken}: {query: Query, CSRFToken: string}) =>
+export const QueryView = ({query}: {query: Query}, context: {authentication: Authentication}) =>
   <tr>
     <td>{query.data_source_name}</td>
     <td>{query.cloak_name}</td>
@@ -47,9 +43,13 @@ export const QueryView = ({query, CSRFToken}: {query: Query, CSRFToken: string})
     <td>
       <button
         className="btn btn-warning btn-xs"
-        onClick={stopQuery(query, CSRFToken)}
+        onClick={() => cancel(query.id, context.authentication.CSRFToken)}
         disabled={isFinished(query.state)}
       > cancel </button>
     </td>
     <td><a href={queryViewUrl(query)}>view</a></td>
   </tr>;
+
+QueryView.contextTypes = {
+  authentication: React.PropTypes.object.isRequired,
+};
