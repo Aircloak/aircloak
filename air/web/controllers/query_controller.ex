@@ -14,7 +14,7 @@ defmodule Air.QueryController do
 
   def permissions do
     %{
-      user: [:create, :show, :load_history],
+      user: [:cancel, :create, :show, :load_history],
       admin: :all
     }
   end
