@@ -1,7 +1,6 @@
 // @flow
 
 import React from "react";
-import ReactDOM from "react-dom";
 
 import {Results} from "./results";
 import {PropertiesView} from "./properties";
@@ -14,11 +13,7 @@ type Props = {
   CSRFToken: string,
 };
 
-type AppProperties = {
-  guardianToken: string,
-} & Props
-
-class QueryView extends React.Component {
+export default class QueryView extends React.Component {
   constructor(props: Props) {
     super(props);
 
@@ -51,9 +46,4 @@ class QueryView extends React.Component {
       <Results results={[this.state.result]} CSRFToken={this.props.CSRFToken} />
     </div>);
   }
-}
-
-export default function renderQueryView(data: AppProperties, elem: Node) {
-  const socket = new FrontendSocket(data.guardianToken);
-  ReactDOM.render(<QueryView frontendSocket={socket} {...data} />, elem);
 }

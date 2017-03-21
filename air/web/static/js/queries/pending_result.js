@@ -6,7 +6,6 @@ import type {Result} from "./result";
 import {CodeViewer} from "../code_viewer";
 import {pendingStates, later, format} from "./state";
 import {cancel} from "../request";
-import type {Authentication} from "../request";
 
 type Props = {
   result: Result,

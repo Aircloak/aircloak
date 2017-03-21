@@ -1,7 +1,6 @@
 // @flow
 
 import React from "react";
-import ReactDOM from "react-dom";
 import _ from "lodash";
 import {Channel} from "phoenix";
 
@@ -29,7 +28,7 @@ type Props = {
   cloaks: Cloak[],
 };
 
-class ActivityMonitorView extends React.Component {
+export default class ActivityMonitorView extends React.Component {
   constructor(props: Props) {
     super(props);
 
@@ -114,9 +113,4 @@ class ActivityMonitorView extends React.Component {
       </div>
     );
   }
-}
-
-export default function renderACtivityMonitorView(data: Props, elem: Node) {
-  const socket = new FrontendSocket(data.guardianToken);
-  ReactDOM.render(<ActivityMonitorView frontendSocket={socket} {...data} />, elem);
 }

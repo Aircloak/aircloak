@@ -1,7 +1,6 @@
 // @flow
 
 import React from "react";
-import ReactDOM from "react-dom";
 import $ from "jquery";
 import _ from "lodash";
 import {CodeEditor} from "../code_editor";
@@ -12,7 +11,7 @@ type Props = {
   selectables: Selectable[],
 }
 
-class ViewEditor extends React.Component {
+export default class ViewEditor extends React.Component {
   constructor(props: Props) {
     super(props);
     this.setStatement = this.setStatement.bind(this);
@@ -51,8 +50,4 @@ class ViewEditor extends React.Component {
       />
     );
   }
-}
-
-export default function renderViewEditor(data: Props, elem: Node) {
-  ReactDOM.render(<ViewEditor statement={$("#sql").val()} {...data} />, elem);
 }

@@ -1,7 +1,6 @@
 // @flow
 
 import React from "react";
-import ReactDOM from "react-dom";
 import $ from "jquery";
 import _ from "lodash";
 import Mousetrap from "mousetrap";
@@ -17,7 +16,6 @@ import {HistoryLoader} from "./history_loader";
 import type {History} from "./history_loader";
 import {Disconnected} from "../disconnected";
 import {isFinished} from "./state";
-import {AuthenticationProvider} from "../authentication_provider";
 
 type Props = {
   userId: number,
@@ -42,7 +40,7 @@ const recentResultsToShow = 5;
 
 const historyPageSize = 10;
 
-class QueriesView extends React.Component {
+export default class QueriesView extends React.Component {
   constructor(props: Props) {
     super(props);
 
@@ -333,15 +331,4 @@ class QueriesView extends React.Component {
       <HistoryLoader history={this.state.history} handleLoadHistory={this.handleLoadHistory} />
     </div>);
   }
-}
-
-export default function renderQueriesView(data: Props, elem: Node) {
-  const socket = new FrontendSocket(data.guardianToken);
-  const authentication = {CSRFToken: data.CSRFToken};
-  ReactDOM.render(
-    <AuthenticationProvider authentication={authentication}>
-      <QueriesView frontendSocket={socket} {...data} />
-    </AuthenticationProvider>,
-    elem
-  );
 }
