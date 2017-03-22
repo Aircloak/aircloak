@@ -40,6 +40,23 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
   decided that uniform processing is more important, since we don't know how
   useful that case will be.
 
+### Implementation note
+
+  The implementation of this feature uses another sets of steps that are
+  equivalent:
+
+  * Input is a bucket split into per-user lists of values
+  * Sort the bucket by the number of unique values in each list (ascending)
+  * Flatten the result
+  * Take each first unique value from this list
+  * Group the list by user to produce a valid bucket again
+
+  This is roughly equivalent to the original statement because the values in the
+  flattened list will be picked first for users with a low number of values
+  (like picking a single value from a per-value-bucket with a low number of users)
+  and only if they haven't appeared for any of those users they will be picked
+  up with the id of a user with many unique values.
+
 
 ## MAX() / MIN()
 
