@@ -1,7 +1,6 @@
 // @flow
 
 import React from "react";
-import ReactDOM from "react-dom";
 import _ from "lodash";
 import {Channel} from "phoenix";
 
@@ -23,13 +22,12 @@ type QueryEvent = {
 type Props = {
   userId: number,
   guardianToken: string,
-  CSRFToken: string,
   frontendSocket: FrontendSocket,
   queries: Query[],
   cloaks: Cloak[],
 };
 
-class ActivityMonitorView extends React.Component {
+export default class ActivityMonitorView extends React.Component {
   constructor(props: Props) {
     super(props);
 
@@ -61,21 +59,21 @@ class ActivityMonitorView extends React.Component {
   channel: Channel;
 
   handleQueryEvent: (queryEvent: QueryEvent) => void;
-  handleRemoveQuery: (query: Query) => void;
+  handleRemoveQuery: (queryId: string) => void;
   handleMemoryReading: (cloak: Cloak) => void;
 
-  handleRemoveQuery(queryId) {
+  handleRemoveQuery(queryId: string) {
     const queries = _.reject(this.state.queries, (query) => query.id === queryId);
     this.setState({queries});
   }
 
-  conditionallyScheduleQueryRemoval(queryEvent) {
+  conditionallyScheduleQueryRemoval(queryEvent: QueryEvent) {
     if (isFinished(queryEvent.event)) {
       setTimeout(() => this.handleRemoveQuery(queryEvent.query_id), this.queryRemovalTime);
     }
   }
 
-  handleQueryEvent(queryEvent) {
+  handleQueryEvent(queryEvent: QueryEvent) {
     let queries = _.cloneDeep(this.state.queries);
 
     this.conditionallyScheduleQueryRemoval(queryEvent);
@@ -110,13 +108,8 @@ class ActivityMonitorView extends React.Component {
       <div>
         <Disconnected channel={this.channel} />
         <CloaksView cloaks={this.state.cloaks} />
-        <QueriesView queries={this.state.queries} CSRFToken={this.props.CSRFToken} />
+        <QueriesView queries={this.state.queries} />
       </div>
     );
   }
-}
-
-export default function renderACtivityMonitorView(data: Props, elem: Node) {
-  const socket = new FrontendSocket(data.guardianToken);
-  ReactDOM.render(<ActivityMonitorView frontendSocket={socket} {...data} />, elem);
 }

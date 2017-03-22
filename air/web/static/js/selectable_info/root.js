@@ -1,7 +1,6 @@
 // @flow
 
 import React from "react";
-import ReactDOM from "react-dom";
 
 import {SelectableView} from "./selectable";
 import {FilterView, Filter, EmptyFilter} from "./filter";
@@ -12,13 +11,13 @@ type Props = {
   newViewURL: string,
 };
 
-class SelectableInfo extends React.Component {
+export default class SelectableInfo extends React.Component {
   props: Props;
   state: {expanded: Set<string>, filter: Filter};
   toggleExpand: (t: Selectable) => (() => void);
   onFilterChange: (filter: Filter) => void;
 
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     this.state = {
@@ -34,7 +33,7 @@ class SelectableInfo extends React.Component {
     this.setState({filter});
   }
 
-  toggleExpand(selectable) {
+  toggleExpand(selectable: Selectable) {
     return () => {
       const expanded = this.state.expanded;
       if (this.expanded(selectable)) {
@@ -46,7 +45,7 @@ class SelectableInfo extends React.Component {
     };
   }
 
-  expanded(selectable) {
+  expanded(selectable: Selectable) {
     return this.state.expanded.has(selectable.id);
   }
 
@@ -83,8 +82,4 @@ class SelectableInfo extends React.Component {
       </div>
     );
   }
-}
-
-export default function renderSelectableInfo(data: Props, elem: Node) {
-  ReactDOM.render(<SelectableInfo {...data} />, elem);
 }

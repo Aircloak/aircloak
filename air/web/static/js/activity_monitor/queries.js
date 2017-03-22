@@ -6,10 +6,10 @@ import ReactCSSTransitionGroup from "react-addons-css-transition-group";
 import {QueryView} from "./query";
 import type {Query} from "./query";
 
-const renderQueries = (queries: Query[], CSRFToken) => {
+const renderQueries = (queries: Query[]) => {
   if (queries.length > 0) {
     return queries.map((query) =>
-      <QueryView key={query.id} query={query} CSRFToken={CSRFToken} />
+      <QueryView key={query.id} query={query} />
     );
   } else {
     return (
@@ -22,7 +22,7 @@ const renderQueries = (queries: Query[], CSRFToken) => {
   }
 };
 
-export const QueriesView = (props: {queries: Query[], CSRFToken: string}) =>
+export const QueriesView = (props: {queries: Query[]}) =>
   <div>
     <h3>Queries</h3>
     <table className="table">
@@ -43,7 +43,7 @@ export const QueriesView = (props: {queries: Query[], CSRFToken: string}) =>
         transitionEnterTimeout={500}
         transitionLeaveTimeout={300}
       >
-        {renderQueries(props.queries, props.CSRFToken)}
+        {renderQueries(props.queries)}
       </ReactCSSTransitionGroup>
     </table>
   </div>;

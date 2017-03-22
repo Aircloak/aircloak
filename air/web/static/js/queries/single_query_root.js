@@ -1,7 +1,6 @@
 // @flow
 
 import React from "react";
-import ReactDOM from "react-dom";
 
 import {Results} from "./results";
 import {PropertiesView} from "./properties";
@@ -11,14 +10,9 @@ import {FrontendSocket} from "../frontend_socket";
 type Props = {
   result: Result,
   frontendSocket: FrontendSocket,
-  CSRFToken: string,
 };
 
-type AppProperties = {
-  guardianToken: string,
-} & Props
-
-class QueryView extends React.Component {
+export default class QueryView extends React.Component {
   constructor(props: Props) {
     super(props);
 
@@ -48,12 +42,7 @@ class QueryView extends React.Component {
       <PropertiesView {...this.state.result} />
 
       <h3>Query</h3>
-      <Results results={[this.state.result]} CSRFToken={this.props.CSRFToken} />
+      <Results results={[this.state.result]} />
     </div>);
   }
-}
-
-export default function renderQueryView(data: AppProperties, elem: Node) {
-  const socket = new FrontendSocket(data.guardianToken);
-  ReactDOM.render(<QueryView frontendSocket={socket} {...data} />, elem);
 }

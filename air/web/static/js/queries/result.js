@@ -35,6 +35,7 @@ export type Result = {
     name: string,
   },
   inserted_at: string,
+  session_id: string,
 };
 
 type State = {

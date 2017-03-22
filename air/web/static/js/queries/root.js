@@ -1,8 +1,6 @@
 // @flow
 
 import React from "react";
-import ReactDOM from "react-dom";
-import $ from "jquery";
 import _ from "lodash";
 import Mousetrap from "mousetrap";
 import Channel from "phoenix";
@@ -17,6 +15,8 @@ import {HistoryLoader} from "./history_loader";
 import type {History} from "./history_loader";
 import {Disconnected} from "../disconnected";
 import {isFinished} from "./state";
+import {startQuery, loadHistory} from "../request";
+import type {QueryData} from "../request";
 
 type Props = {
   userId: number,
@@ -29,7 +29,6 @@ type Props = {
   selectables: Selectable[],
   lastQuery: {statement: string},
   pendingQueries: Result[],
-  CSRFToken: string,
   frontendSocket: FrontendSocket,
 };
 
@@ -41,7 +40,7 @@ const recentResultsToShow = 5;
 
 const historyPageSize = 10;
 
-class QueriesView extends React.Component {
+export default class QueriesView extends React.Component {
   constructor(props: Props) {
     super(props);
 
@@ -92,7 +91,7 @@ class QueriesView extends React.Component {
 
   setStatement: () => void;
   runQuery: () => void;
-  queryData: () => void;
+  queryData: () => QueryData;
   addResult: () => void;
   setResults: () => void;
   handleLoadHistory: () => void;
@@ -115,11 +114,11 @@ class QueriesView extends React.Component {
     return this.props.dataSourceAvailable && this.state.connected;
   }
 
-  setStatement(statement) {
+  setStatement(statement: string) {
     this.setState({statement});
   }
 
-  setResults(results) {
+  setResults(results: Result[]) {
     let completed = 0;
     const recentResults = _.takeWhile(results, (result) => {
       if (isFinished(result.query_state)) { completed++; }
@@ -128,7 +127,7 @@ class QueriesView extends React.Component {
     this.setState({sessionResults: recentResults});
   }
 
-  replaceResult(result) {
+  replaceResult(result: Result) {
     const sessionResults = this.state.sessionResults.map((item) => {
       if (item.id === result.id) {
         return result;
@@ -139,7 +138,7 @@ class QueriesView extends React.Component {
     this.setResults(sessionResults);
   }
 
-  resultReceived(result) {
+  resultReceived(result: Result) {
     if (this.shouldDisplayResult(result)) {
       this.addResult(result, true /* replace */);
     } else {
@@ -147,23 +146,23 @@ class QueriesView extends React.Component {
     }
   }
 
-  dataSourceStatusReceived({status}) {
-    this.setState({dataSourceStatus: status});
+  dataSourceStatusReceived(event: {status: string}) {
+    this.setState({dataSourceStatus: event.status});
   }
 
-  shouldDisplayResult(result) {
+  shouldDisplayResult(result: Result) {
     return this.createdInThisSession(result) || this.alreadyDisplayed(result);
   }
 
-  createdInThisSession(result) {
+  createdInThisSession(result: Result) {
     return result.session_id === this.props.sessionId;
   }
 
-  alreadyDisplayed(result) {
+  alreadyDisplayed(result: Result) {
     return _.some(this.state.sessionResults, (sessionResult) => sessionResult.id === result.id);
   }
 
-  addResult(result, replace = true) {
+  addResult(result: Result, replace: boolean = true) {
     const existingResult = _.find(this.state.sessionResults, (item) => item.id === result.id);
     if (existingResult === undefined) {
       this.setResults([result].concat(this.state.sessionResults));
@@ -195,13 +194,8 @@ class QueriesView extends React.Component {
     if (! this.runEnabled()) return;
 
     const statement = this.state.statement;
-    $.ajax("/queries", {
-      method: "POST",
-      headers: {
-        "X-CSRF-TOKEN": this.props.CSRFToken,
-        "Content-Type": "application/json",
-      },
-      data: this.queryData(),
+
+    startQuery(this.queryData(), this.context.authentication, {
       success: (response) => {
         if (response.success) {
           const result = {
@@ -214,6 +208,7 @@ class QueriesView extends React.Component {
           this.addError(statement, `Error connecting to server. Reported reason: ${response.reason}.`);
         }
       },
+
       error: (error) => {
         this.addError(statement, `Error connecting to server. Reported reason: ${error.statusText}.`);
         if (error.status === upgradeRequired) { window.location.reload(); }
@@ -230,13 +225,7 @@ class QueriesView extends React.Component {
     };
     this.setState({history});
 
-    $.ajax(`/queries/load_history/${this.props.dataSourceId}?before=${before}`, {
-      method: "GET",
-      headers: {
-        "X-CSRF-TOKEN": this.props.CSRFToken,
-        "Content-Type": "application/json",
-      },
-
+    loadHistory(this.props.dataSourceId, before, this.context.authentication, {
       success: (response) => {
         const successHistory = (response.length < historyPageSize) ? {
           before: "",
@@ -263,7 +252,7 @@ class QueriesView extends React.Component {
     });
   }
 
-  addError(statement, text) {
+  addError(statement: string, text: string) {
     const result = {statement, query_state: "error", error: text};
     this.setResults([result].concat(this.state.sessionResults));
   }
@@ -327,14 +316,13 @@ class QueriesView extends React.Component {
         {this.renderButton()}
       </div>
 
-      <Results results={this.state.sessionResults} CSRFToken={this.props.CSRFToken} />
+      <Results results={this.state.sessionResults} />
 
       <HistoryLoader history={this.state.history} handleLoadHistory={this.handleLoadHistory} />
     </div>);
   }
 }
 
-export default function renderQueriesView(data: Props, elem: Node) {
-  const socket = new FrontendSocket(data.guardianToken);
-  ReactDOM.render(<QueriesView frontendSocket={socket} {...data} />, elem);
-}
+QueriesView.contextTypes = {
+  authentication: React.PropTypes.object.isRequired,
+};
