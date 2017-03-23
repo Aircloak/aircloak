@@ -18,12 +18,18 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
   example `COUNT(DISTINCT name)` or `AVG(DISTINCT price)`. In those cases we
   apply the following preprocessing steps to a bucket of rows:
 
-  - Split the bucket into per-value-buckets on the given column
-  - Order the per-value-buckets from smallest (least users) to biggest
-  - Take a single row from each per-value-bucket
-  - Feed this result into the appropriate anonymized aggregation function
+  * Input is a bucket split into per-user lists of values
+  * Sort the bucket by the number of unique values in each list (ascending)
+  * Flatten the result
+  * Take each first unique value from this list
+  * Group the list by user to produce a valid bucket again
 
-  This last step ensures that the results for a query with `DISTINCT` do not
+  This is roughly equivalent to the statement in the issue above because the
+  values in the flattened list will be picked first for users with a low number
+  of values and only if they haven't appeared for any of those users they will
+  be picked up with the id of a user with many unique values.
+
+  This preprocessing ensures that the results for a query with `DISTINCT` do not
   vary greatly depending on the presence of just one user with many unique
   values in a given column, since the anonymizing aggregators will discard such
   outliers (see below).  Without that an attacker would be able to deduce if
@@ -39,23 +45,6 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
   could be rectified by adding a special case to the code, but for now we
   decided that uniform processing is more important, since we don't know how
   useful that case will be.
-
-### Implementation note
-
-  The implementation of this feature uses another sets of steps that are
-  equivalent:
-
-  * Input is a bucket split into per-user lists of values
-  * Sort the bucket by the number of unique values in each list (ascending)
-  * Flatten the result
-  * Take each first unique value from this list
-  * Group the list by user to produce a valid bucket again
-
-  This is roughly equivalent to the original statement because the values in the
-  flattened list will be picked first for users with a low number of values
-  (like picking a single value from a per-value-bucket with a low number of users)
-  and only if they haven't appeared for any of those users they will be picked
-  up with the id of a user with many unique values.
 
 
 ## MAX() / MIN()
