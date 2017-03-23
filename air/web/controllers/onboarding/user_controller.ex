@@ -25,7 +25,7 @@ defmodule Air.Onboarding.UserController do
       redirect(conn, to: onboarding_user_path(conn, :already_setup))
     else
       changeset = User.changeset(%User{})
-      render(conn, "new.html", changeset: changeset)
+      render(conn, "new.html", changeset: changeset, errors: false)
     end
   end
 
@@ -43,13 +43,14 @@ defmodule Air.Onboarding.UserController do
           {:ok, user} ->
             audit_log(conn, "Created onboarding admin user", user: user.email, name: user.name)
             login(conn, params["user"])
-          {:error, changeset} -> render(conn, "new.html", changeset: changeset)
+          {:error, changeset} ->
+            render(conn, "new.html", changeset: changeset, errors: true)
         end
       false ->
         changeset =  Ecto.Changeset.add_error(changeset, :master_password, "The master password is incorrect")
         # We need to trick add the action being performed, to get the form to render errors
         changeset = %{changeset | action: :insert}
-        render(conn, "new.html", changeset: changeset)
+        render(conn, "new.html", changeset: changeset, errors: true)
     end
   end
 

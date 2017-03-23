@@ -24,7 +24,10 @@ defmodule Air.SessionController do
     if User.admin_user_exists?() do
       render(conn, "new.html")
     else
-      redirect(conn, to: onboarding_user_path(conn, :new))
+      conn
+      |> clear_flash()
+      |> clear_session()
+      |> redirect(to: onboarding_user_path(conn, :new))
     end
   end
 
