@@ -134,22 +134,6 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
   end
 
-  test "count(distinct column)" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [175])
-    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [160])
-    :ok = insert_rows(_user_ids = 40..40, "heights", ["height"], [150])
-    :ok = insert_rows(_user_ids = 40..40, "heights", ["height"], [151])
-    :ok = insert_rows(_user_ids = 40..40, "heights", ["height"], [152])
-    :ok = insert_rows(_user_ids = 40..40, "heights", ["height"], [153])
-    :ok = insert_rows(_user_ids = 41..49, "heights", ["height"], [nil])
-    :ok = insert_rows(_user_ids = 50..59, "heights", ["height"], [190])
-
-    assert_query "select count(distinct height) from heights",
-      %{columns: ["count"], rows: [%{row: [5], occurrences: 1}]}
-  end
-
   test "count(distinct column) for empty sets" do
     assert_query "select count(distinct height) from heights",
       %{columns: ["count"], rows: [%{row: [0], occurrences: 1}]}

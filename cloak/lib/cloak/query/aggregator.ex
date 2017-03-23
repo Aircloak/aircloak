@@ -160,7 +160,7 @@ defmodule Cloak.Query.Aggregator do
   # See docs/anonymization.md for details
   defp preprocess_for_aggregation(values, {:distinct, _column}) do
     values
-    |> Enum.sort_by(&Enum.count/1)
+    |> Enum.sort_by(&(&1 |> Enum.uniq() |> Enum.count()))
     |> Stream.with_index()
     |> Stream.flat_map(fn ({row, index}) ->
       Enum.map(row, &{index, &1})
