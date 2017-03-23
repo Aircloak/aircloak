@@ -65,6 +65,18 @@ cat /dev/urandom |
 
 ### Starting the container
 
+Before starting the container, make sure to update the image to the latest version:
+
+```bash
+docker pull quay.io/aircloak/air:latest
+```
+
+If you want to explicitly control which version you're fetching, then provide the explicit version number instead of the `latest` tag:
+
+```bash
+docker pull quay.io/aircloak/air:17.2.0
+```
+
 Once air is properly configured you can start the air container with the following command:
 
 ```bash
@@ -81,6 +93,8 @@ The `desired_http_port` parameter is the port you want to expose for HTTP reques
 The air component also exposes a monitoring endpoint over HTTP. If you want to use it, you need to provide the `-p desired_monitoring_port:8081` option.
 
 If everything was properly configured, you should be able to access air on that port, and create the administrator user using the master password provided in the `config.json`. In the case of problems, you can check the logs with `docker logs air`.
+
+If you want to have explicit control of the air version, replace the `latest` tag in the command with the specific version number.
 
 ## Installing the cloak component
 
@@ -227,6 +241,18 @@ The `base64` decoder can convert a `text` column from a Base-64 encoding to plai
 
 ### Starting the container
 
+Before starting the container, make sure to update the image to the latest version:
+
+```bash
+docker pull quay.io/aircloak/cloak:latest
+```
+
+If you want to explicitly control which version you're fetching, then provide the explicit version number instead of the `latest` tag:
+
+```bash
+docker pull quay.io/aircloak/cloak:17.2.0
+```
+
 With this configuration specified, we can start the cloak container as:
 
 ```bash
@@ -235,7 +261,7 @@ docker run -d --name cloak \
   quay.io/aircloak/cloak:latest
 ```
 
-In the command above, you need to replace `configuration_folder` with the full path to the folder where `config.json` is residing.
+In the command above, you need to replace `configuration_folder` with the full path to the folder where `config.json` is residing. If you want to have explicit control of the cloak version, replace the `latest` tag in the command with the specific version number.
 
 ## Configuring data access
 
