@@ -9,7 +9,7 @@
 </p>
 
 <%= form_for @changeset, onboarding_user_path(@conn, :create), [class: "form-horizontal"], fn f -> %>
-<%= if @changeset.errors do %>
+<%= if @errors && @changeset.errors do %>
   <div class="alert alert-danger">
     <p>Oops, something went wrong! Please check the errors below.</p>
   </div>
