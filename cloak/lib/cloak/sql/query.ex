@@ -99,14 +99,6 @@ defmodule Cloak.Sql.Query do
     query
   end
 
-  @doc "Returns the list of unique columns used in the aggregation process."
-  @spec aggregated_columns(t) :: [Expression.t]
-  def aggregated_columns(query) do
-    query.aggregators
-    |> Enum.flat_map(&(&1.function_args))
-    |> Enum.uniq()
-  end
-
   @doc """
   Returns a list of features used by a query, that can be used for
   analytics purposes by Aircloak.
