@@ -173,7 +173,7 @@ defmodule Cloak.Query.AnonymizationTest do
         %{columns: ["count"], rows: [%{row: [5], occurrences: 1}]}
     end
 
-    test "bug: a user with many non-unique values would be treated as one with many distinct values" do
+    test "a user with many non-unique values should be treated as one with few distinct values" do
       :ok = insert_rows(_user_ids = 40..40, "anonymizations", ["number"], [151])
       :ok = insert_rows(_user_ids = 40..40, "anonymizations", ["number"], [152])
       :ok = insert_rows(_user_ids = 40..40, "anonymizations", ["number"], [153])
