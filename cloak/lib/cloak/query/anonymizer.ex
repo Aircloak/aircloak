@@ -83,7 +83,7 @@ defmodule Cloak.Query.Anonymizer do
   @doc "Computes the noisy count and noise sigma of all values in rows, where each row is an enumerable."
   @spec count(t, Enumerable.t) :: {non_neg_integer, non_neg_integer}
   def count(anonymizer, rows) do
-    {count, noise_sigma, _anonymizer} = sum_positives(anonymizer, rows, &Enum.count(&1))
+    {count, noise_sigma, _anonymizer} = sum_positives(anonymizer, rows)
     count = count |> round() |> Kernel.max(config(:low_count_absolute_lower_bound))
     {_noise_mean_lower_bound, noise_sigma_lower_bound} = config(:outliers_count)
     noise_sigma = noise_sigma |> round() |> Kernel.max(noise_sigma_lower_bound)
@@ -93,11 +93,11 @@ defmodule Cloak.Query.Anonymizer do
   @doc "Computes the noisy sum and noise sigma of all values in rows, where each row is an enumerable of numbers."
   @spec sum(t, Enumerable.t) :: {number, number}
   def sum(anonymizer, rows) do
-    {positives_sum, positives_noise_sigma, anonymizer} = sum_positives(anonymizer, rows, &Enum.sum(&1))
-    {negatives_sum, negatives_noise_sigma, _anonymizer} = sum_positives(anonymizer, rows, & -Enum.sum(&1))
+    {positives_sum, positives_noise_sigma, anonymizer} = sum_positives(anonymizer, rows)
+    {negatives_sum, negatives_noise_sigma, _anonymizer} = sum_positives(anonymizer, Stream.map(rows, &-/1))
     noise_sigma = sum_noise_sigmas(positives_noise_sigma, negatives_noise_sigma)
     sum = positives_sum - negatives_sum
-    first_value = rows |> Enum.at(0) |> Enum.sum()
+    first_value = rows |> Enum.at(0)
     {maybe_round_result(sum, first_value), maybe_round_result(noise_sigma, first_value)}
   end
 
@@ -123,8 +123,8 @@ defmodule Cloak.Query.Anonymizer do
   """
   @spec avg(t, Enumerable.t) :: {float, float}
   def avg(anonymizer, rows) do
-    {sum, sum_noise_sigma} = sum(anonymizer, rows)
-    {count, _count_noise_sigma} = count(anonymizer, rows)
+    {sum, sum_noise_sigma} = sum(anonymizer, Stream.map(rows, fn ({sum, _count}) -> sum end))
+    {count, _count_noise_sigma} = count(anonymizer, Stream.map(rows, fn ({_sum, count}) -> count end))
     {sum / count, sum_noise_sigma / count}
   end
 
@@ -134,11 +134,11 @@ defmodule Cloak.Query.Anonymizer do
   """
   @spec stddev(t, Enumerable.t) :: {float, float}
   def stddev(anonymizer, rows) do
-    {count, sum} = Enum.reduce(rows, {0, 0}, fn (row, acc) ->
-      Enum.reduce(row, acc, fn (value, {acc_count, acc_sum}) -> {acc_count + 1, acc_sum + value} end)
+    {count, sum} = Enum.reduce(rows, {0, 0}, fn ({sum, _sum_sqrs, count}, {acc_count, acc_sum}) ->
+      {acc_count + count, acc_sum + sum}
     end)
     mean = sum / count
-    variances = Stream.map(rows, &Stream.map(&1, fn (value) -> (mean - value) * (mean - value) end))
+    variances = Stream.map(rows, fn ({sum, sum_sqrs, count}) -> {sum_sqrs + mean * (mean - 2 * sum), count} end)
     {avg_variance, noise_sigma_variance} = avg(anonymizer, variances)
     {:math.sqrt(abs(avg_variance)), :math.sqrt(noise_sigma_variance)}
   end
@@ -240,12 +240,12 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   # Computes the noisy sum of a collection of positive numbers.
-  defp sum_positives(anonymizer, rows, row_accumulator) do
+  defp sum_positives(anonymizer, rows) do
     {outliers_count, anonymizer} = add_noise(anonymizer, config(:outliers_count))
     outliers_count = outliers_count |> round() |> Kernel.max(config(:min_outliers_count))
     {top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
     top_count = round(top_count)
-    {sum, noise_sigma_scale} = sum_positives(rows, outliers_count, top_count, row_accumulator)
+    {sum, noise_sigma_scale} = sum_positives(rows, outliers_count, top_count)
     noise_sigma = config(:sum_noise_sigma) * noise_sigma_scale
     {noisy_sum, anonymizer} = add_noise(anonymizer, {sum, noise_sigma})
     {noisy_sum, round_noise_sigma(noise_sigma), anonymizer}
@@ -269,40 +269,30 @@ defmodule Cloak.Query.Anonymizer do
   defp insert_sorted([head | _tail] = list, new_value) when new_value <= head, do: [new_value | list]
   defp insert_sorted([head | tail], new_value) when new_value > head, do: [head | insert_sorted(tail, new_value)]
 
-  # Given a list of rows, a row accumulator functor and the anonymization parameters,
+  # Given a list of positives values and the anonymization parameters,
   # this method will drop the rows with negative values, and, for the remaining rows,
   # will return the anonymized sum plus the required scale for the noise standard deviation.
-  defp sum_positives(rows, outliers_count, top_count, row_accumulator) do
+  defp sum_positives(rows, outliers_count, top_count) do
     # The following part is written in a more convoluted way in order to do a single pass through the data.
     # It improves performance, but also reduces the amount of garbage generated, making the cloak more memory-stable.
     # The code is roughly equivalent to:
     # rows
-    #   |> Enum.map(row_accumulator)
-    #   |> Enum.filter(&(&1 >= 0))
-    #   |> Enum.sort(&(&1 > &2))
+    #   |> Enum.filter(& &1 >= 0)
+    #   |> Enum.sort(& &1 > &2)
     #   |> Enum.split(outliers_count + top_count)
     {sum, count, top_length, top_values} = Enum.reduce(rows, {0, 0, 0, []}, fn
-      (row, {sum, count, top_length, top}) when top_length <= outliers_count + top_count ->
-        # This is the case in which the `top_values` list is not full yet and
-        # we need to add the current row_value (if valid) to it.
-        row_value = row_accumulator.(row)
-        if row_value >= 0 do
-          {sum, count, top_length + 1, insert_sorted(top, row_value)}
-        else
-          {sum, count, top_length, top}
-        end
-      (row, {sum, count, top_length, [top_smallest | top_rest] = top}) ->
+      (value, {sum, count, top_length, top}) when value < 0 ->
+        {sum, count, top_length, top}
+      (value, {sum, count, top_length, top}) when top_length <= outliers_count + top_count ->
+        # This is the case in which the `top_values` list is not full yet and we need to add the current value to it.
+        {sum, count, top_length + 1, insert_sorted(top, value)}
+      (value, {sum, count, top_length, [top_smallest | top_rest] = top}) ->
         # This is the case in which our `top_values` list is full and we need to compare the
-        # current `row_value` with the head of the list.
-        row_value = row_accumulator.(row)
-        if row_value >= 0 do
-          if row_value > top_smallest do
-            {sum + top_smallest, count + 1, top_length, insert_sorted(top_rest, row_value)}
-          else
-            {sum + row_value, count + 1, top_length, top}
-          end
+        # current `value` with the head of the list.
+        if value > top_smallest do
+          {sum + top_smallest, count + 1, top_length, insert_sorted(top_rest, value)}
         else
-          {sum, count, top_length, top}
+          {sum + value, count + 1, top_length, top}
         end
     end)
 
