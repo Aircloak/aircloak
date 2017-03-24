@@ -98,14 +98,18 @@ defmodule Cloak.Query.Aggregator do
   # This function merges the per-user accumulated values of two different buckets.
   # Used during the creation of the low-count filtered bucket.
   @dialyzer {:nowarn_function, merge_accumulators: 1} # disable dialyzer warning because of `MapSet.union/2` call
-  defp merge_accumulators({value, nil}), do: value
-  defp merge_accumulators({nil, value}), do: value
-  defp merge_accumulators({value1, value2}) when is_number(value1) and is_number(value2), do: value1 + value2
-  defp merge_accumulators({value1, value2}) when is_list(value1) and is_list(value2), do: value1 ++ value2
-  defp merge_accumulators({%MapSet{} = value1, %MapSet{} = value2}), do: MapSet.union(value1, value2)
-  defp merge_accumulators({{value1a, value1b}, {value2a, value2b}}), do: {value1a + value2a, value1b + value2b}
+  defp merge_accumulators({value, nil}), do: value # no values present for second bucket
+  defp merge_accumulators({nil, value}), do: value # no values present for first bucket
+  defp merge_accumulators({value1, value2}) when is_number(value1) and is_number(value2), do:
+    value1 + value2 # sum and count accoumulators
+  defp merge_accumulators({value1, value2}) when is_list(value1) and is_list(value2), do:
+    value1 ++ value2 # median accumulators
+  defp merge_accumulators({%MapSet{} = value1, %MapSet{} = value2}), do:
+    MapSet.union(value1, value2) # min, max or distinct accumulators
+  defp merge_accumulators({{value1a, value1b}, {value2a, value2b}}), do:
+    {value1a + value2a, value1b + value2b} # avg accumulators
   defp merge_accumulators({{value1a, value1b, value1c}, {value2a, value2b, value2c}}), do:
-    {value1a + value2a, value1b + value2b, value1c + value2c}
+    {value1a + value2a, value1b + value2b, value1c + value2c} # stddev accumulators
 
   defp aggregated_column(%Expression{function_args: [:*]}), do: Expression.constant(nil, :*)
   defp aggregated_column(%Expression{function_args: [{:distinct, column}]}), do: column
