@@ -1,3 +1,10 @@
+## Next Version (Version 17.3.0)
+
+### Enhancements
+
+- Drastically improved performance for all top-level aggregators except `MEDIAN` (about 60% faster and 75% less memory usage).
+
+
 ## Version 17.2.0
 
 ### New features
