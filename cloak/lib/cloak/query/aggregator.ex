@@ -230,7 +230,7 @@ defmodule Cloak.Query.Aggregator do
     |> Stream.uniq(fn ({_index, value}) -> value end)
     |> Enum.reduce(%{}, fn({index, value}, accumulator) ->
       accumulator
-      |> Map.put(index, nil)
+      |> Map.put_new(index, nil)
       |> Map.update!(index, &aggregate_value(per_user_aggregator, value, &1))
     end)
     |> Map.values()
