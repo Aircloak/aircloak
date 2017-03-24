@@ -200,7 +200,7 @@ defmodule Cloak.Query.Aggregator do
       aggregated_values =
         users_rows
         |> Stream.map(fn ({_user, values}) -> Enum.at(values, values_index) end)
-        |> Enum.reject(&nil == &1)
+        |> Enum.reject(&is_nil/1)
       case low_users_count?(aggregated_values, anonymizer) do
         true  -> nil
         false ->
