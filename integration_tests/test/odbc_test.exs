@@ -64,9 +64,6 @@ defmodule IntegrationTest.OdbcTest do
       # either the ODBC driver, or ODBC itself converts this into a string.
       assert param_select(context.conn, :sql_integer, 42) == '42'
 
-    test "parameterized query with a boolean", context, do:
-      assert param_select(context.conn, :sql_bit, true) == true
-
     test "parameterized query with a float", context, do:
       assert param_select(context.conn, {:sql_float, 32}, 3.14, "real") == 3.14
 
@@ -74,10 +71,10 @@ defmodule IntegrationTest.OdbcTest do
       assert param_select(context.conn, :sql_double, 3.14, "real") == 3.14
 
     test "parameterized query with a decimal", context, do:
-      assert param_select(context.conn, {:sql_decimal, 10, 2}, 3.14) == 3.14
+      assert param_select(context.conn, {:sql_decimal, 10, 2}, 3.14, "real") == 3.14
 
     test "parameterized query with a real", context, do:
-      assert param_select(context.conn, :sql_real, 3.14) == 3.14
+      assert param_select(context.conn, :sql_real, 3.14, "real") == 3.14
 
     test "parameterized query with a varchar", context, do:
       assert param_select(context.conn, {:sql_varchar, 6}, 'foobar') == 'foobar'
