@@ -5,7 +5,6 @@
 - Adds an [Activity Monitor](/admin/activity_monitor) that allows an administrator to see all queries running in the system across all.
   analysts as well as the memory usage across all connected cloaks.
 - Show indication of progress when a query is executing.
-- Ability to export usage logs rather than have an open connection to Aircloak Central.
 
 ### Enhancements
 
