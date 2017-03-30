@@ -41,7 +41,7 @@ defmodule Cloak.Sql.Function do
     [{:bucket, :lower}, {:bucket, :upper}, {:bucket, :middle}] => %{type_specs: %{
       [numeric, numeric] => :real,
     }},
-    ~w(abs) => %{type_specs: %{[numeric] => :real}},
+    ~w(abs) => %{type_specs: %{[:real] => :real, [:integer] => :integer}},
     ~w(sqrt) => %{type_specs: %{[numeric] => :real}},
     ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}},
     ~w(pow ^) => %{type_specs: %{[numeric, numeric] => :real}},
