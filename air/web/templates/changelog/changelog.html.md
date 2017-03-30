@@ -2,19 +2,18 @@
 
 ### New features
 
-- Adds an [Activity Monitor](/admin/activity_monitor) that allows an administrator to see all queries running in the system across all.
-  analysts as well as the memory usage across all connected cloaks.
+- Adds an [Activity Monitor](/admin/activity_monitor) that allows an administrator to see all queries running in the system across all analysts, as well as the memory usage across all connected cloaks.
 - Show indication of progress when a query is executing.
+- Adds an [endpoint for monitoring](/docs#monitoring) by external tools.
+- Adds a [settings pane](/admin/settings) with the ability to specify the retention time for past queries.
 
 ### Enhancements
 
 - Allow unlimited recall of past query history.
 - Produces an error message when a data source is configured with an invalid decryption key.
-- Adds an [endpoint for monitoring](/docs#monitoring) by external tools.
-- Adds a [settings pane](/admin/settings) with the ability to specify the retention time for past queries.
 - Cloaks terminate queries when about to run out of memory, rather than crash.
 - Ability to speed up schema detection of MongoDB collections by sampling a subset of the data.
-- Logs produced by the `Cloak`s are sanitized to accidental leakage of sensitive data.
+- Logs produced by cloaks are sanitized to prevent accidental leakage of sensitive data.
 - The performance of computing medians in emulated database queries is improved. In representative use cases by more than a factor of two.
 - Improved performance by 30% when using `extract_matches` function.
 - Allow multiple queries to be run at once in one tab.
@@ -22,8 +21,7 @@
 
 ### Changes
 
-- Remove charting of errors and automatic detection of axes. Instead it's possible to
-select which columns to plot.
+- Remove charting of errors and automatic detection of axes. Instead it's possible to select which columns to plot.
 
 ### Bug fixes
 - Fixes usage of dotted names in sub-queries.
