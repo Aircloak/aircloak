@@ -124,7 +124,6 @@ defmodule Cloak.DataSource.ODBC do
   defp type_to_field_mapper(:date, _sql_dialect), do: &date_field_mapper/1
   defp type_to_field_mapper(:real, _sql_dialect), do: &real_field_mapper/1
   defp type_to_field_mapper(:integer, _sql_dialect), do: &integer_field_mapper/1
-  defp type_to_field_mapper(:decimal, _sql_dialect), do: &decimal_field_mapper/1
   defp type_to_field_mapper(:text, :sqlserver), do: &utf16_text_field_mapper/1
   defp type_to_field_mapper(_, _sql_dialect), do: &generic_field_mapper/1
 
@@ -166,9 +165,6 @@ defmodule Cloak.DataSource.ODBC do
   end
   defp integer_field_mapper(value) when is_integer(value), do: value
   defp integer_field_mapper(value) when is_float(value), do: round(value)
-
-  defp decimal_field_mapper(:null), do: nil
-  defp decimal_field_mapper(value), do: Decimal.new(value)
 
   defp utf16_text_field_mapper(:null), do: nil
   defp utf16_text_field_mapper(value) when is_binary(value), do:
