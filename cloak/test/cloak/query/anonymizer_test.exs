@@ -17,7 +17,7 @@ defmodule Cloak.Query.AnonimyzerTest do
   test "sum" do
     # per-user row format = sum of values
     rows = [1, 2, -1, 0, 1, 2, -4, -2, 4, 1, -1, 2]
-    assert {6, 0} = Anonymizer.new([]) |> Anonymizer.sum(rows)
+    assert {6.0, 0.0} = Anonymizer.new([]) |> Anonymizer.sum(rows)
   end
 
   test "avg" do
@@ -35,18 +35,18 @@ defmodule Cloak.Query.AnonimyzerTest do
   test "min" do
     # per-user row format = collection of values
     rows = [[1, -2], [3], [4, 2, -3], [-2, 4], [-1], [-3, -2], [3], [4, -2, 1], [5], [-4], [-5, 4], [3], [-6, 3, 2]]
-    assert -1 = Anonymizer.new([]) |> Anonymizer.min(rows)
+    assert -1 = Anonymizer.new([]) |> Anonymizer.min(rows) |> round()
   end
 
   test "max" do
     # per-user row format = collection of values
     rows = [[1, -2], [3], [4, 2, -3], [-2, 4], [-1], [-3, -2], [3], [4, -2, 1], [5], [-4], [-5, 4], [3], [-6, 3, 2]]
-    assert 3 = Anonymizer.new([]) |> Anonymizer.max(rows)
+    assert 3 = Anonymizer.new([]) |> Anonymizer.max(rows) |> round()
   end
 
   test "median" do
     # per-user row format = collection of all values
     rows = [[1, 2], [3], [4, 2, -3], [2, 4], [0], [-3, -2], [3], [4, -2, 1], [5], [-4], [-5, 4], [3]]
-    assert 1 = Anonymizer.new([]) |> Anonymizer.median(rows)
+    assert 1 = Anonymizer.new([]) |> Anonymizer.median(rows) |> round()
   end
 end
