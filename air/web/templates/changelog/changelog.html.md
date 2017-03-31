@@ -13,7 +13,7 @@
 - Produces an error message when a data source is configured with an invalid decryption key.
 - Cloaks terminate queries when about to run out of memory, rather than crash.
 - Ability to speed up schema detection of MongoDB collections by sampling a subset of the data.
-- Logs produced by cloaks are sanitized to prevent accidental leakage of sensitive data.
+- Improved protection of sensitive details in system health data.
 - The performance of computing medians in emulated database queries is improved. In representative use cases by more than a factor of two.
 - Improved performance by 30% when using `extract_matches` function.
 - Allow multiple queries to be run at once in one tab.
