@@ -6,6 +6,7 @@ defmodule Cloak.DataSource.MySQL do
 
   alias Cloak.DataSource.SqlBuilder
   alias Cloak.Query.Runner.RuntimeError
+  alias Cloak.Query.DataDecoder
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -47,7 +48,9 @@ defmodule Cloak.DataSource.MySQL do
   @doc false
   def select(connection, sql_query, result_processor) do
     statement = SqlBuilder.build(sql_query, :mysql)
-    run_query(connection, statement, &row_mapper/1, result_processor)
+    field_mappers = for column <- sql_query.db_columns, do:
+      column |> DataDecoder.encoded_type() |> type_to_field_mapper()
+    run_query(connection, statement, &map_fields(&1, field_mappers), result_processor)
   end
 
   @doc false
@@ -82,6 +85,7 @@ defmodule Cloak.DataSource.MySQL do
   defp parse_type("float"), do: :real
   defp parse_type("double"), do: :real
   defp parse_type("decimal" <> _size), do: :real
+  defp parse_type("numeric" <> _size), do: :real
   defp parse_type("timestamp"), do: :datetime
   defp parse_type("datetime"), do: :datetime
   defp parse_type("time"), do: :time
@@ -93,18 +97,31 @@ defmodule Cloak.DataSource.MySQL do
   # Selected data mapping functions
   # -------------------------------------------------------------------
 
-  defp row_mapper(row), do: for field <- row, do: field_mapper(field)
+  defp map_fields([], []), do: []
+  defp map_fields([field | rest_fields], [mapper | rest_mappers]), do:
+    [mapper.(field) | map_fields(rest_fields, rest_mappers)]
 
-  defp field_mapper({{year, month, day}, {hour, min, sec, msec}}), do:
+  defp type_to_field_mapper(:integer), do: &integer_field_mapper/1
+  defp type_to_field_mapper(:real), do: &real_field_mapper/1
+  defp type_to_field_mapper(_), do: &generic_field_mapper/1
+
+  defp integer_field_mapper(nil), do: nil
+  defp integer_field_mapper(%Decimal{} = value), do: Decimal.to_integer(value)
+  defp integer_field_mapper(value) when is_integer(value), do: value
+  defp integer_field_mapper(value) when is_float(value), do: round(value)
+
+  defp real_field_mapper(nil), do: nil
+  defp real_field_mapper(%Decimal{} = value), do: Decimal.to_float(value)
+  defp real_field_mapper(value) when is_float(value), do: value
+  defp real_field_mapper(value) when is_integer(value), do: value * 1.0
+
+  defp generic_field_mapper({{year, month, day}, {hour, min, sec, msec}}), do:
     NaiveDateTime.new(year, month, day, hour, min, sec, {msec * 1000, 6}) |> error_to_nil()
-  defp field_mapper({year, month, day}), do: Date.new(year, month, day) |> error_to_nil()
-  defp field_mapper({hour, min, sec, msec}), do: Time.new(hour, min, sec, {msec * 1000, 6}) |> error_to_nil()
-  defp field_mapper(<<0>>), do: false
-  defp field_mapper(<<1>>), do: true
-  @decimal_precision :math.pow(10, 15)
-  defp field_mapper(%Decimal{} = value), do:
-    Cloak.DecimalUtil.to_precision(value, @decimal_precision)
-  defp field_mapper(field), do: field
+  defp generic_field_mapper({year, month, day}), do: Date.new(year, month, day) |> error_to_nil()
+  defp generic_field_mapper({hour, min, sec, msec}), do: Time.new(hour, min, sec, {msec * 1000, 6}) |> error_to_nil()
+  defp generic_field_mapper(<<0>>), do: false
+  defp generic_field_mapper(<<1>>), do: true
+  defp generic_field_mapper(value), do: value
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _reason}), do: nil

@@ -137,7 +137,7 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
-  for function <- ~w(avg stddev abs sqrt) do
+  for function <- ~w(avg stddev sqrt) do
     test "allowing #{function} on numeric columns" do
       assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
     end
@@ -147,6 +147,15 @@ defmodule Cloak.Sql.Compiler.Test do
       assert error ==
         "Function `#{unquote(function)}` requires arguments of type (`integer` | `real`), but got (`datetime`)."
     end
+  end
+
+  test "allowing abs on numeric columns" do
+    assert {:ok, _} = compile("select abs(numeric) from table", data_source())
+  end
+
+  test "rejecting abs on non-numerical columns" do
+    assert {:error, error} = compile("select abs(column) from table", data_source())
+    assert error == "Function `abs` requires arguments of type (`integer`) or (`real`), but got (`datetime`)."
   end
 
   for function <- ~w(count) do

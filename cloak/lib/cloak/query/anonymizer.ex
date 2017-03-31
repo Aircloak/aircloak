@@ -97,8 +97,7 @@ defmodule Cloak.Query.Anonymizer do
     {negatives_sum, negatives_noise_sigma, _anonymizer} = sum_positives(anonymizer, Stream.map(rows, &-/1))
     noise_sigma = sum_noise_sigmas(positives_noise_sigma, negatives_noise_sigma)
     sum = positives_sum - negatives_sum
-    first_value = rows |> Enum.at(0)
-    {maybe_round_result(sum, first_value), maybe_round_result(noise_sigma, first_value)}
+    {sum, noise_sigma}
   end
 
   @doc "Computes the noisy minimum value of all values in rows, where each row is an enumerable of numbers."
@@ -170,7 +169,7 @@ defmodule Cloak.Query.Anonymizer do
     case noisy_below_count + noisy_above_count + 1 do
       ^middle_values_count ->
         {noised_median, _anonymizer} = noisy_average(middle_values, anonymizer)
-        maybe_round_result(noised_median, Enum.at(middle_values, 0))
+        noised_median
       _ -> nil
     end
   end
@@ -253,10 +252,6 @@ defmodule Cloak.Query.Anonymizer do
     {noisy_sum, round_noise_sigma(noise_sigma), anonymizer}
   end
 
-  # Round the final result of an aggregator depending on the type of aggregated values.
-  defp maybe_round_result(result, value) when is_integer(value), do: round(result)
-  defp maybe_round_result(result, value) when is_float(value), do: result
-
   defp take_values_from_distinct_users(user_values, amount) do
     user_values
     |> Stream.dedup_by(fn({user, _value}) -> user end)
@@ -337,7 +332,7 @@ defmodule Cloak.Query.Anonymizer do
     else
       top_values = Enum.take(top_values, top_count)
       {noised_top_average, _anonymizer} = noisy_average(top_values, anonymizer)
-      maybe_round_result(noised_top_average, Enum.at(top_values, 0))
+      noised_top_average
     end
   end
 

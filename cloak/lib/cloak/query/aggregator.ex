@@ -210,7 +210,7 @@ defmodule Cloak.Query.Aggregator do
         false ->
           aggregated_values
           |> preprocess_for_aggregation(aggregator)
-          |> aggregate_by(aggregator.function, anonymizer)
+          |> aggregate_by(aggregator.function, aggregator.type, anonymizer)
           |> post_process_result(aggregator.function, users_rows, values_index)
       end
     end)
@@ -237,44 +237,51 @@ defmodule Cloak.Query.Aggregator do
   end
   defp preprocess_for_aggregation(values, _aggregator), do: values
 
-  defp aggregate_by(aggregation_data, "count", anonymizer) do
+  defp aggregate_by(aggregation_data, "count", _type, anonymizer) do
     {count, _noise_sigma} = Anonymizer.count(anonymizer, aggregation_data)
     count
   end
-  defp aggregate_by(aggregation_data, "sum", anonymizer) do
+  defp aggregate_by(aggregation_data, "sum", type, anonymizer) do
     {sum, _noise_sigma} = Anonymizer.sum(anonymizer, aggregation_data)
-    sum
+    float_to_type(sum, type)
   end
-  defp aggregate_by(aggregation_data, "avg", anonymizer) do
+  defp aggregate_by(aggregation_data, "avg", _type, anonymizer) do
     {avg, _noise_sigma} = Anonymizer.avg(anonymizer, aggregation_data)
     avg
   end
-  defp aggregate_by(aggregation_data, "stddev", anonymizer) do
+  defp aggregate_by(aggregation_data, "stddev", _type, anonymizer) do
     {stddev, _noise_sigma} = Anonymizer.stddev(anonymizer, aggregation_data)
     stddev
   end
-  defp aggregate_by(aggregation_data, "count_noise", anonymizer) do
+  defp aggregate_by(aggregation_data, "count_noise", _type, anonymizer) do
     {_count, noise_sigma} = Anonymizer.count(anonymizer, aggregation_data)
     noise_sigma
   end
-  defp aggregate_by(aggregation_data, "sum_noise", anonymizer) do
+  defp aggregate_by(aggregation_data, "sum_noise", type, anonymizer) do
     {_sum, noise_sigma} = Anonymizer.sum(anonymizer, aggregation_data)
-    noise_sigma
+    float_to_type(noise_sigma, type)
   end
-  defp aggregate_by(aggregation_data, "avg_noise", anonymizer) do
+  defp aggregate_by(aggregation_data, "avg_noise", _type, anonymizer) do
     {_avg, noise_sigma} = Anonymizer.avg(anonymizer, aggregation_data)
     noise_sigma
   end
-  defp aggregate_by(aggregation_data, "stddev_noise", anonymizer) do
+  defp aggregate_by(aggregation_data, "stddev_noise", _type, anonymizer) do
     {_stddev, noise_sigma} = Anonymizer.stddev(anonymizer, aggregation_data)
     noise_sigma
   end
-  defp aggregate_by(aggregation_data, "min", anonymizer), do: Anonymizer.min(anonymizer, aggregation_data)
-  defp aggregate_by(aggregation_data, "max", anonymizer), do: Anonymizer.max(anonymizer, aggregation_data)
-  defp aggregate_by(aggregation_data, "median", anonymizer), do: Anonymizer.median(anonymizer, aggregation_data)
-  defp aggregate_by(_, unknown_aggregator, _) do
+  defp aggregate_by(aggregation_data, "min", type, anonymizer), do:
+    Anonymizer.min(anonymizer, aggregation_data) |> float_to_type(type)
+  defp aggregate_by(aggregation_data, "max", type, anonymizer), do:
+    Anonymizer.max(anonymizer, aggregation_data) |> float_to_type(type)
+  defp aggregate_by(aggregation_data, "median", type, anonymizer), do:
+    Anonymizer.median(anonymizer, aggregation_data) |> float_to_type(type)
+  defp aggregate_by(_, unknown_aggregator, _type, _) do
     raise "Aggregator '#{unknown_aggregator}' is not supported!"
   end
+
+  defp float_to_type(nil, _type), do: nil
+  defp float_to_type(value, :integer), do: round(value)
+  defp float_to_type(value, :real), do: value
 
   # For min / max aggregators, if there is a value which passes the LCF and
   # it is lower / greater than the aggregated result, we want to show that instead.
