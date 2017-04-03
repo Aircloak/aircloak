@@ -15,6 +15,7 @@ import type {TableAlignerT} from "./table_aligner";
 export type Row = {
   occurrences: number,
   row: any[],
+  users_count: number,
 };
 
 export type Column = string;
@@ -208,7 +209,12 @@ export class ResultView extends React.Component {
       const occurrencesForAccumulateRow = Math.min(remainingRowsToProduce, accumulateRow.occurrences);
       return _.range(occurrencesForAccumulateRow).map((occurrenceCount) => {
         remainingRowsToProduce -= 1;
-        return (<tr key={`${i}-${occurrenceCount}`}>
+        const unreliable_attrs = {
+          'title': 'These values are unreliable because of the low number of users involved.',
+          'data-toggle': 'popover',
+          'style': {'color': 'gray', 'font-style': 'italic'}
+        };
+        return (<tr key={`${i}-${occurrenceCount}`} {...accumulateRow.users_count < 15 && unreliable_attrs}>
           {accumulateRow.row.map((value, j) =>
             <td key={j} className={this.state.tableAligner.alignmentClass(j)}>
               {this.formatValue(value)}
