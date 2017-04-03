@@ -27,7 +27,7 @@ defmodule IntegrationTest.QueryTest do
 
   test "select", context do
     {:ok, result} = run_query(context.user, "select name, height from users")
-    assert Map.fetch!(result, "rows") == [%{"occurrences" => 100, "row" => ["john", 180]}]
+    assert [%{"occurrences" => 100, "row" => ["john", 180]}] = Map.fetch!(result, "rows")
   end
 
   test "retrieval of query results as csv", context do

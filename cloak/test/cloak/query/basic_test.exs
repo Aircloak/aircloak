@@ -498,8 +498,7 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query "select count(*), height from heights group by height",
       %{columns: ["count", "height"], rows: rows}
-    assert Enum.sort_by(rows, &(&1[:row])) ==
-      [%{row: [10, 180], occurrences: 1}, %{row: [20, 160], occurrences: 1}]
+    assert [%{row: [10, 180], occurrences: 1}, %{row: [20, 160], occurrences: 1}] = Enum.sort_by(rows, &(&1[:row]))
   end
 
   test "grouping works when the column is not selected" do
@@ -507,7 +506,7 @@ defmodule Cloak.Query.BasicTest do
     :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
 
     assert_query "select count(*) from heights group by height", %{columns: ["count"], rows: rows}
-    assert Enum.sort_by(rows, &(&1[:row])) == [%{row: [10], occurrences: 1}, %{row: [20], occurrences: 1}]
+    assert [%{row: [10], occurrences: 1}, %{row: [20], occurrences: 1}] = Enum.sort_by(rows, &(&1[:row]))
   end
 
   test "grouping and sorting by a count" do
@@ -517,11 +516,11 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query "select count(*), height from heights group by height order by count(*) asc",
       %{columns: ["count", "height"], rows: rows}
-    assert rows == [
+    assert [
       %{row: [10, 180], occurrences: 1},
       %{row: [20, 160], occurrences: 1},
       %{row: [30, 150], occurrences: 1}
-    ]
+    ] = rows
   end
 
   test "ordering hidden values" do
@@ -532,7 +531,7 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query "select count(*), name from heights group by name order by name asc",
       %{columns: ["count", "name"], rows: rows}
-    assert rows == [%{row: [10, "Charlie"], occurrences: 1}, %{row: [10, :*], occurrences: 1}]
+    assert [%{row: [10, "Charlie"], occurrences: 1}, %{row: [10, :*], occurrences: 1}] = rows
   end
 
   test "grouping and sorting by a grouped field" do
@@ -542,11 +541,11 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query "select count(*), height from heights group by height order by height asc",
       %{columns: ["count", "height"], rows: rows}
-    assert rows == [
+    assert [
       %{row: [30, 150], occurrences: 1},
       %{row: [20, 160], occurrences: 1},
       %{row: [10, 180], occurrences: 1}
-    ]
+    ] = rows
   end
 
   test "query which returns zero rows" do
@@ -782,5 +781,18 @@ defmodule Cloak.Query.BasicTest do
     assert_query "select heights_view.height from heights_view",
       [views: %{"heights_view" => "select user_id, height from heights"}],
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "per-bucket noisy users count" do
+    :ok = insert_rows(_user_ids = 30..59, "heights", ["height"], [150])
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
+
+    assert_query "select height from heights group by height order by height asc", %{rows: rows}
+    assert [
+      %{row: [150], users_count: 30},
+      %{row: [160], users_count: 20},
+      %{row: [180], users_count: 10}
+    ] = rows
   end
 end

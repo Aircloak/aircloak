@@ -215,7 +215,8 @@ defmodule Cloak.Query.Aggregator do
       end
     end)
 
-    property_values ++ aggregation_results
+    users_count = Anonymizer.noisy_count(anonymizer, Enum.count(users_rows))
+    {users_count, property_values ++ aggregation_results}
   end
 
   # See docs/anonymization.md for details
@@ -323,13 +324,17 @@ defmodule Cloak.Query.Aggregator do
       %Expression{function: "count"} -> 0
       %Expression{} -> nil
     end)
-    [%{row: aggregated_values, occurrences: 1}]
+    [%{row: aggregated_values, occurrences: 1, users_count: 0}]
   end
   defp make_buckets(rows, %Query{implicit_count?: false} = query) do
     Logger.debug("Making explicit buckets ...")
     rows
+    |> Stream.map(fn ({_users_count, row}) -> row end)
     |> Rows.extract_groups(query)
-    |> Enum.map(&%{row: &1, occurrences: 1})
+    |> Stream.zip(Stream.map(rows, fn ({users_count, _row}) -> users_count end))
+    |> Enum.map(fn ({row, users_count}) ->
+      %{row: row, occurrences: 1, users_count: users_count}
+    end)
   end
   defp make_buckets(rows, %Query{implicit_count?: true} = query) do
     Logger.debug("Making implicit buckets ...")
@@ -337,8 +342,12 @@ defmodule Cloak.Query.Aggregator do
     # retrieve it afterwards when making the bucket.
     columns_with_count = [Expression.count_star() | query.columns]
     rows
+    |> Stream.map(fn ({_users_count, row}) -> row end)
     |> Rows.extract_groups(%Query{query | columns: columns_with_count})
-    |> Enum.map(fn ([count | row]) -> %{row: row, occurrences: count} end)
+    |> Stream.zip(Stream.map(rows, fn ({users_count, _row}) -> users_count end))
+    |> Enum.map(fn ({[count | row], users_count}) ->
+      %{row: row, occurrences: count, users_count: users_count}
+    end)
   end
 
   defp number_of_anonymized_users(data) do
