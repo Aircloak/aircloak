@@ -56,7 +56,7 @@ form.link, form.button {
 }
 
 .table-hover tbody tr:hover td {
-  background: rgb(255,255,155);
+  background: rgb(225,240,255);
 }
 
 /* Customize container */
