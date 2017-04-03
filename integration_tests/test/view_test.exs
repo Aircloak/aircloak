@@ -46,7 +46,7 @@ defmodule IntegrationTest.ViewTest do
   test "selecting from the view", context do
     {:ok, view} = create_view(context.user, unique_view_name(), "select user_id, name from users")
     {:ok, result} = run_query(context.user, "select name from #{view.name}")
-    assert Map.fetch!(result, "rows") == [%{"occurrences" => 100, "row" => ["john"]}]
+    assert [%{"occurrences" => 100, "row" => ["john"]}] = Map.fetch!(result, "rows")
   end
 
   defp unique_view_name(), do:
