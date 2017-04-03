@@ -209,12 +209,15 @@ export class ResultView extends React.Component {
       const occurrencesForAccumulateRow = Math.min(remainingRowsToProduce, accumulateRow.occurrences);
       return _.range(occurrencesForAccumulateRow).map((occurrenceCount) => {
         remainingRowsToProduce -= 1;
-        const unreliable_attrs = {
-          'title': 'These values are unreliable because of the low number of users involved.',
-          'data-toggle': 'popover',
-          'style': {'color': 'gray', 'font-style': 'italic'}
-        };
-        return (<tr key={`${i}-${occurrenceCount}`} {...accumulateRow.users_count < 15 && unreliable_attrs}>
+        let unreliableAttrs = {};
+        if (accumulateRow.users_count < 15) {
+          unreliableAttrs = {
+            title: "These values are unreliable because of the low number of users involved.",
+            "data-toggle": "popover",
+            style: {color: "gray", "font-style": "italic"},
+          };
+        }
+        return (<tr key={`${i}-${occurrenceCount}`} {...unreliableAttrs}>
           {accumulateRow.row.map((value, j) =>
             <td key={j} className={this.state.tableAligner.alignmentClass(j)}>
               {this.formatValue(value)}
