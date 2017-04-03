@@ -143,7 +143,7 @@ defmodule Cloak.Query.FunctionTest do
         %{row: ["h"], occurrences: 100},
       ]
       |> Enum.sort_by(&(&1.row))
-    received_rows = Enum.sort_by(rows, &(&1.row))
+    received_rows = Enum.sort_by(rows, &(&1.row)) |> Enum.map(&%{row: &1.row, occurrences: &1.occurrences})
     assert expected_result == received_rows
   end
 

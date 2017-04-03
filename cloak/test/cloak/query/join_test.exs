@@ -24,7 +24,7 @@ defmodule Cloak.Query.JoinTest do
     assert_query "select max(height), max(price)
       FROM heights_join, purchases WHERE heights_join.user_id = purchases.user_id",
       %{columns: ["max", "max"], rows: rows}
-    assert rows == [%{row: [180, 200], occurrences: 1}]
+    assert [%{row: [180, 200], occurrences: 1}] = rows
   end
 
   test "selecting using INNER JOIN" do
@@ -36,7 +36,7 @@ defmodule Cloak.Query.JoinTest do
       FROM heights_join INNER JOIN purchases ON heights_join.user_id = purchases.user_id
     """,
       %{columns: ["max", "max"], rows: rows}
-    assert rows == [%{row: [180, 200], occurrences: 1}]
+    assert [%{row: [180, 200], occurrences: 1}] = rows
   end
 
   test "selecting using complex JOIN" do
@@ -51,7 +51,7 @@ defmodule Cloak.Query.JoinTest do
         children_join
       WHERE children_join.user_id = purchases.user_id
     """, %{columns: ["max", "max", "max"], rows: rows}
-    assert rows == [%{row: [180, 200, 20], occurrences: 1}]
+    assert [%{row: [180, 200, 20], occurrences: 1}] = rows
   end
 
   test "selecting using LEFT OUTER JOIN" do
@@ -62,7 +62,7 @@ defmodule Cloak.Query.JoinTest do
       SELECT count(*)
       FROM heights_join LEFT OUTER JOIN children_join ON heights_join.user_id = children_join.user_id
     """, %{columns: ["count"], rows: rows}
-    assert rows == [%{row: [100], occurrences: 1}]
+    assert [%{row: [100], occurrences: 1}] = rows
   end
 
   test "selecting using RIGHT OUTER JOIN" do
@@ -73,7 +73,7 @@ defmodule Cloak.Query.JoinTest do
       SELECT count(*)
       FROM heights_join RIGHT OUTER JOIN children_join ON heights_join.user_id = children_join.user_id
     """, %{columns: ["count"], rows: rows}
-    assert rows == [%{row: [50], occurrences: 1}]
+    assert [%{row: [50], occurrences: 1}] = rows
   end
 
   test "selecting using FULL OUTER JOIN" do
@@ -84,7 +84,7 @@ defmodule Cloak.Query.JoinTest do
       SELECT count(*)
       FROM heights_join FULL OUTER JOIN children_join ON heights_join.user_id = children_join.user_id
     """, %{columns: ["count"], rows: rows}
-    assert rows == [%{row: [100], occurrences: 1}]
+    assert [%{row: [100], occurrences: 1}] = rows
   end
 
   test "a mistyped JOIN condition" do
@@ -107,6 +107,6 @@ defmodule Cloak.Query.JoinTest do
       ON heights_join.user_id = purchases.user_id AND abs(price) = 100
     """,
       %{columns: ["max", "max"], rows: rows}
-    assert rows == [%{row: [180, -100], occurrences: 1}]
+    assert [%{row: [180, -100], occurrences: 1}] = rows
   end
 end
