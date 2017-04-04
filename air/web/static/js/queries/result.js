@@ -2,6 +2,7 @@
 
 import React from "react";
 import _ from "lodash";
+import $ from "jquery";
 
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
@@ -207,7 +208,8 @@ export class ResultView extends React.Component {
     if (row.users_count < 15) {
       return {
         title: "These values are unreliable because of the low number of users involved.",
-        "data-toggle": "popover",
+        "data-toggle": "tooltip",
+        "data-placement": "left",
         className: "unreliable",
       };
     } else {
@@ -217,7 +219,7 @@ export class ResultView extends React.Component {
 
   renderRows() {
     let remainingRowsToProduce = this.state.rowsToShowCount;
-    return _.flatMap(this.props.rows, (accumulateRow, i) => {
+    const rows = _.flatMap(this.props.rows, (accumulateRow, i) => {
       const occurrencesForAccumulateRow = Math.min(remainingRowsToProduce, accumulateRow.occurrences);
       return _.range(occurrencesForAccumulateRow).map((occurrenceCount) => {
         remainingRowsToProduce -= 1;
@@ -230,6 +232,8 @@ export class ResultView extends React.Component {
         </tr>);
       });
     });
+    $("tr[data-toggle='tooltip']").tooltip();
+    return rows;
   }
 
   renderShowAll() {
