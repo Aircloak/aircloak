@@ -2,6 +2,7 @@
 
 import React from "react";
 import _ from "lodash";
+import $ from "jquery";
 
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
@@ -15,6 +16,7 @@ import type {TableAlignerT} from "./table_aligner";
 export type Row = {
   occurrences: number,
   row: any[],
+  users_count: number,
 };
 
 export type Column = string;
@@ -45,6 +47,8 @@ type State = {
   graphConfig: GraphConfig,
   tableAligner: TableAlignerT,
 };
+
+const unreliableUsersCountThreshold = 15;
 
 export class ResultView extends React.Component {
   constructor(props: Result) {
@@ -202,13 +206,25 @@ export class ResultView extends React.Component {
     }
   }
 
+  getRowAttrs(row: Row) {
+    if (row.users_count < unreliableUsersCountThreshold) {
+      return {
+        title: "These values are unreliable because of the low number of users involved.",
+        "data-toggle": "tooltip",
+        className: "unreliable",
+      };
+    } else {
+      return {};
+    }
+  }
+
   renderRows() {
     let remainingRowsToProduce = this.state.rowsToShowCount;
-    return _.flatMap(this.props.rows, (accumulateRow, i) => {
+    const rows = _.flatMap(this.props.rows, (accumulateRow, i) => {
       const occurrencesForAccumulateRow = Math.min(remainingRowsToProduce, accumulateRow.occurrences);
       return _.range(occurrencesForAccumulateRow).map((occurrenceCount) => {
         remainingRowsToProduce -= 1;
-        return (<tr key={`${i}-${occurrenceCount}`}>
+        return (<tr key={`${i}-${occurrenceCount}`} {...this.getRowAttrs(accumulateRow)}>
           {accumulateRow.row.map((value, j) =>
             <td key={j} className={this.state.tableAligner.alignmentClass(j)}>
               {this.formatValue(value)}
@@ -217,6 +233,8 @@ export class ResultView extends React.Component {
         </tr>);
       });
     });
+    $("tr[data-toggle='tooltip']").tooltip();
+    return rows;
   }
 
   renderShowAll() {
