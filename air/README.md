@@ -14,6 +14,7 @@ needed to create, update and run tasks.
     - [Local docker container](#local-docker-container)
     - [Other common tasks](#other-common-tasks)
     - [Deploying](#deploying)
+- [Frontend](#frontend)
 
 ----------------------
 
@@ -98,3 +99,9 @@ __macOS users__: see [here](../macos_docker.md) for additional instructions.
 ### Deploying
 
 See [here](../README.md#deploying).
+
+## Frontend
+
+Frontend meant for the analyst (querying, selecting a datasource) should work well on screens 1024px and wider.
+It should remain usable on screens 360px - 1024px but without investing undue effort. Administration frontends
+have to work well on screens 1024px and wider.
