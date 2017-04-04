@@ -102,6 +102,24 @@ See [here](../README.md#deploying).
 
 ## Frontend
 
-Frontend meant for the analyst (querying, selecting a datasource) should work well on screens 1024px and wider.
-It should remain usable on screens 360px - 1024px but without investing undue effort. Administration frontends
-have to work well on screens 1024px and wider.
+### Analyst pages
+
+This includes any and all pages that are visible to a user (logged in or not) who does not have administrative
+privileges. These pages should be optimized for screens 1024px and wider. That means that on those screens all
+elements should be visible (not hidden or collapsed) and all text items appropriately truncated to fit into the
+layout or broken up into multiple lines.
+
+On screens 360px and wider these pages should be at least functional. This means that all basic tasks can be
+accomplished, however some non-key elements can be collapsed or hidden entirely. The basic tasks are:
+
+* logging in
+* changing your password (in case you need to do that on the go due to a breach)
+* selecting a data source
+* write and run a query
+* see the results of a query
+
+### Admin pages
+
+This includes all pages that require administrative privileges to view. These should be optimized for 1024px like
+analyst pages. No extra effort should go into making them work on smaller screens beyond what's provided by
+bootstrap.
