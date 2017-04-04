@@ -48,6 +48,8 @@ type State = {
   tableAligner: TableAlignerT,
 };
 
+const unreliableUsersCountThreshold = 15;
+
 export class ResultView extends React.Component {
   constructor(props: Result) {
     super(props);
@@ -205,7 +207,7 @@ export class ResultView extends React.Component {
   }
 
   getRowAttrs(row: Row) {
-    if (row.users_count < 15) {
+    if (row.users_count < unreliableUsersCountThreshold) {
       return {
         title: "These values are unreliable because of the low number of users involved.",
         "data-toggle": "tooltip",
