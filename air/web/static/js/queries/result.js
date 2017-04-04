@@ -211,7 +211,6 @@ export class ResultView extends React.Component {
       return {
         title: "These values are unreliable because of the low number of users involved.",
         "data-toggle": "tooltip",
-        "data-placement": "left",
         className: "unreliable",
       };
     } else {
