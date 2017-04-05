@@ -78,7 +78,8 @@ defmodule Air.PsqlServer.Protocol do
       buffer: "",
       expecting: 8,
       actions: [],
-      prepared_statements: %{}
+      prepared_statements: %{},
+      debug?: Keyword.get(Application.fetch_env!(:air, Air.PsqlServer), :debug, false)
     }
   end
 
@@ -145,7 +146,7 @@ defmodule Air.PsqlServer.Protocol do
   defp process_buffer(state), do: state
 
   defp send_to_client(state, message, args \\ []) do
-    Logger.debug(fn ->
+    debug_log(state, fn ->
       ["psql server: sending ", to_string(message), " ", inspect(args)]
     end)
     add_action(state, {:send, apply(Messages, message, args)})
@@ -175,7 +176,7 @@ defmodule Air.PsqlServer.Protocol do
     handle_event(state, state.name, event)
 
   defp dispatch_client_message(state, type, payload \\ nil) do
-    Logger.debug(fn ->
+    debug_log(state, fn ->
       payload_str = case payload do
         nil -> ""
         other -> inspect(other)
@@ -416,4 +417,7 @@ defmodule Air.PsqlServer.Protocol do
 
     Enum.zip(param_types, prepared_statement.params)
   end
+
+  defp debug_log(%{debug?: false}, _lambda), do: nil
+  defp debug_log(_state, lambda), do: Logger.debug(lambda)
 end
