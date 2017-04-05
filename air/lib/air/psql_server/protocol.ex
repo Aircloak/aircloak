@@ -146,7 +146,7 @@ defmodule Air.PsqlServer.Protocol do
 
   defp request_send(state, message, args \\ []) do
     Logger.debug(fn ->
-      ["psql server sending ", to_string(message), " ", inspect(args)]
+      ["psql server: sending ", to_string(message), " ", inspect(args)]
     end)
     add_action(state, {:send, apply(Messages, message, args)})
   end
@@ -175,7 +175,15 @@ defmodule Air.PsqlServer.Protocol do
     handle_event(state, state.name, event)
 
   defp dispatch_client_message(state, type, payload \\ nil) do
-    Logger.debug("psql server: client message #{type}: #{inspect payload}")
+    Logger.debug(fn ->
+      payload_str = case payload do
+        nil -> ""
+        other -> inspect(other)
+      end
+
+      ["psql server: received ", to_string(type), " ", payload_str]
+    end)
+
     dispatch_event(state, {:message, %{type: type, payload: payload}})
   end
 
