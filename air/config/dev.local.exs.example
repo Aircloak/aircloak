@@ -1,0 +1,9 @@
+# Create the file `dev.local.exs` to change some settings in your development
+
+use Mix.Config
+
+# enables debug log for psql server
+config :air, Air.PsqlServer, debug: true
+
+# enables debug log for Ecto
+config :air, Air.Repo, loggers: [{Ecto.LogEntry, :log, []}]
