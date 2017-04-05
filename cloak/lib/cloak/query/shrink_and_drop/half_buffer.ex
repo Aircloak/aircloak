@@ -13,7 +13,7 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer do
     comparator: comparator,
     min: nil | Buffer.row_value,
     max: nil | Buffer.row_value,
-    users: %{Buffer.row_id => Buffer.row_data},
+    users: %{Buffer.user_id => Buffer.row_data},
   }
   @type comparator :: (Buffer.row_value, Buffer.row_value -> boolean)
 
