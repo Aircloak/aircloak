@@ -138,4 +138,20 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer.Test do
       assert HalfBuffer.over?(%HalfBuffer{max: ~D[2010-05-16]}, ~D[2010-06-15])
     end
   end
+
+  test "order-independence" do
+    buffer = HalfBuffer.new(3, &Cloak.Data.lt_eq/2)
+    data = [
+      {"user1", 1},
+      {"user2", 1},
+      {"user3", 1},
+      {"user4", 1},
+    ]
+
+    reducer = fn({user_id, value}, acc) ->
+      {buffer, _popped} = HalfBuffer.add(acc, value, user_id, [value])
+      buffer
+    end
+    assert Enum.reduce(data, buffer, reducer) == Enum.reduce(Enum.reverse(data), buffer, reducer)
+  end
 end
