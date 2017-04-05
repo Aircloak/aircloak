@@ -24,7 +24,8 @@ defmodule Air.PsqlServer.Protocol do
     buffer: binary,
     expecting: non_neg_integer,
     actions: [action],
-    prepared_statements: %{String.t => prepared_statement}
+    prepared_statements: %{String.t => prepared_statement},
+    debug?: boolean,
   }
 
   @type action ::
