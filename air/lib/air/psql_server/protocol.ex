@@ -16,9 +16,7 @@ defmodule Air.PsqlServer.Protocol do
   obtain using `actions/1` and interpret them.
   """
 
-  import Air.PsqlServer.Protocol.Messages
   alias Air.PsqlServer.Protocol.Messages
-
   require Logger
 
   @opaque t :: %{
@@ -186,7 +184,7 @@ defmodule Air.PsqlServer.Protocol do
     state
   # :initial -> awaiting SSLRequest or StartupMessage
   defp handle_event(state, :initial, {:message, message}) do
-    if ssl_message?(message) do
+    if Messages.ssl_message?(message) do
       state
       |> request_send(:require_ssl)
       |> add_action(:upgrade_to_ssl)
@@ -199,7 +197,7 @@ defmodule Air.PsqlServer.Protocol do
   end
   # :message_header -> awaiting a message header
   defp handle_event(state, {:message_header, next_state_name}, {:message, raw_message_header}) do
-    message_header = decode_message_header(raw_message_header)
+    message_header = Messages.decode_message_header(raw_message_header)
     if message_header.length > 0 do
       state
       |> next_state({:message_payload, next_state_name, message_header.type}, message_header.length)
@@ -214,13 +212,13 @@ defmodule Air.PsqlServer.Protocol do
   defp handle_event(state, {:message_payload, next_state_name, message_type}, {:message, payload}), do:
     state
     |> next_state(next_state_name)
-    |> dispatch_client_message(message_type, decode_message(message_type, payload))
+    |> dispatch_client_message(message_type, Messages.decode_message(message_type, payload))
   # :ssl -> waiting for the connection to be upgraded to SSL
   defp handle_event(state, :ssl, :ssl_negotiated), do:
     next_state(state, :startup_message, 8)
   # :startup_message -> expecting startup message from the client
   defp handle_event(state, :startup_message, {:message, message}) do
-    startup_message = decode_startup_message(message)
+    startup_message = Messages.decode_startup_message(message)
     if startup_message.version.major != 3 do
       close(state, :unsupported_protocol_version)
     else
@@ -230,7 +228,7 @@ defmodule Air.PsqlServer.Protocol do
   # :login_params -> expecting login params from the client
   defp handle_event(state, :login_params, {:message, raw_login_params}), do:
     state
-    |> add_action({:login_params, decode_login_params(raw_login_params)})
+    |> add_action({:login_params, Messages.decode_login_params(raw_login_params)})
     |> next_state(:authentication_method)
   # :authentication_method -> expecting the driver to choose the authentication method
   defp handle_event(state, :authentication_method, {:authentication_method, authentication_method}), do:
@@ -341,7 +339,7 @@ defmodule Air.PsqlServer.Protocol do
         [] -> prepared_statement.parsed_param_types
       end
 
-    params = convert_params(bind_data.params, bind_data.format_codes, param_types)
+    params = Messages.convert_params(bind_data.params, bind_data.format_codes, param_types)
 
     state
     |> put_in([:prepared_statements, bind_data.name],
