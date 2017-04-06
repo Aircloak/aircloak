@@ -66,7 +66,8 @@ config :air, Air.BOM,
   location: "priv/bom.json.example"
 
 config :air, Air.PsqlServer,
-  port: 8432
+  port: 8432,
+  debug: false
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
@@ -81,3 +82,7 @@ config :air, :usage_report_interval, :timer.minutes(1)
 config :air, :central_queue,
   retry_delay: :timer.minutes(1),
   max_size: 1000
+
+if File.exists?("config/#{Mix.env}.local.exs") do
+  import_config "#{Mix.env}.local.exs"
+end

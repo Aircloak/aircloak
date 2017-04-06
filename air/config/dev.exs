@@ -52,6 +52,7 @@ config :air, Air.PsqlServer,
   ranch_opts: [num_acceptors: 2]
 
 config :air, Air.Repo,
-  pool_size: 2
+  pool_size: 2,
+  loggers: []
 
 config :air, :auto_aircloak_export, true
