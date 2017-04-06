@@ -13,7 +13,7 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer do
     comparator: comparator,
     min: nil | Buffer.row_value,
     max: nil | Buffer.row_value,
-    users: %{Buffer.row_id => Buffer.row_data},
+    users: %{Buffer.user_id => Buffer.row_data},
   }
   @type comparator :: (Buffer.row_value, Buffer.row_value -> boolean)
 
@@ -109,6 +109,12 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer do
     }
   end
 
-  defp to_pop(comparator, x = {_, %{value: x_value}}, y = {_, %{value: y_value}}), do:
-    if comparator.(y_value, x_value), do: x, else: y
+  defp to_pop(comparator, x = {user_id_x, %{value: x_value}}, y = {user_id_y, %{value: y_value}}) do
+    cond do
+      Cloak.Data.eq(x_value, y_value) && user_id_x < user_id_y -> x
+      Cloak.Data.eq(x_value, y_value) -> y
+      comparator.(y_value, x_value) -> x
+      true -> y
+    end
+  end
 end
