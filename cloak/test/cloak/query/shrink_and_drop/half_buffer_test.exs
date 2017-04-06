@@ -141,12 +141,7 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer.Test do
 
   test "order-independence" do
     buffer = HalfBuffer.new(3, &Cloak.Data.lt_eq/2)
-    data = [
-      {"user1", 1},
-      {"user2", 1},
-      {"user3", 1},
-      {"user4", 1},
-    ]
+    data = 1..100 |> Enum.map(&{"user#{&1}", 1})
 
     reducer = fn({user_id, value}, acc) ->
       {buffer, _popped} = HalfBuffer.add(acc, value, user_id, [value])
