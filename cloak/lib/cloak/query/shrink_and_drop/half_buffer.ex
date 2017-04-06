@@ -111,8 +111,8 @@ defmodule Cloak.Query.ShrinkAndDrop.HalfBuffer do
 
   defp to_pop(comparator, x = {user_id_x, %{value: x_value}}, y = {user_id_y, %{value: y_value}}) do
     cond do
-      x_value == y_value && user_id_x < user_id_y -> x
-      x_value == y_value -> y
+      Cloak.Data.eq(x_value, y_value) && user_id_x < user_id_y -> x
+      Cloak.Data.eq(x_value, y_value) -> y
       comparator.(y_value, x_value) -> x
       true -> y
     end
