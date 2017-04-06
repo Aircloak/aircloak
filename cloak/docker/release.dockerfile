@@ -23,7 +23,6 @@ USER root
 RUN apt-get install -y unixodbc odbc-postgresql libmyodbc
 COPY cloak/priv/odbc/docker/odbc.ini /etc/
 COPY cloak/priv/odbc/docker/sqlserver_setup.sh /aircloak/
-COPY cloak/priv/odbc/docker/msodbcsql-13.0.0.0.tar.gz /aircloak/
 RUN /aircloak/sqlserver_setup.sh
 
 CMD /aircloak/start.sh
