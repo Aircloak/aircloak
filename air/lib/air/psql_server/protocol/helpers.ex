@@ -96,7 +96,7 @@ defmodule Air.PsqlServer.Protocol.Helpers do
   end
 
   defp invoke_message_handler(state, fun_atom, payload) do
-    apply(module(state.name, fun_atom), fun_atom, [state, state.name, payload])
+    apply(module(state.name, fun_atom), fun_atom, [state, payload])
   end
 
   defp module(_, :handle_terminate_message), do: Air.PsqlServer.Protocol.Authentication

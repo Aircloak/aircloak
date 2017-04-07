@@ -7,12 +7,12 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
   import Air.PsqlServer.Protocol.Helpers
   alias Air.PsqlServer.Protocol.Messages
 
-  def handle_query_message(state, :ready, query), do:
+  def handle_query_message(state, query), do:
     state
     |> add_action({:run_query, query, [], 0})
     |> next_state(:running_query)
 
-  def handle_parse_message(state, :ready, prepared_statement) do
+  def handle_parse_message(state, prepared_statement) do
     prepared_statement = Map.merge(
       prepared_statement,
       %{params: nil, parsed_param_types: [], result_codes: nil, columns: nil}
@@ -24,7 +24,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> transition_after_message(:ready)
   end
 
-  def handle_bind_message(state, :ready, bind_data) do
+  def handle_bind_message(state, bind_data) do
     prepared_statement = Map.fetch!(state.prepared_statements, bind_data.name)
 
     param_types =
@@ -42,7 +42,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> transition_after_message(:ready)
   end
 
-  def handle_describe_message(state, :ready, describe_data) do
+  def handle_describe_message(state, describe_data) do
     prepared_statement = Map.fetch!(state.prepared_statements, describe_data.name)
 
     state
@@ -50,7 +50,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> next_state({:describing_statement, describe_data.name})
   end
 
-  def handle_execute_message(state, :ready, execute_data) do
+  def handle_execute_message(state, execute_data) do
     prepared_statement = Map.fetch!(state.prepared_statements, execute_data.name)
 
     state
@@ -59,15 +59,15 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> next_state({:running_prepared_statement, execute_data.name})
   end
 
-  def handle_sync_message(state, :ready, _), do:
+  def handle_sync_message(state, _), do:
     state
     |> send_to_client(:ready_for_query)
     |> transition_after_message(:ready)
 
-  def handle_flush_message(state, _, _), do:
+  def handle_flush_message(state, _), do:
     transition_after_message(state, :ready)
 
-  def handle_close_message(state, _, close_data), do:
+  def handle_close_message(state, close_data), do:
     state
     |> update_in([:prepared_statements], &Map.delete(&1, close_data.name))
     |> send_to_client(:close_complete)
