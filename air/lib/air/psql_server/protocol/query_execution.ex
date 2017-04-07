@@ -73,7 +73,8 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> send_rows(result.rows, statement.columns, statement.result_codes)
     |> send_to_client(:command_complete, ["SELECT #{length(result.rows)}"])
     |> send_to_client(:ready_for_query)
-    |> await_and_decode_client_message(:syncing)
+    |> syncing()
+    |> await_and_decode_client_message(:ready)
   end
   def send_query_result(protocol, result), do:
     protocol

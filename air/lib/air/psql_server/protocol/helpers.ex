@@ -40,12 +40,15 @@ defmodule Air.PsqlServer.Protocol.Helpers do
     |> add_action({:close, reason})
     |> next_state(:closed)
 
-  def await_and_decode_client_message(protocol, next_state), do:
+  def await_and_decode_client_message(protocol, next_state \\ nil), do:
     protocol
-    |> next_state(next_state)
+    |> next_state(next_state || protocol.state)
     |> await_bytes(5)
     |> Map.put(:decode_message?, true)
     |> process_buffer()
+
+  def syncing(protocol), do: %{protocol | syncing?: true}
+  def not_syncing(protocol), do: %{protocol | syncing?: false}
 
   def debug_log(%{debug?: false}, _lambda), do: nil
   def debug_log(_protocol, lambda), do: Logger.debug(lambda)
@@ -94,10 +97,14 @@ defmodule Air.PsqlServer.Protocol.Helpers do
 
   defp invoke_message_handler(protocol, :terminate, _payload), do:
     close(protocol, :normal)
-  defp invoke_message_handler(%{state: :syncing} = protocol, :sync, _), do:
-    await_and_decode_client_message(protocol, :ready)
-  defp invoke_message_handler(%{state: :syncing} = protocol, _ignore, _), do:
-    await_and_decode_client_message(protocol, :syncing)
+  defp invoke_message_handler(%{syncing?: true} = protocol, :sync, _), do:
+    protocol
+    |> not_syncing()
+    |> await_and_decode_client_message(:ready)
+  defp invoke_message_handler(%{syncing?: true} = protocol, _ignore, _), do:
+    protocol
+    |> syncing()
+    |> await_and_decode_client_message()
   defp invoke_message_handler(protocol, message_type, payload), do:
     module(protocol.state).handle_client_message(protocol, message_type, payload)
 

@@ -20,6 +20,7 @@ defmodule Air.PsqlServer.Protocol do
 
   @opaque t :: %{
     state: atom,
+    syncing?: boolean,
     buffer: binary,
     expecting: non_neg_integer,
     decode_message?: boolean,
@@ -77,6 +78,7 @@ defmodule Air.PsqlServer.Protocol do
   def new() do
     %{
       state: :initial,
+      syncing?: false,
       buffer: "",
       expecting: 8,
       decode_message?: false,
