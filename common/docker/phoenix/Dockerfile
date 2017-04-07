@@ -8,8 +8,8 @@ MPI_INIT
 # our app requires python to be installed to build cleanly, hence the python
 # dependency too.
 # For the nodejs installation to work, we also need to bootstrap the trust
-# for signature validation of nodejs. For more information, see:
-# https://github.com/asdf-vm/asdf-nodejs#bootstrap-trust-for-signature-validation
+# for signature validation of nodejs. For more information, see the
+# asdf-vm readme at: https://github.com/asdf-vm/asdf-nodejs.
 # The release team signatures are taken from: https://github.com/nodejs/node/#release-team
 RUN \
   . /tmp/build_config/proxies.sh && \
