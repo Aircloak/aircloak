@@ -38,8 +38,6 @@ defmodule Air.PsqlServer.Protocol do
     :negotiating_ssl |
     :ssl_negotiated |
     :login_params |
-    :choosing_authentication_method |
-    :awaiting_password |
     :authenticating |
     :ready |
     :closed
@@ -300,8 +298,7 @@ defmodule Air.PsqlServer.Protocol do
   defp debug_log(_protocol, lambda), do: Logger.debug(lambda)
 
   defp protocol_handler(state) when state in [
-    :initial, :negotiating_ssl, :ssl_negotiated, :login_params, :choosing_authentication_method,
-    :awaiting_password, :authenticating
+    :initial, :negotiating_ssl, :ssl_negotiated, :login_params, :authenticating
     ] do
     Air.PsqlServer.Protocol.Authentication
   end

@@ -41,7 +41,7 @@ defmodule Air.PsqlServer.Protocol.Authentication do
   def handle_client_message(%{state: :login_params} = protocol, :raw, raw_login_params), do:
     protocol
     |> Protocol.add_action({:login_params, Messages.decode_login_params(raw_login_params)})
-    |> Protocol.next_state(:choosing_authentication_method)
+    |> Protocol.next_state(:authenticating)
   def handle_client_message(protocol, :password, password), do:
     protocol
     |> Protocol.add_action({:authenticate, password})
@@ -52,10 +52,10 @@ defmodule Air.PsqlServer.Protocol.Authentication do
     protocol
     |> Protocol.next_state(:ssl_negotiated)
     |> Protocol.await_bytes(8)
-  def handle_event(%{state: :choosing_authentication_method} = protocol, {:authentication_method, method}), do:
+  def handle_event(%{state: :authenticating} = protocol, {:authentication_method, method}), do:
     protocol
     |> Protocol.send_to_client({:authentication_method, method})
-    |> Protocol.await_and_decode_client_message(:awaiting_password)
+    |> Protocol.await_and_decode_client_message(:authenticating)
   def handle_event(%{state: :authenticating} = protocol, {:authenticated, true}) do
     protocol
     |> Protocol.send_to_client(:authentication_ok)
