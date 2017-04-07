@@ -16,10 +16,11 @@ defmodule Air.PsqlServer.Protocol do
   obtain using `actions/1` and interpret them.
   """
 
-  alias Air.PsqlServer.Protocol.{Authentication, Helpers, QueryExecution}
+  require Logger
+  alias Air.PsqlServer.Protocol.{Authentication, Messages, QueryExecution}
 
-  @opaque t :: %{
-    state: atom,
+  @type t :: %{
+    state: state,
     syncing?: boolean,
     buffer: binary,
     expecting: non_neg_integer,
@@ -32,9 +33,21 @@ defmodule Air.PsqlServer.Protocol do
     debug?: boolean,
   }
 
+  @type state ::
+    :initial |
+    :negotiating_ssl |
+    :ssl_negotiated |
+    :login_params |
+    :choosing_authentication_method |
+    :awaiting_password |
+    :authenticating |
+    :ready |
+    :closed
+
   @type action ::
     {:send, iodata()} |
     {:close, reason :: any} |
+    :upgrade_to_ssl |
     {:login_params, map} |
     {:authenticate, password :: binary} |
     {:run_query, String.t, [%{type: psql_type, value: db_value}], non_neg_integer} |
@@ -109,12 +122,12 @@ defmodule Air.PsqlServer.Protocol do
   """
   @spec actions(t) :: {[action], t}
   def actions(protocol), do:
-    Helpers.actions(protocol)
+    {Enum.reverse(protocol.actions), %{protocol | actions: []}}
 
   @doc "Should be invoked by the driver to feed input bytes to the protocol state machine."
   @spec process(t, binary) :: t
   def process(protocol, input), do:
-    Helpers.process_buffer(%{protocol | buffer: protocol.buffer <> input})
+    process_buffer(%{protocol | buffer: protocol.buffer <> input})
 
   @doc "Should be invoked by the driver after the connection is upgraded to ssl."
   @spec ssl_negotiated(t) :: t
@@ -140,4 +153,134 @@ defmodule Air.PsqlServer.Protocol do
   @spec describe_result(t, describe_result) :: t
   def describe_result(protocol, describe_result), do:
     QueryExecution.send_describe_result(protocol, describe_result)
+
+  @doc "Adds a send message action to the list of pending actions."
+  @spec send_to_client(t, atom, [any]) :: t
+  def send_to_client(protocol, message, args \\ []) do
+    debug_log(protocol, fn ->
+      ["psql server: sending ", to_string(message), " ", inspect(args)]
+    end)
+    add_action(protocol, {:send, apply(Messages, message, args)})
+  end
+
+  @doc "Adds an action to the list of pending actions."
+  @spec add_action(t, action) :: t
+  def add_action(protocol, action), do: %{protocol | actions: [action | protocol.actions]}
+
+  @doc "Sets the next state."
+  @spec next_state(t, state) :: t
+  def next_state(protocol, next_state), do:
+    await_bytes(%{protocol | state: next_state}, 0)
+
+  @doc "Sets the number of bytes we're awaiting from the client."
+  @spec await_bytes(t, non_neg_integer, boolean) :: t
+  def await_bytes(protocol, expecting, decode_message? \\ false), do:
+    %{protocol | expecting: expecting, decode_message?: decode_message?}
+
+  @doc """
+  Awaits for the next message and sets the next state.
+
+  When the message arrives, it will be decoded and dispatched in the next state.
+  """
+  @spec await_and_decode_client_message(t, nil | state) :: t
+  def await_and_decode_client_message(protocol, next_state \\ nil), do:
+    protocol
+    |> next_state(next_state || protocol.state)
+    |> await_bytes(5)
+    |> Map.put(:decode_message?, true)
+    |> process_buffer()
+
+  @doc "Puts the protocol into the syncing mode."
+  @spec syncing(t) :: t
+  def syncing(protocol), do: %{protocol | syncing?: true}
+
+  @doc "Puts the protocol out of the syncing mode."
+  @spec not_syncing(t) :: t
+  def not_syncing(protocol), do: %{protocol | syncing?: false}
+
+  @doc "Puts the protocol into the closed state."
+  @spec close(t, any) :: t
+  def close(protocol, reason), do:
+    protocol
+    |> add_action({:close, reason})
+    |> next_state(:closed)
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Dispatching of incoming messages
+  #-----------------------------------------------------------------------------------------------------------
+
+  defp process_buffer(%{expecting: expecting, buffer: buffer} = protocol)
+      when expecting > 0 and byte_size(buffer) >= expecting do
+    <<message::binary-size(expecting)>> <> rest_buffer = buffer
+
+    %{protocol | expecting: 0, buffer: rest_buffer}
+    |> dispatch_message(message)
+    |> process_buffer()
+  end
+  defp process_buffer(protocol), do: protocol
+
+  defp dispatch_message(%{state: :closed} = protocol, _), do:
+    protocol
+  defp dispatch_message(%{decode_message?: true, decoded_message_type: nil} = protocol, raw_message_header) do
+    message_header = Messages.decode_message_header(raw_message_header)
+    if message_header.length > 0 do
+      %{protocol | decoded_message_type: message_header.type}
+      |> await_bytes(message_header.length, true)
+      |> process_buffer()
+    else
+      dispatch_message(protocol, message_header.type, nil)
+    end
+  end
+  defp dispatch_message(%{decode_message?: true} = protocol, payload), do:
+      dispatch_message(
+        protocol,
+        protocol.decoded_message_type,
+        Messages.decode_message(protocol.decoded_message_type, payload)
+      )
+  defp dispatch_message(protocol, message), do:
+    dispatch_message(protocol, :raw, message)
+
+  defp dispatch_message(protocol, type, payload) do
+    protocol = %{protocol | decode_message?: false, decoded_message_type: nil}
+    log_decoded_message(protocol, type, payload)
+    invoke_message_handler(protocol, type, payload)
+  end
+
+  defp log_decoded_message(protocol, type, payload), do:
+    debug_log(protocol, fn ->
+      payload_str = case payload do
+        nil -> ""
+        other -> inspect(other)
+      end
+
+      ["psql server: received ", to_string(type), " ", payload_str]
+    end)
+
+  defp invoke_message_handler(protocol, :terminate, _payload), do:
+    close(protocol, :normal)
+  defp invoke_message_handler(%{syncing?: true} = protocol, :sync, _), do:
+    protocol
+    |> not_syncing()
+    |> await_and_decode_client_message(:ready)
+  defp invoke_message_handler(%{syncing?: true} = protocol, _ignore, _), do:
+    protocol
+    |> syncing()
+    |> await_and_decode_client_message()
+  defp invoke_message_handler(protocol, message_type, payload), do:
+    module(protocol.state).handle_client_message(protocol, message_type, payload)
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Internal functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  defp debug_log(%{debug?: false}, _lambda), do: nil
+  defp debug_log(_protocol, lambda), do: Logger.debug(lambda)
+
+  defp module(:initial), do: Air.PsqlServer.Protocol.Authentication
+  defp module(:ssl_negotiated), do: Air.PsqlServer.Protocol.Authentication
+  defp module(:login_params), do: Air.PsqlServer.Protocol.Authentication
+  defp module(:awaiting_password), do: Air.PsqlServer.Protocol.Authentication
+  defp module(:ready), do: Air.PsqlServer.Protocol.QueryExecution
 end
