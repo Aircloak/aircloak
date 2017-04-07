@@ -3,7 +3,7 @@ defmodule Air.Service.View do
 
   alias Air.Schemas.{User, View}
   alias Air.{Repo, Service.DataSource, Version}
-  import Ecto.Query, only: [from: 2]
+  import Ecto.Query
 
 
   # -------------------------------------------------------------------
@@ -22,8 +22,7 @@ defmodule Air.Service.View do
 
   @doc "Retrieves views of the given user for the given data source."
   @spec all(User.t, DataSource.t) :: [View.t]
-  def all(user, data_source), do:
-    Repo.all(from view in View, where: view.data_source_id == ^data_source.id and view.user_id == ^user.id)
+  def all(user, data_source), do: by_user_id(user.id) |> by_data_source_id(data_source.id) |> Repo.all()
 
   @doc "Saves the new view in the database."
   @spec create(User.t, DataSource.t, String.t, String.t) :: {:ok, View.t} | {:error, Ecto.Changeset.t}
@@ -42,8 +41,11 @@ defmodule Air.Service.View do
     true = (view.user_id == user.id)
 
     changes = %{name: name, sql: sql}
-    with {:ok, changeset} <- validated_view_changeset(view, user, changes, :update), do:
-      Repo.update(changeset)
+    with {:ok, changeset} <- validated_view_changeset(view, user, changes, :update) do
+      {:ok, view} = Repo.update(changeset)
+      revalidate_views!(user, view.data_source_id)
+      {:ok, view}
+    end
   end
 
   @doc "Deletes the given view from the database."
@@ -57,6 +59,24 @@ defmodule Air.Service.View do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp revalidate_views!(user, data_source_id) do
+    for view <- by_user_id(user.id) |> by_data_source_id(data_source_id) |> Repo.all() do
+      case valid_view?(view, user) do
+        {:ok, valid} -> view |> apply_view_changeset(%{broken: not valid}) |> Repo.update()
+        :error -> :do_nothing
+      end
+    end
+  end
+
+  defp valid_view?(view, user) do
+    case DataSource.validate_view({:id, view.data_source_id}, user, view) do
+      {:ok, _} -> {:ok, true}
+      {:error, "sql", _} -> {:ok, false}
+      {:error, "name", _} -> {:ok, false}
+      _ -> :error
+    end
+  end
 
   defp validated_view_changeset(view, user, changes, action) do
     changeset = %Ecto.Changeset{apply_view_changeset(view, changes) | action: action}
@@ -95,7 +115,11 @@ defmodule Air.Service.View do
 
   defp apply_view_changeset(view, changes), do:
     view
-    |> Ecto.Changeset.cast(changes, ~w(name sql user_id data_source_id)a)
+    |> Ecto.Changeset.cast(changes, ~w(name sql user_id data_source_id broken)a)
     |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
     |> Ecto.Changeset.unique_constraint(:name, name: :views_user_id_data_source_id_name_index)
+
+  defp by_user_id(scope \\ View, user_id), do: where(scope, [v], v.user_id == ^user_id)
+
+  defp by_data_source_id(scope, data_source_id), do: where(scope, [v], v.data_source_id == ^data_source_id)
 end
