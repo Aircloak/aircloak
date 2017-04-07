@@ -30,7 +30,7 @@ defmodule Air.PsqlServer.Protocol.Helpers do
   def add_action(protocol, action), do: %{protocol | actions: [action | protocol.actions]}
 
   def next_state(protocol, next_state_name, expecting \\ 0), do:
-    %{protocol | name: next_state_name, expecting: expecting}
+    %{protocol | state: next_state_name, expecting: expecting}
 
   def close(protocol, reason), do:
     protocol
@@ -50,9 +50,9 @@ defmodule Air.PsqlServer.Protocol.Helpers do
   # Dispatching of incoming messages
   #-----------------------------------------------------------------------------------------------------------
 
-  defp dispatch_message(%{name: :closed} = protocol, _), do:
+  defp dispatch_message(%{state: :closed} = protocol, _), do:
     protocol
-  defp dispatch_message(%{name: {:awaiting_message_header, next_state_name}} = protocol, raw_message_header) do
+  defp dispatch_message(%{state: {:awaiting_message_header, next_state_name}} = protocol, raw_message_header) do
     message_header = Messages.decode_message_header(raw_message_header)
     if message_header.length > 0 do
       protocol
@@ -64,20 +64,20 @@ defmodule Air.PsqlServer.Protocol.Helpers do
       |> dispatch_decoded_message(message_header.type, nil)
     end
   end
-  defp dispatch_message(%{name: {:awaiting_message_payload, next_state_name, message_type}} = protocol, payload), do:
+  defp dispatch_message(%{state: {:awaiting_message_payload, next_state_name, message_type}} = protocol, payload), do:
     protocol
     |> next_state(next_state_name)
     |> dispatch_decoded_message(message_type, Messages.decode_message(message_type, payload))
   defp dispatch_message(protocol, message), do:
     dispatch_decoded_message(protocol, nil, message)
 
-  defp dispatch_decoded_message(%{name: :syncing} = protocol, :sync, _), do:
+  defp dispatch_decoded_message(%{state: :syncing} = protocol, :sync, _), do:
     transition_after_message(protocol, :ready)
-  defp dispatch_decoded_message(%{name: :syncing} = protocol, _ignore, _), do:
+  defp dispatch_decoded_message(%{state: :syncing} = protocol, _ignore, _), do:
     transition_after_message(protocol, :syncing)
   defp dispatch_decoded_message(protocol, nil, raw_payload) do
     debug_log(protocol, fn ->
-      ["psql server: received ", inspect(raw_payload), " in state ", to_string(protocol.name)]
+      ["psql server: received ", inspect(raw_payload), " in state ", to_string(protocol.state)]
     end)
 
     invoke_message_handler(protocol, :raw, raw_payload)
@@ -100,7 +100,7 @@ defmodule Air.PsqlServer.Protocol.Helpers do
   defp invoke_message_handler(protocol, :terminate, _payload), do:
     close(protocol, :normal)
   defp invoke_message_handler(protocol, message_type, payload), do:
-    module(protocol.name).handle_client_message(protocol, message_type, payload)
+    module(protocol.state).handle_client_message(protocol, message_type, payload)
 
   defp module(:initial), do: Air.PsqlServer.Protocol.Authentication
   defp module(:ssl_negotiated), do: Air.PsqlServer.Protocol.Authentication

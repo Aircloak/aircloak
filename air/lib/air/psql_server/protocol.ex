@@ -19,7 +19,7 @@ defmodule Air.PsqlServer.Protocol do
   alias Air.PsqlServer.Protocol.{Authentication, Helpers, QueryExecution}
 
   @opaque t :: %{
-    name: atom,
+    state: atom,
     buffer: binary,
     expecting: non_neg_integer,
     actions: [action],
@@ -74,7 +74,7 @@ defmodule Air.PsqlServer.Protocol do
   @spec new() :: t
   def new() do
     %{
-      name: :initial,
+      state: :initial,
       buffer: "",
       expecting: 8,
       actions: [],

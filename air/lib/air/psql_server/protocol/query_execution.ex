@@ -66,7 +66,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> send_to_client(:close_complete)
     |> transition_after_message(:ready)
 
-  def send_query_result(%{name: {:running_prepared_statement, name}} = protocol, result) do
+  def send_query_result(%{state: {:running_prepared_statement, name}} = protocol, result) do
     statement = Map.fetch!(protocol.prepared_statements, name)
 
     protocol
@@ -85,7 +85,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     protocol
     |> send_to_client(:syntax_error_message, [error])
     |> transition_after_message(:ready)
-  def send_describe_result(%{name: {:describing_statement, name}} = protocol, description) do
+  def send_describe_result(%{state: {:describing_statement, name}} = protocol, description) do
     prepared_statement = Map.fetch!(protocol.prepared_statements, name)
 
     result_codes = prepared_statement.result_codes || [:text]
