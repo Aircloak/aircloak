@@ -83,6 +83,11 @@ defmodule Air.PsqlServer.Protocol.Helpers do
     invoke_message_handler(state, :raw, raw_payload)
   end
   defp dispatch_decoded_message(state, type, payload) do
+    log_decoded_message(state, type, payload)
+    invoke_message_handler(state, type, payload)
+  end
+
+  defp log_decoded_message(state, type, payload), do:
     debug_log(state, fn ->
       payload_str = case payload do
         nil -> ""
@@ -91,9 +96,6 @@ defmodule Air.PsqlServer.Protocol.Helpers do
 
       ["psql server: received ", to_string(type), " ", payload_str]
     end)
-
-    invoke_message_handler(state, type, payload)
-  end
 
   defp invoke_message_handler(state, :terminate, _payload), do:
     close(state, :normal)
