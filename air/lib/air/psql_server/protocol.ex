@@ -25,7 +25,7 @@ defmodule Air.PsqlServer.Protocol do
     buffer: binary,
     expecting: non_neg_integer,
     decode_message?: boolean,
-    decoded_message_type: atom,
+    decoded_message_type: Messages.message_header,
     actions: [action],
     describing_statement: nil | binary,
     running_prepared_statement: nil | binary,
@@ -96,7 +96,7 @@ defmodule Air.PsqlServer.Protocol do
   #-----------------------------------------------------------------------------------------------------------
 
   @doc "Invoked to handle a client message."
-  @callback handle_client_message(t, atom, any) :: t
+  @callback handle_client_message(t, Messages.client_message_name | :raw, map | binary) :: t
 
   @doc "Invoked to handle an event issued by the driver (such as TCP process owning this protocol)."
   @callback handle_event(t, event) :: t
@@ -173,7 +173,7 @@ defmodule Air.PsqlServer.Protocol do
     dispatch_event(protocol, {:describe_result, describe_result})
 
   @doc "Adds a send message action to the list of pending actions."
-  @spec send_to_client(t, any) :: t
+  @spec send_to_client(t, Messages.server_message) :: t
   def send_to_client(protocol, message) do
     debug_log(protocol, fn -> ["psql server: sending ", inspect(message)] end)
     add_action(protocol, {:send, Messages.encode_message(message)})

@@ -1,25 +1,43 @@
 defmodule Air.PsqlServer.Protocol.Messages do
-  @moduledoc false
+  @moduledoc """
+  Encoding and decoding of PostgreSQL protocol messages.
 
-  # Helpers for working with PostgreSQL protocol messages described in
-  # https://www.postgresql.org/docs/9.6/static/protocol-message-formats.html.
-  # These functions basically belong to Air.PsqlServer.Protocol, but they're extracted into
-  # a separate module so we can reuse them in tests.
+  Formats are described [here](https://www.postgresql.org/docs/9.6/static/protocol-message-formats.html).
+  """
+
+  alias Air.PsqlServer.Protocol
+
+  @type server_message ::
+    {:authentication_method, :cleartext} | :authentication_ok | :bind_complete | :close_complete |
+    {:command_complete, String.t} | {:syntax_error, String.t} | {:fatal_error, String.t} | :ready_for_query |
+    :parse_complete | :require_ssl |
+    {:parameter_status, String.t, String.t} | {:parameter_description, [Protocol.psql_type]} |
+    {:row_description, [Protocol.column], [:text | :binary]} |
+    {:data_row, [Protocol.db_value], [Protocol.psql_type], [:text | :binary]}
+
+  @type client_message_name ::
+    :bind | :close | :describe | :execute | :flush | :parse | :password | :query | :sync | :terminate
+  @type client_message_header :: %{type: client_message_name, length: non_neg_integer}
 
 
-  #-----------------------------------------------------------------------------------------------------------
-  # Client messages (i.e. "frontend" as referenced in official PostgreSQL docs)
-  #-----------------------------------------------------------------------------------------------------------
-
+  @doc "Determines if the client message is an ssl_message."
+  @spec ssl_message?(binary) :: boolean
   def ssl_message?(message), do:
     message == message_with_size(<<1234::16, 5679::16>>)
 
+  @doc "Decodes the startup message."
+  @spec decode_startup_message(<<_::64>>) ::
+    %{length: non_neg_integer, version: %{major: non_neg_integer, minor: non_neg_integer}}
   def decode_startup_message(<<length::32, major::16, minor::16>> = message), do:
     %{length: length - byte_size(message), version: %{major: major, minor: minor}}
 
+  @doc "Decodes the message header of the client message."
+  @spec decode_message_header(<<_::40>>) :: client_message_header
   def decode_message_header(<<message_byte::8, length::32>>), do:
     %{type: client_message_name(message_byte), length: length - 4}
 
+  @doc "Decodes the login_params message."
+  @spec decode_login_params(binary) :: %{String.t => String.t}
   def decode_login_params(raw_login_params) do
     raw_login_params
     |> String.split(<<0>>)
@@ -28,6 +46,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
     |> Enum.into(%{})
   end
 
+  @doc "Decodes the payload of the client message with the given name."
+  @spec decode_message(client_message_name, binary) :: map
   def decode_message(:close, <<type, name::binary>>), do:
     %{type: type, name: hd(:binary.split(name, <<0>>))}
   def decode_message(:bind, message), do:
@@ -63,6 +83,63 @@ defmodule Air.PsqlServer.Protocol.Messages do
     [query, <<>>] = :binary.split(query_message, <<0>>)
     query
   end
+
+  @doc "Encodes the server message."
+  @spec encode_message(server_message) :: binary
+  def encode_message({:authentication_method, :cleartext}), do: server_message(:authentication, <<3::32>>)
+  def encode_message(:authentication_ok), do: server_message(:authentication, <<0::32>>)
+  def encode_message(:bind_complete), do: server_message(:bind_complete, <<>>)
+  def encode_message(:close_complete), do: server_message(:close_complete, <<>>)
+  def encode_message({:command_complete, tag}), do: server_message(:command_complete, null_terminate(tag))
+  def encode_message({:data_row, row, column_types, formats}), do:
+    server_message(:data_row, <<length(row)::16, encode_row(row, column_types, formats)::binary>>)
+  def encode_message({:syntax_error, error}), do: error_message("ERROR", "42601", error)
+  def encode_message({:fatal_error, reason}), do: error_message("FATAL", "28000", reason)
+  def encode_message(:ready_for_query), do: server_message(:ready_for_query, <<?I>>)
+  def encode_message(:parse_complete), do: server_message(:parse_complete, <<>>)
+  def encode_message(:require_ssl), do: <<?S>>
+  def encode_message({:row_description, columns, result_codes}) do
+    columns_descriptions =
+      columns
+      |> Enum.zip(Stream.cycle(result_codes))
+      |> Enum.map(&column_description/1)
+      |> IO.iodata_to_binary()
+
+    server_message(:row_description, <<length(columns)::16, columns_descriptions::binary>>)
+  end
+  def encode_message({:parameter_status, name, value}), do:
+    server_message(:parameter_status, null_terminate(name) <> null_terminate(value))
+  def encode_message({:parameter_description, param_types}) do
+    encoded_types =
+      param_types
+      |> Enum.map(&type_oid/1)
+      |> Enum.map(&<<&1::32>>)
+      |> IO.iodata_to_binary()
+
+    server_message(:parameter_description, <<length(param_types)::16, encoded_types::binary>>)
+  end
+  def encode_message(:startup_message, major, minor, opts) do
+    [
+      <<major::16, minor::16>>,
+      Enum.map(opts, fn({key, value}) -> null_terminate(to_string(key)) <> null_terminate(value) end)
+    ]
+    |> to_string()
+    |> message_with_size()
+  end
+
+  @doc "Converts query parameters to proper Elixir types."
+  @spec convert_params([any], [:text | :binary], [Protocol.psql_type]) :: [any]
+  def convert_params(params, format_codes, param_types) do
+    # per protocol, if param types are empty, all parameters are encoded as text
+    param_types = if param_types == [], do: Enum.map(params, fn(_) -> :text end), else: param_types
+    true = (length(params) == length(param_types))
+    Enum.map(Enum.zip([format_codes, param_types, params]), &convert_param/1)
+  end
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Client (aka frontend) message headers
+  #-----------------------------------------------------------------------------------------------------------
 
   for {message_name, message_byte} <-
       %{
@@ -142,49 +219,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
 
   #-----------------------------------------------------------------------------------------------------------
-  # Server (i.e. "backend" as referenced in official PostgreSQL docs)
+  # Server (i.e. "backend" as referenced in official PostgreSQL docs) messages
   #-----------------------------------------------------------------------------------------------------------
-
-  def encode_message({:authentication_method, :cleartext}), do: server_message(:authentication, <<3::32>>)
-  def encode_message(:authentication_ok), do: server_message(:authentication, <<0::32>>)
-  def encode_message(:bind_complete), do: server_message(:bind_complete, <<>>)
-  def encode_message(:close_complete), do: server_message(:close_complete, <<>>)
-  def encode_message({:command_complete, tag}), do: server_message(:command_complete, null_terminate(tag))
-  def encode_message({:data_row, row, column_types, formats}), do:
-    server_message(:data_row, <<length(row)::16, encode_row(row, column_types, formats)::binary>>)
-  def encode_message({:syntax_error, error}), do: error_message("ERROR", "42601", error)
-  def encode_message({:fatal_error, reason}), do: error_message("FATAL", "28000", reason)
-  def encode_message(:ready_for_query), do: server_message(:ready_for_query, <<?I>>)
-  def encode_message(:parse_complete), do: server_message(:parse_complete, <<>>)
-  def encode_message(:require_ssl), do: <<?S>>
-  def encode_message({:row_description, columns, result_codes}) do
-    columns_descriptions =
-      columns
-      |> Enum.zip(Stream.cycle(result_codes))
-      |> Enum.map(&column_description/1)
-      |> IO.iodata_to_binary()
-
-    server_message(:row_description, <<length(columns)::16, columns_descriptions::binary>>)
-  end
-  def encode_message({:parameter_status, name, value}), do:
-    server_message(:parameter_status, null_terminate(name) <> null_terminate(value))
-  def encode_message({:parameter_description, param_types}) do
-    encoded_types =
-      param_types
-      |> Enum.map(&type_oid/1)
-      |> Enum.map(&<<&1::32>>)
-      |> IO.iodata_to_binary()
-
-    server_message(:parameter_description, <<length(param_types)::16, encoded_types::binary>>)
-  end
-  def encode_message(:startup_message, major, minor, opts) do
-    [
-      <<major::16, minor::16>>,
-      Enum.map(opts, fn({key, value}) -> null_terminate(to_string(key)) <> null_terminate(value) end)
-    ]
-    |> to_string()
-    |> message_with_size()
-  end
 
   for {message_name, message_byte} <-
       %{
@@ -200,7 +236,6 @@ defmodule Air.PsqlServer.Protocol.Messages do
         ready_for_query: ?Z,
         row_description: ?T,
       } do
-    defp server_message_name(unquote(message_byte)), do: unquote(message_name)
     defp server_message_byte(unquote(message_name)), do: unquote(message_byte)
   end
 
@@ -257,13 +292,6 @@ defmodule Air.PsqlServer.Protocol.Messages do
   #-----------------------------------------------------------------------------------------------------------
   # Params conversion
   #-----------------------------------------------------------------------------------------------------------
-
-  def convert_params(params, format_codes, param_types) do
-    # per protocol, if param types are empty, all parameters are encoded as text
-    param_types = if param_types == [], do: Enum.map(params, fn(_) -> :text end), else: param_types
-    true = (length(params) == length(param_types))
-    Enum.map(Enum.zip([format_codes, param_types, params]), &convert_param/1)
-  end
 
   defp convert_param({_, _, nil}), do: nil
   defp convert_param({:text, type, value}), do: convert_text_param(type, value)
