@@ -26,6 +26,8 @@ defmodule Air.PsqlServer.Protocol do
     decode_message?: boolean,
     decoded_message_type: atom,
     actions: [action],
+    describing_statement: nil | binary,
+    running_prepared_statement: nil | binary,
     prepared_statements: %{String.t => prepared_statement},
     debug?: boolean,
   }
@@ -84,6 +86,9 @@ defmodule Air.PsqlServer.Protocol do
       decode_message?: false,
       decoded_message_type: nil,
       actions: [],
+      describing_statement: nil,
+      describing_statement: nil,
+      running_prepared_statement: nil,
       prepared_statements: %{},
       debug?: Keyword.get(Application.fetch_env!(:air, Air.PsqlServer), :debug, false)
     }

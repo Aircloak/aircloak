@@ -42,17 +42,17 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
   def handle_client_message(protocol, :describe, describe_data) do
     prepared_statement = Map.fetch!(protocol.prepared_statements, describe_data.name)
 
-    protocol
+    %{protocol | describing_statement: describe_data.name}
     |> add_action({:describe_statement, prepared_statement.query, params_with_types(prepared_statement)})
-    |> next_state({:describing_statement, describe_data.name})
+    |> next_state(:ready)
   end
   def handle_client_message(protocol, :execute, execute_data) do
     prepared_statement = Map.fetch!(protocol.prepared_statements, execute_data.name)
 
-    protocol
+    %{protocol | running_prepared_statement: execute_data.name}
     |> add_action({:run_query, prepared_statement.query, params_with_types(prepared_statement),
       execute_data.max_rows})
-    |> next_state({:running_prepared_statement, execute_data.name})
+    |> next_state(:ready)
   end
   def handle_client_message(protocol, :sync, _), do:
     protocol
@@ -66,7 +66,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> send_to_client(:close_complete)
     |> await_and_decode_client_message(:ready)
 
-  def send_query_result(%{state: {:running_prepared_statement, name}} = protocol, result) do
+  def send_query_result(%{running_prepared_statement: name} = protocol, result) when name != nil do
     statement = Map.fetch!(protocol.prepared_statements, name)
 
     protocol
@@ -86,7 +86,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     protocol
     |> send_to_client(:syntax_error_message, [error])
     |> await_and_decode_client_message(:ready)
-  def send_describe_result(%{state: {:describing_statement, name}} = protocol, description) do
+  def send_describe_result(%{describing_statement: name} = protocol, description) do
     prepared_statement = Map.fetch!(protocol.prepared_statements, name)
 
     result_codes = prepared_statement.result_codes || [:text]
