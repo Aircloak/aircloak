@@ -20,6 +20,10 @@ defmodule Air.PsqlServer.Protocol.Messages do
   @type client_message_header :: %{type: client_message_name, length: non_neg_integer}
 
 
+  #-----------------------------------------------------------------------------------------------------------
+  # API functions
+  #-----------------------------------------------------------------------------------------------------------
+
   @doc "Determines if the client message is an ssl_message."
   @spec ssl_message?(binary) :: boolean
   def ssl_message?(message), do:
