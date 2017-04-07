@@ -65,8 +65,8 @@ defmodule Air.Service.ViewTest do
   defp insert_view(data_source, user, name), do:
     %Air.Schemas.View{}
     |> Ecto.Changeset.cast(
-          %{user_id: user.id, data_source_id: data_source.id, name: name, sql: "sql for #{name}", result_info: %{}},
-          ~w(name sql user_id data_source_id result_info)a
-        )
+      %{user_id: user.id, data_source_id: data_source.id, name: name, sql: "sql for #{name}", result_info: %{}},
+      ~w(name sql user_id data_source_id result_info)a
+    )
     |> Repo.insert!()
 end
