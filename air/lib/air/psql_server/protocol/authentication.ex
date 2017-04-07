@@ -34,8 +34,6 @@ defmodule Air.PsqlServer.Protocol.Authentication do
     state
     |> add_action({:authenticate, password})
     |> next_state(:authenticating)
-  def handle_client_message(state, :terminate, _), do:
-    close(state, :normal)
 
   def ssl_negotiated(%{name: :negotiating_ssl} = state), do:
     next_state(state, :ssl_negotiated, 8)

@@ -95,13 +95,14 @@ defmodule Air.PsqlServer.Protocol.Helpers do
     invoke_message_handler(state, type, payload)
   end
 
+  defp invoke_message_handler(state, :terminate, _payload), do:
+    close(state, :normal)
   defp invoke_message_handler(state, message_type, payload), do:
-    module(state.name, message_type).handle_client_message(state, message_type, payload)
+    module(state.name).handle_client_message(state, message_type, payload)
 
-  defp module(_, :terminate), do: Air.PsqlServer.Protocol.Authentication
-  defp module(:initial, _), do: Air.PsqlServer.Protocol.Authentication
-  defp module(:ssl_negotiated, _), do: Air.PsqlServer.Protocol.Authentication
-  defp module(:login_params, _), do: Air.PsqlServer.Protocol.Authentication
-  defp module(:awaiting_password, _), do: Air.PsqlServer.Protocol.Authentication
-  defp module(:ready, _), do: Air.PsqlServer.Protocol.QueryExecution
+  defp module(:initial), do: Air.PsqlServer.Protocol.Authentication
+  defp module(:ssl_negotiated), do: Air.PsqlServer.Protocol.Authentication
+  defp module(:login_params), do: Air.PsqlServer.Protocol.Authentication
+  defp module(:awaiting_password), do: Air.PsqlServer.Protocol.Authentication
+  defp module(:ready), do: Air.PsqlServer.Protocol.QueryExecution
 end
