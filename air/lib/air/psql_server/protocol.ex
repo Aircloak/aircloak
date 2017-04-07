@@ -88,6 +88,8 @@ defmodule Air.PsqlServer.Protocol do
 
   @type describe_result :: %{error: String.t} | %{columns: [column], param_types: [psql_type]}
 
+  @header_message_bytes 5
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Behaviour callbacks
@@ -186,27 +188,18 @@ defmodule Air.PsqlServer.Protocol do
   @spec add_action(t, action) :: t
   def add_action(protocol, action), do: %{protocol | actions: [action | protocol.actions]}
 
-  @doc "Sets the next state."
+  @doc "Sets the next state and resets the number of awaiting bytes."
   @spec next_state(t, state) :: t
   def next_state(protocol, next_state), do:
-    await_bytes(%{protocol | state: next_state}, 0)
+    %{protocol | state: next_state, expecting: 0}
 
-  @doc "Sets the number of bytes we're awaiting from the client."
-  @spec await_bytes(t, non_neg_integer, boolean) :: t
-  def await_bytes(protocol, expecting, decode_message? \\ false), do:
-    %{protocol | expecting: expecting, decode_message?: decode_message?}
-
-  @doc """
-  Awaits for the next message and sets the next state.
-
-  When the message arrives, it will be decoded and dispatched in the next state.
-  """
-  @spec await_and_decode_client_message(t, nil | state) :: t
-  def await_and_decode_client_message(protocol, next_state \\ nil), do:
+  @doc "Awaits the client message, and optionally decodes it, and changes the state."
+  @spec await_client_message(t, [state: state, bytes: pos_integer, decode_message?: boolean]) :: t
+  def await_client_message(protocol, opts \\ []), do:
     protocol
-    |> next_state(next_state || protocol.state)
-    |> await_bytes(5)
-    |> Map.put(:decode_message?, true)
+    |> next_state(Keyword.get(opts, :state, protocol.state))
+    |> Map.put(:expecting, Keyword.get(opts, :bytes, @header_message_bytes))
+    |> Map.put(:decode_message?, Keyword.get(opts, :decode?, true))
     |> process_buffer()
 
   @doc "Puts the protocol into the syncing mode."
@@ -241,7 +234,7 @@ defmodule Air.PsqlServer.Protocol do
     message_header = Messages.decode_message_header(raw_message_header)
     if message_header.length > 0 do
       %{protocol | decoded_message_type: message_header.type}
-      |> await_bytes(message_header.length, true)
+      |> await_client_message(bytes: message_header.length)
       |> process_buffer()
     else
       dispatch_message(protocol, message_header.type, nil)
@@ -275,11 +268,11 @@ defmodule Air.PsqlServer.Protocol do
   defp invoke_message_handler(protocol, :terminate, _payload), do:
     close(protocol, :normal)
   defp invoke_message_handler(%{syncing?: true} = protocol, :sync, _), do:
-    await_and_decode_client_message(%{protocol | syncing?: false}, :ready)
+    await_client_message(%{protocol | syncing?: false}, state: :ready)
   defp invoke_message_handler(%{syncing?: true} = protocol, _ignore, _), do:
     protocol
     |> syncing()
-    |> await_and_decode_client_message()
+    |> await_client_message()
   defp invoke_message_handler(protocol, message_type, payload), do:
     protocol_handler(protocol.state).handle_client_message(protocol, message_type, payload)
 

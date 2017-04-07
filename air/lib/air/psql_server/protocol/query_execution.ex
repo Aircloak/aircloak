@@ -30,7 +30,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     protocol
     |> put_in([:prepared_statements, prepared_statement.name], prepared_statement)
     |> Protocol.send_to_client(:parse_complete)
-    |> Protocol.await_and_decode_client_message(:ready)
+    |> Protocol.await_client_message()
   end
   def handle_client_message(protocol, :bind, bind_data) do
     prepared_statement = Map.fetch!(protocol.prepared_statements, bind_data.name)
@@ -47,7 +47,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> put_in([:prepared_statements, bind_data.name],
         %{prepared_statement | params: params, result_codes: bind_data.result_codes})
     |> Protocol.send_to_client(:bind_complete)
-    |> Protocol.await_and_decode_client_message(:ready)
+    |> Protocol.await_client_message()
   end
   def handle_client_message(protocol, :describe, describe_data) do
     prepared_statement = Map.fetch!(protocol.prepared_statements, describe_data.name)
@@ -67,14 +67,14 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
   def handle_client_message(protocol, :sync, _), do:
     protocol
     |> Protocol.send_to_client(:ready_for_query)
-    |> Protocol.await_and_decode_client_message(:ready)
+    |> Protocol.await_client_message()
   def handle_client_message(protocol, :flush, _), do:
-    Protocol.await_and_decode_client_message(protocol, :ready)
+    Protocol.await_client_message(protocol, state: :ready)
   def handle_client_message(protocol, :close, close_data), do:
     protocol
     |> update_in([:prepared_statements], &Map.delete(&1, close_data.name))
     |> Protocol.send_to_client(:close_complete)
-    |> Protocol.await_and_decode_client_message(:ready)
+    |> Protocol.await_client_message()
 
   @doc false
   def handle_event(%{running_prepared_statement: name} = protocol, {:send_query_result, result}) when name != nil do
@@ -85,17 +85,17 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> Protocol.send_to_client({:command_complete, "SELECT #{length(result.rows)}"})
     |> Protocol.send_to_client(:ready_for_query)
     |> Protocol.syncing()
-    |> Protocol.await_and_decode_client_message(:ready)
+    |> Protocol.await_client_message()
   end
   def handle_event(protocol, {:send_query_result, result}), do:
     protocol
     |> send_result(result)
     |> Protocol.send_to_client(:ready_for_query)
-    |> Protocol.await_and_decode_client_message(:ready)
+    |> Protocol.await_client_message()
   def handle_event(protocol, {:describe_result, %{error: error}}), do:
     protocol
     |> Protocol.send_to_client({:syntax_error, error})
-    |> Protocol.await_and_decode_client_message(:ready)
+    |> Protocol.await_client_message()
   def handle_event(%{describing_statement: name} = protocol, {:describe_result, description}) do
     prepared_statement = Map.fetch!(protocol.prepared_statements, name)
 
@@ -105,7 +105,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> put_in([:prepared_statements, name, :columns], description.columns)
     |> send_parameter_descriptions(prepared_statement, description.param_types)
     |> Protocol.send_to_client({:row_description, description.columns, result_codes})
-    |> Protocol.await_and_decode_client_message(:ready)
+    |> Protocol.await_client_message()
   end
 
 

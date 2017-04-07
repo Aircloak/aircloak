@@ -33,9 +33,11 @@ defmodule Air.PsqlServer.Protocol.Authentication do
     if startup_message.version.major != 3 do
       Protocol.close(protocol, :unsupported_protocol_version)
     else
-      protocol
-      |> Protocol.next_state(:login_params)
-      |> Protocol.await_bytes(startup_message.length)
+      Protocol.await_client_message(protocol,
+        state: :login_params,
+        bytes: startup_message.length,
+        decode?: false
+      )
     end
   end
   def handle_client_message(%{state: :login_params} = protocol, :raw, raw_login_params), do:
@@ -49,20 +51,18 @@ defmodule Air.PsqlServer.Protocol.Authentication do
 
   @doc false
   def handle_event(%{state: :negotiating_ssl} = protocol, :ssl_negotiated), do:
-    protocol
-    |> Protocol.next_state(:ssl_negotiated)
-    |> Protocol.await_bytes(8)
+    Protocol.await_client_message(protocol, state: :ssl_negotiated, bytes: 8, decode?: false)
   def handle_event(%{state: :authenticating} = protocol, {:authentication_method, method}), do:
     protocol
     |> Protocol.send_to_client({:authentication_method, method})
-    |> Protocol.await_and_decode_client_message(:authenticating)
+    |> Protocol.await_client_message()
   def handle_event(%{state: :authenticating} = protocol, {:authenticated, true}) do
     protocol
     |> Protocol.send_to_client(:authentication_ok)
     |> Protocol.send_to_client({:parameter_status, "application_name", "aircloak"})
     |> Protocol.send_to_client({:parameter_status, "server_version", "1.0.0"})
     |> Protocol.send_to_client(:ready_for_query)
-    |> Protocol.await_and_decode_client_message(:ready)
+    |> Protocol.await_client_message(state: :ready)
   end
   def handle_event(%{state: :authenticating} = protocol, {:authenticated, false}), do:
     protocol
