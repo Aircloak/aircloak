@@ -23,7 +23,9 @@ defmodule Air.PsqlServer.Protocol.Authentication do
     if startup_message.version.major != 3 do
       close(protocol, :unsupported_protocol_version)
     else
-      next_state(protocol, :login_params, startup_message.length)
+      protocol
+      |> next_state(:login_params)
+      |> await_bytes(startup_message.length)
     end
   end
   def handle_client_message(%{state: :login_params} = protocol, :raw, raw_login_params), do:
@@ -36,12 +38,14 @@ defmodule Air.PsqlServer.Protocol.Authentication do
     |> next_state(:authenticating)
 
   def ssl_negotiated(%{state: :negotiating_ssl} = protocol), do:
-    next_state(protocol, :ssl_negotiated, 8)
+    protocol
+    |> next_state(:ssl_negotiated)
+    |> await_bytes(8)
 
   def authentication_method(%{state: :choosing_authentication_method} = protocol, authentication_method), do:
     protocol
     |> send_to_client(:authentication_method, [authentication_method])
-    |> transition_after_message(:awaiting_password)
+    |> await_and_decode_client_message(:awaiting_password)
 
   def authenticated(%{state: :authenticating} = protocol, true) do
     protocol
@@ -49,7 +53,7 @@ defmodule Air.PsqlServer.Protocol.Authentication do
     |> send_to_client(:parameter_status, ["application_name", "aircloak"])
     |> send_to_client(:parameter_status, ["server_version", "1.0.0"])
     |> send_to_client(:ready_for_query)
-    |> transition_after_message(:ready)
+    |> await_and_decode_client_message(:ready)
   end
   def authenticated(%{state: :authenticating} = protocol, false), do:
     protocol
