@@ -11,7 +11,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
   # Client messages (i.e. "frontend" as referenced in official PostgreSQL docs)
   #-----------------------------------------------------------------------------------------------------------
 
-  def ssl_message?(message), do: message == ssl_message()
+  def ssl_message?(message), do:
+    message == message_with_size(<<1234::16, 5679::16>>)
 
   def decode_startup_message(<<length::32, major::16, minor::16>> = message), do:
     %{length: length - byte_size(message), version: %{major: major, minor: minor}}
@@ -144,43 +145,19 @@ defmodule Air.PsqlServer.Protocol.Messages do
   # Server (i.e. "backend" as referenced in official PostgreSQL docs)
   #-----------------------------------------------------------------------------------------------------------
 
-  def server_message_type(<<message_byte::8, _::binary>>), do:
-    server_message_name(message_byte)
-
-  def authentication_method(:cleartext), do: server_message(:authentication, <<3::32>>)
-
-  def authentication_ok(), do: server_message(:authentication, <<0::32>>)
-
-  def bind_complete(), do: server_message(:bind_complete, <<>>)
-
-  def close_complete(), do: server_message(:close_complete, <<>>)
-
-  def command_complete(tag), do: server_message(:command_complete, null_terminate(tag))
-
-  def data_row(row, column_types, formats), do:
+  def encode_message({:authentication_method, :cleartext}), do: server_message(:authentication, <<3::32>>)
+  def encode_message(:authentication_ok), do: server_message(:authentication, <<0::32>>)
+  def encode_message(:bind_complete), do: server_message(:bind_complete, <<>>)
+  def encode_message(:close_complete), do: server_message(:close_complete, <<>>)
+  def encode_message({:command_complete, tag}), do: server_message(:command_complete, null_terminate(tag))
+  def encode_message({:data_row, row, column_types, formats}), do:
     server_message(:data_row, <<length(row)::16, encode_row(row, column_types, formats)::binary>>)
-
-  def syntax_error_message(error), do:
-    error_message("ERROR", "42601", error)
-
-  def fatal_error_message(reason), do:
-    error_message("FATAL", "28000", reason)
-
-  defp error_message(severity, code, message), do:
-    server_message(:error_response, <<
-      ?S, null_terminate(severity)::binary,
-      ?C, null_terminate(code)::binary,
-      ?M, null_terminate(message)::binary,
-      0
-    >>)
-
-  def ready_for_query(), do: server_message(:ready_for_query, <<?I>>)
-
-  def parse_complete(), do: server_message(:parse_complete, <<>>)
-
-  def require_ssl(), do: <<?S>>
-
-  def row_description(columns, result_codes) do
+  def encode_message({:syntax_error, error}), do: error_message("ERROR", "42601", error)
+  def encode_message({:fatal_error, reason}), do: error_message("FATAL", "28000", reason)
+  def encode_message(:ready_for_query), do: server_message(:ready_for_query, <<?I>>)
+  def encode_message(:parse_complete), do: server_message(:parse_complete, <<>>)
+  def encode_message(:require_ssl), do: <<?S>>
+  def encode_message({:row_description, columns, result_codes}) do
     columns_descriptions =
       columns
       |> Enum.zip(Stream.cycle(result_codes))
@@ -189,11 +166,9 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
     server_message(:row_description, <<length(columns)::16, columns_descriptions::binary>>)
   end
-
-  def parameter_status(name, value), do:
+  def encode_message({:parameter_status, name, value}), do:
     server_message(:parameter_status, null_terminate(name) <> null_terminate(value))
-
-  def parameter_description(param_types) do
+  def encode_message({:parameter_description, param_types}) do
     encoded_types =
       param_types
       |> Enum.map(&type_oid/1)
@@ -202,10 +177,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
     server_message(:parameter_description, <<length(param_types)::16, encoded_types::binary>>)
   end
-
-  def ssl_message(), do: message_with_size(<<1234::16, 5679::16>>)
-
-  def startup_message(major, minor, opts) do
+  def encode_message(:startup_message, major, minor, opts) do
     [
       <<major::16, minor::16>>,
       Enum.map(opts, fn({key, value}) -> null_terminate(to_string(key)) <> null_terminate(value) end)
@@ -234,6 +206,14 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   defp server_message(message_name, payload), do:
     <<server_message_byte(message_name)::8, message_with_size(payload)::binary>>
+
+  defp error_message(severity, code, message), do:
+    server_message(:error_response, <<
+      ?S, null_terminate(severity)::binary,
+      ?C, null_terminate(code)::binary,
+      ?M, null_terminate(message)::binary,
+      0
+    >>)
 
 
   #-----------------------------------------------------------------------------------------------------------

@@ -82,7 +82,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
 
     protocol
     |> send_rows(result.rows, statement.columns, statement.result_codes)
-    |> Protocol.send_to_client(:command_complete, ["SELECT #{length(result.rows)}"])
+    |> Protocol.send_to_client({:command_complete, "SELECT #{length(result.rows)}"})
     |> Protocol.send_to_client(:ready_for_query)
     |> Protocol.syncing()
     |> Protocol.await_and_decode_client_message(:ready)
@@ -94,7 +94,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> Protocol.await_and_decode_client_message(:ready)
   def handle_event(protocol, {:describe_result, %{error: error}}), do:
     protocol
-    |> Protocol.send_to_client(:syntax_error_message, [error])
+    |> Protocol.send_to_client({:syntax_error, error})
     |> Protocol.await_and_decode_client_message(:ready)
   def handle_event(%{describing_statement: name} = protocol, {:describe_result, description}) do
     prepared_statement = Map.fetch!(protocol.prepared_statements, name)
@@ -104,7 +104,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> put_in([:prepared_statements, name, :parsed_param_types], description.param_types)
     |> put_in([:prepared_statements, name, :columns], description.columns)
     |> send_parameter_descriptions(prepared_statement, description.param_types)
-    |> Protocol.send_to_client(:row_description, [description.columns, result_codes])
+    |> Protocol.send_to_client({:row_description, description.columns, result_codes})
     |> Protocol.await_and_decode_client_message(:ready)
   end
 
@@ -115,23 +115,23 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
 
   defp send_parameter_descriptions(protocol, %{params: nil}, param_types), do:
     # parameters are not bound -> send parameter descriptions
-    Protocol.send_to_client(protocol, :parameter_description, [param_types])
+    Protocol.send_to_client(protocol, {:parameter_description, param_types})
   defp send_parameter_descriptions(protocol, _, _), do:
     # parameters are already bound -> client is not expecting parameter descriptions
     protocol
 
   defp send_result(protocol, nil), do:
-    Protocol.send_to_client(protocol, :command_complete, [""])
+    Protocol.send_to_client(protocol, {:command_complete, ""})
   defp send_result(protocol, %{rows: rows, columns: columns}), do:
     protocol
-    |> Protocol.send_to_client(:row_description, [columns, [:text]])
+    |> Protocol.send_to_client({:row_description, columns, [:text]})
     |> send_rows(rows, columns, [:text])
-    |> Protocol.send_to_client(:command_complete, ["SELECT #{length(rows)}"])
+    |> Protocol.send_to_client({:command_complete, "SELECT #{length(rows)}"})
   defp send_result(protocol, %{error: error}), do:
-    Protocol.send_to_client(protocol, :syntax_error_message, [error])
+    Protocol.send_to_client(protocol, {:syntax_error, error})
 
   defp send_rows(protocol, rows, columns, formats), do:
-    Enum.reduce(rows, protocol, &Protocol.send_to_client(&2, :data_row, [&1, column_types(columns), formats]))
+    Enum.reduce(rows, protocol, &Protocol.send_to_client(&2, {:data_row, &1, column_types(columns), formats}))
 
   defp column_types(nil), do: Stream.cycle([:text])
   defp column_types(columns), do: Enum.map(columns, &(&1.type))

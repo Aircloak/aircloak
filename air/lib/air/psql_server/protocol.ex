@@ -173,12 +173,10 @@ defmodule Air.PsqlServer.Protocol do
     dispatch_event(protocol, {:describe_result, describe_result})
 
   @doc "Adds a send message action to the list of pending actions."
-  @spec send_to_client(t, atom, [any]) :: t
-  def send_to_client(protocol, message, args \\ []) do
-    debug_log(protocol, fn ->
-      ["psql server: sending ", to_string(message), " ", inspect(args)]
-    end)
-    add_action(protocol, {:send, apply(Messages, message, args)})
+  @spec send_to_client(t, any) :: t
+  def send_to_client(protocol, message) do
+    debug_log(protocol, fn -> ["psql server: sending ", inspect(message)] end)
+    add_action(protocol, {:send, Messages.encode_message(message)})
   end
 
 

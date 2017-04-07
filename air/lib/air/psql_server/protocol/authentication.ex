@@ -24,7 +24,7 @@ defmodule Air.PsqlServer.Protocol.Authentication do
       |> Protocol.next_state(:negotiating_ssl)
     else
       protocol
-      |> Protocol.send_to_client(:fatal_error_message, ["Only SSL connections are allowed!"])
+      |> Protocol.send_to_client({:fatal_error, "Only SSL connections are allowed!"})
       |> Protocol.close(:required_ssl)
     end
   end
@@ -54,13 +54,13 @@ defmodule Air.PsqlServer.Protocol.Authentication do
     |> Protocol.await_bytes(8)
   def handle_event(%{state: :choosing_authentication_method} = protocol, {:authentication_method, method}), do:
     protocol
-    |> Protocol.send_to_client(:authentication_method, [method])
+    |> Protocol.send_to_client({:authentication_method, method})
     |> Protocol.await_and_decode_client_message(:awaiting_password)
   def handle_event(%{state: :authenticating} = protocol, {:authenticated, true}) do
     protocol
     |> Protocol.send_to_client(:authentication_ok)
-    |> Protocol.send_to_client(:parameter_status, ["application_name", "aircloak"])
-    |> Protocol.send_to_client(:parameter_status, ["server_version", "1.0.0"])
+    |> Protocol.send_to_client({:parameter_status, "application_name", "aircloak"})
+    |> Protocol.send_to_client({:parameter_status, "server_version", "1.0.0"})
     |> Protocol.send_to_client(:ready_for_query)
     |> Protocol.await_and_decode_client_message(:ready)
   end
@@ -71,6 +71,6 @@ defmodule Air.PsqlServer.Protocol.Authentication do
     # should be done this way. However, this approach produces a nicer error message, and it's the same
     # in PostgreSQL server (determined by wireshark).
     |> Protocol.send_to_client(:authentication_ok)
-    |> Protocol.send_to_client(:fatal_error_message, ["Authentication failed!"])
+    |> Protocol.send_to_client({:fatal_error, "Authentication failed!"})
     |> Protocol.close(:not_authenticated)
 end
