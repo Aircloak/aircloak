@@ -97,36 +97,36 @@ defmodule Air.PsqlServer.Protocol do
     succeeded, the driver must invoke `authenticated/1`.
   """
   @spec actions(t) :: {[action], t}
-  def actions(state), do:
-    Helpers.actions(state)
+  def actions(protocol), do:
+    Helpers.actions(protocol)
 
   @doc "Should be invoked by the driver to feed input bytes to the protocol state machine."
   @spec process(t, binary) :: t
-  def process(state, input), do:
-    Helpers.process_buffer(%{state | buffer: state.buffer <> input})
+  def process(protocol, input), do:
+    Helpers.process_buffer(%{protocol | buffer: protocol.buffer <> input})
 
   @doc "Should be invoked by the driver after the connection is upgraded to ssl."
   @spec ssl_negotiated(t) :: t
-  def ssl_negotiated(state), do:
-    Authentication.ssl_negotiated(state)
+  def ssl_negotiated(protocol), do:
+    Authentication.ssl_negotiated(protocol)
 
   @doc "Should be invoked by the driver to choose the authentication method."
   @spec authentication_method(t, authentication_method) :: t
-  def authentication_method(state, authentication_method), do:
-    Authentication.authentication_method(state, authentication_method)
+  def authentication_method(protocol, authentication_method), do:
+    Authentication.authentication_method(protocol, authentication_method)
 
   @doc "Should be invoked by the driver if the user has been authenticated."
   @spec authenticated(t, boolean) :: t
-  def authenticated(state, success), do:
-    Authentication.authenticated(state, success)
+  def authenticated(protocol, success), do:
+    Authentication.authenticated(protocol, success)
 
   @doc "Should be invoked by the driver when the select query result is available."
   @spec query_result(t, query_result) :: t
-  def query_result(state, result), do:
-    QueryExecution.send_query_result(state, result)
+  def query_result(protocol, result), do:
+    QueryExecution.send_query_result(protocol, result)
 
   @doc "Should be invoked by the driver when the describe result is available."
   @spec describe_result(t, describe_result) :: t
-  def describe_result(state, describe_result), do:
-    QueryExecution.send_describe_result(state, describe_result)
+  def describe_result(protocol, describe_result), do:
+    QueryExecution.send_describe_result(protocol, describe_result)
 end

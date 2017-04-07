@@ -7,23 +7,23 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
   import Air.PsqlServer.Protocol.Helpers
   alias Air.PsqlServer.Protocol.Messages
 
-  def handle_client_message(state, :query, query), do:
-    state
+  def handle_client_message(protocol, :query, query), do:
+    protocol
     |> add_action({:run_query, query, [], 0})
     |> next_state(:running_query)
-  def handle_client_message(state, :parse, prepared_statement) do
+  def handle_client_message(protocol, :parse, prepared_statement) do
     prepared_statement = Map.merge(
       prepared_statement,
       %{params: nil, parsed_param_types: [], result_codes: nil, columns: nil}
     )
 
-    state
+    protocol
     |> put_in([:prepared_statements, prepared_statement.name], prepared_statement)
     |> send_to_client(:parse_complete)
     |> transition_after_message(:ready)
   end
-  def handle_client_message(state, :bind, bind_data) do
-    prepared_statement = Map.fetch!(state.prepared_statements, bind_data.name)
+  def handle_client_message(protocol, :bind, bind_data) do
+    prepared_statement = Map.fetch!(protocol.prepared_statements, bind_data.name)
 
     param_types =
       case prepared_statement.param_types do
@@ -33,63 +33,63 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
 
     params = Messages.convert_params(bind_data.params, bind_data.format_codes, param_types)
 
-    state
+    protocol
     |> put_in([:prepared_statements, bind_data.name],
         %{prepared_statement | params: params, result_codes: bind_data.result_codes})
     |> send_to_client(:bind_complete)
     |> transition_after_message(:ready)
   end
-  def handle_client_message(state, :describe, describe_data) do
-    prepared_statement = Map.fetch!(state.prepared_statements, describe_data.name)
+  def handle_client_message(protocol, :describe, describe_data) do
+    prepared_statement = Map.fetch!(protocol.prepared_statements, describe_data.name)
 
-    state
+    protocol
     |> add_action({:describe_statement, prepared_statement.query, params_with_types(prepared_statement)})
     |> next_state({:describing_statement, describe_data.name})
   end
-  def handle_client_message(state, :execute, execute_data) do
-    prepared_statement = Map.fetch!(state.prepared_statements, execute_data.name)
+  def handle_client_message(protocol, :execute, execute_data) do
+    prepared_statement = Map.fetch!(protocol.prepared_statements, execute_data.name)
 
-    state
+    protocol
     |> add_action({:run_query, prepared_statement.query, params_with_types(prepared_statement),
       execute_data.max_rows})
     |> next_state({:running_prepared_statement, execute_data.name})
   end
-  def handle_client_message(state, :sync, _), do:
-    state
+  def handle_client_message(protocol, :sync, _), do:
+    protocol
     |> send_to_client(:ready_for_query)
     |> transition_after_message(:ready)
-  def handle_client_message(state, :flush, _), do:
-    transition_after_message(state, :ready)
-  def handle_client_message(state, :close, close_data), do:
-    state
+  def handle_client_message(protocol, :flush, _), do:
+    transition_after_message(protocol, :ready)
+  def handle_client_message(protocol, :close, close_data), do:
+    protocol
     |> update_in([:prepared_statements], &Map.delete(&1, close_data.name))
     |> send_to_client(:close_complete)
     |> transition_after_message(:ready)
 
-  def send_query_result(%{name: {:running_prepared_statement, name}} = state, result) do
-    statement = Map.fetch!(state.prepared_statements, name)
+  def send_query_result(%{name: {:running_prepared_statement, name}} = protocol, result) do
+    statement = Map.fetch!(protocol.prepared_statements, name)
 
-    state
+    protocol
     |> send_rows(result.rows, statement.columns, statement.result_codes)
     |> send_to_client(:command_complete, ["SELECT #{length(result.rows)}"])
     |> send_to_client(:ready_for_query)
     |> transition_after_message(:syncing)
   end
-  def send_query_result(state, result), do:
-    state
+  def send_query_result(protocol, result), do:
+    protocol
     |> send_result(result)
     |> send_to_client(:ready_for_query)
     |> transition_after_message(:ready)
 
-  def send_describe_result(state, %{error: error}), do:
-    state
+  def send_describe_result(protocol, %{error: error}), do:
+    protocol
     |> send_to_client(:syntax_error_message, [error])
     |> transition_after_message(:ready)
-  def send_describe_result(%{name: {:describing_statement, name}} = state, description) do
-    prepared_statement = Map.fetch!(state.prepared_statements, name)
+  def send_describe_result(%{name: {:describing_statement, name}} = protocol, description) do
+    prepared_statement = Map.fetch!(protocol.prepared_statements, name)
 
     result_codes = prepared_statement.result_codes || [:text]
-    state
+    protocol
     |> put_in([:prepared_statements, name, :parsed_param_types], description.param_types)
     |> put_in([:prepared_statements, name, :columns], description.columns)
     |> send_parameter_descriptions(prepared_statement, description.param_types)
@@ -97,25 +97,25 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> transition_after_message(:ready)
   end
 
-  defp send_parameter_descriptions(state, %{params: nil}, param_types), do:
+  defp send_parameter_descriptions(protocol, %{params: nil}, param_types), do:
     # parameters are not bound -> send parameter descriptions
-    send_to_client(state, :parameter_description, [param_types])
-  defp send_parameter_descriptions(state, _, _), do:
+    send_to_client(protocol, :parameter_description, [param_types])
+  defp send_parameter_descriptions(protocol, _, _), do:
     # parameters are already bound -> client is not expecting parameter descriptions
-    state
+    protocol
 
-  defp send_result(state, nil), do:
-    send_to_client(state, :command_complete, [""])
-  defp send_result(state, %{rows: rows, columns: columns}), do:
-    state
+  defp send_result(protocol, nil), do:
+    send_to_client(protocol, :command_complete, [""])
+  defp send_result(protocol, %{rows: rows, columns: columns}), do:
+    protocol
     |> send_to_client(:row_description, [columns, [:text]])
     |> send_rows(rows, columns, [:text])
     |> send_to_client(:command_complete, ["SELECT #{length(rows)}"])
-  defp send_result(state, %{error: error}), do:
-    send_to_client(state, :syntax_error_message, [error])
+  defp send_result(protocol, %{error: error}), do:
+    send_to_client(protocol, :syntax_error_message, [error])
 
-  defp send_rows(state, rows, columns, formats), do:
-    Enum.reduce(rows, state, &send_to_client(&2, :data_row, [&1, column_types(columns), formats]))
+  defp send_rows(protocol, rows, columns, formats), do:
+    Enum.reduce(rows, protocol, &send_to_client(&2, :data_row, [&1, column_types(columns), formats]))
 
   defp column_types(nil), do: Stream.cycle([:text])
   defp column_types(columns), do: Enum.map(columns, &(&1.type))
