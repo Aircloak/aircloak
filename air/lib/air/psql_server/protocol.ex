@@ -213,10 +213,6 @@ defmodule Air.PsqlServer.Protocol do
   @spec syncing(t) :: t
   def syncing(protocol), do: %{protocol | syncing?: true}
 
-  @doc "Puts the protocol out of the syncing mode."
-  @spec not_syncing(t) :: t
-  def not_syncing(protocol), do: %{protocol | syncing?: false}
-
   @doc "Puts the protocol into the closed state."
   @spec close(t, any) :: t
   def close(protocol, reason), do:
@@ -279,9 +275,7 @@ defmodule Air.PsqlServer.Protocol do
   defp invoke_message_handler(protocol, :terminate, _payload), do:
     close(protocol, :normal)
   defp invoke_message_handler(%{syncing?: true} = protocol, :sync, _), do:
-    protocol
-    |> not_syncing()
-    |> await_and_decode_client_message(:ready)
+    await_and_decode_client_message(%{protocol | syncing?: false}, :ready)
   defp invoke_message_handler(%{syncing?: true} = protocol, _ignore, _), do:
     protocol
     |> syncing()
