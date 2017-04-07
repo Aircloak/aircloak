@@ -1,8 +1,10 @@
 defmodule Air.PsqlServer.Protocol.QueryExecution do
-  @moduledoc false
+  @moduledoc """
+  Handles the querying part of PostgreSQL protocol.
 
-  # Query execution part of PostgreSQL protocol. Handles simple and bound queries, as well as preparing
-  # responses to clients.
+  For more details see [here](https://www.postgresql.org/docs/9.6/static/protocol-flow.html#AEN112852) and
+  [here](https://www.postgresql.org/docs/9.6/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY).
+  """
 
   alias Air.PsqlServer.Protocol
   alias Air.PsqlServer.Protocol.Messages

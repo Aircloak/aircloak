@@ -1,7 +1,9 @@
 defmodule Air.PsqlServer.Protocol.Authentication do
-  @moduledoc false
+  @moduledoc """
+  Handles the authentication part of PostgreSQL protocol.
 
-  # Authentication part of PostgreSQL protocol. Handles ssl negotiation, and initial authentication.
+  For more details see [here](https://www.postgresql.org/docs/9.6/static/protocol-flow.html#AEN112777).
+  """
 
   alias Air.PsqlServer.Protocol
   alias Air.PsqlServer.Protocol.Messages
