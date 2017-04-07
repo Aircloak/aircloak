@@ -55,6 +55,7 @@
   window.pageConfig = {
     onLoad: function(App) {
       const viewEditorProps = {
+        statement: "<%= statement(@changeset) %>",
         selectables: <%= selectables(@conn, @data_source, @views) %>
       };
       const selectableInfoProps = {
