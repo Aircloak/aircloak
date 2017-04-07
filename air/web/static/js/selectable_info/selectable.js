@@ -1,6 +1,7 @@
 // @flow
 
 import React from "react";
+import $ from "jquery";
 
 import {ColumnsView} from "./columns";
 import {Filter} from "./filter";
@@ -10,7 +11,8 @@ export type Selectable = {
   id: string,
   columns: Column[],
   edit_link: string,
-  delete_html: string
+  delete_html: string,
+  broken: boolean,
 };
 
 type Props = {
@@ -19,6 +21,9 @@ type Props = {
   expanded: boolean,
   filter: Filter,
 };
+
+const VIEW_INVALID_MESSAGE =
+  "This view is no longer valid. The underlying data source or another view might have changed to cause this.";
 
 export class SelectableView extends React.Component {
   handleToggleClick: () => void;
@@ -70,6 +75,18 @@ export class SelectableView extends React.Component {
     );
   }
 
+  broken() {
+    if (this.props.selectable.broken) {
+      return {
+        title: VIEW_INVALID_MESSAGE,
+        "data-toggle": "tooltip",
+        className: "selectable-title broken",
+      };
+    } else {
+      return {};
+    }
+  }
+
   renderSelectableView() {
     const glyphType = this.props.expanded ? "glyphicon glyphicon-minus" : "glyphicon glyphicon-plus";
     return (
@@ -77,7 +94,7 @@ export class SelectableView extends React.Component {
         <div onClick={this.handleToggleClick} className="list-group-item-heading">
           <span className={glyphType} />
           &nbsp;
-          {this.props.selectable.id}
+          <span {...this.broken()}>{this.props.selectable.id}</span>
           {this.isDatabaseView() ? this.renderDatabaseViewMenu() : null}
         </div>
 
@@ -94,6 +111,7 @@ export class SelectableView extends React.Component {
 
   render() {
     if (this.hasRenderableContent()) {
+      setTimeout(() => $("[data-toggle='tooltip']").tooltip(), 0);
       return this.renderSelectableView();
     } else {
       return null;
