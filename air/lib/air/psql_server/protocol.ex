@@ -17,7 +17,7 @@ defmodule Air.PsqlServer.Protocol do
   """
 
   require Logger
-  alias Air.PsqlServer.Protocol.{Authentication, Messages, QueryExecution}
+  alias Air.PsqlServer.Protocol.Messages
 
   @type t :: %{
     state: state,
@@ -81,11 +81,29 @@ defmodule Air.PsqlServer.Protocol do
     columns: nil | column
   }
 
+  @type event ::
+    :ssl_negotiated |
+    {:authentication_method, authentication_method} |
+    {:authenticated, boolean} |
+    {:send_query_result, query_result} |
+    {:describe_result, describe_result}
+
   @type describe_result :: %{error: String.t} | %{columns: [column], param_types: [psql_type]}
 
 
   #-----------------------------------------------------------------------------------------------------------
-  # API
+  # Behaviour callbacks
+  #-----------------------------------------------------------------------------------------------------------
+
+  @doc "Invoked to handle a client message."
+  @callback handle_client_message(t, atom, any) :: t
+
+  @doc "Invoked to handle an event issued by the driver (such as TCP process owning this protocol)."
+  @callback handle_event(t, event) :: t
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # API for clients
   #-----------------------------------------------------------------------------------------------------------
 
   @doc "Creates the initial protocol state."
@@ -132,27 +150,27 @@ defmodule Air.PsqlServer.Protocol do
   @doc "Should be invoked by the driver after the connection is upgraded to ssl."
   @spec ssl_negotiated(t) :: t
   def ssl_negotiated(protocol), do:
-    Authentication.ssl_negotiated(protocol)
+    dispatch_event(protocol, :ssl_negotiated)
 
   @doc "Should be invoked by the driver to choose the authentication method."
   @spec authentication_method(t, authentication_method) :: t
   def authentication_method(protocol, authentication_method), do:
-    Authentication.authentication_method(protocol, authentication_method)
+    dispatch_event(protocol, {:authentication_method, authentication_method})
 
   @doc "Should be invoked by the driver if the user has been authenticated."
   @spec authenticated(t, boolean) :: t
   def authenticated(protocol, success), do:
-    Authentication.authenticated(protocol, success)
+    dispatch_event(protocol, {:authenticated, success})
 
   @doc "Should be invoked by the driver when the select query result is available."
   @spec query_result(t, query_result) :: t
   def query_result(protocol, result), do:
-    QueryExecution.send_query_result(protocol, result)
+    dispatch_event(protocol, {:send_query_result, result})
 
   @doc "Should be invoked by the driver when the describe result is available."
   @spec describe_result(t, describe_result) :: t
   def describe_result(protocol, describe_result), do:
-    QueryExecution.send_describe_result(protocol, describe_result)
+    dispatch_event(protocol, {:describe_result, describe_result})
 
   @doc "Adds a send message action to the list of pending actions."
   @spec send_to_client(t, atom, [any]) :: t
@@ -162,6 +180,11 @@ defmodule Air.PsqlServer.Protocol do
     end)
     add_action(protocol, {:send, apply(Messages, message, args)})
   end
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # API for behaviour callbacks
+  #-----------------------------------------------------------------------------------------------------------
 
   @doc "Adds an action to the list of pending actions."
   @spec add_action(t, action) :: t
@@ -268,7 +291,7 @@ defmodule Air.PsqlServer.Protocol do
     |> syncing()
     |> await_and_decode_client_message()
   defp invoke_message_handler(protocol, message_type, payload), do:
-    module(protocol.state).handle_client_message(protocol, message_type, payload)
+    protocol_handler(protocol.state).handle_client_message(protocol, message_type, payload)
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -278,9 +301,15 @@ defmodule Air.PsqlServer.Protocol do
   defp debug_log(%{debug?: false}, _lambda), do: nil
   defp debug_log(_protocol, lambda), do: Logger.debug(lambda)
 
-  defp module(:initial), do: Air.PsqlServer.Protocol.Authentication
-  defp module(:ssl_negotiated), do: Air.PsqlServer.Protocol.Authentication
-  defp module(:login_params), do: Air.PsqlServer.Protocol.Authentication
-  defp module(:awaiting_password), do: Air.PsqlServer.Protocol.Authentication
-  defp module(:ready), do: Air.PsqlServer.Protocol.QueryExecution
+  defp protocol_handler(state) when state in [
+    :initial, :negotiating_ssl, :ssl_negotiated, :login_params, :choosing_authentication_method,
+    :awaiting_password, :authenticating
+    ] do
+    Air.PsqlServer.Protocol.Authentication
+  end
+  defp protocol_handler(:ready), do:
+    Air.PsqlServer.Protocol.QueryExecution
+
+  defp dispatch_event(protocol, event), do:
+    protocol_handler(protocol.state).handle_event(protocol, event)
 end

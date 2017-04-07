@@ -6,6 +6,14 @@ defmodule Air.PsqlServer.Protocol.Authentication do
   alias Air.PsqlServer.Protocol
   alias Air.PsqlServer.Protocol.Messages
 
+  @behaviour Protocol
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Protocol callbacks
+  #-----------------------------------------------------------------------------------------------------------
+
+  @doc false
   def handle_client_message(%{state: :initial} = protocol, :raw, message) do
     if Messages.ssl_message?(message) do
       protocol
@@ -37,17 +45,16 @@ defmodule Air.PsqlServer.Protocol.Authentication do
     |> Protocol.add_action({:authenticate, password})
     |> Protocol.next_state(:authenticating)
 
-  def ssl_negotiated(%{state: :negotiating_ssl} = protocol), do:
+  @doc false
+  def handle_event(%{state: :negotiating_ssl} = protocol, :ssl_negotiated), do:
     protocol
     |> Protocol.next_state(:ssl_negotiated)
     |> Protocol.await_bytes(8)
-
-  def authentication_method(%{state: :choosing_authentication_method} = protocol, authentication_method), do:
+  def handle_event(%{state: :choosing_authentication_method} = protocol, {:authentication_method, method}), do:
     protocol
-    |> Protocol.send_to_client(:authentication_method, [authentication_method])
+    |> Protocol.send_to_client(:authentication_method, [method])
     |> Protocol.await_and_decode_client_message(:awaiting_password)
-
-  def authenticated(%{state: :authenticating} = protocol, true) do
+  def handle_event(%{state: :authenticating} = protocol, {:authenticated, true}) do
     protocol
     |> Protocol.send_to_client(:authentication_ok)
     |> Protocol.send_to_client(:parameter_status, ["application_name", "aircloak"])
@@ -55,7 +62,7 @@ defmodule Air.PsqlServer.Protocol.Authentication do
     |> Protocol.send_to_client(:ready_for_query)
     |> Protocol.await_and_decode_client_message(:ready)
   end
-  def authenticated(%{state: :authenticating} = protocol, false), do:
+  def handle_event(%{state: :authenticating} = protocol, {:authenticated, false}), do:
     protocol
     # We're sending AuthenticationOK to indicate to the client that the auth procedure went fine. Then
     # we'll send a fatal error with a custom error message. It is unclear from the official docs that it

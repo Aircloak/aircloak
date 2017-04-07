@@ -7,6 +7,14 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
   alias Air.PsqlServer.Protocol
   alias Air.PsqlServer.Protocol.Messages
 
+  @behaviour Protocol
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Protocol callbacks
+  #-----------------------------------------------------------------------------------------------------------
+
+  @doc false
   def handle_client_message(protocol, :query, query), do:
     protocol
     |> Protocol.add_action({:run_query, query, [], 0})
@@ -66,7 +74,8 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> Protocol.send_to_client(:close_complete)
     |> Protocol.await_and_decode_client_message(:ready)
 
-  def send_query_result(%{running_prepared_statement: name} = protocol, result) when name != nil do
+  @doc false
+  def handle_event(%{running_prepared_statement: name} = protocol, {:send_query_result, result}) when name != nil do
     statement = Map.fetch!(protocol.prepared_statements, name)
 
     protocol
@@ -76,17 +85,16 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> Protocol.syncing()
     |> Protocol.await_and_decode_client_message(:ready)
   end
-  def send_query_result(protocol, result), do:
+  def handle_event(protocol, {:send_query_result, result}), do:
     protocol
     |> send_result(result)
     |> Protocol.send_to_client(:ready_for_query)
     |> Protocol.await_and_decode_client_message(:ready)
-
-  def send_describe_result(protocol, %{error: error}), do:
+  def handle_event(protocol, {:describe_result, %{error: error}}), do:
     protocol
     |> Protocol.send_to_client(:syntax_error_message, [error])
     |> Protocol.await_and_decode_client_message(:ready)
-  def send_describe_result(%{describing_statement: name} = protocol, description) do
+  def handle_event(%{describing_statement: name} = protocol, {:describe_result, description}) do
     prepared_statement = Map.fetch!(protocol.prepared_statements, name)
 
     result_codes = prepared_statement.result_codes || [:text]
@@ -97,6 +105,11 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> Protocol.send_to_client(:row_description, [description.columns, result_codes])
     |> Protocol.await_and_decode_client_message(:ready)
   end
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Internal functions
+  #-----------------------------------------------------------------------------------------------------------
 
   defp send_parameter_descriptions(protocol, %{params: nil}, param_types), do:
     # parameters are not bound -> send parameter descriptions
