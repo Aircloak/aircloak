@@ -6,7 +6,7 @@ defmodule Air.PsqlServer.Protocol.Authentication do
   import Air.PsqlServer.Protocol.Helpers
   alias Air.PsqlServer.Protocol.Messages
 
-  def handle_raw_message(%{name: :initial} = state, message) do
+  def handle_client_message(%{name: :initial} = state, :raw, message) do
     if Messages.ssl_message?(message) do
       state
       |> send_to_client(:require_ssl)
@@ -18,7 +18,7 @@ defmodule Air.PsqlServer.Protocol.Authentication do
       |> close(:required_ssl)
     end
   end
-  def handle_raw_message(%{name: :ssl_negotiated} = state, message) do
+  def handle_client_message(%{name: :ssl_negotiated} = state, :raw, message) do
     startup_message = Messages.decode_startup_message(message)
     if startup_message.version.major != 3 do
       close(state, :unsupported_protocol_version)
@@ -26,17 +26,15 @@ defmodule Air.PsqlServer.Protocol.Authentication do
       next_state(state, :login_params, startup_message.length)
     end
   end
-  def handle_raw_message(%{name: :login_params} = state, raw_login_params), do:
+  def handle_client_message(%{name: :login_params} = state, :raw, raw_login_params), do:
     state
     |> add_action({:login_params, Messages.decode_login_params(raw_login_params)})
     |> next_state(:choosing_authentication_method)
-
-  def handle_password_message(state, password), do:
+  def handle_client_message(state, :password, password), do:
     state
     |> add_action({:authenticate, password})
     |> next_state(:authenticating)
-
-  def handle_terminate_message(state, _), do:
+  def handle_client_message(state, :terminate, _), do:
     close(state, :normal)
 
   def ssl_negotiated(%{name: :negotiating_ssl} = state), do:

@@ -80,7 +80,7 @@ defmodule Air.PsqlServer.Protocol.Helpers do
       ["psql server: received ", inspect(raw_payload), " in state ", to_string(state.name)]
     end)
 
-    invoke_message_handler(state, :"handle_raw_message", raw_payload)
+    invoke_message_handler(state, :raw, raw_payload)
   end
   defp dispatch_decoded_message(state, type, payload) do
     debug_log(state, fn ->
@@ -92,14 +92,13 @@ defmodule Air.PsqlServer.Protocol.Helpers do
       ["psql server: received ", to_string(type), " ", payload_str]
     end)
 
-    invoke_message_handler(state, :"handle_#{type}_message", payload)
+    invoke_message_handler(state, type, payload)
   end
 
-  defp invoke_message_handler(state, fun_atom, payload) do
-    apply(module(state.name, fun_atom), fun_atom, [state, payload])
-  end
+  defp invoke_message_handler(state, message_type, payload), do:
+    module(state.name, message_type).handle_client_message(state, message_type, payload)
 
-  defp module(_, :handle_terminate_message), do: Air.PsqlServer.Protocol.Authentication
+  defp module(_, :terminate), do: Air.PsqlServer.Protocol.Authentication
   defp module(:initial, _), do: Air.PsqlServer.Protocol.Authentication
   defp module(:ssl_negotiated, _), do: Air.PsqlServer.Protocol.Authentication
   defp module(:login_params, _), do: Air.PsqlServer.Protocol.Authentication
