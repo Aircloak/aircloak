@@ -13,12 +13,12 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   @doc "Builds a MongoDB aggregation pipeline from a compiled query."
   @spec build(Query.t) :: {String.t, [map]}
   def build(%Query{from: table_name, selected_tables: [table]} = query) when is_binary(table_name) do
-    {post_project_conditions, base_conditions} = split_conditions(table.array_path, query.where)
+    {complex_conditions, basic_conditions} = split_conditions(table.array_path, query.where)
     pipeline =
-      parse_where_conditions(base_conditions) ++
+      parse_where_conditions(basic_conditions) ++
       unwind_arrays(table.array_path) ++
       Projector.map_array_sizes(table) ++
-      parse_where_conditions(post_project_conditions) ++
+      parse_where_conditions(complex_conditions) ++
       parse_query(query)
     {table.db_name, pipeline}
   end
@@ -91,14 +91,12 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_where_condition({:not, {:ilike, subject, pattern}}), do:
     %{map_field(subject) => %{'$not': %{'$regex': Comparison.to_regex(map_constant(pattern)), '$options': "msi"}}}
 
-  defp split_conditions([], conditions) do
-    Enum.partition(conditions, &(Comparison.subject(&1).name || "") |> Schema.is_array_size?())
-  end
-  defp split_conditions([array | _], conditions) do
-    Enum.partition(conditions, fn (condition) ->
-        column_name = Comparison.subject(condition).name || ""
-        String.starts_with?(column_name, array <> ".") or Schema.is_array_size?(column_name)
-      end)
+  defp split_conditions([], conditions), do: Enum.partition(conditions, &complex_column?(&1, ""))
+  defp split_conditions([array | _], conditions), do: Enum.partition(conditions, &complex_column?(&1, array <> "."))
+
+  defp complex_column?(column, array_prefix) do
+    column_name = Comparison.subject(column).name
+    column_name == nil or Schema.is_array_size?(column_name) or String.starts_with?(column_name, array_prefix)
   end
 
   defp unwind_arrays(_path, _path \\ "")
