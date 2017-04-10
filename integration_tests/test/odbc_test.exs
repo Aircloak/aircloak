@@ -95,7 +95,7 @@ defmodule IntegrationTest.OdbcTest do
       assert :odbc.sql_query(context.conn, query) == [
         {:updated, 0},
         {:updated, 0},
-        {:selected, ['relname', 'nspname', 'relkind'], []}
+        {:selected, ['relname', 'nspname', 'relkind'], [{'users', 'public', 'r'}]}
       ]
     end
 

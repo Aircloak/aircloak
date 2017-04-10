@@ -132,13 +132,7 @@ defmodule Air.PsqlServer do
       query =~ ~r/^select.+from pg_type/s ->
         {true, RanchServer.set_query_result(conn, special_query(query))}
       query =~ ~r/begin;declare.* for select relname, nspname, relkind from.*fetch.*/ ->
-        # tables list for tableau
-        {true,
-          conn
-          |> RanchServer.set_query_result([command: :begin, intermediate: true])
-          |> RanchServer.set_query_result([command: :"declare cursor", intermediate: true])
-          |> RanchServer.set_query_result(tables_list_for_tableau([]))
-        }
+        {true, fetch_tables_for_tableau(conn)}
       true ->
         false
     end
@@ -256,6 +250,22 @@ defmodule Air.PsqlServer do
   end
   defp special_query(_), do:
     [columns: [], rows: []]
+
+  defp fetch_tables_for_tableau(conn) do
+    start_async_query(conn, "show tables", [],
+      fn(conn, {:ok, show_tables_response}) ->
+        table_names =
+          show_tables_response
+          |> Map.fetch!("rows")
+          |> Enum.map(fn(%{"row" => [table_name]}) -> table_name end)
+
+        conn
+        |> RanchServer.set_query_result([command: :begin, intermediate: true])
+        |> RanchServer.set_query_result([command: :"declare cursor", intermediate: true])
+        |> RanchServer.set_query_result(tables_list_for_tableau(table_names))
+      end
+    )
+  end
 
   defp tables_list_for_tableau(table_names), do:
     [
