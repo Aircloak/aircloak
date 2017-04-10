@@ -48,6 +48,7 @@ It will update both the `air` and `cloak` containers to the version specified. T
 Just like the `./publish.sh` command, it reads deployment information from the [deploy_targets](./deploy_targets) folder. The difference
 being that which [deploy_targets](./deploy_targets) should be used is hardcoded in the deployment script itself.
 
+To mark a deploy target as being a public system, add `PUBLIC_SYSTEM=true` to the configuration.
 
 ## Producing production containers
 

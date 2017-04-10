@@ -46,25 +46,21 @@ function log {
 }
 
 function deploy {
-  name=$1
-
-  . "$(dirname ${BASH_SOURCE[0]})/deploy_targets/$1"
-
   log
-  log "Upgrading $name"
+  log "Upgrading $DEPLOYMENT_NAME"
   log "- upgrading cloak"
 
   RUNTIME_CONFIG_PATH="/opt/share/cloak_runtime_configs/$DEPLOYMENT_NAME/"
   unset DOCKER_ARGS
-  (start_component $name "cloak") >> ./publish_logs.txt
+  (start_component $DEPLOYMENT_NAME "cloak") >> ./publish_logs.txt
 
   log "- upgrading air"
 
   RUNTIME_CONFIG_PATH="/opt/share/air_runtime_configs/$DEPLOYMENT_NAME/"
   DOCKER_ARGS="-p $AIR_HTTP_PORT:8080 -p $AIR_PSQL_PORT:8432"
-  (start_component $name "air") >> ./publish_logs.txt
+  (start_component $DEPLOYMENT_NAME "air") >> ./publish_logs.txt
 
-  log "Done $name"
+  log "Done $DEPLOYMENT_NAME"
 }
 
 log ""
@@ -73,7 +69,18 @@ log "Starting upgrade process of public systems."
 log "Logging to upgrade to ./publish_logs.txt"
 log "Update started on $(date)"
 
-deploy "felix"
-deploy "cnil"
-deploy "kidesign"
+for target in `find ./deploy_targets -type f`
+do
+  # We need to unset the public system flag here,
+  # otherwise all systems after the first public system
+  # become public systems.
+  unset PUBLIC_SYSTEM
+
+  . "$(dirname ${BASH_SOURCE[0]})/$target"
+
+  if [ $PUBLIC_SYSTEM ]; then
+    deploy
+  fi
+done
+
 log "# -------------------------------------------------------------------"
