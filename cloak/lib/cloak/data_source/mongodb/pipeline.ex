@@ -14,10 +14,11 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   @spec build(Query.t) :: {String.t, [map]}
   def build(%Query{from: table_name, selected_tables: [table]} = query) when is_binary(table_name) do
     {complex_conditions, basic_conditions} = split_conditions(table.array_path, query.where)
+    {complex_conditions, extra_columns} = process_complex_conditions(complex_conditions)
     pipeline =
       parse_where_conditions(basic_conditions) ++
       unwind_arrays(table.array_path) ++
-      Projector.map_array_sizes(table) ++
+      Projector.project_table_and_columns(table, extra_columns) ++
       parse_where_conditions(complex_conditions) ++
       parse_query(query)
     {table.db_name, pipeline}
@@ -66,11 +67,11 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     BSON.DateTime.from_datetime({Date.to_erl(date), {0, 0, 0, 0}})
   defp map_constant(%Expression{constant?: true, value: value}), do: value
   defp map_constant(_), do:
-    raise RuntimeError, message: "Conditions on MongoDB data sources have to be between a table column and a constant."
+    raise RuntimeError, message: "Conditions on MongoDB data sources have to be between a column and a constant."
 
   defp map_field(%Expression{name: field}) when is_binary(field), do: field
   defp map_field(_), do:
-    raise RuntimeError, message: "Conditions on MongoDB data sources have to be between a table column and a constant."
+    raise RuntimeError, message: "Conditions on MongoDB data sources have to be between a column and a constant."
 
   defp parse_where_condition({:comparison, subject, operator, value}), do:
     %{map_field(subject) => %{parse_operator(operator) => map_constant(value)}}
@@ -91,12 +92,37 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_where_condition({:not, {:ilike, subject, pattern}}), do:
     %{map_field(subject) => %{'$not': %{'$regex': Comparison.to_regex(map_constant(pattern)), '$options': "msi"}}}
 
-  defp split_conditions([], conditions), do: Enum.partition(conditions, &complex_column?(&1, ""))
-  defp split_conditions([array | _], conditions), do: Enum.partition(conditions, &complex_column?(&1, array <> "."))
+  defp split_conditions([], conditions), do:
+    Enum.partition(conditions, &complex_condition?(&1, []))
+  defp split_conditions([array | _], conditions), do:
+    Enum.partition(conditions, &complex_condition?(&1, [array <> "."]))
 
-  defp complex_column?(column, array_prefix) do
+  defp complex_condition?(column, complex_name_prefixes) do
     column_name = Comparison.subject(column).name
-    column_name == nil or Schema.is_array_size?(column_name) or String.starts_with?(column_name, array_prefix)
+    column_name == nil or Schema.is_array_size?(column_name) or String.starts_with?(column_name, complex_name_prefixes)
+  end
+
+  defp process_complex_conditions(complex_conditions) do
+    complex_conditions_columns =
+      complex_conditions
+      |> Enum.flat_map(&Comparison.targets/1)
+      |> Enum.filter(& &1.function?)
+      |> Enum.uniq()
+    complex_conditions =
+      Lens.all()
+      |> Query.Lenses.operands()
+      |> Lens.satisfy(&match?(%Expression{function?: true}, &1))
+      |> Lens.map(complex_conditions, fn (column) ->
+        index = Enum.find_index(complex_conditions_columns, & &1 == column)
+        %Expression{name: "projected_condition_#{index}", type: column.type}
+      end)
+    complex_conditions_columns =
+      complex_conditions_columns
+      |> Enum.with_index()
+      |> Enum.map(fn ({column, index}) ->
+        %Expression{column | alias: "projected_condition_#{index}"}
+      end)
+    {complex_conditions, complex_conditions_columns}
   end
 
   defp unwind_arrays(_path, _path \\ "")
