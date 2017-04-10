@@ -39,6 +39,13 @@ defmodule Air.Service.ViewTest do
     assert View.all(context.u3, context.ds2) == []
   end
 
+  test "fetching the view map", context do
+    assert View.user_views_map(context.u1, context.ds1.id) == %{
+      context.v1.name => context.v1.sql,
+      context.v2.name => context.v2.sql,
+    }
+  end
+
   test "view requires name and sql", context do
     previous_views = View.all(context.u1, context.ds1) |> Enum.sort_by(&(&1.id))
     view = insert_view(context.ds1, context.u1, "view_5")
