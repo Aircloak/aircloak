@@ -167,8 +167,10 @@ export default class QueriesView extends React.Component {
     const sessionResults = _.chain(this.state.sessionResults).
       cloneDeep().
       map((item) => {
-        if (item.id == generatedTempId) {
-          item.id = serverSideId;
+        if (item.id === generatedTempId) {
+          const newItem = _.cloneDeep(item);
+          newItem.id = serverSideId;
+          return newItem;
         }
         return item;
       }).
@@ -177,7 +179,7 @@ export default class QueriesView extends React.Component {
   }
 
   addPendingResult(statement: string) {
-    const generatedTempId = (Math.random()*1e32).toString(36);
+    const generatedTempId = (Math.random() * 1e32).toString(36);
 
     const pendingResult = {
       statement,
@@ -195,7 +197,7 @@ export default class QueriesView extends React.Component {
       id: generatedTempId,
       statement,
       error,
-      info: []
+      info: [],
     };
     this.replaceResult(errorResult);
   }
