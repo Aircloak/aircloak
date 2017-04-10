@@ -75,7 +75,7 @@ defmodule Air.Service.DataSource do
           statement: statement,
           data_source: data_source.global_id,
           parameters: encode_parameters(parameters),
-          views: View.user_views_map(user)
+          views: View.user_views_map(user, data_source.id)
         })
       end
     )
@@ -285,7 +285,7 @@ defmodule Air.Service.DataSource do
       statement: query.statement,
       data_source: query.data_source.global_id,
       parameters: encode_parameters(parameters),
-      views: View.user_views_map(user)
+      views: View.user_views_map(user, query.data_source.id)
     }
   end
 

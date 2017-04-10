@@ -60,10 +60,12 @@ defmodule Air.Service.View do
     :ok
   end
 
-  @doc "Returns a %{name => sql} map of all the views the given user defined."
-  @spec user_views_map(User.t) :: view_map
-  def user_views_map(user) do
-    Repo.preload(user, :views).views
+  @doc "Returns a %{name => sql} map of all the views the given user defined for the given data source."
+  @spec user_views_map(User.t, integer) :: view_map
+  def user_views_map(user, data_source_id) do
+    by_user_id(user.id)
+    |> by_data_source_id(data_source_id)
+    |> Repo.all()
     |> Enum.map(&{&1.name, &1.sql})
     |> Enum.into(%{})
   end
@@ -74,7 +76,7 @@ defmodule Air.Service.View do
   # -------------------------------------------------------------------
 
   defp revalidate_views!(user, data_source_id) do
-    {:ok, results} = DataSource.validate_views({:id, data_source_id}, user, user_views_map(user))
+    {:ok, results} = DataSource.validate_views({:id, data_source_id}, user, user_views_map(user, data_source_id))
 
     for {name, result} <- results do
       view = by_data_source_id(data_source_id) |> Repo.get_by!(name: name)
@@ -131,7 +133,7 @@ defmodule Air.Service.View do
 
   defp validate_view(user, view) do
     views =
-      user_views_map(user)
+      user_views_map(user, view.data_source_id)
       |> Map.put(view.name, view.sql)
 
     case DataSource.validate_views({:id, view.data_source_id}, user, views) do
