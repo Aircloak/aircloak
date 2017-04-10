@@ -29,7 +29,7 @@ defmodule Air.PsqlServer do
 
   @doc false
   def init(conn, nil), do:
-    {:ok, conn}
+    {:ok, RanchServer.assign(conn, :async_jobs, %{})}
 
   @doc false
   def login(conn, password) do
@@ -54,38 +54,42 @@ defmodule Air.PsqlServer do
   @doc false
   def run_query(conn, query, params, _max_rows) do
     case handle_special_query(conn, String.downcase(query)) do
-      {true, conn} -> conn
+      {true, conn} ->
+        conn
       false ->
-        RanchServer.assign(
-          conn,
-          :query_runner,
-          Task.async(fn ->
-            DataSource.run_query(conn.assigns.data_source_id, conn.assigns.user, query, convert_params(params))
-          end)
-        )
+        start_async_query(conn, query, params, &RanchServer.set_query_result(&1, parse_response(&2)))
     end
   end
 
   @doc false
-  def describe_statement(conn, query, params), do:
-    RanchServer.assign(
+  def describe_statement(conn, query, params) do
+    user = conn.assigns.user
+    data_source_id = conn.assigns.data_source_id
+    converted_params = convert_params(params)
+    run_async(
       conn,
-      :query_describer,
-      Task.async(fn ->
-        DataSource.describe_query(conn.assigns.data_source_id, conn.assigns.user, query, convert_params(params))
-      end)
+      fn -> DataSource.describe_query(data_source_id, user, query, converted_params) end,
+      fn(conn, describe_result) ->
+        result =
+        case parse_response(describe_result) do
+          {:error, _} = error -> error
+          parsed_response -> Keyword.take(parsed_response, [:columns, :param_types])
+        end
+        RanchServer.set_describe_result(conn, result)
+      end
     )
+  end
 
   @doc false
-  def handle_message(%{assigns: %{query_runner: %Task{ref: ref}}} = conn, {ref, query_result}), do:
-    RanchServer.set_query_result(conn, parse_response(query_result))
-  def handle_message(%{assigns: %{query_describer: %Task{ref: ref}}} = conn, {ref, query_result}) do
-    result =
-      case parse_response(query_result) do
-        {:error, _} = error -> error
-        parsed_response -> Keyword.take(parsed_response, [:columns, :param_types])
-      end
-    RanchServer.set_describe_result(conn, result)
+  def handle_message(conn, {ref, query_result}) do
+    case Map.fetch(conn.assigns.async_jobs, ref) do
+      :error ->
+        conn
+      {:ok, job_descriptor} ->
+        async_jobs = Map.delete(conn.assigns.async_jobs, ref)
+        conn = RanchServer.assign(conn, :async_jobs, async_jobs)
+        job_descriptor.on_finished.(conn, query_result)
+    end
   end
   def handle_message(conn, _message), do:
     conn
@@ -94,6 +98,23 @@ defmodule Air.PsqlServer do
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp run_async(conn, job_fun, on_finished) do
+    task = Task.async(job_fun)
+    async_jobs = Map.put(conn.assigns.async_jobs, task.ref, %{task: task, on_finished: on_finished})
+    RanchServer.assign(conn, :async_jobs, async_jobs)
+  end
+
+  defp start_async_query(conn, query, params, on_finished) do
+    user = conn.assigns.user
+    data_source_id = conn.assigns.data_source_id
+    converted_params = convert_params(params)
+    run_async(
+      conn,
+      fn -> DataSource.run_query(data_source_id, user, query, converted_params) end,
+      on_finished
+    )
+  end
 
   defp ranch_opts(), do:
     Application.get_env(:air, Air.PsqlServer, [])
