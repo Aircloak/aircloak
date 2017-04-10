@@ -102,7 +102,7 @@ defmodule Air.PsqlServer do
 
   defp handle_special_query(conn, "set " <> _), do:
     # we're ignoring set for now
-    {true, RanchServer.set_query_result(conn, nil)}
+    {true, RanchServer.set_query_result(conn, %{command_complete: :set})}
   defp handle_special_query(conn, query) do
     if query =~ ~r/^select.+from pg_type/s do
       # select ... from pg_type ...

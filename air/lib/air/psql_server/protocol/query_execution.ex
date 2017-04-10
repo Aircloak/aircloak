@@ -120,8 +120,8 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     # parameters are already bound -> client is not expecting parameter descriptions
     protocol
 
-  defp send_result(protocol, nil), do:
-    Protocol.send_to_client(protocol, {:command_complete, ""})
+  defp send_result(protocol, %{command_complete: command}), do:
+    Protocol.send_to_client(protocol, {:command_complete, String.upcase(to_string(Atom.to_string(command)))})
   defp send_result(protocol, %{rows: rows, columns: columns}), do:
     protocol
     |> Protocol.send_to_client({:row_description, columns, [:text]})

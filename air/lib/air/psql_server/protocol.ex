@@ -66,7 +66,9 @@ defmodule Air.PsqlServer.Protocol do
 
   @type column :: %{name: String.t, type: psql_type}
 
-  @type query_result :: %{columns: [column], rows: [db_value]} | nil
+  @type query_result ::
+    %{command_complete: :set} |
+    %{columns: [column], rows: [db_value]}
 
   @type prepared_statement :: %{
     name: String.t,
