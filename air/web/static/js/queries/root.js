@@ -164,17 +164,14 @@ export default class QueriesView extends React.Component {
   }
 
   updateResultId(generatedTempId: string, serverSideId: string) {
-    const sessionResults = _.chain(this.state.sessionResults).
-      cloneDeep().
-      map((item) => {
-        if (item.id === generatedTempId) {
-          const newItem = _.cloneDeep(item);
-          newItem.id = serverSideId;
-          return newItem;
-        }
-        return item;
-      }).
-      value();
+    const sessionResults = _.map(this.state.sessionResults, (item) => {
+      if (item.id === generatedTempId) {
+        const newItem = _.cloneDeep(item);
+        newItem.id = serverSideId;
+        return newItem;
+      }
+      return item;
+    });
     this.setResults(sessionResults);
   }
 
