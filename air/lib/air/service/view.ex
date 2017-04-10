@@ -24,6 +24,9 @@ defmodule Air.Service.View do
   @spec all(User.t, DataSource.t) :: [View.t]
   def all(user, data_source), do: by_user_id(user.id) |> by_data_source_id(data_source.id) |> Repo.all()
 
+  def broken(user, data_source), do:
+    by_user_id(user.id) |> by_data_source_id(data_source.id) |> by_broken() |> Repo.all()
+
   @doc "Saves the new view in the database."
   @spec create(User.t, DataSource.t, String.t, String.t) :: {:ok, View.t} | {:error, Ecto.Changeset.t}
   def create(user, data_source, name, sql) do
@@ -122,4 +125,6 @@ defmodule Air.Service.View do
   defp by_user_id(scope \\ View, user_id), do: where(scope, [v], v.user_id == ^user_id)
 
   defp by_data_source_id(scope, data_source_id), do: where(scope, [v], v.data_source_id == ^data_source_id)
+
+  defp by_broken(scope), do: where(scope, [v], v.broken == true)
 end
