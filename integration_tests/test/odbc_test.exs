@@ -82,6 +82,23 @@ defmodule IntegrationTest.OdbcTest do
     test "parameterized query with a char", context, do:
       assert param_select(context.conn, {:sql_char, 6}, 'foobar') == 'foobar'
 
+    test "tableau relkind query", context do
+      query =
+        'BEGIN;' ++
+        'declare "SQL_CUR04645D10" cursor for ' ++
+        'select relname, nspname, relkind from pg_catalog.pg_class c, pg_catalog.pg_namespace n ' ++
+        'where relkind in (\'r\', \'v\') and ' ++
+        'nspname not in (\'pg_catalog\', \'information_schema\', \'pg_toast\', \'pg_temp_1\') and ' ++
+        'n.oid = relnamespace order by nspname, relname;' ++
+        'fetch 2048 in "SQL_CUR04645D10";'
+
+      assert :odbc.sql_query(context.conn, query) == [
+        {:updated, 0},
+        {:updated, 0},
+        {:selected, ['relname', 'nspname', 'relkind'], []}
+      ]
+    end
+
     test "select error", context, do:
       ExUnit.CaptureLog.capture_log(fn -> assert {:error, _} = :odbc.sql_query(context.conn, 'invalid query') end)
 

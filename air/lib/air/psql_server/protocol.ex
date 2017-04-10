@@ -67,9 +67,14 @@ defmodule Air.PsqlServer.Protocol do
   @type column :: %{name: String.t, type: psql_type}
 
   @type query_result ::
-    %{command_complete: :set} |
-    %{columns: [column], rows: [db_value]} |
-    %{error: String.t}
+    {:error, String.t} |
+    [
+      command: :set | :begin | :"declare cursor" | :select | :fetch,
+      intermediate: boolean,
+      columns: [column],
+      rows: [db_value]
+    ]
+
 
   @type prepared_statement :: %{
     name: String.t,
@@ -89,7 +94,7 @@ defmodule Air.PsqlServer.Protocol do
     {:send_query_result, query_result} |
     {:describe_result, describe_result}
 
-  @type describe_result :: %{error: String.t} | %{columns: [column], param_types: [psql_type]}
+  @type describe_result :: {:error, String.t} | [columns: [column], param_types: [psql_type]]
 
   @header_message_bytes 5
 

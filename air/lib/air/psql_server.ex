@@ -79,11 +79,14 @@ defmodule Air.PsqlServer do
   @doc false
   def handle_message(%{assigns: %{query_runner: %Task{ref: ref}}} = conn, {ref, query_result}), do:
     RanchServer.set_query_result(conn, parse_response(query_result))
-  def handle_message(%{assigns: %{query_describer: %Task{ref: ref}}} = conn, {ref, query_result}), do:
-    RanchServer.set_describe_result(
-      conn,
-      Map.take(parse_response(query_result), [:columns, :param_types, :error])
-    )
+  def handle_message(%{assigns: %{query_describer: %Task{ref: ref}}} = conn, {ref, query_result}) do
+    result =
+      case parse_response(query_result) do
+        {:error, _} = error -> error
+        parsed_response -> Keyword.take(parsed_response, [:columns, :param_types])
+      end
+    RanchServer.set_describe_result(conn, result)
+  end
   def handle_message(conn, _message), do:
     conn
 
@@ -102,27 +105,35 @@ defmodule Air.PsqlServer do
 
   defp handle_special_query(conn, "set " <> _), do:
     # we're ignoring set for now
-    {true, RanchServer.set_query_result(conn, %{command_complete: :set})}
+    {true, RanchServer.set_query_result(conn, [command: :set])}
   defp handle_special_query(conn, query) do
-    if query =~ ~r/^select.+from pg_type/s do
-      # select ... from pg_type ...
-      {true, RanchServer.set_query_result(conn, special_query(query))}
-    else
-      false
+    cond do
+      query =~ ~r/^select.+from pg_type/s ->
+        {true, RanchServer.set_query_result(conn, special_query(query))}
+      query =~ ~r/begin;declare.* for select relname, nspname, relkind from.*fetch.*/ ->
+        # tables list for tableau
+        {true,
+          conn
+          |> RanchServer.set_query_result([command: :begin, intermediate: true])
+          |> RanchServer.set_query_result([command: :"declare cursor", intermediate: true])
+          |> RanchServer.set_query_result(tables_list_for_tableau([]))
+        }
+      true ->
+        false
     end
   end
 
   defp parse_response({:error, :not_connected}), do:
-    %{error: "Data source is not available!"}
+    {:error, "Data source is not available!"}
   defp parse_response({:error, :expired}), do:
     %{
       error: "Your Aircloak installation is running version #{Air.SharedView.version()} " <>
         "which expired on #{Version.expiry_date()}."
     }
   defp parse_response({:ok, %{"error" => error}}), do:
-    %{error: error}
+    {:error, error}
   defp parse_response({:ok, query_result}), do:
-    %{
+    [
       columns:
         Enum.zip(
           Map.fetch!(query_result, "columns"),
@@ -138,10 +149,10 @@ defmodule Air.PsqlServer do
         |> Map.fetch!("features")
         |> Map.fetch!("parameter_types")
         |> Enum.map(&psql_type/1)
-    }
+    ]
   defp parse_response(other) do
     Logger.error("Error running a query: #{inspect other}")
-    %{error: "System error!"}
+    {:error, "System error!"}
   end
 
   defp convert_params(nil), do: nil
@@ -201,7 +212,7 @@ defmodule Air.PsqlServer do
 
   # postgrex pg_type query
   defp special_query("select t.oid, t.typname, t.typsend, t.typreceive, t.typoutput, t.typinput,\n       t.typelem, 0, array (\n  select a.atttypid\n  from pg_attribute as a\n  where a.attrelid = t.typrelid and a.attnum > 0 and not a.attisdropped\n  order by a.attnum\n)\nfrom pg_type as t\n\n\n") do
-    %{
+    [
       columns:
         ~w(oid typname typsend typreceive typoutput typinput typelem coalesce array)
         |> Enum.map(&%{name: &1, type: :text}),
@@ -220,8 +231,20 @@ defmodule Air.PsqlServer do
           ~w(1114 timestamp timestamp_send timestamp_recv timestamp_out timestamp_in 0 0 {}),
           ~w(1700 numeric numeric_send numeric_recv numeric_out numeric_in 0 0 {})
         ]
-    }
+    ]
   end
   defp special_query(_), do:
-    %{columns: [], rows: []}
+    [columns: [], rows: []]
+
+  defp tables_list_for_tableau(table_names), do:
+    [
+      command: :fetch,
+      columns:
+        [
+          %{name: "relname", type: :name},
+          %{name: "nspname", type: :name},
+          %{name: "relkind", type: :char},
+        ],
+      rows: Enum.map(table_names, &[&1, "public", ?r])
+    ]
 end
