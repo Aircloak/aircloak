@@ -60,7 +60,7 @@ defmodule Air.PsqlServer.Protocol do
     | :int2 | :int4 | :int8
     | :float4 | :float8
     | :numeric
-    | :text
+    | :char | :text
     | :date | :time | :timestamp
     | :unknown
 
