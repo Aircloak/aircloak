@@ -13,13 +13,12 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   @doc "Builds a MongoDB aggregation pipeline from a compiled query."
   @spec build(Query.t) :: {String.t, [map]}
   def build(%Query{from: table_name, selected_tables: [table]} = query) when is_binary(table_name) do
-    {base_conditions, array_conditions, array_size_conditions} = split_conditions(table.array_path, query.where)
+    {post_project_conditions, base_conditions} = split_conditions(table.array_path, query.where)
     pipeline =
       parse_where_conditions(base_conditions) ++
       unwind_arrays(table.array_path) ++
-      parse_where_conditions(array_conditions) ++
       Projector.map_array_sizes(table) ++
-      parse_where_conditions(array_size_conditions) ++
+      parse_where_conditions(post_project_conditions) ++
       parse_query(query)
     {table.db_name, pipeline}
   end
@@ -93,17 +92,13 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     %{map_field(subject) => %{'$not': %{'$regex': Comparison.to_regex(map_constant(pattern)), '$options': "msi"}}}
 
   defp split_conditions([], conditions) do
-    {array_size_conditions, non_array_size_conditions} =
-      Enum.partition(conditions, &(Comparison.subject(&1).name || "") |> Schema.is_array_size?())
-    {non_array_size_conditions, [], array_size_conditions}
+    Enum.partition(conditions, &(Comparison.subject(&1).name || "") |> Schema.is_array_size?())
   end
   defp split_conditions([array | _], conditions) do
-    {array_size_conditions, non_array_size_conditions} =
-      Enum.partition(conditions, &(Comparison.subject(&1).name || "") |> Schema.is_array_size?())
-    {array_conditions, base_conditions} =
-      Enum.partition(non_array_size_conditions,
-        &(Comparison.subject(&1).name || "") |> String.starts_with?(array <> "."))
-    {base_conditions, array_conditions, array_size_conditions}
+    Enum.partition(conditions, fn (condition) ->
+        column_name = Comparison.subject(condition).name || ""
+        String.starts_with?(column_name, array <> ".") or Schema.is_array_size?(column_name)
+      end)
   end
 
   defp unwind_arrays(_path, _path \\ "")
