@@ -32,11 +32,22 @@ across our individual development machines.
 
 Each component can be deployed to a __deploy target__. The targets are provided in the [deploy_targets](./deploy_targets) folder.
 
-To deploy both air and cloak, you can run `./publish.sh deploy_target`, where `deploy_target` is the name of the file from the `deploy_targets` folder (without the path). For example, `./publish.sh sasa` will deploy new versions of air and cloak to the `sasa` deploy target (which is described in `./deploy_targets/sasa`).
+### From branch
+
+To deploy both `air` and `cloak` from a branch (for example `master`), you can run `./publish.sh deploy_target`, where `deploy_target` is the name of the file from the `deploy_targets` folder (without the path). For example, `./publish.sh sasa` will deploy new versions of `air` and `cloak` to the `sasa` deploy target (which is described in `./deploy_targets/sasa`).
 
 Deploying will always publish all __pushed__ changes from your current local branch.
 
 You can also deploy each component separately using `./cloak/production.sh` and `./air/production.sh` scripts. Run these scripts without any argument for instructions.
+
+### A public release
+
+To deploy a particular public release on public facing Aircloaks, you can use the `./publish_public_systems VERSION` command.
+It will update both the `air` and `cloak` containers to the version specified. The version can also be specified as `latest`.
+
+Just like the `./publish.sh` command, it reads deployment information from the [deploy_targets](./deploy_targets) folder. The difference
+being that which [deploy_targets](./deploy_targets) should be used is hardcoded in the deployment script itself.
+
 
 ## Producing production containers
 
