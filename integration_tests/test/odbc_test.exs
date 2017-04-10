@@ -99,6 +99,9 @@ defmodule IntegrationTest.OdbcTest do
       ]
     end
 
+    test "closing a cursor", context, do:
+      assert :odbc.sql_query(context.conn, 'close "some_cursor"') == {:updated, 0}
+
     test "select error", context, do:
       ExUnit.CaptureLog.capture_log(fn -> assert {:error, _} = :odbc.sql_query(context.conn, 'invalid query') end)
 

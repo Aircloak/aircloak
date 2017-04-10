@@ -133,6 +133,8 @@ defmodule Air.PsqlServer do
         {true, RanchServer.set_query_result(conn, special_query(query))}
       query =~ ~r/begin;declare.* for select relname, nspname, relkind from.*fetch.*/ ->
         {true, fetch_tables_for_tableau(conn)}
+      query =~ ~r/close \".*\"/ ->
+        {true, RanchServer.set_query_result(conn, [command: :"close cursor"])}
       true ->
         false
     end
