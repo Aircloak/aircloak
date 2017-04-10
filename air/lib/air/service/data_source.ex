@@ -1,9 +1,9 @@
 defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
-  alias Air.Schemas.{DataSource, Query, User, View}
+  alias Air.Schemas.{DataSource, Query, User}
   alias Air.{PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, Socket.Frontend.UserChannel, QueryEvents}
-  alias Air.Service.{Version, Cloak}
+  alias Air.Service.{Version, Cloak, View}
   import Ecto.Query, only: [from: 2]
   require Logger
 
@@ -75,24 +75,22 @@ defmodule Air.Service.DataSource do
           statement: statement,
           data_source: data_source.global_id,
           parameters: encode_parameters(parameters),
-          views: Air.Service.View.user_views_map(user)
+          views: View.user_views_map(user)
         })
       end
     )
   end
 
-  @doc "Validates the view on the cloak."
-  @spec validate_view(data_source_id_spec, User.t, View.t) ::
-    {:ok, [columns :: map]} | {:error, field :: String.t, reason :: String.t} | data_source_operation_error
-  def validate_view(data_source_id_spec, user, view), do:
+  @doc "Validates all of the given views on the cloak."
+  @spec validate_views(data_source_id_spec, User.t, View.view_map) ::
+    {:ok, map} | data_source_operation_error
+  def validate_views(data_source_id_spec, user, view_map), do:
     on_available_cloak(data_source_id_spec, user,
       fn(data_source, channel_pid, _cloak_info) ->
-        MainChannel.validate_view(channel_pid, %{
+        {:ok, MainChannel.validate_views(channel_pid, %{
           data_source: data_source.global_id,
-          name: view.name,
-          sql: view.sql,
-          views: Air.Service.View.user_views_map(user)
-        })
+          views: view_map
+        })}
       end
     )
 
@@ -287,7 +285,7 @@ defmodule Air.Service.DataSource do
       statement: query.statement,
       data_source: query.data_source.global_id,
       parameters: encode_parameters(parameters),
-      views: Air.Service.View.user_views_map(user)
+      views: View.user_views_map(user)
     }
   end
 
