@@ -126,7 +126,7 @@ defmodule Air.PsqlServer do
 
   defp handle_special_query(conn, "set " <> _), do:
     # we're ignoring set for now
-    {true, RanchServer.set_query_result(conn, [command: :set])}
+    {true, RanchServer.set_query_result(conn, command: :set)}
   defp handle_special_query(conn, query) do
     cond do
       query =~ ~r/^select.+from pg_type/s ->
@@ -134,7 +134,7 @@ defmodule Air.PsqlServer do
       query =~ ~r/begin;declare.* for select relname, nspname, relkind from.*fetch.*/ ->
         {true, fetch_tables_for_tableau(conn)}
       query =~ ~r/close \".*\"/ ->
-        {true, RanchServer.set_query_result(conn, [command: :"close cursor"])}
+        {true, RanchServer.set_query_result(conn, command: :"close cursor")}
       true ->
         false
     end
@@ -262,8 +262,8 @@ defmodule Air.PsqlServer do
           |> Enum.map(fn(%{"row" => [table_name]}) -> table_name end)
 
         conn
-        |> RanchServer.set_query_result([command: :begin, intermediate: true])
-        |> RanchServer.set_query_result([command: :"declare cursor", intermediate: true])
+        |> RanchServer.set_query_result(command: :begin, intermediate: true)
+        |> RanchServer.set_query_result(command: :"declare cursor", intermediate: true)
         |> RanchServer.set_query_result(tables_list_for_tableau(table_names))
       end
     )
