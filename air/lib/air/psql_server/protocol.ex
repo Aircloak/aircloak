@@ -68,7 +68,8 @@ defmodule Air.PsqlServer.Protocol do
 
   @type query_result ::
     %{command_complete: :set} |
-    %{columns: [column], rows: [db_value]}
+    %{columns: [column], rows: [db_value]} |
+    %{error: String.t}
 
   @type prepared_statement :: %{
     name: String.t,
