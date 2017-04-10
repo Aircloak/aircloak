@@ -75,7 +75,7 @@ defmodule Air.Service.DataSource do
           statement: statement,
           data_source: data_source.global_id,
           parameters: encode_parameters(parameters),
-          views: user_views_map(user)
+          views: Air.Service.View.user_views_map(user)
         })
       end
     )
@@ -91,7 +91,7 @@ defmodule Air.Service.DataSource do
           data_source: data_source.global_id,
           name: view.name,
           sql: view.sql,
-          views: user_views_map(user)
+          views: Air.Service.View.user_views_map(user)
         })
       end
     )
@@ -281,19 +281,13 @@ defmodule Air.Service.DataSource do
     end
   end
 
-  defp user_views_map(user) do
-    Repo.preload(user, :views).views
-    |> Enum.map(&{&1.name, &1.sql})
-    |> Enum.into(%{})
-  end
-
   defp cloak_query_map(query, user, parameters) do
     %{
       id: query.id,
       statement: query.statement,
       data_source: query.data_source.global_id,
       parameters: encode_parameters(parameters),
-      views: user_views_map(user)
+      views: Air.Service.View.user_views_map(user)
     }
   end
 

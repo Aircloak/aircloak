@@ -5,6 +5,8 @@ defmodule Air.Service.View do
   alias Air.{Repo, Service.DataSource, Version}
   import Ecto.Query
 
+  @type view_map :: %{optional(String.t) => String.t}
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -56,6 +58,14 @@ defmodule Air.Service.View do
   def delete(view_id, user) do
     {1, _} = Repo.delete_all(from view in View, where: view.id == ^view_id and view.user_id == ^user.id)
     :ok
+  end
+
+  @doc "Returns a %{name => sql} map of all the views the given user defined."
+  @spec user_views_map(User.t) :: view_map
+  def user_views_map(user) do
+    Repo.preload(user, :views).views
+    |> Enum.map(&{&1.name, &1.sql})
+    |> Enum.into(%{})
   end
 
 
