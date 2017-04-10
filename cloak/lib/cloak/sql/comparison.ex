@@ -31,14 +31,14 @@ defmodule Cloak.Sql.Comparison do
   def subject({:like, lhs, _rhs}), do: lhs
   def subject({:ilike, lhs, _rhs}), do: lhs
 
-  @doc "Returns the targets that the subject is checked against."
+  @doc "Returns the targets of the comparison."
   @spec targets(Query.where_clause | Parser.where_clause) :: [Expression.t | Parser.column]
-  def targets({:comparison, _lhs, _, rhs}), do: [rhs]
+  def targets({:comparison, lhs, _, rhs}), do: [lhs, rhs]
   def targets({:not, comparison}), do: targets(comparison)
-  def targets({:is, _lhs, :null}), do: [:null]
-  def targets({:in, _lhs, rhs}), do: rhs
-  def targets({:like, _lhs, rhs}), do: [rhs]
-  def targets({:ilike, _lhs, rhs}), do: [rhs]
+  def targets({:is, lhs, :null}), do: [lhs]
+  def targets({:in, lhs, rhs}), do: [lhs | rhs]
+  def targets({:like, lhs, rhs}), do: [lhs, rhs]
+  def targets({:ilike, lhs, rhs}), do: [lhs, rhs]
 
   @doc "Returns a representation of the direction of the given inequality as `:<` or `:>`."
   @spec direction(Query.where_clause) :: direction
