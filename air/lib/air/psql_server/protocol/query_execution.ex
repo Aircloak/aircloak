@@ -79,10 +79,11 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
   @doc false
   def handle_event(%{running_prepared_statement: name} = protocol, {:send_query_result, result}) when name != nil do
     statement = Map.fetch!(protocol.prepared_statements, name)
+    rows = Keyword.fetch!(result, :rows)
 
     protocol
-    |> send_rows(result.rows, statement.columns, statement.result_codes)
-    |> Protocol.send_to_client({:command_complete, "SELECT #{length(result.rows)}"})
+    |> send_rows(rows, statement.columns, statement.result_codes)
+    |> Protocol.send_to_client({:command_complete, "SELECT #{length(rows)}"})
     |> Protocol.send_to_client(:ready_for_query)
     |> Protocol.syncing()
     |> Protocol.await_client_message()
@@ -90,9 +91,10 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
   def handle_event(protocol, {:send_query_result, result}), do:
     protocol
     |> send_result(result)
-    |> Protocol.send_to_client(:ready_for_query)
+    |> send_command_completion(result)
+    |> send_ready_for_query(result)
     |> Protocol.await_client_message()
-  def handle_event(protocol, {:describe_result, %{error: error}}), do:
+  def handle_event(protocol, {:describe_result, {:error, error}}), do:
     protocol
     |> Protocol.send_to_client({:syntax_error, error})
     |> Protocol.await_client_message()
@@ -101,10 +103,10 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
 
     result_codes = prepared_statement.result_codes || [:text]
     protocol
-    |> put_in([:prepared_statements, name, :parsed_param_types], description.param_types)
-    |> put_in([:prepared_statements, name, :columns], description.columns)
-    |> send_parameter_descriptions(prepared_statement, description.param_types)
-    |> Protocol.send_to_client({:row_description, description.columns, result_codes})
+    |> put_in([:prepared_statements, name, :parsed_param_types], Keyword.fetch!(description, :param_types))
+    |> put_in([:prepared_statements, name, :columns], Keyword.fetch!(description, :columns))
+    |> send_parameter_descriptions(prepared_statement, Keyword.fetch!(description, :param_types))
+    |> Protocol.send_to_client({:row_description, Keyword.fetch!(description, :columns), result_codes})
     |> Protocol.await_client_message()
   end
 
@@ -120,15 +122,46 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     # parameters are already bound -> client is not expecting parameter descriptions
     protocol
 
-  defp send_result(protocol, nil), do:
-    Protocol.send_to_client(protocol, {:command_complete, ""})
-  defp send_result(protocol, %{rows: rows, columns: columns}), do:
-    protocol
-    |> Protocol.send_to_client({:row_description, columns, [:text]})
-    |> send_rows(rows, columns, [:text])
-    |> Protocol.send_to_client({:command_complete, "SELECT #{length(rows)}"})
-  defp send_result(protocol, %{error: error}), do:
+  defp send_result(protocol, {:error, error}), do:
     Protocol.send_to_client(protocol, {:syntax_error, error})
+  defp send_result(protocol, result) do
+    with {:ok, columns} <- Keyword.fetch(result, :columns),
+         {:ok, rows} <- Keyword.fetch(result, :rows) do
+      protocol
+      |> Protocol.send_to_client({:row_description, columns, [:text]})
+      |> send_rows(rows, columns, [:text])
+    else
+      _ -> protocol
+    end
+  end
+
+  defp send_command_completion(protocol, {:error, _}), do:
+    protocol
+  defp send_command_completion(protocol, result), do:
+    Protocol.send_to_client(protocol, {:command_complete, result_tag(result)})
+
+  defp result_tag(result) do
+    case Keyword.fetch(result, :rows) do
+      {:ok, rows} ->
+        "#{command_atom_to_string(Keyword.get(result, :command, :select))} #{length(rows)}"
+      _ ->
+        command_atom_to_string(Keyword.fetch!(result, :command))
+    end
+  end
+
+  defp command_atom_to_string(tag_atom), do:
+    tag_atom
+    |> Atom.to_string()
+    |> String.upcase()
+
+  defp send_ready_for_query(protocol, result) do
+    if Keyword.get(result, :intermediate, false) do
+      protocol
+    else
+      Protocol.send_to_client(protocol, :ready_for_query)
+    end
+  end
+
 
   defp send_rows(protocol, rows, columns, formats), do:
     Enum.reduce(rows, protocol, &Protocol.send_to_client(&2, {:data_row, &1, column_types(columns), formats}))

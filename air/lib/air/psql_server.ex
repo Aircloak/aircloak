@@ -29,7 +29,7 @@ defmodule Air.PsqlServer do
 
   @doc false
   def init(conn, nil), do:
-    {:ok, conn}
+    {:ok, RanchServer.assign(conn, :async_jobs, %{})}
 
   @doc false
   def login(conn, password) do
@@ -54,36 +54,43 @@ defmodule Air.PsqlServer do
   @doc false
   def run_query(conn, query, params, _max_rows) do
     case handle_special_query(conn, String.downcase(query)) do
-      {true, conn} -> conn
+      {true, conn} ->
+        conn
       false ->
-        RanchServer.assign(
-          conn,
-          :query_runner,
-          Task.async(fn ->
-            DataSource.run_query(conn.assigns.data_source_id, conn.assigns.user, query, convert_params(params))
-          end)
-        )
+        start_async_query(conn, query, params, &RanchServer.set_query_result(&1, parse_response(&2)))
     end
   end
 
   @doc false
-  def describe_statement(conn, query, params), do:
-    RanchServer.assign(
+  def describe_statement(conn, query, params) do
+    user = conn.assigns.user
+    data_source_id = conn.assigns.data_source_id
+    converted_params = convert_params(params)
+    run_async(
       conn,
-      :query_describer,
-      Task.async(fn ->
-        DataSource.describe_query(conn.assigns.data_source_id, conn.assigns.user, query, convert_params(params))
-      end)
+      fn -> DataSource.describe_query(data_source_id, user, query, converted_params) end,
+      fn(conn, describe_result) ->
+        result =
+        case parse_response(describe_result) do
+          {:error, _} = error -> error
+          parsed_response -> Keyword.take(parsed_response, [:columns, :param_types])
+        end
+        RanchServer.set_describe_result(conn, result)
+      end
     )
+  end
 
   @doc false
-  def handle_message(%{assigns: %{query_runner: %Task{ref: ref}}} = conn, {ref, query_result}), do:
-    RanchServer.set_query_result(conn, parse_response(query_result))
-  def handle_message(%{assigns: %{query_describer: %Task{ref: ref}}} = conn, {ref, query_result}), do:
-    RanchServer.set_describe_result(
-      conn,
-      Map.take(parse_response(query_result), [:columns, :param_types, :error])
-    )
+  def handle_message(conn, {ref, query_result}) do
+    case Map.fetch(conn.assigns.async_jobs, ref) do
+      :error ->
+        conn
+      {:ok, job_descriptor} ->
+        async_jobs = Map.delete(conn.assigns.async_jobs, ref)
+        conn = RanchServer.assign(conn, :async_jobs, async_jobs)
+        job_descriptor.on_finished.(conn, query_result)
+    end
+  end
   def handle_message(conn, _message), do:
     conn
 
@@ -91,6 +98,23 @@ defmodule Air.PsqlServer do
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp run_async(conn, job_fun, on_finished) do
+    task = Task.async(job_fun)
+    async_jobs = Map.put(conn.assigns.async_jobs, task.ref, %{task: task, on_finished: on_finished})
+    RanchServer.assign(conn, :async_jobs, async_jobs)
+  end
+
+  defp start_async_query(conn, query, params, on_finished) do
+    user = conn.assigns.user
+    data_source_id = conn.assigns.data_source_id
+    converted_params = convert_params(params)
+    run_async(
+      conn,
+      fn -> DataSource.run_query(data_source_id, user, query, converted_params) end,
+      on_finished
+    )
+  end
 
   defp ranch_opts(), do:
     Application.get_env(:air, Air.PsqlServer, [])
@@ -102,27 +126,31 @@ defmodule Air.PsqlServer do
 
   defp handle_special_query(conn, "set " <> _), do:
     # we're ignoring set for now
-    {true, RanchServer.set_query_result(conn, nil)}
+    {true, RanchServer.set_query_result(conn, command: :set)}
   defp handle_special_query(conn, query) do
-    if query =~ ~r/^select.+from pg_type/s do
-      # select ... from pg_type ...
-      {true, RanchServer.set_query_result(conn, special_query(query))}
-    else
-      false
+    cond do
+      query =~ ~r/^select.+from pg_type/s ->
+        {true, RanchServer.set_query_result(conn, special_query(query))}
+      query =~ ~r/begin;declare.* for select relname, nspname, relkind from.*fetch.*/ ->
+        {true, fetch_tables_for_tableau(conn)}
+      query =~ ~r/close \".*\"/ ->
+        {true, RanchServer.set_query_result(conn, command: :"close cursor")}
+      true ->
+        false
     end
   end
 
   defp parse_response({:error, :not_connected}), do:
-    %{error: "Data source is not available!"}
+    {:error, "Data source is not available!"}
   defp parse_response({:error, :expired}), do:
     %{
       error: "Your Aircloak installation is running version #{Air.SharedView.version()} " <>
         "which expired on #{Version.expiry_date()}."
     }
   defp parse_response({:ok, %{"error" => error}}), do:
-    %{error: error}
+    {:error, error}
   defp parse_response({:ok, query_result}), do:
-    %{
+    [
       columns:
         Enum.zip(
           Map.fetch!(query_result, "columns"),
@@ -138,10 +166,10 @@ defmodule Air.PsqlServer do
         |> Map.fetch!("features")
         |> Map.fetch!("parameter_types")
         |> Enum.map(&psql_type/1)
-    }
+    ]
   defp parse_response(other) do
     Logger.error("Error running a query: #{inspect other}")
-    %{error: "System error!"}
+    {:error, "System error!"}
   end
 
   defp convert_params(nil), do: nil
@@ -201,7 +229,7 @@ defmodule Air.PsqlServer do
 
   # postgrex pg_type query
   defp special_query("select t.oid, t.typname, t.typsend, t.typreceive, t.typoutput, t.typinput,\n       t.typelem, 0, array (\n  select a.atttypid\n  from pg_attribute as a\n  where a.attrelid = t.typrelid and a.attnum > 0 and not a.attisdropped\n  order by a.attnum\n)\nfrom pg_type as t\n\n\n") do
-    %{
+    [
       columns:
         ~w(oid typname typsend typreceive typoutput typinput typelem coalesce array)
         |> Enum.map(&%{name: &1, type: :text}),
@@ -220,8 +248,36 @@ defmodule Air.PsqlServer do
           ~w(1114 timestamp timestamp_send timestamp_recv timestamp_out timestamp_in 0 0 {}),
           ~w(1700 numeric numeric_send numeric_recv numeric_out numeric_in 0 0 {})
         ]
-    }
+    ]
   end
   defp special_query(_), do:
-    %{columns: [], rows: []}
+    [columns: [], rows: []]
+
+  defp fetch_tables_for_tableau(conn) do
+    start_async_query(conn, "show tables", [],
+      fn(conn, {:ok, show_tables_response}) ->
+        table_names =
+          show_tables_response
+          |> Map.fetch!("rows")
+          |> Enum.map(fn(%{"row" => [table_name]}) -> table_name end)
+
+        conn
+        |> RanchServer.set_query_result(command: :begin, intermediate: true)
+        |> RanchServer.set_query_result(command: :"declare cursor", intermediate: true)
+        |> RanchServer.set_query_result(tables_list_for_tableau(table_names))
+      end
+    )
+  end
+
+  defp tables_list_for_tableau(table_names), do:
+    [
+      command: :fetch,
+      columns:
+        [
+          %{name: "relname", type: :name},
+          %{name: "nspname", type: :name},
+          %{name: "relkind", type: :char},
+        ],
+      rows: Enum.map(table_names, &[&1, "public", ?r])
+    ]
 end

@@ -60,13 +60,17 @@ defmodule Air.PsqlServer.Protocol do
     | :int2 | :int4 | :int8
     | :float4 | :float8
     | :numeric
-    | :text
+    | :char | :text | :name
     | :date | :time | :timestamp
     | :unknown
 
   @type column :: %{name: String.t, type: psql_type}
 
-  @type query_result :: %{columns: [column], rows: [db_value]} | nil
+  @type query_result ::
+    {:error, String.t} |
+    [command: command, intermediate: boolean, columns: [column], rows: [db_value]]
+
+  @type command :: :set | :begin | :select | :fetch | :"declare cursor" | :"close cursor"
 
   @type prepared_statement :: %{
     name: String.t,
@@ -86,7 +90,7 @@ defmodule Air.PsqlServer.Protocol do
     {:send_query_result, query_result} |
     {:describe_result, describe_result}
 
-  @type describe_result :: %{error: String.t} | %{columns: [column], param_types: [psql_type]}
+  @type describe_result :: {:error, String.t} | [columns: [column], param_types: [psql_type]]
 
   @header_message_bytes 5
 

@@ -262,17 +262,19 @@ defmodule Air.PsqlServer.Protocol.Messages do
   for {type, meta} <- %{
     # Obtained as `select typname, oid, typlen from pg_type`
     boolean: %{oid: 16, len: 1},
+    char: %{oid: 18, len: 1},
+    name: %{oid: 19, len: 64},
+    int8: %{oid: 20, len: 8},
     int2: %{oid: 21, len: 2},
     int4: %{oid: 23, len: 4},
-    int8: %{oid: 20, len: 8},
+    text: %{oid: 25, len: -1},
     float4: %{oid: 700, len: 4},
     float8: %{oid: 701, len: 8},
-    numeric: %{oid: 1700, len: -1},
-    text: %{oid: 25, len: -1},
+    unknown: %{oid: 705, len: -1},
     date: %{oid: 1082, len: 4},
     time: %{oid: 1083, len: 8},
     timestamp: %{oid: 1114, len: 8},
-    unknown: %{oid: 705, len: -1}
+    numeric: %{oid: 1700, len: -1},
   } do
     defp column_description({%{type: unquote(type)} = column, result_code}), do:
       <<
@@ -309,7 +311,9 @@ defmodule Air.PsqlServer.Protocol.Messages do
   defp convert_text_param(:numeric, value), do: value |> Decimal.new() |> Decimal.to_float()
   defp convert_text_param(:boolean, "1"), do: true
   defp convert_text_param(:boolean, text), do: String.downcase(text) == "true"
+  defp convert_text_param(:char, <<char>>), do: char
   defp convert_text_param(:text, param) when is_binary(param), do: param
+  defp convert_text_param(:name, param) when is_binary(param), do: param
   defp convert_text_param(:unknown, param) when is_binary(param), do: param
 
   defp normalize_postgrex_decoded_value(%Decimal{} = value), do: Decimal.to_float(value)
@@ -326,12 +330,18 @@ defmodule Air.PsqlServer.Protocol.Messages do
     |> IO.iodata_to_binary()
 
   defp encode_value({_, _, nil}), do: <<-1::32>>
-  defp encode_value({:text, _, value}), do: with_size(to_string(value))
+  defp encode_value({:text, type, value}), do:
+    value
+    |> text_encode(type)
+    |> with_size()
   defp encode_value({:binary, type, value}), do:
     binary_encode(type, normalize_for_postgrex_encoding(type, value))
 
   defp with_size(encoded), do:
     <<byte_size(encoded)::32, encoded::binary>>
+
+  defp text_encode(byte, :char), do: <<byte>>
+  defp text_encode(value, _), do: to_string(value)
 
   defp normalize_for_postgrex_encoding(:numeric, value), do: Decimal.new(value)
   defp normalize_for_postgrex_encoding(:date, value), do: Date.from_iso8601!(value)
@@ -353,7 +363,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
     {:numeric, Numeric, nil},
     {:boolean, Bool, nil},
     {:date, Date, :elixir}, {:time, Time, :elixir}, {:timestamp, Timestamp, :elixir},
-    {:text, Raw, :reference}
+    {:text, Raw, :reference}, {:char, Raw, :reference}, {:name, Name, :reference}
   ] do
     extension = Module.concat(Postgrex.Extensions, extension)
 
