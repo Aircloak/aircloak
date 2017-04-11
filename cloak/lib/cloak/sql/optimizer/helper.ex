@@ -28,16 +28,16 @@ defmodule Cloak.Sql.Optimizer.Helper do
   defp from_single_table(query), do:
     match?({:unquoted, _}, query[:from])
 
-  defp has_aggregate_function(query), do:
-    Enum.any?(query[:columns], fn
-      ({:function, _, _} = function) ->
-        Function.exists?(function) and Function.has_attribute?(function, :aggregator)
-      (_) -> false
-    end)
+  defp has_aggregate_function(query), do: aggregate_functions(query) !== []
 
   defp supported_aggregates(query), do:
-    query[:columns]
-    |> Enum.filter(& match?({:function, _, _}, &1))
+    aggregate_functions(query)
     |> Enum.map(fn({:function, name, _}) -> name end)
     |> Enum.all?(& Enum.member?(@supported_aggregates, &1))
+
+  defp aggregate_functions(query), do:
+    query[:columns]
+    |> Enum.filter(& match?({:function, _, _}, &1))
+    |> Enum.filter(& Function.exists?(&1))
+    |> Enum.filter(& Function.has_attribute?(&1, :aggregator))
 end
