@@ -213,7 +213,7 @@ same for both queries.
 The perfect algorithm for this calls for analyzing all possible smaller ranges
 for a given range and then recursively checking any data that remains after
 suppression. Due to problems with implementing such an approach in a streaming
-manner we decided on an approximate appraoch. The overall idea is to keep track
+manner we decided on an approximate approach. The overall idea is to keep track
 of a number of users with the highest and lowest values and buffer all records
 of such users. At the end of the stream we decide how many of the most extreme
 values need to be suppressed by producing an aligned range that encompasses most

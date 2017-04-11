@@ -122,6 +122,16 @@ defmodule Cloak.Sql.Query.Lenses do
   @spec join_condition_lenses(Query.t) :: [Lens.t]
   def join_condition_lenses(query), do: do_join_condition_lenses(query.from, Lens.key(:from))
 
+  @doc "Lens focusing on the operands for a condition."
+  deflens operands(), do:
+    Lens.match(fn
+      {:not, _} -> Lens.at(1) |> operands()
+      {:comparison, _lhs, _comparator, _rhs} -> Lens.indices([1, 3])
+      {:is, _, :null} -> Lens.at(1)
+      {op, _, _} when op in [:in, :like, :ilike] -> Lens.both(Lens.at(1), Lens.at(2))
+      _ -> Lens.empty()
+    end)
+
 
   # -------------------------------------------------------------------
   # Internal lenses
@@ -158,15 +168,6 @@ defmodule Cloak.Sql.Query.Lenses do
       {:not, _} -> Lens.index(1) |> do_match_condition_columns()
       elements when is_list(elements) -> Lens.all() |> do_match_condition_columns()
       %Expression{} -> Lens.root()
-      _ -> Lens.empty()
-    end)
-
-  deflensp operands(), do:
-    Lens.match(fn
-      {:not, _} -> Lens.at(1) |> operands()
-      {:comparison, _lhs, _comparator, _rhs} -> Lens.indices([1, 3])
-      {:is, _, :null} -> Lens.at(1)
-      {op, _, _} when op in [:in, :like, :ilike] -> Lens.both(Lens.at(1), Lens.at(2))
       _ -> Lens.empty()
     end)
 

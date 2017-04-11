@@ -84,7 +84,7 @@ defmodule Cloak.Sql.TypeChecker do
     |> Lens.all()
     |> Lens.to_list(query)
     |> Enum.each(fn(comparison) ->
-      types = [Comparison.subject(comparison) | Comparison.targets(comparison)]
+      types = Comparison.targets(comparison)
       |> Enum.map(&establish_type(&1, query))
       |> Enum.uniq()
       if Enum.any?(types, & &1.is_result_of_datetime_processing?) and
