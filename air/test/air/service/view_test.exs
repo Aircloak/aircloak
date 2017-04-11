@@ -83,6 +83,26 @@ defmodule Air.Service.ViewTest do
     end
   end
 
+  describe "updating a view" do
+    test "success", context do
+      socket = data_source_socket(context.ds1)
+
+      task = Task.async(fn() -> View.update(context.v1.id, context.u1, "some view", "some sql") end)
+      TestSocketHelper.respond_to_validate_views!(socket,
+        [%{"name" => "some view", "columns" => ["some", "columns"], "valid" => true}])
+      TestSocketHelper.respond_to_validate_views!(socket, [])
+
+      view_id = context.v1.id
+      assert {:ok, %{id: ^view_id}} = Task.await(task)
+      assert %{name: "some view", sql: "some sql", result_info: %{"columns" => ["some", "columns"]}} =
+        Repo.get(Air.Schemas.View, context.v1.id)
+    end
+
+    test "failure"
+
+    test "revalidating other views"
+  end
+
   defp insert_view(data_source, user, name), do:
     %Air.Schemas.View{}
     |> Ecto.Changeset.cast(
