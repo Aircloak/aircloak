@@ -61,14 +61,26 @@ defmodule Air.Service.ViewTest do
       "Please contact your administrator."
   end
 
-  test "creating a view", context do
-    socket = data_source_socket(context.ds1)
+  describe "creating a view" do
+    test "success", context do
+      socket = data_source_socket(context.ds1)
 
-    task = Task.async(fn() -> View.create(context.u1, context.ds1, "some view", "some sql") end)
-    TestSocketHelper.respond_to_validate_views!(socket,
-      [%{"name" => "some view", "columns" => ["some", "columns"], "valid" => true}])
+      task = Task.async(fn() -> View.create(context.u1, context.ds1, "some view", "some sql") end)
+      TestSocketHelper.respond_to_validate_views!(socket,
+        [%{"name" => "some view", "columns" => ["some", "columns"], "valid" => true}])
 
-    assert {:ok, %{result_info: %{columns: ["some", "columns"]}}} = Task.await(task)
+      assert {:ok, %{result_info: %{columns: ["some", "columns"]}}} = Task.await(task)
+    end
+
+    test "failure", context do
+      socket = data_source_socket(context.ds1)
+
+      task = Task.async(fn() -> View.create(context.u1, context.ds1, "some view", "some sql") end)
+      TestSocketHelper.respond_to_validate_views!(socket,
+        [%{"name" => "some view", "valid" => false, "field" => "sql", "error" => "some error"}])
+
+      assert {:error, %{valid?: false, errors: [sql: {"some error", []}]}} = Task.await(task)
+    end
   end
 
   defp insert_view(data_source, user, name), do:
