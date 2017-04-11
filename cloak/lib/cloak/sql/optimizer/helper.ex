@@ -20,6 +20,20 @@ defmodule Cloak.Sql.Optimizer.Helper do
     has_aggregate_function(query) and
     supported_aggregates(query)
 
+  @doc """
+  Returns the user id column for a table in the form it would
+  have been returned by the parser, had it been typed out by
+  the analyst.
+  """
+  @spec user_id_column(Parser.table, DataSource.t) :: {:ok, Parser.unqualified_identifier} | :not_found
+  def user_id_column({:unquoted, table_name}, data_source) do
+    tables = data_source[:tables]
+    case Map.get(tables, String.to_atom(table_name)) do
+      nil -> :not_found
+      table -> {:ok, {:unquoted, table[:user_id]}}
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Internal function

@@ -47,6 +47,18 @@ defmodule Cloak.Sql.Optimizer.Helper.Test do
     end)
   end
 
+  describe "user_id_column" do
+    test "returns user id for table" do
+      data_source = %{tables: %{test: %{columns: [], user_id: "uid"}}}
+      assert {:ok, {:unquoted, "uid"}} == Helper.user_id_column({:unquoted, "test"}, data_source)
+    end
+
+    test "returns not found when no match" do
+      data_source = %{tables: %{test: %{columns: [], user_id: "uid"}}}
+      assert :not_found == Helper.user_id_column({:unquoted, "other"}, data_source)
+    end
+  end
+
   defp default_query(), do:
     query()
     |> with_columns([column({:unquoted, "age"}), count()])
