@@ -29,6 +29,22 @@ defmodule Cloak.Sql.Optimizer.Helper.Test do
       |> with_columns([column({:unquoted, "age"})])
       |> Helper.eligible()
     end
+
+    Enum.each(["count", "sum", "min", "max"], fn(aggregate_function) ->
+      test "allow supported aggregates (#{aggregate_function})" do
+        assert default_query()
+        |> with_columns([aggregate(unquote(aggregate_function))])
+        |> Helper.eligible()
+      end
+    end)
+
+    Enum.each(["avg", "stddev"], fn(aggregate_function) ->
+      test "forbid unsupported aggregates (#{aggregate_function})" do
+        refute default_query()
+        |> with_columns([aggregate(unquote(aggregate_function))])
+        |> Helper.eligible()
+      end
+    end)
   end
 
   defp default_query(), do:
@@ -39,7 +55,7 @@ defmodule Cloak.Sql.Optimizer.Helper.Test do
 
   defp count(target \\ "*"), do: aggregate("count", target)
 
-  defp aggregate(function, target), do: {:function, function, [target]}
+  defp aggregate(function, target \\ "*"), do: {:function, function, [target]}
 
   defp column(name), do: {:identifier, :unknown, name}
 

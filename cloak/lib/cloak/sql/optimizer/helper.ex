@@ -6,6 +6,8 @@ defmodule Cloak.Sql.Optimizer.Helper do
 
   alias Cloak.Sql.{Parser, Function}
 
+  @supported_aggregates ["count", "sum", "min", "max"]
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -15,7 +17,8 @@ defmodule Cloak.Sql.Optimizer.Helper do
   @spec eligible(Parser.parsed_query) :: boolean
   def eligible(query), do:
     from_single_table(query) and
-    has_aggregate_function(query)
+    has_aggregate_function(query) and
+    supported_aggregates(query)
 
 
   # -------------------------------------------------------------------
@@ -31,4 +34,10 @@ defmodule Cloak.Sql.Optimizer.Helper do
         Function.exists?(function) and Function.has_attribute?(function, :aggregator)
       (_) -> false
     end)
+
+  defp supported_aggregates(query), do:
+    query[:columns]
+    |> Enum.filter(& match?({:function, _, _}, &1))
+    |> Enum.map(fn({:function, name, _}) -> name end)
+    |> Enum.all?(& Enum.member?(@supported_aggregates, &1))
 end
