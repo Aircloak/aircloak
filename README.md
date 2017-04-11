@@ -42,13 +42,22 @@ You can also deploy each component separately using `./cloak/production.sh` and 
 
 ### A public release
 
-To deploy a particular public release on public facing Aircloaks, you can use the `./publish_public_systems.sh` command.
-It will update both the `air` and `cloak` containers to the version specified in the [VERSION](./VERSION) file.
+We have a set of Aircloak installations that don't have their own individual releases, but run
+our official production release. These systems are demo systems and customer facing Aircloak
+hosted systems.
 
-Just like the `./publish.sh` command, it reads deployment information from the [deploy_targets](./deploy_targets) folder. The difference
-being that which [deploy_targets](./deploy_targets) should be used is hardcoded in the deployment script itself.
+To upgrade these Aircloaks to the latest released production version
+(the version specified in the [VERSION](./VERSION) file), run the
+`./publish_public_systems.sh` command. It will update both the `air` and `cloak` container.
 
-To mark a deploy target as being a public system, add `PUBLIC_SYSTEM=true` to the configuration.
+Just like the `./publish.sh` command, the `./publish_public_systems.sh` command uses the deployment
+information from the [deploy_targets](./deploy_targets) folder. All [deploy_targets](./deploy_targets)
+containing `PUBLIC_SYSTEM=true` will be deployed. No specific deploy target should be specified when
+running the command.
+
+This process of updating the system is separate from the process of creating the production
+release itself. A [production release](https://github.com/Aircloak/aircloak/wiki/Releases) should
+be made prior to the script being run.
 
 ## Producing production containers
 
