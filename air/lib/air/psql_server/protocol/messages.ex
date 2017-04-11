@@ -116,7 +116,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
   def encode_message({:parameter_description, param_types}) do
     encoded_types =
       param_types
-      |> Enum.map(&type_oid/1)
+      |> Enum.map(&type_info(&1).oid)
       |> Enum.map(&<<&1::32>>)
       |> IO.iodata_to_binary()
 
@@ -139,6 +139,10 @@ defmodule Air.PsqlServer.Protocol.Messages do
     true = (length(params) == length(param_types))
     Enum.map(Enum.zip([format_codes, param_types, params]), &convert_param/1)
   end
+
+  @doc "Returns type information for the given postgresql type."
+  @spec type_info(Protocol.psql_type) :: %{oid: integer, len: integer}
+  def type_info(type_id), do: type_info_impl(type_id)
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -288,7 +292,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
       >>
 
     defp type_name(unquote(meta.oid)), do: unquote(type)
-    defp type_oid(unquote(type)), do: unquote(meta.oid)
+    defp type_info_impl(unquote(type)), do: unquote(Macro.escape(meta))
   end
 
   defp encode_format_code(:text), do: 0

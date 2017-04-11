@@ -13,7 +13,7 @@ defmodule Air.PsqlServer do
     @callback handle_query(RanchServer.t, String.t) :: RanchServer.t | nil
   end
 
-  alias Air.PsqlServer.RanchServer
+  alias Air.PsqlServer.{Protocol, RanchServer}
   alias Air.Service.{User, DataSource, Version}
   require Logger
 
@@ -47,6 +47,10 @@ defmodule Air.PsqlServer do
       on_finished
     )
   end
+
+  @doc "Converts the type string returned from cloak to PostgreSql type atom."
+  @spec psql_type(String.t) :: Protocol.psql_type
+  def psql_type(type_string), do: psql_type_impl(type_string)
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -225,7 +229,7 @@ defmodule Air.PsqlServer do
     "time" => :time,
     "datetime" => :timestamp,
   } do
-    defp psql_type(unquote(sql_type)), do: unquote(psql_type)
+    defp psql_type_impl(unquote(sql_type)), do: unquote(psql_type)
   end
-  defp psql_type(_other), do: :unknown
+  defp psql_type_impl(_other), do: :unknown
 end

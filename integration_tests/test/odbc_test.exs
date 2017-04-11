@@ -99,6 +99,31 @@ defmodule IntegrationTest.OdbcTest do
       ]
     end
 
+    test "tableau table info query", context do
+      query =
+        'select n.nspname, c.relname, a.attname, a.atttypid, t.typname, a.attnum, a.attlen, a.atttypmod, ' ++
+        'a.attnotnull, c.relhasrules, c.relkind, c.oid, pg_get_expr(d.adbin, d.adrelid), case t.typtype ' ++
+        'when \'d\' then t.typbasetype else 0 end, t.typtypmod, c.relhasoids from (((pg_catalog.pg_class c ' ++
+        'inner join pg_catalog.pg_namespace n on n.oid = c.relnamespace and c.relname like \'users\' ' ++
+        'and n.nspname like \'public\') inner join pg_catalog.pg_attribute a on (not a.attisdropped) and ' ++
+        'a.attnum > 0 and a.attrelid = c.oid) inner join pg_catalog.pg_type t on t.oid = a.atttypid) left ' ++
+        'outer join pg_attrdef d on a.atthasdef and d.adrelid = a.attrelid and d.adnum = a.attnum order by ' ++
+        'n.nspname, c.relname, attnum'
+
+      assert {
+        :selected,
+        [
+          'nspname', 'relname', 'attname', 'atttypid', 'typname', 'attnum', 'attlen', 'atttypmod', 'attnotnull',
+          'relhasrules', 'relkind', 'oid', 'pg_get_expr', 'case', 'typtypmod', 'relhasoids'
+        ],
+        [
+          {'public', 'users', 'user_id', '25', 'text', 1, -1, -1, false, false, 'r', oid, [], '0', -1, false},
+          {'public', 'users', 'name', '25', 'text', 2, -1, -1, false, false, 'r', oid, [], '0', -1, false},
+          {'public', 'users', 'height', '20', 'int8', 3, 8, -1, false, false, 'r', oid, [], '0', -1, false}
+        ]
+      } = :odbc.sql_query(context.conn, query)
+    end
+
     test "closing a cursor", context, do:
       assert :odbc.sql_query(context.conn, 'close "some_cursor"') == {:updated, 0}
 
