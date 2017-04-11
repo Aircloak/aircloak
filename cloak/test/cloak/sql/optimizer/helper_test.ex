@@ -30,6 +30,12 @@ defmodule Cloak.Sql.Optimizer.Helper.Test do
       |> Helper.eligible()
     end
 
+    test "deals with aliased functions" do
+      assert default_query()
+      |> with_columns([{count(), :as, "foo"}])
+      |> Helper.eligible()
+    end
+
     Enum.each(["count", "sum", "min", "max"], fn(aggregate_function) ->
       test "allow supported aggregates (#{aggregate_function})" do
         assert default_query()

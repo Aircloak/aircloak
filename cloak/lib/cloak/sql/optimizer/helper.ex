@@ -51,6 +51,10 @@ defmodule Cloak.Sql.Optimizer.Helper do
 
   defp aggregate_functions(query), do:
     query[:columns]
+    |> Enum.map(fn
+      ({something, :as, _other}) -> something
+      (other) -> other
+    end)
     |> Enum.filter(& Function.function?(&1))
     |> Enum.filter(& Function.exists?(&1))
     |> Enum.filter(& Function.has_attribute?(&1, :aggregator))
