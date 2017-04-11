@@ -1,7 +1,7 @@
 defmodule Air.Service.ViewTest do
   use Air.SchemaCase, async: false # because of shared mode
 
-  alias Air.{Service.View, TestRepoHelper}
+  alias Air.{Service.View, TestRepoHelper, TestSocketHelper}
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
@@ -61,6 +61,16 @@ defmodule Air.Service.ViewTest do
       "Please contact your administrator."
   end
 
+  test "creating a view", context do
+    socket = data_source_socket(context.ds1)
+
+    task = Task.async(fn() -> View.create(context.u1, context.ds1, "some view", "some sql") end)
+    TestSocketHelper.respond_to_validate_views!(socket,
+      [%{"name" => "some view", "columns" => ["some", "columns"], "valid" => true}])
+
+    assert {:ok, %{result_info: %{columns: ["some", "columns"]}}} = Task.await(task)
+  end
+
   defp insert_view(data_source, user, name), do:
     %Air.Schemas.View{}
     |> Ecto.Changeset.cast(
@@ -68,4 +78,10 @@ defmodule Air.Service.ViewTest do
       ~w(name sql user_id data_source_id result_info)a
     )
     |> Repo.insert!()
+
+  defp data_source_socket(data_source) do
+    socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
+    TestSocketHelper.join!(socket, "main", %{data_sources: [%{"global_id" => data_source.global_id, "tables" => []}]})
+    socket
+  end
 end
