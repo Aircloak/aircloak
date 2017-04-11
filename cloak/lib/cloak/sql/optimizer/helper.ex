@@ -30,7 +30,7 @@ defmodule Cloak.Sql.Optimizer.Helper do
     tables = data_source[:tables]
     case Map.get(tables, String.to_atom(table_name)) do
       nil -> :not_found
-      table -> {:ok, {:unquoted, table[:user_id]}}
+      table -> {:ok, {:identifier, :unknown, {:unquoted, table[:user_id]}}}
     end
   end
 

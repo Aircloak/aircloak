@@ -26,7 +26,7 @@ defmodule Cloak.Sql.Optimizer.Helper.Test do
 
     test "queries without aggregates are not eligible" do
       refute default_query()
-      |> with_columns([column({:unquoted, "age"})])
+      |> with_columns([column("age")])
       |> Helper.eligible()
     end
 
@@ -56,7 +56,7 @@ defmodule Cloak.Sql.Optimizer.Helper.Test do
   describe "user_id_column" do
     test "returns user id for table" do
       data_source = %{tables: %{test: %{columns: [], user_id: "uid"}}}
-      assert {:ok, {:unquoted, "uid"}} == Helper.user_id_column({:unquoted, "test"}, data_source)
+      assert {:ok, column("uid")} == Helper.user_id_column({:unquoted, "test"}, data_source)
     end
 
     test "returns not found when no match" do
@@ -67,15 +67,15 @@ defmodule Cloak.Sql.Optimizer.Helper.Test do
 
   defp default_query(), do:
     query()
-    |> with_columns([column({:unquoted, "age"}), count()])
+    |> with_columns([column("age"), count()])
     |> with_table({:unquoted, "table"})
-    |> with_group_by([column({:unquoted, "age"})])
+    |> with_group_by([column("age")])
 
   defp count(target \\ "*"), do: aggregate("count", target)
 
   defp aggregate(function, target \\ "*"), do: {:function, function, [target]}
 
-  defp column(name), do: {:identifier, :unknown, name}
+  defp column(name), do: {:identifier, :unknown, {:unquoted, name}}
 
   defp query(), do:
     %{
