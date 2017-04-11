@@ -4,16 +4,6 @@ set -eo pipefail
 
 cd $(dirname $0)
 
-if [ $# -ne 1 ]; then
-  echo
-  echo "Usage:"
-  echo "  $0 version"
-  echo
-  exit 1
-fi
-
-version=$1
-
 function start_component {
   name=$1
   container_type=$2
@@ -63,10 +53,12 @@ function deploy {
   log "Done $DEPLOYMENT_NAME"
 }
 
+version=$(cat ./VERSION)
+
 log ""
 log "# -------------------------------------------------------------------"
-log "Starting upgrade process of public systems."
-log "Logging to upgrade to ./publish_logs.txt"
+log "Starting upgrade process of public systems to version $version."
+log "Logs are written to ./publish_logs.txt"
 log "Update started on $(date)"
 
 for target in `find ./deploy_targets -type f`
