@@ -42,8 +42,8 @@ You can also deploy each component separately using `./cloak/production.sh` and 
 
 ### A public release
 
-To deploy a particular public release on public facing Aircloaks, you can use the `./publish_public_systems VERSION` command.
-It will update both the `air` and `cloak` containers to the version specified. The version can also be specified as `latest`.
+To deploy a particular public release on public facing Aircloaks, you can use the `./publish_public_systems.sh` command.
+It will update both the `air` and `cloak` containers to the version specified in the [VERSION](./VERSION) file.
 
 Just like the `./publish.sh` command, it reads deployment information from the [deploy_targets](./deploy_targets) folder. The difference
 being that which [deploy_targets](./deploy_targets) should be used is hardcoded in the deployment script itself.
