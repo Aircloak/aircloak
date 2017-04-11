@@ -68,7 +68,7 @@ defmodule Air.PsqlServer.Protocol do
 
   @type query_result ::
     {:error, String.t} |
-    [command: command, intermediate: boolean, columns: [column], rows: [db_value]]
+    [command: command, intermediate: boolean, columns: [column], rows: [[db_value]]]
 
   @type command :: :set | :begin | :select | :fetch | :"declare cursor" | :"close cursor"
 
