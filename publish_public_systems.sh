@@ -56,7 +56,6 @@ function deploy {
 version=$(cat ./VERSION)
 
 log ""
-log "# -------------------------------------------------------------------"
 log "Starting upgrade process of public systems to version $version."
 log "Logs are written to ./publish_logs.txt"
 log "Update started on $(date)"
@@ -75,4 +74,5 @@ do
   fi
 done
 
-log "# -------------------------------------------------------------------"
+log ""
+log "Update complete"
