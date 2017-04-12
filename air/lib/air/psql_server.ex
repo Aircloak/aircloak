@@ -1,7 +1,19 @@
 defmodule Air.PsqlServer do
   @moduledoc "Server for PostgreSQL protocol which allows PostgreSQL clients to query cloaks."
 
-  alias Air.PsqlServer.RanchServer
+  defmodule SpecialQueries do
+    @moduledoc "Behaviour for handlers of special queries."
+
+    @doc """
+    Invoked by `Air.PsqlServer` when a query should be handled.
+
+    The implementation should return a modified `conn` if it decides to handle
+    the query, or `nil` otherwise.
+    """
+    @callback handle_query(RanchServer.t, String.t) :: RanchServer.t | nil
+  end
+
+  alias Air.PsqlServer.{Protocol, RanchServer}
   alias Air.Service.{User, DataSource, Version}
   require Logger
 
@@ -21,6 +33,24 @@ defmodule Air.PsqlServer do
       nil,
       ranch_opts()
     )
+
+  @doc "Issues a query to the cloak asynchronously."
+  @spec start_async_query(RanchServer.t, String.t, [any], ((RanchServer.t, any) -> RanchServer.t)) ::
+    RanchServer.t
+  def start_async_query(conn, query, params, on_finished) do
+    user = conn.assigns.user
+    data_source_id = conn.assigns.data_source_id
+    converted_params = convert_params(params)
+    run_async(
+      conn,
+      fn -> DataSource.run_query(data_source_id, user, query, converted_params) end,
+      on_finished
+    )
+  end
+
+  @doc "Converts the type string returned from cloak to PostgreSql type atom."
+  @spec psql_type(String.t) :: Protocol.Value.type
+  def psql_type(type_string), do: psql_type_impl(type_string)
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -53,7 +83,7 @@ defmodule Air.PsqlServer do
 
   @doc false
   def run_query(conn, query, params, _max_rows) do
-    case handle_special_query(conn, String.downcase(query)) do
+    case handle_special_query(conn, query) do
       {true, conn} ->
         conn
       false ->
@@ -105,17 +135,6 @@ defmodule Air.PsqlServer do
     RanchServer.assign(conn, :async_jobs, async_jobs)
   end
 
-  defp start_async_query(conn, query, params, on_finished) do
-    user = conn.assigns.user
-    data_source_id = conn.assigns.data_source_id
-    converted_params = convert_params(params)
-    run_async(
-      conn,
-      fn -> DataSource.run_query(data_source_id, user, query, converted_params) end,
-      on_finished
-    )
-  end
-
   defp ranch_opts(), do:
     Application.get_env(:air, Air.PsqlServer, [])
     |> Keyword.get(:ranch_opts, [])
@@ -124,19 +143,14 @@ defmodule Air.PsqlServer do
         keyfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_key.pem"])
       ])
 
-  defp handle_special_query(conn, "set " <> _), do:
-    # we're ignoring set for now
-    {true, RanchServer.set_query_result(conn, command: :set)}
   defp handle_special_query(conn, query) do
-    cond do
-      query =~ ~r/^select.+from pg_type/s ->
-        {true, RanchServer.set_query_result(conn, special_query(query))}
-      query =~ ~r/begin;declare.* for select relname, nspname, relkind from.*fetch.*/ ->
-        {true, fetch_tables_for_tableau(conn)}
-      query =~ ~r/close \".*\"/ ->
-        {true, RanchServer.set_query_result(conn, command: :"close cursor")}
-      true ->
-        false
+    [SpecialQueries.Common, SpecialQueries.Tableau]
+    |> Stream.map(&(&1.handle_query(conn, query)))
+    |> Stream.reject(&(&1 == nil))
+    |> Enum.take(1)
+    |> case do
+      [conn] -> {true, conn}
+      [] -> false
     end
   end
 
@@ -215,69 +229,7 @@ defmodule Air.PsqlServer do
     "time" => :time,
     "datetime" => :timestamp,
   } do
-    defp psql_type(unquote(sql_type)), do: unquote(psql_type)
+    defp psql_type_impl(unquote(sql_type)), do: unquote(psql_type)
   end
-  defp psql_type(_other), do: :unknown
-
-
-  #-----------------------------------------------------------------------------------------------------------
-  # Handling of special queries
-  #-----------------------------------------------------------------------------------------------------------
-
-  # These queries are issued by clients to query `pg_type` and associated tables. Currently, we don't parse
-  # queries, so we have to hardcode results for each client we want to support.
-
-  # postgrex pg_type query
-  defp special_query("select t.oid, t.typname, t.typsend, t.typreceive, t.typoutput, t.typinput,\n       t.typelem, 0, array (\n  select a.atttypid\n  from pg_attribute as a\n  where a.attrelid = t.typrelid and a.attnum > 0 and not a.attisdropped\n  order by a.attnum\n)\nfrom pg_type as t\n\n\n") do
-    [
-      columns:
-        ~w(oid typname typsend typreceive typoutput typinput typelem coalesce array)
-        |> Enum.map(&%{name: &1, type: :text}),
-      rows:
-        [
-          ~w(16 bool boolsend boolrecv boolout boolin 0 0 {}),
-          ~w(21 int2 int2send int2recv int2out int2in 0 0 {}),
-          ~w(23 int4 int4send int4recv int4out int4in 0 0 {}),
-          ~w(20 int8 int8send int8recv int8out int8in 0 0 {}),
-          ~w(25 text textsend textrecv textout textin 0 0 {}),
-          ~w(700 float4 float4send float4recv float4out float4in 0 0 {}),
-          ~w(701 float8 float8send float8recv float8out float8in 0 0 {}),
-          ~w(705 unknown unknownsend unknownrecv unknownout unknownin 0 0 {}),
-          ~w(1082 date date_send date_recv date_out date_in 0 0 {}),
-          ~w(1083 time time_send time_recv time_out time_in 0 0 {}),
-          ~w(1114 timestamp timestamp_send timestamp_recv timestamp_out timestamp_in 0 0 {}),
-          ~w(1700 numeric numeric_send numeric_recv numeric_out numeric_in 0 0 {})
-        ]
-    ]
-  end
-  defp special_query(_), do:
-    [columns: [], rows: []]
-
-  defp fetch_tables_for_tableau(conn) do
-    start_async_query(conn, "show tables", [],
-      fn(conn, {:ok, show_tables_response}) ->
-        table_names =
-          show_tables_response
-          |> Map.fetch!("rows")
-          |> Enum.map(fn(%{"row" => [table_name]}) -> table_name end)
-
-        conn
-        |> RanchServer.set_query_result(command: :begin, intermediate: true)
-        |> RanchServer.set_query_result(command: :"declare cursor", intermediate: true)
-        |> RanchServer.set_query_result(tables_list_for_tableau(table_names))
-      end
-    )
-  end
-
-  defp tables_list_for_tableau(table_names), do:
-    [
-      command: :fetch,
-      columns:
-        [
-          %{name: "relname", type: :name},
-          %{name: "nspname", type: :name},
-          %{name: "relkind", type: :char},
-        ],
-      rows: Enum.map(table_names, &[&1, "public", ?r])
-    ]
+  defp psql_type_impl(_other), do: :unknown
 end
