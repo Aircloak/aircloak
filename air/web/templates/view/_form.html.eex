@@ -54,8 +54,9 @@
 <script>
   window.pageConfig = {
     onLoad: function(App) {
+      const statement = <%= @changeset |> statement() |> to_json() %>;
       const viewEditorProps = {
-        statement: "<%= statement(@changeset) %>",
+        statement: statement,
         selectables: <%= selectables(@conn, @data_source, @views) %>
       };
       const selectableInfoProps = {
