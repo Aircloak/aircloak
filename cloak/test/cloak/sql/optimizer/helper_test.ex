@@ -51,6 +51,12 @@ defmodule Cloak.Sql.Optimizer.Helper.Test do
         |> Helper.eligible()
       end
     end)
+
+    test "rejects queries with non-aggregate functions" do
+      refute default_query()
+      |> with_columns([function("abs", column("age"))])
+      |> Helper.eligible()
+    end
   end
 
   describe "user_id_column" do
@@ -74,6 +80,8 @@ defmodule Cloak.Sql.Optimizer.Helper.Test do
   defp count(target \\ "*"), do: aggregate("count", target)
 
   defp aggregate(function, target \\ "*"), do: {:function, function, [target]}
+
+  defp function(name, target), do: aggregate(name, target)
 
   defp column(name), do: {:identifier, :unknown, {:unquoted, name}}
 

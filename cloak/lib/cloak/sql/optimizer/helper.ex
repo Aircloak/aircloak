@@ -18,7 +18,8 @@ defmodule Cloak.Sql.Optimizer.Helper do
   def eligible(query), do:
     from_single_table(query) and
     has_aggregate_function(query) and
-    supported_aggregates(query)
+    supported_aggregates(query) and
+    no_nonaggregate_functions(query)
 
   @doc """
   Returns the user id column for a table in the form it would
@@ -44,12 +45,14 @@ defmodule Cloak.Sql.Optimizer.Helper do
 
   defp has_aggregate_function(query), do: aggregate_functions(query) !== []
 
+  defp no_nonaggregate_functions(query), do: nonaggregate_functions(query) === []
+
   defp supported_aggregates(query), do:
     aggregate_functions(query)
     |> Enum.map(fn({:function, name, _}) -> name end)
     |> Enum.all?(& Enum.member?(@supported_aggregates, &1))
 
-  defp aggregate_functions(query), do:
+  defp functions(query), do:
     query[:columns]
     |> Enum.map(fn
       ({something, :as, _other}) -> something
@@ -57,5 +60,14 @@ defmodule Cloak.Sql.Optimizer.Helper do
     end)
     |> Enum.filter(& Function.function?(&1))
     |> Enum.filter(& Function.exists?(&1))
+
+  defp aggregate_functions(query), do:
+    functions(query)
     |> Enum.filter(& Function.has_attribute?(&1, :aggregator))
+
+  defp nonaggregate_functions(query), do:
+    functions(query)
+    |> Enum.reject(& Function.has_attribute?(&1, :aggregator))
+
+  defp generate_alias(name), do: "#{name}_alias_#{System.unique_integer([:positive])}"
 end
