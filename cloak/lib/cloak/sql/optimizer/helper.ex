@@ -20,7 +20,8 @@ defmodule Cloak.Sql.Optimizer.Helper do
     has_aggregate_function(query) and
     supported_aggregates(query) and
     no_nonaggregate_functions(query) and
-    no_where_clauses(query)
+    no_where_clauses(query) and
+    only_grouped_by_selected_columns(query)
 
   @doc """
   Returns the user id column for a table in the form it would
@@ -40,6 +41,11 @@ defmodule Cloak.Sql.Optimizer.Helper do
   # -------------------------------------------------------------------
   # Internal function
   # -------------------------------------------------------------------
+
+  defp only_grouped_by_selected_columns(query) do
+    selected_columns = query[:columns] -- aggregate_functions(query)
+    selected_columns === Map.get(query, :group_by, [])
+  end
 
   defp no_where_clauses(query), do: is_nil(query[:where]) or query[:where] === []
 

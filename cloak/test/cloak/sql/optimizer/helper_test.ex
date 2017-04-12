@@ -33,6 +33,7 @@ defmodule Cloak.Sql.Optimizer.Helper.Test do
     test "deals with aliased functions" do
       assert default_query()
       |> with_columns([{count(), :as, "foo"}])
+      |> with_group_by([])
       |> Helper.eligible()
     end
 
@@ -40,6 +41,7 @@ defmodule Cloak.Sql.Optimizer.Helper.Test do
       test "allow supported aggregates (#{aggregate_function})" do
         assert default_query()
         |> with_columns([aggregate(unquote(aggregate_function))])
+        |> with_group_by([])
         |> Helper.eligible()
       end
     end)
@@ -64,6 +66,13 @@ defmodule Cloak.Sql.Optimizer.Helper.Test do
         :comparison, {:identifier, :unknown, {:unquoted, "amount"}},
         :=, {:constant, :integer, 10}
       }])
+      |> Helper.eligible()
+    end
+
+    test "rejects when GROUP BY on non-selected column" do
+      refute default_query()
+      |> with_columns([count()])
+      |> with_group_by(column("age"))
       |> Helper.eligible()
     end
   end
