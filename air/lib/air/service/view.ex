@@ -24,10 +24,10 @@ defmodule Air.Service.View do
 
   @doc "Retrieves views of the given user for the given data source."
   @spec all(User.t, DataSource.t) :: [View.t]
-  def all(user, data_source), do: by_user_id(user.id) |> by_data_source_id(data_source.id) |> Repo.all()
+  def all(user, data_source), do: View |> by_user_id(user.id) |> by_data_source_id(data_source.id) |> Repo.all()
 
   def broken(user, data_source), do:
-    by_user_id(user.id) |> by_data_source_id(data_source.id) |> by_broken() |> Repo.all()
+    View |> by_user_id(user.id) |> by_data_source_id(data_source.id) |> by_broken() |> Repo.all()
 
   @doc "Saves the new view in the database."
   @spec create(User.t, DataSource.t, String.t, String.t) :: {:ok, View.t} | {:error, Ecto.Changeset.t}
@@ -63,7 +63,8 @@ defmodule Air.Service.View do
   @doc "Returns a %{name => sql} map of all the views the given user defined for the given data source."
   @spec user_views_map(User.t, integer) :: view_map
   def user_views_map(user, data_source_id) do
-    by_user_id(user.id)
+    View
+    |> by_user_id(user.id)
     |> by_data_source_id(data_source_id)
     |> Repo.all()
     |> Enum.map(&{&1.name, &1.sql})
@@ -79,7 +80,7 @@ defmodule Air.Service.View do
     {:ok, results} = DataSource.validate_views({:id, data_source_id}, user, user_views_map(user, data_source_id))
 
     for {name, result} <- results do
-      view = by_data_source_id(data_source_id) |> Repo.get_by!(name: name)
+      view = View |> by_data_source_id(data_source_id) |> Repo.get_by!(name: name)
       case view_status(result) do
         {:ok, valid} -> view |> apply_view_changeset(%{broken: not valid}) |> Repo.update()
         :error -> :do_nothing
@@ -148,9 +149,9 @@ defmodule Air.Service.View do
     |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
     |> Ecto.Changeset.unique_constraint(:name, name: :views_user_id_data_source_id_name_index)
 
-  defp by_user_id(scope \\ View, user_id), do: where(scope, [v], v.user_id == ^user_id)
+  defp by_user_id(scope, user_id), do: where(scope, [v], v.user_id == ^user_id)
 
-  defp by_data_source_id(scope \\ View, data_source_id), do: where(scope, [v], v.data_source_id == ^data_source_id)
+  defp by_data_source_id(scope, data_source_id), do: where(scope, [v], v.data_source_id == ^data_source_id)
 
   defp by_broken(scope), do: where(scope, [v], v.broken == true)
 end
