@@ -82,7 +82,7 @@ defmodule IntegrationTest.OdbcTest do
     test "parameterized query with a char", context, do:
       assert param_select(context.conn, {:sql_char, 6}, 'foobar') == 'foobar'
 
-    test "tableau relkind query", context do
+    test "tableau table list query", context do
       query =
         'BEGIN;' ++
         'declare "SQL_CUR04645D10" cursor for ' ++
