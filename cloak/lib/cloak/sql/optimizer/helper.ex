@@ -52,25 +52,24 @@ defmodule Cloak.Sql.Optimizer.Helper do
 
   defp supported_aggregates(query), do:
     aggregate_functions(query)
-    |> Enum.map(fn({:function, name, _}) -> name end)
+    |> Enum.map(& on_construct(&1, fn({:function, name, _}) -> name end))
     |> Enum.all?(& Enum.member?(@supported_aggregates, &1))
 
   defp functions(query), do:
     query[:columns]
-    |> Enum.map(fn
-      ({something, :as, _other}) -> something
-      (other) -> other
-    end)
-    |> Enum.filter(& Function.function?(&1))
-    |> Enum.filter(& Function.exists?(&1))
+    |> Enum.filter(& on_construct(&1, fn(c) -> Function.function?(c) end))
+    |> Enum.filter(& on_construct(&1, fn(c) -> Function.exists?(c) end))
 
   defp aggregate_functions(query), do:
     functions(query)
-    |> Enum.filter(& Function.has_attribute?(&1, :aggregator))
+    |> Enum.filter(& on_construct(&1, fn(c) -> Function.has_attribute?(c, :aggregator) end))
 
   defp nonaggregate_functions(query), do:
     functions(query)
-    |> Enum.reject(& Function.has_attribute?(&1, :aggregator))
+    |> Enum.reject(& on_construct(&1, fn(c) -> Function.has_attribute?(c, :aggregator) end))
 
   defp generate_alias(name), do: "#{name}_alias_#{System.unique_integer([:positive])}"
+
+  defp on_construct({something, :as, _other}, callback), do: callback.(something)
+  defp on_construct(something, callback), do: callback.(something)
 end
