@@ -38,7 +38,7 @@ defmodule Air.Router do
     get "/", DataSourceController, :redirect_to_last_used
 
     post "/queries", QueryController, :create
-    post "/queries/cancel", QueryController, :cancel
+    post "/queries/cancel", QueryController, :delete
     get "/queries/load_history/:data_source_id", QueryController, :load_history
     get "/queries/:id", QueryController, :show
 

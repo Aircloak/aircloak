@@ -81,7 +81,7 @@ This endpoint returns the status of the query started by the [run query endpoint
 
 #### Response
 
-```
+```json
 {
   "query": {
     "completed": true,
@@ -118,3 +118,41 @@ It can be one of:
   - If the query failed, the `error` field will contain a descriptive error message.
 
 For the use of error codes in the Web REST API, please consult the [Errors](#errors) section.
+
+### Canceling a query
+
+```ruby
+RestClient.delete("#{site_url}/api/queries/#{query_id}", api_token)
+```
+
+```shell
+wget \
+  --content-on-error \
+  --output-document - \
+  --method=DELETE \
+  --header "auth-token: $API_TOKEN" \
+  $SITE_URL/api/queries/$query_id
+```
+
+```curl
+curl -v \
+  -X DELETE \
+  -H "auth-token:$API_TOKEN" \
+  $SITE_URL/api/queries/$query_id
+```
+
+This endpoint cancels a query started by the [run query endpoint](#running-a-query). The `query_id` must correspond to the id returned by the run query endpoint.
+
+#### HTTP Request
+
+`DELETE /api/queries/query_id`
+
+#### Response
+
+```json
+{
+  "success": true
+}
+```
+
+The API return value is the success information.
