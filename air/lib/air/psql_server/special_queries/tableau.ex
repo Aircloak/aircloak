@@ -3,8 +3,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
   @behaviour Air.PsqlServer.SpecialQueries
 
   alias Air.PsqlServer
-  alias Air.PsqlServer.RanchServer
-  alias Air.PsqlServer.Protocol.Messages
+  alias Air.PsqlServer.{Protocol, RanchServer}
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -94,7 +93,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
 
   defp column_row_for_tableau({[column_name, column_type], index}, data_source_id, table_name, result_columns) do
     psql_type = PsqlServer.psql_type(column_type)
-    type_info = Messages.type_info(psql_type)
+    type_info = Protocol.Value.type_info(psql_type)
     row_fields = %{
       nspname: "public", relname: table_name, attname: column_name, atttypid: type_info.oid,
       typname: psql_type, attnum: index + 1, attlen: type_info.len, atttypmod: -1, attnotnull: false,

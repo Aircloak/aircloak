@@ -49,7 +49,7 @@ defmodule Air.PsqlServer do
   end
 
   @doc "Converts the type string returned from cloak to PostgreSql type atom."
-  @spec psql_type(String.t) :: Protocol.psql_type
+  @spec psql_type(String.t) :: Protocol.Value.type
   def psql_type(type_string), do: psql_type_impl(type_string)
 
 

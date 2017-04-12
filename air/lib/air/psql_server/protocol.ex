@@ -17,7 +17,7 @@ defmodule Air.PsqlServer.Protocol do
   """
 
   require Logger
-  alias Air.PsqlServer.Protocol.Messages
+  alias Air.PsqlServer.Protocol.{Messages, Value}
 
   @type t :: %{
     state: state,
@@ -48,23 +48,14 @@ defmodule Air.PsqlServer.Protocol do
     :upgrade_to_ssl |
     {:login_params, map} |
     {:authenticate, password :: binary} |
-    {:run_query, String.t, [%{type: psql_type, value: db_value}], non_neg_integer} |
-    {:describe_statement, String.t, [%{type: psql_type, value: db_value}] | nil}
+    {:run_query, String.t, [%{type: Value.type, value: db_value}], non_neg_integer} |
+    {:describe_statement, String.t, [%{type: Value.type, value: db_value}] | nil}
 
   @type db_value :: String.t | number | boolean | nil
 
   @type authentication_method :: :cleartext
 
-  @type psql_type ::
-    :boolean
-    | :int2 | :int4 | :int8
-    | :float4 | :float8
-    | :numeric
-    | :char | :text | :name
-    | :date | :time | :timestamp
-    | :unknown
-
-  @type column :: %{name: String.t, type: psql_type}
+  @type column :: %{name: String.t, type: Value.type}
 
   @type query_result ::
     {:error, String.t} |
@@ -76,10 +67,10 @@ defmodule Air.PsqlServer.Protocol do
     name: String.t,
     query: String.t,
     num_params: non_neg_integer,
-    param_types: [psql_type],
-    parsed_param_types: [psql_type],
+    param_types: [Value.type],
+    parsed_param_types: [Value.type],
     params: [db_value],
-    result_codes: nil | [:text | :binary],
+    result_codes: nil | Value.format,
     columns: nil | column
   }
 
@@ -90,7 +81,7 @@ defmodule Air.PsqlServer.Protocol do
     {:send_query_result, query_result} |
     {:describe_result, describe_result}
 
-  @type describe_result :: {:error, String.t} | [columns: [column], param_types: [psql_type]]
+  @type describe_result :: {:error, String.t} | [columns: [column], param_types: [Value.type]]
 
   @header_message_bytes 5
 

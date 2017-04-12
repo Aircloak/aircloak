@@ -11,9 +11,9 @@ defmodule Air.PsqlServer.Protocol.Messages do
     {:authentication_method, :cleartext} | :authentication_ok | :bind_complete | :close_complete |
     {:command_complete, String.t} | {:syntax_error, String.t} | {:fatal_error, String.t} | :ready_for_query |
     :parse_complete | :require_ssl |
-    {:parameter_status, String.t, String.t} | {:parameter_description, [Protocol.psql_type]} |
-    {:row_description, [Protocol.column], [:text | :binary]} |
-    {:data_row, [Protocol.db_value], [Protocol.psql_type], [:text | :binary]}
+    {:parameter_status, String.t, String.t} | {:parameter_description, [Protocol.Value.type]} |
+    {:row_description, [Protocol.column], [Protocol.Value.format]} |
+    {:data_row, [Protocol.db_value], [Protocol.Value.type], [Protocol.Value.format]}
 
   @type client_message_name ::
     :bind | :close | :describe | :execute | :flush | :parse | :password | :query | :sync | :terminate
@@ -69,7 +69,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
     [query, parse_data] = :binary.split(parse_data, <<0>>)
     <<num_params::16, parse_data::binary>> = parse_data
     param_types = for <<oid::32 <- parse_data>> do
-      if oid == 0, do: :unknown, else: type_name(oid)
+      if oid == 0, do: :unknown, else: Protocol.Value.type_from_oid(oid)
     end
 
     %{
@@ -96,7 +96,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
   def encode_message(:close_complete), do: server_message(:close_complete, <<>>)
   def encode_message({:command_complete, tag}), do: server_message(:command_complete, null_terminate(tag))
   def encode_message({:data_row, row, column_types, formats}), do:
-    server_message(:data_row, <<length(row)::16, encode_row(row, column_types, formats)::binary>>)
+    server_message(:data_row, <<length(row)::16, encode_row(row, formats, column_types)::binary>>)
   def encode_message({:syntax_error, error}), do: error_message("ERROR", "42601", error)
   def encode_message({:fatal_error, reason}), do: error_message("FATAL", "28000", reason)
   def encode_message(:ready_for_query), do: server_message(:ready_for_query, <<?I>>)
@@ -116,7 +116,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
   def encode_message({:parameter_description, param_types}) do
     encoded_types =
       param_types
-      |> Enum.map(&type_info(&1).oid)
+      |> Enum.map(&Protocol.Value.type_info(&1).oid)
       |> Enum.map(&<<&1::32>>)
       |> IO.iodata_to_binary()
 
@@ -132,17 +132,16 @@ defmodule Air.PsqlServer.Protocol.Messages do
   end
 
   @doc "Converts query parameters to proper Elixir types."
-  @spec convert_params([any], [:text | :binary], [Protocol.psql_type]) :: [any]
+  @spec convert_params([any], [Protocol.Value.format], [Protocol.Value.type]) :: [any]
   def convert_params(params, format_codes, param_types) do
     # per protocol, if param types are empty, all parameters are encoded as text
     param_types = if param_types == [], do: Enum.map(params, fn(_) -> :text end), else: param_types
     true = (length(params) == length(param_types))
-    Enum.map(Enum.zip([format_codes, param_types, params]), &convert_param/1)
+    Enum.map(
+      Enum.zip([params, format_codes, param_types]),
+      fn({value, format, type}) -> Protocol.Value.decode(value, format, type) end
+    )
   end
-
-  @doc "Returns type information for the given postgresql type."
-  @spec type_info(Protocol.psql_type) :: %{oid: integer, len: integer}
-  def type_info(type_id), do: type_info_impl(type_id)
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -260,125 +259,27 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
 
   #-----------------------------------------------------------------------------------------------------------
-  # Types encoding
+  # Row encoding
   #-----------------------------------------------------------------------------------------------------------
 
-  for {type, meta} <- %{
-    # Obtained as `select typname, oid, typlen from pg_type`
-    boolean: %{oid: 16, len: 1},
-    char: %{oid: 18, len: 1},
-    name: %{oid: 19, len: 64},
-    int8: %{oid: 20, len: 8},
-    int2: %{oid: 21, len: 2},
-    int4: %{oid: 23, len: 4},
-    text: %{oid: 25, len: -1},
-    float4: %{oid: 700, len: 4},
-    float8: %{oid: 701, len: 8},
-    unknown: %{oid: 705, len: -1},
-    date: %{oid: 1082, len: 4},
-    time: %{oid: 1083, len: 8},
-    timestamp: %{oid: 1114, len: 8},
-    numeric: %{oid: 1700, len: -1},
-  } do
-    defp column_description({%{type: unquote(type)} = column, result_code}), do:
-      <<
-        null_terminate(column.name)::binary,
-        0::32,
-        0::16,
-        unquote(meta.oid)::32,
-        unquote(meta.len)::16,
-        -1::32,
-        encode_format_code(result_code)::16
-      >>
-
-    defp type_name(unquote(meta.oid)), do: unquote(type)
-    defp type_info_impl(unquote(type)), do: unquote(Macro.escape(meta))
-  end
+  defp column_description({column, result_code}), do:
+    <<
+      null_terminate(column.name)::binary,
+      0::32,
+      0::16,
+      Protocol.Value.type_info(column.type).oid::32,
+      Protocol.Value.type_info(column.type).len::16,
+      -1::32,
+      encode_format_code(result_code)::16
+    >>
 
   defp encode_format_code(:text), do: 0
   defp encode_format_code(:binary), do: 1
 
-
-  #-----------------------------------------------------------------------------------------------------------
-  # Params conversion
-  #-----------------------------------------------------------------------------------------------------------
-
-  defp convert_param({_, _, nil}), do: nil
-  defp convert_param({:text, type, value}), do: convert_text_param(type, value)
-  defp convert_param({:binary, type, value}), do: normalize_postgrex_decoded_value(binary_decode(type, value))
-
-  defp convert_text_param(:int2, param), do: String.to_integer(param)
-  defp convert_text_param(:int4, param), do: String.to_integer(param)
-  defp convert_text_param(:int8, param), do: String.to_integer(param)
-  defp convert_text_param(:float4, value), do: String.to_float(value)
-  defp convert_text_param(:float8, value), do: String.to_float(value)
-  defp convert_text_param(:numeric, value), do: value |> Decimal.new() |> Decimal.to_float()
-  defp convert_text_param(:boolean, "1"), do: true
-  defp convert_text_param(:boolean, text), do: String.downcase(text) == "true"
-  defp convert_text_param(:char, <<char>>), do: char
-  defp convert_text_param(:text, param) when is_binary(param), do: param
-  defp convert_text_param(:name, param) when is_binary(param), do: param
-  defp convert_text_param(:unknown, param) when is_binary(param), do: param
-
-  defp normalize_postgrex_decoded_value(%Decimal{} = value), do: Decimal.to_float(value)
-  defp normalize_postgrex_decoded_value(value), do: value
-
-
-  #-----------------------------------------------------------------------------------------------------------
-  # Row encoding
-  #-----------------------------------------------------------------------------------------------------------
-
-  defp encode_row(row, column_types, formats), do:
-    Enum.zip([Stream.cycle(formats), column_types, row])
-    |> Enum.map(&encode_value/1)
+  defp encode_row(row, formats, column_types), do:
+    Enum.zip([row, Stream.cycle(formats), column_types])
+    |> Enum.map(fn({value, format, type}) -> Protocol.Value.encode(value, format, type) end)
     |> IO.iodata_to_binary()
-
-  defp encode_value({_, _, nil}), do: <<-1::32>>
-  defp encode_value({:text, type, value}), do:
-    value
-    |> text_encode(type)
-    |> with_size()
-  defp encode_value({:binary, type, value}), do:
-    binary_encode(type, normalize_for_postgrex_encoding(type, value))
-
-  defp with_size(encoded), do:
-    <<byte_size(encoded)::32, encoded::binary>>
-
-  defp text_encode(byte, :char), do: <<byte>>
-  defp text_encode(value, _), do: to_string(value)
-
-  defp normalize_for_postgrex_encoding(:numeric, value), do: Decimal.new(value)
-  defp normalize_for_postgrex_encoding(:date, value), do: Date.from_iso8601!(value)
-  defp normalize_for_postgrex_encoding(:time, value), do: Time.from_iso8601!(value)
-  defp normalize_for_postgrex_encoding(:timestamp, value), do: NaiveDateTime.from_iso8601!(value)
-  defp normalize_for_postgrex_encoding(_, value), do: value
-
-
-  #-----------------------------------------------------------------------------------------------------------
-  # Helpers for postgrex extensions
-  #-----------------------------------------------------------------------------------------------------------
-
-  # We're using postgrex extensions to encode/decode binary values. This is somewhat hacky, since the
-  # interface is not documented, but it allows us to freely reuse a lot of logic.
-
-  for {psql_type, extension, extension_arg} <- [
-    {:int2, Int2, nil}, {:int4, Int4, nil}, {:int8, Int8, nil},
-    {:float4, Float4, nil}, {:float8, Float8, nil},
-    {:numeric, Numeric, nil},
-    {:boolean, Bool, nil},
-    {:date, Date, :elixir}, {:time, Time, :elixir}, {:timestamp, Timestamp, :elixir},
-    {:text, Raw, :reference}, {:char, Raw, :reference}, {:name, Name, :reference}
-  ] do
-    extension = Module.concat(Postgrex.Extensions, extension)
-
-    defp binary_decode(unquote(psql_type), param) do
-      case with_size(param), do: unquote(extension.decode(extension_arg))
-    end
-
-    defp binary_encode(unquote(psql_type), value) do
-      case value, do: unquote(extension.encode(extension_arg))
-    end
-  end
 
 
   #-----------------------------------------------------------------------------------------------------------
