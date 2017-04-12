@@ -32,11 +32,32 @@ across our individual development machines.
 
 Each component can be deployed to a __deploy target__. The targets are provided in the [deploy_targets](./deploy_targets) folder.
 
-To deploy both air and cloak, you can run `./publish.sh deploy_target`, where `deploy_target` is the name of the file from the `deploy_targets` folder (without the path). For example, `./publish.sh sasa` will deploy new versions of air and cloak to the `sasa` deploy target (which is described in `./deploy_targets/sasa`).
+### From branch
+
+To deploy both `air` and `cloak` from a branch (for example `master`), you can run `./publish.sh deploy_target`, where `deploy_target` is the name of the file from the `deploy_targets` folder (without the path). For example, `./publish.sh sasa` will deploy new versions of `air` and `cloak` to the `sasa` deploy target (which is described in `./deploy_targets/sasa`).
 
 Deploying will always publish all __pushed__ changes from your current local branch.
 
 You can also deploy each component separately using `./cloak/production.sh` and `./air/production.sh` scripts. Run these scripts without any argument for instructions.
+
+### A public release
+
+We have a set of Aircloak installations that don't have their own individual releases, but run
+our official production release. These systems are demo systems and customer facing Aircloak
+hosted systems.
+
+To upgrade these Aircloaks to the latest released production version
+(the version specified in the [VERSION](./VERSION) file), run the
+`./publish_public_systems.sh` command. It will update both the `air` and `cloak` container.
+
+Just like the `./publish.sh` command, the `./publish_public_systems.sh` command uses the deployment
+information from the [deploy_targets](./deploy_targets) folder. All [deploy_targets](./deploy_targets)
+containing `PUBLIC_SYSTEM=true` will be deployed. No specific deploy target should be specified when
+running the command.
+
+This process of updating the system is separate from the process of creating the production
+release itself. A [production release](https://github.com/Aircloak/aircloak/wiki/Releases) should
+be made prior to the script being run.
 
 ## Producing production containers
 

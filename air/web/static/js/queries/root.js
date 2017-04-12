@@ -59,7 +59,6 @@ export default class QueriesView extends React.Component {
     this.setStatement = this.setStatement.bind(this);
     this.runQuery = _.debounce(this.runQuery.bind(this), runQueryTimeout, {leading: true, trailing: false});
     this.queryData = this.queryData.bind(this);
-    this.addResult = this.addResult.bind(this);
     this.setResults = this.setResults.bind(this);
     this.handleLoadHistory = this.handleLoadHistory.bind(this);
     this.replaceResult = this.replaceResult.bind(this);
@@ -91,7 +90,6 @@ export default class QueriesView extends React.Component {
   setStatement: () => void;
   runQuery: () => void;
   queryData: () => QueryData;
-  addResult: () => void;
   setResults: () => void;
   handleLoadHistory: () => void;
   replaceResult: () => void;
@@ -143,7 +141,7 @@ export default class QueriesView extends React.Component {
 
   resultReceived(result: Result) {
     if (this.shouldDisplayResult(result)) {
-      this.addResult(result, true /* replace */);
+      this.replaceResult(result);
       if (result.query_state === "error") {
         this.parseResultError(result.error);
       }
@@ -168,18 +166,40 @@ export default class QueriesView extends React.Component {
     return _.some(this.state.sessionResults, (sessionResult) => sessionResult.id === result.id);
   }
 
-  addResult(result: Result, replace: boolean = true) {
-    const existingResult = _.find(this.state.sessionResults, (item) => item.id === result.id);
-    if (existingResult === undefined) {
-      this.setResults([result].concat(this.state.sessionResults));
-    } else if (replace) {
-      // This guards against a race condition where the response from the cloak comes through the websocket
-      // before we have had time to process the response from the AJAX runQuery call.
-      this.replaceResult(result);
-    } else {
-      // Ignore. What has happened if we end up here, is that we already have a response, which is more up to
-      // date than the one we are trying to add.
-    }
+  updateResultId(generatedTempId: string, serverSideId: string) {
+    const sessionResults = _.map(this.state.sessionResults, (item) => {
+      if (item.id === generatedTempId) {
+        const newItem = _.cloneDeep(item);
+        newItem.id = serverSideId;
+        return newItem;
+      }
+      return item;
+    });
+    this.setResults(sessionResults);
+  }
+
+  addPendingResult(statement: string) {
+    const generatedTempId = (Math.random() * 1e32).toString(36);
+
+    const pendingResult = {
+      statement,
+      id: generatedTempId,
+      query_state: "started",
+    };
+    this.setResults([pendingResult].concat(this.state.sessionResults));
+
+    return generatedTempId;
+  }
+
+  replacePendingResultWithError(generatedTempId: string, statement: string, error: string) {
+    const errorResult = {
+      query_state: "error",
+      id: generatedTempId,
+      statement,
+      error,
+      info: [],
+    };
+    this.replaceResult(errorResult);
   }
 
   bindKeysWithoutEditorFocus() {
@@ -202,23 +222,21 @@ export default class QueriesView extends React.Component {
     window.showErrorLocation(-1, -1); // clear error marker
 
     const statement = this.state.statement;
+    const tempId = this.addPendingResult(statement);
 
     startQuery(this.queryData(), this.context.authentication, {
       success: (response) => {
         if (response.success) {
-          const result = {
-            statement,
-            id: response.query_id,
-            query_state: "started",
-          };
-          this.addResult(result, false /* replace */);
+          this.updateResultId(tempId, response.query_id);
         } else {
-          this.addError(statement, `Error connecting to server. Reported reason: ${response.reason}.`);
+          this.replacePendingResultWithError(tempId, statement,
+            `Error connecting to server. Reported reason: ${response.reason}.`);
         }
       },
 
       error: (error) => {
-        this.addError(statement, `Error connecting to server. Reported reason: ${error.statusText}.`);
+        this.replacePendingResultWithError(tempId, statement,
+          `Error connecting to server. Reported reason: ${error.statusText}.`);
         if (error.status === upgradeRequired) { window.location.reload(); }
       },
     });
