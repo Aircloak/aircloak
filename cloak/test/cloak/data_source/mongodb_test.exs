@@ -216,4 +216,12 @@ defmodule Cloak.DataSource.MongoDBTest do
       SELECT COUNT(name) FROM (SELECT _id, name FROM #{@table}_bills WHERE age / 3 = 10 AND abs(age + 2) <> 20) AS t
     """, %{rows: [%{occurrences: 1, row: [10]}]}
   end
+
+  test "functions in having clauses in subqueries", context do
+    assert_query context, """
+      SELECT COUNT(*) FROM (SELECT _id, COUNT(name) FROM #{@table}_bills
+      GROUP BY _id HAVING abs(COUNT(DISTINCT name)) - 1 = 0) AS t
+    """, %{rows: [%{occurrences: 1, row: [10]}]}
+  end
+
 end
