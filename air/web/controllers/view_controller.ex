@@ -39,7 +39,9 @@ defmodule Air.ViewController do
   def update(conn, %{"id" => id, "view" => %{"name" => name, "sql" => sql}}) do
     case View.update(id, conn.assigns.current_user, name, sql) do
       {:ok, _view} ->
-        redirect(conn, to: data_source_path(conn, :show, conn.assigns.data_source))
+        conn
+        |> maybe_broken_message()
+        |> redirect(to: data_source_path(conn, :show, conn.assigns.data_source))
       {:error, changeset} ->
         render(conn, "edit.html", changeset: changeset, data_source: conn.assigns.data_source, view_id: id)
     end
@@ -47,10 +49,13 @@ defmodule Air.ViewController do
 
   def delete(conn, %{"id" => id}) do
     View.delete(id, conn.assigns.current_user)
-    case get_req_header(conn, "referer") do
-      [] -> redirect(conn, to: data_source_path(conn, :show, conn.assigns.data_source.id))
-      [url|_] -> redirect(conn, external: url)
+
+    path = case get_req_header(conn, "referer") do
+      [] -> data_source_path(conn, :show, conn.assigns.data_source)
+      [url | _] -> URI.parse(url).path
     end
+
+    conn |> maybe_broken_message() |> redirect(to: path)
   end
 
 
@@ -79,6 +84,15 @@ defmodule Air.ViewController do
         conn
         |> put_flash(:error, "Data source not found.")
         |> redirect(to: data_source_path(conn, :index))
+    end
+  end
+
+  defp maybe_broken_message(conn) do
+    case View.broken(conn.assigns.current_user, conn.assigns.data_source) do
+      [] -> conn
+      broken ->
+        broken_names = broken |> Enum.map(&(&1.name)) |> Enum.join(", ")
+        put_flash(conn, :warn, "After this change the following views are invalid: #{broken_names}")
     end
   end
 end

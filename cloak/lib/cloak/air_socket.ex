@@ -245,22 +245,15 @@ defmodule Cloak.AirSocket do
     end
     {:ok, state}
   end
-  defp handle_air_call("validate_view", serialized_view, from, state) do
+  defp handle_air_call("validate_views", serialized_view, from, state) do
     data_source = Map.fetch!(serialized_view, "data_source")
-    name = Map.fetch!(serialized_view, "name")
-    sql = Map.fetch!(serialized_view, "sql")
     views = Map.fetch!(serialized_view, "views")
 
     case Cloak.DataSource.fetch(data_source) do
-      :error ->
-        respond_to_air(from, :error, "Unknown data source.")
-
-      {:ok, data_source} ->
-        case Cloak.Sql.Query.validate_view(data_source, name, sql, views) do
-          {:ok, columns} -> respond_to_air(from, :ok, %{valid: true, columns: columns})
-          {:error, field, reason} -> respond_to_air(from, :ok, %{valid: false, field: field, error: reason})
-        end
+      :error -> respond_to_air(from, :error, "Unknown data source.")
+      {:ok, data_source} -> respond_to_air(from, :ok, validate_views(data_source, views))
     end
+
     {:ok, state}
   end
   defp handle_air_call("stop_query", query_id, from, state) do
@@ -375,6 +368,18 @@ defmodule Cloak.AirSocket do
 
   defp config(key) do
     Application.get_env(:cloak, :air) |> Keyword.fetch!(key)
+  end
+
+  defp validate_views(data_source, views) do
+    for {name, sql} <- views do
+      Task.async(fn() ->
+        case Cloak.Sql.Query.validate_view(data_source, name, sql, views) do
+          {:ok, columns} -> %{name: name, valid: true, columns: columns}
+          {:error, field, reason} -> %{name: name, valid: false, field: field, error: reason}
+        end
+      end)
+    end
+    |> Enum.map(&Task.await/1)
   end
 
   if Mix.env == :dev do

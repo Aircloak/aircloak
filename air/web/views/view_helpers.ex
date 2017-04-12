@@ -36,6 +36,7 @@ defmodule Air.ViewHelpers do
     |> Kernel.++(
           Enum.map(views, &%{
             "id" => &1.name,
+            "broken" => &1.broken,
             "columns" => Map.fetch!(&1.result_info, "columns"),
             "edit_link" => Air.Router.Helpers.data_source_view_path(conn, :edit, &1.data_source_id, &1.id),
             "delete_html" =>

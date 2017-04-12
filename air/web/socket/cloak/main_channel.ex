@@ -34,12 +34,15 @@ defmodule Air.Socket.Cloak.MainChannel do
     call(channel_pid, "describe_query", query_data, :timer.seconds(5))
 
   @doc "Validates the view on the cloak."
-  @spec validate_view(pid | nil, map) ::
-    {:ok, [map]} | {:error, field :: String.t, reason :: String.t} | {:error, any}
-  def validate_view(channel_pid, view_data) do
-    case call(channel_pid, "validate_view", view_data, :timer.seconds(5)) do
-      {:ok, %{"valid" => true, "columns" => columns}} -> {:ok, columns}
-      {:ok, %{"valid" => false, "field" => field, "error" => error}} -> {:error, field, error}
+  @spec validate_views(pid | nil, map) :: map
+  def validate_views(channel_pid, view_data) do
+    {:ok, results} = call(channel_pid, "validate_views", view_data, :timer.seconds(5))
+
+    for result <- results, into: %{} do
+      case result do
+        %{"name" => name, "valid" => true, "columns" => columns} -> {name, {:ok, columns}}
+        %{"name" => name, "valid" => false, "field" => field, "error" => error} -> {name, {:error, field, error}}
+      end
     end
   end
 

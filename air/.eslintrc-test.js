@@ -5,7 +5,7 @@ module.exports = {
     "no-else-return": ["off"],
     "quotes": ["error", "double"],
     "object-curly-spacing": ["error", "never"],
-    "max-len": ["error", {"code": 110}],
+    "max-len": ["error", {"code": 120}],
     "import/no-unresolved": ["off"],
     "flowtype/require-valid-file-annotation": ["off"],
   },

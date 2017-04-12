@@ -190,3 +190,7 @@ body.outdated {
   color: white;
   font-size: 2em;
 }
+
+.tooltip {
+  position: fixed;
+}
