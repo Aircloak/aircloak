@@ -37,6 +37,35 @@ defmodule Cloak.Sql.Optimizer.Helper do
     end
   end
 
+  @doc """
+  Takes an a function or column, and returns what should be used in it's place
+  in the top-level query, as well as what needs to be added in the subquery to
+  produce the necessary data.
+  """
+  @spec column_replacement(Parser.column) :: {Parser.column, Parser.column}
+  def column_replacement({:function, function, [_]} = aggregate) when function in ["sum", "min", "max"] do
+    alias_name = generate_alias(function)
+    outer = {{:function, function, [{:identifier, :unknown, {:unquoted, alias_name}}]}, :as, function}
+    inner = {aggregate, :as, alias_name}
+    {outer, inner}
+  end
+  def column_replacement({:function, "count", [_]} = count) do
+    alias_name = generate_alias("count")
+    outer = {{:function, "sum", [{:identifier, :unknown, {:unquoted, alias_name}}]}, :as, "count"}
+    inner = {count, :as, alias_name}
+    {outer, inner}
+  end
+  def column_replacement({:identifier, :unknown, {:unquoted, name}} = column) do
+    alias_name = generate_alias("column")
+    outer = {{:identifier, :unknown, {:unquoted, alias_name}}, :as, name}
+    inner = {column, :as, alias_name}
+    {outer, inner}
+  end
+  def column_replacement({construct, :as, original_alias}) do
+    {{outer, :as, _}, inner} = column_replacement(construct)
+    {{outer, :as, original_alias}, inner}
+  end
+
 
   # -------------------------------------------------------------------
   # Internal function

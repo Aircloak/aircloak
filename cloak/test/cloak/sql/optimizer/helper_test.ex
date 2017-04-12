@@ -89,6 +89,53 @@ defmodule Cloak.Sql.Optimizer.Helper.Test do
     end
   end
 
+  describe "column_replacement" do
+    test "columns are replaced by itself" do
+      column = column("name")
+      {outer, inner} = Helper.column_replacement(column)
+      assert {{:identifier, :unknown, {:unquoted, inner_alias1}}, :as, "name"} = outer
+      assert {^column, :as, inner_alias2} = inner
+      assert inner_alias1 == inner_alias2
+    end
+
+    test "columns retain their alias" do
+      column = column("name")
+      aliased_column = {column, :as, "alias"}
+      {outer, inner} = Helper.column_replacement(aliased_column)
+      assert {{:identifier, :unknown, {:unquoted, inner_alias1}}, :as, "alias"} = outer
+      assert {^column, :as, inner_alias2} = inner
+      assert inner_alias1 == inner_alias2
+    end
+
+    test "count(*) replaced with sum of counts" do
+      {outer, inner} = Helper.column_replacement(count())
+      assert {{:function, "sum", [{:identifier, :unknown, {:unquoted, inner_alias1}}]}, :as, "count"} = outer
+      assert {{:function, "count", ["*"]}, :as, inner_alias2} = inner
+      assert inner_alias1 == inner_alias2
+    end
+
+    Enum.each(["sum", "min", "max"], fn(aggregate_function) ->
+      test "aggregate splits up (#{aggregate_function})" do
+        {outer, inner} = Helper.column_replacement(
+          aggregate(unquote(aggregate_function), column("age"))
+        )
+        assert {
+          {:function, unquote(aggregate_function), [
+            {:identifier, :unknown, {:unquoted, inner_alias1}}
+          ]},
+          :as, unquote(aggregate_function)
+        } = outer
+        assert {
+          {:function, unquote(aggregate_function), [
+            {:identifier, :unknown, {:unquoted, "age"}}
+          ]},
+          :as, inner_alias2
+        } = inner
+        assert inner_alias1 == inner_alias2
+      end
+    end)
+  end
+
   defp default_query(), do:
     query()
     |> with_columns([column("age"), count()])
