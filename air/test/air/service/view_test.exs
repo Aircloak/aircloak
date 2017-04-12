@@ -116,6 +116,29 @@ defmodule Air.Service.ViewTest do
     end
   end
 
+  describe "deleting a view" do
+    test "success", context do
+      socket = data_source_socket(context.ds1)
+
+      task = Task.async(fn() -> View.delete(context.v1.id, context.u1) end)
+      TestSocketHelper.respond_to_validate_views!(socket, [])
+
+      assert :ok = Task.await(task)
+      assert nil == Repo.get(Air.Schemas.View, context.v1.id)
+    end
+
+    test "revalidating other views", context do
+      socket = data_source_socket(context.ds1)
+
+      task = Task.async(fn() -> View.delete(context.v1.id, context.u1) end)
+      TestSocketHelper.respond_to_validate_views!(socket,
+        [%{"name" => context.v2.name, "valid" => false, "field" => "sql", "error" => "some error"}])
+      Task.await(task)
+
+      assert Repo.get(Air.Schemas.View, context.v2.id).broken
+    end
+  end
+
   defp insert_view(data_source, user, name), do:
     %Air.Schemas.View{}
     |> Ecto.Changeset.cast(
