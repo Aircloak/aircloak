@@ -70,3 +70,18 @@
   color: gray;
   font-style: italic;
 }
+
+.error-location {
+  display: inline-block;
+  position: relative;
+}
+
+.error-location:before {
+  content: "~";
+  font-weight: bold;
+  color: red;
+  width: 100%;
+  position: absolute;
+  top: 8px;
+  overflow: hidden;
+}
