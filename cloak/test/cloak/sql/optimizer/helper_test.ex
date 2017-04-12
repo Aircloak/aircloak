@@ -8,6 +8,13 @@ defmodule Cloak.Sql.Optimizer.Helper.Test do
       assert Helper.eligible(default_query())
     end
 
+    test "queries with only aggregate" do
+      assert default_query()
+      |> with_columns([count()])
+      |> unset_group_by()
+      |> Helper.eligible()
+    end
+
     test "queries with JOINs are not eligible" do
       join_table = {:join, %{
         conditions: [{
@@ -167,4 +174,7 @@ defmodule Cloak.Sql.Optimizer.Helper.Test do
 
   defp with_where(query, where), do:
     Map.put(query, :where, where)
+
+  defp unset_group_by(query), do:
+    Map.delete(query, :group_by)
 end
