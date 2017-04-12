@@ -7,7 +7,7 @@ defmodule Air.Service.DataSource do
   import Ecto.Query, only: [from: 2]
   require Logger
 
-  @type data_source_id_spec :: {:id, String.t} | {:global_id, String.t}
+  @type data_source_id_spec :: {:id, integer} | {:global_id, String.t}
 
   @type start_query_options :: [
     audit_meta: %{atom => any},
