@@ -16,7 +16,7 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
         RanchServer.set_query_result(conn, command: :set)
       query =~ ~r/^close /i ->
         RanchServer.set_query_result(conn, command: :"close cursor")
-      postgrex_types_query?(query) ->
+      query =~ ~r/^select t.oid, t.typname, t.typsend, t.typreceive.*FROM pg_type AS t\s*$/is ->
         return_types_for_postgrex(conn)
       query =~ ~r/^select.+from pg_type/si ->
         RanchServer.set_query_result(conn, [columns: [], rows: []])
@@ -29,11 +29,6 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
-
-  defp postgrex_types_query?("SELECT t.oid, t.typname, t.typsend, t.typreceive, t.typoutput, t.typinput,\n       t.typelem, 0, ARRAY (\n  SELECT a.atttypid\n  FROM pg_attribute AS a\n  WHERE a.attrelid = t.typrelid AND a.attnum > 0 AND NOT a.attisdropped\n  ORDER BY a.attnum\n)\nFROM pg_type AS t\n\n\n"), do:
-    true
-  defp postgrex_types_query?(_), do:
-    false
 
   defp return_types_for_postgrex(conn), do:
     RanchServer.set_query_result(conn, [
