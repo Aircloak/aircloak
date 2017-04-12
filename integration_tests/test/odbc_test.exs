@@ -168,6 +168,21 @@ defmodule IntegrationTest.OdbcTest do
       }
     end
 
+    test "tableau query for indexed columns", context do
+      query =
+        'BEGIN;declare "SQL_CUR04AD8270" cursor for select ta.attname, ia.attnum, ic.relname, n.nspname, ' ++
+        'tc.relname from pg_catalog.pg_attribute ta, pg_catalog.pg_attribute ia, pg_catalog.pg_class tc, ' ++
+        'pg_catalog.pg_index i, pg_catalog.pg_namespace n, pg_catalog.pg_class ic where tc.relname = ' ++
+        '\'accounts\' AND n.nspname = \'public\' AND tc.oid = i.indrelid AND n.oid = tc.relnamespace AND ' ++
+        'i.indisprimary = \'t\' AND ia.attrelid = i.indexrelid AND ta.attrelid = i.indrelid AND ta.attnum = ' ++
+        'i.indkey[ia.attnum-1] AND (NOT ta.attisdropped) AND (NOT ia.attisdropped) AND ic.oid = i.indexrelid ' ++
+        'order by ia.attnum;fetch 2048 in "SQL_CUR04AD8270"'
+      assert :odbc.sql_query(context.conn, query) == [
+        {:updated, 0}, {:updated, 0},
+        {:selected, ['attname', 'attnum', 'relname', 'nspname', 'relname'], []}
+      ]
+    end
+
     test "closing a cursor", context, do:
       assert :odbc.sql_query(context.conn, 'close "some_cursor"') == {:updated, 0}
 

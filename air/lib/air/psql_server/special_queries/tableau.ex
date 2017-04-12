@@ -32,6 +32,12 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
             oid pg_get_expr case typtypmod relhasoids),
           :select
         )
+      query =~ ~r/begin;declare.* for select ta.attname, ia.attnum.*ia.attrelid = i.indexrelid.*fetch/i ->
+        # indexed columns
+        conn
+        |> RanchServer.set_query_result(command: :begin, intermediate: true)
+        |> RanchServer.set_query_result(command: :"declare cursor", intermediate: true)
+        |> set_empty_result(~w(attname attnum relname nspname relname), :fetch)
       true ->
         nil
     end
