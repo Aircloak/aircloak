@@ -80,10 +80,12 @@ export class SelectableView extends React.Component {
       return {
         title: VIEW_INVALID_MESSAGE,
         "data-toggle": "tooltip",
-        className: "selectable-title broken",
+        className: "list-group-item-heading alert-danger",
       };
     } else {
-      return {};
+      return {
+        className: "list-group-item-heading",
+      };
     }
   }
 
@@ -91,10 +93,11 @@ export class SelectableView extends React.Component {
     const glyphType = this.props.expanded ? "glyphicon glyphicon-minus" : "glyphicon glyphicon-plus";
     return (
       <div className="list-group-item">
-        <div onClick={this.handleToggleClick} className="list-group-item-heading">
+        <div onClick={this.handleToggleClick} {...this.broken()}>
           <span className={glyphType} />
           &nbsp;
-          <span {...this.broken()}>{this.props.selectable.id}</span>
+          {this.props.selectable.id}
+
           {this.isDatabaseView() ? this.renderDatabaseViewMenu() : null}
         </div>
 

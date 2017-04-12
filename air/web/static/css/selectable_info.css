@@ -63,8 +63,3 @@
   display: table;
   width: 100%;
 }
-
-.selectable-title.broken {
-  color: gray;
-  font-style: italic;
-}
