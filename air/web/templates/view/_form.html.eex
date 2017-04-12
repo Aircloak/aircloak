@@ -54,12 +54,12 @@
 <script>
   window.pageConfig = {
     onLoad: function(App) {
-      const statement = <%= @changeset |> statement() |> to_json() %>;
-      const viewEditorProps = {
+      var statement = <%= @changeset |> statement() |> to_json() %>;
+      var viewEditorProps = {
         statement: statement,
         selectables: <%= selectables(@conn, @data_source, @views) %>
       };
-      const selectableInfoProps = {
+      var selectableInfoProps = {
         selectables: <%= selectables(@conn, @data_source, @views) %>,
         newViewURL: "<%= data_source_view_path(@conn, :new, @data_source.id) %>"
       };
