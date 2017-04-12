@@ -46,13 +46,6 @@ defmodule Air.Service.ViewTest do
     }
   end
 
-  test "view requires name and sql", context do
-    previous_views = View.all(context.u1, context.ds1) |> Enum.sort_by(&(&1.id))
-    view = insert_view(context.ds1, context.u1, "view_5")
-    assert :ok == View.delete(view.id, context.u1)
-    assert View.all(context.u1, context.ds1) |> Enum.sort_by(&(&1.id)) == previous_views
-  end
-
   test "cloak not available error", context do
     assert {:error, %Ecto.Changeset{errors: errors}} = View.create(context.u1, context.ds1, "name", "sql")
     assert {error, _} = Keyword.fetch!(errors, :sql)
