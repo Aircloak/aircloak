@@ -142,6 +142,9 @@ export default class QueriesView extends React.Component {
   resultReceived(result: Result) {
     if (this.shouldDisplayResult(result)) {
       this.replaceResult(result);
+      if (result.query_state === "error") {
+        this.parseResultError(result.error);
+      }
     } else {
       // Ignore result
     }
@@ -216,6 +219,8 @@ export default class QueriesView extends React.Component {
   runQuery() {
     if (! this.runEnabled()) return;
 
+    window.showErrorLocation(-1, -1); // clear error marker
+
     const statement = this.state.statement;
     const tempId = this.addPendingResult(statement);
 
@@ -235,6 +240,15 @@ export default class QueriesView extends React.Component {
         if (error.status === upgradeRequired) { window.location.reload(); }
       },
     });
+  }
+
+  parseResultError(error: string) {
+    if (!error) return;
+    const matches = error.match(/at line (\d+), column (\d+)\./i);
+    if (!matches) return;
+    const line = parseInt(matches[1], 10);
+    const char = parseInt(matches[2], 10);
+    window.showErrorLocation(line - 1, char - 1);
   }
 
   handleLoadHistory() {

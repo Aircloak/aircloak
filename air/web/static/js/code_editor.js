@@ -24,6 +24,7 @@ export class CodeEditor extends React.Component {
     this.setupComponent = this.setupComponent.bind(this);
     this.completionList = this.completionList.bind(this);
     window.insertWordInEditor = this.insertWordInEditor.bind(this);
+    window.showErrorLocation = this.showErrorLocation.bind(this);
   }
 
   props: Props;
@@ -32,6 +33,8 @@ export class CodeEditor extends React.Component {
   codeMirrorClass: () => Codemirror;
   completionList: () => void;
   insertWordInEditor: () => void;
+  showErrorLocation: () => void;
+  errorMarker: null;
 
   setupComponent(codeMirrorComponent: {getCodeMirrorInstance: () => Codemirror}) {
     // This appears to happen when the component disappears
@@ -67,6 +70,17 @@ export class CodeEditor extends React.Component {
     const doc = editor.getDoc();
     doc.replaceSelection(word);
     editor.focus();
+  }
+
+  showErrorLocation(line: number, ch: number) {
+    if (this.errorMarker) {
+      this.errorMarker.clear();
+      this.errorMarker = null;
+    }
+    if (line < 0 || ch < 0) return;
+    const editor = this.reactCodeMirrorComponent.getCodeMirror();
+    const doc = editor.getDoc();
+    this.errorMarker = doc.markText({line, ch}, {line, ch: ch + 1}, {className: "error-location"});
   }
 
   render() {
