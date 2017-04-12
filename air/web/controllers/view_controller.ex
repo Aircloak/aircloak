@@ -49,10 +49,13 @@ defmodule Air.ViewController do
 
   def delete(conn, %{"id" => id}) do
     View.delete(id, conn.assigns.current_user)
-    case get_req_header(conn, "referer") do
-      [] -> redirect(conn, to: data_source_path(conn, :show, conn.assigns.data_source.id))
-      [url|_] -> redirect(conn, external: url)
+
+    path = case get_req_header(conn, "referer") do
+      [] -> data_source_path(conn, :show, conn.assigns.data_source)
+      [url | _] -> URI.parse(url).path
     end
+
+    conn |> maybe_broken_message() |> redirect(to: path)
   end
 
 
