@@ -11,6 +11,8 @@ defmodule Cloak.Sql.Optimizer do
   alias Cloak.DataSource
   alias Cloak.Sql.{Parser, Optimizer.Helper}
 
+  require Logger
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -22,6 +24,8 @@ defmodule Cloak.Sql.Optimizer do
     with true <- Helper.eligible(query),
         {:ok, uid_column} <- Helper.user_id_column(query[:from], data_source),
         {outer_clauses, inner_clauses} <- selectable_clauses(query) do
+
+      Logger.debug("Performing raw SQL query optimization: preaggregating data in subquery")
 
       optimized_query = query
       |> Map.put(:columns, outer_clauses)
