@@ -22,8 +22,16 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
         conn
         |> RanchServer.set_query_result(command: :begin, intermediate: true)
         |> RanchServer.set_query_result(command: :"declare cursor", intermediate: true)
-        |> set_empty_result(["tgargs", "tgnargs", "tgdeferrable", "tginitdeferred", "pp1.proname",
-            "pp2.proname", "pc.oid", "pc1.oid", "relname", "tgconstrname", "nspname"], :fetch)
+        |> set_empty_result(~w(tgargs tgnargs tgdeferrable tginitdeferred pp1.proname
+            pp2.proname pc.oid pc1.oid relname tgconstrname nspname), :fetch)
+      query =~ ~r/^select n.nspname, c.relname, a.attname.*a.attrelid = c.oid/i ->
+        # related fields
+        set_empty_result(
+          conn,
+          ~w(nspname relname attname atttypid typname attnum attlen atttypmod attnotnull relhasrules relkind
+            oid pg_get_expr case typtypmod relhasoids),
+          :select
+        )
       true ->
         nil
     end
