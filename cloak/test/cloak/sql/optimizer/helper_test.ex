@@ -57,6 +57,15 @@ defmodule Cloak.Sql.Optimizer.Helper.Test do
       |> with_columns([function("abs", column("age"))])
       |> Helper.eligible()
     end
+
+    test "rejects queries with WHERE-clauses" do
+      refute default_query()
+      |> with_where([not: {
+        :comparison, {:identifier, :unknown, {:unquoted, "amount"}},
+        :=, {:constant, :integer, 10}
+      }])
+      |> Helper.eligible()
+    end
   end
 
   describe "user_id_column" do
@@ -99,4 +108,7 @@ defmodule Cloak.Sql.Optimizer.Helper.Test do
 
   defp with_group_by(query, group_by), do:
     Map.put(query, :group_by, group_by)
+
+  defp with_where(query, where), do:
+    Map.put(query, :where, where)
 end

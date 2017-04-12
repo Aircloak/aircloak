@@ -19,7 +19,8 @@ defmodule Cloak.Sql.Optimizer.Helper do
     from_single_table(query) and
     has_aggregate_function(query) and
     supported_aggregates(query) and
-    no_nonaggregate_functions(query)
+    no_nonaggregate_functions(query) and
+    no_where_clauses(query)
 
   @doc """
   Returns the user id column for a table in the form it would
@@ -39,6 +40,8 @@ defmodule Cloak.Sql.Optimizer.Helper do
   # -------------------------------------------------------------------
   # Internal function
   # -------------------------------------------------------------------
+
+  defp no_where_clauses(query), do: is_nil(query[:where]) or query[:where] === []
 
   defp from_single_table(query), do:
     match?({:unquoted, _}, query[:from])
