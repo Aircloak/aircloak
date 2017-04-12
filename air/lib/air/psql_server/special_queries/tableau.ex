@@ -17,6 +17,13 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
         fetch_tables(conn)
       table_name = table_name_from_table_info_query(query) ->
         fetch_table_info(conn, table_name)
+      query =~ ~r/begin;declare.* for select\spt.tgargs.*FROM.*pg_catalog.pg_trigger.*fetch/i ->
+        # fetching triggers
+        conn
+        |> RanchServer.set_query_result(command: :begin, intermediate: true)
+        |> RanchServer.set_query_result(command: :"declare cursor", intermediate: true)
+        |> set_empty_result(["tgargs", "tgnargs", "tgdeferrable", "tginitdeferred", "pp1.proname",
+            "pp2.proname", "pc.oid", "pc1.oid", "relname", "tgconstrname", "nspname"], :fetch)
       true ->
         nil
     end
@@ -102,4 +109,11 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
     }
     Enum.map(result_columns, fn({column_name, _type}) -> Map.fetch!(row_fields, column_name) end)
   end
+
+  defp set_empty_result(conn, column_names, command), do:
+    RanchServer.set_query_result(conn,
+      command: command,
+      columns: Enum.map(column_names, &%{name: &1, type: :unknown}),
+      rows: []
+    )
 end

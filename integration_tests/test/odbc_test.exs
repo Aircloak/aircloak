@@ -124,6 +124,33 @@ defmodule IntegrationTest.OdbcTest do
       } = :odbc.sql_query(context.conn, query)
     end
 
+    test "tableau query for triggers", context do
+      query =
+        'BEGIN;declare "SQL_CUR04D36638" cursor for SELECT\tpt.tgargs, \t\tpt.tgnargs, \t\tpt.tgdeferrable, ' ++
+        '\t\tpt.tginitdeferred, \t\tpp1.proname, \t\tpp2.proname, \t\tpc.oid, \t\tpc1.oid, \t\tpc1.relname, ' ++
+        '\t\tpt.tgconstrname, pn.nspname FROM\tpg_catalog.pg_class pc, \t\tpg_catalog.pg_proc pp1, ' ++
+        '\t\tpg_catalog.pg_proc pp2, \t\tpg_catalog.pg_trigger pt1, \t\tpg_catalog.pg_trigger pt2, ' ++
+        '\t\tpg_catalog.pg_proc pp, \t\tpg_catalog.pg_trigger pt, \t\tpg_catalog.pg_class pc1, ' ++
+        '\t\tpg_catalog.pg_namespace pn, \t\tpg_catalog.pg_namespace pn1 WHERE\tpt.tgrelid = pc.oid AND ' ++
+        'pp.oid = pt.tgfoid AND pt1.tgconstrrelid = pc.oid AND pp1.oid = pt1.tgfoid AND pt2.tgfoid = pp2.oid ' ++
+        'AND pt2.tgconstrrelid = pc.oid AND ((pc.relname = \'accounts\') AND (pn1.oid = pc.relnamespace) AND ' ++
+        '(pn1.nspname = \'public\') AND (pp.proname LIKE \'%ins\') AND (pp1.proname LIKE \'%upd\') AND ' ++
+        '(pp1.proname not LIKE \'%check%\') AND (pp2.proname LIKE \'%del\') AND (pt1.tgrelid=pt.tgconstrrelid) ' ++
+        ' AND (pt1.tgconstrname=pt.tgconstrname) AND (pt2.tgrelid=pt.tgconstrrelid) AND ' ++
+        '(pt2.tgconstrname=pt.tgconstrname) AND (pt.tgconstrrelid=pc1.oid) AND (pc1.relnamespace=pn.oid)) ' ++
+        'order by pt.tgconstrname;fetch 2048 in "SQL_CUR04D36638"'
+
+      assert :odbc.sql_query(context.conn, query) == [
+        {:updated, 0},
+        {:updated, 0},
+        {:selected,
+          ['tgargs', 'tgnargs', 'tgdeferrable', 'tginitdeferred', 'pp1.proname', 'pp2.proname', 'pc.oid',
+            'pc1.oid', 'relname', 'tgconstrname', 'nspname'],
+          []
+        }
+      ]
+    end
+
     test "closing a cursor", context, do:
       assert :odbc.sql_query(context.conn, 'close "some_cursor"') == {:updated, 0}
 
