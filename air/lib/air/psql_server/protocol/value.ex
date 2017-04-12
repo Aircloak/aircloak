@@ -67,6 +67,11 @@ defmodule Air.PsqlServer.Protocol.Value do
     |> binary_decode(type)
     |> normalize_postgrex_decoded_value()
 
+
+  #-----------------------------------------------------------------------------------------------------------
+  # Internal functions
+  #-----------------------------------------------------------------------------------------------------------
+
   defp text_encode(byte, :char), do: <<byte>>
   defp text_encode(value, _), do: to_string(value)
 
