@@ -137,7 +137,7 @@ defmodule Air.Service.View do
       |> Map.put(view.name, view.sql)
 
     case DataSource.validate_views({:id, view.data_source_id}, user, views) do
-      {:ok, results} -> results[view.name]
+      {:ok, results} -> Map.fetch!(results, view.name)
       error -> error
     end
   end
