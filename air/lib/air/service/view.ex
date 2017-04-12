@@ -66,8 +66,8 @@ defmodule Air.Service.View do
     View
     |> by_user_id(user.id)
     |> by_data_source_id(data_source_id)
+    |> select([v], {v.name, v.sql})
     |> Repo.all()
-    |> Enum.map(&{&1.name, &1.sql})
     |> Enum.into(%{})
   end
 
