@@ -64,8 +64,8 @@ defmodule Air.Service.Query do
   def load_recent_queries(user, data_source, recent_count, before) do
     Query
     |> started_by(user)
-    |> Query.for_data_source(data_source)
-    |> Query.recent(recent_count, before)
+    |> for_data_source(data_source)
+    |> recent(recent_count, before)
     |> Repo.all()
     |> Enum.map(&Query.for_display/1)
   end
@@ -79,7 +79,7 @@ defmodule Air.Service.Query do
   def currently_running(user, data_source) do
     pending()
     |> started_by(user)
-    |> Query.for_data_source(data_source)
+    |> for_data_source(data_source)
     |> Repo.all()
   end
 
@@ -201,5 +201,17 @@ defmodule Air.Service.Query do
 
   defp pending(scope \\ Query) do
     where(scope, [q], not q.query_state in ["completed", "error", "cancelled"])
+  end
+
+  defp for_data_source(query, data_source) do
+    from q in query,
+    where: q.data_source_id == ^data_source.id
+  end
+
+  defp recent(query, count, before) do
+    from q in query,
+    where: q.inserted_at < ^before,
+    order_by: [desc: q.inserted_at],
+    limit: ^count
   end
 end

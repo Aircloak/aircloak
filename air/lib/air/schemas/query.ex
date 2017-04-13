@@ -92,27 +92,6 @@ defmodule Air.Schemas.Query do
 
 
   # -------------------------------------------------------------------
-  # Query functions
-  # -------------------------------------------------------------------
-
-  @doc "Adds a query filter selecting only those for the given data source"
-  @spec for_data_source(Ecto.Queryable.t, DataSource.t) :: Ecto.Queryable.t
-  def for_data_source(query \\ __MODULE__, data_source) do
-    from q in query,
-    where: q.data_source_id == ^data_source.id
-  end
-
-  @doc "Adds a query filter limiting the number of selected queries"
-  @spec recent(Ecto.Queryable.t, pos_integer, NaiveDateTime.t) :: Ecto.Queryable.t
-  def recent(query \\ __MODULE__, count, before) do
-    from q in query,
-    where: q.inserted_at < ^before,
-    order_by: [desc: q.inserted_at],
-    limit: ^count
-  end
-
-
-  # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
