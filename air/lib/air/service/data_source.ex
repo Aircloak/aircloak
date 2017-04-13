@@ -1,13 +1,13 @@
 defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
-  alias Air.Schemas.{DataSource, Query, User, View}
+  alias Air.Schemas.{DataSource, Query, User}
   alias Air.{PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, Socket.Frontend.UserChannel, QueryEvents}
-  alias Air.Service.{Version, Cloak}
+  alias Air.Service.{Version, Cloak, View}
   import Ecto.Query, only: [from: 2]
   require Logger
 
-  @type data_source_id_spec :: {:id, String.t} | {:global_id, String.t}
+  @type data_source_id_spec :: {:id, integer} | {:global_id, String.t}
 
   @type start_query_options :: [
     audit_meta: %{atom => any},
@@ -75,24 +75,22 @@ defmodule Air.Service.DataSource do
           statement: statement,
           data_source: data_source.global_id,
           parameters: encode_parameters(parameters),
-          views: user_views_map(user)
+          views: View.user_views_map(user, data_source.id)
         })
       end
     )
   end
 
-  @doc "Validates the view on the cloak."
-  @spec validate_view(data_source_id_spec, User.t, View.t) ::
-    {:ok, [columns :: map]} | {:error, field :: String.t, reason :: String.t} | data_source_operation_error
-  def validate_view(data_source_id_spec, user, view), do:
+  @doc "Validates all of the given views on the cloak."
+  @spec validate_views(data_source_id_spec, User.t, View.view_map) ::
+    {:ok, map} | data_source_operation_error
+  def validate_views(data_source_id_spec, user, view_map), do:
     on_available_cloak(data_source_id_spec, user,
       fn(data_source, channel_pid, _cloak_info) ->
-        MainChannel.validate_view(channel_pid, %{
+        {:ok, MainChannel.validate_views(channel_pid, %{
           data_source: data_source.global_id,
-          name: view.name,
-          sql: view.sql,
-          views: user_views_map(user)
-        })
+          views: view_map
+        })}
       end
     )
 
@@ -281,19 +279,13 @@ defmodule Air.Service.DataSource do
     end
   end
 
-  defp user_views_map(user) do
-    Repo.preload(user, :views).views
-    |> Enum.map(&{&1.name, &1.sql})
-    |> Enum.into(%{})
-  end
-
   defp cloak_query_map(query, user, parameters) do
     %{
       id: query.id,
       statement: query.statement,
       data_source: query.data_source.global_id,
       parameters: encode_parameters(parameters),
-      views: user_views_map(user)
+      views: View.user_views_map(user, query.data_source.id)
     }
   end
 

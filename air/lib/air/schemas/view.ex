@@ -9,6 +9,7 @@ defmodule Air.Schemas.View do
     field :name, :string
     field :sql, :string
     field :result_info, :map
+    field :broken, :boolean
 
     belongs_to :user, Air.Schemas.User
     belongs_to :data_source, Air.Schemas.User
