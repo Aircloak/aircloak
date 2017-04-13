@@ -28,6 +28,7 @@ defmodule Air.QueryController do
     case DataSource.start_query(
       data_source_id_spec(params),
       conn.assigns.current_user,
+      :http,
       Map.fetch!(params, "statement"),
       [],
       audit_meta: audit_log_meta(conn),
