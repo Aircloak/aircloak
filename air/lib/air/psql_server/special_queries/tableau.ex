@@ -15,8 +15,28 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
     cond do
       query =~ ~r/begin;declare.* for select relname, nspname, relkind from.*fetch.*/i ->
         fetch_tables(conn)
+
       table_name = table_name_from_table_info_query(query) ->
         fetch_table_info(conn, table_name)
+
+      query =~ ~r/begin;declare.* for select\spt.tgargs.*FROM.*pg_catalog.pg_trigger.*fetch/i ->
+        # fetching triggers
+        set_temp_cursor_query_result(conn,
+          empty_result(:fetch, ~w(tgargs tgnargs tgdeferrable tginitdeferred pp1.proname pp2.proname pc.oid
+            pc1.oid relname tgconstrname nspname))
+        )
+
+      query =~ ~r/^select n.nspname, c.relname, a.attname.*a.attrelid = c.oid/i ->
+        # related fields
+        RanchServer.set_query_result(conn,
+          empty_result(:select, ~w(nspname relname attname atttypid typname attnum attlen atttypmod attnotnull
+            relhasrules relkind oid pg_get_expr case typtypmod relhasoids))
+        )
+
+      query =~ ~r/begin;declare.* for select ta.attname, ia.attnum.*ia.attrelid = i.indexrelid.*fetch/i ->
+        # indexed columns
+        set_temp_cursor_query_result(conn, empty_result(:fetch, ~w(attname attnum relname nspname relname)))
+
       true ->
         nil
     end
@@ -35,10 +55,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
           |> Map.fetch!("rows")
           |> Enum.map(fn(%{"row" => [table_name]}) -> table_name end)
 
-        conn
-        |> RanchServer.set_query_result(command: :begin, intermediate: true)
-        |> RanchServer.set_query_result(command: :"declare cursor", intermediate: true)
-        |> RanchServer.set_query_result(table_list(table_names))
+        set_temp_cursor_query_result(conn, table_list(table_names))
       end
     )
   end
@@ -102,4 +119,13 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
     }
     Enum.map(result_columns, fn({column_name, _type}) -> Map.fetch!(row_fields, column_name) end)
   end
+
+  defp set_temp_cursor_query_result(conn, query_result), do:
+    conn
+    |> RanchServer.set_query_result(command: :begin, intermediate: true)
+    |> RanchServer.set_query_result(command: :"declare cursor", intermediate: true)
+    |> RanchServer.set_query_result(query_result)
+
+  defp empty_result(command, column_names), do:
+    [command: command, columns: Enum.map(column_names, &%{name: &1, type: :unknown}), rows: []]
 end
