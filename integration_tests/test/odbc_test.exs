@@ -38,6 +38,13 @@ defmodule IntegrationTest.OdbcTest do
     test "disconnecting", context, do:
       assert :ok = :odbc.disconnect(context.conn)
 
+    test "query context is properly set", context do
+      :odbc.sql_query(context.conn, 'show tables')
+      query = Air.Service.Query.last_for_user(context.user, :psql)
+      assert query.context == :psql
+      assert query.statement == "show tables"
+    end
+
     test "show tables", context, do:
       assert :odbc.sql_query(context.conn, 'show tables') == {:selected, ['name'], [{'users'}]}
 

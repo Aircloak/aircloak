@@ -48,16 +48,18 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Returns most recent queries executed on the given data source by the given user."
-  @spec history(data_source_id_spec, User.t, pos_integer, NaiveDateTime.t) :: {:ok, [Query.t]} | {:error, :unauthorized}
-  def history(data_source_id_spec, user, count, before) do
+  @spec history(data_source_id_spec, User.t, Query.Context.t, pos_integer, NaiveDateTime.t) ::
+    {:ok, [Query.t]} | {:error, :unauthorized}
+  def history(data_source_id_spec, user, context, count, before) do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user), do:
-      {:ok, Air.Service.Query.load_recent_queries(user, data_source, count, before)}
+      {:ok, Air.Service.Query.load_recent_queries(user, data_source, context, count, before)}
   end
 
   @doc "Returns the last query executed on the given data source by the given user."
-  @spec last_query(data_source_id_spec, User.t) :: {:ok, Query.t | nil} | {:error, :unauthorized}
-  def last_query(data_source_id_spec, user) do
-    with {:ok, queries} <- history(data_source_id_spec, user, 1, NaiveDateTime.utc_now()) do
+  @spec last_query(data_source_id_spec, User.t, Query.Context.t) ::
+    {:ok, Query.t | nil} | {:error, :unauthorized}
+  def last_query(data_source_id_spec, user, context) do
+    with {:ok, queries} <- history(data_source_id_spec, user, context, 1, NaiveDateTime.utc_now()) do
       case queries do
         [query] -> {:ok, query}
         [] -> {:ok, nil}

@@ -42,6 +42,12 @@ defmodule IntegrationTest.QueryTest do
       |> Enum.uniq()
   end
 
+  test "query context is properly set", context do
+    {:ok, %{"query_id" => query_id}} = run_query(context.user, "select name, height from users")
+    {:ok, query} = Air.Service.Query.get_as_user(context.user, query_id)
+    assert query.context == :http
+  end
+
   defp air_api_get!(user, path), do:
     HTTPoison.get!(
       "http://localhost:#{air_http_port()}/api/#{path}",
@@ -57,6 +63,7 @@ defmodule IntegrationTest.QueryTest do
     Air.Service.DataSource.run_query(
       {:global_id, Manager.data_source_global_id()},
       user,
+      :http,
       query,
       params
     )
