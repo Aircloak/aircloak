@@ -19,10 +19,9 @@ const headers = ({CSRFToken}) => ({
 });
 
 export const cancel = (queryId: string, authentication: Authentication) =>
-  $.ajax("/queries/cancel", {
+  $.ajax(`/queries/${queryId}/cancel`, {
     method: "POST",
     headers: headers(authentication),
-    data: JSON.stringify({id: queryId}),
   });
 
 export const startQuery = (queryData: QueryData, authentication: Authentication, callbacks: Callbacks) => {

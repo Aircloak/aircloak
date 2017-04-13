@@ -122,30 +122,30 @@ For the use of error codes in the Web REST API, please consult the [Errors](#err
 ### Canceling a query
 
 ```ruby
-RestClient.delete("#{site_url}/api/queries/#{query_id}", api_token)
+RestClient.post("#{site_url}/api/queries/#{query_id}/cancel", api_token, "")
 ```
 
 ```shell
 wget \
   --content-on-error \
   --output-document - \
-  --method=DELETE \
+  --method=POST \
   --header "auth-token: $API_TOKEN" \
-  $SITE_URL/api/queries/$query_id
+  $SITE_URL/api/queries/$query_id/cancel
 ```
 
 ```curl
 curl -v \
-  -X DELETE \
+  -X POST \
   -H "auth-token:$API_TOKEN" \
-  $SITE_URL/api/queries/$query_id
+  $SITE_URL/api/queries/$query_id/cancel
 ```
 
 This endpoint cancels a query started by the [run query endpoint](#running-a-query). The `query_id` must correspond to the id returned by the run query endpoint.
 
 #### HTTP Request
 
-`DELETE /api/queries/query_id`
+`POST /api/queries/query_id/cancel`
 
 #### Response
 

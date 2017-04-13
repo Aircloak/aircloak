@@ -14,7 +14,7 @@ defmodule Air.QueryController do
 
   def permissions do
     %{
-      user: [:delete, :create, :show, :load_history],
+      user: [:cancel, :create, :show, :load_history],
       admin: :all
     }
   end
@@ -77,7 +77,7 @@ defmodule Air.QueryController do
     end
   end
 
-  def delete(conn, %{"id" => query_id}) do
+  def cancel(conn, %{"id" => query_id}) do
     case Air.Service.Query.get_as_user(conn.assigns.current_user, query_id) do
       {:ok, query} ->
         query

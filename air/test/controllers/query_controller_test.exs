@@ -45,7 +45,7 @@ defmodule Air.QueryControllerTest do
     socket = open_cloak_mock_socket(context.data_source)
     query = create_query!(context.user, %{data_source_id: context.data_source.id})
 
-    Task.start_link(fn -> login(context[:user]) |> post("/queries/cancel", %{"id" => query.id}) |> response(200) end)
+    Task.start_link(fn -> login(context[:user]) |> post("/queries/#{query.id}/cancel") |> response(200) end)
 
     query_id = query.id
     assert {:ok, {"main", "air_call", %{"event" => "stop_query", "payload" => ^query_id}}} =
