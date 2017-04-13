@@ -62,6 +62,7 @@ defmodule IntegrationTest.ViewTest do
     Air.Service.DataSource.run_query(
       {:global_id, Manager.data_source_global_id()},
       user,
+      :http,
       query,
       params
     )

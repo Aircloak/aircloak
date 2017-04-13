@@ -51,35 +51,38 @@ defmodule Air.Service.Query do
   end
 
   @doc "Returns the last query the given user issued, or nil if the user did not issue any queries."
-  @spec last_for_user(User.t) :: Query.t | nil
-  def last_for_user(user) do
+  @spec last_for_user(User.t, Query.Context.t) :: Query.t | nil
+  def last_for_user(user, context) do
     Query
     |> started_by(user)
+    |> in_context(context)
     |> last(:inserted_at)
     |> Repo.one()
   end
 
   @doc "Loads the most recent queries for a given user"
-  @spec load_recent_queries(User.t, DataSource.t, pos_integer, NaiveDateTime.t) :: [Query.t]
-  def load_recent_queries(user, data_source, recent_count, before) do
+  @spec load_recent_queries(User.t, DataSource.t, Query.Context.t, pos_integer, NaiveDateTime.t) :: [Query.t]
+  def load_recent_queries(user, data_source, context, recent_count, before) do
     Query
     |> started_by(user)
-    |> Query.for_data_source(data_source)
-    |> Query.recent(recent_count, before)
+    |> for_data_source(data_source)
+    |> in_context(context)
+    |> recent(recent_count, before)
     |> Repo.all()
     |> Enum.map(&Query.for_display/1)
   end
 
-  @doc "Returns a list of the queries that are currently executing"
+  @doc "Returns a list of the queries that are currently executing in all contexts."
   @spec currently_running() :: [Query.t]
   def currently_running(), do: pending() |> Repo.all()
 
   @doc "Returns a list of queries that are currently executing, started by the given user on the given data source."
-  @spec currently_running(User.t, DataSource.t) :: [Query.t]
-  def currently_running(user, data_source) do
+  @spec currently_running(User.t, DataSource.t, Query.Context.t) :: [Query.t]
+  def currently_running(user, data_source, context) do
     pending()
     |> started_by(user)
-    |> Query.for_data_source(data_source)
+    |> for_data_source(data_source)
+    |> in_context(context)
     |> Repo.all()
   end
 
@@ -201,5 +204,20 @@ defmodule Air.Service.Query do
 
   defp pending(scope \\ Query) do
     where(scope, [q], not q.query_state in ["completed", "error", "cancelled"])
+  end
+
+  defp for_data_source(query, data_source) do
+    from q in query, where: q.data_source_id == ^data_source.id
+  end
+
+  defp in_context(query, context) do
+    from q in query, where: q.context == ^context
+  end
+
+  defp recent(query, count, before) do
+    from q in query,
+    where: q.inserted_at < ^before,
+    order_by: [desc: q.inserted_at],
+    limit: ^count
   end
 end

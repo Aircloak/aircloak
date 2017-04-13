@@ -68,29 +68,45 @@ defmodule Air.Service.DataSourceTest do
     _other_user_queries = Enum.map(1..5, fn(_) -> create_query(context.user2, context.ds2) end)
 
     for count <- 1..6 do
-      assert {:ok, history} = DataSource.history({:id, context.ds2.id}, context.user1, count, NaiveDateTime.utc_now())
+      assert {:ok, history} = DataSource.history({:id, context.ds2.id}, context.user1, :http, count,
+        NaiveDateTime.utc_now())
       assert Enum.map(history, &(&1.id)) ==
         queries |> Enum.reverse() |> Enum.take(min(5, count)) |> Enum.map(&(&1.id))
     end
   end
 
+  test "fetching history filters by context", context do
+    Enum.map(1..5, fn(_) -> create_query(context.user1, context.ds2, %{context: :psql}) end)
+
+    assert {:ok, []} == DataSource.history({:id, context.ds2.id}, context.user1, :http, 1,NaiveDateTime.utc_now())
+    assert {:ok, [_|_]} = DataSource.history({:id, context.ds2.id}, context.user1, :psql, 1,NaiveDateTime.utc_now())
+  end
+
   test "fetching history for the unavailable data source", context, do:
     assert {:error, :unauthorized} ==
-      DataSource.history({:id, context.ds2.id}, context.user3, 1, NaiveDateTime.utc_now())
+      DataSource.history({:id, context.ds2.id}, context.user3, :http, 1, NaiveDateTime.utc_now())
 
   test "fetching last query", context do
     queries = Enum.map(1..5, fn(_) -> create_query(context.user1, context.ds2) end)
     _other_user_queries = Enum.map(1..5, fn(_) -> create_query(context.user2, context.ds2) end)
 
-    assert {:ok, query} = DataSource.last_query({:id, context.ds2.id}, context.user1)
+    assert {:ok, query} = DataSource.last_query({:id, context.ds2.id}, context.user1, :http)
     assert query.id == List.last(queries).id
   end
 
+  test "fetching last query filters by context", context do
+    Enum.map(1..5, fn(_) -> create_query(context.user1, context.ds2, %{context: :psql}) end)
+
+    assert {:ok, nil} == DataSource.last_query({:id, context.ds2.id}, context.user1, :http)
+    assert {:ok, query} = DataSource.last_query({:id, context.ds2.id}, context.user1, :psql)
+    assert query != nil
+  end
+
   test "fetching last query when there are no queries", context, do:
-    assert {:ok, nil} == DataSource.last_query({:id, context.ds2.id}, context.user1)
+    assert {:ok, nil} == DataSource.last_query({:id, context.ds2.id}, context.user1, :http)
 
   test "fetching last query for the unavailable data source", context, do:
-    assert {:error, :unauthorized} == DataSource.last_query({:id, context.ds2.id}, context.user3)
+    assert {:error, :unauthorized} == DataSource.last_query({:id, context.ds2.id}, context.user3, :http)
 
   test "returns a list of data sources given their ids" do
     ds1 = TestRepoHelper.create_data_source!()
@@ -159,6 +175,9 @@ defmodule Air.Service.DataSourceTest do
     {:ok, socket: socket}
   end
 
-  defp create_query(user, data_source), do:
-    TestRepoHelper.create_query!(user, %{statement: "query content", data_source_id: data_source.id})
+  defp create_query(user, data_source, additional_data \\ %{}), do:
+    TestRepoHelper.create_query!(
+      user,
+      Map.merge(%{statement: "query content", data_source_id: data_source.id}, additional_data)
+    )
 end

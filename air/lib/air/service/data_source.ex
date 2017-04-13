@@ -48,16 +48,18 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Returns most recent queries executed on the given data source by the given user."
-  @spec history(data_source_id_spec, User.t, pos_integer, NaiveDateTime.t) :: {:ok, [Query.t]} | {:error, :unauthorized}
-  def history(data_source_id_spec, user, count, before) do
+  @spec history(data_source_id_spec, User.t, Query.Context.t, pos_integer, NaiveDateTime.t) ::
+    {:ok, [Query.t]} | {:error, :unauthorized}
+  def history(data_source_id_spec, user, context, count, before) do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user), do:
-      {:ok, Air.Service.Query.load_recent_queries(user, data_source, count, before)}
+      {:ok, Air.Service.Query.load_recent_queries(user, data_source, context, count, before)}
   end
 
   @doc "Returns the last query executed on the given data source by the given user."
-  @spec last_query(data_source_id_spec, User.t) :: {:ok, Query.t | nil} | {:error, :unauthorized}
-  def last_query(data_source_id_spec, user) do
-    with {:ok, queries} <- history(data_source_id_spec, user, 1, NaiveDateTime.utc_now()) do
+  @spec last_query(data_source_id_spec, User.t, Query.Context.t) ::
+    {:ok, Query.t | nil} | {:error, :unauthorized}
+  def last_query(data_source_id_spec, user, context) do
+    with {:ok, queries} <- history(data_source_id_spec, user, context, 1, NaiveDateTime.utc_now()) do
       case queries do
         [query] -> {:ok, query}
         [] -> {:ok, nil}
@@ -95,14 +97,14 @@ defmodule Air.Service.DataSource do
     )
 
   @doc "Starts the query on the given data source as the given user."
-  @spec start_query(data_source_id_spec, User.t, String.t, [Protocol.db_value], start_query_options) ::
-    {:ok, Query.t} | data_source_operation_error
-  def start_query(data_source_id_spec, user, statement, parameters, opts \\ []) do
+  @spec start_query(data_source_id_spec, User.t, Query.Context.t, String.t, [Protocol.db_value],
+    start_query_options) :: {:ok, Query.t} | data_source_operation_error
+  def start_query(data_source_id_spec, user, context, statement, parameters, opts \\ []) do
     opts = Keyword.merge([audit_meta: %{}, notify: false], opts)
 
     on_available_cloak(data_source_id_spec, user,
       fn(data_source, channel_pid, %{id: cloak_id}) ->
-        query = create_query(cloak_id, data_source.id, user, statement, parameters, opts[:session_id])
+        query = create_query(cloak_id, data_source.id, user, context, statement, parameters, opts[:session_id])
 
         UserChannel.broadcast_state_change(query)
 
@@ -118,11 +120,11 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Runs the query synchronously and returns its result."
-  @spec run_query(data_source_id_spec, User.t, String.t, [Protocol.db_value], [audit_meta: %{atom => any}]) ::
-    {:ok, map} | data_source_operation_error
-  def run_query(data_source_id_spec, user, statement, parameters, opts \\ []) do
+  @spec run_query(data_source_id_spec, User.t, Query.Context.t, String.t, [Protocol.db_value],
+    [audit_meta: %{atom => any}]) :: {:ok, map} | data_source_operation_error
+  def run_query(data_source_id_spec, user, context, statement, parameters, opts \\ []) do
     opts = [{:notify, true} | opts]
-    with {:ok, %{id: query_id}} <- start_query(data_source_id_spec, user, statement, parameters, opts) do
+    with {:ok, %{id: query_id}} <- start_query(data_source_id_spec, user, context, statement, parameters, opts) do
       receive do
         {:query_result, %{"query_id" => ^query_id} = result} ->
           Air.QueryEvents.unsubscribe(query_id)
@@ -243,7 +245,7 @@ defmodule Air.Service.DataSource do
   defp user_data_source(user, {:global_id, global_id}), do:
     from data_source in users_data_sources(user), where: data_source.global_id == ^global_id
 
-  defp create_query(cloak_id, data_source_id, user, statement, parameters, session_id) do
+  defp create_query(cloak_id, data_source_id, user, context, statement, parameters, session_id) do
     user
     |> Ecto.build_assoc(:queries)
     |> Query.changeset(%{
@@ -253,6 +255,7 @@ defmodule Air.Service.DataSource do
           parameters: %{values: parameters},
           session_id: session_id,
           query_state: :started,
+          context: context,
         })
     |> Repo.insert!()
     |> Repo.preload(:data_source)

@@ -72,7 +72,7 @@ defmodule Air.TestRepoHelper do
   def create_query!(user, params \\ %{statement: "query content", session_id: Ecto.UUID.generate()}) do
     user
     |> Ecto.build_assoc(:queries)
-    |> Air.Schemas.Query.changeset(params)
+    |> Air.Schemas.Query.changeset(Map.merge(%{context: :http}, params))
     |> Repo.insert!()
   end
 

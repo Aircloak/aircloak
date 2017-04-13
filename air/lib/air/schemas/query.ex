@@ -5,10 +5,13 @@ defmodule Air.Schemas.Query do
   alias Air.{Schemas.DataSource, Schemas.User, Repo, PsqlServer.Protocol}
 
   require EctoEnum
+
   EctoEnum.defenum QueryState, :query_state, [
     :started, :parsing, :compiling, :awaiting_data, :ingesting_data, :processing, :post_processing, :completed,
     :error, :cancelled
   ]
+
+  EctoEnum.defenum Context, :query_context, [:http, :psql]
 
   @type t :: %__MODULE__{}
   @type cloak_query :: %{
@@ -18,6 +21,7 @@ defmodule Air.Schemas.Query do
     data_source: String.t,
     views: %{String.t => String.t},
     query_state: __MODULE__.QueryState.t,
+    context: __MODULE__.Context.t,
   }
 
   @primary_key {:id, :binary_id, autogenerate: true}
@@ -32,6 +36,7 @@ defmodule Air.Schemas.Query do
     field :parameters, :map
     field :cloak_id, :string
     field :query_state, __MODULE__.QueryState
+    field :context, Context
 
     belongs_to :user, User
     belongs_to :data_source, DataSource
@@ -42,7 +47,7 @@ defmodule Air.Schemas.Query do
   @required_fields ~w()a
   @optional_fields ~w(
     cloak_id statement data_source_id tables result execution_time users_count
-    features session_id parameters query_state
+    features session_id parameters query_state context
   )a
 
 
@@ -83,27 +88,6 @@ defmodule Air.Schemas.Query do
     rows = Enum.flat_map(result["rows"],
       fn(%{"occurrences" => occurrences, "row" => row}) -> List.duplicate(row, occurrences) end)
     CSV.encode([header | rows])
-  end
-
-
-  # -------------------------------------------------------------------
-  # Query functions
-  # -------------------------------------------------------------------
-
-  @doc "Adds a query filter selecting only those for the given data source"
-  @spec for_data_source(Ecto.Queryable.t, DataSource.t) :: Ecto.Queryable.t
-  def for_data_source(query \\ __MODULE__, data_source) do
-    from q in query,
-    where: q.data_source_id == ^data_source.id
-  end
-
-  @doc "Adds a query filter limiting the number of selected queries"
-  @spec recent(Ecto.Queryable.t, pos_integer, NaiveDateTime.t) :: Ecto.Queryable.t
-  def recent(query \\ __MODULE__, count, before) do
-    from q in query,
-    where: q.inserted_at < ^before,
-    order_by: [desc: q.inserted_at],
-    limit: ^count
   end
 
 

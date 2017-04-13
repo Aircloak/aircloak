@@ -28,6 +28,7 @@ defmodule Air.QueryController do
     case DataSource.start_query(
       data_source_id_spec(params),
       conn.assigns.current_user,
+      :http,
       Map.fetch!(params, "statement"),
       [],
       audit_meta: audit_log_meta(conn),
@@ -44,7 +45,7 @@ defmodule Air.QueryController do
       "" -> NaiveDateTime.utc_now()
       string -> NaiveDateTime.from_iso8601!(string)
     end
-    case DataSource.history(data_source_id_spec(params), conn.assigns.current_user, 10, before) do
+    case DataSource.history(data_source_id_spec(params), conn.assigns.current_user, :http, 10, before) do
       {:ok, queries} ->
         json(conn, queries)
       _ ->

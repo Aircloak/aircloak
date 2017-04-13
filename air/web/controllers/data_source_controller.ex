@@ -37,9 +37,9 @@ defmodule Air.DataSourceController do
 
   def show(conn, %{"id" => id}) do
     with {:ok, data_source} <- DataSource.fetch_as_user({:id, id}, conn.assigns.current_user),
-         {:ok, last_query} <- DataSource.last_query({:id, id}, conn.assigns.current_user)
+         {:ok, last_query} <- DataSource.last_query({:id, id}, conn.assigns.current_user, :http)
     do
-      pending_queries = Air.Service.Query.currently_running(conn.assigns.current_user, data_source)
+      pending_queries = Air.Service.Query.currently_running(conn.assigns.current_user, data_source, :http)
       |> Enum.map(&Air.Schemas.Query.for_display/1)
 
       conn
@@ -65,7 +65,7 @@ defmodule Air.DataSourceController do
 
   def redirect_to_last_used(conn, _params) do
     conn.assigns.current_user
-    |> Query.last_for_user()
+    |> Query.last_for_user(:http)
     |> case do
       %{data_source_id: data_source_id} when data_source_id != nil ->
         redirect(conn, to: data_source_path(conn, :show, data_source_id))
