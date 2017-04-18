@@ -7,7 +7,7 @@ defmodule Air.Service.DataSource do
   import Ecto.Query, only: [from: 2]
   require Logger
 
-  @type data_source_id_spec :: {:id, integer} | {:global_id, String.t}
+  @type data_source_id_spec :: {:id, integer} | {:global_id, String.t} | {:name, String.t}
 
   @type start_query_options :: [
     audit_meta: %{atom => any},
@@ -244,6 +244,8 @@ defmodule Air.Service.DataSource do
     from data_source in users_data_sources(user), where: data_source.id == ^id
   defp user_data_source(user, {:global_id, global_id}), do:
     from data_source in users_data_sources(user), where: data_source.global_id == ^global_id
+  defp user_data_source(user, {:name, name}), do:
+    from data_source in users_data_sources(user), where: data_source.name == ^name
 
   defp create_query(cloak_id, data_source_id, user, context, statement, parameters, session_id) do
     user

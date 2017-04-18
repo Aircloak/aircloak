@@ -60,6 +60,11 @@ defmodule Air.Service.DataSourceTest do
     assert data_source.id == context.ds1.id
   end
 
+  test "fetching available data source with a name", context do
+    assert {:ok, data_source} = DataSource.fetch_as_user({:name, context.ds1.name}, context.user1)
+    assert data_source.id == context.ds1.id
+  end
+
   test "fetching unavailable data source", context, do:
     assert {:error, :unauthorized} == DataSource.fetch_as_user({:id, context.ds1.id}, context.user3)
 

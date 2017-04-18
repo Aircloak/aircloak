@@ -73,7 +73,7 @@ defmodule IntegrationTest.TableauTest do
       [
         user: user.email,
         password: Manager.user_password(),
-        database: Manager.data_source_global_id(),
+        database: Manager.data_source_name(),
         sslmode: "require"
       ],
       params

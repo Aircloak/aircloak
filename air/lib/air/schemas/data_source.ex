@@ -71,6 +71,7 @@ defmodule Air.Schemas.DataSource do
     |> cast(params, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
     |> unique_constraint(:global_id)
+    |> unique_constraint(:name)
     |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
   end
 end

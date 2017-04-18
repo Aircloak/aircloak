@@ -7,6 +7,7 @@ defmodule IntegrationTest.Manager do
   @admin_group_name "admins"
   @user_password "1234"
   @data_source_global_id "postgres/cloaktest1-native@localhost"
+  @data_source_name "integration_test_datasource"
 
   def start(_type, _args) do
     Application.ensure_all_started(:central)
@@ -27,6 +28,7 @@ defmodule IntegrationTest.Manager do
   # -------------------------------------------------------------------
 
   def data_source_global_id(), do: @data_source_global_id
+  def data_source_name(), do: @data_source_name
 
   def data_source(), do:
     Repo.one(from(ds in DataSource, where: ds.global_id == @data_source_global_id))
@@ -84,7 +86,7 @@ defmodule IntegrationTest.Manager do
     from(ds in DataSource, where: ds.global_id == @data_source_global_id)
     |> Repo.one!()
     |> Repo.preload([:groups])
-    |> DataSource.changeset(%{groups: [admin_group.id]})
+    |> DataSource.changeset(%{groups: [admin_group.id], name: @data_source_name})
     |> Repo.update!()
 
     Repo.delete_all(ExportForAircloak)
