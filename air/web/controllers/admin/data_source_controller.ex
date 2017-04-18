@@ -59,7 +59,8 @@ defmodule Air.Admin.DataSourceController do
         conn
         |> put_flash(:info, "Data source updated")
         |> redirect(to: admin_data_source_path(conn, :index))
-      {:error, changeset} -> render(conn, "edit.html", changeset: changeset)
+      {:error, changeset} ->
+        render(conn, "edit.html", changeset: changeset, chosen_groups: changeset.data.groups)
     end
   end
 
