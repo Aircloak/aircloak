@@ -51,8 +51,7 @@ defmodule Air.Admin.DataSourceController do
   end
 
   def update(conn, params) do
-    user = conn.assigns.data_source
-    changeset = DataSource.changeset(user, params["data_source"])
+    changeset = DataSource.changeset(conn.assigns.data_source, params["data_source"])
     case Repo.update(changeset) do
       {:ok, data_source} ->
         audit_log(conn, "Altered data source", name: data_source.name, data_source: data_source.id)
