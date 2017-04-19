@@ -6,24 +6,6 @@ defmodule Cloak.Sql.Lexer do
   alias Cloak.Sql.Parsers.Token
 
 
-  # -------------------------------------------------------------------
-  # API functions
-  # -------------------------------------------------------------------
-
-  @doc "Tokenizes the given string."
-  @spec tokenize(String.t) :: {:ok, [Token.t]} | {:error, any}
-  def tokenize(query_string) do
-    case Combine.parse(query_string, lexer()) do
-      {:error, _} = error -> error
-      [{tokens, eof}] -> {:ok, tokens ++ [eof]}
-    end
-  end
-
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
   @keywords [
     "SELECT", "SHOW",
     "TABLES", "COLUMNS",
@@ -48,6 +30,28 @@ defmodule Cloak.Sql.Lexer do
     "HAVING",
     "LIMIT", "OFFSET"
   ]
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Tokenizes the given string."
+  @spec tokenize(String.t) :: {:ok, [Token.t]} | {:error, any}
+  def tokenize(query_string) do
+    case Combine.parse(query_string, lexer()) do
+      {:error, _} = error -> error
+      [{tokens, eof}] -> {:ok, tokens ++ [eof]}
+    end
+  end
+
+  @doc "Returns a list of SQL keywords accepted by the lexer."
+  @spec keywords() :: [String.t]
+  def keywords(), do: @keywords
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp lexer() do
     pair_both(tokens(), eof_token())
