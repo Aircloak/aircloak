@@ -11,7 +11,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
   #-----------------------------------------------------------------------------------------------------------
 
   @doc false
-  def handle_query(conn, query) do
+  def run_query(conn, query) do
     cond do
       query =~ ~r/begin;declare.* for select relname, nspname, relkind from.*fetch.*/i ->
         fetch_tables(conn)
@@ -37,8 +37,18 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
         # indexed columns
         set_temp_cursor_query_result(conn, empty_result(:fetch, ~w(attname attnum relname nspname relname)))
 
+      query =~ ~r/statement does not return rows/ ->
+        RanchServer.set_query_result(conn, command: :select, columns: [], rows: [])
+
       true ->
         nil
+    end
+  end
+
+  @doc false
+  def describe_query(conn, query, _params) do
+    if query =~ ~r/statement does not return rows/ do
+      RanchServer.set_describe_result(conn, columns: [], param_types: [])
     end
   end
 

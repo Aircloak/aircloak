@@ -43,23 +43,25 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
 
     params = Messages.convert_params(bind_data.params, bind_data.format_codes, param_types)
 
+    prepared_statement = %{prepared_statement | params: params, result_codes: bind_data.result_codes}
+
     protocol
-    |> put_in([:prepared_statements, bind_data.name],
-        %{prepared_statement | params: params, result_codes: bind_data.result_codes})
+    |> put_in([:portals, bind_data.portal], prepared_statement)
     |> Protocol.send_to_client(:bind_complete)
     |> Protocol.await_client_message()
   end
   def handle_client_message(protocol, :describe, describe_data) do
-    prepared_statement = Map.fetch!(protocol.prepared_statements, describe_data.name)
+    describe_storage = describe_storage(describe_data.type)
+    prepared_statement = protocol |> Map.fetch!(describe_storage) |> Map.fetch!(describe_data.name)
 
-    %{protocol | describing_statement: describe_data.name}
+    %{protocol | describing_statement: {describe_data.type, describe_data.name}}
     |> Protocol.add_action({:describe_statement, prepared_statement.query, params_with_types(prepared_statement)})
     |> Protocol.next_state(:ready)
   end
   def handle_client_message(protocol, :execute, execute_data) do
-    prepared_statement = Map.fetch!(protocol.prepared_statements, execute_data.name)
+    prepared_statement = Map.fetch!(protocol.portals, execute_data.portal)
 
-    %{protocol | running_prepared_statement: execute_data.name}
+    %{protocol | executing_portal: execute_data.portal}
     |> Protocol.add_action({:run_query, prepared_statement.query, params_with_types(prepared_statement),
       execute_data.max_rows})
     |> Protocol.next_state(:ready)
@@ -72,41 +74,45 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     Protocol.await_client_message(protocol, state: :ready)
   def handle_client_message(protocol, :close, close_data), do:
     protocol
-    |> update_in([:prepared_statements], &Map.delete(&1, close_data.name))
+    |> update_in([describe_storage(close_data.type)], &Map.delete(&1, close_data.name))
     |> Protocol.send_to_client(:close_complete)
     |> Protocol.await_client_message()
 
   @doc false
-  def handle_event(%{running_prepared_statement: name} = protocol, {:send_query_result, result}) when name != nil do
-    statement = Map.fetch!(protocol.prepared_statements, name)
-    rows = Keyword.fetch!(result, :rows)
+  def handle_event(protocol, {:send_query_result, result}) do
+    if protocol.executing_portal != nil do
+      statement = Map.fetch!(protocol.portals, protocol.executing_portal)
+      rows = Keyword.fetch!(result, :rows)
 
-    protocol
-    |> send_rows(rows, statement.columns, statement.result_codes)
-    |> Protocol.send_to_client({:command_complete, "SELECT #{length(rows)}"})
-    |> Protocol.send_to_client(:ready_for_query)
-    |> Protocol.syncing()
-    |> Protocol.await_client_message()
+      protocol
+      |> send_rows(rows, statement.columns, statement.result_codes)
+      |> send_command_completion(result)
+      |> send_ready_for_query(result)
+      |> Protocol.syncing()
+      |> Protocol.await_client_message()
+    else
+      protocol
+      |> send_result(result)
+      |> send_command_completion(result)
+      |> send_ready_for_query(result)
+      |> Protocol.await_client_message()
+    end
   end
-  def handle_event(protocol, {:send_query_result, result}), do:
-    protocol
-    |> send_result(result)
-    |> send_command_completion(result)
-    |> send_ready_for_query(result)
-    |> Protocol.await_client_message()
+
   def handle_event(protocol, {:describe_result, {:error, error}}), do:
     protocol
     |> Protocol.send_to_client({:syntax_error, error})
     |> Protocol.await_client_message()
-  def handle_event(%{describing_statement: name} = protocol, {:describe_result, description}) do
-    prepared_statement = Map.fetch!(protocol.prepared_statements, name)
+  def handle_event(%{describing_statement: {describe_type, name}} = protocol, {:describe_result, description}) do
+    describe_storage = describe_storage(describe_type)
+    prepared_statement = protocol |> Map.fetch!(describe_storage) |> Map.fetch!(name)
 
     result_codes = prepared_statement.result_codes || [:text]
     protocol
-    |> put_in([:prepared_statements, name, :parsed_param_types], Keyword.fetch!(description, :param_types))
-    |> put_in([:prepared_statements, name, :columns], Keyword.fetch!(description, :columns))
+    |> put_in([describe_storage, name, :parsed_param_types], Keyword.fetch!(description, :param_types))
+    |> put_in([describe_storage, name, :columns], Keyword.fetch!(description, :columns))
     |> send_parameter_descriptions(prepared_statement, Keyword.fetch!(description, :param_types))
-    |> Protocol.send_to_client({:row_description, Keyword.fetch!(description, :columns), result_codes})
+    |> send_row_description(Keyword.fetch!(description, :columns), result_codes)
     |> Protocol.await_client_message()
   end
 
@@ -128,7 +134,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     with {:ok, columns} <- Keyword.fetch(result, :columns),
          {:ok, rows} <- Keyword.fetch(result, :rows) do
       protocol
-      |> Protocol.send_to_client({:row_description, columns, [:text]})
+      |> send_row_description(columns, [:text])
       |> send_rows(rows, columns, [:text])
     else
       _ -> protocol
@@ -162,6 +168,10 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     end
   end
 
+  defp send_row_description(protocol, [], _formats), do:
+    Protocol.send_to_client(protocol, :no_data)
+  defp send_row_description(protocol, columns, formats), do:
+    Protocol.send_to_client(protocol, {:row_description, columns, formats})
 
   defp send_rows(protocol, rows, columns, formats), do:
     Enum.reduce(rows, protocol, &Protocol.send_to_client(&2, {:data_row, &1, column_types(columns), formats}))
@@ -181,4 +191,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
 
     Enum.zip(param_types, prepared_statement.params)
   end
+
+  defp describe_storage(:statement), do: :prepared_statements
+  defp describe_storage(:portal), do: :portals
 end

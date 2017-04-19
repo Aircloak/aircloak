@@ -27,9 +27,10 @@ defmodule Air.PsqlServer.Protocol do
     decode_message?: boolean,
     decoded_message_type: Messages.message_header,
     actions: [action],
-    describing_statement: nil | binary,
-    running_prepared_statement: nil | binary,
+    describing_statement: nil | describing_info,
+    executing_portal: nil | binary,
     prepared_statements: %{String.t => prepared_statement},
+    portals: %{String.t => prepared_statement},
     debug?: boolean,
   }
 
@@ -49,7 +50,7 @@ defmodule Air.PsqlServer.Protocol do
     {:login_params, map} |
     {:authenticate, password :: binary} |
     {:run_query, String.t, [%{type: Value.type, value: db_value}], non_neg_integer} |
-    {:describe_statement, String.t, [%{type: Value.type, value: db_value}] | nil}
+    {:describe_statement, describing_info, [%{type: Value.type, value: db_value}] | nil}
 
   @type db_value :: String.t | number | boolean | nil
 
@@ -80,6 +81,8 @@ defmodule Air.PsqlServer.Protocol do
     {:authenticated, boolean} |
     {:send_query_result, query_result} |
     {:describe_result, describe_result}
+
+  @type describing_info :: {:statement | :portal, binary}
 
   @type describe_result :: {:error, String.t} | [columns: [column], param_types: [Value.type]]
 
@@ -114,8 +117,9 @@ defmodule Air.PsqlServer.Protocol do
       actions: [],
       describing_statement: nil,
       describing_statement: nil,
-      running_prepared_statement: nil,
+      executing_portal: nil,
       prepared_statements: %{},
+      portals: %{},
       debug?: Keyword.get(Application.fetch_env!(:air, Air.PsqlServer), :debug, false)
     }
   end

@@ -13,7 +13,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
     :parse_complete | :require_ssl |
     {:parameter_status, String.t, String.t} | {:parameter_description, [Protocol.Value.type]} |
     {:row_description, [Protocol.column], [Protocol.Value.format]} |
-    {:data_row, [Protocol.db_value], [Protocol.Value.type], [Protocol.Value.format]}
+    {:data_row, [Protocol.db_value], [Protocol.Value.type], [Protocol.Value.format]} |
+    :no_data
 
   @type client_message_name ::
     :bind | :close | :describe | :execute | :flush | :parse | :password | :query | :sync | :terminate
@@ -53,16 +54,16 @@ defmodule Air.PsqlServer.Protocol.Messages do
   @doc "Decodes the payload of the client message with the given name."
   @spec decode_message(client_message_name, binary) :: map
   def decode_message(:close, <<type, name::binary>>), do:
-    %{type: type, name: hd(:binary.split(name, <<0>>))}
+    %{type: decode_statement_or_portal(type), name: hd(:binary.split(name, <<0>>))}
   def decode_message(:bind, message), do:
     decode_bind_message(message)
   def decode_message(:describe, <<type, describe_data::binary>>) do
     [name, ""] = :binary.split(describe_data, <<0>>)
-    %{type: type, name: name}
+    %{type: decode_statement_or_portal(type), name: name}
   end
   def decode_message(:execute, execute_data) do
-    [name, <<max_rows::32>>] = :binary.split(execute_data, <<0>>)
-    %{name: name, max_rows: max_rows}
+    [portal, <<max_rows::32>>] = :binary.split(execute_data, <<0>>)
+    %{portal: portal, max_rows: max_rows}
   end
   def decode_message(:parse, parse_data) do
     [name, parse_data] = :binary.split(parse_data, <<0>>)
@@ -122,14 +123,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
     server_message(:parameter_description, <<length(param_types)::16, encoded_types::binary>>)
   end
-  def encode_message(:startup_message, major, minor, opts) do
-    [
-      <<major::16, minor::16>>,
-      Enum.map(opts, fn({key, value}) -> null_terminate(to_string(key)) <> null_terminate(value) end)
-    ]
-    |> to_string()
-    |> message_with_size()
-  end
+  def encode_message(:no_data), do:
+    server_message(:no_data)
 
   @doc "Converts query parameters to proper Elixir types."
   @spec convert_params([any], [Protocol.Value.format], [Protocol.Value.type]) :: [any]
@@ -174,7 +169,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
   #-----------------------------------------------------------------------------------------------------------
 
   defp decode_bind_message(bind_message_data) do
-    [_portal, bind_message_data] = :binary.split(bind_message_data, <<0>>)
+    [portal, bind_message_data] = :binary.split(bind_message_data, <<0>>)
     [name, bind_message_data] = :binary.split(bind_message_data, <<0>>)
 
     <<num_format_codes::16, bind_message_data::binary>> = bind_message_data
@@ -187,6 +182,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
     {result_codes, <<>>} = decode_result_codes(num_result_codes, bind_message_data)
 
     %{
+      portal: portal,
       name: name,
       format_codes: format_codes,
       params: params,
@@ -236,6 +232,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
         close_complete: ?3,
         command_complete: ?C,
         data_row: ?D,
+        no_data: ?n,
         error_response: ?E,
         parameter_description: ?t,
         parameter_status: ?S,
@@ -246,7 +243,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
     defp server_message_byte(unquote(message_name)), do: unquote(message_byte)
   end
 
-  defp server_message(message_name, payload), do:
+  defp server_message(message_name, payload \\ <<>>), do:
     <<server_message_byte(message_name)::8, message_with_size(payload)::binary>>
 
   defp error_message(severity, code, message), do:
@@ -290,4 +287,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
     <<(4 + byte_size(payload))::32, payload::binary>>
 
   defp null_terminate(string), do: <<string::binary, 0>>
+
+  defp decode_statement_or_portal(?S), do: :statement
+  defp decode_statement_or_portal(?P), do: :portal
 end

@@ -68,6 +68,14 @@ defmodule IntegrationTest.TableauTest do
     ]
   end
 
+  test "tableau query for no results", context do
+    # using Postgrex, because it works with describing queries
+    {:ok, conn} = postgrex_connect(context.user)
+    query = "-- statement does not return rows\nSELECT *\nINTO TEMPORARY TABLE \"#Tableau_5_1_Connect\"\nFROM (SELECT 1 AS COL) AS CHECKTEMP\nLIMIT 1"
+    assert Postgrex.query(conn, query, []) == {:ok,
+      %Postgrex.Result{columns: nil, command: :select, connection_id: nil, num_rows: 0, rows: nil}}
+  end
+
   defp connect(user, params \\ []) do
     params = Keyword.merge(
       [
@@ -94,5 +102,16 @@ defmodule IntegrationTest.TableauTest do
       |> to_charlist()
 
     :odbc.connect(connection_string, [])
+  end
+
+  defp postgrex_connect(user) do
+    Postgrex.start_link(
+      hostname: "localhost",
+      port: Application.fetch_env!(:air, Air.PsqlServer) |> Keyword.fetch!(:port),
+      username: user.email,
+      password: Manager.user_password(),
+      database: Manager.data_source_name(),
+      ssl: true
+    )
   end
 end

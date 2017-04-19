@@ -10,7 +10,15 @@ defmodule Air.PsqlServer do
     The implementation should return a modified `conn` if it decides to handle
     the query, or `nil` otherwise.
     """
-    @callback handle_query(RanchServer.t, String.t) :: RanchServer.t | nil
+    @callback run_query(RanchServer.t, String.t) :: RanchServer.t | nil
+
+    @doc """
+    Invoked by `Air.PsqlServer` when a query should be described.
+
+    The implementation should return a modified `conn` if it decides to handle
+    the query, or `nil` otherwise.
+    """
+    @callback describe_query(RanchServer.t, String.t, [any]) :: RanchServer.t | nil
   end
 
   alias Air.PsqlServer.{Protocol, RanchServer}
@@ -83,7 +91,7 @@ defmodule Air.PsqlServer do
 
   @doc false
   def run_query(conn, query, params, _max_rows) do
-    case handle_special_query(conn, query) do
+    case run_special_query(conn, query) do
       {true, conn} ->
         conn
       false ->
@@ -93,21 +101,27 @@ defmodule Air.PsqlServer do
 
   @doc false
   def describe_statement(conn, query, params) do
-    user = conn.assigns.user
-    data_source_id = conn.assigns.data_source_id
-    converted_params = convert_params(params)
-    run_async(
-      conn,
-      fn -> DataSource.describe_query(data_source_id, user, query, converted_params) end,
-      fn(conn, describe_result) ->
-        result =
-        case parse_response(describe_result) do
-          {:error, _} = error -> error
-          parsed_response -> Keyword.take(parsed_response, [:columns, :param_types])
-        end
-        RanchServer.set_describe_result(conn, result)
-      end
-    )
+    case describe_special_query(conn, query, params) do
+      {true, conn} ->
+        conn
+
+      false ->
+        user = conn.assigns.user
+        data_source_id = conn.assigns.data_source_id
+        converted_params = convert_params(params)
+        run_async(
+          conn,
+          fn -> DataSource.describe_query(data_source_id, user, query, converted_params) end,
+          fn(conn, describe_result) ->
+            result =
+              case parse_response(describe_result) do
+                {:error, _} = error -> error
+                parsed_response -> Keyword.take(parsed_response, [:columns, :param_types])
+              end
+            RanchServer.set_describe_result(conn, result)
+          end
+        )
+    end
   end
 
   @doc false
@@ -143,9 +157,15 @@ defmodule Air.PsqlServer do
         keyfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_key.pem"])
       ])
 
-  defp handle_special_query(conn, query) do
+  defp run_special_query(conn, query), do:
+    handle_special_query(&(&1.run_query(conn, query)))
+
+  defp describe_special_query(conn, query, params), do:
+    handle_special_query(&(&1.describe_query(conn, query, params)))
+
+  defp handle_special_query(handler_fun) do
     [SpecialQueries.Common, SpecialQueries.Tableau]
-    |> Stream.map(&(&1.handle_query(conn, query)))
+    |> Stream.map(handler_fun)
     |> Stream.reject(&(&1 == nil))
     |> Enum.take(1)
     |> case do

@@ -10,7 +10,7 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
   #-----------------------------------------------------------------------------------------------------------
 
   @doc false
-  def handle_query(conn, query) do
+  def run_query(conn, query) do
     cond do
       query =~ ~r/^set /i ->
         RanchServer.set_query_result(conn, command: :set)
@@ -19,11 +19,15 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
       query =~ ~r/^select t.oid, t.typname, t.typsend, t.typreceive.*FROM pg_type AS t\s*$/is ->
         return_types_for_postgrex(conn)
       query =~ ~r/^select.+from pg_type/si ->
-        RanchServer.set_query_result(conn, [columns: [], rows: []])
+        RanchServer.set_query_result(conn, [columns: [%{name: "oid", type: :text}], rows: []])
       true ->
         nil
     end
   end
+
+  @doc false
+  def describe_query(_conn, _query, _params), do:
+    nil
 
 
   #-----------------------------------------------------------------------------------------------------------
