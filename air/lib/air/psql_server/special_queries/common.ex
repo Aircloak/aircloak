@@ -19,7 +19,7 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
       query =~ ~r/^select t.oid, t.typname, t.typsend, t.typreceive.*FROM pg_type AS t\s*$/is ->
         return_types_for_postgrex(conn)
       query =~ ~r/^select.+from pg_type/si ->
-        RanchServer.set_query_result(conn, [columns: [], rows: []])
+        RanchServer.set_query_result(conn, [columns: [%{name: "oid", type: :text}], rows: []])
       true ->
         nil
     end

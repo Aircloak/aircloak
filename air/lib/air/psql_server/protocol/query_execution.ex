@@ -106,7 +106,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> put_in([:prepared_statements, name, :parsed_param_types], Keyword.fetch!(description, :param_types))
     |> put_in([:prepared_statements, name, :columns], Keyword.fetch!(description, :columns))
     |> send_parameter_descriptions(prepared_statement, Keyword.fetch!(description, :param_types))
-    |> Protocol.send_to_client({:row_description, Keyword.fetch!(description, :columns), result_codes})
+    |> send_row_description(Keyword.fetch!(description, :columns), result_codes)
     |> Protocol.await_client_message()
   end
 
@@ -128,7 +128,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     with {:ok, columns} <- Keyword.fetch(result, :columns),
          {:ok, rows} <- Keyword.fetch(result, :rows) do
       protocol
-      |> Protocol.send_to_client({:row_description, columns, [:text]})
+      |> send_row_description(columns, [:text])
       |> send_rows(rows, columns, [:text])
     else
       _ -> protocol
@@ -162,6 +162,10 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     end
   end
 
+  defp send_row_description(protocol, [], _formats), do:
+    Protocol.send_to_client(protocol, :no_data)
+  defp send_row_description(protocol, columns, formats), do:
+    Protocol.send_to_client(protocol, {:row_description, columns, formats})
 
   defp send_rows(protocol, rows, columns, formats), do:
     Enum.reduce(rows, protocol, &Protocol.send_to_client(&2, {:data_row, &1, column_types(columns), formats}))
