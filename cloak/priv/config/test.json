@@ -4,6 +4,7 @@
     {
       "driver": "postgresql",
       "marker": "native",
+      "name": "data_source_name",
       "parameters": {
         "hostname": "localhost",
         "username": "postgres",

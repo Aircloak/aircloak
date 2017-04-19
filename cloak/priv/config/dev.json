@@ -5,6 +5,7 @@
     {
       "driver": "postgresql",
       "marker": "native",
+      "name": "cloak_postgres_native",
       "parameters": {
         "hostname": "localhost",
         "username": "cloak",
@@ -47,6 +48,7 @@
     {
       "driver": "odbc",
       "marker": "odbc",
+      "name": "cloak_postgres_odbc",
       "parameters": {
         "DSN": "PostgreSQL",
         "UID": "cloak",

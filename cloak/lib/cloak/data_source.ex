@@ -33,6 +33,7 @@ defmodule Cloak.DataSource do
   """
 
   alias Cloak.Sql.Query
+  alias Cloak.DataSource.Validations
   alias Cloak.DataSource.Parameters
   alias Cloak.Query.DataDecoder
   alias Cloak.Query.Runner.RuntimeError
@@ -43,6 +44,7 @@ defmodule Cloak.DataSource do
   # define returned data types and values
   @type t :: %{
     global_id: atom,
+    name: String.t,
     driver: module,
     parameters: Cloak.DataSource.Driver.parameters,
     tables: %{atom => table},
@@ -184,6 +186,7 @@ defmodule Cloak.DataSource do
     data_source
     |> atomize_keys()
     |> Map.put(:errors, [])
+    |> Validations.Name.ensure_permitted()
     |> generate_global_id()
     |> map_driver()
   end
