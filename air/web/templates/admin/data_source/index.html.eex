@@ -4,7 +4,7 @@
   <thead>
     <tr>
       <th>Name</th>
-      <th>Id</th>
+      <th>Description</th>
       <th>Status</th>
       <th>Tables</th>
       <th>Users</th>
@@ -21,7 +21,7 @@
   <%= for data_source <- @data_sources do %>
     <tr class="<%= unless available?(data_source), do: "warning" %>">
       <td><%= data_source.name %></td>
-      <td><%= data_source.global_id %></td>
+      <td><%= data_source.description %></td>
       <td><%= availability_label(data_source) %></td>
       <td><%= number_of_tables(data_source) %></td>
       <td><%= Map.get(@users_count, data_source.id, 0) %></td>

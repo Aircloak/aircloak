@@ -29,4 +29,7 @@ defmodule Air.DataSourceView do
       :offline -> content_tag(:span, "Offline", class: "label label-danger")
     end
   end
+
+  def any_with_description?(data_sources), do:
+    Enum.any?(data_sources, & &1.description || "" |> String.trim() |> String.length() > 0)
 end

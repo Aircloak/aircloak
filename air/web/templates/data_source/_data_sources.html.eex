@@ -2,6 +2,9 @@
   <thead>
     <tr>
       <th>Name</th>
+      <%= if any_with_description?(@data_sources) do %>
+        <th>Description</th>
+      <% end %>
       <th>Status</th>
       <th>Tables</th>
     </tr>
@@ -12,6 +15,9 @@
       <td>
         <%= link data_source.name, to: data_source_path(@conn, :show, data_source) %>
       </td>
+      <%= if any_with_description?(@data_sources) do %>
+        <td><%= data_source.description %></td>
+      <% end %>
       <td>
         <%= availability_label(data_source) %>
       </td>
