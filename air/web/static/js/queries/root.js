@@ -24,6 +24,7 @@ type Props = {
   guardianToken: string,
   dataSourceId: number,
   dataSourceName: string,
+  dataSourceDescription: string,
   dataSourceStatus: string,
   selectables: Selectable[],
   lastQuery: {statement: string},
@@ -310,6 +311,14 @@ export default class QueriesView extends React.Component {
     }
   }
 
+  renderDataSourceDescription() {
+    if (this.props.dataSourceDescription.length > 0) {
+      return <small className="newline">{this.props.dataSourceDescription}</small>;
+    } else {
+      return null;
+    }
+  }
+
   renderCodeEditorOrViewer() {
     if (this.runEnabled()) {
       return (<CodeEditor
@@ -342,6 +351,7 @@ export default class QueriesView extends React.Component {
         {this.props.dataSourceName}
         &nbsp;
         {this.renderAvailabilityLabel()}
+        {this.renderDataSourceDescription()}
       </h2>
 
       <Disconnected channel={this.channel} />
