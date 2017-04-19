@@ -13,9 +13,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
         compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source()).noise_layers
     end
 
-    test "lists columns filtered with GROUP BY"
+    test "lists columns filtered with GROUP BY" do
+      assert [%Expression{name: "numeric"}] =
+        compile!("SELECT numeric, COUNT(*) FROM table GROUP BY numeric", data_source()).noise_layers
+    end
 
     test "lists columns filtered with JOIN"
+
+    test "lists columns filtered with emulated WHERE"
 
     test "lists underlying columns when a function is applied"
 

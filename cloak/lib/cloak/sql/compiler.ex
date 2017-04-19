@@ -151,7 +151,8 @@ defmodule Cloak.Sql.Compiler do
   defp calculate_noise_layers(query) do
     filters =
       Query.Lenses.filter_clauses()
-      |> Query.Lenses.conditions_terminals()
+      |> Query.Lenses.leaf_expressions()
+      |> Lens.both(Lens.key(:group_by) |> Lens.all())
       |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
       |> Lens.to_list(query)
 
