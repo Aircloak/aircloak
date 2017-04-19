@@ -114,10 +114,10 @@ defmodule Air.PsqlServer do
           fn -> DataSource.describe_query(data_source_id, user, query, converted_params) end,
           fn(conn, describe_result) ->
             result =
-            case parse_response(describe_result) do
-              {:error, _} = error -> error
-              parsed_response -> Keyword.take(parsed_response, [:columns, :param_types])
-            end
+              case parse_response(describe_result) do
+                {:error, _} = error -> error
+                parsed_response -> Keyword.take(parsed_response, [:columns, :param_types])
+              end
             RanchServer.set_describe_result(conn, result)
           end
         )
