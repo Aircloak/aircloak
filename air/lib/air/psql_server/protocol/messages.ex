@@ -54,16 +54,16 @@ defmodule Air.PsqlServer.Protocol.Messages do
   @doc "Decodes the payload of the client message with the given name."
   @spec decode_message(client_message_name, binary) :: map
   def decode_message(:close, <<type, name::binary>>), do:
-    %{type: type, name: hd(:binary.split(name, <<0>>))}
+    %{type: decode_statement_or_portal(type), name: hd(:binary.split(name, <<0>>))}
   def decode_message(:bind, message), do:
     decode_bind_message(message)
   def decode_message(:describe, <<type, describe_data::binary>>) do
     [name, ""] = :binary.split(describe_data, <<0>>)
-    %{type: type, name: name}
+    %{type: decode_statement_or_portal(type), name: name}
   end
   def decode_message(:execute, execute_data) do
-    [name, <<max_rows::32>>] = :binary.split(execute_data, <<0>>)
-    %{name: name, max_rows: max_rows}
+    [portal, <<max_rows::32>>] = :binary.split(execute_data, <<0>>)
+    %{portal: portal, max_rows: max_rows}
   end
   def decode_message(:parse, parse_data) do
     [name, parse_data] = :binary.split(parse_data, <<0>>)
@@ -169,7 +169,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
   #-----------------------------------------------------------------------------------------------------------
 
   defp decode_bind_message(bind_message_data) do
-    [_portal, bind_message_data] = :binary.split(bind_message_data, <<0>>)
+    [portal, bind_message_data] = :binary.split(bind_message_data, <<0>>)
     [name, bind_message_data] = :binary.split(bind_message_data, <<0>>)
 
     <<num_format_codes::16, bind_message_data::binary>> = bind_message_data
@@ -182,6 +182,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
     {result_codes, <<>>} = decode_result_codes(num_result_codes, bind_message_data)
 
     %{
+      portal: portal,
       name: name,
       format_codes: format_codes,
       params: params,
@@ -286,4 +287,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
     <<(4 + byte_size(payload))::32, payload::binary>>
 
   defp null_terminate(string), do: <<string::binary, 0>>
+
+  defp decode_statement_or_portal(?S), do: :statement
+  defp decode_statement_or_portal(?P), do: :portal
 end
