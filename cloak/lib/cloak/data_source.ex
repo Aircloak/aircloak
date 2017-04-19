@@ -248,7 +248,7 @@ defmodule Cloak.DataSource do
   end
 
   @doc false
-  def add_tables(data_source) do
+  def add_tables(%{errors: existing_errors} = data_source) do
     Logger.info("Loading tables from #{data_source.global_id} ...")
     driver = data_source.driver
     try do
@@ -264,11 +264,11 @@ defmodule Cloak.DataSource do
       error in RuntimeError ->
         message = "Connection error: #{Exception.message(error)}."
         Logger.error("Data source `#{data_source.global_id}`: #{message}")
-        %{data_source | errors: [message], tables: []}
+        %{data_source | errors: existing_errors ++ [message], tables: []}
     end
   end
 
-  defp scan_tables(data_source, connection) do
+  defp scan_tables(%{errors: existing_errors} = data_source, connection) do
     {tables, errors} =
       Enum.reduce(data_source.tables, {[], []}, fn (table, {tables, errors}) ->
         try do
@@ -281,7 +281,7 @@ defmodule Cloak.DataSource do
             {tables, errors ++ [message]}
         end
       end)
-    %{data_source | errors: errors, tables: Enum.into(tables, %{})}
+    %{data_source | errors: existing_errors ++ errors, tables: Enum.into(tables, %{})}
   end
 
   defp load_tables(data_source, connection, {table_id, table}) do
