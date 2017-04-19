@@ -9,6 +9,7 @@ defmodule Air.Schemas.DataSource do
   schema "data_sources" do
     field :global_id, :string
     field :name, :string
+    field :description, :string
     field :tables, :string
     field :errors, :string
 
@@ -22,7 +23,7 @@ defmodule Air.Schemas.DataSource do
   end
 
   @required_fields ~w(name tables global_id)a
-  @optional_fields ~w(errors)a
+  @optional_fields ~w(errors description)a
 
 
   # -------------------------------------------------------------------
