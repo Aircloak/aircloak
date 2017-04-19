@@ -55,6 +55,7 @@ defmodule Air.Schemas.DataSource do
       id: data_source.id,
       token: data_source.global_id,
       name: data_source.name,
+      description: data_source.description,
       tables: tables(data_source),
       errors: errors(data_source),
     }
