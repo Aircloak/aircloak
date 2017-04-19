@@ -125,14 +125,6 @@ defmodule Air.PsqlServer.Protocol.Messages do
   end
   def encode_message(:no_data), do:
     server_message(:no_data)
-  def encode_message(:startup_message, major, minor, opts) do
-    [
-      <<major::16, minor::16>>,
-      Enum.map(opts, fn({key, value}) -> null_terminate(to_string(key)) <> null_terminate(value) end)
-    ]
-    |> to_string()
-    |> message_with_size()
-  end
 
   @doc "Converts query parameters to proper Elixir types."
   @spec convert_params([any], [Protocol.Value.format], [Protocol.Value.type]) :: [any]
