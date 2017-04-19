@@ -93,6 +93,7 @@ defmodule Cloak.Sql.Compiler do
       |> verify_having()
       |> set_emulation_flag()
       |> partition_where_clauses()
+      |> calculate_noise_layers()
       |> calculate_db_columns()
       |> verify_limit()
       |> verify_offset()
@@ -140,6 +141,21 @@ defmodule Cloak.Sql.Compiler do
       {:ok, parsed_view} -> {:subquery, %{type: :parsed, ast: parsed_view, alias: view_name}}
       {:error, error} -> raise CompilationError, message: "Error in the view `#{view_name}`: #{error}"
     end
+  end
+
+
+  # -------------------------------------------------------------------
+  # Noise layers
+  # -------------------------------------------------------------------
+
+  defp calculate_noise_layers(query) do
+    filters =
+      Query.Lenses.filter_clauses()
+      |> Query.Lenses.conditions_terminals()
+      |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
+      |> Lens.to_list(query)
+
+    %{query | noise_layers: filters}
   end
 
 
