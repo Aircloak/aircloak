@@ -184,28 +184,37 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Creates or updates a data source, returning the updated data source"
-  @spec create_or_update_data_source(String.t, Map.t, [String.t]) :: DataSource.t
-  def create_or_update_data_source(global_id, tables, errors) do
-    case Repo.get_by(DataSource, global_id: global_id) do
+  @spec create_or_update_data_source(String.t, String.t, Map.t, [String.t]) :: DataSource.t
+  def create_or_update_data_source(name, global_id, tables, errors) do
+    case Repo.get_by(DataSource, name: name) do
       nil ->
-        params = %{
-          global_id: global_id,
-          name: global_id,
-          tables: Poison.encode!(tables),
-          errors: Poison.encode!(errors),
-        }
-        %DataSource{}
-        |> DataSource.changeset(params)
-        |> Repo.insert!()
+        # Deprecated: global_id is a remnant of Aircloak pre-version 17.3.0.
+        # It has to remain for compatibility with older versions
+        # (hidden from the sight of users) until version 18.1.0.
+        #
+        # This particular instance here is the upgrade path where
+        # a customer already has a data source that is identified
+        # by the global id. When upgrading to a version that uses
+        # the name as the identifier instead, we want to reuse the
+        # existing data source in order to retain data source permissions
+        # and query histories.
+        case Repo.get_by(DataSource, global_id: global_id) do
+          nil ->
+            params = %{
+              name: name,
+              # Retain global_id until version 18.1.0
+              global_id: global_id,
+              tables: Poison.encode!(tables),
+              errors: Poison.encode!(errors),
+            }
+            %DataSource{}
+            |> DataSource.changeset(params)
+            |> Repo.insert!()
 
-      data_source ->
-        params = %{
-          tables: Poison.encode!(tables),
-          errors: Poison.encode!(errors),
-        }
-        data_source
-        |> DataSource.changeset(params)
-        |> Repo.update!()
+          data_source -> update_data_source(data_source, name, tables, errors)
+        end
+
+      data_source -> update_data_source(data_source, name, tables, errors)
     end
   end
 
@@ -309,5 +318,16 @@ defmodule Air.Service.DataSource do
 
       {:error, :internal_error}
     end
+  end
+
+  defp update_data_source(data_source, name, tables, errors) do
+    params = %{
+      name: name,
+      tables: Poison.encode!(tables),
+      errors: Poison.encode!(errors),
+    }
+    data_source
+    |> DataSource.changeset(params)
+    |> Repo.update!()
   end
 end

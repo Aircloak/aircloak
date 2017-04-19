@@ -99,11 +99,15 @@ defmodule Air.Service.Cloak do
 
   defp register_data_sources(data_sources) do
     for data_source <- data_sources do
+      name = Map.fetch!(data_source, "name")
+      # Deprecated: global_id is a remnant of Aircloak pre-version 17.3.0.
+      # It has to remain for compatibility with older versions 
+      # (hidden from the sight of users) until version 18.1.0.
       global_id = Map.fetch!(data_source, "global_id")
       tables = Map.fetch!(data_source, "tables")
       errors = Map.get(data_source, "errors", [])
 
-      DataSource.create_or_update_data_source(global_id, tables, errors)
+      DataSource.create_or_update_data_source(name, global_id, tables, errors)
 
       global_id
     end
