@@ -51,22 +51,6 @@ defmodule Air.Admin.DataSourceControllerTest do
     end))
   end
 
-  test "can edit data source name" do
-    register_data_source()
-    admin = TestRepoHelper.create_admin_user!()
-    conn = build_conn()
-
-    assert soon(given_data_source(fn(data_source) ->
-      assert admin
-      |> login()
-      |> put(admin_data_source_path(conn, :update, data_source.id), data_source: %{name: "new name"})
-      |> redirected_to() == admin_data_source_path(conn, :index)
-
-      data_source = Repo.get(DataSource, data_source.id)
-      assert data_source.name == "new name"
-    end))
-  end
-
   test "deleting an unavailable data source" do
     register_data_source()
     admin = TestRepoHelper.create_admin_user!()
