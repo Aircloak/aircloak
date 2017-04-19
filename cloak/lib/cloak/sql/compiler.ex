@@ -1071,8 +1071,12 @@ defmodule Cloak.Sql.Compiler do
   defp extract_columns(columns), do:
     get_in(columns, [Query.Lenses.leaf_expressions()])
 
-  defp calculate_db_columns(query), do:
-    Enum.reduce(select_expressions(query) ++ range_columns(query), query, &Query.add_db_column(&2, &1))
+  defp calculate_db_columns(query) do
+    select_expressions(query) ++ range_columns(query) ++ noise_layer_columns(query)
+    |> Enum.reduce(query, &Query.add_db_column(&2, &1))
+  end
+
+  defp noise_layer_columns(query), do: query.noise_layers
 
   defp range_columns(%{subquery?: true, emulated?: false}), do: []
   defp range_columns(%{ranges: ranges}), do: ranges |> Enum.map(&(&1.column)) |> extract_columns()
