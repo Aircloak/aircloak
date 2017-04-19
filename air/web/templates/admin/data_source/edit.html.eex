@@ -18,6 +18,17 @@
   <%= error_tag f, :name %>
 </div>
 
+<div class="form-group">
+  <label>Description</label>
+  <%= textarea f, :description, class: "form-control" %>
+  <p class="help-block">
+    A description is optional. If available it will be shown to analysts on
+    the data source overview page to help them better distinguish between
+    different available data sources.
+  </p>
+  <%= error_tag f, :description %>
+</div>
+
 <h3>Groups</h3>
 
 <p>The data source's group assignments determine which users are available to query it.</p>
