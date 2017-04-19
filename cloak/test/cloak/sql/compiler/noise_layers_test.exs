@@ -18,7 +18,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
         compile!("SELECT numeric, COUNT(*) FROM table GROUP BY numeric", data_source()).noise_layers
     end
 
-    test "lists columns filtered with JOIN"
+    test "lists columns filtered with JOIN" do
+      assert [%Expression{name: "numeric"}] =
+        compile!(
+          "SELECT COUNT(*) FROM table JOIN other ON table.numeric = 3 AND table.uid = other.uid",
+          data_source()
+        ).noise_layers
+    end
 
     test "lists columns filtered with emulated WHERE"
 
@@ -45,8 +51,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
           name: "table",
           user_id: "uid",
           columns: [{"uid", :integer}, {"numeric", :integer}],
-          projection: nil
-        }
+          projection: nil,
+        },
+
+        other: %{
+          db_name: "other",
+          name: "other",
+          user_id: "uid",
+          columns: [{"uid", :integer}],
+          projection: nil,
+        },
       }
     }
   end
