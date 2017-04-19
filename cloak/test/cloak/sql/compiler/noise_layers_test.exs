@@ -26,7 +26,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
         ).noise_layers
     end
 
-    test "lists columns filtered with emulated WHERE"
+    test "lists columns filtered with emulated WHERE" do
+      assert [%Expression{name: "decoded"}] =
+        compile!("SELECT COUNT(*) FROM table WHERE decoded = 'a'", data_source()).noise_layers
+    end
 
     test "lists underlying columns when a function is applied"
 
@@ -34,6 +37,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
   end
 
   test "noise layer for a column that's filtered but not aggregated"
+
+  test "noise layers when there are multiple filters for one column"
 
   defp compile!(query_string, data_source, options \\ []) do
     query = Parser.parse!(query_string)
@@ -50,7 +55,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
           db_name: "table",
           name: "table",
           user_id: "uid",
-          columns: [{"uid", :integer}, {"numeric", :integer}],
+          columns: [{"uid", :integer}, {"numeric", :integer}, {"decoded", :text}],
+          decoders: [%{method: "base64", columns: ["decoded"]}],
           projection: nil,
         },
 
