@@ -11,6 +11,8 @@ defmodule Cloak.DataSource.Validations.Name do
   - not be a restricted SQL keyword
   """
 
+  alias Cloak.DataSource.Parameters
+
   @max_name_length 31
 
   #-----------------------------------------------------------------------------------------------------------
@@ -23,6 +25,7 @@ defmodule Cloak.DataSource.Validations.Name do
     |> validate_used_characters()
     |> validate_first_character()
     |> validate_no_keyword()
+    |> validate_has_name()
   end
 
   #-----------------------------------------------------------------------------------------------------------
@@ -45,7 +48,22 @@ defmodule Cloak.DataSource.Validations.Name do
     add_error_if(data_source, & Enum.member?(Cloak.Sql.Lexer.keywords(), String.upcase(&1)),
       "The data source name cannot be a reserved SQL keyword like SELECT, FROM, etc")
 
-  defp add_error_if(%{name: name, errors: errors} = data_source, validator, error_message) do
+  defp validate_has_name(%{errors: errors} = data_source) do
+    if Map.get(data_source, :name, "") === "" do
+      database = Parameters.get_one_of(data_source.parameters, ["database"])
+      host = Parameters.get_one_of(data_source.parameters, ["hostname", "server", "host"])
+      temp_name = "#{database}@#{host}"
+      error = "The data source for database #{database} on host #{host} needs to be configured with a name"
+      data_source
+      |> Map.put(:name, temp_name)
+      |> Map.put(:errors, [error | errors])
+    else
+      data_source
+    end
+  end
+
+  defp add_error_if(%{errors: errors} = data_source, validator, error_message) do
+    name = Map.get(data_source, :name, "")
     if validator.(name) do
       %{data_source | errors: [error_message | errors]}
     else

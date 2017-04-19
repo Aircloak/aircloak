@@ -5,6 +5,24 @@ defmodule Cloak.DataSource.Validations.Name.Test do
     test "allows valid names", do:
       assert errors_for_name("valid_name") == []
 
+    test "add error on missing name" do
+      data_source = data_source_config()
+      %{errors: errors} = Cloak.DataSource.Validations.Name.ensure_permitted(data_source)
+      assert hd(errors) =~ ~r/needs to be configured with a name/
+    end
+
+    test "add error on blank name" do
+      data_source = data_source_config("")
+      %{errors: errors} = Cloak.DataSource.Validations.Name.ensure_permitted(data_source)
+      assert hd(errors) =~ ~r/needs to be configured with a name/
+    end
+
+    test "on missing name, a temp name is generated for reference" do
+      data_source = data_source_config()
+      %{name: name} = Cloak.DataSource.Validations.Name.ensure_permitted(data_source)
+      refute is_nil(name)
+    end
+
     test "add error on too long name", do:
       assert_name_produces_error("this_name_exceeds_31_characters_in_length", ~r/too long/)
 
@@ -26,8 +44,17 @@ defmodule Cloak.DataSource.Validations.Name.Test do
     assert hd(errors_for_name(name)) =~ error
 
   defp errors_for_name(name) do
-    data_source = %{name: name, errors: []}
+    data_source = data_source_config(name)
     %{errors: errors} = Cloak.DataSource.Validations.Name.ensure_permitted(data_source)
     errors
+  end
+
+  defp data_source_config(name \\ nil) do
+    data_source = %{name: name, errors: [], parameters: %{host: "host", database: "database"}}
+    if is_nil(name) do
+      Map.delete(data_source, :name)
+    else
+      data_source
+    end
   end
 end
