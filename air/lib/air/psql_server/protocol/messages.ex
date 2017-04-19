@@ -13,7 +13,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
     :parse_complete | :require_ssl |
     {:parameter_status, String.t, String.t} | {:parameter_description, [Protocol.Value.type]} |
     {:row_description, [Protocol.column], [Protocol.Value.format]} |
-    {:data_row, [Protocol.db_value], [Protocol.Value.type], [Protocol.Value.format]}
+    {:data_row, [Protocol.db_value], [Protocol.Value.type], [Protocol.Value.format]} |
+    :no_data
 
   @type client_message_name ::
     :bind | :close | :describe | :execute | :flush | :parse | :password | :query | :sync | :terminate
@@ -122,6 +123,8 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
     server_message(:parameter_description, <<length(param_types)::16, encoded_types::binary>>)
   end
+  def encode_message(:no_data), do:
+    server_message(:no_data)
   def encode_message(:startup_message, major, minor, opts) do
     [
       <<major::16, minor::16>>,
@@ -236,6 +239,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
         close_complete: ?3,
         command_complete: ?C,
         data_row: ?D,
+        no_data: ?n,
         error_response: ?E,
         parameter_description: ?t,
         parameter_status: ?S,
@@ -246,7 +250,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
     defp server_message_byte(unquote(message_name)), do: unquote(message_byte)
   end
 
-  defp server_message(message_name, payload), do:
+  defp server_message(message_name, payload \\ <<>>), do:
     <<server_message_byte(message_name)::8, message_with_size(payload)::binary>>
 
   defp error_message(severity, code, message), do:
