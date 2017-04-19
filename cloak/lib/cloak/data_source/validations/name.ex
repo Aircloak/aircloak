@@ -19,7 +19,7 @@ defmodule Cloak.DataSource.Validations.Name do
 
   def ensure_permitted(data_source) do
     data_source
-    |> validate_length()
+    |> validate_not_too_long()
     |> validate_used_characters()
     |> validate_first_character()
     |> validate_no_keyword()
@@ -29,7 +29,7 @@ defmodule Cloak.DataSource.Validations.Name do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp validate_length(data_source), do:
+  defp validate_not_too_long(data_source), do:
     add_error_if(data_source, & String.length(&1) > @max_name_length,
       "The data source name is too long. It cannot exceed 31 charactes in length")
 
