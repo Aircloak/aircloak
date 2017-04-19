@@ -4,7 +4,7 @@
 </ol>
 
 <h2>
-  <%= @data_source.name %> (<%= @data_source.global_id %>) <%= availability_label(@data_source) %>
+  <%= @data_source.name %> <%= availability_label(@data_source) %>
   <%= if @data_source.description do %>
     <small class="newline"><%= @data_source.description %></small>
   <% end %>
