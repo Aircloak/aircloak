@@ -11,7 +11,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
   #-----------------------------------------------------------------------------------------------------------
 
   @doc false
-  def handle_query(conn, query) do
+  def run_query(conn, query) do
     cond do
       query =~ ~r/begin;declare.* for select relname, nspname, relkind from.*fetch.*/i ->
         fetch_tables(conn)
@@ -41,6 +41,10 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
         nil
     end
   end
+
+  @doc false
+  def describe_query(_conn, _query, _params), do:
+    nil
 
 
   #-----------------------------------------------------------------------------------------------------------
