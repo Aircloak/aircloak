@@ -77,7 +77,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
           %{name: "nspname", type: :name},
           %{name: "relkind", type: :char},
         ],
-      rows: Enum.map(table_names, &[&1, "public", ?r])
+      rows: Enum.map(table_names, &[&1, "", ?r])
     ]
 
   defp table_name_from_table_info_query(query) do
