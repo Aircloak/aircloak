@@ -24,7 +24,7 @@
       <div class="panel-heading">
         <h1 class="panel-title">
           Users with access
-          <%= link "Edit", to: admin_data_source_path(@conn, :edit, @data_source), class: "btn btn-default btn-xs" %>
+          <%= link "Edit", to: admin_data_source_path(@conn, :edit, @data_source.name), class: "btn btn-default btn-xs" %>
         </h1>
       </div>
       <%= if length(@users) == 0 do %>
@@ -57,7 +57,7 @@
       <div class="panel-heading">
         <h1 class="panel-title">
           Groups granting access
-          <%= link "Edit", to: admin_data_source_path(@conn, :edit, @data_source), class: "btn btn-default btn-xs" %>
+          <%= link "Edit", to: admin_data_source_path(@conn, :edit, @data_source.name), class: "btn btn-default btn-xs" %>
         </h1>
       </div>
       <%= if length(@data_source.groups) == 0 do %>

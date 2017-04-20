@@ -30,7 +30,7 @@
                     <td><%= data_source.name %></td>
                     <td><%= availability_label(data_source) %></td>
                     <td>
-                      <%= link "Show", to: admin_data_source_path(@conn, :show, data_source.id),
+                      <%= link "Show", to: admin_data_source_path(@conn, :show, data_source.name),
                         class: "btn btn-default btn-xs" %>
                     </td>
                   </tr>

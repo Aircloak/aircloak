@@ -27,10 +27,11 @@
       <td><%= Map.get(@users_count, data_source.id, 0) %></td>
       <td><%= Air.Admin.GroupView.names(data_source.groups)%></td>
       <td>
-        <%= link "Show", to: admin_data_source_path(@conn, :show, data_source), class: "btn btn-default btn-xs" %>
-        <%= link "Edit", to: admin_data_source_path(@conn, :edit, data_source), class: "btn btn-default btn-xs" %>
+        <%= link "Show", to: admin_data_source_path(@conn, :show, data_source.name), class: "btn btn-default btn-xs" %>
+        <%= link "Edit", to: admin_data_source_path(@conn, :edit, data_source.name), class: "btn btn-default btn-xs" %>
         <%= unless available?(data_source) do %>
-          <%= link "Delete", to: admin_data_source_path(@conn, :delete, data_source), method: :delete, class: "btn btn-danger btn-xs" %>
+          <%= link "Delete", to: admin_data_source_path(@conn, :delete, data_source.name),
+            method: :delete, class: "btn btn-danger btn-xs" %>
         <% end %>
       </td>
     </tr>

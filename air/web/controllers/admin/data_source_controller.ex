@@ -98,7 +98,7 @@ defmodule Air.Admin.DataSourceController do
   # -------------------------------------------------------------------
 
   defp load_data_source(conn, _) do
-    case Repo.get(DataSource, conn.params["id"]) do
+    case Repo.get_by(DataSource, name: conn.params["id"]) do
       nil ->
         conn
         |> put_layout(false)
