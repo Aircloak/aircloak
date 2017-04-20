@@ -35,9 +35,9 @@ defmodule Air.DataSourceController do
     )
   end
 
-  def show(conn, %{"id" => id}) do
-    with {:ok, data_source} <- DataSource.fetch_as_user({:id, id}, conn.assigns.current_user),
-         {:ok, last_query} <- DataSource.last_query({:id, id}, conn.assigns.current_user, :http)
+  def show(conn, %{"id" => name}) do
+    with {:ok, data_source} <- DataSource.fetch_as_user({:name, name}, conn.assigns.current_user),
+         {:ok, last_query} <- DataSource.last_query({:name, name}, conn.assigns.current_user, :http)
     do
       pending_queries = Air.Service.Query.currently_running(conn.assigns.current_user, data_source, :http)
       |> Enum.map(&Air.Schemas.Query.for_display/1)

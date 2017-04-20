@@ -13,7 +13,7 @@
     <%= for data_source <- @data_sources do %>
     <tr>
       <td>
-        <%= link data_source.name, to: data_source_path(@conn, :show, data_source) %>
+        <%= link data_source.name, to: data_source_path(@conn, :show, data_source.name) %>
       </td>
       <%= if any_with_description?(@data_sources) do %>
         <td><%= data_source.description %></td>
