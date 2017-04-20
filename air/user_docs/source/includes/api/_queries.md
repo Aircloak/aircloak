@@ -6,7 +6,7 @@
 payload = {
   query: {
     statement: statement,
-    data_source_id: data_source_id
+    data_source_name: data_source_name
   }
 }.to_json
 content_type = {"Content-Type" => "application/json"}
@@ -20,7 +20,7 @@ wget \
   --method=POST \
   --header "auth-token: $API_TOKEN" \
   --header "Content-Type: application/json" \
-  --body-data "{\"query\": {\"statement\": \"$statement\", \"data_source_id\": \"$data_source_id\"}}" \
+  --body-data "{\"query\": {\"statement\": \"$statement\", \"data_source_name\": \"$data_source_name\"}}" \
   $SITE_URL/api/queries
 ```
 
@@ -29,7 +29,7 @@ curl -v \
   -X POST \
   -H "auth-token:$API_TOKEN" \
   -H "Content-Type:application/json" \
-  -d "{\"query\": {\"statement\": \"$statement\", \"data_source_id\": \"$data_source_id\"}}" \
+  -d "{\"query\": {\"statement\": \"$statement\", \"data_source_name\": \"$data_source_name\"}}" \
   $SITE_URL/api/queries
 ```
 
