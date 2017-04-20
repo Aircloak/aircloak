@@ -40,6 +40,9 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
       query =~ ~r/statement does not return rows/ ->
         RanchServer.query_result(conn, command: :select, columns: [], rows: [])
 
+      query =~ ~r/^DROP TABLE/i ->
+        RanchServer.query_result(conn, {:error, "permission denied"})
+
       true ->
         nil
     end
@@ -47,8 +50,10 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
 
   @doc false
   def describe_query(conn, query, _params) do
-    if query =~ ~r/statement does not return rows/ do
-      RanchServer.describe_result(conn, columns: [], param_types: [])
+    cond do
+      query =~ ~r/statement does not return rows/ -> describe_no_result(conn)
+      query =~ ~r/^DROP TABLE/i -> describe_no_result(conn)
+      true -> nil
     end
   end
 
@@ -138,4 +143,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
 
   defp empty_result(command, column_names), do:
     [command: command, columns: Enum.map(column_names, &%{name: &1, type: :unknown}), rows: []]
+
+  defp describe_no_result(conn), do:
+    RanchServer.describe_result(conn, columns: [], param_types: [])
 end

@@ -79,6 +79,13 @@ defmodule IntegrationTest.TableauTest do
   test "deallocate statement", context, do:
     assert :odbc.sql_query(context.conn, 'DEALLOCATE "foobar"') == {:updated, 0}
 
+  test "tableau query for deleting a temp table", context do
+    # using Postgrex, because it works with describing queries
+    {:ok, conn} = postgrex_connect(context.user)
+    query = "DROP TABLE \"#Tableau_5_1_Connect\""
+    assert {:error, %Postgrex.Error{postgres: %{message: "permission denied"}}} = Postgrex.query(conn, query, [])
+  end
+
   defp connect(user, params \\ []) do
     params = Keyword.merge(
       [
