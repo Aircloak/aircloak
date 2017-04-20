@@ -160,6 +160,8 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> Atom.to_string()
     |> String.upcase()
 
+  defp send_ready_for_query(protocol, {:error, _}), do:
+    Protocol.send_to_client(protocol, :ready_for_query)
   defp send_ready_for_query(protocol, result) do
     if Keyword.get(result, :intermediate, false) do
       protocol
