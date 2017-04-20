@@ -38,10 +38,10 @@ defmodule Air.ViewHelpers do
             "id" => &1.name,
             "broken" => &1.broken,
             "columns" => Map.fetch!(&1.result_info, "columns"),
-            "edit_link" => Air.Router.Helpers.data_source_view_path(conn, :edit, &1.data_source_id, &1.id),
+            "edit_link" => Air.Router.Helpers.data_source_view_path(conn, :edit, data_source.name, &1.id),
             "delete_html" =>
               Phoenix.HTML.safe_to_string(link("delete",
-                to: Air.Router.Helpers.data_source_view_path(conn, :delete, &1.data_source_id, &1.id),
+                to: Air.Router.Helpers.data_source_view_path(conn, :delete, data_source.name, &1.id),
                 method: :delete,
                 "data-confirm": "Delete #{&1.name}?",
                 class: "btn btn-danger btn-xs"
