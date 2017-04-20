@@ -37,10 +37,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
         # indexed columns
         set_temp_cursor_query_result(conn, empty_result(:fetch, ~w(attname attnum relname nspname relname)))
 
-      query =~ ~r/SELECT.*INTO TEMPORARY TABLE/is ->
-        RanchServer.query_result(conn, {:error, "permission denied"})
-
-      query =~ ~r/^DROP TABLE/i ->
+      permission_denied_query?(query) ->
         RanchServer.query_result(conn, {:error, "permission denied"})
 
       true ->
@@ -50,11 +47,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
 
   @doc false
   def describe_query(conn, query, _params) do
-    cond do
-      query =~ ~r/SELECT.*INTO TEMPORARY TABLE/is -> describe_no_result(conn)
-      query =~ ~r/^DROP TABLE/i -> describe_no_result(conn)
-      true -> nil
-    end
+    if permission_denied_query?(query), do: RanchServer.describe_result(conn, columns: [], param_types: [])
   end
 
 
@@ -144,6 +137,10 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
   defp empty_result(command, column_names), do:
     [command: command, columns: Enum.map(column_names, &%{name: &1, type: :unknown}), rows: []]
 
-  defp describe_no_result(conn), do:
-    RanchServer.describe_result(conn, columns: [], param_types: [])
+  defp permission_denied_query?(query), do:
+    [
+      ~r/SELECT.*INTO TEMPORARY TABLE/is,
+      ~r/^DROP TABLE/i,
+    ]
+    |> Enum.any?(&(query =~ &1))
 end
