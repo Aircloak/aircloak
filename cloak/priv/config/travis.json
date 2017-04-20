@@ -4,6 +4,7 @@
     {
       "driver": "postgresql",
       "marker": "native",
+      "name": "native_postgres_test_db",
       "parameters": {
         "hostname": "localhost",
         "username": "postgres",
@@ -15,6 +16,7 @@
     {
       "driver": "odbc",
       "marker": "odbc-postgresql",
+      "name": "odbc_postgres_test_db",
       "parameters": {
         "DSN": "PostgreSQL",
         "UID": "postgres",
@@ -27,6 +29,7 @@
     {
       "driver": "mysql",
       "marker": "native",
+      "name": "native_mysql_test_db",
       "parameters": {
         "hostname": "localhost",
         "username": "root",
