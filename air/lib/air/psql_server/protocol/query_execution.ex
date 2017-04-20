@@ -84,7 +84,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
       statement = Map.fetch!(protocol.portals, protocol.executing_portal)
       rows = Keyword.fetch!(result, :rows)
 
-      protocol
+      %{protocol | executing_portal: nil}
       |> send_rows(rows, statement.columns, statement.result_codes)
       |> send_command_completion(result)
       |> send_ready_for_query(result)
