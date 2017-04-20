@@ -95,6 +95,11 @@ defmodule Air.PsqlServer.RanchServer do
   def describe_result(conn, describe_result), do:
     update_protocol(conn, &Protocol.describe_result(&1, describe_result))
 
+  @doc "Updates the protocol state."
+  @spec update_protocol(t, ((Protocol.t) -> Protocol.t)) :: t
+  def update_protocol(conn, fun), do:
+    handle_protocol_actions(%__MODULE__{conn | protocol: fun.(conn.protocol)})
+
 
   #-----------------------------------------------------------------------------------------------------------
   # :ranch_protocol callback functions
@@ -175,9 +180,6 @@ defmodule Air.PsqlServer.RanchServer do
 
   defp set_active_mode(conn), do:
     conn.transport.setopts(conn.socket, active: :once)
-
-  defp update_protocol(conn, fun), do:
-    handle_protocol_actions(%__MODULE__{conn | protocol: fun.(conn.protocol)})
 
   defp handle_protocol_actions(conn) do
     {actions, protocol} = Protocol.actions(conn.protocol)

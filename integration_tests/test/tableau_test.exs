@@ -76,6 +76,9 @@ defmodule IntegrationTest.TableauTest do
       %Postgrex.Result{columns: nil, command: :select, connection_id: nil, num_rows: 0, rows: nil}}
   end
 
+  test "deallocate statement", context, do:
+    assert :odbc.sql_query(context.conn, 'DEALLOCATE "foobar"') == {:updated, 0}
+
   defp connect(user, params \\ []) do
     params = Keyword.merge(
       [

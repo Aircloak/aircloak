@@ -2,7 +2,7 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
   @moduledoc "Handles common special queries issued by various clients, such as ODBC driver and postgrex."
   @behaviour Air.PsqlServer.SpecialQueries
 
-  alias Air.PsqlServer.RanchServer
+  alias Air.PsqlServer.{Protocol, RanchServer}
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -20,6 +20,10 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
         return_types_for_postgrex(conn)
       query =~ ~r/^select.+from pg_type/si ->
         RanchServer.query_result(conn, [columns: [%{name: "oid", type: :text}], rows: []])
+      prepared_statement = deallocate_prepared_statement(query) ->
+        conn
+        |> RanchServer.update_protocol(&Protocol.deallocate_prepared_statement(&1, prepared_statement))
+        |> RanchServer.query_result(command: :deallocate)
       true ->
         nil
     end
@@ -33,6 +37,13 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp deallocate_prepared_statement(query) do
+    case Regex.named_captures(~r/^deallocate\s+\"(?<prepared_statement>.+)\"$/i, query) do
+      %{"prepared_statement" => prepared_statement} -> prepared_statement
+      _ -> nil
+    end
+  end
 
   defp return_types_for_postgrex(conn), do:
     RanchServer.query_result(conn, [
