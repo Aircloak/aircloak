@@ -68,23 +68,18 @@ defmodule IntegrationTest.TableauTest do
     ]
   end
 
-  test "tableau query for no results", context do
-    # using Postgrex, because it works with describing queries
-    {:ok, conn} = postgrex_connect(context.user)
-    query = "-- statement does not return rows\nSELECT *\nINTO TEMPORARY TABLE \"#Tableau_5_1_Connect\"\nFROM (SELECT 1 AS COL) AS CHECKTEMP\nLIMIT 1"
-    assert Postgrex.query(conn, query, []) == {:ok,
-      %Postgrex.Result{columns: nil, command: :select, connection_id: nil, num_rows: 0, rows: nil}}
-  end
-
   test "deallocate statement", context, do:
     assert :odbc.sql_query(context.conn, 'DEALLOCATE "foobar"') == {:updated, 0}
 
-  test "tableau query for deleting a temp table", context do
-    # using Postgrex, because it works with describing queries
-    {:ok, conn} = postgrex_connect(context.user)
-    query = "DROP TABLE \"#Tableau_5_1_Connect\""
-    assert {:error, %Postgrex.Error{postgres: %{message: "permission denied"}}} = Postgrex.query(conn, query, [])
+  test "tableau query for no results", context do
+    query = "-- statement does not return rows\nSELECT *\nINTO TEMPORARY TABLE \"#Tableau_5_1_Connect\"\nFROM (SELECT 1 AS COL) AS CHECKTEMP\nLIMIT 1"
+    assert postgrex_query(context.user, query) == {:ok,
+      %Postgrex.Result{columns: nil, command: :select, connection_id: nil, num_rows: 0, rows: nil}}
   end
+
+  test "tableau query for deleting a temp table", context, do:
+    assert {:error, %Postgrex.Error{postgres: %{message: "permission denied"}}} =
+      postgrex_query(context.user, "DROP TABLE \"#Tableau_5_1_Connect\"")
 
   defp connect(user, params \\ []) do
     params = Keyword.merge(
@@ -123,5 +118,11 @@ defmodule IntegrationTest.TableauTest do
       database: Manager.data_source_name(),
       ssl: true
     )
+  end
+
+  defp postgrex_query(user, query, params \\ []) do
+    # Postgrex is used if we want to test prepared statements (describe, bind, execute cycle)
+    {:ok, conn} = postgrex_connect(user)
+    Postgrex.query(conn, query, params)
   end
 end
