@@ -39,11 +39,11 @@ defmodule Air.Service.Cloak do
   """
   @spec register(Map.t, Map.t) :: :ok
   def register(cloak_info, data_sources) do
-    {data_source_ids, cloak_info} = GenServer.call(@serializer_name, {:register, cloak_info, data_sources})
+    {data_source_names, cloak_info} = GenServer.call(@serializer_name, {:register, cloak_info, data_sources})
 
     Registry.register(@all_cloak_registry_name, :all_cloaks, cloak_info)
-    for global_id <- data_source_ids do
-      Registry.register(@data_source_registry_name, global_id, cloak_info)
+    for data_source_name <- data_source_names do
+      Registry.register(@data_source_registry_name, data_source_name, cloak_info)
     end
 
     :ok
@@ -58,7 +58,7 @@ defmodule Air.Service.Cloak do
 
   @doc "Returns a list of cloak channels for a given data source. The list consists of pairs `{pid, cloak_info}`."
   @spec channel_pids(String.t) :: [{pid(), Map.t}]
-  def channel_pids(global_id), do: Registry.lookup(@data_source_registry_name, global_id)
+  def channel_pids(name), do: Registry.lookup(@data_source_registry_name, name)
 
   @doc """
   Returns a list of the connected cloaks. The element returned for each cloak
@@ -71,8 +71,8 @@ defmodule Air.Service.Cloak do
 
   @doc "Returns the cloak info of cloaks serving a data source"
   @spec cloak_infos_for_data_source(String.t) :: [Map.t]
-  def cloak_infos_for_data_source(global_id), do:
-    for {pid, cloak_info} <- Registry.lookup(@data_source_registry_name, global_id), do: lookup_memory(pid, cloak_info)
+  def cloak_infos_for_data_source(name), do:
+    for {pid, cloak_info} <- Registry.lookup(@data_source_registry_name, name), do: lookup_memory(pid, cloak_info)
 
 
   # -------------------------------------------------------------------
@@ -83,13 +83,13 @@ defmodule Air.Service.Cloak do
   def init(_), do: {:ok, nil}
 
   def handle_call({:register, cloak_info, data_sources}, _from, state) do
-    data_source_ids = register_data_sources(data_sources)
+    data_source_names = register_data_sources(data_sources)
     cloak_info = Map.merge(cloak_info, %{
-      data_source_ids: data_source_ids,
+      data_source_names: data_source_names,
       memory: %{},
     })
 
-    {:reply, {data_source_ids, cloak_info}, state}
+    {:reply, {data_source_names, cloak_info}, state}
   end
 
 
@@ -101,7 +101,7 @@ defmodule Air.Service.Cloak do
     for data_source <- data_sources do
       name = Map.fetch!(data_source, "name")
       # Deprecated: global_id is a remnant of Aircloak pre-version 17.3.0.
-      # It has to remain for compatibility with older versions 
+      # It has to remain for compatibility with older versions
       # (hidden from the sight of users) until version 18.1.0.
       global_id = Map.fetch!(data_source, "global_id")
       tables = Map.fetch!(data_source, "tables")
@@ -109,7 +109,7 @@ defmodule Air.Service.Cloak do
 
       DataSource.create_or_update_data_source(name, global_id, tables, errors)
 
-      global_id
+      name
     end
   end
 

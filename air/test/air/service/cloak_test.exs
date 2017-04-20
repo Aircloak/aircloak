@@ -7,7 +7,8 @@ defmodule Air.Service.Cloak.Test do
   alias Air.{Repo, Schemas.DataSource, Service.Cloak}
 
   @data_source_id "data_source_id"
-  @data_sources [%{"global_id" => @data_source_id, "tables" => []}]
+  @data_source_name "data_source_name"
+  @data_sources [%{"name" => @data_source_name, "global_id" => @data_source_id, "tables" => []}]
 
   setup do
     wait_for_cleanup()
@@ -17,12 +18,12 @@ defmodule Air.Service.Cloak.Test do
 
   test "should register data sources in the database" do
     Cloak.register(cloak_info(), @data_sources)
-    assert Repo.get_by!(DataSource, global_id: @data_source_id).global_id == @data_source_id
+    assert Repo.get_by!(DataSource, name: @data_source_name).name == @data_source_name
   end
 
   test "re-registering doesn't add multiple copies of the same data source" do
     Enum.map(1..10, fn(_) -> start_cloak_channel(cloak_info(), @data_sources) end)
-    assert length(Repo.all(DataSource, global_id: @data_source_id)) == 1
+    assert length(Repo.all(DataSource, name: @data_source_name)) == 1
   end
 
   test "should return an empty list of channel_pids for a data source with no cloaks" do
@@ -36,7 +37,7 @@ defmodule Air.Service.Cloak.Test do
 
     cloak_id = cloak_info.id
     this = self()
-    assert [{^this, %{id: ^cloak_id}}] = Cloak.channel_pids(@data_source_id)
+    assert [{^this, %{id: ^cloak_id}}] = Cloak.channel_pids(@data_source_name)
   end
 
   test "should allow assigning multiple cloaks to the same data source" do
@@ -49,7 +50,7 @@ defmodule Air.Service.Cloak.Test do
     Process.unlink(pid)
     Process.exit(pid, :exit)
 
-    assert soon([] == Cloak.channel_pids(@data_source_id))
+    assert soon([] == Cloak.channel_pids(@data_source_name))
   end
 
   test "should unregister cloak when channel closes, but retain alternative cloaks" do
@@ -60,7 +61,7 @@ defmodule Air.Service.Cloak.Test do
     Process.unlink(pid1)
     Process.exit(pid1, :exit)
 
-    assert soon(match?([{^pid2, _}], Cloak.channel_pids(@data_source_id)))
+    assert soon(match?([{^pid2, _}], Cloak.channel_pids(@data_source_name)))
   end
 
   test "returns a list of cloaks and their data sources" do
@@ -69,16 +70,16 @@ defmodule Air.Service.Cloak.Test do
     [cloak] = Cloak.all_cloak_infos()
     assert cloak.id == cloak_info.id
     assert cloak.name == cloak_info.name
-    assert cloak.data_source_ids == [@data_source_id]
+    assert cloak.data_source_names == [@data_source_name]
   end
 
   test "returns a list of cloaks for a data sources" do
     cloak_info = cloak_info()
     Cloak.register(cloak_info, @data_sources)
-    [cloak] = Cloak.cloak_infos_for_data_source(@data_source_id)
+    [cloak] = Cloak.cloak_infos_for_data_source(@data_source_name)
     assert cloak.id == cloak_info.id
     assert cloak.name == cloak_info.name
-    assert cloak.data_source_ids == [@data_source_id]
+    assert cloak.data_source_names == [@data_source_name]
   end
 
   describe "recording memory stats" do

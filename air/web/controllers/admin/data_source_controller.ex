@@ -28,7 +28,7 @@ defmodule Air.Admin.DataSourceController do
   def index(conn, _params) do
     data_sources =
       Air.Service.DataSource.all()
-      |> Enum.sort_by(&{not Air.Service.DataSource.available?(&1.global_id), &1.name})
+      |> Enum.sort_by(&{not Air.Service.DataSource.available?(&1.name), &1.name})
 
     query = from data_source in DataSource,
       inner_join: group in assoc(data_source, :groups),
@@ -86,7 +86,7 @@ defmodule Air.Admin.DataSourceController do
     data_source = conn.assigns.data_source
     Repo.delete!(data_source)
     audit_log(conn, "Removed data source", name: data_source.name,
-      global_id: data_source.global_id, data_source: data_source.id)
+      id: data_source.id, data_source: data_source.name)
     conn
     |> put_flash(:info, "Data source deleted")
     |> redirect(to: admin_data_source_path(conn, :index))

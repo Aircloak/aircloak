@@ -34,7 +34,7 @@ defmodule Air.Socket.Frontend.DataSourceChannel.Test do
     end
 
     test "pushes an online message for online data sources", %{data_source: data_source} do
-      register_data_source!(data_source.global_id)
+      register_data_source!(data_source)
       DataSourceChannel.push_updates()
 
       assert_push "status", %{status: :online}

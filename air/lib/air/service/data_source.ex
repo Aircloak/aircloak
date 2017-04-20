@@ -75,7 +75,7 @@ defmodule Air.Service.DataSource do
       fn(data_source, channel_pid, _cloak_info) ->
         MainChannel.describe_query(channel_pid, %{
           statement: statement,
-          data_source: data_source.global_id,
+          data_source: data_source.name,
           parameters: encode_parameters(parameters),
           views: View.user_views_map(user, data_source.id)
         })
@@ -90,7 +90,7 @@ defmodule Air.Service.DataSource do
     on_available_cloak(data_source_id_spec, user,
       fn(data_source, channel_pid, _cloak_info) ->
         {:ok, MainChannel.validate_views(channel_pid, %{
-          data_source: data_source.global_id,
+          data_source: data_source.name,
           views: view_map
         })}
       end
@@ -140,8 +140,8 @@ defmodule Air.Service.DataSource do
       Map.merge(audit_meta, %{query: query.statement, data_source: query.data_source.name}))
 
     exception_to_tuple(fn() ->
-      if available?(query.data_source.global_id) do
-        for {channel, _cloak} <- Cloak.channel_pids(query.data_source.global_id), do:
+      if available?(query.data_source.name) do
+        for {channel, _cloak} <- Cloak.channel_pids(query.data_source.name), do:
           MainChannel.stop_query(channel, query.id)
         QueryEvents.trigger_state_change(query.id, :cancelled)
 
@@ -161,8 +161,8 @@ defmodule Air.Service.DataSource do
   @spec query_alive?(Query.t) :: {:ok, boolean} | {:error, any}
   def query_alive?(query) do
     exception_to_tuple(fn() ->
-      if available?(query.data_source.global_id) do
-        results = for {channel, _cloak} <- Cloak.channel_pids(query.data_source.global_id), do:
+      if available?(query.data_source.name) do
+        results = for {channel, _cloak} <- Cloak.channel_pids(query.data_source.name), do:
           MainChannel.query_alive?(channel, query.id)
 
         cond do
@@ -219,12 +219,12 @@ defmodule Air.Service.DataSource do
 
   @doc "Whether or not a data source is available for querying. True if it has one or more cloaks online"
   @spec available?(String.t) :: boolean
-  def available?(data_source_id), do: Cloak.channel_pids(data_source_id) !== []
+  def available?(data_source_name), do: Cloak.channel_pids(data_source_name) !== []
 
   @doc "Describes the current availability of the given data source."
   @spec status(DataSource.t) :: data_source_status
   def status(data_source) do
-    if available?(data_source.global_id) do
+    if available?(data_source.name) do
       if DataSource.errors(data_source) != [] do
         :broken
       else
@@ -282,7 +282,7 @@ defmodule Air.Service.DataSource do
   defp do_on_available_cloak(data_source_id_spec, user, fun) do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
       exception_to_tuple(fn() ->
-        case Cloak.channel_pids(data_source.global_id) do
+        case Cloak.channel_pids(data_source.name) do
           [] -> {:error, :not_connected}
           channel_pids ->
             {channel_pid, cloak_info} = Enum.random(channel_pids)
@@ -296,7 +296,7 @@ defmodule Air.Service.DataSource do
     %{
       id: query.id,
       statement: query.statement,
-      data_source: query.data_source.global_id,
+      data_source: query.data_source.name,
       parameters: encode_parameters(parameters),
       views: View.user_views_map(user, query.data_source.id)
     }

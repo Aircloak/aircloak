@@ -9,7 +9,7 @@ defmodule Air.Admin.DataSourceView do
   defdelegate availability_label(data_source), to: Air.DataSourceView
   defdelegate number_of_tables(data_source), to: Air.DataSourceView
 
-  def available?(data_source), do: Air.Service.DataSource.available?(data_source.global_id)
+  def available?(data_source), do: Air.Service.DataSource.available?(data_source.name)
 
   defp checkbox_mapper(form, field, input_opts, group, label_opts, _opts) do
     content_tag(:div, class: "checkbox") do

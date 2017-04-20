@@ -127,22 +127,24 @@ defmodule Air.Service.DataSourceTest do
   describe "create or update data source" do
     test "should update existing data source" do
       table = %{table: true}
+      name = "new_name"
       global_id = "global_id"
-      data_source = DataSource.create_or_update_data_source(global_id, table, [])
-      assert data_source.id == DataSource.create_or_update_data_source(global_id, table, []).id
+      data_source = DataSource.create_or_update_data_source(name, global_id, table, [])
+      assert data_source.id == DataSource.create_or_update_data_source(name, global_id, table, []).id
     end
 
     test "should create new data source if none exists" do
       table = %{table: true}
+      name = "new_name"
       global_id = "new_global_id"
       refute Repo.all(Air.Schemas.DataSource) |> Enum.any?(& &1.global_id == global_id)
-      assert %Air.Schemas.DataSource{} = DataSource.create_or_update_data_source(global_id, table, [])
+      assert %Air.Schemas.DataSource{} = DataSource.create_or_update_data_source(name, global_id, table, [])
     end
   end
 
   test "should be able to tell when a data source is available" do
-    data_source_id = TestRepoHelper.create_and_register_data_source()
-    assert DataSource.available?(data_source_id)
+    data_source_name = TestRepoHelper.create_and_register_data_source()
+    assert DataSource.available?(data_source_name)
   end
 
   test "should be able to tell when a data source is not available" do
@@ -176,7 +178,7 @@ defmodule Air.Service.DataSourceTest do
   defp with_socket(%{data_source: data_source}) do
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
     TestSocketHelper.join!(socket, "main",
-      %{data_sources: [%{"global_id" => data_source.global_id, "tables" => []}]})
+      %{data_sources: [%{"name" => data_source.name, "global_id" => data_source.global_id, "tables" => []}]})
     {:ok, socket: socket}
   end
 

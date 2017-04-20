@@ -16,7 +16,7 @@ defmodule Air.API.QueryController.Test do
 
     test "can run a query", context do
       query_data_params = %{
-        query: %{statement: "Query code", data_source_id: context.data_source.id}
+        query: %{statement: "Query code", data_source_name: context.data_source.name}
       }
       task = Task.async(fn -> api_conn(context.token) |> post("/api/queries", query_data_params) |> response(200) end)
 
@@ -61,7 +61,8 @@ defmodule Air.API.QueryController.Test do
   defp with_socket(%{group: group}) do
     # Open the cloak mock socket
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
-    TestSocketHelper.join!(socket, "main", %{data_sources: [%{"global_id" => "data_source", "tables" => []}]})
+    TestSocketHelper.join!(socket, "main", %{data_sources: [
+      %{"name" => "data_source", "global_id" => "data_source", "tables" => []}]})
 
     data_source =
       Repo.one(DataSource)

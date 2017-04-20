@@ -48,8 +48,9 @@ defmodule Air.TestRepoHelper do
   @spec create_data_source!(%{}) :: Air.Schemas.DataSource.t
   def create_data_source!(additional_changes \\ %{}) do
     params = %{
+      # Deprecated: global_id needs to remain in place until version 18.1.0
       global_id: "global_id-#{random_string()}",
-      name: "name-#{random_string()}",
+      name: "name_#{random_string()}",
       tables: "[]"
     }
     %Air.Schemas.DataSource{}
@@ -79,25 +80,15 @@ defmodule Air.TestRepoHelper do
   @doc "Registers a cloak a serving a data source, returning the data source id"
   @spec create_and_register_data_source() :: String.t
   def create_and_register_data_source() do
-    data_source_id = "data_source_id_#{:erlang.unique_integer()}"
-    register_data_source!(data_source_id)
-    data_source_id
+    data_source_name = "data_source_id_#{:erlang.unique_integer()}"
+    register_data_source!(data_source_name, "#{data_source_name}-global_id")
+    data_source_name
   end
 
-  @doc "Registers a cloak serving the given data source id."
-  @spec register_data_source!(String.t) :: :ok
-  def register_data_source!(data_source_id) do
-    data_sources = [%{"global_id" => data_source_id, "tables" => []}]
-    cloak_info = %{
-      id: "cloak_id_#{:erlang.unique_integer()}",
-      name: "cloak_name",
-      online_since: Timex.now()
-    }
-
-    Air.Service.Cloak.register(cloak_info, data_sources)
-
-    :ok
-  end
+  @doc "Registers a cloak serving the given data source name."
+  @spec register_data_source!(DataSource.t) :: :ok
+  def register_data_source!(data_source), do:
+    register_data_source!(data_source.name, data_source.global_id)
 
   @doc "Retrieves a query from the database by id."
   @spec get_query(String.t) :: {:ok, Air.Schemas.Query.t} | {:error, :not_found}
@@ -108,6 +99,24 @@ defmodule Air.TestRepoHelper do
     end
   end
 
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
   defp random_string,
     do: Base.encode16(:crypto.strong_rand_bytes(10))
+
+  defp register_data_source!(name, global_id) do
+    data_sources = [%{"name" => name, "global_id" => global_id, "tables" => []}]
+    cloak_info = %{
+      id: "cloak_id_#{:erlang.unique_integer()}",
+      name: "cloak_name",
+      online_since: Timex.now()
+    }
+
+    Air.Service.Cloak.register(cloak_info, data_sources)
+
+    :ok
+  end
 end
