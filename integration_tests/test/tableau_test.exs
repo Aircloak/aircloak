@@ -68,13 +68,44 @@ defmodule IntegrationTest.TableauTest do
     ]
   end
 
-  test "tableau query for no results", context do
-    # using Postgrex, because it works with describing queries
-    {:ok, conn} = postgrex_connect(context.user)
-    query = "-- statement does not return rows\nSELECT *\nINTO TEMPORARY TABLE \"#Tableau_5_1_Connect\"\nFROM (SELECT 1 AS COL) AS CHECKTEMP\nLIMIT 1"
-    assert Postgrex.query(conn, query, []) == {:ok,
-      %Postgrex.Result{columns: nil, command: :select, connection_id: nil, num_rows: 0, rows: nil}}
+  test "arbitrary query through a cursor", context do
+    query = 'BEGIN;declare "SQL_CUR04AD8270" cursor for show tables;fetch 2048 in "SQL_CUR04AD8270"'
+    assert :odbc.sql_query(context.conn, query) == [
+      {:updated, 0}, {:updated, 0},
+      {:selected, ['name'], [{'users'}]}
+    ]
   end
+
+  test "arbitrary query through a cursor with hold", context do
+    query = 'BEGIN;declare "SQL_CUR04AD8270" cursor with hold for show tables;fetch 2048 in "SQL_CUR04AD8270"'
+    assert :odbc.sql_query(context.conn, query) == [
+      {:updated, 0}, {:updated, 0},
+      {:selected, ['name'], [{'users'}]}
+    ]
+  end
+
+  test "multiline query through a cursor", context do
+    query = 'BEGIN;declare "SQL_CUR04AD8270" cursor for show\ntables;fetch 2048 in "SQL_CUR04AD8270"'
+    assert :odbc.sql_query(context.conn, query) == [
+      {:updated, 0}, {:updated, 0},
+      {:selected, ['name'], [{'users'}]}
+    ]
+  end
+
+  test "deallocate statement", context, do:
+    assert :odbc.sql_query(context.conn, 'DEALLOCATE "foobar"') == {:updated, 0}
+
+  test "selecting into a temporary table", context, do:
+    assert {:error, %Postgrex.Error{postgres: %{message: "permission denied"}}} =
+      postgrex_query(context.user, "-- statement does not return rows\nSELECT *\nINTO TEMPORARY TABLE \"#Tableau_5_1_Connect\"\nFROM (SELECT 1 AS COL) AS CHECKTEMP\nLIMIT 1")
+
+  test "dropping a temp table", context, do:
+    assert {:error, %Postgrex.Error{postgres: %{message: "permission denied"}}} =
+      postgrex_query(context.user, "DROP TABLE \"#Tableau_5_1_Connect\"")
+
+  test "creating a temp table", context, do:
+    assert {:error, %Postgrex.Error{postgres: %{message: "permission denied"}}} =
+      postgrex_query(context.user, "CREATE LOCAL TEMPORARY TABLE \"#Tableau_5_2_Connect\" (\n\t\"COL\" INTEGER\n\t) ON COMMIT PRESERVE ROWS")
 
   defp connect(user, params \\ []) do
     params = Keyword.merge(
@@ -113,5 +144,11 @@ defmodule IntegrationTest.TableauTest do
       database: Manager.data_source_name(),
       ssl: true
     )
+  end
+
+  defp postgrex_query(user, query, params \\ []) do
+    # Postgrex is used if we want to test prepared statements (describe, bind, execute cycle)
+    {:ok, conn} = postgrex_connect(user)
+    Postgrex.query(conn, query, params)
   end
 end

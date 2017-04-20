@@ -62,7 +62,7 @@ defmodule Air.PsqlServer.Protocol do
     {:error, String.t} |
     [command: command, intermediate: boolean, columns: [column], rows: [[db_value]]]
 
-  @type command :: :set | :begin | :select | :fetch | :"declare cursor" | :"close cursor"
+  @type command :: :set | :begin | :select | :fetch | :"declare cursor" | :"close cursor" | :deallocate
 
   @type prepared_statement :: %{
     name: String.t,
@@ -170,6 +170,11 @@ defmodule Air.PsqlServer.Protocol do
   @spec describe_result(t, describe_result) :: t
   def describe_result(protocol, describe_result), do:
     dispatch_event(protocol, {:describe_result, describe_result})
+
+  @doc "Deallocates the prepared statement."
+  @spec deallocate_prepared_statement(t, String.t) :: t
+  def deallocate_prepared_statement(protocol, prepared_statement), do:
+    update_in(protocol.prepared_statements, &Map.delete(&1, prepared_statement))
 
   @doc "Adds a send message action to the list of pending actions."
   @spec send_to_client(t, Messages.server_message) :: t
