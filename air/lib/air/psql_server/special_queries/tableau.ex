@@ -37,9 +37,6 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
         # indexed columns
         cursor_query_result(conn, empty_result(:fetch, ~w(attname attnum relname nspname relname)))
 
-      permission_denied_query?(query) ->
-        RanchServer.query_result(conn, {:error, "permission denied"})
-
       inner_query = cursor_query?(query) ->
         PsqlServer.start_async_query(conn, inner_query, [],
           &cursor_query_result(&1, PsqlServer.decode_cloak_query_result(&2)))
@@ -50,9 +47,8 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
   end
 
   @doc false
-  def describe_query(conn, query, _params) do
-    if permission_denied_query?(query), do: RanchServer.describe_result(conn, columns: [], param_types: [])
-  end
+  def describe_query(_conn, _query, _params), do:
+    nil
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -140,14 +136,6 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
 
   defp empty_result(command, column_names), do:
     [command: command, columns: Enum.map(column_names, &%{name: &1, type: :unknown}), rows: []]
-
-  defp permission_denied_query?(query), do:
-    [
-      ~r/SELECT.*INTO TEMPORARY TABLE/is,
-      ~r/^DROP TABLE/i,
-      ~r/^CREATE\s/i
-    ]
-    |> Enum.any?(&(query =~ &1))
 
   defp cursor_query?(query) do
     case Regex.named_captures(~r/begin;declare.*cursor.*\sfor\s+(?<inner_query>.*);fetch\s/is, query) do

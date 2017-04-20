@@ -20,6 +20,8 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
         return_types_for_postgrex(conn)
       query =~ ~r/^select.+from pg_type/si ->
         RanchServer.query_result(conn, [columns: [%{name: "oid", type: :text}], rows: []])
+      permission_denied_query?(query) ->
+        RanchServer.query_result(conn, {:error, "permission denied"})
       prepared_statement = deallocate_prepared_statement(query) ->
         conn
         |> RanchServer.update_protocol(&Protocol.deallocate_prepared_statement(&1, prepared_statement))
@@ -30,13 +32,22 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
   end
 
   @doc false
-  def describe_query(_conn, _query, _params), do:
-    nil
+  def describe_query(conn, query, _params) do
+    if permission_denied_query?(query), do: RanchServer.describe_result(conn, columns: [], param_types: [])
+  end
 
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp permission_denied_query?(query), do:
+    [
+      ~r/SELECT.*INTO TEMPORARY TABLE/is,
+      ~r/^DROP TABLE/i,
+      ~r/^CREATE\s/i
+    ]
+    |> Enum.any?(&(query =~ &1))
 
   defp deallocate_prepared_statement(query) do
     case Regex.named_captures(~r/^deallocate\s+\"(?<prepared_statement>.+)\"$/i, query) do
