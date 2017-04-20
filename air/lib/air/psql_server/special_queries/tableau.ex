@@ -37,8 +37,8 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
         # indexed columns
         set_temp_cursor_query_result(conn, empty_result(:fetch, ~w(attname attnum relname nspname relname)))
 
-      query =~ ~r/statement does not return rows/ ->
-        RanchServer.query_result(conn, command: :select, columns: [], rows: [])
+      query =~ ~r/SELECT.*INTO TEMPORARY TABLE/is ->
+        RanchServer.query_result(conn, {:error, "permission denied"})
 
       query =~ ~r/^DROP TABLE/i ->
         RanchServer.query_result(conn, {:error, "permission denied"})
@@ -51,7 +51,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
   @doc false
   def describe_query(conn, query, _params) do
     cond do
-      query =~ ~r/statement does not return rows/ -> describe_no_result(conn)
+      query =~ ~r/SELECT.*INTO TEMPORARY TABLE/is -> describe_no_result(conn)
       query =~ ~r/^DROP TABLE/i -> describe_no_result(conn)
       true -> nil
     end

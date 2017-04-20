@@ -71,13 +71,11 @@ defmodule IntegrationTest.TableauTest do
   test "deallocate statement", context, do:
     assert :odbc.sql_query(context.conn, 'DEALLOCATE "foobar"') == {:updated, 0}
 
-  test "tableau query for no results", context do
-    query = "-- statement does not return rows\nSELECT *\nINTO TEMPORARY TABLE \"#Tableau_5_1_Connect\"\nFROM (SELECT 1 AS COL) AS CHECKTEMP\nLIMIT 1"
-    assert postgrex_query(context.user, query) == {:ok,
-      %Postgrex.Result{columns: nil, command: :select, connection_id: nil, num_rows: 0, rows: nil}}
-  end
+  test "selecting into a temporary table", context, do:
+    assert {:error, %Postgrex.Error{postgres: %{message: "permission denied"}}} =
+      postgrex_query(context.user, "-- statement does not return rows\nSELECT *\nINTO TEMPORARY TABLE \"#Tableau_5_1_Connect\"\nFROM (SELECT 1 AS COL) AS CHECKTEMP\nLIMIT 1")
 
-  test "tableau query for deleting a temp table", context, do:
+  test "dropping a temp table", context, do:
     assert {:error, %Postgrex.Error{postgres: %{message: "permission denied"}}} =
       postgrex_query(context.user, "DROP TABLE \"#Tableau_5_1_Connect\"")
 
