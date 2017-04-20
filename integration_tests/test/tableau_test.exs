@@ -68,6 +68,30 @@ defmodule IntegrationTest.TableauTest do
     ]
   end
 
+  test "arbitrary query through a cursor", context do
+    query = 'BEGIN;declare "SQL_CUR04AD8270" cursor for show tables;fetch 2048 in "SQL_CUR04AD8270"'
+    assert :odbc.sql_query(context.conn, query) == [
+      {:updated, 0}, {:updated, 0},
+      {:selected, ['name'], [{'users'}]}
+    ]
+  end
+
+  test "arbitrary query through a cursor with hold", context do
+    query = 'BEGIN;declare "SQL_CUR04AD8270" cursor with hold for show tables;fetch 2048 in "SQL_CUR04AD8270"'
+    assert :odbc.sql_query(context.conn, query) == [
+      {:updated, 0}, {:updated, 0},
+      {:selected, ['name'], [{'users'}]}
+    ]
+  end
+
+  test "multiline query through a cursor", context do
+    query = 'BEGIN;declare "SQL_CUR04AD8270" cursor for show\ntables;fetch 2048 in "SQL_CUR04AD8270"'
+    assert :odbc.sql_query(context.conn, query) == [
+      {:updated, 0}, {:updated, 0},
+      {:selected, ['name'], [{'users'}]}
+    ]
+  end
+
   test "deallocate statement", context, do:
     assert :odbc.sql_query(context.conn, 'DEALLOCATE "foobar"') == {:updated, 0}
 

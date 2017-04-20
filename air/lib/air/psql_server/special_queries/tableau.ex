@@ -21,7 +21,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
 
       query =~ ~r/begin;declare.* for select\spt.tgargs.*FROM.*pg_catalog.pg_trigger.*fetch/i ->
         # fetching triggers
-        set_temp_cursor_query_result(conn,
+        cursor_query_result(conn,
           empty_result(:fetch, ~w(tgargs tgnargs tgdeferrable tginitdeferred pp1.proname pp2.proname pc.oid
             pc1.oid relname tgconstrname nspname))
         )
@@ -35,10 +35,14 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
 
       query =~ ~r/begin;declare.* for select ta.attname, ia.attnum.*ia.attrelid = i.indexrelid.*fetch/i ->
         # indexed columns
-        set_temp_cursor_query_result(conn, empty_result(:fetch, ~w(attname attnum relname nspname relname)))
+        cursor_query_result(conn, empty_result(:fetch, ~w(attname attnum relname nspname relname)))
 
       permission_denied_query?(query) ->
         RanchServer.query_result(conn, {:error, "permission denied"})
+
+      inner_query = cursor_query?(query) ->
+        PsqlServer.start_async_query(conn, inner_query, [],
+          &cursor_query_result(&1, PsqlServer.decode_cloak_query_result(&2)))
 
       true ->
         nil
@@ -63,7 +67,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
           |> Map.fetch!("rows")
           |> Enum.map(fn(%{"row" => [table_name]}) -> table_name end)
 
-        set_temp_cursor_query_result(conn, table_list(table_names))
+        cursor_query_result(conn, table_list(table_names))
       end
     )
   end
@@ -128,7 +132,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
     Enum.map(result_columns, fn({column_name, _type}) -> Map.fetch!(row_fields, column_name) end)
   end
 
-  defp set_temp_cursor_query_result(conn, query_result), do:
+  defp cursor_query_result(conn, query_result), do:
     conn
     |> RanchServer.query_result(command: :begin, intermediate: true)
     |> RanchServer.query_result(command: :"declare cursor", intermediate: true)
@@ -144,4 +148,11 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
       ~r/^CREATE\s/i
     ]
     |> Enum.any?(&(query =~ &1))
+
+  defp cursor_query?(query) do
+    case Regex.named_captures(~r/begin;declare.*cursor.*\sfor\s+(?<inner_query>.*);fetch\s/is, query) do
+      %{"inner_query" => inner_query} -> inner_query
+      nil -> nil
+    end
+  end
 end
