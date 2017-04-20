@@ -17,8 +17,7 @@ defmodule Air.PsqlServer.RanchServer do
 
   alias Air.PsqlServer.Protocol
 
-  defstruct [:ref, :socket, :transport, :opts, :behaviour_mod, :protocol, :login_params, assigns: %{},
-    behaviour_actions: []]
+  defstruct [:ref, :socket, :transport, :opts, :behaviour_mod, :protocol, :login_params, assigns: %{}]
 
   @type t :: %__MODULE__{
     # Only fields open to clients are specified here
@@ -86,14 +85,16 @@ defmodule Air.PsqlServer.RanchServer do
   def assign(conn, key, value), do:
     put_in(conn.assigns[key], value)
 
-  @doc "Stores a query result into a connection state."
-  @spec set_query_result(t, Protocol.query_result) :: t
-  def set_query_result(conn, query_result), do:
-    update_in(conn.behaviour_actions, &[{:query_result, query_result} | &1])
+  @doc "Passes the query result to the protocol state."
+  @spec query_result(t, Protocol.query_result) :: t
+  def query_result(conn, query_result), do:
+    update_protocol(conn, &Protocol.query_result(&1, query_result))
 
-  @spec set_describe_result(t, Protocol.describe_result) :: t
-  def set_describe_result(conn, describe_result), do:
-    update_in(conn.behaviour_actions, &[{:set_describe_result, describe_result} | &1])
+  @doc "Passes the query description to the protocol state."
+  @spec describe_result(t, Protocol.describe_result) :: t
+  def describe_result(conn, describe_result), do:
+    update_protocol(conn, &Protocol.describe_result(&1, describe_result))
+
 
   #-----------------------------------------------------------------------------------------------------------
   # :ranch_protocol callback functions
@@ -139,7 +140,7 @@ defmodule Air.PsqlServer.RanchServer do
   end
   for transport <- [:tcp, :ssl] do
     def handle_info({unquote(transport), _socket, input}, conn) do
-      conn = process_input(conn, input)
+      conn = update_protocol(conn, &Protocol.process(&1, input))
       set_active_mode(conn)
       {:noreply, conn}
     end
@@ -165,7 +166,7 @@ defmodule Air.PsqlServer.RanchServer do
     end
   end
   def handle_info(msg, conn), do:
-    {:noreply, handle_behaviour_actions(conn.behaviour_mod.handle_message(conn, msg))}
+    {:noreply, conn.behaviour_mod.handle_message(conn, msg)}
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -175,10 +176,8 @@ defmodule Air.PsqlServer.RanchServer do
   defp set_active_mode(conn), do:
     conn.transport.setopts(conn.socket, active: :once)
 
-  defp process_input(conn, input), do:
-    conn
-    |> update_protocol(&Protocol.process(&1, input))
-    |> handle_protocol_actions()
+  defp update_protocol(conn, fun), do:
+    handle_protocol_actions(%__MODULE__{conn | protocol: fun.(conn.protocol)})
 
   defp handle_protocol_actions(conn) do
     {actions, protocol} = Protocol.actions(conn.protocol)
@@ -187,10 +186,7 @@ defmodule Air.PsqlServer.RanchServer do
     conn.transport.send(conn.socket, output_chunks)
     case other_actions do
       [] -> conn
-      _ ->
-        other_actions
-        |> Enum.reduce(conn, &handle_protocol_action/2)
-        |> handle_protocol_actions()
+      _ -> Enum.reduce(other_actions, conn, &handle_protocol_action/2)
     end
   end
 
@@ -224,21 +220,7 @@ defmodule Air.PsqlServer.RanchServer do
     end
   end
   defp handle_protocol_action({:run_query, query, params, max_rows}, conn), do:
-    handle_behaviour_actions(conn.behaviour_mod.run_query(conn, query, params, max_rows))
+    conn.behaviour_mod.run_query(conn, query, params, max_rows)
   defp handle_protocol_action({:describe_statement, query, params}, conn), do:
-    handle_behaviour_actions(conn.behaviour_mod.describe_statement(conn, query, params))
-
-  defp update_protocol(conn, fun), do:
-    %__MODULE__{conn | protocol: fun.(conn.protocol)}
-
-  defp handle_behaviour_actions(conn), do:
-    conn.behaviour_actions
-    |> List.foldr(conn, &handle_behaviour_action(&2, &1))
-    |> Map.put(:behaviour_actions, [])
-    |> handle_protocol_actions()
-
-  defp handle_behaviour_action(conn, {:query_result, query_result}), do:
-    update_protocol(conn, &Protocol.query_result(&1, query_result))
-  defp handle_behaviour_action(conn, {:set_describe_result, describe_result}), do:
-    update_protocol(conn, &Protocol.describe_result(&1, describe_result))
+    conn.behaviour_mod.describe_statement(conn, query, params)
 end

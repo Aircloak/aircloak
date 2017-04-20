@@ -95,7 +95,7 @@ defmodule Air.PsqlServer do
       {true, conn} ->
         conn
       false ->
-        start_async_query(conn, query, params, &RanchServer.set_query_result(&1, parse_response(&2)))
+        start_async_query(conn, query, params, &RanchServer.query_result(&1, parse_response(&2)))
     end
   end
 
@@ -118,7 +118,7 @@ defmodule Air.PsqlServer do
                 {:error, _} = error -> error
                 parsed_response -> Keyword.take(parsed_response, [:columns, :param_types])
               end
-            RanchServer.set_describe_result(conn, result)
+            RanchServer.describe_result(conn, result)
           end
         )
     end

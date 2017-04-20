@@ -13,13 +13,13 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
   def run_query(conn, query) do
     cond do
       query =~ ~r/^set /i ->
-        RanchServer.set_query_result(conn, command: :set)
+        RanchServer.query_result(conn, command: :set)
       query =~ ~r/^close /i ->
-        RanchServer.set_query_result(conn, command: :"close cursor")
+        RanchServer.query_result(conn, command: :"close cursor")
       query =~ ~r/^select t.oid, t.typname, t.typsend, t.typreceive.*FROM pg_type AS t\s*$/is ->
         return_types_for_postgrex(conn)
       query =~ ~r/^select.+from pg_type/si ->
-        RanchServer.set_query_result(conn, [columns: [%{name: "oid", type: :text}], rows: []])
+        RanchServer.query_result(conn, [columns: [%{name: "oid", type: :text}], rows: []])
       true ->
         nil
     end
@@ -35,7 +35,7 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
   #-----------------------------------------------------------------------------------------------------------
 
   defp return_types_for_postgrex(conn), do:
-    RanchServer.set_query_result(conn, [
+    RanchServer.query_result(conn, [
       columns:
         ~w(oid typname typsend typreceive typoutput typinput typelem coalesce array)
         |> Enum.map(&%{name: &1, type: :text}),
