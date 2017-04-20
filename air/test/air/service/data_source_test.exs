@@ -113,14 +113,14 @@ defmodule Air.Service.DataSourceTest do
   test "fetching last query for the unavailable data source", context, do:
     assert {:error, :unauthorized} == DataSource.last_query({:id, context.ds2.id}, context.user3, :http)
 
-  test "returns a list of data sources given their ids" do
+  test "returns a list of data sources given their names" do
     ds1 = TestRepoHelper.create_data_source!()
     ds2 = TestRepoHelper.create_data_source!()
     expected = [ds1, ds2]
-      |> Enum.map(&(&1.id))
+      |> Enum.map(&(&1.name))
       |> Enum.sort()
-    assert DataSource.by_ids([ds1.id, ds2.id])
-      |> Enum.map(&(&1.id))
+    assert DataSource.by_names([ds1.name, ds2.name])
+      |> Enum.map(&(&1.name))
       |> Enum.sort() == expected
   end
 

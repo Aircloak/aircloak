@@ -109,7 +109,7 @@ defmodule Air.Service.DataSource do
         UserChannel.broadcast_state_change(query)
 
         Air.Service.AuditLog.log(user, "Executed query",
-          Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.id}))
+          Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.name}))
 
         if opts[:notify] == true, do: Air.QueryEvents.subscribe(query.id)
 
@@ -137,7 +137,7 @@ defmodule Air.Service.DataSource do
   @spec stop_query(Query.t, User.t, %{atom => any}) :: :ok | {:error, :internal_error | :not_connected}
   def stop_query(query, user, audit_meta \\ %{}) do
     Air.Service.AuditLog.log(user, "Stopped query",
-      Map.merge(audit_meta, %{query: query.statement, data_source: query.data_source.id}))
+      Map.merge(audit_meta, %{query: query.statement, data_source: query.data_source.name}))
 
     exception_to_tuple(fn() ->
       if available?(query.data_source.global_id) do
@@ -176,12 +176,11 @@ defmodule Air.Service.DataSource do
     end)
   end
 
-  @doc "Returns a list of data sources given their ids"
-  @spec by_ids([non_neg_integer]) :: [DataSource.t]
-  def by_ids(ids \\ []) do
+  @doc "Returns a list of data sources given their names"
+  @spec by_names([String.t]) :: [DataSource.t]
+  def by_names(names \\ []), do:
     Repo.all(from data_source in DataSource,
-      where: data_source.id in ^ids)
-  end
+      where: data_source.name in ^names)
 
   @doc "Creates or updates a data source, returning the updated data source"
   @spec create_or_update_data_source(String.t, String.t, Map.t, [String.t]) :: DataSource.t

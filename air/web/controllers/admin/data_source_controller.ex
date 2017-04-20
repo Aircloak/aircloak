@@ -54,7 +54,7 @@ defmodule Air.Admin.DataSourceController do
     changeset = DataSource.changeset(conn.assigns.data_source, params["data_source"])
     case Repo.update(changeset) do
       {:ok, data_source} ->
-        audit_log(conn, "Altered data source", name: data_source.name, data_source: data_source.id)
+        audit_log(conn, "Altered data source", name: data_source.name, data_source: data_source.name)
         conn
         |> put_flash(:info, "Data source updated")
         |> redirect(to: admin_data_source_path(conn, :index))

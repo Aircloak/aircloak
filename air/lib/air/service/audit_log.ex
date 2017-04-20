@@ -90,9 +90,9 @@ defmodule Air.Service.AuditLog do
       |> Repo.all()
 
     # Include currently selected data sources
-    params[:data_sources] -- (data_sources |> Enum.map(&(&1.id)))
-    |> Air.Service.DataSource.by_ids()
-    |> Enum.map(&(%{name: &1.name, id: &1.id}))
+    params[:data_sources] -- (data_sources |> Enum.map(&(&1.name)))
+    |> Air.Service.DataSource.by_names()
+    |> Enum.map(&(%{name: &1.name}))
     |> Enum.concat(data_sources)
     |> Enum.sort_by(&(&1.name))
   end
@@ -162,15 +162,15 @@ defmodule Air.Service.AuditLog do
         name: data_source.name,
       }
 
-    from a in query,
-    where: fragment("?->>'data_source' <> ''", a.metadata),
-    right_join: d in subquery(data_source_query),
-    on: d.id == fragment("cast(?->>'data_source' as integer)", a.metadata),
-    group_by: [d.id, d.name],
-    order_by: [asc: d.name],
+    from audit_log in query,
+    where: fragment("?->>'data_source' <> ''", audit_log.metadata),
+    right_join: data_source in subquery(data_source_query),
+    on: data_source.name == fragment("?->>'data_source'", audit_log.metadata),
+    group_by: [data_source.id, data_source.name],
+    order_by: [asc: data_source.name],
     select: %{
-      id: d.id,
-      name: d.name,
+      id: data_source.id,
+      name: data_source.name,
     }
   end
 

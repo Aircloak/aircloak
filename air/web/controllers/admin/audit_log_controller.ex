@@ -25,7 +25,7 @@ defmodule Air.Admin.AuditLogController do
       page: String.to_integer(params["page"] || "1"),
       users: params["users"] || [],
       events: params["events"] || [],
-      data_sources: (params["data_sources"] || []) |> Enum.map(&String.to_integer/1),
+      data_sources: (params["data_sources"] || []),
     }
     render(conn, "index.html",
       audit_logs: AuditLog.for(service_params),
