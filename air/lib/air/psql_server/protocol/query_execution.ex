@@ -79,26 +79,14 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> Protocol.await_client_message()
 
   @doc false
-  def handle_event(protocol, {:send_query_result, result}) do
-    if protocol.executing_portal != nil do
-      statement = Map.fetch!(protocol.portals, protocol.executing_portal)
-      rows = Keyword.fetch!(result, :rows)
-
-      %{protocol | executing_portal: nil}
-      |> send_rows(rows, statement.columns, statement.result_codes)
-      |> send_command_completion(result)
-      |> send_ready_for_query(result)
-      |> Protocol.syncing()
-      |> Protocol.await_client_message()
-    else
-      protocol
-      |> send_result(result)
-      |> send_command_completion(result)
-      |> send_ready_for_query(result)
-      |> Protocol.await_client_message()
-    end
-  end
-
+  def handle_event(protocol, {:send_query_result, result}), do:
+    protocol
+    |> send_result(result)
+    |> send_command_completion(result)
+    |> send_ready_for_query(result)
+    |> post_query_sync()
+    |> Map.put(:executing_portal, nil)
+    |> Protocol.await_client_message()
   def handle_event(protocol, {:describe_result, {:error, error}}), do:
     protocol
     |> Protocol.send_to_client({:syntax_error, error})
@@ -130,7 +118,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
 
   defp send_result(protocol, {:error, error}), do:
     Protocol.send_to_client(protocol, {:syntax_error, error})
-  defp send_result(protocol, result) do
+  defp send_result(%{executing_portal: nil} = protocol, result) do
     with {:ok, columns} <- Keyword.fetch(result, :columns),
          {:ok, rows} <- Keyword.fetch(result, :rows) do
       protocol
@@ -140,11 +128,21 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
       _ -> protocol
     end
   end
+  defp send_result(protocol, result) do
+    statement = Map.fetch!(protocol.portals, protocol.executing_portal)
+    rows = Keyword.fetch!(result, :rows)
+    send_rows(protocol, rows, statement.columns, statement.result_codes)
+  end
 
   defp send_command_completion(protocol, {:error, _}), do:
     protocol
   defp send_command_completion(protocol, result), do:
     Protocol.send_to_client(protocol, {:command_complete, result_tag(result)})
+
+  defp post_query_sync(%{executing_portal: nil} = protocol), do:
+    protocol
+  defp post_query_sync(protocol), do:
+    Protocol.syncing(protocol)
 
   defp result_tag(result) do
     case Keyword.fetch(result, :rows) do
