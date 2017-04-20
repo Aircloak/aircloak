@@ -494,11 +494,6 @@ defmodule Cloak.Sql.Compiler do
   end
   defp expand_star_select(query), do: query
 
-  defp filter_aggregators(columns), do:
-    columns
-    |> Enum.flat_map(&expand_arguments/1)
-    |> Enum.filter(&(match?(%Expression{function?: true, aggregate?: true}, &1)))
-
   defp verify_columns(query) do
     verify_functions(query)
     verify_aggregated_columns(query)
@@ -632,16 +627,14 @@ defmodule Cloak.Sql.Compiler do
     end
   end
 
-  defp partition_selected_columns(%Query{group_by: groups = [_|_], columns: selected_columns} = query) do
-    having_columns = Enum.flat_map(query.having, fn ({:comparison, column, _operator, target}) -> [column, target] end)
-    aggregators = filter_aggregators(selected_columns ++ having_columns)
+  defp partition_selected_columns(%Query{group_by: groups = [_|_]} = query) do
     %Query{query |
       property: groups |> drop_duplicate_columns_except_row_splitters(),
-      aggregators: aggregators |> drop_duplicate_columns_except_row_splitters()
+      aggregators: aggregators(query) |> drop_duplicate_columns_except_row_splitters()
     }
   end
   defp partition_selected_columns(query) do
-    case filter_aggregators(query.columns) do
+    case aggregators(query) do
       [] ->
         %Query{query |
           property: query.columns |> drop_duplicate_columns_except_row_splitters(),
@@ -652,6 +645,14 @@ defmodule Cloak.Sql.Compiler do
         %Query{query | property: [], aggregators: aggregators |> drop_duplicate_columns_except_row_splitters()}
     end
   end
+
+  defp aggregators(query), do:
+    (query.columns ++ having_columns(query))
+    |> Enum.flat_map(&expand_arguments/1)
+    |> Enum.filter(&(match?(%Expression{function?: true, aggregate?: true}, &1)))
+
+  defp having_columns(query), do:
+    Enum.flat_map(query.having, fn({:comparison, column, _operator, target}) -> [column, target] end)
 
   # Drops all duplicate occurrences of columns, with the exception of columns that are, or contain,
   # calls to row splitting functions. This does not affect how many times database columns are loaded
@@ -1151,14 +1152,13 @@ defmodule Cloak.Sql.Compiler do
     raise CompilationError, message: "Using the `OFFSET` clause requires the `ORDER BY` clause to be specified."
   defp verify_offset(query), do: query
 
-  defp verify_having(%Query{command: :select, group_by: [], having: [_|_]}), do:
-    raise CompilationError, message: "Using the `HAVING` clause requires the `GROUP BY` clause to be specified."
   defp verify_having(%Query{command: :select, having: [_|_]} = query) do
-    for {:comparison, column, _operator, target} <- query.having, do:
-      for term <- [column, target], do:
-        if individual_column?(term, query), do:
-          raise CompilationError,
-            message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
+    for {:comparison, column, _operator, target} <- query.having,
+        term <- [column, target],
+        individual_column?(term, query), do:
+      raise CompilationError,
+        message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
+
     query
   end
   defp verify_having(query), do: query
