@@ -53,7 +53,7 @@ defmodule Air.Admin.GroupView do
     Repo.all(Group)
   end
 
-  defp checkbox_mapper(form, field, input_opts, name, label_opts, _opts) do
+  defp checkbox_mapper(form, field, input_opts, {name, description}, label_opts, _opts) do
     content_tag(:tr) do
       [
         content_tag(:td, class: "col-md-1") do
@@ -61,7 +61,16 @@ defmodule Air.Admin.GroupView do
         end,
         content_tag(:td, class: "col-md-11") do
           label(form, field, label_opts) do
-            name
+            if description do
+              [
+                name,
+                content_tag(:small, class: "newline") do
+                  description
+                end
+              ]
+            else
+              name
+            end
           end
         end
       ]

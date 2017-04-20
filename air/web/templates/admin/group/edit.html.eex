@@ -20,7 +20,7 @@
       <table class="table table-striped">
         <tbody>
           <%= PhoenixMTM.Helpers.collection_checkboxes f, :users,
-            Enum.map(@data.all_users, &({&1.name, &1.id})),
+            Enum.map(@data.all_users, &({{&1.name, &1.email}, &1.id})),
             selected: Enum.map(@data.group.users, &(&1.id)),
             mapper: &checkbox_mapper/6
           %>
@@ -37,7 +37,7 @@
       <table class="table table-striped">
         <tbody>
           <%= PhoenixMTM.Helpers.collection_checkboxes f, :data_sources,
-            Enum.map(@data.all_data_sources, &({&1.name, &1.id})),
+            Enum.map(@data.all_data_sources, &({{&1.name, &1.description}, &1.id})),
             selected: Enum.map(@data.group.data_sources, &(&1.id)),
             mapper: &checkbox_mapper/6
           %>
