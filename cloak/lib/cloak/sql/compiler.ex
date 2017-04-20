@@ -1153,11 +1153,12 @@ defmodule Cloak.Sql.Compiler do
   defp verify_offset(query), do: query
 
   defp verify_having(%Query{command: :select, having: [_|_]} = query) do
-    for {:comparison, column, _operator, target} <- query.having, do:
-      for term <- [column, target], do:
-        if individual_column?(term, query), do:
-          raise CompilationError,
-            message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
+    for {:comparison, column, _operator, target} <- query.having,
+        term <- [column, target],
+        individual_column?(term, query), do:
+      raise CompilationError,
+        message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
+
     query
   end
   defp verify_having(query), do: query
