@@ -145,7 +145,7 @@ defmodule Cloak.DataSource do
   @spec select!(Query.t, result_processor) :: processed_result
   def select!(%{data_source: data_source} = select_query, result_processor) do
     driver = data_source.driver
-    Logger.debug("Connecting to `#{data_source.global_id}` ...")
+    Logger.debug("Connecting to `#{data_source.name}` ...")
     connection = driver.connect!(data_source.parameters)
     try do
       Logger.debug("Selecting data ...")
@@ -168,9 +168,9 @@ defmodule Cloak.DataSource do
 
   @doc "Returns the datasource with the given id, or `:error` if it's not found."
   @spec fetch(String.t) :: {:ok, t} | :error
-  def fetch(data_source_id) do
+  def fetch(data_source_name) do
     Application.get_env(:cloak, :data_sources)
-    |> Enum.find(&(&1.global_id === data_source_id))
+    |> Enum.find(&(&1.name === data_source_name))
     |> case do
       nil -> :error
       data_source -> {:ok, data_source}
@@ -198,7 +198,7 @@ defmodule Cloak.DataSource do
         "mysql" -> Cloak.DataSource.MySQL
         "odbc" -> Cloak.DataSource.ODBC
         "mongodb" -> Cloak.DataSource.MongoDB
-        other -> raise RuntimeError, message: "Unknown driver `#{other}` for data source `#{data_source.global_id}`"
+        other -> raise RuntimeError, message: "Unknown driver `#{other}` for data source `#{data_source.name}`"
       end
     Map.put(data_source, :driver, driver_module)
   end
@@ -252,7 +252,7 @@ defmodule Cloak.DataSource do
 
   @doc false
   def add_tables(%{errors: existing_errors} = data_source) do
-    Logger.info("Loading tables from #{data_source.global_id} ...")
+    Logger.info("Loading tables from #{data_source.name} ...")
     driver = data_source.driver
     try do
       connection = driver.connect!(data_source.parameters)
@@ -266,7 +266,7 @@ defmodule Cloak.DataSource do
     rescue
       error in RuntimeError ->
         message = "Connection error: #{Exception.message(error)}."
-        Logger.error("Data source `#{data_source.global_id}`: #{message}")
+        Logger.error("Data source `#{data_source.name}`: #{message}")
         %{data_source | errors: existing_errors ++ [message], tables: []}
     end
   end
@@ -280,7 +280,7 @@ defmodule Cloak.DataSource do
           error in RuntimeError ->
             {table_id, _} = table
             message = "Load error for table `#{table_id}`: #{Exception.message(error)}."
-            Logger.error("Data source `#{data_source.global_id}`: #{message}")
+            Logger.error("Data source `#{data_source.name}`: #{message}")
             {tables, errors ++ [message]}
         end
       end)
@@ -347,7 +347,7 @@ defmodule Cloak.DataSource do
       |> Enum.join(", ")
 
     if table[:ignore_unsupported_types] do
-      Logger.warn("The following columns from table `#{table[:db_name]}` in data source `#{data_source.global_id}` " <>
+      Logger.warn("The following columns from table `#{table[:db_name]}` in data source `#{data_source.name}` " <>
         "have unsupported types:\n" <> columns_string)
       nil
     else
@@ -383,7 +383,7 @@ defmodule Cloak.DataSource do
 
       {:error, reason} ->
         message = "Projection error in table `#{table.name}`: #{reason}."
-        Logger.error("Data source `#{data_source.global_id}`: #{message}")
+        Logger.error("Data source `#{data_source.name}`: #{message}")
         tables = Map.delete(data_source.tables, String.to_atom(table.name))
         %{data_source | tables: tables, errors: data_source.errors ++ [message]}
     end
