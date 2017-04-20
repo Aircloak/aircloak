@@ -35,12 +35,12 @@ export const startQuery = (queryData: QueryData, authentication: Authentication,
 };
 
 export const loadHistory = (
-  dataSourceId: number,
+  dataSourceName: number,
   before: string,
   authentication: Authentication,
   callbacks: Callbacks
 ) => {
-  $.ajax(`/queries/load_history/${dataSourceId}?before=${before}`, {
+  $.ajax(`/queries/load_history/${dataSourceName}?before=${before}`, {
     method: "GET",
     headers: headers(authentication),
     success: callbacks.success,
