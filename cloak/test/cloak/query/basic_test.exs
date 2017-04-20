@@ -708,6 +708,16 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["name", "count"], rows: [%{row: ["dan", 30], occurrences: 1}]}
   end
 
+  test "having without group by" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
+
+    assert_query "select sum(height) from heights having count(1) > 0",
+      %{columns: ["sum"], rows: [%{row: [1700], occurrences: 1}]}
+
+    assert_query "select sum(height) from heights having count(1) = 0",
+      %{columns: ["sum"], rows: []}
+  end
+
   test "should be able to provide noise estimates for count, sum, avg and stddev aggregators" do
     :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
     :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [170])
