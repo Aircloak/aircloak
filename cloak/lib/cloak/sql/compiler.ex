@@ -148,6 +148,7 @@ defmodule Cloak.Sql.Compiler do
   # Noise layers
   # -------------------------------------------------------------------
 
+  defp calculate_noise_layers(query = %{subquery?: true}), do: query
   defp calculate_noise_layers(query) do
     filters =
       Query.Lenses.filter_clauses()
