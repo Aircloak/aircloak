@@ -79,6 +79,10 @@ defmodule IntegrationTest.TableauTest do
     assert {:error, %Postgrex.Error{postgres: %{message: "permission denied"}}} =
       postgrex_query(context.user, "DROP TABLE \"#Tableau_5_1_Connect\"")
 
+  test "creating a temp table", context, do:
+    assert {:error, %Postgrex.Error{postgres: %{message: "permission denied"}}} =
+      postgrex_query(context.user, "CREATE LOCAL TEMPORARY TABLE \"#Tableau_5_2_Connect\" (\n\t\"COL\" INTEGER\n\t) ON COMMIT PRESERVE ROWS")
+
   defp connect(user, params \\ []) do
     params = Keyword.merge(
       [

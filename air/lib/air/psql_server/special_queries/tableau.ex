@@ -141,6 +141,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
     [
       ~r/SELECT.*INTO TEMPORARY TABLE/is,
       ~r/^DROP TABLE/i,
+      ~r/^CREATE\s/i
     ]
     |> Enum.any?(&(query =~ &1))
 end
