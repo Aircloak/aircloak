@@ -15,10 +15,16 @@ defmodule Cloak.DataSource.Validations.Name do
 
   @max_name_length 31
 
+
   #-----------------------------------------------------------------------------------------------------------
   # API
   #-----------------------------------------------------------------------------------------------------------
 
+  @doc """
+  Validates that a data source name conforms to the naming rules.
+  Adds errors to the errors-field in the data source if naming rules are broken.
+  """
+  @spec ensure_permitted(Map.t) :: Map.t
   def ensure_permitted(data_source) do
     data_source
     |> validate_not_too_long()
