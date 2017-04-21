@@ -80,6 +80,7 @@ defmodule Cloak.Sql.Compiler do
       |> compile_parameter_types()
       |> compile_columns()
       |> reject_null_user_ids()
+      |> resolve_group_by_references()
       |> verify_columns()
       |> precompile_functions()
       |> censor_selected_uids()
@@ -493,6 +494,23 @@ defmodule Cloak.Sql.Compiler do
     %Query{query | columns: all_column_identifiers(query)}
   end
   defp expand_star_select(query), do: query
+
+  defp resolve_group_by_references(query) do
+    %Query{query |
+      group_by: Enum.map(query.group_by,
+        fn
+          %Expression{constant?: true, type: :integer} = position ->
+            if position.value in 1..length(query.columns) do
+              Enum.at(query.columns, position.value - 1)
+            else
+              raise CompilationError, message: "`GROUP BY` position `#{position.value}` is not in select list."
+            end
+          expression ->
+            expression
+        end
+      )
+    }
+  end
 
   defp verify_columns(query) do
     verify_functions(query)

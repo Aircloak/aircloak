@@ -19,7 +19,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
     field_expression [, ...]
     FROM from_expression [, ...]
     [ WHERE where_expression [AND ...] ]
-    [ GROUP BY column_expression [, ...] ]
+    [ GROUP BY column_expression | position [, ...] ]
     [ HAVING having_expression [AND ...] ]
     [ ORDER BY column_name [ASC | DESC] [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
 
@@ -84,6 +84,7 @@ __Notes__:
 - Using the `HAVING` clause requires the `GROUP BY` clause to be specified and conditions must not refer to non-aggregated fields.
 - Aliases can be used in the `WHERE`, `GROUP BY`, `ORDER BY` and `HAVING` clauses, as long as the alias doesn't conflict
  with a column name in one of the selected tables.
+- If an integer is specified in the `GROUP BY` clause, it represents a 1-based position in the select list. The corresponding expression from the select list is used as the grouping expression.
 
 ## JOIN restrictions
 

@@ -107,4 +107,11 @@ defmodule Cloak.Query.ErrorTest do
     assert_query "select name from test_errors where max(height) >= 100", %{error: error}
     assert ~s/Expression `max` is not valid in the `WHERE` clause./ == error
   end
+
+  test "query reports error on invalid group by position" do
+    assert_query "select name from test_errors group by 0",
+      %{error: "`GROUP BY` position `0` is not in select list."}
+    assert_query "select name from test_errors group by 2",
+      %{error: "`GROUP BY` position `2` is not in select list."}
+  end
 end
