@@ -39,19 +39,19 @@ defmodule Cloak.DataSource.Validations.Name do
   #-----------------------------------------------------------------------------------------------------------
 
   defp validate_not_too_long(data_source), do:
-    add_error_if(data_source, & String.length(&1) > @max_name_length,
+    add_error_if(data_source, &(String.length(&1) > @max_name_length),
       "The data source name is too long. It cannot exceed 31 charactes in length")
 
   defp validate_used_characters(data_source), do:
-    add_error_if(data_source, & &1 =~ ~r/[^A-z_0-9]/,
+    add_error_if(data_source, &(&1 =~ ~r/[^A-z_0-9]/),
       "The data source name is not valid. It can only consist of alphanumeric characters and underscores")
 
   defp validate_first_character(data_source), do:
-    add_error_if(data_source, & &1 =~ ~r/^[^A-z_]+/,
+    add_error_if(data_source, &(&1 =~ ~r/^[^A-z_]+/),
       "The data source name is not valid. It must start with a character or an underscore")
 
   defp validate_no_keyword(data_source), do:
-    add_error_if(data_source, & Enum.member?(Cloak.Sql.Lexer.keywords(), String.upcase(&1)),
+    add_error_if(data_source, &Enum.member?(Cloak.Sql.Lexer.keywords(), String.upcase(&1)),
       "The data source name cannot be a reserved SQL keyword like SELECT, FROM, etc")
 
   defp validate_has_name(%{errors: errors} = data_source) do
