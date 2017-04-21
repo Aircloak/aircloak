@@ -505,6 +505,8 @@ defmodule Cloak.Sql.Compiler do
 
     Enum.at(select_list, reference.value - 1)
   end
+  defp resolve_group_by_reference(%Expression{constant?: true, type: _}, _select_list), do:
+    raise(CompilationError, message: "Non-integer constant is not allowed in `GROUP BY`.")
   defp resolve_group_by_reference(expression, _select_list), do:
     expression
 

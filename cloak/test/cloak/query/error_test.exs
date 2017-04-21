@@ -114,4 +114,8 @@ defmodule Cloak.Query.ErrorTest do
     assert_query "select name from test_errors group by 2",
       %{error: "`GROUP BY` position `2` is out of the range of selected columns."}
   end
+  test "non-integer constants are not allowed in group by" do
+    assert_query "select name from test_errors group by 1.0",
+      %{error: "Non-integer constant is not allowed in `GROUP BY`."}
+  end
 end
