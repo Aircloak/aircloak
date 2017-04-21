@@ -499,7 +499,7 @@ defmodule Cloak.Sql.Compiler do
     %Query{query | group_by: Enum.map(query.group_by, &resolve_group_by_reference(&1, query.columns))}
 
   defp resolve_group_by_reference(%Expression{constant?: true, type: :integer} = reference, select_list) do
-    if not (reference.value in 1..length(select_list)), do:
+    unless reference.value in 1..length(select_list), do:
       raise(CompilationError,
         message: "`GROUP BY` position `#{reference.value}` is out of the range of selected columns.")
 
