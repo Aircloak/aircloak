@@ -80,6 +80,7 @@ defmodule Cloak.Sql.Compiler do
       |> compile_parameter_types()
       |> compile_columns()
       |> reject_null_user_ids()
+      |> resolve_group_by_references()
       |> verify_columns()
       |> precompile_functions()
       |> censor_selected_uids()
@@ -493,6 +494,21 @@ defmodule Cloak.Sql.Compiler do
     %Query{query | columns: all_column_identifiers(query)}
   end
   defp expand_star_select(query), do: query
+
+  defp resolve_group_by_references(query), do:
+    %Query{query | group_by: Enum.map(query.group_by, &resolve_group_by_reference(&1, query.columns))}
+
+  defp resolve_group_by_reference(%Expression{constant?: true, type: :integer} = reference, select_list) do
+    unless reference.value in 1..length(select_list), do:
+      raise(CompilationError,
+        message: "`GROUP BY` position `#{reference.value}` is out of the range of selected columns.")
+
+    Enum.at(select_list, reference.value - 1)
+  end
+  defp resolve_group_by_reference(%Expression{constant?: true, type: _}, _select_list), do:
+    raise(CompilationError, message: "Non-integer constant is not allowed in `GROUP BY`.")
+  defp resolve_group_by_reference(expression, _select_list), do:
+    expression
 
   defp verify_columns(query) do
     verify_functions(query)

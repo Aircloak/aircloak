@@ -805,4 +805,26 @@ defmodule Cloak.Query.BasicTest do
       %{row: [180], users_count: 10}
     ] = rows
   end
+
+  test "group by the first position in the select list" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 11..30, "heights", ["height"], [180])
+
+    assert_query "select heights.height, count(*) from heights group by 1",
+      %{
+        columns: ["height", "count"],
+        rows: [%{row: [170, 10], occurrences: 1}, %{row: [180, 20], occurrences: 1}]
+      }
+  end
+
+  test "group by the second position in the select list" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 11..30, "heights", ["height"], [180])
+
+    assert_query "select count(*), heights.height from heights group by 2",
+      %{
+        columns: ["count", "height"],
+        rows: [%{row: [10, 170], occurrences: 1}, %{row: [20, 180], occurrences: 1}]
+      }
+  end
 end
