@@ -503,7 +503,8 @@ defmodule Cloak.Sql.Compiler do
             if position.value in 1..length(query.columns) do
               Enum.at(query.columns, position.value - 1)
             else
-              raise CompilationError, message: "`GROUP BY` position `#{position.value}` is not in select list."
+              raise CompilationError, message:
+                "`GROUP BY` position `#{position.value}` is out of the range of selected columns."
             end
           expression ->
             expression

@@ -110,8 +110,8 @@ defmodule Cloak.Query.ErrorTest do
 
   test "query reports error on invalid group by position" do
     assert_query "select name from test_errors group by 0",
-      %{error: "`GROUP BY` position `0` is not in select list."}
+      %{error: "`GROUP BY` position `0` is out of the range of selected columns."}
     assert_query "select name from test_errors group by 2",
-      %{error: "`GROUP BY` position `2` is not in select list."}
+      %{error: "`GROUP BY` position `2` is out of the range of selected columns."}
   end
 end
