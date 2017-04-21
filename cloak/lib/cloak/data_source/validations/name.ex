@@ -58,11 +58,8 @@ defmodule Cloak.DataSource.Validations.Name do
     if Map.get(data_source, :name, "") === "" do
       database = Parameters.get_one_of(data_source.parameters, ["database"])
       host = Parameters.get_one_of(data_source.parameters, ["hostname", "server", "host"])
-      temp_name = "#{database}@#{host}"
       error = "The data source for database #{database} on host #{host} needs to be configured with a name"
-      data_source
-      |> Map.put(:name, temp_name)
-      |> Map.put(:errors, [error | errors])
+      Map.put(data_source, :errors, [error | errors])
     else
       data_source
     end

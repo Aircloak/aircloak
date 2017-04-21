@@ -187,6 +187,7 @@ defmodule Cloak.DataSource do
     |> atomize_keys()
     |> Map.put(:errors, [])
     |> Validations.Name.ensure_permitted()
+    |> potentially_create_temp_name()
     |> generate_global_id()
     |> map_driver()
   end
@@ -425,6 +426,21 @@ defmodule Cloak.DataSource do
           "foreign key type is `#{foreign_key_type}` while primary key type is `#{primary_key_type}`"
         }
       {_, ^foreign_key_type} -> :ok
+    end
+  end
+
+  # We need a name for the data source in order for the Air to have something to attach
+  # potential errors to. Therefore if none exists, we'll create a dummy name based on
+  # the data source parameters.
+  defp potentially_create_temp_name(data_source) do
+    if Map.get(data_source, :name, "") === "" do
+      user = Parameters.get_one_of(data_source.parameters, ["uid", "user", "username"]) || "anon"
+      database = Parameters.get_one_of(data_source.parameters, ["database"])
+      host = Parameters.get_one_of(data_source.parameters, ["hostname", "server", "host"])
+      temp_name = "#{user}:#{database}@#{host}"
+      Map.put(data_source, :name, temp_name)
+    else
+      data_source
     end
   end
 end

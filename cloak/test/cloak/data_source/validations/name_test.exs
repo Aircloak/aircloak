@@ -17,12 +17,6 @@ defmodule Cloak.DataSource.Validations.Name.Test do
       assert hd(errors) =~ ~r/needs to be configured with a name/
     end
 
-    test "on missing name, a temp name is generated for reference" do
-      data_source = data_source_config()
-      %{name: name} = Cloak.DataSource.Validations.Name.ensure_permitted(data_source)
-      refute is_nil(name)
-    end
-
     test "add error on too long name", do:
       assert_name_produces_error("this_name_exceeds_31_characters_in_length", ~r/too long/)
 
