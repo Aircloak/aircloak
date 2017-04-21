@@ -826,10 +826,6 @@ defmodule Cloak.Sql.Compiler.Test do
       projected_table_db_column_indices(compile!("select a, b from projected_table", data_source()))
   end
 
-  test "filtered column is not retrieved from a projected table", do:
-    assert ["table.uid", "projected_table.a"] ==
-      projected_table_db_column_names(compile!("select a from projected_table where a=b", data_source()))
-
   defp projected_table_db_columns(query), do:
     query
     |> get_in([all_subqueries()])
