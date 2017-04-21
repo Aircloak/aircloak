@@ -49,7 +49,7 @@ defmodule Cloak.Query.ShrinkAndDrop do
   end
 
   defp emit_buffer(buffer, seed_items) do
-    {count, _} = seed_items |> Anonymizer.new() |> Anonymizer.noisy_lower_bound()
+    {count, _} = [seed_items] |> Anonymizer.new() |> Anonymizer.noisy_lower_bound()
     interval =
       buffer
       |> Buffer.range_except_extreme(count)

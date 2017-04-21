@@ -132,7 +132,7 @@ defmodule Cloak.Query.Aggregator do
       group_row(accumulator, row, default_accumulators, query.property, per_user_aggregators, aggregated_columns)
     end)
     |> fn(rows) -> state_updater.(:processing); rows end.()
-    |> init_anonymizer()
+    |> init_anonymizer(query)
   end
 
   defp group_row(accumulator, row, default_accumulators, property_columns, per_user_aggregators, aggregated_columns) do
@@ -148,9 +148,15 @@ defmodule Cloak.Query.Aggregator do
     end)
   end
 
-  defp init_anonymizer(grouped_rows), do:
-    for {property, users_rows} <- grouped_rows, do:
-      {property, Anonymizer.new(users_rows), users_rows}
+  defp init_anonymizer(grouped_rows, query) do
+    for {property, users_rows} <- grouped_rows do
+      noise_layers = for noise_layer <- query.noise_layers do
+        MapSet.new([Expression.value(noise_layer, property)])
+      end
+
+      {property, Anonymizer.new([users_rows | noise_layers]), users_rows}
+    end
+  end
 
   defp low_users_count?({_property, anonymizer, users_rows}), do:
     low_users_count?(users_rows, anonymizer)
@@ -172,7 +178,7 @@ defmodule Cloak.Query.Aggregator do
           Enum.zip(columns1, columns2) |> Enum.map(&merge_accumulators/1)
         end)
       end)
-    anonymizer = Anonymizer.new(lcf_users_rows)
+    anonymizer = Anonymizer.new([lcf_users_rows])
     lcf_property = List.duplicate(:*, length(query.property))
     lcf_row = {lcf_property, anonymizer, lcf_users_rows}
     case low_users_count?(lcf_row) do
@@ -313,7 +319,7 @@ defmodule Cloak.Query.Aggregator do
     |> Enum.reduce(%{}, fn ({user, values}, acc) ->
       Enum.reduce(values, acc, fn (value, acc) -> Map.update(acc, value, [user], &[user | &1]) end)
     end)
-    |> Enum.reject(fn ({_value, users}) -> low_users_count?(users, Anonymizer.new(users)) end)
+    |> Enum.reject(fn ({_value, users}) -> low_users_count?(users, Anonymizer.new([users])) end)
     |> Enum.map(fn ({value, _users}) -> value end)
   end
 
@@ -355,7 +361,7 @@ defmodule Cloak.Query.Aggregator do
     |> Enum.map(fn({_result, _anonymizer, user_data}) -> user_data end)
     |> Enum.flat_map(&Map.keys/1)
     |> Enum.into(MapSet.new())
-    anonymizer = Anonymizer.new(unique_user_ids)
+    anonymizer = Anonymizer.new([unique_user_ids])
     unique_users_count = MapSet.size(unique_user_ids)
     case Anonymizer.sufficiently_large?(anonymizer, unique_users_count) do
       {true, anonymizer} -> Anonymizer.noisy_count(anonymizer, unique_users_count)

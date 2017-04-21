@@ -31,7 +31,7 @@ defmodule Cloak.Query.Anonymizer do
   """
 
   @opaque t :: %{
-    rng: :rand.state
+    rngs: [:rand.state],
   }
 
   import Kernel, except: [max: 2]
@@ -42,14 +42,15 @@ defmodule Cloak.Query.Anonymizer do
   # -------------------------------------------------------------------
 
   @doc """
-  Creates a noise generator from a collection of unique user ids.
+  Creates a noise generator from a collection of sets of values representing noise layers.
 
-  This function takes either a `MapSet` containing user ids, or a map where
-  keys are user ids. Such types ensure that user ids are unique.
+  Each noise layer must be either a `MapSet`, or a map (in which case the keys are used).
+  Such types ensure that user ids are unique.
   """
-  @spec new(MapSet.t | %{String.t => any}) :: t
-  def new(%MapSet{} = users), do: new_instance(users)
-  def new(%{} = users_map), do: new_instance(Map.keys(users_map))
+  @spec new([MapSet.t | %{String.t => any}]) :: t
+  def new(layers), do:
+    %{rngs: Enum.map(layers, &:rand.seed(:exsplus, seed(&1)))}
+
 
   @doc """
   Returns a `{boolean, anonymizer}` tuple, where the boolean value is
@@ -200,12 +201,11 @@ defmodule Cloak.Query.Anonymizer do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp new_instance(unique_users) do
-    %{rng: :rand.seed(:exsplus, seed(unique_users))}
-  end
+  defp seed(%MapSet{} = values), do: do_seed(values)
+  defp seed(%{} = values), do: values |> Map.keys() |> do_seed()
 
-  defp seed(unique_users) do
-    unique_users
+  defp do_seed(unique_values) do
+    unique_values
     |> Enum.reduce(compute_hash(config(:salt)), fn (user, accumulator) ->
       user
       |> to_string()
@@ -224,11 +224,19 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   # Produces a gaussian distributed random number with given mean and standard deviation.
-  defp add_noise(%{rng: rng} = anonymizer, {mean, sd}) do
+  defp add_noise(%{rngs: rngs} = anonymizer, {mean, sd}) do
+    {noise, rngs} = Enum.reduce(rngs, {0, []}, fn(rng, {noise, rngs}) ->
+      {sample, rng} = gauss(rng)
+      {noise + sample, [rng | rngs]}
+    end)
+
+    {mean + sd * noise, %{anonymizer | rngs: Enum.reverse(rngs)}}
+  end
+
+  defp gauss(rng) do
     {rand1, rng} = :rand.uniform_s(rng)
     {rand2, rng} = :rand.uniform_s(rng)
-    noise = sd * gauss(rand1, rand2)
-    {mean + noise, %{anonymizer | rng: rng}}
+    {gauss(rand1, rand2), rng}
   end
 
   # Generates a gaussian distributed random number from two
