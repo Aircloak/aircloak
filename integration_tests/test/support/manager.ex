@@ -41,12 +41,12 @@ defmodule IntegrationTest.Manager do
     # create user
     %User{}
     |> User.new_user_changeset(%{
-          email: "user_#{:erlang.unique_integer([:positive])}@aircloak.com",
-          name: "user_#{:erlang.unique_integer([:positive])}",
-          password: @user_password,
-          password_confirmation: @user_password,
-          groups: [admin_group.id]
-        })
+      email: "user_#{:erlang.unique_integer([:positive])}@aircloak.com",
+      name: "user_#{:erlang.unique_integer([:positive])}",
+      password: @user_password,
+      password_confirmation: @user_password,
+      groups: [admin_group.id]
+    })
     |> Repo.insert!()
   end
 
