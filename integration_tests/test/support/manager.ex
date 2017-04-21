@@ -28,8 +28,7 @@ defmodule IntegrationTest.Manager do
 
   def data_source_name(), do: @data_source_name
 
-  def data_source(), do:
-    Repo.one(from(data_source in DataSource, where: data_source.name == @data_source_name))
+  def data_source(), do: Repo.get_by(DataSource, name: @data_source_name)
 
   def user_password(), do: @user_password
 
