@@ -67,10 +67,8 @@ defmodule Air.DataSourceController do
     conn.assigns.current_user
     |> Query.last_for_user(:http)
     |> case do
-      %{data_source_id: data_source_id} when data_source_id != nil ->
-        redirect(conn, to: data_source_path(conn, :show, data_source_id))
-      _ ->
-        redirect(conn, to: data_source_path(conn, :index))
+      nil -> redirect(conn, to: data_source_path(conn, :index))
+      query -> redirect(conn, to: data_source_path(conn, :show, query.data_source.name))
     end
   end
 end
