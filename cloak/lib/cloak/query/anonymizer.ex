@@ -47,10 +47,9 @@ defmodule Cloak.Query.Anonymizer do
   This function takes either a `MapSet` containing user ids, or a map where
   keys are user ids. Such types ensure that user ids are unique.
   """
-  @spec new(MapSet.t | %{String.t => any} | [any]) :: t
+  @spec new(MapSet.t | %{String.t => any}) :: t
   def new(%MapSet{} = users), do: new_instance(users)
   def new(%{} = users_map), do: new_instance(Map.keys(users_map))
-  def new(users) when is_list(users), do: new_instance(users)
 
   @doc """
   Returns a `{boolean, anonymizer}` tuple, where the boolean value is
