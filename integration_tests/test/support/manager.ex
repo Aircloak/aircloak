@@ -31,7 +31,7 @@ defmodule IntegrationTest.Manager do
   def data_source_name(), do: @data_source_name
 
   def data_source(), do:
-    Repo.one(from(ds in DataSource, where: ds.global_id == @data_source_global_id))
+    Repo.one(from(data_source in DataSource, where: data_source.name == @data_source_name))
 
   def user_password(), do: @user_password
 
@@ -56,7 +56,7 @@ defmodule IntegrationTest.Manager do
   # -------------------------------------------------------------------
 
   defp await_data_source() do
-    if Repo.one(from(ds in DataSource, where: ds.global_id == @data_source_global_id)) == nil do
+    if is_nil(data_source()) do
       :timer.sleep(100)
       await_data_source()
     end
