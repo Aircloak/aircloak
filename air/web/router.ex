@@ -74,6 +74,8 @@ defmodule Air.Router do
     resources "/settings", SettingsController, singleton: true
 
     get "/audit_log", AuditLogController, :index
+    get "/audit_log/confirm_deletion", AuditLogController, :confirm_deletion
+    post "/audit_log/clear", AuditLogController, :delete_all
 
     resources "/cloaks", CloaksController
     get "/activity_monitor", ActivityMonitorController, :index

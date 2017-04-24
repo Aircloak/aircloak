@@ -120,6 +120,12 @@ defmodule Air.Service.AuditLog do
     |> Enum.sort_by(&(&1.name))
   end
 
+  @doc "Returns the number of audit log entries"
+  @spec count() :: integer
+  def count(), do:
+    Repo.one(from audit_log_entry in AuditLog, select: count(audit_log_entry.id))
+
+
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------

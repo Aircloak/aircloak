@@ -29,6 +29,15 @@
           jurisdiction. You might for example need the sign in from the workers council.
         </p>
       </div>
+
+      <%= if (not @settings.audit_log_enabled) and @audit_log_entries_count > 0 do %>
+        <p>
+          The <%= link "audit log", to: admin_audit_log_path(@conn, :index) %> has been disabled,
+          but there are still <strong><%= @audit_log_entries_count %> audit log entries stored
+          in the database</strong>.
+          <%= link "Delete audit log entries", to: admin_audit_log_path(@conn, :confirm_deletion) %>.
+        </p>
+      <% end %>
     </div>
   </div>
 

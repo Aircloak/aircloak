@@ -17,7 +17,10 @@ defmodule Air.Admin.SettingsController do
   # -------------------------------------------------------------------
 
   def show(conn, _params) do
-    render(conn, "show.html", settings: Air.Service.Settings.read())
+    render(conn, "show.html",
+      settings: Air.Service.Settings.read(),
+      audit_log_entries_count: Air.Service.AuditLog.count()
+    )
   end
 
   def update(conn, params) do
@@ -27,7 +30,7 @@ defmodule Air.Admin.SettingsController do
     })
     conn
     |> put_flash(:info, "The settings were saved.")
-    |> render("show.html", settings: Air.Service.Settings.read())
+    |> redirect(to: admin_settings_path(conn, :show))
   end
 
   defp parse_int(nil, default), do: default
