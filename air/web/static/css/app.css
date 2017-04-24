@@ -194,3 +194,9 @@ body.outdated {
 .tooltip {
   position: fixed;
 }
+
+.form-control-inline {
+  min-width: 0;
+  width: auto;
+  display: inline;
+}
