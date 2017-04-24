@@ -37,7 +37,7 @@ defmodule Air.Service.AuditLog do
           {:error, reason}
       end
     else
-      # Logging is enabled, so audit logging becomes a noop
+      # Logging is disabled, so audit logging becomes a noop
     end
   end
 
