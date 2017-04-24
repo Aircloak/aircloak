@@ -20,6 +20,11 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
         return_types_for_postgrex(conn)
       query =~ ~r/^select.+from pg_type/si ->
         RanchServer.query_result(conn, [columns: [%{name: "oid", type: :text}], rows: []])
+      query =~ ~r/select current_schema()/i ->
+        RanchServer.query_result(conn, [columns: [%{name: "current_schema", type: :text}], rows: [[""]]])
+      query =~ ~r/show "lc_collate"/i ->
+        # returning C means no "no locale" (https://www.postgresql.org/docs/current/static/locale.html)
+        RanchServer.query_result(conn, [columns: [%{name: "lc_collate", type: :text}], rows: [["C"]]])
       permission_denied_query?(query) ->
         RanchServer.query_result(conn, {:error, "permission denied"})
       prepared_statement = deallocate_prepared_statement(query) ->
@@ -33,7 +38,14 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
 
   @doc false
   def describe_query(conn, query, _params) do
-    if permission_denied_query?(query), do: RanchServer.describe_result(conn, columns: [], param_types: [])
+    cond do
+      permission_denied_query?(query) ->
+        RanchServer.describe_result(conn, columns: [], param_types: [])
+      query =~ ~r/show "lc_collate"/i ->
+        RanchServer.describe_result(conn, [columns: [%{name: "lc_collate", type: :text}], param_types: []])
+      true ->
+        nil
+    end
   end
 
 

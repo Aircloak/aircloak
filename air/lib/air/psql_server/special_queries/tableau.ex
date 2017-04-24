@@ -132,7 +132,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
     conn
     |> RanchServer.query_result(command: :begin, intermediate: true)
     |> RanchServer.query_result(command: :"declare cursor", intermediate: true)
-    |> RanchServer.query_result(query_result)
+    |> RanchServer.query_result(Keyword.put(query_result, :command, :fetch))
 
   defp empty_result(command, column_names), do:
     [command: command, columns: Enum.map(column_names, &%{name: &1, type: :unknown}), rows: []]
