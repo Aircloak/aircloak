@@ -24,17 +24,21 @@ defmodule Air.Service.AuditLog do
   @doc "Creates an audit log entry."
   @spec log(nil | User.t, String.t, %{atom => any}) :: :ok | {:error, any}
   def log(user, event, metadata \\ %{}) do
-    email = if user != nil, do: user.email, else: "Unknown user"
+    if Air.Service.Settings.read().audit_log_enabled do
+      email = if user != nil, do: user.email, else: "Unknown user"
 
-    %AuditLog{}
-    |> AuditLog.changeset(%{user: email, event: event, metadata: metadata})
-    |> Repo.insert()
-    |> case do
-          {:ok, _} -> :ok
-          {:error, reason} ->
-            Logger.error("Failed at storing audit log entry: #{inspect(reason)}")
-            {:error, reason}
-        end
+      %AuditLog{}
+      |> AuditLog.changeset(%{user: email, event: event, metadata: metadata})
+      |> Repo.insert()
+      |> case do
+        {:ok, _} -> :ok
+        {:error, reason} ->
+          Logger.error("Failed at storing audit log entry: #{inspect(reason)}")
+          {:error, reason}
+      end
+    else
+      # Logging is disabled, so audit logging becomes a noop
+    end
   end
 
   @doc """
@@ -119,6 +123,12 @@ defmodule Air.Service.AuditLog do
     |> Enum.concat(users)
     |> Enum.sort_by(&(&1.name))
   end
+
+  @doc "Returns the number of audit log entries"
+  @spec count() :: integer
+  def count(), do:
+    Repo.one(from audit_log_entry in AuditLog, select: count(audit_log_entry.id))
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions

@@ -11,7 +11,7 @@ defmodule Air.Admin.AuditLogController do
 
   def permissions do
     %{
-      admin: [:index]
+      admin: [:index, :confirm_deletion, :delete_all]
     }
   end
 
@@ -34,5 +34,15 @@ defmodule Air.Admin.AuditLogController do
       event_types: AuditLog.event_types(service_params),
       data_sources: AuditLog.data_sources(service_params),
     )
+  end
+
+  def confirm_deletion(conn, _params), do:
+    render(conn, "confirm_deletion.html", entries_count: AuditLog.count())
+
+  def delete_all(conn, _params) do
+    Repo.delete_all(Air.Schemas.AuditLog)
+    conn
+    |> put_flash(:info, "All audit log entries have been deleted")
+    |> redirect(to: admin_settings_path(conn, :show))
   end
 end

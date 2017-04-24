@@ -13,6 +13,11 @@ defmodule Air.ViewHelpers do
     end
   end
 
+  @doc "True if audit logging is enabled"
+  @spec audit_log_enabled?() :: boolean
+  def audit_log_enabled?(), do:
+    Air.Service.Settings.read().audit_log_enabled
+
   @doc "Returns true if the currently logged-in user is an administrator."
   @spec admin?(Plug.Conn.t | Air.Schemas.User.t) :: boolean
   def admin?(nil), do: false

@@ -17,14 +17,20 @@ defmodule Air.Admin.SettingsController do
   # -------------------------------------------------------------------
 
   def show(conn, _params) do
-    render(conn, "show.html", settings: Air.Service.Settings.read())
+    render(conn, "show.html",
+      settings: Air.Service.Settings.read(),
+      audit_log_entries_count: Air.Service.AuditLog.count()
+    )
   end
 
   def update(conn, params) do
     Air.Service.Settings.update(conn.assigns.current_user, %{
-      query_retention_days: parse_int(params["settings"]["query_retention_days"], :unlimited)
+      query_retention_days: parse_int(params["settings"]["query_retention_days"], :unlimited),
+      audit_log_enabled: params["settings"]["audit_log_enabled"],
     })
-    render(conn, "show.html", settings: Air.Service.Settings.read())
+    conn
+    |> put_flash(:info, "The settings were saved.")
+    |> redirect(to: admin_settings_path(conn, :show))
   end
 
   defp parse_int(nil, default), do: default

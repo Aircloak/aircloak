@@ -25,14 +25,20 @@ defmodule Air.Service.Settings do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp write(%Air.Settings{query_retention_days: days}) do
+  defp write(%Air.Settings{query_retention_days: days, audit_log_enabled: audit_log_enabled}) do
     %Air.Schemas.Settings{}
-    |> Air.Schemas.Settings.changeset(%{query_retention_days: serialize_retention_days(days)})
+    |> Air.Schemas.Settings.changeset(%{
+      query_retention_days: serialize_retention_days(days),
+      audit_log_enabled: audit_log_enabled,
+    })
     |> Air.Repo.insert!()
   end
 
   defp parse(data) do
-    %Air.Settings{query_retention_days: Map.get(data, :query_retention_days) |> unserialize_retention_days()}
+    %Air.Settings{
+      query_retention_days: Map.get(data, :query_retention_days) |> unserialize_retention_days(),
+      audit_log_enabled: Map.get(data, :audit_log_enabled, true),
+    }
   end
 
   defp latest_settings() do
