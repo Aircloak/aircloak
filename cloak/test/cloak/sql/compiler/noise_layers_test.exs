@@ -39,9 +39,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "decoded"}, &1))
     end
 
-    test "lists underlying columns when a function is applied"
+    test "lists underlying columns when a function is applied" do
+      result = compile!("SELECT COUNT(*) FROM table GROUP BY BUCKET(numeric BY 10)", data_source())
 
-    test "lists all columns when multiple filters are applied"
+      assert [%Expression{name: "numeric"}] = result.noise_layers
+      assert Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
+    end
+
+    test "multiple filters on one column"
   end
 
   test "noise layer for a column that's filtered but not aggregated"
