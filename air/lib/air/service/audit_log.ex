@@ -30,11 +30,11 @@ defmodule Air.Service.AuditLog do
     |> AuditLog.changeset(%{user: email, event: event, metadata: metadata})
     |> Repo.insert()
     |> case do
-          {:ok, _} -> :ok
-          {:error, reason} ->
-            Logger.error("Failed at storing audit log entry: #{inspect(reason)}")
-            {:error, reason}
-        end
+      {:ok, _} -> :ok
+      {:error, reason} ->
+        Logger.error("Failed at storing audit log entry: #{inspect(reason)}")
+        {:error, reason}
+    end
   end
 
   @doc """
