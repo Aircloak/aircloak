@@ -3,6 +3,10 @@ defmodule Cloak.Query.AnonimyzerTest do
 
   alias Cloak.Query.Anonymizer
 
+  test "an anonymizer needs at least one noise layer" do
+    assert_raise(FunctionClauseError, fn() -> Anonymizer.new([]) end)
+  end
+
   test "sufficiently_large?" do
     assert {true, _} = Anonymizer.new([MapSet.new()]) |> Anonymizer.sufficiently_large?(20)
     assert {false, _} = Anonymizer.new([MapSet.new()]) |> Anonymizer.sufficiently_large?(2)

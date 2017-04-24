@@ -48,7 +48,7 @@ defmodule Cloak.Query.Anonymizer do
   Such types ensure that user ids are unique.
   """
   @spec new([MapSet.t | %{String.t => any}]) :: t
-  def new(layers), do:
+  def new([_|_] = layers), do:
     %{rngs: Enum.map(layers, &:rand.seed(:exsplus, seed(&1)))}
 
 
