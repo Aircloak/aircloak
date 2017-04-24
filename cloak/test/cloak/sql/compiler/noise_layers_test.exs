@@ -46,12 +46,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
     end
 
-    test "multiple filters on one column"
+    test "multiple filters on one column" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3 GROUP BY BUCKET(numeric BY 10)", data_source())
+
+      assert [%Expression{name: "numeric"}, %Expression{name: "numeric"}] = result.noise_layers
+      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
+    end
   end
 
   test "noise layer for a column that's filtered but not aggregated"
-
-  test "noise layers when there are multiple filters for one column"
 
   test "noise layers floated from subqueries"
 
