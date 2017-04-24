@@ -16,7 +16,7 @@ defmodule Air.Socket.Frontend.DataSourceChannel.Test do
 
     test "allows joining when user can see data source", %{user: user, socket: socket, data_source: data_source} do
       assign_data_source_to_user(data_source, user)
-      assert {:ok, _, _} = subscribe_and_join(socket, DataSourceChannel, "data_source:#{data_source.id}")
+      assert {:ok, _, _} = subscribe_and_join(socket, DataSourceChannel, "data_source:#{data_source.name}")
     end
 
     test "can't join when user can't see data source", %{socket: socket, data_source: data_source} do
@@ -34,7 +34,7 @@ defmodule Air.Socket.Frontend.DataSourceChannel.Test do
     end
 
     test "pushes an online message for online data sources", %{data_source: data_source} do
-      register_data_source!(data_source.global_id)
+      register_data_source!(data_source)
       DataSourceChannel.push_updates()
 
       assert_push "status", %{status: :online}
@@ -49,7 +49,7 @@ defmodule Air.Socket.Frontend.DataSourceChannel.Test do
 
   defp joined_channel(%{user: user, socket: socket, data_source: data_source}) do
     assign_data_source_to_user(data_source, user)
-    {:ok, _, socket} = subscribe_and_join(socket, DataSourceChannel, "data_source:#{data_source.id}")
+    {:ok, _, socket} = subscribe_and_join(socket, DataSourceChannel, "data_source:#{data_source.name}")
     {:ok, socket: socket}
   end
 

@@ -30,7 +30,7 @@ defmodule Air.ViewController do
   def create(conn, %{"view" => %{"name" => name, "sql" => sql}}) do
     case View.create(conn.assigns.current_user, conn.assigns.data_source, name, sql) do
       {:ok, _view} ->
-        redirect(conn, to: data_source_path(conn, :show, conn.assigns.data_source.id))
+        redirect(conn, to: data_source_path(conn, :show, conn.assigns.data_source.name))
       {:error, changeset} ->
         render(conn, "new.html", changeset: changeset, data_source: conn.assigns.data_source)
     end
@@ -41,7 +41,7 @@ defmodule Air.ViewController do
       {:ok, _view} ->
         conn
         |> maybe_broken_message()
-        |> redirect(to: data_source_path(conn, :show, conn.assigns.data_source))
+        |> redirect(to: data_source_path(conn, :show, conn.assigns.data_source.name))
       {:error, changeset} ->
         render(conn, "edit.html", changeset: changeset, data_source: conn.assigns.data_source, view_id: id)
     end
@@ -51,7 +51,7 @@ defmodule Air.ViewController do
     View.delete(id, conn.assigns.current_user)
 
     path = case get_req_header(conn, "referer") do
-      [] -> data_source_path(conn, :show, conn.assigns.data_source)
+      [] -> data_source_path(conn, :show, conn.assigns.data_source.name)
       [url | _] -> URI.parse(url).path
     end
 
@@ -64,8 +64,8 @@ defmodule Air.ViewController do
   # -------------------------------------------------------------------
 
   defp load_data_source(conn, _opts) do
-    data_source_id = Map.fetch!(conn.params, "data_source_id")
-    case Air.Service.DataSource.fetch_as_user({:id, data_source_id}, conn.assigns.current_user) do
+    data_source_name = Map.fetch!(conn.params, "data_source_id")
+    case Air.Service.DataSource.fetch_as_user({:name, data_source_name}, conn.assigns.current_user) do
       {:ok, data_source} ->
         selectable_views = case Map.fetch(conn.params, "id") do
           :error -> View.all(conn.assigns.current_user, data_source)

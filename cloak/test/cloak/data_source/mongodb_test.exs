@@ -45,6 +45,7 @@ defmodule Cloak.DataSource.MongoDBTest do
     GenServer.stop(conn)
 
     data_source = %{
+      name: "mongo_db_standard",
       global_id: :"data_source_#{:erlang.unique_integer()}",
       driver: MongoDB,
       parameters: parameters,

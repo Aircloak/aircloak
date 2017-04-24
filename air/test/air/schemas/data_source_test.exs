@@ -6,6 +6,7 @@ defmodule Air.Schemas.DataSourceTest do
   @valid_attrs %{
     global_id: "global_id",
     name: "name",
+    description: "optional description",
     tables: "[]",
   }
   @invalid_attrs %{}

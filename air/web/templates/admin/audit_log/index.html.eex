@@ -92,10 +92,10 @@
         <table class="table">
           <tbody>
             <%= for data_source <- @data_sources do %>
-              <tr class="<%= if selected?(@conn, :data_sources, data_source.id), do: "warning", else: "" %>">
+              <tr class="<%= if selected?(@conn, :data_sources, data_source.name), do: "warning", else: "" %>">
                 <td>
-                  <%= link [glyph(selected?(@conn, :data_sources, data_source.id)), data_source.name],
-                    to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :data_sources, data_source.id)) %>
+                  <%= link [glyph(selected?(@conn, :data_sources, data_source.name)), data_source.name],
+                    to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :data_sources, data_source.name)) %>
                 </td>
               </tr>
             <% end %>

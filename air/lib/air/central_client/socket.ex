@@ -245,7 +245,7 @@ defmodule Air.CentralClient.Socket do
     Air.Service.Cloak.all_cloak_infos()
     |> Enum.map(&%{
       name: &1.name,
-      data_source_names: &1.data_source_ids,
+      data_source_names: &1.data_source_names,
       version: &1.version,
     })
 

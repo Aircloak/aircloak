@@ -4,7 +4,10 @@
 </ol>
 
 <h2>
-  <%= @data_source.name %> (<%= @data_source.global_id %>) <%= availability_label(@data_source) %>
+  <%= @data_source.name %> <%= availability_label(@data_source) %>
+  <%= if @data_source.description do %>
+    <small class="newline"><%= @data_source.description %></small>
+  <% end %>
 </h2>
 
 <%= if Air.Schemas.DataSource.errors(@data_source) != [] do %>
@@ -21,7 +24,7 @@
       <div class="panel-heading">
         <h1 class="panel-title">
           Users with access
-          <%= link "Edit", to: admin_data_source_path(@conn, :edit, @data_source), class: "btn btn-default btn-xs" %>
+          <%= link "Edit", to: admin_data_source_path(@conn, :edit, @data_source.name), class: "btn btn-default btn-xs" %>
         </h1>
       </div>
       <%= if length(@users) == 0 do %>
@@ -54,7 +57,7 @@
       <div class="panel-heading">
         <h1 class="panel-title">
           Groups granting access
-          <%= link "Edit", to: admin_data_source_path(@conn, :edit, @data_source), class: "btn btn-default btn-xs" %>
+          <%= link "Edit", to: admin_data_source_path(@conn, :edit, @data_source.name), class: "btn btn-default btn-xs" %>
         </h1>
       </div>
       <%= if length(@data_source.groups) == 0 do %>
@@ -123,7 +126,7 @@
       <% else %>
         <table class="table">
           <tbody>
-            <%= for cloak_info <- Air.Service.Cloak.cloak_infos_for_data_source(@data_source.global_id) do %>
+            <%= for cloak_info <- Air.Service.Cloak.cloak_infos_for_data_source(@data_source.name) do %>
               <tr>
                 <td><%= cloak_info.name %></td>
                 <td>Available since <%= Timex.from_now(cloak_info.online_since) %></td>

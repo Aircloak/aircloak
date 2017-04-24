@@ -6,8 +6,7 @@ defmodule IntegrationTest.Manager do
 
   @admin_group_name "admins"
   @user_password "1234"
-  @data_source_global_id "postgres/cloaktest1-native@localhost"
-  @data_source_name "integration_test_datasource"
+  @data_source_name "data_source_name"
 
   def start(_type, _args) do
     Application.ensure_all_started(:central)
@@ -27,11 +26,9 @@ defmodule IntegrationTest.Manager do
   # API functions
   # -------------------------------------------------------------------
 
-  def data_source_global_id(), do: @data_source_global_id
   def data_source_name(), do: @data_source_name
 
-  def data_source(), do:
-    Repo.one(from(ds in DataSource, where: ds.global_id == @data_source_global_id))
+  def data_source(), do: Repo.get_by(DataSource, name: @data_source_name)
 
   def user_password(), do: @user_password
 
@@ -41,12 +38,12 @@ defmodule IntegrationTest.Manager do
     # create user
     %User{}
     |> User.new_user_changeset(%{
-          email: "user_#{:erlang.unique_integer([:positive])}@aircloak.com",
-          name: "user_#{:erlang.unique_integer([:positive])}",
-          password: @user_password,
-          password_confirmation: @user_password,
-          groups: [admin_group.id]
-        })
+      email: "user_#{:erlang.unique_integer([:positive])}@aircloak.com",
+      name: "user_#{:erlang.unique_integer([:positive])}",
+      password: @user_password,
+      password_confirmation: @user_password,
+      groups: [admin_group.id]
+    })
     |> Repo.insert!()
   end
 
@@ -56,7 +53,7 @@ defmodule IntegrationTest.Manager do
   # -------------------------------------------------------------------
 
   defp await_data_source() do
-    if Repo.one(from(ds in DataSource, where: ds.global_id == @data_source_global_id)) == nil do
+    if is_nil(data_source()) do
       :timer.sleep(100)
       await_data_source()
     end
@@ -83,7 +80,7 @@ defmodule IntegrationTest.Manager do
       |> Repo.insert!()
 
     # connect data source to group
-    from(ds in DataSource, where: ds.global_id == @data_source_global_id)
+    from(data_source in DataSource, where: data_source.name == @data_source_name)
     |> Repo.one!()
     |> Repo.preload([:groups])
     |> DataSource.changeset(%{groups: [admin_group.id], name: @data_source_name})

@@ -39,7 +39,7 @@ defmodule Air.Admin.CloaksController do
   # -------------------------------------------------------------------
 
   def load_data_sources(cloak_info) do
-    data_sources = Enum.map(cloak_info.data_source_ids, &Repo.get_by(DataSource, global_id: &1))
+    data_sources = Enum.map(cloak_info.data_source_names, &Repo.get_by(DataSource, name: &1))
     Map.merge(cloak_info, %{data_sources: data_sources})
   end
 end

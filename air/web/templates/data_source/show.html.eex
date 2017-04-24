@@ -36,15 +36,15 @@
       var props = {
         lastQuery: <%= to_json(@last_query) %>,
         pendingQueries: <%= to_json(@pending_queries) %>,
-        dataSourceId: <%= @data_source.id %>,
         dataSourceName: "<%= @data_source.name %>",
+        dataSourceDescription: "<%= @data_source.description %>",
         dataSourceStatus: "<%= status(@data_source) %>",
         CSRFToken: "<%= @csrf_token %>",
         guardianToken: "<%= @guardian_token %>",
         userId: "<%= @current_user.id %>",
         sessionId: "<%= @session_id %>",
         selectables: <%= selectables(@conn, @data_source, @views) %>,
-        newViewURL: "<%= data_source_view_path(@conn, :new, @data_source.id) %>"
+        newViewURL: "<%= data_source_view_path(@conn, :new, @data_source.name) %>"
       };
 
       App.selectableInfo(props, document.getElementById("selectable-info"));

@@ -50,7 +50,10 @@ defmodule Air.Service.Query do
     end
   end
 
-  @doc "Returns the last query the given user issued, or nil if the user did not issue any queries."
+  @doc """
+  Returns the last query the given user issued, or nil if the user did not issue any queries.
+  Also preloads the data source.
+  """
   @spec last_for_user(User.t, Query.Context.t) :: Query.t | nil
   def last_for_user(user, context) do
     Query
@@ -58,6 +61,7 @@ defmodule Air.Service.Query do
     |> in_context(context)
     |> last(:inserted_at)
     |> Repo.one()
+    |> Repo.preload(:data_source)
   end
 
   @doc "Loads the most recent queries for a given user"

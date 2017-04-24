@@ -149,7 +149,8 @@ defmodule Air.Service.ViewTest do
 
   defp data_source_socket(data_source) do
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
-    TestSocketHelper.join!(socket, "main", %{data_sources: [%{"global_id" => data_source.global_id, "tables" => []}]})
+    TestSocketHelper.join!(socket, "main", %{data_sources: [
+      %{"name" => data_source.name, "global_id" => data_source.global_id, "tables" => []}]})
     socket
   end
 end

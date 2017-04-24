@@ -16,7 +16,7 @@ defmodule IntegrationTest.CloakTest do
   test "reconnects on broken connection" do
     ExUnit.CaptureLog.capture_log(fn ->
       # kill air socket process
-      Manager.data_source_global_id()
+      Manager.data_source_name()
       |> Air.Service.Cloak.channel_pids()
       |> hd()
       |> elem(0)
@@ -30,7 +30,7 @@ defmodule IntegrationTest.CloakTest do
       assert_receive {:trace, _, :call, {AirSocket, :handle_disconnected, _}}, :timer.seconds(1)
       assert_receive {:trace, _, :call, {AirSocket, :handle_connected, _}}, :timer.seconds(1)
       assert_receive {:trace, _, :call, {AirSocket, :handle_joined, _}}, :timer.seconds(1)
-      assert length(Air.Service.Cloak.channel_pids(Manager.data_source_global_id())) == 1
+      assert length(Air.Service.Cloak.channel_pids(Manager.data_source_name())) == 1
     end)
   end
 
@@ -41,7 +41,7 @@ defmodule IntegrationTest.CloakTest do
 
     ExUnit.CaptureLog.capture_log(fn ->
       # kill air channel process
-      Air.Service.Cloak.channel_pids(Manager.data_source_global_id())
+      Air.Service.Cloak.channel_pids(Manager.data_source_name())
       |> hd()
       |> elem(0)
       |> Process.exit(:kill)
@@ -49,7 +49,7 @@ defmodule IntegrationTest.CloakTest do
       # verify that cloak socket rejoins the main channel
       refute_receive {:trace, _, :call, {AirSocket, :handle_disconnected, _}}
       assert_receive {:trace, _, :call, {AirSocket, :handle_joined, _}}, :timer.seconds(1)
-      assert length(Air.Service.Cloak.channel_pids(Manager.data_source_global_id())) == 1
+      assert length(Air.Service.Cloak.channel_pids(Manager.data_source_name())) == 1
     end)
   end
 end

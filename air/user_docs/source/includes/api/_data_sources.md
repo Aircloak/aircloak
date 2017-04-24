@@ -35,6 +35,7 @@ This endpoint retrieves the list of all data sources.
   {
     "id": "<data-source-id>",
     "name": "<data source name>",
+    "description": "<data source description>",
     "tables": [
       {
         "id":"purchases",

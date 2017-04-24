@@ -75,7 +75,7 @@ defmodule Air.Service.DataSource do
       fn(data_source, channel_pid, _cloak_info) ->
         MainChannel.describe_query(channel_pid, %{
           statement: statement,
-          data_source: data_source.global_id,
+          data_source: data_source.name,
           parameters: encode_parameters(parameters),
           views: View.user_views_map(user, data_source.id)
         })
@@ -90,7 +90,7 @@ defmodule Air.Service.DataSource do
     on_available_cloak(data_source_id_spec, user,
       fn(data_source, channel_pid, _cloak_info) ->
         {:ok, MainChannel.validate_views(channel_pid, %{
-          data_source: data_source.global_id,
+          data_source: data_source.name,
           views: view_map
         })}
       end
@@ -109,7 +109,7 @@ defmodule Air.Service.DataSource do
         UserChannel.broadcast_state_change(query)
 
         Air.Service.AuditLog.log(user, "Executed query",
-          Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.id}))
+          Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.name}))
 
         if opts[:notify] == true, do: Air.QueryEvents.subscribe(query.id)
 
@@ -137,11 +137,11 @@ defmodule Air.Service.DataSource do
   @spec stop_query(Query.t, User.t, %{atom => any}) :: :ok | {:error, :internal_error | :not_connected}
   def stop_query(query, user, audit_meta \\ %{}) do
     Air.Service.AuditLog.log(user, "Stopped query",
-      Map.merge(audit_meta, %{query: query.statement, data_source: query.data_source.id}))
+      Map.merge(audit_meta, %{query: query.statement, data_source: query.data_source.name}))
 
     exception_to_tuple(fn() ->
-      if available?(query.data_source.global_id) do
-        for {channel, _cloak} <- Cloak.channel_pids(query.data_source.global_id), do:
+      if available?(query.data_source.name) do
+        for {channel, _cloak} <- Cloak.channel_pids(query.data_source.name), do:
           MainChannel.stop_query(channel, query.id)
         QueryEvents.trigger_state_change(query.id, :cancelled)
 
@@ -161,8 +161,8 @@ defmodule Air.Service.DataSource do
   @spec query_alive?(Query.t) :: {:ok, boolean} | {:error, any}
   def query_alive?(query) do
     exception_to_tuple(fn() ->
-      if available?(query.data_source.global_id) do
-        results = for {channel, _cloak} <- Cloak.channel_pids(query.data_source.global_id), do:
+      if available?(query.data_source.name) do
+        results = for {channel, _cloak} <- Cloak.channel_pids(query.data_source.name), do:
           MainChannel.query_alive?(channel, query.id)
 
         cond do
@@ -176,47 +176,55 @@ defmodule Air.Service.DataSource do
     end)
   end
 
-  @doc "Returns a list of data sources given their ids"
-  @spec by_ids([non_neg_integer]) :: [DataSource.t]
-  def by_ids(ids \\ []) do
+  @doc "Returns a list of data sources given their names"
+  @spec by_names([String.t]) :: [DataSource.t]
+  def by_names(names \\ []), do:
     Repo.all(from data_source in DataSource,
-      where: data_source.id in ^ids)
-  end
+      where: data_source.name in ^names)
 
   @doc "Creates or updates a data source, returning the updated data source"
-  @spec create_or_update_data_source(String.t, Map.t, [String.t]) :: DataSource.t
-  def create_or_update_data_source(global_id, tables, errors) do
-    case Repo.get_by(DataSource, global_id: global_id) do
+  @spec create_or_update_data_source(String.t, String.t, Map.t, [String.t]) :: DataSource.t
+  def create_or_update_data_source(name, global_id, tables, errors) do
+    case Repo.get_by(DataSource, name: name) do
       nil ->
-        params = %{
-          global_id: global_id,
-          name: global_id,
-          tables: Poison.encode!(tables),
-          errors: Poison.encode!(errors),
-        }
-        %DataSource{}
-        |> DataSource.changeset(params)
-        |> Repo.insert!()
+        # Deprecated: global_id is a remnant of Aircloak pre-version 17.3.0.
+        # It has to remain for compatibility with older versions
+        # (hidden from the sight of users) until version 18.1.0.
+        #
+        # This particular instance here is the upgrade path where
+        # a customer already has a data source that is identified
+        # by the global id. When upgrading to a version that uses
+        # the name as the identifier instead, we want to reuse the
+        # existing data source in order to retain data source permissions
+        # and query histories.
+        case Repo.get_by(DataSource, global_id: global_id) do
+          nil ->
+            params = %{
+              name: name,
+              # Retain global_id until version 18.1.0
+              global_id: global_id,
+              tables: Poison.encode!(tables),
+              errors: Poison.encode!(errors),
+            }
+            %DataSource{}
+            |> DataSource.changeset(params)
+            |> Repo.insert!()
 
-      data_source ->
-        params = %{
-          tables: Poison.encode!(tables),
-          errors: Poison.encode!(errors),
-        }
-        data_source
-        |> DataSource.changeset(params)
-        |> Repo.update!()
+          data_source -> update_data_source(data_source, name, tables, errors)
+        end
+
+      data_source -> update_data_source(data_source, name, tables, errors)
     end
   end
 
   @doc "Whether or not a data source is available for querying. True if it has one or more cloaks online"
   @spec available?(String.t) :: boolean
-  def available?(data_source_id), do: Cloak.channel_pids(data_source_id) !== []
+  def available?(data_source_name), do: Cloak.channel_pids(data_source_name) !== []
 
   @doc "Describes the current availability of the given data source."
   @spec status(DataSource.t) :: data_source_status
   def status(data_source) do
-    if available?(data_source.global_id) do
+    if available?(data_source.name) do
       if DataSource.errors(data_source) != [] do
         :broken
       else
@@ -274,7 +282,7 @@ defmodule Air.Service.DataSource do
   defp do_on_available_cloak(data_source_id_spec, user, fun) do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
       exception_to_tuple(fn() ->
-        case Cloak.channel_pids(data_source.global_id) do
+        case Cloak.channel_pids(data_source.name) do
           [] -> {:error, :not_connected}
           channel_pids ->
             {channel_pid, cloak_info} = Enum.random(channel_pids)
@@ -288,7 +296,7 @@ defmodule Air.Service.DataSource do
     %{
       id: query.id,
       statement: query.statement,
-      data_source: query.data_source.global_id,
+      data_source: query.data_source.name,
       parameters: encode_parameters(parameters),
       views: View.user_views_map(user, query.data_source.id)
     }
@@ -309,5 +317,16 @@ defmodule Air.Service.DataSource do
 
       {:error, :internal_error}
     end
+  end
+
+  defp update_data_source(data_source, name, tables, errors) do
+    params = %{
+      name: name,
+      tables: Poison.encode!(tables),
+      errors: Poison.encode!(errors),
+    }
+    data_source
+    |> DataSource.changeset(params)
+    |> Repo.update!()
   end
 end
