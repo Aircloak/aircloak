@@ -22,7 +22,8 @@ defmodule Air.Admin.SettingsController do
 
   def update(conn, params) do
     Air.Service.Settings.update(conn.assigns.current_user, %{
-      query_retention_days: parse_int(params["settings"]["query_retention_days"], :unlimited)
+      query_retention_days: parse_int(params["settings"]["query_retention_days"], :unlimited),
+      audit_log_enabled: params["settings"]["audit_log_enabled"],
     })
     render(conn, "show.html", settings: Air.Service.Settings.read())
   end
