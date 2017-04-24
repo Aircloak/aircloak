@@ -24,7 +24,7 @@
         <p class="help-block">
           When audit logging is enabled, all actions that cause a change to the system
           (like adding or removing a user, or changing a data source) will be recorded
-          in the audit log.
+          in the <%= link "audit log", to: admin_audit_log_path(@conn, :index) %>.
           Please ensure that having audit logging enabled does not violate laws in your
           jurisdiction. You might for example need the sign in from the workers council.
         </p>
