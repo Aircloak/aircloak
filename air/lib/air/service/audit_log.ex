@@ -24,16 +24,20 @@ defmodule Air.Service.AuditLog do
   @doc "Creates an audit log entry."
   @spec log(nil | User.t, String.t, %{atom => any}) :: :ok | {:error, any}
   def log(user, event, metadata \\ %{}) do
-    email = if user != nil, do: user.email, else: "Unknown user"
+    if Air.Service.Settings.read().audit_log_enabled do
+      email = if user != nil, do: user.email, else: "Unknown user"
 
-    %AuditLog{}
-    |> AuditLog.changeset(%{user: email, event: event, metadata: metadata})
-    |> Repo.insert()
-    |> case do
-      {:ok, _} -> :ok
-      {:error, reason} ->
-        Logger.error("Failed at storing audit log entry: #{inspect(reason)}")
-        {:error, reason}
+      %AuditLog{}
+      |> AuditLog.changeset(%{user: email, event: event, metadata: metadata})
+      |> Repo.insert()
+      |> case do
+        {:ok, _} -> :ok
+        {:error, reason} ->
+          Logger.error("Failed at storing audit log entry: #{inspect(reason)}")
+          {:error, reason}
+      end
+    else
+      # Logging is enabled, so audit logging becomes a noop
     end
   end
 
