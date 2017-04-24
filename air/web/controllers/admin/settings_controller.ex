@@ -25,7 +25,9 @@ defmodule Air.Admin.SettingsController do
       query_retention_days: parse_int(params["settings"]["query_retention_days"], :unlimited),
       audit_log_enabled: params["settings"]["audit_log_enabled"],
     })
-    render(conn, "show.html", settings: Air.Service.Settings.read())
+    conn
+    |> put_flash(:info, "The settings were saved.")
+    |> render("show.html", settings: Air.Service.Settings.read())
   end
 
   defp parse_int(nil, default), do: default
