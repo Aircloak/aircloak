@@ -49,17 +49,20 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp map_array_size(name), do: %{'$size': %{'$ifNull': ["$" <> name, []]}}
 
   defp begin_parse_column(%Expression{function?: true, function: fun} = column) when fun != nil do
-    non_null_args =
-      column
-      |> extract_fields()
-      |> Enum.map(&%{'$gt': [map_field(&1), nil]})
-    %{'$cond': [%{'$and': non_null_args}, parse_column(column), nil]}
+    column
+    |> extract_fields()
+    |> Enum.map(&%{'$gt': ["$" <> &1, nil]})
+    |> case do
+      [] -> parse_column(column)
+      [non_null_arg] -> %{'$cond': [non_null_arg, parse_column(column), nil]}
+      non_null_args -> %{'$cond': [%{'$and': non_null_args}, parse_column(column), nil]}
+    end
   end
   defp begin_parse_column(column), do: parse_column(column)
 
   defp valid_alias?(name), do:
     String.match?(name, ~r/^[a-zA-Z_#][a-zA-Z0-9_.#]*$/) and
-    ! String.contains?(name, "..") and
+    not String.contains?(name, "..") and
     String.last(name) != "."
 
   defp get_field_name(nil), do: "__unknown_field_name_#{:erlang.unique_integer([:positive])}"
