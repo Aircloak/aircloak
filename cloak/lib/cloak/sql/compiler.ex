@@ -455,17 +455,15 @@ defmodule Cloak.Sql.Compiler do
     end
   end
 
-  defp invalid_individual_columns(%Query{command: :select, group_by: [_|_]} = query), do:
-    Enum.filter(query.columns, &individual_column?(&1, query))
-  defp invalid_individual_columns(%Query{command: :select} = query) do
-    query.columns
-    |> Enum.reject(&Expression.constant?/1)
-    |> Enum.partition(&aggregated_column?(&1, query))
-    |> case  do
-      {[_|_] = _aggregates, [_|_] = individual_columns} -> individual_columns
-      _ -> []
-    end
-  end
+  defp invalid_individual_columns(query), do:
+    if aggregate_query?(query),
+      do: Enum.filter(query.columns, &individual_column?(&1, query)),
+      else: []
+
+  defp aggregate_query?(%Query{command: :select, group_by: [_|_]}), do: true
+  defp aggregate_query?(%Query{command: :select} = query), do:
+    Enum.any?(query.columns, &aggregated_column?(&1, query))
+  defp aggregate_query?(_), do: false
 
   defp aggregated_column?(column, query), do:
     Enum.member?(query.group_by, column) or
