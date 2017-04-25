@@ -17,24 +17,24 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     {collection, pipeline ++ finish_pipeline(%Query{query | where: conditions})}
   end
   def build(%Query{from: {:join, join}} = query) do
-    {lhs, lhs_table, rhs_table, lhs_field, rhs_field} = parse_join(join, query.selected_tables)
+    join_info = join_info(join, query.selected_tables)
     # The `$lookup` operator projects a foreign document into the specified field from the current docuemnt.
     # We create an unique name under which the fields of the projected document will live for the duration of the query.
     namespace = "ac_temp_ns_#{:erlang.unique_integer([:positive])}"
     rhs_table_columns =
-      Enum.map(rhs_table.columns, fn ({name, type}) ->
+      Enum.map(join_info.rhs_table.columns, fn ({name, type}) ->
         {namespace <> "." <> name, type}
       end)
-    join_table = %{name: "join", db_name: "join", columns: lhs_table.columns ++ rhs_table_columns}
+    join_table = %{name: "join", db_name: "join", columns: join_info.lhs_table.columns ++ rhs_table_columns}
     query =
       Query.Lenses.query_expressions()
-      |> Lens.satisfy(& &1.name != nil and &1.table == rhs_table)
+      |> Lens.satisfy(& &1.name != nil and &1.table == join_info.rhs_table)
       |> Lens.map(query, &%Expression{&1 | name: namespace <> "." <> &1.name})
-    {collection, pipeline, conditions} = start_pipeline(lhs, lhs_table, query.where)
+    {collection, pipeline, conditions} = start_pipeline(join_info.lhs, join_info.lhs_table, query.where)
     pipeline =
       pipeline ++
-      lookup_table(rhs_table.db_name, lhs_field, rhs_field, namespace) ++
-      unwind_arrays(rhs_table.array_path, namespace <> ".") ++
+      lookup_table(join_info.rhs_table.db_name, join_info.lhs_field, join_info.rhs_field, namespace) ++
+      unwind_arrays(join_info.rhs_table.array_path, namespace <> ".") ++
       finish_pipeline(%Query{query | where: conditions, selected_tables: [join_table]})
     {collection, pipeline}
   end
@@ -281,9 +281,9 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp get_join_branch_name(name) when is_binary(name), do: name
   defp get_join_branch_name({:subquery, %{alias: name}}) when is_binary(name), do: name
 
-  defp parse_join(%{type: :inner_join, lhs: lhs, rhs: {:subquery, subquery}, conditions: [condition]}, tables), do:
-    parse_join(%{type: :inner_join, lhs: {:subquery, subquery}, rhs: lhs, conditions: [condition]}, tables)
-  defp parse_join(%{type: :inner_join, lhs: lhs, rhs: rhs_name, conditions: [condition]}, tables)
+  defp join_info(%{type: :inner_join, lhs: lhs, rhs: {:subquery, subquery}, conditions: [condition]}, tables), do:
+    join_info(%{type: :inner_join, lhs: {:subquery, subquery}, rhs: lhs, conditions: [condition]}, tables)
+  defp join_info(%{type: :inner_join, lhs: lhs, rhs: rhs_name, conditions: [condition]}, tables)
       when is_binary(rhs_name) do
     lhs_name = get_join_branch_name(lhs)
     {lhs_field, rhs_field} =
@@ -296,7 +296,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     lhs_table = Enum.find(tables, & &1.name == lhs_name)
     rhs_table = Enum.find(tables, & &1.name == rhs_name)
     true = lhs_table != nil and rhs_table != nil
-    {lhs, lhs_table, rhs_table, lhs_field, rhs_field}
+    %{lhs: lhs, lhs_table: lhs_table, rhs_table: rhs_table, lhs_field: lhs_field, rhs_field: rhs_field}
   end
 
   def used_array_size_columns(query) do
