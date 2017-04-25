@@ -179,8 +179,8 @@ defmodule Cloak.DataSource.MongoDB do
   end
 
   defp get_server_version(connection) do
-    {:ok, %{"versionArray" => [major, minor | _]}} = Mongo.command(connection, [{:buildInfo, true}])
-    {major, minor}
+    {:ok, %{"version" => version}} = Mongo.command(connection, [{:buildInfo, true}])
+    version
   end
 
   defp get_mongo_version(data_source) do
@@ -191,10 +191,17 @@ defmodule Cloak.DataSource.MongoDB do
   @supported_functions_3_0 ~w(+ - * ^ / % mod div length left count sum min max avg
     substring || concat lower upper lcase ucase year month day weekday hour minute second)
   @supported_functions_3_2 @supported_functions_3_0 ++ ~w(abs ceil floor sqrt trunc)
-  defp supported_functions({major, minor}) when major < 3, do:
-    raise RuntimeError, message: "Unsupported MongoDB version: #{major}.#{minor}. At least 3.0 required."
-  defp supported_functions({3, 0}), do: @supported_functions_3_0
-  defp supported_functions({_major, _minor}), do: @supported_functions_3_2
+  defp supported_functions(version) do
+    if Version.compare(version, "3.0.0") == :lt do
+      raise RuntimeError, message: "Unsupported MongoDB version: #{version}. At least 3.0 required."
+    else
+      if Version.compare(version, "3.2.0") == :lt do
+        @supported_functions_3_0
+      else
+        @supported_functions_3_2
+      end
+    end
+  end
 
   defp supports_functions?(%Query{subquery?: true} = query), do:
     (
@@ -209,8 +216,7 @@ defmodule Cloak.DataSource.MongoDB do
 
   defp supports_joins?(%Query{from: {:join, join}, data_source: data_source}) do
     # join support was added in 3.2
-    {major, minor} = get_mongo_version(data_source)
-    (major > 3 or (major == 3 and minor == 2)) and
+    (data_source |> get_mongo_version() |> Version.compare("3.2.0") != :lt) and
     join.type == :inner_join and
     supported_join_conditions?(join.conditions) and
     supported_join_branches?(join.lhs, join.rhs)
