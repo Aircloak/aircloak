@@ -148,16 +148,36 @@ defmodule Cloak.Sql.Compiler do
   # Noise layers
   # -------------------------------------------------------------------
 
-  defp calculate_noise_layers(query) do
-    filters =
+  defp calculate_noise_layers(query = %{subquery?: true}), do:
+    if aggregate_query?(query),
+      do: %{query | noise_layers: query |> noise_layers() |> Enum.map(&float_noise_layer/1)},
+      else: %{query | noise_layers: query |> noise_layers()}
+  defp calculate_noise_layers(query), do:
+    %{query | noise_layers: query |> noise_layers()}
+
+  defp noise_layers(query) do
+    new_layers =
       Query.Lenses.filter_clauses()
       |> Lens.both(Lens.key(:group_by))
       |> Query.Lenses.leaf_expressions()
       |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
-      |> Lens.both(Query.Lenses.subquery_noise_layers())
+      |> Lens.to_list(query)
+      |> Enum.map(&[&1])
+
+    floated_layers =
+      Query.Lenses.subquery_noise_layers()
       |> Lens.to_list(query)
 
-    %{query | noise_layers: filters}
+    new_layers ++ floated_layers
+  end
+
+  defp float_noise_layer([expression]) do
+    [
+      Expression.function("min", [expression], expression.type, _aggregate = true),
+      Expression.function("max", [expression], expression.type, _aggregate = true),
+      Expression.function("count", [expression], :integer, _aggregate = true),
+    ]
+    |> Enum.map(&alias_column/1)
   end
 
 
@@ -1075,7 +1095,7 @@ defmodule Cloak.Sql.Compiler do
     |> Enum.reduce(query, &Query.add_db_column(&2, &1))
   end
 
-  defp noise_layer_columns(query), do: query.noise_layers
+  defp noise_layer_columns(query), do: Enum.flat_map(query.noise_layers, &(&1))
 
   defp range_columns(%{subquery?: true, emulated?: false}), do: []
   defp range_columns(%{ranges: ranges}), do: ranges |> Enum.map(&(&1.column)) |> extract_columns()
