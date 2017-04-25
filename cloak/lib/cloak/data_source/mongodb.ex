@@ -35,7 +35,7 @@ defmodule Cloak.DataSource.MongoDB do
     name of the table being the base table name suffixed with the array name, separated by `_`.
   """
 
-  alias Cloak.Sql.{Expression, Query}
+  alias Cloak.Sql.Query
   alias Cloak.Query.Runner.RuntimeError
   alias Cloak.DataSource.MongoDB.{Schema, Pipeline}
 
@@ -69,6 +69,7 @@ defmodule Cloak.DataSource.MongoDB do
 
   @doc false
   def load_tables(connection, table) do
+    table = Map.put(table, :mongo_version, get_server_version(connection))
     sample_rate = table[:sample_rate] || 100
     unless is_integer(sample_rate) and sample_rate >= 1 and sample_rate <= 100, do:
       raise RuntimeError, message: "Sample rate for schema detection has to be an integer between 1 and 100."
@@ -117,30 +118,18 @@ defmodule Cloak.DataSource.MongoDB do
 
   @doc false
   def select(connection, query, result_processor) do
-    {collection, pipeline} = Pipeline.build(query)
-    columns = for %Expression{name: name, alias: alias} <- query.db_columns, do: String.split(alias || name, ".")
+    {collection, pipeline} = query.subquery? |> put_in(false) |> Pipeline.build()
     options = [max_time: @timeout, timeout: @timeout, pool_timeout: @timeout, batch_size: 25_000, allow_disk_use: true]
     result =
       connection
       |> Mongo.aggregate(collection, pipeline, options)
-      |> Stream.map(&extract_fields(&1, columns))
+      |> Stream.map(&map_fields/1)
       |> result_processor.()
     {:ok, result}
   end
 
-  # we only support the functions available in Mongo 3.0
-  @supported_functions ~w(+ - * ^ / % mod div trunc length left count sum min max avg
-    substring || concat lower upper lcase ucase year month day weekday hour minute second)
   @doc false
-  def supports_query?(%Query{from: {:join, _}}), do: false
-  def supports_query?(%Query{subquery?: true} = query), do:
-    (
-      Query.Lenses.query_expressions()
-      |> Lens.satisfy(& &1.function?)
-      |> Lens.to_list(query)
-      |> Enum.map(& &1.function)
-    ) -- @supported_functions == []
-  def supports_query?(_query), do: true
+  def supports_query?(query), do: supports_functions?(query) and supports_joins?(query)
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -163,12 +152,7 @@ defmodule Cloak.DataSource.MongoDB do
     end
   end
 
-  defp extract_fields(object, columns), do:
-    for column <- columns, do: object |> extract_field(column) |> map_field()
-
-  defp extract_field(nil, _), do: nil
-  defp extract_field(value, []), do: value
-  defp extract_field(%{} = object, [key | rest]), do: extract_field(object[key], rest)
+  defp map_fields(%{"row" => row}), do: Enum.map(row, &map_field/1)
 
   defp map_field(%BSON.ObjectId{value: value}), do: value
   defp map_field(%BSON.Binary{binary: value}), do: value
@@ -193,4 +177,51 @@ defmodule Cloak.DataSource.MongoDB do
         end)
     end)
   end
+
+  defp get_server_version(connection) do
+    {:ok, %{"versionArray" => [major, minor | _]}} = Mongo.command(connection, [{:buildInfo, true}])
+    {major, minor}
+  end
+
+  defp get_mongo_version(data_source) do
+    {_name, %{mongo_version: version}} = Enum.at(data_source.tables, 0)
+    version
+  end
+
+  @supported_functions_3_0 ~w(+ - * ^ / % mod div length left count sum min max avg
+    substring || concat lower upper lcase ucase year month day weekday hour minute second)
+  @supported_functions_3_2 @supported_functions_3_0 ++ ~w(abs ceil floor sqrt trunc)
+  defp supported_functions({major, minor}) when major < 3, do:
+    raise RuntimeError, message: "Unsupported MongoDB version: #{major}.#{minor}. At least 3.0 required."
+  defp supported_functions({3, 0}), do: @supported_functions_3_0
+  defp supported_functions({_major, _minor}), do: @supported_functions_3_2
+
+  defp supports_functions?(%Query{subquery?: true} = query), do:
+    (
+      Query.Lenses.query_expressions()
+      |> Lens.satisfy(& &1.function?)
+      |> Lens.to_list(query)
+      |> Enum.map(& &1.function)
+    ) -- (
+      query.data_source |> get_mongo_version() |> supported_functions()
+    ) == []
+  defp supports_functions?(_query), do: true
+
+  defp supports_joins?(%Query{from: {:join, join}, data_source: data_source}) do
+    # join support was added in 3.2
+    {major, minor} = get_mongo_version(data_source)
+    (major > 3 or (major == 3 and minor == 2)) and
+    join.type == :inner_join and
+    supported_join_conditions?(join.conditions) and
+    supported_join_branches?(join.lhs, join.rhs)
+  end
+  defp supports_joins?(_query), do: true
+
+  defp supported_join_conditions?([{:comparison, lhs, :=, rhs}]), do: lhs.name != nil and rhs.name != nil
+  defp supported_join_conditions?(_conditions), do: false
+
+  defp supported_join_branches?(lhs, rhs) when is_binary(lhs) and is_binary(rhs), do: true
+  defp supported_join_branches?({:subquery, _}, rhs) when is_binary(rhs), do: true
+  defp supported_join_branches?(lhs, {:subquery, _}) when is_binary(lhs), do: true
+  defp supported_join_branches?(_lhs, _rhs), do: false
 end
