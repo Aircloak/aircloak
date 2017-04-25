@@ -167,6 +167,7 @@ defmodule Cloak.Sql.Compiler do
     floated_layers =
       Query.Lenses.subquery_noise_layers()
       |> Lens.to_list(query)
+      |> update_in([Lens.all() |> Lens.all()], &(%Expression{name: &1.alias || &1.name}))
 
     new_layers ++ floated_layers
   end
