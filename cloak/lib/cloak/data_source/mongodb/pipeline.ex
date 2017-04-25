@@ -18,6 +18,8 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   end
   def build(%Query{from: {:join, join}} = query) do
     {lhs, lhs_table, rhs_table, lhs_field, rhs_field} = parse_join(join, query.selected_tables)
+    # The `$lookup` operator projects a foreign document into the specified field from the current docuemnt.
+    # We create an unique name under which the fields of the projected document will live for the duration of the query.
     namespace = "ac_temp_ns_#{:erlang.unique_integer([:positive])}"
     rhs_table_columns =
       Enum.map(rhs_table.columns, fn ({name, type}) ->
