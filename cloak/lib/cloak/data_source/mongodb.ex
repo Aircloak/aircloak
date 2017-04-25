@@ -129,7 +129,7 @@ defmodule Cloak.DataSource.MongoDB do
   end
 
   @doc false
-  def supports_query?(query), do: supports_functions?(query) and supports_joins?(query)
+  def supports_query?(query), do: supports_used_functions?(query) and supports_joins?(query)
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -203,16 +203,12 @@ defmodule Cloak.DataSource.MongoDB do
     end
   end
 
-  defp supports_functions?(%Query{subquery?: true} = query), do:
-    (
-      Query.Lenses.query_expressions()
-      |> Lens.satisfy(& &1.function?)
-      |> Lens.to_list(query)
-      |> Enum.map(& &1.function)
-    ) -- (
-      query.data_source |> get_mongo_version() |> supported_functions()
-    ) == []
-  defp supports_functions?(_query), do: true
+  defp supports_used_functions?(%Query{subquery?: true} = query) do
+    used_functions = Query.Lenses.query_functions() |> Lens.to_list(query) |> Enum.map(& &1.function)
+    supported_functions = query.data_source |> get_mongo_version() |> supported_functions()
+    used_functions -- supported_functions == []
+  end
+  defp supports_used_functions?(_query), do: true
 
   defp supports_joins?(%Query{from: {:join, join}, data_source: data_source}) do
     # join support was added in 3.2
