@@ -781,6 +781,13 @@ defmodule Cloak.Sql.Compiler do
 
       # add edges for all `uid1 = uid2` filters
       for {:comparison, column1, :=, column2} <- query.where ++ all_join_conditions(query.from),
+          # We're stripping the outermost cast expression. The reason is because Tableau always casts joined
+          # columns to text. In other words, it will always create:
+          #   `ON CAST(t1.uid as TEXT) = CAST(t2.uid as TEXT)`
+          # To handle this, we're going to remove the outer cast, thus ensuring we notice that uid columns
+          # are compared in the join.
+          column1 = remove_outer_cast(column1),
+          column2 = remove_outer_cast(column2),
           column1 != column2,
           column1.user_id?,
           column2.user_id?
@@ -815,6 +822,11 @@ defmodule Cloak.Sql.Compiler do
       :digraph.delete(graph)
     end
   end
+
+  defp remove_outer_cast(%Expression{function: {:cast, _}, function_args: [expr]}), do:
+    expr
+  defp remove_outer_cast(expr), do:
+    expr
 
   @spec all_join_conditions(Parser.from_clause) :: [Parser.where_clause]
   defp all_join_conditions({:join, join}) do
