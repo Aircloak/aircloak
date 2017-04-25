@@ -49,13 +49,14 @@ defmodule Cloak.DataSource do
     errors: [String.t]
   }
   @type table :: %{
-    name: String.t, # table name as seen by the user
-    db_name: String.t, # table name in the database
-    user_id: String.t,
-    ignore_unsupported_types: boolean,
-    columns: [{column, data_type}],
-    decoders: [DataDecoder.t],
-    projection: %{table: String.t, primary_key: String.t, foreign_key: String.t} | nil
+    :name => String.t, # table name as seen by the user
+    :db_name => String.t, # table name in the database
+    :user_id => String.t,
+    :ignore_unsupported_types => boolean,
+    :columns => [{column, data_type}],
+    :decoders => [DataDecoder.t],
+    :projection => %{table: String.t, primary_key: String.t, foreign_key: String.t} | nil,
+    optional(any) => any,
   }
   @type num_rows :: non_neg_integer
   @type column :: String.t
