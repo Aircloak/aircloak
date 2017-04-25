@@ -14,7 +14,7 @@ defmodule Air.Admin.AuditLogView do
 
   def time_ago(entry), do: Air.Utils.DateTime.time_ago(entry.inserted_at)
 
-  def absolute_time(entry), do: entry.inserted_at
+  def absolute_time(entry), do: Timex.format!(entry.inserted_at, "{ISOdate} {h24}:{m}:{s}")
 
   def selected?(%Plug.Conn{query_params: query_params}, name, param), do:
     selected?(query_params, name, param)
