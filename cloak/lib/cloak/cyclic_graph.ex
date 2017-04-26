@@ -13,7 +13,8 @@ defmodule Cloak.CyclicGraph do
   Creates the new graph.
 
   The graph is powered by `:digraph`, which in turn uses ETS tables. Therefore,
-  you need to make sure to delete the instance manually with `delete/1`.
+  you need to make sure to delete the instance manually with `delete/1`, or
+  use `with/1`.
   """
   @spec new() :: t
   def new(), do:
@@ -24,6 +25,13 @@ defmodule Cloak.CyclicGraph do
   def delete(graph) do
     :digraph.delete(graph)
     :ok
+  end
+
+  @doc "Creates a graph, invokes the lambda, deletes the graph, and returns the result of the lambda."
+  @spec with(((t) -> result)) :: result when result: var
+  def with(fun) do
+    graph = new()
+    try do: fun.(graph), after: delete(graph)
   end
 
   @doc "Adds a vertex to the graph."
