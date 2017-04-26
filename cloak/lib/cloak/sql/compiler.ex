@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
-  alias Cloak.DataSource
+  alias Cloak.{CyclicGraph, DataSource}
   alias Cloak.Sql.{Expression, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Range}
   alias Cloak.Query.DataDecoder
 
@@ -764,64 +764,43 @@ defmodule Cloak.Sql.Compiler do
 
   defp verify_joins(%Query{projected?: true} = query), do: query
   defp verify_joins(query) do
-    join_conditions_scope_check(query.from)
+    join_conditions_scope_check!(query.from)
+    ensure_all_uid_columns_are_compared_in_joins!(query)
+    query
+  end
 
-    # Algorithm for finding improperly joined tables:
-    #
-    # 1. Create a DCG graph, where all uid columns are vertices.
-    # 2. Add an edge for all where clauses shaped as `uid1 = uid2`
-    # 3. Find the first pair (uid1, uid2) where there is no path from uid1 to uid2 in the graph.
-    # 4. Report an error if something is found in the step 3
+  defp ensure_all_uid_columns_are_compared_in_joins!(query), do:
+    CyclicGraph.with(fn(graph) ->
+      query
+      |> all_id_columns_from_tables()
+      |> Enum.each(&CyclicGraph.add_vertex(graph, {&1.table.name, &1.name}))
 
-    column_key = fn(column) -> {column.name, column.table.name} end
+      for {col1, col2} <- uid_columns_compared_in_joins(query), do:
+        CyclicGraph.connect!(graph, {col1.table.name, col1.name}, {col2.table.name, col2.name})
 
-    graph = :digraph.new([:private, :cyclic])
-    try do
-      # add uid columns as vertices
-      uid_columns = Enum.map(query.selected_tables, &%Expression{name: &1.user_id, table: &1})
-      Enum.each(uid_columns, &:digraph.add_vertex(graph, column_key.(&1)))
-
-      # add edges for all `uid1 = uid2` filters
-      for {:comparison, column1, :=, column2} <- query.where ++ all_join_conditions(query.from),
-          # We're stripping the outermost cast expression. The reason is because Tableau always casts joined
-          # columns to text. In other words, it will always create:
-          #   `ON CAST(t1.uid as TEXT) = CAST(t2.uid as TEXT)`
-          # To handle this, we're going to remove the outer cast, thus ensuring we notice that uid columns
-          # are compared in the join.
-          column1 = remove_outer_cast(column1),
-          column2 = remove_outer_cast(column2),
-          column1 != column2,
-          column1.user_id?,
-          column2.user_id?
-      do
-        :digraph.add_edge(graph, column_key.(column1), column_key.(column2))
-        :digraph.add_edge(graph, column_key.(column2), column_key.(column1))
+      with [{{table1, column1}, {table2, column2}} | _] <- CyclicGraph.disconnected_pairs(graph) do
+        raise CompilationError,
+          message:
+            "Missing where comparison for uid columns of tables `#{table1}` and `#{table2}`. " <>
+            "You can fix the error by adding `#{table1}.#{column1} = #{table2}.#{column2}` " <>
+            "condition to the `WHERE` clause."
       end
+    end)
 
-      # Find first pair (uid1, uid2) which are not connected in the graph.
-      uid_columns
-      |> Stream.chunk(2, 1)
-      |> Stream.filter(
-            fn([uid1, uid2]) -> :digraph.get_path(graph, column_key.(uid1), column_key.(uid2)) == false end
-          )
-      |> Enum.take(1)
-      |> case do
-            [] ->
-              # No such pair -> all tables are properly joined
-              query
-
-            [[column1, column2]] ->
-              table1 = column1.table.name
-              table2 = column2.table.name
-              raise CompilationError,
-                message:
-                  "Missing where comparison for uid columns of tables `#{table1}` and `#{table2}`. " <>
-                  "You can fix the error by adding `#{table1}.#{column1.name} = #{table2}.#{column2.name}` " <>
-                  "condition to the `WHERE` clause."
-          end
-    after
-      # digraph is powered by ets tables, so we need to make sure they are deleted once we don't need them
-      :digraph.delete(graph)
+  defp uid_columns_compared_in_joins(query) do
+    for {:comparison, column1, :=, column2} <- query.where ++ all_join_conditions(query.from),
+        # We're stripping the outermost cast expression. The reason is because Tableau always casts joined
+        # columns to text. In other words, it will always create:
+        #   `ON CAST(t1.uid as TEXT) = CAST(t2.uid as TEXT)`
+        # To handle this, we're going to remove the outer cast, thus ensuring we notice that uid columns
+        # are compared in the join.
+        column1 = remove_outer_cast(column1),
+        column2 = remove_outer_cast(column2),
+        column1 != column2,
+        column1.user_id?,
+        column2.user_id?
+    do
+      {column1, column2}
     end
   end
 
@@ -1136,7 +1115,7 @@ defmodule Cloak.Sql.Compiler do
   defp any_outer_join?({:join, join}),
     do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
 
-  defp join_conditions_scope_check(from) do
+  defp join_conditions_scope_check!(from) do
     do_join_conditions_scope_check(from, [])
   end
 
@@ -1164,10 +1143,8 @@ defmodule Cloak.Sql.Compiler do
     do: [table_name | selected_tables]
 
   defp scope_check(tables_in_scope, table_name, column_name) do
-    case Enum.member?(tables_in_scope, table_name) do
-      true -> :ok
-      _ -> raise CompilationError, message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
-    end
+    unless Enum.member?(tables_in_scope, table_name), do:
+      raise CompilationError, message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
   end
 
   defp verify_limit(%Query{command: :select, limit: amount}) when amount <= 0, do:

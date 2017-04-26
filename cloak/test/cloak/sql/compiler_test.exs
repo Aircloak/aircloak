@@ -360,13 +360,13 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error =~ ~r/Missing where comparison.*`t1` and `t2`/
 
     assert {:error, error} = compile("SELECT t1.c1 from t1, t2, t3 WHERE t1.uid = t2.uid", data_source())
-    assert error =~ ~r/Missing where comparison.*`t2` and `t3`/
+    assert error =~ ~r/Missing where comparison.*`t1` and `t3`/
 
     assert {:error, error} = compile(
       "SELECT t1.c1 from t1, t2, t3, t4 WHERE t1.uid = t2.uid AND t3.uid = t4.uid",
       data_source()
     )
-    assert error =~ ~r/Missing where comparison.*`t2` and `t3`/
+    assert error =~ ~r/Missing where comparison.*`t1` and `t3`/
   end
 
   Enum.each(["count", "min", "max", "median", "stddev"], fn(function) ->
