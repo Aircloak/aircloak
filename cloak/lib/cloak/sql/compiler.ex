@@ -1143,10 +1143,8 @@ defmodule Cloak.Sql.Compiler do
     do: [table_name | selected_tables]
 
   defp scope_check(tables_in_scope, table_name, column_name) do
-    case Enum.member?(tables_in_scope, table_name) do
-      true -> :ok
-      _ -> raise CompilationError, message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
-    end
+    unless Enum.member?(tables_in_scope, table_name), do:
+      raise CompilationError, message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
   end
 
   defp verify_limit(%Query{command: :select, limit: amount}) when amount <= 0, do:
