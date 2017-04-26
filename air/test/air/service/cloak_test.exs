@@ -55,8 +55,7 @@ defmodule Air.Service.Cloak.Test do
 
   test "should unregister cloak when channel closes, but retain alternative cloaks" do
     {:ok, pid1} = start_cloak_channel(cloak_info(), @data_sources)
-    cloak_info = cloak_info()
-    {:ok, pid2} = start_cloak_channel(cloak_info, @data_sources)
+    {:ok, pid2} = start_cloak_channel(cloak_info(), @data_sources)
 
     Process.unlink(pid1)
     Process.exit(pid1, :exit)
