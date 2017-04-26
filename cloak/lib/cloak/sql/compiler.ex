@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
-  alias Cloak.DataSource
+  alias Cloak.{CyclicGraph, DataSource}
   alias Cloak.Sql.{Expression, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Range}
   alias Cloak.Query.DataDecoder
 
@@ -771,13 +771,12 @@ defmodule Cloak.Sql.Compiler do
     # 3. Find the first pair (uid1, uid2) where there is no path from uid1 to uid2 in the graph.
     # 4. Report an error if something is found in the step 3
 
-    column_key = fn(column) -> {column.name, column.table.name} end
+    column_key = fn(column) -> %{name: column.name, table: column.table.name} end
 
-    graph = :digraph.new([:private, :cyclic])
+    graph = CyclicGraph.new()
     try do
       # add uid columns as vertices
-      uid_columns = Enum.map(query.selected_tables, &%Expression{name: &1.user_id, table: &1})
-      Enum.each(uid_columns, &:digraph.add_vertex(graph, column_key.(&1)))
+      Enum.each(query.selected_tables, &CyclicGraph.add_vertex(graph, %{name: &1.user_id, table: &1.name}))
 
       # add edges for all `uid1 = uid2` filters
       for {:comparison, column1, :=, column2} <- query.where ++ all_join_conditions(query.from),
@@ -792,34 +791,24 @@ defmodule Cloak.Sql.Compiler do
           column1.user_id?,
           column2.user_id?
       do
-        :digraph.add_edge(graph, column_key.(column1), column_key.(column2))
-        :digraph.add_edge(graph, column_key.(column2), column_key.(column1))
+        CyclicGraph.connect(graph, column_key.(column1), column_key.(column2))
       end
 
       # Find first pair (uid1, uid2) which are not connected in the graph.
-      uid_columns
-      |> Stream.chunk(2, 1)
-      |> Stream.filter(
-            fn([uid1, uid2]) -> :digraph.get_path(graph, column_key.(uid1), column_key.(uid2)) == false end
-          )
-      |> Enum.take(1)
-      |> case do
-            [] ->
-              # No such pair -> all tables are properly joined
-              query
+      case CyclicGraph.disconnected_pairs(graph) do
+        [] ->
+          # No such pair -> all tables are properly joined
+          query
 
-            [[column1, column2]] ->
-              table1 = column1.table.name
-              table2 = column2.table.name
-              raise CompilationError,
-                message:
-                  "Missing where comparison for uid columns of tables `#{table1}` and `#{table2}`. " <>
-                  "You can fix the error by adding `#{table1}.#{column1.name} = #{table2}.#{column2.name}` " <>
-                  "condition to the `WHERE` clause."
-          end
+        [{column1, column2} | _] ->
+          raise CompilationError,
+            message:
+              "Missing where comparison for uid columns of tables `#{column1.table}` and `#{column2.table}`. " <>
+              "You can fix the error by adding `#{column1.table}.#{column1.name} = " <>
+              "#{column2.table}.#{column2.name}` condition to the `WHERE` clause."
+      end
     after
-      # digraph is powered by ets tables, so we need to make sure they are deleted once we don't need them
-      :digraph.delete(graph)
+      CyclicGraph.delete(graph)
     end
   end
 
