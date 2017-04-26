@@ -762,12 +762,12 @@ defmodule Cloak.Sql.Compiler do
 
   defp verify_joins(%Query{projected?: true} = query), do: query
   defp verify_joins(query) do
-    join_conditions_scope_check(query.from)
-    ensure_all_uid_columns_are_compared_in_joins(query)
+    join_conditions_scope_check!(query.from)
+    ensure_all_uid_columns_are_compared_in_joins!(query)
     query
   end
 
-  defp ensure_all_uid_columns_are_compared_in_joins(query) do
+  defp ensure_all_uid_columns_are_compared_in_joins!(query) do
     graph = CyclicGraph.new()
     try do
       Enum.each(query.selected_tables, &CyclicGraph.add_vertex(graph, {&1.user_id, &1.name}))
@@ -1115,7 +1115,7 @@ defmodule Cloak.Sql.Compiler do
   defp any_outer_join?({:join, join}),
     do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
 
-  defp join_conditions_scope_check(from) do
+  defp join_conditions_scope_check!(from) do
     do_join_conditions_scope_check(from, [])
   end
 
