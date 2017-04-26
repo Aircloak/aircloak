@@ -771,24 +771,21 @@ defmodule Cloak.Sql.Compiler do
     # 3. Find the first pair (uid1, uid2) where there is no path from uid1 to uid2 in the graph.
     # 4. Report an error if something is found in the step 3
 
-    column_key = fn(column) -> %{name: column.name, table: column.table.name} end
-
     graph = CyclicGraph.new()
     try do
       # add uid columns as vertices
-      Enum.each(query.selected_tables, &CyclicGraph.add_vertex(graph, %{name: &1.user_id, table: &1.name}))
+      Enum.each(query.selected_tables, &CyclicGraph.add_vertex(graph, {&1.user_id, &1.name}))
 
-      query
-      |> uid_columns_compared_in_joins()
-      |> Enum.each(fn({col1, col2}) -> CyclicGraph.connect(graph, column_key.(col1), column_key.(col2)) end)
+      for {col1, col2} <- uid_columns_compared_in_joins(query), do:
+        CyclicGraph.connect(graph, {col1.name, col1.table.name}, {col2.name, col2.table.name})
 
       # Find first pair (uid1, uid2) which are not connected in the graph.
-      with [{column1, column2} | _] <- CyclicGraph.disconnected_pairs(graph) do
+      with [{{column1, table1}, {column2, table2}} | _] <- CyclicGraph.disconnected_pairs(graph) do
         raise CompilationError,
           message:
-            "Missing where comparison for uid columns of tables `#{column1.table}` and `#{column2.table}`. " <>
-            "You can fix the error by adding `#{column1.table}.#{column1.name} = " <>
-            "#{column2.table}.#{column2.name}` condition to the `WHERE` clause."
+            "Missing where comparison for uid columns of tables `#{table1}` and `#{table2}`. " <>
+            "You can fix the error by adding `#{table1}.#{column1} = #{table2}.#{column2}` " <>
+            "condition to the `WHERE` clause."
       end
 
       query
