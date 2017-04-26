@@ -67,6 +67,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
         "SELECT COUNT(*) FROM (SELECT uid, numeric FROM table GROUP BY uid, numeric) foo",
       data_source())
 
+      assert 1 = Enum.count(result.noise_layers, &match?([%Expression{name: "numeric"}], &1))
+    end
+
+    test "floating columns that are not aggregated" do
+      result = compile!(
+        "SELECT COUNT(*) FROM (SELECT uid FROM table WHERE numeric = 3 GROUP BY uid, decoded) foo",
+      data_source())
+
       %{from: {:subquery, %{ast: subquery}}} = result
 
       assert [%{alias: min_alias}] = Enum.filter(subquery.db_columns,
@@ -81,11 +89,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
       assert 1 = Enum.count(result.noise_layers, &match?([
         %Expression{name: ^min_alias},
         %Expression{name: ^max_alias},
-        %Expression{name: count_alias}
+        %Expression{name: ^count_alias}
       ], &1))
     end
-
-    test "floating columns that are not aggregated"
   end
 
   test "noise layers from nested subqueries"

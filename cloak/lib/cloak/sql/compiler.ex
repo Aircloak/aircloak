@@ -150,7 +150,7 @@ defmodule Cloak.Sql.Compiler do
 
   defp calculate_noise_layers(query = %{subquery?: true}), do:
     if aggregate_query?(query),
-      do: %{query | noise_layers: query |> noise_layers() |> Enum.map(&float_noise_layer/1)},
+      do: %{query | noise_layers: query |> noise_layers() |> Enum.map(&float_noise_layer(&1, query))},
       else: %{query | noise_layers: query |> noise_layers()}
   defp calculate_noise_layers(query), do:
     %{query | noise_layers: query |> noise_layers()}
@@ -172,13 +172,17 @@ defmodule Cloak.Sql.Compiler do
     new_layers ++ floated_layers
   end
 
-  defp float_noise_layer([expression]) do
-    [
-      Expression.function("min", [expression], expression.type, _aggregate = true),
-      Expression.function("max", [expression], expression.type, _aggregate = true),
-      Expression.function("count", [expression], :integer, _aggregate = true),
-    ]
-    |> Enum.map(&alias_column/1)
+  defp float_noise_layer([expression], query) do
+    if aggregate_query?(query) and not aggregated_column?(expression, query) do
+      [
+        Expression.function("min", [expression], expression.type, _aggregate = true),
+        Expression.function("max", [expression], expression.type, _aggregate = true),
+        Expression.function("count", [expression], :integer, _aggregate = true),
+      ]
+      |> Enum.map(&alias_column/1)
+    else
+      [expression]
+    end
   end
 
 
