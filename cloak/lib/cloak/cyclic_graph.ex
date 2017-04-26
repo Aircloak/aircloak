@@ -65,7 +65,7 @@ defmodule Cloak.CyclicGraph do
 
     - `v1 < v2`
     - `v3 < v4`
-    - `{v1, v2}` <= `{v3, v4}`
+    - `{v1, v2}` < `{v3, v4}`
   """
   @spec disconnected_pairs(t) :: [{vertex, vertex}]
   def disconnected_pairs(graph), do:
