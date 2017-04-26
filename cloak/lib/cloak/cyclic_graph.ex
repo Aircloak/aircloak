@@ -44,7 +44,7 @@ defmodule Cloak.CyclicGraph do
   @doc """
   Connects two existing vertices in the graph.
 
-  This function will raise an erro if any of the given vertices doesn't exist in the graph.
+  This function will raise an error if any of the given vertices doesn't exist in the graph.
   """
   @spec connect!(t, vertex, vertex) :: :ok
   def connect!(graph, vertex1, vertex2) do
