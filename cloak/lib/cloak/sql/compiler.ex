@@ -774,7 +774,7 @@ defmodule Cloak.Sql.Compiler do
       |> Enum.each(&CyclicGraph.add_vertex(graph, {&1.table.name, &1.name}))
 
       for {col1, col2} <- uid_columns_compared_in_joins(query), do:
-        CyclicGraph.connect(graph, {col1.table.name, col1.name}, {col2.table.name, col2.name})
+        CyclicGraph.connect!(graph, {col1.table.name, col1.name}, {col2.table.name, col2.name})
 
       with [{{table1, column1}, {table2, column2}} | _] <- CyclicGraph.disconnected_pairs(graph) do
         raise CompilationError,

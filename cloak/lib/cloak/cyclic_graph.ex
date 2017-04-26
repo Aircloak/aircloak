@@ -37,13 +37,17 @@ defmodule Cloak.CyclicGraph do
   @doc "Adds a vertex to the graph."
   @spec add_vertex(t, vertex) :: :ok
   def add_vertex(graph, vertex) do
-    ^vertex = :digraph.add_vertex(graph, vertex)
+    :digraph.add_vertex(graph, vertex)
     :ok
   end
 
-  @doc "Connects two existing vertices in the graph."
-  @spec connect(t, vertex, vertex) :: :ok
-  def connect(graph, vertex1, vertex2) do
+  @doc """
+  Connects two existing vertices in the graph.
+
+  This function will raise an erro if any of the given vertices doesn't exist in the graph.
+  """
+  @spec connect!(t, vertex, vertex) :: :ok
+  def connect!(graph, vertex1, vertex2) do
     false = match?({:error, _}, :digraph.add_edge(graph, vertex1, vertex2))
     false = match?({:error, _}, :digraph.add_edge(graph, vertex2, vertex1))
     :ok

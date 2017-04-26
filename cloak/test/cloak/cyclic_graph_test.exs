@@ -27,7 +27,7 @@ defmodule Cloak.CyclicGraphTest do
         CyclicGraph.add_vertex(graph, :a)
         CyclicGraph.add_vertex(graph, :b)
         CyclicGraph.add_vertex(graph, :c)
-        CyclicGraph.connect(graph, :a, :b)
+        CyclicGraph.connect!(graph, :a, :b)
         CyclicGraph.disconnected_pairs(graph)
       end)
   end
@@ -35,7 +35,7 @@ defmodule Cloak.CyclicGraphTest do
   defp graph(vertices, connections \\ []) do
     graph = CyclicGraph.new()
     Enum.each(vertices, &CyclicGraph.add_vertex(graph, &1))
-    Enum.each(connections, fn({v1, v2}) -> CyclicGraph.connect(graph, v1, v2) end)
+    Enum.each(connections, fn({v1, v2}) -> CyclicGraph.connect!(graph, v1, v2) end)
     graph
   end
 end
