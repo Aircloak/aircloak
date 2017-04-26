@@ -770,7 +770,9 @@ defmodule Cloak.Sql.Compiler do
   defp ensure_all_uid_columns_are_compared_in_joins!(query) do
     graph = CyclicGraph.new()
     try do
-      Enum.each(query.selected_tables, &CyclicGraph.add_vertex(graph, {&1.user_id, &1.name}))
+      query
+      |> all_id_columns_from_tables()
+      |> Enum.each(&CyclicGraph.add_vertex(graph, {&1.name, &1.table.name}))
 
       for {col1, col2} <- uid_columns_compared_in_joins(query), do:
         CyclicGraph.connect(graph, {col1.name, col1.table.name}, {col2.name, col2.table.name})
