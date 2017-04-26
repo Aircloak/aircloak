@@ -167,16 +167,16 @@ defmodule Cloak.Sql.Compiler do
     floated_layers =
       Query.Lenses.subquery_noise_layers()
       |> Lens.to_list(query)
-      |> update_in([Lens.all() |> Lens.all()], &(%Expression{name: &1.alias || &1.name}))
+      |> update_in([Lens.all() |> Lens.all()], &reference_aliased/1)
 
     new_layers ++ floated_layers
   end
 
   defp float_noise_layer([min, max, count], _query) do
     [
-      Expression.function("min", [min], min.type, _aggregate = true),
-      Expression.function("max", [max], max.type, _aggregate = true),
-      Expression.function("sum", [count], :integer, _aggregate = true),
+      Expression.function("min", [reference_aliased(min)], min.type, _aggregate = true),
+      Expression.function("max", [reference_aliased(max)], max.type, _aggregate = true),
+      Expression.function("sum", [reference_aliased(count)], :integer, _aggregate = true),
     ]
     |> Enum.map(&alias_column/1)
   end
@@ -192,6 +192,8 @@ defmodule Cloak.Sql.Compiler do
       [expression]
     end
   end
+
+  def reference_aliased(column), do: %Expression{name: column.alias || column.name}
 
 
   # -------------------------------------------------------------------
