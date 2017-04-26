@@ -764,13 +764,6 @@ defmodule Cloak.Sql.Compiler do
   defp verify_joins(query) do
     join_conditions_scope_check(query.from)
 
-    # Algorithm for finding improperly joined tables:
-    #
-    # 1. Create a DCG graph, where all uid columns are vertices.
-    # 2. Add an edge for all where clauses shaped as `uid1 = uid2`
-    # 3. Find the first pair (uid1, uid2) where there is no path from uid1 to uid2 in the graph.
-    # 4. Report an error if something is found in the step 3
-
     graph = CyclicGraph.new()
     try do
       # add uid columns as vertices
