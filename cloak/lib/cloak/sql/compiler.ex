@@ -763,16 +763,18 @@ defmodule Cloak.Sql.Compiler do
   defp verify_joins(%Query{projected?: true} = query), do: query
   defp verify_joins(query) do
     join_conditions_scope_check(query.from)
+    ensure_all_uid_columns_are_compared_in_joins(query)
+    query
+  end
 
+  defp ensure_all_uid_columns_are_compared_in_joins(query) do
     graph = CyclicGraph.new()
     try do
-      # add uid columns as vertices
       Enum.each(query.selected_tables, &CyclicGraph.add_vertex(graph, {&1.user_id, &1.name}))
 
       for {col1, col2} <- uid_columns_compared_in_joins(query), do:
         CyclicGraph.connect(graph, {col1.name, col1.table.name}, {col2.name, col2.table.name})
 
-      # Find first pair (uid1, uid2) which are not connected in the graph.
       with [{{column1, table1}, {column2, table2}} | _] <- CyclicGraph.disconnected_pairs(graph) do
         raise CompilationError,
           message:
@@ -780,8 +782,6 @@ defmodule Cloak.Sql.Compiler do
             "You can fix the error by adding `#{table1}.#{column1} = #{table2}.#{column2}` " <>
             "condition to the `WHERE` clause."
       end
-
-      query
     after
       CyclicGraph.delete(graph)
     end
