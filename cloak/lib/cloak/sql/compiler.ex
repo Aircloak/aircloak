@@ -772,12 +772,12 @@ defmodule Cloak.Sql.Compiler do
     try do
       query
       |> all_id_columns_from_tables()
-      |> Enum.each(&CyclicGraph.add_vertex(graph, {&1.name, &1.table.name}))
+      |> Enum.each(&CyclicGraph.add_vertex(graph, {&1.table.name, &1.name}))
 
       for {col1, col2} <- uid_columns_compared_in_joins(query), do:
-        CyclicGraph.connect(graph, {col1.name, col1.table.name}, {col2.name, col2.table.name})
+        CyclicGraph.connect(graph, {col1.table.name, col1.name}, {col2.table.name, col2.name})
 
-      with [{{column1, table1}, {column2, table2}} | _] <- CyclicGraph.disconnected_pairs(graph) do
+      with [{{table1, column1}, {table2, column2}} | _] <- CyclicGraph.disconnected_pairs(graph) do
         raise CompilationError,
           message:
             "Missing where comparison for uid columns of tables `#{table1}` and `#{table2}`. " <>

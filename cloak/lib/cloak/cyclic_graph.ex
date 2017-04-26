@@ -45,12 +45,24 @@ defmodule Cloak.CyclicGraph do
   Returns all pairs of vertices which are not connected in any way.
 
   Vertices are not connected if there exist no path which leads from one vertex
-  to another. The returned list is deduplicated, meaning that each pair of
-  vertices can occur at most once in the result.
+  to another.
+
+  The returned list is deduplicated, meaning that each pair of vertices can occur
+  at most once in the result.
+
+  This function will always return the same result for the same graph, regardless
+  of the order in which vertices and connections are added. To ensure this,
+  property, the resulting list is sorted. In the result `[{v1, v2}, {v3, v4}]`,
+  the following properties always hold:
+
+    - `v1 < v2`
+    - `v3 < v4`
+    - `{v1, v2}` <= `{v3, v4}`
   """
   @spec disconnected_pairs(t) :: [{vertex, vertex}]
   def disconnected_pairs(graph), do:
     :digraph.vertices(graph)
+    |> Enum.sort()
     |> pair_combinations()
     |> Enum.filter(fn({v1, v2}) -> :digraph.get_path(graph, v1, v2) == false end)
 
