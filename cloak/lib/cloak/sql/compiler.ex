@@ -778,21 +778,9 @@ defmodule Cloak.Sql.Compiler do
       # add uid columns as vertices
       Enum.each(query.selected_tables, &CyclicGraph.add_vertex(graph, %{name: &1.user_id, table: &1.name}))
 
-      # add edges for all `uid1 = uid2` filters
-      for {:comparison, column1, :=, column2} <- query.where ++ all_join_conditions(query.from),
-          # We're stripping the outermost cast expression. The reason is because Tableau always casts joined
-          # columns to text. In other words, it will always create:
-          #   `ON CAST(t1.uid as TEXT) = CAST(t2.uid as TEXT)`
-          # To handle this, we're going to remove the outer cast, thus ensuring we notice that uid columns
-          # are compared in the join.
-          column1 = remove_outer_cast(column1),
-          column2 = remove_outer_cast(column2),
-          column1 != column2,
-          column1.user_id?,
-          column2.user_id?
-      do
-        CyclicGraph.connect(graph, column_key.(column1), column_key.(column2))
-      end
+      query
+      |> uid_columns_compared_in_joins()
+      |> Enum.each(fn({col1, col2}) -> CyclicGraph.connect(graph, column_key.(col1), column_key.(col2)) end)
 
       # Find first pair (uid1, uid2) which are not connected in the graph.
       case CyclicGraph.disconnected_pairs(graph) do
@@ -809,6 +797,23 @@ defmodule Cloak.Sql.Compiler do
       end
     after
       CyclicGraph.delete(graph)
+    end
+  end
+
+  defp uid_columns_compared_in_joins(query) do
+    for {:comparison, column1, :=, column2} <- query.where ++ all_join_conditions(query.from),
+        # We're stripping the outermost cast expression. The reason is because Tableau always casts joined
+        # columns to text. In other words, it will always create:
+        #   `ON CAST(t1.uid as TEXT) = CAST(t2.uid as TEXT)`
+        # To handle this, we're going to remove the outer cast, thus ensuring we notice that uid columns
+        # are compared in the join.
+        column1 = remove_outer_cast(column1),
+        column2 = remove_outer_cast(column2),
+        column1 != column2,
+        column1.user_id?,
+        column2.user_id?
+    do
+      {column1, column2}
     end
   end
 
