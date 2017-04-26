@@ -222,14 +222,16 @@ defmodule Cloak.Sql.Compiler do
       query |> Query.required_columns_from_table(projected_subquery.alias) |> Enum.map(& &1.name)
     ]
 
-  defp optimized_projected_subquery_ast(ast, required_column_names), do:
+  defp optimized_projected_subquery_ast(ast, required_column_names) do
+    columns = Enum.filter(ast.columns, & &1.name in required_column_names)
+    titles = Enum.filter(ast.column_titles, & &1 in required_column_names)
     %Query{ast |
-      next_row_index: 0,
-      db_columns: [],
-      columns: Enum.filter(ast.columns, & &1.name in required_column_names),
-      column_titles: Enum.filter(ast.column_titles, & &1 in required_column_names)
+      next_row_index: 0, db_columns: [],
+      columns: columns, property: columns,
+      column_titles: titles
     }
     |> calculate_db_columns()
+  end
 
 
   # -------------------------------------------------------------------

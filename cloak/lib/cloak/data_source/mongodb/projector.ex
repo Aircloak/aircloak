@@ -15,23 +15,31 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   def project_columns(columns), do:
     [%{'$project': columns |> Enum.map(&project_column/1) |> Enum.into(%{"_id" => false})}]
 
-  @doc """
-    Creates a MongoDB projection for the virtual array size columns in a table
-    plus a set of extra columns needed for later filtering.
-  """
-  @spec project_table_and_columns(map, list) :: [map]
-  def project_table_and_columns(table, extra_columns) do
-    columns = for {name, _type} <- table.columns, do: name
-    {array_sizes, regular_columns} = Enum.partition(columns, &Schema.is_array_size?/1)
-    if array_sizes ++ extra_columns == [] do
-      []
-    else
-      projected_columns =
-        Enum.map(regular_columns, &{&1, true}) ++
-        Enum.map(array_sizes, &{&1, &1 |> Schema.array_size_field() |> map_array_size()}) ++
-        Enum.map(extra_columns, &project_column/1)
-      [%{'$project': Enum.into(projected_columns, %{})}]
+  @doc "Creates a MongoDB projection for a table containing array size columns."
+  @spec project_array_sizes(map) :: [map]
+  def project_array_sizes(%{columns: columns, db_name: name}) when is_binary(name) do # table is collection
+    columns
+    |> Enum.map(fn ({name, _type}) -> name end)
+    |> Enum.partition(&Schema.is_array_size?/1)
+    |> case do
+      {[], _regular_columns} -> []
+      {array_sizes, regular_columns} ->
+        projected_columns =
+          Enum.map(regular_columns, &{&1, true}) ++
+          Enum.map(array_sizes, &{&1, &1 |> Schema.array_size_field() |> map_array_size()})
+        [%{'$project': Enum.into(projected_columns, %{"_id" => false})}]
     end
+  end
+  def project_array_sizes(_table), do: [] # table is subquery
+
+  @doc "Creates a MongoDB projection for the table and a set of extra columns needed for later filtering."
+  @spec project_extra_columns(map, list) :: [map]
+  def project_extra_columns(_table, []), do: []
+  def project_extra_columns(%{columns: columns}, extra_columns) do
+    projected_columns =
+      Enum.map(columns, fn ({name, _type}) -> {name, true} end) ++
+      Enum.map(extra_columns, &project_column/1)
+    [%{'$project': Enum.into(projected_columns, %{"_id" => false})}]
   end
 
   @doc "Creates a MongoDB projection from a column."
@@ -49,17 +57,20 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp map_array_size(name), do: %{'$size': %{'$ifNull': ["$" <> name, []]}}
 
   defp begin_parse_column(%Expression{function?: true, function: fun} = column) when fun != nil do
-    non_null_args =
-      column
-      |> extract_fields()
-      |> Enum.map(&%{'$gt': [map_field(&1), nil]})
-    %{'$cond': [%{'$and': non_null_args}, parse_column(column), nil]}
+    column
+    |> extract_fields()
+    |> Enum.map(&%{'$gt': ["$" <> &1, nil]})
+    |> case do
+      [] -> parse_column(column)
+      [non_null_arg] -> %{'$cond': [non_null_arg, parse_column(column), nil]}
+      non_null_args -> %{'$cond': [%{'$and': non_null_args}, parse_column(column), nil]}
+    end
   end
   defp begin_parse_column(column), do: parse_column(column)
 
   defp valid_alias?(name), do:
     String.match?(name, ~r/^[a-zA-Z_#][a-zA-Z0-9_.#]*$/) and
-    ! String.contains?(name, "..") and
+    not String.contains?(name, "..") and
     String.last(name) != "."
 
   defp get_field_name(nil), do: "__unknown_field_name_#{:erlang.unique_integer([:positive])}"
@@ -88,15 +99,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     parse_function(fun, parse_column(arg))
   defp parse_column(%Expression{function?: true, function: fun, function_args: args}) when fun != nil, do:
     parse_function(fun, Enum.map(args, &parse_column/1))
-  defp parse_column(%Expression{name: name}) when is_binary(name), do: map_field(name)
-
-  defp map_field(name) do
-    if Schema.is_array_size?(name) do
-      name |> Schema.array_size_field() |> map_array_size()
-    else
-      "$" <> name
-    end
-  end
+  defp parse_column(%Expression{name: name}) when is_binary(name), do: "$" <> name
 
   defp parse_function("left", [string, count]), do: %{"$substr" => [string, 0, count]}
   defp parse_function("substring", [string, from]), do: %{"$substr" => [string, from, -1]}
@@ -111,7 +114,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     "lower" => "$toLower", "lcase" => "$toLower", "upper" => "$toUpper", "ucase" => "$toUpper",
     "year" => "$year", "month" => "$month", "day" => "$dayOfMonth", "weekday" => "$dayOfWeek",
     "hour" => "$hour", "minute" => "$minute", "second" => "$second",
-    "sum" => "$sum", "avg" => "$avg", "min" => "$min", "max" => "$max", "stddev" => "$stdDevPop",
+    "sum" => "$sum", "avg" => "$avg", "min" => "$min", "max" => "$max", "stddev" => "$stdDevPop", "size" => "$size",
   }, do:
     defp parse_function(unquote(name), args), do: %{unquote(translation) => args}
   defp parse_function("cast", [value, :datetime, :text]), do:

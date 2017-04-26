@@ -206,7 +206,8 @@ defmodule Cloak.Query.Aggregator do
         |> Stream.map(fn ({_user, values}) -> Enum.at(values, values_index) end)
         |> Enum.reject(&is_nil/1)
       case low_users_count?(aggregated_values, anonymizer) do
-        true  -> nil
+        true  ->
+          if aggregator.function == "count", do: 0, else: nil
         false ->
           aggregated_values
           |> preprocess_for_aggregation(aggregator)
