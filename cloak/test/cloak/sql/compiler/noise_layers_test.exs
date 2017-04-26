@@ -94,7 +94,41 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
     end
   end
 
-  test "noise layers from nested subqueries"
+  describe "noise layers from nested subqueries" do
+    test "floating columns that are aggregated"
+
+    test "floating columns that are not aggregated" do
+      result = compile!(
+        "SELECT COUNT(*) FROM (SELECT uid FROM
+          (SELECT uid, dummy FROM table WHERE numeric = 3 GROUP BY uid, dummy, decoded) foo
+        GROUP BY uid, dummy) bar",
+      data_source())
+
+      %{from: {:subquery, %{ast: subquery}}} = result
+      %{from: {:subquery, %{ast: inner_subquery}}} = subquery
+
+      assert [%{alias: min_alias}] = Enum.filter(inner_subquery.db_columns,
+        &match?(%Expression{function: "min", function_args: [%Expression{name: "numeric"}]}, &1))
+      assert [%{alias: max_alias}] = Enum.filter(inner_subquery.db_columns,
+        &match?(%Expression{function: "max", function_args: [%Expression{name: "numeric"}]}, &1))
+      assert [%{alias: count_alias}] = Enum.filter(inner_subquery.db_columns,
+        &match?(%Expression{function: "count", function_args: [%Expression{name: "numeric"}]}, &1))
+      assert [%{alias: min_alias}] = Enum.filter(subquery.db_columns,
+        &match?(%Expression{function: "min", function_args: [%Expression{name: ^min_alias}]}, &1))
+      assert [%{alias: max_alias}] = Enum.filter(subquery.db_columns,
+        &match?(%Expression{function: "max", function_args: [%Expression{name: ^max_alias}]}, &1))
+      assert [%{alias: count_alias}] = Enum.filter(subquery.db_columns,
+        &match?(%Expression{function: "sum", function_args: [%Expression{name: ^count_alias}]}, &1))
+      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^min_alias}, &1))
+      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^max_alias}, &1))
+      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^count_alias}, &1))
+      assert 1 = Enum.count(result.noise_layers, &match?([
+        %Expression{name: ^min_alias},
+        %Expression{name: ^max_alias},
+        %Expression{name: ^count_alias}
+      ], &1))
+    end
+  end
 
   defp compile!(query_string, data_source, options \\ []) do
     query = Parser.parse!(query_string)
@@ -111,7 +145,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
           db_name: "table",
           name: "table",
           user_id: "uid",
-          columns: [{"uid", :integer}, {"numeric", :integer}, {"decoded", :text}],
+          columns: [{"uid", :integer}, {"numeric", :integer}, {"decoded", :text}, {"dummy", :boolean}],
           decoders: [%{method: "base64", columns: ["decoded"]}],
           projection: nil,
         },

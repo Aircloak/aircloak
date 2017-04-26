@@ -172,6 +172,14 @@ defmodule Cloak.Sql.Compiler do
     new_layers ++ floated_layers
   end
 
+  defp float_noise_layer([min, max, count], _query) do
+    [
+      Expression.function("min", [min], min.type, _aggregate = true),
+      Expression.function("max", [max], max.type, _aggregate = true),
+      Expression.function("sum", [count], :integer, _aggregate = true),
+    ]
+    |> Enum.map(&alias_column/1)
+  end
   defp float_noise_layer([expression], query) do
     if aggregate_query?(query) and not aggregated_column?(expression, query) do
       [
