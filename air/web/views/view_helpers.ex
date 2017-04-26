@@ -24,16 +24,6 @@ defmodule Air.ViewHelpers do
   def admin?(%Air.Schemas.User{} = user), do: Air.Schemas.User.admin?(user)
   def admin?(%Plug.Conn{} = conn), do: admin?(conn.assigns.current_user)
 
-  @doc """
-  Generates a navbar link, and highlights the active one
-  """
-  @spec navbar_link(Plug.Conn.t, String.t, String.t, Keyword.t) :: {:safe, [any]}
-  def navbar_link(%{request_path: request_path}, name, desired_path, options \\ []) do
-    content_tag(:li, role: "presentation", class: active_class(request_path, desired_path)) do
-      link(name, to: desired_path, target: Keyword.get(options, :target, "_self"))
-    end
-  end
-
   @doc "Returns an embeddable json representing selectable tables and views."
   @spec selectables(Plug.Conn.t, Air.Schema.DataSource.t, [Air.Schema.View.t]) :: {:safe, iodata}
   def selectables(conn, data_source, views) do
@@ -61,6 +51,28 @@ defmodule Air.ViewHelpers do
   @spec to_json(any) :: {:safe, iodata}
   def to_json(term) do
     {:safe, Poison.encode!(term)}
+  end
+
+  @doc """
+  Generates a navbar link, and highlights the active one
+  """
+  @spec navbar_link(Plug.Conn.t, String.t, String.t, Keyword.t) :: {:safe, [any]}
+  def navbar_link(%{request_path: request_path}, name, desired_path, options \\ []) do
+    content_tag(:li, role: "presentation", class: navbar_link_classes(request_path, desired_path, options)) do
+      link(name, to: desired_path, target: Keyword.get(options, :target, "_self"))
+    end
+  end
+
+  defp navbar_link_classes(request_path, desired_path, options) do
+    active = active_class(request_path, desired_path)
+    provided = Keyword.get(options, :class)
+    [active, provided]
+    |> Enum.join(" ")
+    |> String.trim()
+    |> case do
+      "" -> nil
+      content -> content
+    end
   end
 
   defp active_class(path, "/admin/activity_monitor") when path in ["/admin", "/admin/"], do: "active"
