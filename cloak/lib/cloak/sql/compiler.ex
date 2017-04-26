@@ -767,9 +767,8 @@ defmodule Cloak.Sql.Compiler do
     query
   end
 
-  defp ensure_all_uid_columns_are_compared_in_joins!(query) do
-    graph = CyclicGraph.new()
-    try do
+  defp ensure_all_uid_columns_are_compared_in_joins!(query), do:
+    CyclicGraph.with(fn(graph) ->
       query
       |> all_id_columns_from_tables()
       |> Enum.each(&CyclicGraph.add_vertex(graph, {&1.table.name, &1.name}))
@@ -784,10 +783,7 @@ defmodule Cloak.Sql.Compiler do
             "You can fix the error by adding `#{table1}.#{column1} = #{table2}.#{column2}` " <>
             "condition to the `WHERE` clause."
       end
-    after
-      CyclicGraph.delete(graph)
-    end
-  end
+    end)
 
   defp uid_columns_compared_in_joins(query) do
     for {:comparison, column1, :=, column2} <- query.where ++ all_join_conditions(query.from),
