@@ -783,18 +783,15 @@ defmodule Cloak.Sql.Compiler do
       |> Enum.each(fn({col1, col2}) -> CyclicGraph.connect(graph, column_key.(col1), column_key.(col2)) end)
 
       # Find first pair (uid1, uid2) which are not connected in the graph.
-      case CyclicGraph.disconnected_pairs(graph) do
-        [] ->
-          # No such pair -> all tables are properly joined
-          query
-
-        [{column1, column2} | _] ->
-          raise CompilationError,
-            message:
-              "Missing where comparison for uid columns of tables `#{column1.table}` and `#{column2.table}`. " <>
-              "You can fix the error by adding `#{column1.table}.#{column1.name} = " <>
-              "#{column2.table}.#{column2.name}` condition to the `WHERE` clause."
+      with [{column1, column2} | _] <- CyclicGraph.disconnected_pairs(graph) do
+        raise CompilationError,
+          message:
+            "Missing where comparison for uid columns of tables `#{column1.table}` and `#{column2.table}`. " <>
+            "You can fix the error by adding `#{column1.table}.#{column1.name} = " <>
+            "#{column2.table}.#{column2.name}` condition to the `WHERE` clause."
       end
+
+      query
     after
       CyclicGraph.delete(graph)
     end
