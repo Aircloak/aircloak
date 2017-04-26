@@ -827,4 +827,20 @@ defmodule Cloak.Query.BasicTest do
         rows: [%{row: [10, 170], occurrences: 1}, %{row: [20, 180], occurrences: 1}]
       }
   end
+
+  test "order by the first position in the select list" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 11..30, "heights", ["height"], [180])
+
+    assert_query "select heights.height from heights order by 1 desc",
+      %{rows: [%{row: [180], occurrences: 20}, %{row: [170], occurrences: 10}]}
+  end
+
+  test "order by the second position in the select list" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 11..30, "heights", ["height"], [180])
+
+    assert_query "select 1, heights.height from heights order by 2 desc",
+      %{rows: [%{row: [1, 180], occurrences: 20}, %{row: [1, 170], occurrences: 10}]}
+  end
 end

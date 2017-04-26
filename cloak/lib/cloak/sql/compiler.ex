@@ -80,7 +80,7 @@ defmodule Cloak.Sql.Compiler do
       |> compile_parameter_types()
       |> compile_columns()
       |> reject_null_user_ids()
-      |> resolve_group_by_references()
+      |> resolve_references()
       |> verify_columns()
       |> precompile_functions()
       |> censor_selected_uids()
@@ -497,22 +497,34 @@ defmodule Cloak.Sql.Compiler do
   end
   defp expand_star_select(query), do: query
 
+  defp resolve_references(query), do:
+    query
+    |> resolve_group_by_references()
+    |> resolve_order_by_references()
+
   defp resolve_group_by_references(query) do
     Lens.key(:group_by)
     |> Lens.all()
-    |> Lens.map(query, &resolve_group_by_reference(&1, query.columns))
+    |> Lens.map(query, &resolve_reference(&1, query, "GROUP BY"))
   end
 
-  defp resolve_group_by_reference(%Expression{constant?: true, type: :integer} = reference, select_list) do
-    unless reference.value in 1..length(select_list), do:
+  defp resolve_order_by_references(query) do
+    Lens.key(:order_by)
+    |> Lens.all()
+    |> Lens.at(0)
+    |> Lens.map(query, &resolve_reference(&1, query, "ORDER BY"))
+  end
+
+  defp resolve_reference(%Expression{constant?: true, type: :integer} = reference, query, clause_name) do
+    unless reference.value in 1..length(query.columns), do:
       raise(CompilationError,
-        message: "`GROUP BY` position `#{reference.value}` is out of the range of selected columns.")
+        message: "`#{clause_name}` position `#{reference.value}` is out of the range of selected columns.")
 
-    Enum.at(select_list, reference.value - 1)
+    Enum.at(query.columns, reference.value - 1)
   end
-  defp resolve_group_by_reference(%Expression{constant?: true, type: _}, _select_list), do:
-    raise(CompilationError, message: "Non-integer constant is not allowed in `GROUP BY`.")
-  defp resolve_group_by_reference(expression, _select_list), do:
+  defp resolve_reference(%Expression{constant?: true, type: _}, _query, clause_name), do:
+    raise(CompilationError, message: "Non-integer constant is not allowed in `#{clause_name}`.")
+  defp resolve_reference(expression, _query, _clause_name), do:
     expression
 
   defp verify_columns(query) do

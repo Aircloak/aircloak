@@ -118,4 +118,15 @@ defmodule Cloak.Query.ErrorTest do
     assert_query "select name from test_errors group by 1.0",
       %{error: "Non-integer constant is not allowed in `GROUP BY`."}
   end
+
+  test "query reports error on invalid order by position" do
+    assert_query "select name from test_errors order by 0",
+      %{error: "`ORDER BY` position `0` is out of the range of selected columns."}
+    assert_query "select name from test_errors order by 2",
+      %{error: "`ORDER BY` position `2` is out of the range of selected columns."}
+  end
+  test "non-integer constants are not allowed in order by" do
+    assert_query "select name from test_errors order by 1.0",
+      %{error: "Non-integer constant is not allowed in `ORDER BY`."}
+  end
 end
