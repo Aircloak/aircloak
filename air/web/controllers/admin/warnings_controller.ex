@@ -2,7 +2,7 @@ defmodule Air.Admin.WarningsController do
   @moduledoc false
   use Air.Web, :admin_controller
 
-  alias Air.Schemas.Query
+  alias Air.Service.Warnings
 
 
   # -------------------------------------------------------------------
@@ -11,7 +11,7 @@ defmodule Air.Admin.WarningsController do
 
   def permissions do
     %{
-      admin: [:index]
+      admin: [:index, :warnings_if_any]
     }
   end
 
@@ -22,4 +22,16 @@ defmodule Air.Admin.WarningsController do
 
   def index(conn, _params), do:
     render(conn, "index.html")
+
+  @doc """
+  Redirects to the warnings index if there are any, otherwise
+  to the activity monitor, which is the default admin page.
+  """
+  def warnings_if_any(conn, _params) do
+    if Warnings.known_problems?() do
+      redirect(conn, to: admin_warnings_path(conn, :index))
+    else
+      redirect(conn, to: admin_activity_monitor_path(conn, :index))
+    end
+  end
 end
