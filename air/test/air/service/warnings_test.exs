@@ -1,10 +1,57 @@
 defmodule Air.Service.WarningsTest do
-  use Air.SchemaCase, async: true
+  use Air.SchemaCase, async: false
 
-  alias Air.Service.Warnings
+  alias Air.Service.{Warnings, Cloak}
 
-  describe "known_problems?" do
-    test "there are no known problems as of yet", do:
-      refute Problems.known_problems?()
+  @data_source_name "name"
+  @data_sources [%{"name" => @data_source_name, "global_id" => "global_id", "tables" => []}]
+
+  setup do
+    Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
+    :ok
+  end
+
+  test "offline data source produce warnings" do
+    spawn_monitor(fn() -> Cloak.register(cloak_info(), @data_sources) end)
+    receive do
+      {:DOWN, _, _, _, _} -> :ok
+    end
+
+    assert Warnings.known_problems?()
+    assert hd(Warnings.problems()).resource.name == @data_source_name
+    assert problem_with_description(~r/No cloaks .+ are online/)
+  end
+
+  test "no warning when cloak is online and no errors" do
+    {:ok, _pid} = start_cloak_channel(cloak_info(), @data_sources)
+    refute Warnings.known_problems?()
+  end
+
+  defp problem_with_description(pattern), do:
+    Warnings.problems()
+    |> Enum.map(&(&1.description))
+    |> Enum.any?(&(&1 =~ pattern))
+
+  defp cloak_info() do
+    %{
+      id: "cloak_id_#{:erlang.unique_integer()}",
+      name: "cloak_name",
+      online_since: Timex.now()
+    }
+  end
+
+  defp start_cloak_channel(cloak_info, data_sources) do
+    parent = self()
+    ref = make_ref()
+
+    pid = spawn_link(fn ->
+      registration_result = Cloak.register(cloak_info, data_sources)
+      send(parent, {ref, registration_result})
+      :timer.sleep(:infinity)
+    end)
+
+    receive do
+      {^ref, registration_result} -> {registration_result, pid}
+    end
   end
 end
