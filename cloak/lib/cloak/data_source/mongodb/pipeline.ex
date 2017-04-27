@@ -63,8 +63,16 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     parse_query(query)
   end
 
-  defp parse_query(%Query{subquery?: false} = query), do:
-    [%{'$project': %{'_id': false, row: Enum.map(query.db_columns, &"$#{&1.alias || &1.name}")}}]
+  defp parse_query(%Query{subquery?: false} = query) do
+    # Mongo 3.0 doesn't support projection of arrays, which would more efficient for data transfer.
+    projection =
+      query.db_columns
+      |> Enum.map(&"$#{&1.alias || &1.name}")
+      |> Enum.with_index(1)
+      |> Enum.map(fn ({field, index}) -> {"f#{index}", field} end)
+      |> Enum.into(%{"_id" => false})
+    [%{'$project': projection}]
+  end
   defp parse_query(%Query{subquery?: true} = query), do:
     aggregate_and_project(query) ++
     order_rows(query.order_by, query.db_columns) ++
