@@ -61,10 +61,12 @@ defmodule Cloak.Query.Aggregator do
   @spec anonymization_group_expressions(Query.t) :: [Expression.t]
   def anonymization_group_expressions(%Query{group_by: [_|_] = group_by}), do:
     Expression.unique_except(group_by, &Expression.row_splitter?/1)
-  def anonymization_group_expressions(%Query{group_by: [], implicit_count?: true} = query), do:
-    Expression.unique_except(query.columns, &Expression.row_splitter?/1)
-  def anonymization_group_expressions(%Query{group_by: [], implicit_count?: false}), do:
-    []
+  def anonymization_group_expressions(%Query{group_by: [], implicit_count?: true} = query) do
+    additional_expressions = Result.bucket_expressions(query) -- query.columns
+    Expression.unique_except(query.columns ++ additional_expressions, &Expression.row_splitter?/1)
+  end
+  def anonymization_group_expressions(%Query{group_by: [], implicit_count?: false} = query), do:
+    Result.bucket_expressions(query) -- query.columns
 
 
   ## ----------------------------------------------------------------

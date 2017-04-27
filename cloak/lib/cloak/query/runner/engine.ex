@@ -83,5 +83,6 @@ defmodule Cloak.Query.Runner.Engine do
     |> Query.Result.distinct(query.distinct?)
     |> Query.Result.offset(query.offset)
     |> Query.Result.limit(query.limit)
+    |> Query.Result.drop_non_selected_columns(query)
   end
 end

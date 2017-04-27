@@ -20,7 +20,7 @@ defmodule Cloak.Query.Rows do
       (anonymization_group_expressions ++ query.aggregators)
       |> Enum.with_index()
       |> Enum.into(%{})
-    columns_to_select = Keyword.get(opts, :prepend_columns, []) ++ query.columns
+    columns_to_select = Keyword.get(opts, :prepend_columns, []) ++ Cloak.Query.Result.bucket_expressions(query)
     rows
     |> Enum.filter(&filter_group(&1, aggregated_columns, query))
     |> Enum.map(&selected_values(&1, aggregated_columns, columns_to_select))

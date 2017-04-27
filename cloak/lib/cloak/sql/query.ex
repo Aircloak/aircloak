@@ -230,6 +230,10 @@ defmodule Cloak.Sql.Query do
     |> Enum.filter(& &1.table != :unknown and &1.table.name == table_name)
     |> Enum.uniq_by(&Expression.id/1)
 
+  @doc "Returns the list of order by expressions."
+  def order_by_expressions(query), do:
+    Enum.map(query.order_by, fn({column, _}) -> column end)
+
 
   # -------------------------------------------------------------------
   # Internal functions

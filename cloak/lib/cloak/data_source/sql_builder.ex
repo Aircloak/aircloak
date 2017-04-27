@@ -158,9 +158,9 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp having_fragments(_query, _sql_dialect), do: []
 
   defp order_by_fragments(%Query{subquery?: true, order_by: [_|_] = order_by} = query, sql_dialect) do
-    order_by = for {index, dir} <- order_by do
+    order_by = for {expression, dir} <- order_by do
       dir = if dir == :desc do " DESC" else " ASC" end
-      name = query.db_columns |> Enum.at(index) |> Map.get(:alias) |> quote_name(sql_dialect)
+      name = query.db_columns |> Enum.at(expression.row_index) |> Map.get(:alias) |> quote_name(sql_dialect)
       [name, dir]
     end
     [" ORDER BY ", Enum.intersperse(order_by, ", ")]

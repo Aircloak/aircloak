@@ -4,7 +4,7 @@ defmodule Cloak.Query.Result do
   allows a result to contain meta-data about the query execution.
   """
 
-  alias Cloak.Sql.Query
+  alias Cloak.Sql.{Expression, Query}
 
   @type t :: %__MODULE__{
     buckets: [bucket],
@@ -51,6 +51,32 @@ defmodule Cloak.Query.Result do
     %__MODULE__{result | buckets: limited_buckets}
   end
 
+  @doc "Drops the non selected columns from the bucket rows."
+  @spec drop_non_selected_columns(t, Query.t) :: t
+  def drop_non_selected_columns(result, query) do
+    selected_columns_indices = Enum.map(query.columns, &bucket_expression_index!(query, &1))
+
+    %__MODULE__{result |
+      buckets: Enum.map(result.buckets, &%{&1 | row: select_columns(&1.row, selected_columns_indices)})
+    }
+  end
+
+  @doc "Returns the ordered list of bucket row expressions."
+  @spec bucket_expressions(Query.t) :: [Expression.t]
+  def bucket_expressions(query) do
+    non_selected_order_by_expressions = Query.order_by_expressions(query) -- (query.columns ++ query.group_by)
+    query.columns ++ non_selected_order_by_expressions
+  end
+
+
+  @doc "Returns the position of the given expression in the bucket row."
+  @spec bucket_expression_index!(Query.t, Expression.t) :: non_neg_integer
+  def bucket_expression_index!(query, expression) do
+    index = Enum.find_index(bucket_expressions(query), &(&1 == expression))
+    true = (index != nil)
+    index
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -67,4 +93,7 @@ defmodule Cloak.Query.Result do
   defp take([%{occurrences: occurrences} = bucket | rest], amount, acc) when occurrences < amount, do:
     take(rest, amount - occurrences, [bucket | acc])
   defp take([%{} = bucket | _rest], amount, acc), do: [%{bucket | occurrences: amount} | acc]
+
+  defp select_columns(row, indices), do:
+    Enum.map(indices, &Enum.at(row, &1))
 end

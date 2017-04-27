@@ -84,7 +84,6 @@ defmodule Cloak.Sql.Compiler do
       |> verify_columns()
       |> precompile_functions()
       |> censor_selected_uids()
-      |> compile_order_by()
       |> verify_joins()
       |> cast_where_clauses()
       |> verify_where_clauses()
@@ -742,21 +741,6 @@ defmodule Cloak.Sql.Compiler do
     end
   end
 
-  defp compile_order_by(%Query{order_by: []} = query), do: query
-  defp compile_order_by(%Query{columns: columns, order_by: order_by_spec} = query) do
-    invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) -> Enum.member?(columns, column) end)
-    case invalid_fields do
-      [] ->
-        order_list = for {column, direction} <- order_by_spec do
-          index = columns |> Enum.find_index(&(&1 == column))
-          {index, direction}
-        end
-        %Query{query | order_by: order_list}
-      [{_column, _direction} | _rest] ->
-        raise CompilationError, message: "Non-selected column specified in `ORDER BY` clause."
-    end
-  end
-
   defp partition_where_clauses(query) do
     # extract conditions using encoded columns
     {emulated_column_clauses, safe_clauses} = Enum.partition(query.where, &emulated_expression_condition?/1)
@@ -1091,6 +1075,7 @@ defmodule Cloak.Sql.Compiler do
     query.group_by ++
     query.emulated_where ++
     query.having ++
+    Query.order_by_expressions(query) ++
     if query.emulated?, do: query.where, else: []
 
   defp id_column(query) do
