@@ -38,14 +38,14 @@ defmodule Cloak.Query.Runner.Engine do
   # -------------------------------------------------------------------
 
   defp run_statement(%Sql.Query{command: :show, show: :tables} = query, _state_updater), do:
-    Query.Result.new(query,
+    Query.Result.new(query, query.columns,
       Enum.map(
         (Map.keys(query.data_source.tables) ++ Map.keys(query.views)),
         &%{occurrences: 1, row: [to_string(&1)]}
       )
     )
   defp run_statement(%Sql.Query{command: :show, show: :columns, selected_tables: [table]} = query, _state_updater), do:
-    Query.Result.new(query,
+    Query.Result.new(query, query.columns,
       Enum.map(table.columns, fn({name, type}) -> %{occurrences: 1, row: [name, type]} end)
     )
   defp run_statement(%Sql.Query{command: :select} = query, state_updater), do:
@@ -78,11 +78,5 @@ defmodule Cloak.Query.Runner.Engine do
     |> Query.Rows.filter(Enum.map(query.emulated_where, &Sql.Comparison.to_function/1))
     |> Query.ShrinkAndDrop.apply(query)
     |> Query.Aggregator.aggregate(query, state_updater)
-    |> fn(rows) -> state_updater.(:post_processing); rows end.()
-    |> Query.Sorter.order_buckets(query)
-    |> Query.Result.distinct(query.distinct?)
-    |> Query.Result.offset(query.offset)
-    |> Query.Result.limit(query.limit)
-    |> Query.Result.drop_non_selected_columns(query)
   end
 end

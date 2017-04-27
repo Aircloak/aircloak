@@ -1,38 +1,36 @@
 defmodule Cloak.Query.Sorter do
-  @moduledoc "Sorts buckets according to the query specification."
-
-  alias Cloak.Query.Result
-  alias Cloak.Sql.Query
+  @moduledoc "Sorting of rows."
 
 
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
-  @doc "Sorts the buckets in the order defined in the query."
-  @spec order_buckets(%Result{}, Query.t) :: Result.t
-  def order_buckets(result, query) do
-    sorted_buckets = Enum.sort(result.buckets, fn(%{row: row1}, %{row: row2}) ->
-      compare_rows(row1, row2, indexed_order_list(query))
-    end)
-    %Result{result | buckets: sorted_buckets}
-  end
+  @doc """
+  Sorts the rows per given sort expressions.
 
-  @doc "Sorts the rows in the order defined in the query."
-  @spec order_rows(Enumerable.t, Query.t) :: Result.t
-  def order_rows(stream, %Query{order_by: []}), do: stream
-  def order_rows(stream, query), do:
-    Enum.sort(stream, &compare_rows(&1, &2, indexed_order_list(query)))
+  The `mapper` function can be optionally provided to map the row before comparing it.
+  """
+  @spec order_rows(Enumerable.t, [Expression.t], [{Expression.t, :asc | :desc}], ((any) -> [Cloak.DataSource.field]))
+    :: Enumerable.t
+  def order_rows(rows, columns, query, mapper \\ &(&1))
+  def order_rows(rows, _columns, [], _mapper), do: rows
+  def order_rows(rows, columns, order_by, mapper), do:
+    Enum.sort(rows, &compare_rows(mapper.(&1), mapper.(&2), order_by_indices(columns, order_by)))
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp indexed_order_list(query), do:
+  defp order_by_indices(columns, order_by), do:
     Enum.map(
-      query.order_by,
-      fn({expression, direction}) -> {Result.bucket_expression_index!(query, expression), direction} end
+      order_by,
+      fn({expression, direction}) ->
+        index = Enum.find_index(columns, &(&1 == expression))
+        true = (index != nil)
+        {index, direction}
+      end
     )
 
   defp compare_rows(row1, row2, []) do

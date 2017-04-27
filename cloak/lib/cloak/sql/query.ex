@@ -56,7 +56,7 @@ defmodule Cloak.Sql.Query do
     group_by: [Function.t],
     where: [where_clause],
     emulated_where: [where_clause],
-    order_by: [{pos_integer, :asc | :desc}],
+    order_by: [{Expression.t, :asc | :desc}],
     show: :tables | :columns,
     selected_tables: [DataSource.table],
     db_columns: [Expression.t],
