@@ -100,7 +100,7 @@ defmodule Cloak.Sql.Compiler do
       |> TypeChecker.validate_allowed_usage_of_math_and_functions()
       |> optimize_columns_from_projected_tables()
       |> parse_row_splitters()
-      |> partition_selected_columns()
+      |> compute_aggregators()
     }
 
 
@@ -227,7 +227,7 @@ defmodule Cloak.Sql.Compiler do
     titles = Enum.filter(ast.column_titles, & &1 in required_column_names)
     %Query{ast |
       next_row_index: 0, db_columns: [],
-      columns: columns, property: columns,
+      columns: columns,
       column_titles: titles
     }
     |> calculate_db_columns()
@@ -660,22 +660,14 @@ defmodule Cloak.Sql.Compiler do
     end
   end
 
-  defp partition_selected_columns(%Query{group_by: groups = [_|_]} = query) do
-    %Query{query |
-      property: groups |> drop_duplicate_columns_except_row_splitters(),
-      aggregators: aggregators(query) |> drop_duplicate_columns_except_row_splitters()
-    }
-  end
-  defp partition_selected_columns(query) do
+  defp compute_aggregators(%Query{group_by: [_|_]} = query), do:
+    %Query{query | aggregators: Expression.unique_except(aggregators(query), &Expression.row_splitter?/1)}
+  defp compute_aggregators(query) do
     case aggregators(query) do
       [] ->
-        %Query{query |
-          property: query.columns |> drop_duplicate_columns_except_row_splitters(),
-          aggregators: [Expression.count_star()],
-          implicit_count?: true
-        }
+        %Query{query | aggregators: [Expression.count_star()], implicit_count?: true}
       aggregators ->
-        %Query{query | property: [], aggregators: aggregators |> drop_duplicate_columns_except_row_splitters()}
+        %Query{query | aggregators: Expression.unique_except(aggregators, &Expression.row_splitter?/1)}
     end
   end
 
@@ -686,12 +678,6 @@ defmodule Cloak.Sql.Compiler do
 
   defp having_columns(query), do:
     Enum.flat_map(query.having, fn({:comparison, column, _operator, target}) -> [column, target] end)
-
-  # Drops all duplicate occurrences of columns, with the exception of columns that are, or contain,
-  # calls to row splitting functions. This does not affect how many times database columns are loaded
-  # from the database, but allows us to deal with the output of the row splitting function instances separately.
-  defp drop_duplicate_columns_except_row_splitters(columns), do:
-    Enum.uniq_by(columns, &Lens.map(Query.Lenses.splitter_functions(), &1, fn(_) -> Kernel.make_ref() end))
 
   defp parse_row_splitters(%Query{} = query) do
     {transformed_columns, query} = transform_splitter_columns(query, query.columns)

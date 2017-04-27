@@ -13,11 +13,11 @@ defmodule Cloak.Query.Rows do
   def filter(rows, filters), do:
     Stream.filter(rows, &Enum.all?(filters, fn(filter) -> filter.(&1) end))
 
-  @doc "Selects and filters the rows according to query aggregators and properties."
-  @spec extract_groups(Enumerable.t, Query.t) :: Enumerable.t
-  def extract_groups(rows, query) do
+  @doc "Selects and filters the rows according to query aggregators and anonymization group expressions."
+  @spec extract_groups(Enumerable.t, [Expression.t], Query.t) :: Enumerable.t
+  def extract_groups(rows, anonymization_group_expressions, query) do
     aggregated_columns =
-      (query.property ++ query.aggregators)
+      (anonymization_group_expressions ++ query.aggregators)
       |> Enum.with_index()
       |> Enum.into(%{})
     rows

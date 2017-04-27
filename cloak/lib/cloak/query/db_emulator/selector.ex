@@ -17,7 +17,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   def select(stream, query) do
     stream
     |> Rows.filter(Enum.map(query.where, &Comparison.to_function/1))
-    |> select_columns(query)
+    |> select_columns(query, Cloak.Query.Aggregator.anonymization_group_expressions(query))
     |> Sorter.order_rows(query)
     |> offset_rows(query)
     |> limit_rows(query)
@@ -52,31 +52,31 @@ defmodule Cloak.Query.DbEmulator.Selector do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp select_columns(stream, %Query{group_by: [_|_]} = query) do
+  defp select_columns(stream, %Query{group_by: [_|_]} = query, anonymization_group_expressions) do
     defaults = Enum.map(query.aggregators, &aggregator_to_default/1)
     accumulators = Enum.map(query.aggregators, &aggregator_to_accumulator/1)
     finalizers = Enum.map(query.aggregators, &aggregator_to_finalizer/1)
     stream
     |> Enum.reduce(%{}, fn(row, groups) ->
-      property = Enum.map(query.property, &Expression.value(&1, row))
+      anonymization_group_values = Enum.map(anonymization_group_expressions, &Expression.value(&1, row))
       values =
         groups
-        |> Map.get(property, defaults)
+        |> Map.get(anonymization_group_values, defaults)
         |> Enum.zip(accumulators)
         |> Enum.map(fn ({value, accumulator}) -> accumulator.(row, value) end)
-      Map.put(groups, property, values)
+      Map.put(groups, anonymization_group_values, values)
     end)
-    |> Stream.map(fn ({property, values}) ->
+    |> Stream.map(fn ({anonymization_group_values, values}) ->
       values =
         Enum.zip(values, finalizers)
         |> Enum.map(fn ({value, finalizer}) -> finalizer.(value) end)
-      property ++ values
+      anonymization_group_values ++ values
     end)
-    |> Cloak.Query.Rows.extract_groups(query)
+    |> Cloak.Query.Rows.extract_groups(anonymization_group_expressions, query)
   end
-  defp select_columns(stream, %Query{columns: columns} = query) do
+  defp select_columns(stream, query, anonymization_group_expressions) do
     Stream.map(stream, fn (row) ->
-      Enum.map(columns, &Expression.value(&1, row))
+      Enum.map(anonymization_group_expressions, &Expression.value(&1, row))
     end)
     |> distinct(query)
   end

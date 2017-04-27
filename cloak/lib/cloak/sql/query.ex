@@ -35,7 +35,6 @@ defmodule Cloak.Sql.Query do
     command: :select | :show,
     columns: [Expression.t] | :*,
     column_titles: [String.t],
-    property: [Function.t],
     aggregators: [Function.t],
     # When row-splitters are used (like `extract_matches`), the row splitting has to happen
     # prior to other functions being executed. All function call chains that contain one or
@@ -76,7 +75,7 @@ defmodule Cloak.Sql.Query do
   }
 
   defstruct [
-    columns: [], where: [], group_by: [], order_by: [], column_titles: [], property: [], aggregators: [],
+    columns: [], where: [], group_by: [], order_by: [], column_titles: [], aggregators: [],
     info: [], selected_tables: [], row_splitters: [], implicit_count?: false, data_source: nil, command: nil,
     show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
     features: nil, emulated_where: [], ranges: %{}, parameters: [], views: %{}, emulated?: false,
