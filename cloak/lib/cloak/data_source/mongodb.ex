@@ -120,10 +120,11 @@ defmodule Cloak.DataSource.MongoDB do
   def select(connection, query, result_processor) do
     {collection, pipeline} = query.subquery? |> put_in(false) |> Pipeline.build()
     options = [max_time: @timeout, timeout: @timeout, pool_timeout: @timeout, batch_size: 25_000, allow_disk_use: true]
+    columns_count = Enum.count(query.db_columns)
     result =
       connection
       |> Mongo.aggregate(collection, pipeline, options)
-      |> Stream.map(&map_fields/1)
+      |> Stream.map(&map_fields(&1, columns_count))
       |> result_processor.()
     {:ok, result}
   end
@@ -152,7 +153,7 @@ defmodule Cloak.DataSource.MongoDB do
     end
   end
 
-  defp map_fields(%{"row" => row}), do: Enum.map(row, &map_field/1)
+  defp map_fields(row, columns_count), do: Enum.map(1..columns_count, &map_field(row["f#{&1}"]))
 
   defp map_field(%BSON.ObjectId{value: value}), do: value
   defp map_field(%BSON.Binary{binary: value}), do: value
