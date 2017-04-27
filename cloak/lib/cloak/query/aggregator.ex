@@ -353,12 +353,9 @@ defmodule Cloak.Query.Aggregator do
   end
   defp make_buckets(rows, %Query{implicit_count?: true} = query, anonymization_group_expressions) do
     Logger.debug("Making implicit buckets ...")
-    # We add the implicit "count" to the list of selected columns so that we can
-    # retrieve it afterwards when making the bucket.
-    columns_with_count = [Expression.count_star() | query.columns]
     rows
     |> Stream.map(fn ({_users_count, row}) -> row end)
-    |> Rows.extract_groups(anonymization_group_expressions, %Query{query | columns: columns_with_count})
+    |> Rows.extract_groups(anonymization_group_expressions, query, prepend_columns: [Expression.count_star()])
     |> Stream.zip(Stream.map(rows, fn ({users_count, _row}) -> users_count end))
     |> Enum.map(fn ({[count | row], users_count}) ->
       %{row: row, occurrences: count, users_count: users_count}

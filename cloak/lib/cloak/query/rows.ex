@@ -14,15 +14,16 @@ defmodule Cloak.Query.Rows do
     Stream.filter(rows, &Enum.all?(filters, fn(filter) -> filter.(&1) end))
 
   @doc "Selects and filters the rows according to query aggregators and anonymization group expressions."
-  @spec extract_groups(Enumerable.t, [Expression.t], Query.t) :: Enumerable.t
-  def extract_groups(rows, anonymization_group_expressions, query) do
+  @spec extract_groups(Enumerable.t, [Expression.t], Query.t, [prepend_columns: [Expression.t]]) :: Enumerable.t
+  def extract_groups(rows, anonymization_group_expressions, query, opts \\ []) do
     aggregated_columns =
       (anonymization_group_expressions ++ query.aggregators)
       |> Enum.with_index()
       |> Enum.into(%{})
+    columns_to_select = Keyword.get(opts, :prepend_columns, []) ++ query.columns
     rows
     |> Enum.filter(&filter_group(&1, aggregated_columns, query))
-    |> Enum.map(&selected_values(&1, aggregated_columns, query))
+    |> Enum.map(&selected_values(&1, aggregated_columns, columns_to_select))
   end
 
 
@@ -30,8 +31,8 @@ defmodule Cloak.Query.Rows do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp selected_values(row, aggregated_columns, query), do:
-    for selected_column <- query.columns, do:
+  defp selected_values(row, aggregated_columns, columns_to_select), do:
+    for selected_column <- columns_to_select, do:
       fetch_value!(row, selected_column, aggregated_columns)
 
   defp fetch_value!(row, %Expression{function?: true, function_args: args} = function, columns) do
