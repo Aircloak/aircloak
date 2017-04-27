@@ -548,7 +548,7 @@ defmodule Cloak.Sql.Parser do
     ])
     |> map(
           fn([select_statement, _as_keyword, alias]) ->
-            %{type: :parsed, ast: statement_map(:select, select_statement), alias: alias}
+            %{ast: statement_map(:select, select_statement), alias: alias}
           end
         )
   end

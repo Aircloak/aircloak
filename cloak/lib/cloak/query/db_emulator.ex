@@ -87,7 +87,7 @@ defmodule Cloak.Query.DbEmulator do
   defp joined_table_to_subquery(table_name, query) do
     required_columns = Query.required_columns_from_table(query, table_name)
     query = Cloak.Sql.Compiler.make_select_query(query.data_source, table_name, required_columns)
-    {:subquery, %{type: :parsed, ast: query, alias: table_name}}
+    {:subquery, %{ast: query, alias: table_name}}
   end
 
   defp compute_columns_to_select(join), do:

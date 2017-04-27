@@ -138,7 +138,7 @@ defmodule Cloak.Sql.Compiler do
     end
 
     case Cloak.Sql.Parser.parse(view_sql) do
-      {:ok, parsed_view} -> {:subquery, %{type: :parsed, ast: parsed_view, alias: view_name}}
+      {:ok, parsed_view} -> {:subquery, %{ast: parsed_view, alias: view_name}}
       {:error, error} -> raise CompilationError, message: "Error in the view `#{view_name}`: #{error}"
     end
   end
@@ -216,7 +216,6 @@ defmodule Cloak.Sql.Compiler do
   defp projected_table_ast(table, columns_to_select, query) do
     joined_table = DataSource.table(query.data_source, table.projection.table)
     {:subquery, %{
-      type: :parsed,
       alias: table.name,
       ast: %{
         command: :select,
