@@ -148,6 +148,7 @@ defmodule Cloak.Sql.Compiler do
   # Noise layers
   # -------------------------------------------------------------------
 
+  defp calculate_noise_layers(query = %{generated?: true}), do: query
   defp calculate_noise_layers(query = %{subquery?: true}), do:
     if aggregate_query?(query),
       do: %{query | noise_layers: query |> noise_layers() |> Enum.map(&float_noise_layer(&1, query))},
@@ -220,6 +221,7 @@ defmodule Cloak.Sql.Compiler do
       ast: %{
         command: :select,
         projected?: true,
+        generated?: true,
         columns:
           [column_ast(joined_table.name, joined_table.user_id) |
             table.columns
