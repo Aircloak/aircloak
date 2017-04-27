@@ -313,7 +313,23 @@ defmodule Cloak.Sql.Compiler do
         |> align_offset()
         |> align_ranges(Lens.key(:having), :having)
         |> carry_ranges()
+        |> float_emulated_noise_layers()
       {:error, error} -> raise CompilationError, message: error
+    end
+  end
+
+  defp float_emulated_noise_layers(query) do
+    if query.emulated? do
+      noise_columns = get_in(query.noise_layers, [Lens.all() |> Lens.all()])
+
+      %{
+        query |
+        columns: query.columns ++ noise_columns,
+        column_titles: query.column_titles ++ Enum.map(noise_columns, &(&1.alias || &1.name)),
+        aggregators: query.aggregators ++ Enum.filter(noise_columns, &(&1.aggregate?)),
+      }
+    else
+      query
     end
   end
 
@@ -1111,7 +1127,10 @@ defmodule Cloak.Sql.Compiler do
     |> Enum.reduce(query, &Query.add_db_column(&2, &1))
   end
 
-  defp noise_layer_columns(query), do: Enum.flat_map(query.noise_layers, &(&1))
+  defp noise_layer_columns(%{noise_layers: noise_layers, emulated?: true, subquery?: true}), do:
+    Enum.flat_map(noise_layers, &(&1)) |> Enum.reject(&(&1.aggregate?))
+  defp noise_layer_columns(%{noise_layers: noise_layers}), do:
+    Enum.flat_map(noise_layers, &(&1))
 
   defp range_columns(%{subquery?: true, emulated?: false}), do: []
   defp range_columns(%{ranges: ranges}), do: ranges |> Enum.map(&(&1.column)) |> extract_columns()
