@@ -269,7 +269,7 @@ defmodule Cloak.DataSource do
       error in RuntimeError ->
         message = "Connection error: #{Exception.message(error)}."
         Logger.error("Data source `#{data_source.name}`: #{message}")
-        %{data_source | errors: existing_errors ++ [message], tables: []}
+        %{data_source | errors: existing_errors ++ [message], tables: %{}}
     end
   end
 

@@ -370,7 +370,7 @@ defmodule Cloak.Sql.Compiler do
   end
   defp normalize_from(subquery = {:subquery, _}, _data_source), do: subquery
   defp normalize_from(table_identifier = {_, table_name}, data_source) do
-    case data_source.tables |> Map.values() |> find_table(table_identifier) do
+    case data_source |> DataSource.tables() |> find_table(table_identifier) do
       nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
       table -> table.name
     end
