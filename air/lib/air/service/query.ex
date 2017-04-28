@@ -137,7 +137,6 @@ defmodule Air.Service.Query do
     })
     |> Repo.update!()
 
-    UserChannel.broadcast_result(query)
     UserChannel.broadcast_state_change(query)
 
     Logger.info("processed result for query #{result["query_id"]}")
@@ -160,7 +159,6 @@ defmodule Air.Service.Query do
       })
       |> Repo.update!()
 
-      UserChannel.broadcast_result(query)
       UserChannel.broadcast_state_change(query)
     end
 
