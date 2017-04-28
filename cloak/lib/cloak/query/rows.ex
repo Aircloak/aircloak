@@ -2,6 +2,10 @@ defmodule Cloak.Query.Rows do
   @moduledoc "Functions for row processing, such as filtering and grouping."
   alias Cloak.Sql.{Expression, Query}
 
+  @type groups :: %{Cloak.DataSource.row => group_data}
+  @type group_updater :: ((group_data, Cloak.DataSource.row) -> group_data)
+  @type group_data :: any
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -13,27 +17,67 @@ defmodule Cloak.Query.Rows do
   def filter(rows, filters), do:
     Stream.filter(rows, &Enum.all?(filters, fn(filter) -> filter.(&1) end))
 
-  @doc "Selects and filters the rows according to query aggregators and anonymization group expressions."
-  @spec extract_groups(Enumerable.t, [Expression.t], [Expression.t], Query.t) :: Enumerable.t
-  def extract_groups(rows, anonymization_group_expressions, columns_to_select, query) do
-    aggregated_columns =
-      (anonymization_group_expressions ++ query.aggregators)
+  @doc """
+    Filters groups and extracts desired columns according to query specification.
+
+    It is assumed that each row contains group expressions first, followed by query aggregators.
+  """
+  @spec extract_groups(Enumerable.t, [Expression.t], Query.t) :: Enumerable.t
+  def extract_groups(rows, columns_to_select, query) do
+    columns =
+      (group_expressions(query) ++ query.aggregators)
       |> Enum.with_index()
       |> Enum.into(%{})
 
     rows
-    |> Enum.filter(&filter_group(&1, aggregated_columns, query))
-    |> Enum.map(&selected_values(&1, aggregated_columns, columns_to_select))
+    |> Enum.filter(&filter_group(&1, columns, query))
+    |> Enum.map(&selected_values(&1, columns, columns_to_select))
   end
+
+  @doc "Groups input rows according to the query specification."
+  @spec group(Enumerable.t, Query.t, group_data, group_updater) :: groups
+  def group(rows, query, default_group_data, group_updater) do
+    group_expressions = group_expressions(query)
+    Enum.reduce(
+      rows,
+      %{},
+      fn(row, groups) ->
+        group_values = Enum.map(group_expressions, &Expression.value(&1, row))
+        group_data = Map.get(groups, group_values, default_group_data)
+        Map.put(groups, group_values, group_updater.(group_data, row))
+      end
+    )
+  end
+
+  @doc "Returns the list of expressions used to form the groups for aggregation and anonymization."
+  @spec group_expressions(Query.t) :: [Expression.t]
+  def group_expressions(%Query{group_by: [_|_] = group_by}), do:
+    # There are group by clauses -> we're grouping on these clauses
+    Expression.unique_except(group_by, &Expression.row_splitter?/1)
+  def group_expressions(%Query{group_by: [], implicit_count?: true} = query) do
+    # Group by is not provided, and no selected expression is an aggregation function ->
+    #   we're grouping on all selected columns + non selected order by expressions.
+    Expression.unique_except(
+      query.columns ++ non_selected_order_by_expressions(query),
+      &Expression.row_splitter?/1
+    )
+  end
+  def group_expressions(%Query{group_by: [], implicit_count?: false} = query), do:
+    # Group by is not provided, and all expressions are aggregate functions
+    #   -> all rows fall in the same group
+    []
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp selected_values(row, aggregated_columns, columns_to_select), do:
+  defp non_selected_order_by_expressions(query), do:
+    Query.order_by_expressions(query) -- query.columns
+
+  defp selected_values(row, columns, columns_to_select), do:
     for selected_column <- columns_to_select, do:
-      fetch_value!(row, selected_column, aggregated_columns)
+      fetch_value!(row, selected_column, columns)
 
   defp fetch_value!(row, %Expression{function?: true, function_args: args} = function, columns) do
     case Map.fetch(columns, function) do

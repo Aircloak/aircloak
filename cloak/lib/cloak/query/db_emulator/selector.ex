@@ -15,11 +15,10 @@ defmodule Cloak.Query.DbEmulator.Selector do
   @doc "Executes a `SELECT` query over the input stream of rows."
   @spec select(Enumerable.t, Query.t) :: Enumerable.t
   def select(stream, query) do
-    anonymization_group_expressions = Aggregator.anonymization_group_expressions(query)
     {columns, rows} =
       stream
       |> Rows.filter(Enum.map(query.where, &Comparison.to_function/1))
-      |> select_columns(query, anonymization_group_expressions)
+      |> select_columns(query)
 
     rows
     |> Sorter.order_rows(columns, query.order_by)
@@ -56,7 +55,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp select_columns(stream, %Query{group_by: [_|_]} = query, anonymization_group_expressions) do
+  defp select_columns(stream, %Query{group_by: [_|_]} = query) do
     defaults = Enum.map(query.aggregators, &aggregator_to_default/1)
     accumulators = Enum.map(query.aggregators, &aggregator_to_accumulator/1)
     finalizers = Enum.map(query.aggregators, &aggregator_to_finalizer/1)
@@ -64,30 +63,32 @@ defmodule Cloak.Query.DbEmulator.Selector do
     columns = Aggregator.bucket_columns(query)
     rows =
       stream
-      |> Enum.reduce(%{}, fn(row, groups) ->
-        anonymization_group_values = Enum.map(anonymization_group_expressions, &Expression.value(&1, row))
-        values =
-          groups
-          |> Map.get(anonymization_group_values, defaults)
+      |> Rows.group(query, defaults,
+        fn(aggregated_values, row) ->
+          aggregated_values
           |> Enum.zip(accumulators)
           |> Enum.map(fn ({value, accumulator}) -> accumulator.(row, value) end)
-        Map.put(groups, anonymization_group_values, values)
+        end
+      )
+      |> Stream.map(fn ({group_values, aggregated_values}) ->
+        aggregated_values =
+          aggregated_values
+          |> Enum.zip(finalizers)
+          |> Enum.map(fn({value, finalizer}) -> finalizer.(value) end)
+        group_values ++ aggregated_values
       end)
-      |> Stream.map(fn ({anonymization_group_values, values}) ->
-        values =
-          Enum.zip(values, finalizers)
-          |> Enum.map(fn ({value, finalizer}) -> finalizer.(value) end)
-        anonymization_group_values ++ values
-      end)
-      |> Cloak.Query.Rows.extract_groups(anonymization_group_expressions, columns, query)
+      |> Rows.extract_groups(columns, query)
+
     {columns, rows}
   end
-  defp select_columns(stream, query, anonymization_group_expressions), do:
-    {anonymization_group_expressions,
+  defp select_columns(stream, query) do
+    columns = Rows.group_expressions(query)
+    {columns,
       stream
-      |> Stream.map(fn(row) -> Enum.map(anonymization_group_expressions, &Expression.value(&1, row)) end)
+      |> Stream.map(fn(row) -> Enum.map(columns, &Expression.value(&1, row)) end)
       |> distinct(query)
     }
+  end
 
   defp offset_rows(stream, %Query{offset: 0}), do: stream
   defp offset_rows(stream, %Query{offset: offset}), do: Stream.drop(stream, offset)
