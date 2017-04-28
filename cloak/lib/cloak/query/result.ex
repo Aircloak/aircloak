@@ -23,7 +23,16 @@ defmodule Cloak.Query.Result do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Creates the result struct that corresponds to the given query."
+  @doc """
+    Creates the result struct that corresponds to the given query.
+
+    This function takes the collection of aggregated buckets, and performs the
+    final post-processing, according to the query specification. This will
+    include sorting, offsetting, limiting rows, and removing non-selected
+    columns.
+
+    The result is a fully shaped query result.
+  """
   @spec new(Query.t, [Expression.t], [bucket], non_neg_integer) :: t
   def new(query, columns, buckets, users_count \\ 0), do:
     %__MODULE__{
