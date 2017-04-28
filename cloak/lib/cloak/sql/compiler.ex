@@ -501,18 +501,16 @@ defmodule Cloak.Sql.Compiler do
     |> resolve_group_by_references()
     |> resolve_order_by_references()
 
-  defp resolve_group_by_references(query) do
-    Lens.key(:group_by)
-    |> Lens.all()
-    |> Lens.map(query, &resolve_reference(&1, query, "GROUP BY"))
-  end
+  defp resolve_group_by_references(query), do:
+    %Query{query | group_by: Enum.map(query.group_by, &resolve_reference(&1, query, "GROUP BY"))}
 
-  defp resolve_order_by_references(query) do
-    Lens.key(:order_by)
-    |> Lens.all()
-    |> Lens.at(0)
-    |> Lens.map(query, &resolve_reference(&1, query, "ORDER BY"))
-  end
+  defp resolve_order_by_references(query), do:
+    %Query{query | order_by:
+      Enum.map(
+        query.order_by,
+        fn({expression, direction}) -> {resolve_reference(expression, query, "ORDER BY"), direction} end
+      )
+    }
 
   defp resolve_reference(%Expression{constant?: true, type: :integer} = reference, query, clause_name) do
     unless reference.value in 1..length(query.columns), do:
