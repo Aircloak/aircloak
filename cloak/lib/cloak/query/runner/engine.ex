@@ -38,14 +38,14 @@ defmodule Cloak.Query.Runner.Engine do
   # -------------------------------------------------------------------
 
   defp run_statement(%Sql.Query{command: :show, show: :tables} = query, _state_updater), do:
-    Query.Result.new(query, query.columns,
+    Query.Result.new(query,
       Enum.map(
         (Map.keys(query.data_source.tables) ++ Map.keys(query.views)),
         &%{occurrences: 1, row: [to_string(&1)]}
       )
     )
   defp run_statement(%Sql.Query{command: :show, show: :columns, selected_tables: [table]} = query, _state_updater), do:
-    Query.Result.new(query, query.columns,
+    Query.Result.new(query,
       Enum.map(table.columns, fn({name, type}) -> %{occurrences: 1, row: [name, type]} end)
     )
   defp run_statement(%Sql.Query{command: :select} = query, state_updater), do:

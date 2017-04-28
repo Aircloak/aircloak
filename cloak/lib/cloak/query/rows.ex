@@ -62,7 +62,7 @@ defmodule Cloak.Query.Rows do
       &Expression.row_splitter?/1
     )
   end
-  def group_expressions(%Query{group_by: [], implicit_count?: false} = query), do:
+  def group_expressions(%Query{group_by: [], implicit_count?: false}), do:
     # Group by is not provided, and all expressions are aggregate functions
     #   -> all rows fall in the same group
     []

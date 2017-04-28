@@ -234,6 +234,15 @@ defmodule Cloak.Sql.Query do
   def order_by_expressions(query), do:
     Enum.map(query.order_by, fn({column, _}) -> column end)
 
+  @doc "Returns the ordered list of bucket columns."
+  @spec bucket_columns(Query.t) :: [Expression.t]
+  def bucket_columns(%__MODULE__{command: :show} = query), do:
+    query.columns
+  def bucket_columns(%__MODULE__{command: :select} = query) do
+    non_selected_order_by_expressions = order_by_expressions(query) -- (query.columns ++ query.group_by)
+    query.columns ++ non_selected_order_by_expressions
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions

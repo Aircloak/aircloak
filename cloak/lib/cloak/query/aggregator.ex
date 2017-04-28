@@ -54,14 +54,7 @@ defmodule Cloak.Query.Aggregator do
 
     state_updater.(:post_processing)
 
-    Result.new(query, bucket_columns(query), aggregated_buckets, users_count)
-  end
-
-  @doc "Returns the ordered list of bucket columns."
-  @spec bucket_columns(Query.t) :: [Expression.t]
-  def bucket_columns(query) do
-    non_selected_order_by_expressions = Query.order_by_expressions(query) -- (query.columns ++ query.group_by)
-    query.columns ++ non_selected_order_by_expressions
+    Result.new(query, aggregated_buckets, users_count)
   end
 
 
@@ -341,7 +334,7 @@ defmodule Cloak.Query.Aggregator do
     Logger.debug("Making explicit buckets ...")
     rows
     |> Stream.map(fn ({_users_count, row}) -> row end)
-    |> Rows.extract_groups(bucket_columns(query), query)
+    |> Rows.extract_groups(Query.bucket_columns(query), query)
     |> Stream.zip(Stream.map(rows, fn ({users_count, _row}) -> users_count end))
     |> Enum.map(fn ({row, users_count}) ->
       %{row: row, occurrences: 1, users_count: users_count}
@@ -351,7 +344,7 @@ defmodule Cloak.Query.Aggregator do
     Logger.debug("Making implicit buckets ...")
     rows
     |> Stream.map(fn ({_users_count, row}) -> row end)
-    |> Rows.extract_groups([Expression.count_star() | bucket_columns(query)],
+    |> Rows.extract_groups([Expression.count_star() | Query.bucket_columns(query)],
       query)
     |> Stream.zip(Stream.map(rows, fn ({users_count, _row}) -> users_count end))
     |> Enum.map(fn ({[count | row], users_count}) ->

@@ -4,7 +4,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   """
 
   alias Cloak.Sql.{Query, Comparison, Expression}
-  alias Cloak.Query.{Aggregator, Rows, Sorter}
+  alias Cloak.Query.{Rows, Sorter}
   alias Cloak.{Data, Stats}
 
 
@@ -60,7 +60,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
     accumulators = Enum.map(query.aggregators, &aggregator_to_accumulator/1)
     finalizers = Enum.map(query.aggregators, &aggregator_to_finalizer/1)
 
-    columns = Aggregator.bucket_columns(query)
+    columns = Query.bucket_columns(query)
     rows =
       stream
       |> Rows.group(query, defaults,

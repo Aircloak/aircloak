@@ -4,7 +4,7 @@ defmodule Cloak.Query.Result do
   allows a result to contain meta-data about the query execution.
   """
 
-  alias Cloak.Sql.{Expression, Query}
+  alias Cloak.Sql.Query
 
   @type t :: %__MODULE__{
     buckets: [bucket],
@@ -33,10 +33,10 @@ defmodule Cloak.Query.Result do
 
     The result is a fully shaped query result.
   """
-  @spec new(Query.t, [Expression.t], [bucket], non_neg_integer) :: t
-  def new(query, columns, buckets, users_count \\ 0), do:
+  @spec new(Query.t, [bucket], non_neg_integer) :: t
+  def new(query, buckets, users_count \\ 0), do:
     %__MODULE__{
-      buckets: final_buckets(query, columns, buckets),
+      buckets: final_buckets(query, buckets),
       users_count: users_count,
       columns: query.column_titles,
       features: Query.extract_features(query)
@@ -47,13 +47,16 @@ defmodule Cloak.Query.Result do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp final_buckets(query, bucket_columns, buckets), do:
+  defp final_buckets(query, buckets) do
+    bucket_columns = Query.bucket_columns(query)
+
     buckets
     |> Cloak.Query.Sorter.order_rows(bucket_columns, query.order_by, &(&1.row))
     |> distinct(query.distinct?)
     |> offset(query.offset)
     |> limit(query.limit)
     |> drop_non_selected_columns(bucket_columns, query.columns)
+  end
 
   defp distinct(buckets, true), do: Enum.map(buckets, &Map.put(&1, :occurrences, 1))
   defp distinct(buckets, false), do: buckets
