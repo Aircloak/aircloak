@@ -44,7 +44,7 @@ defmodule Cloak.Query.Result do
     |> distinct(query.distinct?)
     |> offset(query.offset)
     |> limit(query.limit)
-    |> drop_non_selected_columns(query.columns, bucket_columns)
+    |> drop_non_selected_columns(bucket_columns, query.columns)
 
   defp distinct(buckets, true), do: Enum.map(buckets, &Map.put(&1, :occurrences, 1))
   defp distinct(buckets, false), do: buckets
@@ -67,10 +67,13 @@ defmodule Cloak.Query.Result do
     take(rest, amount - occurrences, [bucket | acc])
   defp take([%{} = bucket | _rest], amount, acc), do: [%{bucket | occurrences: amount} | acc]
 
-  def drop_non_selected_columns(buckets, selected_columns, row_columns) do
+  def drop_non_selected_columns(buckets, selected_columns, selected_columns), do:
+    # Optimization of the frequent case where selected columns are equal to bucket columns
+    buckets
+  def drop_non_selected_columns(buckets, bucket_columns, selected_columns) do
     selected_columns_indices =
       Enum.map(selected_columns, fn(selected_column) ->
-        index = Enum.find_index(row_columns, &(&1 == selected_column))
+        index = Enum.find_index(bucket_columns, &(&1 == selected_column))
         true = (index != nil)
         index
       end)
