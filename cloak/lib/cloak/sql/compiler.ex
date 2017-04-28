@@ -320,7 +320,7 @@ defmodule Cloak.Sql.Compiler do
 
   defp float_emulated_noise_layers(query) do
     if query.emulated? do
-      noise_columns = get_in(query.noise_layers, [Lens.all() |> Lens.all()])
+      noise_columns = get_in(query.noise_layers, [Lens.all() |> Lens.all()]) -- query.columns
 
       %{
         query |

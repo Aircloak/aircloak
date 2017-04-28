@@ -73,7 +73,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
 
     test "floating columns that are not aggregated" do
       result = compile!(
-        "SELECT COUNT(*) FROM (SELECT uid FROM table WHERE numeric = 3 GROUP BY uid, decoded) foo",
+        "SELECT COUNT(*) FROM (SELECT uid FROM table WHERE numeric = 3 GROUP BY uid, dummy) foo",
         data_source()
       )
 
@@ -139,7 +139,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
     test "floating columns that are not aggregated" do
       result = compile!(
         "SELECT COUNT(*) FROM (SELECT uid FROM
-          (SELECT uid, dummy FROM table WHERE numeric = 3 GROUP BY uid, dummy, decoded) foo
+          (SELECT uid, dummy FROM table WHERE numeric = 3 GROUP BY uid, dummy, dummy2) foo
         GROUP BY uid, dummy) bar",
         data_source()
       )
@@ -185,7 +185,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
           db_name: "table",
           name: "table",
           user_id: "uid",
-          columns: [{"uid", :integer}, {"numeric", :integer}, {"decoded", :text}, {"dummy", :boolean}],
+          columns: [
+            {"uid", :integer},
+            {"numeric", :integer},
+            {"decoded", :text},
+            {"dummy", :boolean},
+            {"dummy2", :boolean}
+          ],
           decoders: [%{method: "base64", columns: ["decoded"]}],
           projection: nil,
         },
