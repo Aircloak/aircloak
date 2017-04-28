@@ -15,23 +15,22 @@ defmodule Cloak.Query.Sorter do
     :: Enumerable.t
   def order_rows(rows, columns, query, mapper \\ &(&1))
   def order_rows(rows, _columns, [], _mapper), do: rows
-  def order_rows(rows, columns, order_by, mapper), do:
-    Enum.sort(rows, &compare_rows(mapper.(&1), mapper.(&2), order_by_indices(columns, order_by)))
-
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp order_by_indices(columns, order_by), do:
-    Enum.map(
-      order_by,
+  def order_rows(rows, columns, order_by, mapper) do
+    order_by_indices = Enum.map(order_by,
       fn({expression, direction}) ->
         index = Enum.find_index(columns, &(&1 == expression))
         true = (index != nil)
         {index, direction}
       end
     )
+
+    Enum.sort(rows, &compare_rows(mapper.(&1), mapper.(&2), order_by_indices))
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp compare_rows(row1, row2, []) do
     cond do
