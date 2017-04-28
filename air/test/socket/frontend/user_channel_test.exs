@@ -26,23 +26,6 @@ defmodule Air.Socket.Frontend.UserChannelTest do
   describe "notifications on user_queries" do
     setup [:with_user, :with_socket, :subscribed_to_user_queries]
 
-    test "receiving results", %{user: user} do
-      query = create_query!(user)
-
-      UserChannel.broadcast_result(query)
-
-      expected = Air.Schemas.Query.for_display(query)
-      assert_push("result", ^expected)
-    end
-
-    test "no results for queries belonging to other users" do
-      query = create_query!(_other_user = create_user!())
-
-      UserChannel.broadcast_result(query)
-
-      refute_push("result", _)
-    end
-
     test "receiving state updates", %{user: user} do
       query = create_query!(user, %{data_source_id: create_data_source!().id})
 
