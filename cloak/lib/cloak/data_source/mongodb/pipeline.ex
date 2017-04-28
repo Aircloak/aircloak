@@ -169,10 +169,10 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   end
 
   defp order_rows([], _columns), do: []
-  defp order_rows(order_by, columns) do
-    order_by = for {index, dir} <- order_by, into: %{} do
+  defp order_rows(order_by, db_columns) do
+    order_by = for {expression, dir} <- order_by, into: %{} do
       dir = if dir == :desc do -1 else 1 end
-      name = columns |> Enum.at(index) |> Map.get(:alias)
+      name = db_columns |> Enum.at(expression.row_index) |> Map.get(:alias)
       {name, dir}
     end
     [%{'$sort': order_by}]
