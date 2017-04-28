@@ -1097,17 +1097,17 @@ defmodule Cloak.Sql.Compiler do
 
   defp insensitive_equal?(s1, s2), do: String.downcase(s1) == String.downcase(s2)
 
-  def column_title({_identifier, :as, alias}, _selected_tables), do: alias
-  def column_title({:function, {:cast, _}, _}, _selected_tables), do: "cast"
-  def column_title({:function, {:bucket, _}, _}, _selected_tables), do: "bucket"
-  def column_title({:function, name, _}, _selected_tables), do: name
-  def column_title({:distinct, identifier}, selected_tables), do: column_title(identifier, selected_tables)
+  defp column_title({_identifier, :as, alias}, _selected_tables), do: alias
+  defp column_title({:function, {:cast, _}, _}, _selected_tables), do: "cast"
+  defp column_title({:function, {:bucket, _}, _}, _selected_tables), do: "bucket"
+  defp column_title({:function, name, _}, _selected_tables), do: name
+  defp column_title({:distinct, identifier}, selected_tables), do: column_title(identifier, selected_tables)
   # This is needed for data sources that support dotted names for fields (MongoDB)
-  def column_title({:identifier, {:unquoted, table}, {:unquoted, column}}, selected_tables), do:
+  defp column_title({:identifier, {:unquoted, table}, {:unquoted, column}}, selected_tables), do:
     if find_table(selected_tables, {:unquoted, table}) == nil, do: "#{table}.#{column}", else: column
-  def column_title({:identifier, _table, {_, column}}, _selected_tables), do: column
-  def column_title({:constant, _, _}, _selected_tables), do: ""
-  def column_title({:parameter, _}, _selected_tables), do: ""
+  defp column_title({:identifier, _table, {_, column}}, _selected_tables), do: column
+  defp column_title({:constant, _, _}, _selected_tables), do: ""
+  defp column_title({:parameter, _}, _selected_tables), do: ""
 
   defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
     columns = for column <- query.columns, do:
