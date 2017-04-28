@@ -9,7 +9,7 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
     :ok = Cloak.Test.DB.create_table("#{@prefix}main", "dummy BOOLEAN")
     decoder = %{method: "base64", columns: ["value"]}
     projection = %{table: "#{@prefix}main", foreign_key: "user_id", primary_key: "user_id"}
-    :ok = Cloak.Test.DB.create_table("#{@prefix}emulated", "value TEXT, int INTEGER",
+    :ok = Cloak.Test.DB.create_table("#{@prefix}emulated", "value TEXT, num INTEGER",
       decoders: [decoder], projection: projection)
     :ok = Cloak.Test.DB.create_table("#{@prefix}joined", "age INTEGER")
     :ok
@@ -25,9 +25,9 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
 
   describe "simple queries" do
     defp simple_setup(_) do
-      :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value", "int"], [Base.encode64("aaa"), 3])
-      :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value", "int"], [Base.encode64("b"), 2])
-      :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["value", "int"], [nil, 1])
+      :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value", "num"], [Base.encode64("aaa"), 3])
+      :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value", "num"], [Base.encode64("b"), 2])
+      :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["value", "num"], [nil, 1])
     end
 
     setup [:simple_setup]
@@ -45,7 +45,7 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
         %{rows: [%{occurrences: 10, row: [nil]}, %{occurrences: 10, row: [3]}, %{occurrences: 10, row: [1]}]}
 
     test "non-selected order by", do:
-      assert_query "select value from #{@prefix}emulated order by int",
+      assert_query "select value from #{@prefix}emulated order by num",
         %{rows: [
           %{occurrences: 10, row: [nil]},
           %{occurrences: 10, row: ["b"]},
@@ -55,9 +55,9 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
 
   describe "simple emulated subqueries" do
     defp simple_subqueries_setup(_) do
-      :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value", "int"], [Base.encode64("aaa"), 3])
-      :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value", "int"], [Base.encode64("bbb"), 2])
-      :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["value", "int"], [nil, 1])
+      :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value", "num"], [Base.encode64("aaa"), 3])
+      :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value", "num"], [Base.encode64("bbb"), 2])
+      :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["value", "num"], [nil, 1])
     end
 
     setup [:simple_subqueries_setup]
@@ -81,7 +81,7 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
         """, %{rows: [%{occurrences: 1, row: [10]}]}
 
     test "non-selected order by", do:
-      assert_query "select value from (select user_id, value from #{@prefix}emulated order by int limit 1) as t",
+      assert_query "select value from (select user_id, value from #{@prefix}emulated order by num limit 1) as t",
         %{rows: [%{occurrences: 10, row: [nil]}]}
   end
 
