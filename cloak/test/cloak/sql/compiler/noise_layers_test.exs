@@ -11,14 +11,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
     test "lists columns filtered with WHERE" do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
 
-      assert [[%Expression{name: "numeric"}]] = result.noise_layers
+      assert [%{name: "numeric", expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
     end
 
     test "lists columns filtered with GROUP BY" do
       result = compile!("SELECT numeric, COUNT(*) FROM table GROUP BY numeric", data_source())
 
-      assert [[%Expression{name: "numeric"}]] = result.noise_layers
+      assert [%{name: "numeric", expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
     end
 
@@ -28,28 +28,31 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
         data_source()
       )
 
-      assert [[%Expression{name: "numeric"}]] = result.noise_layers
+      assert [%{name: "numeric", expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
     end
 
     test "lists columns filtered with emulated WHERE" do
       result = compile!("SELECT COUNT(*) FROM table WHERE decoded = 'a'", data_source())
 
-      assert [[%Expression{name: "decoded"}]] = result.noise_layers
+      assert [%{name: "decoded", expressions: [%Expression{name: "decoded"}]}] = result.noise_layers
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "decoded"}, &1))
     end
 
     test "lists underlying columns when a function is applied" do
       result = compile!("SELECT COUNT(*) FROM table GROUP BY BUCKET(numeric BY 10)", data_source())
 
-      assert [[%Expression{name: "numeric"}]] = result.noise_layers
+      assert [%{name: "numeric", expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
     end
 
     test "multiple filters on one column" do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3 GROUP BY BUCKET(numeric BY 10)", data_source())
 
-      assert [[%Expression{name: "numeric"}], [%Expression{name: "numeric"}]] = result.noise_layers
+      assert [
+        %{name: "numeric", expressions: [%Expression{name: "numeric"}]},
+        %{name: "numeric", expressions: [%Expression{name: "numeric"}]}
+      ] = result.noise_layers
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
     end
   end
@@ -58,7 +61,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
     test "floating noise layers from a subquery" do
       result = compile!("SELECT COUNT(*) FROM (SELECT * FROM table WHERE numeric = 3) foo", data_source())
 
-      assert [[%Expression{name: "numeric"}]] = result.noise_layers
+      assert [%{name: "numeric", expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
     end
 
@@ -68,7 +71,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
         data_source()
       )
 
-      assert 1 = Enum.count(result.noise_layers, &match?([%Expression{name: "numeric"}], &1))
+      assert 1 = Enum.count(result.noise_layers, &match?(%{expressions: [%Expression{name: "numeric"}]}, &1))
     end
 
     test "floating columns that are not aggregated" do
@@ -88,11 +91,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^min_alias}, &1))
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^max_alias}, &1))
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^count_alias}, &1))
-      assert 1 = Enum.count(result.noise_layers, &match?([
+      assert 1 = Enum.count(result.noise_layers, &match?(%{name: "numeric", expressions: [
         %Expression{name: ^min_alias},
         %Expression{name: ^max_alias},
         %Expression{name: ^count_alias}
-      ], &1))
+      ]}, &1))
     end
   end
 
@@ -103,7 +106,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
         data_source()
       )
 
-      assert [[%Expression{name: "numeric"}]] = result.noise_layers
+      assert [%{name: "numeric", expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
     end
 
     test "floating complex noise layers through non-aggregating queries" do
@@ -129,11 +132,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^min_alias}, &1))
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^max_alias}, &1))
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^count_alias}, &1))
-      assert 1 = Enum.count(result.noise_layers, &match?([
+      assert 1 = Enum.count(result.noise_layers, &match?(%{name: "numeric", expressions: [
         %Expression{name: ^min_alias},
         %Expression{name: ^max_alias},
         %Expression{name: ^count_alias}
-      ], &1))
+      ]}, &1))
     end
 
     test "floating columns that are not aggregated" do
@@ -162,11 +165,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^min_alias}, &1))
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^max_alias}, &1))
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^count_alias}, &1))
-      assert 1 = Enum.count(result.noise_layers, &match?([
+      assert 1 = Enum.count(result.noise_layers, &match?(%{name: "numeric", expressions: [
         %Expression{name: ^min_alias},
         %Expression{name: ^max_alias},
         %Expression{name: ^count_alias}
-      ], &1))
+      ]}, &1))
     end
   end
 

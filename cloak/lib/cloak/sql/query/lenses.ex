@@ -13,7 +13,8 @@ defmodule Cloak.Sql.Query.Lenses do
   @doc "Lens focusing all terminal elements in a query, including intermediate function invocations."
   deflens terminals(), do:
     Lens.multiple([
-      Lens.keys([:columns, :group_by, :db_columns, :property, :aggregators, :noise_layers]),
+      Lens.keys([:columns, :group_by, :db_columns, :property, :aggregators]),
+      Lens.key(:noise_layers) |> Lens.all() |> Lens.key(:expressions),
       Lens.key(:order_by) |> Lens.all() |> Lens.at(0),
       Lens.key(:ranges) |> Lens.all() |> Lens.key(:column),
       filters_operands(),

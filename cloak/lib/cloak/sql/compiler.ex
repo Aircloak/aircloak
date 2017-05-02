@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
   alias Cloak.{CyclicGraph, DataSource}
-  alias Cloak.Sql.{Expression, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Range}
+  alias Cloak.Sql.{Expression, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Range, NoiseLayer}
   alias Cloak.Query.DataDecoder
 
   defmodule CompilationError do
@@ -163,34 +163,38 @@ defmodule Cloak.Sql.Compiler do
       |> Query.Lenses.leaf_expressions()
       |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
       |> Lens.to_list(query)
-      |> Enum.map(&[&1])
+      |> Enum.map(&NoiseLayer.new(&1.name, [&1]))
 
     floated_layers =
       Query.Lenses.subquery_noise_layers()
       |> Lens.to_list(query)
-      |> update_in([Lens.all() |> Lens.all()], &reference_aliased/1)
+      |> update_in([Lens.all() |> Lens.key(:expressions) |> Lens.all()], &reference_aliased/1)
 
     new_layers ++ floated_layers
   end
 
-  defp float_noise_layer([min, max, count], _query) do
-    [
-      Expression.function("min", [reference_aliased(min)], min.type, _aggregate = true),
-      Expression.function("max", [reference_aliased(max)], max.type, _aggregate = true),
-      Expression.function("sum", [reference_aliased(count)], :integer, _aggregate = true),
-    ]
-    |> Enum.map(&alias_column/1)
-  end
-  defp float_noise_layer([expression], query) do
-    if aggregate_query?(query) and not aggregated_column?(expression, query) do
+  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count]}, _query) do
+    %{noise_layer | expressions:
       [
-        Expression.function("min", [expression], expression.type, _aggregate = true),
-        Expression.function("max", [expression], expression.type, _aggregate = true),
-        Expression.function("count", [expression], :integer, _aggregate = true),
+        Expression.function("min", [reference_aliased(min)], min.type, _aggregate = true),
+        Expression.function("max", [reference_aliased(max)], max.type, _aggregate = true),
+        Expression.function("sum", [reference_aliased(count)], :integer, _aggregate = true),
       ]
       |> Enum.map(&alias_column/1)
+    }
+  end
+  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression]}, query) do
+    if aggregate_query?(query) and not aggregated_column?(expression, query) do
+      %{noise_layer | expressions:
+        [
+          Expression.function("min", [expression], expression.type, _aggregate = true),
+          Expression.function("max", [expression], expression.type, _aggregate = true),
+          Expression.function("count", [expression], :integer, _aggregate = true),
+        ]
+        |> Enum.map(&alias_column/1)
+      }
     else
-      [expression]
+      noise_layer
     end
   end
 
@@ -322,7 +326,7 @@ defmodule Cloak.Sql.Compiler do
 
   defp float_emulated_noise_layers(query) do
     if query.emulated? do
-      noise_columns = get_in(query.noise_layers, [Lens.all() |> Lens.all()]) -- query.columns
+      noise_columns = get_in(query.noise_layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()]) -- query.columns
 
       %{
         query |
@@ -1125,7 +1129,7 @@ defmodule Cloak.Sql.Compiler do
   defp normalize_db_column(expression), do: expression
 
   defp noise_layer_columns(%{noise_layers: noise_layers, emulated?: true, subquery?: true}), do:
-    Enum.flat_map(noise_layers, &(&1)) |> Enum.map(fn(column) ->
+    Enum.flat_map(noise_layers, &(&1.expressions)) |> Enum.map(fn(column) ->
       if column.aggregate? do
         [aggregated] = column.function_args
         aggregated
@@ -1134,7 +1138,7 @@ defmodule Cloak.Sql.Compiler do
       end
     end)
   defp noise_layer_columns(%{noise_layers: noise_layers}), do:
-    Enum.flat_map(noise_layers, &(&1))
+    Enum.flat_map(noise_layers, &(&1.expressions))
 
   defp range_columns(%{subquery?: true, emulated?: false}), do: []
   defp range_columns(%{ranges: ranges}), do: ranges |> Enum.map(&(&1.column)) |> extract_columns()

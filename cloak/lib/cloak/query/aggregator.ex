@@ -149,7 +149,7 @@ defmodule Cloak.Query.Aggregator do
   defp init_anonymizer(grouped_rows, query) do
     for {property, users_rows} <- grouped_rows do
       noise_layers = for noise_layer <- query.noise_layers do
-        noise_layer
+        noise_layer.expressions
         |> Enum.map(&Expression.value(&1, property))
         |> MapSet.new()
       end
