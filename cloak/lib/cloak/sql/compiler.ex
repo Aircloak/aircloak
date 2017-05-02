@@ -1124,8 +1124,12 @@ defmodule Cloak.Sql.Compiler do
 
   defp calculate_db_columns(query) do
     select_expressions(query) ++ range_columns(query) ++ noise_layer_columns(query)
+    |> Enum.map(&normalize_db_column/1)
     |> Enum.reduce(query, &Query.add_db_column(&2, &1))
   end
+
+  defp normalize_db_column(expression = %Expression{name: x, alias: x}), do: %{expression | alias: nil}
+  defp normalize_db_column(expression), do: expression
 
   defp noise_layer_columns(%{noise_layers: noise_layers, emulated?: true, subquery?: true}), do:
     Enum.flat_map(noise_layers, &(&1)) |> Enum.map(fn(column) ->
