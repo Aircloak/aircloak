@@ -26,11 +26,11 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
             pc1.oid relname tgconstrname nspname))
         )
 
-      query =~ ~r/^select n.nspname, c.relname, a.attname.*a.attrelid = c.oid/i ->
+      query =~ ~r/begin;declare .* for select c.relname, i.indkey/i ->
         # related fields
-        RanchServer.query_result(conn,
-          empty_result(:select, ~w(nspname relname attname atttypid typname attnum attlen atttypmod attnotnull
-            relhasrules relkind oid pg_get_expr case typtypmod relhasoids))
+        cursor_query_result(conn,
+          empty_result(:fetch, ~w(relname indkey indisunique indisclustered amname relhasrules nspname oid
+            relhasoids ?column?))
         )
 
       query =~ ~r/begin;declare.* for select ta.attname, ia.attnum.*ia.attrelid = i.indexrelid.*fetch/i ->
@@ -81,7 +81,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
     ]
 
   defp table_name_from_table_info_query(query) do
-    case Regex.named_captures(~r/^select n.nspname.*relname like '(?<table_name>.*)' and/, query) do
+    case Regex.named_captures(~r/^select n.nspname.*relname = '(?<table_name>.*)'/, query) do
       %{"table_name" => table_name} -> table_name
       _ -> nil
     end
