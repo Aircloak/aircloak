@@ -118,6 +118,16 @@ defmodule Cloak.Query.BasicTest do
     assert Enum.map(rows, &(&1[:row])) == [[170], [160], [180]]
   end
 
+  test "order by grouped but non-selected field" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 170, true])
+    :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
+
+    assert_query "select sum(height) from heights group by name order by name",
+      %{query_id: "1", columns: ["sum"], rows: rows}
+    assert Enum.map(rows, &(&1[:row])) == [[1700], [1600], [1800]]
+  end
+
   test "should return LCF property when sufficient rows are filtered" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..3, "heights", ["height"], [160])

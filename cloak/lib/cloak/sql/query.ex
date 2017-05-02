@@ -238,10 +238,8 @@ defmodule Cloak.Sql.Query do
   @spec bucket_columns(Query.t) :: [Expression.t]
   def bucket_columns(%__MODULE__{command: :show} = query), do:
     query.columns
-  def bucket_columns(%__MODULE__{command: :select} = query) do
-    non_selected_order_by_expressions = order_by_expressions(query) -- (query.columns ++ query.group_by)
-    query.columns ++ non_selected_order_by_expressions
-  end
+  def bucket_columns(%__MODULE__{command: :select} = query), do:
+    Enum.uniq(order_by_expressions(query) ++ query.columns)
 
 
   # -------------------------------------------------------------------
