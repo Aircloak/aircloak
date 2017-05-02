@@ -1056,11 +1056,6 @@ defmodule Cloak.Sql.Compiler do
   defp select_expressions(%Query{command: :select, subquery?: true, emulated?: false} = query) do
     Enum.zip(query.column_titles, query.columns)
     |> Enum.map(fn({column_alias, column}) -> %Expression{column | alias: column_alias} end)
-    |> Enum.concat(
-        query
-        |> Query.order_by_expressions()
-        |> Enum.map(&%Expression{&1 | alias: &1.alias || &1.name})
-      )
   end
   defp select_expressions(%Query{command: :select} = query) do
     # top-level query -> we,re fetching only columns, while other expressions (e.g. function calls)
