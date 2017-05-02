@@ -80,11 +80,10 @@ defmodule Cloak.Sql.Compiler do
       |> compile_parameter_types()
       |> compile_columns()
       |> reject_null_user_ids()
-      |> resolve_group_by_references()
+      |> resolve_references()
       |> verify_columns()
       |> precompile_functions()
       |> censor_selected_uids()
-      |> compile_order_by()
       |> verify_joins()
       |> cast_where_clauses()
       |> verify_where_clauses()
@@ -100,7 +99,7 @@ defmodule Cloak.Sql.Compiler do
       |> TypeChecker.validate_allowed_usage_of_math_and_functions()
       |> optimize_columns_from_projected_tables()
       |> parse_row_splitters()
-      |> partition_selected_columns()
+      |> compute_aggregators()
     }
 
 
@@ -227,7 +226,7 @@ defmodule Cloak.Sql.Compiler do
     titles = Enum.filter(ast.column_titles, & &1 in required_column_names)
     %Query{ast |
       next_row_index: 0, db_columns: [],
-      columns: columns, property: columns,
+      columns: columns,
       column_titles: titles
     }
     |> calculate_db_columns()
@@ -441,9 +440,10 @@ defmodule Cloak.Sql.Compiler do
   end
 
   defp invalid_individual_columns(%Query{command: :select, group_by: [_|_]} = query), do:
-    Enum.filter(query.columns, &individual_column?(&1, query))
+    Enum.filter(Query.bucket_columns(query), &individual_column?(&1, query))
   defp invalid_individual_columns(%Query{command: :select} = query) do
-    query.columns
+    query
+    |> Query.bucket_columns()
     |> Enum.reject(&Expression.constant?/1)
     |> Enum.partition(&aggregated_column?(&1, query))
     |> case  do
@@ -497,19 +497,32 @@ defmodule Cloak.Sql.Compiler do
   end
   defp expand_star_select(query), do: query
 
+  defp resolve_references(query), do:
+    query
+    |> resolve_group_by_references()
+    |> resolve_order_by_references()
+
   defp resolve_group_by_references(query), do:
-    %Query{query | group_by: Enum.map(query.group_by, &resolve_group_by_reference(&1, query.columns))}
+    %Query{query | group_by: Enum.map(query.group_by, &resolve_reference(&1, query, "GROUP BY"))}
 
-  defp resolve_group_by_reference(%Expression{constant?: true, type: :integer} = reference, select_list) do
-    unless reference.value in 1..length(select_list), do:
+  defp resolve_order_by_references(query), do:
+    %Query{query | order_by:
+      Enum.map(
+        query.order_by,
+        fn({expression, direction}) -> {resolve_reference(expression, query, "ORDER BY"), direction} end
+      )
+    }
+
+  defp resolve_reference(%Expression{constant?: true, type: :integer} = reference, query, clause_name) do
+    unless reference.value in 1..length(query.columns), do:
       raise(CompilationError,
-        message: "`GROUP BY` position `#{reference.value}` is out of the range of selected columns.")
+        message: "`#{clause_name}` position `#{reference.value}` is out of the range of selected columns.")
 
-    Enum.at(select_list, reference.value - 1)
+    Enum.at(query.columns, reference.value - 1)
   end
-  defp resolve_group_by_reference(%Expression{constant?: true, type: _}, _select_list), do:
-    raise(CompilationError, message: "Non-integer constant is not allowed in `GROUP BY`.")
-  defp resolve_group_by_reference(expression, _select_list), do:
+  defp resolve_reference(%Expression{constant?: true, type: _}, _query, clause_name), do:
+    raise(CompilationError, message: "Non-integer constant is not allowed in `#{clause_name}`.")
+  defp resolve_reference(expression, _query, _clause_name), do:
     expression
 
   defp verify_columns(query) do
@@ -645,22 +658,14 @@ defmodule Cloak.Sql.Compiler do
     end
   end
 
-  defp partition_selected_columns(%Query{group_by: groups = [_|_]} = query) do
-    %Query{query |
-      property: groups |> drop_duplicate_columns_except_row_splitters(),
-      aggregators: aggregators(query) |> drop_duplicate_columns_except_row_splitters()
-    }
-  end
-  defp partition_selected_columns(query) do
+  defp compute_aggregators(%Query{group_by: [_|_]} = query), do:
+    %Query{query | aggregators: Expression.unique_except(aggregators(query), &Expression.row_splitter?/1)}
+  defp compute_aggregators(query) do
     case aggregators(query) do
       [] ->
-        %Query{query |
-          property: query.columns |> drop_duplicate_columns_except_row_splitters(),
-          aggregators: [Expression.count_star()],
-          implicit_count?: true
-        }
+        %Query{query | aggregators: [Expression.count_star()], implicit_count?: true}
       aggregators ->
-        %Query{query | property: [], aggregators: aggregators |> drop_duplicate_columns_except_row_splitters()}
+        %Query{query | aggregators: Expression.unique_except(aggregators, &Expression.row_splitter?/1)}
     end
   end
 
@@ -671,12 +676,6 @@ defmodule Cloak.Sql.Compiler do
 
   defp having_columns(query), do:
     Enum.flat_map(query.having, fn({:comparison, column, _operator, target}) -> [column, target] end)
-
-  # Drops all duplicate occurrences of columns, with the exception of columns that are, or contain,
-  # calls to row splitting functions. This does not affect how many times database columns are loaded
-  # from the database, but allows us to deal with the output of the row splitting function instances separately.
-  defp drop_duplicate_columns_except_row_splitters(columns), do:
-    Enum.uniq_by(columns, &Lens.map(Query.Lenses.splitter_functions(), &1, fn(_) -> Kernel.make_ref() end))
 
   defp parse_row_splitters(%Query{} = query) do
     {transformed_columns, query} = transform_splitter_columns(query, query.columns)
@@ -738,21 +737,6 @@ defmodule Cloak.Sql.Compiler do
     |> if do
       raise CompilationError, message:
         "Row splitter function used in the `WHERE` clause has to be first used identically in the `SELECT` clause."
-    end
-  end
-
-  defp compile_order_by(%Query{order_by: []} = query), do: query
-  defp compile_order_by(%Query{columns: columns, order_by: order_by_spec} = query) do
-    invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) -> Enum.member?(columns, column) end)
-    case invalid_fields do
-      [] ->
-        order_list = for {column, direction} <- order_by_spec do
-          index = columns |> Enum.find_index(&(&1 == column))
-          {index, direction}
-        end
-        %Query{query | order_by: order_list}
-      [{_column, _direction} | _rest] ->
-        raise CompilationError, message: "Non-selected column specified in `ORDER BY` clause."
     end
   end
 
@@ -1090,6 +1074,7 @@ defmodule Cloak.Sql.Compiler do
     query.group_by ++
     query.emulated_where ++
     query.having ++
+    Query.order_by_expressions(query) ++
     if query.emulated?, do: query.where, else: []
 
   defp id_column(query) do

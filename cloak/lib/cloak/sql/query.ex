@@ -35,7 +35,6 @@ defmodule Cloak.Sql.Query do
     command: :select | :show,
     columns: [Expression.t] | :*,
     column_titles: [String.t],
-    property: [Function.t],
     aggregators: [Function.t],
     # When row-splitters are used (like `extract_matches`), the row splitting has to happen
     # prior to other functions being executed. All function call chains that contain one or
@@ -57,7 +56,7 @@ defmodule Cloak.Sql.Query do
     group_by: [Function.t],
     where: [where_clause],
     emulated_where: [where_clause],
-    order_by: [{pos_integer, :asc | :desc}],
+    order_by: [{Expression.t, :asc | :desc}],
     show: :tables | :columns,
     selected_tables: [DataSource.table],
     db_columns: [Expression.t],
@@ -76,7 +75,7 @@ defmodule Cloak.Sql.Query do
   }
 
   defstruct [
-    columns: [], where: [], group_by: [], order_by: [], column_titles: [], property: [], aggregators: [],
+    columns: [], where: [], group_by: [], order_by: [], column_titles: [], aggregators: [],
     info: [], selected_tables: [], row_splitters: [], implicit_count?: false, data_source: nil, command: nil,
     show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
     features: nil, emulated_where: [], ranges: %{}, parameters: [], views: %{}, emulated?: false,
@@ -230,6 +229,17 @@ defmodule Cloak.Sql.Query do
     |> get_in([Lenses.leaf_expressions()])
     |> Enum.filter(& &1.table != :unknown and &1.table.name == table_name)
     |> Enum.uniq_by(&Expression.id/1)
+
+  @doc "Returns the list of order by expressions."
+  def order_by_expressions(query), do:
+    Enum.map(query.order_by, fn({column, _}) -> column end)
+
+  @doc "Returns the ordered list of bucket columns."
+  @spec bucket_columns(Query.t) :: [Expression.t]
+  def bucket_columns(%__MODULE__{command: :show} = query), do:
+    query.columns
+  def bucket_columns(%__MODULE__{command: :select} = query), do:
+    Enum.uniq(order_by_expressions(query) ++ query.columns)
 
 
   # -------------------------------------------------------------------

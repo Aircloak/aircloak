@@ -146,6 +146,25 @@ defmodule Cloak.Sql.Expression do
   end
   def first_column(%__MODULE__{} = column), do: column
 
+  @doc "Returns true if the given expression is the row splitting function."
+  @spec row_splitter?(t) :: boolean
+  def row_splitter?(%__MODULE__{function?: true} = function), do:
+    Cloak.Sql.Function.has_attribute?(function, :row_spliiter)
+  def row_splitter?(_), do: false
+
+
+  @doc """
+  Returns the list of unique expression, preserving duplicates of some expressions.
+
+  Expressions for which the provided lambda returns true are not deduplicated.
+  """
+  @spec unique_except([t], ((t) -> boolean)) :: [t]
+  def unique_except(expressions, except_fun), do:
+    Enum.uniq_by(
+      expressions,
+      fn(expression) -> if except_fun.(expression), do: :erlang.unique_integer(), else: expression end
+    )
+
 
   # -------------------------------------------------------------------
   # Internal functions

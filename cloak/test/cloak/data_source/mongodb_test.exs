@@ -146,6 +146,12 @@ defmodule Cloak.DataSource.MongoDBTest do
       """, %{rows: [%{occurrences: 1, row: [10]}]}
   end
 
+  test "sub-queries with non-selected order by", context do
+    assert_query context, """
+        SELECT COUNT(name) FROM (SELECT _id, name FROM #{@table}_bills_ids ORDER BY age LIMIT 10) AS t
+      """, %{rows: [%{occurrences: 1, row: [10]}]}
+  end
+
   test "functions in sub-queries", context do
     assert_query context, "SELECT AVG(age) FROM (SELECT _id, age * 2 + 1 AS age FROM #{@table}) AS t",
       %{rows: [%{occurrences: 1, row: [61.0]}]}

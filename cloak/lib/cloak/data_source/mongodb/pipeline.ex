@@ -75,7 +75,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   end
   defp parse_query(%Query{subquery?: true} = query), do:
     aggregate_and_project(query) ++
-    order_rows(query.order_by, query.db_columns) ++
+    order_rows(query.order_by) ++
     offset_rows(query.offset) ++
     limit_rows(query.limit)
 
@@ -176,12 +176,11 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     [%{'$unwind': "$" <> path} | unwind_arrays(rest, path)]
   end
 
-  defp order_rows([], _columns), do: []
-  defp order_rows(order_by, columns) do
-    order_by = for {index, dir} <- order_by, into: %{} do
+  defp order_rows([]), do: []
+  defp order_rows(order_by) do
+    order_by = for {expression, dir} <- order_by, into: %{} do
       dir = if dir == :desc do -1 else 1 end
-      name = columns |> Enum.at(index) |> Map.get(:alias)
-      {name, dir}
+      {map_field(expression), dir}
     end
     [%{'$sort': order_by}]
   end
