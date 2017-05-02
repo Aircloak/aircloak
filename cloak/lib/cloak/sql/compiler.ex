@@ -440,9 +440,10 @@ defmodule Cloak.Sql.Compiler do
   end
 
   defp invalid_individual_columns(%Query{command: :select, group_by: [_|_]} = query), do:
-    Enum.filter(query.columns, &individual_column?(&1, query))
+    Enum.filter(Query.bucket_columns(query), &individual_column?(&1, query))
   defp invalid_individual_columns(%Query{command: :select} = query) do
-    query.columns
+    query
+    |> Query.bucket_columns()
     |> Enum.reject(&Expression.constant?/1)
     |> Enum.partition(&aggregated_column?(&1, query))
     |> case  do
