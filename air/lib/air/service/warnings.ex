@@ -35,6 +35,7 @@ defmodule Air.Service.Warnings do
     offline_datasources(data_sources)
       ++ broken_datasources(data_sources)
       ++ no_group(data_sources)
+      ++ no_users(data_sources)
   end
 
   defp problem(resource, description), do:
@@ -59,4 +60,14 @@ defmodule Air.Service.Warnings do
     data_sources
     |> Enum.reject(&(length(&1.groups) > 0))
     |> Enum.map(&problem(&1, "No groups have been given access to the data source. It cannot be queried"))
+
+  defp no_users(data_sources), do:
+    data_sources
+    |> Enum.reject(fn(data_source) ->
+      Enum.any?(data_source.groups, fn(group) ->
+        group = Air.Repo.preload(group, [:users])
+        length(group.users) > 0
+      end)
+    end)
+    |> Enum.map(&problem(&1, "No users have access to this data source"))
 end
