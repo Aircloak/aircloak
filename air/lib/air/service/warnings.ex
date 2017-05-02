@@ -32,14 +32,24 @@ defmodule Air.Service.Warnings do
 
   defp data_source_problems() do
     data_sources = DataSource.all()
-    offline = offline_datasources(data_sources)
-    |> Enum.map(&problem(&1, "The data source is unavailable. No cloaks serving this data source are online"))
-    offline
+    offline_datasources(data_sources) ++ broken_datasources(data_sources)
   end
 
   defp problem(resource, description), do:
     %{resource: resource, description: description}
 
   defp offline_datasources(data_sources), do:
-    Enum.filter(data_sources, fn(data_source) -> Cloak.channel_pids(data_source.name) == [] end)
+    data_sources
+    |> Enum.filter(fn(data_source) -> Cloak.channel_pids(data_source.name) == [] end)
+    |> Enum.map(&problem(&1, "The data source is unavailable. No cloaks serving this data source are online"))
+
+  defp broken_datasources(data_sources), do:
+    data_sources
+    |> Enum.reject(&(&1.errors === "" or &1.errors === "[]"))
+    |> Enum.map(&problem(&1, unpack_error(&1)))
+
+  defp unpack_error(data_source), do:
+    data_source.errors
+    |> Poison.decode!()
+    |> Enum.join(", ")
 end

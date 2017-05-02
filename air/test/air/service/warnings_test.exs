@@ -5,6 +5,8 @@ defmodule Air.Service.WarningsTest do
 
   @data_source_name "name"
   @data_sources [%{"name" => @data_source_name, "global_id" => "global_id", "tables" => []}]
+  @data_sources_with_errors [%{"name" => @data_source_name, "global_id" => "global_id", "tables" => [],
+    "errors" => ["broken"]}]
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
@@ -20,6 +22,14 @@ defmodule Air.Service.WarningsTest do
     assert Warnings.known_problems?()
     assert hd(Warnings.problems()).resource.name == @data_source_name
     assert problem_with_description(~r/No cloaks .+ are online/)
+  end
+
+  test "broken data source produce warnings" do
+    {:ok, _pid} = start_cloak_channel(cloak_info(), @data_sources_with_errors)
+
+    assert Warnings.known_problems?()
+    assert hd(Warnings.problems()).resource.name == @data_source_name
+    assert problem_with_description(~r/broken/)
   end
 
   test "no warning when cloak is online and no errors" do
