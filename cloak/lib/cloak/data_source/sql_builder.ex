@@ -160,12 +160,17 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp order_by_fragments(%Query{subquery?: true, order_by: [_|_] = order_by} = query, sql_dialect) do
     order_by = for {index, dir} <- order_by do
       dir = if dir == :desc do " DESC" else " ASC" end
-      name = query.db_columns |> Enum.at(index) |> Map.get(:alias) |> quote_name(sql_dialect)
+      name = query.db_columns |> Enum.at(index) |> order_by_column_sql(sql_dialect)
       [name, dir]
     end
     [" ORDER BY ", Enum.intersperse(order_by, ", ")]
   end
   defp order_by_fragments(_query, _sql_dialect), do: []
+
+  defp order_by_column_sql(%Expression{alias: alias}, sql_dialect) when alias != nil, do:
+    quote_name(alias, sql_dialect)
+  defp order_by_column_sql(%Expression{name: name}, sql_dialect) when name != nil, do:
+    quote_name(name, sql_dialect)
 
   defp quote_name(name, :drill), do: "`#{name}`"
   defp quote_name(name, _sql_dialect), do: "\"#{name}\""
