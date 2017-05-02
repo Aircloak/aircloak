@@ -56,7 +56,7 @@ defmodule Air.CentralClient.QueryReporter do
     }
     data_source = query.data_source || %{
       name: "Unknown data source",
-      global_id: "Unknown data source",
+      id: nil,
     }
 
     row_count = (result["rows"] || []) |> Enum.map(&(&1["occurrences"])) |> Enum.sum
@@ -74,7 +74,7 @@ defmodule Air.CentralClient.QueryReporter do
         },
         data_source: %{
           name: data_source.name,
-          id: data_source.global_id,
+          id: data_source.id,
         },
         started_at: query.inserted_at,
         finished_at: NaiveDateTime.utc_now(),

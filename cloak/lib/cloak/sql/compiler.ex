@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
-  alias Cloak.DataSource
+  alias Cloak.{CyclicGraph, DataSource}
   alias Cloak.Sql.{Expression, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Range}
   alias Cloak.Query.DataDecoder
 
@@ -80,10 +80,10 @@ defmodule Cloak.Sql.Compiler do
       |> compile_parameter_types()
       |> compile_columns()
       |> reject_null_user_ids()
+      |> resolve_references()
       |> verify_columns()
       |> precompile_functions()
       |> censor_selected_uids()
-      |> compile_order_by()
       |> verify_joins()
       |> cast_where_clauses()
       |> verify_where_clauses()
@@ -100,7 +100,7 @@ defmodule Cloak.Sql.Compiler do
       |> TypeChecker.validate_allowed_usage_of_math_and_functions()
       |> optimize_columns_from_projected_tables()
       |> parse_row_splitters()
-      |> partition_selected_columns()
+      |> compute_aggregators()
     }
 
 
@@ -275,14 +275,16 @@ defmodule Cloak.Sql.Compiler do
       query |> Query.required_columns_from_table(projected_subquery.alias) |> Enum.map(& &1.name)
     ]
 
-  defp optimized_projected_subquery_ast(ast, required_column_names), do:
+  defp optimized_projected_subquery_ast(ast, required_column_names) do
+    columns = Enum.filter(ast.columns, & &1.name in required_column_names)
+    titles = Enum.filter(ast.column_titles, & &1 in required_column_names)
     %Query{ast |
-      next_row_index: 0,
-      db_columns: [],
-      columns: Enum.filter(ast.columns, & &1.name in required_column_names),
-      column_titles: Enum.filter(ast.column_titles, & &1 in required_column_names)
+      next_row_index: 0, db_columns: [],
+      columns: columns,
+      column_titles: titles
     }
     |> calculate_db_columns()
+  end
 
 
   # -------------------------------------------------------------------
@@ -437,7 +439,7 @@ defmodule Cloak.Sql.Compiler do
   end
   defp normalize_from(subquery = {:subquery, _}, _data_source), do: subquery
   defp normalize_from(table_identifier = {_, table_name}, data_source) do
-    case data_source.tables |> Map.values() |> find_table(table_identifier) do
+    case data_source |> DataSource.tables() |> find_table(table_identifier) do
       nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
       table -> table.name
     end
@@ -509,12 +511,12 @@ defmodule Cloak.Sql.Compiler do
 
   defp invalid_individual_columns(query), do:
     if aggregate_query?(query),
-      do: Enum.filter(query.columns, &individual_column?(&1, query)),
+      do: query |> Query.bucket_columns() |> Enum.filter(&individual_column?(&1, query)),
       else: []
 
   defp aggregate_query?(%Query{command: :select, group_by: [_|_]}), do: true
   defp aggregate_query?(%Query{command: :select} = query), do:
-    Enum.any?(query.columns, &aggregated_column?(&1, query))
+    query |> Query.bucket_columns() |> Enum.any?(&aggregated_column?(&1, query))
   defp aggregate_query?(_), do: false
 
   defp aggregated_column?(column, query), do:
@@ -562,10 +564,33 @@ defmodule Cloak.Sql.Compiler do
   end
   defp expand_star_select(query), do: query
 
-  defp filter_aggregators(columns), do:
-    columns
-    |> Enum.flat_map(&expand_arguments/1)
-    |> Enum.filter(&(match?(%Expression{function?: true, aggregate?: true}, &1)))
+  defp resolve_references(query), do:
+    query
+    |> resolve_group_by_references()
+    |> resolve_order_by_references()
+
+  defp resolve_group_by_references(query), do:
+    %Query{query | group_by: Enum.map(query.group_by, &resolve_reference(&1, query, "GROUP BY"))}
+
+  defp resolve_order_by_references(query), do:
+    %Query{query | order_by:
+      Enum.map(
+        query.order_by,
+        fn({expression, direction}) -> {resolve_reference(expression, query, "ORDER BY"), direction} end
+      )
+    }
+
+  defp resolve_reference(%Expression{constant?: true, type: :integer} = reference, query, clause_name) do
+    unless reference.value in 1..length(query.columns), do:
+      raise(CompilationError,
+        message: "`#{clause_name}` position `#{reference.value}` is out of the range of selected columns.")
+
+    Enum.at(query.columns, reference.value - 1)
+  end
+  defp resolve_reference(%Expression{constant?: true, type: _}, _query, clause_name), do:
+    raise(CompilationError, message: "Non-integer constant is not allowed in `#{clause_name}`.")
+  defp resolve_reference(expression, _query, _clause_name), do:
+    expression
 
   defp verify_columns(query) do
     verify_functions(query)
@@ -700,32 +725,24 @@ defmodule Cloak.Sql.Compiler do
     end
   end
 
-  defp partition_selected_columns(%Query{group_by: groups = [_|_], columns: selected_columns} = query) do
-    having_columns = Enum.flat_map(query.having, fn ({:comparison, column, _operator, target}) -> [column, target] end)
-    aggregators = filter_aggregators(selected_columns ++ having_columns)
-    %Query{query |
-      property: groups |> drop_duplicate_columns_except_row_splitters(),
-      aggregators: aggregators |> drop_duplicate_columns_except_row_splitters()
-    }
-  end
-  defp partition_selected_columns(query) do
-    case filter_aggregators(query.columns) do
+  defp compute_aggregators(%Query{group_by: [_|_]} = query), do:
+    %Query{query | aggregators: Expression.unique_except(aggregators(query), &Expression.row_splitter?/1)}
+  defp compute_aggregators(query) do
+    case aggregators(query) do
       [] ->
-        %Query{query |
-          property: query.columns |> drop_duplicate_columns_except_row_splitters(),
-          aggregators: [Expression.count_star()],
-          implicit_count?: true
-        }
+        %Query{query | aggregators: [Expression.count_star()], implicit_count?: true}
       aggregators ->
-        %Query{query | property: [], aggregators: aggregators |> drop_duplicate_columns_except_row_splitters()}
+        %Query{query | aggregators: Expression.unique_except(aggregators, &Expression.row_splitter?/1)}
     end
   end
 
-  # Drops all duplicate occurrences of columns, with the exception of columns that are, or contain,
-  # calls to row splitting functions. This does not affect how many times database columns are loaded
-  # from the database, but allows us to deal with the output of the row splitting function instances separately.
-  defp drop_duplicate_columns_except_row_splitters(columns), do:
-    Enum.uniq_by(columns, &Lens.map(Query.Lenses.splitter_functions(), &1, fn(_) -> Kernel.make_ref() end))
+  defp aggregators(query), do:
+    (query.columns ++ having_columns(query))
+    |> Enum.flat_map(&expand_arguments/1)
+    |> Enum.filter(&(match?(%Expression{function?: true, aggregate?: true}, &1)))
+
+  defp having_columns(query), do:
+    Enum.flat_map(query.having, fn({:comparison, column, _operator, target}) -> [column, target] end)
 
   defp parse_row_splitters(%Query{} = query) do
     {transformed_columns, query} = transform_splitter_columns(query, query.columns)
@@ -790,21 +807,6 @@ defmodule Cloak.Sql.Compiler do
     end
   end
 
-  defp compile_order_by(%Query{order_by: []} = query), do: query
-  defp compile_order_by(%Query{columns: columns, order_by: order_by_spec} = query) do
-    invalid_fields = Enum.reject(order_by_spec, fn ({column, _direction}) -> Enum.member?(columns, column) end)
-    case invalid_fields do
-      [] ->
-        order_list = for {column, direction} <- order_by_spec do
-          index = columns |> Enum.find_index(&(&1 == column))
-          {index, direction}
-        end
-        %Query{query | order_by: order_list}
-      [{_column, _direction} | _rest] ->
-        raise CompilationError, message: "Non-selected column specified in `ORDER BY` clause."
-    end
-  end
-
   defp partition_where_clauses(query) do
     # extract conditions using encoded columns
     {emulated_column_clauses, safe_clauses} = Enum.partition(query.where, &emulated_expression_condition?/1)
@@ -813,59 +815,50 @@ defmodule Cloak.Sql.Compiler do
 
   defp verify_joins(%Query{projected?: true} = query), do: query
   defp verify_joins(query) do
-    join_conditions_scope_check(query.from)
+    join_conditions_scope_check!(query.from)
+    ensure_all_uid_columns_are_compared_in_joins!(query)
+    query
+  end
 
-    # Algorithm for finding improperly joined tables:
-    #
-    # 1. Create a DCG graph, where all uid columns are vertices.
-    # 2. Add an edge for all where clauses shaped as `uid1 = uid2`
-    # 3. Find the first pair (uid1, uid2) where there is no path from uid1 to uid2 in the graph.
-    # 4. Report an error if something is found in the step 3
+  defp ensure_all_uid_columns_are_compared_in_joins!(query), do:
+    CyclicGraph.with(fn(graph) ->
+      query
+      |> all_id_columns_from_tables()
+      |> Enum.each(&CyclicGraph.add_vertex(graph, {&1.table.name, &1.name}))
 
-    column_key = fn(column) -> {column.name, column.table.name} end
+      for {col1, col2} <- uid_columns_compared_in_joins(query), do:
+        CyclicGraph.connect!(graph, {col1.table.name, col1.name}, {col2.table.name, col2.name})
 
-    graph = :digraph.new([:private, :cyclic])
-    try do
-      # add uid columns as vertices
-      uid_columns = Enum.map(query.selected_tables, &%Expression{name: &1.user_id, table: &1})
-      Enum.each(uid_columns, &:digraph.add_vertex(graph, column_key.(&1)))
-
-      # add edges for all `uid1 = uid2` filters
-      for {:comparison, column1, :=, column2} <- query.where ++ all_join_conditions(query.from),
-          column1 != column2,
-          column1.user_id?,
-          column2.user_id?
-      do
-        :digraph.add_edge(graph, column_key.(column1), column_key.(column2))
-        :digraph.add_edge(graph, column_key.(column2), column_key.(column1))
+      with [{{table1, column1}, {table2, column2}} | _] <- CyclicGraph.disconnected_pairs(graph) do
+        raise CompilationError,
+          message:
+            "Missing where comparison for uid columns of tables `#{table1}` and `#{table2}`. " <>
+            "You can fix the error by adding `#{table1}.#{column1} = #{table2}.#{column2}` " <>
+            "condition to the `WHERE` clause."
       end
+    end)
 
-      # Find first pair (uid1, uid2) which are not connected in the graph.
-      uid_columns
-      |> Stream.chunk(2, 1)
-      |> Stream.filter(
-            fn([uid1, uid2]) -> :digraph.get_path(graph, column_key.(uid1), column_key.(uid2)) == false end
-          )
-      |> Enum.take(1)
-      |> case do
-            [] ->
-              # No such pair -> all tables are properly joined
-              query
-
-            [[column1, column2]] ->
-              table1 = column1.table.name
-              table2 = column2.table.name
-              raise CompilationError,
-                message:
-                  "Missing where comparison for uid columns of tables `#{table1}` and `#{table2}`. " <>
-                  "You can fix the error by adding `#{table1}.#{column1.name} = #{table2}.#{column2.name}` " <>
-                  "condition to the `WHERE` clause."
-          end
-    after
-      # digraph is powered by ets tables, so we need to make sure they are deleted once we don't need them
-      :digraph.delete(graph)
+  defp uid_columns_compared_in_joins(query) do
+    for {:comparison, column1, :=, column2} <- query.where ++ all_join_conditions(query.from),
+        # We're stripping the outermost cast expression. The reason is because Tableau always casts joined
+        # columns to text. In other words, it will always create:
+        #   `ON CAST(t1.uid as TEXT) = CAST(t2.uid as TEXT)`
+        # To handle this, we're going to remove the outer cast, thus ensuring we notice that uid columns
+        # are compared in the join.
+        column1 = remove_outer_cast(column1),
+        column2 = remove_outer_cast(column2),
+        column1 != column2,
+        column1.user_id?,
+        column2.user_id?
+    do
+      {column1, column2}
     end
   end
+
+  defp remove_outer_cast(%Expression{function: {:cast, _}, function_args: [expr]}), do:
+    expr
+  defp remove_outer_cast(expr), do:
+    expr
 
   @spec all_join_conditions(Parser.from_clause) :: [Parser.where_clause]
   defp all_join_conditions({:join, join}) do
@@ -1166,6 +1159,7 @@ defmodule Cloak.Sql.Compiler do
     query.group_by ++
     query.emulated_where ++
     query.having ++
+    Query.order_by_expressions(query) ++
     if query.emulated?, do: query.where, else: []
 
   defp id_column(query) do
@@ -1191,7 +1185,7 @@ defmodule Cloak.Sql.Compiler do
   defp any_outer_join?({:join, join}),
     do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
 
-  defp join_conditions_scope_check(from) do
+  defp join_conditions_scope_check!(from) do
     do_join_conditions_scope_check(from, [])
   end
 
@@ -1219,10 +1213,8 @@ defmodule Cloak.Sql.Compiler do
     do: [table_name | selected_tables]
 
   defp scope_check(tables_in_scope, table_name, column_name) do
-    case Enum.member?(tables_in_scope, table_name) do
-      true -> :ok
-      _ -> raise CompilationError, message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
-    end
+    unless Enum.member?(tables_in_scope, table_name), do:
+      raise CompilationError, message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
   end
 
   defp verify_limit(%Query{command: :select, limit: amount}) when amount <= 0, do:
@@ -1237,14 +1229,13 @@ defmodule Cloak.Sql.Compiler do
     raise CompilationError, message: "Using the `OFFSET` clause requires the `ORDER BY` clause to be specified."
   defp verify_offset(query), do: query
 
-  defp verify_having(%Query{command: :select, group_by: [], having: [_|_]}), do:
-    raise CompilationError, message: "Using the `HAVING` clause requires the `GROUP BY` clause to be specified."
   defp verify_having(%Query{command: :select, having: [_|_]} = query) do
-    for {:comparison, column, _operator, target} <- query.having, do:
-      for term <- [column, target], do:
-        if individual_column?(term, query), do:
-          raise CompilationError,
-            message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
+    for {:comparison, column, _operator, target} <- query.having,
+        term <- [column, target],
+        individual_column?(term, query), do:
+      raise CompilationError,
+        message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
+
     query
   end
   defp verify_having(query), do: query

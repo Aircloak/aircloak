@@ -57,7 +57,7 @@ defmodule Air.Service.Monitoring do
         name: cloak_info.name,
         version: cloak_info.version,
         uptime: Timex.diff(now, cloak_info.online_since, :seconds),
-        data_sources: cloak_info.data_source_ids,
+        data_sources: cloak_info.data_source_names,
         queries: query_stats(Query |> where([q], q.cloak_id == ^cloak_info.id), now),
         memory: cloak_info.memory,
       }
@@ -67,7 +67,7 @@ defmodule Air.Service.Monitoring do
   defp fetch_data_sources(now) do
     for data_source <- DataSource |> Repo.all() |> Repo.preload(:groups) do
       %{
-        id: data_source.global_id,
+        id: data_source.id,
         name: data_source.name,
         queries: query_stats(Query |> where([q], q.data_source_id == ^data_source.id), now),
         groups: data_source.groups |> Enum.map(&(&1.name)),

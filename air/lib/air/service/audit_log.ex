@@ -24,17 +24,21 @@ defmodule Air.Service.AuditLog do
   @doc "Creates an audit log entry."
   @spec log(nil | User.t, String.t, %{atom => any}) :: :ok | {:error, any}
   def log(user, event, metadata \\ %{}) do
-    email = if user != nil, do: user.email, else: "Unknown user"
+    if Air.Service.Settings.read().audit_log_enabled do
+      email = if user != nil, do: user.email, else: "Unknown user"
 
-    %AuditLog{}
-    |> AuditLog.changeset(%{user: email, event: event, metadata: metadata})
-    |> Repo.insert()
-    |> case do
-          {:ok, _} -> :ok
-          {:error, reason} ->
-            Logger.error("Failed at storing audit log entry: #{inspect(reason)}")
-            {:error, reason}
-        end
+      %AuditLog{}
+      |> AuditLog.changeset(%{user: email, event: event, metadata: metadata})
+      |> Repo.insert()
+      |> case do
+        {:ok, _} -> :ok
+        {:error, reason} ->
+          Logger.error("Failed at storing audit log entry: #{inspect(reason)}")
+          {:error, reason}
+      end
+    else
+      # Logging is disabled, so audit logging becomes a noop
+    end
   end
 
   @doc """
@@ -90,9 +94,9 @@ defmodule Air.Service.AuditLog do
       |> Repo.all()
 
     # Include currently selected data sources
-    params[:data_sources] -- (data_sources |> Enum.map(&(&1.id)))
-    |> Air.Service.DataSource.by_ids()
-    |> Enum.map(&(%{name: &1.name, id: &1.id}))
+    params[:data_sources] -- (data_sources |> Enum.map(&(&1.name)))
+    |> Air.Service.DataSource.by_names()
+    |> Enum.map(&(%{name: &1.name}))
     |> Enum.concat(data_sources)
     |> Enum.sort_by(&(&1.name))
   end
@@ -119,6 +123,12 @@ defmodule Air.Service.AuditLog do
     |> Enum.concat(users)
     |> Enum.sort_by(&(&1.name))
   end
+
+  @doc "Returns the number of audit log entries"
+  @spec count() :: integer
+  def count(), do:
+    Repo.one(from audit_log_entry in AuditLog, select: count(audit_log_entry.id))
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
@@ -162,15 +172,15 @@ defmodule Air.Service.AuditLog do
         name: data_source.name,
       }
 
-    from a in query,
-    where: fragment("?->>'data_source' <> ''", a.metadata),
-    right_join: d in subquery(data_source_query),
-    on: d.id == fragment("cast(?->>'data_source' as integer)", a.metadata),
-    group_by: [d.id, d.name],
-    order_by: [asc: d.name],
+    from audit_log in query,
+    where: fragment("?->>'data_source' <> ''", audit_log.metadata),
+    right_join: data_source in subquery(data_source_query),
+    on: data_source.name == fragment("?->>'data_source'", audit_log.metadata),
+    group_by: [data_source.id, data_source.name],
+    order_by: [asc: data_source.name],
     select: %{
-      id: d.id,
-      name: d.name,
+      id: data_source.id,
+      name: data_source.name,
     }
   end
 

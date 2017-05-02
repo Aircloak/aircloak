@@ -45,6 +45,7 @@ defmodule Cloak.DataSource.MongoDBTest do
     GenServer.stop(conn)
 
     data_source = %{
+      name: "mongo_db_standard",
       global_id: :"data_source_#{:erlang.unique_integer()}",
       driver: MongoDB,
       parameters: parameters,
@@ -114,12 +115,19 @@ defmodule Cloak.DataSource.MongoDBTest do
 
   test "complex queries on virtual columns and tables", context do
     assert_query context,
-      "SELECT COUNT(*) FROM #{@table}_bills WHERE bills.issuer = 'vendor' AND male = TRUE AND bills.ids# = 2",
+      "SELECT COUNT(*) FROM #{@table}_bills WHERE bills.issuer = 'vendor' AND male = TRUE AND abs(bills.ids#) + 1 = 3",
       %{rows: [%{occurrences: 1, row: [10]}]}
 
     assert_query context,
       "SELECT bills.issuer, COUNT(*) FROM #{@table}_bills_ids WHERE bills.ids = 1 GROUP BY bills.issuer",
       %{rows: [%{occurrences: 1, row: ["vendor", 10]}]}
+
+    assert_query context,
+      """
+        SELECT AVG(bills#) FROM
+          (SELECT _id, bills# FROM #{@table} WHERE abs(bills#) = 1 AND bills# = 1) AS t
+        WHERE abs(bills#) = 1 AND bills# = 1
+      """, %{rows: [%{occurrences: 1, row: [1.0]}]}
   end
 
   test "basic sub-queries", context do
@@ -135,6 +143,12 @@ defmodule Cloak.DataSource.MongoDBTest do
       """, %{rows: [%{occurrences: 1, row: [10]}]}
     assert_query context, """
         SELECT COUNT(name) FROM (SELECT _id, name FROM #{@table}_bills_ids ORDER BY _id LIMIT 10 OFFSET 10) AS t
+      """, %{rows: [%{occurrences: 1, row: [10]}]}
+  end
+
+  test "sub-queries with non-selected order by", context do
+    assert_query context, """
+        SELECT COUNT(name) FROM (SELECT _id, name FROM #{@table}_bills_ids ORDER BY age LIMIT 10) AS t
       """, %{rows: [%{occurrences: 1, row: [10]}]}
   end
 

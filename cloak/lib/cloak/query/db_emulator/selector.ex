@@ -15,10 +15,13 @@ defmodule Cloak.Query.DbEmulator.Selector do
   @doc "Executes a `SELECT` query over the input stream of rows."
   @spec select(Enumerable.t, Query.t) :: Enumerable.t
   def select(stream, query) do
-    stream
-    |> Rows.filter(Enum.map(query.where, &Comparison.to_function/1))
-    |> select_columns(query)
-    |> Sorter.order_rows(query)
+    {columns, rows} =
+      stream
+      |> Rows.filter(Enum.map(query.where, &Comparison.to_function/1))
+      |> select_columns(query)
+
+    rows
+    |> Sorter.order_rows(columns, query.order_by)
     |> offset_rows(query)
     |> limit_rows(query)
   end
@@ -56,29 +59,35 @@ defmodule Cloak.Query.DbEmulator.Selector do
     defaults = Enum.map(query.aggregators, &aggregator_to_default/1)
     accumulators = Enum.map(query.aggregators, &aggregator_to_accumulator/1)
     finalizers = Enum.map(query.aggregators, &aggregator_to_finalizer/1)
-    stream
-    |> Enum.reduce(%{}, fn(row, groups) ->
-      property = Enum.map(query.property, &Expression.value(&1, row))
-      values =
-        groups
-        |> Map.get(property, defaults)
-        |> Enum.zip(accumulators)
-        |> Enum.map(fn ({value, accumulator}) -> accumulator.(row, value) end)
-      Map.put(groups, property, values)
-    end)
-    |> Stream.map(fn ({property, values}) ->
-      values =
-        Enum.zip(values, finalizers)
-        |> Enum.map(fn ({value, finalizer}) -> finalizer.(value) end)
-      property ++ values
-    end)
-    |> Cloak.Query.Rows.extract_groups(query)
+
+    columns = Query.bucket_columns(query)
+    rows =
+      stream
+      |> Rows.group(query, defaults,
+        fn(aggregated_values, row) ->
+          aggregated_values
+          |> Enum.zip(accumulators)
+          |> Enum.map(fn ({value, accumulator}) -> accumulator.(row, value) end)
+        end
+      )
+      |> Stream.map(fn ({group_values, aggregated_values}) ->
+        aggregated_values =
+          aggregated_values
+          |> Enum.zip(finalizers)
+          |> Enum.map(fn({value, finalizer}) -> finalizer.(value) end)
+        group_values ++ aggregated_values
+      end)
+      |> Rows.extract_groups(columns, query)
+
+    {columns, rows}
   end
-  defp select_columns(stream, %Query{columns: columns} = query) do
-    Stream.map(stream, fn (row) ->
-      Enum.map(columns, &Expression.value(&1, row))
-    end)
-    |> distinct(query)
+  defp select_columns(stream, query) do
+    columns = Rows.group_expressions(query)
+    {columns,
+      stream
+      |> Stream.map(fn(row) -> Enum.map(columns, &Expression.value(&1, row)) end)
+      |> distinct(query)
+    }
   end
 
   defp offset_rows(stream, %Query{offset: 0}), do: stream

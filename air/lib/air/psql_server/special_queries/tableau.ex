@@ -11,7 +11,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
   #-----------------------------------------------------------------------------------------------------------
 
   @doc false
-  def handle_query(conn, query) do
+  def run_query(conn, query) do
     cond do
       query =~ ~r/begin;declare.* for select relname, nspname, relkind from.*fetch.*/i ->
         fetch_tables(conn)
@@ -21,26 +21,34 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
 
       query =~ ~r/begin;declare.* for select\spt.tgargs.*FROM.*pg_catalog.pg_trigger.*fetch/i ->
         # fetching triggers
-        set_temp_cursor_query_result(conn,
+        cursor_query_result(conn,
           empty_result(:fetch, ~w(tgargs tgnargs tgdeferrable tginitdeferred pp1.proname pp2.proname pc.oid
             pc1.oid relname tgconstrname nspname))
         )
 
       query =~ ~r/^select n.nspname, c.relname, a.attname.*a.attrelid = c.oid/i ->
         # related fields
-        RanchServer.set_query_result(conn,
+        RanchServer.query_result(conn,
           empty_result(:select, ~w(nspname relname attname atttypid typname attnum attlen atttypmod attnotnull
             relhasrules relkind oid pg_get_expr case typtypmod relhasoids))
         )
 
       query =~ ~r/begin;declare.* for select ta.attname, ia.attnum.*ia.attrelid = i.indexrelid.*fetch/i ->
         # indexed columns
-        set_temp_cursor_query_result(conn, empty_result(:fetch, ~w(attname attnum relname nspname relname)))
+        cursor_query_result(conn, empty_result(:fetch, ~w(attname attnum relname nspname relname)))
+
+      inner_query = cursor_query?(query) ->
+        PsqlServer.start_async_query(conn, inner_query, [],
+          &cursor_query_result(&1, PsqlServer.decode_cloak_query_result(&2)))
 
       true ->
         nil
     end
   end
+
+  @doc false
+  def describe_query(_conn, _query, _params), do:
+    nil
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -55,7 +63,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
           |> Map.fetch!("rows")
           |> Enum.map(fn(%{"row" => [table_name]}) -> table_name end)
 
-        set_temp_cursor_query_result(conn, table_list(table_names))
+        cursor_query_result(conn, table_list(table_names))
       end
     )
   end
@@ -69,7 +77,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
           %{name: "nspname", type: :name},
           %{name: "relkind", type: :char},
         ],
-      rows: Enum.map(table_names, &[&1, "public", ?r])
+      rows: Enum.map(table_names, &[&1, "", ?r])
     ]
 
   defp table_name_from_table_info_query(query) do
@@ -82,7 +90,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
   defp fetch_table_info(conn, table_name) do
     PsqlServer.start_async_query(conn, "show columns from #{table_name}", [],
       fn(conn, {:ok, show_columns_response}) ->
-        RanchServer.set_query_result(conn,
+        RanchServer.query_result(conn,
           show_columns_response
           |> Map.fetch!("rows")
           |> Enum.map(&Map.fetch!(&1, "row"))
@@ -120,12 +128,19 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
     Enum.map(result_columns, fn({column_name, _type}) -> Map.fetch!(row_fields, column_name) end)
   end
 
-  defp set_temp_cursor_query_result(conn, query_result), do:
+  defp cursor_query_result(conn, query_result), do:
     conn
-    |> RanchServer.set_query_result(command: :begin, intermediate: true)
-    |> RanchServer.set_query_result(command: :"declare cursor", intermediate: true)
-    |> RanchServer.set_query_result(query_result)
+    |> RanchServer.query_result(command: :begin, intermediate: true)
+    |> RanchServer.query_result(command: :"declare cursor", intermediate: true)
+    |> RanchServer.query_result(Keyword.put(query_result, :command, :fetch))
 
   defp empty_result(command, column_names), do:
     [command: command, columns: Enum.map(column_names, &%{name: &1, type: :unknown}), rows: []]
+
+  defp cursor_query?(query) do
+    case Regex.named_captures(~r/begin;declare.*cursor.*\sfor\s+(?<inner_query>.*);fetch\s/is, query) do
+      %{"inner_query" => inner_query} -> inner_query
+      nil -> nil
+    end
+  end
 end

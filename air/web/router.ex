@@ -39,7 +39,7 @@ defmodule Air.Router do
 
     post "/queries", QueryController, :create
     post "/queries/:id/cancel", QueryController, :cancel
-    get "/queries/load_history/:data_source_id", QueryController, :load_history
+    get "/queries/load_history/:data_source_name", QueryController, :load_history
     get "/queries/:id", QueryController, :show
 
     delete "/logout", SessionController, :delete
@@ -74,6 +74,8 @@ defmodule Air.Router do
     resources "/settings", SettingsController, singleton: true
 
     get "/audit_log", AuditLogController, :index
+    get "/audit_log/confirm_deletion", AuditLogController, :confirm_deletion
+    post "/audit_log/clear", AuditLogController, :delete_all
 
     resources "/cloaks", CloaksController
     get "/activity_monitor", ActivityMonitorController, :index

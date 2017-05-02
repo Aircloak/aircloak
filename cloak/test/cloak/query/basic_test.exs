@@ -108,6 +108,26 @@ defmodule Cloak.Query.BasicTest do
     assert Enum.map(rows, &(&1[:row])) == [[:*, 180, "adam", true], [:*, 180, "john", true], [:*, 180, "mike", true]]
   end
 
+  test "order by non-selected field" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 170, true])
+    :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
+
+    assert_query "select height from heights order by name",
+      %{query_id: "1", columns: ["height"], rows: rows}
+    assert Enum.map(rows, &(&1[:row])) == [[170], [160], [180]]
+  end
+
+  test "order by grouped but non-selected field" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 170, true])
+    :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
+
+    assert_query "select sum(height) from heights group by name order by name",
+      %{query_id: "1", columns: ["sum"], rows: rows}
+    assert Enum.map(rows, &(&1[:row])) == [[1700], [1600], [1800]]
+  end
+
   test "should return LCF property when sufficient rows are filtered" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..3, "heights", ["height"], [160])
@@ -708,6 +728,16 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["name", "count"], rows: [%{row: ["dan", 30], occurrences: 1}]}
   end
 
+  test "having without group by" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
+
+    assert_query "select sum(height) from heights having count(1) > 0",
+      %{columns: ["sum"], rows: [%{row: [1700], occurrences: 1}]}
+
+    assert_query "select sum(height) from heights having count(1) = 0",
+      %{columns: ["sum"], rows: []}
+  end
+
   test "should be able to provide noise estimates for count, sum, avg and stddev aggregators" do
     :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
     :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [170])
@@ -794,5 +824,43 @@ defmodule Cloak.Query.BasicTest do
       %{row: [160], users_count: 20},
       %{row: [180], users_count: 10}
     ] = rows
+  end
+
+  test "group by the first position in the select list" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 11..30, "heights", ["height"], [180])
+
+    assert_query "select heights.height, count(*) from heights group by 1",
+      %{
+        columns: ["height", "count"],
+        rows: [%{row: [170, 10], occurrences: 1}, %{row: [180, 20], occurrences: 1}]
+      }
+  end
+
+  test "group by the second position in the select list" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 11..30, "heights", ["height"], [180])
+
+    assert_query "select count(*), heights.height from heights group by 2",
+      %{
+        columns: ["count", "height"],
+        rows: [%{row: [10, 170], occurrences: 1}, %{row: [20, 180], occurrences: 1}]
+      }
+  end
+
+  test "order by the first position in the select list" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 11..30, "heights", ["height"], [180])
+
+    assert_query "select heights.height from heights order by 1 desc",
+      %{rows: [%{row: [180], occurrences: 20}, %{row: [170], occurrences: 10}]}
+  end
+
+  test "order by the second position in the select list" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
+    :ok = insert_rows(_user_ids = 11..30, "heights", ["height"], [180])
+
+    assert_query "select 1, heights.height from heights order by 2 desc",
+      %{rows: [%{row: [1, 180], occurrences: 20}, %{row: [1, 170], occurrences: 10}]}
   end
 end

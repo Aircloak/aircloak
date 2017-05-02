@@ -22,8 +22,8 @@ type Props = {
   userId: number,
   sessionId: string,
   guardianToken: string,
-  dataSourceId: number,
   dataSourceName: string,
+  dataSourceDescription: string,
   dataSourceStatus: string,
   selectables: Selectable[],
   lastQuery: {statement: string},
@@ -68,7 +68,7 @@ export default class QueriesView extends React.Component {
     this.updateConnected = this.updateConnected.bind(this);
 
     this.bindKeysWithoutEditorFocus();
-    this.props.frontendSocket.joinDataSourceChannel(this.props.dataSourceId, {
+    this.props.frontendSocket.joinDataSourceChannel(this.props.dataSourceName, {
       handleEvent: (event) => this.dataSourceStatusReceived(event),
     });
     this.channel = this.props.frontendSocket.joinUserQueriesChannel(this.props.userId, {
@@ -210,7 +210,7 @@ export default class QueriesView extends React.Component {
     return JSON.stringify({
       query: {
         statement: this.state.statement,
-        data_source_id: this.props.dataSourceId,
+        data_source_name: this.props.dataSourceName,
         session_id: this.props.sessionId,
       },
     });
@@ -260,7 +260,7 @@ export default class QueriesView extends React.Component {
     };
     this.setState({history});
 
-    loadHistory(this.props.dataSourceId, before, this.context.authentication, {
+    loadHistory(this.props.dataSourceName, before, this.context.authentication, {
       success: (response) => {
         const successHistory = (response.length < historyPageSize) ? {
           before: "",
@@ -310,6 +310,14 @@ export default class QueriesView extends React.Component {
     }
   }
 
+  renderDataSourceDescription() {
+    if (this.props.dataSourceDescription.length > 0) {
+      return <small className="newline">{this.props.dataSourceDescription}</small>;
+    } else {
+      return null;
+    }
+  }
+
   renderCodeEditorOrViewer() {
     if (this.runEnabled()) {
       return (<CodeEditor
@@ -342,6 +350,7 @@ export default class QueriesView extends React.Component {
         {this.props.dataSourceName}
         &nbsp;
         {this.renderAvailabilityLabel()}
+        {this.renderDataSourceDescription()}
       </h2>
 
       <Disconnected channel={this.channel} />

@@ -16,19 +16,19 @@ export class FrontendSocket {
   isConnected() { return this.socket.isConnected(); }
 
   joinUserQueriesChannel(userId: number, callbacks: Callbacks) {
-    return this.joinChannel(callbacks, `user_queries:${userId}`, ["result", "state_change"]);
+    return this.joinChannel(callbacks, `user_queries:${userId}`, ["state_change"]);
   }
 
   joinUpdatesForQuery(queryId: string, callbacks: Callbacks) {
-    return this.joinChannel(callbacks, `query:${queryId}`, ["result", "state_change"]);
+    return this.joinChannel(callbacks, `query:${queryId}`, ["state_change"]);
   }
 
   joinAllQueryEventsChannel(callbacks: Callbacks) {
     return this.joinChannel(callbacks, "state_changes:all", ["state_change"]);
   }
 
-  joinDataSourceChannel(dataSourceId: number, callbacks: Callbacks) {
-    return this.joinChannel(callbacks, `data_source:${dataSourceId}`, ["status"]);
+  joinDataSourceChannel(dataSourceName: string, callbacks: Callbacks) {
+    return this.joinChannel(callbacks, `data_source:${dataSourceName}`, ["status"]);
   }
 
   joinMemoryChannel(callbacks: Callbacks) {

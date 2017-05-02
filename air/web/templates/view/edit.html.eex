@@ -1,4 +1,4 @@
 <%= render "_form.html", Map.merge(assigns, %{
   view_name: @changeset.data.name,
-  action: data_source_view_path(@conn, :update, @data_source.id, @changeset.data.id)
+  action: data_source_view_path(@conn, :update, @data_source.name, @changeset.data.id)
 }) %>

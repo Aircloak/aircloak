@@ -33,10 +33,10 @@ defmodule Air.Service.AuditLogTest do
     user = create_user!()
     data_source = create_data_source!()
 
-    AuditLog.log(user, "event", %{data_source: data_source.id})
+    AuditLog.log(user, "event", %{data_source: data_source.name})
 
-    assert entries_count(params(%{data_sources: [data_source.id]}), 1)
-    assert entries_count(params(%{data_sources: [data_source.id + 1]}), 0)
+    assert entries_count(params(%{data_sources: [data_source.name]}), 1)
+    assert entries_count(params(%{data_sources: ["data source that doesn't exist"]}), 0)
   end
 
   test "filter audit logs by event type" do
@@ -103,7 +103,7 @@ defmodule Air.Service.AuditLogTest do
     data_source = create_data_source!()
 
     AuditLog.log(user1, "event1", %{meta: true})
-    AuditLog.log(user2, "event2", %{meta: true, data_source: data_source.id})
+    AuditLog.log(user2, "event2", %{meta: true, data_source: data_source.name})
 
     assert AuditLog.users(params(%{events: ["event1"]}))
       |> Enum.map(&(&1.email)) == [user1.email]
@@ -127,8 +127,8 @@ defmodule Air.Service.AuditLogTest do
     data_source2 = create_data_source!()
 
     user = create_user!()
-    AuditLog.log(user, "event", %{data_source: data_source1.id})
-    AuditLog.log(user, "event", %{data_source: data_source2.id})
+    AuditLog.log(user, "event", %{data_source: data_source1.name})
+    AuditLog.log(user, "event", %{data_source: data_source2.name})
 
     names = [data_source1.name, data_source2.name] |> Enum.sort()
     assert AuditLog.data_sources(params()) |> Enum.map(&(&1.name)) == names
@@ -140,8 +140,8 @@ defmodule Air.Service.AuditLogTest do
     user1 = create_user!()
     user2 = create_user!()
 
-    AuditLog.log(user1, "event1", %{data_source: data_source1.id})
-    AuditLog.log(user1, "event2", %{data_source: data_source2.id})
+    AuditLog.log(user1, "event1", %{data_source: data_source1.name})
+    AuditLog.log(user1, "event2", %{data_source: data_source2.name})
 
     names = [data_source1.name, data_source2.name] |> Enum.sort()
     assert AuditLog.data_sources(params(%{users: [user1.email]}))
@@ -156,11 +156,11 @@ defmodule Air.Service.AuditLogTest do
     user2 = create_user!()
     data_source1 = create_data_source!()
     data_source2 = create_data_source!()
-    AuditLog.log(user1, "event1", %{data_source: data_source1.id})
-    AuditLog.log(user2, "event2", %{data_source: data_source2.id})
+    AuditLog.log(user1, "event1", %{data_source: data_source1.name})
+    AuditLog.log(user2, "event2", %{data_source: data_source2.name})
 
     names = [data_source1.name, data_source2.name] |> Enum.sort()
-    assert AuditLog.data_sources(params(%{users: [user1.email], data_sources: [data_source2.id]}))
+    assert AuditLog.data_sources(params(%{users: [user1.email], data_sources: [data_source2.name]}))
      |> Enum.map(&(&1.name)) == names
   end
 

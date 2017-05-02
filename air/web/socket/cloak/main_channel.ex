@@ -219,7 +219,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   else
     defp report_online_status_to_central(cloak, data_sources, version) do
       alias Air.Service.Central
-      Central.record_cloak_online(cloak.name, Enum.map(data_sources, &Map.fetch!(&1, "global_id")), version)
+      Central.record_cloak_online(cloak.name, Enum.map(data_sources, &Map.fetch!(&1, "name")), version)
       Aircloak.ProcessMonitor.on_exit(fn -> Central.record_cloak_offline(cloak.name) end)
     end
   end

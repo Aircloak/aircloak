@@ -15,11 +15,6 @@ defmodule Cloak.Query.ErrorTest do
     assert ~s/Column `nonexistant` doesn't exist in table `test_errors`./ == error
   end
 
-  test "query reports an error on invalid order by field" do
-    assert_query "select height from test_errors order by name", %{error: error}
-    assert ~s/Non-selected column specified in `ORDER BY` clause./ == error
-  end
-
   test "query reports an error on unknown function" do
     assert_query "select invalid_function(height) from test_errors", %{error: error}
     assert ~s/Unknown function `invalid_function`./ == error
@@ -101,12 +96,32 @@ defmodule Cloak.Query.ErrorTest do
   test "query reports error on invalid having clause" do
     assert_query "select name from test_errors group by name having height >= 100", %{error: error}
     assert ~s/`HAVING` clause can not be applied over column `height` from table `test_errors`./ == error
-    assert_query "select name from test_errors having count(*) >= 10", %{error: error}
-    assert ~s/Using the `HAVING` clause requires the `GROUP BY` clause to be specified./ == error
   end
 
   test "query reports error on invalid where clause" do
     assert_query "select name from test_errors where max(height) >= 100", %{error: error}
     assert ~s/Expression `max` is not valid in the `WHERE` clause./ == error
+  end
+
+  test "query reports error on invalid group by position" do
+    assert_query "select name from test_errors group by 0",
+      %{error: "`GROUP BY` position `0` is out of the range of selected columns."}
+    assert_query "select name from test_errors group by 2",
+      %{error: "`GROUP BY` position `2` is out of the range of selected columns."}
+  end
+  test "non-integer constants are not allowed in group by" do
+    assert_query "select name from test_errors group by 1.0",
+      %{error: "Non-integer constant is not allowed in `GROUP BY`."}
+  end
+
+  test "query reports error on invalid order by position" do
+    assert_query "select name from test_errors order by 0",
+      %{error: "`ORDER BY` position `0` is out of the range of selected columns."}
+    assert_query "select name from test_errors order by 2",
+      %{error: "`ORDER BY` position `2` is out of the range of selected columns."}
+  end
+  test "non-integer constants are not allowed in order by" do
+    assert_query "select name from test_errors order by 1.0",
+      %{error: "Non-integer constant is not allowed in `ORDER BY`."}
   end
 end

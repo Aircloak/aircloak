@@ -12,7 +12,9 @@ defmodule Air.Admin.UserView do
         [
           tag(:input, input_opts),
           Air.Utils.CheckboxMapper.group_label_text(group),
-          raw(" &ndash; ") | data_sources_given_access_to(group)
+          content_tag(:small, class: "newline") do
+            data_sources_given_access_to(group)
+          end
         ]
       end
     end

@@ -34,15 +34,12 @@ defmodule Cloak.Sql.Query.Lenses do
     Lens.both(terminal_elements(), conditions_terminals())
     |> expressions()
 
+  @doc "Lens focusing all function expressions in the query (subqueries are not included)."
+  deflens query_functions(), do: query_expressions() |> Lens.satisfy(& &1.function?)
+
   @doc "Lens focusing on expressions with the same id as the given expression."
   deflens expressions_like(other_expression), do:
     Lens.satisfy(expressions(), &(Expression.id(&1) == Expression.id(other_expression)))
-
-  @doc "Lens focusing on invocations of row splitting functions"
-  deflens splitter_functions(), do:
-    terminal_elements()
-    |> Lens.satisfy(&match?(%Expression{function?: true}, &1))
-    |> Lens.satisfy(&Function.has_attribute?(&1.name, :row_splitter))
 
   @doc "Lens focusing on raw (uncompiled) casts of parameters."
   deflens raw_parameter_casts(), do:

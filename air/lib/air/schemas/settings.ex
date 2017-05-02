@@ -5,6 +5,7 @@ defmodule Air.Schemas.Settings do
 
   schema "settings" do
     field :query_retention_days, :integer
+    field :audit_log_enabled, :boolean
 
     timestamps()
   end
@@ -14,6 +15,6 @@ defmodule Air.Schemas.Settings do
   """
   def changeset(struct, params \\ %{}) do
     struct
-    |> cast(params, [:query_retention_days])
+    |> cast(params, [:query_retention_days, :audit_log_enabled])
   end
 end

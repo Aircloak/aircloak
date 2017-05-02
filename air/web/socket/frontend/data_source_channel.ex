@@ -13,7 +13,7 @@ defmodule Air.Socket.Frontend.DataSourceChannel do
   @spec push_updates() :: :ok
   def push_updates() do
     for data_source <- DataSource.all() do
-      Air.Endpoint.broadcast!("data_source:#{data_source.id}", "status", %{status: DataSource.status(data_source)})
+      Air.Endpoint.broadcast!("data_source:#{data_source.name}", "status", %{status: DataSource.status(data_source)})
     end
 
     :ok
@@ -26,8 +26,8 @@ defmodule Air.Socket.Frontend.DataSourceChannel do
 
   @doc false
   @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
-  def join("data_source:" <> id, _, socket) do
-    case DataSource.fetch_as_user({:id, id}, socket.assigns.user) do
+  def join("data_source:" <> name, _, socket) do
+    case DataSource.fetch_as_user({:name, name}, socket.assigns.user) do
       {:ok, _} -> {:ok, socket}
       {:error, :unauthorized} -> {:error, %{success: false, description: "Unauthorized to access channel"}}
     end

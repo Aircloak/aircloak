@@ -5,7 +5,7 @@
         <ol class="breadcrumb">
           <li><a href="/data_sources">Data sources</a></li>
           <li>
-            <a href="<%= data_source_path(@conn, :show, @data_source.id) %>"><%= @data_source.name %></a>
+            <a href="<%= data_source_path(@conn, :show, @data_source.name) %>"><%= @data_source.name %></a>
           </li>
           <li class="active"><%= @view_name %></li>
         </ol>

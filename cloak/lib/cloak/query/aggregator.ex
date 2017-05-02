@@ -8,9 +8,9 @@ defmodule Cloak.Query.Aggregator do
   alias Cloak.Query.{Anonymizer, Rows, Result}
   alias Cloak.Query.Runner.Engine
 
-  @typep property_values :: [DataSource.field | :*]
+  @typep group_values :: [DataSource.field | :*]
   @typep user_id :: DataSource.field
-  @typep properties :: [{property_values, Anonymizer.t, %{user_id => DataSource.row}}]
+  @typep group :: {group_values, Anonymizer.t, %{user_id => DataSource.row}}
 
 
   # -------------------------------------------------------------------
@@ -21,19 +21,19 @@ defmodule Cloak.Query.Aggregator do
   Transforms the non-anonymized rows returned from the database into an
   anonymized result. This is done in following steps:
 
-  1. Rows are groupped per distinct property. A property is collection of
-     selected columns, as well as columns listed in the `group by` clause.
-     Additionally, inside each distinct property, rows are groupped per user.
+  1. Rows are groupped per query specification. See `Cloak.Query.Rows.group_expressions/1` for details.
+     Additionally, inside each distinct group, rows are groupped per user.
 
-  2. Distinct properties for which there are not enough distinct users are discarded.
-     A low-count substitute property is generated for all such properties to indicate
-     the amount of rows which are filtered out. This property is reported, but only
+  2. Groups for which there are not enough distinct users are discarded.
+     A low-count substitute row is generated for all such groups to indicate
+     the amount of rows which are filtered out. This row is reported, but only
      if there are enough of users which are filtered out.
 
-  3. Aggregation functions (e.g. `sum`, `count`) are computed for each distinct property.
-     The resulting values are anonymized using the `Anonymizer` module.
+  3. Aggregation functions (e.g. `sum`, `count`) are computed for each distinct
+     group. The resulting values are anonymized using the `Anonymizer`
+     module.
 
-  Each output row will consist of all property values together with
+  Each output row will consist of all anonymization group values together with
   computed anonymized aggregates (count, sum, ...). For example, in the following
   query:
 
@@ -45,12 +45,14 @@ defmodule Cloak.Query.Aggregator do
   """
   @spec aggregate(Enumerable.t, Query.t, Engine.state_updater) :: Result.t
   def aggregate(rows, query, state_updater) do
-    rows_by_property = group_by_property(rows, query, state_updater)
-    users_count = number_of_anonymized_users(rows_by_property)
-    aggregated_buckets = rows_by_property
+    groups = groups(rows, query, state_updater)
+    users_count = number_of_anonymized_users(groups)
+    aggregated_buckets = groups
       |> process_low_count_users(query)
-      |> aggregate_properties(query)
+      |> aggregate_groups(query)
       |> make_buckets(query)
+
+    state_updater.(:post_processing)
 
     Result.new(query, aggregated_buckets, users_count)
   end
@@ -118,34 +120,30 @@ defmodule Cloak.Query.Aggregator do
   defp per_user_aggregator_and_column(aggregator), do:
     {per_user_aggregator(aggregator), aggregated_column(aggregator)}
 
-  defp group_by_property(rows, query, state_updater) do
+  defp groups(rows, query, state_updater) do
     Logger.debug("Grouping rows ...")
+    state_updater.(:ingesting_data)
+
     {per_user_aggregators, aggregated_columns} =
       query.aggregators
       |> Enum.map(&per_user_aggregator_and_column/1)
       |> Enum.uniq()
       |> Enum.unzip()
     default_accumulators = List.duplicate(nil, Enum.count(aggregated_columns))
+
     rows
-    |> Enum.reduce(%{}, fn(row, accumulator) ->
-      if Map.size(accumulator) == 0, do: state_updater.(:ingesting_data)
-      group_row(accumulator, row, default_accumulators, query.property, per_user_aggregators, aggregated_columns)
-    end)
+    |> Rows.group(query, %{}, &update_group(&1, &2, per_user_aggregators, aggregated_columns, default_accumulators))
     |> fn(rows) -> state_updater.(:processing); rows end.()
     |> init_anonymizer(query)
   end
 
-  defp group_row(accumulator, row, default_accumulators, property_columns, per_user_aggregators, aggregated_columns) do
+  defp update_group(group_data, row, per_user_aggregators, aggregated_columns, default_accumulators) do
     user_id = user_id(row)
-    property = for column <- property_columns, do: Expression.value(column, row)
-    values = for column <- aggregated_columns, do: Expression.value(column, row)
-    accumulator
-    |> Map.put_new(property, %{})
-    |> Map.update!(property, fn (user_values_map) ->
-      user_values_map
-      |> Map.put_new(user_id, default_accumulators)
-      |> Map.update!(user_id, &aggregate_values(values, &1, per_user_aggregators))
-    end)
+    values = Enum.map(aggregated_columns, &Expression.value(&1, row))
+
+    group_data
+    |> Map.put_new(user_id, default_accumulators)
+    |> Map.update!(user_id, &aggregate_values(values, &1, per_user_aggregators))
   end
 
   defp init_anonymizer(grouped_rows, query) do
@@ -160,7 +158,7 @@ defmodule Cloak.Query.Aggregator do
     end
   end
 
-  defp low_users_count?({_property, anonymizer, users_rows}), do:
+  defp low_users_count?({_values, anonymizer, users_rows}), do:
     low_users_count?(users_rows, anonymizer)
 
   defp low_users_count?(count, anonymizer) when is_integer(count) do
@@ -170,28 +168,28 @@ defmodule Cloak.Query.Aggregator do
   defp low_users_count?(values, anonymizer), do:
     values |> Enum.count() |> low_users_count?(anonymizer)
 
-  @spec process_low_count_users(properties, Query.t) :: properties
+  @spec process_low_count_users([group], Query.t) :: [group]
   defp process_low_count_users(rows, query) do
     Logger.debug("Processing low count users ...")
     {low_count_rows, high_count_rows} = Enum.partition(rows, &low_users_count?/1)
     lcf_users_rows = Enum.reduce(low_count_rows, %{},
-      fn ({_property, _anonymizer, users_rows}, accumulator) ->
+      fn ({_values, _anonymizer, users_rows}, accumulator) ->
         Map.merge(accumulator, users_rows, fn (_user, columns1, columns2) ->
           Enum.zip(columns1, columns2) |> Enum.map(&merge_accumulators/1)
         end)
       end)
     anonymizer = Anonymizer.new([lcf_users_rows])
-    lcf_property = List.duplicate(:*, length(query.property))
-    lcf_row = {lcf_property, anonymizer, lcf_users_rows}
+    lcf_values = List.duplicate(:*, length(Rows.group_expressions(query)))
+    lcf_row = {lcf_values, anonymizer, lcf_users_rows}
     case low_users_count?(lcf_row) do
       false -> [lcf_row | high_count_rows]
       true -> high_count_rows
     end
   end
 
-  @spec aggregate_properties(properties, Query.t) :: [DataSource.row]
-  defp aggregate_properties(properties, query) do
-    Logger.debug("Aggregating properties ...")
+  @spec aggregate_groups([group], Query.t) :: [DataSource.row]
+  defp aggregate_groups(groups, query) do
+    Logger.debug("Aggregating groups ...")
     # Only unique per-user aggregators are computed, so wee need to compute the index
     # of the aggregator into the per-user aggregated value list.
     per_user_aggregators_and_columns =
@@ -204,17 +202,18 @@ defmodule Cloak.Query.Aggregator do
         values_index = Enum.find_index(per_user_aggregators_and_columns, & &1 == per_user_aggregator_and_column)
         {values_index, aggregator}
       end)
-    Enum.map(properties, &aggregate_property(&1, indexed_aggregators))
+    Enum.map(groups, &aggregate_group(&1, indexed_aggregators))
   end
 
-  defp aggregate_property({property_values, anonymizer, users_rows}, indexed_aggregators) do
+  defp aggregate_group({values, anonymizer, users_rows}, indexed_aggregators) do
     aggregation_results = Enum.map(indexed_aggregators, fn ({values_index, aggregator}) ->
       aggregated_values =
         users_rows
-        |> Stream.map(fn ({_user, values}) -> Enum.at(values, values_index) end)
+        |> Stream.map(fn ({_user, row_values}) -> Enum.at(row_values, values_index) end)
         |> Enum.reject(&is_nil/1)
       case low_users_count?(aggregated_values, anonymizer) do
-        true  -> nil
+        true  ->
+          if aggregator.function == "count", do: 0, else: nil
         false ->
           aggregated_values
           |> preprocess_for_aggregation(aggregator)
@@ -224,7 +223,7 @@ defmodule Cloak.Query.Aggregator do
     end)
 
     users_count = Anonymizer.noisy_count(anonymizer, Enum.count(users_rows))
-    {users_count, property_values ++ aggregation_results}
+    {users_count, values ++ aggregation_results}
   end
 
   # See docs/anonymization.md for details
@@ -325,33 +324,36 @@ defmodule Cloak.Query.Aggregator do
     |> Enum.map(fn ({value, _users}) -> value end)
   end
 
-  defp make_buckets([], %Query{property: []} = query) do
-    # If there are no results for a global aggregation, we'll produce one row.
-    # All results will be `nil`-ed except for `count` which will have the value of 0.
-    aggregated_values = Enum.map(query.aggregators, fn
-      %Expression{function: "count"} -> 0
-      %Expression{} -> nil
-    end)
-    [%{row: aggregated_values, occurrences: 1, users_count: 0}]
+  defp make_buckets(rows, query) do
+    if rows == [] && Rows.group_expressions(query) == [] do
+      # If there are no results for a global aggregation, we'll produce one row.
+      # All results will be `nil`-ed except for `count` which will have the value of 0.
+      aggregated_values = Enum.map(query.aggregators, fn
+        %Expression{function: "count"} -> 0
+        %Expression{} -> nil
+      end)
+      [%{row: aggregated_values, occurrences: 1, users_count: 0}]
+    else
+      make_non_empty_buckets(rows, query)
+    end
   end
-  defp make_buckets(rows, %Query{implicit_count?: false} = query) do
+
+  defp make_non_empty_buckets(rows, %Query{implicit_count?: false} = query) do
     Logger.debug("Making explicit buckets ...")
     rows
     |> Stream.map(fn ({_users_count, row}) -> row end)
-    |> Rows.extract_groups(query)
+    |> Rows.extract_groups(Query.bucket_columns(query), query)
     |> Stream.zip(Stream.map(rows, fn ({users_count, _row}) -> users_count end))
     |> Enum.map(fn ({row, users_count}) ->
       %{row: row, occurrences: 1, users_count: users_count}
     end)
   end
-  defp make_buckets(rows, %Query{implicit_count?: true} = query) do
+  defp make_non_empty_buckets(rows, %Query{implicit_count?: true} = query) do
     Logger.debug("Making implicit buckets ...")
-    # We add the implicit "count" to the list of selected columns so that we can
-    # retrieve it afterwards when making the bucket.
-    columns_with_count = [Expression.count_star() | query.columns]
     rows
     |> Stream.map(fn ({_users_count, row}) -> row end)
-    |> Rows.extract_groups(%Query{query | columns: columns_with_count})
+    |> Rows.extract_groups([Expression.count_star() | Query.bucket_columns(query)],
+      query)
     |> Stream.zip(Stream.map(rows, fn ({users_count, _row}) -> users_count end))
     |> Enum.map(fn ({[count | row], users_count}) ->
       %{row: row, occurrences: count, users_count: users_count}

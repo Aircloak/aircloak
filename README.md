@@ -15,7 +15,7 @@ There are two main components:
 
 ## Prerequisites
 
-You need to have Erlang, Elixir, and NodeJS installed. The required versions are stated in [this file](.tool-versions).
+You need to have Erlang, Elixir, Ruby, and NodeJS installed. The required versions are stated in [this file](.tool-versions).
 Please use the [asdf version manager](https://github.com/asdf-vm/asdf) to install the correct versions. `asdf` is also
 used on travis as well as when building docker containers.
 This way you can ensure the version you are using locally is the same as the one being used in production and during testing.

@@ -360,13 +360,13 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error =~ ~r/Missing where comparison.*`t1` and `t2`/
 
     assert {:error, error} = compile("SELECT t1.c1 from t1, t2, t3 WHERE t1.uid = t2.uid", data_source())
-    assert error =~ ~r/Missing where comparison.*`t2` and `t3`/
+    assert error =~ ~r/Missing where comparison.*`t1` and `t3`/
 
     assert {:error, error} = compile(
       "SELECT t1.c1 from t1, t2, t3, t4 WHERE t1.uid = t2.uid AND t3.uid = t4.uid",
       data_source()
     )
-    assert error =~ ~r/Missing where comparison.*`t2` and `t3`/
+    assert error =~ ~r/Missing where comparison.*`t1` and `t3`/
   end
 
   Enum.each(["count", "min", "max", "median", "stddev"], fn(function) ->
@@ -392,7 +392,9 @@ defmodule Cloak.Sql.Compiler.Test do
     assert Enum.any?(result.where, &match?({:not, {:is, column("table", "uid"), :null}}, &1))
     assert Enum.any?(result.where, &match?({:not, {:comparison, column("table", "column"), :=, _}}, &1))
     assert [column("table", "column")] = result.group_by
-    assert result.order_by == [{1, :desc}, {1, :desc}]
+    assert [{expr_1, :desc}, {expr_2, :desc}] = result.order_by
+    assert %Expression{function: "count"} = expr_1
+    assert %Expression{function: "count"} = expr_2
   end
 
   test "complains when tables don't exist" do
@@ -434,7 +436,7 @@ defmodule Cloak.Sql.Compiler.Test do
     assert Enum.any?(result.where, &match?({:comparison, column("t1", "c2"), :<, _}, &1))
     assert Enum.any?(result.where, &match?({:comparison, column("t1", "uid"), :=, column("t2", "uid")}, &1))
     assert [column("t1", "c1"), column("t2", "c3")] = result.group_by
-    assert result.order_by == [{0, :desc}]
+    assert [{column("t1", "c1"), :desc}] = result.order_by
   end
 
   test "complains when conditions not on columns of JOINed tables" do
@@ -796,7 +798,6 @@ defmodule Cloak.Sql.Compiler.Test do
   test "compilation of row splitters" do
     {:ok, query} = compile("select extract_matches(string, 'thing') from table", data_source())
     assert [%Expression{name: "extract_matches_return_value", row_index: index}] = query.columns
-    assert [%Expression{name: "extract_matches_return_value", row_index: ^index}] = query.property
     assert Enum.any?(query.db_columns, &match?(%Expression{name: "string"}, &1))
     assert [%{
       function_spec: %Expression{
@@ -822,6 +823,11 @@ defmodule Cloak.Sql.Compiler.Test do
 
     assert [0, 1, 2] ==
       projected_table_db_column_indices(compile!("select a, b from projected_table", data_source()))
+  end
+
+  test "rejecting non-selected ORDER BY with an aggregator function" do
+    assert {:error, "Column `float` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
+      compile("SELECT SUM(numeric) FROM table ORDER BY float", data_source())
   end
 
   defp projected_table_db_columns(query), do:

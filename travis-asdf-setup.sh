@@ -33,6 +33,7 @@ echo "Verifying existence of required asdf-plugins"
 install_if_missing "erlang"
 install_if_missing "elixir"
 install_if_missing "nodejs"
+install_if_missing "ruby"
 
 echo "Installing language environments with asdf"
 asdf install

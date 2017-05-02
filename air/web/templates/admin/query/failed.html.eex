@@ -12,7 +12,7 @@
     <%= for query <- @failed_queries do %>
       <div>
         <div>
-          <b>Time</b>: <%= Air.Utils.DateTime.time_ago(query.inserted_at) %>
+          <b>Time</b>: <%= absolute_time(query) %> (<%= time_ago(query) %>)
         </div>
         <div><b>User</b>: <%= query.user %></div>
         <div><b>Data source</b>: <%= query.data_source %></div>

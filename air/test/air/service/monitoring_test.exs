@@ -27,7 +27,8 @@ defmodule Air.Service.Monitoring.Test do
 
     test "list of cloaks" do
       cloak_info = cloak_info()
-      :ok = Air.Service.Cloak.register(cloak_info, [%{"global_id" => "a very global id", "tables" => []}])
+      :ok = Air.Service.Cloak.register(cloak_info,
+        [%{"name" => "data_source_name", "global_id" => "a very global id", "tables" => []}])
       memory_reading = %{free_memory: 100}
       Air.Service.Cloak.record_memory(memory_reading)
       TestRepoHelper.create_query!(TestRepoHelper.create_user!(), %{cloak_id: cloak_info.id})
@@ -36,7 +37,7 @@ defmodule Air.Service.Monitoring.Test do
       assert [%{
         name: ^cloak_name,
         version: "17.1.0",
-        data_sources: ["a very global id"],
+        data_sources: ["data_source_name"],
         uptime: uptime,
         queries: %{
           last_5_minutes: 0,
@@ -57,7 +58,7 @@ defmodule Air.Service.Monitoring.Test do
       TestRepoHelper.create_query!(TestRepoHelper.create_user!(), %{data_source_id: data_source.id})
 
       assert %{
-        id: data_source.global_id,
+        id: data_source.id,
         name: data_source.name,
         queries: %{
           last_5_minutes: 0,

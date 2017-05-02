@@ -7,6 +7,8 @@
 - When available, error location is now marked in the query editor.
 - Added REST API for canceling a query.
 - Broken views are marked in the sidebar
+- You can add descriptions to data sources to make them easier to distinguish
+- Audit logging can be turned off
 
 ### Changes
 

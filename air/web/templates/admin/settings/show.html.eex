@@ -1,22 +1,49 @@
 <h2>Settings</h2>
 
-<div class="row">
-  <div class="col-xs-8">
-    <%= form_for @conn, admin_settings_path(@conn, :update), [method: :put, as: :settings], fn f -> %>
-      <div class="form-group">
-        <label>Query retention time (days)</label>
-        <p class="help-block">
-          Past queries will be kept for this many days. After that they will be deleted and unavailable
-          when you "Load previous queries" or under Failed Queries. However, they will remain in the
-          Audit Log. Leave blank to never delete queries.
-        </p>
-
-        <%= number_input f, :query_retention_days, value: @settings.query_retention_days, class: "form-control" %>
-      </div>
-
-      <div class="form-group">
-        <%= submit "Save", class: "btn btn-primary" %>
-      </div>
-    <% end %>
+<%= form_for @conn, admin_settings_path(@conn, :update), [method: :put, as: :settings, class: "form-horizontal"], fn f -> %>
+  <div class="form-group">
+    <label class="col-sm-3 control-label">Query retention time (days)</label>
+    <div class="col-sm-9">
+      <%= number_input f, :query_retention_days, value: @settings.query_retention_days, class: "form-control form-control-inline" %>
+      <p class="help-block">
+        Past queries will be kept for this many days. After that they will be deleted and unavailable
+        when you "Load previous queries" or under Failed Queries. However, they will remain in the
+        Audit Log. Leave blank to never delete queries.
+      </p>
+    </div>
   </div>
-</div>
+
+  <div class="form-group">
+    <label class="col-sm-3 control-label">Audit logging</label>
+    <div class="col-sm-9">
+      <div class="checkbox">
+        <label>
+          <%= checkbox(f, :audit_log_enabled, value: @settings.audit_log_enabled) %>
+          (enabled when checked)
+        </label>
+        <p class="help-block">
+          When audit logging is enabled, all actions that cause a change to the system
+          (like adding or removing a user, or changing a data source) will be recorded
+          in the <%= link "audit log", to: admin_audit_log_path(@conn, :index) %>.
+          Please ensure that having audit logging enabled does not violate laws in your
+          jurisdiction. You might for example need the sign in from the workers council.
+        </p>
+      </div>
+
+      <%= if (not @settings.audit_log_enabled) and @audit_log_entries_count > 0 do %>
+        <p>
+          The <%= link "audit log", to: admin_audit_log_path(@conn, :index) %> has been disabled,
+          but there are still <strong><%= @audit_log_entries_count %> audit log entries stored
+          in the database</strong>.
+          <%= link "Delete audit log entries", to: admin_audit_log_path(@conn, :confirm_deletion) %>.
+        </p>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <div class="col-sm-offset-3 col-sm-9">
+      <%= submit "Save", class: "btn btn-primary" %>
+    </div>
+  </div>
+<% end %>

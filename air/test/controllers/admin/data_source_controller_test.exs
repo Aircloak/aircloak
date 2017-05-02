@@ -18,13 +18,13 @@ defmodule Air.Admin.DataSourceControllerTest do
     assert login(user) |> get(admin_data_source_path(conn, :index)) |> redirected_to() === "/"
     assert login(user) |> get(admin_data_source_path(conn, :new)) |> redirected_to() === "/"
     assert soon(given_data_source(fn(data_source) ->
-      login(user) |> get(admin_data_source_path(conn, :edit, data_source.id)) |> redirected_to() === "/"
+      login(user) |> get(admin_data_source_path(conn, :edit, data_source.name)) |> redirected_to() === "/"
     end))
     assert soon(given_data_source(fn(data_source) ->
-      login(user) |> put(admin_data_source_path(conn, :update, data_source.id)) |> redirected_to() === "/"
+      login(user) |> put(admin_data_source_path(conn, :update, data_source.name)) |> redirected_to() === "/"
     end))
     assert soon(given_data_source(fn(data_source) ->
-      login(user) |> delete(admin_data_source_path(conn, :delete, data_source.id)) |> redirected_to() === "/"
+      login(user) |> delete(admin_data_source_path(conn, :delete, data_source.name)) |> redirected_to() === "/"
     end))
   end
 
@@ -46,24 +46,8 @@ defmodule Air.Admin.DataSourceControllerTest do
     conn = build_conn()
 
     assert soon(given_data_source(fn(data_source) ->
-      html = login(admin) |> get(admin_data_source_path(conn, :edit, data_source.id)) |> response(200)
+      html = login(admin) |> get(admin_data_source_path(conn, :edit, data_source.name)) |> response(200)
       assert html =~ data_source.name
-    end))
-  end
-
-  test "can edit data source name" do
-    register_data_source()
-    admin = TestRepoHelper.create_admin_user!()
-    conn = build_conn()
-
-    assert soon(given_data_source(fn(data_source) ->
-      assert admin
-      |> login()
-      |> put(admin_data_source_path(conn, :update, data_source.id), data_source: %{name: "new name"})
-      |> redirected_to() == admin_data_source_path(conn, :index)
-
-      data_source = Repo.get(DataSource, data_source.id)
-      assert data_source.name == "new name"
     end))
   end
 
@@ -75,7 +59,7 @@ defmodule Air.Admin.DataSourceControllerTest do
     assert soon(given_data_source(fn(data_source) ->
       assert admin
       |> login()
-      |> delete(admin_data_source_path(conn, :delete, data_source.id))
+      |> delete(admin_data_source_path(conn, :delete, data_source.name))
       |> redirected_to() == admin_data_source_path(conn, :index)
 
       assert [] == Repo.all(DataSource)

@@ -98,6 +98,7 @@ defmodule Air.QueryController do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp data_source_id_spec(%{"data_source_name" => name}), do: {:name, name}
   defp data_source_id_spec(%{"data_source_id" => id}), do: {:id, id}
   defp data_source_id_spec(%{"data_source_token" => global_id}), do: {:global_id, global_id}
 

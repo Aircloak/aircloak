@@ -10,7 +10,15 @@ defmodule Air.PsqlServer do
     The implementation should return a modified `conn` if it decides to handle
     the query, or `nil` otherwise.
     """
-    @callback handle_query(RanchServer.t, String.t) :: RanchServer.t | nil
+    @callback run_query(RanchServer.t, String.t) :: RanchServer.t | nil
+
+    @doc """
+    Invoked by `Air.PsqlServer` when a query should be described.
+
+    The implementation should return a modified `conn` if it decides to handle
+    the query, or `nil` otherwise.
+    """
+    @callback describe_query(RanchServer.t, String.t, [any]) :: RanchServer.t | nil
   end
 
   alias Air.PsqlServer.{Protocol, RanchServer}
@@ -52,6 +60,11 @@ defmodule Air.PsqlServer do
   @spec psql_type(String.t) :: Protocol.Value.type
   def psql_type(type_string), do: psql_type_impl(type_string)
 
+  @doc "Decodes the cloak query response."
+  @spec decode_cloak_query_result({:ok, map} | DataSource.data_source_operation_error) :: Protocol.query_result
+  def decode_cloak_query_result(query_response), do:
+    do_decode_cloak_query_result(query_response)
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Air.PsqlServer.RanchServer callback functions
@@ -83,31 +96,37 @@ defmodule Air.PsqlServer do
 
   @doc false
   def run_query(conn, query, params, _max_rows) do
-    case handle_special_query(conn, query) do
+    case run_special_query(conn, query) do
       {true, conn} ->
         conn
       false ->
-        start_async_query(conn, query, params, &RanchServer.set_query_result(&1, parse_response(&2)))
+        start_async_query(conn, query, params, &RanchServer.query_result(&1, decode_cloak_query_result(&2)))
     end
   end
 
   @doc false
   def describe_statement(conn, query, params) do
-    user = conn.assigns.user
-    data_source_id = conn.assigns.data_source_id
-    converted_params = convert_params(params)
-    run_async(
-      conn,
-      fn -> DataSource.describe_query(data_source_id, user, query, converted_params) end,
-      fn(conn, describe_result) ->
-        result =
-        case parse_response(describe_result) do
-          {:error, _} = error -> error
-          parsed_response -> Keyword.take(parsed_response, [:columns, :param_types])
-        end
-        RanchServer.set_describe_result(conn, result)
-      end
-    )
+    case describe_special_query(conn, query, params) do
+      {true, conn} ->
+        conn
+
+      false ->
+        user = conn.assigns.user
+        data_source_id = conn.assigns.data_source_id
+        converted_params = convert_params(params)
+        run_async(
+          conn,
+          fn -> DataSource.describe_query(data_source_id, user, query, converted_params) end,
+          fn(conn, describe_result) ->
+            result =
+              case decode_cloak_query_result(describe_result) do
+                {:error, _} = error -> error
+                parsed_response -> Keyword.take(parsed_response, [:columns, :param_types])
+              end
+            RanchServer.describe_result(conn, result)
+          end
+        )
+    end
   end
 
   @doc false
@@ -143,9 +162,15 @@ defmodule Air.PsqlServer do
         keyfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_key.pem"])
       ])
 
-  defp handle_special_query(conn, query) do
+  defp run_special_query(conn, query), do:
+    handle_special_query(&(&1.run_query(conn, query)))
+
+  defp describe_special_query(conn, query, params), do:
+    handle_special_query(&(&1.describe_query(conn, query, params)))
+
+  defp handle_special_query(handler_fun) do
     [SpecialQueries.Common, SpecialQueries.Tableau]
-    |> Stream.map(&(&1.handle_query(conn, query)))
+    |> Stream.map(handler_fun)
     |> Stream.reject(&(&1 == nil))
     |> Enum.take(1)
     |> case do
@@ -154,16 +179,16 @@ defmodule Air.PsqlServer do
     end
   end
 
-  defp parse_response({:error, :not_connected}), do:
+  defp do_decode_cloak_query_result({:error, :not_connected}), do:
     {:error, "Data source is not available!"}
-  defp parse_response({:error, :expired}), do:
+  defp do_decode_cloak_query_result({:error, :expired}), do:
     %{
       error: "Your Aircloak installation is running version #{Air.SharedView.version()} " <>
         "which expired on #{Version.expiry_date()}."
     }
-  defp parse_response({:ok, %{"error" => error}}), do:
+  defp do_decode_cloak_query_result({:ok, %{"error" => error}}), do:
     {:error, error}
-  defp parse_response({:ok, query_result}), do:
+  defp do_decode_cloak_query_result({:ok, query_result}), do:
     [
       columns:
         Enum.zip(
@@ -181,7 +206,7 @@ defmodule Air.PsqlServer do
         |> Map.fetch!("parameter_types")
         |> Enum.map(&psql_type/1)
     ]
-  defp parse_response(other) do
+  defp do_decode_cloak_query_result(other) do
     Logger.error("Error running a query: #{inspect other}")
     {:error, "System error!"}
   end

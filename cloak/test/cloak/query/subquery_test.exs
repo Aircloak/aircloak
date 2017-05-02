@@ -90,6 +90,11 @@ defmodule Cloak.Query.SubqueryTest do
       <> " alias", %{columns: ["height"], rows: [%{row: [190], occurrences: 50}]}
   end
 
+  test "non selected order by in subquery" do
+    assert_query "select x from (select user_id, 3.14 as x from heights_sq order by height) alias",
+      %{columns: ["x"], rows: [%{row: [3.14], occurrences: 100}]}
+  end
+
   test "group by with having in subqueries" do
     assert_query """
         select count(h) from

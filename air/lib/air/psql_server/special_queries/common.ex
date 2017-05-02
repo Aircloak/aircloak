@@ -2,7 +2,7 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
   @moduledoc "Handles common special queries issued by various clients, such as ODBC driver and postgrex."
   @behaviour Air.PsqlServer.SpecialQueries
 
-  alias Air.PsqlServer.RanchServer
+  alias Air.PsqlServer.{Protocol, RanchServer}
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -10,16 +10,39 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
   #-----------------------------------------------------------------------------------------------------------
 
   @doc false
-  def handle_query(conn, query) do
+  def run_query(conn, query) do
     cond do
       query =~ ~r/^set /i ->
-        RanchServer.set_query_result(conn, command: :set)
+        RanchServer.query_result(conn, command: :set)
       query =~ ~r/^close /i ->
-        RanchServer.set_query_result(conn, command: :"close cursor")
+        RanchServer.query_result(conn, command: :"close cursor")
       query =~ ~r/^select t.oid, t.typname, t.typsend, t.typreceive.*FROM pg_type AS t\s*$/is ->
         return_types_for_postgrex(conn)
       query =~ ~r/^select.+from pg_type/si ->
-        RanchServer.set_query_result(conn, [columns: [], rows: []])
+        RanchServer.query_result(conn, [columns: [%{name: "oid", type: :text}], rows: []])
+      query =~ ~r/select current_schema()/i ->
+        RanchServer.query_result(conn, [columns: [%{name: "current_schema", type: :text}], rows: [[""]]])
+      query =~ ~r/show "lc_collate"/i ->
+        # returning C means no "no locale" (https://www.postgresql.org/docs/current/static/locale.html)
+        RanchServer.query_result(conn, [columns: [%{name: "lc_collate", type: :text}], rows: [["C"]]])
+      permission_denied_query?(query) ->
+        RanchServer.query_result(conn, {:error, "permission denied"})
+      prepared_statement = deallocate_prepared_statement(query) ->
+        conn
+        |> RanchServer.update_protocol(&Protocol.deallocate_prepared_statement(&1, prepared_statement))
+        |> RanchServer.query_result(command: :deallocate)
+      true ->
+        nil
+    end
+  end
+
+  @doc false
+  def describe_query(conn, query, _params) do
+    cond do
+      permission_denied_query?(query) ->
+        RanchServer.describe_result(conn, columns: [], param_types: [])
+      query =~ ~r/show "lc_collate"/i ->
+        RanchServer.describe_result(conn, [columns: [%{name: "lc_collate", type: :text}], param_types: []])
       true ->
         nil
     end
@@ -30,8 +53,23 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
+  defp permission_denied_query?(query), do:
+    [
+      ~r/SELECT.*INTO TEMPORARY TABLE/is,
+      ~r/^DROP TABLE/i,
+      ~r/^CREATE\s/i
+    ]
+    |> Enum.any?(&(query =~ &1))
+
+  defp deallocate_prepared_statement(query) do
+    case Regex.named_captures(~r/^deallocate\s+\"(?<prepared_statement>.+)\"$/i, query) do
+      %{"prepared_statement" => prepared_statement} -> prepared_statement
+      _ -> nil
+    end
+  end
+
   defp return_types_for_postgrex(conn), do:
-    RanchServer.set_query_result(conn, [
+    RanchServer.query_result(conn, [
       columns:
         ~w(oid typname typsend typreceive typoutput typinput typelem coalesce array)
         |> Enum.map(&%{name: &1, type: :text}),
