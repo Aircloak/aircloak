@@ -32,7 +32,7 @@ defmodule Air.Service.WarningsTest do
     assert problem_with_description(~r/broken/)
   end
 
-  test "no warning when cloak is online and no errors" do
+  test "no warning when data source is online and no errors" do
     {:ok, _pid} = start_cloak_channel(cloak_info(), @data_sources)
     refute Warnings.known_problems?()
   end
