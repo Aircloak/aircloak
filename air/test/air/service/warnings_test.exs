@@ -2,6 +2,7 @@ defmodule Air.Service.WarningsTest do
   use Air.SchemaCase, async: false
 
   alias Air.Service.{Warnings, Cloak}
+  alias Air.{Repo, Schemas.Group, Schemas.DataSource}
 
   @data_source_name "name"
   @data_sources [%{"name" => @data_source_name, "global_id" => "global_id", "tables" => []}]
@@ -34,7 +35,14 @@ defmodule Air.Service.WarningsTest do
 
   test "no warning when data source is online and no errors" do
     {:ok, _pid} = start_cloak_channel(cloak_info(), @data_sources)
+    add_group(@data_sources)
     refute Warnings.known_problems?()
+  end
+
+  test "warning when data source has no groups" do
+    {:ok, _pid} = start_cloak_channel(cloak_info(), @data_sources)
+    assert Warnings.known_problems?()
+    assert problem_with_description(~r/no groups/i)
   end
 
   defp problem_with_description(pattern), do:
@@ -48,6 +56,18 @@ defmodule Air.Service.WarningsTest do
       name: "cloak_name",
       online_since: Timex.now()
     }
+  end
+
+  defp add_group([%{"name" => name}]) do
+    data_source = Repo.get_by!(DataSource, name: name)
+    params = %{
+      name: "group_#{data_source.name}",
+      admin: false,
+      data_sources: [data_source.id],
+    }
+    %Group{}
+    |> Group.changeset(params)
+    |> Repo.insert!()
   end
 
   defp start_cloak_channel(cloak_info, data_sources) do

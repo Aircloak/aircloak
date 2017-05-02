@@ -32,7 +32,9 @@ defmodule Air.Service.Warnings do
 
   defp data_source_problems() do
     data_sources = DataSource.all()
-    offline_datasources(data_sources) ++ broken_datasources(data_sources)
+    offline_datasources(data_sources)
+      ++ broken_datasources(data_sources)
+      ++ no_group(data_sources)
   end
 
   defp problem(resource, description), do:
@@ -52,4 +54,9 @@ defmodule Air.Service.Warnings do
     data_source.errors
     |> Poison.decode!()
     |> Enum.join(", ")
+
+  defp no_group(data_sources), do:
+    data_sources
+    |> Enum.reject(&(length(&1.groups) > 0))
+    |> Enum.map(&problem(&1, "No groups have been given access to the data source. It cannot be queried"))
 end
