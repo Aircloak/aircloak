@@ -19,8 +19,13 @@ You need to have Erlang, Elixir, Ruby, and NodeJS installed. The required versio
 Please use the [asdf version manager](https://github.com/asdf-vm/asdf) to install the correct versions. `asdf` is also
 used on travis as well as when building docker containers.
 This way you can ensure the version you are using locally is the same as the one being used in production and during testing.
-You need to install it, together with the Erlang, Elixir and NodeJS plugins. Then from the project root folder run `asdf install`.
-Before installing, make sure you have `unixodbc` installed (__macOS developers__ see [here](./cloak/osx_erlang_with_odbc.md) for detailed instructions).
+You need to install [asdf](https://github.com/asdf-vm/asdf), together with the [Erlang](https://github.com/asdf-vm/asdf-erlang),
+[Elixir](https://github.com/asdf-vm/asdf-elixir), [NodeJS](https://github.com/asdf-vm/asdf-nodejs) and [Ruby](https://github.com/asdf-vm/asdf-ruby) plugins.
+It is also beneficial to add a [.default-gems](https://github.com/asdf-vm/asdf-ruby#default-gems) to your home directory
+prior to installing Ruby.
+
+Before installing erlang, make sure you have `unixodbc` installed (__macOS developers__ see [here](./cloak/osx_erlang_with_odbc.md) for detailed instructions).
+Once `asdf` and the required plugins are installed, run `asdf install` from the root folder of the project.
 
 You will also need Docker 1.11 (__macOS developers__ also need [Docker for Mac](https://docs.docker.com/docker-for-mac/), see [here](./macos_docker.md) for instructions).
 
