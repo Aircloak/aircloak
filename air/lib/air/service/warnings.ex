@@ -77,12 +77,12 @@ defmodule Air.Service.Warnings do
   defp broken_datasources(data_sources), do:
     data_sources
     |> Enum.reject(&(&1.errors === "" or &1.errors === "[]"))
-    |> Enum.map(&problem(&1, unpack_error(&1), :medium))
+    |> Enum.flat_map(&unwrap_errors(&1, :medium))
 
-  defp unpack_error(data_source), do:
+  defp unwrap_errors(data_source, severity), do:
     data_source.errors
     |> Poison.decode!()
-    |> Enum.join(", ")
+    |> Enum.map(&problem(data_source, &1, severity))
 
   defp no_group(data_sources), do:
     data_sources
