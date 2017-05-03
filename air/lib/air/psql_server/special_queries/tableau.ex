@@ -120,7 +120,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
     psql_type = PsqlServer.psql_type(column_type)
     type_info = Protocol.Value.type_info(psql_type)
     row_fields = %{
-      nspname: "public", relname: table_name, attname: column_name, atttypid: type_info.oid,
+      nspname: "", relname: table_name, attname: column_name, atttypid: type_info.oid,
       typname: psql_type, attnum: index + 1, attlen: type_info.len, atttypmod: -1,
       # The first column is always UID, and we know that this column can't have a NULL value.
       attnotnull: index == 0,

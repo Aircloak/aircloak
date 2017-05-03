@@ -30,9 +30,9 @@ defmodule IntegrationTest.TableauTest do
         'relhasrules', 'relkind', 'oid', 'pg_get_expr', 'case', 'typtypmod', 'relhasoids'
       ],
       [
-        {'public', 'users', 'user_id', '25', 'text', 1, -1, -1, true, false, 'r', oid, [], '0', -1, false},
-        {'public', 'users', 'name', '25', 'text', 2, -1, -1, false, false, 'r', oid, [], '0', -1, false},
-        {'public', 'users', 'height', '20', 'int8', 3, 8, -1, false, false, 'r', oid, [], '0', -1, false}
+        {'', 'users', 'user_id', '25', 'text', 1, -1, -1, true, false, 'r', oid, [], '0', -1, false},
+        {'', 'users', 'name', '25', 'text', 2, -1, -1, false, false, 'r', oid, [], '0', -1, false},
+        {'', 'users', 'height', '20', 'int8', 3, 8, -1, false, false, 'r', oid, [], '0', -1, false}
       ]
     } = :odbc.sql_query(context.conn, query)
   end
