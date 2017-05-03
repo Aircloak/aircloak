@@ -24,12 +24,19 @@ defmodule Air.Service.Warnings do
   a problem description, along with a link leading to the affected resource.
   """
   @spec problems() :: [problem]
-  def problems(), do: data_source_problems()
+  def problems(), do: data_source_problems() |> order_problems()
 
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp order_problems(problems), do:
+    Enum.sort_by(problems, &({severity_to_number(&1.severity), &1.resource}))
+
+  defp severity_to_number(:high), do: 1
+  defp severity_to_number(:medium), do: 2
+  defp severity_to_number(:low), do: 3
 
   defp data_source_problems() do
     data_sources = DataSource.all()

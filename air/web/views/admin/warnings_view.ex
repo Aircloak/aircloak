@@ -15,4 +15,13 @@ defmodule Air.Admin.WarningsView do
     link_to(admin_data_source_path(conn, :show, resource.name))
 
   defp link_to(path), do: link("More", to: path)
+
+  defp severity_class(:high), do: "danger"
+  defp severity_class(:medium), do: "warning"
+  defp severity_class(_), do: ""
+
+  defp severity(type), do:
+    type
+    |> Atom.to_string()
+    |> String.capitalize()
 end

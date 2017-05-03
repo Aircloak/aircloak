@@ -10,6 +10,7 @@
 <table class="table">
   <thead>
     <tr>
+      <th>Severity</th>
       <th>Resource</th>
       <th>Description</th>
       <th></th>
@@ -18,7 +19,8 @@
 
   <tbody>
     <%= for problem <- Air.Service.Warnings.problems() do %>
-    <tr>
+    <tr class="<%= severity_class(problem.severity) %>">
+      <td><%= severity(problem.severity) %></td>
       <td>
         <%= type(problem.resource) %>
         <strong><%= name(problem.resource) %></strong>
