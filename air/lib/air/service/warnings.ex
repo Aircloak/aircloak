@@ -4,6 +4,7 @@ defmodule Air.Service.Warnings do
   @type problem :: %{
     resource: any,
     description: String.t,
+    severity: :high | :medium | :low,
   }
 
   alias Air.Service.{DataSource, Cloak}
@@ -38,18 +39,20 @@ defmodule Air.Service.Warnings do
       ++ no_users(data_sources)
   end
 
-  defp problem(resource, description), do:
-    %{resource: resource, description: description}
+  defp problem(resource, description, severity \\ :low), do:
+    %{resource: resource, description: description, severity: severity}
 
   defp offline_datasources(data_sources), do:
     data_sources
     |> Enum.filter(fn(data_source) -> Cloak.channel_pids(data_source.name) == [] end)
-    |> Enum.map(&problem(&1, "The data source is unavailable. No cloaks serving this data source are online"))
+    |> Enum.map(
+      &problem(&1, "The data source is unavailable. No cloaks serving this data source are online", :high)
+    )
 
   defp broken_datasources(data_sources), do:
     data_sources
     |> Enum.reject(&(&1.errors === "" or &1.errors === "[]"))
-    |> Enum.map(&problem(&1, unpack_error(&1)))
+    |> Enum.map(&problem(&1, unpack_error(&1), :medium))
 
   defp unpack_error(data_source), do:
     data_source.errors
