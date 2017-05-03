@@ -761,8 +761,13 @@ defmodule Cloak.Sql.Compiler do
       |> all_id_columns_from_tables()
       |> Enum.each(&CyclicGraph.add_vertex(graph, {&1.table.name, &1.name}))
 
-      for {col1, col2} <- uid_columns_compared_in_joins(query), do:
-        CyclicGraph.connect!(graph, {col1.table.name, col1.name}, {col2.table.name, col2.name})
+      for {:comparison, column1, :=, column2} <- query.where ++ all_join_conditions(query.from),
+          column1.user_id?,
+          column2.user_id?,
+          column1 != column2
+      do
+        CyclicGraph.connect!(graph, {column1.table.name, column1.name}, {column2.table.name, column2.name})
+      end
 
       with [{{table1, column1}, {table2, column2}} | _] <- CyclicGraph.disconnected_pairs(graph) do
         raise CompilationError,
@@ -772,28 +777,6 @@ defmodule Cloak.Sql.Compiler do
             "condition to the `WHERE` clause."
       end
     end)
-
-  defp uid_columns_compared_in_joins(query) do
-    for {:comparison, column1, :=, column2} <- query.where ++ all_join_conditions(query.from),
-        # We're stripping the outermost cast expression. The reason is because Tableau always casts joined
-        # columns to text. In other words, it will always create:
-        #   `ON CAST(t1.uid as TEXT) = CAST(t2.uid as TEXT)`
-        # To handle this, we're going to remove the outer cast, thus ensuring we notice that uid columns
-        # are compared in the join.
-        column1 = remove_outer_cast(column1),
-        column2 = remove_outer_cast(column2),
-        column1 != column2,
-        column1.user_id?,
-        column2.user_id?
-    do
-      {column1, column2}
-    end
-  end
-
-  defp remove_outer_cast(%Expression{function: {:cast, _}, function_args: [expr]}), do:
-    expr
-  defp remove_outer_cast(expr), do:
-    expr
 
   @spec all_join_conditions(Parser.from_clause) :: [Parser.where_clause]
   defp all_join_conditions({:join, join}) do

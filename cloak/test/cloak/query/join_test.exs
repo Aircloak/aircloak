@@ -39,19 +39,6 @@ defmodule Cloak.Query.JoinTest do
     assert [%{row: [180, 200], occurrences: 1}] = rows
   end
 
-  test "selecting using INNER JOIN with cast in join condition" do
-    :ok = insert_rows(_user_ids = 0..100, "heights_join", ["height"], [180])
-    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
-
-    assert_query """
-      SELECT max(height), max(price)
-      FROM heights_join
-      INNER JOIN purchases ON CAST(heights_join.user_id AS TEXT) = CAST(purchases.user_id AS TEXT)
-    """,
-      %{columns: ["max", "max"], rows: rows}
-    assert [%{row: [180, 200], occurrences: 1}] = rows
-  end
-
   test "selecting using complex JOIN" do
     :ok = insert_rows(_user_ids = 0..100, "heights_join", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
