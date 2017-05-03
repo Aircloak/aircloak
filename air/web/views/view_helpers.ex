@@ -84,7 +84,7 @@ defmodule Air.ViewHelpers do
   @doc """
   Generates a navbar link, and highlights the active one
   """
-  @spec navbar_link(Plug.Conn.t, String.t, String.t, Keyword.t) :: {:safe, [any]}
+  @spec navbar_link(Plug.Conn.t, any, String.t, Keyword.t) :: {:safe, [any]}
   def navbar_link(%{request_path: request_path}, name, desired_path, options \\ []) do
     content_tag(:li, role: "presentation", class: navbar_link_classes(request_path, desired_path, options)) do
       link(name, to: desired_path, target: Keyword.get(options, :target, "_self"))
