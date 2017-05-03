@@ -1,0 +1,24 @@
+<table class="table">
+  <thead>
+    <tr>
+      <th>Severity</th>
+      <th>Resource</th>
+      <th>Description</th>
+      <th></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <%= for problem <- @problems do %>
+    <tr class="<%= severity_class(problem.severity) %>">
+      <td><%= severity(problem.severity) %></td>
+      <td>
+        <%= type(problem.resource) %>
+        <strong><%= name(problem.resource) %></strong>
+      </td>
+      <td><%= problem.description %></td>
+      <td><%= resource_link(@conn, problem.resource) %></td>
+    </tr>
+    <% end %>
+  </tbody>
+</table>
