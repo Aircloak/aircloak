@@ -20,11 +20,6 @@ defmodule Air.ViewHelpers do
   def audit_log_enabled?(), do:
     Air.Service.Settings.read().audit_log_enabled
 
-  @doc "True if there are system warnings"
-  @spec warnings?() :: boolean
-  def warnings?(), do:
-    Air.Service.Warnings.known_problems?()
-
   @doc "Returns true if the currently logged-in user is an administrator."
   @spec admin?(Plug.Conn.t | Air.Schemas.User.t) :: boolean
   def admin?(nil), do: false

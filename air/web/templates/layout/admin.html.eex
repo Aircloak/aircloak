@@ -30,9 +30,8 @@
             <div class="row">
               <div class="col-lg-2 col-md-3">
                 <ul class="nav nav-pills nav-stacked">
-                  <%= if warnings?() do %>
-                    <%= navbar_link(@conn, "Warnings", admin_warnings_path(@conn, :index), class: "warning") %>
-                  <% end %>
+                  <%= warning_navbar_link(@conn) %>
+
                   <%= navbar_link(@conn, "Activity monitor", admin_activity_monitor_path(@conn, :index)) %>
                   <%= if audit_log_enabled?() do %>
                     <%= navbar_link(@conn, "Audit log", admin_audit_log_path(@conn, :index)) %>
