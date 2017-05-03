@@ -26,11 +26,11 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
             pc1.oid relname tgconstrname nspname))
         )
 
-      query =~ ~r/^select n.nspname, c.relname, a.attname.*a.attrelid = c.oid/i ->
+      query =~ ~r/begin;declare .* for select c.relname, i.indkey/i ->
         # related fields
-        RanchServer.query_result(conn,
-          empty_result(:select, ~w(nspname relname attname atttypid typname attnum attlen atttypmod attnotnull
-            relhasrules relkind oid pg_get_expr case typtypmod relhasoids))
+        cursor_query_result(conn,
+          empty_result(:fetch, ~w(relname indkey indisunique indisclustered amname relhasrules nspname oid
+            relhasoids ?column?))
         )
 
       query =~ ~r/begin;declare.* for select ta.attname, ia.attnum.*ia.attrelid = i.indexrelid.*fetch/i ->
@@ -81,7 +81,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
     ]
 
   defp table_name_from_table_info_query(query) do
-    case Regex.named_captures(~r/^select n.nspname.*relname like '(?<table_name>.*)' and/, query) do
+    case Regex.named_captures(~r/^select n.nspname.*relname = '(?<table_name>.*)'/, query) do
       %{"table_name" => table_name} -> table_name
       _ -> nil
     end
@@ -120,8 +120,10 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
     psql_type = PsqlServer.psql_type(column_type)
     type_info = Protocol.Value.type_info(psql_type)
     row_fields = %{
-      nspname: "public", relname: table_name, attname: column_name, atttypid: type_info.oid,
-      typname: psql_type, attnum: index + 1, attlen: type_info.len, atttypmod: -1, attnotnull: false,
+      nspname: "", relname: table_name, attname: column_name, atttypid: type_info.oid,
+      typname: psql_type, attnum: index + 1, attlen: type_info.len, atttypmod: -1,
+      # The first column is always UID, and we know that this column can't have a NULL value.
+      attnotnull: index == 0,
       relhasrules: false, relkind: ?r, oid: :erlang.phash2({data_source_id, table_name}), pg_get_expr: "",
       case: "0", typtypmod: -1, relhasoids: false,
     }
@@ -132,7 +134,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
     conn
     |> RanchServer.query_result(command: :begin, intermediate: true)
     |> RanchServer.query_result(command: :"declare cursor", intermediate: true)
-    |> RanchServer.query_result(Keyword.put(query_result, :command, :fetch))
+    |> RanchServer.query_result(to_fetch_result(query_result))
 
   defp empty_result(command, column_names), do:
     [command: command, columns: Enum.map(column_names, &%{name: &1, type: :unknown}), rows: []]
@@ -143,4 +145,9 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
       nil -> nil
     end
   end
+
+  defp to_fetch_result({:error, _} = error), do:
+    error
+  defp to_fetch_result(query_result), do:
+    Keyword.put(query_result, :command, :fetch)
 end
