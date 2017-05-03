@@ -741,9 +741,20 @@ defmodule Cloak.Sql.Compiler do
   end
 
   defp partition_where_clauses(query) do
-    # extract conditions using encoded columns
-    {emulated_column_clauses, safe_clauses} = Enum.partition(query.where, &emulated_expression_condition?/1)
+    # extract conditions needing emulation
+    {emulated_column_clauses, safe_clauses} = Enum.partition(query.where, fn (condition) ->
+      emulated_expression_condition?(condition) or
+      (query.emulated? and multiple_tables_condition?(condition))
+    end)
     %Query{query | where: safe_clauses, emulated_where: emulated_column_clauses}
+  end
+
+  defp multiple_tables_condition?(condition) do
+    Query.Lenses.conditions_terminals()
+    |> Lens.to_list([condition])
+    |> Enum.map(& &1.table)
+    |> Enum.uniq()
+    |> Enum.count() > 1
   end
 
   defp verify_joins(%Query{projected?: true} = query), do: query
@@ -1074,8 +1085,7 @@ defmodule Cloak.Sql.Compiler do
     query.group_by ++
     query.emulated_where ++
     query.having ++
-    Query.order_by_expressions(query) ++
-    if query.emulated?, do: query.where, else: []
+    Query.order_by_expressions(query)
 
   defp id_column(query) do
     id_columns = all_id_columns_from_tables(query)
@@ -1203,11 +1213,12 @@ defmodule Cloak.Sql.Compiler do
   defp emulated_expression?(expression), do:
     DataDecoder.needs_decoding?(expression) or Function.has_attribute?(expression, :emulated)
 
-  defp emulated_expression_condition?(condition), do:
+  defp emulated_expression_condition?(condition) do
     Comparison.verb(condition) != :is and
-    [condition]
-    |> get_in([Query.Lenses.conditions_terminals()])
+    Query.Lenses.conditions_terminals()
+    |> Lens.to_list([condition])
     |> Enum.any?(&emulated_expression?/1)
+  end
 
   defp set_emulation_flag(query), do: %Query{query | emulated?: needs_emulation?(query)}
 
