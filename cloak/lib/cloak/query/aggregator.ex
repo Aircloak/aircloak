@@ -4,7 +4,7 @@ defmodule Cloak.Query.Aggregator do
   require Logger
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{Query, Expression}
+  alias Cloak.Sql.{Query, Expression, NoiseLayer}
   alias Cloak.Query.{Anonymizer, Rows, Result}
   alias Cloak.Query.Runner.Engine
 
@@ -129,31 +129,33 @@ defmodule Cloak.Query.Aggregator do
       |> Enum.map(&per_user_aggregator_and_column/1)
       |> Enum.uniq()
       |> Enum.unzip()
+
     default_accumulators = List.duplicate(nil, Enum.count(aggregated_columns))
+    default_noise_layers = NoiseLayer.new_accumulator(query.noise_layers)
+    merging_fun = &update_group(&1, &2, per_user_aggregators, aggregated_columns, default_accumulators, query)
 
     rows
-    |> Rows.group(query, %{}, &update_group(&1, &2, per_user_aggregators, aggregated_columns, default_accumulators))
+    |> Rows.group(query, {%{}, default_noise_layers}, merging_fun)
     |> fn(rows) -> state_updater.(:processing); rows end.()
-    |> init_anonymizer(query)
+    |> init_anonymizer()
   end
 
-  defp update_group(group_data, row, per_user_aggregators, aggregated_columns, default_accumulators) do
+  defp update_group(
+    {user_rows, noise_accumulator}, row, per_user_aggregators, aggregated_columns, default_accumulators, query
+  ) do
     user_id = user_id(row)
     values = Enum.map(aggregated_columns, &Expression.value(&1, row))
 
-    group_data
-    |> Map.put_new(user_id, default_accumulators)
-    |> Map.update!(user_id, &aggregate_values(values, &1, per_user_aggregators))
+    user_rows =
+      user_rows
+      |> Map.put_new(user_id, default_accumulators)
+      |> Map.update!(user_id, &aggregate_values(values, &1, per_user_aggregators))
+
+    {user_rows, NoiseLayer.accumulate(query.noise_layers, noise_accumulator, row)}
   end
 
-  defp init_anonymizer(grouped_rows, query) do
-    for {property, users_rows} <- grouped_rows do
-      noise_layers = for noise_layer <- query.noise_layers do
-        noise_layer.expressions
-        |> Enum.map(&Expression.value(&1, property))
-        |> MapSet.new()
-      end
-
+  defp init_anonymizer(grouped_rows) do
+    for {property, {users_rows, noise_layers}} <- grouped_rows do
       {property, Anonymizer.new([users_rows | noise_layers]), users_rows}
     end
   end
