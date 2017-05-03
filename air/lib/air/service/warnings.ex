@@ -8,6 +8,7 @@ defmodule Air.Service.Warnings do
   }
 
   alias Air.Service.{DataSource, Cloak}
+  alias Air.{Schemas, Repo}
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -27,6 +28,15 @@ defmodule Air.Service.Warnings do
   def problems(), do: data_source_problems() |> order_problems()
 
 
+  @doc """
+  Returns a list of a problem for a particular resource.
+  The structure of the warnings is the same as what is returned by problems/0
+  """
+  @spec problems_for_resource(Schemas.DataSource.t) :: [problem]
+  def problems_for_resource(%Schemas.DataSource{} = data_source), do:
+    problems_for_data_source(data_source)
+
+
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
@@ -44,6 +54,14 @@ defmodule Air.Service.Warnings do
       ++ broken_datasources(data_sources)
       ++ no_group(data_sources)
       ++ no_users(data_sources)
+  end
+
+  def problems_for_data_source(data_source) do
+    data_source = Repo.preload(data_source, [:groups])
+    offline_datasources([data_source])
+      ++ broken_datasources([data_source])
+      ++ no_group([data_source])
+      ++ no_users([data_source])
   end
 
   defp problem(resource, description, severity \\ :low), do:
@@ -75,7 +93,7 @@ defmodule Air.Service.Warnings do
     data_sources
     |> Enum.reject(fn(data_source) ->
       Enum.any?(data_source.groups, fn(group) ->
-        group = Air.Repo.preload(group, [:users])
+        group = Repo.preload(group, [:users])
         length(group.users) > 0
       end)
     end)

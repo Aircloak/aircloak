@@ -55,8 +55,17 @@ defmodule Air.Service.WarningsTest do
     assert problem_with_description(~r/no users/i)
   end
 
-  defp problem_with_description(pattern), do:
-    Warnings.problems()
+  describe("problems_for_resource") do
+    test "data source" do
+      {:ok, _pid} = start_cloak_channel(cloak_info(), @data_sources_with_errors)
+      [%{"name" => name}] = @data_sources_with_errors
+      data_source = Repo.get_by!(DataSource, name: name)
+      assert problem_with_description(Warnings.problems_for_resource(data_source), ~r/broken/)
+    end
+  end
+
+  defp problem_with_description(problems \\ Warnings.problems(), pattern), do:
+    problems
     |> Enum.map(&(&1.description))
     |> Enum.any?(&(&1 =~ pattern))
 
