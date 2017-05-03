@@ -91,4 +91,19 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
         SELECT AVG(salary) FROM "left" INNER JOIN "right" ON "left".id = "right".id AND age + 1 = 31
       """, %{rows: [%{occurrences: 1, row: [95.0]}]}
   end
+
+  test "complex function in inner join condition", context do
+    assert_query context, """
+        SELECT AVG(salary) FROM "left" INNER JOIN "right" ON "left".id = "right".id AND round(abs(salary)) = 100
+      """, %{rows: [%{occurrences: 1, row: [100.0]}]}
+  end
+
+  test "inner join with table and sub-query in sub-query", context do
+    assert_query context, """
+        SELECT a FROM
+          (SELECT id, age AS a FROM "left" INNER JOIN
+            (SELECT id AS rid FROM "right") AS t ON rid = id) AS t
+        WHERE a = 30
+      """, %{rows: [%{occurrences: 20, row: [30]}]}
+  end
 end

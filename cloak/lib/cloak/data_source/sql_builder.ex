@@ -157,10 +157,10 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: [" HAVING ", and_clauses |> Enum.map(&conditions_to_fragments(&1, sql_dialect)) |> join(" AND ")]
   defp having_fragments(_query, _sql_dialect), do: []
 
-  defp order_by_fragments(%Query{subquery?: true, order_by: [_|_] = order_by} = query, sql_dialect) do
-    order_by = for {index, dir} <- order_by do
+  defp order_by_fragments(%Query{subquery?: true, order_by: [_|_] = order_by}, sql_dialect) do
+    order_by = for {expression, dir} <- order_by do
       dir = if dir == :desc do " DESC" else " ASC" end
-      name = query.db_columns |> Enum.at(index) |> Map.get(:alias) |> quote_name(sql_dialect)
+      name = column_sql(expression, sql_dialect)
       [name, dir]
     end
     [" ORDER BY ", Enum.intersperse(order_by, ", ")]

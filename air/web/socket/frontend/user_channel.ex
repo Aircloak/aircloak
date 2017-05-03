@@ -17,17 +17,6 @@ defmodule Air.Socket.Frontend.UserChannel do
   # -------------------------------------------------------------------
 
   @doc """
-  Broadcasts the results of a query execution to all listening clients.
-  """
-  @spec broadcast_result(Schemas.Query.t) :: :ok
-  def broadcast_result(query) do
-    payload = Schemas.Query.for_display(query)
-    Air.Endpoint.broadcast_from!(self(), "user_queries:#{query.user_id}", "result", payload)
-    Air.Endpoint.broadcast_from!(self(), "query:#{query.id}", "result", payload)
-    :ok
-  end
-
-  @doc """
   Broadcasts the change in the state of a query to all listening clients.
   """
   @spec broadcast_state_change(Schemas.Query.t) :: :ok

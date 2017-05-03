@@ -78,10 +78,5 @@ defmodule Cloak.Query.Runner.Engine do
     |> Query.Rows.filter(Enum.map(query.emulated_where, &Sql.Comparison.to_function/1))
     |> Query.ShrinkAndDrop.apply(query)
     |> Query.Aggregator.aggregate(query, state_updater)
-    |> fn(rows) -> state_updater.(:post_processing); rows end.()
-    |> Query.Sorter.order_buckets(query)
-    |> Query.Result.distinct(query.distinct?)
-    |> Query.Result.offset(query.offset)
-    |> Query.Result.limit(query.limit)
   end
 end

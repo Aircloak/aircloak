@@ -12,44 +12,76 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   @doc "Builds a MongoDB aggregation pipeline from a compiled query."
   @spec build(Query.t) :: {String.t, [map]}
-  def build(%Query{from: table_name, selected_tables: [table]} = query) when is_binary(table_name) do
-    {complex_conditions, basic_conditions} = split_conditions(table.array_path, query.where)
-    {complex_conditions, extra_columns} = process_complex_conditions(complex_conditions)
-    pipeline =
-      parse_where_conditions(basic_conditions) ++
-      unwind_arrays(table.array_path) ++
-      Projector.project_table_and_columns(table, extra_columns) ++
-      parse_where_conditions(complex_conditions) ++
-      parse_query(query)
-    {table.db_name, pipeline}
+  def build(%Query{selected_tables: [table]} = query) do
+    {collection, pipeline, conditions} = start_pipeline(query.from, table, query.where)
+    {collection, pipeline ++ finish_pipeline(%Query{query | where: conditions})}
   end
-  def build(%Query{from: {:subquery, subquery}} = query) do
-    {collection, pipeline} = build(subquery.ast)
+  def build(%Query{from: {:join, join}} = query) do
+    join_info = join_info(join, query.selected_tables)
+    # The `$lookup` operator projects a foreign document into the specified field from the current document.
+    # We create an unique name under which the fields of the projected document will live for the duration of the query.
+    namespace = "ac_temp_ns_#{:erlang.unique_integer([:positive])}"
+    rhs_table_columns =
+      Enum.map(join_info.rhs_table.columns, fn ({name, type}) ->
+        {namespace <> "." <> name, type}
+      end)
+    join_table = %{name: "join", db_name: "join", columns: join_info.lhs_table.columns ++ rhs_table_columns}
+    query =
+      Query.Lenses.query_expressions()
+      |> Lens.satisfy(& &1.name != nil and &1.table == join_info.rhs_table)
+      |> Lens.map(query, &%Expression{&1 | name: namespace <> "." <> &1.name})
+    {collection, pipeline, conditions} = start_pipeline(join_info.lhs, join_info.lhs_table, query.where)
     pipeline =
       pipeline ++
-      parse_where_conditions(query.where) ++
-      parse_query(query)
+      lookup_table(join_info.rhs_table.db_name, join_info.lhs_field, join_info.rhs_field, namespace) ++
+      unwind_arrays(join_info.rhs_table.array_path, namespace <> ".") ++
+      finish_pipeline(%Query{query | where: conditions, selected_tables: [join_table]})
     {collection, pipeline}
   end
-  def build(%Query{from: {:join, _}}), do:
-    raise RuntimeError, message: "Table joins are not supported on MongoDB data sources."
 
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp parse_query(%Query{subquery?: false} = query), do:
-    Projector.project_columns(query.db_columns)
+  defp start_pipeline(table_name, table, conditions) when is_binary(table_name) do
+    {complex_conditions, basic_conditions} = extract_basic_conditions(table, conditions)
+    pipeline = filter_data(basic_conditions) ++ unwind_arrays(table.array_path)
+    {table.db_name, pipeline, complex_conditions}
+  end
+  defp start_pipeline({:subquery, subquery}, _table, conditions) do
+    {collection, pipeline} = build(subquery.ast)
+    {collection, pipeline, conditions}
+  end
+
+  defp finish_pipeline(%Query{selected_tables: [table]} = query) do
+    case used_array_size_columns(query) do
+      [] -> []
+      _ -> Projector.project_array_sizes(table)
+    end ++
+    parse_conditions(table, query.where) ++
+    parse_query(query)
+  end
+
+  defp parse_query(%Query{subquery?: false} = query) do
+    # Mongo 3.0 doesn't support projection of arrays, which would more efficient for data transfer.
+    projection =
+      query.db_columns
+      |> Enum.map(&"$#{&1.alias || &1.name}")
+      |> Enum.with_index(1)
+      |> Enum.map(fn ({field, index}) -> {"f#{index}", field} end)
+      |> Enum.into(%{"_id" => false})
+    [%{'$project': projection}]
+  end
   defp parse_query(%Query{subquery?: true} = query), do:
     aggregate_and_project(query) ++
-    order_rows(query.order_by, query.db_columns) ++
+    order_rows(query.order_by) ++
     offset_rows(query.offset) ++
     limit_rows(query.limit)
 
-  defp parse_where_conditions([]), do: []
-  defp parse_where_conditions([condition]), do: [%{'$match': parse_where_condition(condition)}]
-  defp parse_where_conditions(conditions), do: [%{'$match': %{'$and': Enum.map(conditions, &parse_where_condition/1)}}]
+  defp filter_data([]), do: []
+  defp filter_data([condition]), do: [%{'$match': parse_where_condition(condition)}]
+  defp filter_data(conditions), do: [%{'$match': %{'$and': Enum.map(conditions, &parse_where_condition/1)}}]
 
   defp parse_operator(:=), do: :'$eq'
   defp parse_operator(:>), do: :'$gt'
@@ -92,6 +124,13 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_where_condition({:not, {:ilike, subject, pattern}}), do:
     %{map_field(subject) => %{'$not': %{'$regex': Comparison.to_regex(map_constant(pattern)), '$options': "msi"}}}
 
+  defp extract_basic_conditions(table, conditions) do
+    {complex_conditions, basic_conditions} = split_conditions(table.array_path, conditions)
+    {table_conditions, other_tables_conditions} =
+      Enum.partition(basic_conditions, &Comparison.subject(&1).table.name == table.name)
+    {complex_conditions ++ other_tables_conditions, table_conditions}
+  end
+
   defp split_conditions([], conditions), do:
     Enum.partition(conditions, &complex_condition?(&1, []))
   defp split_conditions([array | _], conditions), do:
@@ -102,27 +141,32 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     column_name == nil or Schema.is_array_size?(column_name) or String.starts_with?(column_name, complex_name_prefixes)
   end
 
-  defp process_complex_conditions(complex_conditions) do
-    complex_conditions_columns =
-      complex_conditions
+  defp extract_columns_from_conditions(conditions) do
+    extra_columns =
+      conditions
       |> Enum.flat_map(&Comparison.targets/1)
       |> Enum.filter(& &1.function?)
       |> Enum.uniq()
-    complex_conditions =
+    conditions =
       Lens.all()
       |> Query.Lenses.operands()
       |> Lens.satisfy(&match?(%Expression{function?: true}, &1))
-      |> Lens.map(complex_conditions, fn (column) ->
-        index = Enum.find_index(complex_conditions_columns, & &1 == column)
+      |> Lens.map(conditions, fn (column) ->
+        index = Enum.find_index(extra_columns, & &1 == column)
         %Expression{name: "projected_condition_#{index}", type: column.type}
       end)
-    complex_conditions_columns =
-      complex_conditions_columns
+    extra_columns =
+      extra_columns
       |> Enum.with_index()
       |> Enum.map(fn ({column, index}) ->
         %Expression{column | alias: "projected_condition_#{index}"}
       end)
-    {complex_conditions, complex_conditions_columns}
+    {conditions, extra_columns}
+  end
+
+  defp parse_conditions(table, conditions) do
+    {conditions, extra_columns} = extract_columns_from_conditions(conditions)
+    Projector.project_extra_columns(table, extra_columns) ++ filter_data(conditions)
   end
 
   defp unwind_arrays(_path, _path \\ "")
@@ -132,12 +176,11 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     [%{'$unwind': "$" <> path} | unwind_arrays(rest, path)]
   end
 
-  defp order_rows([], _columns), do: []
-  defp order_rows(order_by, columns) do
-    order_by = for {index, dir} <- order_by, into: %{} do
+  defp order_rows([]), do: []
+  defp order_rows(order_by) do
+    order_by = for {expression, dir} <- order_by, into: %{} do
       dir = if dir == :desc do -1 else 1 end
-      name = columns |> Enum.at(index) |> Map.get(:alias)
-      {name, dir}
+      {map_field(expression), dir}
     end
     [%{'$sort': order_by}]
   end
@@ -177,7 +220,9 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp extract_column_top(%Expression{function: "count", function_args: [{:distinct, _}]} = column, aggregators, _groups) do
     # For distinct count, we gather values into a set and then project the size of the set.
     index = Enum.find_index(aggregators, &Expression.equals(column, &1))
-    %Expression{name: "aggregated_#{index}#", table: :unknown, alias: column.alias}
+    %Expression{column | function?: true, function: "size",
+      function_args: [%Expression{name: "aggregated_#{index}", table: :unknown}]
+    }
   end
   defp extract_column_top(%Expression{function_args: [{:distinct, _}]} = column, aggregators, _groups) do
     # For distinct aggregators, we gather values into a set and then project the aggregator over the set.
@@ -224,7 +269,46 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       properties = project_properties(groups)
       group = aggregators |> project_aggregators() |> Enum.into(%{"_id" => properties})
       having = Enum.map(having, &extract_column_top_from_condition(&1, aggregators))
-      [%{'$group': group}] ++ parse_where_conditions(having) ++ Projector.project_columns(column_tops)
+      [%{'$group': group}] ++ filter_data(having) ++ Projector.project_columns(column_tops)
     end
+  end
+
+  defp lookup_table(name, local_field, foreign_field, as) do
+    [
+      %{'$lookup': %{
+          from: name,
+          localField: local_field,
+          foreignField: foreign_field,
+          as: as
+        }},
+      %{'$unwind': %{path: "$" <> as}}
+    ]
+  end
+
+  defp get_join_branch_name(name) when is_binary(name), do: name
+  defp get_join_branch_name({:subquery, %{alias: name}}) when is_binary(name), do: name
+
+  defp join_info(%{type: :inner_join, lhs: lhs, rhs: {:subquery, subquery}, conditions: [condition]}, tables), do:
+    join_info(%{type: :inner_join, lhs: {:subquery, subquery}, rhs: lhs, conditions: [condition]}, tables)
+  defp join_info(%{type: :inner_join, lhs: lhs, rhs: rhs_name, conditions: [condition]}, tables)
+      when is_binary(rhs_name) do
+    lhs_name = get_join_branch_name(lhs)
+    {lhs_field, rhs_field} =
+      case condition do
+        {:comparison, %{table: %{name: ^lhs_name}} = local, :=, %{table: %{name: ^rhs_name}} = foreign} ->
+          {local.name, foreign.name}
+        {:comparison, %{table: %{name: ^rhs_name}} = foreign, :=, %{table: %{name: ^lhs_name}} = local} ->
+          {local.name, foreign.name}
+      end
+    lhs_table = Enum.find(tables, & &1.name == lhs_name)
+    rhs_table = Enum.find(tables, & &1.name == rhs_name)
+    true = lhs_table != nil and rhs_table != nil
+    %{lhs: lhs, lhs_table: lhs_table, rhs_table: rhs_table, lhs_field: lhs_field, rhs_field: rhs_field}
+  end
+
+  def used_array_size_columns(query) do
+    Query.Lenses.query_expressions()
+    |> Lens.satisfy(& &1.name != nil and Schema.is_array_size?(&1.name))
+    |> Lens.get(query)
   end
 end

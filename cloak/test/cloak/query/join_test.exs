@@ -122,4 +122,26 @@ defmodule Cloak.Query.JoinTest do
       %{columns: ["max", "max"], rows: rows}
     assert [%{row: [180, -100], occurrences: 1}] = rows
   end
+
+  test "non-selected order by in a joined table" do
+    :ok = insert_rows(_user_ids = 1..50, "heights_join", ["height"], [180])
+    :ok = insert_rows(_user_ids = 51..100, "heights_join", ["height"], [170])
+    :ok = insert_rows(_user_ids = 1..25, "purchases", ["price"], [200])
+    :ok = insert_rows(_user_ids = 26..50, "purchases", ["price"], [50])
+    :ok = insert_rows(_user_ids = 51..75, "purchases", ["price"], [150])
+    :ok = insert_rows(_user_ids = 76..100, "purchases", ["price"], [100])
+
+    assert_query "select height
+      FROM heights_join INNER JOIN purchases ON heights_join.user_id = purchases.user_id
+      ORDER BY price
+      ",
+      %{columns: ["height"], rows: rows}
+
+    assert [
+      %{row: [180], occurrences: 25},
+      %{row: [170], occurrences: 25},
+      %{row: [170], occurrences: 25},
+      %{row: [180], occurrences: 25}
+    ] = rows
+  end
 end
