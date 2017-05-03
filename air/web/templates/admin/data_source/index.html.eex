@@ -20,7 +20,7 @@
     </tr>
   <% end %>
   <%= for data_source <- @data_sources do %>
-    <tr class="<%= unless available?(data_source), do: "warning" %>">
+    <tr class="<%= severity_class(highest_severity_class(data_source)) %>">
       <td><%= data_source.name %></td>
       <td><%= data_source.description %></td>
       <td><%= availability_label(data_source) %></td>

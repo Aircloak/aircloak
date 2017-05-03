@@ -16,10 +16,6 @@ defmodule Air.Admin.WarningsView do
 
   defp link_to(path), do: link("More", to: path)
 
-  defp severity_class(:high), do: "danger"
-  defp severity_class(:medium), do: "warning"
-  defp severity_class(_), do: ""
-
   defp severity(type), do:
     type
     |> Atom.to_string()
