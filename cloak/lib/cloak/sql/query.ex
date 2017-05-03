@@ -129,7 +129,7 @@ defmodule Cloak.Sql.Query do
   @spec describe_query(DataSource.t, String.t, [parameter] | nil, view_map) ::
     {:ok, [String.t], map} | {:error, String.t}
   def describe_query(data_source, statement, parameters, views), do:
-    with {:ok, query} <- make_query(data_source, statement, parameters, views), do:
+    with {:ok, query} <- make_query(data_source, statement, parameters, views, censor_selected_uids: false), do:
       {:ok, query.column_titles, extract_features(query)}
 
 
@@ -246,9 +246,9 @@ defmodule Cloak.Sql.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp make_query(data_source, query_string, parameters, views) do
+  defp make_query(data_source, query_string, parameters, views, options \\ []) do
     with {:ok, parsed_query} <- Parser.parse(query_string) do
-      Compiler.compile(data_source, parsed_query, parameters, views)
+      Compiler.compile(data_source, parsed_query, parameters, views, options)
     end
   end
 

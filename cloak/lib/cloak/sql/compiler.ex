@@ -10,15 +10,17 @@ defmodule Cloak.Sql.Compiler do
     defexception message: "Error during compiling query"
   end
 
+  @type options :: [censor_selected_uids: boolean]
+
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Prepares the parsed SQL query for execution."
-  @spec compile(DataSource.t, Parser.parsed_query, [Query.parameter] | nil, Query.view_map) ::
+  @spec compile(DataSource.t, Parser.parsed_query, [Query.parameter] | nil, Query.view_map, options) ::
     {:ok, Query.t} | {:error, String.t}
-  def compile(data_source, parsed_query, parameters, views) do
+  def compile(data_source, parsed_query, parameters, views, options \\ []) do
     try do
       %Query{
         data_source: data_source,
@@ -26,7 +28,7 @@ defmodule Cloak.Sql.Compiler do
         views: views
       }
       |> Map.merge(parsed_query)
-      |> compile_prepped_query()
+      |> compile_prepped_query(options)
     rescue
       e in CompilationError -> {:error, e.message}
     end
@@ -63,17 +65,17 @@ defmodule Cloak.Sql.Compiler do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp compile_prepped_query(%Query{command: :show, show: :tables} = query), do:
+  defp compile_prepped_query(%Query{command: :show, show: :tables} = query, _options), do:
     {:ok, %Query{query |
       column_titles: ["name"],
       columns: [%Expression{table: :unknown, constant?: true, name: "name", type: :text}]
     }}
-  defp compile_prepped_query(%Query{command: :show, show: :columns} = query), do:
+  defp compile_prepped_query(%Query{command: :show, show: :columns} = query, _options), do:
     {:ok, %Query{compile_from(query) |
       column_titles: ["name", "type"],
       columns: Enum.map(["name", "type"], &%Expression{table: :unknown, constant?: true, name: &1, type: :text})
     }}
-  defp compile_prepped_query(%Query{command: :select} = query), do:
+  defp compile_prepped_query(%Query{command: :select} = query, options), do:
     {:ok,
       query
       |> compile_from()
@@ -83,7 +85,7 @@ defmodule Cloak.Sql.Compiler do
       |> resolve_references()
       |> verify_columns()
       |> precompile_functions()
-      |> censor_selected_uids()
+      |> censor_selected_uids(options)
       |> verify_joins()
       |> cast_where_clauses()
       |> verify_where_clauses()
@@ -1035,12 +1037,18 @@ defmodule Cloak.Sql.Compiler do
   def column_title({:constant, _, _}, _selected_tables), do: ""
   def column_title({:parameter, _}, _selected_tables), do: ""
 
-  defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
-    columns = for column <- query.columns, do:
-      if is_uid_column?(column), do: Expression.constant(:text, :*), else: column
-    %Query{query | columns: columns}
+  defp censor_selected_uids(%Query{command: :select, subquery?: false} = query, options) do
+    if Keyword.get(options, :censor_selected_uids, true) do
+      %Query{query | columns: Enum.map(query.columns, &censor_selected_uid(&1))}
+    else
+      query
+    end
   end
-  defp censor_selected_uids(query), do: query
+  defp censor_selected_uids(query, _options), do: query
+
+  defp censor_selected_uid(column) do
+    if is_uid_column?(column), do: Expression.constant(:text, :*), else: column
+  end
 
   defp is_uid_column?(%Expression{aggregate?: true}), do: false
   defp is_uid_column?(column), do: [column] |> extract_columns() |> Enum.any?(& &1.user_id?)
