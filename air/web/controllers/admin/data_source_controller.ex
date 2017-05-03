@@ -78,7 +78,8 @@ defmodule Air.Admin.DataSourceController do
     render(conn, "show.html",
       data_source: data_source,
       conn: conn,
-      users: users
+      users: users,
+      problems: Air.Service.Warnings.problems_for_resource(data_source)
     )
   end
 

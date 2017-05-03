@@ -10,13 +10,7 @@
   <% end %>
 </h2>
 
-<%= if Air.Schemas.DataSource.errors(@data_source) != [] do %>
-  <div class="alert alert-danger">
-    <%= for error <- Air.Schemas.DataSource.errors(@data_source) do %>
-      <div><%= error %></div>
-    <% end %>
-  </div>
-<% end %>
+<%= render Air.Admin.WarningsView, "_warnings.html", conn: @conn, problems: @problems %>
 
 <div class="row">
   <div class="col-md-7">
