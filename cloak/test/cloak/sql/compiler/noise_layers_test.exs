@@ -1,4 +1,4 @@
-defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
+defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.Sql.{Compiler, Parser, Expression}
@@ -61,8 +61,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
     test "floating noise layers from a subquery" do
       result = compile!("SELECT COUNT(*) FROM (SELECT * FROM table WHERE numeric = 3) foo", data_source())
 
-      assert [%{name: "numeric", expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
-      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
+      {:subquery, %{ast: subquery}} = result.from
+
+      assert [%{name: "numeric", expressions: [%Expression{name: alias}]}] = result.noise_layers
+      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^alias}, &1))
+      assert 1 = Enum.count(subquery.db_columns, &match?(%Expression{name: "numeric", alias: ^alias}, &1))
     end
 
     test "floating noise layers from an aggregating subquery" do
@@ -71,7 +74,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
         data_source()
       )
 
-      assert 1 = Enum.count(result.noise_layers, &match?(%{expressions: [%Expression{name: "numeric"}]}, &1))
+      {:subquery, %{ast: subquery}} = result.from
+
+      assert [%{name: "numeric", expressions: [%Expression{name: alias}]}] = result.noise_layers
+      assert 1 = Enum.count(subquery.db_columns, &match?(%Expression{name: "numeric", alias: ^alias}, &1))
     end
 
     test "floating columns that are not aggregated" do
@@ -106,7 +112,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayer.Test do
         data_source()
       )
 
-      assert [%{name: "numeric", expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
+      assert [%{name: "numeric"}] = result.noise_layers
     end
 
     test "floating complex noise layers through non-aggregating queries" do

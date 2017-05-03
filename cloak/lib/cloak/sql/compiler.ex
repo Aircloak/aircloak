@@ -154,7 +154,7 @@ defmodule Cloak.Sql.Compiler do
       do: %{query | noise_layers: query |> noise_layers() |> Enum.map(&float_noise_layer(&1, query))},
       else: %{query | noise_layers: query |> noise_layers()}
   defp calculate_noise_layers(query), do:
-    %{query | noise_layers: query |> noise_layers()}
+    %{query | noise_layers: query |> noise_layers() |> unalias_noise_layers()}
 
   defp noise_layers(query) do
     new_layers =
@@ -163,7 +163,7 @@ defmodule Cloak.Sql.Compiler do
       |> Query.Lenses.leaf_expressions()
       |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
       |> Lens.to_list(query)
-      |> Enum.map(&NoiseLayer.new(&1.name, [&1]))
+      |> Enum.map(&NoiseLayer.new(&1.name, [alias_column(&1)]))
 
     floated_layers =
       Query.Lenses.subquery_noise_layers()
@@ -184,12 +184,12 @@ defmodule Cloak.Sql.Compiler do
     }
   end
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression]}, query) do
-    if aggregate_query?(query) and not aggregated_column?(expression, query) do
+    if not aggregated_column?(unalias_column(expression), query) do
       %{noise_layer | expressions:
         [
-          Expression.function("min", [expression], expression.type, _aggregate = true),
-          Expression.function("max", [expression], expression.type, _aggregate = true),
-          Expression.function("count", [expression], :integer, _aggregate = true),
+          Expression.function("min", [unalias_column(expression)], expression.type, _aggregate = true),
+          Expression.function("max", [unalias_column(expression)], expression.type, _aggregate = true),
+          Expression.function("count", [unalias_column(expression)], :integer, _aggregate = true),
         ]
         |> Enum.map(&alias_column/1)
       }
@@ -198,7 +198,12 @@ defmodule Cloak.Sql.Compiler do
     end
   end
 
+  defp unalias_noise_layers(layers), do:
+    update_in(layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()], &unalias_column/1)
+
   def reference_aliased(column), do: %Expression{name: column.alias || column.name}
+
+  def unalias_column(column), do: %{column | alias: nil}
 
 
   # -------------------------------------------------------------------
@@ -1121,12 +1126,8 @@ defmodule Cloak.Sql.Compiler do
 
   defp calculate_db_columns(query) do
     select_expressions(query) ++ range_columns(query) ++ noise_layer_columns(query)
-    |> Enum.map(&normalize_db_column/1)
     |> Enum.reduce(query, &Query.add_db_column(&2, &1))
   end
-
-  defp normalize_db_column(expression = %Expression{name: x, alias: x}), do: %{expression | alias: nil}
-  defp normalize_db_column(expression), do: expression
 
   defp noise_layer_columns(%{noise_layers: noise_layers, emulated?: true, subquery?: true}), do:
     Enum.flat_map(noise_layers, &(&1.expressions)) |> Enum.map(fn(column) ->
