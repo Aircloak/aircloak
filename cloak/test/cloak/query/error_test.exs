@@ -103,6 +103,11 @@ defmodule Cloak.Query.ErrorTest do
     assert ~s/Expression `max` is not valid in the `WHERE` clause./ == error
   end
 
+  test "query reports error on cast in a where clause" do
+    assert_query "select name from test_errors where cast(height as integer) >= 100", %{error: error}
+    assert ~s/Column `cast` must be limited to a finite range./ == error
+  end
+
   test "query reports error on invalid group by position" do
     assert_query "select name from test_errors group by 0",
       %{error: "`GROUP BY` position `0` is out of the range of selected columns."}
