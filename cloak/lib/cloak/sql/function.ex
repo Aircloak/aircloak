@@ -135,6 +135,7 @@ defmodule Cloak.Sql.Function do
 
   @doc "Returns true if the function has the specified attribute, false otherise."
   @spec has_attribute?(t | String.t | nil, atom) :: boolean
+  def has_attribute?("coalesce", _attribute), do: false # coalesce is only used internally
   def has_attribute?({:function, name, _}, attribute), do: has_attribute?(name, attribute)
   def has_attribute?(%Expression{function?: true, function: name}, attribute), do: has_attribute?(name, attribute)
   def has_attribute?(name, attribute) when is_binary(name), do: attribute in Map.get(@functions[name], :attributes, [])
