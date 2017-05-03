@@ -41,7 +41,7 @@ defmodule Cloak.Test.DB do
   def register_test_table(table_id, db_name, opts \\ []) do
     default = %{
       db_name: db_name,
-      user_id: (if Keyword.get(opts, :add_user_id, true), do: "user_id", else: Keyword.get(opts, :user_id)),
+      user_id: (if Keyword.get(opts, :add_user_id, true), do: "user_id", else: nil),
       decoders: [],
       projection: nil
     }
