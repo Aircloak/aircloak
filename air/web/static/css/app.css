@@ -200,3 +200,18 @@ body.outdated {
   width: auto;
   display: inline;
 }
+
+.has-warnings a {
+  background-color: red;
+  color: white !important;
+}
+
+.has-warnings a:hover {
+  background-color: red !important;
+  color: #e5e5e5 !important;
+}
+
+.has-warnings a .badge {
+  background-color: white;
+  color: black;
+}

@@ -4,6 +4,8 @@ defmodule Air.ViewHelpers do
   import Phoenix.HTML.Tag, only: [content_tag: 3]
   import Phoenix.HTML.Link, only: [link: 2]
 
+  alias Air.Service.Warnings
+
   @doc "Verifies if the currently logged-in user has permissions on the given action."
   @spec permitted?(Plug.Conn.t, module, atom) :: boolean
   def permitted?(conn, controller, action) do
@@ -56,6 +58,32 @@ defmodule Air.ViewHelpers do
   @spec to_json(any) :: {:safe, iodata}
   def to_json(term) do
     {:safe, Poison.encode!(term)}
+  end
+
+  @doc "Conditionally creates a navbar link if there are warnings"
+  @spec warning_navbar_link(Plug.Conn.t) :: {:safe, [any]}
+  def warning_navbar_link(conn) do
+    if Warnings.known_problems?() do
+      path = Air.Router.Helpers.admin_warnings_path(conn, :index)
+      navbar_link(conn, warnings_title(), path, class: "has-warnings")
+    else
+      {:safe, []}
+    end
+  end
+
+  @doc "Warnings title"
+  @spec warnings_title() :: [any]
+  def warnings_title() do
+    num_warnings = length(Warnings.problems())
+    [badge(num_warnings), " ", Inflex.inflect("Warning", num_warnings)]
+  end
+
+  @doc "Returns a bootstrap badge"
+  @spec badge(any()) :: {:safe, [any]}
+  def badge(content) do
+    content_tag(:span, class: "badge") do
+      content
+    end
   end
 
   @doc """
