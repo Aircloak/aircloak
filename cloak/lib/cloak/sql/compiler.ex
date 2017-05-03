@@ -3,6 +3,7 @@ defmodule Cloak.Sql.Compiler do
 
   alias Cloak.{CyclicGraph, DataSource}
   alias Cloak.Sql.{Expression, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Range}
+  alias Cloak.Sql.Query.Lenses
   alias Cloak.Query.DataDecoder
 
   defmodule CompilationError do
@@ -91,13 +92,13 @@ defmodule Cloak.Sql.Compiler do
       |> align_join_ranges()
       |> add_subquery_ranges()
       |> verify_having()
+      |> optimize_columns_from_projected_tables()
       |> set_emulation_flag()
       |> partition_where_clauses()
       |> calculate_db_columns()
       |> verify_limit()
       |> verify_offset()
       |> TypeChecker.validate_allowed_usage_of_math_and_functions()
-      |> optimize_columns_from_projected_tables()
       |> parse_row_splitters()
       |> compute_aggregators()
     }
@@ -213,22 +214,27 @@ defmodule Cloak.Sql.Compiler do
     # has been initially generated, so no need to do anything.
     query
 
+  defp used_columns_from_table(query, table_name) do
+    all_terminals = Lens.both(Lenses.terminals(), Lenses.join_conditions_terminals()) |> Lens.to_list(query)
+    Lenses.leaf_expressions()
+    |> Lens.to_list(all_terminals)
+    |> Enum.filter(& &1.table != :unknown and &1.table.name == table_name)
+    |> Enum.uniq_by(&Expression.id/1)
+  end
+
   defp required_column_names(query, projected_subquery), do:
     [
       # append uid column
       DataSource.table(projected_subquery.ast.data_source, projected_subquery.alias).user_id |
       # all db columns of the outer query which are from this projected table
-      query |> Query.required_columns_from_table(projected_subquery.alias) |> Enum.map(& &1.name)
+      query |> used_columns_from_table(projected_subquery.alias) |> Enum.map(& &1.name)
     ]
 
   defp optimized_projected_subquery_ast(ast, required_column_names) do
     columns = Enum.filter(ast.columns, & &1.name in required_column_names)
     titles = Enum.filter(ast.column_titles, & &1 in required_column_names)
-    %Query{ast |
-      next_row_index: 0, db_columns: [],
-      columns: columns,
-      column_titles: titles
-    }
+    %Query{ast | next_row_index: 0, db_columns: [], columns: columns, column_titles: titles}
+    |> set_emulation_flag()
     |> calculate_db_columns()
   end
 
