@@ -30,9 +30,19 @@ defmodule Cloak.Query.Rows do
       |> Enum.into(%{})
 
     rows
-    |> Enum.filter(&filter_group(&1, columns, query))
+    |> Enum.filter(&having?(&1, columns, query))
     |> Enum.map(&selected_values(&1, columns, columns_to_select))
   end
+
+  @doc """
+  Checks if the given row satisfies the having conditions of the query.
+
+  The columns argument is a map from expression to index in the row.
+  """
+  @spec having?(Enumerable.t, %{Expression.t => integer}, Query.t) :: boolean
+  def having?(row, columns, query), do:
+    Enum.all?(query.having, &matches_having_condition?(row, &1, columns))
+
 
   @doc "Groups input rows according to the query specification."
   @spec group(Enumerable.t, Query.t, group_data, group_updater) :: groups
@@ -91,9 +101,6 @@ defmodule Cloak.Query.Rows do
       :error -> Expression.value(column, row)
     end
   end
-
-  defp filter_group(row, columns, query), do:
-    Enum.all?(query.having, &matches_having_condition?(row, &1, columns))
 
   defp matches_having_condition?(row, {:comparison, column, operator, target}, columns) do
     value = fetch_value!(row, column, columns)

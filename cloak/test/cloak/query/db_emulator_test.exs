@@ -192,6 +192,14 @@ defmodule Cloak.Query.DBEmulatorTest do
           from #{@prefix}emulated group by user_id) as t
         """, %{rows: [%{occurrences: 20, row: [:*, ~D[2013-02-08], ~D[2016-11-02], ~D[2014-02-04]]}]}
     end
+
+    test "selecting a grouped column under an alias" do
+      assert_query """
+        select * from (
+          select user_id, value, value as alias from #{@prefix}emulated where value = 'x' group by user_id, value
+        ) foo
+      """, %{rows: [%{occurrences: 20, row: [:*, "x", "x"]}]}
+    end
   end
 
   describe "distinct in emulated subqueries" do
