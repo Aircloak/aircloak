@@ -17,7 +17,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   def select(stream, query) do
     {columns, rows} =
       stream
-      |> Rows.filter(Enum.map(query.where, &Comparison.to_function/1))
+      |> Rows.filter(Enum.map(query.emulated_where, &Comparison.to_function/1))
       |> select_columns(query)
 
     rows

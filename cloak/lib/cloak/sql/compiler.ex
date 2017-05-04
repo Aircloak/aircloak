@@ -3,6 +3,7 @@ defmodule Cloak.Sql.Compiler do
 
   alias Cloak.{CyclicGraph, DataSource}
   alias Cloak.Sql.{Expression, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Range}
+  alias Cloak.Sql.Query.Lenses
   alias Cloak.Query.DataDecoder
 
   defmodule CompilationError do
@@ -91,13 +92,13 @@ defmodule Cloak.Sql.Compiler do
       |> align_join_ranges()
       |> add_subquery_ranges()
       |> verify_having()
+      |> optimize_columns_from_projected_tables()
       |> set_emulation_flag()
       |> partition_where_clauses()
       |> calculate_db_columns()
       |> verify_limit()
       |> verify_offset()
       |> TypeChecker.validate_allowed_usage_of_math_and_functions()
-      |> optimize_columns_from_projected_tables()
       |> parse_row_splitters()
       |> compute_aggregators()
     }
@@ -213,22 +214,27 @@ defmodule Cloak.Sql.Compiler do
     # has been initially generated, so no need to do anything.
     query
 
+  defp used_columns_from_table(query, table_name) do
+    all_terminals = Lens.both(Lenses.terminals(), Lenses.join_conditions_terminals()) |> Lens.to_list(query)
+    Lenses.leaf_expressions()
+    |> Lens.to_list(all_terminals)
+    |> Enum.filter(& &1.table != :unknown and &1.table.name == table_name)
+    |> Enum.uniq_by(&Expression.id/1)
+  end
+
   defp required_column_names(query, projected_subquery), do:
     [
       # append uid column
       DataSource.table(projected_subquery.ast.data_source, projected_subquery.alias).user_id |
       # all db columns of the outer query which are from this projected table
-      query |> Query.required_columns_from_table(projected_subquery.alias) |> Enum.map(& &1.name)
+      query |> used_columns_from_table(projected_subquery.alias) |> Enum.map(& &1.name)
     ]
 
   defp optimized_projected_subquery_ast(ast, required_column_names) do
     columns = Enum.filter(ast.columns, & &1.name in required_column_names)
     titles = Enum.filter(ast.column_titles, & &1 in required_column_names)
-    %Query{ast |
-      next_row_index: 0, db_columns: [],
-      columns: columns,
-      column_titles: titles
-    }
+    %Query{ast | next_row_index: 0, db_columns: [], columns: columns, column_titles: titles}
+    |> set_emulation_flag()
     |> calculate_db_columns()
   end
 
@@ -741,9 +747,20 @@ defmodule Cloak.Sql.Compiler do
   end
 
   defp partition_where_clauses(query) do
-    # extract conditions using encoded columns
-    {emulated_column_clauses, safe_clauses} = Enum.partition(query.where, &emulated_expression_condition?/1)
+    # extract conditions needing emulation
+    {emulated_column_clauses, safe_clauses} = Enum.partition(query.where, fn (condition) ->
+      emulated_expression_condition?(condition) or
+      (query.emulated? and multiple_tables_condition?(condition))
+    end)
     %Query{query | where: safe_clauses, emulated_where: emulated_column_clauses}
+  end
+
+  defp multiple_tables_condition?(condition) do
+    Query.Lenses.conditions_terminals()
+    |> Lens.to_list([condition])
+    |> Enum.map(& &1.table)
+    |> Enum.uniq()
+    |> Enum.count() > 1
   end
 
   defp verify_joins(%Query{projected?: true} = query), do: query
@@ -1057,8 +1074,7 @@ defmodule Cloak.Sql.Compiler do
     query.group_by ++
     query.emulated_where ++
     query.having ++
-    Query.order_by_expressions(query) ++
-    if query.emulated?, do: query.where, else: []
+    Query.order_by_expressions(query)
 
   defp id_column(query) do
     id_columns = all_id_columns_from_tables(query)
@@ -1186,11 +1202,12 @@ defmodule Cloak.Sql.Compiler do
   defp emulated_expression?(expression), do:
     DataDecoder.needs_decoding?(expression) or Function.has_attribute?(expression, :emulated)
 
-  defp emulated_expression_condition?(condition), do:
+  defp emulated_expression_condition?(condition) do
     Comparison.verb(condition) != :is and
-    [condition]
-    |> get_in([Query.Lenses.conditions_terminals()])
+    Query.Lenses.conditions_terminals()
+    |> Lens.to_list([condition])
     |> Enum.any?(&emulated_expression?/1)
+  end
 
   defp set_emulation_flag(query), do: %Query{query | emulated?: needs_emulation?(query)}
 
