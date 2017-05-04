@@ -765,10 +765,30 @@ defmodule Cloak.Sql.Compiler do
 
   defp verify_joins(%Query{projected?: true} = query), do: query
   defp verify_joins(query) do
+    query = remove_redundant_uid_casts(query)
+
     join_conditions_scope_check!(query.from)
     ensure_all_uid_columns_are_compared_in_joins!(query)
+
     query
   end
+
+  defp remove_redundant_uid_casts(query), do:
+    # Tableau explicitly casts string columns to text, which makes problem for our join condition check.
+    # To fix that, we're replacing every cast of an uid column with the plain column reference, if
+    # the cast doesn't change the column type.
+    Query.Lenses.filter_clauses()
+    |> Lens.all()
+    |> Lens.satisfy(&match?({:comparison, _lhs, :=, _rhs}, &1))
+    |> Query.Lenses.operands()
+    |> Lens.satisfy(&redundant_uid_cast?/1)
+    |> Lens.map(query, &hd(&1.function_args))
+
+  defp redundant_uid_cast?(expression), do:
+    match?(
+      %Expression{function: {:cast, type}, function_args: [%Expression{user_id?: true, type: type}]},
+      expression
+    )
 
   defp ensure_all_uid_columns_are_compared_in_joins!(query), do:
     CyclicGraph.with(fn(graph) ->

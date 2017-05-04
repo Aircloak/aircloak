@@ -369,6 +369,11 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error =~ ~r/Missing where comparison.*`t1` and `t3`/
   end
 
+  test "rejecting a join when cast changes the uid type" do
+    assert {:error, error} = compile("SELECT t1.c1 from t1, t2 WHERE cast(t1.uid as text) = t2.uid", data_source())
+    assert error =~ ~r/Missing where comparison.*`t1` and `t2`/
+  end
+
   Enum.each(["count", "min", "max", "median", "stddev"], fn(function) ->
     test "allows qualified identifiers in function calls (function #{function})" do
       assert %{columns: [%Expression{function: unquote(function), function_args: [column("table", "numeric")]}]} =
