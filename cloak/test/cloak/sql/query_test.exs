@@ -4,6 +4,10 @@ defmodule Cloak.Sql.QueryTest do
   alias Cloak.Sql.Query
 
   setup_all do
+    :ok = Cloak.Test.DB.create_table("feat_describe", "id INTEGER, t TEXT, f FLOAT, b BOOLEAN, d TIMESTAMP",
+      add_user_id: false,
+      user_id: "id"
+    )
     :ok = Cloak.Test.DB.create_table("feat_users", "height INTEGER, name TEXT, male BOOLEAN")
     :ok = Cloak.Test.DB.create_table("feat_purchases", "price INTEGER, name TEXT, datetime TIMESTAMP")
     :ok = Cloak.Test.DB.create_table("feat_emulated_users", "height TEXT, width TEXT", decoders: [
@@ -191,6 +195,12 @@ defmodule Cloak.Sql.QueryTest do
     assert columns == ["x"]
     assert capabilities.selected_types == ["boolean"]
     assert capabilities.parameter_types == ["boolean"]
+  end
+
+  test "describing select *" do
+    assert {:ok, columns, capabilities} = describe_query("select * from feat_describe")
+    assert columns == ["id", "t", "f", "b", "d"]
+    assert capabilities.selected_types == ["integer", "text", "real", "boolean", "datetime"]
   end
 
   test "late bound parameters must be casted" do

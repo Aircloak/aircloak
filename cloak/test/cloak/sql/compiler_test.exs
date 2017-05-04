@@ -825,6 +825,10 @@ defmodule Cloak.Sql.Compiler.Test do
       projected_table_db_column_indices(compile!("select a, b from projected_table", data_source()))
   end
 
+  test "filtered column is retrieved from a projected table", do:
+    assert ["table.uid", "projected_table.a"] ==
+      projected_table_db_column_names(compile!("select count(*) from projected_table where a=1", data_source()))
+
   test "rejecting non-selected ORDER BY with an aggregator function" do
     assert {:error, "Column `float` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
       compile("SELECT SUM(numeric) FROM table ORDER BY float", data_source())

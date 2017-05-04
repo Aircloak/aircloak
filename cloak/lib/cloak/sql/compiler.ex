@@ -3,6 +3,7 @@ defmodule Cloak.Sql.Compiler do
 
   alias Cloak.{CyclicGraph, DataSource}
   alias Cloak.Sql.{Expression, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Range, NoiseLayer}
+  alias Cloak.Sql.Query.Lenses
   alias Cloak.Query.DataDecoder
 
   defmodule CompilationError do
@@ -91,6 +92,7 @@ defmodule Cloak.Sql.Compiler do
       |> align_join_ranges()
       |> add_subquery_ranges()
       |> verify_having()
+      |> optimize_columns_from_projected_tables()
       |> set_emulation_flag()
       |> partition_where_clauses()
       |> calculate_noise_layers()
@@ -98,7 +100,6 @@ defmodule Cloak.Sql.Compiler do
       |> verify_limit()
       |> verify_offset()
       |> TypeChecker.validate_allowed_usage_of_math_and_functions()
-      |> optimize_columns_from_projected_tables()
       |> parse_row_splitters()
       |> compute_aggregators()
     }
@@ -276,22 +277,27 @@ defmodule Cloak.Sql.Compiler do
     # has been initially generated, so no need to do anything.
     query
 
+  defp used_columns_from_table(query, table_name) do
+    all_terminals = Lens.both(Lenses.terminals(), Lenses.join_conditions_terminals()) |> Lens.to_list(query)
+    Lenses.leaf_expressions()
+    |> Lens.to_list(all_terminals)
+    |> Enum.filter(& &1.table != :unknown and &1.table.name == table_name)
+    |> Enum.uniq_by(&Expression.id/1)
+  end
+
   defp required_column_names(query, projected_subquery), do:
     [
       # append uid column
       DataSource.table(projected_subquery.ast.data_source, projected_subquery.alias).user_id |
       # all db columns of the outer query which are from this projected table
-      query |> Query.required_columns_from_table(projected_subquery.alias) |> Enum.map(& &1.name)
+      query |> used_columns_from_table(projected_subquery.alias) |> Enum.map(& &1.name)
     ]
 
   defp optimized_projected_subquery_ast(ast, required_column_names) do
     columns = Enum.filter(ast.columns, & &1.name in required_column_names)
     titles = Enum.filter(ast.column_titles, & &1 in required_column_names)
-    %Query{ast |
-      next_row_index: 0, db_columns: [],
-      columns: columns,
-      column_titles: titles
-    }
+    %Query{ast | next_row_index: 0, db_columns: [], columns: columns, column_titles: titles}
+    |> set_emulation_flag()
     |> calculate_db_columns()
   end
 
@@ -817,9 +823,20 @@ defmodule Cloak.Sql.Compiler do
   end
 
   defp partition_where_clauses(query) do
-    # extract conditions using encoded columns
-    {emulated_column_clauses, safe_clauses} = Enum.partition(query.where, &emulated_expression_condition?/1)
+    # extract conditions needing emulation
+    {emulated_column_clauses, safe_clauses} = Enum.partition(query.where, fn (condition) ->
+      emulated_expression_condition?(condition) or
+      (query.emulated? and multiple_tables_condition?(condition))
+    end)
     %Query{query | where: safe_clauses, emulated_where: emulated_column_clauses}
+  end
+
+  defp multiple_tables_condition?(condition) do
+    Query.Lenses.conditions_terminals()
+    |> Lens.to_list([condition])
+    |> Enum.map(& &1.table)
+    |> Enum.uniq()
+    |> Enum.count() > 1
   end
 
   defp verify_joins(%Query{projected?: true} = query), do: query
@@ -835,8 +852,13 @@ defmodule Cloak.Sql.Compiler do
       |> all_id_columns_from_tables()
       |> Enum.each(&CyclicGraph.add_vertex(graph, {&1.table.name, &1.name}))
 
-      for {col1, col2} <- uid_columns_compared_in_joins(query), do:
-        CyclicGraph.connect!(graph, {col1.table.name, col1.name}, {col2.table.name, col2.name})
+      for {:comparison, column1, :=, column2} <- query.where ++ all_join_conditions(query.from),
+          column1.user_id?,
+          column2.user_id?,
+          column1 != column2
+      do
+        CyclicGraph.connect!(graph, {column1.table.name, column1.name}, {column2.table.name, column2.name})
+      end
 
       with [{{table1, column1}, {table2, column2}} | _] <- CyclicGraph.disconnected_pairs(graph) do
         raise CompilationError,
@@ -846,28 +868,6 @@ defmodule Cloak.Sql.Compiler do
             "condition to the `WHERE` clause."
       end
     end)
-
-  defp uid_columns_compared_in_joins(query) do
-    for {:comparison, column1, :=, column2} <- query.where ++ all_join_conditions(query.from),
-        # We're stripping the outermost cast expression. The reason is because Tableau always casts joined
-        # columns to text. In other words, it will always create:
-        #   `ON CAST(t1.uid as TEXT) = CAST(t2.uid as TEXT)`
-        # To handle this, we're going to remove the outer cast, thus ensuring we notice that uid columns
-        # are compared in the join.
-        column1 = remove_outer_cast(column1),
-        column2 = remove_outer_cast(column2),
-        column1 != column2,
-        column1.user_id?,
-        column2.user_id?
-    do
-      {column1, column2}
-    end
-  end
-
-  defp remove_outer_cast(%Expression{function: {:cast, _}, function_args: [expr]}), do:
-    expr
-  defp remove_outer_cast(expr), do:
-    expr
 
   @spec all_join_conditions(Parser.from_clause) :: [Parser.where_clause]
   defp all_join_conditions({:join, join}) do
@@ -1113,7 +1113,7 @@ defmodule Cloak.Sql.Compiler do
 
   defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
     columns = for column <- query.columns, do:
-      if is_uid_column?(column), do: Expression.constant(:text, :*), else: column
+      if is_uid_column?(column), do: Expression.constant(column.type, :*), else: column
     %Query{query | columns: columns}
   end
   defp censor_selected_uids(query), do: query
@@ -1164,8 +1164,7 @@ defmodule Cloak.Sql.Compiler do
     query.group_by ++
     query.emulated_where ++
     query.having ++
-    Query.order_by_expressions(query) ++
-    if query.emulated?, do: query.where, else: []
+    Query.order_by_expressions(query)
 
   defp id_column(query) do
     id_columns = all_id_columns_from_tables(query)
@@ -1293,11 +1292,12 @@ defmodule Cloak.Sql.Compiler do
   defp emulated_expression?(expression), do:
     DataDecoder.needs_decoding?(expression) or Function.has_attribute?(expression, :emulated)
 
-  defp emulated_expression_condition?(condition), do:
+  defp emulated_expression_condition?(condition) do
     Comparison.verb(condition) != :is and
-    [condition]
-    |> get_in([Query.Lenses.conditions_terminals()])
+    Query.Lenses.conditions_terminals()
+    |> Lens.to_list([condition])
     |> Enum.any?(&emulated_expression?/1)
+  end
 
   defp set_emulation_flag(query), do: %Query{query | emulated?: needs_emulation?(query)}
 
