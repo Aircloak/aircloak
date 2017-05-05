@@ -49,7 +49,7 @@ defmodule Air.Service.Warnings do
   defp severity_to_number(:low), do: 3
 
   defp data_source_problems() do
-    data_sources = DataSource.all()
+    data_sources = DataSource.all() |> Repo.preload([groups: :users])
     offline_datasources(data_sources)
       ++ broken_datasources(data_sources)
       ++ no_group(data_sources)
@@ -57,7 +57,7 @@ defmodule Air.Service.Warnings do
   end
 
   def problems_for_data_source(data_source) do
-    data_source = Repo.preload(data_source, [:groups])
+    data_source = Repo.preload(data_source, [groups: :users])
     offline_datasources([data_source])
       ++ broken_datasources([data_source])
       ++ no_group([data_source])
@@ -93,7 +93,6 @@ defmodule Air.Service.Warnings do
     data_sources
     |> Enum.reject(fn(data_source) ->
       Enum.any?(data_source.groups, fn(group) ->
-        group = Repo.preload(group, [:users])
         length(group.users) > 0
       end)
     end)
