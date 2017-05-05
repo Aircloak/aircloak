@@ -69,7 +69,8 @@ defmodule Cloak.DataSource.MySQL do
         |> result_processor.()
       end, [timeout: :timer.hours(2)])
     rescue
-      error in Mariaex.Error -> raise RuntimeError, message: "`#{Exception.message(error)}`"
+      error in Mariaex.Error ->
+        raise RuntimeError, message: "Driver exception: `#{Exception.message(error)}`"
     end
   end
 

@@ -78,6 +78,9 @@ defmodule Cloak.DataSource.PostgreSQL do
         after
           Postgrex.close(connection, query)
         end
+      else
+        {:error, error} ->
+          raise RuntimeError, message: "Driver exception: `#{Exception.message(error)}`"
       end
     end, [timeout: :timer.hours(4)])
   end

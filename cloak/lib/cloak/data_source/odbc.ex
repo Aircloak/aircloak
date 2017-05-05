@@ -25,7 +25,7 @@ defmodule Cloak.DataSource.ODBC do
       set_dialect(sql_dialect, connection)
       %__MODULE__{sql_dialect: sql_dialect, connection: connection}
     else
-      {:error, reason} -> raise RuntimeError, message: "`#{to_string(reason)}`"
+      {:error, reason} -> raise RuntimeError, message: "Driver exception: `#{to_string(reason)}`"
     end
   end
 
@@ -40,7 +40,7 @@ defmodule Cloak.DataSource.ODBC do
       {:ok, columns} ->
         columns = for {name, type} <- columns, do: {to_string(name), parse_type(type)}
         [%{table | columns: columns}]
-      {:error, reason} -> raise RuntimeError, message: "`#{to_string(reason)}`"
+      {:error, reason} -> raise RuntimeError, message: "Driver exception: `#{to_string(reason)}`"
     end
   end
 
@@ -55,12 +55,12 @@ defmodule Cloak.DataSource.ODBC do
           case :odbc.select(conn, :next, _rows_per_batch = 25_000, _timeout = :timer.minutes(30)) do
             {:selected, _columns, []} -> {:halt, conn}
             {:selected, _columns, rows} -> {Enum.map(rows, &map_fields(&1, field_mappers)), conn}
-            {:error, reason} -> raise RuntimeError, message: "`#{to_string(reason)}`"
+            {:error, reason} -> raise RuntimeError, message: "Driver exception: `#{to_string(reason)}`"
           end
         end, fn (_conn) -> :ok end)
         {:ok, result_processor.(data_stream)}
       {:error, reason} ->
-        {:error, to_string(reason)}
+        raise RuntimeError, message: "Driver exception: `#{to_string(reason)}`"
     end
   end
 
