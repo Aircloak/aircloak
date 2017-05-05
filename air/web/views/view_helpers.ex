@@ -141,14 +141,4 @@ defmodule Air.ViewHelpers do
   def severity_class(:high), do: "danger"
   def severity_class(:medium), do: "warning"
   def severity_class(_), do: ""
-
-  def highest_severity_class(resource) do
-    Air.Service.Warnings.problems_for_resource(resource)
-    |> Enum.map(&(&1.severity))
-    |> Enum.reduce(:low, fn
-      (class, :low) -> class
-      (:high, _) -> :high
-      (_, acc) -> acc
-    end)
-  end
 end

@@ -1,10 +1,12 @@
 defmodule Air.Service.Warnings do
   @moduledoc "A service providing warnings about problems in the system"
 
+  @type severity_class :: :high | :medium | :low
+
   @type problem :: %{
     resource: any,
     description: String.t,
-    severity: :high | :medium | :low,
+    severity: severity_class
   }
 
   alias Air.Service.{DataSource, Cloak}
@@ -34,6 +36,17 @@ defmodule Air.Service.Warnings do
   @spec problems_for_resource(Schemas.DataSource.t) :: [problem]
   def problems_for_resource(%Schemas.DataSource{} = data_source), do:
     problems_for_data_source(data_source)
+
+  @doc "Given a set of problems, returns the highest severity class of any of the problems"
+  @spec highest_severity_class([problem]) :: severity_class
+  def highest_severity_class(problems), do:
+    problems
+    |> Enum.map(&(&1.severity))
+    |> Enum.reduce(:low, fn
+      (class, :low) -> class
+      (:high, _) -> :high
+      (_, acc) -> acc
+    end)
 
 
   #-----------------------------------------------------------------------------------------------------------

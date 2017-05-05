@@ -63,6 +63,15 @@ defmodule Air.Service.WarningsTest do
     end
   end
 
+  describe("highest_severity_class") do
+    test "high is highest", do:
+      assert Warnings.highest_severity_class([%{severity: :high}, %{severity: :medium},
+        %{severity: :low}]) == :high
+
+    test "medium is higher than low", do:
+      assert Warnings.highest_severity_class([%{severity: :medium}, %{severity: :low}]) == :medium
+  end
+
   defp problem_with_description(problems \\ Warnings.problems(), pattern) do
     filtered_problems = problems
     |> Enum.filter(&(&1.description =~ pattern))
