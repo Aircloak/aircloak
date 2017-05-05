@@ -22,8 +22,8 @@ defmodule Air.Service.Warnings do
   Problem range from a data source being offline, to it not being queryable by any users.
   """
   @spec problems() :: [problem]
-  def problems(), do: data_source_problems() |> order_problems()
-
+  def problems(), do:
+    data_source_problems(DataSource.all()) |> order_problems()
 
   @doc """
   Returns a list of a problem for a particular resource.
@@ -31,7 +31,7 @@ defmodule Air.Service.Warnings do
   """
   @spec problems_for_resource(Schemas.DataSource.t) :: [problem]
   def problems_for_resource(%Schemas.DataSource{} = data_source), do:
-    problems_for_data_source(data_source)
+    data_source_problems([data_source]) |> order_problems()
 
   @doc "Given a set of problems, returns the highest severity class of any of the problems"
   @spec highest_severity_class([problem]) :: severity_class
@@ -56,20 +56,12 @@ defmodule Air.Service.Warnings do
   defp severity_to_number(:medium), do: 2
   defp severity_to_number(:low), do: 3
 
-  defp data_source_problems() do
-    data_sources = DataSource.all() |> Repo.preload([groups: :users])
+  defp data_source_problems(data_sources) do
+    data_sources = Repo.preload(data_sources, [groups: :users])
     offline_datasources(data_sources)
       ++ broken_datasources(data_sources)
       ++ no_group(data_sources)
       ++ no_users(data_sources)
-  end
-
-  def problems_for_data_source(data_source) do
-    data_source = Repo.preload(data_source, [groups: :users])
-    offline_datasources([data_source])
-      ++ broken_datasources([data_source])
-      ++ no_group([data_source])
-      ++ no_users([data_source])
   end
 
   defp problem(resource, description, severity \\ :low), do:
