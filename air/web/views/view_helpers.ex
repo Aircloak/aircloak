@@ -58,28 +58,19 @@ defmodule Air.ViewHelpers do
   @doc "Conditionally creates a navbar link if there are warnings"
   @spec warning_navbar_link(Plug.Conn.t) :: {:safe, [any]}
   def warning_navbar_link(conn) do
-    if length(Warnings.problems()) > 0 and admin?(conn) do
+    problems = Warnings.problems()
+    if length(problems) > 0 and admin?(conn) do
       path = Air.Router.Helpers.admin_warnings_path(conn, :index)
-      navbar_link(conn, warnings_title(), path, class: "has-warnings")
+      navbar_link(conn, warnings_title(length(problems)), path, class: "has-warnings")
     else
       {:safe, []}
     end
   end
 
   @doc "Warnings title"
-  @spec warnings_title() :: [any]
-  def warnings_title() do
-    num_warnings = length(Warnings.problems())
-    [badge(num_warnings), " ", Inflex.inflect("Warning", num_warnings)]
-  end
-
-  @doc "Returns a bootstrap badge"
-  @spec badge(any()) :: {:safe, [any]}
-  def badge(content) do
-    content_tag(:span, class: "badge") do
-      content
-    end
-  end
+  @spec warnings_title(non_neg_integer) :: [any]
+  def warnings_title(num_problems), do:
+    [content_tag(:span, [class: "badge"], do: num_problems), " ", Inflex.inflect("Warning", num_problems)]
 
   @doc """
   Generates a navbar link, and highlights the active one
