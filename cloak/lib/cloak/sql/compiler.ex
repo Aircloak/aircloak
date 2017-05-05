@@ -379,9 +379,7 @@ defmodule Cloak.Sql.Compiler do
 
   defp max_column(column), do: Expression.function("max", [column], column.type, true) |> set_unique_alias()
 
-  defp set_unique_alias(column), do: %{column | alias: new_carry_alias()}
-
-  defp new_carry_alias(), do: "carry_#{System.unique_integer([:positive])}"
+  defp set_unique_alias(column), do: %{column | alias: "alias_#{System.unique_integer([:positive])}"}
 
   @minimum_subquery_limit 10
   defp align_limit(query = %{limit: nil}), do: query
