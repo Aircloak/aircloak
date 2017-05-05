@@ -132,7 +132,7 @@ defmodule Cloak.Query.Aggregator do
 
     default_accumulators = List.duplicate(nil, Enum.count(aggregated_columns))
     default_noise_layers = NoiseLayer.new_accumulator(query.noise_layers)
-    merging_fun = &update_group(&1, &2, per_user_aggregators, aggregated_columns, default_accumulators, query)
+    merging_fun = group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query)
 
     rows
     |> Rows.group(query, {%{}, default_noise_layers}, merging_fun)
@@ -140,19 +140,18 @@ defmodule Cloak.Query.Aggregator do
     |> init_anonymizer()
   end
 
-  defp update_group(
-    {user_rows, noise_accumulator}, row, per_user_aggregators, aggregated_columns, default_accumulators, query
-  ) do
-    user_id = user_id(row)
-    values = Enum.map(aggregated_columns, &Expression.value(&1, row))
+  defp group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query), do:
+    fn({user_rows, noise_accumulator}, row) ->
+      user_id = user_id(row)
+      values = Enum.map(aggregated_columns, &Expression.value(&1, row))
 
-    user_rows =
-      user_rows
-      |> Map.put_new(user_id, default_accumulators)
-      |> Map.update!(user_id, &aggregate_values(values, &1, per_user_aggregators))
+      user_rows =
+        user_rows
+        |> Map.put_new(user_id, default_accumulators)
+        |> Map.update!(user_id, &aggregate_values(values, &1, per_user_aggregators))
 
-    {user_rows, NoiseLayer.accumulate(query.noise_layers, noise_accumulator, row)}
-  end
+      {user_rows, NoiseLayer.accumulate(query.noise_layers, noise_accumulator, row)}
+    end
 
   defp init_anonymizer(grouped_rows) do
     for {property, {users_rows, noise_layers}} <- grouped_rows do
