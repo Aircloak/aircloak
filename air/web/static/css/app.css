@@ -201,17 +201,30 @@ body.outdated {
   display: inline;
 }
 
-.has-warnings a {
-  background-color: red;
-  color: white !important;
+
+/* ******************************************************************
+ * Extensions to bootstrap to provide danger elements in the navbar
+ ***************************************************************** */
+
+.nav > li.danger > a,
+.nav > li.danger > a:hover,
+.nav > li.danger > a:focus {
+  color: white;
+  background-color: #d9534f;
 }
 
-.has-warnings a:hover {
-  background-color: red !important;
-  color: #e5e5e5 !important;
+.nav > li.active.danger > a,
+.nav > li.active.danger > a:hover,
+.nav > li.active.danger > a:focus {
+  color: white;
+  background-color: #dd0000;
 }
 
-.has-warnings a .badge {
+.nav > li.danger > a:hover {
+  color: #e5e5e5;
+}
+
+.nav > li.danger > a > span.badge {
   background-color: white;
   color: black;
 }
