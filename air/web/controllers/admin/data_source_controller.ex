@@ -6,6 +6,7 @@ defmodule Air.Admin.DataSourceController do
   use Air.Web, :admin_controller
 
   alias Air.{Schemas.DataSource, Schemas.User}
+  alias Air.Service.Warnings
 
   plug :load_data_source when action in [:show, :edit, :update, :delete]
 
@@ -79,7 +80,7 @@ defmodule Air.Admin.DataSourceController do
       data_source: data_source,
       conn: conn,
       users: users,
-      problems: Air.Service.Warnings.problems_for_resource(data_source)
+      problems: Warnings.problems_for_resource(data_source)
     )
   end
 
