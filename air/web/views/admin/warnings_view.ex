@@ -12,9 +12,7 @@ defmodule Air.Admin.WarningsView do
   defp name(%DataSource{} = resource), do: resource.name
 
   defp resource_link(conn, %DataSource{} = resource), do:
-    link_to(admin_data_source_path(conn, :show, resource.name))
-
-  defp link_to(path), do: link("More", to: path)
+    link("More", to: admin_data_source_path(conn, :show, resource.name))
 
   defp severity(type), do:
     type
