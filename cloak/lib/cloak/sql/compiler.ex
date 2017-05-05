@@ -528,7 +528,6 @@ defmodule Cloak.Sql.Compiler do
   defp aggregate_query?(%Query{command: :select, group_by: [_|_]}), do: true
   defp aggregate_query?(%Query{command: :select} = query), do:
     query |> Query.bucket_columns() |> Enum.any?(&aggregated_column?(&1, query))
-  defp aggregate_query?(_), do: false
 
   defp aggregated_column?(column, query), do:
     Enum.member?(query.group_by, column) or
