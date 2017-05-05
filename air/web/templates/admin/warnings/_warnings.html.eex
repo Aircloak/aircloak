@@ -1,0 +1,26 @@
+<%= if length(@problems) > 0 do %>
+
+<h3>
+  <%= length(@problems) %>
+  <%= Inflex.inflect("Warning", length(@problems)) %>
+</h3>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Severity</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <%= for problem <- @problems do %>
+    <tr class="<%= severity_class(problem.severity) %>">
+      <td><%= severity(problem.severity) %></td>
+      <td><%= problem.description %></td>
+    </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<% end %>

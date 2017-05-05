@@ -14,3 +14,19 @@ label small.newline {
   font-weight: normal;
   font-size: 0.8em;
 }
+
+.nav-pills .warning.active a {
+  background-color: #ff0000;
+  color: white;
+}
+.nav-pills .warning.active a:hover {
+  background-color: #ff0000;
+}
+
+.nav-pills .warning a {
+  background-color: #e93535;
+  color: white;
+}
+.nav-pills .warning a:hover {
+  background-color: #d00000;
+}
