@@ -1,19 +1,21 @@
 defmodule Cloak.DataSource.Validations.Name.Test do
   use ExUnit.Case, async: true
 
+  alias Cloak.DataSource.Validations.Name
+
   describe "ensure_permitted" do
     test "allows valid names", do:
       assert errors_for_name("valid_name") == []
 
     test "add error on missing name" do
       data_source = data_source_config()
-      %{errors: errors} = Cloak.DataSource.Validations.Name.ensure_permitted(data_source)
+      %{errors: errors} = Name.ensure_permitted(data_source)
       assert hd(errors) =~ ~r/needs to be configured with a name/
     end
 
     test "add error on blank name" do
       data_source = data_source_config("")
-      %{errors: errors} = Cloak.DataSource.Validations.Name.ensure_permitted(data_source)
+      %{errors: errors} = Name.ensure_permitted(data_source)
       assert hd(errors) =~ ~r/needs to be configured with a name/
     end
 
@@ -39,7 +41,7 @@ defmodule Cloak.DataSource.Validations.Name.Test do
 
   defp errors_for_name(name) do
     data_source = data_source_config(name)
-    %{errors: errors} = Cloak.DataSource.Validations.Name.ensure_permitted(data_source)
+    %{errors: errors} = Name.ensure_permitted(data_source)
     errors
   end
 
