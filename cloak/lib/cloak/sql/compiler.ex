@@ -157,22 +157,20 @@ defmodule Cloak.Sql.Compiler do
   defp calculate_noise_layers(query), do:
     %{query | noise_layers: query |> noise_layers() |> unalias_noise_layers()}
 
-  defp noise_layers(query) do
-    new_layers =
-      Query.Lenses.filter_clauses()
-      |> Lens.both(Lens.key(:group_by))
-      |> Query.Lenses.leaf_expressions()
-      |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
-      |> Lens.to_list(query)
-      |> Enum.map(&NoiseLayer.new(&1.name, [set_unique_alias(&1)]))
+  defp noise_layers(query), do: new_noise_layers(query) ++ floated_noise_layers(query)
 
-    floated_layers =
-      Query.Lenses.subquery_noise_layers()
-      |> Lens.to_list(query)
-      |> update_in([Lens.all() |> Lens.key(:expressions) |> Lens.all()], &reference_aliased/1)
+  defp new_noise_layers(query), do:
+    Query.Lenses.filter_clauses()
+    |> Lens.both(Lens.key(:group_by))
+    |> Query.Lenses.leaf_expressions()
+    |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
+    |> Lens.to_list(query)
+    |> Enum.map(&NoiseLayer.new(&1.name, [set_unique_alias(&1)]))
 
-    new_layers ++ floated_layers
-  end
+  defp floated_noise_layers(query), do:
+    Query.Lenses.subquery_noise_layers()
+    |> Lens.to_list(query)
+    |> update_in([Lens.all() |> Lens.key(:expressions) |> Lens.all()], &reference_aliased/1)
 
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count]}, _query) do
     %{noise_layer | expressions:
