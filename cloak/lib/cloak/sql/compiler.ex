@@ -335,19 +335,16 @@ defmodule Cloak.Sql.Compiler do
     end
   end
 
+  defp float_emulated_noise_layers(query = %{emulated?: false}), do: query
   defp float_emulated_noise_layers(query) do
-    if query.emulated? do
-      noise_columns = get_in(query.noise_layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()]) -- query.columns
+    noise_columns = get_in(query.noise_layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()]) -- query.columns
 
-      %{
-        query |
-        columns: query.columns ++ noise_columns,
-        column_titles: query.column_titles ++ Enum.map(noise_columns, &(&1.alias || &1.name)),
-        aggregators: query.aggregators ++ Enum.filter(noise_columns, &(&1.aggregate?)),
-      }
-    else
-      query
-    end
+    %{
+      query |
+      columns: query.columns ++ noise_columns,
+      column_titles: query.column_titles ++ Enum.map(noise_columns, &(&1.alias || &1.name)),
+      aggregators: query.aggregators ++ Enum.filter(noise_columns, &(&1.aggregate?)),
+    }
   end
 
   defp carry_ranges(query) do
