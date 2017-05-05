@@ -20,9 +20,8 @@ defmodule Air.Service.Warnings do
   def known_problems?(), do: problems() !== []
 
   @doc """
-  Returns a list of problems. The list contains a structured
-  set of problems, containing the name of the resource that is having a problem,
-  a problem description, along with a link leading to the affected resource.
+  Returns a list of problems encountered in the system.
+  Problem range from a data source being offline, to it not being queryable by any users.
   """
   @spec problems() :: [problem]
   def problems(), do: data_source_problems() |> order_problems()
