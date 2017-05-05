@@ -76,6 +76,10 @@ defmodule Air.Service.Warnings do
 
   defp broken_datasources(data_sources), do:
     data_sources
+    # Rejecting is significantly easier than filtering in this case (even though it reads in a slightly more
+    # convoluted way). The reason is that the error conditions is a non-empty list encoded as a string.
+    # We could match on a length greater than 2, but that obfuscates the intention. Once the errors are saved
+    # as a map, this logic can be improved.
     |> Enum.reject(&(&1.errors === "" or &1.errors === "[]"))
     |> Enum.flat_map(&unwrap_errors(&1, :medium))
 
@@ -86,15 +90,11 @@ defmodule Air.Service.Warnings do
 
   defp no_group(data_sources), do:
     data_sources
-    |> Enum.reject(&(length(&1.groups) > 0))
+    |> Enum.filter(&(length(&1.groups) == 0))
     |> Enum.map(&problem(&1, "No groups have been given access to the data source. It cannot be queried"))
 
   defp no_users(data_sources), do:
     data_sources
-    |> Enum.reject(fn(data_source) ->
-      Enum.any?(data_source.groups, fn(group) ->
-        length(group.users) > 0
-      end)
-    end)
+    |> Enum.filter(fn(data_source) -> Enum.all?(data_source.groups, &(length(&1.users) == 0)) end)
     |> Enum.map(&problem(&1, "No users have access to this data source"))
 end
