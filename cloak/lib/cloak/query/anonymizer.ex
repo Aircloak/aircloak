@@ -31,7 +31,8 @@ defmodule Cloak.Query.Anonymizer do
   """
 
   @opaque t :: %{
-    rng: :rand.state
+    rngs: [:rand.state],
+    sd_per_layer: float,
   }
 
   import Kernel, except: [max: 2]
@@ -42,15 +43,18 @@ defmodule Cloak.Query.Anonymizer do
   # -------------------------------------------------------------------
 
   @doc """
-  Creates a noise generator from a collection of unique user ids.
+  Creates a noise generator from a collection of sets of values representing noise layers.
 
-  This function takes either a `MapSet` containing user ids, or a map where
-  keys are user ids. Such types ensure that user ids are unique.
+  Each noise layer must be either a `MapSet`, or a map (in which case the keys are used).
+  Such types ensure that user ids are unique.
   """
-  @spec new(MapSet.t | %{String.t => any} | [any]) :: t
-  def new(%MapSet{} = users), do: new_instance(users)
-  def new(%{} = users_map), do: new_instance(Map.keys(users_map))
-  def new(users) when is_list(users), do: new_instance(users)
+  @spec new([MapSet.t | %{String.t => any}]) :: t
+  def new([_|_] = layers), do:
+    %{
+      sd_per_layer: sd_per_layer(length(layers)),
+      rngs: Enum.map(layers, &:rand.seed(:exsplus, seed(&1)))
+    }
+
 
   @doc """
   Returns a `{boolean, anonymizer}` tuple, where the boolean value is
@@ -201,15 +205,14 @@ defmodule Cloak.Query.Anonymizer do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp new_instance(unique_users) do
-    %{rng: :rand.seed(:exsplus, seed(unique_users))}
-  end
+  defp seed(%MapSet{} = values), do: do_seed(values)
+  defp seed(%{} = values), do: values |> Map.keys() |> do_seed()
 
-  defp seed(unique_users) do
-    unique_users
-    |> Enum.reduce(compute_hash(config(:salt)), fn (user, accumulator) ->
-      user
-      |> to_string()
+  defp do_seed(unique_values) do
+    unique_values
+    |> Enum.reduce(compute_hash(config(:salt)), fn (value, accumulator) ->
+      value
+      |> :erlang.term_to_binary()
       |> compute_hash()
       # since the list is not sorted, using `xor` (which is commutative) will get us consistent results
       |> :crypto.exor(accumulator)
@@ -224,12 +227,21 @@ defmodule Cloak.Query.Anonymizer do
     {a, b, c}
   end
 
-  # Produces a gaussian distributed random number with given mean and standard deviation.
-  defp add_noise(%{rng: rng} = anonymizer, {mean, sd}) do
+  # Produces a gaussian distributed random number with given mean and standard deviation. The actual standard deviation
+  # produced will be slightly larger for anonymizers with 5 or more noise layers.
+  defp add_noise(%{sd_per_layer: sd_per_layer, rngs: rngs} = anonymizer, {mean, sd_scale}) do
+    {noise, rngs} = Enum.reduce(rngs, {0, []}, fn(rng, {noise, rngs}) ->
+      {sample, rng} = gauss(rng)
+      {noise + sample, [rng | rngs]}
+    end)
+
+    {mean + noise * sd_per_layer * sd_scale, %{anonymizer | rngs: Enum.reverse(rngs)}}
+  end
+
+  defp gauss(rng) do
     {rand1, rng} = :rand.uniform_s(rng)
     {rand2, rng} = :rand.uniform_s(rng)
-    noise = sd * gauss(rand1, rand2)
-    {mean + noise, %{anonymizer | rng: rng}}
+    {gauss(rand1, rand2), rng}
   end
 
   # Generates a gaussian distributed random number from two
@@ -364,4 +376,10 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   defp sum_noise_sigmas(sigma1, sigma2), do: :math.sqrt(sigma1 * sigma1 + sigma2 * sigma2)
+
+  # These standard deviations are selected in such a way that for 1, 2, 3, or 4 layers the total SD is 1
+  defp sd_per_layer(1), do: 1
+  defp sd_per_layer(2), do: 0.71
+  defp sd_per_layer(3), do: 0.58
+  defp sd_per_layer(_), do: 0.5
 end

@@ -40,7 +40,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
     # The column titles in a subquery are not guaranteed to be unique, but that is fine
     # since, if they are not, they can't be referenced exactly either.
     indices = for column <- db_columns, do:
-      Enum.find_index(subquery.ast.column_titles, & &1 == column.name)
+      Enum.find_index(subquery.ast.column_titles, &insensitive_equal?(&1, column.name))
     pick_columns(stream, indices)
   end
   def pick_db_columns(stream, %Query{db_columns: db_columns, from: {:join, join}}) do
@@ -231,7 +231,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
     {:coalesce, Enum.map(args, &get_column_index(columns, &1))}
   defp get_column_index(columns, column), do:
     Enum.find_index(columns, &Expression.id(column) == Expression.id(&1)) ||
-      Enum.find_index(columns, &Expression.id(column) == &1.name)
+      Enum.find_index(columns, &insensitive_equal?(Expression.id(column), &1.name))
 
   defp pick_value(_row, {:coalesce, []}), do: nil
   defp pick_value(row, {:coalesce, [index | rest]}) do
@@ -288,4 +288,6 @@ defmodule Cloak.Query.DbEmulator.Selector do
     table_is_in_join_branch?(table_name, join.lhs) or table_is_in_join_branch?(table_name, join.rhs)
   defp table_is_in_join_branch?(table_name, {:subquery, %{alias: subquery_alias}}), do: table_name == subquery_alias
   defp table_is_in_join_branch?(table_name, joined_table), do: table_name == joined_table
+
+  defp insensitive_equal?(s1, s2), do: String.downcase(s1) == String.downcase(s2)
 end

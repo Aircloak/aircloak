@@ -54,56 +54,56 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
 
   test "inner join with tables in top-query", context do
     assert_query context, """
-        SELECT AVG(salary) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE age = 30
-      """, %{rows: [%{occurrences: 1, row: [95.0]}]}
+      SELECT AVG(salary) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE age = 30
+    """, %{rows: [%{occurrences: 1, row: [95.0]}]}
   end
 
   test "left join with table and sub-query in top-query", context do
     assert_query context, """
-        SELECT age FROM "left" LEFT JOIN (SELECT id AS rid, salary FROM "right") AS t ON id = rid
-      """, %{rows: [%{occurrences: 20, row: [30]}, %{occurrences: 5, row: [nil]}]}
+      SELECT age FROM "left" LEFT JOIN (SELECT id AS rid, salary FROM "right") AS t ON id = rid
+    """, %{rows: [%{occurrences: 20, row: [30]}, %{occurrences: 5, row: [nil]}]}
   end
 
   test "join in top-query with emulated where", context do
     assert_query context, """
-        SELECT count(age) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE salary <> 200
-      """, %{rows: [%{occurrences: 1, row: [13]}]}
+      SELECT count(age) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE salary <> 200
+    """, %{rows: [%{occurrences: 1, row: [13]}]}
   end
 
   test "left join with table and filtered sub-query in filtered top-query", context do
     assert_query context, """
-        SELECT age FROM "left" LEFT JOIN
-        (SELECT id AS rid, salary FROM "right" WHERE salary >= 0 AND salary < 500) AS t
-        ON id = rid WHERE salary = 100
-      """, %{rows: [%{occurrences: 7, row: [30]}]}
+      SELECT age FROM "left" LEFT JOIN
+      (SELECT id AS rid, salary FROM "right" WHERE salary >= 0 AND salary < 500) AS t
+      ON id = rid WHERE salary = 100
+    """, %{rows: [%{occurrences: 7, row: [30]}]}
   end
 
   test "full join with tables in sub-query", context do
     assert_query context, """
-        SELECT COUNT(name) FROM
-        (SELECT "left".id, name, salary FROM "left" FULL JOIN "right" ON "left".id = "right".id) AS t
-        WHERE salary IN (100, 200)
-      """, %{rows: [%{occurrences: 1, row: [14]}]}
+      SELECT COUNT(name) FROM
+      (SELECT "left".id, name, salary FROM "left" FULL JOIN "right" ON "left".id = "right".id) AS t
+      WHERE salary IN (100, 200)
+    """, %{rows: [%{occurrences: 1, row: [14]}]}
   end
 
   test "function in inner join condition", context do
     assert_query context, """
-        SELECT AVG(salary) FROM "left" INNER JOIN "right" ON "left".id = "right".id AND age + 1 = 31
-      """, %{rows: [%{occurrences: 1, row: [95.0]}]}
+      SELECT AVG(salary) FROM "left" INNER JOIN "right" ON "left".id = "right".id AND age + 1 = 31
+    """, %{rows: [%{occurrences: 1, row: [95.0]}]}
   end
 
   test "complex function in inner join condition", context do
     assert_query context, """
-        SELECT AVG(salary) FROM "left" INNER JOIN "right" ON "left".id = "right".id AND round(abs(salary)) = 100
-      """, %{rows: [%{occurrences: 1, row: [100.0]}]}
+      SELECT AVG(salary) FROM "left" INNER JOIN "right" ON "left".id = "right".id AND round(abs(salary)) = 100
+    """, %{rows: [%{occurrences: 1, row: [100.0]}]}
   end
 
   test "inner join with table and sub-query in sub-query", context do
     assert_query context, """
-        SELECT a FROM
-          (SELECT id, age AS a FROM "left" INNER JOIN
-            (SELECT id AS rid FROM "right") AS t ON rid = id) AS t
-        WHERE a = 30
-      """, %{rows: [%{occurrences: 20, row: [30]}]}
+      SELECT a FROM
+        (SELECT id, age AS a FROM "left" INNER JOIN
+          (SELECT id AS rid FROM "right") AS t ON rid = id) AS t
+      WHERE a = 30
+    """, %{rows: [%{occurrences: 20, row: [30]}]}
   end
 end

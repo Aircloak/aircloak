@@ -526,9 +526,9 @@ defmodule Cloak.Sql.Parser do
       {:else, table_name()}
     ])
     |> map(fn
-          {[:subquery], [subquery_data]} -> {:subquery, subquery_data}
-          other -> other
-        end)
+      {[:subquery], [subquery_data]} -> {:subquery, subquery_data}
+      other -> other
+    end)
   end
 
   defp table_name() do
@@ -546,11 +546,9 @@ defmodule Cloak.Sql.Parser do
       option(keyword(:as)),
       label(unquoted_identifier(), "subquery alias")
     ])
-    |> map(
-          fn([select_statement, _as_keyword, alias]) ->
-            %{type: :parsed, ast: statement_map(:select, select_statement), alias: alias}
-          end
-        )
+    |> map(fn([select_statement, _as_keyword, alias]) ->
+      %{ast: statement_map(:select, select_statement), alias: alias}
+    end)
   end
 
   defp table_with_schema() do
@@ -787,9 +785,9 @@ defmodule Cloak.Sql.Parser do
       {:else, noop()}
     ])
     |> map(fn
-          {[:having], [having_expressions]} -> {:having, List.flatten(having_expressions)}
-          other -> other
-        end)
+      {[:having], [having_expressions]} -> {:having, List.flatten(having_expressions)}
+      other -> other
+    end)
   end
 
   defp having_expressions(), do: conjunction_expression(having_expression(), "Invalid having expression.")
@@ -801,10 +799,10 @@ defmodule Cloak.Sql.Parser do
       {:else, error_message(fail(""), "Invalid having expression.")}
     ])
     |> map(fn
-          {[column], [{comparator, value}]} -> {:comparison, column, comparator, value}
-          {[column, :between], [{min, max}]} ->
-            [{:comparison, column, :>=, min}, {:comparison, column, :<=, max}]
-        end)
+      {[column], [{comparator, value}]} -> {:comparison, column, comparator, value}
+      {[column, :between], [{min, max}]} ->
+        [{:comparison, column, :>=, min}, {:comparison, column, :<=, max}]
+    end)
   end
 
   defp optional_distinct() do

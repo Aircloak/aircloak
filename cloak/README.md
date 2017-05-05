@@ -166,6 +166,9 @@ By default, only native PostgreSQL adapter is tested locally, while MongoDb and 
 
 In order to have working tests on other drivers, you need to start corresponding database servers locally.
 
+- `brew install mongodb` - install MongoDB (OSX)
+- `mongod --dbpath /tmp` - run MongoDB
+
 #### Running a local docker container
 
 It is possible to run cloak as a local docker container:

@@ -607,9 +607,9 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "silently discards redundant inequalities" do
-    assert compile("select count(*) from table
-      where numeric >= 1 and numeric > 0.9 and numeric < 2 and numeric <= 2.1", data_source()) ==
-      compile("select count(*) from table where numeric >= 1 and numeric < 2", data_source())
+    assert compile!("select count(*) from table
+      where numeric >= 1 and numeric > 0.9 and numeric < 2 and numeric <= 2.1", data_source()) |> scrub_aliases() ==
+      compile!("select count(*) from table where numeric >= 1 and numeric < 2", data_source()) |> scrub_aliases()
   end
 
   test "unquoted columns are case-insensitive" do
@@ -722,8 +722,8 @@ defmodule Cloak.Sql.Compiler.Test do
     """, data_source())
     {:subquery, %{ast: subquery}} = query.from
 
-    assert [%{alias: column_alias}] = Enum.reject(subquery.db_columns, &(&1.name == "uid"))
-    assert [%{column: %{name: ^column_alias}, interval: {0.0, 100.0}}] = query.ranges
+    assert [%{column: %{name: column_alias}, interval: {0.0, 100.0}}] = query.ranges
+    assert Enum.any?(subquery.db_columns, &(&1.alias == column_alias))
   end
 
   test "propagating ranges for shrink and drop from a singly-nested where" do
@@ -736,12 +736,10 @@ defmodule Cloak.Sql.Compiler.Test do
     """, data_source())
     {:subquery, %{ast: subquery}} = query.from
 
-    assert [
-      %{function: "min", alias: min_alias},
-      %{function: "max", alias: max_alias}
-    ] = Enum.reject(subquery.db_columns, &(&1.name == "uid"))
-    assert Enum.any?(query.ranges, &match?(%{column: %{name: ^min_alias}, interval: {0.0, 100.0}}, &1))
-    assert Enum.any?(query.ranges, &match?(%{column: %{name: ^max_alias}, interval: {0.0, 100.0}}, &1))
+    aliases = Enum.map(query.ranges, &(&1.column.name))
+    columns = Enum.filter(subquery.db_columns, &(&1.alias in aliases))
+    assert Enum.any?(columns, &match?(%{function: "min"}, &1))
+    assert Enum.any?(columns, &match?(%{function: "max"}, &1))
   end
 
   test "propagating ranges for shrink and drop from a singly-nested where without aggregation" do
@@ -753,8 +751,8 @@ defmodule Cloak.Sql.Compiler.Test do
     """, data_source())
     {:subquery, %{ast: subquery}} = query.from
 
-    assert [%{alias: alias}] = Enum.reject(subquery.db_columns, &(&1.name == "uid"))
-    assert Enum.any?(query.ranges, &match?(%{column: %{name: ^alias}, interval: {0.0, 100.0}}, &1))
+    assert [%{column: %{name: alias}, interval: {0.0, 100.0}}] = query.ranges
+    assert Enum.any?(subquery.db_columns, &(&1.alias == alias))
   end
 
   test "dotted columns can be used unquoted" do

@@ -67,7 +67,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     # Mongo 3.0 doesn't support projection of arrays, which would more efficient for data transfer.
     projection =
       query.db_columns
-      |> Enum.map(&"$#{&1.alias || &1.name}")
+      |> Enum.map(&"$#{&1.name}")
       |> Enum.with_index(1)
       |> Enum.map(fn ({field, index}) -> {"f#{index}", field} end)
       |> Enum.into(%{"_id" => false})

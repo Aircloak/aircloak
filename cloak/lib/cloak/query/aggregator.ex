@@ -4,7 +4,7 @@ defmodule Cloak.Query.Aggregator do
   require Logger
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{Query, Expression}
+  alias Cloak.Sql.{Query, Expression, NoiseLayer}
   alias Cloak.Query.{Anonymizer, Rows, Result}
   alias Cloak.Query.Runner.Engine
 
@@ -129,26 +129,35 @@ defmodule Cloak.Query.Aggregator do
       |> Enum.map(&per_user_aggregator_and_column/1)
       |> Enum.uniq()
       |> Enum.unzip()
+
     default_accumulators = List.duplicate(nil, Enum.count(aggregated_columns))
+    default_noise_layers = NoiseLayer.new_accumulator(query.noise_layers)
+    merging_fun = group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query)
 
     rows
-    |> Rows.group(query, %{}, &update_group(&1, &2, per_user_aggregators, aggregated_columns, default_accumulators))
+    |> Rows.group(query, {%{}, default_noise_layers}, merging_fun)
     |> fn(rows) -> state_updater.(:processing); rows end.()
     |> init_anonymizer()
   end
 
-  defp update_group(group_data, row, per_user_aggregators, aggregated_columns, default_accumulators) do
-    user_id = user_id(row)
-    values = Enum.map(aggregated_columns, &Expression.value(&1, row))
+  defp group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query), do:
+    fn({user_rows, noise_accumulator}, row) ->
+      user_id = user_id(row)
+      values = Enum.map(aggregated_columns, &Expression.value(&1, row))
 
-    group_data
-    |> Map.put_new(user_id, default_accumulators)
-    |> Map.update!(user_id, &aggregate_values(values, &1, per_user_aggregators))
+      user_rows =
+        user_rows
+        |> Map.put_new(user_id, default_accumulators)
+        |> Map.update!(user_id, &aggregate_values(values, &1, per_user_aggregators))
+
+      {user_rows, NoiseLayer.accumulate(query.noise_layers, noise_accumulator, row)}
+    end
+
+  defp init_anonymizer(grouped_rows) do
+    for {property, {users_rows, noise_layers}} <- grouped_rows do
+      {property, Anonymizer.new([users_rows | noise_layers]), users_rows}
+    end
   end
-
-  defp init_anonymizer(groups), do:
-    for {values, users_rows} <- groups, do:
-      {values, Anonymizer.new(users_rows), users_rows}
 
   defp low_users_count?({_values, anonymizer, users_rows}), do:
     low_users_count?(users_rows, anonymizer)
@@ -170,7 +179,7 @@ defmodule Cloak.Query.Aggregator do
           Enum.zip(columns1, columns2) |> Enum.map(&merge_accumulators/1)
         end)
       end)
-    anonymizer = Anonymizer.new(lcf_users_rows)
+    anonymizer = Anonymizer.new([lcf_users_rows])
     lcf_values = List.duplicate(:*, length(Rows.group_expressions(query)))
     lcf_row = {lcf_values, anonymizer, lcf_users_rows}
     case low_users_count?(lcf_row) do
@@ -312,7 +321,7 @@ defmodule Cloak.Query.Aggregator do
     |> Enum.reduce(%{}, fn ({user, values}, acc) ->
       Enum.reduce(values, acc, fn (value, acc) -> Map.update(acc, value, [user], &[user | &1]) end)
     end)
-    |> Enum.reject(fn ({_value, users}) -> low_users_count?(users, Anonymizer.new(users)) end)
+    |> Enum.reject(fn ({_value, users}) -> low_users_count?(users, Anonymizer.new([users])) end)
     |> Enum.map(fn ({value, _users}) -> value end)
   end
 
@@ -357,7 +366,7 @@ defmodule Cloak.Query.Aggregator do
     |> Enum.map(fn({_result, _anonymizer, user_data}) -> user_data end)
     |> Enum.flat_map(&Map.keys/1)
     |> Enum.into(MapSet.new())
-    anonymizer = Anonymizer.new(unique_user_ids)
+    anonymizer = Anonymizer.new([unique_user_ids])
     unique_users_count = MapSet.size(unique_user_ids)
     case Anonymizer.sufficiently_large?(anonymizer, unique_users_count) do
       {true, anonymizer} -> Anonymizer.noisy_count(anonymizer, unique_users_count)
