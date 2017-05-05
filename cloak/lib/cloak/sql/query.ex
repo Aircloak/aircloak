@@ -240,7 +240,7 @@ defmodule Cloak.Sql.Query do
   def bucket_columns(%__MODULE__{command: :show} = query), do:
     query.columns
   def bucket_columns(%__MODULE__{command: :select} = query), do:
-    Enum.uniq(order_by_expressions(query) ++ query.columns)
+    query.columns ++ (order_by_expressions(query) -- query.columns)
 
 
   # -------------------------------------------------------------------
