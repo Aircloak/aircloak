@@ -21,14 +21,12 @@ defmodule Air.Service.WarningsTest do
       {:DOWN, _, _, _, _} -> :ok
     end
 
-    assert Warnings.known_problems?()
     assert problem_with_description(~r/No cloaks .+ are online/).resource.name == @data_source_name
   end
 
   test "broken data source produce warnings" do
     {:ok, _pid} = start_cloak_channel(@data_sources_with_errors)
 
-    assert Warnings.known_problems?()
     assert hd(Warnings.problems()).resource.name == @data_source_name
     assert problem_with_description(~r/broken/).resource.name == @data_source_name
   end
@@ -38,19 +36,17 @@ defmodule Air.Service.WarningsTest do
     @data_sources
     |> add_group()
     |> add_user()
-    refute Warnings.known_problems?()
+    assert Warnings.problems() == []
   end
 
   test "warning when data source has no groups" do
     {:ok, _pid} = start_cloak_channel(@data_sources)
-    assert Warnings.known_problems?()
     assert problem_with_description(~r/no groups/i)
   end
 
   test "warning when data source has no users despite having a group" do
     {:ok, _pid} = start_cloak_channel(@data_sources)
     add_group(@data_sources)
-    assert Warnings.known_problems?()
     assert problem_with_description(~r/no users/i)
   end
 

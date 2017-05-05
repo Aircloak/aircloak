@@ -17,10 +17,6 @@ defmodule Air.Service.Warnings do
   # API functions
   #-----------------------------------------------------------------------------------------------------------
 
-  @doc "Whether or not there are any known problems"
-  @spec known_problems?() :: boolean
-  def known_problems?(), do: problems() !== []
-
   @doc """
   Returns a list of problems encountered in the system.
   Problem range from a data source being offline, to it not being queryable by any users.

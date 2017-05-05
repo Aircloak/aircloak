@@ -1,12 +1,6 @@
 <h2>Warnings</h2>
 
-<%= unless Air.Service.Warnings.known_problems? do %>
-
-  <p>
-    Currently there are no system warnings.
-  </p>
-
-<% else %>
+<%= if length(@problems) > 0 do %>
 
   <table class="table">
     <thead>
@@ -19,7 +13,7 @@
     </thead>
 
     <tbody>
-      <%= for problem <- Air.Service.Warnings.problems() do %>
+      <%= for problem <- @problems do %>
       <tr class="<%= severity_class(problem.severity) %>">
         <td><%= severity(problem.severity) %></td>
         <td>
@@ -32,5 +26,11 @@
       <% end %>
     </tbody>
   </table>
+
+<% else %>
+
+  <p>
+    Currently there are no system warnings.
+  </p>
 
 <% end %>

@@ -58,7 +58,7 @@ defmodule Air.ViewHelpers do
   @doc "Conditionally creates a navbar link if there are warnings"
   @spec warning_navbar_link(Plug.Conn.t) :: {:safe, [any]}
   def warning_navbar_link(conn) do
-    if Warnings.known_problems?() and admin?(conn) do
+    if length(Warnings.problems()) > 0 and admin?(conn) do
       path = Air.Router.Helpers.admin_warnings_path(conn, :index)
       navbar_link(conn, warnings_title(), path, class: "has-warnings")
     else
