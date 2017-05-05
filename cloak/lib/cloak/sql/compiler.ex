@@ -186,6 +186,7 @@ defmodule Cloak.Sql.Compiler do
     if not aggregated_column?(unalias_column(expression), query) do
       %{noise_layer | expressions:
         [
+          # The point of this unalias is not to generate invalid SQL like `min(foo AS carry_1234)`
           Expression.function("min", [unalias_column(expression)], expression.type, _aggregate = true),
           Expression.function("max", [unalias_column(expression)], expression.type, _aggregate = true),
           Expression.function("count", [unalias_column(expression)], :integer, _aggregate = true),
