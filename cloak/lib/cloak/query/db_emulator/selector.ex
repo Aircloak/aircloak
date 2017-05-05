@@ -56,11 +56,11 @@ defmodule Cloak.Query.DbEmulator.Selector do
   # -------------------------------------------------------------------
 
   defp select_columns(stream, %Query{group_by: [_|_]} = query) do
-    defaults = Enum.map(query.aggregators, &aggregator_to_default/1)
-    accumulators = Enum.map(query.aggregators, &aggregator_to_accumulator/1)
-    finalizers = Enum.map(query.aggregators, &aggregator_to_finalizer/1)
+    defaults = Enum.map(query.columns, &aggregator_to_default/1)
+    accumulators = Enum.map(query.columns, &aggregator_to_accumulator/1)
+    finalizers = Enum.map(query.columns, &aggregator_to_finalizer/1)
+    columns_for_having = (query.aggregators ++ query.columns) |> Enum.with_index() |> Enum.into(%{})
 
-    columns = Query.bucket_columns(query)
     rows =
       stream
       |> Rows.group(query, defaults,
@@ -70,16 +70,16 @@ defmodule Cloak.Query.DbEmulator.Selector do
           |> Enum.map(fn ({value, accumulator}) -> accumulator.(row, value) end)
         end
       )
-      |> Stream.map(fn ({group_values, aggregated_values}) ->
-        aggregated_values =
-          aggregated_values
-          |> Enum.zip(finalizers)
-          |> Enum.map(fn({value, finalizer}) -> finalizer.(value) end)
-        group_values ++ aggregated_values
+      |> Stream.filter(fn({group_values, aggregated_values}) ->
+        Rows.having?(group_values ++ aggregated_values, columns_for_having, query)
       end)
-      |> Rows.extract_groups(columns, query)
+      |> Stream.map(fn ({_group_values, aggregated_values}) ->
+        aggregated_values
+        |> Enum.zip(finalizers)
+        |> Enum.map(fn({value, finalizer}) -> finalizer.(value) end)
+      end)
 
-    {columns, rows}
+    {query.columns, rows}
   end
   defp select_columns(stream, query) do
     columns = Rows.group_expressions(query)
@@ -107,6 +107,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp aggregator_to_default(%Expression{function?: true, function: "avg", function_args: [_column]}), do: {nil, 0}
   defp aggregator_to_default(%Expression{function?: true, function: "stddev", function_args: [_column]}), do: []
   defp aggregator_to_default(%Expression{function?: true, function: "median", function_args: [_column]}), do: []
+  defp aggregator_to_default(_), do: nil
 
   defmacrop null_ignore_accumulator(do: expression) do
     quote do
@@ -139,6 +140,8 @@ defmodule Cloak.Query.DbEmulator.Selector do
     null_ignore_accumulator do: [value | accumulator]
   defp aggregator_to_accumulator(%Expression{function?: true, function: "median", function_args: [column]}), do:
     null_ignore_accumulator do: [value | accumulator]
+  defp aggregator_to_accumulator(column), do:
+    fn(row, _accumulator) -> Expression.value(column, row) end
 
   defp aggregator_to_finalizer(%Expression{function?: true, function: "count", function_args: [{:distinct, _column}]}),
     do: &MapSet.size(&1)
@@ -168,6 +171,8 @@ defmodule Cloak.Query.DbEmulator.Selector do
     function_args: [%Expression{type: :number}]}), do: &Stats.median/1
   defp aggregator_to_finalizer(%Expression{function?: true, function: "median", function_args: [_column]}), do:
     &if &1 == [], do: nil, else: &1 |> sort() |> Enum.at(&1 |> Enum.count() |> div(2))
+  defp aggregator_to_finalizer(_), do:
+    &(&1)
 
   defp set_min(set), do: Enum.reduce(set, &Data.min/2)
 
