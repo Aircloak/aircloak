@@ -1133,13 +1133,9 @@ defmodule Cloak.Sql.Compiler do
   end
 
   defp noise_layer_columns(%{noise_layers: noise_layers, emulated?: true, subquery?: true}), do:
-    Enum.flat_map(noise_layers, &(&1.expressions)) |> Enum.map(fn(column) ->
-      if column.aggregate? do
-        [aggregated] = column.function_args
-        aggregated
-      else
-        column
-      end
+    Enum.flat_map(noise_layers, &(&1.expressions)) |> Enum.map(fn
+      %{aggregate?: true, function_args: [aggregated]} -> aggregated
+      column -> column
     end)
   defp noise_layer_columns(%{noise_layers: noise_layers}), do:
     Enum.flat_map(noise_layers, &(&1.expressions))
