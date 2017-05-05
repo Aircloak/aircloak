@@ -164,7 +164,7 @@ defmodule Cloak.Sql.Compiler do
       |> Query.Lenses.leaf_expressions()
       |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
       |> Lens.to_list(query)
-      |> Enum.map(&NoiseLayer.new(&1.name, [alias_column(&1)]))
+      |> Enum.map(&NoiseLayer.new(&1.name, [set_unique_alias(&1)]))
 
     floated_layers =
       Query.Lenses.subquery_noise_layers()
@@ -181,7 +181,7 @@ defmodule Cloak.Sql.Compiler do
         Expression.function("max", [reference_aliased(max)], max.type, _aggregate = true),
         Expression.function("sum", [reference_aliased(count)], :integer, _aggregate = true),
       ]
-      |> Enum.map(&alias_column/1)
+      |> Enum.map(&set_unique_alias/1)
     }
   end
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression]}, query) do
@@ -192,7 +192,7 @@ defmodule Cloak.Sql.Compiler do
           Expression.function("max", [unalias_column(expression)], expression.type, _aggregate = true),
           Expression.function("count", [unalias_column(expression)], :integer, _aggregate = true),
         ]
-        |> Enum.map(&alias_column/1)
+        |> Enum.map(&set_unique_alias/1)
       }
     else
       noise_layer
@@ -362,10 +362,10 @@ defmodule Cloak.Sql.Compiler do
     end
   end
 
-  defp carrying_ranges(%{implicit_count?: true}, range), do: [%{range | column: alias_column(range.column)}]
+  defp carrying_ranges(%{implicit_count?: true}, range), do: [%{range | column: set_unique_alias(range.column)}]
   defp carrying_ranges(_query, range = %{type: type, column: column}) do
     case type do
-      :having -> [%{range | type: :where, column: alias_column(column)}]
+      :having -> [%{range | type: :where, column: set_unique_alias(column)}]
       :nested_min -> [%{range | column: min_column(column)}]
       :nested_max -> [%{range | column: max_column(column)}]
       :where -> [
@@ -375,11 +375,11 @@ defmodule Cloak.Sql.Compiler do
     end
   end
 
-  defp min_column(column), do: Expression.function("min", [column], column.type, true) |> alias_column()
+  defp min_column(column), do: Expression.function("min", [column], column.type, true) |> set_unique_alias()
 
-  defp max_column(column), do: Expression.function("max", [column], column.type, true) |> alias_column()
+  defp max_column(column), do: Expression.function("max", [column], column.type, true) |> set_unique_alias()
 
-  defp alias_column(column), do: %{column | alias: new_carry_alias()}
+  defp set_unique_alias(column), do: %{column | alias: new_carry_alias()}
 
   defp new_carry_alias(), do: "carry_#{System.unique_integer([:positive])}"
 
