@@ -3,7 +3,7 @@ defmodule Air.Service.WarningsTest do
 
   alias Air.Service.{Warnings, Cloak}
   alias Air.Schemas.{Group, DataSource, User}
-  alias Air.Repo
+  alias Air.{Repo, TestRepoHelper}
 
   @data_source_name "name"
   @data_sources [%{"name" => @data_source_name, "global_id" => "global_id", "tables" => []}]
@@ -16,7 +16,7 @@ defmodule Air.Service.WarningsTest do
   end
 
   test "offline data source produce warnings" do
-    spawn_monitor(fn() -> Cloak.register(cloak_info(), @data_sources) end)
+    spawn_monitor(fn() -> Cloak.register(TestRepoHelper.cloak_info(), @data_sources) end)
     receive do
       {:DOWN, _, _, _, _} -> :ok
     end
@@ -26,7 +26,7 @@ defmodule Air.Service.WarningsTest do
   end
 
   test "broken data source produce warnings" do
-    {:ok, _pid} = start_cloak_channel(cloak_info(), @data_sources_with_errors)
+    {:ok, _pid} = start_cloak_channel(@data_sources_with_errors)
 
     assert Warnings.known_problems?()
     assert hd(Warnings.problems()).resource.name == @data_source_name
@@ -34,7 +34,7 @@ defmodule Air.Service.WarningsTest do
   end
 
   test "no warning when data source is online and no errors" do
-    {:ok, _pid} = start_cloak_channel(cloak_info(), @data_sources)
+    {:ok, _pid} = start_cloak_channel(@data_sources)
     @data_sources
     |> add_group()
     |> add_user()
@@ -42,13 +42,13 @@ defmodule Air.Service.WarningsTest do
   end
 
   test "warning when data source has no groups" do
-    {:ok, _pid} = start_cloak_channel(cloak_info(), @data_sources)
+    {:ok, _pid} = start_cloak_channel(@data_sources)
     assert Warnings.known_problems?()
     assert problem_with_description(~r/no groups/i)
   end
 
   test "warning when data source has no users despite having a group" do
-    {:ok, _pid} = start_cloak_channel(cloak_info(), @data_sources)
+    {:ok, _pid} = start_cloak_channel(@data_sources)
     add_group(@data_sources)
     assert Warnings.known_problems?()
     assert problem_with_description(~r/no users/i)
@@ -56,7 +56,7 @@ defmodule Air.Service.WarningsTest do
 
   describe("problems_for_resource") do
     test "data source" do
-      {:ok, _pid} = start_cloak_channel(cloak_info(), @data_sources_with_errors)
+      {:ok, _pid} = start_cloak_channel(@data_sources_with_errors)
       [%{"name" => name}] = @data_sources_with_errors
       data_source = Repo.get_by!(DataSource, name: name)
       assert problem_with_description(Warnings.problems_for_resource(data_source), ~r/broken/).resource.name == name
@@ -73,14 +73,6 @@ defmodule Air.Service.WarningsTest do
         raise "Expected exactly one problem matching the pattern #{inspect pattern}, " ++
           "but there were #{length(problems)}."
     end
-  end
-
-  defp cloak_info() do
-    %{
-      id: "cloak_id_#{:erlang.unique_integer()}",
-      name: "cloak_name",
-      online_since: Timex.now()
-    }
   end
 
   defp add_group([%{"name" => name}]) do
@@ -106,12 +98,12 @@ defmodule Air.Service.WarningsTest do
     |> Repo.insert!()
   end
 
-  defp start_cloak_channel(cloak_info, data_sources) do
+  defp start_cloak_channel(data_sources) do
     parent = self()
     ref = make_ref()
 
     pid = spawn_link(fn ->
-      registration_result = Cloak.register(cloak_info, data_sources)
+      registration_result = Cloak.register(TestRepoHelper.cloak_info(), data_sources)
       send(parent, {ref, registration_result})
       :timer.sleep(:infinity)
     end)

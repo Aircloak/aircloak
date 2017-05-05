@@ -4,7 +4,7 @@ defmodule Air.Service.Cloak.Test do
 
   import Air.AssertionHelper
 
-  alias Air.{Repo, Schemas.DataSource, Service.Cloak}
+  alias Air.{Repo, TestRepoHelper, Schemas.DataSource, Service.Cloak}
 
   @data_source_id "data_source_id"
   @data_source_name "data_source_name"
@@ -17,12 +17,12 @@ defmodule Air.Service.Cloak.Test do
   end
 
   test "should register data sources in the database" do
-    Cloak.register(cloak_info(), @data_sources)
+    Cloak.register(TestRepoHelper.cloak_info(), @data_sources)
     assert Repo.get_by!(DataSource, name: @data_source_name).name == @data_source_name
   end
 
   test "re-registering doesn't add multiple copies of the same data source" do
-    Enum.map(1..10, fn(_) -> start_cloak_channel(cloak_info(), @data_sources) end)
+    Enum.map(1..10, fn(_) -> start_cloak_channel(@data_sources) end)
     assert length(Repo.all(DataSource, name: @data_source_name)) == 1
   end
 
@@ -31,7 +31,7 @@ defmodule Air.Service.Cloak.Test do
   end
 
   test "should return a cloak channel pid given a registered data source" do
-    cloak_info = cloak_info()
+    cloak_info = TestRepoHelper.cloak_info()
 
     Cloak.register(cloak_info, @data_sources)
 
@@ -42,11 +42,11 @@ defmodule Air.Service.Cloak.Test do
 
   test "should allow assigning multiple cloaks to the same data source" do
     assert [{:ok, _pid1}, {:ok, _pid2}] =
-      Enum.map(1..2, fn(_) -> start_cloak_channel(cloak_info(), @data_sources) end)
+      Enum.map(1..2, fn(_) -> start_cloak_channel(@data_sources) end)
   end
 
   test "should unregister cloak when channel closes" do
-    {:ok, pid} = start_cloak_channel(cloak_info(), @data_sources)
+    {:ok, pid} = start_cloak_channel(@data_sources)
     Process.unlink(pid)
     Process.exit(pid, :exit)
 
@@ -54,8 +54,8 @@ defmodule Air.Service.Cloak.Test do
   end
 
   test "should unregister cloak when channel closes, but retain alternative cloaks" do
-    {:ok, pid1} = start_cloak_channel(cloak_info(), @data_sources)
-    {:ok, pid2} = start_cloak_channel(cloak_info(), @data_sources)
+    {:ok, pid1} = start_cloak_channel(@data_sources)
+    {:ok, pid2} = start_cloak_channel(@data_sources)
 
     Process.unlink(pid1)
     Process.exit(pid1, :exit)
@@ -64,7 +64,7 @@ defmodule Air.Service.Cloak.Test do
   end
 
   test "returns a list of cloaks and their data sources" do
-    cloak_info = cloak_info()
+    cloak_info = TestRepoHelper.cloak_info()
     Cloak.register(cloak_info, @data_sources)
     [cloak] = Cloak.all_cloak_infos()
     assert cloak.id == cloak_info.id
@@ -73,7 +73,7 @@ defmodule Air.Service.Cloak.Test do
   end
 
   test "returns a list of cloaks for a data sources" do
-    cloak_info = cloak_info()
+    cloak_info = TestRepoHelper.cloak_info()
     Cloak.register(cloak_info, @data_sources)
     [cloak] = Cloak.cloak_infos_for_data_source(@data_source_name)
     assert cloak.id == cloak_info.id
@@ -87,32 +87,24 @@ defmodule Air.Service.Cloak.Test do
     end
 
     test "records memory for registered cloak" do
-      Cloak.register(cloak_info(), @data_sources)
+      Cloak.register(TestRepoHelper.cloak_info(), @data_sources)
       reading = %{reading: true}
       Cloak.record_memory(reading)
       assert [%{memory: ^reading}] = Cloak.all_cloak_infos()
     end
 
     test "has uninitialized memory reading by default" do
-      Cloak.register(cloak_info(), @data_sources)
+      Cloak.register(TestRepoHelper.cloak_info(), @data_sources)
       assert [%{memory: %{}}] = Cloak.all_cloak_infos()
     end
   end
 
-  defp cloak_info() do
-    %{
-      id: "cloak_id_#{:erlang.unique_integer()}",
-      name: "cloak_name",
-      online_since: Timex.now()
-    }
-  end
-
-  defp start_cloak_channel(cloak_info, data_sources) do
+  defp start_cloak_channel(data_sources) do
     parent = self()
     ref = make_ref()
 
     pid = spawn_link(fn ->
-      registration_result = Cloak.register(cloak_info, data_sources)
+      registration_result = Cloak.register(TestRepoHelper.cloak_info(), data_sources)
       send(parent, {ref, registration_result})
       :timer.sleep(:infinity)
     end)
