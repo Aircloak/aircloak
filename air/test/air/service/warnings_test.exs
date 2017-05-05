@@ -22,8 +22,7 @@ defmodule Air.Service.WarningsTest do
     end
 
     assert Warnings.known_problems?()
-    assert hd(Warnings.problems()).resource.name == @data_source_name
-    assert problem_with_description(~r/No cloaks .+ are online/)
+    assert problem_with_description(~r/No cloaks .+ are online/).resource.name == @data_source_name
   end
 
   test "broken data source produce warnings" do
@@ -31,7 +30,7 @@ defmodule Air.Service.WarningsTest do
 
     assert Warnings.known_problems?()
     assert hd(Warnings.problems()).resource.name == @data_source_name
-    assert problem_with_description(~r/broken/)
+    assert problem_with_description(~r/broken/).resource.name == @data_source_name
   end
 
   test "no warning when data source is online and no errors" do
@@ -60,14 +59,21 @@ defmodule Air.Service.WarningsTest do
       {:ok, _pid} = start_cloak_channel(cloak_info(), @data_sources_with_errors)
       [%{"name" => name}] = @data_sources_with_errors
       data_source = Repo.get_by!(DataSource, name: name)
-      assert problem_with_description(Warnings.problems_for_resource(data_source), ~r/broken/)
+      assert problem_with_description(Warnings.problems_for_resource(data_source), ~r/broken/).resource.name == name
     end
   end
 
-  defp problem_with_description(problems \\ Warnings.problems(), pattern), do:
-    problems
-    |> Enum.map(&(&1.description))
-    |> Enum.any?(&(&1 =~ pattern))
+  defp problem_with_description(problems \\ Warnings.problems(), pattern) do
+    filtered_problems = problems
+    |> Enum.filter(&(&1.description =~ pattern))
+    case filtered_problems do
+      [] -> raise "Expected a problem matching the pattern #{inspect pattern}, but there was none"
+      [problem] -> problem
+      problems ->
+        raise "Expected exactly one problem matching the pattern #{inspect pattern}, " ++
+          "but there were #{length(problems)}."
+    end
+  end
 
   defp cloak_info() do
     %{
