@@ -37,10 +37,8 @@ defmodule Cloak.DataSource.Validations.Name do
   def check_for_duplicates(data_sources) do
     duplicate_names = data_sources
     |> Enum.group_by(&(&1.name))
-    |> Enum.reduce([], fn
-      ({_name, [_]}, acc) -> acc
-      ({name, _entries}, acc) -> [name|acc]
-    end)
+    |> Enum.filter(fn({_name, values}) -> Enum.count(values) > 1 end)
+    |> Enum.map(fn({name, _values}) -> name end)
 
     Enum.map(data_sources, fn(%{name: name, errors: errors} = data_source) ->
       if name in duplicate_names do
