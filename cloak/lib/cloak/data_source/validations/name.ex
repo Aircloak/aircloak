@@ -42,10 +42,8 @@ defmodule Cloak.DataSource.Validations.Name do
 
     Enum.map(data_sources, fn(%{name: name, errors: errors} = data_source) ->
       if name in duplicate_names do
-        error = """
-        The cloak has been configured with duplicate entries for the data source
-        named #{name}. The data source will not behave as expected.
-        """
+        error = "The cloak has been configured with duplicate entries for the data source " <>
+          "named #{name}. The data source will not behave as expected."
         %{data_source | errors: [error | errors]}
       else
         data_source
