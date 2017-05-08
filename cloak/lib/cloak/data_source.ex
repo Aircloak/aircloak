@@ -115,6 +115,7 @@ defmodule Cloak.DataSource do
     Aircloak.DeployConfig.fetch!("data_sources")
     |> Enum.map(&to_data_source/1)
     |> Enum.map(&add_tables/1)
+    |> Validations.Name.check_for_duplicates()
     |> store_to_cache()
 
   @doc "Returns the list of defined data sources."
