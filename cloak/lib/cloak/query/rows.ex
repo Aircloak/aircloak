@@ -30,6 +30,8 @@ defmodule Cloak.Query.Rows do
       |> Enum.with_index()
       |> Enum.into(%{})
 
+    columns_to_select = Enum.map(columns_to_select, &Expression.unalias/1)
+
     Enum.filter_map(
       rows,
       &filter_group(&1, columns, query),
@@ -79,8 +81,7 @@ defmodule Cloak.Query.Rows do
     Query.order_by_expressions(query) -- query.columns
 
   defp selected_values(row, columns, columns_to_select), do:
-    for selected_column <- columns_to_select, do:
-      fetch_value!(row, Expression.unalias(selected_column), columns)
+    Enum.map(columns_to_select, &fetch_value!(row, &1, columns))
 
   defp fetch_value!(row, %Expression{function?: true, function_args: args} = function, columns) do
     case Map.fetch(columns, function) do
