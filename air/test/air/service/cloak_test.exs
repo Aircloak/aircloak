@@ -8,7 +8,8 @@ defmodule Air.Service.Cloak.Test do
 
   @data_source_id "data_source_id"
   @data_source_name "data_source_name"
-  @data_sources [%{"name" => @data_source_name, "global_id" => @data_source_id, "tables" => []}]
+  @data_source %{"name" => @data_source_name, "global_id" => @data_source_id, "tables" => []}
+  @data_sources [@data_source]
 
   setup do
     wait_for_cleanup()
@@ -69,7 +70,7 @@ defmodule Air.Service.Cloak.Test do
     [cloak] = Cloak.all_cloak_infos()
     assert cloak.id == cloak_info.id
     assert cloak.name == cloak_info.name
-    assert cloak.data_source_names == [@data_source_name]
+    assert cloak.data_sources[@data_source_name] == @data_source
   end
 
   test "returns a list of cloaks for a data sources" do
@@ -78,7 +79,7 @@ defmodule Air.Service.Cloak.Test do
     [cloak] = Cloak.cloak_infos_for_data_source(@data_source_name)
     assert cloak.id == cloak_info.id
     assert cloak.name == cloak_info.name
-    assert cloak.data_source_names == [@data_source_name]
+    assert cloak.data_sources[@data_source_name] == @data_source
   end
 
   describe "recording memory stats" do

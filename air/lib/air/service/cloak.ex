@@ -89,15 +89,12 @@ defmodule Air.Service.Cloak do
 
     register_data_sources(data_sources)
 
-    data_source_names = Map.keys(data_sources_by_name)
-
     cloak_info = Map.merge(cloak_info, %{
-      data_source_names: data_source_names,
       data_sources: data_sources_by_name,
       memory: %{},
     })
 
-    {:reply, {data_source_names, cloak_info}, state}
+    {:reply, {Map.keys(data_sources_by_name), cloak_info}, state}
   end
 
 
