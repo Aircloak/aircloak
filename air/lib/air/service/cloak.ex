@@ -83,9 +83,17 @@ defmodule Air.Service.Cloak do
   def init(_), do: {:ok, nil}
 
   def handle_call({:register, cloak_info, data_sources}, _from, state) do
-    data_source_names = register_data_sources(data_sources)
+    data_sources_by_name = data_sources
+    |> Enum.map(&({Map.fetch!(&1, "name"), &1}))
+    |> Enum.into(%{})
+
+    register_data_sources(data_sources)
+
+    data_source_names = Map.keys(data_sources_by_name)
+
     cloak_info = Map.merge(cloak_info, %{
       data_source_names: data_source_names,
+      data_sources: data_sources_by_name,
       memory: %{},
     })
 
@@ -97,8 +105,8 @@ defmodule Air.Service.Cloak do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp register_data_sources(data_sources) do
-    for data_source <- data_sources do
+  defp register_data_sources(data_sources), do:
+    Enum.each(data_sources, fn(data_source) ->
       name = Map.fetch!(data_source, "name")
       # Deprecated: global_id is a remnant of Aircloak pre-version 17.3.0.
       # It has to remain for compatibility with older versions
@@ -108,10 +116,7 @@ defmodule Air.Service.Cloak do
       errors = Map.get(data_source, "errors", [])
 
       DataSource.create_or_update_data_source(name, global_id, tables, errors)
-
-      name
-    end
-  end
+    end)
 
   defp lookup_memory(pid, cloak_info) do
     case Registry.lookup(@memory_registry_name, pid) do
