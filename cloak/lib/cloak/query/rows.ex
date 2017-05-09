@@ -26,6 +26,7 @@ defmodule Cloak.Query.Rows do
   def extract_groups(rows, columns_to_select, query) do
     columns =
       (group_expressions(query) ++ query.aggregators)
+      |> Enum.map(&Expression.unalias/1)
       |> Enum.with_index()
       |> Enum.into(%{})
 
@@ -77,7 +78,7 @@ defmodule Cloak.Query.Rows do
 
   defp selected_values(row, columns, columns_to_select), do:
     for selected_column <- columns_to_select, do:
-      fetch_value!(row, selected_column, columns)
+      fetch_value!(row, Expression.unalias(selected_column), columns)
 
   defp fetch_value!(row, %Expression{function?: true, function_args: args} = function, columns) do
     case Map.fetch(columns, function) do
