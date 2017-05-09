@@ -36,7 +36,7 @@ defmodule Cloak.DataSource.MongoDB do
   """
 
   alias Cloak.Sql.Query
-  alias Cloak.Query.Runner.RuntimeError
+  alias Cloak.DataSource
   alias Cloak.DataSource.MongoDB.{Schema, Pipeline}
 
 
@@ -59,7 +59,7 @@ defmodule Cloak.DataSource.MongoDB do
     after :timer.seconds(5)
       ->
         GenServer.stop(connection)
-        raise RuntimeError, message: "unknown failure during database connection process"
+        DataSource.raise_error("Unknown failure during database connection process")
     end
   end
 
@@ -72,7 +72,7 @@ defmodule Cloak.DataSource.MongoDB do
     table = Map.put(table, :mongo_version, get_server_version(connection))
     sample_rate = table[:sample_rate] || 100
     unless is_integer(sample_rate) and sample_rate >= 1 and sample_rate <= 100, do:
-      raise RuntimeError, message: "Sample rate for schema detection has to be an integer between 1 and 100."
+      DataSource.raise_error("Sample rate for schema detection has to be an integer between 1 and 100.")
     map_code = """
       function() {
         if (Math.random() * 100 > #{sample_rate}) return;
@@ -149,7 +149,7 @@ defmodule Cloak.DataSource.MongoDB do
     case Mongo.command(conn, command, timeout: @timeout) do
       {:ok, %{"results" => results}} -> results
       {:ok, %{"result" => result}} -> result
-      {:error, %Mongo.Error{message: error}} -> raise RuntimeError, message: "MongoDB execute command error: #{error}"
+      {:error, %Mongo.Error{message: error}} -> DataSource.raise_error("MongoDB execute command error: #{error}")
     end
   end
 
@@ -194,7 +194,7 @@ defmodule Cloak.DataSource.MongoDB do
   @supported_functions_3_2 @supported_functions_3_0 ++ ~w(abs ceil floor sqrt trunc)
   defp supported_functions(version) do
     if Version.compare(version, "3.0.0") == :lt do
-      raise RuntimeError, message: "Unsupported MongoDB version: #{version}. At least 3.0 required."
+      DataSource.raise_error("Unsupported MongoDB version: #{version}. At least 3.0 required.")
     else
       if Version.compare(version, "3.2.0") == :lt do
         @supported_functions_3_0

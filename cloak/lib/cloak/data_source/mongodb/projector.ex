@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   @moduledoc "MongoDB helper functions for projecting columns into the aggregation pipeline."
 
   alias Cloak.Sql.Expression
-  alias Cloak.Query.Runner.RuntimeError
+  alias Cloak.DataSource
   alias Cloak.DataSource.MongoDB.Schema
 
 
@@ -77,7 +77,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp get_field_name(""), do: get_field_name(nil)
   defp get_field_name(name) do
     if not valid_alias?(name), do:
-      raise RuntimeError, message: "MongoDB column alias `#{name}` contains invalid character(s)."
+      DataSource.raise_error("MongoDB column alias `#{name}` contains invalid character(s).")
     name
   end
 
@@ -120,8 +120,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp parse_function("cast", [value, :datetime, :text]), do:
     %{"$dateToString" => %{format: "%Y-%m-%d %H:%M:%S:%L", date: value}}
   defp parse_function("cast", [_value, from, to]), do:
-    raise RuntimeError, message:
-      "Casting from `#{from}` to `#{to}` is not supported in subqueries on MongoDB data sources."
+    DataSource.raise_error("Casting from `#{from}` to `#{to}` is not supported in subqueries on MongoDB data sources.")
   defp parse_function(name, _args) when is_binary(name), do:
-    raise RuntimeError, message: "Function `#{name}` is not supported in subqueries on MongoDB data sources."
+    DataSource.raise_error("Function `#{name}` is not supported in subqueries on MongoDB data sources.")
 end

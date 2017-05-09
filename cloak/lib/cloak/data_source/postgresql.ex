@@ -5,7 +5,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   """
 
   alias Cloak.DataSource.SqlBuilder
-  alias Cloak.Query.Runner.RuntimeError
+  alias Cloak.DataSource
   alias Cloak.Query.DataDecoder
 
 
@@ -28,7 +28,7 @@ defmodule Cloak.DataSource.PostgreSQL do
     after :timer.seconds(5)
       ->
         GenServer.stop(connection)
-        raise RuntimeError, message: "unknown failure during database connection process"
+        DataSource.raise_error("Unknown failure during database connection process")
     end
   end
   @doc false
@@ -46,9 +46,9 @@ defmodule Cloak.DataSource.PostgreSQL do
       "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}'"
     row_mapper = fn [name, type_name] -> {name, parse_type(type_name)} end
     case run_query(connection, query, row_mapper, &Enum.to_list/1) do
-      {:ok, []} -> raise RuntimeError, message: "table `#{table.db_name}` does not exist"
+      {:ok, []} -> DataSource.raise_error("Table `#{table.db_name}` does not exist")
       {:ok, columns} -> [%{table | columns: columns}]
-      {:error, reason} -> raise RuntimeError, message: "`#{reason}`"
+      {:error, reason} -> DataSource.raise_error("`#{reason}`")
     end
   end
 
@@ -79,8 +79,7 @@ defmodule Cloak.DataSource.PostgreSQL do
           Postgrex.close(connection, query)
         end
       else
-        {:error, error} ->
-          raise RuntimeError, message: "Driver exception: `#{Exception.message(error)}`"
+        {:error, error} -> DataSource.raise_error("Driver exception: `#{Exception.message(error)}`")
       end
     end, [timeout: :timer.hours(4)])
   end
