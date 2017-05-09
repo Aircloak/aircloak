@@ -27,8 +27,18 @@ defmodule Cloak.Query.Runner.Engine do
         query_killer_unreg.()
         {:ok, result, Sql.Query.info_messages(query)}
       end
-    rescue e in [Query.Runner.RuntimeError, RuntimeError] ->
-      {:error, e.message}
+    rescue
+      e in [Query.Runner.RuntimeError] ->
+        {:error, e.message}
+      e in [RuntimeError] ->
+        {e, stacktrace} =
+          if Aircloak.DeployConfig.override_app_env!(:cloak, :sanitize_otp_errors) do
+            {RuntimeError.exception("sanitized"), Cloak.LoggerTranslator.filtered_stacktrace(:erlang.get_stacktrace())}
+          else
+            {e, :erlang.get_stacktrace()}
+          end
+        Logger.error(Exception.format(:error, e, stacktrace))
+        {:error, "Unknown cloak error."}
     end
   end
 

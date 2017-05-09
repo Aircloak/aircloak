@@ -13,6 +13,9 @@ defmodule Cloak.LoggerTranslator do
 
   require Aircloak.DeployConfig
 
+  @type stack_entry :: {module, atom, non_neg_integer, location}
+  @type location :: [file: charlist(), line: pos_integer]
+
 
   ## ----------------------------------------------------------------
   ## API functions
@@ -22,6 +25,17 @@ defmodule Cloak.LoggerTranslator do
   @spec install() :: :ok
   def install(), do:
     Logger.add_translator({__MODULE__, :translate})
+
+  @doc "Removes sensitive entries from the stacktrace."
+  @spec filtered_stacktrace(list()) :: [stack_entry]
+  def filtered_stacktrace(stacktrace), do:
+    stacktrace
+    |> Enum.map(fn
+      {_mod, _fun, arity, _location} = entry when is_integer(arity) -> entry
+      {mod, fun, args, location} when is_list(args) -> {mod, fun, length(args), location}
+      _other -> nil
+    end)
+    |> Enum.filter(&(&1 != nil))
 
 
   ## ----------------------------------------------------------------
@@ -78,13 +92,4 @@ defmodule Cloak.LoggerTranslator do
 
   defp filter_reason({_exception, stacktrace}), do:
     {"filtered", filtered_stacktrace(stacktrace)}
-
-  defp filtered_stacktrace(stacktrace), do:
-    stacktrace
-    |> Enum.map(fn
-      {_mod, _fun, arity, _location} = entry when is_integer(arity) -> entry
-      {mod, fun, args, location} when is_list(args) -> {mod, fun, length(args), location}
-      _other -> nil
-    end)
-    |> Enum.filter(&(&1 != nil))
 end
