@@ -34,6 +34,23 @@ defmodule Cloak.DataSource.Validations.Name do
     |> validate_has_name()
   end
 
+  def check_for_duplicates(data_sources) do
+    duplicate_names = data_sources
+    |> Enum.group_by(&(&1.name))
+    |> Enum.filter(fn({_name, values}) -> Enum.count(values) > 1 end)
+    |> Enum.map(fn({name, _values}) -> name end)
+
+    Enum.map(data_sources, fn(%{name: name, errors: errors} = data_source) ->
+      if name in duplicate_names do
+        error = "The cloak has been configured with duplicate entries for the data source " <>
+          "named #{name}. The data source will not behave as expected."
+        %{data_source | errors: [error | errors]}
+      else
+        data_source
+      end
+    end)
+  end
+
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------

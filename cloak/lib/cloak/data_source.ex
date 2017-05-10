@@ -115,6 +115,7 @@ defmodule Cloak.DataSource do
     Aircloak.DeployConfig.fetch!("data_sources")
     |> Enum.map(&to_data_source/1)
     |> Enum.map(&add_tables/1)
+    |> Validations.Name.check_for_duplicates()
     |> store_to_cache()
 
   @doc "Returns the list of defined data sources."
@@ -152,7 +153,7 @@ defmodule Cloak.DataSource do
       Logger.debug("Selecting data ...")
       case driver.select(connection, select_query, result_processor) do
         {:ok, processed_result} -> processed_result
-        {:error, reason} -> raise RuntimeError, message: reason
+        {:error, reason} -> raise_error(reason)
       end
     after
       Logger.debug("Disconnecting ...")
@@ -178,6 +179,10 @@ defmodule Cloak.DataSource do
     end
   end
 
+  @doc "Raises an error when something goes wrong during data processing."
+  @spec raise_error(String.t) :: no_return
+  def raise_error(message), do: raise RuntimeError, message: message
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
@@ -200,7 +205,7 @@ defmodule Cloak.DataSource do
         "mysql" -> Cloak.DataSource.MySQL
         "odbc" -> Cloak.DataSource.ODBC
         "mongodb" -> Cloak.DataSource.MongoDB
-        other -> raise RuntimeError, message: "Unknown driver `#{other}` for data source `#{data_source.name}`"
+        other -> raise_error("Unknown driver `#{other}` for data source `#{data_source.name}`")
       end
     Map.put(data_source, :driver, driver_module)
   end
@@ -229,10 +234,8 @@ defmodule Cloak.DataSource do
     database = Parameters.get_one_of(data_source.parameters, ["database"])
     host = Parameters.get_one_of(data_source.parameters, ["hostname", "server", "host"])
 
-    if Enum.any?([database, host], &(is_nil(&1))) do
-      raise RuntimeError, message:
-        "Invalid data source parameters: database and hostname are missing (#{inspect(data_source.parameters)})."
-    end
+    if Enum.any?([database, host], &(is_nil(&1))), do:
+      raise_error("Invalid data source parameters: database and hostname are missing.")
 
     marker = case Map.get(data_source, :marker) do
       nil -> ""
@@ -319,7 +322,7 @@ defmodule Cloak.DataSource do
 
   defp verify_columns(table) do
     verify_user_id(table)
-    if table.columns == [], do: raise RuntimeError, message: "no data columns found in table"
+    if table.columns == [], do: raise_error("no data columns found in table")
   end
 
   defp verify_user_id(%{projection: projection}) when projection != nil, do: :ok
@@ -328,13 +331,13 @@ defmodule Cloak.DataSource do
     case List.keyfind(table.columns, user_id, 0) do
       {^user_id, type} ->
         unless type in [:integer, :text, :uuid, :real, :unknown], do:
-          raise RuntimeError, message: "unsupported user id type: #{type}"
+          raise_error("unsupported user id type: #{type}")
       _ ->
         columns_string =
           table.columns
           |> Enum.map(fn({column_name, _}) -> "`#{column_name}`" end)
           |> Enum.join(", ")
-        raise RuntimeError, message: "invalid user id column specified: `#{user_id}` (columns: #{columns_string})"
+        raise_error("invalid user id column specified: `#{user_id}` (columns: #{columns_string})")
     end
   end
 
@@ -353,8 +356,8 @@ defmodule Cloak.DataSource do
         "have unsupported types:\n" <> columns_string)
       nil
     else
-      raise RuntimeError, message: "unsupported types for columns: #{columns_string} "
-        <> "(to ignore these columns set 'ignore_unsupported_types: true' in your table settings)"
+      raise_error("unsupported types for columns: #{columns_string} "
+        <> "(to ignore these columns set 'ignore_unsupported_types: true' in your table settings)")
     end
   end
 

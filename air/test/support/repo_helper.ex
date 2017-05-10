@@ -99,6 +99,17 @@ defmodule Air.TestRepoHelper do
     end
   end
 
+  @doc "Returns parameters expected when registering a cloak in the air"
+  @spec cloak_info() :: Map.t
+  def cloak_info() do
+    %{
+      id: "cloak_id_#{:erlang.unique_integer()}",
+      name: "cloak_name",
+      online_since: Timex.now(),
+      version: "17.1.0",
+    }
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -109,14 +120,7 @@ defmodule Air.TestRepoHelper do
 
   defp register_data_source!(name, global_id) do
     data_sources = [%{"name" => name, "global_id" => global_id, "tables" => []}]
-    cloak_info = %{
-      id: "cloak_id_#{:erlang.unique_integer()}",
-      name: "cloak_name",
-      online_since: Timex.now()
-    }
-
-    Air.Service.Cloak.register(cloak_info, data_sources)
-
+    Air.Service.Cloak.register(cloak_info(), data_sources)
     :ok
   end
 end

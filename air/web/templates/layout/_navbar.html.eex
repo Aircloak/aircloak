@@ -13,6 +13,8 @@
 
       <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
         <ul class="nav navbar-nav navbar-right">
+          <%= warning_navbar_link(@conn) %>
+
           <%= if permitted?(@conn, Air.DataSourceController, :index) do %>
             <%= navbar_link(@conn, "Data sources", data_source_path(@conn, :index)) %>
           <% end %>
