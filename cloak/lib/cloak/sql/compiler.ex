@@ -166,7 +166,7 @@ defmodule Cloak.Sql.Compiler do
     |> Query.Lenses.leaf_expressions()
     |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
     |> Lens.to_list(query)
-    |> Enum.map(&NoiseLayer.new(&1.name, [set_unique_alias(&1)]))
+    |> Enum.map(&NoiseLayer.new({&1.table.name, &1.name}, [set_unique_alias(&1)]))
 
   defp floated_noise_layers(query), do:
     Query.Lenses.subquery_noise_layers()
