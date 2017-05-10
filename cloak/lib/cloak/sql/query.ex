@@ -8,7 +8,7 @@ defmodule Cloak.Sql.Query do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{Expression, Compiler, Function, Parser, Query.Lenses, Range}
+  alias Cloak.Sql.{Expression, Compiler, Function, Parser, Query.Lenses, Range, NoiseLayer}
   require Logger
 
   @type negatable_condition ::
@@ -72,7 +72,7 @@ defmodule Cloak.Sql.Query do
     views: view_map,
     projected?: boolean,
     next_row_index: row_index,
-    noise_layers: [Expression.t],
+    noise_layers: [NoiseLayer.t],
     floated_columns: [Expression.t],
   }
 
