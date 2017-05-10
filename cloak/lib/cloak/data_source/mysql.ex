@@ -5,7 +5,7 @@ defmodule Cloak.DataSource.MySQL do
   """
 
   alias Cloak.DataSource.SqlBuilder
-  alias Cloak.Query.Runner.RuntimeError
+  alias Cloak.DataSource
   alias Cloak.Query.DataDecoder
 
 
@@ -29,7 +29,7 @@ defmodule Cloak.DataSource.MySQL do
     after :timer.seconds(5)
       ->
         GenServer.stop(connection)
-        raise RuntimeError, message: "unknown failure during database connection process"
+        DataSource.raise_error("Unknown failure during database connection process")
     end
   end
   @doc false
@@ -69,7 +69,7 @@ defmodule Cloak.DataSource.MySQL do
         |> result_processor.()
       end, [timeout: :timer.hours(2)])
     rescue
-      error in Mariaex.Error -> raise RuntimeError, message: "`#{Exception.message(error)}`"
+      error in Mariaex.Error -> DataSource.raise_error("Driver exception: `#{Exception.message(error)}`")
     end
   end
 
