@@ -36,7 +36,7 @@ defmodule Cloak.DataSource do
   alias Cloak.DataSource.Validations
   alias Cloak.DataSource.Parameters
   alias Cloak.Query.DataDecoder
-  alias Cloak.Query.Runner.RuntimeError
+  alias Cloak.QueryError
 
   require Logger
   require Aircloak.DeployConfig
@@ -142,7 +142,7 @@ defmodule Cloak.DataSource do
   Besides the query object, this methods also needs a result processing function
   for handling the stream of rows produced as a result of executing the query.
 
-  The function returns the processed result. On error a `RuntimeError` is raised.
+  The function returns the processed result. On error a `QueryError` is raised.
   """
   @spec select!(Query.t, result_processor) :: processed_result
   def select!(%{data_source: data_source} = select_query, result_processor) do
@@ -181,7 +181,7 @@ defmodule Cloak.DataSource do
 
   @doc "Raises an error when something goes wrong during data processing."
   @spec raise_error(String.t) :: no_return
-  def raise_error(message), do: raise RuntimeError, message: message
+  def raise_error(message), do: raise QueryError, message: message
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -269,7 +269,7 @@ defmodule Cloak.DataSource do
         driver.disconnect(connection)
       end
     rescue
-      error in RuntimeError ->
+      error in QueryError ->
         message = "Connection error: #{Exception.message(error)}."
         Logger.error("Data source `#{data_source.name}`: #{message}")
         %{data_source | errors: existing_errors ++ [message], tables: %{}}
@@ -282,7 +282,7 @@ defmodule Cloak.DataSource do
         try do
           {tables ++ load_tables(data_source, connection, table), errors}
         rescue
-          error in RuntimeError ->
+          error in QueryError ->
             {table_id, _} = table
             message = "Load error for table `#{table_id}`: #{Exception.message(error)}."
             Logger.error("Data source `#{data_source.name}`: #{message}")

@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   alias Cloak.Sql.Query
   alias Cloak.Sql.Expression
   alias Cloak.DataSource.SqlBuilder.DbFunction
-  alias Cloak.Query.Runner.RuntimeError
+  alias Cloak.QueryError
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -184,9 +184,9 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp range_fragments(%Query{subquery?: true, limit: limit, offset: offset}, :sqlserver), do:
     [" OFFSET ", to_string(offset), " ROWS FETCH NEXT ", to_string(limit), " ROWS ONLY"]
   defp range_fragments(%Query{subquery?: true, limit: limit}, sql_dialect) when limit != nil, do:
-    raise RuntimeError, message: "LIMIT clause is not supported on '#{sql_dialect}' data sources."
+    raise QueryError, message: "LIMIT clause is not supported on '#{sql_dialect}' data sources."
   defp range_fragments(%Query{subquery?: true, offset: offset}, sql_dialect) when offset > 0, do:
-    raise RuntimeError, message: "OFFSET clause is not supported on '#{sql_dialect}' data sources."
+    raise QueryError, message: "OFFSET clause is not supported on '#{sql_dialect}' data sources."
   defp range_fragments(_query, _sql_dialect), do: []
 
   defp split_full_outer_join({:join, %{type: :full_outer_join} = join}) do
