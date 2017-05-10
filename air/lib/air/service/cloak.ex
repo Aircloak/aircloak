@@ -87,7 +87,9 @@ defmodule Air.Service.Cloak do
     |> Enum.map(&({Map.fetch!(&1, "name"), &1}))
     |> Enum.into(%{})
 
-    register_data_sources(data_sources)
+    data_sources
+    |> add_error_on_conflicting_data_source_definitions()
+    |> register_data_sources()
 
     cloak_info = Map.merge(cloak_info, %{
       data_sources: data_sources_by_name,
@@ -101,6 +103,28 @@ defmodule Air.Service.Cloak do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp add_error_on_conflicting_data_source_definitions(data_sources) do
+    for data_source <- data_sources do
+      name = Map.fetch!(data_source, "name")
+      tables = Map.fetch!(data_source, "tables")
+
+      unless Enum.all?(existing_definitions_for_data_source(name), &(tables == Map.fetch!(&1, "tables"))) do
+        existing_errors = Map.get(data_source, "errors", [])
+        error = "The data source definition for data source `#{name}` differs between the different cloaks. " <>
+          "Please ensure the configurations for the data source are identical, across all the cloaks configured " <>
+          "to serve the dataset."
+        Map.put(data_source, "errors", [error | existing_errors])
+      else
+        data_source
+      end
+    end
+  end
+
+  defp existing_definitions_for_data_source(name), do:
+    all_cloak_infos()
+    |> Enum.map(&(Map.get(&1.data_sources, name)))
+    |> Enum.reject(&is_nil(&1))
 
   defp register_data_sources(data_sources), do:
     Enum.each(data_sources, fn(data_source) ->
