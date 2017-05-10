@@ -89,6 +89,7 @@ defmodule Air.Service.Cloak do
 
     data_sources
     |> add_error_on_conflicting_data_source_definitions()
+    |> combined_data_source_errors()
     |> register_data_sources()
 
     cloak_info = Map.merge(cloak_info, %{
@@ -118,6 +119,18 @@ defmodule Air.Service.Cloak do
       else
         data_source
       end
+    end
+  end
+
+  defp combined_data_source_errors(data_sources) do
+    for data_source <- data_sources do
+      combined_errors = Map.fetch!(data_source, "name")
+      |> existing_definitions_for_data_source()
+      |> Enum.flat_map(&Map.get(&1, "errors", []))
+      |> Enum.concat(Map.get(data_source, "errors", []))
+      |> Enum.uniq()
+
+      Map.put(data_source, "errors", combined_errors)
     end
   end
 

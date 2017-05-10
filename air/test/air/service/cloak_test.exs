@@ -109,6 +109,22 @@ defmodule Air.Service.Cloak.Test do
     assert error =~ ~r/differs between .+ cloaks/
   end
 
+  test "should retain errors from all cloaks" do
+    Cloak.register(TestRepoHelper.cloak_info("cloak1"), data_source_with_errors(["error 1"]))
+    Cloak.register(TestRepoHelper.cloak_info("cloak2"), data_source_with_errors(["error 2"]))
+    ["error 1", "error 2"] = Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+  end
+
+  test "should only contain a single copy of each error" do
+    Cloak.register(TestRepoHelper.cloak_info("cloak1"), data_source_with_errors(["error"]))
+    Cloak.register(TestRepoHelper.cloak_info("cloak2"), data_source_with_errors(["error"]))
+    ["error"] = Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+  end
+
+  defp data_source_with_errors(errors \\ []) do
+    [Map.put(@data_source, "errors", errors)]
+  end
+
   defp start_cloak_channel(data_sources) do
     parent = self()
     ref = make_ref()
