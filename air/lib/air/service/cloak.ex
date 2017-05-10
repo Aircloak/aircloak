@@ -113,14 +113,14 @@ defmodule Air.Service.Cloak do
       existing_definitions_for_data_source_by_cloak(name)
       |> Enum.map(fn({_cloak_name, data_source}) -> data_source end)
       |> Enum.all?(&(tables == Map.fetch!(&1, "tables")))
-      |> unless do
+      |> if do
+        data_source
+      else
         existing_errors = Map.get(data_source, "errors", [])
         error = "The data source definition for data source `#{name}` differs between the different cloaks. " <>
           "Please ensure the configurations for the data source are identical, across all the cloaks configured " <>
           "to serve the dataset."
         Map.put(data_source, "errors", [error | existing_errors])
-      else
-        data_source
       end
     end
   end
