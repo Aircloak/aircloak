@@ -468,6 +468,7 @@ defmodule Cloak.Sql.Compiler do
     columns =
         Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
         |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
+        |> Enum.uniq()
     [%{
       name: subquery.alias,
       columns: columns,
