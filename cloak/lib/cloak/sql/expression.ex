@@ -170,6 +170,15 @@ defmodule Cloak.Sql.Expression do
       fn(expression) -> if except_fun.(expression), do: :erlang.unique_integer(), else: expression end
     )
 
+  @doc """
+  Removes the alias from the given expression.
+
+  This can be useful if we want to check whether two expressions are the same.
+  """
+  @spec unalias(t) :: t
+  def unalias(expression), do:
+    %__MODULE__{expression | alias: nil}
+
 
   # -------------------------------------------------------------------
   # Internal functions

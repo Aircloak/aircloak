@@ -200,3 +200,31 @@ body.outdated {
   width: auto;
   display: inline;
 }
+
+
+/* ******************************************************************
+ * Extensions to bootstrap to provide danger elements in the navbar
+ ***************************************************************** */
+
+.nav > li.danger > a,
+.nav > li.danger > a:hover,
+.nav > li.danger > a:focus {
+  color: white;
+  background-color: #d9534f;
+}
+
+.nav > li.active.danger > a,
+.nav > li.active.danger > a:hover,
+.nav > li.active.danger > a:focus {
+  color: white;
+  background-color: #dd0000;
+}
+
+.nav > li.danger > a:hover {
+  color: #e5e5e5;
+}
+
+.nav > li.danger > a > span.badge {
+  background-color: white;
+  color: black;
+}

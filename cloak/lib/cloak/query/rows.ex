@@ -26,12 +26,17 @@ defmodule Cloak.Query.Rows do
   def extract_groups(rows, columns_to_select, query) do
     columns =
       (group_expressions(query) ++ query.aggregators)
+      |> Enum.map(&Expression.unalias/1)
       |> Enum.with_index()
       |> Enum.into(%{})
 
-    rows
-    |> Enum.filter(&filter_group(&1, columns, query))
-    |> Enum.map(&selected_values(&1, columns, columns_to_select))
+    columns_to_select = Enum.map(columns_to_select, &Expression.unalias/1)
+
+    Enum.filter_map(
+      rows,
+      &filter_group(&1, columns, query),
+      &selected_values(&1, columns, columns_to_select)
+    )
   end
 
   @doc "Groups input rows according to the query specification."
@@ -76,8 +81,7 @@ defmodule Cloak.Query.Rows do
     Query.order_by_expressions(query) -- query.columns
 
   defp selected_values(row, columns, columns_to_select), do:
-    for selected_column <- columns_to_select, do:
-      fetch_value!(row, selected_column, columns)
+    Enum.map(columns_to_select, &fetch_value!(row, &1, columns))
 
   defp fetch_value!(row, %Expression{function?: true, function_args: args} = function, columns) do
     case Map.fetch(columns, function) do

@@ -184,13 +184,13 @@ defmodule Cloak.Sql.Compiler do
     }
   end
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression]}, query) do
-    if not aggregated_column?(unalias_column(expression), query) do
+    if not aggregated_column?(Expression.unalias(expression), query) do
       %{noise_layer | expressions:
         [
           # The point of this unalias is not to generate invalid SQL like `min(foo AS carry_1234)`
-          Expression.function("min", [unalias_column(expression)], expression.type, _aggregate = true),
-          Expression.function("max", [unalias_column(expression)], expression.type, _aggregate = true),
-          Expression.function("count", [unalias_column(expression)], :integer, _aggregate = true),
+          Expression.function("min", [Expression.unalias(expression)], expression.type, _aggregate = true),
+          Expression.function("max", [Expression.unalias(expression)], expression.type, _aggregate = true),
+          Expression.function("count", [Expression.unalias(expression)], :integer, _aggregate = true),
         ]
         |> Enum.map(&set_unique_alias/1)
       }
@@ -200,11 +200,9 @@ defmodule Cloak.Sql.Compiler do
   end
 
   defp unalias_noise_layers(layers), do:
-    update_in(layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()], &unalias_column/1)
+    update_in(layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()], &Expression.unalias/1)
 
   def reference_aliased(column), do: %Expression{name: column.alias || column.name}
-
-  def unalias_column(column), do: %{column | alias: nil}
 
 
   # -------------------------------------------------------------------
@@ -381,9 +379,7 @@ defmodule Cloak.Sql.Compiler do
 
   defp max_column(column), do: Expression.function("max", [column], column.type, true) |> set_unique_alias()
 
-  defp set_unique_alias(column), do: %{column | alias: new_carry_alias()}
-
-  defp new_carry_alias(), do: "carry_#{System.unique_integer([:positive])}"
+  defp set_unique_alias(column), do: %{column | alias: "alias_#{System.unique_integer([:positive])}"}
 
   @minimum_subquery_limit 10
   defp align_limit(query = %{limit: nil}), do: query

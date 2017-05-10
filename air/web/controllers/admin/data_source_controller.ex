@@ -6,6 +6,7 @@ defmodule Air.Admin.DataSourceController do
   use Air.Web, :admin_controller
 
   alias Air.{Schemas.DataSource, Schemas.User}
+  alias Air.Service.Warnings
 
   plug :load_data_source when action in [:show, :edit, :update, :delete]
 
@@ -42,7 +43,8 @@ defmodule Air.Admin.DataSourceController do
       {data_source.id, data_source.users_count}
     end
 
-    render(conn, "index.html", data_sources: data_sources, users_count: users_count)
+    render(conn, "index.html", data_sources: data_sources, users_count: users_count,
+      data_source_problem_severity: highest_severity_class_map(data_sources))
   end
 
   def edit(conn, _params) do
@@ -78,7 +80,8 @@ defmodule Air.Admin.DataSourceController do
     render(conn, "show.html",
       data_source: data_source,
       conn: conn,
-      users: users
+      users: users,
+      problems: Warnings.problems_for_resource(data_source)
     )
   end
 
@@ -110,4 +113,14 @@ defmodule Air.Admin.DataSourceController do
         assign(conn, :data_source, data_source)
     end
   end
+
+  defp highest_severity_class_map(data_sources), do:
+    data_sources
+    |> Enum.map(&({&1.id, highest_severity_class(&1)}))
+    |> Enum.into(%{})
+
+  defp highest_severity_class(data_source), do:
+    data_source
+    |> Warnings.problems_for_resource()
+    |> Warnings.highest_severity_class()
 end

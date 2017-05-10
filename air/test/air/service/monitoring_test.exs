@@ -26,7 +26,7 @@ defmodule Air.Service.Monitoring.Test do
     end
 
     test "list of cloaks" do
-      cloak_info = cloak_info()
+      cloak_info = TestRepoHelper.cloak_info()
       :ok = Air.Service.Cloak.register(cloak_info,
         [%{"name" => "data_source_name", "global_id" => "a very global id", "tables" => []}])
       memory_reading = %{free_memory: 100}
@@ -74,15 +74,6 @@ defmodule Air.Service.Monitoring.Test do
   end
 
   defp in_minutes(minutes), do: NaiveDateTime.utc_now() |> Timex.shift(minutes: minutes)
-
-  defp cloak_info() do
-    %{
-      id: "cloak_id_#{:erlang.unique_integer()}",
-      version: "17.1.0",
-      name: "cloak_name",
-      online_since: Timex.now()
-    }
-  end
 
   defp create_group_for_data_source!(data_source) do
     TestRepoHelper.create_group!()
