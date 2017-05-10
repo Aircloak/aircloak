@@ -89,7 +89,7 @@ defmodule Air.Service.Cloak do
 
     data_sources
     |> add_error_on_conflicting_data_source_definitions()
-    |> combined_data_source_errors()
+    |> combined_data_source_errors(cloak_info)
     |> register_data_sources()
 
     cloak_info = Map.merge(cloak_info, %{
@@ -110,7 +110,10 @@ defmodule Air.Service.Cloak do
       name = Map.fetch!(data_source, "name")
       tables = Map.fetch!(data_source, "tables")
 
-      unless Enum.all?(existing_definitions_for_data_source(name), &(tables == Map.fetch!(&1, "tables"))) do
+      existing_definitions_for_data_source_by_cloak(name)
+      |> Enum.map(fn({_cloak_name, data_source}) -> data_source end)
+      |> Enum.all?(&(tables == Map.fetch!(&1, "tables")))
+      |> unless do
         existing_errors = Map.get(data_source, "errors", [])
         error = "The data source definition for data source `#{name}` differs between the different cloaks. " <>
           "Please ensure the configurations for the data source are identical, across all the cloaks configured " <>
@@ -122,21 +125,24 @@ defmodule Air.Service.Cloak do
     end
   end
 
-  defp combined_data_source_errors(data_sources) do
+  defp combined_data_source_errors(data_sources, cloak_info) do
     for data_source <- data_sources do
-      combined_errors = Map.fetch!(data_source, "name")
-      |> existing_definitions_for_data_source()
-      |> Enum.flat_map(&Map.get(&1, "errors", []))
-      |> Enum.concat(Map.get(data_source, "errors", []))
+      data_source_name = Map.fetch!(data_source, "name")
+
+      combined_errors = [{cloak_info.name, data_source}]
+      |> Enum.concat(existing_definitions_for_data_source_by_cloak(data_source_name))
+      |> Enum.flat_map(fn({cloak_name, data_source}) ->
+        Enum.map(Map.get(data_source, "errors", []), &("On cloak #{cloak_name}: #{&1}"))
+      end)
       |> Enum.uniq()
 
       Map.put(data_source, "errors", combined_errors)
     end
   end
 
-  defp existing_definitions_for_data_source(name), do:
+  defp existing_definitions_for_data_source_by_cloak(name), do:
     all_cloak_infos()
-    |> Enum.map(&(Map.get(&1.data_sources, name)))
+    |> Enum.map(&({&1.name, Map.get(&1.data_sources, name)}))
     |> Enum.reject(&is_nil(&1))
 
   defp register_data_sources(data_sources), do:
