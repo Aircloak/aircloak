@@ -341,6 +341,7 @@ defmodule Cloak.Sql.Compiler do
       columns: query.columns ++ noise_columns,
       column_titles: query.column_titles ++ Enum.map(noise_columns, &(&1.alias || &1.name)),
       aggregators: query.aggregators ++ Enum.filter(noise_columns, &(&1.aggregate?)),
+      floated_columns: noise_columns,
     }
   end
 
@@ -466,7 +467,7 @@ defmodule Cloak.Sql.Compiler do
     user_id_index = Enum.find_index(subquery.ast.columns, &(&1.user_id?))
     user_id_name = Enum.at(subquery.ast.column_titles, user_id_index)
     columns =
-        Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
+        Enum.zip(subquery.ast.column_titles, subquery.ast.columns -- subquery.ast.floated_columns)
         |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
     [%{
       name: subquery.alias,
@@ -1129,13 +1130,9 @@ defmodule Cloak.Sql.Compiler do
   end
 
   defp noise_layer_columns(%{noise_layers: noise_layers, emulated?: true, subquery?: true}), do:
-    Enum.flat_map(noise_layers, &(&1.expressions)) |> Enum.map(fn(column) ->
-      if column.aggregate? do
-        [aggregated] = column.function_args
-        aggregated
-      else
-        column
-      end
+    Enum.flat_map(noise_layers, &(&1.expressions)) |> Enum.map(fn
+      %{aggregate?: true, function_args: [aggregated]} -> aggregated
+      column -> column
     end)
   defp noise_layer_columns(%{noise_layers: noise_layers}), do:
     Enum.flat_map(noise_layers, &(&1.expressions))

@@ -103,6 +103,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         %Expression{name: ^count_alias}
       ]}, &1))
     end
+
+    test "* expansion doesn't include the carry columns" do
+      result = compile!(
+        "SELECT * FROM (SELECT uid, decoded FROM table GROUP BY uid, decoded) foo",
+        data_source()
+      )
+
+      assert [%Expression{value: :*}, %Expression{name: "decoded"}] = result.columns
+    end
   end
 
   describe "noise layers from nested subqueries" do
