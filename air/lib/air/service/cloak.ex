@@ -132,7 +132,6 @@ defmodule Air.Service.Cloak do
       combined_errors = [{cloak_info.name, data_source}]
       |> Enum.concat(existing_definitions_for_data_source_by_cloak(data_source_name))
       |> Enum.flat_map(&named_errors(&1))
-      |> Enum.uniq()
 
       Map.put(data_source, "errors", combined_errors)
     end
