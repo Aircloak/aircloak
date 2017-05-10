@@ -334,9 +334,7 @@ defmodule Cloak.Sql.Compiler do
 
   defp float_emulated_noise_layers(query = %{emulated?: false}), do: query
   defp float_emulated_noise_layers(query) do
-    noise_columns =
-      get_in(query.noise_layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()]) -- query.columns
-      |> Enum.map(&Map.put(&1, :generated?, true))
+    noise_columns = get_in(query.noise_layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()]) -- query.columns
 
     %{
       query |
@@ -344,6 +342,7 @@ defmodule Cloak.Sql.Compiler do
       column_titles: query.column_titles ++ Enum.map(noise_columns, &(&1.alias || &1.name)),
       aggregators: query.aggregators ++ Enum.filter(noise_columns, &(&1.aggregate?)),
     }
+    |> Map.put(:generated_columns, noise_columns)
   end
 
   defp carry_ranges(query) do
@@ -468,8 +467,7 @@ defmodule Cloak.Sql.Compiler do
     user_id_index = Enum.find_index(subquery.ast.columns, &(&1.user_id?))
     user_id_name = Enum.at(subquery.ast.column_titles, user_id_index)
     columns =
-        Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
-        |> Enum.reject(fn ({_alias, column}) -> Map.get(column, :generated?) end)
+        Enum.zip(subquery.ast.column_titles, subquery.ast.columns -- Map.get(subquery.ast, :generated_columns, []))
         |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
     [%{
       name: subquery.alias,
