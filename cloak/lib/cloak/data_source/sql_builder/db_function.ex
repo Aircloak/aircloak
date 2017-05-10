@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   @moduledoc "SQL code generation for database function invocations"
 
-  alias Cloak.QueryError
+  alias Cloak.Query.ExecutionError
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -25,7 +25,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
 
   for func <- ~w(ltrim btrim rtrim) do
     defp function_call(unquote(func), [_arg1, _arg2], :mysql),
-      do: raise QueryError, message: "Function #{unquote(func)} is not supported on 'mysql' data sources."
+      do: raise ExecutionError, message: "Function #{unquote(func)} is not supported on 'mysql' data sources."
   end
   defp function_call("^", [arg1, arg2], :mysql), do: ["POW(", arg1, ", ", arg2, ")"]
   defp function_call("/", [arg1, arg2], :postgresql),  do: ["(", arg1, " :: double precision / ", arg2, ")"]
@@ -80,7 +80,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
     ], sql_dialect)
   @noise_aggregates ["count_noise", "sum_noise", "avg_noise", "stddev_noise"]
   defp function_call(name, _args, _sql_dialect) when name in @noise_aggregates,
-    do: raise QueryError, "Aggregation functions for noise estimation are not allowed in sub-queries!"
+    do: raise ExecutionError, "Aggregation functions for noise estimation are not allowed in sub-queries!"
   defp function_call(name, args, _sql_dialect), do: [name, "(", Enum.intersperse(args, ", ") ,")"]
 
   defp sql_type(:real, :mysql), do: "decimal(65, 15)"

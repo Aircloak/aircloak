@@ -1,4 +1,4 @@
-defmodule Cloak.QueryError do
+defmodule Cloak.Query.ExecutionError do
   @moduledoc """
   An error that occurred while processing the query.
 

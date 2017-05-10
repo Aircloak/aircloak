@@ -27,7 +27,7 @@ defmodule Cloak.Query.Runner.Engine do
         query_killer_unreg.()
         {:ok, result, Sql.Query.info_messages(query)}
       end
-    rescue e in Cloak.QueryError ->
+    rescue e in Cloak.Query.ExecutionError ->
       {:error, e.message}
     end
   end
