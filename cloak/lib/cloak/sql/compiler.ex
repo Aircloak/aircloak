@@ -466,8 +466,9 @@ defmodule Cloak.Sql.Compiler do
     user_id_index = Enum.find_index(subquery.ast.columns, &(&1.user_id?))
     user_id_name = Enum.at(subquery.ast.column_titles, user_id_index)
     columns =
-        Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
-        |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
+      Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
+      |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
+
     [%{
       name: subquery.alias,
       columns: columns,

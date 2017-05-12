@@ -15,27 +15,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
     end
 
-    test "noise layer names are insensitive to the query casing" do
-      %{noise_layers: [%{name: name1}]} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
-      %{noise_layers: [%{name: name2}]} = compile!("SELECT COUNT(*) FROM table WHERE nUmErIc = 3", data_source())
-
-      assert name1 == name2
-    end
-
-    test "noise layer names are insensitive to being quoted" do
-      %{noise_layers: [%{name: name1}]} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
-      %{noise_layers: [%{name: name2}]} = compile!("SELECT COUNT(*) FROM table WHERE \"numeric\" = 3", data_source())
-
-      assert name1 == name2
-    end
-
-    test "noise layer names are insensitive to scoped" do
-      %{noise_layers: [%{name: name1}]} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
-      %{noise_layers: [%{name: name2}]} = compile!("SELECT COUNT(*) FROM table WHERE table.numeric = 3", data_source())
-
-      assert name1 == name2
-    end
-
     test "lists columns filtered with GROUP BY" do
       result = compile!("SELECT numeric, COUNT(*) FROM table GROUP BY numeric", data_source())
 
@@ -200,6 +179,45 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
+  describe "noise layer names" do
+    test "insensitive to being aliased" do
+      %{noise_layers: [%{name: name}]} = compile!(
+        "SELECT COUNT(*) FROM (SELECT uid, numeric as foo FROM table) bar WHERE foo = 3",
+      data_source())
+
+      assert {"table", "numeric"} = name
+    end
+
+    test "insensitive to being aliased after operations" do
+      %{noise_layers: [%{name: name1}, %{name: name2}]} = compile!(
+        "SELECT COUNT(*) FROM (SELECT uid, numeric + numeric2 as foo FROM table) bar WHERE foo = 3",
+      data_source())
+
+      assert ["numeric", "numeric2"] = Enum.sort([name1, name2])
+    end
+
+    test "insensitive to the query casing" do
+      %{noise_layers: [%{name: name1}]} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
+      %{noise_layers: [%{name: name2}]} = compile!("SELECT COUNT(*) FROM table WHERE nUmErIc = 3", data_source())
+
+      assert name1 == name2
+    end
+
+    test "insensitive to being quoted" do
+      %{noise_layers: [%{name: name1}]} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
+      %{noise_layers: [%{name: name2}]} = compile!("SELECT COUNT(*) FROM table WHERE \"numeric\" = 3", data_source())
+
+      assert name1 == name2
+    end
+
+    test "insensitive to being scoped" do
+      %{noise_layers: [%{name: name1}]} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
+      %{noise_layers: [%{name: name2}]} = compile!("SELECT COUNT(*) FROM table WHERE table.numeric = 3", data_source())
+
+      assert name1 == name2
+    end
+  end
+
   defp compile!(query_string, data_source, options \\ []) do
     query = Parser.parse!(query_string)
     {:ok, result} = Compiler.compile(data_source, query, Keyword.get(options, :parameters, []),
@@ -218,6 +236,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
           columns: [
             {"uid", :integer},
             {"numeric", :integer},
+            {"numeric2", :integer},
             {"decoded", :text},
             {"dummy", :boolean},
             {"dummy2", :boolean}
