@@ -238,7 +238,7 @@ defmodule Cloak.Sql.Query do
     Enum.map(query.order_by, fn({column, _}) -> column end)
 
   @doc "Returns the ordered list of bucket columns."
-  @spec bucket_columns(Query.t) :: [Expression.t]
+  @spec bucket_columns(t) :: [Expression.t]
   def bucket_columns(query), do: query.columns ++ (order_by_expressions(query) -- query.columns)
 
 

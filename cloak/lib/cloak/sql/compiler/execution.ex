@@ -1,0 +1,545 @@
+defmodule Cloak.Sql.Compiler.Execution do
+  @moduledoc """
+  Makes the compiled query specification ready for execution.
+
+  This is strictly speaking a post-compilation step where we do some transformation
+  to the query, in order to be able to safely execute it. Here, we figure out
+  things such as noise layers, alignments, or db column positions.
+  """
+
+  alias Cloak.DataSource
+  alias Cloak.Sql.{
+    CompilationError, Comparison, Expression, FixAlign, Function, Query, TypeChecker, Range,
+    NoiseLayer
+  }
+  alias Cloak.Sql.Compiler.Helpers
+  alias Cloak.Sql.Query.Lenses
+  alias Cloak.Query.DataDecoder
+
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Prepares the query for execution."
+  @spec prepare(Query.t) :: Query.t
+  def prepare(%Query{command: :show} = query), do:
+    query
+  def prepare(%Query{command: :select} = query), do:
+    query
+    |> prepare_subqueries()
+    |> TypeChecker.validate_allowed_usage_of_math_and_functions()
+    |> align_ranges(Lens.key(:where), :where)
+    |> align_join_ranges()
+    |> add_subquery_ranges()
+    |> optimize_columns_from_projected_tables()
+    |> set_emulation_flag()
+    |> partition_where_clauses()
+    |> calculate_noise_layers()
+    |> calculate_db_columns()
+    |> parse_row_splitters()
+    |> compute_aggregators()
+
+  @doc "Creates an executable query which describes a SELECT statement from a single table."
+  @spec make_select_query(DataSource.t, String.t, [Expression.t]) :: Query.t
+  def make_select_query(data_source, table_name, select_expressions) do
+    column_titles = for expression <- select_expressions, do: expression.alias || expression.name
+    calculate_db_columns(%Query{
+      command: :select,
+      subquery?: true,
+      columns: select_expressions,
+      column_titles: column_titles,
+      from: table_name,
+      data_source: data_source,
+      selected_tables: [DataSource.table(data_source, table_name)]
+    })
+  end
+
+
+  # -------------------------------------------------------------------
+  # Noise layers
+  # -------------------------------------------------------------------
+
+  defp calculate_noise_layers(query = %{projected?: true}), do: query
+  defp calculate_noise_layers(query = %{subquery?: true}), do:
+    if Helpers.aggregate?(query),
+      do: %{query | noise_layers: query |> noise_layers() |> Enum.map(&float_noise_layer(&1, query))},
+      else: %{query | noise_layers: query |> noise_layers()}
+  defp calculate_noise_layers(query), do:
+    %{query | noise_layers: query |> noise_layers() |> unalias_noise_layers()}
+
+  defp noise_layers(query), do: new_noise_layers(query) ++ floated_noise_layers(query)
+
+  defp new_noise_layers(query), do:
+    Query.Lenses.filter_clauses()
+    |> Lens.both(Lens.key(:group_by))
+    |> Query.Lenses.leaf_expressions()
+    |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
+    |> Lens.to_list(query)
+    |> Enum.map(&NoiseLayer.new(&1.name, [set_unique_alias(&1)]))
+
+  defp floated_noise_layers(query), do:
+    Query.Lenses.subquery_noise_layers()
+    |> Lens.to_list(query)
+    |> update_in([Lens.all() |> Lens.key(:expressions) |> Lens.all()], &reference_aliased/1)
+
+  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count]}, _query) do
+    %{noise_layer | expressions:
+      [
+        Expression.function("min", [reference_aliased(min)], min.type, _aggregate = true),
+        Expression.function("max", [reference_aliased(max)], max.type, _aggregate = true),
+        Expression.function("sum", [reference_aliased(count)], :integer, _aggregate = true),
+      ]
+      |> Enum.map(&set_unique_alias/1)
+    }
+  end
+  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression]}, query) do
+    if not Helpers.aggregated_column?(query, Expression.unalias(expression)) do
+      %{noise_layer | expressions:
+        [
+          # The point of this unalias is not to generate invalid SQL like `min(foo AS carry_1234)`
+          Expression.function("min", [Expression.unalias(expression)], expression.type, _aggregate = true),
+          Expression.function("max", [Expression.unalias(expression)], expression.type, _aggregate = true),
+          Expression.function("count", [Expression.unalias(expression)], :integer, _aggregate = true),
+        ]
+        |> Enum.map(&set_unique_alias/1)
+      }
+    else
+      noise_layer
+    end
+  end
+
+  defp unalias_noise_layers(layers), do:
+    update_in(layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()], &Expression.unalias/1)
+
+  def reference_aliased(column), do: %Expression{name: column.alias || column.name}
+
+  defp optimize_columns_from_projected_tables(%Query{projected?: false} = query), do:
+    # We're reducing the amount of selected columns from projected subqueries to only
+    # those columns which we in fact need in the outer query (`query`).
+    #
+    # Notice that this has to be done after all verifications have been performed. The reason is that we're
+    # conflating the list of selected columns and the list of available columns in the field `columns`.
+    # Therefore, we need to perform all checks with all projected table columns selected, and only then can
+    # we optimize the list of selected columns from the projected subquery.
+    #
+    # These two fields should likely be separated, and then we could invoke this function earlier. However,
+    # even then, this function can only be invoked after `db_columns` have been calculated, because that is
+    # the field we use to decide which columns from projected tables do we in fact need.
+    Lens.map(Query.Lenses.direct_projected_subqueries(), query,
+        &%{&1 | ast: optimized_projected_subquery_ast(&1.ast, required_column_names(query, &1))})
+  defp optimize_columns_from_projected_tables(%Query{projected?: true} = query), do:
+    # If this query is projected, then the list was already optimized when the ast for this query
+    # has been initially generated, so no need to do anything.
+    query
+
+  defp used_columns_from_table(query, table_name) do
+    all_terminals = Lens.both(Lenses.terminals(), Lenses.join_conditions_terminals()) |> Lens.to_list(query)
+    Lenses.leaf_expressions()
+    |> Lens.to_list(all_terminals)
+    |> Enum.filter(& &1.table != :unknown and &1.table.name == table_name)
+    |> Enum.uniq_by(&Expression.id/1)
+  end
+
+  defp required_column_names(query, projected_subquery), do:
+    [
+      # append uid column
+      DataSource.table(projected_subquery.ast.data_source, projected_subquery.alias).user_id |
+      # all db columns of the outer query which are from this projected table
+      query |> used_columns_from_table(projected_subquery.alias) |> Enum.map(& &1.name)
+    ]
+
+  defp optimized_projected_subquery_ast(ast, required_column_names) do
+    columns = Enum.filter(ast.columns, & &1.name in required_column_names)
+    titles = Enum.filter(ast.column_titles, & &1 in required_column_names)
+    %Query{ast | next_row_index: 0, db_columns: [], columns: columns, column_titles: titles}
+    |> set_emulation_flag()
+    |> calculate_db_columns()
+  end
+
+
+  # -------------------------------------------------------------------
+  # Subqueries
+  # -------------------------------------------------------------------
+
+  defp prepare_subqueries(query) do
+    {info, compiled} = Lens.get_and_map(Query.Lenses.direct_subqueries(), query, fn(subquery) ->
+      ast = compile_subquery(subquery.ast)
+      {ast.info, %{subquery | ast: ast}}
+    end)
+
+    Query.add_info(compiled, Enum.concat(info))
+  end
+
+  defp compile_subquery(parsed_subquery), do:
+    parsed_subquery
+    |> prepare()
+    |> align_limit()
+    |> align_offset()
+    |> align_ranges(Lens.key(:having), :having)
+    |> carry_ranges()
+    |> float_emulated_noise_layers()
+
+  defp float_emulated_noise_layers(query = %{emulated?: false}), do: query
+  defp float_emulated_noise_layers(query) do
+    noise_columns = get_in(query.noise_layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()]) -- query.columns
+
+    %{
+      query |
+      columns: query.columns ++ noise_columns,
+      column_titles: query.column_titles ++ Enum.map(noise_columns, &(&1.alias || &1.name)),
+      aggregators: query.aggregators ++ Enum.filter(noise_columns, &(&1.aggregate?)),
+      floated_columns: noise_columns,
+    }
+  end
+
+  defp carry_ranges(query) do
+    query = %{query | ranges: Enum.flat_map(query.ranges, &carrying_ranges(query, &1))}
+    range_columns = Enum.map(query.ranges, &(&1.column))
+
+    if query.emulated? do
+      %{
+        query |
+        columns: query.columns ++ range_columns,
+        column_titles: query.column_titles ++ Enum.map(range_columns, & &1.alias),
+        aggregators: query.aggregators ++ Enum.filter(range_columns, & &1.aggregate?),
+      }
+    else
+      %{query | db_columns: query.db_columns ++ range_columns}
+    end
+  end
+
+  defp carrying_ranges(%{implicit_count?: true}, range), do: [%{range | column: set_unique_alias(range.column)}]
+  defp carrying_ranges(_query, range = %{type: type, column: column}) do
+    case type do
+      :having -> [%{range | type: :where, column: set_unique_alias(column)}]
+      :nested_min -> [%{range | column: min_column(column)}]
+      :nested_max -> [%{range | column: max_column(column)}]
+      :where -> [
+        %{range | type: :nested_min, column: min_column(column)},
+        %{range | type: :nested_max, column: max_column(column)},
+      ]
+    end
+  end
+
+  defp min_column(column), do: Expression.function("min", [column], column.type, true) |> set_unique_alias()
+
+  defp max_column(column), do: Expression.function("max", [column], column.type, true) |> set_unique_alias()
+
+  defp set_unique_alias(column), do: %{column | alias: "alias_#{System.unique_integer([:positive])}"}
+
+  @minimum_subquery_limit 10
+  defp align_limit(query = %{limit: nil}), do: query
+  defp align_limit(query = %{limit: limit}) do
+    aligned = limit |> FixAlign.align() |> round() |> max(@minimum_subquery_limit)
+    if aligned != limit do
+      %{query | limit: aligned}
+      |> Query.add_info("Limit adjusted from #{limit} to #{aligned}")
+    else
+      query
+    end
+  end
+
+  defp align_offset(query = %{offset: 0}), do: query
+  defp align_offset(query = %{limit: limit, offset: offset}) do
+    aligned = round(offset / limit) * limit
+    if aligned != offset do
+      %{query | offset: aligned}
+      |> Query.add_info("Offset adjusted from #{offset} to #{aligned}")
+    else
+      query
+    end
+  end
+
+
+  # -------------------------------------------------------------------
+  # Normal validators and compilers
+  # -------------------------------------------------------------------
+
+  defp expand_arguments(column) do
+    (column |> Expression.arguments() |> Enum.flat_map(&expand_arguments/1)) ++ [column]
+  end
+
+  defp compute_aggregators(%Query{group_by: [_|_]} = query), do:
+    %Query{query | aggregators: Expression.unique_except(aggregators(query), &Expression.row_splitter?/1)}
+  defp compute_aggregators(query) do
+    case aggregators(query) do
+      [] ->
+        %Query{query | aggregators: [Expression.count_star()], implicit_count?: true}
+      aggregators ->
+        %Query{query | aggregators: Expression.unique_except(aggregators, &Expression.row_splitter?/1)}
+    end
+  end
+
+  defp aggregators(query), do:
+    (query.columns ++ having_columns(query))
+    |> Enum.flat_map(&expand_arguments/1)
+    |> Enum.filter(&(match?(%Expression{function?: true, aggregate?: true}, &1)))
+
+  defp having_columns(query), do:
+    Enum.flat_map(query.having, fn({:comparison, column, _operator, target}) -> [column, target] end)
+
+  defp parse_row_splitters(%Query{} = query) do
+    {transformed_columns, query} = transform_splitter_columns(query, query.columns)
+    validate_row_splitters_conditions(query)
+    %Query{query | columns: transformed_columns}
+  end
+
+  defp transform_splitter_columns(query, columns) do
+    {reversed_transformed_columns, final_query} =
+      Enum.reduce(columns, {[], query},
+        fn(column, {columns_acc, query_acc}) ->
+          {transformed_column, transformed_query} = transform_splitter_column(column, query_acc)
+          {[transformed_column | columns_acc], transformed_query}
+        end
+      )
+    {Enum.reverse(reversed_transformed_columns), final_query}
+  end
+
+  defp transform_splitter_column(expression = %Expression{function?: true}, query) do
+    {transformed_args, query} = transform_splitter_columns(query, Expression.arguments(expression))
+    expression = %{expression | function_args: transformed_args}
+    if Function.has_attribute?(expression, :row_splitter) do
+      # We are making the simplifying assumption that row splitting functions have
+      # the value column returned as part of the first column
+      {splitter_row_index, query} = add_row_splitter(query, expression)
+      db_column = case expression |> Expression.arguments() |> hd() |> Expression.first_column() do
+        nil -> raise CompilationError, message:
+          "Function `#{Function.readable_name(expression.function)}` requires that the first argument must be a column."
+        value -> value
+      end
+      column_name = "#{Function.readable_name(expression.function)}_return_value"
+      return_type = Function.return_type(expression)
+      # This, most crucially, preserves the DB row position parameter
+      augmented_column = %Expression{db_column | name: column_name, type: return_type, row_index: splitter_row_index}
+      # We need to update all other references to this column (group by, propeprty, etc.)
+      query = update_in(query, [Query.Lenses.query_expressions()], &if &1 == expression do augmented_column else &1 end)
+      {augmented_column, query}
+    else
+      {expression, query}
+    end
+  end
+  defp transform_splitter_column(other, query), do: {other, query}
+
+  defp add_row_splitter(query, function_spec) do
+    case Enum.find(query.row_splitters, &function_spec == &1.function_spec) do
+      %{row_index: splitter_row_index} ->
+        {splitter_row_index, query}
+      nil ->
+        {splitter_row_index, query} = Query.next_row_index(query)
+        new_splitter = %{function_spec: function_spec, row_index: splitter_row_index}
+        {new_splitter.row_index, %Query{query | row_splitters: query.row_splitters ++ [new_splitter]}}
+    end
+  end
+
+  defp validate_row_splitters_conditions(%Query{emulated_where: conditions}) do
+    conditions
+    |> get_in([Query.Lenses.conditions_terminals()])
+    |> Enum.any?(&Function.has_attribute?(&1, :row_splitter))
+    |> if do
+      raise CompilationError, message:
+        "Row splitter function used in the `WHERE` clause has to be first used identically in the `SELECT` clause."
+    end
+  end
+
+  defp partition_where_clauses(query) do
+    # extract conditions needing emulation
+    {emulated_column_clauses, safe_clauses} = Enum.partition(query.where, fn (condition) ->
+      emulated_expression_condition?(condition) or
+      (query.emulated? and multiple_tables_condition?(condition))
+    end)
+    %Query{query | where: safe_clauses, emulated_where: emulated_column_clauses}
+  end
+
+  defp multiple_tables_condition?(condition) do
+    Query.Lenses.conditions_terminals()
+    |> Lens.to_list([condition])
+    |> Enum.map(& &1.table)
+    |> Enum.uniq()
+    |> Enum.count() > 1
+  end
+
+  defp align_join_ranges(query), do:
+    query
+    |> Query.Lenses.join_condition_lenses()
+    |> Enum.reduce(query, fn(lens, query) -> align_ranges(query, lens, :where) end)
+
+  defp align_ranges(query, lens, range_type) do
+    clauses = Lens.get(lens, query)
+
+    verify_ranges(clauses)
+
+    ranges = inequalities_by_column(clauses)
+    non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), Comparison.subject(&1)))
+
+    query = put_in(query, [lens], non_range_clauses)
+    Enum.reduce(ranges, query, &add_aligned_range(&1, &2, lens, range_type))
+  end
+
+  defp add_aligned_range({column, conditions}, query, lens, range_type) do
+    {left, right} =
+      conditions
+      |> Enum.map(&Comparison.value/1)
+      |> Enum.sort(&Cloak.Data.lt_eq/2)
+      |> List.to_tuple()
+      |> FixAlign.align_interval()
+
+    if implement_range?({left, right}, conditions) do
+      update_in(query, [lens], &(conditions ++ &1))
+    else
+      query
+      |> add_clause(lens, {:comparison, column, :<, Expression.constant(column.type, right)})
+      |> add_clause(lens, {:comparison, column, :>=, Expression.constant(column.type, left)})
+      |> Query.add_info("The range for column #{Expression.display_name(column)} has been adjusted to #{left} <= "
+        <> "#{Expression.short_name(column)} < #{right}.")
+    end
+    |> put_in([Lens.key(:ranges), Lens.front()], Range.new(column, {left, right}, range_type))
+  end
+
+  defp implement_range?({left, right}, conditions) do
+    [{_, _, left_operator, left_column}, {_, _, right_operator, right_column}] =
+      Enum.sort_by(conditions, &Comparison.value/1, &Cloak.Data.lt_eq/2)
+
+    left_operator == :>= && left_column.value == left && right_operator == :< && right_column.value == right
+  end
+
+  defp add_clause(query, lens, clause), do: put_in(query, [lens, Lens.front()], clause)
+
+  defp add_subquery_ranges(query) do
+    %{query | ranges:
+      query
+      |> get_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast) |> Lens.key(:ranges) |> Lens.all()])
+      |> Enum.map(&(%{&1 | column: %Expression{name: &1.column.alias}}))
+      |> Enum.into(query.ranges)
+    }
+  end
+
+  defp verify_ranges(clauses) do
+    clauses
+    |> inequalities_by_column()
+    |> Enum.reject(fn({_, comparisons}) -> valid_range?(comparisons) end)
+    |> case do
+      [{column, _} | _] ->
+        raise CompilationError, message: "Column #{Expression.display_name(column)} must be limited to a finite range."
+      _ -> :ok
+    end
+  end
+
+  defp valid_range?(comparisons) do
+    case Enum.sort_by(comparisons, &Comparison.direction/1, &Kernel.>/2) do
+      [cmp1, cmp2] ->
+        Comparison.direction(cmp1) != Comparison.direction(cmp2) &&
+          Cloak.Data.lt_eq(Comparison.value(cmp1), Comparison.value(cmp2))
+      _ -> false
+    end
+  end
+
+  defp inequalities_by_column(where_clauses) do
+    where_clauses
+    |> Enum.filter(&Comparison.inequality?/1)
+    |> Enum.group_by(&Comparison.subject/1)
+    |> Enum.map(&discard_redundant_inequalities/1)
+    |> Enum.into(%{})
+  end
+
+  defp discard_redundant_inequalities({column, inequalities}) do
+    case {bottom, top} = Enum.partition(inequalities, &(Comparison.direction(&1) == :>)) do
+      {[], []} -> {column, []}
+      {_, []} -> {column, [Enum.max_by(bottom, &Comparison.value/1)]}
+      {[], _} -> {column, [Enum.min_by(top, &Comparison.value/1)]}
+      {_, _} -> {column, [Enum.max_by(bottom, &Comparison.value/1), Enum.min_by(top, &Comparison.value/1)]}
+    end
+  end
+
+  defp extract_columns(columns), do:
+    get_in(columns, [Query.Lenses.leaf_expressions()])
+
+  defp calculate_db_columns(query) do
+    selected_columns = select_expressions(query)
+    floated_columns = range_columns(query) ++ noise_layer_columns(query)
+    {query, floated_columns} = drop_redundant_floated_columns(query, selected_columns, floated_columns)
+    selected_columns ++ floated_columns
+    |> Enum.reduce(query, &Query.add_db_column(&2, &1))
+  end
+
+  defp drop_redundant_floated_columns(query, selected_columns, floated_columns) do
+    selected_ids = Enum.map(selected_columns, &Expression.id/1) |> Enum.uniq()
+    {duplicated_columns, floated_columns} = Enum.partition(floated_columns, &Expression.id(&1) in selected_ids)
+    query = Enum.reduce(duplicated_columns, query, fn (column, query) ->
+      replacement = Enum.find(selected_columns, &Expression.id(&1) == Expression.id(column))
+      Lenses.query_expressions() |> Lens.satisfy(&column == &1) |> Lens.map(query, fn(_) -> replacement end)
+    end)
+    {query, floated_columns}
+  end
+
+
+  defp noise_layer_columns(%{noise_layers: noise_layers, emulated?: true, subquery?: true}), do:
+    Enum.flat_map(noise_layers, &(&1.expressions)) |> Enum.map(fn
+      %{aggregate?: true, function_args: [aggregated]} -> aggregated
+      column -> column
+    end)
+  defp noise_layer_columns(%{noise_layers: noise_layers}), do:
+    Enum.flat_map(noise_layers, &(&1.expressions))
+
+  defp range_columns(%{subquery?: true, emulated?: false}), do: []
+  defp range_columns(%{ranges: ranges}), do: ranges |> Enum.map(&(&1.column)) |> extract_columns()
+
+  defp select_expressions(%Query{command: :select, subquery?: true, emulated?: false} = query) do
+    Enum.zip(query.column_titles, query.columns)
+    |> Enum.map(fn({column_alias, column}) -> %Expression{column | alias: column_alias} end)
+  end
+  defp select_expressions(%Query{command: :select} = query) do
+    # top-level query -> we,re fetching only columns, while other expressions (e.g. function calls)
+    # will be resolved in the post-processing phase
+    used_columns =
+      query
+      |> needed_columns()
+      |> extract_columns()
+      |> Enum.reject(& &1.constant?)
+    [Helpers.id_column(query) | used_columns]
+  end
+
+  defp needed_columns(query), do:
+    query.columns ++
+    query.group_by ++
+    query.emulated_where ++
+    query.having ++
+    Query.order_by_expressions(query)
+
+
+  # -------------------------------------------------------------------
+  # Query emulation
+  # -------------------------------------------------------------------
+
+  defp emulated_expression?(expression), do:
+    DataDecoder.needs_decoding?(expression) or Function.has_attribute?(expression, :emulated)
+
+  defp emulated_expression_condition?(condition) do
+    Comparison.verb(condition) != :is and
+    Query.Lenses.conditions_terminals()
+    |> Lens.to_list([condition])
+    |> Enum.any?(&emulated_expression?/1)
+  end
+
+  defp set_emulation_flag(query), do: %Query{query | emulated?: needs_emulation?(query)}
+
+  defp has_emulated_expressions?(query), do:
+    (query.columns ++ query.group_by ++ query.having ++ query.where)
+    |> get_in([Query.Lenses.all_expressions()])
+    |> Enum.any?(&emulated_expression?/1)
+
+  defp has_emulated_join_conditions?(query), do:
+    query
+    |> Helpers.all_join_conditions()
+    |> get_in([Query.Lenses.all_expressions()])
+    |> Enum.any?(&emulated_expression?/1)
+
+  defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
+  defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do:
+    not query.data_source.driver.supports_query?(query) or has_emulated_expressions?(query)
+  defp needs_emulation?(query), do:
+    not query.data_source.driver.supports_query?(query) or
+    query |> get_in([Query.Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?)) or
+    (query.subquery? and has_emulated_expressions?(query)) or
+    has_emulated_join_conditions?(query)
+end

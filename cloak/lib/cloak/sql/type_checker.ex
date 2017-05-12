@@ -21,7 +21,7 @@ defmodule Cloak.Sql.TypeChecker do
   or discontinuous functions.
   """
 
-  alias Cloak.Sql.{Compiler.CompilationError, Comparison, Expression, Query}
+  alias Cloak.Sql.{CompilationError, Comparison, Expression, Query}
   alias Cloak.Sql.TypeChecker.{Narrative, Type}
 
 
