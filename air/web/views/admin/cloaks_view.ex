@@ -9,10 +9,4 @@ defmodule Air.Admin.CloaksView do
   end
 
   defdelegate availability_label(data_source), to: Air.DataSourceView
-
-  def data_source_names(cloak_info) do
-    cloak_info.data_sources
-    |> Enum.map(&(&1.name))
-    |> Enum.join(", ")
-  end
 end
