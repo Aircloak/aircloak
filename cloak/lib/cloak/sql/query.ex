@@ -239,8 +239,8 @@ defmodule Cloak.Sql.Query do
 
   @doc "Returns the ordered list of bucket columns."
   @spec bucket_columns(Query.t) :: [Expression.t]
- def bucket_columns(query), do: query.columns ++ (order_by_expressions(query) -- query.columns)
- 
+  def bucket_columns(query), do: query.columns ++ (order_by_expressions(query) -- query.columns)
+
 
   # -------------------------------------------------------------------
   # Internal functions
