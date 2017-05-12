@@ -8,7 +8,7 @@ defmodule Cloak.Sql.Query do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{Expression, Compiler, Function, Parser, Query.Lenses, Range}
+  alias Cloak.Sql.{Expression, Compiler, Function, Parser, Query.Lenses, Range, NoiseLayer}
   require Logger
 
   @type negatable_condition ::
@@ -72,7 +72,8 @@ defmodule Cloak.Sql.Query do
     views: view_map,
     projected?: boolean,
     next_row_index: row_index,
-    noise_layers: [Expression.t]
+    noise_layers: [NoiseLayer.t],
+    floated_columns: [Expression.t],
   }
 
   defstruct [
@@ -80,7 +81,7 @@ defmodule Cloak.Sql.Query do
     info: [], selected_tables: [], row_splitters: [], implicit_count?: false, data_source: nil, command: nil,
     show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
     features: nil, emulated_where: [], ranges: %{}, parameters: [], views: %{}, emulated?: false,
-    projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: []
+    projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: [], floated_columns: [],
   ]
 
 
@@ -239,7 +240,7 @@ defmodule Cloak.Sql.Query do
   @doc "Returns the ordered list of bucket columns."
   @spec bucket_columns(Query.t) :: [Expression.t]
  def bucket_columns(query), do: query.columns ++ (order_by_expressions(query) -- query.columns)
-
+ 
 
   # -------------------------------------------------------------------
   # Internal functions

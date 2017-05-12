@@ -101,10 +101,10 @@ defmodule Air.TestRepoHelper do
 
   @doc "Returns parameters expected when registering a cloak in the air"
   @spec cloak_info() :: Map.t
-  def cloak_info() do
+  def cloak_info(name \\ "cloak_name") do
     %{
       id: "cloak_id_#{:erlang.unique_integer()}",
-      name: "cloak_name",
+      name: name,
       online_since: Timex.now(),
       version: "17.1.0",
     }

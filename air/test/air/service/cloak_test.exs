@@ -8,7 +8,10 @@ defmodule Air.Service.Cloak.Test do
 
   @data_source_id "data_source_id"
   @data_source_name "data_source_name"
-  @data_sources [%{"name" => @data_source_name, "global_id" => @data_source_id, "tables" => []}]
+  @data_source %{"name" => @data_source_name, "global_id" => @data_source_id, "tables" => []}
+  @data_sources [@data_source]
+  @data_sources_that_differ [%{"name" => @data_source_name, "global_id" => @data_source_id,
+    "tables" => [%{different: true}]}]
 
   setup do
     wait_for_cleanup()
@@ -69,7 +72,7 @@ defmodule Air.Service.Cloak.Test do
     [cloak] = Cloak.all_cloak_infos()
     assert cloak.id == cloak_info.id
     assert cloak.name == cloak_info.name
-    assert cloak.data_source_names == [@data_source_name]
+    assert cloak.data_sources[@data_source_name] == @data_source
   end
 
   test "returns a list of cloaks for a data sources" do
@@ -78,7 +81,7 @@ defmodule Air.Service.Cloak.Test do
     [cloak] = Cloak.cloak_infos_for_data_source(@data_source_name)
     assert cloak.id == cloak_info.id
     assert cloak.name == cloak_info.name
-    assert cloak.data_source_names == [@data_source_name]
+    assert cloak.data_sources[@data_source_name] == @data_source
   end
 
   describe "recording memory stats" do
@@ -97,6 +100,31 @@ defmodule Air.Service.Cloak.Test do
       Cloak.register(TestRepoHelper.cloak_info(), @data_sources)
       assert [%{memory: %{}}] = Cloak.all_cloak_infos()
     end
+  end
+
+  test "should record that a data source has conflicting definitions across cloaks" do
+    Cloak.register(TestRepoHelper.cloak_info(), @data_sources)
+    Cloak.register(TestRepoHelper.cloak_info("other_cloak"), @data_sources_that_differ)
+    [error] = Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+    assert error =~ ~r/differs between .+ cloaks/
+  end
+
+  test "should retain errors from all cloaks" do
+    Cloak.register(TestRepoHelper.cloak_info("cloak1"), data_source_with_errors(["error 1"]))
+    Cloak.register(TestRepoHelper.cloak_info("cloak2"), data_source_with_errors(["error 2"]))
+    ["On cloak cloak2: error 2", "On cloak cloak1: error 1"] =
+      Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+  end
+
+  test "tags errors with the originating cloak, to help debug problems" do
+    Cloak.register(TestRepoHelper.cloak_info("cloak1"), data_source_with_errors(["error"]))
+    Cloak.register(TestRepoHelper.cloak_info("cloak2"), data_source_with_errors(["error"]))
+    ["On cloak cloak2: error", "On cloak cloak1: error"] =
+      Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+  end
+
+  defp data_source_with_errors(errors) do
+    [Map.put(@data_source, "errors", errors)]
   end
 
   defp start_cloak_channel(data_sources) do
