@@ -2,14 +2,12 @@ defmodule Cloak.Sql.Compiler do
   @moduledoc "Makes the parsed SQL query ready for execution."
 
   alias Cloak.{CyclicGraph, DataSource}
-  alias Cloak.Sql.{Expression, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Range, NoiseLayer}
+  alias Cloak.Sql.{
+    CompilationError, Expression, Comparison, FixAlign, Function, Parser, Query, TypeChecker, Range,
+    NoiseLayer
+  }
   alias Cloak.Sql.Query.Lenses
   alias Cloak.Query.DataDecoder
-
-  defmodule CompilationError do
-    @moduledoc false
-    defexception message: "Error during compiling query"
-  end
 
 
   # -------------------------------------------------------------------
