@@ -61,11 +61,19 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "floating noise layers from a subquery" do
       result = compile!("SELECT COUNT(*) FROM (SELECT * FROM table WHERE numeric = 3) foo", data_source())
 
-      {:subquery, %{ast: subquery}} = result.from
+      assert [%{name: "numeric", expressions: [%Expression{name: name}]}] = result.noise_layers
+      assert name == "numeric"
+      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^name}, &1))
+    end
 
-      assert [%{name: "numeric", expressions: [%Expression{name: alias}]}] = result.noise_layers
-      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^alias}, &1))
-      assert 1 = Enum.count(subquery.db_columns, &match?(%Expression{name: "numeric", alias: ^alias}, &1))
+    test "floating noise layers from a join" do
+      result = compile!("""
+        SELECT numeric FROM table JOIN (SELECT uid FROM table WHERE numeric = 3) foo ON foo.uid = table.uid
+      """, data_source())
+
+      assert [%{name: "numeric", expressions: [%Expression{name: name}]}] = result.noise_layers
+      assert name != "numeric"
+      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^name}, &1))
     end
 
     test "floating noise layers from an aggregating subquery" do

@@ -469,6 +469,7 @@ defmodule Cloak.Sql.Compiler do
     columns =
         Enum.zip(subquery.ast.column_titles, subquery.ast.columns -- subquery.ast.floated_columns)
         |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
+        |> Enum.uniq()
     [%{
       name: subquery.alias,
       columns: columns,
@@ -1125,8 +1126,21 @@ defmodule Cloak.Sql.Compiler do
     get_in(columns, [Query.Lenses.leaf_expressions()])
 
   defp calculate_db_columns(query) do
-    select_expressions(query) ++ range_columns(query) ++ noise_layer_columns(query)
+    selected_columns = select_expressions(query)
+    floated_columns = range_columns(query) ++ noise_layer_columns(query)
+    {query, floated_columns} = drop_redundant_floated_columns(query, selected_columns, floated_columns)
+    selected_columns ++ floated_columns
     |> Enum.reduce(query, &Query.add_db_column(&2, &1))
+  end
+
+  defp drop_redundant_floated_columns(query, selected_columns, floated_columns) do
+    selected_ids = Enum.map(selected_columns, &Expression.id/1) |> Enum.uniq()
+    {duplicated_columns, floated_columns} = Enum.partition(floated_columns, &Expression.id(&1) in selected_ids)
+    query = Enum.reduce(duplicated_columns, query, fn (column, query) ->
+      replacement = Enum.find(selected_columns, &Expression.id(&1) == Expression.id(column))
+      Lenses.query_expressions() |> Lens.satisfy(&column == &1) |> Lens.map(query, fn(_) -> replacement end)
+    end)
+    {query, floated_columns}
   end
 
   defp noise_layer_columns(%{noise_layers: noise_layers, emulated?: true, subquery?: true}), do:

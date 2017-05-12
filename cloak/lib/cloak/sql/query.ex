@@ -171,11 +171,12 @@ defmodule Cloak.Sql.Query do
   @doc "Adds a database column to the query and updates all references to that column."
   @spec add_db_column(t, Expression.t) :: t
   def add_db_column(query, column) do
-    case Enum.find(query.db_columns, &Expression.id(&1) == Expression.id(column) and &1.alias == column.alias) do
+    column_matcher = &Expression.id(&1) == Expression.id(column) and &1.alias == column.alias
+    case Enum.find(query.db_columns, column_matcher) do
       nil ->
         {next_row_index, query} = next_row_index(query)
         Lens.map(
-          Lenses.query_expressions() |> Lenses.expressions_like(column) |> Lens.key(:row_index),
+          Lenses.query_expressions() |> Lens.satisfy(column_matcher) |> Lens.key(:row_index),
           %__MODULE__{query | db_columns: query.db_columns ++ [column]},
           fn(_) -> next_row_index end
         )
@@ -238,10 +239,7 @@ defmodule Cloak.Sql.Query do
 
   @doc "Returns the ordered list of bucket columns."
   @spec bucket_columns(Query.t) :: [Expression.t]
-  def bucket_columns(%__MODULE__{command: :show} = query), do:
-    query.columns
-  def bucket_columns(%__MODULE__{command: :select} = query), do:
-    query.columns ++ (order_by_expressions(query) -- query.columns)
+  def bucket_columns(query), do: query.columns ++ (order_by_expressions(query) -- query.columns)
 
 
   # -------------------------------------------------------------------
