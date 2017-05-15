@@ -44,7 +44,6 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> expand_star_select()
     |> compile_aliases()
     |> compile_columns()
-    |> reject_null_user_ids()
     |> compile_references()
     |> remove_redundant_uid_casts()
     |> cast_where_clauses()
@@ -524,10 +523,6 @@ defmodule Cloak.Sql.Compiler.Specification do
         subquery
     end
   end
-
-  defp reject_null_user_ids(%Query{subquery?: true} = query), do: query
-  defp reject_null_user_ids(query), do:
-    %{query | where: [{:not, {:is, Helpers.id_column(query), :null}} | query.where]}
 
   defp remove_redundant_uid_casts(query), do:
     # A cast which doesn't change the expression type is removed.

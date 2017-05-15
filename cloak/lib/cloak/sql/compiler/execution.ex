@@ -25,6 +25,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   def prepare(%Query{command: :select} = query), do:
     query
     |> prepare_subqueries()
+    |> reject_null_user_ids()
     |> censor_selected_uids()
     |> align_buckets()
     |> align_ranges(Lens.key(:where), :where)
@@ -55,8 +56,12 @@ defmodule Cloak.Sql.Compiler.Execution do
 
 
   # -------------------------------------------------------------------
-  # Censoring of selected uids
+  # UID handling
   # -------------------------------------------------------------------
+
+  defp reject_null_user_ids(%Query{subquery?: true} = query), do: query
+  defp reject_null_user_ids(query), do:
+    %{query | where: [{:not, {:is, Helpers.id_column(query), :null}} | query.where]}
 
   defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
     columns = for column <- query.columns, do:
