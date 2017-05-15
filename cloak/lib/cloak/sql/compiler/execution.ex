@@ -25,6 +25,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   def prepare(%Query{command: :select} = query), do:
     query
     |> prepare_subqueries()
+    |> align_buckets()
     |> align_ranges(Lens.key(:where), :where)
     |> align_join_ranges()
     |> add_subquery_ranges()
@@ -49,6 +50,29 @@ defmodule Cloak.Sql.Compiler.Execution do
       data_source: data_source,
       selected_tables: [DataSource.table(data_source, table_name)]
     })
+  end
+
+
+  # -------------------------------------------------------------------
+  # Bucket alignment
+  # -------------------------------------------------------------------
+
+  defp align_buckets(query) do
+    {messages, query} = Lens.get_and_map(Lenses.buckets(), query, &align_bucket/1)
+    Query.add_info(query, Enum.reject(messages, &is_nil/1))
+  end
+
+  defp align_bucket(column) do
+    if Function.bucket_size(column) <= 0 do
+      raise CompilationError, message: "Bucket size #{Function.bucket_size(column)} must be > 0"
+    end
+
+    aligned = Function.update_bucket_size(column, &FixAlign.align/1)
+    if aligned == column do
+      {nil, aligned}
+    else
+      {"Bucket size adjusted from #{Function.bucket_size(column)} to #{Function.bucket_size(aligned)}", aligned}
+    end
   end
 
 

@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   @moduledoc "Turns a parsed SQL AST into a `Cloak.Sql.Query` specification describing the user query."
 
   alias Cloak.{CyclicGraph, DataSource}
-  alias Cloak.Sql.{Comparison, CompilationError, Expression, FixAlign, Function, Query, TypeChecker}
+  alias Cloak.Sql.{Comparison, CompilationError, Expression, Function, Query, TypeChecker}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
 
@@ -289,7 +289,6 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp compile_columns(query) do
     query
     |> expand_star_select()
-    |> compile_buckets()
     |> compile_aliases()
     |> parse_columns()
   end
@@ -302,25 +301,6 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp all_column_identifiers(query) do
     for table <- query.selected_tables, {column_name, _type} <- table.columns do
       {:identifier, table.name, {:unquoted, column_name}}
-    end
-  end
-
-  defp compile_buckets(query) do
-    {messages, columns} = Lens.get_and_map(Lens.all() |> Lenses.buckets(),
-        query.columns, &align_bucket/1)
-    Query.add_info(%{query | columns: columns}, Enum.reject(messages, &is_nil/1))
-  end
-
-  defp align_bucket(column) do
-    if Function.bucket_size(column) <= 0 do
-      raise CompilationError, message: "Bucket size #{Function.bucket_size(column)} must be > 0"
-    end
-
-    aligned = Function.update_bucket_size(column, &FixAlign.align/1)
-    if aligned == column do
-      {nil, aligned}
-    else
-      {"Bucket size adjusted from #{Function.bucket_size(column)} to #{Function.bucket_size(aligned)}", aligned}
     end
   end
 
