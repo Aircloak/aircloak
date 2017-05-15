@@ -112,7 +112,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp unalias_noise_layers(layers), do:
     update_in(layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()], &Expression.unalias/1)
 
-  def reference_aliased(column), do: %Expression{name: column.alias || column.name}
+  defp reference_aliased(column), do: %Expression{name: column.alias || column.name}
 
   defp optimize_columns_from_projected_tables(%Query{projected?: false} = query), do:
     # We're reducing the amount of selected columns from projected subqueries to only

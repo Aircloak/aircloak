@@ -111,7 +111,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp do_compile_views(other, _query), do:
     other
 
-  def view_to_subquery(view_name, view_sql, query) do
+  defp view_to_subquery(view_name, view_sql, query) do
     if Enum.any?(
       query.data_source.tables,
       fn({_id, table}) -> insensitive_equal?(table.name, view_name) end
