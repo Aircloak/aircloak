@@ -277,37 +277,6 @@ defmodule Cloak.Sql.Function.Test do
     assert well_typed?({:cast, :interval}, [:interval])
   end
 
-  test "compiling function that doesn't need compilation does nothing" do
-    function = %Expression{function: "no_compilation", function_args: [:args1, :args2]}
-    callback = fn(a) -> a end
-    assert function == Function.compile_function(function, callback)
-  end
-
-  Enum.map(["extract_match", "extract_matches"], fn(function_name) ->
-    test "compiling #{function_name} function creates regex of regex pattern" do
-      function = %Expression{
-        function: unquote(function_name),
-        function_args: [%Expression{}, %Expression{value: "regex_pattern"}]
-      }
-      callback = fn(a) -> a end
-      assert %Expression{function_args: [_, %Expression{value: %Regex{}}]}
-        = Function.compile_function(function, callback)
-    end
-
-    test "compiling already compiled #{function_name} function does nothing" do
-      function = %Expression{
-        function: unquote(function_name),
-        function_args: [%Expression{}, %Expression{value: "regex_pattern"}]
-      }
-      callback = fn(a) -> a end
-      compiled_function = Function.compile_function(function, callback)
-      assert Function.compile_function(compiled_function, callback) == compiled_function
-    end
-
-    test "knows `#{function_name}` isn't allowed in a subquery", do:
-      assert Function.has_attribute?({:function, unquote(function_name), []}, :not_in_subquery)
-  end)
-
   test "can tell when a function splits rows", do:
     assert Function.has_attribute?("extract_matches", :row_splitter)
 

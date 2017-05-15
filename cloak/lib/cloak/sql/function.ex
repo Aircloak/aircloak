@@ -207,23 +207,6 @@ defmodule Cloak.Sql.Function do
   @spec bucket_size(t) :: number
   def bucket_size(%Expression{function: {:bucket, _}, function_args: [_arg1, size]}), do: size.value
 
-  @doc "Compiles a function so it is ready for execution"
-  @spec compile_function(t, function_compilation_callback) :: t | {:error, String.t}
-  def compile_function(%Expression{function: name, function_args: [_, %Expression{value: %Regex{}}]} = expression, _)
-    when name in ["extract_match", "extract_matches"], do: expression
-  def compile_function(%Expression{function: name, function_args: [column, pattern_column]} = expression, callback)
-      when name in ["extract_match", "extract_matches"] do
-    case Regex.compile(pattern_column.value, "ui") do
-      {:ok, regex} ->
-        regex_column = %Expression{pattern_column | value: regex}
-        %{expression | function_args: callback.([column]) ++ [regex_column]}
-      {:error, {error, location}} ->
-        {:error, "The regex used in `#{name}` is invalid: #{error} at character #{location}"}
-    end
-  end
-  def compile_function(expression, callback), do:
-    %{expression | function_args: callback.(expression.function_args)}
-
   @doc "Returns true if the function is a valid cloak function"
   @spec exists?(t) :: boolean
   def exists?({:function, function, _}), do: @functions[function] !== nil

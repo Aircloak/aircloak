@@ -45,9 +45,9 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> compile_aliases()
     |> compile_columns()
     |> compile_references()
+    |> compile_extraction_patterns()
     |> remove_redundant_uid_casts()
     |> cast_where_clauses()
-    |> precompile_functions()
     |> verify_columns()
     |> verify_joins()
     |> verify_where_clauses()
@@ -579,21 +579,24 @@ defmodule Cloak.Sql.Compiler.Specification do
 
 
   # -------------------------------------------------------------------
-  # Precompile functions
+  # Extraction patterns
   # -------------------------------------------------------------------
 
-  defp precompile_functions(%Query{} = query), do:
-    update_in(query, [Lenses.query_expressions()], &precompile_function/1)
-  defp precompile_functions(columns), do:
-    Enum.map(columns, &precompile_function/1)
+  defp compile_extraction_patterns(%Query{} = query), do:
+    update_in(query,
+      [Lenses.query_expressions() |> Lens.satisfy(&(&1.function in ["extract_match", "extract_matches"]))],
+      &compile_extraction_pattern/1
+    )
 
-  defp precompile_function(expression = %Expression{function?: true}) do
-    case Function.compile_function(expression, &precompile_functions/1) do
-      {:error, message} -> raise CompilationError, message: message
-      compiled_function -> compiled_function
+  defp compile_extraction_pattern(%Expression{function_args: [arg1, pattern]} =  extraction) do
+    case Regex.compile(pattern.value, "ui") do
+      {:ok, regex} ->
+        %Expression{extraction | function_args: [arg1, %Expression{pattern | value: regex}]}
+      {:error, {error, location}} ->
+        raise CompilationError,
+          message: "The regex used in `#{extraction.name}` is invalid: #{error} at character #{location}"
     end
   end
-  defp precompile_function(column), do: column
 
 
   # -------------------------------------------------------------------
