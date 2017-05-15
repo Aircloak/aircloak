@@ -319,9 +319,13 @@ defmodule Cloak.Query.Aggregator do
       {user, filtered_rows}
     end)
     |> Enum.reduce(%{}, fn ({user, values}, acc) ->
-      Enum.reduce(values, acc, fn (value, acc) -> Map.update(acc, value, [user], &[user | &1]) end)
+      Enum.reduce(values, acc, fn (value, acc) ->
+        Map.update(acc, value, [user], &[user | &1])
+      end)
     end)
-    |> Enum.reject(fn ({_value, users}) -> low_users_count?(users, Anonymizer.new([users])) end)
+    |> Enum.reject(fn ({_value, users}) ->
+      low_users_count?(users, Anonymizer.new([MapSet.new(users)]))
+    end)
     |> Enum.map(fn ({value, _users}) -> value end)
   end
 
