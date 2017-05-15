@@ -41,6 +41,8 @@ defmodule Cloak.Sql.Compiler.Specification do
     query
     |> compile_from()
     |> compile_parameter_types()
+    |> expand_star_select()
+    |> compile_aliases()
     |> compile_columns()
     |> reject_null_user_ids()
     |> compile_references()
@@ -286,13 +288,6 @@ defmodule Cloak.Sql.Compiler.Specification do
   # Transformation of columns
   # -------------------------------------------------------------------
 
-  defp compile_columns(query) do
-    query
-    |> expand_star_select()
-    |> compile_aliases()
-    |> parse_columns()
-  end
-
   defp expand_star_select(%Query{columns: :*} = query) do
     %Query{query | columns: all_column_identifiers(query)}
   end
@@ -349,7 +344,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     end
   end
 
-  defp parse_columns(query) do
+  defp compile_columns(query) do
     columns_by_name =
       for table <- query.selected_tables, {column, type} <- table.columns do
         %Expression{table: table, name: column, type: type, user_id?: table.user_id == column}
