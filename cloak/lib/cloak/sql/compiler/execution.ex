@@ -183,15 +183,15 @@ defmodule Cloak.Sql.Compiler.Execution do
   # -------------------------------------------------------------------
 
   defp prepare_subqueries(query) do
-    {info, compiled} = Lens.get_and_map(Query.Lenses.direct_subqueries(), query, fn(subquery) ->
-      ast = compile_subquery(subquery.ast)
+    {info, prepared_subquery} = Lens.get_and_map(Query.Lenses.direct_subqueries(), query, fn(subquery) ->
+      ast = prepare_subquery(subquery.ast)
       {ast.info, %{subquery | ast: ast}}
     end)
 
-    Query.add_info(compiled, Enum.concat(info))
+    Query.add_info(prepared_subquery, Enum.concat(info))
   end
 
-  defp compile_subquery(parsed_subquery), do:
+  defp prepare_subquery(parsed_subquery), do:
     parsed_subquery
     |> prepare()
     |> align_limit()
