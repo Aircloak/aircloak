@@ -324,7 +324,7 @@ defmodule Cloak.Query.Aggregator do
       end)
     end)
     |> Enum.reject(fn ({_value, users}) ->
-      low_users_count?(users, Anonymizer.new([users])) 
+      low_users_count?(users, Anonymizer.new([MapSet.new(users)]))
     end)
     |> Enum.map(fn ({value, _users}) -> value end)
   end
