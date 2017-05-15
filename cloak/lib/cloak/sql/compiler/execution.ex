@@ -8,10 +8,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{
-    CompilationError, Comparison, Expression, FixAlign, Function, Query, TypeChecker, Range,
-    NoiseLayer
-  }
+  alias Cloak.Sql.{CompilationError, Comparison, Expression, FixAlign, Function, Query, Range, NoiseLayer}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
   alias Cloak.Query.DataDecoder
@@ -28,7 +25,6 @@ defmodule Cloak.Sql.Compiler.Execution do
   def prepare(%Query{command: :select} = query), do:
     query
     |> prepare_subqueries()
-    |> TypeChecker.validate_allowed_usage_of_math_and_functions()
     |> align_ranges(Lens.key(:where), :where)
     |> align_join_ranges()
     |> add_subquery_ranges()

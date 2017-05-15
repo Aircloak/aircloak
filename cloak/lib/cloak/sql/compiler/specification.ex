@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   @moduledoc "Turns a parsed SQL AST into a `Cloak.Sql.Query` specification describing the user query."
 
   alias Cloak.{CyclicGraph, DataSource}
-  alias Cloak.Sql.{Comparison, CompilationError, Expression, FixAlign, Function, Query}
+  alias Cloak.Sql.{Comparison, CompilationError, Expression, FixAlign, Function, Query, TypeChecker}
   alias Cloak.Sql.Compiler.Helpers
 
 
@@ -53,6 +53,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> verify_having()
     |> verify_limit()
     |> verify_offset()
+    |> TypeChecker.validate_allowed_usage_of_math_and_functions()
 
 
   # -------------------------------------------------------------------
