@@ -25,6 +25,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   def prepare(%Query{command: :select} = query), do:
     query
     |> prepare_subqueries()
+    |> censor_selected_uids()
     |> align_buckets()
     |> align_ranges(Lens.key(:where), :where)
     |> align_join_ranges()
@@ -51,6 +52,21 @@ defmodule Cloak.Sql.Compiler.Execution do
       selected_tables: [DataSource.table(data_source, table_name)]
     })
   end
+
+
+  # -------------------------------------------------------------------
+  # Censoring of selected uids
+  # -------------------------------------------------------------------
+
+  defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
+    columns = for column <- query.columns, do:
+      if is_uid_column?(column), do: Expression.constant(column.type, :*), else: column
+    %Query{query | columns: columns}
+  end
+  defp censor_selected_uids(query), do: query
+
+  defp is_uid_column?(%Expression{aggregate?: true}), do: false
+  defp is_uid_column?(column), do: [column] |> extract_columns() |> Enum.any?(& &1.user_id?)
 
 
   # -------------------------------------------------------------------

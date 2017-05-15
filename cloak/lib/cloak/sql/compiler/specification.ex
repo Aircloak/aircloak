@@ -49,7 +49,6 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> remove_redundant_uid_casts()
     |> cast_where_clauses()
     |> precompile_functions()
-    |> censor_selected_uids()
     |> verify_columns()
     |> verify_joins()
     |> verify_where_clauses()
@@ -537,19 +536,6 @@ defmodule Cloak.Sql.Compiler.Specification do
     Lenses.terminals()
     |> Lens.satisfy(&match?(%Expression{function: {:cast, type}, function_args: [%Expression{type: type}]}, &1))
     |> Lens.map(query, &hd(&1.function_args))
-
-  defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
-    columns = for column <- query.columns, do:
-      if is_uid_column?(column), do: Expression.constant(column.type, :*), else: column
-    %Query{query | columns: columns}
-  end
-  defp censor_selected_uids(query), do: query
-
-  defp is_uid_column?(%Expression{aggregate?: true}), do: false
-  defp is_uid_column?(column), do: [column] |> extract_columns() |> Enum.any?(& &1.user_id?)
-
-  defp extract_columns(columns), do:
-    get_in(columns, [Lenses.leaf_expressions()])
 
 
   # -------------------------------------------------------------------
