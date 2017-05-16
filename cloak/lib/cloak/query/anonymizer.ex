@@ -257,7 +257,7 @@ defmodule Cloak.Query.Anonymizer do
     {outliers_count, anonymizer} = add_noise(anonymizer, config(:outliers_count))
     outliers_count = outliers_count |> round() |> Kernel.max(config(:min_outliers_count))
     {top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
-    top_count = round(top_count)
+    top_count = top_count |> round() |> Kernel.max(0)
     {sum, noise_sigma_scale} = sum_positives(rows, outliers_count, top_count)
     noise_sigma = config(:sum_noise_sigma) * noise_sigma_scale
     {noisy_sum, anonymizer} = add_noise(anonymizer, {sum, noise_sigma})

@@ -8,7 +8,10 @@ defmodule Cloak.Sql.Expression do
   alias Timex.Duration
 
   @type column_type :: DataSource.data_type | nil
-  @type function_name :: String.t | {:cast, DataSource.data_type | :varbinary}
+  @type function_name ::
+    String.t |
+    {:cast, DataSource.data_type | :varbinary} |
+    {:bucket, :lower | :upper | :middle}
   @type t :: %__MODULE__{
     table: :unknown | DataSource.table,
     name: String.t | nil,
