@@ -2,13 +2,29 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   alias Cloak.Sql.{Expression, Query, NoiseLayer}
   alias Cloak.Sql.Compiler.Helpers
 
-  def compile(query, data_source) do
+  def compile(query), do:
     query
-    |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &compile(&1, data_source))
-    |> calculate_noise_layers()
+    |> apply_to_subqueries(&calculate_base_noise_layers/1)
+    |> apply_to_subqueries(&calculate_floated_noise_layers/1)
+
+  defp calculate_floated_noise_layers(query), do:
+    query
+    |> add_floated_noise_layers()
     |> add_db_columns()
     |> float_emulated_noise_layers()
-  end
+
+  defp add_floated_noise_layers(query), do:
+    if query.subquery? && Helpers.aggregate?(query),
+      do: %{query | noise_layers: float_noise_layers(query.noise_layers ++ floated_noise_layers(query), query)},
+      else: %{query | noise_layers: query.noise_layers ++ floated_noise_layers(query)}
+
+  defp float_noise_layers(layers, query), do:
+    Enum.map(layers, &float_noise_layer(&1, query))
+
+  defp apply_to_subqueries(query, function), do:
+    query
+    |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast) |> Lens.recur()], function)
+    |> function.()
 
   defp float_emulated_noise_layers(query = %{emulated?: true, subquery?: true}) do
     noise_columns = get_in(query.noise_layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()]) -- query.columns
@@ -36,15 +52,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp noise_layer_columns(%{noise_layers: noise_layers}), do:
     Enum.flat_map(noise_layers, &(&1.expressions))
 
-  defp calculate_noise_layers(query = %{projected?: true}), do: query
-  defp calculate_noise_layers(query = %{subquery?: true}), do:
-    if Helpers.aggregate?(query),
-      do: %{query | noise_layers: query |> noise_layers() |> Enum.map(&float_noise_layer(&1, query))},
-      else: %{query | noise_layers: query |> noise_layers()}
-  defp calculate_noise_layers(query), do:
-    %{query | noise_layers: query |> noise_layers()}
-
-  defp noise_layers(query), do: new_noise_layers(query) ++ floated_noise_layers(query)
+  defp calculate_base_noise_layers(query = %{projected?: true}), do:
+    query
+  defp calculate_base_noise_layers(query), do:
+    %{query | noise_layers: query |> new_noise_layers()}
 
   defp new_noise_layers(query), do:
     Query.Lenses.filter_clauses()

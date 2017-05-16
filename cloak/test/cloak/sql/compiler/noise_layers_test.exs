@@ -62,7 +62,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM (SELECT * FROM table WHERE numeric = 3) foo", data_source())
 
       assert [%{name: {"table", "numeric"}, expressions: [%Expression{name: name}]}] = result.noise_layers
-      assert name == "numeric"
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^name}, &1))
     end
 
@@ -125,7 +124,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   describe "noise layers from nested subqueries" do
     test "floating columns from non-aggregating subqueries" do
       result = compile!(
-        "SELECT COUNT(*) FROM (SELECT * FROM (SELECT * FROM table WHERE numeric = 3) foo) bar",
+        "SELECT COUNT(*) FROM (SELECT uid, numeric FROM (SELECT uid, numeric FROM table WHERE numeric = 3) foo) bar",
         data_source()
       )
 
@@ -239,7 +238,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     query = Parser.parse!(query_string)
     {:ok, result} = Compiler.compile(data_source, query, Keyword.get(options, :parameters, []),
       Keyword.get(options, :views, %{}))
-    Compiler.NoiseLayers.compile(result, data_source)
+    Compiler.NoiseLayers.compile(result)
   end
 
   defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do
