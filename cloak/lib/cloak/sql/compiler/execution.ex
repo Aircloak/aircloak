@@ -8,10 +8,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{
-    CompilationError, Comparison, Expression, FixAlign, Function, Query, TypeChecker, Range,
-    NoiseLayer
-  }
+  alias Cloak.Sql.{CompilationError, Comparison, Expression, FixAlign, Function, Query, Range, NoiseLayer}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
   alias Cloak.Query.DataDecoder
@@ -28,7 +25,9 @@ defmodule Cloak.Sql.Compiler.Execution do
   def prepare(%Query{command: :select} = query), do:
     query
     |> prepare_subqueries()
-    |> TypeChecker.validate_allowed_usage_of_math_and_functions()
+    |> reject_null_user_ids()
+    |> censor_selected_uids()
+    |> align_buckets()
     |> align_ranges(Lens.key(:where), :where)
     |> align_join_ranges()
     |> add_subquery_ranges()
@@ -53,6 +52,53 @@ defmodule Cloak.Sql.Compiler.Execution do
       data_source: data_source,
       selected_tables: [DataSource.table(data_source, table_name)]
     })
+  end
+
+
+  # -------------------------------------------------------------------
+  # UID handling
+  # -------------------------------------------------------------------
+
+  defp reject_null_user_ids(%Query{subquery?: true} = query), do: query
+  defp reject_null_user_ids(query), do:
+    %{query | where: [{:not, {:is, Helpers.id_column(query), :null}} | query.where]}
+
+  defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
+    # In a top-level query, we're replacing all selected expressions which depend on uid columns with the `:*`
+    # constant. This allows us to reduce the amount of anonymized values, without compromising the privacy.
+    # For example, consider the query `select uid, name from users`. Normally, this would return only `(*, *)`
+    # rows. However, with this replacement, we can return names which are frequent enough, without revealing
+    # any sensitive information. For example, we could return: `(*, Alice), (*, Bob), (*, *)`, which is
+    # not possible without this replacement.
+    selected_uids_lens = Lens.key(:columns) |> Lens.all() |> Lens.satisfy(&uid_column?/1)
+    update_in(query, [selected_uids_lens], &Expression.constant(&1.type, :*))
+  end
+  defp censor_selected_uids(query), do: query
+
+  defp uid_column?(%Expression{aggregate?: true}), do: false
+  defp uid_column?(column), do: [column] |> extract_columns() |> Enum.any?(& &1.user_id?)
+
+
+  # -------------------------------------------------------------------
+  # Bucket alignment
+  # -------------------------------------------------------------------
+
+  defp align_buckets(query) do
+    {messages, query} = Lens.get_and_map(Lenses.buckets(), query, &align_bucket/1)
+    Query.add_info(query, Enum.reject(messages, &is_nil/1))
+  end
+
+  defp align_bucket(column) do
+    if Function.bucket_size(column) <= 0 do
+      raise CompilationError, message: "Bucket size #{Function.bucket_size(column)} must be > 0"
+    end
+
+    aligned = Function.update_bucket_size(column, &FixAlign.align/1)
+    if aligned == column do
+      {nil, aligned}
+    else
+      {"Bucket size adjusted from #{Function.bucket_size(column)} to #{Function.bucket_size(aligned)}", aligned}
+    end
   end
 
 
@@ -112,7 +158,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp unalias_noise_layers(layers), do:
     update_in(layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()], &Expression.unalias/1)
 
-  def reference_aliased(column), do: %Expression{name: column.alias || column.name}
+  defp reference_aliased(column), do: %Expression{name: column.alias || column.name}
 
   defp optimize_columns_from_projected_tables(%Query{projected?: false} = query), do:
     # We're reducing the amount of selected columns from projected subqueries to only
@@ -163,15 +209,15 @@ defmodule Cloak.Sql.Compiler.Execution do
   # -------------------------------------------------------------------
 
   defp prepare_subqueries(query) do
-    {info, compiled} = Lens.get_and_map(Query.Lenses.direct_subqueries(), query, fn(subquery) ->
-      ast = compile_subquery(subquery.ast)
+    {info, prepared_subquery} = Lens.get_and_map(Query.Lenses.direct_subqueries(), query, fn(subquery) ->
+      ast = prepare_subquery(subquery.ast)
       {ast.info, %{subquery | ast: ast}}
     end)
 
-    Query.add_info(compiled, Enum.concat(info))
+    Query.add_info(prepared_subquery, Enum.concat(info))
   end
 
-  defp compile_subquery(parsed_subquery), do:
+  defp prepare_subquery(parsed_subquery), do:
     parsed_subquery
     |> prepare()
     |> align_limit()

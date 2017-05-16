@@ -2,8 +2,9 @@ defmodule Cloak.Sql.Compiler.Specification do
   @moduledoc "Turns a parsed SQL AST into a `Cloak.Sql.Query` specification describing the user query."
 
   alias Cloak.{CyclicGraph, DataSource}
-  alias Cloak.Sql.{Comparison, CompilationError, Expression, FixAlign, Function, Query}
+  alias Cloak.Sql.{Comparison, CompilationError, Expression, Function, Query, TypeChecker}
   alias Cloak.Sql.Compiler.Helpers
+  alias Cloak.Sql.Query.Lenses
 
 
   # -------------------------------------------------------------------
@@ -40,19 +41,20 @@ defmodule Cloak.Sql.Compiler.Specification do
     query
     |> compile_from()
     |> compile_parameter_types()
+    |> expand_star_select()
+    |> compile_aliases()
     |> compile_columns()
-    |> reject_null_user_ids()
     |> compile_references()
+    |> compile_extraction_patterns()
     |> remove_redundant_uid_casts()
     |> cast_where_clauses()
-    |> precompile_functions()
-    |> censor_selected_uids()
     |> verify_columns()
     |> verify_joins()
     |> verify_where_clauses()
     |> verify_having()
     |> verify_limit()
     |> verify_offset()
+    |> TypeChecker.validate_allowed_usage_of_math_and_functions()
 
 
   # -------------------------------------------------------------------
@@ -111,7 +113,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp do_compile_views(other, _query), do:
     other
 
-  def view_to_subquery(view_name, view_sql, query) do
+  defp view_to_subquery(view_name, view_sql, query) do
     if Enum.any?(
       query.data_source.tables,
       fn({_id, table}) -> insensitive_equal?(table.name, view_name) end
@@ -133,7 +135,7 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp compile_projected_tables(%Query{projected?: true} = query), do: query
   defp compile_projected_tables(query), do:
-    Lens.map(Query.Lenses.leaf_tables(), query, &compile_projected_table(&1, query))
+    Lens.map(Lenses.leaf_tables(), query, &compile_projected_table(&1, query))
 
   defp compile_projected_table(table_name, query) do
     case DataSource.table(query.data_source, table_name) do
@@ -183,7 +185,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   # -------------------------------------------------------------------
 
   defp compile_subqueries(query), do:
-    Lens.map(Query.Lenses.direct_subqueries(), query,  &%{&1 | ast: compile_subquery(&1.ast, &1.alias, query)})
+    Lens.map(Lenses.direct_subqueries(), query,  &%{&1 | ast: compile_subquery(&1.ast, &1.alias, query)})
 
   defp compile_subquery(parsed_subquery, alias, parent_query), do:
     parsed_subquery
@@ -251,14 +253,14 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp add_parameter_types_from_subqueries(query), do:
     Enum.reduce(
-      get_in(query, [Query.Lenses.direct_subqueries()]),
+      get_in(query, [Lenses.direct_subqueries()]),
       query,
       &Query.merge_parameter_types(&2, &1.ast)
     )
 
   defp add_parameter_types_from_casts(query), do:
     Enum.reduce(
-      get_in(query, [Query.Lenses.raw_parameter_casts()]),
+      get_in(query, [Lenses.raw_parameter_casts()]),
       query,
       fn({:function, {:cast, type}, [{:parameter, index}]}, query) ->
         Query.set_parameter_type(query, index, type)
@@ -284,14 +286,6 @@ defmodule Cloak.Sql.Compiler.Specification do
   # Transformation of columns
   # -------------------------------------------------------------------
 
-  defp compile_columns(query) do
-    query
-    |> expand_star_select()
-    |> compile_buckets()
-    |> compile_aliases()
-    |> parse_columns()
-  end
-
   defp expand_star_select(%Query{columns: :*} = query) do
     %Query{query | columns: all_column_identifiers(query)}
   end
@@ -303,25 +297,6 @@ defmodule Cloak.Sql.Compiler.Specification do
     end
   end
 
-  defp compile_buckets(query) do
-    {messages, columns} = Lens.get_and_map(Lens.all() |> Query.Lenses.buckets(),
-        query.columns, &align_bucket/1)
-    Query.add_info(%{query | columns: columns}, Enum.reject(messages, &is_nil/1))
-  end
-
-  defp align_bucket(column) do
-    if Function.bucket_size(column) <= 0 do
-      raise CompilationError, message: "Bucket size #{Function.bucket_size(column)} must be > 0"
-    end
-
-    aligned = Function.update_bucket_size(column, &FixAlign.align/1)
-    if aligned == column do
-      {nil, aligned}
-    else
-      {"Bucket size adjusted from #{Function.bucket_size(column)} to #{Function.bucket_size(aligned)}", aligned}
-    end
-  end
-
   defp compile_aliases(%Query{columns: [_|_] = columns} = query) do
     verify_aliases(query)
     column_titles = Enum.map(columns, &column_title(&1, query.selected_tables))
@@ -329,8 +304,8 @@ defmodule Cloak.Sql.Compiler.Specification do
     columns = Enum.map(columns, fn ({column, :as, _name}) -> column; (column) -> column end)
     order_by = for {column, direction} <- query.order_by, do: {Map.get(aliases, column, column), direction}
     group_by = for identifier <- query.group_by, do: Map.get(aliases, identifier, identifier)
-    where = update_in(query.where, [Query.Lenses.conditions_terminals()], &Map.get(aliases, &1, &1))
-    having = update_in(query.having, [Query.Lenses.conditions_terminals()], &Map.get(aliases, &1, &1))
+    where = update_in(query.where, [Lenses.conditions_terminals()], &Map.get(aliases, &1, &1))
+    having = update_in(query.having, [Lenses.conditions_terminals()], &Map.get(aliases, &1, &1))
     %Query{query | columns: columns, column_titles: column_titles,
       group_by: group_by, order_by: order_by, where: where, having: having}
   end
@@ -358,7 +333,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     referenced_identifiers =
       (for {identifier, _direction} <- query.order_by, do: identifier) ++
       query.group_by ++
-      get_in(query.where ++ query.having, [Query.Lenses.conditions_terminals()])
+      get_in(query.where ++ query.having, [Lenses.conditions_terminals()])
     ambiguous_names = for {:identifier, :unknown, {_, name}} <- referenced_identifiers,
       Enum.count(possible_identifiers, &name == &1) > 1, do: name
     case ambiguous_names do
@@ -367,7 +342,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     end
   end
 
-  defp parse_columns(query) do
+  defp compile_columns(query) do
     columns_by_name =
       for table <- query.selected_tables, {column, type} <- table.columns do
         %Expression{table: table, name: column, type: type, user_id?: table.user_id == column}
@@ -378,7 +353,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   end
 
   defp map_terminal_elements(query, mapper_fun), do:
-    Lens.map(Query.Lenses.terminals(), query, mapper_fun)
+    Lens.map(Lenses.terminals(), query, mapper_fun)
 
   defp normalize_table_name({:identifier, table_identifier = {_, name}, column}, selected_tables) do
     case find_table(selected_tables, table_identifier) do
@@ -549,30 +524,13 @@ defmodule Cloak.Sql.Compiler.Specification do
     end
   end
 
-  defp reject_null_user_ids(%Query{subquery?: true} = query), do: query
-  defp reject_null_user_ids(query), do:
-    %{query | where: [{:not, {:is, Helpers.id_column(query), :null}} | query.where]}
-
   defp remove_redundant_uid_casts(query), do:
     # A cast which doesn't change the expression type is removed.
     # The main motivation for doing this is because Tableau explicitly casts string columns to text, which
     # makes problems for our join condition check.
-    Query.Lenses.terminals()
+    Lenses.terminals()
     |> Lens.satisfy(&match?(%Expression{function: {:cast, type}, function_args: [%Expression{type: type}]}, &1))
     |> Lens.map(query, &hd(&1.function_args))
-
-  defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
-    columns = for column <- query.columns, do:
-      if is_uid_column?(column), do: Expression.constant(column.type, :*), else: column
-    %Query{query | columns: columns}
-  end
-  defp censor_selected_uids(query), do: query
-
-  defp is_uid_column?(%Expression{aggregate?: true}), do: false
-  defp is_uid_column?(column), do: [column] |> extract_columns() |> Enum.any?(& &1.user_id?)
-
-  defp extract_columns(columns), do:
-    get_in(columns, [Query.Lenses.leaf_expressions()])
 
 
   # -------------------------------------------------------------------
@@ -621,21 +579,24 @@ defmodule Cloak.Sql.Compiler.Specification do
 
 
   # -------------------------------------------------------------------
-  # Precompile functions
+  # Extraction patterns
   # -------------------------------------------------------------------
 
-  defp precompile_functions(%Query{} = query), do:
-    update_in(query, [Query.Lenses.query_expressions()], &precompile_function/1)
-  defp precompile_functions(columns), do:
-    Enum.map(columns, &precompile_function/1)
+  defp compile_extraction_patterns(%Query{} = query), do:
+    update_in(query,
+      [Lenses.query_expressions() |> Lens.satisfy(&(&1.function in ["extract_match", "extract_matches"]))],
+      &compile_extraction_pattern/1
+    )
 
-  defp precompile_function(expression = %Expression{function?: true}) do
-    case Function.compile_function(expression, &precompile_functions/1) do
-      {:error, message} -> raise CompilationError, message: message
-      compiled_function -> compiled_function
+  defp compile_extraction_pattern(%Expression{function_args: [arg1, pattern]} =  extraction) do
+    case Regex.compile(pattern.value, "ui") do
+      {:ok, regex} ->
+        %Expression{extraction | function_args: [arg1, %Expression{pattern | value: regex}]}
+      {:error, {error, location}} ->
+        raise CompilationError,
+          message: "The regex used in `#{extraction.name}` is invalid: #{error} at character #{location}"
     end
   end
-  defp precompile_function(column), do: column
 
 
   # -------------------------------------------------------------------
@@ -764,7 +725,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     selected_tables = do_join_conditions_scope_check(join.rhs, selected_tables)
 
     Lens.each(
-      Query.Lenses.conditions_terminals(),
+      Lenses.conditions_terminals(),
       join.conditions,
       fn
         (%Cloak.Sql.Expression{table: %{name: table_name}, name: column_name}) ->
@@ -795,7 +756,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp verify_where_clauses(%Query{where: clauses = [_|_]} = query) do
     Enum.each(clauses, &verify_where_clause/1)
     clauses
-    |> get_in([Query.Lenses.conditions_terminals()])
+    |> get_in([Lenses.conditions_terminals()])
     |> Enum.filter(& &1.aggregate?)
     |> case do
       [] -> :ok
