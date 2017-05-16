@@ -18,7 +18,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       columns: query.columns ++ noise_columns,
       column_titles: query.column_titles ++ Enum.map(noise_columns, &(&1.alias || &1.name)),
       aggregators: query.aggregators ++ Enum.filter(noise_columns, &(&1.aggregate?)),
-      floated_columns: noise_columns,
     }
   end
   defp float_emulated_noise_layers(query), do: query
