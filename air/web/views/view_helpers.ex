@@ -61,7 +61,7 @@ defmodule Air.ViewHelpers do
     problems = Warnings.problems()
     if length(problems) > 0 and admin?(conn) do
       path = Air.Router.Helpers.admin_warnings_path(conn, :index)
-      navbar_link(conn, warnings_title(length(problems)), path, class: "danger")
+      navbar_link(conn, warnings_title(length(problems)), path, class: "warning")
     else
       {:safe, []}
     end
