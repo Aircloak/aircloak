@@ -42,7 +42,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       do: %{query | noise_layers: query |> noise_layers() |> Enum.map(&float_noise_layer(&1, query))},
       else: %{query | noise_layers: query |> noise_layers()}
   defp calculate_noise_layers(query), do:
-    %{query | noise_layers: query |> noise_layers() |> unalias_noise_layers()}
+    %{query | noise_layers: query |> noise_layers()}
 
   defp noise_layers(query), do: new_noise_layers(query) ++ floated_noise_layers(query)
 
@@ -98,9 +98,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       noise_layer
     end
   end
-
-  defp unalias_noise_layers(layers), do:
-    update_in(layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()], &Expression.unalias/1)
 
   defp reference_aliased(column), do: %Expression{name: column.alias || column.name}
 end
