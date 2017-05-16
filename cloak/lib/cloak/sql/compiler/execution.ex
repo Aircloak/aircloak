@@ -70,14 +70,13 @@ defmodule Cloak.Sql.Compiler.Execution do
     # rows. However, with this replacement, we can return names which are frequent enough, without revealing
     # any sensitive information. For example, we could return: `(*, Alice), (*, Bob), (*, *)`, which is
     # not possible without this replacement.
-    columns = for column <- query.columns, do:
-      if is_uid_column?(column), do: Expression.constant(column.type, :*), else: column
-    %Query{query | columns: columns}
+    selected_uids_lens = Lens.key(:columns) |> Lens.all() |> Lens.satisfy(&uid_column?/1)
+    update_in(query, [selected_uids_lens], &Expression.constant(&1.type, :*))
   end
   defp censor_selected_uids(query), do: query
 
-  defp is_uid_column?(%Expression{aggregate?: true}), do: false
-  defp is_uid_column?(column), do: [column] |> extract_columns() |> Enum.any?(& &1.user_id?)
+  defp uid_column?(%Expression{aggregate?: true}), do: false
+  defp uid_column?(column), do: [column] |> extract_columns() |> Enum.any?(& &1.user_id?)
 
 
   # -------------------------------------------------------------------
