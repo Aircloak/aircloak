@@ -64,6 +64,12 @@ defmodule Cloak.Sql.Compiler.Execution do
     %{query | where: [{:not, {:is, Helpers.id_column(query), :null}} | query.where]}
 
   defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
+    # In a top-level query, we're replacing all selected expressions which depend on uid columns with the `:*`
+    # constant. This allows us to reduce the amount of anonymized values, without compromising the privacy.
+    # For example, consider the query `select uid, name from users`. Normally, this would return only `(*, *)`
+    # rows. However, with this replacement, we can return names which are frequent enough, without revealing
+    # any sensitive information. For example, we could return: `(*, Alice), (*, Bob), (*, *)`, which is
+    # not possible without this replacement.
     columns = for column <- query.columns, do:
       if is_uid_column?(column), do: Expression.constant(column.type, :*), else: column
     %Query{query | columns: columns}
