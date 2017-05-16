@@ -51,9 +51,23 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     Query.Lenses.filter_clauses()
     |> Lens.both(Lens.key(:group_by))
     |> Query.Lenses.leaf_expressions()
-    |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
+    |> raw_columns()
     |> Lens.to_list(query)
+    |> Enum.flat_map(&resolve_row_splitter(&1, query))
     |> Enum.map(&NoiseLayer.new({&1.table.name, &1.name}, [Helpers.set_unique_alias(&1)]))
+
+  defp resolve_row_splitter(expression, %{row_splitters: row_splitters}) do
+    if splitter = Enum.find(row_splitters, &(&1.row_index == expression.row_index)) do
+      Query.Lenses.leaf_expressions()
+      |> raw_columns()
+      |> Lens.to_list([splitter.function_spec])
+    else
+      [expression]
+    end
+  end
+
+  defp raw_columns(lens), do:
+    Lens.satisfy(lens, &match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
 
   defp floated_noise_layers(query), do:
     Query.Lenses.subquery_noise_layers()
@@ -89,5 +103,5 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp unalias_noise_layers(layers), do:
     update_in(layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()], &Expression.unalias/1)
 
-  def reference_aliased(column), do: %Expression{name: column.alias || column.name}
+  defp reference_aliased(column), do: %Expression{name: column.alias || column.name}
 end
