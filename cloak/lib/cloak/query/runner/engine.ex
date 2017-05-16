@@ -18,8 +18,9 @@ defmodule Cloak.Query.Runner.Engine do
     try do
       with state_updater.(:parsing),
         {:ok, parsed} <- Sql.Parser.parse(statement),
+        optimized <- Sql.Optimizer.rewrite(parsed, data_source),
         state_updater.(:compiling),
-        {:ok, query} <- Sql.Compiler.compile(data_source, parsed, parameters, views),
+        {:ok, query} <- Sql.Compiler.compile(data_source, optimized, parameters, views),
         state_updater.(:awaiting_data)
       do
         query_killer_reg.()
