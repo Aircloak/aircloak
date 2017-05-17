@@ -4,8 +4,30 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   def compile(query), do:
     query
-    |> apply_to_subqueries(&calculate_base_noise_layers/1)
-    |> apply_to_subqueries(&calculate_floated_noise_layers/1)
+    |> apply_bottom_up(&calculate_base_noise_layers/1)
+    |> apply_top_down(&push_down_noise_layers/1)
+    |> apply_bottom_up(&calculate_floated_noise_layers/1)
+
+  defp push_down_noise_layers(query = %{from: {:subquery, _}}) do
+    Enum.reduce(query.noise_layers, query, fn(noise_layer, query) ->
+      update_in(query, [Lens.key(:from) |> Lens.at(1) |> Lens.key(:ast)], &push_noise_layer(&1, noise_layer))
+    end)
+    |> put_in([Lens.key(:noise_layers)], [])
+  end
+  defp push_down_noise_layers(query), do: query
+
+  defp push_noise_layer(query, %{name: {_table, column}}) do
+    expression = Enum.find(query.db_columns, &(&1.name == column or &1.alias == column))
+
+    layers =
+      Query.Lenses.leaf_expressions()
+      |> raw_columns()
+      |> Lens.to_list([expression])
+      |> Enum.flat_map(&resolve_row_splitter(&1, query))
+      |> Enum.map(&NoiseLayer.new({&1.table.name, &1.name}, [Helpers.set_unique_alias(&1)]))
+
+    update_in(query, [Lens.key(:noise_layers)], &(&1 ++ layers))
+  end
 
   defp calculate_floated_noise_layers(query), do:
     query
@@ -21,9 +43,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp float_noise_layers(layers, query), do:
     Enum.map(layers, &float_noise_layer(&1, query))
 
-  defp apply_to_subqueries(query, function), do:
+  defp apply_top_down(query, function), do:
     query
-    |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast) |> Lens.recur()], function)
+    |> function.()
+    |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_top_down(&1, function))
+
+  defp apply_bottom_up(query, function), do:
+    query
+    |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_bottom_up(&1, function))
     |> function.()
 
   defp float_emulated_noise_layers(query = %{emulated?: true, subquery?: true}) do

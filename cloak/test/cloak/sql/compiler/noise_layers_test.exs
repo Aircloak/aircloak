@@ -209,8 +209,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         "SELECT COUNT(*) FROM (SELECT uid, numeric + numeric2 as foo FROM table) bar WHERE foo = 3",
       data_source())
 
-      assert ["numeric", "numeric2"] = Enum.sort([name1, name2])
+      assert [{"table", "numeric"}, {"table", "numeric2"}] = Enum.sort([name1, name2])
     end
+
+    test "insensitive to being aliased in a join"
+
+    test "insensitive to being aliased in emulated queries"
+
+    test "insensitive to being aliased in nested subqueries"
 
     test "insensitive to the query casing" do
       %{noise_layers: [%{name: name1}]} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
