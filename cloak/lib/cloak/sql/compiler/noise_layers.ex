@@ -1,12 +1,29 @@
 defmodule Cloak.Sql.Compiler.NoiseLayers do
+  @moduledoc "Contains functions related to compilation of noise layers."
+
   alias Cloak.Sql.{Expression, Query, NoiseLayer}
   alias Cloak.Sql.Compiler.Helpers
 
+
+  # -------------------------------------------------------------------
+  # API
+  # -------------------------------------------------------------------
+
+  @doc """
+  Fills in the noise_layers for the given query. Furthermore, it modifies the query to float any data that will be
+  needed to compute those noise layers to the top level.
+  """
+  @spec compile(Query.t) :: Query.t
   def compile(query), do:
     query
     |> apply_bottom_up(&calculate_base_noise_layers/1)
     |> apply_top_down(&push_down_noise_layers/1)
     |> apply_bottom_up(&calculate_floated_noise_layers/1)
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp push_down_noise_layers(query), do:
     Enum.reduce(query.noise_layers, query, fn(noise_layer, query) ->
