@@ -203,25 +203,38 @@ body.outdated {
 
 
 /* ******************************************************************
- * Extensions to bootstrap to provide danger elements in the navbar
+ * Extensions to bootstrap to provide warning elements in the navbar
  ***************************************************************** */
 
-.nav > li.danger > a,
+.nav > li.warning > a,
+.nav > li.warning > a:hover,
+.nav > li.warning > a:focus {
+  background-color: #fcf8e3;
+}
+
+.nav > li.active.warning > a,
+.nav > li.active.warning > a:hover,
+.nav > li.active.warning > a:focus {
+  background-color: #fcf8e3;
+  color: black;
+}
+
+.nav > li.danger a,
 .nav > li.danger > a:hover,
 .nav > li.danger > a:focus {
-  color: white;
-  background-color: #d9534f;
+  background-color: #f2dede;
 }
 
 .nav > li.active.danger > a,
 .nav > li.active.danger > a:hover,
 .nav > li.active.danger > a:focus {
-  color: white;
-  background-color: #dd0000;
+  background-color: #f2dede;
+  color: black;
 }
 
-.nav > li.danger > a:hover {
-  color: #e5e5e5;
+.nav > li.warning > a > span.badge {
+  background-color: white;
+  color: black;
 }
 
 .nav > li.danger > a > span.badge {
