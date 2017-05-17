@@ -9,7 +9,7 @@ defmodule Cloak.Sql.NoiseLayer do
   defstruct [:name, :expressions]
 
   @doc "Returns a noise layer with the given name, based on the given list of expressions."
-  @spec new(String.t, [Expression.t]) :: t
+  @spec new(any, [Expression.t]) :: t
   def new(name, expressions), do: %__MODULE__{name: name, expressions: expressions}
 
   @doc "Returns an intial accumulator for gathering the values of a list of noise layers over a set of rows."

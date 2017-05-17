@@ -57,10 +57,10 @@ defmodule Cloak.Sql.Query do
     where: [where_clause],
     emulated_where: [where_clause],
     order_by: [{Expression.t, :asc | :desc}],
-    show: :tables | :columns,
+    show: :tables | :columns | nil,
     selected_tables: [DataSource.table],
     db_columns: [Expression.t],
-    from: Parser.from_clause | nil,
+    from: Parser.from_clause | String.t | nil,
     subquery?: boolean,
     limit: pos_integer | nil,
     offset: non_neg_integer,
@@ -79,7 +79,7 @@ defmodule Cloak.Sql.Query do
     columns: [], where: [], group_by: [], order_by: [], column_titles: [], aggregators: [],
     info: [], selected_tables: [], row_splitters: [], implicit_count?: false, data_source: nil, command: nil,
     show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
-    features: nil, emulated_where: [], ranges: %{}, parameters: [], views: %{}, emulated?: false,
+    features: nil, emulated_where: [], ranges: [], parameters: [], views: %{}, emulated?: false,
     projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: [],
   ]
 
