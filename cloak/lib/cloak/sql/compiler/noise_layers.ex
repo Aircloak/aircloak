@@ -8,13 +8,21 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> apply_top_down(&push_down_noise_layers/1)
     |> apply_bottom_up(&calculate_floated_noise_layers/1)
 
-  defp push_down_noise_layers(query = %{from: {:subquery, _}}) do
+  defp push_down_noise_layers(query), do:
     Enum.reduce(query.noise_layers, query, fn(noise_layer, query) ->
-      update_in(query, [Lens.key(:from) |> Lens.at(1) |> Lens.key(:ast)], &push_noise_layer(&1, noise_layer))
+      case subquery_for_noise_layer(noise_layer) |> Lens.to_list(query) do
+        [] -> query
+        [_] ->
+          query
+          |> update_in([subquery_for_noise_layer(noise_layer)], &push_noise_layer(&1, noise_layer))
+          |> update_in([Lens.key(:noise_layers)], &(&1 -- [noise_layer]))
+      end
     end)
-    |> put_in([Lens.key(:noise_layers)], [])
-  end
-  defp push_down_noise_layers(query), do: query
+
+  defp subquery_for_noise_layer(%{name: {table, _column}}), do:
+    Query.Lenses.direct_subqueries()
+    |> Lens.satisfy(&(&1.alias == table))
+    |> Lens.key(:ast)
 
   defp push_noise_layer(query, %{name: {_table, column}}) do
     expression = Enum.find(query.db_columns, &(&1.name == column or &1.alias == column))

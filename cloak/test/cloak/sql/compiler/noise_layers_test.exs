@@ -220,7 +220,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert {"table", "numeric"} = name
     end
 
-    test "insensitive to being aliased in a join"
+    test "insensitive to being aliased in a join" do
+      %{noise_layers: [%{name: name}]} = compile!("""
+        SELECT COUNT(*) FROM other JOIN (
+          SELECT uid, numeric AS foo FROM table
+        ) bar
+        ON other.uid = bar.uid WHERE foo = 3
+      """, data_source())
+
+      assert {"table", "numeric"} = name
+    end
 
     test "insensitive to being aliased in emulated queries"
 
