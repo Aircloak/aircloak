@@ -231,7 +231,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert {"table", "numeric"} = name
     end
 
-    test "insensitive to being aliased in emulated queries"
+    test "insensitive to being aliased in emulated queries" do
+      %{noise_layers: [%{name: name}]} = compile!(
+        "SELECT COUNT(*) FROM (SELECT uid, decoded AS bar FROM table) foo WHERE bar = 'a'",
+      data_source())
+
+      assert {"table", "decoded"} = name
+    end
 
     test "insensitive to the query casing" do
       %{noise_layers: [%{name: name1}]} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())

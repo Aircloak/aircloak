@@ -25,7 +25,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.key(:ast)
 
   defp push_noise_layer(query, %{name: {_table, column}}) do
-    expression = Enum.find(query.db_columns, &(&1.name == column or &1.alias == column))
+    index = Enum.find_index(query.column_titles, &(&1 == column))
+    true = index < length(query.columns)
+    expression = Enum.at(query.columns, index)
 
     layers =
       Query.Lenses.leaf_expressions()
