@@ -106,6 +106,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp parse_function("count", :*), do: %{'$sum': 1}
   defp parse_function(_, {:distinct, value}), do: %{'$addToSet': value}
   defp parse_function("count", value), do: %{'$sum': %{'$cond': [%{'$gt': [value, nil]}, 1, 0]}}
+  defp parse_function("quarter", value), do: %{'$add': [%{'$divide': [%{'$month': value}, 3]}, 1]}
   for {name, translation} <- %{
     "*" => "$multiply", "/" => "$divide", "+" => "$add", "-" => "$subtract",
     "^" => "$pow", "pow" => "$pow", "%" => "$mod", "mod" => "$mod", "sqrt" => "$sqrt",
