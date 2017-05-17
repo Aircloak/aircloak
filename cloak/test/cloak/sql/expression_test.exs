@@ -149,6 +149,27 @@ defmodule Cloak.Sql.Expression.Test do
     assert apply_function("rtrim", ["xyxa stringxyx", "xy"]) == "xyxa string"
   end
 
+  test "quarter" do
+    [
+      {"01", 1},
+      {"02", 1},
+      {"03", 1},
+      {"04", 2},
+      {"05", 2},
+      {"06", 2},
+      {"07", 3},
+      {"08", 3},
+      {"09", 3},
+      {"10", 4},
+      {"11", 4},
+      {"12", 4},
+    ]
+    |> Enum.each(fn({month, quarter}) ->
+      date = Date.from_iso8601!("2017-#{month}-01")
+      assert apply_function("quarter", [date]) == quarter
+    end)
+  end
+
   test "substring" do
     assert apply_function("substring", ["a string", 3]) == "string"
     assert apply_function("substring", ["a string", 3, 2]) == "st"

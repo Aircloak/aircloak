@@ -80,7 +80,7 @@ defmodule Cloak.Sql.Function.Test do
   test "||", do:
     assert well_typed?("||", [:text, :text])
 
-  for function <- ~w(year month day weekday) do
+  for function <- ~w(year quarter month day weekday) do
     test function do
       assert well_typed?(unquote(function), [:datetime])
       assert well_typed?(unquote(function), [:date])

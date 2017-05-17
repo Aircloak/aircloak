@@ -192,6 +192,7 @@ defmodule Cloak.Sql.Expression do
   defp normalize_type(type), do: type
 
   defp do_apply("year", [value]), do: value.year
+  defp do_apply("quarter", [value]), do: div(value.month - 1, 3) + 1
   defp do_apply("month", [value]), do: value.month
   defp do_apply("day", [value]), do: value.day
   defp do_apply("hour", [value]), do: value.hour

@@ -31,7 +31,7 @@ defmodule Cloak.Sql.Compiler.VerificationConstructsNarrative.Test do
       assert get_compilation_error(query) =~ ~r/divisor that could be zero/
     end
 
-    Enum.each(~w(year month day hour minute second weekday), fn(extractor_fun) ->
+    Enum.each(~w(year quarter month day hour minute second weekday), fn(extractor_fun) ->
       test "constructs a narrative mentioning usage of function #{extractor_fun}" do
         query = """
           SELECT value FROM (

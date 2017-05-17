@@ -31,7 +31,7 @@ defmodule Cloak.Sql.Function do
     ~w(avg stddev avg_noise stddev_noise) => %{attributes: [:aggregator], type_specs: %{[numeric] => :real}},
     ~w(hour minute second) =>
       %{type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
-    ~w(year month day weekday) =>
+    ~w(year quarter month day weekday) =>
       %{type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
     ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}},
     ~w(round trunc) => %{type_specs: %{
