@@ -209,24 +209,35 @@ body.outdated {
 .nav > li.warning > a,
 .nav > li.warning > a:hover,
 .nav > li.warning > a:focus {
-  color: white;
-  background-color: #f0ad4e;
-  font-weight: bold;
+  background-color: #fcf8e3;
 }
 
 .nav > li.active.warning > a,
 .nav > li.active.warning > a:hover,
 .nav > li.active.warning > a:focus {
-  color: white;
-  background-color: #f0ad4e;
-  font-weight: bold;
+  background-color: #fcf8e3;
+  color: black;
 }
 
-.nav > li.warning > a:hover {
-  color: #e5e5e5;
+.nav > li.danger a,
+.nav > li.danger > a:hover,
+.nav > li.danger > a:focus {
+  background-color: #f2dede;
+}
+
+.nav > li.active.danger > a,
+.nav > li.active.danger > a:hover,
+.nav > li.active.danger > a:focus {
+  background-color: #f2dede;
+  color: black;
 }
 
 .nav > li.warning > a > span.badge {
+  background-color: white;
+  color: black;
+}
+
+.nav > li.danger > a > span.badge {
   background-color: white;
   color: black;
 }
