@@ -230,7 +230,7 @@ defmodule Cloak.Sql.Query do
     (query.db_columns ++ get_in(query, [Lenses.join_conditions_terminals()]))
     |> get_in([Lenses.leaf_expressions()])
     |> Enum.filter(& &1.table != :unknown and &1.table.name == table_name)
-    |> Enum.uniq_by(&Expression.id/1)
+    |> Enum.uniq_by(&{&1.name, &1.alias})
 
   @doc "Returns the list of order by expressions."
   def order_by_expressions(query), do:
