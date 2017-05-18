@@ -75,6 +75,7 @@ defmodule Air.Socket.Cloak.MainChannel do
       name: socket.assigns.name,
       version: socket.assigns.version,
       online_since: Timex.now(),
+      salt: cloak_info["salt"],
     }
     data_sources = Map.fetch!(cloak_info, "data_sources")
     Air.Service.Cloak.register(cloak, data_sources)
