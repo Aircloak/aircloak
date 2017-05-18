@@ -224,14 +224,6 @@ defmodule Cloak.Sql.Query do
     query
   end
 
-  @doc "Returns the list of columns required in the query from the specified table name."
-  @spec required_columns_from_table(Query.t, String.t) :: [Expression.t]
-  def required_columns_from_table(query, table_name), do:
-    (query.db_columns ++ get_in(query, [Lenses.join_conditions_terminals()]))
-    |> get_in([Lenses.leaf_expressions()])
-    |> Enum.filter(& &1.table != :unknown and &1.table.name == table_name)
-    |> Enum.uniq_by(&{&1.name, &1.alias})
-
   @doc "Returns the list of order by expressions."
   def order_by_expressions(query), do:
     Enum.map(query.order_by, fn({column, _}) -> column end)
