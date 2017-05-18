@@ -38,11 +38,7 @@ defmodule Air.Service.Warnings do
   def highest_severity_class(problems), do:
     problems
     |> Enum.map(&(&1.severity))
-    |> Enum.reduce(:low, fn
-      (class, :low) -> class
-      (:high, _) -> :high
-      (_, acc) -> acc
-    end)
+    |> Enum.reduce(:low, &if(severity_to_number(&1) < severity_to_number(&2), do: &1, else: &2))
 
 
   #-----------------------------------------------------------------------------------------------------------
