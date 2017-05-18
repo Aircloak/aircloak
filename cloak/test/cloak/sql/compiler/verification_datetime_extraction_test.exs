@@ -76,7 +76,7 @@ defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
       refute condition_columns_have_valid_transformations(query)
     end
 
-    Enum.each(~w(year month day hour minute second weekday), fn(extractor_fun) ->
+    Enum.each(~w(year quarter month day hour minute second weekday), fn(extractor_fun) ->
       test "it is forbidden to use the result of function #{extractor_fun} in a WHERE inequality" do
         query = """
         SELECT value FROM (
@@ -188,7 +188,7 @@ defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
       assert condition_columns_have_valid_transformations(query)
     end
 
-    Enum.each(~w(year month day hour minute second weekday), fn(extractor_fun) ->
+    Enum.each(~w(year quarter month day hour minute second weekday), fn(extractor_fun) ->
       test "it is OK to use the result of function #{extractor_fun} in a WHERE equality " <>
           "when no constants are involved" do
         query = """

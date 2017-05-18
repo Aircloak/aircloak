@@ -172,7 +172,7 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
-  for function <- ~w(year month day hour minute second weekday) do
+  for function <- ~w(year quarter month day hour minute second weekday) do
     test "allowing #{function} on datetime columns" do
       assert {:ok, _} = compile("select #{unquote(function)}(column) from table", data_source())
     end
@@ -197,7 +197,7 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
-  for function <- ~w(year month day weekday) do
+  for function <- ~w(year quarter month day weekday) do
     test "rejecting #{function} on non-datetime columns" do
       assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source())
       assert error ==

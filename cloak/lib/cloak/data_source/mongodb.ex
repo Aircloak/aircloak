@@ -191,7 +191,7 @@ defmodule Cloak.DataSource.MongoDB do
 
   @supported_functions_3_0 ~w(+ - * ^ / % mod div length left count sum min max avg
     substring || concat lower upper lcase ucase year month day weekday hour minute second)
-  @supported_functions_3_2 @supported_functions_3_0 ++ ~w(abs ceil floor sqrt trunc)
+  @supported_functions_3_2 @supported_functions_3_0 ++ ~w(abs ceil floor sqrt trunc quarter)
   defp supported_functions(version) do
     if Version.compare(version, "3.0.0") == :lt do
       DataSource.raise_error("Unsupported MongoDB version: #{version}. At least 3.0 required.")

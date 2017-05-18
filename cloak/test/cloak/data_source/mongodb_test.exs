@@ -204,6 +204,11 @@ defmodule Cloak.DataSource.MongoDBTest do
       """, %{rows: [%{occurrences: 1, row: [2015]}]}
   end
 
+  test "datetime - quarter support", context do
+    assert_query context, "SELECT quarter(date) FROM #{@table} WHERE date IS NOT NULL GROUP BY 1",
+      %{rows: [%{occurrences: 1, row: [3]}]}
+  end
+
   test "unsupported functions in sub-queries are emulated", context do
     assert_query context, "SELECT AVG(age) FROM (SELECT _id, round(age) AS age FROM #{@table}) AS t",
       %{rows: [%{occurrences: 1, row: [30.0]}]}

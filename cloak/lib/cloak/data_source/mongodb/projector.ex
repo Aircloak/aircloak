@@ -106,6 +106,13 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp parse_function("count", :*), do: %{'$sum': 1}
   defp parse_function(_, {:distinct, value}), do: %{'$addToSet': value}
   defp parse_function("count", value), do: %{'$sum': %{'$cond': [%{'$gt': [value, nil]}, 1, 0]}}
+  # We use the following formula for `quarter`: `div(integer_month - 1, 3) + 1`.
+  # Note that integer division does not exist in MongoDB. We instead use a combination of division and floor.
+  defp parse_function("quarter", value) do
+    month_minus_1 = %{'$subtract': [%{'$month': value}, 1]}
+    integer_devision_by_3 = %{'$floor': [%{'$divide': [month_minus_1, 3]}]}
+    %{'$add': [integer_devision_by_3, 1]}
+  end
   for {name, translation} <- %{
     "*" => "$multiply", "/" => "$divide", "+" => "$add", "-" => "$subtract",
     "^" => "$pow", "pow" => "$pow", "%" => "$mod", "mod" => "$mod", "sqrt" => "$sqrt",

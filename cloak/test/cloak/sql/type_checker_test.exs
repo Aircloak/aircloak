@@ -161,7 +161,7 @@ defmodule Cloak.Sql.TypeChecker.Test do
   end
 
   describe "detection of datetime functions" do
-    Enum.each(~w(year month day hour minute second weekday), fn(datetime_function) ->
+    Enum.each(~w(year quarter month day hour minute second weekday), fn(datetime_function) ->
       test "#{datetime_function} triggers datetime function recognition on a datetime column" do
         type = type_first_column("SELECT #{unquote(datetime_function)}(column) FROM table")
         assert type.is_result_of_datetime_processing?
@@ -175,7 +175,7 @@ defmodule Cloak.Sql.TypeChecker.Test do
       end
     end)
 
-    Enum.each(~w(year month day weekday), fn(datetime_function) ->
+    Enum.each(~w(year quarter month day weekday), fn(datetime_function) ->
       test "#{datetime_function} triggers datetime function recognition on a date column" do
         type = type_first_column("SELECT #{unquote(datetime_function)}(date) FROM table")
         assert type.is_result_of_datetime_processing?

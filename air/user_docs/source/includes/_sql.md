@@ -202,7 +202,7 @@ a column having been processed together with a constant:
 `+`, `-`, `*`, `/`, `^`, `pow`.
 
 The following date and time functions:
-`year`, `month`, `day`, `hour`, `minute`, `second`, `weekday`
+`year`, `quarter`, `month`, `day`, `hour`, `minute`, `second`, `weekday`
 
 For examples see the sidebar.
 
@@ -314,7 +314,7 @@ The results of aggregate functions, such as `SUM` and `COUNT`, are also anonymiz
 
 ## Date functions
 
-The functions `year`, `month`, `day`, `hour`, `minute`, `second`, and `weekday` are supported. They extract
+The functions `year`, `quarter`, `month`, `day`, `hour`, `minute`, `second`, and `weekday` are supported. They extract
 the named part from a date or time column.
 
 ```sql

@@ -32,7 +32,7 @@ defmodule Cloak.Sql.TypeChecker do
   @discontinuous_math_functions ~w(% abs ceil ceiling div floor mod round trunc)
   @discontinuous_string_functions ~w(btrim left ltrim right rtrim substring)
   @continuous_math_functions ~w(+ - * / ^ pow)
-  @datetime_functions ~w(year month day hour minute second weekday)
+  @datetime_functions ~w(year quarter month day hour minute second weekday)
 
 
   # -------------------------------------------------------------------
