@@ -61,8 +61,7 @@ defmodule Air.ViewHelpers do
     problems = Warnings.problems()
     if length(problems) > 0 and admin?(conn) do
       path = Air.Router.Helpers.admin_warnings_path(conn, :index)
-      # problems are ordered by severity, get highest class
-      navbar_class = problems |> Enum.at(0) |> Map.fetch!(:severity) |> severity_class()
+      navbar_class = problems |> Warnings.highest_severity_class() |> severity_class()
       navbar_link(conn, warnings_title(length(problems)), path, class: navbar_class)
     else
       {:safe, []}
