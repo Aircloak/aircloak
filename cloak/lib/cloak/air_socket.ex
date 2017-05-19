@@ -364,7 +364,7 @@ defmodule Cloak.AirSocket do
         errors: data_source.errors,
       }
     end
-    %{data_sources: data_sources, salt: get_salt_hash()}
+    %{data_sources: data_sources, salt_hash: get_salt_hash()}
   end
 
   defp next_interval(current_interval) do

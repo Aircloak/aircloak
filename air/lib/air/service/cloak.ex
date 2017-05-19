@@ -135,8 +135,8 @@ defmodule Air.Service.Cloak do
 
       name
       |> cloak_infos_for_data_source()
-      |> Enum.map(& &1[:salt])
-      |> Enum.any?(& &1 != cloak_info[:salt])
+      |> Enum.map(& &1[:salt_hash])
+      |> Enum.any?(& &1 != cloak_info[:salt_hash])
       |> if do
         "The data source `#{name}` is served by multiple cloaks that have different salts configured. In order to " <>
         "ensure consistent results, please ensure that the same salt is set for cloaks serving identical data sources."
