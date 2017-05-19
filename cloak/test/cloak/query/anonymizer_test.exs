@@ -51,6 +51,6 @@ defmodule Cloak.Query.AnonimyzerTest do
   test "median" do
     # per-user row format = collection of all values
     rows = [[1, 2], [3], [4, 2, -3], [2, 4], [0], [-3, -2], [3], [4, -2, 1], [5], [-4], [-5, 4], [3]]
-    assert 1 = Anonymizer.new([MapSet.new()]) |> Anonymizer.median(rows) |> round()
+    assert 2 = Anonymizer.new([MapSet.new()]) |> Anonymizer.median(rows) |> round()
   end
 end
