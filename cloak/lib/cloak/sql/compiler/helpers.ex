@@ -52,6 +52,25 @@ defmodule Cloak.Sql.Compiler.Helpers do
   def all_join_conditions(query), do:
     get_all_join_conditions(query.from)
 
+  @doc "Modifies the expression to have a globally unique alias."
+  @spec set_unique_alias(Expression.t) :: Expression.t
+  def set_unique_alias(column), do: %{column | alias: "alias_#{System.unique_integer([:positive])}"}
+
+  @doc """
+  Removes columns from floated_columns that are already present in selected_columns. Returns a modified version of
+  query where the appropriate selected columns are used instead of the removed columns.
+  """
+  @spec drop_redundant_floated_columns(Query.t, [Expression.t], [Expression.t]) :: {Query.t, [Expression.t]}
+  def drop_redundant_floated_columns(query, selected_columns, floated_columns) do
+    selected_ids = Enum.map(selected_columns, &Expression.id/1) |> Enum.uniq()
+    {duplicated_columns, floated_columns} = Enum.partition(floated_columns, &Expression.id(&1) in selected_ids)
+    query = Enum.reduce(duplicated_columns, query, fn (column, query) ->
+      replacement = Enum.find(selected_columns, &Expression.id(&1) == Expression.id(column))
+      Query.Lenses.query_expressions() |> Lens.satisfy(&column == &1) |> Lens.map(query, fn(_) -> replacement end)
+    end)
+    {query, floated_columns}
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions

@@ -57,10 +57,10 @@ defmodule Cloak.Sql.Query do
     where: [where_clause],
     emulated_where: [where_clause],
     order_by: [{Expression.t, :asc | :desc}],
-    show: :tables | :columns,
+    show: :tables | :columns | nil,
     selected_tables: [DataSource.table],
     db_columns: [Expression.t],
-    from: Parser.from_clause | nil,
+    from: Parser.from_clause | String.t | nil,
     subquery?: boolean,
     limit: pos_integer | nil,
     offset: non_neg_integer,
@@ -73,15 +73,14 @@ defmodule Cloak.Sql.Query do
     projected?: boolean,
     next_row_index: row_index,
     noise_layers: [NoiseLayer.t],
-    floated_columns: [Expression.t],
   }
 
   defstruct [
     columns: [], where: [], group_by: [], order_by: [], column_titles: [], aggregators: [],
     info: [], selected_tables: [], row_splitters: [], implicit_count?: false, data_source: nil, command: nil,
     show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
-    features: nil, emulated_where: [], ranges: %{}, parameters: [], views: %{}, emulated?: false,
-    projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: [], floated_columns: [],
+    features: nil, emulated_where: [], ranges: [], parameters: [], views: %{}, emulated?: false,
+    projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: [],
   ]
 
 
@@ -224,14 +223,6 @@ defmodule Cloak.Sql.Query do
     end)
     query
   end
-
-  @doc "Returns the list of columns required in the query from the specified table name."
-  @spec required_columns_from_table(Query.t, String.t) :: [Expression.t]
-  def required_columns_from_table(query, table_name), do:
-    (query.db_columns ++ get_in(query, [Lenses.join_conditions_terminals()]))
-    |> get_in([Lenses.leaf_expressions()])
-    |> Enum.filter(& &1.table != :unknown and &1.table.name == table_name)
-    |> Enum.uniq_by(&Expression.id/1)
 
   @doc "Returns the list of order by expressions."
   def order_by_expressions(query), do:

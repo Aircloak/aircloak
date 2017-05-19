@@ -8,7 +8,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{CompilationError, Comparison, Expression, FixAlign, Function, Query, Range, NoiseLayer}
+  alias Cloak.Sql.{CompilationError, Comparison, Expression, FixAlign, Function, Query, Range}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
   alias Cloak.Query.DataDecoder
@@ -34,7 +34,6 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> optimize_columns_from_projected_tables()
     |> set_emulation_flag()
     |> partition_where_clauses()
-    |> calculate_noise_layers()
     |> calculate_db_columns()
     |> parse_row_splitters()
     |> compute_aggregators()
@@ -102,64 +101,6 @@ defmodule Cloak.Sql.Compiler.Execution do
   end
 
 
-  # -------------------------------------------------------------------
-  # Noise layers
-  # -------------------------------------------------------------------
-
-  defp calculate_noise_layers(query = %{projected?: true}), do: query
-  defp calculate_noise_layers(query = %{subquery?: true}), do:
-    if Helpers.aggregate?(query),
-      do: %{query | noise_layers: query |> noise_layers() |> Enum.map(&float_noise_layer(&1, query))},
-      else: %{query | noise_layers: query |> noise_layers()}
-  defp calculate_noise_layers(query), do:
-    %{query | noise_layers: query |> noise_layers() |> unalias_noise_layers()}
-
-  defp noise_layers(query), do: new_noise_layers(query) ++ floated_noise_layers(query)
-
-  defp new_noise_layers(query), do:
-    Query.Lenses.filter_clauses()
-    |> Lens.both(Lens.key(:group_by))
-    |> Query.Lenses.leaf_expressions()
-    |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
-    |> Lens.to_list(query)
-    |> Enum.map(&NoiseLayer.new(&1.name, [set_unique_alias(&1)]))
-
-  defp floated_noise_layers(query), do:
-    Query.Lenses.subquery_noise_layers()
-    |> Lens.to_list(query)
-    |> update_in([Lens.all() |> Lens.key(:expressions) |> Lens.all()], &reference_aliased/1)
-
-  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count]}, _query) do
-    %{noise_layer | expressions:
-      [
-        Expression.function("min", [reference_aliased(min)], min.type, _aggregate = true),
-        Expression.function("max", [reference_aliased(max)], max.type, _aggregate = true),
-        Expression.function("sum", [reference_aliased(count)], :integer, _aggregate = true),
-      ]
-      |> Enum.map(&set_unique_alias/1)
-    }
-  end
-  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression]}, query) do
-    if not Helpers.aggregated_column?(query, Expression.unalias(expression)) do
-      %{noise_layer | expressions:
-        [
-          # The point of this unalias is not to generate invalid SQL like `min(foo AS carry_1234)`
-          Expression.function("min", [Expression.unalias(expression)], expression.type, _aggregate = true),
-          Expression.function("max", [Expression.unalias(expression)], expression.type, _aggregate = true),
-          Expression.function("count", [Expression.unalias(expression)], :integer, _aggregate = true),
-        ]
-        |> Enum.map(&set_unique_alias/1)
-      }
-    else
-      noise_layer
-    end
-  end
-
-  defp unalias_noise_layers(layers), do:
-    update_in(layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()], &Expression.unalias/1)
-
-  defp reference_aliased(column), do: %Expression{name: column.alias || column.name}
-
   defp optimize_columns_from_projected_tables(%Query{projected?: false} = query), do:
     # We're reducing the amount of selected columns from projected subqueries to only
     # those columns which we in fact need in the outer query (`query`).
@@ -224,20 +165,6 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> align_offset()
     |> align_ranges(Lens.key(:having), :having)
     |> carry_ranges()
-    |> float_emulated_noise_layers()
-
-  defp float_emulated_noise_layers(query = %{emulated?: false}), do: query
-  defp float_emulated_noise_layers(query) do
-    noise_columns = get_in(query.noise_layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()]) -- query.columns
-
-    %{
-      query |
-      columns: query.columns ++ noise_columns,
-      column_titles: query.column_titles ++ Enum.map(noise_columns, &(&1.alias || &1.name)),
-      aggregators: query.aggregators ++ Enum.filter(noise_columns, &(&1.aggregate?)),
-      floated_columns: noise_columns,
-    }
-  end
 
   defp carry_ranges(query) do
     query = %{query | ranges: Enum.flat_map(query.ranges, &carrying_ranges(query, &1))}
@@ -255,10 +182,10 @@ defmodule Cloak.Sql.Compiler.Execution do
     end
   end
 
-  defp carrying_ranges(%{implicit_count?: true}, range), do: [%{range | column: set_unique_alias(range.column)}]
+  defp carrying_ranges(%{implicit_count?: true}, range), do: [%{range | column: Helpers.set_unique_alias(range.column)}]
   defp carrying_ranges(_query, range = %{type: type, column: column}) do
     case type do
-      :having -> [%{range | type: :where, column: set_unique_alias(column)}]
+      :having -> [%{range | type: :where, column: Helpers.set_unique_alias(column)}]
       :nested_min -> [%{range | column: min_column(column)}]
       :nested_max -> [%{range | column: max_column(column)}]
       :where -> [
@@ -268,11 +195,9 @@ defmodule Cloak.Sql.Compiler.Execution do
     end
   end
 
-  defp min_column(column), do: Expression.function("min", [column], column.type, true) |> set_unique_alias()
+  defp min_column(column), do: Expression.function("min", [column], column.type, true) |> Helpers.set_unique_alias()
 
-  defp max_column(column), do: Expression.function("max", [column], column.type, true) |> set_unique_alias()
-
-  defp set_unique_alias(column), do: %{column | alias: "alias_#{System.unique_integer([:positive])}"}
+  defp max_column(column), do: Expression.function("max", [column], column.type, true) |> Helpers.set_unique_alias()
 
   @minimum_subquery_limit 10
   defp align_limit(query = %{limit: nil}), do: query
@@ -359,7 +284,7 @@ defmodule Cloak.Sql.Compiler.Execution do
       # This, most crucially, preserves the DB row position parameter
       augmented_column = %Expression{db_column | name: column_name, type: return_type, row_index: splitter_row_index}
       # We need to update all other references to this column (group by, propeprty, etc.)
-      query = update_in(query, [Query.Lenses.query_expressions()], &if &1 == expression do augmented_column else &1 end)
+      query = update_in(query, [Lenses.query_expressions()], &if &1 == expression do augmented_column else &1 end)
       {augmented_column, query}
     else
       {expression, query}
@@ -502,30 +427,11 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp calculate_db_columns(query) do
     selected_columns = select_expressions(query)
-    floated_columns = range_columns(query) ++ noise_layer_columns(query)
-    {query, floated_columns} = drop_redundant_floated_columns(query, selected_columns, floated_columns)
+    floated_columns = range_columns(query)
+    {query, floated_columns} = Helpers.drop_redundant_floated_columns(query, selected_columns, floated_columns)
     selected_columns ++ floated_columns
     |> Enum.reduce(query, &Query.add_db_column(&2, &1))
   end
-
-  defp drop_redundant_floated_columns(query, selected_columns, floated_columns) do
-    selected_ids = Enum.map(selected_columns, &Expression.id/1) |> Enum.uniq()
-    {duplicated_columns, floated_columns} = Enum.partition(floated_columns, &Expression.id(&1) in selected_ids)
-    query = Enum.reduce(duplicated_columns, query, fn (column, query) ->
-      replacement = Enum.find(selected_columns, &Expression.id(&1) == Expression.id(column))
-      Lenses.query_expressions() |> Lens.satisfy(&column == &1) |> Lens.map(query, fn(_) -> replacement end)
-    end)
-    {query, floated_columns}
-  end
-
-
-  defp noise_layer_columns(%{noise_layers: noise_layers, emulated?: true, subquery?: true}), do:
-    Enum.flat_map(noise_layers, &(&1.expressions)) |> Enum.map(fn
-      %{aggregate?: true, function_args: [aggregated]} -> aggregated
-      column -> column
-    end)
-  defp noise_layer_columns(%{noise_layers: noise_layers}), do:
-    Enum.flat_map(noise_layers, &(&1.expressions))
 
   defp range_columns(%{subquery?: true, emulated?: false}), do: []
   defp range_columns(%{ranges: ranges}), do: ranges |> Enum.map(&(&1.column)) |> extract_columns()
