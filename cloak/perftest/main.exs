@@ -24,7 +24,7 @@ defmodule PerfTest do
   end
 
   defp run_query(statement) do
-    data_source = Cloak.DataSource.fetch!("postgres/cloaktest1-native@localhost")
+    data_source = Cloak.DataSource.fetch!("data_source_name")
     {duration, result} = :timer.tc(fn () ->
       :ok = Cloak.Query.Runner.start("1", data_source, statement, [], %{}, {:process, self()})
       receive do
