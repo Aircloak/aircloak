@@ -220,10 +220,11 @@ defmodule Cloak.Query.Anonymizer do
     |> binary_to_seed()
   end
 
-  defp compute_hash(binary), do: :crypto.hash(:md4, binary)
+  defp compute_hash(binary), do: :crypto.hash(:sha256, binary)
 
   defp binary_to_seed(binary) do
-    <<a::32, b::32, c::64>> = binary
+    <<left :: bitstring - size(128), right :: bitstring - size(128)>> = binary
+    <<a::32, b::32, c::64>> = :crypto.exor(left, right)
     {a, b, c}
   end
 
