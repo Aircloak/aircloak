@@ -204,6 +204,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert {"table", "numeric"} = name
     end
 
+    test "insensitive to being aliased in views" do
+      %{noise_layers: [%{name: name}]} = compile!(
+        "SELECT count(*) FROM foo WHERE bar = 3",
+      data_source(), views: %{"foo" => "SELECT uid, numeric AS bar FROM table"})
+
+      assert {"table", "numeric"} = name
+    end
+
     test "insensitive to being aliased after operations" do
       %{noise_layers: [%{name: name1}, %{name: name2}]} = compile!(
         "SELECT COUNT(*) FROM (SELECT uid, numeric + numeric2 as foo FROM table) bar WHERE foo = 3",
