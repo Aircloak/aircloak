@@ -89,6 +89,7 @@ defmodule Air.Service.Cloak do
 
     data_sources
     |> add_error_on_conflicting_data_source_definitions()
+    |> add_error_on_different_salts(cloak_info)
     |> combined_data_source_errors(cloak_info)
     |> register_data_sources()
 
@@ -105,6 +106,11 @@ defmodule Air.Service.Cloak do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp add_error(error, data_source) do
+    existing_errors = Map.get(data_source, "errors", [])
+    Map.put(data_source, "errors", [error | existing_errors])
+  end
+
   defp add_error_on_conflicting_data_source_definitions(data_sources) do
     for data_source <- data_sources do
       name = Map.fetch!(data_source, "name")
@@ -116,11 +122,27 @@ defmodule Air.Service.Cloak do
       |> if do
         data_source
       else
-        existing_errors = Map.get(data_source, "errors", [])
-        error = "The data source definition for data source `#{name}` differs between the different cloaks. " <>
-          "Please ensure the configurations for the data source are identical, across all the cloaks configured " <>
-          "to serve the dataset."
-        Map.put(data_source, "errors", [error | existing_errors])
+        "The data source definition for data source `#{name}` differs between the different cloaks. Please ensure " <>
+        "the configurations for the data source are identical, across all the cloaks configured to serve the dataset."
+        |> add_error(data_source)
+      end
+    end
+  end
+
+  defp add_error_on_different_salts(data_sources, cloak_info) do
+    for data_source <- data_sources do
+      name = Map.fetch!(data_source, "name")
+
+      name
+      |> cloak_infos_for_data_source()
+      |> Enum.map(& &1[:salt_hash])
+      |> Enum.any?(& &1 != cloak_info[:salt_hash])
+      |> if do
+        "The data source `#{name}` is served by multiple cloaks that have different salts configured. In order to " <>
+        "ensure consistent results, please ensure that the same salt is set for cloaks serving identical data sources."
+        |> add_error(data_source)
+      else
+        data_source
       end
     end
   end

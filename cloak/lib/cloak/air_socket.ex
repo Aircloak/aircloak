@@ -357,9 +357,14 @@ defmodule Cloak.AirSocket do
         end
         %{id: id, columns: columns}
       end
-      %{global_id: data_source.global_id, tables: tables, errors: data_source.errors, name: data_source.name}
+      %{
+        name: data_source.name,
+        global_id: data_source.global_id,
+        tables: tables,
+        errors: data_source.errors,
+      }
     end
-    %{data_sources: data_sources}
+    %{data_sources: data_sources, salt_hash: get_salt_hash()}
   end
 
   defp next_interval(current_interval) do
@@ -381,6 +386,8 @@ defmodule Cloak.AirSocket do
     end
     |> Enum.map(&Task.await/1)
   end
+
+  defp get_salt_hash(), do: :crypto.hash(:sha256, Cloak.Query.Anonymizer.config(:salt)) |> Base.encode16()
 
   if Mix.env == :dev do
     # suppressing of some common log messages in dev env to avoid excessive noise
