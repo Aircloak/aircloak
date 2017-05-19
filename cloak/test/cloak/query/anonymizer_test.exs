@@ -53,4 +53,17 @@ defmodule Cloak.Query.AnonimyzerTest do
     rows = [[1, 2], [3], [4, 2, -3], [2, 4], [0], [-3, -2], [3], [4, -2, 1], [5], [-4], [-5, 4], [3]]
     assert 2 = Anonymizer.new([MapSet.new()]) |> Anonymizer.median(rows) |> round()
   end
+
+  describe "starred" do
+    test "returns a different anonymizer" do
+      anonymizer = Anonymizer.new([MapSet.new()])
+      assert Anonymizer.starred(anonymizer).rngs != anonymizer.rngs
+    end
+
+    test "cannot be applied twice" do
+      assert_raise(FunctionClauseError, fn() ->
+        Anonymizer.new([MapSet.new()]) |> Anonymizer.starred() |> Anonymizer.starred()
+      end)
+    end
+  end
 end
