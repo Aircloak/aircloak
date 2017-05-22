@@ -115,11 +115,11 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_joins(%Query{projected?: true} = query), do: query
   defp verify_joins(query) do
-    join_conditions_scope_check!(query.from)
-    ensure_all_uid_columns_are_compared_in_joins!(query)
+    verify_join_conditions_scope(query.from, [])
+    verify_all_uid_columns_are_compared_in_joins(query)
   end
 
-  defp ensure_all_uid_columns_are_compared_in_joins!(query), do:
+  defp verify_all_uid_columns_are_compared_in_joins(query), do:
     CyclicGraph.with(fn(graph) ->
       query
       |> Helpers.all_id_columns_from_tables()
@@ -142,21 +142,18 @@ defmodule Cloak.Sql.Compiler.Validation do
       end
     end)
 
-  defp join_conditions_scope_check!(from) do
-    do_join_conditions_scope_check(from, [])
-  end
-
-  defp do_join_conditions_scope_check({:join, join}, selected_tables) do
-    selected_tables = do_join_conditions_scope_check(join.lhs, selected_tables)
-    selected_tables = do_join_conditions_scope_check(join.rhs, selected_tables)
+  defp verify_join_conditions_scope({:join, join}, selected_tables) do
+    selected_tables = verify_join_conditions_scope(join.lhs, selected_tables)
+    selected_tables = verify_join_conditions_scope(join.rhs, selected_tables)
 
     Lens.each(
       Lenses.conditions_terminals(),
       join.conditions,
       fn
         (%Cloak.Sql.Expression{table: %{name: table_name}, name: column_name}) ->
-          scope_check(selected_tables, table_name, column_name)
-        ({:identifier, table_name, {_, column_name}}) -> scope_check(selected_tables, table_name, column_name)
+          verify_scope(selected_tables, table_name, column_name)
+        ({:identifier, table_name, {_, column_name}}) ->
+          verify_scope(selected_tables, table_name, column_name)
         (_) -> :ok
       end
     )
@@ -164,12 +161,12 @@ defmodule Cloak.Sql.Compiler.Validation do
     Enum.each(join.conditions, &verify_where_condition/1)
     selected_tables
   end
-  defp do_join_conditions_scope_check({:subquery, subquery}, selected_tables),
+  defp verify_join_conditions_scope({:subquery, subquery}, selected_tables),
     do: [subquery.alias | selected_tables]
-  defp do_join_conditions_scope_check(table_name, selected_tables) when is_binary(table_name),
+  defp verify_join_conditions_scope(table_name, selected_tables) when is_binary(table_name),
     do: [table_name | selected_tables]
 
-  defp scope_check(tables_in_scope, table_name, column_name) do
+  defp verify_scope(tables_in_scope, table_name, column_name) do
     unless Enum.member?(tables_in_scope, table_name), do:
       raise CompilationError, message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
   end
