@@ -33,6 +33,7 @@ defmodule Cloak.Query.Anonymizer do
   @opaque t :: %{
     rngs: [:rand.state],
     sd_per_layer: float,
+    starred: boolean,
   }
 
   import Kernel, except: [max: 2]
@@ -52,8 +53,17 @@ defmodule Cloak.Query.Anonymizer do
   def new([_|_] = layers), do:
     %{
       sd_per_layer: sd_per_layer(length(layers)),
-      rngs: Enum.map(layers, &:rand.seed(:exsplus, seed(&1)))
+      rngs: Enum.map(layers, &build_rng(seed(&1))),
+      starred: false,
     }
+
+  @doc """
+  Creates a version of the anonymizer where all RNG seeds are mixed with a unique value. This is useful for computing
+  noise layers for `count(*)` columns.
+  """
+  @spec starred(t) :: t
+  def starred(anonymizer = %{starred: false}), do:
+    %{anonymizer | rngs: Enum.map(anonymizer.rngs, &add_star/1), starred: true}
 
 
   @doc """
@@ -383,4 +393,20 @@ defmodule Cloak.Query.Anonymizer do
   defp sd_per_layer(2), do: 0.71
   defp sd_per_layer(3), do: 0.58
   defp sd_per_layer(_), do: 0.5
+
+  @star_token <<
+    29, 219, 42, 78, 67, 253, 33, 203, 49, 214, 249, 88, 182, 201, 156, 46, 244,
+    71, 198, 30, 163, 104, 37, 252, 121, 71, 65, 35, 31, 221, 183, 34
+  >>
+
+  defp add_star(rng) do
+    :rand.export_seed_s(rng)
+    |> :erlang.term_to_binary()
+    |> compute_hash()
+    |> :crypto.exor(@star_token)
+    |> binary_to_seed()
+    |> build_rng()
+  end
+
+  defp build_rng(seed), do: :rand.seed(:exsplus, seed)
 end
