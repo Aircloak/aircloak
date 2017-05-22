@@ -218,7 +218,7 @@ defmodule Cloak.Query.Aggregator do
         false ->
           aggregated_values
           |> preprocess_for_aggregation(aggregator)
-          |> aggregate_by(aggregator.function, aggregator.type, maybe_starred_anonymizer(aggregator, anonymizer))
+          |> aggregated_data(aggregator, anonymizer)
           |> post_process_result(aggregator.function, users_rows, values_index)
       end
     end)
@@ -227,10 +227,10 @@ defmodule Cloak.Query.Aggregator do
     {users_count, values ++ aggregation_results}
   end
 
-  defp maybe_starred_anonymizer(%Expression{function: "count", function_args: [:*]}, anonymizer), do:
-    Anonymizer.starred(anonymizer)
-  defp maybe_starred_anonymizer(_, anonymizer), do:
-    anonymizer
+  defp aggregated_data(rows, %Expression{function: "count", function_args: [:*], type: type}, anonymizer), do:
+    aggregate_by(rows, "count", type, Anonymizer.starred(anonymizer))
+  defp aggregated_data(rows, %Expression{function: function, type: type}, anonymizer), do:
+    aggregate_by(rows, function, type, anonymizer)
 
   # See docs/anonymization.md for details
   defp preprocess_for_aggregation(values, %Expression{function_args: [{:distinct, column}]} = aggregator) do
