@@ -1,9 +1,9 @@
 defmodule Cloak.Sql.Compiler.Specification do
   @moduledoc "Turns a parsed SQL AST into a `Cloak.Sql.Query` specification describing the user query."
 
-  alias Cloak.{CyclicGraph, DataSource}
+  alias Cloak.DataSource
   alias Cloak.Sql.{Comparison, CompilationError, Expression, Function, Query, TypeChecker}
-  alias Cloak.Sql.Compiler.Helpers
+  alias Cloak.Sql.Compiler.Validation
   alias Cloak.Sql.Query.Lenses
 
 
@@ -48,12 +48,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> compile_extraction_patterns()
     |> remove_redundant_uid_casts()
     |> cast_where_clauses()
-    |> verify_columns()
-    |> verify_joins()
-    |> verify_where_clauses()
-    |> verify_having()
-    |> verify_limit()
-    |> verify_offset()
+    |> Validation.verify_query()
     |> TypeChecker.validate_allowed_usage_of_math_and_functions()
 
 
@@ -191,8 +186,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     parsed_subquery
     |> Map.put(:subquery?, true)
     |> compile(parent_query.data_source, parent_query.parameters, parent_query.views)
-    |> validate_subquery_uid(alias)
-    |> validate_subquery_offset(alias)
+    |> Validation.verify_subquery(alias)
 
 
   # -------------------------------------------------------------------
@@ -402,8 +396,10 @@ defmodule Cloak.Sql.Compiler.Specification do
     end
   end
   defp identifier_to_column({:function, name, args} = function, _columns_by_name, query) do
-    check_function_validity(function, query)
-    case Function.return_type(function) do
+    function
+    |> Validation.verify_function(query.subquery?)
+    |> Function.return_type()
+    |> case do
       nil -> raise CompilationError, message: function_argument_error_message(function)
       type -> Expression.function(name, args, type, Function.has_attribute?(name, :aggregator))
     end
@@ -435,11 +431,11 @@ defmodule Cloak.Sql.Compiler.Specification do
         cast_target = Function.cast_target(function_call)
         "Cannot cast value of type `#{cast_source}` to type `#{cast_target}`."
       many_overloads?(function_call) ->
-        "Arguments of type (#{function_call |> actual_types() |> quoted_list()}) are incorrect"
+        "Arguments of type (#{function_call |> actual_types() |> quoted_types()}) are incorrect"
           <> " for `#{Function.readable_name(name)}`."
       true ->
         "Function `#{Function.readable_name(name)}` requires arguments of type #{expected_types(function_call)}"
-          <> ", but got (#{function_call |> actual_types() |> quoted_list()})."
+          <> ", but got (#{function_call |> actual_types() |> quoted_types()})."
     end
   end
 
@@ -450,21 +446,18 @@ defmodule Cloak.Sql.Compiler.Specification do
       (:*) -> "unspecified type"
     end)
 
-  defp many_overloads?(function_call) do
-    length(Function.argument_types(function_call)) > 4
-  end
+  defp many_overloads?(function_call), do: length(Function.argument_types(function_call)) > 4
 
-  defp quoted_list(items), do:
-    items |> Enum.map(&quoted_item/1) |> Enum.join(", ")
+  defp quoted_types(items), do: items |> Enum.map(&quoted_type/1) |> Enum.join(", ")
 
-  defp quoted_item({:optional, type}), do: "[`#{type}`]"
-  defp quoted_item({:many1, type}), do: "[`#{type}`]+"
-  defp quoted_item({:or, types}), do: types |> Enum.map(&quoted_item/1) |> Enum.join(" | ")
-  defp quoted_item(item), do: "`#{item}`"
+  defp quoted_type({:optional, type}), do: "[`#{type}`]"
+  defp quoted_type({:many1, type}), do: "[`#{type}`]+"
+  defp quoted_type({:or, types}), do: types |> Enum.map(&quoted_type/1) |> Enum.join(" | ")
+  defp quoted_type(type), do: "`#{type}`"
 
   defp expected_types(function_call), do:
     Function.argument_types(function_call)
-    |> Enum.map(&quoted_list/1)
+    |> Enum.map(&quoted_types/1)
     |> Enum.map(&"(#{&1})")
     |> Enum.join(" or ")
 
@@ -501,28 +494,10 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp compile_reference(expression, _query, _clause_name), do:
     expression
 
+
   # -------------------------------------------------------------------
   # UID columns
   # -------------------------------------------------------------------
-
-  defp validate_subquery_uid(subquery, alias) do
-    case Enum.find(subquery.columns, &(&1.user_id?)) do
-      nil ->
-        possible_uid_columns =
-          Helpers.all_id_columns_from_tables(subquery)
-          |> Enum.map(&Expression.display_name/1)
-          |> case do
-            [column] -> "the column #{column}"
-            columns -> "one of the columns #{Enum.join(columns, ", ")}"
-          end
-
-        raise CompilationError, message:
-          "Missing a user id column in the select list of #{"subquery `#{alias}`"}. " <>
-          "To fix this error, add #{possible_uid_columns} to the subquery select list."
-      _ ->
-        subquery
-    end
-  end
 
   defp remove_redundant_uid_casts(query), do:
     # A cast which doesn't change the expression type is removed.
@@ -597,231 +572,4 @@ defmodule Cloak.Sql.Compiler.Specification do
           message: "The regex used in `#{extraction.name}` is invalid: #{error} at character #{location}"
     end
   end
-
-
-  # -------------------------------------------------------------------
-  # Columns verification
-  # -------------------------------------------------------------------
-
-  defp verify_columns(query) do
-    verify_functions(query)
-    verify_aggregated_columns(query)
-    verify_group_by_functions(query)
-    query
-  end
-
-  defp verify_functions(query) do
-    query.columns
-    |> Enum.filter(&Function.function?/1)
-    |> Enum.each(&check_function_validity(&1, query))
-  end
-
-  defp check_function_validity(function, query) do
-    verify_function_exists(function)
-    verify_function_subquery_usage(function, query)
-  end
-
-  defp verify_function_exists(function = {_, name, _}) do
-    unless Function.exists?(function) do
-      raise CompilationError, message: "Unknown function `#{Function.readable_name(name)}`."
-    end
-  end
-
-  defp verify_function_subquery_usage({:function, name, [argument]}, %Query{subquery?: false})
-      when name in ["min", "max", "median"] do
-    type = Function.type(argument)
-    if Enum.member?([:text, :date, :time, :datetime], type) do
-      raise CompilationError, message:
-        "Function `#{name}` is allowed over arguments of type `#{type}` only in subqueries."
-    end
-    :ok
-  end
-  defp verify_function_subquery_usage(_function, %Query{subquery?: false}), do: :ok
-  defp verify_function_subquery_usage({:function, name, _}, %Query{subquery?: true}) do
-    if Function.has_attribute?(name, :not_in_subquery) do
-      raise CompilationError, message: "Function `#{name}` is not allowed in subqueries."
-    end
-  end
-
-  defp verify_aggregated_columns(query) do
-    case invalid_individual_columns(query) do
-      [] -> :ok
-      [column | _rest] ->
-        raise CompilationError, message: "#{aggregated_expression_display(column)} " <>
-          "to appear in the `GROUP BY` clause or be used in an aggregate function."
-    end
-  end
-
-  defp invalid_individual_columns(query), do:
-    if Helpers.aggregate?(query),
-      do: query |> Query.bucket_columns() |> Enum.filter(&individual_column?(query, &1)),
-      else: []
-
-  defp individual_column?(query, column), do:
-    not Expression.constant?(column) and not Helpers.aggregated_column?(query, column)
-
-  defp aggregated_expression_display({:function, _function, [arg]}), do:
-    "Column #{quoted_item(arg.name)} needs"
-  defp aggregated_expression_display({:function, _function, args}), do:
-    "Columns (#{args |> Enum.map(&(&1.name)) |> quoted_list()}) need"
-  defp aggregated_expression_display(%Expression{function: fun, function_args: args}) when fun != nil do
-    [column | _] = for %Expression{constant?: false} = column <- args, do: column
-    aggregated_expression_display(column)
-  end
-  defp aggregated_expression_display(%Expression{table: table, name: name}), do:
-    "Column `#{name}` from table `#{table.name}` needs"
-
-  defp verify_group_by_functions(query) do
-    query.group_by
-    |> Enum.filter(& &1.aggregate?)
-    |> case do
-      [] -> :ok
-      [expression | _] -> raise CompilationError, message:
-        "Aggregate function `#{Function.readable_name(expression.function)}` can not be used in the `GROUP BY` clause."
-    end
-  end
-
-
-  # -------------------------------------------------------------------
-  # Joins
-  # -------------------------------------------------------------------
-
-  defp verify_joins(%Query{projected?: true} = query), do: query
-  defp verify_joins(query) do
-    join_conditions_scope_check!(query.from)
-    ensure_all_uid_columns_are_compared_in_joins!(query)
-    query
-  end
-
-  defp ensure_all_uid_columns_are_compared_in_joins!(query), do:
-    CyclicGraph.with(fn(graph) ->
-      query
-      |> Helpers.all_id_columns_from_tables()
-      |> Enum.each(&CyclicGraph.add_vertex(graph, {&1.table.name, &1.name}))
-
-      for {:comparison, column1, :=, column2} <- query.where ++ Helpers.all_join_conditions(query),
-          column1.user_id?,
-          column2.user_id?,
-          column1 != column2
-      do
-        CyclicGraph.connect!(graph, {column1.table.name, column1.name}, {column2.table.name, column2.name})
-      end
-
-      with [{{table1, column1}, {table2, column2}} | _] <- CyclicGraph.disconnected_pairs(graph) do
-        raise CompilationError,
-          message:
-            "Missing where comparison for uid columns of tables `#{table1}` and `#{table2}`. " <>
-            "You can fix the error by adding `#{table1}.#{column1} = #{table2}.#{column2}` " <>
-            "condition to the `WHERE` clause."
-      end
-    end)
-
-  defp join_conditions_scope_check!(from) do
-    do_join_conditions_scope_check(from, [])
-  end
-
-  defp do_join_conditions_scope_check({:join, join}, selected_tables) do
-    selected_tables = do_join_conditions_scope_check(join.lhs, selected_tables)
-    selected_tables = do_join_conditions_scope_check(join.rhs, selected_tables)
-
-    Lens.each(
-      Lenses.conditions_terminals(),
-      join.conditions,
-      fn
-        (%Cloak.Sql.Expression{table: %{name: table_name}, name: column_name}) ->
-          scope_check(selected_tables, table_name, column_name)
-        ({:identifier, table_name, {_, column_name}}) -> scope_check(selected_tables, table_name, column_name)
-        (_) -> :ok
-      end
-    )
-
-    Enum.each(join.conditions, &verify_where_clause/1)
-    selected_tables
-  end
-  defp do_join_conditions_scope_check({:subquery, subquery}, selected_tables),
-    do: [subquery.alias | selected_tables]
-  defp do_join_conditions_scope_check(table_name, selected_tables) when is_binary(table_name),
-    do: [table_name | selected_tables]
-
-  defp scope_check(tables_in_scope, table_name, column_name) do
-    unless Enum.member?(tables_in_scope, table_name), do:
-      raise CompilationError, message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
-  end
-
-
-  # -------------------------------------------------------------------
-  # Where clauses
-  # -------------------------------------------------------------------
-
-  defp verify_where_clauses(%Query{where: clauses = [_|_]} = query) do
-    Enum.each(clauses, &verify_where_clause/1)
-    clauses
-    |> get_in([Lenses.conditions_terminals()])
-    |> Enum.filter(& &1.aggregate?)
-    |> case do
-      [] -> :ok
-      [column | _rest] ->
-        raise CompilationError, message:
-          "Expression #{Expression.display_name(column)} is not valid in the `WHERE` clause."
-    end
-    query
-  end
-  defp verify_where_clauses(query), do: query
-
-  defp verify_where_clause({:comparison, column_a, comparator, column_b}) do
-    verify_where_clause_types(column_a, column_b)
-    check_for_string_inequalities(comparator, column_b)
-  end
-  defp verify_where_clause({verb, column, _}) when verb in [:like, :ilike] do
-    if column.type != :text do
-      verb = verb |> to_string() |> String.upcase()
-      raise CompilationError, message:
-        "Column #{Expression.display_name(column)} of type `#{column.type}` cannot be used in a #{verb} expression."
-    end
-  end
-  defp verify_where_clause({:not, clause}), do: verify_where_clause(clause)
-  defp verify_where_clause(_), do: :ok
-
-  defp verify_where_clause_types(column_a, column_b) do
-    if not Expression.constant?(column_a) and not Expression.constant?(column_b) and column_a.type != column_b.type do
-      raise CompilationError, message: "Column #{Expression.display_name(column_a)} of type `#{column_a.type}` and "
-        <> "column #{Expression.display_name(column_b)} of type `#{column_b.type}` cannot be compared."
-    end
-  end
-
-  defp check_for_string_inequalities(comparator, %Expression{type: :text}) when comparator in [:>, :>=, :<, :<=], do:
-    raise CompilationError, message: "Inequalities on string values are currently not supported."
-  defp check_for_string_inequalities(_, _), do: :ok
-
-
-  # -------------------------------------------------------------------
-  # Having, limit, offset
-  # -------------------------------------------------------------------
-
-  defp verify_having(%Query{command: :select, having: [_|_]} = query) do
-    for {:comparison, column, _operator, target} <- query.having,
-        term <- [column, target],
-        individual_column?(query, term), do:
-      raise CompilationError,
-        message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
-
-    query
-  end
-  defp verify_having(query), do: query
-
-  defp verify_limit(%Query{command: :select, limit: amount}) when amount <= 0, do:
-    raise CompilationError, message: "`LIMIT` clause expects a positive value."
-  defp verify_limit(%Query{command: :select, order_by: [], limit: amount}) when amount != nil, do:
-    raise CompilationError, message: "Using the `LIMIT` clause requires the `ORDER BY` clause to be specified."
-  defp verify_limit(query), do: query
-
-  defp verify_offset(%Query{command: :select, offset: amount}) when amount < 0, do:
-    raise CompilationError, message: "`OFFSET` clause expects a non-negative value."
-  defp verify_offset(%Query{command: :select, order_by: [], offset: amount}) when amount > 0, do:
-    raise CompilationError, message: "Using the `OFFSET` clause requires the `ORDER BY` clause to be specified."
-  defp verify_offset(query), do: query
-
-  defp validate_subquery_offset(%{offset: offset, limit: limit}, alias) when is_nil(limit) and offset > 0, do:
-    raise CompilationError, message: "Subquery `#{alias}` has an OFFSET clause without a LIMIT clause."
-  defp validate_subquery_offset(subquery, _), do: subquery
 end
