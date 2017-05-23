@@ -55,6 +55,7 @@ defmodule Cloak.Query.Anonymizer do
       sd_per_layer: sd_per_layer(length(layers)),
       rngs: Enum.map(layers, &build_rng(seed(&1))),
       starred: false,
+      layers: layers,
     }
 
   @doc """

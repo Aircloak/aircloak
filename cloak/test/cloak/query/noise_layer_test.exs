@@ -11,7 +11,11 @@ defmodule Cloak.Query.NoiseLayerTest do
     Cloak.Test.DB.clear_table("noise_layers")
 
     anonymizer_config = Application.get_env(:cloak, :anonymizer)
-    Application.put_env(:cloak, :anonymizer, Keyword.put(anonymizer_config, :outliers_count, {4, 1}))
+    Application.put_env(:cloak, :anonymizer,
+      anonymizer_config
+      |> Keyword.put(:outliers_count, {4, 1})
+      |> Keyword.put(:low_count_soft_lower_bound, {5, 1})
+    )
     on_exit(fn() -> Application.put_env(:cloak, :anonymizer, anonymizer_config) end)
 
     :ok
@@ -68,5 +72,19 @@ defmodule Cloak.Query.NoiseLayerTest do
     assert_query "select avg(other) from noise_layers",
       %{rows: [%{row: [value2]}]}
     assert value1 != value2
+  end
+
+  test "noise layers in hiding the low-count row" do
+    # If this test starts failing due to some unrelated change in how the random numbers in aggregator are computed
+    # you can get another "roll" by changing this number. To make sure it is still valid check that it fails when
+    # Aggregator uses an Anonymizer built with only the user_id layer for the decision to hide the low-count row.
+    other = 20
+
+    for i <- 1..5, do:
+      :ok = insert_rows(_user_ids = [i], "noise_layers", ["number", "other"], [i, other])
+
+    assert_query "select number from noise_layers where other = #{other}", %{rows: rows1}
+    assert_query "select number from noise_layers", %{rows: rows2}
+    assert rows1 != rows2
   end
 end

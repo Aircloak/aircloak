@@ -173,20 +173,40 @@ defmodule Cloak.Query.Aggregator do
   defp process_low_count_users(rows, query) do
     Logger.debug("Processing low count users ...")
     {low_count_rows, high_count_rows} = Enum.partition(rows, &low_users_count?/1)
-    lcf_users_rows = Enum.reduce(low_count_rows, %{},
-      fn ({_values, _anonymizer, users_rows}, accumulator) ->
-        Map.merge(accumulator, users_rows, fn (_user, columns1, columns2) ->
-          Enum.zip(columns1, columns2) |> Enum.map(&merge_accumulators/1)
+
+    if Enum.empty?(low_count_rows) do
+      high_count_rows
+    else
+      lcf_users_rows = Enum.reduce(low_count_rows, %{},
+        fn ({_values, _anonymizer, users_rows}, accumulator) ->
+          Map.merge(accumulator, users_rows, fn (_user, columns1, columns2) ->
+            Enum.zip(columns1, columns2) |> Enum.map(&merge_accumulators/1)
+          end)
         end)
+
+      lcf_noise_layers = Enum.reduce(low_count_rows, nil, fn({_values, anonymizer, _user_rows}, acc) ->
+        merge_noise_layers(acc, anonymizer.layers)
       end)
-    anonymizer = Anonymizer.new([lcf_users_rows])
-    lcf_values = List.duplicate(:*, length(Rows.group_expressions(query)))
-    lcf_row = {lcf_values, anonymizer, lcf_users_rows}
-    case low_users_count?(lcf_row) do
-      false -> [lcf_row | high_count_rows]
-      true -> high_count_rows
+
+      anonymizer = Anonymizer.new(lcf_noise_layers)
+      lcf_values = List.duplicate(:*, length(Rows.group_expressions(query)))
+      lcf_row = {lcf_values, anonymizer, lcf_users_rows}
+      case low_users_count?(lcf_row) do
+        false -> [lcf_row | high_count_rows]
+        true -> high_count_rows
+      end
     end
   end
+
+  defp merge_noise_layers(nil, layers), do: layers
+  defp merge_noise_layers(layers1, layers2), do:
+    Enum.zip(layers1, layers2)
+    |> Enum.map(&merge_noise_layer/1)
+
+  defp merge_noise_layer({layer1 = %MapSet{}, layer2 = %MapSet{}}), do:
+    MapSet.union(layer1, layer2)
+  defp merge_noise_layer({layer1, layer2}), do:
+    Map.merge(layer1, layer2)
 
   @spec aggregate_groups([group], Query.t) :: [DataSource.row]
   defp aggregate_groups(groups, query) do
