@@ -53,7 +53,7 @@ defmodule Cloak.Query.Anonymizer do
   def new([_|_] = layers), do:
     %{
       sd_per_layer: sd_per_layer(length(layers)),
-      rngs: Enum.map(layers, &build_rng(seed(&1))),
+      rngs: layers |> noise_layers_to_seeds() |> Enum.map(&build_rng/1),
       starred: false,
     }
 
@@ -215,10 +215,22 @@ defmodule Cloak.Query.Anonymizer do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp seed(%MapSet{} = values), do: do_seed(values)
-  defp seed(%{} = values), do: values |> Map.keys() |> do_seed()
+  defp noise_layers_to_seeds(layers) do
+    layers
+    |> Enum.map(&crypto_sum/1)
+    |> Enum.group_by(&(&1))
+    |> Enum.flat_map(fn({_, sums}) ->
+      sums
+      |> Enum.with_index()
+      |> Enum.map(fn({sum, index}) -> :crypto.exor(sum, compute_hash(index)) end)
+    end)
+    |> Enum.map(&binary_to_seed/1)
+  end
 
-  defp do_seed(unique_values) do
+  defp crypto_sum(%MapSet{} = values), do: do_crypto_sum(values)
+  defp crypto_sum(%{} = values), do: values |> Map.keys() |> do_crypto_sum()
+
+  defp do_crypto_sum(unique_values) do
     unique_values
     |> Enum.reduce(compute_hash(config(:salt)), fn (value, accumulator) ->
       value
@@ -227,10 +239,9 @@ defmodule Cloak.Query.Anonymizer do
       # since the list is not sorted, using `xor` (which is commutative) will get us consistent results
       |> :crypto.exor(accumulator)
     end)
-    |> binary_to_seed()
   end
 
-  defp compute_hash(binary), do: :crypto.hash(:sha256, binary)
+  defp compute_hash(data), do: :crypto.hash(:sha256, :erlang.term_to_binary(data))
 
   defp binary_to_seed(binary) do
     <<left :: bitstring - size(128), right :: bitstring - size(128)>> = binary
@@ -401,7 +412,6 @@ defmodule Cloak.Query.Anonymizer do
 
   defp add_star(rng) do
     :rand.export_seed_s(rng)
-    |> :erlang.term_to_binary()
     |> compute_hash()
     |> :crypto.exor(@star_token)
     |> binary_to_seed()
