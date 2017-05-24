@@ -11,7 +11,7 @@ defmodule Cloak.Query.NoiseLayerTest do
     Cloak.Test.DB.clear_table("noise_layers")
 
     anonymizer_config = Application.get_env(:cloak, :anonymizer)
-    Application.put_env(:cloak, :anonymizer, Keyword.put(anonymizer_config, :outliers_count, {4, 1}))
+    Application.put_env(:cloak, :anonymizer, Keyword.put(anonymizer_config, :outliers_count, {4, 0.5}))
     on_exit(fn() -> Application.put_env(:cloak, :anonymizer, anonymizer_config) end)
 
     :ok
@@ -27,23 +27,23 @@ defmodule Cloak.Query.NoiseLayerTest do
   end
 
   test "noise layers on different columns" do
-    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number", "other"], [6, 8])
-    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number", "other"], [6, 8])
+    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number", "other"], [6, 9])
+    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number", "other"], [6, 9])
 
     assert_query "select avg(number) from noise_layers where number = 6",
       %{rows: [%{row: [value1]}]}
-    assert_query "select avg(number) from noise_layers where other = 7",
+    assert_query "select avg(number) from noise_layers where other = 9",
       %{rows: [%{row: [value2]}]}
     assert value1 != value2
   end
 
   test "multiple noise layers on same column" do
-    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [8])
-    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [8])
+    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [9])
+    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [9])
 
-    assert_query "select avg(number) from noise_layers where number = 8",
+    assert_query "select avg(number) from noise_layers where number = 9",
       %{rows: [%{row: [value1]}]}
-    assert_query "select avg(number) from noise_layers where number = 8 group by number",
+    assert_query "select avg(number) from noise_layers where number = 9 group by number",
       %{rows: [%{row: [value2]}]}
     assert value1 != value2
   end
@@ -61,7 +61,7 @@ defmodule Cloak.Query.NoiseLayerTest do
 
   test "noise layers in aggregating subqueries" do
     :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number", "other"], [7, 8])
-    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number", "other"], [7, 10])
+    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number", "other"], [7, 13])
 
     assert_query "select avg(other) from (select user_id, other from noise_layers group by user_id, other) foo",
       %{rows: [%{row: [value1]}]}

@@ -32,7 +32,6 @@ defmodule Cloak.Query.Anonymizer do
 
   @opaque t :: %{
     rngs: [:rand.state],
-    sd_per_layer: float,
     starred: boolean,
   }
 
@@ -52,7 +51,6 @@ defmodule Cloak.Query.Anonymizer do
   @spec new([MapSet.t | %{String.t => any}]) :: t
   def new([_|_] = layers), do:
     %{
-      sd_per_layer: sd_per_layer(length(layers)),
       rngs: layers |> noise_layers_to_seeds() |> Enum.map(&build_rng/1),
       starred: false,
     }
@@ -251,13 +249,13 @@ defmodule Cloak.Query.Anonymizer do
 
   # Produces a gaussian distributed random number with given mean and standard deviation. The actual standard deviation
   # produced will be slightly larger for anonymizers with 5 or more noise layers.
-  defp add_noise(%{sd_per_layer: sd_per_layer, rngs: rngs} = anonymizer, {mean, sd_scale}) do
+  defp add_noise(%{rngs: rngs} = anonymizer, {mean, sd_scale}) do
     {noise, rngs} = Enum.reduce(rngs, {0, []}, fn(rng, {noise, rngs}) ->
       {sample, rng} = gauss(rng)
       {noise + sample, [rng | rngs]}
     end)
 
-    {mean + noise * sd_per_layer * sd_scale, %{anonymizer | rngs: Enum.reverse(rngs)}}
+    {mean + noise * sd_scale, %{anonymizer | rngs: Enum.reverse(rngs)}}
   end
 
   defp gauss(rng) do
@@ -398,12 +396,6 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   defp sum_noise_sigmas(sigma1, sigma2), do: :math.sqrt(sigma1 * sigma1 + sigma2 * sigma2)
-
-  # These standard deviations are selected in such a way that for 1, 2, 3, or 4 layers the total SD is 1
-  defp sd_per_layer(1), do: 1
-  defp sd_per_layer(2), do: 0.71
-  defp sd_per_layer(3), do: 0.58
-  defp sd_per_layer(_), do: 0.5
 
   @star_token <<
     29, 219, 42, 78, 67, 253, 33, 203, 49, 214, 249, 88, 182, 201, 156, 46, 244,
