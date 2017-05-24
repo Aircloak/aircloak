@@ -46,7 +46,7 @@ defmodule Cloak.Query.Aggregator do
   @spec aggregate(Enumerable.t, Query.t, Engine.state_updater) :: Result.t
   def aggregate(rows, query, state_updater) do
     groups = groups(rows, query, state_updater)
-    users_count = number_of_anonymized_users(groups)
+    users_count = number_of_anonymized_users(groups, query)
     aggregated_buckets = groups
       |> process_low_count_users(query)
       |> aggregate_groups(query)
@@ -190,20 +190,6 @@ defmodule Cloak.Query.Aggregator do
       false -> [lcf_row | high_count_rows]
       true -> high_count_rows
     end
-  end
-
-  defp anonymizer_from_groups(groups, query) do
-    user_ids =
-      groups
-      |> Enum.map(fn({_values, _anonymizer, users_rows, _rows}) -> users_rows end)
-      |> Enum.reduce(%{}, &Map.merge/2)
-
-    noise_layers =
-      groups
-      |> Enum.flat_map(fn({_values, _anonymizer, _users_rows, rows}) -> rows end)
-      |> Enum.reduce(NoiseLayer.new_accumulator(query.noise_layers), &NoiseLayer.accumulate(query.noise_layers, &2, &1))
-
-    Anonymizer.new([user_ids | noise_layers])
   end
 
   @spec aggregate_groups([group], Query.t) :: [DataSource.row]
@@ -388,16 +374,27 @@ defmodule Cloak.Query.Aggregator do
     end)
   end
 
-  defp number_of_anonymized_users(data) do
-    unique_user_ids = data
-    |> Enum.map(fn({_result, _anonymizer, user_data, _rows}) -> user_data end)
-    |> Enum.flat_map(&Map.keys/1)
-    |> Enum.into(MapSet.new())
-    anonymizer = Anonymizer.new([unique_user_ids])
+  defp number_of_anonymized_users(data, query) do
+    unique_user_ids = unique_user_ids_from_groups(data)
+    anonymizer = anonymizer_from_groups(data, query)
     unique_users_count = MapSet.size(unique_user_ids)
     case Anonymizer.sufficiently_large?(anonymizer, unique_users_count) do
       {true, anonymizer} -> Anonymizer.noisy_count(anonymizer, unique_users_count)
       _ -> 0
     end
   end
+
+  defp anonymizer_from_groups(groups, query), do:
+    Anonymizer.new([unique_user_ids_from_groups(groups) | noise_layers_from_groups(groups, query)])
+
+  defp noise_layers_from_groups(groups, query), do:
+    groups
+    |> Enum.flat_map(fn({_values, _anonymizer, _users_rows, rows}) -> rows end)
+    |> Enum.reduce(NoiseLayer.new_accumulator(query.noise_layers), &NoiseLayer.accumulate(query.noise_layers, &2, &1))
+
+  defp unique_user_ids_from_groups(groups), do:
+    groups
+    |> Enum.map(fn({_result, _anonymizer, user_data, _rows}) -> user_data end)
+    |> Enum.flat_map(&Map.keys/1)
+    |> Enum.into(MapSet.new())
 end
