@@ -1,4 +1,11 @@
 defmodule Cloak.Query.NoiseLayerTest do
+  @moduledoc """
+  If tests in this module start failing due to some unrelated change in how the random numbers in aggregator are
+  computed you can get another "roll" by changing the constants that noise layers are applied over. To make sure they
+  are still valid you can disable noise layer computation entirely - all except for the count(*) vs count(column) one
+  should fail.
+  """
+
   use ExUnit.Case, async: false
 
   import Cloak.Test.QueryHelpers
@@ -75,9 +82,6 @@ defmodule Cloak.Query.NoiseLayerTest do
   end
 
   test "noise layers in hiding the low-count row" do
-    # If this test starts failing due to some unrelated change in how the random numbers in aggregator are computed
-    # you can get another "roll" by changing this number. To make sure it is still valid check that it fails when
-    # Aggregator uses an Anonymizer built with only the user_id layer for the decision to hide the low-count row.
     other = 20
 
     for i <- 1..5, do:
