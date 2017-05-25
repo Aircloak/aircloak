@@ -99,7 +99,7 @@ defmodule Air.Socket.Cloak.MainChannel do
     Air.Socket.Frontend.MemoryChannel.broadcast_memory_reading(socket.assigns.cloak_id, reading)
     {:noreply, socket}
   end
-  def handle_in("call_response", payload, socket) do
+  def handle_in("cloak_response", payload, socket) do
     request_id = payload["request_id"]
 
     case Map.fetch(socket.assigns.pending_calls, request_id) do
@@ -187,7 +187,7 @@ defmodule Air.Socket.Cloak.MainChannel do
 
   @spec respond_to_cloak(Socket.t, request_id::String.t, :ok | :error, any) :: :ok
   defp respond_to_cloak(socket, request_id, status, result \\ nil) do
-    push(socket, "call_response", %{
+    push(socket, "air_response", %{
       request_id: request_id,
       status: status,
       result: result
