@@ -28,18 +28,23 @@ defmodule Cloak.Sql.Parser do
 
   @type function_spec :: {:function, function_name, [column]}
 
-  @type negatable_condition ::
-      {:comparison, String.t, :=, any}
+  @type comparison :: {:comparison, column, comparator, any}
+
+  @type condition ::
+      comparison
     | {:like | :ilike, String.t, String.t}
     | {:is, String.t, :null}
     | {:in, String.t, [any]}
 
   @type where_clause ::
-      negatable_condition
-    | {:not, negatable_condition}
-    | {:comparison, String.t, comparator, any}
+      condition
+    | {:not, condition}
+    | {:and | :or, condition, condition}
 
-  @type having_clause :: {:comparison, column, comparator, any}
+  @type having_clause ::
+      comparison
+    | {:not, comparison}
+    | {:and | :or, comparison, comparison}
 
   @type from_clause :: table | subquery | join
 
@@ -50,7 +55,7 @@ defmodule Cloak.Sql.Parser do
       type: :cross_join | :inner_join | :full_outer_join | :left_outer_join | :right_outer_join,
       lhs: from_clause,
       rhs: from_clause,
-      conditions: [where_clause]
+      conditions: where_clause | nil
     }}
 
   @type subquery :: {:subquery, %{ast: parsed_query, alias: String.t}}
@@ -60,9 +65,9 @@ defmodule Cloak.Sql.Parser do
     columns: [column | {column, :as, String.t}] | :*,
     group_by: [String.t],
     from: from_clause,
-    where: [where_clause],
+    where: where_clause | nil,
     order_by: [{String.t, :asc | :desc}],
-    having: [having_clause],
+    having: having_clause | nil,
     show: :tables | :columns,
     limit: integer,
     offset: integer,
@@ -564,7 +569,7 @@ defmodule Cloak.Sql.Parser do
       {:else, noop()}
     ])
     |> map(fn
-          {[:where], [where_expressions]} -> {:where, List.flatten(where_expressions)}
+          {[:where], [where_expressions]} -> {:where, where_expressions}
           other -> other
         end)
   end
@@ -592,7 +597,7 @@ defmodule Cloak.Sql.Parser do
           {[identifier, :is, nil], [:null]} -> {:is, identifier, :null}
           {[identifier, :is, :not], [:null]} -> {:not, {:is, identifier, :null}}
           {[identifier, :between], [{min, max}]} ->
-            [{:comparison, identifier, :>=, min}, {:comparison, identifier, :<, max}]
+            {:and, {:comparison, identifier, :>=, min}, {:comparison, identifier, :<, max}}
           {[lhs, comparator], [rhs]} -> create_comparison(lhs, comparator, rhs)
         end)
   end
@@ -737,23 +742,30 @@ defmodule Cloak.Sql.Parser do
     sep_by1_eager(term_parser, keyword(:","))
   end
 
+
   defp conjunction_expression(term_parser, error_message) do
     recur = lazy(fn -> conjunction_expression(term_parser, error_message) end)
+    conjunction_term =
+      either(
+        term_parser,
+        sequence([keyword(:"("), recur, keyword(:")")])
+      )
 
     choice_deepest_error([
-      sep_by1_eager(term_parser, keyword(:and)),
-      sequence([term_parser, keyword(:and), recur]),
-      sequence([keyword(:"("), recur, keyword(:")"), keyword(:and), recur]),
-      sequence([keyword(:"("), recur, keyword(:")")]),
+      sequence([conjunction_term, keyword(:or), recur]),
+      sequence([conjunction_term, keyword(:and), recur]),
+      conjunction_term,
       error_message(fail(""), error_message),
     ])
     |> map(fn
-      [result, :and, results] -> [result | results]
-      [:"(", results1, :")", :and, results2] -> results1 ++ results2
-      [:"(", results, :")"] -> results
-      results -> results
+      [term1, :and, term2] -> {:and, drop_parens(term1), term2}
+      [term1, :or, term2] -> {:or, drop_parens(term1), term2}
+      term -> drop_parens(term)
     end)
   end
+
+  defp drop_parens([:"(", term, :")"]), do: term
+  defp drop_parens(term), do: term
 
   defp end_of_input(parser) do
     parser
@@ -785,7 +797,7 @@ defmodule Cloak.Sql.Parser do
       {:else, noop()}
     ])
     |> map(fn
-      {[:having], [having_expressions]} -> {:having, List.flatten(having_expressions)}
+      {[:having], [having_expressions]} -> {:having, having_expressions}
       other -> other
     end)
   end
@@ -799,9 +811,9 @@ defmodule Cloak.Sql.Parser do
       {:else, error_message(fail(""), "Invalid having expression.")}
     ])
     |> map(fn
-      {[column], [{comparator, value}]} -> {:comparison, column, comparator, value}
+      {[column], [{comparator, value}]} -> create_comparison(column, comparator, value)
       {[column, :between], [{min, max}]} ->
-        [{:comparison, column, :>=, min}, {:comparison, column, :<=, max}]
+        {:and, {:comparison, column, :>=, min}, {:comparison, column, :<=, max}}
     end)
   end
 

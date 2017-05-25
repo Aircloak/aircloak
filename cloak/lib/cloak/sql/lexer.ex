@@ -11,7 +11,7 @@ defmodule Cloak.Sql.Lexer do
     "TABLES", "COLUMNS",
     "FROM",
     "INNER", "OUTER", "LEFT", "RIGHT", "FULL", "JOIN", "ON", "CROSS",
-    "WHERE", "AND", "NOT",
+    "WHERE", "AND", "NOT", "OR",
     "CAST", "BUCKET", "ALIGN",
     "INTERVAL",
     "LIKE", "ILIKE", "IN", "IS", "BETWEEN",
@@ -29,7 +29,8 @@ defmodule Cloak.Sql.Lexer do
     "*",
     "HAVING",
     "LIMIT", "OFFSET"
-  ]
+  ] |> Enum.sort_by(&String.length/1, &>=/2) # Longer keywords have to be checked first to avoid false matches.
+
 
   # -------------------------------------------------------------------
   # API functions
