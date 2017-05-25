@@ -865,7 +865,7 @@ defmodule Cloak.Sql.Parser.Test do
     )
   end
 
-  test "parsing of `and` / `or` in WHERE conditions" do
+  test "parsing of `and` / `or` in WHERE conditions (1)" do
     assert_parse(
       "select count(*) from x where a > 0 or a <> 2 and b = 3",
       select(where:
@@ -875,6 +875,21 @@ defmodule Cloak.Sql.Parser.Test do
             {:comparison, identifier("a"), :<>, constant(2)},
             {:comparison, identifier("b"), :=, constant(3)}
           }
+        }
+      )
+    )
+  end
+
+  test "parsing of `and` / `or` in WHERE conditions (2)" do
+    assert_parse(
+      "select count(*) from x where a > 0 and a <> 2 or b = 3",
+      select(where:
+        {:or,
+          {:and,
+            {:comparison, identifier("a"), :>, constant(0)},
+            {:comparison, identifier("a"), :<>, constant(2)}
+          },
+          {:comparison, identifier("b"), :=, constant(3)}
         }
       )
     )
@@ -924,9 +939,24 @@ defmodule Cloak.Sql.Parser.Test do
     )
   end
 
-  test "parsing of `and` / `or` / extra parens conditions" do
+  test "parsing of `and` / `or` / extra parens conditions (1)" do
     assert_parse(
       "select count(*) from x having ((a > 0) or (a <> 2)) and (b = 3)",
+      select(having:
+        {:and,
+          {:or,
+            {:comparison, identifier("a"), :>, constant(0)},
+            {:comparison, identifier("a"), :<>, constant(2)}
+          },
+          {:comparison, identifier("b"), :=, constant(3)}
+        }
+      )
+    )
+  end
+
+  test "parsing of `and` / `or` / extra parens conditions (2)" do
+    assert_parse(
+      "select count(*) from x having (a > 0 or (a <> 2)) and b = 3",
       select(having:
         {:and,
           {:or,

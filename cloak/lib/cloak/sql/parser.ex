@@ -742,30 +742,38 @@ defmodule Cloak.Sql.Parser do
     sep_by1_eager(term_parser, keyword(:","))
   end
 
-
-  defp conjunction_expression(term_parser, error_message) do
-    recur = lazy(fn -> conjunction_expression(term_parser, error_message) end)
-    conjunction_term =
-      either(
-        term_parser,
-        sequence([keyword(:"("), recur, keyword(:")")])
-      )
+  defp conjunction_expression_parser(term_parser, error_message) do
+    recur = lazy(fn -> conjunction_expression_parser(term_parser, error_message) end)
 
     choice_deepest_error([
-      sequence([conjunction_term, keyword(:or), recur]),
-      sequence([conjunction_term, keyword(:and), recur]),
-      conjunction_term,
+      sequence([term_parser, keyword_of([:and, :or]), recur]),
+      sequence([keyword(:"("), recur, keyword(:")"), keyword_of([:and, :or]), recur]),
+      sequence([keyword(:"("), recur, keyword(:")")]),
+      term_parser,
       error_message(fail(""), error_message),
     ])
     |> map(fn
-      [term1, :and, term2] -> {:and, drop_parens(term1), term2}
-      [term1, :or, term2] -> {:or, drop_parens(term1), term2}
-      term -> drop_parens(term)
+      [:"(", terms, :")"] -> terms
+      [:"(", terms, :")", op, rest] when op in [:and, :or] -> [terms, op | rest]
+      [term, op, rest] when op in [:and, :or] -> [term, op | rest]
+      term -> [term]
     end)
   end
 
-  defp drop_parens([:"(", term, :")"]), do: term
-  defp drop_parens(term), do: term
+  defp conjunction_expression(term_parser, error_message), do:
+    conjunction_expression_parser(term_parser, error_message)
+    |> map(&build_expression_tree/1)
+
+  defp build_expression_tree([term]), do: build_expression_tree(term)
+  defp build_expression_tree(terms) when is_list(terms) do
+    terms
+    |> Enum.split_while(& &1 != :or)
+    |> case do
+      {[lhs, :and | rhs], []} -> {:and, build_expression_tree(lhs), build_expression_tree(rhs)}
+      {lhs, [:or | rhs]} -> {:or, build_expression_tree(lhs), build_expression_tree(rhs)}
+    end
+  end
+  defp build_expression_tree(term), do: term
 
   defp end_of_input(parser) do
     parser
