@@ -81,7 +81,7 @@ defmodule Cloak.Sql.Compiler.Test do
     result = compile!("select * from table where column <> '2015-01-01'", data_source())
 
     assert [{:not, {:is, column("table", "uid"), :null}},
-      {:not, {:comparison, column("table", "column"), :=, value}}] = result.where
+      {:comparison, column("table", "column"), :<>, value}] = result.where
     assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
 
@@ -395,7 +395,7 @@ defmodule Cloak.Sql.Compiler.Test do
     assert Enum.any?(result.where, &match?({:comparison, column("table", "numeric"), :>=, _}, &1))
     assert Enum.any?(result.where, &match?({:comparison, column("table", "numeric"), :<, _}, &1))
     assert Enum.any?(result.where, &match?({:not, {:is, column("table", "uid"), :null}}, &1))
-    assert Enum.any?(result.where, &match?({:not, {:comparison, column("table", "column"), :=, _}}, &1))
+    assert Enum.any?(result.where, &match?({:comparison, column("table", "column"), :<>, _}, &1))
     assert [column("table", "column")] = result.group_by
     assert [{expr_1, :desc}, {expr_2, :desc}] = result.order_by
     assert %Expression{function: "count"} = expr_1

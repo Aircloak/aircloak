@@ -825,9 +825,8 @@ defmodule Cloak.Sql.Parser do
   defp invert_comparator(:<=), do: :>
   defp invert_comparator(:>=), do: :<
   defp invert_comparator(:=), do: :=
+  defp invert_comparator(:<>), do: :<>
 
-  defp create_comparison(lhs, :<>, rhs), do:
-    {:not, create_comparison(lhs, :=, rhs)}
   defp create_comparison({:constant, _, _} = lhs, comparator, rhs), do:
     {:comparison, rhs, invert_comparator(comparator), lhs}
   defp create_comparison(lhs, comparator, rhs), do:
