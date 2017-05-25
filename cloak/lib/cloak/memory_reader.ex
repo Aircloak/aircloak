@@ -167,7 +167,7 @@ defmodule Cloak.MemoryReader do
     }
   end
 
-  defp measurements_per_second(%{params: %{check_interval: interval}}), do: div(1_000, interval)
+  defp measurements_per_second(%{params: %{check_interval: interval}}), do: max(div(1_000, interval), 1)
 
   defp num_measurements_to_drop(%{params: %{check_interval: interval, time_between_abortions: pause}}), do:
     div(pause, interval)
