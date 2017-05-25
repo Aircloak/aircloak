@@ -31,7 +31,7 @@ defmodule Air.CentralClient.Socket do
   @doc "Makes a synchronous rpc call to the central."
   @spec rpc(map) :: {:ok, any} | {:error, any}
   def rpc(rpc), do:
-    call(__MODULE__, "call_with_retry", rpc)
+    call_central(__MODULE__, "call_with_retry", rpc)
 
   @doc "Starts the socket client."
   @spec start_link(Map.t, GenServer.options) :: GenServer.on_start
@@ -116,7 +116,7 @@ defmodule Air.CentralClient.Socket do
           "error" -> {:error, payload["result"]}
           _other -> {:error, {:invalid_status, payload}}
         end
-        respond_to_internal_request(request_data.from, response)
+        GenSocketClient.reply(request_data.from, response)
       :error ->
         Logger.warn("unknown sync call response: #{inspect payload}")
     end
@@ -151,13 +151,6 @@ defmodule Air.CentralClient.Socket do
     end
     {:ok, state}
   end
-  def handle_info({{__MODULE__, :call}, timeout, from, event, payload}, transport, state) do
-    request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
-    GenSocketClient.push(transport, "main", "air_call",
-      %{request_id: request_id, event: event, payload: payload})
-    timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
-    {:ok, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
-  end
   def handle_info({:call_timeout, request_id}, _transport, state) do
     # We're just removing entries here without responding. It is the responsibility of the
     # client code to give up at some point.
@@ -168,6 +161,19 @@ defmodule Air.CentralClient.Socket do
     Logger.warn("unhandled message #{inspect message}")
     {:ok, state}
   end
+
+  @doc false
+  def handle_call({:call_central, timeout, event, payload}, from, transport, state) do
+    request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
+    GenSocketClient.push(transport, "main", "air_call",
+      %{request_id: request_id, event: event, payload: payload})
+    timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
+    {:noreply, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
+  end
+
+  @doc false
+  def handle_cast(_request, _transport, _state), do:
+    raise "attempted to call GenSocketClient cast but no handle_cast/3 clause was provided"
 
 
   # -------------------------------------------------------------------
@@ -187,20 +193,9 @@ defmodule Air.CentralClient.Socket do
   defp set_connected(value), do:
     {^value, _} = Registry.update_value(Air.Service.Central.Registry, __MODULE__, fn(_) -> value end)
 
-  @spec call(GenServer.server, String.t, Map.t, pos_integer) :: {:ok, any} | {:error, any}
-  defp call(socket, event, payload, timeout \\ config(:call_timeout)) do
-    mref = Process.monitor(socket)
-    send(socket, {{__MODULE__, :call}, timeout, {self(), mref}, event, payload})
-    receive do
-      {^mref, response} ->
-        Process.demonitor(mref, [:flush])
-        response
-      {:DOWN, ^mref, _, _, reason} ->
-        exit(reason)
-    after timeout ->
-      exit(:timeout)
-    end
-  end
+  @spec call_central(GenServer.server, String.t, Map.t, pos_integer) :: {:ok, any} | {:error, any}
+  defp call_central(socket, event, payload, timeout \\ config(:call_timeout)), do:
+    GenSocketClient.call(socket, {:call_central, timeout, event, payload})
 
   defp central_socket_url(air_params) do
     central_url()
@@ -218,10 +213,6 @@ defmodule Air.CentralClient.Socket do
       {:ok, url} -> url
       :error -> config(:central_site)
     end
-  end
-
-  defp respond_to_internal_request({client_pid, mref}, response) do
-    send(client_pid, {mref, response})
   end
 
   defp air_params() do
