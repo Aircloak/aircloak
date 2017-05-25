@@ -544,7 +544,7 @@ defmodule Cloak.Sql.Parser do
       lazy(fn -> select_statement() end),
       ignore(keyword(:")")),
       option(keyword(:as)),
-      label(unquoted_identifier(), "subquery alias")
+      label(identifier() |> map(fn({_type, value}) -> value end), "subquery alias")
     ])
     |> map(fn([select_statement, _as_keyword, alias]) ->
       %{ast: statement_map(:select, select_statement), alias: alias}
