@@ -713,6 +713,11 @@ defmodule Cloak.Sql.Compiler.Test do
     assert unaligned.info == ["The range for column `avg` has been adjusted to 0.0 <= `avg` < 5.0."]
   end
 
+  test "rejects `or` conditions" do
+    {:error, error} = compile("select * from table where numeric = 1 or numeric = 2", data_source())
+    assert error == "Combining conditions with `OR` is not allowed."
+  end
+
   test "propagating ranges for shrink and drop from a singly-nested having" do
     query = compile!("""
       select * from (
