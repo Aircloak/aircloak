@@ -67,7 +67,7 @@ defmodule Central.Mixfile do
       {:inflex, "~> 1.5.0"},
       {:httpoison, "~> 0.10.0"},
       {:quantum, "~> 1.9.0"},
-      {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client", only: :test},
+      {:phoenix_gen_socket_client, "~> 1.1.0", only: :test},
       {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0", only: :test}
     ]
   end
