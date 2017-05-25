@@ -40,12 +40,7 @@ defmodule Air.CentralClient.Socket do
       __MODULE__,
       GenSocketClient.Transport.WebSocketClient,
       central_socket_url(air_params),
-      [
-        serializer: config(:serializer),
-        transport_opts: [
-          keepalive: :timer.seconds(30)
-        ]
-      ],
+      [serializer: config(:serializer)],
       gen_server_opts
     )
   end
