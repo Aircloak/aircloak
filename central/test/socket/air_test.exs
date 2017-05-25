@@ -51,7 +51,7 @@ defmodule Central.Socket.AirTest do
           version: "129",
         })
 
-        assert_push "call_response", %{request_id: ^request_id, status: :ok}
+        assert_push "central_response", %{request_id: ^request_id, status: :ok}
         assert %{
           data_source_names: ["ds1", "ds2"], version: "129", status: :online
         } = Repo.get_by(Cloak, name: cloak_name, air_id: air.id)
@@ -61,7 +61,7 @@ defmodule Central.Socket.AirTest do
         cloak_name = Ecto.UUID.generate()
         request_id = push_air_call(socket, "cloak_offline", %{name: cloak_name})
 
-        assert_push "call_response", %{request_id: ^request_id, status: :ok}
+        assert_push "central_response", %{request_id: ^request_id, status: :ok}
         assert %{status: :offline} = Repo.get_by(Cloak, name: cloak_name, air_id: air.id)
       end
 
@@ -72,7 +72,7 @@ defmodule Central.Socket.AirTest do
           aux: %{"some" => "data"},
         })
 
-        assert_push "call_response", %{request_id: ^request_id, status: :ok}
+        assert_push "central_response", %{request_id: ^request_id, status: :ok}
         assert %{
           metrics: %{"some" => "metrics"}, features: %{"some" => "features"}, aux: %{"some" => "data"}
         } = Repo.get_by(Query, customer_id: customer.id)
@@ -85,7 +85,7 @@ defmodule Central.Socket.AirTest do
           aux: %{"some" => "data"},
         })
 
-        assert_push "call_response", %{request_id: ^request_id, status: :ok}
+        assert_push "central_response", %{request_id: ^request_id, status: :ok}
         assert %{
           metrics: %{"some" => "metrics"}, features: %{"some" => "features"}, aux: %{"some" => "data"}
         } = Repo.get_by(Query, customer_id: customer.id)

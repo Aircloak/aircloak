@@ -125,7 +125,7 @@ defmodule Central.Socket.Air.MainChannel do
 
   @spec respond_to_air(Socket.t, request_id::String.t, :ok | :error, any) :: :ok
   defp respond_to_air(socket, request_id, status, result \\ nil) do
-    push(socket, "call_response", %{
+    push(socket, "central_response", %{
       request_id: request_id,
       status: status,
       result: result

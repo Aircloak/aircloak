@@ -106,7 +106,7 @@ defmodule Air.CentralClient.Socket do
   def handle_message("main", "central_call", request, transport, state) do
     handle_central_call(request["event"], request["payload"], {transport, request["request_id"]}, state)
   end
-  def handle_message("main", "call_response", payload, _transport, state) do
+  def handle_message("main", "central_response", payload, _transport, state) do
     request_id = payload["request_id"]
     case Map.fetch(state.pending_calls, request_id) do
       {:ok, request_data} ->

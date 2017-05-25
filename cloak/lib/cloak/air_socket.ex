@@ -115,7 +115,7 @@ defmodule Cloak.AirSocket do
   def handle_message("main", "air_call", request, transport, state) do
     handle_air_call(request["event"], request["payload"], {transport, request["request_id"]}, state)
   end
-  def handle_message("main", "call_response", payload, _transport, state) do
+  def handle_message("main", "air_response", payload, _transport, state) do
     request_id = payload["request_id"]
     case Map.fetch(state.pending_calls, request_id) do
       {:ok, request_data} ->
@@ -289,7 +289,7 @@ defmodule Cloak.AirSocket do
   @spec respond_to_air({GenSocketClient.transport, request_id::String.t}, :ok | :error, any) ::
       :ok | {:error, any}
   defp respond_to_air({transport, request_id}, status, result \\ nil) do
-    case GenSocketClient.push(transport, "main", "call_response", %{
+    case GenSocketClient.push(transport, "main", "cloak_response", %{
           request_id: request_id,
           status: status,
           result: result
