@@ -157,21 +157,8 @@ defmodule Cloak.AirSocket do
     {:ok, state}
   end
   def handle_info({{__MODULE__, :cast_air}, topic, event, payload}, transport, state) do
-    try do
-      GenSocketClient.push(transport, topic, event, payload)
-      {:ok, state}
-    rescue
-      error in Poison.EncodeError ->
-        error =
-          if Aircloak.DeployConfig.override_app_env!(:cloak, :sanitize_otp_errors) do
-            Poison.EncodeError.exception(message: "Poison encode error", value: "`sanitized`")
-          else
-            error
-          end
-
-        Logger.error("Message could not be encoded: #{Exception.message(error)}")
-        {:ok, state}
-    end
+    push(transport, topic, event, payload)
+    {:ok, state}
   end
   def handle_info({:call_timeout, request_id}, _transport, state) do
     # We're just removing entries here without responding. It is the responsibility of the
@@ -188,20 +175,11 @@ defmodule Cloak.AirSocket do
   @doc false
   def handle_call({:call_air, topic, event, payload, timeout}, from, transport, state) do
     request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
-    try do
-      GenSocketClient.push(transport, topic, "cloak_call", %{request_id: request_id, event: event, payload: payload})
-      timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
-      {:noreply, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
-    rescue
-      error in Poison.EncodeError ->
-        error =
-          if Aircloak.DeployConfig.override_app_env!(:cloak, :sanitize_otp_errors) do
-            Poison.EncodeError.exception(message: "Poison encode error", value: "`sanitized`")
-          else
-            error
-          end
-
-        Logger.error("Message could not be encoded: #{Exception.message(error)}")
+    case push(transport, topic, "cloak_call", %{request_id: request_id, event: event, payload: payload}) do
+      :ok ->
+        timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
+        {:noreply, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
+      {:error, error} ->
         {:reply, {:error, error}, state}
     end
   end
@@ -268,6 +246,24 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp push(transport, topic, event, payload) do
+    try do
+      GenSocketClient.push(transport, topic, event, payload)
+      :ok
+    rescue
+      error in Poison.EncodeError ->
+        error =
+          if Aircloak.DeployConfig.override_app_env!(:cloak, :sanitize_otp_errors) do
+            Poison.EncodeError.exception(message: "Poison encode error", value: "`sanitized`")
+          else
+            error
+          end
+
+        Logger.error("Message could not be encoded: #{Exception.message(error)}")
+        {:error, error}
+    end
+  end
 
   defp decode_params(params), do: :erlang.binary_to_term(Base.decode16!(params))
 
