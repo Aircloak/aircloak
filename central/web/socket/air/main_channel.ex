@@ -47,24 +47,6 @@ defmodule Central.Socket.Air.MainChannel do
   end
 
   @doc false
-  def handle_in("call_response", payload, socket) do
-    request_id = payload["request_id"]
-
-    case Map.fetch(socket.assigns.pending_calls, request_id) do
-      {:ok, request_data} ->
-        Process.cancel_timer(request_data.timeout_ref)
-        response = case payload["status"] do
-          "ok" -> {:ok, payload["result"]}
-          "error" -> {:error, payload["result"]}
-          _other -> {:error, {:invalid_status, payload}}
-        end
-        respond_to_internal_request(request_data.from, response)
-      :error ->
-        Logger.warn("unknown sync call response: #{inspect payload}")
-    end
-    pending_calls = Map.delete(socket.assigns.pending_calls, request_id)
-    {:noreply, assign(socket, :pending_calls, pending_calls)}
-  end
   def handle_in("air_call", request, socket) do
     handle_air_call(request["event"], request["payload"], request["request_id"], socket)
   end
@@ -130,10 +112,6 @@ defmodule Central.Socket.Air.MainChannel do
       status: status,
       result: result
     })
-  end
-
-  defp respond_to_internal_request({client_pid, mref}, response) do
-    send(client_pid, {mref, response})
   end
 
   if Mix.env == :test do
