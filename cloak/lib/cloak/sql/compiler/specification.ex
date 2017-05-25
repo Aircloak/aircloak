@@ -20,6 +20,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       views: views
     }
     |> Map.merge(parsed_query)
+    |> collapse_filters()
     |> compile_query()
 
 
@@ -67,8 +68,14 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp normalize_from(%Query{} = query), do:
     %Query{query | from: normalize_from(query.from, query.data_source)}
 
-  defp normalize_from({:join, join = %{lhs: lhs, rhs: rhs}}, data_source) do
-    {:join, %{join | lhs: normalize_from(lhs, data_source), rhs: normalize_from(rhs, data_source)}}
+  defp normalize_from({:join, join = %{lhs: lhs, rhs: rhs, conditions: conditions}}, data_source) do
+    {:join,
+      %{join |
+        lhs: normalize_from(lhs, data_source),
+        rhs: normalize_from(rhs, data_source),
+        conditions: conditions_tree_to_list(conditions)
+      }
+    }
   end
   defp normalize_from(subquery = {:subquery, _}, _data_source), do: subquery
   defp normalize_from(table_identifier = {_, table_name}, data_source) do
@@ -161,11 +168,11 @@ defmodule Cloak.Sql.Compiler.Specification do
             type: :inner_join,
             lhs: {:quoted, table.name},
             rhs: projected_table_ast(joined_table, [table.projection.primary_key], query),
-            conditions: [{:comparison,
+            conditions: {:comparison,
               column_ast(table.name, table.projection.foreign_key),
               :=,
               column_ast(joined_table.name, table.projection.primary_key)
-            }]
+            }
           }}
       }
     }}
@@ -551,6 +558,20 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp do_parse_time(%Expression{type: :text, value: string}, :datetime), do:
     Cloak.Time.parse_datetime(string)
   defp do_parse_time(_, _), do: {:error, :invalid_cast}
+
+  defp collapse_filters(query), do:
+    %Query{query |
+      where: conditions_tree_to_list(query.where),
+      having: conditions_tree_to_list(query.having)
+    }
+
+  defp conditions_tree_to_list(nil), do: []
+  defp conditions_tree_to_list([]), do: []
+  defp conditions_tree_to_list({:or, _lhs, _rhs}), do:
+    raise CompilationError, message: "Combining conditions with `OR` is not allowed."
+  defp conditions_tree_to_list({:and, lhs, rhs}), do:
+    conditions_tree_to_list(lhs) ++ conditions_tree_to_list(rhs)
+  defp conditions_tree_to_list(condition), do: [condition]
 
 
   # -------------------------------------------------------------------
