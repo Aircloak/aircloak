@@ -820,15 +820,15 @@ defmodule Cloak.Sql.Parser do
     |> label("expected parameter")
   end
 
-  defp invert_comparator(:<), do: :>=
-  defp invert_comparator(:>), do: :<=
-  defp invert_comparator(:<=), do: :>
-  defp invert_comparator(:>=), do: :<
-  defp invert_comparator(:=), do: :=
-  defp invert_comparator(:<>), do: :<>
+  defp invert_inequality(:<), do: :>=
+  defp invert_inequality(:>), do: :<=
+  defp invert_inequality(:<=), do: :>
+  defp invert_inequality(:>=), do: :<
+  defp invert_inequality(:=), do: :=
+  defp invert_inequality(:<>), do: :<>
 
   defp create_comparison({:constant, _, _} = lhs, comparator, rhs), do:
-    {:comparison, rhs, invert_comparator(comparator), lhs}
+    {:comparison, rhs, invert_inequality(comparator), lhs}
   defp create_comparison(lhs, comparator, rhs), do:
     {:comparison, lhs, comparator, rhs}
 end
