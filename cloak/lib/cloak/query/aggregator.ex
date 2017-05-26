@@ -186,10 +186,10 @@ defmodule Cloak.Query.Aggregator do
     anonymizer = anonymizer_from_groups(low_count_rows, query)
     lcf_values = List.duplicate(:*, length(Rows.group_expressions(query)))
     lcf_row = {lcf_values, anonymizer, lcf_users_rows, lcf_rows}
-    case low_users_count?(lcf_row) do
-      false -> [lcf_row | high_count_rows]
-      true -> high_count_rows
-    end
+
+    if low_users_count?(lcf_row),
+      do: high_count_rows,
+      else: [lcf_row | high_count_rows]
   end
 
   @spec aggregate_groups([group], Query.t) :: [DataSource.row]
