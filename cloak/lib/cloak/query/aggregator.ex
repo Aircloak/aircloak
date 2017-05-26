@@ -207,10 +207,10 @@ defmodule Cloak.Query.Aggregator do
         values_index = Enum.find_index(per_user_aggregators_and_columns, & &1 == per_user_aggregator_and_column)
         {values_index, aggregator}
       end)
-    Enum.map(groups, &aggregate_group(&1, indexed_aggregators))
+    Enum.map(groups, &aggregate_group(&1, indexed_aggregators, query))
   end
 
-  defp aggregate_group({values, anonymizer, users_rows, _rows}, indexed_aggregators) do
+  defp aggregate_group({values, anonymizer, users_rows, rows}, indexed_aggregators, query) do
     aggregation_results = Enum.map(indexed_aggregators, fn ({values_index, aggregator}) ->
       aggregated_values =
         users_rows
@@ -223,7 +223,7 @@ defmodule Cloak.Query.Aggregator do
           aggregated_values
           |> preprocess_for_aggregation(aggregator)
           |> aggregated_data(aggregator, anonymizer)
-          |> post_process_result(aggregator.function, users_rows, values_index)
+          |> post_process_result(aggregator, rows, query)
       end
     end)
 
@@ -303,39 +303,33 @@ defmodule Cloak.Query.Aggregator do
 
   # For min / max aggregators, if there is a value which passes the LCF and
   # it is lower / greater than the aggregated result, we want to show that instead.
-  defp post_process_result(result, "max", users_rows, values_index) do
-    users_rows
-    |> group_values(& &1 > result, values_index)
+  defp post_process_result(result, aggregator = %Expression{function: "max"}, rows, query), do:
+    rows
+    |> sufficiently_represented_values(& &1 > result, aggregator, query)
     |> Stream.concat([result])
     |> Enum.max()
-  end
-  defp post_process_result(result, "min", users_rows, values_index) do
-    users_rows
-    |> group_values(& &1 < result, values_index)
+  defp post_process_result(result, aggregator = %Expression{function: "min"}, rows, query), do:
+    rows
+    |> sufficiently_represented_values(& &1 < result, aggregator, query)
     |> Stream.concat([result])
     |> Enum.min()
-  end
-  defp post_process_result(result, _function, _users_rows, _values_index), do: result
+  defp post_process_result(result, _aggregator, _rows, _query), do: result
 
-  defp group_values(users_rows, filter_fun, values_index) do
-    users_rows
-    |> Stream.map(fn ({user, rows}) ->
-      filtered_rows =
-        case Enum.at(rows, values_index) do
-          nil -> []
-          set -> Enum.filter(set, filter_fun)
-        end
-      {user, filtered_rows}
+  defp sufficiently_represented_values(rows, filter_fun, aggregator, query) do
+    column = aggregated_column(aggregator)
+
+    rows
+    |> Stream.filter(fn(row) ->
+      value = Expression.value(column, row)
+      not is_nil(value) and filter_fun.(value)
     end)
-    |> Enum.reduce(%{}, fn ({user, values}, acc) ->
-      Enum.reduce(values, acc, fn (value, acc) ->
-        Map.update(acc, value, [user], &[user | &1])
-      end)
+    |> Enum.group_by(&Expression.value(column, &1))
+    |> Enum.reject(fn({_value, rows}) ->
+      noise_layers = noise_layers_from_rows(rows, query)
+      user_layer = rows |> Enum.map(&user_id/1) |> MapSet.new()
+      low_users_count?(MapSet.size(user_layer), Anonymizer.new([user_layer | noise_layers]))
     end)
-    |> Enum.reject(fn ({_value, users}) ->
-      low_users_count?(users, Anonymizer.new([MapSet.new(users)]))
-    end)
-    |> Enum.map(fn ({value, _users}) -> value end)
+    |> Enum.map(fn({value, _rows}) -> value end)
   end
 
   defp make_buckets(rows, query) do
@@ -390,7 +384,14 @@ defmodule Cloak.Query.Aggregator do
   defp noise_layers_from_groups(groups, query), do:
     groups
     |> Enum.flat_map(fn({_values, _anonymizer, _users_rows, rows}) -> rows end)
-    |> Enum.reduce(NoiseLayer.new_accumulator(query.noise_layers), &NoiseLayer.accumulate(query.noise_layers, &2, &1))
+    |> noise_layers_from_rows(query)
+
+  defp noise_layers_from_rows(rows, query), do:
+    Enum.reduce(
+      rows,
+      NoiseLayer.new_accumulator(query.noise_layers),
+      &NoiseLayer.accumulate(query.noise_layers, &2, &1)
+    )
 
   defp unique_user_ids_from_groups(groups), do:
     groups
