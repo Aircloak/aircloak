@@ -444,6 +444,13 @@ defmodule Cloak.Sql.Parser.Test do
     assert select(columns: [identifier("foo")], from: unquoted("bar")) = subquery
   end
 
+  test "parsed subquery with a quoted alias" do
+    assert_parse(
+      "select foo from (select foo from bar) \"ali as\"",
+      select(from: subquery(_, "ali as"))
+    )
+  end
+
   test "parsed nested subquery sql" do
     assert_parse(
       "select foo from (select foo from (select foo from bar) inner_alias) outer_alias",
