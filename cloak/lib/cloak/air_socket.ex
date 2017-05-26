@@ -28,12 +28,7 @@ defmodule Cloak.AirSocket do
       __MODULE__,
       GenSocketClient.Transport.WebSocketClient,
       air_socket_url(cloak_params),
-      [
-        serializer: config(:serializer),
-        transport_opts: [
-          keepalive: :timer.seconds(30)
-        ]
-      ],
+      [serializer: config(:serializer)],
       gen_server_opts
     )
   end
@@ -47,7 +42,7 @@ defmodule Cloak.AirSocket do
   @spec send_query_result(GenServer.server, map) :: :ok | {:error, any}
   def send_query_result(socket \\ __MODULE__, result) do
     Logger.info("sending query result to Air", query_id: result.query_id)
-    call(socket, "main", "query_result", result)
+    call_air(socket, "main", "query_result", result)
   end
 
   @doc """
@@ -58,12 +53,12 @@ defmodule Cloak.AirSocket do
   """
   @spec send_query_state(GenServer.server, String.t, atom) :: :ok | {:error, any}
   def send_query_state(socket \\ __MODULE__, query_id, query_state), do:
-    call(socket, "main", "query_state", %{query_id: query_id, query_state: query_state})
+    call_air(socket, "main", "query_state", %{query_id: query_id, query_state: query_state})
 
   @doc "Sends cloak memory stats to the air."
   @spec send_memory_stats(GenServer.server, Keyword.t) :: :ok | {:error, any}
   def send_memory_stats(socket \\ __MODULE__, memory_reading), do:
-    cast(socket, "main", "memory_reading", memory_reading |> Enum.into(%{}))
+    cast_air(socket, "main", "memory_reading", memory_reading |> Enum.into(%{}))
 
 
   # -------------------------------------------------------------------
@@ -120,7 +115,7 @@ defmodule Cloak.AirSocket do
   def handle_message("main", "air_call", request, transport, state) do
     handle_air_call(request["event"], request["payload"], {transport, request["request_id"]}, state)
   end
-  def handle_message("main", "call_response", payload, _transport, state) do
+  def handle_message("main", "air_response", payload, _transport, state) do
     request_id = payload["request_id"]
     case Map.fetch(state.pending_calls, request_id) do
       {:ok, request_data} ->
@@ -130,7 +125,7 @@ defmodule Cloak.AirSocket do
           "error" -> {:error, payload["result"]}
           _other -> {:error, {:invalid_status, payload}}
         end
-        respond_to_internal_request(request_data.from, response)
+        GenSocketClient.reply(request_data.from, response)
       :error ->
         Logger.warn("unknown sync call response: #{inspect payload}")
     end
@@ -161,42 +156,9 @@ defmodule Cloak.AirSocket do
     end
     {:ok, state}
   end
-  def handle_info({{__MODULE__, :cast}, topic, event, payload}, transport, state) do
-    try do
-      GenSocketClient.push(transport, topic, event, payload)
-      {:ok, state}
-    rescue
-      error in Poison.EncodeError ->
-        error =
-          if Aircloak.DeployConfig.override_app_env!(:cloak, :sanitize_otp_errors) do
-            Poison.EncodeError.exception(message: "Poison encode error", value: "`sanitized`")
-          else
-            error
-          end
-
-        Logger.error("Message could not be encoded: #{Exception.message(error)}")
-        {:ok, state}
-    end
-  end
-  def handle_info({{__MODULE__, :call}, topic, timeout, from, event, payload}, transport, state) do
-    request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
-    try do
-      GenSocketClient.push(transport, topic, "cloak_call", %{request_id: request_id, event: event, payload: payload})
-      timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
-      {:ok, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
-    rescue
-      error in Poison.EncodeError ->
-        error =
-          if Aircloak.DeployConfig.override_app_env!(:cloak, :sanitize_otp_errors) do
-            Poison.EncodeError.exception(message: "Poison encode error", value: "`sanitized`")
-          else
-            error
-          end
-
-        Logger.error("Message could not be encoded: #{Exception.message(error)}")
-        respond_to_internal_request(from, {:error, error})
-        {:ok, state}
-    end
+  def handle_info({{__MODULE__, :cast_air}, topic, event, payload}, transport, state) do
+    push(transport, topic, event, payload)
+    {:ok, state}
   end
   def handle_info({:call_timeout, request_id}, _transport, state) do
     # We're just removing entries here without responding. It is the responsibility of the
@@ -207,6 +169,19 @@ defmodule Cloak.AirSocket do
   def handle_info(message, _transport, state) do
     Logger.warn("unhandled message #{inspect message}")
     {:ok, state}
+  end
+
+
+  @doc false
+  def handle_call({:call_air, topic, event, payload, timeout}, from, transport, state) do
+    request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
+    case push(transport, topic, "cloak_call", %{request_id: request_id, event: event, payload: payload}) do
+      :ok ->
+        timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
+        {:noreply, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
+      {:error, error} ->
+        {:reply, {:error, error}, state}
+    end
   end
 
 
@@ -272,6 +247,24 @@ defmodule Cloak.AirSocket do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp push(transport, topic, event, payload) do
+    try do
+      GenSocketClient.push(transport, topic, event, payload)
+      :ok
+    rescue
+      error in Poison.EncodeError ->
+        error =
+          if Aircloak.DeployConfig.override_app_env!(:cloak, :sanitize_otp_errors) do
+            Poison.EncodeError.exception(message: "Poison encode error", value: "`sanitized`")
+          else
+            error
+          end
+
+        Logger.error("Message could not be encoded: #{Exception.message(error)}")
+        {:error, error}
+    end
+  end
+
   defp decode_params(params), do: :erlang.binary_to_term(Base.decode16!(params))
 
   defp air_socket_url(cloak_params) do
@@ -292,7 +285,7 @@ defmodule Cloak.AirSocket do
   @spec respond_to_air({GenSocketClient.transport, request_id::String.t}, :ok | :error, any) ::
       :ok | {:error, any}
   defp respond_to_air({transport, request_id}, status, result \\ nil) do
-    case GenSocketClient.push(transport, "main", "call_response", %{
+    case GenSocketClient.push(transport, "main", "cloak_response", %{
           request_id: request_id,
           status: status,
           result: result
@@ -302,35 +295,17 @@ defmodule Cloak.AirSocket do
     end
   end
 
-  defp respond_to_internal_request({client_pid, mref}, response) do
-    send(client_pid, {mref, response})
-  end
-
-  @spec cast(GenServer.server, String.t, String.t, map) :: :ok
-  defp cast(socket, topic, event, payload) do
-    send(socket, {{__MODULE__, :cast}, topic, event, payload})
+  @spec cast_air(GenServer.server, String.t, String.t, map) :: :ok
+  defp cast_air(socket, topic, event, payload) do
+    send(socket, {{__MODULE__, :cast_air}, topic, event, payload})
     :ok
   end
 
-  @spec call(GenServer.server, String.t, String.t, map) :: :ok | {:error, any}
-  defp call(socket, topic, event, payload) do
-    case do_call(socket, topic, event, payload, @timeout) do
+  @spec call_air(GenServer.server, String.t, String.t, map) :: :ok | {:error, any}
+  defp call_air(socket, topic, event, payload) do
+    case GenSocketClient.call(socket, {:call_air, topic, event, payload, @timeout}, @timeout) do
       {:ok, _} -> :ok
       error -> error
-    end
-  end
-
-  defp do_call(socket, topic, event, payload, timeout) do
-    mref = Process.monitor(socket)
-    send(socket, {{__MODULE__, :call}, topic, timeout, {self(), mref}, event, payload})
-    receive do
-      {^mref, response} ->
-        Process.demonitor(mref, [:flush])
-        response
-      {:DOWN, ^mref, _, _, reason} ->
-        exit(reason)
-    after timeout ->
-      exit(:timeout)
     end
   end
 

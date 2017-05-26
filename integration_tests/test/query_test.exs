@@ -33,6 +33,9 @@ defmodule IntegrationTest.QueryTest do
   test "retrieval of query results as csv", context do
     {:ok, %{"query_id" => query_id}} = run_query(context.user, "select name, height from users")
 
+    # by the time we get the result, the query might not be stored, so we'll sleep a bit
+    :timer.sleep(200)
+
     assert [["name", "height"], ["john", "180"]] ==
       air_api_get!(context.user, "queries/#{query_id}.csv")
       |> Map.fetch!(:body)

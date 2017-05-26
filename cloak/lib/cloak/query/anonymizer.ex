@@ -32,7 +32,6 @@ defmodule Cloak.Query.Anonymizer do
 
   @opaque t :: %{
     rngs: [:rand.state],
-    sd_per_layer: float,
     starred: boolean,
   }
 
@@ -52,8 +51,7 @@ defmodule Cloak.Query.Anonymizer do
   @spec new([MapSet.t | %{String.t => any}]) :: t
   def new([_|_] = layers), do:
     %{
-      sd_per_layer: sd_per_layer(length(layers)),
-      rngs: Enum.map(layers, &build_rng(seed(&1))),
+      rngs: layers |> noise_layers_to_seeds() |> Enum.map(&build_rng/1),
       starred: false,
     }
 
@@ -215,10 +213,22 @@ defmodule Cloak.Query.Anonymizer do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp seed(%MapSet{} = values), do: do_seed(values)
-  defp seed(%{} = values), do: values |> Map.keys() |> do_seed()
+  defp noise_layers_to_seeds(layers) do
+    layers
+    |> Enum.map(&crypto_sum/1)
+    |> Enum.group_by(&(&1))
+    |> Enum.flat_map(fn({_, sums}) ->
+      sums
+      |> Enum.with_index()
+      |> Enum.map(fn({sum, index}) -> :crypto.exor(sum, compute_hash(index)) end)
+    end)
+    |> Enum.map(&binary_to_seed/1)
+  end
 
-  defp do_seed(unique_values) do
+  defp crypto_sum(%MapSet{} = values), do: do_crypto_sum(values)
+  defp crypto_sum(%{} = values), do: values |> Map.keys() |> do_crypto_sum()
+
+  defp do_crypto_sum(unique_values) do
     unique_values
     |> Enum.reduce(compute_hash(config(:salt)), fn (value, accumulator) ->
       value
@@ -227,10 +237,9 @@ defmodule Cloak.Query.Anonymizer do
       # since the list is not sorted, using `xor` (which is commutative) will get us consistent results
       |> :crypto.exor(accumulator)
     end)
-    |> binary_to_seed()
   end
 
-  defp compute_hash(binary), do: :crypto.hash(:sha256, binary)
+  defp compute_hash(data), do: :crypto.hash(:sha256, :erlang.term_to_binary(data))
 
   defp binary_to_seed(binary) do
     <<left :: bitstring - size(128), right :: bitstring - size(128)>> = binary
@@ -240,13 +249,13 @@ defmodule Cloak.Query.Anonymizer do
 
   # Produces a gaussian distributed random number with given mean and standard deviation. The actual standard deviation
   # produced will be slightly larger for anonymizers with 5 or more noise layers.
-  defp add_noise(%{sd_per_layer: sd_per_layer, rngs: rngs} = anonymizer, {mean, sd_scale}) do
+  defp add_noise(%{rngs: rngs} = anonymizer, {mean, sd_scale}) do
     {noise, rngs} = Enum.reduce(rngs, {0, []}, fn(rng, {noise, rngs}) ->
       {sample, rng} = gauss(rng)
       {noise + sample, [rng | rngs]}
     end)
 
-    {mean + noise * sd_per_layer * sd_scale, %{anonymizer | rngs: Enum.reverse(rngs)}}
+    {mean + noise * sd_scale, %{anonymizer | rngs: Enum.reverse(rngs)}}
   end
 
   defp gauss(rng) do
@@ -388,12 +397,6 @@ defmodule Cloak.Query.Anonymizer do
 
   defp sum_noise_sigmas(sigma1, sigma2), do: :math.sqrt(sigma1 * sigma1 + sigma2 * sigma2)
 
-  # These standard deviations are selected in such a way that for 1, 2, 3, or 4 layers the total SD is 1
-  defp sd_per_layer(1), do: 1
-  defp sd_per_layer(2), do: 0.71
-  defp sd_per_layer(3), do: 0.58
-  defp sd_per_layer(_), do: 0.5
-
   @star_token <<
     29, 219, 42, 78, 67, 253, 33, 203, 49, 214, 249, 88, 182, 201, 156, 46, 244,
     71, 198, 30, 163, 104, 37, 252, 121, 71, 65, 35, 31, 221, 183, 34
@@ -401,7 +404,6 @@ defmodule Cloak.Query.Anonymizer do
 
   defp add_star(rng) do
     :rand.export_seed_s(rng)
-    |> :erlang.term_to_binary()
     |> compute_hash()
     |> :crypto.exor(@star_token)
     |> binary_to_seed()

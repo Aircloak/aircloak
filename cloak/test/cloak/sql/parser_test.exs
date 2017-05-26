@@ -182,7 +182,7 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select foo from bar where a = 10",
       select(columns: [identifier("foo")], from: unquoted("bar"),
-        where: [{:comparison, identifier("a"), :=, constant(10)}])
+        where: {:comparison, identifier("a"), :=, constant(10)})
     )
   end
 
@@ -190,7 +190,7 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select foo from bar where a < 10",
       select(columns: [identifier("foo")], from: unquoted("bar"),
-        where: [{:comparison, identifier("a"), :<, constant(10)}])
+        where: {:comparison, identifier("a"), :<, constant(10)})
     )
   end
 
@@ -198,7 +198,7 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select foo from bar where a > 10",
       select(columns: [identifier("foo")], from: unquoted("bar"),
-        where: [{:comparison, identifier("a"), :>, constant(10)}])
+        where: {:comparison, identifier("a"), :>, constant(10)})
     )
   end
 
@@ -206,7 +206,7 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select foo from bar where a >= 10",
       select(columns: [identifier("foo")], from: unquoted("bar"),
-        where: [{:comparison, identifier("a"), :>=, constant(10)}])
+        where: {:comparison, identifier("a"), :>=, constant(10)})
     )
   end
 
@@ -214,7 +214,7 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select foo from bar where a <= 10",
       select(columns: [identifier("foo")], from: unquoted("bar"),
-        where: [{:comparison, identifier("a"), :<=, constant(10)}])
+        where: {:comparison, identifier("a"), :<=, constant(10)})
     )
   end
 
@@ -222,7 +222,7 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select foo from bar where a <> 10",
       select(columns: [identifier("foo")], from: unquoted("bar"),
-        where: [{:not, {:comparison, identifier("a"), :=, constant(10)}}])
+        where: {:comparison, identifier("a"), :<>, constant(10)})
     )
   end
 
@@ -230,7 +230,7 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select foo from bar where a = 10.0",
       select(columns: [identifier("foo")], from: unquoted("bar"),
-        where: [{:comparison, identifier("a"), :=, constant(10.0)}])
+        where: {:comparison, identifier("a"), :=, constant(10.0)})
     )
   end
 
@@ -238,7 +238,7 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select foo from bar where name = 'tom'",
       select(columns: [identifier("foo")], from: unquoted("bar"),
-        where: [{:comparison, identifier("name"), :=, constant("tom")}])
+        where: {:comparison, identifier("name"), :=, constant("tom")})
     )
   end
 
@@ -246,7 +246,7 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select foo from bar where a = b",
       select(columns: [identifier("foo")], from: unquoted("bar"),
-        where: [{:comparison, identifier("a"), :=, identifier("b")}])
+        where: {:comparison, identifier("a"), :=, identifier("b")})
     )
   end
 
@@ -254,7 +254,7 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select foo from bar where name = 'tOm'",
       select(columns: [identifier("foo")], from: unquoted("bar"),
-        where: [{:comparison, identifier("name"), :=, constant("tOm")}])
+        where: {:comparison, identifier("name"), :=, constant("tOm")})
     )
   end
 
@@ -262,7 +262,7 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select foo from bar where name = 'avishai cohen'",
       select(columns: [identifier("foo")], from: unquoted("bar"),
-        where: [{:comparison, identifier("name"), :=, constant("avishai cohen")}])
+        where: {:comparison, identifier("name"), :=, constant("avishai cohen")})
     )
   end
 
@@ -271,10 +271,10 @@ defmodule Cloak.Sql.Parser.Test do
       "select foo from bar where a <> 10 and b = 'bar'",
       select(
         columns: [identifier("foo")], from: unquoted("bar"),
-        where: [
-          {:not, {:comparison, identifier("a"), :=, constant(10)}},
+        where: {:and,
+          {:comparison, identifier("a"), :<>, constant(10)},
           {:comparison, identifier("b"), :=, constant("bar")}
-        ]
+        }
       )
     )
   end
@@ -284,10 +284,10 @@ defmodule Cloak.Sql.Parser.Test do
       "select foo from bar where a between 10 and 20",
       select(
         columns: [identifier("foo")], from: unquoted("bar"),
-        where: [
+        where: {:and,
           {:comparison, identifier("a"), :>=, constant(10)},
           {:comparison, identifier("a"), :<, constant(20)}
-        ]
+        }
       )
     )
   end
@@ -296,14 +296,14 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select foo from bar where a LIKE '_ob d%'",
       select(columns: [identifier("foo")], from: unquoted("bar"),
-        where: [{:like, identifier("a"), constant("_ob d%")}])
+        where: {:like, identifier("a"), constant("_ob d%")})
     )
   end
 
   test "where clause with NOT LIKE" do
     assert_parse(
       "select foo from bar where a NOT LIKE '%pattern%'",
-      select(where: [{:not, {:like, identifier("a"), constant("%pattern%")}}])
+      select(where: {:not, {:like, identifier("a"), constant("%pattern%")}})
     )
   end
 
@@ -311,14 +311,14 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select foo from bar where a ILIKE '_ob d%'",
       select(columns: [identifier("foo")], from: unquoted("bar"),
-        where: [{:ilike, identifier("a"), constant("_ob d%")}])
+        where: {:ilike, identifier("a"), constant("_ob d%")})
     )
   end
 
   test "where clause with NOT ILIKE" do
     assert_parse(
       "select foo from bar where a NOT ILIKE '%pattern%'",
-      select(where: [{:not, {:ilike, identifier("a"), constant("%pattern%")}}])
+      select(where: {:not, {:ilike, identifier("a"), constant("%pattern%")}})
     )
   end
 
@@ -326,15 +326,14 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select foo from bar where a IN (1, 2, 3)",
       select(columns: [identifier("foo")], from: unquoted("bar"),
-        where: [{:in, identifier("a"), constants([1, 2, 3])}])
+        where: {:in, identifier("a"), constants([1, 2, 3])})
     )
   end
 
   test "where clause with IS and IS NOT" do
     assert_parse(
       "select foo from bar where a is null and b is not null",
-      select(where: [{:is, identifier("a"), :null},
-        {:not, {:is, identifier("b"), :null}}])
+      select(where: {:and, {:is, identifier("a"), :null}, {:not, {:is, identifier("b"), :null}}})
     )
   end
 
@@ -343,12 +342,17 @@ defmodule Cloak.Sql.Parser.Test do
       "select foo from bar where a = 2 and b in (1,2,3) and c like '_o' and d is not null",
       select(
         columns: [identifier("foo")], from: unquoted("bar"),
-        where: [
-          {:comparison, identifier("a"), :=, constant(2)},
-          {:in, identifier("b"), constants([1, 2, 3])},
-          {:like, identifier("c"), constant("_o")},
-          {:not, {:is, identifier("d"), :null}},
-        ]
+        where:
+          {:and,
+            {:comparison, identifier("a"), :=, constant(2)},
+            {:and,
+              {:in, identifier("b"), constants([1, 2, 3])},
+              {:and,
+                {:like, identifier("c"), constant("_o")},
+                {:not, {:is, identifier("d"), :null}},
+              }
+            }
+          }
       )
     )
   end
@@ -372,15 +376,15 @@ defmodule Cloak.Sql.Parser.Test do
       "select foo from bar where a = true and b in (true, false)",
       select(
         columns: [identifier("foo")], from: unquoted("bar"),
-        where: [{:comparison, identifier("a"), :=, constant(true)},
-          {:in, identifier("b"), constants([true, false])}]
+        where: {:and, {:comparison, identifier("a"), :=, constant(true)},
+          {:in, identifier("b"), constants([true, false])}}
       )
     )
   end
 
   test "having clause with parens" do
     assert_equal_parse(
-      "select foo from bar having (a = 1 and b = 3) and (c = 4)",
+      "select foo from bar having (a = 1) and (b = 3 and c = 4)",
       "select foo from bar having a = 1 and b = 3 and c = 4"
     )
   end
@@ -442,6 +446,13 @@ defmodule Cloak.Sql.Parser.Test do
       select(columns: [identifier("foo")], from: subquery(subquery, "alias"))
     )
     assert select(columns: [identifier("foo")], from: unquoted("bar")) = subquery
+  end
+
+  test "parsed subquery with a quoted alias" do
+    assert_parse(
+      "select foo from (select foo from bar) \"ali as\"",
+      select(from: subquery(_, "ali as"))
+    )
   end
 
   test "parsed nested subquery sql" do
@@ -510,7 +521,7 @@ defmodule Cloak.Sql.Parser.Test do
           {:function, "count", [identifier("column")]},
           {:function, "count", [{:distinct, identifier("column")}]}
         ],
-        where: [{:comparison, identifier("column"), :=, _}],
+        where: {:comparison, identifier("column"), :=, _},
         group_by: [identifier("column")],
         order_by: [
           {identifier("column"), :desc},
@@ -541,64 +552,64 @@ defmodule Cloak.Sql.Parser.Test do
   test "allow INNER JOINs" do
     assert_parse("select a from foo JOIN bar ON a = b",
       select(columns: [identifier("a")],
-        from: inner_join(unquoted("foo"), unquoted("bar"), [
+        from: inner_join(unquoted("foo"), unquoted("bar"),
           {:comparison, identifier("a"), :=, identifier("b")}
-        ])))
+        )))
     assert_parse("select a from foo INNER JOIN bar ON a = b",
       select(columns: [identifier("a")],
-        from: inner_join(unquoted("foo"), unquoted("bar"), [
+        from: inner_join(unquoted("foo"), unquoted("bar"),
           {:comparison, identifier("a"), :=, identifier("b")}
-        ])))
+        )))
   end
 
   test "allow multiple INNER JOINs" do
     assert_parse("select a from foo JOIN bar ON a = b INNER JOIN baz ON b = c",
       select(columns: [identifier("a")],
         from: inner_join(
-            inner_join(unquoted("foo"), unquoted("bar"), [
+            inner_join(unquoted("foo"), unquoted("bar"),
             {:comparison, identifier("a"), :=, identifier("b")}
-          ]), unquoted("baz"), [
+          ), unquoted("baz"),
           {:comparison, identifier("b"), :=, identifier("c")}
-        ])))
+        )))
   end
 
   test "allow LEFT JOINs" do
     assert_parse("select a from foo LEFT JOIN bar ON a = b",
       select(columns: [identifier("a")],
-        from: left_outer_join(unquoted("foo"), unquoted("bar"), [
+        from: left_outer_join(unquoted("foo"), unquoted("bar"),
           {:comparison, identifier("a"), :=, identifier("b")}
-        ])))
+        )))
     assert_parse("select a from foo LEFT OUTER JOIN bar ON a = b",
       select(columns: [identifier("a")],
-        from: left_outer_join(unquoted("foo"), unquoted("bar"), [
+        from: left_outer_join(unquoted("foo"), unquoted("bar"),
           {:comparison, identifier("a"), :=, identifier("b")}
-        ])))
+        )))
   end
 
   test "allow RIGHT JOINs" do
     assert_parse("select a from foo RIGHT JOIN bar ON a = b",
       select(columns: [identifier("a")],
-        from: right_outer_join(unquoted("foo"), unquoted("bar"), [
+        from: right_outer_join(unquoted("foo"), unquoted("bar"),
           {:comparison, identifier("a"), :=, identifier("b")}
-        ])))
+        )))
     assert_parse("select a from foo RIGHT OUTER JOIN bar ON a = b",
       select(columns: [identifier("a")],
-        from: right_outer_join(unquoted("foo"), unquoted("bar"), [
+        from: right_outer_join(unquoted("foo"), unquoted("bar"),
           {:comparison, identifier("a"), :=, identifier("b")}
-        ])))
+        )))
   end
 
   test "allow FULL OUTER JOINs" do
     assert_parse("select a from foo FULL JOIN bar ON a = b",
       select(columns: [identifier("a")],
-        from: full_outer_join(unquoted("foo"), unquoted("bar"), [
+        from: full_outer_join(unquoted("foo"), unquoted("bar"),
           {:comparison, identifier("a"), :=, identifier("b")}
-        ])))
+        )))
     assert_parse("select a from foo FULL OUTER JOIN bar ON a = b",
       select(columns: [identifier("a")],
-        from: full_outer_join(unquoted("foo"), unquoted("bar"), [
+        from: full_outer_join(unquoted("foo"), unquoted("bar"),
           {:comparison, identifier("a"), :=, identifier("b")}
-        ])))
+        )))
   end
 
   test "allow combining JOIN types" do
@@ -607,9 +618,9 @@ defmodule Cloak.Sql.Parser.Test do
         from: cross_join(unquoted("t1"),
                 cross_join(
                   cross_join(
-                    inner_join(unquoted("t2"), unquoted("t3"), [
+                    inner_join(unquoted("t2"), unquoted("t3"),
                       {:comparison, identifier("a"), :=, identifier("b")}
-                    ]),
+                    ),
                     unquoted("t4")
                   ),
                   cross_join(unquoted("t5"), unquoted("t6"))))))
@@ -813,7 +824,7 @@ defmodule Cloak.Sql.Parser.Test do
       "select $1, $2 + 1 FROM foo WHERE $3 = $4",
       select(
         columns: [parameter(1), {:function, "+", [parameter(2), constant(1)]}],
-        where: [{:comparison, parameter(3), :=, parameter(4)}]
+        where: {:comparison, parameter(3), :=, parameter(4)}
       )
     )
 
@@ -845,6 +856,122 @@ defmodule Cloak.Sql.Parser.Test do
           {:function, "+", [constant(-7.1), constant(8.1)]},
           {:function, "+", [constant(9.1), constant(10.1)]}
         ]
+      )
+    )
+  end
+
+  test "parsing of `or` conditions" do
+    assert_parse(
+      "select count(*) from x where a > 0 or a <> 2",
+      select(where:
+        {:or,
+          {:comparison, identifier("a"), :>, constant(0)},
+          {:comparison, identifier("a"), :<>, constant(2)}
+        }
+      )
+    )
+  end
+
+  test "parsing of `and` / `or` in WHERE conditions (1)" do
+    assert_parse(
+      "select count(*) from x where a > 0 or a <> 2 and b = 3",
+      select(where:
+        {:or,
+          {:comparison, identifier("a"), :>, constant(0)},
+          {:and,
+            {:comparison, identifier("a"), :<>, constant(2)},
+            {:comparison, identifier("b"), :=, constant(3)}
+          }
+        }
+      )
+    )
+  end
+
+  test "parsing of `and` / `or` in WHERE conditions (2)" do
+    assert_parse(
+      "select count(*) from x where a > 0 and a <> 2 or b = 3",
+      select(where:
+        {:or,
+          {:and,
+            {:comparison, identifier("a"), :>, constant(0)},
+            {:comparison, identifier("a"), :<>, constant(2)}
+          },
+          {:comparison, identifier("b"), :=, constant(3)}
+        }
+      )
+    )
+  end
+
+  test "parsing of `and` / `or` in HAVING conditions" do
+    assert_parse(
+      "select count(*) from x having a > 0 or a <> 2 and b = 3",
+      select(having:
+        {:or,
+          {:comparison, identifier("a"), :>, constant(0)},
+          {:and,
+            {:comparison, identifier("a"), :<>, constant(2)},
+            {:comparison, identifier("b"), :=, constant(3)}
+          }
+        }
+      )
+    )
+  end
+
+  test "parsing of `or` in ON conditions" do
+    assert_parse(
+      "select count(*) from x inner join y on a = b or a = c",
+      select(from: inner_join(
+        unquoted("x"),
+        unquoted("y"),
+        {:or,
+          {:comparison, identifier("a"), :=, identifier("b")},
+          {:comparison, identifier("a"), :=, identifier("c")},
+        })
+      )
+    )
+  end
+
+  test "parsing of `and` / `or` / parens conditions" do
+    assert_parse(
+      "select count(*) from x where (a > 0 or a <> 2) and b = 3",
+      select(where:
+        {:and,
+          {:or,
+            {:comparison, identifier("a"), :>, constant(0)},
+            {:comparison, identifier("a"), :<>, constant(2)}
+          },
+          {:comparison, identifier("b"), :=, constant(3)}
+        }
+      )
+    )
+  end
+
+  test "parsing of `and` / `or` / extra parens conditions (1)" do
+    assert_parse(
+      "select count(*) from x having ((a > 0) or (a <> 2)) and (b = 3)",
+      select(having:
+        {:and,
+          {:or,
+            {:comparison, identifier("a"), :>, constant(0)},
+            {:comparison, identifier("a"), :<>, constant(2)}
+          },
+          {:comparison, identifier("b"), :=, constant(3)}
+        }
+      )
+    )
+  end
+
+  test "parsing of `and` / `or` / extra parens conditions (2)" do
+    assert_parse(
+      "select count(*) from x having (a > 0 or (a <> 2)) and b = 3",
+      select(having:
+        {:and,
+          {:or,
+            {:comparison, identifier("a"), :>, constant(0)},
+            {:comparison, identifier("a"), :<>, constant(2)}
+          },
+          {:comparison, identifier("b"), :=, constant(3)}
+        }
       )
     )
   end
@@ -897,8 +1024,6 @@ defmodule Cloak.Sql.Parser.Test do
         "select a from b where a => b", "Expected `comparison value`", {1, 26}},
       {"=< is an illegal comparator in where clause",
         "select a from b where a =< b", "Expected `comparison value`", {1, 26}},
-      {"where clauses cannot be separated by or",
-        "select a from b where a > 1 or b < 2", "Expected end of input", {1, 29}},
       {"not joining multiple where clauses is illegal",
         "select a from b where a > 1 b < 2", "Expected end of input", {1, 29}},
       {"on clause not allowed in a cross join",
