@@ -247,8 +247,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> Enum.flat_map(&expand_arguments/1)
     |> Enum.filter(&(match?(%Expression{function?: true, aggregate?: true}, &1)))
 
-  defp having_columns(query), do:
-    Enum.flat_map(query.having, fn({:comparison, column, _operator, target}) -> [column, target] end)
+  defp having_columns(query), do: Enum.flat_map(query.having, &Comparison.targets/1)
 
   defp parse_row_splitters(%Query{} = query) do
     {transformed_columns, query} = transform_splitter_columns(query, query.columns)

@@ -28,18 +28,23 @@ defmodule Cloak.Sql.Parser do
 
   @type function_spec :: {:function, function_name, [column]}
 
-  @type negatable_condition ::
-      {:comparison, String.t, :=, any}
+  @type comparison :: {:comparison, column, comparator, any}
+
+  @type condition ::
+      comparison
     | {:like | :ilike, String.t, String.t}
     | {:is, String.t, :null}
     | {:in, String.t, [any]}
 
   @type where_clause ::
-      negatable_condition
-    | {:not, negatable_condition}
-    | {:comparison, String.t, comparator, any}
+      condition
+    | {:not, condition}
+    | {:and | :or, condition, condition}
 
-  @type having_clause :: {:comparison, column, comparator, any}
+  @type having_clause ::
+      comparison
+    | {:not, comparison}
+    | {:and | :or, comparison, comparison}
 
   @type from_clause :: table | subquery | join
 
@@ -50,7 +55,7 @@ defmodule Cloak.Sql.Parser do
       type: :cross_join | :inner_join | :full_outer_join | :left_outer_join | :right_outer_join,
       lhs: from_clause,
       rhs: from_clause,
-      conditions: [where_clause]
+      conditions: where_clause | nil
     }}
 
   @type subquery :: {:subquery, %{ast: parsed_query, alias: String.t}}
@@ -60,9 +65,9 @@ defmodule Cloak.Sql.Parser do
     columns: [column | {column, :as, String.t}] | :*,
     group_by: [String.t],
     from: from_clause,
-    where: [where_clause],
+    where: where_clause | nil,
     order_by: [{String.t, :asc | :desc}],
-    having: [having_clause],
+    having: having_clause | nil,
     show: :tables | :columns,
     limit: integer,
     offset: integer,
@@ -564,7 +569,7 @@ defmodule Cloak.Sql.Parser do
       {:else, noop()}
     ])
     |> map(fn
-          {[:where], [where_expressions]} -> {:where, List.flatten(where_expressions)}
+          {[:where], [where_expressions]} -> {:where, where_expressions}
           other -> other
         end)
   end
@@ -592,7 +597,7 @@ defmodule Cloak.Sql.Parser do
           {[identifier, :is, nil], [:null]} -> {:is, identifier, :null}
           {[identifier, :is, :not], [:null]} -> {:not, {:is, identifier, :null}}
           {[identifier, :between], [{min, max}]} ->
-            [{:comparison, identifier, :>=, min}, {:comparison, identifier, :<, max}]
+            {:and, {:comparison, identifier, :>=, min}, {:comparison, identifier, :<, max}}
           {[lhs, comparator], [rhs]} -> create_comparison(lhs, comparator, rhs)
         end)
   end
@@ -737,23 +742,38 @@ defmodule Cloak.Sql.Parser do
     sep_by1_eager(term_parser, keyword(:","))
   end
 
-  defp conjunction_expression(term_parser, error_message) do
-    recur = lazy(fn -> conjunction_expression(term_parser, error_message) end)
+  defp conjunction_expression_parser(term_parser, error_message) do
+    recur = lazy(fn -> conjunction_expression_parser(term_parser, error_message) end)
 
     choice_deepest_error([
-      sep_by1_eager(term_parser, keyword(:and)),
-      sequence([term_parser, keyword(:and), recur]),
-      sequence([keyword(:"("), recur, keyword(:")"), keyword(:and), recur]),
+      sequence([term_parser, keyword_of([:and, :or]), recur]),
+      sequence([keyword(:"("), recur, keyword(:")"), keyword_of([:and, :or]), recur]),
       sequence([keyword(:"("), recur, keyword(:")")]),
+      term_parser,
       error_message(fail(""), error_message),
     ])
     |> map(fn
-      [result, :and, results] -> [result | results]
-      [:"(", results1, :")", :and, results2] -> results1 ++ results2
-      [:"(", results, :")"] -> results
-      results -> results
+      [:"(", terms, :")"] -> terms
+      [:"(", terms, :")", op, rest] when op in [:and, :or] -> [terms, op | rest]
+      [term, op, rest] when op in [:and, :or] -> [term, op | rest]
+      term -> [term]
     end)
   end
+
+  defp conjunction_expression(term_parser, error_message), do:
+    conjunction_expression_parser(term_parser, error_message)
+    |> map(&build_expression_tree/1)
+
+  defp build_expression_tree([term]), do: build_expression_tree(term)
+  defp build_expression_tree(terms) when is_list(terms) do
+    terms
+    |> Enum.split_while(& &1 != :or)
+    |> case do
+      {[lhs, :and | rhs], []} -> {:and, build_expression_tree(lhs), build_expression_tree(rhs)}
+      {lhs, [:or | rhs]} -> {:or, build_expression_tree(lhs), build_expression_tree(rhs)}
+    end
+  end
+  defp build_expression_tree(term), do: term
 
   defp end_of_input(parser) do
     parser
@@ -785,7 +805,7 @@ defmodule Cloak.Sql.Parser do
       {:else, noop()}
     ])
     |> map(fn
-      {[:having], [having_expressions]} -> {:having, List.flatten(having_expressions)}
+      {[:having], [having_expressions]} -> {:having, having_expressions}
       other -> other
     end)
   end
@@ -799,9 +819,9 @@ defmodule Cloak.Sql.Parser do
       {:else, error_message(fail(""), "Invalid having expression.")}
     ])
     |> map(fn
-      {[column], [{comparator, value}]} -> {:comparison, column, comparator, value}
+      {[column], [{comparator, value}]} -> create_comparison(column, comparator, value)
       {[column, :between], [{min, max}]} ->
-        [{:comparison, column, :>=, min}, {:comparison, column, :<=, max}]
+        {:and, {:comparison, column, :>=, min}, {:comparison, column, :<=, max}}
     end)
   end
 
@@ -820,16 +840,15 @@ defmodule Cloak.Sql.Parser do
     |> label("expected parameter")
   end
 
-  defp invert_comparator(:<), do: :>=
-  defp invert_comparator(:>), do: :<=
-  defp invert_comparator(:<=), do: :>
-  defp invert_comparator(:>=), do: :<
-  defp invert_comparator(:=), do: :=
+  defp invert_inequality(:<), do: :>=
+  defp invert_inequality(:>), do: :<=
+  defp invert_inequality(:<=), do: :>
+  defp invert_inequality(:>=), do: :<
+  defp invert_inequality(:=), do: :=
+  defp invert_inequality(:<>), do: :<>
 
-  defp create_comparison(lhs, :<>, rhs), do:
-    {:not, create_comparison(lhs, :=, rhs)}
   defp create_comparison({:constant, _, _} = lhs, comparator, rhs), do:
-    {:comparison, rhs, invert_comparator(comparator), lhs}
+    {:comparison, rhs, invert_inequality(comparator), lhs}
   defp create_comparison(lhs, comparator, rhs), do:
     {:comparison, lhs, comparator, rhs}
 end
