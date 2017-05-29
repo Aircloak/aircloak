@@ -69,4 +69,26 @@ defmodule Cloak.Query.NoiseLayerTest do
       %{rows: [%{row: [value2]}]}
     assert value1 != value2
   end
+
+  test "range noise layers" do
+    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number", "other"], [6, 11])
+    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number", "other"], [6, 11])
+
+    assert_query "select avg(number) from noise_layers where other between 0 and 100",
+      %{rows: [%{row: [value1]}]}
+    assert_query "select avg(number) from noise_layers",
+      %{rows: [%{row: [value2]}]}
+    assert value1 != value2
+  end
+
+  test "range noise layers are sensitive to constants" do
+    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number", "other"], [6, 11])
+    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number", "other"], [6, 11])
+
+    assert_query "select avg(number) from noise_layers where other between 0 and 100",
+      %{rows: [%{row: [value1]}]}
+    assert_query "select avg(number) from noise_layers where other between 0 and 1000",
+      %{rows: [%{row: [value2]}]}
+    assert value1 != value2
+  end
 end
