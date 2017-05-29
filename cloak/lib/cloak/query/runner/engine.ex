@@ -82,7 +82,6 @@ defmodule Cloak.Query.Runner.Engine do
     rows
     |> Query.RowSplitters.split(query)
     |> Query.Rows.filter(Enum.map(query.emulated_where, &Sql.Comparison.to_function/1))
-    |> Query.ShrinkAndDrop.apply(query)
     |> Query.Aggregator.aggregate(query, state_updater)
   end
 end
