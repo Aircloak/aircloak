@@ -22,7 +22,7 @@ defmodule Cloak.Sql.Query.Lenses do
     |> terminal_elements()
 
   @doc "Lens focusing all terminal elements in a list of conditions."
-  deflens conditions_terminals(), do: Lens.all() |> operands() |> terminal_elements()
+  deflens conditions_terminals(), do: conditions() |> operands() |> terminal_elements()
 
   @doc "Lens focusing all column elements in the query (subqueries are not included)."
   deflens query_expressions(), do: terminals() |> expressions()
@@ -60,24 +60,19 @@ defmodule Cloak.Sql.Query.Lenses do
     |> Lens.satisfy(&match?({:subquery, _}, &1))
     |> Lens.at(1)
 
-  @doc "Lens focusing on all condition-clauses in a query."
-  deflens condition_columns(), do:
-    Lens.both(do_order_condition_columns(), do_match_condition_columns())
-    |> Lens.satisfy(&(not &1.constant?))
-
   @doc "Lens focusing on query's immediate projected subqueries"
   deflens direct_projected_subqueries(), do:
     Lens.satisfy(direct_subqueries(), &(&1.ast.projected?))
 
   @doc "Lens focusing on all inequality condition-clauses in a query."
   deflens order_condition_columns(), do:
-    do_order_condition_columns()
-    |> Lens.satisfy(&(not &1.constant?))
-
-  @doc "Lens focusing on all match condition-clauses in a query."
-  deflens match_condition_columns(), do:
-    do_match_condition_columns()
-    |> Lens.satisfy(&(not &1.constant?))
+    Lens.match(fn
+      {:comparison, _, check, _} when check in ~w(> >= < <=)a ->
+        Lens.indices([1, 3]) |> order_condition_columns()
+      elements when is_list(elements) -> Lens.all() |> order_condition_columns()
+      %Expression{} -> Lens.root()
+      _ -> Lens.empty()
+    end)
 
   @doc "Lens focusing on the tables selected from the database. Does not include subqueries."
   deflens leaf_tables(), do:
@@ -126,8 +121,19 @@ defmodule Cloak.Sql.Query.Lenses do
       {:not, _} -> Lens.at(1) |> operands()
       {:comparison, _lhs, _comparator, _rhs} -> Lens.indices([1, 3])
       {:is, _, :null} -> Lens.at(1)
-      {op, _, _} when op in [:in, :like, :ilike] -> Lens.both(Lens.at(1), Lens.at(2))
+      {op, _, _} when op in [:like, :ilike] -> Lens.both(Lens.at(1), Lens.at(2))
+      {:in, _, _} -> Lens.both(Lens.at(1), Lens.at(2) |> Lens.all())
       _ -> Lens.empty()
+    end)
+
+  @doc "Lens focusing on individual conditions."
+  deflens conditions(), do:
+    Lens.match(fn
+      {:or, _, _} -> Lens.both(Lens.at(1), Lens.at(2)) |> conditions()
+      {:and, _, _} -> Lens.both(Lens.at(1), Lens.at(2)) |> conditions()
+      {:not, _} -> Lens.at(1) |> conditions()
+      list when is_list(list) -> Lens.all()
+      _ -> Lens.root()
     end)
 
 
@@ -143,31 +149,9 @@ defmodule Cloak.Sql.Query.Lenses do
   end
   defp do_join_condition_lenses(_, _), do: []
 
-  defp filters_operands(), do: filter_clauses() |> Lens.all() |> operands()
+  defp filters_operands(), do: filter_clauses() |> conditions() |> operands()
 
   defp join_conditions(), do: joins() |> Lens.key(:conditions)
-
-  deflensp do_order_condition_columns(), do:
-    Lens.match(fn
-      {:comparison, _, check, _} when check in ~w(> >= < <=)a ->
-        Lens.indices([1, 3]) |> do_order_condition_columns()
-      elements when is_list(elements) -> Lens.all() |> do_order_condition_columns()
-      %Expression{} -> Lens.root()
-      _ -> Lens.empty()
-    end)
-
-  deflensp do_match_condition_columns(), do:
-    Lens.match(fn
-      {:comparison, _, check, _} when check in ~w(> >= < <=)a -> Lens.empty()
-      {:comparison, _, _check, _} -> Lens.indices([1, 3]) |> do_match_condition_columns()
-      {like, _, _} when like in ~w(like ilike)a -> Lens.indices([1, 2]) |> do_match_condition_columns()
-      {:is, _, :null} -> Lens.index(1) |> do_match_condition_columns()
-      {:in, _, _} -> Lens.indices([1, 2]) |> do_match_condition_columns()
-      {:not, _} -> Lens.index(1) |> do_match_condition_columns()
-      elements when is_list(elements) -> Lens.all() |> do_match_condition_columns()
-      %Expression{} -> Lens.root()
-      _ -> Lens.empty()
-    end)
 
   deflensp terminal_elements(), do:
     Lens.match(fn
