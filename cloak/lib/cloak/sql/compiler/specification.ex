@@ -20,8 +20,8 @@ defmodule Cloak.Sql.Compiler.Specification do
       views: views
     }
     |> Map.merge(parsed_query)
-    |> collapse_filters()
     |> compile_query()
+    |> collapse_filters()
 
 
   # -------------------------------------------------------------------
@@ -334,7 +334,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     referenced_identifiers =
       (for {identifier, _direction} <- query.order_by, do: identifier) ++
       query.group_by ++
-      get_in(query.where ++ query.having, [Lenses.conditions_terminals()])
+      Lens.to_list(Lenses.conditions_terminals(), [query.where, query.having])
     ambiguous_names = for {:identifier, :unknown, {_, name}} <- referenced_identifiers,
       Enum.count(possible_identifiers, &name == &1) > 1, do: name
     case ambiguous_names do
@@ -519,10 +519,8 @@ defmodule Cloak.Sql.Compiler.Specification do
   # Where clauses
   # -------------------------------------------------------------------
 
-  defp cast_where_clauses(%Query{where: [_|_] = clauses} = query) do
-    %Query{query | where: Enum.map(clauses, &cast_where_clause/1)}
-  end
-  defp cast_where_clauses(query), do: query
+  defp cast_where_clauses(query), do:
+    %Query{query | where: Lens.map(Lenses.conditions(), query.where, &cast_where_clause/1)}
 
   defp cast_where_clause(clause) do
     column = Comparison.subject(clause)
@@ -531,8 +529,6 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   @castable_conditions [:datetime, :time, :date]
 
-  defp do_cast_where_clause({:not, subclause}, type), do:
-    {:not, do_cast_where_clause(subclause, type)}
   defp do_cast_where_clause({:comparison, identifier, comparator, rhs}, type) when type in @castable_conditions do
     if Expression.constant?(rhs) do
       {:comparison, identifier, comparator, parse_time(rhs, type)}

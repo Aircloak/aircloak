@@ -55,8 +55,8 @@ defmodule Cloak.Sql.TypeChecker do
 
   defp verify_usage_of_potentially_crashing_functions(%Query{columns: columns} = query), do:
     Query.Lenses.db_filter_clauses()
-    |> Lens.all()
-    |> Query.Lenses.condition_columns()
+    |> Query.Lenses.conditions()
+    |> Query.Lenses.operands()
     |> Lens.to_list(query)
     |> Enum.concat(columns)
     |> Enum.each(fn(column) ->
@@ -81,7 +81,7 @@ defmodule Cloak.Sql.TypeChecker do
 
   defp verify_usage_of_datetime_extraction_clauses(query), do:
     Query.Lenses.db_filter_clauses()
-    |> Lens.all()
+    |> Query.Lenses.conditions()
     |> Lens.to_list(query)
     |> Enum.each(fn(comparison) ->
       types = Comparison.targets(comparison)
@@ -129,7 +129,7 @@ defmodule Cloak.Sql.TypeChecker do
 
   defp verify_function_usage_for_condition_clauses(query), do:
     Query.Lenses.db_filter_clauses()
-    |> Lens.all()
+    |> Query.Lenses.conditions()
     |> Query.Lenses.order_condition_columns()
     |> Lens.to_list(query)
     |> Enum.each(fn(column) ->
