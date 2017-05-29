@@ -57,6 +57,24 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
+  describe "noise layers from ranges" do
+    test "noise layer from a >=/< range" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE numeric >= 0 AND numeric < 10", data_source())
+
+      assert [
+        %{name: {"table", "numeric", {0.0, 10.0}}, expressions: [%Expression{name: "numeric"}]},
+      ] = result.noise_layers
+    end
+
+    test "noise layer from a BETWEEN" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE numeric BETWEEN 0 AND 10", data_source())
+
+      assert [
+        %{name: {"table", "numeric", {0.0, 10.0}}, expressions: [%Expression{name: "numeric"}]},
+      ] = result.noise_layers
+    end
+  end
+
   describe "noise layers from subqueries" do
     test "floating noise layers from a subquery" do
       result = compile!("SELECT COUNT(*) FROM (SELECT * FROM table WHERE numeric = 3) foo", data_source())
