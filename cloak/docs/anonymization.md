@@ -55,9 +55,14 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
   - Take the average value of the top Nt remaining users, where Nt is a noisy number with mean 5 and SD 1.
   - Add noise to the top average with mean 0 and SD equal a quarter of the standard deviation of the values
     used for the average calculation.
-  - Final result is the maximum / minimum between the result of the previous step and
-    the biggest / smallest value that would pass the low-count filter.
   - In case we don't have enough values available to compute the average, `null` is returned.
+  - Note that a value might exist that appears frequent enough that the user could learn about it's existence through
+    another query (SELECT COUNT(*) FROM table GROUP BY column) and that's larger than the value returned by this
+    algorithm. We used to include an extra calculation that checked for the presence of such a value, however it seems
+    that with the need to compute noise layers it would require keeping all the row data in memory at once, making it
+    impossible to implement a streaming approach and significantly increasing memory requirements. Because of this we
+    decided to not perform that extra step until a better solution can be found. See discussion in
+    https://github.com/Aircloak/aircloak/pull/1430
 
 
 ## COUNT()

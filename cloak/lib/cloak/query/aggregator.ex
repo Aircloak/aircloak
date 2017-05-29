@@ -223,7 +223,6 @@ defmodule Cloak.Query.Aggregator do
           aggregated_values
           |> preprocess_for_aggregation(aggregator)
           |> aggregated_data(aggregator, anonymizer)
-          |> post_process_result(aggregator, rows, query)
       end
     end)
 
@@ -300,37 +299,6 @@ defmodule Cloak.Query.Aggregator do
   defp float_to_type(nil, _type), do: nil
   defp float_to_type(value, :integer), do: round(value)
   defp float_to_type(value, :real), do: value
-
-  # For min / max aggregators, if there is a value which passes the LCF and
-  # it is lower / greater than the aggregated result, we want to show that instead.
-  defp post_process_result(result, aggregator = %Expression{function: "max"}, rows, query), do:
-    rows
-    |> sufficiently_represented_values(& &1 > result, aggregator, query)
-    |> Stream.concat([result])
-    |> Enum.max()
-  defp post_process_result(result, aggregator = %Expression{function: "min"}, rows, query), do:
-    rows
-    |> sufficiently_represented_values(& &1 < result, aggregator, query)
-    |> Stream.concat([result])
-    |> Enum.min()
-  defp post_process_result(result, _aggregator, _rows, _query), do: result
-
-  defp sufficiently_represented_values(rows, filter_fun, aggregator, query) do
-    column = aggregated_column(aggregator)
-
-    rows
-    |> Stream.filter(fn(row) ->
-      value = Expression.value(column, row)
-      not is_nil(value) and filter_fun.(value)
-    end)
-    |> Enum.group_by(&Expression.value(column, &1))
-    |> Enum.reject(fn({_value, rows}) ->
-      noise_layers = noise_layers_from_rows(rows, query)
-      user_layer = rows |> Enum.map(&user_id/1) |> MapSet.new()
-      low_users_count?(MapSet.size(user_layer), Anonymizer.new([user_layer | noise_layers]))
-    end)
-    |> Enum.map(fn({value, _rows}) -> value end)
-  end
 
   defp make_buckets(rows, query) do
     if rows == [] && Rows.group_expressions(query) == [] do

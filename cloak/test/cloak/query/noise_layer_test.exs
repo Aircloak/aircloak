@@ -101,16 +101,4 @@ defmodule Cloak.Query.NoiseLayerTest do
       %{users_count: count2}
     assert count1 != count2
   end
-
-  test "noise layers in postprocessing min" do
-    other = 10
-    :ok = insert_rows(_user_ids = 1..5, "noise_layers", ["number", "other"], [10, other])
-    :ok = insert_rows(_user_ids = 10..100, "noise_layers", ["number", "other"], [11, other])
-
-    assert_query "select min(number) from noise_layers where other = #{other}",
-      %{rows: [%{row: [value1]}]}
-    assert_query "select min(number) from noise_layers",
-      %{rows: [%{row: [value2]}]}
-    assert value1 != value2
-  end
 end
