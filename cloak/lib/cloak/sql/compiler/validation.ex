@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   @moduledoc "Methods for query validation."
 
   alias Cloak.CyclicGraph
-  alias Cloak.Sql.{CompilationError, Expression, Function, Query}
+  alias Cloak.Sql.{CompilationError, Expression, Function, Query, Comparison}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
 
@@ -125,11 +125,10 @@ defmodule Cloak.Sql.Compiler.Validation do
       |> Helpers.all_id_columns_from_tables()
       |> Enum.each(&CyclicGraph.add_vertex(graph, {&1.table.name, &1.name}))
 
-      for {:comparison, column1, :=, column2} <- query.where ++ Helpers.all_join_conditions(query),
-          column1.user_id?,
-          column2.user_id?,
-          column1 != column2
-      do
+      conditions =
+        Lens.to_list(Query.Lenses.conditions(), query.where) ++
+        Helpers.all_join_conditions(query)
+      for {:comparison, column1, :=, column2} <- conditions, column1.user_id?, column2.user_id?, column1 != column2 do
         CyclicGraph.connect!(graph, {column1.table.name, column1.name}, {column2.table.name, column2.name})
       end
 
@@ -177,9 +176,11 @@ defmodule Cloak.Sql.Compiler.Validation do
   # -------------------------------------------------------------------
 
   defp verify_where(query) do
-    Enum.each(query.where, &verify_where_condition/1)
-    query.where
-    |> get_in([Lenses.conditions_terminals()])
+    Lenses.conditions()
+    |> Lens.to_list(query.where)
+    |> Enum.each(&verify_where_condition/1)
+    Lenses.conditions_terminals()
+    |> Lens.to_list(query.where)
     |> Enum.filter(& &1.aggregate?)
     |> case do
       [] -> :ok
@@ -214,14 +215,12 @@ defmodule Cloak.Sql.Compiler.Validation do
     raise CompilationError, message: "Inequalities on string values are currently not supported."
   defp check_for_string_inequalities(_, _), do: :ok
 
-  defp verify_having(%Query{having: [_|_]} = query) do
-    for {:comparison, column, _operator, target} <- query.having,
-        term <- [column, target],
-        individual_column?(query, term), do:
+  defp verify_having(query) do
+    for condition <- Lens.to_list(Query.Lenses.conditions(), query.having),
+        term <- Comparison.targets(condition), individual_column?(query, term), do:
       raise CompilationError,
         message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
   end
-  defp verify_having(_query), do: :ok
 
   defp verify_limit(%Query{limit: amount}) when amount <= 0, do:
     raise CompilationError, message: "`LIMIT` clause expects a positive value."

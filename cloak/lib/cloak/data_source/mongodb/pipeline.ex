@@ -148,7 +148,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       |> Enum.filter(& &1.function?)
       |> Enum.uniq()
     conditions =
-      Lens.all()
+      Query.Lenses.conditions()
       |> Query.Lenses.operands()
       |> Lens.satisfy(&match?(%Expression{function?: true}, &1))
       |> Lens.map(conditions, fn (column) ->
