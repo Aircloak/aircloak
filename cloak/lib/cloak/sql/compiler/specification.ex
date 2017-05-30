@@ -21,7 +21,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     }
     |> Map.merge(parsed_query)
     |> compile_query()
-    |> collapse_filters()
+    #|> collapse_filters()
 
 
   # -------------------------------------------------------------------
@@ -68,12 +68,11 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp normalize_from(%Query{} = query), do:
     %Query{query | from: normalize_from(query.from, query.data_source)}
 
-  defp normalize_from({:join, join = %{lhs: lhs, rhs: rhs, conditions: conditions}}, data_source) do
+  defp normalize_from({:join, join = %{lhs: lhs, rhs: rhs}}, data_source) do
     {:join,
       %{join |
         lhs: normalize_from(lhs, data_source),
-        rhs: normalize_from(rhs, data_source),
-        conditions: conditions_tree_to_list(conditions)
+        rhs: normalize_from(rhs, data_source)
       }
     }
   end
@@ -554,20 +553,6 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp do_parse_time(%Expression{type: :text, value: string}, :datetime), do:
     Cloak.Time.parse_datetime(string)
   defp do_parse_time(_, _), do: {:error, :invalid_cast}
-
-  defp collapse_filters(query), do:
-    %Query{query |
-      where: conditions_tree_to_list(query.where),
-      having: conditions_tree_to_list(query.having)
-    }
-
-  defp conditions_tree_to_list(nil), do: []
-  defp conditions_tree_to_list([]), do: []
-  defp conditions_tree_to_list({:or, _lhs, _rhs}), do:
-    raise CompilationError, message: "Combining conditions with `OR` is not allowed."
-  defp conditions_tree_to_list({:and, lhs, rhs}), do:
-    conditions_tree_to_list(lhs) ++ conditions_tree_to_list(rhs)
-  defp conditions_tree_to_list(condition), do: [condition]
 
 
   # -------------------------------------------------------------------
