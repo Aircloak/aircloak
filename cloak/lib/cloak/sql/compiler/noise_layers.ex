@@ -38,14 +38,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       end
     end)
 
-  defp subquery_for_noise_layer(%{name: {table, column, _interval}}), do:
-    subquery_for_noise_layer(%{name: {table, column}})
-  defp subquery_for_noise_layer(%{name: {table, _column}}), do:
+  defp subquery_for_noise_layer(%{name: {table, _column, _extras}}), do:
     Query.Lenses.direct_subqueries()
     |> Lens.satisfy(&(&1.alias == table))
     |> Lens.key(:ast)
 
-  defp push_noise_layer(query, %{name: {_table, column}}) do
+  defp push_noise_layer(query, %{name: {_table, column, extras}}) do
     index = Enum.find_index(query.column_titles, &(&1 == column))
     true = index < length(query.columns)
     expression = Enum.at(query.columns, index)
@@ -54,7 +52,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       raw_columns()
       |> Lens.to_list([expression])
       |> Enum.flat_map(&resolve_row_splitter(&1, query))
-      |> Enum.map(&NoiseLayer.new({&1.table.name, &1.name}, [Helpers.set_unique_alias(&1)]))
+      |> Enum.map(&NoiseLayer.new({&1.table.name, &1.name, extras}, [Helpers.set_unique_alias(&1)]))
 
     update_in(query, [Lens.key(:noise_layers)], &(&1 ++ layers))
   end
@@ -122,11 +120,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> raw_columns()
     |> Lens.to_list(query)
     |> Enum.flat_map(&resolve_row_splitter(&1, query))
-    |> Enum.map(&NoiseLayer.new({&1.table.name, &1.name}, [Helpers.set_unique_alias(&1)]))
+    |> Enum.map(&NoiseLayer.new({&1.table.name, &1.name, nil}, [Helpers.set_unique_alias(&1)]))
 
   defp range_noise_layers(%{ranges: ranges}), do:
-    Enum.map(ranges, fn(%{column: column, interval: range}) ->
-      NoiseLayer.new({column.table.name, column.name, range}, [Helpers.set_unique_alias(column)])
+    Enum.flat_map(ranges, fn(%{column: column, interval: range}) ->
+      raw_columns()
+      |> Lens.to_list(column)
+      |> Enum.map(&NoiseLayer.new({&1.table.name, &1.name, range}, [Helpers.set_unique_alias(&1)]))
     end)
 
   defp resolve_row_splitter(expression, %{row_splitters: row_splitters}) do
