@@ -157,7 +157,7 @@ defmodule Cloak.Sql.Compiler.Validation do
       end
     )
 
-    Enum.each(join.conditions, &verify_where_condition/1)
+    verify_where_clauses(join.conditions)
     selected_tables
   end
   defp verify_join_conditions_scope({:subquery, subquery}, selected_tables),
@@ -175,12 +175,25 @@ defmodule Cloak.Sql.Compiler.Validation do
   # Where, having, limit, offset
   # -------------------------------------------------------------------
 
-  defp verify_where(query) do
+  defp verify_where(query), do: verify_where_clauses(query.where)
+
+  defp verify_condition_tree({:or, _, _}), do:
+    raise CompilationError, message: "Combining conditions with `OR` is not allowed."
+  defp verify_condition_tree({:and, lhs, rhs}) do
+    verify_condition_tree(lhs)
+    verify_condition_tree(rhs)
+  end
+  defp verify_condition_tree(_), do: :ok
+
+  defp verify_where_clauses(clauses) do
+    verify_condition_tree(clauses)
+
     Lenses.conditions()
-    |> Lens.to_list(query.where)
+    |> Lens.to_list(clauses)
     |> Enum.each(&verify_where_condition/1)
+
     Lenses.conditions_terminals()
-    |> Lens.to_list(query.where)
+    |> Lens.to_list(clauses)
     |> Enum.filter(& &1.aggregate?)
     |> case do
       [] -> :ok
@@ -216,6 +229,8 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp check_for_string_inequalities(_, _), do: :ok
 
   defp verify_having(query) do
+    verify_condition_tree(query.having)
+
     for condition <- Lens.to_list(Query.Lenses.conditions(), query.having),
         term <- Comparison.targets(condition), individual_column?(query, term), do:
       raise CompilationError,
