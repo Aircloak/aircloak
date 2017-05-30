@@ -28,6 +28,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> reject_null_user_ids()
     |> censor_selected_uids()
     |> align_buckets()
+    |> collapse_filters()
     |> align_ranges(Lens.key(:where), :where)
     |> align_join_ranges()
     |> add_subquery_ranges()
@@ -60,7 +61,10 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp reject_null_user_ids(%Query{subquery?: true} = query), do: query
   defp reject_null_user_ids(query), do:
-    %{query | where: [{:not, {:is, Helpers.id_column(query), :null}} | query.where]}
+    %{query | where: add_condition({:not, {:is, Helpers.id_column(query), :null}}, query.where)}
+
+  defp add_condition(condition, nil), do: condition
+  defp add_condition(condition, root), do: {:and, condition, root}
 
   defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
     # In a top-level query, we're replacing all selected expressions which depend on uid columns with the `:*`
@@ -456,6 +460,15 @@ defmodule Cloak.Sql.Compiler.Execution do
     query.emulated_where ++
     query.having ++
     Query.order_by_expressions(query)
+
+  defp collapse_filters(query), do:
+    Lenses.filter_clauses() |> Lens.map(query, &conditions_tree_to_list/1)
+
+  defp conditions_tree_to_list(nil), do: []
+  defp conditions_tree_to_list([]), do: []
+  defp conditions_tree_to_list({:and, lhs, rhs}), do:
+    conditions_tree_to_list(lhs) ++ conditions_tree_to_list(rhs)
+  defp conditions_tree_to_list(condition), do: [condition]
 
 
   # -------------------------------------------------------------------
