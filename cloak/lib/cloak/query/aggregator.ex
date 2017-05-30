@@ -46,7 +46,7 @@ defmodule Cloak.Query.Aggregator do
   @spec aggregate(Enumerable.t, Query.t, Engine.state_updater) :: Result.t
   def aggregate(rows, query, state_updater) do
     groups = groups(rows, query, state_updater)
-    users_count = number_of_anonymized_users(groups)
+    users_count = number_of_anonymized_users(groups, query)
     aggregated_buckets = groups
       |> process_low_count_users(query)
       |> aggregate_groups(query)
@@ -173,19 +173,21 @@ defmodule Cloak.Query.Aggregator do
   defp process_low_count_users(rows, query) do
     Logger.debug("Processing low count users ...")
     {low_count_rows, high_count_rows} = Enum.partition(rows, &low_users_count?/1)
+
     lcf_users_rows = Enum.reduce(low_count_rows, %{},
-      fn ({_values, _anonymizer, users_rows}, accumulator) ->
-        Map.merge(accumulator, users_rows, fn (_user, columns1, columns2) ->
-          Enum.zip(columns1, columns2) |> Enum.map(&merge_accumulators/1)
-        end)
+    fn ({_values, _anonymizer, users_rows}, accumulator) ->
+      Map.merge(accumulator, users_rows, fn (_user, columns1, columns2) ->
+        Enum.zip(columns1, columns2) |> Enum.map(&merge_accumulators/1)
       end)
-    anonymizer = Anonymizer.new([lcf_users_rows])
+    end)
+
+    anonymizer = anonymizer_from_groups(low_count_rows, query)
     lcf_values = List.duplicate(:*, length(Rows.group_expressions(query)))
     lcf_row = {lcf_values, anonymizer, lcf_users_rows}
-    case low_users_count?(lcf_row) do
-      false -> [lcf_row | high_count_rows]
-      true -> high_count_rows
-    end
+
+    if low_users_count?(lcf_row),
+      do: high_count_rows,
+      else: [lcf_row | high_count_rows]
   end
 
   @spec aggregate_groups([group], Query.t) :: [DataSource.row]
@@ -219,7 +221,6 @@ defmodule Cloak.Query.Aggregator do
           aggregated_values
           |> preprocess_for_aggregation(aggregator)
           |> aggregated_data(aggregator, anonymizer)
-          |> post_process_result(aggregator.function, users_rows, values_index)
       end
     end)
 
@@ -297,43 +298,6 @@ defmodule Cloak.Query.Aggregator do
   defp float_to_type(value, :integer), do: round(value)
   defp float_to_type(value, :real), do: value
 
-  # For min / max aggregators, if there is a value which passes the LCF and
-  # it is lower / greater than the aggregated result, we want to show that instead.
-  defp post_process_result(result, "max", users_rows, values_index) do
-    users_rows
-    |> group_values(& &1 > result, values_index)
-    |> Stream.concat([result])
-    |> Enum.max()
-  end
-  defp post_process_result(result, "min", users_rows, values_index) do
-    users_rows
-    |> group_values(& &1 < result, values_index)
-    |> Stream.concat([result])
-    |> Enum.min()
-  end
-  defp post_process_result(result, _function, _users_rows, _values_index), do: result
-
-  defp group_values(users_rows, filter_fun, values_index) do
-    users_rows
-    |> Stream.map(fn ({user, rows}) ->
-      filtered_rows =
-        case Enum.at(rows, values_index) do
-          nil -> []
-          set -> Enum.filter(set, filter_fun)
-        end
-      {user, filtered_rows}
-    end)
-    |> Enum.reduce(%{}, fn ({user, values}, acc) ->
-      Enum.reduce(values, acc, fn (value, acc) ->
-        Map.update(acc, value, [user], &[user | &1])
-      end)
-    end)
-    |> Enum.reject(fn ({_value, users}) ->
-      low_users_count?(users, Anonymizer.new([MapSet.new(users)]))
-    end)
-    |> Enum.map(fn ({value, _users}) -> value end)
-  end
-
   defp make_buckets(rows, query) do
     if rows == [] && Rows.group_expressions(query) == [] do
       # If there are no results for a global aggregation, we'll produce one row.
@@ -370,16 +334,34 @@ defmodule Cloak.Query.Aggregator do
     end)
   end
 
-  defp number_of_anonymized_users(data) do
-    unique_user_ids = data
-    |> Enum.map(fn({_result, _anonymizer, user_data}) -> user_data end)
-    |> Enum.flat_map(&Map.keys/1)
-    |> Enum.into(MapSet.new())
-    anonymizer = Anonymizer.new([unique_user_ids])
+  defp number_of_anonymized_users(data, query) do
+    unique_user_ids = unique_user_ids_from_groups(data)
+    anonymizer = anonymizer_from_groups(data, query)
     unique_users_count = MapSet.size(unique_user_ids)
     case Anonymizer.sufficiently_large?(anonymizer, unique_users_count) do
       {true, anonymizer} -> Anonymizer.noisy_count(anonymizer, unique_users_count)
       _ -> 0
     end
   end
+
+  defp anonymizer_from_groups(groups, query), do:
+    Anonymizer.new(noise_layers_from_groups(groups, query))
+
+  defp noise_layers_from_groups([], query), do:
+    [_user_layer = %{} | NoiseLayer.new_accumulator(query.noise_layers)]
+  defp noise_layers_from_groups(groups, _query), do:
+    Enum.reduce(groups, nil, fn({_values, anonymizer, _users_rows}, acc) -> merge_layers(acc, anonymizer.layers) end)
+
+  defp merge_layers(nil, layers), do: layers
+  defp merge_layers(layers1, layers2), do: Enum.zip(layers1, layers2) |> Enum.map(&merge_layer/1)
+
+  @dialyzer {:nowarn_function, merge_layer: 1} # disable dialyzer warning because of `MapSet.union/2` call
+  defp merge_layer({%MapSet{} = layer1, %MapSet{} = layer2}), do: MapSet.union(layer1, layer2)
+  defp merge_layer({%{} = layer1, %{} = layer2}), do: Map.merge(layer1, layer2)
+
+  defp unique_user_ids_from_groups(groups), do:
+    groups
+    |> Enum.map(fn({_result, _anonymizer, user_data}) -> user_data end)
+    |> Enum.flat_map(&Map.keys/1)
+    |> Enum.into(MapSet.new())
 end
