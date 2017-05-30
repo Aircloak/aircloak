@@ -10,7 +10,7 @@ defmodule Cloak.Query.Aggregator do
 
   @typep group_values :: [DataSource.field | :*]
   @typep user_id :: DataSource.field
-  @typep group :: {group_values, Anonymizer.t, %{user_id => DataSource.row}, [DataSource.row]}
+  @typep group :: {group_values, Anonymizer.t, %{user_id => DataSource.row}}
 
 
   # -------------------------------------------------------------------
@@ -135,13 +135,13 @@ defmodule Cloak.Query.Aggregator do
     merging_fun = group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query)
 
     rows
-    |> Rows.group(query, {%{}, default_noise_layers, []}, merging_fun)
+    |> Rows.group(query, {%{}, default_noise_layers}, merging_fun)
     |> fn(rows) -> state_updater.(:processing); rows end.()
     |> init_anonymizer()
   end
 
   defp group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query), do:
-    fn({user_rows, noise_accumulator, rows}, row) ->
+    fn({user_rows, noise_accumulator}, row) ->
       user_id = user_id(row)
       values = Enum.map(aggregated_columns, &Expression.value(&1, row))
 
@@ -150,16 +150,16 @@ defmodule Cloak.Query.Aggregator do
         |> Map.put_new(user_id, default_accumulators)
         |> Map.update!(user_id, &aggregate_values(values, &1, per_user_aggregators))
 
-      {user_rows, NoiseLayer.accumulate(query.noise_layers, noise_accumulator, row), [row | rows]}
+      {user_rows, NoiseLayer.accumulate(query.noise_layers, noise_accumulator, row)}
     end
 
   defp init_anonymizer(grouped_rows) do
-    for {property, {users_rows, noise_layers, rows}} <- grouped_rows do
-      {property, Anonymizer.new([users_rows | noise_layers]), users_rows, rows}
+    for {property, {users_rows, noise_layers}} <- grouped_rows do
+      {property, Anonymizer.new([users_rows | noise_layers]), users_rows}
     end
   end
 
-  defp low_users_count?({_values, anonymizer, users_rows, _rows}), do:
+  defp low_users_count?({_values, anonymizer, users_rows}), do:
     low_users_count?(users_rows, anonymizer)
 
   defp low_users_count?(count, anonymizer) when is_integer(count) do
@@ -175,17 +175,15 @@ defmodule Cloak.Query.Aggregator do
     {low_count_rows, high_count_rows} = Enum.partition(rows, &low_users_count?/1)
 
     lcf_users_rows = Enum.reduce(low_count_rows, %{},
-    fn ({_values, _anonymizer, users_rows, _rows}, accumulator) ->
+    fn ({_values, _anonymizer, users_rows}, accumulator) ->
       Map.merge(accumulator, users_rows, fn (_user, columns1, columns2) ->
         Enum.zip(columns1, columns2) |> Enum.map(&merge_accumulators/1)
       end)
     end)
 
-    lcf_rows = Enum.flat_map(low_count_rows, fn({_values, _anonymizer, _users_rows, rows}) -> rows end)
-
     anonymizer = anonymizer_from_groups(low_count_rows, query)
     lcf_values = List.duplicate(:*, length(Rows.group_expressions(query)))
-    lcf_row = {lcf_values, anonymizer, lcf_users_rows, lcf_rows}
+    lcf_row = {lcf_values, anonymizer, lcf_users_rows}
 
     if low_users_count?(lcf_row),
       do: high_count_rows,
@@ -207,10 +205,10 @@ defmodule Cloak.Query.Aggregator do
         values_index = Enum.find_index(per_user_aggregators_and_columns, & &1 == per_user_aggregator_and_column)
         {values_index, aggregator}
       end)
-    Enum.map(groups, &aggregate_group(&1, indexed_aggregators, query))
+    Enum.map(groups, &aggregate_group(&1, indexed_aggregators))
   end
 
-  defp aggregate_group({values, anonymizer, users_rows, rows}, indexed_aggregators, query) do
+  defp aggregate_group({values, anonymizer, users_rows}, indexed_aggregators) do
     aggregation_results = Enum.map(indexed_aggregators, fn ({values_index, aggregator}) ->
       aggregated_values =
         users_rows
@@ -347,23 +345,23 @@ defmodule Cloak.Query.Aggregator do
   end
 
   defp anonymizer_from_groups(groups, query), do:
-    Anonymizer.new([unique_user_ids_from_groups(groups) | noise_layers_from_groups(groups, query)])
+    Anonymizer.new(noise_layers_from_groups(groups, query))
 
-  defp noise_layers_from_groups(groups, query), do:
-    groups
-    |> Enum.flat_map(fn({_values, _anonymizer, _users_rows, rows}) -> rows end)
-    |> noise_layers_from_rows(query)
+  defp noise_layers_from_groups([], query), do:
+    [_user_layer = %{} | NoiseLayer.new_accumulator(query.noise_layers)]
+  defp noise_layers_from_groups(groups, _query), do:
+    Enum.reduce(groups, nil, fn({_values, anonymizer, _users_rows}, acc) -> merge_layers(acc, anonymizer.layers) end)
 
-  defp noise_layers_from_rows(rows, query), do:
-    Enum.reduce(
-      rows,
-      NoiseLayer.new_accumulator(query.noise_layers),
-      &NoiseLayer.accumulate(query.noise_layers, &2, &1)
-    )
+  defp merge_layers(nil, layers), do: layers
+  defp merge_layers(layers1, layers2), do: Enum.zip(layers1, layers2) |> Enum.map(&merge_layer/1)
+
+  @dialyzer {:nowarn_function, merge_layer: 1} # disable dialyzer warning because of `MapSet.union/2` call
+  defp merge_layer({%MapSet{} = layer1, %MapSet{} = layer2}), do: MapSet.union(layer1, layer2)
+  defp merge_layer({%{} = layer1, %{} = layer2}), do: Map.merge(layer1, layer2)
 
   defp unique_user_ids_from_groups(groups), do:
     groups
-    |> Enum.map(fn({_result, _anonymizer, user_data, _rows}) -> user_data end)
+    |> Enum.map(fn({_result, _anonymizer, user_data}) -> user_data end)
     |> Enum.flat_map(&Map.keys/1)
     |> Enum.into(MapSet.new())
 end
