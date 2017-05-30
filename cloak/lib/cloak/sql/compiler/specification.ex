@@ -21,7 +21,6 @@ defmodule Cloak.Sql.Compiler.Specification do
     }
     |> Map.merge(parsed_query)
     |> compile_query()
-    #|> collapse_filters()
 
 
   # -------------------------------------------------------------------
