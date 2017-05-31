@@ -813,6 +813,13 @@ defmodule Cloak.Sql.Compiler.Test do
       compile("SELECT SUM(numeric) FROM table ORDER BY float", data_source())
   end
 
+  test "not in is compiled as a series of <>" do
+    result1 = compile!("SELECT * FROM table WHERE numeric NOT IN (1, 2, 3)", data_source())
+    result2 = compile!("SELECT * FROM table WHERE numeric <> 1 AND numeric <> 2 AND numeric <> 3", data_source())
+
+    assert result1.where == result2.where
+  end
+
   defp projected_table_db_columns(query), do:
     query
     |> get_in([all_subqueries()])

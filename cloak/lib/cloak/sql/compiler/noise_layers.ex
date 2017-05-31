@@ -18,9 +18,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   @spec compile(Query.t) :: Query.t
   def compile(query), do:
     query
-    |> apply_bottom_up(&calculate_base_noise_layers/1)
+    |> Helpers.apply_bottom_up(&calculate_base_noise_layers/1)
     |> apply_top_down(&push_down_noise_layers/1)
-    |> apply_bottom_up(&calculate_floated_noise_layers/1)
+    |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
 
 
   # -------------------------------------------------------------------
@@ -75,11 +75,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     query
     |> function.()
     |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_top_down(&1, function))
-
-  defp apply_bottom_up(query, function), do:
-    query
-    |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_bottom_up(&1, function))
-    |> function.()
 
   defp float_emulated_noise_layers(query = %{emulated?: true, subquery?: true}) do
     noise_columns = get_in(query.noise_layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()]) -- query.columns

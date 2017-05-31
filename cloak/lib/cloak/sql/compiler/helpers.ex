@@ -76,6 +76,15 @@ defmodule Cloak.Sql.Compiler.Helpers do
     {query, floated_columns}
   end
 
+  @doc """
+  Updates the query and all its subqueries with the given function. Starts from the most nested subqueries going up.
+  """
+  @spec apply_bottom_up(Query.t, (Query.t -> Query.t)) :: Query.t
+  def apply_bottom_up(query, function), do:
+    query
+    |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_bottom_up(&1, function))
+    |> function.()
+
 
   # -------------------------------------------------------------------
   # Internal functions
