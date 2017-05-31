@@ -1,13 +1,15 @@
 defmodule Cloak.DataSource.MongoDB.Schema do
   @moduledoc "MongoDB helper functions for detecting and mapping the schema of a collection."
 
+  alias Cloak.DataSource
+
 
   #-----------------------------------------------------------------------------------------------------------
   # API
   #-----------------------------------------------------------------------------------------------------------
 
   @doc "Maps the list of field names in a collection to a set of tables."
-  @spec build([{String.t, Cloak.DataSource.data_type}], Cloak.DataSource.table) :: [Cloak.DataSource.table]
+  @spec build([{String.t, DataSource.data_type}], DataSource.table) :: [DataSource.table]
   def build(fields, table) do
     fields
     |> Enum.map(fn ({name, type}) ->
@@ -54,8 +56,8 @@ defmodule Cloak.DataSource.MongoDB.Schema do
   defp build_tables(_schema, _table, _parent_columns \\ [])
   defp build_tables(%{} = schema, table, parent_columns) do
     columns =
-      Enum.reject(parent_columns, fn ({name, _type}) -> is_array_size?(name) end) ++
-      Enum.map(schema.base, fn ({name, type}) -> {to_string(table.array_path) <> name, type} end)
+      Enum.reject(parent_columns, &is_array_size?(&1.name)) ++
+      Enum.map(schema.base, fn ({name, type}) -> DataSource.column(to_string(table.array_path) <> name, type) end)
     arrays = Map.keys(schema) -- [:base]
     array_tables =
       for array <- arrays do
@@ -69,8 +71,8 @@ defmodule Cloak.DataSource.MongoDB.Schema do
   end
   defp build_tables(type, table, parent_columns) do
     columns =
-      Enum.reject(parent_columns, fn ({name, _type}) -> is_array_size?(name) end) ++
-      [{to_string(table.array_path), type}]
+      Enum.reject(parent_columns, &is_array_size?(&1.name)) ++
+      [DataSource.column(to_string(table.array_path), type)]
     [%{table | columns: columns}]
   end
 

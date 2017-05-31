@@ -1,6 +1,7 @@
 defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
   use ExUnit.Case, async: true
 
+  alias Cloak.DataSource
   alias Cloak.Sql.{Compiler, Parser}
 
   describe "/ and sqrt can crash irrespective of where they are used" do
@@ -240,7 +241,11 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
         name: "table",
         user_id: "uid",
         columns: [
-          {"uid", :integer}, {"column", :datetime}, {"numeric", :integer}, {"float", :real}, {"string", :text}
+          DataSource.column("uid", :integer),
+          DataSource.column("column", :datetime),
+          DataSource.column("numeric", :integer),
+          DataSource.column("float", :real),
+          DataSource.column("string", :text)
         ],
         projection: nil
       },

@@ -22,9 +22,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     # We create an unique name under which the fields of the projected document will live for the duration of the query.
     namespace = "ac_temp_ns_#{:erlang.unique_integer([:positive])}"
     rhs_table_columns =
-      Enum.map(join_info.rhs_table.columns, fn ({name, type}) ->
-        {namespace <> "." <> name, type}
-      end)
+      Enum.map(join_info.rhs_table.columns, &%{&1 | name: namespace <> "." <> &1.name})
     join_table = %{name: "join", db_name: "join", columns: join_info.lhs_table.columns ++ rhs_table_columns}
     query =
       Query.Lenses.query_expressions()

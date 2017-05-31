@@ -159,7 +159,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         columns:
           [column_ast(joined_table.name, joined_table.user_id) |
             table.columns
-            |> Enum.map(fn({column_name, _type}) -> column_name end)
+            |> Enum.map(&(&1.name))
             |> Enum.reject(&(&1 == table.user_id))
             |> Enum.filter(&(columns_to_select == :all || Enum.member?(columns_to_select, &1)))
             |> Enum.map(&column_ast(table.name, &1))
@@ -213,7 +213,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     user_id_name = Enum.at(subquery.ast.column_titles, user_id_index)
     columns =
         Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
-        |> Enum.map(fn({alias, column}) -> {alias, Function.type(column)} end)
+        |> Enum.map(fn({alias, column}) -> DataSource.column(alias, Function.type(column)) end)
         |> Enum.uniq()
     [%{
       name: subquery.alias,
@@ -295,8 +295,8 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp expand_star_select(query), do: query
 
   defp all_column_identifiers(query) do
-    for table <- query.selected_tables, {column_name, _type} <- table.columns do
-      {:identifier, table.name, {:unquoted, column_name}}
+    for table <- query.selected_tables, column <- table.columns do
+      {:identifier, table.name, {:unquoted, column.name}}
     end
   end
 
@@ -347,8 +347,8 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp compile_columns(query) do
     columns_by_name =
-      for table <- query.selected_tables, {column, type} <- table.columns do
-        %Expression{table: table, name: column, type: type, user_id?: table.user_id == column}
+      for table <- query.selected_tables, column <- table.columns do
+        %Expression{table: table, name: column.name, type: column.type, user_id?: table.user_id == column.name}
       end
       |> Enum.group_by(&(&1.name))
     query = map_terminal_elements(query, &normalize_table_name(&1, query.selected_tables))

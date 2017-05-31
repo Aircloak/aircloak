@@ -26,9 +26,9 @@ defmodule Cloak.Query.DataDecoder do
       validate_columns(decoder.columns, table.columns)
       create_from_config(table, decoder)
     end
-    columns = for {name, type} <- table.columns do
-      decoded_type = Enum.reduce(decoders, type, &get_decoded_column_type(&1, name, &2))
-      {name, decoded_type}
+    columns = for column <- table.columns do
+      decoded_type = Enum.reduce(decoders, column.type, &get_decoded_column_type(&1, column.name, &2))
+      %{column | type: decoded_type}
     end
     %{table | decoders: decoders, columns: columns}
   end
@@ -71,7 +71,7 @@ defmodule Cloak.Query.DataDecoder do
 
   defp validate_columns(decoded_columns, table_columns) do
     for name <- decoded_columns do
-      unless Enum.find(table_columns, &match?({^name, _}, &1)) != nil do
+      unless Enum.find(table_columns, &match?(%{name: ^name}, &1)) != nil do
         raise "Encoded column `#{name}` doesn't exists."
       end
     end

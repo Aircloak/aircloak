@@ -38,7 +38,7 @@ defmodule Cloak.DataSource.ODBC do
   def load_tables(%__MODULE__{connection: connection}, table) do
     case :odbc.describe_table(connection, to_char_list(table.db_name), _timeout = :timer.seconds(15)) do
       {:ok, columns} ->
-        columns = for {name, type} <- columns, do: {to_string(name), parse_type(type)}
+        columns = for {name, type} <- columns, do: DataSource.column(to_string(name), parse_type(type))
         [%{table | columns: columns}]
       {:error, reason} ->
         DataSource.raise_error("Driver exception: `#{to_string(reason)}`")

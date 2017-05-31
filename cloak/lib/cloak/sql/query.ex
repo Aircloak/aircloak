@@ -298,8 +298,8 @@ defmodule Cloak.Sql.Query do
   defp extract_column_type(%Expression{table: :unknown}), do: []
   defp extract_column_type(%Expression{table: %{columns: columns}, name: name}), do:
     columns
-    |> Enum.filter(& elem(&1, 0) == name)
-    |> Enum.map(& elem(&1, 1))
+    |> Enum.filter(&(&1.name == name))
+    |> Enum.map(&(&1.type))
 
   defp extract_columns(columns), do: Enum.flat_map(columns, &extract_column/1)
 

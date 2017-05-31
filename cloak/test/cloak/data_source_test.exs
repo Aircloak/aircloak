@@ -13,7 +13,8 @@ defmodule Cloak.DataSourceTest do
   test "schema discovery" do
     for data_source <- DataSource.all() do
       assert(data_source.tables[:test] != nil)
-      assert(DataSource.table(data_source, :test).columns == [{"user_id", :text}, {"value", :integer}])
+      assert(DataSource.table(data_source, :test).columns ==
+        [%{name: "user_id", type: :text}, %{name: "value", type: :integer}])
     end
   end
 
