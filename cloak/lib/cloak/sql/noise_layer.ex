@@ -3,7 +3,7 @@ defmodule Cloak.Sql.NoiseLayer do
 
   alias Cloak.Sql.Expression
 
-  @type t :: %__MODULE__{base: String.t, expressions: [Expression.t]}
+  @type t :: %__MODULE__{base: any, expressions: [Expression.t]}
   @type accumulator :: [MapSet.t]
 
   defstruct [:base, :expressions]
