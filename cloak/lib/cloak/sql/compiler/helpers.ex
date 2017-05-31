@@ -22,7 +22,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
   @doc "Returns true if any uid column is selected."
   @spec uid_column_selected?(partial_query) :: boolean
   def uid_column_selected?(query), do:
-    Enum.find(query.columns, &(&1.user_id?)) != nil
+    Enum.any?(query.columns, &(&1.user_id?))
 
   @doc "Returns all id columns from the query."
   @spec all_id_columns_from_tables(partial_query) :: [Expression.t]
