@@ -60,7 +60,7 @@ defmodule Cloak.DataSource do
     :projection => %{table: String.t, primary_key: String.t, foreign_key: String.t} | nil,
     optional(any) => any,
   }
-  @type column :: %{name: String.t, type: data_type}
+  @type column :: %{name: String.t, type: data_type, visible?: boolean}
   @type num_rows :: non_neg_integer
   @type field :: String.t | number | boolean | nil
   @type row :: [field]
@@ -184,9 +184,9 @@ defmodule Cloak.DataSource do
   def raise_error(message), do: raise ExecutionError, message: message
 
   @doc "Creates the column entry in the table specification."
-  @spec column(String.t, data_type) :: column
-  def column(name, type), do:
-    %{name: name, type: type}
+  @spec column(String.t, data_type, [visible?: boolean]) :: column
+  def column(name, type, optional_params \\ []), do: 
+    %{name: name, type: type, visible?: Keyword.get(optional_params, :visible?, true)}
 
 
   #-----------------------------------------------------------------------------------------------------------
