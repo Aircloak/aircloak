@@ -213,7 +213,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     user_id_name = Enum.at(subquery.ast.column_titles, user_id_index)
     columns =
         Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
-        |> Enum.map(fn({alias, column}) -> 
+        |> Enum.map(fn({alias, column}) ->
           DataSource.column(alias, Function.type(column), visible?: column.visible?) end)
         |> Enum.uniq()
     [%{
@@ -291,8 +291,8 @@ defmodule Cloak.Sql.Compiler.Specification do
   # -------------------------------------------------------------------
 
   defp expand_star_select(%Query{columns: :*} = query), do:
-    %Query{query | 
-      columns: 
+    %Query{query |
+      columns:
         query
         |> all_visible_columns()
         |> Enum.map(&{:identifier, &1.table.name, {:unquoted, &1.column.name}})
@@ -303,7 +303,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     query.selected_tables
     |> Enum.flat_map(fn(table) -> Enum.map(table.columns, fn(column) -> %{table: table, column: column} end) end)
     |> Enum.filter(&(&1.column.visible?))
-    
+
   defp compile_aliases(%Query{columns: [_|_] = columns} = query) do
     verify_aliases(query)
     column_titles = Enum.map(columns, &column_title(&1, query.selected_tables))
@@ -603,7 +603,7 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp ensure_uid_selected(subquery) do
     case uid_column_to_implicitly_select?(subquery) do
-      nil -> 
+      nil ->
         subquery
       uid_column ->
         uid_alias = "__implicitly_selected_#{uid_column.table.name}.#{uid_column.name}__"
@@ -628,7 +628,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         hd(Helpers.all_id_columns_from_tables(subquery))
 
       # uid column is in a group by -> select that uid
-      (uid_column = Enum.find(subquery.group_by, &(&1.user_id?))) != nil -> 
+      (uid_column = Enum.find(subquery.group_by, &(&1.user_id?))) != nil ->
         uid_column
 
       # we can't select an uid column

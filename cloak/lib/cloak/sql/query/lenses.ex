@@ -86,7 +86,7 @@ defmodule Cloak.Sql.Query.Lenses do
     |> join_elements()
     |> Lens.satisfy(&match?({:join, _}, &1))
     |> Lens.at(1)
-  
+
   @doc "Lens focusing on all subqueries which are part of a join."
   deflens joined_subqueries(), do:
     Lens.key(:from)

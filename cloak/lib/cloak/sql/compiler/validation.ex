@@ -126,7 +126,7 @@ defmodule Cloak.Sql.Compiler.Validation do
       query,
       fn(joined_subquery) ->
         unless Enum.any?(joined_subquery.ast.columns, &(&1.user_id? && &1.visible?)), do:
-          raise CompilationError, 
+          raise CompilationError,
             message: "There is no user id column in the subquery `#{joined_subquery.alias}`."
       end
     )

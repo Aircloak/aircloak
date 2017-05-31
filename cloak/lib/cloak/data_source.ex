@@ -185,7 +185,7 @@ defmodule Cloak.DataSource do
 
   @doc "Creates the column entry in the table specification."
   @spec column(String.t, data_type, [visible?: boolean]) :: column
-  def column(name, type, optional_params \\ []), do: 
+  def column(name, type, optional_params \\ []), do:
     %{name: name, type: type, visible?: Keyword.get(optional_params, :visible?, true)}
 
 
