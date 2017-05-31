@@ -370,6 +370,11 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error =~ ~r/Missing where comparison.*`t1` and `t3`/
   end
 
+  test "rejecting a join with a subquery that has no explicit id" do
+    assert {:error, error} = compile("SELECT t1.c1 from t1, (select c1 from t2) sq", data_source())
+    assert error == "There is no user id column in the subquery `sq`."
+  end
+
   test "rejecting a join when cast changes the uid type" do
     assert {:error, error} = compile("SELECT t1.c1 from t1, t2 WHERE cast(t1.uid as text) = t2.uid", data_source())
     assert error =~ ~r/Missing where comparison.*`t1` and `t2`/
