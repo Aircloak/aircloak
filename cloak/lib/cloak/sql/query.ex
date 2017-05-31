@@ -73,7 +73,8 @@ defmodule Cloak.Sql.Query do
     projected?: boolean,
     next_row_index: row_index,
     noise_layers: [NoiseLayer.t],
-    view?: boolean
+    view?: boolean,
+    features: map,
   }
 
   defstruct [
@@ -81,7 +82,7 @@ defmodule Cloak.Sql.Query do
     info: [], selected_tables: [], row_splitters: [], implicit_count?: false, data_source: nil, command: nil,
     show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
     features: nil, emulated_where: [], ranges: [], parameters: [], views: %{}, emulated?: false,
-    projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false
+    projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false, features: %{},
   ]
 
 
@@ -101,28 +102,6 @@ defmodule Cloak.Sql.Query do
   end
 
   @doc """
-  Returns a list of features used by a query, that can be used for
-  analytics purposes by Aircloak.
-  Examples include how many columns were selected, which, if any
-  functions where used, etc.
-  """
-  @spec extract_features(t) :: map
-  def extract_features(query) do
-    %{
-      num_selected_columns: num_selected_columns(query.column_titles),
-      num_db_columns: num_db_columns(query.columns),
-      num_tables: num_tables(query.selected_tables),
-      num_group_by: num_group_by(query),
-      functions: extract_functions(query.columns),
-      where_conditions: extract_where_conditions(query.where ++ query.emulated_where),
-      column_types: extract_column_types(query.columns),
-      selected_types: selected_types(query.columns),
-      parameter_types: Enum.map(parameter_types(query), &stringify/1),
-      decoders: extract_decoders(query),
-    }
-  end
-
-  @doc """
   Describes the result of a parameterized query.
 
   This function will return the description of the result, such as column names
@@ -132,7 +111,7 @@ defmodule Cloak.Sql.Query do
     {:ok, [String.t], map} | {:error, String.t}
   def describe_query(data_source, statement, parameters, views), do:
     with {:ok, query} <- make_query(data_source, statement, parameters, views), do:
-      {:ok, query.column_titles, extract_features(query)}
+      {:ok, query.column_titles, query.features}
 
 
   @doc "Validates a user-defined view."
@@ -243,89 +222,6 @@ defmodule Cloak.Sql.Query do
       Compiler.compile(data_source, parsed_query, parameters, views)
     end
   end
-
-  defp selected_types(columns), do:
-    columns
-    |> Enum.map(&Function.type/1)
-    |> Enum.map(&stringify/1)
-
-  defp num_selected_columns(columns), do: length(columns)
-
-  defp num_db_columns(columns), do:
-    columns
-    |> extract_columns()
-    |> Enum.uniq()
-    |> Enum.reject(&(&1.constant?))
-    |> Enum.count()
-
-  defp num_tables(tables), do: length(tables)
-
-  defp num_group_by(%{group_by: clauses}), do: length(clauses)
-
-  defp extract_functions([:*]), do: []
-  defp extract_functions(columns), do:
-    columns
-    |> Enum.flat_map(&extract_function/1)
-    |> Enum.uniq()
-
-  defp extract_function(%Expression{function?: true, function: function, function_args: args}), do:
-    [Function.readable_name(function) | extract_functions(args)]
-  defp extract_function(%Expression{}), do: []
-  defp extract_function({:distinct, param}), do: extract_function(param)
-
-  defp extract_where_conditions(clauses), do:
-    clauses
-    |> Enum.map(&extract_where_condition/1)
-    |> Enum.uniq()
-
-  defp extract_where_condition({:not, {:comparison, _column, :=, _comparator}}), do: "<>"
-  defp extract_where_condition({:not, something}), do:
-    "not #{extract_where_condition(something)}"
-  defp extract_where_condition({:comparison, _column, comparison, _comparator}), do:
-    Atom.to_string(comparison)
-  defp extract_where_condition({:is, _column, :null}), do: "null"
-  defp extract_where_condition({condition, _column, _value_or_pattern}), do:
-    Atom.to_string(condition)
-
-  defp extract_column_types(columns), do:
-    columns
-    |> extract_columns()
-    |> Enum.flat_map(&extract_column_type/1)
-    |> Enum.uniq()
-    |> Enum.map(&stringify/1)
-
-  defp extract_column_type(%Expression{constant?: true, type: type}), do: [type]
-  defp extract_column_type(%Expression{table: :unknown}), do: []
-  defp extract_column_type(%Expression{table: %{columns: columns}, name: name}), do:
-    columns
-    |> Enum.filter(&(&1.name == name))
-    |> Enum.map(&(&1.type))
-
-  defp extract_columns(columns), do: Enum.flat_map(columns, &extract_column/1)
-
-  defp extract_column({:distinct, value}), do: extract_column(value)
-  defp extract_column(%Expression{function?: true, function_args: [:*]}), do: []
-  defp extract_column(%Expression{function?: true, function_args: args}), do: extract_columns(args)
-  defp extract_column(%Expression{} = column), do: [column]
-
-  defp extract_decoders(query) do
-    Lens.both(Lens.root(), Lenses.subqueries() |> Lens.key(:ast))
-    |> Lenses.query_expressions()
-    |> Lens.satisfy(&match?(%Expression{function?: false, constant?: false, table: %{decoders: [_|_]}}, &1))
-    |> Lens.satisfy(&decoded?/1)
-    |> Lens.to_list(query)
-    |> Enum.map(&decoder/1)
-    |> Enum.uniq()
-  end
-
-  defp decoder(%{name: name, table: %{decoders: decoders}}) do
-    case Enum.find(decoders, &(name in &1.columns)) do
-      nil -> nil
-      decoder -> stringify(decoder.spec)
-    end
-  end
-
-  defp decoded?(column), do: decoder(column) != nil
 
   defp stringify(string) when is_binary(string), do: string
   defp stringify(atom) when is_atom(atom), do: Atom.to_string(atom)

@@ -228,7 +228,7 @@ defmodule Cloak.Sql.QueryTest do
     query = Query.make!(first_ds, statement, [], %{}) |> scrub_data_source()
     for data_source <- rest_ds, do:
       assert(query == Query.make!(data_source, statement, [], %{}) |> scrub_data_source())
-    Query.extract_features(query)
+    query.features
   end
 
   defp scrub_data_source(query) do

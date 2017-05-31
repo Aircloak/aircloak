@@ -311,7 +311,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
             DataSource.column("dummy", :boolean),
             DataSource.column("dummy2", :boolean)
           ],
-          decoders: [%{method: "base64", columns: ["decoded"]}],
+          decoders: [%{method: "base64", spec: &Base.decode64/1, columns: ["decoded"]}],
           projection: nil,
         },
 
