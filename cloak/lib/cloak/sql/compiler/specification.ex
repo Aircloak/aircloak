@@ -4,6 +4,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   alias Cloak.DataSource
   alias Cloak.Sql.{Comparison, CompilationError, Expression, Function, Query, TypeChecker}
   alias Cloak.Sql.Compiler.Validation
+  alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
 
 
@@ -125,7 +126,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     end
 
     case Cloak.Sql.Parser.parse(view_sql) do
-      {:ok, parsed_view} -> {:subquery, %{ast: parsed_view, alias: view_name}}
+      {:ok, parsed_view} -> {:subquery, %{ast: Map.put(parsed_view, :view?, true), alias: view_name}}
       {:error, error} -> raise CompilationError, message: "Error in the view `#{view_name}`: #{error}"
     end
   end
@@ -193,6 +194,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     parsed_subquery
     |> Map.put(:subquery?, true)
     |> compile(parent_query.data_source, parent_query.parameters, parent_query.views)
+    |> ensure_uid_selected()
     |> Validation.verify_subquery(alias)
 
 
@@ -211,7 +213,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     user_id_name = Enum.at(subquery.ast.column_titles, user_id_index)
     columns =
         Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
-        |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
+        |> Enum.map(fn({alias, column}) -> {alias, Function.type(column)} end)
         |> Enum.uniq()
     [%{
       name: subquery.alias,
@@ -587,6 +589,46 @@ defmodule Cloak.Sql.Compiler.Specification do
       {:error, {error, location}} ->
         raise CompilationError,
           message: "The regex used in `#{extraction.name}` is invalid: #{error} at character #{location}"
+    end
+  end
+
+
+  # -------------------------------------------------------------------
+  # UID selection in a subquery
+  # -------------------------------------------------------------------
+
+  defp ensure_uid_selected(subquery) do
+    case uid_column_to_implicitly_select?(subquery) do
+      nil -> 
+        subquery
+      uid_column ->
+        uid_alias = "__implicitly_selected_#{uid_column.table.name}.#{uid_column.name}__"
+        selected_expression = %Expression{uid_column | alias: uid_alias}
+        %Query{subquery |
+          columns: subquery.columns ++ [selected_expression],
+          column_titles: subquery.column_titles ++ [uid_alias]
+        }
+    end
+  end
+
+  defp uid_column_to_implicitly_select?(subquery) do
+    cond do
+      # we're not auto appending uid columns to views
+      subquery.view? -> nil
+
+      # uid column is already explicitly selected
+      Helpers.uid_column_selected?(subquery) -> nil
+
+      # no group by and no aggregate -> select any uid column
+      match?(%Query{group_by: []}, subquery) && not Helpers.aggregate?(subquery) ->
+        hd(Helpers.all_id_columns_from_tables(subquery))
+
+      # uid column is in a group by -> select that uid
+      (uid_column = Enum.find(subquery.group_by, &(&1.user_id?))) != nil -> 
+        uid_column
+
+      # we can't select an uid column
+      true -> nil
     end
   end
 end

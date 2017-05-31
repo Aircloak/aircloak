@@ -73,6 +73,7 @@ defmodule Cloak.Sql.Query do
     projected?: boolean,
     next_row_index: row_index,
     noise_layers: [NoiseLayer.t],
+    view?: boolean
   }
 
   defstruct [
@@ -80,7 +81,7 @@ defmodule Cloak.Sql.Query do
     info: [], selected_tables: [], row_splitters: [], implicit_count?: false, data_source: nil, command: nil,
     show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
     features: nil, emulated_where: [], ranges: [], parameters: [], views: %{}, emulated?: false,
-    projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: [],
+    projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false
   ]
 
 

@@ -240,21 +240,18 @@ defmodule Cloak.Sql.Compiler.Validation do
   # -------------------------------------------------------------------
 
   defp verify_subquery_uid(subquery, alias) do
-    case Enum.find(subquery.columns, &(&1.user_id?)) do
-      nil ->
-        possible_uid_columns =
-          Helpers.all_id_columns_from_tables(subquery)
-          |> Enum.map(&Expression.display_name/1)
-          |> case do
-            [column] -> "the column #{column}"
-            columns -> "one of the columns #{Enum.join(columns, ", ")}"
-          end
+    unless Helpers.uid_column_selected?(subquery) do
+      possible_uid_columns =
+        Helpers.all_id_columns_from_tables(subquery)
+        |> Enum.map(&Expression.display_name/1)
+        |> case do
+          [column] -> "the column #{column}"
+          columns -> "one of the columns #{Enum.join(columns, ", ")}"
+        end
 
-        raise CompilationError, message:
-          "Missing a user id column in the select list of #{"subquery `#{alias}`"}. " <>
-          "To fix this error, add #{possible_uid_columns} to the subquery select list."
-      _ ->
-        subquery
+      raise CompilationError, message:
+        "Missing a user id column in the select list of #{"subquery `#{alias}`"}. " <>
+        "To fix this error, add #{possible_uid_columns} to the subquery select list."
     end
   end
 

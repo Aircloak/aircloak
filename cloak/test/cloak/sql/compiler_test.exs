@@ -486,8 +486,13 @@ defmodule Cloak.Sql.Compiler.Test do
     assert {:ok, _} = compile("select cast(column as date) from table", data_source())
   end
 
-  test "subquery must return a user_id" do
-    assert {:error, error} = compile("select c1 from (select c1 from t1) alias", data_source())
+  test "subquery must return a user_id when it has aggregated columns" do
+    assert {:error, error} = compile("select c1 from (select max(c1) from t1) alias", data_source())
+    assert error =~ "Missing a user id column"
+  end
+
+  test "subquery must return a user_id when it has group by without uid" do
+    assert {:error, error} = compile("select c1 from (select c1 from t1 group by c1) alias", data_source())
     assert error =~ "Missing a user id column"
   end
 
