@@ -11,14 +11,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "lists columns filtered with WHERE" do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
 
-      assert [%{name: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
+      assert [%{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
     end
 
     test "lists columns filtered with GROUP BY" do
       result = compile!("SELECT numeric, COUNT(*) FROM table GROUP BY numeric", data_source())
 
-      assert [%{name: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
+      assert [%{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
     end
 
@@ -28,21 +28,21 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         data_source()
       )
 
-      assert [%{name: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
+      assert [%{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
     end
 
     test "lists columns filtered with emulated WHERE" do
       result = compile!("SELECT COUNT(*) FROM table WHERE decoded = 'a'", data_source())
 
-      assert [%{name: {"table", "decoded", nil}, expressions: [%Expression{name: "decoded"}]}] = result.noise_layers
+      assert [%{base: {"table", "decoded", nil}, expressions: [%Expression{name: "decoded"}]}] = result.noise_layers
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "decoded"}, &1))
     end
 
     test "lists underlying columns when a function is applied" do
       result = compile!("SELECT COUNT(*) FROM table GROUP BY BUCKET(numeric BY 10)", data_source())
 
-      assert [%{name: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
+      assert [%{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
     end
 
@@ -50,8 +50,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3 GROUP BY BUCKET(numeric BY 10)", data_source())
 
       assert [
-        %{name: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]},
-        %{name: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]}
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]}
       ] = result.noise_layers
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
     end
@@ -62,7 +62,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric >= 0 AND numeric < 10", data_source())
 
       assert [
-        %{name: {"table", "numeric", {0.0, 10.0}}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", {0.0, 10.0}}, expressions: [%Expression{name: "numeric"}]},
       ] = result.noise_layers
     end
 
@@ -70,7 +70,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric BETWEEN 0 AND 10", data_source())
 
       assert [
-        %{name: {"table", "numeric", {0.0, 10.0}}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", {0.0, 10.0}}, expressions: [%Expression{name: "numeric"}]},
       ] = result.noise_layers
     end
   end
@@ -79,7 +79,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "floating noise layers from a subquery" do
       result = compile!("SELECT COUNT(*) FROM (SELECT * FROM table WHERE numeric = 3) foo", data_source())
 
-      assert [%{name: {"table", "numeric", nil}, expressions: [%Expression{name: name}]}] = result.noise_layers
+      assert [%{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}]}] = result.noise_layers
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^name}, &1))
     end
 
@@ -88,7 +88,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         SELECT numeric FROM table JOIN (SELECT uid FROM table WHERE numeric = 3) foo ON foo.uid = table.uid
       """, data_source())
 
-      assert [%{name: {"table", "numeric", nil}, expressions: [%Expression{name: name}]}] = result.noise_layers
+      assert [%{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}]}] = result.noise_layers
       assert name != "numeric"
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^name}, &1))
     end
@@ -101,7 +101,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       {:subquery, %{ast: subquery}} = result.from
 
-      assert [%{name: {"table", "numeric", nil}, expressions: [%Expression{name: alias}]}] = result.noise_layers
+      assert [%{base: {"table", "numeric", nil}, expressions: [%Expression{name: alias}]}] = result.noise_layers
       assert 1 = Enum.count(subquery.db_columns, &match?(%Expression{name: "numeric", alias: ^alias}, &1))
     end
 
@@ -122,7 +122,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^min_alias}, &1))
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^max_alias}, &1))
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^count_alias}, &1))
-      assert 1 = Enum.count(result.noise_layers, &match?(%{name: {"table", "numeric", nil}, expressions: [
+      assert 1 = Enum.count(result.noise_layers, &match?(%{base: {"table", "numeric", nil}, expressions: [
         %Expression{name: ^min_alias},
         %Expression{name: ^max_alias},
         %Expression{name: ^count_alias}
@@ -146,7 +146,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         data_source()
       )
 
-      assert [%{name: {"table", "numeric", nil}}] = result.noise_layers
+      assert [%{base: {"table", "numeric", nil}}] = result.noise_layers
     end
 
     test "floating complex noise layers through non-aggregating queries" do
@@ -172,7 +172,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^min_alias}, &1))
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^max_alias}, &1))
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^count_alias}, &1))
-      assert 1 = Enum.count(result.noise_layers, &match?(%{name: {"table", "numeric", nil}, expressions: [
+      assert 1 = Enum.count(result.noise_layers, &match?(%{base: {"table", "numeric", nil}, expressions: [
         %Expression{name: ^min_alias},
         %Expression{name: ^max_alias},
         %Expression{name: ^count_alias}
@@ -205,7 +205,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^min_alias}, &1))
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^max_alias}, &1))
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^count_alias}, &1))
-      assert 1 = Enum.count(result.noise_layers, &match?(%{name: {"table", "numeric", nil}, expressions: [
+      assert 1 = Enum.count(result.noise_layers, &match?(%{base: {"table", "numeric", nil}, expressions: [
         %Expression{name: ^min_alias},
         %Expression{name: ^max_alias},
         %Expression{name: ^count_alias}
@@ -213,77 +213,77 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
-  describe "noise layer names" do
+  describe "noise layer base data" do
     test "insensitive to being aliased" do
-      %{noise_layers: [%{name: name}]} = compile!(
+      %{noise_layers: [%{base: base}]} = compile!(
         "SELECT COUNT(*) FROM (SELECT uid, numeric as foo FROM table) bar WHERE foo = 3",
       data_source())
 
-      assert {"table", "numeric", nil} = name
+      assert {"table", "numeric", nil} = base
     end
 
     test "insensitive to being aliased in views" do
-      %{noise_layers: [%{name: name}]} = compile!(
+      %{noise_layers: [%{base: base}]} = compile!(
         "SELECT count(*) FROM foo WHERE bar = 3",
       data_source(), views: %{"foo" => "SELECT uid, numeric AS bar FROM table"})
 
-      assert {"table", "numeric", nil} = name
+      assert {"table", "numeric", nil} = base
     end
 
     test "insensitive to being aliased after operations" do
-      %{noise_layers: [%{name: name1}, %{name: name2}]} = compile!(
+      %{noise_layers: [%{base: base1}, %{base: base2}]} = compile!(
         "SELECT COUNT(*) FROM (SELECT uid, numeric + numeric2 as foo FROM table) bar WHERE foo = 3",
       data_source())
 
-      assert [{"table", "numeric", nil}, {"table", "numeric2", nil}] = Enum.sort([name1, name2])
+      assert [{"table", "numeric", nil}, {"table", "numeric2", nil}] = Enum.sort([base1, base2])
     end
 
     test "insensitive to being aliased in nested subqueries" do
-      %{noise_layers: [%{name: name}]} = compile!(
+      %{noise_layers: [%{base: base}]} = compile!(
         "SELECT COUNT(*) FROM (SELECT uid, foo as bar FROM (SELECT uid, numeric AS foo FROM table) x) y WHERE bar = 3",
       data_source())
 
-      assert {"table", "numeric", nil} = name
+      assert {"table", "numeric", nil} = base
     end
 
     test "insensitive to being aliased in a join" do
-      %{noise_layers: [%{name: name}]} = compile!("""
+      %{noise_layers: [%{base: base}]} = compile!("""
         SELECT COUNT(*) FROM other JOIN (
           SELECT uid, numeric AS foo FROM table
         ) bar
         ON other.uid = bar.uid WHERE foo = 3
       """, data_source())
 
-      assert {"table", "numeric", nil} = name
+      assert {"table", "numeric", nil} = base
     end
 
     test "insensitive to being aliased in emulated queries" do
-      %{noise_layers: [%{name: name}]} = compile!(
+      %{noise_layers: [%{base: base}]} = compile!(
         "SELECT COUNT(*) FROM (SELECT uid, decoded AS bar FROM table) foo WHERE bar = 'a'",
       data_source())
 
-      assert {"table", "decoded", nil} = name
+      assert {"table", "decoded", nil} = base
     end
 
     test "insensitive to the query casing" do
-      %{noise_layers: [%{name: name1}]} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
-      %{noise_layers: [%{name: name2}]} = compile!("SELECT COUNT(*) FROM table WHERE nUmErIc = 3", data_source())
+      %{noise_layers: [%{base: base1}]} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
+      %{noise_layers: [%{base: base2}]} = compile!("SELECT COUNT(*) FROM table WHERE nUmErIc = 3", data_source())
 
-      assert name1 == name2
+      assert base1 == base2
     end
 
     test "insensitive to being quoted" do
-      %{noise_layers: [%{name: name1}]} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
-      %{noise_layers: [%{name: name2}]} = compile!("SELECT COUNT(*) FROM table WHERE \"numeric\" = 3", data_source())
+      %{noise_layers: [%{base: base1}]} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
+      %{noise_layers: [%{base: base2}]} = compile!("SELECT COUNT(*) FROM table WHERE \"numeric\" = 3", data_source())
 
-      assert name1 == name2
+      assert base1 == base2
     end
 
     test "insensitive to being scoped" do
-      %{noise_layers: [%{name: name1}]} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
-      %{noise_layers: [%{name: name2}]} = compile!("SELECT COUNT(*) FROM table WHERE table.numeric = 3", data_source())
+      %{noise_layers: [%{base: base1}]} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
+      %{noise_layers: [%{base: base2}]} = compile!("SELECT COUNT(*) FROM table WHERE table.numeric = 3", data_source())
 
-      assert name1 == name2
+      assert base1 == base2
     end
   end
 

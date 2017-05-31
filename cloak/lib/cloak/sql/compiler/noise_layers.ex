@@ -38,12 +38,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       end
     end)
 
-  defp subquery_for_noise_layer(%{name: {table, _column, _extras}}), do:
+  defp subquery_for_noise_layer(%{base: {table, _column, _extras}}), do:
     Query.Lenses.direct_subqueries()
     |> Lens.satisfy(&(&1.alias == table))
     |> Lens.key(:ast)
 
-  defp push_noise_layer(query, %{name: {_table, column, extras}}) do
+  defp push_noise_layer(query, %{base: {_table, column, extras}}) do
     index = Enum.find_index(query.column_titles, &(&1 == column))
     true = index < length(query.columns)
     expression = Enum.at(query.columns, index)
