@@ -631,7 +631,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       (uid_column = Enum.find(subquery.group_by, &(&1.user_id?))) != nil ->
         uid_column
 
-      # we can't select an uid column
+      # we can't select a uid column
       true -> nil
     end
   end
