@@ -107,7 +107,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert [] = result.noise_layers
     end
 
-    test "no noise layer for columns with allowed operations on non-raw columns"
+    test "no noise layer for columns with allowed operations on non-raw columns" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE lower(lower(name)) <> 'bob'", data_source())
+
+      assert [] = result.noise_layers
+    end
   end
 
   describe "noise layers from subqueries" do

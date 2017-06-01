@@ -150,12 +150,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   @allowed_not_equals_functions ~w(lower)
 
   defp can_be_anonymized_with_noise_layer?(
-    {:comparison, %Expression{function?: true, function: name}, :<>, right}), do:
-      Enum.member?(@allowed_not_equals_functions, name) and Expression.constant?(right)
+    {:comparison, %Expression{function?: true, function: name, function_args: [arg]}, :<>, right}), do:
+      raw_column?(arg) and Enum.member?(@allowed_not_equals_functions, name) and Expression.constant?(right)
   defp can_be_anonymized_with_noise_layer?({:comparison, _left, :<>, right}), do:
     Expression.constant?(right)
   defp can_be_anonymized_with_noise_layer?(_), do:
     false
+
+  defp raw_column?(%Expression{user_id?: false, constant?: false, function?: false}), do: true
+  defp raw_column?(_), do: false
 
   defp resolve_row_splitter(expression, %{row_splitters: row_splitters}) do
     if splitter = Enum.find(row_splitters, &(&1.row_index == expression.row_index)) do
@@ -167,7 +170,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   deflensp raw_columns(), do:
     Query.Lenses.leaf_expressions()
-    |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
+    |> Lens.satisfy(&raw_column?/1)
 
   defp floated_noise_layers(query), do:
     Query.Lenses.subquery_noise_layers()
