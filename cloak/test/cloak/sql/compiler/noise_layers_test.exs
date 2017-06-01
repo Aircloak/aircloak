@@ -85,9 +85,23 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       ] = result.noise_layers
     end
 
-    test "no noise layer when compared column is not raw in a subquery"
+    test "no noise layer when compared column is not raw in a subquery" do
+      result = compile!(
+        "SELECT COUNT(*) FROM (SELECT upper(name) AS name, uid FROM table) x WHERE lower(name) <> 'bob'",
+        data_source()
+      )
 
-    test "use a noise layer when compared column is raw in subquery"
+      assert [] = result.noise_layers
+    end
+
+    test "use a noise layer when compared column is raw in subquery" do
+      result = compile!(
+        "SELECT COUNT(*) FROM (SELECT name, uid FROM table) x WHERE lower(name) <> 'bob'",
+        data_source()
+      )
+
+      assert [%{base: {"table", "name", {:<>, "lower", "bob"}}}] = result.noise_layers
+    end
 
     test "no noise layer when compared column is not raw in a join"
 

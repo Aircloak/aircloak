@@ -131,7 +131,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.both(Lens.key(:group_by))
     |> Lens.all()
     |> Lens.satisfy(&Comparison.not_equals?(&1))
-    |> Lens.satisfy(&can_be_anonymized_with_noise_layer?/1)
+    |> Lens.satisfy(&can_be_anonymized_with_noise_layer?(&1, query))
     |> Lens.to_list(query)
     |> Enum.map(&not_equals_noise_layer/1)
 
@@ -150,15 +150,22 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   @allowed_not_equals_functions ~w(lower)
 
   defp can_be_anonymized_with_noise_layer?(
-    {:comparison, %Expression{function?: true, function: name, function_args: [arg]}, :<>, right}), do:
-      raw_column?(arg) and Enum.member?(@allowed_not_equals_functions, name) and Expression.constant?(right)
-  defp can_be_anonymized_with_noise_layer?({:comparison, _left, :<>, right}), do:
-    Expression.constant?(right)
-  defp can_be_anonymized_with_noise_layer?(_), do:
+    {:comparison, %Expression{function?: true, function: name, function_args: [arg]}, :<>, right}, query), do:
+      raw_column?(arg, query) and Enum.member?(@allowed_not_equals_functions, name) and Expression.constant?(right)
+  defp can_be_anonymized_with_noise_layer?({:comparison, left, :<>, right}, query), do:
+    raw_column?(left, query) and Expression.constant?(right)
+  defp can_be_anonymized_with_noise_layer?(_, _), do:
     false
 
-  defp raw_column?(%Expression{user_id?: false, constant?: false, function?: false}), do: true
-  defp raw_column?(_), do: false
+  defp raw_column?(%Expression{name: name}, %{from: {:subquery, %{ast: subquery}}}) do
+    if index = Enum.find_index(subquery.column_titles, &(&1 == name)) do
+      raw_column?(Enum.at(subquery.columns, index), subquery)
+    else
+      false
+    end
+  end
+  defp raw_column?(%Expression{user_id?: false, constant?: false, function?: false}, _query), do: true
+  defp raw_column?(_, _), do: false
 
   defp resolve_row_splitter(expression, %{row_splitters: row_splitters}) do
     if splitter = Enum.find(row_splitters, &(&1.row_index == expression.row_index)) do
@@ -170,7 +177,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   deflensp raw_columns(), do:
     Query.Lenses.leaf_expressions()
-    |> Lens.satisfy(&raw_column?/1)
+    |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
 
   defp floated_noise_layers(query), do:
     Query.Lenses.subquery_noise_layers()
