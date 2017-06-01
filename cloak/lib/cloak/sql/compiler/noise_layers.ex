@@ -133,11 +133,25 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(&Comparison.not_equals?(&1))
     |> Lens.satisfy(&can_be_anonymized_with_noise_layer?/1)
     |> Lens.to_list(query)
-    |> Enum.map(fn({:comparison, column, :<>, constant}) ->
-      value = Expression.value(constant, [])
-      NoiseLayer.new({column.table.name, column.name, {:<>, value}}, [Helpers.set_unique_alias(column)])
-    end)
+    |> Enum.map(&not_equals_noise_layer/1)
 
+
+  defp not_equals_noise_layer(
+    {:comparison, %Expression{function?: true, function: name, function_args: [column]}, :<>, constant}
+  ) do
+    value = Expression.value(constant, [])
+    NoiseLayer.new({column.table.name, column.name, {:<>, name, value}}, [Helpers.set_unique_alias(column)])
+  end
+  defp not_equals_noise_layer({:comparison, column, :<>, constant}) do
+    value = Expression.value(constant, [])
+    NoiseLayer.new({column.table.name, column.name, {:<>, value}}, [Helpers.set_unique_alias(column)])
+  end
+
+  @allowed_not_equals_functions ~w(lower)
+
+  defp can_be_anonymized_with_noise_layer?(
+    {:comparison, %Expression{function?: true, function: name}, :<>, right}), do:
+      Enum.member?(@allowed_not_equals_functions, name) and Expression.constant?(right)
   defp can_be_anonymized_with_noise_layer?({:comparison, _left, :<>, right}), do:
     Expression.constant?(right)
   defp can_be_anonymized_with_noise_layer?(_), do:

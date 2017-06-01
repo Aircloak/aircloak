@@ -93,9 +93,21 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
     test "use a noise layer when compared column is raw in a join"
 
-    test "noise layers for columns with allowed operations"
+    test "noise layers for columns with allowed operations" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE lower(name) <> 'bob'", data_source())
 
-    test "no noise layer for columns with disallowed operations"
+      assert [
+        %{base: {"table", "name", {:<>, "lower", "bob"}}, expressions: [%Expression{name: "name"}]},
+      ] = result.noise_layers
+    end
+
+    test "no noise layer for columns with disallowed operations" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE sqrt(numeric) <> 10", data_source())
+
+      assert [] = result.noise_layers
+    end
+
+    test "no noise layer for columns with allowed operations on non-raw columns"
   end
 
   describe "noise layers from subqueries" do
@@ -331,7 +343,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
             DataSource.column("numeric2", :integer),
             DataSource.column("decoded", :text),
             DataSource.column("dummy", :boolean),
-            DataSource.column("dummy2", :boolean)
+            DataSource.column("dummy2", :boolean),
+            DataSource.column("name", :text),
           ],
           decoders: [%{method: "base64", spec: &Base.decode64/1, columns: ["decoded"]}],
           projection: nil,
