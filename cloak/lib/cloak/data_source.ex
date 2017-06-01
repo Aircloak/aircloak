@@ -353,7 +353,7 @@ defmodule Cloak.DataSource do
   defp validate_unsupported_columns(unsupported, data_source, table) do
     columns_string =
       unsupported
-      |> Enum.map(fn({column_name, {:unsupported, type}}) -> "`#{column_name}`::#{inspect(type)}" end)
+      |> Enum.map(fn(column) -> "`#{column.name}`::#{inspect(column.type)}" end)
       |> Enum.join(", ")
 
     if table[:ignore_unsupported_types] do
