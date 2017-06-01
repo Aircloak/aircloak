@@ -765,6 +765,12 @@ defmodule Cloak.Sql.Parser.Test do
   test "cast to datetime", do:
     assert_parse "select cast(a as datetime) from bar", select(columns: [{:function, {:cast, :datetime}, _}])
 
+  test "cast to float", do:
+    assert_parse "select cast(a as float) from bar", select(columns: [{:function, {:cast, :real}, _}])
+
+  test "cast to double precision", do:
+    assert_parse "select cast(a as double precision) from bar", select(columns: [{:function, {:cast, :real}, _}])
+
   test "cast with ::" do
     assert_parse "select a::integer from bar",
       select(columns: [{:function, {:cast, :integer}, [identifier("a")]}])
