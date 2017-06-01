@@ -120,7 +120,7 @@ defmodule Cloak.Sql.Query do
       num_tables: num_tables(query.selected_tables),
       num_group_by: num_group_by(query),
       functions: extract_functions(query.columns),
-      where_conditions: extract_where_conditions(query.where ++ query.emulated_where),
+      where_conditions: extract_where_conditions([query.where, query.emulated_where]),
       column_types: extract_column_types(query.columns),
       selected_types: selected_types(query.columns),
       parameter_types: Enum.map(parameter_types(query), &stringify/1),
@@ -280,11 +280,11 @@ defmodule Cloak.Sql.Query do
   defp extract_function({:distinct, param}), do: extract_function(param)
 
   defp extract_where_conditions(clauses), do:
-    clauses
+    Lenses.conditions()
+    |> Lens.to_list(clauses)
     |> Enum.map(&extract_where_condition/1)
     |> Enum.uniq()
 
-  defp extract_where_condition({:not, {:comparison, _column, :=, _comparator}}), do: "<>"
   defp extract_where_condition({:not, something}), do:
     "not #{extract_where_condition(something)}"
   defp extract_where_condition({:comparison, _column, comparison, _comparator}), do:
