@@ -94,6 +94,35 @@ defmodule Cloak.Sql.Comparison do
   def verb({:like, _lhs, _rhs}), do: :like
   def verb({:ilike, _lhs, _rhs}), do: :ilike
 
+  @doc "Combines two clauses with the given operator."
+  @spec combine(:and | :or, Query.where_clause, Query.where_clause) :: Query.where_clause
+  def combine(_op, nil, nil), do: nil
+  def combine(_op, lhs, nil), do: lhs
+  def combine(_op, nil, rhs), do: rhs
+  def combine(op, lhs, rhs), do: {op, lhs, rhs}
+
+  @doc "Rejects conditions that match the given function."
+  @spec reject(Query.where_clause, (Query.where_clause -> boolean)) :: Query.where_clause
+  def reject(nil, _matcher), do: nil
+  def reject({operator, lhs, rhs}, matcher) when operator in [:or, :and] do
+    case {reject(lhs, matcher), reject(rhs, matcher)} do
+      {nil, nil} -> nil
+      {nil, rhs} -> rhs
+      {lhs, nil} -> lhs
+      {lhs, rhs} -> {operator, lhs, rhs}
+    end
+  end
+  def reject(condition, matcher), do:
+    if matcher.(condition), do: nil, else: condition
+
+  @doc "Splits the conditions tree into matchning and non-matching trees."
+  @spec partition(Query.where_clause, (Query.where_clause -> boolean)) :: {Query.where_clause, Query.where_clause}
+  def partition(conditions, matcher) do
+    non_matching = reject(conditions, matcher)
+    matching = reject(conditions, &not matcher.(&1))
+    {matching, non_matching}
+  end
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
