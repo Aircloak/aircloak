@@ -3,6 +3,7 @@ defmodule Cloak.Sql.TypeChecker.Test do
 
   use ExUnit.Case, async: true
 
+  alias Cloak.DataSource
   alias Cloak.Sql.{Compiler, Parser, TypeChecker, Expression}
 
   describe "math is only dangerous if a constant is involved" do
@@ -269,15 +270,20 @@ defmodule Cloak.Sql.TypeChecker.Test do
   defp compile(query_string), do:
     Compiler.compile(data_source(), Parser.parse!(query_string), [], %{})
 
-  defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do
+  defp data_source(driver \\ DataSource.PostgreSQL) do
     %{driver: driver, tables: %{
       table: %{
         db_name: "table",
         name: "table",
         user_id: "uid",
         columns: [
-          {"uid", :integer}, {"column", :datetime}, {"numeric", :integer},
-          {"float", :real}, {"string", :text}, {"time", :time}, {"date", :date},
+          DataSource.column("uid", :integer),
+          DataSource.column("column", :datetime),
+          DataSource.column("numeric", :integer),
+          DataSource.column("float", :real),
+          DataSource.column("string", :text),
+          DataSource.column("time", :time),
+          DataSource.column("date", :date),
         ],
         projection: nil,
       },

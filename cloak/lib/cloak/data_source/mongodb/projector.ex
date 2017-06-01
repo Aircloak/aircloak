@@ -19,7 +19,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   @spec project_array_sizes(map) :: [map]
   def project_array_sizes(%{columns: columns, db_name: name}) when is_binary(name) do # table is collection
     columns
-    |> Enum.map(fn ({name, _type}) -> name end)
+    |> Enum.map(&(&1.name))
     |> Enum.partition(&Schema.is_array_size?/1)
     |> case do
       {[], _regular_columns} -> []
@@ -37,7 +37,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   def project_extra_columns(_table, []), do: []
   def project_extra_columns(%{columns: columns}, extra_columns) do
     projected_columns =
-      Enum.map(columns, fn ({name, _type}) -> {name, true} end) ++
+      Enum.map(columns, &{&1.name, true}) ++
       Enum.map(extra_columns, &project_column/1)
     [%{'$project': Enum.into(projected_columns, %{"_id" => false})}]
   end

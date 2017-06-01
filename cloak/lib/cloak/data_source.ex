@@ -55,13 +55,13 @@ defmodule Cloak.DataSource do
     :db_name => String.t, # table name in the database
     :user_id => String.t,
     :ignore_unsupported_types => boolean,
-    :columns => [{column, data_type}],
+    :columns => [column],
     :decoders => [DataDecoder.t],
     :projection => %{table: String.t, primary_key: String.t, foreign_key: String.t} | nil,
     optional(any) => any,
   }
+  @type column :: %{name: String.t, type: data_type, visible?: boolean}
   @type num_rows :: non_neg_integer
-  @type column :: String.t
   @type field :: String.t | number | boolean | nil
   @type row :: [field]
   @type data_type :: :text | :integer | :real | :boolean | :datetime | :time | :date | :uuid | :unknown
@@ -182,6 +182,11 @@ defmodule Cloak.DataSource do
   @doc "Raises an error when something goes wrong during data processing."
   @spec raise_error(String.t) :: no_return
   def raise_error(message), do: raise ExecutionError, message: message
+
+  @doc "Creates the column entry in the table specification."
+  @spec column(String.t, data_type, [visible?: boolean]) :: column
+  def column(name, type, optional_params \\ []), do:
+    %{name: name, type: type, visible?: Keyword.get(optional_params, :visible?, true)}
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -313,8 +318,8 @@ defmodule Cloak.DataSource do
     table.columns
     |> Enum.reject(&supported?/1)
     |> validate_unsupported_columns(data_source, table)
-    columns = for {name, _type} = column <- table.columns, do:
-      if supported?(column), do: column, else: {name, :unknown}
+    columns = for column <- table.columns, do:
+      if supported?(column), do: column, else: %{column | type: :unknown}
     table = %{table | columns: columns}
     verify_columns(table)
     table
@@ -328,21 +333,21 @@ defmodule Cloak.DataSource do
   defp verify_user_id(%{projection: projection}) when projection != nil, do: :ok
   defp verify_user_id(table) do
     user_id = table.user_id
-    case List.keyfind(table.columns, user_id, 0) do
-      {^user_id, type} ->
-        unless type in [:integer, :text, :uuid, :real, :unknown], do:
-          raise_error("unsupported user id type: #{type}")
-      _ ->
+    case Enum.find(table.columns, &(&1.name == user_id)) do
+      %{} = column ->
+        unless column.type in [:integer, :text, :uuid, :real, :unknown], do:
+          raise_error("unsupported user id type: #{column.type}")
+      nil ->
         columns_string =
           table.columns
-          |> Enum.map(fn({column_name, _}) -> "`#{column_name}`" end)
+          |> Enum.map(&"`#{&1.name}`")
           |> Enum.join(", ")
         raise_error("invalid user id column specified: `#{user_id}` (columns: #{columns_string})")
     end
   end
 
-  defp supported?({_name, {:unsupported, _db_type}}), do: false
-  defp supported?({_name, _type}), do: true
+  defp supported?(%{type: {:unsupported, _db_type}}), do: false
+  defp supported?(_column), do: true
 
   defp validate_unsupported_columns([], _data_source, _table), do: nil
   defp validate_unsupported_columns(unsupported, data_source, table) do
@@ -378,7 +383,7 @@ defmodule Cloak.DataSource do
         referenced_table = Map.fetch!(data_source.tables, String.to_atom(referenced_table.name))
 
         uid_column_name = referenced_table.user_id
-        uid_column = List.keyfind(referenced_table.columns, uid_column_name, 0)
+        uid_column = Enum.find(referenced_table.columns, &(&1.name == uid_column_name))
         table =
           table
           |> Map.put(:user_id, uid_column_name)
@@ -409,27 +414,27 @@ defmodule Cloak.DataSource do
   end
 
   defp validate_foreign_key(table) do
-    case List.keyfind(table.columns, table.projection.foreign_key, 0) do
+    case Enum.find(table.columns, &(&1.name == table.projection.foreign_key)) do
       nil -> {:error, "foreign key column `#{table.projection.foreign_key}` doesn't exist"}
       _ -> :ok
     end
   end
 
   defp validate_primary_key(table, referenced_table) do
-    {_, foreign_key_type} = List.keyfind(table.columns, table.projection.foreign_key, 0)
-    case List.keyfind(referenced_table.columns, table.projection.primary_key, 0) do
+    foreign_key_type = Enum.find(table.columns, &(&1.name == table.projection.foreign_key)).type
+    case Enum.find(referenced_table.columns, &(&1.name == table.projection.primary_key)) do
       nil ->
         {
           :error,
           "primary key column `#{table.projection.primary_key}` not found in table " <>
             "`#{referenced_table.db_name}`"
         }
-      {_, primary_key_type} when primary_key_type != foreign_key_type ->
+      %{type: primary_key_type} when primary_key_type != foreign_key_type ->
         {
           :error,
           "foreign key type is `#{foreign_key_type}` while primary key type is `#{primary_key_type}`"
         }
-      {_, ^foreign_key_type} -> :ok
+      %{type: ^foreign_key_type} -> :ok
     end
   end
 

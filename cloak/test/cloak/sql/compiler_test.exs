@@ -3,6 +3,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   import Lens.Macros
 
+  alias Cloak.DataSource
   alias Cloak.Sql.{Expression, Compiler, Parser, Query}
 
   defmacrop column(table_name, column_name) do
@@ -369,6 +370,11 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error =~ ~r/Missing where comparison.*`t1` and `t3`/
   end
 
+  test "rejecting a join with a subquery that has no explicit id" do
+    assert {:error, error} = compile("SELECT t1.c1 from t1, (select c1 from t2) sq", data_source())
+    assert error == "There is no user id column in the subquery `sq`."
+  end
+
   test "rejecting a join when cast changes the uid type" do
     assert {:error, error} = compile("SELECT t1.c1 from t1, t2 WHERE cast(t1.uid as text) = t2.uid", data_source())
     assert error =~ ~r/Missing where comparison.*`t1` and `t2`/
@@ -486,8 +492,13 @@ defmodule Cloak.Sql.Compiler.Test do
     assert {:ok, _} = compile("select cast(column as date) from table", data_source())
   end
 
-  test "subquery must return a user_id" do
-    assert {:error, error} = compile("select c1 from (select c1 from t1) alias", data_source())
+  test "subquery must return a user_id when it has aggregated columns" do
+    assert {:error, error} = compile("select c1 from (select max(c1) from t1) alias", data_source())
+    assert error =~ "Missing a user id column"
+  end
+
+  test "subquery must return a user_id when it has group by without uid" do
+    assert {:error, error} = compile("select c1 from (select c1 from t1 group by c1) alias", data_source())
     assert error =~ "Missing a user id column"
   end
 
@@ -888,7 +899,11 @@ defmodule Cloak.Sql.Compiler.Test do
         name: "table",
         user_id: "uid",
         columns: [
-          {"uid", :integer}, {"column", :datetime}, {"numeric", :integer}, {"float", :real}, {"string", :text}
+          DataSource.column("uid", :integer),
+          DataSource.column("column", :datetime),
+          DataSource.column("numeric", :integer),
+          DataSource.column("float", :real),
+          DataSource.column("string", :text)
         ],
         projection: nil
       },
@@ -896,42 +911,63 @@ defmodule Cloak.Sql.Compiler.Test do
         db_name: "other_table",
         name: "other_table",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"other_column", :datetime}],
+        columns: [
+          DataSource.column("uid", :integer),
+          DataSource.column("other_column", :datetime)
+        ],
         projection: nil
       },
       projected_table: %{
         db_name: "projected_table",
         name: "projected_table",
         user_id: "uid",
-        columns: [{"fk", :integer}, {"a", :integer}, {"b", :integer}],
+        columns: [
+          DataSource.column("fk", :integer),
+          DataSource.column("a", :integer),
+          DataSource.column("b", :integer)
+        ],
         projection: %{table: "table", foreign_key: "fk", primary_key: "numeric"}
       },
       t1: %{
         db_name: "t1",
         name: "t1",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"c1", :integer}, {"c2", :integer}],
+        columns: [
+          DataSource.column("uid", :integer),
+          DataSource.column("c1", :integer),
+          DataSource.column("c2", :integer)
+        ],
         projection: nil
       },
       t2: %{
         db_name: "t2",
         name: "t2",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"c1", :integer}, {"c3", :integer}],
+        columns: [
+          DataSource.column("uid", :integer),
+          DataSource.column("c1", :integer),
+          DataSource.column("c3", :integer)
+        ],
         projection: nil
       },
       t3: %{
         db_name: "t3",
         name: "t3",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"c1", :integer}],
+        columns: [
+          DataSource.column("uid", :integer),
+          DataSource.column("c1", :integer)
+        ],
         projection: nil
       },
       t4: %{
         db_name: "t4",
         name: "t4",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"c1", :integer}],
+        columns: [
+          DataSource.column("uid", :integer),
+          DataSource.column("c1", :integer)
+        ],
         projection: nil
       }
     }}
@@ -943,7 +979,10 @@ defmodule Cloak.Sql.Compiler.Test do
         db_name: "table",
         name: "table",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"column", :time}],
+        columns: [
+          DataSource.column("uid", :integer),
+          DataSource.column("column", :time)
+        ],
         projection: nil
       }
     }}
@@ -955,7 +994,10 @@ defmodule Cloak.Sql.Compiler.Test do
         db_name: "table",
         name: "table",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"column", :date}],
+        columns: [
+          DataSource.column("uid", :integer),
+          DataSource.column("column", :date)
+        ],
         projection: nil
       }
     }}
@@ -967,7 +1009,10 @@ defmodule Cloak.Sql.Compiler.Test do
         db_name: "table",
         name: "table",
         user_id: "uid",
-        columns: [{"uid", :integer}, {"column.with.dots", :number}],
+        columns: [
+          DataSource.column("uid", :integer),
+          DataSource.column("column.with.dots", :number)
+        ],
         projection: nil
       }
     }}

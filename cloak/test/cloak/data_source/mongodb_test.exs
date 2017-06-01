@@ -1,6 +1,7 @@
 defmodule Cloak.DataSource.MongoDBTest do
   use ExUnit.Case, async: true
 
+  alias Cloak.DataSource
   alias Cloak.DataSource.MongoDB
   alias Cloak.Query.Runner
 
@@ -57,33 +58,33 @@ defmodule Cloak.DataSource.MongoDBTest do
   test "schema mapping", context do
     %{@table => root, @table <> "_bills" => bills, @table <> "_bills_ids" => ids} = context.data_source.tables
     assert root.columns == [
-      {"_id", :text},
-      {"age", :real},
-      {"bills#", :integer},
-      {"date", :datetime},
-      {"male", :boolean},
-      {"mixed", :unknown},
-      {"name", :text},
+      DataSource.column("_id", :text),
+      DataSource.column("age", :real),
+      DataSource.column("bills#", :integer),
+      DataSource.column("date", :datetime),
+      DataSource.column("male", :boolean),
+      DataSource.column("mixed", :unknown),
+      DataSource.column("name", :text),
     ]
     assert bills.columns == [
-      {"_id", :text},
-      {"age", :real},
-      {"date", :datetime},
-      {"male", :boolean},
-      {"mixed", :unknown},
-      {"name", :text},
-      {"bills.ids#", :integer},
-      {"bills.issuer", :text},
+      DataSource.column("_id", :text),
+      DataSource.column("age", :real),
+      DataSource.column("date", :datetime),
+      DataSource.column("male", :boolean),
+      DataSource.column("mixed", :unknown),
+      DataSource.column("name", :text),
+      DataSource.column("bills.ids#", :integer),
+      DataSource.column("bills.issuer", :text),
     ]
     assert ids.columns == [
-      {"_id", :text},
-      {"age", :real},
-      {"date", :datetime},
-      {"male", :boolean},
-      {"mixed", :unknown},
-      {"name", :text},
-      {"bills.issuer", :text},
-      {"bills.ids", :real},
+      DataSource.column("_id", :text),
+      DataSource.column("age", :real),
+      DataSource.column("date", :datetime),
+      DataSource.column("male", :boolean),
+      DataSource.column("mixed", :unknown),
+      DataSource.column("name", :text),
+      DataSource.column("bills.issuer", :text),
+      DataSource.column("bills.ids", :real),
     ]
   end
 

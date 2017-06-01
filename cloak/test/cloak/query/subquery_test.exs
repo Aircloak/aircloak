@@ -17,6 +17,31 @@ defmodule Cloak.Query.SubqueryTest do
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 
+  test "implicitly selecting user id in a subquery" do
+    assert_query "select height from (select height from heights_sq) alias",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "implicitly selecting user id in a subquery with group by" do
+    assert_query "select height from (select max(height) as height from heights_sq group by user_id) alias",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "implicitly selecting user id in a nested subquery" do
+    assert_query "select height from (select height from (select height from heights_sq) sq1) sq2",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "selecting all from a subquery with an implicitly selected user id" do
+    assert_query "select * from (select height from heights_sq) alias",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "nested selecting all from a subquery with an implicitly selected user id" do
+    assert_query "select * from (select * from (select height from heights_sq) sq1) sq2",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
   test "column alias in a subquery" do
     assert_query "select h from (select user_id, height as h from heights_sq) alias",
       %{columns: ["h"], rows: [%{row: [180], occurrences: 100}]}
