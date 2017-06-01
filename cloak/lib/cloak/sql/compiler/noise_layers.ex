@@ -1,8 +1,10 @@
 defmodule Cloak.Sql.Compiler.NoiseLayers do
   @moduledoc "Contains functions related to compilation of noise layers."
 
-  alias Cloak.Sql.{Expression, Query, NoiseLayer}
+  alias Cloak.Sql.{Expression, Query, NoiseLayer, Comparison}
   alias Cloak.Sql.Compiler.Helpers
+
+  use Lens.Macros
 
 
   # -------------------------------------------------------------------
@@ -36,22 +38,21 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       end
     end)
 
-  defp subquery_for_noise_layer(%{name: {table, _column}}), do:
+  defp subquery_for_noise_layer(%{base: {table, _column, _extras}}), do:
     Query.Lenses.direct_subqueries()
     |> Lens.satisfy(&(&1.alias == table))
     |> Lens.key(:ast)
 
-  defp push_noise_layer(query, %{name: {_table, column}}) do
+  defp push_noise_layer(query, %{base: {_table, column, extras}}) do
     index = Enum.find_index(query.column_titles, &(&1 == column))
     true = index < length(query.columns)
     expression = Enum.at(query.columns, index)
 
     layers =
-      Query.Lenses.leaf_expressions()
-      |> raw_columns()
+      raw_columns()
       |> Lens.to_list([expression])
       |> Enum.flat_map(&resolve_row_splitter(&1, query))
-      |> Enum.map(&NoiseLayer.new({&1.table.name, &1.name}, [Helpers.set_unique_alias(&1)]))
+      |> Enum.map(&NoiseLayer.new({&1.table.name, &1.name, extras}, [Helpers.set_unique_alias(&1)]))
 
     update_in(query, [Lens.key(:noise_layers)], &(&1 ++ layers))
   end
@@ -109,29 +110,36 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp calculate_base_noise_layers(query = %{projected?: true}), do:
     query
   defp calculate_base_noise_layers(query), do:
-    %{query | noise_layers: query |> new_noise_layers()}
+    %{query | noise_layers: range_noise_layers(query) ++ non_range_noise_layers(query)}
 
-  defp new_noise_layers(query), do:
+  defp non_range_noise_layers(query), do:
     Query.Lenses.filter_clauses()
     |> Lens.both(Lens.key(:group_by))
-    |> Query.Lenses.leaf_expressions()
+    |> Lens.all()
+    |> Lens.satisfy(& not Comparison.inequality?(&1))
     |> raw_columns()
     |> Lens.to_list(query)
     |> Enum.flat_map(&resolve_row_splitter(&1, query))
-    |> Enum.map(&NoiseLayer.new({&1.table.name, &1.name}, [Helpers.set_unique_alias(&1)]))
+    |> Enum.map(&NoiseLayer.new({&1.table.name, &1.name, nil}, [Helpers.set_unique_alias(&1)]))
+
+  defp range_noise_layers(%{ranges: ranges}), do:
+    Enum.flat_map(ranges, fn(%{column: column, interval: range}) ->
+      raw_columns()
+      |> Lens.to_list(column)
+      |> Enum.map(&NoiseLayer.new({&1.table.name, &1.name, range}, [Helpers.set_unique_alias(&1)]))
+    end)
 
   defp resolve_row_splitter(expression, %{row_splitters: row_splitters}) do
     if splitter = Enum.find(row_splitters, &(&1.row_index == expression.row_index)) do
-      Query.Lenses.leaf_expressions()
-      |> raw_columns()
-      |> Lens.to_list([splitter.function_spec])
+      Lens.to_list(raw_columns(), [splitter.function_spec])
     else
       [expression]
     end
   end
 
-  defp raw_columns(lens), do:
-    Lens.satisfy(lens, &match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
+  deflensp raw_columns(), do:
+    Query.Lenses.leaf_expressions()
+    |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
 
   defp floated_noise_layers(query), do:
     Query.Lenses.subquery_noise_layers()
