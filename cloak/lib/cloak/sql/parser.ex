@@ -260,10 +260,16 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp data_type() do
-    either(
-      raw_identifier_of(~w(integer real text boolean datetime date time)),
+    choice([
+      raw_identifier_of(~w(integer real float text boolean datetime date time)),
+      sequence([raw_identifier("double"), raw_identifier("precision")]),
       keyword(:interval)
-    )
+    ])
+    |> map(fn
+      :float -> :real
+      [:double, :precision] -> :real
+      other -> other
+    end)
     |> label("type name")
   end
 
@@ -296,6 +302,9 @@ defmodule Cloak.Sql.Parser do
       x -> x
     end)
   end
+
+  defp raw_identifier(word), do:
+    raw_identifier_of([word])
 
   defp raw_identifier_of(words) do
     unquoted_identifier()
