@@ -129,8 +129,8 @@ defmodule Cloak.Sql.Query.Lenses do
     Lens.match(fn
       {:or, _, _} -> Lens.both(Lens.at(1), Lens.at(2)) |> conditions()
       {:and, _, _} -> Lens.both(Lens.at(1), Lens.at(2)) |> conditions()
-      {:not, _} -> Lens.at(1) |> conditions()
-      list when is_list(list) -> Lens.all()
+      list when is_list(list) -> Lens.all() |> conditions()
+      nil -> Lens.empty()
       _ -> Lens.root()
     end)
 
