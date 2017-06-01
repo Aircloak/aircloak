@@ -472,7 +472,7 @@ defmodule Cloak.Sql.Parser do
   defp to_join({join_type, :on, conditions}, left_expr, right_expr),
     do: {:join, %{type: join_type, lhs: left_expr, rhs: right_expr, conditions: conditions}}
   defp to_join(:cross_join, left_expr, right_expr),
-    do: to_join({:cross_join, :on, []}, left_expr, right_expr)
+    do: to_join({:cross_join, :on, nil}, left_expr, right_expr)
 
   defp cross_joins([table]), do: table
   defp cross_joins([clause | rest]), do: to_join(:cross_join, clause, cross_joins(rest))

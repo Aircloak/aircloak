@@ -98,7 +98,7 @@ defmodule Cloak.Sql.Parser.Test do
 
   defmacrop cross_join(lhs, rhs) do
     quote do
-      join(:cross_join, unquote(lhs), unquote(rhs), [])
+      join(:cross_join, unquote(lhs), unquote(rhs), nil)
     end
   end
 
