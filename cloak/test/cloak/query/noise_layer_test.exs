@@ -29,7 +29,7 @@ defmodule Cloak.Query.NoiseLayerTest do
   end
 
   test "count(*) uses a different noise layer than count(column)" do
-    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [7])
+    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [11])
     :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [4])
 
     assert_query "select count(*), count(number) from noise_layers where number <> 0",

@@ -76,6 +76,28 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
+  describe "noise layer from negative condition" do
+    test "simple noise layer" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> 10", data_source())
+
+      assert [
+        %{base: {"table", "numeric", {:<>, 10}}, expressions: [%Expression{name: "numeric"}]},
+      ] = result.noise_layers
+    end
+
+    test "no noise layer when compared column is not raw in a subquery"
+
+    test "use a noise layer when compared column is raw in subquery"
+
+    test "no noise layer when compared column is not raw in a join"
+
+    test "use a noise layer when compared column is raw in a join"
+
+    test "noise layers for columns with allowed operations"
+
+    test "no noise layer for columns with disallowed operations"
+  end
+
   describe "noise layers from subqueries" do
     test "floating noise layers from a subquery" do
       result = compile!("SELECT COUNT(*) FROM (SELECT * FROM table WHERE numeric = 3) foo", data_source())

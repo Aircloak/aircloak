@@ -105,13 +105,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp calculate_base_noise_layers(query = %{projected?: true}), do:
     query
   defp calculate_base_noise_layers(query), do:
-    %{query | noise_layers: range_noise_layers(query) ++ non_range_noise_layers(query)}
+    %{query | noise_layers:
+      range_noise_layers(query) ++ not_equals_noise_layers(query) ++ non_range_noise_layers(query)}
 
   defp non_range_noise_layers(query), do:
     Query.Lenses.filter_clauses()
     |> Lens.both(Lens.key(:group_by))
     |> Lens.all()
     |> Lens.satisfy(& not Comparison.inequality?(&1))
+    |> Lens.satisfy(& not Comparison.not_equals?(&1))
     |> raw_columns()
     |> Lens.to_list(query)
     |> Enum.flat_map(&resolve_row_splitter(&1, query))
@@ -123,6 +125,23 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Lens.to_list(column)
       |> Enum.map(&NoiseLayer.new({&1.table.name, &1.name, range}, [Helpers.set_unique_alias(&1)]))
     end)
+
+  defp not_equals_noise_layers(query), do:
+    Query.Lenses.filter_clauses()
+    |> Lens.both(Lens.key(:group_by))
+    |> Lens.all()
+    |> Lens.satisfy(&Comparison.not_equals?(&1))
+    |> Lens.satisfy(&can_be_anonymized_with_noise_layer?/1)
+    |> Lens.to_list(query)
+    |> Enum.map(fn({:comparison, column, :<>, constant}) ->
+      value = Expression.value(constant, [])
+      NoiseLayer.new({column.table.name, column.name, {:<>, value}}, [Helpers.set_unique_alias(column)])
+    end)
+
+  defp can_be_anonymized_with_noise_layer?({:comparison, _left, :<>, right}), do:
+    Expression.constant?(right)
+  defp can_be_anonymized_with_noise_layer?(_), do:
+    false
 
   defp resolve_row_splitter(expression, %{row_splitters: row_splitters}) do
     if splitter = Enum.find(row_splitters, &(&1.row_index == expression.row_index)) do
