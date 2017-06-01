@@ -247,17 +247,10 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     end
   end
 
-  defp extract_column_top_from_condition(nil, _aggregators), do: nil
-  defp extract_column_top_from_condition({:and, lhs, rhs}, aggregators), do:
-    {:and, extract_column_top_from_condition(lhs, aggregators), extract_column_top_from_condition(rhs, aggregators)}
-  defp extract_column_top_from_condition({:or, lhs, rhs}, aggregators), do:
-    {:or, extract_column_top_from_condition(lhs, aggregators), extract_column_top_from_condition(rhs, aggregators)}
-  defp extract_column_top_from_condition({:not, condition}, aggregators), do:
-    {:not, extract_column_top_from_condition(condition, aggregators)}
-  defp extract_column_top_from_condition({:comparison, lhs, operator, rhs}, aggregators), do:
-    {:comparison, extract_column_top(lhs, aggregators, []), operator, rhs}
-  defp extract_column_top_from_condition({verb, lhs, rhs}, aggregators) when verb in [:in, :is, :like, :ilike], do:
-    {verb, extract_column_top(lhs, aggregators, []), rhs}
+  defp extract_column_top_from_conditions(conditions, aggregators), do:
+    Query.Lenses.conditions()
+    |> Query.Lenses.operands()
+    |> Lens.map(conditions, &extract_column_top(&1, aggregators, []))
 
   defp aggregate_and_project(%Query{db_columns: columns, distinct?: true}) do
     properties = project_properties(columns)
@@ -279,7 +272,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       column_tops = Enum.map(columns, &extract_column_top(&1, aggregators, groups))
       properties = project_properties(groups)
       group = aggregators |> project_aggregators() |> Enum.into(%{"_id" => properties})
-      having = extract_column_top_from_condition(having, aggregators)
+      having = extract_column_top_from_conditions(having, aggregators)
       [%{'$group': group}] ++ filter_data(having) ++ Projector.project_columns(column_tops)
     end
   end
