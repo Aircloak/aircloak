@@ -12,10 +12,9 @@ defmodule Cloak.Query.Rows do
   # -------------------------------------------------------------------
 
   @doc "Returns a stream of rows passing all the given filters."
-  @spec filter(Enumerable.t, [(any -> boolean)]) :: Enumerable.t
-  def filter(rows, []), do: rows
-  def filter(rows, filters), do:
-    Stream.filter(rows, &Enum.all?(filters, fn(filter) -> filter.(&1) end))
+  @spec filter(Enumerable.t, (any -> boolean) | nil) :: Enumerable.t
+  def filter(rows, nil), do: rows
+  def filter(rows, filter), do: Stream.filter(rows, filter)
 
   @doc """
     Filters groups and extracts desired columns according to query specification.
@@ -96,9 +95,13 @@ defmodule Cloak.Query.Rows do
     end
   end
 
-  defp filter_group(row, columns, query), do:
-    Enum.all?(query.having, &matches_having_condition?(row, &1, columns))
+  defp filter_group(row, columns, query), do: matches_having_condition?(row, query.having, columns)
 
+  defp matches_having_condition?(_row, nil, _columns), do: true
+  defp matches_having_condition?(row, {:and, lhs, rhs}, columns), do:
+    matches_having_condition?(row, lhs, columns) and matches_having_condition?(row, rhs, columns)
+  defp matches_having_condition?(row, {:or, lhs, rhs}, columns), do:
+    matches_having_condition?(row, lhs, columns) or matches_having_condition?(row, rhs, columns)
   defp matches_having_condition?(row, {:comparison, column, operator, target}, columns) do
     value = fetch_value!(row, column, columns)
     target = fetch_value!(row, target, columns)

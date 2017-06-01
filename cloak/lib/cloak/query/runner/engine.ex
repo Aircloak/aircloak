@@ -1,6 +1,7 @@
 defmodule Cloak.Query.Runner.Engine do
   @moduledoc "Execution of SQL queries."
   alias Cloak.{Sql, DataSource, Query, ResultSender}
+  alias Cloak.Sql.Comparison
   require Logger
 
   @type state_updater :: (ResultSender.query_state -> any)
@@ -71,7 +72,7 @@ defmodule Cloak.Query.Runner.Engine do
   end
   defp select_rows(%Sql.Query{emulated?: true} = query, state_updater) do
     Logger.debug("Emulating query ...")
-    query = %Sql.Query{query | emulated_where: query.where ++ query.emulated_where}
+    query = %Sql.Query{query | emulated_where: Comparison.combine(:and, query.where, query.emulated_where)}
     query
     |> Query.DbEmulator.select()
     |> process_final_rows(query, state_updater)
@@ -81,7 +82,7 @@ defmodule Cloak.Query.Runner.Engine do
     Logger.debug("Processing final rows ...")
     rows
     |> Query.RowSplitters.split(query)
-    |> Query.Rows.filter(Enum.map(query.emulated_where, &Sql.Comparison.to_function/1))
+    |> Query.Rows.filter(Sql.Comparison.to_function(query.emulated_where))
     |> Query.ShrinkAndDrop.apply(query)
     |> Query.Aggregator.aggregate(query, state_updater)
   end
