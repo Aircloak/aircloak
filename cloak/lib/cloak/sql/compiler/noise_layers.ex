@@ -44,9 +44,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.key(:ast)
 
   defp push_noise_layer(query, %{base: {_table, column, extras}}) do
-    index = Enum.find_index(query.column_titles, &(&1 == column))
-    true = index < length(query.columns)
-    expression = Enum.at(query.columns, index)
+    {:ok, expression} = find_column(column, query)
 
     layers =
       raw_columns()
@@ -158,10 +156,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     false
 
   defp raw_column?(%Expression{name: name}, %{from: {:subquery, %{ast: subquery}}}) do
-    if index = Enum.find_index(subquery.column_titles, &(&1 == name)) do
-      raw_column?(Enum.at(subquery.columns, index), subquery)
-    else
-      false
+    case find_column(name, subquery) do
+      {:ok, column} -> raw_column?(column, subquery)
+      _ -> false
     end
   end
   defp raw_column?(%Expression{user_id?: false, constant?: false, function?: false}, _query), do: true
@@ -211,4 +208,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   end
 
   defp reference_aliased(column), do: %Expression{name: column.alias || column.name}
+
+  defp find_column(name, query) do
+    case Enum.find_index(query.column_titles, &(&1 == name)) do
+      nil -> :error
+      index ->
+        true = index < length(query.columns)
+        {:ok, Enum.at(query.columns, index)}
+    end
+  end
 end
