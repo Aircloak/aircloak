@@ -21,7 +21,6 @@ defmodule Cloak.Query.Runner.Engine do
         {:ok, parsed} <- Sql.Parser.parse(statement),
         state_updater.(:compiling),
         {:ok, query} <- Sql.Compiler.compile(data_source, parsed, parameters, views),
-        query = Sql.Compiler.NoiseLayers.compile(query),
         state_updater.(:awaiting_data)
       do
         query_killer_reg.()
