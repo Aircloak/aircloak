@@ -37,12 +37,14 @@ defmodule Cloak.Sql.Parser do
     | {:in, String.t, [any]}
 
   @type where_clause ::
-      condition
+      nil
+    | condition
     | {:not, condition}
     | {:and | :or, condition, condition}
 
   @type having_clause ::
-      comparison
+      nil
+    | comparison
     | {:not, comparison}
     | {:and | :or, comparison, comparison}
 
@@ -55,7 +57,7 @@ defmodule Cloak.Sql.Parser do
       type: :cross_join | :inner_join | :full_outer_join | :left_outer_join | :right_outer_join,
       lhs: from_clause,
       rhs: from_clause,
-      conditions: where_clause | nil
+      conditions: where_clause
     }}
 
   @type subquery :: {:subquery, %{ast: parsed_query, alias: String.t}}
@@ -65,9 +67,9 @@ defmodule Cloak.Sql.Parser do
     columns: [column | {column, :as, String.t}] | :*,
     group_by: [String.t],
     from: from_clause,
-    where: where_clause | nil,
+    where: where_clause,
     order_by: [{String.t, :asc | :desc}],
-    having: having_clause | nil,
+    having: having_clause,
     show: :tables | :columns,
     limit: integer,
     offset: integer,

@@ -19,8 +19,17 @@ defmodule Cloak.Sql.Query do
     | {:is, Expression.t, :null}
     | {:in, Expression.t, [Expression.t]}
 
-  @type where_clause :: condition | {:not, condition}
-  @type having_clause :: comparison | {:not, comparison}
+  @type where_clause ::
+      nil
+    | condition
+    | {:not, condition}
+    | {:and | :or, condition, condition}
+
+  @type having_clause ::
+      nil
+    | comparison
+    | {:not, comparison}
+    | {:and | :or, comparison, comparison}
 
   @type view_map :: %{view_name :: String.t => view_sql :: String.t}
 
@@ -52,8 +61,8 @@ defmodule Cloak.Sql.Query do
     row_splitters: [%{function_spec: Parser.function_spec, row_index: row_index}],
     implicit_count?: boolean,
     group_by: [Function.t],
-    where: [where_clause] | nil | {:and | :or, where_clause, where_clause},
-    emulated_where: [where_clause],
+    where: where_clause,
+    emulated_where: where_clause,
     order_by: [{Expression.t, :asc | :desc}],
     show: :tables | :columns | nil,
     selected_tables: [DataSource.table],
@@ -62,7 +71,7 @@ defmodule Cloak.Sql.Query do
     subquery?: boolean,
     limit: pos_integer | nil,
     offset: non_neg_integer,
-    having: [having_clause] | nil | {:and | :or, having_clause, having_clause},
+    having: having_clause,
     distinct?: boolean,
     emulated?: boolean,
     ranges: [Range.t],
@@ -74,10 +83,10 @@ defmodule Cloak.Sql.Query do
   }
 
   defstruct [
-    columns: [], where: [], group_by: [], order_by: [], column_titles: [], aggregators: [],
+    columns: [], where: nil, group_by: [], order_by: [], column_titles: [], aggregators: [],
     info: [], selected_tables: [], row_splitters: [], implicit_count?: false, data_source: nil, command: nil,
-    show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
-    features: nil, emulated_where: [], ranges: [], parameters: [], views: %{}, emulated?: false,
+    show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil, distinct?: false,
+    features: nil, emulated_where: nil, ranges: [], parameters: [], views: %{}, emulated?: false,
     projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: [],
   ]
 
