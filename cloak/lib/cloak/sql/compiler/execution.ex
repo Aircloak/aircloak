@@ -28,7 +28,6 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> reject_null_user_ids()
     |> censor_selected_uids()
     |> align_buckets()
-    |> collapse_filters()
     |> align_ranges(Lens.key(:where), :where)
     |> align_join_ranges()
     |> add_subquery_ranges()
@@ -61,10 +60,7 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp reject_null_user_ids(%Query{subquery?: true} = query), do: query
   defp reject_null_user_ids(query), do:
-    %{query | where: add_condition({:not, {:is, Helpers.id_column(query), :null}}, query.where)}
-
-  defp add_condition(condition, nil), do: condition
-  defp add_condition(condition, root), do: {:and, condition, root}
+    %{query | where: Comparison.combine(:and, {:not, {:is, Helpers.id_column(query), :null}}, query.where)}
 
   defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
     # In a top-level query, we're replacing all selected expressions which depend on uid columns with the `:*`
@@ -251,7 +247,10 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> Enum.flat_map(&expand_arguments/1)
     |> Enum.filter(&(match?(%Expression{function?: true, aggregate?: true}, &1)))
 
-  defp having_columns(query), do: Enum.flat_map(query.having, &Comparison.targets/1)
+  defp having_columns(query), do:
+    Lenses.conditions()
+    |> Lenses.operands()
+    |> Lens.to_list(query.having)
 
   defp parse_row_splitters(%Query{} = query) do
     {transformed_columns, query} = transform_splitter_columns(query, query.columns)
@@ -318,11 +317,9 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp partition_where_clauses(query) do
     # extract conditions needing emulation
-    {emulated_column_clauses, safe_clauses} = Enum.partition(query.where, fn (condition) ->
-      emulated_expression_condition?(condition) or
-      (query.emulated? and multiple_tables_condition?(condition))
-    end)
-    %Query{query | where: safe_clauses, emulated_where: emulated_column_clauses}
+    {emulated_where, where} = Comparison.partition(query.where,
+      &emulated_expression_condition?(&1) or (query.emulated? and multiple_tables_condition?(&1)))
+    %Query{query | where: where, emulated_where: emulated_where}
   end
 
   defp multiple_tables_condition?(condition) do
@@ -339,15 +336,15 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> Enum.reduce(query, fn(lens, query) -> align_ranges(query, lens, :where) end)
 
   defp align_ranges(query, lens, range_type) do
-    clauses = Lens.get(lens, query)
+    clause = Lens.get(lens, query)
+    grouped_inequalities = inequalities_by_column(clause)
+    range_columns = Map.keys(grouped_inequalities)
 
-    verify_ranges(clauses)
+    verify_ranges(grouped_inequalities)
+    non_range_conditions = Comparison.reject(clause, &Enum.member?(range_columns, Comparison.subject(&1)))
 
-    ranges = inequalities_by_column(clauses)
-    non_range_clauses = Enum.reject(clauses, &Enum.member?(Map.keys(ranges), Comparison.subject(&1)))
-
-    query = put_in(query, [lens], non_range_clauses)
-    Enum.reduce(ranges, query, &add_aligned_range(&1, &2, lens, range_type))
+    query = put_in(query, [lens], non_range_conditions)
+    Enum.reduce(grouped_inequalities, query, &add_aligned_range(&1, &2, lens, range_type))
   end
 
   defp add_aligned_range({column, conditions}, query, lens, range_type) do
@@ -359,7 +356,9 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> FixAlign.align_interval()
 
     if implement_range?({left, right}, conditions) do
-      update_in(query, [lens], &(conditions ++ &1))
+      [lhs, rhs] = conditions
+      range = {:and, lhs, rhs}
+      update_in(query, [lens], &Comparison.combine(:and, range, &1))
     else
       query
       |> add_clause(lens, {:comparison, column, :<, Expression.constant(column.type, right)})
@@ -377,7 +376,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     left_operator == :>= && left_column.value == left && right_operator == :< && right_column.value == right
   end
 
-  defp add_clause(query, lens, clause), do: put_in(query, [lens, Lens.front()], clause)
+  defp add_clause(query, lens, clause), do: Lens.map(lens, query, &Comparison.combine(:and, clause, &1))
 
   defp add_subquery_ranges(query) do
     %{query | ranges:
@@ -388,9 +387,8 @@ defmodule Cloak.Sql.Compiler.Execution do
     }
   end
 
-  defp verify_ranges(clauses) do
-    clauses
-    |> inequalities_by_column()
+  defp verify_ranges(grouped_inequalities) do
+    grouped_inequalities
     |> Enum.reject(fn({_, comparisons}) -> valid_range?(comparisons) end)
     |> case do
       [{column, _} | _] ->
@@ -408,8 +406,9 @@ defmodule Cloak.Sql.Compiler.Execution do
     end
   end
 
-  defp inequalities_by_column(where_clauses) do
-    where_clauses
+  defp inequalities_by_column(where_clause) do
+    Lenses.conditions()
+    |> Lens.to_list(where_clause)
     |> Enum.filter(&Comparison.inequality?/1)
     |> Enum.group_by(&Comparison.subject/1)
     |> Enum.map(&discard_redundant_inequalities/1)
@@ -426,7 +425,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   end
 
   defp extract_columns(columns), do:
-    get_in(columns, [Query.Lenses.leaf_expressions()])
+    Query.Lenses.leaf_expressions() |> Lens.to_list(columns)
 
   defp calculate_db_columns(query) do
     selected_columns = select_expressions(query)
@@ -455,20 +454,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   end
 
   defp needed_columns(query), do:
-    query.columns ++
-    query.group_by ++
-    query.emulated_where ++
-    query.having ++
-    Query.order_by_expressions(query)
-
-  defp collapse_filters(query), do:
-    Lenses.filter_clauses() |> Lens.map(query, &conditions_tree_to_list/1)
-
-  defp conditions_tree_to_list(nil), do: []
-  defp conditions_tree_to_list([]), do: []
-  defp conditions_tree_to_list({:and, lhs, rhs}), do:
-    conditions_tree_to_list(lhs) ++ conditions_tree_to_list(rhs)
-  defp conditions_tree_to_list(condition), do: [condition]
+    [query.columns, query.group_by, query.emulated_where, query.having, Query.order_by_expressions(query)]
 
 
   # -------------------------------------------------------------------
@@ -488,8 +474,8 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp set_emulation_flag(query), do: %Query{query | emulated?: needs_emulation?(query)}
 
   defp has_emulated_expressions?(query), do:
-    (query.columns ++ query.group_by ++ query.having ++ query.where)
-    |> get_in([Query.Lenses.all_expressions()])
+    Query.Lenses.all_expressions()
+    |> Lens.to_list([query.columns, query.group_by, query.having, query.where])
     |> Enum.any?(&emulated_expression?/1)
 
   defp has_emulated_join_conditions?(query), do:
