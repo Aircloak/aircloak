@@ -85,6 +85,11 @@ defmodule Air.PsqlServer.RanchServer do
   def assign(conn, key, value), do:
     put_in(conn.assigns[key], value)
 
+  @doc "Removes the value under the given key from the connection state."
+  @spec unassign(t, any) :: t
+  def unassign(conn, key), do:
+    update_in(conn.assigns, &Map.delete(&1, key))
+
   @doc "Passes the query result to the protocol state."
   @spec query_result(t, Protocol.query_result) :: t
   def query_result(conn, query_result), do:

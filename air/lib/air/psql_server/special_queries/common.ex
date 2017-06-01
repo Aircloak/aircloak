@@ -14,8 +14,10 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
     cond do
       query =~ ~r/^set /i ->
         RanchServer.query_result(conn, command: :set)
-      query =~ ~r/^close /i ->
-        RanchServer.query_result(conn, command: :"close cursor")
+      cursor = close_cursor_query?(query) ->
+        conn
+        |> RanchServer.unassign({:cursor_result, cursor})
+        |> RanchServer.query_result(command: :"close cursor")
       query =~ ~r/^select t.oid, t.typname, t.typsend, t.typreceive.*FROM pg_type AS t\s*$/is ->
         return_types_for_postgrex(conn)
       query =~ ~r/^select.+from pg_type/si ->
@@ -52,6 +54,13 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
+
+  defp close_cursor_query?(query) do
+    case Regex.named_captures(~r/close "(?<cursor>.+)"/is, query) do
+      %{"cursor" => cursor} -> cursor
+      nil -> nil
+    end
+  end
 
   defp permission_denied_query?(query), do:
     [

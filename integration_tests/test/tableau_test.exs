@@ -94,6 +94,33 @@ defmodule IntegrationTest.TableauTest do
     ]
   end
 
+  test "partial fetching through a cursor", context do
+    query = 'BEGIN;declare "my_cursor" cursor for show columns from users;fetch 1 in "my_cursor"'
+    assert :odbc.sql_query(context.conn, query) == [
+      {:updated, 0}, {:updated, 0},
+      {:selected, ['name', 'type'], [{'user_id', 'text'}]}
+    ]
+
+    assert :odbc.sql_query(context.conn, 'fetch 2 in "my_cursor"') ==
+      {:selected, ['name', 'type'], [{'name', 'text'}, {'height', 'integer'}]}
+
+    assert :odbc.sql_query(context.conn, 'fetch 1 in "my_cursor"') ==
+      {:selected, ['name', 'type'], []}
+
+    assert :odbc.sql_query(context.conn, 'close "my_cursor"') == {:updated, 0}
+  end
+
+  test "fetching from an unexisting cursor", context do
+    assert {:error, error} = :odbc.sql_query(context.conn, 'fetch 2 in "unknown_cursor"')
+    assert to_string(error) =~ ~r/^ERROR: cursor `unknown_cursor` does not exist.*/
+  end
+
+  test "invalid query through a cursor", context do
+    query = 'BEGIN;declare "SQL_CUR04AD8270" cursor for foo bar;fetch 2048 in "SQL_CUR04AD8270"'
+    assert {:error, error} = :odbc.sql_query(context.conn, query)
+    assert to_string(error) =~ ~r/^ERROR: Expected `select or show`/
+  end
+
   test "deallocate statement", context, do:
     assert :odbc.sql_query(context.conn, 'DEALLOCATE "foobar"') == {:updated, 0}
 
