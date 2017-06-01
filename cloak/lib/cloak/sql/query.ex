@@ -80,6 +80,7 @@ defmodule Cloak.Sql.Query do
     projected?: boolean,
     next_row_index: row_index,
     noise_layers: [NoiseLayer.t],
+    view?: boolean
   }
 
   defstruct [
@@ -87,7 +88,7 @@ defmodule Cloak.Sql.Query do
     info: [], selected_tables: [], row_splitters: [], implicit_count?: false, data_source: nil, command: nil,
     show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil, distinct?: false,
     features: nil, emulated_where: nil, ranges: [], parameters: [], views: %{}, emulated?: false,
-    projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: [],
+    projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false
   ]
 
 
@@ -304,8 +305,8 @@ defmodule Cloak.Sql.Query do
   defp extract_column_type(%Expression{table: :unknown}), do: []
   defp extract_column_type(%Expression{table: %{columns: columns}, name: name}), do:
     columns
-    |> Enum.filter(& elem(&1, 0) == name)
-    |> Enum.map(& elem(&1, 1))
+    |> Enum.filter(&(&1.name == name))
+    |> Enum.map(&(&1.type))
 
   defp extract_columns(columns), do: Enum.flat_map(columns, &extract_column/1)
 

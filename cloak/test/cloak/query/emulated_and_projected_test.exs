@@ -83,6 +83,14 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
     test "non-selected order by", do:
       assert_query "select value from (select user_id, value from #{@prefix}emulated order by num limit 1) as t",
         %{rows: [%{occurrences: 10, row: [nil]}]}
+
+    test "implicitly selected uid", do:
+      assert_query "select count(value) from (select value from #{@prefix}emulated where value = 'aaa') as t",
+        %{rows: [%{occurrences: 1, row: [10]}]}
+
+    test "select all from a query with an implicitly selected uid", do:
+      assert_query "select * from (select value from #{@prefix}emulated where value = 'aaa') as t",
+        %{columns: ["value"], rows: [%{occurrences: 10, row: ["aaa"]}]}
   end
 
   describe "emulated subqueries with functions" do

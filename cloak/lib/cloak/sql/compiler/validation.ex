@@ -116,7 +116,20 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_joins(%Query{projected?: true} = query), do: query
   defp verify_joins(query) do
     verify_join_conditions_scope(query.from, [])
+    verify_all_joined_subqueries_have_explicit_uids(query)
     verify_all_uid_columns_are_compared_in_joins(query)
+  end
+
+  defp verify_all_joined_subqueries_have_explicit_uids(query) do
+    Lens.each(
+      Lenses.joined_subqueries(),
+      query,
+      fn(joined_subquery) ->
+        unless Enum.any?(joined_subquery.ast.columns, &(&1.user_id? && &1.visible?)), do:
+          raise CompilationError,
+            message: "There is no user id column in the subquery `#{joined_subquery.alias}`."
+      end
+    )
   end
 
   defp verify_all_uid_columns_are_compared_in_joins(query), do:
@@ -255,21 +268,18 @@ defmodule Cloak.Sql.Compiler.Validation do
   # -------------------------------------------------------------------
 
   defp verify_subquery_uid(subquery, alias) do
-    case Enum.find(subquery.columns, &(&1.user_id?)) do
-      nil ->
-        possible_uid_columns =
-          Helpers.all_id_columns_from_tables(subquery)
-          |> Enum.map(&Expression.display_name/1)
-          |> case do
-            [column] -> "the column #{column}"
-            columns -> "one of the columns #{Enum.join(columns, ", ")}"
-          end
+    unless Helpers.uid_column_selected?(subquery) do
+      possible_uid_columns =
+        Helpers.all_id_columns_from_tables(subquery)
+        |> Enum.map(&Expression.display_name/1)
+        |> case do
+          [column] -> "the column #{column}"
+          columns -> "one of the columns #{Enum.join(columns, ", ")}"
+        end
 
-        raise CompilationError, message:
-          "Missing a user id column in the select list of #{"subquery `#{alias}`"}. " <>
-          "To fix this error, add #{possible_uid_columns} to the subquery select list."
-      _ ->
-        subquery
+      raise CompilationError, message:
+        "Missing a user id column in the select list of #{"subquery `#{alias}`"}. " <>
+        "To fix this error, add #{possible_uid_columns} to the subquery select list."
     end
   end
 

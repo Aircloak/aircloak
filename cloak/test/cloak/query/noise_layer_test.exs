@@ -1,4 +1,11 @@
 defmodule Cloak.Query.NoiseLayerTest do
+  @moduledoc """
+  If tests in this module start failing due to some unrelated change in how the random numbers in aggregator are
+  computed you can get another "roll" by changing the constants that noise layers are applied over. To make sure they
+  are still valid you can disable noise layer computation entirely - all except for the count(*) vs count(column) one
+  should fail.
+  """
+
   use ExUnit.Case, async: false
 
   import Cloak.Test.QueryHelpers
@@ -11,14 +18,18 @@ defmodule Cloak.Query.NoiseLayerTest do
     Cloak.Test.DB.clear_table("noise_layers")
 
     anonymizer_config = Application.get_env(:cloak, :anonymizer)
-    Application.put_env(:cloak, :anonymizer, Keyword.put(anonymizer_config, :outliers_count, {4, 0.5}))
+    Application.put_env(:cloak, :anonymizer,
+      anonymizer_config
+      |> Keyword.put(:outliers_count, {4, 0.5})
+      |> Keyword.put(:low_count_soft_lower_bound, {5, 1})
+    )
     on_exit(fn() -> Application.put_env(:cloak, :anonymizer, anonymizer_config) end)
 
     :ok
   end
 
   test "count(*) uses a different noise layer than count(column)" do
-    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [6])
+    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [7])
     :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [4])
 
     assert_query "select count(*), count(number) from noise_layers where number <> 0",
@@ -38,21 +49,23 @@ defmodule Cloak.Query.NoiseLayerTest do
   end
 
   test "multiple noise layers on same column" do
-    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [9])
-    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [9])
+    number = 10
+    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [number])
+    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [number])
 
-    assert_query "select avg(number) from noise_layers where number = 9",
+    assert_query "select avg(number) from noise_layers where number = #{number}",
       %{rows: [%{row: [value1]}]}
-    assert_query "select avg(number) from noise_layers where number = 9 group by number",
+    assert_query "select avg(number) from noise_layers where number = #{number} group by number",
       %{rows: [%{row: [value2]}]}
     assert value1 != value2
   end
 
   test "noise layers in subqueries" do
-    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [7])
-    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [7])
+    number = 14
+    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [number])
+    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [number])
 
-    assert_query "select avg(number) from (select user_id, number from noise_layers where number = 7) foo",
+    assert_query "select avg(number) from (select user_id, number from noise_layers where number = #{number}) foo",
       %{rows: [%{row: [value1]}]}
     assert_query "select avg(number) from noise_layers",
       %{rows: [%{row: [value2]}]}
@@ -61,12 +74,56 @@ defmodule Cloak.Query.NoiseLayerTest do
 
   test "noise layers in aggregating subqueries" do
     :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number", "other"], [7, 8])
-    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number", "other"], [7, 13])
+    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number", "other"], [7, 14])
 
     assert_query "select avg(other) from (select user_id, other from noise_layers group by user_id, other) foo",
       %{rows: [%{row: [value1]}]}
     assert_query "select avg(other) from noise_layers",
       %{rows: [%{row: [value2]}]}
     assert value1 != value2
+  end
+
+  test "range noise layers" do
+    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number", "other"], [6, 11])
+    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number", "other"], [6, 11])
+
+    assert_query "select avg(number) from noise_layers where other between 0 and 100",
+      %{rows: [%{row: [value1]}]}
+    assert_query "select avg(number) from noise_layers",
+      %{rows: [%{row: [value2]}]}
+    assert value1 != value2
+  end
+
+  test "range noise layers are sensitive to constants" do
+    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number", "other"], [6, 11])
+    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number", "other"], [6, 11])
+
+    assert_query "select avg(number) from noise_layers where other between 0 and 100",
+      %{rows: [%{row: [value1]}]}
+    assert_query "select avg(number) from noise_layers where other between 0 and 1000",
+      %{rows: [%{row: [value2]}]}
+    assert value1 != value2
+  end
+
+  test "noise layers in hiding the low-count row" do
+    other = 20
+
+    for i <- 1..5, do:
+      :ok = insert_rows(_user_ids = [i], "noise_layers", ["number", "other"], [i, other])
+
+    assert_query "select number from noise_layers where other = #{other}", %{rows: rows1}
+    assert_query "select number from noise_layers", %{rows: rows2}
+    assert rows1 != rows2
+  end
+
+  test "noise layers in hiding the user_count" do
+    number = 14
+    :ok = insert_rows(_user_ids = 1..5, "noise_layers", ["number"], [number])
+
+    assert_query "select avg(other) from noise_layers where number = #{number}",
+      %{users_count: count1}
+    assert_query "select avg(other) from noise_layers",
+      %{users_count: count2}
+    assert count1 != count2
   end
 end

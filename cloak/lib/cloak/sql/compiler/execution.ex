@@ -30,7 +30,6 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> align_buckets()
     |> align_ranges(Lens.key(:where), :where)
     |> align_join_ranges()
-    |> add_subquery_ranges()
     |> optimize_columns_from_projected_tables()
     |> set_emulation_flag()
     |> partition_where_clauses()
@@ -100,7 +99,6 @@ defmodule Cloak.Sql.Compiler.Execution do
     end
   end
 
-
   defp optimize_columns_from_projected_tables(%Query{projected?: false} = query), do:
     # We're reducing the amount of selected columns from projected subqueries to only
     # those columns which we in fact need in the outer query (`query`).
@@ -164,40 +162,6 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> align_limit()
     |> align_offset()
     |> align_ranges(Lens.key(:having), :having)
-    |> carry_ranges()
-
-  defp carry_ranges(query) do
-    query = %{query | ranges: Enum.flat_map(query.ranges, &carrying_ranges(query, &1))}
-    range_columns = Enum.map(query.ranges, &(&1.column))
-
-    if query.emulated? do
-      %{
-        query |
-        columns: query.columns ++ range_columns,
-        column_titles: query.column_titles ++ Enum.map(range_columns, & &1.alias),
-        aggregators: query.aggregators ++ Enum.filter(range_columns, & &1.aggregate?),
-      }
-    else
-      %{query | db_columns: query.db_columns ++ range_columns}
-    end
-  end
-
-  defp carrying_ranges(%{implicit_count?: true}, range), do: [%{range | column: Helpers.set_unique_alias(range.column)}]
-  defp carrying_ranges(_query, range = %{type: type, column: column}) do
-    case type do
-      :having -> [%{range | type: :where, column: Helpers.set_unique_alias(column)}]
-      :nested_min -> [%{range | column: min_column(column)}]
-      :nested_max -> [%{range | column: max_column(column)}]
-      :where -> [
-        %{range | type: :nested_min, column: min_column(column)},
-        %{range | type: :nested_max, column: max_column(column)},
-      ]
-    end
-  end
-
-  defp min_column(column), do: Expression.function("min", [column], column.type, true) |> Helpers.set_unique_alias()
-
-  defp max_column(column), do: Expression.function("max", [column], column.type, true) |> Helpers.set_unique_alias()
 
   @minimum_subquery_limit 10
   defp align_limit(query = %{limit: nil}), do: query
@@ -377,15 +341,6 @@ defmodule Cloak.Sql.Compiler.Execution do
   end
 
   defp add_clause(query, lens, clause), do: Lens.map(lens, query, &Comparison.combine(:and, clause, &1))
-
-  defp add_subquery_ranges(query) do
-    %{query | ranges:
-      query
-      |> get_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast) |> Lens.key(:ranges) |> Lens.all()])
-      |> Enum.map(&(%{&1 | column: %Expression{name: &1.column.alias}}))
-      |> Enum.into(query.ranges)
-    }
-  end
 
   defp verify_ranges(grouped_inequalities) do
     grouped_inequalities

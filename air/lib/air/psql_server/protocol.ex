@@ -31,7 +31,7 @@ defmodule Air.PsqlServer.Protocol do
     executing_portal: nil | binary,
     prepared_statements: %{String.t => prepared_statement},
     portals: %{String.t => prepared_statement},
-    debug?: boolean,
+    detailed_log?: boolean,
   }
 
   @type state ::
@@ -120,7 +120,7 @@ defmodule Air.PsqlServer.Protocol do
       executing_portal: nil,
       prepared_statements: %{},
       portals: %{},
-      debug?: Keyword.get(Application.fetch_env!(:air, Air.PsqlServer), :debug, false)
+      detailed_log?: Keyword.get(Application.fetch_env!(:air, Air.PsqlServer), :detailed_log, false)
     }
   end
 
@@ -179,7 +179,7 @@ defmodule Air.PsqlServer.Protocol do
   @doc "Adds a send message action to the list of pending actions."
   @spec send_to_client(t, Messages.server_message) :: t
   def send_to_client(protocol, message) do
-    debug_log(protocol, fn -> ["psql server: sending ", inspect(message)] end)
+    log_details(protocol, fn -> ["psql server: sending ", inspect(message)] end)
     add_action(protocol, {:send, Messages.encode_message(message)})
   end
 
@@ -260,7 +260,7 @@ defmodule Air.PsqlServer.Protocol do
   end
 
   defp log_decoded_message(protocol, type, payload), do:
-    debug_log(protocol, fn ->
+    log_details(protocol, fn ->
       payload_str = case payload do
         nil -> ""
         other -> inspect(other)
@@ -285,8 +285,8 @@ defmodule Air.PsqlServer.Protocol do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp debug_log(%{debug?: false}, _lambda), do: nil
-  defp debug_log(_protocol, lambda), do: Logger.debug(lambda)
+  defp log_details(%{detailed_log?: false}, _lambda), do: nil
+  defp log_details(_protocol, lambda), do: Logger.info(lambda)
 
   defp protocol_handler(state) when state in [
     :initial, :negotiating_ssl, :ssl_negotiated, :login_params, :authenticating

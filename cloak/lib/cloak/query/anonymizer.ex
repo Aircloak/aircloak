@@ -30,9 +30,12 @@ defmodule Cloak.Query.Anonymizer do
   For a description of the way the aggregation is performed, see `docs/anonymization.md`.
   """
 
-  @opaque t :: %{
-    rngs: [:rand.state],
+  @opaque rng_state :: [:rand.state]
+
+  @type t :: %{
+    rngs: rng_state,
     starred: boolean,
+    layers: [MapSet.t | %{}],
   }
 
   import Kernel, except: [max: 2]
@@ -53,6 +56,7 @@ defmodule Cloak.Query.Anonymizer do
     %{
       rngs: layers |> noise_layers_to_seeds() |> Enum.map(&build_rng/1),
       starred: false,
+      layers: layers,
     }
 
   @doc """

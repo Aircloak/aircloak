@@ -19,13 +19,18 @@ defmodule Cloak.Sql.Compiler.Helpers do
       else: hd(id_columns)
   end
 
+  @doc "Returns true if any uid column is selected."
+  @spec uid_column_selected?(partial_query) :: boolean
+  def uid_column_selected?(query), do:
+    Enum.any?(query.columns, &(&1.user_id?))
+
   @doc "Returns all id columns from the query."
   @spec all_id_columns_from_tables(partial_query) :: [Expression.t]
   def all_id_columns_from_tables(%Query{command: :select, selected_tables: tables}) do
     Enum.map(tables, fn(table) ->
       user_id = table.user_id
-      {_, type} = Enum.find(table.columns, fn ({name, _type}) -> insensitive_equal?(user_id, name) end)
-      %Expression{table: table, name: user_id, type: type, user_id?: true}
+      column = Enum.find(table.columns, &insensitive_equal?(user_id, &1.name))
+      %Expression{table: table, name: user_id, type: column.type, user_id?: true}
     end)
   end
 

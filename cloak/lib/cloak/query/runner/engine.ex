@@ -47,14 +47,12 @@ defmodule Cloak.Query.Runner.Engine do
       )
     )
   defp run_statement(%Sql.Query{command: :show, show: :columns, selected_tables: [table]} = query, _state_updater), do:
-    Query.Result.new(query,
-      Enum.map(sorted_table_columns(table), fn({name, type}) -> %{occurrences: 1, row: [name, type]} end)
-    )
+    Query.Result.new(query, Enum.map(sorted_table_columns(table), &%{occurrences: 1, row: [&1.name, &1.type]}))
   defp run_statement(%Sql.Query{command: :select} = query, state_updater), do:
     select_rows(query, state_updater)
 
   defp sorted_table_columns(table) do
-    {[uid], other_columns} = Enum.split_with(table.columns, fn({name, _}) -> name == table.user_id end)
+    {[uid], other_columns} = Enum.split_with(table.columns, &(&1.name == table.user_id))
     [uid | other_columns]
   end
 
@@ -83,7 +81,6 @@ defmodule Cloak.Query.Runner.Engine do
     rows
     |> Query.RowSplitters.split(query)
     |> Query.Rows.filter(Sql.Comparison.to_function(query.emulated_where))
-    |> Query.ShrinkAndDrop.apply(query)
     |> Query.Aggregator.aggregate(query, state_updater)
   end
 end
