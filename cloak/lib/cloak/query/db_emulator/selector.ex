@@ -17,7 +17,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   def select(stream, query) do
     {columns, rows} =
       stream
-      |> Rows.filter(Enum.map(query.emulated_where, &Comparison.to_function/1))
+      |> Rows.filter(Comparison.to_function(query.emulated_where))
       |> select_columns(query)
 
     rows
@@ -186,12 +186,12 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp inner_join(lhs, rhs, join) do
     rhs_pre_filter = create_join_pre_filter(rhs, join)
-    filters = Enum.map(join.conditions, &Comparison.to_function/1)
+    filter = Comparison.to_function(join.conditions)
     Stream.flat_map(lhs, fn (lhs_row) ->
       lhs_row
       |> rhs_pre_filter.()
       |> add_prefix_to_rows(lhs_row)
-      |> Rows.filter(filters)
+      |> Rows.filter(filter)
     end)
   end
 
@@ -207,12 +207,12 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp outer_join(lhs, rhs, join, rows_combiner, unmatched_handler, matched_handler) do
     rhs_pre_filter = create_join_pre_filter(rhs, join)
-    filters = Enum.map(join.conditions, &Comparison.to_function/1)
+    filter = Comparison.to_function(join.conditions)
     Stream.flat_map(lhs, fn (lhs_row) ->
       lhs_row
       |> rhs_pre_filter.()
       |> rows_combiner.(lhs_row)
-      |> Rows.filter(filters)
+      |> Rows.filter(filter)
       |> Enum.to_list()
       |> case do
         [] -> unmatched_handler.(lhs_row)
@@ -270,8 +270,9 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp extract_matching_columns_from_join(join) do
     # Get best equality comparison between left and right columns (preferring user id columns).
+    conditions = Query.Lenses.conditions() |> Lens.to_list(join.conditions)
     [{subject, target} | _] =
-      (for {:comparison, subject, :=, target} <- join.conditions, subject != target, do: {subject, target})
+      (for {:comparison, subject, :=, target} <- conditions, subject != target, do: {subject, target})
       |> Enum.sort_by(&condition_evaluator/1, &>=/2)
     # Make sure we return the columns in the correct order ({left_branch, right_branch}).
     if table_is_in_join_branch?(subject.table.name, join.lhs) do
