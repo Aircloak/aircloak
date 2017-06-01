@@ -50,6 +50,17 @@ defmodule Cloak.Sql.Comparison do
   @doc "Converts the given condition to a function that checks a row."
   @spec to_function(Query.where_clause, boolean) :: (any -> boolean)
   def to_function(_condition, _truth \\ true)
+  def to_function(nil, _truth), do: nil
+  def to_function({:and, lhs, rhs}, truth) do
+    lhs_fun = to_function(lhs, truth)
+    rhs_fun = to_function(rhs, truth)
+    fn(row) -> lhs_fun.(row) and rhs_fun.(row) == truth end
+  end
+  def to_function({:or, lhs, rhs}, truth) do
+    lhs_fun = to_function(lhs, truth)
+    rhs_fun = to_function(rhs, truth)
+    fn(row) -> lhs_fun.(row) or rhs_fun.(row) == truth end
+  end
   def to_function({:not, condition}, truth), do: to_function(condition, not truth)
   def to_function({:comparison, column, operator, value}, truth) do
     fn(row) ->
