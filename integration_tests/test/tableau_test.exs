@@ -115,6 +115,12 @@ defmodule IntegrationTest.TableauTest do
     assert to_string(error) =~ ~r/^ERROR: cursor `unknown_cursor` does not exist.*/
   end
 
+  test "invalid query through a cursor", context do
+    query = 'BEGIN;declare "SQL_CUR04AD8270" cursor for foo bar;fetch 2048 in "SQL_CUR04AD8270"'
+    assert {:error, error} = :odbc.sql_query(context.conn, query)
+    assert to_string(error) =~ ~r/^ERROR: Expected `select or show`/
+  end
+
   test "deallocate statement", context, do:
     assert :odbc.sql_query(context.conn, 'DEALLOCATE "foobar"') == {:updated, 0}
 

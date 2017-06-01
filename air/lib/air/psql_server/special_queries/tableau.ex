@@ -148,11 +148,14 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
 
   defp fetch_from_cursor(conn, cursor_name, count) do
     case Map.fetch(conn.assigns, {:cursor_result, cursor_name}) do
+      {:ok, {:error, _} = error} ->
+        RanchServer.query_result(conn, error)
+
       {:ok, query_result} ->
         {rows_to_return, remaining_rows} = Enum.split(Keyword.fetch!(query_result, :rows), count)
 
         conn
-        |> RanchServer.query_result(to_fetch_result(Keyword.put(query_result, :rows, rows_to_return)))
+        |> RanchServer.query_result(Keyword.merge(query_result, command: :fetch, rows: rows_to_return))
         |> store_cursor_result(cursor_name, Keyword.put(query_result, :rows, remaining_rows))
 
       :error ->
@@ -186,9 +189,4 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
       nil -> nil
     end
   end
-
-  defp to_fetch_result({:error, _} = error), do:
-    error
-  defp to_fetch_result(query_result), do:
-    Keyword.put(query_result, :command, :fetch)
 end
