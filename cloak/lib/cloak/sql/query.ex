@@ -133,7 +133,7 @@ defmodule Cloak.Sql.Query do
       {:ok,
         Enum.zip(compiled_query.column_titles, compiled_query.columns)
         |> Enum.map(fn({name, column}) ->
-              %{name: name, type: stringify(Function.type(column)),
+              %{name: name, type: Atom.to_string(Function.type(column)),
                 user_id: match?(%Expression{user_id?: true}, column)}
             end)
       }
@@ -229,10 +229,6 @@ defmodule Cloak.Sql.Query do
       Compiler.compile(data_source, parsed_query, parameters, views)
     end
   end
-
-  defp stringify(string) when is_binary(string), do: string
-  defp stringify(atom) when is_atom(atom), do: Atom.to_string(atom)
-  defp stringify(function) when is_function(function), do: inspect(function)
 
   defp view_name_ok?(data_source, view_name) do
     if Enum.any?(DataSource.tables(data_source), &(&1.name == view_name)) do
