@@ -1,10 +1,11 @@
 defmodule Cloak.Sql.Compiler.Normalization do
+  alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.{Expression, Query}
 
   def normalize(query), do:
     query
-    |> expand_not_in()
-    |> normalize_constants()
+    |> Helpers.apply_bottom_up(&expand_not_in/1)
+    |> Helpers.apply_bottom_up(&normalize_constants/1)
 
   defp expand_not_in(query), do:
     update_in(query, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
@@ -19,6 +20,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp do_normalize_constants(expression = %Expression{function?: true, aggregate?: false}) do
     if Enum.all?(expression.function_args, &Expression.constant?/1) do
       Expression.constant(expression.type, Expression.value(expression, []), expression.parameter_index)
+      |> put_in([Lens.key(:alias)], expression.alias)
     else
       expression
     end

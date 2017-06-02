@@ -833,6 +833,15 @@ defmodule Cloak.Sql.Compiler.Test do
     assert result1.where == result2.where
   end
 
+  test "normalization in subqueries" do
+    %{from: {:subquery, %{ast: result1}}} = compile!(
+      "SELECT * FROM (SELECT * FROM table WHERE numeric = 2 * 3 + 4) x", data_source())
+    %{from: {:subquery, %{ast: result2}}} = compile!(
+      "SELECT * FROM (SELECT * FROM table WHERE numeric = 10) x", data_source())
+
+    assert result1.where == result2.where
+  end
+
   defp projected_table_db_columns(query), do:
     query
     |> get_in([all_subqueries()])
