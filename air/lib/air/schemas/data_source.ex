@@ -3,6 +3,7 @@ defmodule Air.Schemas.DataSource do
   use Air.Schemas.Base
 
   alias Air.Schemas.Group
+  alias Air.Service
 
   @type t :: %__MODULE__{}
 
@@ -39,15 +40,6 @@ defmodule Air.Schemas.DataSource do
     end
   end
 
-  @doc "Returns a list of the data source errors"
-  @spec errors(t) :: [String.t]
-  def errors(data_source) do
-    case Poison.decode(data_source.errors) do
-      {:ok, errors} -> errors
-      _ -> []
-    end
-  end
-
   @doc "Format a data source as a map"
   @spec to_map(t) :: Map.t
   def to_map(data_source) do
@@ -57,7 +49,7 @@ defmodule Air.Schemas.DataSource do
       name: data_source.name,
       description: data_source.description,
       tables: tables(data_source),
-      errors: errors(data_source),
+      errors: Service.DataSource.errors(data_source),
     }
   end
 

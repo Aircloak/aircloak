@@ -225,13 +225,22 @@ defmodule Air.Service.DataSource do
   @spec status(DataSource.t) :: data_source_status
   def status(data_source) do
     if available?(data_source.name) do
-      if DataSource.errors(data_source) != [] do
+      if errors(data_source) != [] do
         :broken
       else
         :online
       end
     else
       :offline
+    end
+  end
+
+  @doc "Returns a list of the data source errors"
+  @spec errors(DataSource.t) :: [String.t]
+  def errors(data_source) do
+    case Poison.decode(data_source.errors) do
+      {:ok, errors} -> errors
+      _ -> []
     end
   end
 
