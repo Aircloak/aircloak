@@ -991,6 +991,12 @@ defmodule Cloak.Sql.Parser.Test do
     """, select(columns: :*, from: unquoted("baz")))
   end
 
+  test "select with a table alias", do:
+    assert_parse("select foo from baz b", select(columns: [identifier("foo")], from: {unquoted("baz"), :as, "b"}))
+
+  test "select with a table alias 2", do:
+    assert_parse("select foo from baz as b", select(columns: [identifier("foo")], from: {unquoted("baz"), :as, "b"}))
+
   create_test =
     fn(description, statement, expected_error, line, column) ->
       test description do
@@ -1059,7 +1065,7 @@ defmodule Cloak.Sql.Parser.Test do
       {"invalid where expression",
         "select foo from bar where foo bar", "Invalid where expression", {1, 27}},
       {"no input allowed after the statement",
-        "select foo from bar baz", "Expected end of input", {1, 21}},
+        "select foo from bar baz qux", "Expected end of input", {1, 25}},
       {"error after spaces",
         "   invalid_statement", "Expected `select or show`", {1, 4}},
       {"initial error after spaces and newlines",
