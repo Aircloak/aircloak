@@ -10,7 +10,7 @@ defmodule Air.API.DataSourceController do
 
   def index(conn, _params) do
     data_sources = DataSource.all()
-    |> Enum.map(&to_map/1)
+    |> Enum.map(&to_map(conn.assigns.current_user, &1))
     json(conn, data_sources)
   end
 
@@ -19,13 +19,13 @@ defmodule Air.API.DataSourceController do
   # API functions
   # -------------------------------------------------------------------
 
-  defp to_map(data_source) do
+  defp to_map(user, data_source) do
     %{
       id: data_source.id,
       token: data_source.global_id,
       name: data_source.name,
       description: data_source.description,
-      tables: DataSource.tables(data_source),
+      tables: DataSource.tables(user, data_source),
       errors: DataSource.errors(data_source),
     }
   end
