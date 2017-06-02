@@ -1,7 +1,7 @@
 defmodule Air.Schemas.DataSourceTest do
   use Air.SchemaCase, async: true
 
-  alias Air.{Schemas.DataSource, Schemas.Group, TestRepoHelper, TestUtils}
+  alias Air.{Schemas.DataSource, Schemas.Group, TestRepoHelper, TestUtils, Service}
 
   @valid_attrs %{
     global_id: "global_id",
@@ -30,7 +30,7 @@ defmodule Air.Schemas.DataSourceTest do
   test "invalid tables json defaults to no tables" do
     data_source = Repo.insert!(
       DataSource.changeset(%DataSource{}, Map.merge(@valid_attrs, %{tables: "[invalid"})))
-    assert [] == DataSource.tables(data_source)
+    assert [] == Service.DataSource.tables(data_source)
   end
 
   test "a data_source can have many groups" do

@@ -4,7 +4,7 @@ defmodule Air.ViewHelpers do
   import Phoenix.HTML.Tag, only: [content_tag: 3]
   import Phoenix.HTML.Link, only: [link: 2]
 
-  alias Air.Service.Warnings
+  alias Air.Service.{Warnings, DataSource}
 
   @doc "Verifies if the currently logged-in user has permissions on the given action."
   @spec permitted?(Plug.Conn.t, module, atom) :: boolean
@@ -29,7 +29,7 @@ defmodule Air.ViewHelpers do
   @doc "Returns an embeddable json representing selectable tables and views."
   @spec selectables(Plug.Conn.t, Air.Schema.DataSource.t, [Air.Schema.View.t]) :: {:safe, iodata}
   def selectables(conn, data_source, views) do
-    Air.Schemas.DataSource.tables(data_source)
+    DataSource.tables(data_source)
     |> Kernel.++(
           Enum.map(views, &%{
             "id" => &1.name,
