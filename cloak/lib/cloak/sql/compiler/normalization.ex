@@ -28,7 +28,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
 
   # -------------------------------------------------------------------
-  # Private functions
+  # NOT IN expansion
   # -------------------------------------------------------------------
 
   defp expand_not_in(query), do:
@@ -37,6 +37,11 @@ defmodule Cloak.Sql.Compiler.Normalization do
         Enum.reduce(exps, {:comparison, lhs, :<>, exp}, &{:and, {:comparison, lhs, :<>, &1}, &2})
       other -> other
     end)
+
+
+  # -------------------------------------------------------------------
+  # Collapsing constant expressions
+  # -------------------------------------------------------------------
 
   defp normalize_constants(query), do:
     update_in(query, [Query.Lenses.terminals()], &do_normalize_constants/1)
@@ -50,6 +55,11 @@ defmodule Cloak.Sql.Compiler.Normalization do
     end
   end
   defp do_normalize_constants(other), do: other
+
+
+  # -------------------------------------------------------------------
+  # Normalizing upper(x) <> constant
+  # -------------------------------------------------------------------
 
   defp normalize_upper(query), do:
     update_in(query, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
