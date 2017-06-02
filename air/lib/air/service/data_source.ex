@@ -253,6 +253,22 @@ defmodule Air.Service.DataSource do
     end
   end
 
+  @doc "Same as tables/1 but also includes views visible to the user"
+  @spec tables(User.t, DataSource.t) :: [Map.t]
+  def tables(user, data_source) do
+    View.all(user, data_source)
+    |> Enum.map(fn(view) ->
+      %{
+        "view" => true,
+        "id" => view.name,
+        "broken" => view.broken,
+        "columns" => Map.fetch!(view.result_info, "columns"),
+        "internal_id" => view.id,
+      }
+    end)
+    |> Enum.concat(tables(data_source))
+  end
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions

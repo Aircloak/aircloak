@@ -177,6 +177,31 @@ defmodule Air.Service.DataSourceTest do
       data_source = DataSource.create_or_update_data_source(name, global_id, tables, [])
       assert tables == DataSource.tables(data_source)
     end
+
+    test "should list views as part of tables" do
+      tables = []
+      name = "new_name"
+      global_id = "global_id"
+      data_source = DataSource.create_or_update_data_source(name, global_id, tables, [])
+
+      group = TestRepoHelper.create_group!()
+      user = TestRepoHelper.create_user!(%{groups: [group.id]})
+      view_name = "view1"
+      %Air.Schemas.View{}
+      |> Ecto.Changeset.cast(
+        %{
+          user_id: user.id,
+          data_source_id: data_source.id,
+          name: view_name,
+          sql: "sql for #{view_name}",
+          result_info: %{"columns" => ["foo", "bar"]},
+        },
+        ~w(name sql user_id data_source_id result_info)a
+      )
+      |> Repo.insert!()
+
+      assert [%{"id" => ^view_name, "view" => true}] = DataSource.tables(user, data_source)
+    end
   end
 
   defp with_user(_context), do: {:ok, user: TestRepoHelper.create_user!()}
