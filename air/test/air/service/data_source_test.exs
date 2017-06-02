@@ -169,6 +169,16 @@ defmodule Air.Service.DataSourceTest do
     end
   end
 
+  describe "listing data source tables" do
+    test "should list available tables" do
+      tables = [%{"table" => true}]
+      name = "new_name"
+      global_id = "global_id"
+      data_source = DataSource.create_or_update_data_source(name, global_id, tables, [])
+      assert tables == DataSource.tables(data_source)
+    end
+  end
+
   defp with_user(_context), do: {:ok, user: TestRepoHelper.create_user!()}
 
   defp with_data_source(_context), do: {:ok, data_source: TestRepoHelper.create_data_source!()}
