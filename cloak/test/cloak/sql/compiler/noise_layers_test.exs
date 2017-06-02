@@ -103,9 +103,22 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert [%{base: {"table", "name", {:<>, "lower", "bob"}}}] = result.noise_layers
     end
 
-    test "no noise layer when compared column is not raw in a join"
+    test "no noise layer when compared column is not raw in a join" do
+      result = compile!("""
+        SELECT COUNT(*) FROM other JOIN (SELECT lower(name) as name, uid FROM table) x
+        ON other.uid = x.uid WHERE lower(name) <> 'bob'
+      """, data_source())
 
-    test "use a noise layer when compared column is raw in a join"
+      assert [] = result.noise_layers
+    end
+
+    test "use a noise layer when compared column is raw in a join" do
+      result = compile!("""
+        SELECT COUNT(*) FROM other JOIN (SELECT name, uid FROM table) x ON other.uid = x.uid WHERE lower(name) <> 'bob'
+      """, data_source())
+
+      assert [%{base: {"table", "name", {:<>, "lower", "bob"}}}] = result.noise_layers
+    end
 
     test "noise layers for columns with allowed operations" do
       result = compile!("SELECT COUNT(*) FROM table WHERE lower(name) <> 'bob'", data_source())

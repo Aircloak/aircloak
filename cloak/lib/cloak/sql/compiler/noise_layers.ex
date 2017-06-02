@@ -149,20 +149,25 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp can_be_anonymized_with_noise_layer?(
     {:comparison, %Expression{function?: true, function: name, function_args: [arg]}, :<>, right}, query), do:
-      raw_column?(arg, query) and Enum.member?(@allowed_not_equals_functions, name) and Expression.constant?(right)
+      not processed_column?(arg, query) and
+        Enum.member?(@allowed_not_equals_functions, name) and
+        Expression.constant?(right)
   defp can_be_anonymized_with_noise_layer?({:comparison, left, :<>, right}, query), do:
-    raw_column?(left, query) and Expression.constant?(right)
+    not processed_column?(left, query) and Expression.constant?(right)
   defp can_be_anonymized_with_noise_layer?(_, _), do:
     false
 
-  defp raw_column?(%Expression{name: name}, %{from: {:subquery, %{ast: subquery}}}) do
-    case find_column(name, subquery) do
-      {:ok, column} -> raw_column?(column, subquery)
-      _ -> false
-    end
+  defp processed_column?(%Expression{function?: true}, _query), do: true
+  defp processed_column?(_expression, %{from: table}) when is_binary(table), do: false
+  defp processed_column?(%Expression{name: name}, query) do
+    get_in(query, [Query.Lenses.direct_subqueries()])
+    |> Enum.any?(fn(%{ast: subquery}) ->
+      case find_column(name, subquery) do
+        {:ok, column} -> processed_column?(column, subquery)
+        _ -> false
+      end
+    end)
   end
-  defp raw_column?(%Expression{user_id?: false, constant?: false, function?: false}, _query), do: true
-  defp raw_column?(_, _), do: false
 
   defp resolve_row_splitter(expression, %{row_splitters: row_splitters}) do
     if splitter = Enum.find(row_splitters, &(&1.row_index == expression.row_index)) do
