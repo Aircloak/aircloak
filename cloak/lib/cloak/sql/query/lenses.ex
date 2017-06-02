@@ -145,6 +145,11 @@ defmodule Cloak.Sql.Query.Lenses do
   @doc "Lens focusing on all conditions in joins."
   deflens join_conditions(), do: joins() |> Lens.key(:conditions)
 
+  @doc "Lens focusing selected leaf tables in the parser AST."
+  deflens ast_tables(), do:
+    Lens.key(:from)
+    |> ast_tables_recursive()
+
 
   # -------------------------------------------------------------------
   # Internal lenses
@@ -187,5 +192,14 @@ defmodule Cloak.Sql.Query.Lenses do
       {:subquery, _} -> Lens.root()
       nil -> Lens.empty()
       table when is_binary(table) -> Lens.root()
+    end)
+
+  deflensp ast_tables_recursive(), do:
+    Lens.match(fn
+      {:join, _} ->
+        Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> ast_tables_recursive()
+      {:subquery, _} -> Lens.empty()
+      {_quoted, _table} -> Lens.root()
+      {_identifier, :as, _alias} -> Lens.root()
     end)
 end

@@ -129,7 +129,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp required_column_names(query, projected_subquery), do:
     [
       # append uid column
-      DataSource.table(projected_subquery.ast.data_source, projected_subquery.alias).user_id |
+      DataSource.table(projected_subquery.ast.data_source, projected_subquery.table_name).user_id |
       # all db columns of the outer query which are from this projected table
       query |> used_columns_from_table(projected_subquery.alias) |> Enum.map(& &1.name)
     ]
