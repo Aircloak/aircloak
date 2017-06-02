@@ -15,6 +15,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   @spec verify_query(Query.t) :: Query.t
   def verify_query(%Query{command: :show} = query), do: query
   def verify_query(%Query{command: :select} = query) do
+    verify_duplicate_tables(query)
     verify_aggregated_columns(query)
     verify_group_by_functions(query)
     verify_joins(query)
@@ -43,8 +44,20 @@ defmodule Cloak.Sql.Compiler.Validation do
 
 
   # -------------------------------------------------------------------
-  # Internal functions
+  # Duplicate tables
   # -------------------------------------------------------------------
+
+  defp verify_duplicate_tables(query) do
+    with [duplicate_table | _] <- duplicate_tables(query) do
+      raise CompilationError, message: "Table name `#{duplicate_table}` specified more than once."
+    end
+  end
+
+  defp duplicate_tables(query), do:
+    query.selected_tables
+    |> Enum.group_by(&(&1.name))
+    |> Enum.reject(&match?({_name, [_]}, &1))
+    |> Enum.map(fn({name, _}) -> name end)
 
   # -------------------------------------------------------------------
   # Columns and expressions

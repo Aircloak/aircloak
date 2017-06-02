@@ -819,6 +819,13 @@ defmodule Cloak.Sql.Compiler.Test do
       compile("SELECT SUM(numeric) FROM table ORDER BY float", data_source())
   end
 
+  test "rejecting duplicate table", do:
+    assert {:error, "Table name `t1` specified more than once."} == compile("SELECT * from t1, t1", data_source())
+
+  test "rejecting duplicate subquery", do:
+    assert {:error, "Table name `a` specified more than once."} ==
+      compile("SELECT * from (select * from t1) a, (select * from t1) a", data_source())
+
   defp projected_table_db_columns(query), do:
     query
     |> get_in([all_subqueries()])
