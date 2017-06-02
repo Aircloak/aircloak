@@ -50,7 +50,7 @@ defmodule Cloak.Sql.Parser do
 
   @type from_clause :: table | subquery | join
 
-  @type table :: unqualified_identifier
+  @type table :: unqualified_identifier | {unqualified_identifier, :as, String.t}
 
   @type join ::
     {:join, %{
@@ -548,10 +548,17 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp table_name() do
-    either_deepest_error(
-      table_with_schema(),
-      identifier() |> label("table name")
-    )
+    sequence([
+      either_deepest_error(
+        table_with_schema(),
+        identifier() |> label("table name")
+      ),
+      option(sequence([option(keyword(:as)), identifier()]))
+    ])
+    |> map(fn
+      [name, nil] -> name
+      [name, [_, {_type, alias}]] -> {name, :as, alias}
+    end)
   end
 
   defp subquery() do

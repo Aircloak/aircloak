@@ -95,6 +95,9 @@ defmodule Cloak.DataSource.MongoDBTest do
       %{rows: [%{occurrences: 1, row: [true]}]}
   end
 
+  test "aliased query", context, do:
+    assert_query context, "SELECT COUNT(a.name) FROM #{@table} a", %{rows: [%{occurrences: 1, row: [10]}]}
+
   test "conditions on root table", context do
     assert_query context, "SELECT COUNT(name) FROM #{@table} WHERE male = false",
       %{rows: [%{occurrences: 1, row: [0]}]}
