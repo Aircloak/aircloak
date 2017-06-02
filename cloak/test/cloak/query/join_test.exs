@@ -27,6 +27,24 @@ defmodule Cloak.Query.JoinTest do
     assert [%{row: [180, 200], occurrences: 1}] = rows
   end
 
+  test "selecting from joined aliased tables" do
+    :ok = insert_rows(_user_ids = 0..100, "heights_join", ["height"], [180])
+    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
+
+    assert_query "select max(height), max(price)
+      FROM heights_join hj, purchases p WHERE hj.user_id = p.user_id",
+      %{columns: ["max", "max"], rows: rows}
+    assert [%{row: [180, 200], occurrences: 1}] = rows
+  end
+
+  test "self join with an alias" do
+    :ok = insert_rows(_user_ids = 1..100, "purchases", ["price"], [200])
+
+    assert_query "select p1.price, p2.price FROM purchases p1 inner join purchases p2 on p1.user_id = p2.user_id",
+      %{columns: ["price", "price"], rows: rows}
+    assert [%{row: [200, 200], occurrences: 100}] = rows
+  end
+
   test "selecting using INNER JOIN" do
     :ok = insert_rows(_user_ids = 0..100, "heights_join", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])

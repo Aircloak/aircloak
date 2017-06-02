@@ -374,6 +374,11 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error =~ ~r/Missing where comparison.*`t1` and `t3`/
   end
 
+  test "rejecting improper joins with aliases" do
+    assert {:error, error} = compile("SELECT a1.c1 from t1 a1, t2 a2", data_source())
+    assert error =~ ~r/Missing where comparison.*`a1` and `a2`/
+  end
+
   test "rejecting a join with a subquery that has no explicit id" do
     assert {:error, error} = compile("SELECT t1.c1 from t1, (select c1 from t2) sq", data_source())
     assert error == "There is no user id column in the subquery `sq`."
@@ -825,6 +830,16 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejecting duplicate subquery", do:
     assert {:error, "Table name `a` specified more than once."} ==
       compile("SELECT * from (select * from t1) a, (select * from t1) a", data_source())
+
+  test "real name of an aliased table can't be used as a prefix" do
+    assert {:error, reason} = compile("select t1.c1 from t1 a", data_source())
+    assert reason == "Missing FROM clause entry for table `t1`."
+  end
+
+  test "can't use the same alias twice" do
+    assert {:error, reason} = compile("select t1.c1 from t1 a, t2 a", data_source())
+    assert reason == "Table alias `a` used more than once."
+  end
 
   defp projected_table_db_columns(query), do:
     query

@@ -51,6 +51,10 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
           %{occurrences: 10, row: ["b"]},
           %{occurrences: 10, row: ["aaa"]}
         ]}
+
+    test "aliased", do:
+      assert_query "select count(e.value) from #{@prefix}emulated e where e.value = 'aaa'",
+        %{rows: [%{occurrences: 1, row: [10]}]}
   end
 
   describe "simple emulated subqueries" do
