@@ -3,7 +3,6 @@ defmodule Air.Schemas.DataSource do
   use Air.Schemas.Base
 
   alias Air.Schemas.Group
-  alias Air.Service
 
   @type t :: %__MODULE__{}
 
@@ -30,19 +29,6 @@ defmodule Air.Schemas.DataSource do
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
-
-  @doc "Format a data source as a map"
-  @spec to_map(t) :: Map.t
-  def to_map(data_source) do
-    %{
-      id: data_source.id,
-      token: data_source.global_id,
-      name: data_source.name,
-      description: data_source.description,
-      tables: Service.DataSource.tables(data_source),
-      errors: Service.DataSource.errors(data_source),
-    }
-  end
 
   @doc """
   Creates a changeset based on the `model` and `params`.
