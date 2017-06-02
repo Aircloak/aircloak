@@ -1,11 +1,30 @@
 defmodule Cloak.Sql.Compiler.Normalization do
+  @moduledoc "Deals with normalizing some expressions so that they are easier to deal with at later stages."
+
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.{Expression, Query}
 
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc """
+  Modifies the query to remove certain expressions without changing semantics. Specifically:
+
+  * Switches NOT IN expressions for an equivalent conjunction of <> expressions
+  * Switches complex expressions involving constants (like 1 + 2 + 3) to with their results (6 in this case)
+  """
+  @spec normalize(Query.t) :: Query.t
   def normalize(query), do:
     query
     |> Helpers.apply_bottom_up(&expand_not_in/1)
     |> Helpers.apply_bottom_up(&normalize_constants/1)
+
+
+  # -------------------------------------------------------------------
+  # Private functions
+  # -------------------------------------------------------------------
 
   defp expand_not_in(query), do:
     update_in(query, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
