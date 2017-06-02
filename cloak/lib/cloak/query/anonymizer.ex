@@ -120,7 +120,7 @@ defmodule Cloak.Query.Anonymizer do
   @spec min(t, Enumerable.t) :: number | nil
   def min(anonymizer, rows) do
     # we use the fact that min([value]) = -max([-value])
-    case get_max(anonymizer, rows, & -Enum.min(&1)) do
+    case get_max(anonymizer, rows, fn ({:min, value}) -> -value end) do
       nil -> nil
       value -> -value
     end
@@ -129,7 +129,7 @@ defmodule Cloak.Query.Anonymizer do
   @doc "Computes the noisy maximum value of all values in rows, where each row is an enumerable of numbers."
   @spec max(t, Enumerable.t) :: number | nil
   def max(anonymizer, rows) do
-    get_max(anonymizer, rows, &Enum.max/1)
+    get_max(anonymizer, rows, fn ({:max, value}) -> value end)
   end
 
   @doc """
@@ -138,8 +138,8 @@ defmodule Cloak.Query.Anonymizer do
   """
   @spec avg(t, Enumerable.t) :: {float, float}
   def avg(anonymizer, rows) do
-    {sum, sum_noise_sigma} = sum(anonymizer, Stream.map(rows, fn ({sum, _count}) -> sum end))
-    {count, _count_noise_sigma} = count(anonymizer, Stream.map(rows, fn ({_sum, count}) -> count end))
+    {sum, sum_noise_sigma} = sum(anonymizer, Stream.map(rows, fn ({:avg, sum, _count}) -> sum end))
+    {count, _count_noise_sigma} = count(anonymizer, Stream.map(rows, fn ({:avg, _sum, count}) -> count end))
     {sum / count, sum_noise_sigma / count}
   end
 
@@ -149,12 +149,12 @@ defmodule Cloak.Query.Anonymizer do
   """
   @spec stddev(t, Enumerable.t) :: {float, float}
   def stddev(anonymizer, rows) do
-    {sum, count} = Enum.reduce(rows, {0, 0}, fn ({sum, _sum_sqrs, count}, {acc_sum, acc_count}) ->
+    {sum, count} = Enum.reduce(rows, {0, 0}, fn ({:stddev, sum, _sum_sqrs, count}, {acc_sum, acc_count}) ->
       {acc_sum + sum, acc_count + count}
     end)
     mean = sum / count
-    variances = Stream.map(rows, fn ({sum, sum_sqrs, count}) ->
-      {sum_sqrs + mean * (count * mean - 2 * sum), count}
+    variances = Stream.map(rows, fn ({:stddev, sum, sum_sqrs, count}) ->
+      {:avg, sum_sqrs + mean * (count * mean - 2 * sum), count}
     end)
     {avg_variance, noise_sigma_variance} = avg(anonymizer, variances)
     {:math.sqrt(abs(avg_variance)), :math.sqrt(noise_sigma_variance)}
