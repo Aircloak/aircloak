@@ -37,7 +37,7 @@ defmodule Cloak.Query.DbEmulator do
     |> DataSource.select!(fn(rows) ->
       rows
       |> DataDecoder.decode(query)
-      |> Rows.filter(Enum.map(query.emulated_where, &Comparison.to_function/1))
+      |> Rows.filter(Comparison.to_function(query.emulated_where))
       |> Enum.to_list()
     end)
   end

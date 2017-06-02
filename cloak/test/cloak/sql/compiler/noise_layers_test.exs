@@ -357,7 +357,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     query = Parser.parse!(query_string)
     {:ok, result} = Compiler.compile(data_source, query, Keyword.get(options, :parameters, []),
       Keyword.get(options, :views, %{}))
-    Compiler.NoiseLayers.compile(result)
+    result
   end
 
   defp data_source(driver \\ DataSource.PostgreSQL) do

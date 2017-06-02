@@ -37,12 +37,14 @@ defmodule Cloak.Sql.Parser do
     | {:in, String.t, [any]}
 
   @type where_clause ::
-      condition
+      nil
+    | condition
     | {:not, condition}
     | {:and | :or, condition, condition}
 
   @type having_clause ::
-      comparison
+      nil
+    | comparison
     | {:not, comparison}
     | {:and | :or, comparison, comparison}
 
@@ -55,7 +57,7 @@ defmodule Cloak.Sql.Parser do
       type: :cross_join | :inner_join | :full_outer_join | :left_outer_join | :right_outer_join,
       lhs: from_clause,
       rhs: from_clause,
-      conditions: where_clause | nil
+      conditions: where_clause
     }}
 
   @type subquery :: {:subquery, %{ast: parsed_query, alias: String.t}}
@@ -65,9 +67,9 @@ defmodule Cloak.Sql.Parser do
     columns: [column | {column, :as, String.t}] | :*,
     group_by: [String.t],
     from: from_clause,
-    where: where_clause | nil,
+    where: where_clause,
     order_by: [{String.t, :asc | :desc}],
-    having: having_clause | nil,
+    having: having_clause,
     show: :tables | :columns,
     limit: integer,
     offset: integer,
@@ -260,10 +262,16 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp data_type() do
-    either(
-      raw_identifier_of(~w(integer real text boolean datetime date time)),
+    choice([
+      raw_identifier_of(~w(integer real float text boolean datetime date time)),
+      sequence([raw_identifier("double"), raw_identifier("precision")]),
       keyword(:interval)
-    )
+    ])
+    |> map(fn
+      :float -> :real
+      [:double, :precision] -> :real
+      other -> other
+    end)
     |> label("type name")
   end
 
@@ -296,6 +304,9 @@ defmodule Cloak.Sql.Parser do
       x -> x
     end)
   end
+
+  defp raw_identifier(word), do:
+    raw_identifier_of([word])
 
   defp raw_identifier_of(words) do
     unquoted_identifier()
@@ -472,7 +483,7 @@ defmodule Cloak.Sql.Parser do
   defp to_join({join_type, :on, conditions}, left_expr, right_expr),
     do: {:join, %{type: join_type, lhs: left_expr, rhs: right_expr, conditions: conditions}}
   defp to_join(:cross_join, left_expr, right_expr),
-    do: to_join({:cross_join, :on, []}, left_expr, right_expr)
+    do: to_join({:cross_join, :on, nil}, left_expr, right_expr)
 
   defp cross_joins([table]), do: table
   defp cross_joins([clause | rest]), do: to_join(:cross_join, clause, cross_joins(rest))

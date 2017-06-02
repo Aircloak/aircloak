@@ -97,9 +97,7 @@ defmodule Cloak.Sql.Query.Lenses do
 
   @doc "Lens focusing on all terminal elements in all join conditions of a query."
   deflens join_conditions_terminals(), do:
-    joins()
-    |> Lens.key(:conditions)
-    |> conditions_terminals()
+    join_conditions() |> conditions_terminals()
 
   @doc "Lens focusing on all sources in a query where conditions can be found."
   deflens filter_clauses(), do:
@@ -139,10 +137,13 @@ defmodule Cloak.Sql.Query.Lenses do
     Lens.match(fn
       {:or, _, _} -> Lens.both(Lens.at(1), Lens.at(2)) |> conditions()
       {:and, _, _} -> Lens.both(Lens.at(1), Lens.at(2)) |> conditions()
-      {:not, _} -> Lens.at(1) |> conditions()
-      list when is_list(list) -> Lens.all()
+      list when is_list(list) -> Lens.all() |> conditions()
+      nil -> Lens.empty()
       _ -> Lens.root()
     end)
+
+  @doc "Lens focusing on all conditions in joins."
+  deflens join_conditions(), do: joins() |> Lens.key(:conditions)
 
 
   # -------------------------------------------------------------------
@@ -158,8 +159,6 @@ defmodule Cloak.Sql.Query.Lenses do
   defp do_join_condition_lenses(_, _), do: []
 
   defp filters_operands(), do: filter_clauses() |> conditions() |> operands()
-
-  defp join_conditions(), do: joins() |> Lens.key(:conditions)
 
   deflensp terminal_elements(), do:
     Lens.match(fn
