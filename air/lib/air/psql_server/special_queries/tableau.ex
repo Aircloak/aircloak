@@ -4,6 +4,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
 
   alias Air.PsqlServer
   alias Air.PsqlServer.{Protocol, RanchServer}
+  alias Air.Service.DataSource
 
 
   #-----------------------------------------------------------------------------------------------------------
@@ -65,16 +66,10 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
   #-----------------------------------------------------------------------------------------------------------
 
   defp fetch_tables(conn, cursor, count) do
-    PsqlServer.start_async_query(conn, "show tables", [],
-      fn(conn, {:ok, show_tables_response}) ->
-        table_names =
-          show_tables_response
-          |> Map.fetch!("rows")
-          |> Enum.map(fn(%{"row" => [table_name]}) -> table_name end)
-
-        first_cursor_fetch(conn, cursor, count, table_list(table_names))
-      end
-    )
+    case get_tables(conn) do
+      {:ok, tables} -> first_cursor_fetch(conn, cursor, count, tables |> Enum.map(&(&1["id"])) |> table_list())
+      {:error, :unauthorized} -> RanchServer.query_result(conn, {:error, "not authorized"})
+    end
   end
 
   defp table_list(table_names), do:
@@ -97,16 +92,30 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
   end
 
   defp fetch_table_info(conn, table_name) do
-    PsqlServer.start_async_query(conn, "show columns from #{table_name}", [],
-      fn(conn, {:ok, show_columns_response}) ->
-        RanchServer.query_result(conn,
-          show_columns_response
-          |> Map.fetch!("rows")
-          |> Enum.map(&Map.fetch!(&1, "row"))
-          |> column_list(conn.assigns.data_source_id, table_name)
-        )
-      end
-    )
+    case get_tables(conn) do
+      {:ok, tables} ->
+        columns = case Enum.find(tables, &(&1["id"] == table_name)) do
+          nil -> []
+          table ->
+            table
+            |> Map.get("columns")
+            |> Enum.map(&[&1["name"], &1["type"]])
+        end
+
+        response = column_list(columns, conn.assigns.data_source_id, table_name)
+        RanchServer.query_result(conn, response)
+
+      {:error, :unauthorized} ->
+        RanchServer.query_result(conn, {:error, "not authorized"})
+    end
+  end
+
+  defp get_tables(conn) do
+    user = conn.assigns.user
+    case DataSource.fetch_as_user(conn.assigns.data_source_id, user) do
+      {:ok, data_source} -> {:ok, DataSource.tables(user, data_source)}
+      error -> error
+    end
   end
 
   defp column_list(table_columns, data_source_id, table_name) do
