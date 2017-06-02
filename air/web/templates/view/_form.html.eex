@@ -61,7 +61,7 @@
       };
       var selectableInfoProps = {
         selectables: <%= selectables(@conn, @data_source, @view_to_exclude_from_selectables) %>,
-        newViewURL: "<%= data_source_view_path(@conn, :new, @data_source.id) %>"
+        newViewURL: "<%= data_source_view_path(@conn, :new, @data_source.name) %>"
       };
 
       App.viewEditor(viewEditorProps, document.getElementById("viewEditor"));
