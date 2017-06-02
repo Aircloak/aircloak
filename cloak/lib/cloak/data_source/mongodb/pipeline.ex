@@ -77,9 +77,8 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     offset_rows(query.offset) ++
     limit_rows(query.limit)
 
-  defp filter_data([]), do: []
-  defp filter_data([condition]), do: [%{'$match': parse_where_condition(condition)}]
-  defp filter_data(conditions), do: [%{'$match': %{'$and': Enum.map(conditions, &parse_where_condition/1)}}]
+  defp filter_data(nil), do: []
+  defp filter_data(condition), do: [%{'$match': parse_where_condition(condition)}]
 
   defp parse_operator(:=), do: :'$eq'
   defp parse_operator(:>), do: :'$gt'
@@ -103,6 +102,10 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp map_field(_), do:
     DataSource.raise_error("Conditions on MongoDB data sources have to be between a column and a constant.")
 
+  defp parse_where_condition({:and, lhs, rhs}), do:
+    %{'$and': [parse_where_condition(lhs), parse_where_condition(rhs)]}
+  defp parse_where_condition({:or, lhs, rhs}), do:
+    %{'$or': [parse_where_condition(lhs), parse_where_condition(rhs)]}
   defp parse_where_condition({:comparison, subject, operator, value}), do:
     %{map_field(subject) => %{parse_operator(operator) => map_constant(value)}}
   defp parse_where_condition({:not, {:comparison, subject, :=, value}}), do:
@@ -123,16 +126,14 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     %{map_field(subject) => %{'$not': %{'$regex': Comparison.to_regex(map_constant(pattern)), '$options': "msi"}}}
 
   defp extract_basic_conditions(table, conditions) do
-    {complex_conditions, basic_conditions} = split_conditions(table.array_path, conditions)
+    {complex_conditions, basic_conditions} = Comparison.partition(conditions, complex_filter(table.array_path))
     {table_conditions, other_tables_conditions} =
-      Enum.partition(basic_conditions, &Comparison.subject(&1).table.name == table.name)
-    {complex_conditions ++ other_tables_conditions, table_conditions}
+      Comparison.partition(basic_conditions, &Comparison.subject(&1).table.name == table.name)
+    {Comparison.combine(:and, complex_conditions, other_tables_conditions), table_conditions}
   end
 
-  defp split_conditions([], conditions), do:
-    Enum.partition(conditions, &complex_condition?(&1, []))
-  defp split_conditions([array | _], conditions), do:
-    Enum.partition(conditions, &complex_condition?(&1, [array <> "."]))
+  defp complex_filter([]), do: &complex_condition?(&1, [])
+  defp complex_filter([array | _]), do: &complex_condition?(&1, [array <> "."])
 
   defp complex_condition?(column, complex_name_prefixes) do
     column_name = Comparison.subject(column).name
@@ -141,7 +142,8 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   defp extract_columns_from_conditions(conditions) do
     extra_columns =
-      conditions
+      Query.Lenses.conditions()
+      |> Lens.to_list(conditions)
       |> Enum.flat_map(&Comparison.targets/1)
       |> Enum.filter(& &1.function?)
       |> Enum.uniq()
@@ -243,12 +245,10 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     end
   end
 
-  defp extract_column_top_from_condition({:not, condition}, aggregators), do:
-    {:not, extract_column_top_from_condition(condition, aggregators)}
-  defp extract_column_top_from_condition({:comparison, lhs, operator, rhs}, aggregators), do:
-    {:comparison, extract_column_top(lhs, aggregators, []), operator, rhs}
-  defp extract_column_top_from_condition({verb, lhs, rhs}, aggregators) when verb in [:in, :is, :like, :ilike], do:
-    {verb, extract_column_top(lhs, aggregators, []), rhs}
+  defp extract_column_top_from_conditions(conditions, aggregators), do:
+    Query.Lenses.conditions()
+    |> Query.Lenses.operands()
+    |> Lens.map(conditions, &extract_column_top(&1, aggregators, []))
 
   defp aggregate_and_project(%Query{db_columns: columns, distinct?: true}) do
     properties = project_properties(columns)
@@ -256,8 +256,12 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     [%{'$group': %{"_id" => properties}}] ++ Projector.project_columns(column_tops)
   end
   defp aggregate_and_project(%Query{db_columns: columns, group_by: groups, having: having}) do
+    having_columns =
+      Query.Lenses.conditions()
+      |> Lens.to_list(having)
+      |> Enum.map(&Comparison.subject/1)
     aggregators =
-      (columns ++ Enum.map(having, &Comparison.subject/1))
+      (columns ++ having_columns)
       |> Enum.flat_map(&extract_aggregator/1)
       |> Enum.uniq()
     if aggregators ++ groups == [] do
@@ -266,7 +270,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       column_tops = Enum.map(columns, &extract_column_top(&1, aggregators, groups))
       properties = project_properties(groups)
       group = aggregators |> project_aggregators() |> Enum.into(%{"_id" => properties})
-      having = Enum.map(having, &extract_column_top_from_condition(&1, aggregators))
+      having = extract_column_top_from_conditions(having, aggregators)
       [%{'$group': group}] ++ filter_data(having) ++ Projector.project_columns(column_tops)
     end
   end
@@ -286,9 +290,9 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp get_join_branch_name(name) when is_binary(name), do: name
   defp get_join_branch_name({:subquery, %{alias: name}}) when is_binary(name), do: name
 
-  defp join_info(%{type: :inner_join, lhs: lhs, rhs: {:subquery, subquery}, conditions: [condition]}, tables), do:
-    join_info(%{type: :inner_join, lhs: {:subquery, subquery}, rhs: lhs, conditions: [condition]}, tables)
-  defp join_info(%{type: :inner_join, lhs: lhs, rhs: rhs_name, conditions: [condition]}, tables)
+  defp join_info(%{type: :inner_join, lhs: lhs, rhs: {:subquery, subquery}, conditions: condition}, tables), do:
+    join_info(%{type: :inner_join, lhs: {:subquery, subquery}, rhs: lhs, conditions: condition}, tables)
+  defp join_info(%{type: :inner_join, lhs: lhs, rhs: rhs_name, conditions: condition}, tables)
       when is_binary(rhs_name) do
     lhs_name = get_join_branch_name(lhs)
     {lhs_field, rhs_field} =

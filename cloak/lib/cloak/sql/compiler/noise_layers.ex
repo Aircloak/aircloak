@@ -114,9 +114,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp non_range_noise_layers(query), do:
     Query.Lenses.filter_clauses()
-    |> Lens.both(Lens.key(:group_by))
-    |> Lens.all()
+    |> Query.Lenses.conditions()
     |> Lens.satisfy(& not Comparison.inequality?(&1))
+    |> Lens.both(Lens.key(:group_by))
     |> raw_columns()
     |> Lens.to_list(query)
     |> Enum.flat_map(&resolve_row_splitter(&1, query))

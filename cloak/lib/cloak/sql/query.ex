@@ -11,18 +11,25 @@ defmodule Cloak.Sql.Query do
   alias Cloak.Sql.{Expression, Compiler, Function, Parser, Query.Lenses, Range, NoiseLayer}
   require Logger
 
-  @type negatable_condition ::
-      {:comparison, Expression.t, :=, Expression.t}
+  @type comparison :: {:comparison, Expression.t, Parser.comparator, Expression.t}
+
+  @type condition ::
+      comparison
     | {:like | :ilike, Expression.t, Expression.t}
     | {:is, Expression.t, :null}
     | {:in, Expression.t, [Expression.t]}
 
   @type where_clause ::
-      negatable_condition
-    | {:not, negatable_condition}
-    | {:comparison, Expression.t, Parser.comparator, Expression.t}
+      nil
+    | condition
+    | {:not, condition}
+    | {:and | :or, condition, condition}
 
-  @type having_clause :: {:comparison, Expression.t, Parser.comparator, Expression.t}
+  @type having_clause ::
+      nil
+    | comparison
+    | {:not, comparison}
+    | {:and | :or, comparison, comparison}
 
   @type view_map :: %{view_name :: String.t => view_sql :: String.t}
 
@@ -54,8 +61,8 @@ defmodule Cloak.Sql.Query do
     row_splitters: [%{function_spec: Parser.function_spec, row_index: row_index}],
     implicit_count?: boolean,
     group_by: [Function.t],
-    where: [where_clause],
-    emulated_where: [where_clause],
+    where: where_clause,
+    emulated_where: where_clause,
     order_by: [{Expression.t, :asc | :desc}],
     show: :tables | :columns | nil,
     selected_tables: [DataSource.table],
@@ -64,7 +71,7 @@ defmodule Cloak.Sql.Query do
     subquery?: boolean,
     limit: pos_integer | nil,
     offset: non_neg_integer,
-    having: [having_clause],
+    having: having_clause,
     distinct?: boolean,
     emulated?: boolean,
     ranges: [Range.t],
@@ -77,10 +84,10 @@ defmodule Cloak.Sql.Query do
   }
 
   defstruct [
-    columns: [], where: [], group_by: [], order_by: [], column_titles: [], aggregators: [],
+    columns: [], where: nil, group_by: [], order_by: [], column_titles: [], aggregators: [],
     info: [], selected_tables: [], row_splitters: [], implicit_count?: false, data_source: nil, command: nil,
-    show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: [], distinct?: false,
-    features: nil, emulated_where: [], ranges: [], parameters: [], views: %{}, emulated?: false,
+    show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil, distinct?: false,
+    features: nil, emulated_where: nil, ranges: [], parameters: [], views: %{}, emulated?: false,
     projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false
   ]
 
@@ -114,7 +121,7 @@ defmodule Cloak.Sql.Query do
       num_tables: num_tables(query.selected_tables),
       num_group_by: num_group_by(query),
       functions: extract_functions(query.columns),
-      where_conditions: extract_where_conditions(query.where ++ query.emulated_where),
+      where_conditions: extract_where_conditions([query.where, query.emulated_where]),
       column_types: extract_column_types(query.columns),
       selected_types: selected_types(query.columns),
       parameter_types: Enum.map(parameter_types(query), &stringify/1),
@@ -274,11 +281,11 @@ defmodule Cloak.Sql.Query do
   defp extract_function({:distinct, param}), do: extract_function(param)
 
   defp extract_where_conditions(clauses), do:
-    clauses
+    Lenses.conditions()
+    |> Lens.to_list(clauses)
     |> Enum.map(&extract_where_condition/1)
     |> Enum.uniq()
 
-  defp extract_where_condition({:not, {:comparison, _column, :=, _comparator}}), do: "<>"
   defp extract_where_condition({:not, something}), do:
     "not #{extract_where_condition(something)}"
   defp extract_where_condition({:comparison, _column, comparison, _comparator}), do:

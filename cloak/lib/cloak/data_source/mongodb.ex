@@ -220,7 +220,7 @@ defmodule Cloak.DataSource.MongoDB do
   end
   defp supports_joins?(_query), do: true
 
-  defp supported_join_conditions?([{:comparison, lhs, :=, rhs}]), do: lhs.name != nil and rhs.name != nil
+  defp supported_join_conditions?({:comparison, lhs, :=, rhs}), do: lhs.name != nil and rhs.name != nil
   defp supported_join_conditions?(_conditions), do: false
 
   defp supported_join_branches?(lhs, rhs) when is_binary(lhs) and is_binary(rhs), do: true
