@@ -821,7 +821,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "normalizing NOT IN as a series of <>" do
     result1 = compile!("SELECT * FROM table WHERE numeric NOT IN (1, 2, 3)", data_source())
-    result2 = compile!("SELECT * FROM table WHERE numeric <> 1 AND numeric <> 2 AND numeric <> 3", data_source())
+    result2 = compile!("SELECT * FROM table WHERE numeric <> 3 AND numeric <> 2 AND numeric <> 1", data_source())
 
     assert result1.where == result2.where
   end

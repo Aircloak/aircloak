@@ -7,13 +7,11 @@ defmodule Cloak.Sql.Compiler.Normalization do
     |> normalize_constants()
 
   defp expand_not_in(query), do:
-    update_in(query, [Query.Lenses.filter_clauses()], fn(clauses) ->
-      Enum.flat_map(clauses, &do_expand_not_in/1)
+    update_in(query, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
+      {:not, {:in, lhs, [exp | exps]}} ->
+        Enum.reduce(exps, {:comparison, lhs, :<>, exp}, &{:and, {:comparison, lhs, :<>, &1}, &2})
+      other -> other
     end)
-
-  defp do_expand_not_in({:not, {:in, lhs, exps}}), do:
-    Enum.map(exps, &{:comparison, lhs, :<>, &1})
-  defp do_expand_not_in(clause), do: [clause]
 
   defp normalize_constants(query), do:
     update_in(query, [Query.Lenses.terminals()], &do_normalize_constants/1)
