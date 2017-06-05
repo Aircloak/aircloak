@@ -17,6 +17,11 @@ defmodule Cloak.Query.SubqueryTest do
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 
+  test "selecting all from a subquery" do
+    assert_query "select alias.* from (select user_id, height from heights_sq) alias",
+      %{columns: ["user_id", "height"], rows: [%{row: [:*, 180], occurrences: 100}]}
+  end
+
   test "implicitly selecting user id in a subquery" do
     assert_query "select height from (select height from heights_sq) alias",
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
