@@ -43,7 +43,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
     table | join
 
   table :=
-    table_name | (select_expression) [AS] alias
+    table_name [[AS] alias] | (select_expression) [AS] alias
 
   join :=
     table CROSS JOIN table |
