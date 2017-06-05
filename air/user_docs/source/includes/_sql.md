@@ -21,7 +21,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
     [ WHERE where_expression [AND ...] ]
     [ GROUP BY column_expression | position [, ...] ]
     [ HAVING having_expression [AND ...] ]
-    [ ORDER BY column_name [ASC | DESC] [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
+    [ ORDER BY column_name [ASC | DESC] | position [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
 
   field_expression :=
     table_name.* | column_expression [AS alias]
