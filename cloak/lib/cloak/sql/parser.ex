@@ -64,7 +64,7 @@ defmodule Cloak.Sql.Parser do
 
   @type parsed_query :: %{
     command: :select | :show,
-    columns: [column | {column, :as, String.t}] | :*,
+    columns: [column | {column, :as, String.t} | {:*, String.t}] | :*,
     group_by: [String.t],
     from: from_clause,
     where: where_clause,
@@ -213,7 +213,16 @@ defmodule Cloak.Sql.Parser do
     either_deepest_error(interval(), any_constant())
   end
 
-  defp select_column() do
+  defp select_column(), do:
+    either_deepest_error(select_all_from_table(), plain_select_column())
+
+  defp select_all_from_table(), do:
+    pipe(
+      [identifier(), keyword(:.), keyword(:*)],
+      fn([{_type, table_name}, :., :*]) -> {:*, table_name} end
+    )
+
+  defp plain_select_column() do
     pipe(
       [
         column(),

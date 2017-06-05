@@ -997,6 +997,16 @@ defmodule Cloak.Sql.Parser.Test do
   test "select with a table alias 2", do:
     assert_parse("select foo from baz as b", select(columns: [identifier("foo")], from: {unquoted("baz"), :as, "b"}))
 
+  test "select all from a table", do:
+    assert_parse("select foo.* from foo", select(columns: [{:*, "foo"}]))
+
+  test "select all from a quoted table", do:
+    assert_parse("select \"foo bar\".* from foo", select(columns: [{:*, "foo bar"}]))
+
+  test "select all from a table in a comma-separated list", do:
+    assert_parse("select x, foo.*, y, bar.* from foo",
+      select(columns: [identifier("x"), {:*, "foo"}, identifier("y"), {:*, "bar"}]))
+
   create_test =
     fn(description, statement, expected_error, line, column) ->
       test description do
@@ -1101,6 +1111,8 @@ defmodule Cloak.Sql.Parser.Test do
         "select bucket(foo by bar) from baz", "Expected `numeric constant`", {1, 22}},
       {"bad bucket align part",
         "select bucket(foo by 10 by) from baz", "Expected `)`", {1, 25}},
+      {"error on incomplete qualified select column",
+        "select foo. from bar", "Expected `from`", {1, 11}},
     ],
     fn
       {description, statement, expected_error, {line, column}} ->
