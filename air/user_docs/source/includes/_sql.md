@@ -27,7 +27,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
     table_name.* | column_expression [AS alias]
 
   column_expression :=
-    column_name |
+    [table_name.]column_name |
     aggregation_function([DISTINCT] column_name) |
     function(column_expression) |
     column_expression binary_operator column_expression |
