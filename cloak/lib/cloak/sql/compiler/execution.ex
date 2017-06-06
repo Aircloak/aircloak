@@ -8,7 +8,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{CompilationError, Comparison, Expression, FixAlign, Function, Query, Range}
+  alias Cloak.Sql.{CompilationError, Condition, Expression, FixAlign, Function, Query, Range}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
   alias Cloak.Query.DataDecoder
@@ -59,7 +59,7 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp reject_null_user_ids(%Query{subquery?: true} = query), do: query
   defp reject_null_user_ids(query), do:
-    %{query | where: Comparison.combine(:and, {:not, {:is, Helpers.id_column(query), :null}}, query.where)}
+    %{query | where: Condition.combine(:and, {:not, {:is, Helpers.id_column(query), :null}}, query.where)}
 
   defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
     # In a top-level query, we're replacing all selected expressions which depend on uid columns with the `:*`
@@ -281,7 +281,7 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp partition_where_clauses(query) do
     # extract conditions needing emulation
-    {emulated_where, where} = Comparison.partition(query.where,
+    {emulated_where, where} = Condition.partition(query.where,
       &emulated_expression_condition?(&1) or (query.emulated? and multiple_tables_condition?(&1)))
     %Query{query | where: where, emulated_where: emulated_where}
   end
@@ -305,7 +305,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     range_columns = Map.keys(grouped_inequalities)
 
     verify_ranges(grouped_inequalities)
-    non_range_conditions = Comparison.reject(clause, &Enum.member?(range_columns, Comparison.subject(&1)))
+    non_range_conditions = Condition.reject(clause, &Enum.member?(range_columns, Condition.subject(&1)))
 
     query = put_in(query, [lens], non_range_conditions)
     Enum.reduce(grouped_inequalities, query, &add_aligned_range(&1, &2, lens, range_type))
@@ -314,7 +314,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp add_aligned_range({column, conditions}, query, lens, range_type) do
     {left, right} =
       conditions
-      |> Enum.map(&Comparison.value/1)
+      |> Enum.map(&Condition.value/1)
       |> Enum.sort(&Cloak.Data.lt_eq/2)
       |> List.to_tuple()
       |> FixAlign.align_interval()
@@ -322,7 +322,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     if implement_range?({left, right}, conditions) do
       [lhs, rhs] = conditions
       range = {:and, lhs, rhs}
-      update_in(query, [lens], &Comparison.combine(:and, range, &1))
+      update_in(query, [lens], &Condition.combine(:and, range, &1))
     else
       query
       |> add_clause(lens, {:comparison, column, :<, Expression.constant(column.type, right)})
@@ -335,12 +335,12 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp implement_range?({left, right}, conditions) do
     [{_, _, left_operator, left_column}, {_, _, right_operator, right_column}] =
-      Enum.sort_by(conditions, &Comparison.value/1, &Cloak.Data.lt_eq/2)
+      Enum.sort_by(conditions, &Condition.value/1, &Cloak.Data.lt_eq/2)
 
     left_operator == :>= && left_column.value == left && right_operator == :< && right_column.value == right
   end
 
-  defp add_clause(query, lens, clause), do: Lens.map(lens, query, &Comparison.combine(:and, clause, &1))
+  defp add_clause(query, lens, clause), do: Lens.map(lens, query, &Condition.combine(:and, clause, &1))
 
   defp verify_ranges(grouped_inequalities) do
     grouped_inequalities
@@ -353,10 +353,10 @@ defmodule Cloak.Sql.Compiler.Execution do
   end
 
   defp valid_range?(comparisons) do
-    case Enum.sort_by(comparisons, &Comparison.direction/1, &Kernel.>/2) do
+    case Enum.sort_by(comparisons, &Condition.direction/1, &Kernel.>/2) do
       [cmp1, cmp2] ->
-        Comparison.direction(cmp1) != Comparison.direction(cmp2) &&
-          Cloak.Data.lt_eq(Comparison.value(cmp1), Comparison.value(cmp2))
+        Condition.direction(cmp1) != Condition.direction(cmp2) &&
+          Cloak.Data.lt_eq(Condition.value(cmp1), Condition.value(cmp2))
       _ -> false
     end
   end
@@ -364,18 +364,18 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp inequalities_by_column(where_clause) do
     Lenses.conditions()
     |> Lens.to_list(where_clause)
-    |> Enum.filter(&Comparison.inequality?/1)
-    |> Enum.group_by(&Comparison.subject/1)
+    |> Enum.filter(&Condition.inequality?/1)
+    |> Enum.group_by(&Condition.subject/1)
     |> Enum.map(&discard_redundant_inequalities/1)
     |> Enum.into(%{})
   end
 
   defp discard_redundant_inequalities({column, inequalities}) do
-    case {bottom, top} = Enum.partition(inequalities, &(Comparison.direction(&1) == :>)) do
+    case {bottom, top} = Enum.partition(inequalities, &(Condition.direction(&1) == :>)) do
       {[], []} -> {column, []}
-      {_, []} -> {column, [Enum.max_by(bottom, &Comparison.value/1)]}
-      {[], _} -> {column, [Enum.min_by(top, &Comparison.value/1)]}
-      {_, _} -> {column, [Enum.max_by(bottom, &Comparison.value/1), Enum.min_by(top, &Comparison.value/1)]}
+      {_, []} -> {column, [Enum.max_by(bottom, &Condition.value/1)]}
+      {[], _} -> {column, [Enum.min_by(top, &Condition.value/1)]}
+      {_, _} -> {column, [Enum.max_by(bottom, &Condition.value/1), Enum.min_by(top, &Condition.value/1)]}
     end
   end
 
@@ -420,7 +420,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     DataDecoder.needs_decoding?(expression) or Function.has_attribute?(expression, :emulated)
 
   defp emulated_expression_condition?(condition) do
-    Comparison.verb(condition) != :is and
+    Condition.verb(condition) != :is and
     Query.Lenses.conditions_terminals()
     |> Lens.to_list([condition])
     |> Enum.any?(&emulated_expression?/1)

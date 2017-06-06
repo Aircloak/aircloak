@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.MongoDB.Pipeline do
   @moduledoc "MongoDB helper functions for mapping a query to an aggregation pipeline."
 
-  alias Cloak.Sql.{Query, Expression, Comparison}
+  alias Cloak.Sql.{Query, Expression, Condition}
   alias Cloak.DataSource
   alias Cloak.DataSource.MongoDB.{Schema, Projector}
 
@@ -117,26 +117,26 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_where_condition({:not, {:in, subject, values}}), do:
     %{map_field(subject) => %{'$nin': Enum.map(values, &map_constant/1)}}
   defp parse_where_condition({:like, subject, pattern}), do:
-    %{map_field(subject) => %{'$regex': Comparison.to_regex(map_constant(pattern)), '$options': "ms"}}
+    %{map_field(subject) => %{'$regex': Condition.to_regex(map_constant(pattern)), '$options': "ms"}}
   defp parse_where_condition({:ilike, subject, pattern}), do:
-    %{map_field(subject) => %{'$regex': Comparison.to_regex(map_constant(pattern)), '$options': "msi"}}
+    %{map_field(subject) => %{'$regex': Condition.to_regex(map_constant(pattern)), '$options': "msi"}}
   defp parse_where_condition({:not, {:like, subject, pattern}}), do:
-    %{map_field(subject) => %{'$not': %{'$regex': Comparison.to_regex(map_constant(pattern)), '$options': "ms"}}}
+    %{map_field(subject) => %{'$not': %{'$regex': Condition.to_regex(map_constant(pattern)), '$options': "ms"}}}
   defp parse_where_condition({:not, {:ilike, subject, pattern}}), do:
-    %{map_field(subject) => %{'$not': %{'$regex': Comparison.to_regex(map_constant(pattern)), '$options': "msi"}}}
+    %{map_field(subject) => %{'$not': %{'$regex': Condition.to_regex(map_constant(pattern)), '$options': "msi"}}}
 
   defp extract_basic_conditions(table, conditions) do
-    {complex_conditions, basic_conditions} = Comparison.partition(conditions, complex_filter(table.array_path))
+    {complex_conditions, basic_conditions} = Condition.partition(conditions, complex_filter(table.array_path))
     {table_conditions, other_tables_conditions} =
-      Comparison.partition(basic_conditions, &Comparison.subject(&1).table.name == table.name)
-    {Comparison.combine(:and, complex_conditions, other_tables_conditions), table_conditions}
+      Condition.partition(basic_conditions, &Condition.subject(&1).table.name == table.name)
+    {Condition.combine(:and, complex_conditions, other_tables_conditions), table_conditions}
   end
 
   defp complex_filter([]), do: &complex_condition?(&1, [])
   defp complex_filter([array | _]), do: &complex_condition?(&1, [array <> "."])
 
   defp complex_condition?(column, complex_name_prefixes) do
-    column_name = Comparison.subject(column).name
+    column_name = Condition.subject(column).name
     column_name == nil or Schema.is_array_size?(column_name) or String.starts_with?(column_name, complex_name_prefixes)
   end
 
@@ -144,7 +144,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     extra_columns =
       Query.Lenses.conditions()
       |> Lens.to_list(conditions)
-      |> Enum.flat_map(&Comparison.targets/1)
+      |> Enum.flat_map(&Condition.targets/1)
       |> Enum.filter(& &1.function?)
       |> Enum.uniq()
     conditions =
@@ -259,7 +259,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     having_columns =
       Query.Lenses.conditions()
       |> Lens.to_list(having)
-      |> Enum.map(&Comparison.subject/1)
+      |> Enum.map(&Condition.subject/1)
     aggregators =
       (columns ++ having_columns)
       |> Enum.flat_map(&extract_aggregator/1)

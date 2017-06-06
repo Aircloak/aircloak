@@ -1,5 +1,5 @@
-defmodule Cloak.Sql.Comparison do
-  @moduledoc "Contains utility functions for working with representations of comparisons."
+defmodule Cloak.Sql.Condition do
+  @moduledoc "Contains utility functions for working with conditions."
 
   alias Cloak.Sql.{Query, Expression, Parser}
 

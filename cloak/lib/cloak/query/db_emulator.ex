@@ -9,7 +9,7 @@ defmodule Cloak.Query.DbEmulator do
   require Logger
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{Query, Comparison, Expression, Function}
+  alias Cloak.Sql.{Query, Condition, Expression, Function}
   alias Cloak.Query.{Rows, DataDecoder, DbEmulator.Selector}
 
 
@@ -37,7 +37,7 @@ defmodule Cloak.Query.DbEmulator do
     |> DataSource.select!(fn(rows) ->
       rows
       |> DataDecoder.decode(query)
-      |> Rows.filter(Comparison.to_function(query.emulated_where))
+      |> Rows.filter(Condition.to_function(query.emulated_where))
       |> Enum.to_list()
     end)
   end
