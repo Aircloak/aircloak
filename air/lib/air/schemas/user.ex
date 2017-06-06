@@ -105,17 +105,6 @@ defmodule Air.Schemas.User do
     |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
   end
 
-  @doc """
-  Relies on changeset/2 for validation and casting of parameters,
-  but additionally ensures that a password has been provided as well.
-  """
-  @spec new_user_changeset(t | Changeset.t, Map.t) :: Changeset.t
-  def new_user_changeset(model, params \\ %{}) do
-    model
-    |> changeset(params)
-    |> validate_required([:password, :password_confirmation])
-  end
-
   @doc "Validates the user password."
   @spec validate_password(nil | t, String.t) :: boolean
   def validate_password(nil, _password), do: Hash.dummy_checkpw

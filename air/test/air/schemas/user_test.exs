@@ -9,17 +9,6 @@ defmodule Air.Schemas.UserTest do
     password_confirmation: "1234",
     name: "Admin",
   }
-  @invalid_attrs %{}
-
-  test "changeset with valid attributes" do
-    changeset = User.changeset(%User{}, @valid_attrs)
-    assert changeset.valid?
-  end
-
-  test "changeset with invalid attributes" do
-    changeset = User.changeset(%User{}, @invalid_attrs)
-    refute changeset.valid?
-  end
 
   test "validates email address" do
     attributes = %{@valid_attrs | email: "invalid_email"}
@@ -39,27 +28,6 @@ defmodule Air.Schemas.UserTest do
   test "requires password to be 4 or more characters" do
     attributes = %{@valid_attrs | password: "123"}
     assert errors_on(%User{}, :password, attributes)
-  end
-
-  test "requires password for new users" do
-    attributes = %{@valid_attrs | password: ""}
-    errors = User.new_user_changeset(%User{}, attributes)
-    |> Ecto.Changeset.traverse_errors(&Air.ErrorHelpers.translate_error/1)
-    |> Enum.flat_map(fn {key, errors} -> for msg <- errors, do: {key, msg} end)
-    assert Keyword.has_key?(errors, :password)
-  end
-
-  test "only update hashed password on password change" do
-    initial_changeset = Map.merge(%User{}, @valid_attrs)
-    has_change_fn = fn(attr) ->
-      %Ecto.Changeset{changes: changes} = User.changeset(initial_changeset, attr)
-      Map.has_key?(changes, :hashed_password)
-    end
-    # We are simulating the user not editing the password text input boxes
-    without_password_change = Map.drop(@valid_attrs, [:password, :password_confirmation])
-    refute has_change_fn.(without_password_change)
-    changed_password = %{@valid_attrs | password: "abcd", password_confirmation: "abcd"}
-    assert has_change_fn.(changed_password)
   end
 
   test "role expansion" do
@@ -139,16 +107,12 @@ defmodule Air.Schemas.UserTest do
   end
 
   defp set_groups(user, groups) do
-    Repo.get(User, user.id)
-    |> Repo.preload(:groups)
-    |> User.changeset()
-    |> put_assoc(:groups, groups)
-    |> Repo.update!()
+    Air.Service.User.update!(user, %{groups: Enum.map(groups, &(&1.id))})
     # Load the user from the database again, in case it will be used further,
     # just to ensure that the stored has the data we need, and that it isn't
     # just in a cached local version.
-    Repo.get(User, user.id)
-    |> Repo.preload(:groups)
+    %User{} = user = Air.Service.User.load(user.id)
+    user
   end
 
   defp user(role_key) do

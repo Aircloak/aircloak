@@ -1,7 +1,7 @@
 defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
-  alias Air.{Repo, Service.AuditLog, Schemas.User}
+  alias Air.{Repo, Service.AuditLog, Schemas.Group, Schemas.User}
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
 
@@ -55,6 +55,25 @@ defmodule Air.Service.User do
     %User{}
     |> user_changeset(params)
     |> Repo.insert()
+
+  @doc "Creates the onboarding admin user."
+  @spec create_onboarding_admin_user(map) :: {:ok, User.t} | {:error, Changeset.t}
+  def create_onboarding_admin_user(params) do
+    changeset =
+      %User{}
+      |> user_changeset(params["user"])
+      |> validate_required([:password, :password_confirmation])
+
+    if params["user"]["master_password"] == Air.site_setting("master_password") do
+      group = get_admin_group()
+      changeset = user_changeset(changeset, %{groups: [group.id]})
+      Repo.insert(changeset)
+    else
+      changeset = add_error(changeset, :master_password, "The master password is incorrect")
+      # We need to trick add the action being performed, to get the form to render errors
+      {:error, %{changeset | action: :insert}}
+    end
+  end
 
   @doc "Updates the given user, raises on error."
   @spec update!(User.t, map) :: User.t
@@ -117,11 +136,23 @@ defmodule Air.Service.User do
     |> validate_confirmation(:password)
     |> update_password_hash()
     |> unique_constraint(:email)
-    |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Air.Schemas.Group)
+    |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
 
   defp update_password_hash(%Ecto.Changeset{valid?: true, changes: %{password: password}} = changeset)
       when password != "" do
     put_change(changeset, :hashed_password, Comeonin.Pbkdf2.hashpwsalt(password))
   end
   defp update_password_hash(changeset), do: changeset
+
+  defp get_admin_group() do
+    case Repo.all(from g in Group, where: g.admin) do
+      [] -> create_admin_group()
+      [group | _] -> group
+    end
+  end
+
+  defp create_admin_group(), do:
+    %Group{}
+    |> Group.changeset(%{name: "Admin", admin: true})
+    |> Repo.insert!()
 end

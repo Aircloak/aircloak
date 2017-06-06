@@ -1,8 +1,7 @@
 defmodule Air.Onboarding.UserController do
   @moduledoc false
   use Air.Web, :controller
-
-  alias Air.Schemas.{User, Group}
+  alias Air.Service.User
 
 
   # -------------------------------------------------------------------
@@ -21,11 +20,10 @@ defmodule Air.Onboarding.UserController do
   # -------------------------------------------------------------------
 
   def new(conn, _params) do
-    if Air.Service.User.admin_user_exists?() do
+    if User.admin_user_exists?() do
       redirect(conn, to: onboarding_user_path(conn, :already_setup))
     else
-      changeset = User.changeset(%User{})
-      render(conn, "new.html", changeset: changeset, errors: false)
+      render(conn, "new.html", changeset: User.empty_changeset(), errors: false)
     end
   end
 
@@ -34,22 +32,11 @@ defmodule Air.Onboarding.UserController do
   end
 
   def create(conn, params) do
-    changeset = User.new_user_changeset(%User{}, params["user"])
-    case params["user"]["master_password"] == Air.site_setting("master_password") do
-      true ->
-        group = get_admin_group()
-        changeset = User.changeset(changeset, %{groups: [group.id]})
-        case Repo.insert(changeset) do
-          {:ok, user} ->
-            audit_log(conn, "Created onboarding admin user", user: user.email, name: user.name)
-            login(conn, params["user"])
-          {:error, changeset} ->
-            render(conn, "new.html", changeset: changeset, errors: true)
-        end
-      false ->
-        changeset =  Ecto.Changeset.add_error(changeset, :master_password, "The master password is incorrect")
-        # We need to trick add the action being performed, to get the form to render errors
-        changeset = %{changeset | action: :insert}
+    case User.create_onboarding_admin_user(params) do
+      {:ok, user} ->
+        audit_log(conn, "Created onboarding admin user", user: user.email, name: user.name)
+        login(conn, params["user"])
+      {:error, changeset} ->
         render(conn, "new.html", changeset: changeset, errors: true)
     end
   end
@@ -58,23 +45,6 @@ defmodule Air.Onboarding.UserController do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp get_admin_group() do
-    case Repo.all(from g in Group, where: g.admin) do
-      [] -> create_admin_group()
-      [group | _] -> group
-    end
-  end
-
-  defp create_admin_group() do
-    params = %{
-      name: "Admin",
-      admin: true,
-    }
-    %Group{}
-    |> Group.changeset(params)
-    |> Repo.insert!()
-  end
 
   defp login(conn, params) do
     login_params = Map.take(params, ["email", "password"])
