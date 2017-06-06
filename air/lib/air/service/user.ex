@@ -50,14 +50,14 @@ defmodule Air.Service.User do
   end
 
   @doc "Creates the new user from the given parameters."
-  @spec create(map) :: {:ok, User.t} | {:error, Changeset.t}
+  @spec create(map) :: {:ok, User.t} | {:error, Ecto.Changeset.t}
   def create(params), do:
     %User{}
     |> user_changeset(params)
     |> Repo.insert()
 
   @doc "Creates the onboarding admin user."
-  @spec create_onboarding_admin_user(map) :: {:ok, User.t} | {:error, Changeset.t}
+  @spec create_onboarding_admin_user(map) :: {:ok, User.t} | {:error, Ecto.Changeset.t}
   def create_onboarding_admin_user(params) do
     changeset =
       %User{}
@@ -83,7 +83,7 @@ defmodule Air.Service.User do
   end
 
   @doc "Updates the given user."
-  @spec update(User.t, map) :: {:ok, User.t} | {:error, Changeset.t}
+  @spec update(User.t, map) :: {:ok, User.t} | {:error, Ecto.Changeset.t}
   def update(user, params), do:
     user
     |> user_changeset(params)
@@ -95,12 +95,12 @@ defmodule Air.Service.User do
     Repo.delete!(user)
 
   @doc "Returns the empty changeset for the new user."
-  @spec empty_changeset() :: Changeset.t
+  @spec empty_changeset() :: Ecto.Changeset.t
   def empty_changeset(), do:
     user_changeset(%User{}, %{})
 
   @doc "Converts the user into a changeset."
-  @spec to_changeset(User.t) :: Changeset.t
+  @spec to_changeset(User.t) :: Ecto.Changeset.t
   def to_changeset(user), do:
     user_changeset(user, %{})
 
