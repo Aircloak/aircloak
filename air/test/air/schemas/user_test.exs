@@ -3,33 +3,6 @@ defmodule Air.Schemas.UserTest do
 
   alias Air.{Schemas.Group, Schemas.User, TestRepoHelper, TestUtils}
 
-  @valid_attrs %{
-    email: "admin@aircloak.com",
-    password: "1234",
-    password_confirmation: "1234",
-    name: "Admin",
-  }
-
-  test "validates email address" do
-    attributes = %{@valid_attrs | email: "invalid_email"}
-    assert errors_on(%User{}, :email, attributes)
-  end
-
-  test "validates password and confirmation" do
-    attributes = %{@valid_attrs | password_confirmation: "wrong password"}
-    assert errors_on(%User{}, :password_confirmation, attributes)
-  end
-
-  test "requires name to be two or more characters" do
-    attributes = %{@valid_attrs | name: ""}
-    assert errors_on(%User{}, :name, attributes)
-  end
-
-  test "requires password to be 4 or more characters" do
-    attributes = %{@valid_attrs | password: "123"}
-    assert errors_on(%User{}, :password, attributes)
-  end
-
   test "role expansion" do
     assert [:user, :anonymous] == User.roles(user(:user))
     assert [:admin, :user, :anonymous] == User.roles(user(:admin))
