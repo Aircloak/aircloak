@@ -89,6 +89,14 @@ defmodule Air.Service.User do
     |> user_changeset(params)
     |> Repo.update()
 
+  @doc "Updates the profile of the given user, validating user's password."
+  @spec update_profile(User.t, map) :: {:ok, User.t} | {:error, Ecto.Changeset.t}
+  def update_profile(user, params), do:
+    user
+    |> user_changeset(Map.take(params, ~w(name email)))
+    |> merge(password_changeset(user, params))
+    |> Repo.update()
+
   @doc "Deletes the given user."
   @spec delete!(User.t) :: User.t
   def delete!(user), do:
@@ -137,6 +145,17 @@ defmodule Air.Service.User do
     |> update_password_hash()
     |> unique_constraint(:email)
     |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
+
+  defp password_changeset(user, params) do
+    old_password_valid = User.validate_password(user, params["old_password"] || "")
+
+    case {params["password"], old_password_valid} do
+      {"", _}    -> user_changeset(user, %{})
+      {nil, _}   -> user_changeset(user, %{})
+      {_, true}  -> user_changeset(user, Map.take(params, ["password", "password_confirmation"]))
+      {_, false} -> user_changeset(user, %{}) |> add_error(:old_password, "Password invalid")
+    end
+  end
 
   defp update_password_hash(%Ecto.Changeset{valid?: true, changes: %{password: password}} = changeset)
       when password != "" do
