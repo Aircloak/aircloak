@@ -153,7 +153,7 @@ defmodule Cloak.Sql.Parser.Test do
   end
 
   test "all fields" do
-    assert_parse("select * from baz", select(columns: :*, from: unquoted("baz")))
+    assert_parse("select * from baz", select(columns: [:*], from: unquoted("baz")))
   end
 
   test "whitespaces are ignored" do
@@ -988,7 +988,7 @@ defmodule Cloak.Sql.Parser.Test do
       SELECT * -- Partial line comment, foo as bar
       FROM baz
       -- Comment at the end...
-    """, select(columns: :*, from: unquoted("baz")))
+    """, select(columns: [:*], from: unquoted("baz")))
   end
 
   test "select with a table alias", do:

@@ -314,17 +314,14 @@ defmodule Cloak.Sql.Compiler.Specification do
   # Transformation of columns
   # -------------------------------------------------------------------
 
-  defp expand_star_select(%Query{columns: :*} = query), do:
-    %Query{query |
-      columns:
-        query
-        |> all_visible_columns()
-        |> columns_to_identifiers()
-    }
   defp expand_star_select(query), do:
-    %Query{query | columns: Enum.flat_map(query.columns, &expand_select_all_from_table(&1, query))}
+    %Query{query | columns: Enum.flat_map(query.columns, &expand_select_all(&1, query))}
 
-  defp expand_select_all_from_table({:*, table_name}, query) do
+  defp expand_select_all(:*, query), do:
+    query
+    |> all_visible_columns()
+    |> columns_to_identifiers()
+  defp expand_select_all({:*, table_name}, query) do
     with [] <-
       query
       |> all_visible_columns()
@@ -335,7 +332,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         "Select clause `#{table_name}`.* cannot be resolved because the table does not exist in the `FROM` list."
     end
   end
-  defp expand_select_all_from_table(column, _query), do:
+  defp expand_select_all(column, _query), do:
     [column]
 
   defp all_visible_columns(query), do:

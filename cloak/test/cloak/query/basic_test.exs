@@ -81,6 +81,11 @@ defmodule Cloak.Query.BasicTest do
     assert_query "select * from heights", %{query_id: "1", columns: ["user_id", "height", "name", "male"], rows: _}
   end
 
+  test "multiple select alls" do
+    assert_query "select *, height as h, * from heights", %{query_id: "1", columns: columns, rows: _}
+    assert columns == ["user_id", "height", "name", "male", "h", "user_id", "height", "name", "male"]
+  end
+
   test "select all from a table" do
     assert_query "select heights.* from heights",
       %{query_id: "1", columns: ["user_id", "height", "name", "male"], rows: _}

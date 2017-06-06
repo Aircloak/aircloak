@@ -16,7 +16,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
 
 <pre style="float:left; background-color:inherit; color:inherit; text-shadow:inherit; padding-top: inherit;">
   SELECT [DISTINCT]
-    * | field_expression [, ...]
+    field_expression [, ...]
     FROM from_expression [, ...]
     [ WHERE where_expression [AND ...] ]
     [ GROUP BY column_expression | position [, ...] ]
@@ -24,7 +24,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
     [ ORDER BY column_name [ASC | DESC] | position [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
 
   field_expression :=
-    table_name.* | column_expression [AS alias]
+    * | table_name.* | column_expression [AS alias]
 
   column_expression :=
     [table_name.]column_name |

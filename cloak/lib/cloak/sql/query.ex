@@ -40,7 +40,7 @@ defmodule Cloak.Sql.Query do
   @type t :: %__MODULE__{
     data_source: DataSource.t,
     command: :select | :show,
-    columns: [Expression.t] | :*,
+    columns: [Expression.t],
     column_titles: [String.t],
     aggregators: [Function.t],
     # When row-splitters are used (like `extract_matches`), the row splitting has to happen
