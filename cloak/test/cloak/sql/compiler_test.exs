@@ -873,6 +873,11 @@ defmodule Cloak.Sql.Compiler.Test do
     assert reason == "Table alias `a` used more than once."
   end
 
+  test "selecting all from a non-selected table" do
+    assert {:error, reason} = compile("select t2.* from t1", data_source())
+    assert reason == "Select clause `t2`.* cannot be resolved because the table does not exist in the `FROM` list."
+  end
+
   defp projected_table_db_columns(query), do:
     query
     |> get_in([all_subqueries()])
