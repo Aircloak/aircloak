@@ -13,6 +13,11 @@ defmodule Cloak.Sql.Comparison do
   def inequality?({:comparison, _, operator, _}), do: Enum.member?(@inequalities, operator)
   def inequality?(_), do: false
 
+  @doc "Returns true if the given where clause is a <> one, false otherwise."
+  @spec not_equals?(Query.where_clause) :: boolean
+  def not_equals?({:comparison, _, :<>, _}), do: true
+  def not_equals?(_), do: false
+
   @doc "Returns the term the given comparison compares against."
   @spec value(Query.where_clause) :: any
   def value({:comparison, _lhs, _, rhs}), do: rhs.value
