@@ -2,7 +2,7 @@ defmodule Air.Service.WarningsTest do
   use Air.SchemaCase, async: false
 
   alias Air.Service.{Warnings, Cloak}
-  alias Air.Schemas.{Group, DataSource, User}
+  alias Air.Schemas.{Group, DataSource}
   alias Air.{Repo, TestRepoHelper}
 
   @data_source_name "name"
@@ -92,16 +92,12 @@ defmodule Air.Service.WarningsTest do
     |> Repo.insert!()
   end
 
-  defp add_user(group) do
-    params = %{
+  defp add_user(group), do:
+    TestRepoHelper.create_user!(%{
       name: "user_#{:erlang.unique_integer()}",
       email: "random_#{:erlang.unique_integer}@example.com",
       groups: [group.id]
-    }
-    %User{}
-    |> User.changeset(params)
-    |> Repo.insert!()
-  end
+    })
 
   defp start_cloak_channel(data_sources) do
     parent = self()

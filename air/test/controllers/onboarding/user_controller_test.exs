@@ -55,15 +55,13 @@ defmodule Air.Onboarding.UserControllerTest do
     |> Group.changeset(%{name: "admin", admin: true})
     |> Repo.insert!()
 
-    %User{}
-    |> User.changeset(%{
+    Air.TestRepoHelper.create_user!(%{
       name: "test",
       email: "test@example.com",
       password: "1234",
       password_confirmation: "1234",
       groups: [group.id],
     })
-    |> Repo.insert!()
 
     assert get(conn, "/onboarding/") |> redirected_to() === "/onboarding/already_setup"
   end
