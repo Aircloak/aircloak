@@ -21,7 +21,7 @@ defmodule Cloak.Sql.TypeChecker do
   or discontinuous functions.
   """
 
-  alias Cloak.Sql.{CompilationError, Comparison, Expression, Query}
+  alias Cloak.Sql.{CompilationError, Condition, Expression, Query}
   alias Cloak.Sql.TypeChecker.{Narrative, Type}
 
 
@@ -84,7 +84,7 @@ defmodule Cloak.Sql.TypeChecker do
     |> Query.Lenses.conditions()
     |> Lens.to_list(query)
     |> Enum.each(fn(comparison) ->
-      types = Comparison.targets(comparison)
+      types = Condition.targets(comparison)
       |> Enum.map(&establish_type(&1, query))
       |> Enum.uniq()
       if Enum.any?(types, & &1.is_result_of_datetime_processing?) and

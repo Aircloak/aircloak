@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   @moduledoc "Methods for query validation."
 
   alias Cloak.CyclicGraph
-  alias Cloak.Sql.{CompilationError, Expression, Function, Query, Comparison}
+  alias Cloak.Sql.{CompilationError, Expression, Function, Query, Condition}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
 
@@ -258,7 +258,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     verify_condition_tree(query.having)
 
     for condition <- Lens.to_list(Query.Lenses.conditions(), query.having),
-        term <- Comparison.targets(condition), individual_column?(query, term), do:
+        term <- Condition.targets(condition), individual_column?(query, term), do:
       raise CompilationError,
         message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
   end

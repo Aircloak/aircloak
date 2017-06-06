@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   @moduledoc "Provides functionality for constructing an SQL query from a compiled query."
 
   alias Cloak.Sql.Query
-  alias Cloak.Sql.{Expression, Comparison}
+  alias Cloak.Sql.{Expression, Condition}
   alias Cloak.DataSource.SqlBuilder.DbFunction
   alias Cloak.Query.ExecutionError
 
@@ -20,7 +20,7 @@ defmodule Cloak.DataSource.SqlBuilder do
       {:union, left_join, right_join} ->
         [%Expression{function?: true, function: "coalesce", function_args: [first_id | _]} | _] = query.db_columns
         query1 = %Query{query | from: left_join}
-        query2 = %Query{query | from: right_join, where: Comparison.combine(:and, query.where, {:is, first_id, :null})}
+        query2 = %Query{query | from: right_join, where: Condition.combine(:and, query.where, {:is, first_id, :null})}
         build(query1, sql_dialect) <> " UNION ALL " <> build(query2, sql_dialect)
       _ -> query |> build_fragments(sql_dialect) |> to_string()
     end

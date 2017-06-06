@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.NoiseLayers do
   @moduledoc "Contains functions related to compilation of noise layers."
 
-  alias Cloak.Sql.{Expression, Query, NoiseLayer, Comparison}
+  alias Cloak.Sql.{Expression, Query, NoiseLayer, Condition}
   alias Cloak.Sql.Compiler.Helpers
 
   use Lens.Macros
@@ -145,8 +145,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp non_range_noise_layers(query), do:
     Query.Lenses.filter_clauses()
     |> Query.Lenses.conditions()
-    |> Lens.satisfy(& not Comparison.inequality?(&1))
-    |> Lens.satisfy(& not Comparison.not_equals?(&1))
+    |> Lens.satisfy(& not Condition.inequality?(&1))
+    |> Lens.satisfy(& not Condition.not_equals?(&1))
     |> Lens.both(Lens.key(:group_by))
     |> raw_columns()
     |> Lens.to_list(query)
@@ -163,7 +163,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp not_equals_noise_layers(query), do:
     Query.Lenses.filter_clauses()
     |> Query.Lenses.conditions()
-    |> Lens.satisfy(&Comparison.not_equals?(&1))
+    |> Lens.satisfy(&Condition.not_equals?(&1))
     |> Lens.satisfy(&can_be_anonymized_with_noise_layer?(&1, query))
     |> Lens.to_list(query)
     |> Enum.map(&not_equals_noise_layer/1)

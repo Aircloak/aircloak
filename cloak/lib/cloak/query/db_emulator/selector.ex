@@ -3,7 +3,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   Data retrieval for emulated queries.
   """
 
-  alias Cloak.Sql.{Query, Comparison, Expression}
+  alias Cloak.Sql.{Query, Condition, Expression}
   alias Cloak.Query.{Rows, Sorter}
   alias Cloak.{Data, Stats}
 
@@ -17,7 +17,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   def select(stream, query) do
     {columns, rows} =
       stream
-      |> Rows.filter(Comparison.to_function(query.emulated_where))
+      |> Rows.filter(Condition.to_function(query.emulated_where))
       |> select_columns(query)
 
     rows
@@ -186,7 +186,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp inner_join(lhs, rhs, join) do
     rhs_pre_filter = create_join_pre_filter(rhs, join)
-    filter = Comparison.to_function(join.conditions)
+    filter = Condition.to_function(join.conditions)
     Stream.flat_map(lhs, fn (lhs_row) ->
       lhs_row
       |> rhs_pre_filter.()
@@ -207,7 +207,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp outer_join(lhs, rhs, join, rows_combiner, unmatched_handler, matched_handler) do
     rhs_pre_filter = create_join_pre_filter(rhs, join)
-    filter = Comparison.to_function(join.conditions)
+    filter = Condition.to_function(join.conditions)
     Stream.flat_map(lhs, fn (lhs_row) ->
       lhs_row
       |> rhs_pre_filter.()

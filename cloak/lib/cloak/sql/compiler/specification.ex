@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   @moduledoc "Turns a parsed SQL AST into a `Cloak.Sql.Query` specification describing the user query."
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{Comparison, CompilationError, Expression, Function, Query, TypeChecker}
+  alias Cloak.Sql.{Condition, CompilationError, Expression, Function, Query, TypeChecker}
   alias Cloak.Sql.Compiler.Validation
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
@@ -553,7 +553,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     %Query{query | where: Lens.map(Lenses.conditions(), query.where, &cast_where_clause/1)}
 
   defp cast_where_clause(clause) do
-    column = Comparison.subject(clause)
+    column = Condition.subject(clause)
     do_cast_where_clause(clause, column.type)
   end
 
