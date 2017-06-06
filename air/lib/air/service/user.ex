@@ -98,6 +98,11 @@ defmodule Air.Service.User do
     |> Repo.all()
     |> Enum.into(%{})
 
+  @doc "Returns a boolean regarding whether a administrator account already exists"
+  @spec admin_user_exists?() :: boolean
+  def admin_user_exists?(), do:
+    Repo.one(from u in User, inner_join: g in assoc(u, :groups), where: g.admin, limit: 1) != nil
+
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------

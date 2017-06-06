@@ -2,7 +2,7 @@ defmodule Air.SessionController do
   @moduledoc false
   use Air.Web, :controller
 
-  alias Air.Schemas.User
+  alias Air.Service.User
 
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback
@@ -32,7 +32,7 @@ defmodule Air.SessionController do
   end
 
   def create(conn, params) do
-    case Air.Service.User.login(params["email"], params["password"], audit_log_meta(conn)) do
+    case User.login(params["email"], params["password"], audit_log_meta(conn)) do
       {:ok, user} ->
         return_path = get_session(conn, :return_path) ||
           data_source_path(conn, :redirect_to_last_used)

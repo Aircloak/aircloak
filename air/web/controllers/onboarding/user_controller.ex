@@ -21,7 +21,7 @@ defmodule Air.Onboarding.UserController do
   # -------------------------------------------------------------------
 
   def new(conn, _params) do
-    if User.admin_user_exists?() do
+    if Air.Service.User.admin_user_exists?() do
       redirect(conn, to: onboarding_user_path(conn, :already_setup))
     else
       changeset = User.changeset(%User{})
