@@ -16,7 +16,7 @@ defmodule Cloak.Query.FunctionTest do
     Cloak.Test.DB.create_table("datetimes_ft", "datetime TIMESTAMP, date_only DATE, time_only TIME, empty text")
     insert_rows(_user_ids = 1..10, "datetimes_ft", ["datetime"], [~N[2015-01-02 03:04:05.000000]])
 
-    Cloak.Test.DB.create_table("types_ft", "dec DECIMAL, int INTEGER, string TEXT, string2 TEXT")
+    Cloak.Test.DB.create_table("types_ft", "dec DECIMAL, num INTEGER, string TEXT, string2 TEXT")
   end
 
   setup do
@@ -301,11 +301,11 @@ defmodule Cloak.Query.FunctionTest do
   test "^", do: assert 32_400.0 == apply_function("height ^ 2", "heights_ft")
 
   test "trunc/1", do: assert 180 == apply_function("trunc", ["dec"], [180.6], "types_ft")
-  test "trunc/2", do: assert 180.12 == apply_function("trunc", ["dec", "int"], [180.126, 2], "types_ft")
+  test "trunc/2", do: assert 180.12 == apply_function("trunc", ["dec", "num"], [180.126, 2], "types_ft")
   test "round/1", do: assert 181 == apply_function("round", ["dec"], [180.6], "types_ft")
-  test "round/2", do: assert 180.13 == apply_function("round", ["dec", "int"], [180.126, 2], "types_ft")
-  test "abs", do: assert 180 == apply_function("abs", ["int"], [-180], "types_ft")
-  test "sqrt", do: assert 3.0 == apply_function("sqrt", ["int"], [9], "types_ft")
+  test "round/2", do: assert 180.13 == apply_function("round", ["dec", "num"], [180.126, 2], "types_ft")
+  test "abs", do: assert 180 == apply_function("abs", ["num"], [-180], "types_ft")
+  test "sqrt", do: assert 3.0 == apply_function("sqrt", ["num"], [9], "types_ft")
   test "div", do: assert 1 == apply_function("div(height, height)", "heights_ft")
   test "mod", do: assert 80 == apply_function("mod(height, 100)", "heights_ft")
   test "pow", do: assert 32_400.0 == apply_function("pow(height, 2)", "heights_ft")
@@ -340,8 +340,8 @@ defmodule Cloak.Query.FunctionTest do
   test "lcase", do: assert "abc" == apply_function("lcase", ["string"], ["AbC"], "types_ft")
   test "upper", do: assert "ABC" == apply_function("upper", ["string"], ["AbC"], "types_ft")
   test "ucase", do: assert "ABC" == apply_function("ucase", ["string"], ["AbC"], "types_ft")
-  test "left", do: assert "A" == apply_function("left", ["string", "int"], ["AbC", 1], "types_ft")
-  test "right", do: assert "C" == apply_function("right", ["string", "int"], ["AbC", 1], "types_ft")
+  test "left", do: assert "A" == apply_function("left", ["string", "num"], ["AbC", 1], "types_ft")
+  test "right", do: assert "C" == apply_function("right", ["string", "num"], ["AbC", 1], "types_ft")
   test "ltrim/1", do: assert "AbC" == apply_function("ltrim", ["string"], [" AbC"], "types_ft")
   test "ltrim/2", do: assert "bC" == apply_function("ltrim", ["string", "string2"], ["AbC", "A"], "types_ft")
   test "rtrim/1", do: assert "AbC" == apply_function("rtrim", ["string"], ["AbC "], "types_ft")
