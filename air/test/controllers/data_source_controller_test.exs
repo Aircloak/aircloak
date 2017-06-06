@@ -2,7 +2,7 @@ defmodule Air.DataSourceControllerTest do
   use Air.ConnCase, async: true
 
   import Air.TestConnHelper
-  alias Air.{TestRepoHelper, Schemas.DataSource, Schemas.User, Repo}
+  alias Air.{TestRepoHelper, Schemas.DataSource, Repo}
 
   test "can see data sources assigned to a group the user belongs to", %{conn: conn} do
     group = TestRepoHelper.create_group!()
@@ -11,9 +11,7 @@ defmodule Air.DataSourceControllerTest do
     |> DataSource.changeset(%{groups: [group.id]})
     |> Repo.update!()
 
-    user = TestRepoHelper.create_user!()
-    |> User.changeset(%{groups: [group.id]})
-    |> Repo.update!()
+    user = TestRepoHelper.create_user!(%{groups: [group.id]})
 
     assert login(user) |> get(data_source_path(conn, :index)) |> response(200) =~ data_source.name
   end
@@ -26,9 +24,7 @@ defmodule Air.DataSourceControllerTest do
     |> DataSource.changeset(%{groups: [group1.id]})
     |> Repo.update!()
 
-    user = TestRepoHelper.create_user!()
-    |> User.changeset(%{groups: [group2.id]})
-    |> Repo.update!()
+    user = TestRepoHelper.create_user!(%{groups: [group2.id]})
 
     refute login(user) |> get(data_source_path(conn, :index)) |> response(200) =~ data_source.name
   end

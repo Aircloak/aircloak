@@ -42,12 +42,26 @@ defmodule Air.Service.User do
   def load(user_id), do:
     Repo.one(from user in User, where: user.id == ^user_id, preload: [:groups])
 
+  @doc "Creates the new user, raises on error."
+  @spec create!(map) :: User.t
+  def create!(params) do
+    {:ok, user} = create(params)
+    user
+  end
+
   @doc "Creates the new user from the given parameters."
   @spec create(map) :: {:ok, User.t} | {:error, Changeset.t}
   def create(params), do:
     %User{}
     |> user_changeset(params)
     |> Repo.insert()
+
+  @doc "Updates the given user, raises on error."
+  @spec update!(User.t, map) :: User.t
+  def update!(user, params) do
+    {:ok, user} = update(user, params)
+    user
+  end
 
   @doc "Updates the given user."
   @spec update(User.t, map) :: {:ok, User.t} | {:error, Changeset.t}

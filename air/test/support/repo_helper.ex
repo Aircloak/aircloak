@@ -1,24 +1,23 @@
 defmodule Air.TestRepoHelper do
   @moduledoc "Helpers for working with the repository."
 
-  alias Air.{Schemas.ApiToken, Schemas.Group, Schemas.User, Repo}
+  alias Air.{Service.User, Schemas.ApiToken, Schemas.Group, Repo}
 
   @doc "Inserts the new user with default parameters into the database."
-  @spec create_user!(%{}) :: User.t
-  def create_user!(additional_changes \\ %{}) do
-    User.changeset(%User{}, %{
+  @spec create_user!(%{}) :: Air.Schemas.User.t
+  def create_user!(additional_changes \\ %{}), do:
+    %{
       email: "#{random_string()}@aircloak.com",
       password: "1234",
       password_confirmation: "1234",
       name: random_string()
-    })
-    |> User.changeset(additional_changes)
-    |> Repo.insert!()
+    }
+    |> Map.merge(additional_changes)
+    |> User.create!()
     |> Repo.preload([:groups])
-  end
 
   @doc "Creates a user that is an admin. See create_user!/0 and make_admin!/1"
-  @spec create_admin_user!() :: User.t
+  @spec create_admin_user!() :: Air.Schemas.User.t
   def create_admin_user!() do
     create_user!() |> make_admin!()
   end
@@ -33,14 +32,14 @@ defmodule Air.TestRepoHelper do
   end
 
   @doc "Adds a group with admin rights to the user"
-  @spec make_admin!(User.t) :: User.t
+  @spec make_admin!(Air.Schemas.User.t) :: Air.Schemas.User.t
   def make_admin!(user) do
     admin_group = %Group{}
     |> Group.changeset(%{name: "admin-group-#{random_string()}", admin: true})
     |> Repo.insert!()
+
     user
-    |> User.changeset(%{groups: [admin_group.id]})
-    |> Repo.update!()
+    |> User.update!(%{groups: [admin_group.id]})
     |> Repo.preload([:groups])
   end
 
@@ -62,14 +61,14 @@ defmodule Air.TestRepoHelper do
 
   @doc "Inserts a new token with default parameters into the database."
   @spec create_token!() :: Air.Schemas.ApiToken.t
-  @spec create_token!(User.t) :: Air.Schemas.ApiToken.t
+  @spec create_token!(Air.Schemas.User.t) :: Air.Schemas.ApiToken.t
   def create_token!(user \\ create_user!()) do
     ApiToken.changeset(%ApiToken{}, %{user_id: user.id, description: "some description"})
     |> Repo.insert!()
   end
 
   @doc "Inserts a test query into the database"
-  @spec create_query!(User.t, %{}) :: Air.Schemas.Query.t
+  @spec create_query!(Air.Schemas.User.t, %{}) :: Air.Schemas.Query.t
   def create_query!(user, params \\ %{statement: "query content", session_id: Ecto.UUID.generate()}) do
     user
     |> Ecto.build_assoc(:queries)

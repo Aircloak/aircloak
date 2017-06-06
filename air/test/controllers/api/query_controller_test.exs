@@ -4,7 +4,7 @@ defmodule Air.API.QueryController.Test do
   use Air.ConnCase, async: false
 
   import Air.{TestConnHelper, TestRepoHelper}
-  alias Air.{TestSocketHelper, Repo, Schemas.DataSource, Schemas.User}
+  alias Air.{TestSocketHelper, Repo, Schemas.DataSource}
   alias Poison, as: JSON
 
   setup do
@@ -48,13 +48,8 @@ defmodule Air.API.QueryController.Test do
 
   defp with_group(_context), do: {:ok, group: create_group!()}
 
-  defp with_user(%{group: group}) do
-    user =
-      create_user!()
-      |> User.changeset(%{groups: [group.id]})
-      |> Repo.update!()
-    {:ok, user: user}
-  end
+  defp with_user(%{group: group}), do:
+    {:ok, user: create_user!(%{groups: [group.id]})}
 
   defp with_token(%{user: user}), do: %{token: create_token!(user)}
 
