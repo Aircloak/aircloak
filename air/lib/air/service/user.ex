@@ -53,16 +53,13 @@ defmodule Air.Service.User do
   @spec create(map) :: {:ok, User.t} | {:error, Ecto.Changeset.t}
   def create(params), do:
     %User{}
-    |> user_changeset(params)
+    |> user_changeset(params, additional_required_fields: [:password, :password_confirmation])
     |> Repo.insert()
 
   @doc "Creates the onboarding admin user."
   @spec create_onboarding_admin_user(map) :: {:ok, User.t} | {:error, Ecto.Changeset.t}
   def create_onboarding_admin_user(params) do
-    changeset =
-      %User{}
-      |> user_changeset(params["user"])
-      |> validate_required([:password, :password_confirmation])
+    changeset = user_changeset(%User{}, params["user"], additional_required_fields: [:password, :password_confirmation])
 
     if params["user"]["master_password"] == Air.site_setting("master_password") do
       group = get_admin_group()
@@ -134,10 +131,10 @@ defmodule Air.Service.User do
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp user_changeset(user, params), do:
+  defp user_changeset(user, params, opts \\ []), do:
     user
     |> cast(params, @required_fields ++ @optional_fields)
-    |> validate_required(@required_fields)
+    |> validate_required(@required_fields ++ Keyword.get(opts, :additional_required_fields, []))
     |> validate_format(:email, ~r/@/)
     |> validate_length(:name, min: 2)
     |> validate_length(:password, min: 4)
