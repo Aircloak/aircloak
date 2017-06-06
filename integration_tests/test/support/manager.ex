@@ -36,15 +36,13 @@ defmodule IntegrationTest.Manager do
     admin_group = Repo.one!(from group in Group, where: group.name == @admin_group_name)
 
     # create user
-    %User{}
-    |> User.new_user_changeset(%{
+    Air.Service.User.create!(%{
       email: "user_#{:erlang.unique_integer([:positive])}@aircloak.com",
       name: "user_#{:erlang.unique_integer([:positive])}",
       password: @user_password,
       password_confirmation: @user_password,
       groups: [admin_group.id]
     })
-    |> Repo.insert!()
   end
 
 
