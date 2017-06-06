@@ -32,6 +32,13 @@ defmodule Air.Service.UserTest do
     refute updated_user.hashed_password == user.hashed_password
   end
 
+  test "the only admin can't be deleted", do:
+    assert User.delete(TestRepoHelper.create_only_user_as_admin!()) == {:error, :forbidden_last_admin_deletion}
+
+  test "the only admin can't be updated to be a normal user", do:
+    assert User.update(TestRepoHelper.create_only_user_as_admin!(), %{groups: []}) ==
+      {:error, :forbidden_last_admin_deletion}
+
   defp error_on(field, value), do:
     errors_on(%{field => value})[field]
 

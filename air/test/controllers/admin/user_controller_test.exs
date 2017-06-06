@@ -65,6 +65,17 @@ defmodule Air.Admin.UserControllerTest do
     refute users_html =~ admin.email
   end
 
+  test "error is reported when updating tha last admin to non-admin status" do
+    admin = TestRepoHelper.create_only_user_as_admin!()
+
+    conn = login(admin) |> put("/admin/users/#{admin.id}", user: %{groups: []})
+
+    assert "/admin/users" == redirected_to(conn)
+    assert get_flash(conn)["error"] ==
+      "The given action cannot be performed, because it would remove the only administrator."
+    assert Air.Service.User.admin_user_exists?()
+  end
+
   test "deleting a user" do
     admin = TestRepoHelper.create_admin_user!()
     user = TestRepoHelper.create_user!()
@@ -72,6 +83,17 @@ defmodule Air.Admin.UserControllerTest do
     assert "/admin/users" == login(admin) |> delete("/admin/users/#{user.id}") |> redirected_to()
     users_html = login(admin) |> get("/admin/users") |> response(200)
     refute users_html =~ user.email
+  end
+
+  test "error is reported when deleting the last admin" do
+    admin = TestRepoHelper.create_only_user_as_admin!()
+    conn = login(admin) |> delete("/admin/users/#{admin.id}")
+
+    assert redirected_to(conn) == "/admin/users"
+    assert get_flash(conn)["error"] ==
+      "The given action cannot be performed, because it would remove the only administrator."
+    assert Air.Service.User.load(admin.id) != nil
+    assert Air.Service.User.admin_user_exists?()
   end
 
   test "render 404 on attempting to render edit form for non-existent user" do

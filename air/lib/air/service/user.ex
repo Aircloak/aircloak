@@ -80,11 +80,13 @@ defmodule Air.Service.User do
   end
 
   @doc "Updates the given user."
-  @spec update(User.t, map) :: {:ok, User.t} | {:error, Ecto.Changeset.t}
+  @spec update(User.t, map) :: {:ok, User.t} | {:error, Ecto.Changeset.t | :forbidden_last_admin_deletion}
   def update(user, params), do:
-    user
-    |> user_changeset(params)
-    |> Repo.update()
+    commit_if_last_admin_not_deleted(fn ->
+      user
+      |> user_changeset(params)
+      |> Repo.update()
+    end)
 
   @doc "Updates the profile of the given user, validating user's password."
   @spec update_profile(User.t, map) :: {:ok, User.t} | {:error, Ecto.Changeset.t}
@@ -94,10 +96,17 @@ defmodule Air.Service.User do
     |> merge(password_changeset(user, params))
     |> Repo.update()
 
-  @doc "Deletes the given user."
+  @doc "Deletes the given user, raises on error."
   @spec delete!(User.t) :: User.t
-  def delete!(user), do:
-    Repo.delete!(user)
+  def delete!(user) do
+    {:ok, user} = delete(user)
+    user
+  end
+
+  @doc "Deletes the given user."
+  @spec delete(User.t) :: {:ok, User.t} | {:error, :forbidden_last_admin_deletion}
+  def delete(user), do:
+    commit_if_last_admin_not_deleted(fn -> Repo.delete(user) end)
 
   @doc "Returns the empty changeset for the new user."
   @spec empty_changeset() :: Ecto.Changeset.t
@@ -171,4 +180,22 @@ defmodule Air.Service.User do
     %Group{}
     |> Group.changeset(%{name: "Admin", admin: true})
     |> Repo.insert!()
+
+  defp commit_if_last_admin_not_deleted(fun), do:
+    # Using :global.trans to ensure that these operations are serialized, so we can consistently verify that the action
+    # doesn't remove the last admin.
+    :global.trans({__MODULE__, :isolated_user_change}, fn ->
+      Repo.transaction(fn ->
+        case fun.() do
+          {:error, error} ->
+            Repo.rollback(error)
+          {:ok, result} ->
+            if admin_user_exists?() do
+              result
+            else
+              Repo.rollback(:forbidden_last_admin_deletion)
+            end
+        end
+      end)
+    end)
 end

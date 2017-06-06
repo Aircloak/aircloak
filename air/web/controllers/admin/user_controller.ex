@@ -44,24 +44,27 @@ defmodule Air.Admin.UserController do
   end
 
   def update(conn, params) do
-    case User.update(conn.assigns.user, params["user"]) do
-      {:ok, user} ->
-        audit_log(conn, "Altered user", user: user.email, name: user.name)
-        conn
-        |> put_flash(:info, "User updated")
-        |> redirect(to: admin_user_path(conn, :index))
-      {:error, changeset} ->
-        render(conn, "edit.html", changeset: changeset)
-    end
+    verify_last_admin_deleted(User.update(conn.assigns.user, params["user"]), conn,
+      fn
+        {:ok, user} ->
+          audit_log(conn, "Altered user", user: user.email, name: user.name)
+          conn
+          |> put_flash(:info, "User updated")
+          |> redirect(to: admin_user_path(conn, :index))
+        {:error, changeset} ->
+          render(conn, "edit.html", changeset: changeset)
+      end
+    )
   end
 
   def delete(conn, _params) do
     user = conn.assigns.user
-    User.delete!(user)
-    audit_log(conn, "Removed user", user: user.email, name: user.name)
-    conn
-    |> put_flash(:info, "User deleted")
-    |> redirect(to: admin_user_path(conn, :index))
+    verify_last_admin_deleted(User.delete(user), conn, fn({:ok, _}) ->
+      audit_log(conn, "Removed user", user: user.email, name: user.name)
+      conn
+      |> put_flash(:info, "User deleted")
+      |> redirect(to: admin_user_path(conn, :index))
+    end)
   end
 
 
@@ -81,4 +84,11 @@ defmodule Air.Admin.UserController do
         assign(conn, :user, user)
     end
   end
+
+  defp verify_last_admin_deleted({:error, :forbidden_last_admin_deletion}, conn, _fun), do:
+    conn
+    |> put_flash(:error, "The given action cannot be performed, because it would remove the only administrator.")
+    |> redirect(to: admin_user_path(conn, :index))
+  defp verify_last_admin_deleted(result, _conn, fun), do:
+    fun.(result)
 end

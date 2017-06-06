@@ -22,6 +22,15 @@ defmodule Air.TestRepoHelper do
     create_user!() |> make_admin!()
   end
 
+  @doc "Creates an admin user, and deletes all other users."
+  @spec create_only_user_as_admin!() :: Air.Schemas.User.t
+  def create_only_user_as_admin!() do
+    previous_users = Air.Service.User.all()
+    admin = create_admin_user!()
+    Enum.each(previous_users, &Air.Service.User.delete!/1)
+    admin
+  end
+
   @doc "Creates a group with default parameters with a random group name to avoid clashes"
   @spec create_group!(map()) :: Group.t
   def create_group!(additional_changes \\ %{}) do
