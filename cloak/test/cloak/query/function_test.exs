@@ -16,7 +16,7 @@ defmodule Cloak.Query.FunctionTest do
     Cloak.Test.DB.create_table("datetimes_ft", "datetime TIMESTAMP, date_only DATE, time_only TIME, empty text")
     insert_rows(_user_ids = 1..10, "datetimes_ft", ["datetime"], [~N[2015-01-02 03:04:05.000000]])
 
-    Cloak.Test.DB.create_table("types_ft", "dec NUMERIC, int INTEGER, string TEXT, string2 TEXT")
+    Cloak.Test.DB.create_table("types_ft", "dec DECIMAL, int INTEGER, string TEXT, string2 TEXT")
   end
 
   setup do
