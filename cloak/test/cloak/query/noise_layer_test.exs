@@ -29,7 +29,7 @@ defmodule Cloak.Query.NoiseLayerTest do
   end
 
   test "count(*) uses a different noise layer than count(column)" do
-    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [7])
+    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [11])
     :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [4])
 
     assert_query "select count(*), count(number) from noise_layers where number <> 0",
@@ -125,5 +125,27 @@ defmodule Cloak.Query.NoiseLayerTest do
     assert_query "select avg(other) from noise_layers",
       %{users_count: count2}
     assert count1 != count2
+  end
+
+  test "adding a negative condition adds a noise layer" do
+    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [14])
+    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [14])
+
+    assert_query "select avg(number) from noise_layers where number <> 1000",
+      %{rows: [%{row: [value1]}]}
+    assert_query "select avg(number) from noise_layers",
+      %{rows: [%{row: [value2]}]}
+    assert value1 != value2
+  end
+
+  test "adding negative conditions with different constants adds different noise layers" do
+    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [9])
+    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [9])
+
+    assert_query "select avg(number) from noise_layers where number <> 1000",
+      %{rows: [%{row: [value1]}]}
+    assert_query "select avg(number) from noise_layers where number <> 1001",
+      %{rows: [%{row: [value2]}]}
+    assert value1 != value2
   end
 end

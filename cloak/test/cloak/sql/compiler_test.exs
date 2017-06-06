@@ -824,6 +824,38 @@ defmodule Cloak.Sql.Compiler.Test do
       compile("SELECT SUM(numeric) FROM table ORDER BY float", data_source())
   end
 
+  describe "normalization" do
+    test "normalizing NOT IN as a series of <>" do
+      result1 = compile!("SELECT * FROM table WHERE numeric NOT IN (1, 2, 3)", data_source())
+      result2 = compile!("SELECT * FROM table WHERE numeric <> 3 AND numeric <> 2 AND numeric <> 1", data_source())
+
+      assert result1.where == result2.where
+    end
+
+    test "normalizing constant expressions" do
+      result1 = compile!("SELECT * FROM table WHERE numeric = 2 * 3 + 4", data_source())
+      result2 = compile!("SELECT * FROM table WHERE numeric = 10", data_source())
+
+      assert result1.where == result2.where
+    end
+
+    test "normalization in subqueries" do
+      %{from: {:subquery, %{ast: result1}}} = compile!(
+        "SELECT * FROM (SELECT * FROM table WHERE numeric = 2 * 3 + 4) x", data_source())
+      %{from: {:subquery, %{ast: result2}}} = compile!(
+        "SELECT * FROM (SELECT * FROM table WHERE numeric = 10) x", data_source())
+
+      assert result1.where == result2.where
+    end
+
+    test "normalizing upper(x) <> constant" do
+      result1 = compile!("SELECT * FROM table WHERE upper(string) <> 'CeO'", data_source())
+      result2 = compile!("SELECT * FROM table WHERE lower(string) <> 'cEo'", data_source())
+
+      assert result1.where == result2.where
+    end
+  end
+
   test "rejecting duplicate table", do:
     assert {:error, "Table name `t1` specified more than once."} == compile("SELECT * from t1, t1", data_source())
 

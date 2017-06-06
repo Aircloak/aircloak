@@ -39,7 +39,7 @@ defmodule Cloak.Query.Result do
       buckets: final_buckets(query, buckets),
       users_count: users_count,
       columns: query.column_titles,
-      features: Query.extract_features(query)
+      features: query.features,
     }
 
 
