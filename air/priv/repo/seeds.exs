@@ -12,7 +12,7 @@
 # is meant to be forward only. If existing rows have to be changed, for example
 # if the database structure changes, it's advised to recreate the entire database.
 
-alias Air.{Schemas.User, Schemas.Group, Repo}
+alias Air.{Schemas.Group, Repo}
 import Ecto.Query, only: [from: 2]
 
 # admin user
@@ -27,22 +27,18 @@ admin_group = case Repo.all(from g in Group, where: g.admin) do
   [group | _] -> group
 end
 
-%User{}
-|> User.changeset(%{
+Air.Service.User.create!(%{
   email: "admin@aircloak.com",
   password: "1234",
   password_confirmation: "1234",
   name: "Aircloak test administrator",
   groups: [admin_group.id],
 })
-|> Repo.insert!()
 
 # plain user
-%User{}
-|> User.changeset(%{
+Air.Service.User.create!(%{
   email: "user@aircloak.com",
   password: "1234",
   password_confirmation: "1234",
   name: "Test client regular user",
 })
-|> Air.Repo.insert!()
