@@ -5,8 +5,8 @@ defmodule Air.Admin.DataSourceController do
 
   use Air.Web, :admin_controller
 
-  alias Air.{Schemas.DataSource, Schemas.User}
-  alias Air.Service.Warnings
+  alias Air.Schemas.User
+  alias Air.Service.{DataSource, Warnings}
 
   plug :load_data_source when action in [:show, :edit, :update, :delete]
 
@@ -28,33 +28,20 @@ defmodule Air.Admin.DataSourceController do
 
   def index(conn, _params) do
     data_sources =
-      Air.Service.DataSource.all()
-      |> Enum.sort_by(&{not Air.Service.DataSource.available?(&1.name), &1.name})
+      DataSource.all()
+      |> Enum.sort_by(&{not DataSource.available?(&1.name), &1.name})
 
-    query = from data_source in DataSource,
-      inner_join: group in assoc(data_source, :groups),
-      inner_join: user in assoc(group, :users),
-      group_by: data_source.id,
-      select: %{
-        id: data_source.id,
-        users_count: count(user.id, :distinct)
-      }
-    users_count = for data_source <- Repo.all(query), into: %{} do
-      {data_source.id, data_source.users_count}
-    end
-
-    render(conn, "index.html", data_sources: data_sources, users_count: users_count,
+    render(conn, "index.html", data_sources: data_sources, users_count: DataSource.users_count(),
       data_source_problem_severity: highest_severity_class_map(data_sources))
   end
 
   def edit(conn, _params) do
     data_source = conn.assigns.data_source
-    render(conn, "edit.html", changeset: DataSource.changeset(data_source), chosen_groups: data_source.groups)
+    render(conn, "edit.html", changeset: DataSource.to_changeset(data_source), chosen_groups: data_source.groups)
   end
 
   def update(conn, params) do
-    changeset = DataSource.changeset(conn.assigns.data_source, params["data_source"])
-    case Repo.update(changeset) do
+    case DataSource.update(conn.assigns.data_source, params["data_source"]) do
       {:ok, data_source} ->
         audit_log(conn, "Altered data source", name: data_source.name, data_source: data_source.name)
         conn
@@ -101,7 +88,7 @@ defmodule Air.Admin.DataSourceController do
   # -------------------------------------------------------------------
 
   defp load_data_source(conn, _) do
-    case Repo.get_by(DataSource, name: conn.params["id"]) do
+    case DataSource.by_name(conn.params["id"]) do
       nil ->
         conn
         |> put_layout(false)
@@ -109,7 +96,6 @@ defmodule Air.Admin.DataSourceController do
         |> render(Air.ErrorView, "404.html")
         |> halt()
       data_source ->
-        data_source = Repo.preload(data_source, [:groups])
         assign(conn, :data_source, data_source)
     end
   end

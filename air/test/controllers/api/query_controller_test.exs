@@ -62,8 +62,7 @@ defmodule Air.API.QueryController.Test do
     data_source =
       Repo.one(DataSource)
       |> Repo.preload([:groups])
-      |> DataSource.changeset(%{groups: [group.id]})
-      |> Repo.update!()
+      |> Air.Service.DataSource.update!(%{groups: [group.id]})
 
     {:ok, socket: socket, data_source: data_source}
   end

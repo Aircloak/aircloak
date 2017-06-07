@@ -4,7 +4,7 @@ defmodule Air.Admin.QueryControllerTest do
   use Air.ConnCase, async: false
 
   import Air.{TestConnHelper, TestRepoHelper}
-  alias Air.{Repo, Schemas.DataSource}
+  alias Air.Repo
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
@@ -13,9 +13,7 @@ defmodule Air.Admin.QueryControllerTest do
       "name" => "data source name",
       "tables" => "[]",
     }
-    data_source = %DataSource{}
-    |> DataSource.changeset(params)
-    |> Repo.insert!()
+    data_source = Air.Service.DataSource.create!(params)
     {:ok, data_source: data_source}
   end
 
