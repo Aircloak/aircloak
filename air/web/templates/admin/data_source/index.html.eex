@@ -33,7 +33,9 @@
         <%= link "Edit", to: admin_data_source_path(@conn, :edit, data_source.name), class: "btn btn-default btn-xs" %>
         <%= unless available?(data_source) do %>
           <%= link "Delete", to: admin_data_source_path(@conn, :delete, data_source.name),
-            method: :delete, class: "btn btn-danger btn-xs" %>
+            method: :delete, class: "btn btn-danger btn-xs",
+            "data-confirm": ~s(Delete the data source "#{data_source.name}"?)
+          %>
         <% end %>
       </td>
     </tr>

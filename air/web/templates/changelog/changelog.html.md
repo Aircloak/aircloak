@@ -10,6 +10,7 @@
 - You can add descriptions to data sources to make them easier to distinguish.
 - Audit logging can be turned off.
 - Preventing user or group changes which would leave the system without any administrator user.
+- Confirmation dialogs are presented when attempting to delete a user, a group, or a data source.
 
 ### Changes
 
