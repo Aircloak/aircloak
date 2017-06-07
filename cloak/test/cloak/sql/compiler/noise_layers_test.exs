@@ -139,6 +139,24 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [] = result.noise_layers
     end
+
+    test "noise layers for NOT LIKE" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT LIKE 'bob'", data_source())
+
+      assert [
+        %{base: {"table", "name", {:not, :like, "bob"}}, expressions: [%Expression{name: "name"}]},
+      ] = result.noise_layers
+    end
+
+    test "noise layers for NOT ILIKE" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT ILIKE 'bob'", data_source())
+
+      assert [
+        %{base: {"table", "name", {:not, :ilike, "bob"}}, expressions: [%Expression{name: "name"}]},
+      ] = result.noise_layers
+    end
+
+    test "no noise layer when the argument to LIKE is not raw"
   end
 
   describe "noise layers from subqueries" do
