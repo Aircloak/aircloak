@@ -49,7 +49,7 @@ defmodule Air.Plug.Session do
 
     defp missing_auth_header_error() do
       "The Aircloak API's are authenticated with auth-tokens. You can create auth-tokens for your account " <>
-      "at https://insights.aircloak.com/api_tokens. The token should be sent with your request via the HTTP " <>
+      "at $SITE_URL/api_tokens. The token should be sent with your request via the HTTP " <>
       "header 'auth-token'. For example, using curl, you would make your request like this: " <>
       "`curl -H 'auth-token:<token-value>' ...` where <token-value> is your auth token."
     end
@@ -57,7 +57,7 @@ defmodule Air.Plug.Session do
     defp invalid_auth_token_error() do
       "Invalid auth-token. This could be a result of the auth-token being incorrectly sent to the API backend, " <>
       "or the auth-token having been revoked. You can validate that your auth-token is still valid by visiting " <>
-      "https://insights.aircloak.com/api_tokens."
+      "$SITE_URL/api_tokens."
     end
 
 
