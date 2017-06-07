@@ -128,6 +128,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_joins(%Query{projected?: true} = query), do: query
   defp verify_joins(query) do
+    verify_join_types(query)
     verify_join_conditions_scope(query.from, [])
     verify_all_joined_subqueries_have_explicit_uids(query)
     verify_all_uid_columns_are_compared_in_joins(query)
@@ -194,6 +195,16 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_scope(tables_in_scope, table_name, column_name) do
     unless Enum.member?(tables_in_scope, table_name), do:
       raise CompilationError, message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
+  end
+
+  defp verify_join_types(query) do
+    Lenses.joins()
+    |> Lens.satisfy(& &1.type == :full_outer_join)
+    |> Lens.to_list(query)
+    |> case do
+      [] -> :ok
+      _ -> raise CompilationError, message: "FULL OUTER JOINs are not currently allowed."
+    end
   end
 
 

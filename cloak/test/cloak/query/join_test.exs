@@ -140,20 +140,9 @@ defmodule Cloak.Query.JoinTest do
     assert [%{row: [50], occurrences: 1}] = rows
   end
 
-  test "selecting using FULL OUTER JOIN" do
-    :ok = insert_rows(_user_ids = 1..50, "heights_join", ["height"], [180])
-    :ok = insert_rows(_user_ids = 101..150, "children_join", ["age"], [20])
-
-    assert_query """
-      SELECT count(*)
-      FROM heights_join FULL OUTER JOIN children_join ON heights_join.user_id = children_join.user_id
-    """, %{columns: ["count"], rows: rows}
-    assert [%{row: [100], occurrences: 1}] = rows
-  end
-
   test "a mistyped JOIN condition" do
     assert_query """
-      SELECT count(*) FROM heights_join FULL OUTER JOIN children_join ON heights_join.user_id = children_join.user_id
+      SELECT count(*) FROM heights_join LEFT OUTER JOIN children_join ON heights_join.user_id = children_join.user_id
       AND heights_join.name = children_join.age
     """, %{error: error}
     assert error == "Column `name` from table `heights_join` of type `text` and column `age` from table "
