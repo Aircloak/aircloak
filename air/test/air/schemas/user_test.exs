@@ -1,7 +1,7 @@
 defmodule Air.Schemas.UserTest do
   use Air.SchemaCase, async: true
 
-  alias Air.{Schemas.Group, Schemas.User, TestRepoHelper, TestUtils}
+  alias Air.{Schemas.Group, Schemas.User}
 
   test "role expansion" do
     assert [:user, :anonymous] == User.roles(user(:user))
@@ -32,60 +32,6 @@ defmodule Air.Schemas.UserTest do
     assert true == User.permitted?(nil, :anon_op, %{anonymous: [:anon_op], user: :all})
     assert true == User.permitted?(user(:user), :anon_op, %{anonymous: [:anon_op], user: :all})
     assert true == User.permitted?(user(:admin), :anon_op, %{anonymous: [:anon_op], user: :all})
-  end
-
-  test "a user can have many groups" do
-    group1 = TestRepoHelper.create_group!()
-    group2 = TestRepoHelper.create_group!()
-    user = TestRepoHelper.create_user!()
-    |> set_groups([group1, group2])
-    assert [group1.id, group2.id] == Enum.map(user.groups, &(&1.id)) |> Enum.sort()
-  end
-
-  test "deleting a user, doesn't delete the group" do
-    group = TestRepoHelper.create_group!()
-    TestRepoHelper.create_user!()
-    |> set_groups([group])
-    |> Repo.delete()
-    refute nil == Repo.get(Group, group.id)
-  end
-
-  test "deleting a user, should remove entries from join table" do
-    group = TestRepoHelper.create_group!()
-    user = TestRepoHelper.create_user!()
-    |> set_groups([group])
-    TestUtils.assert_join_table_count_change(-1, fn() -> Repo.delete(user) end)
-  end
-
-  test "users and groups are joined through a join table" do
-    group = TestRepoHelper.create_group!()
-    TestUtils.assert_join_table_count_change(1, fn() ->
-      TestRepoHelper.create_user!()
-      |> set_groups([group])
-    end)
-  end
-
-  test "replacing a group for a user, removes the old relationship" do
-    group1 = TestRepoHelper.create_group!()
-    group2 = TestRepoHelper.create_group!()
-    user = TestRepoHelper.create_user!()
-    |> set_groups([group1])
-
-    TestUtils.assert_join_table_count_change(0, fn() -> set_groups(user, [group2]) end)
-
-    group1 = Repo.get(Group, group1.id) |> Repo.preload(:users)
-    assert [] == group1.users
-    group2 = Repo.get(Group, group2.id) |> Repo.preload(:users)
-    assert [user.id] == Enum.map(group2.users, &(&1.id))
-  end
-
-  defp set_groups(user, groups) do
-    Air.Service.User.update!(user, %{groups: Enum.map(groups, &(&1.id))})
-    # Load the user from the database again, in case it will be used further,
-    # just to ensure that the stored has the data we need, and that it isn't
-    # just in a cached local version.
-    %User{} = user = Air.Service.User.load(user.id)
-    user
   end
 
   defp user(role_key) do
