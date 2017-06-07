@@ -2,7 +2,7 @@ defmodule Air.Admin.GroupController do
   @moduledoc false
   use Air.Web, :admin_controller
 
-  alias Air.Schemas.{Group, User, DataSource}
+  alias Air.Service.{DataSource, User}
 
   plug :load_group when action in [:edit, :update, :delete]
 
@@ -22,18 +22,15 @@ defmodule Air.Admin.GroupController do
   # Actions
   # -------------------------------------------------------------------
 
-  def index(conn, _params) do
-    changeset = Group.changeset(%Group{})
-    render(conn, "index.html", groups: all_groups(), changeset: changeset)
-  end
+  def index(conn, _params), do:
+    render(conn, "index.html", groups: User.all_groups(), changeset: User.empty_group_changeset())
 
   def edit(conn, _params) do
     render(conn, "edit.html", data: edit_form_data(conn))
   end
 
   def update(conn, params) do
-    changeset = Group.changeset(conn.assigns.group, params["group"])
-    case Repo.update(changeset) do
+    case User.update_group(conn.assigns.group, params["group"]) do
       {:ok, group} ->
         audit_log(conn, "Altered group", group: group.name, admin: group.admin)
         conn
@@ -45,21 +42,20 @@ defmodule Air.Admin.GroupController do
   end
 
   def create(conn, params) do
-    changeset = Group.changeset(%Group{}, params["group"])
-    case Repo.insert(changeset) do
+    case User.create_group(params["group"]) do
       {:ok, group} ->
         audit_log(conn, "Created group", name: group.name)
         conn
         |> put_flash(:info, "Group created")
         |> redirect(to: admin_group_path(conn, :edit, group))
       {:error, changeset} ->
-        render(conn, "index.html", changeset: changeset, groups: all_groups())
+        render(conn, "index.html", changeset: changeset, groups: User.all_groups())
     end
   end
 
   def delete(conn, _params) do
     group = conn.assigns.group
-    Repo.delete!(group)
+    User.delete_group!(group)
     audit_log(conn, "Removed group", name: group.name)
     conn
     |> put_flash(:info, "Group deleted")
@@ -71,15 +67,8 @@ defmodule Air.Admin.GroupController do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp all_groups() do
-    Group
-    |> Repo.all()
-    |> Repo.preload([:users, :data_sources])
-    |> Enum.sort_by(&{not &1.admin, &1.id})
-  end
-
   defp load_group(conn, _) do
-    case Repo.get(Group, conn.params["id"]) do
+    case User.load_group(conn.params["id"]) do
       nil ->
         conn
         |> put_layout(false)
@@ -87,7 +76,6 @@ defmodule Air.Admin.GroupController do
         |> render(Air.ErrorView, "404.html")
         |> halt()
       group ->
-        group = Repo.preload(group, [:users, :data_sources])
         assign(conn, :group, group)
     end
   end
@@ -96,9 +84,9 @@ defmodule Air.Admin.GroupController do
     group = conn.assigns.group
     %{
       group: group,
-      all_data_sources: Repo.all(DataSource),
-      all_users: Repo.all(User),
-      changeset: Keyword.get(options, :changeset) || Group.changeset(group),
+      all_data_sources: DataSource.all(),
+      all_users: User.all(),
+      changeset: Keyword.get(options, :changeset) || User.group_to_changeset(group),
     }
   end
 end

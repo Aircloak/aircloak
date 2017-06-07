@@ -2,7 +2,7 @@ defmodule Air.Service.WarningsTest do
   use Air.SchemaCase, async: false
 
   alias Air.Service.{Warnings, Cloak}
-  alias Air.Schemas.{Group, DataSource}
+  alias Air.Schemas.DataSource
   alias Air.{Repo, TestRepoHelper}
 
   @data_source_name "name"
@@ -82,14 +82,12 @@ defmodule Air.Service.WarningsTest do
 
   defp add_group([%{"name" => name}]) do
     data_source = Repo.get_by!(DataSource, name: name)
-    params = %{
+
+    TestRepoHelper.create_group!(%{
       name: "group_#{data_source.name}",
       admin: false,
       data_sources: [data_source.id],
-    }
-    %Group{}
-    |> Group.changeset(params)
-    |> Repo.insert!()
+    })
   end
 
   defp add_user(group), do:
