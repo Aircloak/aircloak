@@ -4,7 +4,6 @@ defmodule Air.Schemas.User do
 
   use Air.Schemas.Base
 
-  alias Ecto.Changeset
   alias Comeonin.Pbkdf2, as: Hash
   alias Air.Schemas.Group
 
@@ -32,9 +31,6 @@ defmodule Air.Schemas.User do
     field :password, :string, virtual: true
     field :password_confirmation, :string, virtual: true
   end
-
-  @required_fields ~w(email name)a
-  @optional_fields ~w(password password_confirmation)a
 
   @roles %{
     0 => {:user, "user"},
@@ -85,26 +81,6 @@ defmodule Air.Schemas.User do
     )
   end
 
-  @doc """
-  Creates a changeset based on the `model` and `params`.
-
-  If no params are provided, an invalid changeset is returned
-  with no validation performed.
-  """
-  @spec changeset(t | Changeset.t, Map.t) :: Changeset.t
-  def changeset(model, params \\ %{}) do
-    model
-    |> cast(params, @required_fields ++ @optional_fields)
-    |> validate_required(@required_fields)
-    |> validate_format(:email, ~r/@/)
-    |> validate_length(:name, min: 2)
-    |> validate_length(:password, min: 4)
-    |> validate_confirmation(:password)
-    |> update_password_hash
-    |> unique_constraint(:email)
-    |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
-  end
-
   @doc "Validates the user password."
   @spec validate_password(nil | t, String.t) :: boolean
   def validate_password(nil, _password), do: Hash.dummy_checkpw
@@ -114,12 +90,6 @@ defmodule Air.Schemas.User do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp update_password_hash(%Changeset{valid?: true, changes: %{password: password}} = changeset)
-      when password != "" do
-    put_change(changeset, :hashed_password, Hash.hashpwsalt(password))
-  end
-  defp update_password_hash(changeset), do: changeset
 
   for {_id, {key, _desc}} <- @roles do
     all_roles = [key | Map.get(@included_roles, key, [])]
