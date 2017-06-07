@@ -30,15 +30,17 @@ defmodule Air.Admin.GroupController do
   end
 
   def update(conn, params) do
-    case User.update_group(conn.assigns.group, params["group"]) do
-      {:ok, group} ->
-        audit_log(conn, "Altered group", group: group.name, admin: group.admin)
-        conn
-        |> put_flash(:info, "Group updated")
-        |> redirect(to: admin_group_path(conn, :index))
-      {:error, changeset} ->
-        render(conn, "edit.html", data: edit_form_data(conn, changeset: changeset))
-    end
+    verify_last_admin_deleted(User.update_group(conn.assigns.group, params["group"]), conn,
+      fn
+        {:ok, group} ->
+          audit_log(conn, "Altered group", group: group.name, admin: group.admin)
+          conn
+          |> put_flash(:info, "Group updated")
+          |> redirect(to: admin_group_path(conn, :index))
+        {:error, changeset} ->
+          render(conn, "edit.html", data: edit_form_data(conn, changeset: changeset))
+      end
+    )
   end
 
   def create(conn, params) do
@@ -55,11 +57,12 @@ defmodule Air.Admin.GroupController do
 
   def delete(conn, _params) do
     group = conn.assigns.group
-    User.delete_group!(group)
-    audit_log(conn, "Removed group", name: group.name)
-    conn
-    |> put_flash(:info, "Group deleted")
-    |> redirect(to: admin_group_path(conn, :index))
+    verify_last_admin_deleted(User.delete_group(group), conn, fn({:ok, _}) ->
+      audit_log(conn, "Removed group", name: group.name)
+      conn
+      |> put_flash(:info, "Group deleted")
+      |> redirect(to: admin_group_path(conn, :index))
+    end)
   end
 
 
@@ -89,4 +92,11 @@ defmodule Air.Admin.GroupController do
       changeset: Keyword.get(options, :changeset) || User.group_to_changeset(group),
     }
   end
+
+  defp verify_last_admin_deleted({:error, :forbidden_last_admin_deletion}, conn, _fun), do:
+    conn
+    |> put_flash(:error, "The given action cannot be performed, because it would remove the only administrator.")
+    |> redirect(to: admin_group_path(conn, :index))
+  defp verify_last_admin_deleted(result, _conn, fun), do:
+    fun.(result)
 end
