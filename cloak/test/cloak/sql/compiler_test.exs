@@ -859,6 +859,13 @@ defmodule Cloak.Sql.Compiler.Test do
 
       assert result1.where == result2.where
     end
+
+    test "normalizing like patterns" do
+      result1 = compile!("SELECT * FROM table WHERE string LIKE 'a_%__%_b%c%%d___'", data_source())
+      result2 = compile!("SELECT * FROM table WHERE string LIKE 'a%____b%c%d___'", data_source())
+
+      assert result1.where == result2.where
+    end
   end
 
   test "rejecting duplicate table", do:

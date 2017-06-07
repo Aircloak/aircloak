@@ -25,6 +25,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
     |> Helpers.apply_bottom_up(&expand_not_in/1)
     |> Helpers.apply_bottom_up(&normalize_constants/1)
     |> Helpers.apply_bottom_up(&normalize_upper/1)
+    |> Helpers.apply_bottom_up(&normalize_like/1)
 
 
   # -------------------------------------------------------------------
@@ -81,4 +82,31 @@ defmodule Cloak.Sql.Compiler.Normalization do
       String.upcase(string)
     end
   end
+
+
+  # -------------------------------------------------------------------
+  # Normalizing like patterns
+  # -------------------------------------------------------------------
+
+  defp normalize_like(query), do:
+    update_in(query, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
+      {:like, lhs, rhs} -> {:like, lhs, %{rhs | value: do_normalize_like(rhs.value)}}
+      other -> other
+    end)
+
+  defp do_normalize_like(string), do:
+    string
+    |> String.graphemes()
+    |> Enum.chunk_by(&special_like_char?/1)
+    |> Enum.map(&normalize_like_chunk/1)
+    |> Enum.join()
+
+  defp normalize_like_chunk(chunk = [first | _]) when first == "_" or first == "%" do
+    percent = if Enum.member?(chunk, "%"), do: "%", else: ""
+    rest = Enum.filter(chunk, &(&1 == "_"))
+    [percent | rest]
+  end
+  defp normalize_like_chunk(chunk), do: chunk
+
+  defp special_like_char?(string), do: string == "_" or string == "%"
 end
