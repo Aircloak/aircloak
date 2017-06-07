@@ -740,6 +740,11 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error == "Combining conditions with `OR` is not allowed."
   end
 
+  test "rejects `FULL OUTER JOINs`" do
+    {:error, error} = compile("select * from table full join other_table ON table.uid = other_table.uid", data_source())
+    assert error == "FULL OUTER JOINs are not currently allowed."
+  end
+
   test "dotted columns can be used unquoted" do
     assert %{columns: [column("table", "column.with.dots")]} =
       compile!("select column.with.dots from table", dotted_data_source())
