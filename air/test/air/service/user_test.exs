@@ -74,6 +74,32 @@ defmodule Air.Service.UserTest do
       refute nil == User.load(user.id)
       refute nil == Air.Repo.get(Air.Schemas.DataSource, data_source.id)
     end
+
+    test "deleting the group is not allowed if it leads to no administrators" do
+      admin1 = TestRepoHelper.create_only_user_as_admin!()
+      deletable_admin_group = User.create_group!(%{name: "group name", admin: true})
+      non_deletable_admin_group = hd(admin1.groups)
+      admin2 = TestRepoHelper.create_user!(%{groups: [non_deletable_admin_group.id]})
+
+      assert {:ok, _} = User.delete_group(deletable_admin_group)
+      assert User.delete_group(non_deletable_admin_group) == {:error, :forbidden_last_admin_deletion}
+      assert [u1, u2] = User.load_group(non_deletable_admin_group.id).users
+      assert u1.id == admin1.id
+      assert u2.id == admin2.id
+    end
+
+    test "unsetting the group admin flag is not allowed if it leads to no administrators" do
+      admin1 = TestRepoHelper.create_only_user_as_admin!()
+      deletable_admin_group = User.create_group!(%{name: "group name", admin: true})
+      non_deletable_admin_group = hd(admin1.groups)
+      admin2 = TestRepoHelper.create_user!(%{groups: [non_deletable_admin_group.id]})
+
+      assert {:ok, _} = User.update_group(deletable_admin_group, %{admin: false})
+      assert User.update_group(non_deletable_admin_group, %{admin: false}) == {:error, :forbidden_last_admin_deletion}
+      assert [u1, u2] = User.load_group(non_deletable_admin_group.id).users
+      assert u1.id == admin1.id
+      assert u2.id == admin2.id
+    end
   end
 
   defp error_on(fun, field, value), do:
