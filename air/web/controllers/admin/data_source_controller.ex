@@ -5,8 +5,7 @@ defmodule Air.Admin.DataSourceController do
 
   use Air.Web, :admin_controller
 
-  alias Air.Schemas.User
-  alias Air.Service.{DataSource, Warnings}
+  alias Air.Service.{DataSource, User, Warnings}
 
   plug :load_data_source when action in [:show, :edit, :update, :delete]
 
@@ -55,19 +54,10 @@ defmodule Air.Admin.DataSourceController do
   def show(conn, _params) do
     data_source = conn.assigns.data_source
 
-    query = from user in User,
-      distinct: user.id,
-      inner_join: group in assoc(user, :groups),
-      inner_join: data_source in assoc(group, :data_sources),
-      where: data_source.id == ^data_source.id,
-      select: user,
-      preload: [:groups]
-    users = Repo.all(query)
-
     render(conn, "show.html",
       data_source: data_source,
       conn: conn,
-      users: users,
+      users: User.data_source_users(data_source),
       problems: Warnings.problems_for_resource(data_source)
     )
   end
