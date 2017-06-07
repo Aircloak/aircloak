@@ -22,9 +22,6 @@ defmodule Air.Schemas.DataSource do
     timestamps()
   end
 
-  @required_fields ~w(name tables global_id)a
-  @optional_fields ~w(errors description)a
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -59,21 +56,5 @@ defmodule Air.Schemas.DataSource do
       tables: tables(data_source),
       errors: errors(data_source),
     }
-  end
-
-  @doc """
-  Creates a changeset based on the `model` and `params`.
-
-  If no params are provided, an invalid changeset is returned
-  with no validation performed.
-  """
-  @spec changeset(t | Changeset.t, Map.t) :: Changeset.t
-  def changeset(model, params \\ %{}) do
-    model
-    |> cast(params, @required_fields ++ @optional_fields)
-    |> validate_required(@required_fields)
-    |> unique_constraint(:global_id)
-    |> unique_constraint(:name)
-    |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
   end
 end
