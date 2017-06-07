@@ -171,7 +171,7 @@ defmodule Air.Service.DataSourceTest do
   test "deleting a data source, doesn't delete the group" do
     group = TestRepoHelper.create_group!()
     data_source = TestRepoHelper.create_data_source!(%{groups: [group.id]})
-    Air.Repo.delete!(data_source)
+    DataSource.delete!(data_source)
     refute nil == Air.Service.User.load_group(group.id)
   end
 

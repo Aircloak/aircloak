@@ -74,7 +74,7 @@ defmodule Air.Admin.DataSourceController do
 
   def delete(conn, _params) do
     data_source = conn.assigns.data_source
-    Repo.delete!(data_source)
+    DataSource.delete!(data_source)
     audit_log(conn, "Removed data source", name: data_source.name,
       id: data_source.id, data_source: data_source.name)
     conn

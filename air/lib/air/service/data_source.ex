@@ -261,6 +261,11 @@ defmodule Air.Service.DataSource do
     |> data_source_changeset(params)
     |> Repo.update()
 
+  @doc "Deletes the given data source, raises on error."
+  @spec delete!(DataSource.t) :: DataSource.t
+  def delete!(data_source), do:
+    Repo.delete!(data_source)
+
   @doc "Converts data source into a changeset."
   @spec to_changeset(DataSource.t) :: Ecto.Changeset.t
   def to_changeset(data_source), do:
