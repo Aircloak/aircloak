@@ -25,27 +25,21 @@ defmodule Air.TestRepoHelper do
   @doc "Creates an admin user, and deletes all other users."
   @spec create_only_user_as_admin!() :: Air.Schemas.User.t
   def create_only_user_as_admin!() do
-    previous_users = Air.Service.User.all()
+    previous_users = User.all()
     admin = create_admin_user!()
-    Enum.each(previous_users, &Air.Service.User.delete!/1)
+    Enum.each(previous_users, &User.delete!/1)
     admin
   end
 
   @doc "Creates a group with default parameters with a random group name to avoid clashes"
   @spec create_group!(map()) :: Group.t
-  def create_group!(additional_changes \\ %{}) do
-    %Group{}
-    |> Group.changeset(%{name: "group-#{random_string()}", admin: false})
-    |> Group.changeset(additional_changes)
-    |> Repo.insert!()
-  end
+  def create_group!(additional_changes \\ %{}), do:
+    User.create_group!(Map.merge(%{name: "group-#{random_string()}", admin: false}, additional_changes))
 
   @doc "Adds a group with admin rights to the user"
   @spec make_admin!(Air.Schemas.User.t) :: Air.Schemas.User.t
   def make_admin!(user) do
-    admin_group = %Group{}
-    |> Group.changeset(%{name: "admin-group-#{random_string()}", admin: true})
-    |> Repo.insert!()
+    admin_group = create_group!(%{admin: true})
 
     user
     |> User.update!(%{groups: [admin_group.id]})

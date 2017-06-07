@@ -72,10 +72,7 @@ defmodule IntegrationTest.Manager do
     Repo.delete_all(Group)
 
     # create group
-    admin_group =
-      %Group{}
-      |> Group.changeset(%{name: @admin_group_name, admin: true})
-      |> Repo.insert!()
+    admin_group = Air.Service.User.create_group!(%{name: @admin_group_name, admin: true})
 
     # connect data source to group
     from(data_source in DataSource, where: data_source.name == @data_source_name)

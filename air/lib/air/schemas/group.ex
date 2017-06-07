@@ -8,7 +8,7 @@ defmodule Air.Schemas.Group do
   """
   use Air.Schemas.Base
 
-  alias Air.{Schemas.User, Schemas.DataSource, Repo}
+  alias Air.{Schemas.User, Schemas.DataSource}
 
   @type t :: %__MODULE__{}
 
@@ -26,24 +26,5 @@ defmodule Air.Schemas.Group do
       on_replace: :delete
 
     timestamps()
-  end
-
-  @required_fields ~w(name admin)a
-  @optional_fields ~w()a
-
-  @doc """
-  Creates a changeset based on the `model` and `params`.
-
-  If no params are provided, an invalid changeset is returned
-  with no validation performed.
-  """
-  @spec changeset(t | Changeset.t, Map.t) :: Changeset.t
-  def changeset(model, params \\ %{}) do
-    model
-    |> cast(params, @required_fields ++ @optional_fields)
-    |> validate_required(@required_fields)
-    |> unique_constraint(:name)
-    |> PhoenixMTM.Changeset.cast_collection(:users, Repo, User)
-    |> PhoenixMTM.Changeset.cast_collection(:data_sources, Repo, DataSource)
   end
 end

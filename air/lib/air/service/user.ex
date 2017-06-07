@@ -1,7 +1,7 @@
 defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
-  alias Air.{Repo, Service.AuditLog, Schemas.Group, Schemas.User}
+  alias Air.{Repo, Service.AuditLog, Schemas.DataSource, Schemas.Group, Schemas.User}
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
 
@@ -136,6 +136,74 @@ defmodule Air.Service.User do
   def admin_user_exists?(), do:
     Repo.one(from u in User, inner_join: g in assoc(u, :groups), where: g.admin, limit: 1) != nil
 
+  @doc "Creates the new group, raises on error."
+  @spec create_group!(map) :: Group.t
+  def create_group!(params) do
+    {:ok, group} = create_group(params)
+    group
+  end
+
+  @doc "Creates the new group from the given parameters."
+  @spec create_group(map) :: {:ok, Group.t} | {:error, Ecto.Changeset.t}
+  def create_group(params), do:
+    %Group{}
+    |> group_changeset(params)
+    |> Repo.insert()
+
+  @doc "Updates the given group, raises on error."
+  @spec update_group!(Group.t, map) :: Group.t
+  def update_group!(group, params) do
+    {:ok, group} = update_group(group, params)
+    group
+  end
+
+  @doc "Updates the given group."
+  @spec update_group(Group.t, map) :: {:ok, Group.t} | {:error, Ecto.Changeset.t | :forbidden_last_admin_deletion}
+  def update_group(group, params), do:
+    commit_if_last_admin_not_deleted(fn ->
+      group
+      |> group_changeset(params)
+      |> Repo.update()
+    end)
+
+  @doc "Deletes the given group, raises on error."
+  @spec delete_group!(Group.t) :: Group.t
+  def delete_group!(group) do
+    {:ok, group} = delete_group(group)
+    group
+  end
+
+  @doc "Deletes the given group."
+  @spec delete_group(Group.t) :: {:ok, Group.t} | {:error, :forbidden_last_admin_deletion}
+  def delete_group(group), do:
+    commit_if_last_admin_not_deleted(fn -> Repo.delete(group) end)
+
+  @doc "Loads the group with the given id."
+  @spec load_group(pos_integer) :: Group.t | nil
+  def load_group(group_id), do:
+    Repo.one(from group in Group, where: group.id == ^group_id, preload: [:users, :data_sources])
+
+  @doc "Returns a list of all groups in the system."
+  @spec all_groups() :: [Group.t]
+  def all_groups(), do:
+    Repo.all(from group in Group, preload: [:users, :data_sources])
+
+  @doc "Returns the empty changeset for the new group."
+  @spec empty_group_changeset() :: Ecto.Changeset.t
+  def empty_group_changeset(), do:
+    group_changeset(%Group{}, %{})
+
+  @doc "Converts a group into a changeset."
+  @spec group_to_changeset(Group.t) :: Ecto.Changeset.t
+  def group_to_changeset(group), do:
+    group_changeset(group, %{})
+
+  @doc "Returns all admin groups."
+  @spec admin_groups() :: [Group.t]
+  def admin_groups(), do:
+    Repo.all(from g in Group, where: g.admin)
+
+
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
@@ -169,32 +237,45 @@ defmodule Air.Service.User do
   end
   defp update_password_hash(changeset), do: changeset
 
+  defp group_changeset(group, params), do:
+    group
+    |> cast(params, ~w(name admin)a)
+    |> validate_required(~w(name admin)a)
+    |> unique_constraint(:name)
+    |> PhoenixMTM.Changeset.cast_collection(:users, Repo, User)
+    |> PhoenixMTM.Changeset.cast_collection(:data_sources, Repo, DataSource)
+
   defp get_admin_group() do
-    case Repo.all(from g in Group, where: g.admin) do
-      [] -> create_admin_group()
+    case admin_groups() do
+      [] -> create_group!(%{name: "Admin", admin: true})
       [group | _] -> group
     end
   end
 
-  defp create_admin_group(), do:
-    %Group{}
-    |> Group.changeset(%{name: "Admin", admin: true})
-    |> Repo.insert!()
-
   defp commit_if_last_admin_not_deleted(fun), do:
-    # Using :global.trans to ensure that these operations are serialized, so we can consistently verify that the action
-    # doesn't remove the last admin.
+    # Ensuring that these operations are serialized, so we can consistently verify that the action doesn't remove the
+    # last admin.
+    # Note that GenServer would be a more idiomatic approach. Here, we're using `:global` for the following reasons:
+    #   1. The synchronized code is quite simple.
+    #   2. We don't expect these operations to be executed frequently.
+    #   3. The code powered by `:global` is very simple and doesn't require extra modules or changes to the supervision
+    #      tree.
     :global.trans({__MODULE__, :isolated_user_change}, fn ->
+      # We wrap the `fun` lambda in transaction, to ensure we can safely undo the operation. If the lambda causes the
+      # last admin to be deleted, we can simply rollback any database changes.
       Repo.transaction(fn ->
         case fun.() do
-          {:error, error} ->
-            Repo.rollback(error)
           {:ok, result} ->
+            # success -> ensure that we still have an admin
             if admin_user_exists?() do
               result
             else
+              # no admin anymore -> undo the changes
               Repo.rollback(:forbidden_last_admin_deletion)
             end
+          {:error, error} ->
+            # some other kind of error -> rollback and return the error
+            Repo.rollback(error)
         end
       end)
     end)
