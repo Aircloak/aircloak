@@ -3,7 +3,7 @@ defmodule Air.Admin.CloaksControllerTest do
   # (see https://hexdocs.pm/ecto/Ecto.Adapters.SQL.Sandbox.html)
   use Air.ConnCase, async: false
 
-  import Air.{TestConnHelper, AssertionHelper, TestUtils}
+  import Air.{TestConnHelper, AssertionHelper}
   alias Air.{TestRepoHelper, Service.Cloak}
 
   setup do
@@ -66,5 +66,10 @@ defmodule Air.Admin.CloaksControllerTest do
 
     # verify that it's in the list
     refute soon((login(admin) |> get("/admin/cloaks") |> response(200)) =~ "test_cloak1")
+  end
+
+  defp temporary_process() do
+    pid = spawn_link(fn -> receive do :stop -> :ok end end)
+    {fn -> send(pid, :stop) end, pid}
   end
 end
