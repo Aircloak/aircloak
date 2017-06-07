@@ -13,6 +13,7 @@
 ### Changes
 
 - Because of a change in range anonymization the exact results of queries involving ranges might change compared to the same query run on the previous version.
+- FULL OUTER JOINs are no longer allowed (because they implement `OR` functionality).
 
 ## Version 17.2.0
 

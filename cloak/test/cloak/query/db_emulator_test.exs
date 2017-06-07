@@ -299,24 +299,6 @@ defmodule Cloak.Query.DBEmulatorTest do
           on #{@prefix}emulated.user_id = #{@prefix}joined.user_id
       """, %{rows: [%{occurrences: 1, row: [15]}]}
 
-    test "full join" do
-      assert_query """
-        select count(*) from
-          (select user_id as uid1 from #{@prefix}emulated) as t
-          full join
-          (select user_id as uid2 from #{@prefix}joined) as t2
-          on uid1 = uid2
-      """, %{rows: [%{occurrences: 1, row: [25]}]}
-
-      assert_query """
-        select count(x) from
-          (select user_id as uid1 from #{@prefix}emulated) as t
-          full join
-          (select user_id as uid2, age as x from #{@prefix}joined) as t2
-          on uid1 = uid2
-      """, %{rows: [%{occurrences: 1, row: [15]}]}
-    end
-
     test "join with a row splitter function" do
       assert_query """
         select extract_matches(value, '.') from
