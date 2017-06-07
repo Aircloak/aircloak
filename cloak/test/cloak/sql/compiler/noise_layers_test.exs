@@ -156,7 +156,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       ] = result.noise_layers
     end
 
-    test "no noise layer when the argument to LIKE is not raw"
+    test "no noise layer when the argument to LIKE is not raw" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE lower(name) NOT LIKE 'bob'", data_source())
+
+      assert [] = result.noise_layers
+    end
   end
 
   describe "noise layers from subqueries" do
