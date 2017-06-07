@@ -54,6 +54,8 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
     do: ["CAST(", arg1, " AS ", arg2, ")"]
   defp function_call("trunc", [arg1, arg2], :mysql), do: ["TRUNCATE(", arg1, ", ", arg2, ")"]
   defp function_call("trunc", [arg1], :mysql), do: ["TRUNCATE(", arg1, ", 0)"]
+  defp function_call("trunc", [arg1, arg2], :postgresql), do: ["TRUNC(CAST(", arg1, "AS DECIMAL), ", arg2, ")"]
+  defp function_call("round", [arg1, arg2], :postgresql), do: ["ROUND(CAST(", arg1, "AS DECIMAL), ", arg2, ")"]
   defp function_call("btrim", [arg1], :mysql), do: ["TRIM(", arg1, ")"]
   defp function_call("div", [arg1, arg2], :mysql), do: [arg1, " DIV ", arg2]
   defp function_call("hex", [arg], :postgresql), do: ["ENCODE(", arg, "::bytea, 'hex')"]
