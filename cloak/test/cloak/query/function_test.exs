@@ -16,7 +16,7 @@ defmodule Cloak.Query.FunctionTest do
     Cloak.Test.DB.create_table("datetimes_ft", "datetime TIMESTAMP, date_only DATE, time_only TIME, empty text")
     insert_rows(_user_ids = 1..10, "datetimes_ft", ["datetime"], [~N[2015-01-02 03:04:05.000000]])
 
-    Cloak.Test.DB.create_table("types_ft", "dec DECIMAL, num INTEGER, string TEXT, string2 TEXT")
+    Cloak.Test.DB.create_table("types_ft", "frac REAL, num INTEGER, string TEXT, string2 TEXT")
   end
 
   setup do
@@ -300,18 +300,18 @@ defmodule Cloak.Query.FunctionTest do
   test "/", do: assert 1 == apply_function("height / height", "heights_ft")
   test "^", do: assert 32_400.0 == apply_function("height ^ 2", "heights_ft")
 
-  test "trunc/1", do: assert 180 == apply_function("trunc", ["dec"], [180.6], "types_ft")
-  test "trunc/2", do: assert 180.12 == apply_function("trunc", ["dec", "num"], [180.126, 2], "types_ft")
-  test "round/1", do: assert 181 == apply_function("round", ["dec"], [180.6], "types_ft")
-  test "round/2", do: assert 180.13 == apply_function("round", ["dec", "num"], [180.126, 2], "types_ft")
+  test "trunc/1", do: assert 180 == apply_function("trunc", ["frac"], [180.6], "types_ft")
+  test "trunc/2", do: assert 180.12 == apply_function("trunc", ["frac", "num"], [180.126, 2], "types_ft")
+  test "round/1", do: assert 181 == apply_function("round", ["frac"], [180.6], "types_ft")
+  test "round/2", do: assert 180.13 == apply_function("round", ["frac", "num"], [180.126, 2], "types_ft")
   test "abs", do: assert 180 == apply_function("abs", ["num"], [-180], "types_ft")
   test "sqrt", do: assert 3.0 == apply_function("sqrt", ["num"], [9], "types_ft")
   test "div", do: assert 1 == apply_function("div(height, height)", "heights_ft")
   test "mod", do: assert 80 == apply_function("mod(height, 100)", "heights_ft")
   test "pow", do: assert 32_400.0 == apply_function("pow(height, 2)", "heights_ft")
-  test "floor", do: assert 180 == apply_function("floor", ["dec"], [180.9], "types_ft")
-  test "ceil", do: assert 181 == apply_function("ceil", ["dec"], [180.1], "types_ft")
-  test "ceiling", do: assert 181 == apply_function("ceiling", ["dec"], [180.1], "types_ft")
+  test "floor", do: assert 180 == apply_function("floor", ["frac"], [180.9], "types_ft")
+  test "ceil", do: assert 181 == apply_function("ceil", ["frac"], [180.1], "types_ft")
+  test "ceiling", do: assert 181 == apply_function("ceiling", ["frac"], [180.1], "types_ft")
   test "bucket", do: assert 150 == apply_function("bucket(height by 50)", "heights_ft")
   test "bucket lower", do: assert 150 == apply_function("bucket(height by 50 align lower)", "heights_ft")
   test "bucket upper", do: assert 200 == apply_function("bucket(height by 50 align upper)", "heights_ft")
