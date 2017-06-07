@@ -16,7 +16,7 @@ defmodule Cloak.Query.FunctionTest do
     Cloak.Test.DB.create_table("datetimes_ft", "datetime TIMESTAMP, date_only DATE, time_only TIME, empty text")
     insert_rows(_user_ids = 1..10, "datetimes_ft", ["datetime"], [~N[2015-01-02 03:04:05.000000]])
 
-    Cloak.Test.DB.create_table("types_ft", "frac REAL, num INTEGER, string TEXT, string2 TEXT")
+    Cloak.Test.DB.create_table("types_ft", "fixed DECIMAL(10, 5), frac REAL, num INTEGER, string TEXT, string2 TEXT")
   end
 
   setup do
@@ -302,8 +302,10 @@ defmodule Cloak.Query.FunctionTest do
 
   test "trunc/1", do: assert 180 == apply_function("trunc", ["frac"], [180.6], "types_ft")
   test "trunc/2", do: assert 180.12 == apply_function("trunc", ["frac", "num"], [180.126, 2], "types_ft")
+  test "trunc/2 on DECIMAL", do: assert 180.12 == apply_function("trunc", ["fixed", "num"], [180.126, 2], "types_ft")
   test "round/1", do: assert 181 == apply_function("round", ["frac"], [180.6], "types_ft")
   test "round/2", do: assert 180.13 == apply_function("round", ["frac", "num"], [180.126, 2], "types_ft")
+  test "round/2 on DECIMAL", do: assert 180.13 == apply_function("round", ["fixed", "num"], [180.126, 2], "types_ft")
   test "abs", do: assert 180 == apply_function("abs", ["num"], [-180], "types_ft")
   test "sqrt", do: assert 3.0 == apply_function("sqrt", ["num"], [9], "types_ft")
   test "div", do: assert 1 == apply_function("div(height, height)", "heights_ft")
