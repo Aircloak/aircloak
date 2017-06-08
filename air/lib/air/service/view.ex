@@ -39,6 +39,13 @@ defmodule Air.Service.View do
     :ok
   end
 
+  @doc "Unsubscribes from notifications about asynchronous activities, such as revalidations of views."
+  @spec unsubscribe_from(:revalidated_views) :: :ok
+  def unsubscribe_from(notification) do
+    Registry.unregister(@notifications_registry, notification)
+    :ok
+  end
+
   @doc "Returns the changeset representing an empty view."
   @spec new_changeset() :: Changeset.t
   def new_changeset(), do:
@@ -65,8 +72,9 @@ defmodule Air.Service.View do
   end
 
   @doc "Updates the existing view in the database."
-  @spec update(integer, User.t, String.t, String.t) :: {:ok, View.t} | {:error, Ecto.Changeset.t}
-  def update(view_id, user, name, sql) do
+  @spec update(integer, User.t, String.t, String.t, [revalidation_timeout: non_neg_integer]) ::
+    {:ok, View.t} | {:error, Ecto.Changeset.t}
+  def update(view_id, user, name, sql, options \\ []) do
     view = Repo.get!(View, view_id)
 
     # view must be owned by the user
@@ -75,18 +83,18 @@ defmodule Air.Service.View do
     changes = %{name: name, sql: sql}
     with {:ok, changeset} <- validated_view_changeset(view, user, changes, :update) do
       {:ok, view} = Repo.update(changeset)
-      revalidate_views(user, view.data_source_id)
+      revalidate_views_and_wait(user, view.data_source_id, Keyword.take(options, [:revalidation_timeout]))
       {:ok, view}
     end
   end
 
   @doc "Deletes the given view from the database."
-  @spec delete(integer, User.t) :: :ok
-  def delete(view_id, user) do
+  @spec delete(integer, User.t, [revalidation_timeout: non_neg_integer]) :: :ok
+  def delete(view_id, user, options \\ []) do
     view = Repo.get!(View, view_id)
 
     Repo.delete!(view)
-    revalidate_views(user, view.data_source_id)
+    revalidate_views_and_wait(user, view.data_source_id, Keyword.take(options, [:revalidation_timeout]))
 
     :ok
   end
@@ -118,6 +126,20 @@ defmodule Air.Service.View do
     Registry.lookup(@notifications_registry, notification)
     |> Enum.map(fn({pid, nil}) -> pid end)
     |> Enum.each(&send(&1, {notification, payload}))
+
+  defp revalidate_views_and_wait(user, data_source_id, options) do
+    subscribe_to(:revalidated_views)
+    try do
+      revalidate_views(user, data_source_id)
+      receive do
+        {:revalidated_views, %{data_source_id: ^data_source_id}} -> :ok
+      after Keyword.get(options, :revalidation_timeout, 0) ->
+        {:error, :timeout}
+      end
+    after
+      unsubscribe_from(:revalidated_views)
+    end
+  end
 
   defp revalidate_views(user, data_source_id), do:
     Task.Supervisor.start_child(@cloak_validations_sup, fn -> sync_revalidate_views!(user, data_source_id) end)

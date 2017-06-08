@@ -37,7 +37,7 @@ defmodule Air.ViewController do
   end
 
   def update(conn, %{"id" => id, "view" => %{"name" => name, "sql" => sql}}) do
-    case View.update(id, conn.assigns.current_user, name, sql) do
+    case View.update(id, conn.assigns.current_user, name, sql, revalidation_timeout: :timer.seconds(5)) do
       {:ok, _view} ->
         conn
         |> maybe_broken_message()
@@ -48,7 +48,7 @@ defmodule Air.ViewController do
   end
 
   def delete(conn, %{"id" => id}) do
-    View.delete(id, conn.assigns.current_user)
+    View.delete(id, conn.assigns.current_user, revalidation_timeout: :timer.seconds(5))
 
     path = case get_req_header(conn, "referer") do
       [] -> data_source_path(conn, :show, conn.assigns.data_source.name)
