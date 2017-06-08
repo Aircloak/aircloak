@@ -131,6 +131,19 @@ defmodule Air.Service.User do
     |> Repo.all()
     |> Enum.into(%{})
 
+  @doc "Returns all users who have access to the given data source."
+  @spec data_source_users(DataSource.t) :: [User.t]
+  def data_source_users(data_source), do:
+     Repo.all(
+      from user in User,
+        distinct: user.id,
+        inner_join: group in assoc(user, :groups),
+        inner_join: data_source in assoc(group, :data_sources),
+        where: data_source.id == ^data_source.id,
+        select: user,
+        preload: [:groups]
+    )
+
   @doc "Returns a boolean regarding whether a administrator account already exists"
   @spec admin_user_exists?() :: boolean
   def admin_user_exists?(), do:

@@ -4,7 +4,7 @@ defmodule Air.QueryControllerTest do
   use Air.ConnCase, async: false
 
   import Air.{TestConnHelper, TestRepoHelper}
-  alias Air.{TestSocketHelper, Repo, Schemas.DataSource}
+  alias Air.{TestSocketHelper, Repo}
   alias Phoenix.Channels.GenSocketClient.TestSocket
 
   setup do
@@ -19,10 +19,7 @@ defmodule Air.QueryControllerTest do
       "tables" => "[]",
       "groups" => [group.id],
     }
-    data_source = %DataSource{}
-    |> DataSource.changeset(params)
-    |> Repo.insert!()
-
+    data_source = Air.Service.DataSource.create!(params)
     {:ok, data_source: data_source, user: user}
   end
 

@@ -55,10 +55,7 @@ defmodule Air.TestRepoHelper do
       name: "name_#{random_string()}",
       tables: "[]"
     }
-    %Air.Schemas.DataSource{}
-    |> Air.Schemas.DataSource.changeset(params)
-    |> Air.Schemas.DataSource.changeset(additional_changes)
-    |> Repo.insert!()
+    Air.Service.DataSource.create!(Map.merge(params, additional_changes))
     |> Repo.preload([:groups])
   end
 

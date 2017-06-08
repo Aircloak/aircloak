@@ -78,8 +78,7 @@ defmodule IntegrationTest.Manager do
     from(data_source in DataSource, where: data_source.name == @data_source_name)
     |> Repo.one!()
     |> Repo.preload([:groups])
-    |> DataSource.changeset(%{groups: [admin_group.id], name: @data_source_name})
-    |> Repo.update!()
+    |> Air.Service.DataSource.update!(%{groups: [admin_group.id], name: @data_source_name})
 
     Repo.delete_all(ExportForAircloak)
   end

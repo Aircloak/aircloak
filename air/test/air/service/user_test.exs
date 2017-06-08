@@ -39,6 +39,29 @@ defmodule Air.Service.UserTest do
     test "the only admin can't be updated to be a normal user", do:
       assert User.update(TestRepoHelper.create_only_user_as_admin!(), %{groups: []}) ==
         {:error, :forbidden_last_admin_deletion}
+
+    test "a user can have many groups" do
+      group1 = TestRepoHelper.create_group!()
+      group2 = TestRepoHelper.create_group!()
+      user = TestRepoHelper.create_user!(%{groups: [group1.id, group2.id]})
+      assert [group1.id, group2.id] == Enum.map(user.groups, &(&1.id)) |> Enum.sort()
+    end
+
+    test "deleting a user, doesn't delete the group" do
+      group = TestRepoHelper.create_group!()
+      user = TestRepoHelper.create_user!(%{groups: [group.id]})
+      User.delete!(user)
+      refute nil == User.load_group(group.id)
+    end
+
+    test "replacing a group for a user, removes the old relationship" do
+      group1 = TestRepoHelper.create_group!()
+      group2 = TestRepoHelper.create_group!()
+      user = TestRepoHelper.create_user!(%{groups: [group1.id]})
+      User.update!(user, %{groups: [group2.id]})
+      user = User.load(user.id)
+      assert [group2.id] == Enum.map(user.groups, &(&1.id))
+    end
   end
 
   describe "group operations" do
