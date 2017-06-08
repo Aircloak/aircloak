@@ -3,14 +3,48 @@ defmodule Air.Service.View do
 
   alias Air.Schemas.{User, View}
   alias Air.{Repo, Service.DataSource, Version}
+  import Supervisor.Spec
   import Ecto.Query
+  require Logger
 
   @type view_map :: %{optional(String.t) => String.t}
+
+  @cloak_validations_sup __MODULE__.CloakValidationsSup
+  @notifications_registry __MODULE__.NotificationsRegistry
 
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Returns the supervisor specification for this service."
+  @spec supervisor_spec() :: Supervisor.Spec.spec
+  def supervisor_spec(), do:
+    supervisor(
+      Supervisor,
+      [
+        [
+          supervisor(Task.Supervisor, [[name: @cloak_validations_sup]], id: @cloak_validations_sup),
+          worker(Registry, [:duplicate, @notifications_registry], id: @notifications_registry),
+        ],
+        [strategy: :one_for_one, name: __MODULE__]
+      ],
+      id: __MODULE__
+    )
+
+  @doc "Subscribes to notifications about asynchronous activities, such as revalidations of views."
+  @spec subscribe_to(:revalidated_views) :: :ok
+  def subscribe_to(notification) do
+    Registry.register(@notifications_registry, notification, nil)
+    :ok
+  end
+
+  @doc "Unsubscribes from notifications about asynchronous activities, such as revalidations of views."
+  @spec unsubscribe_from(:revalidated_views) :: :ok
+  def unsubscribe_from(notification) do
+    Registry.unregister(@notifications_registry, notification)
+    :ok
+  end
 
   @doc "Returns the changeset representing an empty view."
   @spec new_changeset() :: Changeset.t
@@ -38,8 +72,9 @@ defmodule Air.Service.View do
   end
 
   @doc "Updates the existing view in the database."
-  @spec update(integer, User.t, String.t, String.t) :: {:ok, View.t} | {:error, Ecto.Changeset.t}
-  def update(view_id, user, name, sql) do
+  @spec update(integer, User.t, String.t, String.t, [revalidation_timeout: non_neg_integer]) ::
+    {:ok, View.t} | {:error, Ecto.Changeset.t}
+  def update(view_id, user, name, sql, options \\ []) do
     view = Repo.get!(View, view_id)
 
     # view must be owned by the user
@@ -48,18 +83,18 @@ defmodule Air.Service.View do
     changes = %{name: name, sql: sql}
     with {:ok, changeset} <- validated_view_changeset(view, user, changes, :update) do
       {:ok, view} = Repo.update(changeset)
-      revalidate_views!(user, view.data_source_id)
+      revalidate_views_and_wait(user, view.data_source_id, Keyword.take(options, [:revalidation_timeout]))
       {:ok, view}
     end
   end
 
   @doc "Deletes the given view from the database."
-  @spec delete(integer, User.t) :: :ok
-  def delete(view_id, user) do
+  @spec delete(integer, User.t, [revalidation_timeout: non_neg_integer]) :: :ok
+  def delete(view_id, user, options \\ []) do
     view = Repo.get!(View, view_id)
 
     Repo.delete!(view)
-    revalidate_views!(user, view.data_source_id)
+    revalidate_views_and_wait(user, view.data_source_id, Keyword.take(options, [:revalidation_timeout]))
 
     :ok
   end
@@ -75,12 +110,42 @@ defmodule Air.Service.View do
     |> Enum.into(%{})
   end
 
+  @doc "Asynchronously revalidates all views of all users having access to the given data source."
+  @spec revalidate_all_views(Air.Schemas.DataSource.t) :: :ok
+  def revalidate_all_views(data_source), do:
+    data_source
+    |> DataSource.users()
+    |> Enum.each(&revalidate_views(&1, data_source.id))
+
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp revalidate_views!(user, data_source_id) do
+  defp notify_subscribers(notification, payload), do:
+    Registry.lookup(@notifications_registry, notification)
+    |> Enum.map(fn({pid, nil}) -> pid end)
+    |> Enum.each(&send(&1, {notification, payload}))
+
+  defp revalidate_views_and_wait(user, data_source_id, options) do
+    subscribe_to(:revalidated_views)
+    try do
+      revalidate_views(user, data_source_id)
+      receive do
+        {:revalidated_views, %{data_source_id: ^data_source_id}} -> :ok
+      after Keyword.get(options, :revalidation_timeout, 0) ->
+        {:error, :timeout}
+      end
+    after
+      unsubscribe_from(:revalidated_views)
+    end
+  end
+
+  defp revalidate_views(user, data_source_id), do:
+    Task.Supervisor.start_child(@cloak_validations_sup, fn -> sync_revalidate_views!(user, data_source_id) end)
+
+  defp sync_revalidate_views!(user, data_source_id) do
+    Logger.info("revalidating views for user #{user.id}, data source #{data_source_id}")
     {:ok, results} = DataSource.validate_views({:id, data_source_id}, user, user_views_map(user, data_source_id))
 
     for {name, result} <- results do
@@ -90,6 +155,8 @@ defmodule Air.Service.View do
         :error -> :do_nothing
       end
     end
+
+    notify_subscribers(:revalidated_views, %{user_id: user.id, data_source_id: data_source_id})
   end
 
   defp view_status(validation_result) do

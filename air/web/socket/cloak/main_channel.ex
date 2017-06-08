@@ -78,7 +78,11 @@ defmodule Air.Socket.Cloak.MainChannel do
       salt_hash: cloak_info["salt_hash"],
     }
     data_sources = Map.fetch!(cloak_info, "data_sources")
-    Air.Service.Cloak.register(cloak, data_sources)
+
+    cloak
+    |> Air.Service.Cloak.register(data_sources)
+    |> revalidate_views()
+
     report_online_status_to_central(cloak, data_sources, socket.assigns.version)
 
     {:ok, %{}, assign(socket, :pending_calls, %{})}
@@ -231,4 +235,12 @@ defmodule Air.Socket.Cloak.MainChannel do
     |> Enum.map(fn({key, value}) -> {String.to_atom(key), atomize_keys(value)} end)
     |> Enum.into(%{})
   def atomize_keys(other), do: other
+
+  if Mix.env == :test do
+    # do nothing in tests, because it leads to unexpected messages in various tests where cloak is mocked
+    defp revalidate_views(_data_sources), do: :ok
+  else
+    defp revalidate_views(data_sources), do:
+      Enum.each(data_sources, &Air.Service.View.revalidate_all_views/1)
+  end
 end

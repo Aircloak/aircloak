@@ -280,23 +280,36 @@ defmodule Air.Service.DataSource do
   @spec users_count() :: %{integer => non_neg_integer}
   def users_count(), do:
     Repo.all(
-      from data_source in DataSource,
-        inner_join: group in assoc(data_source, :groups),
-        inner_join: user in assoc(group, :users),
+      from [data_source, _group, user] in data_sources_with_groups_and_users(),
         group_by: data_source.id,
         select: {data_source.id, count(user.id, :distinct)}
     )
     |> Enum.into(%{})
+
+  @doc "Returns a unique collection of users who are permitted to use the given data source."
+  @spec users(DataSource.t) :: [User.t]
+  def users(data_source), do:
+    Repo.all(
+      from [data_source, _group, user] in data_sources_with_groups_and_users(),
+        where: data_source.id == ^data_source.id,
+        select: user,
+        distinct: true
+    )
 
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp users_data_sources(user) do
-    from data_source in DataSource,
+  defp data_sources_with_groups_and_users(), do:
+    from(
+      data_source in DataSource,
       inner_join: group in assoc(data_source, :groups),
-      inner_join: user in assoc(group, :users),
+      inner_join: user in assoc(group, :users)
+    )
+
+  defp users_data_sources(user) do
+    from [data_source, _group, user] in data_sources_with_groups_and_users(),
       where: user.id == ^user.id,
       group_by: data_source.id
   end

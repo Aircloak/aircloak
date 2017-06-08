@@ -6,6 +6,7 @@ defmodule Air.Supervisor do
 
     children = [
       Air.Service.Cloak.supervisor_spec(),
+      Air.Service.View.supervisor_spec(),
       supervisor(Air.Repo, []),
       worker(Air.Repo.Migrator, [], restart: :transient),
       supervisor(Air.QueryEvents, []),
