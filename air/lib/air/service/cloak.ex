@@ -34,19 +34,18 @@ defmodule Air.Service.Cloak do
     supervisor(Supervisor, [children, [strategy: :one_for_one, name: __MODULE__]])
   end
 
-  @doc """
-  Registers a data source (if needed), and associates the calling cloak with the data source
-  """
-  @spec register(Map.t, Map.t) :: :ok
+  @doc "Registers a data source (if needed), and associates the calling cloak with the data source."
+  @spec register(Map.t, Map.t) :: [Air.Schemas.DataSource.t]
   def register(cloak_info, data_sources) do
-    {data_source_names, cloak_info} = GenServer.call(@serializer_name, {:register, cloak_info, data_sources})
+    {data_source_names, cloak_info, data_source_schemas} =
+      GenServer.call(@serializer_name, {:register, cloak_info, data_sources})
 
     Registry.register(@all_cloak_registry_name, :all_cloaks, cloak_info)
     for data_source_name <- data_source_names do
       Registry.register(@data_source_registry_name, data_source_name, cloak_info)
     end
 
-    :ok
+    data_source_schemas
   end
 
   @doc "Records cloak memory readings"
@@ -87,18 +86,19 @@ defmodule Air.Service.Cloak do
     |> Enum.map(&({Map.fetch!(&1, "name"), &1}))
     |> Enum.into(%{})
 
-    data_sources
-    |> add_error_on_conflicting_data_source_definitions()
-    |> add_error_on_different_salts(cloak_info)
-    |> combined_data_source_errors(cloak_info)
-    |> register_data_sources()
+    data_source_schemas =
+      data_sources
+      |> add_error_on_conflicting_data_source_definitions()
+      |> add_error_on_different_salts(cloak_info)
+      |> combined_data_source_errors(cloak_info)
+      |> register_data_sources()
 
     cloak_info = Map.merge(cloak_info, %{
       data_sources: data_sources_by_name,
       memory: %{},
     })
 
-    {:reply, {Map.keys(data_sources_by_name), cloak_info}, state}
+    {:reply, {Map.keys(data_sources_by_name), cloak_info, data_source_schemas}, state}
   end
 
 
@@ -170,7 +170,7 @@ defmodule Air.Service.Cloak do
     |> Enum.reject(&is_nil(&1))
 
   defp register_data_sources(data_sources), do:
-    Enum.each(data_sources, fn(data_source) ->
+    Enum.map(data_sources, fn(data_source) ->
       name = Map.fetch!(data_source, "name")
       # Deprecated: global_id is a remnant of Aircloak pre-version 17.3.0.
       # It has to remain for compatibility with older versions
