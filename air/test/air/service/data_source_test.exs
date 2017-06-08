@@ -18,7 +18,7 @@ defmodule Air.Service.DataSourceTest do
     ds1 = TestRepoHelper.create_data_source!(%{groups: [g1.id]})
     ds2 = TestRepoHelper.create_data_source!(%{groups: [g2.id]})
 
-    %{user1: user1, user2: user2, user3: user3, ds1: ds1, ds2: ds2}
+    %{user1: user1, user2: user2, user3: user3, ds1: ds1, ds2: ds2, group1: g1, group2: g2, group3: g3}
   end
 
   test "count" do
@@ -181,6 +181,20 @@ defmodule Air.Service.DataSourceTest do
     data_source = TestRepoHelper.create_data_source!(%{groups: [group1.id]})
     DataSource.update(data_source, %{groups: [group2.id]})
     assert [group2.id] == DataSource.by_name(data_source.name).groups |> Enum.map(&(&1.id))
+  end
+
+  test "retrieving users for a data source" do
+    g1 = TestRepoHelper.create_group!()
+    g2 = TestRepoHelper.create_group!()
+    g3 = TestRepoHelper.create_group!()
+
+    u1 = TestRepoHelper.create_user!(%{groups: [g1.id, g2.id]})
+    u2 = TestRepoHelper.create_user!(%{groups: [g2.id, g3.id]})
+    _u3 = TestRepoHelper.create_user!(%{groups: [g3.id]})
+    data_source = TestRepoHelper.create_data_source!(%{groups: [g1.id, g2.id]})
+
+    assert DataSource.users(data_source) |> Enum.map(&(&1.id)) |> Enum.sort() ==
+      [u1, u2] |> Enum.map(&(&1.id)) |> Enum.sort()
   end
 
   describe "query_alive?" do
