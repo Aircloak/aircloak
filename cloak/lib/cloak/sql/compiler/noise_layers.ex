@@ -153,7 +153,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(& not Condition.inequality?(&1))
     |> Lens.satisfy(& not Condition.not_equals?(&1))
     |> Lens.satisfy(& not Condition.not_like?(&1))
-    |> Lens.satisfy(& not Condition.not_ilike?(&1))
     |> Lens.both(Lens.key(:group_by))
     |> raw_columns()
     |> Lens.to_list(query)
@@ -178,7 +177,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp not_like_noise_layers(query), do:
     Query.Lenses.filter_clauses()
     |> Query.Lenses.conditions()
-    |> Lens.satisfy(&Condition.not_like?(&1) or Condition.not_ilike?(&1))
+    |> Lens.satisfy(&Condition.not_like?(&1))
     |> Lens.satisfy(&can_be_anonymized_with_noise_layer?(&1, query))
     |> Lens.to_list(query)
     |> Enum.map(fn({:not, {kind, column, constant}}) ->
