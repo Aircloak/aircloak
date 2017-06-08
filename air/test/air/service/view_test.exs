@@ -143,6 +143,23 @@ defmodule Air.Service.ViewTest do
     end
   end
 
+  test "revalidating all views", context do
+    socket = data_source_socket(context.ds2)
+    View.subscribe_to(:revalidated_views)
+    View.revalidate_all_views(context.ds2)
+
+    TestSocketHelper.respond_to_validate_views!(socket,
+      [%{"name" => context.v3.name, "columns" => ["some", "columns"], "valid" => true}])
+    TestSocketHelper.respond_to_validate_views!(socket,
+      [%{"name" => context.v4.name, "columns" => ["some", "columns"], "valid" => true}])
+
+    assert_receive {:revalidated_views, m1}
+    assert_receive {:revalidated_views, m2}
+    refute_receive {:revalidated_views, _}
+    assert Enum.all?([m1, m2], &(&1.data_source_id == context.ds2.id))
+    assert Enum.sort(Enum.map([m1, m2], &(&1.user_id))) == Enum.sort([context.u1.id, context.u2.id])
+  end
+
   defp insert_view(data_source, user, name), do:
     %Air.Schemas.View{}
     |> Ecto.Changeset.cast(

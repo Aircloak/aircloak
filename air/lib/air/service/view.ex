@@ -5,6 +5,7 @@ defmodule Air.Service.View do
   alias Air.{Repo, Service.DataSource, Version}
   import Supervisor.Spec
   import Ecto.Query
+  require Logger
 
   @type view_map :: %{optional(String.t) => String.t}
 
@@ -101,6 +102,13 @@ defmodule Air.Service.View do
     |> Enum.into(%{})
   end
 
+  @doc "Asynchronously revalidates all views of all users having access to the given data source."
+  @spec revalidate_all_views(Air.Schemas.DataSource.t) :: :ok
+  def revalidate_all_views(data_source), do:
+    data_source
+    |> DataSource.users()
+    |> Enum.each(&revalidate_views(&1, data_source.id))
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -115,6 +123,7 @@ defmodule Air.Service.View do
     Task.Supervisor.start_child(@cloak_validations_sup, fn -> sync_revalidate_views!(user, data_source_id) end)
 
   defp sync_revalidate_views!(user, data_source_id) do
+    Logger.info("revalidating views for user #{user.id}, data source #{data_source_id}")
     {:ok, results} = DataSource.validate_views({:id, data_source_id}, user, user_views_map(user, data_source_id))
 
     for {name, result} <- results do
@@ -125,7 +134,7 @@ defmodule Air.Service.View do
       end
     end
 
-    notify_subscribers(:revalidated_views, data_source_id)
+    notify_subscribers(:revalidated_views, %{user_id: user.id, data_source_id: data_source_id})
   end
 
   defp view_status(validation_result) do
