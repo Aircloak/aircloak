@@ -105,13 +105,15 @@ defmodule Air.Service.ViewTest do
     test "revalidating other views", context do
       socket = data_source_socket(context.ds1)
 
+      View.subscribe_to(:revalidated_views)
       task = Task.async(fn() -> View.update(context.v1.id, context.u1, "some view", "some sql") end)
       TestSocketHelper.respond_to_validate_views!(socket,
         [%{"name" => "some view", "valid" => true, "columns" => []}])
       TestSocketHelper.respond_to_validate_views!(socket,
         [%{"name" => context.v2.name, "valid" => false, "field" => "sql", "error" => "some error"}])
+      Task.await(task)
+      assert_receive {:revalidated_views, _}
 
-      assert {:ok, _} = Task.await(task)
       assert Repo.get(Air.Schemas.View, context.v2.id).broken
     end
   end
@@ -130,10 +132,12 @@ defmodule Air.Service.ViewTest do
     test "revalidating other views", context do
       socket = data_source_socket(context.ds1)
 
+      View.subscribe_to(:revalidated_views)
       task = Task.async(fn() -> View.delete(context.v1.id, context.u1) end)
       TestSocketHelper.respond_to_validate_views!(socket,
         [%{"name" => context.v2.name, "valid" => false, "field" => "sql", "error" => "some error"}])
       Task.await(task)
+      assert_receive {:revalidated_views, _}
 
       assert Repo.get(Air.Schemas.View, context.v2.id).broken
     end
