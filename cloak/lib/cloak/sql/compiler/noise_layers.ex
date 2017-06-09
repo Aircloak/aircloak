@@ -192,10 +192,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Query.Lenses.conditions()
     |> Lens.satisfy(&Condition.like?(&1))
     |> Lens.to_list(query)
-    |> Enum.flat_map(fn({:like, column, constant}) ->
+    |> Enum.flat_map(fn({kind, column, constant}) ->
       Expression.value(constant, [])
       |> like_layer_keys()
-      |> Enum.map(&NoiseLayer.new({column.table.name, column.name, {:like, &1}}, [Helpers.set_unique_alias(column)]))
+      |> Enum.map(&NoiseLayer.new({column.table.name, column.name, {kind, &1}}, [Helpers.set_unique_alias(column)]))
     end)
 
   defp like_layer_keys(like_pattern) do

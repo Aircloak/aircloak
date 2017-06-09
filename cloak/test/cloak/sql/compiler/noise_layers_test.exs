@@ -176,7 +176,17 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       ] = result.noise_layers
     end
 
-    test "a noise layer per wildcard in ILIKE"
+    test "a noise layer per wildcard in ILIKE" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name ILIKE 'b%_o_%b'", data_source())
+      len = String.length("b%_o_%b") - String.length("%%")
+
+      assert [
+        %{base: {"table", "name", {:ilike, {:%, ^len, 1}}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:ilike, {:_, ^len, 1}}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:ilike, {:%, ^len, 3}}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:ilike, {:_, ^len, 3}}}, expressions: [%Expression{name: "name"}]},
+      ] = result.noise_layers
+    end
 
     test "noise layers for processed LIKE columns"
 
