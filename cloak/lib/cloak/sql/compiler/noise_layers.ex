@@ -195,9 +195,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       columns = Lens.to_list(raw_columns(), column)
       layer_keys = constant |> Expression.value([]) |> like_layer_keys
 
-      case layer_keys do
-        [] -> [build_noise_layer(column)]
-        keys -> for layer_key <- keys, column <- columns do
+      case {kind, layer_keys} do
+        {:like, []} -> [build_noise_layer(column)]
+        {:ilike, []} -> [build_noise_layer(column, :ilike)]
+        {_, keys} -> for layer_key <- keys, column <- columns do
           build_noise_layer(column, {kind, layer_key})
         end
       end
