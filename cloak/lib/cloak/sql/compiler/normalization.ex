@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   @moduledoc "Deals with normalizing some expressions so that they are easier to deal with at later stages."
 
   alias Cloak.Sql.Compiler.Helpers
-  alias Cloak.Sql.{Expression, Query}
+  alias Cloak.Sql.{Expression, Query, Condition}
 
 
   # -------------------------------------------------------------------
@@ -15,6 +15,8 @@ defmodule Cloak.Sql.Compiler.Normalization do
   * Switches NOT IN expressions for an equivalent conjunction of <> expressions
   * Switches complex expressions involving constants (like 1 + 2 + 3) to with their results (6 in this case)
   * Switches upper(x) <> constant to lower(x) <> toggle_case(constant)
+  * Removes redundant occurences of "%" from LIKE patterns (for example "%%" -> "%")
+  * Normalizes sequences of "%" and "_" in like patterns so that the "%" always precedes a sequence of "_"
 
   These are useful for noise layers - we want to generate the same layer for semantically identical conditions,
   otherwise we have to fall back to probing.
@@ -89,9 +91,11 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # -------------------------------------------------------------------
 
   defp normalize_like(query), do:
-    update_in(query, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
-      {:like, lhs, rhs} -> {:like, lhs, %{rhs | value: do_normalize_like(rhs.value)}}
-      other -> other
+    Query.Lenses.filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.satisfy(&Condition.like?/1)
+    |> Lens.map(query, fn
+      {kind, lhs, rhs} -> {kind, lhs, %{rhs | value: do_normalize_like(rhs.value)}}
     end)
 
   defp do_normalize_like(string), do:
