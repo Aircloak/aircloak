@@ -24,6 +24,12 @@ defmodule Cloak.Sql.Condition do
   def not_like?({:not, {:ilike, _, _}}), do: true
   def not_like?(_), do: false
 
+  @doc "Returns true if the given where clause is a LIKE one, false otherwise."
+  @spec like?(Query.where_clause) :: boolean
+  def like?({:like, _, _}), do: true
+  def like?({:ilike, _, _}), do: true
+  def like?(_), do: false
+
   @doc "Returns the term the given comparison compares against."
   @spec value(Query.where_clause) :: any
   def value({:comparison, _lhs, _, rhs}), do: rhs.value
