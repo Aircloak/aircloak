@@ -187,20 +187,22 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       NoiseLayer.new({column.table.name, column.name, {:not, kind, value}}, [Helpers.set_unique_alias(column)])
     end)
 
-  defp like_noise_layers(query) do
-    like_clauses =
-      Query.Lenses.filter_clauses()
-      |> Query.Lenses.conditions()
-      |> Lens.satisfy(&Condition.like?(&1))
-      |> Lens.to_list(query)
+  defp like_noise_layers(query), do:
+    Query.Lenses.filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.satisfy(&Condition.like?(&1))
+    |> Lens.to_list(query)
+    |> Enum.flat_map(fn({kind, column, constant}) ->
+      columns = Lens.to_list(raw_columns(), column)
+      layer_keys = constant |> Expression.value([]) |> like_layer_keys
 
-    for {kind, column, constant} <- like_clauses,
-      layer_key <- constant |> Expression.value([]) |> like_layer_keys,
-      column <- Lens.to_list(raw_columns(), column)
-    do
-      NoiseLayer.new({column.table.name, column.name, {kind, layer_key}}, [Helpers.set_unique_alias(column)])
-    end
-  end
+      case layer_keys do
+        [] -> [NoiseLayer.new({column.table.name, column.name, nil}, [Helpers.set_unique_alias(column)])]
+        keys -> for layer_key <- keys, column <- columns do
+          NoiseLayer.new({column.table.name, column.name, {kind, layer_key}}, [Helpers.set_unique_alias(column)])
+        end
+      end
+    end)
 
   defp like_layer_keys(like_pattern) do
     len = like_pattern |> String.replace("%", "") |> String.length()
