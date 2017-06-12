@@ -215,11 +215,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "noise layers when ILIKE has no wildcards" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE name ILIKE 'bob'", data_source())
+      [%{base: base1, expressions: [%{name: name1}]}] =
+        compile!("SELECT COUNT(*) FROM table WHERE name ILIKE 'bob'", data_source()).noise_layers
+      [%{base: base2, expressions: [%{name: name2}]}] =
+        compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'", data_source()).noise_layers
 
-      assert [
-        %{base: {"table", "name", :ilike}, expressions: [%Expression{name: "name"}]},
-      ] = result.noise_layers
+      assert base1 == base2
+      assert name1 == name2
     end
   end
 

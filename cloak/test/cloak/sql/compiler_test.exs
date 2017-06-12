@@ -877,9 +877,23 @@ defmodule Cloak.Sql.Compiler.Test do
       assert result1.where == result2.where
     end
 
+    test "normalizing trivial like patterns" do
+      result1 = compile!("SELECT * FROM table WHERE string LIKE 'abc'", data_source())
+      result2 = compile!("SELECT * FROM table WHERE string = 'abc'", data_source())
+
+      assert result1.where == result2.where
+    end
+
     test "normalizing ilike patterns" do
       result1 = compile!("SELECT * FROM table WHERE string ILIKE 'a_%__%_b%c%%d___'", data_source())
       result2 = compile!("SELECT * FROM table WHERE string ILIKE 'a%____b%c%d___'", data_source())
+
+      assert result1.where == result2.where
+    end
+
+    test "normalizing trivial ilike patterns" do
+      result1 = compile!("SELECT * FROM table WHERE string ILIKE 'abc'", data_source())
+      result2 = compile!("SELECT * FROM table WHERE lower(string) = lower('abc')", data_source())
 
       assert result1.where == result2.where
     end

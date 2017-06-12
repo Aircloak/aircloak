@@ -27,9 +27,9 @@ defmodule Cloak.Sql.Compiler.Normalization do
     query
     |> Helpers.apply_bottom_up(&expand_not_in/1)
     |> Helpers.apply_bottom_up(&normalize_in/1)
+    |> Helpers.apply_bottom_up(&normalize_like/1)
     |> Helpers.apply_bottom_up(&normalize_constants/1)
     |> Helpers.apply_bottom_up(&normalize_upper/1)
-    |> Helpers.apply_bottom_up(&normalize_like/1)
 
 
   # -------------------------------------------------------------------
@@ -102,9 +102,16 @@ defmodule Cloak.Sql.Compiler.Normalization do
     Query.Lenses.filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.satisfy(&Condition.like?/1)
-    |> Lens.map(query, fn
-      {kind, lhs, rhs} -> {kind, lhs, %{rhs | value: do_normalize_like(rhs.value)}}
+    |> Lens.map(query, fn({kind, lhs, rhs}) ->
+      case {kind, any_wildcards?(rhs.value)} do
+        {:like, false} -> {:comparison, lhs, :=, rhs}
+        {:ilike, false} -> {:comparison, lowercase(lhs), :=, lowercase(rhs)}
+        _ -> {kind, lhs, %{rhs | value: do_normalize_like(rhs.value)}}
+      end
     end)
+
+  defp lowercase(expression), do:
+    Expression.function("lower", [expression], expression.type)
 
   defp do_normalize_like(string), do:
     string
@@ -119,6 +126,9 @@ defmodule Cloak.Sql.Compiler.Normalization do
     [percent | rest]
   end
   defp normalize_like_chunk(chunk), do: chunk
+
+  defp any_wildcards?(pattern), do:
+    pattern |> String.graphemes() |> Enum.any?(&special_like_char?/1)
 
   defp special_like_char?(string), do: string == "_" or string == "%"
 end
