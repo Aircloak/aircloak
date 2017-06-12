@@ -131,11 +131,12 @@ defmodule Cloak.Query.SubqueryTest do
   end
 
   test "non selected aggregate in subquery" do
-    :ok = insert_rows(_user_ids = 1..10, "heights_sq", ["height"], [180])
+    :ok = insert_rows(_user_ids = 1..10, "heights_sq", ["height"], [160])
+    :ok = insert_rows(_user_ids = 11..30, "heights_sq", ["height"], [170])
+    :ok = insert_rows(_user_ids = 31..60, "heights_sq", ["height"], [180])
     assert_query(
-      "select h from (select user_id, max(height) as h from heights_sq " <>
-        "group by user_id order by count(*)) alias",
-      %{columns: ["h"], rows: [%{row: [180]}]}
+      "select height from (select user_id, height from heights_sq group by 1, 2 order by count(*) desc limit 1) alias",
+      %{columns: ["height"], rows: [%{row: [180]}]}
     )
   end
 
