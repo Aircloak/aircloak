@@ -234,8 +234,23 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Same as tables/1 but also includes views visible to the user"
-  @spec views_and_tables(User.t, DataSource.t) :: [Map.t]
+  @spec views_and_tables(User.t, DataSource.t) :: [%{
+      id: String.t,
+      view: boolean,
+      broken: boolean, # Always false for tables
+      internal_id: String.t | nil,
+      columns: %{
+        name: String.t,
+        type: String.t,
+        user_id: boolean,
+      }
+    }]
   def views_and_tables(user, data_source) do
+    default_values = %{
+      "view" => false,
+      "broken" => false,
+    }
+
     View.all(user, data_source)
     |> Enum.map(fn(view) ->
       %{
@@ -247,6 +262,7 @@ defmodule Air.Service.DataSource do
       }
     end)
     |> Enum.concat(DataSource.tables(data_source))
+    |> Enum.map(& Map.merge(default_values, &1))
   end
 
   @doc "Creates a data source, raises on error."
