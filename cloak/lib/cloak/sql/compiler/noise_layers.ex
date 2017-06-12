@@ -23,6 +23,23 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
 
 
+  @allowed_not_equals_functions ~w(lower)
+  @doc "Returns true if a condition is anonymized by noise layers."
+  @spec can_be_anonymized_with_noise_layer?(Query.where_clause, Query.t) :: boolean
+  def can_be_anonymized_with_noise_layer?({:not, {like, left, right}}, query) when like in [:like, :ilike], do:
+    not processed_column?(left, query) and Expression.constant?(right)
+  def can_be_anonymized_with_noise_layer?(
+    {:comparison, %Expression{function?: true, function: name, function_args: [arg]}, :<>, right}, query), do:
+      not processed_column?(arg, query) and
+        Enum.member?(@allowed_not_equals_functions, name) and
+        Expression.constant?(right)
+  def can_be_anonymized_with_noise_layer?({:comparison, left, :<>, right}, query), do:
+    not processed_column?(left, query) and Expression.constant?(right)
+  def can_be_anonymized_with_noise_layer?({:not, condition}, _query), do:
+    Condition.inequality?(condition) or Condition.verb(condition) == :is
+  def can_be_anonymized_with_noise_layer?(_condition, _query), do: true
+
+
   # -------------------------------------------------------------------
   # Pushing layers into subqueries
   # -------------------------------------------------------------------
@@ -195,20 +212,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     value = Expression.value(constant, [])
     NoiseLayer.new({column.table.name, column.name, {:<>, value}}, [Helpers.set_unique_alias(column)])
   end
-
-  @allowed_not_equals_functions ~w(lower)
-
-  defp can_be_anonymized_with_noise_layer?({:not, {like, left, right}}, query) when like in [:like, :ilike], do:
-    not processed_column?(left, query) and Expression.constant?(right)
-  defp can_be_anonymized_with_noise_layer?(
-    {:comparison, %Expression{function?: true, function: name, function_args: [arg]}, :<>, right}, query), do:
-      not processed_column?(arg, query) and
-        Enum.member?(@allowed_not_equals_functions, name) and
-        Expression.constant?(right)
-  defp can_be_anonymized_with_noise_layer?({:comparison, left, :<>, right}, query), do:
-    not processed_column?(left, query) and Expression.constant?(right)
-  defp can_be_anonymized_with_noise_layer?(_, _), do:
-    false
 
   defp processed_column?(%Expression{function?: true}, _query), do: true
   defp processed_column?(_expression, %{from: table}) when is_binary(table), do: false

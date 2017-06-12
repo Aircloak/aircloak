@@ -110,6 +110,8 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     %{map_field(subject) => %{parse_operator(operator) => map_constant(value)}}
   defp parse_where_condition({:not, {:comparison, subject, :=, value}}), do:
     %{map_field(subject) => %{'$ne': map_constant(value)}}
+  defp parse_where_condition({:not, {:comparison, subject, :<>, value}}), do:
+    %{map_field(subject) => %{'$eq': map_constant(value)}}
   defp parse_where_condition({:is, subject, :null}), do: %{map_field(subject) => nil}
   defp parse_where_condition({:not, {:is, subject, :null}}), do: %{map_field(subject) => %{'$exists': true}}
   defp parse_where_condition({:in, subject, values}), do:
