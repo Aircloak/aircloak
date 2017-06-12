@@ -163,6 +163,66 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
+  describe "noise layers for LIKE" do
+    test "a noise layer per wildcard in LIKE" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name LIKE 'b%_o_%b'", data_source())
+      len = String.length("b%_o_%b") - String.length("%%")
+
+      assert [
+        %{base: {"table", "name", {:like, {:%, ^len, 1}}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:like, {:_, ^len, 1}}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:like, {:%, ^len, 3}}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:like, {:_, ^len, 3}}}, expressions: [%Expression{name: "name"}]},
+      ] = result.noise_layers
+    end
+
+    test "a noise layer per wildcard in ILIKE" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name ILIKE 'b%_o_%b'", data_source())
+      len = String.length("b%_o_%b") - String.length("%%")
+
+      assert [
+        %{base: {"table", "name", {:ilike, {:%, ^len, 1}}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:ilike, {:_, ^len, 1}}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:ilike, {:%, ^len, 3}}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:ilike, {:_, ^len, 3}}}, expressions: [%Expression{name: "name"}]},
+      ] = result.noise_layers
+    end
+
+    test "noise layers for processed LIKE columns" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name || name2 LIKE 'b%_o_%b'", data_source())
+      len = String.length("b%_o_%b") - String.length("%%")
+
+      assert [
+        %{base: {"table", "name", {:like, {:%, ^len, 1}}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name2", {:like, {:%, ^len, 1}}}, expressions: [%Expression{name: "name2"}]},
+        %{base: {"table", "name", {:like, {:_, ^len, 1}}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name2", {:like, {:_, ^len, 1}}}, expressions: [%Expression{name: "name2"}]},
+        %{base: {"table", "name", {:like, {:%, ^len, 3}}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name2", {:like, {:%, ^len, 3}}}, expressions: [%Expression{name: "name2"}]},
+        %{base: {"table", "name", {:like, {:_, ^len, 3}}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name2", {:like, {:_, ^len, 3}}}, expressions: [%Expression{name: "name2"}]},
+      ] = result.noise_layers
+    end
+
+    test "noise layers when LIKE has no wildcards" do
+      [%{base: base1, expressions: [%{name: name1}]}] =
+        compile!("SELECT COUNT(*) FROM table WHERE name LIKE 'bob'", data_source()).noise_layers
+      [%{base: base2, expressions: [%{name: name2}]}] =
+        compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'", data_source()).noise_layers
+
+      assert base1 == base2
+      assert name1 == name2
+    end
+
+    test "noise layers when ILIKE has no wildcards" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name ILIKE 'bob'", data_source())
+
+      assert [
+        %{base: {"table", "name", :ilike}, expressions: [%Expression{name: "name"}]},
+      ] = result.noise_layers
+    end
+  end
+
   describe "noise layers from subqueries" do
     test "floating noise layers from a subquery" do
       result = compile!("SELECT COUNT(*) FROM (SELECT * FROM table WHERE numeric = 3) foo", data_source())
@@ -398,6 +458,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
             DataSource.column("dummy", :boolean),
             DataSource.column("dummy2", :boolean),
             DataSource.column("name", :text),
+            DataSource.column("name2", :text),
           ],
           decoders: [%{method: "base64", spec: &Base.decode64/1, columns: ["decoded"]}],
           projection: nil,

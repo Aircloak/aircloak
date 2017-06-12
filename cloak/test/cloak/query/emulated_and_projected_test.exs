@@ -52,6 +52,14 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
           %{occurrences: 10, row: ["aaa"]}
         ]}
 
+    test "non-selected aggregate in order by", do:
+      assert_query "select num from #{@prefix}emulated group by num order by num, count(*)",
+        %{rows: [
+          %{occurrences: 1, row: [1]},
+          %{occurrences: 1, row: [2]},
+          %{occurrences: 1, row: [3]}
+        ]}
+
     test "aliased", do:
       assert_query "select count(e.value) from #{@prefix}emulated e where e.value = 'aaa'",
         %{rows: [%{occurrences: 1, row: [10]}]}
@@ -87,6 +95,13 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
     test "non-selected order by", do:
       assert_query "select value from (select user_id, value from #{@prefix}emulated order by num limit 1) as t",
         %{rows: [%{occurrences: 10, row: [nil]}]}
+
+    test "non-selected aggregate order by", do:
+      assert_query(
+        "select num from " <>
+          "(select user_id, num from #{@prefix}emulated group by 1, 2 order by num, count(*) limit 1) as t",
+        %{rows: [%{occurrences: 10, row: [1]}]}
+      )
 
     test "implicitly selected uid", do:
       assert_query "select count(value) from (select value from #{@prefix}emulated where value = 'aaa') as t",
