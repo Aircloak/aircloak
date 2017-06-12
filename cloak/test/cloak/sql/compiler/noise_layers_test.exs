@@ -76,6 +76,93 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
+  describe "noise layer from negative condition" do
+    test "simple noise layer" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> 10", data_source())
+
+      assert [
+        %{base: {"table", "numeric", {:<>, 10}}, expressions: [%Expression{name: "numeric"}]},
+      ] = result.noise_layers
+    end
+
+    test "no noise layer when compared column is not raw in a subquery" do
+      result = compile!(
+        "SELECT COUNT(*) FROM (SELECT upper(name) AS name, uid FROM table) x WHERE lower(name) <> 'bob'",
+        data_source()
+      )
+
+      assert [] = result.noise_layers
+    end
+
+    test "use a noise layer when compared column is raw in subquery" do
+      result = compile!(
+        "SELECT COUNT(*) FROM (SELECT name, uid FROM table) x WHERE lower(name) <> 'bob'",
+        data_source()
+      )
+
+      assert [%{base: {"table", "name", {:<>, "lower", "bob"}}}] = result.noise_layers
+    end
+
+    test "no noise layer when compared column is not raw in a join" do
+      result = compile!("""
+        SELECT COUNT(*) FROM other JOIN (SELECT lower(name) as name, uid FROM table) x
+        ON other.uid = x.uid WHERE lower(name) <> 'bob'
+      """, data_source())
+
+      assert [] = result.noise_layers
+    end
+
+    test "use a noise layer when compared column is raw in a join" do
+      result = compile!("""
+        SELECT COUNT(*) FROM other JOIN (SELECT name, uid FROM table) x ON other.uid = x.uid WHERE lower(name) <> 'bob'
+      """, data_source())
+
+      assert [%{base: {"table", "name", {:<>, "lower", "bob"}}}] = result.noise_layers
+    end
+
+    test "noise layers for columns with allowed operations" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE lower(name) <> 'bob'", data_source())
+
+      assert [
+        %{base: {"table", "name", {:<>, "lower", "bob"}}, expressions: [%Expression{name: "name"}]},
+      ] = result.noise_layers
+    end
+
+    test "no noise layer for columns with disallowed operations" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE sqrt(numeric) <> 10", data_source())
+
+      assert [] = result.noise_layers
+    end
+
+    test "no noise layer for columns with allowed operations on non-raw columns" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE lower(lower(name)) <> 'bob'", data_source())
+
+      assert [] = result.noise_layers
+    end
+
+    test "noise layers for NOT LIKE" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT LIKE 'bob'", data_source())
+
+      assert [
+        %{base: {"table", "name", {:not, :like, "bob"}}, expressions: [%Expression{name: "name"}]},
+      ] = result.noise_layers
+    end
+
+    test "noise layers for NOT ILIKE" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT ILIKE 'bob'", data_source())
+
+      assert [
+        %{base: {"table", "name", {:not, :ilike, "bob"}}, expressions: [%Expression{name: "name"}]},
+      ] = result.noise_layers
+    end
+
+    test "no noise layer when the argument to LIKE is not raw" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE lower(name) NOT LIKE 'bob'", data_source())
+
+      assert [] = result.noise_layers
+    end
+  end
+
   describe "noise layers from subqueries" do
     test "floating noise layers from a subquery" do
       result = compile!("SELECT COUNT(*) FROM (SELECT * FROM table WHERE numeric = 3) foo", data_source())
@@ -292,7 +379,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     query = Parser.parse!(query_string)
     {:ok, result} = Compiler.compile(data_source, query, Keyword.get(options, :parameters, []),
       Keyword.get(options, :views, %{}))
-    Compiler.NoiseLayers.compile(result)
+    result
   end
 
   defp data_source(driver \\ DataSource.PostgreSQL) do
@@ -309,9 +396,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
             DataSource.column("numeric2", :integer),
             DataSource.column("decoded", :text),
             DataSource.column("dummy", :boolean),
-            DataSource.column("dummy2", :boolean)
+            DataSource.column("dummy2", :boolean),
+            DataSource.column("name", :text),
           ],
-          decoders: [%{method: "base64", columns: ["decoded"]}],
+          decoders: [%{method: "base64", spec: &Base.decode64/1, columns: ["decoded"]}],
           projection: nil,
         },
 

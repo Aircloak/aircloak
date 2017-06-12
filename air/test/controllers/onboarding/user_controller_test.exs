@@ -30,9 +30,7 @@ defmodule Air.Onboarding.UserControllerTest do
   end
 
   test "re-uses admin group if it exists", %{conn: conn} do
-    group = %Group{}
-    |> Group.changeset(%{name: "admin", admin: true})
-    |> Repo.insert!()
+    group = Air.TestRepoHelper.create_group!(%{name: "admin", admin: true})
     post(conn, "/onboarding/", @valid_params)
     [user | _] = Repo.all(User) |> Repo.preload([:groups])
     assert hd(user.groups).id == group.id
@@ -51,19 +49,15 @@ defmodule Air.Onboarding.UserControllerTest do
   end
 
   test "instructs user about setup done if has been done in past", %{conn: conn} do
-    group = %Group{}
-    |> Group.changeset(%{name: "admin", admin: true})
-    |> Repo.insert!()
+    group = Air.TestRepoHelper.create_group!(%{name: "admin", admin: true})
 
-    %User{}
-    |> User.changeset(%{
+    Air.TestRepoHelper.create_user!(%{
       name: "test",
       email: "test@example.com",
       password: "1234",
       password_confirmation: "1234",
       groups: [group.id],
     })
-    |> Repo.insert!()
 
     assert get(conn, "/onboarding/") |> redirected_to() === "/onboarding/already_setup"
   end

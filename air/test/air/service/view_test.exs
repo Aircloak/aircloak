@@ -105,13 +105,14 @@ defmodule Air.Service.ViewTest do
     test "revalidating other views", context do
       socket = data_source_socket(context.ds1)
 
-      task = Task.async(fn() -> View.update(context.v1.id, context.u1, "some view", "some sql") end)
+      task = Task.async(fn() -> View.update(context.v1.id, context.u1, "some view", "some sql",
+        revalidation_timeout: :timer.seconds(1)) end)
       TestSocketHelper.respond_to_validate_views!(socket,
         [%{"name" => "some view", "valid" => true, "columns" => []}])
       TestSocketHelper.respond_to_validate_views!(socket,
         [%{"name" => context.v2.name, "valid" => false, "field" => "sql", "error" => "some error"}])
+      Task.await(task)
 
-      assert {:ok, _} = Task.await(task)
       assert Repo.get(Air.Schemas.View, context.v2.id).broken
     end
   end
@@ -130,13 +131,30 @@ defmodule Air.Service.ViewTest do
     test "revalidating other views", context do
       socket = data_source_socket(context.ds1)
 
-      task = Task.async(fn() -> View.delete(context.v1.id, context.u1) end)
+      task = Task.async(fn() -> View.delete(context.v1.id, context.u1, revalidation_timeout: :timer.seconds(1)) end)
       TestSocketHelper.respond_to_validate_views!(socket,
         [%{"name" => context.v2.name, "valid" => false, "field" => "sql", "error" => "some error"}])
       Task.await(task)
 
       assert Repo.get(Air.Schemas.View, context.v2.id).broken
     end
+  end
+
+  test "revalidating all views", context do
+    socket = data_source_socket(context.ds2)
+    View.subscribe_to(:revalidated_views)
+    View.revalidate_all_views(context.ds2)
+
+    TestSocketHelper.respond_to_validate_views!(socket,
+      [%{"name" => context.v3.name, "columns" => ["some", "columns"], "valid" => true}])
+    TestSocketHelper.respond_to_validate_views!(socket,
+      [%{"name" => context.v4.name, "columns" => ["some", "columns"], "valid" => true}])
+
+    assert_receive {:revalidated_views, m1}
+    assert_receive {:revalidated_views, m2}
+    refute_receive {:revalidated_views, _}
+    assert Enum.all?([m1, m2], &(&1.data_source_id == context.ds2.id))
+    assert Enum.sort(Enum.map([m1, m2], &(&1.user_id))) == Enum.sort([context.u1.id, context.u2.id])
   end
 
   defp insert_view(data_source, user, name), do:

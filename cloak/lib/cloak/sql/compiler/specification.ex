@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   @moduledoc "Turns a parsed SQL AST into a `Cloak.Sql.Query` specification describing the user query."
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{Comparison, CompilationError, Expression, Function, Query, TypeChecker}
+  alias Cloak.Sql.{Condition, CompilationError, Expression, Function, Query, TypeChecker}
   alias Cloak.Sql.Compiler.Validation
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
@@ -22,7 +22,6 @@ defmodule Cloak.Sql.Compiler.Specification do
     }
     |> Map.merge(parsed_query)
     |> compile_query()
-    |> collapse_filters()
 
 
   # -------------------------------------------------------------------
@@ -67,22 +66,44 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> compile_selected_tables()
 
   defp normalize_from(%Query{} = query), do:
-    %Query{query | from: normalize_from(query.from, query.data_source)}
+    query
+    |> collect_table_aliases()
+    |> update_in([Lenses.ast_tables()], &normalize_from(&1, query.data_source))
 
-  defp normalize_from({:join, join = %{lhs: lhs, rhs: rhs, conditions: conditions}}, data_source) do
-    {:join,
-      %{join |
-        lhs: normalize_from(lhs, data_source),
-        rhs: normalize_from(rhs, data_source),
-        conditions: conditions_tree_to_list(conditions)
-      }
-    }
+  defp collect_table_aliases(query) do
+    aliases =
+      query
+      |> get_in([Lenses.ast_tables()])
+      |> Enum.filter(&match?({_table_identifier, :as, _alias}, &1))
+      |> Enum.map(fn({table_identifier, :as, alias}) -> {alias, find_table!(query.data_source, table_identifier)} end)
+
+    verify_duplicate_aliases(aliases)
+
+    %Query{query | table_aliases: Map.new(aliases)}
   end
-  defp normalize_from(subquery = {:subquery, _}, _data_source), do: subquery
-  defp normalize_from(table_identifier = {_, table_name}, data_source) do
+
+  defp verify_duplicate_aliases(aliases) do
+    aliases
+    |> Enum.map(fn({alias, _}) -> alias end)
+    |> Enum.group_by(&(&1))
+    |> Enum.reject(&match?({_alias, [_]}, &1))
+    |> Enum.map(fn({alias, _}) -> alias end)
+    |> case do
+      [duplicate_alias | _] ->
+        raise CompilationError, message: "Table alias `#{duplicate_alias}` used more than once."
+      [] -> :ok
+    end
+  end
+
+  defp normalize_from({_table_identifier, :as, alias}, _data_source), do:
+    alias
+  defp normalize_from(table_identifier, data_source), do:
+    find_table!(data_source, table_identifier).name
+
+  defp find_table!(data_source, table_identifier = {_, table_name}) do
     case data_source |> DataSource.tables() |> find_table(table_identifier) do
       nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
-      table -> table.name
+      table -> table
     end
   end
 
@@ -141,18 +162,20 @@ defmodule Cloak.Sql.Compiler.Specification do
     Lens.map(Lenses.leaf_tables(), query, &compile_projected_table(&1, query))
 
   defp compile_projected_table(table_name, query) do
-    case DataSource.table(query.data_source, table_name) do
+    case table_from_name_or_alias!(query, table_name) do
       %{projection: nil} -> table_name
-      projected_table -> projected_table_ast(projected_table, :all, query)
+      projected_table -> projected_table_ast(projected_table, table_name, :all, query)
     end
   end
 
-  defp projected_table_ast(%{projection: nil} = table, _column_to_select, _query), do:
-    {:quoted, table.name}
-  defp projected_table_ast(table, columns_to_select, query) do
+  defp projected_table_ast(%{projection: nil}, table_alias, _column_to_select, _query), do:
+    {:quoted, table_alias}
+  defp projected_table_ast(table, table_alias, columns_to_select, query) do
+    # note that we're fetching the table from the data source, because projection name is not an alias
     joined_table = DataSource.table(query.data_source, table.projection.table)
     {:subquery, %{
-      alias: table.name,
+      alias: table_alias,
+      table_name: table.name,
       ast: %{
         command: :select,
         projected?: true,
@@ -168,7 +191,7 @@ defmodule Cloak.Sql.Compiler.Specification do
           {:join, %{
             type: :inner_join,
             lhs: {:quoted, table.name},
-            rhs: projected_table_ast(joined_table, [table.projection.primary_key], query),
+            rhs: projected_table_ast(joined_table, joined_table.name, [table.projection.primary_key], query),
             conditions: {:comparison,
               column_ast(table.name, table.projection.foreign_key),
               :=,
@@ -203,11 +226,11 @@ defmodule Cloak.Sql.Compiler.Specification do
   # -------------------------------------------------------------------
 
   defp compile_selected_tables(query), do:
-    %Query{query | selected_tables: selected_tables(query.from, query.data_source) |> Enum.uniq()}
+    %Query{query | selected_tables: selected_tables(query.from, query)}
 
-  defp selected_tables({:join, join}, data_source), do:
-    selected_tables(join.lhs, data_source) ++ selected_tables(join.rhs, data_source)
-  defp selected_tables({:subquery, subquery}, _data_source) do
+  defp selected_tables({:join, join}, query), do:
+    selected_tables(join.lhs, query) ++ selected_tables(join.rhs, query)
+  defp selected_tables({:subquery, subquery}, _query) do
     # In a subquery we should have the `user_id` already in the list of selected columns.
     user_id_index = Enum.find_index(subquery.ast.columns, &(&1.user_id?))
     user_id_name = Enum.at(subquery.ast.column_titles, user_id_index)
@@ -224,13 +247,14 @@ defmodule Cloak.Sql.Compiler.Specification do
       projection: nil
     }]
   end
-  defp selected_tables(table_name, data_source) when is_binary(table_name) do
-    case DataSource.table(data_source, table_name) do
-      nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
-      table -> [table]
-    end
-  end
+  defp selected_tables(table_name, query) when is_binary(table_name), do:
+    [%{table_from_name_or_alias!(query, table_name) | name: table_name}]
 
+  defp table_from_name_or_alias!(query, table_name) do
+    table = Map.get(query.table_aliases, table_name, DataSource.table(query.data_source, table_name))
+    true = (table != nil)
+    table
+  end
 
   # -------------------------------------------------------------------
   # Parameter types
@@ -290,19 +314,34 @@ defmodule Cloak.Sql.Compiler.Specification do
   # Transformation of columns
   # -------------------------------------------------------------------
 
-  defp expand_star_select(%Query{columns: :*} = query), do:
-    %Query{query |
-      columns:
-        query
-        |> all_visible_columns()
-        |> Enum.map(&{:identifier, &1.table.name, {:unquoted, &1.column.name}})
-    }
-  defp expand_star_select(query), do: query
+  defp expand_star_select(query), do:
+    %Query{query | columns: Enum.flat_map(query.columns, &expand_select_all(&1, query))}
+
+  defp expand_select_all(:*, query), do:
+    query
+    |> all_visible_columns()
+    |> columns_to_identifiers()
+  defp expand_select_all({:*, table_name}, query) do
+    with [] <-
+      query
+      |> all_visible_columns()
+      |> Enum.filter(&(&1.table.name == table_name))
+      |> columns_to_identifiers()
+    do
+      raise CompilationError, message:
+        "Select clause `#{table_name}`.* cannot be resolved because the table does not exist in the `FROM` list."
+    end
+  end
+  defp expand_select_all(column, _query), do:
+    [column]
 
   defp all_visible_columns(query), do:
     query.selected_tables
     |> Enum.flat_map(fn(table) -> Enum.map(table.columns, fn(column) -> %{table: table, column: column} end) end)
     |> Enum.filter(&(&1.column.visible?))
+
+  defp columns_to_identifiers(columns), do:
+    Enum.map(columns, &{:identifier, &1.table.name, {:unquoted, &1.column.name}})
 
   defp compile_aliases(%Query{columns: [_|_] = columns} = query) do
     verify_aliases(query)
@@ -529,7 +568,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     %Query{query | where: Lens.map(Lenses.conditions(), query.where, &cast_where_clause/1)}
 
   defp cast_where_clause(clause) do
-    column = Comparison.subject(clause)
+    column = Condition.subject(clause)
     do_cast_where_clause(clause, column.type)
   end
 
@@ -560,20 +599,6 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp do_parse_time(%Expression{type: :text, value: string}, :datetime), do:
     Cloak.Time.parse_datetime(string)
   defp do_parse_time(_, _), do: {:error, :invalid_cast}
-
-  defp collapse_filters(query), do:
-    %Query{query |
-      where: conditions_tree_to_list(query.where),
-      having: conditions_tree_to_list(query.having)
-    }
-
-  defp conditions_tree_to_list(nil), do: []
-  defp conditions_tree_to_list([]), do: []
-  defp conditions_tree_to_list({:or, _lhs, _rhs}), do:
-    raise CompilationError, message: "Combining conditions with `OR` is not allowed."
-  defp conditions_tree_to_list({:and, lhs, rhs}), do:
-    conditions_tree_to_list(lhs) ++ conditions_tree_to_list(rhs)
-  defp conditions_tree_to_list(condition), do: [condition]
 
 
   # -------------------------------------------------------------------

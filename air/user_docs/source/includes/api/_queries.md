@@ -33,7 +33,7 @@ curl -v \
   $SITE_URL/api/queries
 ```
 
-This endpoint starts a query asynchronously. You need to provide a valid data source id, which you can obtain with the [data source endpoint](#get-the-list-of-all-data-sources).
+This endpoint starts a query asynchronously. You need to provide a valid data source name, which you can obtain with the [data source endpoint](#get-the-list-of-all-data-sources).
 
 #### HTTP Request
 

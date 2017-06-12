@@ -33,7 +33,6 @@ This endpoint retrieves the list of all data sources.
 ```json
 [
   {
-    "id": "<data-source-id>",
     "name": "<data source name>",
     "description": "<data source description>",
     "tables": [
@@ -53,6 +52,6 @@ This endpoint retrieves the list of all data sources.
 ]
 ```
 
-The API return value is a list of all data sources. Take special note of the `id` field. This token must be used when you want to [run a query](#running-a-query) against a data source.
+The API return value is a list of all data sources. Take special note of the `name` field. This token must be used when you want to [run a query](#running-a-query) against a data source.
 
 For the use of error codes in the Web REST API, please consult the [Errors](#errors) section.

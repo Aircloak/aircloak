@@ -1,14 +1,26 @@
 defmodule Cloak.Query.FunctionTest do
-  use ExUnit.Case, async: true
+  # These tests avoid constant expressions (like 2 + 3), because they are normalized away (to 5 in this case) -
+  # see lib/cloak/sql/compiler/normalization.ex
+
+  use ExUnit.Case, async: false
 
   import Cloak.Test.QueryHelpers
 
   setup_all do
-    Cloak.Test.DB.create_table("heights_ft", "height INTEGER, name TEXT")
-    insert_rows(_user_ids = 1..100, "heights_ft", ["height", "name"], [180, "first second third"])
+    Cloak.Test.DB.create_table("heights_ft", "height INTEGER, name TEXT, string_number TEXT")
+    insert_rows(_user_ids = 1..100, "heights_ft",
+      ["height", "string_number", "name"],
+      [180, "42", "first second third"]
+    )
 
     Cloak.Test.DB.create_table("datetimes_ft", "datetime TIMESTAMP, date_only DATE, time_only TIME, empty text")
     insert_rows(_user_ids = 1..10, "datetimes_ft", ["datetime"], [~N[2015-01-02 03:04:05.000000]])
+
+    Cloak.Test.DB.create_table("types_ft", "fixed DECIMAL(10, 5), frac REAL, num INTEGER, string TEXT, string2 TEXT")
+  end
+
+  setup do
+    Cloak.Test.DB.clear_table("types_ft")
   end
 
   defmacrop assert_subquery_function(expression, table, subquery_postfix \\ "", expected_match) do
@@ -288,26 +300,28 @@ defmodule Cloak.Query.FunctionTest do
   test "/", do: assert 1 == apply_function("height / height", "heights_ft")
   test "^", do: assert 32_400.0 == apply_function("height ^ 2", "heights_ft")
 
-  test "trunc/1", do: assert 180 == apply_function("trunc(180.6)", "heights_ft")
-  test "trunc/2", do: assert 180.12 == apply_function("trunc(180.126, 2)", "heights_ft")
-  test "round/1", do: assert 181 == apply_function("round(180.6)", "heights_ft")
-  test "round/2", do: assert 180.13 == apply_function("round(180.126, 2)", "heights_ft")
-  test "abs", do: assert 180 == apply_function("abs(-180)", "heights_ft")
-  test "sqrt", do: assert 3.0 == apply_function("sqrt(9)", "heights_ft")
+  test "trunc/1", do: assert 180 == apply_function("trunc", ["frac"], [180.6], "types_ft")
+  test "trunc/2", do: assert 180.12 == apply_function("trunc", ["frac", "num"], [180.126, 2], "types_ft")
+  test "trunc/2 on DECIMAL", do: assert 180.12 == apply_function("trunc", ["fixed", "num"], [180.126, 2], "types_ft")
+  test "round/1", do: assert 181 == apply_function("round", ["frac"], [180.6], "types_ft")
+  test "round/2", do: assert 180.13 == apply_function("round", ["frac", "num"], [180.126, 2], "types_ft")
+  test "round/2 on DECIMAL", do: assert 180.13 == apply_function("round", ["fixed", "num"], [180.126, 2], "types_ft")
+  test "abs", do: assert 180 == apply_function("abs", ["num"], [-180], "types_ft")
+  test "sqrt", do: assert 3.0 == apply_function("sqrt", ["num"], [9], "types_ft")
   test "div", do: assert 1 == apply_function("div(height, height)", "heights_ft")
   test "mod", do: assert 80 == apply_function("mod(height, 100)", "heights_ft")
   test "pow", do: assert 32_400.0 == apply_function("pow(height, 2)", "heights_ft")
-  test "floor", do: assert 180 == apply_function("floor(180.9)", "heights_ft")
-  test "ceil", do: assert 181 == apply_function("ceil(180.1)", "heights_ft")
-  test "ceiling", do: assert 181 == apply_function("ceiling(180.1)", "heights_ft")
+  test "floor", do: assert 180 == apply_function("floor", ["frac"], [180.9], "types_ft")
+  test "ceil", do: assert 181 == apply_function("ceil", ["frac"], [180.1], "types_ft")
+  test "ceiling", do: assert 181 == apply_function("ceiling", ["frac"], [180.1], "types_ft")
   test "bucket", do: assert 150 == apply_function("bucket(height by 50)", "heights_ft")
   test "bucket lower", do: assert 150 == apply_function("bucket(height by 50 align lower)", "heights_ft")
   test "bucket upper", do: assert 200 == apply_function("bucket(height by 50 align upper)", "heights_ft")
   test "bucket middle", do: assert 175 == apply_function("bucket(height by 50 align middle)", "heights_ft")
 
-  test "cast as integer", do: assert 42 == apply_function("cast('42' AS integer)", "heights_ft")
-  test "cast as real", do: assert 42.0 == apply_function("cast('42' AS real)", "heights_ft")
-  test "cast as text", do: assert "42" == apply_function("cast(42 AS text)", "heights_ft")
+  test "cast as integer", do: assert 42 == apply_function("cast(string_number AS integer)", "heights_ft")
+  test "cast as real", do: assert 42.0 == apply_function("cast(string_number AS real)", "heights_ft")
+  test "cast as text", do: assert "180" == apply_function("cast(height AS text)", "heights_ft")
 
   test "year", do: assert 2015 == apply_function("year(datetime)", "datetimes_ft")
   test "month", do: assert 1 == apply_function("month(datetime)", "datetimes_ft")
@@ -324,23 +338,28 @@ defmodule Cloak.Query.FunctionTest do
   test "extract(second)", do: assert 5 == apply_function("extract(second from datetime)", "datetimes_ft")
 
   test "length", do: assert 3 == apply_function("length(cast(height as text))", "heights_ft")
-  test "lower", do: assert "abc" == apply_function("lower('AbC')", "heights_ft")
-  test "lcase", do: assert "abc" == apply_function("lcase('AbC')", "heights_ft")
-  test "upper", do: assert "ABC" == apply_function("upper('AbC')", "heights_ft")
-  test "ucase", do: assert "ABC" == apply_function("ucase('AbC')", "heights_ft")
-  test "left", do: assert "A" == apply_function("left('AbC', 1)", "heights_ft")
-  test "right", do: assert "C" == apply_function("right('AbC', 1)", "heights_ft")
-  test "ltrim/1", do: assert "AbC" == apply_function("ltrim(' AbC')", "heights_ft")
-  test "ltrim/2", do: assert "bC" == apply_function("ltrim('AbC', 'A')", "heights_ft")
-  test "rtrim/1", do: assert "AbC" == apply_function("rtrim('AbC ')", "heights_ft")
-  test "rtrim/2", do: assert "Ab" == apply_function("rtrim('AbC', 'C')", "heights_ft")
-  test "btrim/1", do: assert "AbC" == apply_function("btrim(' AbC ')", "heights_ft")
-  test "btrim/2", do: assert "b" == apply_function("btrim('AbC', 'AC')", "heights_ft")
-  test "substring from", do: assert "bC" == apply_function("substring('AbC' from 2)", "heights_ft")
-  test "substring for", do: assert "Ab" == apply_function("substring('AbC' for 2)", "heights_ft")
-  test "substring from for", do: assert "b" == apply_function("substring('AbC' from 2 for 1)", "heights_ft")
-  test "concat", do: assert "Ab" == apply_function("concat('A', 'b')", "heights_ft")
-  test "||", do: assert "Abc" == apply_function("'A' || 'b' || 'c'", "heights_ft")
+  test "lower", do: assert "abc" == apply_function("lower", ["string"], ["AbC"], "types_ft")
+  test "lcase", do: assert "abc" == apply_function("lcase", ["string"], ["AbC"], "types_ft")
+  test "upper", do: assert "ABC" == apply_function("upper", ["string"], ["AbC"], "types_ft")
+  test "ucase", do: assert "ABC" == apply_function("ucase", ["string"], ["AbC"], "types_ft")
+  test "left", do: assert "A" == apply_function("left", ["string", "num"], ["AbC", 1], "types_ft")
+  test "right", do: assert "C" == apply_function("right", ["string", "num"], ["AbC", 1], "types_ft")
+  test "ltrim/1", do: assert "AbC" == apply_function("ltrim", ["string"], [" AbC"], "types_ft")
+  test "ltrim/2", do: assert "bC" == apply_function("ltrim", ["string", "string2"], ["AbC", "A"], "types_ft")
+  test "rtrim/1", do: assert "AbC" == apply_function("rtrim", ["string"], ["AbC "], "types_ft")
+  test "rtrim/2", do: assert "Ab" == apply_function("rtrim", ["string", "string2"], ["AbC", "C"], "types_ft")
+  test "btrim/1", do: assert "AbC" == apply_function("btrim", ["string"], [" AbC "], "types_ft")
+  test "btrim/2", do: assert "b" == apply_function("btrim", ["string", "string2"], ["AbC", "AC"], "types_ft")
+  test "substring from", do: assert "irst second third" == apply_function("substring(name from 2)", "heights_ft")
+  test "substring for", do: assert "fi" == apply_function("substring(name for 2)", "heights_ft")
+  test "substring from for", do: assert "i" == apply_function("substring(name from 2 for 1)", "heights_ft")
+  test "concat", do: assert "first second third fourth" == apply_function("concat(name, ' fourth')", "heights_ft")
+  test "||", do: assert "first second thirdbc" == apply_function("name || 'b' || 'c'", "heights_ft")
+
+  defp apply_function(function_name, arg_columns, arg_values, table) do
+    insert_rows(_user_ids = 1..5, table, arg_columns, arg_values)
+    apply_function("#{function_name}(#{Enum.join(arg_columns, ",")})", table)
+  end
 
   defp apply_function(sql_fragment, table_name) do
     assert_query(

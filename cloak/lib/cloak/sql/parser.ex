@@ -37,37 +37,39 @@ defmodule Cloak.Sql.Parser do
     | {:in, String.t, [any]}
 
   @type where_clause ::
-      condition
+      nil
+    | condition
     | {:not, condition}
     | {:and | :or, condition, condition}
 
   @type having_clause ::
-      comparison
+      nil
+    | comparison
     | {:not, comparison}
     | {:and | :or, comparison, comparison}
 
   @type from_clause :: table | subquery | join
 
-  @type table :: unqualified_identifier
+  @type table :: unqualified_identifier | {unqualified_identifier, :as, String.t}
 
   @type join ::
     {:join, %{
       type: :cross_join | :inner_join | :full_outer_join | :left_outer_join | :right_outer_join,
       lhs: from_clause,
       rhs: from_clause,
-      conditions: where_clause | nil
+      conditions: where_clause
     }}
 
   @type subquery :: {:subquery, %{ast: parsed_query, alias: String.t}}
 
   @type parsed_query :: %{
     command: :select | :show,
-    columns: [column | {column, :as, String.t}] | :*,
+    columns: [column | {column, :as, String.t} | {:*, String.t} | :*],
     group_by: [String.t],
     from: from_clause,
-    where: where_clause | nil,
+    where: where_clause,
     order_by: [{String.t, :asc | :desc}],
-    having: having_clause | nil,
+    having: having_clause,
     show: :tables | :columns,
     limit: integer,
     offset: integer,
@@ -155,10 +157,7 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp select_columns() do
-    either_deepest_error(
-      keyword(:*) |> label("column definition"),
-      comma_delimited(select_column())
-    ) |> map(&{:columns, &1})
+    map(comma_delimited(select_column()), &{:columns, &1})
   end
 
   defp column() do
@@ -211,7 +210,16 @@ defmodule Cloak.Sql.Parser do
     either_deepest_error(interval(), any_constant())
   end
 
-  defp select_column() do
+  defp select_column(), do:
+    choice_deepest_error([keyword(:*), select_all_from_table(), plain_select_column()])
+
+  defp select_all_from_table(), do:
+    pipe(
+      [identifier(), keyword(:.), keyword(:*)],
+      fn([{_type, table_name}, :., :*]) -> {:*, table_name} end
+    )
+
+  defp plain_select_column() do
     pipe(
       [
         column(),
@@ -481,7 +489,7 @@ defmodule Cloak.Sql.Parser do
   defp to_join({join_type, :on, conditions}, left_expr, right_expr),
     do: {:join, %{type: join_type, lhs: left_expr, rhs: right_expr, conditions: conditions}}
   defp to_join(:cross_join, left_expr, right_expr),
-    do: to_join({:cross_join, :on, []}, left_expr, right_expr)
+    do: to_join({:cross_join, :on, nil}, left_expr, right_expr)
 
   defp cross_joins([table]), do: table
   defp cross_joins([clause | rest]), do: to_join(:cross_join, clause, cross_joins(rest))
@@ -546,10 +554,17 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp table_name() do
-    either_deepest_error(
-      table_with_schema(),
-      identifier() |> label("table name")
-    )
+    sequence([
+      either_deepest_error(
+        table_with_schema(),
+        identifier() |> label("table name")
+      ),
+      option(sequence([option(keyword(:as)), identifier()]))
+    ])
+    |> map(fn
+      [name, nil] -> name
+      [name, [_, {_type, alias}]] -> {name, :as, alias}
+    end)
   end
 
   defp subquery() do

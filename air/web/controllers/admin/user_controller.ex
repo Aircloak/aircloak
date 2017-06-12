@@ -2,7 +2,7 @@ defmodule Air.Admin.UserController do
   @moduledoc false
   use Air.Web, :admin_controller
 
-  alias Air.Schemas.User
+  alias Air.Service.User
 
   plug :load_user when action in [:edit, :update, :delete]
 
@@ -22,65 +22,49 @@ defmodule Air.Admin.UserController do
   # Actions
   # -------------------------------------------------------------------
 
-  def index(conn, _params) do
-    users = Repo.all(User) |> Repo.preload([:groups])
+  def index(conn, _params), do:
+    render(conn, "index.html", users: User.all(), data_sources_count: User.data_sources_count())
 
-    query = from user in User,
-      inner_join: group in assoc(user, :groups),
-      inner_join: data_source in assoc(group, :data_sources),
-      group_by: user.id,
-      select: %{
-        id: user.id,
-        data_source_count: count(data_source.id, :distinct)
-      }
-    data_sources_count = for user <- Repo.all(query), into: %{} do
-      {user.id, user.data_source_count}
-    end
+  def new(conn, _params), do:
+    render(conn, "new.html", changeset: User.empty_changeset())
 
-    render(conn, "index.html", users: users, data_sources_count: data_sources_count)
-  end
-
-  def new(conn, _params) do
-    changeset = User.changeset(%User{})
-    render(conn, "new.html", changeset: changeset)
-  end
-
-  def edit(conn, _params) do
-    user = conn.assigns.user
-    render(conn, "edit.html", changeset: User.changeset(user), user: user)
-  end
+  def edit(conn, _params), do:
+    render(conn, "edit.html", changeset: User.to_changeset(conn.assigns.user), user: conn.assigns.user)
 
   def create(conn, params) do
-    changeset = User.new_user_changeset(%User{}, params["user"])
-    case Repo.insert(changeset) do
+    case User.create(params["user"]) do
       {:ok, user} ->
         audit_log(conn, "Created user", user: user.email, name: user.name)
         conn
         |> put_flash(:info, "User created")
         |> redirect(to: admin_user_path(conn, :index))
-      {:error, changeset} -> render(conn, "new.html", changeset: changeset)
+      {:error, changeset} ->
+        render(conn, "new.html", changeset: changeset)
     end
   end
 
   def update(conn, params) do
-    changeset = User.changeset(conn.assigns.user, params["user"])
-    case Repo.update(changeset) do
-      {:ok, user} ->
-        audit_log(conn, "Altered user", user: user.email, name: user.name)
-        conn
-        |> put_flash(:info, "User updated")
-        |> redirect(to: admin_user_path(conn, :index))
-      {:error, changeset} -> render(conn, "edit.html", changeset: changeset)
-    end
+    verify_last_admin_deleted(User.update(conn.assigns.user, params["user"]), conn,
+      fn
+        {:ok, user} ->
+          audit_log(conn, "Altered user", user: user.email, name: user.name)
+          conn
+          |> put_flash(:info, "User updated")
+          |> redirect(to: admin_user_path(conn, :index))
+        {:error, changeset} ->
+          render(conn, "edit.html", changeset: changeset)
+      end
+    )
   end
 
   def delete(conn, _params) do
     user = conn.assigns.user
-    Repo.delete!(user)
-    audit_log(conn, "Removed user", user: user.email, name: user.name)
-    conn
-    |> put_flash(:info, "User deleted")
-    |> redirect(to: admin_user_path(conn, :index))
+    verify_last_admin_deleted(User.delete(user), conn, fn({:ok, _}) ->
+      audit_log(conn, "Removed user", user: user.email, name: user.name)
+      conn
+      |> put_flash(:info, "User deleted")
+      |> redirect(to: admin_user_path(conn, :index))
+    end)
   end
 
 
@@ -89,7 +73,7 @@ defmodule Air.Admin.UserController do
   # -------------------------------------------------------------------
 
   defp load_user(conn, _) do
-    case Repo.get(User, conn.params["id"]) do
+    case User.load(conn.params["id"]) do
       nil ->
         conn
         |> put_layout(false)
@@ -97,8 +81,14 @@ defmodule Air.Admin.UserController do
         |> render(Air.ErrorView, "404.html")
         |> halt()
       user ->
-        user = Repo.preload(user, [:groups])
         assign(conn, :user, user)
     end
   end
+
+  defp verify_last_admin_deleted({:error, :forbidden_last_admin_deletion}, conn, _fun), do:
+    conn
+    |> put_flash(:error, "The given action cannot be performed, because it would remove the only administrator.")
+    |> redirect(to: admin_user_path(conn, :index))
+  defp verify_last_admin_deleted(result, _conn, fun), do:
+    fun.(result)
 end

@@ -18,9 +18,9 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "adds a non-nil condition on user_id for top query" do
     query = compile!("select * from (select uid, column from table) as t", data_source())
-    assert [{:not, {:is, %{name: "uid"}, :null}}] = query.where
+    assert {:not, {:is, %{name: "uid"}, :null}} = query.where
     {:subquery, %{ast: subquery}} = query.from
-    assert [] = subquery.where
+    assert nil == subquery.where
   end
 
   for first <- [:>, :>=], second <- [:<, :<=] do
@@ -50,7 +50,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "casts datetime where conditions" do
     result = compile!("select * from table where column > '2015-01-01' and column < '2016-01-01'", data_source())
 
-    assert [{:comparison, column("table", "column"), :>=, value} | _] = result.where
+    assert {:and, {:comparison, column("table", "column"), :>=, value}, _rhs} = result.where
     assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
 
@@ -59,21 +59,23 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "casts time where conditions" do
-    assert %{where: [{:comparison, column("table", "column"), :>=, value} | _]} =
+    assert %{where: {:and, range, _}} =
       compile!("select * from table where column >= '01:00:00' and column < '02:00:00'", time_data_source())
+    assert {:and, {:comparison, column("table", "column"), :>=, value}, _} = range
     assert value == Expression.constant(:time, ~T[01:00:00.000000])
   end
 
   test "casts date where conditions" do
-    assert %{where: [{:comparison, column("table", "column"), :>=, value} | _]} =
+    assert %{where: {:and, range, _}} =
       compile!("select * from table where column >= '2015-01-01' and column < '2016-01-01'", date_data_source())
+    assert {:and, {:comparison, column("table", "column"), :>=, value}, _} = range
     assert value == Expression.constant(:date, ~D[2015-01-01])
   end
 
   test "casts datetime in `in` conditions" do
     result = compile!("select * from table where column in ('2015-01-01', '2015-01-02')", data_source())
 
-    assert [{:not, {:is, column("table", "uid"), :null}}, {:in, column("table", "column"), times}] = result.where
+    assert {:and, {:not, {:is, column("table", "uid"), :null}}, {:in, column("table", "column"), times}} = result.where
     assert times |> Enum.map(&(&1.value)) |> Enum.sort() ==
       [~N[2015-01-01 00:00:00.000000], ~N[2015-01-02 00:00:00.000000]]
   end
@@ -81,8 +83,8 @@ defmodule Cloak.Sql.Compiler.Test do
   test "casts datetime in negated conditions" do
     result = compile!("select * from table where column <> '2015-01-01'", data_source())
 
-    assert [{:not, {:is, column("table", "uid"), :null}},
-      {:comparison, column("table", "column"), :<>, value}] = result.where
+    assert {:and, {:not, {:is, column("table", "uid"), :null}},
+      {:comparison, column("table", "column"), :<>, value}} = result.where
     assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
 
@@ -353,7 +355,9 @@ defmodule Cloak.Sql.Compiler.Test do
       " AND numeric < 10", data_source())
     assert query1.info ==
       ["The range for column `numeric` from table `table` has been adjusted to 0.0 <= `numeric` < 10.0."]
-    assert query1.from == query2.from
+    {:join, %{conditions: conditions1}} = query1.from
+    {:join, %{conditions: conditions2}} = query2.from
+    assert conditions_list(conditions1) == conditions_list(conditions2)
   end
 
   test "rejecting improper joins" do
@@ -368,6 +372,11 @@ defmodule Cloak.Sql.Compiler.Test do
       data_source()
     )
     assert error =~ ~r/Missing where comparison.*`t1` and `t3`/
+  end
+
+  test "rejecting improper joins with aliases" do
+    assert {:error, error} = compile("SELECT a1.c1 from t1 a1, t2 a2", data_source())
+    assert error =~ ~r/Missing where comparison.*`a1` and `a2`/
   end
 
   test "rejecting a join with a subquery that has no explicit id" do
@@ -398,10 +407,11 @@ defmodule Cloak.Sql.Compiler.Test do
       data_source())
     assert [column("table", "column"), %Expression{function: "count", function_args: [column("table", "column")]}] =
       result.columns
-    assert Enum.any?(result.where, &match?({:comparison, column("table", "numeric"), :>=, _}, &1))
-    assert Enum.any?(result.where, &match?({:comparison, column("table", "numeric"), :<, _}, &1))
-    assert Enum.any?(result.where, &match?({:not, {:is, column("table", "uid"), :null}}, &1))
-    assert Enum.any?(result.where, &match?({:comparison, column("table", "column"), :<>, _}, &1))
+    conditions = conditions_list(result.where)
+    assert Enum.any?(conditions, &match?({:comparison, column("table", "numeric"), :>=, _}, &1))
+    assert Enum.any?(conditions, &match?({:comparison, column("table", "numeric"), :<, _}, &1))
+    assert Enum.any?(conditions, &match?({:not, {:is, column("table", "uid"), :null}}, &1))
+    assert Enum.any?(conditions, &match?({:comparison, column("table", "column"), :<>, _}, &1))
     assert [column("table", "column")] = result.group_by
     assert [{expr_1, :desc}, {expr_2, :desc}] = result.order_by
     assert %Expression{function: "count"} = expr_1
@@ -442,10 +452,11 @@ defmodule Cloak.Sql.Compiler.Test do
         ORDER BY t1.c1 DESC
       """,
       data_source())
+    conditions = conditions_list(result.where)
     assert [column("t1", "c1")] = result.columns
-    assert Enum.any?(result.where, &match?({:comparison, column("t1", "c2"), :>=, _}, &1))
-    assert Enum.any?(result.where, &match?({:comparison, column("t1", "c2"), :<, _}, &1))
-    assert Enum.any?(result.where, &match?({:comparison, column("t1", "uid"), :=, column("t2", "uid")}, &1))
+    assert Enum.any?(conditions, &match?({:comparison, column("t1", "c2"), :>=, _}, &1))
+    assert Enum.any?(conditions, &match?({:comparison, column("t1", "c2"), :<, _}, &1))
+    assert Enum.any?(conditions, &match?({:comparison, column("t1", "uid"), :=, column("t2", "uid")}, &1))
     assert [column("t1", "c1"), column("t2", "c3")] = result.group_by
     assert [{column("t1", "c1"), :desc}] = result.order_by
   end
@@ -586,8 +597,8 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "fixes alignment of time ranges" do
     aligned = compile!("select * from table where column > '00:00:01' and column < '00:00:04'", time_data_source())
-    assert compile!("select * from table where column >= '00:00:00' and column < '00:00:05'", time_data_source()).
-      where == aligned.where
+    unaligned = compile!("select * from table where column >= '00:00:00' and column < '00:00:05'", time_data_source())
+    assert conditions_list(unaligned.where) == conditions_list(aligned.where)
     assert aligned.
       info == ["The range for column `column` from table `table` has been adjusted to 00:00:00.000000 <= "
         <> "`column` < 00:00:05.000000."]
@@ -729,6 +740,11 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error == "Combining conditions with `OR` is not allowed."
   end
 
+  test "rejects `FULL OUTER JOINs`" do
+    {:error, error} = compile("select * from table full join other_table ON table.uid = other_table.uid", data_source())
+    assert error == "FULL OUTER JOINs are not currently allowed."
+  end
+
   test "dotted columns can be used unquoted" do
     assert %{columns: [column("table", "column.with.dots")]} =
       compile!("select column.with.dots from table", dotted_data_source())
@@ -811,6 +827,60 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejecting non-selected ORDER BY with an aggregator function" do
     assert {:error, "Column `float` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
       compile("SELECT SUM(numeric) FROM table ORDER BY float", data_source())
+  end
+
+  describe "normalization" do
+    test "normalizing NOT IN as a series of <>" do
+      result1 = compile!("SELECT * FROM table WHERE numeric NOT IN (1, 2, 3)", data_source())
+      result2 = compile!("SELECT * FROM table WHERE numeric <> 3 AND numeric <> 2 AND numeric <> 1", data_source())
+
+      assert result1.where == result2.where
+    end
+
+    test "normalizing constant expressions" do
+      result1 = compile!("SELECT * FROM table WHERE numeric = 2 * 3 + 4", data_source())
+      result2 = compile!("SELECT * FROM table WHERE numeric = 10", data_source())
+
+      assert result1.where == result2.where
+    end
+
+    test "normalization in subqueries" do
+      %{from: {:subquery, %{ast: result1}}} = compile!(
+        "SELECT * FROM (SELECT * FROM table WHERE numeric = 2 * 3 + 4) x", data_source())
+      %{from: {:subquery, %{ast: result2}}} = compile!(
+        "SELECT * FROM (SELECT * FROM table WHERE numeric = 10) x", data_source())
+
+      assert result1.where == result2.where
+    end
+
+    test "normalizing upper(x) <> constant" do
+      result1 = compile!("SELECT * FROM table WHERE upper(string) <> 'CeO'", data_source())
+      result2 = compile!("SELECT * FROM table WHERE lower(string) <> 'cEo'", data_source())
+
+      assert result1.where == result2.where
+    end
+  end
+
+  test "rejecting duplicate table", do:
+    assert {:error, "Table name `t1` specified more than once."} == compile("SELECT * from t1, t1", data_source())
+
+  test "rejecting duplicate subquery", do:
+    assert {:error, "Table name `a` specified more than once."} ==
+      compile("SELECT * from (select * from t1) a, (select * from t1) a", data_source())
+
+  test "real name of an aliased table can't be used as a prefix" do
+    assert {:error, reason} = compile("select t1.c1 from t1 a", data_source())
+    assert reason == "Missing FROM clause entry for table `t1`."
+  end
+
+  test "can't use the same alias twice" do
+    assert {:error, reason} = compile("select t1.c1 from t1 a, t2 a", data_source())
+    assert reason == "Table alias `a` used more than once."
+  end
+
+  test "selecting all from a non-selected table" do
+    assert {:error, reason} = compile("select t2.* from t1", data_source())
+    assert reason == "Select clause `t2`.* cannot be resolved because the table does not exist in the `FROM` list."
   end
 
   defp projected_table_db_columns(query), do:
@@ -975,4 +1045,6 @@ defmodule Cloak.Sql.Compiler.Test do
       }
     }}
   end
+
+  defp conditions_list(clause), do: Query.Lenses.conditions() |> Lens.to_list(clause)
 end

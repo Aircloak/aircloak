@@ -41,15 +41,13 @@ defmodule IntegrationTest.Manager do
     admin_group = Repo.one!(from group in Group, where: group.name == @admin_group_name)
 
     # create user
-    %User{}
-    |> User.new_user_changeset(%{
+    Air.Service.User.create!(%{
       email: "user_#{:erlang.unique_integer([:positive])}@aircloak.com",
       name: "user_#{:erlang.unique_integer([:positive])}",
       password: @user_password,
       password_confirmation: @user_password,
       groups: [admin_group.id]
     })
-    |> Repo.insert!()
   end
 
 
@@ -79,17 +77,13 @@ defmodule IntegrationTest.Manager do
     Repo.delete_all(Group)
 
     # create group
-    admin_group =
-      %Group{}
-      |> Group.changeset(%{name: @admin_group_name, admin: true})
-      |> Repo.insert!()
+    admin_group = Air.Service.User.create_group!(%{name: @admin_group_name, admin: true})
 
     # connect data source to group
     from(data_source in DataSource, where: data_source.name == @data_source_name)
     |> Repo.one!()
     |> Repo.preload([:groups])
-    |> DataSource.changeset(%{groups: [admin_group.id], name: @data_source_name})
-    |> Repo.update!()
+    |> Air.Service.DataSource.update!(%{groups: [admin_group.id], name: @data_source_name})
 
     Repo.delete_all(ExportForAircloak)
   end

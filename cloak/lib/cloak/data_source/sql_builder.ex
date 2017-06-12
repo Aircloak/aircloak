@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   @moduledoc "Provides functionality for constructing an SQL query from a compiled query."
 
   alias Cloak.Sql.Query
-  alias Cloak.Sql.Expression
+  alias Cloak.Sql.{Expression, Condition}
   alias Cloak.DataSource.SqlBuilder.DbFunction
   alias Cloak.Query.ExecutionError
 
@@ -20,7 +20,7 @@ defmodule Cloak.DataSource.SqlBuilder do
       {:union, left_join, right_join} ->
         [%Expression{function?: true, function: "coalesce", function_args: [first_id | _]} | _] = query.db_columns
         query1 = %Query{query | from: left_join}
-        query2 = %Query{query | from: right_join, where: query.where ++ [{:is, first_id, :null}]}
+        query2 = %Query{query | from: right_join, where: Condition.combine(:and, query.where, {:is, first_id, :null})}
         build(query1, sql_dialect) <> " UNION ALL " <> build(query2, sql_dialect)
       _ -> query |> build_fragments(sql_dialect) |> to_string()
     end
@@ -89,9 +89,9 @@ defmodule Cloak.DataSource.SqlBuilder do
     |> table_to_from(sql_dialect)
   end
 
-  defp on_clause([], _sql_dialect), do: []
-  defp on_clause(conditions, sql_dialect) when is_list(conditions),
-    do: [" ON ", conditions_to_fragments(conditions, sql_dialect)]
+  defp on_clause(nil, _sql_dialect), do: []
+  defp on_clause(condition, sql_dialect),
+    do: [" ON ", conditions_to_fragments(condition, sql_dialect)]
 
   defp join_sql(:cross_join), do: "CROSS JOIN"
   defp join_sql(:inner_join), do: "INNER JOIN"
@@ -104,12 +104,14 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp table_to_from(table, sql_dialect), do:
     "#{table.db_name} AS #{quote_name(table.name, sql_dialect)}"
 
-  defp where_fragments([], _sql_dialect), do: []
+  defp where_fragments(nil, _sql_dialect), do: []
   defp where_fragments(where_clause, sql_dialect),
     do: [" WHERE ", conditions_to_fragments(where_clause, sql_dialect)]
 
-  defp conditions_to_fragments(and_clauses, sql_dialect) when is_list(and_clauses),
-    do: ["(", and_clauses |> Enum.map(&conditions_to_fragments(&1, sql_dialect)) |> join(" AND "), ")"]
+  defp conditions_to_fragments({:and, lhs, rhs}, sql_dialect),
+    do: ["(", conditions_to_fragments(lhs, sql_dialect), ") AND (", conditions_to_fragments(rhs, sql_dialect), ")"]
+  defp conditions_to_fragments({:or, lhs, rhs}, sql_dialect),
+    do: ["(", conditions_to_fragments(lhs, sql_dialect), ") OR (", conditions_to_fragments(rhs, sql_dialect), ")"]
   defp conditions_to_fragments({:comparison, what, comparator, value}, sql_dialect),
     do: [to_fragment(what, sql_dialect), to_fragment(comparator, sql_dialect), to_fragment(value, sql_dialect)]
   defp conditions_to_fragments({:in, what, values}, sql_dialect),

@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   @moduledoc "Methods for query validation."
 
   alias Cloak.CyclicGraph
-  alias Cloak.Sql.{CompilationError, Expression, Function, Query, Comparison}
+  alias Cloak.Sql.{CompilationError, Expression, Function, Query, Condition}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
 
@@ -15,6 +15,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   @spec verify_query(Query.t) :: Query.t
   def verify_query(%Query{command: :show} = query), do: query
   def verify_query(%Query{command: :select} = query) do
+    verify_duplicate_tables(query)
     verify_aggregated_columns(query)
     verify_group_by_functions(query)
     verify_joins(query)
@@ -43,8 +44,20 @@ defmodule Cloak.Sql.Compiler.Validation do
 
 
   # -------------------------------------------------------------------
-  # Internal functions
+  # Duplicate tables
   # -------------------------------------------------------------------
+
+  defp verify_duplicate_tables(query) do
+    with [duplicate_table | _] <- duplicate_tables(query) do
+      raise CompilationError, message: "Table name `#{duplicate_table}` specified more than once."
+    end
+  end
+
+  defp duplicate_tables(query), do:
+    query.selected_tables
+    |> Enum.group_by(&(&1.name))
+    |> Enum.reject(&match?({_name, [_]}, &1))
+    |> Enum.map(fn({name, _}) -> name end)
 
   # -------------------------------------------------------------------
   # Columns and expressions
@@ -115,6 +128,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_joins(%Query{projected?: true} = query), do: query
   defp verify_joins(query) do
+    verify_join_types(query)
     verify_join_conditions_scope(query.from, [])
     verify_all_joined_subqueries_have_explicit_uids(query)
     verify_all_uid_columns_are_compared_in_joins(query)
@@ -170,7 +184,7 @@ defmodule Cloak.Sql.Compiler.Validation do
       end
     )
 
-    Enum.each(join.conditions, &verify_where_condition/1)
+    verify_where_clauses(join.conditions)
     selected_tables
   end
   defp verify_join_conditions_scope({:subquery, subquery}, selected_tables),
@@ -183,17 +197,40 @@ defmodule Cloak.Sql.Compiler.Validation do
       raise CompilationError, message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
   end
 
+  defp verify_join_types(query) do
+    Lenses.joins()
+    |> Lens.satisfy(& &1.type == :full_outer_join)
+    |> Lens.to_list(query)
+    |> case do
+      [] -> :ok
+      _ -> raise CompilationError, message: "FULL OUTER JOINs are not currently allowed."
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Where, having, limit, offset
   # -------------------------------------------------------------------
 
-  defp verify_where(query) do
+  defp verify_where(query), do: verify_where_clauses(query.where)
+
+  defp verify_condition_tree({:or, _, _}), do:
+    raise CompilationError, message: "Combining conditions with `OR` is not allowed."
+  defp verify_condition_tree({:and, lhs, rhs}) do
+    verify_condition_tree(lhs)
+    verify_condition_tree(rhs)
+  end
+  defp verify_condition_tree(_), do: :ok
+
+  defp verify_where_clauses(clauses) do
+    verify_condition_tree(clauses)
+
     Lenses.conditions()
-    |> Lens.to_list(query.where)
+    |> Lens.to_list(clauses)
     |> Enum.each(&verify_where_condition/1)
+
     Lenses.conditions_terminals()
-    |> Lens.to_list(query.where)
+    |> Lens.to_list(clauses)
     |> Enum.filter(& &1.aggregate?)
     |> case do
       [] -> :ok
@@ -229,8 +266,10 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp check_for_string_inequalities(_, _), do: :ok
 
   defp verify_having(query) do
+    verify_condition_tree(query.having)
+
     for condition <- Lens.to_list(Query.Lenses.conditions(), query.having),
-        term <- Comparison.targets(condition), individual_column?(query, term), do:
+        term <- Condition.targets(condition), individual_column?(query, term), do:
       raise CompilationError,
         message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
   end

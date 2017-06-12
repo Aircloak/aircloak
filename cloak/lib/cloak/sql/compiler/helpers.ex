@@ -55,7 +55,9 @@ defmodule Cloak.Sql.Compiler.Helpers do
   @doc "Returns all join conditions of the query."
   @spec all_join_conditions(partial_query) :: [Query.where_clause]
   def all_join_conditions(query), do:
-    get_all_join_conditions(query.from)
+    Query.Lenses.join_conditions()
+    |> Query.Lenses.conditions()
+    |> Lens.to_list(query)
 
   @doc "Modifies the expression to have a globally unique alias."
   @spec set_unique_alias(Expression.t) :: Expression.t
@@ -76,6 +78,15 @@ defmodule Cloak.Sql.Compiler.Helpers do
     {query, floated_columns}
   end
 
+  @doc """
+  Updates the query and all its subqueries with the given function. Starts from the most nested subqueries going up.
+  """
+  @spec apply_bottom_up(Query.t, (Query.t -> Query.t)) :: Query.t
+  def apply_bottom_up(query, function), do:
+    query
+    |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_bottom_up(&1, function))
+    |> function.()
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -90,9 +101,4 @@ defmodule Cloak.Sql.Compiler.Helpers do
     do: true
   defp any_outer_join?({:join, join}),
     do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
-
-  defp get_all_join_conditions({:join, join}) do
-    join.conditions ++ get_all_join_conditions(join.lhs) ++ get_all_join_conditions(join.rhs)
-  end
-  defp get_all_join_conditions(_), do: []
 end

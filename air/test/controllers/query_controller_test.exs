@@ -4,16 +4,14 @@ defmodule Air.QueryControllerTest do
   use Air.ConnCase, async: false
 
   import Air.{TestConnHelper, TestRepoHelper}
-  alias Air.{TestSocketHelper, Repo, Schemas.DataSource, Schemas.User}
+  alias Air.{TestSocketHelper, Repo}
   alias Phoenix.Channels.GenSocketClient.TestSocket
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
     group = create_group!()
 
-    user = create_user!()
-    |> User.changeset(%{groups: [group.id]})
-    |> Repo.update!()
+    user = create_user!(%{groups: [group.id]})
 
     params = %{
       "global_id" => "data_source_global_id",
@@ -21,10 +19,7 @@ defmodule Air.QueryControllerTest do
       "tables" => "[]",
       "groups" => [group.id],
     }
-    data_source = %DataSource{}
-    |> DataSource.changeset(params)
-    |> Repo.insert!()
-
+    data_source = Air.Service.DataSource.create!(params)
     {:ok, data_source: data_source, user: user}
   end
 

@@ -81,6 +81,16 @@ defmodule Cloak.Query.BasicTest do
     assert_query "select * from heights", %{query_id: "1", columns: ["user_id", "height", "name", "male"], rows: _}
   end
 
+  test "multiple select alls" do
+    assert_query "select *, height as h, * from heights", %{query_id: "1", columns: columns, rows: _}
+    assert columns == ["user_id", "height", "name", "male", "h", "user_id", "height", "name", "male"]
+  end
+
+  test "select all from a table" do
+    assert_query "select heights.* from heights",
+      %{query_id: "1", columns: ["user_id", "height", "name", "male"], rows: _}
+  end
+
   test "select a constant" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
     assert_query "select 3 from heights", %{columns: [""], rows: [%{occurrences: 10, row: [3]}]}
@@ -868,5 +878,26 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query "select 1, heights.height from heights order by 2 desc",
       %{rows: [%{row: [1, 180], occurrences: 20}, %{row: [1, 170], occurrences: 10}]}
+  end
+
+  test "select from an aliased table" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select height from heights h",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "select qualified from an aliased table" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select h.height from heights h where h.height = 180",
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
+  test "select all from an aliased table" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select * from heights h",
+      %{
+        columns: ["user_id", "height", "name", "male"],
+        rows: [%{occurrences: 100, row: [:*, 180, nil, nil], users_count: 100}]
+      }
   end
 end

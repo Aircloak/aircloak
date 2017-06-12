@@ -58,6 +58,17 @@ defmodule Air.Admin.GroupControllerTest do
     assert updated_group.admin != group.admin
   end
 
+  test "error is reported when unsetting the admin status of the group containing last admin" do
+    admin = TestRepoHelper.create_only_user_as_admin!()
+    conn = login(admin)
+    conn = put(conn, admin_group_path(conn, :update, hd(admin.groups)), group: %{admin: false})
+
+    assert redirected_to(conn) == "/admin/groups"
+    assert get_flash(conn)["error"] ==
+      "The given action cannot be performed, because it would remove the only administrator."
+    assert Air.Service.User.admin_user_exists?()
+  end
+
   test "deleting a group" do
     admin = TestRepoHelper.create_admin_user!()
     group = TestRepoHelper.create_group!()
@@ -65,6 +76,16 @@ defmodule Air.Admin.GroupControllerTest do
     assert "/admin/groups" == login(admin) |> delete("/admin/groups/#{group.id}") |> redirected_to()
     groups_html = login(admin) |> get("/admin/groups") |> response(200)
     refute groups_html =~ group.name
+  end
+
+  test "error is reported when deleting the group containing last admin" do
+    admin = TestRepoHelper.create_only_user_as_admin!()
+    conn = login(admin) |> delete("/admin/groups/#{hd(admin.groups).id}")
+
+    assert redirected_to(conn) == "/admin/groups"
+    assert get_flash(conn)["error"] ==
+      "The given action cannot be performed, because it would remove the only administrator."
+    assert Air.Service.User.admin_user_exists?()
   end
 
   test "render 404 on attempting to render edit form for non-existent group" do

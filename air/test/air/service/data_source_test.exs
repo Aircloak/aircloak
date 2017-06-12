@@ -18,7 +18,7 @@ defmodule Air.Service.DataSourceTest do
     ds1 = TestRepoHelper.create_data_source!(%{groups: [g1.id]})
     ds2 = TestRepoHelper.create_data_source!(%{groups: [g2.id]})
 
-    %{user1: user1, user2: user2, user3: user3, ds1: ds1, ds2: ds2}
+    %{user1: user1, user2: user2, user3: user3, ds1: ds1, ds2: ds2, group1: g1, group2: g2, group3: g3}
   end
 
   test "count" do
@@ -151,6 +151,52 @@ defmodule Air.Service.DataSourceTest do
     refute DataSource.available?("some_id")
   end
 
+  test "required attributes", do:
+    assert errors_on(&DataSource.create/1, %{}) ==
+      [global_id: "can't be blank", name: "can't be blank", tables: "can't be blank"]
+
+  test "validates uniqueness of global id" do
+    DataSource.create!(%{global_id: "foo", name: "baz", tables: "[]"})
+    assert errors_on(&DataSource.create/1, %{global_id: "foo", name: "bar", tables: "[]"}) ==
+      [global_id: "has already been taken"]
+  end
+
+  test "a data_source can have many groups" do
+    group1 = TestRepoHelper.create_group!()
+    group2 = TestRepoHelper.create_group!()
+    data_source = TestRepoHelper.create_data_source!(%{groups: [group1.id, group2.id]})
+    assert [group1.id, group2.id] == Enum.map(data_source.groups, &(&1.id)) |> Enum.sort()
+  end
+
+  test "deleting a data source, doesn't delete the group" do
+    group = TestRepoHelper.create_group!()
+    data_source = TestRepoHelper.create_data_source!(%{groups: [group.id]})
+    DataSource.delete!(data_source)
+    refute nil == Air.Service.User.load_group(group.id)
+  end
+
+  test "replacing a group for a data_source, removes the old relationship" do
+    group1 = TestRepoHelper.create_group!()
+    group2 = TestRepoHelper.create_group!()
+    data_source = TestRepoHelper.create_data_source!(%{groups: [group1.id]})
+    DataSource.update(data_source, %{groups: [group2.id]})
+    assert [group2.id] == DataSource.by_name(data_source.name).groups |> Enum.map(&(&1.id))
+  end
+
+  test "retrieving users for a data source" do
+    g1 = TestRepoHelper.create_group!()
+    g2 = TestRepoHelper.create_group!()
+    g3 = TestRepoHelper.create_group!()
+
+    u1 = TestRepoHelper.create_user!(%{groups: [g1.id, g2.id]})
+    u2 = TestRepoHelper.create_user!(%{groups: [g2.id, g3.id]})
+    _u3 = TestRepoHelper.create_user!(%{groups: [g3.id]})
+    data_source = TestRepoHelper.create_data_source!(%{groups: [g1.id, g2.id]})
+
+    assert DataSource.users(data_source) |> Enum.map(&(&1.id)) |> Enum.sort() ==
+      [u1, u2] |> Enum.map(&(&1.id)) |> Enum.sort()
+  end
+
   describe "query_alive?" do
     setup [:with_user, :with_data_source, :with_query, :with_socket]
 
@@ -222,4 +268,12 @@ defmodule Air.Service.DataSourceTest do
       user,
       Map.merge(%{statement: "query content", data_source_id: data_source.id}, additional_data)
     )
+
+  defp errors_on(fun, changes) do
+    assert {:error, changeset} = fun.(changes)
+
+    changeset
+    |> Ecto.Changeset.traverse_errors(&Air.ErrorHelpers.translate_error/1)
+    |> Enum.flat_map(fn {key, errors} -> for msg <- errors, do: {key, msg} end)
+  end
 end

@@ -78,10 +78,10 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
     """, %{rows: [%{occurrences: 7, row: [30]}]}
   end
 
-  test "full join with tables in sub-query", context do
+  test "left join with tables in sub-query", context do
     assert_query context, """
       SELECT COUNT(name) FROM
-      (SELECT "left".id, name, salary FROM "left" FULL JOIN "right" ON "left".id = "right".id) AS t
+      (SELECT "left".id, name, salary FROM "left" LEFT JOIN "right" ON "left".id = "right".id) AS t
       WHERE salary IN (100, 200)
     """, %{rows: [%{occurrences: 1, row: [14]}]}
   end

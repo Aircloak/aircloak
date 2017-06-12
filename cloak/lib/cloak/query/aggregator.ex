@@ -80,22 +80,27 @@ defmodule Cloak.Query.Aggregator do
   defp per_user_aggregator(%Expression{function: "avg_noise"}), do: :avg
   defp per_user_aggregator(%Expression{function: "stddev"}), do: :stddev
   defp per_user_aggregator(%Expression{function: "stddev_noise"}), do: :stddev
-  defp per_user_aggregator(%Expression{function: "min"}), do: :set
-  defp per_user_aggregator(%Expression{function: "max"}), do: :set
+  defp per_user_aggregator(%Expression{function: "min"}), do: :min
+  defp per_user_aggregator(%Expression{function: "max"}), do: :max
   defp per_user_aggregator(%Expression{function: "median"}), do: :list
 
   defp aggregate_value(:count, _value, nil), do: 1
   defp aggregate_value(:count, _value, count), do: count + 1
   defp aggregate_value(:sum, value, nil), do: value
   defp aggregate_value(:sum, value, sum), do: sum + value
-  defp aggregate_value(:avg, value, nil), do: {value, 1}
-  defp aggregate_value(:avg, value, {sum, count}), do: {sum + value, count + 1}
-  defp aggregate_value(:stddev, value, nil), do: {value, value * value, 1}
-  defp aggregate_value(:stddev, value, {sum, sum_sqrs, count}), do: {sum + value, sum_sqrs + value * value, count + 1}
+  defp aggregate_value(:avg, value, nil), do: {:avg, value, 1}
+  defp aggregate_value(:avg, value, {:avg, sum, count}), do: {:avg, sum + value, count + 1}
+  defp aggregate_value(:stddev, value, nil), do: {:stddev, value, value * value, 1}
+  defp aggregate_value(:stddev, value, {:stddev, sum, sum_sqrs, count}), do:
+    {:stddev, sum + value, sum_sqrs + value * value, count + 1}
   defp aggregate_value(:set, value, nil), do: MapSet.new([value])
   defp aggregate_value(:set, value, prev_values), do: MapSet.put(prev_values, value)
   defp aggregate_value(:list, value, nil), do: [value]
   defp aggregate_value(:list, value, prev_values), do: [value | prev_values]
+  defp aggregate_value(:min, value, nil), do: {:min, value}
+  defp aggregate_value(:min, value, {:min, prev_value}), do: {:min, min(value, prev_value)}
+  defp aggregate_value(:max, value, nil), do: {:max, value}
+  defp aggregate_value(:max, value, {:max, prev_value}), do: {:max, max(value, prev_value)}
 
   # This function merges the per-user accumulated values of two different buckets.
   # Used during the creation of the low-count filtered bucket.
@@ -107,11 +112,13 @@ defmodule Cloak.Query.Aggregator do
   defp merge_accumulators({value1, value2}) when is_list(value1) and is_list(value2), do:
     value1 ++ value2 # median accumulators
   defp merge_accumulators({%MapSet{} = value1, %MapSet{} = value2}), do:
-    MapSet.union(value1, value2) # min, max or distinct accumulators
-  defp merge_accumulators({{value1a, value1b}, {value2a, value2b}}), do:
-    {value1a + value2a, value1b + value2b} # avg accumulators
-  defp merge_accumulators({{value1a, value1b, value1c}, {value2a, value2b, value2c}}), do:
-    {value1a + value2a, value1b + value2b, value1c + value2c} # stddev accumulators
+    MapSet.union(value1, value2) # distinct accumulators
+  defp merge_accumulators({{:avg, value1a, value1b}, {:avg, value2a, value2b}}), do:
+    {:avg, value1a + value2a, value1b + value2b}
+  defp merge_accumulators({{:stddev, value1a, value1b, value1c}, {:stddev, value2a, value2b, value2c}}), do:
+    {:stddev, value1a + value2a, value1b + value2b, value1c + value2c}
+  defp merge_accumulators({{:min, value1}, {:min, value2}}), do: {:min, min(value1, value2)}
+  defp merge_accumulators({{:max, value1}, {:max, value2}}), do: {:max, min(value1, value2)}
 
   defp aggregated_column(%Expression{function_args: [:*]}), do: Expression.constant(nil, :*)
   defp aggregated_column(%Expression{function_args: [{:distinct, column}]}), do: column

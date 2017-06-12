@@ -1,10 +1,11 @@
 defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
-  alias Air.Schemas.{DataSource, Query, User}
+  alias Air.Schemas.{DataSource, Group, Query, User}
   alias Air.{PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, Socket.Frontend.UserChannel, QueryEvents}
   alias Air.Service.{Version, Cloak, View}
   import Ecto.Query, only: [from: 2]
+  import Ecto.Changeset
   require Logger
 
   @type data_source_id_spec :: {:id, integer} | {:global_id, String.t} | {:name, String.t}
@@ -199,16 +200,13 @@ defmodule Air.Service.DataSource do
         # and query histories.
         case Repo.get_by(DataSource, global_id: global_id) do
           nil ->
-            params = %{
+            create!(%{
               name: name,
               # Retain global_id until version 18.1.0
               global_id: global_id,
               tables: Poison.encode!(tables),
               errors: Poison.encode!(errors),
-            }
-            %DataSource{}
-            |> DataSource.changeset(params)
-            |> Repo.insert!()
+            })
 
           data_source -> update_data_source(data_source, name, tables, errors)
         end
@@ -269,15 +267,83 @@ defmodule Air.Service.DataSource do
     |> Enum.concat(tables(data_source))
   end
 
+  @doc "Creates a data source, raises on error."
+  @spec create!(map) :: DataSource.t
+  def create!(params) do
+    {:ok, data_source} = create(params)
+    data_source
+  end
+
+  @doc "Creates a data source."
+  @spec create(map) :: {:ok, DataSource.t} | {:error, Ecto.Changeset.t}
+  def create(params), do:
+    %DataSource{}
+    |> data_source_changeset(params)
+    |> Repo.insert()
+
+  @doc "Updates a data source, raises on error."
+  @spec update!(DataSource.t, map) :: DataSource.t
+  def update!(data_source, params) do
+    {:ok, data_source} = update(data_source, params)
+    data_source
+  end
+
+  @doc "Updates a data source."
+  @spec update(DataSource.t, map) :: {:ok, DataSource.t} | {:error, Ecto.Changeset.t}
+  def update(data_source, params), do:
+    data_source
+    |> data_source_changeset(params)
+    |> Repo.update()
+
+  @doc "Deletes the given data source, raises on error."
+  @spec delete!(DataSource.t) :: DataSource.t
+  def delete!(data_source), do:
+    Repo.delete!(data_source)
+
+  @doc "Converts data source into a changeset."
+  @spec to_changeset(DataSource.t) :: Ecto.Changeset.t
+  def to_changeset(data_source), do:
+    data_source_changeset(data_source, %{})
+
+  @doc "Returns the data source with the given name."
+  @spec by_name(String.t) :: DataSource.t | nil
+  def by_name(data_source_name), do:
+    Repo.one(from ds in DataSource, where: ds.name == ^data_source_name, preload: [:groups])
+
+  @doc "Returns the count of users per each distinct data source."
+  @spec users_count() :: %{integer => non_neg_integer}
+  def users_count(), do:
+    Repo.all(
+      from [data_source, _group, user] in data_sources_with_groups_and_users(),
+        group_by: data_source.id,
+        select: {data_source.id, count(user.id, :distinct)}
+    )
+    |> Enum.into(%{})
+
+  @doc "Returns a unique collection of users who are permitted to use the given data source."
+  @spec users(DataSource.t) :: [User.t]
+  def users(data_source), do:
+    Repo.all(
+      from [data_source, _group, user] in data_sources_with_groups_and_users(),
+        where: data_source.id == ^data_source.id,
+        select: user,
+        distinct: true
+    )
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions
   #-----------------------------------------------------------------------------------------------------------
 
-  defp users_data_sources(user) do
-    from data_source in DataSource,
+  defp data_sources_with_groups_and_users(), do:
+    from(
+      data_source in DataSource,
       inner_join: group in assoc(data_source, :groups),
-      inner_join: user in assoc(group, :users),
+      inner_join: user in assoc(group, :users)
+    )
+
+  defp users_data_sources(user) do
+    from [data_source, _group, user] in data_sources_with_groups_and_users(),
       where: user.id == ^user.id,
       group_by: data_source.id
   end
@@ -353,14 +419,18 @@ defmodule Air.Service.DataSource do
     end
   end
 
-  defp update_data_source(data_source, name, tables, errors) do
-    params = %{
+  defp update_data_source(data_source, name, tables, errors), do:
+    update!(data_source, %{
       name: name,
       tables: Poison.encode!(tables),
       errors: Poison.encode!(errors),
-    }
+    })
+
+  defp data_source_changeset(data_source, params), do:
     data_source
-    |> DataSource.changeset(params)
-    |> Repo.update!()
-  end
+    |> cast(params, ~w(name tables global_id errors description)a)
+    |> validate_required(~w(name tables global_id)a)
+    |> unique_constraint(:global_id)
+    |> unique_constraint(:name)
+    |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
 end

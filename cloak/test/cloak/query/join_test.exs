@@ -5,7 +5,7 @@ defmodule Cloak.Query.JoinTest do
 
   setup_all do
     :ok = Cloak.Test.DB.create_table("heights_join", "height INTEGER, name TEXT, male BOOLEAN")
-    :ok = Cloak.Test.DB.create_table("purchases", "price INTEGER, name TEXT, datetime TIMESTAMP")
+    :ok = Cloak.Test.DB.create_table("purchases", "price INTEGER, name TEXT")
     :ok = Cloak.Test.DB.create_table("children_join", "age INTEGER, name TEXT")
     :ok
   end
@@ -25,6 +25,57 @@ defmodule Cloak.Query.JoinTest do
       FROM heights_join, purchases WHERE heights_join.user_id = purchases.user_id",
       %{columns: ["max", "max"], rows: rows}
     assert [%{row: [180, 200], occurrences: 1}] = rows
+  end
+
+  test "selecting all from one table" do
+    :ok = insert_rows(_user_ids = 0..100, "heights_join", ["height"], [180])
+    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
+
+    assert_query "select purchases.*, height
+      FROM heights_join, purchases WHERE heights_join.user_id = purchases.user_id",
+      %{columns: ["user_id", "price", "name", "height"], rows: rows}
+
+    assert [%{row: [:*, 200, nil, 180], occurrences: 101}] = rows
+  end
+
+  test "selecting all from an aliased table" do
+    :ok = insert_rows(_user_ids = 0..100, "heights_join", ["height"], [180])
+    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
+
+    assert_query "select p.*, height
+      FROM heights_join, purchases p WHERE heights_join.user_id = p.user_id",
+      %{columns: ["user_id", "price", "name", "height"], rows: rows}
+
+    assert [%{row: [:*, 200, nil, 180], occurrences: 101}] = rows
+  end
+
+  test "multiple select all from a table" do
+    :ok = insert_rows(_user_ids = 0..100, "heights_join", ["height"], [180])
+    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
+
+    assert_query "select purchases.*, heights_join.*
+      FROM heights_join, purchases WHERE heights_join.user_id = purchases.user_id",
+      %{columns: ["user_id", "price", "name", "user_id", "height", "name", "male"], rows: rows}
+
+    assert [%{row: [:*, 200, nil, :*, 180, nil, nil], occurrences: 101}] = rows
+  end
+
+  test "selecting from joined aliased tables" do
+    :ok = insert_rows(_user_ids = 0..100, "heights_join", ["height"], [180])
+    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
+
+    assert_query "select max(height), max(price)
+      FROM heights_join hj, purchases p WHERE hj.user_id = p.user_id",
+      %{columns: ["max", "max"], rows: rows}
+    assert [%{row: [180, 200], occurrences: 1}] = rows
+  end
+
+  test "self join with an alias" do
+    :ok = insert_rows(_user_ids = 1..100, "purchases", ["price"], [200])
+
+    assert_query "select p1.price, p2.price FROM purchases p1 inner join purchases p2 on p1.user_id = p2.user_id",
+      %{columns: ["price", "price"], rows: rows}
+    assert [%{row: [200, 200], occurrences: 100}] = rows
   end
 
   test "selecting using INNER JOIN" do
@@ -89,20 +140,9 @@ defmodule Cloak.Query.JoinTest do
     assert [%{row: [50], occurrences: 1}] = rows
   end
 
-  test "selecting using FULL OUTER JOIN" do
-    :ok = insert_rows(_user_ids = 1..50, "heights_join", ["height"], [180])
-    :ok = insert_rows(_user_ids = 101..150, "children_join", ["age"], [20])
-
-    assert_query """
-      SELECT count(*)
-      FROM heights_join FULL OUTER JOIN children_join ON heights_join.user_id = children_join.user_id
-    """, %{columns: ["count"], rows: rows}
-    assert [%{row: [100], occurrences: 1}] = rows
-  end
-
   test "a mistyped JOIN condition" do
     assert_query """
-      SELECT count(*) FROM heights_join FULL OUTER JOIN children_join ON heights_join.user_id = children_join.user_id
+      SELECT count(*) FROM heights_join LEFT OUTER JOIN children_join ON heights_join.user_id = children_join.user_id
       AND heights_join.name = children_join.age
     """, %{error: error}
     assert error == "Column `name` from table `heights_join` of type `text` and column `age` from table "

@@ -2,7 +2,7 @@ defmodule Air.Service.Monitoring.Test do
   use ExUnit.Case, async: false
   use Air.SchemaCase
 
-  alias Air.{Service.Monitoring, TestRepoHelper, Schemas.Group}
+  alias Air.{Service.Monitoring, TestRepoHelper}
 
   @seconds_in_minute 60
 
@@ -27,7 +27,7 @@ defmodule Air.Service.Monitoring.Test do
 
     test "list of cloaks" do
       cloak_info = TestRepoHelper.cloak_info()
-      :ok = Air.Service.Cloak.register(cloak_info,
+      Air.Service.Cloak.register(cloak_info,
         [%{"name" => "data_source_name", "global_id" => "a very global id", "tables" => []}])
       memory_reading = %{free_memory: 100}
       Air.Service.Cloak.record_memory(memory_reading)
@@ -75,11 +75,8 @@ defmodule Air.Service.Monitoring.Test do
 
   defp in_minutes(minutes), do: NaiveDateTime.utc_now() |> Timex.shift(minutes: minutes)
 
-  defp create_group_for_data_source!(data_source) do
+  defp create_group_for_data_source!(data_source), do:
     TestRepoHelper.create_group!()
     |> Repo.preload(:data_sources)
-    |> Group.changeset()
-    |> put_assoc(:data_sources, [data_source])
-    |> Repo.update!()
-  end
+    |> Air.Service.User.update_group!(%{data_sources: [data_source.id]})
 end

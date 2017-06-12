@@ -50,6 +50,11 @@ defmodule Cloak.Query.ProjectedTest do
       %{columns: ["amount"], rows: [%{row: [100], occurrences: 10}]}
   end
 
+  test "selecting from an aliased projected table" do
+    assert_query "select pt.amount from projected_transactions pt",
+      %{columns: ["amount"], rows: [%{row: [100], occurrences: 10}]}
+  end
+
   test "selecting from a multiply projected table" do
     assert_query "select note from projected_notes",
       %{columns: ["note"], rows: [%{row: ["note text"], occurrences: 10}]}

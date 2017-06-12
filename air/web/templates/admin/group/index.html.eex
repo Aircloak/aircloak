@@ -60,7 +60,8 @@
         <td><%= length(group.data_sources) %></td>
         <td>
           <%= link "Edit", to: admin_group_path(@conn, :edit, group), class: "btn btn-xs btn-default" %>
-          <%= link "Delete", to: admin_group_path(@conn, :delete, group), method: :delete, class: "btn btn-danger btn-xs" %>
+          <%= link "Delete", to: admin_group_path(@conn, :delete, group), method: :delete, class: "btn btn-danger btn-xs",
+            "data-confirm": ~s(Delete the group "#{group.name}"?) %>
         </td>
       </tr>
     <% end %>

@@ -25,7 +25,7 @@ defmodule Air.Service.Cloak.Test do
   end
 
   test "re-registering doesn't add multiple copies of the same data source" do
-    Enum.map(1..10, fn(_) -> start_cloak_channel(@data_sources) end)
+    Enum.each(1..10, fn(_) -> start_cloak_channel(@data_sources) end)
     assert length(Repo.all(DataSource, name: @data_source_name)) == 1
   end
 
@@ -44,12 +44,12 @@ defmodule Air.Service.Cloak.Test do
   end
 
   test "should allow assigning multiple cloaks to the same data source" do
-    assert [{:ok, _pid1}, {:ok, _pid2}] =
+    assert [_pid1, _pid2] =
       Enum.map(1..2, fn(_) -> start_cloak_channel(@data_sources) end)
   end
 
   test "should unregister cloak when channel closes" do
-    {:ok, pid} = start_cloak_channel(@data_sources)
+    pid = start_cloak_channel(@data_sources)
     Process.unlink(pid)
     Process.exit(pid, :exit)
 
@@ -57,8 +57,8 @@ defmodule Air.Service.Cloak.Test do
   end
 
   test "should unregister cloak when channel closes, but retain alternative cloaks" do
-    {:ok, pid1} = start_cloak_channel(@data_sources)
-    {:ok, pid2} = start_cloak_channel(@data_sources)
+    pid1 = start_cloak_channel(@data_sources)
+    pid2 = start_cloak_channel(@data_sources)
 
     Process.unlink(pid1)
     Process.exit(pid1, :exit)
@@ -132,13 +132,13 @@ defmodule Air.Service.Cloak.Test do
     ref = make_ref()
 
     pid = spawn_link(fn ->
-      registration_result = Cloak.register(TestRepoHelper.cloak_info(), data_sources)
-      send(parent, {ref, registration_result})
+      Cloak.register(TestRepoHelper.cloak_info(), data_sources)
+      send(parent, ref)
       :timer.sleep(:infinity)
     end)
 
     receive do
-      {^ref, registration_result} -> {registration_result, pid}
+      ^ref -> pid
     end
   end
 

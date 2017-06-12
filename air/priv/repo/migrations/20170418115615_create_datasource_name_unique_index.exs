@@ -29,9 +29,7 @@ defmodule Air.Repo.Migrations.CreateDatasourceNameUniqueIndex do
         # We therefore forcefully alter the names, to make them unique.
         Enum.zip(data_sources, 1..length(data_sources))
         |> Enum.each(fn({data_source, index}) ->
-          params = %{name: "#{name} #{index}"}
-          changeset = DataSource.changeset(data_source, params)
-          Repo.update(changeset)
+          Air.Service.DataSource.update!(data_source, %{name: "#{name} #{index}"})
         end)
     end)
 

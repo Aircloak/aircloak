@@ -21,13 +21,13 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
     [ WHERE where_expression [AND ...] ]
     [ GROUP BY column_expression | position [, ...] ]
     [ HAVING having_expression [AND ...] ]
-    [ ORDER BY column_name [ASC | DESC] [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
+    [ ORDER BY column_name [ASC | DESC] | position [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
 
   field_expression :=
-    column_expression [AS alias]
+    * | table_name.* | column_expression [AS alias]
 
   column_expression :=
-    column_name |
+    [table_name.]column_name |
     aggregation_function([DISTINCT] column_name) |
     function(column_expression) |
     column_expression binary_operator column_expression |
@@ -43,7 +43,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
     table | join
 
   table :=
-    table_name | (select_expression) [AS] alias
+    table_name [[AS] alias] | (select_expression) [AS] alias
 
   join :=
     table CROSS JOIN table |

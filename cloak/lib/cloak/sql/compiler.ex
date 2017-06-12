@@ -19,6 +19,9 @@ defmodule Cloak.Sql.Compiler do
         parsed_query
         |> Compiler.Specification.compile(data_source, parameters, views)
         |> Compiler.Execution.prepare()
+        |> Compiler.Features.compile()
+        |> Compiler.Normalization.normalize()
+        |> Compiler.NoiseLayers.compile()
       }
     rescue
       e in CompilationError -> {:error, e.message}

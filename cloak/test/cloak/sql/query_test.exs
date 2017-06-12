@@ -225,14 +225,28 @@ defmodule Cloak.Sql.QueryTest do
 
   defp features_from(statement) do
     [first_ds | rest_ds] = Cloak.DataSource.all()
-    query = Query.make!(first_ds, statement, [], %{}) |> scrub_data_source()
+    query = make_query(first_ds, statement)
     for data_source <- rest_ds, do:
-      assert(query == Query.make!(data_source, statement, [], %{}) |> scrub_data_source())
-    Query.extract_features(query)
+      assert(query == make_query(data_source, statement))
+    query.features
   end
 
   defp scrub_data_source(query) do
     data_source_lens = Lens.both(Lens.root(), Query.Lenses.subqueries() |> Lens.key(:ast)) |> Lens.key(:data_source)
     put_in(query, [data_source_lens], nil)
   end
+
+  defp scrub_unique_aliases(query) do
+    unique_aliases_lens =
+      Lens.both(Lens.root(), Query.Lenses.subqueries() |> Lens.key(:ast))
+      |> Query.Lenses.query_expressions()
+      |> Lens.key(:alias)
+      |> Lens.satisfy(& &1 != nil and String.starts_with?(&1, "alias_"))
+    put_in(query, [unique_aliases_lens], "unique_alias")
+  end
+
+  defp make_query(data_source, statement), do:
+    Query.make!(data_source, statement, [], %{})
+    |> scrub_data_source()
+    |> scrub_unique_aliases()
 end
