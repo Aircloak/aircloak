@@ -234,8 +234,8 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Same as tables/1 but also includes views visible to the user"
-  @spec tables(User.t, DataSource.t) :: [Map.t]
-  def tables(user, data_source) do
+  @spec views_and_tables(User.t, DataSource.t) :: [Map.t]
+  def views_and_tables(user, data_source) do
     View.all(user, data_source)
     |> Enum.map(fn(view) ->
       %{

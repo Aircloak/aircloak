@@ -25,7 +25,7 @@ defmodule Air.API.DataSourceController do
       token: data_source.global_id,
       name: data_source.name,
       description: data_source.description,
-      tables: Service.DataSource.tables(user, data_source),
+      tables: Service.DataSource.views_and_tables(user, data_source),
       errors: Schemas.DataSource.errors(data_source),
     }
   end

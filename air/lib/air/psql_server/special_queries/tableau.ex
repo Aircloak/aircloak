@@ -113,7 +113,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
   defp get_tables(conn) do
     user = conn.assigns.user
     case DataSource.fetch_as_user(conn.assigns.data_source_id, user) do
-      {:ok, data_source} -> {:ok, DataSource.tables(user, data_source)}
+      {:ok, data_source} -> {:ok, DataSource.views_and_tables(user, data_source)}
       error -> error
     end
   end
