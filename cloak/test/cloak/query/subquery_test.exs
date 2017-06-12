@@ -131,13 +131,14 @@ defmodule Cloak.Query.SubqueryTest do
   end
 
   test "group by with having in subqueries" do
+    :ok = insert_rows(_user_ids = 1..50, "heights_sq", ["height"], [170])
     assert_query """
         select count(h) from
         (select user_id, avg(height) as h from heights_sq
         group by user_id
         having max(height) = min(height)) alias
         """,
-      %{columns: ["count"], rows: [%{row: [100], occurrences: 1}]}
+      %{columns: ["count"], rows: [%{row: [50], occurrences: 1}]}
   end
 
   test "subquery can handle multiple functions" do
