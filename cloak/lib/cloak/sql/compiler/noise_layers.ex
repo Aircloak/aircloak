@@ -189,28 +189,20 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end)
 
   defp not_equals_noise_layers(query), do:
-    Query.Lenses.db_filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Lens.satisfy(&Condition.not_equals?(&1))
-    |> Lens.satisfy(&can_be_anonymized_with_noise_layer?(&1, query))
-    |> Lens.to_list(query)
+    query
+    |> conditions_satisfying(&Condition.not_equals?/1)
     |> Enum.map(&not_equals_noise_layer/1)
 
   defp not_like_noise_layers(query), do:
-    Query.Lenses.db_filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Lens.satisfy(&Condition.not_like?(&1))
-    |> Lens.satisfy(&can_be_anonymized_with_noise_layer?(&1, query))
-    |> Lens.to_list(query)
+    query
+    |> conditions_satisfying(&Condition.not_like?/1)
     |> Enum.map(fn({:not, {kind, column, constant}}) ->
       build_noise_layer(column, {:not, kind, Expression.value(constant, [])})
     end)
 
   defp in_noise_layers(query), do:
-    Query.Lenses.filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Lens.satisfy(&Condition.in?(&1))
-    |> Lens.to_list(query)
+    query
+    |> conditions_satisfying(&Condition.in?/1)
     |> Enum.flat_map(fn({:in, column, constants}) ->
       column
       |> get_in([raw_columns()])
@@ -226,10 +218,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end)
 
   defp like_noise_layers(query), do:
-    Query.Lenses.filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Lens.satisfy(&Condition.like?(&1))
-    |> Lens.to_list(query)
+    query
+    |> conditions_satisfying(&Condition.like?/1)
     |> Enum.flat_map(fn({kind, column, constant}) ->
       columns = Lens.to_list(raw_columns(), column)
       layer_keys = constant |> Expression.value([]) |> like_layer_keys
@@ -305,4 +295,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp build_noise_layer(column, extras \\ nil), do:
     NoiseLayer.new({column.table.name, column.name, extras}, [Helpers.set_unique_alias(column)])
+
+  defp conditions_satisfying(query, predicate), do:
+    Query.Lenses.db_filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.satisfy(predicate)
+    |> Lens.satisfy(&can_be_anonymized_with_noise_layer?(&1, query))
+    |> Lens.to_list(query)
 end
