@@ -258,6 +258,7 @@ defmodule Air.Service.DataSource do
     default_values = %{
       "view" => false,
       "broken" => false,
+      "internal_id" => nil,
     }
 
     View.all(user, data_source)
