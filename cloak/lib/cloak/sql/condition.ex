@@ -30,6 +30,11 @@ defmodule Cloak.Sql.Condition do
   def like?({:ilike, _, _}), do: true
   def like?(_), do: false
 
+  @doc "Returns true if the given where clause is an IN clause, false otherwise."
+  @spec in?(Query.where_clause) :: boolean
+  def in?({:in, _, _}), do: true
+  def in?(_), do: false
+
   @doc "Returns the term the given comparison compares against."
   @spec value(Query.where_clause) :: any
   def value({:comparison, _lhs, _, rhs}), do: rhs.value

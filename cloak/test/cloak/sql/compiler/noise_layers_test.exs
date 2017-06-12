@@ -223,6 +223,28 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
+  describe "noise layers from IN" do
+    test "IN (single_value)" do
+      [%{base: base1, expressions: [%{name: name1}]}] =
+        compile!("SELECT COUNT(*) FROM table WHERE name IN ('bob')", data_source()).noise_layers
+      [%{base: base2, expressions: [%{name: name2}]}] =
+        compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'", data_source()).noise_layers
+
+      assert base1 == base2
+      assert name1 == name2
+    end
+
+    test "IN (many, values)" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name IN ('a', 'b')", data_source())
+
+      assert [
+        %{base: {"table", "name", nil}, expressions: [%{name: "name"}]},
+        %{base: {"table", "name", {:in, "a"}}, expressions: [%{name: "name"}]},
+        %{base: {"table", "name", {:in, "b"}}, expressions: [%{name: "name"}]},
+      ] = result.noise_layers
+    end
+  end
+
   describe "noise layers from subqueries" do
     test "floating noise layers from a subquery" do
       result = compile!("SELECT COUNT(*) FROM (SELECT * FROM table WHERE numeric = 3) foo", data_source())
