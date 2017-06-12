@@ -151,6 +151,11 @@ defmodule Cloak.Sql.Query.Lenses do
     |> ast_tables_recursive()
 
 
+  @doc "Returns a list of lenses focusing on all subqueries of the given query."
+  @spec subquery_lenses(Query.t) :: [Lens.t]
+  def subquery_lenses(query), do: [Lens.root() | do_subquery_lenses(Lens.key(:from), query.from)]
+
+
   # -------------------------------------------------------------------
   # Internal lenses
   # -------------------------------------------------------------------
@@ -162,6 +167,17 @@ defmodule Cloak.Sql.Query.Lenses do
       do_join_condition_lenses(rhs, base |> Lens.key(:rhs))
   end
   defp do_join_condition_lenses(_, _), do: []
+
+  defp do_subquery_lenses(base_lens, {:subquery, %{ast: subquery}}) do
+    current_lens = base_lens |> Lens.at(1) |> Lens.key(:ast)
+    [current_lens | do_subquery_lenses(current_lens |> Lens.key(:from), subquery.from)]
+  end
+  defp do_subquery_lenses(base_lens, {:join, %{lhs: lhs, rhs: rhs}}) do
+    lhs_lens = base_lens |> Lens.at(1) |> Lens.key(:lhs)
+    rhs_lens = base_lens |> Lens.at(1) |> Lens.key(:rhs)
+    do_subquery_lenses(lhs_lens, lhs) ++ do_subquery_lenses(rhs_lens, rhs)
+  end
+  defp do_subquery_lenses(_base_lens, _from), do: []
 
   defp filters_operands(), do: filter_clauses() |> conditions() |> operands()
 

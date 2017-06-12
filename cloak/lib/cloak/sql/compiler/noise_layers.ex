@@ -23,6 +23,23 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
 
 
+  @allowed_not_equals_functions ~w(lower)
+  @doc "Returns true if a condition is anonymized by noise layers."
+  @spec can_be_anonymized_with_noise_layer?(Query.where_clause, Query.t) :: boolean
+  def can_be_anonymized_with_noise_layer?({:not, {like, left, right}}, query) when like in [:like, :ilike], do:
+    not processed_column?(left, query) and Expression.constant?(right)
+  def can_be_anonymized_with_noise_layer?(
+    {:comparison, %Expression{function?: true, function: name, function_args: [arg]}, :<>, right}, query), do:
+      not processed_column?(arg, query) and
+        Enum.member?(@allowed_not_equals_functions, name) and
+        Expression.constant?(right)
+  def can_be_anonymized_with_noise_layer?({:comparison, left, :<>, right}, query), do:
+    not processed_column?(left, query) and Expression.constant?(right)
+  def can_be_anonymized_with_noise_layer?({:not, condition}, _query), do:
+    Condition.inequality?(condition) or Condition.verb(condition) == :is
+  def can_be_anonymized_with_noise_layer?(_condition, _query), do: true
+
+
   # -------------------------------------------------------------------
   # Pushing layers into subqueries
   # -------------------------------------------------------------------
@@ -150,13 +167,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     }
 
   defp basic_noise_layers(query), do:
-    Query.Lenses.filter_clauses()
+    Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.satisfy(& not Condition.inequality?(&1))
     |> Lens.satisfy(& not Condition.not_equals?(&1))
     |> Lens.satisfy(& not Condition.not_like?(&1))
     |> Lens.satisfy(& not Condition.like?(&1))
     |> Lens.satisfy(& not Condition.in?(&1))
+    |> Lens.satisfy(&can_be_anonymized_with_noise_layer?(&1, query))
     |> Lens.both(Lens.key(:group_by))
     |> raw_columns()
     |> Lens.to_list(query)
@@ -171,7 +189,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end)
 
   defp not_equals_noise_layers(query), do:
-    Query.Lenses.filter_clauses()
+    Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.satisfy(&Condition.not_equals?(&1))
     |> Lens.satisfy(&can_be_anonymized_with_noise_layer?(&1, query))
@@ -179,7 +197,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Enum.map(&not_equals_noise_layer/1)
 
   defp not_like_noise_layers(query), do:
-    Query.Lenses.filter_clauses()
+    Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.satisfy(&Condition.not_like?(&1))
     |> Lens.satisfy(&can_be_anonymized_with_noise_layer?(&1, query))
@@ -243,20 +261,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp not_equals_noise_layer({:comparison, column, :<>, constant}) do
     build_noise_layer(column, {:<>, Expression.value(constant, [])})
   end
-
-  @allowed_not_equals_functions ~w(lower)
-
-  defp can_be_anonymized_with_noise_layer?({:not, {like, left, right}}, query) when like in [:like, :ilike], do:
-    not processed_column?(left, query) and Expression.constant?(right)
-  defp can_be_anonymized_with_noise_layer?(
-    {:comparison, %Expression{function?: true, function: name, function_args: [arg]}, :<>, right}, query), do:
-      not processed_column?(arg, query) and
-        Enum.member?(@allowed_not_equals_functions, name) and
-        Expression.constant?(right)
-  defp can_be_anonymized_with_noise_layer?({:comparison, left, :<>, right}, query), do:
-    not processed_column?(left, query) and Expression.constant?(right)
-  defp can_be_anonymized_with_noise_layer?(_, _), do:
-    false
 
   defp processed_column?(%Expression{function?: true}, _query), do: true
   defp processed_column?(_expression, %{from: table}) when is_binary(table), do: false
