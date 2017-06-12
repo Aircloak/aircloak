@@ -16,7 +16,7 @@ defmodule Air.API.DataSourceController do
 
 
   # -------------------------------------------------------------------
-  # API functions
+  # Internal functions
   # -------------------------------------------------------------------
 
   defp to_map(user, data_source) do
