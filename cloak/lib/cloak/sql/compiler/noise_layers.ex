@@ -165,12 +165,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     }
 
   defp non_range_noise_layers(query), do:
-    Query.Lenses.filter_clauses()
+    Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.satisfy(& not Condition.inequality?(&1))
     |> Lens.satisfy(& not Condition.not_equals?(&1))
     |> Lens.satisfy(& not Condition.not_like?(&1))
-    |> Lens.satisfy(&can_be_anonymized_with_noise_layer?(&1, query))    
+    |> Lens.satisfy(&can_be_anonymized_with_noise_layer?(&1, query))
     |> Lens.both(Lens.key(:group_by))
     |> raw_columns()
     |> Lens.to_list(query)
@@ -185,7 +185,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end)
 
   defp not_equals_noise_layers(query), do:
-    Query.Lenses.filter_clauses()
+    Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.satisfy(&Condition.not_equals?(&1))
     |> Lens.satisfy(&can_be_anonymized_with_noise_layer?(&1, query))
@@ -193,7 +193,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Enum.map(&not_equals_noise_layer/1)
 
   defp not_like_noise_layers(query), do:
-    Query.Lenses.filter_clauses()
+    Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.satisfy(&Condition.not_like?(&1))
     |> Lens.satisfy(&can_be_anonymized_with_noise_layer?(&1, query))
