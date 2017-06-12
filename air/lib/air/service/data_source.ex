@@ -21,6 +21,15 @@ defmodule Air.Service.DataSource do
 
   @type data_source_status :: :online | :offline | :broken
 
+  @type table :: %{
+    id: String.t,
+    columns: %{
+      name: String.t,
+      type: String.t,
+      user_id: boolean,
+    }
+  }
+
 
   #-----------------------------------------------------------------------------------------------------------
   # API functions
@@ -184,7 +193,7 @@ defmodule Air.Service.DataSource do
       where: data_source.name in ^names)
 
   @doc "Creates or updates a data source, returning the updated data source"
-  @spec create_or_update_data_source(String.t, String.t, Map.t, [String.t]) :: DataSource.t
+  @spec create_or_update_data_source(String.t, String.t, [table], [String.t]) :: DataSource.t
   def create_or_update_data_source(name, global_id, tables, errors) do
     case Repo.get_by(DataSource, name: name) do
       nil ->
