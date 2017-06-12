@@ -149,14 +149,14 @@ defmodule Cloak.Query.NoiseLayerTest do
     assert value1 != value2
   end
 
-  test "complex negative condition without users works" do
+  test "complex negative conditions matching too few users are dropped" do
     :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["number"], [100])
     :ok = insert_rows(_user_ids = 26..75, "noise_layers", ["number"], [50])
 
     assert_query "select count(number) from noise_layers where sqrt(number) <> 11", %{rows: [%{row: [100]}]}
   end
 
-  test "complex negative condition with users works" do
+  test "complex negative conditions matching enough users are kept" do
     :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["number"], [100])
     :ok = insert_rows(_user_ids = 26..75, "noise_layers", ["number"], [50])
 
