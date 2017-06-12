@@ -194,12 +194,17 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(&Condition.in?(&1))
     |> Lens.to_list(query)
     |> Enum.flat_map(fn({:in, column, constants}) ->
-      [
-        build_noise_layer(column) |
-        for constant <- constants do
-          build_noise_layer(column, {:in, Expression.value(constant, [])})
-        end
-      ]
+      column
+      |> get_in([raw_columns()])
+      |> Enum.flat_map(&resolve_row_splitter(&1, query))
+      |> Enum.flat_map(fn(column) ->
+        [
+          build_noise_layer(column) |
+          for constant <- constants do
+            build_noise_layer(column, {:in, Expression.value(constant, [])})
+          end
+        ]
+      end)
     end)
 
   defp like_noise_layers(query), do:
