@@ -6,9 +6,9 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   alias Cloak.DataSource.MongoDB.{Schema, Projector}
 
 
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
   # API
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
 
   @doc "Builds a MongoDB aggregation pipeline from a compiled query."
   @spec build(Query.t) :: {String.t, [map]}
@@ -38,9 +38,9 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   end
 
 
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
   # Internal functions
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
 
   defp start_pipeline(table_name, table, conditions) when is_binary(table_name) do
     {complex_conditions, basic_conditions} = extract_basic_conditions(table, conditions)

@@ -1,4 +1,4 @@
-defmodule Cloak.Sql.Condition do
+  defmodule Cloak.Sql.Condition do
   @moduledoc "Contains utility functions for working with conditions."
 
   alias Cloak.Sql.{Query, Expression, Parser}
@@ -146,9 +146,9 @@ defmodule Cloak.Sql.Condition do
   def negate(condition), do: {:not, condition}
 
 
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
   # Internal functions
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
 
   defp anchor(pattern), do: "^#{pattern}$"
 
