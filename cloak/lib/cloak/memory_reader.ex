@@ -50,11 +50,11 @@ defmodule Cloak.MemoryReader do
       last_reading: nil,
       readings: Readings.new([
         {"current", 1},
-        {"last_five_seconds", 5 * measurements_per_second(%{params: read_params()})},
-        {"last_minute", 12},
-        {"last_five_minutes", 5},
-        {"last_fifteen_minutes", 15},
-        {"last_hour", 4},
+        {"last_5_seconds", 5 * measurements_per_second(%{params: read_params()})},
+        {"last_1_minute", 12},
+        {"last_5_minutes", 5},
+        {"last_15_minutes", 15},
+        {"last_1_hour", 4},
       ]),
     }
     :timer.send_interval(:timer.seconds(5), :report_memory_stats)

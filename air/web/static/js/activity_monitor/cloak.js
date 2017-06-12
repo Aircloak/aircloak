@@ -8,11 +8,11 @@ export type Cloak = {
   total_memory: number,
   free_memory: {
     current: number,
-    last_five_seconds: number,
-    last_minute: number,
-    last_five_minutes: number,
-    last_fifteen_minutes: number,
-    last_hour: number,
+    last_5_seconds: number,
+    last_1_minute: number,
+    last_5_minutes: number,
+    last_15_minutes: number,
+    last_1_hour: number,
   },
 };
 
@@ -68,20 +68,20 @@ const renderFreeMemory = (freeMemory) => {
   } else {
     return (
       <td>
-        <span className={freeMemoryDisplayClasses(freeMemory.last_five_seconds)}>
-          5 sec - {toGBstring(freeMemory.last_five_seconds)}
+        <span className={freeMemoryDisplayClasses(freeMemory.last_5_seconds)}>
+          5 sec - {toGBstring(freeMemory.last_5_seconds)}
         </span>
         {' '}
-        <span className={freeMemoryDisplayClasses(freeMemory.last_five_minutes)}>
-          5 min - {toGBstring(freeMemory.last_five_minutes)}
+        <span className={freeMemoryDisplayClasses(freeMemory.last_5_minutes)}>
+          5 min - {toGBstring(freeMemory.last_5_minutes)}
         </span>
         {' '}
-        <span className={freeMemoryDisplayClasses(freeMemory.last_fifteen_minutes)}>
-          15 min - {toGBstring(freeMemory.last_fifteen_minutes)}
+        <span className={freeMemoryDisplayClasses(freeMemory.last_15_minutes)}>
+          15 min - {toGBstring(freeMemory.last_15_minutes)}
         </span>
         {' '}
-        <span className={freeMemoryDisplayClasses(freeMemory.last_hour)}>
-          1 hour - {toGBstring(freeMemory.last_hour)}
+        <span className={freeMemoryDisplayClasses(freeMemory.last_1_hour)}>
+          1 hour - {toGBstring(freeMemory.last_1_hour)}
         </span>
       </td>
     );
