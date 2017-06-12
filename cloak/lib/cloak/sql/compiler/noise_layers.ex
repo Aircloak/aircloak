@@ -50,7 +50,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       raw_columns()
       |> Lens.to_list([expression])
       |> Enum.flat_map(&resolve_row_splitter(&1, query))
-      |> Enum.map(&NoiseLayer.new({&1.table.name, &1.name, extras}, [Helpers.set_unique_alias(&1)]))
+      |> Enum.map(&build_noise_layer(&1, extras))
 
     update_in(query, [Lens.key(:noise_layers)], &(&1 ++ layers))
   end
@@ -119,7 +119,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     if not Helpers.aggregated_column?(query, Expression.unalias(expression)) do
       %{noise_layer | expressions:
         [
-          # The point of this unalias is not to generate invalid SQL like `min(foo AS carry_1234)`
+          # The point of this unalias is to not generate invalid SQL like `min(foo AS carry_1234)`
           Expression.function("min", [Expression.unalias(expression)], expression.type, _aggregate = true),
           Expression.function("max", [Expression.unalias(expression)], expression.type, _aggregate = true),
           Expression.function("count", [Expression.unalias(expression)], :integer, _aggregate = true),
@@ -144,7 +144,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         range_noise_layers(query) ++
         not_equals_noise_layers(query) ++
         non_range_noise_layers(query) ++
-        not_like_noise_layers(query)
+        not_like_noise_layers(query) ++
+        like_noise_layers(query)
     }
 
   defp non_range_noise_layers(query), do:
@@ -153,17 +154,18 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(& not Condition.inequality?(&1))
     |> Lens.satisfy(& not Condition.not_equals?(&1))
     |> Lens.satisfy(& not Condition.not_like?(&1))
+    |> Lens.satisfy(& not Condition.like?(&1))
     |> Lens.both(Lens.key(:group_by))
     |> raw_columns()
     |> Lens.to_list(query)
     |> Enum.flat_map(&resolve_row_splitter(&1, query))
-    |> Enum.map(&NoiseLayer.new({&1.table.name, &1.name, nil}, [Helpers.set_unique_alias(&1)]))
+    |> Enum.map(&build_noise_layer/1)
 
   defp range_noise_layers(%{ranges: ranges}), do:
     Enum.flat_map(ranges, fn(%{column: column, interval: range}) ->
       raw_columns()
       |> Lens.to_list(column)
-      |> Enum.map(&NoiseLayer.new({&1.table.name, &1.name, range}, [Helpers.set_unique_alias(&1)]))
+      |> Enum.map(&build_noise_layer(&1, range))
     end)
 
   defp not_equals_noise_layers(query), do:
@@ -181,19 +183,44 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(&can_be_anonymized_with_noise_layer?(&1, query))
     |> Lens.to_list(query)
     |> Enum.map(fn({:not, {kind, column, constant}}) ->
-      value = Expression.value(constant, [])
-      NoiseLayer.new({column.table.name, column.name, {:not, kind, value}}, [Helpers.set_unique_alias(column)])
+      build_noise_layer(column, {:not, kind, Expression.value(constant, [])})
     end)
+
+  defp like_noise_layers(query), do:
+    Query.Lenses.filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.satisfy(&Condition.like?(&1))
+    |> Lens.to_list(query)
+    |> Enum.flat_map(fn({kind, column, constant}) ->
+      columns = Lens.to_list(raw_columns(), column)
+      layer_keys = constant |> Expression.value([]) |> like_layer_keys
+
+      case {kind, layer_keys} do
+        {:like, []} -> [build_noise_layer(column)]
+        {:ilike, []} -> [build_noise_layer(column, :ilike)]
+        {_, keys} -> for layer_key <- keys, column <- columns do
+          build_noise_layer(column, {kind, layer_key})
+        end
+      end
+    end)
+
+  defp like_layer_keys(like_pattern) do
+    len = like_pattern |> String.replace("%", "") |> String.length()
+    like_layer_keys(String.graphemes(like_pattern), 0, len)
+  end
+
+  defp like_layer_keys([], _, _), do: []
+  defp like_layer_keys(["%" | rest], n, len), do: [{:%, len, n} | like_layer_keys(rest, n, len)]
+  defp like_layer_keys(["_" | rest], n, len), do: [{:_, len, n} | like_layer_keys(rest, n + 1, len)]
+  defp like_layer_keys([_ | rest], n, len), do: like_layer_keys(rest, n + 1, len)
 
   defp not_equals_noise_layer(
     {:comparison, %Expression{function?: true, function: name, function_args: [column]}, :<>, constant}
   ) do
-    value = Expression.value(constant, [])
-    NoiseLayer.new({column.table.name, column.name, {:<>, name, value}}, [Helpers.set_unique_alias(column)])
+    build_noise_layer(column, {:<>, name, Expression.value(constant, [])})
   end
   defp not_equals_noise_layer({:comparison, column, :<>, constant}) do
-    value = Expression.value(constant, [])
-    NoiseLayer.new({column.table.name, column.name, {:<>, value}}, [Helpers.set_unique_alias(column)])
+    build_noise_layer(column, {:<>, Expression.value(constant, [])})
   end
 
   @allowed_not_equals_functions ~w(lower)
@@ -254,4 +281,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   deflensp raw_columns(), do:
     Query.Lenses.leaf_expressions()
     |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
+
+  defp build_noise_layer(column, extras \\ nil), do:
+    NoiseLayer.new({column.table.name, column.name, extras}, [Helpers.set_unique_alias(column)])
 end

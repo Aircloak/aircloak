@@ -121,7 +121,6 @@ defmodule Cloak.Sql.Function do
   @type t :: Parser.column | Expression.t
   @type data_type :: :any | DataSource.data_type
   @type argument_type :: data_type | {:optional, data_type} | {:many1, data_type} | {:or, [data_type]}
-  @type function_compilation_callback :: (list(t)) :: list(t) | no_return
 
 
   # -------------------------------------------------------------------
