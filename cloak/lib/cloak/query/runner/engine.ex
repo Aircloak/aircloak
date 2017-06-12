@@ -1,7 +1,6 @@
 defmodule Cloak.Query.Runner.Engine do
   @moduledoc "Execution of SQL queries."
-  alias Cloak.{Sql, DataSource, Query, ResultSender}
-  alias Cloak.Sql.Condition
+  alias Cloak.{Sql, DataSource, Query, ResultSender, Sql.Condition, Query.LCFConditions}
   require Logger
 
   @type state_updater :: (ResultSender.query_state -> any)
@@ -21,6 +20,7 @@ defmodule Cloak.Query.Runner.Engine do
         {:ok, parsed} <- Sql.Parser.parse(statement),
         state_updater.(:compiling),
         {:ok, query} <- Sql.Compiler.compile(data_source, parsed, parameters, views),
+        query = LCFConditions.process(query),
         state_updater.(:awaiting_data)
       do
         query_killer_reg.()

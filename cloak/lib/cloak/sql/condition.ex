@@ -140,6 +140,11 @@ defmodule Cloak.Sql.Condition do
     {matching, non_matching}
   end
 
+  @doc "Negates a condition."
+  @spec negate(Query.where_clause) :: Query.where_clause
+  def negate({:not, condition}), do: condition
+  def negate(condition), do: {:not, condition}
+
 
   #-----------------------------------------------------------------------------------------------------------
   # Internal functions

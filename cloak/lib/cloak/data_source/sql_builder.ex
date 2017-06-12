@@ -155,8 +155,8 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: [" GROUP BY ", group_by |> Enum.map(&column_sql(&1, sql_dialect)) |> Enum.intersperse(", ")]
   defp group_by_fragments(_query, _sql_dialect), do: []
 
-  defp having_fragments(%Query{subquery?: true, having: [_|_] = and_clauses}, sql_dialect),
-    do: [" HAVING ", and_clauses |> Enum.map(&conditions_to_fragments(&1, sql_dialect)) |> join(" AND ")]
+  defp having_fragments(%Query{subquery?: true, having: having_clause}, sql_dialect) when having_clause != nil,
+    do: [" HAVING ", conditions_to_fragments(having_clause, sql_dialect)]
   defp having_fragments(_query, _sql_dialect), do: []
 
   defp order_by_fragments(%Query{subquery?: true, order_by: [_|_] = order_by}, sql_dialect) do
