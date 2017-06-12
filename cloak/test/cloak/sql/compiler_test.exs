@@ -824,9 +824,19 @@ defmodule Cloak.Sql.Compiler.Test do
     assert ["table.uid", "projected_table.a"] ==
       projected_table_db_column_names(compile!("select count(*) from projected_table where a=1", data_source()))
 
-  test "rejecting non-selected ORDER BY with an aggregator function" do
+  test "rejecting non-aggregated non-selected ORDER BY column in an aggregated function" do
     assert {:error, "Column `float` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
       compile("SELECT SUM(numeric) FROM table ORDER BY float", data_source())
+  end
+
+  test "rejecting non-aggregated column when an aggregate is in a non-selected ORDER BY" do
+    assert {:error, "Column `numeric` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
+      compile("SELECT numeric FROM table ORDER BY max(float)", data_source())
+  end
+
+  test "rejecting non-aggregated column when count(*) is in a non-selected ORDER BY" do
+    assert {:error, "Column `numeric` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
+      compile("SELECT numeric FROM table ORDER BY count(*)", data_source())
   end
 
   describe "normalization" do

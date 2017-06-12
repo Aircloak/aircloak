@@ -138,6 +138,26 @@ defmodule Cloak.Query.BasicTest do
     assert Enum.map(rows, &(&1[:row])) == [[1700], [1600], [1800]]
   end
 
+  test "order by grouped but non-selected aggregate" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 170, true])
+    :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
+
+    assert_query "select name from heights group by name order by sum(height) desc",
+      %{query_id: "1", columns: ["name"], rows: rows}
+    assert Enum.map(rows, &(&1[:row])) == [["mike"], ["adam"], ["john"]]
+  end
+
+  test "order by grouped but non-selected aggregate with selected aggregate function" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 170, true])
+    :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
+
+    assert_query "select bucket(height by 10), avg(height) from heights group by 1 order by count(*) desc",
+      %{query_id: "1", columns: ["bucket", "avg"], rows: rows}
+    assert Enum.map(rows, &(&1[:row])) == [[160.0, 160.0], [170.0, 170.0], [180.0, 180.0]]
+  end
+
   test "should return LCF property when sufficient rows are filtered" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..3, "heights", ["height"], [160])
