@@ -17,6 +17,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   * Switches upper(x) <> constant to lower(x) <> toggle_case(constant)
   * Removes redundant occurences of "%" from LIKE patterns (for example "%%" -> "%")
   * Normalizes sequences of "%" and "_" in like patterns so that the "%" always precedes a sequence of "_"
+  * Normalizes `IN (single_value)` to `= single_value`
 
   These are useful for noise layers - we want to generate the same layer for semantically identical conditions,
   otherwise we have to fall back to probing.
@@ -25,14 +26,21 @@ defmodule Cloak.Sql.Compiler.Normalization do
   def normalize(query), do:
     query
     |> Helpers.apply_bottom_up(&expand_not_in/1)
+    |> Helpers.apply_bottom_up(&normalize_in/1)
     |> Helpers.apply_bottom_up(&normalize_constants/1)
     |> Helpers.apply_bottom_up(&normalize_upper/1)
     |> Helpers.apply_bottom_up(&normalize_like/1)
 
 
   # -------------------------------------------------------------------
-  # NOT IN expansion
+  # IN normalization
   # -------------------------------------------------------------------
+
+  defp normalize_in(query), do:
+    update_in(query, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
+      {:in, lhs, [exp]} -> {:comparison, lhs, :=, exp}
+      other -> other
+    end)
 
   defp expand_not_in(query), do:
     update_in(query, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
