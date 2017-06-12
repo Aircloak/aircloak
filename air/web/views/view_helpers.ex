@@ -4,7 +4,8 @@ defmodule Air.ViewHelpers do
   import Phoenix.HTML.Tag, only: [content_tag: 3]
   import Phoenix.HTML.Link, only: [link: 2]
 
-  alias Air.Service.{Warnings, DataSource}
+  alias Air.Service.Warnings
+  alias Air.Schemas.DataSource
 
   @doc "Verifies if the currently logged-in user has permissions on the given action."
   @spec permitted?(Plug.Conn.t, module, atom) :: boolean
@@ -27,7 +28,7 @@ defmodule Air.ViewHelpers do
   def admin?(%Plug.Conn{} = conn), do: admin?(conn.assigns.current_user)
 
   @doc "Returns an embeddable json representing selectable tables and views."
-  @spec selectables(Plug.Conn.t, Air.Schema.DataSource.t) :: {:safe, iodata}
+  @spec selectables(Plug.Conn.t, DataSource.t) :: {:safe, iodata}
   def selectables(conn, data_source, view_to_exclude \\ nil) do
     DataSource.tables(conn.assigns[:current_user], data_source)
     |> Enum.reject(&Map.get(&1, "internal_id", :table) == view_to_exclude)

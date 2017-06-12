@@ -21,4 +21,27 @@ defmodule Air.Schemas.DataSource do
 
     timestamps()
   end
+
+
+  #-----------------------------------------------------------------------------------------------------------
+  # API functions
+  #-----------------------------------------------------------------------------------------------------------
+
+  @doc "Returns a list of the data source errors"
+  @spec errors(t) :: [String.t]
+  def errors(data_source) do
+    case Poison.decode(data_source.errors) do
+      {:ok, errors} -> errors
+      _ -> []
+    end
+  end
+
+  @doc "Returns a map representation of the data source tables"
+  @spec tables(t) :: [Map.t]
+  def tables(data_source) do
+    case Poison.decode(data_source.tables) do
+      {:ok, tables} -> tables
+      _ -> []
+    end
+  end
 end

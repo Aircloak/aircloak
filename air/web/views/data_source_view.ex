@@ -4,14 +4,14 @@ defmodule Air.DataSourceView do
   # bug in the current Phoenix
   @dialyzer :no_match
 
-  alias Air.Service.DataSource
+  alias Air.{Service, Schemas}
 
-  defdelegate status(data_source), to: DataSource
+  defdelegate status(data_source), to: Service.DataSource
 
-  def number_of_tables(data_source), do: length(DataSource.tables(data_source))
+  def number_of_tables(data_source), do: length(Schemas.DataSource.tables(data_source))
 
   defp sample_of_tables(data_source) do
-    DataSource.tables(data_source)
+    Schemas.DataSource.tables(data_source)
     |> Enum.map(fn(%{"id" => name}) -> name end)
     |> limited_join(nil, 64)
   end

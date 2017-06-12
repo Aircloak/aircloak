@@ -2,14 +2,14 @@ defmodule Air.API.DataSourceController do
   @moduledoc false
   use Air.Web, :controller
 
-  alias Air.Service.DataSource
+  alias Air.{Service, Schemas}
 
   def permissions do
     %{user: :all}
   end
 
   def index(conn, _params) do
-    data_sources = DataSource.all()
+    data_sources = Service.DataSource.all()
     |> Enum.map(&to_map(conn.assigns.current_user, &1))
     json(conn, data_sources)
   end
@@ -25,8 +25,8 @@ defmodule Air.API.DataSourceController do
       token: data_source.global_id,
       name: data_source.name,
       description: data_source.description,
-      tables: DataSource.tables(user, data_source),
-      errors: DataSource.errors(data_source),
+      tables: Service.DataSource.tables(user, data_source),
+      errors: Schemas.DataSource.errors(data_source),
     }
   end
 end

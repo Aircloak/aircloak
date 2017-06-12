@@ -223,31 +223,13 @@ defmodule Air.Service.DataSource do
   @spec status(DataSource.t) :: data_source_status
   def status(data_source) do
     if available?(data_source.name) do
-      if errors(data_source) != [] do
+      if DataSource.errors(data_source) != [] do
         :broken
       else
         :online
       end
     else
       :offline
-    end
-  end
-
-  @doc "Returns a list of the data source errors"
-  @spec errors(DataSource.t) :: [String.t]
-  def errors(data_source) do
-    case Poison.decode(data_source.errors) do
-      {:ok, errors} -> errors
-      _ -> []
-    end
-  end
-
-  @doc "Returns a map representation of the data source tables"
-  @spec tables(DataSource.t) :: [Map.t]
-  def tables(data_source) do
-    case Poison.decode(data_source.tables) do
-      {:ok, tables} -> tables
-      _ -> []
     end
   end
 
@@ -264,7 +246,7 @@ defmodule Air.Service.DataSource do
         "internal_id" => view.id,
       }
     end)
-    |> Enum.concat(tables(data_source))
+    |> Enum.concat(DataSource.tables(data_source))
   end
 
   @doc "Creates a data source, raises on error."

@@ -94,7 +94,7 @@
       <% else %>
         <table class="table">
           <tbody>
-            <%= for table <- Air.Service.DataSource.tables(@data_source) do %>
+            <%= for table <- Air.Schemas.DataSource.tables(@data_source) do %>
               <tr>
                 <td><%= table["id"] %></td>
                 <td><%= length(table["columns"]) %> columns</td>
