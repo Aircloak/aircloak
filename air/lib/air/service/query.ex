@@ -172,8 +172,10 @@ defmodule Air.Service.Query do
 
   @state_order [
     :started, :parsing, :compiling, :awaiting_data, :ingesting_data, :processing, :post_processing, :cancelled,
-    :error, :completed
+    :error, :completed,
   ]
+  defp valid_state_transition?(current_state, _next_state)
+      when current_state in [:cancelled, :completed, :error], do: false
   defp valid_state_transition?(current_state, next_state), do:
     Enum.find_index(@state_order, &(&1 == current_state)) < Enum.find_index(@state_order, &(&1 == next_state))
 
