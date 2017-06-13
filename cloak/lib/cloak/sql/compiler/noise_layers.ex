@@ -210,9 +210,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Enum.flat_map(fn(column) ->
         [
           build_noise_layer(column) |
-          for constant <- constants do
-            build_noise_layer(column, {:in, Expression.value(constant, [])})
-          end
+          Enum.map(constants, &build_noise_layer(column, {:in, Expression.value(&1, [])}))
         ]
       end)
     end)
