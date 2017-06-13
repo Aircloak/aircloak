@@ -23,11 +23,11 @@ defmodule Air.Service.DataSource do
 
   @type table :: %{
     id: String.t,
-    columns: %{
+    columns: [%{
       name: String.t,
       type: String.t,
       user_id: boolean,
-    }
+    }]
   }
 
 
@@ -248,11 +248,11 @@ defmodule Air.Service.DataSource do
       view: boolean,
       broken: boolean, # Always false for tables
       internal_id: String.t | nil,
-      columns: %{
+      columns: [%{
         name: String.t,
         type: String.t,
         user_id: boolean,
-      }
+      }],
     }]
   def views_and_tables(user, data_source) do
     default_values = %{
