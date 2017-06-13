@@ -51,7 +51,6 @@ defmodule Air.ViewHelpers do
       end
     end)
     |> Enum.sort_by(& &1.id)
-    |> to_json()
   end
 
   @doc "Encodes the given term to json which can be safely embedded in .eex templates."
