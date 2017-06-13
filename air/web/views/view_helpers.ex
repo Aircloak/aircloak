@@ -29,9 +29,9 @@ defmodule Air.ViewHelpers do
 
   @doc "Returns an embeddable json representing selectable tables and views."
   @spec selectables(Plug.Conn.t, Schemas.DataSource.t) :: {:safe, iodata}
-  def selectables(conn, data_source, view_to_exclude \\ nil) do
+  def selectables(conn, data_source, view_to_exclude \\ :undefined) do
     Service.DataSource.views_and_tables(conn.assigns[:current_user], data_source)
-    |> Enum.reject(&Map.get(&1, :internal_id, :table) == view_to_exclude)
+    |> Enum.reject(& &1.internal_id == view_to_exclude)
     |> Enum.map(fn(table) ->
       if table.view do
         additional_data = %{
