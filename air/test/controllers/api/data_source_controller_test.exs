@@ -38,7 +38,7 @@ defmodule Air.API.DataSourceController.Test do
     view_name = "view1"
 
     [api_cloak] = TestSocketHelper.with_cloak(cloak_name, "data_source_name", fn ->
-      create_view(user, view_name)
+      create_view!(user, get_datasource(), view_name)
 
       api_conn(api_token)
       |> get("/api/data_sources")
@@ -49,19 +49,6 @@ defmodule Air.API.DataSourceController.Test do
     assert [%{"id" => ^view_name}] = api_cloak["tables"]
   end
 
-  defp create_view(user, view_name) do
-    [data_source] = Repo.all(DataSource)
-    %Air.Schemas.View{}
-    |> Ecto.Changeset.cast(
-      %{
-        user_id: user.id,
-        data_source_id: data_source.id,
-        name: view_name,
-        sql: "sql for #{view_name}",
-        result_info: %{"columns" => ["foo", "bar"]},
-      },
-      ~w(name sql user_id data_source_id result_info)a
-    )
-    |> Repo.insert!()
-  end
+  defp get_datasource(), do:
+    hd(Repo.all(DataSource))
 end
