@@ -18,7 +18,7 @@ defmodule Air.Service.Cleanup do
   end
 
   @doc "Triggers marking queries for which processing stopped for unknown reasons as errored."
-  @spec cleanup_old_queries() :: :ok
+  @spec cleanup_dead_queries() :: :ok
   def cleanup_dead_queries() do
     Air.Service.Query.currently_running()
     |> Air.Repo.preload(:data_source)
