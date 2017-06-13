@@ -1,9 +1,9 @@
 FROM aircloak/base:$DEBIAN_VERSION
 MAINTAINER Aircloak
 
-## ------------------------------------------------------------------
-## Create user and copy in app
-## ------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# Create user and copy in app
+# ---------------------------------------------------------------------
 
 # User under which the app will run.
 RUN useradd --shell /bin/bash deployer && mkdir -p /aircloak/app

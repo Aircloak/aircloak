@@ -58,9 +58,9 @@ defmodule Cloak.Query.Aggregator do
   end
 
 
-  ## ----------------------------------------------------------------
-  ## Internal functions
-  ## ----------------------------------------------------------------
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp aggregate_values([], [], []), do: []
   defp aggregate_values([nil | rest_values], [accumulator | rest_accumulators], [_aggregator | rest_aggregators]), do:

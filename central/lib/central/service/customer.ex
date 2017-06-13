@@ -15,9 +15,9 @@ defmodule Central.Service.Customer do
   @message_handler_sup Module.concat(__MODULE__, MessageHandler.Supervisor)
 
 
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
   # API functions
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
 
   @doc "Returns the supervisor specification for customer processes."
   @spec supervisor_spec() :: Supervisor.Spec.spec

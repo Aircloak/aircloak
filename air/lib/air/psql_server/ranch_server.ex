@@ -33,9 +33,9 @@ defmodule Air.PsqlServer.RanchServer do
   @type behaviour_init_arg :: any
 
 
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
   # Behaviour callbacks
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
 
   @doc "Invoked to allow callback module to initialize its state."
   @callback init(t, behaviour_init_arg) :: {:ok, t} | {:error, any}
@@ -53,9 +53,9 @@ defmodule Air.PsqlServer.RanchServer do
   @callback handle_message(t, any) :: t
 
 
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
   # API
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
 
   @doc "Returns the supervisor specification for the TCP server."
   @spec child_spec(pos_integer, module, behaviour_init_arg, opts) :: Supervisor.child_spec
@@ -106,18 +106,18 @@ defmodule Air.PsqlServer.RanchServer do
     handle_protocol_actions(%__MODULE__{conn | protocol: fun.(conn.protocol)})
 
 
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
   # :ranch_protocol callback functions
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
 
   @doc false
   def start_link(ref, socket, transport, {opts, behaviour_mod, behaviour_init_arg}), do:
     GenServer.start_link(__MODULE__, {ref, socket, transport, opts, behaviour_mod, behaviour_init_arg})
 
 
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
   # GenServer callback functions
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
 
   @doc false
   def init({ref, socket, transport, opts, behaviour_mod, behaviour_init_arg}) do
@@ -179,9 +179,9 @@ defmodule Air.PsqlServer.RanchServer do
     {:noreply, conn.behaviour_mod.handle_message(conn, msg)}
 
 
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
   # Internal functions
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
 
   defp set_active_mode(conn), do:
     conn.transport.setopts(conn.socket, active: :once)

@@ -4,9 +4,9 @@ defmodule Cloak.DataSource.MongoDB.Schema do
   alias Cloak.DataSource
 
 
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
   # API
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
 
   @doc "Maps the list of field names in a collection to a set of tables."
   @spec build([{String.t, DataSource.data_type}], DataSource.table) :: [DataSource.table]
@@ -28,9 +28,9 @@ defmodule Cloak.DataSource.MongoDB.Schema do
   def array_size_field(name) when is_binary(name), do: String.replace(name, "#", "")
 
 
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
   # Internal functions
-  #-----------------------------------------------------------------------------------------------------------
+  # -------------------------------------------------------------------
 
   defp schema_append(schema, key, value), do: Map.update(schema, key, [value], & &1 ++ [value])
 
