@@ -21,7 +21,7 @@ defmodule Air.API.DataSourceController do
 
   defp to_map(user, data_source) do
     tables = Service.DataSource.views_and_tables(user, data_source)
-    |> Enum.map(& Map.delete(&1, "internal_id"))
+    |> Enum.map(& Map.delete(&1, :internal_id))
 
     %{
       id: data_source.id,

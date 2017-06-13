@@ -31,17 +31,17 @@ defmodule Air.ViewHelpers do
   @spec selectables(Plug.Conn.t, Schemas.DataSource.t) :: {:safe, iodata}
   def selectables(conn, data_source, view_to_exclude \\ nil) do
     Service.DataSource.views_and_tables(conn.assigns[:current_user], data_source)
-    |> Enum.reject(&Map.get(&1, "internal_id", :table) == view_to_exclude)
+    |> Enum.reject(&Map.get(&1, :internal_id, :table) == view_to_exclude)
     |> Enum.map(fn(table) ->
-      if table["view"] do
+      if table.view do
         additional_data = %{
-          "edit_link" => Air.Router.Helpers.data_source_view_path(conn, :edit, data_source.name,
-            table["internal_id"]),
-          "delete_html" => Phoenix.HTML.safe_to_string(link("delete",
+          edit_link: Air.Router.Helpers.data_source_view_path(conn, :edit, data_source.name,
+            table.internal_id),
+          delete_html: Phoenix.HTML.safe_to_string(link("delete",
             to: Air.Router.Helpers.data_source_view_path(conn, :delete, data_source.name,
-              table["internal_id"]),
+              table.internal_id),
             method: :delete,
-            "data-confirm": "Delete #{table["id"]}?",
+            "data-confirm": "Delete #{table.id}?",
             class: "btn btn-danger btn-xs"
           )),
         }
@@ -50,7 +50,7 @@ defmodule Air.ViewHelpers do
         table
       end
     end)
-    |> Enum.sort_by(&Map.fetch(&1, "id"))
+    |> Enum.sort_by(& &1.id)
     |> to_json()
   end
 

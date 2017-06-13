@@ -256,22 +256,22 @@ defmodule Air.Service.DataSource do
     }]
   def views_and_tables(user, data_source) do
     default_values = %{
-      "view" => false,
-      "broken" => false,
-      "internal_id" => nil,
+      view: false,
+      broken: false,
+      internal_id: nil,
     }
 
     View.all(user, data_source)
     |> Enum.map(fn(view) ->
       %{
-        "view" => true,
-        "id" => view.name,
-        "broken" => view.broken,
-        "columns" => Map.fetch!(view.result_info, "columns"),
-        "internal_id" => view.id,
+        view: true,
+        id: view.name,
+        broken: view.broken,
+        columns: Map.fetch!(view.result_info, "columns") |> Aircloak.atomize_keys(),
+        internal_id: view.id,
       }
     end)
-    |> Enum.concat(DataSource.tables(data_source))
+    |> Enum.concat(DataSource.tables(data_source) |> Aircloak.atomize_keys())
     |> Enum.map(& Map.merge(default_values, &1))
   end
 

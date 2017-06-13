@@ -247,7 +247,7 @@ defmodule Air.Service.DataSourceTest do
       )
       |> Repo.insert!()
 
-      assert [%{"id" => ^view_name, "view" => true}] = DataSource.views_and_tables(user, data_source)
+      assert [%{id: ^view_name, view: true}] = DataSource.views_and_tables(user, data_source)
     end
   end
 

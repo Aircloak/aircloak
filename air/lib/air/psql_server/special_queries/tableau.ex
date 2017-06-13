@@ -67,7 +67,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
 
   defp fetch_tables(conn, cursor, count) do
     case get_tables(conn) do
-      {:ok, tables} -> first_cursor_fetch(conn, cursor, count, tables |> Enum.map(&(&1["id"])) |> table_list())
+      {:ok, tables} -> first_cursor_fetch(conn, cursor, count, tables |> Enum.map(&(&1.id)) |> table_list())
       {:error, :unauthorized} -> RanchServer.query_result(conn, {:error, "not authorized"})
     end
   end
@@ -94,12 +94,12 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
   defp fetch_table_info(conn, table_name) do
     case get_tables(conn) do
       {:ok, tables} ->
-        columns = case Enum.find(tables, &(&1["id"] == table_name)) do
+        columns = case Enum.find(tables, &(&1.id == table_name)) do
           nil -> []
           table ->
             table
-            |> Map.get("columns")
-            |> Enum.map(&[&1["name"], &1["type"]])
+            |> Map.get(:columns)
+            |> Enum.map(&[&1.name, &1.type])
         end
 
         response = column_list(columns, conn.assigns.data_source_id, table_name)
