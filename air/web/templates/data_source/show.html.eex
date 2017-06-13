@@ -43,7 +43,7 @@
         guardianToken: "<%= @guardian_token %>",
         userId: "<%= @current_user.id %>",
         sessionId: "<%= @session_id %>",
-        selectables: <%= selectables(@conn, @data_source) %>,
+        selectables: <%= selectables(@conn, @data_source) |> to_json() %>,
         newViewURL: "<%= data_source_view_path(@conn, :new, @data_source.name) %>"
       };
 

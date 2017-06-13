@@ -109,6 +109,23 @@ defmodule Air.TestRepoHelper do
     }
   end
 
+  @doc "Creates and returns a view, for a given data source"
+  @spec create_view!(User.t, DataSource.t, String.t) :: View.t
+  def create_view!(user, data_source, view_name \\ random_string()) do
+    %Air.Schemas.View{}
+    |> Ecto.Changeset.cast(
+      %{
+        user_id: user.id,
+        data_source_id: data_source.id,
+        name: view_name,
+        sql: "sql for #{view_name}",
+        result_info: %{"columns" => ["foo", "bar"]},
+      },
+      ~w(name sql user_id data_source_id result_info)a
+    )
+    |> Repo.insert!()
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
