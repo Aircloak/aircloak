@@ -21,6 +21,15 @@ defmodule Air.Service.DataSource do
 
   @type data_source_status :: :online | :offline | :broken
 
+  @type table :: %{
+    id: String.t,
+    columns: %{
+      name: String.t,
+      type: String.t,
+      user_id: boolean,
+    }
+  }
+
 
   #-----------------------------------------------------------------------------------------------------------
   # API functions
@@ -184,7 +193,7 @@ defmodule Air.Service.DataSource do
       where: data_source.name in ^names)
 
   @doc "Creates or updates a data source, returning the updated data source"
-  @spec create_or_update_data_source(String.t, String.t, Map.t, [String.t]) :: DataSource.t
+  @spec create_or_update_data_source(String.t, String.t, [table], [String.t]) :: DataSource.t
   def create_or_update_data_source(name, global_id, tables, errors) do
     case Repo.get_by(DataSource, name: name) do
       nil ->
@@ -231,6 +240,39 @@ defmodule Air.Service.DataSource do
     else
       :offline
     end
+  end
+
+  @doc "Same as tables/1 but also includes views visible to the user"
+  @spec views_and_tables(User.t, DataSource.t) :: [%{
+      id: String.t,
+      view: boolean,
+      broken: boolean, # Always false for tables
+      internal_id: String.t | nil,
+      columns: %{
+        name: String.t,
+        type: String.t,
+        user_id: boolean,
+      }
+    }]
+  def views_and_tables(user, data_source) do
+    default_values = %{
+      view: false,
+      broken: false,
+      internal_id: nil,
+    }
+
+    View.all(user, data_source)
+    |> Enum.map(fn(view) ->
+      %{
+        view: true,
+        id: view.name,
+        broken: view.broken,
+        columns: Map.fetch!(view.result_info, "columns") |> Aircloak.atomize_keys(),
+        internal_id: view.id,
+      }
+    end)
+    |> Enum.concat(DataSource.tables(data_source) |> Aircloak.atomize_keys())
+    |> Enum.map(& Map.merge(default_values, &1))
   end
 
   @doc "Creates a data source, raises on error."

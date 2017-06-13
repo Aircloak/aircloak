@@ -3,7 +3,8 @@ defmodule Air.Service.Monitoring do
 
   import Ecto.Query
 
-  alias Air.{Repo, Schemas.Group, Schemas.User, Schemas.DataSource, Schemas.Query, Service.Cloak}
+  alias Air.{Repo, Schemas.Group, Schemas.User, Schemas.Query, Service.Cloak}
+  alias Air.{Schemas, Service}
 
   @miliseconds_in_second 1000
 
@@ -65,13 +66,13 @@ defmodule Air.Service.Monitoring do
   end
 
   defp fetch_data_sources(now) do
-    for data_source <- DataSource |> Repo.all() |> Repo.preload(:groups) do
+    for data_source <- Service.DataSource.all() do
       %{
         id: data_source.id,
         name: data_source.name,
         queries: query_stats(Query |> where([q], q.data_source_id == ^data_source.id), now),
         groups: data_source.groups |> Enum.map(&(&1.name)),
-        errors: DataSource.errors(data_source),
+        errors: Schemas.DataSource.errors(data_source),
       }
     end
   end

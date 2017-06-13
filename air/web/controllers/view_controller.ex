@@ -67,19 +67,14 @@ defmodule Air.ViewController do
     data_source_name = Map.fetch!(conn.params, "data_source_id")
     case Air.Service.DataSource.fetch_as_user({:name, data_source_name}, conn.assigns.current_user) do
       {:ok, data_source} ->
-        selectable_views = case Map.fetch(conn.params, "id") do
-          :error -> View.all(conn.assigns.current_user, data_source)
-          {:ok, current_view_id_str} ->
-            Enum.reject(
-              View.all(conn.assigns.current_user, data_source),
-              &(&1.id == String.to_integer(current_view_id_str))
-            )
+        id_to_exclude = case Map.get(conn.params, "id") do
+          nil -> nil
+          id_as_string -> String.to_integer(id_as_string)
         end
 
         conn
         |> assign(:data_source, data_source)
-        |> assign(:views, selectable_views)
-
+        |> assign(:view_to_exclude_from_selectables, id_to_exclude)
       _ ->
         conn
         |> put_flash(:error, "Data source not found.")

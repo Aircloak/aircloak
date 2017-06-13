@@ -116,7 +116,6 @@ defmodule Air.PsqlServer.Protocol do
       decoded_message_type: nil,
       actions: [],
       describing_statement: nil,
-      describing_statement: nil,
       executing_portal: nil,
       prepared_statements: %{},
       portals: %{},

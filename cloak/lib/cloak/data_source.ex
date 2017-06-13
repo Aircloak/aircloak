@@ -195,7 +195,7 @@ defmodule Cloak.DataSource do
 
   defp to_data_source(data_source) do
     data_source
-    |> atomize_keys()
+    |> Aircloak.atomize_keys()
     |> Map.put(:errors, [])
     |> Validations.Name.ensure_permitted()
     |> potentially_create_temp_name()
@@ -214,20 +214,6 @@ defmodule Cloak.DataSource do
       end
     Map.put(data_source, :driver, driver_module)
   end
-
-  defp atomize_keys(%{} = map) do
-    for {key, value} <- map, into: %{}, do: {String.to_atom(key), atomize_keys(value)}
-  end
-  defp atomize_keys(list) when is_list(list) do
-    Enum.map(list, &atomize_keys/1)
-  end
-  defp atomize_keys(tuple) when is_tuple(tuple) do
-    tuple
-    |> Tuple.to_list()
-    |> atomize_keys()
-    |> List.to_tuple()
-  end
-  defp atomize_keys(other), do: other
 
   defp generate_global_id(data_source) do
     # We want the global ID to take the form of:

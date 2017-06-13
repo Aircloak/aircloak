@@ -57,11 +57,11 @@
       var statement = <%= @changeset |> statement() |> to_json() %>;
       var viewEditorProps = {
         statement: statement,
-        selectables: <%= selectables(@conn, @data_source, @views) %>
+        selectables: <%= selectables(@conn, @data_source, @view_to_exclude_from_selectables) %>
       };
       var selectableInfoProps = {
-        selectables: <%= selectables(@conn, @data_source, @views) %>,
-        newViewURL: "<%= data_source_view_path(@conn, :new, @data_source.id) %>"
+        selectables: <%= selectables(@conn, @data_source, @view_to_exclude_from_selectables) %>,
+        newViewURL: "<%= data_source_view_path(@conn, :new, @data_source.name) %>"
       };
 
       App.viewEditor(viewEditorProps, document.getElementById("viewEditor"));

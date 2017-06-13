@@ -5,6 +5,7 @@ defmodule Air.ViewHelpers do
   import Phoenix.HTML.Link, only: [link: 2]
 
   alias Air.Service.Warnings
+  alias Air.{Schemas, Service}
 
   @doc "Verifies if the currently logged-in user has permissions on the given action."
   @spec permitted?(Plug.Conn.t, module, atom) :: boolean
@@ -27,25 +28,29 @@ defmodule Air.ViewHelpers do
   def admin?(%Plug.Conn{} = conn), do: admin?(conn.assigns.current_user)
 
   @doc "Returns an embeddable json representing selectable tables and views."
-  @spec selectables(Plug.Conn.t, Air.Schema.DataSource.t, [Air.Schema.View.t]) :: {:safe, iodata}
-  def selectables(conn, data_source, views) do
-    Air.Schemas.DataSource.tables(data_source)
-    |> Kernel.++(
-          Enum.map(views, &%{
-            "id" => &1.name,
-            "broken" => &1.broken,
-            "columns" => Map.fetch!(&1.result_info, "columns"),
-            "edit_link" => Air.Router.Helpers.data_source_view_path(conn, :edit, data_source.name, &1.id),
-            "delete_html" =>
-              Phoenix.HTML.safe_to_string(link("delete",
-                to: Air.Router.Helpers.data_source_view_path(conn, :delete, data_source.name, &1.id),
-                method: :delete,
-                "data-confirm": "Delete #{&1.name}?",
-                class: "btn btn-danger btn-xs"
-              ))
-          })
-        )
-    |> Enum.sort_by(&Map.fetch(&1, "id"))
+  @spec selectables(Plug.Conn.t, Schemas.DataSource.t) :: {:safe, iodata}
+  def selectables(conn, data_source, view_to_exclude \\ nil) do
+    Service.DataSource.views_and_tables(conn.assigns[:current_user], data_source)
+    |> Enum.reject(&Map.get(&1, :internal_id, :table) == view_to_exclude)
+    |> Enum.map(fn(table) ->
+      if table.view do
+        additional_data = %{
+          edit_link: Air.Router.Helpers.data_source_view_path(conn, :edit, data_source.name,
+            table.internal_id),
+          delete_html: Phoenix.HTML.safe_to_string(link("delete",
+            to: Air.Router.Helpers.data_source_view_path(conn, :delete, data_source.name,
+              table.internal_id),
+            method: :delete,
+            "data-confirm": "Delete #{table.id}?",
+            class: "btn btn-danger btn-xs"
+          )),
+        }
+        Map.merge(table, additional_data)
+      else
+        table
+      end
+    end)
+    |> Enum.sort_by(& &1.id)
     |> to_json()
   end
 

@@ -2,6 +2,7 @@ defmodule Air.Service.DataSourceTest do
   use Air.SchemaCase, async: false # because of shared mode
 
   alias Air.Service.DataSource
+  alias Air.Schemas
   alias Air.{TestRepoHelper, TestSocketHelper}
 
   setup do
@@ -212,6 +213,41 @@ defmodule Air.Service.DataSourceTest do
       TestSocketHelper.respond_to_query_alive!(context.socket, context.query.id, false)
 
       assert {:ok, false} = Task.await(task)
+    end
+  end
+
+  describe "listing data source tables" do
+    test "should list available tables" do
+      tables = [%{"table" => true}]
+      name = "new_name"
+      global_id = "global_id"
+      data_source = DataSource.create_or_update_data_source(name, global_id, tables, [])
+      assert tables == Schemas.DataSource.tables(data_source)
+    end
+
+    test "should list views as part of tables" do
+      tables = []
+      name = "new_name"
+      global_id = "global_id"
+      data_source = DataSource.create_or_update_data_source(name, global_id, tables, [])
+
+      group = TestRepoHelper.create_group!()
+      user = TestRepoHelper.create_user!(%{groups: [group.id]})
+      view_name = "view1"
+      %Air.Schemas.View{}
+      |> Ecto.Changeset.cast(
+        %{
+          user_id: user.id,
+          data_source_id: data_source.id,
+          name: view_name,
+          sql: "sql for #{view_name}",
+          result_info: %{"columns" => ["foo", "bar"]},
+        },
+        ~w(name sql user_id data_source_id result_info)a
+      )
+      |> Repo.insert!()
+
+      assert [%{id: ^view_name, view: true}] = DataSource.views_and_tables(user, data_source)
     end
   end
 
