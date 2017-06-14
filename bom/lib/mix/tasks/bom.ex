@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Bom do
       Add a --node switch for every node_modules directory to be searched. An yarn.lock file is
       assumed to exist at the same level as this directory.
 
-      Add an --elixir switch for every elixir deps directory to be searched. A mix.lock file is assumed to
+      Add a --elixir switch for every elixir deps directory to be searched. A mix.lock file is assumed to
       exist at the same level as this directory.
 
       In the <outdir> directory, the following file will be generated:
