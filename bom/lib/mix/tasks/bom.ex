@@ -3,15 +3,16 @@ defmodule Mix.Tasks.Bom do
   @usage """
     Usage:
 
-      mix bom [--node <path>]+ [--elixir <path>]+ <output>
+      mix bom [--node <path>]+ [--elixir <path>]+ <outdir>
 
       Add a --node switch for every node_modules directory to be searched. An yarn.lock file is
       assumed to exist at the same level as this directory.
 
-      Add a --elixir switch for every elixir deps directory to be searched. A mix.lock file is assumed to
+      Add an --elixir switch for every elixir deps directory to be searched. A mix.lock file is assumed to
       exist at the same level as this directory.
 
-      The file will be generated at <output>
+      In the <outdir> directory, the following file will be generated:
+      - bom.json: contains the bill of material in JSON format
   """
 
   @moduledoc "Gathers information about dependencies and outputs a bom.json file into the _build directory.\n\n" <>
@@ -24,14 +25,14 @@ defmodule Mix.Tasks.Bom do
 
   def run(args) do
     case OptionParser.parse(args, strict: [node: :keep, elixir: :keep]) do
-      {dirs, [output], []} -> do_run(dirs, output)
+      {dirs, [outdir], []} -> do_run(dirs, outdir)
       _ ->
         IO.puts(@usage)
         Mix.raise("Invalid usage")
     end
   end
 
-  defp do_run(dirs, output) do
+  defp do_run(dirs, outdir) do
     {:ok, _} = Application.ensure_all_started(:bom)
 
     IO.puts("Gathering package data...")
@@ -46,8 +47,9 @@ defmodule Mix.Tasks.Bom do
 
     if Enum.empty?(invalid) do
       json = Poison.encode!(valid)
-      File.write!(output, json)
-      IO.puts("Bill of Materials written to #{output}")
+      bom_file_path = Path.join([outdir, "bom.json"])
+      File.write!(bom_file_path, json)
+      IO.puts("Bill of Materials written to #{bom_file_path}")
     else
       invalid
       |> Enum.map(&"#{&1.name} #{&1.version} (#{&1.path}): #{&1.error}")

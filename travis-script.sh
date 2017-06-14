@@ -76,7 +76,7 @@ function banner() {
     make lint
     make test
     make dialyze
-    mix bom --elixir ../cloak/deps --elixir ../air/deps --node ../air/node_modules bom.json
+    mix bom --elixir ../cloak/deps --elixir ../air/deps --node ../air/node_modules ./
     popd
 
   fi
