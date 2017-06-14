@@ -39,6 +39,8 @@ defmodule Cloak.DataSource do
   require Logger
   require Aircloak.DeployConfig
 
+  use GenServer
+
   # define returned data types and values
   @type t :: %{
     global_id: atom,
@@ -61,25 +63,26 @@ defmodule Cloak.DataSource do
   # API
   # -------------------------------------------------------------------
 
-  @doc """
-  Initializes the configured data sources.
-
-  Starting is fault-tolerant: if some data sources can't be accessed, or if
-  there are some errors in the configuration, the system will still start,
-  using the valid datasources. Invalid data sources won't be accessible, but
-  the system will log corresponding errors.
-  """
-  @spec start() :: :ok
-  def start(), do:
-    Aircloak.DeployConfig.fetch!("data_sources")
-    |> Enum.map(&to_data_source/1)
-    |> Enum.map(&add_tables/1)
-    |> Validations.Name.check_for_duplicates()
-    |> store_to_cache()
-
   @doc "Returns the list of defined data sources."
   @spec all() :: [t]
-  def all(), do: Application.get_env(:cloak, :data_sources)
+  def all(), do: GenServer.call(__MODULE__, :all, :infinity)
+
+  @doc "Returns the datasource for the given id, raises if it's not found."
+  @spec fetch!(String.t) :: t
+  def fetch!(data_source_id) do
+    {:ok, data_source} = fetch(data_source_id)
+    data_source
+  end
+
+  @doc "Returns the datasource with the given id, or `:error` if it's not found."
+  @spec fetch(String.t) :: {:ok, t} | :error
+  def fetch(data_source_name) do
+    GenServer.call(__MODULE__, {:get, data_source_name}, :infinity)
+    |> case do
+      nil -> :error
+      data_source -> {:ok, data_source}
+    end
+  end
 
   @doc "Returns the table descriptor for the given table."
   @spec table(t, atom | String.t) :: Table.t | nil
@@ -120,32 +123,48 @@ defmodule Cloak.DataSource do
     end
   end
 
-  @doc "Returns the datasource for the given id, raises if it's not found."
-  @spec fetch!(String.t) :: t
-  def fetch!(data_source_id) do
-    {:ok, data_source} = fetch(data_source_id)
-    data_source
-  end
-
-  @doc "Returns the datasource with the given id, or `:error` if it's not found."
-  @spec fetch(String.t) :: {:ok, t} | :error
-  def fetch(data_source_name) do
-    Application.get_env(:cloak, :data_sources)
-    |> Enum.find(&(&1.name === data_source_name))
-    |> case do
-      nil -> :error
-      data_source -> {:ok, data_source}
-    end
-  end
-
   @doc "Raises an error when something goes wrong during data processing."
   @spec raise_error(String.t) :: no_return
   def raise_error(message), do: raise ExecutionError, message: message
 
 
   # -------------------------------------------------------------------
+  # Callbacks
+  # -------------------------------------------------------------------
+
+  @doc """
+  Starts the handler process for data sources.
+
+  Starting is fault-tolerant: if some data sources can't be accessed, or if
+  there are some errors in the configuration, the system will still start,
+  using the valid datasources. Invalid data sources won't be accessible, but
+  the system will log corresponding errors.
+  """
+  def start_link(), do:
+    GenServer.start_link(__MODULE__, init_state(), name: __MODULE__)
+
+  @doc false
+  def handle_call(:all, _from, data_sources) do
+    {:reply, data_sources, data_sources}
+  end
+  def handle_call({:get, name}, _from, data_sources) do
+    data_source = Enum.find(data_sources, & &1.name === name)
+    {:reply, data_source, data_sources}
+  end
+  def handle_call({:update, data_sources}, _from, _old_data_sources) do
+    {:reply, :ok, data_sources}
+  end
+
+
+  # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp init_state(), do:
+    Aircloak.DeployConfig.fetch!("data_sources")
+    |> Enum.map(&to_data_source/1)
+    |> Enum.map(&add_tables/1)
+    |> Validations.Name.check_for_duplicates()
 
   defp to_data_source(data_source) do
     data_source
@@ -192,12 +211,6 @@ defmodule Cloak.DataSource do
     end
     global_id = "#{user}/#{database}#{marker}@#{host}#{port}"
     Map.merge(data_source, %{global_id: global_id})
-  end
-
-  @doc false
-  # load the columns list for all defined tables in all data sources
-  def store_to_cache(data_sources) do
-    Application.put_env(:cloak, :data_sources, data_sources)
   end
 
   @doc false

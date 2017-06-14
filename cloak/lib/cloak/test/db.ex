@@ -29,7 +29,7 @@ defmodule Cloak.Test.DB do
   end
 
   def execute!(statement, parameters \\ []) do
-    for data_source <- Cloak.DataSource.all() do
+    for data_source <- DataSource.all() do
       if data_source.driver.__info__(:functions)[:execute] do # check if driver supports direct query execution
         connection = Process.get({:connection, data_source.global_id}) || create_connection(data_source)
         {:ok, _result} = data_source.driver.execute(connection, statement, parameters)
@@ -51,9 +51,9 @@ defmodule Cloak.Test.DB do
       |> Map.take([:user_id, :decoders, :projection])
     table = Map.merge(default, user_overrides)
 
-    Application.get_env(:cloak, :data_sources)
+    DataSource.all()
     |> Enum.map(&(&1 |> put_in([:tables, table_id], table) |> DataSource.add_tables()))
-    |> DataSource.store_to_cache()
+    |> update_data_sources()
   end
 
   # -------------------------------------------------------------------
@@ -79,10 +79,13 @@ defmodule Cloak.Test.DB do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp update_data_sources(data_sources), do:
+    :ok = GenServer.call(DataSource, {:update, data_sources}, :infinity)
+
   defp clear_test_tables() do
-    Application.get_env(:cloak, :data_sources)
+    DataSource.all()
     |> Enum.map(&Map.put(&1, :tables, %{}))
-    |> DataSource.store_to_cache()
+    |> update_data_sources()
   end
 
   defp create_db_table(db_name, definition, opts) do
