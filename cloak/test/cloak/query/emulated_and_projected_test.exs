@@ -9,7 +9,7 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
     :ok = Cloak.Test.DB.create_table("#{@prefix}main", "dummy BOOLEAN")
     decoder = %{method: "base64", columns: ["value"]}
     projection = %{table: "#{@prefix}main", foreign_key: "user_id", primary_key: "user_id"}
-    :ok = Cloak.Test.DB.create_table("#{@prefix}emulated", "value TEXT, num INTEGER",
+    :ok = Cloak.Test.DB.create_table("#{@prefix}emulated", "value TEXT, value2 TEXT, num INTEGER",
       decoders: [decoder], projection: projection)
     :ok = Cloak.Test.DB.create_table("#{@prefix}joined", "age INTEGER")
     :ok
@@ -24,12 +24,6 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
   end
 
   describe "simple queries" do
-    defp simple_setup(_) do
-      :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value", "num"], [Base.encode64("aaa"), 3])
-      :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value", "num"], [Base.encode64("b"), 2])
-      :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["value", "num"], [nil, 1])
-    end
-
     setup [:simple_setup]
 
     test "where", do:
@@ -289,5 +283,26 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
           #{@prefix}emulated right join #{@prefix}joined
           on #{@prefix}emulated.user_id = #{@prefix}joined.user_id
         """, %{rows: [%{occurrences: 1, row: [15]}]}
+  end
+
+  describe "extract_matches" do
+    setup [:simple_setup]
+
+    test "extract_matches on a concatenated string" do
+      assert_query(
+        "SELECT extract_matches(value || value2, '\\w+') FROM #{@prefix}emulated GROUP BY 1",
+        %{rows: [
+          %{row: ["aaa"], occurrences: 1},
+          %{row: ["b"], occurrences: 1},
+          %{row: ["c"], occurrences: 1},
+        ]}
+      )
+    end
+  end
+
+  defp simple_setup(_) do
+    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value", "num"], [Base.encode64("aaa"), 3])
+    :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value", "num"], [Base.encode64("b"), 2])
+    :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["value", "num", "value2"], [nil, 1, "c"])
   end
 end
