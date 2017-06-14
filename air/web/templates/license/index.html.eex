@@ -1,5 +1,10 @@
 <h2>Third party licenses</h2>
 
+<p>
+  The sources of the dependencies are avaialble as a
+  <a href="/licenses/dependencies.zip">zip-file here</a>.
+</p>
+
 <div class="panel panel-default">
   <div class="panel-heading"><h4>License count by type</h4></div>
 

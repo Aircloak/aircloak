@@ -52,7 +52,8 @@ config :logger, level: :info
 config :phoenix, :serve_endpoints, true
 
 config :air, Air.BOM,
-  location: "priv/bom.json"
+  bom_file: "priv/bom.json",
+  dependencies: "priv/dependencies.zip"
 
 # Where to expect the Central endpoint to be located
 config :air, :central,
