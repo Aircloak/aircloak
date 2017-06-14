@@ -206,8 +206,12 @@ defmodule Cloak.Sql.Query do
   @spec debug_log(t, String.t) :: t
   def debug_log(query, message) do
     Logger.debug(fn () ->
-      statement = DataSource.SqlBuilder.build(%__MODULE__{query | subquery?: true}, :postgresql)
-      "#{message}: `#{statement}` ..."
+      try do
+        statement = DataSource.SqlBuilder.build(%__MODULE__{query | subquery?: true}, :postgresql)
+        "#{message}: `#{statement}` ..."
+      rescue
+        error -> "#{message}\n#{inspect(query)}\nEncountered #{inspect(error)} in SqlBuilder"
+      end
     end)
     query
   end
