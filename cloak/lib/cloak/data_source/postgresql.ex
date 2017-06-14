@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.SqlBuilder
+  alias Cloak.DataSource.{SqlBuilder, Table}
   alias Cloak.DataSource
   alias Cloak.Query.DataDecoder
 
@@ -44,7 +44,7 @@ defmodule Cloak.DataSource.PostgreSQL do
     end
     query = "SELECT column_name, udt_name FROM information_schema.columns " <>
       "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}'"
-    row_mapper = fn [name, type_name] -> DataSource.column(name, parse_type(type_name)) end
+    row_mapper = fn [name, type_name] -> Table.column(name, parse_type(type_name)) end
     case run_query(connection, query, row_mapper, &Enum.to_list/1) do
       {:ok, []} -> DataSource.raise_error("Table `#{table.db_name}` does not exist")
       {:ok, columns} -> [%{table | columns: columns}]

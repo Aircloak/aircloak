@@ -9,8 +9,9 @@ defmodule Cloak.Query.DataDecoder do
   """
 
   alias Cloak.Sql.{Query, Expression}
+  alias Cloak.DataSource.Table
 
-  @type type :: Cloak.DataSource.data_type
+  @type type :: Table.data_type
   @type decoder :: (type -> {:ok, type} | :error)
   @type t :: %{method: decoder, columns: [String.t], in: type, out: type}
 
@@ -20,7 +21,7 @@ defmodule Cloak.Query.DataDecoder do
   # -------------------------------------------------------------------
 
   @doc "Initializes the configured decoders from a loaded table."
-  @spec init(Cloak.DataSource.table) :: Cloak.DataSource.table
+  @spec init(Table.t) :: Table.t
   def init(table) do
     decoders = for decoder <- table.decoders do
       validate_columns(decoder.columns, table.columns)

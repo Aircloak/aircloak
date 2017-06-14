@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.MySQL do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.SqlBuilder
+  alias Cloak.DataSource.{SqlBuilder, Table}
   alias Cloak.DataSource
   alias Cloak.Query.DataDecoder
 
@@ -40,7 +40,7 @@ defmodule Cloak.DataSource.MySQL do
   @doc false
   def load_tables(connection, table) do
     query = "SHOW COLUMNS FROM #{table.db_name}"
-    column_info_mapper = fn [name, type | _others] -> DataSource.column(name, parse_type(type)) end
+    column_info_mapper = fn [name, type | _others] -> Table.column(name, parse_type(type)) end
     {:ok, columns} = run_query(connection, query, column_info_mapper, &Enum.to_list/1)
     [%{table | columns: columns}]
   end

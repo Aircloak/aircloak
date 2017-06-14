@@ -35,7 +35,7 @@ defmodule Cloak.Sql.Query do
 
   @type row_index :: non_neg_integer
 
-  @type parameter :: %{value: DataSource.field, type: DataSource.data_type}
+  @type parameter :: %{value: DataSource.field, type: DataSource.Table.data_type}
 
   @type t :: %__MODULE__{
     data_source: DataSource.t,
@@ -65,7 +65,7 @@ defmodule Cloak.Sql.Query do
     emulated_where: where_clause,
     order_by: [{Expression.t, :asc | :desc}],
     show: :tables | :columns | nil,
-    selected_tables: [DataSource.table],
+    selected_tables: [DataSource.Table.t],
     db_columns: [Expression.t],
     from: Parser.from_clause | String.t | nil,
     subquery?: boolean,
@@ -82,7 +82,7 @@ defmodule Cloak.Sql.Query do
     noise_layers: [NoiseLayer.t],
     view?: boolean,
     features: map,
-    table_aliases: %{String.t => DataSource.table}
+    table_aliases: %{String.t => DataSource.Table.t}
   }
 
   defstruct [
@@ -178,7 +178,7 @@ defmodule Cloak.Sql.Query do
     {query.next_row_index, %__MODULE__{query | next_row_index: query.next_row_index + 1}}
 
   @doc "Sets the parameter type."
-  @spec set_parameter_type(t, pos_integer, DataSource.data_type) :: t
+  @spec set_parameter_type(t, pos_integer, DataSource.Table.data_type) :: t
   def set_parameter_type(query, parameter_index, type), do:
     %__MODULE__{query | parameter_types: Map.put(query.parameter_types, parameter_index, type)}
 
@@ -188,7 +188,7 @@ defmodule Cloak.Sql.Query do
     %__MODULE__{query | parameter_types: Map.merge(query.parameter_types, other_query.parameter_types)}
 
   @doc "Retrieves the parameter type."
-  @spec parameter_type(t, pos_integer) :: DataSource.data_type
+  @spec parameter_type(t, pos_integer) :: DataSource.Table.data_type
   def parameter_type(query, parameter_index), do:
     Map.get(query.parameter_types, parameter_index, :unknown)
 
