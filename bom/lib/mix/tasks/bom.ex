@@ -50,6 +50,11 @@ defmodule Mix.Tasks.Bom do
       bom_file_path = Path.join([outdir, "bom.json"])
       File.write!(bom_file_path, json)
       IO.puts("Bill of Materials written to #{bom_file_path}")
+
+      IO.puts("Packaging dependency sources...")
+      bom_source_path = Path.join([outdir, "dependencies.zip"])
+      BOM.Gather.Sources.collect(dirs, bom_source_path)
+      IO.puts("Dependency sources written to #{bom_source_path}")
     else
       invalid
       |> Enum.map(&"#{&1.name} #{&1.version} (#{&1.path}): #{&1.error}")
