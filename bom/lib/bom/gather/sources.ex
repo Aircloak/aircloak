@@ -36,14 +36,24 @@ defmodule BOM.Gather.Sources do
 
   defp copy_path(dir, destination_dir) do
     target_name = destination_name(dir)
-    File.cp_r!(dir, Path.join([destination_dir, target_name]))
+    target_path = Path.join([destination_dir, target_name])
+    File.mkdir_p!(target_path)
+    File.cp_r!(dir, target_path)
     target_name
   end
 
-  # The encryption and base encoding does not serve any security purposes at all.
-  # The reason is to generate a unique destination name that doesn't clash between
-  # multiple distinct node and elixir imports.
-  defp destination_name(dir), do: :crypto.hash(:md4, dir) |> Base.encode16()
+  # Constructs a destination name based on the path given.
+  # It is assumed that the path takes the form: <some path ...>/<project>/<dep-folder>.
+  # The latter two components will be used as a the name.
+  # Hence the `air` node-js dependenceis will end up as: `air/node_modules`.
+  # If the project and dependency type can't be derived from the file name,
+  # a random hash value is used instead, to provide a unique name for the folder.
+  defp destination_name(dir) do
+    case Path.split(dir) |> Enum.take(-2) do
+      [_project, _dep_folder] = segments -> Path.join(segments)
+      _other -> :crypto.strong_rand_bytes(6) |> Base.encode16()
+    end
+  end
 
   defp create_temp_dir() do
     tmp_dir_path = Path.join([System.tmp_dir!(), "dependencies"])
