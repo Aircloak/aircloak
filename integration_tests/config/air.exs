@@ -33,7 +33,9 @@ config :air, Air.PsqlServer, port: 8433
 
 config :air, ecto_repos: [Air.Repo]
 
-config :air, Air.BOM, location: "priv/bom.json.example"
+config :air, Air.BOM,
+  bom_file: "priv/bom.json.example",
+  dependencies: "priv/dependencies.zip.example"
 
 config :air, :central,
   serializer: Phoenix.Channels.GenSocketClient.Serializer.GzipJson,

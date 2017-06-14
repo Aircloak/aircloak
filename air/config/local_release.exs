@@ -10,7 +10,8 @@ config :air, :central,
   max_reconnect_interval: 50000
 
 config :air, Air.BOM,
-  location: "priv/bom.json.example"
+  bom_file: "priv/bom.json.example",
+  dependencies: "priv/dependencies.zip.example"
 
 config :air, Air.PsqlServer,
   port: 8432

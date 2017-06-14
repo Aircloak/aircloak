@@ -63,7 +63,8 @@ config :air, Air.Repo,
 config :air, ecto_repos: [Air.Repo]
 
 config :air, Air.BOM,
-  location: "priv/bom.json.example"
+  bom_file: "priv/bom.json.example",
+  dependencies: "priv/dependencies.zip.example"
 
 config :air, Air.PsqlServer,
   port: 8432,

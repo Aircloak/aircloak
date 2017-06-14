@@ -18,20 +18,24 @@ defmodule Air.BOM do
   @spec get((%{} -> x)) :: x when x: var
   def get(f \\ &(&1)), do: Agent.get(__MODULE__, f)
 
+  @doc "Returns the path at which the dependencies archive can be found"
+  @spec dependencies_path() :: String.t
+  def dependencies_path(), do: path_for(:dependencies)
+
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp read_bom do
-    Application.app_dir(:air)
-    |> Path.join(bom_path())
+    path_for(:bom_file)
     |> File.read!()
     |> Poison.decode!()
   end
 
-  defp bom_path do
-    Application.get_env(:air, Air.BOM)
-    |> Keyword.fetch!(:location)
+  defp path_for(type) do
+    root_path = Application.app_dir(:air)
+    file_name = Application.get_env(:air, Air.BOM) |> Keyword.fetch!(type)
+    Path.join([root_path, file_name])
   end
 end

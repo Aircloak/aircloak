@@ -43,6 +43,6 @@ defmodule Air.LicenseController do
   def dependencies(conn, _params) do
     conn
     |> put_resp_content_type("application/zip")
-    |> send_file(200, "priv/dependencies.zip")
+    |> send_file(200, Air.BOM.dependencies_path())
   end
 end
