@@ -68,7 +68,8 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(%Expression{function?: true, function: fun_name, function_args: args, type: type}, sql_dialect)
     when fun_name != nil, do: DbFunction.sql(fun_name,
       Enum.map(args, &column_sql(&1, sql_dialect)), type, sql_dialect)
-  defp column_sql(%Expression{constant?: true, value: value}, _sql_dialect), do: constant_to_fragment(value)
+  defp column_sql(%Expression{constant?: true, value: value}, sql_dialect), do:
+    constant_to_fragment(value, sql_dialect)
   # We can't directly select a field with an unknown type, so convert it to binary
   # This is needed in the case of using the ODBC driver with a GUID user id,
   # as the GUID type is not supported by the Erlang ODBC library
@@ -123,6 +124,8 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: [to_fragment(what, sql_dialect), " COLLATE Latin1_General_CS_AS LIKE ", to_fragment(match, sql_dialect)]
   defp conditions_to_fragments({:like, what, match}, sql_dialect),
     do: [to_fragment(what, sql_dialect), " LIKE ", to_fragment(match, sql_dialect)]
+  defp conditions_to_fragments({:ilike, what, match}, :debug = sql_dialect),
+    do: [to_fragment(what, sql_dialect), " ILIKE ", to_fragment(match, sql_dialect)]
   defp conditions_to_fragments({:ilike, what, match}, :postgresql = sql_dialect),
     do: [to_fragment(what, sql_dialect), " ILIKE ", to_fragment(match, sql_dialect)]
   defp conditions_to_fragments({:ilike, what, match}, :mysql = sql_dialect),
@@ -140,12 +143,13 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp escape_string(string), do: String.replace(string, "'", "''")
 
-  defp constant_to_fragment(%NaiveDateTime{} = value), do: [?', to_string(value), ?']
-  defp constant_to_fragment(%Time{} = value), do: [?', to_string(value), ?']
-  defp constant_to_fragment(%Date{} = value), do: [?', to_string(value), ?']
-  defp constant_to_fragment(value) when is_binary(value), do: [?', escape_string(value), ?']
-  defp constant_to_fragment(value) when is_number(value), do: to_string(value)
-  defp constant_to_fragment(value) when is_boolean(value), do: to_string(value)
+  defp constant_to_fragment(%NaiveDateTime{} = value, _sql_dialect), do: [?', to_string(value), ?']
+  defp constant_to_fragment(%Time{} = value, _sql_dialect), do: [?', to_string(value), ?']
+  defp constant_to_fragment(%Date{} = value, _sql_dialect), do: [?', to_string(value), ?']
+  defp constant_to_fragment(%Regex{} = value, :debug), do: inspect(value)
+  defp constant_to_fragment(value, _sql_dialect) when is_binary(value), do: [?', escape_string(value), ?']
+  defp constant_to_fragment(value, _sql_dialect) when is_number(value), do: to_string(value)
+  defp constant_to_fragment(value, _sql_dialect) when is_boolean(value), do: to_string(value)
 
   defp join([], _joiner), do: []
   defp join([el], _joiner), do: [el]
@@ -173,6 +177,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp quote_name(name, _sql_dialect), do: "\"#{name}\""
 
   defp range_fragments(%Query{subquery?: true, limit: nil, offset: 0}, _sql_dialect), do: []
+  defp range_fragments(query, :debug), do: range_fragments(query, :postgresql)
   defp range_fragments(%Query{subquery?: true, limit: nil, offset: offset}, :postgresql), do:
     [" OFFSET ", to_string(offset)]
   defp range_fragments(%Query{subquery?: true, limit: limit, offset: offset}, :postgresql), do:
