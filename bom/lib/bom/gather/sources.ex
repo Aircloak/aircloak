@@ -1,5 +1,5 @@
 defmodule BOM.Gather.Sources do
-  @moduledoc "Packes all dependencies into a zip-file."
+  @moduledoc "Bundles all dependencies into a zip-file."
 
 
   # -------------------------------------------------------------------
