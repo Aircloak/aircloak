@@ -1,8 +1,7 @@
 defmodule Cloak.DataSource.MongoDBTest do
   use ExUnit.Case, async: true
 
-  alias Cloak.DataSource
-  alias Cloak.DataSource.MongoDB
+  alias Cloak.DataSource.{Table, MongoDB}
   alias Cloak.Query.Runner
 
   @moduletag :exclude_in_dev
@@ -58,33 +57,33 @@ defmodule Cloak.DataSource.MongoDBTest do
   test "schema mapping", context do
     %{@table => root, @table <> "_bills" => bills, @table <> "_bills_ids" => ids} = context.data_source.tables
     assert root.columns == [
-      DataSource.column("_id", :text),
-      DataSource.column("age", :real),
-      DataSource.column("bills#", :integer),
-      DataSource.column("date", :datetime),
-      DataSource.column("male", :boolean),
-      DataSource.column("mixed", :unknown),
-      DataSource.column("name", :text),
+      Table.column("_id", :text),
+      Table.column("age", :real),
+      Table.column("bills#", :integer),
+      Table.column("date", :datetime),
+      Table.column("male", :boolean),
+      Table.column("mixed", :unknown),
+      Table.column("name", :text),
     ]
     assert bills.columns == [
-      DataSource.column("_id", :text),
-      DataSource.column("age", :real),
-      DataSource.column("date", :datetime),
-      DataSource.column("male", :boolean),
-      DataSource.column("mixed", :unknown),
-      DataSource.column("name", :text),
-      DataSource.column("bills.ids#", :integer),
-      DataSource.column("bills.issuer", :text),
+      Table.column("_id", :text),
+      Table.column("age", :real),
+      Table.column("date", :datetime),
+      Table.column("male", :boolean),
+      Table.column("mixed", :unknown),
+      Table.column("name", :text),
+      Table.column("bills.ids#", :integer),
+      Table.column("bills.issuer", :text),
     ]
     assert ids.columns == [
-      DataSource.column("_id", :text),
-      DataSource.column("age", :real),
-      DataSource.column("date", :datetime),
-      DataSource.column("male", :boolean),
-      DataSource.column("mixed", :unknown),
-      DataSource.column("name", :text),
-      DataSource.column("bills.issuer", :text),
-      DataSource.column("bills.ids", :real),
+      Table.column("_id", :text),
+      Table.column("age", :real),
+      Table.column("date", :datetime),
+      Table.column("male", :boolean),
+      Table.column("mixed", :unknown),
+      Table.column("name", :text),
+      Table.column("bills.issuer", :text),
+      Table.column("bills.ids", :real),
     ]
   end
 

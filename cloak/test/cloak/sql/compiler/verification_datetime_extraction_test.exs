@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.DataSource
+  alias Cloak.DataSource.Table
   alias Cloak.Sql.{Compiler, Parser}
 
   describe "Condition affected by datetime extractors are forbidden when a constant is involved" do
@@ -256,11 +256,11 @@ defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
         name: "table",
         user_id: "uid",
         columns: [
-          DataSource.column("uid", :integer),
-          DataSource.column("column", :datetime),
-          DataSource.column("numeric", :integer),
-          DataSource.column("float", :real),
-          DataSource.column("string", :text)
+          Table.column("uid", :integer),
+          Table.column("column", :datetime),
+          Table.column("numeric", :integer),
+          Table.column("float", :real),
+          Table.column("string", :text)
         ],
         projection: nil
       }
