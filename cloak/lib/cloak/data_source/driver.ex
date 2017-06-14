@@ -1,0 +1,24 @@
+defmodule Cloak.DataSource.Driver do
+  @moduledoc "Specifies the interface for implementing the database specific data access operations."
+
+  alias Cloak.Sql.Query
+
+  @type connection :: any
+  @type parameters :: any
+
+  @doc "Opens a new connection to the data store."
+  @callback connect!(parameters) :: connection
+
+  @doc "Closes the connection to the data store."
+  @callback disconnect(connection) :: :ok
+
+  @doc "Loads one or more table definitions from the data store."
+  @callback load_tables(connection, Cloak.DataSource.table) :: [Cloak.DataSource.table]
+
+  @doc "Driver specific implementation for the `DataSource.select` functionality."
+  @callback select(connection, Query.t, Cloak.DataSource.result_processor)
+    :: {:ok, Cloak.DataSource.processed_result} | {:error, any}
+
+  @doc "Checks to see if the driver is able to handle all the SQL features used by the query."
+  @callback supports_query?(Query.t) :: boolean
+end
