@@ -1,12 +1,12 @@
 defmodule BOM.Gather.Sources do
-  @moduledoc "Queries hex.pm, serializing access and taking care of rate limiting."
+  @moduledoc "Packes all dependencies into a zip-file."
 
 
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
-  @doc "Searches for package metadata on hex.pm. Returns `{:ok, json}` if found, `{:error, :not_found}` otherwise."
+  @doc "Given a list of input directories, this will create a zip file containing them all."
   @spec collect(Keyword.t, String.t) :: :ok
   def collect(dirs, destination_path) do
     tmp_dir_path = create_temp_dir()
