@@ -11,8 +11,9 @@ defmodule Mix.Tasks.Bom do
       Add a --elixir switch for every elixir deps directory to be searched. A mix.lock file is assumed to
       exist at the same level as this directory.
 
-      In the <outdir> directory, the following file will be generated:
+      In the <outdir> directory, the following files will be generated:
       - bom.json: contains the bill of material in JSON format
+      - dependencies.zip: contains a copy of all the dependency source files
   """
 
   @moduledoc "Gathers information about dependencies and outputs a bom.json file into the _build directory.\n\n" <>
