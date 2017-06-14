@@ -57,8 +57,8 @@ defmodule BOM.Gather.Sources do
 
   defp create_temp_dir() do
     tmp_dir_path = Path.join([System.tmp_dir!(), "dependencies"])
-    File.rm_rf(tmp_dir_path)
-    File.mkdir(tmp_dir_path)
+    File.rm_rf!(tmp_dir_path)
+    File.mkdir!(tmp_dir_path)
     tmp_dir_path
   end
 end
