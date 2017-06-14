@@ -32,9 +32,8 @@ defmodule Cloak.Query.RowSplitters do
   @spec split(Enumerable.t, Query.t) :: Enumerable.t
   def split(rows, %Query{row_splitters: []}), do: rows
   def split(rows, query) do
-    max_splitter_index = query.row_splitters |> Enum.map(& &1.row_index) |> Enum.max()
-    padding = List.duplicate(nil, max_splitter_index + 1 - length(query.db_columns))
-    Stream.flat_map(rows, &split_row(&1 ++ padding, query))
+    splitter_indices = query.row_splitters |> Enum.map(& &1.row_index) |> Enum.sort()
+    Stream.flat_map(rows, &split_row(pad(&1, splitter_indices), query))
   end
 
 
@@ -52,4 +51,7 @@ defmodule Cloak.Query.RowSplitters do
     for cell_value <- Expression.value(splitter.function_spec, row), do:
       List.replace_at(row, splitter.row_index, cell_value)
   end
+
+  defp pad(row, splitter_indices), do:
+    Enum.reduce(splitter_indices, row, &List.insert_at(&2, &1, nil))
 end
