@@ -36,6 +36,7 @@ RUN \
   bash -c ". ~/.asdf/asdf.sh && mix deps.compile " && \
   bash -c ". ~/.asdf/asdf.sh && mkdir /aircloak/air/priv " && \
   bash -c ". ~/.asdf/asdf.sh && mix bom --elixir /aircloak/cloak/deps --elixir /aircloak/air/deps --node /aircloak/air/node_modules /aircloak/air/priv" && \
+  bash -c "mkdir -p /aircloak/air/priv/static" && \
   bash -c "mv /aircloak/air/priv/dependencies.zip /aircloak/air/priv/static/"
 
 # Now we copy the rest of the site and build the release.
