@@ -33,10 +33,8 @@ defmodule Cloak.DataSource do
   """
 
   alias Cloak.Sql.Query
-  alias Cloak.DataSource.Validations
-  alias Cloak.DataSource.Parameters
-  alias Cloak.Query.DataDecoder
-  alias Cloak.Query.ExecutionError
+  alias Cloak.DataSource.{Validations, Parameters, Driver}
+  alias Cloak.Query.{DataDecoder, ExecutionError}
 
   require Logger
   require Aircloak.DeployConfig
@@ -46,7 +44,7 @@ defmodule Cloak.DataSource do
     global_id: atom,
     name: String.t,
     driver: module,
-    parameters: Cloak.DataSource.Driver.parameters,
+    parameters: Driver.parameters,
     tables: %{atom => table},
     errors: [String.t]
   }
