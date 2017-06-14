@@ -55,6 +55,7 @@ defmodule Air.Router do
 
     get "/licenses", LicenseController, :index
     get "/licenses/:realm/:name", LicenseController, :show
+    get "/licenses/dependencies.zip", LicenseController, :dependencies
 
     resources "/profile", ProfileController, singleton: true, only: [:edit, :update]
 

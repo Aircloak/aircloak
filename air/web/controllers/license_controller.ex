@@ -39,4 +39,10 @@ defmodule Air.LicenseController do
       package -> render(conn, "show.html", package: package)
     end
   end
+
+  def dependencies(conn, _params) do
+    conn
+    |> put_resp_content_type("application/zip")
+    |> send_file(200, "priv/dependencies.zip")
+  end
 end
