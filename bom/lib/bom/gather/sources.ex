@@ -15,9 +15,7 @@ defmodule BOM.Gather.Sources do
     |> collect_deps(tmp_dir_path)
     |> Enum.map(& String.to_charlist/1)
 
-    destination_charlist = String.to_charlist(destination_path)
-    base_folder = String.to_charlist(tmp_dir_path)
-    :zip.create(destination_charlist, folders_to_zip, [{:compress, :all}, {:cwd, base_folder}])
+    create_zip_archive(destination_path, tmp_dir_path, folders_to_zip)
 
     :ok
   end
@@ -26,6 +24,12 @@ defmodule BOM.Gather.Sources do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp create_zip_archive(destination_path, tmp_dir_path, folders_to_zip) do
+    destination_charlist = String.to_charlist(destination_path)
+    base_folder = String.to_charlist(tmp_dir_path)
+    :zip.create(destination_charlist, folders_to_zip, [{:compress, :all}, {:cwd, base_folder}])
+  end
 
   defp collect_deps(dirs, destination_path), do:
     Enum.map(dirs, & copy_path(&1, destination_path))
