@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.DataSource
+  alias Cloak.DataSource.Table
   alias Cloak.Sql.{Compiler, Parser, Expression}
 
   describe "picking columns for noise layers" do
@@ -466,7 +466,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     result
   end
 
-  defp data_source(driver \\ DataSource.PostgreSQL) do
+  defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do
     %{
       driver: driver,
       tables: %{
@@ -475,14 +475,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
           name: "table",
           user_id: "uid",
           columns: [
-            DataSource.column("uid", :integer),
-            DataSource.column("numeric", :integer),
-            DataSource.column("numeric2", :integer),
-            DataSource.column("decoded", :text),
-            DataSource.column("dummy", :boolean),
-            DataSource.column("dummy2", :boolean),
-            DataSource.column("name", :text),
-            DataSource.column("name2", :text),
+            Table.column("uid", :integer),
+            Table.column("numeric", :integer),
+            Table.column("numeric2", :integer),
+            Table.column("decoded", :text),
+            Table.column("dummy", :boolean),
+            Table.column("dummy2", :boolean),
+            Table.column("name", :text),
+            Table.column("name2", :text),
           ],
           decoders: [%{method: "base64", spec: &Base.decode64/1, columns: ["decoded"]}],
           projection: nil,
@@ -492,7 +492,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
           db_name: "other",
           name: "other",
           user_id: "uid",
-          columns: [DataSource.column("uid", :integer)],
+          columns: [Table.column("uid", :integer)],
           projection: nil,
         },
       }

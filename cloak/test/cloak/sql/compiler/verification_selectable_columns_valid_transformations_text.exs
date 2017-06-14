@@ -1,7 +1,7 @@
 defmodule Cloak.Aql.Compiler.VerificationSelectableColumnsValidTransformations.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.DataSource
+  alias Cloak.DataSource.Table
   alias Cloak.Aql.{Compiler, Parser}
 
   describe "rejects queries selecing columns that have seen math, discontinuity and constants" do
@@ -146,11 +146,11 @@ defmodule Cloak.Aql.Compiler.VerificationSelectableColumnsValidTransformations.T
         name: "table",
         user_id: "uid",
         columns: [
-          DataSource.column("uid", :integer),
-          DataSource.column("column", :datetime),
-          DataSource.column("numeric", :integer),
-          DataSource.column("float", :real),
-          DataSource.column("string", :text)
+          Table.column("uid", :integer),
+          Table.column("column", :datetime),
+          Table.column("numeric", :integer),
+          Table.column("float", :real),
+          Table.column("string", :text)
         ],
         projection: nil
       },

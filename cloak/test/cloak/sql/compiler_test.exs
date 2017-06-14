@@ -3,7 +3,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   import Lens.Macros
 
-  alias Cloak.DataSource
+  alias Cloak.DataSource.Table
   alias Cloak.Sql.{Expression, Compiler, Parser, Query}
 
   defmacrop column(table_name, column_name) do
@@ -972,11 +972,11 @@ defmodule Cloak.Sql.Compiler.Test do
         name: "table",
         user_id: "uid",
         columns: [
-          DataSource.column("uid", :integer),
-          DataSource.column("column", :datetime),
-          DataSource.column("numeric", :integer),
-          DataSource.column("float", :real),
-          DataSource.column("string", :text)
+          Table.column("uid", :integer),
+          Table.column("column", :datetime),
+          Table.column("numeric", :integer),
+          Table.column("float", :real),
+          Table.column("string", :text)
         ],
         projection: nil
       },
@@ -985,8 +985,8 @@ defmodule Cloak.Sql.Compiler.Test do
         name: "other_table",
         user_id: "uid",
         columns: [
-          DataSource.column("uid", :integer),
-          DataSource.column("other_column", :datetime)
+          Table.column("uid", :integer),
+          Table.column("other_column", :datetime)
         ],
         projection: nil
       },
@@ -995,9 +995,9 @@ defmodule Cloak.Sql.Compiler.Test do
         name: "projected_table",
         user_id: "uid",
         columns: [
-          DataSource.column("fk", :integer),
-          DataSource.column("a", :integer),
-          DataSource.column("b", :integer)
+          Table.column("fk", :integer),
+          Table.column("a", :integer),
+          Table.column("b", :integer)
         ],
         projection: %{table: "table", foreign_key: "fk", primary_key: "numeric"}
       },
@@ -1006,9 +1006,9 @@ defmodule Cloak.Sql.Compiler.Test do
         name: "t1",
         user_id: "uid",
         columns: [
-          DataSource.column("uid", :integer),
-          DataSource.column("c1", :integer),
-          DataSource.column("c2", :integer)
+          Table.column("uid", :integer),
+          Table.column("c1", :integer),
+          Table.column("c2", :integer)
         ],
         projection: nil
       },
@@ -1017,9 +1017,9 @@ defmodule Cloak.Sql.Compiler.Test do
         name: "t2",
         user_id: "uid",
         columns: [
-          DataSource.column("uid", :integer),
-          DataSource.column("c1", :integer),
-          DataSource.column("c3", :integer)
+          Table.column("uid", :integer),
+          Table.column("c1", :integer),
+          Table.column("c3", :integer)
         ],
         projection: nil
       },
@@ -1028,8 +1028,8 @@ defmodule Cloak.Sql.Compiler.Test do
         name: "t3",
         user_id: "uid",
         columns: [
-          DataSource.column("uid", :integer),
-          DataSource.column("c1", :integer)
+          Table.column("uid", :integer),
+          Table.column("c1", :integer)
         ],
         projection: nil
       },
@@ -1038,8 +1038,8 @@ defmodule Cloak.Sql.Compiler.Test do
         name: "t4",
         user_id: "uid",
         columns: [
-          DataSource.column("uid", :integer),
-          DataSource.column("c1", :integer)
+          Table.column("uid", :integer),
+          Table.column("c1", :integer)
         ],
         projection: nil
       }
@@ -1053,8 +1053,8 @@ defmodule Cloak.Sql.Compiler.Test do
         name: "table",
         user_id: "uid",
         columns: [
-          DataSource.column("uid", :integer),
-          DataSource.column("column", :time)
+          Table.column("uid", :integer),
+          Table.column("column", :time)
         ],
         projection: nil
       }
@@ -1068,8 +1068,8 @@ defmodule Cloak.Sql.Compiler.Test do
         name: "table",
         user_id: "uid",
         columns: [
-          DataSource.column("uid", :integer),
-          DataSource.column("column", :date)
+          Table.column("uid", :integer),
+          Table.column("column", :date)
         ],
         projection: nil
       }
@@ -1083,8 +1083,8 @@ defmodule Cloak.Sql.Compiler.Test do
         name: "table",
         user_id: "uid",
         columns: [
-          DataSource.column("uid", :integer),
-          DataSource.column("column.with.dots", :number)
+          Table.column("uid", :integer),
+          Table.column("column.with.dots", :number)
         ],
         projection: nil
       }

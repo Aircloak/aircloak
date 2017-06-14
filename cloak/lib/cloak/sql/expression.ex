@@ -13,7 +13,7 @@ defmodule Cloak.Sql.Expression do
     {:cast, DataSource.data_type | :varbinary} |
     {:bucket, :lower | :upper | :middle}
   @type t :: %__MODULE__{
-    table: :unknown | DataSource.table,
+    table: :unknown | DataSource.Table.t,
     name: String.t | nil,
     alias: String.t | nil,
     type: column_type,
