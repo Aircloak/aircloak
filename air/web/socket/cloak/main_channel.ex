@@ -103,6 +103,22 @@ defmodule Air.Socket.Cloak.MainChannel do
     Air.Socket.Frontend.MemoryChannel.broadcast_memory_reading(socket.assigns.cloak_id, reading)
     {:noreply, socket}
   end
+  def handle_in("update_config", cloak_info, socket) do
+    cloak = %{
+      id: socket.assigns.cloak_id,
+      name: socket.assigns.name,
+      version: socket.assigns.version,
+      online_since: Timex.now(),
+      salt_hash: cloak_info["salt_hash"],
+    }
+    data_sources = Map.fetch!(cloak_info, "data_sources")
+
+    cloak
+    |> Air.Service.Cloak.update(data_sources)
+    |> revalidate_views()
+
+    {:noreply, socket}
+  end
   def handle_in("cloak_response", payload, socket) do
     request_id = payload["request_id"]
 

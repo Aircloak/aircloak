@@ -3,6 +3,7 @@
 ### New features
 
 - Added experimental support for querying the system from Tableau.
+- Added periodic monitoring of configured data sources.
 
 ### Enhancements
 

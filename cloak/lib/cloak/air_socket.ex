@@ -60,6 +60,11 @@ defmodule Cloak.AirSocket do
   def send_memory_stats(socket \\ __MODULE__, memory_reading), do:
     cast_air(socket, "main", "memory_reading", memory_reading |> Enum.into(%{}))
 
+  @doc "Updates the configuration of the current cloak in the air."
+  @spec update_config(GenServer.server, DataSource.t) :: :ok | {:error, any}
+  def update_config(socket \\ __MODULE__, data_sources), do:
+    cast_air(socket, "main", "update_config", get_join_info(data_sources))
+
 
   # -------------------------------------------------------------------
   # GenSocketClient callbacks
@@ -148,7 +153,7 @@ defmodule Cloak.AirSocket do
     {:connect, state}
   end
   def handle_info({:join, topic}, transport, state) do
-    case GenSocketClient.join(transport, topic, get_join_info()) do
+    case GenSocketClient.join(transport, topic, get_join_info(Cloak.DataSource.all())) do
       {:error, reason} ->
         Logger.error("error joining the topic #{topic}: #{inspect reason}")
         Process.send_after(self(), {:join, topic}, config(:rejoin_interval))
@@ -324,8 +329,8 @@ defmodule Cloak.AirSocket do
     "#{vm_short_name}@#{hostname}"
   end
 
-  defp get_join_info() do
-    data_sources = for data_source <- Cloak.DataSource.all() do
+  defp get_join_info(data_sources) do
+    data_sources = for data_source <- data_sources do
       tables = for {id, table} <- data_source.tables do
         columns = for column <- table.columns do
           %{name: column.name, type: column.type, user_id: column.name == table.user_id}
