@@ -21,6 +21,7 @@
 
 - Because of a change in range anonymization the exact results of queries involving ranges might change compared to the same query run on the previous version.
 - FULL OUTER JOINs are no longer allowed (because they implement `OR` functionality).
+- `null` is returned when an aggregate cannot be produced because there are too few users.
 
 ## Version 17.2.0
 
