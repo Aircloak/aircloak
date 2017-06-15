@@ -48,7 +48,11 @@ defmodule Cloak.DataSource do
     driver: module,
     parameters: Driver.parameters,
     tables: %{atom => Table.t},
-    errors: [String.t]
+    errors: [String.t],
+    status: :online | :offline,
+    # we need to store the initial tables and errors in case we need to re-init the data source later
+    init_tables: %{atom => Table.t},
+    init_errors: [String.t],
   }
 
   @type num_rows :: non_neg_integer
@@ -144,6 +148,12 @@ defmodule Cloak.DataSource do
     GenServer.start_link(__MODULE__, init_state(), name: __MODULE__)
 
   @doc false
+  def init(data_sources) do
+    activate_monitor_timer()
+    {:ok, data_sources}
+  end
+
+  @doc false
   def handle_call(:all, _from, data_sources) do
     {:reply, data_sources, data_sources}
   end
@@ -155,21 +165,34 @@ defmodule Cloak.DataSource do
     {:reply, :ok, data_sources}
   end
 
+  def handle_info(:monitor, data_sources) do
+    data_sources = Enum.map(data_sources, &check_data_source/1)
+    activate_monitor_timer()
+    {:noreply, data_sources}
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp activate_monitor_timer() do
+    interval = Application.get_env(:cloak, :data_source_monitor_interval)
+    if interval != nil, do: Process.send_after(self(), :monitor, interval)
+  end
+
   defp init_state(), do:
     Aircloak.DeployConfig.fetch!("data_sources")
     |> Enum.map(&to_data_source/1)
-    |> Enum.map(&add_tables/1)
     |> Validations.Name.check_for_duplicates()
+    |> Enum.map(&save_init_fields/1)
+    |> Enum.map(&add_tables/1)
 
   defp to_data_source(data_source) do
     data_source
     |> Aircloak.atomize_keys()
     |> Map.put(:errors, [])
+    |> Map.put(:status, nil)
     |> Validations.Name.ensure_permitted()
     |> potentially_create_temp_name()
     |> generate_global_id()
@@ -213,22 +236,35 @@ defmodule Cloak.DataSource do
     Map.merge(data_source, %{global_id: global_id})
   end
 
+  defp save_init_fields(data_source), do:
+    data_source
+    |> Map.put(:init_tables, data_source.tables)
+    |> Map.put(:init_errors, data_source.errors)
+
+  defp restore_init_fields(data_source), do:
+    data_source
+    |> Map.put(:tables, data_source.init_tables)
+    |> Map.put(:errors, data_source.init_errors)
+
   @doc false
-  def add_tables(%{errors: existing_errors} = data_source) do
+  def add_tables(data_source) do
     Logger.info("Loading tables from #{data_source.name} ...")
+    data_source = restore_init_fields(data_source)
     driver = data_source.driver
     try do
       connection = driver.connect!(data_source.parameters)
       try do
-        Table.load(data_source, connection)
+        data_source
+        |> Table.load(connection)
+        |> Map.put(:status, :online)
       after
         driver.disconnect(connection)
       end
     rescue
       error in ExecutionError ->
         message = "Connection error: #{Exception.message(error)}."
-        Logger.error("Data source `#{data_source.name}`: #{message}")
-        %{data_source | errors: existing_errors ++ [message], tables: %{}}
+        Logger.error("Data source `#{data_source.name}` is offline: #{message}")
+        %{data_source | errors: [message | data_source.errors], tables: %{}, status: :offline}
     end
   end
 
@@ -245,5 +281,21 @@ defmodule Cloak.DataSource do
     else
       data_source
     end
+  end
+
+  defp check_data_source(%{status: :online} = data_source) do
+    driver = data_source.driver
+    try do
+      data_source.parameters |> driver.connect!() |> driver.disconnect()
+      data_source
+    rescue
+      error in ExecutionError ->
+        message = "Connection error: #{Exception.message(error)}."
+        Logger.error("Data source `#{data_source.name}` is offline: #{message}")
+        %{data_source | errors: [message | data_source.errors], tables: %{}, status: :offline}
+    end
+  end
+  defp check_data_source(%{status: :offline} = data_source) do
+    add_tables(data_source)
   end
 end
