@@ -97,7 +97,7 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   @doc "Computes the noisy count and noise sigma of all values in rows, where each row is an enumerable."
-  @spec count(t, Enumerable.t) :: {non_neg_integer, non_neg_integer}
+  @spec count(t, Enumerable.t) :: {non_neg_integer | nil, non_neg_integer | nil}
   def count(anonymizer, rows) do
     case sum_positives(anonymizer, rows) do
       {:insufficient_user_count, _anonymizer} -> {nil, nil}
@@ -110,7 +110,7 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   @doc "Computes the noisy sum and noise sigma of all values in rows, where each row is an enumerable of numbers."
-  @spec sum(t, Enumerable.t) :: {number, number}
+  @spec sum(t, Enumerable.t) :: {number | nil, number | nil}
   def sum(anonymizer, rows) do
     {positive_result, anonymizer} = sum_positives(anonymizer, rows)
     {negative_result, _anonymizer} = sum_positives(anonymizer, Stream.map(rows, &-/1))
@@ -146,7 +146,7 @@ defmodule Cloak.Query.Anonymizer do
     Computes the noisy average value and noise sigma of all values in rows,
     where each row is an enumerable of numbers.
   """
-  @spec avg(t, Enumerable.t) :: {float, float}
+  @spec avg(t, Enumerable.t) :: {float | nil, float | nil}
   def avg(anonymizer, rows) do
     case sum(anonymizer, Stream.map(rows, fn ({:avg, sum, _count}) -> sum end)) do
       {nil, nil} = no_result -> no_result
