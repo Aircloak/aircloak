@@ -99,21 +99,31 @@ defmodule Cloak.Query.Anonymizer do
   @doc "Computes the noisy count and noise sigma of all values in rows, where each row is an enumerable."
   @spec count(t, Enumerable.t) :: {non_neg_integer, non_neg_integer}
   def count(anonymizer, rows) do
-    {{count, noise_sigma}, _anonymizer} = sum_positives(anonymizer, rows)
-    count = count |> round() |> Kernel.max(config(:low_count_absolute_lower_bound))
-    {_noise_mean_lower_bound, noise_sigma_lower_bound} = config(:outliers_count)
-    noise_sigma = noise_sigma |> round() |> Kernel.max(noise_sigma_lower_bound)
-    {count, noise_sigma}
+    case sum_positives(anonymizer, rows) do
+      {:insufficient_user_count, _anonymizer} -> {nil, nil}
+      {{count, noise_sigma}, _anonymizer} ->
+        count = count |> round() |> Kernel.max(config(:low_count_absolute_lower_bound))
+        {_noise_mean_lower_bound, noise_sigma_lower_bound} = config(:outliers_count)
+        noise_sigma = noise_sigma |> round() |> Kernel.max(noise_sigma_lower_bound)
+        {count, noise_sigma}
+    end
   end
 
   @doc "Computes the noisy sum and noise sigma of all values in rows, where each row is an enumerable of numbers."
   @spec sum(t, Enumerable.t) :: {number, number}
   def sum(anonymizer, rows) do
-    {{positives_sum, positives_noise_sigma}, anonymizer} = sum_positives(anonymizer, rows)
-    {{negatives_sum, negatives_noise_sigma}, _anonymizer} = sum_positives(anonymizer, Stream.map(rows, &-/1))
-    noise_sigma = sum_noise_sigmas(positives_noise_sigma, negatives_noise_sigma)
-    sum = positives_sum - negatives_sum
-    {sum, noise_sigma}
+    {positive_result, anonymizer} = sum_positives(anonymizer, rows)
+    {negative_result, _anonymizer} = sum_positives(anonymizer, Stream.map(rows, &-/1))
+    case {positive_result, negative_result} do
+      {:insufficient_user_count, :insufficient_user_count} -> {nil, nil}
+      {positive_result, :insufficient_user_count} -> positive_result
+      {:insufficient_user_count, {negatives_sum, negatives_noise_sigma}} ->
+        {-negatives_sum, negatives_noise_sigma}
+      {{positives_sum, positives_noise_sigma}, {negatives_sum, negatives_noise_sigma}} ->
+        noise_sigma = sum_noise_sigmas(positives_noise_sigma, negatives_noise_sigma)
+        sum = positives_sum - negatives_sum
+        {sum, noise_sigma}
+    end
   end
 
   @doc "Computes the noisy minimum value of all values in rows, where each row is an enumerable of numbers."
@@ -138,9 +148,14 @@ defmodule Cloak.Query.Anonymizer do
   """
   @spec avg(t, Enumerable.t) :: {float, float}
   def avg(anonymizer, rows) do
-    {sum, sum_noise_sigma} = sum(anonymizer, Stream.map(rows, fn ({:avg, sum, _count}) -> sum end))
-    {count, _count_noise_sigma} = count(anonymizer, Stream.map(rows, fn ({:avg, _sum, count}) -> count end))
-    {sum / count, sum_noise_sigma / count}
+    case sum(anonymizer, Stream.map(rows, fn ({:avg, sum, _count}) -> sum end)) do
+      {nil, nil} = no_result -> no_result
+      {sum, sum_noise_sigma} ->
+        case count(anonymizer, Stream.map(rows, fn ({:avg, _sum, count}) -> count end)) do
+          {nil, nil} = no_result -> no_result
+          {count, _count_noise_sigma} -> {sum / count, sum_noise_sigma / count}
+        end
+    end
   end
 
   @doc """
@@ -282,10 +297,13 @@ defmodule Cloak.Query.Anonymizer do
     outliers_count = outliers_count |> round() |> Kernel.max(config(:min_outliers_count))
     {top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
     top_count = top_count |> round() |> Kernel.max(0)
-    {sum, noise_sigma_scale} = sum_positives(rows, outliers_count, top_count)
-    noise_sigma = config(:sum_noise_sigma) * noise_sigma_scale
-    {noisy_sum, anonymizer} = add_noise(anonymizer, {sum, noise_sigma})
-    {{noisy_sum, round_noise_sigma(noise_sigma)}, anonymizer}
+    case sum_positives(rows, outliers_count, top_count) do
+      :insufficient_user_count -> {:insufficient_user_count, anonymizer}
+      {sum, noise_sigma_scale} ->
+        noise_sigma = config(:sum_noise_sigma) * noise_sigma_scale
+        {noisy_sum, anonymizer} = add_noise(anonymizer, {sum, noise_sigma})
+        {{noisy_sum, round_noise_sigma(noise_sigma)}, anonymizer}
+    end
   end
 
   defp take_values_from_distinct_users(user_values, amount) do
@@ -338,7 +356,7 @@ defmodule Cloak.Query.Anonymizer do
       average = sum / count
       {sum + outliers_count * top_average, Kernel.max(2 * average, top_average)}
     else
-      {0, 0} # We don't have enough values to return a result.
+      :insufficient_user_count
     end
   end
 

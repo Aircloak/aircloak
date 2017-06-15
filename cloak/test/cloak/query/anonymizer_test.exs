@@ -12,16 +12,48 @@ defmodule Cloak.Query.AnonimyzerTest do
     assert {false, _} = Anonymizer.new([MapSet.new()]) |> Anonymizer.sufficiently_large?(2)
   end
 
+  describe "aggregators return nil on too few users" do
+    test "count" do
+      # per-user row format = count of values
+      rows = [10, 10, 10]
+      assert {nil, nil} = Anonymizer.new([MapSet.new()]) |> Anonymizer.count(rows)
+    end
+
+    test "sum" do
+      # per-user row format = sum of values
+      rows = [10, 10, 10, -10, -10, -10]
+      assert {nil, nil} = Anonymizer.new([MapSet.new()]) |> Anonymizer.sum(rows)
+    end
+
+    test "avg" do
+      # per-user row format = {:avg, sum of values, count of values}
+      rows = [{:avg, 10, 1}, {:avg, 10, 1}, {:avg, 10, 1}]
+      assert {nil, nil} = Anonymizer.new([MapSet.new()]) |> Anonymizer.avg(rows)
+    end
+  end
+
   test "count" do
     # per-user row format = count of values
     rows = [1, 2, 1, 0, 3, 1, 2, 3, 1, 2, 1]
     assert {12, 0} = Anonymizer.new([MapSet.new()]) |> Anonymizer.count(rows)
   end
 
-  test "sum" do
+  test "sum of sufficient values" do
     # per-user row format = sum of values
     rows = [1, 2, -1, 0, 1, 2, -4, -2, 4, 1, -1, 2]
     assert {6.0, 0.0} = Anonymizer.new([MapSet.new()]) |> Anonymizer.sum(rows)
+  end
+
+  test "sum produces value, even when not enough negative values to produce negative sum" do
+    # per-user row format = sum of values
+    rows = [10, 10, 10, 10, 10, -10, -10]
+    assert {50.0, 0.0} = Anonymizer.new([MapSet.new()]) |> Anonymizer.sum(rows)
+  end
+
+  test "sum produces value, even when not enough positive values to produce positive sum" do
+    # per-user row format = sum of values
+    rows = [10, 10, -10, -10, -10, -10, -10]
+    assert {-50.0, 0.0} = Anonymizer.new([MapSet.new()]) |> Anonymizer.sum(rows)
   end
 
   test "avg" do
