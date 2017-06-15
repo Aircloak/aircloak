@@ -237,6 +237,8 @@ defmodule Cloak.Query.Aggregator do
 
   defp aggregated_data(rows, %Expression{function: "count", function_args: [:*], type: type}, anonymizer), do:
     aggregate_by(rows, "count", type, Anonymizer.starred(anonymizer))
+  defp aggregated_data(rows, %Expression{function: "count_noise", function_args: [:*], type: type}, anonymizer), do:
+    aggregate_by(rows, "count_noise", type, Anonymizer.starred(anonymizer))
   defp aggregated_data(rows, %Expression{function: function, type: type}, anonymizer), do:
     aggregate_by(rows, function, type, anonymizer)
 
