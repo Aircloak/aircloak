@@ -104,7 +104,7 @@ defmodule Cloak.Query.Anonymizer do
   @spec count(t, Enumerable.t) :: {non_neg_integer | nil, non_neg_integer | nil}
   def count(anonymizer, rows) do
     case sum_positives(anonymizer, rows) do
-      {:insufficient_user_count, _anonymizer} -> {nil, nil}
+      {{nil, nil}, _anonymizer} -> {nil, nil}
       {{count, noise_sigma}, _anonymizer} ->
         count = count |> round() |> Kernel.max(config(:low_count_absolute_lower_bound))
         {_noise_mean_lower_bound, noise_sigma_lower_bound} = config(:outliers_count)
@@ -123,9 +123,9 @@ defmodule Cloak.Query.Anonymizer do
     {positive_result, anonymizer} = sum_positives(anonymizer, rows)
     {negative_result, _anonymizer} = sum_positives(anonymizer, Stream.map(rows, &-/1))
     case {positive_result, negative_result} do
-      {:insufficient_user_count, :insufficient_user_count} -> {nil, nil}
-      {positive_result, :insufficient_user_count} -> positive_result
-      {:insufficient_user_count, {negatives_sum, negatives_noise_sigma}} ->
+      {{nil, nil}, {nil, nil}} -> {nil, nil}
+      {positive_result, {nil, nil}} -> positive_result
+      {{nil, nil}, {negatives_sum, negatives_noise_sigma}} ->
         {-negatives_sum, negatives_noise_sigma}
       {{positives_sum, positives_noise_sigma}, {negatives_sum, negatives_noise_sigma}} ->
         noise_sigma = sum_noise_sigmas(positives_noise_sigma, negatives_noise_sigma)
@@ -308,7 +308,7 @@ defmodule Cloak.Query.Anonymizer do
     {top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
     top_count = top_count |> round() |> Kernel.max(0)
     case sum_positives(rows, outliers_count, top_count) do
-      :insufficient_user_count -> {:insufficient_user_count, anonymizer}
+      {nil, nil} -> {{nil, nil}, anonymizer}
       {sum, noise_sigma_scale} ->
         noise_sigma = config(:sum_noise_sigma) * noise_sigma_scale
         {noisy_sum, anonymizer} = add_noise(anonymizer, {sum, noise_sigma})
@@ -366,7 +366,7 @@ defmodule Cloak.Query.Anonymizer do
       average = sum / count
       {sum + outliers_count * top_average, Kernel.max(2 * average, top_average)}
     else
-      :insufficient_user_count
+      {nil, nil} # We don't have enough values to return a result.
     end
   end
 
