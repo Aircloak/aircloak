@@ -21,7 +21,10 @@
 
 - Because of a change in range anonymization the exact results of queries involving ranges might change compared to the same query run on the previous version.
 - FULL OUTER JOINs are no longer allowed (because they implement `OR` functionality).
-- `null` is returned when an aggregate cannot be produced because there are too few users.
+- `sum`, `avg`, `sum_noise`, and `avg_noise` return `null` when there are not enough users to produce a valid result.
+- `count_noise` returns `null` when there are not enough users to produce a valid result whereas `count` will produce
+  the minimum reportable number (`2`). This ensures Aircloak behaves like other SQL dialects where `count` is expected to
+  produce a non-nil number.
 
 ## Version 17.2.0
 
