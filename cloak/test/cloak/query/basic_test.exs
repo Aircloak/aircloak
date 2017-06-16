@@ -205,7 +205,7 @@ defmodule Cloak.Query.BasicTest do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
 
     assert_query "select avg(distinct height) from heights",
-      %{columns: ["avg"], rows: [%{row: [0.0], occurrences: 1}]}
+      %{columns: ["avg"], rows: [%{row: [nil], occurrences: 1}]}
 
     :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [170])
     :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [175])
