@@ -71,13 +71,6 @@ defmodule Cloak.DataSource do
   @spec all() :: [t]
   def all(), do: GenServer.call(__MODULE__, :all, :infinity)
 
-  @doc "Returns the datasource for the given id, raises if it's not found."
-  @spec fetch!(String.t) :: t
-  def fetch!(data_source_id) do
-    {:ok, data_source} = fetch(data_source_id)
-    data_source
-  end
-
   @doc "Returns the datasource with the given id, or `:error` if it's not found."
   @spec fetch(String.t) :: {:ok, t} | :error
   def fetch(data_source_name) do
