@@ -315,7 +315,7 @@ defmodule Cloak.Query.Anonymizer do
     end
   end
 
-  # The standard deviation used grows with the square root of the numbers of noise layers.
+  # The standard deviation used grows with the square root of the number of noise layers.
   defp scale_sigma_by_noise_layers(sigma, %{rngs: rngs} = _anonymizer), do:
     :math.sqrt(length(rngs)) * sigma
 
