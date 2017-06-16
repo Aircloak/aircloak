@@ -16,7 +16,9 @@ defmodule Cloak.Query.AnonimyzerTest do
     test "count" do
       # per-user row format = count of values
       rows = [10, 10, 10]
-      assert {nil, nil} = Anonymizer.new([MapSet.new()]) |> Anonymizer.count(rows)
+      # Count doesn't return nil in any SQL dialect we are aware of.
+      # We therefore return the lowest possible returnable value instead.
+      assert {2, nil} = Anonymizer.new([MapSet.new()]) |> Anonymizer.count(rows)
     end
 
     test "sum" do

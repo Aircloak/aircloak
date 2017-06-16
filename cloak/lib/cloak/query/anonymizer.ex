@@ -104,7 +104,7 @@ defmodule Cloak.Query.Anonymizer do
   @spec count(t, Enumerable.t) :: {non_neg_integer | nil, non_neg_integer | nil}
   def count(anonymizer, rows) do
     case sum_positives(anonymizer, rows) do
-      {{nil, nil}, _anonymizer} -> {nil, nil}
+      {{nil, nil}, _anonymizer} -> {config(:low_count_absolute_lower_bound), nil}
       {{count, noise_sigma}, _anonymizer} ->
         count = count |> round() |> Kernel.max(config(:low_count_absolute_lower_bound))
         {_noise_mean_lower_bound, noise_sigma_lower_bound} = config(:outliers_count)
