@@ -311,6 +311,44 @@ After low-count values are filtered, some amount of noise is introduced. Conside
 
 The results of aggregate functions, such as `SUM` and `COUNT`, are also anonymized. The returned values will slightly differ from the real values.
 
+### `null` and aggregates of infrequently occurring values
+
+Aircloak will report a value when the number of distinct users sharing the value exceeds a minimum threshold.
+
+For example a query like
+
+<pre style="float:left; background-color:inherit; color:inherit; text-shadow:inherit; padding-top: inherit;">
+  SELECT name
+  FROM users
+  GROUP BY name
+</pre>
+
+can safely return even infrequently occuring names.
+
+The threshold for reporting a value, which is low (but safe), does under some circumstances not allow the system to produce anonymized aggregate values.
+When this occurs `null` will be returned instead of an aggregate value. In the case of the `COUNT` aggregate the threshold value
+is returned instead of `null` to remain compliant with standard SQL where `COUNT` is expected to return a non-null value.
+
+As an example, let's consider a dataset containing 4 users with `name` Alice and an `age` column.
+A query attempting to return aggregate properties of the `age` column will likely return a set of `null` values.
+
+<pre style="float:left; background-color:inherit; color:inherit; text-shadow:inherit; padding-top: inherit;">
+  SELECT
+    name,
+    count(*), count_noise(*),
+    sum(age), sum_noise(age),
+    avg(age), avg_noise(age)
+  FROM users
+  GROUP BY name
+</pre>
+
+Notice how `COUNT` still produces a non-`NULL` value. The reported count is not accurate but signifies an absolute lower
+bound.
+
+| name  | count | count_noise | sum  | sum_noise | avg  | avg_noise |
+|-------|-------|-------------|------|-----------|------|-----------|
+| Alice | 2     | null        | null | null      | null | null      |
+
 
 ## Date functions
 
