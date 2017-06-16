@@ -67,6 +67,17 @@ defmodule Cloak.DataSource do
   # API
   # -------------------------------------------------------------------
 
+  @doc """
+  Starts the handler process for data sources.
+
+  Starting is fault-tolerant: if some data sources can't be accessed, or if
+  there are some errors in the configuration, the system will still start,
+  using the valid datasources. Invalid data sources won't be accessible, but
+  the system will log corresponding errors.
+  """
+  def start_link(), do:
+    GenServer.start_link(__MODULE__, init_state(), name: __MODULE__)
+
   @doc "Returns the list of defined data sources."
   @spec all() :: [t]
   def all(), do: GenServer.call(__MODULE__, :all, :infinity)
@@ -128,17 +139,6 @@ defmodule Cloak.DataSource do
   # -------------------------------------------------------------------
   # Callbacks
   # -------------------------------------------------------------------
-
-  @doc """
-  Starts the handler process for data sources.
-
-  Starting is fault-tolerant: if some data sources can't be accessed, or if
-  there are some errors in the configuration, the system will still start,
-  using the valid datasources. Invalid data sources won't be accessible, but
-  the system will log corresponding errors.
-  """
-  def start_link(), do:
-    GenServer.start_link(__MODULE__, init_state(), name: __MODULE__)
 
   @doc false
   def init(data_sources) do
