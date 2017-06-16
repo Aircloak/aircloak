@@ -311,9 +311,13 @@ defmodule Cloak.Query.Anonymizer do
       {sum, noise_sigma_scale} ->
         noise_sigma = config(:sum_noise_sigma) * noise_sigma_scale
         {noisy_sum, anonymizer} = add_noise(anonymizer, {sum, noise_sigma})
-        {{noisy_sum, round_noise_sigma(noise_sigma)}, anonymizer}
+        {{noisy_sum, noise_sigma |> scale_sigma_by_noise_layers(anonymizer) |> round_noise_sigma()}, anonymizer}
     end
   end
+
+  # The standard deviation used grows with the square root of the numbers of noise layers.
+  defp scale_sigma_by_noise_layers(sigma, %{rngs: rngs} = _anonymizer), do:
+    :math.sqrt(length(rngs)) * sigma
 
   defp take_values_from_distinct_users(user_values, amount) do
     user_values
