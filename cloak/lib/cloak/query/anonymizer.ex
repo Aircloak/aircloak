@@ -7,8 +7,8 @@ defmodule Cloak.Query.Anonymizer do
   with constant noise added and removal of outliers. The anonymization parameters can
   be configured through the `:anonymizer` section of OTP application environment.
 
-  The generated noise is deterministic for the same set of users. For example,
-  calling `Anonymizer.new(users) |> Anonymizer.sum(values)` will always give the
+  The generated noise is deterministic for the same set of noise layers. For example,
+  calling `Anonymizer.new([users]) |> Anonymizer.sum(values)` will always give the
   same result for the same set of users and values, while it may differ for another
   set of users even if the values are the same.
 
@@ -19,7 +19,7 @@ defmodule Cloak.Query.Anonymizer do
   For example, let's say we have the following code:
 
   ```
-  initial_anonymizer = Anonymizer.new(users)
+  initial_anonymizer = Anonymizer.new([users | other_noise_layers])
   sum = Anonymizer.sum(initial_anonymizer, values)
   ```
 
@@ -49,7 +49,8 @@ defmodule Cloak.Query.Anonymizer do
   Creates a noise generator from a collection of sets of values representing noise layers.
 
   Each noise layer must be either a `MapSet`, or a map (in which case the keys are used).
-  Such types ensure that user ids are unique.
+  Such types ensure that the values in the noise layers are unique without the need to check
+  that again if the calling code already keeps the values in such a structure.
   """
   @spec new([MapSet.t | %{String.t => any}]) :: t
   def new([_|_] = layers), do:
@@ -116,7 +117,7 @@ defmodule Cloak.Query.Anonymizer do
     {sum, noise_sigma}
   end
 
-  @doc "Computes the noisy minimum value of all values in rows, where each row is an enumerable of numbers."
+  @doc "Computes the noisy minimum value from the given enumerable of numbers."
   @spec min(t, Enumerable.t) :: number | nil
   def min(anonymizer, rows) do
     # we use the fact that min([value]) = -max([-value])
@@ -126,7 +127,7 @@ defmodule Cloak.Query.Anonymizer do
     end
   end
 
-  @doc "Computes the noisy maximum value of all values in rows, where each row is an enumerable of numbers."
+  @doc "Computes the noisy maximum value from the given enumerable of numbers."
   @spec max(t, Enumerable.t) :: number | nil
   def max(anonymizer, rows) do
     get_max(anonymizer, rows, fn ({:max, value}) -> value end)
