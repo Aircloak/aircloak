@@ -270,7 +270,7 @@ For best results design your queries so that they take this adjustment into acco
 
 ## Understanding query results
 
-`SELECT` queries return anonymized results. The results have a small amount of noise added to them. This is crucial in protecting the privacy of individuals, while sufficiently unobtrusive to provide accurate results during normal use.
+`SELECT` queries return anonymized results. The results have noise added to them. This is crucial in protecting the privacy of individuals, while sufficiently unobtrusive to provide accurate results during normal use.
 
 The results are anonymized in two phases:
 
