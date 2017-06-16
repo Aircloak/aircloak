@@ -52,7 +52,7 @@ defmodule Cloak.Test.DB do
     table = Map.merge(default, user_overrides)
 
     DataSource.all()
-    |> Enum.map(&(&1 |> put_in([:init_tables, table_id], table) |> DataSource.add_tables()))
+    |> Enum.map(&(&1 |> put_in([:initial_tables, table_id], table) |> DataSource.add_tables()))
     |> update_data_sources()
   end
 

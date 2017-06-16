@@ -50,9 +50,9 @@ defmodule Cloak.DataSource do
     tables: %{atom => Table.t},
     errors: [String.t],
     status: :online | :offline,
-    # we need to store the initial tables and errors in case we need to re-init the data source later
-    init_tables: %{atom => Table.t},
-    init_errors: [String.t],
+    # we need to store the initial tables and errors in case we need to re-scan the data source tables later
+    initial_tables: %{atom => Table.t},
+    initial_errors: [String.t],
   }
 
   @type num_rows :: non_neg_integer
@@ -248,13 +248,13 @@ defmodule Cloak.DataSource do
 
   defp save_init_fields(data_source), do:
     data_source
-    |> Map.put(:init_tables, data_source.tables)
-    |> Map.put(:init_errors, data_source.errors)
+    |> Map.put(:initial_tables, data_source.tables)
+    |> Map.put(:initial_errors, data_source.errors)
 
   defp restore_init_fields(data_source), do:
     data_source
-    |> Map.put(:tables, data_source.init_tables)
-    |> Map.put(:errors, data_source.init_errors)
+    |> Map.put(:tables, data_source.initial_tables)
+    |> Map.put(:errors, data_source.initial_errors)
 
   @doc false
   def add_tables(data_source) do
