@@ -50,9 +50,12 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
 ## MAX() / MIN()
 
   - The maximum / minimum values per-user are taken.
-  - The first No users with the maximum / minimum overall values are dropped,
-    where No is a noisy number with mean 4, SD 1 and lower bound 1.
-  - Take the average value of the top Nt remaining users, where Nt is a noisy number with mean 5 and SD 1.
+  - The first No users with the maximum / minimum overall values are dropped.
+    No is calculated based on mean and SD values from [outliers_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L41),
+    using an absolute lower bound of [min_outliers_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L44).
+  - Take the average value of the top Nt remaining users.
+    Nt is calculated based on mean and SD values from [top_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L48), using an
+    absolute lower bound of [min_outliers_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L44).
   - Add noise to the top average with mean 0 and SD equal a quarter of the standard deviation of the values
     used for the average calculation.
   - In case we don't have enough values available to compute the average, `null` is returned.
@@ -68,14 +71,17 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
 ## COUNT()
 
   - The counts of values per-user are computed.
-  - The first No users with the biggest overall counts are dropped,
-    where No is a noisy number with mean 4, SD 1 and lower bound 1.
-  - The average count of the top Nt remaining users is computed,
-    where Nt is a noisy number with mean 5 and SD 1.
+  - The first No users with the biggest overall counts are dropped.
+    No is calculated based on mean and SD values from [outliers_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L41),
+    using an absolute lower bound of [min_outliers_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L44).
+  - The average count of the top Nt remaining users is computed.
+    Nt is calculated based on mean and SD values from [top_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L48), using an
+    absolute lower bound of [min_outliers_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L44).
   - The total count is the sum of all the remaining counts plus No multiplied by
     the average count of the top Nt users plus Nv multiplied by the maximum value between
     the average count of the top Nt users and twice the average count of all the remaining users,
-    where Nv is a noisy number with mean 0 and SD 1
+    where Nv is a zero mean noisy number with a standard deviation taken from
+    [sum_noise_sigma](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L51)
     (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * max(avg(top(remaining, Nt)), 2 * avg(remaining))`).
   - The final result is the maximum between the absolute lower bound of the LCF and the total count.
 
@@ -86,14 +92,17 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
   - The final result is the anonymized sum of the positive values minus the
     anonymized sum of the negated negative values.
   - The anonymized sum of a set of positive values is computed as follows:
-    - The first No users with the biggest overall valuea are dropped,
-      where No is a noisy number with mean 4, SD 1 and lower bound 1.
-    - The average value of the top Nt remaining users is computed,
-      where Nt is a noisy number with mean 5 and SD 1.
+    - The first No users with the biggest overall valuea are dropped.
+      No is calculated based on mean and SD values from [outliers_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L41),
+      using an absolute lower bound of [min_outliers_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L44).
+    - The average value of the top Nt remaining users is computed.
+      Nt is calculated based on mean and SD values from [top_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L48), using an
+      absolute lower bound of [min_outliers_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L44).
     - The total sum is the sum of all the remaining values plus No multiplied by
       the average value of the top Nt users plus Nv multiplied by the maximum value between
       the average value of the top Nt users and twice the average value of all the remaining users,
-      where Nv is a noisy number with mean 0 and SD 1
+      where Nv is a zero mean noisy number with a standard deviation taken from
+      [sum_noise_sigma](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L51)
       (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * max(avg(top(remaining, Nt)), 2 * avg(remaining))`).
 
 
@@ -115,7 +124,9 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
   - The values are sorted in ascending order.
   - The real median is computed.
   - The closest value per-user is extracted from above and below the median,
-    from a noisy amount (mean: 5, SD: 1) of distinct users on each side.
+    from a noisy amount (mean and SD taken from [top_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L48),
+    with a minimum value of [min_outliers_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L44))
+    of distinct users on each side.
   - The final result is the average of the real median and the extracted values from above and below,
     to which an additional noise component is added which has mean 0 and SD equal to a quarter of the
     standard deviantions of the values used for the median computation
@@ -206,47 +217,3 @@ interval is then aligned as described in [Fixed alignment](#fixed_alignment) wit
 the caveat that depending on the chosen grain (days, minutes, etc.) a different
 grid sized is used. For example for minutes the allowed grid sizes are
 `1, 2, 5, 15, 30, 60`. The result is converted back into a datetime interval.
-
-## Shrink and drop
-
-Given a query that scopes a certain column by an interval we need to check if
-the analyst could have made another query with a slightly different interval
-that differs by a `low_count` number of users. If so the rows outside of that
-other query need to be suppressed from the output so that the result is the
-same for both queries.
-
-The perfect algorithm for this calls for analyzing all possible smaller ranges
-for a given range and then recursively checking any data that remains after
-suppression. Due to problems with implementing such an approach in a streaming
-manner we decided on an approximate approach. The overall idea is to keep track
-of a number of users with the highest and lowest values and buffer all records
-of such users. At the end of the stream we decide how many of the most extreme
-values need to be suppressed by producing an aligned range that encompasses most
-of the data seen and rejecting rows that fall outside of it. Details:
-
-* The input is a stream of rows.
-* We buffer top and bottom N users with respect to the scoped column seen so far.
-* When a row arrives we check if it's "safe" - that is the value for that row
-is bigger than the biggest buffered value for the bottom N users and smaller
-than the smallest buffered value for the top N.
-* If it is then we emit it immediately.
-* If it's not then we add it to the buffer. If the row belongs to a user that's
-already in the buffer it is "attached" to that user. Otherwise a new entry for
-the owner of that row is created. If the buffer exceeds size N at this point,
-then all the rows from the "safest" (closest to the middle) user are removed
-from the buffer and emitted.
-* An exception to the above occurs when the user is in both the top N and bottom
-N buffers - in that case the rows are "attached" in the other buffer instead
-of being emitted.
-* We collect the set of user ids from emitted rows.
-* At the end of the stream we pick a random number with the same configuration as
-the offset used for determining `low_count` using a seed generated from the set
-of used ids extended with the hashed endpoints of the input range (see
-https://github.com/Aircloak/aircloak/issues/870 for an explanation).
-* The number N above is picked in such a way that there is a very high probability of
-it being bigger than the number chosen in the previous step so that we have sufficient
-users to perform the calculation after we drop that many users.
-* We skip that number of users from each side of the buffer. We find the smallest
-range that encompasses all non-skipped entries in the buffer and align that range.
-* We emit all buffered data that fits into the aligned range and suppress all data
-that doesn't.
