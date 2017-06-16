@@ -99,7 +99,9 @@ defmodule Cloak.Query.Anonymizer do
   @doc """
   Computes the noisy count and noise sigma of all values in rows, where each row is an enumerable.
 
-  Returns nil when the number of users is too low to produce an anonymized count.
+  When the number of users is too low to produce a count:
+  - the count uses the lower threshold for reportable values (to remain compatible with standard SQL)
+  - the count_noise is set to null
   """
   @spec count(t, Enumerable.t) :: {non_neg_integer, non_neg_integer | nil}
   def count(anonymizer, rows) do
