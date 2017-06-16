@@ -124,7 +124,8 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
   - The values are sorted in ascending order.
   - The real median is computed.
   - The closest value per-user is extracted from above and below the median,
-    from a noisy amount (mean and SD taken from mean [top_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L48), with a minimum value of [min_outliers_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L44))
+    from a noisy amount (mean and SD taken from [top_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L48),
+    with a minimum value of [min_outliers_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L44))
     of distinct users on each side.
   - The final result is the average of the real median and the extracted values from above and below,
     to which an additional noise component is added which has mean 0 and SD equal to a quarter of the
