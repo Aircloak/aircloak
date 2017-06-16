@@ -120,7 +120,7 @@ defmodule Cloak.Query.Anonymizer do
 
   Returns nil when the number of users is too low to produce an anonymized sum.
   """
-  @spec sum(t, Enumerable.t) :: {number | nil, number | nil}
+  @spec sum(t, Enumerable.t) :: {number, number} | {nil, nil}
   def sum(anonymizer, rows) do
     {positive_result, anonymizer} = sum_positives(anonymizer, rows)
     {negative_result, _anonymizer} = sum_positives(anonymizer, Stream.map(rows, &-/1))
@@ -155,7 +155,7 @@ defmodule Cloak.Query.Anonymizer do
 
   Returns nil when the number of users is too low to produce an anonymized average.
   """
-  @spec avg(t, Enumerable.t) :: {float | nil, float | nil}
+  @spec avg(t, Enumerable.t) :: {float, float} | {nil, nil}
   def avg(anonymizer, rows) do
     case sum(anonymizer, Stream.map(rows, fn ({:avg, sum, _count}) -> sum end)) do
       {0, nil} = no_result -> {nil, nil}
