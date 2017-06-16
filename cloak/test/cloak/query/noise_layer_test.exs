@@ -154,14 +154,14 @@ defmodule Cloak.Query.NoiseLayerTest do
     :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["number"], [100])
     :ok = insert_rows(_user_ids = 26..75, "noise_layers", ["number"], [50])
 
-    assert_query "select count(number) from noise_layers where sqrt(number) <> 11", %{rows: [%{row: [100]}]}
+    assert_query "select count(number) from noise_layers where sqrt(number) <> 11", %{rows: [%{row: [101]}]}
   end
 
   test "complex negative conditions matching enough users are kept" do
     :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["number"], [100])
     :ok = insert_rows(_user_ids = 26..75, "noise_layers", ["number"], [50])
 
-    assert_query "select count(number) from noise_layers where sqrt(number) <> 10", %{rows: [%{row: [50]}]}
+    assert_query "select count(number) from noise_layers where sqrt(number) <> 10", %{rows: [%{row: [49]}]}
   end
 
   test "the reported noise should scale with the layers of noise" do
