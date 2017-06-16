@@ -270,7 +270,7 @@ For best results design your queries so that they take this adjustment into acco
 
 ## Understanding query results
 
-`SELECT` queries return anonymized results. The results have a small amount of noise added to them. This is crucial in protecting the privacy of individuals, while sufficiently unobtrusive to provide accurate results during normal use.
+`SELECT` queries return anonymized results. The results have noise added to them. This is crucial in protecting the privacy of individuals, while sufficiently unobtrusive to provide accurate results during normal use.
 
 The results are anonymized in two phases:
 
@@ -293,7 +293,7 @@ Tom    | 2
 
 Since the number of distinct users named Bob, Mary, and Tom is too small, these names won't appear in the final result. In contrast, there is a sufficient number of Alices and Johns, so the result will contain the corresponding rows.
 
-In place of the discarded rows, the `*` rows will be included in the result. All columns of these rows will have the value of `*`. So in this example, the distribution of rows after filtering would be as follows:
+`*` rows are included in the result in place of rows that are discarded due to anonymization. In this example the distribution of rows after filtering would be:
 
 Name   | Number of returned rows
 ------ | ------------------------
@@ -301,9 +301,9 @@ Alice  | 100
 John   | 150
 *      | 5
 
-The number of `*` rows indicates the amount of properties that can't be included in the result. Note that this doesn't represent the number of _distinct_ omitted values. In this example, three distinct names are not reported (Bob, Mary, and Tom), but since there are two Bobs, one Mary, and two Toms, the result contains `2 + 1 + 2 = 5` `*` rows.
+The number of `*` rows indicates the amount of properties that can't be included in the result. Note that this does not represent the number of _distinct_ omitted values. In this example, three distinct names are not reported (Bob, Mary, and Tom), but since there are two Bobs, one Mary, and two Toms, the result contains `2 + 1 + 2 = 5` `*` rows.
 
-It's worth noting that absence of `*` rows doesn't mean that no rows were omitted. The `*` rows have to pass the same anonymization procedure. Thus, if the total count of `*` rows is too low, they will be omitted from the result.
+It is worth noting that absence of `*` rows doesn't mean that no rows were omitted. The `*` rows have to pass the same anonymization procedure. Thus, if the total count of `*` rows is too low, they will be omitted from the result.
 
 ### Adding noise
 
@@ -312,6 +312,44 @@ After low-count values are filtered, some amount of noise is introduced. Conside
 The results of aggregate functions, such as `SUM` and `COUNT`, are also anonymized. The returned values will slightly differ from the real values.
 
 To ensure anonymity the amount of noise added depends on the number and types of filters used in the query. You might be able to get more accurate results by removing some `WHERE`- or `HAVING`-clauses from your query. Use the [count_noise](#count_noise) function to get a better idea of how much noise is being added.
+
+### `null` and aggregates of infrequently occurring values
+
+Aircloak will report a value when the number of distinct users sharing the value exceeds a minimum threshold.
+
+For example a query like
+
+<pre style="float:left; background-color:inherit; color:inherit; text-shadow:inherit; padding-top: inherit;">
+  SELECT name
+  FROM users
+  GROUP BY name
+</pre>
+
+can safely return even infrequently occuring names.
+
+The threshold for reporting a value, which is low (but safe), does under some circumstances not allow the system to produce anonymized aggregate values.
+When this occurs `null` will be returned instead of an aggregate value. In the case of the `COUNT` aggregate the threshold value
+is returned instead of `null` to remain compliant with standard SQL where `COUNT` is expected to return a non-null value.
+
+As an example, let's consider a dataset containing 4 users with `name` Alice and an `age` column.
+A query attempting to return aggregate properties of the `age` column will likely return a set of `null` values.
+
+<pre style="float:left; background-color:inherit; color:inherit; text-shadow:inherit; padding-top: inherit;">
+  SELECT
+    name,
+    count(*), count_noise(*),
+    sum(age), sum_noise(age),
+    avg(age), avg_noise(age)
+  FROM users
+  GROUP BY name
+</pre>
+
+Notice how `COUNT` still produces a non-`NULL` value. The reported count is not accurate but signifies an absolute lower
+bound.
+
+| name  | count | count_noise | sum  | sum_noise | avg  | avg_noise |
+|-------|-------|-------------|------|-----------|------|-----------|
+| Alice | 2     | null        | null | null      | null | null      |
 
 
 ## Anonymization functions
