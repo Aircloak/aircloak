@@ -149,7 +149,7 @@ defmodule Cloak.DataSource do
 
   @doc false
   def init(data_sources) do
-    activate_monitor_timer()
+    activate_monitor_timer(self())
     {:ok, data_sources}
   end
 
@@ -166,14 +166,18 @@ defmodule Cloak.DataSource do
   end
 
   def handle_info(:monitor, data_sources) do
-    old_status = Enum.map(data_sources, & &1.status)
-    data_sources = Enum.map(data_sources, &check_data_source/1)
-    new_status = Enum.map(data_sources, & &1.status)
-    if new_status != old_status do
-      Logger.info("Data sources status changed, sending new configuration to air ...")
-      Cloak.AirSocket.update_config(data_sources)
-    end
-    activate_monitor_timer()
+    self = self()
+    Task.start_link(fn () ->
+      old_status = Enum.map(data_sources, & &1.status)
+      data_sources = Enum.map(data_sources, &check_data_source/1)
+      new_status = Enum.map(data_sources, & &1.status)
+      if new_status != old_status do
+        GenServer.call(__MODULE__, {:update, data_sources}, :infinity)
+        Logger.info("Data sources status changed, sending new configuration to air ...")
+        Cloak.AirSocket.update_config(data_sources)
+      end
+      activate_monitor_timer(self)
+    end)
     {:noreply, data_sources}
   end
 
@@ -182,9 +186,9 @@ defmodule Cloak.DataSource do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp activate_monitor_timer() do
+  defp activate_monitor_timer(pid) do
     interval = Application.get_env(:cloak, :data_source_monitor_interval)
-    if interval != nil, do: Process.send_after(self(), :monitor, interval)
+    if interval != nil, do: Process.send_after(pid, :monitor, interval)
   end
 
   defp init_state(), do:
