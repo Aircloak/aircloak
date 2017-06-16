@@ -162,7 +162,7 @@ defmodule Cloak.Query.Anonymizer do
       {nil, nil} = no_result -> no_result
       {sum, sum_noise_sigma} ->
         case count(anonymizer, Stream.map(rows, fn ({:avg, _sum, count}) -> count end)) do
-          {nil, nil} = no_result -> no_result
+          {_, nil} = _no_result -> {nil, nil}
           {count, _count_noise_sigma} -> {sum / count, sum_noise_sigma / count}
         end
     end
