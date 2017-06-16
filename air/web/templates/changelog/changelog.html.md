@@ -23,8 +23,8 @@
 - FULL OUTER JOINs are no longer allowed (because they implement `OR` functionality).
 - `sum`, `avg`, `sum_noise`, and `avg_noise` return `null` when there are not enough users to produce a valid result.
 - `count_noise` returns `null` when there are not enough users to produce a valid result whereas `count` will produce
-  the minimum reportable number (`2`). This ensures Aircloak behaves like other SQL dialects where `count` is expected to
-  produce a non-nil number.
+  the minimum reportable number. This ensures Aircloak behaves like other SQL dialects where `count` is expected to
+  produce a non-null number.
 
 ## Version 17.2.0
 
