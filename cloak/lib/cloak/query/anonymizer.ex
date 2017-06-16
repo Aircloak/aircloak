@@ -101,7 +101,7 @@ defmodule Cloak.Query.Anonymizer do
 
   When the number of users is too low to produce a count:
   - the count uses the lower threshold for reportable values (to remain compatible with standard SQL)
-  - the count_noise is set to null
+  - the count_noise is set to nil
   """
   @spec count(t, Enumerable.t) :: {non_neg_integer, non_neg_integer | nil}
   def count(anonymizer, rows) do
