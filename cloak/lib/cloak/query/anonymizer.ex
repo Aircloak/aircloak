@@ -101,7 +101,7 @@ defmodule Cloak.Query.Anonymizer do
 
   Returns nil when the number of users is too low to produce an anonymized count.
   """
-  @spec count(t, Enumerable.t) :: {non_neg_integer | nil, non_neg_integer | nil}
+  @spec count(t, Enumerable.t) :: {non_neg_integer, non_neg_integer | nil}
   def count(anonymizer, rows) do
     case sum_positives(anonymizer, rows) do
       {{nil, nil}, _anonymizer} -> {config(:low_count_absolute_lower_bound), nil}
