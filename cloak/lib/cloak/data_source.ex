@@ -165,7 +165,7 @@ defmodule Cloak.DataSource do
       data_sources = Enum.map(data_sources, &check_data_source/1)
       new_status = Enum.map(data_sources, & &1.status)
       if new_status != old_status do
-        GenServer.call(__MODULE__, {:update, data_sources}, :infinity)
+        update(data_sources)
         Logger.info("Data sources status changed, sending new configuration to air ...")
         Cloak.AirSocket.update_config(data_sources)
       end
@@ -270,6 +270,10 @@ defmodule Cloak.DataSource do
         %{data_source | errors: [message | data_source.errors], tables: %{}, status: :offline}
     end
   end
+
+  @doc false
+  def update(data_sources), do:
+    GenServer.call(__MODULE__, {:update, data_sources}, :infinity)
 
   # We need a name for the data source in order for the Air to have something to attach
   # potential errors to. Therefore if none exists, we'll create a dummy name based on

@@ -53,7 +53,7 @@ defmodule Cloak.Test.DB do
 
     DataSource.all()
     |> Enum.map(&(&1 |> put_in([:initial_tables, table_id], table) |> DataSource.add_tables()))
-    |> update_data_sources()
+    |> DataSource.update()
   end
 
   # -------------------------------------------------------------------
@@ -79,13 +79,10 @@ defmodule Cloak.Test.DB do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp update_data_sources(data_sources), do:
-    :ok = GenServer.call(DataSource, {:update, data_sources}, :infinity)
-
   defp clear_test_tables() do
     DataSource.all()
     |> Enum.map(&Map.put(&1, :tables, %{}))
-    |> update_data_sources()
+    |> DataSource.update()
   end
 
   defp create_db_table(db_name, definition, opts) do
