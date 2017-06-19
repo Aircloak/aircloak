@@ -159,12 +159,10 @@ defmodule Cloak.Query.Anonymizer do
   @spec avg(t, Enumerable.t) :: {float, float} | {nil, nil}
   def avg(anonymizer, rows) do
     case sum(anonymizer, Stream.map(rows, fn ({:avg, sum, _count}) -> sum end)) do
-      {0, nil} = _no_result -> {nil, nil}
+      {nil, nil} -> {nil, nil}
       {sum, sum_noise_sigma} ->
-        case count(anonymizer, Stream.map(rows, fn ({:avg, _sum, count}) -> count end)) do
-          {_, nil} = _no_result -> {nil, nil}
-          {count, _count_noise_sigma} -> {sum / count, sum_noise_sigma / count}
-        end
+        {count, _count_noise_sigma} = count(anonymizer, Stream.map(rows, fn ({:avg, _sum, count}) -> count end))
+        {sum / count, sum_noise_sigma / count}
     end
   end
 
