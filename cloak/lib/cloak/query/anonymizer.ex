@@ -111,8 +111,7 @@ defmodule Cloak.Query.Anonymizer do
       {{count, noise_sigma}, _anonymizer} ->
         count = count |> round() |> Kernel.max(config(:low_count_absolute_lower_bound))
         {_noise_mean_lower_bound, noise_sigma_lower_bound} = config(:outliers_count)
-        noise_sigma = noise_sigma |> round() |> Kernel.max(noise_sigma_lower_bound)
-        {count, noise_sigma}
+        {count, Kernel.max(noise_sigma, noise_sigma_lower_bound)}
     end
   end
 
