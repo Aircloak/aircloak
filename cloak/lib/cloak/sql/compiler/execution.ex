@@ -28,7 +28,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> reject_null_user_ids()
     |> censor_selected_uids()
     |> align_buckets()
-    |> align_ranges(Lens.key(:where), :where)
+    |> align_ranges(Lens.key(:where))
     |> align_join_ranges()
     |> optimize_columns_from_projected_tables()
     |> set_emulation_flag()
@@ -161,7 +161,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> prepare()
     |> align_limit()
     |> align_offset()
-    |> align_ranges(Lens.key(:having), :having)
+    |> align_ranges(Lens.key(:having))
 
   @minimum_subquery_limit 10
   defp align_limit(query = %{limit: nil}), do: query
@@ -300,9 +300,9 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp align_join_ranges(query), do:
     query
     |> Query.Lenses.join_condition_lenses()
-    |> Enum.reduce(query, fn(lens, query) -> align_ranges(query, lens, :where) end)
+    |> Enum.reduce(query, fn(lens, query) -> align_ranges(query, lens) end)
 
-  defp align_ranges(query, lens, range_type) do
+  defp align_ranges(query, lens) do
     clause = Lens.get(lens, query)
     grouped_inequalities = inequalities_by_column(clause)
     range_columns = Map.keys(grouped_inequalities)
@@ -311,10 +311,10 @@ defmodule Cloak.Sql.Compiler.Execution do
     non_range_conditions = Condition.reject(clause, &Enum.member?(range_columns, Condition.subject(&1)))
 
     query = put_in(query, [lens], non_range_conditions)
-    Enum.reduce(grouped_inequalities, query, &add_aligned_range(&1, &2, lens, range_type))
+    Enum.reduce(grouped_inequalities, query, &add_aligned_range(&1, &2, lens))
   end
 
-  defp add_aligned_range({column, conditions}, query, lens, range_type) do
+  defp add_aligned_range({column, conditions}, query, lens) do
     {left, right} =
       conditions
       |> Enum.map(&Condition.value/1)
@@ -333,7 +333,7 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> Query.add_info("The range for column #{Expression.display_name(column)} has been adjusted to #{left} <= "
         <> "#{Expression.short_name(column)} < #{right}.")
     end
-    |> put_in([Lens.key(:ranges), Lens.front()], Range.new(column, {left, right}, range_type))
+    |> put_in([Lens.key(:ranges), Lens.front()], Range.new(column, {left, right}))
   end
 
   defp implement_range?({left, right}, conditions) do
