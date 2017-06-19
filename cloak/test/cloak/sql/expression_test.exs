@@ -117,6 +117,7 @@ defmodule Cloak.Sql.Expression.Test do
     assert apply_function("right", ["a string", -2]) == "string"
     assert apply_function("right", [nil, 0]) == nil
     assert apply_function("right", ["a string", nil]) == nil
+    assert apply_function("right", ["a string", 100]) == "a string"
   end
 
   test "lower" do
