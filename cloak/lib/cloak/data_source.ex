@@ -159,7 +159,7 @@ defmodule Cloak.DataSource do
   end
 
   def handle_info(:monitor, data_sources) do
-    self = self()
+    server_pid = self()
     Task.start_link(fn () ->
       old_status = Enum.map(data_sources, & &1.status)
       data_sources = Enum.map(data_sources, &check_data_source/1)
@@ -169,7 +169,7 @@ defmodule Cloak.DataSource do
         Logger.info("Data sources status changed, sending new configuration to air ...")
         Cloak.AirSocket.update_config(data_sources)
       end
-      activate_monitor_timer(self)
+      activate_monitor_timer(server_pid)
     end)
     {:noreply, data_sources}
   end
