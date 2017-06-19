@@ -292,7 +292,7 @@ mins, max of maxes and sum of counts.
 
 Some clauses cannot be safely handled with noise layers. This mostly affects
 `<>` clauses with some functions applied to the column before the comparison is
-made. The reason is that we don't have a wey (yet?) to detect the "real" meaning
+made. The reason is that we don't have a way (yet?) to detect the "real" meaning
 of the clause. For example both `a <> 4` and `sqrt(a) <> 2` do the exact same
 thing.
 
