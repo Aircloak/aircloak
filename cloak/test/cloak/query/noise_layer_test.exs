@@ -154,7 +154,7 @@ defmodule Cloak.Query.NoiseLayerTest do
     :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["number"], [100])
     :ok = insert_rows(_user_ids = 26..75, "noise_layers", ["number"], [50])
 
-    assert_query "select count(number) from noise_layers where sqrt(number) <> 11", %{rows: [%{row: [101]}]}
+    assert_query "select count(number) from noise_layers where sqrt(number) <> 11", %{rows: [%{row: [100]}]}
   end
 
   test "complex negative conditions matching enough users are kept" do
@@ -168,7 +168,7 @@ defmodule Cloak.Query.NoiseLayerTest do
     :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["number"], [100])
 
     # The average value is 100, which means we will use a noise of:
-    # 2 * average * sum_noise_sigma * sqrt(num noise layers) = 2 * 100 * 1 * sqrt(2) = 200 * sqrt(2) ~ 283 ---> 280
-    assert_query "select sum_noise(number) from noise_layers where number = 100", %{rows: [%{row: [280.0]}]}
+    # average * sum_noise_sigma * sqrt(num noise layers) = 100 * 1 * sqrt(2) = 100 * sqrt(2) ~ 141 ---> 140
+    assert_query "select sum_noise(number) from noise_layers where number = 100", %{rows: [%{row: [140.0]}]}
   end
 end
