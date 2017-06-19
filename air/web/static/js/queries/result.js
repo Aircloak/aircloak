@@ -48,7 +48,8 @@ type State = {
   tableAligner: TableAlignerT,
 };
 
-const unreliableUsersCountThreshold = 15;
+const UNRELIABLE_USER_COUNT_THRESHOLD = 15;
+const ZERO_WIDTH_SPACE = "\u200B";
 
 export class ResultView extends React.Component {
   constructor(props: Result) {
@@ -166,6 +167,8 @@ export class ResultView extends React.Component {
       return "<null>";
     } else if (this.isNumeric(value)) {
       return Math.round(value * 1000) / 1000; // keep 3 decimals at most
+    } else if (value === "") {
+      return ZERO_WIDTH_SPACE; // keeps table row from collapsing
     } else {
       return value.toString();
     }
@@ -207,7 +210,7 @@ export class ResultView extends React.Component {
   }
 
   getRowAttrs(row: Row) {
-    if (row.users_count < unreliableUsersCountThreshold) {
+    if (row.users_count < UNRELIABLE_USER_COUNT_THRESHOLD) {
       return {
         title: "These values are unreliable because of the low number of users involved.",
         "data-toggle": "tooltip",
