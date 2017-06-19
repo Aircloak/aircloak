@@ -1,18 +1,16 @@
 defmodule Cloak.Sql.Range do
-  @moduledoc "Represents a range the analyst applied in the query that needs to be tracked for ShrinkAndDrop."
+  @moduledoc "Represents a range the analyst applied in the query that needs to be tracked."
 
   alias Cloak.Sql.{Expression, FixAlign}
 
   @type t :: %__MODULE__{
     column: Expression.t,
     interval: FixAlign.interval(any),
-    type: type
   }
-  @type type :: :having | :where | :nested_min | :nested_max
 
-  defstruct [:column, :interval, :type]
+  defstruct [:column, :interval]
 
-  @doc "Returns a Range with the given column, interval and type."
-  @spec new(Expression.t, FixAlign.interval(any), type) :: t
-  def new(column, interval, type), do: %__MODULE__{column: column, interval: interval, type: type}
+  @doc "Returns a Range with the given column and interval."
+  @spec new(Expression.t, FixAlign.interval(any)) :: t
+  def new(column, interval), do: %__MODULE__{column: column, interval: interval}
 end
