@@ -274,8 +274,8 @@ defmodule Cloak.Query.Anonymizer do
     {a, b, c}
   end
 
-  # Produces a gaussian distributed random number with given mean and standard deviation. The actual standard deviation
-  # produced will be slightly larger for anonymizers with 5 or more noise layers.
+  # Produces random number with given mean. The number is a sum of the mean and a gaussian-distributed 0-mean number
+  # with the given standard deviation _per noise layer_.
   defp add_noise(%{rngs: rngs} = anonymizer, {mean, sd_scale}) do
     {noise, rngs} = Enum.reduce(rngs, {0, []}, fn(rng, {noise, rngs}) ->
       {sample, rng} = gauss(rng)
