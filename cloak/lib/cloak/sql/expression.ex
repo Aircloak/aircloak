@@ -288,7 +288,7 @@ defmodule Cloak.Sql.Expression do
   defp right(nil, _), do: nil
   defp right(_, nil), do: nil
   defp right(string, count) when count < 0, do: String.slice(string, -count, String.length(string))
-  defp right(string, count), do: String.slice(string, String.length(string) - count, count)
+  defp right(string, count), do: String.slice(string, String.length(string) - count |> max(0), count)
 
   defp trim(string, chars), do: string |> ltrim(chars) |> rtrim(chars)
 
