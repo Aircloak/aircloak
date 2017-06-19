@@ -311,7 +311,7 @@ After low-count values are filtered, some amount of noise is introduced. Conside
 
 The results of aggregate functions, such as `SUM` and `COUNT`, are also anonymized. The returned values will slightly differ from the real values.
 
-To ensure anonymity the amount of noise added depends on the number and types of filters used in the query. You might be able to get more accurate results by removing some `WHERE`- or `HAVING`-clauses from your query. Use the [avg_nise](#avg_nise), [count_noise](#count_noise), and [sum_noise](#sum_noise)  functions to get a better idea of how much noise is being added.
+To ensure anonymity the amount of noise added depends on the number and types of filters used in the query. You might be able to get more accurate results by removing some `WHERE`- or `HAVING`-clauses from your query. Use the [avg_noise](#avg_noise), [count_noise](#count_noise), and [sum_noise](#sum_noise)  functions to get a better idea of how much noise is being added.
 
 ### `null` and aggregates of infrequently occurring values
 
@@ -354,7 +354,7 @@ bound.
 
 ## Anonymization functions
 
-### avg_nise
+### avg_noise
 
 ```sql
 AVG_NOISE(some_column)
