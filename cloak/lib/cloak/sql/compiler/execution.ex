@@ -70,14 +70,15 @@ defmodule Cloak.Sql.Compiler.Execution do
     # not possible without this replacement.
     Lens.key(:columns)
     |> Lens.all()
-    |> Lens.satisfy(&uid_column?/1)
+    |> Lens.satisfy(&non_aggregated_uid_expression?/1)
     |> Lens.map(query, &Expression.constant(&1.type, :*))
   end
   defp censor_selected_uids(query), do: query
 
-  defp uid_column?(column), do:
-    [column] |> get_in([Lenses.all_expressions()]) |> Enum.all?(&not &1.aggregate?) and
-    [column] |> extract_columns() |> Enum.any?(& &1.user_id?)
+  # returns true if the column contains an expression with non-aggregated user ids
+  defp non_aggregated_uid_expression?(column), do:
+    ([column] |> get_in([Lenses.all_expressions()]) |> Enum.all?(&not &1.aggregate?)) and
+    ([column] |> extract_columns() |> Enum.any?(& &1.user_id?))
 
 
   # -------------------------------------------------------------------
