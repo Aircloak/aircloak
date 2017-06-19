@@ -285,7 +285,8 @@ defmodule Central.Service.Customer do
   defp air_handler(air_version) do
     %{
       "17.1.0" => {:ok, AirMessage.Default},
-      "17.2.0" => {:ok, AirMessage.V170200}
+      "17.2.0" => {:ok, AirMessage.V170200},
+      "17.3.0" => {:ok, AirMessage.V170300}
     } |> Map.get(air_version, {:error, :invalid_version})
   end
 end
