@@ -111,8 +111,7 @@ defmodule Cloak.Query.Anonymizer do
       {{count, noise_sigma}, _anonymizer} ->
         count = count |> round() |> Kernel.max(config(:low_count_absolute_lower_bound))
         {_noise_mean_lower_bound, noise_sigma_lower_bound} = config(:outliers_count)
-        noise_sigma = noise_sigma |> round() |> Kernel.max(noise_sigma_lower_bound)
-        {count, noise_sigma}
+        {count, Kernel.max(noise_sigma, noise_sigma_lower_bound)}
     end
   end
 
@@ -274,8 +273,8 @@ defmodule Cloak.Query.Anonymizer do
     {a, b, c}
   end
 
-  # Produces a gaussian distributed random number with given mean and standard deviation. The actual standard deviation
-  # produced will be slightly larger for anonymizers with 5 or more noise layers.
+  # Produces random number with given mean. The number is a sum of the mean and a gaussian-distributed 0-mean number
+  # with the given standard deviation _per noise layer_.
   defp add_noise(%{rngs: rngs} = anonymizer, {mean, sd_scale}) do
     {noise, rngs} = Enum.reduce(rngs, {0, []}, fn(rng, {noise, rngs}) ->
       {sample, rng} = gauss(rng)
@@ -366,7 +365,7 @@ defmodule Cloak.Query.Anonymizer do
       sum = sum + top_values_sum
       count = count + top_length
       average = sum / count
-      {sum + outliers_count * top_average, Kernel.max(2 * average, top_average)}
+      {sum + outliers_count * top_average, Kernel.max(average, 0.5 * top_average)}
     else
       {0, nil} # We don't have enough values to return a result.
     end
