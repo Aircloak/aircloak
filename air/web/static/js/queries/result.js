@@ -112,9 +112,9 @@ export class ResultView extends React.Component {
   renderAxesButton: () => void;
   conditionallyRenderChartConfig: () => void;
   rebuildGraphData: () => void;
-  addX: (col: Column) => () => void;
-  addY: (col: Column) => () => void;
-  removeColumn: (col: Column) => () => void;
+  addX: (col: number) => () => void;
+  addY: (col: number) => () => void;
+  removeColumn: (col: number) => () => void;
 
   componentDidUpdate() {
     this.rebuildGraphData();
@@ -150,15 +150,15 @@ export class ResultView extends React.Component {
     return this.state.rowsToShowCount === this.minRowsToShow && this.props.row_count > this.minRowsToShow;
   }
 
-  addX(col: Column) {
+  addX(col: number) {
     return () => this.setState({graphConfig: this.state.graphConfig.addX(col)});
   }
 
-  addY(col: Column) {
+  addY(col: number) {
     return () => this.setState({graphConfig: this.state.graphConfig.addY(col)});
   }
 
-  removeColumn(col: Column) {
+  removeColumn(col: number) {
     return () => this.setState({graphConfig: this.state.graphConfig.remove(col)});
   }
 
