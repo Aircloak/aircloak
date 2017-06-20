@@ -70,13 +70,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   def join("main", cloak_info, socket) do
     Process.flag(:trap_exit, true)
 
-    cloak = %{
-      id: socket.assigns.cloak_id,
-      name: socket.assigns.name,
-      version: socket.assigns.version,
-      online_since: Timex.now(),
-      salt_hash: cloak_info["salt_hash"],
-    }
+    cloak = create_cloak(cloak_info, socket)
     data_sources = Map.fetch!(cloak_info, "data_sources")
 
     cloak
@@ -101,6 +95,16 @@ defmodule Air.Socket.Cloak.MainChannel do
     reading = atomize_keys(reading)
     Air.Service.Cloak.record_memory(reading)
     Air.Socket.Frontend.MemoryChannel.broadcast_memory_reading(socket.assigns.cloak_id, reading)
+    {:noreply, socket}
+  end
+  def handle_in("update_config", cloak_info, socket) do
+    cloak = create_cloak(cloak_info, socket)
+    data_sources = Map.fetch!(cloak_info, "data_sources")
+
+    cloak
+    |> Air.Service.Cloak.update(data_sources)
+    |> revalidate_views()
+
     {:noreply, socket}
   end
   def handle_in("cloak_response", payload, socket) do
@@ -235,6 +239,15 @@ defmodule Air.Socket.Cloak.MainChannel do
     |> Enum.map(fn({key, value}) -> {String.to_atom(key), atomize_keys(value)} end)
     |> Enum.into(%{})
   def atomize_keys(other), do: other
+
+  defp create_cloak(cloak_info, socket), do:
+    %{
+      id: socket.assigns.cloak_id,
+      name: socket.assigns.name,
+      version: socket.assigns.version,
+      online_since: Timex.now(),
+      salt_hash: cloak_info["salt_hash"],
+    }
 
   if Mix.env == :test do
     # do nothing in tests, because it leads to unexpected messages in various tests where cloak is mocked
