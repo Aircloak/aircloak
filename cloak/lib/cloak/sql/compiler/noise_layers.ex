@@ -110,7 +110,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     Enum.reduce(noise_columns, query, &Query.add_db_column(&2, &1))
   end
 
-  defp noise_layer_columns(%{noise_layers: noise_layers, emulated?: true, subquery?: true}), do:
+  defp noise_layer_columns(%{noise_layers: noise_layers, emulated?: true}), do:
     Enum.flat_map(noise_layers, &(&1.expressions)) |> Enum.map(fn
       %{aggregate?: true, function_args: [aggregated]} -> aggregated
       column -> column
