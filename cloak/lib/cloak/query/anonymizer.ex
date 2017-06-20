@@ -258,7 +258,6 @@ defmodule Cloak.Query.Anonymizer do
     unique_values
     |> Enum.reduce(compute_hash(config(:salt)), fn (value, accumulator) ->
       value
-      |> :erlang.term_to_binary()
       |> compute_hash()
       # since the list is not sorted, using `xor` (which is commutative) will get us consistent results
       |> :crypto.exor(accumulator)
