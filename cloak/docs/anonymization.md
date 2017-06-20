@@ -82,7 +82,8 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
     the average count of the top Nt users and twice the average count of all the remaining users,
     where Nv is a zero mean noisy number with a standard deviation taken from
     [sum_noise_sigma](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L51)
-    (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * max(avg(top(remaining, Nt)), 2 * avg(remaining))`).
+    (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * max(0.5 * avg(top(remaining, Nt)), avg(remaining))`).
+    Note that an `Nv * ...` factor is added _per noise layer_ - see [Noise Layers](#noise_layers).
   - The final result is the maximum between the absolute lower bound of the LCF and the total count.
 
 
@@ -103,7 +104,8 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
       the average value of the top Nt users and twice the average value of all the remaining users,
       where Nv is a zero mean noisy number with a standard deviation taken from
       [sum_noise_sigma](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L51)
-      (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * max(avg(top(remaining, Nt)), 2 * avg(remaining))`).
+      (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * max(0.5 * avg(top(remaining, Nt)), avg(remaining))`).
+      Note that an `Nv * ...` factor is added _per noise layer_ - see [Noise Layers](#noise_layers).
 
 
 ## AVG()
@@ -177,10 +179,6 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
 
 ## Fixed alignment
 
-This is part of a two-step process that protects users from being exposed by two
-related queries that differ by a range applied to a column in the WHERE clause.
-For the other part see [Shrink and drop](#shrink_and_drop).
-
 Whenever the query includes an inequality on some columns we require that there
 is a complementary inequality bounding the variable from the other side. For
 example `x > 10` and `x < 10 AND x > 20` are disallowed while `x > 10 AND x <= 20`
@@ -201,9 +199,6 @@ Examples:
 {10.1, 11.9} -> {10.0, 12.0}
 ```
 
-This sets the stage for [Shrink and drop](#shrink_and_drop) since we limit the
-possible queries to a discreet set.
-
 ## Fixed alignment for dates
 
 Date, time and datetime inequalities are also subject to fixed alignment. The
@@ -217,3 +212,98 @@ interval is then aligned as described in [Fixed alignment](#fixed_alignment) wit
 the caveat that depending on the chosen grain (days, minutes, etc.) a different
 grid sized is used. For example for minutes the allowed grid sizes are
 `1, 2, 5, 15, 30, 60`. The result is converted back into a datetime interval.
+
+## Noise Layers
+
+This mechanism aims to defend against "difference attacks", whereby the analyst
+uses the mere fact that two answers are different to conclude something about
+the database. Before, the cloak defended against this by modifying answers so
+that two queries that would otherwise produce different answers in fact produce
+the same answer. Noise layers replace that with the opposite approach: they
+ensure that two queries that would otherwise produce the same answer may well
+in fact have different answers, so the analyst cannot be sure of the result of
+his attack.
+
+To achieve this all noisy values produced are generated using a set of random
+number generators instead of just one. Each generator uses the same mean and SD
+and the resulting noise is summed. The generators differ in their seed and how
+exactly the seed is built depends on the query the analyst issued.
+
+Specifically every filtering clause the analyst adds creates (at least) one
+noise layer. The seed for that layer is based on the set of unique values in
+the column that the filter is being applied on plus some additional data
+depending on the filter. If multiple columns are used in a filter (for example
+`a || b LIKE '%abc%'`), then a noise layer is created for each of those
+columns. This way, even if two queries with different sets of filters would
+have the same result they will have different noise applied, resulting in
+(potentially) different results. See
+[the original issue](https://github.com/Aircloak/aircloak/issues/1276) for more
+details.
+
+Note that the set of unique user ids is still used to generate one of the noise
+layers, so even queries with no filters will have at least noise coming from
+that layer.
+
+### What's a filter?
+
+The following things are considered filters:
+
+* `WHERE` clauses
+* Range `WHERE` clauses - a pair of `a >= x` and `a < y` is considered one
+  filter instead of two
+* `HAVING` clauses in subqueries
+* `GROUP BY` clauses
+
+### Noise layer seeds
+
+Each noise layer is seeded with at least:
+
+* A canonical name of the column in the form `{"table", "column"}`
+* A secret salt
+* The list of the values in the column
+* A number N that is incremented each time two noise layers have exactly the
+  same seed
+
+Additionally, depending on the type of clause, some extra data is added:
+
+* `=` clauses and `GROUP BY` - no extra data
+* range clauses - the range endpoints (see
+  [the issue](https://github.com/Aircloak/aircloak/issues/1332))
+* `<>` clauses - the symbol `:<>` and the constant being
+  compared to (see [the issue](https://github.com/Aircloak/aircloak/issues/1278))
+* `NOT IN` clauses - are converted to an equivalent conjunction on `<>` clauses
+* `NOT LIKE` clauses - the symbols `:not` and `:like`/`:ilike` and the like
+  pattern
+* `IN` clauses - a layer is created for the whole clause with no extra seed,
+  plus an additional layer for every constant in the `IN` with the symbol `:in`
+  and the constant in the seed
+* `LIKE` clauses - a noise layer is created per wildcard in the pattern with
+  the length of the pattern, the wildcard and the position of the wildcard (see
+  [the issue](https://github.com/Aircloak/aircloak/issues/1284))
+
+### Floating data
+
+The data for a noise layer is taken from the raw database column if possible.
+However if the query aggregates it might not be possible to associate a unique
+value of the column in question with every row. In that case 3 values are
+produced instead - the min, max and count of the column. This process can be
+repeated in case of multiple aggregations (in subqueries) by taking the min of
+mins, max of maxes and sum of counts.
+
+### Clauses handled with probes
+
+Some clauses cannot be safely handled with noise layers. This mostly affects
+`<>` clauses with some functions applied to the column before the comparison is
+made. The reason is that we don't have a way (yet?) to detect the "real" meaning
+of the clause. For example both `a <> 4` and `sqrt(a) <> 2` do the exact same
+thing.
+
+Because of this only simple clauses (`raw_column <> constant`) or clauses with
+a limited number of "safe" functions (currently only `lower`) are handled with
+noise layers. For other clauses we need to fall back on the approach of
+probing.
+
+Probing basically means that a helper query (probe) is issued to the database
+for each "suspect" condition that hasn't been handled with noise layers. The
+probe checks how many users the condition excludes from the original query. If
+this number is low, then such a clause is removed from the original query.

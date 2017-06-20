@@ -281,9 +281,9 @@ defmodule Cloak.Query.Aggregator do
     {_count, noise_sigma} = Anonymizer.count(anonymizer, aggregation_data)
     noise_sigma
   end
-  defp aggregate_by(aggregation_data, "sum_noise", type, anonymizer) do
+  defp aggregate_by(aggregation_data, "sum_noise", _type, anonymizer) do
     {_sum, noise_sigma} = Anonymizer.sum(anonymizer, aggregation_data)
-    float_to_type(noise_sigma, type)
+    noise_sigma
   end
   defp aggregate_by(aggregation_data, "avg_noise", _type, anonymizer) do
     {_avg, noise_sigma} = Anonymizer.avg(anonymizer, aggregation_data)

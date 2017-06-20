@@ -37,7 +37,7 @@ defmodule Cloak.Query.AnonimyzerTest do
   test "count" do
     # per-user row format = count of values
     rows = [1, 2, 1, 0, 3, 1, 2, 3, 1, 2, 1]
-    assert {12, 0} = Anonymizer.new([MapSet.new()]) |> Anonymizer.count(rows)
+    assert {12, 0.0} = Anonymizer.new([MapSet.new()]) |> Anonymizer.count(rows)
   end
 
   test "sum of sufficient values" do

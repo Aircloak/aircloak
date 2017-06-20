@@ -28,7 +28,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> reject_null_user_ids()
     |> censor_selected_uids()
     |> align_buckets()
-    |> align_ranges(Lens.key(:where), :where)
+    |> align_ranges(Lens.key(:where))
     |> align_join_ranges()
     |> optimize_columns_from_projected_tables()
     |> set_emulation_flag()
@@ -68,13 +68,17 @@ defmodule Cloak.Sql.Compiler.Execution do
     # rows. However, with this replacement, we can return names which are frequent enough, without revealing
     # any sensitive information. For example, we could return: `(*, Alice), (*, Bob), (*, *)`, which is
     # not possible without this replacement.
-    selected_uids_lens = Lens.key(:columns) |> Lens.all() |> Lens.satisfy(&uid_column?/1)
-    update_in(query, [selected_uids_lens], &Expression.constant(&1.type, :*))
+    Lens.key(:columns)
+    |> Lens.all()
+    |> Lens.satisfy(&non_aggregated_uid_expression?/1)
+    |> Lens.map(query, &Expression.constant(&1.type, :*))
   end
   defp censor_selected_uids(query), do: query
 
-  defp uid_column?(%Expression{aggregate?: true}), do: false
-  defp uid_column?(column), do: [column] |> extract_columns() |> Enum.any?(& &1.user_id?)
+  # returns true if the column contains an expression with non-aggregated user ids
+  defp non_aggregated_uid_expression?(column), do:
+    ([column] |> get_in([Lenses.all_expressions()]) |> Enum.all?(&not &1.aggregate?)) and
+    ([column] |> extract_columns() |> Enum.any?(& &1.user_id?))
 
 
   # -------------------------------------------------------------------
@@ -161,7 +165,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> prepare()
     |> align_limit()
     |> align_offset()
-    |> align_ranges(Lens.key(:having), :having)
+    |> align_ranges(Lens.key(:having))
 
   @minimum_subquery_limit 10
   defp align_limit(query = %{limit: nil}), do: query
@@ -300,9 +304,9 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp align_join_ranges(query), do:
     query
     |> Query.Lenses.join_condition_lenses()
-    |> Enum.reduce(query, fn(lens, query) -> align_ranges(query, lens, :where) end)
+    |> Enum.reduce(query, fn(lens, query) -> align_ranges(query, lens) end)
 
-  defp align_ranges(query, lens, range_type) do
+  defp align_ranges(query, lens) do
     clause = Lens.get(lens, query)
     grouped_inequalities = inequalities_by_column(clause)
     range_columns = Map.keys(grouped_inequalities)
@@ -311,10 +315,10 @@ defmodule Cloak.Sql.Compiler.Execution do
     non_range_conditions = Condition.reject(clause, &Enum.member?(range_columns, Condition.subject(&1)))
 
     query = put_in(query, [lens], non_range_conditions)
-    Enum.reduce(grouped_inequalities, query, &add_aligned_range(&1, &2, lens, range_type))
+    Enum.reduce(grouped_inequalities, query, &add_aligned_range(&1, &2, lens))
   end
 
-  defp add_aligned_range({column, conditions}, query, lens, range_type) do
+  defp add_aligned_range({column, conditions}, query, lens) do
     {left, right} =
       conditions
       |> Enum.map(&Condition.value/1)
@@ -333,7 +337,7 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> Query.add_info("The range for column #{Expression.display_name(column)} has been adjusted to #{left} <= "
         <> "#{Expression.short_name(column)} < #{right}.")
     end
-    |> put_in([Lens.key(:ranges), Lens.front()], Range.new(column, {left, right}, range_type))
+    |> put_in([Lens.key(:ranges), Lens.front()], Range.new(column, {left, right}))
   end
 
   defp implement_range?({left, right}, conditions) do

@@ -18,6 +18,7 @@
 - Preventing user or group changes which would leave the system without any administrator user.
 - Confirmation dialogs are presented when attempting to delete a user, a group, or a data source.
 - The source code of third party dependencies is available for download from the license page.
+- Improvements to anonymization might cause old queries to return different results for the same data.
 
 ### Changes
 

@@ -329,7 +329,7 @@ defmodule Cloak.Query.BasicTest do
     assert_in_delta(stddev, 170.99, 0.1)
 
     assert_query "select median(height) from heights",
-      %{columns: ["median"], rows: [%{row: [-176], occurrences: 1}]}
+      %{columns: ["median"], rows: [%{row: [-177], occurrences: 1}]}
   end
 
   test "should return nil when not enough values present for anonymization" do
@@ -781,10 +781,10 @@ defmodule Cloak.Query.BasicTest do
     :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
 
     assert_query "select count_noise(*) from heights",
-      %{columns: ["count_noise"], rows: [%{row: [0], occurrences: 1}]}
+      %{columns: ["count_noise"], rows: [%{row: [0.0], occurrences: 1}]}
 
     assert_query "select sum_noise(height) from heights",
-      %{columns: ["sum_noise"], rows: [%{row: [0], occurrences: 1}]}
+      %{columns: ["sum_noise"], rows: [%{row: [0.0], occurrences: 1}]}
 
     assert_query "select avg_noise(height) from heights",
       %{columns: ["avg_noise"], rows: [%{row: [0.0], occurrences: 1}]}
