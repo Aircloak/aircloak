@@ -150,7 +150,6 @@ defmodule Cloak.Sql.Query.Lenses do
     Lens.key(:from)
     |> ast_tables_recursive()
 
-
   @doc "Returns a list of lenses focusing on all subqueries of the given query."
   @spec subquery_lenses(Query.t) :: [Lens.t]
   def subquery_lenses(query), do: [Lens.root() | do_subquery_lenses(Lens.key(:from), query.from)]
