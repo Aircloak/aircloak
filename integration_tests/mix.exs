@@ -10,6 +10,7 @@ defmodule IntegrationTests.Mixfile do
       start_permanent: Mix.env == :prod,
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env),
+      preferred_cli_env: ["deps.get": :test],
     ]
   end
 
