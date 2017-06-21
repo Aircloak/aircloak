@@ -313,7 +313,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.all()
     |> Lens.key(:base)
     |> Lens.map(query, fn({table, column, extras}) ->
-      {table, String.downcase(column), extras}
+      {String.downcase(table), String.downcase(column), extras}
     end)
   end
 end
