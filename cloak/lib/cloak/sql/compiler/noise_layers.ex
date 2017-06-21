@@ -93,8 +93,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     Enum.map(layers, &float_noise_layer(&1, query))
 
   defp float_emulated_noise_layers(query = %{emulated?: true, subquery?: true}) do
-    noise_columns = get_in(query.noise_layers, [Lens.all() |> Lens.key(:expressions) |> Lens.all()]) -- query.columns
-
+    noise_columns =
+      Lens.all()
+      |> Lens.key(:expressions)
+      |> Lens.all()
+      |> Lens.to_list(query.noise_layers)
+      |> Enum.reject(& &1 in query.columns)
     %{
       query |
       columns: query.columns ++ noise_columns,
@@ -110,7 +114,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     Enum.reduce(noise_columns, query, &Query.add_db_column(&2, &1))
   end
 
-  defp noise_layer_columns(%{noise_layers: noise_layers, emulated?: true, subquery?: true}), do:
+  defp noise_layer_columns(%{noise_layers: noise_layers, emulated?: true}), do:
     Enum.flat_map(noise_layers, &(&1.expressions)) |> Enum.map(fn
       %{aggregate?: true, function_args: [aggregated]} -> aggregated
       column -> column
