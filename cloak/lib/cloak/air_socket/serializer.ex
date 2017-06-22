@@ -25,7 +25,9 @@ defmodule AirSocket.Serializer do
 
     if time > 10_000 do
       # log decoding times longer than 10ms
-      Logger.warn("encoding a message took #{div(time, 1000)}ms, encoded message size=#{byte_size(encoded_message)} bytes")
+      Logger.warn(
+        "encoding a message took #{div(time, 1000)}ms, encoded message size=#{byte_size(encoded_message)} bytes"
+      )
     end
 
     {:binary, encoded_message}
