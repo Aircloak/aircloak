@@ -16,6 +16,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
     end
 
+    test "noise layer bases are case-normalized" do
+      result = compile!("SELECT COUNT(*) FROM camelTable WHERE camelColumn = 3", data_source())
+
+      assert [%{base: {"cameltable", "camelcolumn", nil}}] = result.noise_layers
+    end
+
     test "lists columns filtered with GROUP BY" do
       result = compile!("SELECT numeric, COUNT(*) FROM table GROUP BY numeric", data_source())
 
@@ -493,6 +499,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
           name: "other",
           user_id: "uid",
           columns: [Table.column("uid", :integer)],
+          projection: nil,
+        },
+
+        camel_table: %{
+          db_name: "camelTable",
+          name: "camelTable",
+          user_id: "uid",
+          columns: [Table.column("uid", :integer), Table.column("camelColumn", :integer)],
           projection: nil,
         },
       }

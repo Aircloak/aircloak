@@ -60,6 +60,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     Query.Lenses.direct_subqueries()
     |> Lens.satisfy(&(&1.alias == table))
     |> Lens.key(:ast)
+    |> Lens.satisfy(&(not &1.projected?))
 
   defp push_noise_layer(query, %{base: {_table, column, extras}}) do
     {:ok, expression} = find_column(column, query)
@@ -313,7 +314,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.all()
     |> Lens.key(:base)
     |> Lens.map(query, fn({table, column, extras}) ->
-      {table, String.downcase(column), extras}
+      {String.downcase(table), String.downcase(column), extras}
     end)
   end
 end
