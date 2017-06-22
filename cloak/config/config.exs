@@ -24,7 +24,7 @@ config :kernel,
 config :cloak, :api, port: 8098
 
 config :cloak, :air,
-  serializer: Phoenix.Channels.GenSocketClient.Serializer.GzipJson
+  serializer: AirSocket.Serializer
 
 config :cloak, :anonymizer,
   # The mean and standard deviation for the lower bound of the number
