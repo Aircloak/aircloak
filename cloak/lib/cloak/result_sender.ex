@@ -12,7 +12,7 @@ defmodule Cloak.ResultSender do
   def supervisor_spec do
     import Supervisor.Spec
     supervisor(Supervisor, [
-      [worker(__MODULE__, [], restart: :transient)],
+      [worker(__MODULE__, [], restart: :temporary)],
       [name: __MODULE__, strategy: :simple_one_for_one, max_restarts: 10, max_seconds: 10]
     ], [id: __MODULE__])
   end
