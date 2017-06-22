@@ -414,4 +414,14 @@ defmodule Cloak.Query.DBEmulatorTest do
       (select user_Id as Uid, Value from #{@prefix}emulated group by User_id, VaLue) as t on uSer_Id = uId
     """, %{rows: [%{occurrences: 10, row: [30, "abc"]}]}
   end
+
+  test "[BUG] join with alias and decoded column" do
+    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["number"], ["10"])
+    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}joined", ["age"], [10])
+
+    assert_query """
+      select count(*) from #{@prefix}joined as t1 inner join #{@prefix}emulated as t2
+        on t1.user_id = t2.user_id and t1.age = t2.number
+    """, %{rows: [%{row: [10]}]}
+  end
 end
