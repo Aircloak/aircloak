@@ -98,11 +98,19 @@ defmodule Air.Socket.Cloak.MainChannel do
 
   @doc false
   def handle_in(cloak_message_name, payload, socket), do:
-    handle_cloak_message(cloak_message_name, payload, socket)
+    run_and_report_time(
+      :handle_in,
+      cloak_message_name,
+      fn -> handle_cloak_message(cloak_message_name, payload, socket) end
+    )
 
   @doc false
   def handle_info(message, socket), do:
-    handle_erlang_message(message, socket)
+    run_and_report_time(
+      :handle_info,
+      message,
+      fn -> handle_erlang_message(message, socket) end
+    )
 
 
   # -------------------------------------------------------------------
@@ -205,6 +213,14 @@ defmodule Air.Socket.Cloak.MainChannel do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp run_and_report_time(kind, message, fun) do
+    {time, result} = :timer.tc(fun)
+    Logger.info([
+      to_string(kind), " ", inspect(message, limit: 5), " took ", to_string(div(time, 1000)), " ms"
+    ])
+    result
+  end
 
   @spec respond_to_cloak(Socket.t, request_id::String.t, :ok | :error, any) :: :ok
   defp respond_to_cloak(socket, request_id, status, result \\ nil) do
