@@ -82,6 +82,8 @@ defmodule Cloak.ResultSender do
         Logger.warn("timeout sending a query result")
         :timer.sleep(:timer.seconds(10))
         send_query_result_with_retry(query_result, retries - 1)
+      other ->
+        other
     end
   end
 end
