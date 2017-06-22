@@ -4,7 +4,7 @@ defmodule Air.QueryController do
   use Timex
 
   require Logger
-  alias Air.{Schemas.Query, Repo, Service.DataSource}
+  alias Air.{Schemas.Query, Service.DataSource}
   alias Plug.Conn.Status
 
 
@@ -80,7 +80,6 @@ defmodule Air.QueryController do
     case Air.Service.Query.get_as_user(conn.assigns.current_user, query_id) do
       {:ok, query} ->
         query
-        |> Repo.preload(:data_source)
         |> DataSource.stop_query(conn.assigns.current_user, audit_log_meta(conn))
         |> case do
           :ok -> json(conn, %{success: true})

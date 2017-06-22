@@ -146,6 +146,8 @@ defmodule Air.Service.DataSource do
   @doc "Stops a previously started query."
   @spec stop_query(Query.t, User.t, %{atom => any}) :: :ok | {:error, :internal_error | :not_connected}
   def stop_query(query, user, audit_meta \\ %{}) do
+    query = Repo.preload(query, :data_source)
+
     Air.Service.AuditLog.log(user, "Stopped query",
       Map.merge(audit_meta, %{query: query.statement, data_source: query.data_source.name}))
 
