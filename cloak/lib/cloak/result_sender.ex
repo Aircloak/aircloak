@@ -1,6 +1,8 @@
 defmodule Cloak.ResultSender do
   @moduledoc "Handles returning the result of a query back to the requester"
 
+  require Logger
+
   @type target :: {:process, pid()} | :air_socket
   @type query_state :: :parsing | :compiling | :awaiting_data | :ingesting_data | :processing | :post_processing
 
@@ -53,16 +55,33 @@ defmodule Cloak.ResultSender do
   # -------------------------------------------------------------------
 
   defp send_reply(:air_socket, :result, reply) do
-    case Elixir.Cloak.AirSocket.send_query_result(reply) do
+    case send_query_result(reply) do
       :ok -> :ok
       {:error, %Poison.EncodeError{}} ->
         reply = %{error: "Result could not be encoded as JSON.", query_id: reply.query_id}
-        Elixir.Cloak.AirSocket.send_query_result(reply)
-      {:error, error} -> {:error, error}
+        send_query_result(reply)
+      {:error, error} ->
+        Logger.error("Error sending query results to the socket: #{inspect error}")
+        {:error, error}
     end
   end
   defp send_reply(:air_socket, :state, {query_id, query_state}), do:
     Elixir.Cloak.AirSocket.send_query_state(query_id, query_state)
   defp send_reply({:process, pid}, type, reply), do:
     send(pid, {type, reply})
+
+  defp send_query_result(result), do:
+    send_query_result_with_retry(result, 5)
+
+  defp send_query_result_with_retry(_query_result, 0), do:
+    {:error, :timeout}
+  defp send_query_result_with_retry(query_result, retries) do
+    case Elixir.Cloak.AirSocket.send_query_result(query_result) do
+      :ok -> :ok
+      {:error, :timeout} ->
+        Logger.warn("timeout sending a query result")
+        :timer.sleep(:timer.seconds(10))
+        send_query_result_with_retry(query_result, retries - 1)
+    end
+  end
 end

@@ -39,8 +39,12 @@ defmodule Cloak.AirSocket do
   """
   @spec send_query_result(GenServer.server, map) :: :ok | {:error, any}
   def send_query_result(socket \\ __MODULE__, result) do
-    Logger.info("sending query result to Air", query_id: result.query_id)
-    call_air(socket, "main", "query_result", result, :timer.minutes(1))
+    try do
+      Logger.info("sending query result to Air", query_id: result.query_id)
+      call_air(socket, "main", "query_result", result, :timer.minutes(1))
+    catch :exit, {:timeout, _} ->
+      {:error, :timeout}
+    end
   end
 
   @doc """
