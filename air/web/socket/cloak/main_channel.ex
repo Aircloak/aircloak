@@ -97,9 +97,15 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   @doc false
+  def handle_in("cloak_call", payload, socket), do:
+    run_and_report_time(
+      :handle_cloak_call,
+      payload["event"],
+      fn -> handle_cloak_call(payload["event"], payload["payload"], payload["request_id"], socket) end
+    )
   def handle_in(cloak_message_name, payload, socket), do:
     run_and_report_time(
-      :handle_in,
+      :handle_cloak_cast,
       cloak_message_name,
       fn -> handle_cloak_message(cloak_message_name, payload, socket) end
     )
@@ -172,9 +178,6 @@ defmodule Air.Socket.Cloak.MainChannel do
     end
     pending_calls = Map.delete(socket.assigns.pending_calls, request_id)
     {:noreply, assign(socket, :pending_calls, pending_calls)}
-  end
-  defp handle_cloak_message("cloak_call", request, socket) do
-    handle_cloak_call(request["event"], request["payload"], request["request_id"], socket)
   end
   defp handle_cloak_message(event, _payload, socket) do
     cloak_id = socket.assigns.cloak_id
