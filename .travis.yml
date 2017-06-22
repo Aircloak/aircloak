@@ -47,7 +47,7 @@ matrix:
       before_install:
       - psql -c "CREATE DATABASE cloaktest1 ENCODING 'UTF8';" -U postgres
       - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
-      - ./travis-asdf-setup.sh
+      - source travis-asdf-setup.sh
       - npm i -g yarn@0.16.1
     - env: TEST="air"
       cache:
@@ -68,7 +68,7 @@ matrix:
         hosts:
         - travis.aircloak.local
       before_install:
-      - ./travis-asdf-setup.sh
+      - source travis-asdf-setup.sh
       - npm i -g yarn@0.16.1
     - env: TEST="cloak"
       cache:
@@ -102,7 +102,7 @@ matrix:
       - echo "USE mysql;\nUPDATE user SET password=PASSWORD('') WHERE user='root';\nFLUSH PRIVILEGES;\n" | mysql -u root
       - mysql -e "CREATE DATABASE cloaktest1 DEFAULT CHARACTER SET utf8;" -u root --password=''
       - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
-      - ./travis-asdf-setup.sh
+      - source travis-asdf-setup.sh
     - env: TEST="aux"
       cache:
         directories:
@@ -123,7 +123,7 @@ matrix:
         hosts:
         - travis.aircloak.local
       before_install:
-      - ./travis-asdf-setup.sh
+      - source travis-asdf-setup.sh
       - npm i -g yarn@0.16.1
     - env: TEST="central"
       services:
@@ -144,7 +144,7 @@ matrix:
         hosts:
         - travis.aircloak.local
       before_install:
-      - ./travis-asdf-setup.sh
+      - source travis-asdf-setup.sh
       - npm i -g yarn@0.16.1
 before_script:
   - ./travis-before-script.sh
