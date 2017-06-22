@@ -219,9 +219,14 @@ defmodule Air.Socket.Cloak.MainChannel do
 
   defp run_and_report_time(kind, message, fun) do
     {time, result} = :timer.tc(fun)
-    Logger.info([
-      to_string(kind), " ", inspect(message, limit: 5), " took ", to_string(div(time, 1000)), " ms"
-    ])
+
+    if time > 10_000 do
+      # log processing times longer than 10ms
+      Logger.warn([
+        to_string(kind), " ", inspect(message, limit: 5), " took ", to_string(div(time, 1000)), " ms"
+      ])
+    end
+
     result
   end
 
