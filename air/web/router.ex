@@ -100,7 +100,7 @@ defmodule Air.Router do
   scope "/api", private: %{context: :api} do
     pipe_through [:api]
 
-    resources "/queries", Air.QueryController
+    resources "/queries", Air.QueryController, only: [:create, :show]
     post "/queries/:id/cancel", Air.QueryController, :cancel
     resources "/data_sources", Air.API.DataSourceController
   end

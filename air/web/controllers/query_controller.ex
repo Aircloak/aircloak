@@ -45,7 +45,7 @@ defmodule Air.QueryController do
       "" -> NaiveDateTime.utc_now()
       string -> NaiveDateTime.from_iso8601!(string)
     end
-    case DataSource.history(data_source_id_spec(params), conn.assigns.current_user, conn.private.context, 10, before) do
+    case DataSource.history(data_source_id_spec(params), conn.assigns.current_user, :http, 10, before) do
       {:ok, queries} -> json(conn, queries)
       _ -> send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
     end
