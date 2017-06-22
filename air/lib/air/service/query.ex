@@ -73,6 +73,7 @@ defmodule Air.Service.Query do
     |> in_context(context)
     |> recent(recent_count, before)
     |> Repo.all()
+    |> Repo.preload([:user, :data_source])
     |> Enum.map(&Query.for_display/1)
   end
 
