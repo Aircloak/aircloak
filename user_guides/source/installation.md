@@ -22,8 +22,12 @@ Before installing components, make sure that the following prerequisites are met
 
 ## Installing the air component
 
-Before installing the air component, you need to create the air user and the database on some PostgreSQL server. You can use arbitrary names for the user and the database. The air user requires full privileges to the air database.
+Before installing the air component, you need the following on your PostgreSQL server:
 
+- a database user for the air component
+- a database to which the user has full privileges
+
+You can use arbitrary names for the user and the database.
 With the database in place, we can create the air configuration, which looks as follows:
 
 ```
@@ -74,7 +78,7 @@ docker pull quay.io/aircloak/air:latest
 If you want to explicitly control which version you're fetching, then provide the explicit version number instead of the `latest` tag:
 
 ```bash
-docker pull quay.io/aircloak/air:17.2.0
+docker pull quay.io/aircloak/air:17.3.0
 ```
 
 Once air is properly configured you can start the air container with the following command:
@@ -253,7 +257,7 @@ docker pull quay.io/aircloak/cloak:latest
 If you want to explicitly control which version you're fetching, then provide the explicit version number instead of the `latest` tag:
 
 ```bash
-docker pull quay.io/aircloak/cloak:17.2.0
+docker pull quay.io/aircloak/cloak:17.3.0
 ```
 
 With this configuration specified, we can start the cloak container as:

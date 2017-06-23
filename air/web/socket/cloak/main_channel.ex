@@ -91,13 +91,70 @@ defmodule Air.Socket.Cloak.MainChannel do
   end
 
   @doc false
-  def handle_in("memory_reading", reading, socket) do
+  def handle_in("cloak_call", payload, socket), do:
+    run_and_report_time(
+      :handle_cloak_call,
+      payload["event"],
+      fn -> handle_cloak_call(payload["event"], payload["payload"], payload["request_id"], socket) end
+    )
+  def handle_in(cloak_message_name, payload, socket), do:
+    run_and_report_time(
+      :handle_cloak_cast,
+      cloak_message_name,
+      fn -> handle_cloak_message(cloak_message_name, payload, socket) end
+    )
+
+  @doc false
+  def handle_info(message, socket), do:
+    run_and_report_time(
+      :handle_info,
+      message,
+      fn -> handle_erlang_message(message, socket) end
+    )
+
+
+  # -------------------------------------------------------------------
+  # Handling of messages from other processes
+  # -------------------------------------------------------------------
+
+  defp handle_erlang_message({{__MODULE__, :call}, timeout, from, event, payload}, socket) do
+    request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
+    push(socket, "air_call", %{request_id: request_id, event: event, payload: payload})
+    timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
+    {:noreply,
+      assign(socket, :pending_calls,
+        Map.put(socket.assigns.pending_calls, request_id, %{from: from, timeout_ref: timeout_ref}))
+    }
+  end
+  defp handle_erlang_message({:call_timeout, request_id}, socket) do
+    # We're just removing entries here without responding. It is the responsibility of the
+    # client code to give up at some point.
+    Logger.warn("#{request_id} sync call timeout on #{socket.assigns.cloak_id}")
+    pending_calls = Map.delete(socket.assigns.pending_calls, request_id)
+    {:noreply, assign(socket, :pending_calls, pending_calls)}
+  end
+  defp handle_erlang_message({:EXIT, _, :normal}, socket) do
+    # probably the linked reporter terminated successfully
+    {:noreply, socket}
+  end
+  defp handle_erlang_message(message, socket) do
+    cloak_id = socket.assigns.cloak_id
+    Logger.info("unhandled info #{inspect(message)} from '#{cloak_id}'")
+    {:noreply, socket}
+  end
+
+
+  # -------------------------------------------------------------------
+  # Handling of Cloak messages
+  # -------------------------------------------------------------------
+
+  defp handle_cloak_message("memory_reading", reading, socket) do
     reading = atomize_keys(reading)
     Air.Service.Cloak.record_memory(reading)
     Air.Socket.Frontend.MemoryChannel.broadcast_memory_reading(socket.assigns.cloak_id, reading)
     {:noreply, socket}
   end
-  def handle_in("update_config", cloak_info, socket) do
+  defp handle_cloak_message("update_config", cloak_info, socket) do
     cloak = create_cloak(cloak_info, socket)
     data_sources = Map.fetch!(cloak_info, "data_sources")
 
@@ -107,7 +164,7 @@ defmodule Air.Socket.Cloak.MainChannel do
 
     {:noreply, socket}
   end
-  def handle_in("cloak_response", payload, socket) do
+  defp handle_cloak_message("cloak_response", payload, socket) do
     request_id = payload["request_id"]
 
     case Map.fetch(socket.assigns.pending_calls, request_id) do
@@ -125,39 +182,9 @@ defmodule Air.Socket.Cloak.MainChannel do
     pending_calls = Map.delete(socket.assigns.pending_calls, request_id)
     {:noreply, assign(socket, :pending_calls, pending_calls)}
   end
-  def handle_in("cloak_call", request, socket) do
-    handle_cloak_call(request["event"], request["payload"], request["request_id"], socket)
-  end
-  def handle_in(event, _payload, socket) do
+  defp handle_cloak_message(event, _payload, socket) do
     cloak_id = socket.assigns.cloak_id
     Logger.warn("unknown event #{event} from '#{cloak_id}'")
-    {:noreply, socket}
-  end
-
-  @doc false
-  def handle_info({{__MODULE__, :call}, timeout, from, event, payload}, socket) do
-    request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
-    push(socket, "air_call", %{request_id: request_id, event: event, payload: payload})
-    timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
-    {:noreply,
-      assign(socket, :pending_calls,
-        Map.put(socket.assigns.pending_calls, request_id, %{from: from, timeout_ref: timeout_ref}))
-    }
-  end
-  def handle_info({:call_timeout, request_id}, socket) do
-    # We're just removing entries here without responding. It is the responsibility of the
-    # client code to give up at some point.
-    Logger.warn("#{request_id} sync call timeout on #{socket.assigns.cloak_id}")
-    pending_calls = Map.delete(socket.assigns.pending_calls, request_id)
-    {:noreply, assign(socket, :pending_calls, pending_calls)}
-  end
-  def handle_info({:EXIT, _, :normal}, socket) do
-    # probably the linked reporter terminated successfully
-    {:noreply, socket}
-  end
-  def handle_info(message, socket) do
-    cloak_id = socket.assigns.cloak_id
-    Logger.info("unhandled info #{inspect(message)} from '#{cloak_id}'")
     {:noreply, socket}
   end
 
@@ -192,6 +219,19 @@ defmodule Air.Socket.Cloak.MainChannel do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp run_and_report_time(kind, message, fun) do
+    {time, result} = :timer.tc(fun)
+
+    if time > 10_000 do
+      # log processing times longer than 10ms
+      Logger.warn([
+        to_string(kind), " ", inspect(message, limit: 5), " took ", to_string(div(time, 1000)), " ms"
+      ])
+    end
+
+    result
+  end
 
   @spec respond_to_cloak(Socket.t, request_id::String.t, :ok | :error, any) :: :ok
   defp respond_to_cloak(socket, request_id, status, result \\ nil) do

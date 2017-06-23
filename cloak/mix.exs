@@ -39,6 +39,7 @@ defmodule Cloak.Mixfile do
       {:poison, github: "cristianberneanu/poison", override: true},
       {:mongodb, "~> 0.2.0"},
       {:lens, "~> 0.2.0"},
+      {:backoff, "~> 1.1.3"},
 
       # Test deps
 

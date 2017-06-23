@@ -15,7 +15,7 @@ export type GraphDataT = {
 
 export type GraphInfoT = {
   xColumns: () => Column[],
-  usableAsY: (col: Column) => boolean,
+  usableAsY: (index: number) => boolean,
   chartable: () => boolean,
 };
 
@@ -33,15 +33,12 @@ export const GraphInfo = (columns: Column[], rows: Row[]): GraphInfoT => {
 
   const xColumns = () => columns;
 
-  const usableAsY = (column) => {
-    const index = columns.findIndex((x) => x === column);
-    return isNumeric(rows[0].row[index]);
-  };
+  const usableAsY = (index) => isNumeric(rows[0].row[index]);
 
   const chartable = () =>
     columns.length >= 2 &&
     rows.length > 1 &&
-    _.some(columns, usableAsY);
+    _.some(columns, (_column, index) => usableAsY(index));
 
   return {xColumns, usableAsY, chartable};
 };
@@ -56,8 +53,8 @@ export class GraphConfig {
     this._yColumns = new Set();
   }
 
-  _xColumns: Set<Column>;
-  _yColumns: Set<Column>;
+  _xColumns: Set<number>;
+  _yColumns: Set<number>;
 
 
   // ----------------------------------------------------------------
@@ -68,11 +65,11 @@ export class GraphConfig {
 
   yColumns() { return [...this._yColumns].sort(); }
 
-  addX(col: Column) { this._yColumns.delete(col); this._xColumns.add(col); return this; }
+  addX(col: number) { this._yColumns.delete(col); this._xColumns.add(col); return this; }
 
-  addY(col: Column) { this._xColumns.delete(col); this._yColumns.add(col); return this; }
+  addY(col: number) { this._xColumns.delete(col); this._yColumns.add(col); return this; }
 
-  remove(col: Column) { this._xColumns.delete(col); this._yColumns.delete(col); return this; }
+  remove(col: number) { this._xColumns.delete(col); this._yColumns.delete(col); return this; }
 }
 
 export const GraphData = (
@@ -85,9 +82,6 @@ export const GraphData = (
   // Internal functions
   // ----------------------------------------------------------------
 
-  const indices = {};
-  columns.forEach((column, index) => { indices[column] = index; });
-
   const valueFormatter = formatter || _.identity;
 
 
@@ -98,15 +92,15 @@ export const GraphData = (
   const ready = () => graphConfig.xColumns().length > 0 && graphConfig.yColumns().length > 0;
 
   const x = () => rows.map(({row}) =>
-    graphConfig.xColumns().map((column) =>
-      row[indices[column]]).
+    graphConfig.xColumns().map((columnIndex) =>
+      row[columnIndex]).
         map(valueFormatter).
         join(", ")
     );
 
-  const series = () => graphConfig.yColumns().map((column) => ({
-    label: column,
-    data: rows.map(({row}) => row[indices[column]]),
+  const series = () => graphConfig.yColumns().map((columnIndex) => ({
+    label: columns[columnIndex],
+    data: rows.map(({row}) => row[columnIndex]),
   }));
 
   return {ready, x, series};

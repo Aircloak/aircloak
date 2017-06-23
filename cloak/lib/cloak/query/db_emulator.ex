@@ -86,7 +86,8 @@ defmodule Cloak.Query.DbEmulator do
 
   defp joined_table_to_subquery(table_name, query) do
     required_columns = required_columns_from_table(query, table_name)
-    query = Cloak.Sql.Compiler.make_select_query(query.data_source, table_name, required_columns)
+    {:ok, table} = Query.resolve_table(query, table_name)
+    query = Cloak.Sql.Compiler.make_select_query(query.data_source, table, required_columns)
     {:subquery, %{ast: query, alias: table_name}}
   end
 
@@ -125,6 +126,7 @@ defmodule Cloak.Query.DbEmulator do
     |> Enum.map(fn ({alias, column}) ->
       %Expression{table: table, name: alias, type: Function.type(column), user_id?: user_id_name == alias}
     end)
+    |> Enum.uniq()
   end
 
   defp set_column_row_index(%Expression{} = column, columns) do

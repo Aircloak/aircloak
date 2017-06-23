@@ -34,7 +34,7 @@ defmodule Cloak.Sql.Compiler do
     compile(data_source, Map.put(parsed_query, :subquery?, true), [], views)
 
   @doc "Creates the query which describes a SELECT statement from a single table."
-  @spec make_select_query(DataSource.t, String.t, [Expression.t]) :: Query.t
-  def make_select_query(data_source, table_name, select_expressions), do:
-    Compiler.Execution.make_select_query(data_source, table_name, select_expressions)
+  @spec make_select_query(DataSource.t, DataSource.Table.t, [Expression.t]) :: Query.t
+  def make_select_query(data_source, table, select_expressions), do:
+    Compiler.Execution.make_select_query(data_source, table, select_expressions)
 end

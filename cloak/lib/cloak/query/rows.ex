@@ -77,7 +77,7 @@ defmodule Cloak.Query.Rows do
   # -------------------------------------------------------------------
 
   defp non_selected_order_by_expressions(query), do:
-    Query.order_by_expressions(query) -- query.columns
+    query |> Query.order_by_expressions() |> Enum.reject(& &1 in query.columns)
 
   defp selected_values(row, columns, columns_to_select), do:
     Enum.map(columns_to_select, &fetch_value!(row, &1, columns))
