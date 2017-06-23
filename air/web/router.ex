@@ -32,7 +32,7 @@ defmodule Air.Router do
     post "/", SessionController, :create
   end
 
-  scope "/", Air do
+  scope "/", Air, private: %{context: :http} do
     pipe_through [:browser, :browser_auth]
 
     get "/", DataSourceController, :redirect_to_last_used
@@ -97,10 +97,10 @@ defmodule Air.Router do
     get "/already_setup", UserController, :already_setup
   end
 
-  scope "/api" do
+  scope "/api", private: %{context: :api} do
     pipe_through [:api]
 
-    resources "/queries", Air.QueryController
+    resources "/queries", Air.QueryController, only: [:create, :show]
     post "/queries/:id/cancel", Air.QueryController, :cancel
     resources "/data_sources", Air.API.DataSourceController
   end
