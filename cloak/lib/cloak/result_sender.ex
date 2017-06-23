@@ -71,17 +71,23 @@ defmodule Cloak.ResultSender do
     send(pid, {type, reply})
 
   defp send_query_result(result), do:
-    send_query_result_with_retry(result, 5)
+    send_query_result_with_retry(%{retries: 5, retry_delay_sec: 10}, result)
 
-  defp send_query_result_with_retry(_query_result, 0), do:
+  defp send_query_result_with_retry(%{retries: 0}, _query_result), do:
     {:error, :timeout}
-  defp send_query_result_with_retry(query_result, retries) do
+  defp send_query_result_with_retry(send_state, query_result) do
     case Elixir.Cloak.AirSocket.send_query_result(query_result) do
       :ok -> :ok
       {:error, :timeout} ->
         Logger.warn("timeout sending a query result")
-        :timer.sleep(:timer.seconds(10))
-        send_query_result_with_retry(query_result, retries - 1)
+        :timer.sleep(:timer.seconds(send_state.retry_delay_sec))
+        send_query_result_with_retry(
+          %{send_state |
+            retries: send_state.retries - 1,
+            retry_delay_sec: :backoff.increment(send_state.retry_delay_sec, _max_delay = 60)
+          },
+          query_result
+        )
       other ->
         other
     end
