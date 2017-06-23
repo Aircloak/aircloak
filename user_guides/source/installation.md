@@ -22,8 +22,12 @@ Before installing components, make sure that the following prerequisites are met
 
 ## Installing the air component
 
-Before installing the air component, you need to create the air user and the database on some PostgreSQL server. You can use arbitrary names for the user and the database. The air user requires full privileges to the air database.
+Before installing the air component, you need the following on your PostgreSQL server:
 
+- a database user for the air component
+- a database to which the user has full privileges
+
+You can use arbitrary names for the user and the database.
 With the database in place, we can create the air configuration, which looks as follows:
 
 ```
