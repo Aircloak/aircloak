@@ -4,7 +4,7 @@ defmodule Air.QueryController do
   use Timex
 
   require Logger
-  alias Air.{Schemas.Query, Repo, Service.DataSource}
+  alias Air.{Schemas.Query, Service.DataSource}
   alias Plug.Conn.Status
 
 
@@ -28,9 +28,9 @@ defmodule Air.QueryController do
     case DataSource.start_query(
       data_source_id_spec(params),
       conn.assigns.current_user,
-      :http,
+      conn.private.context,
       Map.fetch!(params, "statement"),
-      [],
+      _parameters = [],
       audit_meta: audit_log_meta(conn),
       session_id: params["session_id"]
     ) do
@@ -46,10 +46,8 @@ defmodule Air.QueryController do
       string -> NaiveDateTime.from_iso8601!(string)
     end
     case DataSource.history(data_source_id_spec(params), conn.assigns.current_user, :http, 10, before) do
-      {:ok, queries} ->
-        json(conn, queries)
-      _ ->
-        send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
+      {:ok, queries} -> json(conn, queries)
+      _ -> send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
     end
   end
 
@@ -82,7 +80,6 @@ defmodule Air.QueryController do
     case Air.Service.Query.get_as_user(conn.assigns.current_user, query_id) do
       {:ok, query} ->
         query
-        |> Repo.preload(:data_source)
         |> DataSource.stop_query(conn.assigns.current_user, audit_log_meta(conn))
         |> case do
           :ok -> json(conn, %{success: true})

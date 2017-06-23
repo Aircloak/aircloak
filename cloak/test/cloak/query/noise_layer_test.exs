@@ -171,4 +171,33 @@ defmodule Cloak.Query.NoiseLayerTest do
     # average * sum_noise_sigma * sqrt(num noise layers) = 100 * 1 * sqrt(2) = 100 * sqrt(2) ~ 141 ---> 140
     assert_query "select sum_noise(number) from noise_layers where number = 100", %{rows: [%{row: [140.0]}]}
   end
+
+  test "[Issue #1538] joins with projected tables are order-independent" do
+    :ok = Cloak.Test.DB.create_table("noise_layers_join1", "row_id INTEGER")
+    :ok = Cloak.Test.DB.create_table("noise_layers_join2", "row_id INTEGER, one_id INTEGER", [
+      projection: %{table: "noise_layers_join1", foreign_key: "one_id", primary_key: "row_id"}])
+    :ok = Cloak.Test.DB.create_table("noise_layers_join3", "one_id INTEGER, two_id INTEGER", [
+      projection: %{table: "noise_layers_join1", foreign_key: "one_id", primary_key: "row_id"}])
+
+    :ok = insert_rows(_user_ids = 1..20, "noise_layers_join1", ["row_id"], [100])
+    :ok = insert_rows(_user_ids = 1..20, "noise_layers_join2", ["row_id", "one_id"], [100, 100])
+    :ok = insert_rows(_user_ids = 1..20, "noise_layers_join3", ["one_id", "two_id"], [100, 100])
+
+    assert_query """
+      select count(*) from noise_layers_join3 inner join noise_layers_join2
+        on noise_layers_join3.user_id = noise_layers_join2.user_id
+        and noise_layers_join2.row_id = noise_layers_join3.two_id
+        inner join noise_layers_join1 as noise_layers_join1
+        on noise_layers_join1.user_id = noise_layers_join2.user_id
+        and noise_layers_join1.row_id = noise_layers_join2.one_id
+    """, %{rows: [%{row: [count]}]}
+    assert_query """
+      select count(*) from noise_layers_join1 inner join noise_layers_join2
+        on noise_layers_join1.user_id = noise_layers_join2.user_id
+        and noise_layers_join1.row_id = noise_layers_join2.one_id
+        inner join noise_layers_join3
+        on noise_layers_join3.user_id = noise_layers_join2.user_id
+        and noise_layers_join2.row_id = noise_layers_join3.two_id
+    """, %{rows: [%{row: [^count]}]}
+  end
 end

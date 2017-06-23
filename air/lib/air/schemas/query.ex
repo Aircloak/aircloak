@@ -11,7 +11,7 @@ defmodule Air.Schemas.Query do
     :error, :cancelled
   ]
 
-  EctoEnum.defenum Context, :query_context, [:http, :psql]
+  EctoEnum.defenum Context, :query_context, [:http, :psql, :api]
 
   @type t :: %__MODULE__{}
   @type cloak_query :: %{
