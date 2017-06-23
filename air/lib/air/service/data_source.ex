@@ -30,10 +30,19 @@ defmodule Air.Service.DataSource do
     }]
   }
 
+  @task_supervisor __MODULE__.TaskSupervisor
+
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Returns the supervisor specification for this service."
+  @spec supervisor_spec() :: Supervisor.Spec.spec
+  def supervisor_spec() do
+    import Supervisor.Spec, warn: false
+    supervisor(Task.Supervisor, [[name: @task_supervisor, restart: :temporary]], [id: @task_supervisor])
+  end
 
   @doc "Returns the count of all known data sources."
   @spec count() :: non_neg_integer
@@ -123,8 +132,13 @@ defmodule Air.Service.DataSource do
 
         if opts[:notify] == true, do: Air.QueryEvents.subscribe(query.id)
 
-        with :ok <- MainChannel.run_query(channel_pid, cloak_query_map(query, user, parameters)), do:
-          {:ok, query}
+        case MainChannel.run_query(channel_pid, cloak_query_map(query, user, parameters)) do
+          :ok -> {:ok, query}
+          {:error, :timeout} ->
+            post_timeout_result(query)
+            stop_query_async(query)
+            {:error, :timeout}
+        end
       end
     )
   end
@@ -147,21 +161,9 @@ defmodule Air.Service.DataSource do
   @spec stop_query(Query.t, User.t, %{atom => any}) :: :ok | {:error, :internal_error | :not_connected}
   def stop_query(query, user, audit_meta \\ %{}) do
     query = Repo.preload(query, :data_source)
-
     Air.Service.AuditLog.log(user, "Stopped query",
       Map.merge(audit_meta, %{query: query.statement, data_source: query.data_source.name}))
-
-    exception_to_tuple(fn() ->
-      if available?(query.data_source.name) do
-        for {channel, _cloak} <- Cloak.channel_pids(query.data_source.name), do:
-          MainChannel.stop_query(channel, query.id)
-        QueryEvents.trigger_state_change(query.id, :cancelled)
-
-        :ok
-      else
-        {:error, :not_connected}
-      end
-    end)
+    do_stop_query(query)
   end
 
   @doc """
@@ -345,6 +347,25 @@ defmodule Air.Service.DataSource do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp stop_query_async(query), do:
+    Task.Supervisor.start_child(@task_supervisor, fn() -> do_stop_query(query) end)
+
+  defp do_stop_query(query) do
+    query = Repo.preload(query, :data_source)
+
+    exception_to_tuple(fn() ->
+      if available?(query.data_source.name) do
+        for {channel, _cloak} <- Cloak.channel_pids(query.data_source.name), do:
+          MainChannel.stop_query(channel, query.id)
+        QueryEvents.trigger_state_change(query.id, :cancelled)
+
+        :ok
+      else
+        {:error, :not_connected}
+      end
+    end)
+  end
+
   defp data_sources_with_groups_and_users(), do:
     from(
       data_source in DataSource,
@@ -443,4 +464,10 @@ defmodule Air.Service.DataSource do
     |> unique_constraint(:global_id)
     |> unique_constraint(:name)
     |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
+
+  defp post_timeout_result(query), do:
+    QueryEvents.trigger_result(%{
+      "query_id" => query.id,
+      "error" => "The query could not be started due to a communication timeout."
+    })
 end
