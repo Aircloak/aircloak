@@ -74,7 +74,7 @@ docker pull quay.io/aircloak/air:latest
 If you want to explicitly control which version you're fetching, then provide the explicit version number instead of the `latest` tag:
 
 ```bash
-docker pull quay.io/aircloak/air:17.2.0
+docker pull quay.io/aircloak/air:17.3.0
 ```
 
 Once air is properly configured you can start the air container with the following command:
@@ -253,7 +253,7 @@ docker pull quay.io/aircloak/cloak:latest
 If you want to explicitly control which version you're fetching, then provide the explicit version number instead of the `latest` tag:
 
 ```bash
-docker pull quay.io/aircloak/cloak:17.2.0
+docker pull quay.io/aircloak/cloak:17.3.0
 ```
 
 With this configuration specified, we can start the cloak container as:
