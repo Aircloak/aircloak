@@ -270,7 +270,9 @@ defmodule Cloak.Sql.TypeChecker do
     |> Enum.filter(fn({_expression, offenses}) ->
       offenses
       |> Enum.map(fn({name, _}) -> name end)
-      |> Enum.reduce(required_offenses, &(&2 -- [&1])) == []
+      |> Enum.reduce(required_offenses, fn (name, offenses) ->
+        Enum.reject(offenses, & &1 == name)
+      end) == []
     end)
 
   defp reject_all_but_relevant_offensive_actions(columns, relevant_offenses), do:

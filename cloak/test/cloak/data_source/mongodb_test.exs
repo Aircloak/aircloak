@@ -239,11 +239,17 @@ defmodule Cloak.DataSource.MongoDBTest do
     """, %{rows: [%{occurrences: 1, row: [10]}]}
   end
 
-  test "functions in having clauses in subqueries", context do
+  test "outer functions in having clauses in subqueries", context do
     assert_query context, """
       SELECT COUNT(*) FROM (SELECT _id, COUNT(name) FROM #{@table}_bills
       GROUP BY _id HAVING abs(COUNT(DISTINCT name)) - 1 = 0) AS t
     """, %{rows: [%{occurrences: 1, row: [10]}]}
   end
 
+  test "inner functions in having clauses in subqueries", context do
+    assert_query context, """
+      SELECT COUNT(*) FROM (SELECT _id, COUNT(name) FROM #{@table}_bills
+      GROUP BY _id HAVING COUNT(abs(age)) = 1) AS t
+    """, %{rows: [%{occurrences: 1, row: [10]}]}
+  end
 end
