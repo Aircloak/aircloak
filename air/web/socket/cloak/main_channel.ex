@@ -123,7 +123,6 @@ defmodule Air.Socket.Cloak.MainChannel do
   # Handling of messages from other processes
   # -------------------------------------------------------------------
 
-
   defp handle_erlang_message({{__MODULE__, :call}, timeout, from, event, payload}, socket) do
     request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
     push(socket, "air_call", %{request_id: request_id, event: event, payload: payload})
