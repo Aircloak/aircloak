@@ -188,18 +188,23 @@ defmodule Air.Service.Query do
   defp error_text(%{"cancelled" => true}), do: "Cancelled."
   defp error_text(_), do: nil
 
+  defp get(scope \\ Query, id) do
+    case Repo.get(scope, id) do
+      nil -> {:error, :not_found}
+      query -> {:ok, query}
+    end
+  end
+
+
+  # -------------------------------------------------------------------
+  # DB scopes
+  # -------------------------------------------------------------------
+
   defp query_scope(user) do
     if User.admin?(user) do
       Query
     else
       started_by(Query, user)
-    end
-  end
-
-  defp get(scope \\ Query, id) do
-    case Repo.get(scope, id) do
-      nil -> {:error, :not_found}
-      query -> {:ok, query}
     end
   end
 
