@@ -1,5 +1,5 @@
-defmodule AirSocket.Serializer do
-  @moduledoc "Gzip+Json serializer for the socket client."
+defmodule Air.CloakSocketSerializer do
+  @moduledoc "Gzip+Json serializer for the cloak socket client."
   @behaviour Phoenix.Channels.GenSocketClient.Serializer
 
   require Logger
@@ -21,7 +21,7 @@ defmodule AirSocket.Serializer do
 
   @doc false
   def encode_message(message) do
-    {time, encoded_message} = :timer.tc(fn -> message |> Poison.encode_to_iodata!() |> :zlib.gzip end)
+    {time, encoded_message} = :timer.tc(fn -> message |> :erlang.term_to_binary() |> :zlib.gzip() end)
 
     if time > 10_000 do
       # log decoding times longer than 10ms

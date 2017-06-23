@@ -8,10 +8,10 @@ defmodule Air.Service.Cloak.Test do
 
   @data_source_id "data_source_id"
   @data_source_name "data_source_name"
-  @data_source %{"name" => @data_source_name, "global_id" => @data_source_id, "tables" => []}
+  @data_source %{name: @data_source_name, global_id: @data_source_id, tables: []}
   @data_sources [@data_source]
-  @data_sources_that_differ [%{"name" => @data_source_name, "global_id" => @data_source_id,
-    "tables" => [%{different: true}]}]
+  @data_sources_that_differ [%{name: @data_source_name, global_id: @data_source_id,
+    tables: [%{different: true}]}]
 
   setup do
     wait_for_cleanup()
@@ -124,7 +124,7 @@ defmodule Air.Service.Cloak.Test do
   end
 
   defp data_source_with_errors(errors) do
-    [Map.put(@data_source, "errors", errors)]
+    [Map.put(@data_source, :errors, errors)]
   end
 
   defp start_cloak_channel(data_sources) do

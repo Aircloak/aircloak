@@ -28,10 +28,11 @@ defmodule Air.Socket.Cloak.Serializer do
   @doc false
   def decode!(message, _opts) do
     {time, result} = :timer.tc(fn ->
-      message
-      |> :zlib.gunzip()
-      |> Poison.decode!()
-      |> Phoenix.Socket.Message.from_map!()
+      struct(Phoenix.Socket.Message,
+        message
+        |> :zlib.gunzip()
+        |> :erlang.binary_to_term()
+      )
     end)
 
     if time > 10_000 do

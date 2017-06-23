@@ -31,7 +31,7 @@ defmodule Air.QueryControllerTest do
     }
     task = Task.async(fn -> login(context[:user]) |> post("/queries", query_data_params) |> response(200) end)
 
-    TestSocketHelper.respond_to_start_task_request!(socket, "ok")
+    TestSocketHelper.respond_to_start_task_request!(socket, :ok)
 
     assert %{"success" => true} = Poison.decode!(Task.await(task))
   end
@@ -66,7 +66,7 @@ defmodule Air.QueryControllerTest do
   defp open_cloak_mock_socket(data_source) do
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
     TestSocketHelper.join!(socket, "main",
-      %{data_sources: [%{"name" => data_source.name, "global_id" => data_source.global_id, "tables" => []}]})
+      %{data_sources: [%{name: data_source.name, global_id: data_source.global_id, tables: []}]})
     socket
   end
 end

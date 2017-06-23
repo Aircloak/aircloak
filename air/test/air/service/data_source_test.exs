@@ -260,7 +260,7 @@ defmodule Air.Service.DataSourceTest do
   defp with_socket(%{data_source: data_source}) do
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
     TestSocketHelper.join!(socket, "main",
-      %{data_sources: [%{"name" => data_source.name, "global_id" => data_source.global_id, "tables" => []}]})
+      %{data_sources: [%{name: data_source.name, global_id: data_source.global_id, tables: []}]})
     {:ok, socket: socket}
   end
 

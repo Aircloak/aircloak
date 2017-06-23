@@ -21,7 +21,7 @@ defmodule Air.TestSocketHelper do
       _ -> params
     end
     {:ok, socket} = TestSocket.start_link(GenSocketClient.Transport.WebSocketClient, url(params), true,
-        serializer: GenSocketClient.Serializer.GzipJson)
+        serializer: Air.CloakSocketSerializer)
     {TestSocket.wait_connect_status(socket), socket}
   end
 
@@ -35,6 +35,7 @@ defmodule Air.TestSocketHelper do
   @doc "Joins a topic and wait for the successful response."
   @spec join!(pid, String.t, %{}) :: {:ok, %{}}
   def join!(socket, topic, params \\ %{}) do
+    params = Map.merge(%{salt_hash: "foobar"}, params)
     {:ok, {^topic, response}} = TestSocket.join(socket, topic, params)
     {:ok, response}
   end
