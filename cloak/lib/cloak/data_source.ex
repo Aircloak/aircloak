@@ -39,6 +39,8 @@ defmodule Cloak.DataSource do
   require Logger
   require Aircloak.DeployConfig
 
+  use GenServer
+
   # define returned data types and values
   @type t :: %{
     global_id: atom,
@@ -46,7 +48,11 @@ defmodule Cloak.DataSource do
     driver: module,
     parameters: Driver.parameters,
     tables: %{atom => Table.t},
-    errors: [String.t]
+    errors: [String.t],
+    status: :online | :offline,
+    # we need to store the initial tables and errors in case we need to re-scan the data source tables later
+    initial_tables: %{atom => Table.t},
+    initial_errors: [String.t],
   }
 
   @type num_rows :: non_neg_integer
@@ -62,24 +68,29 @@ defmodule Cloak.DataSource do
   # -------------------------------------------------------------------
 
   @doc """
-  Initializes the configured data sources.
+  Starts the handler process for data sources.
 
   Starting is fault-tolerant: if some data sources can't be accessed, or if
   there are some errors in the configuration, the system will still start,
   using the valid datasources. Invalid data sources won't be accessible, but
   the system will log corresponding errors.
   """
-  @spec start() :: :ok
-  def start(), do:
-    Aircloak.DeployConfig.fetch!("data_sources")
-    |> Enum.map(&to_data_source/1)
-    |> Enum.map(&add_tables/1)
-    |> Validations.Name.check_for_duplicates()
-    |> store_to_cache()
+  def start_link(), do:
+    GenServer.start_link(__MODULE__, init_state(), name: __MODULE__)
 
   @doc "Returns the list of defined data sources."
   @spec all() :: [t]
-  def all(), do: Application.get_env(:cloak, :data_sources)
+  def all(), do: GenServer.call(__MODULE__, :all, :infinity)
+
+  @doc "Returns the datasource with the given id, or `:error` if it's not found."
+  @spec fetch(String.t) :: {:ok, t} | :error
+  def fetch(data_source_name) do
+    GenServer.call(__MODULE__, {:get, data_source_name}, :infinity)
+    |> case do
+      nil -> :error
+      data_source -> {:ok, data_source}
+    end
+  end
 
   @doc "Returns the table descriptor for the given table."
   @spec table(t, atom | String.t) :: Table.t | nil
@@ -120,37 +131,71 @@ defmodule Cloak.DataSource do
     end
   end
 
-  @doc "Returns the datasource for the given id, raises if it's not found."
-  @spec fetch!(String.t) :: t
-  def fetch!(data_source_id) do
-    {:ok, data_source} = fetch(data_source_id)
-    data_source
-  end
-
-  @doc "Returns the datasource with the given id, or `:error` if it's not found."
-  @spec fetch(String.t) :: {:ok, t} | :error
-  def fetch(data_source_name) do
-    Application.get_env(:cloak, :data_sources)
-    |> Enum.find(&(&1.name === data_source_name))
-    |> case do
-      nil -> :error
-      data_source -> {:ok, data_source}
-    end
-  end
-
   @doc "Raises an error when something goes wrong during data processing."
   @spec raise_error(String.t) :: no_return
   def raise_error(message), do: raise ExecutionError, message: message
 
 
   # -------------------------------------------------------------------
+  # Callbacks
+  # -------------------------------------------------------------------
+
+  @doc false
+  def init(data_sources) do
+    activate_monitor_timer(self())
+    {:ok, data_sources}
+  end
+
+  @doc false
+  def handle_call(:all, _from, data_sources) do
+    {:reply, data_sources, data_sources}
+  end
+  def handle_call({:get, name}, _from, data_sources) do
+    data_source = Enum.find(data_sources, & &1.name === name)
+    {:reply, data_source, data_sources}
+  end
+  def handle_call({:update, data_sources}, _from, _old_data_sources) do
+    {:reply, :ok, data_sources}
+  end
+
+  def handle_info(:monitor, data_sources) do
+    server_pid = self()
+    Task.start_link(fn () ->
+      old_status = Enum.map(data_sources, & &1.status)
+      data_sources = Enum.map(data_sources, &check_data_source/1)
+      new_status = Enum.map(data_sources, & &1.status)
+      if new_status != old_status do
+        update(data_sources)
+        Logger.info("Data sources status changed, sending new configuration to air ...")
+        Cloak.AirSocket.update_config(data_sources)
+      end
+      activate_monitor_timer(server_pid)
+    end)
+    {:noreply, data_sources}
+  end
+
+
+  # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp activate_monitor_timer(pid) do
+    interval = Application.get_env(:cloak, :data_source_monitor_interval)
+    if interval != nil, do: Process.send_after(pid, :monitor, interval)
+  end
+
+  defp init_state(), do:
+    Aircloak.DeployConfig.fetch!("data_sources")
+    |> Enum.map(&to_data_source/1)
+    |> Validations.Name.check_for_duplicates()
+    |> Enum.map(&save_init_fields/1)
+    |> Enum.map(&add_tables/1)
 
   defp to_data_source(data_source) do
     data_source
     |> Aircloak.atomize_keys()
     |> Map.put(:errors, [])
+    |> Map.put(:status, nil)
     |> Validations.Name.ensure_permitted()
     |> potentially_create_temp_name()
     |> generate_global_id()
@@ -194,30 +239,41 @@ defmodule Cloak.DataSource do
     Map.merge(data_source, %{global_id: global_id})
   end
 
-  @doc false
-  # load the columns list for all defined tables in all data sources
-  def store_to_cache(data_sources) do
-    Application.put_env(:cloak, :data_sources, data_sources)
-  end
+  defp save_init_fields(data_source), do:
+    data_source
+    |> Map.put(:initial_tables, data_source.tables)
+    |> Map.put(:initial_errors, data_source.errors)
+
+  defp restore_init_fields(data_source), do:
+    data_source
+    |> Map.put(:tables, data_source.initial_tables)
+    |> Map.put(:errors, data_source.initial_errors)
 
   @doc false
-  def add_tables(%{errors: existing_errors} = data_source) do
+  def add_tables(data_source) do
     Logger.info("Loading tables from #{data_source.name} ...")
+    data_source = restore_init_fields(data_source)
     driver = data_source.driver
     try do
       connection = driver.connect!(data_source.parameters)
       try do
-        Table.load(data_source, connection)
+        data_source
+        |> Table.load(connection)
+        |> Map.put(:status, :online)
       after
         driver.disconnect(connection)
       end
     rescue
       error in ExecutionError ->
         message = "Connection error: #{Exception.message(error)}."
-        Logger.error("Data source `#{data_source.name}`: #{message}")
-        %{data_source | errors: existing_errors ++ [message], tables: %{}}
+        Logger.error("Data source `#{data_source.name}` is offline: #{message}")
+        %{data_source | errors: [message | data_source.errors], tables: %{}, status: :offline}
     end
   end
+
+  @doc false
+  def update(data_sources), do:
+    GenServer.call(__MODULE__, {:update, data_sources}, :infinity)
 
   # We need a name for the data source in order for the Air to have something to attach
   # potential errors to. Therefore if none exists, we'll create a dummy name based on
@@ -232,5 +288,21 @@ defmodule Cloak.DataSource do
     else
       data_source
     end
+  end
+
+  defp check_data_source(%{status: :online} = data_source) do
+    driver = data_source.driver
+    try do
+      data_source.parameters |> driver.connect!() |> driver.disconnect()
+      data_source
+    rescue
+      error in ExecutionError ->
+        message = "Connection error: #{Exception.message(error)}."
+        Logger.error("Data source `#{data_source.name}` is offline: #{message}")
+        %{data_source | errors: [message | data_source.errors], tables: %{}, status: :offline}
+    end
+  end
+  defp check_data_source(%{status: :offline} = data_source) do
+    add_tables(data_source)
   end
 end

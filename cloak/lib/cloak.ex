@@ -10,7 +10,6 @@ defmodule Cloak do
     Cloak.LoggerTranslator.install()
     set_salt()
     if Aircloak.DeployConfig.fetch("debug") === {:ok, true} do Logger.configure(level: :debug) end
-    :ok = Cloak.DataSource.start()
     Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor)
   end
 
@@ -32,6 +31,7 @@ defmodule Cloak do
     import Supervisor.Spec, warn: false
 
     [
+      worker(Cloak.DataSource, []),
       Cloak.ResultSender.supervisor_spec(),
       Cloak.Query.Runner.supervisor_spec()
     ]

@@ -3,6 +3,8 @@
 ### New features
 
 - Added experimental support for querying the system from Tableau.
+- Added periodic monitoring of configured data sources: online data sources are checked if they are still reachable,
+  while offline data sources are checked if they came back online and, in case they do, the tables are reloaded.
 
 ### Enhancements
 

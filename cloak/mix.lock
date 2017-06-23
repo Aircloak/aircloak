@@ -37,7 +37,7 @@
   "mongodb": {:hex, :mongodb, "0.2.0", "95f85074534bb0a65c4983995903a458e36d0b096f62c1bbdd56bc196f48cf80", [:mix], [{:connection, "~> 1.0", [hex: :connection, optional: false]}, {:db_connection, "~> 1.0", [hex: :db_connection, optional: false]}]},
   "pbkdf2": {:git, "git://github.com/comtihon/erlang-pbkdf2.git", "7076584f5377e98600a7e2cb81980b2992fb2f71", [tag: "2.0.0"]},
   "phoenix": {:hex, :phoenix, "1.1.6", "7bf19002669c8f692f5a9c8d30dab7b49f3dc56228d5bde92a12fb426b4783c2", [], [{:cowboy, "~> 1.0", [hex: :cowboy, optional: true]}, {:plug, "~> 1.0", [hex: :plug, optional: false]}, {:poison, "~> 1.5 or ~> 2.0", [hex: :poison, optional: false]}]},
-  "phoenix_gen_socket_client": {:hex, :phoenix_gen_socket_client, "1.1.0", "9ea544c79bacadeca76a67704b58a59a168679bc0c16ac7524f265efc23de93f", [:mix], []},
+  "phoenix_gen_socket_client": {:hex, :phoenix_gen_socket_client, "1.1.1", "d1fbe7f053a0e91eb4f6fa527c1c8a365da1a07b1d5c2993626cc899d98b36d2", [:mix], []},
   "plug": {:hex, :plug, "1.2.2", "cfbda521b54c92ab8ddffb173fbaabed8d8fc94bec07cd9bb58a84c1c501b0bd", [:mix], [{:cowboy, "~> 1.0", [hex: :cowboy, optional: true]}, {:mime, "~> 1.0", [hex: :mime, optional: false]}]},
   "poison": {:git, "https://github.com/cristianberneanu/poison.git", "1a6bff505c22047e18a9318e01bda63ede20d649", []},
   "poolboy": {:hex, :poolboy, "1.5.1", "6b46163901cfd0a1b43d692657ed9d7e599853b3b21b95ae5ae0a777cf9b6ca8", [:rebar], []},

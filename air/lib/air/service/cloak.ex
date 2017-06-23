@@ -48,6 +48,18 @@ defmodule Air.Service.Cloak do
     data_source_schemas
   end
 
+  @doc "Updates the data sources configuration for the calling cloak."
+  @spec update(Map.t, Map.t) :: [Air.Schemas.DataSource.t]
+  def update(cloak_info, data_sources) do
+    # cleanup previous entries from Registry
+    Registry.unregister(@all_cloak_registry_name, :all_cloaks)
+    for data_source <- data_sources do
+      Registry.unregister(@data_source_registry_name, data_source["name"])
+    end
+
+    register(cloak_info, data_sources)
+  end
+
   @doc "Records cloak memory readings"
   @spec record_memory(Map.t) :: :ok
   def record_memory(reading) do
