@@ -2,6 +2,7 @@ defmodule Air.Socket.Cloak.Serializer do
   @moduledoc "Gzip based socket serializer."
   @behaviour Phoenix.Transports.Serializer
 
+  require Logger
   alias Phoenix.Socket.Reply
   alias Phoenix.Socket.Message
   alias Phoenix.Socket.Broadcast
@@ -26,10 +27,19 @@ defmodule Air.Socket.Cloak.Serializer do
 
   @doc false
   def decode!(message, _opts) do
-    message
-    |> :zlib.gunzip()
-    |> Poison.decode!()
-    |> Phoenix.Socket.Message.from_map!()
+    {time, result} = :timer.tc(fn ->
+      message
+      |> :zlib.gunzip()
+      |> Poison.decode!()
+      |> Phoenix.Socket.Message.from_map!()
+    end)
+
+    if time > 10_000 do
+      # log decoding times longer than 10ms
+      Logger.warn("decoding of a cloak message took #{div(time, 1000)}ms, raw message size=#{byte_size(message)} bytes")
+    end
+
+    result
   end
 
 

@@ -14,8 +14,6 @@ defmodule Cloak.AirSocket do
 
   @behaviour GenSocketClient
 
-  @timeout :timer.seconds(5)
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -41,8 +39,12 @@ defmodule Cloak.AirSocket do
   """
   @spec send_query_result(GenServer.server, map) :: :ok | {:error, any}
   def send_query_result(socket \\ __MODULE__, result) do
-    Logger.info("sending query result to Air", query_id: result.query_id)
-    call_air(socket, "main", "query_result", result)
+    try do
+      Logger.info("sending query result to Air", query_id: result.query_id)
+      call_air(socket, "main", "query_result", result, :timer.minutes(1))
+    catch :exit, {:timeout, _} ->
+      {:error, :timeout}
+    end
   end
 
   @doc """
@@ -302,8 +304,8 @@ defmodule Cloak.AirSocket do
   end
 
   @spec call_air(GenServer.server, String.t, String.t, map) :: :ok | {:error, any}
-  defp call_air(socket, topic, event, payload) do
-    case GenSocketClient.call(socket, {:call_air, topic, event, payload, @timeout}, @timeout) do
+  defp call_air(socket, topic, event, payload, timeout \\ :timer.seconds(5)) do
+    case GenSocketClient.call(socket, {:call_air, topic, event, payload, timeout}, timeout) do
       {:ok, _} -> :ok
       error -> error
     end
