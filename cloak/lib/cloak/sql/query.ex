@@ -225,6 +225,15 @@ defmodule Cloak.Sql.Query do
   def bucket_columns(query), do:
     query.columns ++ (query |> order_by_expressions() |> Enum.reject(& &1 in query.columns))
 
+  @doc "Returns the table that the given name refers to in the given query. Useful for resolving aliases."
+  @spec resolve_table(t, String.t) :: {:ok, DataSource.Table.t}
+  def resolve_table(query, table_name) do
+    case query.selected_tables |> Enum.find(& &1.name == table_name) do
+      nil -> :error
+      table -> {:ok, table}
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions

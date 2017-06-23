@@ -38,17 +38,17 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> compute_aggregators()
 
   @doc "Creates an executable query which describes a SELECT statement from a single table."
-  @spec make_select_query(DataSource.t, String.t, [Expression.t]) :: Query.t
-  def make_select_query(data_source, table_name, select_expressions) do
+  @spec make_select_query(DataSource.t, DataSource.Table.t, [Expression.t]) :: Query.t
+  def make_select_query(data_source, table, select_expressions) do
     column_titles = for expression <- select_expressions, do: expression.alias || expression.name
     calculate_db_columns(%Query{
       command: :select,
       subquery?: true,
       columns: select_expressions,
       column_titles: column_titles,
-      from: table_name,
+      from: table.name,
       data_source: data_source,
-      selected_tables: [DataSource.table(data_source, table_name)]
+      selected_tables: [table]
     })
   end
 
