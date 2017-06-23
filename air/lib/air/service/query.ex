@@ -116,29 +116,8 @@ defmodule Air.Service.Query do
   @spec process_result(map) :: :ok
   def process_result(result) do
     query = Repo.get!(Query, result["query_id"])
-
-    row_count = (result["rows"] || []) |> Enum.map(&(&1["occurrences"])) |> Enum.sum
-
-    storable_result = %{
-      columns: result["columns"],
-      types: result["features"]["selected_types"],
-      rows: result["rows"],
-      error: error_text(result),
-      info: result["info"],
-      row_count: row_count,
-    }
-
-    query = query
-    |> Query.changeset(%{
-      result: storable_result,
-      execution_time: result["execution_time"],
-      users_count: result["users_count"],
-      features: result["features"],
-      query_state: query_state(result),
-    })
-    |> Repo.update!()
-
-    UserChannel.broadcast_state_change(query)
+    if valid_state_transition?(query.query_state, query_state(result)), do:
+      do_process_result(query, result)
 
     Logger.info("processed result for query #{result["query_id"]}")
     :ok
@@ -170,6 +149,31 @@ defmodule Air.Service.Query do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp do_process_result(query, result) do
+    row_count = (result["rows"] || []) |> Enum.map(&(&1["occurrences"])) |> Enum.sum
+
+    storable_result = %{
+      columns: result["columns"],
+      types: result["features"]["selected_types"],
+      rows: result["rows"],
+      error: error_text(result),
+      info: result["info"],
+      row_count: row_count,
+    }
+
+    query = query
+    |> Query.changeset(%{
+      result: storable_result,
+      execution_time: result["execution_time"],
+      users_count: result["users_count"],
+      features: result["features"],
+      query_state: query_state(result),
+    })
+    |> Repo.update!()
+
+    UserChannel.broadcast_state_change(query)
+  end
 
   @state_order [
     :started, :parsing, :compiling, :awaiting_data, :ingesting_data, :processing, :post_processing, :cancelled,
