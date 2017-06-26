@@ -111,36 +111,36 @@ defmodule Air.Service.Query do
 
   @doc """
   Stores the given result sent by the cloak for the appropriate query and sets its state to "completed". The query id
-  is taken from `result["query_id"]`.
+  is taken from `result.query_id`.
   """
   @spec process_result(map) :: :ok
   def process_result(result) do
-    query = Repo.get!(Query, result["query_id"])
+    query = Repo.get!(Query, result.query_id)
 
-    row_count = (result["rows"] || []) |> Enum.map(&(&1["occurrences"])) |> Enum.sum
+    row_count = (result[:rows] || []) |> Enum.map(&(&1.occurrences)) |> Enum.sum
 
     storable_result = %{
-      columns: result["columns"],
-      types: result["features"]["selected_types"],
-      rows: result["rows"],
+      columns: result[:columns],
+      types: result[:features][:selected_types],
+      rows: result[:rows],
       error: error_text(result),
-      info: result["info"],
+      info: result[:info],
       row_count: row_count,
     }
 
     query = query
     |> Query.changeset(%{
       result: storable_result,
-      execution_time: result["execution_time"],
-      users_count: result["users_count"],
-      features: result["features"],
+      execution_time: result[:execution_time],
+      users_count: result[:users_count],
+      features: result[:features],
       query_state: query_state(result),
     })
     |> Repo.update!()
 
     UserChannel.broadcast_state_change(query)
 
-    Logger.info("processed result for query #{result["query_id"]}")
+    Logger.info("processed result for query #{result.query_id}")
     :ok
   end
 
@@ -180,12 +180,12 @@ defmodule Air.Service.Query do
   defp valid_state_transition?(current_state, next_state), do:
     Enum.find_index(@state_order, &(&1 == current_state)) < Enum.find_index(@state_order, &(&1 == next_state))
 
-  defp query_state(%{"error" => error}) when is_binary(error), do: :error
-  defp query_state(%{"cancelled" => true}), do: :cancelled
+  defp query_state(%{error: error}) when is_binary(error), do: :error
+  defp query_state(%{cancelled: true}), do: :cancelled
   defp query_state(_), do: :completed
 
-  defp error_text(%{"error" => error}) when is_binary(error), do: error
-  defp error_text(%{"cancelled" => true}), do: "Cancelled."
+  defp error_text(%{error: error}) when is_binary(error), do: error
+  defp error_text(%{cancelled: true}), do: "Cancelled."
   defp error_text(_), do: nil
 
   defp query_scope(user) do

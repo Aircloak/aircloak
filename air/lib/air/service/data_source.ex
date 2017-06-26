@@ -136,7 +136,7 @@ defmodule Air.Service.DataSource do
     opts = [{:notify, true} | opts]
     with {:ok, %{id: query_id}} <- start_query(data_source_id_spec, user, context, statement, parameters, opts) do
       receive do
-        {:query_result, %{"query_id" => ^query_id} = result} ->
+        {:query_result, %{query_id: ^query_id} = result} ->
           Air.QueryEvents.unsubscribe(query_id)
           {:ok, result}
       end

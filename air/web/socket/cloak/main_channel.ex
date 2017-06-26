@@ -197,10 +197,10 @@ defmodule Air.Socket.Cloak.MainChannel do
 
     {:noreply, socket}
   end
-  defp handle_cloak_call("query_state", %{"query_id" => query_id, "query_state" => state}, request_id, socket) do
+  defp handle_cloak_call("query_state", payload, request_id, socket) do
     respond_to_cloak(socket, request_id, :ok)
 
-    Air.QueryEvents.trigger_state_change(query_id, String.to_existing_atom(state))
+    Air.QueryEvents.trigger_state_change(payload.query_id, payload.query_state)
 
     {:noreply, socket}
   end
