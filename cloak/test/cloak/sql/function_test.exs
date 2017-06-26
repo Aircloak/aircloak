@@ -96,6 +96,14 @@ defmodule Cloak.Sql.Function.Test do
     end
   end
 
+  test "date_trunc typing" do
+    assert well_typed?("date_trunc", [:text, :datetime])
+    assert well_typed?("date_trunc", [:text, :time])
+    refute well_typed?("date_trunc", [:text, :date])
+    refute well_typed?("date_trunc", [:date, :date])
+    refute well_typed?("date_trunc", [:text, :integer])
+  end
+
   for function <- ~w(* / + - ^) do
     test "#{function} typing" do
       assert well_typed?(unquote(function), [:integer, :integer])
