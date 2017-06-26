@@ -348,6 +348,8 @@ defmodule Cloak.Query.FunctionTest do
       assert ~N[2015-02-03 00:00:00.000000] == apply_function("date_trunc('day', datetime)", "datetimes_ft")
     test "date_trunc('month')", do:
       assert ~N[2015-02-01 00:00:00.000000] == apply_function("date_trunc('month', datetime)", "datetimes_ft")
+    test "date_trunc('quarter')", do:
+      assert ~N[2015-01-01 00:00:00.000000] == apply_function("date_trunc('quarter', datetime)", "datetimes_ft")
     test "date_trunc('year')", do:
       assert ~N[2015-01-01 00:00:00.000000] == apply_function("date_trunc('year', datetime)", "datetimes_ft")
   end
@@ -361,6 +363,8 @@ defmodule Cloak.Query.FunctionTest do
       assert ~T[04:00:00.000000] == apply_function("date_trunc('hour', cast(datetime as time))", "datetimes_ft")
     test "date_trunc('day')", do:
       assert ~T[00:00:00.000000] == apply_function("date_trunc('day', cast(datetime as time))", "datetimes_ft")
+    test "date_trunc('quarter')", do:
+      assert ~T[00:00:00.000000] == apply_function("date_trunc('quarter', cast(datetime as time))", "datetimes_ft")
   end
 
   test "length", do: assert 3 == apply_function("length(cast(height as text))", "heights_ft")

@@ -298,12 +298,18 @@ defmodule Cloak.Sql.Expression do
   defp rtrim(string, chars), do: Regex.replace(~r/[#{Regex.escape(chars)}]*$/, string, "")
 
   @max_precision_zero {0, 6}
+  @midnight ~T[00:00:00.000000]
+  defp date_trunc(scope, %Time{}) when scope in ~w(year quarter month day), do: @midnight
   defp date_trunc("year", date), do: date_trunc("month", %{date | month: 1})
+  defp date_trunc("quarter", date), do: date_trunc("month", %{date | month: first_month_of_quarter(date)})
   defp date_trunc("month", date), do: date_trunc("day", %{date | day: 1})
   defp date_trunc("day", date), do: date_trunc("hour", %{date | hour: 0})
   defp date_trunc("hour", date), do: date_trunc("minute", %{date | minute: 0})
   defp date_trunc("minute", date), do: date_trunc("second", %{date | second: 0})
   defp date_trunc("second", date), do: %{date | microsecond: @max_precision_zero}
+
+  @month_in_quarter 3
+  defp first_month_of_quarter(%{month: month}), do: div(month - 1, @month_in_quarter) * @month_in_quarter + 1
 
   defp substring(string, from, count \\ nil)
   defp substring(nil, _, _), do: nil
