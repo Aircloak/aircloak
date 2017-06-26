@@ -51,7 +51,7 @@ defmodule Air.Socket.Cloak.Serializer do
   defp encode(message) do
     {:socket_push, :binary,
       message
-      |> Poison.encode_to_iodata!()
+      |> :erlang.term_to_binary()
       |> :zlib.gzip()
     }
   end

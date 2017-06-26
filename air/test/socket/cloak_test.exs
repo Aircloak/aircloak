@@ -24,7 +24,7 @@ defmodule Air.Socket.CloakTest do
     capture_log(fn ->
       socket = connect!()
       assert {:error, reason} = TestSocket.join(socket, "invalid_channel")
-      assert {:server_rejected, "invalid_channel", %{"reason" => "unmatched topic"}} == reason
+      assert {:server_rejected, "invalid_channel", %{reason: "unmatched topic"}} == reason
     end)
   end
 

@@ -11,12 +11,14 @@ defmodule Air.CloakSocketSerializer do
 
   @doc false
   def decode_message(encoded_message) do
-    %{"topic" => topic, "event" => event, "payload" => payload, "ref" => ref} =
+    phoenix_message =
       encoded_message
       |> :zlib.gunzip()
-      |> Poison.decode!()
+      |> :erlang.binary_to_term()
 
-    %{topic: topic, event: event, payload: payload, ref: ref}
+    phoenix_message
+    |> Map.take([:topic, :event, :payload, :ref])
+    |> adapt_first_phx_reply()
   end
 
   @doc false
@@ -36,4 +38,16 @@ defmodule Air.CloakSocketSerializer do
 
     {:binary, encoded_message}
   end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp adapt_first_phx_reply(%{event: "phx_reply", ref: 1} = message), do:
+    # phoenix_gen_socket_client expects string keys for status and response, and a string value for response.
+    update_in(message.payload, &%{"status" => to_string(&1.status), "response" => &1.response})
+  defp adapt_first_phx_reply(other), do:
+    # For all other cases, we'll leave atomized keys.
+    other
 end

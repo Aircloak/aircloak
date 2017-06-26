@@ -45,7 +45,7 @@ defmodule Air.TestSocketHelper do
   def respond_to_start_task_request!(socket, task_id, status) do
     timeout = :timer.seconds(1)
     {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
-    %{"event" => "run_query", "payload" => %{"id" => ^task_id}, "request_id" => request_id} = request
+    %{event: "run_query", payload: %{id: ^task_id}, request_id: request_id} = request
     {:ok, _ref} = TestSocket.push(socket, "main", "cloak_response", %{request_id: request_id, status: status})
     :ok
   end
@@ -55,7 +55,7 @@ defmodule Air.TestSocketHelper do
   def respond_to_start_task_request!(socket, status) do
     timeout = :timer.seconds(1)
     {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
-    %{"event" => "run_query", "request_id" => request_id} = request
+    %{event: "run_query", request_id: request_id} = request
     {:ok, _ref} = TestSocket.push(socket, "main", "cloak_response", %{request_id: request_id, status: status})
     :ok
   end
@@ -64,7 +64,7 @@ defmodule Air.TestSocketHelper do
   @spec respond_to_query_alive!(pid, String.t, boolean, pos_integer) :: :ok
   def respond_to_query_alive!(socket, query_id, result, timeout \\ :timer.seconds(1)) do
     {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
-    %{"request_id" => request_id, "event" => "is_alive", "payload" => ^query_id} = request
+    %{request_id: request_id, event: "is_alive", payload: ^query_id} = request
     {:ok, _ref} = TestSocket.push(socket, "main", "cloak_response", %{
       request_id: request_id, status: :ok, result: result})
     :ok
@@ -74,7 +74,7 @@ defmodule Air.TestSocketHelper do
   @spec respond_to_validate_views!(pid, [map], pos_integer) :: :ok
   def respond_to_validate_views!(socket, results, timeout \\ :timer.seconds(1)) do
     {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
-    %{"request_id" => request_id, "event" => "validate_views", "payload" => _} = request
+    %{request_id: request_id, event: "validate_views", payload: _} = request
     {:ok, _ref} = TestSocket.push(socket, "main", "cloak_response", %{
       request_id: request_id, status: :ok, result: results})
     :ok

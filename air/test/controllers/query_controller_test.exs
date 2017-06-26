@@ -43,7 +43,7 @@ defmodule Air.QueryControllerTest do
     Task.start_link(fn -> login(context[:user]) |> post("/queries/#{query.id}/cancel") |> response(200) end)
 
     query_id = query.id
-    assert {:ok, {"main", "air_call", %{"event" => "stop_query", "payload" => ^query_id}}} =
+    assert {:ok, {"main", "air_call", %{event: "stop_query", payload: ^query_id}}} =
       TestSocket.await_message(socket)
   end
 
