@@ -39,10 +39,10 @@ defmodule Cloak.Query.BasicTest do
     assert_query "show columns from heights", %{query_id: "1", columns: ["name", "type"], rows: rows}
 
     assert Enum.sort_by(rows, &(&1[:row])) == [
-      %{occurrences: 1, row: ["height", :integer]},
-      %{occurrences: 1, row: ["male", :boolean]},
-      %{occurrences: 1, row: ["name", :text]},
-      %{occurrences: 1, row: ["user_id", :text]}
+      %{occurrences: 1, row: ["height", "integer"]},
+      %{occurrences: 1, row: ["male", "boolean"]},
+      %{occurrences: 1, row: ["name", "text"]},
+      %{occurrences: 1, row: ["user_id", "text"]}
     ]
   end
 
@@ -52,8 +52,8 @@ defmodule Cloak.Query.BasicTest do
       %{query_id: "1", columns: ["name", "type"], rows: rows}
 
     assert Enum.sort_by(rows, &(&1[:row])) == [
-      %{occurrences: 1, row: ["height", :integer]},
-      %{occurrences: 1, row: ["user_id", :text]}
+      %{occurrences: 1, row: ["height", "integer"]},
+      %{occurrences: 1, row: ["user_id", "text"]}
     ]
   end
 

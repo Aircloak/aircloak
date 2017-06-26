@@ -46,7 +46,7 @@ defmodule Cloak.Query.Runner.Engine do
       )
     )
   defp run_statement(%Sql.Query{command: :show, show: :columns, selected_tables: [table]} = query, _state_updater), do:
-    Query.Result.new(query, Enum.map(sorted_table_columns(table), &%{occurrences: 1, row: [&1.name, &1.type]}))
+    Query.Result.new(query, Enum.map(sorted_table_columns(table), &%{occurrences: 1, row: [&1.name, to_string(&1.type)]}))
   defp run_statement(%Sql.Query{command: :select} = query, state_updater), do:
     select_rows(query, state_updater)
 
