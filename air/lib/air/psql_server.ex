@@ -185,25 +185,19 @@ defmodule Air.PsqlServer do
       error: "Your Aircloak installation is running version #{Air.SharedView.version()} " <>
         "which expired on #{Version.expiry_date()}."
     }
-  defp do_decode_cloak_query_result({:ok, %{"error" => error}}), do:
+  defp do_decode_cloak_query_result({:ok, %{error: error}}), do:
     {:error, error}
   defp do_decode_cloak_query_result({:ok, query_result}), do:
     [
       columns:
-        Enum.zip(
-          Map.fetch!(query_result, "columns"),
-          query_result |> Map.fetch!("features") |> Map.fetch!("selected_types")
-        )
+        Enum.zip(query_result.columns, query_result.features.selected_types)
         |> Enum.map(fn({name, sql_type}) -> %{name: name, type: psql_type(sql_type)} end),
       rows:
         query_result
-        |> Map.get("rows", [])
-        |> Enum.flat_map(&List.duplicate(Map.fetch!(&1, "row"), Map.fetch!(&1, "occurrences"))),
+        |> Map.get(:rows, [])
+        |> Enum.flat_map(&List.duplicate(&1.row, &1.occurrences)),
       param_types:
-        query_result
-        |> Map.fetch!("features")
-        |> Map.fetch!("parameter_types")
-        |> Enum.map(&psql_type/1)
+        Enum.map(query_result.features.parameter_types, &psql_type/1)
     ]
   defp do_decode_cloak_query_result(other) do
     Logger.error("Error running a query: #{inspect other}")
