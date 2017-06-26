@@ -258,7 +258,7 @@ defmodule Air.Socket.Cloak.MainChannel do
       {:DOWN, ^mref, _, _, reason} ->
         exit(reason)
     after timeout ->
-      exit(:timeout)
+      {:error, :timeout}
     end
   end
 
