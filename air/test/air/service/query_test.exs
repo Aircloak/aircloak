@@ -217,6 +217,19 @@ defmodule Air.Service.QueryTest do
         result: %{"error" => "Cancelled."},
       } = query
     end
+
+    test "results of completed queries are ignored" do
+      query = create_query!(create_user!(), %{query_state: :error, data_source_id: create_data_source!().id})
+
+      Query.process_result(%{
+        query_id: query.id,
+        features: %{"selected_types" => ["some types"]},
+        execution_time: 123,
+        cancelled: true,
+      })
+
+      assert {:ok, %{query_state: :error}} = get_query(query.id)
+    end
   end
 
   describe "query_died" do
