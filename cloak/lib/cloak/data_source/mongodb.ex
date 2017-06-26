@@ -224,8 +224,6 @@ defmodule Cloak.DataSource.MongoDB do
   defp supports_used_functions_in_having?(_query), do: true
 
   defp supports_used_functions?(%Query{subquery?: true} = query) do
-    Query.Lenses.conditions()
-    |> Query.Lenses.operands()
     used_functions = Query.Lenses.query_functions() |> Lens.to_list(query) |> Enum.map(& &1.function)
     supported_functions = query.data_source |> get_mongo_version() |> supported_functions()
     Enum.reject(used_functions, & &1 in supported_functions) == []
