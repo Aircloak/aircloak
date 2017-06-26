@@ -33,6 +33,10 @@ defmodule Cloak.Sql.Function do
       %{type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
     ~w(year quarter month day weekday) =>
       %{type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
+    ~w(date_trunc) => %{type_specs: %{
+      [:text, :time] => :time,
+      [:text, {:or, [:datetime, :date]}] => :datetime
+    }},
     ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}},
     ~w(round trunc) => %{type_specs: %{
       [numeric] => :integer,

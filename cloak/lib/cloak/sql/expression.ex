@@ -201,6 +201,7 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("minute", [value]), do: value.minute
   defp do_apply("second", [value]), do: value.second
   defp do_apply("weekday", [value]), do: Timex.weekday(value)
+  defp do_apply("date_trunc", [spec, value]), do: date_trunc(spec, value)
   defp do_apply("sqrt", [value]), do: :math.sqrt(value)
   defp do_apply("floor", [value]) when is_integer(value), do: value
   defp do_apply("floor", [value]), do: value |> Float.floor() |> round()
@@ -295,6 +296,14 @@ defmodule Cloak.Sql.Expression do
   defp ltrim(string, chars), do: Regex.replace(~r/^[#{Regex.escape(chars)}]*/, string, "")
 
   defp rtrim(string, chars), do: Regex.replace(~r/[#{Regex.escape(chars)}]*$/, string, "")
+
+  @max_precision_zero {0, 6}
+  defp date_trunc("year", date), do: date_trunc("month", %{date | month: 1})
+  defp date_trunc("month", date), do: date_trunc("day", %{date | day: 1})
+  defp date_trunc("day", date), do: date_trunc("hour", %{date | hour: 0})
+  defp date_trunc("hour", date), do: date_trunc("minute", %{date | minute: 0})
+  defp date_trunc("minute", date), do: date_trunc("second", %{date | second: 0})
+  defp date_trunc("second", date), do: %{date | microsecond: @max_precision_zero}
 
   defp substring(string, from, count \\ nil)
   defp substring(nil, _, _), do: nil
