@@ -110,8 +110,8 @@ defmodule Air.Service.Query do
   end
 
   @doc """
-  Stores the given result sent by the cloak for the appropriate query and sets its state to "completed". The query id
-  is taken from `result.query_id`.
+  Stores the given result sent by the cloak for the appropriate query and sets its state to "completed".
+  The query id is taken from `result.query_id`.
   """
   @spec process_result(map) :: :ok
   def process_result(result) do
