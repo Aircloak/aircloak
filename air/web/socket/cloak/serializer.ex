@@ -4,8 +4,8 @@ defmodule Air.Socket.Cloak.Serializer do
 
   Messages are serialized as gzipped Erlang term formats. The main reason for this is performance. ETF encoding/decoding
   runs much faster than e.g. JSON encoder, and this is significant for larger messages, for example when large result of
-  a query is sent from the cloak to the air. As an added bonus, there's no impedance mismatch, so we can normally send
-  atoms, tuples and other kind of Erlang specific data to the other side.
+  a query is sent from the cloak to the air. As an added bonus, there's no impedance mismatch, so we can send atoms,
+  tuples and other kind of Erlang specific data to the other side just like when using clustered Erlang.
   """
   @behaviour Phoenix.Transports.Serializer
 
