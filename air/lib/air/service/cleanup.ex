@@ -23,7 +23,7 @@ defmodule Air.Service.Cleanup do
     Air.Service.Query.currently_running()
     |> Air.Repo.preload(:data_source)
     |> Enum.filter(&match?({:ok, false}, Air.Service.DataSource.query_alive?(&1)))
-    |> Enum.each(&Events.trigger_query_died(&1.id))
+    |> Enum.each(&Air.Service.Query.Events.trigger_query_died(&1.id))
 
     :ok
   end
