@@ -55,7 +55,7 @@ defmodule Cloak.ResultSender do
   # -------------------------------------------------------------------
 
   defp send_result(:air_socket, :result, result) do
-    case send_query_result_with_retry(%{retries: 5, retry_delay_sec: 10}, result) do
+    case send_query_result_with_retry(%{retries: 5, retry_delay_sec: 10}, encode_result(result)) do
       :ok -> :ok
       {:error, error} ->
         Logger.error("Error sending query results to the socket: #{inspect error}")
@@ -86,4 +86,7 @@ defmodule Cloak.ResultSender do
         other
     end
   end
+
+  defp encode_result(result), do:
+    %{query_id: result.query_id, payload: :erlang.term_to_binary(result, compressed: 9)}
 end

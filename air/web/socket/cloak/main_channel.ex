@@ -193,7 +193,7 @@ defmodule Air.Socket.Cloak.MainChannel do
     Logger.info("received result for query #{query_result.query_id}")
     respond_to_cloak(socket, request_id, :ok)
 
-    Air.QueryEvents.trigger_result(query_result)
+    Air.QueryEvents.trigger_result(:erlang.binary_to_term(query_result.payload))
 
     {:noreply, socket}
   end
