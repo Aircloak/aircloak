@@ -19,14 +19,13 @@ defmodule Air.CloakSocketSerializer do
   @doc false
   def decode_message(encoded_message), do:
     encoded_message
-    |> :zlib.gunzip()
     |> :erlang.binary_to_term()
     |> Map.take([:topic, :event, :payload, :ref])
     |> adapt_first_phoenix_reply()
 
   @doc false
   def encode_message(message) do
-    {time, encoded_message} = :timer.tc(fn -> message |> :erlang.term_to_binary() |> :zlib.gzip() end)
+    {time, encoded_message} = :timer.tc(fn -> :erlang.term_to_binary(message) end)
 
     if time > 10_000 do
       # log decoding times longer than 10ms

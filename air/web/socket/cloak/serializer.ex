@@ -34,13 +34,7 @@ defmodule Air.Socket.Cloak.Serializer do
 
   @doc false
   def decode!(message, _opts) do
-    {time, result} = :timer.tc(fn ->
-      struct(Phoenix.Socket.Message,
-        message
-        |> :zlib.gunzip()
-        |> :erlang.binary_to_term()
-      )
-    end)
+    {time, result} = :timer.tc(fn -> struct(Phoenix.Socket.Message, :erlang.binary_to_term(message)) end)
 
     if time > 10_000 do
       # log decoding times longer than 10ms
@@ -55,11 +49,6 @@ defmodule Air.Socket.Cloak.Serializer do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp encode(message) do
-    {:socket_push, :binary,
-      message
-      |> :erlang.term_to_binary()
-      |> :zlib.gzip()
-    }
-  end
+  defp encode(message), do:
+    {:socket_push, :binary, :erlang.term_to_binary(message)}
 end
