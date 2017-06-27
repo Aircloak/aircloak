@@ -169,17 +169,10 @@ defmodule Air.Service.Query do
     Task.Supervisor.start_child(
       @result_reporter_sup,
       fn ->
-        {time, decoded_result} = :timer.tc(fn () -> :erlang.binary_to_term(query_result.payload) end)
+        query_result
+        |> decode_result()
+        |> Air.Service.Query.Events.trigger_result()
 
-        if time > 10_000 do
-          # log processing times longer than 10ms
-          Logger.warn([
-            "decoding a query result for query #{query_result.query_id} took #{div(time, 1000)}ms, ",
-            "encoded message size=#{byte_size(query_result.payload)} bytes"
-          ])
-        end
-
-        Air.Service.Query.Events.trigger_result(decoded_result)
         Logger.info("handled result for query #{query_result.query_id}")
       end
     )
@@ -191,6 +184,20 @@ defmodule Air.Service.Query do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp decode_result(query_result) do
+    {time, decoded_result} = :timer.tc(fn () -> :erlang.binary_to_term(query_result.payload) end)
+
+    if time > 10_000 do
+      # log processing times longer than 10ms
+      Logger.warn([
+        "decoding a query result for query #{query_result.query_id} took #{div(time, 1000)}ms, ",
+        "encoded message size=#{byte_size(query_result.payload)} bytes"
+      ])
+    end
+
+    decoded_result
+  end
 
   defp do_process_result(query, result) do
     row_count = (result[:rows] || []) |> Enum.map(&(&1.occurrences)) |> Enum.sum
