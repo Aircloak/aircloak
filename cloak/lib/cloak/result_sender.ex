@@ -21,7 +21,7 @@ defmodule Cloak.ResultSender do
 
   @doc false
   def start_link(target, type, payload) do
-    Task.start_link(fn -> send_reply(target, type, payload) end)
+    Task.start_link(fn -> send_result(target, type, payload) end)
   end
 
 
@@ -40,12 +40,12 @@ defmodule Cloak.ResultSender do
   end
 
   @doc """
-  Sends the reply to the target. Uses a normal process send if target is `{:process, pid}`.
+  Sends the query result to the target. Uses a normal process send if target is `{:process, pid}`.
   Uses the Air <-> Cloak socket if it's :air_socket.
   """
   @spec send_result(target(), term()) :: :ok
-  def send_result(target, reply) do
-    {:ok, _} = Supervisor.start_child(__MODULE__, [target, :result, reply])
+  def send_result(target, result) do
+    {:ok, _} = Supervisor.start_child(__MODULE__, [target, :result, result])
     :ok
   end
 
@@ -54,18 +54,18 @@ defmodule Cloak.ResultSender do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp send_reply(:air_socket, :result, reply) do
-    case send_query_result_with_retry(%{retries: 5, retry_delay_sec: 10}, reply) do
+  defp send_result(:air_socket, :result, result) do
+    case send_query_result_with_retry(%{retries: 5, retry_delay_sec: 10}, result) do
       :ok -> :ok
       {:error, error} ->
         Logger.error("Error sending query results to the socket: #{inspect error}")
         {:error, error}
     end
   end
-  defp send_reply(:air_socket, :state, {query_id, query_state}), do:
+  defp send_result(:air_socket, :state, {query_id, query_state}), do:
     Elixir.Cloak.AirSocket.send_query_state(query_id, query_state)
-  defp send_reply({:process, pid}, type, reply), do:
-    send(pid, {type, reply})
+  defp send_result({:process, pid}, type, result), do:
+    send(pid, {type, result})
 
   defp send_query_result_with_retry(%{retries: 0}, _query_result), do:
     {:error, :timeout}
