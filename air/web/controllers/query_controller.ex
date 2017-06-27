@@ -103,6 +103,8 @@ defmodule Air.QueryController do
     send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
   defp query_error(conn, :not_connected), do:
     send_resp(conn, Status.code(:service_unavailable), "No cloak is available for the given data source")
+  defp query_error(conn, :timeout), do:
+    send_resp(conn, Status.code(:gateway_timeout), "The cloak connection timed out")
   defp query_error(conn, :internal_error), do:
     send_resp(conn, Status.code(:internal_server_error), "")
   defp query_error(conn, other_error) do
