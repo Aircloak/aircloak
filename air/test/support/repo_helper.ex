@@ -135,7 +135,7 @@ defmodule Air.TestRepoHelper do
     do: Base.encode16(:crypto.strong_rand_bytes(10))
 
   defp register_data_source!(name, global_id) do
-    data_sources = [%{"name" => name, "global_id" => global_id, "tables" => []}]
+    data_sources = [%{name: name, global_id: global_id, tables: []}]
     Air.Service.Cloak.register(cloak_info(), data_sources)
     :ok
   end

@@ -162,8 +162,8 @@ defmodule Air.Service.View do
   defp view_status(validation_result) do
     case validation_result do
       {:ok, _} -> {:ok, true}
-      {:error, "sql", _} -> {:ok, false}
-      {:error, "name", _} -> {:ok, false}
+      {:error, :sql, _} -> {:ok, false}
+      {:error, :name, _} -> {:ok, false}
       _ -> :error
     end
   end
@@ -180,10 +180,10 @@ defmodule Air.Service.View do
       case validate_view(user, final_view) do
         {:ok, columns} ->
           {:ok, Ecto.Changeset.put_change(changeset, :result_info, %{columns: columns})}
-        {:error, "name", name_error} ->
+        {:error, :name, name_error} ->
           # Name error returned by the cloak -> we'll convert into a changeset
           {:error, Ecto.Changeset.add_error(changeset, :name, name_error)}
-        {:error, "sql", sql_error} ->
+        {:error, :sql, sql_error} ->
           # SQL error returned by the cloak -> we'll convert into a changeset
           {:error, Ecto.Changeset.add_error(changeset, :sql, sql_error)}
         {:error, :not_connected} ->

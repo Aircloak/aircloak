@@ -154,13 +154,13 @@ defmodule Air.Service.QueryTest do
       query = create_query!(create_user!(), %{query_state: :started, data_source_id: create_data_source!().id})
 
       Query.process_result(%{
-        "query_id" => query.id,
-        "columns" => ["col1", "col2"],
-        "rows" => [%{"occurrences" => 10, "row" => [1, 1]}],
-        "info" => ["some info"],
-        "users_count" => 2,
-        "features" => %{"selected_types" => ["some types"]},
-        "execution_time" => 123,
+        query_id: query.id,
+        columns: ["col1", "col2"],
+        rows: [%{occurrences: 10, row: [1, 1]}],
+        info: ["some info"],
+        users_count: 2,
+        features: %{selected_types: ["some types"]},
+        execution_time: 123,
       })
 
       {:ok, query} = get_query(query.id)
@@ -184,10 +184,10 @@ defmodule Air.Service.QueryTest do
       query = create_query!(create_user!(), %{query_state: :started, data_source_id: create_data_source!().id})
 
       Query.process_result(%{
-        "query_id" => query.id,
-        "features" => %{"selected_types" => ["some types"]},
-        "execution_time" => 123,
-        "error" => "some reason",
+        query_id: query.id,
+        features: %{"selected_types" => ["some types"]},
+        execution_time: 123,
+        error: "some reason",
       })
 
       {:ok, query} = get_query(query.id)
@@ -203,10 +203,10 @@ defmodule Air.Service.QueryTest do
       query = create_query!(create_user!(), %{query_state: :started, data_source_id: create_data_source!().id})
 
       Query.process_result(%{
-        "query_id" => query.id,
-        "features" => %{"selected_types" => ["some types"]},
-        "execution_time" => 123,
-        "cancelled" => true,
+        query_id: query.id,
+        features: %{"selected_types" => ["some types"]},
+        execution_time: 123,
+        cancelled: true,
       })
 
       {:ok, query} = get_query(query.id)
@@ -222,10 +222,10 @@ defmodule Air.Service.QueryTest do
       query = create_query!(create_user!(), %{query_state: :error, data_source_id: create_data_source!().id})
 
       Query.process_result(%{
-        "query_id" => query.id,
-        "features" => %{"selected_types" => ["some types"]},
-        "execution_time" => 123,
-        "cancelled" => true,
+        query_id: query.id,
+        features: %{"selected_types" => ["some types"]},
+        execution_time: 123,
+        cancelled: true,
       })
 
       assert {:ok, %{query_state: :error}} = get_query(query.id)

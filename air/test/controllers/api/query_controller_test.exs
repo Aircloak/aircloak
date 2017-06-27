@@ -20,7 +20,7 @@ defmodule Air.API.QueryController.Test do
       }
       task = Task.async(fn -> api_conn(context.token) |> post("/api/queries", query_data_params) |> response(200) end)
 
-      TestSocketHelper.respond_to_start_task_request!(context.socket, "ok")
+      TestSocketHelper.respond_to_start_task_request!(context.socket, :ok)
 
       assert %{"success" => true} = JSON.decode!(Task.await(task))
     end
@@ -57,7 +57,7 @@ defmodule Air.API.QueryController.Test do
     # Open the cloak mock socket
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
     TestSocketHelper.join!(socket, "main", %{data_sources: [
-      %{"name" => "data_source", "global_id" => "data_source", "tables" => []}]})
+      %{name: "data_source", global_id: "data_source", tables: []}]})
 
     data_source =
       Repo.one(DataSource)

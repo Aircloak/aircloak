@@ -38,10 +38,10 @@ defmodule Air.QueryEvents do
     Registry.unregister(@registry_name, query_id)
 
   @doc "Triggers a :query_result event, indicating a result has been returned from the cloak for the query."
-  @spec trigger_result(%{}) :: :ok
+  @spec trigger_result(map) :: :ok
   def trigger_result(payload) do
     # notify dedicated listener for this query first
-    case Registry.lookup(@registry_name, Map.fetch!(payload, "query_id")) do
+    case Registry.lookup(@registry_name, payload.query_id) do
       [] -> :ok
       [{pid, nil}] ->
         send(pid, {:query_result, payload})
