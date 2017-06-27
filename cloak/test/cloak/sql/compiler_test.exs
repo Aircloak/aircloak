@@ -930,8 +930,8 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "the first argument to date_trunc has to be a constant" do
     assert {:error, reason} = compile("select date_trunc(string, column) from table", data_source())
-    assert reason == "Function `date_trunc` requires arguments of type (`constant text`, `datetime`)" <>
-      " or (`constant text`, `time`), but got (`text`, `datetime`)."
+    assert reason == "Function `date_trunc` requires arguments of type (`constant text`, `time`)" <>
+      " or (`constant text`, `datetime` | `date`), but got (`text`, `datetime`)."
   end
 
   defp projected_table_db_columns(query), do:
