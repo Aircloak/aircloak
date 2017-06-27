@@ -50,6 +50,18 @@ describe("GraphData", () => {
     });
   });
 
+  describe("xLabel", () => {
+    it("is the name of the column when single column selected", () => {
+      const data = new GraphData(["col1", "col2"], [], {xColumns: () => [0], yColumns: () => []});
+      assert.equal(data.xLabel(), "col1");
+    });
+
+    it("is comma-joined names of columns when multiple columns selected", () => {
+      const data = new GraphData(["col1", "col2", "col3"], [], {xColumns: () => [0, 2], yColumns: () => []});
+      assert.equal(data.xLabel(), "col1, col3");
+    });
+  });
+
   describe("series", () => {
     it("works for single columns", () => {
       const data = new GraphData(
