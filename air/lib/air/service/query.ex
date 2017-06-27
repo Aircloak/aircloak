@@ -165,6 +165,8 @@ defmodule Air.Service.Query do
     :ok
   end
 
+  @doc "Asynchronously handles the query result."
+  @spec handle_result(%{query_id: String.t, payload: binary}) :: :ok
   def handle_result(query_result) do
     Task.Supervisor.start_child(
       @result_reporter_sup,
