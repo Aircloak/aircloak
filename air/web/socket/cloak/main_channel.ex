@@ -193,7 +193,17 @@ defmodule Air.Socket.Cloak.MainChannel do
     Logger.info("received result for query #{query_result.query_id}")
     respond_to_cloak(socket, request_id, :ok)
 
-    Air.QueryEvents.trigger_result(:erlang.binary_to_term(query_result.payload))
+    {time, decoded_result} = :timer.tc(fn () -> :erlang.binary_to_term(query_result.payload) end)
+
+    if time > 10_000 do
+      # log processing times longer than 10ms
+      Logger.warn([
+        "decoding a query result for query #{query_result.query_id} took #{div(time, 1000)}ms, ",
+        "encoded message size=#{byte_size(query_result.payload)} bytes"
+      ])
+    end
+
+    Air.QueryEvents.trigger_result(decoded_result)
 
     {:noreply, socket}
   end
