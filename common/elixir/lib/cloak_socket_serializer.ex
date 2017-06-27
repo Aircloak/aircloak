@@ -17,16 +17,12 @@ defmodule Air.CloakSocketSerializer do
   # -------------------------------------------------------------------
 
   @doc false
-  def decode_message(encoded_message) do
-    phoenix_message =
-      encoded_message
-      |> :zlib.gunzip()
-      |> :erlang.binary_to_term()
-
-    phoenix_message
+  def decode_message(encoded_message), do:
+    encoded_message
+    |> :zlib.gunzip()
+    |> :erlang.binary_to_term()
     |> Map.take([:topic, :event, :payload, :ref])
     |> adapt_first_phoenix_reply()
-  end
 
   @doc false
   def encode_message(message) do
