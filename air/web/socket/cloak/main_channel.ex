@@ -203,14 +203,14 @@ defmodule Air.Socket.Cloak.MainChannel do
       ])
     end
 
-    Air.QueryEvents.trigger_result(decoded_result)
+    Air.Service.Query.Events.trigger_result(decoded_result)
 
     {:noreply, socket}
   end
   defp handle_cloak_call("query_state", payload, request_id, socket) do
     respond_to_cloak(socket, request_id, :ok)
 
-    Air.QueryEvents.trigger_state_change(payload.query_id, payload.query_state)
+    Air.Service.Query.Events.trigger_state_change(payload.query_id, payload.query_state)
 
     {:noreply, socket}
   end

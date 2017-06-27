@@ -1,4 +1,4 @@
-defmodule Air.QueryLifecycle do
+defmodule Air.Service.Query.Lifecycle do
   @moduledoc """
   Serialized processing of query events.
 
@@ -15,8 +15,8 @@ defmodule Air.QueryLifecycle do
   # -------------------------------------------------------------------
 
   @doc "Returns a worker specification for the query result processor"
-  @spec observer_spec() :: Supervisor.Spec.spec
-  def observer_spec, do: worker(Task, [&run/0])
+  @spec supervisor_spec() :: Supervisor.Spec.spec
+  def supervisor_spec, do: worker(Task, [&run/0])
 
 
   # -------------------------------------------------------------------
@@ -24,7 +24,7 @@ defmodule Air.QueryLifecycle do
   # -------------------------------------------------------------------
 
   defp run() do
-    for event <- Air.QueryEvents.stream do
+    for event <- Air.Service.Query.Events.stream do
       case event do
         {:query_result, result} -> Query.process_result(result)
         {:query_state_change, query_id, state} -> Query.update_state(query_id, state)
