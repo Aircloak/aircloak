@@ -5,18 +5,18 @@ defmodule Air.Supervisor do
     import Supervisor.Spec, warn: false
 
     children = [
+      supervisor(Air.Repo, []),
+      worker(Air.Repo.Migrator, [], restart: :transient),
       Air.Service.Cloak.supervisor_spec(),
       Air.Service.DataSource.supervisor_spec(),
       Air.Service.View.supervisor_spec(),
-      supervisor(Air.Repo, []),
-      worker(Air.Repo.Migrator, [], restart: :transient),
       Air.Service.Query.supervisor_spec(),
+      Air.Service.Central.supervisor_spec(),
       supervisor(Task.Supervisor, [[name: Air.ApiTokenTimestampUpdater]], [id: :api_token_updater]),
       worker(Air.Monitoring.FailedQueries, []),
       worker(Air.Endpoint, []),
       worker(Air.MonitoringEndpoint, []),
       worker(Air.BOM, []),
-      Air.Service.Central.supervisor_spec(),
       Air.PsqlServer.child_spec()
     ]
 
