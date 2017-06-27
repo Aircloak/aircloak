@@ -37,5 +37,5 @@ defmodule Cloak.Time do
 
   @doc "Converts a number of seconds since midnight to a %Time{}"
   @spec seconds_to_time(pos_integer) :: Calendar.time
-  def seconds_to_time(x), do: x |> :calendar.seconds_to_time() |> Time.from_erl!()
+  def seconds_to_time(x), do: x |> :calendar.seconds_to_time() |> Time.from_erl!() |> max_precision()
 end

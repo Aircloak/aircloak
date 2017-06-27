@@ -928,6 +928,12 @@ defmodule Cloak.Sql.Compiler.Test do
     assert reason == "Select clause `t2`.* cannot be resolved because the table does not exist in the `FROM` list."
   end
 
+  test "the first argument to date_trunc has to be a constant" do
+    assert {:error, reason} = compile("select date_trunc(string, column) from table", data_source())
+    assert reason == "Function `date_trunc` requires arguments of type (`constant text`, `time`)" <>
+      " or (`constant text`, `datetime` | `date`), but got (`text`, `datetime`)."
+  end
+
   defp projected_table_db_columns(query), do:
     query
     |> get_in([all_subqueries()])

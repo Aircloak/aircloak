@@ -505,6 +505,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp quoted_type({:optional, type}), do: "[`#{type}`]"
   defp quoted_type({:many1, type}), do: "[`#{type}`]+"
   defp quoted_type({:or, types}), do: types |> Enum.map(&quoted_type/1) |> Enum.join(" | ")
+  defp quoted_type({:constant, type}), do: "`constant #{type}`"
   defp quoted_type(type), do: "`#{type}`"
 
   defp expected_types(function_call), do:
