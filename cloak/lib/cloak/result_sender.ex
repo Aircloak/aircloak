@@ -55,7 +55,7 @@ defmodule Cloak.ResultSender do
   # -------------------------------------------------------------------
 
   defp send_reply(:air_socket, :result, reply) do
-    case send_query_result(reply) do
+    case send_query_result_with_retry(%{retries: 5, retry_delay_sec: 10}, reply) do
       :ok -> :ok
       {:error, error} ->
         Logger.error("Error sending query results to the socket: #{inspect error}")
@@ -66,9 +66,6 @@ defmodule Cloak.ResultSender do
     Elixir.Cloak.AirSocket.send_query_state(query_id, query_state)
   defp send_reply({:process, pid}, type, reply), do:
     send(pid, {type, reply})
-
-  defp send_query_result(result), do:
-    send_query_result_with_retry(%{retries: 5, retry_delay_sec: 10}, result)
 
   defp send_query_result_with_retry(%{retries: 0}, _query_result), do:
     {:error, :timeout}
