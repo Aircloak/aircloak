@@ -58,7 +58,7 @@ defmodule Cloak.ResultSender do
     case send_query_result_with_retry(%{retries: 5, retry_delay_sec: 10}, encode_result(result)) do
       :ok -> :ok
       {:error, error} ->
-        Logger.error("Error sending query results to the socket: #{inspect error}")
+        Logger.error("Error sending query results to the socket: #{inspect error}", query_id: result.query_id)
         {:error, error}
     end
   end
@@ -73,7 +73,7 @@ defmodule Cloak.ResultSender do
     case Elixir.Cloak.AirSocket.send_query_result(query_result) do
       :ok -> :ok
       {:error, :timeout} ->
-        Logger.warn("timeout sending a query result")
+        Logger.warn("timeout sending a query result", query_id: query_result.query_id)
         :timer.sleep(:timer.seconds(send_state.retry_delay_sec))
         send_query_result_with_retry(
           %{send_state |

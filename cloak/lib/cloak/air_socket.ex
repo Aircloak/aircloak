@@ -42,6 +42,7 @@ defmodule Cloak.AirSocket do
     try do
       Logger.info("sending query result to Air", query_id: result.query_id)
       call_air(socket, "main", "query_result", result, :timer.minutes(1))
+      Logger.info("query result sent", query_id: result.query_id)
     catch :exit, {:timeout, _} ->
       {:error, :timeout}
     end
