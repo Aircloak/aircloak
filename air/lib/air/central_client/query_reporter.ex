@@ -43,7 +43,7 @@ defmodule Air.CentralClient.QueryReporter do
   # -------------------------------------------------------------------
 
   defp handle_query_results() do
-    for {:query_result, result} <- Air.QueryEvents.stream() do
+    for {:query_result, result} <- Air.Service.Query.Events.stream() do
       Task.Supervisor.start_child(@task_supervisor, fn() -> process_result(result) end)
     end
   end

@@ -8,10 +8,30 @@ defmodule Air.Service.Query do
 
   @type query_id :: String.t
 
+  @result_reporter_sup __MODULE__.ResultReporter
+
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Returns the supervisor specification for this service."
+  @spec supervisor_spec() :: Supervisor.Spec.spec
+  def supervisor_spec() do
+    import Supervisor.Spec, warn: false
+
+    supervisor(Supervisor,
+      [
+        [
+          supervisor(Air.Service.Query.Events, []),
+          Air.Service.Query.Lifecycle.supervisor_spec(),
+          supervisor(Task.Supervisor, [[name: @result_reporter_sup]], id: @result_reporter_sup)
+        ],
+        [strategy: :one_for_one, name: __MODULE__]
+      ],
+      [id: __MODULE__]
+    )
+  end
 
   @doc """
   Returns information about failed queries in a paginated form.
@@ -145,10 +165,39 @@ defmodule Air.Service.Query do
     :ok
   end
 
+  def handle_result(query_result) do
+    Task.Supervisor.start_child(
+      @result_reporter_sup,
+      fn ->
+        query_result
+        |> decode_result()
+        |> Air.Service.Query.Events.trigger_result()
+
+        Logger.info("handled result for query #{query_result.query_id}")
+      end
+    )
+
+    :ok
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp decode_result(query_result) do
+    {time, decoded_result} = :timer.tc(fn () -> :erlang.binary_to_term(query_result.payload) end)
+
+    if time > 10_000 do
+      # log processing times longer than 10ms
+      Logger.warn([
+        "decoding a query result for query #{query_result.query_id} took #{div(time, 1000)}ms, ",
+        "encoded message size=#{byte_size(query_result.payload)} bytes"
+      ])
+    end
+
+    decoded_result
+  end
 
   defp do_process_result(query, result) do
     row_count = (result[:rows] || []) |> Enum.map(&(&1.occurrences)) |> Enum.sum

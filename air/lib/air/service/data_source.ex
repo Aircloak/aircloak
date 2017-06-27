@@ -2,8 +2,8 @@ defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
   alias Air.Schemas.{DataSource, Group, Query, User}
-  alias Air.{PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, Socket.Frontend.UserChannel, QueryEvents}
-  alias Air.Service.{Version, Cloak, View}
+  alias Air.{PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, Socket.Frontend.UserChannel}
+  alias Air.Service.{Version, Cloak, View, Query.Events}
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
   require Logger
@@ -130,7 +130,7 @@ defmodule Air.Service.DataSource do
         Air.Service.AuditLog.log(user, "Executed query",
           Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.name}))
 
-        if opts[:notify] == true, do: Air.QueryEvents.subscribe(query.id)
+        if opts[:notify] == true, do: Events.subscribe(query.id)
 
         case MainChannel.run_query(channel_pid, cloak_query_map(query, user, parameters)) do
           :ok -> {:ok, query}
@@ -151,7 +151,7 @@ defmodule Air.Service.DataSource do
     with {:ok, %{id: query_id}} <- start_query(data_source_id_spec, user, context, statement, parameters, opts) do
       receive do
         {:query_result, %{query_id: ^query_id} = result} ->
-          Air.QueryEvents.unsubscribe(query_id)
+          Events.unsubscribe(query_id)
           {:ok, result}
       end
     end
@@ -357,7 +357,7 @@ defmodule Air.Service.DataSource do
       if available?(query.data_source.name) do
         for {channel, _cloak} <- Cloak.channel_pids(query.data_source.name), do:
           MainChannel.stop_query(channel, query.id)
-        QueryEvents.trigger_state_change(query.id, :cancelled)
+        Events.trigger_state_change(query.id, :cancelled)
 
         :ok
       else
@@ -466,7 +466,7 @@ defmodule Air.Service.DataSource do
     |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
 
   defp post_timeout_result(query), do:
-    QueryEvents.trigger_result(%{
+    Events.trigger_result(%{
       query_id: query.id,
       error: "The query could not be started due to a communication timeout."
     })
