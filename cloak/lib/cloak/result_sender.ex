@@ -57,9 +57,6 @@ defmodule Cloak.ResultSender do
   defp send_reply(:air_socket, :result, reply) do
     case send_query_result(reply) do
       :ok -> :ok
-      {:error, %Poison.EncodeError{}} ->
-        reply = %{error: "Result could not be encoded as JSON.", query_id: reply.query_id}
-        send_query_result(reply)
       {:error, error} ->
         Logger.error("Error sending query results to the socket: #{inspect error}")
         {:error, error}
