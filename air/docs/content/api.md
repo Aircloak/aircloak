@@ -79,4 +79,4 @@ curl -k -X <GET|POST|PUT|DELETE> \
     $SITE_URL/<request-path>
 {%- endcodetabs %}
 
-You can create an API token on [this page](/api_tokens).
+You can create an API token on `http://<your-aircloak-instance>/api_tokens`.
