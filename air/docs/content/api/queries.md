@@ -2,7 +2,7 @@
 
 ### Running a query
 
-```ruby
+{% codetabs name="Ruby", type="rb" -%}
 payload = {
   query: {
     statement: statement,
@@ -11,9 +11,9 @@ payload = {
 }.to_json
 content_type = {"Content-Type" => "application/json"}
 RestClient.post("#{site_url}/api/queries", api_token, payload, content_type)
-```
 
-```shell
+
+{%- language name="wget", type="sh" -%}
 wget \
   --content-on-error \
   --output-document - \
@@ -22,18 +22,19 @@ wget \
   --header "Content-Type: application/json" \
   --body-data "{\"query\": {\"statement\": \"$statement\", \"data_source_name\": \"$data_source_name\"}}" \
   $SITE_URL/api/queries
-```
 
-```curl
+
+{%- language name="curl", type="sh" -%}
 curl -v \
   -X POST \
   -H "auth-token:$API_TOKEN" \
   -H "Content-Type:application/json" \
   -d "{\"query\": {\"statement\": \"$statement\", \"data_source_name\": \"$data_source_name\"}}" \
   $SITE_URL/api/queries
-```
+{%- endcodetabs %}
 
-This endpoint starts a query asynchronously. You need to provide a valid data source name, which you can obtain with the [data source endpoint](#get-the-list-of-all-data-sources).
+This endpoint starts a query asynchronously. You need to provide a valid data source name, which you can obtain with the [data source endpoint](data_sources.md#get-the-list-of-all-data-sources).
+
 
 #### HTTP Request
 
@@ -53,27 +54,29 @@ The API return value is the success information and the id of the query. You can
 
 ### Getting the result of a query
 
-```ruby
+{% codetabs name="Ruby", type="rb" -%}
 RestClient.get("#{site_url}/api/queries/#{query_id}", api_token)
-```
 
-```shell
+
+{%- language name="wget", type="sh" -%}
 wget \
   --content-on-error \
   --output-document - \
   --method=GET \
   --header "auth-token: $API_TOKEN" \
   $SITE_URL/api/queries/$query_id
-```
 
-```curl
+
+{%- language name="curl", type="sh" -%}
 curl -v \
   -X GET \
   -H "auth-token:$API_TOKEN" \
   $SITE_URL/api/queries/$query_id
-```
+{%- endcodetabs %}
+
 
 This endpoint returns the status of the query started by the [run query endpoint](#running-a-query). The `query_id` must correspond to the id returned by the run query endpoint.
+
 
 #### HTTP Request
 
@@ -119,29 +122,32 @@ It can be one of:
 
 For the use of error codes in the Web REST API, please consult the [Errors](#errors) section.
 
+
 ### Canceling a query
 
-```ruby
+{% codetabs name="Ruby", type="rb" -%}
 RestClient.post("#{site_url}/api/queries/#{query_id}/cancel", api_token, "")
-```
 
-```shell
+
+{%- language name="wget", type="sh" -%}
 wget \
   --content-on-error \
   --output-document - \
   --method=POST \
   --header "auth-token: $API_TOKEN" \
   $SITE_URL/api/queries/$query_id/cancel
-```
 
-```curl
+
+{%- language name="curl", type="sh" -%}
 curl -v \
   -X POST \
   -H "auth-token:$API_TOKEN" \
   $SITE_URL/api/queries/$query_id/cancel
-```
+{%- endcodetabs %}
+
 
 This endpoint cancels a query started by the [run query endpoint](#running-a-query). The `query_id` must correspond to the id returned by the run query endpoint.
+
 
 #### HTTP Request
 

@@ -2,25 +2,25 @@
 
 ### Get the list of all data sources
 
-```ruby
+{% codetabs name="Ruby", type="rb" -%}
 RestClient.get("#{site_url}/api/data_sources", api_token)
-```
 
-```shell
+
+{%- language name="wget", type="sh" -%}
 wget \
   --content-on-error \
   --output-document - \
   --method=GET \
   --header 'auth-token:'$API_TOKEN \
   $SITE_URL/api/data_sources
-```
 
-```curl
+
+{%- language name="curl", type="sh" -%}
 curl -v \
   -X GET \
   -H 'auth-token:'$API_TOKEN \
   $SITE_URL/api/data_sources
-```
+{%- endcodetabs %}
 
 This endpoint retrieves the list of all data sources.
 
@@ -52,6 +52,6 @@ This endpoint retrieves the list of all data sources.
 ]
 ```
 
-The API return value is a list of all data sources. Take special note of the `name` field. This token must be used when you want to [run a query](#running-a-query) against a data source.
+The API return value is a list of all data sources. Take special note of the `name` field. This token must be used when you want to [run a query](queries.md#running-a-query) against a data source.
 
 For the use of error codes in the Web REST API, please consult the [Errors](#errors) section.

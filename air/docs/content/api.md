@@ -1,8 +1,14 @@
+# REST API
+
+The Aircloak REST API can be used to perform actions such as executing queries against a cloak, or access results of previous query executions. All API access is authenticated, as explained in [the authentication section](#authentication).
+
 ## Authentication
 
 All APIs are authenticated using API tokens. You need to pass the token in each API request through the `auth-token` header.
 
-```ruby
+
+{% codetabs name="Ruby", type="rb" -%}
+
 require 'net/http'
 require 'uri'
 require 'openssl'
@@ -49,9 +55,10 @@ RestClient.get("#{air_server}/#{request_path}", api_token, headers)
 
 # post exaple
 RestClient.post("#{air_server}/#{request_path}", api_token, payload, headers)
-```
 
-```shell
+
+{%- language name="wget", type="sh" -%}
+
 export $SITE_URL=<air-server-url>
 export $API_TOKEN=<api-token>
 
@@ -60,15 +67,16 @@ wget --content-on-error \
      --method=<GET|POST|PUT|DELETE> \
      --header "auth-token:$API_TOKEN" \
      $SITE_URL/<request-path>
-```
 
-```plaintext
+
+{%- language name="curl", type="sh" -%}
+
 export $SITE_URL=<air-server-url>
 export $API_TOKEN=<api-token>
 
 curl -k -X <GET|POST|PUT|DELETE> \
      -H 'auth-token:$API_TOKEN' \
     $SITE_URL/<request-path>
-```
+{%- endcodetabs %}
 
 You can create an API token on [this page](/api_tokens).
