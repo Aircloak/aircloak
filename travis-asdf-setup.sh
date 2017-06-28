@@ -33,7 +33,6 @@ echo "Verifying existence of required asdf-plugins"
 install_if_missing "erlang"
 install_if_missing "elixir"
 install_if_missing "nodejs"
-install_if_missing "ruby"
 
 # Ensure we get bundler installed in order for air compilation to work"
 echo "bundler" > ~/.default-gems

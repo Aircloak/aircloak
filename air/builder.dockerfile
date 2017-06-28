@@ -2,9 +2,7 @@ FROM aircloak/phoenix:$NODEJS_VERSION
 MAINTAINER Aircloak
 
 # Install dependencies and configure UTF-8
-RUN \
-  apt-get install jq ruby-full -y && \
-  gem install bundle
+RUN apt-get install jq -y
 
 # First we'll copy only the subset of needed files and compile deps
 # This will reduce the amount of rebuilding when only the source code is changed.
