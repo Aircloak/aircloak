@@ -1,8 +1,8 @@
 defmodule Air.Schemas.Query do
-  @moduledoc "The query model."
+  @moduledoc "The query schema."
   use Air.Schemas.Base
 
-  alias Air.{Schemas.DataSource, Schemas.User, Repo, PsqlServer.Protocol}
+  alias Air.{Schemas.DataSource, Schemas.Query.Result, Schemas.User, Repo, PsqlServer.Protocol}
 
   require EctoEnum
 
@@ -28,7 +28,6 @@ defmodule Air.Schemas.Query do
   schema "queries" do
     field :statement, :string
     field :tables, {:array, :string}
-    field :result, :map
     field :execution_time, :integer
     field :users_count, :integer
     field :features, :map
@@ -41,12 +40,17 @@ defmodule Air.Schemas.Query do
     belongs_to :user, User
     belongs_to :data_source, DataSource
 
+    # Result is a field in the table, but we're fetching it from a separate schema. Thus, when querying through this
+    # schema, result won't be loaded by default (unless preload or join is done). This is done to avoid needlessly
+    # retrieving a potentially large field.
+    has_one :result, Result, foreign_key: :id
+
     timestamps usec: true
   end
 
   @required_fields ~w()a
   @optional_fields ~w(
-    cloak_id statement data_source_id tables result execution_time users_count
+    cloak_id statement data_source_id tables execution_time users_count
     features session_id parameters query_state context
   )a
 
@@ -83,7 +87,7 @@ defmodule Air.Schemas.Query do
 
   @doc "Exports the query as CSV"
   @spec to_csv_stream(t) :: Enumerable.t
-  def to_csv_stream(%{result: result}) do
+  def to_csv_stream(%{result: %Result{result: result}}) do
     header = result["columns"]
     rows = Enum.flat_map(result["rows"],
       fn(%{"occurrences" => occurrences, "row" => row}) -> List.duplicate(row, occurrences) end)
@@ -95,8 +99,9 @@ defmodule Air.Schemas.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp result_map(%{result: nil}), do: %{rows: [], columns: [], completed: false}
-  defp result_map(%{result: result_json}), do: Map.put(result_json, :completed, true)
+  defp result_map(%{result: %Ecto.Association.NotLoaded{}}), do: %{}
+  defp result_map(%{result: %Result{result: nil}}), do: %{rows: [], columns: [], completed: false}
+  defp result_map(%{result: %Result{result: result_json}}), do: Map.put(result_json, :completed, true)
 
   defp data_source_info(query), do:
     %{data_source: %{name: Map.get(query.data_source || %{}, :name, "Unknown data source")}}

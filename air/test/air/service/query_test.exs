@@ -170,6 +170,7 @@ defmodule Air.Service.QueryTest do
         users_count: 2,
         features: %{"selected_types" => ["some types"]},
       } = query
+
       assert %{
         "columns" => ["col1", "col2"],
         "rows" => [%{"occurrences" => 10, "row" => [1, 1]}],
@@ -177,7 +178,7 @@ defmodule Air.Service.QueryTest do
         "row_count" => 10,
         "error" => nil,
         "types" => ["some types"],
-      } = query.result
+      } = query.result.result
     end
 
     test "processing an error result" do
@@ -195,7 +196,7 @@ defmodule Air.Service.QueryTest do
         query_state: :error,
         execution_time: 123,
         features: %{"selected_types" => ["some types"]},
-        result: %{"error" => "some reason"},
+        result: %{result: %{"error" => "some reason"}},
       } = query
     end
 
@@ -214,7 +215,7 @@ defmodule Air.Service.QueryTest do
         query_state: :cancelled,
         execution_time: 123,
         features: %{"selected_types" => ["some types"]},
-        result: %{"error" => "Cancelled."},
+        result: %{result: %{"error" => "Cancelled."}},
       } = query
     end
 
@@ -250,7 +251,7 @@ defmodule Air.Service.QueryTest do
       {:ok, query} = get_query(query.id)
       assert %{
         query_state: :error,
-        result: %{"error" => "Query died."}
+        result: %{result: %{"error" => "Query died."}}
       } = query
     end
   end

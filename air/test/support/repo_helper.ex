@@ -70,10 +70,17 @@ defmodule Air.TestRepoHelper do
   @doc "Inserts a test query into the database"
   @spec create_query!(Air.Schemas.User.t, %{}) :: Air.Schemas.Query.t
   def create_query!(user, params \\ %{statement: "query content", session_id: Ecto.UUID.generate()}) do
-    user
-    |> Ecto.build_assoc(:queries)
-    |> Air.Schemas.Query.changeset(Map.merge(%{context: :http}, params))
-    |> Repo.insert!()
+    query =
+      user
+      |> Ecto.build_assoc(:queries)
+      |> Air.Schemas.Query.changeset(Map.merge(%{context: :http}, params))
+      |> Repo.insert!()
+      |> Repo.preload(:result)
+
+    query
+    |> Ecto.Changeset.change(%{})
+    |> Ecto.Changeset.put_assoc(:result, Ecto.Changeset.change(query.result, %{result: params[:result]}))
+    |> Repo.update!()
   end
 
   @doc "Registers a cloak a serving a data source, returning the data source id"
@@ -92,7 +99,7 @@ defmodule Air.TestRepoHelper do
   @doc "Retrieves a query from the database by id."
   @spec get_query(String.t) :: {:ok, Air.Schemas.Query.t} | {:error, :not_found}
   def get_query(id) do
-    case Air.Repo.get(Air.Schemas.Query, id) do
+    case Air.Repo.get(Air.Schemas.Query, id) |> Air.Repo.preload(:result) do
       nil -> {:error, :not_found}
       query -> {:ok, query}
     end

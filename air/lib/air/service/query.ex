@@ -1,6 +1,7 @@
 defmodule Air.Service.Query do
   @moduledoc "Services for retrieving queries."
 
+  alias Ecto.Changeset
   alias Air.{Repo, Schemas.DataSource, Schemas.Query, Schemas.User, Socket.Frontend.UserChannel}
 
   import Ecto.Query
@@ -61,10 +62,16 @@ defmodule Air.Service.Query do
   end
 
   @doc "Returns a query if accessible by the given user, without associations preloaded."
-  @spec get_as_user(User.t, query_id) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
-  def get_as_user(user, id) do
+  @spec get_as_user(User.t, query_id, [load_result: boolean]) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
+  def get_as_user(user, id, opts \\ []) do
     try do
-      user |> query_scope() |> get(id)
+      with {:ok, query} <- user |> query_scope() |> get(id) do
+        if Keyword.get(opts, :load_result, false) do
+          {:ok, Repo.preload(query, :result)}
+        else
+          {:ok, query}
+        end
+      end
     rescue Ecto.Query.CastError ->
       {:error, :invalid_id}
     end
@@ -85,15 +92,19 @@ defmodule Air.Service.Query do
   end
 
   @doc "Loads the most recent queries for a given user"
-  @spec load_recent_queries(User.t, DataSource.t, Query.Context.t, pos_integer, NaiveDateTime.t) :: [Query.t]
-  def load_recent_queries(user, data_source, context, recent_count, before) do
+  @spec load_recent_queries(User.t, DataSource.t, Query.Context.t, pos_integer, NaiveDateTime.t,
+    [load_result: boolean]) :: [Query.t]
+  def load_recent_queries(user, data_source, context, recent_count, before, opts \\ []) do
+    preloads = [:user, :data_source] ++
+      if Keyword.get(opts, :load_result, false), do: [:result], else: []
+
     Query
     |> started_by(user)
     |> for_data_source(data_source)
     |> in_context(context)
     |> recent(recent_count, before)
     |> Repo.all()
-    |> Repo.preload([:user, :data_source])
+    |> Repo.preload(preloads)
     |> Enum.map(&Query.for_display/1)
   end
 
@@ -135,7 +146,7 @@ defmodule Air.Service.Query do
   """
   @spec process_result(map) :: :ok
   def process_result(result) do
-    query = Repo.get!(Query, result.query_id)
+    query = Repo.get!(Query, result.query_id) |> Repo.preload(:result)
     if valid_state_transition?(query.query_state, query_state(result)), do:
       do_process_result(query, result)
 
@@ -149,14 +160,12 @@ defmodule Air.Service.Query do
   """
   @spec query_died(query_id) :: :ok
   def query_died(query_id) do
-    query = Repo.get!(Query, query_id)
+    query = Repo.get!(Query, query_id) |> Repo.preload(:result)
 
     if valid_state_transition?(query.query_state, :error) do
       query = query
-      |> Query.changeset(%{
-        query_state: :error,
-        result: %{error: "Query died."},
-      })
+      |> Query.changeset(%{query_state: :error})
+      |> Changeset.put_assoc(:result, Changeset.change(query.result, %{result: %{error: "Query died."}}))
       |> Repo.update!()
 
       UserChannel.broadcast_state_change(query)
@@ -215,12 +224,12 @@ defmodule Air.Service.Query do
 
     query = query
     |> Query.changeset(%{
-      result: storable_result,
       execution_time: result[:execution_time],
       users_count: result[:users_count],
       features: result[:features],
       query_state: query_state(result),
     })
+    |> Changeset.put_assoc(:result, Changeset.change(query.result, %{result: storable_result}))
     |> Repo.update!()
 
     UserChannel.broadcast_state_change(query)
