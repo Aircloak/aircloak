@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   @moduledoc "Deals with normalizing some expressions so that they are easier to deal with at later stages."
 
   alias Cloak.Sql.Compiler.Helpers
-  alias Cloak.Sql.{Expression, Query, Condition}
+  alias Cloak.Sql.{Expression, Query, Condition, LikePattern}
 
 
   # -------------------------------------------------------------------
@@ -103,9 +103,9 @@ defmodule Cloak.Sql.Compiler.Normalization do
     |> Query.Lenses.conditions()
     |> Lens.satisfy(&Condition.like?/1)
     |> Lens.map(query, fn({kind, lhs, rhs}) ->
-      case {kind, any_wildcards?(rhs.value)} do
-        {:like, false} -> {:comparison, lhs, :=, rhs}
-        {:ilike, false} -> {:comparison, lowercase(lhs), :=, lowercase(rhs)}
+      case {kind, LikePattern.trivial?(rhs.value)} do
+        {:like, true} -> {:comparison, lhs, :=, LikePattern.trivial_to_string(rhs)}
+        {:ilike, true} -> {:comparison, lowercase(lhs), :=, rhs |> LikePattern.trivial_to_string() |> lowercase()}
         _ -> {kind, lhs, %{rhs | value: do_normalize_like(rhs.value)}}
       end
     end)
@@ -115,7 +115,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp do_normalize_like(string), do:
     string
-    |> String.graphemes()
+    |> LikePattern.graphemes()
     |> Enum.chunk_by(&special_like_char?/1)
     |> Enum.map(&normalize_like_chunk/1)
     |> Enum.join()
@@ -126,9 +126,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
     [percent | rest]
   end
   defp normalize_like_chunk(chunk), do: chunk
-
-  defp any_wildcards?(pattern), do:
-    pattern |> String.graphemes() |> Enum.any?(&special_like_char?/1)
 
   defp special_like_char?(string), do: string == "_" or string == "%"
 end

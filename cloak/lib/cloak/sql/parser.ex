@@ -615,12 +615,14 @@ defmodule Cloak.Sql.Parser do
       {:else, error_message(fail(""), "Invalid where expression.")}
     ])
     |> map(fn
-          {[identifier, nil, :like], [[string_constant, escape]]} -> {:like, identifier, string_constant, escape}
-          {[identifier, nil, :ilike], [[string_constant, escape]]} -> {:ilike, identifier, string_constant, escape}
+          {[identifier, nil, :like], [[string_constant, escape]]} ->
+            {:like, identifier, {:like_pattern, string_constant, escape}}
+          {[identifier, nil, :ilike], [[string_constant, escape]]} ->
+            {:ilike, identifier, {:like_pattern, string_constant, escape}}
           {[identifier, :not, :like], [[string_constant, escape]]} ->
-            {:not, {:like, identifier, string_constant, escape}}
+            {:not, {:like, identifier, {:like_pattern, string_constant, escape}}}
           {[identifier, :not, :ilike], [[string_constant, escape]]} ->
-            {:not, {:ilike, identifier, string_constant, escape}}
+            {:not, {:ilike, identifier, {:like_pattern, string_constant, escape}}}
           {[identifier, nil, :in], [in_values]} -> {:in, identifier, in_values}
           {[identifier, :not, :in], [in_values]} -> {:not, {:in, identifier, in_values}}
           {[identifier, :is, nil], [:null]} -> {:is, identifier, :null}

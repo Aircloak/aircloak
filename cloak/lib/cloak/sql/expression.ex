@@ -41,6 +41,11 @@ defmodule Cloak.Sql.Expression do
       constant?: true, value: value, type: normalize_type(type), parameter_index: parameter_index
     }
 
+  @doc "Returns an expression representing the given like pattern with the given escape character."
+  @spec constant(String.t, String.t | nil) :: t
+  def like_pattern(pattern, escape_character), do:
+    constant(:like_pattern, {pattern, escape_character})
+
   @doc "Creates a column representing a function call."
   @spec function(function_name, [t | :*], column_type, boolean) :: t
   def function(function_name, function_args, type \\ nil, aggregate? \\ false), do:

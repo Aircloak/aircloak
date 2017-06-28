@@ -68,6 +68,8 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(%Expression{function?: true, function: fun_name, function_args: args, type: type}, sql_dialect)
     when fun_name != nil, do: DbFunction.sql(fun_name,
       Enum.map(args, &column_sql(&1, sql_dialect)), type, sql_dialect)
+  defp column_sql(%Expression{constant?: true, type: :like_pattern, value: value}, _sql_dialect), do:
+    like_pattern_to_fragment(value)
   defp column_sql(%Expression{constant?: true, value: value}, _sql_dialect), do: constant_to_fragment(value)
   # We can't directly select a field with an unknown type, so convert it to binary
   # This is needed in the case of using the ODBC driver with a GUID user id,
@@ -146,6 +148,9 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp constant_to_fragment(value) when is_binary(value), do: [?', escape_string(value), ?']
   defp constant_to_fragment(value) when is_number(value), do: to_string(value)
   defp constant_to_fragment(value) when is_boolean(value), do: to_string(value)
+
+  defp like_pattern_to_fragment({pattern, _escape = nil}), do: [?', pattern, ?']
+  defp like_pattern_to_fragment(pattern), do: [?', pattern, ?']
 
   defp join([], _joiner), do: []
   defp join([el], _joiner), do: [el]
