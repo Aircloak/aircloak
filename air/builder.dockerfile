@@ -12,7 +12,7 @@ COPY air/mix.exs air/mix.lock air/package.json air/yarn.lock /aircloak/air/
 COPY air/config /aircloak/air/config
 COPY common /aircloak/common
 COPY air/fetch_deps.sh /aircloak/air/
-COPY air/user_docs /aircloak/air/user_docs
+COPY air/docs /aircloak/air/docs
 COPY VERSION /aircloak/
 COPY RELEASE_EXPIRY_DATE /aircloak/
 
@@ -23,7 +23,7 @@ RUN \
   bash -c ". ~/.asdf/asdf.sh && MIX_ENV=prod mix deps.compile " && \
   echo "Fetching node packages..." && \
   bash -c ". ~/.bashrc && yarn install" && \
-  cd user_docs && bundle install -j4 && cd ..
+  bash -c ". ~/.bashrc && cd docs && yarn install"
 
 # Build the Bill of Materials
 COPY bom /aircloak/bom

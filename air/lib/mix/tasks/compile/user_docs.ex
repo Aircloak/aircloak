@@ -9,11 +9,11 @@ defmodule Mix.Tasks.Compile.UserDocs do
   @doc false
   def run(_args) do
     if stale?() do
-      cmd!("bundle", ~w(install --path vendor/bundle))
-      cmd!("bundle", ~w(exec middleman build))
+      cmd!("yarn", ~w(install))
+      cmd!("yarn", ~w(run gitbook build))
       File.mkdir_p!("priv/static")
       File.rm_rf!("priv/static/docs")
-      File.cp_r!("user_docs/build", "priv/static/docs")
+      File.cp_r!("docs/_book", "priv/static/docs")
       Mix.Shell.IO.info("Compiled user docs")
     end
   end
@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
   defp stale?() do
     try do
       source_mtime =
-        Path.wildcard("user_docs/**")
+        Path.wildcard("docs/**")
         |> Enum.map(&File.stat!(&1).mtime)
         |> Enum.max()
 
@@ -43,7 +43,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
     case System.cmd(cmd, args,
           stderr_to_stdout: true,
           into: IO.stream(:stdio, :line),
-          cd: "user_docs"
+          cd: "docs"
         ) do
       {_, 0} -> :ok
       {_, _} ->
