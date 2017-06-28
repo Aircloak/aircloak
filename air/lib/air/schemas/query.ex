@@ -83,6 +83,7 @@ defmodule Air.Schemas.Query do
     |> Map.merge(result_map(query))
     |> Map.merge(data_source_info(query))
     |> Map.merge(user_info(query))
+    |> Map.put(:completed, completed?(query))
   end
 
   @doc "Exports the query as CSV"
@@ -100,12 +101,15 @@ defmodule Air.Schemas.Query do
   # -------------------------------------------------------------------
 
   defp result_map(%{result: %Ecto.Association.NotLoaded{}}), do: %{}
-  defp result_map(%{result: %Result{result: nil}}), do: %{rows: [], columns: [], completed: false}
-  defp result_map(%{result: %Result{result: result_json}}), do: Map.put(result_json, :completed, true)
+  defp result_map(%{result: %Result{result: nil}}), do: %{rows: [], columns: []}
+  defp result_map(%{result: %Result{result: result_json}}), do: result_json
 
   defp data_source_info(query), do:
     %{data_source: %{name: Map.get(query.data_source || %{}, :name, "Unknown data source")}}
 
   defp user_info(query), do:
     %{user: %{name: Map.get(query.user || %{}, :name, "Unknown user")}}
+
+  defp completed?(query), do:
+    query.query_state in [:error, :completed, :cancelled]
 end

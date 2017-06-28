@@ -10,10 +10,17 @@ defmodule Air.Schemas.QueryTest do
   end
 
   test "for_display of a finished query", do:
-    assert %{completed: true} = display(%{result: %{rows: [], columns: []}})
+    Enum.each(
+      [:error, :completed, :cancelled],
+      &(assert %{completed: true} = display(%{query_state: &1}))
+    )
+
 
   test "for_display of an unfinished query", do:
-    assert %{completed: false} = display(%{})
+    Enum.each(
+      [:started, :parsing, :compiling, :awaiting_data, :ingesting_data, :processing, :post_processing],
+      &(assert %{completed: false} = display(%{query_state: &1}))
+    )
 
   test "for_display includes all data from result", do:
     assert %{"some" => "data"} = display(%{result: %{"some" => "data"}})
@@ -25,7 +32,6 @@ defmodule Air.Schemas.QueryTest do
 
     assert :error == Map.fetch(display, :rows)
     assert :error == Map.fetch(display, :columns)
-    assert :error == Map.fetch(display, :completed)
   end
 
   defp display(create_query_params), do:
