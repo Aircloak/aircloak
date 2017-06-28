@@ -180,9 +180,9 @@ defmodule Air.Service.Query do
     Task.Supervisor.start_child(
       @result_reporter_sup,
       fn ->
-        query_result
-        |> decode_result()
-        |> Air.Service.Query.Events.trigger_result()
+        decoded_result = decode_result(query_result)
+        Air.Service.Query.Lifecycle.result_arrived(decoded_result)
+        Air.Service.Query.Events.trigger_result(decoded_result)
 
         Logger.info("handled result for query #{query_result.query_id}")
       end
