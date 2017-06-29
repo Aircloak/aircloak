@@ -183,12 +183,12 @@ defmodule Air.Service.QueryTest do
 
       assert %{
         "columns" => ["col1", "col2"],
-        "rows" => [%{"occurrences" => 10, "row" => [1, 1]}],
+        "rows" => [%{occurrences: 10, row: [1, 1]}],
         "info" => ["some info"],
         "row_count" => 10,
         "error" => nil,
         "types" => ["some types"],
-      } = query.result.result
+      } = Air.Schemas.Query.Result.decode(query.result)
     end
 
     test "processing an error result" do

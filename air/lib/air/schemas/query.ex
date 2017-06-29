@@ -100,9 +100,13 @@ defmodule Air.Schemas.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp result_map(%{result: %Ecto.Association.NotLoaded{}}), do: %{}
-  defp result_map(%{result: %Result{result: nil}}), do: %{rows: [], columns: []}
-  defp result_map(%{result: %Result{result: result_json}}), do: result_json
+  defp result_map(query) do
+    case Result.decode(query.result) do
+      :not_loaded -> %{}
+      nil -> %{rows: [], columns: []}
+      result -> result
+    end
+  end
 
   defp data_source_info(query), do:
     %{data_source: %{name: Map.get(query.data_source || %{}, :name, "Unknown data source")}}
