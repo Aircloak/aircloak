@@ -8,7 +8,6 @@ defmodule Air.CentralClient do
   def start_link() do
     Supervisor.start_link(
       auto_export_process() ++ [
-        worker(Air.CentralClient.QueryReporter, []),
         worker(Task, [&report_usage/0], id: Module.concat(__MODULE__, UsageReporter), shutdown: :brutal_kill)
       ],
       strategy: :one_for_one,

@@ -203,8 +203,13 @@ defmodule Air.Service.Query do
       |> Changeset.put_assoc(:result, Changeset.change(query.result, %{result: storable_result}))
 
     start_task(fn -> Air.Service.Query.Events.trigger_result(result) end)
-    start_task(fn -> changeset |> Changeset.apply_changes() |> UserChannel.broadcast_state_change() end)
+    start_task(fn ->
+      query = changeset |> Changeset.apply_changes()
+      UserChannel.broadcast_state_change(query)
+    end)
     start_task(fn -> Repo.update!(changeset) end)
+
+    Air.Service.Central.report_query_result(result)
 
     if result[:error], do:
       Logger.error([
