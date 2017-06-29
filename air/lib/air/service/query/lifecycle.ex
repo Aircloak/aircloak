@@ -13,6 +13,17 @@ defmodule Air.Service.Query.Lifecycle do
   use GenServer
 
 
+  @type cloak_result :: %{
+    query_id: String.t,
+    columns: [String.t],
+    features: map,
+    error: String.t,
+    info: [String.t],
+    row_count: nil | non_neg_integer,
+    rows: binary,
+  }
+
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -43,7 +54,7 @@ defmodule Air.Service.Query.Lifecycle do
     enqueue(query_id, {:state_changed, query_id, query_state})
 
   @doc "Asynchronously handles query result arrival."
-  @spec result_arrived(%{query_id: String.t, payload: binary}) :: :ok
+  @spec result_arrived(cloak_result) :: :ok
   def result_arrived(result), do:
     enqueue(result.query_id, {:result_arrived, result})
 

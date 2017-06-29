@@ -287,8 +287,21 @@ defmodule Air.Service.QueryTest do
   end
 
   defp process_result(result) do
-    Query.process_result(result)
+    result
+    |> Map.put(:rows, encode_rows(result))
+    |> Map.put(:row_count, row_count(result))
+    |> Query.process_result()
     # sleep a little, because background processes are performing db operations
     :timer.sleep(100)
   end
+
+  defp encode_rows(%{rows: rows}), do:
+    :erlang.term_to_binary(rows, compressed: 9)
+  defp encode_rows(_), do:
+    nil
+
+  defp row_count(%{rows: rows}), do:
+    rows |> Stream.map(&(&1.occurrences)) |> Enum.sum()
+  defp row_count(_), do:
+    nil
 end

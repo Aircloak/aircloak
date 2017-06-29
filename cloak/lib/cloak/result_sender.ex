@@ -87,16 +87,19 @@ defmodule Cloak.ResultSender do
     end
   end
 
-  defp encode_result(result) do
-    result =
-      result
-      |> Map.take([:query_id, :rows, :columns, :features, :error, :info])
-      |> Map.put(:row_count, row_count(result))
-    %{query_id: result.query_id, payload: :erlang.term_to_binary(result, compressed: 9)}
-  end
+  defp encode_result(result), do:
+    result
+    |> Map.take([:query_id, :columns, :features, :error, :info])
+    |> Map.put(:row_count, row_count(result))
+    |> Map.put(:rows, encode_rows(result))
 
   defp row_count(%{rows: rows}), do:
     rows |> Stream.map(&(&1.occurrences)) |> Enum.sum()
   defp row_count(_), do:
+    nil
+
+  defp encode_rows(%{rows: rows}), do:
+    :erlang.term_to_binary(rows, compressed: 9)
+  defp encode_rows(_), do:
     nil
 end
