@@ -10,6 +10,7 @@ defmodule Air.Schemas.Query.Result do
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "queries" do
     field :result, :map
+    field :rows, :binary
 
     belongs_to :query, Air.Schemas.Query, foreign_key: :id, define_field: false
   end
