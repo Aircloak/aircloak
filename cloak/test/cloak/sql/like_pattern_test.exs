@@ -19,4 +19,30 @@ defmodule Cloak.Sql.LikePattern.Test do
     test "escapes special characters", do:
       assert ~w(a b % _ c) = LikePattern.graphemes({"ab%%%_c", "%"})
   end
+
+  describe "trivial?" do
+    test "true when there are no special chars", do:
+      assert LikePattern.trivial?({"abc", nil})
+
+    test "false when a % exists", do:
+      refute LikePattern.trivial?({"a%c", nil})
+
+    test "false when a _ exists", do:
+      refute LikePattern.trivial?({"a_c", nil})
+
+    test "true when special characters are escaped", do:
+      assert LikePattern.trivial?({"a~%~_c", "~"})
+  end
+
+  describe "normalize" do
+    test "does nothing for trivial patterns", do:
+      assert {"abc", "\\"} = LikePattern.normalize({"abc", nil})
+
+    test "switches the escape character to \\", do:
+      assert {~S[a\\b\%~c], "\\"} = LikePattern.normalize({~S[a~\~b~%~~c], "~"})
+
+    test "compresses multiple %%"
+
+    test "normalizes order of % and _"
+  end
 end

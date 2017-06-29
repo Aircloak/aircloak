@@ -27,6 +27,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
     query
     |> Helpers.apply_bottom_up(&expand_not_in/1)
     |> Helpers.apply_bottom_up(&normalize_in/1)
+    |> Helpers.apply_bottom_up(&normalize_like_patterns/1)
     |> Helpers.apply_bottom_up(&normalize_like/1)
     |> Helpers.apply_bottom_up(&normalize_constants/1)
     |> Helpers.apply_bottom_up(&normalize_upper/1)
@@ -97,6 +98,17 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # -------------------------------------------------------------------
   # Normalizing like patterns
   # -------------------------------------------------------------------
+
+  defp normalize_like_patterns(query), do:
+    Query.Lenses.filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.satisfy(& Condition.like?(&1) or Condition.not_like?(&1))
+    |> Lens.match(fn
+      {:not, {_kind, _lhs, _rhs}} -> Lens.at(1) |> Lens.at(2)
+      {_kind, _lhs, _rhs} -> Lens.at(2)
+    end)
+    |> Lens.key(:value)
+    |> Lens.map(query, &LikePattern.normalize/1)
 
   defp normalize_like(query), do:
     Query.Lenses.filter_clauses()

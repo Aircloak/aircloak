@@ -1,6 +1,9 @@
 defmodule Cloak.Sql.LikePattern do
   @type t :: {String.t, String.t}
 
+  @special_characters [:%, :_]
+  @standard_escape_character "\\"
+
   use Combine
   alias Cloak.Sql.Expression
 
@@ -18,7 +21,10 @@ defmodule Cloak.Sql.LikePattern do
     Expression.constant(:text, pattern)
   end
 
-  defp special_like_char?(string), do: string == "_" or string == "%"
+  def normalize(pattern), do:
+    {pattern |> graphemes() |> Enum.map(&standard_escape/1) |> Enum.join(), @standard_escape_character}
+
+  defp special_like_char?(string), do: string in @special_characters
 
   defp parser(escape), do:
     many(choice([
@@ -34,4 +40,9 @@ defmodule Cloak.Sql.LikePattern do
   defp special_character(), do:
     either(char("%"), char("_"))
     |> map(&String.to_existing_atom/1)
+
+  defp standard_escape(@standard_escape_character), do: @standard_escape_character <> @standard_escape_character
+  defp standard_escape("%"), do: "#{@standard_escape_character}%"
+  defp standard_escape("_"), do: "#{@standard_escape_character}_"
+  defp standard_escape(char), do: char
 end
