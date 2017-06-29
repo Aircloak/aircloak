@@ -41,8 +41,10 @@ defmodule Cloak.Sql.LikePattern.Test do
     test "switches the escape character to \\", do:
       assert {~S[a\\b\%~c], "\\"} = LikePattern.normalize({~S[a~\~b~%~~c], "~"})
 
-    test "compresses multiple %%"
+    test "compresses multiple %%", do:
+      assert {~S[%a%b%c%], "\\"} = LikePattern.normalize({~S[%%a%%%b%c%%%%], nil})
 
-    test "normalizes order of % and _"
+    test "normalizes order of % and _", do:
+      assert {~S[%__a%___bc%_], "\\"} = LikePattern.normalize({~S[__%%a___%bc%_%%%], nil})
   end
 end

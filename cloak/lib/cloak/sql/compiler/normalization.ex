@@ -118,26 +118,10 @@ defmodule Cloak.Sql.Compiler.Normalization do
       case {kind, LikePattern.trivial?(rhs.value)} do
         {:like, true} -> {:comparison, lhs, :=, LikePattern.trivial_to_string(rhs)}
         {:ilike, true} -> {:comparison, lowercase(lhs), :=, rhs |> LikePattern.trivial_to_string() |> lowercase()}
-        _ -> {kind, lhs, %{rhs | value: do_normalize_like(rhs.value)}}
+        _ -> {kind, lhs, rhs}
       end
     end)
 
   defp lowercase(expression), do:
     Expression.function("lower", [expression], expression.type)
-
-  defp do_normalize_like(string), do:
-    string
-    |> LikePattern.graphemes()
-    |> Enum.chunk_by(&special_like_char?/1)
-    |> Enum.map(&normalize_like_chunk/1)
-    |> Enum.join()
-
-  defp normalize_like_chunk(chunk = [first | _]) when first == "_" or first == "%" do
-    percent = if Enum.member?(chunk, "%"), do: "%", else: ""
-    rest = Enum.filter(chunk, &(&1 == "_"))
-    [percent | rest]
-  end
-  defp normalize_like_chunk(chunk), do: chunk
-
-  defp special_like_char?(string), do: string == "_" or string == "%"
 end

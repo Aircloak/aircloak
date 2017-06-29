@@ -22,7 +22,14 @@ defmodule Cloak.Sql.LikePattern do
   end
 
   def normalize(pattern), do:
-    {pattern |> graphemes() |> Enum.map(&standard_escape/1) |> Enum.join(), @standard_escape_character}
+    {
+      pattern
+      |> graphemes()
+      |> do_normalize()
+      |> Enum.map(&standard_escape/1)
+      |> Enum.join(),
+      @standard_escape_character
+    }
 
   defp special_like_char?(string), do: string in @special_characters
 
@@ -45,4 +52,18 @@ defmodule Cloak.Sql.LikePattern do
   defp standard_escape("%"), do: "#{@standard_escape_character}%"
   defp standard_escape("_"), do: "#{@standard_escape_character}_"
   defp standard_escape(char), do: char
+
+  defp do_normalize(graphemes), do:
+    graphemes
+    |> Enum.chunk_by(&special_char?/1)
+    |> Enum.flat_map(&normalize_chunk/1)
+
+  defp normalize_chunk(chunk = [first | _]) when first == :_ or first == :% do
+    percent = if Enum.member?(chunk, :%), do: :%, else: ""
+    rest = Enum.filter(chunk, &(&1 == :_))
+    [percent | rest]
+  end
+  defp normalize_chunk(chunk), do: chunk
+
+  defp special_char?(string), do: string == :% or string == :_
 end

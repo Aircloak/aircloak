@@ -149,8 +149,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp constant_to_fragment(value) when is_number(value), do: to_string(value)
   defp constant_to_fragment(value) when is_boolean(value), do: to_string(value)
 
-  defp like_pattern_to_fragment({pattern, _escape = nil}), do: [?', pattern, ?']
-  defp like_pattern_to_fragment(pattern), do: [?', pattern, ?']
+  defp like_pattern_to_fragment({pattern, escape = "\\"}), do: [?', pattern, ?', "ESCAPE", ?', escape, ?']
 
   defp join([], _joiner), do: []
   defp join([el], _joiner), do: [el]
