@@ -58,7 +58,7 @@ The syntax conforms to the standard SQL syntax, but only a subset of features is
     column_expression BETWEEN value AND value |
     column_expression IS [NOT] NULL |
     column_expression [NOT] IN (constant [, ...])
-    column_expression [NOT] LIKE | ILIKE string_pattern
+    column_expression [NOT] LIKE | ILIKE string_pattern [ESCAPE escape_string]
 
   having_expression :=
       column_expression comparison_operator (value | column_expression)
