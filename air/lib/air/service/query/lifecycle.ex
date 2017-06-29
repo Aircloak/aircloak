@@ -9,7 +9,7 @@ defmodule Air.Service.Query.Lifecycle do
 
   import Supervisor.Spec, warn: false
   alias Air.Service.Query
-
+  require Logger
   use GenServer
 
 
@@ -43,7 +43,7 @@ defmodule Air.Service.Query.Lifecycle do
     enqueue(query_id, {:state_changed, query_id, query_state})
 
   @doc "Asynchronously handles query result arrival."
-  @spec result_arrived(map) :: :ok
+  @spec result_arrived(%{query_id: String.t, payload: binary}) :: :ok
   def result_arrived(result), do:
     enqueue(result.query_id, {:result_arrived, result})
 
@@ -63,7 +63,9 @@ defmodule Air.Service.Query.Lifecycle do
 
   @doc false
   def handle_cast({:result_arrived, result}, state) do
-    Query.process_result(result)
+    decoded_result = decode_result(result)
+    Air.Service.Query.Events.trigger_result(decoded_result)
+    Query.process_result(decoded_result)
     {:stop, :normal, state}
   end
   def handle_cast({:state_changed, query_id, query_state}, state) do
@@ -95,5 +97,19 @@ defmodule Air.Service.Query.Lifecycle do
       end
 
     GenServer.cast(server_pid, message)
+  end
+
+  defp decode_result(query_result) do
+    {time, decoded_result} = :timer.tc(fn () -> :erlang.binary_to_term(query_result.payload) end)
+
+    if time > 10_000 do
+      # log processing times longer than 10ms
+      Logger.warn([
+        "decoding a query result for query #{query_result.query_id} took #{div(time, 1000)}ms, ",
+        "encoded message size=#{byte_size(query_result.payload)} bytes"
+      ])
+    end
+
+    decoded_result
   end
 end
