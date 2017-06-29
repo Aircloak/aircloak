@@ -1,7 +1,17 @@
 defmodule Cloak.Sql.LikePattern.Test do
-  alias Cloak.Sql.LikePattern
+  alias Cloak.Sql.{LikePattern, Expression}
 
   use ExUnit.Case, async: true
+
+  describe "trivial_to_string" do
+    test "fails for non-trivial patterns", do:
+      assert_raise MatchError, fn() ->
+        LikePattern.trivial_to_string(Expression.constant(:like_pattern, {"a%b", nil}))
+      end
+
+    test "unescapes trivial patterns", do:
+      assert %{value: "abcd"} = LikePattern.trivial_to_string(Expression.constant(:like_pattern, {"a~b~cd", "~"}))
+  end
 
   describe "graphemes" do
     test "returns regular characters", do:

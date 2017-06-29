@@ -17,8 +17,7 @@ defmodule Cloak.Sql.LikePattern do
 
   def trivial_to_string(expression) do
     true = trivial?(expression.value)
-    {pattern, _escape} = expression.value
-    Expression.constant(:text, pattern)
+    Expression.constant(:text, expression.value |> graphemes() |> Enum.join())
   end
 
   def normalize(pattern), do:
