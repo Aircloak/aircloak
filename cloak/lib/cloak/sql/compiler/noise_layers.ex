@@ -226,7 +226,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> conditions_satisfying(&Condition.like?/1)
     |> Enum.flat_map(fn({kind, column, constant}) ->
       columns = Lens.to_list(raw_columns(), column)
-      layer_keys = constant |> Expression.value([]) |> like_layer_keys
+      layer_keys = like_layer_keys(constant.value)
 
       for layer_key <- layer_keys, column <- columns do
         build_noise_layer(column, {kind, layer_key})
