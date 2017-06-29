@@ -42,6 +42,11 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error == "Column `numeric` from table `table` of type `integer` cannot be used in a LIKE expression."
   end
 
+  test "rejects escape strings longer than 1" do
+    {:error, error} = compile("select * from table where string like 'something' escape 'abc'", data_source())
+    assert error == "Escape string must be one character."
+  end
+
   test "rejects usage of * in function requiring argument of known type" do
     {:error, error} = compile("select length(*) from table", data_source())
     assert error =~ ~r/unspecified type/

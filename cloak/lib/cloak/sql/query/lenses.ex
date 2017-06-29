@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Query.Lenses do
   @moduledoc "Lenses for traversing queries"
 
-  alias Cloak.Sql.{Expression, Function, Query}
+  alias Cloak.Sql.{Expression, Function, Query, Condition}
 
   use Lens.Macros
 
@@ -154,6 +154,18 @@ defmodule Cloak.Sql.Query.Lenses do
   @spec subquery_lenses(Query.t) :: [Lens.t]
   def subquery_lenses(query), do: [Lens.root() | do_subquery_lenses(Lens.key(:from), query.from)]
 
+
+  @doc "Lens focusing on all like patterns in the query conditions."
+  @spec like_patterns() :: Lens.t
+  def like_patterns(), do:
+    filter_clauses()
+    |> conditions()
+    |> Lens.satisfy(& Condition.like?(&1) or Condition.not_like?(&1))
+    |> Lens.match(fn
+      {:not, {_kind, _lhs, _rhs}} -> Lens.at(1) |> Lens.at(2)
+      {_kind, _lhs, _rhs} -> Lens.at(2)
+    end)
+    |> Lens.key(:value)
 
   # -------------------------------------------------------------------
   # Internal lenses

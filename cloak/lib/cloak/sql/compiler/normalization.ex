@@ -100,15 +100,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # -------------------------------------------------------------------
 
   defp normalize_like_patterns(query), do:
-    Query.Lenses.filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Lens.satisfy(& Condition.like?(&1) or Condition.not_like?(&1))
-    |> Lens.match(fn
-      {:not, {_kind, _lhs, _rhs}} -> Lens.at(1) |> Lens.at(2)
-      {_kind, _lhs, _rhs} -> Lens.at(2)
-    end)
-    |> Lens.key(:value)
-    |> Lens.map(query, &LikePattern.normalize/1)
+    Lens.map(Query.Lenses.like_patterns(), query, &LikePattern.normalize/1)
 
   defp normalize_like(query), do:
     Query.Lenses.filter_clauses()
