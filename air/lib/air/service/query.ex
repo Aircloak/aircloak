@@ -181,6 +181,8 @@ defmodule Air.Service.Query do
     Task.Supervisor.start_child(__MODULE__.TaskSupervisor, task_fun)
 
   defp do_process_result(query, result) do
+    result = decode_result(result)
+
     storable_result = %{
       columns: result[:columns],
       types: result[:features][:selected_types],
@@ -281,5 +283,19 @@ defmodule Air.Service.Query do
     where: q.inserted_at < ^before,
     order_by: [desc: q.inserted_at],
     limit: ^count
+  end
+
+  defp decode_result(query_result) do
+    {time, decoded_result} = :timer.tc(fn () -> :erlang.binary_to_term(query_result.payload) end)
+
+    if time > 10_000 do
+      # log processing times longer than 10ms
+      Logger.warn([
+        "decoding a query result for query #{query_result.query_id} took #{div(time, 1000)}ms, ",
+        "encoded message size=#{byte_size(query_result.payload)} bytes"
+      ])
+    end
+
+    decoded_result
   end
 end
