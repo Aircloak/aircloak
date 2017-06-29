@@ -194,12 +194,16 @@ defmodule Air.Service.QueryTest do
     test "processing an error result" do
       query = create_query!(create_user!(), %{query_state: :started, data_source_id: create_data_source!().id})
 
-      process_result(%{
-        query_id: query.id,
-        features: %{"selected_types" => ["some types"]},
-        execution_time: 123,
-        error: "some reason",
-      })
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          process_result(%{
+            query_id: query.id,
+            features: %{"selected_types" => ["some types"]},
+            execution_time: 123,
+            error: "some reason",
+          })
+        end)
+      assert log =~ ~S("message":"some reason")
 
       {:ok, query} = get_query(query.id)
       assert %{

@@ -144,7 +144,7 @@ defmodule Air.Service.Query do
   """
   @spec process_result(map) :: :ok
   def process_result(result) do
-    query = Repo.get!(Query, result.query_id) |> Repo.preload(:result)
+    query = Repo.get!(Query, result.query_id) |> Repo.preload([:result, :user])
     if valid_state_transition?(query.query_state, query_state(result)), do:
       do_process_result(query, result)
 
@@ -205,6 +205,19 @@ defmodule Air.Service.Query do
     start_task(fn -> Air.Service.Query.Events.trigger_result(result) end)
     start_task(fn -> changeset |> Changeset.apply_changes() |> UserChannel.broadcast_state_change() end)
     start_task(fn -> Repo.update!(changeset) end)
+
+    if result[:error], do:
+      Logger.error([
+        "JSON_LOG ",
+        Poison.encode_to_iodata!(%{
+          type: "failed_query",
+          message: result.error,
+          statement: query.statement,
+          data_source_id: query.data_source_id,
+          user_id: query.user.id,
+          user_email: query.user.email
+        })
+      ])
   end
 
   @state_order [

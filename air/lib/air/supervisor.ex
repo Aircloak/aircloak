@@ -13,7 +13,6 @@ defmodule Air.Supervisor do
       Air.Service.Query.supervisor_spec(),
       Air.Service.Central.supervisor_spec(),
       supervisor(Task.Supervisor, [[name: Air.ApiTokenTimestampUpdater]], [id: :api_token_updater]),
-      worker(Air.Monitoring.FailedQueries, []),
       worker(Air.Endpoint, []),
       worker(Air.MonitoringEndpoint, []),
       worker(Air.BOM, []),
