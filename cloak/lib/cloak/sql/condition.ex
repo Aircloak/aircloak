@@ -1,7 +1,7 @@
   defmodule Cloak.Sql.Condition do
   @moduledoc "Contains utility functions for working with conditions."
 
-  alias Cloak.Sql.{Query, Expression, Parser}
+  alias Cloak.Sql.{Query, Expression, Parser, LikePattern}
 
   @inequalities [:<, :>, :<=, :>=]
 
@@ -91,12 +91,12 @@
       compare(operator, lhs, rhs) == truth
     end
   end
-  def to_function({:like, column, %Expression{type: :text, value: pattern}}, truth) do
-    regex = pattern |> to_regex() |> Regex.compile!("ums")
+  def to_function({:like, column, %Expression{type: :like_pattern, value: pattern}}, truth) do
+    regex = pattern |> LikePattern.to_regex("ums")
     fn(row) -> compare(:=~, Expression.value(column, row), regex) == truth end
   end
-  def to_function({:ilike, column, %Expression{type: :text, value: pattern}}, truth) do
-    regex = pattern |> to_regex() |> Regex.compile!("uims")
+  def to_function({:ilike, column, %Expression{type: :like_pattern, value: pattern}}, truth) do
+    regex = pattern |> LikePattern.to_regex("uims")
     fn(row) -> compare(:=~, Expression.value(column, row), regex) == truth end
   end
   def to_function({:is, column, :null}, truth) do
@@ -154,17 +154,6 @@
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp anchor(pattern), do: "^#{pattern}$"
-
-  def to_regex(pattern), do:
-    pattern
-    |> Regex.escape()
-    |> String.replace("%", ".*")
-    |> String.replace("_", ".")
-    |> String.replace(".*.*", "%") # handle escaped `%` (`%%`)
-    |> String.replace(".*.", "_") # handle escaped `_` (`%_`)
-    |> anchor()
 
   defp compare(_operator, nil, _value), do: nil
   defp compare(:in, target, values) when is_list(values), do: Enum.member?(values, target)

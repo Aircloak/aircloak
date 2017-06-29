@@ -57,4 +57,21 @@ defmodule Cloak.Sql.LikePattern.Test do
     test "normalizes order of % and _", do:
       assert {~S[%__a%___bc%_], "\\"} = LikePattern.normalize({~S[__%%a___%bc%_%%%], nil})
   end
+
+  describe "to_regex" do
+    test "converts % to .*", do:
+      assert ~r/^a.*c$/ = LikePattern.to_regex({"a%c", nil})
+
+    test "converts _ to .", do:
+      assert ~r/^a.c$/ = LikePattern.to_regex({"a_c", nil})
+
+    test "respects escapes", do:
+      assert ~r/^a%c$/ = LikePattern.to_regex({"a~%c", "~"})
+
+    test "escapes special regex chars", do:
+      assert ~r/^\.\(\*$/ = LikePattern.to_regex({".(*", nil})
+
+    test "passes options to regex compilation", do:
+      assert ~r/^abc$/i = LikePattern.to_regex({"abc", nil}, "i")
+  end
 end

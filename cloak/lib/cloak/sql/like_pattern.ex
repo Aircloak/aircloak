@@ -30,6 +30,14 @@ defmodule Cloak.Sql.LikePattern do
       @standard_escape_character
     }
 
+  def to_regex(pattern, options \\ ""), do:
+    pattern
+    |> graphemes()
+    |> Enum.map(&to_regex_part/1)
+    |> Enum.join()
+    |> anchor()
+    |> Regex.compile!(options)
+
   defp special_like_char?(string), do: string in @special_characters
 
   defp parser(escape), do:
@@ -65,4 +73,10 @@ defmodule Cloak.Sql.LikePattern do
   defp normalize_chunk(chunk), do: chunk
 
   defp special_char?(string), do: string == :% or string == :_
+
+  defp to_regex_part(:%), do: ".*"
+  defp to_regex_part(:_), do: "."
+  defp to_regex_part(char), do: Regex.escape(char)
+
+  defp anchor(pattern), do: "^#{pattern}$"
 end
