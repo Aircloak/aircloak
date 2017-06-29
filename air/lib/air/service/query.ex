@@ -23,7 +23,8 @@ defmodule Air.Service.Query do
       [
         [
           supervisor(Air.Service.Query.Events, []),
-          Air.Service.Query.Lifecycle.supervisor_spec()
+          Air.Service.Query.Lifecycle.supervisor_spec(),
+          supervisor(Task.Supervisor, [[name: __MODULE__.TaskSupervisor]], id: __MODULE__.TaskSupervisor)
         ],
         [strategy: :one_for_one, name: __MODULE__]
       ],
@@ -176,6 +177,9 @@ defmodule Air.Service.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp start_task(task_fun), do:
+    Task.Supervisor.start_child(__MODULE__.TaskSupervisor, task_fun)
+
   defp do_process_result(query, result) do
     row_count = (result[:rows] || []) |> Enum.map(&(&1.occurrences)) |> Enum.sum
 
@@ -188,17 +192,19 @@ defmodule Air.Service.Query do
       row_count: row_count,
     }
 
-    query = query
-    |> Query.changeset(%{
-      execution_time: result[:execution_time],
-      users_count: result[:users_count],
-      features: result[:features],
-      query_state: query_state(result),
-    })
-    |> Changeset.put_assoc(:result, Changeset.change(query.result, %{result: storable_result}))
-    |> Repo.update!()
+    changeset =
+      query
+      |> Query.changeset(%{
+        execution_time: result[:execution_time],
+        users_count: result[:users_count],
+        features: result[:features],
+        query_state: query_state(result),
+      })
+      |> Changeset.put_assoc(:result, Changeset.change(query.result, %{result: storable_result}))
 
-    UserChannel.broadcast_state_change(query)
+    start_task(fn -> Air.Service.Query.Events.trigger_result(result) end)
+    start_task(fn -> changeset |> Changeset.apply_changes() |> UserChannel.broadcast_state_change() end)
+    start_task(fn -> Repo.update!(changeset) end)
   end
 
   @state_order [

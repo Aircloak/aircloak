@@ -64,7 +64,6 @@ defmodule Air.Service.Query.Lifecycle do
   @doc false
   def handle_cast({:result_arrived, result}, state) do
     decoded_result = decode_result(result)
-    Air.Service.Query.Events.trigger_result(decoded_result)
     Query.process_result(decoded_result)
     {:stop, :normal, state}
   end
