@@ -181,15 +181,13 @@ defmodule Air.Service.Query do
     Task.Supervisor.start_child(__MODULE__.TaskSupervisor, task_fun)
 
   defp do_process_result(query, result) do
-    row_count = (result[:rows] || []) |> Enum.map(&(&1.occurrences)) |> Enum.sum
-
     storable_result = %{
       columns: result[:columns],
       types: result[:features][:selected_types],
       rows: result[:rows],
       error: error_text(result),
       info: result[:info],
-      row_count: row_count,
+      row_count: result.row_count || 0,
     }
 
     changeset =

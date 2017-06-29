@@ -153,7 +153,7 @@ defmodule Air.Service.Central do
 
       user = query.user || %{name: "Unknown user", email: "Unknown email",}
       data_source = query.data_source || %{name: "Unknown data source", id: nil}
-      row_count = (result[:rows] || []) |> Stream.map(&(&1[:occurrences])) |> Enum.sum()
+      row_count = result.row_count || 0
 
       Air.Service.Central.record_query(%{
         metrics: %{
