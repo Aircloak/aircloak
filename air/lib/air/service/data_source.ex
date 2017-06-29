@@ -3,7 +3,8 @@ defmodule Air.Service.DataSource do
 
   alias Air.Schemas.{DataSource, Group, Query, User}
   alias Air.{PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, Socket.Frontend.UserChannel}
-  alias Air.Service.{Version, Cloak, View, Query.Events}
+  alias Air.Service.{Version, Cloak, View}
+  alias Air.Service
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
   require Logger
@@ -130,7 +131,7 @@ defmodule Air.Service.DataSource do
         Air.Service.AuditLog.log(user, "Executed query",
           Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.name}))
 
-        if opts[:notify] == true, do: Events.subscribe(query.id)
+        if opts[:notify] == true, do: Service.Query.Events.subscribe(query.id)
 
         case MainChannel.run_query(channel_pid, cloak_query_map(query, user, parameters)) do
           :ok -> {:ok, query}
@@ -151,7 +152,7 @@ defmodule Air.Service.DataSource do
     with {:ok, %{id: query_id}} <- start_query(data_source_id_spec, user, context, statement, parameters, opts) do
       receive do
         {:query_result, %{query_id: ^query_id} = result} ->
-          Events.unsubscribe(query_id)
+          Service.Query.Events.unsubscribe(query_id)
           {:ok, result}
       end
     end
@@ -357,7 +358,7 @@ defmodule Air.Service.DataSource do
       if available?(query.data_source.name) do
         for {channel, _cloak} <- Cloak.channel_pids(query.data_source.name), do:
           MainChannel.stop_query(channel, query.id)
-        Events.trigger_state_change(query.id, :cancelled)
+        Service.Query.Lifecycle.state_changed(query.id, :cancelled)
 
         :ok
       else
@@ -466,7 +467,7 @@ defmodule Air.Service.DataSource do
     |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
 
   defp post_timeout_result(query), do:
-    Events.trigger_result(%{
+    Service.Query.Events.trigger_result(%{
       query_id: query.id,
       error: "The query could not be started due to a communication timeout."
     })

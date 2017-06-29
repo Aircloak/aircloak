@@ -9,8 +9,6 @@ defmodule Air.Service.Query do
 
   @type query_id :: String.t
 
-  @result_reporter_sup __MODULE__.ResultReporter
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -26,7 +24,7 @@ defmodule Air.Service.Query do
         [
           supervisor(Air.Service.Query.Events, []),
           Air.Service.Query.Lifecycle.supervisor_spec(),
-          supervisor(Task.Supervisor, [[name: @result_reporter_sup]], id: @result_reporter_sup)
+          supervisor(Task.Supervisor, [[name: __MODULE__.TaskSupervisor]], id: __MODULE__.TaskSupervisor)
         ],
         [strategy: :one_for_one, name: __MODULE__]
       ],
@@ -146,7 +144,7 @@ defmodule Air.Service.Query do
   """
   @spec process_result(map) :: :ok
   def process_result(result) do
-    query = Repo.get!(Query, result.query_id) |> Repo.preload(:result)
+    query = Repo.get!(Query, result.query_id) |> Repo.preload([:result, :user])
     if valid_state_transition?(query.query_state, query_state(result)), do:
       do_process_result(query, result)
 
@@ -174,41 +172,13 @@ defmodule Air.Service.Query do
     :ok
   end
 
-  @doc "Asynchronously handles the query result."
-  @spec handle_result(%{query_id: String.t, payload: binary}) :: :ok
-  def handle_result(query_result) do
-    Task.Supervisor.start_child(
-      @result_reporter_sup,
-      fn ->
-        query_result
-        |> decode_result()
-        |> Air.Service.Query.Events.trigger_result()
-
-        Logger.info("handled result for query #{query_result.query_id}")
-      end
-    )
-
-    :ok
-  end
-
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp decode_result(query_result) do
-    {time, decoded_result} = :timer.tc(fn () -> :erlang.binary_to_term(query_result.payload) end)
-
-    if time > 10_000 do
-      # log processing times longer than 10ms
-      Logger.warn([
-        "decoding a query result for query #{query_result.query_id} took #{div(time, 1000)}ms, ",
-        "encoded message size=#{byte_size(query_result.payload)} bytes"
-      ])
-    end
-
-    decoded_result
-  end
+  defp start_task(task_fun), do:
+    Task.Supervisor.start_child(__MODULE__.TaskSupervisor, task_fun)
 
   defp do_process_result(query, result) do
     row_count = (result[:rows] || []) |> Enum.map(&(&1.occurrences)) |> Enum.sum
@@ -222,17 +192,37 @@ defmodule Air.Service.Query do
       row_count: row_count,
     }
 
-    query = query
-    |> Query.changeset(%{
-      execution_time: result[:execution_time],
-      users_count: result[:users_count],
-      features: result[:features],
-      query_state: query_state(result),
-    })
-    |> Changeset.put_assoc(:result, Changeset.change(query.result, %{result: storable_result}))
-    |> Repo.update!()
+    changeset =
+      query
+      |> Query.changeset(%{
+        execution_time: result[:execution_time],
+        users_count: result[:users_count],
+        features: result[:features],
+        query_state: query_state(result),
+      })
+      |> Changeset.put_assoc(:result, Changeset.change(query.result, %{result: storable_result}))
 
-    UserChannel.broadcast_state_change(query)
+    start_task(fn -> Air.Service.Query.Events.trigger_result(result) end)
+    start_task(fn ->
+      query = changeset |> Changeset.apply_changes()
+      UserChannel.broadcast_state_change(query)
+    end)
+    start_task(fn -> Repo.update!(changeset) end)
+
+    Air.Service.Central.report_query_result(result)
+
+    if result[:error], do:
+      Logger.error([
+        "JSON_LOG ",
+        Poison.encode_to_iodata!(%{
+          type: "failed_query",
+          message: result.error,
+          statement: query.statement,
+          data_source_id: query.data_source_id,
+          user_id: query.user.id,
+          user_email: query.user.email
+        })
+      ])
   end
 
   @state_order [
