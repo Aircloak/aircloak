@@ -59,14 +59,14 @@ defmodule Air.CentralClient.QueryReporter do
       id: nil,
     }
 
-    row_count = (result["rows"] || []) |> Enum.map(&(&1["occurrences"])) |> Enum.sum
+    row_count = (result[:rows] || []) |> Enum.map(&(&1[:occurrences])) |> Enum.sum()
     payload = %{
       metrics: %{
-        users_count: result["users_count"],
+        users_count: result[:users_count],
         row_count: row_count,
-        execution_time: result["execution_time"],
+        execution_time: result[:execution_time],
       },
-      features: result["features"],
+      features: result[:features],
       aux: %{
         user: %{
           name: user.name,
@@ -78,8 +78,8 @@ defmodule Air.CentralClient.QueryReporter do
         },
         started_at: query.inserted_at,
         finished_at: NaiveDateTime.utc_now(),
-        has_error: not is_nil(result["error"]),
-        error: filter_error(result["error"]),
+        has_error: not is_nil(result[:error]),
+        error: filter_error(result[:error]),
       },
     }
     Air.Service.Central.record_query(payload)
