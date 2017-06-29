@@ -154,13 +154,17 @@ defmodule Cloak.Sql.Query.Lenses do
   @spec subquery_lenses(Query.t) :: [Lens.t]
   def subquery_lenses(query), do: [Lens.root() | do_subquery_lenses(Lens.key(:from), query.from)]
 
-
-  @doc "Lens focusing on all like patterns in the query conditions."
-  @spec like_patterns() :: Lens.t
-  def like_patterns(), do:
+  @doc "Lens focusing on all like/ilike/not like/not ilike where clauses in the query conditions."
+  @spec like_clauses() :: Lens.t
+  def like_clauses(), do:
     filter_clauses()
     |> conditions()
     |> Lens.satisfy(& Condition.like?(&1) or Condition.not_like?(&1))
+
+  @doc "Lens focusing on all like/ilike/not like/not ilike patterns in the query conditions."
+  @spec like_patterns() :: Lens.t
+  def like_patterns(), do:
+    like_clauses()
     |> Lens.match(fn
       {:not, {_kind, _lhs, _rhs}} -> Lens.at(1) |> Lens.at(2)
       {_kind, _lhs, _rhs} -> Lens.at(2)

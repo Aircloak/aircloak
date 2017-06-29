@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   @moduledoc "Deals with normalizing some expressions so that they are easier to deal with at later stages."
 
   alias Cloak.Sql.Compiler.Helpers
-  alias Cloak.Sql.{Expression, Query, Condition, LikePattern}
+  alias Cloak.Sql.{Expression, Query, LikePattern}
 
 
   # -------------------------------------------------------------------
@@ -103,16 +103,18 @@ defmodule Cloak.Sql.Compiler.Normalization do
     Lens.map(Query.Lenses.like_patterns(), query, &LikePattern.normalize/1)
 
   defp normalize_like(query), do:
-    Query.Lenses.filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Lens.satisfy(&Condition.like?/1)
-    |> Lens.map(query, fn({kind, lhs, rhs}) ->
-      case {kind, LikePattern.trivial?(rhs.value)} do
-        {:like, true} -> {:comparison, lhs, :=, LikePattern.trivial_to_string(rhs)}
-        {:ilike, true} -> {:comparison, lowercase(lhs), :=, rhs |> LikePattern.trivial_to_string() |> lowercase()}
-        _ -> {kind, lhs, rhs}
-      end
+    Query.Lenses.like_clauses()
+    |> Lens.satisfy(&trivial_like?/1)
+    |> Lens.map(query, fn
+      {:like, lhs, rhs} -> {:comparison, lhs, :=, LikePattern.trivial_to_string(rhs)}
+      {:ilike, lhs, rhs} -> {:comparison, lowercase(lhs), :=, rhs |> LikePattern.trivial_to_string() |> lowercase()}
+      {:not, {:like, lhs, rhs}} -> {:comparison, lhs, :<>, LikePattern.trivial_to_string(rhs)}
+      {:not, {:ilike, lhs, rhs}} ->
+        {:comparison, lowercase(lhs), :<>, rhs |> LikePattern.trivial_to_string() |> lowercase()}
     end)
+
+  defp trivial_like?({:not, like}), do: trivial_like?(like)
+  defp trivial_like?({_kind, _rhs, lhs}), do: LikePattern.trivial?(lhs.value)
 
   defp lowercase(expression), do:
     Expression.function("lower", [expression], expression.type)
