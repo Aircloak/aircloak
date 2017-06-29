@@ -87,6 +87,8 @@ defmodule Cloak.ResultSender do
     end
   end
 
-  defp encode_result(result), do:
+  defp encode_result(result) do
+    result = Map.take(result, [:query_id, :rows, :columns, :features, :error, :info])
     %{query_id: result.query_id, payload: :erlang.term_to_binary(result, compressed: 9)}
+  end
 end
