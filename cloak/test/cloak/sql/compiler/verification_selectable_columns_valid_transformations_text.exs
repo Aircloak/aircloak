@@ -1,8 +1,8 @@
-defmodule Cloak.Aql.Compiler.VerificationSelectableColumnsValidTransformations.Test do
+defmodule Cloak.Sql.Compiler.VerificationSelectableColumnsValidTransformations.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.Table
-  alias Cloak.Aql.{Compiler, Parser}
+  alias Cloak.Sql.{Compiler, Parser}
 
   describe "rejects queries selecing columns that have seen math, discontinuity and constants" do
     Enum.each(~w(+ - * ^), fn(math_function) ->
@@ -113,12 +113,17 @@ defmodule Cloak.Aql.Compiler.VerificationSelectableColumnsValidTransformations.T
   end
 
   describe "casts are dangerously discontinuous when what is cast has been influenced by a constant" do
-    Enum.each(~w(integer real boolean), fn(cast_target) ->
+    Enum.each(~w(real boolean), fn(cast_target) ->
       test "cast from integer to #{cast_target}" do
         query = "SELECT cast(numeric + 1 as #{unquote(cast_target)}) FROM table"
         refute select_columns_have_valid_transformations(query)
       end
     end)
+
+    test "cast from float to integer" do
+      query = "SELECT cast(float + 1 as integer) FROM table"
+      refute select_columns_have_valid_transformations(query)
+    end
 
     # Testing that casts from text is dangerously discontinuous if a constant
     # has been involved, since that would involve a distinct discontinuous
