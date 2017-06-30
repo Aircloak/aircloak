@@ -1,10 +1,10 @@
 defmodule Cloak.Sql.Compiler.Test do
   use ExUnit.Case, async: true
 
-  import Lens.Macros
-
   alias Cloak.DataSource.Table
   alias Cloak.Sql.{Expression, Compiler, Parser, Query}
+
+  import Cloak.Test.QueryHelpers
 
   defmacrop column(table_name, column_name) do
     quote do
@@ -630,8 +630,8 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "silently discards redundant inequalities" do
     assert compile!("select count(*) from table
-      where numeric >= 1 and numeric > 0.9 and numeric < 2 and numeric <= 2.1", data_source()) |> scrub_aliases() ==
-      compile!("select count(*) from table where numeric >= 1 and numeric < 2", data_source()) |> scrub_aliases()
+      where numeric >= 1 and numeric > 0.9 and numeric < 2 and numeric <= 2.1", data_source()) ==
+      compile!("select count(*) from table where numeric >= 1 and numeric < 2", data_source())
   end
 
   test "unquoted columns are case-insensitive" do
@@ -726,12 +726,12 @@ defmodule Cloak.Sql.Compiler.Test do
   test "having condition ranges are aligned with a message in subqueries" do
     %{from: {:subquery, %{ast: aligned}}} = compile!("""
       select count(*) from (select uid from table group by uid having avg(numeric) >= 0.0 and avg(numeric) < 5.0) x
-    """, data_source()) |> scrub_aliases()
+    """, data_source())
     %{from: {:subquery, %{ast: unaligned}}} = compile!("""
       select count(*) from (select uid from table group by uid having avg(numeric) > 0.1 and avg(numeric) <= 4.9) x
-    """, data_source()) |> scrub_aliases()
+    """, data_source())
 
-    assert Map.drop(aligned, [:info]) == Map.drop(unaligned, [:info])
+    assert aligned |> Map.drop([:info]) |> scrub_aliases() == unaligned |> Map.drop([:info]) |> scrub_aliases()
     assert unaligned.info == ["The range for column `avg` has been adjusted to 0.0 <= `avg` < 5.0."]
   end
 
@@ -945,26 +945,6 @@ defmodule Cloak.Sql.Compiler.Test do
 
   defp projected_table_db_column_indices(query), do:
     Enum.map(projected_table_db_columns(query), &(&1.row_index))
-
-
-  defp scrub_aliases(query), do: put_in(query, [aliases()], nil)
-
-  deflens aliases, do:
-    all_subqueries() |> Query.Lenses.terminals() |> Lens.satisfy(&match?(%Expression{}, &1)) |> Lens.key(:alias)
-
-  deflens all_subqueries(), do:
-    Lens.both(Lens.recur(Query.Lenses.direct_subqueries() |> Lens.key(:ast)), Lens.root())
-
-  defp compile!(query_string, data_source, options \\ []) do
-    {:ok, result} = compile(query_string, data_source, options)
-    result
-  end
-
-  defp compile(query_string, data_source, options \\ []) do
-    query = Parser.parse!(query_string)
-    Compiler.compile(data_source, query, Keyword.get(options, :parameters, []),
-      Keyword.get(options, :views, %{}))
-  end
 
   defp validate_view(view_sql, data_source, options \\ []) do
     with {:ok, parsed_view} <- Parser.parse(view_sql), do:

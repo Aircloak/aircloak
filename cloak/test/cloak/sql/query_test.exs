@@ -3,6 +3,8 @@ defmodule Cloak.Sql.QueryTest do
 
   alias Cloak.Sql.Query
 
+  import Cloak.Test.QueryHelpers
+
   setup_all do
     :ok = Cloak.Test.DB.create_table("feat_describe", "id INTEGER, t TEXT, f FLOAT, b BOOLEAN, d TIMESTAMP",
       add_user_id: false,
@@ -231,22 +233,8 @@ defmodule Cloak.Sql.QueryTest do
     query.features
   end
 
-  defp scrub_data_source(query) do
-    data_source_lens = Lens.both(Lens.root(), Query.Lenses.subqueries() |> Lens.key(:ast)) |> Lens.key(:data_source)
-    put_in(query, [data_source_lens], nil)
-  end
-
-  defp scrub_unique_aliases(query) do
-    unique_aliases_lens =
-      Lens.both(Lens.root(), Query.Lenses.subqueries() |> Lens.key(:ast))
-      |> Query.Lenses.query_expressions()
-      |> Lens.key(:alias)
-      |> Lens.satisfy(& &1 != nil and String.starts_with?(&1, "alias_"))
-    put_in(query, [unique_aliases_lens], "unique_alias")
-  end
-
   defp make_query(data_source, statement), do:
     Query.make!(data_source, statement, [], %{})
-    |> scrub_data_source()
-    |> scrub_unique_aliases()
+    |> scrub_data_sources()
+    |> scrub_aliases()
 end

@@ -2,7 +2,8 @@ defmodule Cloak.Sql.Compiler.VerificationSelectableColumnsValidTransformations.T
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.Table
-  alias Cloak.Sql.{Compiler, Parser}
+
+  import Cloak.Test.QueryHelpers
 
   describe "rejects queries selecing columns that have seen math, discontinuity and constants" do
     Enum.each(~w(+ - * ^), fn(math_function) ->
@@ -160,11 +161,5 @@ defmodule Cloak.Sql.Compiler.VerificationSelectableColumnsValidTransformations.T
         projection: nil
       },
     }}
-  end
-
-  defp compile(query_string, data_source, options \\ []) do
-    query = Parser.parse!(query_string)
-    Compiler.compile(data_source, query, Keyword.get(options, :parameters, []),
-      Keyword.get(options, :views, %{}))
   end
 end
