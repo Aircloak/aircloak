@@ -1,6 +1,8 @@
 # Functions
 
-## Date functions
+## Date/time functions
+
+### Date extraction functions
 
 The functions `year`, `quarter`, `month`, `day`, `hour`, `minute`, `second`, and `weekday` are supported. They extract
 the named part from a date or time column.
@@ -10,6 +12,19 @@ SELECT YEAR(date_column), MONTH(date_column), DAY(date_column) FROM table;
 
 SELECT EXTRACT(year FROM date_column) FROM table;
 ```
+
+### date_trunc
+
+```sql
+DATE_TRUNC('quarter', date)
+-- 2016-05-22T12:30:00.000000 -> 2016-04-01T00:00:00.000000
+
+DATE_TRUNC('hour', time)
+-- 12:22:44.000000 -> 12:00:00.000000
+```
+
+"Rounds" the date or time to the given precision. Supported precision levels
+are `year`, `quarter`, `month`, `day`, `hour`, `minute`, and `second`.
 
 ## Mathematical operators
 

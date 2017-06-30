@@ -13,7 +13,7 @@
   - [Added noise](sql/query-results.md#adding-noise)
   - [Anonymization functions](sql/query-results.md#anonymization-functions)
 - [Supported functions](sql/functions.md)
-  - [Date functions](sql/functions.md#date-functions)
+  - [Date/time functions](sql/functions.md#datetime-functions)
   - [Mathematical operators](sql/functions.md#mathematical-operators)
   - [Mathematical functions](sql/functions.md#mathematical-functions)
   - [String functions](sql/functions.md#string-functions)
