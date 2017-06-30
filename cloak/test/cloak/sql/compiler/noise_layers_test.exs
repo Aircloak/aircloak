@@ -2,7 +2,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.Table
-  alias Cloak.Sql.{Compiler, Parser, Expression}
+  alias Cloak.Sql.Expression
+
+  import Cloak.Test.QueryHelpers
 
   describe "picking columns for noise layers" do
     test "lists no noise layers by default" do
@@ -463,13 +465,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert base1 == base2
     end
-  end
-
-  defp compile!(query_string, data_source, options \\ []) do
-    query = Parser.parse!(query_string)
-    {:ok, result} = Compiler.compile(data_source, query, Keyword.get(options, :parameters, []),
-      Keyword.get(options, :views, %{}))
-    result
   end
 
   defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do
