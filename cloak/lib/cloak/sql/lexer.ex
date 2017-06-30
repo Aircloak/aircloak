@@ -103,10 +103,14 @@ defmodule Cloak.Sql.Lexer do
   defp whitespace() do
     ignore(
       either(
-        word_of(~r/[\h]/),
+        horizontal_whitespace(),
         linebreak()
       )
     )
+  end
+
+  defp horizontal_whitespace() do
+    word_of(~r/[\h]/)
   end
 
   defp linebreak() do
@@ -139,19 +143,31 @@ defmodule Cloak.Sql.Lexer do
   end
 
   defp string_constant() do
+    sep_by1(string_part(), many1(whitespace_surrounded_linebreak()))
+    |> map(&Enum.join/1)
+    |> output_constant(:string)
+  end
+
+  defp whitespace_surrounded_linebreak() do
+    sequence([
+      option(horizontal_whitespace()),
+      linebreak(),
+      option(horizontal_whitespace()),
+    ])
+  end
+
+  defp string_part() do
     sequence([
       ignore(char(?')),
       many(string_content()),
-      ignore(char(?'))
+      ignore(char(?')),
     ])
     |> map(&Enum.join/1)
-    |> output_constant(:string)
   end
 
   defp string_content() do
     choice([
       string("''") |> return("'"),
-      word_of(~r/'[\r\n]+'/) |> return("'"),
       word_of(~r/[^']+/),
     ])
   end

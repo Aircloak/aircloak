@@ -810,7 +810,7 @@ defmodule Cloak.Sql.Parser.Test do
       select(columns: [quoted_identifier("something that wouldn't normally work as a column name")])
   end
 
-  test "literals containing escaped single-quotes" do
+  test "string literals containing escaped single-quotes" do
     assert_parse "select 'O''Brian' from names", select(columns: [constant(:text, "O'Brian")])
     assert_parse "select 'O'\n'Brian' from names", select(columns: [constant(:text, "O'Brian")])
     assert_parse ~S(select 'O\Brian' from names), select(columns: [constant(:text, ~S(O\Brian))])
