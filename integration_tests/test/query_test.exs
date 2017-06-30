@@ -2,7 +2,7 @@ defmodule IntegrationTest.QueryTest do
   use ExUnit.Case, async: true
 
   alias IntegrationTest.Manager
-  alias Air.Schemas.Query.Result
+  alias Air.Schemas.Query.Rows
 
   setup_all do
     {:ok, user: Manager.create_air_user()}
@@ -13,13 +13,13 @@ defmodule IntegrationTest.QueryTest do
     assert result.columns == ["name"]
     assert result.features.column_types == ["text"]
     assert result.features.selected_types == ["text"]
-    assert Result.decode_rows(result.rows) == [%{occurrences: 1, row: ["users"]}]
+    assert Rows.decode_raw(result.rows) == [%{occurrences: 1, row: ["users"]}]
   end
 
   test "show columns", context do
     {:ok, result} = run_query(context.user, "show columns from users")
 
-    assert Result.decode_rows(result.rows) == [
+    assert Rows.decode_raw(result.rows) == [
       %{occurrences: 1, row: ["user_id", "text"]},
       %{occurrences: 1, row: ["name", "text"]},
       %{occurrences: 1, row: ["height", "integer"]}
@@ -28,7 +28,7 @@ defmodule IntegrationTest.QueryTest do
 
   test "select", context do
     {:ok, result} = run_query(context.user, "select name, height from users")
-    assert [%{occurrences: 100, row: ["john", 180]}] = Result.decode_rows(result.rows)
+    assert [%{occurrences: 100, row: ["john", 180]}] = Rows.decode_raw(result.rows)
   end
 
   test "retrieval of query results as csv", context do

@@ -46,7 +46,7 @@ defmodule Air.QueryController do
       string -> NaiveDateTime.from_iso8601!(string)
     end
     case DataSource.history(data_source_id_spec(params), conn.assigns.current_user, :http, 10, before,
-      load_result: true)
+      load_rows: true)
     do
       {:ok, queries} -> json(conn, queries)
       _ -> send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
@@ -55,7 +55,7 @@ defmodule Air.QueryController do
 
   def show(conn, %{"id" => id_type}) do
     [id | extension] = String.split(id_type, ".", parts: 2)
-    case Air.Service.Query.get_as_user(conn.assigns.current_user, id, load_result: true) do
+    case Air.Service.Query.get_as_user(conn.assigns.current_user, id, load_rows: true) do
       {:ok, query} ->
         case extension do
           ["csv"] ->

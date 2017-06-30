@@ -188,7 +188,7 @@ defmodule Air.Service.QueryTest do
         "row_count" => 10,
         "error" => nil,
         "types" => ["some types"],
-      } = Air.Schemas.Query.Result.decode(query.result)
+      } = Air.Schemas.Query.result(query)
     end
 
     test "processing an error result" do
@@ -210,7 +210,7 @@ defmodule Air.Service.QueryTest do
         query_state: :error,
         execution_time: 123,
         features: %{"selected_types" => ["some types"]},
-        result: %{result: %{"error" => "some reason"}},
+        result: %{"error" => "some reason"},
       } = query
     end
 
@@ -229,7 +229,7 @@ defmodule Air.Service.QueryTest do
         query_state: :cancelled,
         execution_time: 123,
         features: %{"selected_types" => ["some types"]},
-        result: %{result: %{"error" => "Cancelled."}},
+        result: %{"error" => "Cancelled."},
       } = query
     end
 
@@ -267,7 +267,7 @@ defmodule Air.Service.QueryTest do
       {:ok, query} = get_query(query.id)
       assert %{
         query_state: :error,
-        result: %{result: %{"error" => "Query died."}}
+        result: %{"error" => "Query died."}
       } = query
     end
   end
@@ -294,14 +294,4 @@ defmodule Air.Service.QueryTest do
     # sleep a little, because background processes are performing db operations
     :timer.sleep(100)
   end
-
-  defp encode_rows(%{rows: rows}), do:
-    :erlang.term_to_binary(rows, compressed: 9)
-  defp encode_rows(_), do:
-    nil
-
-  defp row_count(%{rows: rows}), do:
-    rows |> Stream.map(&(&1.occurrences)) |> Enum.sum()
-  defp row_count(_), do:
-    nil
 end
