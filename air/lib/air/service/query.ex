@@ -23,8 +23,7 @@ defmodule Air.Service.Query do
       [
         [
           supervisor(Air.Service.Query.Events, []),
-          Air.Service.Query.Lifecycle.supervisor_spec(),
-          supervisor(Task.Supervisor, [[name: __MODULE__.TaskSupervisor]], id: __MODULE__.TaskSupervisor)
+          Air.Service.Query.Lifecycle.supervisor_spec()
         ],
         [strategy: :one_for_one, name: __MODULE__]
       ],
@@ -176,50 +175,16 @@ defmodule Air.Service.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp start_task(task_fun), do:
-    Task.Supervisor.start_child(__MODULE__.TaskSupervisor, task_fun)
-
   defp do_process_result(query, result) do
-    storable_result = %{
-      columns: result[:columns],
-      types: result[:features][:selected_types],
-      error: error_text(result),
-      info: result[:info],
-      row_count: result.row_count || 0,
-    }
-
-    changeset =
+    query =
       query
-      |> Query.changeset(%{
-        execution_time: result[:execution_time],
-        users_count: result[:users_count],
-        features: result[:features],
-        query_state: query_state(result),
-        result: storable_result
-      })
-      |> Changeset.put_assoc(:rows, Changeset.change(query.rows, %{rows: result[:rows]}))
+      |> result_changeset(result)
+      |> store_query_result!()
 
-    start_task(fn -> Air.Service.Query.Events.trigger_result(result) end)
-    start_task(fn ->
-      query = changeset |> Changeset.apply_changes()
-      UserChannel.broadcast_state_change(query)
-    end)
-    start_task(fn -> store_query_result!(changeset) end)
-
+    log_result_error(query, result)
+    UserChannel.broadcast_state_change(query)
+    Air.Service.Query.Events.trigger_result(result)
     Air.Service.Central.report_query_result(result)
-
-    if result[:error], do:
-      Logger.error([
-        "JSON_LOG ",
-        Poison.encode_to_iodata!(%{
-          type: "failed_query",
-          message: result.error,
-          statement: query.statement,
-          data_source_id: query.data_source_id,
-          user_id: query.user.id,
-          user_email: query.user.email
-        })
-      ])
   end
 
   @state_order [
@@ -257,6 +222,41 @@ defmodule Air.Service.Query do
     end
 
     query
+  end
+
+  defp log_result_error(query, result) do
+    if result[:error], do:
+      Logger.error([
+        "JSON_LOG ",
+        Poison.encode_to_iodata!(%{
+          type: "failed_query",
+          message: result.error,
+          statement: query.statement,
+          data_source_id: query.data_source_id,
+          user_id: query.user.id,
+          user_email: query.user.email
+        })
+      ])
+  end
+
+  defp result_changeset(query, result) do
+    storable_result = %{
+      columns: result[:columns],
+      types: result[:features][:selected_types],
+      error: error_text(result),
+      info: result[:info],
+      row_count: result.row_count || 0,
+    }
+
+    query
+    |> Query.changeset(%{
+      execution_time: result[:execution_time],
+      users_count: result[:users_count],
+      features: result[:features],
+      query_state: query_state(result),
+      result: storable_result
+    })
+    |> Changeset.put_assoc(:rows, Changeset.change(query.rows, %{rows: result[:rows]}))
   end
 
 

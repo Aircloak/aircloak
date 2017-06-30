@@ -291,7 +291,5 @@ defmodule Air.Service.QueryTest do
     |> Map.put(:rows, encode_rows(result))
     |> Map.put(:row_count, row_count(result))
     |> Query.process_result()
-    # sleep a little, because background processes are performing db operations
-    :timer.sleep(100)
   end
 end

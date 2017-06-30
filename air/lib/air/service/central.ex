@@ -21,7 +21,6 @@ defmodule Air.Service.Central do
     Enum.concat([
       [
         worker(Registry, [:unique, Air.Service.Central.Registry], id: Air.Service.Central.Registry),
-        supervisor(Task.Supervisor, [[name: __MODULE__.TaskSupervisor]], [id: __MODULE__.TaskSupervisor]),
       ],
       case auto_export?() do
         false -> []
@@ -148,36 +147,34 @@ defmodule Air.Service.Central do
   @doc "Asynchronously sends the query result to central."
   @spec report_query_result(map) :: :ok
   def report_query_result(result) do
-    start_task(fn ->
-      query = Repo.get!(Air.Schemas.Query, result.query_id) |> Repo.preload([:user, :data_source])
+    query = Repo.get!(Air.Schemas.Query, result.query_id) |> Repo.preload([:user, :data_source])
 
-      user = query.user || %{name: "Unknown user", email: "Unknown email",}
-      data_source = query.data_source || %{name: "Unknown data source", id: nil}
-      row_count = result.row_count || 0
+    user = query.user || %{name: "Unknown user", email: "Unknown email",}
+    data_source = query.data_source || %{name: "Unknown data source", id: nil}
+    row_count = result.row_count || 0
 
-      Air.Service.Central.record_query(%{
-        metrics: %{
-          users_count: result[:users_count],
-          row_count: row_count,
-          execution_time: result[:execution_time],
+    Air.Service.Central.record_query(%{
+      metrics: %{
+        users_count: result[:users_count],
+        row_count: row_count,
+        execution_time: result[:execution_time],
+      },
+      features: result[:features],
+      aux: %{
+        user: %{
+          name: user.name,
+          email: user.email,
         },
-        features: result[:features],
-        aux: %{
-          user: %{
-            name: user.name,
-            email: user.email,
-          },
-          data_source: %{
-            name: data_source.name,
-            id: data_source.id,
-          },
-          started_at: query.inserted_at,
-          finished_at: NaiveDateTime.utc_now(),
-          has_error: not is_nil(result[:error]),
-          error: filter_error(result[:error]),
+        data_source: %{
+          name: data_source.name,
+          id: data_source.id,
         },
-      })
-    end)
+        started_at: query.inserted_at,
+        finished_at: NaiveDateTime.utc_now(),
+        has_error: not is_nil(result[:error]),
+        error: filter_error(result[:error]),
+      },
+    })
 
     :ok
   end
@@ -186,9 +183,6 @@ defmodule Air.Service.Central do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp start_task(task_fun), do:
-    Task.Supervisor.start_child(__MODULE__.TaskSupervisor, task_fun)
 
   defp enqueue_pending_call(event, payload) do
     if auto_export?() do
