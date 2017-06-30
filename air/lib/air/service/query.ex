@@ -204,7 +204,7 @@ defmodule Air.Service.Query do
       query = changeset |> Changeset.apply_changes()
       UserChannel.broadcast_state_change(query)
     end)
-    start_task(fn -> Repo.update!(changeset) end)
+    start_task(fn -> store_query_result!(changeset) end)
 
     Air.Service.Central.report_query_result(result)
 
@@ -244,6 +244,19 @@ defmodule Air.Service.Query do
       nil -> {:error, :not_found}
       query -> {:ok, query}
     end
+  end
+
+  defp store_query_result!(changeset) do
+    {time, query} = :timer.tc(fn -> Repo.update!(changeset) end)
+
+    if time > 10_000 do
+      # log processing times longer than 10ms
+      Logger.warn([
+        "storing result for query #{query.id} took ", to_string(div(time, 1000)), " ms"
+      ])
+    end
+
+    query
   end
 
 
