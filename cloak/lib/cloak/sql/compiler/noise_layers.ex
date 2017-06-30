@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.NoiseLayers do
   @moduledoc "Contains functions related to compilation of noise layers."
 
-  alias Cloak.Sql.{Expression, Query, NoiseLayer, Condition}
+  alias Cloak.Sql.{Expression, Query, NoiseLayer, Condition, LikePattern}
   alias Cloak.Sql.Compiler.Helpers
 
   use Lens.Macros
@@ -226,7 +226,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> conditions_satisfying(&Condition.like?/1)
     |> Enum.flat_map(fn({kind, column, constant}) ->
       columns = Lens.to_list(raw_columns(), column)
-      layer_keys = constant |> Expression.value([]) |> like_layer_keys
+      layer_keys = like_layer_keys(constant.value)
 
       for layer_key <- layer_keys, column <- columns do
         build_noise_layer(column, {kind, layer_key})
@@ -234,13 +234,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end)
 
   defp like_layer_keys(like_pattern) do
-    len = like_pattern |> String.replace("%", "") |> String.length()
-    like_layer_keys(String.graphemes(like_pattern), 0, len)
+    len = like_pattern |> LikePattern.graphemes() |> Enum.reject(& &1 == :%) |> length()
+    like_layer_keys(LikePattern.graphemes(like_pattern), 0, len)
   end
 
   defp like_layer_keys([], _, _), do: []
-  defp like_layer_keys(["%" | rest], n, len), do: [{:%, len, n} | like_layer_keys(rest, n, len)]
-  defp like_layer_keys(["_" | rest], n, len), do: [{:_, len, n} | like_layer_keys(rest, n + 1, len)]
+  defp like_layer_keys([:% | rest], n, len), do: [{:%, len, n} | like_layer_keys(rest, n, len)]
+  defp like_layer_keys([:_ | rest], n, len), do: [{:_, len, n} | like_layer_keys(rest, n + 1, len)]
   defp like_layer_keys([_ | rest], n, len), do: like_layer_keys(rest, n + 1, len)
 
   defp not_equals_noise_layer(

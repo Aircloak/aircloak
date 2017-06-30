@@ -4,6 +4,10 @@
 
 - Added the `date_trunc` function
 
+### Enhancements
+
+- Like patterns can now include an escape string
+
 ## Next Version (Version 17.3.0)
 
 ### New features

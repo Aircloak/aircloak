@@ -63,6 +63,15 @@ defmodule Cloak.Query.DBEmulatorTest do
       %{rows: [%{row: [10]}]}
   end
 
+  test "like on an emulated column" do
+    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value"], [Base.encode64("aba")])
+    :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value"], [Base.encode64("aca")])
+    :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["value"], [Base.encode64("bbb")])
+
+    assert_query "select count(*) from #{@prefix}emulated where value like 'a_a%'",
+      %{rows: [%{row: [20]}]}
+  end
+
   describe "aggregation in emulated subqueries" do
     def aggregation_setup(_) do
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",

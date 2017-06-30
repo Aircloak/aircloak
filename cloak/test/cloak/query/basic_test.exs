@@ -420,12 +420,12 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
   end
 
-  test "should handle escaped chars in NOT LIKE condition" do
+  test "should handle escaped chars in LIKE conditions" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "name"], [170, "b_%"])
-    :ok = insert_rows(_user_ids = 20..29, "heights", ["height", "name"], [170, "alice"])
+    :ok = insert_rows(_user_ids = 20..29, "heights", ["height", "name"], [170, "bob"])
 
-    assert_query "select count(*) from heights where name NOT LIKE 'b%_%%'",
-      %{columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
+    assert_query "select count(*) from heights where name LIKE 'b~_~%%' ESCAPE '~'",
+      %{columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
   end
 
   test "should allow IN in where clause" do

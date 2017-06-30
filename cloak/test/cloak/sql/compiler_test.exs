@@ -42,6 +42,11 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error == "Column `numeric` from table `table` of type `integer` cannot be used in a LIKE expression."
   end
 
+  test "rejects escape strings longer than 1" do
+    {:error, error} = compile("select * from table where string like 'something' escape 'abc'", data_source())
+    assert error == "Escape string must be one character."
+  end
+
   test "rejects usage of * in function requiring argument of known type" do
     {:error, error} = compile("select length(*) from table", data_source())
     assert error =~ ~r/unspecified type/
@@ -884,9 +889,23 @@ defmodule Cloak.Sql.Compiler.Test do
       assert result1.where == result2.where
     end
 
+    test "normalizing trivial not like patterns" do
+      result1 = compile!("SELECT * FROM table WHERE string NOT LIKE 'abc'", data_source())
+      result2 = compile!("SELECT * FROM table WHERE string <> 'abc'", data_source())
+
+      assert result1.where == result2.where
+    end
+
     test "normalizing ilike patterns" do
       result1 = compile!("SELECT * FROM table WHERE string ILIKE 'a_%__%_b%c%%d___'", data_source())
       result2 = compile!("SELECT * FROM table WHERE string ILIKE 'a%____b%c%d___'", data_source())
+
+      assert result1.where == result2.where
+    end
+
+    test "normalizing trivial not ilike patterns" do
+      result1 = compile!("SELECT * FROM table WHERE string NOT ILIKE 'AbC'", data_source())
+      result2 = compile!("SELECT * FROM table WHERE lower(string) <> 'abc'", data_source())
 
       assert result1.where == result2.where
     end

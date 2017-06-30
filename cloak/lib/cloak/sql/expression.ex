@@ -7,10 +7,10 @@ defmodule Cloak.Sql.Expression do
   alias Cloak.DataSource
   alias Timex.Duration
 
-  @type column_type :: DataSource.data_type | nil
+  @type column_type :: DataSource.Table.data_type | :like_pattern | nil
   @type function_name ::
     String.t |
-    {:cast, DataSource.data_type | :varbinary} |
+    {:cast, DataSource.Table.data_type | :varbinary} |
     {:bucket, :lower | :upper | :middle}
   @type t :: %__MODULE__{
     table: :unknown | DataSource.Table.t,
@@ -40,6 +40,11 @@ defmodule Cloak.Sql.Expression do
     %__MODULE__{
       constant?: true, value: value, type: normalize_type(type), parameter_index: parameter_index
     }
+
+  @doc "Returns an expression representing the given like pattern with the given escape character."
+  @spec like_pattern(String.t, String.t | nil) :: t
+  def like_pattern(pattern, escape_character), do:
+    constant(:like_pattern, {pattern, escape_character})
 
   @doc "Creates a column representing a function call."
   @spec function(function_name, [t | :*], column_type, boolean) :: t

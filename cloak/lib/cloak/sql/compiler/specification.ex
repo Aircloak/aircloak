@@ -464,6 +464,8 @@ defmodule Cloak.Sql.Compiler.Specification do
   end
   defp identifier_to_column({:constant, type, value}, _columns_by_name, _query), do:
     Expression.constant(type, value)
+  defp identifier_to_column({:like_pattern, {:constant, _, pattern}, {:constant, _, escape}}, _, _), do:
+    Expression.like_pattern(pattern, escape)
   defp identifier_to_column(other, _columns_by_name, _query), do: other
 
   defp get_columns(columns_by_name, {:unquoted, name}) do
