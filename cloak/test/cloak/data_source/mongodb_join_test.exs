@@ -35,7 +35,6 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
 
     data_source = %{
       name: "mongo_db_join",
-      global_id: :"data_source_#{:erlang.unique_integer()}",
       driver: MongoDB,
       parameters: parameters,
       tables: tables
