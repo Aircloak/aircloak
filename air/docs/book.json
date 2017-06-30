@@ -1,0 +1,15 @@
+{
+  "title": "Aircloak User Guide",
+  "author": "Aircloak GmbH",
+  "language": "en",
+  "gitbook": "3.2.2",
+  "root": "content",
+  "styles": {
+    "website": "styles/website.css"
+  },
+  "plugins": [
+    "-sharing",
+    "codetabs",
+    "collapsible-menu"
+  ]
+}
