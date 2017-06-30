@@ -183,12 +183,12 @@ defmodule Air.Service.QueryTest do
 
       assert %{
         "columns" => ["col1", "col2"],
-        "rows" => [%{"occurrences" => 10, "row" => [1, 1]}],
+        "rows" => [%{occurrences: 10, row: [1, 1]}],
         "info" => ["some info"],
         "row_count" => 10,
         "error" => nil,
         "types" => ["some types"],
-      } = query.result.result
+      } = Air.Schemas.Query.result(query)
     end
 
     test "processing an error result" do
@@ -210,7 +210,7 @@ defmodule Air.Service.QueryTest do
         query_state: :error,
         execution_time: 123,
         features: %{"selected_types" => ["some types"]},
-        result: %{result: %{"error" => "some reason"}},
+        result: %{"error" => "some reason"},
       } = query
     end
 
@@ -229,7 +229,7 @@ defmodule Air.Service.QueryTest do
         query_state: :cancelled,
         execution_time: 123,
         features: %{"selected_types" => ["some types"]},
-        result: %{result: %{"error" => "Cancelled."}},
+        result: %{"error" => "Cancelled."},
       } = query
     end
 
@@ -267,7 +267,7 @@ defmodule Air.Service.QueryTest do
       {:ok, query} = get_query(query.id)
       assert %{
         query_state: :error,
-        result: %{result: %{"error" => "Query died."}}
+        result: %{"error" => "Query died."}
       } = query
     end
   end
@@ -287,8 +287,9 @@ defmodule Air.Service.QueryTest do
   end
 
   defp process_result(result) do
-    Query.process_result(result)
-    # sleep a little, because background processes are performing db operations
-    :timer.sleep(100)
+    result
+    |> Map.put(:rows, encode_rows(result))
+    |> Map.put(:row_count, row_count(result))
+    |> Query.process_result()
   end
 end

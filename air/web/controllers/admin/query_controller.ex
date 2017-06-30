@@ -24,7 +24,7 @@ defmodule Air.Admin.QueryController do
   # -------------------------------------------------------------------
 
   def show(conn, %{"id" => query_id}) do
-    case Air.Service.Query.get_as_user(conn.assigns.current_user, query_id, load_result: true) do
+    case Air.Service.Query.get_as_user(conn.assigns.current_user, query_id, load_rows: true) do
       {:ok, query} ->
         render(conn, %{
           query: Query.for_display(query),

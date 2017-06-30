@@ -23,8 +23,7 @@ defmodule Air.Service.Query do
       [
         [
           supervisor(Air.Service.Query.Events, []),
-          Air.Service.Query.Lifecycle.supervisor_spec(),
-          supervisor(Task.Supervisor, [[name: __MODULE__.TaskSupervisor]], id: __MODULE__.TaskSupervisor)
+          Air.Service.Query.Lifecycle.supervisor_spec()
         ],
         [strategy: :one_for_one, name: __MODULE__]
       ],
@@ -60,12 +59,12 @@ defmodule Air.Service.Query do
   end
 
   @doc "Returns a query if accessible by the given user, without associations preloaded."
-  @spec get_as_user(User.t, query_id, [load_result: boolean]) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
+  @spec get_as_user(User.t, query_id, [load_rows: boolean]) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
   def get_as_user(user, id, opts \\ []) do
     try do
       with {:ok, query} <- user |> query_scope() |> get(id) do
-        if Keyword.get(opts, :load_result, false) do
-          {:ok, Repo.preload(query, :result)}
+        if Keyword.get(opts, :load_rows, false) do
+          {:ok, Repo.preload(query, :rows)}
         else
           {:ok, query}
         end
@@ -91,10 +90,10 @@ defmodule Air.Service.Query do
 
   @doc "Loads the most recent queries for a given user"
   @spec load_recent_queries(User.t, DataSource.t, Query.Context.t, pos_integer, NaiveDateTime.t,
-    [load_result: boolean]) :: [Query.t]
+    [load_rows: boolean]) :: [Query.t]
   def load_recent_queries(user, data_source, context, recent_count, before, opts \\ []) do
     preloads = [:user, :data_source] ++
-      if Keyword.get(opts, :load_result, false), do: [:result], else: []
+      if Keyword.get(opts, :load_rows, false), do: [:rows], else: []
 
     Query
     |> started_by(user)
@@ -144,7 +143,7 @@ defmodule Air.Service.Query do
   """
   @spec process_result(map) :: :ok
   def process_result(result) do
-    query = Repo.get!(Query, result.query_id) |> Repo.preload([:result, :user])
+    query = Repo.get!(Query, result.query_id) |> Repo.preload([:rows, :user])
     if valid_state_transition?(query.query_state, query_state(result)), do:
       do_process_result(query, result)
 
@@ -158,12 +157,11 @@ defmodule Air.Service.Query do
   """
   @spec query_died(query_id) :: :ok
   def query_died(query_id) do
-    query = Repo.get!(Query, query_id) |> Repo.preload(:result)
+    query = Repo.get!(Query, query_id) |> Repo.preload(:rows)
 
     if valid_state_transition?(query.query_state, :error) do
       query = query
-      |> Query.changeset(%{query_state: :error})
-      |> Changeset.put_assoc(:result, Changeset.change(query.result, %{result: %{error: "Query died."}}))
+      |> Query.changeset(%{query_state: :error, result: %{error: "Query died."}})
       |> Repo.update!()
 
       UserChannel.broadcast_state_change(query)
@@ -177,52 +175,16 @@ defmodule Air.Service.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp start_task(task_fun), do:
-    Task.Supervisor.start_child(__MODULE__.TaskSupervisor, task_fun)
-
   defp do_process_result(query, result) do
-    row_count = (result[:rows] || []) |> Enum.map(&(&1.occurrences)) |> Enum.sum
-
-    storable_result = %{
-      columns: result[:columns],
-      types: result[:features][:selected_types],
-      rows: result[:rows],
-      error: error_text(result),
-      info: result[:info],
-      row_count: row_count,
-    }
-
-    changeset =
+    query =
       query
-      |> Query.changeset(%{
-        execution_time: result[:execution_time],
-        users_count: result[:users_count],
-        features: result[:features],
-        query_state: query_state(result),
-      })
-      |> Changeset.put_assoc(:result, Changeset.change(query.result, %{result: storable_result}))
+      |> result_changeset(result)
+      |> store_query_result!()
 
-    start_task(fn -> Air.Service.Query.Events.trigger_result(result) end)
-    start_task(fn ->
-      query = changeset |> Changeset.apply_changes()
-      UserChannel.broadcast_state_change(query)
-    end)
-    start_task(fn -> Repo.update!(changeset) end)
-
+    log_result_error(query, result)
+    UserChannel.broadcast_state_change(query)
+    Air.Service.Query.Events.trigger_result(result)
     Air.Service.Central.report_query_result(result)
-
-    if result[:error], do:
-      Logger.error([
-        "JSON_LOG ",
-        Poison.encode_to_iodata!(%{
-          type: "failed_query",
-          message: result.error,
-          statement: query.statement,
-          data_source_id: query.data_source_id,
-          user_id: query.user.id,
-          user_email: query.user.email
-        })
-      ])
   end
 
   @state_order [
@@ -247,6 +209,54 @@ defmodule Air.Service.Query do
       nil -> {:error, :not_found}
       query -> {:ok, query}
     end
+  end
+
+  defp store_query_result!(changeset) do
+    {time, query} = :timer.tc(fn -> Repo.update!(changeset) end)
+
+    if time > 10_000 do
+      # log processing times longer than 10ms
+      Logger.warn([
+        "storing result for query #{query.id} took ", to_string(div(time, 1000)), " ms"
+      ])
+    end
+
+    query
+  end
+
+  defp log_result_error(query, result) do
+    if result[:error], do:
+      Logger.error([
+        "JSON_LOG ",
+        Poison.encode_to_iodata!(%{
+          type: "failed_query",
+          message: result.error,
+          statement: query.statement,
+          data_source_id: query.data_source_id,
+          user_id: query.user.id,
+          user_email: query.user.email
+        })
+      ])
+  end
+
+  defp result_changeset(query, result) do
+    storable_result = %{
+      columns: result[:columns],
+      types: result[:features][:selected_types],
+      error: error_text(result),
+      info: result[:info],
+      row_count: result.row_count || 0,
+    }
+
+    query
+    |> Query.changeset(%{
+      execution_time: result[:execution_time],
+      users_count: result[:users_count],
+      features: result[:features],
+      query_state: query_state(result),
+      result: storable_result
+    })
+    |> Changeset.put_assoc(:rows, Changeset.change(query.rows, %{rows: result[:rows]}))
   end
 
 
