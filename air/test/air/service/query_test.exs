@@ -1,11 +1,13 @@
 defmodule Air.Service.QueryTest do
-  use Air.SchemaCase, async: true
+  use ExUnit.Case, async: false
 
   import Air.TestRepoHelper
   alias Air.Service.Query
 
+  setup [:sandbox]
+
   describe "get_as_user" do
-    setup [:with_user]
+    setup [:sandbox, :with_user]
 
     test "loads existing queries", %{user: user} do
       query = create_query!(user)
@@ -34,6 +36,8 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "last_for_user" do
+    setup [:sandbox]
+
     test "returns last query the user issued" do
       user = create_user!()
       _previous_one = create_query!(user)
@@ -65,6 +69,8 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "currently_running/0" do
+    setup [:sandbox]
+
     test "returns running queries" do
       user = create_user!()
       query = create_query!(user)
@@ -83,7 +89,7 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "currently_running/2" do
-    setup [:with_user, :with_data_source]
+    setup [:sandbox, :with_user, :with_data_source]
 
     test "returns running queries on the given data source", context do
       query = create_query!(context.user, %{data_source_id: context.data_source.id})
@@ -120,6 +126,8 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "update_state" do
+    setup [:sandbox]
+
     test "changes the query_state" do
       query = create_query!(create_user!(), %{query_state: :started, data_source_id: create_data_source!().id})
 
@@ -150,10 +158,12 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "process_result" do
+    setup [:sandbox]
+
     test "processing a successful result" do
       query = create_query!(create_user!(), %{query_state: :started, data_source_id: create_data_source!().id})
 
-      Query.process_result(%{
+      process_result(%{
         query_id: query.id,
         columns: ["col1", "col2"],
         rows: [%{occurrences: 10, row: [1, 1]}],
@@ -170,25 +180,30 @@ defmodule Air.Service.QueryTest do
         users_count: 2,
         features: %{"selected_types" => ["some types"]},
       } = query
+
       assert %{
         "columns" => ["col1", "col2"],
-        "rows" => [%{"occurrences" => 10, "row" => [1, 1]}],
+        "rows" => [%{occurrences: 10, row: [1, 1]}],
         "info" => ["some info"],
         "row_count" => 10,
         "error" => nil,
         "types" => ["some types"],
-      } = query.result
+      } = Air.Schemas.Query.result(query)
     end
 
     test "processing an error result" do
       query = create_query!(create_user!(), %{query_state: :started, data_source_id: create_data_source!().id})
 
-      Query.process_result(%{
-        query_id: query.id,
-        features: %{"selected_types" => ["some types"]},
-        execution_time: 123,
-        error: "some reason",
-      })
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          process_result(%{
+            query_id: query.id,
+            features: %{"selected_types" => ["some types"]},
+            execution_time: 123,
+            error: "some reason",
+          })
+        end)
+      assert log =~ ~S("message":"some reason")
 
       {:ok, query} = get_query(query.id)
       assert %{
@@ -202,7 +217,7 @@ defmodule Air.Service.QueryTest do
     test "processing a cancelled result" do
       query = create_query!(create_user!(), %{query_state: :started, data_source_id: create_data_source!().id})
 
-      Query.process_result(%{
+      process_result(%{
         query_id: query.id,
         features: %{"selected_types" => ["some types"]},
         execution_time: 123,
@@ -221,7 +236,7 @@ defmodule Air.Service.QueryTest do
     test "results of completed queries are ignored" do
       query = create_query!(create_user!(), %{query_state: :error, data_source_id: create_data_source!().id})
 
-      Query.process_result(%{
+      process_result(%{
         query_id: query.id,
         features: %{"selected_types" => ["some types"]},
         execution_time: 123,
@@ -233,6 +248,8 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "query_died" do
+    setup [:sandbox]
+
     test "ignores completed queries" do
       query = create_query!(create_user!(), %{query_state: :completed, data_source_id: create_data_source!().id})
 
@@ -255,11 +272,24 @@ defmodule Air.Service.QueryTest do
     end
   end
 
+  def sandbox(_context) do
+    Ecto.Adapters.SQL.Sandbox.checkout(Air.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Air.Repo, {:shared, self()})
+    :ok
+  end
+
   def with_user(_context) do
     {:ok, user: create_user!()}
   end
 
   def with_data_source(_context) do
     {:ok, data_source: create_data_source!()}
+  end
+
+  defp process_result(result) do
+    result
+    |> Map.put(:rows, encode_rows(result))
+    |> Map.put(:row_count, row_count(result))
+    |> Query.process_result()
   end
 end

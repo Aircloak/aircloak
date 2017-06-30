@@ -1,8 +1,8 @@
 defmodule Air.Schemas.Query do
-  @moduledoc "The query model."
+  @moduledoc "The query schema."
   use Air.Schemas.Base
 
-  alias Air.{Schemas.DataSource, Schemas.User, Repo, PsqlServer.Protocol}
+  alias Air.{Schemas.DataSource, Schemas.Query.Rows, Schemas.User, Repo, PsqlServer.Protocol}
 
   require EctoEnum
 
@@ -28,7 +28,6 @@ defmodule Air.Schemas.Query do
   schema "queries" do
     field :statement, :string
     field :tables, {:array, :string}
-    field :result, :map
     field :execution_time, :integer
     field :users_count, :integer
     field :features, :map
@@ -37,17 +36,23 @@ defmodule Air.Schemas.Query do
     field :cloak_id, :string
     field :query_state, __MODULE__.QueryState
     field :context, Context
+    field :result, :map
 
     belongs_to :user, User
     belongs_to :data_source, DataSource
+
+    # Result is a field in the table, but we're fetching it from a separate schema. Thus, when querying through this
+    # schema, result won't be loaded by default (unless preload or join is done). This is done to avoid needlessly
+    # retrieving a potentially large field.
+    has_one :rows, Rows, foreign_key: :id
 
     timestamps usec: true
   end
 
   @required_fields ~w()a
   @optional_fields ~w(
-    cloak_id statement data_source_id tables result execution_time users_count
-    features session_id parameters query_state context
+    cloak_id statement data_source_id tables execution_time users_count
+    features session_id parameters query_state context result
   )a
 
 
@@ -79,15 +84,36 @@ defmodule Air.Schemas.Query do
     |> Map.merge(result_map(query))
     |> Map.merge(data_source_info(query))
     |> Map.merge(user_info(query))
+    |> Map.put(:completed, completed?(query))
   end
 
   @doc "Exports the query as CSV"
   @spec to_csv_stream(t) :: Enumerable.t
-  def to_csv_stream(%{result: result}) do
+  def to_csv_stream(query) do
+    query = Repo.preload(query, [:rows])
+    result = result(query)
     header = result["columns"]
-    rows = Enum.flat_map(result["rows"],
-      fn(%{"occurrences" => occurrences, "row" => row}) -> List.duplicate(row, occurrences) end)
+    rows =
+      result["rows"]
+      |> Stream.map(&normalize_row/1)
+      |> Enum.flat_map(&List.duplicate(&1.row, &1.occurrences))
+
     CSV.encode([header | rows])
+  end
+
+  defp normalize_row(%{row: _, occurrences: _} = normalized_row), do:
+    normalized_row
+  defp normalize_row(%{"row" => row, "occurrences" => occurrences}), do:
+    # old format, where results were stored as json, and decoded keys are therefore stringified
+    %{row: row, occurrences: occurrences}
+
+  def result(%__MODULE__{result: nil}), do:
+    nil
+  def result(query) do
+    case decode_rows(query) do
+      :not_loaded -> query.result
+      decoded_rows -> Map.put(query.result, "rows", decoded_rows)
+    end
   end
 
 
@@ -95,12 +121,24 @@ defmodule Air.Schemas.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp result_map(%{result: nil}), do: %{rows: [], columns: [], completed: false}
-  defp result_map(%{result: result_json}), do: Map.put(result_json, :completed, true)
+  defp result_map(query), do:
+    Map.merge(%{"rows" => [], "columns" => []}, result(query) || %{})
 
   defp data_source_info(query), do:
     %{data_source: %{name: Map.get(query.data_source || %{}, :name, "Unknown data source")}}
 
   defp user_info(query), do:
     %{user: %{name: Map.get(query.user || %{}, :name, "Unknown user")}}
+
+  defp completed?(query), do:
+    query.query_state in [:error, :completed, :cancelled]
+
+  # For backwards compatibility reasons, we need to handle the old format, where rows have been encoded directly in
+  # the result map.
+  defp decode_rows(%__MODULE__{result: %{"rows" => rows}}), do:
+    # old format
+    rows
+  defp decode_rows(query), do:
+    # new format
+    Rows.decode(query.rows)
 end

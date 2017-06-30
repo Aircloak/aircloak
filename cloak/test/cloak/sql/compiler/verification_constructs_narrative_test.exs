@@ -2,7 +2,8 @@ defmodule Cloak.Sql.Compiler.VerificationConstructsNarrative.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.Table
-  alias Cloak.Sql.{Compiler, Parser}
+
+  import Cloak.Test.QueryHelpers
 
   describe "constructs a narrative based on column usage when a query is considered dangerous" do
     test "affected by math" do
@@ -62,12 +63,6 @@ defmodule Cloak.Sql.Compiler.VerificationConstructsNarrative.Test do
       {:ok, _} -> raise "Expected query compilation to fail, but it didn't"
       {:error, reason} -> reason
     end
-  end
-
-  defp compile(query_string, data_source, options \\ []) do
-    query = Parser.parse!(query_string)
-    Compiler.compile(data_source, query, Keyword.get(options, :parameters, []),
-      Keyword.get(options, :views, %{}))
   end
 
   defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do

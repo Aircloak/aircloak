@@ -1,5 +1,9 @@
 ## Version 17.4.0
 
+### New features
+
+- Added the `date_trunc` function
+
 ### Enhancements
 
 - Like patterns can now include an escape string

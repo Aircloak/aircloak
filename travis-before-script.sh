@@ -18,8 +18,6 @@ function banner() {
   # Source asdf, once and for all, so we are using the right
   # versions of Erlang, Elixir and NodeJS
   . ~/.asdf/asdf.sh
-  # RVM seems to override asdf on travis, so we'll use that
-  rvm use `cat .tool-versions | grep ruby | cut -d ' ' -f 2 | cut -d '.' -f 1,2`
 
   # setup database roles ----------------------------------------------
 

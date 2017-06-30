@@ -2,9 +2,8 @@ defmodule Cloak.Query.LCFConditionsTest do
   use ExUnit.Case, async: true
 
   import Cloak.Test.QueryHelpers
-  import Lens.Macros
 
-  alias Cloak.Sql.{Compiler, Parser, Query, Expression}
+  alias Cloak.Sql.Expression
   alias Cloak.Query.LCFConditions
 
   setup_all do
@@ -19,37 +18,30 @@ defmodule Cloak.Query.LCFConditionsTest do
     :ok = insert_rows(_user_ids = 30..40, "lcf_conditions", ["x"], [nil])
   end
 
-  defp build_query(query_string) do
-    parsed_query = Parser.parse!(query_string)
+  defp make_query!(query_string) do
     # compile parsed query with first data source
     [first_ds | rest_ds] = Cloak.DataSource.all()
-    query = compile_query(parsed_query, first_ds)
+    query = make_query!(query_string, first_ds)
     # make sure responses from all data_sources are equal
-    for data_source <- rest_ds, do: assert(query == compile_query(parsed_query, data_source))
+    for data_source <- rest_ds, do: assert(query == make_query!(query_string, data_source))
     query
   end
 
-  defp compile_query(parsed_query, data_source) do
-    {:ok, query} = Compiler.compile(data_source, parsed_query, [], %{})
-    query |> LCFConditions.process() |> scrub_data_sources() |> scrub_aliases()
+  defp make_query!(query_string, data_source) do
+    query_string
+    |> compile!(data_source)
+    |> LCFConditions.process()
+    |> scrub_aliases()
+    |> scrub_data_sources()
   end
 
-  defp scrub_data_sources(query), do:
-    put_in(query, [all_subqueries() |> Lens.key(:data_source)], nil)
-
-  defp scrub_aliases(query), do:
-    put_in(query, [all_subqueries() |> Query.Lenses.query_expressions() |> Lens.key(:alias)], nil)
-
-  deflens all_subqueries(), do:
-    Lens.both(Lens.recur(Query.Lenses.direct_subqueries() |> Lens.key(:ast)), Lens.root())
-
   test "complex negative conditions in top query" do
-    query = build_query("select count(*) from lcf_conditions where round(x) <> 2 and round(x) <> 0")
+    query = make_query!("select count(*) from lcf_conditions where round(x) <> 2 and round(x) <> 0")
     assert {:and, {:not, {:is, _, :null}}, {:comparison, _, :<>, %Expression{value: 0}}} = query.where
   end
 
   test "complex negative conditions in sub-query where" do
-    query = build_query("""
+    query = make_query!("""
       select count(*) from (select user_id from lcf_conditions where round(x) <> 2 and round(x) <> 0) as t
     """)
     {:subquery, %{ast: subquery}} = query.from
@@ -57,7 +49,7 @@ defmodule Cloak.Query.LCFConditionsTest do
   end
 
   test "complex negative conditions in sub-query having" do
-    query = build_query("""
+    query = make_query!("""
       select count(*) from
         (select user_id from lcf_conditions group by user_id having count(round(x)) <> 1 and count(round(x)) <> 5) as t
     """)

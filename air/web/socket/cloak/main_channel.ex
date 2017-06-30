@@ -192,13 +192,13 @@ defmodule Air.Socket.Cloak.MainChannel do
   defp handle_cloak_call("query_result", query_result, request_id, socket) do
     Logger.info("received result for query #{query_result.query_id}")
     respond_to_cloak(socket, request_id, :ok)
-    Air.Service.Query.handle_result(query_result)
+    Air.Service.Query.Lifecycle.result_arrived(query_result)
     {:noreply, socket}
   end
   defp handle_cloak_call("query_state", payload, request_id, socket) do
     respond_to_cloak(socket, request_id, :ok)
 
-    Air.Service.Query.Events.trigger_state_change(payload.query_id, payload.query_state)
+    Air.Service.Query.Lifecycle.state_changed(payload.query_id, payload.query_state)
 
     {:noreply, socket}
   end

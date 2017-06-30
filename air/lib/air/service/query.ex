@@ -1,14 +1,13 @@
 defmodule Air.Service.Query do
   @moduledoc "Services for retrieving queries."
 
+  alias Ecto.Changeset
   alias Air.{Repo, Schemas.DataSource, Schemas.Query, Schemas.User, Socket.Frontend.UserChannel}
 
   import Ecto.Query
   require Logger
 
   @type query_id :: String.t
-
-  @result_reporter_sup __MODULE__.ResultReporter
 
 
   # -------------------------------------------------------------------
@@ -24,8 +23,7 @@ defmodule Air.Service.Query do
       [
         [
           supervisor(Air.Service.Query.Events, []),
-          Air.Service.Query.Lifecycle.supervisor_spec(),
-          supervisor(Task.Supervisor, [[name: @result_reporter_sup]], id: @result_reporter_sup)
+          Air.Service.Query.Lifecycle.supervisor_spec()
         ],
         [strategy: :one_for_one, name: __MODULE__]
       ],
@@ -61,10 +59,16 @@ defmodule Air.Service.Query do
   end
 
   @doc "Returns a query if accessible by the given user, without associations preloaded."
-  @spec get_as_user(User.t, query_id) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
-  def get_as_user(user, id) do
+  @spec get_as_user(User.t, query_id, [load_rows: boolean]) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
+  def get_as_user(user, id, opts \\ []) do
     try do
-      user |> query_scope() |> get(id)
+      with {:ok, query} <- user |> query_scope() |> get(id) do
+        if Keyword.get(opts, :load_rows, false) do
+          {:ok, Repo.preload(query, :rows)}
+        else
+          {:ok, query}
+        end
+      end
     rescue Ecto.Query.CastError ->
       {:error, :invalid_id}
     end
@@ -85,15 +89,19 @@ defmodule Air.Service.Query do
   end
 
   @doc "Loads the most recent queries for a given user"
-  @spec load_recent_queries(User.t, DataSource.t, Query.Context.t, pos_integer, NaiveDateTime.t) :: [Query.t]
-  def load_recent_queries(user, data_source, context, recent_count, before) do
+  @spec load_recent_queries(User.t, DataSource.t, Query.Context.t, pos_integer, NaiveDateTime.t,
+    [load_rows: boolean]) :: [Query.t]
+  def load_recent_queries(user, data_source, context, recent_count, before, opts \\ []) do
+    preloads = [:user, :data_source] ++
+      if Keyword.get(opts, :load_rows, false), do: [:rows], else: []
+
     Query
     |> started_by(user)
     |> for_data_source(data_source)
     |> in_context(context)
     |> recent(recent_count, before)
     |> Repo.all()
-    |> Repo.preload([:user, :data_source])
+    |> Repo.preload(preloads)
     |> Enum.map(&Query.for_display/1)
   end
 
@@ -135,7 +143,7 @@ defmodule Air.Service.Query do
   """
   @spec process_result(map) :: :ok
   def process_result(result) do
-    query = Repo.get!(Query, result.query_id)
+    query = Repo.get!(Query, result.query_id) |> Repo.preload([:rows, :user])
     if valid_state_transition?(query.query_state, query_state(result)), do:
       do_process_result(query, result)
 
@@ -149,35 +157,15 @@ defmodule Air.Service.Query do
   """
   @spec query_died(query_id) :: :ok
   def query_died(query_id) do
-    query = Repo.get!(Query, query_id)
+    query = Repo.get!(Query, query_id) |> Repo.preload(:rows)
 
     if valid_state_transition?(query.query_state, :error) do
       query = query
-      |> Query.changeset(%{
-        query_state: :error,
-        result: %{error: "Query died."},
-      })
+      |> Query.changeset(%{query_state: :error, result: %{error: "Query died."}})
       |> Repo.update!()
 
       UserChannel.broadcast_state_change(query)
     end
-
-    :ok
-  end
-
-  @doc "Asynchronously handles the query result."
-  @spec handle_result(%{query_id: String.t, payload: binary}) :: :ok
-  def handle_result(query_result) do
-    Task.Supervisor.start_child(
-      @result_reporter_sup,
-      fn ->
-        query_result
-        |> decode_result()
-        |> Air.Service.Query.Events.trigger_result()
-
-        Logger.info("handled result for query #{query_result.query_id}")
-      end
-    )
 
     :ok
   end
@@ -187,43 +175,16 @@ defmodule Air.Service.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp decode_result(query_result) do
-    {time, decoded_result} = :timer.tc(fn () -> :erlang.binary_to_term(query_result.payload) end)
-
-    if time > 10_000 do
-      # log processing times longer than 10ms
-      Logger.warn([
-        "decoding a query result for query #{query_result.query_id} took #{div(time, 1000)}ms, ",
-        "encoded message size=#{byte_size(query_result.payload)} bytes"
-      ])
-    end
-
-    decoded_result
-  end
-
   defp do_process_result(query, result) do
-    row_count = (result[:rows] || []) |> Enum.map(&(&1.occurrences)) |> Enum.sum
+    query =
+      query
+      |> result_changeset(result)
+      |> store_query_result!()
 
-    storable_result = %{
-      columns: result[:columns],
-      types: result[:features][:selected_types],
-      rows: result[:rows],
-      error: error_text(result),
-      info: result[:info],
-      row_count: row_count,
-    }
-
-    query = query
-    |> Query.changeset(%{
-      result: storable_result,
-      execution_time: result[:execution_time],
-      users_count: result[:users_count],
-      features: result[:features],
-      query_state: query_state(result),
-    })
-    |> Repo.update!()
-
+    log_result_error(query, result)
     UserChannel.broadcast_state_change(query)
+    Air.Service.Query.Events.trigger_result(result)
+    Air.Service.Central.report_query_result(result)
   end
 
   @state_order [
@@ -248,6 +209,54 @@ defmodule Air.Service.Query do
       nil -> {:error, :not_found}
       query -> {:ok, query}
     end
+  end
+
+  defp store_query_result!(changeset) do
+    {time, query} = :timer.tc(fn -> Repo.update!(changeset) end)
+
+    if time > 10_000 do
+      # log processing times longer than 10ms
+      Logger.warn([
+        "storing result for query #{query.id} took ", to_string(div(time, 1000)), " ms"
+      ])
+    end
+
+    query
+  end
+
+  defp log_result_error(query, result) do
+    if result[:error], do:
+      Logger.error([
+        "JSON_LOG ",
+        Poison.encode_to_iodata!(%{
+          type: "failed_query",
+          message: result.error,
+          statement: query.statement,
+          data_source_id: query.data_source_id,
+          user_id: query.user.id,
+          user_email: query.user.email
+        })
+      ])
+  end
+
+  defp result_changeset(query, result) do
+    storable_result = %{
+      columns: result[:columns],
+      types: result[:features][:selected_types],
+      error: error_text(result),
+      info: result[:info],
+      row_count: result.row_count || 0,
+    }
+
+    query
+    |> Query.changeset(%{
+      execution_time: result[:execution_time],
+      users_count: result[:users_count],
+      features: result[:features],
+      query_state: query_state(result),
+      result: storable_result
+    })
+    |> Changeset.put_assoc(:rows, Changeset.change(query.rows, %{rows: result[:rows]}))
   end
 
 
