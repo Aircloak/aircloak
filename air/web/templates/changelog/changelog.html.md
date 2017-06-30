@@ -1,3 +1,9 @@
+## Version 17.4.0
+
+### New features
+
+- Added the `date_trunc` function
+
 ## Next Version (Version 17.3.0)
 
 ### New features
