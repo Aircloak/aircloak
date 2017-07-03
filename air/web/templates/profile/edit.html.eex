@@ -39,7 +39,7 @@
     </div>
 
     <div class="panel-body">
-      <%= form_for @changeset, profile_path(@conn, :update), fn f -> %>
+      <%= form_for @changeset, profile_path(@conn, :change_password), fn f -> %>
         <div class="form-group">
           <label>Old Password</label>
           <%= password_input f, :old_password, class: "form-control" %>
