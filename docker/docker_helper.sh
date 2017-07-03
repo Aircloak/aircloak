@@ -256,6 +256,7 @@ function mpi_init {
       echo "deb http://acmirror.mpi-sws.org/debian-security jessie/updates main" >> /etc/apt/sources.list && \\
       echo 'export https_proxy=http://acmirror.mpi-sws.org:3128' > /tmp/build_config/proxies.sh && \\
       echo 'export http_proxy=http://acmirror.mpi-sws.org:3128' >> /tmp/build_config/proxies.sh && \\
+      echo 'export no_proxy=localhost,127.0.0.1,acmirror.mpi-sws.org' >> /tmp/build_config/proxies.sh && \\
 EOF
   else
     # local development -> generate dummy proxies.sh
