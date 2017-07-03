@@ -58,6 +58,7 @@ defmodule Air.Router do
     get "/licenses/dependencies.zip", LicenseController, :dependencies
 
     resources "/profile", ProfileController, singleton: true, only: [:edit, :update]
+    put "/profile/change_password", ProfileController, :change_password
 
     get "/changelog", ChangelogController, :index
   end
