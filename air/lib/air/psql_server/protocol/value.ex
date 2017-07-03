@@ -89,6 +89,9 @@ defmodule Air.PsqlServer.Protocol.Value do
   defp text_decode(param, :unknown) when is_binary(param), do: param
 
   defp normalize_for_postgrex_encoding(value, :numeric), do: Decimal.new(value)
+  defp normalize_for_postgrex_encoding(value, :date), do: Date.from_iso8601!(value)
+  defp normalize_for_postgrex_encoding(value, :time), do: Time.from_iso8601!(value)
+  defp normalize_for_postgrex_encoding(value, :timestamp), do: NaiveDateTime.from_iso8601!(value)
   defp normalize_for_postgrex_encoding(value, _), do: value
 
   defp normalize_postgrex_decoded_value(%Decimal{} = value), do: Decimal.to_float(value)

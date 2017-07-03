@@ -99,7 +99,9 @@ defmodule Cloak.ResultSender do
     nil
 
   defp encode_rows(%{rows: rows}), do:
-    :erlang.term_to_binary(rows, compressed: 9)
+    rows
+    |> Poison.encode_to_iodata!()
+    |> :zlib.gzip()
   defp encode_rows(_), do:
     nil
 end

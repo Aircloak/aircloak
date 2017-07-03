@@ -140,7 +140,10 @@ defmodule Air.TestRepoHelper do
   def encode_rows(result) do
     case result[:rows] do
       nil -> nil
-      rows -> :erlang.term_to_binary(rows, compressed: 9)
+      rows ->
+        rows
+        |> Poison.encode_to_iodata!()
+        |> :zlib.gzip()
     end
   end
 

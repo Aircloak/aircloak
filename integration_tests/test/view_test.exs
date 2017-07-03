@@ -47,7 +47,7 @@ defmodule IntegrationTest.ViewTest do
   test "selecting from the view", context do
     {:ok, view} = create_view(context.user, unique_view_name(), "select user_id, name from users")
     {:ok, result} = run_query(context.user, "select name from #{view.name}")
-    assert [%{occurrences: 100, row: ["john"]}] = Rows.decode_raw(result.rows)
+    assert [%{"occurrences" => 100, "row" => ["john"]}] = Rows.decode_raw(result.rows)
   end
 
   defp unique_view_name(), do:

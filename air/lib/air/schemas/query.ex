@@ -93,26 +93,17 @@ defmodule Air.Schemas.Query do
     query = Repo.preload(query, [:rows])
     result = result(query)
     header = result["columns"]
-    rows =
-      result["rows"]
-      |> Stream.map(&normalize_row/1)
-      |> Enum.flat_map(&List.duplicate(&1.row, &1.occurrences))
+    rows = Enum.flat_map(result["rows"], &List.duplicate(Map.fetch!(&1, "row"), Map.fetch!(&1, "occurrences")))
 
     CSV.encode([header | rows])
   end
-
-  defp normalize_row(%{row: _, occurrences: _} = normalized_row), do:
-    normalized_row
-  defp normalize_row(%{"row" => row, "occurrences" => occurrences}), do:
-    # old format, where results were stored as json, and decoded keys are therefore stringified
-    %{row: row, occurrences: occurrences}
 
   def result(%__MODULE__{result: nil}), do:
     nil
   def result(query) do
     case decode_rows(query) do
       :not_loaded -> query.result
-      decoded_rows -> Map.put(query.result, "rows", decoded_rows)
+      decoded_rows -> Map.put(query.result, "rows", decoded_rows || [])
     end
   end
 
