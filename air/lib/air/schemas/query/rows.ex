@@ -33,5 +33,7 @@ defmodule Air.Schemas.Query.Rows do
   def decode_raw(nil), do:
     nil
   def decode_raw(encoded_rows), do:
-    :erlang.binary_to_term(encoded_rows)
+    encoded_rows
+    |> :zlib.gunzip()
+    |> Poison.decode!()
 end
