@@ -4,7 +4,6 @@ import React from "react";
 import {Bar} from "react-chartjs-2";
 import _ from "lodash";
 
-import {GraphConfig} from "./graph_data";
 import type {GraphDataT} from "./graph_data";
 
 const fillColors = [
@@ -22,7 +21,7 @@ const data = (graphData) => ({
     _.merge(series, {backgroundColor: fillColors[i % fillColors.length]})),
 });
 
-const options = (graphConfig) => ({
+const options = (graphData) => ({
   scales: {
     yAxes: [{
       ticks: {
@@ -37,7 +36,7 @@ const options = (graphConfig) => ({
       },
       scaleLabel: {
         display: true,
-        labelString: graphConfig.xColumns().join(", "),
+        labelString: graphData.xLabel(),
       },
       gridLines: {
         display: false,
@@ -67,9 +66,9 @@ class BarWrapper extends React.Component {
   }
 }
 
-export const GraphView = (props: {graphData: GraphDataT, graphConfig: GraphConfig}) => {
+export const GraphView = (props: {graphData: GraphDataT}) => {
   if (props.graphData.ready()) {
-    return <BarWrapper data={data(props.graphData)} options={options(props.graphConfig)} />;
+    return <BarWrapper data={data(props.graphData)} options={options(props.graphData)} />;
   } else {
     return <div className="alert alert-warning">Select at least one X and Y axis.</div>;
   }

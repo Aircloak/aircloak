@@ -183,7 +183,6 @@ export class ResultView extends React.Component {
       return (
         <GraphView
           graphData={this.graphData}
-          graphConfig={this.state.graphConfig}
           width={714}
           height={600}
         />

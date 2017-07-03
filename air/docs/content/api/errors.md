@@ -10,3 +10,4 @@ Error Code | Meaning
 404        | Not Found -- Invalid URL
 500        | Internal Server Error -- We had a problem with our server. Try again later.
 503        | Service Unavailable -- We're temporarily offline for maintenance. Please try again later.
+504        | Gateway Timeout -- A timeout occured while contacting the data source. The system might be overloaded. Try again later.

@@ -10,6 +10,7 @@ type Series = {label: Column, data: number[]};
 export type GraphDataT = {
   ready: () => boolean,
   x: () => Column[],
+  xLabel: () => string,
   series: () => Series[],
 };
 
@@ -98,10 +99,14 @@ export const GraphData = (
         join(", ")
     );
 
+  const xLabel = () => graphConfig.xColumns().map((columnIndex) =>
+    columns[columnIndex]
+  ).join(", ");
+
   const series = () => graphConfig.yColumns().map((columnIndex) => ({
     label: columns[columnIndex],
     data: rows.map(({row}) => row[columnIndex]),
   }));
 
-  return {ready, x, series};
+  return {ready, x, xLabel, series};
 };
