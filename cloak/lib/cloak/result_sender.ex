@@ -99,7 +99,7 @@ defmodule Cloak.ResultSender do
     nil
 
   defp encode_rows(%{rows: rows}), do:
-    Aircloak.measure(:encode_rows,
+    Aircloak.report_long(:encode_rows,
       fn ->
         rows
         |> :jiffy.encode([:use_nil])

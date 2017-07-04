@@ -34,7 +34,7 @@ defmodule Air.Schemas.Query.Rows do
   def decode_raw(nil), do:
     nil
   def decode_raw(encoded_rows), do:
-    Aircloak.measure(:decode_rows,
+    Aircloak.report_long(:decode_rows,
       fn ->
         encoded_rows
         |> :zlib.gunzip()
