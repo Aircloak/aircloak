@@ -99,20 +99,23 @@ defmodule Cloak.Query.DatetimeTest do
     time = ~T[01:02:03.000000]
     :ok = insert_rows(_user_ids = 1..10, "datetimes", ["time_only"], [time])
 
-    assert_query "select time_only from datetimes", %{rows: [%{row: [^time]}]}
+    assert_query "select time_only from datetimes", %{rows: [%{row: [time_string]}]}
+    assert time_string == Time.to_iso8601(time)
   end
 
   test "selecting date" do
     date = ~D[0001-02-03]
     :ok = insert_rows(_user_ids = 1..10, "datetimes", ["date_only"], [date])
 
-    assert_query "select date_only from datetimes", %{rows: [%{row: [^date]}]}
+    assert_query "select date_only from datetimes", %{rows: [%{row: [date_string]}]}
+    assert date_string == Date.to_iso8601(date)
   end
 
   test "selecting datetime" do
-    time = ~N[2015-01-02 03:04:05.000000]
-    :ok = insert_rows(_user_ids = 1..10, "datetimes", ["datetime"], [time])
+    date_time = ~N[2015-01-02 03:04:05.000000]
+    :ok = insert_rows(_user_ids = 1..10, "datetimes", ["datetime"], [date_time])
 
-    assert_query "select datetime from datetimes", %{rows: [%{row: [^time]}]}
+    assert_query "select datetime from datetimes", %{rows: [%{row: [date_time_string]}]}
+    assert date_time_string == NaiveDateTime.to_iso8601(date_time)
   end
 end
