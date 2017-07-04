@@ -33,15 +33,12 @@ defmodule Air.Schemas.Query.Rows do
   @spec decode_raw(nil | binary) :: nil | [map]
   def decode_raw(nil), do:
     nil
-  def decode_raw(encoded_rows) do
-    {time, result} = :timer.tc(fn ->
-      encoded_rows
-      |> :zlib.gunzip()
-      |> :jiffy.decode([:use_nil, :return_maps])
-    end)
-
-    Logger.info("rows encoding took #{div(time, 1000)} ms")
-
-    result
-  end
+  def decode_raw(encoded_rows), do:
+    Aircloak.measure(:decode_rows,
+      fn ->
+        encoded_rows
+        |> :zlib.gunzip()
+        |> :jiffy.decode([:use_nil, :return_maps])
+      end
+    )
 end
