@@ -24,10 +24,12 @@ defmodule Mix.Tasks.Compile.UserDocs do
     try do
       source_mtime =
         Path.wildcard("docs/**")
+        |> Enum.reject(& &1 =~ ~r/aircloak-docs/)
         |> Enum.map(&File.stat!(&1).mtime)
         |> Enum.max()
 
       Path.wildcard("priv/static/docs/**")
+      |> Enum.reject(& &1 =~ ~r/aircloak-docs/)
       |> Enum.map(&File.stat!(&1).mtime)
       |> Enum.sort(&(&1 > &2))
       |> case do
@@ -56,9 +58,18 @@ defmodule Mix.Tasks.Compile.UserDocs do
   defp conditionally_compile_offline_docs() do
     case System.cmd("ebook-convert", ~w(--version)) do
       {_, 0} ->
-        cmd!("yarn", ~w(run gitbook pdf ./ content/aircloak-docs.pdf))
-        cmd!("yarn", ~w(run gitbook epub ./ content/aircloak-docs.epub))
-        cmd!("yarn", ~w(run gitbook mobi ./ content/aircloak-docs.mobi))
+        # Use a readme that doesn't contain links to the offline content
+        cmd!("ln", ~w(-sf README-offline.md content/README.md))
+        # Ignore offline assets so we don't recursively bundle the offline assets in themselves
+        cmd!("ln", ~w(-sf offline-doc-ignores content/.bookignore))
+        try do
+          cmd!("yarn", ~w(run gitbook pdf ./ content/aircloak-docs.pdf))
+          cmd!("yarn", ~w(run gitbook epub ./ content/aircloak-docs.epub))
+          cmd!("yarn", ~w(run gitbook mobi ./ content/aircloak-docs.mobi))
+        after
+          cmd!("ln", ~w(-sf README-online.md content/README.md))
+          cmd!("rm", ~w(-f content/.bookignore))
+        end
       {_, _} ->
         Logger.info("Calibre is not installed. No PDF or e-books created.")
     end
