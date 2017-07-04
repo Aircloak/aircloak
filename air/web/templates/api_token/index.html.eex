@@ -32,7 +32,7 @@
         <tbody>
           <%= if length(@api_tokens) == 0 do %>
           <tr>
-            <td colspan="3">No token has been added</td>
+            <td colspan="4">No token has been added</td>
           </tr>
           <% end %>
           <%= for api_token <- @api_tokens do %>
@@ -72,11 +72,13 @@
           <%= error_tag f, :description %>
         </div>
 
-        <div class="form-group">
-          <%= label f, :access, "Access" %>
-          <%= select f, :access, ["API": :api, "Monitoring": :monitoring], class: "form-control" %>
-          <%= error_tag f, :description %>
-        </div>
+        <%= if admin?(@current_user) do %>
+          <div class="form-group">
+            <%= label f, :access, "Access" %>
+            <%= select f, :access, ["API": :api, "Monitoring": :monitoring], class: "form-control" %>
+            <%= error_tag f, :description %>
+          </div>
+        <% end %>
 
         <div class="form-group">
           <%= submit "Create token", class: "btn btn-primary" %>

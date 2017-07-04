@@ -25,7 +25,10 @@ defmodule Air.ApiTokenController do
     render(conn, "index.html", api_tokens: existing_tokens(conn), changeset: changeset)
   end
 
-  def create(conn, %{"api_token" => %{"description" => description, "access" => access}}) do
+  def create(conn, %{"api_token" => params}) do
+    access = Map.get(params, "access", :api)
+    description = Map.get(params, "description", "")
+
     case Token.create_api_token(conn.assigns.current_user, access, description) do
       {:error, changeset} ->
         conn
