@@ -1,6 +1,7 @@
 defmodule Aircloak do
   @moduledoc false
   use Application
+  require Logger
 
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
@@ -26,4 +27,36 @@ defmodule Aircloak do
     |> List.to_tuple()
   end
   def atomize_keys(other), do: other
+
+  @doc """
+  Executes the function, logs the running time, and returns the function result.
+
+  Options:
+
+    - `:threshold` - The minimum running time in milliseconds required to make a log entry. Defaults to 0.
+    - `:level` - Logger level used to make a log entry. Defaults to `:info`.
+  """
+  @spec measure(any, (() -> result), [threshold: non_neg_integer, level: :debug | :info | :warn | :error]) :: result
+    when result: var
+  def measure(id, fun, opts \\ []) do
+    {time, result} = :timer.tc(fun)
+
+    if time >= Keyword.get(opts, :threshold, 0) * 1000 do
+      Logger.log(
+        Keyword.get(opts, :level, :info),
+        "operation `#{inspect id}` took #{div(time, 1000)}ms"
+      )
+    end
+
+    result
+  end
+
+  @doc """
+  Executes the operation, and logs the running time if it exceeds some threshold.
+
+  The `:threshold` option can be used to set the threshold in milliseconds. The default value is `10`.
+  """
+  @spec report_long(any, (() -> result), [threshold: non_neg_integer]) :: result when result: var
+  def report_long(id, fun, opts \\ []), do:
+    measure(id, fun, level: :warn, threshold: Keyword.get(opts, :threshold, 10))
 end

@@ -33,16 +33,11 @@ defmodule Air.Socket.Cloak.Serializer do
     do: encode(msg)
 
   @doc false
-  def decode!(message, _opts) do
-    {time, result} = :timer.tc(fn -> struct(Phoenix.Socket.Message, :erlang.binary_to_term(message)) end)
-
-    if time > 10_000 do
-      # log decoding times longer than 10ms
-      Logger.warn("decoding of a cloak message took #{div(time, 1000)}ms, raw message size=#{byte_size(message)} bytes")
-    end
-
-    result
-  end
+  def decode!(message, _opts), do:
+    Aircloak.report_long(
+      :decode_cloak_message,
+      fn -> struct(Phoenix.Socket.Message, :erlang.binary_to_term(message)) end
+    )
 
 
   # -------------------------------------------------------------------

@@ -36,6 +36,7 @@
   "idna": {:hex, :idna, "4.0.0", "10aaa9f79d0b12cf0def53038547855b91144f1bfcc0ec73494f38bb7b9c4961", [:rebar3], []},
   "inet_cidr": {:hex, :inet_cidr, "1.0.2", "1acc8b89670aaf4aec7dd36d08f33d6ba6155be0fa30169abdb86b8431ecb175", [:mix], []},
   "inflex": {:hex, :inflex, "1.5.0", "e4ff5d900280b2011b24d1ac1c4590986ee5add2ea644c9894e72213cf93ff0b", [:mix], []},
+  "jiffy": {:hex, :jiffy, "0.14.11", "919a87d491c5a6b5e3bbc27fafedc3a0761ca0b4c405394f121f582fd4e3f0e5", [:rebar3], []},
   "jose": {:hex, :jose, "1.8.0", "1ee027c5c0ff3922e3bfe58f7891509e8f87f771ba609ee859e623cc60237574", [:mix, :rebar3], [{:base64url, "~> 0.0.1", [hex: :base64url, optional: false]}]},
   "jsx": {:hex, :jsx, "2.8.0", "749bec6d205c694ae1786d62cea6cc45a390437e24835fd16d12d74f07097727", [:mix, :rebar], []},
   "lens": {:hex, :lens, "0.2.0", "56b3185932316e785214d3569511dc19a0449904037cf60399a77722fb28a1c4", [:mix], []},

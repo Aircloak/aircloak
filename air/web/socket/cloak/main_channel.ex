@@ -91,23 +91,20 @@ defmodule Air.Socket.Cloak.MainChannel do
 
   @doc false
   def handle_in("cloak_call", payload, socket), do:
-    run_and_report_time(
-      :handle_cloak_call,
-      payload.event,
+    Aircloak.report_long(
+      {:handle_cloak_call, payload.event},
       fn -> handle_cloak_call(payload.event, payload.payload, payload.request_id, socket) end
     )
   def handle_in(cloak_message_name, payload, socket), do:
-    run_and_report_time(
-      :handle_cloak_cast,
-      cloak_message_name,
+    Aircloak.report_long(
+      {:handle_cloak_cast, cloak_message_name},
       fn -> handle_cloak_message(cloak_message_name, payload, socket) end
     )
 
   @doc false
   def handle_info(message, socket), do:
-    run_and_report_time(
-      :handle_info,
-      message,
+    Aircloak.report_long(
+      {:handle_info, message},
       fn -> handle_erlang_message(message, socket) end
     )
 
@@ -213,19 +210,6 @@ defmodule Air.Socket.Cloak.MainChannel do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp run_and_report_time(kind, message, fun) do
-    {time, result} = :timer.tc(fun)
-
-    if time > 10_000 do
-      # log processing times longer than 10ms
-      Logger.warn([
-        to_string(kind), " ", inspect(message, limit: 5), " took ", to_string(div(time, 1000)), " ms"
-      ])
-    end
-
-    result
-  end
 
   @spec respond_to_cloak(Socket.t, request_id::String.t, :ok | :error, any) :: :ok
   defp respond_to_cloak(socket, request_id, status, result \\ nil) do
