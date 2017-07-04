@@ -33,7 +33,7 @@ defmodule Aircloak do
 
   Options:
 
-    - `:threshold` - The minimum running time (microseconds) required to make a log entry. Defaults to 0.
+    - `:threshold` - The minimum running time in milliseconds required to make a log entry. Defaults to 0.
     - `:level` - Logger level used to make a log entry. Defaults to `:info`.
   """
   @spec measure(any, (() -> result), [threshold: non_neg_integer, level: :debug | :info | :warn | :error]) :: result
@@ -41,7 +41,7 @@ defmodule Aircloak do
   def measure(id, fun, opts \\ []) do
     {time, result} = :timer.tc(fun)
 
-    if time >= Keyword.get(opts, :threshold, 0) do
+    if time >= Keyword.get(opts, :threshold, 0) * 1000 do
       Logger.log(
         Keyword.get(opts, :level, :info),
         "operation `#{inspect id}` took #{div(time, 1000)}ms"
@@ -54,9 +54,9 @@ defmodule Aircloak do
   @doc """
   Executes the operation, and logs the running time if it exceeds some threshold.
 
-  The `:threshold` option can be used to set the threshold (in microseconds). The default value is `10_000`.
+  The `:threshold` option can be used to set the threshold in milliseconds. The default value is `10`.
   """
   @spec report_long(any, (() -> result), [threshold: non_neg_integer]) :: result when result: var
   def report_long(id, fun, opts \\ []), do:
-    measure(id, fun, level: :warn, threshold: Keyword.get(opts, :threshold, 10_000))
+    measure(id, fun, level: :warn, threshold: Keyword.get(opts, :threshold, 10))
 end
