@@ -39,8 +39,10 @@
             <td><%= api_token.description %></td>
             <td><%= Air.Utils.DateTime.time_ago(api_token.updated_at) %></td>
             <td>
-              <%= link "Revoke API token", to: api_token_path(@conn, :delete, api_token),
-                  method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+              <%= link "Revoke", to: api_token_path(@conn, :delete, api_token),
+                method: :delete, data: [
+                  confirm: "Are you sure you want to revoke the token \"#{api_token.description}\"?"
+                ], class: "btn btn-danger btn-xs" %>
             </td>
           </tr>
           <% end %>
