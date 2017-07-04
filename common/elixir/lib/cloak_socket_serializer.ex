@@ -24,22 +24,8 @@ defmodule Air.CloakSocketSerializer do
     |> adapt_first_phoenix_reply()
 
   @doc false
-  def encode_message(message) do
-    {time, encoded_message} = :timer.tc(fn -> :erlang.term_to_binary(message) end)
-
-    if time > 10_000 do
-      # log decoding times longer than 10ms
-      Logger.warn(
-        "encoding a message took #{div(time, 1000)}ms, encoded message size=#{byte_size(encoded_message)} bytes"
-      )
-    else
-      Logger.debug(
-        "encoding a message took #{div(time, 1000)}ms, encoded message size=#{byte_size(encoded_message)} bytes"
-      )
-    end
-
-    {:binary, encoded_message}
-  end
+  def encode_message(message), do:
+    Aircloak.report_long(:encode_cloak_message, fn -> {:binary, :erlang.term_to_binary(message)} end)
 
 
   # -------------------------------------------------------------------

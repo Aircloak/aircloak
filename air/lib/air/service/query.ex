@@ -211,18 +211,8 @@ defmodule Air.Service.Query do
     end
   end
 
-  defp store_query_result!(changeset) do
-    {time, query} = :timer.tc(fn -> Repo.update!(changeset) end)
-
-    if time > 10_000 do
-      # log processing times longer than 10ms
-      Logger.warn([
-        "storing result for query #{query.id} took ", to_string(div(time, 1000)), " ms"
-      ])
-    end
-
-    query
-  end
+  defp store_query_result!(changeset), do:
+    Aircloak.report_long(:store_query_result, fn -> Repo.update!(changeset) end)
 
   defp log_result_error(query, result) do
     if result[:error], do:
