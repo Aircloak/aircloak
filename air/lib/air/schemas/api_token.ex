@@ -16,14 +16,14 @@ defmodule Air.Schemas.ApiToken do
 
   require EctoEnum
 
-  EctoEnum.defenum TokenType, :api_token_type, [:api, :monitoring]
+  EctoEnum.defenum Access, :api_token_type, [:api, :monitoring]
 
   @type t :: %__MODULE__{}
 
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "api_tokens" do
     field :description, :string
-    field :access, __MODULE__.TokenType
+    field :access, __MODULE__.Access
     belongs_to :user, Air.Schemas.User, references: :id
 
     timestamps()

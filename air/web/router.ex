@@ -14,7 +14,7 @@ defmodule Air.Router do
   pipeline :api do
     plug :accepts, ["json"]
     plug Air.Plug.Expiration
-    plug Air.Plug.Session.ApiAuth
+    plug Air.Plug.Session.ApiAuth, access: :api
   end
 
   pipeline :anonymous_only do
