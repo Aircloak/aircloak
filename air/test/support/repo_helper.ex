@@ -63,7 +63,7 @@ defmodule Air.TestRepoHelper do
   @spec create_token!() :: Air.Schemas.ApiToken.t
   @spec create_token!(Air.Schemas.User.t) :: Air.Schemas.ApiToken.t
   def create_token!(user \\ create_user!()) do
-    ApiToken.changeset(%ApiToken{}, %{user_id: user.id, description: "some description"})
+    ApiToken.changeset(%ApiToken{}, %{user_id: user.id, access: :api, description: "some description"})
     |> Repo.insert!()
   end
 
