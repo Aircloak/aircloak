@@ -6,6 +6,7 @@ defmodule Air.Schemas.Query.Rows do
   is potentially large, so we want to retrieve it only when needed.
   """
   use Air.Schemas.Base
+  require Logger
 
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "queries" do
@@ -32,8 +33,15 @@ defmodule Air.Schemas.Query.Rows do
   @spec decode_raw(nil | binary) :: nil | [map]
   def decode_raw(nil), do:
     nil
-  def decode_raw(encoded_rows), do:
-    encoded_rows
-    |> :zlib.gunzip()
-    |> Poison.decode!()
+  def decode_raw(encoded_rows) do
+    {time, result} = :timer.tc(fn ->
+      encoded_rows
+      |> :zlib.gunzip()
+      |> :jiffy.decode([:use_nil, :return_maps])
+    end)
+
+    Logger.info("rows encoding took #{div(time, 1000)} ms")
+
+    result
+  end
 end

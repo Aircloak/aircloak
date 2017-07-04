@@ -98,10 +98,17 @@ defmodule Cloak.ResultSender do
   defp row_count(_), do:
     nil
 
-  defp encode_rows(%{rows: rows}), do:
-    rows
-    |> Poison.encode_to_iodata!()
-    |> :zlib.gzip()
+  defp encode_rows(%{rows: rows}) do
+    {time, result} = :timer.tc(fn ->
+      rows
+      |> :jiffy.encode([:use_nil])
+      |> :zlib.gzip()
+    end)
+
+    Logger.info("Rows encoding took #{div(time, 1000)} ms")
+
+    result
+  end
   defp encode_rows(_), do:
     nil
 end
