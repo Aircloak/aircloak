@@ -24,6 +24,7 @@
         <thead>
           <tr>
             <th>Description</th>
+            <th>Access</th>
             <th>Last used</th>
             <th></th>
           </tr>
@@ -37,6 +38,7 @@
           <%= for api_token <- @api_tokens do %>
           <tr>
             <td><%= api_token.description %></td>
+            <td><%= access(api_token) %></td>
             <td><%= Air.Utils.DateTime.time_ago(api_token.updated_at) %></td>
             <td>
               <%= link "Revoke", to: api_token_path(@conn, :delete, api_token),
@@ -67,6 +69,12 @@
         <div class="form-group">
           <%= label f, :description, "Token description" %>
           <%= text_input f, :description, class: "form-control" %>
+          <%= error_tag f, :description %>
+        </div>
+
+        <div class="form-group">
+          <%= label f, :access, "Access" %>
+          <%= select f, :access, ["API": :api, "Monitoring": :monitoring], class: "form-control" %>
           <%= error_tag f, :description %>
         </div>
 

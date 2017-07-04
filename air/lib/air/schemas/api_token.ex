@@ -29,7 +29,7 @@ defmodule Air.Schemas.ApiToken do
     timestamps()
   end
 
-  @required_fields ~w(description user_id)a
+  @required_fields ~w(description user_id access)a
   @optional_fields ~w()a
 
   @doc """
