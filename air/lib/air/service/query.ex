@@ -184,7 +184,7 @@ defmodule Air.Service.Query do
     log_result_error(query, result)
     UserChannel.broadcast_state_change(query)
     Air.Service.Query.Events.trigger_result(result)
-    Air.Service.Central.report_query_result(result)
+    report_query_result(result)
   end
 
   @state_order [
@@ -293,5 +293,12 @@ defmodule Air.Service.Query do
     where: q.inserted_at < ^before,
     order_by: [desc: q.inserted_at],
     limit: ^count
+  end
+
+  if Mix.env == :test do
+    defp report_query_result(_), do: :ok
+  else
+    defp report_query_result(result), do:
+      Air.Service.Central.report_query_result(result)
   end
 end
