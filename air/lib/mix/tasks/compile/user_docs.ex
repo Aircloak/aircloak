@@ -2,6 +2,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
   @shortdoc "Compiles the API documentation."
   @moduledoc "Compiles the API documentation."
   use Mix.Task
+  require Logger
 
   # Mix.Task behaviour is not in PLT since Mix is not a runtime dep, so we disable the warning
   @dialyzer :no_undefined_callbacks
@@ -10,6 +11,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
   def run(_args) do
     if stale?() do
       cmd!("yarn", ~w(install))
+      conditionally_compile_offline_docs()
       cmd!("yarn", ~w(run gitbook build))
       File.mkdir_p!("priv/static")
       File.rm_rf!("priv/static/docs")
@@ -48,6 +50,17 @@ defmodule Mix.Tasks.Compile.UserDocs do
       {_, 0} -> :ok
       {_, _} ->
         Mix.raise("Error building user docs")
+    end
+  end
+
+  defp conditionally_compile_offline_docs() do
+    case System.cmd("ebook-convert", ~w(--version)) do
+      {_, 0} ->
+        cmd!("yarn", ~w(run gitbook pdf ./ content/aircloak-docs.pdf))
+        cmd!("yarn", ~w(run gitbook epub ./ content/aircloak-docs.epub))
+        cmd!("yarn", ~w(run gitbook mobi ./ content/aircloak-docs.mobi))
+      {_, _} ->
+        Logger.info("Calibre is not installed. No PDF or e-books created.")
     end
   end
 end
