@@ -9,23 +9,24 @@ defmodule Air.Token do
   # -------------------------------------------------------------------
 
   @doc "Given a user and a description, a token is created and assigned to the user"
-  @spec create_api_token(User.t, String.t) :: String.t | {:error, Ecto.Changeset.t}
-  def create_api_token(user, description) do
-    changeset = ApiToken.changeset(%ApiToken{}, %{description: description, user_id: user.id})
+  @spec create_api_token(User.t, ApiToken.Access.t, String.t) :: String.t | {:error, Ecto.Changeset.t}
+  def create_api_token(user, access, description) do
+    changeset = ApiToken.changeset(%ApiToken{}, %{access: access, description: description, user_id: user.id})
     with {:ok, token_entry} <- Repo.insert(changeset) do
       Phoenix.Token.sign(Endpoint, api_token_salt(), token_entry.id)
     end
   end
 
   @doc "Will return the user associated with a token, assuming the token is valid"
-  @spec user_for_token(String.t) :: User.t | :error
-  def user_for_token(token) do
+  @spec user_for_token(String.t, ApiToken.Access.t) :: User.t | :error
+  def user_for_token(token, access) do
     import Ecto.Query
 
     case Phoenix.Token.verify(Endpoint, api_token_salt(), token) do
       {:ok, token_id} ->
         case Repo.one(from token in ApiToken,
             where: token.id == ^token_id,
+            where: token.access == ^access,
             preload: [{:user, :groups}],
             select: token) do
           %{} = token ->

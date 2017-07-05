@@ -8,28 +8,37 @@ defmodule Air.Token.Test do
     :ok
   end
 
-  test "should create unique tokens for users" do
-    user = create_user!()
-    token1 = Token.create_api_token(user, "description")
-    token2 = Token.create_api_token(user, "description")
+  setup [:create_user]
+
+  test "should create unique tokens for users", %{user: user} do
+    token1 = Token.create_api_token(user, :api, "description")
+    token2 = Token.create_api_token(user, :api, "description")
     assert token1 != token2
   end
 
-  test "should not validate invalid tokens" do
-    assert :error = Token.user_for_token("invalid token")
+  describe "user_for_token" do
+    test "should not validate invalid tokens" do
+      assert :error = Token.user_for_token("invalid token", :api)
+    end
+
+    test "should be able to find user for a valid token", %{user: user} do
+      token = Token.create_api_token(user, :api, "description")
+      returned_user = Token.user_for_token(token, :api)
+      assert user.id == returned_user.id
+    end
+
+    test "should return error for revoked tokens", %{user: user} do
+      token = Token.create_api_token(user, :api, "description")
+      Repo.delete_all(ApiToken)
+      assert :error == Token.user_for_token(token, :api)
+    end
+
+    test "trying to access a different access category", %{user: user} do
+      token = Token.create_api_token(user, :api, "description")
+      assert :error = Token.user_for_token(token, :monitoring)
+    end
   end
 
-  test "should be able to find user for a valid token" do
-    user = create_user!()
-    token = Token.create_api_token(user, "description")
-    returned_user = Token.user_for_token(token)
-    assert user.id == returned_user.id
-  end
-
-  test "should return error for revoked tokens" do
-    user = create_user!()
-    token = Token.create_api_token(user, "description")
-    Repo.delete_all(ApiToken)
-    assert :error == Token.user_for_token(token)
-  end
+  def create_user(context), do:
+    {:ok, Map.put(context, :user, create_user!())}
 end

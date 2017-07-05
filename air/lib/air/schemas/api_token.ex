@@ -14,17 +14,22 @@ defmodule Air.Schemas.ApiToken do
 
   alias Ecto.Changeset
 
+  require EctoEnum
+
+  EctoEnum.defenum Access, :api_token_type, [:api, :monitoring]
+
   @type t :: %__MODULE__{}
 
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "api_tokens" do
     field :description, :string
+    field :access, __MODULE__.Access
     belongs_to :user, Air.Schemas.User, references: :id
 
     timestamps()
   end
 
-  @required_fields ~w(description user_id)a
+  @required_fields ~w(description user_id access)a
   @optional_fields ~w()a
 
   @doc """
