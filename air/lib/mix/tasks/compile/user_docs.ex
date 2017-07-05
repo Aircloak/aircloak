@@ -9,6 +9,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
 
   @doc false
   def run(_args) do
+    update_version_numbers_in_guide()
     if stale?() do
       cmd!("yarn", ~w(install))
       conditionally_compile_offline_docs()
@@ -80,5 +81,46 @@ defmodule Mix.Tasks.Compile.UserDocs do
       end
     rescue _ -> false
     end
+  end
+
+  @book_config_path "docs/book.json"
+  @book_summary_path "docs/content/SUMMARY.md"
+
+  defp update_version_numbers_in_guide() do
+    current_version = File.read!("../VERSION") |> String.trim()
+    update_book_config(current_version)
+    update_summary_section(current_version)
+  end
+
+  defp update_book_config(current_version) do
+    book_config = File.read!(@book_config_path) |> Poison.decode!()
+    if String.contains?(book_config["title"], current_version) do
+      # All good
+    else
+      updated_book_config = book_config
+      |> Map.put("title", "Aircloak User Guide – version #{current_version}")
+      |> Map.put("description", "This copy of the Aircloak user guide describes the features of, and how to " <>
+          "configure and work with Aircloak Insights version #{current_version}.")
+      |> Poison.encode!(pretty: true)
+      File.write(@book_config_path, updated_book_config)
+    end
+  end
+
+  defp update_summary_section(current_version) do
+    original_summary = File.read!(@book_summary_path)
+    updated_summary = original_summary
+    |> String.split("\n")
+    |> Enum.map(fn(line) ->
+      if String.contains?(line, "## Aircloak Insights - version") and
+          not String.contains?(line, current_version) do
+        "## Aircloak Insights - version #{current_version}"
+      else
+        line
+      end
+    end)
+    |> Enum.join("\n")
+
+    if original_summary != updated_summary, do:
+      File.write!(@book_summary_path, updated_summary)
   end
 end
