@@ -99,7 +99,13 @@ defmodule Cloak.ResultSender do
     nil
 
   defp encode_rows(%{rows: rows}), do:
-    :erlang.term_to_binary(rows, compressed: 9)
+    Aircloak.report_long(:encode_rows,
+      fn ->
+        rows
+        |> :jiffy.encode([:use_nil])
+        |> :zlib.gzip()
+      end
+    )
   defp encode_rows(_), do:
     nil
 end

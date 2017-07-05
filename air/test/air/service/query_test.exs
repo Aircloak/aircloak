@@ -183,7 +183,7 @@ defmodule Air.Service.QueryTest do
 
       assert %{
         "columns" => ["col1", "col2"],
-        "rows" => [%{occurrences: 10, row: [1, 1]}],
+        "rows" => [%{"occurrences" => 10, "row" => [1, 1]}],
         "info" => ["some info"],
         "row_count" => 10,
         "error" => nil,

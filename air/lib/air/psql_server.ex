@@ -197,7 +197,7 @@ defmodule Air.PsqlServer do
         |> Map.get(:rows, nil)
         |> Air.Schemas.Query.Rows.decode_raw()
         |> Kernel.||([])
-        |> Enum.flat_map(&List.duplicate(&1.row, &1.occurrences)),
+        |> Enum.flat_map(&List.duplicate(Map.fetch!(&1, "row"), Map.fetch!(&1, "occurrences"))),
       param_types:
         Enum.map(query_result.features.parameter_types, &psql_type/1)
     ]

@@ -199,7 +199,7 @@ defmodule Cloak.Query.DBEmulatorTest do
       assert_query """
         select * from (select user_id, min(date), max(date), median(date)
           from #{@prefix}emulated group by user_id) as t
-      """, %{rows: [%{occurrences: 20, row: [:*, ~D[2013-02-08], ~D[2016-11-02], ~D[2014-02-04]]}]}
+      """, %{rows: [%{occurrences: 20, row: [:*, "2013-02-08", "2016-11-02", "2014-02-04"]}]}
     end
 
     test "selecting a grouped column under an alias" do
@@ -264,7 +264,7 @@ defmodule Cloak.Query.DBEmulatorTest do
       assert_query """
         select * from (select user_id, min(distinct date), max(distinct date), median(distinct date)
           from #{@prefix}emulated group by user_id) as t
-      """, %{rows: [%{occurrences: 20, row: [:*, ~D[2013-02-08], ~D[2016-11-02], ~D[2014-02-04]]}]}
+      """, %{rows: [%{occurrences: 20, row: [:*, "2013-02-08", "2016-11-02", "2014-02-04"]}]}
     end
   end
 
