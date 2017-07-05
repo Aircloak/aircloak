@@ -1,8 +1,9 @@
 FROM aircloak/phoenix:$NODEJS_VERSION
 MAINTAINER Aircloak
 
-# Install dependencies and configure UTF-8
-RUN apt-get install jq -y
+# Install dependencies:
+# - calibre: needed to compile offline versions of docs
+RUN apt-get install calibre -y
 
 # First we'll copy only the subset of needed files and compile deps
 # This will reduce the amount of rebuilding when only the source code is changed.

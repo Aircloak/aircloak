@@ -28,6 +28,10 @@ guide. It describes how the [content/README.md](content/README.md),
 
 Dependencies are managed with `yarn`. To get up and running, run `yarn install`.
 
+If you also want to create PDF, epub and mobi versions of the docs, you need to have `ebook-convert` installed. Follow
+the [gitbook ebook instructions](https://toolchain.gitbook.com/ebook.html) for
+more details.
+
 ### Testing
 
 While (or after) you have written your text, it makes sense to see how it would
