@@ -13,7 +13,7 @@ provides an [HTTP API](api.md) for connecting external tools to an Aircloak inst
 plugins that support the Postgres message protocol.
 
 Insights Air never handles sensitive user data. It can therefore safely be deployed in
-a [DMZ](https://en.wikipedia.org/wiki/DMZ_(computing)) or made available to less
+a [DMZ](https://en.wikipedia.org/wiki/Perimeter_Network) or made available to less
 privileged users.
 
 ### Insights Cloak
