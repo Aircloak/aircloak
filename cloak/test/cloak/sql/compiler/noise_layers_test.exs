@@ -78,10 +78,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         ON table.uid = key_table.uid AND table.id = key_table.table_id", data_source())
       assert [] = result.noise_layers
     end
-
-    test "fk = pk on a projection key-pair"
-
-    test "pk = fk on a projection key-pair"
   end
 
   describe "noise layers from ranges" do
@@ -534,7 +530,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
             %{
               table: "table",
               foreign_key: "table_id",
-              private_key: "id",
+              primary_key: "id",
             }
           ]
         }

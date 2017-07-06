@@ -194,6 +194,7 @@ defmodule Cloak.DataSource do
   defp to_data_source(data_source) do
     data_source
     |> Aircloak.atomize_keys()
+    |> standardize_foreign_keys()
     |> Map.put(:errors, [])
     |> Map.put(:status, nil)
     |> Validations.Name.ensure_permitted()
@@ -248,6 +249,18 @@ defmodule Cloak.DataSource do
     data_source
     |> Map.put(:tables, data_source.initial_tables)
     |> Map.put(:errors, data_source.initial_errors)
+
+  defp standardize_foreign_keys(data_source) do
+    tables = for {key, table} <- data_source.tables, into: %{} do
+      if is_nil(table[:projection]) do
+        {key, Map.put(table, :keys, Map.get(table, :keys, []))}
+      else
+        {key, Map.put(table, :keys, [Map.get(table, :projection) | Map.get(table, :keys, [])])}
+      end
+    end
+
+    %{data_source | tables: tables}
+  end
 
   @doc false
   def add_tables(data_source) do

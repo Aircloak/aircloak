@@ -199,7 +199,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp do_fk_pk_condition?(lhs, rhs), do:
     %{
       foreign_key: lhs.name,
-      private_key: rhs.name,
+      primary_key: rhs.name,
       table: rhs.table.name,
     } in Map.get(lhs.table, :keys, [])
 
