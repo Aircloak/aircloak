@@ -23,7 +23,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
     |> apply_top_down(&normalize_noise_layers_base/1)
 
-
   @allowed_not_equals_functions ~w(lower)
   @doc "Returns true if a condition is anonymized by noise layers."
   @spec can_be_anonymized_with_noise_layer?(Query.where_clause, Query.t) :: boolean
@@ -183,12 +182,26 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(& not Condition.not_like?(&1))
     |> Lens.satisfy(& not Condition.like?(&1))
     |> Lens.satisfy(& not Condition.in?(&1))
+    |> Lens.satisfy(& not fk_pk_condition?(&1))
     |> Lens.satisfy(&can_be_anonymized_with_noise_layer?(&1, query))
     |> Lens.both(Lens.key(:group_by))
     |> raw_columns()
     |> Lens.to_list(query)
     |> Enum.flat_map(&resolve_row_splitter(&1, query))
     |> Enum.map(&build_noise_layer/1)
+
+  defp fk_pk_condition?({:comparison, lhs, :=, rhs}), do:
+    do_fk_pk_condition?(lhs, rhs) or do_fk_pk_condition?(rhs, lhs)
+  defp fk_pk_condition?(_), do: false
+
+  defp do_fk_pk_condition?(_lhs, %{table: :unknown}), do: false
+  defp do_fk_pk_condition?(%{table: :unknown}, _rhs), do: false
+  defp do_fk_pk_condition?(lhs, rhs), do:
+    %{
+      foreign_key: lhs.name,
+      private_key: rhs.name,
+      table: rhs.table.name,
+    } in Map.get(lhs.table, :keys, [])
 
   defp range_noise_layers(%{ranges: ranges}), do:
     Enum.flat_map(ranges, fn(%{column: column, interval: range}) ->
