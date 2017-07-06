@@ -15,9 +15,23 @@ defmodule Air.Schemas.ResultChunk do
 
   @type t :: %__MODULE__{
     query_id: String.t,
-    offset: integer,
-    row_count: integer,
+    offset: non_neg_integer,
+    row_count: pos_integer,
     encoded_data: binary,
     query: %Ecto.Association.NotLoaded{} | Air.Schemas.Query.t
   }
+
+  @type decoded_chunk :: %{offset: non_neg_integer, buckets: map}
+
+
+  # -------------------------------------------------------------------
+  # API
+  # -------------------------------------------------------------------
+
+  @doc "Returns offset and decoded buckets associated with this chunk."
+  @spec decode(t) :: decoded_chunk
+  def decode(chunk), do:
+    chunk
+    |> Map.take([:offset])
+    |> Map.put(:buckets, chunk.encoded_data |> :zlib.gunzip() |> :jiffy.decode([:use_nil, :return_maps]))
 end

@@ -170,6 +170,20 @@ defmodule Air.Service.Query do
     :ok
   end
 
+  @doc "Returns the buckets for the desired range of rows."
+  @spec buckets(query_id, non_neg_integer, pos_integer) :: [map]
+  def buckets(query_id, from, count), do:
+    from(
+      chunk in ResultChunk,
+        where:
+          chunk.query_id == ^query_id and
+          chunk.offset <= ^(from + count - 1) and
+          fragment("? + ? - 1", chunk.offset, chunk.row_count) >= ^from
+    )
+    |> Repo.all()
+    |> Enum.map(&ResultChunk.decode/1)
+    |> Air.Service.Query.Result.buckets(from, count)
+
 
   # -------------------------------------------------------------------
   # Internal functions
