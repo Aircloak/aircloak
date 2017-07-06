@@ -27,30 +27,30 @@
         <div class="form-group">
           <label>Number format</label> (global setting is used if not specified)<br/>
           <div class="form-group">
-            <span class="col-sm-7">
+            <span class="col-sm-5">
               Decimal separator
             </span>
-            <span class="col-sm-4">
+            <span class="col-sm-3">
               <%= text_input f, :decimal_sep, class: "form-control input-sm" %>
             </span>
           </div>
           <br/>
           <%= error_tag f, :decimal_sep %>
           <div class="form-group">
-            <span class="col-sm-7">
+            <span class="col-sm-5">
               Thousand separator
             </span>
-            <span class="col-sm-4">
+            <span class="col-sm-3">
               <%= text_input f, :thousand_sep, class: "form-control input-sm" %>
             </span>
           </div>
           <br/>
           <%= error_tag f, :thousand_sep %>
           <div class="form-group">
-            <span class="col-sm-7">
+            <span class="col-sm-5">
               Decimal digits
             </span>
-            <span class="col-sm-4">
+            <span class="col-sm-3">
               <%= number_input f, :decimal_digits, class: "form-control input-sm" %>
             </span>
           </div>

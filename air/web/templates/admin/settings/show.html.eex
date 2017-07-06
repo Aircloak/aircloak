@@ -49,24 +49,24 @@
 
   <div class="form-group">
     <label class="col-sm-3 control-label">Decimal separator</label>
-      <div class="col-sm-2">
-        <%= text_input f, :decimal_sep, class: "form-control input-sm" %>
-        <%= error_tag f, :decimal_sep %>
-      </div>
+    <div class="col-sm-2">
+      <%= text_input f, :decimal_sep, class: "form-control input-sm" %>
+    </div>
+    <%= error_tag f, :decimal_sep %>
   </div>
   <div class="form-group">
     <label class="col-sm-3 control-label">Thousand separator</label>
     <div class="col-sm-2">
       <%= text_input f, :thousand_sep, class: "form-control input-sm" %>
-      <%= error_tag f, :thousand_sep %>
     </div>
+    <%= error_tag f, :thousand_sep %>
   </div>
   <div class="form-group">
     <label class="col-sm-3 control-label">Decimal digits</label>
     <div class="col-sm-2">
       <%= number_input f, :decimal_digits, class: "form-control input-sm" %>
-      <%= error_tag f, :decimal_digits %>
     </div>
+    <%= error_tag f, :decimal_digits %>
   </div>
 
   <div class="form-group">
