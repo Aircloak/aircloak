@@ -75,45 +75,33 @@ defmodule Air.Schemas.Query do
   end
 
   @doc "Produces a JSON blob of the query and its result for rendering"
-  @spec for_display(t) :: Map.t
-  def for_display(query) do
+  @spec for_display(t, nil | [map]) :: Map.t
+  def for_display(query, buckets \\ nil) do
     query = Repo.preload(query, [:user, :data_source])
     query
     |> Repo.preload([:user, :data_source])
     |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at, :query_state])
-    |> Map.merge(result_map(query))
+    |> Map.merge(query.result || %{})
+    |> Map.put(:columns, query.result["columns"] || [])
+    |> Map.put(:rows, buckets || [])
     |> Map.merge(data_source_info(query))
     |> Map.merge(user_info(query))
     |> Map.put(:completed, completed?(query))
   end
 
   @doc "Exports the query as CSV"
-  @spec to_csv_stream(t) :: Enumerable.t
-  def to_csv_stream(query) do
-    query = Repo.preload(query, [:rows])
-    result = result(query)
-    header = result["columns"]
-    rows = Enum.flat_map(result["rows"], &List.duplicate(Map.fetch!(&1, "row"), Map.fetch!(&1, "occurrences")))
+  @spec to_csv_stream(t, [map]) :: Enumerable.t
+  def to_csv_stream(query, buckets) do
+    header = query.result["columns"]
+    rows = Enum.flat_map(buckets, &List.duplicate(Map.fetch!(&1, "row"), Map.fetch!(&1, "occurrences")))
 
     CSV.encode([header | rows])
-  end
-
-  def result(%__MODULE__{result: nil}), do:
-    nil
-  def result(query) do
-    case decode_rows(query) do
-      :not_loaded -> query.result
-      decoded_rows -> Map.put(query.result, "rows", decoded_rows || [])
-    end
   end
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp result_map(query), do:
-    Map.merge(%{"rows" => [], "columns" => []}, result(query) || %{})
 
   defp data_source_info(query), do:
     %{data_source: %{name: Map.get(query.data_source || %{}, :name, "Unknown data source")}}
@@ -123,13 +111,4 @@ defmodule Air.Schemas.Query do
 
   defp completed?(query), do:
     query.query_state in [:error, :completed, :cancelled]
-
-  # For backwards compatibility reasons, we need to handle the old format, where rows have been encoded directly in
-  # the result map.
-  defp decode_rows(%__MODULE__{result: %{"rows" => rows}}), do:
-    # old format
-    rows
-  defp decode_rows(query), do:
-    # new format
-    Rows.decode(query.rows)
 end

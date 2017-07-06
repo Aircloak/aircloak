@@ -170,7 +170,7 @@ defmodule Air.Service.Query do
     :ok
   end
 
-  @doc "Returns the buckets for the desired range of rows."
+  @doc "Returns the buckets describing the desired range of rows."
   @spec buckets(query_id, non_neg_integer, pos_integer) :: [map]
   def buckets(query_id, from, count), do:
     from(
@@ -192,7 +192,7 @@ defmodule Air.Service.Query do
   defp do_process_result(query, result) do
     query = store_query_result!(query, result)
     log_result_error(query, result)
-    UserChannel.broadcast_state_change(query)
+    UserChannel.broadcast_state_change(query, buckets(query.id, 0, 100))
     Air.Service.Query.Events.trigger_result(result)
     report_query_result(result)
   end
