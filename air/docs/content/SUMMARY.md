@@ -12,6 +12,9 @@
   - [Provided by Aircloak](components.md#provided-by-aircloak)
   - [Provided by the customer](components.md#provided-by-the-customer)
   - [How the components interact](components.md#how-the-components-interact)
+- [Scaling](scaling.md)
+  - [Low query volume](scaling.md#low-query-volume)
+  - [High query volume](scaling.md#high-query-volume)
 
 ## Technical documentation
 
