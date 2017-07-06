@@ -5,6 +5,16 @@
 ---- Don't alter the line above...
 
 - [Introduction](README.md)
+
+## Architectural overview
+
+- [Components of Aircloak Insights](components.md)
+  - [Provided by Aircloak](components.md#provided-by-aircloak)
+  - [Provided by the customer](components.md#provided-by-the-customer)
+  - [How the components interact](components.md#how-the-components-interact)
+
+## Technical documentation
+
 - [Core language features](sql.md)
   - [Considerations](sql.md#notes)
   - [Restrictions](sql/restrictions.md)
