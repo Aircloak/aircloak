@@ -51,7 +51,7 @@
               Decimal digits
             </span>
             <span class="col-sm-4">
-              <%= text_input f, :decimal_digits, class: "form-control input-sm" %>
+              <%= number_input f, :decimal_digits, class: "form-control input-sm" %>
             </span>
           </div>
           <br/>

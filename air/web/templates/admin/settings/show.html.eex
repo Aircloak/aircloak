@@ -64,7 +64,7 @@
   <div class="form-group">
     <label class="col-sm-3 control-label">Decimal digits</label>
     <div class="col-sm-2">
-      <%= text_input f, :decimal_digits, class: "form-control input-sm" %>
+      <%= number_input f, :decimal_digits, class: "form-control input-sm" %>
       <%= error_tag f, :decimal_digits %>
     </div>
   </div>
