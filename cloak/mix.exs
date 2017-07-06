@@ -40,6 +40,7 @@ defmodule Cloak.Mixfile do
       {:mongodb, "~> 0.2.0"},
       {:lens, "~> 0.2.0"},
       {:backoff, "~> 1.1.3"},
+      {:jiffy, "~> 0.14.1"},
 
       # Test deps
 

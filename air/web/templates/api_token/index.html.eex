@@ -16,14 +16,15 @@
       </div>
       <p class="panel-body">
         The Aircloak API is authenticated using API tokens.
-        For more information about their usage, and how to authenticated
+        For more information about their usage, and how to authenticate
         against the API, please visit the
-        <%= link "authentication section in the API documentation", to: "/docs#authentication"  %>
+        <%= link "authentication section in the API documentation", to: "/docs/api.html#authentication"  %>
       </p>
       <table class="table table-striped table-hover">
         <thead>
           <tr>
             <th>Description</th>
+            <th>Access</th>
             <th>Last used</th>
             <th></th>
           </tr>
@@ -31,16 +32,19 @@
         <tbody>
           <%= if length(@api_tokens) == 0 do %>
           <tr>
-            <td colspan="3">No token has been added</td>
+            <td colspan="4">No token has been added</td>
           </tr>
           <% end %>
           <%= for api_token <- @api_tokens do %>
           <tr>
             <td><%= api_token.description %></td>
+            <td><%= access(api_token) %></td>
             <td><%= Air.Utils.DateTime.time_ago(api_token.updated_at) %></td>
             <td>
-              <%= link "Revoke API token", to: api_token_path(@conn, :delete, api_token),
-                  method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+              <%= link "Revoke", to: api_token_path(@conn, :delete, api_token),
+                method: :delete, data: [
+                  confirm: "Are you sure you want to revoke the token \"#{api_token.description}\"?"
+                ], class: "btn btn-danger btn-xs" %>
             </td>
           </tr>
           <% end %>
@@ -67,6 +71,14 @@
           <%= text_input f, :description, class: "form-control" %>
           <%= error_tag f, :description %>
         </div>
+
+        <%= if admin?(@current_user) do %>
+          <div class="form-group">
+            <%= label f, :access, "Access" %>
+            <%= select f, :access, ["API": :api, "Monitoring": :monitoring], class: "form-control" %>
+            <%= error_tag f, :description %>
+          </div>
+        <% end %>
 
         <div class="form-group">
           <%= submit "Create token", class: "btn btn-primary" %>

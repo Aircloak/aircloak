@@ -21,7 +21,7 @@ defmodule Air.Plug.Session do
     def init(opts), do: opts
 
     @doc false
-    def call(conn, _opts) do
+    def call(conn, opts) do
       conn = Plug.Conn.fetch_query_params(conn)
 
       case get_token(conn) do
@@ -31,7 +31,7 @@ defmodule Air.Plug.Session do
           |> Phoenix.Controller.json(%{success: false, description: missing_auth_header_error(conn)})
           |> halt()
         token ->
-          case Air.Token.user_for_token(token) do
+          case Air.Token.user_for_token(token, Keyword.fetch!(opts, :access)) do
             :error ->
               conn
               |> put_status(Plug.Conn.Status.code(:unauthorized))

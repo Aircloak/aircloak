@@ -530,7 +530,7 @@ defmodule Cloak.Query.BasicTest do
         hour: 0, minute: 0, second: 0, microsecond: {0, 6}
       }
       :ok = insert_rows(_user_ids = 0..100, "dates", ["date"], [date])
-      date
+      NaiveDateTime.to_iso8601(date)
     end
 
     assert_query "select date from dates group by date order by date asc",

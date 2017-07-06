@@ -24,7 +24,7 @@ if [ -f "$HOME/.asdf/asdf.sh" ]; then
 else
   echo "Installing asdf"
   rm -rf $HOME/.asdf
-  git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf --branch v0.1.0
+  git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf --branch v0.3.0
 fi
 
 source $HOME/.asdf/asdf.sh
@@ -34,8 +34,8 @@ install_if_missing "erlang"
 install_if_missing "elixir"
 install_if_missing "nodejs"
 
-# Ensure we get bundler installed in order for air compilation to work"
-echo "bundler" > ~/.default-gems
+# Imports Node.js release team's OpenPGP keys to main keyring
+bash ~/.asdf/plugins/nodejs/bin/import-release-team-keyring
 
 echo "Installing language environments with asdf"
 asdf install

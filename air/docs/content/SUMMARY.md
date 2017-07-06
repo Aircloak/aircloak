@@ -1,5 +1,9 @@
 # Summary
 
+---- Don't alter the line below. Needed as is for automated version number update
+## Aircloak Insights - version 17.3.0
+---- Don't alter the line above...
+
 - [Introduction](README.md)
 - [Core language features](sql.md)
   - [Considerations](sql.md#notes)
