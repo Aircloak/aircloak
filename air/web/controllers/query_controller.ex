@@ -61,7 +61,7 @@ defmodule Air.QueryController do
           ["csv"] ->
             conn = put_resp_content_type(conn, "text/csv")
             conn = send_chunked(conn, 200)
-            buckets = Air.Service.Query.buckets(query.id, 0, query.result["row_count"])
+            buckets = Air.Service.Query.buckets(query.id, :all)
             csv_stream = Query.to_csv_stream(query, buckets)
             Enum.reduce(csv_stream, conn, fn(data, conn) ->
               {:ok, conn} = chunk(conn, data)

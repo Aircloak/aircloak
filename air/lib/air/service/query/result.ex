@@ -2,6 +2,9 @@ defmodule Air.Service.Query.Result do
   @moduledoc "Helper functions for working with results."
 
 
+  @type desired_range :: :all | %{from: non_neg_integer, count: pos_integer}
+
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -11,24 +14,32 @@ defmodule Air.Service.Query.Result do
 
   It is assumed that the chunks are already sorted in the ascending order by the offset field.
   """
-  @spec buckets([Air.Schemas.ResultChunk.decoded_chunk], non_neg_integer, pos_integer) :: [map]
-  def buckets(chunks, from, count), do:
+  @spec buckets([Air.Schemas.ResultChunk.decoded_chunk], desired_range) :: [map]
+  def buckets(chunks, desired_range), do:
     chunks
     |> positioned_buckets_stream()
-    |> Stream.drop_while(&(&1.from + &1.count - 1 < from))
-    |> Stream.take_while(&(&1.from <= from + count - 1))
-    |> Enum.map(&to_bucket(&1, from, count))
+    |> Stream.drop_while(&(not bucket_in_desired_range?(&1, desired_range)))
+    |> Stream.take_while(&bucket_in_desired_range?(&1, desired_range))
+    |> Enum.map(&to_bucket(&1, desired_range))
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp to_bucket(bucket_data, from, count) do
-    desired_to = from + count - 1
-    bucket_to = bucket_data.from + bucket_data.count - 1
-    discard_before = max(0, from - bucket_data.from)
-    discard_after = max(0, bucket_to - desired_to)
+  defp bucket_in_desired_range?(_bucket, :all), do:
+    true
+  defp bucket_in_desired_range?(bucket, desired_range), do:
+    bucket.from <= to(desired_range) and to(bucket) >= desired_range.from
+
+  defp to(%{from: from, count: count}), do:
+    from + count - 1
+
+  defp to_bucket(bucket_data, :all), do:
+    bucket_data.bucket
+  defp to_bucket(bucket_data, desired_range) do
+    discard_before = max(0, desired_range.from - bucket_data.from)
+    discard_after = max(0, to(bucket_data) - to(desired_range))
     adjusted_row_count = Map.fetch!(bucket_data.bucket, "occurrences") - (discard_before + discard_after)
     %{bucket_data.bucket | "occurrences" => adjusted_row_count}
   end
