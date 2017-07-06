@@ -6,7 +6,7 @@ defmodule Air.Service.User do
   import Ecto.Changeset
 
   @required_fields ~w(email name)a
-  @optional_fields ~w(password password_confirmation)a
+  @optional_fields ~w(password password_confirmation decimal_sep decimal_digits thousand_sep)a
 
 
   # -------------------------------------------------------------------
@@ -92,7 +92,7 @@ defmodule Air.Service.User do
   @spec update_profile(User.t, map) :: {:ok, User.t} | {:error, Ecto.Changeset.t}
   def update_profile(user, params), do:
     user
-    |> user_changeset(Map.take(params, ~w(name email)))
+    |> user_changeset(Map.take(params, ~w(name email decimal_sep thousand_sep decimal_digits)))
     |> merge(password_changeset(user, params))
     |> Repo.update()
 
@@ -227,6 +227,9 @@ defmodule Air.Service.User do
     |> validate_required(@required_fields ++ Keyword.get(opts, :additional_required_fields, []))
     |> validate_format(:email, ~r/@/)
     |> validate_length(:name, min: 2)
+    |> validate_length(:decimal_sep, is: 1)
+    |> validate_length(:thousand_sep, is: 1)
+    |> validate_number(:decimal_digits, greater_than_or_equal_to: 1, less_than_or_equal_to: 9)
     |> validate_length(:password, min: 4)
     |> validate_confirmation(:password)
     |> update_password_hash()

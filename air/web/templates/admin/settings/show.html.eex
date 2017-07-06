@@ -1,10 +1,16 @@
 <h2>Settings</h2>
 
-<%= form_for @conn, admin_settings_path(@conn, :update), [method: :put, as: :settings, class: "form-horizontal"], fn f -> %>
+<%= if @changeset.action do %>
+  <div class="alert alert-danger">
+    <p>Oops, something went wrong! Please check the errors below.</p>
+  </div>
+<% end %>
+
+<%= form_for @changeset, admin_settings_path(@conn, :update), [class: "form-horizontal"], fn f -> %>
   <div class="form-group">
     <label class="col-sm-3 control-label">Query retention time (days)</label>
     <div class="col-sm-9">
-      <%= number_input f, :query_retention_days, value: @settings.query_retention_days, class: "form-control form-control-inline" %>
+      <%= number_input f, :query_retention_days, class: "form-control form-control-inline" %>
       <p class="help-block">
         Past queries will be kept for this many days. After that they will be deleted and unavailable
         when you "Load previous queries" or under Failed Queries. However, they will remain in the
@@ -18,7 +24,7 @@
     <div class="col-sm-9">
       <div class="checkbox">
         <label>
-          <%= checkbox(f, :audit_log_enabled, value: @settings.audit_log_enabled) %>
+          <%= checkbox(f, :audit_log_enabled) %>
           (enabled when checked)
         </label>
         <p class="help-block">
@@ -30,7 +36,7 @@
         </p>
       </div>
 
-      <%= if (not @settings.audit_log_enabled) and @audit_log_entries_count > 0 do %>
+      <%= if (not @changeset.data.audit_log_enabled) and @audit_log_entries_count > 0 do %>
         <p>
           The <%= link "audit log", to: admin_audit_log_path(@conn, :index) %> has been disabled,
           but there are still <strong><%= @audit_log_entries_count %> audit log entries stored
@@ -38,6 +44,28 @@
           <%= link "Delete audit log entries", to: admin_audit_log_path(@conn, :confirm_deletion) %>.
         </p>
       <% end %>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="col-sm-3 control-label">Decimal separator</label>
+      <div class="col-sm-2">
+        <%= text_input f, :decimal_sep, class: "form-control input-sm" %>
+        <%= error_tag f, :decimal_sep %>
+      </div>
+  </div>
+  <div class="form-group">
+    <label class="col-sm-3 control-label">Thousand separator</label>
+    <div class="col-sm-2">
+      <%= text_input f, :thousand_sep, class: "form-control input-sm" %>
+      <%= error_tag f, :thousand_sep %>
+    </div>
+  </div>
+  <div class="form-group">
+    <label class="col-sm-3 control-label">Decimal digits</label>
+    <div class="col-sm-2">
+      <%= text_input f, :decimal_digits, class: "form-control input-sm" %>
+      <%= error_tag f, :decimal_digits %>
     </div>
   </div>
 

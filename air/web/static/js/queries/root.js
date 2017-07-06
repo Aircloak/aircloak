@@ -8,7 +8,7 @@ import Channel from "phoenix";
 import {CodeEditor} from "../code_editor";
 import {CodeViewer} from "../code_viewer";
 import {Results} from "./results";
-import type {Result} from "./result";
+import type {Result, NumberFormat} from "./result";
 import type {Selectable} from "../selectable_info/selectable";
 import {FrontendSocket} from "../frontend_socket";
 import {HistoryLoader} from "./history_loader";
@@ -29,6 +29,7 @@ type Props = {
   lastQuery: {statement: string},
   pendingQueries: Result[],
   frontendSocket: FrontendSocket,
+  numberFormat: NumberFormat,
 };
 
 const upgradeRequired = 426;
@@ -345,6 +346,7 @@ export default class QueriesView extends React.Component {
   }
 
   render() {
+    this.state.sessionResults.forEach((result) => result.number_format = this.props.numberFormat);
     return (<div>
       <h2>
         {this.props.dataSourceName}

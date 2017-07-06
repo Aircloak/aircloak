@@ -19,6 +19,12 @@ export type Row = {
   users_count: number,
 };
 
+export type NumberFormat = {
+  decimal_digits: number,
+  decimal_sep: string,
+  thousand_sep: string,
+};
+
 export type Column = string;
 
 export type Result = {
@@ -38,6 +44,7 @@ export type Result = {
   },
   inserted_at: string,
   session_id: string,
+  number_format: NumberFormat,
 };
 
 type State = {
@@ -79,6 +86,7 @@ export class ResultView extends React.Component {
     this.conditionallyRenderChart = this.conditionallyRenderChart.bind(this);
     this.conditionallyRenderChartConfig = this.conditionallyRenderChartConfig.bind(this);
     this.formatValue = this.formatValue.bind(this);
+    this.formatNumber = this.formatNumber.bind(this);
 
     this.showingAllOfFewRows = this.showingAllOfFewRows.bind(this);
     this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
@@ -162,11 +170,11 @@ export class ResultView extends React.Component {
     return () => this.setState({graphConfig: this.state.graphConfig.remove(col)});
   }
 
-  formatValue(value: any): number | string {
+  formatValue(value: any): string {
     if (value === null) {
       return "<null>";
     } else if (this.isNumeric(value)) {
-      return Math.round(value * 1000) / 1000; // keep 3 decimals at most
+      return this.formatNumber(value);
     } else if (value === "") {
       return ZERO_WIDTH_SPACE; // keeps table row from collapsing
     } else {
@@ -174,9 +182,21 @@ export class ResultView extends React.Component {
     }
   }
 
-  isNumeric(n: any) {
+  isNumeric(n: any): boolean {
     return typeof(n) === "number" && isFinite(n);
   }
+
+  formatNumber(value: number): string {
+    let format = this.props.number_format;
+    let string = value.toLocaleString('en-US',
+      {minimumFractionDigits: 0, maximumFractionDigits: format.decimal_digits});
+    var [fixed, fractional] = string.split('.');
+    fixed = fixed.replace(/,/g, format.thousand_sep);
+    if (fractional === undefined)
+      return fixed;
+    else
+      return fixed + format.decimal_sep + fractional;
+  };
 
   conditionallyRenderChart() {
     if (this.state.showChart) {

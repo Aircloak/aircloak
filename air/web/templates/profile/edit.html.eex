@@ -25,6 +25,40 @@
         </div>
 
         <div class="form-group">
+          <label>Number format</label> (global setting is used if not specified)<br/>
+          <div class="form-group">
+            <span class="col-sm-7">
+              Decimal separator
+            </span>
+            <span class="col-sm-4">
+              <%= text_input f, :decimal_sep, class: "form-control input-sm" %>
+            </span>
+          </div>
+          <br/>
+          <%= error_tag f, :decimal_sep %>
+          <div class="form-group">
+            <span class="col-sm-7">
+              Thousand separator
+            </span>
+            <span class="col-sm-4">
+              <%= text_input f, :thousand_sep, class: "form-control input-sm" %>
+            </span>
+          </div>
+          <br/>
+          <%= error_tag f, :thousand_sep %>
+          <div class="form-group">
+            <span class="col-sm-7">
+              Decimal digits
+            </span>
+            <span class="col-sm-4">
+              <%= text_input f, :decimal_digits, class: "form-control input-sm" %>
+            </span>
+          </div>
+          <br/>
+          <%= error_tag f, :decimal_digits %>
+        </div>
+
+        <div class="form-group">
           <%= submit "Save", class: "btn btn-primary" %>
         </div>
       <% end %>

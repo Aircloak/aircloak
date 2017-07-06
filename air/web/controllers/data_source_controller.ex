@@ -51,7 +51,8 @@ defmodule Air.DataSourceController do
         guardian_token: Guardian.Plug.current_token(conn),
         csrf_token: CSRFProtection.get_csrf_token(),
         last_query: last_query,
-        session_id: Ecto.UUID.generate()
+        session_id: Ecto.UUID.generate(),
+        number_format: number_format_settings(conn.assigns.current_user),
       )
     else
       _ ->
@@ -69,5 +70,19 @@ defmodule Air.DataSourceController do
       nil -> redirect(conn, to: data_source_path(conn, :index))
       query -> redirect(conn, to: data_source_path(conn, :show, query.data_source.name))
     end
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp number_format_settings(user) do
+    default_settings = Air.Service.Settings.read()
+    %{
+      decimal_digits: user.decimal_digits || default_settings.decimal_digits,
+      decimal_sep: user.decimal_sep || default_settings.decimal_sep,
+      thousand_sep: user.thousand_sep || default_settings.thousand_sep,
+    }
   end
 end
