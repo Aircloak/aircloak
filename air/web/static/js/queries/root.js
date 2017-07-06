@@ -346,6 +346,7 @@ export default class QueriesView extends React.Component {
   }
 
   render() {
+    // eslint-disable-next-line no-return-assign, no-param-reassign
     this.state.sessionResults.forEach((result) => result.number_format = this.props.numberFormat);
     return (<div>
       <h2>

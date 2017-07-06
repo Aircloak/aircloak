@@ -105,7 +105,8 @@ export class ResultView extends React.Component {
   minRowsToShow: number;
   graphData: GraphDataT;
   graphInfo: GraphInfoT;
-  formatValue: (value: any) => string | number;
+  formatValue: (value: any) => string;
+  formatNumber: (value: number) => string;
   handleClickMoreRows: () => void;
   handleClickLessRows: () => void;
   renderRows: () => void;
@@ -187,16 +188,17 @@ export class ResultView extends React.Component {
   }
 
   formatNumber(value: number): string {
-    let format = this.props.number_format;
-    let string = value.toLocaleString('en-US',
+    const format = this.props.number_format;
+    const string = value.toLocaleString("en-US",
       {minimumFractionDigits: 0, maximumFractionDigits: format.decimal_digits});
-    var [fixed, fractional] = string.split('.');
+    let [fixed, fractional] = string.split("."); // eslint-disable-line prefer-const
     fixed = fixed.replace(/,/g, format.thousand_sep);
-    if (fractional === undefined)
+    if (fractional === undefined) {
       return fixed;
-    else
+    } else {
       return fixed + format.decimal_sep + fractional;
-  };
+    }
+  }
 
   conditionallyRenderChart() {
     if (this.state.showChart) {
