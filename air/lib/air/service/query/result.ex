@@ -22,6 +22,11 @@ defmodule Air.Service.Query.Result do
     |> Stream.take_while(&bucket_in_desired_range?(&1, desired_range))
     |> Enum.map(&to_bucket(&1, desired_range))
 
+  @doc "Returns a stream of rows represented by the given collection of buckets."
+  @spec rows_stream([map]) :: Enumerable.t
+  def rows_stream(buckets), do:
+    Stream.flat_map(buckets, &List.duplicate(Map.fetch!(&1, "row"), Map.fetch!(&1, "occurrences")))
+
 
   # -------------------------------------------------------------------
   # Internal functions

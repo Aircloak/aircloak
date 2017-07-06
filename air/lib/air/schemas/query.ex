@@ -91,12 +91,10 @@ defmodule Air.Schemas.Query do
 
   @doc "Exports the query as CSV"
   @spec to_csv_stream(t, [map]) :: Enumerable.t
-  def to_csv_stream(query, buckets) do
-    header = query.result["columns"]
-    rows = Enum.flat_map(buckets, &List.duplicate(Map.fetch!(&1, "row"), Map.fetch!(&1, "occurrences")))
-
-    CSV.encode([header | rows])
-  end
+  def to_csv_stream(query, buckets), do:
+    [query.result["columns"]]
+    |> Stream.concat(Air.Service.Query.Result.rows_stream(buckets))
+    |> CSV.encode()
 
 
   # -------------------------------------------------------------------
