@@ -24,7 +24,7 @@ defmodule Air.Service.Settings do
       else: Air.Repo.insert(changeset)
   end
 
-  @doc "Returns the changeset for ltest settings."
+  @doc "Returns the changeset for the latest settings."
   @spec latest_changeset() :: Ecto.Changeset.t
   def latest_changeset(), do: changeset(latest_settings())
 
