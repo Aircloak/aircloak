@@ -1,8 +1,8 @@
 defmodule Air.Service.Query do
   @moduledoc "Services for retrieving queries."
 
-  alias Ecto.Changeset
-  alias Air.{Repo, Schemas.DataSource, Schemas.Query, Schemas.User, Socket.Frontend.UserChannel}
+  alias Air.{Repo, Socket.Frontend.UserChannel}
+  alias Air.Schemas.{DataSource, Query, ResultChunk, User}
 
   import Ecto.Query
   require Logger
@@ -176,11 +176,7 @@ defmodule Air.Service.Query do
   # -------------------------------------------------------------------
 
   defp do_process_result(query, result) do
-    query =
-      query
-      |> result_changeset(result)
-      |> store_query_result!()
-
+    query = store_query_result!(query, result)
     log_result_error(query, result)
     UserChannel.broadcast_state_change(query)
     Air.Service.Query.Events.trigger_result(result)
@@ -211,9 +207,6 @@ defmodule Air.Service.Query do
     end
   end
 
-  defp store_query_result!(changeset), do:
-    Aircloak.report_long(:store_query_result, fn -> Repo.update!(changeset) end)
-
   defp log_result_error(query, result) do
     if result[:error], do:
       Logger.error([
@@ -229,7 +222,7 @@ defmodule Air.Service.Query do
       ])
   end
 
-  defp result_changeset(query, result) do
+  defp store_query_result!(query, result) do
     storable_result = %{
       columns: result[:columns],
       types: result[:features][:selected_types],
@@ -238,15 +231,30 @@ defmodule Air.Service.Query do
       row_count: result.row_count || 0,
     }
 
-    query
-    |> Query.changeset(%{
-      execution_time: result[:execution_time],
-      users_count: result[:users_count],
-      features: result[:features],
-      query_state: query_state(result),
-      result: storable_result
-    })
-    |> Changeset.put_assoc(:rows, Changeset.change(query.rows, %{rows: result[:rows]}))
+    changeset =
+      Query.changeset(query, %{
+        execution_time: result[:execution_time],
+        users_count: result[:users_count],
+        features: result[:features],
+        query_state: query_state(result),
+        result: storable_result
+      })
+
+    Aircloak.report_long(:store_query_result, fn ->
+      query = Repo.update!(changeset)
+
+      Enum.each(
+        result.chunks,
+        &Repo.insert!(%ResultChunk{
+          query_id: query.id,
+          offset: &1.offset,
+          row_count: &1.row_count,
+          encoded_data: &1.encoded_data
+        })
+      )
+
+      query
+    end)
   end
 
 
