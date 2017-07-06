@@ -102,7 +102,6 @@ defmodule Air.Service.Query do
     |> recent(recent_count, before)
     |> Repo.all()
     |> Repo.preload(preloads)
-    |> Enum.map(&Query.for_display/1)
   end
 
   @doc "Returns a list of the queries that are currently executing in all contexts."
@@ -171,11 +170,10 @@ defmodule Air.Service.Query do
   end
 
   @doc "Returns the buckets describing the desired range of rows."
-  @spec buckets(query_id, Air.Service.Query.Result.desired_range) :: [map]
-  def buckets(query_id, desired_range), do:
-    result_chunks(query_id, desired_range)
-    |> Repo.all()
-    |> Enum.map(&ResultChunk.decode/1)
+  @spec buckets(Query.t, Air.Service.Query.Result.desired_range) :: [map]
+  def buckets(query, desired_range), do:
+    query
+    |> fetch_decoded_chunks(desired_range)
     |> Air.Service.Query.Result.buckets(desired_range)
 
 
@@ -183,20 +181,19 @@ defmodule Air.Service.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp result_chunks(query_id, :all), do:
-    from(chunk in ResultChunk, where: chunk.query_id == ^query_id)
-  defp result_chunks(query_id, desired_range), do:
-    from(
-      chunk in result_chunks(query_id, :all),
-        where:
-          chunk.offset <= ^(desired_range.from + desired_range.count - 1) and
-          fragment("? + ? - 1", chunk.offset, chunk.row_count) >= ^desired_range.from
-    )
+  defp fetch_decoded_chunks(%Query{result: %{"rows" => buckets}}, _desired_range), do:
+    # Old style results (before 2017 Q4), where buckets are stored in the query table.
+    [%{offset: 0, buckets: buckets}]
+  defp fetch_decoded_chunks(query, desired_range), do:
+    query.id
+    |> result_chunks(desired_range)
+    |> Repo.all()
+    |> Enum.map(&ResultChunk.decode/1)
 
   defp do_process_result(query, result) do
     query = store_query_result!(query, result)
     log_result_error(query, result)
-    UserChannel.broadcast_state_change(query, buckets(query.id, %{from: 0, count: 100}))
+    UserChannel.broadcast_state_change(query, buckets(query, %{from: 0, count: 100}))
     Air.Service.Query.Events.trigger_result(result)
     report_query_result(result)
   end
@@ -310,6 +307,16 @@ defmodule Air.Service.Query do
     order_by: [desc: q.inserted_at],
     limit: ^count
   end
+
+  defp result_chunks(query_id, :all), do:
+    from(chunk in ResultChunk, where: chunk.query_id == ^query_id)
+  defp result_chunks(query_id, desired_range), do:
+    from(
+      chunk in result_chunks(query_id, :all),
+        where:
+          chunk.offset <= ^(desired_range.from + desired_range.count - 1) and
+          fragment("? + ? - 1", chunk.offset, chunk.row_count) >= ^desired_range.from
+    )
 
   if Mix.env == :test do
     defp report_query_result(_), do: :ok

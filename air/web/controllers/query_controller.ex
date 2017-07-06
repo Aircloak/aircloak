@@ -45,11 +45,13 @@ defmodule Air.QueryController do
       "" -> NaiveDateTime.utc_now()
       string -> NaiveDateTime.from_iso8601!(string)
     end
-    case DataSource.history(data_source_id_spec(params), conn.assigns.current_user, :http, 10, before,
-      load_rows: true)
-    do
-      {:ok, queries} -> json(conn, queries)
-      _ -> send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
+    case DataSource.history(data_source_id_spec(params), conn.assigns.current_user, :http, 10, before) do
+      {:ok, queries} ->
+        json(conn,
+          Enum.map(queries, &Query.for_display(&1, Air.Service.Query.buckets(&1, %{from: 0, count: 100})))
+        )
+      _ ->
+        send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
     end
   end
 
@@ -61,7 +63,7 @@ defmodule Air.QueryController do
           ["csv"] ->
             conn = put_resp_content_type(conn, "text/csv")
             conn = send_chunked(conn, 200)
-            buckets = Air.Service.Query.buckets(query.id, :all)
+            buckets = Air.Service.Query.buckets(query, :all)
             csv_stream = Query.to_csv_stream(query, buckets)
             Enum.reduce(csv_stream, conn, fn(data, conn) ->
               {:ok, conn} = chunk(conn, data)
