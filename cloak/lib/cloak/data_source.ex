@@ -12,7 +12,15 @@ defmodule Cloak.DataSource do
         table_id: [
           db_name: "table name",
           user_id: "user id column name",
-          ignore_unsupported_types: false
+          ignore_unsupported_types: false,
+          foreign_keys: [
+            %{
+              table: "another table",
+              foreign_key: "another_table_id",
+              primary_key: "id,
+            },
+            ...
+          ]
         ]
       ]
     ]
@@ -28,6 +36,10 @@ defmodule Cloak.DataSource do
   During startup, the list of columns available in all defined tables is loaded and cached for later lookups.
   If 'ignore_unsupported_types' is set to true then columns with types that aren't supported by the driver
   will be ignored at this point and unavailable for processing.
+
+  The foreign_keys field in each table can be used to list fields that refer to other tables. That way when a join
+  condition of the form fk = pk will be added no additional noise layers will be generating, resulting in less overall
+  noise in those cases. There is no need to add the projection (if any) to this list - it's included automatically.
 
   The data source schema will also be sent to air, so it can be referenced by incoming tasks.
   """
