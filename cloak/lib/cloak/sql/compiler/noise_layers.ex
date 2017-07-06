@@ -201,7 +201,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       foreign_key: lhs.name,
       primary_key: rhs.name,
       table: rhs.table.name,
-    } in Map.get(lhs.table, :keys, [])
+    } in Map.get(lhs.table, :foreign_keys, [])
 
   defp range_noise_layers(%{ranges: ranges}), do:
     Enum.flat_map(ranges, fn(%{column: column, interval: range}) ->

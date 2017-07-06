@@ -253,9 +253,9 @@ defmodule Cloak.DataSource do
   defp standardize_foreign_keys(data_source) do
     tables = for {key, table} <- data_source.tables, into: %{} do
       if is_nil(table[:projection]) do
-        {key, Map.put(table, :keys, Map.get(table, :keys, []))}
+        {key, Map.put(table, :foreign_keys, Map.get(table, :foreign_keys, []))}
       else
-        {key, Map.put(table, :keys, [Map.get(table, :projection) | Map.get(table, :keys, [])])}
+        {key, Map.put(table, :foreign_keys, [Map.get(table, :projection) | Map.get(table, :foreign_keys, [])])}
       end
     end
 

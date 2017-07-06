@@ -526,7 +526,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
           user_id: "uid",
           columns: [Table.column("uid", :integer), Table.column("table_id", :integer)],
           projection: nil,
-          keys: [
+          foreign_keys: [
             %{
               table: "table",
               foreign_key: "table_id",
