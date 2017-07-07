@@ -82,8 +82,7 @@ defmodule Air.Schemas.Query do
     |> Repo.preload([:user, :data_source])
     |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at, :query_state])
     |> Map.merge(query.result || %{})
-    |> Map.put(:columns, query.result["columns"] || [])
-    |> Map.put(:rows, buckets || [])
+    |> add_result(query, buckets)
     |> Map.merge(data_source_info(query))
     |> Map.merge(user_info(query))
     |> Map.put(:completed, completed?(query))
@@ -109,4 +108,11 @@ defmodule Air.Schemas.Query do
 
   defp completed?(query), do:
     query.query_state in [:error, :completed, :cancelled]
+
+  defp add_result(result, _query, nil), do:
+    result
+  defp add_result(result, query, buckets), do:
+    result
+    |> Map.put(:columns, query.result["columns"])
+    |> Map.put(:rows, buckets)
 end

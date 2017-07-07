@@ -69,19 +69,11 @@ defmodule Air.TestRepoHelper do
 
   @doc "Inserts a test query into the database"
   @spec create_query!(Air.Schemas.User.t, %{}) :: Air.Schemas.Query.t
-  def create_query!(user, params \\ %{statement: "query content", session_id: Ecto.UUID.generate()}) do
-    query =
-      user
-      |> Ecto.build_assoc(:queries)
-      |> Air.Schemas.Query.changeset(Map.merge(%{context: :http}, params))
-      |> Repo.insert!()
-      |> Repo.preload(:rows)
-
-    query
-    |> Ecto.Changeset.change(%{result: storable_result(params[:result])})
-    |> Ecto.Changeset.put_assoc(:rows, Ecto.Changeset.change(query.rows, %{rows: encode_rows(params[:result])}))
-    |> Repo.update!()
-  end
+  def create_query!(user, params \\ %{statement: "query content", session_id: Ecto.UUID.generate()}), do:
+    user
+    |> Ecto.build_assoc(:queries)
+    |> Air.Schemas.Query.changeset(Map.merge(%{context: :http}, params))
+    |> Repo.insert!()
 
   @doc "Registers a cloak a serving a data source, returning the data source id"
   @spec create_and_register_data_source() :: String.t
@@ -147,13 +139,6 @@ defmodule Air.TestRepoHelper do
     end
   end
 
-  @doc "Computes the row count from the result."
-  @spec row_count(map) :: nil | non_neg_integer
-  def row_count(%{rows: rows}), do:
-    rows |> Stream.map(&(&1.occurrences)) |> Enum.sum()
-  def row_count(_), do:
-    nil
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -166,13 +151,5 @@ defmodule Air.TestRepoHelper do
     data_sources = [%{name: name, global_id: global_id, tables: []}]
     Air.Service.Cloak.register(cloak_info(), data_sources)
     :ok
-  end
-
-  defp storable_result(nil), do:
-    nil
-  defp storable_result(result) do
-    result
-    |> Map.delete(:rows)
-    |> Map.put(:row_count, row_count(result))
   end
 end
