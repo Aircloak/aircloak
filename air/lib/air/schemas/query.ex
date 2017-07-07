@@ -2,7 +2,7 @@ defmodule Air.Schemas.Query do
   @moduledoc "The query schema."
   use Air.Schemas.Base
 
-  alias Air.{Schemas.DataSource, Schemas.Query.Rows, Schemas.User, Repo, PsqlServer.Protocol}
+  alias Air.{Schemas.DataSource, Schemas.User, Repo, PsqlServer.Protocol}
 
   require EctoEnum
 
@@ -40,11 +40,6 @@ defmodule Air.Schemas.Query do
 
     belongs_to :user, User
     belongs_to :data_source, DataSource
-
-    # Result is a field in the table, but we're fetching it from a separate schema. Thus, when querying through this
-    # schema, result won't be loaded by default (unless preload or join is done). This is done to avoid needlessly
-    # retrieving a potentially large field.
-    has_one :rows, Rows, foreign_key: :id
 
     timestamps usec: true
   end

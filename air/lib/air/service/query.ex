@@ -59,16 +59,12 @@ defmodule Air.Service.Query do
   end
 
   @doc "Returns a query if accessible by the given user, without associations preloaded."
-  @spec get_as_user(User.t, query_id, [load_rows: boolean]) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
-  def get_as_user(user, id, opts \\ []) do
+  @spec get_as_user(User.t, query_id) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
+  def get_as_user(user, id) do
     try do
-      with {:ok, query} <- user |> query_scope() |> get(id) do
-        if Keyword.get(opts, :load_rows, false) do
-          {:ok, Repo.preload(query, :rows)}
-        else
-          {:ok, query}
-        end
-      end
+      user
+      |> query_scope()
+      |> get(id)
     rescue Ecto.Query.CastError ->
       {:error, :invalid_id}
     end
@@ -89,20 +85,15 @@ defmodule Air.Service.Query do
   end
 
   @doc "Loads the most recent queries for a given user"
-  @spec load_recent_queries(User.t, DataSource.t, Query.Context.t, pos_integer, NaiveDateTime.t,
-    [load_rows: boolean]) :: [Query.t]
-  def load_recent_queries(user, data_source, context, recent_count, before, opts \\ []) do
-    preloads = [:user, :data_source] ++
-      if Keyword.get(opts, :load_rows, false), do: [:rows], else: []
-
+  @spec load_recent_queries(User.t, DataSource.t, Query.Context.t, pos_integer, NaiveDateTime.t) :: [Query.t]
+  def load_recent_queries(user, data_source, context, recent_count, before), do:
     Query
     |> started_by(user)
     |> for_data_source(data_source)
     |> in_context(context)
     |> recent(recent_count, before)
     |> Repo.all()
-    |> Repo.preload(preloads)
-  end
+    |> Repo.preload([:user, :data_source])
 
   @doc "Returns a list of the queries that are currently executing in all contexts."
   @spec currently_running() :: [Query.t]
@@ -142,7 +133,7 @@ defmodule Air.Service.Query do
   """
   @spec process_result(map) :: :ok
   def process_result(result) do
-    query = Repo.get!(Query, result.query_id) |> Repo.preload([:rows, :user])
+    query = Repo.get!(Query, result.query_id) |> Repo.preload([:user])
     if valid_state_transition?(query.query_state, query_state(result)), do:
       do_process_result(query, result)
 
@@ -156,7 +147,7 @@ defmodule Air.Service.Query do
   """
   @spec query_died(query_id) :: :ok
   def query_died(query_id) do
-    query = Repo.get!(Query, query_id) |> Repo.preload(:rows)
+    query = Repo.get!(Query, query_id)
 
     if valid_state_transition?(query.query_state, :error) do
       query = query

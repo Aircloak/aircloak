@@ -91,7 +91,7 @@ defmodule Air.TestRepoHelper do
   @doc "Retrieves a query from the database by id."
   @spec get_query(String.t) :: {:ok, Air.Schemas.Query.t} | {:error, :not_found}
   def get_query(id) do
-    case Air.Repo.get(Air.Schemas.Query, id) |> Air.Repo.preload(:rows) do
+    case Air.Repo.get(Air.Schemas.Query, id) do
       nil -> {:error, :not_found}
       query -> {:ok, query}
     end

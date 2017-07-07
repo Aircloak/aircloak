@@ -57,7 +57,7 @@ defmodule Air.QueryController do
 
   def show(conn, %{"id" => id_type}) do
     [id | extension] = String.split(id_type, ".", parts: 2)
-    case Air.Service.Query.get_as_user(conn.assigns.current_user, id, load_rows: true) do
+    case Air.Service.Query.get_as_user(conn.assigns.current_user, id) do
       {:ok, query} ->
         case extension do
           ["csv"] ->
