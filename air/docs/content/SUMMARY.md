@@ -14,6 +14,7 @@
   - [How the components interact](components.md#how-the-components-interact)
 - [Deployment](deployment.md)
   - [Overview](deployment.md#overview)
+  - [Resource requirements](deployment.md#resource-requirements)
   - [Important notice](deployment.md#important-notice)
 - [Scaling](scaling.md)
   - [Low query volume](scaling.md#low-query-volume)

@@ -8,7 +8,7 @@ remaining ones are provided by the customer. Below follows a description of the 
 ### Insights Air
 
 Insights Air is the component that analysts and system administrators interact with directly. It provides a web
-interface for managing users and user privileges, datasources, as well as for running queries. Additionally Insights Air
+interface for managing users, user privileges, and datasources, as well as for running queries. Additionally Insights Air
 provides an [HTTP API](api.md) for connecting external tools to an Aircloak installation as well as an endpoint for tools and
 plugins that support the Postgres message protocol.
 
@@ -20,9 +20,9 @@ privileged users.
 
 Insights Cloak analyses and anonymizes sensitive data as requested by Insights Air. It operates on raw and
 sensitive data and should therefore run in an environment that is well protected. Insights Cloak does not require the
-ability to receive inbound connections. Upon booting it will establish connections to the Insights Air instance it has
+ability to receive inbound connections. Upon booting it will establish a connection to the Insights Air instance it has
 been statically configured to trust. Multiple Insights Cloak instances can all be connected to the same Insights Air
-instance, and furthermore do not communicate amongst themselves.
+instance, and furthermore do not communicate with each other.
 
 It is highly recommended that Insights Cloak is hosted within a restricted and well protected network as it has access
 to and operates on sensitive and restricted data.
@@ -39,11 +39,11 @@ Insights Datasource Connector is deployed and configured as part of Insights Clo
 instance therefore only serves a single Insights Cloak. An Insights Cloak instance on the other hand may make use of
 multiple distinct Insights Datasource Connectors in order to serve data from distinct datasources.
 
-In order for the Insights Datasource Connector to work, the Insights Cloak it is deployed as part of needs to be located
-in a network from which it has access to the database server.
+As Insights Datasource Connector needs access to the database server hosting the data to be analysed, so does the
+Insights Cloak that it is a part of.
 
 The Insights Datasource Connector has the ability to emulate database features beyond what is supported natively by the
-database server itself. Examples of this include the ability to work on encrypted field and columns, casting data to
+database server itself. Examples of this include the ability to work on encrypted fields and columns, converting data to
 types not natively supported, and performing table joins where no such support exists.
 
 
@@ -69,7 +69,7 @@ facility operated by the customer.
 
 ### Monitoring
 
-Insights Air provides an API endpoint. This API endpoint can be tied into existing monitoring infrastructure, to improve
+Insights Air provides an monitoring API endpoint. This API endpoint can be tied into existing monitoring infrastructure, to improve
 the visibility into the workings of the Aircloak Insights platform.
 
 
@@ -87,7 +87,7 @@ rather than the other way around.
 
 Of special interest is that:
 
-- An Insight Air instance can serve multiple Insights Cloak instances
+- An Insights Air instance can serve multiple Insights Cloak instances
 - An Insights Cloak instance can connect to multiple datasources through
   multiple Insights Datasource Connectors. These datasources might be hosted in a
   single or in distinct database servers.

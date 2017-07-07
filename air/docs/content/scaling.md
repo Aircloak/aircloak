@@ -12,7 +12,7 @@ Cloak instance is sufficient.
 Cloak, IDC: Insights Datasource connector, DS: Datasource](scaling/single-low.png)
 
 
-## Multiple datasources, low query volume
+### Multiple datasources
 
 When an organisation has many datasources that should be made available for querying but a low number of concurrent
 queries, a single Insight Cloak instance can be configured to serve them all. The datasources can be located in a single
@@ -38,13 +38,12 @@ Cloak, IDC: Insights Datasource connector, DS: Datasource](scaling/single-high.p
 
 ### Multiple datasources
 
-When multiple datasources receive a high volume of queries there are two distinct ways in which one can approach the
+When multiple datasources receive a high volume of queries there are two ways in which one can approach the
 setup.
 
 The first approach is conceptually the simplest. It uses multiple individual instances of the
 [single datasource, high query volume](#high-query-volume) setup. These can connect to
-a single Insights Air, or each be given a dedicated Insight Air instance. This
-model is beneficial when the volume of queries is stable and predictable.
+a single Insights Air, or each be given a dedicated Insight Air instance.
 
 The second approach is to configure multiple Insight Cloak instances all serving all available datasources. This
 approach is shown in the diagram below. This model works well when the number of queries issued to the different

@@ -2,7 +2,7 @@
 
 ## Overview
 
-All Aircloak provided components (Insights Air, Insights Cloak, and Insights Datasource Connector) are deployed as
+All Aircloak-provided components (Insights Air, Insights Cloak, and Insights Datasource Connector) are deployed as
 docker containers. As such they can be deployed in physical as well as virtualized environments. They also lend
 themselves to be deployed in managed docker environments like Kubernetes and Mesos.
 
@@ -17,8 +17,9 @@ this includes access credentials for its Postgres database. For Insights Cloak i
 Insights Air instance it should connect to as well as a static configuration for the datasources that should be made
 available through it.
 
-Both the Insights Air and Insights Cloak configurations contain secrets used to secure and sign communication
-respectively between Insights Cloak and Insights Air, and Insights Air and the analyst.
+The Insight Air and Insights Cloak configurations contain secrets.
+The Insights Cloak uses them to secure the communication between itself and Insight Air, while
+Insights Air uses secrets for securing the communication with the analyst.
 
 Insights Datasource Connector derives its configuration from that of Insights Cloak.
 
@@ -39,17 +40,17 @@ Insights Cloak and Insights Datasource Connectors are deployed as a single unit.
 should be deployed on separate machines.
 During analysis Insights Cloak holds the data being analysed in memory. The memory requirements of Insights Cloak vary
 with the size of the dataset being queried. It is recommended to deploy Insights Cloak with a minimum of 8GB of memory.
-If queries routinely fail with “out of memory”-warnings the amount of memory made available should be increased.
+If queries routinely fail with “out of memory” warnings the amount of memory made available should be increased.
 
-Insights Cloak works best when given access to multiple CPU cores.
+Insights Cloak benefits from having access to multiple CPU cores when multipel queries are to be run in parallel.
 
 ## Important notice
 
 Docker allows restricting the amount of memory made available to a given docker container. __Do not use this form of
-restriction on Insights Cloak__. It interferes with Insight Cloaks ability to detect and terminate rampant queries, and
+restriction on Insights Cloak's__. It interferes with Insights Cloaks ability to detect and terminate rampant queries, and
 might result in the component becoming unavailable.
 
-If restricting the amount of memory made available to Insight Cloak is desired, it is recommended to deploy Insights
+If restricting the amount of memory made available to Insights Cloak is desired, it is recommended to deploy Insights
 Cloak in a separate virtual machine.
 
 
