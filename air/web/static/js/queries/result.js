@@ -189,15 +189,14 @@ export class ResultView extends React.Component {
 
   formatNumber(value: number): string {
     const format = this.props.number_format;
-    const string = value.toLocaleString("en-US",
-      {minimumFractionDigits: 0, maximumFractionDigits: format.decimal_digits});
-    let [fixed, fractional] = string.split("."); // eslint-disable-line prefer-const
-    fixed = fixed.replace(/,/g, format.thousand_sep);
-    if (fractional === undefined) {
-      return fixed;
-    } else {
-      return fixed + format.decimal_sep + fractional;
+    let string = value.toLocaleString("en-US",
+      {minimumFractionDigits: format.decimal_digits, maximumFractionDigits: format.decimal_digits});
+    const [fixed, fractional] = string.split(".");
+    string = fixed.replace(/,/g, format.thousand_sep)
+    if (!Number.isInteger(value)) {
+      string += format.decimal_sep + fractional;
     }
+    return string;
   }
 
   conditionallyRenderChart() {
