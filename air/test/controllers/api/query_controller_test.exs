@@ -36,6 +36,31 @@ defmodule Air.API.QueryController.Test do
     assert %{"query" => %{"statement" => "text of the query"}} = JSON.decode!(result)
   end
 
+  test "showing the result of the query" do
+    user = create_user!()
+    token = create_token!(user)
+    query = create_query!(
+      user,
+      %{statement: "text of the query", query_state: :started, data_source_id: create_data_source!().id}
+    )
+    send_query_result(
+      query.id,
+      %{
+        columns: ["col1", "col2"],
+        info: ["some info"],
+        users_count: 2,
+        features: %{selected_types: ["some types"]},
+        execution_time: 123,
+      },
+      [%{occurrences: 10, row: [1, 1]}]
+    )
+
+    result = api_conn(token) |> get("/api/queries/#{query.id}") |> response(200) |> JSON.decode!()
+    assert result |> Map.fetch!("query") |> Map.fetch!("columns") == ["col1", "col2"]
+    assert result |> Map.fetch!("query") |> Map.fetch!("row_count") == 10
+    assert result |> Map.fetch!("query") |> Map.fetch!("rows") == [%{"occurrences" => 10, "row" => [1, 1]}]
+  end
+
   test "show a query of another user fails" do
     user = create_user!()
     token = create_token!(user)

@@ -63,13 +63,13 @@ defmodule Air.QueryController do
           ["csv"] ->
             conn = put_resp_content_type(conn, "text/csv")
             conn = send_chunked(conn, 200)
-            buckets = Air.Service.Query.buckets(query, :all)
-            csv_stream = Query.to_csv_stream(query, buckets)
+            csv_stream = Query.to_csv_stream(query, Air.Service.Query.buckets(query, :all))
             Enum.reduce(csv_stream, conn, fn(data, conn) ->
               {:ok, conn} = chunk(conn, data)
               conn
             end)
-          _ -> json(conn, %{query: Query.for_display(query)})
+          _ ->
+            json(conn, %{query: Query.for_display(query, Air.Service.Query.buckets(query, :all))})
         end
       _ ->
         conn = put_status(conn, Status.code(:not_found))
