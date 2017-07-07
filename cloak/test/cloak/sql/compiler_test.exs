@@ -953,6 +953,11 @@ defmodule Cloak.Sql.Compiler.Test do
       " or (`constant text`, `datetime` | `date`), but got (`text`, `datetime`)."
   end
 
+  test "rejecting aggregates in the WHERE-clause" do
+    assert {:error, reason} = compile("select count(*) from table where count(*) > 10 group by numeric", data_source())
+    assert reason == "Expression `count` is not valid in the `WHERE` clause."
+  end
+
   defp projected_table_db_columns(query), do:
     query
     |> get_in([all_subqueries()])

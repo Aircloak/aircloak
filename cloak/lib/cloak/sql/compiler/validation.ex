@@ -114,7 +114,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_group_by_functions(query) do
     query.group_by
-    |> Enum.filter(& &1.aggregate?)
+    |> Enum.filter(&aggregate_expression?/1)
     |> case do
       [] -> :ok
       [expression | _] -> raise CompilationError, message:
@@ -232,7 +232,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
     Lenses.conditions_terminals()
     |> Lens.to_list(clauses)
-    |> Enum.filter(& &1.aggregate?)
+    |> Enum.filter(&aggregate_expression?/1)
     |> case do
       [] -> :ok
       [column | _rest] ->
@@ -319,4 +319,12 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_subquery_offset(%{offset: offset, limit: limit}, alias) when is_nil(limit) and offset > 0, do:
     raise CompilationError, message: "Subquery `#{alias}` has an OFFSET clause without a LIMIT clause."
   defp verify_subquery_offset(subquery, _), do: subquery
+
+
+  # -------------------------------------------------------------------
+  # Helpers
+  # -------------------------------------------------------------------
+
+  defp aggregate_expression?(%Expression{aggregate?: true}), do: true
+  defp aggregate_expression?(_), do: false
 end
