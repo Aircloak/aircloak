@@ -153,7 +153,17 @@ defmodule Air.Service.DataSource do
       receive do
         {:query_result, %{query_id: ^query_id} = result} ->
           Service.Query.Events.unsubscribe(query_id)
-          {:ok, result}
+
+          buckets =
+            Map.get(result, :chunks, [])
+            |> Enum.map(&Air.Schemas.ResultChunk.decode/1)
+            |> Air.Service.Query.Result.buckets(:all)
+
+          {:ok,
+            result
+            |> Map.delete(:chunks)
+            |> Map.put(:buckets, buckets)
+          }
       end
     end
   end

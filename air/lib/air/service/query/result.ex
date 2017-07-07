@@ -22,6 +22,14 @@ defmodule Air.Service.Query.Result do
     |> Stream.take_while(&bucket_in_desired_range?(&1, desired_range))
     |> Enum.map(&to_bucket(&1, desired_range))
 
+  @doc "Eagerly converts buckets to rows."
+  @spec rows([map]) :: [[any]]
+  def rows(buckets), do:
+    buckets
+    |> rows_stream()
+    |> Enum.to_list()
+
+
   @doc "Returns a stream of rows represented by the given collection of buckets."
   @spec rows_stream([map]) :: Enumerable.t
   def rows_stream(buckets), do:
