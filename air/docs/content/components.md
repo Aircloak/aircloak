@@ -7,7 +7,7 @@ remaining ones are provided by the customer. Below follows a description of the 
 
 ### Insights Air
 
-Insights Air (`IA`) is the component that analysts and system administrators interact with directly. It provides a web
+Insights Air is the component that analysts and system administrators interact with directly. It provides a web
 interface for managing users and user privileges, datasources, as well as for running queries. Additionally Insights Air
 provides an [HTTP API](api.md) for connecting external tools to an Aircloak installation as well as an endpoint for tools and
 plugins that support the Postgres message protocol.
@@ -18,7 +18,7 @@ privileged users.
 
 ### Insights Cloak
 
-Insights Cloak (`IC`) analyses and anonymizes sensitive data as requested by Insights Air. It operates on raw and
+Insights Cloak analyses and anonymizes sensitive data as requested by Insights Air. It operates on raw and
 sensitive data and should therefore run in an environment that is well protected. Insights Cloak does not require the
 ability to receive inbound connections. Upon booting it will establish connections to the Insights Air instance it has
 been statically configured to trust. Multiple Insights Cloak instances can all be connected to the same Insights Air
@@ -31,7 +31,7 @@ _Only anonymized and aggregated data is sent from Insights Cloak to Insights Air
 
 ### Insights Datasource Connector
 
-Insights Datasource Connector (`IDC`) knows how to provide the data required by Insights Cloak to run a query. It connects
+Insights Datasource Connector knows how to provide the data required by Insights Cloak to run a query. It connects
 to the database server hosting the datasource being queried and transfers the required data to Insights Cloak. Insights
 Datasource Connector, like Insights Cloak, does not permanently store any sensitive data.
 
