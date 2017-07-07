@@ -78,7 +78,8 @@ the visibility into the workings of the Aircloak Insights platform.
 The following diagram shows the possible ways in which the components interact. For common configurations, see the
 subsequent sections.
 
-![component interactions](components/interactions.svg)
+![Shows an overview of different ways in which the Aircloak Insight components interact. IA: Insights Air, IC: Insights
+Cloak, IDC: Insights Datasource connector, DS: Datasource](components/interactions.png)
 
 In the diagram above the arrows point to the component being connected to.
 For example it shows that Insights Cloak connects to Insights Air,

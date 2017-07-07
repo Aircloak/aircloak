@@ -8,7 +8,8 @@ The most common setup is one where the customer has a single datasource that the
 datasource might be hosted across a single or multiple database servers. If the query volume is low, a single Insights
 Cloak instance is sufficient.
 
-![single-datasource-low-query-volume](scaling/single-low.svg)
+![Shows the base level Aircloak Insights setup. IA: Insights Air, IC: Insights
+Cloak, IDC: Insights Datasource connector, DS: Datasource](scaling/single-low.png)
 
 
 ## Multiple datasources, low query volume
@@ -17,7 +18,8 @@ When an organisation has many datasources that should be made available for quer
 queries, a single Insight Cloak instance can be configured to serve them all. The datasources can be located in a single
 or on multiple different database servers.
 
-![multiple-datasources-low-query-volume](scaling/multi-low.svg)
+![Shows a setup of Aircloak Insights where multiple data sources are connected to a single Insights Cloak. IA: Insights Air, IC: Insights
+Cloak, IDC: Insights Datasource connector, DS: Datasource](scaling/multi-low.png)
 
 
 ## High query volume
@@ -30,7 +32,8 @@ Cloak instances, Insights Air will spread the queries across the Insight Cloak i
 run on a single Insights Cloak instance at a time, additional queries can be executed on other available Insights Cloak
 instances without affecting its performance.
 
-![single-datasource-high-query-volume](scaling/single-high.svg)
+![Shows a setup of Aircloak Insights allowing higher number of concurrent queries. IA: Insights Air, IC: Insights
+Cloak, IDC: Insights Datasource connector, DS: Datasource](scaling/single-high.png)
 
 
 ### Multiple datasources
@@ -49,4 +52,5 @@ datasources vary over time. As the hardware resources are shared across all data
 spikes in the query load for a given datasource, but since the hardware resources are shared the query performance
 across the datasources varies over time depending on the overall load.
 
-![multiple-datasources-high-query-volume](scaling/multi-high.svg)
+![Shows a setup of Aircloak Insights load balancing a higher number of queries across multipel data sources. IA: Insights Air, IC: Insights
+Cloak, IDC: Insights Datasource connector, DS: Datasource](scaling/multi-high.png)
