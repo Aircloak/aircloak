@@ -3,7 +3,7 @@
 An Aircloak installation consists of a set of individual components. A subset of these are provided by Aircloak. The
 remaining ones are provided by the customer. Below follows a description of the individual components.
 
-## Provided by Aircloak
+## Components provided by Aircloak
 
 ### Insights Air
 
@@ -47,7 +47,7 @@ database server itself. Examples of this include the ability to work on encrypte
 types not natively supported, and performing table joins where no such support exists.
 
 
-## Provided by the customer
+## Components provided by the customer
 
 ### Postgres database
 
