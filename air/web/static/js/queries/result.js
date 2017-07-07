@@ -12,6 +12,7 @@ import {GraphView} from "./graph_view";
 import type {GraphDataT, GraphInfoT} from "./graph_data";
 import {TableAligner} from "./table_aligner";
 import type {TableAlignerT} from "./table_aligner";
+import {loadBuckets} from "../request";
 
 export type Row = {
   occurrences: number,
@@ -46,6 +47,7 @@ type State = {
   showChartConfig: boolean,
   graphConfig: GraphConfig,
   tableAligner: TableAlignerT,
+  availableRows: Row[],
 };
 
 const UNRELIABLE_USER_COUNT_THRESHOLD = 15;
@@ -63,6 +65,7 @@ export class ResultView extends React.Component {
       showChartConfig: true,
       graphConfig: new GraphConfig(),
       tableAligner: new TableAligner(props.rows),
+      availableRows: this.props.rows,
     };
 
     this.componentDidUpdate = this.componentDidUpdate.bind(this);
@@ -84,7 +87,7 @@ export class ResultView extends React.Component {
     this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
     this.showingMinimumNumberOfManyRows = this.showingMinimumNumberOfManyRows.bind(this);
 
-    this.graphInfo = new GraphInfo(this.props.columns, this.props.rows);
+    this.graphInfo = new GraphInfo(this.props.columns, this.state.availableRows);
     this.rebuildGraphData();
 
     this.addX = this.addX.bind(this);
@@ -123,14 +126,28 @@ export class ResultView extends React.Component {
   rebuildGraphData() {
     this.graphData = new GraphData(
       this.props.columns,
-      this.props.rows,
+      this.state.availableRows,
       this.state.graphConfig,
       this.formatValue
     );
   }
 
   handleClickMoreRows() {
-    this.setState({rowsToShowCount: Math.min(this.state.rowsToShowCount * 2, this.props.row_count)});
+    const increment = Math.min(this.state.rowsToShowCount, 100);
+    const rowsToShowCount = Math.min(this.state.rowsToShowCount + increment, this.props.row_count);
+    const availableRowsCount = _.sum(_.flatMap(this.state.availableRows, (row) => row.occurrences));
+    if (rowsToShowCount <= availableRowsCount) {
+      this.setState({rowsToShowCount: Math.min(this.state.rowsToShowCount * 2, this.props.row_count)});
+    } else {
+      loadBuckets(this.props.id, availableRowsCount, this.context.authentication, {
+        success: (newRows) => {
+          this.setState({
+            availableRows: _.concat(this.state.availableRows, newRows),
+            rowsToShowCount: Math.min(this.state.rowsToShowCount * 2, this.props.row_count),
+          });
+        },
+      });
+    }
   }
 
   handleClickLessRows() {
@@ -222,7 +239,7 @@ export class ResultView extends React.Component {
 
   renderRows() {
     let remainingRowsToProduce = this.state.rowsToShowCount;
-    const rows = _.flatMap(this.props.rows, (accumulateRow, i) => {
+    const rows = _.flatMap(this.state.availableRows, (accumulateRow, i) => {
       const occurrencesForAccumulateRow = Math.min(remainingRowsToProduce, accumulateRow.occurrences);
       return _.range(occurrencesForAccumulateRow).map((occurrenceCount) => {
         remainingRowsToProduce -= 1;
@@ -349,3 +366,7 @@ export class ResultView extends React.Component {
   }
 
 }
+
+ResultView.contextTypes = {
+  authentication: React.PropTypes.object.isRequired,
+};

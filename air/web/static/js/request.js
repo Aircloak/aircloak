@@ -47,3 +47,17 @@ export const loadHistory = (
     error: callbacks.error,
   });
 };
+
+export const loadBuckets = (
+  queryId: string,
+  from: number,
+  authentication: Authentication,
+  callbacks: Callbacks
+) => {
+  $.ajax(`/queries/${queryId}/buckets?from=${from}`, {
+    method: "GET",
+    headers: headers(authentication),
+    success: callbacks.success,
+    error: callbacks.error,
+  });
+};
