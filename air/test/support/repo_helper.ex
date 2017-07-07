@@ -1,7 +1,7 @@
 defmodule Air.TestRepoHelper do
   @moduledoc "Helpers for working with the repository."
 
-  alias Air.{Service.User, Schemas.ApiToken, Schemas.Group, Repo}
+  alias Air.{Service.User, Service.Query, Schemas.ApiToken, Schemas.Group, Repo}
 
   @doc "Inserts the new user with default parameters into the database."
   @spec create_user!(%{}) :: Air.Schemas.User.t
@@ -139,6 +139,15 @@ defmodule Air.TestRepoHelper do
     end
   end
 
+  @doc "Sends the query result to the Query service."
+  @spec send_query_result(String.t, map, [map]) :: :ok
+  def send_query_result(query_id, result, rows \\ nil), do:
+    result
+    |> Map.put(:query_id, query_id)
+    |> Map.put(:chunks, encode_chunks(rows))
+    |> Map.put(:row_count, row_count(rows))
+    |> Query.process_result()
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -152,4 +161,25 @@ defmodule Air.TestRepoHelper do
     Air.Service.Cloak.register(cloak_info(), data_sources)
     :ok
   end
+
+  defp encode_chunks(nil), do:
+    []
+  defp encode_chunks(rows), do:
+    rows
+    |> Stream.chunk(2, 2, [])
+    |> Stream.transform(0, &encode_chunk/2)
+
+  defp encode_chunk(rows, offset) do
+    row_count = rows |> Stream.map(&(&1.occurrences)) |> Enum.sum()
+
+    {
+      [%{offset: offset, row_count: row_count, encoded_data: rows |> :jiffy.encode([:use_nil]) |> :zlib.gzip()}],
+      offset + row_count
+    }
+  end
+
+  defp row_count(nil), do:
+    nil
+  defp row_count(rows), do:
+    rows |> Stream.map(&(&1.occurrences)) |> Enum.sum()
 end

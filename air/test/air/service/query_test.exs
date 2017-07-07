@@ -163,9 +163,9 @@ defmodule Air.Service.QueryTest do
     test "processing a successful result" do
       query = create_query!(create_user!(), %{query_state: :started, data_source_id: create_data_source!().id})
 
-      process_result(
+      send_query_result(
+        query.id,
         %{
-          query_id: query.id,
           columns: ["col1", "col2"],
           info: ["some info"],
           users_count: 2,
@@ -199,8 +199,7 @@ defmodule Air.Service.QueryTest do
 
       log =
         ExUnit.CaptureLog.capture_log(fn ->
-          process_result(%{
-            query_id: query.id,
+          send_query_result(query.id, %{
             features: %{"selected_types" => ["some types"]},
             execution_time: 123,
             error: "some reason",
@@ -220,8 +219,7 @@ defmodule Air.Service.QueryTest do
     test "processing a cancelled result" do
       query = create_query!(create_user!(), %{query_state: :started, data_source_id: create_data_source!().id})
 
-      process_result(%{
-        query_id: query.id,
+      send_query_result(query.id, %{
         features: %{"selected_types" => ["some types"]},
         execution_time: 123,
         cancelled: true,
@@ -239,8 +237,7 @@ defmodule Air.Service.QueryTest do
     test "results of completed queries are ignored" do
       query = create_query!(create_user!(), %{query_state: :error, data_source_id: create_data_source!().id})
 
-      process_result(%{
-        query_id: query.id,
+      send_query_result(query.id, %{
         features: %{"selected_types" => ["some types"]},
         execution_time: 123,
         cancelled: true,
@@ -288,32 +285,4 @@ defmodule Air.Service.QueryTest do
   def with_data_source(_context) do
     {:ok, data_source: create_data_source!()}
   end
-
-  defp process_result(result, rows \\ nil) do
-    result
-    |> Map.put(:chunks, encode_chunks(rows))
-    |> Map.put(:row_count, row_count(rows))
-    |> Query.process_result()
-  end
-
-  defp encode_chunks(nil), do:
-    []
-  defp encode_chunks(rows), do:
-    rows
-    |> Stream.chunk(2, 2, [])
-    |> Stream.transform(0, &encode_chunk/2)
-
-  defp encode_chunk(rows, offset) do
-    row_count = rows |> Stream.map(&(&1.occurrences)) |> Enum.sum()
-
-    {
-      [%{offset: offset, row_count: row_count, encoded_data: rows |> :jiffy.encode([:use_nil]) |> :zlib.gzip()}],
-      offset + row_count
-    }
-  end
-
-  defp row_count(nil), do:
-    nil
-  defp row_count(rows), do:
-    rows |> Stream.map(&(&1.occurrences)) |> Enum.sum()
 end
