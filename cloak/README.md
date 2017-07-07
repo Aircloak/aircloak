@@ -26,24 +26,24 @@ This component acts as a query layer over sensitive data. It works together with
 You need to have following installed:
 
 - Erlang and Elixir (see [here](../README.md#prerequisites) for details)
-- PostgreSQL 9.4
-- packages
-    - Linux: `liblua5.1-0-dev`, `protobuf-compiler`, `protobuf-c-compiler`, `libprotobuf-c0-dev`, `unixodbc`, `odbc-postgresql`
-    - macOS (homebrew): `lua` (5.1), `protobuf`, `protobuf-c`
-- Configured ODBC DSN for PostgreSQL - execute the following as root from the `cloak` folder:
-  `odbcinst -i -d -l -f priv/odbc/odbcinst.ini && odbcinst -i -s -l -f priv/odbc/odbc.ini`
-
-
-__macOS related__:
-
-Before installing Erlang, you need to setup ODBC. See [here](./osx_erlang_with_odbc.md) for details.
-
-Prior to first build, you need to copy `lua_sandbox/Makefile.local-example-MacOSX` to `lua_sandbox/Makefile.local`.
+- PostgreSQL 9.4 or more recent
+- linux:
+  - packages: `unixodbc`, `odbc-postgresql`
+  - Configured ODBC DSN for PostgreSQL - execute the following as root from the `cloak` folder:
+    `odbcinst -i -d -l -f priv/odbc/odbcinst.ini && odbcinst -i -s -l -f priv/odbc/odbc.ini`
+- macos
+  - packages (homebrew): `unixodbc`, `psqlodbc`
+  - Configured ODBC DSN for PostgreSQL - execute the following as root from the `cloak` folder:
+    `odbcinst -i -d -l -f priv/odbc/osx/odbcinst.ini && odbcinst -i -s -l -f priv/odbc/osx/odbc.ini
+  - Double check the [macos guide](osx_erlang_with_odbc.md) to ensure you have Erlang built
+    with support for odbc.
 
 
 ### First build
 
-Make sure you install `hex` and `rebar` with `mix local.hex` and `mix local.rebar`. At this point, you can simply run `make` to fetch all dependencies and compile the project.
+Run `mix deps.get` to install the dependencies, followed by `make` or `make start` to build or build and start
+the cloak, respectively.
+
 
 ### Local configuration
 
@@ -111,16 +111,6 @@ Data sources are identified by a global identifier created from a combination of
 As a result, multiple distinct cloaks connecting to the same data store, will all make available a data source
 with the same id. If you want to make multiple data sources unique despite being backed by the same database and user,
 you can use the `marker` option to add more context to the global identifier produced.
-
-__Gotcha__:
-
-The data source requires one of each of the following to be present in the `parameters` section, in order to produce a `global_id`:
-
-- `uid`, `user`, `username`
-- `database`
-- `hostname`, `server`
-
-The data source setup will fail if this is not the case.
 
 #### Tables
 

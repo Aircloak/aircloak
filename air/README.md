@@ -15,6 +15,8 @@ needed to create, update and run tasks.
     - [Other common tasks](#other-common-tasks)
     - [Deploying](#deploying)
 - [Frontend](#frontend)
+  - [Analyst pages](#analyst-pages)
+  - [Admin pages](#admin-pages)
 
 ----------------------
 
@@ -26,7 +28,7 @@ This repository contains the Air system, which provides HTTPS endpoints that all
 - Manage users and their permissions
 - Write, test, and execute queries
 
-This application will also provide API endpoints that can be used by analysts to programmatically interact with
+This application also provides API endpoints that can be used by analysts to programmatically interact with
 the system, as well as the end-points used by the cloaks when they communicate with the `air`.
 
 
@@ -42,16 +44,12 @@ Additionally to run it relies on `Postgres` for datastorage.
 
 ### Prerequisites
 
-In order to run the system you need the following components:
+In order to run the system you need Erlang, Elixir, NodeJS and yarn. If you followed the
+[prerequisites](../README.md#prerequisites) section in the main README, you should
+already have the right version of the three first installed and managed through asdf.
+Yarn you can get from the [yarnpkg](https://yarnpkg.com/).
 
-- Node.js 5 or newer
-- Erlang and Elixir (see [here](../README.md#prerequisites) for details)
-- Ruby 2.x and bundler (for building API docs)
-- Docker 1.11 (+ [Docker for Mac](https://docs.docker.com/docker-for-mac/) if on macOS)
-- Yarn (see [https://yarnpkg.com/](https://yarnpkg.com/))
-
-Once you have all the main components, you also need the elixir and node.js dependencies required by our
-application. Node.js is included to compile our javascript and css dependencies.
+Once the language environment is setup, run the following two commands to download the dependencies:
 
 - `mix deps.get` installs our elixir and erlang dependencies
 - `yarn install` installs our node dependencies
@@ -59,6 +57,9 @@ application. Node.js is included to compile our javascript and css dependencies.
 Before you run the application for the first time, you also need to make sure you initialize the database
 with `make recreate-db`
 (make sure that [required common components are started](../README.md#starting-the-required-components)).
+
+The cloak is configured to connect to `air` on `insights.air-local`. To make this work you will need
+to edit your `/etc/hosts` file to point `insights.air-local` to `127.0.0.1` by adding the line.
 
 
 ### Running
