@@ -14,7 +14,7 @@ defmodule Air.QueryController do
 
   def permissions do
     %{
-      user: [:cancel, :create, :show, :load_history],
+      user: [:cancel, :create, :show, :load_history, :buckets],
       admin: :all
     }
   end
@@ -52,6 +52,20 @@ defmodule Air.QueryController do
         )
       _ ->
         send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
+    end
+  end
+
+  def buckets(conn, params) do
+    case Air.Service.Query.get_as_user(conn.assigns.current_user, Map.fetch!(params, "id")) do
+      {:ok, query} ->
+        buckets = Air.Service.Query.buckets(query, %{
+          from: Map.fetch!(params, "from") |> String.to_integer(),
+          count: 100
+        })
+        json(conn, buckets)
+
+      _ ->
+        send_resp(conn, Status.code(:not_found), "Query not found")
     end
   end
 

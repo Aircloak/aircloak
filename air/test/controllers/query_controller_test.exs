@@ -63,10 +63,34 @@ defmodule Air.QueryControllerTest do
     login(context[:user]) |> post("/queries", query_data_params) |> response(503)
   end
 
+  test "returns more rows", context do
+    query = create_query!(
+      context.user,
+      %{statement: "text of the query", query_state: :started, data_source_id: context.data_source.id}
+    )
+
+    send_query_result(
+      query.id,
+      %{columns: ["col"]},
+      [%{occurrences: 60, row: [1]}, %{occurrences: 50, row: [2]}]
+    )
+
+    assert buckets(context, query.id, 0) ==
+      [%{"occurrences" => 60, "row" => [1]}, %{"occurrences" => 40, "row" => [2]}]
+    assert buckets(context, query.id, 100) == [%{"occurrences" => 10, "row" => [2]}]
+    assert buckets(context, query.id, 110) == []
+  end
+
   defp open_cloak_mock_socket(data_source) do
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
     TestSocketHelper.join!(socket, "main",
       %{data_sources: [%{name: data_source.name, global_id: data_source.global_id, tables: []}]})
     socket
   end
+
+  defp buckets(context, query_id, from), do:
+    login(context.user)
+    |> get(query_path(context.conn, :buckets, query_id, from: from))
+    |> response(200)
+    |> Poison.decode!()
 end
