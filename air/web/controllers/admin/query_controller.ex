@@ -27,7 +27,7 @@ defmodule Air.Admin.QueryController do
     case Air.Service.Query.get_as_user(conn.assigns.current_user, query_id) do
       {:ok, query} ->
         render(conn, %{
-          query: Query.for_display(query),
+          query: Query.for_display(query, Air.Service.Query.buckets(query, %{from: 0, count: 100})),
           guardian_token: Guardian.Plug.current_token(conn),
           csrf_token: CSRFProtection.get_csrf_token(),
         })
