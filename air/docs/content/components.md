@@ -39,8 +39,8 @@ Insights Datasource Connector is deployed and configured as part of Insights Clo
 instance therefore only serves a single Insights Cloak. An Insights Cloak instance on the other hand may make use of
 multiple distinct Insights Datasource Connectors in order to serve data from distinct datasources.
 
-As Insights Datasource Connector needs access to the database server hosting the data to be analysed, so does the
-Insights Cloak that it is a part of.
+Because Insights Datasource Connector needs access to the database server hosting the data to be analysed,
+so does the Insights Cloak that it is a part of.
 
 The Insights Datasource Connector has the ability to emulate database features beyond what is supported natively by the
 database server itself. Examples of this include the ability to work on encrypted fields and columns, converting data to
@@ -78,7 +78,7 @@ the visibility into the workings of the Aircloak Insights platform.
 The following diagram shows the possible ways in which the components interact. For common configurations, see the
 subsequent sections.
 
-![Shows an overview of different ways in which the Aircloak Insight components interact. IA: Insights Air, IC: Insights
+![Shows an overview of different ways in which the Aircloak Insights components interact. IA: Insights Air, IC: Insights
 Cloak, IDC: Insights Datasource connector, DS: Datasource](components/interactions.png)
 
 In the diagram above the arrows point to the component being connected to.

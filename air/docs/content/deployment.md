@@ -17,8 +17,8 @@ this includes access credentials for its Postgres database. For Insights Cloak i
 Insights Air instance it should connect to as well as a static configuration for the datasources that should be made
 available through it.
 
-The Insight Air and Insights Cloak configurations contain secrets.
-The Insights Cloak uses them to secure the communication between itself and Insight Air, while
+The Insights Air and Insights Cloak configurations contain secrets.
+The Insights Cloak uses them to secure the communication between itself and Insights Air, while
 Insights Air uses secrets for securing the communication with the analyst.
 
 Insights Datasource Connector derives its configuration from that of Insights Cloak.
@@ -42,12 +42,12 @@ During analysis Insights Cloak holds the data being analysed in memory. The memo
 with the size of the dataset being queried. It is recommended to deploy Insights Cloak with a minimum of 8GB of memory.
 If queries routinely fail with “out of memory” warnings the amount of memory made available should be increased.
 
-Insights Cloak benefits from having access to multiple CPU cores when multipel queries are to be run in parallel.
+Insights Cloak benefits from having access to multiple CPU cores when multiple queries are to be run in parallel.
 
 ## Important notice
 
 Docker allows restricting the amount of memory made available to a given docker container. __Do not use this form of
-restriction on Insights Cloak's__. It interferes with Insights Cloaks ability to detect and terminate rampant queries, and
+restriction on Insights Cloak instances__. It interferes with Insights Cloak's ability to detect and terminate rampant queries, and
 might result in the component becoming unavailable.
 
 If restricting the amount of memory made available to Insights Cloak is desired, it is recommended to deploy Insights
