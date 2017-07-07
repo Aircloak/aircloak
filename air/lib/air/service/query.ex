@@ -229,12 +229,13 @@ defmodule Air.Service.Query do
   end
 
   defp store_query_result!(query, result) do
+    # use string keys, so we end up consistent with what is returned from the database
     storable_result = %{
-      columns: result[:columns],
-      types: result[:features][:selected_types],
-      error: error_text(result),
-      info: result[:info],
-      row_count: result.row_count || 0,
+      "columns" => result[:columns],
+      "types" => result[:features][:selected_types],
+      "error" => error_text(result),
+      "info" => result[:info],
+      "row_count" => result.row_count || 0,
     }
 
     changeset =
