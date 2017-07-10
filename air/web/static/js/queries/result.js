@@ -12,6 +12,8 @@ import {GraphView} from "./graph_view";
 import type {GraphDataT, GraphInfoT} from "./graph_data";
 import {TableAligner} from "./table_aligner";
 import type {TableAlignerT} from "./table_aligner";
+import type {NumberFormat} from "../number_format";
+import {formatNumber} from "../number_format";
 import {loadBuckets} from "../request";
 
 export type Row = {
@@ -39,6 +41,7 @@ export type Result = {
   },
   inserted_at: string,
   session_id: string,
+  number_format: NumberFormat,
 };
 
 type State = {
@@ -104,7 +107,7 @@ export class ResultView extends React.Component {
   minRowsToShow: number;
   graphData: GraphDataT;
   graphInfo: GraphInfoT;
-  formatValue: (value: any) => string | number;
+  formatValue: (value: any) => string;
   handleClickMoreRows: () => void;
   handleClickLessRows: () => void;
   loadAndShowMoreRows: (rowsToShowCount: number, availableRows: Row[], availableChunks: number) => void;
@@ -196,11 +199,11 @@ export class ResultView extends React.Component {
     return () => this.setState({graphConfig: this.state.graphConfig.remove(col)});
   }
 
-  formatValue(value: any): number | string {
+  formatValue(value: any): string {
     if (value === null) {
       return "<null>";
     } else if (this.isNumeric(value)) {
-      return Math.round(value * 1000) / 1000; // keep 3 decimals at most
+      return formatNumber(value, this.props.number_format);
     } else if (value === "") {
       return ZERO_WIDTH_SPACE; // keeps table row from collapsing
     } else {
@@ -208,7 +211,7 @@ export class ResultView extends React.Component {
     }
   }
 
-  isNumeric(n: any) {
+  isNumeric(n: any): boolean {
     return typeof(n) === "number" && isFinite(n);
   }
 

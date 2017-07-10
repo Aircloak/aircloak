@@ -9,6 +9,7 @@ import {CodeEditor} from "../code_editor";
 import {CodeViewer} from "../code_viewer";
 import {Results} from "./results";
 import type {Result} from "./result";
+import type {NumberFormat} from "../number_format";
 import type {Selectable} from "../selectable_info/selectable";
 import {FrontendSocket} from "../frontend_socket";
 import {HistoryLoader} from "./history_loader";
@@ -29,6 +30,7 @@ type Props = {
   lastQuery: {statement: string},
   pendingQueries: Result[],
   frontendSocket: FrontendSocket,
+  numberFormat: NumberFormat,
 };
 
 const upgradeRequired = 426;
@@ -345,6 +347,8 @@ export default class QueriesView extends React.Component {
   }
 
   render() {
+    // eslint-disable-next-line no-return-assign, no-param-reassign
+    this.state.sessionResults.forEach((result) => result.number_format = this.props.numberFormat);
     return (<div>
       <h2>
         {this.props.dataSourceName}

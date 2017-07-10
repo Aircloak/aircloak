@@ -7,14 +7,11 @@ defmodule Air.Schemas.Settings do
     field :query_retention_days, :integer
     field :audit_log_enabled, :boolean
 
-    timestamps()
-  end
+    # number format settings
+    field :decimal_sep, :string
+    field :thousand_sep, :string
+    field :decimal_digits, :integer
 
-  @doc """
-  Builds a changeset based on the `struct` and `params`.
-  """
-  def changeset(struct, params \\ %{}) do
-    struct
-    |> cast(params, [:query_retention_days, :audit_log_enabled])
+    timestamps()
   end
 end

@@ -25,6 +25,48 @@
         </div>
 
         <div class="form-group">
+          <label>Number format</label> (applies only to the user interface)<br/>
+          If not set, global settings will apply, which are:
+          <ul>
+            <li>show <%= @global_settings.decimal_digits %> decimal digits</li>
+            <li>decimal separator is '<%= @global_settings.decimal_sep %>'</li>
+            <li>thousand separator is '<%= @global_settings.thousand_sep %>'</li>
+          </ul>
+          <div id="example"></div>
+          <br/>
+          <div class="form-group">
+            <span class="col-sm-5">
+              Decimal separator
+            </span>
+            <span class="col-sm-3">
+              <%= text_input f, :decimal_sep, class: "form-control input-sm" %>
+            </span>
+          </div>
+          <br/>
+          <%= error_tag f, :decimal_sep %>
+          <div class="form-group">
+            <span class="col-sm-5">
+              Thousand separator
+            </span>
+            <span class="col-sm-3">
+              <%= text_input f, :thousand_sep, class: "form-control input-sm" %>
+            </span>
+          </div>
+          <br/>
+          <%= error_tag f, :thousand_sep %>
+          <div class="form-group">
+            <span class="col-sm-5">
+              Decimal digits
+            </span>
+            <span class="col-sm-3">
+              <%= number_input f, :decimal_digits, class: "form-control input-sm" %>
+            </span>
+          </div>
+          <br/>
+          <%= error_tag f, :decimal_digits %>
+        </div>
+
+        <div class="form-group">
           <%= submit "Save", class: "btn btn-primary" %>
         </div>
       <% end %>
@@ -65,3 +107,12 @@
     </div>
   </div>
 </div>
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      var props = <%= to_json(number_format_settings(@conn)) %>;
+      App.numberFormatExample(props, document.getElementById("example"));
+    }
+  };
+</script>

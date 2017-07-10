@@ -5,6 +5,23 @@
 ---- Don't alter the line above...
 
 - [Introduction](README.md)
+
+## Architectural overview
+
+- [Components of Aircloak Insights](components.md)
+  - [Provided by Aircloak](components.md#components-provided-by-aircloak)
+  - [Provided by the customer](components.md#components-provided-by-the-customer)
+  - [How the components interact](components.md#how-the-components-interact)
+- [Deployment](deployment.md)
+  - [Overview](deployment.md#overview)
+  - [Resource requirements](deployment.md#resource-requirements)
+  - [Important notice](deployment.md#important-notice)
+- [Scaling](scaling.md)
+  - [Low query volume](scaling.md#low-query-volume)
+  - [High query volume](scaling.md#high-query-volume)
+
+## Technical documentation
+
 - [Core language features](sql.md)
   - [Considerations](sql.md#notes)
   - [Restrictions](sql/restrictions.md)

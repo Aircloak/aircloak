@@ -3,6 +3,7 @@
 ### New features
 
 - Added the `date_trunc` function
+- Added global and per-user custom settings for displaying numbers in the UI.
 
 ### Enhancements
 
