@@ -35,7 +35,11 @@ install_if_missing "elixir"
 install_if_missing "nodejs"
 
 # Imports Node.js release team's OpenPGP keys to main keyring
-bash ~/.asdf/plugins/nodejs/bin/import-release-team-keyring
+bash ~/.asdf/plugins/nodejs/bin/import-release-team-keyring ||
+  bash ~/.asdf/plugins/nodejs/bin/import-release-team-keyring ||
+  bash ~/.asdf/plugins/nodejs/bin/import-release-team-keyring ||
+  bash ~/.asdf/plugins/nodejs/bin/import-release-team-keyring ||
+  bash ~/.asdf/plugins/nodejs/bin/import-release-team-keyring
 
 echo "Installing language environments with asdf"
 asdf install
