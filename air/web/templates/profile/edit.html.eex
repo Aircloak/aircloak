@@ -26,6 +26,13 @@
 
         <div class="form-group">
           <label>Number format</label> (applies only to the user interface)<br/>
+          If not set, global settings will apply, which are:
+          <ul>
+            <li>show <%= @global_settings.decimal_digits %> decimal digits</li>
+            <li>decimal separator is '<%= @global_settings.decimal_sep %>'</li>
+            <li>thousand separator is '<%= @global_settings.thousand_sep %>'</li>
+          </ul>
+          <br/>
           <div class="form-group">
             <span class="col-sm-5">
               Decimal separator

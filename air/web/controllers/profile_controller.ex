@@ -18,7 +18,9 @@ defmodule Air.ProfileController do
   # -------------------------------------------------------------------
 
   def edit(conn, _params) do
-    render(conn, "edit.html", changeset: User.to_changeset(conn.assigns.current_user))
+    changeset = User.to_changeset(conn.assigns.current_user)
+    global_settings = Air.Service.Settings.read()
+    render(conn, "edit.html", changeset: changeset, global_settings: global_settings)
   end
 
   def update(conn, params), do:
@@ -40,7 +42,8 @@ defmodule Air.ProfileController do
         |> put_flash(:info, flash)
         |> redirect(to: profile_path(conn, :edit))
       {:error, changeset} ->
-        render(conn, "edit.html", changeset: changeset)
+        global_settings = Air.Service.Settings.read()
+        render(conn, "edit.html", changeset: changeset, global_settings: global_settings)
     end
   end
 end
