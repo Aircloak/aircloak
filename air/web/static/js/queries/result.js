@@ -12,17 +12,13 @@ import {GraphView} from "./graph_view";
 import type {GraphDataT, GraphInfoT} from "./graph_data";
 import {TableAligner} from "./table_aligner";
 import type {TableAlignerT} from "./table_aligner";
+import type {NumberFormat} from "../number_format";
+import {formatNumber} from "../number_format";
 
 export type Row = {
   occurrences: number,
   row: any[],
   users_count: number,
-};
-
-export type NumberFormat = {
-  decimal_digits: number,
-  decimal_sep: string,
-  thousand_sep: string,
 };
 
 export type Column = string;
@@ -86,7 +82,6 @@ export class ResultView extends React.Component {
     this.conditionallyRenderChart = this.conditionallyRenderChart.bind(this);
     this.conditionallyRenderChartConfig = this.conditionallyRenderChartConfig.bind(this);
     this.formatValue = this.formatValue.bind(this);
-    this.formatNumber = this.formatNumber.bind(this);
 
     this.showingAllOfFewRows = this.showingAllOfFewRows.bind(this);
     this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
@@ -106,7 +101,6 @@ export class ResultView extends React.Component {
   graphData: GraphDataT;
   graphInfo: GraphInfoT;
   formatValue: (value: any) => string;
-  formatNumber: (value: number) => string;
   handleClickMoreRows: () => void;
   handleClickLessRows: () => void;
   renderRows: () => void;
@@ -175,7 +169,7 @@ export class ResultView extends React.Component {
     if (value === null) {
       return "<null>";
     } else if (this.isNumeric(value)) {
-      return this.formatNumber(value);
+      return formatNumber(value, this.props.number_format);
     } else if (value === "") {
       return ZERO_WIDTH_SPACE; // keeps table row from collapsing
     } else {
@@ -185,18 +179,6 @@ export class ResultView extends React.Component {
 
   isNumeric(n: any): boolean {
     return typeof(n) === "number" && isFinite(n);
-  }
-
-  formatNumber(value: number): string {
-    const format = this.props.number_format;
-    let string = value.toLocaleString("en-US",
-      {minimumFractionDigits: format.decimal_digits, maximumFractionDigits: format.decimal_digits});
-    const [fixed, fractional] = string.split(".");
-    string = fixed.replace(/,/g, format.thousand_sep)
-    if (!Number.isInteger(value)) {
-      string += format.decimal_sep + fractional;
-    }
-    return string;
   }
 
   conditionallyRenderChart() {

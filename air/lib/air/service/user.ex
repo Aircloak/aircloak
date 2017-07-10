@@ -217,6 +217,18 @@ defmodule Air.Service.User do
     Repo.all(from g in Group, where: g.admin)
 
 
+  @doc "Returns the number format settings for the specified user."
+  @spec number_format_settings(User.t) :: Map.t
+  def number_format_settings(user) do
+    default_settings = Air.Service.Settings.read()
+    %{
+      decimal_digits: user.decimal_digits || default_settings.decimal_digits,
+      decimal_sep: user.decimal_sep || default_settings.decimal_sep,
+      thousand_sep: user.thousand_sep || default_settings.thousand_sep,
+    }
+  end
+
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

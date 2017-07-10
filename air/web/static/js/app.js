@@ -24,6 +24,7 @@ import Editor from "./view/editor";
 import ActivityMonitor from "./activity_monitor/root";
 import {AuthenticationProvider} from "./authentication_provider";
 import {FrontendSocket} from "./frontend_socket";
+import {NumberFormatExample} from "./number_format";
 
 const App = {
   queryPage: (props, elem) => App.render("queries", props, elem),
@@ -31,6 +32,7 @@ const App = {
   selectableInfo: (props, elem) => App.render("selectable_info", props, elem),
   viewEditor: (props, elem) => App.render("view_editor", props, elem),
   activityMonitor: (props, elem) => App.render("activity_monitor", props, elem),
+  numberFormatExample: (props, elem) => App.render("number_format_example", props, elem),
 
   render: (page, props, elem) => {
     const authentication = {CSRFToken: props.CSRFToken};
@@ -50,6 +52,7 @@ const App = {
       case "selectable_info": return <SelectableInfo {...props} />;
       case "view_editor": return <Editor {...props} />;
       case "activity_monitor": return <ActivityMonitor frontendSocket={App.buildSocket(props)} {...props} />;
+      case "number_format_example": return <NumberFormatExample {...props} />;
       default: throw new Error("Unknown page");
     }
   },

@@ -32,6 +32,7 @@
             <li>decimal separator is '<%= @global_settings.decimal_sep %>'</li>
             <li>thousand separator is '<%= @global_settings.thousand_sep %>'</li>
           </ul>
+          <div id="example"></div>
           <br/>
           <div class="form-group">
             <span class="col-sm-5">
@@ -106,3 +107,12 @@
     </div>
   </div>
 </div>
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      var props = <%= to_json(number_format_settings(@conn)) %>;
+      App.numberFormatExample(props, document.getElementById("example"));
+    }
+  };
+</script>
