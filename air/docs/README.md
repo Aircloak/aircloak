@@ -22,6 +22,12 @@ gitbook, check out the [toolchain](https://toolchain.gitbook.com)
 guide. It describes how the [content/README.md](content/README.md),
 [content/GLOSSARY.md](content/GLOSSARY.md) etc work.
 
+A set of illustrations are contained within the docs.
+These were made in [Google
+Docs](https://docs.google.com/a/aircloak.com/document/d/1bsZgrFCPd1viZJPF277sUDQCsdjR0pxI2AMTBrDFV0w/edit?usp=sharing).
+To alter the illustrations, edit the originals in the google doc,
+and export them as PNG.
+
 ## Getting started
 
 ### Dependencies
