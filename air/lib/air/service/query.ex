@@ -246,13 +246,9 @@ defmodule Air.Service.Query do
     Aircloak.report_long(:store_query_result, fn ->
       query = Repo.update!(changeset)
 
-      Enum.each(
-        result.chunks,
-        &Repo.insert!(%ResultChunk{
-          query_id: query.id,
-          index: &1.index,
-          encoded_data: &1.encoded_data
-        })
+      Repo.insert_all(
+        ResultChunk,
+        Enum.map(result.chunks, &%{query_id: query.id, index: &1.index, encoded_data: &1.encoded_data})
       )
 
       query
