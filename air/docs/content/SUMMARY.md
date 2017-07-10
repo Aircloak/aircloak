@@ -19,6 +19,13 @@
 - [Scaling](scaling.md)
   - [Low query volume](scaling.md#low-query-volume)
   - [High query volume](scaling.md#high-query-volume)
+- [Supported datastores](datastores.md)
+  - [Microsoft SQL Server](datastores.md#microsoft-sql-server)
+  - [MySQL](datastores.md#mysql)
+  - [Postgres](datastores.md#postgres)
+  - [MongoDB](datastores.md#mongodb)
+  - [MariaDB](datastores.md#mariadb)
+  - [Feature emulation](datastores.md#emulation-overview)
 
 ## Technical documentation
 
