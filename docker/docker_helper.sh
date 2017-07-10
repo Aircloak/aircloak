@@ -242,7 +242,7 @@ function mpi_init {
   # Support for rebuilding of all images. Change this date if you want to
   # force the rebuild of all images. Usually you want to do this if you
   # want to upgrade Debian packages on all images.
-  upgrade_date="20170112"
+  upgrade_date="20170710"
   echo "RUN echo '$upgrade_date' > /dev/null"
 
   # Start the RUN command
@@ -429,7 +429,7 @@ function untag_registry_tags {
 }
 
 function debian_version {
-  echo "8.5"
+  echo "8.8"
 }
 
 function erlang_version {
