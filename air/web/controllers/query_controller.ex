@@ -58,7 +58,12 @@ defmodule Air.QueryController do
   def buckets(conn, params) do
     case Air.Service.Query.get_as_user(conn.assigns.current_user, Map.fetch!(params, "id")) do
       {:ok, query} ->
-        json(conn, Air.Service.Query.buckets(query, String.to_integer(Map.fetch!(params, "chunk"))))
+        desired_chunk =
+          case Map.fetch!(params, "chunk") do
+            "all" -> :all
+            other -> String.to_integer(other)
+          end
+        json(conn, Air.Service.Query.buckets(query, desired_chunk))
 
       _ ->
         send_resp(conn, Status.code(:not_found), "Query not found")

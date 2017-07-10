@@ -54,7 +54,8 @@ export const loadBuckets = (
   authentication: Authentication,
   callbacks: Callbacks
 ) => {
-  $.ajax(`/queries/${queryId}/buckets?chunk=${chunk}`, {
+  const desiredChunk = (chunk >= 0) ? chunk : "all";
+  $.ajax(`/queries/${queryId}/buckets?chunk=${desiredChunk}`, {
     method: "GET",
     headers: headers(authentication),
     success: callbacks.success,

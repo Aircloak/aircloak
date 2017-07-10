@@ -53,6 +53,7 @@ type State = {
 
 const UNRELIABLE_USER_COUNT_THRESHOLD = 15;
 const ZERO_WIDTH_SPACE = "\u200B";
+const ALL_CHUNKS = -1;
 
 export class ResultView extends React.Component {
   constructor(props: Result) {
@@ -146,9 +147,17 @@ export class ResultView extends React.Component {
     this.setState({rowsToShowCount});
   }
 
+  loadAllRows() {
+    if (this.state.availableChunks !== ALL_CHUNKS) {
+      loadBuckets(this.props.id, ALL_CHUNKS, this.context.authentication, {
+        success: (allRows) => { this.setState({availableRows: allRows, availableChunks: ALL_CHUNKS}); },
+      });
+    }
+  }
+
   loadAndShowMoreRows(rowsToShowCount: number, availableRows: Row[], availableChunks: number) {
     const availableRowsCount = _.sum(_.flatMap(availableRows, (row) => row.occurrences));
-    if (rowsToShowCount <= availableRowsCount) {
+    if (availableChunks === ALL_CHUNKS || rowsToShowCount <= availableRowsCount) {
       this.setState({rowsToShowCount, availableRows, availableChunks});
     } else {
       loadBuckets(this.props.id, availableChunks, this.context.authentication, {
@@ -304,7 +313,13 @@ export class ResultView extends React.Component {
       return (
         <button
           className="btn btn-default btn-xs"
-          onClick={() => this.setState({showChart: ! this.state.showChart})}
+          onClick={() => {
+            const shouldShowChart = !this.state.showChart;
+            if (shouldShowChart) {
+              this.loadAllRows();
+            }
+            this.setState({showChart: ! this.state.showChart});
+          }}
         >
           {chartButtonText}
         </button>
