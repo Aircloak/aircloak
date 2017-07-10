@@ -429,7 +429,7 @@ function untag_registry_tags {
 }
 
 function debian_version {
-  echo "8.5"
+  echo "8.8"
 }
 
 function erlang_version {
