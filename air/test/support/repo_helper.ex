@@ -166,17 +166,15 @@ defmodule Air.TestRepoHelper do
     []
   defp encode_chunks(rows), do:
     rows
-    |> Stream.chunk(2, 2, [])
-    |> Stream.transform(0, &encode_chunk/2)
+    |> Stream.chunk(1000, 1000, [])
+    |> Stream.with_index()
+    |> Enum.map(&encode_chunk/1)
 
-  defp encode_chunk(rows, offset) do
-    row_count = rows |> Stream.map(&(&1.occurrences)) |> Enum.sum()
-
-    {
-      [%{offset: offset, row_count: row_count, encoded_data: rows |> :jiffy.encode([:use_nil]) |> :zlib.gzip()}],
-      offset + row_count
+  defp encode_chunk({rows, index}), do:
+    %{
+      index: index,
+      encoded_data: rows |> :jiffy.encode([:use_nil]) |> :zlib.gzip()
     }
-  end
 
   defp row_count(nil), do:
     nil

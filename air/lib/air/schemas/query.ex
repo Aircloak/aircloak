@@ -87,7 +87,7 @@ defmodule Air.Schemas.Query do
   @spec to_csv_stream(t, [map]) :: Enumerable.t
   def to_csv_stream(query, buckets), do:
     [query.result["columns"]]
-    |> Stream.concat(Air.Service.Query.Result.rows_stream(buckets))
+    |> Stream.concat(Air.Schemas.ResultChunk.rows_stream(buckets))
     |> CSV.encode()
 
 

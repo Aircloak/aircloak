@@ -48,6 +48,7 @@ type State = {
   graphConfig: GraphConfig,
   tableAligner: TableAlignerT,
   availableRows: Row[],
+  availableChunks: number,
 };
 
 const UNRELIABLE_USER_COUNT_THRESHOLD = 15;
@@ -66,6 +67,7 @@ export class ResultView extends React.Component {
       graphConfig: new GraphConfig(),
       tableAligner: new TableAligner(props.rows),
       availableRows: this.props.rows,
+      availableChunks: 1,
     };
 
     this.componentDidUpdate = this.componentDidUpdate.bind(this);
@@ -73,6 +75,7 @@ export class ResultView extends React.Component {
     this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
     this.handleClickLessRows = this.handleClickLessRows.bind(this);
 
+    this.loadAndShowMoreRows = this.loadAndShowMoreRows.bind(this);
     this.renderRows = this.renderRows.bind(this);
     this.renderShowAll = this.renderShowAll.bind(this);
     this.renderChartButton = this.renderChartButton.bind(this);
@@ -103,6 +106,7 @@ export class ResultView extends React.Component {
   formatValue: (value: any) => string | number;
   handleClickMoreRows: () => void;
   handleClickLessRows: () => void;
+  loadAndShowMoreRows: (rowsToShowCount: number, availableRows: Row[], availableChunks: number) => void;
   renderRows: () => void;
   renderShowAll: () => void;
   renderOptionMenu: () => void;
@@ -133,26 +137,30 @@ export class ResultView extends React.Component {
   }
 
   handleClickMoreRows() {
-    const increment = Math.min(this.state.rowsToShowCount, 100);
-    const rowsToShowCount = Math.min(this.state.rowsToShowCount + increment, this.props.row_count);
-    const availableRowsCount = _.sum(_.flatMap(this.state.availableRows, (row) => row.occurrences));
-    if (rowsToShowCount <= availableRowsCount) {
-      this.setState({rowsToShowCount: Math.min(this.state.rowsToShowCount * 2, this.props.row_count)});
-    } else {
-      loadBuckets(this.props.id, availableRowsCount, this.context.authentication, {
-        success: (newRows) => {
-          this.setState({
-            availableRows: _.concat(this.state.availableRows, newRows),
-            rowsToShowCount: Math.min(this.state.rowsToShowCount * 2, this.props.row_count),
-          });
-        },
-      });
-    }
+    const rowsToShowCount = Math.min(2 * this.state.rowsToShowCount, this.props.row_count);
+    this.loadAndShowMoreRows(rowsToShowCount, this.state.availableRows, this.state.availableChunks);
   }
 
   handleClickLessRows() {
     const rowsToShowCount = Math.max(Math.round(this.state.rowsToShowCount / 2), this.minRowsToShow);
     this.setState({rowsToShowCount});
+  }
+
+  loadAndShowMoreRows(rowsToShowCount: number, availableRows: Row[], availableChunks: number) {
+    const availableRowsCount = _.sum(_.flatMap(availableRows, (row) => row.occurrences));
+    if (rowsToShowCount <= availableRowsCount) {
+      this.setState({rowsToShowCount, availableRows, availableChunks});
+    } else {
+      loadBuckets(this.props.id, availableChunks, this.context.authentication, {
+        success: (newRows) => {
+          if (newRows.length === 0) {
+            this.setState({rowsToShowCount, availableRows, availableChunks});
+          } else {
+            this.loadAndShowMoreRows(rowsToShowCount, _.concat(availableRows, newRows), availableChunks + 1);
+          }
+        },
+      });
+    }
   }
 
   showingAllOfFewRows() {

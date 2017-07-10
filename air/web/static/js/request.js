@@ -50,11 +50,11 @@ export const loadHistory = (
 
 export const loadBuckets = (
   queryId: string,
-  from: number,
+  chunk: number,
   authentication: Authentication,
   callbacks: Callbacks
 ) => {
-  $.ajax(`/queries/${queryId}/buckets?from=${from}`, {
+  $.ajax(`/queries/${queryId}/buckets?chunk=${chunk}`, {
     method: "GET",
     headers: headers(authentication),
     success: callbacks.success,

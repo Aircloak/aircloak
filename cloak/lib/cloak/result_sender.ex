@@ -87,42 +87,34 @@ defmodule Cloak.ResultSender do
     end
   end
 
-  defp encode_result(result) do
-    new_result =
-      result
-      |> Map.take([:query_id, :columns, :features, :error, :info])
-      |> Map.put(:chunks, encode_chunks(result))
+  defp encode_result(result), do:
+    result
+    |> Map.take([:query_id, :columns, :features, :error, :info])
+    |> Map.put(:chunks, encode_chunks(result))
+    |> Map.put(:row_count, row_count(result[:rows]))
 
-    Map.put(new_result, :row_count, total_row_count(Map.has_key?(result, :rows), new_result))
-  end
-
-  defp total_row_count(true, %{chunks: []}), do:
-    0
-  defp total_row_count(true, result) do
-    last_chunk = List.last(result.chunks)
-    last_chunk.offset + last_chunk.row_count
-  end
-  defp total_row_count(false, _), do:
+  defp row_count(nil), do:
     nil
+  defp row_count(rows), do:
+    rows
+    |> Stream.map(&(&1.occurrences))
+    |> Enum.sum()
 
   defp encode_chunks(%{rows: rows}), do:
     Aircloak.report_long(:encode_chunks,
       fn ->
         rows
         |> Stream.chunk(1000, 1000, [])
-        |> Stream.transform(0, &encode_chunk/2)
-        |> Enum.to_list()
+        |> Stream.with_index()
+        |> Enum.map(&encode_chunk/1)
       end
     )
   defp encode_chunks(_), do:
     []
 
-  defp encode_chunk(rows, offset) do
-    row_count = rows |> Stream.map(&(&1.occurrences)) |> Enum.sum()
-
-    {
-      [%{offset: offset, row_count: row_count, encoded_data: rows |> :jiffy.encode([:use_nil]) |> :zlib.gzip()}],
-      offset + row_count
+  defp encode_chunk({rows, index}), do:
+    %{
+      index: index,
+      encoded_data: rows |> :jiffy.encode([:use_nil]) |> :zlib.gzip()
     }
-  end
 end

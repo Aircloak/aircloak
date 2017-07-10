@@ -50,7 +50,7 @@ defmodule Air.DataSourceController do
         pending_queries: pending_queries,
         guardian_token: Guardian.Plug.current_token(conn),
         csrf_token: CSRFProtection.get_csrf_token(),
-        last_query: Air.Schemas.Query.for_display(last_query),
+        last_query: (if last_query != nil, do: Air.Schemas.Query.for_display(last_query)),
         session_id: Ecto.UUID.generate()
       )
     else

@@ -72,13 +72,12 @@ defmodule Air.QueryControllerTest do
     send_query_result(
       query.id,
       %{columns: ["col"]},
-      [%{occurrences: 60, row: [1]}, %{occurrences: 50, row: [2]}]
+      Enum.map(1..1100, &%{occurrences: 1, row: [&1]})
     )
 
-    assert buckets(context, query.id, 0) ==
-      [%{"occurrences" => 60, "row" => [1]}, %{"occurrences" => 40, "row" => [2]}]
-    assert buckets(context, query.id, 100) == [%{"occurrences" => 10, "row" => [2]}]
-    assert buckets(context, query.id, 110) == []
+    assert chunk_values(context, query.id, 0) == Enum.to_list(1..1000)
+    assert chunk_values(context, query.id, 1) == Enum.to_list(1001..1100)
+    assert chunk_values(context, query.id, 2) == []
   end
 
   defp open_cloak_mock_socket(data_source) do
@@ -88,9 +87,10 @@ defmodule Air.QueryControllerTest do
     socket
   end
 
-  defp buckets(context, query_id, from), do:
+  defp chunk_values(context, query_id, chunk), do:
     login(context.user)
-    |> get(query_path(context.conn, :buckets, query_id, from: from))
+    |> get(query_path(context.conn, :buckets, query_id, chunk: chunk))
     |> response(200)
     |> Poison.decode!()
+    |> Enum.map(&(&1 |> Map.fetch!("row") |> hd()))
 end

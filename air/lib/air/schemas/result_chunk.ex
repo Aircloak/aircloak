@@ -6,8 +6,7 @@ defmodule Air.Schemas.ResultChunk do
   @primary_key false
   schema "result_chunks" do
     field :query_id, Ecto.UUID, primary_key: true
-    field :offset, :integer, primary_key: true
-    field :row_count, :integer
+    field :index, :integer, primary_key: true
     field :encoded_data, :binary
 
     belongs_to :query, Air.Schemas.Query, define_field: false
@@ -15,23 +14,35 @@ defmodule Air.Schemas.ResultChunk do
 
   @type t :: %__MODULE__{
     query_id: String.t,
-    offset: non_neg_integer,
-    row_count: pos_integer,
+    index: non_neg_integer,
     encoded_data: binary,
     query: %Ecto.Association.NotLoaded{} | Air.Schemas.Query.t
   }
 
-  @type decoded_chunk :: %{offset: non_neg_integer, buckets: map}
+  @type decoded_chunk :: %{index: non_neg_integer, buckets: map}
 
 
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
-  @doc "Returns offset and decoded buckets associated with this chunk."
-  @spec decode(t) :: decoded_chunk
-  def decode(chunk), do:
-    chunk
-    |> Map.take([:offset])
-    |> Map.put(:buckets, chunk.encoded_data |> :zlib.gunzip() |> :jiffy.decode([:use_nil, :return_maps]))
+  @doc "Decodes the chunk and returns its buckets."
+  @spec buckets(t) :: [map]
+  def buckets(chunk), do:
+    chunk.encoded_data
+    |> :zlib.gunzip()
+    |> :jiffy.decode([:use_nil, :return_maps])
+
+  @doc "Eagerly converts buckets to rows."
+  @spec rows([map]) :: [[any]]
+  def rows(buckets), do:
+    buckets
+    |> rows_stream()
+    |> Enum.to_list()
+
+
+  @doc "Returns a stream of rows represented by the given collection of buckets."
+  @spec rows_stream([map]) :: Enumerable.t
+  def rows_stream(buckets), do:
+    Stream.flat_map(buckets, &List.duplicate(Map.fetch!(&1, "row"), Map.fetch!(&1, "occurrences")))
 end
