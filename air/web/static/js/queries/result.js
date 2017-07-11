@@ -156,14 +156,8 @@ export class ResultView extends React.Component {
 
   showChart() {
     if (this.state.availableChunks !== ALL_CHUNKS) {
-      this.setState({loadingChunks: true});
-      loadBuckets(this.props.id, ALL_CHUNKS, this.context.authentication, {
-        success: (allRows) => {
-          this.setState({availableRows: allRows, availableChunks: ALL_CHUNKS, showChart: true, loadingChunks: false});
-        },
-        error: () => {
-          this.setState({loadingChunks: false, loadError: true});
-        },
+      this.loadChunks(ALL_CHUNKS, (allRows) => {
+        this.setState({availableRows: allRows, availableChunks: ALL_CHUNKS, showChart: true});
       });
     } else {
       this.setState({showChart: true});
@@ -171,30 +165,31 @@ export class ResultView extends React.Component {
   }
 
   loadAndShowMoreRows(rowsToShowCount: number, availableRows: Row[], availableChunks: number) {
-    this.setState({loadingChunks: true});
     const availableRowsCount = _.sum(_.flatMap(availableRows, (row) => row.occurrences));
     if (availableChunks === ALL_CHUNKS || rowsToShowCount <= availableRowsCount) {
-      this.setState({
-        rowsToShowCount,
-        availableRows,
-        availableChunks,
-        loadingChunks: false,
-      });
+      this.setState({rowsToShowCount, availableRows, availableChunks});
     } else {
-      this.setState({loadingChunks: true});
-      loadBuckets(this.props.id, availableChunks, this.context.authentication, {
-        success: (newRows) => {
-          if (newRows.length === 0) {
-            this.setState({rowsToShowCount, availableRows, availableChunks, loadingChunks: true});
-          } else {
-            this.loadAndShowMoreRows(rowsToShowCount, _.concat(availableRows, newRows), availableChunks + 1);
-          }
-        },
-        error: () => {
-          this.setState({rowsToShowCount, availableRows, availableChunks, loadingChunks: false, loadError: true});
-        },
+      this.loadChunks(availableChunks, (newRows) => {
+        if (newRows.length === 0) {
+          this.setState({rowsToShowCount, availableRows, availableChunks});
+        } else {
+          this.loadAndShowMoreRows(rowsToShowCount, _.concat(availableRows, newRows), availableChunks + 1);
+        }
       });
     }
+  }
+
+  loadChunks(desiredChunk: number, fun: ((rows: Row[]) => void)) {
+    this.setState({loadingChunks: true, loadError: false});
+    loadBuckets(this.props.id, desiredChunk, this.context.authentication, {
+      success: (buckets) => {
+        this.setState({loadingChunks: false, loadError: false});
+        fun(buckets);
+      },
+      error: () => {
+        this.setState({loadingChunks: false, loadError: true});
+      },
+    });
   }
 
   showingAllOfFewRows() {
