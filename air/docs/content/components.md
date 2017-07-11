@@ -46,6 +46,8 @@ The Insights Datasource Connector has the ability to emulate database features b
 database server itself. Examples of this include the ability to work on encrypted fields and columns, converting data to
 types not natively supported, and performing table joins where no such support exists.
 
+For more information about the supported datastores and what query features are emulated, please have a look at the
+[datastore](datastores.md) page.
 
 ## Components provided by the customer
 
@@ -59,6 +61,9 @@ database.
 
 The data being queried is made available through a database system of some kind. In nearly all cases this system already
 exists and can directly be used by the Aircloak Insights platform.
+
+A list of supported datasources can be found [here](datastores.md).
+
 
 ### Logging infrastructure
 
