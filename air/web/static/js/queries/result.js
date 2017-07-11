@@ -370,7 +370,7 @@ export class ResultView extends React.Component {
   chartButtonClass() {
     const baseClasses = "btn btn-default btn-xs";
     if (this.state.loadingChunks) {
-      return "{baseClasses} disabled";
+      return `${baseClasses} disabled`;
     } else {
       return baseClasses;
     }
