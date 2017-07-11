@@ -71,10 +71,9 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_function_usage({:function, name, [argument]}, _subquery? = false) when name in ["min", "max", "median"] do
-    type = Function.type(argument)
-    if Enum.member?([:text, :date, :time, :datetime], type), do:
+    if Function.type(argument) == :text, do:
       raise CompilationError, message:
-        "Function `#{name}` is allowed over arguments of type `#{type}` only in subqueries."
+        "Function `#{name}` is allowed over arguments of type `text` only in subqueries."
     :ok
   end
   defp verify_function_usage({:function, name, _}, _subquery? = true) do
