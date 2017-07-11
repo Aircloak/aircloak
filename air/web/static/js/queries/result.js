@@ -255,11 +255,11 @@ export class ResultView extends React.Component {
     if (this.state.loadingChunks) {
       return (
         <p className="text-center spinner"> <img src="/images/loader.gif" role="presentation" />
-          Loading query data.
+          Loading more rows.
         </p>
       );
     } else if (this.state.loadError) {
-      return (<div className="alert alert-danger">Error loading data.</div>);
+      return (<div className="alert alert-danger">Failed to load more rows.</div>);
     } else if (this.state.showChart && this.state.showChartConfig) {
       return (
         <GraphConfigView
