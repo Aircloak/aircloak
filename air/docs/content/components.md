@@ -46,7 +46,7 @@ The Insights Datasource Connector has the ability to emulate database features b
 database server itself. Examples of this include the ability to work on encrypted fields and columns, converting data to
 types not natively supported, and performing table joins where no such support exists.
 
-For more information about the supported datastores and the what query features are emulated, please have a look at the
+For more information about the supported datastores and what query features are emulated, please have a look at the
 [datastore](datastores.md) page.
 
 ## Components provided by the customer

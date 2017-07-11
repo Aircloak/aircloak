@@ -17,7 +17,7 @@ If your preferred datastore is not in the list, please contact Aircloak.
 
 ## Postgres
 
-Postgres 9.1 and more recent of Postgres is supported.
+Versions from 9.1 and onwards are supported.
 
 ## MySQL and MariaDB
 
@@ -25,7 +25,7 @@ MySQL version 5 and more recent is supported.
 We also support the MySQL fork MariaDB from version 10.1 and onwards.
 
 `FULL OUTER JOIN`'s are not natively supported by MySQL and MariaDB.
-Aircloak Insights replaces any insatnce of a `FULL OUTER JOIN` with a
+Aircloak Insights replaces any instance of a `FULL OUTER JOIN` with a
 combination of a `LEFT OUTER JOIN` and a `RIGHT OUTER JOIN`.
 
 ## Microsoft SQL Server
@@ -38,11 +38,11 @@ The following versions of Microsoft SQL Server are supported:
 
 ## MongoDB
 
-Support for versions `3.2` and more recent.
+Versions from 3.0 and onwards are supported.
 
 ### Schema detection
 
-Collections in MongoDB do not have a fixed schema, whereas schema's are required by Aircloak Insights. In order to establish a schema that can be used Aircloak Insights
+Collections in MongoDB do not have a fixed schema, whereas schema's are required by Aircloak Insights. In order to establish a schema that can be used, Aircloak Insights
 will traverse the collections of a database upon boot. This produces a best effort
 estimate of the available fields and their data types.
 
@@ -50,7 +50,7 @@ estimate of the available fields and their data types.
 
 #### Nested documents
 
-Aircloak Insights flattens nested documents into a flat structure.
+Aircloak Insights flattens nested documents.
 Fields that in MongoDB are part of a sub-document are in Aircloak Insights
 given hierarchical names instead.
 
@@ -101,8 +101,9 @@ even `INNER JOIN`'s on recent versions of MongoDB have to be emulated.
 
 ## Emulation overview
 
-The level of features natively supported by the different datastores differ. All the same,
-the query interface provided to an analyst remains the same. This is achieved by Aircloak Insights
+The level of features natively supported by the different datastores differ. Despite this
+the query interface remains the same irrespective of the datastore used.
+This is achieved by Aircloak Insights
 emulating functionality that is not natively supported by the underlying datastore.
 
 While convenient, this does incurr performance overhead as all the data needed for the analysis
@@ -191,15 +192,15 @@ query
   --> a1 (emulated)
     --> a2 (emulated)
       --> t1 (executed in the datasource)
-    --> a3 (executed in the datasource)
+    --> a3 (emulated)
       --> a4 (executed in the datasource)
         --> t2 (executed in the datasource)
 ```
 
-### What triggers emulation
+### Natively supported features
 
-The following section describes which functions cause a query to become emulated, and which do not.
-
+The following table shows which features are natively supported by the datastores,
+and conversely which features turn a query into an emulated one.
 
 |               | MS SQL   | MySQL    | Postgres | MongoDB >= 3.2 | MongoDB < 3.2 |
 |--------------:|:--------:|:--------:|:--------:|:--------------:|:-------------:|
