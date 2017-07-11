@@ -62,6 +62,9 @@ database.
 The data being queried is made available through a database system of some kind. In nearly all cases this system already
 exists and can directly be used by the Aircloak Insights platform.
 
+A list of supported datasources can be found [here](datastores.md).
+
+
 ### Logging infrastructure
 
 Insights Air, and Insights Cloak (and through Insights Cloak also Insights Datasource Connector) produce logs that can
