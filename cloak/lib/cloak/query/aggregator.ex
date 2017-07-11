@@ -293,6 +293,17 @@ defmodule Cloak.Query.Aggregator do
     {_stddev, noise_sigma} = Anonymizer.stddev(anonymizer, aggregation_data)
     noise_sigma
   end
+  defp aggregate_by(aggregation_data, aggregator, type, anonymizer)
+      when type in [:datetime, :date, :time] and aggregator in ["min", "max", "median"] do
+    aggregation_data
+    |> Stream.map(fn
+      ({:min, value}) -> {:min, Cloak.Time.to_integer(value)}
+      ({:max, value}) -> {:max, Cloak.Time.to_integer(value)}
+      (values) when is_list(values) -> Enum.map(values, &Cloak.Time.to_integer/1)
+    end)
+    |> aggregate_by(aggregator, :integer, anonymizer)
+    |> Cloak.Time.from_integer(type)
+  end
   defp aggregate_by(aggregation_data, "min", type, anonymizer), do:
     Anonymizer.min(anonymizer, aggregation_data) |> float_to_type(type)
   defp aggregate_by(aggregation_data, "max", type, anonymizer), do:

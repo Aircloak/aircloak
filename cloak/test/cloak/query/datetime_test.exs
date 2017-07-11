@@ -118,4 +118,36 @@ defmodule Cloak.Query.DatetimeTest do
     assert_query "select datetime from datetimes", %{rows: [%{row: [date_time_string]}]}
     assert date_time_string == NaiveDateTime.to_iso8601(date_time)
   end
+
+  describe "aggregators over date/time" do
+    setup do
+      :ok = insert_rows(_user_ids = 1..10, "datetimes", ["datetime"], [~N[2015-01-02 10:00:05.000000]])
+      :ok = insert_rows(_user_ids = 11..30, "datetimes", ["datetime"], [~N[2017-01-02 12:00:05.000000]])
+      :ok = insert_rows(_user_ids = 31..40, "datetimes", ["datetime"], [~N[2018-03-04 15:00:05.000000]])
+    end
+
+    test "min/max over datetime" do
+      assert_query "select min(datetime), max(datetime) from datetimes",
+        %{rows: [%{row: ["2015-01-02T10:00:05.000000", "2018-03-04T15:00:05.000000"]}]}
+    end
+
+    test "min/max over date" do
+      assert_query "select min(cast(datetime as date)), max(cast(datetime as date)) from datetimes",
+        %{rows: [%{row: ["2015-01-02", "2018-03-04"]}]}
+    end
+
+    test "min/max over time" do
+      assert_query "select min(cast(datetime as time)), max(cast(datetime as time)) from datetimes",
+        %{rows: [%{row: ["10:00:05.000000", "15:00:05.000000"]}]}
+    end
+
+    test "median over datetime", do:
+      assert_query "select median(datetime) from datetimes", %{rows: [%{row: ["2017-01-02T12:00:05.000000"]}]}
+
+    test "median over date", do:
+      assert_query "select median(cast(datetime as date)) from datetimes", %{rows: [%{row: ["2017-01-02"]}]}
+
+    test "median over time", do:
+      assert_query "select median(cast(datetime as time)) from datetimes", %{rows: [%{row: ["12:00:05.000000"]}]}
+  end
 end

@@ -60,6 +60,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   defp function_call("div", [arg1, arg2], :mysql), do: [arg1, " DIV ", arg2]
   defp function_call("hex", [arg], :postgresql), do: ["ENCODE(", arg, "::bytea, 'hex')"]
   defp function_call("hex", [arg], :sqlserver), do: ["CONVERT(nvarchar, CAST(", arg, " AS varbinary), 2)"]
+  defp function_call("stddev", [arg], :sqlserver), do: ["STDEV(", arg, ")"]
   defp function_call({:bucket, :lower}, [arg1, arg2], sql_dialect), do:
     # floor(arg1 / arg2) * arg2
     function_call("*", [

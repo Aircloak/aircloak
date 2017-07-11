@@ -138,11 +138,6 @@ defmodule Cloak.Sql.Compiler.Test do
       assert {:error, _} = compile("select #{unquote(function)}(string) from table", data_source())
       assert {:error, _} = compile("select #{unquote(function)}(distinct string) from table", data_source())
     end
-
-    test "rejecting #{function} on datetime columns in top query" do
-      assert {:error, _} = compile("select #{unquote(function)}(column) from table", data_source())
-      assert {:error, _} = compile("select #{unquote(function)}(distinct column) from table", data_source())
-    end
   end
 
   for function <- ~w(avg stddev sqrt) do
