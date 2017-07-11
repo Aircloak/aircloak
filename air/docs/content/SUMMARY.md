@@ -21,10 +21,9 @@
   - [High query volume](scaling.md#high-query-volume)
 - [Supported datastores](datastores.md)
   - [Microsoft SQL Server](datastores.md#microsoft-sql-server)
-  - [MySQL](datastores.md#mysql)
+  - [MySQL and MariaDB](datastores.md#mysql-and-mariadb)
   - [Postgres](datastores.md#postgres)
   - [MongoDB](datastores.md#mongodb)
-  - [MariaDB](datastores.md#mariadb)
   - [Feature emulation](datastores.md#emulation-overview)
 
 ## Technical documentation

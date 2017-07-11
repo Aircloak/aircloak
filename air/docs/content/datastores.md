@@ -9,10 +9,9 @@ please consult the [feature emulation](#emulation-overview) overview.
 Aircloak Insights ships with Insights Datasource Connectors for the following datastores:
 
 - [Microsoft SQL Server](#microsoft-sql-server)
-- [MySQL](#mysql)
+- [MySQL and MariaDB](#mysql-and-mariadb)
 - [Postgres](#postgres)
 - [MongoDB](#mongodb)
-- [MariaDB](#mariadb)
 
 If your preferred datastore is not in the list, please contact Aircloak.
 
@@ -24,9 +23,10 @@ The following versions of Microsoft SQL Server are supported:
 - SQL Server 2014
 - SQL Server 2012 R2
 
-## MySQL
+## MySQL and MariaDB
 
 MySQL version 5 and more recent is supported.
+We also support the MySQL fork MariaDB from version 10.1 and onwards.
 
 `FULL OUTER JOIN`'s are not natively supported by MySQL and MariaDB.
 Aircloak Insights replaces any insatnce of a `FULL OUTER JOIN` with a
@@ -97,12 +97,6 @@ table `users_siblings` containing a `siblings.name` in addition to the `name` co
 MongoDB versions more recent than 3.2 support `INNER JOIN`'s. Aircloak Insights
 will emulate all unsupported JOIN-types. Furthermore, when a collection is sharded,
 even `INNER JOIN`'s on recent versions of MongoDB have to be emulated.
-
-
-## MariaDB
-
-Please see [MySQL](#mysql) for details.
-
 
 
 ## Emulation overview
