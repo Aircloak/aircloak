@@ -8,20 +8,16 @@ please consult the [feature emulation](#emulation-overview) overview.
 
 Aircloak Insights ships with Insights Datasource Connectors for the following datastores:
 
-- [Microsoft SQL Server](#microsoft-sql-server)
-- [MySQL and MariaDB](#mysql-and-mariadb)
 - [Postgres](#postgres)
+- [MySQL and MariaDB](#mysql-and-mariadb)
+- [Microsoft SQL Server](#microsoft-sql-server)
 - [MongoDB](#mongodb)
 
 If your preferred datastore is not in the list, please contact Aircloak.
 
-## Microsoft SQL Server
+## Postgres
 
-The following versions of Microsoft SQL Server are supported:
-
-- SQL Server 2016
-- SQL Server 2014
-- SQL Server 2012 R2
+Postgres 9.1 and more recent of Postgres is supported.
 
 ## MySQL and MariaDB
 
@@ -32,9 +28,13 @@ We also support the MySQL fork MariaDB from version 10.1 and onwards.
 Aircloak Insights replaces any insatnce of a `FULL OUTER JOIN` with a
 combination of a `LEFT OUTER JOIN` and a `RIGHT OUTER JOIN`.
 
-## Postgres
+## Microsoft SQL Server
 
-Postgres 9.1 and more recent of Postgres is supported.
+The following versions of Microsoft SQL Server are supported:
+
+- SQL Server 2016
+- SQL Server 2014
+- SQL Server 2012 R2
 
 ## MongoDB
 

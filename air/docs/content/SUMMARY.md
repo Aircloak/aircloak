@@ -20,9 +20,9 @@
   - [Low query volume](scaling.md#low-query-volume)
   - [High query volume](scaling.md#high-query-volume)
 - [Supported datastores](datastores.md)
-  - [Microsoft SQL Server](datastores.md#microsoft-sql-server)
-  - [MySQL and MariaDB](datastores.md#mysql-and-mariadb)
   - [Postgres](datastores.md#postgres)
+  - [MySQL and MariaDB](datastores.md#mysql-and-mariadb)
+  - [Microsoft SQL Server](datastores.md#microsoft-sql-server)
   - [MongoDB](datastores.md#mongodb)
   - [Feature emulation](datastores.md#emulation-overview)
 
