@@ -53,6 +53,7 @@ type State = {
   availableRows: Row[],
   availableChunks: number,
   loadingChunks: boolean,
+  loadError: boolean,
 };
 
 const UNRELIABLE_USER_COUNT_THRESHOLD = 15;
@@ -74,6 +75,7 @@ export class ResultView extends React.Component {
       availableRows: this.props.rows,
       availableChunks: 1,
       loadingChunks: false,
+      loadError: false,
     };
 
     this.componentDidUpdate = this.componentDidUpdate.bind(this);
@@ -159,6 +161,9 @@ export class ResultView extends React.Component {
         success: (allRows) => {
           this.setState({availableRows: allRows, availableChunks: ALL_CHUNKS, showChart: true, loadingChunks: false});
         },
+        error: () => {
+          this.setState({loadingChunks: false, loadError: true});
+        },
       });
     } else {
       this.setState({showChart: true});
@@ -184,6 +189,9 @@ export class ResultView extends React.Component {
           } else {
             this.loadAndShowMoreRows(rowsToShowCount, _.concat(availableRows, newRows), availableChunks + 1);
           }
+        },
+        error: () => {
+          this.setState({rowsToShowCount, availableRows, availableChunks, loadingChunks: false, loadError: true});
         },
       });
     }
@@ -250,6 +258,8 @@ export class ResultView extends React.Component {
           Loading query data.
         </p>
       );
+    } else if (this.state.loadError) {
+      return (<div className="alert alert-danger">Error loading data.</div>);
     } else if (this.state.showChart && this.state.showChartConfig) {
       return (
         <GraphConfigView
