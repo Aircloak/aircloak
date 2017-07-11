@@ -229,7 +229,7 @@ and conversely which features turn a query into an emulated one.
 | lower         | ✔        | ✔        | ✔        | ✔              | ✔             |
 | ltrim         | ✔        | ✔        | ✔        | Emulated       | Emulated      |
 | max           | ✔        | ✔        | ✔        | ✔              | ✔             |
-| median        | Emulated | Emulated | ✔        | Emulated       | Emulated      |
+| median        | Emulated | Emulated | Emulated | Emulated       | Emulated      |
 | min           | ✔        | ✔        | ✔        | ✔              | ✔             |
 | minute        | ✔        | ✔        | ✔        | ✔              | ✔             |
 | mod           | ✔        | ✔        | ✔        | ✔              | ✔             |
