@@ -43,6 +43,22 @@ Deploying will always publish all __pushed__ changes from your current local bra
 
 You can also deploy each component separately using `./cloak/production.sh` and `./air/production.sh` scripts. Run these scripts without any argument for instructions.
 
+### Running a previously built image
+
+It is possible to start your containers with a previously built image. This can be useful if you want to test the behaviour of a previous version without needing to rebuild the image.
+
+For example, to start your system with the version `17.3.0`, you can run the following commands:
+
+```bash
+# from the cloak folder
+./production.sh deploy_target start_at_version aircloak/cloak:17.3.0
+
+# from the air folder
+./production.sh deploy_target start_at_version aircloak/air:17.3.0
+```
+
+These commands will pull the desired images from `quay.io` and restart the container. Notice that there's no building involved with this command.
+
 ### A public release
 
 We have a set of Aircloak installations that don't have their own individual releases, but run
