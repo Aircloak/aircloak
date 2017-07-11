@@ -20,7 +20,7 @@
   - [Low query volume](scaling.md#low-query-volume)
   - [High query volume](scaling.md#high-query-volume)
 - [Supported datastores](datastores.md)
-  - [Postgres](datastores.md#postgres)
+  - [PostgreSQL](datastores.md#postgresql)
   - [MySQL and MariaDB](datastores.md#mysql-and-mariadb)
   - [Microsoft SQL Server](datastores.md#microsoft-sql-server)
   - [MongoDB](datastores.md#mongodb)

@@ -8,14 +8,14 @@ please consult the [feature emulation](#emulation-overview) overview.
 
 Aircloak Insights ships with Insights Datasource Connectors for the following datastores:
 
-- [Postgres](#postgres)
+- [PostgreSQL](#postgresql)
 - [MySQL and MariaDB](#mysql-and-mariadb)
 - [Microsoft SQL Server](#microsoft-sql-server)
 - [MongoDB](#mongodb)
 
 If your preferred datastore is not in the list, please contact Aircloak.
 
-## Postgres
+## PostgreSQL
 
 Versions from 9.1 and onwards are supported.
 
