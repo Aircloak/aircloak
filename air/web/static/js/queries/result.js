@@ -170,10 +170,15 @@ export class ResultView extends React.Component {
       this.setState({rowsToShowCount, availableRows, availableChunks});
     } else {
       this.loadChunks(availableChunks, (newRows) => {
-        if (newRows.length === 0) {
-          this.setState({rowsToShowCount, availableRows, availableChunks});
-        } else {
-          this.loadAndShowMoreRows(rowsToShowCount, _.concat(availableRows, newRows), availableChunks + 1);
+        if (newRows.length > 0) {
+          const newAvailableRows = _.concat(availableRows, newRows);
+          const newAvailableChunks = availableChunks + 1;
+          this.setState({
+            rowsToShowCount: availableRowsCount,
+            availableRows: newAvailableRows,
+            availableChunks: newAvailableChunks,
+          });
+          this.loadAndShowMoreRows(rowsToShowCount, newAvailableRows, newAvailableChunks);
         }
       });
     }
