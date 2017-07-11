@@ -17,7 +17,7 @@ If your preferred datastore is not in the list, please contact Aircloak.
 
 ## PostgreSQL
 
-Versions from 9.1 and onwards are supported.
+Versions from 9.1 and newer are supported.
 
 ## MySQL and MariaDB
 
@@ -38,7 +38,7 @@ The following versions of Microsoft SQL Server are supported:
 
 ## MongoDB
 
-Versions from 3.0 and onwards are supported.
+Versions from 3.0 and newer are supported.
 
 ### Schema detection
 
