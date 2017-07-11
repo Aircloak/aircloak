@@ -52,6 +52,7 @@ type State = {
   tableAligner: TableAlignerT,
   availableRows: Row[],
   availableChunks: number,
+  loadingChunks: boolean,
 };
 
 const UNRELIABLE_USER_COUNT_THRESHOLD = 15;
@@ -72,6 +73,7 @@ export class ResultView extends React.Component {
       tableAligner: new TableAligner(props.rows),
       availableRows: this.props.rows,
       availableChunks: 1,
+      loadingChunks: false,
     };
 
     this.componentDidUpdate = this.componentDidUpdate.bind(this);
@@ -150,23 +152,35 @@ export class ResultView extends React.Component {
     this.setState({rowsToShowCount});
   }
 
-  loadAllRows() {
+  showChart() {
     if (this.state.availableChunks !== ALL_CHUNKS) {
+      this.setState({loadingChunks: true});
       loadBuckets(this.props.id, ALL_CHUNKS, this.context.authentication, {
-        success: (allRows) => { this.setState({availableRows: allRows, availableChunks: ALL_CHUNKS}); },
+        success: (allRows) => {
+          this.setState({availableRows: allRows, availableChunks: ALL_CHUNKS, showChart: true, loadingChunks: false});
+        },
       });
+    } else {
+      this.setState({showChart: true});
     }
   }
 
   loadAndShowMoreRows(rowsToShowCount: number, availableRows: Row[], availableChunks: number) {
+    this.setState({loadingChunks: true});
     const availableRowsCount = _.sum(_.flatMap(availableRows, (row) => row.occurrences));
     if (availableChunks === ALL_CHUNKS || rowsToShowCount <= availableRowsCount) {
-      this.setState({rowsToShowCount, availableRows, availableChunks});
+      this.setState({
+        rowsToShowCount,
+        availableRows,
+        availableChunks,
+        loadingChunks: false,
+      });
     } else {
+      this.setState({loadingChunks: true});
       loadBuckets(this.props.id, availableChunks, this.context.authentication, {
         success: (newRows) => {
           if (newRows.length === 0) {
-            this.setState({rowsToShowCount, availableRows, availableChunks});
+            this.setState({rowsToShowCount, availableRows, availableChunks, loadingChunks: true});
           } else {
             this.loadAndShowMoreRows(rowsToShowCount, _.concat(availableRows, newRows), availableChunks + 1);
           }
@@ -230,7 +244,13 @@ export class ResultView extends React.Component {
   }
 
   conditionallyRenderChartConfig() {
-    if (this.state.showChart && this.state.showChartConfig) {
+    if (this.state.loadingChunks) {
+      return (
+        <p className="text-center spinner"> <img src="/images/loader.gif" role="presentation" />
+          Loading query data.
+        </p>
+      );
+    } else if (this.state.showChart && this.state.showChartConfig) {
       return (
         <GraphConfigView
           graphInfo={this.graphInfo}
@@ -277,7 +297,9 @@ export class ResultView extends React.Component {
   }
 
   renderShowAll() {
-    if (this.showingAllOfFewRows()) {
+    if (this.state.loadingChunks) {
+      return null;
+    } else if (this.showingAllOfFewRows()) {
       return (
         <div className="row-count">
           {this.props.row_count} rows.
@@ -315,13 +337,16 @@ export class ResultView extends React.Component {
       const chartButtonText = this.state.showChart ? "Hide chart" : "Show chart";
       return (
         <button
-          className="btn btn-default btn-xs"
+          className={this.chartButtonClass()}
           onClick={() => {
-            const shouldShowChart = !this.state.showChart;
-            if (shouldShowChart) {
-              this.loadAllRows();
+            if (!this.state.loadingChunks) {
+              const shouldShowChart = !this.state.showChart;
+              if (shouldShowChart) {
+                this.showChart();
+              } else {
+                this.setState({showChart: shouldShowChart});
+              }
             }
-            this.setState({showChart: ! this.state.showChart});
           }}
         >
           {chartButtonText}
@@ -329,6 +354,15 @@ export class ResultView extends React.Component {
       );
     } else {
       return null;
+    }
+  }
+
+  chartButtonClass() {
+    const baseClasses = "btn btn-default btn-xs";
+    if (this.state.loadingChunks) {
+      return "{baseClasses} disabled";
+    } else {
+      return baseClasses;
     }
   }
 
