@@ -272,6 +272,39 @@ defmodule Air.Service.QueryTest do
     end
   end
 
+  describe "working with old style results" do
+    setup [:sandbox, :with_user, :with_data_source]
+
+    test "fetching buckets from old results", context do
+      query = create_old_result(context.user, context.data_source, [%{occurrences: 10, row: [1]}])
+      query = Air.Repo.get!(Air.Schemas.Query, query.id)
+
+      assert Map.has_key?(query.result, "rows")
+      assert Query.buckets(query, :all) == [%{"occurrences" => 10, "row" => [1]}]
+    end
+
+    test "converting old results", context do
+      buckets = Enum.map(1..2500, &%{occurrences: 1, row: [&1]})
+      query = create_old_result(context.user, context.data_source, buckets)
+
+      assert Query.ResultConverter.convert_all_results() == 1
+      query = Air.Repo.get!(Air.Schemas.Query, query.id)
+
+      refute Map.has_key?(query.result, "rows")
+      assert Enum.flat_map(Query.buckets(query, 0), &Map.fetch!(&1, "row")) == Enum.to_list(1..1000)
+      assert Enum.flat_map(Query.buckets(query, 1), &Map.fetch!(&1, "row")) == Enum.to_list(1001..2000)
+      assert Enum.flat_map(Query.buckets(query, 2), &Map.fetch!(&1, "row")) == Enum.to_list(2001..2500)
+    end
+
+    test "conversion of old results doesn't affect the new results", context do
+      query = create_query!(context.user, %{query_state: :started, data_source_id: context.data_source.id})
+      send_query_result(query.id, %{columns: ["value"]}, [%{occurrences: 10, row: [1]}])
+      assert Query.ResultConverter.convert_all_results() == 0
+      query = Air.Repo.get!(Air.Schemas.Query, query.id)
+      assert Query.buckets(query, :all) == [%{"occurrences" => 10, "row" => [1]}]
+    end
+  end
+
   def sandbox(_context) do
     Ecto.Adapters.SQL.Sandbox.checkout(Air.Repo)
     Ecto.Adapters.SQL.Sandbox.mode(Air.Repo, {:shared, self()})
@@ -285,4 +318,13 @@ defmodule Air.Service.QueryTest do
   def with_data_source(_context) do
     {:ok, data_source: create_data_source!()}
   end
+
+  defp create_old_result(user, data_source, buckets), do:
+    create_query!(user,
+      %{
+        query_state: :completed,
+        data_source_id: data_source.id,
+        result: %{"columns" => ["value"], "rows" => buckets}
+      }
+    )
 end
