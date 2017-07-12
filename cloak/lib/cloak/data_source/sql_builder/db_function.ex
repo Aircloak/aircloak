@@ -56,6 +56,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
     do: function_call("substring", [arg1, "1", arg2], sql_dialect)
   defp function_call("cast", [arg1, arg2], _sql_dialect),
     do: ["CAST(", arg1, " AS ", arg2, ")"]
+  defp function_call("length", [arg], :sqlserver), do: ["LEN(", arg, ")"]
   defp function_call("trunc", [arg1, arg2], :mysql), do: ["TRUNCATE(", arg1, ", ", arg2, ")"]
   defp function_call("trunc", [arg1], :mysql), do: ["TRUNCATE(", arg1, ", 0)"]
   defp function_call("trunc", [arg1, arg2], :postgresql), do: ["TRUNC(CAST(", arg1, "AS DECIMAL), ", arg2, ")"]
