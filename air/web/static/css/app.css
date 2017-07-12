@@ -141,11 +141,6 @@ h2 {
   border-right: none;
 }
 
-a.disabled {
-  color: gray;
-  pointer-events: none;
-}
-
 /********************************************************************
  * Styles for outdated Aircloak installations
  *******************************************************************/
