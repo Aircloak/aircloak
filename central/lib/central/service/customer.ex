@@ -37,10 +37,15 @@ defmodule Central.Service.Customer do
          {:ok, handler} <- air_handler(export.air_version)
         do
       {:ok, _} = Repo.transaction(fn ->
-        # We don't need to check for duplicate rpcs, because we verified that the export has not already been
-        # imported, and because the export is imported atomically (all or nothing).
-        Enum.each(export.rpcs, &handler.handle(&1, customer, export.air_name, check_duplicate_rpc?: false))
-        mark_export_as_imported!(customer, export.id, export.created_at)
+        try do
+          # We don't need to check for duplicate rpcs, because we verified that the export has not already been
+          # imported, and because the export is imported atomically (all or nothing).
+          Enum.each(export.rpcs, &handler.handle(&1, customer, export.air_name, check_duplicate_rpc?: false))
+          mark_export_as_imported!(customer, export.id, export.created_at)
+        catch type, error ->
+          Logger.error(Exception.format(type, error, :erlang.get_stacktrace()))
+          Repo.rollback(:error)
+        end
       end)
       {:ok, length(export.rpcs)}
     end
