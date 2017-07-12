@@ -27,6 +27,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
     defp function_call(unquote(func), [_arg1, _arg2], :mysql),
       do: raise ExecutionError, message: "Function #{unquote(func)} is not supported on 'mysql' data sources."
   end
+  defp function_call("^", [arg1, arg2], :sqlserver), do: ["POWER(", arg1, ", ", arg2, ")"]
   defp function_call("^", [arg1, arg2], :mysql), do: ["POW(", arg1, ", ", arg2, ")"]
   defp function_call("/", [arg1, arg2], :postgresql),  do: ["(", arg1, " :: double precision / ", arg2, ")"]
   for binary_operator <- ~w(+ - * ^ /) do
