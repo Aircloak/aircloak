@@ -207,7 +207,7 @@ defmodule Cloak.AirSocket do
         Cloak.Query.Runner.start(
           serialized_query.id,
           data_source,
-          serialized_query.statement,
+          serialized_query.statement || "",
           decode_params(serialized_query.parameters),
           serialized_query.views
         )
@@ -223,7 +223,7 @@ defmodule Cloak.AirSocket do
       {:ok, data_source} ->
         case Cloak.Sql.Query.describe_query(
           data_source,
-          serialized_query.statement,
+          serialized_query.statement || "",
           decode_params(serialized_query.parameters),
           serialized_query.views
         ) do
