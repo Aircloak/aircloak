@@ -29,7 +29,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   end
   defp function_call("^", [arg1, arg2], :sqlserver), do: ["POWER(", arg1, ", ", arg2, ")"]
   defp function_call("^", [arg1, arg2], :mysql), do: ["POW(", arg1, ", ", arg2, ")"]
-  defp function_call("/", [arg1, arg2], :sqlserver),  do: ["(CAST(", arg1, " AS DOUBLE PRECISION) / ", arg2, ")"]
+  defp function_call("/", [arg1, arg2], :sqlserver),  do: ["(CAST(", arg1, " AS double precision) / ", arg2, ")"]
   defp function_call("/", [arg1, arg2], :postgresql),  do: ["(", arg1, " :: double precision / ", arg2, ")"]
   for binary_operator <- ~w(+ - * ^ / %) do
     defp function_call(unquote(binary_operator), [arg1, arg2], _sql_dialect),
@@ -51,7 +51,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
     defp function_call(unquote(fun), args, sql_dialect),
       do: function_call(unquote(delegate_to), args, sql_dialect)
   end
-  defp function_call("ceil", [arg], :sqlserver), do: ["ceiling(", arg, ")"]
+  defp function_call("ceil", [arg], :sqlserver), do: ["CEILING(", arg, ")"]
   defp function_call("concat", args, :sqlserver), do: Enum.intersperse(args, " + ")
   defp function_call("substring_for", [arg1, arg2], sql_dialect),
     do: function_call("substring", [arg1, "1", arg2], sql_dialect)
@@ -60,8 +60,8 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   defp function_call("length", [arg], :sqlserver), do: ["LEN(", arg, ")"]
   defp function_call("trunc", [arg1, arg2], :mysql), do: ["TRUNCATE(", arg1, ", ", arg2, ")"]
   defp function_call("trunc", [arg1], :mysql), do: ["TRUNCATE(", arg1, ", 0)"]
-  defp function_call("trunc", [arg1, arg2], :postgresql), do: ["TRUNC(CAST(", arg1, "AS DECIMAL), ", arg2, ")"]
-  defp function_call("round", [arg1, arg2], :postgresql), do: ["ROUND(CAST(", arg1, "AS DECIMAL), ", arg2, ")"]
+  defp function_call("trunc", [arg1, arg2], :postgresql), do: ["TRUNC(CAST(", arg1, " AS decimal), ", arg2, ")"]
+  defp function_call("round", [arg1, arg2], :postgresql), do: ["ROUND(CAST(", arg1, " AS decimal), ", arg2, ")"]
   defp function_call("btrim", [arg1], :mysql), do: ["TRIM(", arg1, ")"]
   defp function_call("div", [arg1, arg2], :mysql), do: [arg1, " DIV ", arg2]
   defp function_call("div", [arg1, arg2], :sqlserver), do: ["(", arg1, " / ", arg2, ")"]
