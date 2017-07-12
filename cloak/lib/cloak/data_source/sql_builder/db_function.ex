@@ -30,7 +30,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   defp function_call("^", [arg1, arg2], :sqlserver), do: ["POWER(", arg1, ", ", arg2, ")"]
   defp function_call("^", [arg1, arg2], :mysql), do: ["POW(", arg1, ", ", arg2, ")"]
   defp function_call("/", [arg1, arg2], :postgresql),  do: ["(", arg1, " :: double precision / ", arg2, ")"]
-  for binary_operator <- ~w(+ - * ^ /) do
+  for binary_operator <- ~w(+ - * ^ / %) do
     defp function_call(unquote(binary_operator), [arg1, arg2], _sql_dialect),
       do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
