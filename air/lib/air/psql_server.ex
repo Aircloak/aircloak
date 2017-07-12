@@ -193,11 +193,7 @@ defmodule Air.PsqlServer do
         Enum.zip(query_result.columns, query_result.features.selected_types)
         |> Enum.map(fn({name, sql_type}) -> %{name: name, type: psql_type(sql_type)} end),
       rows:
-        query_result
-        |> Map.get(:rows, nil)
-        |> Air.Schemas.Query.Rows.decode_raw()
-        |> Kernel.||([])
-        |> Enum.flat_map(&List.duplicate(Map.fetch!(&1, "row"), Map.fetch!(&1, "occurrences"))),
+        Air.Schemas.ResultChunk.rows(Map.get(query_result, :buckets, [])),
       param_types:
         Enum.map(query_result.features.parameter_types, &psql_type/1)
     ]

@@ -163,15 +163,17 @@ defmodule Air.Service.QueryTest do
     test "processing a successful result" do
       query = create_query!(create_user!(), %{query_state: :started, data_source_id: create_data_source!().id})
 
-      process_result(%{
-        query_id: query.id,
-        columns: ["col1", "col2"],
-        rows: [%{occurrences: 10, row: [1, 1]}],
-        info: ["some info"],
-        users_count: 2,
-        features: %{selected_types: ["some types"]},
-        execution_time: 123,
-      })
+      send_query_result(
+        query.id,
+        %{
+          columns: ["col1", "col2"],
+          info: ["some info"],
+          users_count: 2,
+          features: %{selected_types: ["some types"]},
+          execution_time: 123,
+        },
+        [%{occurrences: 10, row: [1, 1]}]
+      )
 
       {:ok, query} = get_query(query.id)
       assert %{
@@ -181,14 +183,15 @@ defmodule Air.Service.QueryTest do
         features: %{"selected_types" => ["some types"]},
       } = query
 
-      assert %{
+      assert query.result == %{
         "columns" => ["col1", "col2"],
-        "rows" => [%{"occurrences" => 10, "row" => [1, 1]}],
         "info" => ["some info"],
         "row_count" => 10,
         "error" => nil,
         "types" => ["some types"],
-      } = Air.Schemas.Query.result(query)
+      }
+
+      assert Query.buckets(query, :all) == [%{"occurrences" => 10, "row" => [1, 1]}]
     end
 
     test "processing an error result" do
@@ -196,8 +199,7 @@ defmodule Air.Service.QueryTest do
 
       log =
         ExUnit.CaptureLog.capture_log(fn ->
-          process_result(%{
-            query_id: query.id,
+          send_query_result(query.id, %{
             features: %{"selected_types" => ["some types"]},
             execution_time: 123,
             error: "some reason",
@@ -217,8 +219,7 @@ defmodule Air.Service.QueryTest do
     test "processing a cancelled result" do
       query = create_query!(create_user!(), %{query_state: :started, data_source_id: create_data_source!().id})
 
-      process_result(%{
-        query_id: query.id,
+      send_query_result(query.id, %{
         features: %{"selected_types" => ["some types"]},
         execution_time: 123,
         cancelled: true,
@@ -236,8 +237,7 @@ defmodule Air.Service.QueryTest do
     test "results of completed queries are ignored" do
       query = create_query!(create_user!(), %{query_state: :error, data_source_id: create_data_source!().id})
 
-      process_result(%{
-        query_id: query.id,
+      send_query_result(query.id, %{
         features: %{"selected_types" => ["some types"]},
         execution_time: 123,
         cancelled: true,
@@ -284,12 +284,5 @@ defmodule Air.Service.QueryTest do
 
   def with_data_source(_context) do
     {:ok, data_source: create_data_source!()}
-  end
-
-  defp process_result(result) do
-    result
-    |> Map.put(:rows, encode_rows(result))
-    |> Map.put(:row_count, row_count(result))
-    |> Query.process_result()
   end
 end

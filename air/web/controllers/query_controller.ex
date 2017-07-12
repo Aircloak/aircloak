@@ -14,7 +14,7 @@ defmodule Air.QueryController do
 
   def permissions do
     %{
-      user: [:cancel, :create, :show, :load_history],
+      user: [:cancel, :create, :show, :load_history, :buckets],
       admin: :all
     }
   end
@@ -45,28 +45,46 @@ defmodule Air.QueryController do
       "" -> NaiveDateTime.utc_now()
       string -> NaiveDateTime.from_iso8601!(string)
     end
-    case DataSource.history(data_source_id_spec(params), conn.assigns.current_user, :http, 10, before,
-      load_rows: true)
-    do
-      {:ok, queries} -> json(conn, queries)
-      _ -> send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
+    case DataSource.history(data_source_id_spec(params), conn.assigns.current_user, :http, 10, before) do
+      {:ok, queries} ->
+        json(conn,
+          Enum.map(queries, &Query.for_display(&1, Air.Service.Query.buckets(&1, 0)))
+        )
+      _ ->
+        send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
+    end
+  end
+
+  def buckets(conn, params) do
+    case Air.Service.Query.get_as_user(conn.assigns.current_user, Map.fetch!(params, "id")) do
+      {:ok, query} ->
+        desired_chunk =
+          case Map.fetch!(params, "chunk") do
+            "all" -> :all
+            other -> String.to_integer(other)
+          end
+        json(conn, Air.Service.Query.buckets(query, desired_chunk))
+
+      _ ->
+        send_resp(conn, Status.code(:not_found), "Query not found")
     end
   end
 
   def show(conn, %{"id" => id_type}) do
     [id | extension] = String.split(id_type, ".", parts: 2)
-    case Air.Service.Query.get_as_user(conn.assigns.current_user, id, load_rows: true) do
+    case Air.Service.Query.get_as_user(conn.assigns.current_user, id) do
       {:ok, query} ->
         case extension do
           ["csv"] ->
             conn = put_resp_content_type(conn, "text/csv")
             conn = send_chunked(conn, 200)
-            csv_stream = Query.to_csv_stream(query)
+            csv_stream = Query.to_csv_stream(query, Air.Service.Query.buckets(query, :all))
             Enum.reduce(csv_stream, conn, fn(data, conn) ->
               {:ok, conn} = chunk(conn, data)
               conn
             end)
-          _ -> json(conn, %{query: Query.for_display(query)})
+          _ ->
+            json(conn, %{query: Query.for_display(query, Air.Service.Query.buckets(query, :all))})
         end
       _ ->
         conn = put_status(conn, Status.code(:not_found))

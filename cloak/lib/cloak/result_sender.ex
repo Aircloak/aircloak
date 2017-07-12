@@ -90,22 +90,31 @@ defmodule Cloak.ResultSender do
   defp encode_result(result), do:
     result
     |> Map.take([:query_id, :columns, :features, :error, :info])
-    |> Map.put(:row_count, row_count(result))
-    |> Map.put(:rows, encode_rows(result))
+    |> Map.put(:chunks, encode_chunks(result))
+    |> Map.put(:row_count, row_count(result[:rows]))
 
-  defp row_count(%{rows: rows}), do:
-    rows |> Stream.map(&(&1.occurrences)) |> Enum.sum()
-  defp row_count(_), do:
+  defp row_count(nil), do:
     nil
+  defp row_count(rows), do:
+    rows
+    |> Stream.map(&(&1.occurrences))
+    |> Enum.sum()
 
-  defp encode_rows(%{rows: rows}), do:
-    Aircloak.report_long(:encode_rows,
+  defp encode_chunks(%{rows: rows}), do:
+    Aircloak.report_long(:encode_chunks,
       fn ->
         rows
-        |> :jiffy.encode([:use_nil])
-        |> :zlib.gzip()
+        |> Stream.chunk(1000, 1000, [])
+        |> Stream.with_index()
+        |> Enum.map(&encode_chunk/1)
       end
     )
-  defp encode_rows(_), do:
-    nil
+  defp encode_chunks(_), do:
+    []
+
+  defp encode_chunk({rows, index}), do:
+    %{
+      index: index,
+      encoded_data: rows |> :jiffy.encode([:use_nil]) |> :zlib.gzip()
+    }
 end

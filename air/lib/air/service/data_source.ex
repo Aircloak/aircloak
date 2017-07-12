@@ -68,11 +68,11 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Returns most recent queries executed on the given data source by the given user."
-  @spec history(data_source_id_spec, User.t, Query.Context.t, pos_integer, NaiveDateTime.t, [load_rows: boolean]) ::
+  @spec history(data_source_id_spec, User.t, Query.Context.t, pos_integer, NaiveDateTime.t) ::
     {:ok, [Query.t]} | {:error, :unauthorized}
-  def history(data_source_id_spec, user, context, count, before, opts \\ []) do
+  def history(data_source_id_spec, user, context, count, before) do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user), do:
-      {:ok, Air.Service.Query.load_recent_queries(user, data_source, context, count, before, opts)}
+      {:ok, Air.Service.Query.load_recent_queries(user, data_source, context, count, before)}
   end
 
   @doc "Returns the last query executed on the given data source by the given user."
@@ -153,7 +153,13 @@ defmodule Air.Service.DataSource do
       receive do
         {:query_result, %{query_id: ^query_id} = result} ->
           Service.Query.Events.unsubscribe(query_id)
-          {:ok, result}
+          {:ok, query} = Air.Service.Query.get_as_user(user, query_id)
+
+          {:ok,
+            result
+            |> Map.delete(:chunks)
+            |> Map.put(:buckets, Air.Service.Query.buckets(query, :all))
+          }
       end
     end
   end

@@ -63,10 +63,49 @@ defmodule Air.QueryControllerTest do
     login(context[:user]) |> post("/queries", query_data_params) |> response(503)
   end
 
+  test "fetching desired chunk", context do
+    query = create_query!(
+      context.user,
+      %{statement: "text of the query", query_state: :started, data_source_id: context.data_source.id}
+    )
+
+    send_query_result(
+      query.id,
+      %{columns: ["col"]},
+      Enum.map(1..1100, &%{occurrences: 1, row: [&1]})
+    )
+
+    assert chunk_values(context, query.id, 0) == Enum.to_list(1..1000)
+    assert chunk_values(context, query.id, 1) == Enum.to_list(1001..1100)
+    assert chunk_values(context, query.id, 2) == []
+  end
+
+  test "fetching all chunks", context do
+    query = create_query!(
+      context.user,
+      %{statement: "text of the query", query_state: :started, data_source_id: context.data_source.id}
+    )
+
+    send_query_result(
+      query.id,
+      %{columns: ["col"]},
+      Enum.map(1..1100, &%{occurrences: 1, row: [&1]})
+    )
+
+    assert chunk_values(context, query.id, "all") == Enum.to_list(1..1100)
+  end
+
   defp open_cloak_mock_socket(data_source) do
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
     TestSocketHelper.join!(socket, "main",
       %{data_sources: [%{name: data_source.name, global_id: data_source.global_id, tables: []}]})
     socket
   end
+
+  defp chunk_values(context, query_id, chunk), do:
+    login(context.user)
+    |> get(query_path(context.conn, :buckets, query_id, chunk: chunk))
+    |> response(200)
+    |> Poison.decode!()
+    |> Enum.map(&(&1 |> Map.fetch!("row") |> hd()))
 end
