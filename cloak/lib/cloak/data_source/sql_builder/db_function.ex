@@ -52,6 +52,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
     defp function_call(unquote(fun), args, sql_dialect),
       do: function_call(unquote(delegate_to), args, sql_dialect)
   end
+  defp function_call("concat", args, :sqlserver), do: Enum.intersperse(args, " + ")
   defp function_call("substring_for", [arg1, arg2], sql_dialect),
     do: function_call("substring", [arg1, "1", arg2], sql_dialect)
   defp function_call("cast", [arg1, arg2], _sql_dialect),
