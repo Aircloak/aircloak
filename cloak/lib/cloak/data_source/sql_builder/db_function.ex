@@ -41,7 +41,6 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
     defp function_call(unquote(datepart), args, _sql_dialect),
       do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
   end
-  defp function_call("ceiling", [arg], :sqlserver), do: ["ceiling(", arg, ")"]
   defp function_call("mod", [arg1, arg2], :sqlserver), do: ["(", arg1, " % ", arg2, ")"]
   for {fun, delegate_to} <- %{
     "ceiling" => "ceil",
@@ -52,6 +51,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
     defp function_call(unquote(fun), args, sql_dialect),
       do: function_call(unquote(delegate_to), args, sql_dialect)
   end
+  defp function_call("ceil", [arg], :sqlserver), do: ["ceiling(", arg, ")"]
   defp function_call("concat", args, :sqlserver), do: Enum.intersperse(args, " + ")
   defp function_call("substring_for", [arg1, arg2], sql_dialect),
     do: function_call("substring", [arg1, "1", arg2], sql_dialect)
