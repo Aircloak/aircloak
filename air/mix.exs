@@ -61,7 +61,7 @@ defmodule Air.Mixfile do
       {:phoenix_html, "~> 2.4"},
       {:phoenix_live_reload, "~> 1.0", only: :dev},
       {:phoenix_gen_socket_client, "~> 1.1.0"},
-      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0"},
+      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.2.4"},
       {:gettext, "~> 0.9"},
       {:cowboy, "~> 1.0"},
       {:comeonin, "~> 2.5"},

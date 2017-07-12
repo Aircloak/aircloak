@@ -33,7 +33,7 @@ defmodule Cloak.Mixfile do
       {:postgrex, "~> 0.13"},
       {:mariaex, "~> 0.8"},
       {:phoenix_gen_socket_client, "~> 1.1.0"},
-      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0"},
+      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.2.4"},
       {:combine, "~> 0.9.6"},
       {:timex, "~> 3.1"},
       {:poison, github: "cristianberneanu/poison", override: true},
