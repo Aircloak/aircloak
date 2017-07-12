@@ -54,6 +54,7 @@ type State = {
   availableChunks: number,
   loadingChunks: boolean,
   loadError: boolean,
+  showLoadSpinner: boolean,
 };
 
 const UNRELIABLE_USER_COUNT_THRESHOLD = 15;
@@ -76,6 +77,7 @@ export class ResultView extends React.Component {
       availableChunks: 1,
       loadingChunks: false,
       loadError: false,
+      showLoadSpinner: false,
     };
 
     this.componentDidUpdate = this.componentDidUpdate.bind(this);
@@ -156,6 +158,7 @@ export class ResultView extends React.Component {
 
   showChart() {
     if (this.state.availableChunks !== ALL_CHUNKS) {
+      this.setState({showLoadSpinner: true});
       this.loadChunks(ALL_CHUNKS, (allRows) => {
         this.setState({availableRows: allRows, availableChunks: ALL_CHUNKS, showChart: true});
       });
@@ -188,11 +191,11 @@ export class ResultView extends React.Component {
     this.setState({loadingChunks: true, loadError: false});
     loadBuckets(this.props.id, desiredChunk, this.context.authentication, {
       success: (buckets) => {
-        this.setState({loadingChunks: false, loadError: false});
+        this.setState({loadingChunks: false, showLoadSpinner: false, loadError: false});
         fun(buckets);
       },
       error: () => {
-        this.setState({loadingChunks: false, loadError: true});
+        this.setState({loadingChunks: false, showLoadSpinner: false, loadError: true});
       },
     });
   }
@@ -252,7 +255,7 @@ export class ResultView extends React.Component {
   }
 
   conditionallyRenderChartConfig() {
-    if (this.state.loadingChunks) {
+    if (this.state.showLoadSpinner) {
       return (
         <p className="text-center"> <img src="/images/loader.gif" role="presentation" /> Loading more rows.</p>
       );
@@ -305,9 +308,7 @@ export class ResultView extends React.Component {
   }
 
   renderShowAll() {
-    if (this.state.loadingChunks) {
-      return null;
-    } else if (this.showingAllOfFewRows()) {
+    if (this.showingAllOfFewRows()) {
       return (
         <div className="row-count">
           {this.props.row_count} rows.
@@ -324,7 +325,7 @@ export class ResultView extends React.Component {
       return (
         <div className="row-count">
           Showing {this.minRowsToShow} of {this.props.row_count} rows.&nbsp;
-          <a onClick={this.handleClickMoreRows}>Show more rows</a>
+          <a onClick={this.handleClickMoreRows} className={this.moreRowsClass()}>Show more rows</a>
         </div>
       );
     } else {
@@ -334,9 +335,17 @@ export class ResultView extends React.Component {
           Showing {rowsShown} of {this.props.row_count} rows.&nbsp;
           Show&nbsp;
           <a onClick={this.handleClickLessRows}>fewer rows</a>,&nbsp;
-          <a onClick={this.handleClickMoreRows}>more rows</a>
+          <a onClick={this.handleClickMoreRows} className={this.moreRowsClass()}>more rows</a>
         </div>
       );
+    }
+  }
+
+  moreRowsClass() {
+    if (this.state.loadingChunks) {
+      return "disabled";
+    } else {
+      return "enabled";
     }
   }
 
