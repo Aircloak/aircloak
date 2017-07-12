@@ -29,6 +29,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   end
   defp function_call("^", [arg1, arg2], :sqlserver), do: ["POWER(", arg1, ", ", arg2, ")"]
   defp function_call("^", [arg1, arg2], :mysql), do: ["POW(", arg1, ", ", arg2, ")"]
+  defp function_call("/", [arg1, arg2], :sqlserver),  do: ["(CAST(", arg1, " AS DOUBLE PRECISION) / ", arg2, ")"]
   defp function_call("/", [arg1, arg2], :postgresql),  do: ["(", arg1, " :: double precision / ", arg2, ")"]
   for binary_operator <- ~w(+ - * ^ / %) do
     defp function_call(unquote(binary_operator), [arg1, arg2], _sql_dialect),
@@ -61,6 +62,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   defp function_call("round", [arg1, arg2], :postgresql), do: ["ROUND(CAST(", arg1, "AS DECIMAL), ", arg2, ")"]
   defp function_call("btrim", [arg1], :mysql), do: ["TRIM(", arg1, ")"]
   defp function_call("div", [arg1, arg2], :mysql), do: [arg1, " DIV ", arg2]
+  defp function_call("div", [arg1, arg2], :sqlserver), do: ["(", arg1, " / ", arg2, ")"]
   defp function_call("hex", [arg], :postgresql), do: ["ENCODE(", arg, "::bytea, 'hex')"]
   defp function_call("hex", [arg], :sqlserver), do: ["CONVERT(nvarchar, CAST(", arg, " AS varbinary), 2)"]
   defp function_call("stddev", [arg], :sqlserver), do: ["STDEV(", arg, ")"]
