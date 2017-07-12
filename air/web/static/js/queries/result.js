@@ -254,9 +254,7 @@ export class ResultView extends React.Component {
   conditionallyRenderChartConfig() {
     if (this.state.loadingChunks) {
       return (
-        <p className="text-center spinner"> <img src="/images/loader.gif" role="presentation" />
-          Loading more rows.
-        </p>
+        <p className="text-center"> <img src="/images/loader.gif" role="presentation" /> Loading more rows.</p>
       );
     } else if (this.state.loadError) {
       return (<div className="alert alert-danger">Failed to load more rows.</div>);
