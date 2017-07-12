@@ -41,6 +41,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
       do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
   end
   defp function_call("ceiling", [arg], :sqlserver), do: ["ceiling(", arg, ")"]
+  defp function_call("mod", [arg1, arg2], :sqlserver), do: ["(", arg1, " % ", arg2, ")"]
   for {fun, delegate_to} <- %{
     "ceiling" => "ceil",
     "lcase" => "lower",
