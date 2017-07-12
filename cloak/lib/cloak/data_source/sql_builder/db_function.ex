@@ -35,7 +35,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
     defp function_call(unquote(binary_operator), [arg1, arg2], _sql_dialect),
       do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
-  for datepart <- ~w(year month day hour minute second) do
+  for datepart <- ~w(year month day hour minute second quarter) do
     defp function_call(unquote(datepart), args, :sqlserver),
       do: ["DATEPART(", unquote(datepart), ", ", args, ")"]
     defp function_call(unquote(datepart), args, _sql_dialect),
