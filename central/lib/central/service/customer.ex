@@ -36,17 +36,29 @@ defmodule Central.Service.Customer do
          :ok <- AirMessage.validate_export(customer, export),
          {:ok, handler} <- air_handler(export.air_version)
         do
-      {:ok, _} = Repo.transaction(fn ->
-        try do
-          # We don't need to check for duplicate rpcs, because we verified that the export has not already been
-          # imported, and because the export is imported atomically (all or nothing).
-          Enum.each(export.rpcs, &handler.handle(&1, customer, export.air_name, check_duplicate_rpc?: false))
-          mark_export_as_imported!(customer, export.id, export.created_at)
-        catch type, error ->
-          Logger.error(Exception.format(type, error, :erlang.get_stacktrace()))
-          Repo.rollback(:error)
-        end
-      end)
+      {:ok, _} = Repo.transaction(
+        fn ->
+          try do
+            ensure_air_record_exists(customer, export.air_name, export.air_version)
+
+            # We don't need to check for duplicate rpcs, because we verified that the export has not already been
+            # imported, and because the export is imported atomically (all or nothing).
+            num_rpcs = length(export.rpcs)
+            export.rpcs
+            |> Stream.with_index()
+            |> Enum.each(fn({rpc, index}) ->
+                if rem(index + 1, 1000) == 0, do: Logger.info("importing rpc ##{index+1}/#{num_rpcs}")
+                handler.handle(rpc, customer, export.air_name, check_duplicate_rpc?: false)
+              end)
+
+            mark_export_as_imported!(customer, export.id, export.created_at)
+          catch type, error ->
+            Logger.error(Exception.format(type, error, :erlang.get_stacktrace()))
+            Repo.rollback(:error)
+          end
+        end,
+        timeout: :timer.minutes(10)
+      )
       {:ok, length(export.rpcs)}
     end
   end
@@ -271,6 +283,13 @@ defmodule Central.Service.Customer do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp ensure_air_record_exists(customer, air_name, version), do:
+    Repo.insert!(
+      %Air{name: air_name, customer: customer, status: :offline, version: version},
+      on_conflict: :nothing,
+      conflict_target: [:name, :customer_id]
+    )
 
   defp rpc_id(customer, air_name, message_id), do:
     Enum.join([customer.id, air_name, message_id], "|")
