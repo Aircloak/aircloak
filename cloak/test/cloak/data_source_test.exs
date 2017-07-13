@@ -4,6 +4,8 @@ defmodule Cloak.DataSourceTest do
   alias Cloak.Sql.Query
   alias Cloak.DataSource
 
+  import ExUnit.CaptureLog
+
   setup_all do
     :ok = Cloak.Test.DB.create_table("test", "value INTEGER")
     :ok = Cloak.Test.DB.add_users_data("test", ["value"], [["user1", 10], ["user1", 20], ["user1", 30]])
@@ -34,6 +36,20 @@ defmodule Cloak.DataSourceTest do
     for data_source <- DataSource.all() do
       rows = DataSource.select!(%{query | data_source: data_source}, &Enum.to_list/1)
       assert [["user1", 10], ["user1", 20], ["user1", 30]] == rows
+    end
+  end
+
+  test "continue working when table is missing" do
+    missing_table = %{
+      db_name: "missing_table",
+      user_id: "user_id",
+      decoders: [],
+      projection: nil
+    }
+    for data_source <- DataSource.all() do
+      data_source = %{data_source | initial_tables: %{missing_table: missing_table}}
+      log = capture_log(fn -> assert %{tables: %{}} = DataSource.add_tables(data_source) end)
+      assert log =~ "Load error for table `missing_table`:"
     end
   end
 end
