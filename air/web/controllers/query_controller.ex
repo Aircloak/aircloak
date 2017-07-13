@@ -137,7 +137,7 @@ defmodule Air.QueryController do
 
   defp csv_stream(query, fun), do:
     # new style result -> we can stream from database
-    Air.Service.Query.stream_chunks!(
+    stream_chunks!(
       query,
       :all,
       fn(chunks_stream) ->
@@ -161,7 +161,7 @@ defmodule Air.QueryController do
     prefix_size = byte_size(json_without_rows) - 1
     << json_prefix :: binary-size(prefix_size), ?} >> = json_without_rows
 
-    Air.Service.Query.stream_chunks!(
+    stream_chunks!(
       query,
       :all,
       fn(chunks_stream) ->
@@ -183,7 +183,7 @@ defmodule Air.QueryController do
     json(conn, Air.Service.Query.buckets(query, desired_chunk))
   defp send_buckets_as_json(conn, query, desired_chunk), do:
     # new style result -> compute json in streaming fashion and send chunked response
-    Air.Service.Query.stream_chunks!(
+    stream_chunks!(
       query,
       desired_chunk,
       fn(chunks_stream) ->
@@ -216,6 +216,9 @@ defmodule Air.QueryController do
         {element, _} -> [intersperse_element, element]
       end
     )
+
+  defp stream_chunks!(query, desired_chunks, callback), do:
+    Air.Service.Query.stream_chunks!(query, desired_chunks, callback, timeout: :timer.minutes(1))
 
   defp start_chunked_json_response(conn, status), do:
     conn
