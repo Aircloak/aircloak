@@ -173,6 +173,20 @@ defmodule Air.Service.Query do
     |> Repo.all()
     |> Enum.flat_map(&ResultChunk.buckets/1)
 
+  @doc "Invokes the provided lambda passing it a stream of desired chunks."
+  @spec stream_chunks!(Query.t, non_neg_integer | :all, ((Enum.t) -> result)) :: result when result: var
+  def stream_chunks!(query, desired_chunk, fun) do
+    {:ok, result} =
+      Repo.transaction(fn ->
+        query.id
+        |> result_chunks(desired_chunk)
+        |> Repo.stream()
+        |> fun.()
+      end)
+
+    result
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions

@@ -63,7 +63,8 @@ defmodule Air.QueryController do
             "all" -> :all
             other -> String.to_integer(other)
           end
-        json(conn, Air.Service.Query.buckets(query, desired_chunk))
+
+        send_buckets_as_json(conn, query, desired_chunk)
 
       _ ->
         send_resp(conn, Status.code(:not_found), "Query not found")
@@ -130,5 +131,57 @@ defmodule Air.QueryController do
   defp query_error(conn, other_error) do
     Logger.error(fn -> "Query start error: #{other_error}" end)
     json(conn, %{success: false, reason: other_error})
+  end
+
+  defp send_buckets_as_json(conn, %Query{result: %{"rows" => _buckets}} = query, desired_chunk), do:
+    # old style result (<= 2017.3), so we can't stream
+    json(conn, Air.Service.Query.buckets(query, desired_chunk))
+  defp send_buckets_as_json(conn, query, desired_chunk), do:
+    # new style result -> compute json in streaming fashion and send chunked response
+    Air.Service.Query.stream_chunks!(
+      query,
+      desired_chunk,
+      fn(chunks_stream) ->
+        chunks_stream
+        |> buckets_json_chunks()
+        |> Enum.reduce(start_chunked_json_response(conn, 200), &send_chunk!(&2, &1))
+      end
+    )
+
+  defp buckets_json_chunks(chunks_stream), do:
+    Stream.concat([
+      ["["],
+      chunks_stream |> Stream.map(&drop_brackets/1) |> intersperse(?,),
+      ["]"]
+    ])
+
+  defp drop_brackets(chunk) do
+    json = Air.Schemas.ResultChunk.buckets_json(chunk)
+    inner_size = byte_size(json) - 2
+    << ?[, inner::binary-size(inner_size), ?] >> = json
+    inner
+  end
+
+  defp intersperse(enumerable, intersperse_element), do:
+    enumerable
+    |> Stream.with_index()
+    |> Stream.map(
+      fn
+        {element, 0} -> element
+        {element, _} -> [intersperse_element, element]
+      end
+    )
+
+  defp start_chunked_json_response(conn, status), do:
+    conn
+    # We need to clear flash, since it otherwise might try to change the session, and this doesn't work with a chunked
+    # response.
+    |> clear_flash()
+    |> put_resp_content_type("application/json")
+    |> send_chunked(status)
+
+  defp send_chunk!(conn, chunk) do
+    {:ok, conn} = chunk(conn, chunk)
+    conn
   end
 end

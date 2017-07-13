@@ -26,11 +26,16 @@ defmodule Air.Schemas.ResultChunk do
   # API
   # -------------------------------------------------------------------
 
+  @doc "Returns the json representation chunk buckets."
+  @spec buckets_json(t) :: binary
+  def buckets_json(chunk), do:
+    :zlib.gunzip(chunk.encoded_data)
+
   @doc "Decodes the chunk and returns its buckets."
   @spec buckets(t) :: [map]
   def buckets(chunk), do:
-    chunk.encoded_data
-    |> :zlib.gunzip()
+    chunk
+    |> buckets_json()
     |> :jiffy.decode([:use_nil, :return_maps])
 
   @doc "Eagerly converts buckets to rows."
