@@ -39,22 +39,26 @@ function build_image {
 }
 
 function start_component {
-  full_image_name="quay.io/$(image_name):$2"
+  start_at_version $1 "$(image_name):$2"
+}
 
+function start_at_version {
+  container_name=$1
+  full_image_name="quay.io/$2"
   ssh $TARGET_MACHINE "
     set -eo pipefail
 
-    $(lock_command $1)
+    $(lock_command $container_name)
 
     docker pull $full_image_name
 
-    echo 'Stopping container $1'
-    docker stop $1 || true
-    docker rm $1 || true
+    echo 'Stopping container $container_name'
+    docker stop $container_name || true
+    docker rm $container_name || true
 
-    echo 'Starting container $1'
+    echo 'Starting container $container_name'
     docker run -d -t \\
-      --name $1 \\
+      --name $container_name \\
       -v $RUNTIME_CONFIG_PATH:/runtime_config \\
       $DOCKER_ARGS \\
       $full_image_name
@@ -116,6 +120,10 @@ function run_production_command {
 
       build_image $component_name $component_folder
       start_component $container_name latest
+      ;;
+
+    start_at_version)
+      start_at_version $container_name $2
       ;;
 
     *)

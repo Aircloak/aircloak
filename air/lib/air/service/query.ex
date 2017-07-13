@@ -23,7 +23,8 @@ defmodule Air.Service.Query do
       [
         [
           supervisor(Air.Service.Query.Events, []),
-          Air.Service.Query.Lifecycle.supervisor_spec()
+          Air.Service.Query.Lifecycle.supervisor_spec(),
+          Air.Service.Query.ResultConverter.supervisor_spec(),
         ],
         [strategy: :one_for_one, name: __MODULE__]
       ],
