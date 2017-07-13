@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.Table do
   @moduledoc "Provides functionality for working with tables."
 
   alias Cloak.DataSource
-  alias Cloak.Query.DataDecoder
+  alias Cloak.Query.{DataDecoder, ExecutionError}
 
   require Logger
 
