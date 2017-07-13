@@ -10,6 +10,12 @@
 
 - Like patterns can now include an escape string
 
+## Version 17.3.1
+
+### Bugfixes
+
+- Fixed bug that duplicated the user id column for projected tables.
+
 ## Version 17.3.0
 
 ### New features

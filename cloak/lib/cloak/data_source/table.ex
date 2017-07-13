@@ -132,7 +132,7 @@ defmodule Cloak.DataSource.Table do
     |> Enum.reduce(data_source, &resolve_projected_table(Map.fetch!(&2.tables, &1), &2))
 
   defp resolve_projected_table(%{projection: nil}, data_source), do: data_source
-  defp resolve_projected_table(%{user_id: uid, columns: [{uid, _} | _]}, data_source), do:
+  defp resolve_projected_table(%{user_id: uid, columns: [%{name: uid} | _]}, data_source), do:
     data_source # uid column is resolved
   defp resolve_projected_table(table, data_source) do
     case validate_projection(data_source.tables, table) do
@@ -147,7 +147,7 @@ defmodule Cloak.DataSource.Table do
         table =
           table
           |> Map.put(:user_id, uid_column_name)
-          |> update_in([:columns], &[uid_column | &1])
+          |> Map.put(:columns, [uid_column | table.columns])
         tables = Map.put(data_source.tables, String.to_atom(table.name), table)
         %{data_source | tables: tables}
 
