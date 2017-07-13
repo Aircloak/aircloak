@@ -12,7 +12,7 @@ config :cloak, :air,
   air_site: "wss://127.0.0.1:8444",
   min_reconnect_interval: 50,
   max_reconnect_interval: 50,
-  serializer: Phoenix.Channels.GenSocketClient.Serializer.GzipJson
+  serializer: Air.CloakSocketSerializer
 
 config :cloak, :anonymizer,
   low_count_soft_lower_bound: {5, 0},

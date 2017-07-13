@@ -40,8 +40,8 @@ defmodule Air.Socket.Cloak.MainChannel do
 
     for result <- results, into: %{} do
       case result do
-        %{"name" => name, "valid" => true, "columns" => columns} -> {name, {:ok, columns}}
-        %{"name" => name, "valid" => false, "field" => field, "error" => error} -> {name, {:error, field, error}}
+        %{name: name, valid: true, columns: columns} -> {name, {:ok, columns}}
+        %{name: name, valid: false, field: field, error: error} -> {name, {:error, field, error}}
       end
     end
   end
@@ -70,20 +70,13 @@ defmodule Air.Socket.Cloak.MainChannel do
   def join("main", cloak_info, socket) do
     Process.flag(:trap_exit, true)
 
-    cloak = %{
-      id: socket.assigns.cloak_id,
-      name: socket.assigns.name,
-      version: socket.assigns.version,
-      online_since: Timex.now(),
-      salt_hash: cloak_info["salt_hash"],
-    }
-    data_sources = Map.fetch!(cloak_info, "data_sources")
+    cloak = create_cloak(cloak_info, socket)
 
     cloak
-    |> Air.Service.Cloak.register(data_sources)
+    |> Air.Service.Cloak.register(cloak_info.data_sources)
     |> revalidate_views()
 
-    report_online_status_to_central(cloak, data_sources, socket.assigns.version)
+    report_online_status_to_central(cloak, cloak_info.data_sources, socket.assigns.version)
 
     {:ok, %{}, assign(socket, :pending_calls, %{})}
   end
@@ -98,23 +91,20 @@ defmodule Air.Socket.Cloak.MainChannel do
 
   @doc false
   def handle_in("cloak_call", payload, socket), do:
-    run_and_report_time(
-      :handle_cloak_call,
-      payload["event"],
-      fn -> handle_cloak_call(payload["event"], payload["payload"], payload["request_id"], socket) end
+    Aircloak.report_long(
+      {:handle_cloak_call, payload.event},
+      fn -> handle_cloak_call(payload.event, payload.payload, payload.request_id, socket) end
     )
   def handle_in(cloak_message_name, payload, socket), do:
-    run_and_report_time(
-      :handle_cloak_cast,
-      cloak_message_name,
+    Aircloak.report_long(
+      {:handle_cloak_cast, cloak_message_name},
       fn -> handle_cloak_message(cloak_message_name, payload, socket) end
     )
 
   @doc false
   def handle_info(message, socket), do:
-    run_and_report_time(
-      :handle_info,
-      message,
+    Aircloak.report_long(
+      {:handle_info, message},
       fn -> handle_erlang_message(message, socket) end
     )
 
@@ -155,20 +145,27 @@ defmodule Air.Socket.Cloak.MainChannel do
   # -------------------------------------------------------------------
 
   defp handle_cloak_message("memory_reading", reading, socket) do
-    reading = atomize_keys(reading)
     Air.Service.Cloak.record_memory(reading)
     Air.Socket.Frontend.MemoryChannel.broadcast_memory_reading(socket.assigns.cloak_id, reading)
     {:noreply, socket}
   end
+  defp handle_cloak_message("update_config", cloak_info, socket) do
+    cloak_info
+    |> create_cloak(socket)
+    |> Air.Service.Cloak.update(cloak_info.data_sources)
+    |> revalidate_views()
+
+    {:noreply, socket}
+  end
   defp handle_cloak_message("cloak_response", payload, socket) do
-    request_id = payload["request_id"]
+    request_id = payload.request_id
 
     case Map.fetch(socket.assigns.pending_calls, request_id) do
       {:ok, request_data} ->
         Process.cancel_timer(request_data.timeout_ref)
-        response = case payload["status"] do
-          "ok" -> {:ok, payload["result"]}
-          "error" -> {:error, payload["result"]}
+        response = case payload.status do
+          :ok -> {:ok, payload[:result]}
+          :error -> {:error, payload[:result]}
           _other -> {:error, {:invalid_status, payload}}
         end
         respond_to_internal_request(request_data.from, response)
@@ -190,17 +187,15 @@ defmodule Air.Socket.Cloak.MainChannel do
   # -------------------------------------------------------------------
 
   defp handle_cloak_call("query_result", query_result, request_id, socket) do
-    Logger.info("received result for query #{query_result["query_id"]}")
+    Logger.info("received result for query #{query_result.query_id}")
     respond_to_cloak(socket, request_id, :ok)
-
-    Air.QueryEvents.trigger_result(query_result)
-
+    Air.Service.Query.Lifecycle.result_arrived(query_result)
     {:noreply, socket}
   end
-  defp handle_cloak_call("query_state", %{"query_id" => query_id, "query_state" => state}, request_id, socket) do
+  defp handle_cloak_call("query_state", payload, request_id, socket) do
     respond_to_cloak(socket, request_id, :ok)
 
-    Air.QueryEvents.trigger_state_change(query_id, String.to_existing_atom(state))
+    Air.Service.Query.Lifecycle.state_changed(payload.query_id, payload.query_state)
 
     {:noreply, socket}
   end
@@ -215,19 +210,6 @@ defmodule Air.Socket.Cloak.MainChannel do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp run_and_report_time(kind, message, fun) do
-    {time, result} = :timer.tc(fun)
-
-    if time > 10_000 do
-      # log processing times longer than 10ms
-      Logger.warn([
-        to_string(kind), " ", inspect(message, limit: 5), " took ", to_string(div(time, 1000)), " ms"
-      ])
-    end
-
-    result
-  end
 
   @spec respond_to_cloak(Socket.t, request_id::String.t, :ok | :error, any) :: :ok
   defp respond_to_cloak(socket, request_id, status, result \\ nil) do
@@ -264,17 +246,19 @@ defmodule Air.Socket.Cloak.MainChannel do
   else
     defp report_online_status_to_central(cloak, data_sources, version) do
       alias Air.Service.Central
-      Central.record_cloak_online(cloak.name, Enum.map(data_sources, &Map.fetch!(&1, "name")), version)
+      Central.record_cloak_online(cloak.name, Enum.map(data_sources, &(&1.name)), version)
       Aircloak.ProcessMonitor.on_exit(fn -> Central.record_cloak_offline(cloak.name) end)
     end
   end
 
-  def atomize_keys(list) when is_list(list), do: Enum.map(list, & atomize_keys(&1))
-  def atomize_keys(map) when is_map(map), do:
-    map
-    |> Enum.map(fn({key, value}) -> {String.to_atom(key), atomize_keys(value)} end)
-    |> Enum.into(%{})
-  def atomize_keys(other), do: other
+  defp create_cloak(cloak_info, socket), do:
+    %{
+      id: socket.assigns.cloak_id,
+      name: socket.assigns.name,
+      version: socket.assigns.version,
+      online_since: Timex.now(),
+      salt_hash: cloak_info.salt_hash,
+    }
 
   if Mix.env == :test do
     # do nothing in tests, because it leads to unexpected messages in various tests where cloak is mocked

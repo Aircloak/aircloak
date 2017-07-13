@@ -7,6 +7,7 @@ defmodule Cloak.DataSource.MySQL do
   alias Cloak.DataSource.{SqlBuilder, Table}
   alias Cloak.DataSource
   alias Cloak.Query.DataDecoder
+  alias Cloak.Sql.Query
 
 
   # -------------------------------------------------------------------
@@ -14,6 +15,8 @@ defmodule Cloak.DataSource.MySQL do
   # -------------------------------------------------------------------
 
   @behaviour Cloak.DataSource.Driver
+
+  @unsupported_functions ["date_trunc"]
 
   @doc false
   def connect!(parameters) do
@@ -54,7 +57,10 @@ defmodule Cloak.DataSource.MySQL do
   end
 
   @doc false
-  def supports_query?(_query), do: true
+  def supports_query?(query) do
+    used_functions = Query.Lenses.query_functions() |> Lens.to_list(query) |> Enum.map(& &1.function)
+    not Enum.any?(used_functions, & &1 in @unsupported_functions)
+  end
 
 
   # -------------------------------------------------------------------

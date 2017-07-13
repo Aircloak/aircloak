@@ -48,6 +48,18 @@ defmodule Air.Service.Cloak do
     data_source_schemas
   end
 
+  @doc "Updates the data sources configuration for the calling cloak."
+  @spec update(Map.t, Map.t) :: [Air.Schemas.DataSource.t]
+  def update(cloak_info, data_sources) do
+    # cleanup previous entries from Registry
+    Registry.unregister(@all_cloak_registry_name, :all_cloaks)
+    for data_source <- data_sources do
+      Registry.unregister(@data_source_registry_name, data_source["name"])
+    end
+
+    register(cloak_info, data_sources)
+  end
+
   @doc "Records cloak memory readings"
   @spec record_memory(Map.t) :: :ok
   def record_memory(reading) do
@@ -83,7 +95,7 @@ defmodule Air.Service.Cloak do
 
   def handle_call({:register, cloak_info, data_sources}, _from, state) do
     data_sources_by_name = data_sources
-    |> Enum.map(&({Map.fetch!(&1, "name"), &1}))
+    |> Enum.map(&({&1.name, &1}))
     |> Enum.into(%{})
 
     data_source_schemas =
@@ -107,18 +119,18 @@ defmodule Air.Service.Cloak do
   # -------------------------------------------------------------------
 
   defp add_error(error, data_source) do
-    existing_errors = Map.get(data_source, "errors", [])
-    Map.put(data_source, "errors", [error | existing_errors])
+    existing_errors = Map.get(data_source, :errors, [])
+    Map.put(data_source, :errors, [error | existing_errors])
   end
 
   defp add_error_on_conflicting_data_source_definitions(data_sources) do
     for data_source <- data_sources do
-      name = Map.fetch!(data_source, "name")
-      tables = Map.fetch!(data_source, "tables")
+      name = data_source.name
+      tables = data_source.tables
 
       existing_definitions_for_data_source_by_cloak(name)
       |> Enum.map(fn({_cloak_name, data_source}) -> data_source end)
-      |> Enum.all?(&(tables == Map.fetch!(&1, "tables")))
+      |> Enum.all?(&(tables == &1.tables))
       |> if do
         data_source
       else
@@ -131,15 +143,14 @@ defmodule Air.Service.Cloak do
 
   defp add_error_on_different_salts(data_sources, cloak_info) do
     for data_source <- data_sources do
-      name = Map.fetch!(data_source, "name")
-
-      name
+      data_source.name
       |> cloak_infos_for_data_source()
       |> Enum.map(& &1[:salt_hash])
       |> Enum.any?(& &1 != cloak_info[:salt_hash])
       |> if do
-        "The data source `#{name}` is served by multiple cloaks that have different salts configured. In order to " <>
-        "ensure consistent results, please ensure that the same salt is set for cloaks serving identical data sources."
+        "The data source `#{data_source.name}` is served by multiple cloaks that have different salts configured. " <>
+        "In order to ensure consistent results, please ensure that the same salt is set for cloaks serving " <>
+        "identical data sources."
         |> add_error(data_source)
       else
         data_source
@@ -149,19 +160,19 @@ defmodule Air.Service.Cloak do
 
   defp combined_data_source_errors(data_sources, cloak_info) do
     for data_source <- data_sources do
-      data_source_name = Map.fetch!(data_source, "name")
+      data_source_name = data_source.name
 
       combined_errors = [{cloak_info.name, data_source}]
       |> Enum.concat(existing_definitions_for_data_source_by_cloak(data_source_name))
       |> Enum.flat_map(&named_errors(&1))
 
-      Map.put(data_source, "errors", combined_errors)
+      Map.put(data_source, :errors, combined_errors)
     end
   end
 
   defp named_errors({cloak_name, data_source}), do:
     data_source
-    |> Map.get("errors", [])
+    |> Map.get(:errors, [])
     |> Enum.map(&("On cloak #{cloak_name}: #{&1}"))
 
   defp existing_definitions_for_data_source_by_cloak(name), do:
@@ -171,15 +182,9 @@ defmodule Air.Service.Cloak do
 
   defp register_data_sources(data_sources), do:
     Enum.map(data_sources, fn(data_source) ->
-      name = Map.fetch!(data_source, "name")
-      # Deprecated: global_id is a remnant of Aircloak pre-version 17.3.0.
-      # It has to remain for compatibility with older versions
-      # (hidden from the sight of users) until version 18.1.0.
-      global_id = Map.fetch!(data_source, "global_id")
-      tables = Map.fetch!(data_source, "tables")
-      errors = Map.get(data_source, "errors", [])
+      errors = Map.get(data_source, :errors, [])
 
-      DataSource.create_or_update_data_source(name, global_id, tables, errors)
+      DataSource.create_or_update_data_source(data_source.name, data_source.global_id, data_source.tables, errors)
     end)
 
   defp lookup_memory(pid, cloak_info) do

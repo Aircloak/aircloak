@@ -2,21 +2,23 @@ defmodule Central.KibanaProxyController do
   @moduledoc false
   use Central.Web, :controller
 
+  @options [{:timeout, :timer.seconds(30)}, {:recv_timeout, :timer.minutes(5)}]
+
 
   # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------
 
   def get(conn, params) do
-    HTTPoison.get(url(conn, params), trimmed_headers(conn)) |> handle_response(conn)
+    HTTPoison.get(url(conn, params), trimmed_headers(conn), @options) |> handle_response(conn)
   end
 
   def post(conn, params) do
-    HTTPoison.post(url(conn, params), body_or_nil(conn), trimmed_headers(conn)) |> handle_response(conn)
+    HTTPoison.post(url(conn, params), body_or_nil(conn), trimmed_headers(conn), @options) |> handle_response(conn)
   end
 
   def put(conn, params) do
-    HTTPoison.put(url(conn, params), body_or_nil(conn), trimmed_headers(conn)) |> handle_response(conn)
+    HTTPoison.put(url(conn, params), body_or_nil(conn), trimmed_headers(conn), @options) |> handle_response(conn)
   end
 
   def redirect_to_web_interface(conn, _params) do

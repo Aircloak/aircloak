@@ -42,6 +42,7 @@ defmodule Cloak.AirSocket do
     try do
       Logger.info("sending query result to Air", query_id: result.query_id)
       call_air(socket, "main", "query_result", result, :timer.minutes(1))
+      Logger.info("query result sent", query_id: result.query_id)
     catch :exit, {:timeout, _} ->
       {:error, :timeout}
     end
@@ -61,6 +62,11 @@ defmodule Cloak.AirSocket do
   @spec send_memory_stats(GenServer.server, Keyword.t) :: :ok | {:error, any}
   def send_memory_stats(socket \\ __MODULE__, memory_reading), do:
     cast_air(socket, "main", "memory_reading", memory_reading |> Enum.into(%{}))
+
+  @doc "Updates the configuration of the current cloak in the air."
+  @spec update_config(GenServer.server, DataSource.t) :: :ok | {:error, any}
+  def update_config(socket \\ __MODULE__, data_sources), do:
+    cast_air(socket, "main", "update_config", get_join_info(data_sources))
 
 
   # -------------------------------------------------------------------
@@ -115,16 +121,16 @@ defmodule Cloak.AirSocket do
 
   @doc false
   def handle_message("main", "air_call", request, transport, state) do
-    handle_air_call(request["event"], request["payload"], {transport, request["request_id"]}, state)
+    handle_air_call(request.event, request.payload, {transport, request.request_id}, state)
   end
   def handle_message("main", "air_response", payload, _transport, state) do
-    request_id = payload["request_id"]
+    request_id = payload.request_id
     case Map.fetch(state.pending_calls, request_id) do
       {:ok, request_data} ->
         Process.cancel_timer(request_data.timeout_ref)
-        response = case payload["status"] do
-          "ok" -> {:ok, payload["result"]}
-          "error" -> {:error, payload["result"]}
+        response = case payload.status do
+          :ok -> {:ok, payload.result}
+          :error -> {:error, payload.result}
           _other -> {:error, {:invalid_status, payload}}
         end
         GenSocketClient.reply(request_data.from, response)
@@ -150,7 +156,7 @@ defmodule Cloak.AirSocket do
     {:connect, state}
   end
   def handle_info({:join, topic}, transport, state) do
-    case GenSocketClient.join(transport, topic, get_join_info()) do
+    case GenSocketClient.join(transport, topic, get_join_info(Cloak.DataSource.all())) do
       {:error, reason} ->
         Logger.error("error joining the topic #{topic}: #{inspect reason}")
         Process.send_after(self(), {:join, topic}, config(:rejoin_interval))
@@ -192,30 +198,35 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
 
   defp handle_air_call("run_query", serialized_query, from, state) do
-    %{"id" => id, "statement" => statement, "data_source" => data_source} = serialized_query
-    parameters = decode_params(Map.fetch!(serialized_query, "parameters"))
-    views = Map.fetch!(serialized_query, "views")
-    case Cloak.DataSource.fetch(data_source) do
+    case Cloak.DataSource.fetch(serialized_query.data_source) do
       :error ->
         respond_to_air(from, :error, "Unknown data source.")
 
       {:ok, data_source} ->
-        Logger.info("starting query", query_id: id)
-        Cloak.Query.Runner.start(id, data_source, statement, parameters, views)
+        Logger.info("starting query", query_id: serialized_query.id)
+        Cloak.Query.Runner.start(
+          serialized_query.id,
+          data_source,
+          serialized_query.statement || "",
+          decode_params(serialized_query.parameters),
+          serialized_query.views
+        )
         respond_to_air(from, :ok)
     end
     {:ok, state}
   end
   defp handle_air_call("describe_query", serialized_query, from, state) do
-    %{"statement" => statement, "data_source" => data_source} = serialized_query
-    parameters = decode_params(Map.fetch!(serialized_query, "parameters"))
-    views = Map.fetch!(serialized_query, "views")
-    case Cloak.DataSource.fetch(data_source) do
+    case Cloak.DataSource.fetch(serialized_query.data_source) do
       :error ->
         respond_to_air(from, :error, "Unknown data source.")
 
       {:ok, data_source} ->
-        case Cloak.Sql.Query.describe_query(data_source, statement, parameters, views) do
+        case Cloak.Sql.Query.describe_query(
+          data_source,
+          serialized_query.statement || "",
+          decode_params(serialized_query.parameters),
+          serialized_query.views
+        ) do
           {:ok, columns, features} -> respond_to_air(from, :ok, %{columns: columns, features: features})
           {:error, reason} -> respond_to_air(from, :ok, %{error: reason})
         end
@@ -223,12 +234,9 @@ defmodule Cloak.AirSocket do
     {:ok, state}
   end
   defp handle_air_call("validate_views", serialized_view, from, state) do
-    data_source = Map.fetch!(serialized_view, "data_source")
-    views = Map.fetch!(serialized_view, "views")
-
-    case Cloak.DataSource.fetch(data_source) do
+    case Cloak.DataSource.fetch(serialized_view.data_source) do
       :error -> respond_to_air(from, :error, "Unknown data source.")
-      {:ok, data_source} -> respond_to_air(from, :ok, validate_views(data_source, views))
+      {:ok, data_source} -> respond_to_air(from, :ok, validate_views(data_source, serialized_view.views))
     end
 
     {:ok, state}
@@ -326,8 +334,8 @@ defmodule Cloak.AirSocket do
     "#{vm_short_name}@#{hostname}"
   end
 
-  defp get_join_info() do
-    data_sources = for data_source <- Cloak.DataSource.all() do
+  defp get_join_info(data_sources) do
+    data_sources = for data_source <- data_sources do
       tables = for {id, table} <- data_source.tables do
         columns = for column <- table.columns do
           %{name: column.name, type: column.type, user_id: column.name == table.user_id}

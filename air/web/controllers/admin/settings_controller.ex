@@ -2,6 +2,7 @@ defmodule Air.Admin.SettingsController do
   @moduledoc false
   use Air.Web, :admin_controller
 
+  alias Air.Service.AuditLog
 
   # -------------------------------------------------------------------
   # Air.VerifyPermissions callback
@@ -18,26 +19,28 @@ defmodule Air.Admin.SettingsController do
 
   def show(conn, _params) do
     render(conn, "show.html",
-      settings: Air.Service.Settings.read(),
+      changeset: Air.Service.Settings.latest_changeset(),
       audit_log_entries_count: Air.Service.AuditLog.count()
     )
   end
 
-  def update(conn, params) do
-    Air.Service.Settings.update(conn.assigns.current_user, %{
-      query_retention_days: parse_int(params["settings"]["query_retention_days"], :unlimited),
-      audit_log_enabled: params["settings"]["audit_log_enabled"],
-    })
-    conn
-    |> put_flash(:info, "The settings were saved.")
-    |> redirect(to: admin_settings_path(conn, :show))
-  end
+  def create(conn, params), do: save(conn, params)
+  def update(conn, params), do: save(conn, params)
 
-  defp parse_int(nil, default), do: default
-  defp parse_int(string, default) do
-    case Integer.parse(string) do
-      {res, _} -> res
-      :error -> default
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp save(conn, params) do
+    case Air.Service.Settings.save(params["settings"]) do
+      {:ok, settings} ->
+        AuditLog.log(conn.assigns.current_user, "Updated settings", settings)
+        conn
+        |> put_flash(:info, "The settings were saved.")
+        |> redirect(to: admin_settings_path(conn, :show))
+      {:error, changeset} ->
+        render(conn, "show.html", changeset: changeset)
     end
   end
 end

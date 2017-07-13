@@ -1,7 +1,9 @@
 defmodule Cloak.Test.QueryHelpers do
   @moduledoc false
 
-  alias Cloak.Query
+  import Lens.Macros
+
+  alias Cloak.Sql.{Expression, Compiler, Parser, Query}
 
   defmacro assert_query(query, options \\ [], expected_response) do
     parameters = Keyword.get(options, :parameters, [])
@@ -9,7 +11,7 @@ defmodule Cloak.Test.QueryHelpers do
     quote do
       run_query =
         fn(data_source) ->
-          Query.Runner.start("1", data_source, unquote(query), unquote(parameters), unquote(views),
+          Cloak.Query.Runner.start("1", data_source, unquote(query), unquote(parameters), unquote(views),
             {:process, self()})
           receive do
             {:result, response} -> response
@@ -44,5 +46,31 @@ defmodule Cloak.Test.QueryHelpers do
 
   def insert_null_uid_row(table, columns, values) do
     Cloak.Test.DB.add_users_data(table, columns, [[nil | values]])
+  end
+
+  deflens aliases, do:
+    all_subqueries() |> Query.Lenses.terminals() |> Lens.satisfy(&match?(%Expression{}, &1)) |> Lens.key(:alias)
+
+  deflens all_subqueries(), do:
+    Lens.both(Lens.recur(Query.Lenses.direct_subqueries() |> Lens.key(:ast)), Lens.root())
+
+  def scrub_data_sources(query), do:
+    put_in(query, [all_subqueries() |> Lens.key(:data_source)], nil)
+
+  def scrub_aliases(query), do: put_in(query, [aliases()], nil)
+
+  def compile!(query_string, data_source, options \\ []) do
+    {:ok, result} = compile(query_string, data_source, options)
+    result
+  end
+
+  def compile(query_string, data_source, options \\ []) do
+    with {:ok, parsed_query} <- Parser.parse(query_string), do:
+      Compiler.compile(
+        data_source,
+        parsed_query,
+        Keyword.get(options, :parameters, []),
+        Keyword.get(options, :views, %{})
+        )
   end
 end

@@ -33,6 +33,10 @@ defmodule Cloak.Sql.Function do
       %{type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
     ~w(year quarter month day weekday) =>
       %{type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
+    ~w(date_trunc) => %{type_specs: %{
+      [{:constant, :text}, :time] => :time,
+      [{:constant, :text}, {:or, [:datetime, :date]}] => :datetime
+    }},
     ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}},
     ~w(round trunc) => %{type_specs: %{
       [numeric] => :integer,
@@ -232,5 +236,6 @@ defmodule Cloak.Sql.Function do
   defp type_matches?({:or, types}, argument), do: Enum.any?(types, &type_matches?(&1, argument))
   defp type_matches?(:any, _), do: true
   defp type_matches?(_, :*), do: false
+  defp type_matches?({:constant, expected}, %{constant?: true, type: actual}), do: expected == actual
   defp type_matches?(expected_type, %{type: actual_type}), do: expected_type == actual_type
 end

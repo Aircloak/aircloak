@@ -60,7 +60,7 @@ defmodule Air.Service.ViewTest do
 
       task = Task.async(fn() -> View.create(context.u1, context.ds1, "some view", "some sql") end)
       TestSocketHelper.respond_to_validate_views!(socket,
-        [%{"name" => "some view", "columns" => ["some", "columns"], "valid" => true}])
+        [%{name: "some view", columns: ["some", "columns"], "valid": true}])
 
       assert {:ok, %{result_info: %{columns: ["some", "columns"]}}} = Task.await(task)
     end
@@ -70,7 +70,7 @@ defmodule Air.Service.ViewTest do
 
       task = Task.async(fn() -> View.create(context.u1, context.ds1, "some view", "some sql") end)
       TestSocketHelper.respond_to_validate_views!(socket,
-        [%{"name" => "some view", "valid" => false, "field" => "sql", "error" => "some error"}])
+        [%{name: "some view", valid: false, field: :sql, error: "some error"}])
 
       assert {:error, %{valid?: false, errors: [sql: {"some error", []}]}} = Task.await(task)
     end
@@ -82,7 +82,7 @@ defmodule Air.Service.ViewTest do
 
       task = Task.async(fn() -> View.update(context.v1.id, context.u1, "some view", "some sql") end)
       TestSocketHelper.respond_to_validate_views!(socket,
-        [%{"name" => "some view", "columns" => ["some", "columns"], "valid" => true}])
+        [%{name: "some view", columns: ["some", "columns"], valid: true}])
       TestSocketHelper.respond_to_validate_views!(socket, [])
 
       view_id = context.v1.id
@@ -96,7 +96,7 @@ defmodule Air.Service.ViewTest do
 
       task = Task.async(fn() -> View.update(context.v1.id, context.u1, "some view", "some sql") end)
       TestSocketHelper.respond_to_validate_views!(socket,
-        [%{"name" => "some view", "valid" => false, "field" => "sql", "error" => "some error"}])
+        [%{name: "some view", valid: false, field: :sql, error: "some error"}])
 
       assert {:error, %{valid?: false, errors: [sql: {"some error", []}]}} = Task.await(task)
       assert Repo.get(Air.Schemas.View, context.v1.id).name == context.v1.name
@@ -108,9 +108,9 @@ defmodule Air.Service.ViewTest do
       task = Task.async(fn() -> View.update(context.v1.id, context.u1, "some view", "some sql",
         revalidation_timeout: :timer.seconds(1)) end)
       TestSocketHelper.respond_to_validate_views!(socket,
-        [%{"name" => "some view", "valid" => true, "columns" => []}])
+        [%{name: "some view", valid: true, columns: []}])
       TestSocketHelper.respond_to_validate_views!(socket,
-        [%{"name" => context.v2.name, "valid" => false, "field" => "sql", "error" => "some error"}])
+        [%{name: context.v2.name, valid: false, field: :sql, error: "some error"}])
       Task.await(task)
 
       assert Repo.get(Air.Schemas.View, context.v2.id).broken
@@ -133,7 +133,7 @@ defmodule Air.Service.ViewTest do
 
       task = Task.async(fn() -> View.delete(context.v1.id, context.u1, revalidation_timeout: :timer.seconds(1)) end)
       TestSocketHelper.respond_to_validate_views!(socket,
-        [%{"name" => context.v2.name, "valid" => false, "field" => "sql", "error" => "some error"}])
+        [%{name: context.v2.name, valid: false, field: :sql, error: "some error"}])
       Task.await(task)
 
       assert Repo.get(Air.Schemas.View, context.v2.id).broken
@@ -146,9 +146,9 @@ defmodule Air.Service.ViewTest do
     View.revalidate_all_views(context.ds2)
 
     TestSocketHelper.respond_to_validate_views!(socket,
-      [%{"name" => context.v3.name, "columns" => ["some", "columns"], "valid" => true}])
+      [%{name: context.v3.name, columns: ["some", "columns"], valid: true}])
     TestSocketHelper.respond_to_validate_views!(socket,
-      [%{"name" => context.v4.name, "columns" => ["some", "columns"], "valid" => true}])
+      [%{name: context.v4.name, columns: ["some", "columns"], valid: true}])
 
     assert_receive {:revalidated_views, m1}
     assert_receive {:revalidated_views, m2}
@@ -168,7 +168,7 @@ defmodule Air.Service.ViewTest do
   defp data_source_socket(data_source) do
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
     TestSocketHelper.join!(socket, "main", %{data_sources: [
-      %{"name" => data_source.name, "global_id" => data_source.global_id, "tables" => []}]})
+      %{name: data_source.name, global_id: data_source.global_id, tables: []}]})
     socket
   end
 end

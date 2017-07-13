@@ -20,8 +20,8 @@ defmodule IntegrationTest.ViewTest do
   test "successful saving of the new view", context do
     assert {:ok, view} = create_view(context.user, unique_view_name(), "select user_id, name from users")
     assert view.result_info.columns == [
-      %{"name" => "user_id", "type" => "text", "user_id" => true},
-      %{"name" => "name", "type" => "text", "user_id" => false}
+      %{name: "user_id", type: "text", user_id: true},
+      %{name: "name", type: "text", user_id: false}
     ]
   end
 
@@ -46,7 +46,7 @@ defmodule IntegrationTest.ViewTest do
   test "selecting from the view", context do
     {:ok, view} = create_view(context.user, unique_view_name(), "select user_id, name from users")
     {:ok, result} = run_query(context.user, "select name from #{view.name}")
-    assert [%{"occurrences" => 100, "row" => ["john"]}] = Map.fetch!(result, "rows")
+    assert [%{"occurrences" => 100, "row" => ["john"]}] = result.buckets
   end
 
   defp unique_view_name(), do:

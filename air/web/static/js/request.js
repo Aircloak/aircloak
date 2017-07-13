@@ -47,3 +47,18 @@ export const loadHistory = (
     error: callbacks.error,
   });
 };
+
+export const loadBuckets = (
+  queryId: string,
+  chunk: number,
+  authentication: Authentication,
+  callbacks: Callbacks
+) => {
+  const desiredChunk = (chunk >= 0) ? chunk : "all";
+  $.ajax(`/queries/${queryId}/buckets?chunk=${desiredChunk}`, {
+    method: "GET",
+    headers: headers(authentication),
+    success: callbacks.success,
+    error: callbacks.error,
+  });
+};

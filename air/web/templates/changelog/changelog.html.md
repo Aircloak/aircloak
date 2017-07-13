@@ -1,3 +1,15 @@
+## Version 17.4.0
+
+### New features
+
+- Added the `date_trunc` function
+- Added global and per-user custom settings for displaying numbers in the UI.
+- Support for using min/max/median aggregators over date/time value in the top-level query.
+
+### Enhancements
+
+- Like patterns can now include an escape string
+
 ## Version 17.3.1
 
 ### Bugfixes
@@ -11,7 +23,6 @@
 - Introducing support for querying Aircloak Insights from Tableau. The support is still experimental.
   Contact Aircloak for help configuring Tableau and your Aircloak Insights installation.
 - [A new section](/admin/warnings) appears in the admin interface when the system experiences problems.
-
 
 ### Enhancements
 

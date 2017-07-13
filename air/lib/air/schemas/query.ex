@@ -1,5 +1,5 @@
 defmodule Air.Schemas.Query do
-  @moduledoc "The query model."
+  @moduledoc "The query schema."
   use Air.Schemas.Base
 
   alias Air.{Schemas.DataSource, Schemas.User, Repo, PsqlServer.Protocol}
@@ -28,7 +28,6 @@ defmodule Air.Schemas.Query do
   schema "queries" do
     field :statement, :string
     field :tables, {:array, :string}
-    field :result, :map
     field :execution_time, :integer
     field :users_count, :integer
     field :features, :map
@@ -37,6 +36,7 @@ defmodule Air.Schemas.Query do
     field :cloak_id, :string
     field :query_state, __MODULE__.QueryState
     field :context, Context
+    field :result, :map
 
     belongs_to :user, User
     belongs_to :data_source, DataSource
@@ -46,8 +46,8 @@ defmodule Air.Schemas.Query do
 
   @required_fields ~w()a
   @optional_fields ~w(
-    cloak_id statement data_source_id tables result execution_time users_count
-    features session_id parameters query_state context
+    cloak_id statement data_source_id tables execution_time users_count
+    features session_id parameters query_state context result
   )a
 
 
@@ -70,37 +70,44 @@ defmodule Air.Schemas.Query do
   end
 
   @doc "Produces a JSON blob of the query and its result for rendering"
-  @spec for_display(t) :: Map.t
-  def for_display(query) do
+  @spec for_display(t, nil | [map]) :: Map.t
+  def for_display(query, buckets \\ nil) do
     query = Repo.preload(query, [:user, :data_source])
     query
     |> Repo.preload([:user, :data_source])
     |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at, :query_state])
-    |> Map.merge(result_map(query))
+    |> Map.merge(query.result || %{})
+    |> add_result(query, buckets)
     |> Map.merge(data_source_info(query))
     |> Map.merge(user_info(query))
+    |> Map.put(:completed, completed?(query))
   end
 
   @doc "Exports the query as CSV"
-  @spec to_csv_stream(t) :: Enumerable.t
-  def to_csv_stream(%{result: result}) do
-    header = result["columns"]
-    rows = Enum.flat_map(result["rows"],
-      fn(%{"occurrences" => occurrences, "row" => row}) -> List.duplicate(row, occurrences) end)
-    CSV.encode([header | rows])
-  end
+  @spec to_csv_stream(t, [map]) :: Enumerable.t
+  def to_csv_stream(query, buckets), do:
+    [query.result["columns"]]
+    |> Stream.concat(Air.Schemas.ResultChunk.rows_stream(buckets))
+    |> CSV.encode()
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp result_map(%{result: nil}), do: %{rows: [], columns: [], completed: false}
-  defp result_map(%{result: result_json}), do: Map.put(result_json, :completed, true)
-
   defp data_source_info(query), do:
     %{data_source: %{name: Map.get(query.data_source || %{}, :name, "Unknown data source")}}
 
   defp user_info(query), do:
     %{user: %{name: Map.get(query.user || %{}, :name, "Unknown user")}}
+
+  defp completed?(query), do:
+    query.query_state in [:error, :completed, :cancelled]
+
+  defp add_result(result, _query, nil), do:
+    result
+  defp add_result(result, query, buckets), do:
+    result
+    |> Map.put(:columns, query.result["columns"])
+    |> Map.put(:rows, buckets)
 end

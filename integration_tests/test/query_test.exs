@@ -9,16 +9,16 @@ defmodule IntegrationTest.QueryTest do
 
   test "show tables", context do
     assert {:ok, result} = run_query(context.user, "show tables")
-    assert Map.fetch!(result, "columns") == ["name"]
-    assert result |> Map.fetch!("features") |> Map.fetch!("column_types") == ["text"]
-    assert result |> Map.fetch!("features") |> Map.fetch!("selected_types") == ["text"]
-    assert Map.fetch!(result, "rows") == [%{"occurrences" => 1, "row" => ["users"]}]
+    assert result.columns == ["name"]
+    assert result.features.column_types == ["text"]
+    assert result.features.selected_types == ["text"]
+    assert result.buckets == [%{"occurrences" => 1, "row" => ["users"]}]
   end
 
   test "show columns", context do
     {:ok, result} = run_query(context.user, "show columns from users")
 
-    assert Map.fetch!(result, "rows") == [
+    assert result.buckets == [
       %{"occurrences" => 1, "row" => ["user_id", "text"]},
       %{"occurrences" => 1, "row" => ["name", "text"]},
       %{"occurrences" => 1, "row" => ["height", "integer"]}
@@ -27,11 +27,11 @@ defmodule IntegrationTest.QueryTest do
 
   test "select", context do
     {:ok, result} = run_query(context.user, "select name, height from users")
-    assert [%{"occurrences" => 100, "row" => ["john", 180]}] = Map.fetch!(result, "rows")
+    assert result.buckets == [%{"occurrences" => 100, "row" => ["john", 180], "users_count" => 100}]
   end
 
   test "retrieval of query results as csv", context do
-    {:ok, %{"query_id" => query_id}} = run_query(context.user, "select name, height from users")
+    {:ok, %{query_id: query_id}} = run_query(context.user, "select name, height from users")
 
     # by the time we get the result, the query might not be stored, so we'll sleep a bit
     :timer.sleep(200)
@@ -46,7 +46,7 @@ defmodule IntegrationTest.QueryTest do
   end
 
   test "query context is properly set", context do
-    {:ok, %{"query_id" => query_id}} = run_query(context.user, "select name, height from users")
+    {:ok, %{query_id: query_id}} = run_query(context.user, "select name, height from users")
     {:ok, query} = Air.Service.Query.get_as_user(context.user, query_id)
     assert query.context == :http
   end
@@ -54,7 +54,7 @@ defmodule IntegrationTest.QueryTest do
   defp air_api_get!(user, path), do:
     HTTPoison.get!(
       "http://localhost:#{air_http_port()}/api/#{path}",
-      %{"auth-token" => Air.Token.create_api_token(user, "test token")}
+      %{"auth-token" => Air.Token.create_api_token(user, :api, "test token")}
     )
 
   defp air_http_port(), do:

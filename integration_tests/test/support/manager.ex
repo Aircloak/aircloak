@@ -2,7 +2,7 @@ defmodule IntegrationTest.Manager do
   import Ecto.Query, only: [from: 2]
 
   alias Air.Repo
-  alias Air.Schemas.{DataSource, ExportForAircloak, Group, User, View}
+  alias Air.Schemas.{DataSource, ExportForAircloak, Group, Query, ResultChunk, User, View}
 
   @admin_group_name "admins"
   @user_password "1234"
@@ -73,6 +73,8 @@ defmodule IntegrationTest.Manager do
     Repo.delete_all(View)
     Repo.delete_all("data_sources_groups")
     Repo.delete_all("groups_users")
+    Repo.delete_all(ResultChunk)
+    Repo.delete_all(Query)
     Repo.delete_all(User)
     Repo.delete_all(Group)
 

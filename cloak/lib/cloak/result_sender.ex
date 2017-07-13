@@ -21,7 +21,7 @@ defmodule Cloak.ResultSender do
 
   @doc false
   def start_link(target, type, payload) do
-    Task.start_link(fn -> send_reply(target, type, payload) end)
+    Task.start_link(fn -> send_result(target, type, payload) end)
   end
 
 
@@ -40,12 +40,12 @@ defmodule Cloak.ResultSender do
   end
 
   @doc """
-  Sends the reply to the target. Uses a normal process send if target is `{:process, pid}`.
+  Sends the query result to the target. Uses a normal process send if target is `{:process, pid}`.
   Uses the Air <-> Cloak socket if it's :air_socket.
   """
   @spec send_result(target(), term()) :: :ok
-  def send_result(target, reply) do
-    {:ok, _} = Supervisor.start_child(__MODULE__, [target, :result, reply])
+  def send_result(target, result) do
+    {:ok, _} = Supervisor.start_child(__MODULE__, [target, :result, result])
     :ok
   end
 
@@ -54,24 +54,18 @@ defmodule Cloak.ResultSender do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp send_reply(:air_socket, :result, reply) do
-    case send_query_result(reply) do
+  defp send_result(:air_socket, :result, result) do
+    case send_query_result_with_retry(%{retries: 5, retry_delay_sec: 10}, encode_result(result)) do
       :ok -> :ok
-      {:error, %Poison.EncodeError{}} ->
-        reply = %{error: "Result could not be encoded as JSON.", query_id: reply.query_id}
-        send_query_result(reply)
       {:error, error} ->
-        Logger.error("Error sending query results to the socket: #{inspect error}")
+        Logger.error("Error sending query results to the socket: #{inspect error}", query_id: result.query_id)
         {:error, error}
     end
   end
-  defp send_reply(:air_socket, :state, {query_id, query_state}), do:
+  defp send_result(:air_socket, :state, {query_id, query_state}), do:
     Elixir.Cloak.AirSocket.send_query_state(query_id, query_state)
-  defp send_reply({:process, pid}, type, reply), do:
-    send(pid, {type, reply})
-
-  defp send_query_result(result), do:
-    send_query_result_with_retry(%{retries: 5, retry_delay_sec: 10}, result)
+  defp send_result({:process, pid}, type, result), do:
+    send(pid, {type, result})
 
   defp send_query_result_with_retry(%{retries: 0}, _query_result), do:
     {:error, :timeout}
@@ -79,7 +73,7 @@ defmodule Cloak.ResultSender do
     case Elixir.Cloak.AirSocket.send_query_result(query_result) do
       :ok -> :ok
       {:error, :timeout} ->
-        Logger.warn("timeout sending a query result")
+        Logger.warn("timeout sending a query result", query_id: query_result.query_id)
         :timer.sleep(:timer.seconds(send_state.retry_delay_sec))
         send_query_result_with_retry(
           %{send_state |
@@ -92,4 +86,35 @@ defmodule Cloak.ResultSender do
         other
     end
   end
+
+  defp encode_result(result), do:
+    result
+    |> Map.take([:query_id, :columns, :features, :error, :info])
+    |> Map.put(:chunks, encode_chunks(result))
+    |> Map.put(:row_count, row_count(result[:rows]))
+
+  defp row_count(nil), do:
+    nil
+  defp row_count(rows), do:
+    rows
+    |> Stream.map(&(&1.occurrences))
+    |> Enum.sum()
+
+  defp encode_chunks(%{rows: rows}), do:
+    Aircloak.report_long(:encode_chunks,
+      fn ->
+        rows
+        |> Stream.chunk(1000, 1000, [])
+        |> Stream.with_index()
+        |> Enum.map(&encode_chunk/1)
+      end
+    )
+  defp encode_chunks(_), do:
+    []
+
+  defp encode_chunk({rows, index}), do:
+    %{
+      index: index,
+      encoded_data: rows |> :jiffy.encode([:use_nil]) |> :zlib.gzip()
+    }
 end

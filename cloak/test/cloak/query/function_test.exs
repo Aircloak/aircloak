@@ -14,7 +14,7 @@ defmodule Cloak.Query.FunctionTest do
     )
 
     Cloak.Test.DB.create_table("datetimes_ft", "datetime TIMESTAMP, date_only DATE, time_only TIME, empty text")
-    insert_rows(_user_ids = 1..10, "datetimes_ft", ["datetime"], [~N[2015-01-02 03:04:05.000000]])
+    insert_rows(_user_ids = 1..10, "datetimes_ft", ["datetime"], [~N[2015-02-03 04:05:06.000000]])
 
     Cloak.Test.DB.create_table("types_ft", "fixed DECIMAL(10, 5), frac REAL, num INTEGER, string TEXT, string2 TEXT")
   end
@@ -286,8 +286,8 @@ defmodule Cloak.Query.FunctionTest do
 
   test "min(height)", do: assert_subquery_aggregate("min(height)", "heights_ft", 180)
   test "max(height)", do: assert_subquery_aggregate("max(height)", "heights_ft", 180)
-  test "min(datetime)", do: assert_subquery_aggregate("min(datetime)", "datetimes_ft", ~N[2015-01-02 03:04:05.000000])
-  test "max(datetime)", do: assert_subquery_aggregate("max(datetime)", "datetimes_ft", ~N[2015-01-02 03:04:05.000000])
+  test "min(datetime)", do: assert_subquery_aggregate("min(datetime)", "datetimes_ft", "2015-02-03T04:05:06.000000")
+  test "max(datetime)", do: assert_subquery_aggregate("max(datetime)", "datetimes_ft", "2015-02-03T04:05:06.000000")
   test "avg(height)", do: assert_subquery_aggregate("avg(height)", "heights_ft", 180.0)
   test "sum(height)", do: assert_subquery_aggregate("sum(height)", "heights_ft", 180)
   test "count(*)", do: assert_subquery_aggregate("count(*)", "heights_ft", 1)
@@ -299,6 +299,7 @@ defmodule Cloak.Query.FunctionTest do
   test "*", do: assert 360 == apply_function("height * 2", "heights_ft")
   test "/", do: assert 1 == apply_function("height / height", "heights_ft")
   test "^", do: assert 32_400.0 == apply_function("height ^ 2", "heights_ft")
+  test "%", do: assert 3 == apply_function("10 % 7", "heights_ft")
 
   test "trunc/1", do: assert 180 == apply_function("trunc", ["frac"], [180.6], "types_ft")
   test "trunc/2", do: assert 180.12 == apply_function("trunc", ["frac", "num"], [180.126, 2], "types_ft")
@@ -324,18 +325,49 @@ defmodule Cloak.Query.FunctionTest do
   test "cast as text", do: assert "180" == apply_function("cast(height AS text)", "heights_ft")
 
   test "year", do: assert 2015 == apply_function("year(datetime)", "datetimes_ft")
-  test "month", do: assert 1 == apply_function("month(datetime)", "datetimes_ft")
-  test "day", do: assert 2 == apply_function("day(datetime)", "datetimes_ft")
-  test "hour", do: assert 3 == apply_function("hour(datetime)", "datetimes_ft")
-  test "minute", do: assert 4 == apply_function("minute(datetime)", "datetimes_ft")
-  test "second", do: assert 5 == apply_function("second(datetime)", "datetimes_ft")
+  test "month", do: assert 2 == apply_function("month(datetime)", "datetimes_ft")
+  test "day", do: assert 3 == apply_function("day(datetime)", "datetimes_ft")
+  test "hour", do: assert 4 == apply_function("hour(datetime)", "datetimes_ft")
+  test "minute", do: assert 5 == apply_function("minute(datetime)", "datetimes_ft")
+  test "second", do: assert 6 == apply_function("second(datetime)", "datetimes_ft")
+  test "quarter", do: assert 1 == apply_function("quarter(datetime)", "datetimes_ft")
 
   test "extract(year)", do: assert 2015 == apply_function("extract(year from datetime)", "datetimes_ft")
-  test "extract(month)", do: assert 1 == apply_function("extract(month from datetime)", "datetimes_ft")
-  test "extract(day)", do: assert 2 == apply_function("extract(day from datetime)", "datetimes_ft")
-  test "extract(hour)", do: assert 3 == apply_function("extract(hour from datetime)", "datetimes_ft")
-  test "extract(minute)", do: assert 4 == apply_function("extract(minute from datetime)", "datetimes_ft")
-  test "extract(second)", do: assert 5 == apply_function("extract(second from datetime)", "datetimes_ft")
+  test "extract(month)", do: assert 2 == apply_function("extract(month from datetime)", "datetimes_ft")
+  test "extract(day)", do: assert 3 == apply_function("extract(day from datetime)", "datetimes_ft")
+  test "extract(hour)", do: assert 4 == apply_function("extract(hour from datetime)", "datetimes_ft")
+  test "extract(minute)", do: assert 5 == apply_function("extract(minute from datetime)", "datetimes_ft")
+  test "extract(second)", do: assert 6 == apply_function("extract(second from datetime)", "datetimes_ft")
+
+  describe "date_trunc for datetime" do
+    test "date_trunc('second')", do:
+      assert "2015-02-03T04:05:06.000000" == apply_function("date_trunc('second', datetime)", "datetimes_ft")
+    test "date_trunc('minute')", do:
+      assert "2015-02-03T04:05:00.000000" == apply_function("date_trunc('minute', datetime)", "datetimes_ft")
+    test "date_trunc('hour')", do:
+      assert "2015-02-03T04:00:00.000000" == apply_function("date_trunc('hour', datetime)", "datetimes_ft")
+    test "date_trunc('day')", do:
+      assert "2015-02-03T00:00:00.000000" == apply_function("date_trunc('day', datetime)", "datetimes_ft")
+    test "date_trunc('month')", do:
+      assert "2015-02-01T00:00:00.000000" == apply_function("date_trunc('month', datetime)", "datetimes_ft")
+    test "date_trunc('quarter')", do:
+      assert "2015-01-01T00:00:00.000000" == apply_function("date_trunc('quarter', datetime)", "datetimes_ft")
+    test "date_trunc('year')", do:
+      assert "2015-01-01T00:00:00.000000" == apply_function("date_trunc('year', datetime)", "datetimes_ft")
+  end
+
+  describe "date_trunc for time" do
+    test "date_trunc('second')", do:
+      assert "04:05:06.000000" == apply_function("date_trunc('second', cast(datetime as time))", "datetimes_ft")
+    test "date_trunc('minute')", do:
+      assert "04:05:00.000000" == apply_function("date_trunc('minute', cast(datetime as time))", "datetimes_ft")
+    test "date_trunc('hour')", do:
+      assert "04:00:00.000000" == apply_function("date_trunc('hour', cast(datetime as time))", "datetimes_ft")
+    test "date_trunc('day')", do:
+      assert "00:00:00.000000" == apply_function("date_trunc('day', cast(datetime as time))", "datetimes_ft")
+    test "date_trunc('quarter')", do:
+      assert "00:00:00.000000" == apply_function("date_trunc('quarter', cast(datetime as time))", "datetimes_ft")
+  end
 
   test "length", do: assert 3 == apply_function("length(cast(height as text))", "heights_ft")
   test "lower", do: assert "abc" == apply_function("lower", ["string"], ["AbC"], "types_ft")

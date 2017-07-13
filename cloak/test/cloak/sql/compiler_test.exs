@@ -1,10 +1,10 @@
 defmodule Cloak.Sql.Compiler.Test do
   use ExUnit.Case, async: true
 
-  import Lens.Macros
-
   alias Cloak.DataSource.Table
   alias Cloak.Sql.{Expression, Compiler, Parser, Query}
+
+  import Cloak.Test.QueryHelpers
 
   defmacrop column(table_name, column_name) do
     quote do
@@ -40,6 +40,11 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejects mistyped like conditions" do
     {:error, error} = compile("select * from table where numeric like 'something'", data_source())
     assert error == "Column `numeric` from table `table` of type `integer` cannot be used in a LIKE expression."
+  end
+
+  test "rejects escape strings longer than 1" do
+    {:error, error} = compile("select * from table where string like 'something' escape 'abc'", data_source())
+    assert error == "Escape string must be one character."
   end
 
   test "rejects usage of * in function requiring argument of known type" do
@@ -132,11 +137,6 @@ defmodule Cloak.Sql.Compiler.Test do
     test "rejecting #{function} on text columns in top query" do
       assert {:error, _} = compile("select #{unquote(function)}(string) from table", data_source())
       assert {:error, _} = compile("select #{unquote(function)}(distinct string) from table", data_source())
-    end
-
-    test "rejecting #{function} on datetime columns in top query" do
-      assert {:error, _} = compile("select #{unquote(function)}(column) from table", data_source())
-      assert {:error, _} = compile("select #{unquote(function)}(distinct column) from table", data_source())
     end
   end
 
@@ -630,8 +630,8 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "silently discards redundant inequalities" do
     assert compile!("select count(*) from table
-      where numeric >= 1 and numeric > 0.9 and numeric < 2 and numeric <= 2.1", data_source()) |> scrub_aliases() ==
-      compile!("select count(*) from table where numeric >= 1 and numeric < 2", data_source()) |> scrub_aliases()
+      where numeric >= 1 and numeric > 0.9 and numeric < 2 and numeric <= 2.1", data_source()) ==
+      compile!("select count(*) from table where numeric >= 1 and numeric < 2", data_source())
   end
 
   test "unquoted columns are case-insensitive" do
@@ -726,12 +726,12 @@ defmodule Cloak.Sql.Compiler.Test do
   test "having condition ranges are aligned with a message in subqueries" do
     %{from: {:subquery, %{ast: aligned}}} = compile!("""
       select count(*) from (select uid from table group by uid having avg(numeric) >= 0.0 and avg(numeric) < 5.0) x
-    """, data_source()) |> scrub_aliases()
+    """, data_source())
     %{from: {:subquery, %{ast: unaligned}}} = compile!("""
       select count(*) from (select uid from table group by uid having avg(numeric) > 0.1 and avg(numeric) <= 4.9) x
-    """, data_source()) |> scrub_aliases()
+    """, data_source())
 
-    assert Map.drop(aligned, [:info]) == Map.drop(unaligned, [:info])
+    assert aligned |> Map.drop([:info]) |> scrub_aliases() == unaligned |> Map.drop([:info]) |> scrub_aliases()
     assert unaligned.info == ["The range for column `avg` has been adjusted to 0.0 <= `avg` < 5.0."]
   end
 
@@ -884,9 +884,23 @@ defmodule Cloak.Sql.Compiler.Test do
       assert result1.where == result2.where
     end
 
+    test "normalizing trivial not like patterns" do
+      result1 = compile!("SELECT * FROM table WHERE string NOT LIKE 'abc'", data_source())
+      result2 = compile!("SELECT * FROM table WHERE string <> 'abc'", data_source())
+
+      assert result1.where == result2.where
+    end
+
     test "normalizing ilike patterns" do
       result1 = compile!("SELECT * FROM table WHERE string ILIKE 'a_%__%_b%c%%d___'", data_source())
       result2 = compile!("SELECT * FROM table WHERE string ILIKE 'a%____b%c%d___'", data_source())
+
+      assert result1.where == result2.where
+    end
+
+    test "normalizing trivial not ilike patterns" do
+      result1 = compile!("SELECT * FROM table WHERE string NOT ILIKE 'AbC'", data_source())
+      result2 = compile!("SELECT * FROM table WHERE lower(string) <> 'abc'", data_source())
 
       assert result1.where == result2.where
     end
@@ -928,6 +942,12 @@ defmodule Cloak.Sql.Compiler.Test do
     assert reason == "Select clause `t2`.* cannot be resolved because the table does not exist in the `FROM` list."
   end
 
+  test "the first argument to date_trunc has to be a constant" do
+    assert {:error, reason} = compile("select date_trunc(string, column) from table", data_source())
+    assert reason == "Function `date_trunc` requires arguments of type (`constant text`, `time`)" <>
+      " or (`constant text`, `datetime` | `date`), but got (`text`, `datetime`)."
+  end
+
   test "rejecting aggregates in the WHERE-clause" do
     assert {:error, reason} = compile("select count(*) from table where count(*) > 10 group by numeric", data_source())
     assert reason == "Expression `count` is not valid in the `WHERE` clause."
@@ -944,26 +964,6 @@ defmodule Cloak.Sql.Compiler.Test do
 
   defp projected_table_db_column_indices(query), do:
     Enum.map(projected_table_db_columns(query), &(&1.row_index))
-
-
-  defp scrub_aliases(query), do: put_in(query, [aliases()], nil)
-
-  deflens aliases, do:
-    all_subqueries() |> Query.Lenses.terminals() |> Lens.satisfy(&match?(%Expression{}, &1)) |> Lens.key(:alias)
-
-  deflens all_subqueries(), do:
-    Lens.both(Lens.recur(Query.Lenses.direct_subqueries() |> Lens.key(:ast)), Lens.root())
-
-  defp compile!(query_string, data_source, options \\ []) do
-    {:ok, result} = compile(query_string, data_source, options)
-    result
-  end
-
-  defp compile(query_string, data_source, options \\ []) do
-    query = Parser.parse!(query_string)
-    Compiler.compile(data_source, query, Keyword.get(options, :parameters, []),
-      Keyword.get(options, :views, %{}))
-  end
 
   defp validate_view(view_sql, data_source, options \\ []) do
     with {:ok, parsed_view} <- Parser.parse(view_sql), do:

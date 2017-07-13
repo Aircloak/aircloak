@@ -1,10 +1,9 @@
 FROM aircloak/phoenix:$NODEJS_VERSION
 MAINTAINER Aircloak
 
-# Install dependencies and configure UTF-8
-RUN \
-  apt-get install jq ruby-full -y && \
-  gem install bundle
+# Install dependencies:
+# - calibre: needed to compile offline versions of docs
+RUN apt-get install calibre -y
 
 # First we'll copy only the subset of needed files and compile deps
 # This will reduce the amount of rebuilding when only the source code is changed.
@@ -12,7 +11,7 @@ COPY air/mix.exs air/mix.lock air/package.json air/yarn.lock /aircloak/air/
 COPY air/config /aircloak/air/config
 COPY common /aircloak/common
 COPY air/fetch_deps.sh /aircloak/air/
-COPY air/user_docs /aircloak/air/user_docs
+COPY air/docs /aircloak/air/docs
 COPY VERSION /aircloak/
 COPY RELEASE_EXPIRY_DATE /aircloak/
 
@@ -23,7 +22,7 @@ RUN \
   bash -c ". ~/.asdf/asdf.sh && MIX_ENV=prod mix deps.compile " && \
   echo "Fetching node packages..." && \
   bash -c ". ~/.bashrc && yarn install" && \
-  cd user_docs && bundle install -j4 && cd ..
+  bash -c ". ~/.bashrc && cd docs && yarn install"
 
 # Build the Bill of Materials
 COPY bom /aircloak/bom

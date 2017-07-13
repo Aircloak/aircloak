@@ -31,7 +31,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
   def application do
     [
       mod: {Aircloak, []},
-      extra_applications: [:logger, :poison]
+      extra_applications: [:logger, :poison | dialyzer_deps()]
     ]
   end
 
@@ -50,6 +50,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       {:distillery, "~> 1.1.0", runtime: false},
       {:phoenix, "~> 1.1.6", only: :test},
       {:cowboy, "~> 1.0", only: :test},
+      {:phoenix_gen_socket_client, "~> 1.1.0", optional: true},
     ]
   end
 
@@ -68,4 +69,10 @@ defmodule Aircloak.ElixirCommon.Mixfile do
     ["ModuleDoc" | ignored_credo_checks(:dev)]
   defp ignored_credo_checks(_), do:
     ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
+
+  if Mix.env == :dev do
+    defp dialyzer_deps(), do: [:phoenix_gen_socket_client]
+  else
+    defp dialyzer_deps(), do: []
+  end
 end

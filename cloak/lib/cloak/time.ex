@@ -31,11 +31,21 @@ defmodule Cloak.Time do
   def max_precision(datetime = %{microsecond: {usecs, _precision}}), do:
     %{datetime | microsecond: {usecs, 6}}
 
-  @doc "Converts a %Time{} into the number of seconds since midnight"
-  @spec time_to_seconds(Calendar.time) :: pos_integer
-  def time_to_seconds(x), do: x |> Time.to_erl() |> :calendar.time_to_seconds()
+  @doc "Converts a date/datetime/time value into an integer representing days/seconds."
+  @spec to_integer(NaiveDateTime.t | Time.t | Date.t) :: non_neg_integer
+  def to_integer(%NaiveDateTime{} = value), do:
+    value |> NaiveDateTime.to_erl() |> :calendar.datetime_to_gregorian_seconds()
+  def to_integer(%Date{} = value), do:
+    value |> Date.to_erl() |> :calendar.date_to_gregorian_days()
+  def to_integer(%Time{} = value), do:
+    value |> Time.to_erl() |> :calendar.time_to_seconds()
 
-  @doc "Converts a number of seconds since midnight to a %Time{}"
-  @spec seconds_to_time(pos_integer) :: Calendar.time
-  def seconds_to_time(x), do: x |> :calendar.seconds_to_time() |> Time.from_erl!()
+  @doc "Converts an integer representing days/seconds into a date/datetime/time value."
+  @spec from_integer(non_neg_integer, :datetime | :date | :time) :: NaiveDateTime.t | Time.t | Date.t
+  def from_integer(value, :datetime), do:
+    value |> :calendar.gregorian_seconds_to_datetime() |> NaiveDateTime.from_erl!() |> Cloak.Time.max_precision()
+  def from_integer(value, :date), do:
+    value |> :calendar.gregorian_days_to_date() |> Date.from_erl!()
+  def from_integer(value, :time), do:
+    value |> :calendar.seconds_to_time() |> Time.from_erl!() |> max_precision()
 end

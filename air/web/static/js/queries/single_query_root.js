@@ -46,3 +46,7 @@ export default class QueryView extends React.Component {
     </div>);
   }
 }
+
+QueryView.contextTypes = {
+  authentication: React.PropTypes.object.isRequired,
+};

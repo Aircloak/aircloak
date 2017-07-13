@@ -5,8 +5,9 @@ defmodule Air.Admin.CentralControllerTest do
   alias Air.Schemas.ExportForAircloak
 
   setup do
+    previous_setting = Application.fetch_env!(:air, :auto_aircloak_export)
     Application.put_env(:air, :auto_aircloak_export, false)
-    on_exit(fn -> Application.put_env(:air, :auto_aircloak_export, true) end)
+    on_exit(fn -> Application.put_env(:air, :auto_aircloak_export, previous_setting) end)
     :ok
   end
 

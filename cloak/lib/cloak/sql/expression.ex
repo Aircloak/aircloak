@@ -7,10 +7,10 @@ defmodule Cloak.Sql.Expression do
   alias Cloak.DataSource
   alias Timex.Duration
 
-  @type column_type :: DataSource.data_type | nil
+  @type column_type :: DataSource.Table.data_type | :like_pattern | nil
   @type function_name ::
     String.t |
-    {:cast, DataSource.data_type | :varbinary} |
+    {:cast, DataSource.Table.data_type | :varbinary} |
     {:bucket, :lower | :upper | :middle}
   @type t :: %__MODULE__{
     table: :unknown | DataSource.Table.t,
@@ -40,6 +40,11 @@ defmodule Cloak.Sql.Expression do
     %__MODULE__{
       constant?: true, value: value, type: normalize_type(type), parameter_index: parameter_index
     }
+
+  @doc "Returns an expression representing the given like pattern with the given escape character."
+  @spec like_pattern(String.t, String.t | nil) :: t
+  def like_pattern(pattern, escape_character), do:
+    constant(:like_pattern, {pattern, escape_character})
 
   @doc "Creates a column representing a function call."
   @spec function(function_name, [t | :*], column_type, boolean) :: t
@@ -201,6 +206,7 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("minute", [value]), do: value.minute
   defp do_apply("second", [value]), do: value.second
   defp do_apply("weekday", [value]), do: Timex.weekday(value)
+  defp do_apply("date_trunc", [spec, value]), do: date_trunc(spec, value)
   defp do_apply("sqrt", [value]), do: :math.sqrt(value)
   defp do_apply("floor", [value]) when is_integer(value), do: value
   defp do_apply("floor", [value]), do: value |> Float.floor() |> round()
@@ -295,6 +301,20 @@ defmodule Cloak.Sql.Expression do
   defp ltrim(string, chars), do: Regex.replace(~r/^[#{Regex.escape(chars)}]*/, string, "")
 
   defp rtrim(string, chars), do: Regex.replace(~r/[#{Regex.escape(chars)}]*$/, string, "")
+
+  @max_precision_zero {0, 6}
+  @midnight ~T[00:00:00.000000]
+  defp date_trunc(scope, %Time{}) when scope in ~w(year quarter month day), do: @midnight
+  defp date_trunc("year", date), do: date_trunc("month", %{date | month: 1})
+  defp date_trunc("quarter", date), do: date_trunc("month", %{date | month: first_month_of_quarter(date)})
+  defp date_trunc("month", date), do: date_trunc("day", %{date | day: 1})
+  defp date_trunc("day", date), do: date_trunc("hour", %{date | hour: 0})
+  defp date_trunc("hour", date), do: date_trunc("minute", %{date | minute: 0})
+  defp date_trunc("minute", date), do: date_trunc("second", %{date | second: 0})
+  defp date_trunc("second", date), do: %{date | microsecond: @max_precision_zero}
+
+  @month_in_quarter 3
+  defp first_month_of_quarter(%{month: month}), do: div(month - 1, @month_in_quarter) * @month_in_quarter + 1
 
   defp substring(string, from, count \\ nil)
   defp substring(nil, _, _), do: nil

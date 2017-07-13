@@ -1,7 +1,8 @@
 defmodule Air.Service.Query do
   @moduledoc "Services for retrieving queries."
 
-  alias Air.{Repo, Schemas.DataSource, Schemas.Query, Schemas.User, Socket.Frontend.UserChannel}
+  alias Air.{Repo, Socket.Frontend.UserChannel}
+  alias Air.Schemas.{DataSource, Query, ResultChunk, User}
 
   import Ecto.Query
   require Logger
@@ -12,6 +13,24 @@ defmodule Air.Service.Query do
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Returns the supervisor specification for this service."
+  @spec supervisor_spec() :: Supervisor.Spec.spec
+  def supervisor_spec() do
+    import Supervisor.Spec, warn: false
+
+    supervisor(Supervisor,
+      [
+        [
+          supervisor(Air.Service.Query.Events, []),
+          Air.Service.Query.Lifecycle.supervisor_spec(),
+          Air.Service.Query.ResultConverter.supervisor_spec(),
+        ],
+        [strategy: :one_for_one, name: __MODULE__]
+      ],
+      [id: __MODULE__]
+    )
+  end
 
   @doc """
   Returns information about failed queries in a paginated form.
@@ -44,7 +63,10 @@ defmodule Air.Service.Query do
   @spec get_as_user(User.t, query_id) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
   def get_as_user(user, id) do
     try do
-      user |> query_scope() |> get(id)
+      user
+      |> Repo.preload([:groups])
+      |> query_scope()
+      |> get(id)
     rescue Ecto.Query.CastError ->
       {:error, :invalid_id}
     end
@@ -66,7 +88,7 @@ defmodule Air.Service.Query do
 
   @doc "Loads the most recent queries for a given user"
   @spec load_recent_queries(User.t, DataSource.t, Query.Context.t, pos_integer, NaiveDateTime.t) :: [Query.t]
-  def load_recent_queries(user, data_source, context, recent_count, before) do
+  def load_recent_queries(user, data_source, context, recent_count, before), do:
     Query
     |> started_by(user)
     |> for_data_source(data_source)
@@ -74,8 +96,6 @@ defmodule Air.Service.Query do
     |> recent(recent_count, before)
     |> Repo.all()
     |> Repo.preload([:user, :data_source])
-    |> Enum.map(&Query.for_display/1)
-  end
 
   @doc "Returns a list of the queries that are currently executing in all contexts."
   @spec currently_running() :: [Query.t]
@@ -110,16 +130,16 @@ defmodule Air.Service.Query do
   end
 
   @doc """
-  Stores the given result sent by the cloak for the appropriate query and sets its state to "completed". The query id
-  is taken from `result["query_id"]`.
+  Stores the given result sent by the cloak for the appropriate query and sets its state to "completed".
+  The query id is taken from `result.query_id`.
   """
   @spec process_result(map) :: :ok
   def process_result(result) do
-    query = Repo.get!(Query, result["query_id"])
+    query = Repo.get!(Query, result.query_id) |> Repo.preload([:user])
     if valid_state_transition?(query.query_state, query_state(result)), do:
       do_process_result(query, result)
 
-    Logger.info("processed result for query #{result["query_id"]}")
+    Logger.info("processed result for query #{result.query_id}")
     :ok
   end
 
@@ -133,10 +153,7 @@ defmodule Air.Service.Query do
 
     if valid_state_transition?(query.query_state, :error) do
       query = query
-      |> Query.changeset(%{
-        query_state: :error,
-        result: %{error: "Query died."},
-      })
+      |> Query.changeset(%{query_state: :error, result: %{error: "Query died."}})
       |> Repo.update!()
 
       UserChannel.broadcast_state_change(query)
@@ -145,34 +162,28 @@ defmodule Air.Service.Query do
     :ok
   end
 
+  @doc "Returns the buckets describing the desired range of rows."
+  @spec buckets(Query.t, non_neg_integer | :all) :: [map]
+  def buckets(%Query{result: %{"rows" => buckets}}, _desired_chunk), do:
+    # Old style results (before 2017 Q4), where buckets are stored in the query table.
+    buckets
+  def buckets(query, desired_chunk), do:
+    query.id
+    |> result_chunks(desired_chunk)
+    |> Repo.all()
+    |> Enum.flat_map(&ResultChunk.buckets/1)
+
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp do_process_result(query, result) do
-    row_count = (result["rows"] || []) |> Enum.map(&(&1["occurrences"])) |> Enum.sum
-
-    storable_result = %{
-      columns: result["columns"],
-      types: result["features"]["selected_types"],
-      rows: result["rows"],
-      error: error_text(result),
-      info: result["info"],
-      row_count: row_count,
-    }
-
-    query = query
-    |> Query.changeset(%{
-      result: storable_result,
-      execution_time: result["execution_time"],
-      users_count: result["users_count"],
-      features: result["features"],
-      query_state: query_state(result),
-    })
-    |> Repo.update!()
-
-    UserChannel.broadcast_state_change(query)
+    query = store_query_result!(query, result)
+    log_result_error(query, result)
+    UserChannel.broadcast_state_change(query, buckets(query, 0))
+    Air.Service.Query.Events.trigger_result(result)
+    report_query_result(result)
   end
 
   @state_order [
@@ -184,12 +195,12 @@ defmodule Air.Service.Query do
   defp valid_state_transition?(current_state, next_state), do:
     Enum.find_index(@state_order, &(&1 == current_state)) < Enum.find_index(@state_order, &(&1 == next_state))
 
-  defp query_state(%{"error" => error}) when is_binary(error), do: :error
-  defp query_state(%{"cancelled" => true}), do: :cancelled
+  defp query_state(%{error: error}) when is_binary(error), do: :error
+  defp query_state(%{cancelled: true}), do: :cancelled
   defp query_state(_), do: :completed
 
-  defp error_text(%{"error" => error}) when is_binary(error), do: error
-  defp error_text(%{"cancelled" => true}), do: "Cancelled."
+  defp error_text(%{error: error}) when is_binary(error), do: error
+  defp error_text(%{cancelled: true}), do: "Cancelled."
   defp error_text(_), do: nil
 
   defp get(scope \\ Query, id) do
@@ -197,6 +208,52 @@ defmodule Air.Service.Query do
       nil -> {:error, :not_found}
       query -> {:ok, query}
     end
+  end
+
+  defp log_result_error(query, result) do
+    if result[:error], do:
+      Logger.error([
+        "JSON_LOG ",
+        Poison.encode_to_iodata!(%{
+          type: "failed_query",
+          message: result.error,
+          statement: query.statement,
+          data_source_id: query.data_source_id,
+          user_id: query.user.id,
+          user_email: query.user.email
+        })
+      ])
+  end
+
+  defp store_query_result!(query, result) do
+    # use string keys, so we end up consistent with what is returned from the database
+    storable_result = %{
+      "columns" => result[:columns],
+      "types" => result[:features][:selected_types],
+      "error" => error_text(result),
+      "info" => result[:info],
+      "row_count" => result.row_count || 0,
+    }
+
+    changeset =
+      Query.changeset(query, %{
+        execution_time: result[:execution_time],
+        users_count: result[:users_count],
+        features: result[:features],
+        query_state: query_state(result),
+        result: storable_result
+      })
+
+    Aircloak.report_long(:store_query_result, fn ->
+      query = Repo.update!(changeset)
+
+      Repo.insert_all(
+        ResultChunk,
+        Enum.map(result.chunks, &%{query_id: query.id, index: &1.index, encoded_data: &1.encoded_data})
+      )
+
+      query
+    end)
   end
 
 
@@ -233,5 +290,17 @@ defmodule Air.Service.Query do
     where: q.inserted_at < ^before,
     order_by: [desc: q.inserted_at],
     limit: ^count
+  end
+
+  defp result_chunks(query_id, :all), do:
+    from(chunk in ResultChunk, where: chunk.query_id == ^query_id, order_by: [asc: chunk.index])
+  defp result_chunks(query_id, chunk_index), do:
+    from(chunk in result_chunks(query_id, :all), where: chunk.index == ^chunk_index)
+
+  if Mix.env == :test do
+    defp report_query_result(_), do: :ok
+  else
+    defp report_query_result(result), do:
+      Air.Service.Central.report_query_result(result)
   end
 end

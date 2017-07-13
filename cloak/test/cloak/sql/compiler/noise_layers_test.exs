@@ -2,7 +2,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.Table
-  alias Cloak.Sql.{Compiler, Parser, Expression}
+  alias Cloak.Sql.Expression
+
+  import Cloak.Test.QueryHelpers
 
   describe "picking columns for noise layers" do
     test "lists no noise layers by default" do
@@ -147,23 +149,23 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "noise layers for NOT LIKE" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT LIKE 'bob'", data_source())
+      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT LIKE 'bob%'", data_source())
 
       assert [
-        %{base: {"table", "name", {:not, :like, "bob"}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:not, :like, {"bob%", "\\"}}}, expressions: [%Expression{name: "name"}]},
       ] = result.noise_layers
     end
 
     test "noise layers for NOT ILIKE" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT ILIKE 'bob'", data_source())
+      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT ILIKE 'bob%'", data_source())
 
       assert [
-        %{base: {"table", "name", {:not, :ilike, "bob"}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:not, :ilike, {"bob%", "\\"}}}, expressions: [%Expression{name: "name"}]},
       ] = result.noise_layers
     end
 
     test "no noise layer when the argument to LIKE is not raw" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE lower(name) NOT LIKE 'bob'", data_source())
+      result = compile!("SELECT COUNT(*) FROM table WHERE lower(name) NOT LIKE 'bob%'", data_source())
 
       assert [] = result.noise_layers
     end
@@ -463,13 +465,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert base1 == base2
     end
-  end
-
-  defp compile!(query_string, data_source, options \\ []) do
-    query = Parser.parse!(query_string)
-    {:ok, result} = Compiler.compile(data_source, query, Keyword.get(options, :parameters, []),
-      Keyword.get(options, :views, %{}))
-    result
   end
 
   defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do

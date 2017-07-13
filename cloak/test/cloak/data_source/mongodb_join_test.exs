@@ -2,20 +2,11 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.MongoDB
-  alias Cloak.Query.Runner
+
+  import Cloak.Test.MongoHelpers
 
   @moduletag :exclude_in_dev
   @moduletag :mongodb
-
-  defmacro assert_query(context, query, parameters \\ [], expected_response) do
-    quote do
-      Runner.start("1", unquote(context).data_source, unquote(query), unquote(parameters), %{}, {:process, self()})
-      response = receive do
-        {:result, response} -> response
-      end
-      assert unquote(expected_response) = response
-    end
-  end
 
   setup do
     parameters = [hostname: "localhost", database: "cloaktest"]
@@ -44,7 +35,6 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
 
     data_source = %{
       name: "mongo_db_join",
-      global_id: :"data_source_#{:erlang.unique_integer()}",
       driver: MongoDB,
       parameters: parameters,
       tables: tables

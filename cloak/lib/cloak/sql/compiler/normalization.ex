@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   @moduledoc "Deals with normalizing some expressions so that they are easier to deal with at later stages."
 
   alias Cloak.Sql.Compiler.Helpers
-  alias Cloak.Sql.{Expression, Query, Condition}
+  alias Cloak.Sql.{Expression, Query, LikePattern}
 
 
   # -------------------------------------------------------------------
@@ -27,6 +27,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
     query
     |> Helpers.apply_bottom_up(&expand_not_in/1)
     |> Helpers.apply_bottom_up(&normalize_in/1)
+    |> Helpers.apply_bottom_up(&normalize_like_patterns/1)
     |> Helpers.apply_bottom_up(&normalize_like/1)
     |> Helpers.apply_bottom_up(&normalize_constants/1)
     |> Helpers.apply_bottom_up(&normalize_upper/1)
@@ -98,37 +99,23 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # Normalizing like patterns
   # -------------------------------------------------------------------
 
+  defp normalize_like_patterns(query), do:
+    Lens.map(Query.Lenses.like_patterns(), query, &LikePattern.normalize/1)
+
   defp normalize_like(query), do:
-    Query.Lenses.filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Lens.satisfy(&Condition.like?/1)
-    |> Lens.map(query, fn({kind, lhs, rhs}) ->
-      case {kind, any_wildcards?(rhs.value)} do
-        {:like, false} -> {:comparison, lhs, :=, rhs}
-        {:ilike, false} -> {:comparison, lowercase(lhs), :=, lowercase(rhs)}
-        _ -> {kind, lhs, %{rhs | value: do_normalize_like(rhs.value)}}
-      end
+    Query.Lenses.like_clauses()
+    |> Lens.satisfy(&trivial_like?/1)
+    |> Lens.map(query, fn
+      {:like, lhs, rhs} -> {:comparison, lhs, :=, LikePattern.trivial_to_string(rhs)}
+      {:ilike, lhs, rhs} -> {:comparison, lowercase(lhs), :=, rhs |> LikePattern.trivial_to_string() |> lowercase()}
+      {:not, {:like, lhs, rhs}} -> {:comparison, lhs, :<>, LikePattern.trivial_to_string(rhs)}
+      {:not, {:ilike, lhs, rhs}} ->
+        {:comparison, lowercase(lhs), :<>, rhs |> LikePattern.trivial_to_string() |> lowercase()}
     end)
+
+  defp trivial_like?({:not, like}), do: trivial_like?(like)
+  defp trivial_like?({_kind, _rhs, lhs}), do: LikePattern.trivial?(lhs.value)
 
   defp lowercase(expression), do:
     Expression.function("lower", [expression], expression.type)
-
-  defp do_normalize_like(string), do:
-    string
-    |> String.graphemes()
-    |> Enum.chunk_by(&special_like_char?/1)
-    |> Enum.map(&normalize_like_chunk/1)
-    |> Enum.join()
-
-  defp normalize_like_chunk(chunk = [first | _]) when first == "_" or first == "%" do
-    percent = if Enum.member?(chunk, "%"), do: "%", else: ""
-    rest = Enum.filter(chunk, &(&1 == "_"))
-    [percent | rest]
-  end
-  defp normalize_like_chunk(chunk), do: chunk
-
-  defp any_wildcards?(pattern), do:
-    pattern |> String.graphemes() |> Enum.any?(&special_like_char?/1)
-
-  defp special_like_char?(string), do: string == "_" or string == "%"
 end
