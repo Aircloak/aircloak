@@ -88,8 +88,7 @@ defmodule Air.Service.Query.ResultConverter do
   end
 
   defp make_chunks(query), do:
-    query.result
-    |> Map.fetch!("rows")
+    (Map.fetch!(query.result, "rows") || [])
     |> Stream.chunk(1000, 1000, [])
     |> Stream.with_index()
     |> Enum.map(&encode_chunk/1)
