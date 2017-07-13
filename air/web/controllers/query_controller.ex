@@ -77,9 +77,7 @@ defmodule Air.QueryController do
       {:ok, query} ->
         case extension do
           ["csv"] ->
-            conn = put_resp_content_type(conn, "text/csv")
-            conn = send_chunked(conn, 200)
-            csv_stream(query, fn(csv_stream) -> Enum.reduce(csv_stream, conn, &send_chunk!(&2, &1)) end)
+            csv_stream(query, &send_chunks(conn, "text/csv", 200, &1))
           _ ->
             send_query_as_json(conn, query)
         end
@@ -134,12 +132,9 @@ defmodule Air.QueryController do
     query
     |> Query.to_csv_stream(Air.Service.Query.buckets(query, :all))
     |> fun.()
-
   defp csv_stream(query, fun), do:
     # new style result -> we can stream from database
-    stream_chunks!(
-      query,
-      :all,
+    stream_chunks!(query, :all,
       fn(chunks_stream) ->
         query
         |> Query.to_csv_stream(Stream.flat_map(chunks_stream, &Air.Schemas.ResultChunk.buckets/1))
@@ -161,20 +156,16 @@ defmodule Air.QueryController do
     prefix_size = byte_size(json_without_rows) - 1
     << json_prefix :: binary-size(prefix_size), ?} >> = json_without_rows
 
-    stream_chunks!(
-      query,
-      :all,
-      fn(chunks_stream) ->
-        [
+    stream_chunks!(query, :all,
+      &send_chunks(conn, "application/json", 200,
+        Stream.concat([
           [~s({"query":)],
           [json_prefix],
           [~s(,"rows":)],
-          buckets_json_chunks(chunks_stream),
+          buckets_json_chunks(&1),
           ["}}"]
-        ]
-        |> Stream.concat()
-        |> Enum.reduce(start_chunked_json_response(conn, 200), &send_chunk!(&2, &1))
-      end
+        ])
+      )
     )
   end
 
@@ -183,15 +174,7 @@ defmodule Air.QueryController do
     json(conn, Air.Service.Query.buckets(query, desired_chunk))
   defp send_buckets_as_json(conn, query, desired_chunk), do:
     # new style result -> compute json in streaming fashion and send chunked response
-    stream_chunks!(
-      query,
-      desired_chunk,
-      fn(chunks_stream) ->
-        chunks_stream
-        |> buckets_json_chunks()
-        |> Enum.reduce(start_chunked_json_response(conn, 200), &send_chunk!(&2, &1))
-      end
-    )
+    stream_chunks!(query, desired_chunk, &send_chunks(conn, "application/json", 200, buckets_json_chunks(&1)))
 
   defp buckets_json_chunks(chunks_stream), do:
     Stream.concat([
@@ -220,12 +203,15 @@ defmodule Air.QueryController do
   defp stream_chunks!(query, desired_chunks, callback), do:
     Air.Service.Query.stream_chunks!(query, desired_chunks, callback, timeout: :timer.minutes(1))
 
-  defp start_chunked_json_response(conn, status), do:
+  def send_chunks(conn, content_type, status, chunks_stream), do:
+    Enum.reduce(chunks_stream, start_chunked_response(conn, content_type, status), &send_chunk!(&2, &1))
+
+  defp start_chunked_response(conn, content_type, status), do:
     conn
     # We need to clear flash, since it otherwise might try to change the session, and this doesn't work with a chunked
     # response.
     |> clear_flash()
-    |> put_resp_content_type("application/json")
+    |> put_resp_content_type(content_type)
     |> send_chunked(status)
 
   defp send_chunk!(conn, chunk) do
