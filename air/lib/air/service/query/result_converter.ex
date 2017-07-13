@@ -7,7 +7,7 @@ defmodule Air.Service.Query.ResultConverter do
   module starts a transient worker which finds old style results and converts them into the new format.
 
   The conversion is done in this way, instead of a more traditional migration, because it can take quite long when
-  there are many results with a large number of buckets. Once 2017 Q4 is released, we can safely remove this code.
+  there are many results with a large number of buckets. Once 2018 Q1 is released, we can safely remove this code.
   """
 
   alias Air.Repo
