@@ -85,7 +85,7 @@ defmodule Air.QueryController do
               conn
             end)
           _ ->
-            json(conn, %{query: Query.for_display(query, Air.Service.Query.buckets(query, :all))})
+            send_query_as_json(conn, query)
         end
       _ ->
         conn = put_status(conn, Status.code(:not_found))
@@ -131,6 +131,37 @@ defmodule Air.QueryController do
   defp query_error(conn, other_error) do
     Logger.error(fn -> "Query start error: #{other_error}" end)
     json(conn, %{success: false, reason: other_error})
+  end
+
+  defp send_query_as_json(conn, %Query{result: %{"rows" => _buckets}} = query), do:
+    # old style result (<= 2017.3), so we can't stream
+    json(conn, %{query: Query.for_display(query, Air.Service.Query.buckets(query, :all))})
+  defp send_query_as_json(conn, query) do
+    # new style result -> compute json in streaming fashion and send chunked response
+    json_without_rows =
+      query
+      |> Query.for_display()
+      |> Map.put(:columns, query.result["columns"])
+      |> Poison.encode!()
+
+    prefix_size = byte_size(json_without_rows) - 1
+    << json_prefix :: binary-size(prefix_size), ?} >> = json_without_rows
+
+    Air.Service.Query.stream_chunks!(
+      query,
+      :all,
+      fn(chunks_stream) ->
+        [
+          [~s({"query":)],
+          [json_prefix],
+          [~s(,"rows":)],
+          buckets_json_chunks(chunks_stream),
+          ["}}"]
+        ]
+        |> Stream.concat()
+        |> Enum.reduce(start_chunked_json_response(conn, 200), &send_chunk!(&2, &1))
+      end
+    )
   end
 
   defp send_buckets_as_json(conn, %Query{result: %{"rows" => _buckets}} = query, desired_chunk), do:
