@@ -296,6 +296,16 @@ defmodule Air.Service.QueryTest do
       assert Enum.flat_map(Query.buckets(query, 2), &Map.fetch!(&1, "row")) == Enum.to_list(2001..2500)
     end
 
+    test "converting old result with `nil` rows", context do
+      query = create_old_result(context.user, context.data_source, nil)
+
+      assert Query.ResultConverter.convert_all_results() == 1
+      query = Air.Repo.get!(Air.Schemas.Query, query.id)
+
+      refute Map.has_key?(query.result, "rows")
+      assert Query.buckets(query, :all) == []
+    end
+
     test "conversion of old results doesn't affect the new results", context do
       query = create_query!(context.user, %{query_state: :started, data_source_id: context.data_source.id})
       send_query_result(query.id, %{columns: ["value"]}, [%{occurrences: 10, row: [1]}])
