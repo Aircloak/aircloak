@@ -79,11 +79,7 @@ defmodule Air.QueryController do
           ["csv"] ->
             conn = put_resp_content_type(conn, "text/csv")
             conn = send_chunked(conn, 200)
-            csv_stream = Query.to_csv_stream(query, Air.Service.Query.buckets(query, :all))
-            Enum.reduce(csv_stream, conn, fn(data, conn) ->
-              {:ok, conn} = chunk(conn, data)
-              conn
-            end)
+            csv_stream(query, fn(csv_stream) -> Enum.reduce(csv_stream, conn, &send_chunk!(&2, &1)) end)
           _ ->
             send_query_as_json(conn, query)
         end
@@ -132,6 +128,24 @@ defmodule Air.QueryController do
     Logger.error(fn -> "Query start error: #{other_error}" end)
     json(conn, %{success: false, reason: other_error})
   end
+
+  defp csv_stream(%Query{result: %{"rows" => _buckets}} = query, fun), do:
+    # old style result (<= 2017.3), so we can't stream
+    query
+    |> Query.to_csv_stream(Air.Service.Query.buckets(query, :all))
+    |> fun.()
+
+  defp csv_stream(query, fun), do:
+    # new style result -> we can stream from database
+    Air.Service.Query.stream_chunks!(
+      query,
+      :all,
+      fn(chunks_stream) ->
+        query
+        |> Query.to_csv_stream(Stream.flat_map(chunks_stream, &Air.Schemas.ResultChunk.buckets/1))
+        |> fun.()
+      end
+    )
 
   defp send_query_as_json(conn, %Query{result: %{"rows" => _buckets}} = query), do:
     # old style result (<= 2017.3), so we can't stream

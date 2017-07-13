@@ -84,7 +84,7 @@ defmodule Air.Schemas.Query do
   end
 
   @doc "Exports the query as CSV"
-  @spec to_csv_stream(t, [map]) :: Enumerable.t
+  @spec to_csv_stream(t, Enumerable.t) :: Enumerable.t
   def to_csv_stream(query, buckets), do:
     [query.result["columns"]]
     |> Stream.concat(Air.Schemas.ResultChunk.rows_stream(buckets))
