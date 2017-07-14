@@ -68,7 +68,7 @@ defmodule Air.ViewController do
     case Air.Service.DataSource.fetch_as_user({:name, data_source_name}, conn.assigns.current_user) do
       {:ok, data_source} ->
         id_to_exclude = case Map.get(conn.params, "id") do
-          nil -> :undefined
+          nil -> nil
           id_as_string -> String.to_integer(id_as_string)
         end
 
