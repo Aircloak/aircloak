@@ -26,23 +26,27 @@ defmodule Air.Schemas.ResultChunk do
   # API
   # -------------------------------------------------------------------
 
+  @doc "Returns the json representation chunk buckets."
+  @spec buckets_json(t) :: binary
+  def buckets_json(chunk), do:
+    :zlib.gunzip(chunk.encoded_data)
+
   @doc "Decodes the chunk and returns its buckets."
   @spec buckets(t) :: [map]
   def buckets(chunk), do:
-    chunk.encoded_data
-    |> :zlib.gunzip()
+    chunk
+    |> buckets_json()
     |> :jiffy.decode([:use_nil, :return_maps])
 
   @doc "Eagerly converts buckets to rows."
-  @spec rows([map]) :: [[any]]
+  @spec rows(Enumerable.t) :: [[any]]
   def rows(buckets), do:
     buckets
     |> rows_stream()
     |> Enum.to_list()
 
-
   @doc "Returns a stream of rows represented by the given collection of buckets."
-  @spec rows_stream([map]) :: Enumerable.t
+  @spec rows_stream(Enumerable.t) :: Enumerable.t
   def rows_stream(buckets), do:
     Stream.flat_map(buckets, &List.duplicate(Map.fetch!(&1, "row"), Map.fetch!(&1, "occurrences")))
 end

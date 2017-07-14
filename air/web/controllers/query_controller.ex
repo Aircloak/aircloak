@@ -63,7 +63,8 @@ defmodule Air.QueryController do
             "all" -> :all
             other -> String.to_integer(other)
           end
-        json(conn, Air.Service.Query.buckets(query, desired_chunk))
+
+        send_buckets_as_json(conn, query, desired_chunk)
 
       _ ->
         send_resp(conn, Status.code(:not_found), "Query not found")
@@ -76,15 +77,9 @@ defmodule Air.QueryController do
       {:ok, query} ->
         case extension do
           ["csv"] ->
-            conn = put_resp_content_type(conn, "text/csv")
-            conn = send_chunked(conn, 200)
-            csv_stream = Query.to_csv_stream(query, Air.Service.Query.buckets(query, :all))
-            Enum.reduce(csv_stream, conn, fn(data, conn) ->
-              {:ok, conn} = chunk(conn, data)
-              conn
-            end)
+            send_chunks(conn, "text/csv", 200, Query.to_csv_stream(query, buckets_stream(query)))
           _ ->
-            json(conn, %{query: Query.for_display(query, Air.Service.Query.buckets(query, :all))})
+            send_query_as_json(conn, query)
         end
       _ ->
         conn = put_status(conn, Status.code(:not_found))
@@ -130,5 +125,89 @@ defmodule Air.QueryController do
   defp query_error(conn, other_error) do
     Logger.error(fn -> "Query start error: #{other_error}" end)
     json(conn, %{success: false, reason: other_error})
+  end
+
+  defp buckets_stream(%Query{result: %{"rows" => _buckets}} = query), do:
+    # old style result (<= 2017.3), so we can't stream
+    Air.Service.Query.buckets(query, :all)
+  defp buckets_stream(query), do:
+    # new style result -> we can stream from database
+    query
+    |> Air.Service.Query.chunks_stream(:all)
+    |> Stream.flat_map(&Air.Schemas.ResultChunk.buckets/1)
+
+  defp send_query_as_json(conn, %Query{result: %{"rows" => _buckets}} = query), do:
+    # old style result (<= 2017.3), so we can't stream
+    json(conn, %{query: Query.for_display(query, Air.Service.Query.buckets(query, :all))})
+  defp send_query_as_json(conn, query) do
+    # new style result -> compute json in streaming fashion and send chunked response
+    json_without_rows =
+      query
+      |> Query.for_display()
+      |> Map.put(:columns, query.result["columns"])
+      |> Poison.encode!()
+
+    prefix_size = byte_size(json_without_rows) - 1
+    << json_prefix :: binary-size(prefix_size), ?} >> = json_without_rows
+
+    send_chunks(conn, "application/json", 200,
+      Stream.concat([
+        [~s({"query":)],
+        [json_prefix],
+        [~s(,"rows":)],
+        buckets_json_chunks(query, :all),
+        ["}}"]
+      ])
+    )
+  end
+
+  defp send_buckets_as_json(conn, %Query{result: %{"rows" => _buckets}} = query, desired_chunk), do:
+    # old style result (<= 2017.3), so we can't stream
+    json(conn, Air.Service.Query.buckets(query, desired_chunk))
+  defp send_buckets_as_json(conn, query, desired_chunk), do:
+    # new style result -> compute json in streaming fashion and send chunked response
+    send_chunks(conn, "application/json", 200, buckets_json_chunks(query, desired_chunk))
+
+  defp buckets_json_chunks(query, desired_chunks), do:
+    Stream.concat([
+      ["["],
+        query
+        |> Air.Service.Query.chunks_stream(desired_chunks)
+        |> Stream.map(&drop_brackets/1)
+        |> intersperse(?,),
+      ["]"]
+    ])
+
+  defp drop_brackets(chunk) do
+    json = Air.Schemas.ResultChunk.buckets_json(chunk)
+    inner_size = byte_size(json) - 2
+    << ?[, inner::binary-size(inner_size), ?] >> = json
+    inner
+  end
+
+  defp intersperse(enumerable, intersperse_element), do:
+    enumerable
+    |> Stream.with_index()
+    |> Stream.map(
+      fn
+        {element, 0} -> element
+        {element, _} -> [intersperse_element, element]
+      end
+    )
+
+  def send_chunks(conn, content_type, status, chunks_stream), do:
+    Enum.reduce(chunks_stream, start_chunked_response(conn, content_type, status), &send_chunk!(&2, &1))
+
+  defp start_chunked_response(conn, content_type, status), do:
+    conn
+    # We need to clear flash, since it otherwise might try to change the session, and this doesn't work with a chunked
+    # response.
+    |> clear_flash()
+    |> put_resp_content_type(content_type)
+    |> send_chunked(status)
+
+  defp send_chunk!(conn, chunk) do
+    {:ok, conn} = chunk(conn, chunk)
+    conn
   end
 end

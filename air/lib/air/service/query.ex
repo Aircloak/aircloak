@@ -173,6 +173,24 @@ defmodule Air.Service.Query do
     |> Repo.all()
     |> Enum.flat_map(&ResultChunk.buckets/1)
 
+  @doc """
+  Creates a lazy stream of desired chunks.
+
+  This function performs streaming by repeatedly issuing queries to the database.
+  This approach is chosen instead of `Repo.stream/2` because `Repo.stream/2`
+  requires that the database connection is open for as long as the client is
+  consuming the stream, which might be a very long time.
+  With this approach we don't keep the connection open, so we can safely use the
+  stream regardless of the amount of chunks or the client processing time.
+  """
+  @spec chunks_stream(Query.t, non_neg_integer | :all) :: Enumerable.t
+  def chunks_stream(query, :all), do:
+    Stream.unfold(0, &{Repo.one(result_chunks(query.id, &1)), &1 + 1})
+    |> Stream.take_while(&(&1 != nil))
+  def chunks_stream(query, desired_chunk), do:
+    [desired_chunk]
+    |> Stream.map(&(Repo.one(result_chunks(query.id, &1))))
+    |> Stream.take_while(&(&1 != nil))
 
   # -------------------------------------------------------------------
   # Internal functions
