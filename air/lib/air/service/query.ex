@@ -173,24 +173,23 @@ defmodule Air.Service.Query do
     |> Repo.all()
     |> Enum.flat_map(&ResultChunk.buckets/1)
 
-  @doc "Invokes the provided lambda passing it a stream of desired chunks."
-  @spec stream_chunks!(Query.t, non_neg_integer | :all, ((Enum.t) -> result), [timeout: pos_integer]) ::
-    result when result: var
-  def stream_chunks!(query, desired_chunk, fun, opts \\ []) do
-    {:ok, result} =
-      Repo.transaction(
-        fn ->
-          query.id
-          |> result_chunks(desired_chunk)
-          |> Repo.stream()
-          |> fun.()
-        end,
-        timeout: Keyword.get(opts, :timeout, :timer.seconds(15))
-      )
+  @doc """
+  Creates a lazy stream of desired chunks.
 
-    result
-  end
-
+  This function performs streaming by repeatedly issuing queries to the database.
+  This approach is chosen instead of `Repo.stream/2` since it doesn't require
+  to keep the database connection open for a long period of time, thus allowing
+  us to safely use the stream regardless of the amount of chunks or the client
+  processing time.
+  """
+  @spec chunks_stream(Query.t, non_neg_integer | :all) :: Enumerable.t
+  def chunks_stream(query, :all), do:
+    Stream.unfold(0, &{Repo.one(result_chunks(query.id, &1)), &1 + 1})
+    |> Stream.take_while(&(&1 != nil))
+  def chunks_stream(query, desired_chunk), do:
+    [desired_chunk]
+    |> Stream.map(&(Repo.one(result_chunks(query.id, &1))))
+    |> Stream.take_while(&(&1 != nil))
 
   # -------------------------------------------------------------------
   # Internal functions
