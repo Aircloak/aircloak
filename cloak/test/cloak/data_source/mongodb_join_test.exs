@@ -106,4 +106,15 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
       WHERE a = 30
     """, %{rows: [%{occurrences: 20, row: [30]}]}
   end
+
+  test "inner join with two sub-queries", context do
+    assert_query context, """
+      SELECT SUM(c) FROM
+        (SELECT distinct id as lid FROM "left") AS t1
+        INNER JOIN
+        (SELECT id AS rid, count(*) AS c FROM "right" GROUP BY id) AS t2
+        ON rid = lid
+    """, %{rows: [%{occurrences: 1, row: [20]}]}
+  end
+
 end
