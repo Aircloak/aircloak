@@ -3,6 +3,7 @@
 ### Bugfixes
 
 - Fixed bug that duplicated the user id column for projected tables.
+- Fixed a bug where no tables where shown when creating a new view
 
 ## Version 17.3.0
 
