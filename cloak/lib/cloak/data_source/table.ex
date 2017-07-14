@@ -125,10 +125,20 @@ defmodule Cloak.DataSource.Table do
     end
   end
 
-  defp resolve_projected_tables(data_source), do:
-    data_source.tables
+  defp resolve_projected_tables(data_source) do
+    # remove the set user_id for projected tables
+    tables =
+      data_source.tables
+      |> Enum.map(fn
+        ({id, %{projection: nil} = table}) -> {id, table}
+        ({id, table}) -> {id, %{table | user_id: nil}}
+      end)
+      |> Enum.into(%{})
+    data_source = %{data_source | tables: tables}
+    tables
     |> Map.keys()
     |> Enum.reduce(data_source, &resolve_projected_table(Map.fetch!(&2.tables, &1), &2))
+  end
 
   defp resolve_projected_table(%{projection: nil}, data_source), do: data_source
   defp resolve_projected_table(%{user_id: uid, columns: [%{name: uid} | _]}, data_source), do:

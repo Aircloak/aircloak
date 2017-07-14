@@ -7,7 +7,7 @@ defmodule Cloak.Query.ProjectedTest do
     Cloak.Test.DB.create_table("projected_accounts", "id INTEGER, name TEXT")
     Cloak.Test.DB.create_table("projected_heights", "height integer")
     Cloak.Test.DB.create_table("projected_transactions", "id INTEGER, account_id INTEGER, amount INTEGER",
-      add_user_id: false,
+      add_user_id: false, user_id: "id",
       projection: %{table: "projected_accounts", foreign_key: "account_id", primary_key: "id"}
     )
     Cloak.Test.DB.create_table("projected_notes", "transaction_id INTEGER, note TEXT",
