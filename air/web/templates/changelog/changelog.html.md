@@ -3,6 +3,7 @@
 ### Bugfixes
 
 - Fixed bug that duplicated the user id column for projected tables.
+- Fixed crash when joining two subqueries over a MongoDB data set.
 
 ## Version 17.3.0
 
