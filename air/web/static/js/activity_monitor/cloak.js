@@ -6,7 +6,7 @@ export type Cloak = {
   id: string,
   name: string,
   total_memory: number,
-  free_memory: {
+  available_memory: {
     current: number,
     last_5_seconds: number,
     last_1_minute: number,
@@ -96,5 +96,5 @@ export const CloakView = (props: Cloak) =>
         {toGBstring(props.total_memory)}
       </span>
     </td>
-    {renderFreeMemory(props.free_memory)}
+    {renderFreeMemory(props.available_memory)}
   </tr>;

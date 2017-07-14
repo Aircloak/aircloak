@@ -79,17 +79,19 @@ defmodule Cloak.MemoryReader do
     time = System.monotonic_time(:millisecond)
     schedule_check(state)
     free_memory = Keyword.get(reading, :free_memory)
+    cached_memory = Keyword.get(reading, :cached_memory, 0)
+    available_memory = free_memory + cached_memory
     state
-    |> record_reading(reading)
-    |> Map.put(:memory_projector, MemoryProjector.add_reading(projector, free_memory, time))
-    |> perform_memory_check(free_memory)
+    |> record_reading(reading, available_memory)
+    |> Map.put(:memory_projector, MemoryProjector.add_reading(projector, available_memory, time))
+    |> perform_memory_check(available_memory)
   end
   def handle_info(:report_memory_stats, %{last_reading: nil} = state), do:
     {:noreply, state}
   def handle_info(:report_memory_stats, state) do
     payload = %{
       total_memory: Keyword.get(state.last_reading, :total_memory),
-      free_memory: Readings.values(state.readings),
+      available_memory: Readings.values(state.readings),
     }
     Cloak.AirSocket.send_memory_stats(payload)
     {:noreply, state}
@@ -100,18 +102,18 @@ defmodule Cloak.MemoryReader do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp perform_memory_check(%{params: %{limit_to_start_checks: limit_to_start_checks}} = state, free_memory)
-      when free_memory > limit_to_start_checks, do:
+  defp perform_memory_check(%{params: %{limit_to_start_checks: limit_to_start_checks}} = state, available_memory)
+      when available_memory > limit_to_start_checks, do:
     {:noreply, state}
-  defp perform_memory_check(%{params: %{limit_to_check_for: memory_limit}} = state, free_memory)
-      when free_memory < memory_limit, do:
+  defp perform_memory_check(%{params: %{limit_to_check_for: memory_limit}} = state, available_memory)
+      when available_memory < memory_limit, do:
     kill_query(state)
   defp perform_memory_check(%{params: %{limit_to_check_for: memory_limit, allowed_minimum_time_to_limit: time_limit},
-      memory_projector: projector} = state, free_memory) do
+      memory_projector: projector} = state, available_memory) do
     case MemoryProjector.time_until_limit(projector, memory_limit) do
       {:ok, time} when time <= time_limit ->
         Logger.error("Dangerous memory situation. Anticipating reaching the low memory threshold " <>
-          "(#{to_mb(memory_limit)} MB) in #{to_sec(time)} seconds. Free memory: #{to_mb(free_memory)} MB")
+          "(#{to_mb(memory_limit)} MB) in #{to_sec(time)} seconds. Available memory: #{to_mb(available_memory)} MB")
         kill_query(state)
       _ -> {:noreply, state}
     end
@@ -161,10 +163,10 @@ defmodule Cloak.MemoryReader do
     config
   end
 
-  defp record_reading(state, reading) do
+  defp record_reading(state, reading, available_memory) do
     %{state |
       last_reading: reading,
-      readings: Readings.add_reading(state.readings, Keyword.get(reading, :free_memory)),
+      readings: Readings.add_reading(state.readings, available_memory),
     }
   end
 
