@@ -12,11 +12,12 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   @doc "Builds a MongoDB aggregation pipeline from a compiled query."
   @spec build(Query.t) :: {String.t, [map]}
-  def build(%Query{selected_tables: [table]} = query) do
+  def build(_query, _top_level? \\ true)
+  def build(%Query{selected_tables: [table]} = query, top_level?) do
     {collection, pipeline, conditions} = start_pipeline(query.from, table, query.where)
-    {collection, pipeline ++ finish_pipeline(%Query{query | where: conditions})}
+    {collection, pipeline ++ finish_pipeline(%Query{query | where: conditions}, top_level?)}
   end
-  def build(%Query{from: {:join, join}} = query) do
+  def build(%Query{from: {:join, join}} = query, top_level?) do
     join_info = join_info(join, query.selected_tables)
     # The `$lookup` operator projects a foreign document into the specified field from the current document.
     # We create an unique name under which the fields of the projected document will live for the duration of the query.
@@ -33,7 +34,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       pipeline ++
       lookup_table(join_info.rhs_table.db_name, join_info.lhs_field, join_info.rhs_field, namespace) ++
       unwind_arrays(join_info.rhs_table.array_path, namespace <> ".") ++
-      finish_pipeline(%Query{query | where: conditions, selected_tables: [join_table]})
+      finish_pipeline(%Query{query | where: conditions, selected_tables: [join_table]}, top_level?)
     {collection, pipeline}
   end
 
@@ -48,31 +49,36 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     {table.db_name, pipeline, complex_conditions}
   end
   defp start_pipeline({:subquery, subquery}, _table, conditions) do
-    {collection, pipeline} = build(subquery.ast)
+    {collection, pipeline} = build(subquery.ast, false)
     {collection, pipeline, conditions}
   end
 
-  defp finish_pipeline(%Query{selected_tables: [table]} = query) do
+  defp finish_pipeline(%Query{selected_tables: [table]} = query, top_level?) do
     case used_array_size_columns(query) do
       [] -> []
       _ -> Projector.project_array_sizes(table)
     end ++
     parse_conditions(table, query.where) ++
-    parse_query(query)
+    parse_query(query, top_level?)
   end
 
-  defp parse_query(%Query{subquery?: false} = query) do
+  defp project_columns(columns, _top_level? = true) do
     # Mongo 3.0 doesn't support projection of arrays, which would more efficient for data transfer.
     projection =
-      query.db_columns
+      columns
       |> Enum.map(&"$#{&1.name}")
       |> Enum.with_index(1)
       |> Enum.map(fn ({field, index}) -> {"f#{index}", field} end)
       |> Enum.into(%{"_id" => false})
     [%{'$project': projection}]
   end
-  defp parse_query(%Query{subquery?: true} = query), do:
-    aggregate_and_project(query) ++
+  defp project_columns(columns, _top_level? = false), do:
+    Projector.project_columns(columns)
+
+  defp parse_query(%Query{subquery?: false} = query, _top_level? = true), do:
+    project_columns(query.db_columns, true)
+  defp parse_query(%Query{subquery?: true} = query, top_level?), do:
+    aggregate_and_project(query, top_level?) ++
     order_rows(query.order_by) ++
     offset_rows(query.offset) ++
     limit_rows(query.limit)
@@ -252,12 +258,12 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     |> Query.Lenses.operands()
     |> Lens.map(conditions, &extract_column_top(&1, aggregators, []))
 
-  defp aggregate_and_project(%Query{db_columns: columns, distinct?: true}) do
+  defp aggregate_and_project(%Query{db_columns: columns, distinct?: true}, top_level?) do
     properties = project_properties(columns)
     column_tops = Enum.map(columns, &extract_column_top(&1, [], columns))
-    [%{'$group': %{"_id" => properties}}] ++ Projector.project_columns(column_tops)
+    [%{'$group': %{"_id" => properties}}] ++ project_columns(column_tops, top_level?)
   end
-  defp aggregate_and_project(%Query{db_columns: columns, group_by: groups, having: having}) do
+  defp aggregate_and_project(%Query{db_columns: columns, group_by: groups, having: having}, top_level?) do
     having_columns =
       Query.Lenses.conditions()
       |> Lens.to_list(having)
@@ -267,13 +273,13 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       |> Enum.flat_map(&extract_aggregator/1)
       |> Enum.uniq()
     if aggregators ++ groups == [] do
-      Projector.project_columns(columns)
+      project_columns(columns, top_level?)
     else
       column_tops = Enum.map(columns, &extract_column_top(&1, aggregators, groups))
       properties = project_properties(groups)
       group = aggregators |> project_aggregators() |> Enum.into(%{"_id" => properties})
       having = extract_column_top_from_conditions(having, aggregators)
-      [%{'$group': group}] ++ filter_data(having) ++ Projector.project_columns(column_tops)
+      [%{'$group': group}] ++ filter_data(having) ++ project_columns(column_tops, top_level?)
     end
   end
 

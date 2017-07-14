@@ -83,7 +83,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     query
     |> add_floated_noise_layers()
     |> add_db_columns()
-    |> float_emulated_noise_layers()
+    |> float_noise_layers_columns()
 
   defp add_floated_noise_layers(query), do:
     if query.subquery? && Helpers.aggregate?(query),
@@ -93,7 +93,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp float_noise_layers(layers, query), do:
     Enum.map(layers, &float_noise_layer(&1, query))
 
-  defp float_emulated_noise_layers(query = %{emulated?: true, subquery?: true}) do
+  defp float_noise_layers_columns(query = %{subquery?: true}) do
     noise_columns =
       Lens.all()
       |> Lens.key(:expressions)
@@ -107,7 +107,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       aggregators: query.aggregators ++ Enum.filter(noise_columns, &(&1.aggregate?)),
     }
   end
-  defp float_emulated_noise_layers(query), do: query
+  defp float_noise_layers_columns(query), do: query
 
   defp add_db_columns(query) do
     noise_columns = noise_layer_columns(query)
