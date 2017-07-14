@@ -113,11 +113,11 @@ defmodule Cloak.Query.DbEmulator do
       nil -> nil
       index -> Enum.at(subquery.ast.column_titles, index)
     end
-    columns =
-        Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
-        |> Enum.map(fn ({alias, column}) ->
-          Table.column(alias, Function.type(column))
-        end)
+    columns = subquery.ast.column_titles
+    |> Enum.zip(subquery.ast.columns)
+    |> Enum.map(fn ({alias, column}) ->
+      Table.column(alias, Function.type(column))
+    end)
     table = %{name: subquery.alias, columns: columns, user_id: user_id_name, decoders: [], projection: nil}
     columns
     |> Enum.map(&%Expression{table: table, name: &1.name, type: &1.type, user_id?: user_id_name == &1.name})
