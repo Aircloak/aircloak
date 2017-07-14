@@ -110,7 +110,7 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
   test "inner join with two sub-queries", context do
     assert_query context, """
       SELECT SUM(c) FROM
-        (SELECT distinct id as lid FROM "left") AS t1
+        (SELECT distinct id as lid FROM "left" WHERE age = 30) AS t1
         INNER JOIN
         (SELECT id AS rid, count(*) AS c FROM "right" GROUP BY id) AS t2
         ON rid = lid
