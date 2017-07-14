@@ -3,7 +3,8 @@
 ### Bugfixes
 
 - Fixed bug that duplicated the user id column for projected tables.
-- Fixed a bug where no tables where shown when creating a new view
+- Fixed bug where no tables where shown when creating a new view
+- Fixed crash when joining two subqueries over a MongoDB data set.
 
 ## Version 17.3.0
 
