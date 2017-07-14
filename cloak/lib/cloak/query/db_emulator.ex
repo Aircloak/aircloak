@@ -9,6 +9,7 @@ defmodule Cloak.Query.DbEmulator do
   require Logger
 
   alias Cloak.DataSource
+  alias Cloak.DataSource.Table
   alias Cloak.Sql.{Query, Condition, Expression, Function}
   alias Cloak.Query.{Rows, DataDecoder, DbEmulator.Selector}
 
@@ -114,18 +115,12 @@ defmodule Cloak.Query.DbEmulator do
     end
     columns =
         Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
-        |> Enum.map(fn ({alias, column}) -> {alias, Function.type(column)} end)
-    table = %{
-      name: subquery.alias,
-      columns: columns,
-      user_id: user_id_name,
-      decoders: [],
-      projection: nil
-    }
-    Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
-    |> Enum.map(fn ({alias, column}) ->
-      %Expression{table: table, name: alias, type: Function.type(column), user_id?: user_id_name == alias}
-    end)
+        |> Enum.map(fn ({alias, column}) ->
+          Table.column(alias, Function.type(column))
+        end)
+    table = %{name: subquery.alias, columns: columns, user_id: user_id_name, decoders: [], projection: nil}
+    columns
+    |> Enum.map(&%Expression{table: table, name: &1.name, type: &1.type, user_id?: user_id_name == &1.name})
     |> Enum.uniq()
   end
 
