@@ -177,10 +177,11 @@ defmodule Air.Service.Query do
   Creates a lazy stream of desired chunks.
 
   This function performs streaming by repeatedly issuing queries to the database.
-  This approach is chosen instead of `Repo.stream/2` since it doesn't require
-  to keep the database connection open for a long period of time, thus allowing
-  us to safely use the stream regardless of the amount of chunks or the client
-  processing time.
+  This approach is chosen instead of `Repo.stream/2` because `Repo.stream/2`
+  requires that the database connection is open for as long as the client is
+  consuming the stream, which might be a very long time.
+  With this approach we don't keep the connection open, so we can safely use the
+  stream regardless of the amount of chunks or the client processing time.
   """
   @spec chunks_stream(Query.t, non_neg_integer | :all) :: Enumerable.t
   def chunks_stream(query, :all), do:
