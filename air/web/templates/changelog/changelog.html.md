@@ -3,6 +3,7 @@
 ### Bugfixes
 
 - Fixed bug that duplicated the user id column for projected tables.
+- Insights Cloak counts cached memory towards the available memory total.
 
 ## Version 17.3.0
 
