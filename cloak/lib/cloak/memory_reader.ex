@@ -43,6 +43,10 @@ defmodule Cloak.MemoryReader do
 
   @doc false
   def init(_) do
+    # We need the memory reader to remain active, even when the system is under high load.
+    # Under these circumstances in particular it is important that we are able to kill
+    # queries that run rampant to retain a stable `cloak`.
+    :erlang.process_flag(:priority, :high)
     state = %{
       memory_projector: MemoryProjector.new(),
       queries: [],
