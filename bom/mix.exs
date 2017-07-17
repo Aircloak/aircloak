@@ -18,7 +18,6 @@ defmodule Bom.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     [
-      mod: {BOM, []},
       extra_applications: [:logger],
     ]
   end

@@ -8,7 +8,6 @@ defmodule BOM.Gather.Elixir.Hex do
   more info.
   """
 
-  use GenServer
   @endpoint "https://repo.hex.pm/tarballs"
 
 
@@ -25,54 +24,25 @@ defmodule BOM.Gather.Elixir.Hex do
 
 
   # -------------------------------------------------------------------
-  # OTP Callbacks
-  # -------------------------------------------------------------------
-
-  @doc false
-  @spec start_link :: GenServer.on_start
-  def start_link, do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
-
-  @doc false
-  def handle_cast({:package, name, version, from}, state) do
-    request_package(name, version, from)
-    {:noreply, state}
-  end
-
-
-  # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp package_tarball(name, version) do
-    GenServer.cast(__MODULE__, {:package, name, version, self()})
-
-    receive do
-      message -> message
-    after
-      :timer.minutes(2) -> raise "Timeout while fetching from hex.pm"
-    end
-  end
-
-  defp request_package(name, version, from) do
     require Logger
 
-    case do_request_package(name, version) do
-      {200, result} -> send(from, {:ok, result})
-      {404, _content} -> send(from, {:error, :not_found})
-      {429, _content} -> retry(name, version, from)
-      {:error, %{reason: :timeout}} -> retry(name, version, from)
+    case request_package(name, version) do
+      {200, result} -> {:ok, result}
+      {404, _content} -> {:error, :not_found}
+      {:error, %{reason: :timeout}} ->
+        :timer.sleep(:timer.seconds(5))
+        package_tarball(name, version)
       other ->
-        Logger.error("Received unexpected response from hex.pm.\n#{inspect(other)}")
+        Logger.error("Received unexpected response.\n#{inspect(other)}")
         raise "Bad response"
     end
   end
 
-  defp retry(name, version, from) do
-    :timer.sleep(:timer.seconds(5))
-    request_package(name, version, from)
-  end
-
-  defp do_request_package(name, version) do
+  defp request_package(name, version) do
     with {:ok, response} <- HTTPoison.get("#{@endpoint}/#{name}-#{version}.tar"), do:
       {response.status_code, response.body}
   end
