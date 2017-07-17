@@ -178,8 +178,11 @@ defmodule Cloak.Query.Anonymizer do
     variances = Stream.map(rows, fn ({:stddev, sum, sum_sqrs, count}) ->
       {:avg, sum_sqrs + mean * (count * mean - 2 * sum), count}
     end)
-    {avg_variance, noise_sigma_variance} = avg(anonymizer, variances)
-    {:math.sqrt(abs(avg_variance)), :math.sqrt(noise_sigma_variance)}
+    case avg(anonymizer, variances) do
+      {nil, nil} -> {nil, nil}
+      {avg_variance, noise_sigma_variance} ->
+        {:math.sqrt(abs(avg_variance)), :math.sqrt(noise_sigma_variance)}
+    end
   end
 
   @doc "Computes the median value of all values in rows, where each row is an enumerable of numbers."
