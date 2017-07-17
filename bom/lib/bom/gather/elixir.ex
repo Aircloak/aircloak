@@ -26,18 +26,18 @@ defmodule BOM.Gather.Elixir do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp package({path, version}) do
+  defp package({path, {source, version}}) do
     %BOM.Package{
       realm: :elixir,
       name: package_name(path),
       path: path,
-      license: license(path, version),
+      license: license(path, source, version),
       version: version,
     }
   end
 
-  defp license(path, version) do
-    type = license_type(path)
+  defp license(path, source, version) do
+    type = license_type(source, path)
 
     Gather.public_domain_license(type) ||
       Gather.license_from_file(path, type) ||
@@ -45,7 +45,7 @@ defmodule BOM.Gather.Elixir do
       BOM.Whitelist.find(:elixir, package_name(path), version)
   end
 
-  defp license_type(path) do
+  defp license_type(:hex, path) do
     case path |> package_name() |> BOM.Gather.Elixir.Hex.package() do
       {:error, _} -> nil
       {:ok, %{"meta" => %{"licenses" => nil}}} -> nil
@@ -55,14 +55,17 @@ defmodule BOM.Gather.Elixir do
         |> Enum.find(&License.allowed_type?/1)
     end
   end
+  defp license_type(_other, _path), do:
+    # It's not a hex dependency, so we can't determine the version from hex
+    nil
 
   defp version_map(deps_path) do
     Gather.if_matching_file(deps_path, "../mix.lock", fn text ->
       {deps, []} = Code.eval_string(text)
 
       for {package, spec} <- deps, into: %{} do
-        [_, _, version | _] = Tuple.to_list(spec)
-        {to_string(package), version}
+        [source, _, version | _] = Tuple.to_list(spec)
+        {to_string(package), {source, version}}
       end
     end)
   end
