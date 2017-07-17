@@ -83,7 +83,6 @@ defmodule BOM.Gather.Elixir do
       {"pbkdf2", "7076584f5377e98600a7e2cb81980b2992fb2f71", :apache2},
       {"poison", "1a6bff505c22047e18a9318e01bda63ede20d649", :"cc0-1.0"},
       {"lhttpc", "6530ef818bf904bf4ef615f384d2fc7bae44a6dc", :bsd_3_clause},
-      {"protobuffs", "a1eeee77aef639a33cc5a2dd7abed7e4f4b83f9b", :apache2},
     ]
   do
     defp non_hex_license(unquote(package_name), unquote(version)), do:
