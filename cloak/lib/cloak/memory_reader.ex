@@ -90,11 +90,13 @@ defmodule Cloak.MemoryReader do
   def handle_info(:report_memory_stats, %{last_reading: nil} = state), do:
     {:noreply, state}
   def handle_info(:report_memory_stats, state) do
-    payload = %{
-      total_memory: state.last_reading.total_memory,
-      available_memory: Readings.values(state.readings),
-    }
-    Cloak.AirSocket.send_memory_stats(payload)
+    spawn(fn() ->
+      payload = %{
+        total_memory: state.last_reading.total_memory,
+        available_memory: Readings.values(state.readings),
+      }
+      Cloak.AirSocket.send_memory_stats(payload)
+    end)
     {:noreply, state}
   end
 
