@@ -196,9 +196,9 @@ defmodule Cloak.Query.Anonymizer do
 
     top_count = config(:top_count)
     {noisy_above_count, anonymizer} = add_noise(anonymizer, top_count)
-    noisy_above_count = round(noisy_above_count)
+    noisy_above_count = noisy_above_count |> round() |> Kernel.max(0)
     {noisy_below_count, anonymizer} = add_noise(anonymizer, top_count)
-    noisy_below_count = round(noisy_below_count)
+    noisy_below_count = noisy_below_count |> round() |> Kernel.max(0)
 
     middle = round((Enum.count(values) - 1) / 2)
     {bottom_values, [{_middle_user_index, middle_value} | top_values]} = Enum.split(values, middle - 1)
@@ -379,7 +379,7 @@ defmodule Cloak.Query.Anonymizer do
     {outliers_count, anonymizer} = add_noise(anonymizer, config(:outliers_count))
     outliers_count = outliers_count |> round() |> Kernel.max(config(:min_outliers_count))
     {top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
-    top_count = round(top_count)
+    top_count = top_count |> round() |> Kernel.max(0)
 
     {top_length, top_values} = Enum.reduce(rows, {0, []}, fn
       (row, {top_length, top}) when top_length <= outliers_count + top_count ->
@@ -405,7 +405,7 @@ defmodule Cloak.Query.Anonymizer do
 
   # Returns the average of a set of values + noise with SD of the quarter of the SD of the input values
   defp noisy_average(values, anonymizer) do
-    value_count = Enum.count(values)
+    value_count = values |> Enum.count() |> Kernel.max(1)
     average = Enum.sum(values) / value_count
     variance = (values |> Enum.map(&(&1 - average) * (&1 - average)) |> Enum.sum()) / value_count
     quarter_stddev = :math.sqrt(variance) / 4
