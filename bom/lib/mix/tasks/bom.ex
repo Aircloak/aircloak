@@ -41,7 +41,7 @@ defmodule Mix.Tasks.Bom do
     IO.puts("Processing #{Enum.count(packages)} packages...")
 
     {invalid, valid} = packages
-    |> Enum.filter(&BOM.Whitelist.shipped?/1)
+    |> Enum.filter(&BOM.Whitelist.shipped?(&1.realm, &1.name))
     |> Enum.map(&BOM.Whitelist.update_license_type/1)
     |> Enum.map(&BOM.Validate.run/1)
     |> Enum.partition(&(&1.error))

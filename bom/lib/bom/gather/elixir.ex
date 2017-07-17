@@ -2,7 +2,7 @@ defmodule BOM.Gather.Elixir do
   @moduledoc "Logic for reading elixir dependency information."
 
   alias BOM.{Gather,License}
-
+  require Logger
 
   # -------------------------------------------------------------------
   # API
@@ -88,8 +88,9 @@ defmodule BOM.Gather.Elixir do
       unquote(license)
   end
   defp non_hex_license(unknown_package, unknown_version) do
-    require Logger
-    Logger.warn("unknown non-hex dependency #{unknown_package} #{unknown_version}")
+    if BOM.Whitelist.shipped?(:elixir, unknown_package), do:
+      Logger.warn("unknown shipped non-hex dependency #{unknown_package} #{unknown_version}")
+
     nil
   end
 end
