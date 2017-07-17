@@ -37,7 +37,7 @@ defmodule BOM.Gather.Elixir do
   end
 
   defp license(path, source, version) do
-    type = license_type(source, path)
+    type = license_type(source, path, version)
 
     Gather.public_domain_license(type) ||
       Gather.license_from_file(path, type) ||
@@ -45,17 +45,16 @@ defmodule BOM.Gather.Elixir do
       BOM.Whitelist.find(:elixir, package_name(path), version)
   end
 
-  defp license_type(:hex, path) do
-    case path |> package_name() |> BOM.Gather.Elixir.Hex.package() do
-      {:error, _} -> nil
-      {:ok, %{"meta" => %{"licenses" => nil}}} -> nil
-      {:ok, %{"meta" => %{"licenses" => licenses}}} ->
+  defp license_type(:hex, path, version) do
+    case BOM.Gather.Elixir.Hex.licenses(package_name(path), version) do
+      nil -> nil
+      licenses ->
         licenses
         |> Enum.map(&License.name_to_type/1)
         |> Enum.find(&License.allowed_type?/1)
     end
   end
-  defp license_type(_other, _path), do:
+  defp license_type(_other, _path, _version), do:
     # It's not a hex dependency, so we can't determine the version from hex
     nil
 
