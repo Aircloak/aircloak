@@ -32,6 +32,12 @@ defmodule Cloak.Query.AnonimyzerTest do
       rows = [{:avg, 10, 1}, {:avg, 10, 1}, {:avg, 10, 1}]
       assert {nil, nil} = Anonymizer.new([MapSet.new()]) |> Anonymizer.avg(rows)
     end
+
+    test "stddev" do
+      # per-user row format = {:stddev, sum of values, sum of squared values, count of values}
+      rows = [{:stddev, 1, 1, 1}, {:stddev, 2, 4, 1}]
+      assert {nil, nil} = Anonymizer.new([MapSet.new()]) |> Anonymizer.stddev(rows)
+    end
   end
 
   test "count" do
