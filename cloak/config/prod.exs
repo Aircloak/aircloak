@@ -18,12 +18,12 @@ config :cloak, :memory_limits,
   check_interval: 250,
   # Once we reach this threshold, we actively start projecting
   # the memory usage and take actions if we are afraid of
-  # running out of memory. The threshold is in bytes.
-  limit_to_start_checks: 4_000_000_000,
+  # running out of memory. The threshold is in kB.
+  limit_to_start_checks: 4_000_000,
   # The limit we are projecting towards. If we expect to reach
   # this limit within the given time, then we kill a query.
-  # The threshold is in bytes.
-  limit_to_check_for: 500_000_000,
+  # The threshold is in kB.
+  limit_to_check_for: 500_000,
   # The amount of time (in ms) we are projecting into the future.
   # If we reach the minimum memory threshold within this window
   # of time, then we start killing queries.

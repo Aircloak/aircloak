@@ -16,26 +16,26 @@ export type Cloak = {
   },
 };
 
-const toGB = (memoryInBytes: number) => {
-  if (memoryInBytes === null || memoryInBytes === undefined) {
+const toGB = (memoryInKBytes: number) => {
+  if (memoryInKBytes === null || memoryInKBytes === undefined) {
     return 0;
   } else {
     // Not exactly accurate, but a good enough approximation
-    return Math.floor(memoryInBytes / (1024 * 1024 * 102)) / 10;
+    return Math.floor(memoryInKBytes / (1024 * 102)) / 10;
   }
 };
 
-const toGBstring = (memoryInBytes: number) => {
-  if (memoryInBytes === null) {
+const toGBstring = (memoryInKBytes: number) => {
+  if (memoryInKBytes === null) {
     return "Unknown";
   } else {
     // Not exactly accurate, but a good enough approximation
-    return `${toGB(memoryInBytes)} GB`;
+    return `${toGB(memoryInKBytes)} GB`;
   }
 };
 
-const totalMemoryDisplayClasses = (memoryInBytes) => {
-  const memoryInGB = toGB(memoryInBytes);
+const totalMemoryDisplayClasses = (memoryInKBytes) => {
+  const memoryInGB = toGB(memoryInKBytes);
   if (memoryInGB <= 2) {
     return "label label-danger";
   } else if (memoryInGB <= 4) {
@@ -45,8 +45,8 @@ const totalMemoryDisplayClasses = (memoryInBytes) => {
   }
 };
 
-const freeMemoryDisplayClasses = (memoryInBytes) => {
-  const memoryInGB = toGB(memoryInBytes);
+const availableMemoryDisplayClasses = (memoryInKBytes) => {
+  const memoryInGB = toGB(memoryInKBytes);
   if (memoryInGB <= 0.5) {
     return "label label-danger";
   } else if (memoryInGB <= 1.5) {
@@ -56,11 +56,11 @@ const freeMemoryDisplayClasses = (memoryInBytes) => {
   }
 };
 
-const renderFreeMemory = (freeMemory) => {
-  if (freeMemory === null) {
+const renderAvailableMemory = (availableMemory) => {
+  if (availableMemory === null) {
     return (
       <td>
-        <span className={freeMemoryDisplayClasses(0)}>
+        <span className={availableMemoryDisplayClasses(0)}>
           Uknown
         </span>
       </td>
@@ -68,20 +68,20 @@ const renderFreeMemory = (freeMemory) => {
   } else {
     return (
       <td>
-        <span className={freeMemoryDisplayClasses(freeMemory.last_5_seconds)}>
-          5 sec - {toGBstring(freeMemory.last_5_seconds)}
+        <span className={availableMemoryDisplayClasses(availableMemory.last_5_seconds)}>
+          5 sec - {toGBstring(availableMemory.last_5_seconds)}
         </span>
         {' '}
-        <span className={freeMemoryDisplayClasses(freeMemory.last_5_minutes)}>
-          5 min - {toGBstring(freeMemory.last_5_minutes)}
+        <span className={availableMemoryDisplayClasses(availableMemory.last_5_minutes)}>
+          5 min - {toGBstring(availableMemory.last_5_minutes)}
         </span>
         {' '}
-        <span className={freeMemoryDisplayClasses(freeMemory.last_15_minutes)}>
-          15 min - {toGBstring(freeMemory.last_15_minutes)}
+        <span className={availableMemoryDisplayClasses(availableMemory.last_15_minutes)}>
+          15 min - {toGBstring(availableMemory.last_15_minutes)}
         </span>
         {' '}
-        <span className={freeMemoryDisplayClasses(freeMemory.last_1_hour)}>
-          1 hour - {toGBstring(freeMemory.last_1_hour)}
+        <span className={availableMemoryDisplayClasses(availableMemory.last_1_hour)}>
+          1 hour - {toGBstring(availableMemory.last_1_hour)}
         </span>
       </td>
     );
@@ -96,5 +96,5 @@ export const CloakView = (props: Cloak) =>
         {toGBstring(props.total_memory)}
       </span>
     </td>
-    {renderFreeMemory(props.available_memory)}
+    {renderAvailableMemory(props.available_memory)}
   </tr>;

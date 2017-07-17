@@ -11,7 +11,7 @@ defmodule Cloak.MemoryReader do
 
   use GenServer, start: {__MODULE__, :start_link, []}
 
-  alias Cloak.MemoryReader.{MemoryProjector, Readings}
+  alias Cloak.MemoryReader.{MemoryProjector, Readings, ProcMemInfo}
 
   require Logger
 
@@ -79,22 +79,19 @@ defmodule Cloak.MemoryReader do
   def handle_info({:DOWN, _monitor_ref, :process, pid, _info}, %{queries: queries} = state), do:
     {:noreply, %{state | queries: Enum.reject(queries, & &1 == pid)}}
   def handle_info(:read_memory, %{memory_projector: projector} = state) do
-    reading = :memsup.get_system_memory_data()
+    reading = ProcMemInfo.read()
     time = System.monotonic_time(:millisecond)
     schedule_check(state)
-    free_memory = Keyword.get(reading, :free_memory)
-    cached_memory = Keyword.get(reading, :cached_memory, 0)
-    available_memory = free_memory + cached_memory
     state
-    |> record_reading(reading, available_memory)
-    |> Map.put(:memory_projector, MemoryProjector.add_reading(projector, available_memory, time))
-    |> perform_memory_check(available_memory)
+    |> record_reading(reading)
+    |> Map.put(:memory_projector, MemoryProjector.add_reading(projector, reading.available_memory, time))
+    |> perform_memory_check(reading.available_memory)
   end
   def handle_info(:report_memory_stats, %{last_reading: nil} = state), do:
     {:noreply, state}
   def handle_info(:report_memory_stats, state) do
     payload = %{
-      total_memory: Keyword.get(state.last_reading, :total_memory),
+      total_memory: state.last_reading.total_memory,
       available_memory: Readings.values(state.readings),
     }
     Cloak.AirSocket.send_memory_stats(payload)
@@ -167,10 +164,10 @@ defmodule Cloak.MemoryReader do
     config
   end
 
-  defp record_reading(state, reading, available_memory) do
+  defp record_reading(state, reading) do
     %{state |
       last_reading: reading,
-      readings: Readings.add_reading(state.readings, available_memory),
+      readings: Readings.add_reading(state.readings, reading.available_memory),
     }
   end
 
