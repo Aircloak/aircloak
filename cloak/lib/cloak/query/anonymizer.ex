@@ -166,8 +166,8 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   @doc """
-    Computes the noisy standard deviation and noise sigma of all values in rows,
-    where each row is an enumerable of numbers.
+  Computes the noisy standard deviation and noise sigma of all values in rows,
+  where each row is an enumerable of numbers.
   """
   @spec stddev(t, Enumerable.t) :: {float, float}
   def stddev(anonymizer, rows) do
@@ -216,15 +216,15 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   @doc """
-    Returns a noisy version of the value passed as the parameter.
-    This anonymization function is only to be used when each user
-    is only represented at most once in the value.
+  Returns a noisy version of the value passed as the parameter.
+  This anonymization function is only to be used when each user
+  is only represented at most once in the value.
 
-    A good example of a valid use would be to get a noisy count of
-    distinct users in a result set.
+  A good example of a valid use would be to get a noisy count of
+  distinct users in a result set.
 
-    No low count check is done, and should be separately performed
-    using `sufficiently_large?/1`.
+  No low count check is done, and should be separately performed
+  using `sufficiently_large?/1`.
   """
   @spec noisy_count(t, integer) :: integer
   def noisy_count(anonymizer, count) do
