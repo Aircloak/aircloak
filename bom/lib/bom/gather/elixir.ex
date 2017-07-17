@@ -31,21 +31,29 @@ defmodule BOM.Gather.Elixir do
       realm: :elixir,
       name: package_name(path),
       path: path,
-      license: license(path, source, version),
+      license: license(source, path, version),
       version: version,
     }
   end
 
-  defp license(path, source, version) do
-    type = license_type(source, path, version)
-
-    Gather.public_domain_license(type) ||
-      Gather.license_from_file(path, type) ||
-      Gather.license_from_readme(path, type) ||
-      BOM.Whitelist.find(:elixir, package_name(path), version)
+  defp license(:hex, path, version), do:
+    path
+    |> hex_license(version)
+    |> make_license(path, version)
+  defp license(_not_from_hex, path, version) do
+    case non_hex_license(package_name(path), version) do
+      nil -> %License{type: :unknown, text: ""}
+      type -> make_license(type, path, version)
+    end
   end
 
-  defp license_type(:hex, path, version) do
+  defp make_license(type, path, version), do:
+    Gather.public_domain_license(type) ||
+    Gather.license_from_file(path, type) ||
+    Gather.license_from_readme(path, type) ||
+    BOM.Whitelist.find(:elixir, package_name(path), version)
+
+  defp hex_license(path, version) do
     case BOM.Gather.Elixir.Hex.licenses(package_name(path), version) do
       nil -> nil
       licenses ->
@@ -54,9 +62,6 @@ defmodule BOM.Gather.Elixir do
         |> Enum.find(&License.allowed_type?/1)
     end
   end
-  defp license_type(_other, _path, _version), do:
-    # It's not a hex dependency, so we can't determine the version from hex
-    nil
 
   defp version_map(deps_path) do
     Gather.if_matching_file(deps_path, "../mix.lock", fn text ->
@@ -70,4 +75,23 @@ defmodule BOM.Gather.Elixir do
   end
 
   defp package_name(path), do: Path.basename(path)
+
+  for {package_name, version, license} <-
+    [
+      {"websocket_client", "16cd139a71d99813ec0c0cd1d8cb92dbde93d9c7", :mit},
+      {"meck", "dde759050eff19a1a80fd854d7375174b191665d", :apache2},
+      {"pbkdf2", "7076584f5377e98600a7e2cb81980b2992fb2f71", :apache2},
+      {"poison", "1a6bff505c22047e18a9318e01bda63ede20d649", :"cc0-1.0"},
+      {"lhttpc", "6530ef818bf904bf4ef615f384d2fc7bae44a6dc", :bsd_3_clause},
+      {"protobuffs", "a1eeee77aef639a33cc5a2dd7abed7e4f4b83f9b", :apache2},
+    ]
+  do
+    defp non_hex_license(unquote(package_name), unquote(version)), do:
+      unquote(license)
+  end
+  defp non_hex_license(unknown_package, unknown_version) do
+    require Logger
+    Logger.warn("unknown non-hex dependency #{unknown_package} #{unknown_version}")
+    nil
+  end
 end
