@@ -124,16 +124,19 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     Enum.flat_map(noise_layers, &(&1.expressions))
 
   defp floated_noise_layers(query), do:
-    Query.Lenses.subquery_noise_layers()
+    Query.Lenses.direct_subqueries()
     |> Lens.to_list(query)
-    |> update_in([Lens.all() |> Lens.key(:expressions) |> Lens.all()], &reference_aliased/1)
+    |> Enum.flat_map(fn (%{ast: subquery}) ->
+      Lens.all() |> Lens.key(:expressions) |> Lens.all()
+      |> Lens.map(subquery.noise_layers, &reference_aliased(&1, subquery))
+    end)
 
-  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count]}, _query) do
+  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count]}, query) do
     %{noise_layer | expressions:
       [
-        Expression.function("min", [reference_aliased(min)], min.type, _aggregate = true),
-        Expression.function("max", [reference_aliased(max)], max.type, _aggregate = true),
-        Expression.function("sum", [reference_aliased(count)], :integer, _aggregate = true),
+        Expression.function("min", [reference_aliased(min, query)], min.type, _aggregate = true),
+        Expression.function("max", [reference_aliased(max, query)], max.type, _aggregate = true),
+        Expression.function("sum", [reference_aliased(count, query)], :integer, _aggregate = true),
       ]
       |> Enum.map(&Helpers.set_unique_alias/1)
     }
@@ -269,7 +272,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # Helpers
   # -------------------------------------------------------------------
 
-  defp reference_aliased(column), do: %Expression{name: column.alias || column.name}
+  defp reference_aliased(column, query), do:
+    %Expression{name: column.alias || find_alias(column, query) || column.name}
 
   defp find_column(name, query) do
     case Enum.find_index(query.column_titles, &(&1 == name)) do
@@ -277,6 +281,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       index ->
         true = index < length(query.columns)
         {:ok, Enum.at(query.columns, index)}
+    end
+  end
+
+  defp find_alias(column, query) do
+    id = Expression.id(column)
+    case Enum.find_index(query.columns, &Expression.id(&1) == id) do
+      nil -> nil
+      index ->
+        true = index < length(query.column_titles)
+        Enum.at(query.column_titles, index)
     end
   end
 
