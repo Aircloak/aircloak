@@ -5,6 +5,7 @@
 - Fixed crash when joining two subqueries over a MongoDB data set.
 - Fixed crash in `stddev` aggregate in cases where there are insufficient data to produce a value.
 - Fixed crash that could manifest itself when using an alias in an emulated subquery.
+- Fixes filtering of data in an intermediate emulated query.
 - Fixed bug that duplicated the user id column for projected tables.
 - Fixed bug where no tables where shown when creating a new view
 
