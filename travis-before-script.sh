@@ -66,6 +66,16 @@ function banner() {
     banner "air deps"
     pushd air
 
+    # temp hack to avoid removing travis cache
+    if [ -d deps/lhttpc ]; then
+      rm -rf deps/lhttpc
+    fi
+
+    # temp hack to avoid removing travis cache
+    if [ -d deps/protobuffs ]; then
+      rm -rf deps/protobuffs
+    fi
+
     make deps
     popd
 
@@ -91,6 +101,12 @@ function banner() {
 
     banner "cloak deps"
     pushd cloak
+
+    # temp hack to avoid removing travis cache
+    if [ -d deps/protobuffs ]; then
+      rm -rf deps/protobuffs
+    fi
+
     make deps
     popd
 
