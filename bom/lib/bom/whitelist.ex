@@ -10,13 +10,16 @@ defmodule BOM.Whitelist do
 
   @licenses %{
     :elixir => %{
-      {"ecto",            "2.1.3"}  => %{type: :apache2, text: :provided},
-      {"erlware_commons", "0.21.0"} => %{type: :mit,     text: :provided},
-      {"scrivener",       "2.1.1"}  => %{type: :mit,     text: :standard},
-      {"scrivener_ecto",  "1.0.2"}  => %{type: :mit,     text: :standard},
-      {"scrivener_html",  "1.3.3"}  => %{type: :mit,     text: :standard},
-      {"excoveralls",     "0.5.5"}  => %{type: :mit,     text: :standard},
-      {"ecto_enum",       "1.0.1"}  => %{type: :mit,     text: :provided},
+      {"ecto",             "2.1.3"}  => %{type: :apache2, text: :provided},
+      {"erlware_commons",  "0.21.0"} => %{type: :mit,     text: :provided},
+      {"scrivener",        "2.1.1"}  => %{type: :mit,     text: :standard},
+      {"scrivener_ecto",   "1.0.2"}  => %{type: :mit,     text: :standard},
+      {"scrivener_html",   "1.3.3"}  => %{type: :mit,     text: :standard},
+      {"excoveralls",      "0.5.5"}  => %{type: :mit,     text: :standard},
+      {"ecto_enum",        "1.0.1"}  => %{type: :mit,     text: :provided},
+      {"protobuffs",       "a1eeee77aef639a33cc5a2dd7abed7e4f4b83f9b"} => %{type: :mit,          text: :provided},
+      {"websocket_client", "c2a6cf11233cad54a7f7e6c89bca172f2b494f9d"} => %{type: :mit,          text: :provided},
+      {"lhttpc",           "6530ef818bf904bf4ef615f384d2fc7bae44a6dc"} => %{type: :bsd_3_clause, text: :standard},
     },
     :node => %{
       {"base64-js",                 "0.0.2"}  => %{type: :mit,           text: :provided},
