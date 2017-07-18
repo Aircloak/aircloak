@@ -101,7 +101,8 @@ defmodule Cloak.DataSource.Table do
           table.columns
           |> Enum.map(&"`#{&1.name}`")
           |> Enum.join(", ")
-        DataSource.raise_error("invalid user id column specified: `#{user_id}` (columns: #{columns_string})")
+        DataSource.raise_error("the user id column `#{user_id}` for table `#{table.name}` does not exist. " <>
+          "Available columns are: #{columns_string}.")
     end
   end
 

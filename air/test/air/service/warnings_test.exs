@@ -6,9 +6,9 @@ defmodule Air.Service.WarningsTest do
   alias Air.{Repo, TestRepoHelper}
 
   @data_source_name "name"
-  @data_sources [%{"name" => @data_source_name, "global_id" => "global_id", "tables" => []}]
-  @data_sources_with_errors [%{"name" => @data_source_name, "global_id" => "global_id", "tables" => [],
-    "errors" => ["broken"]}]
+  @data_sources [%{name: @data_source_name, global_id: "global_id", tables: []}]
+  @data_sources_with_errors [%{name: @data_source_name, global_id: "global_id", tables: [],
+    errors: ["broken"]}]
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
@@ -53,7 +53,7 @@ defmodule Air.Service.WarningsTest do
   describe("problems_for_resource") do
     test "data source" do
       start_cloak_channel(@data_sources_with_errors)
-      [%{"name" => name}] = @data_sources_with_errors
+      [%{name: name}] = @data_sources_with_errors
       data_source = Repo.get_by!(DataSource, name: name)
       assert problem_with_description(Warnings.problems_for_resource(data_source), ~r/broken/).resource.name == name
     end
@@ -80,7 +80,7 @@ defmodule Air.Service.WarningsTest do
     end
   end
 
-  defp add_group([%{"name" => name}]) do
+  defp add_group([%{name: name}]) do
     data_source = Repo.get_by!(DataSource, name: name)
 
     TestRepoHelper.create_group!(%{

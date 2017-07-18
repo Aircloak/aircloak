@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.MongoDB.Pipeline do
   @moduledoc "MongoDB helper functions for mapping a query to an aggregation pipeline."
 
-  alias Cloak.Sql.{Query, Expression, Condition}
+  alias Cloak.Sql.{Query, Expression, Condition, LikePattern}
   alias Cloak.DataSource
   alias Cloak.DataSource.MongoDB.{Schema, Projector}
 
@@ -125,13 +125,13 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_where_condition({:not, {:in, subject, values}}), do:
     %{map_field(subject) => %{'$nin': Enum.map(values, &map_constant/1)}}
   defp parse_where_condition({:like, subject, pattern}), do:
-    %{map_field(subject) => %{'$regex': Condition.to_regex(map_constant(pattern)), '$options': "ms"}}
+    %{map_field(subject) => %{'$regex': LikePattern.to_regex(map_constant(pattern)), '$options': "ms"}}
   defp parse_where_condition({:ilike, subject, pattern}), do:
-    %{map_field(subject) => %{'$regex': Condition.to_regex(map_constant(pattern)), '$options': "msi"}}
+    %{map_field(subject) => %{'$regex': LikePattern.to_regex(map_constant(pattern)), '$options': "msi"}}
   defp parse_where_condition({:not, {:like, subject, pattern}}), do:
-    %{map_field(subject) => %{'$not': %{'$regex': Condition.to_regex(map_constant(pattern)), '$options': "ms"}}}
+    %{map_field(subject) => %{'$not': %{'$regex': LikePattern.to_regex(map_constant(pattern)), '$options': "ms"}}}
   defp parse_where_condition({:not, {:ilike, subject, pattern}}), do:
-    %{map_field(subject) => %{'$not': %{'$regex': Condition.to_regex(map_constant(pattern)), '$options': "msi"}}}
+    %{map_field(subject) => %{'$not': %{'$regex': LikePattern.to_regex(map_constant(pattern)), '$options': "msi"}}}
 
   defp extract_basic_conditions(table, conditions) do
     {complex_conditions, basic_conditions} = Condition.partition(conditions, complex_filter(table.array_path))

@@ -15,14 +15,12 @@ There are two main components:
 
 ## Prerequisites
 
-You need to have Erlang, Elixir, Ruby, and NodeJS installed. The required versions are stated in [this file](.tool-versions).
+You need to have Erlang, Elixir, and NodeJS installed. The required versions are stated in [this file](.tool-versions).
 Please use the [asdf version manager](https://github.com/asdf-vm/asdf) to install the correct versions. `asdf` is also
 used on travis as well as when building docker containers.
 This way you can ensure the version you are using locally is the same as the one being used in production and during testing.
 You need to install [asdf](https://github.com/asdf-vm/asdf), together with the [Erlang](https://github.com/asdf-vm/asdf-erlang),
-[Elixir](https://github.com/asdf-vm/asdf-elixir), [NodeJS](https://github.com/asdf-vm/asdf-nodejs) and [Ruby](https://github.com/asdf-vm/asdf-ruby) plugins.
-It is also beneficial to add a [.default-gems](https://github.com/asdf-vm/asdf-ruby#default-gems) to your home directory
-prior to installing Ruby.
+[Elixir](https://github.com/asdf-vm/asdf-elixir), and [NodeJS](https://github.com/asdf-vm/asdf-nodejs) plugins.
 
 Before installing erlang, make sure you have `unixodbc` installed (__macOS developers__ see [here](./cloak/osx_erlang_with_odbc.md) for detailed instructions).
 Once `asdf` and the required plugins are installed, run `asdf install` from the root folder of the project.
@@ -44,6 +42,22 @@ To deploy both `air` and `cloak` from a branch (for example `master`), you can r
 Deploying will always publish all __pushed__ changes from your current local branch.
 
 You can also deploy each component separately using `./cloak/production.sh` and `./air/production.sh` scripts. Run these scripts without any argument for instructions.
+
+### Running a previously built image
+
+It is possible to start your containers with a previously built image. This can be useful if you want to test the behaviour of a previous version without needing to rebuild the image.
+
+For example, to start your system with the version `17.3.0`, you can run the following commands:
+
+```bash
+# from the cloak folder
+./production.sh deploy_target start_at_version aircloak/cloak:17.3.0
+
+# from the air folder
+./production.sh deploy_target start_at_version aircloak/air:17.3.0
+```
+
+These commands will pull the desired images from `quay.io` and restart the container. Notice that there's no building involved with this command.
 
 ### A public release
 

@@ -1,0 +1,17 @@
+{
+  "title": "Aircloak User Guide – version 17.3.0",
+  "styles": {
+    "website": "styles/website.css"
+  },
+  "root": "content",
+  "plugins": [
+    "-sharing",
+    "codetabs",
+    "collapsible-menu",
+    "image-captions"
+  ],
+  "language": "en",
+  "gitbook": "3.2.2",
+  "description": "This copy of the Aircloak user guide describes the features of, and how to configure and work with Aircloak Insights version 17.3.0.",
+  "author": "Aircloak GmbH"
+}

@@ -3,7 +3,7 @@ defmodule Air.Schemas.ApiTokenTest do
   use Air.SchemaCase
   alias Air.Schemas.ApiToken
 
-  @valid_attrs %{description: "some content", user_id: 1}
+  @valid_attrs %{description: "some content", access: :api, user_id: 1}
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do

@@ -296,14 +296,14 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select foo from bar where a LIKE '_ob d%'",
       select(columns: [identifier("foo")], from: unquoted("bar"),
-        where: {:like, identifier("a"), constant("_ob d%")})
+        where: {:like, identifier("a"), {:like_pattern, constant("_ob d%"), constant(nil)}})
     )
   end
 
   test "where clause with NOT LIKE" do
     assert_parse(
       "select foo from bar where a NOT LIKE '%pattern%'",
-      select(where: {:not, {:like, identifier("a"), constant("%pattern%")}})
+      select(where: {:not, {:like, identifier("a"), {:like_pattern, constant("%pattern%"), constant(nil)}}})
     )
   end
 
@@ -311,15 +311,31 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select foo from bar where a ILIKE '_ob d%'",
       select(columns: [identifier("foo")], from: unquoted("bar"),
-        where: {:ilike, identifier("a"), constant("_ob d%")})
+        where: {:ilike, identifier("a"), {:like_pattern, constant("_ob d%"), constant(nil)}})
     )
   end
 
   test "where clause with NOT ILIKE" do
     assert_parse(
       "select foo from bar where a NOT ILIKE '%pattern%'",
-      select(where: {:not, {:ilike, identifier("a"), constant("%pattern%")}})
+      select(where: {:not, {:ilike, identifier("a"), {:like_pattern, constant("%pattern%"), constant(nil)}}})
     )
+  end
+
+  for word <- ~w(like ilike) do
+    test "#{word} with an escape character" do
+      assert_parse(
+        "select foo from bar where baz #{unquote(word)} '\\%pattern%' escape '\\'",
+        select(where: {_, identifier("baz"), {:like_pattern, constant("\\%pattern%"), constant("\\")}})
+      )
+    end
+
+    test "not #{word} with an escape character" do
+      assert_parse(
+        "select foo from bar where baz not #{unquote(word)} '\\%pattern%' escape '\\'",
+        select(where: {:not, {_, identifier("baz"), {:like_pattern, constant("\\%pattern%"), constant("\\")}}})
+      )
+    end
   end
 
   test "where clause with IN" do
@@ -348,7 +364,7 @@ defmodule Cloak.Sql.Parser.Test do
             {:and,
               {:in, identifier("b"), constants([1, 2, 3])},
               {:and,
-                {:like, identifier("c"), constant("_o")},
+                {:like, identifier("c"), {:like_pattern, constant("_o"), constant(nil)}},
                 {:not, {:is, identifier("d"), :null}},
               }
             }
@@ -794,7 +810,7 @@ defmodule Cloak.Sql.Parser.Test do
       select(columns: [quoted_identifier("something that wouldn't normally work as a column name")])
   end
 
-  test "literals containing escaped single-quotes" do
+  test "string literals containing escaped single-quotes" do
     assert_parse "select 'O''Brian' from names", select(columns: [constant(:text, "O'Brian")])
     assert_parse "select 'O'\n'Brian' from names", select(columns: [constant(:text, "O'Brian")])
     assert_parse ~S(select 'O\Brian' from names), select(columns: [constant(:text, ~S(O\Brian))])

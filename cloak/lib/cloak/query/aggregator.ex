@@ -293,6 +293,17 @@ defmodule Cloak.Query.Aggregator do
     {_stddev, noise_sigma} = Anonymizer.stddev(anonymizer, aggregation_data)
     noise_sigma
   end
+  defp aggregate_by(aggregation_data, aggregator, type, anonymizer)
+      when type in [:datetime, :date, :time] and aggregator in ["min", "max", "median"] do
+    aggregation_data
+    |> Stream.map(fn
+      ({:min, value}) -> {:min, Cloak.Time.to_integer(value)}
+      ({:max, value}) -> {:max, Cloak.Time.to_integer(value)}
+      (values) when is_list(values) -> Enum.map(values, &Cloak.Time.to_integer/1)
+    end)
+    |> aggregate_by(aggregator, :integer, anonymizer)
+    |> Cloak.Time.from_integer(type)
+  end
   defp aggregate_by(aggregation_data, "min", type, anonymizer), do:
     Anonymizer.min(anonymizer, aggregation_data) |> float_to_type(type)
   defp aggregate_by(aggregation_data, "max", type, anonymizer), do:
@@ -326,6 +337,7 @@ defmodule Cloak.Query.Aggregator do
     rows
     |> Stream.map(fn ({_users_count, row}) -> row end)
     |> Rows.extract_groups(Query.bucket_columns(query), query)
+    |> Stream.map(&normalize_for_encoding/1)
     |> Stream.zip(Stream.map(rows, fn ({users_count, _row}) -> users_count end))
     |> Enum.map(fn ({row, users_count}) ->
       %{row: row, occurrences: 1, users_count: users_count}
@@ -337,6 +349,7 @@ defmodule Cloak.Query.Aggregator do
     |> Stream.map(fn ({_users_count, row}) -> row end)
     |> Rows.extract_groups([Expression.count_star() | Query.bucket_columns(query)],
       query)
+    |> Stream.map(&normalize_for_encoding/1)
     |> Stream.zip(Stream.map(rows, fn ({users_count, _row}) -> users_count end))
     |> Enum.map(fn ({[count | row], users_count}) ->
       %{row: row, occurrences: count, users_count: users_count}
@@ -373,4 +386,17 @@ defmodule Cloak.Query.Aggregator do
     |> Enum.map(fn({_result, _anonymizer, user_data}) -> user_data end)
     |> Enum.flat_map(&Map.keys/1)
     |> Enum.into(MapSet.new())
+
+  defp normalize_for_encoding(row), do:
+    # We're normalizing some Elixir structs, so they can be encoded to non-Elixir formats, such as JSON.
+    Enum.map(row, fn
+      %Date{} = date ->
+        Date.to_iso8601(date)
+      %Time{} = time ->
+        Time.to_iso8601(time)
+      %NaiveDateTime{} = naive_date_time ->
+        NaiveDateTime.to_iso8601(naive_date_time)
+      other ->
+        other
+    end)
 end

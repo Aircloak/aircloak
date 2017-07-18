@@ -69,7 +69,7 @@ defmodule Cloak.Sql.FixAlign do
   # -------------------------------------------------------------------
 
   defp time_to_datetime({x, y}) do
-    if Cloak.Time.time_to_seconds(x) < Cloak.Time.time_to_seconds(y) do
+    if Cloak.Time.to_integer(x) < Cloak.Time.to_integer(y) do
       {time_to_datetime(x), time_to_datetime(y)}
     else
       raise "Invalid interval"
@@ -87,7 +87,7 @@ defmodule Cloak.Sql.FixAlign do
   defp datetime_to_time(%NaiveDateTime{hour: h, minute: m, second: s}), do: %Time{hour: h, minute: m, second: s}
 
   defp cap_midnight({x, y}) do
-    if Cloak.Time.time_to_seconds(x) > Cloak.Time.time_to_seconds(y) do
+    if Cloak.Time.to_integer(x) > Cloak.Time.to_integer(y) do
       {x, @just_before_midnight}
     else
       {x, y}

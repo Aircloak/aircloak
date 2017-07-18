@@ -15,7 +15,7 @@
 !air/mix.lock
 !air/config
 !air/lib
-!air/user_docs
+!air/docs
 !air/web
 !air/src
 !air/include
@@ -35,7 +35,8 @@
 
 # blacklist some stuff
 air/priv/repo/seeds.exs
-air/user_docs/vendor
+air/docs/node_modules
+air/docs/_book
 
 # We don't want runtime config included. It needs to be provided through a
 # mounted volume

@@ -1,0 +1,2 @@
+# We don't want to include the offline docs in the offline docs
+aircloak-docs.*

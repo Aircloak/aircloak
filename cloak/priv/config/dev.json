@@ -42,6 +42,10 @@
             "foreign_key": "account_id",
             "primary_key": "id"
           }
+        },
+        "integers": {
+          "db_name": "integers",
+          "user_id": "user_id"
         }
       }
     },
@@ -86,6 +90,10 @@
             "foreign_key": "account_id",
             "primary_key": "id"
           }
+        },
+        "integers": {
+          "db_name": "integers",
+          "user_id": "user_id"
         }
       }
     }

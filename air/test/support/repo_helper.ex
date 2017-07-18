@@ -1,7 +1,7 @@
 defmodule Air.TestRepoHelper do
   @moduledoc "Helpers for working with the repository."
 
-  alias Air.{Service.User, Schemas.ApiToken, Schemas.Group, Repo}
+  alias Air.{Service.User, Service.Query, Schemas.ApiToken, Schemas.Group, Repo}
 
   @doc "Inserts the new user with default parameters into the database."
   @spec create_user!(%{}) :: Air.Schemas.User.t
@@ -63,18 +63,17 @@ defmodule Air.TestRepoHelper do
   @spec create_token!() :: Air.Schemas.ApiToken.t
   @spec create_token!(Air.Schemas.User.t) :: Air.Schemas.ApiToken.t
   def create_token!(user \\ create_user!()) do
-    ApiToken.changeset(%ApiToken{}, %{user_id: user.id, description: "some description"})
+    ApiToken.changeset(%ApiToken{}, %{user_id: user.id, access: :api, description: "some description"})
     |> Repo.insert!()
   end
 
   @doc "Inserts a test query into the database"
   @spec create_query!(Air.Schemas.User.t, %{}) :: Air.Schemas.Query.t
-  def create_query!(user, params \\ %{statement: "query content", session_id: Ecto.UUID.generate()}) do
+  def create_query!(user, params \\ %{statement: "query content", session_id: Ecto.UUID.generate()}), do:
     user
     |> Ecto.build_assoc(:queries)
     |> Air.Schemas.Query.changeset(Map.merge(%{context: :http}, params))
     |> Repo.insert!()
-  end
 
   @doc "Registers a cloak a serving a data source, returning the data source id"
   @spec create_and_register_data_source() :: String.t
@@ -126,6 +125,29 @@ defmodule Air.TestRepoHelper do
     |> Repo.insert!()
   end
 
+  @doc "Encodes a list of rows into the cloak format."
+  @spec encode_rows(nil | [map]) :: nil | binary
+  def encode_rows(nil), do:
+    nil
+  def encode_rows(result) do
+    case result[:rows] do
+      nil -> nil
+      rows ->
+        rows
+        |> Poison.encode_to_iodata!()
+        |> :zlib.gzip()
+    end
+  end
+
+  @doc "Sends the query result to the Query service."
+  @spec send_query_result(String.t, map, [map]) :: :ok
+  def send_query_result(query_id, result, rows \\ nil), do:
+    result
+    |> Map.put(:query_id, query_id)
+    |> Map.put(:chunks, encode_chunks(rows))
+    |> Map.put(:row_count, row_count(rows))
+    |> Query.process_result()
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -135,8 +157,27 @@ defmodule Air.TestRepoHelper do
     do: Base.encode16(:crypto.strong_rand_bytes(10))
 
   defp register_data_source!(name, global_id) do
-    data_sources = [%{"name" => name, "global_id" => global_id, "tables" => []}]
+    data_sources = [%{name: name, global_id: global_id, tables: []}]
     Air.Service.Cloak.register(cloak_info(), data_sources)
     :ok
   end
+
+  defp encode_chunks(nil), do:
+    []
+  defp encode_chunks(rows), do:
+    rows
+    |> Stream.chunk(1000, 1000, [])
+    |> Stream.with_index()
+    |> Enum.map(&encode_chunk/1)
+
+  defp encode_chunk({rows, index}), do:
+    %{
+      index: index,
+      encoded_data: rows |> :jiffy.encode([:use_nil]) |> :zlib.gzip()
+    }
+
+  defp row_count(nil), do:
+    nil
+  defp row_count(rows), do:
+    rows |> Stream.map(&(&1.occurrences)) |> Enum.sum()
 end

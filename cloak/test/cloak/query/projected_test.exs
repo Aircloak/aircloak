@@ -29,19 +29,19 @@ defmodule Cloak.Query.ProjectedTest do
   test "show columns from a projected table" do
     assert_query "show columns from projected_transactions",
       %{rows: [
-        %{row: ["user_id", :text]},
-        %{row: ["id", :integer]},
-        %{row: ["account_id", :integer]},
-        %{row: ["amount", :integer]}
+        %{row: ["user_id", "text"]},
+        %{row: ["id", "integer"]},
+        %{row: ["account_id", "integer"]},
+        %{row: ["amount", "integer"]}
       ]}
   end
 
   test "show columns from a multiply projected table" do
     assert_query "show columns from projected_notes",
       %{rows: [
-        %{row: ["user_id", :text]},
-        %{row: ["transaction_id", :integer]},
-        %{row: ["note", :text]}
+        %{row: ["user_id", "text"]},
+        %{row: ["transaction_id", "integer"]},
+        %{row: ["note", "text"]}
       ]}
   end
 

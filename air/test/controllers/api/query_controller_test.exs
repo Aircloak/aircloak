@@ -20,7 +20,7 @@ defmodule Air.API.QueryController.Test do
       }
       task = Task.async(fn -> api_conn(context.token) |> post("/api/queries", query_data_params) |> response(200) end)
 
-      TestSocketHelper.respond_to_start_task_request!(context.socket, "ok")
+      TestSocketHelper.respond_to_start_task_request!(context.socket, :ok)
 
       assert %{"success" => true} = JSON.decode!(Task.await(task))
     end
@@ -34,6 +34,31 @@ defmodule Air.API.QueryController.Test do
     result = api_conn(token) |> get("/api/queries/#{query.id}") |> response(200)
 
     assert %{"query" => %{"statement" => "text of the query"}} = JSON.decode!(result)
+  end
+
+  test "showing the result of the query" do
+    user = create_user!()
+    token = create_token!(user)
+    query = create_query!(
+      user,
+      %{statement: "text of the query", query_state: :started, data_source_id: create_data_source!().id}
+    )
+    send_query_result(
+      query.id,
+      %{
+        columns: ["col1", "col2"],
+        info: ["some info"],
+        users_count: 2,
+        features: %{selected_types: ["some types"]},
+        execution_time: 123,
+      },
+      [%{occurrences: 10, row: [1, 1]}]
+    )
+
+    result = api_conn(token) |> get("/api/queries/#{query.id}") |> response(200) |> JSON.decode!()
+    assert result |> Map.fetch!("query") |> Map.fetch!("columns") == ["col1", "col2"]
+    assert result |> Map.fetch!("query") |> Map.fetch!("row_count") == 10
+    assert result |> Map.fetch!("query") |> Map.fetch!("rows") == [%{"occurrences" => 10, "row" => [1, 1]}]
   end
 
   test "show a query of another user fails" do
@@ -57,7 +82,7 @@ defmodule Air.API.QueryController.Test do
     # Open the cloak mock socket
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
     TestSocketHelper.join!(socket, "main", %{data_sources: [
-      %{"name" => "data_source", "global_id" => "data_source", "tables" => []}]})
+      %{name: "data_source", global_id: "data_source", tables: []}]})
 
     data_source =
       Repo.one(DataSource)

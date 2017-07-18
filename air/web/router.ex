@@ -14,7 +14,7 @@ defmodule Air.Router do
   pipeline :api do
     plug :accepts, ["json"]
     plug Air.Plug.Expiration
-    plug Air.Plug.Session.ApiAuth
+    plug Air.Plug.Session.ApiAuth, access: :api
   end
 
   pipeline :anonymous_only do
@@ -41,6 +41,7 @@ defmodule Air.Router do
     post "/queries/:id/cancel", QueryController, :cancel
     get "/queries/load_history/:data_source_name", QueryController, :load_history
     get "/queries/:id", QueryController, :show
+    get "/queries/:id/buckets", QueryController, :buckets
 
     delete "/logout", SessionController, :delete
 
@@ -58,6 +59,7 @@ defmodule Air.Router do
     get "/licenses/dependencies.zip", LicenseController, :dependencies
 
     resources "/profile", ProfileController, singleton: true, only: [:edit, :update]
+    put "/profile/change_password", ProfileController, :change_password
 
     get "/changelog", ChangelogController, :index
   end

@@ -63,6 +63,15 @@ defmodule Cloak.Query.DBEmulatorTest do
       %{rows: [%{row: [10]}]}
   end
 
+  test "like on an emulated column" do
+    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value"], [Base.encode64("aba")])
+    :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value"], [Base.encode64("aca")])
+    :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["value"], [Base.encode64("bbb")])
+
+    assert_query "select count(*) from #{@prefix}emulated where value like 'a_a%'",
+      %{rows: [%{row: [20]}]}
+  end
+
   describe "aggregation in emulated subqueries" do
     def aggregation_setup(_) do
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
@@ -190,7 +199,7 @@ defmodule Cloak.Query.DBEmulatorTest do
       assert_query """
         select * from (select user_id, min(date), max(date), median(date)
           from #{@prefix}emulated group by user_id) as t
-      """, %{rows: [%{occurrences: 20, row: [:*, ~D[2013-02-08], ~D[2016-11-02], ~D[2014-02-04]]}]}
+      """, %{rows: [%{occurrences: 20, row: [:*, "2013-02-08", "2016-11-02", "2014-02-04"]}]}
     end
 
     test "selecting a grouped column under an alias" do
@@ -255,7 +264,7 @@ defmodule Cloak.Query.DBEmulatorTest do
       assert_query """
         select * from (select user_id, min(distinct date), max(distinct date), median(distinct date)
           from #{@prefix}emulated group by user_id) as t
-      """, %{rows: [%{occurrences: 20, row: [:*, ~D[2013-02-08], ~D[2016-11-02], ~D[2014-02-04]]}]}
+      """, %{rows: [%{occurrences: 20, row: [:*, "2013-02-08", "2016-11-02", "2014-02-04"]}]}
     end
   end
 

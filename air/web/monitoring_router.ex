@@ -4,7 +4,7 @@ defmodule Air.MonitoringRouter do
 
   pipeline :api do
     plug :accepts, ["json"]
-    plug Air.Plug.Session.ApiAuth
+    plug Air.Plug.Session.ApiAuth, access: :monitoring
   end
 
   scope "/" do

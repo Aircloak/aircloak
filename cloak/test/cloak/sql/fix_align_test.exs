@@ -173,7 +173,7 @@ defmodule Cloak.Sql.FixAlign.Test do
       :time,
       _generate = fn(domain, size) ->
         size = size |> :math.pow(2.5) |> round() |> min(@seconds_in_day - 1)
-        {domain, draw(pos_integer(), size) |> Cloak.Time.seconds_to_time()}
+        {domain, draw(pos_integer(), size) |> Cloak.Time.from_integer(:time)}
       end,
       _shrink = fn(domain, item) -> {domain, item} end
     )
@@ -197,5 +197,5 @@ defmodule Cloak.Sql.FixAlign.Test do
 
   defp width({x, y}), do: y - x
 
-  defp lt_eq(%Time{} = x, %Time{} = y), do: Cloak.Time.time_to_seconds(x) <= Cloak.Time.time_to_seconds(y)
+  defp lt_eq(%Time{} = x, %Time{} = y), do: Cloak.Time.to_integer(x) <= Cloak.Time.to_integer(y)
 end

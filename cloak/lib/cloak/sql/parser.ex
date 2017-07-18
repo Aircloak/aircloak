@@ -19,11 +19,13 @@ defmodule Cloak.Sql.Parser do
 
   @type function_name :: String.t | {:bucket, atom} | {:cast, data_type}
 
+  @type constant :: {:constant, data_type, any}
+
   @type column ::
       qualified_identifier
     | {:distinct, qualified_identifier}
     | function_spec
-    | {:constant, data_type, any}
+    | constant
     | {:parameter, pos_integer}
 
   @type function_spec :: {:function, function_name, [column]}
@@ -32,7 +34,7 @@ defmodule Cloak.Sql.Parser do
 
   @type condition ::
       comparison
-    | {:like | :ilike, String.t, String.t}
+    | {:like | :ilike, column, constant, constant}
     | {:is, String.t, :null}
     | {:in, String.t, [any]}
 
@@ -602,7 +604,8 @@ defmodule Cloak.Sql.Parser do
 
   defp where_expression() do
     switch([
-      {column() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]), constant(:string)},
+      {column() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]),
+        sequence([constant(:string), like_escape()])},
       {column() |> option(keyword(:not)) |> keyword(:in), in_values()},
       {column() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
       {column() |> keyword(:between), allowed_where_range()},
@@ -612,10 +615,14 @@ defmodule Cloak.Sql.Parser do
       {:else, error_message(fail(""), "Invalid where expression.")}
     ])
     |> map(fn
-          {[identifier, nil, :like], [string_constant]} -> {:like, identifier, string_constant}
-          {[identifier, :not, :like], [string_constant]} -> {:not, {:like, identifier, string_constant}}
-          {[identifier, nil, :ilike], [string_constant]} -> {:ilike, identifier, string_constant}
-          {[identifier, :not, :ilike], [string_constant]} -> {:not, {:ilike, identifier, string_constant}}
+          {[identifier, nil, :like], [[string_constant, escape]]} ->
+            {:like, identifier, {:like_pattern, string_constant, escape}}
+          {[identifier, nil, :ilike], [[string_constant, escape]]} ->
+            {:ilike, identifier, {:like_pattern, string_constant, escape}}
+          {[identifier, :not, :like], [[string_constant, escape]]} ->
+            {:not, {:like, identifier, {:like_pattern, string_constant, escape}}}
+          {[identifier, :not, :ilike], [[string_constant, escape]]} ->
+            {:not, {:ilike, identifier, {:like_pattern, string_constant, escape}}}
           {[identifier, nil, :in], [in_values]} -> {:in, identifier, in_values}
           {[identifier, :not, :in], [in_values]} -> {:not, {:in, identifier, in_values}}
           {[identifier, :is, nil], [:null]} -> {:is, identifier, :null}
@@ -624,6 +631,14 @@ defmodule Cloak.Sql.Parser do
             {:and, {:comparison, identifier, :>=, min}, {:comparison, identifier, :<, max}}
           {[lhs, comparator], [rhs]} -> create_comparison(lhs, comparator, rhs)
         end)
+  end
+
+  defp like_escape() do
+    option(sequence([keyword(:escape), constant(:string)]))
+    |> map(fn
+      [_, constant] -> constant
+      nil -> {:constant, :string, nil}
+    end)
   end
 
   defp allowed_where_value() do

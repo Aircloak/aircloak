@@ -12,6 +12,9 @@ import {GraphView} from "./graph_view";
 import type {GraphDataT, GraphInfoT} from "./graph_data";
 import {TableAligner} from "./table_aligner";
 import type {TableAlignerT} from "./table_aligner";
+import type {NumberFormat} from "../number_format";
+import {formatNumber} from "../number_format";
+import {loadBuckets} from "../request";
 
 export type Row = {
   occurrences: number,
@@ -38,6 +41,7 @@ export type Result = {
   },
   inserted_at: string,
   session_id: string,
+  number_format: NumberFormat,
 };
 
 type State = {
@@ -46,10 +50,15 @@ type State = {
   showChartConfig: boolean,
   graphConfig: GraphConfig,
   tableAligner: TableAlignerT,
+  availableRows: Row[],
+  availableChunks: number,
+  loadingChunks: boolean,
+  loadError: boolean,
 };
 
 const UNRELIABLE_USER_COUNT_THRESHOLD = 15;
 const ZERO_WIDTH_SPACE = "\u200B";
+const ALL_CHUNKS = -1;
 
 export class ResultView extends React.Component {
   constructor(props: Result) {
@@ -63,6 +72,10 @@ export class ResultView extends React.Component {
       showChartConfig: true,
       graphConfig: new GraphConfig(),
       tableAligner: new TableAligner(props.rows),
+      availableRows: this.props.rows,
+      availableChunks: 1,
+      loadingChunks: false,
+      loadError: false,
     };
 
     this.componentDidUpdate = this.componentDidUpdate.bind(this);
@@ -70,6 +83,7 @@ export class ResultView extends React.Component {
     this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
     this.handleClickLessRows = this.handleClickLessRows.bind(this);
 
+    this.loadAndShowMoreRows = this.loadAndShowMoreRows.bind(this);
     this.renderRows = this.renderRows.bind(this);
     this.renderShowAll = this.renderShowAll.bind(this);
     this.renderChartButton = this.renderChartButton.bind(this);
@@ -84,7 +98,7 @@ export class ResultView extends React.Component {
     this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
     this.showingMinimumNumberOfManyRows = this.showingMinimumNumberOfManyRows.bind(this);
 
-    this.graphInfo = new GraphInfo(this.props.columns, this.props.rows);
+    this.graphInfo = new GraphInfo(this.props.columns, this.state.availableRows);
     this.rebuildGraphData();
 
     this.addX = this.addX.bind(this);
@@ -97,9 +111,10 @@ export class ResultView extends React.Component {
   minRowsToShow: number;
   graphData: GraphDataT;
   graphInfo: GraphInfoT;
-  formatValue: (value: any) => string | number;
+  formatValue: (value: any) => string;
   handleClickMoreRows: () => void;
   handleClickLessRows: () => void;
+  loadAndShowMoreRows: (rowsToShowCount: number, availableRows: Row[], availableChunks: number) => void;
   renderRows: () => void;
   renderShowAll: () => void;
   renderOptionMenu: () => void;
@@ -123,19 +138,63 @@ export class ResultView extends React.Component {
   rebuildGraphData() {
     this.graphData = new GraphData(
       this.props.columns,
-      this.props.rows,
+      this.state.availableRows,
       this.state.graphConfig,
       this.formatValue
     );
   }
 
   handleClickMoreRows() {
-    this.setState({rowsToShowCount: Math.min(this.state.rowsToShowCount * 2, this.props.row_count)});
+    const rowsToShowCount = Math.min(2 * this.state.rowsToShowCount, this.props.row_count);
+    this.loadAndShowMoreRows(rowsToShowCount, this.state.availableRows, this.state.availableChunks);
   }
 
   handleClickLessRows() {
     const rowsToShowCount = Math.max(Math.round(this.state.rowsToShowCount / 2), this.minRowsToShow);
     this.setState({rowsToShowCount});
+  }
+
+  showChart() {
+    if (this.state.availableChunks !== ALL_CHUNKS) {
+      this.loadChunks(ALL_CHUNKS, (allRows) => {
+        this.setState({availableRows: allRows, availableChunks: ALL_CHUNKS, showChart: true});
+      });
+    } else {
+      this.setState({showChart: true});
+    }
+  }
+
+  loadAndShowMoreRows(rowsToShowCount: number, availableRows: Row[], availableChunks: number) {
+    const availableRowsCount = _.sum(_.flatMap(availableRows, (row) => row.occurrences));
+    if (availableChunks === ALL_CHUNKS || rowsToShowCount <= availableRowsCount) {
+      this.setState({rowsToShowCount, availableRows, availableChunks});
+    } else {
+      this.loadChunks(availableChunks, (newRows) => {
+        if (newRows.length > 0) {
+          const newAvailableRows = _.concat(availableRows, newRows);
+          const newAvailableChunks = availableChunks + 1;
+          this.setState({
+            rowsToShowCount: availableRowsCount,
+            availableRows: newAvailableRows,
+            availableChunks: newAvailableChunks,
+          });
+          this.loadAndShowMoreRows(rowsToShowCount, newAvailableRows, newAvailableChunks);
+        }
+      });
+    }
+  }
+
+  loadChunks(desiredChunk: number, fun: ((rows: Row[]) => void)) {
+    this.setState({loadingChunks: true, loadError: false});
+    loadBuckets(this.props.id, desiredChunk, this.context.authentication, {
+      success: (buckets) => {
+        this.setState({loadingChunks: false, loadError: false});
+        fun(buckets);
+      },
+      error: () => {
+        this.setState({loadingChunks: false, loadError: true});
+      },
+    });
   }
 
   showingAllOfFewRows() {
@@ -162,11 +221,11 @@ export class ResultView extends React.Component {
     return () => this.setState({graphConfig: this.state.graphConfig.remove(col)});
   }
 
-  formatValue(value: any): number | string {
+  formatValue(value: any): string {
     if (value === null) {
       return "<null>";
     } else if (this.isNumeric(value)) {
-      return Math.round(value * 1000) / 1000; // keep 3 decimals at most
+      return formatNumber(value, this.props.number_format);
     } else if (value === "") {
       return ZERO_WIDTH_SPACE; // keeps table row from collapsing
     } else {
@@ -174,7 +233,7 @@ export class ResultView extends React.Component {
     }
   }
 
-  isNumeric(n: any) {
+  isNumeric(n: any): boolean {
     return typeof(n) === "number" && isFinite(n);
   }
 
@@ -193,7 +252,13 @@ export class ResultView extends React.Component {
   }
 
   conditionallyRenderChartConfig() {
-    if (this.state.showChart && this.state.showChartConfig) {
+    if (this.state.loadingChunks) {
+      return (
+        <p className="text-center"> <img src="/images/loader.gif" role="presentation" /> Loading more rows.</p>
+      );
+    } else if (this.state.loadError) {
+      return (<div className="alert alert-danger">Failed to load more rows.</div>);
+    } else if (this.state.showChart && this.state.showChartConfig) {
       return (
         <GraphConfigView
           graphInfo={this.graphInfo}
@@ -222,7 +287,7 @@ export class ResultView extends React.Component {
 
   renderRows() {
     let remainingRowsToProduce = this.state.rowsToShowCount;
-    const rows = _.flatMap(this.props.rows, (accumulateRow, i) => {
+    const rows = _.flatMap(this.state.availableRows, (accumulateRow, i) => {
       const occurrencesForAccumulateRow = Math.min(remainingRowsToProduce, accumulateRow.occurrences);
       return _.range(occurrencesForAccumulateRow).map((occurrenceCount) => {
         remainingRowsToProduce -= 1;
@@ -240,7 +305,9 @@ export class ResultView extends React.Component {
   }
 
   renderShowAll() {
-    if (this.showingAllOfFewRows()) {
+    if (this.state.loadingChunks) {
+      return null;
+    } else if (this.showingAllOfFewRows()) {
       return (
         <div className="row-count">
           {this.props.row_count} rows.
@@ -278,14 +345,32 @@ export class ResultView extends React.Component {
       const chartButtonText = this.state.showChart ? "Hide chart" : "Show chart";
       return (
         <button
-          className="btn btn-default btn-xs"
-          onClick={() => this.setState({showChart: ! this.state.showChart})}
+          className={this.chartButtonClass()}
+          onClick={() => {
+            if (!this.state.loadingChunks) {
+              const shouldShowChart = !this.state.showChart;
+              if (shouldShowChart) {
+                this.showChart();
+              } else {
+                this.setState({showChart: shouldShowChart});
+              }
+            }
+          }}
         >
           {chartButtonText}
         </button>
       );
     } else {
       return null;
+    }
+  }
+
+  chartButtonClass() {
+    const baseClasses = "btn btn-default btn-xs";
+    if (this.state.loadingChunks) {
+      return `${baseClasses} disabled`;
+    } else {
+      return baseClasses;
     }
   }
 
@@ -349,3 +434,7 @@ export class ResultView extends React.Component {
   }
 
 }
+
+ResultView.contextTypes = {
+  authentication: React.PropTypes.object.isRequired,
+};

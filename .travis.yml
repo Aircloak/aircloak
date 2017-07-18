@@ -19,7 +19,8 @@ matrix:
         - air/deps
         - air/_build
         - air/node_modules
-        - air/user_docs/vendor/bundle
+        - air/docs/node_modules
+        - air/docs/_book
         - .mix
         - cloak/deps
         - cloak/_build
@@ -55,7 +56,8 @@ matrix:
         - air/deps
         - air/_build
         - air/node_modules
-        - air/user_docs/vendor/bundle
+        - air/docs/node_modules
+        - air/docs/_book
         - $HOME/.asdf
         - $HOME/.yarn-cache
       addons:

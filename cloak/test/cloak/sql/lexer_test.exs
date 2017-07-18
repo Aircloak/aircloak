@@ -19,6 +19,11 @@ defmodule Cloak.Sql.Lexer.Test do
       Lexer.tokenize("from\t\n select")
   end
 
+  test "lexing split strings" do
+    assert {:ok, [%Token{category: :constant, value: %{type: :string, value: "a string that is split"}} | _]} =
+      Lexer.tokenize("'a string'\n ' that is' \r\n' split'")
+  end
+
   test "lexing pseudo-identifiers starting with numbers" do
     refute match?({:ok, [%Token{category: :constant} | _]}, Lexer.tokenize("123thing"))
   end

@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "gitbook": "^3.2.2",
+    "gitbook-cli": "^2.3.0",
+    "gitbook-plugin-codetabs": "^1.0.0",
+    "gitbook-plugin-collapsible-menu": "^1.0.3",
+    "gitbook-plugin-image-captions": "^3.1.0"
+  }
+}

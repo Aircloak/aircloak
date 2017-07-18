@@ -19,7 +19,9 @@ defmodule Air.Service.Central do
   def supervisor_spec() do
     children =
     Enum.concat([
-      [worker(Registry, [:unique, Air.Service.Central.Registry], id: Air.Service.Central.Registry)],
+      [
+        worker(Registry, [:unique, Air.Service.Central.Registry], id: Air.Service.Central.Registry),
+      ],
       case auto_export?() do
         false -> []
         true -> [worker(RpcQueue, [])]
@@ -142,6 +144,41 @@ defmodule Air.Service.Central do
       payload: payload
     }
 
+  @doc "Asynchronously sends the query result to central."
+  @spec report_query_result(map) :: :ok
+  def report_query_result(result) do
+    query = Repo.get!(Air.Schemas.Query, result.query_id) |> Repo.preload([:user, :data_source])
+
+    user = query.user || %{name: "Unknown user", email: "Unknown email",}
+    data_source = query.data_source || %{name: "Unknown data source", id: nil}
+    row_count = result.row_count || 0
+
+    Air.Service.Central.record_query(%{
+      metrics: %{
+        users_count: result[:users_count],
+        row_count: row_count,
+        execution_time: result[:execution_time],
+      },
+      features: result[:features],
+      aux: %{
+        user: %{
+          name: user.name,
+          email: user.email,
+        },
+        data_source: %{
+          name: data_source.name,
+          id: data_source.id,
+        },
+        started_at: query.inserted_at,
+        finished_at: NaiveDateTime.utc_now(),
+        has_error: not is_nil(result[:error]),
+        error: filter_error(result[:error]),
+      },
+    })
+
+    :ok
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -173,4 +210,7 @@ defmodule Air.Service.Central do
     }
     |> Poison.encode!()
     |> :zlib.gzip()
+
+  defp filter_error(nil), do: nil
+  defp filter_error(error), do: Air.Service.Redacter.filter_query_error(error)
 end
