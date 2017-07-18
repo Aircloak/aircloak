@@ -32,7 +32,6 @@ defmodule Cloak do
 
     [
       worker(Cloak.DataSource, []),
-      Cloak.ResultSender.supervisor_spec(),
       Cloak.Query.Runner.supervisor_spec()
     ]
   end
