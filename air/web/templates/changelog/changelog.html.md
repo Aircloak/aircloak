@@ -10,6 +10,12 @@
 
 - Like patterns can now include an escape string
 
+## Version 17.3.2
+
+### Bugfixes
+
+- Fixed bug where encoded data would not get properly decoded when offloading joins to MongoDB.
+
 ## Version 17.3.1
 
 ### Bugfixes
@@ -19,7 +25,7 @@
 - Fixed crash that could manifest itself when using an alias in an emulated subquery.
 - Fixes filtering of data in an intermediate emulated query.
 - Fixed bug that duplicated the user id column for projected tables.
-- Fixed bug where no tables where shown when creating a new view
+- Fixed bug where no tables where shown when creating a new view.
 - Fixed crash because of ambiguous column name after a join.
 
 ## Version 17.3.0
