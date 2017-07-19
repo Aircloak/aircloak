@@ -130,6 +130,7 @@ defmodule Air.Service.Cloak do
 
       existing_definitions_for_data_source_by_cloak(name)
       |> Enum.map(fn({_cloak_name, data_source}) -> data_source end)
+      |> Enum.reject(&is_nil/1)
       |> Enum.all?(&(tables == &1.tables))
       |> if do
         data_source
