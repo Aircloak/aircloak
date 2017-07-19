@@ -43,8 +43,7 @@ defmodule Cloak.Query.Runner do
   is sent to the required destination. If an error occurs, the result will contain
   error information.
   """
-  @spec start(String.t, DataSource.t, String.t, [DataSource.field], Query.view_map,
-    Cloak.ResultSender.target) :: :ok
+  @spec start(String.t, DataSource.t, String.t, [DataSource.field], Query.view_map, ResultSender.target) :: :ok
   def start(query_id, data_source, statement, parameters, views, result_target \\ :air_socket) do
     {:ok, _} = Supervisor.start_child(@supervisor_name,
       [{query_id, data_source, statement, parameters, views, result_target}, [name: worker_name(query_id)]])
@@ -75,6 +74,7 @@ defmodule Cloak.Query.Runner do
   def init({query_id, data_source, statement, parameters, views, result_target}) do
     Logger.metadata(query_id: query_id)
     Process.flag(:trap_exit, true)
+    owner = self()
     memory_callbacks = Cloak.MemoryReader.query_registering_callbacks()
     {:ok, %{
       query_id: query_id,
@@ -85,33 +85,38 @@ defmodule Cloak.Query.Runner do
       # This GenServer will wait for the runner to return or crash. Such approach allows us to
       # detect a failure no matter how the query fails (even if the runner process is for example killed).
       runner: Task.async(fn() ->
-        run_query(query_id, data_source, statement, parameters, views, result_target, memory_callbacks)
-      end)
+        run_query(query_id, owner, data_source, statement, parameters, views, memory_callbacks)
+      end),
     }}
   end
 
   @doc false
   def handle_info({:EXIT, runner_pid, reason}, %{runner: %Task{pid: runner_pid}} = state) do
-    if reason != :normal do
-      report_result(state, {:error, "Unknown cloak error."})
-    end
+    state =
+      if reason != :normal do
+        send_result_report(state, {:error, "Unknown cloak error."})
+      else
+        state
+      end
 
     # Note: we're always exiting with a reason normal. If a query crashed, the error will be
     # properly logged, so no need to add more noise.
     {:stop, :normal, state}
   end
-  def handle_info({runner_ref, result}, %{runner: %Task{ref: runner_ref}} = state) do
-    report_result(state, result)
+  def handle_info({:send_state, query_id, query_state}, state) do
+    ResultSender.send_state(state.result_target, query_id, query_state)
     {:noreply, state}
   end
+  def handle_info({runner_ref, result}, %{runner: %Task{ref: runner_ref}} = state), do:
+    {:noreply, send_result_report(state, result)}
   def handle_info(_other, state), do:
     {:noreply, state}
 
+  @doc false
   def handle_cast({:stop_query, reason}, %{runner: task} = state) do
     Task.shutdown(task)
     Logger.warn("Asked to stop query. Reason: #{inspect reason}")
-    report_result(state, reason)
-    {:stop, :normal, %{state | runner: nil}}
+    {:stop, :normal, send_result_report(%{state | runner: nil}, reason)}
   end
 
 
@@ -119,12 +124,12 @@ defmodule Cloak.Query.Runner do
   # Query running
   # -------------------------------------------------------------------
 
-  defp run_query(query_id, data_source, statement, parameters, views, result_target, memory_callbacks) do
+  defp run_query(query_id, owner, data_source, statement, parameters, views, memory_callbacks) do
     Logger.metadata(query_id: query_id)
     Logger.debug("Running statement `#{statement}` ...")
 
     Engine.run(data_source, statement, parameters, views,
-      &ResultSender.send_state(result_target, query_id, &1), memory_callbacks)
+      &send(owner, {:send_state, query_id, &1}), memory_callbacks)
   end
 
 
@@ -132,15 +137,15 @@ defmodule Cloak.Query.Runner do
   # Result reporting
   # -------------------------------------------------------------------
 
-  defp report_result(state, result) do
+  defp send_result_report(state, result) do
     result = result
     |> format_result()
     |> Map.put(:query_id, state.query_id)
     |> Map.put(:execution_time, :erlang.monotonic_time(:milli_seconds) - state.start_time)
     log_completion(result)
     # send execution time in seconds, to avoid timing attacks
-    result = %{result | execution_time: div(result.execution_time, 1000)}
-    Cloak.ResultSender.send_result(state.result_target, result)
+    ResultSender.send_result(state.result_target, %{result | execution_time: div(result.execution_time, 1000)})
+    state
   end
 
   defp log_completion(result) do
