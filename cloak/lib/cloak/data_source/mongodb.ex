@@ -121,7 +121,7 @@ defmodule Cloak.DataSource.MongoDB do
 
   @doc false
   def select(connection, query, result_processor) do
-    {collection, pipeline} = query.subquery? |> put_in(false) |> Pipeline.build()
+    {collection, pipeline} = Pipeline.build(query)
     options = [max_time: @timeout, timeout: @timeout, pool_timeout: @timeout, batch_size: 25_000, allow_disk_use: true]
     columns_count = Enum.count(query.db_columns)
     result =

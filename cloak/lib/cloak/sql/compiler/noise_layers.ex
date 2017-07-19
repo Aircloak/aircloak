@@ -83,7 +83,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     query
     |> add_floated_noise_layers()
     |> add_db_columns()
-    |> float_emulated_noise_layers()
+    |> float_noise_layers_columns()
 
   defp add_floated_noise_layers(query), do:
     if query.subquery? && Helpers.aggregate?(query),
@@ -93,7 +93,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp float_noise_layers(layers, query), do:
     Enum.map(layers, &float_noise_layer(&1, query))
 
-  defp float_emulated_noise_layers(query = %{emulated?: true, subquery?: true}) do
+  defp float_noise_layers_columns(query = %{subquery?: true}) do
     noise_columns =
       Lens.all()
       |> Lens.key(:expressions)
@@ -107,7 +107,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       aggregators: query.aggregators ++ Enum.filter(noise_columns, &(&1.aggregate?)),
     }
   end
-  defp float_emulated_noise_layers(query), do: query
+  defp float_noise_layers_columns(query), do: query
 
   defp add_db_columns(query) do
     noise_columns = noise_layer_columns(query)
@@ -126,9 +126,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp floated_noise_layers(query), do:
     Query.Lenses.direct_subqueries()
     |> Lens.to_list(query)
-    |> Enum.flat_map(fn (%{ast: subquery}) ->
+    |> Enum.flat_map(fn (%{ast: subquery, alias: alias}) ->
+      subquery_table = Enum.find(query.selected_tables, & &1.name == alias)
+      true = subquery_table != nil
       Lens.all() |> Lens.key(:expressions) |> Lens.all()
-      |> Lens.map(subquery.noise_layers, &reference_aliased(&1, subquery))
+      |> Lens.map(subquery.noise_layers, &reference_aliased(&1, subquery, subquery_table))
     end)
 
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count]}, query) do
@@ -272,8 +274,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # Helpers
   # -------------------------------------------------------------------
 
-  defp reference_aliased(column, query), do:
-    %Expression{name: column.alias || find_alias(column, query) || column.name}
+  defp reference_aliased(column, query, table \\ :unknown), do:
+    %Expression{name: column.alias || find_alias(column, query) || column.name, table: table}
 
   defp find_column(name, query) do
     case Enum.find_index(query.column_titles, &(&1 == name)) do
