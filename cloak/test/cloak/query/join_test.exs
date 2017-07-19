@@ -184,4 +184,22 @@ defmodule Cloak.Query.JoinTest do
       %{row: [180], occurrences: 25}
     ] = rows
   end
+
+  test "complex joins with filters and subqueries" do
+    :ok = insert_rows(_user_ids = 0..10, "purchases", ["price", "name"], [200, "car"])
+    :ok = insert_rows(_user_ids = 5..15, "purchases", ["price", "name"], [500, "plane"])
+    :ok = insert_rows(_user_ids = 10..20, "purchases", ["price", "name"], [400, "house"])
+
+    assert_query """
+      SELECT DISTINCT purchases.name FROM purchases INNER JOIN (
+        SELECT purchases.user_id FROM purchases LEFT OUTER JOIN (
+          SELECT user_id, name FROM purchases WHERE name = 'car'
+        ) car ON purchases.user_id = car.user_id
+        WHERE car.user_id IS NULL
+        GROUP BY purchases.user_id
+      ) not_car ON purchases.user_id = not_car.user_id
+      ORDER BY 1 DESC
+    """,
+      %{rows: [%{occurrences: 1, row: ["plane"]}, %{occurrences: 1, row: ["house"]}]}
+  end
 end

@@ -288,8 +288,16 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp partition_where_clauses(query) do
     # extract conditions needing emulation
-    {emulated_where, where} = Condition.partition(query.where,
-      &emulated_expression_condition?(&1) or (query.emulated? and multiple_tables_condition?(&1)))
+    {emulated_where, where} = Condition.partition(query.where, fn (condition) ->
+      emulated_expression_condition?(condition) or
+      (
+        query.emulated? and
+        (
+          multiple_tables_condition?(condition) or
+          not is_binary(query.from)
+        )
+      )
+    end)
     %Query{query | where: where, emulated_where: emulated_where}
   end
 

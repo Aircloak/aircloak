@@ -249,11 +249,11 @@ function mpi_init {
   echo "RUN mkdir -p /tmp/build_config && \\"
 
   if [ "$CONTAINER_ENV" = "prod" ]; then
-    # set mpi repos & proxies
+    # set repos & proxies
     cat <<-EOF
-      echo "deb http://acmirror.mpi-sws.org/debian jessie main" > /etc/apt/sources.list && \\
-      echo "deb http://acmirror.mpi-sws.org/debian jessie-updates main" >> /etc/apt/sources.list && \\
-      echo "deb http://acmirror.mpi-sws.org/debian-security jessie/updates main" >> /etc/apt/sources.list && \\
+      echo "deb http://ftp.de.debian.org/debian jessie main" > /etc/apt/sources.list && \\
+      echo "deb http://ftp.de.debian.org/debian jessie-updates main" >> /etc/apt/sources.list && \\
+      echo "deb http://ftp.de.debian.org/debian-security jessie/updates main" >> /etc/apt/sources.list && \\
       echo 'export https_proxy=http://acmirror.mpi-sws.org:3128' > /tmp/build_config/proxies.sh && \\
       echo 'export http_proxy=http://acmirror.mpi-sws.org:3128' >> /tmp/build_config/proxies.sh && \\
       echo 'export no_proxy=localhost,127.0.0.1,acmirror.mpi-sws.org' >> /tmp/build_config/proxies.sh && \\
