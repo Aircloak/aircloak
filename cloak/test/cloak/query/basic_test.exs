@@ -530,10 +530,10 @@ defmodule Cloak.Query.BasicTest do
     dates = for {year, month, day} <- dates do
       date = %NaiveDateTime{
         year: year, month: month, day: day,
-        hour: 0, minute: 0, second: 0, microsecond: {0, 0}
+        hour: 0, minute: 0, second: 0, microsecond: {0, 6}
       }
       :ok = insert_rows(_user_ids = 0..100, "dates", ["date"], [date])
-      NaiveDateTime.to_string(date)
+      NaiveDateTime.to_iso8601(date)
     end
 
     assert_query "select date from dates group by date order by date asc",
