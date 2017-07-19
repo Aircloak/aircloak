@@ -87,8 +87,6 @@ defmodule Cloak.Query.Runner do
       runner: Task.async(fn() ->
         run_query(query_id, owner, data_source, statement, parameters, views, memory_callbacks)
       end),
-      reporter_pid: nil,
-      pending_reports: :queue.new()
     }}
   end
 
@@ -96,7 +94,7 @@ defmodule Cloak.Query.Runner do
   def handle_info({:EXIT, runner_pid, reason}, %{runner: %Task{pid: runner_pid}} = state) do
     state =
       if reason != :normal do
-        enqueue_result_report(state, {:error, "Unknown cloak error."})
+        send_result_report(state, {:error, "Unknown cloak error."})
       else
         state
       end
@@ -105,12 +103,12 @@ defmodule Cloak.Query.Runner do
     # properly logged, so no need to add more noise.
     {:stop, :normal, state}
   end
-  def handle_info({:EXIT, reporter_pid, _reason}, %{reporter_pid: reporter_pid} = state), do:
-    {:noreply, maybe_start_next_reporter(%{state | reporter_pid: nil})}
-  def handle_info({:send_state, query_id, query_state}, state), do:
-    {:noreply, enqueue_report(state, :query_state, {query_id, query_state})}
+  def handle_info({:send_state, query_id, query_state}, state) do
+    ResultSender.send_state(state.result_target, query_id, query_state)
+    {:noreply, state}
+  end
   def handle_info({runner_ref, result}, %{runner: %Task{ref: runner_ref}} = state), do:
-    {:noreply, enqueue_result_report(state, result)}
+    {:noreply, send_result_report(state, result)}
   def handle_info(_other, state), do:
     {:noreply, state}
 
@@ -118,12 +116,8 @@ defmodule Cloak.Query.Runner do
   def handle_cast({:stop_query, reason}, %{runner: task} = state) do
     Task.shutdown(task)
     Logger.warn("Asked to stop query. Reason: #{inspect reason}")
-    {:stop, :normal, enqueue_result_report(%{state | runner: nil}, reason)}
+    {:stop, :normal, send_result_report(%{state | runner: nil}, reason)}
   end
-
-  @doc false
-  def terminate(_reason, state), do:
-    flush_reporters(state)
 
 
   # -------------------------------------------------------------------
@@ -143,15 +137,15 @@ defmodule Cloak.Query.Runner do
   # Result reporting
   # -------------------------------------------------------------------
 
-  defp enqueue_result_report(state, result) do
+  defp send_result_report(state, result) do
     result = result
     |> format_result()
     |> Map.put(:query_id, state.query_id)
     |> Map.put(:execution_time, :erlang.monotonic_time(:milli_seconds) - state.start_time)
     log_completion(result)
     # send execution time in seconds, to avoid timing attacks
-    result = %{result | execution_time: div(result.execution_time, 1000)}
-    enqueue_report(state, :result, result)
+    ResultSender.send_result(state.result_target, %{result | execution_time: div(result.execution_time, 1000)})
+    state
   end
 
   defp log_completion(result) do
@@ -182,43 +176,6 @@ defmodule Cloak.Query.Runner do
   defp format_result({:error, reason}) do
     Logger.error("Unknown query error: #{inspect(reason)}")
     format_result({:error, "Unknown cloak error."})
-  end
-
-  defp enqueue_report(state, type, payload), do:
-    maybe_start_next_reporter(%{state | pending_reports: :queue.in({type, payload}, state.pending_reports)})
-
-  defp maybe_start_next_reporter(%{reporter_pid: nil} = state) do
-    case :queue.out(state.pending_reports) do
-      {:empty, _} ->
-        state
-
-      {{:value, {type, payload}}, queue} ->
-        result_target = state.result_target
-        {:ok, pid} = Task.start_link(fn -> send_report(result_target, type, payload) end)
-        %{state | reporter_pid: pid, pending_reports: queue}
-    end
-  end
-  defp maybe_start_next_reporter(state), do:
-    state
-
-  defp send_report(result_target, :result, result), do:
-    ResultSender.send_result(result_target, result)
-  defp send_report(result_target, :query_state, {query_id, query_state}), do:
-    ResultSender.send_state(result_target, query_id, query_state)
-
-  defp flush_reporters(%{reporter_pid: nil} = state) do
-    case maybe_start_next_reporter(state) do
-      %{reporter_pid: nil} -> state
-      state -> flush_reporters(state)
-    end
-  end
-  defp flush_reporters(%{reporter_pid: reporter_pid} = state) do
-    receive do
-      {:EXIT, ^reporter_pid, _reason} ->
-        flush_reporters(%{state | reporter_pid: nil})
-    after :timer.seconds(5) ->
-      Process.exit(reporter_pid, :kill)
-    end
   end
 
 
