@@ -43,8 +43,7 @@ defmodule Cloak.Query.Runner do
   is sent to the required destination. If an error occurs, the result will contain
   error information.
   """
-  @spec start(String.t, DataSource.t, String.t, [DataSource.field], Query.view_map,
-    Cloak.ResultSender.target) :: :ok
+  @spec start(String.t, DataSource.t, String.t, [DataSource.field], Query.view_map, ResultSender.target) :: :ok
   def start(query_id, data_source, statement, parameters, views, result_target \\ :air_socket) do
     {:ok, _} = Supervisor.start_child(@supervisor_name,
       [{query_id, data_source, statement, parameters, views, result_target}, [name: worker_name(query_id)]])
@@ -75,6 +74,7 @@ defmodule Cloak.Query.Runner do
   def init({query_id, data_source, statement, parameters, views, result_target}) do
     Logger.metadata(query_id: query_id)
     Process.flag(:trap_exit, true)
+    owner = self()
     memory_callbacks = Cloak.MemoryReader.query_registering_callbacks()
     {:ok, %{
       query_id: query_id,
@@ -85,46 +85,57 @@ defmodule Cloak.Query.Runner do
       # This GenServer will wait for the runner to return or crash. Such approach allows us to
       # detect a failure no matter how the query fails (even if the runner process is for example killed).
       runner: Task.async(fn() ->
-        run_query(query_id, data_source, statement, parameters, views, result_target, memory_callbacks)
-      end)
+        run_query(query_id, owner, data_source, statement, parameters, views, memory_callbacks)
+      end),
+      reporter_pid: nil,
+      pending_reports: :queue.new()
     }}
   end
 
   @doc false
   def handle_info({:EXIT, runner_pid, reason}, %{runner: %Task{pid: runner_pid}} = state) do
-    if reason != :normal do
-      report_result(state, {:error, "Unknown cloak error."})
-    end
+    state =
+      if reason != :normal do
+        enqueue_result_report(state, {:error, "Unknown cloak error."})
+      else
+        state
+      end
 
     # Note: we're always exiting with a reason normal. If a query crashed, the error will be
     # properly logged, so no need to add more noise.
     {:stop, :normal, state}
   end
-  def handle_info({runner_ref, result}, %{runner: %Task{ref: runner_ref}} = state) do
-    report_result(state, result)
-    {:noreply, state}
-  end
+  def handle_info({:EXIT, reporter_pid, _reason}, %{reporter_pid: reporter_pid} = state), do:
+    {:noreply, maybe_start_next_reporter(%{state | reporter_pid: nil})}
+  def handle_info({:send_state, query_id, query_state}, state), do:
+    {:noreply, enqueue_report(state, :query_state, {query_id, query_state})}
+  def handle_info({runner_ref, result}, %{runner: %Task{ref: runner_ref}} = state), do:
+    {:noreply, enqueue_result_report(state, result)}
   def handle_info(_other, state), do:
     {:noreply, state}
 
+  @doc false
   def handle_cast({:stop_query, reason}, %{runner: task} = state) do
     Task.shutdown(task)
     Logger.warn("Asked to stop query. Reason: #{inspect reason}")
-    report_result(state, reason)
-    {:stop, :normal, %{state | runner: nil}}
+    {:stop, :normal, enqueue_result_report(%{state | runner: nil}, reason)}
   end
+
+  @doc false
+  def terminate(_reason, state), do:
+    flush_reporters(state)
 
 
   # -------------------------------------------------------------------
   # Query running
   # -------------------------------------------------------------------
 
-  defp run_query(query_id, data_source, statement, parameters, views, result_target, memory_callbacks) do
+  defp run_query(query_id, owner, data_source, statement, parameters, views, memory_callbacks) do
     Logger.metadata(query_id: query_id)
     Logger.debug("Running statement `#{statement}` ...")
 
     Engine.run(data_source, statement, parameters, views,
-      &ResultSender.send_state(result_target, query_id, &1), memory_callbacks)
+      &send(owner, {:send_state, query_id, &1}), memory_callbacks)
   end
 
 
@@ -132,7 +143,7 @@ defmodule Cloak.Query.Runner do
   # Result reporting
   # -------------------------------------------------------------------
 
-  defp report_result(state, result) do
+  defp enqueue_result_report(state, result) do
     result = result
     |> format_result()
     |> Map.put(:query_id, state.query_id)
@@ -140,7 +151,7 @@ defmodule Cloak.Query.Runner do
     log_completion(result)
     # send execution time in seconds, to avoid timing attacks
     result = %{result | execution_time: div(result.execution_time, 1000)}
-    Cloak.ResultSender.send_result(state.result_target, result)
+    enqueue_report(state, :result, result)
   end
 
   defp log_completion(result) do
@@ -171,6 +182,43 @@ defmodule Cloak.Query.Runner do
   defp format_result({:error, reason}) do
     Logger.error("Unknown query error: #{inspect(reason)}")
     format_result({:error, "Unknown cloak error."})
+  end
+
+  defp enqueue_report(state, type, payload), do:
+    maybe_start_next_reporter(%{state | pending_reports: :queue.in({type, payload}, state.pending_reports)})
+
+  defp maybe_start_next_reporter(%{reporter_pid: nil} = state) do
+    case :queue.out(state.pending_reports) do
+      {:empty, _} ->
+        state
+
+      {{:value, {type, payload}}, queue} ->
+        result_target = state.result_target
+        {:ok, pid} = Task.start_link(fn -> send_report(result_target, type, payload) end)
+        %{state | reporter_pid: pid, pending_reports: queue}
+    end
+  end
+  defp maybe_start_next_reporter(state), do:
+    state
+
+  defp send_report(result_target, :result, result), do:
+    ResultSender.send_result(result_target, result)
+  defp send_report(result_target, :query_state, {query_id, query_state}), do:
+    ResultSender.send_state(result_target, query_id, query_state)
+
+  defp flush_reporters(%{reporter_pid: nil} = state) do
+    case maybe_start_next_reporter(state) do
+      %{reporter_pid: nil} -> state
+      state -> flush_reporters(state)
+    end
+  end
+  defp flush_reporters(%{reporter_pid: reporter_pid} = state) do
+    receive do
+      {:EXIT, ^reporter_pid, _reason} ->
+        flush_reporters(%{state | reporter_pid: nil})
+    after :timer.seconds(5) ->
+      Process.exit(reporter_pid, :kill)
+    end
   end
 
 
