@@ -56,7 +56,7 @@ defmodule Cloak.AirSocket do
   """
   @spec send_query_state(GenServer.server, String.t, atom) :: :ok | {:error, any}
   def send_query_state(socket \\ __MODULE__, query_id, query_state), do:
-    call_air(socket, "main", "query_state", %{query_id: query_id, query_state: query_state})
+    cast_air(socket, "main", "query_state", %{query_id: query_id, query_state: query_state})
 
   @doc "Sends cloak memory stats to the air."
   @spec send_memory_stats(GenServer.server, Keyword.t) :: :ok | {:error, any}
@@ -311,8 +311,8 @@ defmodule Cloak.AirSocket do
     :ok
   end
 
-  @spec call_air(GenServer.server, String.t, String.t, map) :: :ok | {:error, any}
-  defp call_air(socket, topic, event, payload, timeout \\ :timer.seconds(5)) do
+  @spec call_air(GenServer.server, String.t, String.t, map, pos_integer) :: :ok | {:error, any}
+  defp call_air(socket, topic, event, payload, timeout) do
     case GenSocketClient.call(socket, {:call_air, topic, event, payload, timeout}, timeout) do
       {:ok, _} -> :ok
       error -> error
