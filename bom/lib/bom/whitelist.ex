@@ -10,12 +10,12 @@ defmodule BOM.Whitelist do
 
   @licenses %{
     :elixir => %{
-      {"ecto",            "2.1.3"}  => %{type: :apache2, text: :provided},
+      {"ecto",            "2.1.4"}  => %{type: :apache2, text: :provided},
       {"erlware_commons", "0.21.0"} => %{type: :mit,     text: :provided},
-      {"scrivener",       "2.1.1"}  => %{type: :mit,     text: :standard},
-      {"scrivener_ecto",  "1.0.2"}  => %{type: :mit,     text: :standard},
+      {"scrivener",       "2.3.0"}  => %{type: :mit,     text: :standard},
+      {"scrivener_ecto",  "1.2.2"}  => %{type: :mit,     text: :standard},
       {"scrivener_html",  "1.3.3"}  => %{type: :mit,     text: :standard},
-      {"excoveralls",     "0.5.5"}  => %{type: :mit,     text: :standard},
+      {"excoveralls",     "0.5.7"}  => %{type: :mit,     text: :standard},
       {"ecto_enum",       "1.0.1"}  => %{type: :mit,     text: :provided},
     },
     :node => %{
@@ -98,7 +98,7 @@ defmodule BOM.Whitelist do
     "99d097ff2dae4db019dd8ac5144f1efc" => :mit,           # node/commander
     "330031db3ec2b47f6e9d7923b8e1f95b" => :mit,           # node/color-convert
     "6d2716539b6e3fee1dff17903670f1cd" => :mit,           # node/react-chartjs-2
-    "7c26dfe36e38a743a435b92f7e1260af" => :apache2,       # elixir/earmark
+    "73ecf9f2f7acdcafcc3eae4d585362de" => :apache2,       # elixir/earmark
     "0b36f89594d6a8a4b5e8efa73f1f4fc5" => :mit,           # elixir/fs
     "0689a7b07fec79946ae192573e1450e8" => :bsd_3_clause,  # elixir/getopt
     "9741c346eef56131163e13b9db1241b3" => :mpl_2_0,       # elixir/jose
