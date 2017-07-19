@@ -391,11 +391,13 @@ defmodule Cloak.Query.Aggregator do
     # We're normalizing some Elixir structs, so they can be encoded to non-Elixir formats, such as JSON.
     Enum.map(row, fn
       %Date{} = date ->
-        Date.to_iso8601(date)
-      %Time{} = time ->
-        Time.to_iso8601(time)
-      %NaiveDateTime{} = naive_date_time ->
-        NaiveDateTime.to_iso8601(naive_date_time)
+        Date.to_string(date)
+      %Time{microsecond: {ms, 6}} = time ->
+        prec = if ms == 0, do: 0, else: 3
+        Time.to_string(%Time{time | microsecond: {ms, prec}})
+      %NaiveDateTime{microsecond: {ms, 6}} = date_time ->
+        prec = if ms == 0, do: 0, else: 3
+        NaiveDateTime.to_string(%NaiveDateTime{date_time | microsecond: {ms, prec}})
       other ->
         other
     end)
