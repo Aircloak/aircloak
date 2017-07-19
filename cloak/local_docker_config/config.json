@@ -8,6 +8,7 @@
     {
       "driver": "postgresql",
       "marker": "postgrex",
+      "name": "native_postgres",
       "parameters": {
         "hostname": "air_db",
         "username": "cloak",
@@ -34,6 +35,7 @@
     {
       "driver": "odbc",
       "marker": "odbc-postgresql",
+      "name": "odbc_postgres",
       "parameters": {
         "DSN": "PostgreSQL",
         "UserName": "cloak",
