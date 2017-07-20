@@ -6,6 +6,11 @@
 
 ## Version 17.3.1
 
+### Enhancements
+
+- Insights Cloak counts cached memory towards the available memory total. This rejects fewer queries with out of memory
+  warnings.
+
 ### Bugfixes
 
 - Fixed crash when joining two subqueries over a MongoDB data set.
