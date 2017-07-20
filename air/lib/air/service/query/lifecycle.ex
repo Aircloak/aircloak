@@ -36,6 +36,7 @@ defmodule Air.Service.Query.Lifecycle do
       [
         [
           worker(Registry, [:unique, __MODULE__.Registry]),
+          Air.ProcessQueue.supervisor_spec(__MODULE__.Queue, size: 5),
           supervisor(Supervisor, [
             [worker(__MODULE__, [], restart: :temporary)],
             [strategy: :simple_one_for_one, name: __MODULE__.QuerySupervisor, id: __MODULE__.QuerySupervisor]
@@ -74,15 +75,15 @@ defmodule Air.Service.Query.Lifecycle do
 
   @doc false
   def handle_cast({:result_arrived, result}, state) do
-    Query.process_result(result)
+    Air.ProcessQueue.run(__MODULE__.Queue, fn -> Query.process_result(result) end)
     {:stop, :normal, state}
   end
   def handle_cast({:state_changed, query_id, query_state}, state) do
-    Query.update_state(query_id, query_state)
+    Air.ProcessQueue.run(__MODULE__.Queue, fn -> Query.update_state(query_id, query_state) end)
     {:noreply, state}
   end
   def handle_cast({:query_died, query_id}, state) do
-    Query.query_died(query_id)
+    Air.ProcessQueue.run(__MODULE__.Queue, fn -> Query.query_died(query_id) end)
     {:stop, :normal, state}
   end
 

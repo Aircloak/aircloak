@@ -42,7 +42,17 @@ defmodule Air.Service.DataSource do
   @spec supervisor_spec() :: Supervisor.Spec.spec
   def supervisor_spec() do
     import Supervisor.Spec, warn: false
-    supervisor(Task.Supervisor, [[name: @task_supervisor, restart: :temporary]], [id: @task_supervisor])
+    supervisor(
+      Supervisor,
+      [
+        [
+          Air.ProcessQueue.supervisor_spec(__MODULE__.Queue, size: 5),
+          supervisor(Task.Supervisor, [[name: @task_supervisor, restart: :temporary]], [id: @task_supervisor])
+        ],
+        [strategy: :one_for_one]
+      ],
+      id: __MODULE__
+    )
   end
 
   @doc "Returns the count of all known data sources."
@@ -124,12 +134,17 @@ defmodule Air.Service.DataSource do
 
     on_available_cloak(data_source_id_spec, user,
       fn(data_source, channel_pid, %{id: cloak_id}) ->
-        query = create_query(cloak_id, data_source.id, user, context, statement, parameters, opts[:session_id])
+        query =
+          Air.ProcessQueue.run(__MODULE__.Queue, fn ->
+            query = create_query(cloak_id, data_source.id, user, context, statement, parameters, opts[:session_id])
 
-        UserChannel.broadcast_state_change(query)
+            UserChannel.broadcast_state_change(query)
 
-        Air.Service.AuditLog.log(user, "Executed query",
-          Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.name}))
+            Air.Service.AuditLog.log(user, "Executed query",
+              Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.name}))
+
+            query
+          end)
 
         if opts[:notify] == true, do: Service.Query.Events.subscribe(query.id)
 
