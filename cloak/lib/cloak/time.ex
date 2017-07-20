@@ -33,6 +33,7 @@ defmodule Cloak.Time do
 
   @doc "Converts a date/datetime/time value into an integer representing days/seconds."
   @spec to_integer(NaiveDateTime.t | Time.t | Date.t) :: non_neg_integer
+  def to_integer(nil), do: nil
   def to_integer(%NaiveDateTime{} = value), do:
     value |> NaiveDateTime.to_erl() |> :calendar.datetime_to_gregorian_seconds()
   def to_integer(%Date{} = value), do:
@@ -42,6 +43,7 @@ defmodule Cloak.Time do
 
   @doc "Converts an integer representing days/seconds into a date/datetime/time value."
   @spec from_integer(non_neg_integer, :datetime | :date | :time) :: NaiveDateTime.t | Time.t | Date.t
+  def from_integer(nil, _type), do: nil
   def from_integer(value, :datetime), do:
     value |> :calendar.gregorian_seconds_to_datetime() |> NaiveDateTime.from_erl!() |> Cloak.Time.max_precision()
   def from_integer(value, :date), do:

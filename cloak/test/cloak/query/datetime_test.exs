@@ -149,5 +149,11 @@ defmodule Cloak.Query.DatetimeTest do
 
     test "median over time", do:
       assert_query "select median(cast(datetime as time)) from datetimes", %{rows: [%{row: ["12:00:05.000000"]}]}
+
+    test "median over datetime with insufficient rows" do
+      assert_query """
+        select year(median(datetime)) from datetimes group by year(datetime) order by 1
+      """, %{rows: [%{row: [2017]}, %{row: [nil]}, %{row: [nil]}]}
+    end
   end
 end

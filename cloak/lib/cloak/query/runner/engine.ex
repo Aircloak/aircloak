@@ -73,7 +73,6 @@ defmodule Cloak.Query.Runner.Engine do
   end
   defp select_rows(%Sql.Query{emulated?: true} = query, state_updater) do
     Logger.debug("Emulating query ...")
-    query = %Sql.Query{query | emulated_where: Condition.combine(:and, query.where, query.emulated_where)}
     query
     |> Query.DbEmulator.select()
     |> process_final_rows(query, state_updater)

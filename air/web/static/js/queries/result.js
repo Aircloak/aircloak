@@ -23,11 +23,13 @@ export type Row = {
 };
 
 export type Column = string;
+export type Type = string;
 
 export type Result = {
   id: string,
   statement: string,
   columns: Column[],
+  types: Type[],
   rows: Row[],
   row_count: number,
   info: string[],
@@ -111,7 +113,7 @@ export class ResultView extends React.Component {
   minRowsToShow: number;
   graphData: GraphDataT;
   graphInfo: GraphInfoT;
-  formatValue: (value: any) => string;
+  formatValue: (value: any, columnIndex: number) => string;
   handleClickMoreRows: () => void;
   handleClickLessRows: () => void;
   loadAndShowMoreRows: (rowsToShowCount: number, availableRows: Row[], availableChunks: number) => void;
@@ -221,13 +223,18 @@ export class ResultView extends React.Component {
     return () => this.setState({graphConfig: this.state.graphConfig.remove(col)});
   }
 
-  formatValue(value: any): string {
+  formatValue(value: any, columnIndex: number): string {
+    const type = this.props.types[columnIndex];
     if (value === null) {
       return "<null>";
     } else if (this.isNumeric(value)) {
       return formatNumber(value, this.props.number_format);
     } else if (value === "") {
       return ZERO_WIDTH_SPACE; // keeps table row from collapsing
+    } else if (type === "datetime") {
+      return this.formatDateTime(value);
+    } else if (type === "time") {
+      return this.formatTime(value);
     } else {
       return value.toString();
     }
@@ -235,6 +242,20 @@ export class ResultView extends React.Component {
 
   isNumeric(n: any): boolean {
     return typeof(n) === "number" && isFinite(n);
+  }
+
+  formatDateTime(value: string): string {
+    const [date, time] = value.split("T");
+    return `${date} ${this.formatTime(time)}`;
+  }
+
+  formatTime(value: string): string {
+    const [hms, us] = value.split(".");
+    if (us === "000000") {
+      return hms;
+    } else {
+      return `${hms}.${us.substr(0, 3)}`;
+    }
   }
 
   conditionallyRenderChart() {
@@ -294,7 +315,7 @@ export class ResultView extends React.Component {
         return (<tr key={`${i}-${occurrenceCount}`} {...this.getRowAttrs(accumulateRow)}>
           {accumulateRow.row.map((value, j) =>
             <td key={j} className={this.state.tableAligner.alignmentClass(j)}>
-              {this.formatValue(value)}
+              {this.formatValue(value, j)}
             </td>
           )}
         </tr>);
