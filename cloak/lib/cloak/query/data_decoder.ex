@@ -95,6 +95,8 @@ defmodule Cloak.Query.DataDecoder do
     %{method: &text_to_date/1, columns: columns, in: :text, out: :date}
   defp do_create_from_config(_table, %{method: "text_to_time", columns: columns}), do:
     %{method: &text_to_time/1, columns: columns, in: :text, out: :time}
+  defp do_create_from_config(_table, %{method: "text_to_boolean", columns: columns}), do:
+    %{method: &text_to_boolean/1, columns: columns, in: :text, out: :boolean}
   defp do_create_from_config(_table, decoder), do:
     raise "Invalid data decoder definition: `#{inspect(decoder)}`."
 
@@ -176,6 +178,14 @@ defmodule Cloak.Query.DataDecoder do
     case Cloak.Time.parse_time(value) do
       {:ok, value} -> {:ok, value}
       {:error, _reason} -> :error
+    end
+  end
+
+  defp text_to_boolean(value) when is_binary(value) do
+    if String.downcase(value) in ["true", "yes", "1"] do
+      {:ok, true}
+    else
+      {:ok, false}
     end
   end
 end
