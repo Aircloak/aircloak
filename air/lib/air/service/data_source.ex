@@ -130,30 +130,33 @@ defmodule Air.Service.DataSource do
   @spec start_query(data_source_id_spec, User.t, Query.Context.t, String.t, [Protocol.db_value],
     start_query_options) :: {:ok, Query.t} | data_source_operation_error
   def start_query(data_source_id_spec, user, context, statement, parameters, opts \\ []) do
-    Air.ProcessQueue.run(__MODULE__.Queue, fn ->
-      opts = Keyword.merge([audit_meta: %{}, notify: false], opts)
+    opts = Keyword.merge([audit_meta: %{}, notify: false], opts)
 
-      on_available_cloak(data_source_id_spec, user,
-        fn(data_source, channel_pid, %{id: cloak_id}) ->
-          query = create_query(cloak_id, data_source.id, user, context, statement, parameters, opts[:session_id])
+    on_available_cloak(data_source_id_spec, user,
+      fn(data_source, channel_pid, %{id: cloak_id}) ->
+        query =
+          Air.ProcessQueue.run(__MODULE__.Queue, fn ->
+            query = create_query(cloak_id, data_source.id, user, context, statement, parameters, opts[:session_id])
 
-          UserChannel.broadcast_state_change(query)
+            UserChannel.broadcast_state_change(query)
 
-          Air.Service.AuditLog.log(user, "Executed query",
-            Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.name}))
+            Air.Service.AuditLog.log(user, "Executed query",
+              Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.name}))
 
-          if opts[:notify] == true, do: Service.Query.Events.subscribe(query.id)
+              query
+          end)
 
-          case MainChannel.run_query(channel_pid, cloak_query_map(query, user, parameters)) do
-            :ok -> {:ok, query}
-            {:error, :timeout} ->
-              post_timeout_result(query)
-              stop_query_async(query)
-              {:error, :timeout}
-          end
+        if opts[:notify] == true, do: Service.Query.Events.subscribe(query.id)
+
+        case MainChannel.run_query(channel_pid, cloak_query_map(query, user, parameters)) do
+          :ok -> {:ok, query}
+          {:error, :timeout} ->
+            post_timeout_result(query)
+            stop_query_async(query)
+            {:error, :timeout}
         end
-      )
-    end)
+      end
+    )
   end
 
   @doc "Runs the query synchronously and returns its result."
