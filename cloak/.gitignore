@@ -38,3 +38,7 @@ priv/serialization.lua
 /deps
 *.ez
 /artifacts/
+
+# Don't check in the automatically generated compliance data
+/datagen/output/*.csv
+/datagen/output/*.json
