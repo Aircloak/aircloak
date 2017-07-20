@@ -9,6 +9,11 @@
 ### Enhancements
 
 - Like patterns can now include an escape string
+- More human-friendly rendering of date/time values in the UI.
+
+### Bugfixes
+
+- Fixed crash in min/max aggregators when there are insufficient data to produce a value.
 
 ## Version 17.3.2
 
