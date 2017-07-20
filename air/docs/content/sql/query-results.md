@@ -69,7 +69,8 @@ SELECT
   name,
   count(*), count_noise(*),
   sum(age), sum_noise(age),
-  avg(age), avg_noise(age)
+  avg(age), avg_noise(age),
+  stddev(age), stddev_noise(age)
 FROM users
 GROUP BY name
 ```
@@ -77,9 +78,9 @@ GROUP BY name
 Notice how `COUNT` still produces a non-`NULL` value. The reported count is not accurate but signifies an absolute lower
 bound.
 
-| name  | count | count_noise | sum  | sum_noise | avg  | avg_noise |
-|-------|-------|-------------|------|-----------|------|-----------|
-| Alice | 2     | null        | null | null      | null | null      |
+| name  | count | count_noise | sum  | sum_noise | avg  | avg_noise | stddev | stddev_noise |
+|-------|-------|-------------|------|-----------|------|-----------|--------|--------------|
+| Alice | 2     | null        | null | null      | null | null      | null   | null         |
 
 
 ## Anonymization functions

@@ -17,6 +17,7 @@ matrix:
         - common/elixir/deps
         - common/elixir/_build
         - air/deps
+        - air/_build
         - air/node_modules
         - air/docs/node_modules
         - air/docs/_book
@@ -24,6 +25,7 @@ matrix:
         - cloak/deps
         - cloak/_build
         - central/deps
+        - central/_build
         - central/node_modules
         - integration_tests/deps
         - integration_tests/_build
@@ -51,6 +53,8 @@ matrix:
     - env: TEST="air"
       cache:
         directories:
+        - air/deps
+        - air/_build
         - air/node_modules
         - air/docs/node_modules
         - air/docs/_book
@@ -129,6 +133,7 @@ matrix:
       cache:
         directories:
         - central/deps
+        - central/_build
         - central/node_modules
         - $HOME/.asdf
         - $HOME/.yarn-cache
