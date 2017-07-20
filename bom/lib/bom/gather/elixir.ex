@@ -78,10 +78,13 @@ defmodule BOM.Gather.Elixir do
 
   for {package_name, version, license} <-
     [
-      {"websocket_client", "16cd139a71d99813ec0c0cd1d8cb92dbde93d9c7", :mit},
+      {"lhttpc", "6530ef818bf904bf4ef615f384d2fc7bae44a6dc", :bsd_3_clause},
       {"meck", "dde759050eff19a1a80fd854d7375174b191665d", :apache2},
+      {"earmark", "2bc90510ddc6245ff6afcaf6cfb526e3a9fadf89", :apache2},
       {"pbkdf2", "7076584f5377e98600a7e2cb81980b2992fb2f71", :apache2},
       {"poison", "1a6bff505c22047e18a9318e01bda63ede20d649", :"cc0-1.0"},
+      {"protobuffs", "a1eeee77aef639a33cc5a2dd7abed7e4f4b83f9b", :mit},
+      {"websocket_client", "c2a6cf11233cad54a7f7e6c89bca172f2b494f9d", :mit},
     ]
   do
     defp non_hex_license(unquote(package_name), unquote(version)), do:

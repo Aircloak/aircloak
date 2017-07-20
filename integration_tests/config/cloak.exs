@@ -9,7 +9,7 @@ config :cloak, :in_development, false
 config :cloak, :alarm_handler, install: false
 
 config :cloak, :air,
-  air_site: "wss://127.0.0.1:8444",
+  air_site: "wss://localhost:8444",
   min_reconnect_interval: 50,
   max_reconnect_interval: 50,
   serializer: Air.CloakSocketSerializer

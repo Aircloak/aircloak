@@ -22,7 +22,7 @@ defmodule Air.Phoenix.MarkdownEngine do
     Macro.escape({:safe,
       template_path
       |> File.read!()
-      |> Earmark.to_html()
+      |> Earmark.as_html!()
     })
   end
 end
