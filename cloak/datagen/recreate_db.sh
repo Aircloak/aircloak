@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-. ./prepare_db.funcs.sh
+. ./datagen/prepare_db.funcs.sh
 
 function main() {
   conditionally_create_user "cloak"
