@@ -143,7 +143,7 @@ defmodule Air.Service.DataSource do
             Air.Service.AuditLog.log(user, "Executed query",
               Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.name}))
 
-              query
+            query
           end)
 
         if opts[:notify] == true, do: Service.Query.Events.subscribe(query.id)
