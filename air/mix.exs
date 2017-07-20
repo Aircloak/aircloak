@@ -53,6 +53,7 @@ defmodule Air.Mixfile do
   defp deps do
     [
       {:ecto, "~> 2.1", override: true},
+      {:earmark, "~> 1.2", runtime: false},
       {:postgrex, "~> 0.13.0", override: true},
       {:phoenix, "~> 1.2.1"},
       {:phoenix_pubsub, "~> 1.0"},
