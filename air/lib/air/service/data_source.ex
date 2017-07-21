@@ -188,30 +188,6 @@ defmodule Air.Service.DataSource do
     do_stop_query(query)
   end
 
-  @doc """
-  Can be used to check if the query is still being processed.
-
-  Returns {:ok, true} if the query is still processed by any cloak. Returns {:ok, false} if it's not.
-  Returns {:error, reason} if an error occured while trying to find that out.
-  """
-  @spec query_alive?(Query.t) :: {:ok, boolean} | {:error, any}
-  def query_alive?(query) do
-    exception_to_tuple(fn() ->
-      if available?(query.data_source.name) do
-        results = for {channel, _cloak} <- Cloak.channel_pids(query.data_source.name), do:
-          MainChannel.query_alive?(channel, query.id)
-
-        cond do
-          Enum.any?(results, &match?({:ok, true}, &1)) -> {:ok, true}
-          Enum.any?(results, &match?({:error, _}, &1)) -> Enum.find(results, &match?({:error, _}, &1))
-          true -> {:ok, false}
-        end
-      else
-        {:error, :not_connected}
-      end
-    end)
-  end
-
   @doc "Returns a list of data sources given their names"
   @spec by_names([String.t]) :: [DataSource.t]
   def by_names(names \\ []), do:

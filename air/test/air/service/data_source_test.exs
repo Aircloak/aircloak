@@ -198,24 +198,6 @@ defmodule Air.Service.DataSourceTest do
       [u1, u2] |> Enum.map(&(&1.id)) |> Enum.sort()
   end
 
-  describe "query_alive?" do
-    setup [:with_user, :with_data_source, :with_query, :with_socket]
-
-    test "when the query is alive on some cloak", context do
-      task = Task.async(fn() -> DataSource.query_alive?(context.query |> Repo.preload(:data_source)) end)
-      TestSocketHelper.respond_to_query_alive!(context.socket, context.query.id, true)
-
-      assert {:ok, true} = Task.await(task)
-    end
-
-    test "when the query is not alive on any cloak", context do
-      task = Task.async(fn() -> DataSource.query_alive?(context.query |> Repo.preload(:data_source)) end)
-      TestSocketHelper.respond_to_query_alive!(context.socket, context.query.id, false)
-
-      assert {:ok, false} = Task.await(task)
-    end
-  end
-
   describe "listing data source tables" do
     test "should list available tables" do
       tables = [%{"table" => true}]

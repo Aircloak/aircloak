@@ -60,16 +60,6 @@ defmodule Air.TestSocketHelper do
     :ok
   end
 
-  @doc "Awaits an is_alive request with the given query_id and responds with the given result."
-  @spec respond_to_query_alive!(pid, String.t, boolean, pos_integer) :: :ok
-  def respond_to_query_alive!(socket, query_id, result, timeout \\ :timer.seconds(1)) do
-    {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
-    %{request_id: request_id, event: "is_alive", payload: ^query_id} = request
-    {:ok, _ref} = TestSocket.push(socket, "main", "cloak_response", %{
-      request_id: request_id, status: :ok, result: result})
-    :ok
-  end
-
   @doc "Awaits a validate_views request with the given query_id and responds with the given result."
   @spec respond_to_validate_views!(pid, [map], pos_integer) :: :ok
   def respond_to_validate_views!(socket, results, timeout \\ :timer.seconds(1)) do

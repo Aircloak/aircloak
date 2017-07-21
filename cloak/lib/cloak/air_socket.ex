@@ -246,10 +246,6 @@ defmodule Cloak.AirSocket do
     respond_to_air(from, :ok)
     {:ok, state}
   end
-  defp handle_air_call("is_alive", query_id, from, state) do
-    respond_to_air(from, :ok, Cloak.Query.Runner.alive?(query_id))
-    {:ok, state}
-  end
   defp handle_air_call("running_queries", _, from, state) do
     respond_to_air(from, :ok, Cloak.Query.Runner.running_queries())
     {:ok, state}
