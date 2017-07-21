@@ -80,7 +80,11 @@ def encrypted(data)
   cipher.encrypt
   cipher.key = $encryption_key
   cipher.iv = "0000000000000000"
-  Base64.encode64(cipher.update(data) + cipher.final)
+  encode64(cipher.update(data) + cipher.final)
+end
+
+def encode64(data)
+  Base64.encode64(data).chomp
 end
 
 def encryption_wrap_for_mongo(data)
@@ -371,8 +375,8 @@ CSV.open("datagen/output/addresses_encoded.csv", "wb") do |csv|
   csv << ["id", "user_id", "home.city", "home.postal_code", "work.city", "work.postal_code"]
   addresses.each do |entry|
     csv << [entry[:id], entry[:user_id], encrypted(entry[:home][:city]),
-      Base64.encode64(entry[:home][:postal_code].to_s), encrypted(entry[:work][:city]),
-      Base64.encode64(entry[:work][:postal_code].to_s)]
+      encode64(entry[:home][:postal_code].to_s), encrypted(entry[:work][:city]),
+      encode64(entry[:work][:postal_code].to_s)]
   end
 end
 
@@ -386,8 +390,8 @@ open("datagen/output/addresses_mongo_encoded.json", "w") do |file|
   addresses.each do |entry|
     entry[:home][:city] = encryption_wrap_for_mongo(encrypted(entry[:home][:city]))
     entry[:work][:city] = encryption_wrap_for_mongo(encrypted(entry[:work][:city]))
-    entry[:home][:postal_code] = Base64.encode64(entry[:home][:postal_code].to_s)
-    entry[:work][:postal_code] = Base64.encode64(entry[:work][:postal_code].to_s)
+    entry[:home][:postal_code] = encode64(entry[:home][:postal_code].to_s)
+    entry[:work][:postal_code] = encode64(entry[:work][:postal_code].to_s)
     file.puts entry.to_json
   end
 end
