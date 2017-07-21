@@ -60,6 +60,11 @@ defmodule Air.Socket.Cloak.MainChannel do
   def query_alive?(channel_pid, query_id), do:
     call(channel_pid, "is_alive", query_id, :timer.seconds(5))
 
+  @doc "Returns the list of queries running on this cloak."
+  @spec running_queries(pid | nil) :: {:ok, [String.t]} | {:error, any}
+  def running_queries(channel_pid), do:
+    call(channel_pid, "running_queries", nil, :timer.seconds(5))
+
 
   # -------------------------------------------------------------------
   # Phoenix.Channel callback functions

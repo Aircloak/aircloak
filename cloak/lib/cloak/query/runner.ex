@@ -11,8 +11,9 @@ defmodule Cloak.Query.Runner do
   require Logger
   alias Cloak.{Sql.Query, DataSource, Query.Runner.Engine, ResultSender}
 
-  @supervisor_name Module.concat(__MODULE__, Supervisor)
-  @registry_name Module.concat(__MODULE__, Registry)
+  @supervisor_name __MODULE__.Supervisor
+  @runner_registry_name __MODULE__.RunnerRegistry
+  @queries_registry_name __MODULE__.QueriesRegistry
 
 
   # -------------------------------------------------------------------
@@ -26,13 +27,14 @@ defmodule Cloak.Query.Runner do
 
     supervisor(Supervisor, [
       [
-        supervisor(Registry, [:unique, @registry_name]),
+        supervisor(Registry, [:unique, @runner_registry_name], id: @runner_registry_name),
+        supervisor(Registry, [:unique, @queries_registry_name], id: @queries_registry_name),
         supervisor(Supervisor, [
           [worker(GenServer, [__MODULE__], restart: :temporary)],
           [id: @supervisor_name, name: @supervisor_name, strategy: :simple_one_for_one]
         ])
       ],
-      [id: Module.concat(__MODULE__, TopLevelSupervisor), strategy: :rest_for_one]
+      [id: __MODULE__.TopLevelSupervisor, strategy: :rest_for_one]
     ])
   end
 
@@ -59,11 +61,19 @@ defmodule Cloak.Query.Runner do
   @doc "Returns true if the worker for the given query is still alive, false otherwise."
   @spec alive?(String.t) :: boolean
   def alive?(query_id) do
-    case Registry.lookup(@registry_name, query_id) do
+    case Registry.lookup(@runner_registry_name, query_id) do
       [] -> false
       [_ | _] -> true
     end
   end
+
+  @doc "Returns the list of ids of running queries."
+  @spec running_queries() :: [String.t]
+  def running_queries(), do:
+    Enum.map(
+      Registry.lookup(@queries_registry_name, :instances),
+      fn({_pid, query_id}) -> query_id end
+    )
 
 
   # -------------------------------------------------------------------
@@ -72,6 +82,7 @@ defmodule Cloak.Query.Runner do
 
   @doc false
   def init({query_id, data_source, statement, parameters, views, result_target}) do
+    Registry.register(@queries_registry_name, :instances, query_id)
     Logger.metadata(query_id: query_id)
     Process.flag(:trap_exit, true)
     owner = self()
@@ -185,8 +196,8 @@ defmodule Cloak.Query.Runner do
 
   if Mix.env == :test do
     # tests run the same query in parallel, so we make the process name unique to avoid conflicts
-    def worker_name(_query_id), do: {:via, Registry, {@registry_name, :erlang.unique_integer()}}
+    def worker_name(_query_id), do: {:via, Registry, {@runner_registry_name, :erlang.unique_integer()}}
   else
-    def worker_name(query_id), do: {:via, Registry, {@registry_name, query_id}}
+    def worker_name(query_id), do: {:via, Registry, {@runner_registry_name, query_id}}
   end
 end
