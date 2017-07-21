@@ -20,9 +20,12 @@ defmodule Air.Service.Cleanup do
   @doc "Triggers marking queries for which processing stopped for unknown reasons as errored."
   @spec cleanup_dead_queries() :: :ok
   def cleanup_dead_queries() do
-    Air.Service.Query.currently_running()
-    |> Air.Repo.preload(:data_source)
-    |> Enum.filter(&match?({:ok, false}, Air.Service.DataSource.query_alive?(&1)))
+    # We need to first fetch pending queries on air, to avoid possible race conditions.
+    currently_running_as_seen_by_air = Air.Service.Query.currently_running()
+    currently_running_on_connected_cloaks = MapSet.new(Air.Service.Cloak.running_queries())
+
+    currently_running_as_seen_by_air
+    |> Enum.reject(&MapSet.member?(currently_running_on_connected_cloaks, &1.id))
     |> Enum.each(&Air.Service.Query.Lifecycle.query_died(&1.id))
 
     :ok

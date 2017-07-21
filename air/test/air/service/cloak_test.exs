@@ -4,7 +4,7 @@ defmodule Air.Service.Cloak.Test do
 
   import Air.AssertionHelper
 
-  alias Air.{Repo, TestRepoHelper, Schemas.DataSource, Service.Cloak}
+  alias Air.{Repo, TestRepoHelper, TestSocketHelper, Schemas.DataSource, Service.Cloak}
 
   @data_source_id "data_source_id"
   @data_source_name "data_source_name"
@@ -121,6 +121,19 @@ defmodule Air.Service.Cloak.Test do
     Cloak.register(TestRepoHelper.cloak_info("cloak2"), data_source_with_errors(["error"]))
     ["On cloak cloak2: error", "On cloak cloak1: error"] =
       Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+  end
+
+  test "collecting running queries from connected cloaks" do
+    {:connected, cloak1} = TestSocketHelper.connect(%{cloak_name: "cloak1"})
+    TestSocketHelper.join!(cloak1, "main", %{data_sources: [%{name: "ds1", global_id: "ds1", tables: []}]})
+
+    {:connected, cloak2} = TestSocketHelper.connect(%{cloak_name: "cloak2"})
+    TestSocketHelper.join!(cloak2, "main", %{data_sources: [%{name: "ds1", global_id: "ds1", tables: []}]})
+
+    task = Task.async(fn() -> Cloak.running_queries() end)
+    TestSocketHelper.respond_to_running_queries!(cloak1, ["foo", "bar"])
+    TestSocketHelper.respond_to_running_queries!(cloak2, ["baz"])
+    assert Enum.sort(Task.await(task)) == ["bar", "baz", "foo"]
   end
 
   defp data_source_with_errors(errors) do
