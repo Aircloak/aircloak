@@ -55,7 +55,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   @doc "Returns the list of queries running on this cloak."
   @spec running_queries(pid | nil) :: {:ok, [String.t]} | {:error, any}
   def running_queries(channel_pid), do:
-    call(channel_pid, "running_queries", nil, :timer.seconds(5))
+    call(channel_pid, "running_queries", nil, :timer.minutes(4))
 
 
   # -------------------------------------------------------------------
