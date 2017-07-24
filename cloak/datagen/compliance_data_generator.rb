@@ -130,27 +130,27 @@ CREATE TABLE users_encoded (id integer, name text, age text, active text, height
 
 EOS
 
-CSV.open("datagen/output/users.csv", "wb") do |csv|
+CSV.open("output/users.csv", "wb") do |csv|
   csv << ["id", "name", "age", "active", "height"]
   users.each do |entry|
     csv << [entry[:id], entry[:name], entry[:age], entry[:active], entry[:height]]
   end
 end
 
-CSV.open("datagen/output/users_encoded.csv", "wb") do |csv|
+CSV.open("output/users_encoded.csv", "wb") do |csv|
   csv << ["id", "name", "age"]
   users.each do |entry|
     csv << [entry[:id], encrypted(entry[:name]), entry[:age].to_s, entry[:active].to_s, entry[:height].to_s]
   end
 end
 
-open("datagen/output/users_mongo.json", "w") do |file|
+open("output/users_mongo.json", "w") do |file|
   users.each do |user|
     file.puts user.to_json
   end
 end
 
-open("datagen/output/users_mongo_encoded.json", "w") do |file|
+open("output/users_mongo_encoded.json", "w") do |file|
   users.each do |user|
     user[:name] = encryption_wrap_for_mongo(encrypted(user[:name]))
     user[:age] = user[:age].to_s
@@ -202,27 +202,27 @@ CREATE TABLE notes_encoded (id integer, user_id integer, title text, content tex
 
 EOS
 
-CSV.open("datagen/output/notes.csv", "wb") do |csv|
+CSV.open("output/notes.csv", "wb") do |csv|
   csv << ["id", "user_id", "title", "content"]
   notes.each do |entry|
     csv << [entry[:id], entry[:user_id], entry[:title], entry[:content]]
   end
 end
 
-CSV.open("datagen/output/notes_encoded.csv", "wb") do |csv|
+CSV.open("output/notes_encoded.csv", "wb") do |csv|
   csv << ["id", "user_id", "title", "content"]
   notes_encoded.each do |entry|
     csv << [entry[:id], entry[:user_id], entry[:title], entry[:content]]
   end
 end
 
-open("datagen/output/notes_mongo.json", "w") do |file|
+open("output/notes_mongo.json", "w") do |file|
   notes.each do |note|
     file.puts notes.to_json
   end
 end
 
-open("datagen/output/notes_mongo_encoded.json", "w") do |file|
+open("output/notes_mongo_encoded.json", "w") do |file|
   notes_encoded.each do |note|
     note[:title] = encryption_wrap_for_mongo(note[:title])
     note[:content] = encryption_wrap_for_mongo(note[:content])
@@ -286,7 +286,7 @@ CREATE TABLE drafts_changes_encoded (id integer, note_id integer, \"changes.date
 
 EOS
 
-CSV.open("datagen/output/drafts_changes.csv", "wb") do |csv|
+CSV.open("output/drafts_changes.csv", "wb") do |csv|
   csv << ["id", "note_id", "changes.date", "changes.change"]
 
   # We generate new unique ID's here, since the ones we have are only
@@ -300,7 +300,7 @@ CSV.open("datagen/output/drafts_changes.csv", "wb") do |csv|
   end
 end
 
-CSV.open("datagen/output/drafts_changes_encoded.csv", "wb") do |csv|
+CSV.open("output/drafts_changes_encoded.csv", "wb") do |csv|
   csv << ["id", "note_id", "changes.date", "changes.change"]
 
   # We generate new unique ID's here, since the ones we have are only
@@ -315,13 +315,13 @@ CSV.open("datagen/output/drafts_changes_encoded.csv", "wb") do |csv|
 end
 
 
-open("datagen/output/drafts_mongo.json", "w") do |file|
+open("output/drafts_mongo.json", "w") do |file|
   drafts.each do |draft|
     file.puts draft.to_json
   end
 end
 
-open("datagen/output/drafts_mongo_encoded.json", "w") do |file|
+open("output/drafts_mongo_encoded.json", "w") do |file|
   drafts_encoded.each do |draft|
     draft[:changes] = draft[:changes].map{|draft| draft[:change] = encryption_wrap_for_mongo(draft[:change])}
     file.puts draft.to_json
@@ -363,7 +363,7 @@ CREATE TABLE addresses_encoded (id integer, user_id integer, \"home.city\" text,
 
 EOS
 
-CSV.open("datagen/output/addresses.csv", "wb") do |csv|
+CSV.open("output/addresses.csv", "wb") do |csv|
   csv << ["id", "user_id", "home.city", "home.postal_code", "work.city", "work.postal_code"]
   addresses.each do |entry|
     csv << [entry[:id], entry[:user_id], entry[:home][:city], entry[:home][:postal_code],
@@ -371,7 +371,7 @@ CSV.open("datagen/output/addresses.csv", "wb") do |csv|
   end
 end
 
-CSV.open("datagen/output/addresses_encoded.csv", "wb") do |csv|
+CSV.open("output/addresses_encoded.csv", "wb") do |csv|
   csv << ["id", "user_id", "home.city", "home.postal_code", "work.city", "work.postal_code"]
   addresses.each do |entry|
     csv << [entry[:id], entry[:user_id], encrypted(entry[:home][:city]),
@@ -380,13 +380,13 @@ CSV.open("datagen/output/addresses_encoded.csv", "wb") do |csv|
   end
 end
 
-open("datagen/output/addresses_mongo.json", "w") do |file|
+open("output/addresses_mongo.json", "w") do |file|
   addresses.each do |address|
     file.puts address.to_json
   end
 end
 
-open("datagen/output/addresses_mongo_encoded.json", "w") do |file|
+open("output/addresses_mongo_encoded.json", "w") do |file|
   addresses.each do |entry|
     entry[:home][:city] = encryption_wrap_for_mongo(encrypted(entry[:home][:city]))
     entry[:work][:city] = encryption_wrap_for_mongo(encrypted(entry[:work][:city]))

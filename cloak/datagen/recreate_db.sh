@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
-. ./datagen/prepare_db.funcs.sh
+cd $(dirname $0)
+
+. ./prepare_db.funcs.sh
 
 function compliance_db_command() {
   cmd=$1
@@ -23,18 +25,18 @@ function generate_compliance_db() {
   compliance_db_command "CREATE TABLE addresses_encoded (id integer, user_id integer, \"home.city\" text, \"home.postal_code\" text, \"work.city\" text, \"work.postal_code\" text);"
 
   # Generate the dataset
-  mkdir -p datagen/output
-  ruby datagen/compliance_data_generator.rb
+  mkdir -p output
+  ruby compliance_data_generator.rb
 
   # Copy the data into the database
-  compliance_db_command "\copy users FROM '$PWD/datagen/output/users.csv' delimiter ',' csv header;"
-  compliance_db_command "\copy users_encoded FROM '$PWD/datagen/output/users_encoded.csv' delimiter ',' csv header;"
-  compliance_db_command "\copy notes FROM '$PWD/datagen/output/notes.csv' delimiter ',' csv header;"
-  compliance_db_command "\copy notes_encoded FROM '$PWD/datagen/output/notes_encoded.csv' delimiter ',' csv header;"
-  compliance_db_command "\copy drafts_changes FROM '$PWD/datagen/output/drafts_changes.csv' delimiter ',' csv header;"
-  compliance_db_command "\copy drafts_changes_encoded FROM '$PWD/datagen/output/drafts_changes_encoded.csv' delimiter ',' csv header;"
-  compliance_db_command "\copy addresses FROM '$PWD/datagen/output/addresses.csv' delimiter ',' csv header;"
-  compliance_db_command "\copy addresses_encoded FROM '$PWD/datagen/output/addresses_encoded.csv' delimiter ',' csv header;"
+  compliance_db_command "\copy users FROM '$PWD/output/users.csv' delimiter ',' csv header;"
+  compliance_db_command "\copy users_encoded FROM '$PWD/output/users_encoded.csv' delimiter ',' csv header;"
+  compliance_db_command "\copy notes FROM '$PWD/output/notes.csv' delimiter ',' csv header;"
+  compliance_db_command "\copy notes_encoded FROM '$PWD/output/notes_encoded.csv' delimiter ',' csv header;"
+  compliance_db_command "\copy drafts_changes FROM '$PWD/output/drafts_changes.csv' delimiter ',' csv header;"
+  compliance_db_command "\copy drafts_changes_encoded FROM '$PWD/output/drafts_changes_encoded.csv' delimiter ',' csv header;"
+  compliance_db_command "\copy addresses FROM '$PWD/output/addresses.csv' delimiter ',' csv header;"
+  compliance_db_command "\copy addresses_encoded FROM '$PWD/output/addresses_encoded.csv' delimiter ',' csv header;"
 }
 
 function main() {
@@ -50,9 +52,11 @@ function main() {
 
   # import dev schema and data
   psql -h $DB_HOST -p $DB_PORT -U postgres cloak < dev_data.sql
-  mix gen_dev_data
 
   generate_compliance_db
+
+  cd ../
+  mix gen_dev_data
 }
 
 export DB_HOST=${DB_HOST:-127.0.0.1}
