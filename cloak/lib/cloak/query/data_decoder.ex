@@ -182,10 +182,11 @@ defmodule Cloak.Query.DataDecoder do
   end
 
   defp text_to_boolean(value) when is_binary(value) do
-    if String.downcase(value) in ["true", "yes", "1"] do
-      {:ok, true}
-    else
-      {:ok, false}
+    case String.downcase(value) do
+      input when input in ["true", "yes", "1"] -> {:ok, true}
+      input when input in ["false", "no", "0"] -> {:ok, false}
+      _otherwise -> :error
     end
   end
+  defp text_to_boolean(_), do: :error
 end
