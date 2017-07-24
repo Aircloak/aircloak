@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.MySQL do
 
   @behaviour Cloak.DataSource.Driver
 
-  @unsupported_functions ["date_trunc"]
+  @unsupported_functions ["date_trunc", "btrim", "ltrim", "rtrim"]
 
   @doc false
   def connect!(parameters) do
