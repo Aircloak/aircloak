@@ -23,6 +23,7 @@ require 'csv'
 
 $user_ids = (1..100)
 $encryption_key = "1234567890ABCDEF"
+$iv = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0].pack("C*")
 
 
 # -------------------------------------------------------------------
@@ -79,7 +80,7 @@ def encrypted(data)
   cipher = OpenSSL::Cipher.new('AES-128-CBC')
   cipher.encrypt
   cipher.key = $encryption_key
-  cipher.iv = "0000000000000000"
+  cipher.iv = $iv
   encode64(cipher.update(data) + cipher.final)
 end
 
