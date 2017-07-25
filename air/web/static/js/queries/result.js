@@ -246,16 +246,21 @@ export class ResultView extends React.Component {
 
   formatDateTime(value: string): string {
     const [date, time] = value.split("T");
-    if (time === undefined) return date;
-    return `${date} ${this.formatTime(time)}`;
+    if (time === undefined) {
+      return date;
+    } else {
+      return `${date} ${this.formatTime(time)}`;
+    }
   }
 
   formatTime(value: string): string {
     const [hms, us] = value.split(".");
-    if (us === "000000" || us === undefined) {
+    const ZERO_US = "000000";
+    if (us ===  ZERO_US || us === undefined) {
       return hms;
     } else {
-      return `${hms}.${us.substr(0, 3)}`;
+      const SUBSECOND_PRECISION = 3;
+      return `${hms}.${us.substr(0, SUBSECOND_PRECISION)}`;
     }
   }
 
