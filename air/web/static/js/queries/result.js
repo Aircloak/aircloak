@@ -256,7 +256,7 @@ export class ResultView extends React.Component {
   formatTime(value: string): string {
     const [hms, us] = value.split(".");
     const ZERO_US = "000000";
-    if (us ===  ZERO_US || us === undefined) {
+    if (us === ZERO_US || us === undefined) {
       return hms;
     } else {
       const SUBSECOND_PRECISION = 3;
