@@ -7,6 +7,9 @@ defmodule Cloak.DataSource.Driver do
   @type connection :: any
   @type parameters :: any
 
+  @doc "Returns an atom describing the query dialect of this specific driver implementation."
+  @callback dialect(parameters) :: atom
+
   @doc "Opens a new connection to the data store."
   @callback connect!(parameters) :: connection
 

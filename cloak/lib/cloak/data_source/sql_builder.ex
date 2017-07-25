@@ -11,9 +11,13 @@ defmodule Cloak.DataSource.SqlBuilder do
   # API
   # -------------------------------------------------------------------
 
+  @spec build(Query.t) :: String.t
+  @doc "Constructs a parametrized SQL query that can be executed against a backend."
+  def build(query), do: build(query, query.data_source.driver_dialect)
+
   @spec build(Query.t, atom) :: String.t
-  @doc "Constructs a parametrized SQL query that can be executed against a backend"
-  def build(query, :mysql = sql_dialect) do
+  @doc "Constructs a parametrized SQL query that can be executed against a backend."
+  def build(query, :mysql) do
     # MySQL and MariaDB do not support FULL joins, so we have to split it into LEFT and RIGHT joins
     # see: http://www.xaprb.com/blog/2006/05/26/how-to-write-full-outer-join-in-mysql/
     case split_full_outer_join(query.from) do
@@ -21,8 +25,8 @@ defmodule Cloak.DataSource.SqlBuilder do
         [%Expression{function?: true, function: "coalesce", function_args: [first_id | _]} | _] = query.db_columns
         query1 = %Query{query | from: left_join}
         query2 = %Query{query | from: right_join, where: Condition.combine(:and, query.where, {:is, first_id, :null})}
-        build(query1, sql_dialect) <> " UNION ALL " <> build(query2, sql_dialect)
-      _ -> query |> build_fragments(sql_dialect) |> to_string()
+        build(query1, :mysql) <> " UNION ALL " <> build(query2, :mysql)
+      _ -> query |> build_fragments(:mysql) |> to_string()
     end
   end
   def build(query, sql_dialect) do

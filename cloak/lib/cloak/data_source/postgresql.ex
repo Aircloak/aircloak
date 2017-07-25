@@ -16,6 +16,9 @@ defmodule Cloak.DataSource.PostgreSQL do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
+  def dialect(_parameters), do: :postgresql
+
+  @doc false
   def connect!(parameters) do
     self = self()
     parameters = Enum.to_list(parameters) ++ [types: Postgrex.DefaultTypes, sync_connect: true,
@@ -54,14 +57,14 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   @doc false
   def select(connection, sql_query, result_processor) do
-    statement = SqlBuilder.build(sql_query, :postgresql)
+    statement = SqlBuilder.build(sql_query)
     field_mappers = for column <- sql_query.db_columns, do:
       column |> DataDecoder.encoded_type() |> type_to_field_mapper()
     run_query(connection, statement, &map_fields(&1, field_mappers), result_processor)
   end
 
   @doc false
-  def supports_query?(_query), do: true
+  def supports_query?(query), do: SqlBuilder.Support.supported_query?(query)
 
 
   # -------------------------------------------------------------------
