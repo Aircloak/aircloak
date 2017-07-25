@@ -33,16 +33,14 @@ defmodule Cloak.DataSource.SqlBuilder do
     query |> build_fragments(sql_dialect) |> to_string()
   end
 
-  @doc "Returns a name uniquely identifying a column in the generated query."
-  @spec column_name(Expression.t, atom) :: String.t
-  def column_name(%Expression{table: :unknown, name: name}, sql_dialect), do: quote_name(name, sql_dialect)
-  def column_name(column, sql_dialect), do:
-    "#{quote_name(column.table.name, sql_dialect)}.#{quote_name(column.name, sql_dialect)}"
-
 
   # -------------------------------------------------------------------
   # Transformation of query AST to query specification
   # -------------------------------------------------------------------
+
+  defp column_name(%Expression{table: :unknown, name: name}, sql_dialect), do: quote_name(name, sql_dialect)
+  defp column_name(column, sql_dialect), do:
+    "#{quote_name(column.table.name, sql_dialect)}.#{quote_name(column.name, sql_dialect)}"
 
   defp build_fragments(query, sql_dialect) do
     [
