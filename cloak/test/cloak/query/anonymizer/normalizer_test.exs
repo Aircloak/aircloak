@@ -22,7 +22,7 @@ defmodule Cloak.Query.Anonimyzer.Normalizer.Test do
       refute same(0.1123123, -0.1123456)
 
     test "should return the same number of significant digits irrespective of internal alterations" do
-      normalized = Normalizer.normalize_float(12.34, 1)
+      {{normalized, _}, _} = Normalizer.normalize_float(12.34, 1)
       # When 12.34 was normalized to have one place before the decimal point,
       # it became 1.234. We however wanted to retain 1 significant digit of
       # the original number (i.e. the 3). The final normalized value then
