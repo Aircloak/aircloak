@@ -269,7 +269,18 @@ defmodule Cloak.Query.Anonymizer do
 
   defp compute_hash(data), do: :crypto.hash(:sha256, :erlang.term_to_binary(make_uniform(data)))
 
-  defp make_uniform([data]) when is_float(data), do: trunc(data)
+  # We keep 4 decimal places worth of floating point data in the seed.
+  # According to Wikipedia [1]:
+  # > all integers with 6 or fewer significant decimal digits can be converted
+  # > to an IEEE 754 floating-point value without loss of precision [1]
+  # which seems to indicate that we should be able to keep more significant
+  # digits, but this doesn't seem to be the case in practise.
+  # 4+ significant digits as is currently kept (+ because of the rounding), seems
+  # a decent tradeof between fidelity in the seed, and uniformity across
+  # datasources providing different levels of floating point accuracy.
+  #
+  # 1: https://en.wikipedia.org/wiki/Single-precision_floating-point_format
+  defp make_uniform([number]) when is_float(number), do: round(number * 10000)
   defp make_uniform(data), do: data
 
   defp binary_to_seed(binary) do
