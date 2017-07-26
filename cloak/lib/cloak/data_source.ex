@@ -13,14 +13,7 @@ defmodule Cloak.DataSource do
           db_name: "table name",
           user_id: "user id column name",
           ignore_unsupported_types: false,
-          foreign_keys: [
-            %{
-              table: "another table",
-              foreign_key: "another_table_id",
-              primary_key: "id,
-            },
-            ...
-          ]
+          keys: ["another_table_id"]
         ]
       ]
     ]
@@ -37,8 +30,8 @@ defmodule Cloak.DataSource do
   If 'ignore_unsupported_types' is set to true then columns with types that aren't supported by the driver
   will be ignored at this point and unavailable for processing.
 
-  The foreign_keys field in each table can be used to list fields that refer to other tables. That way when a join
-  condition of the form fk = pk will be added no additional noise layers will be generating, resulting in less overall
+  The keys field in each table can be used to list fields that refer to other tables. That way when a join
+  condition of the form fk = pk will be added, no additional noise layers will be generated, resulting in less overall
   noise in those cases. There is no need to add the projection (if any) to this list - it's included automatically.
 
   The data source schema will also be sent to air, so it can be referenced by incoming tasks.
@@ -206,7 +199,7 @@ defmodule Cloak.DataSource do
   defp to_data_source(data_source) do
     data_source
     |> Aircloak.atomize_keys()
-    |> standardize_foreign_keys()
+    |> standardize_key_lists()
     |> Map.put(:errors, [])
     |> Map.put(:status, nil)
     |> Validations.Name.ensure_permitted()
@@ -262,13 +255,21 @@ defmodule Cloak.DataSource do
     |> Map.put(:tables, data_source.initial_tables)
     |> Map.put(:errors, data_source.initial_errors)
 
-  defp standardize_foreign_keys(data_source) do
-    tables = for {key, table} <- data_source.tables, into: %{} do
-      if is_nil(table[:projection]) do
-        {key, Map.put(table, :foreign_keys, Map.get(table, :foreign_keys, []))}
-      else
-        {key, Map.put(table, :foreign_keys, [Map.get(table, :projection) | Map.get(table, :foreign_keys, [])])}
-      end
+  defp standardize_key_lists(data_source) do
+    tables = for {name, table} <- data_source.tables, into: %{} do
+      keys = Map.get(table, :keys, [])
+
+      primary_keys =
+        data_source.tables
+        |> Map.values()
+        |> Enum.filter(fn(other) -> other[:projection] && other.projection.table == to_string(name) end)
+        |> Enum.map(fn(other) -> other.projection.primary_key end)
+
+      foreign_keys = if table[:projection],
+        do: [table.projection.foreign_key],
+        else: []
+
+      {name, Map.put(table, :keys, keys ++ primary_keys ++ foreign_keys)}
     end
 
     %{data_source | tables: tables}
