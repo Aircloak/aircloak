@@ -18,7 +18,7 @@ defmodule Cloak.Query.Anonymizer.Normalizer do
   The function will ensure that similar looking numbers like 1.2345 and 12.345
   produce different results.
   """
-  @spec normalize_float(float, non_neg_integer) :: float
+  @spec normalize_float(float, non_neg_integer) :: term
   def normalize_float(number, significant_digits), do:
     {normalize_float(abs(number), significant_digits, 0), number < 0}
 
