@@ -31,7 +31,7 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
     year quarter month day hour minute second weekday date_trunc
     sqrt floor ceil abs round trunc div mod ^ * / + -
     length lower upper btrim ltrim rtrim left right substring substring_for concat
-    hex cast coalesce
+    hex cast coalesce bucket
   )
 
   @mysql_supported_functions ~w(
@@ -39,7 +39,7 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
     year quarter month day hour minute second weekday
     sqrt floor ceil abs round trunc div mod ^ * / + -
     length lower upper btrim/1 ltrim/1 rtrim/1 left right substring substring_for concat
-    hex cast coalesce
+    hex cast coalesce bucket
   )
 
   @sqlserver_supported_functions ~w(
@@ -47,7 +47,7 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
     year quarter month day hour minute second weekday
     sqrt floor ceil abs round trunc div mod ^ * / + -
     length lower upper ltrim rtrim left right substring substring_for concat
-    hex cast coalesce
+    hex cast coalesce bucket
   )
 
   defp supported_functions(:postgresql), do: @postgresql_supported_functions
@@ -58,7 +58,7 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   defp function_signature(%Expression{function: name, function_args: args}) when is_binary(name), do:
     {name, length(args)}
   defp function_signature(%Expression{function: {:cast, _target}, function_args: [_]}), do: {"cast", 1}
-  defp function_signature(_expression), do: {nil, 0}
+  defp function_signature(%Expression{function: {:bucket, _type}, function_args: [_, _]}), do: {"bucket", 2}
 
   defp supported_function?({name, args}, sql_dialect) do
     supported_functions = supported_functions(sql_dialect)
