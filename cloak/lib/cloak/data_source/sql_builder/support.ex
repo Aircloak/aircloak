@@ -20,27 +20,33 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   # Internal functions
   # -------------------------------------------------------------------
 
+  @synonyms %{
+    "pow" => "^", "ceiling" => "ceil", "%" => "mod",
+    "lcase" => "lower", "ucase" => "upper", "||" => "concat",
+  }
+  defp synonym(name), do: Map.get(@synonyms, name, name)
+
   @postgresql_supported_functions ~w(
     count sum min max avg stddev
     year quarter month day hour minute second weekday date_trunc
-    sqrt floor ceiling ceil abs round trunc div mod pow ^ * / + - %
-    length lower lcase upper ucase btrim ltrim rtrim left right substring substring_for || concat
+    sqrt floor ceil abs round trunc div mod ^ * / + -
+    length lower upper btrim ltrim rtrim left right substring substring_for concat
     hex cast coalesce
   )
 
   @mysql_supported_functions ~w(
     count sum min max avg stddev
     year quarter month day hour minute second weekday
-    sqrt floor ceiling ceil abs round trunc div mod pow ^ * / + - %
-    length lower lcase upper ucase btrim/1 ltrim/1 rtrim/1 left right substring substring_for || concat
+    sqrt floor ceil abs round trunc div mod ^ * / + -
+    length lower upper btrim/1 ltrim/1 rtrim/1 left right substring substring_for concat
     hex cast coalesce
   )
 
   @sqlserver_supported_functions ~w(
     count sum min max avg stddev
     year quarter month day hour minute second weekday
-    sqrt floor ceiling ceil abs round trunc div mod pow ^ * / + - %
-    length lower lcase upper ucase ltrim rtrim left right substring substring_for || concat
+    sqrt floor ceil abs round trunc div mod ^ * / + -
+    length lower upper ltrim rtrim left right substring substring_for concat
     hex cast coalesce
   )
 
@@ -56,6 +62,7 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
 
   defp supported_function?({name, args}, sql_dialect) do
     supported_functions = supported_functions(sql_dialect)
+    name = synonym(name)
     name in supported_functions or "#{name}/#{args}" in supported_functions
   end
 end
