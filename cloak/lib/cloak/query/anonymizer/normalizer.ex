@@ -33,11 +33,4 @@ defmodule Cloak.Query.Anonymizer.Normalizer do
     normalize_float(number / 10, n, exponent + 1)
   defp normalize_float(number, n, exponent) when number < 1, do:
     normalize_float(number * 10, n, exponent - 1)
-
-  # When we have divided a number down to having one digit before the comma sign (10.1 -> 1.01)
-  # we also need to keep additional significant digits, to retain the original desired number of
-  # significant digits. I.e. if we wanted to 1 significant digits, and went from 10.1 to 1.01,
-  # then we need to retain both the 0 and the 1 after the comma, as opposed to just the 0.
-  defp significant_digits(significant_digits, exponent) when exponent > 0, do: significant_digits + exponent
-  defp significant_digits(significant_digits, _exponent), do: significant_digits
 end
