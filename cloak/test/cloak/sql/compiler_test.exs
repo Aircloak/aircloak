@@ -960,9 +960,15 @@ defmodule Cloak.Sql.Compiler.Test do
       assert [%{name: "key", key?: true}] = result.columns
     end
 
-    test "marking aliased key columns"
+    test "marking aliased key columns" do
+      result = compile!("SELECT key AS something FROM table", data_source())
+      assert [%{key?: true}] = result.columns
+    end
 
-    test "marking key columns from subqueries"
+    test "marking key columns from subqueries" do
+      result = compile!("SELECT something FROM (SELECT uid, key as something FROM table) foo", data_source())
+      assert [%{key?: true}] = result.columns
+    end
   end
 
   defp projected_table_db_columns(query), do:
