@@ -138,11 +138,6 @@ defmodule Cloak.Sql.Compiler.Test do
       assert {:error, _} = compile("select #{unquote(function)}(string) from table", data_source())
       assert {:error, _} = compile("select #{unquote(function)}(distinct string) from table", data_source())
     end
-
-    test "rejecting #{function} on datetime columns in top query" do
-      assert {:error, _} = compile("select #{unquote(function)}(column) from table", data_source())
-      assert {:error, _} = compile("select #{unquote(function)}(distinct column) from table", data_source())
-    end
   end
 
   for function <- ~w(avg stddev sqrt) do
@@ -736,7 +731,8 @@ defmodule Cloak.Sql.Compiler.Test do
       select count(*) from (select uid from table group by uid having avg(numeric) > 0.1 and avg(numeric) <= 4.9) x
     """, data_source())
 
-    assert aligned |> Map.drop([:info]) |> scrub_aliases() == unaligned |> Map.drop([:info]) |> scrub_aliases()
+    assert aligned |> Map.drop([:info, :column_titles]) |> scrub_aliases() ==
+      unaligned |> Map.drop([:info, :column_titles]) |> scrub_aliases()
     assert unaligned.info == ["The range for column `avg` has been adjusted to 0.0 <= `avg` < 5.0."]
   end
 
@@ -951,6 +947,11 @@ defmodule Cloak.Sql.Compiler.Test do
     assert {:error, reason} = compile("select date_trunc(string, column) from table", data_source())
     assert reason == "Function `date_trunc` requires arguments of type (`constant text`, `time`)" <>
       " or (`constant text`, `datetime` | `date`), but got (`text`, `datetime`)."
+  end
+
+  test "rejecting aggregates in the WHERE-clause" do
+    assert {:error, reason} = compile("select count(*) from table where count(*) > 10 group by numeric", data_source())
+    assert reason == "Expression `count` is not valid in the `WHERE` clause."
   end
 
   defp projected_table_db_columns(query), do:

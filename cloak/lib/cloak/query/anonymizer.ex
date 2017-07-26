@@ -166,8 +166,8 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   @doc """
-    Computes the noisy standard deviation and noise sigma of all values in rows,
-    where each row is an enumerable of numbers.
+  Computes the noisy standard deviation and noise sigma of all values in rows,
+  where each row is an enumerable of numbers.
   """
   @spec stddev(t, Enumerable.t) :: {float, float}
   def stddev(anonymizer, rows) do
@@ -178,8 +178,11 @@ defmodule Cloak.Query.Anonymizer do
     variances = Stream.map(rows, fn ({:stddev, sum, sum_sqrs, count}) ->
       {:avg, sum_sqrs + mean * (count * mean - 2 * sum), count}
     end)
-    {avg_variance, noise_sigma_variance} = avg(anonymizer, variances)
-    {:math.sqrt(abs(avg_variance)), :math.sqrt(noise_sigma_variance)}
+    case avg(anonymizer, variances) do
+      {nil, nil} -> {nil, nil}
+      {avg_variance, noise_sigma_variance} ->
+        {:math.sqrt(abs(avg_variance)), :math.sqrt(noise_sigma_variance)}
+    end
   end
 
   @doc "Computes the median value of all values in rows, where each row is an enumerable of numbers."
@@ -193,9 +196,9 @@ defmodule Cloak.Query.Anonymizer do
 
     top_count = config(:top_count)
     {noisy_above_count, anonymizer} = add_noise(anonymizer, top_count)
-    noisy_above_count = round(noisy_above_count)
+    noisy_above_count = noisy_above_count |> round() |> Kernel.max(0)
     {noisy_below_count, anonymizer} = add_noise(anonymizer, top_count)
-    noisy_below_count = round(noisy_below_count)
+    noisy_below_count = noisy_below_count |> round() |> Kernel.max(0)
 
     middle = round((Enum.count(values) - 1) / 2)
     {bottom_values, [{_middle_user_index, middle_value} | top_values]} = Enum.split(values, middle - 1)
@@ -213,15 +216,15 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   @doc """
-    Returns a noisy version of the value passed as the parameter.
-    This anonymization function is only to be used when each user
-    is only represented at most once in the value.
+  Returns a noisy version of the value passed as the parameter.
+  This anonymization function is only to be used when each user
+  is only represented at most once in the value.
 
-    A good example of a valid use would be to get a noisy count of
-    distinct users in a result set.
+  A good example of a valid use would be to get a noisy count of
+  distinct users in a result set.
 
-    No low count check is done, and should be separately performed
-    using `sufficiently_large?/1`.
+  No low count check is done, and should be separately performed
+  using `sufficiently_large?/1`.
   """
   @spec noisy_count(t, integer) :: integer
   def noisy_count(anonymizer, count) do
@@ -376,7 +379,7 @@ defmodule Cloak.Query.Anonymizer do
     {outliers_count, anonymizer} = add_noise(anonymizer, config(:outliers_count))
     outliers_count = outliers_count |> round() |> Kernel.max(config(:min_outliers_count))
     {top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
-    top_count = round(top_count)
+    top_count = top_count |> round() |> Kernel.max(0)
 
     {top_length, top_values} = Enum.reduce(rows, {0, []}, fn
       (row, {top_length, top}) when top_length <= outliers_count + top_count ->
@@ -402,7 +405,7 @@ defmodule Cloak.Query.Anonymizer do
 
   # Returns the average of a set of values + noise with SD of the quarter of the SD of the input values
   defp noisy_average(values, anonymizer) do
-    value_count = Enum.count(values)
+    value_count = values |> Enum.count() |> Kernel.max(1)
     average = Enum.sum(values) / value_count
     variance = (values |> Enum.map(&(&1 - average) * (&1 - average)) |> Enum.sum()) / value_count
     quarter_stddev = :math.sqrt(variance) / 4

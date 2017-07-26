@@ -1,35 +1,66 @@
 defmodule Air.Service.Cleanup.Test do
   use ExUnit.Case, async: false
 
-  alias Air.{Settings, Repo, TestRepoHelper, Schemas.Query, Service.Cleanup}
+  alias Air.{Settings, Repo, TestRepoHelper, TestSocketHelper, Schemas.Query, Service.Cleanup}
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
+    :ok = Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
     Repo.delete_all(Query)
     :ok
   end
 
   describe "cleanup_old_queries" do
     test "does nothing with unlimited retention" do
-      query = TestRepoHelper.create_query!(TestRepoHelper.create_user!())
+      query = create_query!()
       Cleanup.cleanup_old_queries(%Settings{query_retention_days: :unlimited})
       assert Repo.all(Query) |> Enum.map(&(&1.id)) == [query.id]
     end
 
     test "removes queries older than retention days" do
-      TestRepoHelper.create_query!(TestRepoHelper.create_user!())
+      create_query!()
       Cleanup.cleanup_old_queries(%Settings{query_retention_days: 10}, _now = in_days(11))
       assert Repo.all(Query) == []
     end
 
     test "leaves queries not older than retention days" do
-      query = TestRepoHelper.create_query!(TestRepoHelper.create_user!())
+      query = create_query!()
       Cleanup.cleanup_old_queries(%Settings{query_retention_days: 10}, _now = in_days(9))
       assert Repo.all(Query) |> Enum.map(&(&1.id)) == [query.id]
+    end
+  end
+
+  describe "cleanup_dead_queries" do
+    test "erroring a query not found in connected cloaks" do
+      query = create_query!()
+      Cleanup.cleanup_dead_queries()
+      :timer.sleep(100)
+
+      assert %Query{query_state: :error, result: %{"error" => "Query died."}} = Repo.get!(Query, query.id)
+    end
+
+    test "not erroring a query found in connected cloaks" do
+      query = create_query!()
+
+      {:connected, cloak} = TestSocketHelper.connect(%{cloak_name: "cloak"})
+      TestSocketHelper.join!(cloak, "main", %{data_sources: [%{name: "ds", global_id: "ds", tables: []}]})
+
+      task = Task.async(fn -> Cleanup.cleanup_dead_queries() end)
+      TestSocketHelper.respond_to_running_queries!(cloak, [query.id])
+      Task.await(task)
+      :timer.sleep(100)
+
+      assert %Query{query_state: :started, result: nil} = Repo.get!(Query, query.id)
     end
   end
 
   defp in_days(days) do
     Timex.shift(NaiveDateTime.utc_now(), days: days)
   end
+
+  defp create_query!(), do:
+    TestRepoHelper.create_query!(
+      TestRepoHelper.create_user!(),
+      %{data_source_id: TestRepoHelper.create_data_source!().id}
+    )
 end

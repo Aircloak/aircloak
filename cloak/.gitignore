@@ -38,3 +38,5 @@ priv/serialization.lua
 /deps
 *.ez
 /artifacts/
+
+/datagen/output/

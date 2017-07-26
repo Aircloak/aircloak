@@ -71,10 +71,9 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_function_usage({:function, name, [argument]}, _subquery? = false) when name in ["min", "max", "median"] do
-    type = Function.type(argument)
-    if Enum.member?([:text, :date, :time, :datetime], type), do:
+    if Function.type(argument) == :text, do:
       raise CompilationError, message:
-        "Function `#{name}` is allowed over arguments of type `#{type}` only in subqueries."
+        "Function `#{name}` is allowed over arguments of type `text` only in subqueries."
     :ok
   end
   defp verify_function_usage({:function, name, _}, _subquery? = true) do
@@ -114,7 +113,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_group_by_functions(query) do
     query.group_by
-    |> Enum.filter(& &1.aggregate?)
+    |> Enum.filter(&aggregate_expression?/1)
     |> case do
       [] -> :ok
       [expression | _] -> raise CompilationError, message:
@@ -232,7 +231,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
     Lenses.conditions_terminals()
     |> Lens.to_list(clauses)
-    |> Enum.filter(& &1.aggregate?)
+    |> Enum.filter(&aggregate_expression?/1)
     |> case do
       [] -> :ok
       [column | _rest] ->
@@ -319,4 +318,12 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_subquery_offset(%{offset: offset, limit: limit}, alias) when is_nil(limit) and offset > 0, do:
     raise CompilationError, message: "Subquery `#{alias}` has an OFFSET clause without a LIMIT clause."
   defp verify_subquery_offset(subquery, _), do: subquery
+
+
+  # -------------------------------------------------------------------
+  # Helpers
+  # -------------------------------------------------------------------
+
+  defp aggregate_expression?(%Expression{aggregate?: true}), do: true
+  defp aggregate_expression?(_), do: false
 end

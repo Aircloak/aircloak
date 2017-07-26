@@ -121,7 +121,7 @@ defmodule Cloak.DataSource.MongoDB do
 
   @doc false
   def select(connection, query, result_processor) do
-    {collection, pipeline} = query.subquery? |> put_in(false) |> Pipeline.build()
+    {collection, pipeline} = Pipeline.build(query)
     options = [max_time: @timeout, timeout: @timeout, pool_timeout: @timeout, batch_size: 25_000, allow_disk_use: true]
     columns_count = Enum.count(query.db_columns)
     result =
@@ -165,8 +165,7 @@ defmodule Cloak.DataSource.MongoDB do
   defp map_field(%BSON.Binary{binary: value}), do: value
   defp map_field(%BSON.DateTime{} = value) do
     {{year, month, day}, {hour, minute, second, usec}} = BSON.DateTime.to_datetime(value)
-    usec = if usec == 0, do: {0, 0}, else: {usec, 3}
-    NaiveDateTime.new(year, month, day, hour, minute, second, usec) |> error_to_nil()
+    NaiveDateTime.new(year, month, day, hour, minute, second, {usec, 6}) |> error_to_nil()
   end
   defp map_field(value), do: value
 

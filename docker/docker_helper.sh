@@ -242,18 +242,18 @@ function mpi_init {
   # Support for rebuilding of all images. Change this date if you want to
   # force the rebuild of all images. Usually you want to do this if you
   # want to upgrade Debian packages on all images.
-  upgrade_date="20170112"
+  upgrade_date="20170710"
   echo "RUN echo '$upgrade_date' > /dev/null"
 
   # Start the RUN command
   echo "RUN mkdir -p /tmp/build_config && \\"
 
   if [ "$CONTAINER_ENV" = "prod" ]; then
-    # set mpi repos & proxies
+    # set repos & proxies
     cat <<-EOF
-      echo "deb http://acmirror.mpi-sws.org/debian jessie main" > /etc/apt/sources.list && \\
-      echo "deb http://acmirror.mpi-sws.org/debian jessie-updates main" >> /etc/apt/sources.list && \\
-      echo "deb http://acmirror.mpi-sws.org/debian-security jessie/updates main" >> /etc/apt/sources.list && \\
+      echo "deb http://ftp.de.debian.org/debian jessie main" > /etc/apt/sources.list && \\
+      echo "deb http://ftp.de.debian.org/debian jessie-updates main" >> /etc/apt/sources.list && \\
+      echo "deb http://ftp.de.debian.org/debian-security jessie/updates main" >> /etc/apt/sources.list && \\
       echo 'export https_proxy=http://acmirror.mpi-sws.org:3128' > /tmp/build_config/proxies.sh && \\
       echo 'export http_proxy=http://acmirror.mpi-sws.org:3128' >> /tmp/build_config/proxies.sh && \\
       echo 'export no_proxy=localhost,127.0.0.1,acmirror.mpi-sws.org' >> /tmp/build_config/proxies.sh && \\
@@ -429,7 +429,7 @@ function untag_registry_tags {
 }
 
 function debian_version {
-  echo "8.5"
+  echo "8.8"
 }
 
 function erlang_version {

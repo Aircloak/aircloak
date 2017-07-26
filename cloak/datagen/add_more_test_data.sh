@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
+cd $(dirname $0)
+
 function main() {
   echo "-------- Creating data --------"
-  ruby gen_bank_data.rb > bank_data.sql
+  ruby ./gen_bank_data.rb > bank_data.sql
   echo "-------- Importing data --------"
   psql -h $DB_HOST -p $DB_PORT -U postgres cloak < bank_data.sql
   echo "-------- Cleaning up --------"

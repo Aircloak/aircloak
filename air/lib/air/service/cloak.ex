@@ -85,6 +85,16 @@ defmodule Air.Service.Cloak do
   def cloak_infos_for_data_source(name), do:
     for {pid, cloak_info} <- Registry.lookup(@data_source_registry_name, name), do: lookup_memory(pid, cloak_info)
 
+  @doc "Returns the list of queries running on all connected cloaks."
+  @spec running_queries() :: [String.t]
+  def running_queries(), do:
+    Registry.lookup(@all_cloak_registry_name, :all_cloaks)
+    |> Stream.map(fn({pid, _}) -> pid end)
+    |> Enum.map(&Task.async(fn -> Air.Socket.Cloak.MainChannel.running_queries(&1) end))
+    |> Stream.map(&Task.await/1)
+    |> Stream.filter(&match?({:ok, _}, &1))
+    |> Enum.flat_map(fn({:ok, query_ids}) -> query_ids end)
+
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -130,6 +140,7 @@ defmodule Air.Service.Cloak do
 
       existing_definitions_for_data_source_by_cloak(name)
       |> Enum.map(fn({_cloak_name, data_source}) -> data_source end)
+      |> Enum.reject(&is_nil/1)
       |> Enum.all?(&(tables == &1.tables))
       |> if do
         data_source

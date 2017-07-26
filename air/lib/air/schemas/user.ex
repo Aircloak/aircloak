@@ -26,6 +26,11 @@ defmodule Air.Schemas.User do
 
     timestamps()
 
+    # number format overrides
+    field :decimal_sep, :string
+    field :thousand_sep, :string
+    field :decimal_digits, :integer
+
     # These virtual fields are used for validation,
     # but never persisted to the database
     field :password, :string, virtual: true

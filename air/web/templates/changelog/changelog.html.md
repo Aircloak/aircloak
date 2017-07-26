@@ -3,10 +3,35 @@
 ### New features
 
 - Added the `date_trunc` function
+- Added global and per-user custom settings for displaying numbers in the UI.
+- Support for using min/max/median aggregators over date/time value in the top-level query.
 
 ### Enhancements
 
 - Like patterns can now include an escape string
+- More human-friendly rendering of date/time values in the UI.
+
+### Bugfixes
+
+- Fixed crash in min/max aggregators when there are insufficient data to produce a value.
+
+## Version 17.3.2
+
+### Bugfixes
+
+- Fixed bug where encoded data would not get properly decoded when offloading joins to MongoDB.
+
+## Version 17.3.1
+
+### Bugfixes
+
+- Fixed crash when joining two subqueries over a MongoDB data set.
+- Fixed crash in `stddev` aggregate in cases where there are insufficient data to produce a value.
+- Fixed crash that could manifest itself when using an alias in an emulated subquery.
+- Fixes filtering of data in an intermediate emulated query.
+- Fixed bug that duplicated the user id column for projected tables.
+- Fixed bug where no tables where shown when creating a new view.
+- Fixed crash because of ambiguous column name after a join.
 
 ## Version 17.3.0
 

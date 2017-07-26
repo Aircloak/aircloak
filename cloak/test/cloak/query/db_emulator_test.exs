@@ -388,6 +388,23 @@ defmodule Cloak.Query.DBEmulatorTest do
           (select user_id, age * 2 as age from #{@prefix}joined) as t
         ) as t2 on user_id = uid
       """, %{rows: [%{occurrences: 1, row: [10, 61.0]}]}
+
+      test "left join with filter in subquery" do
+        assert_query """
+          select value from (
+            select #{@prefix}emulated.user_id, value from
+              #{@prefix}emulated left join (select user_id as uid from #{@prefix}joined) as t on user_id = uid
+              where t.uid is null) as t
+        """, %{rows: [%{occurrences: 10, row: ["abc"]}]}
+      end
+
+      test "left join with filter in top query" do
+        assert_query """
+          select value from #{@prefix}emulated left join
+            (select user_id as uid from #{@prefix}joined) as t on user_id = uid and value = 'abc'
+          where t.uid is null
+        """, %{rows: [%{occurrences: 10, row: ["abc"]}]}
+      end
   end
 
   test "emulated subqueries with extra dummy columns" do

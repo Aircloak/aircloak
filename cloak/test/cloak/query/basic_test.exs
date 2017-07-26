@@ -14,6 +14,9 @@ defmodule Cloak.Query.BasicTest do
 
   setup do
     Cloak.Test.DB.clear_table("heights")
+    Cloak.Test.DB.clear_table("children")
+    Cloak.Test.DB.clear_table("weird")
+    Cloak.Test.DB.clear_table("dates")
     :ok
   end
 

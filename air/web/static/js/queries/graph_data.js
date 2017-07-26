@@ -3,7 +3,7 @@
 import _ from "lodash";
 import type {Row, Column} from "./result";
 
-type ValueFormatter = (value: any) => any;
+type ValueFormatter = (value: any, columnIndex: number) => any;
 
 type Series = {label: Column, data: number[]};
 
@@ -94,9 +94,8 @@ export const GraphData = (
 
   const x = () => rows.map(({row}) =>
     graphConfig.xColumns().map((columnIndex) =>
-      row[columnIndex]).
-        map(valueFormatter).
-        join(", ")
+        valueFormatter(row[columnIndex], columnIndex)
+      ).join(", ")
     );
 
   const xLabel = () => graphConfig.xColumns().map((columnIndex) =>

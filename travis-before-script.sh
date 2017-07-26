@@ -65,7 +65,6 @@ function banner() {
 
     banner "air deps"
     pushd air
-
     make deps
     popd
 

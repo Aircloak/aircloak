@@ -1,7 +1,7 @@
 defmodule Air.TestRepoHelper do
   @moduledoc "Helpers for working with the repository."
 
-  alias Air.{Service.User, Schemas.ApiToken, Schemas.Group, Repo}
+  alias Air.{Service.User, Service.Query, Schemas.ApiToken, Schemas.Group, Repo}
 
   @doc "Inserts the new user with default parameters into the database."
   @spec create_user!(%{}) :: Air.Schemas.User.t
@@ -69,19 +69,11 @@ defmodule Air.TestRepoHelper do
 
   @doc "Inserts a test query into the database"
   @spec create_query!(Air.Schemas.User.t, %{}) :: Air.Schemas.Query.t
-  def create_query!(user, params \\ %{statement: "query content", session_id: Ecto.UUID.generate()}) do
-    query =
-      user
-      |> Ecto.build_assoc(:queries)
-      |> Air.Schemas.Query.changeset(Map.merge(%{context: :http}, params))
-      |> Repo.insert!()
-      |> Repo.preload(:rows)
-
-    query
-    |> Ecto.Changeset.change(%{result: storable_result(params[:result])})
-    |> Ecto.Changeset.put_assoc(:rows, Ecto.Changeset.change(query.rows, %{rows: encode_rows(params[:result])}))
-    |> Repo.update!()
-  end
+  def create_query!(user, params \\ %{statement: "query content", session_id: Ecto.UUID.generate()}), do:
+    user
+    |> Ecto.build_assoc(:queries)
+    |> Air.Schemas.Query.changeset(Map.merge(%{context: :http}, params))
+    |> Repo.insert!()
 
   @doc "Registers a cloak a serving a data source, returning the data source id"
   @spec create_and_register_data_source() :: String.t
@@ -99,7 +91,7 @@ defmodule Air.TestRepoHelper do
   @doc "Retrieves a query from the database by id."
   @spec get_query(String.t) :: {:ok, Air.Schemas.Query.t} | {:error, :not_found}
   def get_query(id) do
-    case Air.Repo.get(Air.Schemas.Query, id) |> Air.Repo.preload(:rows) do
+    case Air.Repo.get(Air.Schemas.Query, id) do
       nil -> {:error, :not_found}
       query -> {:ok, query}
     end
@@ -147,12 +139,14 @@ defmodule Air.TestRepoHelper do
     end
   end
 
-  @doc "Computes the row count from the result."
-  @spec row_count(map) :: nil | non_neg_integer
-  def row_count(%{rows: rows}), do:
-    rows |> Stream.map(&(&1.occurrences)) |> Enum.sum()
-  def row_count(_), do:
-    nil
+  @doc "Sends the query result to the Query service."
+  @spec send_query_result(String.t, map, [map]) :: :ok
+  def send_query_result(query_id, result, rows \\ nil), do:
+    result
+    |> Map.put(:query_id, query_id)
+    |> Map.put(:chunks, encode_chunks(rows))
+    |> Map.put(:row_count, row_count(rows))
+    |> Query.process_result()
 
 
   # -------------------------------------------------------------------
@@ -168,11 +162,22 @@ defmodule Air.TestRepoHelper do
     :ok
   end
 
-  defp storable_result(nil), do:
+  defp encode_chunks(nil), do:
+    []
+  defp encode_chunks(rows), do:
+    rows
+    |> Stream.chunk(1000, 1000, [])
+    |> Stream.with_index()
+    |> Enum.map(&encode_chunk/1)
+
+  defp encode_chunk({rows, index}), do:
+    %{
+      index: index,
+      encoded_data: rows |> :jiffy.encode([:use_nil]) |> :zlib.gzip()
+    }
+
+  defp row_count(nil), do:
     nil
-  defp storable_result(result) do
-    result
-    |> Map.delete(:rows)
-    |> Map.put(:row_count, row_count(result))
-  end
+  defp row_count(rows), do:
+    rows |> Stream.map(&(&1.occurrences)) |> Enum.sum()
 end

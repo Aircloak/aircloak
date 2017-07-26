@@ -38,10 +38,7 @@ defmodule Cloak.Query.DataDecoder do
   @spec decode(Enumerable.t, Query.t) :: Enumerable.t
   def decode(stream, %Query{db_columns: db_columns}) do
     if Enum.any?(db_columns, &needs_decoding?/1) do
-      decoders =
-        db_columns
-        |> get_in([Query.Lenses.leaf_expressions()])
-        |> Enum.map(&get_decoders/1)
+      decoders = Enum.map(db_columns, &get_decoders/1)
       Stream.map(stream, fn (row) ->
         Enum.zip(row, decoders) |> Enum.map(&decode_value/1)
       end)
@@ -98,6 +95,8 @@ defmodule Cloak.Query.DataDecoder do
     %{method: &text_to_date/1, columns: columns, in: :text, out: :date}
   defp do_create_from_config(_table, %{method: "text_to_time", columns: columns}), do:
     %{method: &text_to_time/1, columns: columns, in: :text, out: :time}
+  defp do_create_from_config(_table, %{method: "text_to_boolean", columns: columns}), do:
+    %{method: &text_to_boolean/1, columns: columns, in: :text, out: :boolean}
   defp do_create_from_config(_table, decoder), do:
     raise "Invalid data decoder definition: `#{inspect(decoder)}`."
 
@@ -181,4 +180,13 @@ defmodule Cloak.Query.DataDecoder do
       {:error, _reason} -> :error
     end
   end
+
+  defp text_to_boolean(value) when is_binary(value) do
+    case String.downcase(value) do
+      input when input in ["true", "yes", "1"] -> {:ok, true}
+      input when input in ["false", "no", "0"] -> {:ok, false}
+      _otherwise -> :error
+    end
+  end
+  defp text_to_boolean(_), do: :error
 end

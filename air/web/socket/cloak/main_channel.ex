@@ -52,13 +52,10 @@ defmodule Air.Socket.Cloak.MainChannel do
     with {:ok, _} <- call(channel_pid, "stop_query", query_id, :timer.seconds(5)), do: :ok
   end
 
-  @doc """
-  Returns {:ok, true} if the given query is still being processed, {:ok, false} if it's not.
-  Returns {:error, reason} if there was a communication failure.
-  """
-  @spec query_alive?(pid | nil, String.t) :: {:ok, boolean} | {:error, any}
-  def query_alive?(channel_pid, query_id), do:
-    call(channel_pid, "is_alive", query_id, :timer.seconds(5))
+  @doc "Returns the list of queries running on this cloak."
+  @spec running_queries(pid | nil) :: {:ok, [String.t]} | {:error, any}
+  def running_queries(channel_pid), do:
+    call(channel_pid, "running_queries", nil, :timer.minutes(4))
 
 
   # -------------------------------------------------------------------
@@ -157,6 +154,10 @@ defmodule Air.Socket.Cloak.MainChannel do
 
     {:noreply, socket}
   end
+  defp handle_cloak_message("query_state", payload, socket) do
+    Air.Service.Query.Lifecycle.state_changed(payload.query_id, payload.query_state)
+    {:noreply, socket}
+  end
   defp handle_cloak_message("cloak_response", payload, socket) do
     request_id = payload.request_id
 
@@ -190,13 +191,6 @@ defmodule Air.Socket.Cloak.MainChannel do
     Logger.info("received result for query #{query_result.query_id}")
     respond_to_cloak(socket, request_id, :ok)
     Air.Service.Query.Lifecycle.result_arrived(query_result)
-    {:noreply, socket}
-  end
-  defp handle_cloak_call("query_state", payload, request_id, socket) do
-    respond_to_cloak(socket, request_id, :ok)
-
-    Air.Service.Query.Lifecycle.state_changed(payload.query_id, payload.query_state)
-
     {:noreply, socket}
   end
   defp handle_cloak_call(other, payload, request_id, socket) do

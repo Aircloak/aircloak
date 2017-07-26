@@ -62,7 +62,6 @@ defmodule Cloak.Test.DB do
 
   def init(_) do
     execute!("DROP SCHEMA IF EXISTS cloak_test CASCADE")
-    clear_test_tables()
     execute!("CREATE SCHEMA cloak_test")
     {:ok, nil}
   end
@@ -78,12 +77,6 @@ defmodule Cloak.Test.DB do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp clear_test_tables() do
-    DataSource.all()
-    |> Enum.map(&Map.put(&1, :tables, %{}))
-    |> DataSource.update()
-  end
 
   defp create_db_table(db_name, definition, opts) do
     if opts[:skip_db_create] do

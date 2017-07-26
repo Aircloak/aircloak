@@ -19,10 +19,10 @@ defmodule Air.Socket.Frontend.UserChannel do
   @doc """
   Broadcasts the change in the state of a query to all listening clients.
   """
-  @spec broadcast_state_change(Schemas.Query.t) :: :ok
-  def broadcast_state_change(query) do
+  @spec broadcast_state_change(Schemas.Query.t, nil | [map]) :: :ok
+  def broadcast_state_change(query, buckets \\ nil) do
     Air.Endpoint.broadcast_from!(self(), "state_changes:all", "state_change", state_change_message(query))
-    payload = Schemas.Query.for_display(query)
+    payload = Schemas.Query.for_display(query, buckets)
     Air.Endpoint.broadcast_from!(self(), "user_queries:#{query.user_id}", "state_change", payload)
     Air.Endpoint.broadcast_from!(self(), "query:#{query.id}", "state_change", payload)
     :ok

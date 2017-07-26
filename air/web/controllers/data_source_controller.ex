@@ -50,8 +50,9 @@ defmodule Air.DataSourceController do
         pending_queries: pending_queries,
         guardian_token: Guardian.Plug.current_token(conn),
         csrf_token: CSRFProtection.get_csrf_token(),
-        last_query: last_query,
-        session_id: Ecto.UUID.generate()
+        last_query: (if last_query != nil, do: Air.Schemas.Query.for_display(last_query)),
+        session_id: Ecto.UUID.generate(),
+        number_format: Air.Service.User.number_format_settings(conn.assigns.current_user),
       )
     else
       _ ->

@@ -53,6 +53,18 @@ defmodule Air.Mixfile do
   defp deps do
     [
       {:ecto, "~> 2.1", override: true},
+      # Current master has a fix to a bug introduced in 1.2.2 whereby you cannot
+      # concurrently compile markdown because of a global GenServer fucking things up.
+      # The fix is in this commit:
+      # https://github.com/pragdave/earmark/commit/ffc6d226f40baadde5756c7c91bd7d90d41b67ff
+      # Once it has a released version, we should update to that.
+      # We are currently using the latest version as per the time of locking down this
+      # dependency, which also contains a couple other fixes.
+      # NOTE: Since this is a non-hex dependency it needed to be manually classified in the BOM.
+      #       When reverting to a hex dependency, please clean up the classification in
+      #       lib/bom/gatherer/elixir.ex
+      {:earmark, github: "pragdave/earmark", ref: "2bc90510ddc6245ff6afcaf6cfb526e3a9fadf89",
+        runtime: false, override: true},
       {:postgrex, "~> 0.13.0", override: true},
       {:phoenix, "~> 1.2.1"},
       {:phoenix_pubsub, "~> 1.0"},
@@ -61,12 +73,11 @@ defmodule Air.Mixfile do
       {:phoenix_html, "~> 2.4"},
       {:phoenix_live_reload, "~> 1.0", only: :dev},
       {:phoenix_gen_socket_client, "~> 1.1.0"},
-      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.1.0"},
+      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.2.4"},
       {:gettext, "~> 0.9"},
       {:cowboy, "~> 1.0"},
       {:comeonin, "~> 2.5"},
       {:guardian, "~> 0.13.0"},
-      {:lhttpc, github: "esl/lhttpc", override: true},
       {:timex, ">= 3.1.10 and < 4.0.0"},
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
@@ -75,7 +86,7 @@ defmodule Air.Mixfile do
       {:scrivener_ecto, "~> 1.0"},
       {:scrivener_html, "~> 1.1"},
       {:decimal, "~> 1.3.0"},
-      {:quantum, "~> 1.9.0"},
+      {:quantum, "~> 1.9"},
       {:remote_ip, "~> 0.1.0"},
       {:ecto_enum, "~> 1.0.0"},
       {:jiffy, "~> 0.14.1"},

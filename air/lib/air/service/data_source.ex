@@ -42,7 +42,17 @@ defmodule Air.Service.DataSource do
   @spec supervisor_spec() :: Supervisor.Spec.spec
   def supervisor_spec() do
     import Supervisor.Spec, warn: false
-    supervisor(Task.Supervisor, [[name: @task_supervisor, restart: :temporary]], [id: @task_supervisor])
+    supervisor(
+      Supervisor,
+      [
+        [
+          Air.ProcessQueue.supervisor_spec(__MODULE__.Queue, size: 5),
+          supervisor(Task.Supervisor, [[name: @task_supervisor, restart: :temporary]], [id: @task_supervisor])
+        ],
+        [strategy: :one_for_one]
+      ],
+      id: __MODULE__
+    )
   end
 
   @doc "Returns the count of all known data sources."
@@ -68,11 +78,11 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Returns most recent queries executed on the given data source by the given user."
-  @spec history(data_source_id_spec, User.t, Query.Context.t, pos_integer, NaiveDateTime.t, [load_rows: boolean]) ::
+  @spec history(data_source_id_spec, User.t, Query.Context.t, pos_integer, NaiveDateTime.t) ::
     {:ok, [Query.t]} | {:error, :unauthorized}
-  def history(data_source_id_spec, user, context, count, before, opts \\ []) do
+  def history(data_source_id_spec, user, context, count, before) do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user), do:
-      {:ok, Air.Service.Query.load_recent_queries(user, data_source, context, count, before, opts)}
+      {:ok, Air.Service.Query.load_recent_queries(user, data_source, context, count, before)}
   end
 
   @doc "Returns the last query executed on the given data source by the given user."
@@ -124,12 +134,17 @@ defmodule Air.Service.DataSource do
 
     on_available_cloak(data_source_id_spec, user,
       fn(data_source, channel_pid, %{id: cloak_id}) ->
-        query = create_query(cloak_id, data_source.id, user, context, statement, parameters, opts[:session_id])
+        query =
+          Air.ProcessQueue.run(__MODULE__.Queue, fn ->
+            query = create_query(cloak_id, data_source.id, user, context, statement, parameters, opts[:session_id])
 
-        UserChannel.broadcast_state_change(query)
+            UserChannel.broadcast_state_change(query)
 
-        Air.Service.AuditLog.log(user, "Executed query",
-          Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.name}))
+            Air.Service.AuditLog.log(user, "Executed query",
+              Map.merge(opts[:audit_meta], %{query: statement, data_source: data_source.name}))
+
+            query
+          end)
 
         if opts[:notify] == true, do: Service.Query.Events.subscribe(query.id)
 
@@ -153,7 +168,13 @@ defmodule Air.Service.DataSource do
       receive do
         {:query_result, %{query_id: ^query_id} = result} ->
           Service.Query.Events.unsubscribe(query_id)
-          {:ok, result}
+          {:ok, query} = Air.Service.Query.get_as_user(user, query_id)
+
+          {:ok,
+            result
+            |> Map.delete(:chunks)
+            |> Map.put(:buckets, Air.Service.Query.buckets(query, :all))
+          }
       end
     end
   end
@@ -165,30 +186,6 @@ defmodule Air.Service.DataSource do
     Air.Service.AuditLog.log(user, "Stopped query",
       Map.merge(audit_meta, %{query: query.statement, data_source: query.data_source.name}))
     do_stop_query(query)
-  end
-
-  @doc """
-  Can be used to check if the query is still being processed.
-
-  Returns {:ok, true} if the query is still processed by any cloak. Returns {:ok, false} if it's not.
-  Returns {:error, reason} if an error occured while trying to find that out.
-  """
-  @spec query_alive?(Query.t) :: {:ok, boolean} | {:error, any}
-  def query_alive?(query) do
-    exception_to_tuple(fn() ->
-      if available?(query.data_source.name) do
-        results = for {channel, _cloak} <- Cloak.channel_pids(query.data_source.name), do:
-          MainChannel.query_alive?(channel, query.id)
-
-        cond do
-          Enum.any?(results, &match?({:ok, true}, &1)) -> {:ok, true}
-          Enum.any?(results, &match?({:error, _}, &1)) -> Enum.find(results, &match?({:error, _}, &1))
-          true -> {:ok, false}
-        end
-      else
-        {:error, :not_connected}
-      end
-    end)
   end
 
   @doc "Returns a list of data sources given their names"

@@ -299,6 +299,7 @@ defmodule Cloak.Query.FunctionTest do
   test "*", do: assert 360 == apply_function("height * 2", "heights_ft")
   test "/", do: assert 1 == apply_function("height / height", "heights_ft")
   test "^", do: assert 32_400.0 == apply_function("height ^ 2", "heights_ft")
+  test "%", do: assert 3 == apply_function("10 % 7", "heights_ft")
 
   test "trunc/1", do: assert 180 == apply_function("trunc", ["frac"], [180.6], "types_ft")
   test "trunc/2", do: assert 180.12 == apply_function("trunc", ["frac", "num"], [180.126, 2], "types_ft")
@@ -329,6 +330,7 @@ defmodule Cloak.Query.FunctionTest do
   test "hour", do: assert 4 == apply_function("hour(datetime)", "datetimes_ft")
   test "minute", do: assert 5 == apply_function("minute(datetime)", "datetimes_ft")
   test "second", do: assert 6 == apply_function("second(datetime)", "datetimes_ft")
+  test "quarter", do: assert 1 == apply_function("quarter(datetime)", "datetimes_ft")
 
   test "extract(year)", do: assert 2015 == apply_function("extract(year from datetime)", "datetimes_ft")
   test "extract(month)", do: assert 2 == apply_function("extract(month from datetime)", "datetimes_ft")

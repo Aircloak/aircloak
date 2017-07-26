@@ -2,7 +2,7 @@ defmodule BOM.Gather.Elixir do
   @moduledoc "Logic for reading elixir dependency information."
 
   alias BOM.{Gather,License}
-
+  require Logger
 
   # -------------------------------------------------------------------
   # API
@@ -26,30 +26,37 @@ defmodule BOM.Gather.Elixir do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp package({path, version}) do
+  defp package({path, {source, version}}) do
     %BOM.Package{
       realm: :elixir,
       name: package_name(path),
       path: path,
-      license: license(path, version),
+      license: license(source, path, version),
       version: version,
     }
   end
 
-  defp license(path, version) do
-    type = license_type(path)
-
-    Gather.public_domain_license(type) ||
-      Gather.license_from_file(path, type) ||
-      Gather.license_from_readme(path, type) ||
-      BOM.Whitelist.find(:elixir, package_name(path), version)
+  defp license(:hex, path, version), do:
+    path
+    |> hex_license(version)
+    |> make_license(path, version)
+  defp license(_not_from_hex, path, version) do
+    case non_hex_license(package_name(path), version) do
+      nil -> %License{type: :unknown, text: ""}
+      type -> make_license(type, path, version)
+    end
   end
 
-  defp license_type(path) do
-    case path |> package_name() |> BOM.Gather.Elixir.Hex.package() do
-      {:error, _} -> nil
-      {:ok, %{"meta" => %{"licenses" => nil}}} -> nil
-      {:ok, %{"meta" => %{"licenses" => licenses}}} ->
+  defp make_license(type, path, version), do:
+    Gather.public_domain_license(type) ||
+    Gather.license_from_file(path, type) ||
+    Gather.license_from_readme(path, type) ||
+    BOM.Whitelist.find(:elixir, package_name(path), version)
+
+  defp hex_license(path, version) do
+    case BOM.Gather.Elixir.Hex.licenses(package_name(path), version) do
+      nil -> nil
+      licenses ->
         licenses
         |> Enum.map(&License.name_to_type/1)
         |> Enum.find(&License.allowed_type?/1)
@@ -61,11 +68,30 @@ defmodule BOM.Gather.Elixir do
       {deps, []} = Code.eval_string(text)
 
       for {package, spec} <- deps, into: %{} do
-        [_, _, version | _] = Tuple.to_list(spec)
-        {to_string(package), version}
+        [source, _, version | _] = Tuple.to_list(spec)
+        {to_string(package), {source, version}}
       end
     end)
   end
 
   defp package_name(path), do: Path.basename(path)
+
+  for {package_name, version, license} <-
+    [
+      {"meck", "dde759050eff19a1a80fd854d7375174b191665d", :apache2},
+      {"earmark", "2bc90510ddc6245ff6afcaf6cfb526e3a9fadf89", :apache2},
+      {"pbkdf2", "7076584f5377e98600a7e2cb81980b2992fb2f71", :apache2},
+      {"poison", "1a6bff505c22047e18a9318e01bda63ede20d649", :"cc0-1.0"},
+      {"websocket_client", "c2a6cf11233cad54a7f7e6c89bca172f2b494f9d", :mit},
+    ]
+  do
+    defp non_hex_license(unquote(package_name), unquote(version)), do:
+      unquote(license)
+  end
+  defp non_hex_license(unknown_package, unknown_version) do
+    if BOM.Whitelist.shipped?(:elixir, unknown_package), do:
+      Logger.warn("unknown shipped non-hex dependency #{unknown_package} #{unknown_version}")
+
+    nil
+  end
 end
