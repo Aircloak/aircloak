@@ -267,7 +267,7 @@ defmodule Cloak.Query.Anonymizer do
     end)
   end
 
-  defp compute_hash(data), do: :crypto.hash(:sha256, :erlang.term_to_binary(make_uniform(data)))
+  defp compute_hash(data), do: :crypto.hash(:sha256, :erlang.term_to_binary(normalize(data)))
 
   # We keep 4 decimal places worth of floating point data in the seed.
   # According to Wikipedia [1]:
@@ -280,11 +280,9 @@ defmodule Cloak.Query.Anonymizer do
   # datasources providing different levels of floating point accuracy.
   #
   # 1: https://en.wikipedia.org/wiki/Single-precision_floating-point_format
-  defp make_uniform([number]) when is_float(number), do: significant_digis(number, 4)
-  defp make_uniform(data), do: data
-
-  defp significant_digis(number, n) when number >= 1, do: Float.round(number, n)
-  defp significant_digis(number, n), do: significant_digis(number * 10, n)
+  defp normalize([number]) when is_float(number), do:
+    Cloak.Query.Anonymizer.Normalizer.normalize_float(number, 4)
+  defp normalize(data), do: data
 
   defp binary_to_seed(binary) do
     <<left :: bitstring - size(128), right :: bitstring - size(128)>> = binary
