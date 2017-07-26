@@ -22,14 +22,10 @@ defmodule Cloak.Query.Anonimyzer.Normalizer.Test do
       refute same(0.1123123, -0.1123456)
 
     test "should return the same number of significant digits irrespective of internal alterations" do
-      {{normalized, _}, _} = Normalizer.normalize_float(12.34, 1)
-      # When 12.34 was normalized to have one place before the decimal point,
-      # it became 1.234. We however wanted to retain 1 significant digit of
-      # the original number (i.e. the 3). The final normalized value then
-      # became XXX1.23, where XXX is some cruft added in to make the number
-      # distinct from other similar values.
-      assert rem(trunc(normalized * 100), 10) == 3
-      assert rem(trunc(normalized * 1000), 10) == 0
+      {{number1, exponent1}, _} = Normalizer.normalize_float(1.234, 3)
+      {{number2, exponent2}, _} = Normalizer.normalize_float(12.34, 3)
+      assert number1 == number2
+      refute exponent1 == exponent2
     end
   end
 

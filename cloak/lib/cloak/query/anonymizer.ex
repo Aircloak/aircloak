@@ -281,7 +281,7 @@ defmodule Cloak.Query.Anonymizer do
   #
   # 1: https://en.wikipedia.org/wiki/Single-precision_floating-point_format
   defp normalize([number]) when is_float(number), do:
-    Cloak.Query.Anonymizer.Normalizer.normalize_float(number, 4)
+    Cloak.Query.Anonymizer.Normalizer.normalize_float(number, 6)
   defp normalize(data), do: data
 
   defp binary_to_seed(binary) do

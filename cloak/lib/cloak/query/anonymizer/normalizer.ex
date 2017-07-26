@@ -28,7 +28,7 @@ defmodule Cloak.Query.Anonymizer.Normalizer do
   # -------------------------------------------------------------------
 
   defp normalize_float(number, n, exponent) when number >= 1 and number < 10, do:
-    {Float.round(number, significant_digits(n, exponent)), exponent}
+    {Float.round(number, n - 1), exponent}
   defp normalize_float(number, n, exponent) when number >= 10, do:
     normalize_float(number / 10, n, exponent + 1)
   defp normalize_float(number, n, exponent) when number < 1, do:
