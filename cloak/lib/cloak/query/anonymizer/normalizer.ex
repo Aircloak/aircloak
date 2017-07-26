@@ -27,10 +27,6 @@ defmodule Cloak.Query.Anonymizer.Normalizer do
   # -------------------------------------------------------------------
 
   defp normalize_float(number, n, change, was_negative) when number >= 1 and number < 10 do
-    # When we have divided a number down to having one digit before the comma sign (10.1 -> 1.01)
-    # we also need to keep additional significant digits, to retain the original desired number of
-    # significant digits. I.e. if we wanted to 1 significant digits, and went from 10.1 to 1.01,
-    # then we need to retain both the 0 and the 1 after the comma, as opposed to just the 0.
     adjusted_number = Float.round(
       adjust_number_for_change(number, change),
       significant_digits(n, change)
@@ -50,6 +46,10 @@ defmodule Cloak.Query.Anonymizer.Normalizer do
   defp adjust_number_for_change(number, change) when change < 0, do: number + 199 * abs(change)
   defp adjust_number_for_change(number, change), do: number + 197 * change
 
+  # When we have divided a number down to having one digit before the comma sign (10.1 -> 1.01)
+  # we also need to keep additional significant digits, to retain the original desired number of
+  # significant digits. I.e. if we wanted to 1 significant digits, and went from 10.1 to 1.01,
+  # then we need to retain both the 0 and the 1 after the comma, as opposed to just the 0.
   defp significant_digits(n, change) when change < 0, do: n + abs(change)
   defp significant_digits(n, _change), do: n
 end
