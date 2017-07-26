@@ -5,6 +5,7 @@
 - Added the `date_trunc` function
 - Added global and per-user custom settings for displaying numbers in the UI.
 - Support for using min/max/median aggregators over date/time value in the top-level query.
+- Median is now supported in subqueries. When it is used, emulation will be activated for the query.
 
 ### Enhancements
 
