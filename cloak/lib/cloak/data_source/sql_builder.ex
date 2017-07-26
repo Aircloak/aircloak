@@ -67,9 +67,8 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql({:distinct, column}, sql_dialect), do: ["DISTINCT ", column_sql(column, sql_dialect)]
   defp column_sql(%Expression{alias: alias} = column, sql_dialect) when alias != nil and alias != "",
     do: [column_sql(%Expression{column | alias: nil}, sql_dialect), " AS ", quote_name(alias, sql_dialect)]
-  defp column_sql(%Expression{function?: true, function: fun_name, function_args: args, type: type}, sql_dialect)
-    when fun_name != nil, do: DbFunction.sql(fun_name,
-      Enum.map(args, &column_sql(&1, sql_dialect)), type, sql_dialect)
+  defp column_sql(%Expression{function?: true, function: fun_name, function_args: args}, sql_dialect)
+    when fun_name != nil, do: DbFunction.sql(fun_name, Enum.map(args, &column_sql(&1, sql_dialect)), sql_dialect)
   defp column_sql(%Expression{constant?: true, type: :like_pattern, value: value}, _sql_dialect), do:
     like_pattern_to_fragment(value)
   defp column_sql(%Expression{constant?: true, value: value}, _sql_dialect), do: constant_to_fragment(value)
@@ -77,7 +76,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   # This is needed in the case of using the ODBC driver with a GUID user id,
   # as the GUID type is not supported by the Erlang ODBC library
   defp column_sql(%Expression{type: :unknown, name: name} = column, :sqlserver) when name != nil, do:
-    DbFunction.sql({:cast, :varbinary}, [column_name(column, :sqlserver)], :unknown, :sqlserver)
+    DbFunction.sql({:cast, :varbinary}, [column_name(column, :sqlserver)], :sqlserver)
   defp column_sql(column, sql_dialect), do: column_name(column, sql_dialect)
 
   defp from_clause({:join, join}, query, sql_dialect) do

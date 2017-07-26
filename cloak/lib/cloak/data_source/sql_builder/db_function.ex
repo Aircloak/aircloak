@@ -2,6 +2,7 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
   @moduledoc "SQL code generation for database function invocations"
 
   alias Cloak.Query.ExecutionError
+  alias Cloak.Sql.Expression
 
 
   # -------------------------------------------------------------------
@@ -13,10 +14,10 @@ defmodule Cloak.DataSource.SqlBuilder.DbFunction do
 
   Provided arguments list must contain SQL fragments.
   """
-  @spec sql(Cloak.Sql.Expression.function_name, [iodata], Cloak.DataSource.data_type, atom) :: iodata
-  def sql({:cast, type}, [arg], _parsed_type, sql_dialect),
-    do: sql("cast", [arg, sql_type(type, sql_dialect)], type, sql_dialect)
-  def sql(fun_name, fun_args, _parsed_type, sql_dialect), do: function_call(fun_name, fun_args, sql_dialect)
+  @spec sql(Expression.function_name, [Expression.t], atom) :: iodata
+  def sql({:cast, type}, [arg], sql_dialect),
+    do: sql("cast", [arg, sql_type(type, sql_dialect)], sql_dialect)
+  def sql(fun_name, fun_args, sql_dialect), do: function_call(fun_name, fun_args, sql_dialect)
 
 
   # -------------------------------------------------------------------
