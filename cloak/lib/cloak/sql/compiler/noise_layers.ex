@@ -193,17 +193,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Enum.map(&build_noise_layer/1)
 
   defp fk_pk_condition?({:comparison, lhs, :=, rhs}), do:
-    do_fk_pk_condition?(lhs, rhs) or do_fk_pk_condition?(rhs, lhs)
+    Expression.key?(lhs) and Expression.key?(rhs)
   defp fk_pk_condition?(_), do: false
-
-  defp do_fk_pk_condition?(_lhs, %{table: :unknown}), do: false
-  defp do_fk_pk_condition?(%{table: :unknown}, _rhs), do: false
-  defp do_fk_pk_condition?(lhs, rhs), do:
-    %{
-      foreign_key: lhs.name,
-      primary_key: rhs.name,
-      table: rhs.table.name,
-    } in Map.get(lhs.table, :foreign_keys, [])
 
   defp range_noise_layers(%{ranges: ranges}), do:
     Enum.flat_map(ranges, fn(%{column: column, interval: range}) ->

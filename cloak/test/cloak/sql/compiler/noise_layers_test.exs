@@ -502,6 +502,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
           ],
           decoders: [%{method: "base64", spec: &Base.decode64/1, columns: ["decoded"]}],
           projection: nil,
+          keys: ["id"],
         },
 
         other: %{
@@ -526,13 +527,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
           user_id: "uid",
           columns: [Table.column("uid", :integer), Table.column("table_id", :integer)],
           projection: nil,
-          foreign_keys: [
-            %{
-              table: "table",
-              foreign_key: "table_id",
-              primary_key: "id",
-            }
-          ]
+          keys: ["table_id"],
         }
       }
     }
