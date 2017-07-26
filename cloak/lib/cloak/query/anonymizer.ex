@@ -280,7 +280,7 @@ defmodule Cloak.Query.Anonymizer do
   # datasources providing different levels of floating point accuracy.
   #
   # 1: https://en.wikipedia.org/wiki/Single-precision_floating-point_format
-  defp make_uniform([number]) when is_float(number), do: round(number * 10_000)
+  defp make_uniform([number]) when is_float(number), do: Float.round(number, 4)
   defp make_uniform(data), do: data
 
   defp binary_to_seed(binary) do
