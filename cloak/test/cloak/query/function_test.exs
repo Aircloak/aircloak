@@ -229,6 +229,11 @@ defmodule Cloak.Query.FunctionTest do
     )
   end
 
+  test "extract_match in where clause" do
+    assert_query("SELECT extract_match(string_number, '1|2|3|4') as first FROM heights_ft WHERE first IS NOT NULL",
+      %{rows: [%{row: ["4"], occurrences: 100}]})
+  end
+
   test "invalid extract_matches usage in where clause" do
     assert_query("SELECT extract_matches(name, '\\w+') FROM heights_ft WHERE extract_matches(name, '[a-z]') = 'first'",
       %{error: "Row splitter function used in the `WHERE` clause"

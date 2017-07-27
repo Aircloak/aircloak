@@ -25,7 +25,6 @@ defmodule Cloak.Sql.Compiler.Execution do
   def prepare(%Query{command: :select} = query), do:
     query
     |> prepare_subqueries()
-    |> reject_null_user_ids()
     |> censor_selected_uids()
     |> align_buckets()
     |> align_ranges(Lens.key(:where))
@@ -36,6 +35,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> calculate_db_columns()
     |> parse_row_splitters()
     |> compute_aggregators()
+    |> reject_null_user_ids()
 
   @doc "Creates an executable query which describes a SELECT statement from a single table."
   @spec make_select_query(DataSource.t, DataSource.Table.t, [Expression.t]) :: Query.t
@@ -435,7 +435,6 @@ defmodule Cloak.Sql.Compiler.Execution do
     DataDecoder.needs_decoding?(expression) or Function.has_attribute?(expression, :emulated)
 
   defp emulated_expression_condition?(condition) do
-    Condition.verb(condition) != :is and
     Query.Lenses.conditions_terminals()
     |> Lens.to_list([condition])
     |> Enum.any?(&emulated_expression?/1)
