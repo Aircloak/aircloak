@@ -229,21 +229,25 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
     end
   end
 
-  defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do
-    %{driver: driver, tables: %{
-      table: %{
-        db_name: "table",
-        name: "table",
-        user_id: "uid",
-        columns: [
-          Table.column("uid", :integer),
-          Table.column("column", :datetime),
-          Table.column("numeric", :integer),
-          Table.column("float", :real),
-          Table.column("string", :text)
-        ],
-        projection: nil
-      },
-    }}
+  defp data_source() do
+    %{
+      driver: Cloak.DataSource.PostgreSQL,
+      driver_dialect: :postgresql,
+      tables: %{
+        table: %{
+          db_name: "table",
+          name: "table",
+          user_id: "uid",
+          columns: [
+            Table.column("uid", :integer),
+            Table.column("column", :datetime),
+            Table.column("numeric", :integer),
+            Table.column("float", :real),
+            Table.column("string", :text)
+          ],
+          projection: nil
+        },
+      }
+    }
   end
 end

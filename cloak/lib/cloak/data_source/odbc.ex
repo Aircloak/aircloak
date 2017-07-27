@@ -7,7 +7,6 @@ defmodule Cloak.DataSource.ODBC do
   alias Cloak.DataSource.{SqlBuilder, Table}
   alias Cloak.DataSource
   alias Cloak.Query.DataDecoder
-  alias Cloak.Sql.Query
 
 
   # -------------------------------------------------------------------
@@ -16,27 +15,25 @@ defmodule Cloak.DataSource.ODBC do
 
   @behaviour Cloak.DataSource.Driver
 
-  defstruct [:connection, :sql_dialect]
+  @doc false
+  def dialect(%{'DSN': dsn}), do: dsn |> String.downcase() |> String.to_existing_atom()
 
   @doc false
   def connect!(parameters) do
     options = [auto_commit: :on, binary_strings: :on, tuple_row: :off]
     with {:ok, connection} <- parameters |> to_connection_string() |> :odbc.connect(options) do
-      sql_dialect = parameters.'DSN' |> String.downcase() |> String.to_existing_atom()
-      set_dialect(sql_dialect, connection)
-      %__MODULE__{sql_dialect: sql_dialect, connection: connection}
+      parameters |> dialect() |> set_dialect(connection)
+      connection
     else
       {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
     end
   end
 
   @doc false
-  def disconnect(%__MODULE__{connection: connection}) do
-    :odbc.disconnect(connection)
-  end
+  def disconnect(connection), do: :odbc.disconnect(connection)
 
   @doc false
-  def load_tables(%__MODULE__{connection: connection}, table) do
+  def load_tables(connection, table) do
     case :odbc.describe_table(connection, to_char_list(table.db_name), _timeout = :timer.seconds(15)) do
       {:ok, columns} ->
         columns = for {name, type} <- columns, do: Table.column(to_string(name), parse_type(type))
@@ -47,10 +44,10 @@ defmodule Cloak.DataSource.ODBC do
   end
 
   @doc false
-  def select(%__MODULE__{connection: connection, sql_dialect: sql_dialect}, sql_query, result_processor) do
-    statement = sql_query |> SqlBuilder.build(sql_dialect) |> to_char_list()
+  def select(connection, sql_query, result_processor) do
+    statement = sql_query |> SqlBuilder.build() |> to_char_list()
     field_mappers = for column <- sql_query.db_columns, do:
-      column |> DataDecoder.encoded_type() |> type_to_field_mapper(sql_dialect)
+      column |> DataDecoder.encoded_type() |> type_to_field_mapper(sql_query.data_source.driver_dialect)
     case :odbc.select_count(connection, statement, _timeout = :timer.hours(4)) do
       {:ok, _count} ->
         data_stream = Stream.resource(fn () -> connection end, fn (conn) ->
@@ -65,13 +62,8 @@ defmodule Cloak.DataSource.ODBC do
     end
   end
 
-  @unsupported_functions ["date_trunc"]
-
   @doc false
-  def supports_query?(query) do
-    used_functions = Query.Lenses.query_functions() |> Lens.to_list(query) |> Enum.map(& &1.function)
-    not Enum.any?(used_functions, & &1 in @unsupported_functions)
-  end
+  def supports_query?(query), do: SqlBuilder.Support.supported_query?(query)
 
 
   # -------------------------------------------------------------------

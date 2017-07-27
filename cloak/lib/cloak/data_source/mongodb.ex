@@ -49,6 +49,9 @@ defmodule Cloak.DataSource.MongoDB do
   @timeout :timer.hours(1)
 
   @doc false
+  def dialect(_parameters), do: :mongo
+
+  @doc false
   def connect!(parameters) do
     self = self()
     parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, timeout: @timeout,

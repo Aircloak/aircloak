@@ -20,7 +20,15 @@ defmodule Cloak.Sql.Function do
       [:integer] => :integer,
       [:real] => :real,
     }},
-    ~w(min max median) => %{attributes: [:aggregator], type_specs: %{
+    ~w(median) => %{attributes: [:aggregator, :emulated], type_specs: %{
+      [:integer] => :integer,
+      [:real] => :real,
+      [:date] => :date,
+      [:time] => :time,
+      [:datetime] => :datetime,
+      [:text] => :text,
+    }},
+    ~w(min max) => %{attributes: [:aggregator], type_specs: %{
       [:integer] => :integer,
       [:real] => :real,
       [:date] => :date,

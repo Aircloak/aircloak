@@ -8,10 +8,8 @@ defmodule Cloak.Query.FunctionTest do
 
   setup_all do
     Cloak.Test.DB.create_table("heights_ft", "height INTEGER, name TEXT, string_number TEXT")
-    insert_rows(_user_ids = 1..100, "heights_ft",
-      ["height", "string_number", "name"],
-      [180, "42", "first second third"]
-    )
+    insert_rows(_user_ids = 1..50, "heights_ft", ["height", "string_number", "name"], [180, "42", "first second third"])
+    insert_rows(_user_ids = 1..50, "heights_ft", ["height", "string_number", "name"], [180, "42", "first second third"])
 
     Cloak.Test.DB.create_table("datetimes_ft", "datetime TIMESTAMP, date_only DATE, time_only TIME, empty text")
     insert_rows(_user_ids = 1..10, "datetimes_ft", ["datetime"], [~N[2015-02-03 04:05:06.000000]])
@@ -289,9 +287,11 @@ defmodule Cloak.Query.FunctionTest do
   test "min(datetime)", do: assert_subquery_aggregate("min(datetime)", "datetimes_ft", "2015-02-03T04:05:06.000000")
   test "max(datetime)", do: assert_subquery_aggregate("max(datetime)", "datetimes_ft", "2015-02-03T04:05:06.000000")
   test "avg(height)", do: assert_subquery_aggregate("avg(height)", "heights_ft", 180.0)
-  test "sum(height)", do: assert_subquery_aggregate("sum(height)", "heights_ft", 180)
-  test "count(*)", do: assert_subquery_aggregate("count(*)", "heights_ft", 1)
-  test "count(height)", do: assert_subquery_aggregate("count(height)", "heights_ft", 1)
+  test "sum(height)", do: assert_subquery_aggregate("sum(height)", "heights_ft", 360)
+  test "median(height)", do: assert_subquery_aggregate("median(height)", "heights_ft", 180)
+  test "stddev(height)", do: assert_subquery_aggregate("stddev(height)", "heights_ft", 0.0)
+  test "count(*)", do: assert_subquery_aggregate("count(*)", "heights_ft", 2)
+  test "count(height)", do: assert_subquery_aggregate("count(height)", "heights_ft", 2)
   test "count(distinct height)", do: assert_subquery_aggregate("count(distinct height)", "heights_ft", 1)
 
   test "+", do: assert 181 == apply_function("height + 1", "heights_ft")
