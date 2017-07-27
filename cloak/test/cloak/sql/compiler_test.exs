@@ -55,7 +55,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "casts datetime where conditions" do
     result = compile!("select * from table where column > '2015-01-01' and column < '2016-01-01'", data_source())
 
-    assert {:and, {:comparison, column("table", "column"), :>=, value}, _rhs} = result.where
+    assert [_is_not_null_id, {:comparison, column("table", "column"), :>=, value}, _rhs] = conditions_list(result.where)
     assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
 
@@ -64,16 +64,16 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "casts time where conditions" do
-    assert %{where: {:and, range, _}} =
+    assert %{where: {:and, _is_not_null_id, range}} =
       compile!("select * from table where column >= '01:00:00' and column < '02:00:00'", time_data_source())
-    assert {:and, {:comparison, column("table", "column"), :>=, value}, _} = range
+    assert {:and, {:comparison, column("table", "column"), :>=, value}, _rhs} = range
     assert value == Expression.constant(:time, ~T[01:00:00.000000])
   end
 
   test "casts date where conditions" do
-    assert %{where: {:and, range, _}} =
+    assert %{where: {:and, _is_not_null_id, range}} =
       compile!("select * from table where column >= '2015-01-01' and column < '2016-01-01'", date_data_source())
-    assert {:and, {:comparison, column("table", "column"), :>=, value}, _} = range
+    assert {:and, {:comparison, column("table", "column"), :>=, value}, _rhs} = range
     assert value == Expression.constant(:date, ~D[2015-01-01])
   end
 
