@@ -1,15 +1,13 @@
 defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   @moduledoc "Helper module for converting a query to SQL Server specific SQL."
 
-  alias Cloak.Sql.Expression
-
-
   # -------------------------------------------------------------------
-  # API
+  # SqlBuilder.Dialect callbacks
   # -------------------------------------------------------------------
 
-  @doc "Returns the list of supported functions for this SQL dialect."
-  @spec supported_functions() :: [String.t]
+  @behaviour Cloak.DataSource.SqlBuilder.Dialect
+
+  @doc false
   def supported_functions(), do:
     ~w(
       count sum min max avg stddev
@@ -19,8 +17,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
       hex cast coalesce bucket
     )
 
-  @doc "Generates dialect specific SQL for a function invocation. Provided arguments list must contain SQL fragments."
-  @spec function_sql(Expression.function_name, [iodata]) :: iodata
+  @doc false
   for datepart <- ~w(year month day hour minute second quarter) do
     def function_sql(unquote(datepart), args), do: ["DATEPART(", unquote(datepart), ", ", args, ")"]
   end
@@ -40,8 +37,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   end
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") ,")"]
 
-  @doc "Returns the dialect-specific SQL type for casting."
-  @spec sql_type(atom) :: String.t
+  @doc false
   def sql_type(:real), do: "float"
   def sql_type(:boolean), do: "bool"
   def sql_type(:text), do: "char"
