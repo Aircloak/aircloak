@@ -30,8 +30,8 @@ defmodule Cloak.Query.NoiseLayerTest do
   end
 
   test "count(*) uses a different noise layer than count(column)" do
-    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [11])
-    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [4])
+    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [15])
+    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [3])
 
     assert_query "select count(*), count(number) from noise_layers where number <> 0",
       %{rows: [%{row: [value1, value2]}]}
@@ -107,7 +107,7 @@ defmodule Cloak.Query.NoiseLayerTest do
   end
 
   test "noise layers in hiding the low-count row" do
-    other = 20
+    other = 23
 
     for i <- 1..5, do:
       :ok = insert_rows(_user_ids = [i], "noise_layers", ["number", "other"], [i, other])
@@ -118,7 +118,7 @@ defmodule Cloak.Query.NoiseLayerTest do
   end
 
   test "noise layers in hiding the user_count" do
-    number = 14
+    number = 15
     :ok = insert_rows(_user_ids = 1..5, "noise_layers", ["number"], [number])
 
     assert_query "select avg(other) from noise_layers where number = #{number}",
