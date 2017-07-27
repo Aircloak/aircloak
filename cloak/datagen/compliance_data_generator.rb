@@ -209,7 +209,7 @@ end
 
 open("output/notes_mongo.json", "w") do |file|
   notes.each do |note|
-    file.puts notes.to_json
+    file.puts note.to_json
   end
 end
 
