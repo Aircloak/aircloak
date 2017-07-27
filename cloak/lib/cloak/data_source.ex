@@ -264,8 +264,9 @@ defmodule Cloak.DataSource do
       primary_keys =
         data_source.tables
         |> Map.values()
-        |> Enum.filter(fn(other) -> other[:projection] && other.projection.table == to_string(name) end)
-        |> Enum.map(fn(other) -> other.projection.primary_key end)
+        |> Enum.filter(& &1[:projection])
+        |> Enum.filter(& &1.projection.table == to_string(name))
+        |> Enum.map(& &1.projection.primary_key)
 
       foreign_keys = if table[:projection],
         do: [table.projection.foreign_key],
