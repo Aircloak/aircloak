@@ -51,6 +51,7 @@ defmodule Cloak.DataSource do
     global_id: atom,
     name: String.t,
     driver: module,
+    driver_dialect: atom,
     parameters: Driver.parameters,
     tables: %{atom => Table.t},
     errors: [String.t],
@@ -217,7 +218,8 @@ defmodule Cloak.DataSource do
         "mongodb" -> Cloak.DataSource.MongoDB
         other -> raise_error("Unknown driver `#{other}` for data source `#{data_source.name}`")
       end
-    Map.put(data_source, :driver, driver_module)
+    dialect = driver_module.dialect(data_source.parameters)
+    data_source |> Map.put(:driver, driver_module) |> Map.put(:driver_dialect, dialect)
   end
 
   defp generate_global_id(data_source) do

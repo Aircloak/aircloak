@@ -481,9 +481,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
-  defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do
+  defp data_source() do
     %{
-      driver: driver,
+      driver: Cloak.DataSource.PostgreSQL,
+      driver_dialect: :postgresql,
       tables: %{
         table: %{
           db_name: "table",

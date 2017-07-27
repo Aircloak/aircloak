@@ -103,7 +103,6 @@ end
 # -------------------------------------------------------------------
 
 users = []
-users_encoded = []
 $user_ids.each do |user_n|
   name = names.sample
   age = rand(100) + 1
@@ -139,7 +138,7 @@ CSV.open("output/users.csv", "wb") do |csv|
 end
 
 CSV.open("output/users_encoded.csv", "wb") do |csv|
-  csv << ["id", "name", "age"]
+  csv << ["id", "name", "age", "active", "height"]
   users.each do |entry|
     csv << [entry[:id], encrypted(entry[:name]), entry[:age].to_s, entry[:active].to_s, entry[:height].to_s]
   end
@@ -167,24 +166,15 @@ end
 # -------------------------------------------------------------------
 
 notes = []
-notes_encoded = []
 note_id = 0
 $user_ids.each do |user_n|
   rand(10).times do
     note_id += 1
-    title = (1..(rand(5)+1)).to_a.map{words.sample}.join(" ")
-    content = (1..(rand(40)+40)).to_a.map{words.sample}.join(" ")
     notes << {
       id: note_id,
       user_id: user_n,
-      title: title,
-      content: content
-    }
-    notes_encoded << {
-      id: note_id,
-      user_id: user_n,
-      title: encrypted(title),
-      content: encrypted(content)
+      title: (1..(rand(5)+1)).to_a.map{words.sample}.join(" "),
+      content: (1..(rand(40)+40)).to_a.map{words.sample}.join(" ")
     }
   end
 end
@@ -212,8 +202,8 @@ end
 
 CSV.open("output/notes_encoded.csv", "wb") do |csv|
   csv << ["id", "user_id", "title", "content"]
-  notes_encoded.each do |entry|
-    csv << [entry[:id], entry[:user_id], entry[:title], entry[:content]]
+  notes.each do |entry|
+    csv << [entry[:id], entry[:user_id], encrypted(entry[:title]), encrypted(entry[:content])]
   end
 end
 
@@ -224,9 +214,9 @@ open("output/notes_mongo.json", "w") do |file|
 end
 
 open("output/notes_mongo_encoded.json", "w") do |file|
-  notes_encoded.each do |note|
-    note[:title] = encryption_wrap_for_mongo(note[:title])
-    note[:content] = encryption_wrap_for_mongo(note[:content])
+  notes.each do |note|
+    note[:title] = encryption_wrap_for_mongo(encrypted(note[:title]))
+    note[:content] = encryption_wrap_for_mongo(encrypted(note[:content]))
     file.puts note.to_json
   end
 end
@@ -237,38 +227,22 @@ end
 # -------------------------------------------------------------------
 
 drafts = []
-drafts_encoded = []
 draft_id = 0
 note_id.times do |note_id|
   changes = []
-  changes_encrypted = []
   rand(5).times do
-    text_change = (1..(rand(10)+1)).to_a.map{words.sample}.join(" ")
-    random_date = rand_datetime_as_text()
-
     changes << {
-      date: random_date,
-      change: text_change
-    }
-
-    changes_encrypted << {
-      date: random_date,
-      change: encrypted(text_change)
+      date: rand_datetime_as_text(),
+      change: (1..(rand(10)+1)).to_a.map{words.sample}.join(" ")
     }
   end
 
   if changes.length > 0 then
     draft_id += 1
-
     drafts << {
       id: draft_id,
       note_id: note_id,
       changes: changes
-    }
-    drafts_encoded << {
-      id: draft_id,
-      note_id: note_id,
-      changes: changes_encrypted
     }
   end
 end
@@ -307,10 +281,10 @@ CSV.open("output/drafts_changes_encoded.csv", "wb") do |csv|
   # We generate new unique ID's here, since the ones we have are only
   # MongoDB friendly
   draft_id = 0
-  drafts_encoded.each do |entry|
+  drafts.each do |entry|
     entry[:changes].each do |change|
       draft_id += 1
-      csv << [draft_id, entry[:note_id], change[:date], change[:change]]
+      csv << [draft_id, entry[:note_id], change[:date], encrypted(change[:change])]
     end
   end
 end
@@ -323,8 +297,11 @@ open("output/drafts_mongo.json", "w") do |file|
 end
 
 open("output/drafts_mongo_encoded.json", "w") do |file|
-  drafts_encoded.each do |draft|
-    draft[:changes] = draft[:changes].map{|draft| draft[:change] = encryption_wrap_for_mongo(draft[:change])}
+  drafts.each do |draft|
+    draft[:changes] = draft[:changes].map do |draft|
+      draft[:change] = encryption_wrap_for_mongo(encrypted(draft[:change]))
+      draft
+    end
     file.puts draft.to_json
   end
 end

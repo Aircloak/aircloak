@@ -988,132 +988,148 @@ defmodule Cloak.Sql.Compiler.Test do
       Compiler.validate_view(data_source, parsed_view, Keyword.get(options, :views, %{}))
   end
 
-  defp data_source(driver \\ Cloak.DataSource.PostgreSQL) do
-    %{driver: driver, tables: %{
-      table: %{
-        db_name: "table",
-        name: "table",
-        user_id: "uid",
-        columns: [
-          Table.column("uid", :integer),
-          Table.column("column", :datetime),
-          Table.column("numeric", :integer),
-          Table.column("float", :real),
-          Table.column("string", :text),
-          Table.column("key", :integer),
-        ],
-        projection: nil,
-        keys: ["key"],
-      },
-      other_table: %{
-        db_name: "other_table",
-        name: "other_table",
-        user_id: "uid",
-        columns: [
-          Table.column("uid", :integer),
-          Table.column("other_column", :datetime)
-        ],
-        projection: nil
-      },
-      projected_table: %{
-        db_name: "projected_table",
-        name: "projected_table",
-        user_id: "uid",
-        columns: [
-          Table.column("fk", :integer),
-          Table.column("a", :integer),
-          Table.column("b", :integer)
-        ],
-        projection: %{table: "table", foreign_key: "fk", primary_key: "numeric"}
-      },
-      t1: %{
-        db_name: "t1",
-        name: "t1",
-        user_id: "uid",
-        columns: [
-          Table.column("uid", :integer),
-          Table.column("c1", :integer),
-          Table.column("c2", :integer)
-        ],
-        projection: nil
-      },
-      t2: %{
-        db_name: "t2",
-        name: "t2",
-        user_id: "uid",
-        columns: [
-          Table.column("uid", :integer),
-          Table.column("c1", :integer),
-          Table.column("c3", :integer)
-        ],
-        projection: nil
-      },
-      t3: %{
-        db_name: "t3",
-        name: "t3",
-        user_id: "uid",
-        columns: [
-          Table.column("uid", :integer),
-          Table.column("c1", :integer)
-        ],
-        projection: nil
-      },
-      t4: %{
-        db_name: "t4",
-        name: "t4",
-        user_id: "uid",
-        columns: [
-          Table.column("uid", :integer),
-          Table.column("c1", :integer)
-        ],
-        projection: nil
+  defp data_source() do
+    %{
+      driver: Cloak.DataSource.PostgreSQL,
+      driver_dialect: :postgresql,
+      tables: %{
+        table: %{
+          db_name: "table",
+          name: "table",
+          user_id: "uid",
+          columns: [
+            Table.column("uid", :integer),
+            Table.column("column", :datetime),
+            Table.column("numeric", :integer),
+            Table.column("float", :real),
+            Table.column("string", :text),
+            Table.column("key", :integer),
+          ],
+          projection: nil,
+          keys: ["key"],
+        },
+        other_table: %{
+          db_name: "other_table",
+          name: "other_table",
+          user_id: "uid",
+          columns: [
+            Table.column("uid", :integer),
+            Table.column("other_column", :datetime)
+          ],
+          projection: nil
+        },
+        projected_table: %{
+          db_name: "projected_table",
+          name: "projected_table",
+          user_id: "uid",
+          columns: [
+            Table.column("fk", :integer),
+            Table.column("a", :integer),
+            Table.column("b", :integer)
+          ],
+          projection: %{table: "table", foreign_key: "fk", primary_key: "numeric"}
+        },
+        t1: %{
+          db_name: "t1",
+          name: "t1",
+          user_id: "uid",
+          columns: [
+            Table.column("uid", :integer),
+            Table.column("c1", :integer),
+            Table.column("c2", :integer)
+          ],
+          projection: nil
+        },
+        t2: %{
+          db_name: "t2",
+          name: "t2",
+          user_id: "uid",
+          columns: [
+            Table.column("uid", :integer),
+            Table.column("c1", :integer),
+            Table.column("c3", :integer)
+          ],
+          projection: nil
+        },
+        t3: %{
+          db_name: "t3",
+          name: "t3",
+          user_id: "uid",
+          columns: [
+            Table.column("uid", :integer),
+            Table.column("c1", :integer)
+          ],
+          projection: nil
+        },
+        t4: %{
+          db_name: "t4",
+          name: "t4",
+          user_id: "uid",
+          columns: [
+            Table.column("uid", :integer),
+            Table.column("c1", :integer)
+          ],
+          projection: nil
+        }
       }
-    }}
+    }
   end
 
   def time_data_source do
-    %{driver: Cloak.DataSource.PostgreSQL, tables: %{
-      table: %{
-        db_name: "table",
-        name: "table",
-        user_id: "uid",
-        columns: [
-          Table.column("uid", :integer),
-          Table.column("column", :time)
-        ],
-        projection: nil
+    %{
+      driver: Cloak.DataSource.PostgreSQL,
+      driver_dialect: :postgresql,
+      tables: %{
+        table: %{
+          db_name: "table",
+          name: "table",
+          user_id: "uid",
+          columns: [
+            Table.column("uid", :integer),
+            Table.column("column", :time)
+          ],
+          projection: nil
+        }
       }
-    }}
+    }
   end
 
   def date_data_source do
-    %{driver: Cloak.DataSource.PostgreSQL, tables: %{
-      table: %{
-        db_name: "table",
-        name: "table",
-        user_id: "uid",
-        columns: [
-          Table.column("uid", :integer),
-          Table.column("column", :date)
-        ],
-        projection: nil
+    %{
+      driver: Cloak.DataSource.PostgreSQL,
+      driver_dialect: :postgresql,
+      tables: %{
+        table: %{
+          db_name: "table",
+          name: "table",
+          user_id: "uid",
+          columns: [
+            Table.column("uid", :integer),
+            Table.column("column", :date)
+          ],
+          projection: nil
+        }
       }
-    }}
+    }
   end
 
   def dotted_data_source do
-    %{driver: Cloak.DataSource.MongoDB, tables: %{
-      table: %{
-        db_name: "table",
-        name: "table",
-        user_id: "uid",
-        columns: [
-          Table.column("uid", :integer),
-          Table.column("column.with.dots", :number)
-        ],
-        projection: nil
+    %{
+      driver: Cloak.DataSource.MongoDB,
+      driver_dialect: :mongo,
+      tables: %{
+        table: %{
+          db_name: "table",
+          name: "table",
+          user_id: "uid",
+          columns: [
+            Table.column("uid", :integer),
+            Table.column("column.with.dots", :number)
+          ],
+          projection: nil
+        }
       }
-    }}
+    }
   end
 
   defp conditions_list(clause), do: Query.Lenses.conditions() |> Lens.to_list(clause)

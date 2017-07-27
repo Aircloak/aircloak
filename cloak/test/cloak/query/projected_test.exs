@@ -15,8 +15,9 @@ defmodule Cloak.Query.ProjectedTest do
       projection: %{table: "projected_transactions", foreign_key: "transaction_id", primary_key: "id"}
     )
 
-    Enum.each(1..10, &insert_rows(&1..&1, "projected_accounts", ["id", "name"], [&1, "account_#{&1}"]))
-    Enum.each(1..10, &insert_transaction(&1, 100, "note text"))
+    Enum.each(1..20, &insert_rows(&1..&1, "projected_accounts", ["id", "name"], [&1, "account_#{&1}"]))
+    Enum.each(1..10, &insert_rows(&1..&1, "projected_accounts", ["id", "name"], [20 + &1, "account_#{20 + &1}"]))
+    Enum.each(1..30, &insert_transaction(&1, 100, "note text"))
     insert_rows(_user_ids = 1..100, "projected_heights", ["height"], [180])
   end
 
@@ -47,35 +48,37 @@ defmodule Cloak.Query.ProjectedTest do
 
   test "selecting from a projected table" do
     assert_query "select amount from projected_transactions",
-      %{columns: ["amount"], rows: [%{row: [100], occurrences: 10}]}
+      %{columns: ["amount"], rows: [%{row: [100], occurrences: 30}]}
   end
 
   test "selecting from an aliased projected table" do
     assert_query "select pt.amount from projected_transactions pt",
-      %{columns: ["amount"], rows: [%{row: [100], occurrences: 10}]}
+      %{columns: ["amount"], rows: [%{row: [100], occurrences: 30}]}
   end
 
   test "selecting from a multiply projected table" do
-    assert_query "select note from projected_notes",
-      %{columns: ["note"], rows: [%{row: ["note text"], occurrences: 10}]}
+    assert_query "select note from projected_notes order by note",
+      %{columns: ["note"], rows: [
+        %{row: ["(1) note text"], occurrences: 30}, %{row: ["(2) note text"], occurrences: 30}
+      ]}
   end
 
   test "expression in a projected table" do
     assert_query "select abs(amount) from projected_transactions",
-      %{columns: ["abs"], rows: [%{row: [100], occurrences: 10}]}
+      %{columns: ["abs"], rows: [%{row: [100], occurrences: 30}]}
   end
 
   test "projected table in a subquery" do
     assert_query "select amount from (select user_id, amount from projected_transactions) sq_alias",
-      %{columns: ["amount"], rows: [%{row: [100], occurrences: 10}]}
+      %{columns: ["amount"], rows: [%{row: [100], occurrences: 30}]}
   end
 
   test "expression in a subquery using a projected table" do
     assert_query "select x from (select user_id, abs(amount) as x from projected_transactions) t",
-      %{columns: ["x"], rows: [%{row: [100], occurrences: 10}]}
+      %{columns: ["x"], rows: [%{row: [100], occurrences: 30}]}
 
     assert_query "select x from (select user_id, sqrt(abs(amount)) as x from projected_transactions) t",
-      %{columns: ["x"], rows: [%{row: [10.0], occurrences: 10}]}
+      %{columns: ["x"], rows: [%{row: [10.0], occurrences: 30}]}
   end
 
   test "joining to a projected table" do
@@ -85,7 +88,7 @@ defmodule Cloak.Query.ProjectedTest do
         from projected_heights
         inner join projected_transactions on projected_heights.user_id = projected_transactions.user_id
       ",
-      %{columns: ["height", "amount"], rows: [%{row: [180, 100], occurrences: 10}]}
+      %{columns: ["height", "amount"], rows: [%{row: [180, 100], occurrences: 30}]}
     )
 
     assert_query(
@@ -94,12 +97,13 @@ defmodule Cloak.Query.ProjectedTest do
         from projected_transactions
         inner join projected_heights on projected_heights.user_id = projected_transactions.user_id
       ",
-      %{columns: ["height", "amount"], rows: [%{row: [180, 100], occurrences: 10}]}
+      %{columns: ["height", "amount"], rows: [%{row: [180, 100], occurrences: 30}]}
     )
   end
 
   defp insert_transaction(id, amount, note) do
     Cloak.Test.DB.insert_data("projected_transactions", ["id", "account_id", "amount"], [[id, id, amount]])
-    Cloak.Test.DB.insert_data("projected_notes", ["transaction_id", "note"], [[id, note]])
+    Cloak.Test.DB.insert_data("projected_notes", ["transaction_id", "note"], [[id, "(1) " <> note]])
+    Cloak.Test.DB.insert_data("projected_notes", ["transaction_id", "note"], [[id, "(2) " <> note]])
   end
 end

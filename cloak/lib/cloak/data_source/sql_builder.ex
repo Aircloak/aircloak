@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   alias Cloak.Sql.Query
   alias Cloak.Sql.{Expression, Condition}
-  alias Cloak.DataSource.SqlBuilder.DbFunction
+  alias Cloak.DataSource.SqlBuilder.Support
   alias Cloak.Query.ExecutionError
 
 
@@ -11,9 +11,13 @@ defmodule Cloak.DataSource.SqlBuilder do
   # API
   # -------------------------------------------------------------------
 
+  @spec build(Query.t) :: String.t
+  @doc "Constructs a parametrized SQL query that can be executed against a backend."
+  def build(query), do: build(query, query.data_source.driver_dialect)
+
   @spec build(Query.t, atom) :: String.t
-  @doc "Constructs a parametrized SQL query that can be executed against a backend"
-  def build(query, :mysql = sql_dialect) do
+  @doc "Constructs a parametrized SQL query that can be executed against a backend."
+  def build(query, :mysql) do
     # MySQL and MariaDB do not support FULL joins, so we have to split it into LEFT and RIGHT joins
     # see: http://www.xaprb.com/blog/2006/05/26/how-to-write-full-outer-join-in-mysql/
     case split_full_outer_join(query.from) do
@@ -21,24 +25,22 @@ defmodule Cloak.DataSource.SqlBuilder do
         [%Expression{function?: true, function: "coalesce", function_args: [first_id | _]} | _] = query.db_columns
         query1 = %Query{query | from: left_join}
         query2 = %Query{query | from: right_join, where: Condition.combine(:and, query.where, {:is, first_id, :null})}
-        build(query1, sql_dialect) <> " UNION ALL " <> build(query2, sql_dialect)
-      _ -> query |> build_fragments(sql_dialect) |> to_string()
+        build(query1, :mysql) <> " UNION ALL " <> build(query2, :mysql)
+      _ -> query |> build_fragments(:mysql) |> to_string()
     end
   end
   def build(query, sql_dialect) do
     query |> build_fragments(sql_dialect) |> to_string()
   end
 
-  @doc "Returns a name uniquely identifying a column in the generated query."
-  @spec column_name(Expression.t, atom) :: String.t
-  def column_name(%Expression{table: :unknown, name: name}, sql_dialect), do: quote_name(name, sql_dialect)
-  def column_name(column, sql_dialect), do:
-    "#{quote_name(column.table.name, sql_dialect)}.#{quote_name(column.name, sql_dialect)}"
-
 
   # -------------------------------------------------------------------
   # Transformation of query AST to query specification
   # -------------------------------------------------------------------
+
+  defp column_name(%Expression{table: :unknown, name: name}, sql_dialect), do: quote_name(name, sql_dialect)
+  defp column_name(column, sql_dialect), do:
+    "#{quote_name(column.table.name, sql_dialect)}.#{quote_name(column.name, sql_dialect)}"
 
   defp build_fragments(query, sql_dialect) do
     [
@@ -65,9 +67,8 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql({:distinct, column}, sql_dialect), do: ["DISTINCT ", column_sql(column, sql_dialect)]
   defp column_sql(%Expression{alias: alias} = column, sql_dialect) when alias != nil and alias != "",
     do: [column_sql(%Expression{column | alias: nil}, sql_dialect), " AS ", quote_name(alias, sql_dialect)]
-  defp column_sql(%Expression{function?: true, function: fun_name, function_args: args, type: type}, sql_dialect)
-    when fun_name != nil, do: DbFunction.sql(fun_name,
-      Enum.map(args, &column_sql(&1, sql_dialect)), type, sql_dialect)
+  defp column_sql(%Expression{function?: true, function: fun_name, function_args: args}, sql_dialect)
+    when fun_name != nil, do: Support.function_sql(fun_name, Enum.map(args, &column_sql(&1, sql_dialect)), sql_dialect)
   defp column_sql(%Expression{constant?: true, type: :like_pattern, value: value}, _sql_dialect), do:
     like_pattern_to_fragment(value)
   defp column_sql(%Expression{constant?: true, value: value}, _sql_dialect), do: constant_to_fragment(value)
@@ -75,7 +76,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   # This is needed in the case of using the ODBC driver with a GUID user id,
   # as the GUID type is not supported by the Erlang ODBC library
   defp column_sql(%Expression{type: :unknown, name: name} = column, :sqlserver) when name != nil, do:
-    DbFunction.sql({:cast, :varbinary}, [column_name(column, :sqlserver)], :unknown, :sqlserver)
+    Support.function_sql({:cast, :varbinary}, [column_name(column, :sqlserver)], :sqlserver)
   defp column_sql(column, sql_dialect), do: column_name(column, sql_dialect)
 
   defp from_clause({:join, join}, query, sql_dialect) do
