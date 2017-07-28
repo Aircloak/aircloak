@@ -222,6 +222,7 @@ and conversely which features turn a query into an emulated one.
 | day           | ✔        | ✔        | ✔         | ✔              | ✔             |
 | div           | ✔        | ✔        | ✔         | ✔              | ✔             |
 | floor         | ✔        | ✔        | ✔         | ✔              | Emulated      |
+| hex           | ✔        | ✔        | ✔         | Emulated       | Emulated      |
 | hour          | ✔        | ✔        | ✔         | ✔              | ✔             |
 | lcase         | ✔        | ✔        | ✔         | ✔              | ✔             |
 | left          | ✔        | ✔        | ✔         | ✔              | ✔             |
@@ -249,4 +250,3 @@ and conversely which features turn a query into an emulated one.
 | upper         | ✔        | ✔        | ✔         | ✔              | ✔             |
 | weekday       | ✔        | ✔        | ✔         | ✔              | ✔             |
 | year          | ✔        | ✔        | ✔         | ✔              | ✔             |
-| hex           | ✔        | ✔        | ✔         | Emulated       | Emulated      |
