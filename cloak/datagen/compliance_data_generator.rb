@@ -81,11 +81,12 @@ def encrypted(data)
   cipher.encrypt
   cipher.key = $encryption_key
   cipher.iv = $iv
+
   encode64(cipher.update(data) + cipher.final)
 end
 
 def encode64(data)
-  Base64.encode64(data).chomp
+  Base64.strict_encode64(data).chomp
 end
 
 def encryption_wrap_for_mongo(data)
