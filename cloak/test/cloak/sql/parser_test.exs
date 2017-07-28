@@ -1099,7 +1099,7 @@ defmodule Cloak.Sql.Parser.Test do
       {"assert at least one table",
         "select foo from", "Expected `table name`", {1, 16}},
       {"extended trim with two columns",
-        "select trim(both a from b) from foo", "Expected `from`", {1, 18}},
+        "select trim(both a from b) from foo", "Expected `)`", {1, 20}},
       {"invalid interval",
         "select interval 'does not parse' from foo", "Expected `column definition`", {1, 8}},
       {"inequality between two columns",
