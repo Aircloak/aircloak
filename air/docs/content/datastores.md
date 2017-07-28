@@ -249,3 +249,4 @@ and conversely which features turn a query into an emulated one.
 | upper         | ✔        | ✔        | ✔         | ✔              | ✔             |
 | weekday       | ✔        | ✔        | ✔         | ✔              | ✔             |
 | year          | ✔        | ✔        | ✔         | ✔              | ✔             |
+| hex           | ✔        | ✔        | ✔         | Emulated       | Emulated      |
