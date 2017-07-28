@@ -66,6 +66,20 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
+  describe "skipping noise layers for pk = fk conditions" do
+    test "fk = pk" do
+      result = compile!("SELECT COUNT(*) FROM table JOIN key_table
+        ON table.uid = key_table.uid AND key_table.table_id = table.id", data_source())
+      assert [] = result.noise_layers
+    end
+
+    test "pk = fk" do
+      result = compile!("SELECT COUNT(*) FROM table JOIN key_table
+        ON table.uid = key_table.uid AND table.id = key_table.table_id", data_source())
+      assert [] = result.noise_layers
+    end
+  end
+
   describe "noise layers from ranges" do
     test "noise layer from a >=/< range" do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric >= 0 AND numeric < 10", data_source())
@@ -485,9 +499,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
             Table.column("dummy2", :boolean),
             Table.column("name", :text),
             Table.column("name2", :text),
+            Table.column("id", :integer),
           ],
           decoders: [%{method: "base64", spec: &Base.decode64/1, columns: ["decoded"]}],
           projection: nil,
+          keys: ["id"],
         },
 
         other: %{
@@ -505,6 +521,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
           columns: [Table.column("uid", :integer), Table.column("camelColumn", :integer)],
           projection: nil,
         },
+
+        key_table: %{
+          db_name: "key_table",
+          name: "key_table",
+          user_id: "uid",
+          columns: [Table.column("uid", :integer), Table.column("table_id", :integer)],
+          projection: nil,
+          keys: ["table_id"],
+        }
       }
     }
   end

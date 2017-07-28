@@ -954,6 +954,23 @@ defmodule Cloak.Sql.Compiler.Test do
     assert reason == "Expression `count` is not valid in the `WHERE` clause."
   end
 
+  describe "key columns" do
+    test "marking key columns" do
+      result = compile!("SELECT key FROM table", data_source())
+      assert [%{name: "key", key?: true}] = result.columns
+    end
+
+    test "marking aliased key columns" do
+      result = compile!("SELECT key AS something FROM table", data_source())
+      assert [%{key?: true}] = result.columns
+    end
+
+    test "marking key columns from subqueries" do
+      result = compile!("SELECT something FROM (SELECT uid, key as something FROM table) foo", data_source())
+      assert [%{key?: true}] = result.columns
+    end
+  end
+
   defp projected_table_db_columns(query), do:
     query
     |> get_in([all_subqueries()])
@@ -985,9 +1002,11 @@ defmodule Cloak.Sql.Compiler.Test do
             Table.column("column", :datetime),
             Table.column("numeric", :integer),
             Table.column("float", :real),
-            Table.column("string", :text)
+            Table.column("string", :text),
+            Table.column("key", :integer),
           ],
-          projection: nil
+          projection: nil,
+          keys: ["key"],
         },
         other_table: %{
           db_name: "other_table",
