@@ -11,7 +11,7 @@
 
 - Like patterns can now include an escape string
 - More human-friendly rendering of date/time values in the UI.
-- Documented `HEX` function.
+- Documented `HEX` and `TRIM` functions.
 
 ### Bugfixes
 
