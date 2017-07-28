@@ -412,6 +412,15 @@ converted into the following rows before furhter analysis takes place
 | 2 | 15.00 | the |
 | 2 | 15.00 | year |
 
+### hex
+
+```sql
+HEX('air')
+-- '616964'
+```
+
+Transforms all characters in the given string into hexadecimal.
+This is useful for extracting strings containing non-text characters.
 
 ## Casting
 
