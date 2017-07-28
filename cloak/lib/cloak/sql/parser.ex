@@ -271,12 +271,13 @@ defmodule Cloak.Sql.Parser do
 
   defp data_type() do
     choice([
-      raw_identifier_of(~w(integer real float text boolean datetime date time)),
+      raw_identifier_of(~w(integer real float text boolean datetime timestamp date time)),
       sequence([raw_identifier("double"), raw_identifier("precision")]),
       keyword(:interval)
     ])
     |> map(fn
       :float -> :real
+      :timestamp -> :datetime
       [:double, :precision] -> :real
       other -> other
     end)
