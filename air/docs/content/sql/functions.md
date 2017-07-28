@@ -413,6 +413,31 @@ Takes a slice of a string.
 [Restrictions in usage apply](content/sql/restrictions.md#math-and-function-application-restrictions)
 
 
+### trim
+
+```sql
+TRIM(' some text ')
+-- 'some text'
+
+TRIM(LEADING ' some text ')
+-- 'some text '
+
+TRIM(TRAILING ' tx' FROM ' some text ')
+-- ' some te'
+
+TRIM(' osxt' ' some text ')
+-- 'me te'
+
+TRIM(BOTH FROM ' some text ')
+-- 'some text '
+```
+
+Removes all of the given characters from the beginning and/or end of the string.
+The default is to remove spaces from both directions.
+
+[Restrictions in usage apply](content/sql/restrictions.md#math-and-function-application-restrictions)
+
+
 ### upper
 
 ```sql

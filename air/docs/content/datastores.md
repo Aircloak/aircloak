@@ -245,6 +245,7 @@ and conversely which features turn a query into an emulated one.
 | stddev        | ✔        | ✔        | ✔         | Emulated       | Emulated      |
 | substring     | ✔        | ✔        | ✔         | ✔              | ✔             |
 | sum           | ✔        | ✔        | ✔         | ✔              | ✔             |
+| trim          | Emulated | Emulated | ✔         | Emulated       | Emulated      |
 | trunc         | ✔        | ✔        | ✔         | ✔              | Emulated      |
 | ucase         | ✔        | ✔        | ✔         | ✔              | ✔             |
 | upper         | ✔        | ✔        | ✔         | ✔              | ✔             |
