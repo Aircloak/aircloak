@@ -433,7 +433,7 @@ TRIM(BOTH FROM ' some text ')
 ```
 
 Removes all of the given characters from the beginning and/or end of the string.
-The default is to remove spaces from both directions.
+The default is to remove spaces from both ends.
 
 [Restrictions in usage apply](content/sql/restrictions.md#math-and-function-application-restrictions)
 
