@@ -157,14 +157,14 @@ defmodule Cloak.Query.Runner do
 
     log_completion(result)
 
-    ResultSender.send_result(state.result_target, %{result | execution_time: timing_proof(result.execution_time)})
+    ResultSender.send_result(state.result_target, %{result | execution_time: timing_attack_safe(result.execution_time)})
     |> case do
       {:error, :encoding_error} -> send_result_report(state, {:error, "Encoding error"})
       _ -> state
     end
   end
 
-  defp timing_proof(execution_time), do:
+  defp timing_attack_safe(execution_time), do:
     div(execution_time, _millis_in_second = 1000)
 
   defp log_completion(result) do
