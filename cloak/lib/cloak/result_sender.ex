@@ -106,6 +106,6 @@ defmodule Cloak.ResultSender do
   defp encode_chunk({rows, index}), do:
     %{
       index: index,
-      encoded_data: rows |> :jiffy.encode([:use_nil]) |> :zlib.gzip()
+      encoded_data: rows |> :jiffy.encode([:use_nil, :force_utf8]) |> :zlib.gzip()
     }
 end
