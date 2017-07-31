@@ -149,15 +149,20 @@ defmodule Cloak.Query.Runner do
   # -------------------------------------------------------------------
 
   defp send_result_report(state, result) do
-    result = result
-    |> format_result()
-    |> Map.put(:query_id, state.query_id)
-    |> Map.put(:execution_time, :erlang.monotonic_time(:milli_seconds) - state.start_time)
+    result =
+      result
+      |> format_result()
+      |> Map.put(:query_id, state.query_id)
+      |> Map.put(:execution_time, :erlang.monotonic_time(:milli_seconds) - state.start_time)
+
     log_completion(result)
-    # send execution time in seconds, to avoid timing attacks
-    ResultSender.send_result(state.result_target, %{result | execution_time: div(result.execution_time, 1000)})
+
+    ResultSender.send_result(state.result_target, %{result | execution_time: timing_proof(result.execution_time)})
     state
   end
+
+  defp timing_proof(execution_time), do:
+    div(execution_time, _millis_in_second = 1000)
 
   defp log_completion(result) do
     message = Poison.encode!(%{
