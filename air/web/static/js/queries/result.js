@@ -200,7 +200,7 @@ export class ResultView extends React.Component {
   }
 
   showingAllOfFewRows() {
-    return this.props.row_count < this.minRowsToShow;
+    return this.props.row_count <= this.minRowsToShow;
   }
 
   showingAllOfManyRows() {
