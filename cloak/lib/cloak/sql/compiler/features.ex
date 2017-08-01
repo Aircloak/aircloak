@@ -33,6 +33,8 @@ defmodule Cloak.Sql.Compiler.Features do
       selected_types: selected_types(query.columns),
       parameter_types: Enum.map(Query.parameter_types(query), &stringify/1),
       decoders: extract_decoders(query),
+      driver: to_string(query.data_source.driver),
+      driver_dialect: to_string(query.data_source.driver_dialect),
     }
   end
 
