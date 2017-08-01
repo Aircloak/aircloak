@@ -54,7 +54,7 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   # -------------------------------------------------------------------
 
   @synonyms %{
-    "pow" => "^", "ceiling" => "ceil", "%" => "mod",
+    "pow" => "^", "ceiling" => "ceil", "mod" => "%",
     "lcase" => "lower", "ucase" => "upper", "||" => "concat",
   }
   defp synonym(name), do: Map.get(@synonyms, name, name)
