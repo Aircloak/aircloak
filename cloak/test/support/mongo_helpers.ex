@@ -12,7 +12,7 @@ defmodule Cloak.Test.MongoHelpers do
           run_query!(data_source, unquote(query))
         end))
         |> Enum.map(&Task.await/1)
-        |> Enum.map(&Map.drop(&1, [:execution_time]))
+        |> Enum.map(&Map.drop(&1, [:execution_time, :features]))
 
       for other_response <- other_responses, do:
         assert(first_response == other_response)
