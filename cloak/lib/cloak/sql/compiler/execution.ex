@@ -427,7 +427,8 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp needed_columns(query), do:
     [query.columns, query.group_by, query.emulated_where, query.having, Query.order_by_expressions(query)]
 
-  defp compile_sample(%Query{sample: amount} = query) when is_integer(amount) do
+  defp compile_sample_rate(%Query{sample_rate: amount} = query) when amount != nil do
+    true = is_integer(amount)
     # adds the condition for sampling: hash(user_id) % 100 < amount
     user_id_hash = Expression.function("hash", [Helpers.id_column(query)])
     user_id_ranged_hash = Expression.function("%", [user_id_hash, Expression.constant(:integer, 100)])
