@@ -116,7 +116,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp conditions_to_fragments({:or, lhs, rhs}, sql_dialect),
     do: ["(", conditions_to_fragments(lhs, sql_dialect), ") OR (", conditions_to_fragments(rhs, sql_dialect), ")"]
   defp conditions_to_fragments({:comparison, what, comparator, value}, sql_dialect),
-    do: [to_fragment(what, sql_dialect), to_fragment(comparator, sql_dialect), to_fragment(value, sql_dialect)]
+    do: [to_fragment(what, sql_dialect), " #{comparator} ", to_fragment(value, sql_dialect)]
   defp conditions_to_fragments({:in, what, values}, sql_dialect),
     do: [to_fragment(what, sql_dialect), " IN (",
       Enum.map(values, &to_fragment(&1, sql_dialect)) |> join(", "), ")"]
