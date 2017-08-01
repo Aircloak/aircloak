@@ -10,7 +10,7 @@ defmodule Cloak.Sql.Query.Lenses do
   # Lenses into Query
   # -------------------------------------------------------------------
 
-  @doc "Lens focusing all terminal elements in a query, including intermediate function invocations."
+  @doc "Lens focusing on all terminal elements in a query, including intermediate function invocations."
   deflens terminals(), do:
     Lens.multiple([
       Lens.keys([:columns, :group_by, :db_columns, :property, :aggregators]),
@@ -21,16 +21,16 @@ defmodule Cloak.Sql.Query.Lenses do
     ])
     |> terminal_elements()
 
-  @doc "Lens focusing all terminal elements in a list of conditions."
+  @doc "Lens focusing on all terminal elements in a list of conditions."
   deflens conditions_terminals(), do: conditions() |> operands() |> terminal_elements()
 
-  @doc "Lens focusing all column elements in the query (subqueries are not included)."
+  @doc "Lens focusing on all column elements in the query (subqueries are not included)."
   deflens query_expressions(), do: terminals() |> expressions()
 
-  @doc "Lens focusing leaf (non-functions) expressions in a list of expressions."
+  @doc "Lens focusing on leaf (non-functions) expressions in a list of expressions."
   deflens leaf_expressions(), do: all_expressions() |> do_leaf_expressions()
 
-  @doc "Lens focusing all expressions in a list of expressions."
+  @doc "Lens focusing on all expressions in a list of expressions."
   deflens all_expressions(), do:
     Lens.both(terminal_elements(), conditions_terminals())
     |> expressions()
