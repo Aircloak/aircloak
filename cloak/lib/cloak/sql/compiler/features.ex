@@ -34,7 +34,7 @@ defmodule Cloak.Sql.Compiler.Features do
       parameter_types: Enum.map(Query.parameter_types(query), &stringify/1),
       decoders: extract_decoders(query),
       driver: to_string(query.data_source.driver),
-      driver_dialect: to_string(query.data_source.driver_dialect),
+      driver_dialect: to_string(query.data_source[:driver_dialect]),
       emulated: query.emulated?,
     }
   end
