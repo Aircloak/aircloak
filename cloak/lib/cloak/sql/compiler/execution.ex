@@ -30,7 +30,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> align_ranges(Lens.key(:where))
     |> align_join_ranges()
     |> optimize_columns_from_projected_tables()
-    |> compile_sample()
+    |> compile_sample_rate()
     |> set_emulation_flag()
     |> partition_where_clauses()
     |> calculate_db_columns()
@@ -435,7 +435,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     sample_condition = {:comparison, user_id_ranged_hash, :<, Expression.constant(:integer, amount)}
     %Query{query | where: Condition.combine(:and, sample_condition, query.where)}
   end
-  defp compile_sample(query), do: query
+  defp compile_sample_rate(query), do: query
 
 
   # -------------------------------------------------------------------

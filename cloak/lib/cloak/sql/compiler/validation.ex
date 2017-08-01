@@ -24,7 +24,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     verify_limit(query)
     verify_offset(query)
     verify_like_escape(query)
-    verify_sample(query)
+    verify_sample_rate(query)
     query
   end
 
@@ -295,11 +295,11 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
-  defp verify_sample(%Query{sample: amount}) when is_integer(amount) and (amount < 0 or amount > 100), do:
+  defp verify_sample_rate(%Query{sample_rate: amount}) when is_integer(amount) and (amount < 0 or amount > 100), do:
     raise CompilationError, message: "The `SAMPLE` clause expects an integer value between 1 and 100."
-  defp verify_sample(%Query{subquery?: true, sample: amount}) when amount != nil, do:
+  defp verify_sample_rate(%Query{subquery?: true, sample_rate: amount}) when amount != nil, do:
     raise CompilationError, message: "The `SAMPLE` clause is supported only in the top-level query."
-  defp verify_sample(_query), do: :ok
+  defp verify_sample_rate(_query), do: :ok
 
 
   # -------------------------------------------------------------------

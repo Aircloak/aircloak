@@ -900,6 +900,6 @@ defmodule Cloak.Sql.Parser do
       {keyword(:sample), pair_both(numeric_constant(:integer), keyword(:%))},
       {:else, noop()}
     ])
-    |> map(fn {[:sample], [{{:constant, :integer, amount}, :%}]} -> {:sample, amount} end)
+    |> map(fn {[:sample], [{{:constant, :integer, amount}, :%}]} -> {:sample_rate, amount} end)
   end
 end
