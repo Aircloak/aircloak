@@ -160,6 +160,12 @@ defmodule Cloak.Sql.QueryTest do
       features_from("SELECT height FROM feat_emulated_users").decoders
   end
 
+  test "marks non-emulated queries as such", do:
+    refute features_from("SELECT count(*) FROM feat_emulated_users").emulated
+
+  test "marks emulated queries as such", do:
+    assert features_from("SELECT * FROM (SELECT user_id, width FROM feat_emulated_users) x").emulated
+
   test "successful view validation" do
     assert {:ok, [col1, col2]} = validate_view("v1", "select user_id, name from feat_users")
     assert col1 == %{name: "user_id", type: "text", user_id: true}
@@ -228,8 +234,14 @@ defmodule Cloak.Sql.QueryTest do
   defp features_from(statement) do
     [first_ds | rest_ds] = Cloak.DataSource.all()
     query = make_query(first_ds, statement)
-    for data_source <- rest_ds, do:
-      assert(query == make_query(data_source, statement))
+
+    for data_source <- rest_ds do
+      other_query = make_query(data_source, statement)
+      assert Map.drop(query, [:features]) == Map.drop(other_query, [:features])
+      assert Map.drop(query.features, [:driver, :driver_dialect]) ==
+        Map.drop(other_query.features, [:driver, :driver_dialect])
+    end
+
     query.features
   end
 
