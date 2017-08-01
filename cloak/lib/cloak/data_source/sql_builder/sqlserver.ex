@@ -30,7 +30,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def function_sql("div", [arg1, arg2]), do: ["(", arg1, " / ", arg2, ")"]
   def function_sql("hex", [arg]), do: ["CONVERT(nvarchar, CAST(", arg, " AS varbinary), 2)"]
   def function_sql("hash", [arg]), do:
-    ["CONVERT(bigint, SUBSTRING(HASHBYTES('md5', CAST(", arg, " AS binary)), 1, 15))"]
+    ["CONVERT(bigint, SUBSTRING(0x00 + HASHBYTES('md5', CAST(", arg, " AS binary)), 1, 8))"]
   def function_sql("stddev", [arg]), do: ["STDEV(", arg, ")"]
   def function_sql("^", [arg1, arg2]), do: ["POWER(", arg1, ", ", arg2, ")"]
   def function_sql("/", [arg1, arg2]),  do: ["(CAST(", arg1, " AS double precision) / ", arg2, ")"]
