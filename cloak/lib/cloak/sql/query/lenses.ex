@@ -35,8 +35,13 @@ defmodule Cloak.Sql.Query.Lenses do
     Lens.both(terminal_elements(), conditions_terminals())
     |> expressions()
 
-  @doc "Lens focusing all function expressions in the query (subqueries are not included)."
-  deflens query_functions(), do: query_expressions() |> Lens.satisfy(& &1.function?)
+  @doc "Lens focusing on function expressions in the query that are sent to the database (subqueries are not included)."
+  deflens db_needed_functions(), do:
+    Lens.match(fn
+      %Query{subquery?: true} -> query_expressions()
+      %Query{subquery?: false} -> db_filter_clauses() |> conditions_terminals() |> expressions()
+    end)
+    |> Lens.satisfy(& &1.function?)
 
   @doc "Lens focusing on raw (uncompiled) casts of parameters."
   deflens raw_parameter_casts(), do:

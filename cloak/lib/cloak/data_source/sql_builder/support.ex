@@ -13,7 +13,7 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   @spec supported_query?(Query.t) :: boolean
   def supported_query?(query) do
     sql_dialect = query.data_source.driver_dialect
-    Query.Lenses.query_functions()
+    Query.Lenses.db_needed_functions()
     |> Lens.to_list(query)
     |> Enum.map(&function_signature/1)
     |> Enum.all?(&supported_function?(&1, sql_dialect))
