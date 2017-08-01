@@ -19,11 +19,12 @@ defmodule Cloak.Query.LCFConditionsTest do
   end
 
   defp make_query!(query_string) do
-    # compile parsed query with first data source
     [first_ds | rest_ds] = Cloak.DataSource.all()
     query = make_query!(query_string, first_ds)
-    # make sure responses from all data_sources are equal
-    for data_source <- rest_ds, do: assert(query == make_query!(query_string, data_source))
+
+    for data_source <- rest_ds, do:
+      assert(Map.drop(query, [:features]) == Map.drop(make_query!(query_string, data_source), [:features]))
+
     query
   end
 
