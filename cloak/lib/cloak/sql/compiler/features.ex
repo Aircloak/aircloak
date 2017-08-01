@@ -35,6 +35,7 @@ defmodule Cloak.Sql.Compiler.Features do
       decoders: extract_decoders(query),
       driver: to_string(query.data_source.driver),
       driver_dialect: to_string(query.data_source.driver_dialect),
+      emulated: query.emulated?,
     }
   end
 

@@ -160,6 +160,12 @@ defmodule Cloak.Sql.QueryTest do
       features_from("SELECT height FROM feat_emulated_users").decoders
   end
 
+  test "marks non-emulated queries as such", do:
+    refute features_from("SELECT count(*) FROM feat_emulated_users").emulated
+
+  test "marks emulated queries as such", do:
+    assert features_from("SELECT * FROM (SELECT user_id, width FROM feat_emulated_users) x").emulated
+
   test "successful view validation" do
     assert {:ok, [col1, col2]} = validate_view("v1", "select user_id, name from feat_users")
     assert col1 == %{name: "user_id", type: "text", user_id: true}
