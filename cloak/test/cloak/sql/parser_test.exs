@@ -781,6 +781,13 @@ defmodule Cloak.Sql.Parser.Test do
   test "cast to datetime", do:
     assert_parse "select cast(a as datetime) from bar", select(columns: [{:function, {:cast, :datetime}, _}])
 
+  test "cast to timestamp" do
+    result1 = Parser.parse!("select cast(a as datetime) from bar")
+    result2 = Parser.parse!("select cast(a as timestamp) from bar")
+
+    assert result1 == result2
+  end
+
   test "cast to float", do:
     assert_parse "select cast(a as float) from bar", select(columns: [{:function, {:cast, :real}, _}])
 
@@ -792,7 +799,7 @@ defmodule Cloak.Sql.Parser.Test do
       select(columns: [{:function, {:cast, :integer}, [identifier("a")]}])
   end
 
-  for word <- ~w(date time timestamp) do
+  for word <- ~w(date time datetime timestamp) do
     test "#{word} as a column name" do
       assert_parse "select #{unquote(word)} from bar",
         select(columns: [identifier(unquote(word))])
@@ -1099,7 +1106,7 @@ defmodule Cloak.Sql.Parser.Test do
       {"assert at least one table",
         "select foo from", "Expected `table name`", {1, 16}},
       {"extended trim with two columns",
-        "select trim(both a from b) from foo", "Expected `from`", {1, 18}},
+        "select trim(both a from b) from foo", "Expected `)`", {1, 20}},
       {"invalid interval",
         "select interval 'does not parse' from foo", "Expected `column definition`", {1, 8}},
       {"inequality between two columns",

@@ -273,12 +273,13 @@ defmodule Cloak.Sql.Parser do
 
   defp data_type() do
     choice([
-      raw_identifier_of(~w(integer real float text boolean datetime date time)),
+      raw_identifier_of(~w(integer real float text boolean datetime timestamp date time)),
       sequence([raw_identifier("double"), raw_identifier("precision")]),
       keyword(:interval)
     ])
     |> map(fn
       :float -> :real
+      :timestamp -> :datetime
       [:double, :precision] -> :real
       other -> other
     end)
@@ -375,21 +376,22 @@ defmodule Cloak.Sql.Parser do
       [
         keyword(:trim),
         keyword(:"("),
-        choice([keyword(:both), keyword(:leading), keyword(:trailing)]),
+        option(choice([keyword(:both), keyword(:leading), keyword(:trailing)])),
         option(constant(:string)),
-        keyword(:from),
+        option(keyword(:from)),
         column(),
         keyword(:")"),
      ],
      fn
-       [:trim, :"(", trim_type, nil, :from, column, :")"] ->
+       [:trim, :"(", trim_type, nil, _, column, :")"] ->
          {:function, trim_function(trim_type), [column]}
-       [:trim, :"(", trim_type, chars, :from, column, :")"] ->
+       [:trim, :"(", trim_type, chars, _, column, :")"] ->
          {:function, trim_function(trim_type), [column, chars]}
      end
    )
   end
 
+  defp trim_function(nil), do: "btrim"
   defp trim_function(:both), do: "btrim"
   defp trim_function(:leading), do: "ltrim"
   defp trim_function(:trailing), do: "rtrim"

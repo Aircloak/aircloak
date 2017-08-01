@@ -26,12 +26,13 @@ defmodule Cloak.Sql.Expression do
     function?: boolean,
     aggregate?: boolean,
     parameter_index: pos_integer | nil,
-    visible?: boolean
+    visible?: boolean,
+    key?: boolean,
   }
   defstruct [
     table: :unknown, name: nil, alias: nil, type: nil, user_id?: false, row_index: nil, constant?: false,
     value: nil, function: nil, function_args: [], aggregate?: false, function?: false, parameter_index: nil,
-    visible?: true
+    visible?: true, key?: false
   ]
 
   @doc "Returns a column struct representing the constant `value`."
@@ -62,6 +63,11 @@ defmodule Cloak.Sql.Expression do
   def constant?(%__MODULE__{constant?: true}), do: true
   def constant?(%__MODULE__{function?: true, function_args: args}), do: Enum.all?(args, &constant?/1)
   def constant?(_), do: false
+
+  @doc "Returns true if the given column is a key (public/private/user_id), false otherwise."
+  @spec key?(t) :: boolean
+  def key?(%__MODULE__{user_id?: true}), do: true
+  def key?(%__MODULE__{key?: key}), do: key
 
   @doc """
   Returns a shorter version of the display name of the column.

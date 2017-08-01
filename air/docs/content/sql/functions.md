@@ -213,6 +213,7 @@ Removes all of the given characters from the beginning and end of the string. Th
 
 [Restrictions in usage apply](/content/sql/restrictions.md#math-and-function-application-restrictions)
 
+
 ### concat
 
 ```sql
@@ -227,6 +228,86 @@ CONCAT('a', 'b', 'c')
 ```
 
 Joins the passed strings into one.
+
+
+### extract_match
+
+```sql
+EXTRACT_MATCH('Some Text', 'Some')
+-- 'Some'
+
+EXTRACT_MATCH('This or that', 'this|that')
+-- 'This'
+
+EXTRACT_MATCH('This or that', 'Some')
+-- nil
+```
+
+Runs a regular expression over a text column. The first match is extracted and replaces the original value.
+The syntax of the regular expressions [resemble that of Perl](http://erlang.org/doc/man/re.html#regexp_syntax).
+
+All regular expressions are considered case insensitive.
+
+This function is not allowed in subqueries.
+
+
+### extract_matches
+
+```sql
+EXTRACT_MATCHES('Some Text', '\w+')
+-- 'Some'
+-- 'Text'
+
+EXTRACT_MATCH('This or that', 'this|that')
+-- 'This'
+-- 'that'
+
+EXTRACT_MATCH('This or that', 'Some')
+# Notice, the row is surpressed when there is no match
+```
+
+Runs a regular expression over a text column. All matches are extracted and turned into individual rows.
+The syntax of the regular expressions [resemble that of Perl](http://erlang.org/doc/man/re.html#regexp_syntax).
+
+All regular expressions are considered case insensitive.
+
+This function is not allowed in subqueries.
+
+Keep in mind that this function might affect your analysis in unexpected ways.
+When a column value is split into multiple values, the whole row is replecated.
+This will affect the behaviour of other aggregate functions!
+
+For example, consider the following row coming from the database:
+
+| user-id | price | description |
+|---------|-------|-------------|
+| 1 | 10.00 | purchase of a book |
+| 2 | 15.00 | book of the year |
+
+If used in conjunction with `extract_matches(description, '\w+')`, the input data will be
+converted into the following rows before furhter analysis takes place
+
+| user-id | price | description |
+|---------|-------|-------------|
+| 1 | 10.00 | purchase |
+| 1 | 10.00 | of |
+| 1 | 10.00 | a |
+| 1 | 10.00 | book |
+| 2 | 15.00 | book |
+| 2 | 15.00 | of |
+| 2 | 15.00 | the |
+| 2 | 15.00 | year |
+
+
+### hex
+
+```sql
+HEX('air')
+-- '616964'
+```
+
+Transforms all characters in the given string into hexadecimal.
+This is useful for extracting strings containing non-text characters.
 
 
 ### left
@@ -332,6 +413,31 @@ Takes a slice of a string.
 [Restrictions in usage apply](content/sql/restrictions.md#math-and-function-application-restrictions)
 
 
+### trim
+
+```sql
+TRIM(' some text ')
+-- 'some text'
+
+TRIM(LEADING ' some text ')
+-- 'some text '
+
+TRIM(TRAILING ' tx' FROM ' some text ')
+-- ' some te'
+
+TRIM(' osxt' ' some text ')
+-- 'me te'
+
+TRIM(BOTH FROM ' some text ')
+-- 'some text '
+```
+
+Removes all of the given characters from the beginning and/or end of the string.
+The default is to remove spaces from both ends.
+
+[Restrictions in usage apply](content/sql/restrictions.md#math-and-function-application-restrictions)
+
+
 ### upper
 
 ```sql
@@ -343,74 +449,6 @@ UCASE('Some Text')
 ```
 
 Transforms all characters in the given string into uppercase.
-
-
-### extract_match
-
-```sql
-EXTRACT_MATCH('Some Text', 'Some')
--- 'Some'
-
-EXTRACT_MATCH('This or that', 'this|that')
--- 'This'
-
-EXTRACT_MATCH('This or that', 'Some')
--- nil
-```
-
-Runs a regular expression over a text column. The first match is extracted and replaces the original value.
-The syntax of the regular expressions [resemble that of Perl](http://erlang.org/doc/man/re.html#regexp_syntax).
-
-All regular expressions are considered case insensitive.
-
-This function is not allowed in subqueries.
-
-### extract_matches
-
-```sql
-EXTRACT_MATCHES('Some Text', '\w+')
--- 'Some'
--- 'Text'
-
-EXTRACT_MATCH('This or that', 'this|that')
--- 'This'
--- 'that'
-
-EXTRACT_MATCH('This or that', 'Some')
-# Notice, the row is surpressed when there is no match
-```
-
-Runs a regular expression over a text column. All matches are extracted and turned into individual rows.
-The syntax of the regular expressions [resemble that of Perl](http://erlang.org/doc/man/re.html#regexp_syntax).
-
-All regular expressions are considered case insensitive.
-
-This function is not allowed in subqueries.
-
-Keep in mind that this function might affect your analysis in unexpected ways.
-When a column value is split into multiple values, the whole row is replecated.
-This will affect the behaviour of other aggregate functions!
-
-For example, consider the following row coming from the database:
-
-| user-id | price | description |
-|---------|-------|-------------|
-| 1 | 10.00 | purchase of a book |
-| 2 | 15.00 | book of the year |
-
-If used in conjunction with `extract_matches(description, '\w+')`, the input data will be
-converted into the following rows before furhter analysis takes place
-
-| user-id | price | description |
-|---------|-------|-------------|
-| 1 | 10.00 | purchase |
-| 1 | 10.00 | of |
-| 1 | 10.00 | a |
-| 1 | 10.00 | book |
-| 2 | 15.00 | book |
-| 2 | 15.00 | of |
-| 2 | 15.00 | the |
-| 2 | 15.00 | year |
 
 
 ## Casting

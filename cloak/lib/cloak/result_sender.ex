@@ -27,10 +27,13 @@ defmodule Cloak.ResultSender do
   Sends the query result to the target. Uses a normal process send if target is `{:process, pid}`.
   Uses the Air <-> Cloak socket if it's :air_socket.
   """
-  @spec send_result(target(), term()) :: :ok | {:error, any}
+  @spec send_result(target(), term()) :: :ok | {:error, :encoding_error} | {:error, any}
   def send_result(:air_socket, result) do
-    case send_query_result_with_retry(%{retries: 5, retry_delay_sec: 10}, encode_result(result)) do
-      :ok -> :ok
+    with {:ok, encoded} <- encode_result(result),
+      send_query_result_with_retry(%{retries: 5, retry_delay_sec: 10}, encoded)
+    do
+      :ok
+    else
       {:error, error} ->
         Logger.error("Error sending query results to the socket: #{inspect error}", query_id: result.query_id)
         {:error, error}
@@ -66,11 +69,20 @@ defmodule Cloak.ResultSender do
     end
   end
 
-  defp encode_result(result), do:
-    result
-    |> Map.take([:query_id, :columns, :features, :error, :info])
-    |> Map.put(:chunks, encode_chunks(result))
-    |> Map.put(:row_count, row_count(result[:rows]))
+  defp encode_result(result) do
+    try do
+      {:ok,
+        result
+        |> Map.take([:query_id, :columns, :features, :error, :info])
+        |> Map.put(:chunks, encode_chunks(result))
+        |> Map.put(:row_count, row_count(result[:rows]))
+      }
+    rescue
+      _ -> {:error, :encoding_error}
+    catch
+      _ -> {:error, :encoding_error}
+    end
+  end
 
   defp row_count(nil), do:
     nil
@@ -94,6 +106,6 @@ defmodule Cloak.ResultSender do
   defp encode_chunk({rows, index}), do:
     %{
       index: index,
-      encoded_data: rows |> :jiffy.encode([:use_nil]) |> :zlib.gzip()
+      encoded_data: rows |> :jiffy.encode([:use_nil, :force_utf8]) |> :zlib.gzip()
     }
 end

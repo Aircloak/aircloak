@@ -239,12 +239,18 @@ defmodule Cloak.Sql.Compiler.Specification do
         |> Enum.map(fn({alias, column}) ->
           DataSource.Table.column(alias, Function.type(column), visible?: column.visible?) end)
         |> Enum.uniq()
+    keys =
+      Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
+      |> Enum.filter(fn({_, column}) -> column.key? end)
+      |> Enum.map(fn({title, _}) -> title end)
+
     [%{
       name: subquery.alias,
       columns: columns,
       user_id: user_id_name,
       decoders: [],
-      projection: nil
+      projection: nil,
+      keys: keys,
     }]
   end
   defp selected_tables(table_name, query) when is_binary(table_name), do:
@@ -391,7 +397,13 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp compile_columns(query) do
     columns_by_name =
       for table <- query.selected_tables, column <- table.columns do
-        %Expression{table: table, name: column.name, type: column.type, user_id?: table.user_id == column.name}
+        %Expression{
+          table: table,
+          name: column.name,
+          type: column.type,
+          user_id?: table.user_id == column.name,
+          key?: column.name in Map.get(table, :keys, []),
+        }
       end
       |> Enum.group_by(&(&1.name))
     query = map_terminal_elements(query, &normalize_table_name(&1, query.selected_tables))
