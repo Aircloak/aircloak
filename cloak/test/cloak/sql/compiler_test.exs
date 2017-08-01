@@ -961,7 +961,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "sample amount is validated" do
     assert {:error, error} = compile("select count(*) from table sample 101%", data_source())
-    assert error =~ ~r/The `SAMPLE` clause expects an integer value between 1 and 50./
+    assert error =~ ~r/The `SAMPLE` clause expects an integer value between 1 and 100./
   end
 
   describe "key columns" do

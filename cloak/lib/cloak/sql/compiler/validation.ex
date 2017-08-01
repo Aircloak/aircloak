@@ -295,8 +295,8 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
-  defp verify_sample(%Query{sample: amount}) when is_integer(amount) and (amount < 0 or amount > 50), do:
-    raise CompilationError, message: "The `SAMPLE` clause expects an integer value between 1 and 50."
+  defp verify_sample(%Query{sample: amount}) when is_integer(amount) and (amount < 0 or amount > 100), do:
+    raise CompilationError, message: "The `SAMPLE` clause expects an integer value between 1 and 100."
   defp verify_sample(%Query{subquery?: true, sample: amount}) when amount != nil, do:
     raise CompilationError, message: "The `SAMPLE` clause is supported only in the top-level query."
   defp verify_sample(_query), do: :ok
