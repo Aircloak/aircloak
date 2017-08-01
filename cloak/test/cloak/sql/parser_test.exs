@@ -1030,6 +1030,9 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse("select x, foo.*, y, bar.* from foo",
       select(columns: [identifier("x"), {:*, "foo"}, identifier("y"), {:*, "bar"}]))
 
+  test "sample from table", do:
+    assert_parse("select x from foo sample 10%", select(sample_rate: 10))
+
   create_test =
     fn(description, statement, expected_error, line, column) ->
       test description do
