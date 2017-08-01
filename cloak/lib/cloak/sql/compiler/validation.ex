@@ -24,6 +24,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     verify_limit(query)
     verify_offset(query)
     verify_like_escape(query)
+    verify_sample(query)
     query
   end
 
@@ -209,7 +210,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
 
   # -------------------------------------------------------------------
-  # Where, having, limit, offset
+  # Where, having, limit, offset, sample
   # -------------------------------------------------------------------
 
   defp verify_where(query), do: verify_where_clauses(query.where)
@@ -293,6 +294,12 @@ defmodule Cloak.Sql.Compiler.Validation do
       raise CompilationError, message: "Escape string must be one character."
     end
   end
+
+  defp verify_sample(%Query{sample: amount}) when is_integer(amount) and (amount < 0 or amount > 50), do:
+    raise CompilationError, message: "The `SAMPLE` clause expects an integer value between 1 and 50."
+  defp verify_sample(%Query{subquery?: true, sample: amount}) when amount != nil, do:
+    raise CompilationError, message: "The `SAMPLE` clause is supported only in the top-level query."
+  defp verify_sample(_query), do: :ok
 
 
   # -------------------------------------------------------------------

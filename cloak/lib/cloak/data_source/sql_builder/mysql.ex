@@ -15,7 +15,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc div mod ^ * / + -
       length lower upper btrim/1 ltrim/1 rtrim/1 left right substring substring_for concat
-      hex cast coalesce bucket
+      hex cast coalesce bucket hash
     )
 
   @doc false
@@ -26,6 +26,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   def function_sql("trunc", [arg1]), do: ["TRUNCATE(", arg1, ", 0)"]
   def function_sql("btrim", [arg1]), do: ["TRIM(", arg1, ")"]
   def function_sql("div", [arg1, arg2]), do: [arg1, " DIV ", arg2]
+  def function_sql("hash", [arg]), do: ["CAST(CONV(SUBSTR(MD5(CAST(", arg, " AS char)), 1, 15), 16, 10) AS integer)"]
   def function_sql("^", [arg1, arg2]), do: ["POW(", arg1, ", ", arg2, ")"]
   for binary_operator <- ~w(+ - * / %) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]

@@ -243,6 +243,10 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("||", args), do: Enum.join(args)
   defp do_apply("concat", args), do: Enum.join(args)
   defp do_apply("hex", [string]), do: Base.encode16(string, case: :lower)
+  defp do_apply("hash", [value]) do
+    <<hash::60, _::4, _::64>> = :crypto.hash(:md5, to_string(value))
+    hash
+  end
   defp do_apply("extract_match", [string, regex]) do
     case Regex.run(regex, string, capture: :first) do
       [capture] -> capture
