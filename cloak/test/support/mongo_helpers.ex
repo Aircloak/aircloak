@@ -12,11 +12,10 @@ defmodule Cloak.Test.MongoHelpers do
           run_query!(data_source, unquote(query))
         end))
         |> Enum.map(&Task.await/1)
-        # ignore differing execution times and data sources not supporting this query
         |> Enum.map(&Map.drop(&1, [:execution_time]))
 
-      # make sure responses from all pipeline versions are equal
-      for other_response <- other_responses, do: assert(first_response == other_response)
+      for other_response <- other_responses, do:
+        assert(first_response == other_response)
 
       assert unquote(expected_response) = first_response
     end
