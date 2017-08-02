@@ -15,7 +15,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
       year quarter month day hour minute second weekday date_trunc
       sqrt floor ceil abs round trunc div mod ^ * / + -
       length lower upper btrim ltrim rtrim left right substring substring_for concat
-      hex cast coalesce bucket
+      hex cast coalesce bucket hash
     )
 
   @doc false
@@ -25,6 +25,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def function_sql("trunc", [arg1, arg2]), do: ["TRUNC(CAST(", arg1, " AS decimal), ", arg2, ")"]
   def function_sql("round", [arg1, arg2]), do: ["ROUND(CAST(", arg1, " AS decimal), ", arg2, ")"]
   def function_sql("hex", [arg]), do: ["ENCODE(", arg, "::bytea, 'hex')"]
+  def function_sql("hash", [arg]), do: ["('x0' || SUBSTR(MD5(", arg, "::text), 1, 15))::bit(64)::bigint"]
   def function_sql("/", [arg1, arg2]),  do: ["(", arg1, " :: double precision / ", arg2, ")"]
   for binary_operator <- ~w(+ - * ^ %) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]

@@ -92,6 +92,7 @@ defmodule Cloak.Sql.Function do
     ~w(||) => %{type_specs: %{[:text, :text] => :text}},
     ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
     ~w(hex) => %{type_specs: %{[:text] => :text}},
+    ~w(hash) => %{type_specs: %{[:text] => :integer, [:integer] => :integer, [:real] => :integer}},
     # NOTICE: The `not_in_subquery` needs to be set for `extract_match` and `extract_matches`
     # (whether or not we can implement it in a subquery). The reason for this is what we have called:
     # WYSIWYC (what you see is what you count). If `extract_match` is allowed in a subquery it can

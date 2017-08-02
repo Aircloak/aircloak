@@ -202,4 +202,13 @@ defmodule Cloak.Query.JoinTest do
     """,
       %{rows: [%{occurrences: 1, row: ["plane"]}, %{occurrences: 1, row: ["house"]}]}
   end
+
+  test "sample from join" do
+    :ok = insert_rows(_user_ids = 0..100, "heights_join", ["height"], [180])
+    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
+
+    assert_query """
+      select count(*) FROM heights_join, purchases WHERE heights_join.user_id = purchases.user_id sample_users 10%
+    """, %{rows: [%{row: [8], occurrences: 1}]}
+  end
 end

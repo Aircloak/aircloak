@@ -30,6 +30,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> align_ranges(Lens.key(:where))
     |> align_join_ranges()
     |> optimize_columns_from_projected_tables()
+    |> compile_sample_rate()
     |> set_emulation_flag()
     |> partition_where_clauses()
     |> calculate_db_columns()
@@ -425,6 +426,16 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp needed_columns(query), do:
     [query.columns, query.group_by, query.emulated_where, query.having, Query.order_by_expressions(query)]
+
+  defp compile_sample_rate(%Query{sample_rate: amount} = query) when amount != nil do
+    true = is_integer(amount)
+    # adds the condition for sampling: hash(user_id) % 100 < amount
+    user_id_hash = Expression.function("hash", [Helpers.id_column(query)])
+    user_id_ranged_hash = Expression.function("%", [user_id_hash, Expression.constant(:integer, 100)])
+    sample_condition = {:comparison, user_id_ranged_hash, :<, Expression.constant(:integer, amount)}
+    %Query{query | where: Condition.combine(:and, sample_condition, query.where)}
+  end
+  defp compile_sample_rate(query), do: query
 
 
   # -------------------------------------------------------------------

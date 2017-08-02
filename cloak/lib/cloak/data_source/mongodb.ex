@@ -225,12 +225,11 @@ defmodule Cloak.DataSource.MongoDB do
   end
   defp supports_used_functions_in_having?(_query), do: true
 
-  defp supports_used_functions?(%Query{subquery?: true} = query) do
-    used_functions = Query.Lenses.query_functions() |> Lens.to_list(query) |> Enum.map(& &1.function)
+  defp supports_used_functions?(query) do
+    used_functions = Query.Lenses.db_needed_functions() |> Lens.to_list(query) |> Enum.map(& &1.function)
     supported_functions = query.data_source |> get_mongo_version() |> supported_functions()
     Enum.reject(used_functions, & &1 in supported_functions) == []
   end
-  defp supports_used_functions?(_query), do: true
 
   defp supports_joins?(%Query{from: {:join, join}, data_source: data_source}) do
     # join support was added in 3.2

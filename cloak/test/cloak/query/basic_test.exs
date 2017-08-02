@@ -923,4 +923,9 @@ defmodule Cloak.Query.BasicTest do
         rows: [%{occurrences: 100, row: [:*, 180, nil, nil], users_count: 100}]
       }
   end
+
+  test "sample from table" do
+    :ok = insert_rows(_user_ids = 1..1000, "heights", ["height"], [180])
+    assert_query "select count(height) from heights sample_users 2%", %{rows: [%{row: [25]}]}
+  end
 end
