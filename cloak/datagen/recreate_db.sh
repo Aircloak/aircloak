@@ -3,6 +3,8 @@ set -e
 
 cd $(dirname $0)
 
+USER_COUNT=$1
+
 . ./prepare_db.funcs.sh
 
 function compliance_db_command() {
@@ -26,7 +28,7 @@ function generate_compliance_db() {
 
   # Generate the dataset
   mkdir -p output
-  ruby compliance_data_generator.rb
+  ruby compliance_data_generator.rb --users $USER_COUNT
 
   # Copy the data into the database
   compliance_db_command "\copy users FROM '$PWD/output/users.csv' delimiter ',' csv header;"
