@@ -177,4 +177,9 @@ defmodule Cloak.Query.SubqueryTest do
       %{columns: ["height"], rows: [%{row: [210], occurrences: 100}]}
     )
   end
+
+  test "sample in subquery" do
+    :ok = insert_rows(_user_ids = 1..1000, "heights_sq", ["height"], [180])
+    assert_query "select count(*) from (select * from heights_sq sample 2%) t1", %{rows: [%{row: [25]}]}
+  end
 end

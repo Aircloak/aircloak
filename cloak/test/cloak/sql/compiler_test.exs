@@ -954,11 +954,6 @@ defmodule Cloak.Sql.Compiler.Test do
     assert reason == "Expression `count` is not valid in the `WHERE` clause."
   end
 
-  test "sample not allowed in subqueries" do
-    assert {:error, error} = compile("select count(*) from (select * from table sample 1%) foo", data_source())
-    assert error =~ ~r/The `SAMPLE` clause is supported only in the top-level query./
-  end
-
   test "sample amount is validated" do
     assert {:error, error} = compile("select count(*) from table sample 101%", data_source())
     assert error =~ ~r/The `SAMPLE` clause expects an integer value between 1 and 100./
