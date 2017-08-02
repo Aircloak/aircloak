@@ -29,7 +29,7 @@ defmodule Cloak.Sql.Lexer do
     "*",
     "HAVING",
     "LIMIT", "OFFSET",
-    "SAMPLE",
+    "SAMPLE_USERS",
   ] |> Enum.sort_by(&String.length/1, &>=/2) # Longer keywords have to be checked first to avoid false matches.
 
 

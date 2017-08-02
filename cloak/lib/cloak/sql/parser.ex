@@ -77,7 +77,7 @@ defmodule Cloak.Sql.Parser do
     offset: integer,
     distinct?: boolean,
     subquery?: boolean,
-    sample: integer,
+    sample_rate: integer,
   }
 
 
@@ -156,7 +156,7 @@ defmodule Cloak.Sql.Parser do
       optional_order_by(),
       optional_limit(),
       optional_offset(),
-      optional_sample()
+      optional_sample_users()
     ])
   end
 
@@ -895,11 +895,11 @@ defmodule Cloak.Sql.Parser do
   defp create_comparison(lhs, comparator, rhs), do:
     {:comparison, lhs, comparator, rhs}
 
-  defp optional_sample() do
+  defp optional_sample_users() do
     switch([
-      {keyword(:sample), pair_both(numeric_constant(:integer), keyword(:%))},
+      {keyword(:sample_users), pair_both(numeric_constant(:integer), keyword(:%))},
       {:else, noop()}
     ])
-    |> map(fn {[:sample], [{{:constant, :integer, amount}, :%}]} -> {:sample_rate, amount} end)
+    |> map(fn {[:sample_users], [{{:constant, :integer, amount}, :%}]} -> {:sample_rate, amount} end)
   end
 end
