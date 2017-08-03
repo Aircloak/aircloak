@@ -296,7 +296,7 @@ defmodule Cloak.DataSource do
       error in ExecutionError ->
         message = "Connection error: #{Exception.message(error)}."
         Logger.error("Data source `#{data_source.name}` is offline: #{message}")
-        %{data_source | errors: [message | data_source.errors], tables: %{}, status: :offline}
+        add_error_message(%{data_source | tables: %{}, status: :offline}, message)
     end
   end
 
@@ -328,10 +328,13 @@ defmodule Cloak.DataSource do
       error in ExecutionError ->
         message = "Connection error: #{Exception.message(error)}."
         Logger.error("Data source `#{data_source.name}` is offline: #{message}")
-        %{data_source | errors: [message | data_source.errors], tables: %{}, status: :offline}
+        add_error_message(%{data_source | tables: %{}, status: :offline}, message)
     end
   end
   defp check_data_source(%{status: :offline} = data_source) do
     add_tables(data_source)
   end
+
+  defp add_error_message(data_source, message), do:
+    %{data_source | errors: [message | data_source.errors]}
 end
