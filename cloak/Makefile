@@ -1,7 +1,7 @@
 SHELL=/bin/bash -o pipefail
 
 .PHONY: sandbox deps docs proper proper-std proper-extended test clean all compile
-.PHONY: regenerate-db dialyze lint release release-local perftest perftest-setup
+.PHONY: recreate-db dialyze lint release release-local perftest perftest-setup
 
 all: deps compile
 
