@@ -29,7 +29,7 @@ test_all:
 
 recreate-db:
 	@echo "Assumption: you have a database user called postgres that is a superuser. If not, run: CREATE USER postgres WITH SUPERUSER"
-	./datagen/recreate_db.sh 100
+	./datagen/recreate_db.sh
 
 recreate-db-more-data: recreate-db
 	./datagen/add_more_test_data.sh
