@@ -181,6 +181,21 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
 - We compute the noise scale: `NoiseScale = max(TopAverage, 2 * GlobalAverage) = max(670, 2 * 505) = 1010`
 - We compute the final result: `Result = Sum + No * TopAverage + Nv * NoiseScale = 2020 + 3 * 670 + 0.5 * 1010 = 4535`.
 
+## Low-count filtering
+
+Some buckets are considered too small to report at all. These are ones that meet one of two conditions:
+
+1. They are smaller than a hard low bound (configurable).
+2. They are smaller than a random number chosen with a configurable mean and SD.
+
+"Smaller" here means that the buckets contain less unique user ids than the given number. Note that the random
+number is selected using the mechanism described in [Noise Layers](#noise_layers) so the configured SD is
+only the base SD per layer - the total SD will depend on the exact query.
+
+Data from all buckets discarded this way is aggregated into a single bucket and reported as a whole. Non-aggregated
+values in this bucket are suppressed (replaced with a `*` in the output). This bucket is also checked for low-count
+using the same procedure, and if it is found too small no data is reported.
+
 ## Fixed alignment
 
 Whenever the query includes an inequality on some columns we require that there
