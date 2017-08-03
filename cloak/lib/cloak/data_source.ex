@@ -212,10 +212,11 @@ defmodule Cloak.DataSource do
   defp map_driver(data_source) do
     driver_module =
       case data_source.driver do
-        "postgresql" -> Cloak.DataSource.PostgreSQL
+        "mongodb" -> Cloak.DataSource.MongoDB
         "mysql" -> Cloak.DataSource.MySQL
         "odbc" -> Cloak.DataSource.ODBC
-        "mongodb" -> Cloak.DataSource.MongoDB
+        "postgresql" -> Cloak.DataSource.PostgreSQL
+        "sqlserver" -> Cloak.DataSource.SQLServer
         other -> raise_error("Unknown driver `#{other}` for data source `#{data_source.name}`")
       end
     dialect = driver_module.dialect(data_source.parameters)
