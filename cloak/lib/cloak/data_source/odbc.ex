@@ -73,7 +73,7 @@ defmodule Cloak.DataSource.ODBC do
   defp to_connection_string(parameters) do
     parameters
     |> Enum.map(fn({key, value}) ->
-      if String.contains?(value, [";", "{"]), do:
+      if value |> to_string() |> String.contains?([";", "{"]), do:
         DataSource.raise_error("The characters ';' and '{' are not allowed inside ODBC driver parameters!")
       "#{Atom.to_string(key)}=#{value}"
     end)
