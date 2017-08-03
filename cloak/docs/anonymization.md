@@ -83,7 +83,9 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
     where Nv is a zero mean noisy number with a standard deviation taken from
     [sum_noise_sigma](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L51)
     (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * max(0.5 * avg(top(remaining, Nt)), avg(remaining))`).
-    Note that an `Nv * ...` factor is added _per noise layer_ - see [Noise Layers](#noise_layers).
+  - Note that an `Nv * ...` factor is added _per noise layer_ - see [Noise Layers](#noise_layers).
+  - Note that the No and Nt numbers are also calculated according to the rules in [Noise Layers](#noise_layers), so depending on the query the actual
+    SD of these numbers might be bigger than configuerd.
   - The final result is the maximum between the absolute lower bound of the LCF and the total count.
 
 
@@ -105,7 +107,9 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
       where Nv is a zero mean noisy number with a standard deviation taken from
       [sum_noise_sigma](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L51)
       (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * max(0.5 * avg(top(remaining, Nt)), avg(remaining))`).
-      Note that an `Nv * ...` factor is added _per noise layer_ - see [Noise Layers](#noise_layers).
+    - Note that an `Nv * ...` factor is added _per noise layer_ - see [Noise Layers](#noise_layers).
+    - Note that the No and Nt numbers are also calculated according to the rules in [Noise Layers](#noise_layers), so depending on the query the actual
+      SD of these numbers might be bigger than configuerd.
 
 
 ## AVG()
