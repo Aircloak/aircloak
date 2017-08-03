@@ -207,6 +207,7 @@ defmodule Cloak.DataSource do
     |> potentially_create_temp_name()
     |> generate_global_id()
     |> map_driver()
+    |> validate_choice_of_encoding()
   end
 
   defp map_driver(data_source) do
@@ -335,6 +336,26 @@ defmodule Cloak.DataSource do
   defp check_data_source(%{status: :offline} = data_source) do
     add_tables(data_source)
   end
+
+  defp validate_choice_of_encoding(%{parameters: %{encoding: encoding}} = data_source) do
+    cond do
+      encoding in ["latin1", "unicode", "utf8", "utf16", "utf32"] ->
+        set_encoding(data_source, String.to_atom(encoding))
+      encoding == "utf16-big" -> set_encoding(data_source, {:utf16, :big})
+      encoding == "utf16-little" -> set_encoding(data_source, {:utf16, :little})
+      encoding == "utf32-big" -> set_encoding(data_source, {:utf32, :big})
+      encoding == "utf32-little" -> set_encoding(data_source, {:utf32, :little})
+      true ->
+        add_error_message(
+          set_encoding(data_source, :latin1),
+          "Unsupported encoding type: `#{encoding}`. Falling back to `latin1`"
+        )
+    end
+  end
+  defp validate_choice_of_encoding(data_source), do: data_source
+
+  defp set_encoding(%{parameters: parameters} = data_source, encoding), do:
+    %{data_source | parameters: Map.put(parameters, :encoding, encoding)}
 
   defp add_error_message(data_source, message), do:
     %{data_source | errors: [message | data_source.errors]}
