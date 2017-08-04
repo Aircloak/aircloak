@@ -4,7 +4,7 @@ defmodule PerfTest do
     IO.puts ">>> Testing query '#{query}' ..."
     timings = Enum.map(1..5, fn (_) -> run_query(query) end)
     {avg, stddev} = stats(timings)
-    IO.puts "\n>>> Performance test ended: AVERAGE duration: #{avg} seconds, STDDEV: #{stddev} seconds."
+    IO.puts "\n>>> Performance test ended: AVERAGE duration: #{avg} seconds, STDDEV: #{stddev} seconds.\n\n"
   end
 
   defp stats(timings) do
@@ -29,8 +29,10 @@ defmodule PerfTest do
   end
 end
 
-query = case System.argv do
-  [param] -> param
-  _ -> "SELECT COUNT(*) FROM drafts_changes"
+for query <- [
+  "SELECT COUNT(*) FROM notes",
+  "SELECT COUNT(*) FROM drafts_changes",
+  "SELECT COUNT(*) FROM drafts_changes_encoded",
+] do
+  PerfTest.run(query)
 end
-PerfTest.run(query)
