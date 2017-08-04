@@ -70,4 +70,4 @@ release-local:
 	mix release --env=local --no-tar
 
 perftest:
-	MIX_ENV=test mix run perftest/main.exs "${QUERY}"
+	MIX_ENV=perf mix run perftest/main.exs

@@ -1,0 +1,22 @@
+{
+  "salt": "perf salt which doesn't need to be safe",
+  "data_sources": [
+    {
+      "driver": "postgresql",
+      "marker": "native",
+      "name": "data_source_name",
+      "parameters": {
+        "hostname": "localhost",
+        "username": "performance",
+        "database": "performance"
+      },
+      "tables": {
+        "drafts_changes": {
+          "db_name": "drafts_changes",
+          "user_id": "note_id",
+          "ignore_unsupported_types": false
+        }
+      }
+    }
+  ]
+}

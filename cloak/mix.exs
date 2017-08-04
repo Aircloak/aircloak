@@ -58,6 +58,7 @@ defmodule Cloak.Mixfile do
   end
 
   defp extra_applications(:test), do: common_extra_applications()
+  defp extra_applications(:perf), do: common_extra_applications()
   defp extra_applications(:dev), do: [:os_mon | common_extra_applications()]
   defp extra_applications(:prod), do: [:os_mon | common_extra_applications()]
 
@@ -78,7 +79,7 @@ defmodule Cloak.Mixfile do
       "lint": ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env), ",")}"]
     ]
   end
-  defp aliases(:prod), do: []
+  defp aliases(_), do: []
 
   defp ignored_credo_checks(:test), do:
     ["ModuleDoc" | ignored_credo_checks(:dev)]

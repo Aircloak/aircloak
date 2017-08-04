@@ -1,19 +1,10 @@
 defmodule PerfTest do
-
-  @table_name "aircloak_perftest"
-
-  def run(""), do: run("SELECT COUNT(item), AVG(price) FROM #{@table_name} WHERE price <> 500")
   def run(query) do
-    IO.puts ">>> Started performance test ..."
-    data_source_setup()
+    IO.puts(">>> Started performance test ...")
     IO.puts ">>> Testing query '#{query}' ..."
     timings = Enum.map(1..5, fn (_) -> run_query(query) end)
     {avg, stddev} = stats(timings)
     IO.puts "\n>>> Performance test ended: AVERAGE duration: #{avg} seconds, STDDEV: #{stddev} seconds."
-  end
-
-  defp data_source_setup() do
-    Cloak.Test.DB.register_test_table(String.to_atom(@table_name), @table_name)
   end
 
   defp stats(timings) do
@@ -40,6 +31,6 @@ end
 
 query = case System.argv do
   [param] -> param
-  _ -> "" # use default query
+  _ -> "SELECT COUNT(*) FROM drafts_changes"
 end
 PerfTest.run(query)
