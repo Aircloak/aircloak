@@ -171,6 +171,10 @@ It is possible to run cloak as a local docker container:
 
 You can now interact with the cloak via the dockerized air (http://localhost:8080 or https://insights.air-local:8443).
 
+#### Running a local development container (macos only)
+
+With the `make dev-container` command, you can start a Linux container with your local aircloak folder mounted. This feature is intended for macos developers, and it allows them to develop and test in the Linux environment. You need to have Docker for Mac 17.0.6 or higher.
+
 #### Deploying
 
 See [here](../README.md#deploying).

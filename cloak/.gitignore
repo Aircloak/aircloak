@@ -40,3 +40,4 @@ priv/serialization.lua
 /artifacts/
 
 /datagen/output/
+*.log
