@@ -283,6 +283,11 @@ Each noise layer is seeded with at least:
 * A number N that is incremented each time two noise layers have exactly the
   same seed
 
+In case the noise layers are used to compute a `COUNT(*)` as opposed to for
+example a `COUNT(column)` expression an additional, unique marker is added to
+the seed. This is meant to make it harder to exploit any knowledge about the
+presence of `NULL` values in some column.
+
 Additionally, depending on the type of clause, some extra data is added:
 
 * `=` clauses and `GROUP BY` - no extra data
