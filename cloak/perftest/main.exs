@@ -27,6 +27,15 @@ defmodule PerfTest do
   end
 end
 
+defmodule InfluxDB do
+  def post_result!(key, avg, stdev) do
+    %{status_code: 204} = HTTPoison.post!(
+      "http://localhost:8086/write?db=performance",
+      "performance,query=#{key} time_avg=#{avg},time_stddev=#{stdev}"
+    )
+  end
+end
+
 for {key, query} <- %{
   count_notes: "SELECT COUNT(*) FROM notes",
   count_drafts_changes: "SELECT COUNT(*) FROM drafts_changes",
@@ -36,11 +45,7 @@ for {key, query} <- %{
   IO.puts(">>> Testing query '#{query}' ...")
 
   {avg, stdev} = PerfTest.run(query)
-
-  %{status_code: 204} = HTTPoison.post!(
-    "http://localhost:8086/write?db=performance",
-    "performance,query=#{key} time_avg=#{avg},time_stddev=#{stdev}"
-  )
+  InfluxDB.post_result!(key, avg, stdev)
 
   IO.puts("\n>>> Performance test ended: AVERAGE duration: #{avg} seconds, STDDEV: #{stdev} seconds.\n\n")
 end
