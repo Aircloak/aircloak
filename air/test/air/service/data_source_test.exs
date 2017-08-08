@@ -3,7 +3,7 @@ defmodule Air.Service.DataSourceTest do
 
   alias Air.Service.DataSource
   alias Air.Schemas
-  alias Air.{TestRepoHelper, TestSocketHelper}
+  alias Air.TestRepoHelper
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
@@ -231,19 +231,6 @@ defmodule Air.Service.DataSourceTest do
 
       assert [%{id: ^view_name, view: true}] = DataSource.views_and_tables(user, data_source)
     end
-  end
-
-  defp with_user(_context), do: {:ok, user: TestRepoHelper.create_user!()}
-
-  defp with_data_source(_context), do: {:ok, data_source: TestRepoHelper.create_data_source!()}
-
-  defp with_query(%{user: user, data_source: data_source}), do: {:ok, query: create_query(user, data_source)}
-
-  defp with_socket(%{data_source: data_source}) do
-    socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
-    TestSocketHelper.join!(socket, "main",
-      %{data_sources: [%{name: data_source.name, global_id: data_source.global_id, tables: []}]})
-    {:ok, socket: socket}
   end
 
   defp create_query(user, data_source, additional_data \\ %{}), do:

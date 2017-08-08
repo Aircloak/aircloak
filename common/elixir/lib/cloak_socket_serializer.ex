@@ -25,7 +25,7 @@ defmodule Air.CloakSocketSerializer do
 
   @doc false
   def encode_message(message), do:
-    Aircloak.report_long(:encode_cloak_message, fn -> {:binary, :erlang.term_to_binary(message)} end)
+    Aircloak.report_long(:encode_cloak_message, fn -> {:ok, {:binary, :erlang.term_to_binary(message)}} end)
 
 
   # -------------------------------------------------------------------
