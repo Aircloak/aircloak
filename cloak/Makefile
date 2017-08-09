@@ -2,6 +2,7 @@ SHELL=/bin/bash -o pipefail
 
 .PHONY: sandbox deps docs proper proper-std proper-extended test clean all compile
 .PHONY: regenerate-db dialyze lint release release-local perftest perftest-setup dev-container
+.PHONY: odbc_drivers odbc_drivers_folder
 
 all: deps compile
 
@@ -17,6 +18,7 @@ deps:
 
 clean:
 	mix clean --deps
+	rm -rf odbc_drivers
 
 start: compile
 	iex -S mix
@@ -73,3 +75,11 @@ perftest-setup:
 
 dev-container:
 	./dev-container.sh
+
+odbc_drivers: odbc_drivers_folder deps/odbc_drivers/libodbcHDB.so
+
+odbc_drivers_folder:
+	mkdir -p deps/odbc_drivers
+
+deps/odbc_drivers/libodbcHDB.so:
+	wget -P deps/odbc_drivers/ https://www.dropbox.com/s/aerstjlatecny79/libodbcHDB.so
