@@ -73,7 +73,7 @@ perftest:
 perftest-setup:
 	MIX_ENV=test mix run perftest/setup.exs ${SIZE}
 
-dev-container:
+dev-container: odbc_drivers
 	./dev-container.sh
 
 odbc_drivers: odbc_drivers_folder deps/odbc_drivers/libodbcHDB.so
