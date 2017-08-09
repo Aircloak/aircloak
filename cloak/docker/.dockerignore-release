@@ -5,4 +5,4 @@
 !cloak/artifacts/rel
 !cloak/docker
 !cloak/priv/odbc/docker
-!cloak/deps/odbc_drivers/libodbcHDB.so
+!cloak/deps/odbc_drivers/libodbc-sap-hana-v2.so

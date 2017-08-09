@@ -76,10 +76,10 @@ perftest-setup:
 dev-container: odbc_drivers
 	./dev-container.sh
 
-odbc_drivers: odbc_drivers_folder deps/odbc_drivers/libodbcHDB.so
+odbc_drivers: odbc_drivers_folder deps/odbc_drivers/libodbc-sap-hana-v2.so
 
 odbc_drivers_folder:
 	mkdir -p deps/odbc_drivers
 
-deps/odbc_drivers/libodbcHDB.so:
-	wget -P deps/odbc_drivers/ https://www.dropbox.com/s/aerstjlatecny79/libodbcHDB.so
+deps/odbc_drivers/libodbc-sap-hana-v2.so:
+	wget -P deps/odbc_drivers/ https://www.dropbox.com/s/aerstjlatecny79/libodbc-sap-hana-v2.so
