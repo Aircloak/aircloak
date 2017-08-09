@@ -8,8 +8,11 @@ it("completes keywords", () => {
     completions("thing cou| rest", 9, _.identity, [], [], ""),
     {
       list: [
+        {text: "COUNT_NOISE(distinct columnName)", from: 6, to: 9},
         {text: "COUNT(distinct columnName)", from: 6, to: 9},
+        {text: "COUNT_NOISE(columnName)", from: 6, to: 9},
         {text: "COUNT(columnName)", from: 6, to: 9},
+        {text: "COUNT_NOISE(*)", from: 6, to: 9},
         {text: "COUNT(*)", from: 6, to: 9},
       ],
       from: 6,
@@ -128,8 +131,11 @@ it("completes after parens", () => {
     completions("count(coun", 10, _.identity, [], [], ""),
     {
       list: [
+        {text: "COUNT_NOISE(distinct columnName)", from: 6, to: 10},
         {text: "COUNT(distinct columnName)", from: 6, to: 10},
+        {text: "COUNT_NOISE(columnName)", from: 6, to: 10},
         {text: "COUNT(columnName)", from: 6, to: 10},
+        {text: "COUNT_NOISE(*)", from: 6, to: 10},
         {text: "COUNT(*)", from: 6, to: 10},
       ],
       from: 6,
