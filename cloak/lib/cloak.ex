@@ -23,7 +23,6 @@ defmodule Cloak do
   # all of them in the test environment.
   case Mix.env do
     :test -> defp children, do: common_processes()
-    :perf -> defp children, do: common_processes()
     :dev -> defp children, do: common_processes() ++ system_processes()
     :prod -> defp children, do: common_processes() ++ system_processes()
   end
@@ -37,7 +36,7 @@ defmodule Cloak do
     ]
   end
 
-  unless Mix.env in [:test, :perf] do
+  unless Mix.env in [:test] do
     # Processes which we don't want to start in the test environment
     defp system_processes do
       import Supervisor.Spec, warn: false
