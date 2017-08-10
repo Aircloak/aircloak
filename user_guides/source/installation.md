@@ -140,7 +140,7 @@ The `data_sources` section configures the databases and tables that will be made
   "tables": tables
 }
 ```
-The `name` parameter is a string which will be used to identiy the data source throughout the Air interface and APIs. The `driver` parameter can be one of the following: `mongodb`, `postgresql`, `mysql`, `odbc`. Next, you need to specify the database connection parameters.
+The `name` parameter is a string which will be used to identiy the data source throughout the Air interface and APIs. The `driver` parameter can be one of the following: `mongodb`, `postgresql`, `mysql`, `sqlserver`, `saphana`, `odbc`. Next, you need to specify the database connection parameters.
 
 The database tables that should be made available are defined in the tables section of the cloak config. It should be a JSON object that looks as follows:
 

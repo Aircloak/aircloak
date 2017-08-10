@@ -7,7 +7,7 @@
       "marker": "native",
       "name": "cloak_postgres_native",
       "parameters": {
-        "hostname": "localhost",
+        "hostname": "insights.air-local",
         "username": "cloak",
         "database": "cloak"
       },
@@ -57,7 +57,7 @@
         "DSN": "PostgreSQL",
         "UID": "cloak",
         "Database": "cloak",
-        "Server": "localhost"
+        "Server": "insights.air-local"
       },
       "tables": {
         "test": {
@@ -102,7 +102,7 @@
       "name": "compliance_normal",
       "marker": "normal",
       "parameters": {
-        "hostname": "localhost",
+        "hostname": "insights.air-local",
         "username": "datasource_compliance",
         "database": "datasource_compliance"
       },
@@ -138,7 +138,7 @@
       "name": "compliance_encoded",
       "marker": "encoded",
       "parameters": {
-        "hostname": "localhost",
+        "hostname": "insights.air-local",
         "username": "datasource_compliance",
         "database": "datasource_compliance"
       },
