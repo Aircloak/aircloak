@@ -71,7 +71,7 @@ release-local:
 	MIX_ENV=prod mix compile.app --force
 	mix release --env=local --no-tar
 
-perftest:
+perftest: deps
 	MIX_ENV=prod mix compile
 	MIX_ENV=prod mix run perftest/main.exs
 
