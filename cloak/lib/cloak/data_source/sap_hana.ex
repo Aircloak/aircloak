@@ -1,4 +1,4 @@
-defmodule Cloak.DataSource.Hana do
+defmodule Cloak.DataSource.SAPHana do
   @moduledoc """
   Implements the DataSource.Driver behaviour for SAP HANA.
   For more information, see `DataSource`.
@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.Hana do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
-  def dialect(_parameters), do: :hana
+  def dialect(_parameters), do: :saphana
 
   @doc false
   def connect!(parameters) do
@@ -22,7 +22,7 @@ defmodule Cloak.DataSource.Hana do
       {key |> Atom.to_string() |> String.downcase() |> String.to_atom(), value}
 
     odbc_parameters = %{
-      "DSN": "HANA",
+      "DSN": "SAPHANA",
       "servernode": "#{normalized_parameters[:hostname]}:#{normalized_parameters[:port]}",
       "Uid": normalized_parameters[:username],
       "Pwd": normalized_parameters[:password],

@@ -1,4 +1,4 @@
-defmodule Cloak.DataSource.SqlBuilder.Hana do
+defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   @moduledoc "Helper module for converting a query to SAP HANA specific SQL."
 
   # -------------------------------------------------------------------

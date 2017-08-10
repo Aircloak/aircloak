@@ -87,7 +87,7 @@ defmodule Cloak.DataSource.ODBC do
     {:updated, _} = :odbc.sql_query(connection, 'SET standard_conforming_strings = ON')
   defp set_dialect(:sqlserver, connection), do:
     {:updated, _} = :odbc.sql_query(connection, 'SET ANSI_DEFAULTS ON')
-  defp set_dialect(:hana, _connection), do:
+  defp set_dialect(:saphana, _connection), do:
     :ok
   defp set_dialect(:drill, _connection), do: :ok
 
