@@ -1,5 +1,5 @@
 defmodule IntegrationTest.OdbcTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias IntegrationTest.Manager
 
@@ -18,9 +18,19 @@ defmodule IntegrationTest.OdbcTest do
     assert to_string(msg) =~ ~r/Authentication failed/
   end
 
-  test "ssl mode is required", context do
+  test "can't connect over tcp in ssl mode", context do
+    original_settings = Aircloak.DeployConfig.fetch!(:air, "psql_server")
+    Aircloak.DeployConfig.update(:air, "psql_server", &Map.put(&1, "protocol", "ssl"))
     assert {:error, msg} = connect(context.user, sslmode: "disable")
     assert to_string(msg) =~ ~r/Connection refused/
+    Aircloak.DeployConfig.update(:air, "psql_server", fn(_) -> original_settings end)
+  end
+
+  test "can connect over tcp in tcp mode", context do
+    original_settings = Aircloak.DeployConfig.fetch!(:air, "psql_server")
+    Aircloak.DeployConfig.update(:air, "psql_server", &Map.put(&1, "protocol", "tcp"))
+    assert {:ok, _} = connect(context.user, sslmode: "disable")
+    Aircloak.DeployConfig.update(:air, "psql_server", fn(_) -> original_settings end)
   end
 
   test "connecting", context do

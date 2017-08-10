@@ -7,6 +7,7 @@ defmodule Air.PsqlServer.Protocol.Authentication do
 
   alias Air.PsqlServer.Protocol
   alias Air.PsqlServer.Protocol.Messages
+  require Aircloak.DeployConfig
 
   @behaviour Protocol
 
@@ -17,29 +18,24 @@ defmodule Air.PsqlServer.Protocol.Authentication do
 
   @doc false
   def handle_client_message(%{state: :initial} = protocol, :raw, message) do
-    if Messages.ssl_message?(message) do
-      protocol
-      |> Protocol.send_to_client(:require_ssl)
-      |> Protocol.add_action(:upgrade_to_ssl)
-      |> Protocol.next_state(:negotiating_ssl)
-    else
-      protocol
-      |> Protocol.send_to_client({:fatal_error, "Only SSL connections are allowed!"})
-      |> Protocol.close(:required_ssl)
+    cond do
+      Messages.ssl_message?(message) ->
+        protocol
+        |> Protocol.send_to_client(:require_ssl)
+        |> Protocol.add_action(:upgrade_to_ssl)
+        |> Protocol.next_state(:negotiating_ssl)
+
+      Map.get(Aircloak.DeployConfig.fetch!("psql_server"), "protocol", "ssl") == "tcp" ->
+        handle_startup_message(protocol, message)
+
+      true ->
+        protocol
+        |> Protocol.send_to_client({:fatal_error, "Only SSL connections are allowed!"})
+        |> Protocol.close(:required_ssl)
     end
   end
-  def handle_client_message(%{state: :ssl_negotiated} = protocol, :raw, message) do
-    startup_message = Messages.decode_startup_message(message)
-    if startup_message.version.major != 3 do
-      Protocol.close(protocol, :unsupported_protocol_version)
-    else
-      Protocol.await_client_message(protocol,
-        state: :login_params,
-        bytes: startup_message.length,
-        decode?: false
-      )
-    end
-  end
+  def handle_client_message(%{state: :ssl_negotiated} = protocol, :raw, message), do:
+    handle_startup_message(protocol, message)
   def handle_client_message(%{state: :login_params} = protocol, :raw, raw_login_params), do:
     protocol
     |> Protocol.add_action({:login_params, Messages.decode_login_params(raw_login_params)})
@@ -73,4 +69,22 @@ defmodule Air.PsqlServer.Protocol.Authentication do
     |> Protocol.send_to_client(:authentication_ok)
     |> Protocol.send_to_client({:fatal_error, "Authentication failed!"})
     |> Protocol.close(:not_authenticated)
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp handle_startup_message(protocol, message) do
+    startup_message = Messages.decode_startup_message(message)
+    if startup_message.version.major != 3 do
+      Protocol.close(protocol, :unsupported_protocol_version)
+    else
+      Protocol.await_client_message(protocol,
+        state: :login_params,
+        bytes: startup_message.length,
+        decode?: false
+      )
+    end
+  end
 end
