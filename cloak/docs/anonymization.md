@@ -83,7 +83,9 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
     where Nv is a zero mean noisy number with a standard deviation taken from
     [sum_noise_sigma](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L51)
     (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * max(0.5 * avg(top(remaining, Nt)), avg(remaining))`).
-    Note that an `Nv * ...` factor is added _per noise layer_ - see [Noise Layers](#noise_layers).
+  - Note that an `Nv * ...` factor is added _per noise layer_ - see [Noise Layers](#noise_layers).
+  - Note that the No and Nt numbers are also calculated according to the rules in [Noise Layers](#noise_layers), so depending on the query the actual
+    SD of these numbers might be bigger than configuerd.
   - The final result is the maximum between the absolute lower bound of the LCF and the total count.
 
 
@@ -105,7 +107,9 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
       where Nv is a zero mean noisy number with a standard deviation taken from
       [sum_noise_sigma](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L51)
       (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * max(0.5 * avg(top(remaining, Nt)), avg(remaining))`).
-      Note that an `Nv * ...` factor is added _per noise layer_ - see [Noise Layers](#noise_layers).
+    - Note that an `Nv * ...` factor is added _per noise layer_ - see [Noise Layers](#noise_layers).
+    - Note that the No and Nt numbers are also calculated according to the rules in [Noise Layers](#noise_layers), so depending on the query the actual
+      SD of these numbers might be bigger than configuerd.
 
 
 ## AVG()
@@ -176,6 +180,21 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
 - We compute the sum of all the remaining users: `Sum = 10 + 10 + 1000 + 1000 = 2020`.
 - We compute the noise scale: `NoiseScale = max(TopAverage, 2 * GlobalAverage) = max(670, 2 * 505) = 1010`
 - We compute the final result: `Result = Sum + No * TopAverage + Nv * NoiseScale = 2020 + 3 * 670 + 0.5 * 1010 = 4535`.
+
+## Low-count filtering
+
+Some buckets are considered too small to report at all. These are ones that meet one of two conditions:
+
+1. They are smaller than a hard low bound (configurable).
+2. They are smaller than a random number chosen with a configurable mean and SD.
+
+"Smaller" here means that the buckets contain less unique user ids than the given number. Note that the random
+number is selected using the mechanism described in [Noise Layers](#noise_layers) so the configured SD is
+only the base SD per layer - the total SD will depend on the exact query.
+
+Data from all buckets discarded this way is aggregated into a single bucket and reported as a whole. Non-aggregated
+values in this bucket are suppressed (replaced with a `*` in the output). This bucket is also checked for low-count
+using the same procedure, and if it is found too small no data is reported.
 
 ## Fixed alignment
 
@@ -263,6 +282,11 @@ Each noise layer is seeded with at least:
 * The list of the values in the column
 * A number N that is incremented each time two noise layers have exactly the
   same seed
+
+In case the noise layers are used to compute a `COUNT(*)` as opposed to for
+example a `COUNT(column)` expression an additional, unique marker is added to
+the seed. This is meant to make it harder to exploit any knowledge about the
+presence of `NULL` values in some column.
 
 Additionally, depending on the type of clause, some extra data is added:
 

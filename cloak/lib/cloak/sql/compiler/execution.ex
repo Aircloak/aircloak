@@ -363,7 +363,8 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> Enum.reject(fn({_, comparisons}) -> valid_range?(comparisons) end)
     |> case do
       [{column, _} | _] ->
-        raise CompilationError, message: "Column #{Expression.display_name(column)} must be limited to a finite range."
+        raise CompilationError, message:
+          "Column #{Expression.display_name(column)} must be limited to a finite, nonempty range."
       _ -> :ok
     end
   end
@@ -372,7 +373,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     case Enum.sort_by(comparisons, &Condition.direction/1, &Kernel.>/2) do
       [cmp1, cmp2] ->
         Condition.direction(cmp1) != Condition.direction(cmp2) &&
-          Cloak.Data.lt_eq(Condition.value(cmp1), Condition.value(cmp2))
+          Cloak.Data.lt(Condition.value(cmp1), Condition.value(cmp2))
       _ -> false
     end
   end

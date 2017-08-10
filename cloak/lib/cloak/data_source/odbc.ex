@@ -47,7 +47,7 @@ defmodule Cloak.DataSource.ODBC do
   def select(connection, sql_query, result_processor) do
     statement = sql_query |> SqlBuilder.build() |> to_char_list()
     field_mappers = for column <- sql_query.db_columns, do:
-      column |> DataDecoder.encoded_type() |> type_to_field_mapper(sql_query.data_source.driver_dialect)
+      column |> DataDecoder.encoded_type() |> type_to_field_mapper(sql_query.data_source)
     case :odbc.select_count(connection, statement, _timeout = :timer.hours(4)) do
       {:ok, _count} ->
         data_stream = Stream.resource(fn () -> connection end, fn (conn) ->
@@ -73,7 +73,7 @@ defmodule Cloak.DataSource.ODBC do
   defp to_connection_string(parameters) do
     parameters
     |> Enum.map(fn({key, value}) ->
-      if String.contains?(value, [";", "{"]), do:
+      if value |> to_string() |> String.contains?([";", "{"]), do:
         DataSource.raise_error("The characters ';' and '{' are not allowed inside ODBC driver parameters!")
       "#{Atom.to_string(key)}=#{value}"
     end)
@@ -87,6 +87,8 @@ defmodule Cloak.DataSource.ODBC do
     {:updated, _} = :odbc.sql_query(connection, 'SET standard_conforming_strings = ON')
   defp set_dialect(:sqlserver, connection), do:
     {:updated, _} = :odbc.sql_query(connection, 'SET ANSI_DEFAULTS ON')
+  defp set_dialect(:saphana, _connection), do:
+    :ok
   defp set_dialect(:drill, _connection), do: :ok
 
   defp parse_type(:sql_integer), do: :integer
@@ -117,13 +119,18 @@ defmodule Cloak.DataSource.ODBC do
   defp map_fields([field | rest_fields], [mapper | rest_mappers]), do:
     [mapper.(field) | map_fields(rest_fields, rest_mappers)]
 
-  defp type_to_field_mapper(:datetime, _sql_dialect), do: &datetime_field_mapper/1
-  defp type_to_field_mapper(:time, _sql_dialect), do: &time_field_mapper/1
-  defp type_to_field_mapper(:date, _sql_dialect), do: &date_field_mapper/1
-  defp type_to_field_mapper(:real, _sql_dialect), do: &real_field_mapper/1
-  defp type_to_field_mapper(:integer, _sql_dialect), do: &integer_field_mapper/1
-  defp type_to_field_mapper(:text, :sqlserver), do: &utf16_text_field_mapper/1
-  defp type_to_field_mapper(_, _sql_dialect), do: &generic_field_mapper/1
+  defp type_to_field_mapper(:datetime, _data_source), do: &datetime_field_mapper/1
+  defp type_to_field_mapper(:time, _data_source), do: &time_field_mapper/1
+  defp type_to_field_mapper(:date, _data_source), do: &date_field_mapper/1
+  defp type_to_field_mapper(:real, _data_source), do: &real_field_mapper/1
+  defp type_to_field_mapper(:integer, _data_source), do: &integer_field_mapper/1
+  defp type_to_field_mapper(:text, %{parameters: %{encoding: encoding}}) when encoding != nil, do:
+    text_to_unicode_mapper(encoding)
+  # We hardcode the default encoding for SQL Server to be utf16 little endian.
+  # This is for historic reasons more than anything, since that's what our SQL Servers
+  # are using internally.
+  defp type_to_field_mapper(:text, %{driver_dialect: :sqlserver}), do: text_to_unicode_mapper({:utf16, :little})
+  defp type_to_field_mapper(_, _data_source), do: &generic_field_mapper/1
 
   defp generic_field_mapper(:null), do: nil
   defp generic_field_mapper(value), do: value
@@ -164,7 +171,9 @@ defmodule Cloak.DataSource.ODBC do
   defp integer_field_mapper(value) when is_integer(value), do: value
   defp integer_field_mapper(value) when is_float(value), do: round(value)
 
-  defp utf16_text_field_mapper(:null), do: nil
-  defp utf16_text_field_mapper(value) when is_binary(value), do:
-    :unicode.characters_to_binary(value, {:utf16, :little})
+  defp text_to_unicode_mapper(encoding), do:
+    fn
+      (:null) -> nil
+      (value) -> :unicode.characters_to_binary(value, encoding)
+    end
 end
