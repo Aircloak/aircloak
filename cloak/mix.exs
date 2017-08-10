@@ -55,7 +55,8 @@ defmodule Cloak.Mixfile do
       {:excheck, "~> 0.5.3", only: :test},
       {:triq, github: "triqng/triq", only: :test},
 
-      {:httpoison, "~> 0.13.0", only: :perf},
+      # Only used for perf tests
+      {:httpoison, "~> 0.13.0", runtime: false},
     ]
   end
 

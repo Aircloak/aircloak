@@ -72,7 +72,8 @@ release-local:
 	mix release --env=local --no-tar
 
 perftest:
-	MIX_ENV=perf mix run perftest/main.exs
+	MIX_ENV=prod mix compile
+	MIX_ENV=prod mix run perftest/main.exs
 
 dev-container: odbc_drivers
 	./dev-container.sh
