@@ -34,6 +34,7 @@ defmodule IntegrationTests.Mixfile do
       {:ecto, "~> 2.1", override: true},
       {:postgrex, "~> 0.13.0", override: true},
       {:poison, github: "cristianberneanu/poison", override: true},
+      {:httpoison, "~> 0.12.0", override: true},
     ]
   end
 

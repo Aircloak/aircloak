@@ -1,0 +1,80 @@
+{
+  "air_site": "wss://localhost:8443",
+  "salt": "perf salt which doesn't need to be safe",
+  "data_sources": [
+    {
+      "driver": "postgresql",
+      "marker": "native",
+      "name": "data_source_name",
+      "parameters": {
+        "hostname": "localhost",
+        "username": "performance",
+        "password": "",
+        "database": "performance"
+      },
+      "tables": {
+        "users": {
+          "db_name": "users",
+          "user_id": "id"
+        },
+
+        "notes": {
+          "db_name": "notes",
+          "projection": {
+            "table": "users",
+            "foreign_key": "user_id",
+            "primary_key": "id"
+          }
+        },
+
+        "drafts_changes": {
+          "db_name": "drafts_changes",
+          "projection": {
+            "table": "notes",
+            "foreign_key": "note_id",
+            "primary_key": "user_id"
+          }
+        },
+
+        "users_encoded": {
+          "db_name": "users_encoded",
+          "user_id": "id",
+          "decoders": [
+            {"method": "base64", "columns": ["name"]},
+            {"method": "aes_cbc_128", "key": "1234567890ABCDEF", "columns": ["name"]},
+            {"method": "text_to_integer", "columns": ["age"]},
+            {"method": "text_to_real", "columns": ["height"]},
+            {"method": "text_to_boolean", "columns": ["active"]}
+          ]
+        },
+
+        "notes_encoded": {
+          "db_name": "notes_encoded",
+          "projection": {
+            "table": "users_encoded",
+            "foreign_key": "user_id",
+            "primary_key": "id"
+          },
+          "decoders": [
+            {"method": "base64", "columns": ["title", "content"]},
+            {"method": "aes_cbc_128", "key": "1234567890ABCDEF", "columns": ["title", "content"]}
+          ]
+        },
+
+        "drafts_changes_encoded": {
+          "db_name": "drafts_changes_encoded",
+          "projection": {
+            "table": "notes_encoded",
+            "foreign_key": "note_id",
+            "primary_key": "user_id"
+          },
+          "decoders": [
+            {"method": "base64", "columns": ["changes.change"]},
+            {"method": "aes_cbc_128", "key": "1234567890ABCDEF", "columns": ["changes.change"]},
+            {"method": "text_to_datetime", "columns": ["changes.date"]}
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -178,3 +178,13 @@ With the `make dev-container` command, you can start a Linux container with your
 #### Deploying
 
 See [here](../README.md#deploying).
+
+#### Running performance tests locally
+
+Before running the tests you need to prepare the performance database.
+
+- `make recreate-perf-db` - generate a `preformance` DB with 10k users
+- `cp priv/config/perf.json priv/config/config.json` - performance tests use the prod environment, so they need a config file
+- `make perftest` - run the performance tests
+
+Note that the tests submit results to InfluxDB - it will be started with `start_dependencies.sh`.
