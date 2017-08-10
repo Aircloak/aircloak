@@ -47,7 +47,7 @@ table :=
 
 join :=
   table CROSS JOIN table |
-  table { [INNER] | { LEFT | RIGHT | FULL } [OUTER] } JOIN table ON where_expression
+  table { [INNER] | { LEFT | RIGHT } [OUTER] } JOIN table ON where_expression
 
 aggregation_function :=
   COUNT | SUM | AVG | MIN | MAX | STDDEV | MEDIAN

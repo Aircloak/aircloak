@@ -32,7 +32,6 @@ defmodule Cloak.Query.DbEmulator.Selector do
   def join(lhs, rhs, %{type: :inner_join} = join), do: inner_join(lhs, rhs, join)
   def join(lhs, rhs, %{type: :left_outer_join} = join), do: left_join(lhs, rhs, join)
   def join(lhs, rhs, %{type: :right_outer_join} = join), do: right_join(lhs, rhs, join)
-  def join(lhs, rhs, %{type: :full_outer_join} = join), do: full_join(lhs, rhs, join)
 
   @doc "Keeps only the columns needed by the query from the selection target."
   @spec pick_db_columns(Enumerable.t, Query.t) :: Enumerable.t
@@ -219,12 +218,6 @@ defmodule Cloak.Query.DbEmulator.Selector do
         joined_rows -> matched_handler.(joined_rows)
       end
     end)
-  end
-
-  defp full_join(lhs, rhs, join) do
-    lhs_null_row = List.duplicate(nil, joined_row_size(join.lhs))
-    unmatched_rhs = outer_join(rhs, lhs, join, &add_suffix_to_rows/2, &[lhs_null_row ++ &1], fn (_matches) -> [] end)
-    lhs |> left_join(rhs, join) |> Stream.concat(unmatched_rhs)
   end
 
   defp get_column_index(columns, %Expression{function: "coalesce", function_args: args}), do:

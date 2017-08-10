@@ -24,10 +24,6 @@ Versions from 9.1 and newer are supported.
 MySQL version 5 and more recent is supported.
 We also support the MySQL fork MariaDB from version 10.1 and onwards.
 
-`FULL OUTER JOIN`'s are not natively supported by MySQL and MariaDB.
-Aircloak Insights replaces any instance of a `FULL OUTER JOIN` with a
-combination of a `LEFT OUTER JOIN` and a `RIGHT OUTER JOIN`.
-
 ## Microsoft SQL Server
 
 The following versions of Microsoft SQL Server are supported:
