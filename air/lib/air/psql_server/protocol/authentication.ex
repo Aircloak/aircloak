@@ -18,20 +18,25 @@ defmodule Air.PsqlServer.Protocol.Authentication do
 
   @doc false
   def handle_client_message(%{state: :initial} = protocol, :raw, message) do
-    cond do
-      Messages.ssl_message?(message) ->
+    if Messages.ssl_message?(message) do
+      if Air.PsqlServer.configuration().protocol in ["ssl", "both"] do
         protocol
         |> Protocol.send_to_client(:require_ssl)
         |> Protocol.add_action(:upgrade_to_ssl)
         |> Protocol.next_state(:negotiating_ssl)
-
-      Map.get(Aircloak.DeployConfig.fetch!("psql_server"), "protocol", "ssl") == "tcp" ->
-        handle_startup_message(protocol, message)
-
-      true ->
+      else
         protocol
-        |> Protocol.send_to_client({:fatal_error, "Only SSL connections are allowed!"})
-        |> Protocol.close(:required_ssl)
+        |> Protocol.send_to_client(:ssl_not_supported)
+        |> Protocol.await_client_message(state: :initial, bytes: 8, decode?: false)
+      end
+    else
+      if Air.PsqlServer.configuration().protocol in ["tcp", "both"] do
+        handle_startup_message(protocol, message)
+      else
+        protocol
+        |> Protocol.send_to_client({:fatal_error, "TCP connections are not allowed!"})
+        |> Protocol.close(:tcp_forbidden)
+      end
     end
   end
   def handle_client_message(%{state: :ssl_negotiated} = protocol, :raw, message), do:

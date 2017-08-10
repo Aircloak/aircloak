@@ -18,25 +18,32 @@ defmodule IntegrationTest.OdbcTest do
     assert to_string(msg) =~ ~r/Authentication failed/
   end
 
-  test "can't connect over tcp in ssl mode", context do
-    original_settings = Aircloak.DeployConfig.fetch!(:air, "psql_server")
-    Aircloak.DeployConfig.update(:air, "psql_server", &Map.put(&1, "protocol", "ssl"))
-    assert {:error, msg} = connect(context.user, sslmode: "disable")
-    assert to_string(msg) =~ ~r/Connection refused/
-    Aircloak.DeployConfig.update(:air, "psql_server", fn(_) -> original_settings end)
-  end
+  for {client_ssl_mode, allowed_protocol, should_succeed?} <- [
+    {"disable", "tcp", true}, {"disable", "both", true}, {"disable", "ssl", false},
+    {"allow", "tcp", true}, {"allow", "both", true}, {"allow", "ssl", true},
+    {"prefer", "tcp", true}, {"prefer", "both", true}, {"prefer", "ssl", true},
+    {"require", "tcp", false}, {"require", "both", true}, {"require", "ssl", true},
+  ] do
+    test "connecting with sslmode #{client_ssl_mode} to the server allowing protocol #{allowed_protocol}", context do
+      original_settings = Aircloak.DeployConfig.fetch!(:air, "psql_server")
+      Aircloak.DeployConfig.update(:air, "psql_server", &Map.put(&1, "protocol", unquote(allowed_protocol)))
+      var!(connect_result) = connect(var!(context).user, sslmode: unquote(client_ssl_mode))
 
-  test "can connect over tcp in tcp mode", context do
-    original_settings = Aircloak.DeployConfig.fetch!(:air, "psql_server")
-    Aircloak.DeployConfig.update(:air, "psql_server", &Map.put(&1, "protocol", "tcp"))
-    assert {:ok, _} = connect(context.user, sslmode: "disable")
-    Aircloak.DeployConfig.update(:air, "psql_server", fn(_) -> original_settings end)
-  end
+      unquote(
+        if should_succeed? do
+          quote do
+            assert {:ok, _} = var!(connect_result)
+          end
+        else
+          quote do
+            assert {:error, msg} = var!(connect_result)
+            assert to_string(msg) =~ ~r/Connection refused/
+          end
+        end
+      )
 
-  test "connecting", context do
-    assert {:ok, _} = connect(context.user, sslmode: "require")
-    assert {:ok, _} = connect(context.user, sslmode: "prefer")
-    assert {:ok, _} = connect(context.user, sslmode: "allow")
+      Aircloak.DeployConfig.update(:air, "psql_server", fn(_) -> original_settings end)
+    end
   end
 
   describe "connection tests" do

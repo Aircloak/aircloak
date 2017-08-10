@@ -8,7 +8,7 @@
   },
 
   "psql_server": {
-    "protocol": "ssl"
+    "protocol": "both"
   },
 
   "database": {

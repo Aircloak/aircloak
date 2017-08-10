@@ -24,8 +24,12 @@ defmodule Air.PsqlServer do
   alias Air.PsqlServer.{Protocol, RanchServer}
   alias Air.Service.{User, DataSource, Version}
   require Logger
+  require Aircloak.DeployConfig
 
   @behaviour RanchServer
+
+  @type configuration :: %{protocol: String.t}
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -63,6 +67,27 @@ defmodule Air.PsqlServer do
   @spec decode_cloak_query_result({:ok, map} | DataSource.data_source_operation_error) :: Protocol.query_result
   def decode_cloak_query_result(query_response), do:
     do_decode_cloak_query_result(query_response)
+
+  @doc "Returns the postgresql server configuration."
+  @spec configuration() :: configuration
+  def configuration() do
+    user_config =
+      case Aircloak.DeployConfig.fetch("psql_server") do
+        {:ok, configuration} ->
+          configuration
+
+        :error ->
+          %{}
+      end
+
+    config_with_atom_keys =
+      user_config
+      |> Map.take(["protocol"])
+      |> Enum.map(fn({key, value}) -> {String.to_atom(key), value} end)
+      |> Enum.into(%{})
+
+    Map.merge(%{protocol: "ssl"}, config_with_atom_keys)
+  end
 
 
   # -------------------------------------------------------------------
