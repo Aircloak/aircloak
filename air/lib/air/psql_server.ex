@@ -28,7 +28,7 @@ defmodule Air.PsqlServer do
 
   @behaviour RanchServer
 
-  @type configuration :: %{protocol: String.t}
+  @type configuration :: %{protocol: String.t, certfile: String.t, keyfile: String.t}
 
 
   # -------------------------------------------------------------------
