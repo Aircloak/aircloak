@@ -18,31 +18,55 @@ defmodule IntegrationTest.OdbcTest do
     assert to_string(msg) =~ ~r/Authentication failed/
   end
 
-  for {client_ssl_mode, allowed_protocol, should_succeed?} <- [
-    {"disable", "tcp", true}, {"disable", "both", true}, {"disable", "ssl", false},
-    {"allow", "tcp", true}, {"allow", "both", true}, {"allow", "ssl", true},
-    {"prefer", "tcp", true}, {"prefer", "both", true}, {"prefer", "ssl", true},
-    {"require", "tcp", false}, {"require", "both", true}, {"require", "ssl", true},
+  for {client_ssl_mode, ssl_config, should_succeed?} <- [
+    # supported successful combinations
+    {"disable", %{"require_ssl" => false}, true},
+    {"allow", %{"require_ssl" => false}, true},
+    {"allow", %{"require_ssl" => true}, true},
+    {"prefer", %{"require_ssl" => false}, true},
+    {"prefer", %{"require_ssl" => true}, true},
+    {"require", %{"require_ssl" => false}, true},
+    {"require", %{"require_ssl" => true}, true},
+    # errors when ssl is required
+    {"disable", %{"require_ssl" => true}, false},
+    {"allow", %{"require_ssl" => true, "certfile" => "invalid_file"}, false},
+    {"allow", %{"require_ssl" => true, "certfile" => nil}, false},
+    {"allow", %{"require_ssl" => true, "keyfile" => "invalid_file"}, false},
+    {"allow", %{"require_ssl" => true, "keyfile" => nil}, false},
+    {"prefer", %{"require_ssl" => true, "certfile" => "invalid_file"}, false},
+    {"prefer", %{"require_ssl" => true, "certfile" => nil}, false},
+    {"prefer", %{"require_ssl" => true, "keyfile" => "invalid_file"}, false},
+    {"prefer", %{"require_ssl" => true, "keyfile" => nil}, false},
+    {"require", %{"require_ssl" => true, "certfile" => "invalid_file"}, false},
+    {"require", %{"require_ssl" => true, "certfile" => nil}, false},
+    {"require", %{"require_ssl" => false, "certfile" => "invalid_file"}, false},
+    {"require", %{"require_ssl" => false, "certfile" => nil}, false},
+    {"require", %{"require_ssl" => true, "keyfile" => "invalid_file"}, false},
+    {"require", %{"require_ssl" => true, "keyfile" => nil}, false},
+    {"require", %{"require_ssl" => false, "keyfile" => "invalid_file"}, false},
+    {"require", %{"require_ssl" => false, "keyfile" => nil}, false},
   ] do
-    test "connecting with sslmode #{client_ssl_mode} to the server allowing protocol #{allowed_protocol}", context do
-      original_settings = Aircloak.DeployConfig.fetch!(:air, "psql_server")
-      Aircloak.DeployConfig.update(:air, "psql_server", &Map.put(&1, "protocol", unquote(allowed_protocol)))
-      var!(connect_result) = connect(var!(context).user, sslmode: unquote(client_ssl_mode))
+    test "connecting when client sslmode=`#{client_ssl_mode}`, server config #{inspect ssl_config}", context do
+      ExUnit.CaptureLog.capture_log(fn ->
+        original_settings = Aircloak.DeployConfig.fetch!(:air, "psql_server")
+        Aircloak.DeployConfig.update(:air, "psql_server", &Map.merge(&1, unquote(Macro.escape(ssl_config))))
+        var!(connect_result) = connect(var!(context).user, sslmode: unquote(client_ssl_mode))
 
-      unquote(
-        if should_succeed? do
-          quote do
-            assert {:ok, _} = var!(connect_result)
+        unquote(
+          if should_succeed? do
+            quote do
+              assert {:ok, _} = var!(connect_result)
+            end
+          else
+            quote do
+              assert {:error, msg} = var!(connect_result)
+              assert to_string(msg) =~ ~r/Connection refused/
+            end
           end
-        else
-          quote do
-            assert {:error, msg} = var!(connect_result)
-            assert to_string(msg) =~ ~r/Connection refused/
-          end
-        end
-      )
+        )
 
-      Aircloak.DeployConfig.update(:air, "psql_server", fn(_) -> original_settings end)
+        Aircloak.DeployConfig.update(:air, "psql_server", fn(_) -> original_settings end)
+      end)
     end
   end
 

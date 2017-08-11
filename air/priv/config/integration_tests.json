@@ -8,7 +8,9 @@
   },
 
   "psql_server": {
-    "protocol": "both"
+    "require_ssl": false,
+    "certfile": "ssl_cert.pem",
+    "keyfile": "ssl_key.pem"
   },
 
   "database": {
