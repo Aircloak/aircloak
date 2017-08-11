@@ -4,8 +4,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   alias Cloak.DataSource.Table
   alias Cloak.Sql.Expression
 
-  import Cloak.Test.QueryHelpers
-
   describe "picking columns for noise layers" do
     test "lists no noise layers by default" do
       assert [] = compile!("SELECT COUNT(*) FROM table", data_source()).noise_layers
@@ -442,6 +440,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert base1 == base2
     end
   end
+
+  defp compile!(query, data_source, opts \\ []), do:
+    Cloak.Test.QueryHelpers.compile!(query, data_source, opts)
+    |> Cloak.Sql.Compiler.NoiseLayers.compile()
 
   defp data_source() do
     %{
