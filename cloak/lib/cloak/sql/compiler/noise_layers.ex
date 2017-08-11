@@ -25,8 +25,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   @doc "Returns true if a condition is anonymized by noise layers."
   @spec can_be_anonymized_with_noise_layer?(Query.where_clause, Query.t) :: boolean
-  def can_be_anonymized_with_noise_layer?({:not, {like, left, right}}, query) when like in [:like, :ilike], do:
-    not processed_column?(left, query) and Expression.constant?(right)
+  def can_be_anonymized_with_noise_layer?({:not, {type, _, _}}, _query) when type in [:like, :ilike], do: true
   def can_be_anonymized_with_noise_layer?({:not, condition}, _query), do:
     Condition.inequality?(condition) or Condition.verb(condition) == :is
   def can_be_anonymized_with_noise_layer?(_condition, _query), do: true
@@ -162,8 +161,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       noise_layers:
         basic_noise_layers(query) ++
         range_noise_layers(query) ++
-        not_equals_noise_layers(query) ++
-        not_like_noise_layers(query) ++
+        negative_noise_layers(query) ++
         like_noise_layers(query) ++
         in_noise_layers(query)
     }
@@ -195,20 +193,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Enum.map(&build_noise_layer(&1, range))
     end)
 
-  defp not_equals_noise_layers(query), do:
+  defp negative_noise_layers(query), do:
     query
-    |> conditions_satisfying(&Condition.not_equals?/1)
+    |> conditions_satisfying(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
     |> raw_columns()
     |> Lens.to_list(query)
     |> Enum.map(&build_noise_layer(&1, :<>))
-
-  defp not_like_noise_layers(query), do:
-    query
-    |> conditions_satisfying(&Condition.not_like?/1)
-    |> Lens.to_list(query)
-    |> Enum.map(fn({:not, {kind, column, constant}}) ->
-      build_noise_layer(column, {:not, kind, Expression.value(constant, [])})
-    end)
 
   defp in_noise_layers(query), do:
     query
@@ -248,18 +238,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp like_layer_keys([:% | rest], n, len), do: [{:%, len, n} | like_layer_keys(rest, n, len)]
   defp like_layer_keys([:_ | rest], n, len), do: [{:_, len, n} | like_layer_keys(rest, n + 1, len)]
   defp like_layer_keys([_ | rest], n, len), do: like_layer_keys(rest, n + 1, len)
-
-  defp processed_column?(%Expression{function?: true}, _query), do: true
-  defp processed_column?(_expression, %{from: table}) when is_binary(table), do: false
-  defp processed_column?(%Expression{name: name}, query) do
-    get_in(query, [Query.Lenses.direct_subqueries()])
-    |> Enum.any?(fn(%{ast: subquery}) ->
-      case find_column(name, subquery) do
-        {:ok, column} -> processed_column?(column, subquery)
-        _ -> false
-      end
-    end)
-  end
 
 
   # -------------------------------------------------------------------
