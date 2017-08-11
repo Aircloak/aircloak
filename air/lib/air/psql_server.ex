@@ -71,6 +71,12 @@ defmodule Air.PsqlServer do
   @doc "Returns the postgresql server configuration."
   @spec configuration() :: configuration
   def configuration() do
+    default_config = %{
+      protocol: "ssl",
+      certfile: "ssl_cert.pem",
+      keyfile: "ssl_key.pem",
+    }
+
     user_config =
       case Aircloak.DeployConfig.fetch("psql_server") do
         {:ok, configuration} ->
@@ -80,13 +86,13 @@ defmodule Air.PsqlServer do
           %{}
       end
 
-    config_with_atom_keys =
+    normalized_user_config =
       user_config
-      |> Map.take(["protocol"])
+      |> Map.take(["protocol", "certfile", "keyfile"])
       |> Enum.map(fn({key, value}) -> {String.to_atom(key), value} end)
       |> Enum.into(%{})
 
-    Map.merge(%{protocol: "ssl"}, config_with_atom_keys)
+    Map.merge(default_config, normalized_user_config)
   end
 
 
@@ -182,8 +188,8 @@ defmodule Air.PsqlServer do
     Application.get_env(:air, Air.PsqlServer, [])
     |> Keyword.get(:ranch_opts, [])
     |> Keyword.merge(ssl: [
-        certfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_cert.pem"]),
-        keyfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_key.pem"])
+        certfile: Path.join([Application.app_dir(:air, "priv"), "config", configuration().certfile]),
+        keyfile: Path.join([Application.app_dir(:air, "priv"), "config", configuration().keyfile])
       ])
 
   defp run_special_query(conn, query), do:
