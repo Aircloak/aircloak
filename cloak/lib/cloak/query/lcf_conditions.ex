@@ -60,6 +60,7 @@ defmodule Cloak.Query.LCFConditions do
   defp needs_probe?(condition, subquery), do:
     not NoiseLayers.can_be_anonymized_with_noise_layer?(condition, subquery)
       or Condition.not_equals?(condition)
+      or Condition.not_like?(condition)
 
   defp lcf_condition?(probe, subquery_lens, condition) do
     noise_layers = NoiseLayer.new_accumulator(probe.noise_layers)
