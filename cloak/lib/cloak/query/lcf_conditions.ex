@@ -43,19 +43,23 @@ defmodule Cloak.Query.LCFConditions do
       columns: [uid_column], db_columns: [uid_column], group_by: [], order_by: [], having: nil}
   end
 
-  def reject_lcf_conditions(subquery_lens, query) do
+  defp reject_lcf_conditions(subquery_lens, query) do
     probe = prepare_probe(query)
     Lens.map(subquery_lens, query, fn (subquery) ->
       lcf_conditions =
         Query.Lenses.db_filter_clauses()
         |> Query.Lenses.conditions()
-        |> Lens.satisfy(&not NoiseLayers.can_be_anonymized_with_noise_layer?(&1, subquery))
+        |> Lens.satisfy(&needs_probe?(&1, subquery))
         |> Lens.to_list(subquery)
         |> Enum.filter(&lcf_condition?(probe, subquery_lens, &1))
       Query.Lenses.db_filter_clauses()
       |> Lens.map(subquery, fn (clause) -> Condition.reject(clause, & &1 in lcf_conditions) end)
     end)
   end
+
+  defp needs_probe?(condition, subquery), do:
+    not NoiseLayers.can_be_anonymized_with_noise_layer?(condition, subquery)
+      or Condition.not_equals?(condition)
 
   defp lcf_condition?(probe, subquery_lens, condition) do
     noise_layers = NoiseLayer.new_accumulator(probe.noise_layers)

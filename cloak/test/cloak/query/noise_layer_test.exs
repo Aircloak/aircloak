@@ -139,17 +139,6 @@ defmodule Cloak.Query.NoiseLayerTest do
     assert value1 != value2
   end
 
-  test "adding negative conditions with different constants adds different noise layers" do
-    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [9])
-    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [9])
-
-    assert_query "select avg(number) from noise_layers where number <> 1000",
-      %{rows: [%{row: [value1]}]}
-    assert_query "select avg(number) from noise_layers where number <> 1001",
-      %{rows: [%{row: [value2]}]}
-    assert value1 != value2
-  end
-
   test "complex negative conditions matching too few users are dropped" do
     :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["number"], [100])
     :ok = insert_rows(_user_ids = 26..75, "noise_layers", ["number"], [50])
@@ -161,7 +150,7 @@ defmodule Cloak.Query.NoiseLayerTest do
     :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["number"], [100])
     :ok = insert_rows(_user_ids = 26..75, "noise_layers", ["number"], [50])
 
-    assert_query "select count(number) from noise_layers where sqrt(number) <> 10", %{rows: [%{row: [51]}]}
+    assert_query "select count(number) from noise_layers where sqrt(number) <> 10", %{rows: [%{row: [50]}]}
   end
 
   test "the reported noise should scale with the layers of noise" do

@@ -23,17 +23,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
     |> apply_top_down(&normalize_noise_layers_base/1)
 
-  @allowed_not_equals_functions ~w(lower)
   @doc "Returns true if a condition is anonymized by noise layers."
   @spec can_be_anonymized_with_noise_layer?(Query.where_clause, Query.t) :: boolean
   def can_be_anonymized_with_noise_layer?({:not, {like, left, right}}, query) when like in [:like, :ilike], do:
-    not processed_column?(left, query) and Expression.constant?(right)
-  def can_be_anonymized_with_noise_layer?(
-    {:comparison, %Expression{function?: true, function: name, function_args: [arg]}, :<>, right}, query), do:
-      not processed_column?(arg, query) and
-        Enum.member?(@allowed_not_equals_functions, name) and
-        Expression.constant?(right)
-  def can_be_anonymized_with_noise_layer?({:comparison, left, :<>, right}, query), do:
     not processed_column?(left, query) and Expression.constant?(right)
   def can_be_anonymized_with_noise_layer?({:not, condition}, _query), do:
     Condition.inequality?(condition) or Condition.verb(condition) == :is
@@ -206,11 +198,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp not_equals_noise_layers(query), do:
     query
     |> conditions_satisfying(&Condition.not_equals?/1)
-    |> Enum.map(&not_equals_noise_layer/1)
+    |> raw_columns()
+    |> Lens.to_list(query)
+    |> Enum.map(&build_noise_layer(&1, :<>))
 
   defp not_like_noise_layers(query), do:
     query
     |> conditions_satisfying(&Condition.not_like?/1)
+    |> Lens.to_list(query)
     |> Enum.map(fn({:not, {kind, column, constant}}) ->
       build_noise_layer(column, {:not, kind, Expression.value(constant, [])})
     end)
@@ -218,6 +213,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp in_noise_layers(query), do:
     query
     |> conditions_satisfying(&Condition.in?/1)
+    |> Lens.to_list(query)
     |> Enum.flat_map(fn({:in, column, constants}) ->
       column
       |> get_in([raw_columns()])
@@ -233,6 +229,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp like_noise_layers(query), do:
     query
     |> conditions_satisfying(&Condition.like?/1)
+    |> Lens.to_list(query)
     |> Enum.flat_map(fn({kind, column, constant}) ->
       columns = Lens.to_list(raw_columns(), column)
       layer_keys = like_layer_keys(constant.value)
@@ -251,15 +248,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp like_layer_keys([:% | rest], n, len), do: [{:%, len, n} | like_layer_keys(rest, n, len)]
   defp like_layer_keys([:_ | rest], n, len), do: [{:_, len, n} | like_layer_keys(rest, n + 1, len)]
   defp like_layer_keys([_ | rest], n, len), do: like_layer_keys(rest, n + 1, len)
-
-  defp not_equals_noise_layer(
-    {:comparison, %Expression{function?: true, function: name, function_args: [column]}, :<>, constant}
-  ) do
-    build_noise_layer(column, {:<>, name, Expression.value(constant, [])})
-  end
-  defp not_equals_noise_layer({:comparison, column, :<>, constant}) do
-    build_noise_layer(column, {:<>, Expression.value(constant, [])})
-  end
 
   defp processed_column?(%Expression{function?: true}, _query), do: true
   defp processed_column?(_expression, %{from: table}) when is_binary(table), do: false
@@ -325,7 +313,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Query.Lenses.conditions()
     |> Lens.satisfy(predicate)
     |> Lens.satisfy(&can_be_anonymized_with_noise_layer?(&1, query))
-    |> Lens.to_list(query)
 
   # In order to ensure noise consistency across data sources that have columns with different cases,
   # we normalize the noise layer base by converting the column name to lower case.
