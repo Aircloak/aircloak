@@ -6,7 +6,7 @@ defmodule Cloak.Query.LCFConditions do
   aplies to too few users.
   """
 
-  alias Cloak.Sql.{Query, Condition, Compiler.NoiseLayers, NoiseLayer}
+  alias Cloak.Sql.{Query, Condition, NoiseLayer}
   alias Cloak.Query.{Anonymizer, DataDecoder, DbEmulator}
   alias Cloak.DataSource
   require Logger
@@ -49,7 +49,7 @@ defmodule Cloak.Query.LCFConditions do
       lcf_conditions =
         Query.Lenses.db_filter_clauses()
         |> Query.Lenses.conditions()
-        |> Lens.satisfy(&needs_probe?(&1, subquery))
+        |> Lens.satisfy(&needs_probe?/1)
         |> Lens.to_list(subquery)
         |> Enum.filter(&lcf_condition?(probe, subquery_lens, &1))
       Query.Lenses.db_filter_clauses()
@@ -57,10 +57,8 @@ defmodule Cloak.Query.LCFConditions do
     end)
   end
 
-  defp needs_probe?(condition, subquery), do:
-    not NoiseLayers.can_be_anonymized_with_noise_layer?(condition, subquery)
-      or Condition.not_equals?(condition)
-      or Condition.not_like?(condition)
+  defp needs_probe?(condition), do:
+    Condition.not_equals?(condition) or Condition.not_like?(condition)
 
   defp lcf_condition?(probe, subquery_lens, condition) do
     noise_layers = NoiseLayer.new_accumulator(probe.noise_layers)
