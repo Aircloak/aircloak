@@ -51,3 +51,6 @@
   - [Queries](api/queries.md)
   - [Errors](api/errors.md)
 - [Monitoring](monitoring.md)
+
+## Operations guides
+  - [Upgrading](upgrading.md)
