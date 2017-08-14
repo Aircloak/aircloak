@@ -1,6 +1,7 @@
 defmodule Air do
   @moduledoc "Air application behaviour and some common helper functions."
   use Application
+  require Logger
   require Aircloak.DeployConfig
 
   # -------------------------------------------------------------------
@@ -56,24 +57,46 @@ defmodule Air do
     Air.Utils.update_app_env(:guardian, Guardian,
       &[{:secret_key, site_setting("auth_secret")} | &1])
 
-    Air.Utils.update_app_env(:air, Air.Endpoint, fn(config) ->
-      [
-        {:secret_key_base, site_setting("endpoint_key_base")},
-        {:api_token_salt, site_setting("api_token_salt")}
-        | config
-      ] ++ https_config(Keyword.get(config, :https, []))
-    end)
+    Air.Utils.update_app_env(:air, Air.Endpoint,
+      &Keyword.merge(&1,
+        secret_key_base: site_setting("endpoint_key_base"),
+        api_token_salt: site_setting("api_token_salt"),
+        https: https_config(Keyword.get(&1, :https, []))
+      )
+    )
   end
 
   defp https_config(previous_https_config) do
-    keyfile = Path.join([Application.app_dir(:air, "priv"), "config", "ssl_key.pem"])
-    certfile = Path.join([Application.app_dir(:air, "priv"), "config", "ssl_cert.pem"])
+    case {
+      Map.get(Aircloak.DeployConfig.fetch!("site"), "keyfile"),
+      Map.get(Aircloak.DeployConfig.fetch!("site"), "certfile")
+    } do
+      {nil, nil} ->
+        nil
 
-    if File.exists?(keyfile) && File.exists?(certfile) do
-      [https: Keyword.merge(previous_https_config,
-        port: Application.fetch_env!(:air, :https_port), keyfile: keyfile, certfile: certfile)]
-    else
-      []
+      {nil, _} ->
+        Logger.warn("`keyfile` is not specified under the `site` key in config.json")
+        nil
+
+      {_, nil} ->
+        Logger.warn("`certfile` is not specified under the `site` key in config.json")
+        nil
+
+      {keyfile, certfile} ->
+        keyfile_path = Path.join([Application.app_dir(:air, "priv"), "config", keyfile])
+        certfile_path = Path.join([Application.app_dir(:air, "priv"), "config", certfile])
+
+        case {File.exists?(keyfile_path), File.exists?(certfile_path)} do
+          {true, true} ->
+            Keyword.merge(previous_https_config,
+              port: Application.fetch_env!(:air, :https_port), keyfile: keyfile_path, certfile: certfile_path)
+          {false, _} ->
+            Logger.warn("the file `#{keyfile}` is missing")
+            nil
+          {_, false} ->
+            Logger.warn("the file `#{certfile}` is missing")
+            nil
+        end
     end
   end
 
