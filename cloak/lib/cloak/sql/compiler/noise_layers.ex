@@ -155,6 +155,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         basic_noise_layers(query) ++
         range_noise_layers(query) ++
         negative_noise_layers(query) ++
+        not_like_noise_layers(query) ++
         like_noise_layers(query) ++
         in_noise_layers(query)
     }
@@ -186,10 +187,19 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end)
 
   defp negative_noise_layers(query), do:
-    conditions_satisfying(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
+    conditions_satisfying(&Condition.not_equals?/1)
     |> raw_columns()
     |> Lens.to_list(query)
     |> Enum.map(&build_noise_layer(&1, :<>))
+
+  defp not_like_noise_layers(query), do:
+    conditions_satisfying(&Condition.not_like?/1)
+    |> Lens.to_list(query)
+    |> Enum.flat_map(fn({:not, {kind, column, constant}}) ->
+      raw_columns()
+      |> Lens.to_list(column)
+      |> Enum.map(&build_noise_layer(&1, {:not, kind, constant |> Expression.value() |> remove_wildcards()}))
+    end)
 
   defp in_noise_layers(query), do:
     conditions_satisfying(&Condition.in?/1)
@@ -201,7 +211,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Enum.flat_map(fn(column) ->
         [
           build_noise_layer(column) |
-          Enum.map(constants, &build_noise_layer(column, {:in, Expression.value(&1, [])}))
+          Enum.map(constants, &build_noise_layer(column, {:in, Expression.value(&1)}))
         ]
       end)
     end)
@@ -211,7 +221,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.to_list(query)
     |> Enum.flat_map(fn({kind, column, constant}) ->
       columns = Lens.to_list(raw_columns(), column)
-      layer_keys = like_layer_keys(constant.value)
+      layer_keys = constant |> Expression.value() |> like_layer_keys()
 
       for layer_key <- layer_keys, column <- columns do
         build_noise_layer(column, {kind, layer_key})
@@ -232,6 +242,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # -------------------------------------------------------------------
   # Helpers
   # -------------------------------------------------------------------
+
+  defp remove_wildcards(like_pattern), do:
+    like_pattern
+    |> LikePattern.graphemes()
+    |> Enum.reject(&LikePattern.wildcard?/1)
+    |> Enum.join()
 
   defp reference_aliased(column, query, table \\ :unknown), do:
     %Expression{name: column.alias || find_alias(column, query) || column.name, table: table}

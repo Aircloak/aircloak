@@ -2,6 +2,7 @@ defmodule Cloak.Sql.LikePattern do
   @moduledoc "Handles operations on like patterns."
 
   @type t :: {String.t, String.t | nil}
+  @type grapheme :: String.t | :% | :_
 
   @special_characters [:%, :_]
   @standard_escape_character "\\"
@@ -18,16 +19,20 @@ defmodule Cloak.Sql.LikePattern do
   Returns a parsed representation of this like pattern. Regular characters are represented as one-character, while the
   special characters % and _ are represented as :% and :_.
   """
-  @spec graphemes(t) :: [String.t | :% | :_]
+  @spec graphemes(t) :: [grapheme]
   def graphemes({pattern, escape}) do
     [result] = Combine.parse(pattern, parser(escape))
     result
   end
 
+  @doc "Returns true if the given grapheme is a wildcard, false otherwise."
+  @spec wildcard?(grapheme) :: boolean
+  def wildcard?(string), do: string in @special_characters
+
   @doc "Returns true if the pattern does not contain any special characters, false otherwise."
   @spec trivial?(t) :: boolean
   def trivial?(pattern), do:
-    pattern |> graphemes() |> Enum.all?(& not special_like_char?(&1))
+    pattern |> graphemes() |> Enum.all?(& not wildcard?(&1))
 
   @doc "Converts a constant like pattern expression into a text expression. Fails if the pattern is not `trivial?/1`."
   @spec trivial_to_string(Expression.t) :: Expression.t
@@ -85,7 +90,7 @@ defmodule Cloak.Sql.LikePattern do
 
   defp do_normalize(graphemes), do:
     graphemes
-    |> Enum.chunk_by(&special_like_char?/1)
+    |> Enum.chunk_by(&wildcard?/1)
     |> Enum.flat_map(&normalize_chunk/1)
 
   defp normalize_chunk(chunk = [first | _]) when first == :_ or first == :% do
@@ -104,8 +109,6 @@ defmodule Cloak.Sql.LikePattern do
   # -------------------------------------------------------------------
   # Helpers
   # -------------------------------------------------------------------
-
-  defp special_like_char?(string), do: string in @special_characters
 
   defp to_regex_part(:%), do: ".*"
   defp to_regex_part(:_), do: "."
