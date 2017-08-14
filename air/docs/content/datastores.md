@@ -247,3 +247,13 @@ and conversely which features turn a query into an emulated one.
 | upper         | ✔        | ✔        | ✔         | ✔              | ✔             |
 | weekday       | ✔        | ✔        | ✔         | ✔              | ✔             |
 | year          | ✔        | ✔        | ✔         | ✔              | ✔             |
+
+### Interaction with probing
+
+Probing issues additional queries to the datastore for every `<>`, `NOT LIKE`,
+or `NOT ILIKE` condition in your query (see
+[the section on probing](sql/query-results.md#probing)). This will impact the
+performance of your query, depending on the datastore and number of such
+conditions used. It will be felt especially if your query needs to be emulated.
+You might be able to achieve better response times if you are able to avoid
+these conditions in your query.
