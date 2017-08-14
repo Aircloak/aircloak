@@ -7,6 +7,12 @@
     "customer_token": "SFMyNTY.g3QAAAACZAAEZGF0YWEBZAAGc2lnbmVkbgYAcXTfBFgB.j7yqABozbJTUvf8rnMHUtfbmTlzD1ScLwYMHbwiIT6I"
   },
 
+  "psql_server": {
+    "require_ssl": false,
+    "certfile": "ssl_cert.pem",
+    "keyfile": "ssl_key.pem"
+  },
+
   "database": {
     "host": "localhost",
     "port": 20003,

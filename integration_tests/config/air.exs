@@ -51,3 +51,5 @@ config :air, :auto_aircloak_export, true
 config :air, :central_queue,
   retry_delay: 1,
   max_size: 1000
+
+config :air, :psql_tcp_allowed, false
