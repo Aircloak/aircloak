@@ -422,7 +422,13 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> needed_columns()
       |> extract_columns()
       |> Enum.reject(& &1.constant?)
-    [Helpers.id_column(query) | used_columns]
+    if query.projected? do
+      # Projected queries already have the correct uid explicitly selected, as a result of the
+      # compiled projection. No extra uid-column is therefore required.
+      used_columns
+    else
+      [Helpers.id_column(query) | used_columns]
+    end
   end
 
   defp needed_columns(query), do:
