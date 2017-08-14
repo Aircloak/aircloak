@@ -42,12 +42,12 @@ defmodule Cloak.Query.DbEmulator.Selector do
       subquery.ast.column_titles
       |> Enum.find_index(&insensitive_equal?(&1, column.name))
       |> check_index(column, subquery.ast.column_titles)
-    pick_columns(stream, indices)
+    pick_columns(stream, indices, subquery.ast.column_titles)
   end
   def pick_db_columns(stream, %Query{db_columns: db_columns, from: {:join, join}}) do
     indices = for column <- db_columns, do:
       join.columns |> get_column_index(column) |> check_index(column, join.columns)
-    pick_columns(stream, indices)
+    pick_columns(stream, indices, join.columns)
   end
   def pick_db_columns(stream, _query), do: stream
 
@@ -237,11 +237,30 @@ defmodule Cloak.Query.DbEmulator.Selector do
   end
   defp pick_value(row, index) when is_integer(index), do: Enum.at(row, index)
 
-  defp pick_columns(stream, indices) do
-    Stream.map(stream, fn (row) ->
-      Enum.map(indices, &pick_value(row, &1))
-    end)
+  defp pick_columns(stream, indices, selectable_entities) do
+    cond do
+      noop_column_selection(indices, selectable_entities) -> stream
+      continuous_selection(indices) ->
+        items_to_take = length(indices)
+        Stream.map(stream, fn(row) ->
+          Enum.take(row, items_to_take)
+        end)
+      _otherwise = true ->
+        Stream.map(stream, fn (row) ->
+          Enum.map(indices, &pick_value(row, &1))
+        end)
+    end
   end
+
+  defp noop_column_selection(indices, selectable_entities), do:
+    length(selectable_entities) == length(indices) and
+      indices == Enum.sort(indices) and
+      indices == Enum.uniq(indices)
+
+  defp continuous_selection(indices), do:
+    indices
+    |> Enum.zip(0..length(indices))
+    |> Enum.all?(fn({index, zip_value}) -> index == zip_value end)
 
   defp check_index(nil, column, targets), do:
     raise "Column index for column #{inspect(column, pretty: true)} could not be found in the " <>
