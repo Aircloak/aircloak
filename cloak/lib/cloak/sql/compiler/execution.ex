@@ -415,7 +415,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> Enum.map(fn({column_alias, column}) -> %Expression{column | alias: column_alias} end)
   end
   defp select_expressions(%Query{command: :select} = query) do
-    # top-level query -> we,re fetching only columns, while other expressions (e.g. function calls)
+    # top-level query -> we're only fetching columns, while other expressions (e.g. function calls)
     # will be resolved in the post-processing phase
     used_columns =
       query
