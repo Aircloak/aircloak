@@ -49,9 +49,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     {:ok, expression} = find_column(column, query)
 
     layers =
-      raw_columns()
-      |> Lens.to_list([expression])
-      |> Enum.flat_map(&resolve_row_splitter(&1, query))
+      raw_columns(expression, query)
       |> Enum.map(&build_noise_layer(&1, extras))
 
     update_in(query, [Lens.key(:noise_layers)], &(&1 ++ layers))
@@ -170,34 +168,29 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(& not Condition.in?(&1))
     |> Lens.satisfy(& not fk_pk_condition?(&1))
     |> Lens.both(Lens.key(:group_by))
-    |> raw_columns()
-    |> Lens.to_list(query)
-    |> Enum.flat_map(&resolve_row_splitter(&1, query))
+    |> raw_columns(query, query)
     |> Enum.map(&build_noise_layer/1)
 
   defp fk_pk_condition?({:comparison, lhs, :=, rhs}), do:
     Expression.key?(lhs) and Expression.key?(rhs)
   defp fk_pk_condition?(_), do: false
 
-  defp range_noise_layers(%{ranges: ranges}), do:
+  defp range_noise_layers(query = %{ranges: ranges}), do:
     Enum.flat_map(ranges, fn(%{column: column, interval: range}) ->
-      raw_columns()
-      |> Lens.to_list(column)
+      raw_columns(column, query)
       |> Enum.map(&build_noise_layer(&1, range))
     end)
 
   defp negative_noise_layers(query), do:
     conditions_satisfying(&Condition.not_equals?/1)
-    |> raw_columns()
-    |> Lens.to_list(query)
+    |> raw_columns(query, query)
     |> Enum.map(&build_noise_layer(&1, :<>))
 
   defp not_like_noise_layers(query), do:
     conditions_satisfying(&Condition.not_like?/1)
     |> Lens.to_list(query)
     |> Enum.flat_map(fn({:not, {kind, column, constant}}) ->
-      raw_columns()
-      |> Lens.to_list(column)
+      raw_columns(column, query)
       |> Enum.map(&build_noise_layer(&1, {:not, kind, constant |> Expression.value() |> remove_wildcards()}))
     end)
 
@@ -205,9 +198,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     conditions_satisfying(&Condition.in?/1)
     |> Lens.to_list(query)
     |> Enum.flat_map(fn({:in, column, constants}) ->
-      column
-      |> get_in([raw_columns()])
-      |> Enum.flat_map(&resolve_row_splitter(&1, query))
+      raw_columns(column, query)
       |> Enum.flat_map(fn(column) ->
         [
           build_noise_layer(column) |
@@ -220,7 +211,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     conditions_satisfying(&Condition.like?/1)
     |> Lens.to_list(query)
     |> Enum.flat_map(fn({kind, column, constant}) ->
-      columns = Lens.to_list(raw_columns(), column)
+      columns = raw_columns(column, query)
       layer_keys = constant |> Expression.value() |> like_layer_keys()
 
       for layer_key <- layer_keys, column <- columns do
@@ -276,17 +267,20 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> function.()
     |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_top_down(&1, function))
 
-  defp resolve_row_splitter(expression, %{row_splitters: row_splitters}) do
+  defp resolve_row_splitter(expression, query = %{row_splitters: row_splitters}) do
     if splitter = Enum.find(row_splitters, &(&1.row_index == expression.row_index)) do
-      Lens.to_list(raw_columns(), [splitter.function_spec])
+      raw_columns(splitter.function_spec, query)
     else
       [expression]
     end
   end
 
-  deflensp raw_columns(), do:
-    Query.Lenses.leaf_expressions()
+  defp raw_columns(lens \\ Lens.root(), data, query), do:
+    lens
+    |> Query.Lenses.leaf_expressions()
     |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
+    |> Lens.to_list(data)
+    |> Enum.flat_map(&resolve_row_splitter(&1, query))
 
   defp build_noise_layer(column, extras \\ nil), do:
     NoiseLayer.new({column.table.name, column.name, extras}, [Helpers.set_unique_alias(column)])

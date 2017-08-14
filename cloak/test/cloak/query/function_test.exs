@@ -287,6 +287,18 @@ defmodule Cloak.Query.FunctionTest do
     )
   end
 
+  test "extract_matches in negative condition" do
+    assert_query(
+      "SELECT extract_matches(name, '\\w+'), count(*) FROM heights_ft
+      WHERE left(extract_matches(name, '\\w+'), 1) <> 'f'
+      GROUP BY 1",
+      %{rows: [
+        %{row: ["second", 100], occurrences: 1},
+        %{row: ["third", 100], occurrences: 1},
+      ]}
+    )
+  end
+
   test "min(height)", do: assert_subquery_aggregate("min(height)", "heights_ft", 180)
   test "max(height)", do: assert_subquery_aggregate("max(height)", "heights_ft", 180)
   test "min(datetime)", do: assert_subquery_aggregate("min(datetime)", "datetimes_ft", "2015-02-03T04:05:06.000000")
