@@ -293,11 +293,11 @@ Additionally, depending on the type of clause, some extra data is added:
 * `=` clauses and `GROUP BY` - no extra data
 * range clauses - the range endpoints (see
   [the issue](https://github.com/Aircloak/aircloak/issues/1332))
-* `<>` clauses - the symbol `:<>` and the constant being
-  compared to (see [the issue](https://github.com/Aircloak/aircloak/issues/1278))
-* `NOT IN` clauses - are converted to an equivalent conjunction on `<>` clauses
+* `<>` clauses - the symbol `:<>` (see [this issue](https://github.com/Aircloak/aircloak/issues/1745))
+* `NOT IN` clauses - are converted to an equivalent conjunction on `<>` clauses,
+  so noise layers are never directly computed for them
 * `NOT LIKE` clauses - the symbols `:not` and `:like`/`:ilike` and the like
-  pattern
+  pattern stripped of wildcards (see [this issue](https://github.com/Aircloak/aircloak/issues/1758))
 * `IN` clauses - a layer is created for the whole clause with no extra seed,
   plus an additional layer for every constant in the `IN` with the symbol `:in`
   and the constant in the seed
@@ -314,20 +314,16 @@ produced instead - the min, max and count of the column. This process can be
 repeated in case of multiple aggregations (in subqueries) by taking the min of
 mins, max of maxes and sum of counts.
 
-### Clauses handled with probes
+### Probing
 
-Some clauses cannot be safely handled with noise layers. This mostly affects
-`<>` clauses with some functions applied to the column before the comparison is
-made. The reason is that we don't have a way (yet?) to detect the "real" meaning
-of the clause. For example both `a <> 4` and `sqrt(a) <> 2` do the exact same
-thing.
-
-Because of this only simple clauses (`raw_column <> constant`) or clauses with
-a limited number of "safe" functions (currently only `lower`) are handled with
-noise layers. For other clauses we need to fall back on the approach of
-probing.
+In addition to a noise layer some clauses need to be checked with a probe. The
+reason is that we don't have a way (yet?) to detect the "real" meaning of the
+clause. For example both `a <> 4` and `sqrt(a) <> 2` do the exact same thing.
+Instead of trying to guess what the effect would be from looking at the
+expression alone we issue a probe to the database to judge the effect of the
+clause on the query in practice.
 
 Probing basically means that a helper query (probe) is issued to the database
-for each "suspect" condition that hasn't been handled with noise layers. The
-probe checks how many users the condition excludes from the original query. If
-this number is low, then such a clause is removed from the original query.
+for each "suspect" condition. The probe checks how many users the condition
+excludes from the original query. If this number is low, then such a clause
+and any corresponding noise layers are removed from the original query.
