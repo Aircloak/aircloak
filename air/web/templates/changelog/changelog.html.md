@@ -12,6 +12,7 @@
 - Like patterns can now include an escape string
 - More human-friendly rendering of date/time values in the UI.
 - Documented `HEX` and `TRIM` functions.
+- Support for TCP transport in PostgreSQL server protocol
 
 ### Bugfixes
 
