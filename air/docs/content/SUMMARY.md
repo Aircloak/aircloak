@@ -38,6 +38,7 @@
 - [Understanding query results](sql/query-results.md)
   - [Low-count filtering](sql/query-results.md#low-count-filtering)
   - [Added noise](sql/query-results.md#adding-noise)
+  - [Probing](sql/query-results.md#probing)
   - [Anonymization functions](sql/query-results.md#anonymization-functions)
 - [Supported functions](sql/functions.md)
   - [Date/time functions](sql/functions.md#datetime-functions)
