@@ -196,7 +196,7 @@ defmodule Air.PsqlServer do
   defp verify_ssl_file(key) do
     cond do
       Map.fetch!(configuration(), key) == nil ->
-        {:error, "missing `#{key}` setting under the `psql_server` key"}
+        {:error, "missing `#{key}` setting under the `psql_server` key in the `config.json` file"}
       not File.exists?(Path.join([Application.app_dir(:air, "priv"), "config", Map.fetch!(configuration(), key)])) ->
         {:error, "the file `#{Map.fetch!(configuration(), key)}` is missing"}
       true ->
