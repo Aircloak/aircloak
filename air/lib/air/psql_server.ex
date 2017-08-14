@@ -225,6 +225,7 @@ defmodule Air.PsqlServer do
 
       {:error, error} ->
         Logger.warn(error)
+        []
     end
   end
 
