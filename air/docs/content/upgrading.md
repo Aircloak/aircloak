@@ -21,7 +21,7 @@
 
   These keys are optional, and if they are not provided, the system will only serve HTTP traffic.
 
-- PostgreSQL server SSL configuration
+- SSL configuration for Insights Air PostgreSQL interface
 
   Similarly to the site settings, the PostgreSQL server certificate and key file names must be explicitly provided. These files can be configured under the `psql_server` key:
 
@@ -38,7 +38,7 @@
   }
   ```
 
-- PostgreSQL server TCP configuration
+- TCP configuration for Insights Air PostgreSQL interface
 
   Starting with this version, it is possible to accept PostgreSQL connections over plain TCP (previously only SSL connections were supported). In order to allow TCP connections, you must explicitly set the value of `require_ssl` under the `psql_server` key to `false`:
 
