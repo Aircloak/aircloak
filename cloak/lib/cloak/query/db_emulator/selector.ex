@@ -39,12 +39,14 @@ defmodule Cloak.Query.DbEmulator.Selector do
     # The column titles in a subquery are not guaranteed to be unique, but that is fine
     # since, if they are not, they can't be referenced exactly either.
     indices = for column <- db_columns, do:
-      subquery.ast.column_titles |> Enum.find_index(&insensitive_equal?(&1, column.name)) |> check_index(column)
+      subquery.ast.column_titles
+      |> Enum.find_index(&insensitive_equal?(&1, column.name))
+      |> check_index(column, subquery.ast.column_titles)
     pick_columns(stream, indices)
   end
   def pick_db_columns(stream, %Query{db_columns: db_columns, from: {:join, join}}) do
     indices = for column <- db_columns, do:
-      join.columns |> get_column_index(column) |> check_index(column)
+      join.columns |> get_column_index(column) |> check_index(column, join.columns)
     pick_columns(stream, indices)
   end
   def pick_db_columns(stream, _query), do: stream
@@ -241,9 +243,10 @@ defmodule Cloak.Query.DbEmulator.Selector do
     end)
   end
 
-  defp check_index(nil, column), do:
-    raise "Column index could not be found in the list of available columns: #{inspect(column, pretty: true)}"
-  defp check_index(index, _column), do: index
+  defp check_index(nil, column, targets), do:
+    raise "Column index for column #{inspect(column, pretty: true)} could not be found in the " <>
+      "list of available options: #{inspect(targets, pretty: true)}"
+  defp check_index(index, _column, _targets), do: index
 
   # This function returns a functor that pre-filters right side rows in order to drastically improve join performance.
   # It does that by grouping rows by one of the matching columns in the join conditions.
