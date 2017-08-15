@@ -417,11 +417,11 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp select_expressions(%Query{command: :select} = query) do
     # top-level query -> we're only fetching columns, while other expressions (e.g. function calls)
     # will be resolved in the post-processing phase
-    used_columns =
-      query
-      |> needed_columns()
-      |> extract_columns()
-      |> Enum.reject(& &1.constant?)
+    used_columns = query
+    |> needed_columns()
+    |> extract_columns()
+    |> Enum.reject(& &1.constant?)
+
     [Helpers.id_column(query) | used_columns]
   end
 
