@@ -209,25 +209,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp like_noise_layers(query), do:
     conditions_satisfying(&Condition.like?/1)
-    |> Lens.to_list(query)
-    |> Enum.flat_map(fn({kind, column, constant}) ->
-      columns = raw_columns(column, query)
-      layer_keys = constant |> Expression.value() |> like_layer_keys()
-
-      for layer_key <- layer_keys, column <- columns do
-        build_noise_layer(column, {kind, layer_key})
-      end
-    end)
-
-  defp like_layer_keys(like_pattern) do
-    len = like_pattern |> LikePattern.graphemes() |> Enum.reject(& &1 == :%) |> length()
-    like_layer_keys(LikePattern.graphemes(like_pattern), 0, len)
-  end
-
-  defp like_layer_keys([], _, _), do: []
-  defp like_layer_keys([:% | rest], n, len), do: [{:%, len, n} | like_layer_keys(rest, n, len)]
-  defp like_layer_keys([:_ | rest], n, len), do: [{:_, len, n} | like_layer_keys(rest, n + 1, len)]
-  defp like_layer_keys([_ | rest], n, len), do: like_layer_keys(rest, n + 1, len)
+    |> raw_columns(query, query)
+    |> Enum.map(&build_noise_layer(&1, :like))
 
 
   # -------------------------------------------------------------------

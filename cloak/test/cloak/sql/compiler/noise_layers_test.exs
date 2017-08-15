@@ -162,43 +162,21 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   end
 
   describe "noise layers for LIKE" do
-    test "a noise layer per wildcard in LIKE" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE name LIKE 'b%_o_%b'", data_source())
-      len = String.length("b%_o_%b") - String.length("%%")
-
-      assert [
-        %{base: {"table", "name", {:like, {:%, ^len, 1}}}, expressions: [%Expression{name: "name"}]},
-        %{base: {"table", "name", {:like, {:_, ^len, 1}}}, expressions: [%Expression{name: "name"}]},
-        %{base: {"table", "name", {:like, {:%, ^len, 3}}}, expressions: [%Expression{name: "name"}]},
-        %{base: {"table", "name", {:like, {:_, ^len, 3}}}, expressions: [%Expression{name: "name"}]},
-      ] = result.noise_layers
-    end
-
-    test "a noise layer per wildcard in ILIKE" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE name ILIKE 'b%_o_%b'", data_source())
-      len = String.length("b%_o_%b") - String.length("%%")
-
-      assert [
-        %{base: {"table", "name", {:ilike, {:%, ^len, 1}}}, expressions: [%Expression{name: "name"}]},
-        %{base: {"table", "name", {:ilike, {:_, ^len, 1}}}, expressions: [%Expression{name: "name"}]},
-        %{base: {"table", "name", {:ilike, {:%, ^len, 3}}}, expressions: [%Expression{name: "name"}]},
-        %{base: {"table", "name", {:ilike, {:_, ^len, 3}}}, expressions: [%Expression{name: "name"}]},
-      ] = result.noise_layers
-    end
-
-    test "noise layers for processed LIKE columns" do
+    test "a noise layers in LIKE" do
       result = compile!("SELECT COUNT(*) FROM table WHERE name || name2 LIKE 'b%_o_%b'", data_source())
-      len = String.length("b%_o_%b") - String.length("%%")
 
       assert [
-        %{base: {"table", "name", {:like, {:%, ^len, 1}}}, expressions: [%Expression{name: "name"}]},
-        %{base: {"table", "name2", {:like, {:%, ^len, 1}}}, expressions: [%Expression{name: "name2"}]},
-        %{base: {"table", "name", {:like, {:_, ^len, 1}}}, expressions: [%Expression{name: "name"}]},
-        %{base: {"table", "name2", {:like, {:_, ^len, 1}}}, expressions: [%Expression{name: "name2"}]},
-        %{base: {"table", "name", {:like, {:%, ^len, 3}}}, expressions: [%Expression{name: "name"}]},
-        %{base: {"table", "name2", {:like, {:%, ^len, 3}}}, expressions: [%Expression{name: "name2"}]},
-        %{base: {"table", "name", {:like, {:_, ^len, 3}}}, expressions: [%Expression{name: "name"}]},
-        %{base: {"table", "name2", {:like, {:_, ^len, 3}}}, expressions: [%Expression{name: "name2"}]},
+        %{base: {"table", "name", :like}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name2", :like}, expressions: [%Expression{name: "name2"}]},
+      ] = result.noise_layers
+    end
+
+    test "noise layers in ILIKE" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name || name2 ILIKE 'b%_o_%b'", data_source())
+
+      assert [
+        %{base: {"table", "name", :like}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name2", :like}, expressions: [%Expression{name: "name2"}]},
       ] = result.noise_layers
     end
 
