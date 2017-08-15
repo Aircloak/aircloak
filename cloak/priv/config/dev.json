@@ -116,7 +116,8 @@
           "projection": {
             "table": "users",
             "foreign_key": "user_id",
-            "primary_key": "id"
+            "primary_key": "id",
+            "uid_alias": "uid"
           }
         },
         "drafts_changes": {
@@ -124,7 +125,8 @@
           "projection": {
             "table": "notes",
             "foreign_key": "note_id",
-            "primary_key": "user_id"
+            "primary_key": "user_id",
+            "uid_alias": "uid"
           }
         },
         "addresses": {
@@ -159,7 +161,8 @@
           "projection": {
             "table": "users",
             "foreign_key": "user_id",
-            "primary_key": "id"
+            "primary_key": "id",
+            "uid_alias": "uid"
           },
           "decoders": [
             {"method": "base64", "columns": ["title", "content"]},
@@ -171,7 +174,8 @@
           "projection": {
             "table": "notes",
             "foreign_key": "note_id",
-            "primary_key": "user_id"
+            "primary_key": "user_id",
+            "uid_alias": "uid"
           },
           "decoders": [
             {"method": "base64", "columns": ["changes.change"]},

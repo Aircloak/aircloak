@@ -180,7 +180,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         command: :select,
         projected?: true,
         columns:
-          [column_ast(joined_table.name, joined_table.user_id) |
+          [uid_column_ast(joined_table.name, joined_table.user_id, table) |
             table.columns
             |> Enum.map(&(&1.name))
             |> Enum.reject(&(&1 == table.user_id))
@@ -201,6 +201,13 @@ defmodule Cloak.Sql.Compiler.Specification do
       }
     }}
   end
+
+  defp uid_column_ast(table_name, column_name, %{projection: %{uid_alias: alias}}), do:
+    aliased_column_ast(table_name, column_name, alias)
+  defp uid_column_ast(table_name, column_name, _), do: column_ast(table_name, column_name)
+
+  defp aliased_column_ast(table_name, column_name, alias), do:
+    {column_ast(table_name, column_name), :as, alias}
 
   defp column_ast(table_name, column_name), do:
     {:identifier, {:quoted, table_name}, {:quoted, column_name}}
