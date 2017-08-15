@@ -253,8 +253,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   end
 
   defp noop_column_selection(indices, selectable_entities), do:
-    length(selectable_entities) == length(indices) and
-      indices == Enum.to_list(0..length(indices) - 1)
+    indices == Enum.to_list(0..length(selectable_entities) - 1)
 
   defp continuous_selection(indices), do:
     indices == Enum.to_list(0..length(indices) - 1)
