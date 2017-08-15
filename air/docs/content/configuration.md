@@ -59,7 +59,7 @@ This part of the configuration is used to configure the web server of the Insigh
 },
 ```
 
-In the snippet above, the type `secret_string` indicates a string which should consist of at least 64 characters. The corresponding parameters are used to sign and encrypt various data sent to the client. Make sure to choose values which are random enough, or otherwise the security and privacy of the system might be compromised. For example, to generate a random secret, you can use the following command:
+In the snippet above, the type `secret_string` indicates a string which should consist of at least 64 characters. The corresponding parameters are used to sign and encrypt various data sent to the client. Make sure to choose values which are random enough, or otherwise the security of the system might be compromised. For example, to generate a random secret, you can use the following command:
 
 ```
 cat /dev/urandom |
@@ -74,13 +74,13 @@ The `master_password` parameter specifies the password (in clear text) which is 
 
 The final two parameters `certfile` and `keyfile` are optional. They are used to specify the certificate and key for the HTTPS interface. If these parameters are provided, you will also need to put the corresponding files in the same folder as the `config.json` file. Once you do that, the site will accept HTTPS traffic as well as HTTP traffic. If you omit these parameters, the site will only accept HTTP traffic.
 
-The ports on which the site will listen are hardcoded. HTTP traffic is served via port 8080, while HTTPS is served via 8443. As explained in the [Installation guide](installation.md#insights-air), you can use Docker port mapping option to expose these ports.
+The ports on which the site will listen are hardcoded. HTTP traffic is served via port 8080, while HTTPS is served via 8443. As explained in the [Installation guide](installation.md#insights-air), you can use Docker port mapping option to decide which of these two ports you want to expose, and to choose different port numbers on the host server.
 
 We strongly suggest to use only HTTPS for communication between the clients (browsers) and the server (the Insights Air component). Otherwise, the security of the system might be compromised.
 
 ### Insights Air PostgreSQL interface configuration
 
-This part of the configuration allows you to instruct the Insights Air component to act as a PostgreSQL server. This can be useful when you want to query the system from third party tools, such as Tableau.
+This part of the configuration allows you to instruct the Insights Air component to accept requests over the PostgreSQL wire protocol. If this is configured, Insights Air can be queried from client applications which understand this protocol, such as Tableau.
 
 The configuration consists of the following parameters:
 
@@ -101,7 +101,9 @@ Regardless of which transport protocol(s) are allowed, the server will always ac
 Once the component is started, you can test the connectivity with the `psql` command line tool:
 
 ```
-psql -h insights_air_ip_address -p 8432 -d data_source_name -U user_name
+psql -h insights_air_ip_address -p postgresql_interface_port -d data_source_name -U user_name
+
+Where `postgresql_interface_port` is the PostgreSQL interface port provided when the component is started, as explained in the [Installation Guide](installation.md#insights-air).
 ```
 
 In order for the above command to work, the cloak component must be started as well, and the user must have permissions to query the given data source.
@@ -162,6 +164,11 @@ The `name` parameter is a string which will be used to identify the data source 
 
 The `driver` parameter can be one of the following: `mongodb`, `postgresql`, `mysql`, `sqlserver`, `saphana`. The `parameters` json, then specifies the database connection parameters.
 
+Some of these drivers use ODBC protocol to talk to the database. These drivers are `sqlserver` and `saphana`. Since they rely on ODBC, they accept some additional optional connection parameters:
+
+  - `encoding` which has possible values of "latin1", "unicode", "utf8", "utf16", "utf32", "utf16-big", "utf16-little", "utf32-big", "utf32-little".
+  - `odbc_parameters` - ODBC specific parameters for the ODBC driver which is used to talk to the database.
+
 The database tables that should be made available for querying are defined in the `tables` section of the cloak config. The value of the `tables` key is a JSON object that looks as follows:
 
 ```
@@ -177,7 +184,7 @@ The database tables that should be made available for querying are defined in th
 
 Each `table_name_x` key specifies the name the table will be available under when querying the data source through Aircloak. The `db_name` is the name of the table in the underlying database. In most cases you can use the same name, but the distinction allows some special scenarios, such as exposing a table under a simpler name, or exposing the same database table multiple times under different names.
 
-The `user_id` field is the name of the column that uniquely identifies users - the people or entities whose anonymity should be preserved. See also [Projected tables](#projected-tables) section below.
+The `user_id` field is the name of the column that uniquely identifies users - the people or entities whose anonymity should be preserved.
 
 Finally, `ignore_unsupported_types` specifies how to handle columns with unsupported types. If the value is `true`, the cloak will ignore such columns. If this value is `false`, the cloak will refuse to start if there are one or more columns of an unsupported data type.
 
@@ -251,7 +258,9 @@ Each decoder is a json in the shape of:
 {"method": string, "columns": ["some_column_name", ...], additional_parameters}
 ```
 
-The `method` parameter can be `aes_cbc_128` or `base64`. The `columns` parameter holds a list of columns which must be decoded with the given method.
+The `method` parameter can have one of the following values: `aes_cbc_128`, `base64`, `text_to_integer`, `text_to_real`, `text_to_datetime`, `text_to_date`, `text_to_time`.
+
+The `columns` parameter holds a list of columns which must be decoded with the given method.
 
 Finally, depending on the decoding method, you might need to provide additional parameters.
 
@@ -261,25 +270,10 @@ The `aes_cbc_128` decoder requires the `key` parameter which holds the decryptio
 {"method": "aes_cbc_128", "columns": ["some_column_name", ...], "key": "some_decryption_key"}
 ```
 
-For `base64`, no additional parameters are needed:
+For remaining possible decoders, no additional parameters are needed:
 
 ```
-{"method": "base64", "columns": ["some_column_name", ...]}
-```
-
-#### Type conversion
-
-The cloak can convert columns from one type into another, exposing the output type in the columns list provided to analysts. Currently, the following type conversion decoders are available: `text_to_integer`, `text_to_real`, `text_to_datetime`, `text_to_date`, `text_to_time`. For example, a conversion of a column from `text` to `integer` would look like this:
-
-```
-tables": {
-  "some_table": {
-    "decoders": [
-      {"method": "text_to_integer", "columns": ["some_column_name", ...]},
-      ...
-    ],
-    ...
-  },
-  ...
-}
+{"method": "base64", "columns": ["some_column_name", ...]},
+{"method": "text_to_integer", "columns": ["another_column_name", ...]},
+...
 ```

@@ -39,31 +39,31 @@ docker pull quay.io/aircloak/air:latest
 If you want to explicitly control which version you're fetching, then provide the explicit version number instead of the `latest` tag:
 
 ```bash
-docker pull quay.io/aircloak/air:17.3.0
+docker pull quay.io/aircloak/air:X.Y.Z
 ```
 
 Once air is properly configured you can start the air container with the following command:
 
 ```bash
 docker run -d --name air \
- -v configuration_folder:/runtime_config \
- -p desired_http_port:8080 \
- -p desired_https_port:8443 \
- -p desired_postgresql_interface_port:8432 \
- -p desired_monitoring_port:8081 \
- --restart=unless-stopped \
- quay.io/aircloak/air:latest
+  -v configuration_folder:/runtime_config \
+  -p desired_http_port:8080 \
+  -p desired_https_port:8443 \
+  -p desired_postgresql_interface_port:8432 \
+  -p desired_monitoring_port:8081 \
+  --restart=unless-stopped \
+  quay.io/aircloak/air:latest
 ```
 
 In the command above, the `configuration_folder` is the absolute path to the folder where `config.json` is residing.
 
 The `desired_http_port` and `desired_https_port` parameters are the ports you want to expose for HTTP and HTTPS requests. You need to expose at least one of these ports to make the site accessible from the outside. See the [Configuration guide](configuration.md#web-site-configuration) for more details on how to configure HTTP and HTTPS.
 
-The `desired_postgresql_interface_port` should be the port on which you want the system to accept PostgreSQL requests. If you don't want the component to act as a PostgreSQL database, you can omit this port mapping. See [Insights Air PostgreSQL interface configuration](configuration.md#insights-air-postgresql-interface-configuration) for more details.
+The `desired_postgresql_interface_port` should be the port on which you want the system to accept PostgreSQL requests. If you don't want the component to support this interface, you can omit this port mapping. See [Insights Air PostgreSQL interface configuration](configuration.md#insights-air-postgresql-interface-configuration) for more details.
 
 The `desired_monitoring_port` specifies the port which can be used to access the monitoring endpoint. If you don't want the component to expose this endpoint, you can omit this port mapping. See the [Monitoring guide](monitoring.md) for more details.
 
-The `--restart=unless-stopped` option specifies a restart policy which ensures that the container is restarted on crash. See [here](https://docs.docker.com/engine/reference/run/#restart-policies-restart) for a more detailed explanation.
+The `--restart=unless-stopped` option specifies a restart policy which ensures that the container is restarted should it crash. See [here](https://docs.docker.com/engine/reference/run/#restart-policies-restart) for a more detailed explanation.
 
 If everything was properly configured, you should be able to access Insights Air on the configured port, and create the administrator user using the master password provided in the `config.json` file. In the case of problems, you can check the logs with `docker logs air`.
 
@@ -82,7 +82,7 @@ docker pull quay.io/aircloak/cloak:latest
 If you want to explicitly control which version you're fetching, then provide the explicit version number instead of the `latest` tag:
 
 ```bash
-docker pull quay.io/aircloak/cloak:17.3.0
+docker pull quay.io/aircloak/cloak:X.Y.Z
 ```
 
 Assuming the component is configured, we can start the cloak container as:
