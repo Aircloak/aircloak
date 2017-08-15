@@ -7,15 +7,35 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
 
   setup_all do
     :ok = Cloak.Test.DB.create_table("#{@prefix}main", "dummy BOOLEAN")
-    decoder = %{method: "base64", columns: ["value"]}
-    projection = %{table: "#{@prefix}main", foreign_key: "user_id", primary_key: "user_id"}
-    :ok = Cloak.Test.DB.create_table("#{@prefix}emulated", "value TEXT, value2 TEXT, num INTEGER",
-      decoders: [decoder], projection: projection)
+    :ok = Cloak.Test.DB.create_table(
+      "#{@prefix}emulated", "id TEXT, user_id_fk TEXT, value TEXT, value2 TEXT, num INTEGER",
+      add_user_id: false,
+      decoders: [
+        %{method: "base64", columns: ["value"]},
+        %{method: "text_to_integer", columns: ["id"]},
+      ],
+      projection: %{
+        table: "#{@prefix}main",
+        foreign_key: "user_id_fk",
+        primary_key: "user_id",
+      },
+    )
+    :ok = Cloak.Test.DB.create_table(
+      "#{@prefix}emulated2", "foreign_key INTEGER, value TEXT",
+      add_user_id: false,
+      decoders: [%{method: "base64", columns: ["value"]}],
+      projection: %{
+        table: "#{@prefix}emulated",
+        foreign_key: "foreign_key",
+        primary_key: "id",
+      },
+    )
     :ok = Cloak.Test.DB.create_table("#{@prefix}joined", "age INTEGER")
     :ok
   end
 
   setup do
+    Cloak.Test.DB.clear_table("#{@prefix}emulated2")
     Cloak.Test.DB.clear_table("#{@prefix}emulated")
     Cloak.Test.DB.clear_table("#{@prefix}main")
     Cloak.Test.DB.clear_table("#{@prefix}joined")
@@ -61,9 +81,9 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
 
   describe "simple emulated subqueries" do
     defp simple_subqueries_setup(_) do
-      :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value", "num"], [Base.encode64("aaa"), 3])
-      :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value", "num"], [Base.encode64("bbb"), 2])
-      :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["value", "num"], [nil, 1])
+      :ok = insert_emulated_row(_user_ids = 1..10, ["value", "num"], [Base.encode64("aaa"), 3])
+      :ok = insert_emulated_row(_user_ids = 11..20, ["value", "num"], [Base.encode64("bbb"), 2])
+      :ok = insert_emulated_row(_user_ids = 21..30, ["value", "num"], [nil, 1])
     end
 
     setup [:simple_subqueries_setup]
@@ -108,8 +128,8 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
 
   describe "emulated subqueries with functions" do
     defp subqueries_with_functions_setup(_) do
-      :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value"], [Base.encode64("abc")])
-      :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value"], [Base.encode64("x")])
+      :ok = insert_emulated_row(_user_ids = 1..10, ["value"], [Base.encode64("abc")])
+      :ok = insert_emulated_row(_user_ids = 11..20, ["value"], [Base.encode64("x")])
     end
 
     setup [:subqueries_with_functions_setup]
@@ -126,12 +146,12 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
 
   describe "aggregation in emulated subqueries" do
     def aggregation_setup(_) do
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("abc")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("x")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("xyx")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("abcde")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("1234")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [nil])
+      :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [Base.encode64("abc")])
+      :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [Base.encode64("x")])
+      :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [Base.encode64("xyx")])
+      :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [Base.encode64("abcde")])
+      :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [Base.encode64("1234")])
+      :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [nil])
     end
 
     setup [:aggregation_setup]
@@ -209,12 +229,12 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
 
   describe "distinct in emulated subqueries" do
     defp distinct_setup(_) do
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("abc")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("x")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("xyx")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("abcde")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("1234")])
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [nil])
+      :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [Base.encode64("abc")])
+      :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [Base.encode64("x")])
+      :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [Base.encode64("xyx")])
+      :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [Base.encode64("abcde")])
+      :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [Base.encode64("1234")])
+      :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [nil])
     end
 
     setup [:distinct_setup]
@@ -246,7 +266,7 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
 
   describe "emulated joins" do
     defp join_setup(_) do
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("abc")])
+      :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [nil])
       :ok = insert_rows(_user_ids = 11..25, "#{@prefix}joined", ["age"], [30])
     end
 
@@ -300,9 +320,26 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
     end
   end
 
-  defp simple_setup(_) do
-    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value", "num"], [Base.encode64("aaa"), 3])
-    :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value", "num"], [Base.encode64("b"), 2])
-    :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["value", "num", "value2"], [nil, 1, "c"])
+  test "double projected emulated query" do
+    user_id_range = 1..100
+    :ok = Cloak.Test.DB.insert_data("#{@prefix}emulated", ["user_id_fk", "id"],
+      Enum.map(user_id_range, &["user#{&1}", "#{&1}"]))
+    :ok = Cloak.Test.DB.insert_data("#{@prefix}emulated2", ["foreign_key", "value"],
+      Enum.map(user_id_range, &[&1, Base.encode64("aaa")]))
+    :ok = Cloak.Test.DB.insert_data("#{@prefix}emulated2", ["foreign_key", "value"],
+      Enum.map(user_id_range, &[&1, Base.encode64("aaa")]))
+
+    assert_query "select count(*) from #{@prefix}emulated2 where value = 'aaa'",
+      %{rows: [%{occurrences: 1, row: [200]}]}
   end
+
+  defp simple_setup(_) do
+    :ok = insert_emulated_row(_user_ids = 1..10, ["value", "num"], [Base.encode64("aaa"), 3])
+    :ok = insert_emulated_row(_user_ids = 11..20, ["value", "num"], [Base.encode64("b"), 2])
+    :ok = insert_emulated_row(_user_ids = 21..30, ["value", "num", "value2"], [nil, 1, "c"])
+  end
+
+  defp insert_emulated_row(user_id_range, columns, values), do:
+    Cloak.Test.DB.insert_data("#{@prefix}emulated", ["user_id_fk" | columns],
+      Enum.map(user_id_range, &["user#{&1}" | values]))
 end
