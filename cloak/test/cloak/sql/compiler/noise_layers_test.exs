@@ -215,11 +215,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "IN (many, values)" do
       result = compile!("SELECT COUNT(*) FROM table WHERE name IN ('a', 'b')", data_source())
 
-      assert [
-        %{base: {"table", "name", nil}, expressions: [%{name: "name"}]},
-        %{base: {"table", "name", {:in, "a"}}, expressions: [%{name: "name"}]},
-        %{base: {"table", "name", {:in, "b"}}, expressions: [%{name: "name"}]},
-      ] = result.noise_layers
+      assert [%{base: {"table", "name", :in}, expressions: [%{name: "name"}]}] = result.noise_layers
     end
   end
 
