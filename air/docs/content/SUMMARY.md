@@ -56,4 +56,5 @@
   - [Configuring the system](configuration.md)
     - [Overview](configuration.md#overview)
     - [Insights Air](configuration.md#insights-air-configuration)
+    - [Insights Cloak](configuration.md#insights-cloak-configuration)
   - [Upgrading](upgrading.md)
