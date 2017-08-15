@@ -20,7 +20,9 @@ defmodule Cloak.Query.Runner.Engine do
         {:ok, parsed} <- Sql.Parser.parse(statement),
         state_updater.(:compiling),
         {:ok, query} <- Sql.Compiler.compile(data_source, parsed, parameters, views),
+        query = build_initial_noise_layers(query),
         query = LCFConditions.process(query),
+        query = build_final_noise_layers(query),
         state_updater.(:awaiting_data)
       do
         query_killer_reg.()
@@ -37,6 +39,10 @@ defmodule Cloak.Query.Runner.Engine do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp build_initial_noise_layers(query), do: Sql.Compiler.NoiseLayers.compile(query)
+
+  defp build_final_noise_layers(query), do: Sql.Compiler.NoiseLayers.compile(query)
 
   defp run_statement(%Sql.Query{command: :show, show: :tables} = query, _state_updater), do:
     Query.Result.new(query,
