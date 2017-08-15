@@ -55,7 +55,7 @@ docker run -d --name air \
   quay.io/aircloak/air:latest
 ```
 
-In the command above, the `configuration_folder` is the absolute path to the folder where `config.json` is residing.
+In the command above, the `configuration_folder` is the absolute path to the folder where `config.json` is residing. We propose to choose the path `/aircloak/air/config` for this folder, but you are free to choose any other path.
 
 The `desired_http_port` and `desired_https_port` parameters are the ports you want to expose for HTTP and HTTPS requests. You need to expose at least one of these ports to make the site accessible from the outside. See the [Configuration guide](configuration.md#web-site-configuration) for more details on how to configure HTTP and HTTPS.
 
@@ -94,6 +94,6 @@ docker run -d --name cloak \
   quay.io/aircloak/cloak:latest
 ```
 
-In the command above, you need to replace `configuration_folder` with the full path to the folder where `config.json` is residing. If you want to have explicit control of the component version, replace the `latest` tag in the command with the specific version number.
+In the command above, you need to replace `configuration_folder` with the full path to the folder where `config.json` is residing. We propose to choose the path `/aircloak/cloak/config` for this folder, but you are free to choose any other path. If you want to have explicit control of the component version, replace the `latest` tag in the command with the specific version number.
 
 In the case of problems, you can examine logs by running `docker logs cloak` or `docker logs air`, depending on which part of the system you are troubleshooting. In addition, you can enable debug log messages for the cloak component by including `"debug": true` in cloak `config.json` file. You need to restart the component after you change the configuration file.
