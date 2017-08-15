@@ -84,8 +84,8 @@ bound.
 
 ## Probing
 
-Some filtering clauses could reveal a user's identity indirectly. For example a clause like `name <> 'Fred'` could lead
-to the analyst being able to deduce things about a person named `Fred` if they are the only one with that name.
+Some filtering clauses could indirectly reveal a user's identity. For example a clause like `name <> 'Fred'` could lead
+to the analyst being able to deduce things about a person named `Fred` if that person is the only one with that name.
 
 For that reason Aircloak needs to check how many unique users match certain clauses. In the example above Aircloak would
 check how many users in a particular query have the name `Fred` and possibly remove the whole clause if that number is
@@ -101,10 +101,10 @@ and:
 SELECT COUNT(*) FROM people
 ```
 
-give the same output that doesn't mean there is nobody named `Fred` in the data. It might simply mean that there's too
+give the same output that doesn't mean there is nobody named `Fred` in the dataset. It might simply mean that there are too
 few of them to report.
 
-This check is performed for all `<>`, `NOT LIKE`, and `NOT ILIKE` clauses.
+These checks are performed for all `<>`, `NOT LIKE`, and `NOT ILIKE` clauses.
 
 ## Anonymization functions
 
