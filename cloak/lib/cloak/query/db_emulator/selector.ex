@@ -254,13 +254,10 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp noop_column_selection(indices, selectable_entities), do:
     length(selectable_entities) == length(indices) and
-      indices == Enum.sort(indices) and
-      indices == Enum.uniq(indices)
+      indices == Enum.to_list(0..length(indices) - 1)
 
   defp continuous_selection(indices), do:
-    indices
-    |> Enum.zip(0..length(indices))
-    |> Enum.all?(fn({index, zip_value}) -> index == zip_value end)
+    indices == Enum.to_list(0..length(indices) - 1)
 
   defp check_index(nil, column, targets), do:
     raise "Column index for column #{inspect(column, pretty: true)} could not be found in the " <>
