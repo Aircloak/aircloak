@@ -8,13 +8,26 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
   setup_all do
     :ok = Cloak.Test.DB.create_table("#{@prefix}main", "dummy BOOLEAN")
     :ok = Cloak.Test.DB.create_table(
-      "#{@prefix}emulated", "id INTEGER, user_id_fk TEXT, value TEXT, value2 TEXT, num INTEGER",
+      "#{@prefix}emulated", "id TEXT, user_id_fk TEXT, value TEXT, value2 TEXT, num INTEGER",
       add_user_id: false,
-      decoders: [%{method: "base64", columns: ["value"]}],
+      decoders: [
+        %{method: "base64", columns: ["value"]},
+        %{method: "text_to_integer", columns: ["id"]},
+      ],
       projection: %{
         table: "#{@prefix}main",
         foreign_key: "user_id_fk",
         primary_key: "user_id",
+      },
+    )
+    :ok = Cloak.Test.DB.create_table(
+      "#{@prefix}emulated2", "foreign_key INTEGER, value TEXT",
+      add_user_id: false,
+      decoders: [%{method: "base64", columns: ["value"]}],
+      projection: %{
+        table: "#{@prefix}emulated",
+        foreign_key: "foreign_key",
+        primary_key: "id",
       },
     )
     :ok = Cloak.Test.DB.create_table("#{@prefix}joined", "age INTEGER")
@@ -22,6 +35,7 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
   end
 
   setup do
+    Cloak.Test.DB.clear_table("#{@prefix}emulated2")
     Cloak.Test.DB.clear_table("#{@prefix}emulated")
     Cloak.Test.DB.clear_table("#{@prefix}main")
     Cloak.Test.DB.clear_table("#{@prefix}joined")
@@ -304,6 +318,19 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
         ]}
       )
     end
+  end
+
+  test "double projected emulated query" do
+    user_id_range = 1..100
+    :ok = Cloak.Test.DB.insert_data("#{@prefix}emulated", ["user_id_fk", "id"],
+      Enum.map(user_id_range, &["user#{&1}", "#{&1}"]))
+    :ok = Cloak.Test.DB.insert_data("#{@prefix}emulated2", ["foreign_key", "value"],
+      Enum.map(user_id_range, &[&1, Base.encode64("aaa")]))
+    :ok = Cloak.Test.DB.insert_data("#{@prefix}emulated2", ["foreign_key", "value"],
+      Enum.map(user_id_range, &[&1, Base.encode64("aaa")]))
+
+    assert_query "select count(*) from #{@prefix}emulated2 where value = 'aaa'",
+      %{rows: [%{occurrences: 1, row: [200]}]}
   end
 
   defp simple_setup(_) do
