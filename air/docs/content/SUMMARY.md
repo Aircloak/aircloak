@@ -53,4 +53,7 @@
 - [Monitoring](monitoring.md)
 
 ## Operations guides
+  - [Configuring the system](configuration.md)
+    - [Overview](configuration.md#overview)
+    - [Insights Air](configuration.md#insights-air-configuration)
   - [Upgrading](upgrading.md)
