@@ -74,7 +74,7 @@ The `master_password` parameter specifies the password (in clear text) which is 
 
 The final two parameters `certfile` and `keyfile` are optional. They are used to specify the certificate and key for the HTTPS interface. If these parameters are provided, you will also need to put the corresponding files in the same folder as the `config.json` file. Once you do that, the site will accept HTTPS traffic as well as HTTP traffic. If you omit these parameters, the site will only accept HTTP traffic.
 
-The ports on which the site will listen are hardcoded. HTTP traffic is served via port 8080, while HTTPS is served via 8443. As explained in the [Installation guide](installation.md), you can use Docker port mapping option to expose these ports.
+The ports on which the site will listen are hardcoded. HTTP traffic is served via port 8080, while HTTPS is served via 8443. As explained in the [Installation guide](installation.md#insights-air), you can use Docker port mapping option to expose these ports.
 
 We strongly suggest to use only HTTPS for communication between the clients (browsers) and the server (the Insights Air component). Otherwise, the security of the system might be compromised.
 
@@ -96,7 +96,7 @@ The `require_ssl` parameter specifies whether the connection requires all client
 
 If `require_ssl` is false, then the server will accept TCP connection as well as SSL. However, if `certfile` and `keyfile` parameters are not provided, then the server will only work with unencrypted TCP connections.
 
-Regardless of which transport protocol(s) are allowed, the server will always accept requests on the port 8432. As explained in the [Installation guide](installation.md), you can use the docker port mapping to expose this port to the outside world.
+Regardless of which transport protocol(s) are allowed, the server will always accept requests on the port 8432. As explained in the [Installation guide](installation.md#insights-air), you can use the docker port mapping to expose this port to the outside world.
 
 Once the component is started, you can test the connectivity with the `psql` command line tool:
 
