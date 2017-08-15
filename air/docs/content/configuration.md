@@ -164,10 +164,12 @@ The `name` parameter is a string which will be used to identify the data source 
 
 The `driver` parameter can be one of the following: `mongodb`, `postgresql`, `mysql`, `sqlserver`, `saphana`. The `parameters` json, then specifies the database connection parameters.
 
-Some of these drivers use ODBC protocol to talk to the database. These drivers are `sqlserver` and `saphana`. Since they rely on ODBC, they accept some additional optional connection parameters:
+Some of these drivers use ODBC protocol to talk to the database. These drivers are `sqlserver` and `saphana`. Since they rely on ODBC, they accept some additional connection parameters:
 
   - `encoding` which has possible values of "latin1", "unicode", "utf8", "utf16", "utf32", "utf16-big", "utf16-little", "utf32-big", "utf32-little".
   - `odbc_parameters` - ODBC specific parameters for the ODBC driver which is used to talk to the database.
+
+These parameters are optional, and are only required for particular installations, where the default values will not suffice.
 
 The database tables that should be made available for querying are defined in the `tables` section of the cloak config. The value of the `tables` key is a JSON object that looks as follows:
 
