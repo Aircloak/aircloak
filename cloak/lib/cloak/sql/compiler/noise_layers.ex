@@ -153,9 +153,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         basic_noise_layers(query) ++
         range_noise_layers(query) ++
         negative_noise_layers(query) ++
-        not_like_noise_layers(query) ++
-        like_noise_layers(query) ++
-        in_noise_layers(query)
+        not_like_noise_layers(query)
     }
 
   defp basic_noise_layers(query), do:
@@ -164,8 +162,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(& not Condition.inequality?(&1))
     |> Lens.satisfy(& not Condition.not_equals?(&1))
     |> Lens.satisfy(& not Condition.not_like?(&1))
-    |> Lens.satisfy(& not Condition.like?(&1))
-    |> Lens.satisfy(& not Condition.in?(&1))
     |> Lens.satisfy(& not fk_pk_condition?(&1))
     |> Lens.both(Lens.key(:group_by))
     |> raw_columns(query, query)
@@ -193,16 +189,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       raw_columns(column, query)
       |> Enum.map(&build_noise_layer(&1, {:not, kind, constant |> Expression.value() |> remove_wildcards()}))
     end)
-
-  defp in_noise_layers(query), do:
-    conditions_satisfying(&Condition.in?/1)
-    |> raw_columns(query, query)
-    |> Enum.map(&build_noise_layer(&1, :in))
-
-  defp like_noise_layers(query), do:
-    conditions_satisfying(&Condition.like?/1)
-    |> raw_columns(query, query)
-    |> Enum.map(&build_noise_layer(&1, :like))
 
 
   # -------------------------------------------------------------------

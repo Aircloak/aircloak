@@ -166,8 +166,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM table WHERE name || name2 LIKE 'b%_o_%b'", data_source())
 
       assert [
-        %{base: {"table", "name", :like}, expressions: [%Expression{name: "name"}]},
-        %{base: {"table", "name2", :like}, expressions: [%Expression{name: "name2"}]},
+        %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name2", nil}, expressions: [%Expression{name: "name2"}]},
       ] = result.noise_layers
     end
 
@@ -175,8 +175,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM table WHERE name || name2 ILIKE 'b%_o_%b'", data_source())
 
       assert [
-        %{base: {"table", "name", :like}, expressions: [%Expression{name: "name"}]},
-        %{base: {"table", "name2", :like}, expressions: [%Expression{name: "name2"}]},
+        %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name2", nil}, expressions: [%Expression{name: "name2"}]},
       ] = result.noise_layers
     end
 
@@ -215,7 +215,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "IN (many, values)" do
       result = compile!("SELECT COUNT(*) FROM table WHERE name IN ('a', 'b')", data_source())
 
-      assert [%{base: {"table", "name", :in}, expressions: [%{name: "name"}]}] = result.noise_layers
+      assert [%{base: {"table", "name", nil}, expressions: [%{name: "name"}]}] = result.noise_layers
     end
   end
 
