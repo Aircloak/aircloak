@@ -1,4 +1,4 @@
-defmodule Cloak.Query.LCFConditions do
+defmodule Cloak.Query.Probe do
   @moduledoc """
   Implements filtering of conditions that cannot be anonymized using noise layers and should not apply
   if there are not enough users present. These are negative conditions that exclude users and need special

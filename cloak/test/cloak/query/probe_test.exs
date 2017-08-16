@@ -1,10 +1,10 @@
-defmodule Cloak.Query.LCFConditionsTest do
+defmodule Cloak.Query.ProbeTest do
   use ExUnit.Case, async: true
 
   import Cloak.Test.QueryHelpers
 
   alias Cloak.Sql.Expression
-  alias Cloak.Query.LCFConditions
+  alias Cloak.Query.Probe
 
   setup_all do
     :ok = Cloak.Test.DB.create_table("lcf_conditions", "x INTEGER")
@@ -31,7 +31,7 @@ defmodule Cloak.Query.LCFConditionsTest do
   defp make_query!(query_string, data_source) do
     query_string
     |> compile!(data_source)
-    |> LCFConditions.process()
+    |> Probe.process()
     |> scrub_aliases()
     |> scrub_data_sources()
   end
