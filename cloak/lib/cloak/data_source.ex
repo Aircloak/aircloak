@@ -219,6 +219,7 @@ defmodule Cloak.DataSource do
         "postgresql" -> Cloak.DataSource.PostgreSQL
         "sqlserver" -> Cloak.DataSource.SQLServer
         "sqlserver_tds" -> Cloak.DataSource.SQLServerTds
+        "saphana" -> Cloak.DataSource.SAPHana
         other -> raise_error("Unknown driver `#{other}` for data source `#{data_source.name}`")
       end
     dialect = driver_module.dialect(data_source.parameters)

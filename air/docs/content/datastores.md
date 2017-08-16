@@ -24,10 +24,6 @@ Versions from 9.1 and newer are supported.
 MySQL version 5 and more recent is supported.
 We also support the MySQL fork MariaDB from version 10.1 and onwards.
 
-`FULL OUTER JOIN`'s are not natively supported by MySQL and MariaDB.
-Aircloak Insights replaces any instance of a `FULL OUTER JOIN` with a
-combination of a `LEFT OUTER JOIN` and a `RIGHT OUTER JOIN`.
-
 ## Microsoft SQL Server
 
 The following versions of Microsoft SQL Server are supported:
@@ -251,3 +247,11 @@ and conversely which features turn a query into an emulated one.
 | upper         | ✔        | ✔        | ✔         | ✔              | ✔             |
 | weekday       | ✔        | ✔        | ✔         | ✔              | ✔             |
 | year          | ✔        | ✔        | ✔         | ✔              | ✔             |
+
+### Interaction with probing
+
+Insights Cloak issues additional queries to the datastore for every `<>`, `NOT LIKE`, or `NOT ILIKE` condition in your
+query (see [the section on probing](sql/query-results.md#probing)). The impact this will have on the performance of your
+query depends on the datastore and the number of such conditions used. It will be especially noticeable if the
+expressions that need probes require emulation. You might be able to achieve better response times if you are able to
+avoid these conditions in your query.

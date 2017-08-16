@@ -10,7 +10,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
   @type server_message ::
     {:authentication_method, :cleartext} | :authentication_ok | :bind_complete | :close_complete |
     {:command_complete, String.t} | {:syntax_error, String.t} | {:fatal_error, String.t} | :ready_for_query |
-    :parse_complete | :require_ssl |
+    :parse_complete | :require_ssl | :ssl_not_supported |
     {:parameter_status, String.t, String.t} | {:parameter_description, [Protocol.Value.type]} |
     {:row_description, [Protocol.column], [Protocol.Value.format]} |
     {:data_row, [Protocol.db_value], [Protocol.Value.type], [Protocol.Value.format]} |
@@ -103,6 +103,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
   def encode_message(:ready_for_query), do: server_message(:ready_for_query, <<?I>>)
   def encode_message(:parse_complete), do: server_message(:parse_complete, <<>>)
   def encode_message(:require_ssl), do: <<?S>>
+  def encode_message(:ssl_not_supported), do: <<?N>>
   def encode_message({:row_description, columns, result_codes}) do
     columns_descriptions =
       columns

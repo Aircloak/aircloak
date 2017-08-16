@@ -24,8 +24,12 @@ defmodule Air.PsqlServer do
   alias Air.PsqlServer.{Protocol, RanchServer}
   alias Air.Service.{User, DataSource, Version}
   require Logger
+  require Aircloak.DeployConfig
 
   @behaviour RanchServer
+
+  @type configuration :: %{require_ssl: boolean, certfile: String.t, keyfile: String.t}
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -63,6 +67,48 @@ defmodule Air.PsqlServer do
   @spec decode_cloak_query_result({:ok, map} | DataSource.data_source_operation_error) :: Protocol.query_result
   def decode_cloak_query_result(query_response), do:
     do_decode_cloak_query_result(query_response)
+
+  @doc "Returns the postgresql server configuration."
+  @spec configuration() :: configuration
+  def configuration() do
+    default_config = %{require_ssl: true, certfile: nil, keyfile: nil}
+
+    user_config =
+      case Aircloak.DeployConfig.fetch("psql_server") do
+        {:ok, configuration} ->
+          configuration
+
+        :error ->
+          %{}
+      end
+
+    normalized_user_config =
+      user_config
+      |> Map.take(["require_ssl", "certfile", "keyfile"])
+      |> Enum.map(fn({key, value}) -> {String.to_atom(key), value} end)
+      |> Enum.into(%{})
+
+    Map.merge(default_config, normalized_user_config)
+  end
+
+  @doc "Verifies if SSL configuration is valid."
+  @spec validate_ssl_config() :: :ok | {:error, String.t}
+  def validate_ssl_config() do
+    [:certfile, :keyfile]
+    |> Enum.map(&verify_ssl_file/1)
+    |> Enum.filter(&match?({:error, _}, &1))
+    |> Enum.map(fn({:error, error}) -> error end)
+    |> case do
+      [] -> :ok
+      errors ->
+        {:error,
+          to_string([
+            "the system can't accept SSL connections over the PostgreSQL protocol for the following reasons: ",
+            Enum.join(errors, ", ")
+          ])
+        }
+    end
+  end
 
 
   # -------------------------------------------------------------------
@@ -147,6 +193,17 @@ defmodule Air.PsqlServer do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp verify_ssl_file(key) do
+    cond do
+      Map.fetch!(configuration(), key) == nil ->
+        {:error, "missing `#{key}` setting under the `psql_server` key in the `config.json` file"}
+      not File.exists?(Path.join([Application.app_dir(:air, "priv"), "config", Map.fetch!(configuration(), key)])) ->
+        {:error, "the file `#{Map.fetch!(configuration(), key)}` is missing"}
+      true ->
+        :ok
+    end
+  end
+
   defp run_async(conn, job_fun, on_finished) do
     task = Task.async(job_fun)
     async_jobs = Map.put(conn.assigns.async_jobs, task.ref, %{task: task, on_finished: on_finished})
@@ -156,10 +213,21 @@ defmodule Air.PsqlServer do
   defp ranch_opts(), do:
     Application.get_env(:air, Air.PsqlServer, [])
     |> Keyword.get(:ranch_opts, [])
-    |> Keyword.merge(ssl: [
-        certfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_cert.pem"]),
-        keyfile: Path.join([Application.app_dir(:air, "priv"), "config", "ssl_key.pem"])
-      ])
+    |> Keyword.merge(ssl_settings())
+
+  defp ssl_settings() do
+    case validate_ssl_config() do
+      :ok ->
+        [ssl: [
+          certfile: Path.join([Application.app_dir(:air, "priv"), "config", configuration().certfile]),
+          keyfile: Path.join([Application.app_dir(:air, "priv"), "config", configuration().keyfile])
+        ]]
+
+      {:error, error} ->
+        Logger.warn(error)
+        []
+    end
+  end
 
   defp run_special_query(conn, query), do:
     handle_special_query(&(&1.run_query(conn, query)))

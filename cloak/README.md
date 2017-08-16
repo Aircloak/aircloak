@@ -171,6 +171,20 @@ It is possible to run cloak as a local docker container:
 
 You can now interact with the cloak via the dockerized air (http://localhost:8080 or https://insights.air-local:8443).
 
+#### Running a local development container (macos only)
+
+With the `make dev-container` command, you can start a Linux container with your local aircloak folder mounted. This feature is intended for macos developers, and it allows them to develop and test in the Linux environment. You need to have Docker for Mac 17.0.6 or higher.
+
 #### Deploying
 
 See [here](../README.md#deploying).
+
+#### Running performance tests locally
+
+Before running the tests you need to prepare the performance database.
+
+- `make recreate-perf-db` - generate a `preformance` DB with 10k users
+- `cp priv/config/perf.json priv/config/config.json` - performance tests use the prod environment, so they need a config file
+- `make perftest` - run the performance tests
+
+Note that the tests submit results to InfluxDB - it will be started with `start_dependencies.sh`.

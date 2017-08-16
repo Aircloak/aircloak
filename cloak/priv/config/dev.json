@@ -7,7 +7,7 @@
       "marker": "native",
       "name": "cloak_postgres_native",
       "parameters": {
-        "hostname": "localhost",
+        "hostname": "insights.air-local",
         "username": "cloak",
         "database": "cloak"
       },
@@ -57,7 +57,7 @@
         "DSN": "PostgreSQL",
         "UID": "cloak",
         "Database": "cloak",
-        "Server": "localhost"
+        "Server": "insights.air-local"
       },
       "tables": {
         "test": {
@@ -102,7 +102,7 @@
       "name": "compliance_normal",
       "marker": "normal",
       "parameters": {
-        "hostname": "localhost",
+        "hostname": "insights.air-local",
         "username": "datasource_compliance",
         "database": "datasource_compliance"
       },
@@ -116,7 +116,8 @@
           "projection": {
             "table": "users",
             "foreign_key": "user_id",
-            "primary_key": "id"
+            "primary_key": "id",
+            "user_id_alias": "uid"
           }
         },
         "drafts_changes": {
@@ -124,7 +125,8 @@
           "projection": {
             "table": "notes",
             "foreign_key": "note_id",
-            "primary_key": "user_id"
+            "primary_key": "user_id",
+            "user_id_alias": "uid"
           }
         },
         "addresses": {
@@ -138,7 +140,7 @@
       "name": "compliance_encoded",
       "marker": "encoded",
       "parameters": {
-        "hostname": "localhost",
+        "hostname": "insights.air-local",
         "username": "datasource_compliance",
         "database": "datasource_compliance"
       },
@@ -159,7 +161,8 @@
           "projection": {
             "table": "users",
             "foreign_key": "user_id",
-            "primary_key": "id"
+            "primary_key": "id",
+            "user_id_alias": "uid"
           },
           "decoders": [
             {"method": "base64", "columns": ["title", "content"]},
@@ -171,7 +174,8 @@
           "projection": {
             "table": "notes",
             "foreign_key": "note_id",
-            "primary_key": "user_id"
+            "primary_key": "user_id",
+            "user_id_alias": "uid"
           },
           "decoders": [
             {"method": "base64", "columns": ["changes.change"]},

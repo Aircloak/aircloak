@@ -27,10 +27,12 @@ defmodule Cloak.Sql.Compiler.Helpers do
   @doc "Returns all id columns from the query."
   @spec all_id_columns_from_tables(partial_query) :: [Expression.t]
   def all_id_columns_from_tables(%Query{command: :select, selected_tables: tables}) do
-    Enum.map(tables, fn(table) ->
-      user_id = table.user_id
-      column = Enum.find(table.columns, &insensitive_equal?(user_id, &1.name))
-      %Expression{table: table, name: user_id, type: column.type, user_id?: true}
+    Enum.flat_map(tables, fn
+      (%{projection: nil} = table) ->
+        user_id = table.user_id
+        column = Enum.find(table.columns, &insensitive_equal?(user_id, &1.name))
+        [%Expression{table: table, name: user_id, type: column.type, user_id?: true}]
+      (_) -> []
     end)
   end
 

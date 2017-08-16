@@ -197,7 +197,7 @@ defmodule Air.PsqlServer.Protocol do
     %{protocol | state: next_state, expecting: 0}
 
   @doc "Awaits the client message, and optionally decodes it, and changes the state."
-  @spec await_client_message(t, [state: state, bytes: pos_integer, decode_message?: boolean]) :: t
+  @spec await_client_message(t, [state: state, bytes: pos_integer, decode?: boolean]) :: t
   def await_client_message(protocol, opts \\ []), do:
     protocol
     |> next_state(Keyword.get(opts, :state, protocol.state))

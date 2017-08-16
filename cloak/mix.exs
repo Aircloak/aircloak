@@ -46,7 +46,7 @@ defmodule Cloak.Mixfile do
       # Hackney is not a direct dependency of ours, but we need it to be at version 1.8.6 or more recent
       # in order to build under Erlang 20.0. Earlier versions indirectly included too old versions of a
       # unicode compatibility layer that doesn't jell will our version of Erlang.
-      {:hackney, ">= 1.8.6"},
+      {:hackney, ">= 1.8.6", override: true},
 
       # Test deps
 
@@ -54,7 +54,10 @@ defmodule Cloak.Mixfile do
       {:cowboy, "~> 1.0", only: :test},
       {:bypass, "~> 0.5.1", only: :test},
       {:excheck, "~> 0.5.3", only: :test},
-      {:triq, github: "triqng/triq", only: :test}
+      {:triq, github: "triqng/triq", only: :test},
+
+      # Only used for perf tests
+      {:httpoison, "~> 0.13.0", runtime: false},
     ]
   end
 
@@ -79,7 +82,7 @@ defmodule Cloak.Mixfile do
       "lint": ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env), ",")}"]
     ]
   end
-  defp aliases(:prod), do: []
+  defp aliases(_), do: []
 
   defp ignored_credo_checks(:test), do:
     ["ModuleDoc" | ignored_credo_checks(:dev)]

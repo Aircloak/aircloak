@@ -15,13 +15,24 @@ require 'base64'
 require 'json'
 require 'date'
 require 'csv'
+require 'optparse'
 
 
 # -------------------------------------------------------------------
 # Config parameters
 # -------------------------------------------------------------------
 
-$user_ids = (1..100)
+options = {}
+OptionParser.new do |opts|
+  opts.banner = "Usage: #{File.basename($PROGRAM_NAME)} [options]"
+
+  opts.on("--users N", OptionParser::DecimalInteger,
+    "Set number of users. Data size will be bigger for more users.") do |users|
+      options[:users] = users
+    end
+end.parse!
+
+$user_ids = (1..options[:users])
 $encryption_key = "1234567890ABCDEF"
 $iv = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0].pack("C*")
 

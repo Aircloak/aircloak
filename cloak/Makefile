@@ -1,7 +1,8 @@
 SHELL=/bin/bash -o pipefail
 
 .PHONY: sandbox deps docs proper proper-std proper-extended test clean all compile
-.PHONY: regenerate-db dialyze lint release release-local perftest perftest-setup
+.PHONY: recreate-db recreate-perf-db dialyze lint release release-local perftest dev-container
+.PHONY: odbc_drivers odbc_drivers_folder
 
 all: deps compile
 
@@ -17,6 +18,7 @@ deps:
 
 clean:
 	mix clean --deps
+	rm -rf odbc_drivers
 
 start: compile
 	iex -S mix
@@ -30,6 +32,10 @@ test_all:
 recreate-db:
 	@echo "Assumption: you have a database user called postgres that is a superuser. If not, run: CREATE USER postgres WITH SUPERUSER"
 	./datagen/recreate_db.sh
+	USER_COUNT=100 DB_NAME=datasource_compliance ./datagen/generate_db.sh
+
+recreate-perf-db:
+	USER_COUNT=10000 DB_NAME=performance ./datagen/generate_db.sh
 
 recreate-db-more-data: recreate-db
 	./datagen/add_more_test_data.sh
@@ -65,8 +71,17 @@ release-local:
 	MIX_ENV=prod mix compile.app --force
 	mix release --env=local --no-tar
 
-perftest:
-	MIX_ENV=test mix run perftest/main.exs "${QUERY}"
+perftest: deps
+	MIX_ENV=prod mix compile
+	MIX_ENV=prod mix run perftest/main.exs
 
-perftest-setup:
-	MIX_ENV=test mix run perftest/setup.exs ${SIZE}
+dev-container: odbc_drivers
+	./dev-container.sh
+
+odbc_drivers: odbc_drivers_folder deps/odbc_drivers/libodbc-sap-hana-v2.so
+
+odbc_drivers_folder:
+	mkdir -p deps/odbc_drivers
+
+deps/odbc_drivers/libodbc-sap-hana-v2.so:
+	wget -P deps/odbc_drivers/ https://www.dropbox.com/s/aerstjlatecny79/libodbc-sap-hana-v2.so

@@ -36,7 +36,7 @@ defmodule Cloak do
     ]
   end
 
-  unless Mix.env == :test do
+  unless Mix.env in [:test] do
     # Processes which we don't want to start in the test environment
     defp system_processes do
       import Supervisor.Spec, warn: false

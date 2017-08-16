@@ -62,6 +62,7 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   defp dialect_module(:postgresql), do: SqlBuilder.PostgreSQL
   defp dialect_module(:mysql), do: SqlBuilder.MySQL
   defp dialect_module(:sqlserver), do: SqlBuilder.SQLServer
+  defp dialect_module(:saphana), do: SqlBuilder.SAPHana
 
   defp function_signature(%Expression{function: name, function_args: args}) when is_binary(name), do:
     {name, length(args)}

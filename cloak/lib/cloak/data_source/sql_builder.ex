@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   @moduledoc "Provides functionality for constructing an SQL query from a compiled query."
 
   alias Cloak.Sql.Query
-  alias Cloak.Sql.{Expression, Condition}
+  alias Cloak.Sql.Expression
   alias Cloak.DataSource.SqlBuilder.Support
   alias Cloak.Query.ExecutionError
 
@@ -17,21 +17,8 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   @spec build(Query.t, atom) :: String.t
   @doc "Constructs a parametrized SQL query that can be executed against a backend."
-  def build(query, :mysql) do
-    # MySQL and MariaDB do not support FULL joins, so we have to split it into LEFT and RIGHT joins
-    # see: http://www.xaprb.com/blog/2006/05/26/how-to-write-full-outer-join-in-mysql/
-    case split_full_outer_join(query.from) do
-      {:union, left_join, right_join} ->
-        [%Expression{function?: true, function: "coalesce", function_args: [first_id | _]} | _] = query.db_columns
-        query1 = %Query{query | from: left_join}
-        query2 = %Query{query | from: right_join, where: Condition.combine(:and, query.where, {:is, first_id, :null})}
-        build(query1, :mysql) <> " UNION ALL " <> build(query2, :mysql)
-      _ -> query |> build_fragments(:mysql) |> to_string()
-    end
-  end
-  def build(query, sql_dialect) do
+  def build(query, sql_dialect), do:
     query |> build_fragments(sql_dialect) |> to_string()
-  end
 
 
   # -------------------------------------------------------------------
@@ -98,7 +85,6 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp join_sql(:cross_join), do: "CROSS JOIN"
   defp join_sql(:inner_join), do: "INNER JOIN"
-  defp join_sql(:full_outer_join), do: "FULL OUTER JOIN"
   defp join_sql(:left_outer_join), do: "LEFT OUTER JOIN"
   defp join_sql(:right_outer_join), do: "RIGHT OUTER JOIN"
 
@@ -195,28 +181,4 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp range_fragments(%Query{subquery?: true, offset: offset}, sql_dialect) when offset > 0, do:
     raise ExecutionError, message: "OFFSET clause is not supported on '#{sql_dialect}' data sources."
   defp range_fragments(_query, _sql_dialect), do: []
-
-  defp split_full_outer_join({:join, %{type: :full_outer_join} = join}) do
-    left_join = {:join, %{join | type: :left_outer_join}}
-    right_join = {:join, %{join | type: :right_outer_join}}
-    {:union, left_join, right_join}
-  end
-  defp split_full_outer_join({:join, join}) do
-    case split_full_outer_join(join.lhs) do
-      {:union, left_join, right_join} ->
-        left_join = {:join, %{join | lhs: left_join}}
-        right_join = {:join, %{join | lhs: right_join}}
-        {:union, left_join, right_join}
-      _ ->
-        case split_full_outer_join(join.rhs) do
-          {:union, left_join, right_join} ->
-            left_join = {:join, %{join | rhs: left_join}}
-            right_join = {:join, %{join | rhs: right_join}}
-            {:union, left_join, right_join}
-          _ ->
-            {:join, join}
-        end
-    end
-  end
-  defp split_full_outer_join(from), do: from
 end

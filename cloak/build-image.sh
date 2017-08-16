@@ -4,6 +4,10 @@ set -eo pipefail
 
 # build from the top-level folder of the project
 ROOT_DIR=$(cd $(dirname ${BASH_SOURCE[0]})/.. && pwd)
+
+cd $ROOT_DIR/cloak
+make odbc_drivers
+
 cd $ROOT_DIR
 
 . docker/docker_helper.sh

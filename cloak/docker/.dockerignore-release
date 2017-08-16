@@ -1,7 +1,8 @@
 # ignore everything by default
 *
 
-# whitelist only needed folders
+# whitelist only needed files and folders
 !cloak/artifacts/rel
 !cloak/docker
 !cloak/priv/odbc/docker
+!cloak/deps/odbc_drivers/libodbc-sap-hana-v2.so

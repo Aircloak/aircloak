@@ -29,6 +29,7 @@ undefined
 log
 erl_crash.dump
 
+priv/config/config.json
 priv/sandbox
 priv/helpers.lua
 priv/serialization.lua
@@ -40,3 +41,4 @@ priv/serialization.lua
 /artifacts/
 
 /datagen/output/
+*.log

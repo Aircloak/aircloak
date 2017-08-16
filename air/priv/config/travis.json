@@ -4,7 +4,15 @@
     "endpoint_key_base": "7nOn9WDwUZLjXnQah8+ocSF0r/YhYpDp0hSw4FE6Zq+Ic2TVYcDCQe+2MT8wqD/R",
     "api_token_salt": "ik/WxOrtgkv5Aervx2GPbxXYNxMOVw9QEgfe+NMUhjblzYon8ivPXGa+7Y2WI54n1inakG3wm1fQGRg7xFoIMA",
     "master_password": "super_secret_master_password",
-    "customer_token": "SFMyNTY.g3QAAAACZAAEZGF0YWEBZAAGc2lnbmVkbgYAcXTfBFgB.j7yqABozbJTUvf8rnMHUtfbmTlzD1ScLwYMHbwiIT6I"
+    "customer_token": "SFMyNTY.g3QAAAACZAAEZGF0YWEBZAAGc2lnbmVkbgYAcXTfBFgB.j7yqABozbJTUvf8rnMHUtfbmTlzD1ScLwYMHbwiIT6I",
+    "certfile": "ssl_cert.pem",
+    "keyfile": "ssl_key.pem"
+  },
+
+  "psql_server": {
+    "require_ssl": false,
+    "certfile": "ssl_cert.pem",
+    "keyfile": "ssl_key.pem"
   },
 
   "database": {

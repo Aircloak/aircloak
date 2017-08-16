@@ -140,7 +140,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     ]
 
   defp optimized_projected_subquery_ast(ast, required_column_names) do
-    columns = Enum.filter(ast.columns, & &1.name in required_column_names)
+    columns = Enum.filter(ast.db_columns, & (&1.alias || &1.name) in required_column_names)
     titles = Enum.filter(ast.column_titles, & &1 in required_column_names)
     %Query{ast | next_row_index: 0, db_columns: [], columns: columns, column_titles: titles}
     |> set_emulation_flag()
@@ -415,13 +415,13 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> Enum.map(fn({column_alias, column}) -> %Expression{column | alias: column_alias} end)
   end
   defp select_expressions(%Query{command: :select} = query) do
-    # top-level query -> we,re fetching only columns, while other expressions (e.g. function calls)
+    # top-level query -> we're only fetching columns, while other expressions (e.g. function calls)
     # will be resolved in the post-processing phase
-    used_columns =
-      query
-      |> needed_columns()
-      |> extract_columns()
-      |> Enum.reject(& &1.constant?)
+    used_columns = query
+    |> needed_columns()
+    |> extract_columns()
+    |> Enum.reject(& &1.constant?)
+
     [Helpers.id_column(query) | used_columns]
   end
 
