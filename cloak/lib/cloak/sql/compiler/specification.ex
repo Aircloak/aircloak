@@ -202,12 +202,8 @@ defmodule Cloak.Sql.Compiler.Specification do
     }}
   end
 
-  defp uid_column_ast(table_name, column_name, %{projection: %{user_id_alias: alias}}), do:
-    aliased_column_ast(table_name, column_name, alias)
-  defp uid_column_ast(table_name, column_name, _), do: column_ast(table_name, column_name)
-
-  defp aliased_column_ast(table_name, column_name, alias), do:
-    {column_ast(table_name, column_name), :as, alias}
+  defp uid_column_ast(table_name, column_name, %{projection: projection}), do:
+    {column_ast(table_name, column_name), :as, projection[:user_id_alias] || column_name}
 
   defp column_ast(table_name, column_name), do:
     {:identifier, {:quoted, table_name}, {:quoted, column_name}}
