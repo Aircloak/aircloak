@@ -216,6 +216,37 @@ To get a `user_id` column in the `transactions` table, the cloak needs to be con
 
 Here, we are specifying that the `transactions` table derives its `user_id` column from the `accounts` table. The `account_id` field of the `transactions` table corresponds to the `id` field of the `accounts` table. This results in the `transactions` table getting an extra column called `customer_id`.
 
+The extra column added to the table has the name of the user id column in the related table. If the name clashes with
+a column that already exists in the table, you can rename it using the `user_id_alias` option.
+As an example let's assume you have two tables: `users` and `purchases`. The `users` table has a column `uuid` that
+should be used as the user identifier, as well as an `id` column used to refer to a specific user in the context of the
+database. The `purchases` table has a `users_fk_id` column referring to the `id` column of the `users` table, as well as
+a `uuid` column uniquely identifying a purchase. Unless otherwise specified, the column added by Aircloak would be called
+`uuid` after the user id column in the `users` table. This would clash with the `uuid` column already existing in the
+`purchases` table. You get around this using the `user_id_alias` option.
+
+```
+"tables": {
+  "users": {
+    "db_name": "users",
+    "user_id": "uuid"
+  },
+  "purchases": {
+    "db_name": "purchases",
+    "projection": {
+      "table": "users",
+      "foreign_key": "users_fk_id",
+      "primary_key": "id",
+      "user_id_alias": "user_id"
+    }
+  },
+  ...
+}
+```
+
+Given the above configuration a column named `user_id` would be added to the `purchases` table, rather than a column
+called `uuid`.
+
 #### Table sample rate (only for MongoDb)
 
 For MongoDb databases, every collection is initially scanned to determine the collection schema. This can take a long time for larger collections, which might lead to increased cloak startup times. You can instruct the cloak to analyze only a fraction of the data in the MongoDb collection by providing the `sample_rate` option:
