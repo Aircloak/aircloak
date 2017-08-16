@@ -196,8 +196,7 @@ defmodule Cloak.DataSource.Table do
       nil ->
         {
           :error,
-          "primary key column `#{table.projection.primary_key}` not found in table " <>
-            "`#{referenced_table.db_name}`"
+          "primary key column `#{table.projection.primary_key}` not found in table `#{referenced_table.db_name}`"
         }
       %{type: primary_key_type} when primary_key_type != foreign_key_type ->
         {
