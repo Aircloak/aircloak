@@ -4,8 +4,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   alias Cloak.DataSource.Table
   alias Cloak.Sql.Expression
 
-  import Cloak.Test.QueryHelpers
-
   describe "picking columns for noise layers" do
     test "lists no noise layers by default" do
       assert [] = compile!("SELECT COUNT(*) FROM table", data_source()).noise_layers
@@ -103,70 +101,32 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> 10", data_source())
 
       assert [
-        %{base: {"table", "numeric", {:<>, 10}}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", :<>}, expressions: [%Expression{name: "numeric"}]},
       ] = result.noise_layers
     end
 
-    test "no noise layer when compared column is not raw in a subquery" do
-      result = compile!(
-        "SELECT COUNT(*) FROM (SELECT upper(name) AS name, uid FROM table) x WHERE lower(name) <> 'bob'",
-        data_source()
-      )
-
-      assert [] = result.noise_layers
-    end
-
-    test "use a noise layer when compared column is raw in subquery" do
-      result = compile!(
-        "SELECT COUNT(*) FROM (SELECT name, uid FROM table) x WHERE lower(name) <> 'bob'",
-        data_source()
-      )
-
-      assert [%{base: {"table", "name", {:<>, "lower", "bob"}}}] = result.noise_layers
-    end
-
-    test "no noise layer when compared column is not raw in a join" do
-      result = compile!("""
-        SELECT COUNT(*) FROM other JOIN (SELECT lower(name) as name, uid FROM table) x
-        ON other.uid = x.uid WHERE lower(name) <> 'bob'
-      """, data_source())
-
-      assert [] = result.noise_layers
-    end
-
-    test "use a noise layer when compared column is raw in a join" do
-      result = compile!("""
-        SELECT COUNT(*) FROM other JOIN (SELECT name, uid FROM table) x ON other.uid = x.uid WHERE lower(name) <> 'bob'
-      """, data_source())
-
-      assert [%{base: {"table", "name", {:<>, "lower", "bob"}}}] = result.noise_layers
-    end
-
-    test "noise layers for columns with allowed operations" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE lower(name) <> 'bob'", data_source())
-
-      assert [
-        %{base: {"table", "name", {:<>, "lower", "bob"}}, expressions: [%Expression{name: "name"}]},
-      ] = result.noise_layers
-    end
-
-    test "no noise layer for columns with disallowed operations" do
+    test "noise layers for conditions with functions" do
       result = compile!("SELECT COUNT(*) FROM table WHERE sqrt(numeric) <> 10", data_source())
 
-      assert [] = result.noise_layers
+      assert [
+        %{base: {"table", "numeric", :<>}, expressions: [%Expression{name: "numeric"}]},
+      ] = result.noise_layers
     end
 
-    test "no noise layer for columns with allowed operations on non-raw columns" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE lower(lower(name)) <> 'bob'", data_source())
+    test "noise layers for complex conditions" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> numeric2", data_source())
 
-      assert [] = result.noise_layers
+      assert [
+        %{base: {"table", "numeric", :<>}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric2", :<>}, expressions: [%Expression{name: "numeric2"}]},
+      ] = result.noise_layers
     end
 
     test "noise layers for NOT LIKE" do
       result = compile!("SELECT COUNT(*) FROM table WHERE name NOT LIKE 'bob%'", data_source())
 
       assert [
-        %{base: {"table", "name", {:not, :like, {"bob%", "\\"}}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:not, :like, "bob"}}, expressions: [%Expression{name: "name"}]},
       ] = result.noise_layers
     end
 
@@ -174,14 +134,30 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM table WHERE name NOT ILIKE 'bob%'", data_source())
 
       assert [
-        %{base: {"table", "name", {:not, :ilike, {"bob%", "\\"}}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:not, :ilike, "bob"}}, expressions: [%Expression{name: "name"}]},
       ] = result.noise_layers
     end
 
-    test "no noise layer when the argument to LIKE is not raw" do
+    test "noise layers when the argument to NOT LIKE is not raw" do
       result = compile!("SELECT COUNT(*) FROM table WHERE lower(name) NOT LIKE 'bob%'", data_source())
 
-      assert [] = result.noise_layers
+      assert [
+        %{base: {"table", "name", {:not, :like, "bob"}}, expressions: [%Expression{name: "name"}]},
+      ] = result.noise_layers
+    end
+  end
+
+  describe "noise layers for IS NULL" do
+    test "a noise layer for IS NULL" do
+      assert [
+        %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}]},
+      ] = compile!("SELECT COUNT(*) FROM table WHERE name IS NULL", data_source()).noise_layers
+    end
+
+    test "a noise layer for IS NOT NULL" do
+      assert [
+        %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}]},
+      ] = compile!("SELECT COUNT(*) FROM table WHERE name IS NOT NULL", data_source()).noise_layers
     end
   end
 
@@ -480,6 +456,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert base1 == base2
     end
   end
+
+  defp compile!(query, data_source, opts \\ []), do:
+    Cloak.Test.QueryHelpers.compile!(query, data_source, opts)
+    |> Cloak.Sql.Compiler.NoiseLayers.compile()
 
   defp data_source() do
     %{

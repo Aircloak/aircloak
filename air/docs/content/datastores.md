@@ -247,3 +247,11 @@ and conversely which features turn a query into an emulated one.
 | upper         | ✔        | ✔        | ✔         | ✔              | ✔             |
 | weekday       | ✔        | ✔        | ✔         | ✔              | ✔             |
 | year          | ✔        | ✔        | ✔         | ✔              | ✔             |
+
+### Interaction with probing
+
+Insights Cloak issues additional queries to the datastore for every `<>`, `NOT LIKE`, or `NOT ILIKE` condition in your
+query (see [the section on probing](sql/query-results.md#probing)). The impact this will have on the performance of your
+query depends on the datastore and the number of such conditions used. It will be especially noticeable if the
+expressions that need probes require emulation. You might be able to achieve better response times if you are able to
+avoid these conditions in your query.

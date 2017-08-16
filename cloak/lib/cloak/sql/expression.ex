@@ -5,6 +5,7 @@ defmodule Cloak.Sql.Expression do
   """
 
   alias Cloak.DataSource
+  alias Cloak.Sql.LikePattern
   alias Timex.Duration
 
   @type column_type :: DataSource.Table.data_type | :like_pattern | nil
@@ -91,7 +92,8 @@ defmodule Cloak.Sql.Expression do
   def display_name(%__MODULE__{function: function}) when is_binary(function), do: "`#{function}`"
 
   @doc "Returns the column value of a database row."
-  @spec value(t, DataSource.row) :: DataSource.field
+  @spec value(t, DataSource.row) :: DataSource.field | LikePattern.t
+  def value(expression, row \\ [])
   def value(%__MODULE__{constant?: true, value: value}, _row), do: value
   def value(expression = %__MODULE__{function?: true, function_args: args}, row), do:
     apply_function(expression, Enum.map(args, &value(&1, row)))

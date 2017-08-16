@@ -38,6 +38,7 @@
 - [Understanding query results](sql/query-results.md)
   - [Low-count filtering](sql/query-results.md#low-count-filtering)
   - [Added noise](sql/query-results.md#adding-noise)
+  - [Probing](sql/query-results.md#probing)
   - [Anonymization functions](sql/query-results.md#anonymization-functions)
 - [Supported functions](sql/functions.md)
   - [Date/time functions](sql/functions.md#datetime-functions)
@@ -53,4 +54,11 @@
 - [Monitoring](monitoring.md)
 
 ## Operations guides
+  - [Installing the system](installation.md)
+    - [Insights Air](installation.md#insights-air)
+    - [Insights Cloak](installation.md#insights-cloak)
+  - [Configuring the system](configuration.md)
+    - [Overview](configuration.md#overview)
+    - [Insights Air](configuration.md#insights-air-configuration)
+    - [Insights Cloak](configuration.md#insights-cloak-configuration)
   - [Upgrading](upgrading.md)

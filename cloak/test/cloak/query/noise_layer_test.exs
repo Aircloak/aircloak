@@ -11,7 +11,7 @@ defmodule Cloak.Query.NoiseLayerTest do
   import Cloak.Test.QueryHelpers
 
   setup_all do
-    :ok = Cloak.Test.DB.create_table("noise_layers", "number REAL, other REAL")
+    :ok = Cloak.Test.DB.create_table("noise_layers", "number REAL, other REAL, string TEXT")
   end
 
   setup do
@@ -32,6 +32,7 @@ defmodule Cloak.Query.NoiseLayerTest do
   test "count(*) uses a different noise layer than count(column)" do
     :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [15])
     :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [3])
+    :ok = insert_rows(_user_ids = 101..111, "noise_layers", ["number"], [0])
 
     assert_query "select count(*), count(number) from noise_layers where number <> 0",
       %{rows: [%{row: [value1, value2]}]}
@@ -131,6 +132,7 @@ defmodule Cloak.Query.NoiseLayerTest do
   test "adding a negative condition adds a noise layer" do
     :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [14])
     :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [14])
+    :ok = insert_rows(_user_ids = 101..110, "noise_layers", ["number"], [1000])
 
     assert_query "select avg(number) from noise_layers where number <> 1000",
       %{rows: [%{row: [value1]}]}
@@ -139,29 +141,40 @@ defmodule Cloak.Query.NoiseLayerTest do
     assert value1 != value2
   end
 
-  test "adding negative conditions with different constants adds different noise layers" do
-    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [9])
-    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [9])
+  describe "probing" do
+    test "complex negative conditions matching too few users are dropped" do
+      :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["number"], [100])
+      :ok = insert_rows(_user_ids = 26..75, "noise_layers", ["number"], [50])
+      :ok = insert_rows(_user_ids = 76..76, "noise_layers", ["number"], [400])
 
-    assert_query "select avg(number) from noise_layers where number <> 1000",
-      %{rows: [%{row: [value1]}]}
-    assert_query "select avg(number) from noise_layers where number <> 1001",
-      %{rows: [%{row: [value2]}]}
-    assert value1 != value2
-  end
+      assert_query "select count(*) from noise_layers", %{rows: [%{row: [result1]}]}
+      assert_query "select count(*) from noise_layers where sqrt(number) <> 20", %{rows: [%{row: [result2]}]}
+      assert result1 == result2
+    end
 
-  test "complex negative conditions matching too few users are dropped" do
-    :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["number"], [100])
-    :ok = insert_rows(_user_ids = 26..75, "noise_layers", ["number"], [50])
+    test "complex negative conditions matching enough users are kept" do
+      :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["number"], [100])
+      :ok = insert_rows(_user_ids = 26..75, "noise_layers", ["number"], [50])
 
-    assert_query "select count(number) from noise_layers where sqrt(number) <> 11", %{rows: [%{row: [97]}]}
-  end
+      assert_query "select count(number) from noise_layers where sqrt(number) <> 10", %{rows: [%{row: [50]}]}
+    end
 
-  test "complex negative conditions matching enough users are kept" do
-    :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["number"], [100])
-    :ok = insert_rows(_user_ids = 26..75, "noise_layers", ["number"], [50])
+    test "complex negative LIKE conditions matching too few users are dropped" do
+      :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["string"], ["aa"])
+      :ok = insert_rows(_user_ids = 26..75, "noise_layers", ["string"], ["ab"])
+      :ok = insert_rows(_user_ids = 76..76, "noise_layers", ["string"], ["bb"])
 
-    assert_query "select count(number) from noise_layers where sqrt(number) <> 10", %{rows: [%{row: [51]}]}
+      assert_query "select count(number) from noise_layers", %{rows: [%{row: [result1]}]}
+      assert_query "select count(number) from noise_layers where string NOT LIKE '%bb'", %{rows: [%{row: [result2]}]}
+      assert result1 == result2
+    end
+
+    test "complex negative LIKE conditions matching enough users are kept" do
+      :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["string"], ["aa"])
+      :ok = insert_rows(_user_ids = 26..75, "noise_layers", ["string"], ["bb"])
+
+      assert_query "select count(*) from noise_layers where string NOT LIKE '%bb'", %{rows: [%{row: [50]}]}
+    end
   end
 
   test "the reported noise should scale with the layers of noise" do
