@@ -94,7 +94,7 @@ defmodule Cloak.DataSource.Table do
     case Enum.find(table.columns, &(&1.name == projected_uid_name)) do
       %{} ->
         DataSource.raise_error("the projected uid-column named `#{projected_uid_name}` conflicts with an " <>
-          "identically named column in the table. Rename the projected uid-column using the `uid_alias` " <>
+          "identically named column in the table. Rename the projected uid-column using the `user_id_alias` " <>
           "option in the projection section of your cloak configuration")
       nil -> :ok
     end
@@ -119,7 +119,7 @@ defmodule Cloak.DataSource.Table do
     table = table_from_datasource(data_source, table_name)
     table.user_id
   end
-  defp get_uid_name(_data_source, _table, %{uid_alias: alias}), do: alias
+  defp get_uid_name(_data_source, _table, %{user_id_alias: alias}), do: alias
   defp get_uid_name(data_source, _table, %{table: table_name}) do
     table = table_from_datasource(data_source, table_name)
     get_uid_name(data_source, table_name, table[:projection])
@@ -194,7 +194,7 @@ defmodule Cloak.DataSource.Table do
     end
   end
 
-  defp set_display_name(column, %{projection: %{uid_alias: alias}}), do: %{column | name: alias}
+  defp set_display_name(column, %{projection: %{user_id_alias: alias}}), do: %{column | name: alias}
   defp set_display_name(column, _), do: column
 
   defp validate_projection(tables_map, table) do

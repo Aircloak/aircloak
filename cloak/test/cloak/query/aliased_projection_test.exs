@@ -13,7 +13,7 @@ defmodule Cloak.Query.AliasedProjectionTest do
         table: "#{@prefix}main",
         foreign_key: "user_id",
         primary_key: "user_id",
-        uid_alias: "uid",
+        user_id_alias: "uid",
       },
     )
     :ok
