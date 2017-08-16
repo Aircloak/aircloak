@@ -21,7 +21,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Helpers.apply_bottom_up(&calculate_base_noise_layers/1)
     |> apply_top_down(&push_down_noise_layers/1)
     |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
-    |> apply_top_down(&normalize_noise_layers_base/1)
+    |> apply_top_down(&normalize_datasource_case/1)
 
 
   # -------------------------------------------------------------------
@@ -251,9 +251,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Query.Lenses.conditions()
     |> Lens.satisfy(predicate)
 
-  # In order to ensure noise consistency across data sources that have columns with different cases,
-  # we normalize the noise layer base by converting the column name to lower case.
-  defp normalize_noise_layers_base(query) do
+  defp normalize_datasource_case(query) do
     Lens.key(:noise_layers)
     |> Lens.all()
     |> Lens.key(:base)
