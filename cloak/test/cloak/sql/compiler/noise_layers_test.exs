@@ -4,6 +4,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   alias Cloak.DataSource.Table
   alias Cloak.Sql.Expression
 
+  test "overwrites any existing noise layers" do
+    compiled = Cloak.Test.QueryHelpers.compile!("SELECT COUNT(*) FROM table", data_source())
+    query =
+      %{compiled | noise_layers: :to_be_overwritten}
+      |> Cloak.Sql.Compiler.NoiseLayers.compile()
+
+    assert [] = query.noise_layers
+  end
+
   describe "picking columns for noise layers" do
     test "lists no noise layers by default" do
       assert [] = compile!("SELECT COUNT(*) FROM table", data_source()).noise_layers
