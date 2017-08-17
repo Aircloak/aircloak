@@ -43,7 +43,11 @@ export type Result = {
   },
   inserted_at: string,
   session_id: string,
-  number_format: NumberFormat,
+};
+
+type Props = {
+  result: Result,
+  numberFormat: NumberFormat,
 };
 
 type State = {
@@ -63,7 +67,7 @@ const ZERO_WIDTH_SPACE = "\u200B";
 const ALL_CHUNKS = -1;
 
 export class ResultView extends React.Component {
-  constructor(props: Result) {
+  constructor(props: Props) {
     super(props);
 
     this.minRowsToShow = 10;
@@ -73,8 +77,8 @@ export class ResultView extends React.Component {
       showChart: false,
       showChartConfig: true,
       graphConfig: new GraphConfig(),
-      tableAligner: new TableAligner(props.rows),
-      availableRows: this.props.rows,
+      tableAligner: new TableAligner(this.props.result.rows),
+      availableRows: this.props.result.rows,
       availableChunks: 1,
       loadingChunks: false,
       loadError: false,
@@ -100,7 +104,7 @@ export class ResultView extends React.Component {
     this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
     this.showingMinimumNumberOfManyRows = this.showingMinimumNumberOfManyRows.bind(this);
 
-    this.graphInfo = new GraphInfo(this.props.columns, this.state.availableRows);
+    this.graphInfo = new GraphInfo(this.props.result.columns, this.state.availableRows);
     this.rebuildGraphData();
 
     this.addX = this.addX.bind(this);
@@ -109,7 +113,7 @@ export class ResultView extends React.Component {
   }
 
   state: State;
-  props: Result;
+  props: Props;
   minRowsToShow: number;
   graphData: GraphDataT;
   graphInfo: GraphInfoT;
@@ -124,7 +128,7 @@ export class ResultView extends React.Component {
   showingAllOfFewRows: () => void;
   showingAllOfManyRows: () => void;
   showingMinimumNumberOfManyRows: () => void;
-  componentDidUpdate: (prevProps: Result, prevState: State) => void;
+  componentDidUpdate: (prevProps: Props, prevState: State) => void;
   renderChartButton: () => void;
   renderAxesButton: () => void;
   conditionallyRenderChartConfig: () => void;
@@ -139,7 +143,7 @@ export class ResultView extends React.Component {
 
   rebuildGraphData() {
     this.graphData = new GraphData(
-      this.props.columns,
+      this.props.result.columns,
       this.state.availableRows,
       this.state.graphConfig,
       this.formatValue
@@ -147,7 +151,7 @@ export class ResultView extends React.Component {
   }
 
   handleClickMoreRows() {
-    const rowsToShowCount = Math.min(2 * this.state.rowsToShowCount, this.props.row_count);
+    const rowsToShowCount = Math.min(2 * this.state.rowsToShowCount, this.props.result.row_count);
     this.loadAndShowMoreRows(rowsToShowCount, this.state.availableRows, this.state.availableChunks);
   }
 
@@ -188,7 +192,7 @@ export class ResultView extends React.Component {
 
   loadChunks(desiredChunk: number, fun: ((rows: Row[]) => void)) {
     this.setState({loadingChunks: true, loadError: false});
-    loadBuckets(this.props.id, desiredChunk, this.context.authentication, {
+    loadBuckets(this.props.result.id, desiredChunk, this.context.authentication, {
       success: (buckets) => {
         this.setState({loadingChunks: false, loadError: false});
         fun(buckets);
@@ -200,15 +204,15 @@ export class ResultView extends React.Component {
   }
 
   showingAllOfFewRows() {
-    return this.props.row_count <= this.minRowsToShow;
+    return this.props.result.row_count <= this.minRowsToShow;
   }
 
   showingAllOfManyRows() {
-    return this.props.row_count === this.state.rowsToShowCount;
+    return this.props.result.row_count === this.state.rowsToShowCount;
   }
 
   showingMinimumNumberOfManyRows() {
-    return this.state.rowsToShowCount === this.minRowsToShow && this.props.row_count > this.minRowsToShow;
+    return this.state.rowsToShowCount === this.minRowsToShow && this.props.result.row_count > this.minRowsToShow;
   }
 
   addX(col: number) {
@@ -224,11 +228,11 @@ export class ResultView extends React.Component {
   }
 
   formatValue(value: any, columnIndex: number): string {
-    const type = this.props.types[columnIndex];
+    const type = this.props.result.types[columnIndex];
     if (value === null) {
       return "<null>";
     } else if (this.isNumeric(value)) {
-      return formatNumber(value, this.props.number_format);
+      return formatNumber(value, this.props.numberFormat);
     } else if (value === "") {
       return ZERO_WIDTH_SPACE; // keeps table row from collapsing
     } else if (type === "datetime") {
@@ -337,28 +341,28 @@ export class ResultView extends React.Component {
     } else if (this.showingAllOfFewRows()) {
       return (
         <div className="row-count">
-          {this.props.row_count} rows.
+          {this.props.result.row_count} rows.
         </div>
       );
     } else if (this.showingAllOfManyRows()) {
       return (
         <div className="row-count">
-          {this.props.row_count} rows.&nbsp;
+          {this.props.result.row_count} rows.&nbsp;
           <a onClick={this.handleClickLessRows}>Show fewer rows</a>
         </div>
       );
     } else if (this.showingMinimumNumberOfManyRows()) {
       return (
         <div className="row-count">
-          Showing {this.minRowsToShow} of {this.props.row_count} rows.&nbsp;
+          Showing {this.minRowsToShow} of {this.props.result.row_count} rows.&nbsp;
           <a onClick={this.handleClickMoreRows}>Show more rows</a>
         </div>
       );
     } else {
-      const rowsShown = Math.min(this.state.rowsToShowCount, this.props.row_count);
+      const rowsShown = Math.min(this.state.rowsToShowCount, this.props.result.row_count);
       return (
         <div className="row-count">
-          Showing {rowsShown} of {this.props.row_count} rows.&nbsp;
+          Showing {rowsShown} of {this.props.result.row_count} rows.&nbsp;
           Show&nbsp;
           <a onClick={this.handleClickLessRows}>fewer rows</a>,&nbsp;
           <a onClick={this.handleClickMoreRows}>more rows</a>
@@ -420,7 +424,7 @@ export class ResultView extends React.Component {
   renderOptionMenu() {
     return (
       <div className="options-menu">
-        <a className="btn btn-default btn-xs" href={`/queries/${this.props.id}.csv`}>Download as CSV</a>
+        <a className="btn btn-default btn-xs" href={`/queries/${this.props.result.id}.csv`}>Download as CSV</a>
         &nbsp;
         {this.renderChartButton()}
         &nbsp;
@@ -434,13 +438,13 @@ export class ResultView extends React.Component {
       <div className="panel panel-success">
         <div className="panel-heading" />
         <div className="panel-body">
-          <CodeViewer statement={this.props.statement} />
-          <Info info={this.props.info} />
+          <CodeViewer statement={this.props.result.statement} />
+          <Info info={this.props.result.info} />
           <div className="result-table">
             <table className="table table-striped table-condensed table-hover">
               <thead>
                 <tr>
-                  {this.props.columns.map((column, i) =>
+                  {this.props.result.columns.map((column, i) =>
                     <th key={i} className={this.state.tableAligner.alignmentClass(i)}>{column}</th>
                   )}
                 </tr>
