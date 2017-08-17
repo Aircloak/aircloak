@@ -131,7 +131,12 @@
         },
         "addresses": {
           "db_name": "addresses",
-          "user_id": "user_id"
+          "projection": {
+            "table": "users",
+            "foreign_key": "user_id",
+            "primary_key": "id",
+            "user_id_alias": "uid"
+          }
         }
       }
     },
@@ -190,7 +195,12 @@
             {"method": "aes_cbc_128", "key": "1234567890ABCDEF", "columns": ["home.city", "work.city"]},
             {"method": "text_to_integer", "columns": ["home.postal_code", "work.postal_code"]}
           ],
-          "user_id": "user_id"
+          "projection": {
+            "table": "users",
+            "foreign_key": "user_id",
+            "primary_key": "id",
+            "user_id_alias": "uid"
+          }
         }
       }
     }
