@@ -16,6 +16,7 @@
         result: <%= to_json(@query) %>,
         guardianToken: "<%= @guardian_token %>",
         CSRFToken: "<%= @csrf_token %>",
+        numberFormat: <%= to_json(@number_format) %>,
       };
 
       App.queryShowPage(props, document.getElementById("query-view"));

@@ -347,8 +347,6 @@ export default class QueriesView extends React.Component {
   }
 
   render() {
-    // eslint-disable-next-line no-return-assign, no-param-reassign
-    this.state.sessionResults.forEach((result) => result.number_format = this.props.numberFormat);
     return (<div>
       <h2>
         {this.props.dataSourceName}
@@ -364,7 +362,7 @@ export default class QueriesView extends React.Component {
         {this.renderButton()}
       </div>
 
-      <Results results={this.state.sessionResults} />
+      <Results results={this.state.sessionResults} numberFormat={this.props.numberFormat} />
 
       <HistoryLoader history={this.state.history} handleLoadHistory={this.handleLoadHistory} />
     </div>);

@@ -6,10 +6,12 @@ import {Results} from "./results";
 import {PropertiesView} from "./properties";
 import type {Result} from "./result";
 import {FrontendSocket} from "../frontend_socket";
+import type {NumberFormat} from "../number_format";
 
 type Props = {
   result: Result,
   frontendSocket: FrontendSocket,
+  numberFormat: NumberFormat,
 };
 
 export default class QueryView extends React.Component {
@@ -42,7 +44,7 @@ export default class QueryView extends React.Component {
       <PropertiesView {...this.state.result} />
 
       <h3>Query</h3>
-      <Results results={[this.state.result]} />
+      <Results numberFormat={this.props.numberFormat} results={[this.state.result]} />
     </div>);
   }
 }
