@@ -374,7 +374,8 @@ defmodule Air.Service.DataSource do
   defp users_data_sources(user) do
     from [data_source, _group, user] in data_sources_with_groups_and_users(),
       where: user.id == ^user.id,
-      group_by: data_source.id
+      group_by: data_source.id,
+      order_by: data_source.name
   end
 
   defp user_data_source(user, {:id, id}), do:
