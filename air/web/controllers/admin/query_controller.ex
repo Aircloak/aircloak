@@ -30,6 +30,7 @@ defmodule Air.Admin.QueryController do
           query: Query.for_display(query, Air.Service.Query.buckets(query, 0)),
           guardian_token: Guardian.Plug.current_token(conn),
           csrf_token: CSRFProtection.get_csrf_token(),
+          number_format: Air.Service.User.number_format_settings(conn.assigns.current_user),
         })
       {:error, _} ->
         conn
