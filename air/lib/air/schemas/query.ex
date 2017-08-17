@@ -2,7 +2,8 @@ defmodule Air.Schemas.Query do
   @moduledoc "The query schema."
   use Air.Schemas.Base
 
-  alias Air.{Schemas.DataSource, Schemas.User, Repo, PsqlServer.Protocol}
+  alias Air.{Repo, PsqlServer.Protocol}
+  alias Air.Schemas.{DataSource, User, ResultChunk}
 
   require EctoEnum
 
@@ -40,6 +41,7 @@ defmodule Air.Schemas.Query do
 
     belongs_to :user, User
     belongs_to :data_source, DataSource
+    has_many :result_chunks, ResultChunk
 
     timestamps usec: true
   end
@@ -87,7 +89,7 @@ defmodule Air.Schemas.Query do
   @spec to_csv_stream(t, Enumerable.t) :: Enumerable.t
   def to_csv_stream(query, buckets), do:
     [query.result["columns"]]
-    |> Stream.concat(Air.Schemas.ResultChunk.rows_stream(buckets))
+    |> Stream.concat(ResultChunk.rows_stream(buckets))
     |> CSV.encode()
 
 
