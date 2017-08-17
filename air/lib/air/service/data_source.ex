@@ -1,7 +1,7 @@
 defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
-  alias Air.Schemas.{DataSource, Group, Query, User}
+  alias Air.Schemas.{DataSource, Group, Query, User, ResultChunk}
   alias Air.{PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, Socket.Frontend.UserChannel}
   alias Air.Service.{Version, Cloak, View}
   alias Air.Service
@@ -307,8 +307,14 @@ defmodule Air.Service.DataSource do
 
   @doc "Deletes the given data source, raises on error."
   @spec delete!(DataSource.t) :: DataSource.t
-  def delete!(data_source), do:
+  def delete!(data_source) do
+    Repo.delete_all(
+      from result_chunk in ResultChunk,
+      inner_join: query in assoc(result_chunk, :query),
+      where: query.data_source_id == ^data_source.id
+    )
     Repo.delete!(data_source)
+  end
 
   @doc "Converts data source into a changeset."
   @spec to_changeset(DataSource.t) :: Ecto.Changeset.t
@@ -374,7 +380,8 @@ defmodule Air.Service.DataSource do
   defp users_data_sources(user) do
     from [data_source, _group, user] in data_sources_with_groups_and_users(),
       where: user.id == ^user.id,
-      group_by: data_source.id
+      group_by: data_source.id,
+      order_by: data_source.name
   end
 
   defp user_data_source(user, {:id, id}), do:
