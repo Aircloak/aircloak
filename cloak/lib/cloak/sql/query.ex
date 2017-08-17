@@ -163,11 +163,9 @@ defmodule Cloak.Sql.Query do
     case Enum.find(query.db_columns, column_matcher) do
       nil ->
         {next_row_index, query} = next_row_index(query)
-        Lens.map(
-          Lenses.query_expressions() |> Lens.satisfy(column_matcher) |> Lens.key(:row_index),
-          %__MODULE__{query | db_columns: query.db_columns ++ [column]},
-          fn(_) -> next_row_index end
-        )
+
+        %__MODULE__{query | db_columns: query.db_columns ++ [column]}
+        |> put_in([Lenses.query_expressions() |> Lens.satisfy(column_matcher) |> Lens.key(:row_index)], next_row_index)
       _ ->
         query
     end
