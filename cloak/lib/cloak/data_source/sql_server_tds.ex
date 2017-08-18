@@ -69,7 +69,6 @@ defmodule Cloak.DataSource.SQLServerTds do
       with {:ok, query} <- Tds.prepare(connection, statement, []) do
         try do
           with {:ok, %Tds.Result{rows: rows}} <- Tds.execute(connection, query, [], [decode_mapper: decode_mapper]) do
-            IO.puts inspect(rows)
             {:ok, result_processor.(rows)}
           end
         after
