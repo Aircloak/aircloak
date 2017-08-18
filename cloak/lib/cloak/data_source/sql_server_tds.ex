@@ -101,6 +101,7 @@ defmodule Cloak.DataSource.SQLServerTds do
   defp parse_type("date"), do: :date
   defp parse_type("datetime"), do: :datetime
   defp parse_type("smalldatetime"), do: :datetime
+  defp parse_type("datetimeoffset"), do: :datetime
   defp parse_type(type), do: {:unsupported, type}
 
 
@@ -130,6 +131,7 @@ defmodule Cloak.DataSource.SQLServerTds do
   defp real_field_mapper(value) when is_integer(value), do: value * 1.0
 
   defp datetime_field_mapper(nil), do: nil
+  defp datetime_field_mapper({date, time, _offset}), do: datetime_field_mapper({date, time})
   defp datetime_field_mapper({{year, month, day}, {hour, min, sec, fsec}}), do:
     NaiveDateTime.new(year, month, day, hour, min, sec, {div(fsec, 10), 6}) |> error_to_nil()
 
