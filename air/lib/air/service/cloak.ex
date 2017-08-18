@@ -189,7 +189,7 @@ defmodule Air.Service.Cloak do
   defp existing_definitions_for_data_source_by_cloak(name), do:
     all_cloak_infos()
     |> Enum.map(&({&1.name, Map.get(&1.data_sources, name)}))
-    |> Enum.reject(&is_nil(&1))
+    |> Enum.reject(&match?({_name, nil}, &1))
 
   defp register_data_sources(data_sources), do:
     Enum.map(data_sources, fn(data_source) ->
