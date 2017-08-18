@@ -287,11 +287,10 @@ defmodule Air.PsqlServer.Protocol do
   defp log_details(%{detailed_log?: false}, _lambda), do: nil
   defp log_details(_protocol, lambda), do: Logger.info(lambda)
 
-  defp protocol_handler(state) when state in [
-    :initial, :negotiating_ssl, :ssl_negotiated, :login_params, :authenticating
-    ] do
+  defp protocol_handler(state) when state in [:initial, :negotiating_ssl, :ssl_negotiated], do:
+    Air.PsqlServer.Protocol.ConnectionSetup
+  defp protocol_handler(state) when state in [:login_params, :authenticating], do:
     Air.PsqlServer.Protocol.Authentication
-  end
   defp protocol_handler(:ready), do:
     Air.PsqlServer.Protocol.QueryExecution
 
