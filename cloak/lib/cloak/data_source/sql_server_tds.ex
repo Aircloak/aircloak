@@ -38,8 +38,12 @@ defmodule Cloak.DataSource.SQLServerTds do
 
   @doc false
   def load_tables(connection, table) do
+    {schema_name, table_name} = case String.split(table.db_name, ".") do
+      [full_table_name] -> {"dbo", full_table_name}
+      [schema_name, table_name] -> {schema_name, table_name}
+    end
     query = "SELECT column_name, data_type FROM information_schema.columns " <>
-      "WHERE table_name = '#{table.db_name}' ORDER BY ordinal_position"
+      "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}' ORDER BY ordinal_position"
     row_mapper = fn ([name, type_name]) -> Table.column(name, parse_type(type_name)) end
     case run_query(connection, query, row_mapper, &Enum.to_list/1) do
       {:ok, []} -> DataSource.raise_error("Table `#{table.db_name}` does not exist")
