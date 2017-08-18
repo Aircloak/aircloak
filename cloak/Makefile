@@ -76,7 +76,8 @@ perftest: deps
 	MIX_ENV=prod mix run perftest/main.exs
 
 dev-container: odbc_drivers
-	./dev-container.sh
+	./dev_container/build-image.sh
+	./dev_container/container.sh console
 
 odbc_drivers: odbc_drivers_folder deps/odbc_drivers/libodbc-sap-hana-v2.so
 

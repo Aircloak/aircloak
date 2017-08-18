@@ -1,0 +1,6 @@
+# ignore everything by default
+*
+
+!cloak/priv/odbc/docker/
+!cloak/deps/odbc_drivers/libodbc-sap-hana-v2.so
+!cloak/dev_container/docker/start.sh
