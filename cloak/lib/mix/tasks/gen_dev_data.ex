@@ -10,6 +10,61 @@ if Mix.env == :dev do
 
     @doc false
     def run(_args) do
+      Enum.each(
+        %{
+          postgresql: postgresql_connection()
+        },
+        &insert(&1, integers_data())
+      )
+    end
+
+    defp integers_data() do
+      %{
+        name: "integers",
+        columns: [{"user_id", "integer"}, {"value", "integer"}],
+        data:
+          Stream.flat_map(
+            1..2500,
+            fn(value) -> Stream.map(1..10, &[&1, value]) end
+          )
+      }
+    end
+
+    defp insert({:postgresql, conn}, table_spec) do
+      Postgrex.query!(conn, "DROP TABLE IF EXISTS #{table_spec.name}", [])
+
+      create_statement = "
+        CREATE TABLE #{table_spec.name} (
+          #{
+            table_spec.columns
+            |> Enum.map(fn({name, type}) -> "#{name} #{type}" end)
+            |> Enum.join(", ")
+          }
+        )"
+
+      Postgrex.query!(conn, create_statement, [])
+
+      table_spec.data
+      |> Stream.map(&"(#{Enum.join(&1, ", ")})")
+      |> Stream.chunk(10, 10, [])
+      |> Stream.map(&Enum.join(&1, ","))
+      |> Enum.each(
+        fn(chunk_sql) ->
+          Postgrex.query!(
+            conn,
+            [
+              "
+                INSERT INTO #{table_spec.name} (#{table_spec.columns |> Enum.map(&elem(&1, 0)) |> Enum.join(", ")})
+                VALUES #{chunk_sql}
+              "
+            ],
+            []
+          )
+        end
+      )
+    end
+
+    defp postgresql_connection() do
       Application.ensure_all_started(:postgrex)
       db_params =
         Aircloak.DeployConfig.fetch!(:cloak, "data_sources")
@@ -23,16 +78,7 @@ if Mix.env == :dev do
         password: db_params["password"]
       )
 
-      Postgrex.query!(conn, "DROP TABLE IF EXISTS integers", [])
-      Postgrex.query!(conn, "CREATE TABLE integers (user_id INTEGER NOT NULL, value INTEGER NOT NULL)", [])
-      for value <- 1..2500 do
-        values_str =
-          1..10
-          |> Enum.map(fn(user_id) -> "(#{user_id}, #{value})" end)
-          |> Enum.intersperse(",")
-
-        Postgrex.query!(conn, "INSERT INTO integers (user_id, value) VALUES #{values_str}", [])
-      end
+      conn
     end
   end
 end
