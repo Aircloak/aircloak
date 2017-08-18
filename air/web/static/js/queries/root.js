@@ -41,7 +41,7 @@ const recentResultsToShow = 5;
 
 const historyPageSize = 10;
 
-export default class QueriesView extends React.Component {
+export default class QueriesView extends React.PureComponent {
   constructor(props: Props) {
     super(props);
 
