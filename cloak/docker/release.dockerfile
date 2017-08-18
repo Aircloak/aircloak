@@ -20,8 +20,7 @@ RUN chown -R deployer:deployer /aircloak/cloak && chown -R deployer:deployer /va
 USER root
 
 # Setup ODBC drivers
-RUN apt update
-RUN apt install -y unixodbc odbc-postgresql libmyodbc
+RUN apt-get install -y unixodbc odbc-postgresql libmyodbc
 COPY cloak/priv/odbc/docker/odbc.ini /etc/
 COPY cloak/priv/odbc/docker/sqlserver_setup.sh /aircloak/
 RUN /aircloak/sqlserver_setup.sh
