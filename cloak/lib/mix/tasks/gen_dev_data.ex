@@ -9,14 +9,16 @@ if Mix.env == :dev do
     use Mix.Task
 
     @doc false
-    def run(_args) do
-      Enum.each(
-        %{
-          postgresql: postgresql_connection()
-        },
-        &insert(&1, integers_data())
-      )
-    end
+    def run(_args), do:
+      [:postgresql, :saphana]
+      |> Enum.map(&{&1, open_connection(&1)})
+      |> Enum.filter(fn({_adapter, connect_result}) -> match?({:ok, _conn}, connect_result) end)
+      |> Enum.map(fn({adapter, {:ok, conn}}) -> {adapter, conn} end)
+      |> Enum.each(fn({adapter, _} = descriptor) ->
+        IO.puts "importing to #{adapter}"
+        insert(descriptor, integers_data())
+        IO.puts "done\n"
+      end)
 
     defp integers_data() do
       %{
@@ -33,16 +35,7 @@ if Mix.env == :dev do
     defp insert({:postgresql, conn}, table_spec) do
       Postgrex.query!(conn, "DROP TABLE IF EXISTS #{table_spec.name}", [])
 
-      create_statement = "
-        CREATE TABLE #{table_spec.name} (
-          #{
-            table_spec.columns
-            |> Enum.map(fn({name, type}) -> "#{name} #{type}" end)
-            |> Enum.join(", ")
-          }
-        )"
-
-      Postgrex.query!(conn, create_statement, [])
+      Postgrex.query!(conn, create_statement(table_spec), [])
 
       table_spec.data
       |> Stream.map(&"(#{Enum.join(&1, ", ")})")
@@ -63,22 +56,79 @@ if Mix.env == :dev do
         end
       )
     end
+    defp insert({:saphana, conn}, table_spec) do
+      {:selected, _, rows} = :odbc.sql_query(conn,
+        'SELECT table_name FROM tables where table_name=\'#{String.upcase(table_spec.name)}\'')
 
-    defp postgresql_connection() do
+      if length(rows) == 1, do:
+        {:updated, _} = :odbc.sql_query(conn, 'DROP TABLE #{table_spec.name}')
+
+      {:updated, _} = :odbc.sql_query(conn, table_spec |> create_statement() |> to_char_list())
+
+      chunks =
+        table_spec.data
+        |> Stream.map(&'SELECT #{Enum.join(&1, ", ")} from dummy')
+        |> Stream.chunk(1000, 1000, [])
+        |> Enum.map(&'(#{Enum.join(&1, " UNION ALL ")})')
+
+      chunks
+      |> Enum.with_index()
+      |> Enum.each(fn({chunk_sql, index}) ->
+        IO.puts "chunk #{index+1}/#{length(chunks)}"
+        {:updated, _} =
+          :odbc.sql_query(
+            conn,
+            '
+              INSERT INTO #{table_spec.name}(#{table_spec.columns |> Enum.map(&elem(&1, 0)) |> Enum.join(", ")})
+              #{chunk_sql}
+            '
+          )
+      end)
+    end
+
+    defp open_connection(:postgresql) do
       Application.ensure_all_started(:postgrex)
       db_params =
         Aircloak.DeployConfig.fetch!(:cloak, "data_sources")
         |> Enum.find(&(&1["name"] == "cloak_postgres_native"))
         |> Map.fetch!("parameters")
 
-      {:ok, conn} = Postgrex.start_link(
+      Postgrex.start_link(
         database: db_params["database"],
         hostname: db_params["hostname"],
         username: db_params["username"],
         password: db_params["password"]
       )
-
-      conn
     end
+    defp open_connection(:saphana) do
+      Application.ensure_all_started(:odbc)
+
+      db_params =
+        Aircloak.DeployConfig.fetch!(:cloak, "data_sources")
+        |> Enum.find(&(&1["name"] == "saphana"))
+        |> Map.fetch!("parameters")
+
+      [
+        "DSN=SAPHANA",
+        "servernode=#{Map.fetch!(db_params, "hostname")}:#{Map.fetch!(db_params, "port")}",
+        "uid=#{Map.fetch!(db_params, "username")}",
+        "pwd=#{Map.fetch!(db_params, "password")}",
+        "databasename=#{Map.fetch!(db_params, "database")}"
+      ]
+      |> Enum.join(";")
+      |> to_char_list()
+      |> :odbc.connect(auto_commit: :on, binary_strings: :on, tuple_row: :off)
+    end
+
+    defp create_statement(table_spec), do:
+    "
+      CREATE TABLE #{table_spec.name} (
+        #{
+          table_spec.columns
+          |> Enum.map(fn({name, type}) -> "#{name} #{type}" end)
+          |> Enum.join(", ")
+        }
+      )
+    "
   end
 end
