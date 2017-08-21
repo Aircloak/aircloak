@@ -38,20 +38,21 @@ defmodule Cloak.Query.Probe do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp clean_lcf_conditions(subquery_lens, query) do
+    probe = prepare_probe(query)
+
+    query
+    |> reject_lcf_conditions(probe, subquery_lens)
+    |> reject_lcf_in_constants(probe, subquery_lens)
+  end
+
   defp prepare_probe(query) do
     [uid_column | _] = query.db_columns
     %Query{query | limit: @lcf_upper_limit, offset: 0, distinct?: true, subquery?: true,
       columns: [uid_column], db_columns: [uid_column], group_by: [], order_by: [], having: nil}
   end
 
-  defp clean_lcf_conditions(subquery_lens, query) do
-    query
-    |> reject_lcf_conditions(subquery_lens)
-    |> reject_lcf_in_constants(subquery_lens)
-  end
-
-  defp reject_lcf_conditions(query, subquery_lens) do
-    probe = prepare_probe(query)
+  defp reject_lcf_conditions(query, probe, subquery_lens) do
     Lens.map(subquery_lens, query, fn (subquery) ->
       lcf_conditions =
         conditions()
@@ -63,8 +64,7 @@ defmodule Cloak.Query.Probe do
     end)
   end
 
-  defp reject_lcf_in_constants(query, subquery_lens) do
-    probe = prepare_probe(query)
+  defp reject_lcf_in_constants(query, probe, subquery_lens) do
     Lens.map(subquery_lens, query, fn (subquery) ->
       subquery
       |> in_conditions()
