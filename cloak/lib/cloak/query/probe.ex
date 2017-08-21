@@ -28,7 +28,7 @@ defmodule Cloak.Query.Probe do
     Logger.debug("Probing dataset ...")
     query
     |> Query.Lenses.subquery_lenses()
-    |> Enum.reduce(query, &reject_lcf_conditions/2)
+    |> Enum.reduce(query, &clean_lcf_conditions/2)
     |> Query.debug_log("Final query")
   end
 
@@ -43,7 +43,13 @@ defmodule Cloak.Query.Probe do
       columns: [uid_column], db_columns: [uid_column], group_by: [], order_by: [], having: nil}
   end
 
-  defp reject_lcf_conditions(subquery_lens, query) do
+  defp clean_lcf_conditions(subquery_lens, query) do
+    query
+    |> reject_lcf_conditions(subquery_lens)
+    |> reject_lcf_in_constants(subquery_lens)
+  end
+
+  defp reject_lcf_conditions(query, subquery_lens) do
     probe = prepare_probe(query)
     Lens.map(subquery_lens, query, fn (subquery) ->
       lcf_conditions =
@@ -57,6 +63,27 @@ defmodule Cloak.Query.Probe do
     end)
   end
 
+  defp reject_lcf_in_constants(query, subquery_lens) do
+    probe = prepare_probe(query)
+    Lens.map(subquery_lens, query, fn (subquery) ->
+      subquery
+      |> in_conditions()
+      |> Enum.reduce(subquery, &reject_lcf_in_constants(&1, &2, subquery_lens, probe))
+    end)
+  end
+
+  defp reject_lcf_in_constants(condition = {:in, lhs, constants}, subquery, subquery_lens, probe) do
+    ok_values = Enum.reject(constants, &lcf_in_constant?(probe, subquery_lens, condition, &1))
+    put_in(subquery, [Query.Lenses.db_filter_clauses() |> Query.Lenses.conditions() |>  Lens.satisfy(& &1 == condition)], {:in, lhs, ok_values})
+  end
+
+  defp in_conditions(subquery) do
+    Query.Lenses.db_filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.satisfy(&Condition.in?/1)
+    |> Lens.to_list(subquery)
+  end
+
   defp needs_probe?(condition), do:
     Condition.not_equals?(condition) or Condition.not_like?(condition)
 
@@ -67,6 +94,20 @@ defmodule Cloak.Query.Probe do
     |> Query.Lenses.conditions()
     |> Lens.satisfy(&condition == &1)
     |> Lens.map(probe, &Condition.negate(&1))
+    |> Query.debug_log("Executing probe")
+    |> select_rows()
+    |> List.flatten()
+    |> MapSet.new()
+    |> insufficient_users?(noise_layers)
+  end
+
+  defp lcf_in_constant?(probe, subquery_lens, condition, constant) do
+    noise_layers = NoiseLayer.new_accumulator(probe.noise_layers)
+    subquery_lens
+    |> Query.Lenses.db_filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.satisfy(&condition == &1)
+    |> Lens.map(probe, fn (condition) -> {:comparison, Condition.subject(condition), :=, constant} end)
     |> Query.debug_log("Executing probe")
     |> select_rows()
     |> List.flatten()

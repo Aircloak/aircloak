@@ -57,4 +57,24 @@ defmodule Cloak.Query.ProbeTest do
     {:subquery, %{ast: subquery}} = query.from
     assert {:comparison, _, :<>, %Expression{value: 1}} = subquery.having
   end
+
+  test "clauses are dropped in the context of all other clauses"
+
+  describe "dropping constants in IN" do
+    test "a single constant has too few matching users" do
+      :ok = insert_rows(_user_ids = 11..20, "lcf_conditions", ["x"], [151])
+      :ok = insert_rows(_user_ids = 21..30, "lcf_conditions", ["x"], [152])
+      :ok = insert_rows(_user_ids = 31..31, "lcf_conditions", ["x"], [153])
+
+      assert_query "select count(*) from lcf_conditions where x in (151, 152)",
+        %{rows: [%{row: [count1]}]}
+      assert_query "select count(*) from lcf_conditions where x in (151, 152, 153)",
+        %{rows: [%{row: [count2]}]}
+      assert count1 == count2
+    end
+
+    test "all constants have too few matching users"
+
+    test "constants are checked in the context of the original query"
+  end
 end
