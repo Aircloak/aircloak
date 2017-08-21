@@ -11,6 +11,7 @@ defmodule Cloak.Query.Probe do
   alias Cloak.DataSource
   require Logger
 
+  use Lens.Macros
 
   # The upper limit for the count of users over which a condition is not low-count filtered.
   @lcf_upper_limit 15
@@ -53,8 +54,7 @@ defmodule Cloak.Query.Probe do
     probe = prepare_probe(query)
     Lens.map(subquery_lens, query, fn (subquery) ->
       lcf_conditions =
-        Query.Lenses.db_filter_clauses()
-        |> Query.Lenses.conditions()
+        conditions()
         |> Lens.satisfy(&needs_probe?/1)
         |> Lens.to_list(subquery)
         |> Enum.filter(&lcf_condition?(probe, subquery_lens, &1))
@@ -74,40 +74,30 @@ defmodule Cloak.Query.Probe do
 
   defp reject_lcf_in_constants(condition = {:in, lhs, constants}, subquery, subquery_lens, probe) do
     ok_values = Enum.reject(constants, &lcf_in_constant?(probe, subquery_lens, condition, &1))
-    put_in(subquery, [Query.Lenses.db_filter_clauses() |> Query.Lenses.conditions() |>  Lens.satisfy(& &1 == condition)], {:in, lhs, ok_values})
+
+    conditions()
+    |> Lens.satisfy(& &1 == condition)
+    |> Lens.map(subquery, fn(_) -> {:in, lhs, ok_values} end)
   end
 
-  defp in_conditions(subquery) do
-    Query.Lenses.db_filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Lens.satisfy(&Condition.in?/1)
-    |> Lens.to_list(subquery)
-  end
+  defp in_conditions(subquery), do:
+    conditions() |> Lens.satisfy(&Condition.in?/1) |> Lens.to_list(subquery)
 
   defp needs_probe?(condition), do:
     Condition.not_equals?(condition) or Condition.not_like?(condition)
 
-  defp lcf_condition?(probe, subquery_lens, condition) do
-    noise_layers = NoiseLayer.new_accumulator(probe.noise_layers)
-    subquery_lens
-    |> Query.Lenses.db_filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Lens.satisfy(&condition == &1)
-    |> Lens.map(probe, &Condition.negate(&1))
-    |> Query.debug_log("Executing probe")
-    |> select_rows()
-    |> List.flatten()
-    |> MapSet.new()
-    |> insufficient_users?(noise_layers)
-  end
+  defp lcf_condition?(probe, subquery_lens, condition), do:
+    lcf_after_replacement?(probe, subquery_lens, condition, Condition.negate(condition))
 
-  defp lcf_in_constant?(probe, subquery_lens, condition, constant) do
+  defp lcf_in_constant?(probe, subquery_lens, condition, constant), do:
+    lcf_after_replacement?(probe, subquery_lens, condition, {:comparison, Condition.subject(condition), :=, constant})
+
+  defp lcf_after_replacement?(probe, subquery_lens, condition, replacement) do
     noise_layers = NoiseLayer.new_accumulator(probe.noise_layers)
     subquery_lens
-    |> Query.Lenses.db_filter_clauses()
-    |> Query.Lenses.conditions()
+    |> conditions()
     |> Lens.satisfy(&condition == &1)
-    |> Lens.map(probe, fn (condition) -> {:comparison, Condition.subject(condition), :=, constant} end)
+    |> Lens.map(probe, fn (_) -> replacement end)
     |> Query.debug_log("Executing probe")
     |> select_rows()
     |> List.flatten()
@@ -128,4 +118,7 @@ defmodule Cloak.Query.Probe do
       |> Anonymizer.sufficiently_large?(user_count)
     user_count < @lcf_upper_limit and not sufficient_users?
   end
+
+  deflensp conditions(), do:
+    Query.Lenses.db_filter_clauses() |> Query.Lenses.conditions()
 end
