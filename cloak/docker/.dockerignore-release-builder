@@ -14,6 +14,7 @@
 !cloak/src
 !cloak/include
 !cloak/rel
+!cloak/priv/odbc/drivers
 !docker_cache/cloak
 
 

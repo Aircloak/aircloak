@@ -6,7 +6,7 @@ SHELL=/bin/bash -o pipefail
 
 all: deps compile
 
-compile:
+compile: odbc_drivers
 	mix compile
 	mix compile.app --force
 
@@ -61,7 +61,7 @@ lint:
 	MIX_ENV=dev mix lint
 	MIX_ENV=test mix lint
 
-release:
+release: odbc_drivers_folder
 	MIX_ENV=prod mix compile
 	MIX_ENV=prod mix compile.app --force
 	mix release
@@ -79,10 +79,10 @@ dev-container: odbc_drivers
 	./dev_container/build-image.sh
 	./dev_container/container.sh console
 
-odbc_drivers: odbc_drivers_folder deps/odbc_drivers/libodbc-sap-hana-v2.so
+odbc_drivers: odbc_drivers_folder priv/odbc/drivers/libodbc-sap-hana-v2.so
 
 odbc_drivers_folder:
-	mkdir -p deps/odbc_drivers
+	mkdir -p priv/odbc/drivers
 
-deps/odbc_drivers/libodbc-sap-hana-v2.so:
-	wget -P deps/odbc_drivers/ https://www.dropbox.com/s/aerstjlatecny79/libodbc-sap-hana-v2.so
+priv/odbc/drivers/libodbc-sap-hana-v2.so:
+	wget -P priv/odbc/drivers https://www.dropbox.com/s/aerstjlatecny79/libodbc-sap-hana-v2.so

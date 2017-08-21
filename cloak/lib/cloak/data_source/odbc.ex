@@ -16,6 +16,7 @@ defmodule Cloak.DataSource.ODBC do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
+  def dialect(%{dialect: dialect}), do: dialect
   def dialect(%{'DSN': dsn}), do: dsn |> String.downcase() |> String.to_existing_atom()
 
   @doc false
