@@ -104,7 +104,8 @@ SELECT COUNT(*) FROM people
 give the same output that doesn't mean there is nobody named `Fred` in the dataset. It might simply mean that there are too
 few of them to report.
 
-These checks are performed for all `<>`, `NOT LIKE`, and `NOT ILIKE` clauses.
+These checks are performed for all `<>`, `NOT LIKE`, and `NOT ILIKE` clauses. A check needs to be made for every constant
+in an `IN` clause as well.
 
 ## Anonymization functions
 
