@@ -73,7 +73,13 @@ defmodule Cloak.Query.ProbeTest do
       assert count1 == count2
     end
 
-    test "all constants have too few matching users"
+    test "all constants have too few matching users" do
+      for user_id <- 1..5, do:
+        :ok = insert_rows(_user_ids = user_id..user_id, "lcf_conditions", ["x"], [150 + user_id])
+
+      assert_query "select count(*) from lcf_conditions where x in (151, 152, 153, 154, 155)",
+        %{rows: [%{row: [0]}]}
+    end
 
     test "constants are checked in the context of the original query"
   end

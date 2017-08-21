@@ -73,11 +73,14 @@ defmodule Cloak.Query.Probe do
   end
 
   defp reject_lcf_in_constants(condition = {:in, lhs, constants}, subquery, subquery_lens, probe) do
-    ok_values = Enum.reject(constants, &lcf_in_constant?(probe, subquery_lens, condition, &1))
-
     conditions()
     |> Lens.satisfy(& &1 == condition)
-    |> Lens.map(subquery, fn(_) -> {:in, lhs, ok_values} end)
+    |> Lens.map(subquery, fn(_) ->
+      case Enum.reject(constants, &lcf_in_constant?(probe, subquery_lens, condition, &1)) do
+        [] -> Condition.impossible()
+        ok_values -> {:in, lhs, ok_values}
+      end
+    end)
   end
 
   defp in_conditions(subquery), do:
