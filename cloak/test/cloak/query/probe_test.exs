@@ -1,13 +1,13 @@
-defmodule Cloak.Query.LCFConditionsTest do
+defmodule Cloak.Query.ProbeTest do
   use ExUnit.Case, async: true
 
   import Cloak.Test.QueryHelpers
 
   alias Cloak.Sql.Expression
-  alias Cloak.Query.LCFConditions
+  alias Cloak.Query.Probe
 
   setup_all do
-    :ok = Cloak.Test.DB.create_table("lcf_conditions", "x INTEGER")
+    :ok = Cloak.Test.DB.create_table("lcf_conditions", "x INTEGER, y INTEGER")
   end
 
   setup do
@@ -31,7 +31,7 @@ defmodule Cloak.Query.LCFConditionsTest do
   defp make_query!(query_string, data_source) do
     query_string
     |> compile!(data_source)
-    |> LCFConditions.process()
+    |> Probe.process()
     |> scrub_aliases()
     |> scrub_data_sources()
   end
@@ -56,5 +56,36 @@ defmodule Cloak.Query.LCFConditionsTest do
     """)
     {:subquery, %{ast: subquery}} = query.from
     assert {:comparison, _, :<>, %Expression{value: 1}} = subquery.having
+  end
+
+  describe "dropping constants in IN" do
+    test "a single constant has too few matching users" do
+      :ok = insert_rows(_user_ids = 11..20, "lcf_conditions", ["x"], [151])
+      :ok = insert_rows(_user_ids = 21..30, "lcf_conditions", ["x"], [152])
+      :ok = insert_rows(_user_ids = 31..31, "lcf_conditions", ["x"], [153])
+
+      assert_query "select count(*) from lcf_conditions where x in (151, 152)",
+        %{rows: [%{row: [count1]}]}
+      assert_query "select count(*) from lcf_conditions where x in (151, 152, 153)",
+        %{rows: [%{row: [count2]}]}
+      assert count1 == count2
+    end
+
+    test "all constants have too few matching users" do
+      for user_id <- 1..5, do:
+        :ok = insert_rows(_user_ids = user_id..user_id, "lcf_conditions", ["x"], [150 + user_id])
+
+      assert_query "select count(*) from lcf_conditions where x in (151, 152, 153, 154, 155)",
+        %{rows: [%{row: [0]}]}
+    end
+
+    test "constants are checked in the context of the original query" do
+      :ok = insert_rows(_user_ids = 11..20, "lcf_conditions", ["x", "y"], [151, 1])
+      :ok = insert_rows(_user_ids = 21..22, "lcf_conditions", ["x", "y"], [152, 2])
+      :ok = insert_rows(_user_ids = 23..25, "lcf_conditions", ["x", "y"], [152, 1])
+
+      assert_query "select count(*) from lcf_conditions where x in (151, 152) and y <> 2",
+        %{rows: [%{row: [10]}]}
+    end
   end
 end

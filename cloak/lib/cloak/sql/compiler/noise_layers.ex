@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.NoiseLayers do
   @moduledoc "Contains functions related to compilation of noise layers."
 
-  alias Cloak.Sql.{Expression, Query, NoiseLayer, Condition, LikePattern}
+  alias Cloak.Sql.{Expression, Query, NoiseLayer, Condition}
   alias Cloak.Sql.Compiler.Helpers
 
   use Lens.Macros
@@ -21,7 +21,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Helpers.apply_bottom_up(&calculate_base_noise_layers/1)
     |> apply_top_down(&push_down_noise_layers/1)
     |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
-    |> apply_top_down(&normalize_noise_layers_base/1)
+    |> apply_top_down(&normalize_datasource_case/1)
 
 
   # -------------------------------------------------------------------
@@ -152,10 +152,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       noise_layers:
         basic_noise_layers(query) ++
         range_noise_layers(query) ++
-        negative_noise_layers(query) ++
-        not_like_noise_layers(query) ++
-        like_noise_layers(query) ++
-        in_noise_layers(query)
+        negative_noise_layers(query)
     }
 
   defp basic_noise_layers(query), do:
@@ -164,8 +161,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(& not Condition.inequality?(&1))
     |> Lens.satisfy(& not Condition.not_equals?(&1))
     |> Lens.satisfy(& not Condition.not_like?(&1))
-    |> Lens.satisfy(& not Condition.like?(&1))
-    |> Lens.satisfy(& not Condition.in?(&1))
     |> Lens.satisfy(& not fk_pk_condition?(&1))
     |> Lens.both(Lens.key(:group_by))
     |> raw_columns(query, query)
@@ -182,63 +177,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end)
 
   defp negative_noise_layers(query), do:
-    conditions_satisfying(&Condition.not_equals?/1)
+    conditions_satisfying(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
     |> raw_columns(query, query)
     |> Enum.map(&build_noise_layer(&1, :<>))
-
-  defp not_like_noise_layers(query), do:
-    conditions_satisfying(&Condition.not_like?/1)
-    |> Lens.to_list(query)
-    |> Enum.flat_map(fn({:not, {kind, column, constant}}) ->
-      raw_columns(column, query)
-      |> Enum.map(&build_noise_layer(&1, {:not, kind, constant |> Expression.value() |> remove_wildcards()}))
-    end)
-
-  defp in_noise_layers(query), do:
-    conditions_satisfying(&Condition.in?/1)
-    |> Lens.to_list(query)
-    |> Enum.flat_map(fn({:in, column, constants}) ->
-      raw_columns(column, query)
-      |> Enum.flat_map(fn(column) ->
-        [
-          build_noise_layer(column) |
-          Enum.map(constants, &build_noise_layer(column, {:in, Expression.value(&1)}))
-        ]
-      end)
-    end)
-
-  defp like_noise_layers(query), do:
-    conditions_satisfying(&Condition.like?/1)
-    |> Lens.to_list(query)
-    |> Enum.flat_map(fn({kind, column, constant}) ->
-      columns = raw_columns(column, query)
-      layer_keys = constant |> Expression.value() |> like_layer_keys()
-
-      for layer_key <- layer_keys, column <- columns do
-        build_noise_layer(column, {kind, layer_key})
-      end
-    end)
-
-  defp like_layer_keys(like_pattern) do
-    len = like_pattern |> LikePattern.graphemes() |> Enum.reject(& &1 == :%) |> length()
-    like_layer_keys(LikePattern.graphemes(like_pattern), 0, len)
-  end
-
-  defp like_layer_keys([], _, _), do: []
-  defp like_layer_keys([:% | rest], n, len), do: [{:%, len, n} | like_layer_keys(rest, n, len)]
-  defp like_layer_keys([:_ | rest], n, len), do: [{:_, len, n} | like_layer_keys(rest, n + 1, len)]
-  defp like_layer_keys([_ | rest], n, len), do: like_layer_keys(rest, n + 1, len)
 
 
   # -------------------------------------------------------------------
   # Helpers
   # -------------------------------------------------------------------
-
-  defp remove_wildcards(like_pattern), do:
-    like_pattern
-    |> LikePattern.graphemes()
-    |> Enum.reject(&LikePattern.wildcard?/1)
-    |> Enum.join()
 
   defp reference_aliased(column, query, table \\ :unknown), do:
     %Expression{name: column.alias || find_alias(column, query) || column.name, table: table}
@@ -290,9 +236,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Query.Lenses.conditions()
     |> Lens.satisfy(predicate)
 
-  # In order to ensure noise consistency across data sources that have columns with different cases,
-  # we normalize the noise layer base by converting the column name to lower case.
-  defp normalize_noise_layers_base(query) do
+  defp normalize_datasource_case(query) do
     Lens.key(:noise_layers)
     |> Lens.all()
     |> Lens.key(:base)
