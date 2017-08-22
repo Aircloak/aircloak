@@ -57,32 +57,20 @@ if Mix.env == :dev do
       )
     end
     defp insert({:saphana, conn}, table_spec) do
-      {:selected, _, rows} = :odbc.sql_query(conn,
-        'SELECT table_name FROM tables where table_name=\'#{String.upcase(table_spec.name)}\'')
+      schema_name = "ACDEV"
+      table_name = String.upcase(table_spec.name)
+      column_names = Enum.map(table_spec.columns, &elem(&1, 0))
 
-      if length(rows) == 1, do:
-        {:updated, _} = :odbc.sql_query(conn, 'DROP TABLE #{table_spec.name}')
+      SapHanaHelper.ensure_schema!(conn, schema_name)
+      SapHanaHelper.recreate_table!(conn, schema_name, table_name, table_def(table_spec))
 
-      {:updated, _} = :odbc.sql_query(conn, table_spec |> create_statement() |> to_char_list())
-
-      chunks =
-        table_spec.data
-        |> Stream.map(&'SELECT #{Enum.join(&1, ", ")} from dummy')
-        |> Stream.chunk(1000, 1000, [])
-        |> Enum.map(&'(#{Enum.join(&1, " UNION ALL ")})')
+      chunks = Enum.chunk(table_spec.data, 1000, 1000, [])
 
       chunks
       |> Enum.with_index()
-      |> Enum.each(fn({chunk_sql, index}) ->
+      |> Enum.each(fn({rows, index}) ->
         IO.puts "chunk #{index+1}/#{length(chunks)}"
-        {:updated, _} =
-          :odbc.sql_query(
-            conn,
-            '
-              INSERT INTO #{table_spec.name}(#{table_spec.columns |> Enum.map(&elem(&1, 0)) |> Enum.join(", ")})
-              #{chunk_sql}
-            '
-          )
+        SapHanaHelper.insert_rows!(conn, schema_name, table_name, column_names, rows)
       end)
     end
 
@@ -108,27 +96,21 @@ if Mix.env == :dev do
         |> Enum.find(&(&1["name"] == "saphana"))
         |> Map.fetch!("parameters")
 
-      [
-        "DSN=SAPHANA",
-        "servernode=#{Map.fetch!(db_params, "hostname")}:#{Map.fetch!(db_params, "port")}",
-        "uid=#{Map.fetch!(db_params, "username")}",
-        "pwd=#{Map.fetch!(db_params, "password")}",
-        "databasename=#{Map.fetch!(db_params, "database")}"
-      ]
-      |> Enum.join(";")
-      |> to_char_list()
-      |> :odbc.connect(auto_commit: :on, binary_strings: :on, tuple_row: :off)
+      SapHanaHelper.connect(
+        Map.fetch!(db_params, "hostname"),
+        Map.fetch!(db_params, "port"),
+        Map.fetch!(db_params, "username"),
+        Map.fetch!(db_params, "password"),
+        Map.fetch!(db_params, "database")
+      )
     end
 
     defp create_statement(table_spec), do:
-    "
-      CREATE TABLE #{table_spec.name} (
-        #{
-          table_spec.columns
-          |> Enum.map(fn({name, type}) -> "#{name} #{type}" end)
-          |> Enum.join(", ")
-        }
-      )
-    "
+      "CREATE TABLE #{table_spec.name} (#{table_def(table_spec)})"
+
+    defp table_def(table_spec), do:
+      table_spec.columns
+      |> Enum.map(fn({name, type}) -> "#{name} #{type}" end)
+      |> Enum.join(", ")
   end
 end
