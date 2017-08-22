@@ -117,7 +117,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     # even then, this function can only be invoked after `db_columns` have been calculated, because that is
     # the field we use to decide which columns from projected tables do we in fact need.
     Lens.map(Query.Lenses.direct_projected_subqueries(), query,
-        &%{&1 | ast: optimized_projected_subquery_ast(&1.ast, required_column_names(query, &1))})
+        &%{&1 | ast: optimized_projected_subquery_ast(&1.ast, required_column_names(query, &1.alias))})
   defp optimize_columns_from_projected_tables(%Query{projected?: true} = query), do:
     # If this query is projected, then the list was already optimized when the ast for this query
     # has been initially generated, so no need to do anything.
@@ -131,17 +131,15 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> Enum.uniq_by(&Expression.id/1)
   end
 
-  defp required_column_names(query, projected_subquery), do:
-    [
-      # append uid column
-      DataSource.table(projected_subquery.ast.data_source, projected_subquery.table_name).user_id |
-      # all db columns of the outer query which are from this projected table
-      query |> used_columns_from_table(projected_subquery.alias) |> Enum.map(& &1.name)
-    ]
+  defp required_column_names(query, subquery_name), do:
+    # all db columns of the outer query which are from this projected table, except the user id
+    query |> used_columns_from_table(subquery_name) |> Enum.map(& &1.name)
 
   defp optimized_projected_subquery_ast(ast, required_column_names) do
-    columns = Enum.filter(ast.columns, & &1.name in required_column_names)
-    titles = Enum.filter(ast.column_titles, & &1 in required_column_names)
+    [user_id | columns] = ast.columns
+    [user_id_title | column_titles] = ast.column_titles
+    columns = [user_id | Enum.filter(columns, &(&1.alias || &1.name) in required_column_names)]
+    titles = [user_id_title | Enum.filter(column_titles, & &1 in required_column_names)]
     %Query{ast | next_row_index: 0, db_columns: [], columns: columns, column_titles: titles}
     |> set_emulation_flag()
     |> calculate_db_columns()

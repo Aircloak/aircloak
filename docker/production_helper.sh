@@ -30,6 +30,7 @@ function build_image {
 
     echo 'Pulling the latest version'
     cd $(build_folder $2)
+    git reset --hard HEAD
     git fetch
     git checkout $(build_branch)
     git reset --hard origin/$(build_branch)

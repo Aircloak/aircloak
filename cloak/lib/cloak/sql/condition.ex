@@ -150,6 +150,11 @@
   def negate({:not, condition}), do: condition
   def negate(condition), do: {:not, condition}
 
+  @doc "Returns an impossible condition (TRUE = FALSE)."
+  @spec impossible() :: Query.where_clause
+  def impossible(), do:
+    {:comparison, Expression.constant(:boolean, true), :=, Expression.constant(:boolean, false)}
+
 
   # -------------------------------------------------------------------
   # Internal functions

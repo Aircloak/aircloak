@@ -80,17 +80,26 @@ defmodule Cloak.DataSource.Table do
     columns = for column <- table.columns, do:
       if supported?(column), do: column, else: %{column | type: :unknown}
     table = %{table | columns: columns}
-    verify_columns(table)
+    verify_columns(data_source, table)
     table
   end
 
-  defp verify_columns(table) do
-    verify_user_id(table)
+  defp verify_columns(data_source, table) do
+    verify_user_id(data_source, table)
     if table.columns == [], do: DataSource.raise_error("no data columns found in table")
   end
 
-  defp verify_user_id(%{projection: projection}) when projection != nil, do: :ok
-  defp verify_user_id(table) do
+  defp verify_user_id(data_source, %{projection: projection} = table) when not is_nil(projection) do
+    projected_uid_name = get_uid_name(data_source, projection.table, projection)
+    case Enum.find(table.columns, &(&1.name == projected_uid_name)) do
+      %{} ->
+        DataSource.raise_error("the projected uid-column named `#{projected_uid_name}` conflicts with an " <>
+          "identically named column in the table. Rename the projected uid-column using the `user_id_alias` " <>
+          "option in the projection section of your cloak configuration")
+      nil -> :ok
+    end
+  end
+  defp verify_user_id(_data_source, table) do
     user_id = table.user_id
     case Enum.find(table.columns, &(&1.name == user_id)) do
       %{} = column ->
@@ -105,6 +114,19 @@ defmodule Cloak.DataSource.Table do
           "Available columns are: #{columns_string}.")
     end
   end
+
+  defp get_uid_name(data_source, table_name, nil) do
+    table = table_from_datasource(data_source, table_name)
+    table.user_id
+  end
+  defp get_uid_name(_data_source, _table, %{user_id_alias: alias}), do: alias
+  defp get_uid_name(data_source, _table, %{table: table_name}) do
+    table = table_from_datasource(data_source, table_name)
+    get_uid_name(data_source, table_name, table[:projection])
+  end
+
+  defp table_from_datasource(data_source, table_name), do:
+    DataSource.table(data_source, String.to_atom(table_name))
 
   defp supported?(%{type: {:unsupported, _db_type}}), do: false
   defp supported?(_column), do: true
@@ -153,10 +175,13 @@ defmodule Cloak.DataSource.Table do
         referenced_table = Map.fetch!(data_source.tables, String.to_atom(referenced_table.name))
 
         uid_column_name = referenced_table.user_id
-        uid_column = Enum.find(referenced_table.columns, &(&1.name == uid_column_name))
+        uid_column = referenced_table.columns
+        |> Enum.find(&(&1.name == uid_column_name))
+        |> set_display_name(table)
+
         table =
           table
-          |> Map.put(:user_id, uid_column_name)
+          |> Map.put(:user_id, uid_column.name)
           |> Map.put(:columns, [uid_column | table.columns])
         tables = Map.put(data_source.tables, String.to_atom(table.name), table)
         %{data_source | tables: tables}
@@ -168,6 +193,9 @@ defmodule Cloak.DataSource.Table do
         %{data_source | tables: tables, errors: data_source.errors ++ [message]}
     end
   end
+
+  defp set_display_name(column, %{projection: %{user_id_alias: alias}}), do: %{column | name: alias}
+  defp set_display_name(column, _), do: column
 
   defp validate_projection(tables_map, table) do
     with :ok <- validate_foreign_key(table),
@@ -196,8 +224,7 @@ defmodule Cloak.DataSource.Table do
       nil ->
         {
           :error,
-          "primary key column `#{table.projection.primary_key}` not found in table " <>
-            "`#{referenced_table.db_name}`"
+          "primary key column `#{table.projection.primary_key}` not found in table `#{referenced_table.db_name}`"
         }
       %{type: primary_key_type} when primary_key_type != foreign_key_type ->
         {

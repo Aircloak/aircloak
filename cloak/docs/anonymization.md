@@ -290,20 +290,12 @@ presence of `NULL` values in some column.
 
 Additionally, depending on the type of clause, some extra data is added:
 
-* `=` clauses and `GROUP BY` - no extra data
-* range clauses - the range endpoints (see
-  [the issue](https://github.com/Aircloak/aircloak/issues/1332))
-* `<>` clauses - the symbol `:<>` (see [this issue](https://github.com/Aircloak/aircloak/issues/1745))
+* `=` clauses, `LIKE` clauses, and `GROUP BY` - no extra data
+* `<>` clauses and `NOT LIKE` clauses - a `:<>` symbol
+* range clauses - the range endpoints
 * `NOT IN` clauses - are converted to an equivalent conjunction on `<>` clauses,
   so noise layers are never directly computed for them
-* `NOT LIKE` clauses - the symbols `:not` and `:like`/`:ilike` and the like
-  pattern stripped of wildcards (see [this issue](https://github.com/Aircloak/aircloak/issues/1758))
-* `IN` clauses - a layer is created for the whole clause with no extra seed,
-  plus an additional layer for every constant in the `IN` with the symbol `:in`
-  and the constant in the seed
-* `LIKE` clauses - a noise layer is created per wildcard in the pattern with
-  the length of the pattern, the wildcard and the position of the wildcard (see
-  [the issue](https://github.com/Aircloak/aircloak/issues/1284))
+* `IN` clauses - a layer is created for the whole clause with no extra seed
 
 ### Floating data
 
@@ -327,3 +319,7 @@ Probing basically means that a helper query (probe) is issued to the database
 for each "suspect" condition. The probe checks how many users the condition
 excludes from the original query. If this number is low, then such a clause
 and any corresponding noise layers are removed from the original query.
+
+See [this noise layer issue](https://github.com/Aircloak/aircloak/issues/1768)
+and [this probing issue](https://github.com/Aircloak/aircloak/issues/1777) for
+more information about noise layers and probing.

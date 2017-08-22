@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.NoiseLayers do
   @moduledoc "Contains functions related to compilation of noise layers."
 
-  alias Cloak.Sql.{Expression, Query, NoiseLayer, Condition, LikePattern}
+  alias Cloak.Sql.{Expression, Query, NoiseLayer, Condition}
   alias Cloak.Sql.Compiler.Helpers
 
   use Lens.Macros
@@ -152,8 +152,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       noise_layers:
         basic_noise_layers(query) ++
         range_noise_layers(query) ++
-        negative_noise_layers(query) ++
-        not_like_noise_layers(query)
+        negative_noise_layers(query)
     }
 
   defp basic_noise_layers(query), do:
@@ -178,28 +177,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end)
 
   defp negative_noise_layers(query), do:
-    conditions_satisfying(&Condition.not_equals?/1)
+    conditions_satisfying(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
     |> raw_columns(query, query)
     |> Enum.map(&build_noise_layer(&1, :<>))
-
-  defp not_like_noise_layers(query), do:
-    conditions_satisfying(&Condition.not_like?/1)
-    |> Lens.to_list(query)
-    |> Enum.flat_map(fn({:not, {kind, column, constant}}) ->
-      raw_columns(column, query)
-      |> Enum.map(&build_noise_layer(&1, {:not, kind, constant |> Expression.value() |> remove_wildcards()}))
-    end)
 
 
   # -------------------------------------------------------------------
   # Helpers
   # -------------------------------------------------------------------
-
-  defp remove_wildcards(like_pattern), do:
-    like_pattern
-    |> LikePattern.graphemes()
-    |> Enum.reject(&LikePattern.wildcard?/1)
-    |> Enum.join()
 
   defp reference_aliased(column, query, table \\ :unknown), do:
     %Expression{name: column.alias || find_alias(column, query) || column.name, table: table}
