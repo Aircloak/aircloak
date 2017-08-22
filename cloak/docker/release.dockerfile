@@ -5,6 +5,12 @@ MAINTAINER Aircloak
 # Create user and copy in app
 # ---------------------------------------------------------------------
 
+# Setup ODBC drivers
+RUN apt-get install -y unixodbc odbc-postgresql libmyodbc libaio1
+COPY cloak/priv/odbc/docker/odbc.ini /etc/
+COPY cloak/priv/odbc/docker/sqlserver_setup.sh /aircloak/
+RUN /aircloak/sqlserver_setup.sh
+
 # User under which the app will run.
 RUN useradd --shell /bin/bash deployer && mkdir -p /aircloak/app
 
@@ -18,13 +24,6 @@ RUN chown -R deployer:deployer /aircloak/cloak && chown -R deployer:deployer /va
 
 # We'll run as root, but step down in the init script to the non-privileged user
 USER root
-
-# Setup ODBC drivers
-RUN apt-get install -y unixodbc odbc-postgresql libmyodbc
-COPY cloak/priv/odbc/docker/odbc.ini /etc/
-COPY cloak/priv/odbc/docker/sqlserver_setup.sh /aircloak/
-RUN /aircloak/sqlserver_setup.sh
-COPY cloak/deps/odbc_drivers/libodbc-sap-hana-v2.so /usr/lib/x86_64-linux-gnu/odbc/
 
 CMD /aircloak/start.sh
 
