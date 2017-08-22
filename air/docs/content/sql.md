@@ -85,3 +85,4 @@ inequality_operator :=
 - Aliases can be used in the `WHERE`, `GROUP BY`, `ORDER BY` and `HAVING` clauses, as long as the alias doesn't conflict
  with a column name in one of the selected tables.
 - If an integer is specified in the `GROUP BY` clause, it represents a 1-based position in the select list. The corresponding expression from the select list is used as the grouping expression.
+- Values of type `datetime with timezone` are not supported yet. The timezone information will be dropped and the value will be exposed as a simple `datetime` in the UTC format.
