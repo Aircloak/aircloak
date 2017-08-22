@@ -1,9 +1,11 @@
 defmodule Cloak.Query.Probe do
   @moduledoc """
-  Implements filtering of conditions that cannot be anonymized using noise layers and should not apply
-  if there are not enough users present. These are negative conditions that exclude users and need special
-  handling, because the excluded users won't be part of the result set. We ignore the condition if it
-  aplies to too few users.
+  Implements modifying the query if certain aspects apply to too few users. Currently it checks:
+
+  * Negative clauses (<>, NOT LIKE) that exclude too few users
+  * IN constants that match too few users
+
+  If a given clause or IN constant is found to apply to a low-count number of users it is removed from the query.
   """
 
   alias Cloak.Sql.{Query, Condition, NoiseLayer}
@@ -15,6 +17,7 @@ defmodule Cloak.Query.Probe do
 
   # The upper limit for the count of users over which a condition is not low-count filtered.
   @lcf_upper_limit 15
+
 
   # -------------------------------------------------------------------
   # API functions
