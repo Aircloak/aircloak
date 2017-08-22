@@ -116,6 +116,10 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     # parameters are already bound -> client is not expecting parameter descriptions
     protocol
 
+  defp send_result(protocol, {:error, :query_died}), do:
+    Protocol.send_to_client(protocol, {:fatal_error, "Query unexpectedly quit."})
+  defp send_result(protocol, {:error, :query_cancelled}), do:
+    Protocol.send_to_client(protocol, :query_cancelled)
   defp send_result(protocol, {:error, error}), do:
     Protocol.send_to_client(protocol, {:syntax_error, error})
   defp send_result(%{executing_portal: nil} = protocol, result) do

@@ -27,7 +27,11 @@ defmodule Air.PsqlServer.Protocol.ConnectionSetup do
       }
     )
   def handle_client_message(%{state: :ssl_negotiated} = protocol, :raw, message), do:
-    handle_startup_message(protocol, message)
+    handle_intent_message(protocol, message)
+  def handle_client_message(%{state: :cancelling_query} = protocol, :raw, message), do:
+    protocol
+    |> Protocol.add_action({:cancel_query, Messages.decode_cancel_message_parameters(message)})
+    |> Protocol.close(:normal)
 
   @doc false
   def handle_event(%{state: :negotiating_ssl} = protocol, :ssl_negotiated), do:
@@ -38,22 +42,27 @@ defmodule Air.PsqlServer.Protocol.ConnectionSetup do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp handle_startup_message(protocol, message) do
-    startup_message = Messages.decode_startup_message(message)
-    if startup_message.version.major != 3 do
-      Protocol.close(protocol, :unsupported_protocol_version)
+  defp handle_intent_message(protocol, message) do
+    if Messages.cancel_message?(message) do
+      Protocol.await_client_message(protocol, state: :cancelling_query, bytes: 8, decode?: false)
+
     else
-      Protocol.await_client_message(protocol,
-        state: :login_params,
-        bytes: startup_message.length,
-        decode?: false
-      )
+      startup_message = Messages.decode_startup_message(message)
+      if startup_message.version.major != 3 do
+        Protocol.close(protocol, :unsupported_protocol_version)
+      else
+        Protocol.await_client_message(protocol,
+          state: :login_params,
+          bytes: startup_message.length,
+          decode?: false
+        )
+      end
     end
   end
 
   defp handle_initial_message(protocol, message, %{msg_type: :startup, ssl_required: false}), do:
     # TCP connection and SSL is not required -> proceed
-    handle_startup_message(protocol, message)
+    handle_intent_message(protocol, message)
   defp handle_initial_message(protocol, _message, %{msg_type: :ssl, ssl_valid: :ok}), do:
     # SSL connection and SSL is valid -> proceed
     protocol

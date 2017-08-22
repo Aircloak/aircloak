@@ -80,10 +80,22 @@ defmodule Air.Service.Query.Lifecycle do
   end
   def handle_cast({:state_changed, query_id, query_state}, state) do
     Air.ProcessQueue.run(__MODULE__.Queue, fn -> Query.update_state(query_id, query_state) end)
+    Air.ProcessQueue.run(__MODULE__.Queue, fn ->
+      Air.Service.Query.Events.trigger_state_change(%{
+        query_id: query_id,
+        state: query_state,
+      })
+    end)
     {:noreply, state}
   end
   def handle_cast({:query_died, query_id}, state) do
     Air.ProcessQueue.run(__MODULE__.Queue, fn -> Query.query_died(query_id) end)
+    Air.ProcessQueue.run(__MODULE__.Queue, fn ->
+      Air.Service.Query.Events.trigger_state_change(%{
+        query_id: query_id,
+        state: :query_died,
+      })
+    end)
     {:stop, :normal, state}
   end
 

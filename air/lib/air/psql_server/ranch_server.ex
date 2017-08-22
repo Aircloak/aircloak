@@ -46,11 +46,17 @@ defmodule Air.PsqlServer.RanchServer do
   @doc "Invoked to run the query."
   @callback run_query(t, String.t, [Protocol.db_value], pos_integer) :: t
 
+  @doc "Invoked to cancel a query on a backend."
+  @callback cancel_query(t, Protocol.backend_key_data) :: t
+
   @doc "Invoked to describe the statement result."
   @callback describe_statement(t, String.t, [Protocol.db_value]) :: t
 
   @doc "Invoked when a message is received by the connection process."
   @callback handle_message(t, any) :: t
+
+  @doc "Invoked when the connection is closed."
+  @callback terminate(t) :: t
 
 
   # -------------------------------------------------------------------
@@ -208,7 +214,7 @@ defmodule Air.PsqlServer.RanchServer do
 
   defp handle_protocol_action({:close, _reason}, conn) do
     send(self(), :close)
-    conn
+    conn.behaviour_mod.terminate(conn)
   end
   defp handle_protocol_action(:upgrade_to_ssl, conn) do
     send(self(), :upgrade_to_ssl)
@@ -228,6 +234,10 @@ defmodule Air.PsqlServer.RanchServer do
   end
   defp handle_protocol_action({:run_query, query, params, max_rows}, conn), do:
     conn.behaviour_mod.run_query(conn, query, params, max_rows)
+  defp handle_protocol_action({:cancel_query, key}, conn), do:
+    conn.behaviour_mod.cancel_query(conn, key)
+  defp handle_protocol_action({:register_backend_key_data, backend_key_data}, conn), do:
+    assign(conn, :backend_key_data, backend_key_data)
   defp handle_protocol_action({:describe_statement, query, params}, conn), do:
     conn.behaviour_mod.describe_statement(conn, query, params)
 end

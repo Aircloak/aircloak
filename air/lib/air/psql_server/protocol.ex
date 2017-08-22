@@ -19,6 +19,8 @@ defmodule Air.PsqlServer.Protocol do
   require Logger
   alias Air.PsqlServer.Protocol.{Messages, Value}
 
+  @type backend_key_data :: %{process_id: integer, secret_key: integer}
+
   @type t :: %{
     state: state,
     syncing?: boolean,
@@ -38,6 +40,7 @@ defmodule Air.PsqlServer.Protocol do
     :initial |
     :negotiating_ssl |
     :ssl_negotiated |
+    :cancelling_query |
     :login_params |
     :authenticating |
     :ready |
@@ -45,8 +48,10 @@ defmodule Air.PsqlServer.Protocol do
 
   @type action ::
     {:send, iodata()} |
+    {:register_backend_key_data, map} |
     {:close, reason :: any} |
     :upgrade_to_ssl |
+    {:cancel_query, map} |
     {:login_params, map} |
     {:authenticate, password :: binary} |
     {:run_query, String.t, [%{type: Value.type, value: db_value}], non_neg_integer} |
@@ -59,7 +64,7 @@ defmodule Air.PsqlServer.Protocol do
   @type column :: %{name: String.t, type: Value.type}
 
   @type query_result ::
-    {:error, String.t} |
+    {:error, :query_died | :query_cancelled | String.t} |
     [command: command, intermediate: boolean, columns: [column], rows: [[db_value]]]
 
   @type command :: :set | :begin | :select | :fetch | :"declare cursor" | :"close cursor" | :deallocate
@@ -287,7 +292,7 @@ defmodule Air.PsqlServer.Protocol do
   defp log_details(%{detailed_log?: false}, _lambda), do: nil
   defp log_details(_protocol, lambda), do: Logger.info(lambda)
 
-  defp protocol_handler(state) when state in [:initial, :negotiating_ssl, :ssl_negotiated], do:
+  defp protocol_handler(state) when state in [:initial, :negotiating_ssl, :ssl_negotiated, :cancelling_query], do:
     Air.PsqlServer.Protocol.ConnectionSetup
   defp protocol_handler(state) when state in [:login_params, :authenticating], do:
     Air.PsqlServer.Protocol.Authentication

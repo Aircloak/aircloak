@@ -9,9 +9,10 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   @type server_message ::
     {:authentication_method, :cleartext} | :authentication_ok | :bind_complete | :close_complete |
-    {:command_complete, String.t} | {:syntax_error, String.t} | {:fatal_error, String.t} | :ready_for_query |
-    :parse_complete | :require_ssl | :ssl_not_supported |
-    {:parameter_status, String.t, String.t} | {:parameter_description, [Protocol.Value.type]} |
+    {:command_complete, String.t} | {:syntax_error, String.t} | {:fatal_error, String.t} | :query_cancelled |
+    :ready_for_query | :parse_complete | :require_ssl | :ssl_not_supported |
+    {:backend_key_data, non_neg_integer, non_neg_integer} | {:parameter_status, String.t, String.t} |
+    {:parameter_description, [Protocol.Value.type]} |
     {:row_description, [Protocol.column], [Protocol.Value.format]} |
     {:data_row, [Protocol.db_value], [Protocol.Value.type], [Protocol.Value.format]} |
     :no_data
@@ -29,6 +30,16 @@ defmodule Air.PsqlServer.Protocol.Messages do
   @spec ssl_message?(binary) :: boolean
   def ssl_message?(message), do:
     message == message_with_size(<<1234::16, 5679::16>>)
+
+  @doc "Determines if the client message is a cancel request"
+  @spec cancel_message?(binary) :: boolean
+  def cancel_message?(<<(16)::32, 1234::16, 5678::16, _payload::binary>>), do: true
+  def cancel_message?(_message), do: false
+
+  @doc "Decodes the cancel message."
+  @spec decode_cancel_message_parameters(binary) :: %{process_id: integer, secret_key: integer}
+  def decode_cancel_message_parameters(<<process_id::32, secret_key::32>>), do:
+    %{process_id: process_id, secret_key: secret_key}
 
   @doc "Decodes the startup message."
   @spec decode_startup_message(<<_::64>>) ::
@@ -93,11 +104,14 @@ defmodule Air.PsqlServer.Protocol.Messages do
   @spec encode_message(server_message) :: binary
   def encode_message({:authentication_method, :cleartext}), do: server_message(:authentication, <<3::32>>)
   def encode_message(:authentication_ok), do: server_message(:authentication, <<0::32>>)
+  def encode_message({:backend_key_data, process_id, secret_key}), do:
+    server_message(:backend_key_data, <<process_id::32, secret_key::32>>)
   def encode_message(:bind_complete), do: server_message(:bind_complete, <<>>)
   def encode_message(:close_complete), do: server_message(:close_complete, <<>>)
   def encode_message({:command_complete, tag}), do: server_message(:command_complete, null_terminate(tag))
   def encode_message({:data_row, row, column_types, formats}), do:
     server_message(:data_row, <<length(row)::16, encode_row(row, formats, column_types)::binary>>)
+  def encode_message(:query_cancelled), do: notice_message("NOTICE", "57014", "The query was cancelled.")
   def encode_message({:syntax_error, error}), do: error_message("ERROR", "42601", error)
   def encode_message({:fatal_error, reason}), do: error_message("FATAL", "28000", reason)
   def encode_message(:ready_for_query), do: server_message(:ready_for_query, <<?I>>)
@@ -155,7 +169,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
         password: ?p,
         query: ?Q,
         sync: ?S,
-        terminate: ?X
+        terminate: ?X,
       } do
     defp client_message_name(unquote(message_byte)), do: unquote(message_name)
     defp client_message_byte(unquote(message_name)), do: unquote(message_byte)
@@ -229,12 +243,14 @@ defmodule Air.PsqlServer.Protocol.Messages do
   for {message_name, message_byte} <-
       %{
         authentication: ?R,
+        backend_key_data: ?K,
         bind_complete: ?2,
         close_complete: ?3,
         command_complete: ?C,
         data_row: ?D,
         no_data: ?n,
         error_response: ?E,
+        notice_response: ?N,
         parameter_description: ?t,
         parameter_status: ?S,
         parse_complete: ?1,
@@ -247,8 +263,14 @@ defmodule Air.PsqlServer.Protocol.Messages do
   defp server_message(message_name, payload \\ <<>>), do:
     <<server_message_byte(message_name)::8, message_with_size(payload)::binary>>
 
+  defp notice_message(severity, code, message), do:
+    response_with_message(:notice_response, severity, code, message)
+
   defp error_message(severity, code, message), do:
-    server_message(:error_response, <<
+    response_with_message(:error_response, severity, code, message)
+
+  defp response_with_message(type, severity, code, message), do:
+    server_message(type, <<
       ?S, null_terminate(severity)::binary,
       ?C, null_terminate(code)::binary,
       ?M, null_terminate(message)::binary,

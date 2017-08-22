@@ -149,7 +149,11 @@ defmodule Air.Service.DataSource do
         if opts[:notify] == true, do: Service.Query.Events.subscribe(query.id)
 
         case MainChannel.run_query(channel_pid, cloak_query_map(query, user, parameters)) do
-          :ok -> {:ok, query}
+          :ok ->
+            if opts[:notify_about_query_id] do
+              send(opts[:notify_about_query_id], {:query_id, query.id})
+            end
+            {:ok, query}
           {:error, :timeout} ->
             post_timeout_result(query)
             stop_query_async(query)
@@ -165,9 +169,12 @@ defmodule Air.Service.DataSource do
   def run_query(data_source_id_spec, user, context, statement, parameters, opts \\ []) do
     opts = [{:notify, true} | opts]
     with {:ok, %{id: query_id}} <- start_query(data_source_id_spec, user, context, statement, parameters, opts) do
-      receive do
+      result = receive do
+        {:query_state_change, %{query_id: ^query_id, state: terminal_state}}
+            when terminal_state in [:query_died, :cancelled] ->
+          {:error, terminal_state}
+
         {:query_result, %{query_id: ^query_id} = result} ->
-          Service.Query.Events.unsubscribe(query_id)
           {:ok, query} = Air.Service.Query.get_as_user(user, query_id)
 
           {:ok,
@@ -176,6 +183,9 @@ defmodule Air.Service.DataSource do
             |> Map.put(:buckets, Air.Service.Query.buckets(query, :all))
           }
       end
+      Service.Query.Events.unsubscribe(query_id)
+      result
+
     end
   end
 

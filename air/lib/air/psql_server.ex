@@ -21,7 +21,7 @@ defmodule Air.PsqlServer do
     @callback describe_query(RanchServer.t, String.t, [any]) :: RanchServer.t | nil
   end
 
-  alias Air.PsqlServer.{Protocol, RanchServer}
+  alias Air.PsqlServer.{Protocol, RanchServer, BackendProcessRegistry}
   alias Air.Service.{User, DataSource, Version}
   require Logger
   require Aircloak.DeployConfig
@@ -45,16 +45,17 @@ defmodule Air.PsqlServer do
       ranch_opts()
     )
 
+
   @doc "Issues a query to the cloak asynchronously."
-  @spec start_async_query(RanchServer.t, String.t, [any], ((RanchServer.t, any) -> RanchServer.t)) ::
+  @spec start_async_query(RanchServer.t, String.t, [any], [any], ((RanchServer.t, any) -> RanchServer.t)) ::
     RanchServer.t
-  def start_async_query(conn, query, params, on_finished) do
+  def start_async_query(conn, query, params, options, on_finished) do
     user = conn.assigns.user
     data_source_id = conn.assigns.data_source_id
     converted_params = convert_params(params)
     run_async(
       conn,
-      fn -> DataSource.run_query(data_source_id, user, :psql, query, converted_params) end,
+      fn -> DataSource.run_query(data_source_id, user, :psql, query, converted_params, options) end,
       on_finished
     )
   end
@@ -145,8 +146,32 @@ defmodule Air.PsqlServer do
       {true, conn} ->
         conn
       false ->
-        start_async_query(conn, query, params, &RanchServer.query_result(&1, decode_cloak_query_result(&2)))
+        run_cancellable_query_on_cloak(conn, query, params,
+          &RanchServer.query_result(&1, decode_cloak_query_result(&2)))
     end
+  end
+
+  @doc false
+  def run_cancellable_query_on_cloak(conn, query, params, callback) do
+    options = [{:notify_about_query_id, self()}]
+    conn = start_async_query(conn, query, params, options, callback)
+    receive do
+      {:query_id, query_id} ->
+        BackendProcessRegistry.register_query(
+          conn.assigns.backend_key_data,
+          conn.assigns.user.id,
+          query_id
+        )
+    after :timer.seconds(3) ->
+      Logger.debug("Did not receive a query ID. Query cannot be cancelled")
+    end
+    conn
+  end
+
+  @doc false
+  def cancel_query(conn, backend_key_data) do
+    BackendProcessRegistry.cancel_query(backend_key_data)
+    conn
   end
 
   @doc false
@@ -172,6 +197,12 @@ defmodule Air.PsqlServer do
           end
         )
     end
+  end
+
+  @doc false
+  def terminate(conn) do
+    BackendProcessRegistry.unregister(conn.assigns[:backend_key_data])
+    conn
   end
 
   @doc false
@@ -246,6 +277,10 @@ defmodule Air.PsqlServer do
     end
   end
 
+  defp do_decode_cloak_query_result({:error, :cancelled}), do:
+    {:error, :query_cancelled}
+  defp do_decode_cloak_query_result({:error, :query_died}), do:
+    {:error, {:fatal, "The query terminated unexpectedly."}}
   defp do_decode_cloak_query_result({:error, :not_connected}), do:
     {:error, "Data source is not available!"}
   defp do_decode_cloak_query_result({:error, :expired}), do:
