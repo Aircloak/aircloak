@@ -284,10 +284,8 @@ defmodule Air.PsqlServer do
   defp do_decode_cloak_query_result({:error, :not_connected}), do:
     {:error, "Data source is not available!"}
   defp do_decode_cloak_query_result({:error, :expired}), do:
-    %{
-      error: "Your Aircloak installation is running version #{Air.SharedView.version()} " <>
-        "which expired on #{Version.expiry_date()}."
-    }
+    {:error, "Your Aircloak installation is running version #{Air.SharedView.version()} " <>
+      "which expired on #{Version.expiry_date()}."}
   defp do_decode_cloak_query_result({:ok, %{error: error}}), do:
     {:error, error}
   defp do_decode_cloak_query_result({:ok, query_result}), do:
