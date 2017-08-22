@@ -46,6 +46,13 @@ defmodule SapHanaHelper do
     end
   end
 
+  @doc "Drops the schema and all the objects it contains."
+  @spec drop_schema_cascade!(conn, String.t) :: :ok
+  def drop_schema_cascade!(conn, schema_name) do
+    {:updated, _} = execute(conn, "drop schema #{schema_name} CASCADE")
+    :ok
+  end
+
   @doc "Recreates the table according to the provided definition."
   @spec recreate_table!(conn, String.t, String.t, String.t) :: :ok
   def recreate_table!(conn, schema_name, table_name, table_def) do
