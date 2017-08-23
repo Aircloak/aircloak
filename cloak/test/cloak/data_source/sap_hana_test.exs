@@ -30,6 +30,19 @@ defmodule Cloak.DataSource.SAPHanaTest do
       ]})
     end
 
+    for {name, subquery} <- [
+      {"subquery", "select uid, int_value as value from test"},
+    ] do
+      test "#{name} is not emulated", context do
+        query = "select sq.value from (#{unquote(subquery)}) sq"
+
+        {:ok, %{from: {:subquery, %{ast: subquery}}}} = compile_query(context.data_source, query)
+        assert subquery.emulated? == false
+
+        assert_query(context.data_source, query, %{rows: _})
+      end
+    end
+
     defp setup_test_schema() do
       conn = connect!()
       Cloak.SapHanaHelpers.ensure_schema!(conn, @schema)
