@@ -152,12 +152,15 @@ Note that when specifying Erlang modules, you need to provide the name of the re
 By default, only native PostgreSQL adapter is tested locally, while MongoDb and other drivers are excluded. To change this you can run following commands:
 
 - `mix test --only mongodb` - to run only MongoDB tests
+- `mix test --only saphana` - to run only SAP HANA tests
 - `make test_all` - to run all tests which are running on Travis: standard tests, MongoDB tests, and tests for all other database adapters (MySQL, PostgreSQL through ODBC, ...)
 
 In order to have working tests on other drivers, you need to start corresponding database servers locally.
 
 - `brew install mongodb` - install MongoDB (OSX)
 - `mongod --dbpath /tmp` - run MongoDB
+
+Note that SAP HANA tests can't be executed directly on macOS machines. Instead, you need to start a local development container with `make dev-container`.
 
 #### Running a local docker container
 

@@ -75,6 +75,15 @@ defmodule Cloak.Query.Runner do
       fn({_pid, query_id}) -> query_id end
     )
 
+  @doc "Executes the query synchronously, and returns its result."
+  @spec run_sync(String.t, DataSource.t, String.t, [DataSource.field], Query.view_map) :: any
+  def run_sync(query_id, data_source, statement, parameters, views) do
+    start(query_id, data_source, statement, parameters, views, {:process, self()})
+    receive do
+      {:result, response} -> response
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # GenServer callbacks

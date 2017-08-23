@@ -1,5 +1,5 @@
 {
-  "air_site": "wss://insights.air-local:8443",
+  "air_site": "wss://localhost:8443",
   "salt": "Salt for local dev cloak",
   "data_sources": [
     {
@@ -7,7 +7,7 @@
       "marker": "native",
       "name": "cloak_postgres_native",
       "parameters": {
-        "hostname": "insights.air-local",
+        "hostname": "localhost",
         "username": "cloak",
         "database": "cloak"
       },
@@ -57,7 +57,7 @@
         "DSN": "PostgreSQL",
         "UID": "cloak",
         "Database": "cloak",
-        "Server": "insights.air-local"
+        "Server": "localhost"
       },
       "tables": {
         "test": {
@@ -102,7 +102,7 @@
       "name": "compliance_normal",
       "marker": "normal",
       "parameters": {
-        "hostname": "insights.air-local",
+        "hostname": "localhost",
         "username": "datasource_compliance",
         "database": "datasource_compliance"
       },
@@ -145,7 +145,7 @@
       "name": "compliance_encoded",
       "marker": "encoded",
       "parameters": {
-        "hostname": "insights.air-local",
+        "hostname": "localhost",
         "username": "datasource_compliance",
         "database": "datasource_compliance"
       },
@@ -216,7 +216,7 @@
       },
       "tables": {
         "integers": {
-          "db_name": "INTEGERS",
+          "db_name": "ACDEV.INTEGERS",
           "user_id": "USER_ID"
         }
       }
