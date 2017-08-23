@@ -11,9 +11,14 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def supported_functions(), do:
     ~w(
       count sum min max avg stddev
+      year quarter month day hour minute second weekday
     )
 
   @doc false
+  for datepart <- ~w(year month day hour minute second) do
+    def function_sql(unquote(datepart), args), do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
+  end
+  def function_sql("quarter", [arg]), do: ["cast(substring(quarter(", arg, "), 7, 1) as integer)"]
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") ,")"]
 
   @doc false

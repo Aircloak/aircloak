@@ -30,15 +30,13 @@ defmodule Cloak.DataSource.SAPHanaTest do
       ]})
     end
 
-    aggregate_specs =
-      Enum.map(
-        ["count", "sum", "min", "max", "avg", "stddev"],
-        &{&1, "select uid, #{&1}(int_value) as value from test group by uid"}
-      )
-
-    all_specs = [{"subquery", "select uid, int_value as value from test"} | aggregate_specs]
-
-    for {name, subquery} <- all_specs do
+    for {name, subquery} <- (
+      [{"subquery", "select uid, int_value as value from test"}] ++
+      Enum.map(~w(count sum min max avg stddev),
+        &{&1, "select uid, #{&1}(int_value) as value from test group by uid"}) ++
+      Enum.map(~w(year quarter month day hour minute second weekday),
+        &{&1, "select uid, #{&1}(datetime_value) as value from time group by uid, datetime_value"})
+    ) do
       test "#{name} is not emulated", context do
         query = "select sq.value from (#{unquote(subquery)}) sq"
 
@@ -52,9 +50,17 @@ defmodule Cloak.DataSource.SAPHanaTest do
     defp setup_test_schema() do
       conn = connect!()
       Cloak.SapHanaHelpers.ensure_schema!(conn, @schema)
+
       Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "TEST", "UID integer, INT_VALUE integer")
       Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "TEST", ["UID", "INT_VALUE"],
         for {value, uids} <- %{1 => 1..10, 2 => 1..5, 3 => 1..1}, uid <- uids do
+          [uid, value]
+        end
+      )
+
+      Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "TIME", "UID integer, DATETIME_VALUE datetime")
+      Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "TIME", ["UID", "DATETIME_VALUE"],
+        for {value, uids} <- %{~c(timestamp'2017-08-23 01:02:03') => 1..10}, uid <- uids do
           [uid, value]
         end
       )
@@ -84,7 +90,8 @@ defmodule Cloak.DataSource.SAPHanaTest do
         parameters: connection_params(),
         tables: [],
         initial_tables: %{
-          test: %{name: "test", db_name: "#{@schema}.TEST", user_id: "UID", ignore_unsupported_types: true}
+          test: %{name: "test", db_name: "#{@schema}.TEST", user_id: "UID", ignore_unsupported_types: true},
+          time: %{name: "time", db_name: "#{@schema}.TIME", user_id: "UID", ignore_unsupported_types: true},
         },
         initial_errors: [],
       })
