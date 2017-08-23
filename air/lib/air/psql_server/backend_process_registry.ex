@@ -9,8 +9,7 @@ defmodule Air.PsqlServer.BackendProcessRegistry do
 
   use GenServer
 
-  alias Air.Schemas.Query
-  alias Air.Service
+  alias Air.Service.{Query, User, DataSource}
 
   require Logger
 
@@ -75,11 +74,11 @@ defmodule Air.PsqlServer.BackendProcessRegistry do
     case Map.get(state, key, :idle) do
       :idle -> :ok
       {user_id, query_id} ->
-        user = Service.User.load(user_id)
-        case Service.Query.get_as_user(user, query_id) do
+        user = User.load(user_id)
+        case Query.get_as_user(user, query_id) do
           {:ok, query} ->
             Logger.debug("Issued request to cancel query: #{query_id} on behalf of user #{user_id}")
-            Service.DataSource.stop_query(query, user)
+            DataSource.stop_query(query, user)
           {:error, _reason} -> :ok
         end
     end
