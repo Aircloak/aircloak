@@ -11,12 +11,12 @@ defmodule SapHanaHelper do
   @spec connect(String.t, integer, String.t, String.t, String.t) :: {:ok, conn} | {:error, any}
   def connect(host, port, user, password, database) do
     [
-      driver: "#{Application.app_dir(:cloak, "priv/odbc/drivers")}/libodbc-sap-hana-v2.so",
       servernode: "#{host}:#{port}",
       uid: user,
       pwd: password,
       databasename: database
     ]
+    |> Keyword.merge(driver_option())
     |> Enum.map(fn({key, value}) -> [to_string(key), ?=, value] end)
     |> Enum.join(";")
     |> to_char_list()
@@ -85,6 +85,14 @@ defmodule SapHanaHelper do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp driver_option() do
+    if System.get_env("TRAVIS") == "true" do
+      [dsn: "SAPHANA"]
+    else
+      [driver: "#{Application.app_dir(:cloak, "priv/odbc/drivers")}/libodbc-sap-hana-v2.so"]
+    end
+  end
 
   defp table_exists?(conn, schema_name, table_name), do:
     match?(

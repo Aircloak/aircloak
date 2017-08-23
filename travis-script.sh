@@ -58,6 +58,7 @@ function banner() {
     pushd cloak
     make docs
     make lint
+    make odbc_drivers
     make test_all
     make dialyze
     make proper-extended
