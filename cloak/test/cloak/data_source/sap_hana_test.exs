@@ -44,7 +44,8 @@ defmodule Cloak.DataSource.SAPHanaTest do
 
     defp drop_test_schema() do
       conn = connect!()
-      SapHanaHelper.drop_schema_cascade!(conn, @schema)
+      {:updated, _} = SapHanaHelper.execute(conn, "drop schema #{@schema} CASCADE")
+      :ok
     end
 
     defp connection_params(), do:
