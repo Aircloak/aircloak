@@ -9,7 +9,9 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
 
   @doc false
   def supported_functions(), do:
-    ~w()
+    ~w(
+      count sum min max avg stddev
+    )
 
   @doc false
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") ,")"]

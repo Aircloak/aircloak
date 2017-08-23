@@ -30,9 +30,15 @@ defmodule Cloak.DataSource.SAPHanaTest do
       ]})
     end
 
-    for {name, subquery} <- [
-      {"subquery", "select uid, int_value as value from test"},
-    ] do
+    aggregate_specs =
+      Enum.map(
+        ["count", "sum", "min", "max", "avg", "stddev"],
+        &{&1, "select uid, #{&1}(int_value) as value from test group by uid"}
+      )
+
+    all_specs = [{"subquery", "select uid, int_value as value from test"} | aggregate_specs]
+
+    for {name, subquery} <- all_specs do
       test "#{name} is not emulated", context do
         query = "select sq.value from (#{unquote(subquery)}) sq"
 
@@ -82,5 +88,10 @@ defmodule Cloak.DataSource.SAPHanaTest do
         },
         initial_errors: [],
       })
+
+    defp compile_query(data_source, query) do
+      with {:ok, parsed} <- Cloak.Sql.Parser.parse(query), do:
+        Cloak.Sql.Compiler.compile(data_source, parsed, [], %{})
+    end
   end
 end
