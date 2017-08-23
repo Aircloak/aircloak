@@ -95,5 +95,7 @@ defmodule Cloak.Query.AnonymizationTest do
       assert_query "select count(*) from anonymizations where lower(string) like 'a%'",
         %{columns: ["count"], rows: [%{row: [0]}]}
     end
+
+    test "casing is taken into account for ILIKE"
   end
 end

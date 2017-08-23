@@ -15,6 +15,17 @@ defmodule Cloak.Sql.Compiler.LowCountCheck.Test do
     ] = result.low_count_checks
   end
 
+  test "adds a low-count check for every LIKE condition in a subquery" do
+    result = compile!("SELECT COUNT(*) FROM (
+      SELECT uid FROM table WHERE name LIKE '%a%' AND name ILIKE '%b%' AND name2 LIKE '%c%') x", data_source())
+
+    assert [
+      %{expressions: [%Expression{name: "name"}], type: :like},
+      %{expressions: [%Expression{name: "name"}], type: :ilike},
+      %{expressions: [%Expression{name: "name2"}], type: :like},
+    ] = result.low_count_checks
+  end
+
   test "adds a low-count check for aggregated LIKE conditions"
 
   test "floating columns from aggregating subquery"

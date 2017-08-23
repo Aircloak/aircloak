@@ -1,10 +1,21 @@
 defmodule Cloak.Sql.Compiler.LowCountCheck do
   alias Cloak.Sql.{Query, Condition, LowCountCheck}
+  alias Cloak.Sql.Compiler.Helpers
 
   def compile(query), do:
-    %{query | low_count_checks: low_count_checks(query)}
+    query
+    |> Helpers.apply_bottom_up(&compute_basic_checks/1)
+    |> Helpers.apply_bottom_up(&float_checks/1)
 
-  defp low_count_checks(query) do
+  defp float_checks(query) do
+    floated_checks = get_in(query, [Query.Lenses.subquery_low_count_checks()])
+    %{query | low_count_checks: query.low_count_checks ++ floated_checks}
+  end
+
+  defp compute_basic_checks(query), do:
+    %{query | low_count_checks: basic_checks(query)}
+
+  defp basic_checks(query) do
     Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.satisfy(&Condition.like?/1)
