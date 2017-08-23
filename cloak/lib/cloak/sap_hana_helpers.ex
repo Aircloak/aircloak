@@ -1,4 +1,4 @@
-defmodule SapHanaHelper do
+defmodule Cloak.SapHanaHelpers do
   @moduledoc "Helper functions for working with SAP HANA database."
   @type conn :: :odbc.connection_reference
 

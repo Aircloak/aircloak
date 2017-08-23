@@ -61,8 +61,8 @@ if Mix.env == :dev do
       table_name = String.upcase(table_spec.name)
       column_names = Enum.map(table_spec.columns, &elem(&1, 0))
 
-      SapHanaHelper.ensure_schema!(conn, schema_name)
-      SapHanaHelper.recreate_table!(conn, schema_name, table_name, table_def(table_spec))
+      Cloak.SapHanaHelpers.ensure_schema!(conn, schema_name)
+      Cloak.SapHanaHelpers.recreate_table!(conn, schema_name, table_name, table_def(table_spec))
 
       chunks = Enum.chunk(table_spec.data, 1000, 1000, [])
 
@@ -70,7 +70,7 @@ if Mix.env == :dev do
       |> Enum.with_index()
       |> Enum.each(fn({rows, index}) ->
         IO.puts "chunk #{index+1}/#{length(chunks)}"
-        SapHanaHelper.insert_rows!(conn, schema_name, table_name, column_names, rows)
+        Cloak.SapHanaHelpers.insert_rows!(conn, schema_name, table_name, column_names, rows)
       end)
     end
 
@@ -96,7 +96,7 @@ if Mix.env == :dev do
         |> Enum.find(&(&1["name"] == "saphana"))
         |> Map.fetch!("parameters")
 
-      SapHanaHelper.connect(
+      Cloak.SapHanaHelpers.connect(
         Map.fetch!(db_params, "hostname"),
         Map.fetch!(db_params, "port"),
         Map.fetch!(db_params, "username"),

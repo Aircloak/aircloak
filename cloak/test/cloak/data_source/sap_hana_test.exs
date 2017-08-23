@@ -33,9 +33,9 @@ defmodule Cloak.DataSource.SAPHanaTest do
 
     defp setup_test_schema() do
       conn = connect!()
-      SapHanaHelper.ensure_schema!(conn, @schema)
-      SapHanaHelper.recreate_table!(conn, @schema, "TEST", "UID integer, INT_VALUE integer")
-      SapHanaHelper.insert_rows!(conn, @schema, "TEST", ["UID", "INT_VALUE"],
+      Cloak.SapHanaHelpers.ensure_schema!(conn, @schema)
+      Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "TEST", "UID integer, INT_VALUE integer")
+      Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "TEST", ["UID", "INT_VALUE"],
         for {value, uids} <- %{1 => 1..10, 2 => 1..5, 3 => 1..1}, uid <- uids do
           [uid, value]
         end
@@ -44,7 +44,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
 
     defp drop_test_schema() do
       conn = connect!()
-      {:updated, _} = SapHanaHelper.execute(conn, "drop schema #{@schema} CASCADE")
+      {:updated, _} = Cloak.SapHanaHelpers.execute(conn, "drop schema #{@schema} CASCADE")
       :ok
     end
 
@@ -53,7 +53,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
 
     defp connect!() do
       params = connection_params()
-      {:ok, conn} = SapHanaHelper.connect(params.hostname, params.port, params.username, params.password,
+      {:ok, conn} = Cloak.SapHanaHelpers.connect(params.hostname, params.port, params.username, params.password,
         params.database)
       conn
     end
