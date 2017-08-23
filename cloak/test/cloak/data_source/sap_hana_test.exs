@@ -11,9 +11,8 @@ defmodule Cloak.DataSource.SAPHanaTest do
 
     defmacrop assert_query(data_source, query, expected_response) do
       quote do
-        result =
-          Cloak.Query.Runner.run_sync("#{:erlang.unique_integer([:positive])}", unquote(data_source), unquote(query),
-            [], %{})
+        result = Cloak.Query.Runner.run_sync("#{:erlang.unique_integer([:positive])}", unquote(data_source),
+          unquote(query), [], %{})
         assert unquote(expected_response) = result
       end
     end
