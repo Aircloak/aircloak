@@ -81,9 +81,10 @@ defmodule Cloak.Query.AnonymizationTest do
       :ok = insert_rows(_user_ids = 2..2, "anonymizations", ["string"], ["alfred"])
       :ok = insert_rows(_user_ids = 3..3, "anonymizations", ["string"], ["algernon"])
       :ok = insert_rows(_user_ids = 4..4, "anonymizations", ["string"], ["alma"])
+      :ok = insert_rows(_user_ids = 5..5, "anonymizations", ["string"], ["ada"])
 
       assert_query "select count(*) from anonymizations where string like 'a%'",
-        %{columns: ["count"], rows: [%{row: [4]}]}
+        %{columns: ["count"], rows: [%{row: [5]}]}
     end
 
     test "the whole LHS of the LIKE is considered" do
@@ -91,6 +92,7 @@ defmodule Cloak.Query.AnonymizationTest do
       :ok = insert_rows(_user_ids = 2..2, "anonymizations", ["string"], ["ALICE"])
       :ok = insert_rows(_user_ids = 3..3, "anonymizations", ["string"], ["alfred"])
       :ok = insert_rows(_user_ids = 4..4, "anonymizations", ["string"], ["ALFRED"])
+      :ok = insert_rows(_user_ids = 5..5, "anonymizations", ["string"], ["ada"])
 
       assert_query "select count(*) from anonymizations where lower(string) like 'a%'",
         %{columns: ["count"], rows: [%{row: [0]}]}

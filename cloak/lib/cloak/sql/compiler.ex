@@ -21,6 +21,7 @@ defmodule Cloak.Sql.Compiler do
         |> Compiler.Execution.prepare()
         |> Compiler.Features.compile()
         |> Compiler.Normalization.normalize()
+        |> Compiler.LowCountCheck.compile()
       }
     rescue
       e in CompilationError -> {:error, e.message}

@@ -14,7 +14,7 @@ defmodule Cloak.Sql.Query.Lenses do
   deflens terminals(), do:
     Lens.multiple([
       Lens.keys([:columns, :group_by, :db_columns, :property, :aggregators]),
-      Lens.key(:noise_layers) |> Lens.all() |> Lens.key(:expressions),
+      Lens.keys([:noise_layers, :low_count_checks]) |> Lens.all() |> Lens.key(:expressions),
       Lens.key(:order_by) |> Lens.all() |> Lens.at(0),
       Lens.key(:ranges) |> Lens.all() |> Lens.key(:column),
       filters_operands(),
