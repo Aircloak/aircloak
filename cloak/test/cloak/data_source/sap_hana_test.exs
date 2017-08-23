@@ -61,7 +61,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
       Cloak.DataSource.add_tables(%{
         name: "saphana_test",
         driver: Cloak.DataSource.SAPHana,
-        driver_dialect: Cloak.DataSource.SAPHana,
+        driver_dialect: :saphana,
         parameters: connection_params(),
         tables: [],
         initial_tables: %{
