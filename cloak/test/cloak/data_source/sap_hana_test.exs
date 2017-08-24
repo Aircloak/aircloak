@@ -68,19 +68,28 @@ defmodule Cloak.DataSource.SAPHanaTest do
       conn = connect!()
       Cloak.SapHanaHelpers.ensure_schema!(conn, @schema)
 
-      Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "TEST", "UID integer, INT_VALUE integer")
-      Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "TEST", ["UID", "INT_VALUE"],
-        for {value, uids} <- %{1 => 1..10, 2 => 1..5, 3 => 1..1}, uid <- uids do
-          [uid, value]
-        end
-      )
-
-      Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "TIME", "UID integer, DATETIME_VALUE datetime")
-      Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "TIME", ["UID", "DATETIME_VALUE"],
-        for {value, uids} <- %{~c(timestamp'2017-08-23 01:02:03') => 1..10}, uid <- uids do
-          [uid, value]
-        end
-      )
+      [
+        fn ->
+          conn = connect!()
+          Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "TEST", "UID integer, INT_VALUE integer")
+          Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "TEST", ["UID", "INT_VALUE"],
+            for {value, uids} <- %{1 => 1..10, 2 => 1..5, 3 => 1..1}, uid <- uids do
+              [uid, value]
+            end
+          )
+        end,
+        fn ->
+          conn = connect!()
+          Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "TIME", "UID integer, DATETIME_VALUE datetime")
+          Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "TIME", ["UID", "DATETIME_VALUE"],
+            for {value, uids} <- %{~c(timestamp'2017-08-23 01:02:03') => 1..10}, uid <- uids do
+              [uid, value]
+            end
+          )
+        end,
+      ]
+      |> Enum.map(&Task.async/1)
+      |> Enum.map(&Task.await(&1, :timer.seconds(30)))
     end
 
     defp drop_test_schema() do
