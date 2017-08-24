@@ -35,6 +35,9 @@ defmodule Cloak.DataSource.SAPHanaTest do
     test "default string decoding", context, do:
       assert_query(context.data_source, "select value from strings", %{rows: [%{row: ["a string value"]}]})
 
+    test "default datetime decoding", context, do:
+      assert_query(context.data_source, "select value from times", %{rows: [%{row: ["2017-08-23T01:02:03.000000"]}]})
+
     test "non emulated functions", context do
       # We're running these tests concurrently from a single test. The reason is that we need to execute a lot of
       # queries on the remote SAP HANA database, and running these queries sequentially can be quite slow.
