@@ -20,7 +20,16 @@ defmodule Air.PsqlServer.ConnectionRegistry do
   def start_link(), do:
     Registry.start_link(:unique, __MODULE__)
 
-  @doc "Register a connection, producing a process id and key."
+  @doc """
+  Produces a random pair of process and session ids that can be communicated to
+  a connecting client and later used to cancel queries.
+
+  Nothing is stored in the registry at the point of generation.
+
+  The IDs are not guaranteed to be unique, neither individually nor collectively.
+  However given the space of potential IDs (64-bit integer), the risk of collision
+  given any number of realistically concurrently open connections are low.
+  """
   @spec register() :: key_data
   def register() do
     <<process_id::32, secret_key::32>> = :crypto.strong_rand_bytes(8)
@@ -45,9 +54,9 @@ defmodule Air.PsqlServer.ConnectionRegistry do
   end
 
   @doc """
-  Attempts to cancel a query. Returns immediately irrespective of
-  whether or not the query, backend process exists, or whether or
-  not the request was succesful.
+  Attempts to cancel a query.
+  Returns a positive response irrespective of whether the connection existed,
+  or had an active query or not.
   """
   @spec cancel_query(key_data) :: :ok
   def cancel_query(key) do
