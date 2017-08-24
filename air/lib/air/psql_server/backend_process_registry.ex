@@ -10,7 +10,7 @@ defmodule Air.PsqlServer.BackendProcessRegistry do
   alias Air.Service.{Query, User, DataSource}
   require Logger
 
-  @type backend_key_data :: %{process_id: integer, secret_key: integer}
+  @type key_data :: %{process_id: integer, secret_key: integer}
 
 
   # -------------------------------------------------------------------
@@ -23,14 +23,14 @@ defmodule Air.PsqlServer.BackendProcessRegistry do
     Registry.start_link(:unique, __MODULE__)
 
   @doc "Register a connection, producing a process id and key."
-  @spec register() :: backend_key_data
+  @spec register() :: key_data
   def register() do
     <<process_id::32, secret_key::32>> = :crypto.strong_rand_bytes(8)
     %{process_id: process_id, secret_key: secret_key}
   end
 
   @doc "Registers a running query, so that it can be cancelled"
-  @spec register_query(backend_key_data, non_neg_integer, String.t) :: :ok
+  @spec register_query(key_data, non_neg_integer, String.t) :: :ok
   def register_query(key, user_id, query_id) do
     value = {user_id, query_id}
     case Registry.register(__MODULE__, key, value) do
@@ -51,7 +51,7 @@ defmodule Air.PsqlServer.BackendProcessRegistry do
   whether or not the query, backend process exists, or whether or
   not the request was succesful.
   """
-  @spec cancel_query(backend_key_data) :: :ok
+  @spec cancel_query(key_data) :: :ok
   def cancel_query(key) do
     case Registry.lookup(__MODULE__, key) do
       [] -> :ok

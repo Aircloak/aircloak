@@ -5,7 +5,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
   Formats are described [here](https://www.postgresql.org/docs/9.6/static/protocol-message-formats.html).
   """
 
-  alias Air.PsqlServer.Protocol
+  alias Air.PsqlServer.{Protocol, BackendProcessRegistry}
 
   @type server_message ::
     {:authentication_method, :cleartext} | :authentication_ok | :bind_complete | :close_complete |
@@ -37,7 +37,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
   def cancel_message?(_message), do: false
 
   @doc "Decodes the cancel message."
-  @spec decode_cancel_message_parameters(binary) :: %{process_id: integer, secret_key: integer}
+  @spec decode_cancel_message_parameters(binary) :: BackendProcessRegistry.key_data
   def decode_cancel_message_parameters(<<process_id::32, secret_key::32>>), do:
     %{process_id: process_id, secret_key: secret_key}
 

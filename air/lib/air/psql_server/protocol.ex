@@ -18,8 +18,7 @@ defmodule Air.PsqlServer.Protocol do
 
   require Logger
   alias Air.PsqlServer.Protocol.{Messages, Value}
-
-  @type backend_key_data :: %{process_id: integer, secret_key: integer}
+  alias Air.PsqlServer.BackendProcessRegistry
 
   @type t :: %{
     state: state,
@@ -48,10 +47,10 @@ defmodule Air.PsqlServer.Protocol do
 
   @type action ::
     {:send, iodata()} |
-    {:register_backend_key_data, map} |
+    {:register_backend_key_data, BackendProcessRegistry.key_data} |
     {:close, reason :: any} |
     :upgrade_to_ssl |
-    {:cancel_query, map} |
+    {:cancel_query, BackendProcessRegistry.key_data} |
     {:login_params, map} |
     {:authenticate, password :: binary} |
     {:run_query, String.t, [%{type: Value.type, value: db_value}], non_neg_integer} |
