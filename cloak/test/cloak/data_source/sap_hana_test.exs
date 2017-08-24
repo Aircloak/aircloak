@@ -30,13 +30,19 @@ defmodule Cloak.DataSource.SAPHanaTest do
       ]})
     end
 
-    for {name, subquery} <- (
-      [{"subquery", "select uid, int_value as value from test"}] ++
+    for {name, subquery} <- Enum.concat([
+      [{"subquery", "select uid, int_value as value from test"}],
       Enum.map(~w(count sum min max avg stddev),
-        &{&1, "select uid, #{&1}(int_value) as value from test group by uid"}) ++
+        &{&1, "select uid, #{&1}(int_value) as value from test group by uid"}),
       Enum.map(~w(year quarter month day hour minute second weekday),
-        &{&1, "select uid, #{&1}(datetime_value) as value from time group by uid, datetime_value"})
-    ) do
+        &{&1, "select uid, #{&1}(datetime_value) as value from time group by uid, datetime_value"}),
+      Enum.map(~w(sqrt floor ceil abs round),
+        &{&1, "select uid, #{&1}(int_value) as value from test"}),
+      Enum.map(~w(mod),
+        &{&1, "select uid, #{&1}(int_value, 2) as value from test"}),
+      Enum.map(~w(% * / + -),
+        &{&1, "select uid, (int_value #{&1} 2) as value from test"}),
+    ]) do
       test "#{name} is not emulated", context do
         query = "select sq.value from (#{unquote(subquery)}) sq"
 
