@@ -66,18 +66,24 @@ defmodule Cloak.Sql.Compiler.Helpers do
   def set_unique_alias(column), do: %{column | alias: "alias_#{System.unique_integer([:positive])}"}
 
   @doc """
-  Removes columns from floated_columns that are already present in selected_columns. Returns a modified version of
-  query where the appropriate selected columns are used instead of the removed columns.
+  Removes columns from new_columns that are duplicated or already present in selected_columns. Returns a modified
+  version of query where the appropriate selected columns are used instead of the removed columns.
   """
   @spec drop_redundant_floated_columns(Query.t, [Expression.t], [Expression.t]) :: {Query.t, [Expression.t]}
-  def drop_redundant_floated_columns(query, selected_columns, floated_columns) do
+  def drop_redundant_floated_columns(query, selected_columns, new_columns) do
     selected_ids = Enum.map(selected_columns, &Expression.id/1) |> Enum.uniq()
-    {duplicated_columns, floated_columns} = Enum.partition(floated_columns, &Expression.id(&1) in selected_ids)
-    query = Enum.reduce(duplicated_columns, query, fn (column, query) ->
-      replacement = Enum.find(selected_columns, &Expression.id(&1) == Expression.id(column))
+
+    {already_selected, new_columns} = Enum.partition(new_columns, &Expression.id(&1) in selected_ids)
+    uniq_new = Enum.uniq_by(new_columns, &Expression.id/1)
+    duplicated_new = new_columns -- uniq_new
+    replacements = selected_columns ++ uniq_new
+
+    query = Enum.reduce(already_selected ++ duplicated_new, query, fn (column, query) ->
+      replacement = Enum.find(replacements, &Expression.id(&1) == Expression.id(column))
       Query.Lenses.query_expressions() |> Lens.satisfy(&column == &1) |> Lens.map(query, fn(_) -> replacement end)
     end)
-    {query, floated_columns}
+
+    {query, uniq_new}
   end
 
   @doc """
