@@ -43,8 +43,9 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
 
           true ->
             # query will be delegated to cloak
-            PsqlServer.start_async_query(conn, cursor_query.inner_query, [],
-              &first_cursor_fetch(&1, cursor_query.cursor, cursor_query.count, PsqlServer.decode_cloak_query_result(&2))
+            PsqlServer.run_cancellable_query_on_cloak(conn, cursor_query.inner_query, [],
+              &first_cursor_fetch(&1, cursor_query.cursor, cursor_query.count,
+                PsqlServer.decode_cloak_query_result(&2))
             )
         end
 

@@ -16,7 +16,8 @@ defmodule Air.Supervisor do
       worker(Air.Endpoint, []),
       worker(Air.MonitoringEndpoint, []),
       worker(Air.BOM, []),
-      Air.PsqlServer.child_spec()
+      Air.PsqlServer.child_spec(),
+      worker(Air.PsqlServer.ConnectionRegistry, []),
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Air.Supervisor)

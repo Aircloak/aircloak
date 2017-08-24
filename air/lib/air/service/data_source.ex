@@ -11,11 +11,13 @@ defmodule Air.Service.DataSource do
 
   @type data_source_id_spec :: {:id, integer} | {:global_id, String.t} | {:name, String.t}
 
-  @type start_query_options :: [
-    audit_meta: %{atom => any},
-    notify: boolean,
-    session_id: String.t | nil
-  ]
+  @type start_query_option ::
+      {:audit_meta, %{atom => any}}
+    | {:notify, boolean}
+    | {:session_id, String.t | nil}
+    | {:notify_about_query_id, pid}
+
+  @type start_query_options :: [start_query_option]
 
   @type data_source_operation_error ::
     {:error, :expired | :unauthorized | :not_connected | :internal_error | any}
@@ -149,7 +151,11 @@ defmodule Air.Service.DataSource do
         if opts[:notify] == true, do: Service.Query.Events.subscribe(query.id)
 
         case MainChannel.run_query(channel_pid, cloak_query_map(query, user, parameters)) do
-          :ok -> {:ok, query}
+          :ok ->
+            if opts[:notify_about_query_id] do
+              send(opts[:notify_about_query_id], {:query_id, query.id})
+            end
+            {:ok, query}
           {:error, :timeout} ->
             post_timeout_result(query)
             stop_query_async(query)
@@ -161,13 +167,16 @@ defmodule Air.Service.DataSource do
 
   @doc "Runs the query synchronously and returns its result."
   @spec run_query(data_source_id_spec, User.t, Query.Context.t, String.t, [Protocol.db_value],
-    [audit_meta: %{atom => any}]) :: {:ok, map} | data_source_operation_error
+    start_query_options) :: {:ok, map} | data_source_operation_error
   def run_query(data_source_id_spec, user, context, statement, parameters, opts \\ []) do
     opts = [{:notify, true} | opts]
     with {:ok, %{id: query_id}} <- start_query(data_source_id_spec, user, context, statement, parameters, opts) do
-      receive do
+      result = receive do
+        {:query_state_change, %{query_id: ^query_id, state: terminal_state}}
+            when terminal_state in [:query_died, :cancelled] ->
+          {:error, terminal_state}
+
         {:query_result, %{query_id: ^query_id} = result} ->
-          Service.Query.Events.unsubscribe(query_id)
           {:ok, query} = Air.Service.Query.get_as_user(user, query_id)
 
           {:ok,
@@ -176,6 +185,9 @@ defmodule Air.Service.DataSource do
             |> Map.put(:buckets, Air.Service.Query.buckets(query, :all))
           }
       end
+      Service.Query.Events.unsubscribe(query_id)
+      result
+
     end
   end
 
