@@ -29,11 +29,20 @@ defmodule Cloak.Sql.Compiler.LowCountCheck.Test do
     assert 1 = Enum.count(subquery.db_columns, &match?(%Expression{name: "name2", alias: ^alias2}, &1))
   end
 
-  test "adds a low-count check for aggregated LIKE conditions"
+  test "floating columns from aggregating subquery" do
+    result = compile!("SELECT COUNT(*) FROM (
+      SELECT uid FROM table WHERE name LIKE '%a%' GROUP BY uid) x", data_source())
+    {:subquery, %{ast: subquery}} = result.from
 
-  test "floating columns from aggregating subquery"
-
-  test "floating columns from non-aggregating subquery"
+    assert [%{expressions: [
+      %Expression{function?: false, name: alias1},
+      %Expression{function?: false, name: alias2},
+    ]}] = result.low_count_checks
+    assert 1 = Enum.count(subquery.db_columns, &match?(%Expression{function: "min", alias: ^alias1, function_args: [
+      %Expression{name: "name"}]}, &1))
+    assert 1 = Enum.count(subquery.db_columns, &match?(%Expression{function: "max", alias: ^alias2, function_args: [
+      %Expression{name: "name"}]}, &1))
+  end
 
   test "floating complex columns from non-aggregating subquery" do
     result = compile!("SELECT COUNT(*) FROM (

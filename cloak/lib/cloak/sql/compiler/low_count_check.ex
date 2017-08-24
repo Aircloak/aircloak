@@ -1,5 +1,5 @@
 defmodule Cloak.Sql.Compiler.LowCountCheck do
-  alias Cloak.Sql.{Query, Condition, LowCountCheck}
+  alias Cloak.Sql.{Query, Condition, LowCountCheck, Expression}
   alias Cloak.Sql.Compiler.Helpers
 
   def compile(query), do:
@@ -7,10 +7,35 @@ defmodule Cloak.Sql.Compiler.LowCountCheck do
     |> Helpers.apply_bottom_up(&compute_basic_checks/1)
     |> Helpers.apply_bottom_up(&float_checks/1)
 
-  defp float_checks(query) do
+  defp float_checks(query), do:
     %{query | low_count_checks: query.low_count_checks ++ floated_checks(query)}
+    |> aggregate_if_needed()
     |> add_db_columns()
-  end
+
+  defp aggregate_if_needed(query), do:
+    if query.subquery? and Helpers.aggregate?(query),
+      do: do_aggregate(query),
+      else: query
+
+  defp do_aggregate(query), do:
+    Lens.key(:low_count_checks) |> Lens.all() |> Lens.map(query, &do_aggregate_check(&1, query))
+
+  defp do_aggregate_check(check = %{expressions: [unaggregated]}, _query), do:
+    %{check | expressions:
+      [
+        Expression.function("min", [Expression.unalias(unaggregated)], unaggregated.type, _aggregate = true),
+        Expression.function("max", [Expression.unalias(unaggregated)], unaggregated.type, _aggregate = true),
+      ]
+      |> Enum.map(&Helpers.set_unique_alias/1)
+    }
+  defp do_aggregate_check(check = %{expressions: [min, max]}, query), do:
+    %{check | expressions:
+      [
+        Expression.function("min", [Helpers.reference_aliased(min, query)], min.type, _aggregate = true),
+        Expression.function("max", [Helpers.reference_aliased(max, query)], max.type, _aggregate = true),
+      ]
+      |> Enum.map(&Helpers.set_unique_alias/1)
+    }
 
   defp floated_checks(query), do:
     Query.Lenses.direct_subqueries()

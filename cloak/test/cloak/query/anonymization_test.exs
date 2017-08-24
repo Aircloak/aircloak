@@ -100,6 +100,16 @@ defmodule Cloak.Query.AnonymizationTest do
 
     test "casing is taken into account for ILIKE"
 
-    test "many unique values in an aggregated subquery"
+    test "unique values with not enough users are dropped in an aggregated subquery" do
+      :ok = insert_rows(_user_ids = 1..10, "anonymizations", ["string"], ["alice"])
+      :ok = insert_rows(_user_ids = 11..11, "anonymizations", ["string"], ["alfred"])
+
+      assert_query "select count(*) from (select user_id from anonymizations where string like 'a%' group by user_id) x",
+        %{columns: ["count"], rows: [%{row: [10]}]}
+    end
+
+    test "unique values with enough users are kept in an aggregated subquery"
+
+    test "if there are many unique values nothing is dropped in an aggregated subquery"
   end
 end
