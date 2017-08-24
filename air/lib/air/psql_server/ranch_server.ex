@@ -55,9 +55,6 @@ defmodule Air.PsqlServer.RanchServer do
   @doc "Invoked when a message is received by the connection process."
   @callback handle_message(t, any) :: t
 
-  @doc "Invoked when the connection is closed."
-  @callback terminate(t) :: t
-
 
   # -------------------------------------------------------------------
   # API
@@ -214,7 +211,7 @@ defmodule Air.PsqlServer.RanchServer do
 
   defp handle_protocol_action({:close, _reason}, conn) do
     send(self(), :close)
-    conn.behaviour_mod.terminate(conn)
+    conn
   end
   defp handle_protocol_action(:upgrade_to_ssl, conn) do
     send(self(), :upgrade_to_ssl)

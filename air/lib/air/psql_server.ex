@@ -200,12 +200,6 @@ defmodule Air.PsqlServer do
   end
 
   @doc false
-  def terminate(conn) do
-    BackendProcessRegistry.unregister(conn.assigns[:backend_key_data])
-    conn
-  end
-
-  @doc false
   def handle_message(conn, {ref, query_result}) do
     case Map.fetch(conn.assigns.async_jobs, ref) do
       :error ->
