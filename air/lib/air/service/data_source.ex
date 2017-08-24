@@ -11,11 +11,13 @@ defmodule Air.Service.DataSource do
 
   @type data_source_id_spec :: {:id, integer} | {:global_id, String.t} | {:name, String.t}
 
-  @type start_query_options :: [
-    audit_meta: %{atom => any},
-    notify: boolean,
-    session_id: String.t | nil
-  ]
+  @type start_query_option ::
+      {:audit_meta, %{atom => any}}
+    | {:notify, boolean}
+    | {:session_id, String.t | nil}
+    | {:notify_about_query_id, pid}
+
+  @type start_query_options :: [start_query_option]
 
   @type data_source_operation_error ::
     {:error, :expired | :unauthorized | :not_connected | :internal_error | any}
@@ -165,7 +167,7 @@ defmodule Air.Service.DataSource do
 
   @doc "Runs the query synchronously and returns its result."
   @spec run_query(data_source_id_spec, User.t, Query.Context.t, String.t, [Protocol.db_value],
-    [audit_meta: %{atom => any}]) :: {:ok, map} | data_source_operation_error
+    start_query_options) :: {:ok, map} | data_source_operation_error
   def run_query(data_source_id_spec, user, context, statement, parameters, opts \\ []) do
     opts = [{:notify, true} | opts]
     with {:ok, %{id: query_id}} <- start_query(data_source_id_spec, user, context, statement, parameters, opts) do

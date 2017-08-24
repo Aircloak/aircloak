@@ -45,21 +45,6 @@ defmodule Air.PsqlServer do
       ranch_opts()
     )
 
-
-  @doc "Issues a query to the cloak asynchronously."
-  @spec start_async_query(RanchServer.t, String.t, [any], [any], ((RanchServer.t, any) -> RanchServer.t)) ::
-    RanchServer.t
-  def start_async_query(conn, query, params, options, on_finished) do
-    user = conn.assigns.user
-    data_source_id = conn.assigns.data_source_id
-    converted_params = convert_params(params)
-    run_async(
-      conn,
-      fn -> DataSource.run_query(data_source_id, user, :psql, query, converted_params, options) end,
-      on_finished
-    )
-  end
-
   @doc "Converts the type string returned from cloak to PostgreSql type atom."
   @spec psql_type(String.t) :: Protocol.Value.type
   def psql_type(type_string), do: psql_type_impl(type_string)
@@ -111,6 +96,25 @@ defmodule Air.PsqlServer do
     end
   end
 
+  @doc "Asynchronously runs a cancellable query"
+  @spec run_cancellable_query_on_cloak(RanchServer.t, String.t, [Protocol.db_value] | nil,
+    ((RanchServer.t, any) -> any)) :: RanchServer.t
+  def run_cancellable_query_on_cloak(conn, query, params, callback) do
+    options = [{:notify_about_query_id, self()}]
+    conn = start_async_query(conn, query, params, options, callback)
+    receive do
+      {:query_id, query_id} ->
+        BackendProcessRegistry.register_query(
+          conn.assigns.backend_key_data,
+          conn.assigns.user.id,
+          query_id
+        )
+    after :timer.seconds(3) ->
+      Logger.debug("Did not receive a query ID. Query cannot be cancelled")
+    end
+    conn
+  end
+
 
   # -------------------------------------------------------------------
   # Air.PsqlServer.RanchServer callback functions
@@ -149,23 +153,6 @@ defmodule Air.PsqlServer do
         run_cancellable_query_on_cloak(conn, query, params,
           &RanchServer.query_result(&1, decode_cloak_query_result(&2)))
     end
-  end
-
-  @doc false
-  def run_cancellable_query_on_cloak(conn, query, params, callback) do
-    options = [{:notify_about_query_id, self()}]
-    conn = start_async_query(conn, query, params, options, callback)
-    receive do
-      {:query_id, query_id} ->
-        BackendProcessRegistry.register_query(
-          conn.assigns.backend_key_data,
-          conn.assigns.user.id,
-          query_id
-        )
-    after :timer.seconds(3) ->
-      Logger.debug("Did not receive a query ID. Query cannot be cancelled")
-    end
-    conn
   end
 
   @doc false
@@ -217,6 +204,17 @@ defmodule Air.PsqlServer do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp start_async_query(conn, query, params, options, on_finished) do
+    user = conn.assigns.user
+    data_source_id = conn.assigns.data_source_id
+    converted_params = convert_params(params)
+    run_async(
+      conn,
+      fn -> DataSource.run_query(data_source_id, user, :psql, query, converted_params, options) end,
+      on_finished
+    )
+  end
 
   defp verify_ssl_file(key) do
     cond do
