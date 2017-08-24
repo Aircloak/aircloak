@@ -1,4 +1,4 @@
-defmodule Air.PsqlServer.BackendProcessRegistry do
+defmodule Air.PsqlServer.ConnectionRegistry do
   @moduledoc """
   Maintains a list of active psql connections and their associated process id and secret key.
   Along with that it maintains information about the running query of a given process.

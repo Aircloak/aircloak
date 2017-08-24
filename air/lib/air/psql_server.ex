@@ -21,7 +21,7 @@ defmodule Air.PsqlServer do
     @callback describe_query(RanchServer.t, String.t, [any]) :: RanchServer.t | nil
   end
 
-  alias Air.PsqlServer.{Protocol, RanchServer, BackendProcessRegistry}
+  alias Air.PsqlServer.{Protocol, RanchServer, ConnectionRegistry}
   alias Air.Service.{User, DataSource, Version}
   require Logger
   require Aircloak.DeployConfig
@@ -104,7 +104,7 @@ defmodule Air.PsqlServer do
     conn = start_async_query(conn, query, params, options, callback)
     receive do
       {:query_id, query_id} ->
-        BackendProcessRegistry.register_query(
+        ConnectionRegistry.register_query(
           conn.assigns.backend_key_data,
           conn.assigns.user.id,
           query_id
@@ -157,7 +157,7 @@ defmodule Air.PsqlServer do
 
   @doc false
   def cancel_query(conn, backend_key_data) do
-    BackendProcessRegistry.cancel_query(backend_key_data)
+    ConnectionRegistry.cancel_query(backend_key_data)
     conn
   end
 

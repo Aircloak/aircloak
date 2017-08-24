@@ -33,7 +33,7 @@ defmodule Air.PsqlServer.Protocol.Authentication do
     |> Protocol.send_to_client({:authentication_method, method})
     |> Protocol.await_client_message()
   def handle_event(%{state: :authenticating} = protocol, {:authenticated, true}) do
-    backend_key_data = Air.PsqlServer.BackendProcessRegistry.register()
+    backend_key_data = Air.PsqlServer.ConnectionRegistry.register()
     protocol
     |> Protocol.send_to_client(:authentication_ok)
     |> Protocol.send_to_client({:parameter_status, "application_name", "aircloak"})
