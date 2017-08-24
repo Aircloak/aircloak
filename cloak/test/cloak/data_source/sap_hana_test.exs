@@ -45,14 +45,15 @@ defmodule Cloak.DataSource.SAPHanaTest do
             &{&1, "select uid, #{&1}(value) as value from times group by uid, value"}),
           Enum.map(~w(sqrt floor ceil abs round), &{&1, "select uid, #{&1}(value) as value from ints"}),
           [{"mod", "select uid, mod(value, 2) as value from ints"}],
-          Enum.map(~w(% * / + -), &{&1, "select uid, (value #{&1} 2) as value from ints"}),
+          Enum.map(~w(% * / + - ^), &{&1, "select uid, (value #{&1} 2) as value from ints"}),
           Enum.map(~w(length lower upper btrim ltrim rtrim), &{&1, "select uid, #{&1}(value) as value from strings"}),
           Enum.map(~w(ltrim rtrim), &{&1, "select uid, #{&1}(value, ' ') as value from strings"}),
           Enum.map(~w(left right), &{&1, "select uid, #{&1}(value, 1) as value from strings"}),
           [{"substring", "select uid, substring(value from 1) as value from strings"}],
           [{"substring/2", "select uid, substring(value from 1 for 1) as value from strings"}],
           [{"substring_for", "select uid, substring_for(value, 1) as value from strings"}],
-          [{"concat", "select uid, concat(value, 'abc') as value from strings"}],
+          [{"bucket", "select uid, bucket(value by 2) as value from ints"}],
+          [{"cast", "select uid, cast(value as text) as value from ints"}],
         ]
         |> Stream.concat()
         |> Stream.chunk(10, 10, [])

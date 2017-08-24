@@ -12,8 +12,9 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
     ~w(
       count sum min max avg stddev
       year quarter month day hour minute second weekday
-      sqrt floor ceil abs round mod % * / + -
+      sqrt floor ceil abs round mod ^ % * / + -
       length lower upper btrim/1 ltrim rtrim left right substring substring_for concat
+      cast coalesce bucket
     )
 
   @doc false
