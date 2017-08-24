@@ -105,7 +105,7 @@ defmodule Air.PsqlServer do
     receive do
       {:query_id, query_id} ->
         ConnectionRegistry.register_query(
-          conn.assigns.backend_key_data,
+          conn.assigns.key_data,
           conn.assigns.user.id,
           query_id
         )
@@ -156,8 +156,8 @@ defmodule Air.PsqlServer do
   end
 
   @doc false
-  def cancel_query(conn, backend_key_data) do
-    ConnectionRegistry.cancel_query(backend_key_data)
+  def cancel_query(conn, key_data) do
+    ConnectionRegistry.cancel_query(key_data)
     conn
   end
 

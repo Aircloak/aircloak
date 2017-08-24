@@ -47,7 +47,7 @@ defmodule Air.PsqlServer.RanchServer do
   @callback run_query(t, String.t, [Protocol.db_value], pos_integer) :: t
 
   @doc "Invoked to cancel a query on a backend."
-  @callback cancel_query(t, Protocol.backend_key_data) :: t
+  @callback cancel_query(t, ConnectionRegistry.key_data) :: t
 
   @doc "Invoked to describe the statement result."
   @callback describe_statement(t, String.t, [Protocol.db_value]) :: t
@@ -233,8 +233,8 @@ defmodule Air.PsqlServer.RanchServer do
     conn.behaviour_mod.run_query(conn, query, params, max_rows)
   defp handle_protocol_action({:cancel_query, key}, conn), do:
     conn.behaviour_mod.cancel_query(conn, key)
-  defp handle_protocol_action({:register_backend_key_data, backend_key_data}, conn), do:
-    assign(conn, :backend_key_data, backend_key_data)
+  defp handle_protocol_action({:register_key_data, key_data}, conn), do:
+    assign(conn, :key_data, key_data)
   defp handle_protocol_action({:describe_statement, query, params}, conn), do:
     conn.behaviour_mod.describe_statement(conn, query, params)
 end

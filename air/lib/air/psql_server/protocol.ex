@@ -47,7 +47,7 @@ defmodule Air.PsqlServer.Protocol do
 
   @type action ::
     {:send, iodata()} |
-    {:register_backend_key_data, ConnectionRegistry.key_data} |
+    {:register_key_data, ConnectionRegistry.key_data} |
     {:close, reason :: any} |
     :upgrade_to_ssl |
     {:cancel_query, ConnectionRegistry.key_data} |
