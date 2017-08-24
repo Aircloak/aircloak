@@ -1,10 +1,8 @@
 defmodule Air.PsqlServer.ConnectionRegistry do
   @moduledoc """
-  Maintains a list of active psql connections and their associated process id and secret key.
-  Along with that it maintains information about the running query of a given process.
-
-  This allows clients to cancel running queries, which happens through a separate channel,
-  hence the need for this server.
+  This registry maintains an association of process and session ids to queries
+  started through the Postgres Message Protocol interface. This allows queries
+  to be cancelled using out of bounds connections.
   """
 
   alias Air.Service.{Query, User, DataSource}
