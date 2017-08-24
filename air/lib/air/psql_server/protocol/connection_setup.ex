@@ -45,7 +45,6 @@ defmodule Air.PsqlServer.Protocol.ConnectionSetup do
   defp handle_intent_message(protocol, message) do
     if Messages.cancel_message?(message) do
       Protocol.await_client_message(protocol, state: :cancelling_query, bytes: 8, decode?: false)
-
     else
       startup_message = Messages.decode_startup_message(message)
       if startup_message.version.major != 3 do
