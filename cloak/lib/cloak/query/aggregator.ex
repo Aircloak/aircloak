@@ -4,7 +4,7 @@ defmodule Cloak.Query.Aggregator do
   require Logger
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{Query, Expression, NoiseLayer}
+  alias Cloak.Sql.{Query, Expression, NoiseLayer, LowCountCheck}
   alias Cloak.Query.{Anonymizer, Rows, Result}
   alias Cloak.Query.Runner.Engine
 
@@ -47,7 +47,7 @@ defmodule Cloak.Query.Aggregator do
   """
   @spec aggregate(Enumerable.t, Query.t, Engine.state_updater) :: Result.t
   def aggregate(rows, query, state_updater) do
-    rows = preprocess(rows, query)
+    rows = perform_low_count_checks(rows, query)
     groups = groups(rows, query, state_updater)
     users_count = number_of_anonymized_users(groups, query)
     aggregated_buckets = groups
@@ -65,20 +65,26 @@ defmodule Cloak.Query.Aggregator do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp preprocess(rows, query), do:
+  defp perform_low_count_checks(rows, query), do:
     Enum.reduce(query.low_count_checks, rows, &perform_low_count_check(&1, &2, query))
 
-  defp perform_low_count_check(%{expressions: expressions}, rows, query) do
-    by_value = Enum.group_by(rows, fn (row) -> Enum.map(expressions, &Expression.value(&1, row)) end)
+  defp perform_low_count_check(%LowCountCheck{expressions: expressions}, rows, query) do
+    by_value =
+      rows
+      |> Enum.flat_map(fn (row) -> Enum.map(expressions, &{Expression.value(&1, row), row}) end)
+      |> Enum.group_by(fn ({value, _}) -> value end, fn ({_, row}) -> row end)
 
-    if Enum.count(by_value) >= @low_count_check_cutoff,
-      do: rows,
-      else: drop_low_count_values(by_value, query)
+    if Enum.count(by_value) >= @low_count_check_cutoff do
+      rows
+    else
+      to_drop = values_to_drop(by_value, query)
+      Enum.reject(rows, fn (row) -> Enum.any?(expressions, &Expression.value(&1, row) in to_drop) end)
+    end
   end
 
-  defp drop_low_count_values(rows_by_value, query) do
+  defp values_to_drop(rows_by_value, query), do:
     rows_by_value
-    |> Enum.reject(fn ({_, rows}) ->
+    |> Enum.filter(fn ({_, rows}) ->
       accumulator = NoiseLayer.new_accumulator(query.noise_layers)
       noise_layers = Enum.reduce(rows, accumulator, &NoiseLayer.accumulate(query.noise_layers, &2, &1))
       user_ids = Enum.map(rows, &user_id/1) |> Enum.into(MapSet.new())
@@ -86,8 +92,8 @@ defmodule Cloak.Query.Aggregator do
 
       low_users_count?(user_ids, anonymizer)
     end)
-    |> Enum.flat_map(fn ({_, rows}) -> rows end)
-  end
+    |> Enum.map(fn ({value, _}) -> value end)
+    |> Enum.into(MapSet.new())
 
   defp aggregate_values([], [], []), do: []
   defp aggregate_values([nil | rest_values], [accumulator | rest_accumulators], [_aggregator | rest_aggregators]), do:
