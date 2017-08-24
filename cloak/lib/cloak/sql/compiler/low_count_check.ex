@@ -8,11 +8,20 @@ defmodule Cloak.Sql.Compiler.LowCountCheck do
     |> Helpers.apply_bottom_up(&float_checks/1)
 
   defp float_checks(query) do
-    floated_checks = get_in(query, [Query.Lenses.subquery_low_count_checks()])
-
-    %{query | low_count_checks: query.low_count_checks ++ floated_checks}
+    %{query | low_count_checks: query.low_count_checks ++ floated_checks(query)}
     |> add_db_columns()
   end
+
+  defp floated_checks(query), do:
+    Query.Lenses.direct_subqueries()
+    |> Lens.to_list(query)
+    |> Enum.flat_map(fn (%{ast: subquery, alias: alias}) ->
+      subquery_table = Enum.find(query.selected_tables, & &1.name == alias)
+      true = subquery_table != nil
+
+      Lens.all() |> Lens.key(:expressions) |> Lens.all()
+      |> Lens.map(subquery.low_count_checks, &Helpers.reference_aliased(&1, subquery, subquery_table))
+    end)
 
   defp add_db_columns(query) do
     to_add = Enum.flat_map(query.low_count_checks, & &1.expressions)
@@ -23,11 +32,10 @@ defmodule Cloak.Sql.Compiler.LowCountCheck do
   defp compute_basic_checks(query), do:
     %{query | low_count_checks: basic_checks(query)}
 
-  defp basic_checks(query) do
+  defp basic_checks(query), do:
     Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.satisfy(&Condition.like?/1)
     |> Lens.to_list(query)
-    |> Enum.map(fn ({type, lhs, _rhs}) -> LowCountCheck.new(type, [lhs]) end)
-  end
+    |> Enum.map(fn ({type, lhs, _rhs}) -> LowCountCheck.new(type, [Helpers.set_unique_alias(lhs)]) end)
 end

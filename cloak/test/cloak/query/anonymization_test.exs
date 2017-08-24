@@ -99,5 +99,7 @@ defmodule Cloak.Query.AnonymizationTest do
     end
 
     test "casing is taken into account for ILIKE"
+
+    test "many unique values in an aggregated subquery"
   end
 end
