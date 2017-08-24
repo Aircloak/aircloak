@@ -13,6 +13,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
       count sum min max avg stddev
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round mod % * / + -
+      length lower upper btrim/1 ltrim rtrim left right substring substring_for concat
     )
 
   @doc false
@@ -25,6 +26,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   for binary_operator <- ~w(+ - * /) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
+  def function_sql("btrim", args), do: function_sql("trim", args)
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") ,")"]
 
   @doc false

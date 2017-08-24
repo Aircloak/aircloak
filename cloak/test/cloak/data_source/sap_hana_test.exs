@@ -50,6 +50,20 @@ defmodule Cloak.DataSource.SAPHanaTest do
             &{&1, "select uid, #{&1}(int_value, 2) as value from test"}),
           Enum.map(~w(% * / + -),
             &{&1, "select uid, (int_value #{&1} 2) as value from test"}),
+          Enum.map(~w(length lower upper btrim ltrim rtrim),
+            &{&1, "select uid, #{&1}(string_value) as value from string"}),
+          Enum.map(~w(ltrim rtrim),
+            &{&1, "select uid, #{&1}(string_value, ' ') as value from string"}),
+          Enum.map(~w(left right),
+            &{&1, "select uid, #{&1}(string_value, 1) as value from string"}),
+          Enum.map(~w(substring),
+            &{&1, "select uid, #{&1}(string_value from 1) as value from string"}),
+          Enum.map(~w(substring),
+            &{&1, "select uid, #{&1}(string_value from 1 for 1) as value from string"}),
+          Enum.map(~w(substring_for),
+            &{&1, "select uid, #{&1}(string_value, 1) as value from string"}),
+          Enum.map(~w(concat),
+            &{&1, "select uid, #{&1}(string_value, 'abc') as value from string"}),
         ]
         |> Stream.concat()
         |> Stream.chunk(10, 10, [])
@@ -87,6 +101,15 @@ defmodule Cloak.DataSource.SAPHanaTest do
             end
           )
         end,
+        fn ->
+          conn = connect!()
+          Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "STRING", "UID integer, STRING_VALUE nvarchar(100)")
+          Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "STRING", ["UID", "STRING_VALUE"],
+            for {value, uids} <- %{~c('a string value') => 1..10}, uid <- uids do
+              [uid, value]
+            end
+          )
+        end
       ]
       |> Enum.map(&Task.async/1)
       |> Enum.map(&Task.await(&1, :timer.seconds(30)))
@@ -118,6 +141,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
         initial_tables: %{
           test: %{name: "test", db_name: "#{@schema}.TEST", user_id: "UID", ignore_unsupported_types: true},
           time: %{name: "time", db_name: "#{@schema}.TIME", user_id: "UID", ignore_unsupported_types: true},
+          string: %{name: "string", db_name: "#{@schema}.STRING", user_id: "UID", ignore_unsupported_types: true},
         },
         initial_errors: [],
       })
