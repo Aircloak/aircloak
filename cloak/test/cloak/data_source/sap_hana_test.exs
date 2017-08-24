@@ -26,7 +26,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
     end
 
     test "basic select", context do
-      assert_query(context.data_source, "select int_value from test", %{rows: [
+      assert_query(context.data_source, "select value from ints", %{rows: [
         %{row: [1], occurrences: 10},
         %{row: [2], occurrences: 5}
       ]})
@@ -39,31 +39,31 @@ defmodule Cloak.DataSource.SAPHanaTest do
       # too many queries at the same time.
       errors =
         [
-          [{"subquery", "select uid, int_value as value from test"}],
+          [{"subquery", "select uid, value from ints"}],
           Enum.map(~w(count sum min max avg stddev),
-            &{&1, "select uid, #{&1}(int_value) as value from test group by uid"}),
+            &{&1, "select uid, #{&1}(value) as value from ints group by uid"}),
           Enum.map(~w(year quarter month day hour minute second weekday),
-            &{&1, "select uid, #{&1}(datetime_value) as value from time group by uid, datetime_value"}),
+            &{&1, "select uid, #{&1}(value) as value from times group by uid, value"}),
           Enum.map(~w(sqrt floor ceil abs round),
-            &{&1, "select uid, #{&1}(int_value) as value from test"}),
+            &{&1, "select uid, #{&1}(value) as value from ints"}),
           Enum.map(~w(mod),
-            &{&1, "select uid, #{&1}(int_value, 2) as value from test"}),
+            &{&1, "select uid, #{&1}(value, 2) as value from ints"}),
           Enum.map(~w(% * / + -),
-            &{&1, "select uid, (int_value #{&1} 2) as value from test"}),
+            &{&1, "select uid, (value #{&1} 2) as value from ints"}),
           Enum.map(~w(length lower upper btrim ltrim rtrim),
-            &{&1, "select uid, #{&1}(string_value) as value from string"}),
+            &{&1, "select uid, #{&1}(value) as value from strings"}),
           Enum.map(~w(ltrim rtrim),
-            &{&1, "select uid, #{&1}(string_value, ' ') as value from string"}),
+            &{&1, "select uid, #{&1}(value, ' ') as value from strings"}),
           Enum.map(~w(left right),
-            &{&1, "select uid, #{&1}(string_value, 1) as value from string"}),
+            &{&1, "select uid, #{&1}(value, 1) as value from strings"}),
           Enum.map(~w(substring),
-            &{&1, "select uid, #{&1}(string_value from 1) as value from string"}),
+            &{&1, "select uid, #{&1}(value from 1) as value from strings"}),
           Enum.map(~w(substring),
-            &{&1, "select uid, #{&1}(string_value from 1 for 1) as value from string"}),
+            &{&1, "select uid, #{&1}(value from 1 for 1) as value from strings"}),
           Enum.map(~w(substring_for),
-            &{&1, "select uid, #{&1}(string_value, 1) as value from string"}),
+            &{&1, "select uid, #{&1}(value, 1) as value from strings"}),
           Enum.map(~w(concat),
-            &{&1, "select uid, #{&1}(string_value, 'abc') as value from string"}),
+            &{&1, "select uid, #{&1}(value, 'abc') as value from strings"}),
         ]
         |> Stream.concat()
         |> Stream.chunk(10, 10, [])
@@ -85,8 +85,8 @@ defmodule Cloak.DataSource.SAPHanaTest do
       [
         fn ->
           conn = connect!()
-          Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "TEST", "UID integer, INT_VALUE integer")
-          Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "TEST", ["UID", "INT_VALUE"],
+          Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "INTS", "UID integer, VALUE integer")
+          Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "INTS", ["UID", "VALUE"],
             for {value, uids} <- %{1 => 1..10, 2 => 1..5, 3 => 1..1}, uid <- uids do
               [uid, value]
             end
@@ -94,8 +94,8 @@ defmodule Cloak.DataSource.SAPHanaTest do
         end,
         fn ->
           conn = connect!()
-          Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "TIME", "UID integer, DATETIME_VALUE datetime")
-          Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "TIME", ["UID", "DATETIME_VALUE"],
+          Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "TIMES", "UID integer, VALUE datetime")
+          Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "TIMES", ["UID", "VALUE"],
             for {value, uids} <- %{~c(timestamp'2017-08-23 01:02:03') => 1..10}, uid <- uids do
               [uid, value]
             end
@@ -103,8 +103,8 @@ defmodule Cloak.DataSource.SAPHanaTest do
         end,
         fn ->
           conn = connect!()
-          Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "STRING", "UID integer, STRING_VALUE nvarchar(100)")
-          Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "STRING", ["UID", "STRING_VALUE"],
+          Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "STRINGS", "UID integer, VALUE nvarchar(100)")
+          Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "STRINGS", ["UID", "VALUE"],
             for {value, uids} <- %{~c('a string value') => 1..10}, uid <- uids do
               [uid, value]
             end
@@ -139,9 +139,9 @@ defmodule Cloak.DataSource.SAPHanaTest do
         parameters: connection_params(),
         tables: [],
         initial_tables: %{
-          test: %{name: "test", db_name: "#{@schema}.TEST", user_id: "UID", ignore_unsupported_types: true},
-          time: %{name: "time", db_name: "#{@schema}.TIME", user_id: "UID", ignore_unsupported_types: true},
-          string: %{name: "string", db_name: "#{@schema}.STRING", user_id: "UID", ignore_unsupported_types: true},
+          ints: %{name: "ints", db_name: "#{@schema}.INTS", user_id: "UID", ignore_unsupported_types: true},
+          times: %{name: "times", db_name: "#{@schema}.TIMES", user_id: "UID", ignore_unsupported_types: true},
+          strings: %{name: "strings", db_name: "#{@schema}.STRINGS", user_id: "UID", ignore_unsupported_types: true},
         },
         initial_errors: [],
       })
