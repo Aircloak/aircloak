@@ -193,6 +193,7 @@ defmodule Cloak.DataSource do
   defp init_state(), do:
     Aircloak.DeployConfig.fetch!("data_sources")
     |> Enum.map(&to_data_source/1)
+    |> Enum.reject(&disabled_in_dev/1)
     |> Validations.Name.check_for_duplicates()
     |> Enum.map(&save_init_fields/1)
     |> Enum.map(&add_tables/1)
@@ -361,4 +362,29 @@ defmodule Cloak.DataSource do
 
   defp add_error_message(data_source, message), do:
     %{data_source | errors: [message | data_source.errors]}
+
+  if Mix.env == :dev do
+    defp disabled_in_dev(%{driver: Cloak.DataSource.SAPHana}) do
+      with \
+        {:ok, saphana_settings} <- Application.fetch_env(:cloak, :sap_hana),
+        {:ok, default_schema} <- Keyword.fetch(saphana_settings, :default_schema),
+        true <- String.length(default_schema) > 0
+      do
+        if :os.type() == {:unix, :darwin} do
+          Logger.warn("Can't connect to SAP HANA data source on OS X.")
+          true
+        else
+          false
+        end
+      else
+        _ ->
+          Logger.warn("Default schema for SAP HANA not set. Skipping SAP HANA data source.")
+      end
+    end
+    defp disabled_in_dev(_data_source), do:
+      false
+  else
+    defp disabled_in_dev(_data_source), do:
+      false
+  end
 end

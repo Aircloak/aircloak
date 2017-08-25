@@ -59,6 +59,16 @@ If you want to run cloak in a local docker container, you need to run this comma
 
 If everything is properly installed and setup, standard tests invoked with `make test` should pass.
 
+#### Working with SAP HANA data sources on local machine
+
+In order to work with SAP HANA data source, you need to choose a schema you'll work on. You can define your schema in the `dev.local.exs` file:
+
+```elixir
+config :cloak, :sap_hana, default_schema: your_schema_name
+```
+
+Make sure to choose something unique for the schema name, such as your own name. Once you configured the schema, you need to run `make regenerate-db` again.
+
 ### Cloak configuration
 
 Cloaks have two sets of configuration files.

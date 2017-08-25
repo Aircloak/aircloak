@@ -2,6 +2,14 @@ if Mix.env() in [:dev, :test] do
   defmodule Cloak.SapHanaHelpers do
     @moduledoc "Helper functions for working with SAP HANA database."
     @type conn :: :odbc.connection_reference
+    @type connection_params :: %{
+      hostname: String.t,
+      port: pos_integer,
+      username: String.t,
+      password: String.t,
+      database: String.t,
+      default_schema: String.t,
+    }
 
 
     # -------------------------------------------------------------------
@@ -9,14 +17,16 @@ if Mix.env() in [:dev, :test] do
     # -------------------------------------------------------------------
 
     @doc "Connects to the database."
-    @spec connect(String.t, integer, String.t, String.t, String.t) :: {:ok, conn} | {:error, any}
-    def connect(host, port, user, password, database) do
+    @spec connect(connection_params) :: {:ok, conn} | {:error, any}
+    def connect(connection_params) do
       [
-        servernode: "#{host}:#{port}",
-        uid: user,
-        pwd: password,
-        databasename: database
+        servernode: "#{connection_params.hostname}:#{connection_params.port}",
+        uid: connection_params.username,
+        pwd: connection_params.password,
+        databasename: connection_params.database,
+        cs: connection_params[:default_schema]
       ]
+      |> Enum.reject(&match?({_key, nil}, &1))
       |> Keyword.merge(driver_option())
       |> Enum.map(fn({key, value}) -> [to_string(key), ?=, value] end)
       |> Enum.join(";")
@@ -36,14 +46,28 @@ if Mix.env() in [:dev, :test] do
       rows
     end
 
-    @doc "Creates the database schema if it doesn't exist."
-    @spec ensure_schema!(conn, String.t) :: :ok
-    def ensure_schema!(conn, schema_name) do
-      case select!(conn, "select schema_name from schemas where schema_name='#{schema_name}'") do
-        [_] -> :ok
-        [] ->
-          {:updated, _} = execute(conn, "create schema #{schema_name}")
-          :ok
+    @doc "Logs into the default schema, and creates the desired schema if it doesn't exist."
+    @spec ensure_schema!(connection_params, String.t) :: :ok
+    def ensure_schema!(connection_params, schema_name), do:
+      :ok = ensure_schema(connection_params, schema_name)
+
+    @doc "Logs into the default schema, and creates the desired schema if it doesn't exist."
+    @spec ensure_schema(connection_params, String.t) :: :ok | {:error, :reason}
+    def ensure_schema(connection_params, schema_name) do
+      schema_name = String.upcase(schema_name)
+      with {:ok, conn} <- connect(Map.delete(connection_params, :default_schema)) do
+        try do
+          case select!(conn, "select schema_name from schemas where schema_name='#{schema_name}'") do
+            [_] -> :ok
+            [] ->
+              case execute(conn, "create schema #{schema_name}") do
+                {:updated, _} -> :ok
+                _ -> {:error, :schema_create}
+              end
+          end
+        after
+          :odbc.disconnect(conn)
+        end
       end
     end
 
