@@ -57,12 +57,10 @@ if Mix.env == :dev do
       )
     end
     defp insert({:saphana, conn}, table_spec) do
-      schema_name = "ACDEV"
       table_name = String.upcase(table_spec.name)
       column_names = Enum.map(table_spec.columns, &elem(&1, 0))
 
-      Cloak.SapHanaHelpers.ensure_schema!(conn, schema_name)
-      Cloak.SapHanaHelpers.recreate_table!(conn, schema_name, table_name, table_def(table_spec))
+      Cloak.SapHanaHelpers.recreate_table!(conn, default_sap_hana_schema!(), table_name, table_def(table_spec))
 
       chunks = Enum.chunk(table_spec.data, 1000, 1000, [])
 
@@ -70,7 +68,7 @@ if Mix.env == :dev do
       |> Enum.with_index()
       |> Enum.each(fn({rows, index}) ->
         IO.puts "chunk #{index+1}/#{length(chunks)}"
-        Cloak.SapHanaHelpers.insert_rows!(conn, schema_name, table_name, column_names, rows)
+        Cloak.SapHanaHelpers.insert_rows!(conn, default_sap_hana_schema!(), table_name, column_names, rows)
       end)
     end
 
@@ -89,21 +87,51 @@ if Mix.env == :dev do
       )
     end
     defp open_connection(:saphana) do
-      Application.ensure_all_started(:odbc)
-
-      db_params =
-        Aircloak.DeployConfig.fetch!(:cloak, "data_sources")
-        |> Enum.find(&(&1["name"] == "saphana"))
-        |> Map.fetch!("parameters")
-
-      Cloak.SapHanaHelpers.connect(
-        Map.fetch!(db_params, "hostname"),
-        Map.fetch!(db_params, "port"),
-        Map.fetch!(db_params, "username"),
-        Map.fetch!(db_params, "password"),
-        Map.fetch!(db_params, "database")
-      )
+      with \
+        :ok <- sap_hana_connectivity_possible(),
+        {:ok, _} <- Application.ensure_all_started(:odbc),
+        {:ok, default_schema} <- default_sap_hana_schema(),
+        connection_params = sap_hana_connection_params(default_schema),
+        :ok <- Cloak.SapHanaHelpers.ensure_schema(connection_params, default_schema),
+      do:
+        Cloak.SapHanaHelpers.connect(connection_params)
     end
+
+    defp default_sap_hana_schema!() do
+      {:ok, default_schema} = default_sap_hana_schema()
+      default_schema
+    end
+
+    defp default_sap_hana_schema() do
+      with \
+        {:ok, saphana_settings} <- Application.fetch_env(:cloak, :sap_hana),
+        {:ok, default_schema} <- Keyword.fetch(saphana_settings, :default_schema),
+        true <- String.length(default_schema) > 0
+      do
+        {:ok, String.upcase(default_schema)}
+      else
+        _ ->
+          IO.puts("Default schema for SAP HANA not specified. SAP HANA data will not be recreated.")
+          {:error, :default_schema_not_specified}
+      end
+    end
+
+    defp sap_hana_connectivity_possible() do
+      if :os.type() == {:unix, :darwin} do
+        IO.puts("Can't connect to SAP HANA data source on OS X. SAP HANA data will not be recreated.")
+        {:error, :sap_hana_not_supported}
+      else
+        :ok
+      end
+    end
+
+    defp sap_hana_connection_params(default_schema), do:
+      Aircloak.DeployConfig.fetch!(:cloak, "data_sources")
+      |> Enum.find(&(&1["name"] == "saphana"))
+      |> Map.fetch!("parameters")
+      |> Enum.map(fn({key, value}) -> {String.to_atom(key), value} end)
+      |> Enum.into(%{})
+      |> Map.put(:default_schema, default_schema)
 
     defp create_statement(table_spec), do:
       "CREATE TABLE #{table_spec.name} (#{table_def(table_spec)})"

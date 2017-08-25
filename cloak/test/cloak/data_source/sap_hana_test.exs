@@ -94,12 +94,11 @@ defmodule Cloak.DataSource.SAPHanaTest do
     end
 
     defp setup_test_schema() do
-      conn = connect!()
-      Cloak.SapHanaHelpers.ensure_schema!(conn, @schema)
+      Cloak.SapHanaHelpers.ensure_schema!(connection_params(), @schema)
 
       [
         fn ->
-          conn = connect!()
+          conn = connect!(test_schema_connection_params())
           Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "INTS", "UID integer, VALUE integer")
           Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "INTS", ["UID", "VALUE"],
             for {value, uids} <- %{1 => 1..10, 2 => 1..5, 3 => 1..1}, uid <- uids do
@@ -108,7 +107,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
           )
         end,
         fn ->
-          conn = connect!()
+          conn = connect!(test_schema_connection_params())
           Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "TIMES", "UID integer, VALUE datetime")
           Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "TIMES", ["UID", "VALUE"],
             for {value, uids} <- %{~c(timestamp'2017-08-23 01:02:03') => 1..10}, uid <- uids do
@@ -117,7 +116,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
           )
         end,
         fn ->
-          conn = connect!()
+          conn = connect!(test_schema_connection_params())
           Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "STRINGS", "UID integer, VALUE nvarchar(100)")
           Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "STRINGS", ["UID", "VALUE"],
             for {value, uids} <- %{~c('a string value') => 1..10}, uid <- uids do
@@ -131,18 +130,18 @@ defmodule Cloak.DataSource.SAPHanaTest do
     end
 
     defp drop_test_schema() do
-      conn = connect!()
-      {:updated, _} = Cloak.SapHanaHelpers.execute(conn, "drop schema #{@schema} CASCADE")
+      {:updated, _} = Cloak.SapHanaHelpers.execute(connect!(connection_params()), "drop schema #{@schema} CASCADE")
       :ok
     end
 
     defp connection_params(), do:
       Map.new(Application.fetch_env!(:cloak, :sap_hana))
 
-    defp connect!() do
-      params = connection_params()
-      {:ok, conn} = Cloak.SapHanaHelpers.connect(params.hostname, params.port, params.username, params.password,
-        params.database)
+    defp test_schema_connection_params(), do:
+      Map.put(connection_params(), :default_schema, @schema)
+
+    defp connect!(connection_params) do
+      {:ok, conn} = Cloak.SapHanaHelpers.connect(connection_params)
       conn
     end
 
@@ -151,12 +150,12 @@ defmodule Cloak.DataSource.SAPHanaTest do
         name: "saphana_test",
         driver: Cloak.DataSource.SAPHana,
         driver_dialect: :saphana,
-        parameters: connection_params(),
+        parameters: test_schema_connection_params(),
         tables: [],
         initial_tables: %{
-          ints: %{name: "ints", db_name: "#{@schema}.INTS", user_id: "UID", ignore_unsupported_types: true},
-          times: %{name: "times", db_name: "#{@schema}.TIMES", user_id: "UID", ignore_unsupported_types: true},
-          strings: %{name: "strings", db_name: "#{@schema}.STRINGS", user_id: "UID", ignore_unsupported_types: true},
+          ints: %{name: "ints", db_name: "INTS", user_id: "UID", ignore_unsupported_types: true},
+          times: %{name: "times", db_name: "TIMES", user_id: "UID", ignore_unsupported_types: true},
+          strings: %{name: "strings", db_name: "STRINGS", user_id: "UID", ignore_unsupported_types: true},
         },
         initial_errors: [],
       })
