@@ -62,6 +62,26 @@ defmodule Air.Service.UserTest do
       user = User.load(user.id)
       assert [group2.id] == Enum.map(user.groups, &(&1.id))
     end
+
+    test "deleting a user deletes all their queries" do
+      user = TestRepoHelper.create_user!()
+      query = TestRepoHelper.create_query!(user, %{data_source_id: TestRepoHelper.create_data_source!().id})
+      TestRepoHelper.send_query_result(query.id, %{}, [%{occurrences: 1, row: ["some", "data"]}])
+
+      User.delete!(user)
+
+      assert is_nil(Repo.get(Air.Schemas.User, user.id))
+      assert is_nil(Repo.get(Air.Schemas.Query, query.id))
+    end
+
+    test "deleting a user deletes their views" do
+      user = TestRepoHelper.create_user!()
+      view = TestRepoHelper.create_view!(user, TestRepoHelper.create_data_source!())
+
+      User.delete!(user)
+
+      assert is_nil(Repo.get(Air.Schemas.View, view.id))
+    end
   end
 
   describe "group operations" do

@@ -99,6 +99,20 @@ defmodule Air.Service.View do
     :ok
   end
 
+  @doc "Delete all views into the given data source from the database."
+  @spec delete_for_data_source(Air.Schemas.DataSource.t) :: :ok
+  def delete_for_data_source(data_source) do
+    View |> by_data_source_id(data_source.id) |> Repo.delete_all()
+    :ok
+  end
+
+  @doc "Delete all views created by the given user from the database."
+  @spec delete_for_user(Air.Schemas.User.t) :: :ok
+  def delete_for_user(user) do
+    View |> by_user_id(user.id) |> Repo.delete_all()
+    :ok
+  end
+
   @doc "Returns a %{name => sql} map of all the views the given user defined for the given data source."
   @spec user_views_map(User.t, integer) :: view_map
   def user_views_map(user, data_source_id) do
