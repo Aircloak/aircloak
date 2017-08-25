@@ -277,11 +277,11 @@ defmodule Cloak.AirSocket do
   defp decode_params(params), do: :erlang.binary_to_term(Base.decode16!(params))
 
   defp air_socket_url(cloak_params) do
-    # deploy specific configuration takes precedence over OTP app configuration
     full_path =
       case Aircloak.DeployConfig.fetch("air_site") do
         {:ok, air_site} -> air_site
-        :error -> config(:air_site)
+        :error -> raise "The air_site is not configured in config.json. Please consult the " <>
+          "\"Configuring the system\" section of the User Guide."
       end
 
     full_path
