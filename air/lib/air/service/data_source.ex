@@ -320,12 +320,17 @@ defmodule Air.Service.DataSource do
   @doc "Deletes the given data source, raises on error."
   @spec delete!(DataSource.t) :: DataSource.t
   def delete!(data_source) do
-    Repo.delete_all(
-      from result_chunk in ResultChunk,
-      inner_join: query in assoc(result_chunk, :query),
-      where: query.data_source_id == ^data_source.id
-    )
-    Repo.delete!(data_source)
+    Repo.transaction(fn () ->
+      Repo.delete_all(
+        from result_chunk in ResultChunk,
+        inner_join: query in assoc(result_chunk, :query),
+        where: query.data_source_id == ^data_source.id
+      )
+
+      View.delete_all(data_source)
+
+      Repo.delete!(data_source)
+    end)
   end
 
   @doc "Converts data source into a changeset."

@@ -176,6 +176,16 @@ defmodule Air.Service.DataSourceTest do
     refute nil == Air.Service.User.load_group(group.id)
   end
 
+  test "deleting a data source deletes its views" do
+    user = TestRepoHelper.create_user!()
+    data_source = TestRepoHelper.create_data_source!()
+    TestRepoHelper.create_view!(user, data_source)
+
+    DataSource.delete!(data_source)
+
+    assert [] = Air.Service.View.all(user, data_source)
+  end
+
   test "replacing a group for a data_source, removes the old relationship" do
     group1 = TestRepoHelper.create_group!()
     group2 = TestRepoHelper.create_group!()
