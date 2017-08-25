@@ -2,6 +2,7 @@ defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
   alias Air.{Repo, Service.AuditLog, Schemas.DataSource, Schemas.Group, Schemas.User}
+  alias Air.Service.Query
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
 
@@ -106,7 +107,10 @@ defmodule Air.Service.User do
   @doc "Deletes the given user."
   @spec delete(User.t) :: {:ok, User.t} | {:error, :forbidden_last_admin_deletion}
   def delete(user), do:
-    commit_if_last_admin_not_deleted(fn -> Repo.delete(user) end)
+    commit_if_last_admin_not_deleted(fn ->
+      Query.delete_all(user)
+      Repo.delete(user)
+    end)
 
   @doc "Returns the empty changeset for the new user."
   @spec empty_changeset() :: Ecto.Changeset.t
