@@ -73,6 +73,15 @@ defmodule Air.Service.UserTest do
       assert is_nil(Repo.get(Air.Schemas.User, user.id))
       assert is_nil(Repo.get(Air.Schemas.Query, query.id))
     end
+
+    test "deleting a user deletes their views" do
+      user = TestRepoHelper.create_user!()
+      view = TestRepoHelper.create_view!(user, TestRepoHelper.create_data_source!())
+
+      User.delete!(user)
+
+      assert is_nil(Repo.get(Air.Schemas.View, view.id))
+    end
   end
 
   describe "group operations" do

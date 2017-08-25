@@ -327,7 +327,7 @@ defmodule Air.Service.DataSource do
         where: query.data_source_id == ^data_source.id
       )
 
-      View.delete_all(data_source)
+      View.delete_for_data_source(data_source)
 
       Repo.delete!(data_source)
     end)
