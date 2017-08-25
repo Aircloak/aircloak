@@ -111,14 +111,35 @@ if Mix.env == :dev do
         {:ok, String.upcase(default_schema)}
       else
         _ ->
-          IO.puts("Default schema for SAP HANA not specified. SAP HANA data will not be recreated.")
+          [
+            "",
+            "Default schema for SAP HANA not specified. SAP HANA data will not be recreated.",
+            "To use SAP HANA datasource, add the following to `dev.local.exs`:",
+            "",
+            "  config :cloak, :sap_hana, default_schema: your_schema_name",
+            "",
+            "See `README.md` for more details.",
+            "",
+          ]
+          |> Enum.join("\n")
+          |> IO.puts()
+
           {:error, :default_schema_not_specified}
       end
     end
 
     defp sap_hana_connectivity_possible() do
       if :os.type() == {:unix, :darwin} do
-        IO.puts("Can't connect to SAP HANA data source on OS X. SAP HANA data will not be recreated.")
+        [
+          "",
+          "Can't connect to SAP HANA data source from a macOS machine. SAP HANA data will not be recreated.",
+          "To work with SAP HANA data sources, start a dev container with `make dev-container`.",
+          "See `README.md` for more details.",
+          "",
+        ]
+        |> Enum.join("\n")
+        |> IO.puts()
+
         {:error, :sap_hana_not_supported}
       else
         :ok
