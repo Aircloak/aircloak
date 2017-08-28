@@ -1,6 +1,6 @@
 use Mix.Config
 
-config :cloak, :deploy_config_file, "test.json"
+config :cloak, :deploy_config_file, "integration_tests.json"
 
 config :cloak, :api, port: 8098, address: '0.0.0.0'
 
@@ -9,7 +9,6 @@ config :cloak, :in_development, false
 config :cloak, :alarm_handler, install: false
 
 config :cloak, :air,
-  air_site: "wss://localhost:8444",
   min_reconnect_interval: 50,
   max_reconnect_interval: 50,
   serializer: Air.CloakSocketSerializer
