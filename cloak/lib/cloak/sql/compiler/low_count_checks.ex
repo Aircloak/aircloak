@@ -1,11 +1,28 @@
 defmodule Cloak.Sql.Compiler.LowCountChecks do
+  @moduledoc "Contains functions related to compilation of low count checks."
+
   alias Cloak.Sql.{Query, Condition, LowCountCheck, Expression}
   alias Cloak.Sql.Compiler.Helpers
 
+
+  # -------------------------------------------------------------------
+  # API
+  # -------------------------------------------------------------------
+
+  @doc """
+  Fills in the low_count_checks for the given query. Furthermore, it modifies the query to float any data that will be
+  needed to compute those checks to the top level.
+  """
+  @spec compile(Query.t) :: Query.t
   def compile(query), do:
     query
     |> Helpers.apply_bottom_up(&compute_basic_checks/1)
     |> Helpers.apply_bottom_up(&float_checks/1)
+
+
+  # -------------------------------------------------------------------
+  # Floating checks
+  # -------------------------------------------------------------------
 
   defp float_checks(query), do:
     %{query | low_count_checks: query.low_count_checks ++ floated_checks(query)}
@@ -53,6 +70,11 @@ defmodule Cloak.Sql.Compiler.LowCountChecks do
     {query, to_add} = Helpers.drop_redundant_floated_columns(query, query.db_columns, to_add)
     Enum.reduce(to_add, query, &Query.add_db_column(&2, &1))
   end
+
+
+  # -------------------------------------------------------------------
+  # Basic checks
+  # -------------------------------------------------------------------
 
   defp compute_basic_checks(query), do:
     %{query | low_count_checks: basic_checks(query)}
