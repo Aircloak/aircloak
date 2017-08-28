@@ -85,13 +85,13 @@ defmodule Cloak.Query.Aggregator do
   defp values_to_drop(rows_by_value, query), do:
     rows_by_value
     |> Enum.filter(fn ({_, rows}) ->
-      {user_ids, anonymizer} = anonymizer_from_rows(rows)
+      {user_ids, anonymizer} = anonymizer_from_rows(rows, query)
       low_users_count?(user_ids, anonymizer)
     end)
     |> Enum.map(fn ({value, _}) -> value end)
     |> Enum.into(MapSet.new())
 
-  defp anonymizer_from_rows(rows) do
+  defp anonymizer_from_rows(rows, query) do
     accumulator = NoiseLayer.new_accumulator(query.noise_layers)
     noise_layers = Enum.reduce(rows, accumulator, &NoiseLayer.accumulate(query.noise_layers, &2, &1))
     user_ids = Enum.map(rows, &user_id/1) |> Enum.into(MapSet.new())

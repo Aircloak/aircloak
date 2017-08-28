@@ -1,4 +1,4 @@
-defmodule Cloak.Sql.Compiler.LowCountCheck do
+defmodule Cloak.Sql.Compiler.LowCountChecks do
   alias Cloak.Sql.{Query, Condition, LowCountCheck, Expression}
   alias Cloak.Sql.Compiler.Helpers
 

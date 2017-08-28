@@ -1,4 +1,4 @@
-defmodule Cloak.Sql.Compiler.LowCountCheck.Test do
+defmodule Cloak.Sql.Compiler.LowCountChecks.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.Table
@@ -58,7 +58,7 @@ defmodule Cloak.Sql.Compiler.LowCountCheck.Test do
 
   defp compile!(query, data_source, opts \\ []), do:
     Cloak.Test.QueryHelpers.compile!(query, data_source, opts)
-    |> Cloak.Sql.Compiler.LowCountCheck.compile()
+    |> Cloak.Sql.Compiler.LowCountChecks.compile()
 
   def data_source() do
     %{
