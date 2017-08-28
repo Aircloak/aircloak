@@ -1,6 +1,6 @@
 defmodule Cloak.Sql.LowCountCheck do
-  defstruct [:expressions, :type]
+  defstruct [:expressions]
 
-  def new(type, expressions), do:
-    %__MODULE__{type: type, expressions: expressions}
+  def new(expressions), do:
+    %__MODULE__{expressions: expressions}
 end

@@ -9,24 +9,25 @@ defmodule Cloak.Sql.Compiler.LowCountCheck.Test do
       "SELECT COUNT(*) FROM table WHERE name LIKE '%a%' AND name ILIKE '%b%' AND name2 LIKE '%c%'", data_source())
 
     assert [
-      %{expressions: [%Expression{name: "name"}], type: :like},
-      %{expressions: [%Expression{name: "name"}], type: :ilike},
-      %{expressions: [%Expression{name: "name2"}], type: :like},
+      %{expressions: [%Expression{name: "name"}]},
+      %{expressions: [%Expression{function: "lower", function_args: [%Expression{name: "name"}]}]},
+      %{expressions: [%Expression{name: "name2"}]},
     ] = result.low_count_checks
   end
 
   test "adds a low-count check for every LIKE condition in a subquery" do
     result = compile!("SELECT COUNT(*) FROM (
-      SELECT uid FROM table WHERE name LIKE '%a%' AND name ILIKE '%b%' AND name2 LIKE '%c%') x", data_source())
+      SELECT uid FROM table WHERE name LIKE '%a%' AND name LIKE '%b%' AND name2 ILIKE '%c%') x", data_source())
     {:subquery, %{ast: subquery}} = result.from
 
     assert [
-      %{expressions: [%Expression{name: alias1}], type: :like},
-      %{expressions: [%Expression{name: alias1}], type: :ilike},
-      %{expressions: [%Expression{name: alias2}], type: :like},
+      %{expressions: [%Expression{name: alias1}]},
+      %{expressions: [%Expression{name: alias1}]},
+      %{expressions: [%Expression{name: alias2}]},
     ] = result.low_count_checks
     assert 1 = Enum.count(subquery.db_columns, &match?(%Expression{name: "name", alias: ^alias1}, &1))
-    assert 1 = Enum.count(subquery.db_columns, &match?(%Expression{name: "name2", alias: ^alias2}, &1))
+    assert 1 = Enum.count(subquery.db_columns, &match?(
+      %Expression{function: "lower", alias: ^alias2, function_args: [%Expression{name: "name2"}]}, &1))
   end
 
   test "floating columns from aggregating subquery" do

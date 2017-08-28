@@ -62,5 +62,10 @@ defmodule Cloak.Sql.Compiler.LowCountCheck do
     |> Query.Lenses.conditions()
     |> Lens.satisfy(&Condition.like?/1)
     |> Lens.to_list(query)
-    |> Enum.map(fn ({type, lhs, _rhs}) -> LowCountCheck.new(type, [Helpers.set_unique_alias(lhs)]) end)
+    |> Enum.map(fn ({type, lhs, _rhs}) ->
+      LowCountCheck.new([lhs |> preprocess(type) |> Helpers.set_unique_alias()])
+    end)
+
+  defp preprocess(expression, :like), do: expression
+  defp preprocess(expression, :ilike), do: Expression.function("lower", [expression], expression.type)
 end

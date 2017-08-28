@@ -98,7 +98,24 @@ defmodule Cloak.Query.AnonymizationTest do
         %{columns: ["count"], rows: [%{row: [0]}]}
     end
 
-    test "casing is taken into account for ILIKE"
+    test "casing is taken into account for ILIKE" do
+      :ok = insert_rows(_user_ids = 1..1, "anonymizations", ["string"], ["alice"])
+      :ok = insert_rows(_user_ids = 2..2, "anonymizations", ["string"], ["ALICE"])
+      :ok = insert_rows(_user_ids = 3..3, "anonymizations", ["string"], ["alfred"])
+      :ok = insert_rows(_user_ids = 4..4, "anonymizations", ["string"], ["ALFRED"])
+      :ok = insert_rows(_user_ids = 5..5, "anonymizations", ["string"], ["ada"])
+
+      assert_query "select count(*) from anonymizations where string ilike 'a%'",
+        %{columns: ["count"], rows: [%{row: [0]}]}
+    end
+
+    test "casing is taken into account for ILIKE when deciding if there are enough unique values" do
+      :ok = insert_rows(_user_ids = 1..10, "anonymizations", ["string"], ["alice"])
+      :ok = insert_rows(_user_ids = 11..11, "anonymizations", ["string"], ["Alice"])
+
+      assert_query "select count(*) from anonymizations where string ilike 'a%'",
+        %{columns: ["count"], rows: [%{row: [11]}]}
+    end
 
     test "unique values with not enough users are dropped in an aggregated subquery" do
       :ok = insert_rows(_user_ids = 1..10, "anonymizations", ["string"], ["alice"])
