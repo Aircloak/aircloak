@@ -2,10 +2,36 @@
 
 `SELECT` queries return anonymized results. The results have noise added to them. This is crucial in protecting the privacy of individuals, while sufficiently unobtrusive to provide accurate results during normal use.
 
-The results are anonymized in two phases:
+The results are anonymized in three phases:
 
-1. Low-count filtering
-2. Adding noise
+1. Probing
+2. Low-count filtering
+3. Adding noise
+
+## Probing
+
+Some filtering clauses could indirectly reveal a user's identity. For example a clause like `name <> 'Fred'` could lead
+to the analyst being able to deduce things about a person named `Fred` if that person is the only one with that name.
+
+For that reason Aircloak needs to check how many unique users match certain clauses. In the example above Aircloak would
+check how many users in a particular query have the name `Fred` and possibly remove the whole clause if that number is
+too low. Because of that fact when two queries such as:
+
+```sql
+SELECT COUNT(*) FROM people WHERE name <> 'Fred'
+```
+
+and:
+
+```sql
+SELECT COUNT(*) FROM people
+```
+
+give the same output that doesn't mean there is nobody named `Fred` in the dataset. It might simply mean that there are too
+few of them to report.
+
+These checks are performed for all `<>`, `NOT LIKE`, and `NOT ILIKE` clauses. A check needs to be made for every constant
+in an `IN` clause as well.
 
 ## Low-count filtering
 
@@ -81,31 +107,6 @@ bound.
 | name  | count | count_noise | sum  | sum_noise | avg  | avg_noise | stddev | stddev_noise |
 |-------|-------|-------------|------|-----------|------|-----------|--------|--------------|
 | Alice | 2     | null        | null | null      | null | null      | null   | null         |
-
-## Probing
-
-Some filtering clauses could indirectly reveal a user's identity. For example a clause like `name <> 'Fred'` could lead
-to the analyst being able to deduce things about a person named `Fred` if that person is the only one with that name.
-
-For that reason Aircloak needs to check how many unique users match certain clauses. In the example above Aircloak would
-check how many users in a particular query have the name `Fred` and possibly remove the whole clause if that number is
-too low. Because of that fact when two queries such as:
-
-```sql
-SELECT COUNT(*) FROM people WHERE name <> 'Fred'
-```
-
-and:
-
-```sql
-SELECT COUNT(*) FROM people
-```
-
-give the same output that doesn't mean there is nobody named `Fred` in the dataset. It might simply mean that there are too
-few of them to report.
-
-These checks are performed for all `<>`, `NOT LIKE`, and `NOT ILIKE` clauses. A check needs to be made for every constant
-in an `IN` clause as well.
 
 ## Anonymization functions
 
