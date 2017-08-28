@@ -61,6 +61,10 @@ The number of `*` rows indicates the amount of properties that can't be included
 
 It is worth noting that absence of `*` rows doesn't mean that no rows were omitted. The `*` rows have to pass the same anonymization procedure. Thus, if the total count of `*` rows is too low, they will be omitted from the result.
 
+### `LIKE` clauses
+
+An additional mechanism is applied when the query includes a `LIKE` clause. If there are too few unique values matching the `LIKE` pattern then rows with values represented by too few unique users will be omitted from the result.
+
 ## Adding noise
 
 After low-count values are filtered, some amount of noise is introduced. Consider the example from the [previous section](#low-count-filtering), where there are 100 Alices, 150 Johns, and 5 other names. The final result might contain a slightly different distribution, for example 94 Alice rows, 152 John rows, and 7 `*` rows.
