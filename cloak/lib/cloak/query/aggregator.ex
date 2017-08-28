@@ -23,7 +23,7 @@ defmodule Cloak.Query.Aggregator do
   Transforms the non-anonymized rows returned from the database into an
   anonymized result. This is done in following steps:
 
-  1. Rows are groupped per query specification. See `Cloak.Query.Rows.group_expressions/1` for details.
+  1. Rows are grouped per query specification. See `Cloak.Query.Rows.group_expressions/1` for details.
      Additionally, inside each distinct group, rows are groupped per user.
 
   2. Groups for which there are not enough distinct users are discarded.
@@ -62,7 +62,7 @@ defmodule Cloak.Query.Aggregator do
 
 
   # -------------------------------------------------------------------
-  # Internal functions
+  # Low count checks
   # -------------------------------------------------------------------
 
   defp perform_low_count_checks(rows, query), do:
@@ -85,15 +85,25 @@ defmodule Cloak.Query.Aggregator do
   defp values_to_drop(rows_by_value, query), do:
     rows_by_value
     |> Enum.filter(fn ({_, rows}) ->
-      accumulator = NoiseLayer.new_accumulator(query.noise_layers)
-      noise_layers = Enum.reduce(rows, accumulator, &NoiseLayer.accumulate(query.noise_layers, &2, &1))
-      user_ids = Enum.map(rows, &user_id/1) |> Enum.into(MapSet.new())
-      anonymizer = Anonymizer.new([user_ids | noise_layers])
-
+      {user_ids, anonymizer} = anonymizer_from_rows(rows)
       low_users_count?(user_ids, anonymizer)
     end)
     |> Enum.map(fn ({value, _}) -> value end)
     |> Enum.into(MapSet.new())
+
+  defp anonymizer_from_rows(rows) do
+    accumulator = NoiseLayer.new_accumulator(query.noise_layers)
+    noise_layers = Enum.reduce(rows, accumulator, &NoiseLayer.accumulate(query.noise_layers, &2, &1))
+    user_ids = Enum.map(rows, &user_id/1) |> Enum.into(MapSet.new())
+    anonymizer = Anonymizer.new([user_ids | noise_layers])
+
+    {user_ids, anonymizer}
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp aggregate_values([], [], []), do: []
   defp aggregate_values([nil | rest_values], [accumulator | rest_accumulators], [_aggregator | rest_aggregators]), do:
