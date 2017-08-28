@@ -323,3 +323,27 @@ and any corresponding noise layers are removed from the original query.
 See [this noise layer issue](https://github.com/Aircloak/aircloak/issues/1768)
 and [this probing issue](https://github.com/Aircloak/aircloak/issues/1777) for
 more information about noise layers and probing.
+
+### Low count checks
+
+LIKE and ILIKE clauses are subject to another mechanism that hides some rows
+matched by the query under certain conditions. This is because a LIKE is
+implicitly an OR clause - for example the clause `x LIKE '_abc'` is the same as
+`x = 'aabc' OR x = 'babc' OR ...`.
+
+For every clause of the type `x LIKE y` where `x` might be some complex expression
+`x` is floated to the top of the query. Then, before aggregation, we look at the
+number of distinct values in `x`. If it's more than 4, then no rows are suppressed.
+If it's less, then for each unique value we do a low-count computation, as usual.
+The rows containing the values that are low-count are removed from the result
+set before aggregation.
+
+There are two additional complications:
+
+1. For ILIKE, the floated values is a downcased version of what would be floated
+   for LIKE to account for the case-insensitive nature of the clause.
+2. If the rows are grouped in a subquery (e.g.
+   `SELECT ... FROM (SELECT ... WHERE x LIKE y GROUP BY z) foo`) then we float
+   `min` and `max` of the appropriate expression. These are then fed into the
+   rules above, but if a value is found to be low-count then all _aggregated_
+   rows containing that value in either `min` or `max` will be suppressed.
