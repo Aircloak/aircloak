@@ -31,7 +31,8 @@ defmodule Air.LayoutView do
       link(
         Air.HelpGuideView.page_title(page),
         to: help_guide_path(conn, :article, page),
-        class: "suggested-reading"
+        class: "suggested-reading",
+        rel: "help"
       )
     end)
     |> Enum.reduce([],

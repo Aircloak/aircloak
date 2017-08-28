@@ -7,7 +7,7 @@
       <a href="/changelog">Changelog</a>
     </small>
     <small>
-      <a href="<%= license_path(@conn, :index) %>">Third Party Licenses</a>
+      <%= link "Third Party Licenses", to: license_path(@conn, :index), rel: "license" %>
     </small>
   <% end %>
 </div>
