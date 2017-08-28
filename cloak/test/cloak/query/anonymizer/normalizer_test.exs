@@ -27,6 +27,9 @@ defmodule Cloak.Query.Anonimyzer.Normalizer.Test do
       assert number1 == number2
       refute exponent1 == exponent2
     end
+
+    test "normalizes 0.0 as well", do:
+      {{_, _}, _} = Normalizer.normalize_float(0.0, 3)
   end
 
   defp same(num1, num2), do:
