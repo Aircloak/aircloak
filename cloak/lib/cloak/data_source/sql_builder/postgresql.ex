@@ -22,6 +22,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   for datepart <- ~w(year month day hour minute second quarter) do
     def function_sql(unquote(datepart), args), do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
   end
+  def function_sql("weekday", args), do: ["EXTRACT(DOW FROM ", args, ")"]
   def function_sql("trunc", [arg1, arg2]), do: ["TRUNC(CAST(", arg1, " AS decimal), ", arg2, ")"]
   def function_sql("round", [arg1, arg2]), do: ["ROUND(CAST(", arg1, " AS decimal), ", arg2, ")"]
   def function_sql("hex", [arg]), do: ["ENCODE(", arg, "::bytea, 'hex')"]
