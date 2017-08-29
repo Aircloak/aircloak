@@ -88,8 +88,6 @@ defmodule Cloak.Test.DB do
   end
 
   defp prepare_insert(table_name, columns, rows) do
-    columns = Enum.map(columns, &sanitize_db_object/1)
-
     {
       [
         "INSERT INTO ", sanitized_table(table_name),
