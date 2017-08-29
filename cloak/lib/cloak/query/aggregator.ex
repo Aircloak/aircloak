@@ -66,7 +66,7 @@ defmodule Cloak.Query.Aggregator do
   # -------------------------------------------------------------------
 
   defp perform_low_count_checks(rows, query), do:
-    Enum.reduce(query.low_count_checks, rows, &perform_low_count_check(&1, &2, query))
+    Enum.reduce(query.low_count_checks, Enum.to_list(rows), &perform_low_count_check(&1, &2, query))
 
   defp perform_low_count_check(%LowCountCheck{expressions: expressions}, rows, query) do
     by_value =
