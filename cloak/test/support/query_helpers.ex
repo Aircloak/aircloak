@@ -23,7 +23,6 @@ defmodule Cloak.Test.QueryHelpers do
         |> Enum.map(&Task.async(fn -> run_query.(&1) end))
         |> Enum.map(&Task.await/1)
         |> Enum.map(&Map.drop(&1, [:execution_time, :features]))
-        |> Enum.reject(&Regex.match?(~r/not supported on '[\w\d\s]+' data sources\.$/, Map.get(&1, :error, "")))
 
       for other_response <- other_responses, do:
         assert(first_response == other_response)
