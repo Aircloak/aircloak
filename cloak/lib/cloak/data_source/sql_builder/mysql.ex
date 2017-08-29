@@ -22,6 +22,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   for datepart <- ~w(year month day hour minute second quarter) do
     def function_sql(unquote(datepart), args), do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
   end
+  def function_sql("weekday", args), do: ["(WEEKDAY(", args, ") + 1)"]
   def function_sql("trunc", [arg1, arg2]), do: ["TRUNCATE(", arg1, ", ", arg2, ")"]
   def function_sql("trunc", [arg1]), do: ["TRUNCATE(", arg1, ", 0)"]
   def function_sql("btrim", [arg1]), do: ["TRIM(", arg1, ")"]
