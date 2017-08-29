@@ -66,9 +66,10 @@ defmodule Cloak.Query.Aggregator do
   # -------------------------------------------------------------------
 
   defp perform_low_count_checks(rows, query), do:
-    Enum.reduce(query.low_count_checks, Enum.to_list(rows), &perform_low_count_check(&1, &2, query))
+    Enum.reduce(query.low_count_checks, rows, &perform_low_count_check(&1, &2, query))
 
   defp perform_low_count_check(%LowCountCheck{expressions: expressions}, rows, query) do
+    rows = run_stream_to_avoid_rewinds(rows)
     by_value =
       rows
       |> Enum.flat_map(fn (row) -> Enum.map(expressions, &{Expression.value(&1, row), row}) end)
@@ -81,6 +82,8 @@ defmodule Cloak.Query.Aggregator do
       Enum.reject(rows, fn (row) -> Enum.any?(expressions, &Expression.value(&1, row) in to_drop) end)
     end
   end
+
+  defp run_stream_to_avoid_rewinds(enum), do: Enum.to_list(enum)
 
   defp values_to_drop(rows_by_value, query), do:
     rows_by_value
