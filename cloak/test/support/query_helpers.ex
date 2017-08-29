@@ -5,7 +5,7 @@ defmodule Cloak.Test.QueryHelpers do
 
   alias Cloak.Sql.{Expression, Compiler, Parser, Query}
 
-  defmacro assert_query(query, options \\ [], expected_response) do
+  defmacro assert_query_consistency(query, options \\ []) do
     parameters = Keyword.get(options, :parameters, [])
     views = Keyword.get(options, :views, quote(do: %{}))
     quote do
@@ -28,7 +28,13 @@ defmodule Cloak.Test.QueryHelpers do
       for other_response <- other_responses, do:
         assert(first_response == other_response)
 
-      assert unquote(expected_response) = first_response
+      first_response
+    end
+  end
+
+  defmacro assert_query(query, options \\ [], expected_response) do
+    quote do
+      assert unquote(expected_response) = assert_query_consistency(unquote(query), unquote(options))
     end
   end
 
