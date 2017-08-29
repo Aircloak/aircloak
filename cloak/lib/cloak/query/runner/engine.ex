@@ -23,6 +23,7 @@ defmodule Cloak.Query.Runner.Engine do
         query = build_initial_noise_layers(query),
         query = Probe.process(query),
         query = build_final_noise_layers(query),
+        query = Sql.Compiler.LowCountChecks.compile(query),
         state_updater.(:awaiting_data)
       do
         query_killer_reg.()

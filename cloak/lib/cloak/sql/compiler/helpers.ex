@@ -66,18 +66,24 @@ defmodule Cloak.Sql.Compiler.Helpers do
   def set_unique_alias(column), do: %{column | alias: "alias_#{System.unique_integer([:positive])}"}
 
   @doc """
-  Removes columns from floated_columns that are already present in selected_columns. Returns a modified version of
-  query where the appropriate selected columns are used instead of the removed columns.
+  Removes columns from new_columns that are duplicated or already present in selected_columns. Returns a modified
+  version of query where the appropriate selected columns are used instead of the removed columns.
   """
   @spec drop_redundant_floated_columns(Query.t, [Expression.t], [Expression.t]) :: {Query.t, [Expression.t]}
-  def drop_redundant_floated_columns(query, selected_columns, floated_columns) do
+  def drop_redundant_floated_columns(query, selected_columns, new_columns) do
     selected_ids = Enum.map(selected_columns, &Expression.id/1) |> Enum.uniq()
-    {duplicated_columns, floated_columns} = Enum.partition(floated_columns, &Expression.id(&1) in selected_ids)
-    query = Enum.reduce(duplicated_columns, query, fn (column, query) ->
-      replacement = Enum.find(selected_columns, &Expression.id(&1) == Expression.id(column))
+
+    {already_selected, new_columns} = Enum.partition(new_columns, &Expression.id(&1) in selected_ids)
+    uniq_new = Enum.uniq_by(new_columns, &Expression.id/1)
+    duplicated_new = new_columns -- uniq_new
+    replacements = selected_columns ++ uniq_new
+
+    query = Enum.reduce(already_selected ++ duplicated_new, query, fn (column, query) ->
+      replacement = Enum.find(replacements, &Expression.id(&1) == Expression.id(column))
       Query.Lenses.query_expressions() |> Lens.satisfy(&column == &1) |> Lens.map(query, fn(_) -> replacement end)
     end)
-    {query, floated_columns}
+
+    {query, uniq_new}
   end
 
   @doc """
@@ -88,6 +94,14 @@ defmodule Cloak.Sql.Compiler.Helpers do
     query
     |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_bottom_up(&1, function))
     |> function.()
+
+  @doc """
+  Returns an expression that will reference the given aliased expression in the given subquery to be used in the outer
+  query. The third argument is the virtual table produced by the subquery.
+  """
+  @spec reference_aliased(Expression.t, Query.t, DataSource.Table.t | :unknown) :: Expression.t
+  def reference_aliased(column, subquery, table \\ :unknown), do:
+    %Expression{name: column.alias || find_alias(column, subquery) || column.name, table: table}
 
 
   # -------------------------------------------------------------------
@@ -103,4 +117,14 @@ defmodule Cloak.Sql.Compiler.Helpers do
     do: true
   defp any_outer_join?({:join, join}),
     do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
+
+  defp find_alias(column, query) do
+    id = Expression.id(column)
+    case Enum.find_index(query.columns, &Expression.id(&1) == id) do
+      nil -> nil
+      index ->
+        true = index < length(query.column_titles)
+        Enum.at(query.column_titles, index)
+    end
+  end
 end
