@@ -35,40 +35,50 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   @doc "Keeps only the columns needed by the query from the selection target."
   @spec pick_db_columns(Enumerable.t, Query.t) :: Enumerable.t
-  def pick_db_columns(stream, %Query{db_columns: db_columns, from: {:subquery, subquery}}) do
+  def pick_db_columns(stream, query = %Query{from: {:subquery, _}}), do: do_pick_db_columns(stream, query)
+  def pick_db_columns(stream, query = %Query{from: {:join, _}}), do: do_pick_db_columns(stream, query)
+  def pick_db_columns(stream, _query), do: stream
+
+
+  # -------------------------------------------------------------------
+  # Implementation of pick_db_columns
+  # -------------------------------------------------------------------
+
+  defp do_pick_db_columns(stream, %Query{db_columns: db_columns, from: from}) do
     # The column titles in a subquery are not guaranteed to be unique, but that is fine
     # since, if they are not, they can't be referenced exactly either.
-
     evaluators =
       db_columns
       |> Enum.sort_by(& &1.row_index)
-      |> Enum.map(&build_evaluator(&1, subquery.ast))
+      |> Enum.map(&build_evaluator(&1, from))
 
     Stream.map(stream, fn (row) ->
       Enum.map(evaluators, fn (evaluator) -> evaluator.(row) end)
     end)
   end
-  def pick_db_columns(stream, %Query{db_columns: db_columns, from: {:join, join}}) do
-    indices = for column <- db_columns, do:
-      join.columns |> get_column_index(column) |> check_index(column, join.columns)
-    pick_columns(stream, indices, join.columns)
-  end
-  def pick_db_columns(stream, _query), do: stream
 
-  defp build_evaluator(column = %{function?: true, function_args: function_args}, source_subquery) do
-    arg_evaluators = Enum.map(function_args, &build_evaluator(&1, source_subquery))
+  defp build_evaluator(column = %{function?: true, function_args: function_args}, source) do
+    arg_evaluators = Enum.map(function_args, &build_evaluator(&1, source))
     fn (row) ->
       args = Enum.map(arg_evaluators, fn(evaluator) -> evaluator.(row) end)
       Expression.apply_function(column, args)
     end
   end
-  defp build_evaluator(column, source_subquery) do
+  defp build_evaluator(column, {:subquery, %{ast: source_subquery}}) do
     index =
       source_subquery.column_titles
       |> Enum.find_index(&insensitive_equal?(&1, column.name))
       |> check_index(column, source_subquery.column_titles)
     fn (row) -> Enum.at(row, index) end
   end
+  defp build_evaluator(column, {:join, join}) do
+    index = join.columns |> join_column_index(column) |> check_index(column, join.columns)
+    fn (row) -> Enum.at(row, index) end
+  end
+
+  defp join_column_index(columns, column), do:
+    Enum.find_index(columns, &Expression.id(column) == Expression.id(&1)) ||
+      Enum.find_index(columns, &insensitive_equal?(Expression.id(column), &1.name))
 
 
   # -------------------------------------------------------------------
@@ -240,42 +250,6 @@ defmodule Cloak.Query.DbEmulator.Selector do
       end
     end)
   end
-
-  defp get_column_index(columns, %Expression{function: "coalesce", function_args: args}), do:
-    {:coalesce, Enum.map(args, &get_column_index(columns, &1))}
-  defp get_column_index(columns, column), do:
-    Enum.find_index(columns, &Expression.id(column) == Expression.id(&1)) ||
-      Enum.find_index(columns, &insensitive_equal?(Expression.id(column), &1.name))
-
-  defp pick_value(_row, {:coalesce, []}), do: nil
-  defp pick_value(row, {:coalesce, [index | rest]}) do
-    case pick_value(row, index)  do
-      nil -> pick_value(row, {:coalesce, rest})
-      value -> value
-    end
-  end
-  defp pick_value(row, index) when is_integer(index), do: Enum.at(row, index)
-
-  defp pick_columns(stream, indices, selectable_entities) do
-    cond do
-      noop_column_selection(indices, selectable_entities) -> stream
-      continuous_selection(indices) ->
-        items_to_take = length(indices)
-        Stream.map(stream, fn(row) ->
-          Enum.take(row, items_to_take)
-        end)
-      _otherwise = true ->
-        Stream.map(stream, fn (row) ->
-          Enum.map(indices, &pick_value(row, &1))
-        end)
-    end
-  end
-
-  defp noop_column_selection(indices, selectable_entities), do:
-    indices == Enum.to_list(0..length(selectable_entities) - 1)
-
-  defp continuous_selection(indices), do:
-    indices == Enum.to_list(0..length(indices) - 1)
 
   defp check_index(nil, column, targets), do:
     raise "Column index for column #{inspect(column, pretty: true)} could not be found in the " <>
