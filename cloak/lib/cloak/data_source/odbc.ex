@@ -18,6 +18,7 @@ defmodule Cloak.DataSource.ODBC do
   @doc false
   def dialect(%{dialect: dialect}), do: dialect
   def dialect(%{'DSN': dsn}), do:
+    # Only needed for dev/test, where we access PostgreSQL through an ODBC data source.
     dsn
     |> String.downcase()
     |> dialect_module()
@@ -26,7 +27,7 @@ defmodule Cloak.DataSource.ODBC do
   def connect!(parameters) do
     options = [auto_commit: :on, binary_strings: :on, tuple_row: :off]
     with {:ok, connection} <- parameters |> to_connection_string() |> :odbc.connect(options) do
-      parameters |> dialect() |> set_dialect(connection)
+      parameters |> dialect() |> init_connection(connection)
       connection
     else
       {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
@@ -75,9 +76,6 @@ defmodule Cloak.DataSource.ODBC do
   # -------------------------------------------------------------------
 
   defp dialect_module("postgresql"), do: SqlBuilder.PostgreSQL
-  defp dialect_module("mysql"), do: SqlBuilder.MySQL
-  defp dialect_module("sqlserver"), do: SqlBuilder.SQLServer
-  defp dialect_module("saphana"), do: SqlBuilder.SAPHana
 
   defp to_connection_string(parameters) do
     parameters
@@ -90,13 +88,9 @@ defmodule Cloak.DataSource.ODBC do
     |> to_char_list()
   end
 
-  defp set_dialect(SqlBuilder.MySQL, connection), do:
-    {:updated, _} = :odbc.sql_query(connection, 'SET sql_mode = "ANSI,NO_BACKSLASH_ESCAPES"')
-  defp set_dialect(SqlBuilder.PostgreSQL, connection), do:
+  defp init_connection(SqlBuilder.PostgreSQL, connection), do:
     {:updated, _} = :odbc.sql_query(connection, 'SET standard_conforming_strings = ON')
-  defp set_dialect(SqlBuilder.SQLServer, connection), do:
-    {:updated, _} = :odbc.sql_query(connection, 'SET ANSI_DEFAULTS ON')
-  defp set_dialect(SqlBuilder.SAPHana, _connection), do:
+  defp init_connection(_, _connection), do:
     :ok
 
   defp parse_type(:sql_integer), do: :integer

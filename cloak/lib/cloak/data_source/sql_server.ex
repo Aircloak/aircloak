@@ -27,9 +27,13 @@ defmodule Cloak.DataSource.SQLServer do
       "Uid": normalized_parameters[:username],
       "Pwd": normalized_parameters[:password],
       "Database": normalized_parameters[:database],
+      dialect: Cloak.DataSource.SqlBuilder.SQLServer,
     }
     |> add_optional_parameters(parameters)
-    ODBC.connect!(odbc_parameters)
+
+    connection = ODBC.connect!(odbc_parameters)
+    {:updated, _} = :odbc.sql_query(connection, 'SET ANSI_DEFAULTS ON')
+    connection
   end
 
   defdelegate disconnect(connection), to: ODBC

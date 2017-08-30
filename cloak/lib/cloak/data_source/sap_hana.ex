@@ -50,11 +50,9 @@ defmodule Cloak.DataSource.SAPHana do
     if System.get_env("TRAVIS") == "true" do
       %{"DSN": "SAPHANA"}
     else
-      %{
-        "dialect": Cloak.DataSource.SqlBuilder.SAPHana,
-        "driver": "#{Application.app_dir(:cloak, "priv/odbc/drivers")}/libodbc-sap-hana-v2.so"
-      }
+      %{driver: "#{Application.app_dir(:cloak, "priv/odbc/drivers")}/libodbc-sap-hana-v2.so"}
     end
+    |> Map.merge(%{dialect: Cloak.DataSource.SqlBuilder.SAPHana})
   end
 
   # Allows for adding additional ODBC connection parameters in the case where
