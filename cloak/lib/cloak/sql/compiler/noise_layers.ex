@@ -129,9 +129,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       %{noise_layer | expressions:
         [
           # The point of this unalias is to not generate invalid SQL like `min(foo AS carry_1234)`
-          Expression.function("min", [Expression.unalias(expression)], expression.type, _aggregate = true),
-          Expression.function("max", [Expression.unalias(expression)], expression.type, _aggregate = true),
-          Expression.function("count", [Expression.unalias(expression)], :integer, _aggregate = true),
+          Expression.function("min", [expression], expression.type, _aggregate = true),
+          Expression.function("max", [expression], expression.type, _aggregate = true),
+          Expression.function("count", [expression], :integer, _aggregate = true),
         ]
         |> Enum.map(&Helpers.set_unique_alias/1)
       }
