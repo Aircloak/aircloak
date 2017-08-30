@@ -68,7 +68,7 @@ defmodule Cloak.Sql.Compiler.VerificationConstructsNarrative.Test do
   defp data_source() do
     %{
       driver: Cloak.DataSource.PostgreSQL,
-      driver_dialect: :postgresql,
+      driver_dialect: Cloak.DataSource.SqlBuilder.PostgreSQL,
       tables: %{
         table: %{
           db_name: "table",

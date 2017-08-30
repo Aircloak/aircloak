@@ -17,7 +17,10 @@ defmodule Cloak.DataSource.ODBC do
 
   @doc false
   def dialect(%{dialect: dialect}), do: dialect
-  def dialect(%{'DSN': dsn}), do: dsn |> String.downcase() |> String.to_existing_atom()
+  def dialect(%{'DSN': dsn}), do:
+    dsn
+    |> String.downcase()
+    |> dialect_module()
 
   @doc false
   def connect!(parameters) do
@@ -71,6 +74,11 @@ defmodule Cloak.DataSource.ODBC do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp dialect_module("postgresql"), do: SqlBuilder.PostgreSQL
+  defp dialect_module("mysql"), do: SqlBuilder.MySQL
+  defp dialect_module("sqlserver"), do: SqlBuilder.SQLServer
+  defp dialect_module("saphana"), do: SqlBuilder.SAPHana
+
   defp to_connection_string(parameters) do
     parameters
     |> Enum.map(fn({key, value}) ->
@@ -82,15 +90,14 @@ defmodule Cloak.DataSource.ODBC do
     |> to_char_list()
   end
 
-  defp set_dialect(:mysql, connection), do:
+  defp set_dialect(SqlBuilder.MySQL, connection), do:
     {:updated, _} = :odbc.sql_query(connection, 'SET sql_mode = "ANSI,NO_BACKSLASH_ESCAPES"')
-  defp set_dialect(:postgresql, connection), do:
+  defp set_dialect(SqlBuilder.PostgreSQL, connection), do:
     {:updated, _} = :odbc.sql_query(connection, 'SET standard_conforming_strings = ON')
-  defp set_dialect(:sqlserver, connection), do:
+  defp set_dialect(SqlBuilder.SQLServer, connection), do:
     {:updated, _} = :odbc.sql_query(connection, 'SET ANSI_DEFAULTS ON')
-  defp set_dialect(:saphana, _connection), do:
+  defp set_dialect(SqlBuilder.SAPHana, _connection), do:
     :ok
-  defp set_dialect(:drill, _connection), do: :ok
 
   defp parse_type(:sql_integer), do: :integer
   defp parse_type(:sql_smallint), do: :integer
@@ -129,8 +136,8 @@ defmodule Cloak.DataSource.ODBC do
     text_to_unicode_mapper(encoding)
   # We hardcode the default encoding for SQL Server and SAP HANA to be utf16 little endian.
   # This is for historic reasons more than anything, since that's what our servers are using internally.
-  defp type_to_field_mapper(:text, %{driver_dialect: :sqlserver}), do: text_to_unicode_mapper({:utf16, :little})
-  defp type_to_field_mapper(:text, %{driver_dialect: :saphana}), do: text_to_unicode_mapper({:utf16, :little})
+  defp type_to_field_mapper(:text, %{driver_dialect: SqlBuilder.SQLServer}), do: text_to_unicode_mapper({:utf16, :little})
+  defp type_to_field_mapper(:text, %{driver_dialect: SqlBuilder.SAPHana}), do: text_to_unicode_mapper({:utf16, :little})
   defp type_to_field_mapper(_, _data_source), do: &generic_field_mapper/1
 
   defp generic_field_mapper(:null), do: nil

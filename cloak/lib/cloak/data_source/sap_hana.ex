@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.SAPHana do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
-  def dialect(_parameters), do: :saphana
+  def dialect(_parameters), do: Cloak.DataSource.SqlBuilder.SAPHana
 
   @doc false
   def connect!(parameters) do
@@ -51,7 +51,7 @@ defmodule Cloak.DataSource.SAPHana do
       %{"DSN": "SAPHANA"}
     else
       %{
-        "dialect": :saphana,
+        "dialect": Cloak.DataSource.SqlBuilder.SAPHana,
         "driver": "#{Application.app_dir(:cloak, "priv/odbc/drivers")}/libodbc-sap-hana-v2.so"
       }
     end

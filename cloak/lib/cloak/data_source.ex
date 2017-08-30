@@ -51,7 +51,7 @@ defmodule Cloak.DataSource do
     global_id: atom,
     name: String.t,
     driver: module,
-    driver_dialect: atom,
+    driver_dialect: module | nil,
     parameters: Driver.parameters,
     tables: %{atom => Table.t},
     errors: [String.t],

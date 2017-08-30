@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.SQLServer do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
-  def dialect(_parameters), do: :sqlserver
+  def dialect(_parameters), do: Cloak.DataSource.SqlBuilder.SQLServer
 
   @doc false
   def connect!(parameters) do

@@ -2,7 +2,6 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   @moduledoc "Module for detecting when a query is supported by the SQL builder module."
 
   alias Cloak.Sql.{Query, Expression}
-  alias Cloak.DataSource.SqlBuilder
 
 
   # -------------------------------------------------------------------
@@ -24,7 +23,7 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   def function_sql("substring_for", [arg1, arg2], sql_dialect), do:
     function_sql("substring", [arg1, "1", arg2], sql_dialect)
   def function_sql({:cast, type}, [arg], sql_dialect), do:
-    ["CAST(", arg, " AS ", dialect_module(sql_dialect).sql_type(type), ")"]
+    ["CAST(", arg, " AS ", sql_dialect.sql_type(type), ")"]
   def function_sql({:bucket, :lower}, [arg1, arg2], sql_dialect), do:
     # floor(arg1 / arg2) * arg2
     function_sql("*", [
@@ -46,7 +45,7 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
       function_sql({:bucket, :lower}, [arg1, arg2], sql_dialect)
     ], sql_dialect)
   def function_sql(name, args, sql_dialect), do:
-    dialect_module(sql_dialect).function_sql(synonym(name), args)
+    sql_dialect.function_sql(synonym(name), args)
 
 
   # -------------------------------------------------------------------
@@ -59,18 +58,13 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   }
   defp synonym(name), do: Map.get(@synonyms, name, name)
 
-  defp dialect_module(:postgresql), do: SqlBuilder.PostgreSQL
-  defp dialect_module(:mysql), do: SqlBuilder.MySQL
-  defp dialect_module(:sqlserver), do: SqlBuilder.SQLServer
-  defp dialect_module(:saphana), do: SqlBuilder.SAPHana
-
   defp function_signature(%Expression{function: name, function_args: args}) when is_binary(name), do:
     {name, length(args)}
   defp function_signature(%Expression{function: {:cast, _target}, function_args: [_]}), do: {"cast", 1}
   defp function_signature(%Expression{function: {:bucket, _type}, function_args: [_, _]}), do: {"bucket", 2}
 
   defp supported_function?({name, args}, sql_dialect) do
-    supported_functions = dialect_module(sql_dialect).supported_functions()
+    supported_functions = sql_dialect.supported_functions()
     name = synonym(name)
     name in supported_functions or "#{name}/#{args}" in supported_functions
   end

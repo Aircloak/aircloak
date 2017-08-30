@@ -5,7 +5,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   # SqlBuilder.Dialect callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Cloak.DataSource.SqlBuilder.Dialect
+  use Cloak.DataSource.SqlBuilder.Dialect
 
   @doc false
   def supported_functions(), do:

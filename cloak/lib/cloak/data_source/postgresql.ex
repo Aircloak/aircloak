@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
-  def dialect(_parameters), do: :postgresql
+  def dialect(_parameters), do: Cloak.DataSource.SqlBuilder.PostgreSQL
 
   @doc false
   def connect!(parameters) do

@@ -4,7 +4,6 @@ defmodule Cloak.DataSource.SqlBuilder do
   alias Cloak.Sql.Query
   alias Cloak.Sql.Expression
   alias Cloak.DataSource.SqlBuilder.Support
-  alias Cloak.Query.ExecutionError
 
 
   # -------------------------------------------------------------------
@@ -59,18 +58,16 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(%Expression{constant?: true, type: :like_pattern, value: value}, _sql_dialect), do:
     like_pattern_to_fragment(value)
   defp column_sql(%Expression{constant?: true, value: value}, _sql_dialect), do: constant_to_fragment(value)
-  # We can't directly select a field with an unknown type, so convert it to binary
-  # This is needed in the case of using the ODBC driver with a GUID user id,
-  # as the GUID type is not supported by the Erlang ODBC library
-  defp column_sql(%Expression{type: :unknown, name: name} = column, :sqlserver) when name != nil, do:
-    Support.function_sql({:cast, :varbinary}, [column_name(column, :sqlserver)], :sqlserver)
   defp column_sql(%Expression{function?: false, constant?: false} = column, sql_dialect) do
-    if column.type == :text do
-      # Force casting to text ensures we consistently fetch a string column as unicode, regardless of how it's
-      # represented in the database (VARCHAR or NVARCHAR).
-      Support.function_sql({:cast, :text}, [column_name(column, sql_dialect)], sql_dialect)
-    else
-      column_name(column, sql_dialect)
+    cond do
+      column.type == :text ->
+        # Force casting to text ensures we consistently fetch a string column as unicode, regardless of how it's
+        # represented in the database (VARCHAR or NVARCHAR).
+        Support.function_sql({:cast, :text}, [column_name(column, sql_dialect)], sql_dialect)
+      column.type == :unknown ->
+        sql_dialect.cast_unknown_sql(column_name(column, sql_dialect))
+      true ->
+        column_name(column, sql_dialect)
     end
   end
 
@@ -114,18 +111,11 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp conditions_to_fragments({:in, what, values}, sql_dialect),
     do: [to_fragment(what, sql_dialect), " IN (",
       Enum.map(values, &to_fragment(&1, sql_dialect)) |> join(", "), ")"]
-  defp conditions_to_fragments({:like, what, match}, :mysql = sql_dialect),
-    do: [to_fragment(what, sql_dialect), " COLLATE latin1_general_cs LIKE ", to_fragment(match, sql_dialect)]
-  defp conditions_to_fragments({:like, what, match}, :sqlserver = sql_dialect),
-    do: [to_fragment(what, sql_dialect), " COLLATE Latin1_General_CS_AS LIKE ", to_fragment(match, sql_dialect)]
   defp conditions_to_fragments({:like, what, match}, sql_dialect),
-    do: [to_fragment(what, sql_dialect), " LIKE ", to_fragment(match, sql_dialect)]
-  defp conditions_to_fragments({:ilike, what, match}, :postgresql = sql_dialect),
-    do: [to_fragment(what, sql_dialect), " ILIKE ", to_fragment(match, sql_dialect)]
-  defp conditions_to_fragments({:ilike, what, match}, :mysql = sql_dialect),
-    do: [to_fragment(what, sql_dialect), " COLLATE latin1_general_ci LIKE ", to_fragment(match, sql_dialect)]
-  defp conditions_to_fragments({:ilike, what, match}, :sqlserver = sql_dialect),
-    do: [to_fragment(what, sql_dialect), " COLLATE Latin1_General_CI_AS LIKE ", to_fragment(match, sql_dialect)]
+    do: sql_dialect.like_sql(to_fragment(what, sql_dialect), to_fragment(match, sql_dialect))
+  defp conditions_to_fragments({:ilike, what, match}, sql_dialect),
+    do: sql_dialect.ilike_sql(to_fragment(what, sql_dialect), to_fragment(match, sql_dialect))
+
   defp conditions_to_fragments({:is, what, match}, sql_dialect),
     do: [to_fragment(what, sql_dialect), " IS ", to_fragment(match, sql_dialect)]
   defp conditions_to_fragments({:not, condition}, sql_dialect),
@@ -168,25 +158,12 @@ defmodule Cloak.DataSource.SqlBuilder do
   end
   defp order_by_fragments(_query, _sql_dialect), do: []
 
-  defp quote_name(name, :drill), do: "`#{name}`"
   defp quote_name(name, _sql_dialect), do: "\"#{name}\""
 
-  defp range_fragments(%Query{subquery?: true, limit: nil, offset: 0}, _sql_dialect), do: []
-  defp range_fragments(%Query{subquery?: true, limit: nil, offset: offset}, :postgresql), do:
-    [" OFFSET ", to_string(offset)]
-  defp range_fragments(%Query{subquery?: true, limit: limit, offset: offset}, :postgresql), do:
-    [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
-  defp range_fragments(%Query{subquery?: true, limit: nil, offset: offset}, :mysql), do:
-      [" LIMIT ", to_string(offset), ", 18446744073709551615"]
-  defp range_fragments(%Query{subquery?: true, limit: limit, offset: offset}, :mysql), do:
-    [" LIMIT ", to_string(offset), ", ", to_string(limit)]
-  defp range_fragments(%Query{subquery?: true, limit: nil, offset: offset}, :sqlserver), do:
-    [" OFFSET ", to_string(offset), " ROWS"]
-  defp range_fragments(%Query{subquery?: true, limit: limit, offset: offset}, :sqlserver), do:
-    [" OFFSET ", to_string(offset), " ROWS FETCH NEXT ", to_string(limit), " ROWS ONLY"]
-  defp range_fragments(%Query{subquery?: true, limit: limit}, sql_dialect) when limit != nil, do:
-    raise ExecutionError, message: "LIMIT clause is not supported on '#{sql_dialect}' data sources."
-  defp range_fragments(%Query{subquery?: true, offset: offset}, sql_dialect) when offset > 0, do:
-    raise ExecutionError, message: "OFFSET clause is not supported on '#{sql_dialect}' data sources."
-  defp range_fragments(_query, _sql_dialect), do: []
+  defp range_fragments(%Query{subquery?: true, limit: nil, offset: 0}, _sql_dialect), do:
+    []
+  defp range_fragments(%Query{subquery?: true, limit: limit, offset: offset}, sql_dialect), do:
+    sql_dialect.limit_sql(limit, offset)
+  defp range_fragments(_query, _sql_dialect), do:
+    []
 end

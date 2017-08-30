@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.SqlBuilderTest do
   test "non-text column is not force casted", do:
     refute sql_string("select int from table") =~ ~r/CAST\("table"\."int"/
 
-  defp sql_string(query, dialect \\ :postgresql), do:
+  defp sql_string(query, dialect \\ Cloak.DataSource.SqlBuilder.PostgreSQL), do:
     query
     |> compile!(data_source())
     |> SqlBuilder.build(dialect)
@@ -22,7 +22,7 @@ defmodule Cloak.DataSource.SqlBuilderTest do
   defp data_source() do
     %{
       driver: Cloak.DataSource.PostgreSQL,
-      driver_dialect: :postgresql,
+      driver_dialect: Cloak.DataSource.SqlBuilder.PostgreSQL,
       tables: %{
         table: %{
           db_name: "table",
