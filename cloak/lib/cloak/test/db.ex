@@ -12,29 +12,33 @@ defmodule Cloak.Test.DB do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
 
-  def clear_table(db_name) do
-    execute!("DELETE FROM #{sanitized_table(db_name)}")
+  def clear_table(db_name, data_source \\ nil) do
+    execute!("DELETE FROM #{sanitized_table(db_name)}", [], data_source)
   end
 
   def create_table(table_name, definition, opts \\ []) do
     GenServer.call(__MODULE__, {:create_table, table_name, definition, opts}, :infinity)
   end
 
-  def add_users_data(table_name, columns, rows), do:
-    insert_data(table_name, ["user_id" | columns], rows)
+  def add_users_data(table_name, columns, rows, data_source \\ nil), do:
+    insert_data(table_name, ["user_id" | columns], rows, data_source)
 
-  def insert_data(table_name, columns, rows) do
+  def insert_data(table_name, columns, rows, data_source \\ nil) do
     {sql, params} = prepare_insert(table_name, columns, rows)
-    execute!(sql, params)
+    execute!(sql, params, data_source)
   end
 
-  def execute!(statement, parameters \\ []) do
-    for data_source <- DataSource.all() do
+  def execute!(statement, parameters \\ [], data_source \\ nil) do
+    case data_source do
+      nil -> DataSource.all()
+      _ -> [data_source]
+    end
+    |> Enum.each(fn(data_source) ->
       if data_source.driver.__info__(:functions)[:execute] do # check if driver supports direct query execution
         connection = Process.get({:connection, data_source.global_id}) || create_connection(data_source)
         {:ok, _result} = data_source.driver.execute(connection, statement, parameters)
       end
-    end
+    end)
     :ok
   end
 
@@ -51,8 +55,20 @@ defmodule Cloak.Test.DB do
       |> Map.take([:user_id, :decoders, :projection])
     table = Map.merge(default, user_overrides)
 
+    data_source_names_to_update = case opts[:data_source] do
+      nil -> DataSource.all() |> Enum.map(& &1.name)
+      data_source -> [data_source.name]
+    end
+
     DataSource.all()
-    |> Enum.map(&(&1 |> put_in([:initial_tables, table_id], table) |> DataSource.add_tables()))
+    |> Enum.map(fn
+      (%{name: name} = data_source) ->
+        if name in data_source_names_to_update do
+          data_source |> put_in([:initial_tables, table_id], table) |> DataSource.add_tables()
+        else
+          data_source
+        end
+    end)
     |> DataSource.update()
   end
 
@@ -83,7 +99,7 @@ defmodule Cloak.Test.DB do
       :ok
     else
       user_id_column = if Keyword.get(opts, :add_user_id, true), do: "user_id VARCHAR(64),", else: ""
-      execute!("CREATE TABLE #{sanitized_table(db_name)} (#{user_id_column} #{definition})")
+      execute!("CREATE TABLE #{sanitized_table(db_name)} (#{user_id_column} #{definition})", [], opts[:data_source])
     end
   end
 
