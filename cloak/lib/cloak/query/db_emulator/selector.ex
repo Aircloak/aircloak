@@ -38,11 +38,15 @@ defmodule Cloak.Query.DbEmulator.Selector do
   def pick_db_columns(stream, %Query{db_columns: db_columns, from: {:subquery, subquery}}) do
     # The column titles in a subquery are not guaranteed to be unique, but that is fine
     # since, if they are not, they can't be referenced exactly either.
-    indices = for column <- db_columns, do:
-      subquery.ast.column_titles
-      |> Enum.find_index(&insensitive_equal?(&1, column.name))
-      |> check_index(column, subquery.ast.column_titles)
-    pick_columns(stream, indices, subquery.ast.column_titles)
+
+    evaluators =
+      db_columns
+      |> Enum.sort_by(& &1.row_index)
+      |> Enum.map(&build_evaluator(&1, subquery.ast))
+
+    Stream.map(stream, fn (row) ->
+      Enum.map(evaluators, fn (evaluator) -> evaluator.(row) end)
+    end)
   end
   def pick_db_columns(stream, %Query{db_columns: db_columns, from: {:join, join}}) do
     indices = for column <- db_columns, do:
@@ -50,6 +54,21 @@ defmodule Cloak.Query.DbEmulator.Selector do
     pick_columns(stream, indices, join.columns)
   end
   def pick_db_columns(stream, _query), do: stream
+
+  defp build_evaluator(column = %{function?: true, function_args: function_args}, source_subquery) do
+    arg_evaluators = Enum.map(function_args, &build_evaluator(&1, source_subquery))
+    fn (row) ->
+      args = Enum.map(arg_evaluators, fn(evaluator) -> evaluator.(row) end)
+      Expression.apply_function(column, args)
+    end
+  end
+  defp build_evaluator(column, source_subquery) do
+    index =
+      source_subquery.column_titles
+      |> Enum.find_index(&insensitive_equal?(&1, column.name))
+      |> check_index(column, source_subquery.column_titles)
+    fn (row) -> Enum.at(row, index) end
+  end
 
 
   # -------------------------------------------------------------------
