@@ -32,8 +32,12 @@ defmodule Cloak.DataSource.SAPHanaTest do
       ]})
     end
 
-    test "default string decoding", context, do:
+    test "default nvarchar decoding", context, do:
       assert_query(context.data_source, "select value from strings", %{rows: [%{row: ["a string value"]}]})
+
+    test "default varchar decoding", context, do:
+      assert_query(context.data_source, "select cast(value as text) from varchars",
+        %{rows: [%{row: ["a string value"]}]})
 
     test "default datetime decoding", context, do:
       assert_query(context.data_source, "select value from times", %{rows: [%{row: ["2017-08-23T01:02:03.000000"]}]})
@@ -100,6 +104,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
         table_spec("INTS", [value: "integer"], %{1..10 => [[1]], 1..5 => [[2]], 1..1 => [[3]]}),
         table_spec("TIMES", [value: "datetime"], %{1..10 => [[~c(timestamp'2017-08-23 01:02:03')]]}),
         table_spec("STRINGS", [value: "nvarchar(100)"], %{1..10 => [[~c('a string value')]]}),
+        table_spec("VARCHARS", [value: "varchar(100)"], %{1..10 => [[~c('a string value')]]}),
       ]
       |> Enum.map(&Task.async/1)
       |> Stream.map(&Task.await(&1, :timer.seconds(30)))
