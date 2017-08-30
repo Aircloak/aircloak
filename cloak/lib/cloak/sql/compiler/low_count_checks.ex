@@ -40,8 +40,8 @@ defmodule Cloak.Sql.Compiler.LowCountChecks do
   defp do_aggregate_check(check = %{expressions: [unaggregated]}, _query), do:
     %{check | expressions:
       [
-        Expression.function("min", [Expression.unalias(unaggregated)], unaggregated.type, _aggregate = true),
-        Expression.function("max", [Expression.unalias(unaggregated)], unaggregated.type, _aggregate = true),
+        Expression.function("min", [unaggregated], unaggregated.type, _aggregate = true),
+        Expression.function("max", [unaggregated], unaggregated.type, _aggregate = true),
       ]
       |> Enum.map(&Helpers.set_unique_alias/1)
     }
