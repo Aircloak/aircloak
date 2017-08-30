@@ -64,7 +64,15 @@ defmodule Cloak.DataSource.SqlBuilder do
   # as the GUID type is not supported by the Erlang ODBC library
   defp column_sql(%Expression{type: :unknown, name: name} = column, :sqlserver) when name != nil, do:
     Support.function_sql({:cast, :varbinary}, [column_name(column, :sqlserver)], :sqlserver)
-  defp column_sql(column, sql_dialect), do: column_name(column, sql_dialect)
+  defp column_sql(%Expression{function?: false, constant?: false} = column, sql_dialect) do
+    if column.type == :text do
+      # Force casting to text ensures we consistently fetch a string column as unicode, regardless of how it's
+      # represented in the database (VARCHAR or NVARCHAR).
+      Support.function_sql({:cast, :text}, [column_name(column, sql_dialect)], sql_dialect)
+    else
+      column_name(column, sql_dialect)
+    end
+  end
 
   defp from_clause({:join, join}, query, sql_dialect) do
     ["(", from_clause(join.lhs, query, sql_dialect), " ", join_sql(join.type), " ",
