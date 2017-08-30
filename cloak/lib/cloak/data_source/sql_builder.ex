@@ -127,7 +127,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp to_fragment(atom, _sql_dialect) when is_atom(atom), do: to_string(atom) |> String.upcase()
   defp to_fragment(distinct = {:distinct, _}, sql_dialect), do: column_sql(distinct, sql_dialect)
   defp to_fragment(%Expression{alias: alias} = column, sql_dialect) when alias != nil and alias != "",
-    do: [column_sql(%Expression{column | alias: nil}, sql_dialect)]
+    do: column_sql(%Expression{column | alias: nil}, sql_dialect)
   defp to_fragment(%Expression{} = column, sql_dialect), do: column_sql(column, sql_dialect)
 
   defp escape_string(string), do: String.replace(string, "'", "''")
