@@ -181,24 +181,15 @@ defmodule Compliance.Support.DataSources do
     Cloak.Test.DB.insert_data("#{prefix}#{table}", column_names, rows, data_source)
   end
 
-  defp read_config() do
-    if File.exists?(config_file_path(:override)) do
-      read_config_file(config_file_path(:override))
-    else
-      read_config_file(config_file_path(:default))
-    end
-  end
-
-  defp read_config_file(path), do:
-    path
+  defp read_config(), do:
+    config_file_path()
     |> File.read!()
     |> Poison.decode!()
 
-  defp config_file_path(type), do:
-    Path.join([Application.app_dir(:cloak, "priv"), "config", config_file_name(type)])
+  defp config_file_path(), do:
+    Path.join([Application.app_dir(:cloak, "priv"), "config", config_file_name()])
 
-  defp config_file_name(:override), do: "compliance_override.json"
-  defp config_file_name(_) do
+  defp config_file_name() do
     if System.get_env("TRAVIS") do
       "compliance_travis.json"
     else
