@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.MySQL do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
-  def dialect(_parameters), do: :mysql
+  def sql_dialect_module(_parameters), do: Cloak.DataSource.SqlBuilder.MySQL
 
   @doc false
   def connect!(parameters) do

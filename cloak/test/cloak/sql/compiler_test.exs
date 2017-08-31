@@ -1001,7 +1001,6 @@ defmodule Cloak.Sql.Compiler.Test do
   defp data_source() do
     %{
       driver: Cloak.DataSource.PostgreSQL,
-      driver_dialect: :postgresql,
       tables: %{
         table: %{
           db_name: "table",
@@ -1088,7 +1087,6 @@ defmodule Cloak.Sql.Compiler.Test do
   def time_data_source do
     %{
       driver: Cloak.DataSource.PostgreSQL,
-      driver_dialect: :postgresql,
       tables: %{
         table: %{
           db_name: "table",
@@ -1107,7 +1105,6 @@ defmodule Cloak.Sql.Compiler.Test do
   def date_data_source do
     %{
       driver: Cloak.DataSource.PostgreSQL,
-      driver_dialect: :postgresql,
       tables: %{
         table: %{
           db_name: "table",
@@ -1126,7 +1123,6 @@ defmodule Cloak.Sql.Compiler.Test do
   def dotted_data_source do
     %{
       driver: Cloak.DataSource.MongoDB,
-      driver_dialect: :mongo,
       tables: %{
         table: %{
           db_name: "table",

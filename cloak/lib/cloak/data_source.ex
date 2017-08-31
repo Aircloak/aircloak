@@ -51,7 +51,6 @@ defmodule Cloak.DataSource do
     global_id: atom,
     name: String.t,
     driver: module,
-    driver_dialect: atom,
     parameters: Driver.parameters,
     tables: %{atom => Table.t},
     errors: [String.t],
@@ -141,6 +140,10 @@ defmodule Cloak.DataSource do
   @spec raise_error(String.t) :: no_return
   def raise_error(message), do: raise ExecutionError, message: message
 
+  @doc "Returns the SQL dialect callback module."
+  @spec sql_dialect_module(t) :: module | nil
+  def sql_dialect_module(data_source), do:
+    data_source.driver.sql_dialect_module(data_source[:parameters])
 
   # -------------------------------------------------------------------
   # Callbacks
@@ -214,8 +217,8 @@ defmodule Cloak.DataSource do
     |> validate_choice_of_encoding()
   end
 
-  defp map_driver(data_source) do
-    driver_module =
+  defp map_driver(data_source), do:
+    Map.put(data_source, :driver,
       case data_source.driver do
         "mongodb" -> Cloak.DataSource.MongoDB
         "mysql" -> Cloak.DataSource.MySQL
@@ -226,9 +229,7 @@ defmodule Cloak.DataSource do
         "saphana" -> Cloak.DataSource.SAPHana
         other -> raise_error("Unknown driver `#{other}` for data source `#{data_source.name}`")
       end
-    dialect = driver_module.dialect(data_source.parameters)
-    data_source |> Map.put(:driver, driver_module) |> Map.put(:driver_dialect, dialect)
-  end
+    )
 
   defp generate_global_id(data_source) do
     # We want the global ID to take the form of:

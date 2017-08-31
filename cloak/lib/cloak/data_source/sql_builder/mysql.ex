@@ -6,7 +6,9 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   # SqlBuilder.Dialect callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Cloak.DataSource.SqlBuilder.Dialect
+  use Cloak.DataSource.SqlBuilder.Dialect
+
+  @max_unsigned_bigint 18_446_744_073_709_551_615
 
   @doc false
   def supported_functions(), do:
@@ -33,6 +35,16 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") ,")"]
+
+  @doc false
+  def like_sql(what, match), do: super([what, " COLLATE utf8_bin"], match)
+
+  @doc false
+  def ilike_sql(what, match), do: [what, " COLLATE utf8_general_ci LIKE " , match]
+
+  @doc false
+  def limit_sql(nil, offset), do: [" LIMIT ", to_string(offset), ", #{@max_unsigned_bigint}"]
+  def limit_sql(limit, offset), do: [" LIMIT ", to_string(offset), ", ", to_string(limit)]
 
   @doc false
   def sql_type(:real), do: "decimal(65, 15)"

@@ -46,9 +46,6 @@ defmodule Cloak.Test.QueryHelpers do
     end
   end
 
-  defp name_datasource(data_source), do:
-    "'#{inspect(data_source.driver)}/#{inspect(data_source.driver_dialect)}/#{data_source.name}'"
-
   defmacro assert_query(query, options \\ [], expected_response) do
     quote do
       assert unquote(expected_response) = assert_query_consistency(unquote(query), unquote(options))
@@ -134,6 +131,22 @@ defmodule Cloak.Test.QueryHelpers do
       :ok
     else
       {:error, trace}
+    end
+  end
+
+  defp name_datasource(data_source), do:
+    "'#{inspect(data_source.driver)}/#{sql_dialect_name(data_source)}/#{data_source.name}'"
+
+  defp sql_dialect_name(data_source) do
+    case  Cloak.DataSource.sql_dialect_module(data_source) do
+      nil -> nil
+
+      dialect_module ->
+        dialect_module
+        |> to_string()
+        |> String.split(".")
+        |> List.last()
+        |> String.downcase()
     end
   end
 end

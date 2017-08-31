@@ -6,7 +6,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   # SqlBuilder.Dialect callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Cloak.DataSource.SqlBuilder.Dialect
+  use Cloak.DataSource.SqlBuilder.Dialect
 
   @doc false
   def supported_functions(), do:
@@ -32,6 +32,13 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") ,")"]
+
+  @doc false
+  def ilike_sql(what, match), do: [what, " ILIKE " , match]
+
+  @doc false
+  def limit_sql(nil, offset), do: [" OFFSET ", to_string(offset)]
+  def limit_sql(limit, offset), do: [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
 
   @doc false
   def sql_type(:real), do: "float"

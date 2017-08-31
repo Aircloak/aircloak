@@ -5,7 +5,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   # SqlBuilder.Dialect callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Cloak.DataSource.SqlBuilder.Dialect
+  use Cloak.DataSource.SqlBuilder.Dialect
 
   @doc false
   def supported_functions(), do:
@@ -31,5 +31,6 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") ,")"]
 
   @doc false
+  def sql_type(:text), do: "NCLOB"
   def sql_type(type) when is_atom(type), do: Atom.to_string(type)
 end
