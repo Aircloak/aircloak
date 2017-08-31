@@ -26,14 +26,14 @@ defmodule Cloak.Test.QueryHelpers do
         |> Enum.zip(Cloak.DataSource.all())
 
       for {other_response, other_data_source} <- other_responses, do:
-        assert_equal_to_within_delta(first_response, other_response, 0.00000001,
+        unquote(__MODULE__).assert_equal(first_response, other_response, 0.00000001,
           first_data_source, other_data_source, unquote(query))
 
       first_response
     end
   end
 
-  def assert_equal_to_within_delta(value1, value2, delta, data_source1, data_source2, query) do
+  def assert_equal(value1, value2, delta, data_source1, data_source2, query) do
     case compare_to_within_delta(value1, value2, ["root"], delta) do
       :ok -> true
       {:error, trace} ->
@@ -48,47 +48,6 @@ defmodule Cloak.Test.QueryHelpers do
 
   defp name_datasource(data_source), do:
     "'#{inspect(data_source.driver)}/#{inspect(data_source.driver_dialect)}/#{data_source.name}'"
-
-  def compare_to_within_delta(map1, map2, trace, delta) when is_map(map1) and is_map(map2) do
-    if Map.keys(map1) == Map.keys(map2) do
-      Map.keys(map1)
-      |> Enum.reduce(:ok, fn
-        (key, :ok) ->
-          compare_to_within_delta(Map.get(map1, key), Map.get(map2, key), [key | trace], delta)
-        (_, error) -> error
-      end)
-    else
-      {:error, trace}
-    end
-  end
-  def compare_to_within_delta(list1, list2, trace, delta) when is_list(list1) and is_list(list2) do
-    if length(list1) == length(list2) do
-      Enum.zip(list1, list2)
-      |> Enum.with_index()
-      |> Enum.reduce(:ok, fn
-        ({{value1, value2}, index}, :ok) ->
-          compare_to_within_delta(value1, value2, ["##{index}" | trace], delta)
-        (_, error) -> error
-      end)
-    else
-      {:error, trace}
-    end
-  end
-  def compare_to_within_delta(value1, value2, trace, delta) when is_float(value1) and is_float(value2) do
-    diff = abs(value1 - value2)
-    if diff <= delta do
-      :ok
-    else
-      {:error, trace}
-    end
-  end
-  def compare_to_within_delta(value1, value2, trace, _delta) do
-    if value1 == value2 do
-      :ok
-    else
-      {:error, trace}
-    end
-  end
 
   defmacro assert_query(query, options \\ [], expected_response) do
     quote do
@@ -135,5 +94,46 @@ defmodule Cloak.Test.QueryHelpers do
         Keyword.get(options, :parameters, []),
         Keyword.get(options, :views, %{})
         )
+  end
+
+  defp compare_to_within_delta(map1, map2, trace, delta) when is_map(map1) and is_map(map2) do
+    if Map.keys(map1) == Map.keys(map2) do
+      Map.keys(map1)
+      |> Enum.reduce(:ok, fn
+        (key, :ok) ->
+          compare_to_within_delta(Map.get(map1, key), Map.get(map2, key), [key | trace], delta)
+        (_, error) -> error
+      end)
+    else
+      {:error, trace}
+    end
+  end
+  defp compare_to_within_delta(list1, list2, trace, delta) when is_list(list1) and is_list(list2) do
+    if length(list1) == length(list2) do
+      Enum.zip(list1, list2)
+      |> Enum.with_index()
+      |> Enum.reduce(:ok, fn
+        ({{value1, value2}, index}, :ok) ->
+          compare_to_within_delta(value1, value2, ["##{index}" | trace], delta)
+        (_, error) -> error
+      end)
+    else
+      {:error, trace}
+    end
+  end
+  defp compare_to_within_delta(value1, value2, trace, delta) when is_float(value1) and is_float(value2) do
+    diff = abs(value1 - value2)
+    if diff <= delta do
+      :ok
+    else
+      {:error, trace}
+    end
+  end
+  defp compare_to_within_delta(value1, value2, trace, _delta) do
+    if value1 == value2 do
+      :ok
+    else
+      {:error, trace}
+    end
   end
 end
