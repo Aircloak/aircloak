@@ -29,7 +29,7 @@ defmodule Cloak.Test.QueryHelpers do
         end)
 
       for {other_response, other_data_source} <- other_responses do
-        other_driver_dialect = Cloak.DataSource.sql_dialect_name(other_data_source)
+        other_driver_dialect = unquote(__MODULE__).sql_dialect_name(other_data_source)
         assert(first_response == other_response, """
           Differing response for #{inspect(other_data_source.driver)}/#{other_driver_dialect}:
             #{inspect(other_response)}
@@ -81,5 +81,18 @@ defmodule Cloak.Test.QueryHelpers do
         Keyword.get(options, :parameters, []),
         Keyword.get(options, :views, %{})
         )
+  end
+
+  def sql_dialect_name(data_source) do
+    case  Cloak.DataSource.sql_dialect_module(data_source) do
+      nil -> nil
+
+      dialect_module ->
+        dialect_module
+        |> to_string()
+        |> String.split(".")
+        |> List.last()
+        |> String.downcase()
+    end
   end
 end
