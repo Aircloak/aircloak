@@ -16,8 +16,8 @@ defmodule Cloak.DataSource.ODBC do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
-  def dialect(%{dialect: dialect}), do: dialect
-  def dialect(%{'DSN': dsn}), do:
+  def sql_dialect_module(%{dialect: dialect}), do: dialect
+  def sql_dialect_module(%{'DSN': dsn}), do:
     # Only needed for dev/test, where we access PostgreSQL through an ODBC data source.
     dsn
     |> String.downcase()
@@ -27,7 +27,7 @@ defmodule Cloak.DataSource.ODBC do
   def connect!(parameters) do
     options = [auto_commit: :on, binary_strings: :on, tuple_row: :off]
     with {:ok, connection} <- parameters |> to_connection_string() |> :odbc.connect(options) do
-      parameters |> dialect() |> init_connection(connection)
+      parameters |> sql_dialect_module() |> init_connection(connection)
       connection
     else
       {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")

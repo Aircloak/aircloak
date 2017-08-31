@@ -13,7 +13,7 @@ defmodule Cloak.DataSource.SQLServerTds do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
-  def dialect(_parameters), do: SqlBuilder.SQLServer
+  def sql_dialect_module(_parameters), do: SqlBuilder.SQLServer
 
   @doc false
   def connect!(parameters) do

@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.SAPHana do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
-  def dialect(_parameters), do: Cloak.DataSource.SqlBuilder.SAPHana
+  def sql_dialect_module(_parameters), do: Cloak.DataSource.SqlBuilder.SAPHana
 
   @doc false
   def connect!(parameters) do

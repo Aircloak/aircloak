@@ -223,8 +223,8 @@ defmodule Cloak.DataSource do
         "saphana" -> Cloak.DataSource.SAPHana
         other -> raise_error("Unknown driver `#{other}` for data source `#{data_source.name}`")
       end
-    dialect = driver_module.dialect(data_source.parameters)
-    data_source |> Map.put(:driver, driver_module) |> Map.put(:driver_dialect, dialect)
+    sql_dialect = driver_module.sql_dialect_module(data_source.parameters)
+    data_source |> Map.put(:driver, driver_module) |> Map.put(:driver_dialect, sql_dialect)
   end
 
   defp generate_global_id(data_source) do

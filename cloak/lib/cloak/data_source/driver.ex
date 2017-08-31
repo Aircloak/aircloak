@@ -8,7 +8,7 @@ defmodule Cloak.DataSource.Driver do
   @type parameters :: any
 
   @doc "Returns an atom describing the query dialect of this specific driver implementation."
-  @callback dialect(parameters) :: module | nil
+  @callback sql_dialect_module(parameters) :: module | nil
 
   @doc "Opens a new connection to the data store."
   @callback connect!(parameters) :: connection

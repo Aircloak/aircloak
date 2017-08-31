@@ -49,7 +49,7 @@ defmodule Cloak.DataSource.MongoDB do
   @timeout :timer.hours(1)
 
   @doc false
-  def dialect(_parameters), do: nil
+  def sql_dialect_module(_parameters), do: nil
 
   @doc false
   def connect!(parameters) do
