@@ -247,14 +247,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       |> Enum.filter(fn({_, column}) -> column.key? end)
       |> Enum.map(fn({title, _}) -> title end)
 
-    [%{
-      name: subquery.alias,
-      columns: columns,
-      user_id: user_id_name,
-      decoders: [],
-      projection: nil,
-      keys: keys,
-    }]
+    [DataSource.Table.new(subquery.alias, user_id_name, columns: columns, keys: keys)]
   end
   defp selected_tables(table_name, query) when is_binary(table_name), do:
     [%{table_from_name_or_alias!(query, table_name) | name: table_name}]

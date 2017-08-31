@@ -448,10 +448,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     %{
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
-        table: %{
+        table: Cloak.DataSource.Table.new("table", "uid",
           db_name: "table",
-          name: "table",
-          user_id: "uid",
           columns: [
             Table.column("uid", :integer),
             Table.column("numeric", :integer),
@@ -464,34 +462,24 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
             Table.column("id", :integer),
           ],
           decoders: [%{method: "base64", spec: &Base.decode64/1, columns: ["decoded"]}],
-          projection: nil,
           keys: ["id"],
-        },
+        ),
 
-        other: %{
+        other: Cloak.DataSource.Table.new("other", "uid",
           db_name: "other",
-          name: "other",
-          user_id: "uid",
-          columns: [Table.column("uid", :integer)],
-          projection: nil,
-        },
+          columns: [Table.column("uid", :integer)]
+        ),
 
-        camel_table: %{
+        camel_table: Cloak.DataSource.Table.new("camelTable", "uid",
           db_name: "camelTable",
-          name: "camelTable",
-          user_id: "uid",
-          columns: [Table.column("uid", :integer), Table.column("camelColumn", :integer)],
-          projection: nil,
-        },
+          columns: [Table.column("uid", :integer), Table.column("camelColumn", :integer)]
+        ),
 
-        key_table: %{
+        key_table: Cloak.DataSource.Table.new("key_table", "uid",
           db_name: "key_table",
-          name: "key_table",
-          user_id: "uid",
           columns: [Table.column("uid", :integer), Table.column("table_id", :integer)],
-          projection: nil,
           keys: ["table_id"],
-        }
+        )
       }
     }
   end

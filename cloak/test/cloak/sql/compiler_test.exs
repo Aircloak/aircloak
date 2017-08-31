@@ -1002,10 +1002,8 @@ defmodule Cloak.Sql.Compiler.Test do
     %{
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
-        table: %{
+        table: Cloak.DataSource.Table.new("table", "uid",
           db_name: "table",
-          name: "table",
-          user_id: "uid",
           columns: [
             Table.column("uid", :integer),
             Table.column("column", :datetime),
@@ -1014,72 +1012,54 @@ defmodule Cloak.Sql.Compiler.Test do
             Table.column("string", :text),
             Table.column("key", :integer),
           ],
-          projection: nil,
           keys: ["key"],
-        },
-        other_table: %{
+        ),
+        other_table: Cloak.DataSource.Table.new("other_table", "uid",
           db_name: "other_table",
-          name: "other_table",
-          user_id: "uid",
           columns: [
             Table.column("uid", :integer),
             Table.column("other_column", :datetime)
-          ],
-          projection: nil
-        },
-        projected_table: %{
+          ]
+        ),
+        projected_table: Cloak.DataSource.Table.new("projected_table", "uid",
           db_name: "projected_table",
-          name: "projected_table",
-          user_id: "uid",
           columns: [
             Table.column("fk", :integer),
             Table.column("a", :integer),
             Table.column("b", :integer)
           ],
           projection: %{table: "table", foreign_key: "fk", primary_key: "numeric"}
-        },
-        t1: %{
+        ),
+        t1: Cloak.DataSource.Table.new("t1", "uid",
           db_name: "t1",
-          name: "t1",
-          user_id: "uid",
           columns: [
             Table.column("uid", :integer),
             Table.column("c1", :integer),
             Table.column("c2", :integer)
-          ],
-          projection: nil
-        },
-        t2: %{
+          ]
+        ),
+        t2: Cloak.DataSource.Table.new("t2", "uid",
           db_name: "t2",
-          name: "t2",
-          user_id: "uid",
           columns: [
             Table.column("uid", :integer),
             Table.column("c1", :integer),
             Table.column("c3", :integer)
-          ],
-          projection: nil
-        },
-        t3: %{
+          ]
+        ),
+        t3: Cloak.DataSource.Table.new("t3", "uid",
           db_name: "t3",
-          name: "t3",
-          user_id: "uid",
           columns: [
             Table.column("uid", :integer),
             Table.column("c1", :integer)
-          ],
-          projection: nil
-        },
-        t4: %{
+          ]
+        ),
+        t4: Cloak.DataSource.Table.new("t4", "uid",
           db_name: "t4",
-          name: "t4",
-          user_id: "uid",
           columns: [
             Table.column("uid", :integer),
             Table.column("c1", :integer)
-          ],
-          projection: nil
-        }
+          ]
+        )
       }
     }
   end
@@ -1088,16 +1068,13 @@ defmodule Cloak.Sql.Compiler.Test do
     %{
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
-        table: %{
+        table: Cloak.DataSource.Table.new("table", "uid",
           db_name: "table",
-          name: "table",
-          user_id: "uid",
           columns: [
             Table.column("uid", :integer),
             Table.column("column", :time)
-          ],
-          projection: nil
-        }
+          ]
+        )
       }
     }
   end
@@ -1106,16 +1083,13 @@ defmodule Cloak.Sql.Compiler.Test do
     %{
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
-        table: %{
+        table: Cloak.DataSource.Table.new("table", "uid",
           db_name: "table",
-          name: "table",
-          user_id: "uid",
           columns: [
             Table.column("uid", :integer),
             Table.column("column", :date)
-          ],
-          projection: nil
-        }
+          ]
+        )
       }
     }
   end
@@ -1124,16 +1098,13 @@ defmodule Cloak.Sql.Compiler.Test do
     %{
       driver: Cloak.DataSource.MongoDB,
       tables: %{
-        table: %{
+        table: Cloak.DataSource.Table.new("table", "uid",
           db_name: "table",
-          name: "table",
-          user_id: "uid",
           columns: [
             Table.column("uid", :integer),
             Table.column("column.with.dots", :number)
-          ],
-          projection: nil
-        }
+          ]
+        )
       }
     }
   end

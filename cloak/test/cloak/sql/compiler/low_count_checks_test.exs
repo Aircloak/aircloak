@@ -64,17 +64,14 @@ defmodule Cloak.Sql.Compiler.LowCountChecks.Test do
     %{
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
-        table: %{
+        table: Cloak.DataSource.Table.new("table", "uid",
           db_name: "table",
-          name: "table",
-          user_id: "uid",
           columns: [
             Table.column("uid", :integer),
             Table.column("name", :text),
             Table.column("name2", :text),
-          ],
-          projection: nil,
-        },
+          ]
+        )
       }
     }
   end
