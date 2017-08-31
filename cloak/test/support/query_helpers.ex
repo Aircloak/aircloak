@@ -26,19 +26,21 @@ defmodule Cloak.Test.QueryHelpers do
         |> Enum.zip(Cloak.DataSource.all())
 
       for {other_response, other_data_source} <- other_responses, do:
-        assert_equal_to_within_delta(first_response, other_response, 0.00000001, first_data_source, other_data_source)
+        assert_equal_to_within_delta(first_response, other_response, 0.00000001,
+          first_data_source, other_data_source, unquote(query))
 
       first_response
     end
   end
 
-  def assert_equal_to_within_delta(value1, value2, delta, data_source1, data_source2) do
+  def assert_equal_to_within_delta(value1, value2, delta, data_source1, data_source2, query) do
     case compare_to_within_delta(value1, value2, ["root"], delta) do
       :ok -> true
       {:error, trace} ->
         raise ExUnit.AssertionError,
           message: "Comparison failed at #{trace |> Enum.reverse() |> Enum.join(" > ")} while comparing " <>
-            "results from #{name_datasource(data_source1)} with results from #{name_datasource(data_source2)}.",
+            "results from #{name_datasource(data_source1)} with results from " <>
+            name_datasource(data_source2) <> ". Query was: \n#{query}.",
           left: value1,
           right: value2
     end
