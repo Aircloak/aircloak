@@ -4,6 +4,9 @@ defmodule Compliance.Queries.Test do
   # run in parallel with other tests.
   use ExUnit.Case, async: false
 
+  @moduletag :exclude_in_dev
+  @moduletag :compliance
+
   import Cloak.Test.QueryHelpers
   require Aircloak.DeployConfig
 

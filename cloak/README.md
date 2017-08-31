@@ -159,10 +159,11 @@ Occasionally you may want to run only some tests. Depending on the kind of test,
 
 Note that when specifying Erlang modules, you need to provide the name of the real module and not the test one. For example, let's say you have the module `anonymizer` and property tests are residing in the `anonymizer_test` module. The corresponding command is `mix proper --module anonymizer` (without the `_test` suffix).
 
-By default, only native PostgreSQL adapter is tested locally, while MongoDb and other drivers are excluded. To change this you can run following commands:
+By default, only native PostgreSQL adapter is tested locally, while MongoDB and other drivers are excluded. To change this you can run following commands:
 
 - `mix test --only mongodb` - to run only MongoDB tests
 - `mix test --only saphana` - to run only SAP HANA tests
+- `mix test --only compliance` - to run only the compliance tests
 - `make test_all` - to run all tests which are running on Travis: standard tests, MongoDB tests, and tests for all other database adapters (MySQL, PostgreSQL through ODBC, ...)
 
 In order to have working tests on other drivers, you need to start corresponding database servers locally.
