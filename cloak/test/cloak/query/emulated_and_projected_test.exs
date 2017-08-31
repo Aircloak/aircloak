@@ -336,18 +336,19 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
   describe "low count checks" do
     test "low count check in a top-level emulated query" do
       :ok = insert_emulated_row(_user_ids = 1..5, ["value"], [Base.encode64("whatever")])
-      :ok = insert_emulated_row(_user_ids = 6..6, ["value"], [Base.encode64("willy")])
+      :ok = insert_emulated_row(_user_ids = 6..6, ["value"], [Base.encode64("whilly")])
 
       assert_query """
         select count(*) from
         #{@prefix}emulated
         where upper(value) ILIKE '%w%'
+        and value LIKE '%h%'
       """, %{rows: [%{occurrences: 1, row: [5]}]}
     end
 
     test "low count check in a join" do
       :ok = insert_emulated_row(_user_ids = 1..5, ["value"], [Base.encode64("whatever")])
-      :ok = insert_emulated_row(_user_ids = 6..6, ["value"], [Base.encode64("willy")])
+      :ok = insert_emulated_row(_user_ids = 6..6, ["value"], [Base.encode64("whilly")])
       :ok = insert_rows(_user_ids = 1..6, "#{@prefix}joined", [], [])
 
       assert_query """
@@ -356,12 +357,13 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
         inner join #{@prefix}joined
         on #{@prefix}emulated.user_id = #{@prefix}joined.user_id
         where upper(value) ILIKE '%w%'
+        and value LIKE '%h%'
       """, %{rows: [%{occurrences: 1, row: [5]}]}
     end
 
     test "low count check in a join subquery" do
       :ok = insert_emulated_row(_user_ids = 1..5, ["value"], [Base.encode64("whatever")])
-      :ok = insert_emulated_row(_user_ids = 6..6, ["value"], [Base.encode64("willy")])
+      :ok = insert_emulated_row(_user_ids = 6..6, ["value"], [Base.encode64("whilly")])
       :ok = insert_rows(_user_ids = 1..6, "#{@prefix}joined", [], [])
 
       assert_query """
@@ -370,6 +372,7 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
             select user_id
             from #{@prefix}emulated
             where upper(value) ILIKE '%w%'
+            and value LIKE '%h%'
           ) foo
           inner join #{@prefix}joined
           on foo.user_id = #{@prefix}joined.user_id
@@ -378,7 +381,7 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
 
     test "low count check in aggregated subquery" do
       :ok = insert_emulated_row(_user_ids = 1..5, ["value"], [Base.encode64("whatever")])
-      :ok = insert_emulated_row(_user_ids = 6..6, ["value"], [Base.encode64("willy")])
+      :ok = insert_emulated_row(_user_ids = 6..6, ["value"], [Base.encode64("whilly")])
 
       assert_query """
         select sum(count) from
@@ -386,6 +389,7 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
             select user_id, count(*)
             from #{@prefix}emulated
             where upper(value) ILIKE '%w%'
+            and value LIKE '%h%'
             group by user_id
           ) foo
       """, %{rows: [%{occurrences: 1, row: [5]}]}
