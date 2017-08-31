@@ -50,6 +50,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
     evaluators =
       db_columns
       |> Enum.sort_by(& &1.row_index)
+      |> make_contiguous()
       |> Enum.map(&build_evaluator(&1, from))
 
     Stream.map(stream, fn (row) ->
@@ -57,6 +58,14 @@ defmodule Cloak.Query.DbEmulator.Selector do
     end)
   end
 
+  defp make_contiguous(list, next_index \\ 0)
+  defp make_contiguous([], _any), do: []
+  defp make_contiguous(all = [%Expression{row_index: index} | _], next_index) when next_index < index, do:
+    [nil | make_contiguous(all, next_index + 1)]
+  defp make_contiguous([exp = %Expression{row_index: index} | rest], next_index) when next_index == index, do:
+    [exp | make_contiguous(rest, next_index + 1)]
+
+  defp build_evaluator(nil, _source), do: fn (_row) -> nil end
   defp build_evaluator(column = %{function?: true, function_args: function_args}, source) do
     arg_evaluators = Enum.map(function_args, &build_evaluator(&1, source))
     fn (row) ->

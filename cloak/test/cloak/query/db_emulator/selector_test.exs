@@ -30,7 +30,8 @@ defmodule Cloak.Query.DbEmulator.Selector.Test do
     test "handling complex expressions" do
       query = %Query{
         db_columns: [
-          Expression.function("+", [%Expression{name: "column1"}, %Expression{name: "column2"}], row_index: 0)
+          Expression.function("+", [%Expression{name: "column1"}, %Expression{name: "column2"}])
+          |> put_in([Lens.key(:row_index)], 0)
         ],
         from: {:subquery, %{ast: %{column_titles: ["column1", "something else", "column2"]}}}
       }
