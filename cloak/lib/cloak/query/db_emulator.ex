@@ -118,7 +118,7 @@ defmodule Cloak.Query.DbEmulator do
     |> Enum.map(fn ({alias, column}) ->
       Table.column(alias, Function.type(column))
     end)
-    table = %{name: subquery.alias, columns: columns, user_id: user_id_name, decoders: [], projection: nil}
+    table = Table.new(subquery.alias, user_id_name, columns: columns)
     columns
     |> Enum.map(&%Expression{table: table, name: &1.name, type: &1.type, user_id?: user_id_name == &1.name})
     |> Enum.uniq()

@@ -274,10 +274,8 @@ defmodule Cloak.Sql.TypeChecker.Test do
     %{
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
-        table: %{
+        table: Cloak.DataSource.Table.new("table", "uid",
           db_name: "table",
-          name: "table",
-          user_id: "uid",
           columns: [
             Table.column("uid", :integer),
             Table.column("column", :datetime),
@@ -286,9 +284,8 @@ defmodule Cloak.Sql.TypeChecker.Test do
             Table.column("string", :text),
             Table.column("time", :time),
             Table.column("date", :date),
-          ],
-          projection: nil,
-        },
+          ]
+        )
       }
     }
   end

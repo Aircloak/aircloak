@@ -23,17 +23,14 @@ defmodule Cloak.DataSource.SqlBuilderTest do
     %{
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
-        table: %{
+        table: Cloak.DataSource.Table.new("table", "uid",
           db_name: "table",
-          name: "table",
-          user_id: "uid",
           columns: [
             Table.column("uid", :integer),
             Table.column("string", :text),
             Table.column("int", :integer),
-          ],
-          projection: nil,
-        }
+          ]
+        )
       }
     }
   end

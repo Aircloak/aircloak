@@ -39,17 +39,12 @@ defmodule Cloak.Test.DB do
   end
 
   def register_test_table(table_id, db_name, opts \\ []) do
-    default = %{
-      db_name: db_name,
-      user_id: (if Keyword.get(opts, :add_user_id, true), do: "user_id", else: nil),
-      decoders: [],
-      projection: nil
-    }
-    user_overrides =
-      opts
-      |> Enum.into(%{})
-      |> Map.take([:user_id, :decoders, :projection])
-    table = Map.merge(default, user_overrides)
+    table =
+      DataSource.Table.new(
+        to_string(table_id),
+        (if Keyword.get(opts, :add_user_id, true), do: "user_id", else: nil),
+        [db_name: db_name] ++ Keyword.take(opts, [:user_id, :decoders, :projection])
+      )
 
     DataSource.all()
     |> Enum.map(&(&1 |> put_in([:initial_tables, table_id], table) |> DataSource.add_tables()))

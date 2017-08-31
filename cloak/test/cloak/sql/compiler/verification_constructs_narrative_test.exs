@@ -69,19 +69,16 @@ defmodule Cloak.Sql.Compiler.VerificationConstructsNarrative.Test do
     %{
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
-        table: %{
+        table: Cloak.DataSource.Table.new("table", "uid",
           db_name: "table",
-          name: "table",
-          user_id: "uid",
           columns: [
             Table.column("uid", :integer),
             Table.column("column", :datetime),
             Table.column("numeric", :integer),
             Table.column("float", :real),
             Table.column("string", :text)
-          ],
-          projection: nil
-        },
+          ]
+        )
       }
     }
   end

@@ -40,12 +40,7 @@ defmodule Cloak.DataSourceTest do
   end
 
   test "continue working when table is missing" do
-    missing_table = %{
-      db_name: "missing_table",
-      user_id: "user_id",
-      decoders: [],
-      projection: nil
-    }
+    missing_table = DataSource.Table.new("missing_table", "user_id", db_name: "table")
     for data_source <- DataSource.all() do
       data_source = %{data_source | initial_tables: %{missing_table: missing_table}}
       log = capture_log(fn -> assert %{tables: %{}} = DataSource.add_tables(data_source) end)

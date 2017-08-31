@@ -22,8 +22,8 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
     end
     decoder = %{method: "text_to_integer", columns: ["salary"]}
     tables_config = [
-      %{db_name: "left", name: "left", columns: [], user_id: "id", projection: nil, decoders: []},
-      %{db_name: "right", name: "right", columns: [], user_id: "id", projection: nil, decoders: [decoder]}
+      Cloak.DataSource.Table.new("left", "id", db_name: "left"),
+      Cloak.DataSource.Table.new("right", "id", db_name: "right", decoders: [decoder])
     ]
     tables =
       tables_config

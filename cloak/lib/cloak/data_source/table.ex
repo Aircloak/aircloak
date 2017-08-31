@@ -11,19 +11,48 @@ defmodule Cloak.DataSource.Table do
 
   @type t :: %{
     :name => String.t, # table name as seen by the user
-    :db_name => String.t, # table name in the database
+    :db_name => String.t | nil, # table name in the database
     :user_id => String.t,
     :ignore_unsupported_types => boolean,
     :columns => [column],
     :decoders => [DataDecoder.t],
-    :projection => %{table: String.t, primary_key: String.t, foreign_key: String.t} | nil,
+    :projection => projection | nil,
+    :keys => [String.t],
     optional(any) => any,
   }
+
+  @type projection :: %{table: String.t, primary_key: String.t, foreign_key: String.t}
+
+  @type option ::
+    {:db_name, String.t} |
+    {:ignore_unsupported_types, boolean} |
+    {:columns, [column]} |
+    {:decoders, [DataDecoder.t]} |
+    {:projection, projection} |
+    {:keys, [String.t]} |
+    {atom, any}
 
 
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
+
+  @doc "Creates the new table instance."
+  @spec new(String.t, String.t, [option]) :: t
+  def new(name, user_id_column_name, opts \\ []), do:
+    Map.merge(
+      %{
+        name: name,
+        user_id: user_id_column_name,
+        db_name: nil,
+        ignore_unsupported_types: false,
+        columns: [],
+        decoders: [],
+        projection: nil,
+        keys: [],
+      },
+      Map.new(opts)
+    )
 
   @doc "Creates the column entry in the table specification."
   @spec column(String.t, data_type, [visible?: boolean]) :: column
@@ -58,14 +87,7 @@ defmodule Cloak.DataSource.Table do
 
   defp load_tables(data_source, connection, {table_id, table}) do
     table_id = to_string(table_id)
-    table =
-      table
-      |> Map.put(:columns, [])
-      |> Map.put(:name, table_id)
-      |> Map.put_new(:db_name, table_id)
-      |> Map.put_new(:decoders, [])
-      |> Map.put_new(:user_id, nil)
-      |> Map.put_new(:projection, nil)
+    table = new(table_id, Map.get(table, :user_id), [db_name: table_id] ++ Map.to_list(table))
 
     data_source.driver.load_tables(connection, table)
     |> Enum.map(&parse_columns(data_source, &1))

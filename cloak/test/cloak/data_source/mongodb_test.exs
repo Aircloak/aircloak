@@ -26,7 +26,7 @@ defmodule Cloak.DataSource.MongoDBTest do
       Mongo.insert_one!(conn, @table, %{})
     end
     decoder = %{method: "text_to_real", columns: ["bills.ids"]}
-    table_config = %{db_name: @table, name: @table, columns: [], user_id: "_id", projection: nil, decoders: [decoder]}
+    table_config = Table.new(@table, "_id", db_name: @table, decoders: [decoder])
     tables =
       conn
       |> MongoDB.load_tables(table_config)
