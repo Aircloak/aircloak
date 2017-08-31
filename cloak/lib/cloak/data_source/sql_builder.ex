@@ -57,7 +57,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(%Expression{function?: true, function: fun_name, function_args: args}, sql_dialect_module)
     when fun_name != nil,
   do:
-    Support.function_sql(fun_name, Enum.map(args, &column_sql(&1, sql_dialect_module)), sql_dialect_module)
+    Support.function_sql(fun_name, Enum.map(args, &to_fragment(&1, sql_dialect_module)), sql_dialect_module)
   defp column_sql(%Expression{constant?: true, type: :like_pattern, value: value}, _sql_dialect_module), do:
     like_pattern_to_fragment(value)
   defp column_sql(%Expression{constant?: true, value: value}, _sql_dialect_module), do: constant_to_fragment(value)
@@ -127,6 +127,9 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp to_fragment(string, _sql_dialect_module) when is_binary(string), do: string
   defp to_fragment(atom, _sql_dialect_module) when is_atom(atom), do: to_string(atom) |> String.upcase()
+  defp to_fragment(distinct = {:distinct, _}, sql_dialect_module), do: column_sql(distinct, sql_dialect_module)
+  defp to_fragment(%Expression{alias: alias} = column, sql_dialect_module) when alias != nil and alias != "",
+    do: column_sql(%Expression{column | alias: nil}, sql_dialect_module)
   defp to_fragment(%Expression{} = column, sql_dialect_module), do: column_sql(column, sql_dialect_module)
 
   defp escape_string(string), do: String.replace(string, "'", "''")
