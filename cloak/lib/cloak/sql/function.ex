@@ -15,11 +15,13 @@ defmodule Cloak.Sql.Function do
   }
 
   @functions %{
-    ~w(count count_noise) => %{attributes: [:aggregator], type_specs: %{[:any] => :integer}},
-    ~w(sum sum_noise) => %{attributes: [:aggregator], type_specs: %{
+    ~w(count) => %{attributes: [:aggregator], type_specs: %{[:any] => :integer}},
+    ~w(count_noise) => %{attributes: [:aggregator, :not_in_subquery], type_specs: %{[:any] => :real}},
+    ~w(sum) => %{attributes: [:aggregator], type_specs: %{
       [:integer] => :integer,
       [:real] => :real,
     }},
+    ~w(sum_noise) => %{attributes: [:aggregator, :not_in_subquery], type_specs: %{[numeric] => :real}},
     ~w(median) => %{attributes: [:aggregator, :emulated], type_specs: %{
       [:integer] => :integer,
       [:real] => :real,
@@ -36,7 +38,8 @@ defmodule Cloak.Sql.Function do
       [:datetime] => :datetime,
       [:text] => :text,
     }},
-    ~w(avg stddev avg_noise stddev_noise) => %{attributes: [:aggregator], type_specs: %{[numeric] => :real}},
+    ~w(avg stddev) => %{attributes: [:aggregator], type_specs: %{[numeric] => :real}},
+    ~w(avg_noise stddev_noise) => %{attributes: [:aggregator, :not_in_subquery], type_specs: %{[numeric] => :real}},
     ~w(hour minute second) =>
       %{type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
     ~w(year quarter month day weekday) =>
