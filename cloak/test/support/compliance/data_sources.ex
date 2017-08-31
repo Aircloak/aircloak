@@ -160,7 +160,7 @@ defmodule Compliance.Support.DataSources do
     ]
   end
 
-  def perform_insert(data_source, prefix, table, data) do
+  defp perform_insert(data_source, prefix, table, data) do
     column_names = data
     |> hd()
     |> Map.keys()
