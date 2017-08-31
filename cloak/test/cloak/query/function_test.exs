@@ -348,6 +348,7 @@ defmodule Cloak.Query.FunctionTest do
   test "minute", do: assert 5 == apply_function("minute(datetime)", "datetimes_ft")
   test "second", do: assert 6 == apply_function("second(datetime)", "datetimes_ft")
   test "quarter", do: assert 1 == apply_function("quarter(datetime)", "datetimes_ft")
+  test "weekday", do: assert 2 == apply_function("weekday(datetime)", "datetimes_ft")
 
   test "extract(year)", do: assert 2015 == apply_function("extract(year from datetime)", "datetimes_ft")
   test "extract(month)", do: assert 2 == apply_function("extract(month from datetime)", "datetimes_ft")

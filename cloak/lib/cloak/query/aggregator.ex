@@ -4,13 +4,15 @@ defmodule Cloak.Query.Aggregator do
   require Logger
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{Query, Expression, NoiseLayer}
+  alias Cloak.Sql.{Query, Expression, NoiseLayer, LowCountCheck}
   alias Cloak.Query.{Anonymizer, Rows, Result}
   alias Cloak.Query.Runner.Engine
 
   @typep group_values :: [DataSource.field | :*]
   @typep user_id :: DataSource.field
   @typep group :: {group_values, Anonymizer.t, %{user_id => DataSource.row}}
+
+  @low_count_check_cutoff 4
 
 
   # -------------------------------------------------------------------
@@ -21,7 +23,7 @@ defmodule Cloak.Query.Aggregator do
   Transforms the non-anonymized rows returned from the database into an
   anonymized result. This is done in following steps:
 
-  1. Rows are groupped per query specification. See `Cloak.Query.Rows.group_expressions/1` for details.
+  1. Rows are grouped per query specification. See `Cloak.Query.Rows.group_expressions/1` for details.
      Additionally, inside each distinct group, rows are groupped per user.
 
   2. Groups for which there are not enough distinct users are discarded.
@@ -45,6 +47,7 @@ defmodule Cloak.Query.Aggregator do
   """
   @spec aggregate(Enumerable.t, Query.t, Engine.state_updater) :: Result.t
   def aggregate(rows, query, state_updater) do
+    rows = perform_low_count_checks(rows, query)
     groups = groups(rows, query, state_updater)
     users_count = number_of_anonymized_users(groups, query)
     aggregated_buckets = groups
@@ -55,6 +58,49 @@ defmodule Cloak.Query.Aggregator do
     state_updater.(:post_processing)
 
     Result.new(query, aggregated_buckets, users_count)
+  end
+
+
+  # -------------------------------------------------------------------
+  # Low count checks
+  # -------------------------------------------------------------------
+
+  defp perform_low_count_checks(rows, query), do:
+    Enum.reduce(query.low_count_checks, rows, &perform_low_count_check(&1, &2, query))
+
+  defp perform_low_count_check(%LowCountCheck{expressions: expressions}, rows, query) do
+    rows = run_stream_to_avoid_rewinds(rows)
+    by_value =
+      rows
+      |> Enum.flat_map(fn (row) -> Enum.map(expressions, &{Expression.value(&1, row), row}) end)
+      |> Enum.group_by(fn ({value, _}) -> value end, fn ({_, row}) -> row end)
+
+    if Enum.count(by_value) >= @low_count_check_cutoff do
+      rows
+    else
+      to_drop = values_to_drop(by_value, query)
+      Enum.reject(rows, fn (row) -> Enum.any?(expressions, &Expression.value(&1, row) in to_drop) end)
+    end
+  end
+
+  defp run_stream_to_avoid_rewinds(enum), do: Enum.to_list(enum)
+
+  defp values_to_drop(rows_by_value, query), do:
+    rows_by_value
+    |> Enum.filter(fn ({_, rows}) ->
+      {user_ids, anonymizer} = anonymizer_from_rows(rows, query)
+      low_users_count?(user_ids, anonymizer)
+    end)
+    |> Enum.map(fn ({value, _}) -> value end)
+    |> Enum.into(MapSet.new())
+
+  defp anonymizer_from_rows(rows, query) do
+    accumulator = NoiseLayer.new_accumulator(query.noise_layers)
+    noise_layers = Enum.reduce(rows, accumulator, &NoiseLayer.accumulate(query.noise_layers, &2, &1))
+    user_ids = Enum.map(rows, &user_id/1) |> Enum.into(MapSet.new())
+    anonymizer = Anonymizer.new([user_ids | noise_layers])
+
+    {user_ids, anonymizer}
   end
 
 

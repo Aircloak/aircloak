@@ -18,29 +18,34 @@ defmodule Cloak.Test.QueryHelpers do
           end
         end
 
-      [first_response | other_responses] =
+      [{first_response, first_data_source} | other_responses] =
         Cloak.DataSource.all()
         |> Enum.map(&Task.async(fn -> run_query.(&1) end))
         |> Enum.map(&Task.await/1)
         |> Enum.map(&Map.drop(&1, [:execution_time, :features]))
+        |> Enum.zip(Cloak.DataSource.all())
 
-      for other_response <- other_responses, do:
-        assert_equal_to_within_delta(first_response, other_response, 0.00000001)
+      for {other_response, other_data_source} <- other_responses, do:
+        assert_equal_to_within_delta(first_response, other_response, 0.00000001, first_data_source, other_data_source)
 
       first_response
     end
   end
 
-  def assert_equal_to_within_delta(value1, value2, delta) do
+  def assert_equal_to_within_delta(value1, value2, delta, data_source1, data_source2) do
     case compare_to_within_delta(value1, value2, ["root"], delta) do
       :ok -> true
       {:error, trace} ->
         raise ExUnit.AssertionError,
-          message: "Comparison failed at #{trace |> Enum.reverse() |> Enum.join(" > ")}.",
+          message: "Comparison failed at #{trace |> Enum.reverse() |> Enum.join(" > ")} while comparing " <>
+            "results from #{name_datasource(data_source1)} with results from #{name_datasource(data_source2)}.",
           left: value1,
           right: value2
     end
   end
+
+  defp name_datasource(data_source), do:
+    "'#{inspect(data_source.driver)}/#{inspect(data_source.driver_dialect)}/#{data_source.name}'"
 
   def compare_to_within_delta(map1, map2, trace, delta) when is_map(map1) and is_map(map2) do
     if Map.keys(map1) == Map.keys(map2) do

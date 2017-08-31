@@ -111,15 +111,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       subquery_table = Enum.find(query.selected_tables, & &1.name == alias)
       true = subquery_table != nil
       Lens.all() |> Lens.key(:expressions) |> Lens.all()
-      |> Lens.map(subquery.noise_layers, &reference_aliased(&1, subquery, subquery_table))
+      |> Lens.map(subquery.noise_layers, &Helpers.reference_aliased(&1, subquery, subquery_table))
     end)
 
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count]}, query) do
     %{noise_layer | expressions:
       [
-        Expression.function("min", [reference_aliased(min, query)], min.type, _aggregate = true),
-        Expression.function("max", [reference_aliased(max, query)], max.type, _aggregate = true),
-        Expression.function("sum", [reference_aliased(count, query)], :integer, _aggregate = true),
+        Expression.function("min", [Helpers.reference_aliased(min, query)], min.type, _aggregate = true),
+        Expression.function("max", [Helpers.reference_aliased(max, query)], max.type, _aggregate = true),
+        Expression.function("sum", [Helpers.reference_aliased(count, query)], :integer, _aggregate = true),
       ]
       |> Enum.map(&Helpers.set_unique_alias/1)
     }
@@ -129,9 +129,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       %{noise_layer | expressions:
         [
           # The point of this unalias is to not generate invalid SQL like `min(foo AS carry_1234)`
-          Expression.function("min", [Expression.unalias(expression)], expression.type, _aggregate = true),
-          Expression.function("max", [Expression.unalias(expression)], expression.type, _aggregate = true),
-          Expression.function("count", [Expression.unalias(expression)], :integer, _aggregate = true),
+          Expression.function("min", [expression], expression.type, _aggregate = true),
+          Expression.function("max", [expression], expression.type, _aggregate = true),
+          Expression.function("count", [expression], :integer, _aggregate = true),
         ]
         |> Enum.map(&Helpers.set_unique_alias/1)
       }
@@ -186,25 +186,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # Helpers
   # -------------------------------------------------------------------
 
-  defp reference_aliased(column, query, table \\ :unknown), do:
-    %Expression{name: column.alias || find_alias(column, query) || column.name, table: table}
-
   defp find_column(name, query) do
     case Enum.find_index(query.column_titles, &(&1 == name)) do
       nil -> :error
       index ->
         true = index < length(query.columns)
         {:ok, Enum.at(query.columns, index)}
-    end
-  end
-
-  defp find_alias(column, query) do
-    id = Expression.id(column)
-    case Enum.find_index(query.columns, &Expression.id(&1) == id) do
-      nil -> nil
-      index ->
-        true = index < length(query.column_titles)
-        Enum.at(query.column_titles, index)
     end
   end
 

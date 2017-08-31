@@ -95,7 +95,7 @@ defmodule Cloak.Sql.Expression do
   @spec value(t, DataSource.row) :: DataSource.field | LikePattern.t
   def value(expression, row \\ [])
   def value(%__MODULE__{constant?: true, value: value}, _row), do: value
-  def value(expression = %__MODULE__{function?: true, function_args: args}, row), do:
+  def value(expression = %__MODULE__{function?: true, function_args: args, row_index: nil}, row), do:
     apply_function(expression, Enum.map(args, &value(&1, row)))
   def value(%__MODULE__{row_index: nil} = column, _row), do:
     raise "Unindexed column specified: #{inspect(column, pretty: true)}"
