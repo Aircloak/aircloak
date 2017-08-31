@@ -359,9 +359,37 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
       """, %{rows: [%{occurrences: 1, row: [5]}]}
     end
 
-    test "low count check in a join subquery"
+    test "low count check in a join subquery" do
+      :ok = insert_emulated_row(_user_ids = 1..5, ["value"], [Base.encode64("whatever")])
+      :ok = insert_emulated_row(_user_ids = 6..6, ["value"], [Base.encode64("willy")])
+      :ok = insert_rows(_user_ids = 1..6, "#{@prefix}joined", [], [])
 
-    test "low count check in aggregated subquery"
+      assert_query """
+        select count(*) from
+          (
+            select user_id
+            from #{@prefix}emulated
+            where upper(value) ILIKE '%w%'
+          ) foo
+          inner join #{@prefix}joined
+          on foo.user_id = #{@prefix}joined.user_id
+      """, %{rows: [%{occurrences: 1, row: [5]}]}
+    end
+
+    test "low count check in aggregated subquery" do
+      :ok = insert_emulated_row(_user_ids = 1..5, ["value"], [Base.encode64("whatever")])
+      :ok = insert_emulated_row(_user_ids = 6..6, ["value"], [Base.encode64("willy")])
+
+      assert_query """
+        select sum(count) from
+          (
+            select user_id, count(*)
+            from #{@prefix}emulated
+            where upper(value) ILIKE '%w%'
+            group by user_id
+          ) foo
+      """, %{rows: [%{occurrences: 1, row: [5]}]}
+    end
   end
 
   defp simple_setup(_) do
