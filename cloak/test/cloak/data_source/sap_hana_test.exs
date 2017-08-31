@@ -20,9 +20,9 @@ defmodule Cloak.DataSource.SAPHanaTest do
     end
 
     setup_all do
-      setup_test_schema()
+      tables_def = setup_test_schema()
       on_exit(&drop_test_schema/0)
-      {:ok, %{data_source: data_source()}}
+      {:ok, %{data_source: data_source(tables_def)}}
     end
 
     test "basic select", context do
@@ -32,8 +32,12 @@ defmodule Cloak.DataSource.SAPHanaTest do
       ]})
     end
 
-    test "default string decoding", context, do:
+    test "default nvarchar decoding", context, do:
       assert_query(context.data_source, "select value from strings", %{rows: [%{row: ["a string value"]}]})
+
+    test "default varchar decoding", context, do:
+      assert_query(context.data_source, "select cast(value as text) from varchars",
+        %{rows: [%{row: ["a string value"]}]})
 
     test "default datetime decoding", context, do:
       assert_query(context.data_source, "select value from times", %{rows: [%{row: ["2017-08-23T01:02:03.000000"]}]})
@@ -97,36 +101,46 @@ defmodule Cloak.DataSource.SAPHanaTest do
       Cloak.SapHanaHelpers.ensure_schema!(connection_params(), @schema)
 
       [
-        fn ->
-          conn = connect!(test_schema_connection_params())
-          Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "INTS", "UID integer, VALUE integer")
-          Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "INTS", ["UID", "VALUE"],
-            for {value, uids} <- %{1 => 1..10, 2 => 1..5, 3 => 1..1}, uid <- uids do
-              [uid, value]
-            end
-          )
-        end,
-        fn ->
-          conn = connect!(test_schema_connection_params())
-          Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "TIMES", "UID integer, VALUE datetime")
-          Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "TIMES", ["UID", "VALUE"],
-            for {value, uids} <- %{~c(timestamp'2017-08-23 01:02:03') => 1..10}, uid <- uids do
-              [uid, value]
-            end
-          )
-        end,
-        fn ->
-          conn = connect!(test_schema_connection_params())
-          Cloak.SapHanaHelpers.recreate_table!(conn, @schema, "STRINGS", "UID integer, VALUE nvarchar(100)")
-          Cloak.SapHanaHelpers.insert_rows!(conn, @schema, "STRINGS", ["UID", "VALUE"],
-            for {value, uids} <- %{~c('a string value') => 1..10}, uid <- uids do
-              [uid, value]
-            end
-          )
-        end
+        table_spec("INTS", [value: "integer"], %{1..10 => [[1]], 1..5 => [[2]], 1..1 => [[3]]}),
+        table_spec("TIMES", [value: "datetime"], %{1..10 => [[~c(timestamp'2017-08-23 01:02:03')]]}),
+        table_spec("STRINGS", [value: "nvarchar(100)"], %{1..10 => [[~c('a string value')]]}),
+        table_spec("VARCHARS", [value: "varchar(100)"], %{1..10 => [[~c('a string value')]]}),
       ]
       |> Enum.map(&Task.async/1)
-      |> Enum.map(&Task.await(&1, :timer.seconds(30)))
+      |> Stream.map(&Task.await(&1, :timer.seconds(30)))
+      |> Enum.reduce(%{}, &Map.merge/2)
+    end
+
+    defp table_spec(table_name, table_def, rows_map) do
+      fn ->
+        conn = connect!(test_schema_connection_params())
+
+        table_def =
+          [uid: "integer"]
+          |> Keyword.merge(table_def)
+          |> Enum.map(fn({column_name, type}) -> {String.upcase(to_string(column_name)), type} end)
+
+        Cloak.SapHanaHelpers.recreate_table!(conn, @schema, table_name,
+          table_def
+          |> Enum.map(fn({column_name, type}) -> "#{column_name} #{type}" end)
+          |> Enum.join(", ")
+        )
+
+        Cloak.SapHanaHelpers.insert_rows!(conn, @schema, table_name, Keyword.keys(table_def),
+          for {uids, rows} <- rows_map, uid <- uids, row <- rows do
+            [uid | row]
+          end
+        )
+
+        %{String.to_atom(String.downcase(table_name)) =>
+          %{
+            name: String.downcase(table_name),
+            db_name: String.upcase(table_name),
+            user_id: "UID",
+            ignore_unsupported_types: true
+          }
+        }
+      end
     end
 
     defp drop_test_schema() do
@@ -145,18 +159,13 @@ defmodule Cloak.DataSource.SAPHanaTest do
       conn
     end
 
-    defp data_source(), do:
+    defp data_source(tables_def), do:
       Cloak.DataSource.add_tables(%{
         name: "saphana_test",
         driver: Cloak.DataSource.SAPHana,
-        driver_dialect: :saphana,
         parameters: test_schema_connection_params(),
         tables: [],
-        initial_tables: %{
-          ints: %{name: "ints", db_name: "INTS", user_id: "UID", ignore_unsupported_types: true},
-          times: %{name: "times", db_name: "TIMES", user_id: "UID", ignore_unsupported_types: true},
-          strings: %{name: "strings", db_name: "STRINGS", user_id: "UID", ignore_unsupported_types: true},
-        },
+        initial_tables: tables_def,
         initial_errors: [],
       })
 

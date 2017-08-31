@@ -5,7 +5,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   # SqlBuilder.Dialect callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Cloak.DataSource.SqlBuilder.Dialect
+  use Cloak.DataSource.SqlBuilder.Dialect
 
   @doc false
   def supported_functions(), do:
@@ -38,6 +38,23 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") ,")"]
+
+  @doc false
+  def like_sql(what, match), do: super([what, " COLLATE Latin1_General_CS_AS"], match)
+
+  @doc false
+  def ilike_sql(what, match), do: [what, " COLLATE Latin1_General_CI_AS LIKE " , match]
+
+  @doc false
+  def limit_sql(nil, offset), do: [" OFFSET ", to_string(offset), " ROWS"]
+  def limit_sql(limit, offset), do: [" OFFSET ", to_string(offset), " ROWS FETCH NEXT ", to_string(limit), " ROWS ONLY"]
+
+  @doc false
+  def cast_unknown_sql(column_sql), do:
+    # We can't directly select a field with an unknown type, so convert it to binary
+    # This is needed in the case of using the ODBC driver with a GUID user id,
+    # as the GUID type is not supported by the Erlang ODBC library
+    Cloak.DataSource.SqlBuilder.Support.function_sql({:cast, :varbinary}, [column_sql], __MODULE__)
 
   @doc false
   def sql_type(:real), do: "float"

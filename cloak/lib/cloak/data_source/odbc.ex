@@ -16,14 +16,18 @@ defmodule Cloak.DataSource.ODBC do
   @behaviour Cloak.DataSource.Driver
 
   @doc false
-  def dialect(%{dialect: dialect}), do: dialect
-  def dialect(%{'DSN': dsn}), do: dsn |> String.downcase() |> String.to_existing_atom()
+  def sql_dialect_module(%{dialect: dialect}), do: dialect
+  def sql_dialect_module(%{'DSN': dsn}), do:
+    # Only needed for dev/test, where we access PostgreSQL through an ODBC data source.
+    dsn
+    |> String.downcase()
+    |> dialect_module()
 
   @doc false
   def connect!(parameters) do
     options = [auto_commit: :on, binary_strings: :on, tuple_row: :off]
     with {:ok, connection} <- parameters |> to_connection_string() |> :odbc.connect(options) do
-      parameters |> dialect() |> set_dialect(connection)
+      parameters |> sql_dialect_module() |> init_connection(connection)
       connection
     else
       {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
@@ -71,6 +75,8 @@ defmodule Cloak.DataSource.ODBC do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp dialect_module("postgresql"), do: SqlBuilder.PostgreSQL
+
   defp to_connection_string(parameters) do
     parameters
     |> Enum.map(fn({key, value}) ->
@@ -82,15 +88,10 @@ defmodule Cloak.DataSource.ODBC do
     |> to_char_list()
   end
 
-  defp set_dialect(:mysql, connection), do:
-    {:updated, _} = :odbc.sql_query(connection, 'SET sql_mode = "ANSI,NO_BACKSLASH_ESCAPES"')
-  defp set_dialect(:postgresql, connection), do:
+  defp init_connection(SqlBuilder.PostgreSQL, connection), do:
     {:updated, _} = :odbc.sql_query(connection, 'SET standard_conforming_strings = ON')
-  defp set_dialect(:sqlserver, connection), do:
-    {:updated, _} = :odbc.sql_query(connection, 'SET ANSI_DEFAULTS ON')
-  defp set_dialect(:saphana, _connection), do:
+  defp init_connection(_, _connection), do:
     :ok
-  defp set_dialect(:drill, _connection), do: :ok
 
   defp parse_type(:sql_integer), do: :integer
   defp parse_type(:sql_smallint), do: :integer
@@ -129,8 +130,8 @@ defmodule Cloak.DataSource.ODBC do
     text_to_unicode_mapper(encoding)
   # We hardcode the default encoding for SQL Server and SAP HANA to be utf16 little endian.
   # This is for historic reasons more than anything, since that's what our servers are using internally.
-  defp type_to_field_mapper(:text, %{driver_dialect: :sqlserver}), do: text_to_unicode_mapper({:utf16, :little})
-  defp type_to_field_mapper(:text, %{driver_dialect: :saphana}), do: text_to_unicode_mapper({:utf16, :little})
+  defp type_to_field_mapper(:text, %{driver: Cloak.DataSource.SQLServer}), do: text_to_unicode_mapper({:utf16, :little})
+  defp type_to_field_mapper(:text, %{driver: Cloak.DataSource.SAPHana}), do: text_to_unicode_mapper({:utf16, :little})
   defp type_to_field_mapper(_, _data_source), do: &generic_field_mapper/1
 
   defp generic_field_mapper(:null), do: nil
