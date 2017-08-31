@@ -148,7 +148,6 @@ defmodule Cloak.Sql.Compiler.VerificationSelectableColumnsValidTransformations.T
   defp data_source() do
     %{
       driver: Cloak.DataSource.PostgreSQL,
-      driver_dialect: Cloak.DataSource.SqlBuilder.PostgreSQL,
       tables: %{
         table: %{
           db_name: "table",

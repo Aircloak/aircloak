@@ -10,13 +10,11 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
 
   @doc "Checks to see if the given query can be executed by the SQL driver."
   @spec supported_query?(Query.t) :: boolean
-  def supported_query?(query) do
-    sql_dialect_module = query.data_source.driver_dialect
+  def supported_query?(query), do:
     Query.Lenses.db_needed_functions()
     |> Lens.to_list(query)
     |> Enum.map(&function_signature/1)
-    |> Enum.all?(&supported_function?(&1, sql_dialect_module))
-  end
+    |> Enum.all?(&supported_function?(&1, Cloak.DataSource.sql_dialect_module(query.data_source)))
 
   @doc "Generates SQL for a function invocation. Provided arguments list must contain SQL fragments."
   @spec function_sql(Expression.function_name, [iodata], atom) :: iodata

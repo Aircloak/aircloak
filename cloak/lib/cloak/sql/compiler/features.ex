@@ -34,7 +34,7 @@ defmodule Cloak.Sql.Compiler.Features do
       parameter_types: Enum.map(Query.parameter_types(query), &stringify/1),
       decoders: extract_decoders(query),
       driver: to_string(query.data_source.driver),
-      driver_dialect: to_string(query.data_source[:driver_dialect]),
+      driver_dialect: sql_dialect_name(query.data_source),
       emulated: query.emulated?,
     }
   end
@@ -126,4 +126,17 @@ defmodule Cloak.Sql.Compiler.Features do
   defp stringify(string) when is_binary(string), do: string
   defp stringify(atom) when is_atom(atom), do: Atom.to_string(atom)
   defp stringify(function) when is_function(function), do: inspect(function)
+
+  defp sql_dialect_name(data_source) do
+    case  Cloak.DataSource.sql_dialect_module(data_source) do
+      nil -> nil
+
+      dialect_module ->
+        dialect_module
+        |> to_string()
+        |> String.split(".")
+        |> List.last()
+        |> String.downcase()
+    end
+  end
 end
