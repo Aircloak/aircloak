@@ -25,9 +25,61 @@ defmodule Cloak.Test.QueryHelpers do
         |> Enum.map(&Map.drop(&1, [:execution_time, :features]))
 
       for other_response <- other_responses, do:
-        assert(first_response == other_response)
+        assert_equal_to_within_delta(first_response, other_response, 0.00000001)
 
       first_response
+    end
+  end
+
+  def assert_equal_to_within_delta(value1, value2, delta) do
+    case compare_to_within_delta(value1, value2, ["root"], delta) do
+      :ok -> true
+      {:error, trace} ->
+        raise ExUnit.AssertionError,
+          message: "Comparison failed at #{trace |> Enum.reverse() |> Enum.join(" > ")}.",
+          left: value1,
+          right: value2
+    end
+  end
+
+  def compare_to_within_delta(map1, map2, trace, delta) when is_map(map1) and is_map(map2) do
+    if Map.keys(map1) == Map.keys(map2) do
+      Map.keys(map1)
+      |> Enum.reduce(:ok, fn
+        (key, :ok) ->
+          compare_to_within_delta(Map.get(map1, key), Map.get(map2, key), [key | trace], delta)
+        (_, error) -> error
+      end)
+    else
+      {:error, trace}
+    end
+  end
+  def compare_to_within_delta(list1, list2, trace, delta) when is_list(list1) and is_list(list2) do
+    if length(list1) == length(list2) do
+      Enum.zip(list1, list2)
+      |> Enum.with_index()
+      |> Enum.reduce(:ok, fn
+        ({{value1, value2}, index}, :ok) ->
+          compare_to_within_delta(value1, value2, ["##{index}" | trace], delta)
+        (_, error) -> error
+      end)
+    else
+      {:error, trace}
+    end
+  end
+  def compare_to_within_delta(value1, value2, trace, delta) when is_float(value1) and is_float(value2) do
+    diff = abs(value1 - value2)
+    if diff <= delta do
+      :ok
+    else
+      {:error, trace}
+    end
+  end
+  def compare_to_within_delta(value1, value2, trace, _delta) do
+    if value1 == value2 do
+      :ok
+    else
+      {:error, trace}
     end
   end
 
