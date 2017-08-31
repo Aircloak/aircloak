@@ -8,6 +8,8 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
 
   use Cloak.DataSource.SqlBuilder.Dialect
 
+  @max_unsigned_bigint 18_446_744_073_709_551_615
+
   @doc false
   def supported_functions(), do:
     ~w(
@@ -41,7 +43,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   def ilike_sql(what, match), do: [what, " COLLATE utf8_general_ci LIKE " , match]
 
   @doc false
-  def limit_sql(nil, offset), do: [" LIMIT ", to_string(offset), ", 18446744073709551615"]
+  def limit_sql(nil, offset), do: [" LIMIT ", to_string(offset), ", #{@max_unsigned_bigint}"]
   def limit_sql(limit, offset), do: [" LIMIT ", to_string(offset), ", ", to_string(limit)]
 
   @doc false
