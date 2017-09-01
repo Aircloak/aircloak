@@ -24,6 +24,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @doc "Returns the dialect-specific SQL type for casting."
   @callback sql_type(atom) :: String.t
 
+  @doc "Returns the dialect specific SQL for a unicode string literal."
+  @callback unicode_literal(iodata) :: iodata
+
   alias Cloak.Query.ExecutionError
 
   defmacro __using__(_opts) do
