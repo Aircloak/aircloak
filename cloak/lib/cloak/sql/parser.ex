@@ -182,7 +182,11 @@ defmodule Cloak.Sql.Parser do
 
   defp concat_expression() do
     infix_expression([keyword(:||)], infix_cast_expression())
+    |> map(&normalize_concat/1)
   end
+
+  defp normalize_concat({:function, "||", args}), do: {:function, "concat", Enum.map(args, &normalize_concat/1)}
+  defp normalize_concat(other), do: other
 
   defp infix_cast_expression() do
     infix_expression([keyword(:"::")], simple_expression(), data_type())
