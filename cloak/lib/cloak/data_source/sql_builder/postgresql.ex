@@ -44,4 +44,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def sql_type(:real), do: "float"
   def sql_type(:boolean), do: "bool"
   def sql_type(type) when is_atom(type), do: Atom.to_string(type)
+
+  @doc false
+  def unicode_literal(value), do: [?', value, ?']
 end
