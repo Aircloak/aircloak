@@ -23,14 +23,14 @@ defmodule Compliance.Queries.Test do
     # otherwise these won't be picked up by the rest of the test machinery.
     # Since they weren't present at the time the tests started, we will have to additionally
     # manually redo some of the initialisation otherwise automatically done for us.
-    compliance_data_sources = Compliance.Support.DataSources.get_config()
+    compliance_data_sources = Compliance.DataSources.get_config()
     Aircloak.DeployConfig.update("data_sources", fn(_) -> compliance_data_sources end)
     Cloak.DataSource.update(Cloak.DataSource.prep_data_source_config(compliance_data_sources))
     Cloak.Test.DB.execute!("DROP SCHEMA IF EXISTS cloak_test CASCADE")
     Cloak.Test.DB.execute!("CREATE SCHEMA cloak_test")
 
-    Compliance.Support.DataSources.create(@prefix)
-    Compliance.Support.DataSources.insert_data(@prefix)
+    Compliance.DataSources.create(@prefix)
+    Compliance.DataSources.insert_data(@prefix)
 
     assert(length(Cloak.DataSource.all()) > 1, "More than one data source is needed to ensure compliance")
 

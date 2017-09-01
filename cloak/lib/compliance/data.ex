@@ -1,4 +1,4 @@
-defmodule Compliance.Support.Data do
+defmodule Compliance.Data do
   @moduledoc """
   Generates a database independent dataset that can be imported into
   backends for compliance testing.
@@ -124,7 +124,7 @@ defmodule Compliance.Support.Data do
     |> Enum.to_list()
 
   defp cities(), do:
-    lines_from_file("test/support/compliance/cities.txt")
+    lines_from_file("lib/compliance/cities.txt")
 
   defp random_postcode(), do:
     :rand.uniform(@max_postal_code - @min_postal_code) + @min_postal_code
@@ -141,10 +141,10 @@ defmodule Compliance.Support.Data do
     Enum.random(options)
 
   defp words(), do:
-    lines_from_file("test/support/compliance/words.txt")
+    lines_from_file("lib/compliance/words.txt")
 
   defp names(), do:
-    lines_from_file("test/support/compliance/names.txt")
+    lines_from_file("lib/compliance/names.txt")
 
   defp lines_from_file(file), do:
     File.read!(file)

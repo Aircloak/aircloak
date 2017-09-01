@@ -1,7 +1,7 @@
-defmodule Compliance.Support.DataSources do
+defmodule Compliance.DataSources do
   @moduledoc false
 
-  alias Compliance.Support.Data
+  alias Compliance.Data
 
 
   # -------------------------------------------------------------------
