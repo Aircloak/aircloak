@@ -60,7 +60,8 @@ defmodule Cloak.DataSource.SqlBuilder do
     Support.function_sql(fun_name, Enum.map(args, &to_fragment(&1, sql_dialect_module)), sql_dialect_module)
   defp column_sql(%Expression{constant?: true, type: :like_pattern, value: value}, _sql_dialect_module), do:
     like_pattern_to_fragment(value)
-  defp column_sql(%Expression{constant?: true, value: value}, _sql_dialect_module), do: constant_to_fragment(value)
+  defp column_sql(%Expression{constant?: true, value: value}, sql_dialect_module), do:
+    constant_to_fragment(value, sql_dialect_module)
   defp column_sql(%Expression{function?: false, constant?: false} = column, sql_dialect_module) do
     cond do
       column.type == :text ->
@@ -132,14 +133,17 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: column_sql(%Expression{column | alias: nil}, sql_dialect_module)
   defp to_fragment(%Expression{} = column, sql_dialect_module), do: column_sql(column, sql_dialect_module)
 
-  defp escape_string(string), do: String.replace(string, "'", "''")
+  defp constant_to_fragment(%NaiveDateTime{} = value, _sql_dialect_module), do: [?', to_string(value), ?']
+  defp constant_to_fragment(%Time{} = value, _sql_dialect_module), do: [?', to_string(value), ?']
+  defp constant_to_fragment(%Date{} = value, _sql_dialect_module), do: [?', to_string(value), ?']
+  defp constant_to_fragment(value, _sql_dialect_module) when is_number(value), do: to_string(value)
+  defp constant_to_fragment(value, _sql_dialect_module) when is_boolean(value), do: to_string(value)
+  defp constant_to_fragment(value, sql_dialect_module) when is_binary(value), do:
+    value
+    |> escape_string()
+    |> sql_dialect_module.unicode_literal()
 
-  defp constant_to_fragment(%NaiveDateTime{} = value), do: [?', to_string(value), ?']
-  defp constant_to_fragment(%Time{} = value), do: [?', to_string(value), ?']
-  defp constant_to_fragment(%Date{} = value), do: [?', to_string(value), ?']
-  defp constant_to_fragment(value) when is_binary(value), do: [?', escape_string(value), ?']
-  defp constant_to_fragment(value) when is_number(value), do: to_string(value)
-  defp constant_to_fragment(value) when is_boolean(value), do: to_string(value)
+  defp escape_string(string), do: String.replace(string, "'", "''")
 
   defp like_pattern_to_fragment({pattern, escape = "\\"}), do: [?', pattern, ?', "ESCAPE", ?', escape, ?']
 
