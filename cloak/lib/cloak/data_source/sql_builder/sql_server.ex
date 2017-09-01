@@ -59,7 +59,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   @doc false
   def sql_type(:real), do: "float"
   def sql_type(:boolean), do: "bool"
-  def sql_type(:text), do: "char"
+  def sql_type(:text), do: "varchar(max)"
   def sql_type(type) when is_atom(type), do: Atom.to_string(type)
 
   @doc false
