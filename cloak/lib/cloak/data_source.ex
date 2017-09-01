@@ -194,7 +194,10 @@ defmodule Cloak.DataSource do
   end
 
   defp init_state(), do:
-    Aircloak.DeployConfig.fetch!("data_sources")
+    prep_state(Aircloak.DeployConfig.fetch!("data_sources"))
+
+  defp prep_state(config), do:
+    config
     |> Enum.map(&to_data_source/1)
     |> Enum.reject(&disabled_in_dev/1)
     |> Validations.Name.check_for_duplicates()
@@ -387,5 +390,10 @@ defmodule Cloak.DataSource do
   else
     defp disabled_in_dev(_data_source), do:
       false
+  end
+
+  if Mix.env == :test do
+    @doc false
+    def prep_data_source_config(config), do: prep_state(config)
   end
 end

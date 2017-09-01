@@ -54,6 +54,10 @@ defmodule Aircloak.DeployConfig do
     end
   end
 
+  @doc "Updates cached configuration value of the calling app."
+  defmacro update(key, fun), do:
+    quote(do: unquote(__MODULE__).update(unquote(Mix.Project.config[:app]), unquote(key), unquote(fun)))
+
   @doc "Updates cached configuration value of the given app."
   @spec update(atom, any, (any -> any)) :: :ok
   def update(app, key, fun), do:
