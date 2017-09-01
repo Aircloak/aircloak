@@ -981,6 +981,17 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
+  describe "*_noise" do
+    for function <- ~w(count_noise avg_noise stddev_noise sum_noise) do
+      test "rejects #{function} in subquery" do
+        assert {:error, error} = compile("""
+          SELECT count(*) FROM (SELECT uid, #{unquote(function)}(numeric) FROM table GROUP BY 1) x
+        """, data_source())
+        assert error == "Function `#{unquote(function)}` is not allowed in subqueries."
+      end
+    end
+  end
+
   defp projected_table_db_columns(query), do:
     query
     |> get_in([all_subqueries()])

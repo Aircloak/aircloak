@@ -77,9 +77,6 @@ defmodule Cloak.Sql.Function.Test do
     refute well_typed?("concat", [:text, :text, :integer, :text, :text])
   end
 
-  test "||", do:
-    assert well_typed?("||", [:text, :text])
-
   for function <- ~w(year quarter month day weekday) do
     test function do
       assert well_typed?(unquote(function), [:datetime])

@@ -708,11 +708,18 @@ defmodule Cloak.Sql.Parser.Test do
       select(columns: [{:function, "substring_for", [identifier("foo"), constant(:integer, 3)]}])
   end
 
-  test "||" do
+  test "|| compiled as concat" do
     assert_parse "select a || b || c from bar",
-      select(columns: [{:function, "||", [
-        {:function, "||", [identifier("a"), identifier("b")]},
+      select(columns: [{:function, "concat", [
+        {:function, "concat", [identifier("a"), identifier("b")]},
         identifier("c")]}])
+  end
+
+  test "|| of complex expressions" do
+    assert_parse "select lower(a) || upper(b) from bar",
+      select(columns: [{:function, "concat", [
+        {:function, "lower", [identifier("a")]},
+        {:function, "upper", [identifier("b")]}]}])
   end
 
   test "+ and -" do

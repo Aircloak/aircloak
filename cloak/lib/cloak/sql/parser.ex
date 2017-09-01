@@ -177,8 +177,16 @@ defmodule Cloak.Sql.Parser do
   end
 
   def exponentiation_expression() do
-    infix_expression([keyword(:^)], infix_cast_expression())
+    infix_expression([keyword(:^)], concat_expression())
   end
+
+  defp concat_expression() do
+    infix_expression([keyword(:||)], infix_cast_expression())
+    |> map(&normalize_concat/1)
+  end
+
+  defp normalize_concat({:function, "||", args}), do: {:function, "concat", Enum.map(args, &normalize_concat/1)}
+  defp normalize_concat(other), do: other
 
   defp infix_cast_expression() do
     infix_expression([keyword(:"::")], simple_expression(), data_type())
@@ -197,7 +205,6 @@ defmodule Cloak.Sql.Parser do
       extract_expression(),
       trim_expression(),
       substring_expression(),
-      concat_expression(),
       field_or_parameter(),
       constant_column() |> label("column definition")
     ])
@@ -417,10 +424,6 @@ defmodule Cloak.Sql.Parser do
          {:function, "substring", [column]}
      end
    )
-  end
-
-  defp concat_expression() do
-    infix_expression([keyword(:||)], either_deepest_error(field_or_parameter(), constant_column()))
   end
 
   defp infix_expression(operators, left_parser, right_parser \\ nil) do
