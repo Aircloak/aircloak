@@ -715,6 +715,13 @@ defmodule Cloak.Sql.Parser.Test do
         identifier("c")]}])
   end
 
+  test "|| of complex expressions" do
+    assert_parse "select lower(a) || upper(b) from bar",
+      select(columns: [{:function, "||", [
+        {:function, "lower", [identifier("a")]},
+        {:function, "upper", [identifier("b")]}]}])
+  end
+
   test "+ and -" do
     assert_parse "select a + b - c + d from bar",
       select(columns: [{:function, "+", [
