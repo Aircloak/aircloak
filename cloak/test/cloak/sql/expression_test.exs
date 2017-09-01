@@ -185,9 +185,6 @@ defmodule Cloak.Sql.Expression.Test do
   test "concat", do:
     assert apply_function("concat", ["a", " ", "string"]) == "a string"
 
-  test "||", do:
-    assert apply_function("||", ["a ", "string"]) == "a string"
-
   test "subtracting dates", do:
     assert apply_function("-", [~D[2015-01-30], ~D[2015-01-20]]) === Duration.from_days(10)
 
