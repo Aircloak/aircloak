@@ -52,7 +52,7 @@ defmodule Compliance.DataSources do
   end
 
   def insert_data(prefix) do
-    {nested_normal, nested_encoded} = Data.generate()
+    {nested_normal, nested_encoded} = Data.generate(10)
 
     normal = Data.flatten(nested_normal)
     encoded = Data.flatten(nested_encoded)
