@@ -333,6 +333,69 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
       %{rows: [%{occurrences: 1, row: [200]}]}
   end
 
+  describe "low count checks" do
+    test "low count check in a top-level emulated query" do
+      :ok = insert_emulated_row(_user_ids = 1..5, ["value"], [Base.encode64("whatever")])
+      :ok = insert_emulated_row(_user_ids = 6..6, ["value"], [Base.encode64("whilly")])
+
+      assert_query """
+        select count(*) from
+        #{@prefix}emulated
+        where upper(value) ILIKE '%w%'
+        and value LIKE '%h%'
+      """, %{rows: [%{occurrences: 1, row: [5]}]}
+    end
+
+    test "low count check in a join" do
+      :ok = insert_emulated_row(_user_ids = 1..5, ["value"], [Base.encode64("whatever")])
+      :ok = insert_emulated_row(_user_ids = 6..6, ["value"], [Base.encode64("whilly")])
+      :ok = insert_rows(_user_ids = 1..6, "#{@prefix}joined", [], [])
+
+      assert_query """
+        select count(*) from
+        #{@prefix}emulated
+        inner join #{@prefix}joined
+        on #{@prefix}emulated.user_id = #{@prefix}joined.user_id
+        where upper(value) ILIKE '%w%'
+        and value LIKE '%h%'
+      """, %{rows: [%{occurrences: 1, row: [5]}]}
+    end
+
+    test "low count check in a join subquery" do
+      :ok = insert_emulated_row(_user_ids = 1..5, ["value"], [Base.encode64("whatever")])
+      :ok = insert_emulated_row(_user_ids = 6..6, ["value"], [Base.encode64("whilly")])
+      :ok = insert_rows(_user_ids = 1..6, "#{@prefix}joined", [], [])
+
+      assert_query """
+        select count(*) from
+          (
+            select user_id
+            from #{@prefix}emulated
+            where upper(value) ILIKE '%w%'
+            and value LIKE '%h%'
+          ) foo
+          inner join #{@prefix}joined
+          on foo.user_id = #{@prefix}joined.user_id
+      """, %{rows: [%{occurrences: 1, row: [5]}]}
+    end
+
+    test "low count check in aggregated subquery" do
+      :ok = insert_emulated_row(_user_ids = 1..5, ["value"], [Base.encode64("whatever")])
+      :ok = insert_emulated_row(_user_ids = 6..6, ["value"], [Base.encode64("whilly")])
+
+      assert_query """
+        select sum(count) from
+          (
+            select user_id, count(*)
+            from #{@prefix}emulated
+            where upper(value) ILIKE '%w%'
+            and value LIKE '%h%'
+            group by user_id
+          ) foo
+      """, %{rows: [%{occurrences: 1, row: [5]}]}
+    end
+  end
+
   defp simple_setup(_) do
     :ok = insert_emulated_row(_user_ids = 1..10, ["value", "num"], [Base.encode64("aaa"), 3])
     :ok = insert_emulated_row(_user_ids = 11..20, ["value", "num"], [Base.encode64("b"), 2])
