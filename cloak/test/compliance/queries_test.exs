@@ -8,7 +8,11 @@ defmodule Compliance.Queries.Test do
   require Aircloak.DeployConfig
 
   setup_all do
-    data_sources = Compliance.DataSources.all_from_config_initialized("compliance")
+    data_sources = if System.get_env("TRAVIS") do
+      Compliance.DataSources.all_from_config_initialized("compliance_travis")
+    else
+      Compliance.DataSources.all_from_config_initialized("compliance")
+    end
 
     assert(length(data_sources) > 1, "More than one data source is needed to ensure compliance")
 
