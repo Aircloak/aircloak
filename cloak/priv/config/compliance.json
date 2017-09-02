@@ -3,24 +3,12 @@
   "data_sources": [
     {
       "driver": "postgresql",
-      "marker": "normal",
-      "name": "postgres_normal",
+      "marker": "connector",
+      "name": "postgres",
       "parameters": {
         "hostname": "localhost",
         "username": "postgres",
         "database": "cloaktest2"
-      },
-      "tables": {
-      }
-    },
-    {
-      "driver": "postgresql",
-      "marker": "encoded",
-      "name": "postgres_encoded",
-      "parameters": {
-        "hostname": "localhost",
-        "username": "postgres",
-        "database": "cloaktest3"
       },
       "tables": {
       }

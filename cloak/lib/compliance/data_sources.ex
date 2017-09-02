@@ -1,199 +1,115 @@
 defmodule Compliance.DataSources do
   @moduledoc false
 
-  alias Compliance.Data
+  alias Compliance.{Data, TableDefinitions}
+
+  @normal_name_postfix ""
+  @encoded_name_postfix "_encoded"
 
 
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
-  def get_config(), do: Map.get(read_config(), "data_sources")
+  @doc "Creates configured data sources from a configuration file"
+  @spec all_from_config_initialized(String.t) :: [Cloak.DataSource.t]
+  def all_from_config_initialized(name), do:
+    name
+    |> all_from_config()
+    |> expand_and_add_table_definitions()
+    |> Enum.map(&Cloak.DataSource.add_tables/1)
 
-  def create(prefix) do
-    params = [
-      {:user_id, "user_id"},
-      {:add_user_id, false},
-    ]
-    Enum.each(Cloak.DataSource.all(), &create_table(&1.name, prefix, :users, [{:data_source, &1} | params]))
+  @doc "Creates configured data sources from a configuration file without attempting to connect to the dataources"
+  @spec all_from_config(String.t) :: [Cloak.DataSource.t]
+  def all_from_config(name), do:
+    read_config(name)["data_sources"]
+    |> Cloak.DataSource.config_to_datasources()
 
-    params = [
-      {:add_user_id, false},
-      {:projection, %{
-        table: "#{prefix}users",
-        foreign_key: "user_fk",
-        primary_key: "id",
-        user_id_alias: "uid",
-      }},
-    ]
-    Enum.each(Cloak.DataSource.all(), &create_table(&1.name, prefix, :addresses, [{:data_source, &1} | params]))
-
-    params = [
-      {:add_user_id, false},
-      {:projection, %{
-        table: "#{prefix}users",
-        foreign_key: "user_fk",
-        primary_key: "id",
-        user_id_alias: "uid",
-      }},
-    ]
-    Enum.each(Cloak.DataSource.all(), &create_table(&1.name, prefix, :notes, [{:data_source, &1} | params]))
-
-    params = [
-      {:add_user_id, false},
-      {:projection, %{
-        table: "#{prefix}notes",
-        foreign_key: "note_id",
-        primary_key: "id",
-        user_id_alias: "uid",
-      }},
-    ]
-    Enum.each(Cloak.DataSource.all(), &create_table(&1.name, prefix, :notes_changes, [{:data_source, &1} | params]))
-  end
-
-  def insert_data(prefix) do
-    {nested_normal, nested_encoded} = Data.generate(10)
-
-    normal = Data.flatten(nested_normal)
-    encoded = Data.flatten(nested_encoded)
-
-    Enum.each(Cloak.DataSource.all(), &insert_data(&1, prefix, :users, normal, encoded))
-    Enum.each(Cloak.DataSource.all(), &insert_data(&1, prefix, :addresses, normal, encoded))
-    Enum.each(Cloak.DataSource.all(), &insert_data(&1, prefix, :notes, normal, encoded))
-    Enum.each(Cloak.DataSource.all(), &insert_data(&1, prefix, :notes_changes, normal, encoded))
-  end
+  @doc "Creates tables for a normal and a encoded dataset and inserts data into them."
+  @spec setup([DataSource.t], Map.t) :: :ok
+  def setup(data_sources, data), do:
+    Enum.each(data_sources, &setup_datasource(&1, data))
 
 
   # -------------------------------------------------------------------
   # Internal functions - Creating tables
   # -------------------------------------------------------------------
 
-  # Postres Normal
-  defp create_table("postgres_normal", prefix, :users, params), do:
-    :ok = Cloak.Test.DB.create_table("#{prefix}users", "id integer, user_id integer, age integer, " <>
-      "height float, active boolean, name text", params)
-  defp create_table("postgres_normal", prefix, :addresses, params), do:
-    :ok = Cloak.Test.DB.create_table("#{prefix}addresses", "user_fk integer, \"home.city\" text, " <>
-      "\"home.postal_code\" integer, \"work.city\" text, \"work.postal_code\" integer", params)
-  defp create_table("postgres_normal", prefix, :notes, params), do:
-    :ok = Cloak.Test.DB.create_table("#{prefix}notes", "user_fk integer, id integer, title text, " <>
-      "content text", params)
-  defp create_table("postgres_normal", prefix, :notes_changes, params), do:
-    :ok = Cloak.Test.DB.create_table("#{prefix}notes_changes", "user_fk integer, id integer, note_id integer, " <>
-      "title text, content text, \"changes.date\" timestamp, \"changes.change\" text", params)
+  defp setup_datasource(%{name: name} = data_source, {normal_data, encoded_data}) do
+    IO.puts "Setting up #{name}"
+    handler = handler_for_data_source(data_source)
 
-  # Postgres Encoded
-  defp create_table("postgres_encoded", prefix, :users, params), do:
-    :ok = Cloak.Test.DB.create_table("#{prefix}users", "id integer, user_id integer, age text, " <>
-      "height text, active text, name text", extend_with_decoders(:users, params))
-  defp create_table("postgres_encoded", prefix, :addresses, params), do:
-    :ok = Cloak.Test.DB.create_table("#{prefix}addresses", "user_fk integer, \"home.city\" text, " <>
-      "\"home.postal_code\" text, \"work.city\" text, \"work.postal_code\" text",
-      extend_with_decoders(:addresses, params))
-  defp create_table("postgres_encoded", prefix, :notes, params), do:
-    :ok = Cloak.Test.DB.create_table("#{prefix}notes", "user_fk integer, id integer, title text, " <>
-      "content text", extend_with_decoders(:notes, params))
-  defp create_table("postgres_encoded", prefix, :notes_changes, params), do:
-    :ok = Cloak.Test.DB.create_table("#{prefix}notes_changes", "user_fk integer, id integer, note_id integer, " <>
-      "title text, content text, \"changes.date\" text, \"changes.change\" text",
-      extend_with_decoders(:notes_changes, params))
+    data_source
+    |> handler.setup()
+    |> handle_setup(TableDefinitions.plain(), handler, @normal_name_postfix, normal_data)
+    |> handle_setup(TableDefinitions.encoded(), handler, @encoded_name_postfix, encoded_data)
+    |> handler.terminate()
 
-  # Fallback
-  defp create_table(data_source_name, _, table_name, _params), do:
-    raise "Missing handler for creating table #{table_name} in data source: #{data_source_name}"
+    IO.puts "#{name} done\n"
+  end
 
+  defp handle_setup(state, definitions, handler, table_postfix, data) do
+    flattened_data = Data.flatten(data)
+    Enum.reduce(definitions, state, fn({name, %{columns: columns}}, state) ->
+      IO.puts "- Creating table #{name}#{table_postfix}"
+      state = handler.create_table("#{name}#{table_postfix}", columns, state)
+      IO.puts "- Inserting data into table #{name}#{table_postfix}"
+      handler.insert_data(flattened_data[name], "#{name}#{table_postfix}", state)
+    end)
+  end
 
-  # -------------------------------------------------------------------
-  # Internal functions - Inserting data
-  # -------------------------------------------------------------------
-
-  defp insert_data(%{name: "postgres_normal"} = data_source, prefix, table, data, _encoded_data), do:
-    perform_insert(data_source, prefix, table, data[table])
-
-  defp insert_data(%{name: "postgres_encoded"} = data_source, prefix, table, _data, encoded_data), do:
-    perform_insert(data_source, prefix, table, encoded_data[table])
-
-  # Fallback
-  defp insert_data(data_source_name, _, table_name, _data, _encoded_data), do:
-    raise "Missing handler for inserting data for table #{table_name} in data source: #{data_source_name}"
+  defp handler_for_data_source(%{driver: Cloak.DataSource.PostgreSQL}), do:
+    Compliance.DataSource.PostgreSQL
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp extend_with_decoders(:users, params) do
-    [
-      {:decoders, [
-        %{method: "base64", columns: ["name"]},
-        %{method: "aes_cbc_128", key: Data.encryption_key(), columns: ["name"]},
-        %{method: "text_to_integer", columns: ["age"]},
-        %{method: "text_to_real", columns: ["height"]},
-        %{method: "text_to_boolean", columns: ["active"]}
-      ]} | params
-    ]
-  end
-  defp extend_with_decoders(:notes, params) do
-    [
-      {:decoders, [
-        %{method: "base64", columns: ["title", "content"]},
-        %{method: "aes_cbc_128", key: Data.encryption_key(), columns: ["title", "content"]}
-      ]} | params
-    ]
-  end
-  defp extend_with_decoders(:notes_changes, params) do
-    [
-      {:decoders, [
-        %{method: "base64", columns: ["changes.change", "title", "content"]},
-        %{method: "aes_cbc_128", key: Data.encryption_key(), columns: ["changes.change", "title", "content"]},
-        %{method: "text_to_datetime", columns: ["changes.date"]}
-      ]} | params
-    ]
-  end
-  defp extend_with_decoders(:addresses, params) do
-    [
-      {:decoders, [
-        %{method: "base64", columns: ["home.city", "work.city"]},
-        %{method: "aes_cbc_128", key: Data.encryption_key(), columns: ["home.city", "work.city"]},
-        %{method: "text_to_integer", columns: ["home.postal_code", "work.postal_code"]}
-      ]} | params
-    ]
-  end
-
-  defp perform_insert(data_source, prefix, table, data) do
-    column_names = data
-    |> hd()
-    |> Map.keys()
-    |> Enum.sort()
-    rows = data
-    |> Enum.map(fn(entry) ->
-      Enum.map(column_names, & Map.get(entry, &1))
-    end)
-    column_names = column_names
-    |> Enum.map(& Atom.to_string/1)
-    |> Enum.map(fn(name) ->
-      if name =~ ~r/\./ do
-        "\"#{name}\""
-      else
-        name
-      end
-    end)
-    Cloak.Test.DB.insert_data("#{prefix}#{table}", column_names, rows, data_source)
-  end
-
-  defp read_config(), do:
-    config_file_path()
+  defp read_config(name), do:
+    config_file_path(name)
     |> File.read!()
     |> Poison.decode!()
 
-  defp config_file_path(), do:
-    Path.join([Application.app_dir(:cloak, "priv"), "config", config_file_name()])
+  defp config_file_path(name), do:
+    Path.join([Application.app_dir(:cloak, "priv"), "config", "#{name}.json"])
 
-  defp config_file_name() do
-    if System.get_env("TRAVIS") do
-      "compliance_travis.json"
-    else
-      "compliance.json"
+  defp expand_and_add_table_definitions(data_source_scaffolds) do
+    Enum.flat_map(data_source_scaffolds, fn(data_source_scaffold) ->
+      normal_tables = create_table_structure(TableDefinitions.plain(), @normal_name_postfix)
+      encoded_tables = create_table_structure(TableDefinitions.encoded(), @encoded_name_postfix)
+
+      normal_data_source = data_source_scaffold
+      |> Map.put(:tables, normal_tables)
+      |> Map.put(:initial_tables, normal_tables)
+      |> Map.put(:name, "#{data_source_scaffold.name}#{@normal_name_postfix}")
+      |> Map.put(:marker, "normal")
+
+      encoded_data_source = data_source_scaffold
+      |> Map.put(:tables, encoded_tables)
+      |> Map.put(:initial_tables, encoded_tables)
+      |> Map.put(:name, "#{data_source_scaffold.name}#{@encoded_name_postfix}")
+      |> Map.put(:marker, "encoded")
+
+      [normal_data_source, encoded_data_source]
+    end)
+  end
+
+  defp create_table_structure(definitions, table_postfix) do
+    definitions
+    |> Enum.map(fn({name, definition}) ->
+      rawling = %{decoders: Map.get(definition, :decoders, %{})}
+      |> add_uid_construct(name)
+      |> Map.put(:db_name, "#{name}#{table_postfix}")
+      {name, rawling}
+    end)
+    |> Enum.into(%{})
+  end
+
+  defp add_uid_construct(rawling, name) do
+    case Map.get(TableDefinitions.uid_definitions(), name) do
+      %{user_id: uid_column_name} -> Map.put(rawling, :user_id, uid_column_name)
+      %{projection: projection} -> Map.put(rawling, :projection, projection)
     end
   end
 end
