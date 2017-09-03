@@ -16,19 +16,37 @@ defmodule Compliance.DataSources do
   def all_from_config_initialized(name), do:
     name
     |> all_from_config()
-    |> expand_and_add_table_definitions()
+    |> complete_data_source_definitions()
     |> Enum.map(&Cloak.DataSource.add_tables/1)
 
   @doc "Creates configured data sources from a configuration file without attempting to connect to the dataources"
   @spec all_from_config(String.t) :: [Cloak.DataSource.t]
   def all_from_config(name), do:
     read_config(name)["data_sources"]
+    |> Enum.uniq_by(& &1["parameters"])
     |> Cloak.DataSource.config_to_datasources()
 
   @doc "Creates tables for a normal and a encoded dataset and inserts data into them."
   @spec setup([DataSource.t], Map.t) :: :ok
   def setup(data_sources, data), do:
     Enum.each(data_sources, &setup_datasource(&1, data))
+
+  @doc "Takes a rawling data source definition and expands it with table definitions"
+  @spec complete_data_source_definitions([DataSource.t]) :: [DataSource.t]
+  def complete_data_source_definitions(data_sources), do:
+    expand_and_add_table_definitions(data_sources)
+
+  @doc "Returns a data source config as JSON"
+  @spec read_config(String.t) :: Map.t
+  def read_config(name), do:
+    config_file_path(name)
+    |> File.read!()
+    |> Poison.decode!()
+
+  @doc "Writes a data source config to disk as JSON"
+  @spec write_json_config(String.t, String.t) :: :ok
+  def write_json_config(content, name), do:
+    File.write!(config_file_path(name), content)
 
 
   # -------------------------------------------------------------------
@@ -65,11 +83,6 @@ defmodule Compliance.DataSources do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp read_config(name), do:
-    config_file_path(name)
-    |> File.read!()
-    |> Poison.decode!()
 
   defp config_file_path(name), do:
     Path.join([Application.app_dir(:cloak, "priv"), "config", "#{name}.json"])
