@@ -1,0 +1,72 @@
+defmodule Compliance.AggregateFunctions.Test do
+  use ExUnit.Case, async: true
+
+  @moduletag :exclude_in_dev
+  @moduletag :compliance
+
+  alias Compliance.Helpers
+
+  setup_all do
+    data_sources = if System.get_env("TRAVIS") do
+      Compliance.DataSources.all_from_config_initialized("compliance_travis")
+    else
+      Compliance.DataSources.all_from_config_initialized("compliance")
+    end
+
+    assert(length(data_sources) > 1, "More than one data source is needed to ensure compliance")
+
+    {:ok, data_sources: data_sources}
+  end
+
+  describe "aggregate functions" do
+    # NOTE:
+    # - stddev[_noise] is missing because it crashes on values from the users table
+    Enum.each([
+      # {aggregate function, whether it is supported in subqueries}
+      {"count(*)", true},
+      {"count_noise(*)", false},
+      {"count(<col>)", true},
+      {"count_noise(<col>)", false},
+      {"count(distinct <col>)", true},
+      {"count_noise(distinct <col>)", false},
+      {"avg(<col>)", true},
+      {"avg_noise(<col>)", false},
+      {"avg(distinct <col>)", true},
+      {"avg_noise(distinct <col>)", false},
+      {"median(<col>)", true},
+      {"median(distinct <col>)", true},
+      {"max(<col>)", true},
+      {"max(distinct <col>)", true},
+      {"min(<col>)", true},
+      {"min(distinct <col>)", true},
+    ], fn({aggregate, allowed_in_subquery}) ->
+
+      Enum.each(Helpers.numerical_columns(), fn({column, table, uid}) ->
+
+        if allowed_in_subquery do
+          test "aggregate #{aggregate} on input #{column} in a sub-query on #{table}", context do
+            Helpers.assert_consistent_and_not_failing context, """
+              SELECT
+                aggregate
+              FROM (
+                SELECT
+                  #{unquote(uid)},
+                  #{Helpers.on_column(unquote(aggregate), unquote(column))} as aggregate
+                FROM #{unquote(table)}
+                GROUP BY #{unquote(uid)}
+              ) table_alias
+              ORDER BY aggregate
+            """
+          end
+        end
+
+        test "aggregate #{aggregate} on input #{column} in query on #{table}", context do
+          Helpers.assert_consistent_and_not_failing context,  """
+            SELECT #{Helpers.on_column(unquote(aggregate), unquote(column))}
+            FROM #{unquote(table)}
+          """
+        end
+      end)
+    end)
+  end
+end

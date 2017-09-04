@@ -1,0 +1,82 @@
+defmodule Compliance.BinaryNumericalFunctions.Test do
+  use ExUnit.Case, async: true
+
+  @moduletag :exclude_in_dev
+  @moduletag :compliance
+
+  alias Compliance.Helpers
+
+  setup_all do
+    data_sources = if System.get_env("TRAVIS") do
+      Compliance.DataSources.all_from_config_initialized("compliance_travis")
+    else
+      Compliance.DataSources.all_from_config_initialized("compliance")
+    end
+
+    assert(length(data_sources) > 1, "More than one data source is needed to ensure compliance")
+
+    {:ok, data_sources: data_sources}
+  end
+
+  describe "binary numerical functions" do
+    Enum.each([
+      "<col1> * <col2>",
+      "<col1> + <col2>",
+      "<col1> - <col2>",
+      "<col1> / <col2>",
+      "<col1> ^ <col2>",
+      "div(<col1>, <col2>)",
+      "mod(<col1>, <col2>)",
+      "pow(<col1>, <col2>)",
+    ], fn(function) ->
+
+      Enum.each(Helpers.integer_columns(), fn({column, table, uid}) ->
+        test "#{function} on input column #{column} from table #{table} as parameter 1, in a sub-query", context do
+          Helpers.assert_consistent_and_not_failing context, """
+            SELECT
+              output
+            FROM (
+              SELECT
+                #{unquote(uid)},
+                #{Helpers.on_columns(unquote(function), ["#{unquote(column)}", "1"])} as output
+              FROM #{unquote(table)}
+            ) table_alias
+            ORDER BY output
+          """
+        end
+
+        test "#{function} on input column #{column} from table #{table} as parameter 2, in a sub-query", context do
+          Helpers.assert_consistent_and_not_failing context, """
+            SELECT
+              output
+            FROM (
+              SELECT
+                #{unquote(uid)},
+                #{Helpers.on_columns(unquote(function), ["1", "#{unquote(column)}"])} as output
+              FROM #{unquote(table)}
+            ) table_alias
+            ORDER BY output
+          """
+        end
+
+        test "#{function} on input column #{column} from table #{table} as parameter 1, in main query", context do
+          Helpers.assert_consistent_and_not_failing context, """
+            SELECT
+              #{Helpers.on_columns(unquote(function), ["#{unquote(column)}", "1"])} as output
+            FROM #{unquote(table)}
+            ORDER BY output
+          """
+        end
+
+        test "#{function} on input column #{column} from table #{table} as parameter 2, in main query", context do
+          Helpers.assert_consistent_and_not_failing context, """
+            SELECT
+              #{Helpers.on_columns(unquote(function), ["1", "#{unquote(column)}"])} as output
+            FROM #{unquote(table)}
+            ORDER BY output
+          """
+        end
+      end)
+    end)
+  end
+end

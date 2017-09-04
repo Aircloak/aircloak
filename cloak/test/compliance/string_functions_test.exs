@@ -1,0 +1,80 @@
+defmodule Compliance.StringFunctions.Test do
+  use ExUnit.Case, async: true
+
+  @moduletag :exclude_in_dev
+  @moduletag :compliance
+
+  alias Compliance.Helpers
+
+  setup_all do
+    data_sources = if System.get_env("TRAVIS") do
+      Compliance.DataSources.all_from_config_initialized("compliance_travis")
+    else
+      Compliance.DataSources.all_from_config_initialized("compliance")
+    end
+
+    assert(length(data_sources) > 1, "More than one data source is needed to ensure compliance")
+
+    {:ok, data_sources: data_sources}
+  end
+
+  describe "string functions" do
+    # NOTE:
+    # - substring(<col> FROM 0) has been disabled as it produces wildly different results when emulated
+    Enum.each([
+      "<col> || 'text-value'",
+      "'text-value' || <col>",
+      "btrim(<col>)",
+      "concat(<col>, 'text-value')",
+      "concat('text-value', <col>)",
+      "hex(<col>)",
+      "lcase(<col>)",
+      "left(<col>, 1)",
+      "left(<col>, 10)",
+      "left(<col>, 1000000)",
+      "length(<col>)",
+      "lower(<col>)",
+      "ltrim(<col>)",
+      "right(<col>, 1)",
+      "right(<col>, 10)",
+      "right(<col>, 1000000)",
+      "rtrim(<col>)",
+      "substring(<col> FROM 0 FOR 1)",
+      "substring(<col> FROM 0 FOR 1000)",
+      "substring(<col> FROM 10 FOR 10)",
+      "substring(<col> FROM 10 FOR 1000)",
+      "substring(<col> FROM 10)",
+      "substring(<col> FOR 10)",
+      "substring(<col> FOR 1000)",
+      "trim(<col>)",
+      "ucase(<col>)",
+      "upper(<col>)",
+    ], fn(function) ->
+
+      Enum.each(Helpers.text_columns(), fn({column, table, uid}) ->
+        test "#{function} on input #{column} in a sub-query on #{table}", context do
+          Helpers.assert_consistent_and_not_failing context, """
+            SELECT
+              output
+            FROM (
+              SELECT
+                #{unquote(uid)},
+                #{Helpers.on_column(unquote(function), "\"#{unquote(column)}\"")} as output
+              FROM #{unquote(table)}
+              ORDER BY 1, 2
+            ) table_alias
+            ORDER BY output
+          """
+        end
+
+        test "#{function} on input #{column} in query on #{table}", context do
+          Helpers.assert_consistent_and_not_failing context, """
+            SELECT #{Helpers.on_column(unquote(function), "\"#{unquote(column)}\"")}
+            FROM #{unquote(table)}
+            ORDER BY 1
+          """
+        end
+      end)
+    end)
+  end
+end
