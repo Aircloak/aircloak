@@ -21,7 +21,7 @@ function main() {
 
   cd ../
   mix gen.dev_data
-  mix gen.test_data "compliance" 500
+  mix gen.test_data "compliance" 200
 }
 
 export DB_HOST=${DB_HOST:-127.0.0.1}
