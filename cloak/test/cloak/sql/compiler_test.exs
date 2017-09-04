@@ -37,6 +37,12 @@ defmodule Cloak.Sql.Compiler.Test do
       <> "of type `datetime` cannot be compared."
   end
 
+  test "rejects mistyped where conditions with constants" do
+    {:error, error} = compile("select count(*) from table where string = 2", data_source())
+    assert error == "Column `string` from table `table` of type `text` and column `2` of type `integer` "
+      <> "cannot be compared."
+  end
+
   test "rejects mistyped like conditions" do
     {:error, error} = compile("select * from table where numeric like 'something'", data_source())
     assert error == "Column `numeric` from table `table` of type `integer` cannot be used in a LIKE expression."

@@ -256,7 +256,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_where_condition(_), do: :ok
 
   defp verify_where_condition_types(column_a, column_b) do
-    if not Expression.constant?(column_a) and not Expression.constant?(column_b) and column_a.type != column_b.type do
+    if column_a.type != column_b.type do
       raise CompilationError, message: "Column #{Expression.display_name(column_a)} of type `#{column_a.type}` and "
         <> "column #{Expression.display_name(column_b)} of type `#{column_b.type}` cannot be compared."
     end
