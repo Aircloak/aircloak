@@ -43,11 +43,6 @@ defmodule Compliance.DataSources do
     |> File.read!()
     |> Poison.decode!()
 
-  @doc "Writes a data source config to disk as JSON"
-  @spec write_json_config(String.t, String.t) :: :ok
-  def write_json_config(content, name), do:
-    File.write!(config_file_path(name), content)
-
 
   # -------------------------------------------------------------------
   # Internal functions - Creating tables
