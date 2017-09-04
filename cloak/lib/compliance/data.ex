@@ -81,11 +81,10 @@ defmodule Compliance.Data do
         notes: generate_notes(words),
       }
     end)
-    |> Stream.map(fn({:ok, user}) ->
+    |> Enum.map(fn({:ok, user}) ->
       output_progress(user.id, num_users)
       user
     end)
-    |> Enum.to_list()
   end
 
   defp output_progress(num, total) do
