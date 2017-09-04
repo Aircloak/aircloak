@@ -72,7 +72,7 @@ release-local:
 
 perftest: deps
 	MIX_ENV=prod mix compile
-	MIX_ENV=prod mix run perftest/main.exs
+	PERFORMANCE_TEST=true MIX_ENV=prod mix run perftest/main.exs
 
 dev-container: odbc_drivers
 	./dev_container/build-image.sh

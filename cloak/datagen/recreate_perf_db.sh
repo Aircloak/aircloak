@@ -12,7 +12,7 @@ function main() {
 
   cd ../
 	mix gen.test_data perf 10000
-	mix gen.data_source_config perf
+	mix gen.data_source_config perf priv/config/performance_tests.json
 }
 
 export DB_HOST=${DB_HOST:-127.0.0.1}
