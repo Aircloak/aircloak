@@ -7,114 +7,44 @@ defmodule Compliance.TableDefinitions do
 
   @doc "Returns the table definition for the normal table."
   @spec plain() :: Map.t
-  def plain() do
-    %{
-      users: %{
-        columns: [
-          {"id", :integer},
-          {"user_id", :integer},
-          {"age", :integer},
-          {"height", :real},
-          {"active", :boolean},
-          {"name", :text},
-        ],
-      },
-      addresses: %{
-        columns: [
-          {"user_fk", :integer},
-          {"home.city", :text},
-          {"work.city", :text},
-          {"home.postal_code", :integer},
-          {"work.postal_code", :integer},
-        ],
-      },
-      notes: %{
-        columns: [
-          {"user_fk", :integer},
-          {"id", :integer},
-          {"title", :text},
-          {"content", :text},
-        ],
-      },
-      notes_changes: %{
-        columns: [
-          {"id", :integer},
-          {"user_fk", :integer},
-          {"note_id", :integer},
-          {"title", :text},
-          {"content", :text},
-          {"changes.change", :text},
-          {"changes.date", :datetime},
-        ],
-      },
-    }
-  end
+  def plain(), do:
+    raw_table_definitions()
+    |> Enum.map(fn({table, %{columns: raw_columns} = definitions}) ->
+      columns = raw_columns
+      |> Enum.map(fn
+        ({_name, _type} = column) -> column
+        ({name, type, _decoders}) -> {name, type}
+      end)
+      {table, Map.put(definitions, :columns, columns)}
+    end)
+    |> Enum.into(%{})
 
   @doc "Returns the table definition for the encoded table."
   @spec encoded() :: Map.t
-  def encoded() do
-    %{
-      users: %{
-        columns: [
-          {"id", :integer},
-          {"user_id", :integer},
-          {"age", :text},
-          {"height", :text},
-          {"active", :text},
-          {"name", :text},
-        ],
-        decoders: [
-          %{method: "base64", columns: ["name"]},
-          %{method: "aes_cbc_128", key: Data.encryption_key(), columns: ["name"]},
-          %{method: "text_to_integer", columns: ["age"]},
-          %{method: "text_to_real", columns: ["height"]},
-          %{method: "text_to_boolean", columns: ["active"]}
-        ],
-      },
-      addresses: %{
-        columns: [
-          {"user_fk", :integer},
-          {"home.city", :text},
-          {"work.city", :text},
-          {"home.postal_code", :text},
-          {"work.postal_code", :text},
-        ],
-        decoders: [
-          %{method: "base64", columns: ["home.city", "work.city"]},
-          %{method: "aes_cbc_128", key: Data.encryption_key(), columns: ["home.city", "work.city"]},
-          %{method: "text_to_integer", columns: ["home.postal_code", "work.postal_code"]}
-        ],
-      },
-      notes: %{
-        columns: [
-          {"user_fk", :integer},
-          {"id", :integer},
-          {"title", :text},
-          {"content", :text},
-        ],
-        decoders: [
-          %{method: "base64", columns: ["title", "content"]},
-          %{method: "aes_cbc_128", key: Data.encryption_key(), columns: ["title", "content"]}
-        ],
-      },
-      notes_changes: %{
-        columns: [
-          {"id", :integer},
-          {"user_fk", :integer},
-          {"note_id", :integer},
-          {"title", :text},
-          {"content", :text},
-          {"changes.change", :text},
-          {"changes.date", :text},
-        ],
-        decoders: [
-          %{method: "base64", columns: ["changes.change", "title", "content"]},
-          %{method: "aes_cbc_128", key: Data.encryption_key(), columns: ["changes.change", "title", "content"]},
-          %{method: "text_to_datetime", columns: ["changes.date"]}
-        ],
-      },
-    }
-  end
+  def encoded(), do:
+    raw_table_definitions()
+    |> Enum.map(fn({table, %{columns: raw_columns} = definitions}) ->
+      {columns, decoders} = raw_columns
+      |> Enum.reduce({[], []}, fn
+        ({_name, _type} = plain_column, {columns_acc, decoders_acc}) ->
+          {[plain_column | columns_acc], decoders_acc}
+        ({name, _type, [{:decoders, decoders}]}, {columns_acc, decoders_acc}) ->
+          executable_decoders = decoders
+          |> Enum.map(fn
+            (decoder) when is_atom(decoder) -> %{method: Atom.to_string(decoder), columns: [name]}
+            ({decoder, options}) ->
+              Enum.reduce(options, %{method: Atom.to_string(decoder), columns: [name]}, fn({key, value}, acc) ->
+                Map.put(acc, key, value)
+              end)
+          end)
+          {[{name, :text} | columns_acc], executable_decoders ++ decoders_acc}
+      end)
+      updated_definitions = definitions
+      |> Map.put(:columns, columns)
+      |> Map.put(:decoders, decoders)
+      {table, updated_definitions}
+    end)
+    |> Enum.into(%{})
 
   @doc "Returns a defining containing information about how the UID-column is defined or derived"
   @spec uid_definitions() :: Map.t
@@ -146,6 +76,54 @@ defmodule Compliance.TableDefinitions do
           primary_key: "id",
           user_id_alias: "uid",
         },
+      },
+    }
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp raw_table_definitions() do
+    %{
+      users: %{
+        columns: [
+          {"id", :integer},
+          {"user_id", :integer},
+          {"age", :integer, decoders: [:text_to_integer]},
+          {"height", :real, decoders: [:text_to_real]},
+          {"active", :boolean, decoders: [:text_to_boolean]},
+          {"name", :text, decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]},
+        ],
+      },
+      addresses: %{
+        columns: [
+          {"user_fk", :integer},
+          {"home.city", :text, decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]},
+          {"work.city", :text, decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]},
+          {"home.postal_code", :integer, decoders: [:text_to_integer]},
+          {"work.postal_code", :integer, decoders: [:text_to_integer]},
+        ],
+      },
+      notes: %{
+        columns: [
+          {"user_fk", :integer},
+          {"id", :integer},
+          {"title", :text, decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]},
+          {"content", :text, decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]},
+        ],
+      },
+      notes_changes: %{
+        columns: [
+          {"id", :integer},
+          {"user_fk", :integer},
+          {"note_id", :integer},
+          {"title", :text, decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]},
+          {"content", :text, decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]},
+          {"changes.change", :text, decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]},
+          {"changes.date", :datetime, decoders: [:text_to_datetime]},
+        ],
       },
     }
   end
