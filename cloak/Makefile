@@ -32,10 +32,9 @@ test_all:
 recreate-db:
 	@echo "Assumption: you have a database user called postgres that is a superuser. If not, run: CREATE USER postgres WITH SUPERUSER"
 	./datagen/recreate_db.sh
-	USER_COUNT=100 DB_NAME=datasource_compliance ./datagen/generate_db.sh
 
 recreate-perf-db:
-	USER_COUNT=10000 DB_NAME=performance ./datagen/generate_db.sh
+	./datagen/recreate_perf_db.sh
 
 recreate-db-more-data: recreate-db
 	./datagen/add_more_test_data.sh
@@ -73,7 +72,7 @@ release-local:
 
 perftest: deps
 	MIX_ENV=prod mix compile
-	MIX_ENV=prod mix run perftest/main.exs
+	PERFORMANCE_TEST=true MIX_ENV=prod mix run perftest/main.exs
 
 dev-container: odbc_drivers
 	./dev_container/build-image.sh

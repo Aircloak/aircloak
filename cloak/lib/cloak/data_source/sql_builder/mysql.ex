@@ -52,4 +52,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   def sql_type(:text), do: "char"
   def sql_type(:integer), do: "signed"
   def sql_type(type) when is_atom(type), do: Atom.to_string(type)
+
+  @doc false
+  def unicode_literal(value), do: ["N'", value, ?']
 end

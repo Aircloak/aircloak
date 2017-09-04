@@ -8,6 +8,7 @@ defmodule Cloak.Test.QueryHelpers do
   defmacro assert_query_consistency(query, options \\ []) do
     parameters = Keyword.get(options, :parameters, [])
     views = Keyword.get(options, :views, quote(do: %{}))
+    data_sources = Keyword.get(options, :data_sources, quote(do: Cloak.DataSource.all()))
     quote do
       run_query =
         fn(data_source) ->
@@ -19,11 +20,11 @@ defmodule Cloak.Test.QueryHelpers do
         end
 
       [{first_response, first_data_source} | other_responses] =
-        Cloak.DataSource.all()
+        unquote(data_sources)
         |> Enum.map(&Task.async(fn -> run_query.(&1) end))
         |> Enum.map(&Task.await/1)
         |> Enum.map(&Map.drop(&1, [:execution_time, :features]))
-        |> Enum.zip(Cloak.DataSource.all())
+        |> Enum.zip(unquote(data_sources))
 
       for {other_response, other_data_source} <- other_responses, do:
         unquote(__MODULE__).assert_equal(first_response, other_response, 0.00000001,
