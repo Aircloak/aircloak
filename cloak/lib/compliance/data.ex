@@ -61,17 +61,20 @@ defmodule Compliance.Data do
   # -------------------------------------------------------------------
 
   defp generate_users(num_users) do
+    words = words()
+    names = names()
+    cities = cities()
     for user_num <- (1..num_users) do
       output_progress(user_num, num_users)
       %{
         id: user_num,
         user_id: :erlang.unique_integer([:positive]),
-        name: generate_name(),
+        name: generate_name(names),
         age: :rand.uniform(70) + 10,
         height: :rand.uniform() * 30 + 170,
         active: :rand.uniform() < 0.80,
-        addresses: generate_addresses(),
-        notes: generate_notes(),
+        addresses: generate_addresses(cities),
+        notes: generate_notes(words),
       }
     end
   end
@@ -81,8 +84,7 @@ defmodule Compliance.Data do
     :io.format(to_charlist("Generating users #{percent}% complete.\r"))
   end
 
-  defp generate_addresses() do
-    cities = cities()
+  defp generate_addresses(cities) do
     for _ <- rand_range_list(@min_addresses, @max_addresses) do
       %{
         home: %{
@@ -97,8 +99,7 @@ defmodule Compliance.Data do
     end
   end
 
-  defp generate_notes() do
-    words = words()
+  defp generate_notes(words) do
     for _ <- rand_range_list(@min_notes, @max_notes) do
       note_id = :erlang.unique_integer([:positive, :monotonic])
       %{
@@ -134,8 +135,8 @@ defmodule Compliance.Data do
   defp random_postcode(), do:
     :rand.uniform(@max_postal_code - @min_postal_code) + @min_postal_code
 
-  defp generate_name(), do:
-    sample_randomly(names(), 2, 3)
+  defp generate_name(names), do:
+    sample_randomly(names, 2, 3)
 
   defp sample_randomly(samples, min, max), do:
     rand_range_list(min, max)
