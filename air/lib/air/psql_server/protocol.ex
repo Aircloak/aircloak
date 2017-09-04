@@ -269,8 +269,11 @@ defmodule Air.PsqlServer.Protocol do
         other -> inspect(other)
       end
 
-      ["psql server: received ", to_string(type), " ", payload_str]
+      ["psql server: received ", to_string(type), " ", sanitize_message_payload(type, payload_str)]
     end)
+
+  defp sanitize_message_payload(:password, _password), do: "*****"
+  defp sanitize_message_payload(_type, payload), do: payload
 
   defp invoke_message_handler(protocol, :terminate, _payload), do:
     close(protocol, :normal)
