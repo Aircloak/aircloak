@@ -62,6 +62,7 @@ defmodule Compliance.Data do
 
   defp generate_users(num_users) do
     for user_num <- (1..num_users) do
+      output_progress(user_num, num_users)
       %{
         id: user_num,
         user_id: :erlang.unique_integer([:positive]),
@@ -73,6 +74,11 @@ defmodule Compliance.Data do
         notes: generate_notes(),
       }
     end
+  end
+
+  defp output_progress(num, total) do
+    percent = round((num/total) * 100)
+    :io.format(to_charlist("Generating users #{percent}% complete.\r"))
   end
 
   defp generate_addresses() do
