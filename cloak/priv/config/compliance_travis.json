@@ -3,7 +3,7 @@
   "data_sources": [
     {
       "driver": "postgresql",
-      "marker": "test-driver",
+      "marker": "connector",
       "name": "postgres",
       "parameters": {
         "hostname": "localhost",
