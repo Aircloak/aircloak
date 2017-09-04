@@ -64,8 +64,12 @@ defmodule Compliance.Data do
     words = words()
     names = names()
     cities = cities()
-    for user_num <- (1..num_users) do
-      output_progress(user_num, num_users)
+
+    output_progress(0, num_users)
+
+    Enum.to_list(1..num_users)
+    |> Task.async_stream(fn(user_num) ->
+      :rand.seed(:exsplus, {0, 0, user_num})
       %{
         id: user_num,
         user_id: :erlang.unique_integer([:positive]),
@@ -76,7 +80,12 @@ defmodule Compliance.Data do
         addresses: generate_addresses(cities),
         notes: generate_notes(words),
       }
-    end
+    end)
+    |> Stream.map(fn({:ok, user}) ->
+      output_progress(user.id, num_users)
+      user
+    end)
+    |> Enum.to_list()
   end
 
   defp output_progress(num, total) do
