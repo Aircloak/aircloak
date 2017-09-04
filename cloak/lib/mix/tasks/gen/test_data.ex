@@ -2,12 +2,8 @@ if Mix.env == :dev do
   defmodule Mix.Tasks.Gen.TestData do
     @shortdoc "Generates an interlinked dataset for cloak testing."
     @moduledoc """
-    Generates a test dataset that consists of 4 tables:
-
-    - users
-    - addresses (each user has 0 or more addresses)
-    - notes (each user has 0 or more notes)
-    - notes_changes (each note has 0 or more changes)
+    Generates a test dataset of users and items related to these users.
+    For more information, please consult the `Compliance.TableDefinitions` module.
 
     The command takes two parameters:
     - the name of the data source config file to be used
