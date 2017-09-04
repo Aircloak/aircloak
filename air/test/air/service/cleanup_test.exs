@@ -43,7 +43,7 @@ defmodule Air.Service.Cleanup.Test do
       query = create_query!()
 
       {:connected, cloak} = TestSocketHelper.connect(%{cloak_name: "cloak"})
-      TestSocketHelper.join!(cloak, "main", %{data_sources: [%{name: "ds", global_id: "ds", tables: []}]})
+      TestSocketHelper.join!(cloak, "main", %{data_sources: [%{name: "ds", tables: []}]})
 
       task = Task.async(fn -> Cleanup.cleanup_dead_queries() end)
       TestSocketHelper.respond_to_running_queries!(cloak, [query.id])
