@@ -61,22 +61,38 @@ defmodule Compliance.Data do
   # -------------------------------------------------------------------
 
   defp generate_users(num_users) do
-    for user_num <- (1..num_users) do
+    words = words()
+    names = names()
+    cities = cities()
+
+    output_progress(0, num_users)
+
+    Enum.to_list(1..num_users)
+    |> Task.async_stream(fn(user_num) ->
+      :rand.seed(:exsplus, {0, 0, user_num})
       %{
         id: user_num,
         user_id: :erlang.unique_integer([:positive]),
-        name: generate_name(),
+        name: generate_name(names),
         age: :rand.uniform(70) + 10,
         height: :rand.uniform() * 30 + 170,
         active: :rand.uniform() < 0.80,
-        addresses: generate_addresses(),
-        notes: generate_notes(),
+        addresses: generate_addresses(cities),
+        notes: generate_notes(words),
       }
-    end
+    end)
+    |> Enum.map(fn({:ok, user}) ->
+      output_progress(user.id, num_users)
+      user
+    end)
   end
 
-  defp generate_addresses() do
-    cities = cities()
+  defp output_progress(num, total) do
+    percent = round((num/total) * 100)
+    :io.format(to_charlist("Generating users #{percent}% complete.\r"))
+  end
+
+  defp generate_addresses(cities) do
     for _ <- rand_range_list(@min_addresses, @max_addresses) do
       %{
         home: %{
@@ -91,8 +107,7 @@ defmodule Compliance.Data do
     end
   end
 
-  defp generate_notes() do
-    words = words()
+  defp generate_notes(words) do
     for _ <- rand_range_list(@min_notes, @max_notes) do
       note_id = :erlang.unique_integer([:positive, :monotonic])
       %{
@@ -128,8 +143,8 @@ defmodule Compliance.Data do
   defp random_postcode(), do:
     :rand.uniform(@max_postal_code - @min_postal_code) + @min_postal_code
 
-  defp generate_name(), do:
-    sample_randomly(names(), 2, 3)
+  defp generate_name(names), do:
+    sample_randomly(names, 2, 3)
 
   defp sample_randomly(samples, min, max), do:
     rand_range_list(min, max)
