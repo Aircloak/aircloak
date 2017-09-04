@@ -72,13 +72,7 @@ defmodule Compliance.DataSource.PostgreSQL do
   defp escaped_column_names(column_names), do:
     column_names
     |> Enum.map(& Atom.to_string/1)
-    |> Enum.map(fn(name) ->
-      if name =~ ~r/\./ do
-        "\"#{name}\""
-      else
-        name
-      end
-    end)
+    |> Enum.map(& "\"#{&1}\"")
 
   defp columns_sql(columns), do:
     columns
