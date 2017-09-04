@@ -33,7 +33,6 @@ echo "Verifying existence of required asdf-plugins"
 install_if_missing "erlang"
 install_if_missing "elixir"
 install_if_missing "nodejs"
-install_if_missing "ruby"
 
 # Imports Node.js release team's OpenPGP keys to main keyring
 bash ~/.asdf/plugins/nodejs/bin/import-release-team-keyring ||

@@ -1,4 +1,4 @@
-defmodule Compliance.Support.Data do
+defmodule Compliance.Data do
   @moduledoc """
   Generates a database independent dataset that can be imported into
   backends for compliance testing.
@@ -13,7 +13,6 @@ defmodule Compliance.Support.Data do
   correct and up to date!
   """
 
-  @num_users 200
   @min_addresses 0
   @max_addresses 2
   @min_postal_code 10_000
@@ -34,9 +33,9 @@ defmodule Compliance.Support.Data do
   Generates a random dataset that can be imported into a database for compliance testing.
   For more information on the structure and expected usage, see the module doc.
   """
-  @spec generate() :: {Map.t, Map.t}
-  def generate() do
-    normal = generate_users()
+  @spec generate(non_neg_integer) :: {Map.t, Map.t}
+  def generate(num_users) do
+    normal = generate_users(num_users)
     encoded = encode(normal)
     {normal, encoded}
   end
@@ -61,8 +60,8 @@ defmodule Compliance.Support.Data do
   # Internal functions - data generation
   # -------------------------------------------------------------------
 
-  defp generate_users() do
-    for user_num <- (1..@num_users) do
+  defp generate_users(num_users) do
+    for user_num <- (1..num_users) do
       %{
         id: user_num,
         user_id: :erlang.unique_integer([:positive]),
@@ -124,7 +123,7 @@ defmodule Compliance.Support.Data do
     |> Enum.to_list()
 
   defp cities(), do:
-    lines_from_file("test/support/compliance/cities.txt")
+    lines_from_file("lib/compliance/cities.txt")
 
   defp random_postcode(), do:
     :rand.uniform(@max_postal_code - @min_postal_code) + @min_postal_code
@@ -141,10 +140,10 @@ defmodule Compliance.Support.Data do
     Enum.random(options)
 
   defp words(), do:
-    lines_from_file("test/support/compliance/words.txt")
+    lines_from_file("lib/compliance/words.txt")
 
   defp names(), do:
-    lines_from_file("test/support/compliance/names.txt")
+    lines_from_file("lib/compliance/names.txt")
 
   defp lines_from_file(file), do:
     File.read!(file)

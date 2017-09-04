@@ -80,8 +80,12 @@ defmodule Cloak.DataSource do
   using the valid datasources. Invalid data sources won't be accessible, but
   the system will log corresponding errors.
   """
-  def start_link(), do:
-    GenServer.start_link(__MODULE__, init_state(), name: __MODULE__)
+  def start_link() do
+    initial_state = Aircloak.DeployConfig.fetch!("data_sources")
+    |> config_to_datasources()
+    |> Enum.map(&add_tables/1)
+    GenServer.start_link(__MODULE__, initial_state, name: __MODULE__)
+  end
 
   @doc "Returns the list of defined data sources."
   @spec all() :: [t]
@@ -145,6 +149,16 @@ defmodule Cloak.DataSource do
   def sql_dialect_module(data_source), do:
     data_source.driver.sql_dialect_module(data_source[:parameters])
 
+  @doc "Converts a data source config as found in a config into a data source"
+  @spec config_to_datasources(Map.t) :: [t]
+  def config_to_datasources(config), do:
+    config
+    |> Enum.map(&to_data_source/1)
+    |> Enum.reject(&disabled_in_dev/1)
+    |> Validations.Name.check_for_duplicates()
+    |> Enum.map(&save_init_fields/1)
+
+
   # -------------------------------------------------------------------
   # Callbacks
   # -------------------------------------------------------------------
@@ -192,17 +206,6 @@ defmodule Cloak.DataSource do
     interval = Application.get_env(:cloak, :data_source_monitor_interval)
     if interval != nil, do: Process.send_after(pid, :monitor, interval)
   end
-
-  defp init_state(), do:
-    prep_state(Aircloak.DeployConfig.fetch!("data_sources"))
-
-  defp prep_state(config), do:
-    config
-    |> Enum.map(&to_data_source/1)
-    |> Enum.reject(&disabled_in_dev/1)
-    |> Validations.Name.check_for_duplicates()
-    |> Enum.map(&save_init_fields/1)
-    |> Enum.map(&add_tables/1)
 
   defp to_data_source(data_source) do
     data_source
@@ -390,10 +393,5 @@ defmodule Cloak.DataSource do
   else
     defp disabled_in_dev(_data_source), do:
       false
-  end
-
-  if Mix.env == :test do
-    @doc false
-    def prep_data_source_config(config), do: prep_state(config)
   end
 end

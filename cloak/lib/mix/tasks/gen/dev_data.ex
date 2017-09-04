@@ -1,5 +1,5 @@
 if Mix.env == :dev do
-  defmodule Mix.Tasks.GenDevData do
+  defmodule Mix.Tasks.Gen.DevData do
     @shortdoc "Generates test data for dev database."
     @moduledoc false
 

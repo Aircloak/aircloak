@@ -92,10 +92,12 @@ defmodule Aircloak.DeployConfig do
     case {
       Application.fetch_env!(:aircloak_common, :env),
       System.get_env("TRAVIS"),
-      System.get_env("INTEGRATION_TEST")
+      System.get_env("INTEGRATION_TEST"),
+      System.get_env("PERFORMANCE_TEST")
     } do
-      {:test, "true", "true"} -> "integration_tests.json"
-      {:test, "true", _} -> "travis.json"
+      {_, _, _, "true"} -> "performance_tests.json"
+      {:test, "true", "true", _} -> "integration_tests.json"
+      {:test, "true", _, _} -> "travis.json"
       _ -> Application.fetch_env!(app, :deploy_config_file)
     end
   end

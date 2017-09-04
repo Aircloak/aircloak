@@ -1,6 +1,9 @@
 defmodule PerfTest do
   def run(query) do
-    Enum.map(1..5, fn (_) -> run_query(query) end)
+    {:ok, data_source} = Cloak.DataSource.fetch("data_source_name")
+    {:ok, data_source_encoded} = Cloak.DataSource.fetch("data_source_name_encoded")
+    Enum.map(1..5, fn (_) -> run_query(query, data_source) end)
+    Enum.map(1..5, fn (_) -> run_query(query, data_source_encoded) end)
     |> stats()
   end
 
@@ -12,8 +15,7 @@ defmodule PerfTest do
     {avg, stddev}
   end
 
-  defp run_query(statement) do
-    {:ok, data_source} = Cloak.DataSource.fetch("data_source_name")
+  defp run_query(statement, data_source) do
     {duration, result} = :timer.tc(fn () ->
       :ok = Cloak.Query.Runner.start("1", data_source, statement, [], %{}, {:process, self()})
       receive do
@@ -38,8 +40,7 @@ end
 
 for {key, query} <- %{
   count_notes: "SELECT COUNT(*) FROM notes",
-  count_drafts_changes: "SELECT COUNT(*) FROM drafts_changes",
-  count_drafts_changes_encoded: "SELECT COUNT(*) FROM drafts_changes_encoded",
+  count_drafts_changes: "SELECT COUNT(*) FROM notes_changes",
 } do
   IO.puts(">>> Started performance test ...")
   IO.puts(">>> Testing query '#{query}' ...")

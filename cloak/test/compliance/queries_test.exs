@@ -1,8 +1,5 @@
 defmodule Compliance.Queries.Test do
-  # We are doing a lot of schenanigans with which data sources are available,
-  # as well as what schemas and data they contain. Therefore these tests cannot
-  # run in parallel with other tests.
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   @moduletag :exclude_in_dev
   @moduletag :compliance
@@ -10,31 +7,16 @@ defmodule Compliance.Queries.Test do
   import Cloak.Test.QueryHelpers
   require Aircloak.DeployConfig
 
-  @prefix "compliance_"
-
   setup_all do
-    original_data_sources = Aircloak.DeployConfig.fetch!("data_sources")
-    on_exit(fn() ->
-      Aircloak.DeployConfig.update("data_sources", fn(_) -> original_data_sources end)
-      Cloak.DataSource.update(Cloak.DataSource.prep_data_source_config(original_data_sources))
-    end)
+    data_sources = if System.get_env("TRAVIS") do
+      Compliance.DataSources.all_from_config_initialized("compliance_travis")
+    else
+      Compliance.DataSources.all_from_config_initialized("compliance")
+    end
 
-    # We need the DataSource server to contain all the data sources we want to test against,
-    # otherwise these won't be picked up by the rest of the test machinery.
-    # Since they weren't present at the time the tests started, we will have to additionally
-    # manually redo some of the initialisation otherwise automatically done for us.
-    compliance_data_sources = Compliance.Support.DataSources.get_config()
-    Aircloak.DeployConfig.update("data_sources", fn(_) -> compliance_data_sources end)
-    Cloak.DataSource.update(Cloak.DataSource.prep_data_source_config(compliance_data_sources))
-    Cloak.Test.DB.execute!("DROP SCHEMA IF EXISTS cloak_test CASCADE")
-    Cloak.Test.DB.execute!("CREATE SCHEMA cloak_test")
+    assert(length(data_sources) > 1, "More than one data source is needed to ensure compliance")
 
-    Compliance.Support.DataSources.create(@prefix)
-    Compliance.Support.DataSources.insert_data(@prefix)
-
-    assert(length(Cloak.DataSource.all()) > 1, "More than one data source is needed to ensure compliance")
-
-    :ok
+    {:ok, data_sources: data_sources}
   end
 
   # NOTE to query/test writers
@@ -122,15 +104,15 @@ defmodule Compliance.Queries.Test do
       Enum.each(@numerical_columns, fn({column, table, uid}) ->
 
         if allowed_in_subquery do
-          test "aggregate #{aggregate} on input #{column} in a sub-query on #{table}" do
-            assert_consistent_and_not_failing """
+          test "aggregate #{aggregate} on input #{column} in a sub-query on #{table}", context do
+            assert_consistent_and_not_failing context, """
               SELECT
                 aggregate
               FROM (
                 SELECT
                   #{unquote(uid)},
                   #{on_column(unquote(aggregate), unquote(column))} as aggregate
-                FROM #{@prefix}#{unquote(table)}
+                FROM #{unquote(table)}
                 GROUP BY #{unquote(uid)}
               ) table_alias
               ORDER BY aggregate
@@ -138,10 +120,10 @@ defmodule Compliance.Queries.Test do
           end
         end
 
-        test "aggregate #{aggregate} on input #{column} in query on #{table}" do
-          assert_consistent_and_not_failing """
+        test "aggregate #{aggregate} on input #{column} in query on #{table}", context do
+          assert_consistent_and_not_failing context,  """
             SELECT #{on_column(unquote(aggregate), unquote(column))}
-            FROM #{@prefix}#{unquote(table)}
+            FROM #{unquote(table)}
           """
         end
       end)
@@ -161,24 +143,24 @@ defmodule Compliance.Queries.Test do
 
       Enum.each(@numerical_columns, fn({column, table, uid}) ->
 
-        test "numerical unary function #{function} on input #{column} in a sub-query on #{table}" do
-          assert_consistent_and_not_failing """
+        test "numerical unary function #{function} on input #{column} in a sub-query on #{table}", context do
+          assert_consistent_and_not_failing context, """
             SELECT
               output
             FROM (
               SELECT
                 #{unquote(uid)},
                 #{on_column(unquote(function), unquote(column))} as output
-              FROM #{@prefix}#{unquote(table)}
+              FROM #{unquote(table)}
             ) table_alias
             ORDER BY output
           """
         end
 
-        test "numerical unary function #{function} on input #{column} in query on #{table}" do
-          assert_consistent_and_not_failing """
+        test "numerical unary function #{function} on input #{column} in query on #{table}", context do
+          assert_consistent_and_not_failing context, """
             SELECT #{on_column(unquote(function), unquote(column))} as output
-            FROM #{@prefix}#{unquote(table)}
+            FROM #{unquote(table)}
             ORDER BY output
           """
         end
@@ -199,48 +181,48 @@ defmodule Compliance.Queries.Test do
     ], fn(function) ->
 
       Enum.each(@integer_columns, fn({column, table, uid}) ->
-        test "#{function} on input column #{column} from table #{table} as parameter 1, in a sub-query" do
-          assert_consistent_and_not_failing """
+        test "#{function} on input column #{column} from table #{table} as parameter 1, in a sub-query", context do
+          assert_consistent_and_not_failing context, """
             SELECT
               output
             FROM (
               SELECT
                 #{unquote(uid)},
                 #{on_columns(unquote(function), ["#{unquote(column)}", "1"])} as output
-              FROM #{@prefix}#{unquote(table)}
+              FROM #{unquote(table)}
             ) table_alias
             ORDER BY output
           """
         end
 
-        test "#{function} on input column #{column} from table #{table} as parameter 2, in a sub-query" do
-          assert_consistent_and_not_failing """
+        test "#{function} on input column #{column} from table #{table} as parameter 2, in a sub-query", context do
+          assert_consistent_and_not_failing context, """
             SELECT
               output
             FROM (
               SELECT
                 #{unquote(uid)},
                 #{on_columns(unquote(function), ["1", "#{unquote(column)}"])} as output
-              FROM #{@prefix}#{unquote(table)}
+              FROM #{unquote(table)}
             ) table_alias
             ORDER BY output
           """
         end
 
-        test "#{function} on input column #{column} from table #{table} as parameter 1, in main query" do
-          assert_consistent_and_not_failing """
+        test "#{function} on input column #{column} from table #{table} as parameter 1, in main query", context do
+          assert_consistent_and_not_failing context, """
             SELECT
               #{on_columns(unquote(function), ["#{unquote(column)}", "1"])} as output
-            FROM #{@prefix}#{unquote(table)}
+            FROM #{unquote(table)}
             ORDER BY output
           """
         end
 
-        test "#{function} on input column #{column} from table #{table} as parameter 2, in main query" do
-          assert_consistent_and_not_failing """
+        test "#{function} on input column #{column} from table #{table} as parameter 2, in main query", context do
+          assert_consistent_and_not_failing context, """
             SELECT
               #{on_columns(unquote(function), ["1", "#{unquote(column)}"])} as output
-            FROM #{@prefix}#{unquote(table)}
+            FROM #{unquote(table)}
             ORDER BY output
           """
         end
@@ -269,25 +251,25 @@ defmodule Compliance.Queries.Test do
     ], fn(function) ->
 
       Enum.each(@datetime_columns, fn({column, table, uid}) ->
-        test "#{function} on input #{column} in a sub-query on #{table}" do
-          assert_consistent_and_not_failing """
+        test "#{function} on input #{column} in a sub-query on #{table}", context do
+          assert_consistent_and_not_failing context, """
             SELECT
               output
             FROM (
               SELECT
                 #{unquote(uid)},
                 #{on_column(unquote(function), unquote(column))} as output
-              FROM #{@prefix}#{unquote(table)}
+              FROM #{unquote(table)}
               ORDER BY 1, 2
             ) table_alias
             ORDER BY output
           """
         end
 
-        test "#{function} on input #{column} in query on #{table}" do
-          assert_consistent_and_not_failing """
+        test "#{function} on input #{column} in query on #{table}", context do
+          assert_consistent_and_not_failing context, """
             SELECT #{on_column(unquote(function), unquote(column))}
-            FROM #{@prefix}#{unquote(table)}
+            FROM #{unquote(table)}
             ORDER BY 1
           """
         end
@@ -329,25 +311,25 @@ defmodule Compliance.Queries.Test do
     ], fn(function) ->
 
       Enum.each(@text_columns, fn({column, table, uid}) ->
-        test "#{function} on input #{column} in a sub-query on #{table}" do
-          assert_consistent_and_not_failing """
+        test "#{function} on input #{column} in a sub-query on #{table}", context do
+          assert_consistent_and_not_failing context, """
             SELECT
               output
             FROM (
               SELECT
                 #{unquote(uid)},
                 #{on_column(unquote(function), "\"#{unquote(column)}\"")} as output
-              FROM #{@prefix}#{unquote(table)}
+              FROM #{unquote(table)}
               ORDER BY 1, 2
             ) table_alias
             ORDER BY output
           """
         end
 
-        test "#{function} on input #{column} in query on #{table}" do
-          assert_consistent_and_not_failing """
+        test "#{function} on input #{column} in query on #{table}", context do
+          assert_consistent_and_not_failing context, """
             SELECT #{on_column(unquote(function), "\"#{unquote(column)}\"")}
-            FROM #{@prefix}#{unquote(table)}
+            FROM #{unquote(table)}
             ORDER BY 1
           """
         end
@@ -355,8 +337,8 @@ defmodule Compliance.Queries.Test do
     end)
   end
 
-  defp assert_consistent_and_not_failing(query) do
-    result = assert_query_consistency(query)
+  defp assert_consistent_and_not_failing(%{data_sources: data_sources}, query) do
+    result = assert_query_consistency(query, data_sources: data_sources)
     if match?(%{error: _}, result) do
       raise ExUnit.AssertionError,
         message: "Query execution failed. Query was:\n#{query}.\n\nError:\n#{inspect result}"

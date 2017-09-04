@@ -20,7 +20,8 @@ function main() {
   psql -h $DB_HOST -p $DB_PORT -U postgres cloak < dev_data.sql
 
   cd ../
-  mix gen_dev_data
+  mix gen.dev_data
+  mix gen.test_data "compliance" 500
 }
 
 export DB_HOST=${DB_HOST:-127.0.0.1}
