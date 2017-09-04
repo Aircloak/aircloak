@@ -90,6 +90,7 @@ defmodule Cloak.Sql.Expression do
   def display_name(%__MODULE__{alias: alias}) when is_binary(alias), do: "`#{alias}`"
   def display_name(%__MODULE__{function: {:cast, _type}}), do: "`cast`"
   def display_name(%__MODULE__{function: function}) when is_binary(function), do: "`#{function}`"
+  def display_name(%__MODULE__{constant?: true, value: value}), do: "`#{value}`"
 
   @doc "Returns the column value of a database row."
   @spec value(t, DataSource.row) :: DataSource.field | LikePattern.t
