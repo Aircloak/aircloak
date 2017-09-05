@@ -10,6 +10,7 @@
         - [Running partial tests](#running-partial-tests)
         - [Running a local docker container](#running-a-local-docker-container)
         - [Deploying](#deploying)
+    - [Installing database servers](#installing-database-servers)
 
 ----------------------
 
@@ -166,10 +167,7 @@ By default, only native PostgreSQL adapter is tested locally, while MongoDB and 
 - `mix test --only compliance` - to run only the compliance tests
 - `make test_all` - to run all tests which are running on Travis: standard tests, MongoDB tests, and tests for all other database adapters (MySQL, PostgreSQL through ODBC, ...)
 
-In order to have working tests on other drivers, you need to start corresponding database servers locally.
-
-- `brew install mongodb` - install MongoDB (OSX)
-- `mongod --dbpath /tmp` - run MongoDB
+In order to have working tests on other drivers, you need to start corresponding database servers locally - see [Installing database servers](#installing-database-servers).
 
 Note that SAP HANA tests can't be executed directly on macOS machines. Instead, you need to start a local development container with `make dev-container`.
 
@@ -202,3 +200,10 @@ Before running the tests you need to prepare the performance database.
 - `make perftest` - run the performance tests
 
 Note that the tests submit results to InfluxDB - it will be started with `start_dependencies.sh`.
+
+### Installing database servers
+
+#### Mongodb
+
+- `brew install mongodb` - install MongoDB (OSX)
+- `mongod --dbpath /tmp` - run MongoDB
