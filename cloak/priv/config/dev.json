@@ -212,8 +212,8 @@
       },
       "tables": {
         "integers": {
-          "db_name": "INTEGERS",
-          "user_id": "USER_ID"
+          "db_name": "integers",
+          "user_id": "user_id"
         }
       }
     }

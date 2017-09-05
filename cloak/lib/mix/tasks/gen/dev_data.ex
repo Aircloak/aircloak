@@ -57,10 +57,9 @@ if Mix.env == :dev do
       )
     end
     defp insert({:saphana, conn}, table_spec) do
-      table_name = String.upcase(table_spec.name)
       column_names = Enum.map(table_spec.columns, &elem(&1, 0))
 
-      Cloak.SapHanaHelpers.recreate_table!(conn, default_sap_hana_schema!(), table_name, table_def(table_spec))
+      Cloak.SapHanaHelpers.recreate_table!(conn, default_sap_hana_schema!(), table_spec.name, table_def(table_spec))
 
       chunks = Enum.chunk(table_spec.data, 1000, 1000, [])
 
@@ -68,7 +67,7 @@ if Mix.env == :dev do
       |> Enum.with_index()
       |> Enum.each(fn({rows, index}) ->
         IO.puts "chunk #{index+1}/#{length(chunks)}"
-        Cloak.SapHanaHelpers.insert_rows!(conn, default_sap_hana_schema!(), table_name, column_names, rows)
+        Cloak.SapHanaHelpers.insert_rows!(conn, default_sap_hana_schema!(), table_spec.name, column_names, rows)
       end)
     end
 
@@ -108,7 +107,7 @@ if Mix.env == :dev do
         {:ok, default_schema} <- Keyword.fetch(saphana_settings, :default_schema),
         true <- String.length(default_schema) > 0
       do
-        {:ok, String.upcase(default_schema)}
+        {:ok, default_schema}
       else
         _ ->
           [
@@ -159,7 +158,7 @@ if Mix.env == :dev do
 
     defp table_def(table_spec), do:
       table_spec.columns
-      |> Enum.map(fn({name, type}) -> "#{name} #{type}" end)
+      |> Enum.map(fn({name, type}) -> ~s/"#{name}" #{type}/ end)
       |> Enum.join(", ")
   end
 end

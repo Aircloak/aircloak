@@ -6,7 +6,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
   if :os.type() == {:unix, :darwin} do
     IO.puts "Warning: SAP HANA tests can't be executed on macOS. Use `make dev-container` instead."
   else
-    @schema String.upcase("TEST_SCHEMA_#{Base.encode16(:crypto.strong_rand_bytes(10))}")
+    @schema "test_schema_#{Base.encode16(:crypto.strong_rand_bytes(10))}"
 
     @moduletag :saphana
     @moduletag :exclude_in_dev
@@ -56,33 +56,33 @@ defmodule Cloak.DataSource.SAPHanaTest do
       errors =
         [
           [{"subquery",
-            "select uid, value from ints"}],
+            "select uid, value as sq_value from ints"}],
           Enum.map(~w(count sum min max avg stddev),
-            &{&1, "select uid, #{&1}(value) as value from ints group by uid"}),
+            &{&1, "select uid, #{&1}(value) as sq_value from ints group by uid"}),
           Enum.map(~w(year quarter month day hour minute second weekday),
-            &{&1, "select uid, #{&1}(value) as value from times group by uid, value"}),
+            &{&1, "select uid, #{&1}(value) as sq_value from times group by uid, value"}),
           Enum.map(~w(sqrt floor ceil abs round),
-            &{&1, "select uid, #{&1}(value) as value from ints"}),
+            &{&1, "select uid, #{&1}(value) as sq_value from ints"}),
           [{"mod",
-            "select uid, mod(value, 2) as value from ints"}],
+            "select uid, mod(value, 2) as sq_value from ints"}],
           Enum.map(~w(% * / + - ^),
-            &{&1, "select uid, (value #{&1} 2) as value from ints"}),
+            &{&1, "select uid, (value #{&1} 2) as sq_value from ints"}),
           Enum.map(~w(length lower upper btrim ltrim rtrim),
-            &{&1, "select uid, #{&1}(value) as value from strings"}),
+            &{&1, "select uid, #{&1}(value) as sq_value from strings"}),
           Enum.map(~w(ltrim rtrim),
-            &{&1, "select uid, #{&1}(value, ' ') as value from strings"}),
+            &{&1, "select uid, #{&1}(value, ' ') as sq_value from strings"}),
           Enum.map(~w(left right),
-            &{&1, "select uid, #{&1}(value, 1) as value from strings"}),
+            &{&1, "select uid, #{&1}(value, 1) as sq_value from strings"}),
           [{"substring",
-            "select uid, substring(value from 1) as value from strings"}],
+            "select uid, substring(value from 1) as sq_value from strings"}],
           [{"substring/2",
-            "select uid, substring(value from 1 for 1) as value from strings"}],
+            "select uid, substring(value from 1 for 1) as sq_value from strings"}],
           [{"substring_for",
-            "select uid, substring_for(value, 1) as value from strings"}],
+            "select uid, substring_for(value, 1) as sq_value from strings"}],
           [{"bucket",
-            "select uid, bucket(value by 2) as value from ints"}],
+            "select uid, bucket(value by 2) as sq_value from ints"}],
           [{"cast",
-            "select uid, cast(value as text) as value from ints"}],
+            "select uid, cast(value as text) as sq_value from ints"}],
         ]
         |> Stream.concat()
         |> Stream.chunk(10, 10, [])
@@ -101,10 +101,10 @@ defmodule Cloak.DataSource.SAPHanaTest do
       Cloak.SapHanaHelpers.ensure_schema!(connection_params(), @schema)
 
       [
-        table_spec("INTS", [value: "integer"], %{1..10 => [[1]], 1..5 => [[2]], 1..1 => [[3]]}),
-        table_spec("TIMES", [value: "datetime"], %{1..10 => [[~c(timestamp'2017-08-23 01:02:03')]]}),
-        table_spec("STRINGS", [value: "nvarchar(100)"], %{1..10 => [[~c('a string value')]]}),
-        table_spec("VARCHARS", [value: "varchar(100)"], %{1..10 => [[~c('a string value')]]}),
+        table_spec("ints", [value: "integer"], %{1..10 => [[1]], 1..5 => [[2]], 1..1 => [[3]]}),
+        table_spec("times", [value: "datetime"], %{1..10 => [[~c(timestamp'2017-08-23 01:02:03')]]}),
+        table_spec("strings", [value: "nvarchar(100)"], %{1..10 => [[~c('a string value')]]}),
+        table_spec("varchars", [value: "varchar(100)"], %{1..10 => [[~c('a string value')]]}),
       ]
       |> Enum.map(&Task.async/1)
       |> Stream.map(&Task.await(&1, :timer.seconds(30)))
@@ -118,11 +118,11 @@ defmodule Cloak.DataSource.SAPHanaTest do
         table_def =
           [uid: "integer"]
           |> Keyword.merge(table_def)
-          |> Enum.map(fn({column_name, type}) -> {String.upcase(to_string(column_name)), type} end)
+          |> Enum.map(fn({column_name, type}) -> {to_string(column_name), type} end)
 
         Cloak.SapHanaHelpers.recreate_table!(conn, @schema, table_name,
           table_def
-          |> Enum.map(fn({column_name, type}) -> "#{column_name} #{type}" end)
+          |> Enum.map(fn({column_name, type}) -> ~s/"#{column_name}" #{type}/ end)
           |> Enum.join(", ")
         )
 
@@ -132,11 +132,11 @@ defmodule Cloak.DataSource.SAPHanaTest do
           end
         )
 
-        %{String.to_atom(String.downcase(table_name)) =>
+        %{String.to_atom(table_name) =>
           %{
-            name: String.downcase(table_name),
-            db_name: String.upcase(table_name),
-            user_id: "UID",
+            name: table_name,
+            db_name: table_name,
+            user_id: "uid",
             ignore_unsupported_types: true
           }
         }
@@ -144,7 +144,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
     end
 
     defp drop_test_schema() do
-      {:updated, _} = Cloak.SapHanaHelpers.execute(connect!(connection_params()), "drop schema #{@schema} CASCADE")
+      {:updated, _} = Cloak.SapHanaHelpers.execute(connect!(connection_params()), ~s/drop schema "#{@schema}" CASCADE/)
       :ok
     end
 
@@ -175,17 +175,20 @@ defmodule Cloak.DataSource.SAPHanaTest do
     end
 
     defp verify_native(data_source, {function, subquery}) do
-      query = "select sq.value from (#{subquery}) sq"
+      query = "select sq.sq_value from (#{subquery}) sq"
 
-      {:ok, %{from: {:subquery, %{ast: subquery}}}} = compile_query(data_source, query)
-
-      if subquery.emulated? do
-        "subquery using `#{function}` is emulated"
-      else
-        case Runner.run_sync("#{:erlang.unique_integer([:positive])}", data_source, query, [], %{}) do
-          %{error: error} -> "error running a query using `#{function}`: #{error}"
-          %{rows: _} -> nil
-        end
+      case compile_query(data_source, query) do
+        {:ok, %{from: {:subquery, %{ast: subquery}}}} ->
+          if subquery.emulated? do
+            "subquery using `#{function}` is emulated"
+          else
+            case Runner.run_sync("#{:erlang.unique_integer([:positive])}", data_source, query, [], %{}) do
+              %{error: error} -> "error running a query using `#{function}`: #{error}"
+              %{rows: _} -> nil
+            end
+          end
+        {:error, error} ->
+          "#{error} #{query}"
       end
     end
   end

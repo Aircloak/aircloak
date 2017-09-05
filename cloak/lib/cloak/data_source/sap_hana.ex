@@ -26,7 +26,7 @@ defmodule Cloak.DataSource.SAPHana do
       "Uid": normalized_parameters[:username],
       "Pwd": normalized_parameters[:password],
       "databasename": normalized_parameters[:database],
-      "cs": default_schema(normalized_parameters[:default_schema]),
+      "cs": ~s/"#{default_schema(normalized_parameters[:default_schema])}"/,
     }
     |> Map.merge(driver_option())
     |> add_optional_parameters(parameters)
@@ -35,7 +35,9 @@ defmodule Cloak.DataSource.SAPHana do
 
   defdelegate disconnect(connection), to: ODBC
 
-  defdelegate load_tables(connection, table), to: ODBC
+  @doc false
+  def load_tables(connection, table), do:
+    ODBC.load_tables(connection, update_in(table.db_name, &~s/"#{&1}"/))
 
   defdelegate select(connection, sql_query, result_processor), to: ODBC
 
@@ -66,7 +68,7 @@ defmodule Cloak.DataSource.SAPHana do
       {:ok, saphana_settings} <- Application.fetch_env(:cloak, :sap_hana),
       {:ok, default_schema} <- Keyword.fetch(saphana_settings, :default_schema)
     do
-      String.upcase(default_schema)
+      default_schema
     else
       _ -> nil
     end

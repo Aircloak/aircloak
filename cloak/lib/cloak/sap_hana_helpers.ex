@@ -24,7 +24,11 @@ if Mix.env() in [:dev, :test] do
         uid: connection_params.username,
         pwd: connection_params.password,
         databasename: connection_params.database,
-        cs: connection_params[:default_schema]
+        cs:
+          case Map.fetch(connection_params, :default_schema) do
+            {:ok, schema} -> ~s/"#{schema}"/
+            :error -> nil
+          end
       ]
       |> Enum.reject(&match?({_key, nil}, &1))
       |> Keyword.merge(driver_option())
@@ -54,13 +58,12 @@ if Mix.env() in [:dev, :test] do
     @doc "Logs into the default schema, and creates the desired schema if it doesn't exist."
     @spec ensure_schema(connection_params, String.t) :: :ok | {:error, :reason}
     def ensure_schema(connection_params, schema_name) do
-      schema_name = String.upcase(schema_name)
       with {:ok, conn} <- connect(Map.delete(connection_params, :default_schema)) do
         try do
           case select!(conn, "select schema_name from schemas where schema_name='#{schema_name}'") do
             [_] -> :ok
             [] ->
-              case execute(conn, "create schema #{schema_name}") do
+              case execute(conn, ~s/create schema "#{schema_name}"/) do
                 {:updated, _} -> :ok
                 _ -> {:error, :schema_create}
               end
@@ -75,15 +78,17 @@ if Mix.env() in [:dev, :test] do
     @spec recreate_table!(conn, String.t, String.t, String.t) :: :ok
     def recreate_table!(conn, schema_name, table_name, table_def) do
       if table_exists?(conn, schema_name, table_name), do:
-        {:updated, _} = execute(conn, "DROP TABLE #{schema_name}.#{table_name}")
+        {:updated, _} = execute(conn, ~s/DROP TABLE "#{schema_name}"."#{table_name}"/)
 
-      {:updated, _} = execute(conn, "CREATE TABLE #{schema_name}.#{table_name} (#{table_def})")
+      {:updated, _} = execute(conn, ~s/CREATE TABLE "#{schema_name}"."#{table_name}" (#{table_def})/)
       :ok
     end
 
     @doc "Inserts multiple rows into the database table."
     @spec insert_rows!(conn, String.t, String.t, [String.t], [[any]]) :: :ok
     def insert_rows!(conn, schema_name, table_name, columns, rows) do
+      quoted_column_names = columns |> Enum.map(&~s/"#{&1}"/) |>  Enum.join(", ")
+
       rows
       |> Stream.map(&'SELECT #{Enum.join(&1, ", ")} from dummy')
       |> Stream.chunk(1000, 1000, [])
@@ -92,7 +97,7 @@ if Mix.env() in [:dev, :test] do
         {:updated, _} =
           execute(
             conn,
-            "INSERT INTO #{schema_name}.#{table_name}(#{Enum.join(columns, ", ")}) #{chunk_sql}"
+            ~s/INSERT INTO "#{schema_name}"."#{table_name}"(#{quoted_column_names}) #{chunk_sql}/
           )
       end)
 
