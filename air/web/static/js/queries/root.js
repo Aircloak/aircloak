@@ -45,7 +45,7 @@ const emptyHistory = {
   before: "",
   loaded: false,
   loading: false,
-}
+};
 
 export default class QueriesView extends React.PureComponent {
   constructor(props: Props) {
@@ -133,7 +133,7 @@ export default class QueriesView extends React.PureComponent {
       this.setState({sessionResults: recentResults});
     } else {
       const history = _.assign({}, emptyHistory, {before: _.last(recentResults).inserted_at});
-      this.setState({sessionResults: recentResults, history: history});
+      this.setState({sessionResults: recentResults, history});
     }
   }
 
