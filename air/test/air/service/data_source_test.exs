@@ -56,11 +56,6 @@ defmodule Air.Service.DataSourceTest do
     assert data_source.id == context.ds1.id
   end
 
-  test "fetching available data source with a global id", context do
-    assert {:ok, data_source} = DataSource.fetch_as_user({:global_id, context.ds1.global_id}, context.user1)
-    assert data_source.id == context.ds1.id
-  end
-
   test "fetching available data source with a name", context do
     assert {:ok, data_source} = DataSource.fetch_as_user({:name, context.ds1.name}, context.user1)
     assert data_source.id == context.ds1.id
@@ -129,17 +124,15 @@ defmodule Air.Service.DataSourceTest do
     test "should update existing data source" do
       table = %{table: true}
       name = "new_name"
-      global_id = "global_id"
-      data_source = DataSource.create_or_update_data_source(name, global_id, table, [])
-      assert data_source.id == DataSource.create_or_update_data_source(name, global_id, table, []).id
+      data_source = DataSource.create_or_update_data_source(name, table, [])
+      assert data_source.id == DataSource.create_or_update_data_source(name, table, []).id
     end
 
     test "should create new data source if none exists" do
       table = %{table: true}
       name = "new_name"
-      global_id = "new_global_id"
-      refute Repo.all(Air.Schemas.DataSource) |> Enum.any?(& &1.global_id == global_id)
-      assert %Air.Schemas.DataSource{} = DataSource.create_or_update_data_source(name, global_id, table, [])
+      refute Repo.all(Air.Schemas.DataSource) |> Enum.any?(& &1.name == name)
+      assert %Air.Schemas.DataSource{} = DataSource.create_or_update_data_source(name, table, [])
     end
   end
 
@@ -154,12 +147,12 @@ defmodule Air.Service.DataSourceTest do
 
   test "required attributes", do:
     assert errors_on(&DataSource.create/1, %{}) ==
-      [global_id: "can't be blank", name: "can't be blank", tables: "can't be blank"]
+      [name: "can't be blank", tables: "can't be blank"]
 
-  test "validates uniqueness of global id" do
-    DataSource.create!(%{global_id: "foo", name: "baz", tables: "[]"})
-    assert errors_on(&DataSource.create/1, %{global_id: "foo", name: "bar", tables: "[]"}) ==
-      [global_id: "has already been taken"]
+  test "validates uniqueness of name" do
+    DataSource.create!(%{name: "baz", tables: "[]"})
+    assert errors_on(&DataSource.create/1, %{name: "baz", tables: "[]"}) ==
+      [name: "has already been taken"]
   end
 
   test "a data_source can have many groups" do
@@ -212,16 +205,14 @@ defmodule Air.Service.DataSourceTest do
     test "should list available tables" do
       tables = [%{"table" => true}]
       name = "new_name"
-      global_id = "global_id"
-      data_source = DataSource.create_or_update_data_source(name, global_id, tables, [])
+      data_source = DataSource.create_or_update_data_source(name, tables, [])
       assert tables == Schemas.DataSource.tables(data_source)
     end
 
     test "should list views as part of tables" do
       tables = []
       name = "new_name"
-      global_id = "global_id"
-      data_source = DataSource.create_or_update_data_source(name, global_id, tables, [])
+      data_source = DataSource.create_or_update_data_source(name, tables, [])
 
       group = TestRepoHelper.create_group!()
       user = TestRepoHelper.create_user!(%{groups: [group.id]})

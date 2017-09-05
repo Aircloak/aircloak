@@ -46,12 +46,10 @@ defmodule Air.TestRepoHelper do
     |> Repo.preload([:groups])
   end
 
-  @doc "Creates a data source with default parameters with a random global id"
+  @doc "Creates a data source with default parameters with a random name"
   @spec create_data_source!(%{}) :: Air.Schemas.DataSource.t
   def create_data_source!(additional_changes \\ %{}) do
     params = %{
-      # Deprecated: global_id needs to remain in place until version 18.1.0
-      global_id: "global_id-#{random_string()}",
       name: "name_#{random_string()}",
       tables: "[]"
     }
@@ -79,14 +77,14 @@ defmodule Air.TestRepoHelper do
   @spec create_and_register_data_source() :: String.t
   def create_and_register_data_source() do
     data_source_name = "data_source_id_#{:erlang.unique_integer()}"
-    register_data_source!(data_source_name, "#{data_source_name}-global_id")
+    do_register_data_source!(data_source_name)
     data_source_name
   end
 
   @doc "Registers a cloak serving the given data source name."
   @spec register_data_source!(DataSource.t) :: :ok
   def register_data_source!(data_source), do:
-    register_data_source!(data_source.name, data_source.global_id)
+    do_register_data_source!(data_source.name)
 
   @doc "Retrieves a query from the database by id."
   @spec get_query(String.t) :: {:ok, Air.Schemas.Query.t} | {:error, :not_found}
@@ -156,8 +154,8 @@ defmodule Air.TestRepoHelper do
   defp random_string,
     do: Base.encode16(:crypto.strong_rand_bytes(10))
 
-  defp register_data_source!(name, global_id) do
-    data_sources = [%{name: name, global_id: global_id, tables: []}]
+  defp do_register_data_source!(name) do
+    data_sources = [%{name: name, tables: []}]
     Air.Service.Cloak.register(cloak_info(), data_sources)
     :ok
   end

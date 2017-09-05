@@ -48,7 +48,6 @@ defmodule Cloak.DataSource do
 
   # define returned data types and values
   @type t :: %{
-    global_id: atom,
     name: String.t,
     driver: module,
     parameters: Driver.parameters,
@@ -215,7 +214,6 @@ defmodule Cloak.DataSource do
     |> Map.put(:status, nil)
     |> Validations.Name.ensure_permitted()
     |> potentially_create_temp_name()
-    |> generate_global_id()
     |> map_driver()
     |> validate_choice_of_encoding()
   end
@@ -233,31 +231,6 @@ defmodule Cloak.DataSource do
         other -> raise_error("Unknown driver `#{other}` for data source `#{data_source.name}`")
       end
     )
-
-  defp generate_global_id(data_source) do
-    # We want the global ID to take the form of:
-    # <database-user>/<database-name>[-<aircloak data source marker>]@<database-host>[:<database-port>]
-    # The data source marker is useful when we you want to force identical data sources to get
-    # distinct global IDs. This can be used for example in staging and test environments.
-
-    user = Parameters.get_one_of(data_source.parameters, ["uid", "user", "username"]) || "anon"
-    database = Parameters.get_one_of(data_source.parameters, ["database"])
-    host = Parameters.get_one_of(data_source.parameters, ["hostname", "server", "host"])
-
-    if Enum.any?([database, host], &(is_nil(&1))), do:
-      raise_error("Invalid data source parameters: database and hostname are missing.")
-
-    marker = case Map.get(data_source, :marker) do
-      nil -> ""
-      marker -> "-#{marker}"
-    end
-    port = case Parameters.get_one_of(data_source.parameters, ["port"]) do
-      nil -> ""
-      port -> ":#{port}"
-    end
-    global_id = "#{user}/#{database}#{marker}@#{host}#{port}"
-    Map.merge(data_source, %{global_id: global_id})
-  end
 
   defp save_init_fields(data_source), do:
     data_source

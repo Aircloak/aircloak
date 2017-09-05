@@ -26,7 +26,7 @@ defmodule Air.Admin.CloaksControllerTest do
       online_since: Timex.now(),
     }
 
-    data_sources = [%{name: "cloak_name", global_id: "global_id", tables: []}]
+    data_sources = [%{name: "cloak_name", tables: []}]
     Cloak.register(cloak_info, data_sources)
 
     # verify that it's in the list
@@ -53,7 +53,7 @@ defmodule Air.Admin.CloaksControllerTest do
       online_since: Timex.now(),
     }
 
-    data_sources = [%{name: "cloak_name", global_id: "global_id", tables: []}]
+    data_sources = [%{name: "cloak_name", tables: []}]
     Cloak.register(cloak_info, data_sources)
 
     # verify that it's in the list
