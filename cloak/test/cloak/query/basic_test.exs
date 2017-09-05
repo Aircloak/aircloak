@@ -659,6 +659,11 @@ defmodule Cloak.Query.BasicTest do
       %{columns: [_], rows: [%{row: ["name"], occurrences: 10}]}
   end
 
+  test "substring from 0" do
+    assert_query "select substring(name from 0) from heights",
+      %{error: "The `FROM` parameter passed to `substring`" <> _}
+  end
+
   test "substring from ... for ..." do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["a name"])
     assert_query "select substring(name from 3 for 2) from heights",
