@@ -41,6 +41,12 @@ const recentResultsToShow = 5;
 
 const historyPageSize = 10;
 
+const emptyHistory = {
+  before: "",
+  loaded: false,
+  loading: false,
+}
+
 export default class QueriesView extends React.PureComponent {
   constructor(props: Props) {
     super(props);
@@ -50,12 +56,7 @@ export default class QueriesView extends React.PureComponent {
       sessionResults: this.props.pendingQueries,
       connected: true,
       dataSourceStatus: this.props.dataSourceStatus,
-
-      history: {
-        before: "",
-        loaded: false,
-        loading: false,
-      },
+      history: emptyHistory,
     };
 
     this.setStatement = this.setStatement.bind(this);
@@ -127,7 +128,13 @@ export default class QueriesView extends React.PureComponent {
       if (isFinished(result.query_state)) { completed++; }
       return completed <= recentResultsToShow;
     });
-    this.setState({sessionResults: recentResults});
+
+    if (_.isEmpty(recentResults)) {
+      this.setState({sessionResults: recentResults});
+    } else {
+      const history = _.assign({}, emptyHistory, {before: _.last(recentResults).inserted_at});
+      this.setState({sessionResults: recentResults, history: history});
+    }
   }
 
   replaceResult(result: Result) {
