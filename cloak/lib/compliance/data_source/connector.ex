@@ -10,7 +10,7 @@ defmodule Compliance.DataSource.Connector do
   @callback create_table(String.t, [{String.t, Compliance.TableDefinitions.column_type}], state) :: state
 
   @doc "Is expected to insert the provided data into the data source"
-  @callback insert_data(String.t, [Map.t], state) :: state
+  @callback insert_rows(String.t, [Map.t], state) :: state
 
   @doc "Is supposed to do any cleanup if required"
   @callback terminate(state) :: :ok

@@ -28,7 +28,7 @@ defmodule Compliance.DataSource.PostgreSQL do
   end
 
   @doc false
-  def insert_data(table_name, data, conn) do
+  def insert_rows(table_name, data, conn) do
     column_names = column_names(data)
     rows = rows(data, column_names)
     escaped_column_names = escaped_column_names(column_names)

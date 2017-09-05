@@ -67,7 +67,7 @@ defmodule Compliance.DataSources do
       IO.puts "- Creating table #{name}#{table_postfix}"
       state = handler.create_table("#{name}#{table_postfix}", columns, state)
       IO.puts "- Inserting data into table #{name}#{table_postfix}"
-      handler.insert_data("#{name}#{table_postfix}", flattened_data[name], state)
+      handler.insert_rows("#{name}#{table_postfix}", flattened_data[name], state)
     end)
   end
 
