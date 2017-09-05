@@ -28,6 +28,7 @@ defmodule Cloak.DataSource.MySQL do
     receive do
       :connected ->
         {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET sql_mode = 'ANSI,NO_BACKSLASH_ESCAPES'", [])
+        {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET div_precision_increment = 30", [])
         connection
     after :timer.seconds(5)
       ->

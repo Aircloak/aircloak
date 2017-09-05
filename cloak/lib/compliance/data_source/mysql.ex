@@ -1,4 +1,4 @@
-defmodule Compliance.DataSource.PostgreSQL do
+defmodule Compliance.DataSource.MySQL do
   @moduledoc false
 
 
@@ -10,8 +10,8 @@ defmodule Compliance.DataSource.PostgreSQL do
 
   @doc false
   def setup(%{parameters: params}) do
-    Application.ensure_all_started(:postgrex)
-    {:ok, conn} = Postgrex.start_link(
+    Application.ensure_all_started(:mariaex)
+    {:ok, conn} = Mariaex.start_link(
       database: params.database,
       hostname: params.hostname,
       username: params.username,
@@ -32,12 +32,9 @@ defmodule Compliance.DataSource.PostgreSQL do
     column_names = column_names(data)
     rows = rows(data, column_names)
     escaped_column_names = escaped_column_names(column_names)
-    indexed_sql = (1..length(column_names))
-    |> Enum.to_list()
-    |> Enum.map(& "$#{&1}")
-    |> Enum.join(", ")
+    value_placeholders = List.duplicate("?", length(column_names)) |> Enum.join(", ")
 
-    query = "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names, ", ")}) values (#{indexed_sql})"
+    query = "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names, ", ")}) values (#{value_placeholders})"
 
     Task.async_stream(rows, & execute!(conn, query, &1))
 
@@ -55,7 +52,7 @@ defmodule Compliance.DataSource.PostgreSQL do
   # -------------------------------------------------------------------
 
   defp execute!(conn, query, params \\ []), do:
-    Postgrex.query!(conn, query, params)
+    Mariaex.query!(conn, query, params)
 
   defp column_names(data), do:
     data
@@ -65,13 +62,18 @@ defmodule Compliance.DataSource.PostgreSQL do
 
   defp rows(data, column_names), do:
     Enum.map(data, fn(entry) ->
-      Enum.map(column_names, & Map.get(entry, &1))
+      column_names
+      |> Enum.map(& Map.get(entry, &1))
+      |> Enum.map(& cast_types/1)
     end)
+
+  defp cast_types(%{calendar: Calendar.ISO} = datetime), do: NaiveDateTime.to_erl(datetime)
+  defp cast_types(value), do: value
 
   defp escaped_column_names(column_names), do:
     column_names
     |> Enum.map(& Atom.to_string/1)
-    |> Enum.map(& "\"#{&1}\"")
+    |> Enum.map(& escape_name/1)
 
   defp columns_sql(columns), do:
     columns
@@ -82,10 +84,10 @@ defmodule Compliance.DataSource.PostgreSQL do
     "#{escape_name(name)} #{sql_type(type)}"
 
   defp escape_name(name), do:
-    "\"#{name}\""
+    "`#{name}`"
 
   defp sql_type(:integer), do: "integer"
-  defp sql_type(:real), do: "float"
+  defp sql_type(:real), do: "real"
   defp sql_type(:boolean), do: "boolean"
   defp sql_type(:text), do: "text"
   defp sql_type(:datetime), do: "timestamp"
