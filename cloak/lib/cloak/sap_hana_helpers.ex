@@ -50,27 +50,30 @@ if Mix.env() in [:dev, :test] do
       rows
     end
 
-    @doc "Logs into the default schema, and creates the desired schema if it doesn't exist."
-    @spec ensure_schema!(connection_params, String.t) :: :ok
-    def ensure_schema!(connection_params, schema_name), do:
-      :ok = ensure_schema(connection_params, schema_name)
+    @doc "Creates the desired schema if it doesn't exist."
+    @spec ensure_schema!(connection_params | pid, String.t) :: :ok
+    def ensure_schema!(conn_or_connection_params, schema_name), do:
+      :ok = ensure_schema(conn_or_connection_params, schema_name)
 
-    @doc "Logs into the default schema, and creates the desired schema if it doesn't exist."
-    @spec ensure_schema(connection_params, String.t) :: :ok | {:error, :reason}
-    def ensure_schema(connection_params, schema_name) do
+    @doc "Creates the desired schema if it doesn't exist."
+    @spec ensure_schema(connection_params | pid, String.t) :: :ok | {:error, :reason}
+    def ensure_schema(%{} = connection_params, schema_name) do
       with {:ok, conn} <- connect(Map.delete(connection_params, :default_schema)) do
         try do
-          case select!(conn, "select schema_name from schemas where schema_name='#{schema_name}'") do
-            [_] -> :ok
-            [] ->
-              case execute(conn, ~s/create schema "#{schema_name}"/) do
-                {:updated, _} -> :ok
-                _ -> {:error, :schema_create}
-              end
-          end
+          ensure_schema(conn, schema_name)
         after
           :odbc.disconnect(conn)
         end
+      end
+    end
+    def ensure_schema(conn, schema_name) when is_pid(conn) do
+      case select!(conn, "select schema_name from schemas where schema_name='#{schema_name}'") do
+        [_] -> :ok
+        [] ->
+          case execute(conn, ~s/create schema "#{schema_name}"/) do
+            {:updated, _} -> :ok
+            _ -> {:error, :schema_create}
+          end
       end
     end
 
