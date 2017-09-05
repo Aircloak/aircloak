@@ -102,14 +102,8 @@ if Mix.env == :dev do
     end
 
     defp default_sap_hana_schema() do
-      with \
-        {:ok, saphana_settings} <- Application.fetch_env(:cloak, :sap_hana),
-        {:ok, default_schema} <- Keyword.fetch(saphana_settings, :default_schema),
-        true <- String.length(default_schema) > 0
-      do
-        {:ok, default_schema}
-      else
-        _ ->
+      case Cloak.DataSource.SAPHana.default_schema() do
+        nil ->
           [
             "",
             "Default schema for SAP HANA not specified. SAP HANA data will not be recreated.",
@@ -124,6 +118,9 @@ if Mix.env == :dev do
           |> IO.puts()
 
           {:error, :default_schema_not_specified}
+
+        default_schema ->
+          {:ok, default_schema}
       end
     end
 

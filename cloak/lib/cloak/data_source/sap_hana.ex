@@ -6,6 +6,24 @@ defmodule Cloak.DataSource.SAPHana do
 
   alias Cloak.DataSource.ODBC
 
+  @doc """
+  Returns the SAP HANA schema as configured in app config.
+
+  This is useful in development, to allow different developers to work on different schemas.
+  """
+  @spec default_schema() :: nil | String.t
+  def default_schema() do
+    with \
+      {:ok, saphana_settings} <- Application.fetch_env(:cloak, :sap_hana),
+      {:ok, default_schema} <- Keyword.fetch(saphana_settings, :default_schema),
+      true <- String.length(default_schema) > 0
+    do
+      default_schema
+    else
+      _ -> nil
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -26,7 +44,7 @@ defmodule Cloak.DataSource.SAPHana do
       "Uid": normalized_parameters[:username],
       "Pwd": normalized_parameters[:password],
       "databasename": normalized_parameters[:database],
-      "cs": ~s/"#{default_schema(normalized_parameters[:default_schema])}"/,
+      "cs": ~s/"#{default_schema()}"/,
     }
     |> Map.merge(driver_option())
     |> add_optional_parameters(parameters)
@@ -62,17 +80,4 @@ defmodule Cloak.DataSource.SAPHana do
   defp add_optional_parameters(default_params, %{odbc_parameters: additonal_parameters}), do:
     Map.merge(default_params, additonal_parameters)
   defp add_optional_parameters(default_params, _), do: default_params
-
-  defp default_schema(nil) do
-    with \
-      {:ok, saphana_settings} <- Application.fetch_env(:cloak, :sap_hana),
-      {:ok, default_schema} <- Keyword.fetch(saphana_settings, :default_schema)
-    do
-      default_schema
-    else
-      _ -> nil
-    end
-  end
-  defp default_schema(schema_name), do:
-    schema_name
 end
