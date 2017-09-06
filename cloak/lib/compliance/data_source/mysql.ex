@@ -6,7 +6,7 @@ defmodule Compliance.DataSource.MySQL do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Compliance.DataSource.Connector
+  use Compliance.DataSource.Connector
 
   @doc false
   def setup(%{parameters: params}) do
@@ -42,9 +42,6 @@ defmodule Compliance.DataSource.MySQL do
 
     conn
   end
-
-  @doc false
-  def insert_documents(_collection_name, _documents, conn), do: conn
 
   @doc false
   def terminate(_conn) do

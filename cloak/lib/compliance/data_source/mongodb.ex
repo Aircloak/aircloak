@@ -8,7 +8,7 @@ defmodule Compliance.DataSource.MongoDB do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Compliance.DataSource.Connector
+  use Compliance.DataSource.Connector
 
   @doc false
   def setup(%{parameters: params}) do

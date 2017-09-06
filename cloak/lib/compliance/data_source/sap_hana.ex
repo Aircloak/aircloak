@@ -8,7 +8,7 @@ defmodule Compliance.DataSource.SAPHana do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Compliance.DataSource.Connector
+  use Compliance.DataSource.Connector
 
 
   @doc false
@@ -28,7 +28,7 @@ defmodule Compliance.DataSource.SAPHana do
   end
 
   @doc false
-  def insert_data(table_name, data, conn) do
+  def insert_rows(table_name, data, conn) do
     column_names = column_names(data)
     rows = rows(data, column_names)
     SapHanaHelpers.insert_rows!(conn, schema(), db_table_name(table_name), column_names, rows)

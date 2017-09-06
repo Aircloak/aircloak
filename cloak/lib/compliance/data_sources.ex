@@ -96,10 +96,10 @@ defmodule Compliance.DataSources do
   defp expand_and_add_table_definitions(data_source_scaffolds) do
     Enum.flat_map(data_source_scaffolds, fn(data_source_scaffold) ->
       normal_tables = table_definitions(&TableDefinitions.plain/1, data_source_scaffold)
-      |> create_table_structure(@normal_name_postfix)
+      |> create_table_structure(@normal_name_postfix, data_source_scaffold)
 
       encoded_tables = table_definitions(&TableDefinitions.encoded/1, data_source_scaffold)
-      |> create_table_structure(@encoded_name_postfix)
+      |> create_table_structure(@encoded_name_postfix, data_source_scaffold)
 
       normal_data_source = data_source_scaffold
       |> Map.put(:tables, normal_tables)
@@ -122,12 +122,13 @@ defmodule Compliance.DataSources do
   defp table_definitions(generator_fun, _data_source), do:
     generator_fun.(false)
 
-  defp create_table_structure(definitions, table_postfix) do
+  defp create_table_structure(definitions, table_postfix, data_source_scaffold) do
     definitions
     |> Enum.map(fn({name, definition}) ->
+      db_table_name = handler_for_data_source(data_source_scaffold).db_table_name(name)
       rawling = %{decoders: Map.get(definition, :decoders, %{})}
       |> add_uid_construct(name)
-      |> Map.put(:db_name, "#{name}#{table_postfix}")
+      |> Map.put(:db_name, "#{db_table_name}#{table_postfix}")
       {name, rawling}
     end)
     |> Enum.into(%{})
