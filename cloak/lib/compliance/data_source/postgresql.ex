@@ -39,7 +39,9 @@ defmodule Compliance.DataSource.PostgreSQL do
 
     query = "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names, ", ")}) values (#{indexed_sql})"
 
-    Task.async_stream(rows, & execute!(conn, query, &1))
+    rows
+    |> Task.async_stream(& execute!(conn, query, &1))
+    |> Stream.run()
 
     conn
   end

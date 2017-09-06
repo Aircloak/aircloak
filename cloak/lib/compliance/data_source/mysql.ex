@@ -36,7 +36,9 @@ defmodule Compliance.DataSource.MySQL do
 
     query = "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names, ", ")}) values (#{value_placeholders})"
 
-    Task.async_stream(rows, & execute!(conn, query, &1))
+    rows
+    |> Task.async_stream(& execute!(conn, query, &1))
+    |> Stream.run()
 
     conn
   end
