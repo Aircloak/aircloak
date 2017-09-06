@@ -104,6 +104,33 @@ if Mix.env() in [:dev, :test] do
       :ok
     end
 
+    @doc "Deletes old test schemas from the database."
+    @spec delete_test_schemas() :: :ok
+    def delete_test_schemas() do
+      if System.get_env("TRAVIS") == "true" do
+        {:ok, conn} =
+          Application.fetch_env!(:cloak, :sap_hana)
+          |> Map.new()
+          |> Map.delete(:default_schema)
+          |> connect()
+
+        # we'll delete all test schemas older than 2 hours
+        query =
+          "
+            select schema_name from schemas
+              where lower(schema_name) like 'test_schema_%'
+              and (seconds_between(create_time, now()) / 3600) > 2
+          "
+
+        conn
+        |> select!(query)
+        |> Enum.map(&:unicode.characters_to_binary(&1, {:utf16, :little}))
+        |> Enum.each(&({:updated, _} = execute(conn, ~s/drop schema "#{&1}" cascade/)))
+      end
+
+      :ok
+    end
+
 
     # -------------------------------------------------------------------
     # Internal functions
