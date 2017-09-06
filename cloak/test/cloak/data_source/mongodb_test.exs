@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.MongoDBTest do
     {:ok, conn} = Mongo.start_link(parameters)
     Mongo.delete_many(conn, @table, %{})
     for i <- 1..10 do
-      value = %{name: "user#{i}", age: 30, male: true, date: %BSON.DateTime{utc: 1_437_940_203_000},
+      value = %{name: "user#{i}", age: 30, height: 180.1, male: true, date: %BSON.DateTime{utc: 1_437_940_203_000},
         bills: [%{issuer: "vendor", ids: ["1", "2"]}]}
       Mongo.insert_one!(conn, @table, value)
     end
@@ -48,17 +48,19 @@ defmodule Cloak.DataSource.MongoDBTest do
     %{@table => root, @table <> "_bills" => bills, @table <> "_bills_ids" => ids} = context.data_source.tables
     assert root.columns == [
       Table.column("_id", :text),
-      Table.column("age", :real),
+      Table.column("age", :integer),
       Table.column("bills#", :integer),
       Table.column("date", :datetime),
+      Table.column("height", :real),
       Table.column("male", :boolean),
       Table.column("mixed", :unknown),
       Table.column("name", :text),
     ]
     assert bills.columns == [
       Table.column("_id", :text),
-      Table.column("age", :real),
+      Table.column("age", :integer),
       Table.column("date", :datetime),
+      Table.column("height", :real),
       Table.column("male", :boolean),
       Table.column("mixed", :unknown),
       Table.column("name", :text),
@@ -67,8 +69,9 @@ defmodule Cloak.DataSource.MongoDBTest do
     ]
     assert ids.columns == [
       Table.column("_id", :text),
-      Table.column("age", :real),
+      Table.column("age", :integer),
       Table.column("date", :datetime),
+      Table.column("height", :real),
       Table.column("male", :boolean),
       Table.column("mixed", :unknown),
       Table.column("name", :text),
