@@ -30,77 +30,12 @@ defmodule Cloak.DataSource.SAPHanaTest do
     end
   end
 
-  test "basic select", context do
-    assert_query(context.data_source, "select value from ints", %{rows: [
-      %{row: [1], occurrences: 10},
-      %{row: [2], occurrences: 5}
-    ]})
-  end
-
   test "default nvarchar decoding", context, do:
     assert_query(context.data_source, "select value from strings", %{rows: [%{row: ["a string value"]}]})
 
   test "default varchar decoding", context, do:
     assert_query(context.data_source, "select cast(value as text) from varchars",
       %{rows: [%{row: ["a string value"]}]})
-
-  test "default datetime decoding", context, do:
-    assert_query(context.data_source, "select value from times", %{rows: [%{row: ["2017-08-23T01:02:03.000000"]}]})
-
-  test "inner join", context, do:
-    assert_query(context.data_source,
-      "select ints.value as i, strings.value as s from ints inner join strings on ints.uid = strings.uid",
-      %{rows: [%{row: [1, "a string value"]}, %{row: [2, "a string value"]}]}
-    )
-
-  test "non emulated functions", context do
-    # We're running these tests concurrently from a single test. The reason is that we need to execute a lot of
-    # queries on the remote SAP HANA database, and running these queries sequentially can be quite slow.
-    # Therefore, we're issuing multiple queries from separate tasks, using chunking to ensure we don't run
-    # too many queries at the same time.
-    errors =
-      [
-        [{"subquery",
-          "select uid, value as sq_value from ints"}],
-        Enum.map(~w(count sum min max avg stddev),
-          &{&1, "select uid, #{&1}(value) as sq_value from ints group by uid"}),
-        Enum.map(~w(year quarter month day hour minute second weekday),
-          &{&1, "select uid, #{&1}(value) as sq_value from times group by uid, value"}),
-        Enum.map(~w(sqrt floor ceil abs round),
-          &{&1, "select uid, #{&1}(value) as sq_value from ints"}),
-        [{"mod",
-          "select uid, mod(value, 2) as sq_value from ints"}],
-        Enum.map(~w(% * / + - ^),
-          &{&1, "select uid, (value #{&1} 2) as sq_value from ints"}),
-        Enum.map(~w(length lower upper btrim ltrim rtrim),
-          &{&1, "select uid, #{&1}(value) as sq_value from strings"}),
-        Enum.map(~w(ltrim rtrim),
-          &{&1, "select uid, #{&1}(value, ' ') as sq_value from strings"}),
-        Enum.map(~w(left right),
-          &{&1, "select uid, #{&1}(value, 1) as sq_value from strings"}),
-        [{"substring",
-          "select uid, substring(value from 1) as sq_value from strings"}],
-        [{"substring/2",
-          "select uid, substring(value from 1 for 1) as sq_value from strings"}],
-        [{"substring_for",
-          "select uid, substring_for(value, 1) as sq_value from strings"}],
-        [{"bucket",
-          "select uid, bucket(value by 2) as sq_value from ints"}],
-        [{"cast",
-          "select uid, cast(value as text) as sq_value from ints"}],
-      ]
-      |> Stream.concat()
-      |> Stream.chunk(10, 10, [])
-      |> Stream.map(fn(tests) -> Enum.map(tests, &Task.async(fn -> verify_native(context.data_source, &1) end)) end)
-      |> Stream.map(fn(tasks) -> Enum.map(tasks, &Task.await(&1, :timer.seconds(30))) end)
-      |> Stream.concat()
-      |> Enum.reject(&is_nil/1)
-
-    case errors do
-      [] -> :ok
-      [_|_] -> flunk(Enum.join(errors, "\n\n"))
-    end
-  end
 
   defp schema(), do:
     Cloak.DataSource.SAPHana.default_schema()
@@ -109,8 +44,6 @@ defmodule Cloak.DataSource.SAPHanaTest do
     SapHanaHelpers.ensure_schema!(connection_params(), schema())
 
     [
-      table_spec("ints", [value: "integer"], %{1..10 => [[1]], 1..5 => [[2]], 1..1 => [[3]]}),
-      table_spec("times", [value: "datetime"], %{1..10 => [[~c(timestamp'2017-08-23 01:02:03')]]}),
       table_spec("strings", [value: "nvarchar(100)"], %{1..10 => [[~c('a string value')]]}),
       table_spec("varchars", [value: "varchar(100)"], %{1..10 => [[~c('a string value')]]}),
     ]
@@ -180,27 +113,4 @@ defmodule Cloak.DataSource.SAPHanaTest do
       initial_tables: tables_def,
       initial_errors: [],
     })
-
-  defp compile_query(data_source, query) do
-    with {:ok, parsed} <- Cloak.Sql.Parser.parse(query), do:
-      Cloak.Sql.Compiler.compile(data_source, parsed, [], %{})
-  end
-
-  defp verify_native(data_source, {function, subquery}) do
-    query = "select sq.sq_value from (#{subquery}) sq"
-
-    case compile_query(data_source, query) do
-      {:ok, %{from: {:subquery, %{ast: subquery}}}} ->
-        if subquery.emulated? do
-          "subquery using `#{function}` is emulated"
-        else
-          case Runner.run_sync("#{:erlang.unique_integer([:positive])}", data_source, query, [], %{}) do
-            %{error: error} -> "error running a query using `#{function}`: #{error}"
-            %{rows: _} -> nil
-          end
-        end
-      {:error, error} ->
-        "#{error} #{query}"
-    end
-  end
 end
