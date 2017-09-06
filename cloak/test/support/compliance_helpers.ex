@@ -83,4 +83,20 @@ defmodule Compliance.Helpers do
       {"content", "notes_changes", "uid"},
       {"changes.change", "notes_changes", "uid"},
     ]
+
+  @doc false
+  def tables(), do:
+    [
+      # {table name, uid column}
+      {"users", "user_id"},
+      {"addresses", "uid"},
+      {"notes", "uid"},
+      {"notes_changes", "uid"},
+    ]
+
+  @doc false
+  def table_pairs(), do:
+    for table1 <- tables(),
+        table2 <- tables(), do:
+      {table1, table2}
 end
