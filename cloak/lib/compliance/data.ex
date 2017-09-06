@@ -122,6 +122,7 @@ defmodule Compliance.Data do
       note_id = :erlang.unique_integer([:positive, :monotonic])
       %{
         id: note_id,
+        note_id: note_id,
         title: sample_randomly(words, 2, 10),
         content: sample_randomly(words, 100, 200),
         changes: generate_note_changes(note_id, words),
