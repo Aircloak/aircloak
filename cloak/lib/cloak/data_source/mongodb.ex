@@ -94,6 +94,12 @@ defmodule Cloak.DataSource.MongoDB do
           } else if (Array.isArray(object)) {
             emit(base, "array");
             map_subfield(base + "[]", object[0]);
+          } else if (typeof object == "number") {
+            if (isFinite(object) && Math.floor(object) === object) {
+              emit(base, "integer");
+            } else {
+              emit(base, "double");
+            }
           } else if (typeof object == "object") {
             emit(base, "object");
             for(var key in object) {
@@ -147,7 +153,8 @@ defmodule Cloak.DataSource.MongoDB do
   # -------------------------------------------------------------------
 
   defp parse_type("object_id"), do: :text
-  defp parse_type("number"), do: :real
+  defp parse_type("double"), do: :real
+  defp parse_type("integer"), do: :integer
   defp parse_type("boolean"), do: :boolean
   defp parse_type("string"), do: :text
   defp parse_type("mixed"), do: :unknown

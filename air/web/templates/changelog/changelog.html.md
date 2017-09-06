@@ -14,6 +14,7 @@
 - Documented `HEX` and `TRIM` functions.
 - Support for TCP transport in PostgreSQL server protocol
 - Support for cancelling queries over the Postgres Message Protocol interface
+- Distinguish between integer and floating point types for MongoDB
 
 ### Bugfixes
 
