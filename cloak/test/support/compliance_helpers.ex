@@ -85,9 +85,8 @@ defmodule Compliance.Helpers do
     ]
 
   @doc false
-  def tables(), do:
+  def table_uids(), do:
     [
-      # {table name, uid column}
       {"users", "user_id"},
       {"addresses", "uid"},
       {"notes", "uid"},
@@ -96,7 +95,7 @@ defmodule Compliance.Helpers do
 
   @doc false
   def table_pairs(), do:
-    for table1 <- tables(),
-        table2 <- tables(), do:
-      {table1, table2}
+    for table_uid1 <- table_uids(),
+        table_uid2 <- table_uids(), do:
+      {table_uid1, table_uid2}
 end
