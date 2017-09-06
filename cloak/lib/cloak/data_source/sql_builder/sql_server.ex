@@ -32,6 +32,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def function_sql("hash", [arg]), do:
     ["CONVERT(bigint, SUBSTRING(0x00 + HASHBYTES('md5', CAST(", arg, " AS binary)), 1, 8))"]
   def function_sql("stddev", [arg]), do: ["STDEV(", arg, ")"]
+  def function_sql("substring", [arg1, arg2]), do: ["SUBSTRING(", arg1, ", ", arg2, ", LEN(", arg1, "))"]
   def function_sql("^", [arg1, arg2]), do: ["POWER(", arg1, ", ", arg2, ")"]
   def function_sql("/", [arg1, arg2]),  do: ["(CAST(", arg1, " AS double precision) / ", arg2, ")"]
   for binary_operator <- ~w(+ - * %) do
