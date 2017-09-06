@@ -23,7 +23,7 @@ defmodule Compliance.DataSources do
   @spec all_from_config(String.t) :: [Cloak.DataSource.t]
   def all_from_config(name), do:
     read_config(name)["data_sources"]
-    |> Enum.uniq_by(& &1["parameters"])
+    |> Enum.uniq_by(& {&1["parameters"], &1["driver"]})
     |> Cloak.DataSource.config_to_datasources()
 
   @doc "Creates tables for a normal and a encoded dataset and inserts data into them."
