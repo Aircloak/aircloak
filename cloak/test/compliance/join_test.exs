@@ -5,6 +5,7 @@ defmodule Compliance.Join.Test do
   @moduletag :compliance
 
   alias Compliance.Helpers
+  alias Cloak.DataSource.MongoDB
 
   setup_all do
     data_sources = if System.get_env("TRAVIS") do
@@ -26,7 +27,9 @@ defmodule Compliance.Join.Test do
         "RIGHT OUTER JOIN",
       ], fn(join_type) ->
         test "#{join_type} between #{table1} and #{table2}", context do
-          Helpers.assert_consistent_and_not_failing(context, """
+          context
+          |> Helpers.disable_for(MongoDB, unquote(join_type) == "INNER JOIN")
+          |> Helpers.assert_consistent_and_not_failing("""
             SELECT count(*)
             FROM #{unquote(table1)} a #{unquote(join_type)} #{unquote(table2)}
               ON a.#{unquote(uid1)} = #{unquote(table2)}.#{unquote(uid2)}
@@ -50,7 +53,9 @@ defmodule Compliance.Join.Test do
         end
 
         test "#{join_type} between subquery of #{table1} and table #{table2}", context do
-          Helpers.assert_consistent_and_not_failing(context, """
+          context
+          |> Helpers.disable_for(MongoDB, unquote(join_type) == "INNER JOIN")
+          |> Helpers.assert_consistent_and_not_failing("""
             SELECT SUM(a.aggregate)
             FROM (
               SELECT #{unquote(uid1)}, count(*) as aggregate
