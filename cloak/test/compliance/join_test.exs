@@ -69,7 +69,7 @@ defmodule Compliance.Join.Test do
 
       Enum.each([
         "CROSS JOIN",
-        ",", # Implicit CROSS JOIN
+        _implicit_cross_join = ",",
       ], fn(join_type) ->
 
         test "CROSS JOIN (`#{join_type}`) between #{table1} and #{table2}", context do
