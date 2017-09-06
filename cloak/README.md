@@ -207,3 +207,28 @@ Note that the tests submit results to InfluxDB - it will be started with `start_
 
 - `brew install mongodb` - install MongoDB (OSX)
 - `mongod --dbpath /tmp` - run MongoDB
+
+#### SQL Server
+
+- Change the memory allowed to docker to at least 3,5 GB
+- `make sql-server-container` - starts the container
+- Note that connecting to SQL Server will only work in the dev-container (`make dev-container`)
+- The following example section will allow you to add an SQL Server datasource to the appropriate config.json:
+
+```json
+{
+  "driver": "sqlserver",
+  "name": "sql_server",
+  "parameters": {
+    "hostname": "docker.for.mac.localhost",
+    "username": "sa",
+    "password": "7fNBjlaeoRwz*zH9",
+    "database": "cloaktest2",
+    "odbc_parameters": {
+      "Port": "1433"
+    }
+  },
+  "tables": {
+  }
+}
+```

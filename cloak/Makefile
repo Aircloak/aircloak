@@ -78,6 +78,9 @@ dev-container: odbc_drivers
 	./dev_container/build-image.sh
 	./dev_container/container.sh console
 
+sql-server-container:
+	docker run --name aircloak_sql_server -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' -p 1433:1433 -d microsoft/mssql-server-linux
+
 odbc_drivers: odbc_drivers_folder priv/odbc/drivers/libodbc-sap-hana-v2.so
 
 odbc_drivers_folder:
