@@ -5,6 +5,7 @@ defmodule Compliance.DateTimeFunctions.Test do
   @moduletag :compliance
 
   alias Compliance.Helpers
+  alias Cloak.DataSource.MongoDB
 
   setup_all do
     data_sources = if System.get_env("TRAVIS") do
@@ -40,7 +41,16 @@ defmodule Compliance.DateTimeFunctions.Test do
 
       Enum.each(Helpers.datetime_columns(), fn({column, table, uid}) ->
         test "#{function} on input #{column} in a sub-query on #{table}", context do
-          Helpers.assert_consistent_and_not_failing context, """
+          context
+          |> Helpers.disable_for(MongoDB, match?("date_trunc" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("month" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("minute" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("hour" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("day" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("year" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("quarter" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("second" <> _, unquote(function)))
+          |> Helpers.assert_consistent_and_not_failing("""
             SELECT
               output
             FROM (
@@ -51,15 +61,24 @@ defmodule Compliance.DateTimeFunctions.Test do
               ORDER BY 1, 2
             ) table_alias
             ORDER BY output
-          """
+          """)
         end
 
         test "#{function} on input #{column} in query on #{table}", context do
-          Helpers.assert_consistent_and_not_failing context, """
+          context
+          |> Helpers.disable_for(MongoDB, match?("date_trunc" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("month" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("minute" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("hour" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("day" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("year" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("quarter" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("second" <> _, unquote(function)))
+          |> Helpers.assert_consistent_and_not_failing("""
             SELECT #{Helpers.on_column(unquote(function), unquote(column))}
             FROM #{unquote(table)}
             ORDER BY 1
-          """
+          """)
         end
       end)
     end)
