@@ -64,12 +64,7 @@ defmodule Compliance.AggregateFunctions.Test do
         end
 
         test "aggregate #{aggregate} on input #{column} in query on #{table}", context do
-          context
-          |> Helpers.disable_for(MongoDB, match?("avg" <> _, unquote(aggregate)))
-          |> Helpers.disable_for(MongoDB, match?("max" <> _, unquote(aggregate)))
-          |> Helpers.disable_for(MongoDB, match?("median" <> _, unquote(aggregate)))
-          |> Helpers.disable_for(MongoDB, match?("min" <> _, unquote(aggregate)))
-          |> Helpers.assert_consistent_and_not_failing("""
+          Helpers.assert_consistent_and_not_failing(context, """
             SELECT #{Helpers.on_column(unquote(aggregate), unquote(column))}
             FROM #{unquote(table)}
           """)

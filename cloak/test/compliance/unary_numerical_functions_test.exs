@@ -34,12 +34,7 @@ defmodule Compliance.UnaryNumericalFunctions.Test do
 
         test "numerical unary function #{function} on input #{column} in a sub-query on #{table}", context do
           context
-          |> Helpers.disable_for(MongoDB, match?("abs" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("ceil" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("floor" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("round" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("sqrt" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("trunc" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("length" <> _, unquote(column)))
           |> Helpers.assert_consistent_and_not_failing("""
             SELECT
               output
@@ -54,14 +49,7 @@ defmodule Compliance.UnaryNumericalFunctions.Test do
         end
 
         test "numerical unary function #{function} on input #{column} in query on #{table}", context do
-          context
-          |> Helpers.disable_for(MongoDB, match?("abs" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("ceil" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("floor" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("round" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("sqrt" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("trunc" <> _, unquote(function)))
-          |> Helpers.assert_consistent_and_not_failing("""
+          Helpers.assert_consistent_and_not_failing(context, """
             SELECT #{Helpers.on_column(unquote(function), unquote(column))} as output
             FROM #{unquote(table)}
             ORDER BY output
