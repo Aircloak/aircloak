@@ -35,13 +35,13 @@ defmodule Compliance.Join.Test do
 
         test "#{join_type} between subqueries of #{table1} and #{table2}", context do
           Helpers.assert_consistent_and_not_failing(context, """
-            SELECT count(*)
+            SELECT SUM(a.aggregate), SUM(b.aggregate)
             FROM (
-              SELECT #{unquote(uid1)}, count(*)
+              SELECT #{unquote(uid1)}, count(*) as aggregate
               FROM #{unquote(table1)}
               GROUP BY 1
             ) a #{unquote(join_type)} (
-              SELECT #{unquote(uid2)}, count(*)
+              SELECT #{unquote(uid2)}, count(*) as aggregate
               FROM #{unquote(table2)}
               GROUP BY 1
             ) b
@@ -51,9 +51,9 @@ defmodule Compliance.Join.Test do
 
         test "#{join_type} between subquery of #{table1} and table #{table2}", context do
           Helpers.assert_consistent_and_not_failing(context, """
-            SELECT count(*)
+            SELECT SUM(a.aggregate)
             FROM (
-              SELECT #{unquote(uid1)}, count(*)
+              SELECT #{unquote(uid1)}, count(*) as aggregate
               FROM #{unquote(table1)}
               GROUP BY 1
             ) a #{unquote(join_type)} #{unquote(table2)} as b
