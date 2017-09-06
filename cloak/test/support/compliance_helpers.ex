@@ -83,4 +83,19 @@ defmodule Compliance.Helpers do
       {"content", "notes_changes", "uid"},
       {"changes.change", "notes_changes", "uid"},
     ]
+
+  @doc false
+  def table_uids(), do:
+    [
+      {"users", "user_id"},
+      {"addresses", "uid"},
+      {"notes", "uid"},
+      {"notes_changes", "uid"},
+    ]
+
+  @doc false
+  def table_pairs(), do:
+    for table_uid1 <- table_uids(),
+        table_uid2 <- table_uids(), do:
+      {table_uid1, table_uid2}
 end
