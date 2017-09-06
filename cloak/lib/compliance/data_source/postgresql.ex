@@ -45,6 +45,9 @@ defmodule Compliance.DataSource.PostgreSQL do
   end
 
   @doc false
+  def insert_documents(_collection_name, _documents, conn), do: conn
+
+  @doc false
   def terminate(_conn) do
     :ok
   end

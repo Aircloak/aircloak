@@ -51,6 +51,16 @@ defmodule Compliance.Data do
     }
   end
 
+  @doc "Regroups a dataset into set of collections. No flattening occurs. Useful for document stores."
+  @spec to_collections(Map.t) :: Map.t
+  def to_collections(users) do
+    %{
+      users: users_to_collection(users),
+      addresses: addresses_to_collection(users),
+      notes: notes_to_collection(users),
+    }
+  end
+
   @doc "Returns the encryption key used when encrypting the data"
   @spec encryption_key() :: String.t
   def encryption_key(), do: @encryption_key
@@ -171,6 +181,21 @@ defmodule Compliance.Data do
   # -------------------------------------------------------------------
   # Internal functions - flattening to tables
   # -------------------------------------------------------------------
+
+  defp users_to_collection(users), do:
+    flatten_users(users)
+
+  defp addresses_to_collection(users), do:
+    Enum.flat_map(users, fn(user) ->
+      for address <- user.addresses, do:
+        Map.put(address, :user_fk, user.id)
+    end)
+
+  defp notes_to_collection(users), do:
+    Enum.flat_map(users, fn(user) ->
+      for note <- user.notes, do:
+        Map.put(note, :user_fk, user.id)
+    end)
 
   defp flatten_users(users), do:
     Enum.map(users, & Map.take(&1, [:id, :user_id, :name, :age, :height, :active]))

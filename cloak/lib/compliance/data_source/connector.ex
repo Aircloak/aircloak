@@ -12,6 +12,9 @@ defmodule Compliance.DataSource.Connector do
   @doc "Is expected to insert the provided data into the data source"
   @callback insert_rows(String.t, [Map.t], state) :: state
 
+  @doc "Is expected to insert the provided documents into the data source"
+  @callback insert_documents(String.t, [Map.t], state) :: state
+
   @doc "Is supposed to do any cleanup if required"
   @callback terminate(state) :: :ok
 end
