@@ -314,6 +314,7 @@ defmodule Central.Service.Customer do
       # No change in the communications protocol since 17.3.0. 17.3.{1,2} are bug fixes only.
       "17.3.1" => {:ok, AirMessage.V170300},
       "17.3.2" => {:ok, AirMessage.V170300},
+      "17.4.0" => {:ok, AirMessage.V170400},
     } |> Map.get(air_version, {:error, :invalid_version})
   end
 end
