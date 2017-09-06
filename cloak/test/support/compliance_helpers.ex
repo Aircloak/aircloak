@@ -4,6 +4,14 @@ defmodule Compliance.Helpers do
   import Cloak.Test.QueryHelpers
 
   @doc false
+  def disable_for(context, _driver, false), do: context
+  def disable_for(%{data_sources: data_sources} = context, driver, true), do:
+    %{context | data_sources: Enum.reject(data_sources, & &1.driver == driver)}
+
+  @doc false
+  def assert_consistent_and_not_failing(%{data_sources: []}, query), do:
+    raise ExUnit.AssertionError,
+      message: "No data sources to execute query on. Query was:\n#{query}."
   def assert_consistent_and_not_failing(%{data_sources: data_sources}, query) do
     result = assert_query_consistency(query, data_sources: data_sources)
     if match?(%{error: _}, result) do

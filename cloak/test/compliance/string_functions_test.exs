@@ -5,6 +5,7 @@ defmodule Compliance.StringFunctions.Test do
   @moduletag :compliance
 
   alias Compliance.Helpers
+  alias Cloak.DataSource.MongoDB
 
   setup_all do
     data_sources = if System.get_env("TRAVIS") do
@@ -53,7 +54,24 @@ defmodule Compliance.StringFunctions.Test do
 
       Enum.each(Helpers.text_columns(), fn({column, table, uid}) ->
         test "#{function} on input #{column} in a sub-query on #{table}", context do
-          Helpers.assert_consistent_and_not_failing context, """
+          context
+          |> Helpers.disable_for(MongoDB, match?("'text-value' ||" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("<col> ||" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("btrim" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("concat" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("hex" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("lcase" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("left" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("length" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("lower" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("ltrim" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("right" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("rtrim" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("substring" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("trim" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("ucase" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("upper" <> _, unquote(function)))
+          |> Helpers.assert_consistent_and_not_failing("""
             SELECT
               output
             FROM (
@@ -64,15 +82,32 @@ defmodule Compliance.StringFunctions.Test do
               ORDER BY 1, 2
             ) table_alias
             ORDER BY output
-          """
+          """)
         end
 
         test "#{function} on input #{column} in query on #{table}", context do
-          Helpers.assert_consistent_and_not_failing context, """
+          context
+          |> Helpers.disable_for(MongoDB, match?("'text-value' ||" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("<col> ||" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("btrim" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("concat" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("hex" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("lcase" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("left" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("length" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("lower" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("ltrim" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("right" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("rtrim" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("substring" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("trim" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("ucase" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("upper" <> _, unquote(function)))
+          |> Helpers.assert_consistent_and_not_failing("""
             SELECT #{Helpers.on_column(unquote(function), "\"#{unquote(column)}\"")}
             FROM #{unquote(table)}
             ORDER BY 1
-          """
+          """)
         end
       end)
     end)

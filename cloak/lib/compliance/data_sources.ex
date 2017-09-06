@@ -23,7 +23,7 @@ defmodule Compliance.DataSources do
   @spec all_from_config(String.t) :: [Cloak.DataSource.t]
   def all_from_config(name), do:
     read_config(name)["data_sources"]
-    |> Enum.uniq_by(& &1["parameters"])
+    |> Enum.uniq_by(& {&1["parameters"], &1["driver"]})
     |> Cloak.DataSource.config_to_datasources()
 
   @doc "Creates tables for a normal and a encoded dataset and inserts data into them."
@@ -54,8 +54,10 @@ defmodule Compliance.DataSources do
 
     data_source
     |> handler.setup()
-    |> handle_setup(TableDefinitions.plain(), handler, @normal_name_postfix, normal_data)
-    |> handle_setup(TableDefinitions.encoded(), handler, @encoded_name_postfix, encoded_data)
+    |> handle_setup(table_definitions(&TableDefinitions.plain/1, data_source),
+      handler, @normal_name_postfix, normal_data)
+    |> handle_setup(table_definitions(&TableDefinitions.encoded/1, data_source),
+      handler, @encoded_name_postfix, encoded_data)
     |> handler.terminate()
 
     IO.puts "#{name} done\n"
@@ -63,11 +65,14 @@ defmodule Compliance.DataSources do
 
   defp handle_setup(state, definitions, handler, table_postfix, data) do
     flattened_data = Data.flatten(data)
+    collections = Data.to_collections(data)
     Enum.reduce(definitions, state, fn({name, %{columns: columns}}, state) ->
       IO.puts "- Creating table #{name}#{table_postfix}"
       state = handler.create_table("#{name}#{table_postfix}", columns, state)
       IO.puts "- Inserting data into table #{name}#{table_postfix}"
-      handler.insert_data("#{name}#{table_postfix}", flattened_data[name], state)
+      state = handler.insert_rows("#{name}#{table_postfix}", flattened_data[name], state)
+      IO.puts "- Inserting documents into collection #{name}#{table_postfix}"
+      handler.insert_documents("#{name}#{table_postfix}", collections[name], state)
     end)
   end
 
@@ -75,6 +80,8 @@ defmodule Compliance.DataSources do
     Compliance.DataSource.PostgreSQL
   defp handler_for_data_source(%{driver: Cloak.DataSource.MySQL}), do:
     Compliance.DataSource.MySQL
+  defp handler_for_data_source(%{driver: Cloak.DataSource.MongoDB}), do:
+    Compliance.DataSource.MongoDB
 
 
   # -------------------------------------------------------------------
@@ -86,8 +93,11 @@ defmodule Compliance.DataSources do
 
   defp expand_and_add_table_definitions(data_source_scaffolds) do
     Enum.flat_map(data_source_scaffolds, fn(data_source_scaffold) ->
-      normal_tables = create_table_structure(TableDefinitions.plain(), @normal_name_postfix)
-      encoded_tables = create_table_structure(TableDefinitions.encoded(), @encoded_name_postfix)
+      normal_tables = table_definitions(&TableDefinitions.plain/1, data_source_scaffold)
+      |> create_table_structure(@normal_name_postfix)
+
+      encoded_tables = table_definitions(&TableDefinitions.encoded/1, data_source_scaffold)
+      |> create_table_structure(@encoded_name_postfix)
 
       normal_data_source = data_source_scaffold
       |> Map.put(:tables, normal_tables)
@@ -104,6 +114,11 @@ defmodule Compliance.DataSources do
       [normal_data_source, encoded_data_source]
     end)
   end
+
+  defp table_definitions(generator_fun, %{driver: Cloak.DataSource.MongoDB}), do:
+    generator_fun.(true)
+  defp table_definitions(generator_fun, _data_source), do:
+    generator_fun.(false)
 
   defp create_table_structure(definitions, table_postfix) do
     definitions
