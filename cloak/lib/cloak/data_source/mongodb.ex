@@ -202,10 +202,10 @@ defmodule Cloak.DataSource.MongoDB do
     stats["sharded"] == true
   end
 
-  @supported_functions_3_0 ~w(+ - * ^ / % mod div left count sum min max avg
-    substring || concat lower upper lcase ucase year month day weekday hour minute second)
+  @supported_functions_3_0 ~w(+ - * ^ / % mod div count sum min max avg
+    || concat lower upper lcase ucase year month day weekday hour minute second)
   @supported_functions_3_2 @supported_functions_3_0 ++ ~w(abs ceil floor sqrt trunc quarter)
-  @supported_functions_3_4 @supported_functions_3_2 ++ ~w(length)
+  @supported_functions_3_4 @supported_functions_3_2 ++ ~w(length left substring)
   defp supported_functions(version) do
     cond do
       Version.compare(version, "3.0.0") == :lt ->
