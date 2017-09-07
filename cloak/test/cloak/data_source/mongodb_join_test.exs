@@ -110,6 +110,6 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
   test "sample from join", context do
     assert_query context, """
       SELECT sum(age) FROM "left" JOIN (SELECT id AS rid FROM "right") AS t ON id = rid SAMPLE_USERS 50%
-    """, %{rows: [%{occurrences: 1, row: [210.0]}]}
+    """, %{rows: [%{occurrences: 1, row: [210]}]}
   end
 end
