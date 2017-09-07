@@ -3,6 +3,7 @@ defmodule Compliance.DateTimeFunctions.Test do
 
   @moduletag :exclude_in_dev
   @moduletag :compliance
+  @moduletag report: [:compliance]
 
   alias Compliance.Helpers
   alias Cloak.DataSource.MongoDB
@@ -22,7 +23,7 @@ defmodule Compliance.DateTimeFunctions.Test do
   describe "datetime functions" do
     # NOTE:
     # - weekday(<col>) produces inconsistent results and has therefore been disabled
-    Enum.each([
+    functions = [
       "day(<col>)",
       "hour(<col>)",
       "minute(<col>)",
@@ -37,51 +38,55 @@ defmodule Compliance.DateTimeFunctions.Test do
       "date_trunc('hour', <col>)",
       "date_trunc('minute', <col>)",
       "date_trunc('second', <col>)",
-    ], fn(function) ->
+    ]
 
-      Enum.each(Helpers.datetime_columns(), fn({column, table, uid}) ->
-        test "#{function} on input #{column} in a sub-query on #{table}", context do
-          context
-          |> Helpers.disable_for(MongoDB, match?("date_trunc" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("month" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("minute" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("hour" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("day" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("year" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("quarter" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("second" <> _, unquote(function)))
-          |> Helpers.assert_consistent_and_not_failing("""
+    for function <- functions, column <- Helpers.datetime_columns() do
+      {column, table, uid} = column
+
+      @tag function: function
+      @tag compliance: "#{function} #{column} #{table} subquery"
+      test "#{function} on input #{column} in a sub-query on #{table}", context do
+        context
+        |> Helpers.disable_for(MongoDB, match?("date_trunc" <> _, unquote(function)))
+        |> Helpers.disable_for(MongoDB, match?("month" <> _, unquote(function)))
+        |> Helpers.disable_for(MongoDB, match?("minute" <> _, unquote(function)))
+        |> Helpers.disable_for(MongoDB, match?("hour" <> _, unquote(function)))
+        |> Helpers.disable_for(MongoDB, match?("day" <> _, unquote(function)))
+        |> Helpers.disable_for(MongoDB, match?("year" <> _, unquote(function)))
+        |> Helpers.disable_for(MongoDB, match?("quarter" <> _, unquote(function)))
+        |> Helpers.disable_for(MongoDB, match?("second" <> _, unquote(function)))
+        |> Helpers.assert_consistent_and_not_failing("""
+          SELECT
+            output
+          FROM (
             SELECT
-              output
-            FROM (
-              SELECT
-                #{unquote(uid)},
-                #{Helpers.on_column(unquote(function), unquote(column))} as output
-              FROM #{unquote(table)}
-              ORDER BY 1, 2
-            ) table_alias
-            ORDER BY output
-          """)
-        end
-
-        test "#{function} on input #{column} in query on #{table}", context do
-          context
-          |> Helpers.disable_for(MongoDB, match?("date_trunc" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("month" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("minute" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("hour" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("day" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("year" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("quarter" <> _, unquote(function)))
-          |> Helpers.disable_for(MongoDB, match?("second" <> _, unquote(function)))
-          |> Helpers.assert_consistent_and_not_failing("""
-            SELECT #{Helpers.on_column(unquote(function), unquote(column))}
+              #{unquote(uid)},
+              #{Helpers.on_column(unquote(function), unquote(column))} as output
             FROM #{unquote(table)}
-            ORDER BY 1
-          """)
-        end
-      end)
-    end)
-  end
+            ORDER BY 1, 2
+          ) table_alias
+          ORDER BY output
+        """)
+      end
 
+      @tag function: function
+      @tag compliance: "#{function} #{column} #{table} query"
+      test "#{function} on input #{column} in query on #{table}", context do
+        context
+        |> Helpers.disable_for(MongoDB, match?("date_trunc" <> _, unquote(function)))
+        |> Helpers.disable_for(MongoDB, match?("month" <> _, unquote(function)))
+        |> Helpers.disable_for(MongoDB, match?("minute" <> _, unquote(function)))
+        |> Helpers.disable_for(MongoDB, match?("hour" <> _, unquote(function)))
+        |> Helpers.disable_for(MongoDB, match?("day" <> _, unquote(function)))
+        |> Helpers.disable_for(MongoDB, match?("year" <> _, unquote(function)))
+        |> Helpers.disable_for(MongoDB, match?("quarter" <> _, unquote(function)))
+        |> Helpers.disable_for(MongoDB, match?("second" <> _, unquote(function)))
+        |> Helpers.assert_consistent_and_not_failing("""
+          SELECT #{Helpers.on_column(unquote(function), unquote(column))}
+          FROM #{unquote(table)}
+          ORDER BY 1
+        """)
+      end
+    end
+  end
 end

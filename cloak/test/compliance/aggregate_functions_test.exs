@@ -3,6 +3,7 @@ defmodule Compliance.AggregateFunctions.Test do
 
   @moduletag :exclude_in_dev
   @moduletag :compliance
+  @moduletag report: [:compliance]
 
   alias Compliance.Helpers
   alias Cloak.DataSource.MongoDB
@@ -20,10 +21,10 @@ defmodule Compliance.AggregateFunctions.Test do
   end
 
   describe "aggregate functions" do
-    # NOTE:
-    # - stddev[_noise] is missing because it crashes on values from the users table
-    Enum.each([
+    functions = [
       # {aggregate function, whether it is supported in subqueries}
+      # NOTE:
+      # - stddev[_noise] is missing because it crashes on values from the users table
       {"count(*)", true},
       {"count_noise(*)", false},
       {"count(<col>)", true},
@@ -40,41 +41,46 @@ defmodule Compliance.AggregateFunctions.Test do
       {"max(distinct <col>)", true},
       {"min(<col>)", true},
       {"min(distinct <col>)", true},
-    ], fn({aggregate, allowed_in_subquery}) ->
+    ]
 
-      Enum.each(Helpers.numerical_columns(), fn({column, table, uid}) ->
+    for function <- functions, column <- Helpers.numerical_columns() do
+      {aggregate, allowed_in_subquery} = function
+      {column, table, uid} = column
 
-        if allowed_in_subquery do
-          test "aggregate #{aggregate} on input #{column} in a sub-query on #{table}", context do
-            context
-            |> Helpers.disable_for(MongoDB, match?("length" <> _, unquote(column)))
-            |> Helpers.assert_consistent_and_not_failing("""
-              SELECT
-                aggregate
-              FROM (
-                SELECT
-                  #{unquote(uid)},
-                  #{Helpers.on_column(unquote(aggregate), unquote(column))} as aggregate
-                FROM #{unquote(table)}
-                GROUP BY #{unquote(uid)}
-              ) table_alias
-              ORDER BY aggregate
-            """)
-          end
-        end
-
-        test "aggregate #{aggregate} on input #{column} in query on #{table}", context do
+      if allowed_in_subquery do
+        @tag aggregate: aggregate
+        @tag compliance: "#{aggregate} #{column} #{table} subquery"
+        test "aggregate #{aggregate} on input #{column} in a sub-query on #{table}", context do
           context
-          |> Helpers.disable_for(MongoDB, match?("avg" <> _, unquote(aggregate)))
-          |> Helpers.disable_for(MongoDB, match?("max" <> _, unquote(aggregate)))
-          |> Helpers.disable_for(MongoDB, match?("median" <> _, unquote(aggregate)))
-          |> Helpers.disable_for(MongoDB, match?("min" <> _, unquote(aggregate)))
+          |> Helpers.disable_for(MongoDB, match?("length" <> _, unquote(column)))
           |> Helpers.assert_consistent_and_not_failing("""
-            SELECT #{Helpers.on_column(unquote(aggregate), unquote(column))}
-            FROM #{unquote(table)}
+            SELECT
+              aggregate
+            FROM (
+              SELECT
+                #{unquote(uid)},
+                #{Helpers.on_column(unquote(aggregate), unquote(column))} as aggregate
+              FROM #{unquote(table)}
+              GROUP BY #{unquote(uid)}
+            ) table_alias
+            ORDER BY aggregate
           """)
         end
-      end)
-    end)
+      end
+
+      @tag aggregate: aggregate
+      @tag compliance: "#{aggregate} #{column} #{table} query"
+      test "aggregate #{aggregate} on input #{column} in query on #{table}", context do
+        context
+        |> Helpers.disable_for(MongoDB, match?("avg" <> _, unquote(aggregate)))
+        |> Helpers.disable_for(MongoDB, match?("max" <> _, unquote(aggregate)))
+        |> Helpers.disable_for(MongoDB, match?("median" <> _, unquote(aggregate)))
+        |> Helpers.disable_for(MongoDB, match?("min" <> _, unquote(aggregate)))
+        |> Helpers.assert_consistent_and_not_failing("""
+          SELECT #{Helpers.on_column(unquote(aggregate), unquote(column))}
+          FROM #{unquote(table)}
+        """)
+      end
+    end
   end
 end
