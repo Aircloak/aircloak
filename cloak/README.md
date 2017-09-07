@@ -69,6 +69,8 @@ config :cloak, :sap_hana, default_schema: your_schema_name
 
 Make sure to choose something unique for the schema name, such as your own name. Once you configured the schema, you need to run `make regenerate-db` again.
 
+If you want to run SAP HANA tests locally, you'll also need to add a `test.local.exs` file with the same configuration. You can safely use the same schema in the test environment.
+
 ### Cloak configuration
 
 Cloaks have two sets of configuration files.
