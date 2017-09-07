@@ -3,6 +3,7 @@ defmodule Compliance.DateTimeFunctions.Test do
 
   @moduletag :exclude_in_dev
   @moduletag :compliance
+  @moduletag report: [:compliance]
 
   alias Compliance.Helpers
   alias Cloak.DataSource.MongoDB
@@ -40,6 +41,8 @@ defmodule Compliance.DateTimeFunctions.Test do
     ], fn(function) ->
 
       Enum.each(Helpers.datetime_columns(), fn({column, table, uid}) ->
+        @tag function: function
+        @tag compliance: "#{function} #{column} #{table} subquery"
         test "#{function} on input #{column} in a sub-query on #{table}", context do
           context
           |> Helpers.disable_for(MongoDB, match?("date_trunc" <> _, unquote(function)))
@@ -64,6 +67,8 @@ defmodule Compliance.DateTimeFunctions.Test do
           """)
         end
 
+        @tag function: function
+        @tag compliance: "#{function} #{column} #{table} query"
         test "#{function} on input #{column} in query on #{table}", context do
           context
           |> Helpers.disable_for(MongoDB, match?("date_trunc" <> _, unquote(function)))

@@ -3,6 +3,7 @@ defmodule Compliance.AggregateFunctions.Test do
 
   @moduletag :exclude_in_dev
   @moduletag :compliance
+  @moduletag report: [:compliance]
 
   alias Compliance.Helpers
   alias Cloak.DataSource.MongoDB
@@ -45,6 +46,8 @@ defmodule Compliance.AggregateFunctions.Test do
       Enum.each(Helpers.numerical_columns(), fn({column, table, uid}) ->
 
         if allowed_in_subquery do
+          @tag aggregate: aggregate
+          @tag compliance: "#{aggregate} #{column} #{table} subquery"
           test "aggregate #{aggregate} on input #{column} in a sub-query on #{table}", context do
             context
             |> Helpers.disable_for(MongoDB, match?("length" <> _, unquote(column)))
@@ -63,6 +66,8 @@ defmodule Compliance.AggregateFunctions.Test do
           end
         end
 
+        @tag aggregate: aggregate
+        @tag compliance: "#{aggregate} #{column} #{table} query"
         test "aggregate #{aggregate} on input #{column} in query on #{table}", context do
           context
           |> Helpers.disable_for(MongoDB, match?("avg" <> _, unquote(aggregate)))

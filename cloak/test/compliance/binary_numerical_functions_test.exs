@@ -3,6 +3,7 @@ defmodule Compliance.BinaryNumericalFunctions.Test do
 
   @moduletag :exclude_in_dev
   @moduletag :compliance
+  @moduletag report: [:compliance]
 
   alias Compliance.Helpers
   alias Cloak.DataSource.MongoDB
@@ -32,6 +33,8 @@ defmodule Compliance.BinaryNumericalFunctions.Test do
     ], fn(function) ->
 
       Enum.each(Helpers.integer_columns(), fn({column, table, uid}) ->
+        @tag function: function
+        @tag compliance: "#{function} #{column} #{table} parameter 1 subquery"
         test "#{function} on input column #{column} from table #{table} as parameter 1, in a sub-query", context do
           context
           |> Helpers.disable_for(MongoDB, match?("<col1> /" <> _, unquote(function)))
@@ -56,6 +59,8 @@ defmodule Compliance.BinaryNumericalFunctions.Test do
           """)
         end
 
+        @tag function: function
+        @tag compliance: "#{function} #{column} #{table} parameter 2 subquery"
         test "#{function} on input column #{column} from table #{table} as parameter 2, in a sub-query", context do
           context
           |> Helpers.disable_for(MongoDB, match?("<col1> /" <> _, unquote(function)))
@@ -80,6 +85,8 @@ defmodule Compliance.BinaryNumericalFunctions.Test do
           """)
         end
 
+        @tag function: function
+        @tag compliance: "#{function} #{column} #{table} parameter 1 query"
         test "#{function} on input column #{column} from table #{table} as parameter 1, in main query", context do
           context
           |> Helpers.disable_for(MongoDB, match?("<col1> /" <> _, unquote(function)))
@@ -99,6 +106,8 @@ defmodule Compliance.BinaryNumericalFunctions.Test do
           """)
         end
 
+        @tag function: function
+        @tag compliance: "#{function} #{column} #{table} parameter 2 query"
         test "#{function} on input column #{column} from table #{table} as parameter 2, in main query", context do
           context
           |> Helpers.disable_for(MongoDB, match?("<col1> /" <> _, unquote(function)))

@@ -3,6 +3,7 @@ defmodule Compliance.UnaryNumericalFunctions.Test do
 
   @moduletag :exclude_in_dev
   @moduletag :compliance
+  @moduletag report: [:compliance]
 
   alias Compliance.Helpers
   alias Cloak.DataSource.MongoDB
@@ -31,7 +32,8 @@ defmodule Compliance.UnaryNumericalFunctions.Test do
     ], fn(function) ->
 
       Enum.each(Helpers.numerical_columns(), fn({column, table, uid}) ->
-
+        @tag function: function
+        @tag compliance: "#{function} #{column} #{table} subquery"
         test "numerical unary function #{function} on input #{column} in a sub-query on #{table}", context do
           context
           |> Helpers.disable_for(MongoDB, match?("abs" <> _, unquote(function)))
@@ -53,6 +55,8 @@ defmodule Compliance.UnaryNumericalFunctions.Test do
           """)
         end
 
+        @tag function: function
+        @tag compliance: "#{function} #{column} #{table} query"
         test "numerical unary function #{function} on input #{column} in query on #{table}", context do
           context
           |> Helpers.disable_for(MongoDB, match?("abs" <> _, unquote(function)))
