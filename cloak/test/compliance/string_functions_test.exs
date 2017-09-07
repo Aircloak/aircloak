@@ -55,7 +55,9 @@ defmodule Compliance.StringFunctions.Test do
       "extract_matches(<col>, '\\w')",
     ]
 
-    for function <- functions, {column, table, uid} <- Helpers.text_columns() do
+    for function <- functions, column <- Helpers.text_columns() do
+      {column, table, uid} = column
+
       if not (function in ["extract_match(<col>, '\\w')", "extract_matches(<col>, '\\w')"]) do
         @tag function: function
         @tag compliance: "#{function} #{column} #{table} subquery"

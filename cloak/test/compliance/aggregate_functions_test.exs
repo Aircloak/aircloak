@@ -43,7 +43,10 @@ defmodule Compliance.AggregateFunctions.Test do
       {"min(distinct <col>)", true},
     ]
 
-    for {aggregate, allowed_in_subquery} <- functions, {column, table, uid} <- Helpers.numerical_columns() do
+    for function <- functions, column <- Helpers.numerical_columns() do
+      {aggregate, allowed_in_subquery} = function
+      {column, table, uid} = column
+
       if allowed_in_subquery do
         @tag aggregate: aggregate
         @tag compliance: "#{aggregate} #{column} #{table} subquery"

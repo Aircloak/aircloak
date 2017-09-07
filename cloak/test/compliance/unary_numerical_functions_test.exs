@@ -31,7 +31,9 @@ defmodule Compliance.UnaryNumericalFunctions.Test do
       "trunc(<col>)",
     ]
 
-    for function <- functions, {column, table, uid} <- Helpers.numerical_columns() do
+    for function <- functions, column <- Helpers.numerical_columns() do
+      {column, table, uid} = column
+
       @tag function: function
       @tag compliance: "#{function} #{column} #{table} subquery"
       test "numerical unary function #{function} on input #{column} in a sub-query on #{table}", context do

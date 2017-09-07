@@ -36,7 +36,8 @@ defmodule Compliance.BinaryNumericalFunctions.Test do
       "bucket(<col1> by <col2> align middle)",
     ]
 
-    for function <- functions, {column, table, uid} <- Helpers.integer_columns() do
+    for function <- functions, column <- Helpers.integer_columns() do
+      {column, table, uid} = column
       test_reverse_parameters? = not String.starts_with?(function, "bucket")
 
       @tag function: function
