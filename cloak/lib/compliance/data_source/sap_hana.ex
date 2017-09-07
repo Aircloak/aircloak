@@ -1,15 +1,13 @@
 defmodule Compliance.DataSource.SAPHana do
   @moduledoc false
 
+  use Compliance.DataSource.Connector
   alias Cloak.SapHanaHelpers
 
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
-
-  use Compliance.DataSource.Connector
-
 
   @doc false
   def setup(%{parameters: params}) do
