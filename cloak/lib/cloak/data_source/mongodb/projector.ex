@@ -91,8 +91,6 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp parse_column(:*), do: :*
   defp parse_column({:distinct, column}), do: {:distinct, parse_column(column)}
   defp parse_column(%Expression{constant?: true, value: value}), do: %{'$literal': value}
-  defp parse_column(%Expression{function?: true, function: "length", function_args: [%Expression{name: name}]})
-    when is_binary(name), do: "$" <> name <> ".length"
   defp parse_column(%Expression{function?: true, function: {:cast, type}, function_args: [value]}), do:
     parse_function("cast", [parse_column(value), value.type, type])
   defp parse_column(%Expression{function?: true, function: fun, function_args: [arg]}) when fun != nil, do:
@@ -117,7 +115,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     "*" => "$multiply", "/" => "$divide", "+" => "$add", "-" => "$subtract",
     "^" => "$pow", "pow" => "$pow", "%" => "$mod", "mod" => "$mod", "sqrt" => "$sqrt",
     "floor" => "$floor", "ceil" => "$ceil", "trunc" => "$trunc", "abs" => "$abs",
-    "||" => "$concat", "concat" => "$concat", "substring" => "$substr",
+    "||" => "$concat", "concat" => "$concat", "substring" => "$substr", "length" => "$strLenCP",
     "lower" => "$toLower", "lcase" => "$toLower", "upper" => "$toUpper", "ucase" => "$toUpper",
     "year" => "$year", "month" => "$month", "day" => "$dayOfMonth", "weekday" => "$dayOfWeek",
     "hour" => "$hour", "minute" => "$minute", "second" => "$second",
