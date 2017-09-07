@@ -70,6 +70,8 @@ config :cloak, :sap_hana, default_schema: your_schema_name
 
 Make sure to choose something unique for the schema name, such as your own name. Once you configured the schema, you need to run `make regenerate-db` again.
 
+If you want to run SAP HANA tests locally, you'll also need to add a `test.local.exs` file with the same configuration. You can safely use the same schema in the test environment.
+
 ### Cloak configuration
 
 Cloaks have two sets of configuration files.
@@ -196,7 +198,6 @@ See [here](../README.md#deploying).
 Before running the tests you need to prepare the performance database.
 
 - `make recreate-perf-db` - generate a `preformance` DB with 10k users
-- `cp priv/config/perf.json priv/config/config.json` - performance tests use the prod environment, so they need a config file
 - `make perftest` - run the performance tests
 
 Note that the tests submit results to InfluxDB - it will be started with `start_dependencies.sh`.

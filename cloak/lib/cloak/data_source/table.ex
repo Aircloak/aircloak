@@ -6,7 +6,7 @@ defmodule Cloak.DataSource.Table do
 
   require Logger
 
-  @type data_type :: :text | :integer | :real | :boolean | :datetime | :time | :date | :uuid | :unknown
+  @type data_type :: :text | :integer | :real | :boolean | :datetime | :time | :date | :unknown
   @type column :: %{name: String.t, type: data_type, visible?: boolean}
 
   @type t :: %{
@@ -125,7 +125,7 @@ defmodule Cloak.DataSource.Table do
     user_id = table.user_id
     case Enum.find(table.columns, &(&1.name == user_id)) do
       %{} = column ->
-        unless column.type in [:integer, :text, :uuid, :real, :unknown], do:
+        unless column.type in [:integer, :text, :real, :unknown], do:
           DataSource.raise_error("unsupported user id type: #{column.type}")
       nil ->
         columns_string =

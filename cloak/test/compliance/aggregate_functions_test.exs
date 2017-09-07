@@ -5,6 +5,7 @@ defmodule Compliance.AggregateFunctions.Test do
   @moduletag :compliance
 
   alias Compliance.Helpers
+  alias Cloak.DataSource.MongoDB
 
   setup_all do
     data_sources = if System.get_env("TRAVIS") do
@@ -45,7 +46,9 @@ defmodule Compliance.AggregateFunctions.Test do
 
         if allowed_in_subquery do
           test "aggregate #{aggregate} on input #{column} in a sub-query on #{table}", context do
-            Helpers.assert_consistent_and_not_failing context, """
+            context
+            |> Helpers.disable_for(MongoDB, match?("length" <> _, unquote(column)))
+            |> Helpers.assert_consistent_and_not_failing("""
               SELECT
                 aggregate
               FROM (
@@ -56,15 +59,20 @@ defmodule Compliance.AggregateFunctions.Test do
                 GROUP BY #{unquote(uid)}
               ) table_alias
               ORDER BY aggregate
-            """
+            """)
           end
         end
 
         test "aggregate #{aggregate} on input #{column} in query on #{table}", context do
-          Helpers.assert_consistent_and_not_failing context,  """
+          context
+          |> Helpers.disable_for(MongoDB, match?("avg" <> _, unquote(aggregate)))
+          |> Helpers.disable_for(MongoDB, match?("max" <> _, unquote(aggregate)))
+          |> Helpers.disable_for(MongoDB, match?("median" <> _, unquote(aggregate)))
+          |> Helpers.disable_for(MongoDB, match?("min" <> _, unquote(aggregate)))
+          |> Helpers.assert_consistent_and_not_failing("""
             SELECT #{Helpers.on_column(unquote(aggregate), unquote(column))}
             FROM #{unquote(table)}
-          """
+          """)
         end
       end)
     end)

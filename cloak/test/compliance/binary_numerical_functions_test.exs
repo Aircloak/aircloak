@@ -5,6 +5,7 @@ defmodule Compliance.BinaryNumericalFunctions.Test do
   @moduletag :compliance
 
   alias Compliance.Helpers
+  alias Cloak.DataSource.MongoDB
 
   setup_all do
     data_sources = if System.get_env("TRAVIS") do
@@ -32,7 +33,17 @@ defmodule Compliance.BinaryNumericalFunctions.Test do
 
       Enum.each(Helpers.integer_columns(), fn({column, table, uid}) ->
         test "#{function} on input column #{column} from table #{table} as parameter 1, in a sub-query", context do
-          Helpers.assert_consistent_and_not_failing context, """
+          context
+          |> Helpers.disable_for(MongoDB, match?("<col1> /" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("<col1> +" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("<col1> *" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("<col1> -" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("<col1> ^" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("div" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("pow" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("mod" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("length" <> _, unquote(column)))
+          |> Helpers.assert_consistent_and_not_failing("""
             SELECT
               output
             FROM (
@@ -42,11 +53,21 @@ defmodule Compliance.BinaryNumericalFunctions.Test do
               FROM #{unquote(table)}
             ) table_alias
             ORDER BY output
-          """
+          """)
         end
 
         test "#{function} on input column #{column} from table #{table} as parameter 2, in a sub-query", context do
-          Helpers.assert_consistent_and_not_failing context, """
+          context
+          |> Helpers.disable_for(MongoDB, match?("<col1> /" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("<col1> +" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("<col1> *" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("<col1> -" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("<col1> ^" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("div" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("pow" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("mod" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("length" <> _, unquote(column)))
+          |> Helpers.assert_consistent_and_not_failing("""
             SELECT
               output
             FROM (
@@ -56,25 +77,45 @@ defmodule Compliance.BinaryNumericalFunctions.Test do
               FROM #{unquote(table)}
             ) table_alias
             ORDER BY output
-          """
+          """)
         end
 
         test "#{function} on input column #{column} from table #{table} as parameter 1, in main query", context do
-          Helpers.assert_consistent_and_not_failing context, """
+          context
+          |> Helpers.disable_for(MongoDB, match?("<col1> /" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("<col1> +" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("<col1> *" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("<col1> -" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("<col1> ^" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("div" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("pow" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("mod" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("length" <> _, unquote(column)))
+          |> Helpers.assert_consistent_and_not_failing("""
             SELECT
               #{Helpers.on_columns(unquote(function), ["#{unquote(column)}", "1"])} as output
             FROM #{unquote(table)}
             ORDER BY output
-          """
+          """)
         end
 
         test "#{function} on input column #{column} from table #{table} as parameter 2, in main query", context do
-          Helpers.assert_consistent_and_not_failing context, """
+          context
+          |> Helpers.disable_for(MongoDB, match?("<col1> /" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("<col1> +" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("<col1> *" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("<col1> -" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("<col1> ^" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("div" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("pow" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("mod" <> _, unquote(function)))
+          |> Helpers.disable_for(MongoDB, match?("length" <> _, unquote(column)))
+          |> Helpers.assert_consistent_and_not_failing("""
             SELECT
               #{Helpers.on_columns(unquote(function), ["1", "#{unquote(column)}"])} as output
             FROM #{unquote(table)}
             ORDER BY output
-          """
+          """)
         end
       end)
     end)

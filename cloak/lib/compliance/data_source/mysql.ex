@@ -6,7 +6,7 @@ defmodule Compliance.DataSource.MySQL do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Compliance.DataSource.Connector
+  use Compliance.DataSource.Connector
 
   @doc false
   def setup(%{parameters: params}) do
@@ -28,7 +28,7 @@ defmodule Compliance.DataSource.MySQL do
   end
 
   @doc false
-  def insert_data(table_name, data, conn) do
+  def insert_rows(table_name, data, conn) do
     column_names = column_names(data)
     rows = rows(data, column_names)
     escaped_column_names = escaped_column_names(column_names)
@@ -36,7 +36,9 @@ defmodule Compliance.DataSource.MySQL do
 
     query = "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names, ", ")}) values (#{value_placeholders})"
 
-    Task.async_stream(rows, & execute!(conn, query, &1))
+    rows
+    |> Task.async_stream(& execute!(conn, query, &1))
+    |> Stream.run()
 
     conn
   end

@@ -7,6 +7,7 @@ apps/cloak/src/*
 doc
 apps
 config/dev.local.exs
+config/test.local.exs
 
 test-gen
 
