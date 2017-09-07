@@ -111,6 +111,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     integer_devision_by_3 = %{'$floor': [%{'$divide': [month_minus_1, 3]}]}
     %{'$add': [integer_devision_by_3, 1]}
   end
+  defp parse_function("div", args), do: %{'$trunc': %{'$divide': args}}
   for {name, translation} <- %{
     "*" => "$multiply", "/" => "$divide", "+" => "$add", "-" => "$subtract",
     "^" => "$pow", "pow" => "$pow", "%" => "$mod", "mod" => "$mod", "sqrt" => "$sqrt",
