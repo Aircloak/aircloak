@@ -213,6 +213,7 @@ Note that the tests submit results to InfluxDB - it will be started with `start_
 
 - Change the memory allowed to docker to at least 3,5 GB
 - `make sql-server-container` - starts the container
+- `DB_NAME=cloaktest2 make sql-server-database` - creates a database named `cloaktest2`
 - Note that connecting to SQL Server will only work in the dev-container (`make dev-container`)
 - The following example section will allow you to add an SQL Server datasource to the appropriate config.json:
 
