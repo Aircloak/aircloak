@@ -226,6 +226,7 @@ Note that the tests submit results to InfluxDB - it will be started with `start_
     "username": "sa",
     "password": "7fNBjlaeoRwz*zH9",
     "database": "cloaktest2",
+    "encoding": "utf8",
     "odbc_parameters": {
       "Port": "1433"
     }
