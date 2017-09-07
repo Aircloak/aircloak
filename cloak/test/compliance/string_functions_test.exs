@@ -51,11 +51,12 @@ defmodule Compliance.StringFunctions.Test do
       "trim(<col>)",
       "ucase(<col>)",
       "upper(<col>)",
+      "extract_match(<col>, '\\w')",
       "extract_matches(<col>, '\\w')",
     ]
 
     for function <- functions, {column, table, uid} <- Helpers.text_columns() do
-      if not (function in ["extract_matches(<col>, '\\w')"]) do
+      if not (function in ["extract_match(<col>, '\\w')", "extract_matches(<col>, '\\w')"]) do
         @tag function: function
         @tag compliance: "#{function} #{column} #{table} subquery"
         test "#{function} on input #{column} in a sub-query on #{table}", context do
