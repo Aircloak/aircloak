@@ -19,6 +19,7 @@
 
 - Fixed crash in min/max aggregators when there are insufficient data to produce a value.
 - Fixed a bug where loading your past query history would not always return the queries you expected.
+- Fixed offloading of the string `length` function.
 
 ## Version 17.3.2
 
