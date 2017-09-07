@@ -6,7 +6,7 @@ defmodule Compliance.DataSource.SQLServer do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Compliance.DataSource.Connector
+  use Compliance.DataSource.Connector
 
   @doc false
   def setup(%{parameters: params}) do
@@ -24,7 +24,7 @@ defmodule Compliance.DataSource.SQLServer do
   end
 
   @doc false
-  def insert_data(table_name, data, conn) do
+  def insert_rows(table_name, data, conn) do
     column_names = column_names(data)
     rows = rows(data, column_names)
     escaped_column_names = escaped_column_names(column_names)
@@ -32,7 +32,7 @@ defmodule Compliance.DataSource.SQLServer do
 
     query = "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names, ", ")}) values (#{value_placeholders})"
 
-    Task.async_stream(rows, & execute!(conn, query, &1))
+    Enum.each(rows, & execute!(conn, query, &1))
 
     conn
   end
@@ -47,8 +47,12 @@ defmodule Compliance.DataSource.SQLServer do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp execute!(conn, query, params \\ []), do:
-    {:updated, _} = :odbc.param_query(conn, String.to_charlist(query), params)
+  defp execute!(conn, query, params \\ []) do
+    case :odbc.param_query(conn, String.to_charlist(query), params) do
+      {:updated, _} -> :ok
+      {:error, error} -> raise to_string(error)
+    end
+  end
 
   defp column_names(data), do:
     data
@@ -63,8 +67,13 @@ defmodule Compliance.DataSource.SQLServer do
       |> Enum.map(& cast_types/1)
     end)
 
-  defp cast_types(%{calendar: Calendar.ISO} = datetime), do: NaiveDateTime.to_erl(datetime)
-  defp cast_types(value), do: value
+  defp cast_types(binary) when is_binary(binary), do: {{:sql_varchar, length_null_terminated(binary)}, [binary]}
+  defp cast_types(integer) when is_integer(integer), do: {:sql_integer, [integer]}
+  defp cast_types(float) when is_float(float), do: {:sql_real, [float]}
+  defp cast_types(boolean) when is_boolean(boolean), do: {:sql_bit, [boolean]}
+  defp cast_types(%{calendar: Calendar.ISO} = datetime), do: datetime |> to_string() |> cast_types()
+
+  defp length_null_terminated(binary), do: String.length(binary) + 1
 
   defp escaped_column_names(column_names), do:
     column_names
@@ -86,5 +95,5 @@ defmodule Compliance.DataSource.SQLServer do
   defp sql_type(:real), do: "real"
   defp sql_type(:boolean), do: "bit"
   defp sql_type(:text), do: "text"
-  defp sql_type(:datetime), do: "datetime"
+  defp sql_type(:datetime), do: "datetime2"
 end
