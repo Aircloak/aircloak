@@ -7,7 +7,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
 
   use Cloak.DataSource.SqlBuilder.Dialect
 
-  @max_unsigned_bigint 9223372036854775807
+  @max_unsigned_bigint 9_223_372_036_854_775_807
 
   @doc false
   def supported_functions(), do:
