@@ -91,8 +91,6 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp parse_column(:*), do: :*
   defp parse_column({:distinct, column}), do: {:distinct, parse_column(column)}
   defp parse_column(%Expression{constant?: true, value: value}), do: %{'$literal': value}
-  defp parse_column(%Expression{function?: true, function: "length", function_args: [%Expression{name: name}]})
-    when is_binary(name), do: "$" <> name <> ".length"
   defp parse_column(%Expression{function?: true, function: {:cast, type}, function_args: [value]}), do:
     parse_function("cast", [parse_column(value), value.type, type])
   defp parse_column(%Expression{function?: true, function: fun, function_args: [arg]}) when fun != nil, do:
@@ -101,8 +99,8 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     parse_function(fun, Enum.map(args, &parse_column/1))
   defp parse_column(%Expression{name: name}) when is_binary(name), do: "$" <> name
 
-  defp parse_function("left", [string, count]), do: %{"$substr" => [string, 0, count]}
-  defp parse_function("substring", [string, from]), do: %{"$substr" => [string, from, -1]}
+  defp parse_function("left", [string, count]), do: %{"$substrCP" => [string, 0, count]}
+  defp parse_function("substring", [string, from]), do: %{"$substrCP" => [string, from, -1]}
   defp parse_function("count", :*), do: %{'$sum': 1}
   defp parse_function(_, {:distinct, value}), do: %{'$addToSet': value}
   defp parse_function("count", value), do: %{'$sum': %{'$cond': [%{'$gt': [value, nil]}, 1, 0]}}
@@ -113,11 +111,12 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     integer_devision_by_3 = %{'$floor': [%{'$divide': [month_minus_1, 3]}]}
     %{'$add': [integer_devision_by_3, 1]}
   end
+  defp parse_function("div", args), do: %{'$trunc': %{'$divide': args}}
   for {name, translation} <- %{
     "*" => "$multiply", "/" => "$divide", "+" => "$add", "-" => "$subtract",
     "^" => "$pow", "pow" => "$pow", "%" => "$mod", "mod" => "$mod", "sqrt" => "$sqrt",
     "floor" => "$floor", "ceil" => "$ceil", "trunc" => "$trunc", "abs" => "$abs",
-    "||" => "$concat", "concat" => "$concat", "substring" => "$substr",
+    "||" => "$concat", "concat" => "$concat", "substring" => "$substrCP", "length" => "$strLenCP",
     "lower" => "$toLower", "lcase" => "$toLower", "upper" => "$toUpper", "ucase" => "$toUpper",
     "year" => "$year", "month" => "$month", "day" => "$dayOfMonth", "weekday" => "$dayOfWeek",
     "hour" => "$hour", "minute" => "$minute", "second" => "$second",
