@@ -1,17 +1,23 @@
-defmodule Compliance.Helpers do
+defmodule ComplianceCase do
   @moduledoc false
 
-  import Cloak.Test.QueryHelpers
+  use ExUnit.CaseTemplate
 
-  @doc false
-  def data_sources() do
-    data_sources = Compliance.DataSources.all_from_config_initialized(configuration_file())
+  using do
+    quote do
+      @moduletag :exclude_in_dev
+      @moduletag :compliance
+      @moduletag report: [:compliance]
 
-    if length(data_sources) < 2, do:
-      raise(ExUnit.AssertionError, message: "More than one data source is needed to ensure compliance")
-
-    data_sources
+      import ComplianceCase, only: :functions
+    end
   end
+
+  setup_all do
+    {:ok, data_sources: data_sources()}
+  end
+
+  import Cloak.Test.QueryHelpers
 
   @doc false
   def disable_for(context, _driver, false), do: context
@@ -119,6 +125,15 @@ defmodule Compliance.Helpers do
     else
       "compliance"
     end
+  end
+
+  defp data_sources() do
+    data_sources = Compliance.DataSources.all_from_config_initialized(configuration_file())
+
+    if length(data_sources) < 2, do:
+      raise(ExUnit.AssertionError, message: "More than one data source is needed to ensure compliance")
+
+    data_sources
   end
 
   defp env(name), do: System.get_env(name) || ""

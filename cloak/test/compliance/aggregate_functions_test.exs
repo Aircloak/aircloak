@@ -20,34 +20,25 @@ Enum.each([
   {"min(distinct <col>)", true},
 ], fn({aggregate, allowed_in_subquery}) ->
   defmodule Module.concat([Compliance.AggregateFunctions, String.to_atom(aggregate), Test]) do
-    use ExUnit.Case, async: true
-
-    @moduletag :exclude_in_dev
-    @moduletag :compliance
-    @moduletag :"#{aggregate}"
-    @moduletag report: [:compliance]
-
-    alias Compliance.Helpers
+    use ComplianceCase, async: true
     alias Cloak.DataSource.MongoDB
 
-    setup_all do
-      {:ok, data_sources: Helpers.data_sources()}
-    end
+    @moduletag :"#{aggregate}"
 
-    Enum.each(Helpers.numerical_columns(), fn({column, table, uid}) ->
+    Enum.each(numerical_columns(), fn({column, table, uid}) ->
 
       if allowed_in_subquery do
         @tag compliance: "#{aggregate} #{column} #{table} subquery"
         test "aggregate #{aggregate} on input #{column} in a sub-query on #{table}", context do
           context
-          |> Helpers.disable_for(MongoDB, match?("length" <> _, unquote(column)))
-          |> Helpers.assert_consistent_and_not_failing("""
+          |> disable_for(MongoDB, match?("length" <> _, unquote(column)))
+          |> assert_consistent_and_not_failing("""
             SELECT
               aggregate
             FROM (
               SELECT
                 #{unquote(uid)},
-                #{Helpers.on_column(unquote(aggregate), unquote(column))} as aggregate
+                #{on_column(unquote(aggregate), unquote(column))} as aggregate
               FROM #{unquote(table)}
               GROUP BY #{unquote(uid)}
             ) table_alias
@@ -59,12 +50,12 @@ Enum.each([
       @tag compliance: "#{aggregate} #{column} #{table} query"
       test "aggregate #{aggregate} on input #{column} in query on #{table}", context do
         context
-        |> Helpers.disable_for(MongoDB, match?("avg" <> _, unquote(aggregate)))
-        |> Helpers.disable_for(MongoDB, match?("max" <> _, unquote(aggregate)))
-        |> Helpers.disable_for(MongoDB, match?("median" <> _, unquote(aggregate)))
-        |> Helpers.disable_for(MongoDB, match?("min" <> _, unquote(aggregate)))
-        |> Helpers.assert_consistent_and_not_failing("""
-          SELECT #{Helpers.on_column(unquote(aggregate), unquote(column))}
+        |> disable_for(MongoDB, match?("avg" <> _, unquote(aggregate)))
+        |> disable_for(MongoDB, match?("max" <> _, unquote(aggregate)))
+        |> disable_for(MongoDB, match?("median" <> _, unquote(aggregate)))
+        |> disable_for(MongoDB, match?("min" <> _, unquote(aggregate)))
+        |> assert_consistent_and_not_failing("""
+          SELECT #{on_column(unquote(aggregate), unquote(column))}
           FROM #{unquote(table)}
         """)
       end
