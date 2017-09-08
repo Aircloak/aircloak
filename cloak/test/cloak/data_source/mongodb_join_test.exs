@@ -112,4 +112,10 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
       SELECT sum(age) FROM "left" JOIN (SELECT id AS rid FROM "right") AS t ON id = rid SAMPLE_USERS 50%
     """, %{rows: [%{occurrences: 1, row: [210.0]}]}
   end
+
+  test "join with aliased tables", context do
+    assert_query context, """
+      SELECT count(*) FROM "left" AS l JOIN "right" AS r ON l.id = r.id
+    """, %{rows: [%{occurrences: 1, row: [20]}]}
+  end
 end

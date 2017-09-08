@@ -230,25 +230,26 @@ defmodule Cloak.DataSource.MongoDB do
     Enum.reject(used_functions, & &1 in supported_functions) == []
   end
 
-  defp supports_joins?(%Query{from: {:join, join}, data_source: data_source}) do
+  defp supports_joins?(%Query{from: {:join, join}} = query) do
     # join support was added in 3.2
-    (data_source |> get_mongo_version() |> Version.compare("3.2.0") != :lt) and
+    (query.data_source |> get_mongo_version() |> Version.compare("3.2.0") != :lt) and
     join.type == :inner_join and
     supported_join_conditions?(join.conditions) and
-    supported_join_branches?(data_source, join.lhs, join.rhs)
+    supported_join_branches?(query.selected_tables, join.lhs, join.rhs)
   end
   defp supports_joins?(_query), do: true
 
   defp supported_join_conditions?({:comparison, lhs, :=, rhs}), do: lhs.name != nil and rhs.name != nil
   defp supported_join_conditions?(_conditions), do: false
 
-  defp supported_join_branches?(data_source, lhs, rhs) when is_binary(lhs) and is_binary(rhs), do:
-    not sharded_table?(data_source, lhs) and not sharded_table?(data_source, rhs)
-  defp supported_join_branches?(data_source, {:subquery, _}, rhs) when is_binary(rhs), do:
-    not sharded_table?(data_source, rhs)
-  defp supported_join_branches?(data_source, lhs, {:subquery, _}) when is_binary(lhs), do:
-    not sharded_table?(data_source, lhs)
-  defp supported_join_branches?(_data_source, _lhs, _rhs), do: false
+  defp supported_join_branches?(selected_tables, lhs, rhs), do:
+    (is_binary(lhs) or is_binary(rhs)) and
+    not sharded_table?(selected_tables, lhs) and
+    not sharded_table?(selected_tables, rhs)
 
-  defp sharded_table?(data_source, table), do: DataSource.table(data_source, table).sharded?
+  defp sharded_table?(selected_tables, table) when is_binary(table) do
+    table = Enum.find(selected_tables, & &1.name == table)
+    table != nil and table.sharded?
+  end
+  defp sharded_table?(_selected_tables, _table), do: false
 end
