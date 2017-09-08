@@ -7,6 +7,8 @@ Enum.each([
     use ExUnit.Case, async: true
 
     @moduletag :compliance
+    @moduletag :"join_type"
+    @moduletag report: [:compliance]
 
     alias Compliance.Helpers
     alias Cloak.DataSource.MongoDB
@@ -24,6 +26,7 @@ Enum.each([
     end
 
     Enum.each(Helpers.table_pairs(), fn({{table1, uid1}, {table2, uid2}}) ->
+      @tag compliance: "#{join_type} #{table1} #{table2}"
       test "#{join_type} between #{table1} and #{table2}", context do
         context
         |> Helpers.disable_for(MongoDB, unquote(join_type) == "INNER JOIN")
@@ -34,6 +37,7 @@ Enum.each([
         """)
       end
 
+      @tag compliance: "#{join_type} #{table1} #{table2} subqueries"
       test "#{join_type} between subqueries of #{table1} and #{table2}", context do
         Helpers.assert_consistent_and_not_failing(context, """
           SELECT SUM(a.aggregate), SUM(b.aggregate)
@@ -50,6 +54,7 @@ Enum.each([
         """)
       end
 
+      @tag compliance: "#{join_type} #{table1} #{table2} subquery"
       test "#{join_type} between subquery of #{table1} and table #{table2}", context do
         context
         |> Helpers.disable_for(MongoDB, unquote(join_type) == "INNER JOIN")
@@ -71,6 +76,8 @@ defmodule Module.Compliance.Join.CrossJoin.Test do
   use ExUnit.Case, async: true
 
   @moduletag :compliance
+  @moduletag :"CROSS JOIN"
+  @moduletag report: [:compliance]
 
   alias Compliance.Helpers
 
@@ -91,6 +98,7 @@ defmodule Module.Compliance.Join.CrossJoin.Test do
     _implicit_cross_join = ",",
   ], fn(join_type) ->
     Enum.each(Helpers.table_pairs(), fn({{table1, uid1}, {table2, uid2}}) ->
+      @tag compliance: "#{join_type} #{table1} #{table2}"
       test "CROSS JOIN (`#{join_type}`) between #{table1} and #{table2}", context do
         Helpers.assert_consistent_and_not_failing(context, """
           SELECT count(*)
