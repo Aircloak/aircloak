@@ -1,7 +1,6 @@
 defmodule Compliance.Join.Test do
   use ExUnit.Case, async: true
 
-  @moduletag :exclude_in_dev
   @moduletag :compliance
 
   alias Compliance.Helpers
