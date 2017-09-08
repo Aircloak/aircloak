@@ -116,11 +116,11 @@ defmodule ComplianceCase do
       {table_uid1, table_uid2}
 
   defp configuration_file() do
-    if (
+    if \
       env("TRAVIS_EVENT_TYPE") in ["pull_request", "cron"] ||
       env("TRAVIS_BRANCH") == "master" ||
       env("TRAVIS_BRANCH") =~ ~r/^release_.*/
-    ) do
+    do
       "compliance_travis"
     else
       "compliance"
