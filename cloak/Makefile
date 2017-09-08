@@ -5,6 +5,7 @@ SHELL=/bin/bash -o pipefail
 .PHONY: odbc_drivers odbc_drivers_folder
 .PHONY: sql-server-container sql-server-database
 .PHONY: mysql-server-container mysql-server-database
+.PHONY: mongo-server-container
 
 all: deps compile
 
@@ -91,6 +92,9 @@ mysql-server-container:
 
 mysql-server-database:
 	docker exec -it aircloak_mysql_server mysql -u root -e "CREATE DATABASE $(DB_NAME)"
+
+mongo-server-container:
+	docker run --name aircloak_mongodb_server -p 27017:27017 -d mongo
 
 odbc_drivers: odbc_drivers_folder priv/odbc/drivers/libodbc-sap-hana-v2.so
 
