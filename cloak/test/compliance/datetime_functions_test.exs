@@ -27,15 +27,7 @@ Enum.each([
     alias Cloak.DataSource.MongoDB
 
     setup_all do
-      data_sources = if System.get_env("TRAVIS") do
-        Compliance.DataSources.all_from_config_initialized("compliance_travis")
-      else
-        Compliance.DataSources.all_from_config_initialized("compliance")
-      end
-
-      assert(length(data_sources) > 1, "More than one data source is needed to ensure compliance")
-
-      {:ok, data_sources: data_sources}
+      {:ok, data_sources: Helpers.data_sources()}
     end
 
     Enum.each(Helpers.datetime_columns(), fn({column, table, uid}) ->

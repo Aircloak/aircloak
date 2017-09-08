@@ -3,6 +3,19 @@ defmodule Compliance.Helpers do
 
   import Cloak.Test.QueryHelpers
 
+  def data_sources() do
+    data_sources = if System.get_env("TRAVIS") do
+      Compliance.DataSources.all_from_config_initialized("compliance_travis")
+    else
+      Compliance.DataSources.all_from_config_initialized("compliance")
+    end
+
+    if length(data_sources) < 2, do:
+      raise(ExUnit.AssertionError, message: "More than one data source is needed to ensure compliance")
+
+    data_sources
+  end
+
   @doc false
   def disable_for(context, _driver, false), do: context
   def disable_for(%{data_sources: data_sources} = context, driver, true), do:
