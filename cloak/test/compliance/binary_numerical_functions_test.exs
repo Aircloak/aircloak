@@ -16,6 +16,7 @@ Enum.each([
     use ExUnit.Case, async: true
 
     @moduletag :compliance
+    @moduletag :"#{function}"
     @moduletag report: [:compliance]
 
     alias Compliance.Helpers
@@ -35,7 +36,6 @@ Enum.each([
 
     test_reverse_parameters? = not String.starts_with?(function, "bucket")
     Enum.each(Helpers.integer_columns(), fn({column, table, uid}) ->
-      @tag function: function
       @tag compliance: "#{function} #{column} #{table} parameter 1 subquery"
       test "#{function} on input column #{column} from table #{table} as parameter 1, in a sub-query", context do
         context
@@ -62,7 +62,6 @@ Enum.each([
       end
 
       if test_reverse_parameters? do
-        @tag function: function
         @tag compliance: "#{function} #{column} #{table} parameter 2 subquery"
         test "#{function} on input column #{column} from table #{table} as parameter 2, in a sub-query", context do
           context
@@ -89,7 +88,6 @@ Enum.each([
         end
       end
 
-      @tag function: function
       @tag compliance: "#{function} #{column} #{table} parameter 1 query"
       test "#{function} on input column #{column} from table #{table} as parameter 1, in main query", context do
         context
@@ -111,7 +109,6 @@ Enum.each([
       end
 
       if test_reverse_parameters? do
-        @tag function: function
         @tag compliance: "#{function} #{column} #{table} parameter 2 query"
         test "#{function} on input column #{column} from table #{table} as parameter 2, in main query", context do
           context

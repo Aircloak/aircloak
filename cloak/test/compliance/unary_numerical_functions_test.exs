@@ -11,6 +11,7 @@ Enum.each([
     use ExUnit.Case, async: true
 
     @moduletag :compliance
+    @moduletag :"#{function}"
     @moduletag report: [:compliance]
 
     alias Compliance.Helpers
@@ -29,7 +30,6 @@ Enum.each([
     end
 
     Enum.each(Helpers.numerical_columns(), fn({column, table, uid}) ->
-      @tag function: function
       @tag compliance: "#{function} #{column} #{table} subquery"
       test "numerical unary function #{function} on input #{column} in a sub-query on #{table}", context do
         context
@@ -52,7 +52,6 @@ Enum.each([
         """)
       end
 
-      @tag function: function
       @tag compliance: "#{function} #{column} #{table} query"
       test "numerical unary function #{function} on input #{column} in query on #{table}", context do
         context

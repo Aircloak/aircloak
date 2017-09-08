@@ -23,6 +23,7 @@ Enum.each([
     use ExUnit.Case, async: true
 
     @moduletag :compliance
+    @moduletag :"#{aggregate}"
     @moduletag report: [:compliance]
 
     alias Compliance.Helpers
@@ -43,7 +44,6 @@ Enum.each([
     Enum.each(Helpers.numerical_columns(), fn({column, table, uid}) ->
 
       if allowed_in_subquery do
-        @tag aggregate: aggregate
         @tag compliance: "#{aggregate} #{column} #{table} subquery"
         test "aggregate #{aggregate} on input #{column} in a sub-query on #{table}", context do
           context
@@ -63,7 +63,6 @@ Enum.each([
         end
       end
 
-      @tag aggregate: aggregate
       @tag compliance: "#{aggregate} #{column} #{table} query"
       test "aggregate #{aggregate} on input #{column} in query on #{table}", context do
         context
