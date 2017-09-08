@@ -7,6 +7,8 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
 
   use Cloak.DataSource.SqlBuilder.Dialect
 
+  @max_unsigned_bigint 9223372036854775807
+
   @doc false
   def supported_functions(), do:
     ~w(
@@ -33,6 +35,10 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
     ["avg(distinct to_decimal(", arg |> to_string() |> String.replace(~r/DISTINCT /, ""), "))"]
   def function_sql("avg", [arg]), do: ["avg(to_decimal(", arg, "))"]
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") ,")"]
+
+  @doc false
+  def limit_sql(nil, offset), do: limit_sql(@max_unsigned_bigint, offset)
+  def limit_sql(limit, offset), do: [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
 
   @doc false
   def sql_type(:text), do: "NCLOB"
