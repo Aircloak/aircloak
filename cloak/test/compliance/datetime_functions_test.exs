@@ -19,6 +19,7 @@ Enum.each([
   defmodule Module.concat([Compliance.DateTimeFunctions, String.to_atom(function), Test]) do
     use ExUnit.Case, async: true
 
+    @moduletag :exclude_in_dev
     @moduletag :compliance
     @moduletag :"#{function}"
     @moduletag report: [:compliance]

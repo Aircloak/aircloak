@@ -22,6 +22,7 @@ Enum.each([
   defmodule Module.concat([Compliance.AggregateFunctions, String.to_atom(aggregate), Test]) do
     use ExUnit.Case, async: true
 
+    @moduletag :exclude_in_dev
     @moduletag :compliance
     @moduletag :"#{aggregate}"
     @moduletag report: [:compliance]

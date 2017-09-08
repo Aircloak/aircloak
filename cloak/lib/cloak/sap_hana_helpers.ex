@@ -110,7 +110,8 @@ if Mix.env() in [:dev, :test] do
     @doc "Deletes old test schemas from the database."
     @spec delete_test_schemas() :: :ok
     def delete_test_schemas() do
-      if System.get_env("TRAVIS") == "true" do
+      # Note: checking for CI instead of TRAVIS env, to allow local `make test_all` to work.
+      if System.get_env("CI") == "true" do
         {:ok, conn} =
           Application.fetch_env!(:cloak, :sap_hana)
           |> Map.new()

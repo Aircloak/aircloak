@@ -3,12 +3,9 @@ defmodule Compliance.Helpers do
 
   import Cloak.Test.QueryHelpers
 
+  @doc false
   def data_sources() do
-    data_sources = if System.get_env("TRAVIS") do
-      Compliance.DataSources.all_from_config_initialized("compliance_travis")
-    else
-      Compliance.DataSources.all_from_config_initialized("compliance")
-    end
+    data_sources = Compliance.DataSources.all_from_config_initialized(configuration_file())
 
     if length(data_sources) < 2, do:
       raise(ExUnit.AssertionError, message: "More than one data source is needed to ensure compliance")
@@ -111,4 +108,18 @@ defmodule Compliance.Helpers do
     for table_uid1 <- table_uids(),
         table_uid2 <- table_uids(), do:
       {table_uid1, table_uid2}
+
+  defp configuration_file() do
+    if (
+      env("TRAVIS_EVENT_TYPE") in ["pull_request", "cron"] ||
+      env("TRAVIS_BRANCH") == "master" ||
+      env("TRAVIS_BRANCH") =~ ~r/^release_.*/
+    ) do
+      "compliance_travis"
+    else
+      "compliance"
+    end
+  end
+
+  defp env(name), do: System.get_env(name) || ""
 end

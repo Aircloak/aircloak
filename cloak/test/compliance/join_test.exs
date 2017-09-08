@@ -6,6 +6,7 @@ Enum.each([
   defmodule Module.concat([Compliance.Join, String.to_atom(join_type), Test]) do
     use ExUnit.Case, async: true
 
+    @moduletag :exclude_in_dev
     @moduletag :compliance
     @moduletag :"join_type"
     @moduletag report: [:compliance]
@@ -67,6 +68,7 @@ end)
 defmodule Module.Compliance.Join.CrossJoin.Test do
   use ExUnit.Case, async: true
 
+  @moduletag :exclude_in_dev
   @moduletag :compliance
   @moduletag :"CROSS JOIN"
   @moduletag report: [:compliance]
