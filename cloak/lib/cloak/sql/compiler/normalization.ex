@@ -60,7 +60,8 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp do_normalize_constants(expression = %Expression{function?: true, aggregate?: false}) do
     if Enum.all?(expression.function_args, &Expression.constant?/1) do
-      Expression.constant(expression.type, Expression.value(expression, []), expression.parameter_index)
+      value = Expression.value(%Expression{expression | row_index: nil}, [])
+      Expression.constant(expression.type, value, expression.parameter_index)
       |> put_in([Lens.key(:alias)], expression.alias)
     else
       expression
