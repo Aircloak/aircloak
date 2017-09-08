@@ -39,7 +39,9 @@ defmodule Compliance.DataSources do
   @doc "Returns a data source config as JSON"
   @spec read_config(String.t) :: Map.t
   def read_config(name), do:
-    config_file_path(name)
+    name
+    |> config_name()
+    |> config_file_path()
     |> File.read!()
     |> Poison.decode!()
 
@@ -91,6 +93,22 @@ defmodule Compliance.DataSources do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp config_name("compliance") do
+    if \
+      env("TRAVIS_EVENT_TYPE") in ["pull_request", "cron"] ||
+      env("TRAVIS_BRANCH") == "master" ||
+      env("TRAVIS_BRANCH") =~ ~r/^release_.*/
+    do
+      "compliance_travis"
+    else
+      "compliance"
+    end
+  end
+  defp config_name(other), do:
+    other
+
+  defp env(name), do: System.get_env(name) || ""
 
   defp config_file_path(name), do:
     Path.join([Application.app_dir(:cloak, "priv"), "config", "#{name}.json"])
