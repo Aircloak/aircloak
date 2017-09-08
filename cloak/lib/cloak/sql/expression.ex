@@ -123,6 +123,12 @@ defmodule Cloak.Sql.Expression do
   # Fallback to `Enum.at` for larger positions
   def value(column, row), do: Enum.at(row, column.row_index)
 
+  @doc "Returns the value of a constant expression."
+  @spec const_value(t) :: DataSource.field | LikePattern.t
+  def const_value(%__MODULE__{constant?: true, value: value}), do: value
+  def const_value(expression = %__MODULE__{function?: true, function_args: args}), do:
+    apply_function(expression, Enum.map(args, &const_value/1))
+
   @doc "Checks two columns for equality."
   @spec equals(any, any) :: boolean
   def equals({:distinct, c1}, {:distinct, c2}), do: equals(c1, c2)
