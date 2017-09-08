@@ -116,10 +116,8 @@ defmodule Cloak.Sql.Expression do
     def value(%__MODULE__{row_index: unquote(position)}, unquote(matched_row)),
       do: unquote(matched_value)
   end
-  if Mix.env != :prod do
-    def value(%__MODULE__{row_index: index}, row) when index >= length(row),
-      do: raise "Index #{index} too large for row #{inspect(row)}"
-  end
+  def value(%__MODULE__{row_index: index}, row) when index >= length(row),
+    do: raise "Index #{index} too large for row #{inspect(row)}"
   # Fallback to `Enum.at` for larger positions
   def value(column, row), do: Enum.at(row, column.row_index)
 
