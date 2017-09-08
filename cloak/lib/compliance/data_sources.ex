@@ -82,6 +82,8 @@ defmodule Compliance.DataSources do
     Compliance.DataSource.PostgreSQL
   defp handler_for_data_source(%{driver: Cloak.DataSource.MySQL}), do:
     Compliance.DataSource.MySQL
+  defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServer}), do:
+    Compliance.DataSource.SQLServer
   defp handler_for_data_source(%{driver: Cloak.DataSource.MongoDB}), do:
     Compliance.DataSource.MongoDB
 

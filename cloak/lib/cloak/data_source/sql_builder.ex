@@ -171,7 +171,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp quote_name(name, _sql_dialect_module), do: "\"#{name}\""
 
-  defp range_fragments(%Query{subquery?: true, limit: nil, offset: 0}, _sql_dialect_module), do:
+  defp range_fragments(%Query{subquery?: true, order_by: []}, _sql_dialect_module), do:
     []
   defp range_fragments(%Query{subquery?: true, limit: limit, offset: offset}, sql_dialect_module), do:
     sql_dialect_module.limit_sql(limit, offset)

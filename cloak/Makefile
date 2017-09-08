@@ -3,6 +3,7 @@ SHELL=/bin/bash -o pipefail
 .PHONY: sandbox deps docs proper proper-std proper-extended test clean all compile
 .PHONY: recreate-db recreate-perf-db dialyze lint release release-local perftest dev-container
 .PHONY: odbc_drivers odbc_drivers_folder
+.PHONY: sql-server-container sql-server-database
 
 all: deps compile
 
@@ -77,6 +78,12 @@ perftest: deps
 dev-container: odbc_drivers
 	./dev_container/build-image.sh
 	./dev_container/container.sh console
+
+sql-server-container:
+	docker run --name aircloak_sql_server -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' -p 1433:1433 -d microsoft/mssql-server-linux
+
+sql-server-database:
+	docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE $(DB_NAME)"
 
 odbc_drivers: odbc_drivers_folder priv/odbc/drivers/libodbc-sap-hana-v2.so
 
