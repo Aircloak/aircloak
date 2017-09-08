@@ -116,12 +116,16 @@ defmodule Cloak.Sql.Expression do
     def value(%__MODULE__{row_index: unquote(position)}, unquote(matched_row)),
       do: unquote(matched_value)
   end
-  if Mix.env != :prod do
-    def value(%__MODULE__{row_index: index}, row) when index >= length(row),
-      do: raise "Index #{index} too large for row #{inspect(row)}"
-  end
+  def value(%__MODULE__{row_index: index}, row) when index >= length(row),
+    do: raise "Index #{index} too large for row #{inspect(row)}"
   # Fallback to `Enum.at` for larger positions
   def value(column, row), do: Enum.at(row, column.row_index)
+
+  @doc "Returns the value of a constant expression."
+  @spec const_value(t) :: DataSource.field | LikePattern.t
+  def const_value(%__MODULE__{constant?: true, value: value}), do: value
+  def const_value(expression = %__MODULE__{function?: true, function_args: args}), do:
+    apply_function(expression, Enum.map(args, &const_value/1))
 
   @doc "Checks two columns for equality."
   @spec equals(any, any) :: boolean

@@ -247,4 +247,14 @@ defmodule Cloak.DataSource.MongoDBTest do
     assert_query context, "SELECT v FROM (SELECT _id, length(name) AS v FROM #{@table}) AS t",
       %{rows: [%{occurrences: 9, row: [5]}, %{occurrences: 9, row: [nil]}]}
   end
+
+  test "integer division", context do
+    assert_query context, "SELECT v FROM (SELECT _id, div(trunc(age), -7) AS v FROM #{@table}) AS t",
+      %{rows: [%{occurrences: 10, row: [-4]}, %{occurrences: 9, row: [nil]}]}
+  end
+
+  test "select constant", context do
+    assert_query context, "SELECT v FROM (SELECT _id, 1 + 1 AS v FROM #{@table}) AS t",
+      %{rows: [%{occurrences: 19, row: [2]}]}
+  end
 end

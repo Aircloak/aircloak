@@ -39,7 +39,6 @@ defmodule Compliance.UnaryNumericalFunctions.Test do
       test "numerical unary function #{function} on input #{column} in a sub-query on #{table}", context do
         context
         |> Helpers.disable_for(MongoDB, match?("abs" <> _, unquote(function)))
-        |> Helpers.disable_for(MongoDB, match?("ceil" <> _, unquote(function)))
         |> Helpers.disable_for(MongoDB, match?("floor" <> _, unquote(function)))
         |> Helpers.disable_for(MongoDB, match?("round" <> _, unquote(function)))
         |> Helpers.disable_for(MongoDB, match?("sqrt" <> _, unquote(function)))
@@ -62,7 +61,6 @@ defmodule Compliance.UnaryNumericalFunctions.Test do
       test "numerical unary function #{function} on input #{column} in query on #{table}", context do
         context
         |> Helpers.disable_for(MongoDB, match?("abs" <> _, unquote(function)))
-        |> Helpers.disable_for(MongoDB, match?("ceil" <> _, unquote(function)))
         |> Helpers.disable_for(MongoDB, match?("floor" <> _, unquote(function)))
         |> Helpers.disable_for(MongoDB, match?("round" <> _, unquote(function)))
         |> Helpers.disable_for(MongoDB, match?("sqrt" <> _, unquote(function)))
