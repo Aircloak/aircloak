@@ -36,6 +36,19 @@
       },
       "tables": {
       }
+    },
+    {
+      "driver": "saphana",
+      "name": "saphana",
+      "parameters": {
+        "hostname": "achanaproxy.mpi-sws.org",
+        "port": 39013,
+        "username": "acdev",
+        "database": "SYSTEMDB",
+        "password": "Aircloakdev1"
+      },
+      "tables": {
+      }
     }
   ]
 }

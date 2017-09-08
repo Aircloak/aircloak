@@ -1,5 +1,21 @@
-defmodule Compliance.Helpers do
+defmodule ComplianceCase do
   @moduledoc false
+
+  use ExUnit.CaseTemplate
+
+  using do
+    quote do
+      @moduletag :exclude_in_dev
+      @moduletag :compliance
+      @moduletag report: [:compliance]
+
+      import ComplianceCase, only: :functions
+    end
+  end
+
+  setup_all do
+    {:ok, data_sources: data_sources()}
+  end
 
   import Cloak.Test.QueryHelpers
 
@@ -98,4 +114,13 @@ defmodule Compliance.Helpers do
     for table_uid1 <- table_uids(),
         table_uid2 <- table_uids(), do:
       {table_uid1, table_uid2}
+
+  defp data_sources() do
+    data_sources = Compliance.DataSources.all_from_config_initialized("compliance")
+
+    if length(data_sources) < 2, do:
+      raise(ExUnit.AssertionError, message: "More than one data source is needed to ensure compliance")
+
+    data_sources
+  end
 end

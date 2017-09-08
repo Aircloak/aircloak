@@ -1,76 +1,54 @@
-defmodule Compliance.UnaryNumericalFunctions.Test do
-  use ExUnit.Case, async: true
+Enum.each([
+  "abs(<col>)",
+  "ceil(<col>)",
+  "ceiling(<col>)",
+  "floor(<col>)",
+  "round(<col>)",
+  "sqrt(<col>)",
+  "trunc(<col>)",
+], fn(function) ->
+  defmodule Module.concat([Compliance.UnaryNumericalFunctions, String.to_atom(function), Test]) do
+    use ComplianceCase, async: true
+    alias Cloak.DataSource.MongoDB
 
-  @moduletag :exclude_in_dev
-  @moduletag :compliance
-  @moduletag report: [:compliance]
+    @moduletag :"#{function}"
 
-  alias Compliance.Helpers
-  alias Cloak.DataSource.MongoDB
-
-  setup_all do
-    data_sources = if System.get_env("TRAVIS") do
-      Compliance.DataSources.all_from_config_initialized("compliance_travis")
-    else
-      Compliance.DataSources.all_from_config_initialized("compliance")
-    end
-
-    assert(length(data_sources) > 1, "More than one data source is needed to ensure compliance")
-
-    {:ok, data_sources: data_sources}
-  end
-
-  describe "unary numerical functions" do
-    functions = [
-      "abs(<col>)",
-      "ceil(<col>)",
-      "ceiling(<col>)",
-      "floor(<col>)",
-      "round(<col>)",
-      "sqrt(<col>)",
-      "trunc(<col>)",
-    ]
-
-    for function <- functions, column <- Helpers.numerical_columns() do
-      {column, table, uid} = column
-
-      @tag function: function
+    Enum.each(numerical_columns(), fn({column, table, uid}) ->
       @tag compliance: "#{function} #{column} #{table} subquery"
       test "numerical unary function #{function} on input #{column} in a sub-query on #{table}", context do
         context
-        |> Helpers.disable_for(MongoDB, match?("abs" <> _, unquote(function)))
-        |> Helpers.disable_for(MongoDB, match?("floor" <> _, unquote(function)))
-        |> Helpers.disable_for(MongoDB, match?("round" <> _, unquote(function)))
-        |> Helpers.disable_for(MongoDB, match?("sqrt" <> _, unquote(function)))
-        |> Helpers.disable_for(MongoDB, match?("trunc" <> _, unquote(function)))
-        |> Helpers.assert_consistent_and_not_failing("""
+        |> disable_for(MongoDB, match?("abs" <> _, unquote(function)))
+        |> disable_for(MongoDB, match?("floor" <> _, unquote(function)))
+        |> disable_for(MongoDB, match?("round" <> _, unquote(function)))
+        |> disable_for(MongoDB, match?("sqrt" <> _, unquote(function)))
+        |> disable_for(MongoDB, match?("trunc" <> _, unquote(function)))
+        |> assert_consistent_and_not_failing("""
           SELECT
             output
           FROM (
             SELECT
               #{unquote(uid)},
-              #{Helpers.on_column(unquote(function), unquote(column))} as output
+              #{on_column(unquote(function), unquote(column))} as output
             FROM #{unquote(table)}
           ) table_alias
           ORDER BY output
         """)
       end
 
-      @tag function: function
       @tag compliance: "#{function} #{column} #{table} query"
       test "numerical unary function #{function} on input #{column} in query on #{table}", context do
         context
-        |> Helpers.disable_for(MongoDB, match?("abs" <> _, unquote(function)))
-        |> Helpers.disable_for(MongoDB, match?("floor" <> _, unquote(function)))
-        |> Helpers.disable_for(MongoDB, match?("round" <> _, unquote(function)))
-        |> Helpers.disable_for(MongoDB, match?("sqrt" <> _, unquote(function)))
-        |> Helpers.disable_for(MongoDB, match?("trunc" <> _, unquote(function)))
-        |> Helpers.assert_consistent_and_not_failing("""
-          SELECT #{Helpers.on_column(unquote(function), unquote(column))} as output
+        |> disable_for(MongoDB, match?("abs" <> _, unquote(function)))
+        |> disable_for(MongoDB, match?("floor" <> _, unquote(function)))
+        |> disable_for(MongoDB, match?("round" <> _, unquote(function)))
+        |> disable_for(MongoDB, match?("sqrt" <> _, unquote(function)))
+        |> disable_for(MongoDB, match?("trunc" <> _, unquote(function)))
+        |> assert_consistent_and_not_failing("""
+          SELECT #{on_column(unquote(function), unquote(column))} as output
           FROM #{unquote(table)}
           ORDER BY output
         """)
       end
-    end
+    end)
   end
-end
+end)

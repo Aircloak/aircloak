@@ -167,7 +167,7 @@ By default, only native PostgreSQL adapter is tested locally, while MongoDB and 
 - `mix test --only mongodb` - to run only MongoDB tests
 - `mix test --only saphana` - to run only SAP HANA tests
 - `mix test --only compliance` - to run only the compliance tests
-- `make test_all` - to run all tests which are running on Travis: standard tests, MongoDB tests, and tests for all other database adapters (MySQL, PostgreSQL through ODBC, ...)
+- `make test_all` - to run all tests which are running on Travis: standard tests, MongoDB tests, and tests for all other database adapters (MySQL, PostgreSQL through ODBC, ...). Note however that compliance tests are going to be executed on a reduced database set (as specified in `compliance.json`).
 
 In order to have working tests on other drivers, you need to start corresponding database servers locally - see [Installing database servers](#installing-database-servers).
 
