@@ -45,12 +45,8 @@ defmodule Compliance.DataSource.MongoDB do
   # Internal functions
   # -------------------------------------------------------------------
 
-  def convert_documents(documents) do
-    Lens.map(dates_lens(), documents, fn(date) ->
-      {date, {hours, minutes, seconds}} = NaiveDateTime.to_erl(date)
-      BSON.DateTime.from_datetime({date, {hours, minutes, seconds, 0}})
-    end)
-  end
+  def convert_documents(documents), do:
+    Lens.map(dates_lens(), documents, &DateTime.from_naive!(&1, "Etc/UTC"))
 
   deflens dates_lens() do
     Lens.match(fn

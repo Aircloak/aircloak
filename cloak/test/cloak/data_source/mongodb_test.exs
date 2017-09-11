@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.MongoDBTest do
     {:ok, conn} = Mongo.start_link(parameters)
     Mongo.delete_many(conn, @table, %{})
     for i <- 1..10 do
-      value = %{name: "user#{i}", age: 30, male: true, date: %BSON.DateTime{utc: 1_437_940_203_000},
+      value = %{name: "user#{i}", age: 30, male: true, date: DateTime.from_unix!(1_437_940_203),
         bills: [%{issuer: "vendor", ids: ["1", "2"]}]}
       Mongo.insert_one!(conn, @table, value)
     end
