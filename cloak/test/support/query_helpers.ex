@@ -22,7 +22,7 @@ defmodule Cloak.Test.QueryHelpers do
       [{first_response, first_data_source} | other_responses] =
         unquote(data_sources)
         |> Enum.map(&Task.async(fn -> run_query.(&1) end))
-        |> Enum.map(&Task.await(&1, :timer.seconds(30)))
+        |> Enum.map(&Task.await(&1, :timer.seconds(60)))
         |> Enum.map(&Map.drop(&1, [:execution_time, :features]))
         |> Enum.zip(unquote(data_sources))
 
