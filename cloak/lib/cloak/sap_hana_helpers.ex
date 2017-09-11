@@ -94,7 +94,7 @@ if Mix.env() in [:dev, :test] do
 
       rows
       |> Stream.map(&'SELECT #{Enum.join(&1, ", ")} from dummy')
-      |> Stream.chunk(1000, 1000, [])
+      |> Stream.chunk(100, 100, [])
       |> Stream.map(&'(#{Enum.join(&1, " UNION ALL ")})')
       |> Enum.each(fn(chunk_sql) ->
         {:updated, _} =
