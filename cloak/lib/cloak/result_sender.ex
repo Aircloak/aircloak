@@ -73,7 +73,7 @@ defmodule Cloak.ResultSender do
     try do
       {:ok,
         result
-        |> Map.take([:query_id, :columns, :features, :error, :info])
+        |> Map.take([:query_id, :columns, :features, :error, :cancelled, :info])
         |> Map.put(:chunks, encode_chunks(result))
         |> Map.put(:row_count, row_count(result[:rows]))
       }
