@@ -8,6 +8,7 @@ defmodule ComplianceCase do
       @moduletag :exclude_in_dev
       @moduletag :compliance
       @moduletag report: [:compliance]
+      @moduletag timeout: :timer.seconds(70)
 
       import ComplianceCase, only: :functions
     end
