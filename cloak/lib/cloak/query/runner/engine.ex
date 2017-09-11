@@ -4,6 +4,7 @@ defmodule Cloak.Query.Runner.Engine do
   require Logger
 
   @type state_updater :: (ResultSender.query_state -> any)
+  @type feature_updater :: (any -> any)
 
 
   # -------------------------------------------------------------------
@@ -11,15 +12,16 @@ defmodule Cloak.Query.Runner.Engine do
   # -------------------------------------------------------------------
 
   @doc "Executes the SQL query and returns the query result with info messages or the corresponding error."
-  @spec run(DataSource.t, String.t, [DataSource.field], Sql.Query.view_map, state_updater,
+  @spec run(DataSource.t, String.t, [DataSource.field], Sql.Query.view_map, state_updater, feature_updater,
     Cloak.MemoryReader.query_killer_callbacks) :: {:ok, Sql.Query.Result.t, [String.t]} | {:error, String.t}
-  def run(data_source, statement, parameters, views, state_updater,
+  def run(data_source, statement, parameters, views, state_updater, feature_updater,
       {query_killer_reg, query_killer_unreg}) do
     try do
       with state_updater.(:parsing),
         {:ok, parsed} <- Sql.Parser.parse(statement),
         state_updater.(:compiling),
         {:ok, query} <- Sql.Compiler.compile(data_source, parsed, parameters, views),
+        feature_updater.(query.features),
         query = build_initial_noise_layers(query),
         query = Probe.process(query),
         query = build_final_noise_layers(query),
