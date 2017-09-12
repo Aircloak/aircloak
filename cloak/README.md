@@ -206,8 +206,43 @@ Note that the tests submit results to InfluxDB - it will be started with `start_
 
 #### Mongodb
 
-- `brew install mongodb` - install MongoDB (OSX)
-- `mongod --dbpath /tmp` - run MongoDB
+- `make mongo-server-container` - starts the container
+- Add something like the following section to the appropriate config.json:
+
+```json
+{
+  "driver": "mongodb",
+  "name": "mongodb",
+  "parameters": {
+    "hostname": "localhost",
+    "username": "root",
+    "database": "cloaktest2"
+  },
+  "tables": {
+  }
+}
+```
+
+#### MySQL
+
+- `make mysql-server-container` - starts the container
+- `DB_NAME=cloaktest2 make mysql-server-database` - creates a database named `cloaktest2`
+- Add something like the following section to the appropriate config.json:
+
+```json
+{
+  "driver": "mysql",
+  "marker": "connector",
+  "name": "mysql",
+  "parameters": {
+    "hostname": "localhost",
+    "username": "root",
+    "database": "cloaktest2"
+  },
+  "tables": {
+  }
+}
+```
 
 #### SQL Server
 

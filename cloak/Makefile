@@ -4,6 +4,12 @@ SHELL=/bin/bash -o pipefail
 .PHONY: recreate-db recreate-perf-db dialyze lint release release-local perftest dev-container
 .PHONY: odbc_drivers odbc_drivers_folder
 .PHONY: sql-server-container sql-server-database
+.PHONY: mysql-server-container mysql-server-database
+.PHONY: mongo-server-container
+
+define start_container
+  if [ "$$(docker ps -a | grep $(1))" ]; then docker start $(1); else docker run --name $(1) $(2); fi
+endef
 
 all: deps compile
 
@@ -80,10 +86,19 @@ dev-container: odbc_drivers
 	./dev_container/container.sh console
 
 sql-server-container:
-	docker run --name aircloak_sql_server -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' -p 1433:1433 -d microsoft/mssql-server-linux
+	$(call start_container, aircloak_sql_server, -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' -p 1433:1433 -d microsoft/mssql-server-linux)
 
 sql-server-database:
 	docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE $(DB_NAME)"
+
+mysql-server-container:
+	$(call start_container, aircloak_mysql_server, -e MYSQL_ALLOW_EMPTY_PASSWORD=true -p 3306:3306 -d mysql:5.7.19)
+
+mysql-server-database:
+	docker exec -it aircloak_mysql_server mysql -u root -e "CREATE DATABASE $(DB_NAME)"
+
+mongo-server-container:
+	$(call start_container, aircloak_mongodb_server, -p 27017:27017 -d mongo)
 
 odbc_drivers: odbc_drivers_folder priv/odbc/drivers/libodbc-sap-hana-v2.so
 
