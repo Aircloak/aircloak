@@ -209,6 +209,8 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     |> Enum.all?(&is_binary/1)
 
   defp compile_columns(query) do
+    # Complex columns referenced by the `ORDER BY` clause, that are not already selected,
+    # need to be named and included in the projected columns list so that the `$sort` step can reference them.
     needed_columns =
       (query.db_columns ++ Query.order_by_expressions(query))
       |> Enum.uniq()
@@ -301,7 +303,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       |> Enum.uniq()
     if aggregators ++ groups == [] do
       if simple_order_by?(query) do
-        # if order and limit are first, indexes might be used
+        # if $sort and $limit steps are first, collection indexes might be used to speed up the pipeline
         order_and_range(query) ++ project_columns(columns, top_level?)
       else
         project_columns(columns, top_level?) ++ order_and_range(query)
