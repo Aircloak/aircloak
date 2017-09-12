@@ -23,15 +23,8 @@ Enum.each([
       @tag compliance: "#{function} #{column} #{table} parameter 1 subquery"
       test "#{function} on input column #{column} from table #{table} as parameter 1, in a sub-query", context do
         context
-        |> disable_for(MongoDB, match?("<col1> /" <> _, unquote(function)))
-        |> disable_for(MongoDB, match?("<col1> +" <> _, unquote(function)))
-        |> disable_for(MongoDB, match?("<col1> *" <> _, unquote(function)))
-        |> disable_for(MongoDB, match?("<col1> -" <> _, unquote(function)))
-        |> disable_for(MongoDB, match?("<col1> ^" <> _, unquote(function)))
         |> disable_for(MongoDB, match?("div" <> _, unquote(function)))
-        |> disable_for(MongoDB, match?("pow" <> _, unquote(function)))
         |> disable_for(MongoDB, match?("mod" <> _, unquote(function)))
-        |> disable_for(MongoDB, match?("length" <> _, unquote(column)))
         |> assert_consistent_and_not_failing("""
           SELECT
             output
@@ -49,15 +42,8 @@ Enum.each([
         @tag compliance: "#{function} #{column} #{table} parameter 2 subquery"
         test "#{function} on input column #{column} from table #{table} as parameter 2, in a sub-query", context do
           context
-          |> disable_for(MongoDB, match?("<col1> /" <> _, unquote(function)))
-          |> disable_for(MongoDB, match?("<col1> +" <> _, unquote(function)))
-          |> disable_for(MongoDB, match?("<col1> *" <> _, unquote(function)))
-          |> disable_for(MongoDB, match?("<col1> -" <> _, unquote(function)))
-          |> disable_for(MongoDB, match?("<col1> ^" <> _, unquote(function)))
           |> disable_for(MongoDB, match?("div" <> _, unquote(function)))
-          |> disable_for(MongoDB, match?("pow" <> _, unquote(function)))
           |> disable_for(MongoDB, match?("mod" <> _, unquote(function)))
-          |> disable_for(MongoDB, match?("length" <> _, unquote(column)))
           |> assert_consistent_and_not_failing("""
             SELECT
               output
@@ -75,15 +61,8 @@ Enum.each([
       @tag compliance: "#{function} #{column} #{table} parameter 1 query"
       test "#{function} on input column #{column} from table #{table} as parameter 1, in main query", context do
         context
-        |> disable_for(MongoDB, match?("<col1> /" <> _, unquote(function)))
-        |> disable_for(MongoDB, match?("<col1> +" <> _, unquote(function)))
-        |> disable_for(MongoDB, match?("<col1> *" <> _, unquote(function)))
-        |> disable_for(MongoDB, match?("<col1> -" <> _, unquote(function)))
-        |> disable_for(MongoDB, match?("<col1> ^" <> _, unquote(function)))
         |> disable_for(MongoDB, match?("div" <> _, unquote(function)))
-        |> disable_for(MongoDB, match?("pow" <> _, unquote(function)))
         |> disable_for(MongoDB, match?("mod" <> _, unquote(function)))
-        |> disable_for(MongoDB, match?("length" <> _, unquote(column)))
         |> assert_consistent_and_not_failing("""
           SELECT
             #{on_columns(unquote(function), ["#{unquote(column)}", "1"])} as output
@@ -96,15 +75,8 @@ Enum.each([
         @tag compliance: "#{function} #{column} #{table} parameter 2 query"
         test "#{function} on input column #{column} from table #{table} as parameter 2, in main query", context do
           context
-          |> disable_for(MongoDB, match?("<col1> /" <> _, unquote(function)))
-          |> disable_for(MongoDB, match?("<col1> +" <> _, unquote(function)))
-          |> disable_for(MongoDB, match?("<col1> *" <> _, unquote(function)))
-          |> disable_for(MongoDB, match?("<col1> -" <> _, unquote(function)))
-          |> disable_for(MongoDB, match?("<col1> ^" <> _, unquote(function)))
           |> disable_for(MongoDB, match?("div" <> _, unquote(function)))
-          |> disable_for(MongoDB, match?("pow" <> _, unquote(function)))
           |> disable_for(MongoDB, match?("mod" <> _, unquote(function)))
-          |> disable_for(MongoDB, match?("length" <> _, unquote(column)))
           |> assert_consistent_and_not_failing("""
             SELECT
               #{on_columns(unquote(function), ["1", "#{unquote(column)}"])} as output
