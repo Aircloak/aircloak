@@ -81,8 +81,7 @@ defmodule Air.API.QueryController.Test do
   defp with_socket(%{group: group}) do
     # Open the cloak mock socket
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
-    TestSocketHelper.join!(socket, "main", %{data_sources: [
-      %{name: "data_source", global_id: "data_source", tables: []}]})
+    TestSocketHelper.join!(socket, "main", %{data_sources: [%{name: "data_source", tables: []}]})
 
     data_source =
       Repo.one(DataSource)

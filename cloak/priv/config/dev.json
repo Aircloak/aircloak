@@ -4,7 +4,6 @@
   "data_sources": [
     {
       "driver": "postgresql",
-      "marker": "native",
       "name": "cloak_postgres_native",
       "parameters": {
         "hostname": "localhost",
@@ -51,7 +50,6 @@
     },
     {
       "driver": "odbc",
-      "marker": "odbc",
       "name": "cloak_postgres_odbc",
       "parameters": {
         "DSN": "PostgreSQL",
@@ -100,7 +98,6 @@
     {
       "driver": "postgresql",
       "name": "compliance_normal",
-      "marker": "normal",
       "parameters": {
         "hostname": "localhost",
         "username": "datasource_compliance",
@@ -143,7 +140,6 @@
     {
       "driver": "postgresql",
       "name": "compliance_encoded",
-      "marker": "encoded",
       "parameters": {
         "hostname": "localhost",
         "username": "datasource_compliance",
@@ -216,8 +212,8 @@
       },
       "tables": {
         "integers": {
-          "db_name": "INTEGERS",
-          "user_id": "USER_ID"
+          "db_name": "integers",
+          "user_id": "user_id"
         }
       }
     }

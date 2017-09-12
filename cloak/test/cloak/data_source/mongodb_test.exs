@@ -242,4 +242,31 @@ defmodule Cloak.DataSource.MongoDBTest do
       GROUP BY _id HAVING COUNT(abs(age)) = 1) AS t
     """, %{rows: [%{occurrences: 1, row: [10]}]}
   end
+
+  test "string length", context do
+    assert_query context, "SELECT v FROM (SELECT _id, length(name) AS v FROM #{@table}) AS t",
+      %{rows: [%{occurrences: 9, row: [5]}, %{occurrences: 9, row: [nil]}]}
+  end
+
+  test "integer division", context do
+    assert_query context, "SELECT v FROM (SELECT _id, div(trunc(age), -7) AS v FROM #{@table}) AS t",
+      %{rows: [%{occurrences: 10, row: [-4]}, %{occurrences: 9, row: [nil]}]}
+  end
+
+  test "select constant", context do
+    assert_query context, "SELECT v FROM (SELECT _id, 1 + 1 AS v FROM #{@table}) AS t",
+      %{rows: [%{occurrences: 19, row: [2]}]}
+  end
+
+  test "substring", context do
+    assert_query context, """
+        SELECT v FROM (SELECT _id, substring(name FROM 2 FOR 3) AS v FROM #{@table}) AS t WHERE v IS NOT NULL
+      """, %{rows: [%{occurrences: 10, row: ["ser"]}]}
+  end
+
+  test "left & right", context do
+    assert_query context, """
+        SELECT v FROM (SELECT _id, left(right(name, 3), 2) AS v FROM #{@table}) AS t WHERE v IS NOT NULL
+      """, %{rows: [%{occurrences: 9, row: ["er"]}]}
+  end
 end

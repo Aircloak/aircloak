@@ -1,0 +1,18 @@
+The schema available to you for writing queries is as follows:
+
+users                                           addresses
+- id (integer)                                  - uid (uid column - integer)
+- user_id (user-id column - integer)            - user_fk (integer - foreign key for users.id)
+- age (integer)                                 - home.city (string)
+- height (float)                                - home.postal_code (integer)
+- active (boolean)                              - work.city (string)
+- name (string)                                 - work.postal_code (integer)
+
+notes                                           notes_changes
+- uid (integer - projected uid column)          - uid (uid column - integer)
+- user_fk (integer - foreign key for users.id)  - note_id (integer - foreign key for notes.id)
+- id (integer)                                  - user_fk (integer - foreign key for users.id)
+- title (string)                                - title (string)
+- content (string)                              - content (string)
+                                                - changes.change (string)
+                                                - changes.date (datetime)

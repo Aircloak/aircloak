@@ -100,7 +100,8 @@ function banner() {
     banner "cloak"
     pushd cloak
     mix compile --warnings-as-errors
-    mix gen.test_data "compliance_travis" 1000
+    mix config_sap_hana_test_schema
+    mix gen.test_data "compliance" 200
     MIX_ENV=test make all
     popd
 

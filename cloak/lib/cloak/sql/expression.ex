@@ -90,6 +90,7 @@ defmodule Cloak.Sql.Expression do
   def display_name(%__MODULE__{alias: alias}) when is_binary(alias), do: "`#{alias}`"
   def display_name(%__MODULE__{function: {:cast, _type}}), do: "`cast`"
   def display_name(%__MODULE__{function: function}) when is_binary(function), do: "`#{function}`"
+  def display_name(%__MODULE__{constant?: true, value: value}), do: "`#{value}`"
 
   @doc "Returns the column value of a database row."
   @spec value(t, DataSource.row) :: DataSource.field | LikePattern.t
@@ -115,12 +116,16 @@ defmodule Cloak.Sql.Expression do
     def value(%__MODULE__{row_index: unquote(position)}, unquote(matched_row)),
       do: unquote(matched_value)
   end
-  if Mix.env != :prod do
-    def value(%__MODULE__{row_index: index}, row) when index >= length(row),
-      do: raise "Index #{index} too large for row #{inspect(row)}"
-  end
+  def value(%__MODULE__{row_index: index}, row) when index >= length(row),
+    do: raise "Index #{index} too large for row #{inspect(row)}"
   # Fallback to `Enum.at` for larger positions
   def value(column, row), do: Enum.at(row, column.row_index)
+
+  @doc "Returns the value of a constant expression."
+  @spec const_value(t) :: DataSource.field | LikePattern.t
+  def const_value(%__MODULE__{constant?: true, value: value}), do: value
+  def const_value(expression = %__MODULE__{function?: true, function_args: args}), do:
+    apply_function(expression, Enum.map(args, &const_value/1))
 
   @doc "Checks two columns for equality."
   @spec equals(any, any) :: boolean
@@ -287,7 +292,7 @@ defmodule Cloak.Sql.Expression do
   defp do_apply({:bucket, :lower}, [value, bucket_size]), do:
     Float.floor(value / bucket_size) * bucket_size
   defp do_apply({:bucket, :upper}, [value, bucket_size]), do:
-    Float.ceil(value / bucket_size) * bucket_size
+    do_apply({:bucket, :lower}, [value, bucket_size]) + bucket_size
   defp do_apply({:bucket, :middle}, [value, bucket_size]), do:
     Float.floor(value / bucket_size) * bucket_size + 0.5 * bucket_size
   defp do_apply("coalesce", values), do: Enum.find(values, &(&1))

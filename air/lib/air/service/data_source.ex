@@ -9,7 +9,7 @@ defmodule Air.Service.DataSource do
   import Ecto.Changeset
   require Logger
 
-  @type data_source_id_spec :: {:id, integer} | {:global_id, String.t} | {:name, String.t}
+  @type data_source_id_spec :: {:id, integer} | {:name, String.t}
 
   @type start_query_option ::
       {:audit_meta, %{atom => any}}
@@ -207,33 +207,15 @@ defmodule Air.Service.DataSource do
       where: data_source.name in ^names)
 
   @doc "Creates or updates a data source, returning the updated data source"
-  @spec create_or_update_data_source(String.t, String.t, [table], [String.t]) :: DataSource.t
-  def create_or_update_data_source(name, global_id, tables, errors) do
+  @spec create_or_update_data_source(String.t, [table], [String.t]) :: DataSource.t
+  def create_or_update_data_source(name, tables, errors) do
     case Repo.get_by(DataSource, name: name) do
       nil ->
-        # Deprecated: global_id is a remnant of Aircloak pre-version 17.3.0.
-        # It has to remain for compatibility with older versions
-        # (hidden from the sight of users) until version 18.1.0.
-        #
-        # This particular instance here is the upgrade path where
-        # a customer already has a data source that is identified
-        # by the global id. When upgrading to a version that uses
-        # the name as the identifier instead, we want to reuse the
-        # existing data source in order to retain data source permissions
-        # and query histories.
-        case Repo.get_by(DataSource, global_id: global_id) do
-          nil ->
-            create!(%{
-              name: name,
-              # Retain global_id until version 18.1.0
-              global_id: global_id,
-              tables: Poison.encode!(tables),
-              errors: Poison.encode!(errors),
-            })
-
-          data_source -> update_data_source(data_source, name, tables, errors)
-        end
-
+        create!(%{
+          name: name,
+          tables: Poison.encode!(tables),
+          errors: Poison.encode!(errors),
+        })
       data_source -> update_data_source(data_source, name, tables, errors)
     end
   end
@@ -403,8 +385,6 @@ defmodule Air.Service.DataSource do
 
   defp user_data_source(user, {:id, id}), do:
     from data_source in users_data_sources(user), where: data_source.id == ^id
-  defp user_data_source(user, {:global_id, global_id}), do:
-    from data_source in users_data_sources(user), where: data_source.global_id == ^global_id
   defp user_data_source(user, {:name, name}), do:
     from data_source in users_data_sources(user), where: data_source.name == ^name
 
@@ -481,9 +461,8 @@ defmodule Air.Service.DataSource do
 
   defp data_source_changeset(data_source, params), do:
     data_source
-    |> cast(params, ~w(name tables global_id errors description)a)
-    |> validate_required(~w(name tables global_id)a)
-    |> unique_constraint(:global_id)
+    |> cast(params, ~w(name tables errors description)a)
+    |> validate_required(~w(name tables)a)
     |> unique_constraint(:name)
     |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
 

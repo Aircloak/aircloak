@@ -6,9 +6,8 @@ defmodule Air.Service.WarningsTest do
   alias Air.{Repo, TestRepoHelper}
 
   @data_source_name "name"
-  @data_sources [%{name: @data_source_name, global_id: "global_id", tables: []}]
-  @data_sources_with_errors [%{name: @data_source_name, global_id: "global_id", tables: [],
-    errors: ["broken"]}]
+  @data_sources [%{name: @data_source_name, tables: []}]
+  @data_sources_with_errors [%{name: @data_source_name, tables: [], errors: ["broken"]}]
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})

@@ -344,7 +344,6 @@ defmodule Cloak.AirSocket do
       end
       %{
         name: data_source.name,
-        global_id: data_source.global_id,
         tables: tables,
         errors: data_source.errors,
       }

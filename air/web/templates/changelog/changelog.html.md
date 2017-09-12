@@ -14,10 +14,15 @@
 - Documented `HEX` and `TRIM` functions.
 - Support for TCP transport in PostgreSQL server protocol
 - Support for cancelling queries over the Postgres Message Protocol interface
+- `right` string function is now offloaded over MongoDB data sets.
 
 ### Bugfixes
 
 - Fixed crash in min/max aggregators when there are insufficient data to produce a value.
+- Fixed a bug where loading your past query history would not always return the queries you expected.
+- Fixed offloading of the string `length` function.
+- Fixed translation of `IS NOT NULL` clause over MongoDB data sets.
+- Fixed incorrect offloading of `left` and `substring` functions over MongoDB data sets.
 
 ## Version 17.3.2
 

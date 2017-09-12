@@ -35,7 +35,7 @@ defmodule Cloak.Test.DB do
     end
     |> Enum.each(fn(data_source) ->
       if data_source.driver.__info__(:functions)[:execute] do # check if driver supports direct query execution
-        connection = Process.get({:connection, data_source.global_id}) || create_connection(data_source)
+        connection = Process.get({:connection, data_source.name}) || create_connection(data_source)
         {:ok, _result} = data_source.driver.execute(connection, statement, parameters)
       end
     end)
@@ -132,7 +132,7 @@ defmodule Cloak.Test.DB do
 
   defp create_connection(data_source) do
     connection = data_source.driver.connect!(data_source.parameters)
-    Process.put({:connection, data_source.global_id}, connection)
+    Process.put({:connection, data_source.name}, connection)
     connection
   end
 end

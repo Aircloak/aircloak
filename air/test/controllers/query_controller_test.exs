@@ -14,7 +14,6 @@ defmodule Air.QueryControllerTest do
     user = create_user!(%{groups: [group.id]})
 
     params = %{
-      "global_id" => "data_source_global_id",
       "name" => "data source name",
       "tables" => "[]",
       "groups" => [group.id],
@@ -97,8 +96,7 @@ defmodule Air.QueryControllerTest do
 
   defp open_cloak_mock_socket(data_source) do
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
-    TestSocketHelper.join!(socket, "main",
-      %{data_sources: [%{name: data_source.name, global_id: data_source.global_id, tables: []}]})
+    TestSocketHelper.join!(socket, "main", %{data_sources: [%{name: data_source.name, tables: []}]})
     socket
   end
 

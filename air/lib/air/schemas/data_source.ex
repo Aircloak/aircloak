@@ -7,7 +7,6 @@ defmodule Air.Schemas.DataSource do
   @type t :: %__MODULE__{}
 
   schema "data_sources" do
-    field :global_id, :string
     field :name, :string
     field :description, :string
     field :tables, :string

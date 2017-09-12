@@ -9,7 +9,6 @@ defmodule Air.Admin.QueryControllerTest do
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
     params = %{
-      "global_id" => "data_source_global_id",
       "name" => "data source name",
       "tables" => "[]",
     }

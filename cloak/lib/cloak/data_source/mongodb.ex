@@ -202,18 +202,17 @@ defmodule Cloak.DataSource.MongoDB do
     stats["sharded"] == true
   end
 
-  @supported_functions_3_0 ~w(+ - * ^ / % mod div length left count sum min max avg
-    substring || concat lower upper lcase ucase year month day weekday hour minute second)
-  @supported_functions_3_2 @supported_functions_3_0 ++ ~w(abs ceil floor sqrt trunc quarter)
+  @supported_functions_3_0 ~w(+ - * ^ / % mod count sum min max avg
+    || concat lower upper lcase ucase year month day weekday hour minute second)
+  @supported_functions_3_2 @supported_functions_3_0 ++ ~w(abs ceil floor sqrt trunc quarter div)
+  @supported_functions_3_4 @supported_functions_3_2 ++ ~w(length left right substring)
   defp supported_functions(version) do
-    if Version.compare(version, "3.0.0") == :lt do
-      DataSource.raise_error("Unsupported MongoDB version: #{version}. At least 3.0 required.")
-    else
-      if Version.compare(version, "3.2.0") == :lt do
-        @supported_functions_3_0
-      else
-        @supported_functions_3_2
-      end
+    cond do
+      Version.compare(version, "3.0.0") == :lt ->
+        DataSource.raise_error("Unsupported MongoDB version: #{version}. At least 3.0 required.")
+      Version.compare(version, "3.2.0") == :lt -> @supported_functions_3_0
+      Version.compare(version, "3.4.0") == :lt -> @supported_functions_3_2
+      true -> @supported_functions_3_4
     end
   end
 
@@ -231,25 +230,26 @@ defmodule Cloak.DataSource.MongoDB do
     Enum.reject(used_functions, & &1 in supported_functions) == []
   end
 
-  defp supports_joins?(%Query{from: {:join, join}, data_source: data_source}) do
+  defp supports_joins?(%Query{from: {:join, join}} = query) do
     # join support was added in 3.2
-    (data_source |> get_mongo_version() |> Version.compare("3.2.0") != :lt) and
+    (query.data_source |> get_mongo_version() |> Version.compare("3.2.0") != :lt) and
     join.type == :inner_join and
     supported_join_conditions?(join.conditions) and
-    supported_join_branches?(data_source, join.lhs, join.rhs)
+    supported_join_branches?(query.selected_tables, join.lhs, join.rhs)
   end
   defp supports_joins?(_query), do: true
 
   defp supported_join_conditions?({:comparison, lhs, :=, rhs}), do: lhs.name != nil and rhs.name != nil
   defp supported_join_conditions?(_conditions), do: false
 
-  defp supported_join_branches?(data_source, lhs, rhs) when is_binary(lhs) and is_binary(rhs), do:
-    not sharded_table?(data_source, lhs) and not sharded_table?(data_source, rhs)
-  defp supported_join_branches?(data_source, {:subquery, _}, rhs) when is_binary(rhs), do:
-    not sharded_table?(data_source, rhs)
-  defp supported_join_branches?(data_source, lhs, {:subquery, _}) when is_binary(lhs), do:
-    not sharded_table?(data_source, lhs)
-  defp supported_join_branches?(_data_source, _lhs, _rhs), do: false
+  defp supported_join_branches?(selected_tables, lhs, rhs), do:
+    (is_binary(lhs) or is_binary(rhs)) and
+    not sharded_table?(selected_tables, lhs) and
+    not sharded_table?(selected_tables, rhs)
 
-  defp sharded_table?(data_source, table), do: DataSource.table(data_source, table).sharded?
+  defp sharded_table?(selected_tables, table) when is_binary(table) do
+    table = Enum.find(selected_tables, & &1.name == table)
+    table != nil and table.sharded?
+  end
+  defp sharded_table?(_selected_tables, _table), do: false
 end

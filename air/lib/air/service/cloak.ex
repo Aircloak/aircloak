@@ -195,7 +195,7 @@ defmodule Air.Service.Cloak do
     Enum.map(data_sources, fn(data_source) ->
       errors = Map.get(data_source, :errors, [])
 
-      DataSource.create_or_update_data_source(data_source.name, data_source.global_id, data_source.tables, errors)
+      DataSource.create_or_update_data_source(data_source.name, data_source.tables, errors)
     end)
 
   defp lookup_memory(pid, cloak_info) do

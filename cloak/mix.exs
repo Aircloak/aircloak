@@ -38,7 +38,7 @@ defmodule Cloak.Mixfile do
       {:timex, "~> 3.1"},
       {:poison, github: "cristianberneanu/poison", override: true},
       {:mongodb, "~> 0.2.0"},
-      {:lens, "~> 0.2.0"},
+      {:lens, "~> 0.4.0"},
       {:backoff, "~> 1.1.3"},
       {:jiffy, "~> 0.14.1"},
       {:tds, github: "livehelpnow/tds"},
@@ -85,7 +85,7 @@ defmodule Cloak.Mixfile do
   defp aliases(_), do: []
 
   defp ignored_credo_checks(:test), do:
-    ["ModuleDoc" | ignored_credo_checks(:dev)]
+    ["ModuleDoc", "DuplicatedCode" | ignored_credo_checks(:dev)]
   defp ignored_credo_checks(_), do:
     ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting", "FunctionArity"]
 end

@@ -112,7 +112,6 @@ defmodule Air.QueryController do
 
   defp data_source_id_spec(%{"data_source_name" => name}), do: {:name, name}
   defp data_source_id_spec(%{"data_source_id" => id}), do: {:id, id}
-  defp data_source_id_spec(%{"data_source_token" => global_id}), do: {:global_id, global_id}
 
   defp query_error(conn, :unauthorized), do:
     send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")

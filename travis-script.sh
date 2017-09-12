@@ -59,7 +59,7 @@ function banner() {
     make docs
     make lint
     make odbc_drivers
-    make test_all
+    mix test --include exclude_in_dev --max-cases 10
     make dialyze
     make proper-extended
     popd

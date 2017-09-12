@@ -12,6 +12,43 @@
       },
       "tables": {
       }
+    },
+    {
+      "driver": "mysql",
+      "marker": "connector",
+      "name": "mysql",
+      "parameters": {
+        "hostname": "localhost",
+        "username": "root",
+        "database": "cloaktest2"
+      },
+      "tables": {
+      }
+    },
+    {
+      "driver": "mongodb",
+      "marker": "connector",
+      "name": "mongodb",
+      "parameters": {
+        "hostname": "localhost",
+        "username": "root",
+        "database": "cloaktest2"
+      },
+      "tables": {
+      }
+    },
+    {
+      "driver": "saphana",
+      "name": "saphana",
+      "parameters": {
+        "hostname": "achanaproxy.mpi-sws.org",
+        "port": 39013,
+        "username": "acdev",
+        "database": "SYSTEMDB",
+        "password": "Aircloakdev1"
+      },
+      "tables": {
+      }
     }
   ]
 }

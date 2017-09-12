@@ -27,8 +27,7 @@ defmodule Air.Service.Monitoring.Test do
 
     test "list of cloaks" do
       cloak_info = TestRepoHelper.cloak_info()
-      Air.Service.Cloak.register(cloak_info,
-        [%{name: "data_source_name", global_id: "a very global id", tables: []}])
+      Air.Service.Cloak.register(cloak_info, [%{name: "data_source_name", tables: []}])
       memory_reading = %{free_memory: 100}
       Air.Service.Cloak.record_memory(memory_reading)
       TestRepoHelper.create_query!(TestRepoHelper.create_user!(), %{cloak_id: cloak_info.id})

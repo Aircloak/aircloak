@@ -6,12 +6,10 @@ defmodule Air.Service.Cloak.Test do
 
   alias Air.{Repo, TestRepoHelper, TestSocketHelper, Schemas.DataSource, Service.Cloak}
 
-  @data_source_id "data_source_id"
   @data_source_name "data_source_name"
-  @data_source %{name: @data_source_name, global_id: @data_source_id, tables: []}
+  @data_source %{name: @data_source_name, tables: []}
   @data_sources [@data_source]
-  @data_sources_that_differ [%{name: @data_source_name, global_id: @data_source_id,
-    tables: [%{different: true}]}]
+  @data_sources_that_differ [%{name: @data_source_name, tables: [%{different: true}]}]
 
   setup do
     wait_for_cleanup()
@@ -125,10 +123,10 @@ defmodule Air.Service.Cloak.Test do
 
   test "collecting running queries from connected cloaks" do
     {:connected, cloak1} = TestSocketHelper.connect(%{cloak_name: "cloak1"})
-    TestSocketHelper.join!(cloak1, "main", %{data_sources: [%{name: "ds1", global_id: "ds1", tables: []}]})
+    TestSocketHelper.join!(cloak1, "main", %{data_sources: [%{name: "ds1", tables: []}]})
 
     {:connected, cloak2} = TestSocketHelper.connect(%{cloak_name: "cloak2"})
-    TestSocketHelper.join!(cloak2, "main", %{data_sources: [%{name: "ds1", global_id: "ds1", tables: []}]})
+    TestSocketHelper.join!(cloak2, "main", %{data_sources: [%{name: "ds1", tables: []}]})
 
     task = Task.async(fn() -> Cloak.running_queries() end)
     TestSocketHelper.respond_to_running_queries!(cloak1, ["foo", "bar"])

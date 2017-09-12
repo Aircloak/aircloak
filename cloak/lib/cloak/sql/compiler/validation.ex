@@ -82,6 +82,15 @@ defmodule Cloak.Sql.Compiler.Validation do
       raise CompilationError, message: "Function `#{name}` is not allowed in subqueries."
     :ok
   end
+  defp verify_function_usage({:function, "substring", arguments}, _subquery?) when length(arguments) >= 2 do
+    # The usage is substring(<arg0> FROM <arg1> [FOR <arg2>])
+    from_value = Enum.at(arguments, 1)
+    if Expression.value(from_value) == 0 do
+      raise CompilationError, message:
+        "The `FROM` parameter passed to `substring` cannot be 0. It must be a positive or negative value."
+    end
+    :ok
+  end
   defp verify_function_usage(_function, _subquery?), do: :ok
 
   defp verify_aggregated_columns(query) do
@@ -256,11 +265,15 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_where_condition(_), do: :ok
 
   defp verify_where_condition_types(column_a, column_b) do
-    if not Expression.constant?(column_a) and not Expression.constant?(column_b) and column_a.type != column_b.type do
+    unless comparable?(column_a.type, column_b.type) do
       raise CompilationError, message: "Column #{Expression.display_name(column_a)} of type `#{column_a.type}` and "
         <> "column #{Expression.display_name(column_b)} of type `#{column_b.type}` cannot be compared."
     end
   end
+
+  defp comparable?(:integer, :real), do: true
+  defp comparable?(:real, :integer), do: true
+  defp comparable?(type1, type2), do: type1 == type2
 
   defp check_for_string_inequalities(comparator, %Expression{type: :text}) when comparator in [:>, :>=, :<, :<=], do:
     raise CompilationError, message: "Inequalities on string values are currently not supported."

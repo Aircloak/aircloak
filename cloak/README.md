@@ -10,6 +10,7 @@
         - [Running partial tests](#running-partial-tests)
         - [Running a local docker container](#running-a-local-docker-container)
         - [Deploying](#deploying)
+    - [Installing database servers](#installing-database-servers)
 
 ----------------------
 
@@ -68,6 +69,8 @@ config :cloak, :sap_hana, default_schema: your_schema_name
 ```
 
 Make sure to choose something unique for the schema name, such as your own name. Once you configured the schema, you need to run `make regenerate-db` again.
+
+If you want to run SAP HANA tests locally, you'll also need to add a `test.local.exs` file with the same configuration. You can safely use the same schema in the test environment.
 
 ### Cloak configuration
 
@@ -164,12 +167,9 @@ By default, only native PostgreSQL adapter is tested locally, while MongoDB and 
 - `mix test --only mongodb` - to run only MongoDB tests
 - `mix test --only saphana` - to run only SAP HANA tests
 - `mix test --only compliance` - to run only the compliance tests
-- `make test_all` - to run all tests which are running on Travis: standard tests, MongoDB tests, and tests for all other database adapters (MySQL, PostgreSQL through ODBC, ...)
+- `make test_all` - to run all tests which are running on Travis: standard tests, MongoDB tests, and tests for all other database adapters (MySQL, PostgreSQL through ODBC, ...). Note however that compliance tests are going to be executed on a reduced database set (as specified in `compliance.json`).
 
-In order to have working tests on other drivers, you need to start corresponding database servers locally.
-
-- `brew install mongodb` - install MongoDB (OSX)
-- `mongod --dbpath /tmp` - run MongoDB
+In order to have working tests on other drivers, you need to start corresponding database servers locally - see [Installing database servers](#installing-database-servers).
 
 Note that SAP HANA tests can't be executed directly on macOS machines. Instead, you need to start a local development container with `make dev-container`.
 
@@ -198,7 +198,75 @@ See [here](../README.md#deploying).
 Before running the tests you need to prepare the performance database.
 
 - `make recreate-perf-db` - generate a `preformance` DB with 10k users
-- `cp priv/config/perf.json priv/config/config.json` - performance tests use the prod environment, so they need a config file
 - `make perftest` - run the performance tests
 
 Note that the tests submit results to InfluxDB - it will be started with `start_dependencies.sh`.
+
+### Installing database servers
+
+#### Mongodb
+
+- `make mongo-server-container` - starts the container
+- Add something like the following section to the appropriate config.json:
+
+```json
+{
+  "driver": "mongodb",
+  "name": "mongodb",
+  "parameters": {
+    "hostname": "localhost",
+    "username": "root",
+    "database": "cloaktest2"
+  },
+  "tables": {
+  }
+}
+```
+
+#### MySQL
+
+- `make mysql-server-container` - starts the container
+- `DB_NAME=cloaktest2 make mysql-server-database` - creates a database named `cloaktest2`
+- Add something like the following section to the appropriate config.json:
+
+```json
+{
+  "driver": "mysql",
+  "marker": "connector",
+  "name": "mysql",
+  "parameters": {
+    "hostname": "localhost",
+    "username": "root",
+    "database": "cloaktest2"
+  },
+  "tables": {
+  }
+}
+```
+
+#### SQL Server
+
+- Change the memory allowed to docker to at least 3,5 GB
+- `make sql-server-container` - starts the container
+- `DB_NAME=cloaktest2 make sql-server-database` - creates a database named `cloaktest2`
+- Note that connecting to SQL Server will only work in the dev-container (`make dev-container`)
+- The following example section will allow you to add an SQL Server datasource to the appropriate config.json:
+
+```json
+{
+  "driver": "sqlserver",
+  "name": "sql_server",
+  "parameters": {
+    "hostname": "docker.for.mac.localhost",
+    "username": "sa",
+    "password": "7fNBjlaeoRwz*zH9",
+    "database": "cloaktest2",
+    "encoding": "utf8",
+    "odbc_parameters": {
+      "Port": "1433"
+    }
+  },
+  "tables": {
+  }
+}
+```
