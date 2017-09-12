@@ -206,7 +206,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp simple_order_by?(query), do:
     query
     |> Query.order_by_expressions()
-    |> Enum.all?(&is_binary/1)
+    |> Enum.all?(& &1.name != nil)
 
   defp compile_columns(query) do
     # Complex columns referenced by the `ORDER BY` clause, that are not already selected,
