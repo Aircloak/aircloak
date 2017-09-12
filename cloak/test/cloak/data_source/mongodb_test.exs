@@ -257,4 +257,10 @@ defmodule Cloak.DataSource.MongoDBTest do
     assert_query context, "SELECT v FROM (SELECT _id, 1 + 1 AS v FROM #{@table}) AS t",
       %{rows: [%{occurrences: 19, row: [2]}]}
   end
+
+  test "substring", context do
+    assert_query context, """
+        SELECT v FROM (SELECT _id, substring(name FROM 2 FOR 3) AS v FROM #{@table}) AS t WHERE v IS NOT NULL
+      """, %{rows: [%{occurrences: 10, row: ["ser"]}]}
+  end
 end

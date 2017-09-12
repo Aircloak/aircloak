@@ -99,11 +99,16 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     parse_function(fun, Enum.map(args, &parse_column/1))
   defp parse_column(%Expression{name: name}) when is_binary(name), do: "$" <> name
 
-  defp parse_function("left", [string, count]), do: %{"$substrCP" => [string, 0, count]}
-  defp parse_function("substring", [string, from]), do: %{"$substrCP" => [string, from, -1]}
+  defp parse_function("left", [string, count]), do:
+    %{'$substrCP': [string, 0, count]}
+  defp parse_function("substring", [string, from]), do:
+    %{'$substrCP': [string, %{'$subtract': [from, 1]}, %{'$strLenCP': string}]}
+  defp parse_function("substring", [string, from, to]), do:
+    %{'$substrCP': [string, %{'$subtract': [from, 1]}, to]}
   defp parse_function("count", :*), do: %{'$sum': 1}
   defp parse_function(_, {:distinct, value}), do: %{'$addToSet': value}
-  defp parse_function("count", value), do: %{'$sum': %{'$cond': [%{'$gt': [value, nil]}, 1, 0]}}
+  defp parse_function("count", value), do:
+    %{'$sum': %{'$cond': [%{'$gt': [value, nil]}, 1, 0]}}
   # We use the following formula for `quarter`: `div(integer_month - 1, 3) + 1`.
   # Note that integer division does not exist in MongoDB. We instead use a combination of division and floor.
   defp parse_function("quarter", value) do
@@ -116,7 +121,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     "*" => "$multiply", "/" => "$divide", "+" => "$add", "-" => "$subtract",
     "^" => "$pow", "pow" => "$pow", "%" => "$mod", "mod" => "$mod", "sqrt" => "$sqrt",
     "floor" => "$floor", "ceil" => "$ceil", "trunc" => "$trunc", "abs" => "$abs",
-    "||" => "$concat", "concat" => "$concat", "substring" => "$substrCP", "length" => "$strLenCP",
+    "||" => "$concat", "concat" => "$concat", "length" => "$strLenCP",
     "lower" => "$toLower", "lcase" => "$toLower", "upper" => "$toUpper", "ucase" => "$toUpper",
     "year" => "$year", "month" => "$month", "day" => "$dayOfMonth", "weekday" => "$dayOfWeek",
     "hour" => "$hour", "minute" => "$minute", "second" => "$second",
