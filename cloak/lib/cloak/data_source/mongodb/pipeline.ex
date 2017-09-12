@@ -203,15 +203,14 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp limit_rows(nil), do: []
   defp limit_rows(amount), do: [%{'$limit': amount}]
 
-  defp simple_order_by?(order_by), do:
-    order_by
-    |> Enum.map(fn ({expression, _dir}) -> expression.name end)
+  defp simple_order_by?(query), do:
+    query
+    |> Query.order_by_expressions()
     |> Enum.all?(&is_binary/1)
 
   defp compile_columns(query) do
-    order_by_columns = for {column, _dir} <- query.order_by, do: column
     needed_columns =
-      (query.db_columns ++ order_by_columns)
+      (query.db_columns ++ Query.order_by_expressions(query))
       |> Enum.uniq()
       |> Enum.with_index(1)
       |> Enum.map(fn ({column, index}) ->
@@ -301,7 +300,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       |> Enum.flat_map(&extract_aggregator/1)
       |> Enum.uniq()
     if aggregators ++ groups == [] do
-      if simple_order_by?(query.order_by) do
+      if simple_order_by?(query) do
         # if order and limit are first, indexes might be used
         order_and_range(query) ++ project_columns(columns, top_level?)
       else
