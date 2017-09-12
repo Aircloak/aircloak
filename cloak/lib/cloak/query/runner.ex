@@ -101,6 +101,7 @@ defmodule Cloak.Query.Runner do
       result_target: result_target,
       start_time: :erlang.monotonic_time(:milli_seconds),
       execution_time: nil,
+      features: nil,
       # We're starting the runner as a direct child.
       # This GenServer will wait for the runner to return or crash. Such approach allows us to
       # detect a failure no matter how the query fails (even if the runner process is for example killed).
@@ -127,6 +128,9 @@ defmodule Cloak.Query.Runner do
     ResultSender.send_state(state.result_target, query_id, query_state)
     {:noreply, state}
   end
+  def handle_info({:features, features}, state) do
+    {:noreply, %{state | features: features}}
+  end
   def handle_info({runner_ref, result}, %{runner: %Task{ref: runner_ref}} = state), do:
     {:noreply, send_result_report(state, result)}
   def handle_info(_other, state), do:
@@ -149,7 +153,9 @@ defmodule Cloak.Query.Runner do
     Logger.debug("Running statement `#{statement}` ...")
 
     Engine.run(data_source, statement, parameters, views,
-      &send(owner, {:send_state, query_id, &1}), memory_callbacks)
+      _state_updater = &send(owner, {:send_state, query_id, &1}),
+      _feature_updater = &send(owner, {:features, &1}),
+      memory_callbacks)
   end
 
 
@@ -160,7 +166,7 @@ defmodule Cloak.Query.Runner do
   defp send_result_report(state, result) do
     result =
       result
-      |> format_result()
+      |> format_result(state)
       |> Map.put(:query_id, state.query_id)
       |> Map.put(:execution_time, :erlang.monotonic_time(:milli_seconds) - state.start_time)
 
@@ -187,7 +193,7 @@ defmodule Cloak.Query.Runner do
     Logger.info("JSON_LOG #{message}")
   end
 
-  defp format_result({:ok, result, info}), do:
+  defp format_result({:ok, result, info}, _state), do:
     %{
       columns: result.columns,
       rows: result.buckets,
@@ -195,15 +201,15 @@ defmodule Cloak.Query.Runner do
       users_count: result.users_count,
       features: result.features,
     }
-  defp format_result({:error, reason}) when is_binary(reason), do:
-    %{error: reason}
-  defp format_result(:oom), do:
-    %{error: "Query aborted due to low memory."}
-  defp format_result(:cancelled), do:
-    %{cancelled: true}
-  defp format_result({:error, reason}) do
+  defp format_result({:error, reason}, state) when is_binary(reason), do:
+    %{error: reason, features: state[:features]}
+  defp format_result(:oom, state), do:
+    %{error: "Query aborted due to low memory.", features: state[:features]}
+  defp format_result(:cancelled, state), do:
+    %{cancelled: true, features: state[:features]}
+  defp format_result({:error, reason}, state) do
     Logger.error("Unknown query error: #{inspect(reason)}")
-    format_result({:error, "Unknown cloak error."})
+    format_result({:error, "Unknown cloak error."}, state)
   end
 
 
