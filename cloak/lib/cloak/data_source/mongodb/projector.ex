@@ -101,6 +101,8 @@ defmodule Cloak.DataSource.MongoDB.Projector do
 
   defp parse_function("left", [string, count]), do:
     %{'$substrCP': [string, 0, count]}
+  defp parse_function("right", [string, count]), do:
+    %{'$substrCP': [string, %{'$max': [0, %{'$subtract': [%{'$strLenCP': string}, count]}]}, count]}
   defp parse_function("substring", [string, from]), do:
     %{'$substrCP': [string, %{'$subtract': [from, 1]}, %{'$strLenCP': string}]}
   defp parse_function("substring", [string, from, to]), do:

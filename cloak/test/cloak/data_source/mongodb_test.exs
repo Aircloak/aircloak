@@ -263,4 +263,10 @@ defmodule Cloak.DataSource.MongoDBTest do
         SELECT v FROM (SELECT _id, substring(name FROM 2 FOR 3) AS v FROM #{@table}) AS t WHERE v IS NOT NULL
       """, %{rows: [%{occurrences: 10, row: ["ser"]}]}
   end
+
+  test "left & right", context do
+    assert_query context, """
+        SELECT v FROM (SELECT _id, left(right(name, 3), 2) AS v FROM #{@table}) AS t WHERE v IS NOT NULL
+      """, %{rows: [%{occurrences: 9, row: ["er"]}]}
+  end
 end

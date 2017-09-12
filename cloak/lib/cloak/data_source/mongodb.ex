@@ -205,7 +205,7 @@ defmodule Cloak.DataSource.MongoDB do
   @supported_functions_3_0 ~w(+ - * ^ / % mod count sum min max avg
     || concat lower upper lcase ucase year month day weekday hour minute second)
   @supported_functions_3_2 @supported_functions_3_0 ++ ~w(abs ceil floor sqrt trunc quarter div)
-  @supported_functions_3_4 @supported_functions_3_2 ++ ~w(length left substring)
+  @supported_functions_3_4 @supported_functions_3_2 ++ ~w(length left right substring)
   defp supported_functions(version) do
     cond do
       Version.compare(version, "3.0.0") == :lt ->
