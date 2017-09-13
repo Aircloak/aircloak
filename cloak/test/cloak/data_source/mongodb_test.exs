@@ -258,6 +258,12 @@ defmodule Cloak.DataSource.MongoDBTest do
       %{rows: [%{occurrences: 19, row: [2]}]}
   end
 
+  test "sub-queries with complex order by", context do
+    assert_query context, """
+        SELECT COUNT(name) FROM (SELECT _id, name FROM #{@table}_bills_ids ORDER BY left(name, 2)) AS t
+      """, %{rows: [%{occurrences: 1, row: [20]}]}
+  end
+
   test "substring", context do
     assert_query context, """
         SELECT v FROM (SELECT _id, substring(name FROM 2 FOR 3) AS v FROM #{@table}) AS t WHERE v IS NOT NULL

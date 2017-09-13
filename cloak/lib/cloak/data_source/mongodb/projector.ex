@@ -45,9 +45,10 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   @doc "Creates a MongoDB projection from a column."
   @spec project_column(Expression.t) :: {String.t, atom | map}
   def project_column(%Expression{name: name, alias: nil}), do: {name, true}
+  def project_column(%Expression{name: name, alias: name}), do: {name, true}
   def project_column(%Expression{aggregate?: true, function?: true, function: fun, function_args: [arg], alias: alias}), do:
-    {get_field_name(alias), parse_function(fun, begin_parse_column(arg))}
-  def project_column(column), do: {get_field_name(column.alias), begin_parse_column(column)}
+    {project_alias(alias), parse_function(fun, begin_parse_column(arg))}
+  def project_column(column), do: {project_alias(column.alias), begin_parse_column(column)}
 
 
   # -------------------------------------------------------------------
@@ -73,9 +74,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     not String.contains?(name, "..") and
     String.last(name) != "."
 
-  defp get_field_name(nil), do: "__unknown_field_name_#{:erlang.unique_integer([:positive])}"
-  defp get_field_name(""), do: get_field_name(nil)
-  defp get_field_name(name) do
+  defp project_alias(name) do
     if not valid_alias?(name), do:
       DataSource.raise_error("MongoDB column alias `#{name}` contains invalid character(s).")
     name
