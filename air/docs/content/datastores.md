@@ -131,6 +131,7 @@ This section lists the functions which will cause a query to be emulated.
 |--------------:|:--------:|:--------:|:--------:|
 | abs           | emulated |  &nbsp;  |  &nbsp;  |
 | btrim         | emulated | emulated | emulated |
+| cast          | emulated | emulated | emulated |
 | ceil          | emulated |  &nbsp;  |  &nbsp;  |
 | ceiling       | emulated |  &nbsp;  |  &nbsp;  |
 | date_trunc    | emulated | emulated | emulated |
