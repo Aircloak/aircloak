@@ -11,6 +11,7 @@ Aircloak Insights ships with Insights Datasource Connectors for the following da
 - [PostgreSQL](#postgresql)
 - [MySQL and MariaDB](#mysql-and-mariadb)
 - [Microsoft SQL Server](#microsoft-sql-server)
+- [SAP HANA](#sap-hana)
 - [MongoDB](#mongodb)
 
 If your preferred datastore is not in the list, please contact Aircloak.
@@ -31,6 +32,10 @@ The following versions of Microsoft SQL Server are supported:
 - SQL Server 2016
 - SQL Server 2014
 - SQL Server 2012 R2
+
+## SAP HANA
+
+Early support for versions from 2.x and newer is provided.
 
 ## MongoDB
 
