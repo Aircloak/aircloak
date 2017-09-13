@@ -22,7 +22,7 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
     function_sql("substring", [arg1, "1", arg2], sql_dialect_module)
   def function_sql({:cast, type}, [arg], sql_dialect_module), do:
     ["CAST(", arg, " AS ", sql_dialect_module.sql_type(type), ")"]
-  for name <- ~w(round floor ceil ceiling trunc) do    
+  for name <- ~w(round floor ceil ceiling trunc) do
     def function_sql(unquote(name), [arg], sql_dialect_module) do
       result = sql_dialect_module.function_sql(synonym(unquote(name)), [arg])
       function_sql({:cast, :integer}, [result], sql_dialect_module)
