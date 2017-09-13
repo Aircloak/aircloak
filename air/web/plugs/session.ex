@@ -174,7 +174,20 @@ defmodule Air.Plug.Session do
     plug Guardian.Plug.VerifySession
     plug Guardian.Plug.EnsureAuthenticated, handler: __MODULE__
     plug Guardian.Plug.LoadResource
+    plug Guardian.Plug.EnsureResource, handler: __MODULE__
     plug Air.Plug.Session.AssignCurrentUser
+
+
+    # -------------------------------------------------------------------
+    # Callback for Guardian.Plug.EnsureResource
+    # -------------------------------------------------------------------
+
+    @doc false
+    def no_resource(conn, params) do
+      conn
+      |> Guardian.Plug.sign_out()
+      |> unauthenticated(params)
+    end
 
 
     # -------------------------------------------------------------------
