@@ -221,6 +221,15 @@ This section lists the functions which will cause a query to be emulated.
   - `quarter`
   - `trim`
 
+#### SAP HANA
+
+  - `date_trunc`
+  - `div`
+  - `hex`
+  - `length`
+  - `median`
+  - `trunc`
+
 #### MongoDB
 
 |               |   3.0    |    3.2   |    3.4   |
