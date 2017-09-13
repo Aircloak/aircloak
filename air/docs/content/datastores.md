@@ -123,7 +123,6 @@ This section lists the functions which will cause a query to be emulated.
   - `btrim`
   - `date_trunc`
   - `median`
-  - `quarter`
   - `trim`
 
 #### MongoDB
@@ -143,7 +142,7 @@ This section lists the functions which will cause a query to be emulated.
 | median        | emulated | emulated | emulated |
 | pow           | emulated | emulated | emulated |
 | quarter       | emulated |  &nbsp;  |  &nbsp;  |
-| right         | emulated | emulated | emulated |
+| right         | emulated | emulated |  &nbsp;  |
 | round         | emulated | emulated | emulated |
 | rtrim         | emulated | emulated | emulated |
 | sqrt          | emulated |  &nbsp;  |  &nbsp;  |
