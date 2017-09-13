@@ -74,6 +74,20 @@ defmodule Air.Service.ViewTest do
 
       assert {:error, %{valid?: false, errors: [sql: {"some error", []}]}} = Task.await(task)
     end
+
+    test "revalidating other views", context do
+      socket = data_source_socket(context.ds1)
+
+      task = Task.async(fn() -> View.create(context.u1, context.ds1, "some view", "some sql",
+        revalidation_timeout: :timer.seconds(1)) end)
+      TestSocketHelper.respond_to_validate_views!(socket,
+        [%{name: "some view", valid: true, columns: []}])
+      TestSocketHelper.respond_to_validate_views!(socket,
+        [%{name: context.v2.name, valid: false, field: :sql, error: "some error"}])
+      Task.await(task)
+
+      assert Repo.get(Air.Schemas.View, context.v2.id).broken
+    end
   end
 
   describe "updating a view" do
