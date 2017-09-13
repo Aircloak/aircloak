@@ -29,6 +29,8 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   for binary_operator <- ~w(+ - *) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
+  def function_sql("round", [arg]), do: ["ROUND(", arg, ", 0, ROUND_HALF_UP)"]
+  def function_sql("round", [arg1, arg2]), do: ["ROUND(", arg1, ", ", arg2, ", ROUND_HALF_UP)"]
   def function_sql("/", [arg1, arg2]), do: ["(TO_DECIMAL(", arg1, ") / ", "TO_DECIMAL(", arg2, "))"]
   def function_sql("btrim", args), do: function_sql("trim", args)
   def function_sql("avg", [["DISTINCT " <> _ | _] = arg]), do:
