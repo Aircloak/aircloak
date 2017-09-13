@@ -35,7 +35,7 @@ The following versions of Microsoft SQL Server are supported:
 
 ## SAP HANA
 
-Early support for versions from 2.x and newer is provided.
+Beta support for versions from 2.x and newer is provided.
 
 ## MongoDB
 
