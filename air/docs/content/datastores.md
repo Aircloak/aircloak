@@ -8,92 +8,13 @@ please consult the [feature emulation](#emulation-overview) overview.
 
 Aircloak Insights ships with Insights Datasource Connectors for the following datastores:
 
-- [PostgreSQL](#postgresql)
-- [MySQL and MariaDB](#mysql-and-mariadb)
-- [Microsoft SQL Server](#microsoft-sql-server)
-- [MongoDB](#mongodb)
+- Microsoft SQL Server, versions 2012 R2 and newer
+- MongoDB, versions 3.0 and newer
+- MySQL, version 5 and newer, and MariaDB, version 10.1 and newer
+- PostgreSQL, version 9.1 and newer
+- SAP HANA (beta support), version 2.0 and newer
 
 If your preferred datastore is not in the list, please contact Aircloak.
-
-## PostgreSQL
-
-Versions from 9.1 and newer are supported.
-
-## MySQL and MariaDB
-
-MySQL version 5 and more recent is supported.
-We also support the MySQL fork MariaDB from version 10.1 and onwards.
-
-## Microsoft SQL Server
-
-The following versions of Microsoft SQL Server are supported:
-
-- SQL Server 2016
-- SQL Server 2014
-- SQL Server 2012 R2
-
-## MongoDB
-
-Versions from 3.0 and newer are supported.
-
-### Schema detection
-
-Collections in MongoDB do not have a fixed schema, whereas schema's are required by Aircloak Insights. In order to establish a schema that can be used, Aircloak Insights
-will traverse the collections of a database upon boot. This produces a best effort
-estimate of the available fields and their data types.
-
-### Mapping from documents to tables
-
-#### Nested documents
-
-Aircloak Insights flattens nested documents.
-Fields that in MongoDB are part of a sub-document are in Aircloak Insights
-given hierarchical names instead.
-
-For example, the following document:
-
-```json
-{
-  "person": {
-    "sibling": {
-      "name": <...>
-    }
-  }
-}
-```
-
-would result in a column named: `person.sibling.name`.
-
-
-#### Arrays
-
-Aircloak Insights creates an additional table per array contained within a document.
-These tables contain the columns of the parent table, as well as those of the objects
-contained within the array.
-
-For example, the following document in a collection called `users`:
-
-```json
-{
-  "name": <...>,
-  "siblings": [
-    {
-      "name": <...>
-    }
-  ]
-}
-```
-
-would result in a table called `users` with the single column `name`, as well as the additional
-table `users_siblings` containing a `siblings.name` in addition to the `name` column.
-
-
-### JOINs
-
-MongoDB versions more recent than 3.2 support `INNER JOIN`'s. Aircloak Insights
-will emulate all unsupported JOIN-types. Furthermore, when a collection is sharded,
-even `INNER JOIN`'s on recent versions of MongoDB have to be emulated.
-
 
 ## Emulation overview
 
@@ -102,7 +23,7 @@ the query interface remains the same irrespective of the datastore used.
 This is achieved by Aircloak Insights
 emulating functionality that is not natively supported by the underlying datastore.
 
-While convenient, this does incurr performance overhead as all the data needed for the analysis
+While convenient, this does incur performance overhead as all the data needed for the analysis
 is loaded into Insights Cloak, rather than being processed in the datastore itself.
 
 ### What gets emulated
@@ -193,60 +114,64 @@ query
         --> t2 (executed in the datasource)
 ```
 
-### Natively supported features
+### Emulated functions
 
-The following table shows which features are natively supported by the datastores,
-and conversely which features turn a query into an emulated one.
+This section lists the functions which will cause a query to be emulated.
 
-|               | MS SQL   | MySQL    | PostgreSQL| MongoDB 3.4    | MongoDB 3.2    | MongoDB 3.0   |
-|--------------:|:--------:|:--------:|:---------:|:--------------:|:-------_------:|:-------------:|
-| %             | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| &#124;&#124;  | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| *             | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| +             | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| -             | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| /             | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| ^             | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| abs           | ✔        | ✔        | ✔         | ✔              | ✔              | Emulated      |
-| avg           | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| btrim         | Emulated | Emulated | ✔         | Emulated       | Emulated       | Emulated      |
-| ceil          | ✔        | ✔        | ✔         | ✔              | ✔              | Emulated      |
-| ceiling       | ✔        | ✔        | ✔         | ✔              | ✔              | Emulated      |
-| concat        | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| count         | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| date_trunc    | Emulated | Emulated | ✔         | Emulated       | Emulated       | Emulated      |
-| day           | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| div           | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| floor         | ✔        | ✔        | ✔         | ✔              | ✔              | Emulated      |
-| hex           | ✔        | ✔        | ✔         | Emulated       | Emulated       | Emulated      |
-| hour          | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| lcase         | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| left          | ✔        | ✔        | ✔         | ✔              | Emulated       | Emulated      |
-| length        | ✔        | ✔        | ✔         | ✔              | Emulated       | Emulated      |
-| lower         | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| ltrim         | ✔        | ✔        | ✔         | Emulated       | Emulated       | Emulated      |
-| max           | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| median        | Emulated | Emulated | Emulated  | Emulated       | Emulated       | Emulated      |
-| min           | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| minute        | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| mod           | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| month         | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| pow           | ✔        | ✔        | ✔         | Emulated       | Emulated       | Emulated      |
-| quarter       | Emulated | ✔        | ✔         | ✔              | ✔              | Emulated      |
-| right         | ✔        | ✔        | ✔         | Emulated       | Emulated       | Emulated      |
-| round         | ✔        | ✔        | ✔         | Emulated       | Emulated       | Emulated      |
-| rtrim         | ✔        | ✔        | ✔         | Emulated       | Emulated       | Emulated      |
-| second        | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| sqrt          | ✔        | ✔        | ✔         | ✔              | ✔              | Emulated      |
-| stddev        | ✔        | ✔        | ✔         | Emulated       | Emulated       | Emulated      |
-| substring     | ✔        | ✔        | ✔         | ✔              | Emulated       | Emulated      |
-| sum           | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| trim          | Emulated | Emulated | ✔         | Emulated       | Emulated       | Emulated      |
-| trunc         | ✔        | ✔        | ✔         | ✔              | ✔              | Emulated      |
-| ucase         | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| upper         | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| weekday       | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| year          | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
+#### Microsoft SQL Server
+
+  - `btrim`
+  - `date_trunc`
+  - `median`
+  - `trim`
+
+#### MongoDB
+
+|               |   3.0    |    3.2   |  >= 3.4  |
+|--------------:|:--------:|:--------:|:--------:|
+| abs           | emulated |  &nbsp;  |  &nbsp;  |
+| btrim         | emulated | emulated | emulated |
+| cast          | emulated | emulated | emulated |
+| ceil          | emulated |  &nbsp;  |  &nbsp;  |
+| ceiling       | emulated |  &nbsp;  |  &nbsp;  |
+| date_trunc    | emulated | emulated | emulated |
+| floor         | emulated |  &nbsp;  |  &nbsp;  |
+| hex           | emulated | emulated | emulated |
+| left          | emulated | emulated |  &nbsp;  |
+| length        | emulated | emulated |  &nbsp;  |
+| ltrim         | emulated | emulated | emulated |
+| median        | emulated | emulated | emulated |
+| pow           | emulated | emulated | emulated |
+| quarter       | emulated |  &nbsp;  |  &nbsp;  |
+| right         | emulated | emulated |  &nbsp;  |
+| round         | emulated | emulated | emulated |
+| rtrim         | emulated | emulated | emulated |
+| sqrt          | emulated |  &nbsp;  |  &nbsp;  |
+| stddev        | emulated | emulated | emulated |
+| substring     | emulated | emulated |  &nbsp;  |
+| trim          | emulated | emulated | emulated |
+| trunc         | emulated |  &nbsp;  |  &nbsp;  |
+
+#### MySQL and MariaDB
+
+  - `btrim`
+  - `date_trunc`
+  - `median`
+  - `trim`
+
+#### PostgreSQL
+
+- `median`
+
+#### SAP HANA
+
+  - `date_trunc`
+  - `div`
+  - `hex`
+  - `length`
+  - `median`
+  - `trunc`
+
 
 ### Interaction with probing
 
@@ -255,3 +180,69 @@ query (see [the section on probing](sql/query-results.md#probing)). The impact t
 query depends on the datastore and the number of such conditions used. It will be especially noticeable if the
 expressions that need probes require emulation. You might be able to achieve better response times if you are able to
 avoid these conditions in your query.
+
+## Database specific notes
+
+This section provides additional notes specific for each supported database.
+
+### MongoDB
+
+Versions from 3.0 and newer are supported.
+
+#### Schema detection
+
+Collections in MongoDB do not have a fixed schema, whereas schema's are required by Aircloak Insights. In order to establish a schema that can be used, Aircloak Insights
+will traverse the collections of a database upon boot. This produces a best effort
+estimate of the available fields and their data types.
+
+#### Mapping from documents to tables
+
+##### Nested documents
+
+Aircloak Insights flattens nested documents.
+Fields that in MongoDB are part of a sub-document are in Aircloak Insights
+given hierarchical names instead.
+
+For example, the following document:
+
+```json
+{
+  "person": {
+    "sibling": {
+      "name": <...>
+    }
+  }
+}
+```
+
+would result in a column named: `person.sibling.name`.
+
+
+##### Arrays
+
+Aircloak Insights creates an additional table per array contained within a document.
+These tables contain the columns of the parent table, as well as those of the objects
+contained within the array.
+
+For example, the following document in a collection called `users`:
+
+```json
+{
+  "name": <...>,
+  "siblings": [
+    {
+      "name": <...>
+    }
+  ]
+}
+```
+
+would result in a table called `users` with the single column `name`, as well as the additional
+table `users_siblings` containing a `siblings.name` in addition to the `name` column.
+
+
+#### JOINs
+
+MongoDB versions more recent than 3.2 support `INNER JOIN`'s. Aircloak Insights
+will emulate all unsupported JOIN-types. Furthermore, when a collection is sharded,
+even `INNER JOIN`'s on recent versions of MongoDB have to be emulated.
