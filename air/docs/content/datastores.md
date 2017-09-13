@@ -107,7 +107,7 @@ the query interface remains the same irrespective of the datastore used.
 This is achieved by Aircloak Insights
 emulating functionality that is not natively supported by the underlying datastore.
 
-While convenient, this does incurr performance overhead as all the data needed for the analysis
+While convenient, this does incur performance overhead as all the data needed for the analysis
 is loaded into Insights Cloak, rather than being processed in the datastore itself.
 
 ### What gets emulated
