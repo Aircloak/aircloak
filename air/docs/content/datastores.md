@@ -181,17 +181,6 @@ query
 
 This section lists the functions which will cause a query to be emulated.
 
-#### PostgreSQL
-
-- `median`
-
-#### MySQL and MariaDB
-
-  - `btrim`
-  - `date_trunc`
-  - `median`
-  - `trim`
-
 #### Microsoft SQL Server
 
   - `btrim`
@@ -199,15 +188,6 @@ This section lists the functions which will cause a query to be emulated.
   - `median`
   - `quarter`
   - `trim`
-
-#### SAP HANA
-
-  - `date_trunc`
-  - `div`
-  - `hex`
-  - `length`
-  - `median`
-  - `trunc`
 
 #### MongoDB
 
@@ -234,6 +214,26 @@ This section lists the functions which will cause a query to be emulated.
 | substring     | emulated | emulated |  &nbsp;  |
 | trim          | emulated | emulated | emulated |
 | trunc         | emulated |  &nbsp;  |  &nbsp;  |
+
+#### MySQL and MariaDB
+
+  - `btrim`
+  - `date_trunc`
+  - `median`
+  - `trim`
+
+#### PostgreSQL
+
+- `median`
+
+#### SAP HANA
+
+  - `date_trunc`
+  - `div`
+  - `hex`
+  - `length`
+  - `median`
+  - `trunc`
 
 
 ### Interaction with probing
