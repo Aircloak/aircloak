@@ -8,34 +8,13 @@ please consult the [feature emulation](#emulation-overview) overview.
 
 Aircloak Insights ships with Insights Datasource Connectors for the following datastores:
 
-- [PostgreSQL](#postgresql)
-- [MySQL and MariaDB](#mysql-and-mariadb)
-- [Microsoft SQL Server](#microsoft-sql-server)
-- [SAP HANA](#sap-hana)
-- [MongoDB](#mongodb)
+- Microsoft SQL Server, versions 2012 R2 and newer
+- MongoDB, versions 3.0 and newer
+- MySQL, version 5 and newer, and MariaDB, version 10.1 and newer
+- PostgreSQL, version 9.1 and newer
+- SAP HANA (beta support), version 2.0 and newer
 
 If your preferred datastore is not in the list, please contact Aircloak.
-
-## PostgreSQL
-
-Versions from 9.1 and newer are supported.
-
-## MySQL and MariaDB
-
-MySQL version 5 and more recent is supported.
-We also support the MySQL fork MariaDB from version 10.1 and onwards.
-
-## Microsoft SQL Server
-
-The following versions of Microsoft SQL Server are supported:
-
-- SQL Server 2016
-- SQL Server 2014
-- SQL Server 2012 R2
-
-## SAP HANA
-
-Beta support for versions from 2.x and newer is provided.
 
 ## MongoDB
 
