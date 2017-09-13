@@ -198,60 +198,55 @@ query
         --> t2 (executed in the datasource)
 ```
 
-### Natively supported features
+### Emulated functions
 
-The following table shows which features are natively supported by the datastores,
-and conversely which features turn a query into an emulated one.
+This section lists the functions which will cause a query to be emulated.
 
-|               | MS SQL   | MySQL    | PostgreSQL| MongoDB 3.4    | MongoDB 3.2    | MongoDB 3.0   |
-|--------------:|:--------:|:--------:|:---------:|:--------------:|:-------_------:|:-------------:|
-| %             | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| &#124;&#124;  | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| *             | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| +             | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| -             | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| /             | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| ^             | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| abs           | ✔        | ✔        | ✔         | ✔              | ✔              | Emulated      |
-| avg           | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| btrim         | Emulated | Emulated | ✔         | Emulated       | Emulated       | Emulated      |
-| ceil          | ✔        | ✔        | ✔         | ✔              | ✔              | Emulated      |
-| ceiling       | ✔        | ✔        | ✔         | ✔              | ✔              | Emulated      |
-| concat        | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| count         | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| date_trunc    | Emulated | Emulated | ✔         | Emulated       | Emulated       | Emulated      |
-| day           | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| div           | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| floor         | ✔        | ✔        | ✔         | ✔              | ✔              | Emulated      |
-| hex           | ✔        | ✔        | ✔         | Emulated       | Emulated       | Emulated      |
-| hour          | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| lcase         | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| left          | ✔        | ✔        | ✔         | ✔              | Emulated       | Emulated      |
-| length        | ✔        | ✔        | ✔         | ✔              | Emulated       | Emulated      |
-| lower         | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| ltrim         | ✔        | ✔        | ✔         | Emulated       | Emulated       | Emulated      |
-| max           | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| median        | Emulated | Emulated | Emulated  | Emulated       | Emulated       | Emulated      |
-| min           | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| minute        | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| mod           | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| month         | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| pow           | ✔        | ✔        | ✔         | Emulated       | Emulated       | Emulated      |
-| quarter       | Emulated | ✔        | ✔         | ✔              | ✔              | Emulated      |
-| right         | ✔        | ✔        | ✔         | Emulated       | Emulated       | Emulated      |
-| round         | ✔        | ✔        | ✔         | Emulated       | Emulated       | Emulated      |
-| rtrim         | ✔        | ✔        | ✔         | Emulated       | Emulated       | Emulated      |
-| second        | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| sqrt          | ✔        | ✔        | ✔         | ✔              | ✔              | Emulated      |
-| stddev        | ✔        | ✔        | ✔         | Emulated       | Emulated       | Emulated      |
-| substring     | ✔        | ✔        | ✔         | ✔              | Emulated       | Emulated      |
-| sum           | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| trim          | Emulated | Emulated | ✔         | Emulated       | Emulated       | Emulated      |
-| trunc         | ✔        | ✔        | ✔         | ✔              | ✔              | Emulated      |
-| ucase         | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| upper         | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| weekday       | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
-| year          | ✔        | ✔        | ✔         | ✔              | ✔              | ✔             |
+#### PostgreSQL
+
+- `median`
+
+#### MySQL and MariaDB
+
+  - `btrim`
+  - `date_trunc`
+  - `median`
+  - `trim`
+
+#### Microsoft SQL Server
+
+  - `btrim`
+  - `date_trunc`
+  - `median`
+  - `quarter`
+  - `trim`
+
+#### MongoDB
+
+|               |   3.0    |    3.2   |    3.4   |
+|--------------:|:--------:|:--------:|:--------:|
+| abs           | emulated |  &nbsp;  |  &nbsp;  |
+| btrim         | emulated | emulated | emulated |
+| ceil          | emulated |  &nbsp;  |  &nbsp;  |
+| ceiling       | emulated |  &nbsp;  |  &nbsp;  |
+| date_trunc    | emulated | emulated | emulated |
+| floor         | emulated |  &nbsp;  |  &nbsp;  |
+| hex           | emulated | emulated | emulated |
+| left          | emulated | emulated |  &nbsp;  |
+| length        | emulated | emulated |  &nbsp;  |
+| ltrim         | emulated | emulated | emulated |
+| median        | emulated | emulated | emulated |
+| pow           | emulated | emulated | emulated |
+| quarter       | emulated |  &nbsp;  |  &nbsp;  |
+| right         | emulated | emulated | emulated |
+| round         | emulated | emulated | emulated |
+| rtrim         | emulated | emulated | emulated |
+| sqrt          | emulated |  &nbsp;  |  &nbsp;  |
+| stddev        | emulated | emulated | emulated |
+| substring     | emulated | emulated |  &nbsp;  |
+| trim          | emulated | emulated | emulated |
+| trunc         | emulated |  &nbsp;  |  &nbsp;  |
+
 
 ### Interaction with probing
 
