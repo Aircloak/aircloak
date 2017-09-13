@@ -128,7 +128,7 @@ This section lists the functions which will cause a query to be emulated.
 
 #### MongoDB
 
-|               |   3.0    |    3.2   |    3.4   |
+|               |   3.0    |    3.2   |  >= 3.4  |
 |--------------:|:--------:|:--------:|:--------:|
 | abs           | emulated |  &nbsp;  |  &nbsp;  |
 | btrim         | emulated | emulated | emulated |
