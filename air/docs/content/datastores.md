@@ -166,11 +166,9 @@ This section lists the functions which will cause a query to be emulated.
 #### SAP HANA
 
   - `date_trunc`
-  - `div`
   - `hex`
   - `length`
   - `median`
-  - `trunc`
 
 
 ### Interaction with probing
