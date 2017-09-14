@@ -110,6 +110,24 @@ matrix:
       - mysql -e "CREATE DATABASE cloaktest2 DEFAULT CHARACTER SET utf8;" -u root --password=''
       - odbcinst -i -s -h -f cloak/priv/odbc/odbc_travis.ini
       - ./travis-asdf-setup.sh
+    - env: TEST="compliance"
+      cache:
+        directories:
+        - .mix
+        - cloak/deps
+        - cloak/_build
+        - $HOME/.asdf
+        - cloak/priv/odbc/drivers
+      addons:
+        hosts:
+        - travis.aircloak.local
+        postgresql: "9.5"
+        mariadb: "10.0"
+      before_install:
+      - cloak/dev_container/build-image.sh
+      - psql -c "CREATE DATABASE cloaktest2 ENCODING 'UTF8';" -U postgres
+      - echo "USE mysql;\nUPDATE user SET password=PASSWORD('') WHERE user='root';\nFLUSH PRIVILEGES;\n" | mysql -u root
+      - mysql -e "CREATE DATABASE cloaktest2 DEFAULT CHARACTER SET utf8;" -u root --password=''
     - env: TEST="aux"
       cache:
         directories:

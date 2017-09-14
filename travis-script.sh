@@ -59,13 +59,21 @@ function banner() {
     make docs
     make lint
     make odbc_drivers
-    mix test --include exclude_in_dev --max-cases 10
+    mix test --exclude compliance --include exclude_in_dev --max-cases 10
     make dialyze
     make proper-extended
     popd
 
   fi
 
+  # compliance --------------------------------------------------------
+
+  if [[ "$TEST" == "compliance" ]]; then
+
+    banner "compliance"
+    docker run -v $(pwd):/aircloak aircloak/cloak_dev:latest aircloak/cloak/travis_compliance.sh
+
+  fi
 
   # bom ---------------------------------------------------------------
 
