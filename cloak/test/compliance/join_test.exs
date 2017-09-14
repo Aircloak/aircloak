@@ -7,6 +7,7 @@ Enum.each([
     use ComplianceCase, async: true
 
     @moduletag :"#{join_type}"
+    @moduletag timeout: 15_000
 
     Enum.each(table_pairs(), fn({{table1, uid1}, {table2, uid2}}) ->
       @tag compliance: "#{join_type} #{table1} #{table2}"
@@ -58,6 +59,7 @@ defmodule Module.Compliance.Join.CrossJoin.Test do
   use ComplianceCase, async: true
 
   @moduletag :"CROSS JOIN"
+  @moduletag timeout: 15_000
 
   Enum.each([
     "CROSS JOIN",
