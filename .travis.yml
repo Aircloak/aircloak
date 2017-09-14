@@ -118,6 +118,7 @@ matrix:
         - cloak/_build
         - $HOME/.asdf
         - cloak/priv/odbc/drivers
+        - cloak/dev_container/cache
       services:
       - docker
       addons:
@@ -126,10 +127,13 @@ matrix:
         postgresql: "9.5"
         mariadb: "10.0"
       before_install:
+      - if [ -e cloak/dev_container/cache/dev_container.tar ]; then docker load -i cloak/dev_container/cache/dev_container.tar; fi
       - cloak/dev_container/build-image.sh
+      - docker save -o cloak/dev_container/cache/dev_container.tar aircloak/cloak_dev:latest
       - psql -c "CREATE DATABASE cloaktest2 ENCODING 'UTF8';" -U postgres
       - echo "USE mysql;\nUPDATE user SET password=PASSWORD('') WHERE user='root';\nFLUSH PRIVILEGES;\n" | mysql -u root
       - mysql -e "CREATE DATABASE cloaktest2 DEFAULT CHARACTER SET utf8;" -u root --password=''
+      - ./travis-asdf-setup.sh
     - env: TEST="aux"
       cache:
         directories:
