@@ -37,7 +37,7 @@ Enum.each([
           |> disable_for(MySQL, match?("stddev(distinct " <> _, unquote(aggregate)))
           |> assert_consistent_and_not_failing("""
             SELECT
-              aggregate
+              round(aggregate, 6)
             FROM (
               SELECT
                 #{unquote(uid)},
@@ -45,7 +45,7 @@ Enum.each([
               FROM #{unquote(table)}
               GROUP BY #{unquote(uid)}
             ) table_alias
-            ORDER BY aggregate
+            ORDER BY 1
           """)
         end
       end
