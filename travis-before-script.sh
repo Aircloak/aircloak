@@ -86,7 +86,7 @@ function banner() {
 
   # cloak -------------------------------------------------------------
 
-  if [[ "$TEST" == "cloak" || "$TEST" == "aux" ]]; then
+  if [[ "$TEST" == "cloak" || "$TEST" == "aux" || "$TEST" == "compliance" ]]; then
 
     banner "cloak deps"
     pushd cloak
