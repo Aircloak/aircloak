@@ -118,6 +118,8 @@ matrix:
         - cloak/_build
         - $HOME/.asdf
         - cloak/priv/odbc/drivers
+      services:
+      - docker
       addons:
         hosts:
         - travis.aircloak.local
