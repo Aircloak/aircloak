@@ -39,6 +39,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def function_sql("avg", [["DISTINCT " <> _ | _] = arg]), do:
     ["AVG(DISTINCT TO_DECIMAL(", arg |> to_string() |> String.replace(~r/DISTINCT /, ""), "))"]
   def function_sql("avg", [arg]), do: ["AVG(TO_DECIMAL(", arg, "))"]
+  def function_sql("stddev", [arg]), do: ["STDDEV_SAMP(", arg, ")"]
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") ,")"]
 
   @doc false
