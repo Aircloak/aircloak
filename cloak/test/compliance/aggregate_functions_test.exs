@@ -10,6 +10,8 @@ Enum.each([
   {"avg_noise(<col>)", false},
   {"avg(distinct <col>)", true},
   {"avg_noise(distinct <col>)", false},
+  {"stddev(<col>)", true},
+  {"stddev_noise(<col>)", false},
   {"stddev(distinct <col>)", true},
   {"stddev_noise(distinct <col>)", false},
   {"median(<col>)", true},
@@ -22,6 +24,7 @@ Enum.each([
   defmodule Module.concat([Compliance.AggregateFunctions, String.to_atom(aggregate), Test]) do
     use ComplianceCase, async: true
     alias Cloak.DataSource.MongoDB
+    alias Cloak.DataSource.MySQL
 
     @moduletag :"#{aggregate}"
 
@@ -31,6 +34,7 @@ Enum.each([
         @tag compliance: "#{aggregate} #{column} #{table} subquery"
         test "aggregate #{aggregate} on input #{column} in a sub-query on #{table}", context do
           context
+          |> disable_for(MySQL, match?("stddev(distinct " <> _, unquote(aggregate)))
           |> assert_consistent_and_not_failing("""
             SELECT
               aggregate
