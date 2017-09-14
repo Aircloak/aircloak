@@ -71,7 +71,7 @@ function banner() {
   if [[ "$TEST" == "compliance" ]]; then
 
     banner "compliance"
-    docker run -v $(pwd):/aircloak aircloak/cloak_dev:latest aircloak/cloak/travis_compliance.sh
+    docker run --net host -v $(pwd):/aircloak aircloak/cloak_dev:latest aircloak/cloak/travis_compliance.sh
 
   fi
 
