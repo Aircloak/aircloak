@@ -108,7 +108,6 @@ matrix:
       - echo "USE mysql;\nUPDATE user SET password=PASSWORD('') WHERE user='root';\nFLUSH PRIVILEGES;\n" | mysql -u root
       - mysql -e "CREATE DATABASE cloaktest1 DEFAULT CHARACTER SET utf8;" -u root --password=''
       - mysql -e "CREATE DATABASE cloaktest2 DEFAULT CHARACTER SET utf8;" -u root --password=''
-      - odbcinst -i -s -h -f cloak/priv/odbc/odbc_travis.ini
       - ./travis-asdf-setup.sh
     - env: TEST="compliance"
       cache:
