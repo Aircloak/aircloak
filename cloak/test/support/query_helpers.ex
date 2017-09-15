@@ -10,7 +10,8 @@ defmodule Cloak.Test.QueryHelpers do
       query: query,
       parameters: Keyword.get(options, :parameters, []),
       views: Keyword.get(options, :views, quote(do: %{})),
-      data_sources: Keyword.get(options, :data_sources, quote(do: Cloak.DataSource.all()))
+      data_sources: Keyword.get(options, :data_sources, quote(do: Cloak.DataSource.all())),
+      timeout: Keyword.get(options, :timeout, :timer.seconds(60))
     ] do
       run_query =
         fn(data_source) ->
@@ -22,7 +23,7 @@ defmodule Cloak.Test.QueryHelpers do
         end
 
       tasks = Enum.map(data_sources, &Task.async(fn -> run_query.(&1) end))
-      results = tasks |> Task.yield_many(:timer.seconds(60)) |> Enum.into(%{})
+      results = tasks |> Task.yield_many(timeout) |> Enum.into(%{})
 
       [{first_data_source, first_result} | other_results] =
         data_sources
