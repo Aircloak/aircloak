@@ -3,14 +3,16 @@ defmodule ComplianceCase do
 
   use ExUnit.CaseTemplate
 
-  using do
-    quote do
+  using(opts) do
+    quote bind_quoted: [opts: opts] do
+      @timeout Keyword.get(opts, :timeout, :timer.seconds(60))
+
       @moduletag :exclude_in_dev
       @moduletag :compliance
       @moduletag report: [:compliance]
-      @moduletag timeout: :timer.seconds(70)
+      @moduletag timeout: @timeout + :timer.seconds(10)
 
-      import ComplianceCase, only: :functions
+      import ComplianceCase
     end
   end
 
@@ -26,16 +28,18 @@ defmodule ComplianceCase do
     %{context | data_sources: Enum.reject(data_sources, & &1.driver == driver)}
 
   @doc false
-  def assert_consistent_and_not_failing(%{data_sources: []}, query), do:
-    raise ExUnit.AssertionError,
-      message: "No data sources to execute query on. Query was:\n#{query}."
-  def assert_consistent_and_not_failing(%{data_sources: data_sources}, query) do
-    result = assert_query_consistency(query, data_sources: data_sources)
-    if match?(%{error: _}, result) do
-      raise ExUnit.AssertionError,
-        message: "Query execution failed. Query was:\n#{query}.\n\nError:\n#{inspect result}"
-    else
-      :ok
+  defmacro assert_consistent_and_not_failing(context, query) do
+    quote bind_quoted: [context: context, query: query] do
+      if Enum.empty?(context.data_sources), do:
+        raise ExUnit.AssertionError, message: "No data sources to execute query on. Query was:\n#{query}."
+
+      result = assert_query_consistency(query, data_sources: context.data_sources, timeout: @timeout)
+      if match?(%{error: _}, result) do
+        raise ExUnit.AssertionError,
+          message: "Query execution failed. Query was:\n#{query}.\n\nError:\n#{inspect result}"
+      else
+        :ok
+      end
     end
   end
 
