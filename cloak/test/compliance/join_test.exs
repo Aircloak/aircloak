@@ -5,15 +5,14 @@ Enum.each([
 ], fn(join_type) ->
   defmodule Module.concat([Compliance.Join, String.to_atom(join_type), Test]) do
     use ComplianceCase, async: true
-    alias Cloak.DataSource.MongoDB
 
     @moduletag :"#{join_type}"
+    @moduletag timeout: 15_000
 
     Enum.each(table_pairs(), fn({{table1, uid1}, {table2, uid2}}) ->
       @tag compliance: "#{join_type} #{table1} #{table2}"
       test "#{join_type} between #{table1} and #{table2}", context do
         context
-        |> disable_for(MongoDB, unquote(join_type) == "INNER JOIN")
         |> assert_consistent_and_not_failing("""
           SELECT count(*)
           FROM #{unquote(table1)} a #{unquote(join_type)} #{unquote(table2)}
@@ -60,6 +59,7 @@ defmodule Module.Compliance.Join.CrossJoin.Test do
   use ComplianceCase, async: true
 
   @moduletag :"CROSS JOIN"
+  @moduletag timeout: 60_000
 
   Enum.each([
     "CROSS JOIN",
