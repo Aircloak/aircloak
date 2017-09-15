@@ -72,10 +72,11 @@ function banner() {
 
     banner "compliance"
     docker run --net host \
-      -v $(pwd):/aircloak aircloak/cloak_dev:latest aircloak/cloak/travis_compliance.sh \
+      -v $(pwd):/aircloak \
       -e TRAVIS="$TRAVIS" \
       -e TRAVIS_BRANCH="$TRAVIS_BRANCH" \
-      -e TRAVIS_EVENT_TYPE="$TRAVIS_EVENT_TYPE"
+      -e TRAVIS_EVENT_TYPE="$TRAVIS_EVENT_TYPE" \
+      aircloak/cloak_dev:latest aircloak/cloak/travis_compliance.sh
 
   fi
 
