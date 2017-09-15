@@ -137,7 +137,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     %{'$substr': [value, 0, -1]}
   defp parse_function("cast", [value, :integer, :real]), do: value
   defp parse_function("cast", [value, :real, :integer]), do:
-    %{'$trunc': %{'$add': [value, %{'$cond': [%{'$lt': [value, 0]}, -0.5, 0.5]}]}}
+    %{'$trunc': %{'$add': [value, %{'$cond': [%{'$lt': [value, 0]}, - 0.5, 0.5]}]}}
   defp parse_function("cast", [value, :boolean, :text]), do:
     %{'$cond': [%{'$eq': [value, nil]}, nil, %{'$cond': [value, "true", "false"]}]}
   defp parse_function("cast", [value, :datetime, :text]), do:
