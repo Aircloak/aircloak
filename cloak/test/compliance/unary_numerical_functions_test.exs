@@ -4,8 +4,10 @@ Enum.each([
   "ceiling(<col>)",
   "floor(<col>)",
   "round(<col>)",
+  "round(<col>, 4)",
   "sqrt(<col>)",
   "trunc(<col>)",
+  "trunc(<col>, 4)",
 ], fn(function) ->
   defmodule Module.concat([Compliance.UnaryNumericalFunctions, String.to_atom(function), Test]) do
     use ComplianceCase, async: true
