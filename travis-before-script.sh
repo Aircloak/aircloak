@@ -95,7 +95,7 @@ function banner() {
 
   fi
 
-  if [[ "$TEST" == "cloak" ]]; then
+  if [[ "$TEST" == "compliance" ]]; then
 
     banner "cloak"
     pushd cloak
