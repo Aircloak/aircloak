@@ -49,6 +49,22 @@
       },
       "tables": {
       }
+    },
+    {
+      "driver": "sqlserver",
+      "name": "sql_server",
+      "parameters": {
+        "hostname": "localhost",
+        "username": "sa",
+        "password": "7fNBjlaeoRwz*zH9",
+        "database": "cloaktest2",
+        "encoding": "utf8",
+        "odbc_parameters": {
+          "Port": "1433"
+        }
+      },
+      "tables": {
+      }
     }
   ]
 }
