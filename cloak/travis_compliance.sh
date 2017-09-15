@@ -1,6 +1,10 @@
 #!/bin/bash
 
-set -eo pipefail
+set -eox pipefail
+
+echo $TRAVIS
+echo $TRAVIS_BRANCH
+echo $TRAVIS_EVENT_TYPE
 
 cd aircloak/cloak
 
