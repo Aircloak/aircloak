@@ -11,7 +11,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   @doc false
   def supported_functions(), do:
     ~w(
-      count sum min max avg stddev
+      count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct stddev_distinct
       year quarter month day hour minute second weekday date_trunc
       sqrt floor ceil abs round trunc div mod ^ * / + -
       length lower upper btrim ltrim rtrim left right substring substring_for concat

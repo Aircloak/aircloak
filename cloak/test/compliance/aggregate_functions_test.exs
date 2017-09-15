@@ -23,7 +23,7 @@ Enum.each([
 ], fn({aggregate, allowed_in_subquery}) ->
   defmodule Module.concat([Compliance.AggregateFunctions, String.to_atom(aggregate), Test]) do
     use ComplianceCase, async: true
-    alias Cloak.DataSource.{MongoDB, MySQL, SAPHana}
+    alias Cloak.DataSource.MongoDB
 
     @moduletag :"#{aggregate}"
 
@@ -33,8 +33,6 @@ Enum.each([
         @tag compliance: "#{aggregate} #{column} #{table} subquery"
         test "aggregate #{aggregate} on input #{column} in a sub-query on #{table}", context do
           context
-          |> disable_for(MySQL, match?("stddev(distinct " <> _, unquote(aggregate)))
-          |> disable_for(SAPHana, match?("stddev(distinct " <> _, unquote(aggregate)))
           |> assert_consistent_and_not_failing("""
             SELECT
               round(aggregate, 6)
