@@ -47,6 +47,7 @@ defmodule Cloak.Query.Aggregator do
   """
   @spec aggregate(Enumerable.t, Query.t, Engine.state_updater) :: Result.t
   def aggregate(rows, query, state_updater) do
+    state_updater.(:ingesting_data)
     rows = perform_low_count_checks(rows, query)
     groups = groups(rows, query, state_updater)
     users_count = number_of_anonymized_users(groups, query)
@@ -175,7 +176,6 @@ defmodule Cloak.Query.Aggregator do
 
   defp groups(rows, query, state_updater) do
     Logger.debug("Grouping rows ...")
-    state_updater.(:ingesting_data)
 
     {per_user_aggregators, aggregated_columns} =
       query.aggregators
