@@ -121,11 +121,25 @@ matrix:
         - cloak/dev_container/cache
       services:
       - docker
+      - mongodb
       addons:
         hosts:
         - travis.aircloak.local
         postgresql: "9.5"
         mariadb: "10.0"
+        apt:
+          sources:
+          - ubuntu-toolchain-r-test
+          - mongodb-3.4-precise
+          packages:
+          - jq
+          - gcc-4.8
+          - g++-4.8
+          - unixodbc
+          - unixodbc-dev
+          - odbc-postgresql
+          - mongodb-org-server
+          - libaio1
       before_install:
       - if [ -e cloak/dev_container/cache/dev_container.tar ]; then docker load -i cloak/dev_container/cache/dev_container.tar; fi
       - cloak/dev_container/build-image.sh
