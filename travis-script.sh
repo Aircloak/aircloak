@@ -2,17 +2,6 @@
 
 set -eox pipefail
 
-function banner() {
-  component=$1
-  echo
-  echo
-  echo
-  echo "# -------------------------------------------------------------------"
-  echo "# Tests for: $component"
-  echo "# -------------------------------------------------------------------"
-  echo
-}
-
 # Sub-shell, so we don't change paths, and things get confusing
 (
   # Source asdf, once and for all, so we are using the right
@@ -24,7 +13,6 @@ function banner() {
 
   if [[ "$TEST" == "aux" ]]; then
 
-    banner "common/elixir"
     pushd common/elixir
     make docs
     make lint
@@ -39,7 +27,6 @@ function banner() {
 
   if [[ "$TEST" == "air" ]]; then
 
-    banner "air"
     pushd air
     make docs
     make lint
@@ -54,7 +41,6 @@ function banner() {
 
   if [[ "$TEST" == "cloak" ]]; then
 
-    banner "cloak"
     pushd cloak
     make docs
     make lint
@@ -70,7 +56,6 @@ function banner() {
 
   if [[ "$TEST" == "compliance" ]]; then
 
-    banner "compliance"
     docker run --net host \
       -v $(pwd):/aircloak \
       -e TRAVIS="$TRAVIS" \
@@ -84,7 +69,6 @@ function banner() {
 
   if [[ "$TEST" == "aux" ]]; then
 
-    banner "bom"
     pushd bom
     make docs
     make lint
@@ -100,7 +84,6 @@ function banner() {
 
   if [[ "$TEST" == "central" ]]; then
 
-    banner "central"
     pushd central
     make docs
     make lint
@@ -115,7 +98,6 @@ function banner() {
 
   if [[ "$TEST" == "integration" ]]; then
 
-    banner "integration_tests"
     pushd integration_tests
     INTEGRATION_TEST=true mix test
     popd
