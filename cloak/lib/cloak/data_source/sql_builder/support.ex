@@ -62,6 +62,8 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   }
   defp synonym(name), do: Map.get(@synonyms, name, name)
 
+  defp function_signature(%Expression{function: name, function_args: [{:distinct, _arg}]}) when is_binary(name), do:
+    {name <> "_distinct", 1}
   defp function_signature(%Expression{function: name, function_args: args}) when is_binary(name), do:
     {name, length(args)}
   defp function_signature(%Expression{function: {:cast, _target}, function_args: [_]}), do: {"cast", 1}

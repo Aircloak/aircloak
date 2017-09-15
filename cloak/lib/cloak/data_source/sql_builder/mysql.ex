@@ -13,7 +13,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   @doc false
   def supported_functions(), do:
     ~w(
-      count sum min max avg stddev
+      count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc div mod ^ * / + -
       length lower upper btrim/1 ltrim/1 rtrim/1 left right substring substring_for concat
