@@ -66,8 +66,11 @@ defmodule Cloak.Query.Aggregator do
   # Low count checks
   # -------------------------------------------------------------------
 
-  defp perform_low_count_checks(rows, query, state_updater), do:
+  defp perform_low_count_checks(rows, %Query{low_count_checks: []}, _state_updater), do: rows
+  defp perform_low_count_checks(rows, query, state_updater) do
+    Logger.debug("Performing low count checks ...")
     Enum.reduce(query.low_count_checks, rows, &perform_low_count_check(&1, &2, query, state_updater))
+  end
 
   defp perform_low_count_check(%LowCountCheck{expressions: expressions}, rows, query, state_updater) do
     rows = run_stream_to_avoid_rewinds(rows)
