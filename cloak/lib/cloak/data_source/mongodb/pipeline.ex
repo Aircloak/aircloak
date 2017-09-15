@@ -67,7 +67,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     projection =
       columns
       |> Enum.map(&"$#{&1.name}")
-      |> Enum.with_index(1)
+      |> Enum.with_index()
       |> Enum.map(fn ({field, index}) -> {"f#{index}", field} end)
       |> Enum.into(%{"_id" => false})
     [%{'$project': projection}]

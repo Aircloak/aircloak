@@ -130,7 +130,7 @@ defmodule Cloak.DataSource.MongoDB do
     mappers =
       query.db_columns
       |> Enum.map(& &1 |> DataDecoder.encoded_type() |> type_to_field_mapper())
-      |> Enum.with_index(1)
+      |> Enum.with_index()
     result =
       connection
       |> Mongo.aggregate(collection, pipeline, options)
