@@ -56,10 +56,9 @@ Enum.each([
 end)
 
 defmodule Module.Compliance.Join.CrossJoin.Test do
-  use ComplianceCase, async: true
+  use ComplianceCase, async: true, timeout: :timer.seconds(90)
 
   @moduletag :"CROSS JOIN"
-  @moduletag timeout: 60_000
 
   Enum.each([
     "CROSS JOIN",
