@@ -49,7 +49,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   @doc false
   def sql_type(:text), do: "nclob"
   def sql_type(:datetime), do: "timestamp"
-  def sql_type(type) when is_atom(type), do: String.upcase(Atom.to_string(type))
+  def sql_type(type) when is_atom(type), do: Atom.to_string(type)
 
   @doc false
   def unicode_literal(value), do: ["N'", value, ?']
