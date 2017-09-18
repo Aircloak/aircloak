@@ -9,6 +9,7 @@ echo $TRAVIS_EVENT_TYPE
 cd aircloak/cloak
 
 . $HOME/.asdf/asdf.sh
+make odbc_drivers
 odbcinst -i -s -h -f priv/odbc/odbc_travis.ini
 cp priv/config/travis_compliance.json priv/config/travis.json
 
