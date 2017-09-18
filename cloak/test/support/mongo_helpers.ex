@@ -11,7 +11,7 @@ defmodule Cloak.Test.MongoHelpers do
           data_source = set_mongo_version(unquote(context).data_source, &1)
           run_query!(data_source, unquote(query))
         end))
-        |> Enum.map(&Task.await/1)
+        |> Enum.map(&Task.await(&1, :timer.seconds(60)))
         |> Enum.map(&Map.drop(&1, [:execution_time, :features]))
 
       for other_response <- other_responses, do:
