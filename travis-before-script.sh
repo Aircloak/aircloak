@@ -82,7 +82,6 @@ set -eox pipefail
 
     pushd cloak
     mix compile --warnings-as-errors
-    mix config_sap_hana_test_schema
     MIX_ENV=test make all
     popd
 
