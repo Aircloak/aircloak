@@ -8,6 +8,9 @@ Enum.each([
   "sqrt(<col>)",
   "trunc(<col>)",
   "trunc(<col>, 4)",
+  "cast(<col> as integer)",
+  "cast(<col> as real)",
+  "cast(<col> as text)",
 ], fn(function) ->
   defmodule Module.concat([Compliance.UnaryNumericalFunctions, String.to_atom(function), Test]) do
     use ComplianceCase, async: true
