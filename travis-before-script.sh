@@ -12,8 +12,6 @@ set -eox pipefail
 
   if [[ "$TEST" == "air" || "$TEST" == "integration" ]]; then
 
-    banner "air DB roles"
-
     psql -U postgres -c "CREATE USER airtest CREATEDB;"
     psql -U postgres -c "CREATE DATABASE air_test ENCODING 'UTF8';"
     psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE air_test TO airtest;"
