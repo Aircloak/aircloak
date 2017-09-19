@@ -231,18 +231,14 @@ defmodule Air.Service.View do
 
   @doc false
   def child_spec(_arg) do
-    import Supervisor.Spec
+    import Aircloak.ChildSpec
 
     supervisor(
-      Supervisor,
       [
-        [
-          supervisor(Task.Supervisor, [[name: @cloak_validations_sup]], id: @cloak_validations_sup),
-          worker(Registry, [:duplicate, @notifications_registry], id: @notifications_registry),
-        ],
-        [strategy: :one_for_one, name: __MODULE__]
+        task_supervisor(name: @cloak_validations_sup),
+        registry(:duplicate, @notifications_registry),
       ],
-      id: __MODULE__
+      strategy: :one_for_one, name: __MODULE__
     )
   end
 end

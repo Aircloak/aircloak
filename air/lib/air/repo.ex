@@ -2,6 +2,7 @@ defmodule Air.Repo do
   @moduledoc false
   use Ecto.Repo, otp_app: :air
   use Scrivener, page_size: 20
+  use Aircloak.ChildSpec.Supervisor
 
   require Aircloak.DeployConfig
 
@@ -33,17 +34,6 @@ defmodule Air.Repo do
 
   defp db_setting(name), do: Map.fetch!(Aircloak.DeployConfig.fetch!("database"), name)
 
-
-  # -------------------------------------------------------------------
-  # Supervision tree
-  # -------------------------------------------------------------------
-
-  @doc false
-  def child_spec(_arg), do:
-    %{
-      id: __MODULE__, restart: :permanent, shutdown: :infinity, type: :supervisor,
-      start: {__MODULE__, :start_link, []},
-    }
 
   defmodule Migrator do
     @moduledoc false

@@ -1,6 +1,8 @@
 defmodule Air.ApiTokenTimestampUpdater do
   @moduledoc "Service for asynchronous API token touching."
 
+  use Aircloak.ChildSpec.Supervisor
+
 
   # -------------------------------------------------------------------
   # API
@@ -20,16 +22,4 @@ defmodule Air.ApiTokenTimestampUpdater do
 
     :ok
   end
-
-
-  # -------------------------------------------------------------------
-  # Supervision tree
-  # -------------------------------------------------------------------
-
-  @doc false
-  def child_spec(_arg), do:
-    %{
-      id: __MODULE__, restart: :permanent, shutdown: :infinity, type: :supervisor,
-      start: {__MODULE__, :start_link, []},
-    }
 end

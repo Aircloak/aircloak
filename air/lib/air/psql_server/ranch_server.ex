@@ -236,8 +236,8 @@ defmodule Air.PsqlServer.RanchServer do
 
   @doc false
   def child_spec({port, behaviour_mod, behaviour_init_arg, opts}), do:
-    %{
-      id: __MODULE__, restart: :permanent, shutdown: :infinity, type: :supervisor,
-      start: {__MODULE__, :start_embedded_server, [port, behaviour_mod, behaviour_init_arg, opts]},
-    }
+    Aircloak.ChildSpec.supervisor(
+      __MODULE__, :start_embedded_server,
+      [port, behaviour_mod, behaviour_init_arg, opts]
+    )
 end

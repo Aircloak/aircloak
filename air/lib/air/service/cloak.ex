@@ -197,15 +197,16 @@ defmodule Air.Service.Cloak do
 
   @doc false
   def child_spec(_arg) do
-    import Supervisor.Spec
+    import Aircloak.ChildSpec
 
-    children = [
-      worker(GenServer, [__MODULE__, [], [name: @serializer_name]], id: @serializer_name),
-      worker(Registry, [:duplicate, @data_source_registry_name], id: @data_source_registry_name),
-      worker(Registry, [:unique, @memory_registry_name], id: @memory_registry_name),
-      worker(Registry, [:duplicate, @all_cloak_registry_name], id: @all_cloak_registry_name),
-    ]
-
-    supervisor(Supervisor, [children, [strategy: :one_for_one, name: __MODULE__]])
+    supervisor(
+      [
+        gen_server(__MODULE__, [], name: @serializer_name),
+        registry(:duplicate, @data_source_registry_name),
+        registry(:unique, @memory_registry_name),
+        registry(:duplicate, @all_cloak_registry_name),
+      ],
+      strategy: :one_for_one, name: __MODULE__
+    )
   end
 end

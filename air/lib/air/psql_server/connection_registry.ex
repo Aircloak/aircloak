@@ -75,8 +75,5 @@ defmodule Air.PsqlServer.ConnectionRegistry do
 
   @doc false
   def child_spec(_arg), do:
-    Supervisor.child_spec(
-      {Registry, keys: :unique, name: __MODULE__},
-      id: __MODULE__
-    )
+    Aircloak.ChildSpec.registry(:unique, __MODULE__)
 end

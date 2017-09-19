@@ -322,19 +322,13 @@ defmodule Air.Service.Query do
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec(_arg) do
-    import Supervisor.Spec, warn: false
-
-    supervisor(Supervisor,
+  def child_spec(_arg), do:
+    Aircloak.ChildSpec.supervisor(
       [
-        [
-          supervisor(Air.Service.Query.Events, []),
-          Air.Service.Query.Lifecycle.supervisor_spec(),
-          Air.Service.Query.ResultConverter.supervisor_spec(),
-        ],
-        [strategy: :one_for_one, name: __MODULE__]
+        Supervisor.Spec.supervisor(Air.Service.Query.Events, []),
+        Air.Service.Query.Lifecycle.supervisor_spec(),
+        Air.Service.Query.ResultConverter.supervisor_spec(),
       ],
-      [id: __MODULE__]
+      strategy: :one_for_one, name: __MODULE__
     )
-  end
 end

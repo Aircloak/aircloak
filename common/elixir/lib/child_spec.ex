@@ -1,0 +1,72 @@
+defmodule Aircloak.ChildSpec do
+  @moduledoc "Helpers for specifying supervisor children."
+
+  @type child_spec :: Supervisor.child_spec | module | {module, any}
+
+  @doc "Specifies a supervisor child powered by an arbitrary module."
+  @spec supervisor(module, atom, [any], Keyword.t) :: Supervisor.child_spec
+  def supervisor(module, function, args, overrides \\ []), do:
+    Supervisor.child_spec(
+      %{
+        id: module,
+        restart: :permanent, shutdown: :infinity, type: :supervisor,
+        start: {module, function, args},
+      },
+      overrides
+    )
+
+  @doc "Specifies a child powered by the `Supervisor` module."
+  @spec supervisor([child_spec], [Supervisor.option]) :: Supervisor.child_spec
+  def supervisor(children, supervisor_options), do:
+    supervisor(Supervisor, :start_link, [children, supervisor_options],
+      id: Keyword.get(supervisor_options, :name, Supervisor))
+
+  @doc "Specifies a child powered by the `Task.Supervisor` module."
+  @spec task_supervisor([Task.Supervisor.option]) :: Supervisor.child_spec
+  def task_supervisor(task_supervisor_options), do:
+    supervisor(Task.Supervisor, :start_link, [task_supervisor_options],
+      id: Keyword.get(task_supervisor_options, :name, Task.Supervisor)
+    )
+
+  @doc "Specifies a child powered by the `GenServer` module."
+  @spec gen_server(module, any, GenServer.options) :: Supervisor.child_spec
+  def gen_server(module, arg, gen_server_options \\ []), do:
+    %{
+      id: module, restart: :permanent, shutdown: 5000, type: :worker,
+      start: {GenServer, :start_link, [module, arg, gen_server_options]},
+    }
+
+  @doc "Specifies a child powered by the `Registry` module."
+  @spec registry(Registry.keys, Registry.registry, Keyword.t) :: Supervisor.child_spec
+  def registry(keys, name, registry_options \\ []), do:
+    Supervisor.child_spec(
+      {Registry, Keyword.merge([keys: keys, name: name], registry_options)},
+      id: name
+    )
+
+  defmodule Supervisor do
+    @moduledoc """
+    Simplifies the `child_spec/2` definition for a supervisor module.
+
+    Inside the module which starts a supervisor, you can `use` this module to define a `child_spec/2`.
+    For example:
+
+    ```
+    defmodule MyRepo do
+      use Ecto.Repo, otp_app: :my_app
+      use Aircloak.ChildSpec.Supervisor
+      # ...
+    end
+    ```
+    """
+
+    @doc false
+    defmacro __using__(_opts) do
+      quote do
+        @doc false
+        def child_spec(_arg), do:
+          Aircloak.ChildSpec.supervisor(__MODULE__, :start_link, [])
+      end
+    end
+  end
+end

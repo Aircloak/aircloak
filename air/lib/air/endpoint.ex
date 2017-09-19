@@ -2,6 +2,7 @@ defmodule Air.Endpoint do
   @moduledoc "Implements the HTTP server for insights.aircloak.com."
 
   use Phoenix.Endpoint, otp_app: :air
+  use Aircloak.ChildSpec.Supervisor
 
   # bug in the current Phoenix -> should be fixed with the next version
   @dialyzer :no_unused
@@ -59,16 +60,4 @@ defmodule Air.Endpoint do
   plug RemoteIp
 
   plug Air.Router
-
-
-  # -------------------------------------------------------------------
-  # Supervision tree
-  # -------------------------------------------------------------------
-
-  @doc false
-  def child_spec(_arg), do:
-    %{
-      id: __MODULE__, restart: :permanent, shutdown: :infinity, type: :supervisor,
-      start: {__MODULE__, :start_link, []},
-    }
 end

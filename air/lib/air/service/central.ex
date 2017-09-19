@@ -202,20 +202,18 @@ defmodule Air.Service.Central do
 
   @doc false
   def child_spec(_arg) do
-    import Supervisor.Spec
+    import Aircloak.ChildSpec
 
     children =
       Enum.concat([
-        [
-          worker(Registry, [:unique, Air.Service.Central.Registry], id: Air.Service.Central.Registry),
-        ],
+        [registry(:unique, Air.Service.Central.Registry),],
         case auto_export?() do
           false -> []
-          true -> [worker(RpcQueue, [])]
+          true -> [Supervisor.Spec.worker(RpcQueue, [])]
         end,
-        [supervisor(Air.CentralClient, [])]
+        [Supervisor.Spec.supervisor(Air.CentralClient, [])]
       ])
 
-    supervisor(Supervisor, [children, [strategy: :one_for_one, name: __MODULE__]], [id: __MODULE__])
+    supervisor(children, strategy: :one_for_one, name: __MODULE__)
   end
 end

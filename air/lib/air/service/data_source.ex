@@ -462,17 +462,14 @@ defmodule Air.Service.DataSource do
 
   @doc false
   def child_spec(_arg) do
-    import Supervisor.Spec, warn: false
+    import Aircloak.ChildSpec
+
     supervisor(
-      Supervisor,
       [
-        [
-          Air.ProcessQueue.supervisor_spec(__MODULE__.Queue, size: 5),
-          supervisor(Task.Supervisor, [[name: @task_supervisor, restart: :temporary]], [id: @task_supervisor])
-        ],
-        [strategy: :one_for_one]
+        Air.ProcessQueue.supervisor_spec(__MODULE__.Queue, size: 5),
+        task_supervisor(name: @task_supervisor, restart: :temporary),
       ],
-      id: __MODULE__
+      strategy: :one_for_one, name: __MODULE__,
     )
   end
 end
