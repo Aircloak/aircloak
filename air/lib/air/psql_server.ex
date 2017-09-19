@@ -28,7 +28,7 @@ defmodule Air.PsqlServer do
 
   @behaviour RanchServer
 
-  @type configuration :: %{require_ssl: boolean, certfile: String.t, keyfile: String.t}
+  @type configuration :: %{require_ssl: boolean, certfile: String.t | nil, keyfile: String.t | nil}
 
 
   # -------------------------------------------------------------------
