@@ -14,22 +14,6 @@ defmodule Air.ProcessQueue do
   # -------------------------------------------------------------------
 
   @doc """
-  Returns the supervisor specification for the process queue.
-
-  The `:size` option determines the amount of allowed simultaneous operations. The default value is 5.
-  """
-  @spec supervisor_spec(atom, [size: pos_integer]) :: Supervisor.Spec.spec
-  def supervisor_spec(name, opts \\ []) do
-    :poolboy.child_spec(
-      name,
-      name: {:local, name},
-      worker_module: __MODULE__.Worker,
-      max_overflow: 0,
-      size: Keyword.get(opts, :size, 5)
-    )
-  end
-
-  @doc """
   Puts the operation into the queue, waits for the operation to be executed, and returns its result.
 
   The operation is executed inside the caller process, so there's no message passing involved.
@@ -58,4 +42,19 @@ defmodule Air.ProcessQueue do
     def start_link(_), do:
       GenServer.start_link(__MODULE__, [])
   end
+
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec({name, size}), do:
+    :poolboy.child_spec(
+      name,
+      name: {:local, name},
+      worker_module: __MODULE__.Worker,
+      max_overflow: 0,
+      size: size
+    )
 end

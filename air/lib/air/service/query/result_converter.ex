@@ -10,6 +10,7 @@ defmodule Air.Service.Query.ResultConverter do
   there are many results with a large number of buckets. Once 2018 Q1 is released, we can safely remove this code.
   """
 
+  use Aircloak.ChildSpec.Task, restart: :transient
   alias Air.Repo
   alias Air.Schemas.{Query, ResultChunk}
   require Logger
@@ -19,11 +20,6 @@ defmodule Air.Service.Query.ResultConverter do
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
-
-  @doc "Returns the supervisor specification for the worker."
-  @spec supervisor_spec :: Supervisor.Spec.spec
-  def supervisor_spec(), do:
-    Supervisor.Spec.worker(__MODULE__, [], restart: :transient)
 
   @doc "Starts the converter process."
   @spec start_link :: {:ok, pid}

@@ -209,9 +209,9 @@ defmodule Air.Service.Central do
         [registry(:unique, Air.Service.Central.Registry),],
         case auto_export?() do
           false -> []
-          true -> [Supervisor.Spec.worker(RpcQueue, [])]
+          true -> [RpcQueue]
         end,
-        [Supervisor.Spec.supervisor(Air.CentralClient, [])]
+        [Air.CentralClient]
       ])
 
     supervisor(children, strategy: :one_for_one, name: __MODULE__)

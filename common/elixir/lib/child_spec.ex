@@ -69,4 +69,34 @@ defmodule Aircloak.ChildSpec do
       end
     end
   end
+
+
+  defmodule Task do
+    @moduledoc """
+    Simplifies the `child_spec/2` definition for a task module.
+
+    Inside the module which starts a task, you can `use` this module to define a `child_spec/2`.
+    For example:
+
+    ```
+    defmodule MyTask do
+      use Aircloak.ChildSpec.Task
+      # ...
+    end
+    ```
+    """
+
+    @doc false
+    defmacro __using__(options) do
+      quote bind_quoted: [options: options || []] do
+        @doc false
+        def child_spec(_arg), do:
+          Elixir.Supervisor.Spec.worker(
+            __MODULE__,
+            Keyword.get(unquote(options), :args, []),
+            restart: Keyword.get(unquote(options), :restart, :permanent)
+          )
+      end
+    end
+  end
 end
