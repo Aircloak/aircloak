@@ -39,7 +39,7 @@ defmodule Cloak.DataSource.ODBC do
 
   @doc false
   def load_tables(connection, table) do
-    case :odbc.describe_table(connection, to_char_list(table.db_name), _timeout = :timer.seconds(15)) do
+    case :odbc.describe_table(connection, to_charlist(table.db_name), _timeout = :timer.seconds(15)) do
       {:ok, columns} ->
         columns = for {name, type} <- columns, do: Table.column(to_string(name), parse_type(type))
         [%{table | columns: columns}]
@@ -50,7 +50,7 @@ defmodule Cloak.DataSource.ODBC do
 
   @doc false
   def select(connection, sql_query, result_processor) do
-    statement = sql_query |> SqlBuilder.build() |> to_char_list()
+    statement = sql_query |> SqlBuilder.build() |> to_charlist()
     field_mappers = for column <- sql_query.db_columns, do:
       column |> DataDecoder.encoded_type() |> type_to_field_mapper(sql_query.data_source)
     case :odbc.select_count(connection, statement, _timeout = :timer.hours(4)) do
@@ -85,7 +85,7 @@ defmodule Cloak.DataSource.ODBC do
       "#{Atom.to_string(key)}=#{value}"
     end)
     |> Enum.join(";")
-    |> to_char_list()
+    |> to_charlist()
   end
 
   defp init_connection(SqlBuilder.PostgreSQL, connection), do:

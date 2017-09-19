@@ -31,11 +31,9 @@ defmodule Cloak.Query.Rows do
 
     columns_to_select = Enum.map(columns_to_select, &Expression.unalias/1)
 
-    Enum.filter_map(
-      rows,
-      &filter_group(&1, columns, query),
-      &selected_values(&1, columns, columns_to_select)
-    )
+    rows
+    |> Enum.filter(&filter_group(&1, columns, query))
+    |> Enum.map(&selected_values(&1, columns, columns_to_select))
   end
 
   @doc "Groups input rows according to the query specification."

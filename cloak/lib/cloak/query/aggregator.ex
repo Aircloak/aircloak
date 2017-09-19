@@ -297,7 +297,7 @@ defmodule Cloak.Query.Aggregator do
     |> Stream.flat_map(fn ({row, index}) ->
       Enum.map(row, &{index, &1})
     end)
-    |> Stream.uniq(fn ({_index, value}) -> value end)
+    |> Stream.uniq_by(fn ({_index, value}) -> value end)
     |> Enum.reduce(%{}, fn({index, value}, accumulator) ->
       accumulator
       |> Map.put_new(index, nil)
