@@ -40,23 +40,6 @@ defmodule Air.Service.DataSource do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Returns the supervisor specification for this service."
-  @spec supervisor_spec() :: Supervisor.Spec.spec
-  def supervisor_spec() do
-    import Supervisor.Spec, warn: false
-    supervisor(
-      Supervisor,
-      [
-        [
-          Air.ProcessQueue.supervisor_spec(__MODULE__.Queue, size: 5),
-          supervisor(Task.Supervisor, [[name: @task_supervisor, restart: :temporary]], [id: @task_supervisor])
-        ],
-        [strategy: :one_for_one]
-      ],
-      id: __MODULE__
-    )
-  end
-
   @doc "Returns the count of all known data sources."
   @spec count() :: non_neg_integer
   def count(), do:
@@ -471,4 +454,25 @@ defmodule Air.Service.DataSource do
       query_id: query.id,
       error: "The query could not be started due to a communication timeout."
     })
+
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg) do
+    import Supervisor.Spec, warn: false
+    supervisor(
+      Supervisor,
+      [
+        [
+          Air.ProcessQueue.supervisor_spec(__MODULE__.Queue, size: 5),
+          supervisor(Task.Supervisor, [[name: @task_supervisor, restart: :temporary]], [id: @task_supervisor])
+        ],
+        [strategy: :one_for_one]
+      ],
+      id: __MODULE__
+    )
+  end
 end

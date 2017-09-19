@@ -60,15 +60,6 @@ defmodule Air.PsqlServer.RanchServer do
   # API
   # -------------------------------------------------------------------
 
-  @doc "Returns the supervisor specification for the TCP server."
-  @spec child_spec(pos_integer, module, behaviour_init_arg, opts) :: Supervisor.child_spec
-  def child_spec(port, behaviour_mod, behaviour_init_arg, opts \\ []), do:
-    Supervisor.Spec.supervisor(
-      __MODULE__,
-      [port, behaviour_mod, behaviour_init_arg, opts],
-      function: :start_embedded_server
-    )
-
   @doc "Starts the TCP server as the linked child of the caller process."
   @spec start_embedded_server(pos_integer, module, behaviour_init_arg, opts) :: Supervisor.on_start
   def start_embedded_server(port, behaviour_mod, behaviour_init_arg, opts \\ []) do
@@ -237,4 +228,16 @@ defmodule Air.PsqlServer.RanchServer do
     assign(conn, :key_data, key_data)
   defp handle_protocol_action({:describe_statement, query, params}, conn), do:
     conn.behaviour_mod.describe_statement(conn, query, params)
+
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec({port, behaviour_mod, behaviour_init_arg, opts}), do:
+    %{
+      id: __MODULE__, restart: :permanent, shutdown: :infinity, type: :supervisor,
+      start: {__MODULE__, :start_embedded_server, [port, behaviour_mod, behaviour_init_arg, opts]},
+    }
 end

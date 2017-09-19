@@ -15,11 +15,6 @@ defmodule Air.PsqlServer.ConnectionRegistry do
   # API
   # -------------------------------------------------------------------
 
-  @doc "Starts the queue process."
-  @spec start_link() :: {:ok, pid}
-  def start_link(), do:
-    Registry.start_link(:unique, __MODULE__)
-
   @doc """
   Produces a random pair of process and session ids that can be communicated to
   a connecting client and later used to cancel queries.
@@ -73,4 +68,15 @@ defmodule Air.PsqlServer.ConnectionRegistry do
         end
     end
   end
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg), do:
+    Supervisor.child_spec(
+      {Registry, keys: :unique, name: __MODULE__},
+      id: __MODULE__
+    )
 end

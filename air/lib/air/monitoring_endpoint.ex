@@ -31,4 +31,15 @@ defmodule Air.MonitoringEndpoint do
   plug Plug.Head
 
   plug Air.MonitoringRouter
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg), do:
+    %{
+      id: __MODULE__, restart: :permanent, shutdown: :infinity, type: :supervisor,
+      start: {__MODULE__, :start_link, []},
+    }
 end

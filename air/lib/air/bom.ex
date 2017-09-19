@@ -4,6 +4,8 @@ defmodule Air.BOM do
   the data is structured.
   """
 
+  use Agent, start: {__MODULE__, :start_link, []}
+
 
   # -------------------------------------------------------------------
   # API
