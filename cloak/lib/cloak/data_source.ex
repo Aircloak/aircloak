@@ -44,7 +44,7 @@ defmodule Cloak.DataSource do
   require Logger
   require Aircloak.DeployConfig
 
-  use GenServer
+  use GenServer, start: {__MODULE__, :start_link, []}
 
   # define returned data types and values
   @type t :: %{

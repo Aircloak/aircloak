@@ -9,7 +9,7 @@ defmodule Cloak.MemoryReader do
   running queries will be cancelled.
   """
 
-  use GenServer
+  use GenServer, start: {__MODULE__, :start_link, []}
 
   alias Cloak.MemoryReader.{MemoryProjector, Readings}
 
