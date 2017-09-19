@@ -7,6 +7,7 @@
 - Support for using min/max/median aggregators over date/time value in the top-level query.
 - Median is now supported in subqueries. When it is used, emulation will be activated for the query.
 - Added the beta support for SAP HANA data sources.
+- Added `SAMPLE_USERS` clause for reducing the number of users queried.
 
 ### Enhancements
 

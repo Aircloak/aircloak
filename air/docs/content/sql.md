@@ -12,12 +12,13 @@ You can discover database tables and their structure using the `SHOW` statement.
 
 The `SELECT` statement can be used to obtain anonymized data from tables. See [Understanding query results](/content/sql/query-results.md) for an explanation of the effects of anonymization on the results.
 
-The syntax conforms to the standard SQL syntax, but only a subset of features is supported. The general shape of the query looks like:
+The syntax conforms to the standard SQL syntax (with some exceptions), but only a subset of features is supported. The general shape of the query looks like:
 
 ```SQL
 SELECT [DISTINCT]
   field_expression [, ...]
   FROM from_expression [, ...]
+  [ SAMPLE_USERS <1..100>% ]
   [ WHERE where_expression [AND ...] ]
   [ GROUP BY column_expression | position [, ...] ]
   [ HAVING having_expression [AND ...] ]
@@ -86,3 +87,4 @@ inequality_operator :=
  with a column name in one of the selected tables.
 - If an integer is specified in the `GROUP BY` clause, it represents a 1-based position in the select list. The corresponding expression from the select list is used as the grouping expression.
 - Values of type `datetime with timezone` are not supported yet. The timezone information will be dropped and the value will be exposed as a simple `datetime` in the UTC format.
+- The `SAMPLE_USERS` clause is a cloak specific feature that can be use to reduce the amount of users queried in order to get some rough, fast results back from the data set.
