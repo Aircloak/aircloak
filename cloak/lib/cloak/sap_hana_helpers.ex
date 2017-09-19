@@ -1,5 +1,5 @@
-if Mix.env() in [:dev, :test] do
-  defmodule Cloak.SapHanaHelpers do
+defmodule Cloak.SapHanaHelpers do
+  if Mix.env() in [:dev, :test] do
     @moduledoc "Helper functions for working with SAP HANA database."
     @type conn :: :odbc.connection_reference
     @type connection_params :: %{
