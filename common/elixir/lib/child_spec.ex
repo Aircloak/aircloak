@@ -61,11 +61,11 @@ defmodule Aircloak.ChildSpec do
     """
 
     @doc false
-    defmacro __using__(_opts) do
-      quote do
+    defmacro __using__(overrides) do
+      quote bind_quoted: [overrides: Macro.escape(overrides)] do
         @doc false
         def child_spec(_arg), do:
-          Aircloak.ChildSpec.supervisor(__MODULE__, :start_link, [])
+          Aircloak.ChildSpec.supervisor(__MODULE__, :start_link, [], unquote(overrides))
       end
     end
   end
