@@ -31,6 +31,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
     |> Helpers.apply_bottom_up(&normalize_like/1)
     |> Helpers.apply_bottom_up(&normalize_constants/1)
     |> Helpers.apply_bottom_up(&normalize_upper/1)
+    |> Helpers.apply_bottom_up(&normalize_bucket/1)
 
 
   # -------------------------------------------------------------------
@@ -118,4 +119,33 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp lowercase(expression), do:
     Expression.function("lower", [expression], expression.type)
+
+
+  # -------------------------------------------------------------------
+  # Normalizing bucket calls
+  # -------------------------------------------------------------------
+
+  defp normalize_bucket(query), do:
+    Lens.map(Query.Lenses.buckets(), query, &expand_bucket(&1.function, &1.function_args))
+
+  defp expand_bucket({:bucket, :lower}, [arg1, arg2]), do:
+    # floor(arg1 / arg2) * arg2
+    Expression.function("*", [
+      arg2,
+      Expression.function("floor", [
+        Expression.function("/", [arg1, arg2])
+      ])
+    ])
+  defp expand_bucket({:bucket, :upper}, [arg1, arg2]), do:
+    # floor(arg1 / arg2) * arg2 + arg2
+    Expression.function("+", [
+      arg2,
+      expand_bucket({:bucket, :lower}, [arg1, arg2])
+    ])
+  defp expand_bucket({:bucket, :middle}, [arg1, arg2]), do:
+    # floor(arg1 / arg2) * arg2 + 0.5 * arg2
+    Expression.function("+", [
+      Expression.function("*", [Expression.constant(:real, 0.5), arg2]),
+      expand_bucket({:bucket, :lower}, [arg1, arg2])
+    ])
 end

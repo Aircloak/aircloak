@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc mod div ^ % * / + -
       length lower upper btrim/1 ltrim rtrim left right substring substring_for concat
-      cast coalesce bucket
+      cast coalesce
     )
 
   @doc false
