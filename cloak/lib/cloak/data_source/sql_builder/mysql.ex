@@ -17,7 +17,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc div mod ^ * / + -
       length lower upper btrim/1 ltrim/1 rtrim/1 left right substring substring_for concat
-      hex cast coalesce bucket hash
+      hex cast coalesce hash
     )
 
   @doc false

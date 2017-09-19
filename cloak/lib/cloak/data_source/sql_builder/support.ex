@@ -28,26 +28,6 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
       function_sql({:cast, :integer}, [result], sql_dialect_module)
     end
   end
-  def function_sql({:bucket, :lower}, [arg1, arg2], sql_dialect_module), do:
-    # floor(arg1 / arg2) * arg2
-    function_sql("*", [
-      arg2,
-      function_sql("floor", [
-        function_sql("/", [arg1, arg2], sql_dialect_module)
-      ], sql_dialect_module)
-    ], sql_dialect_module)
-  def function_sql({:bucket, :upper}, [arg1, arg2], sql_dialect_module), do:
-    # floor(arg1 / arg2) * arg2 + arg2
-    function_sql("+", [
-      arg2,
-      function_sql({:bucket, :lower}, [arg1, arg2], sql_dialect_module)
-    ], sql_dialect_module)
-  def function_sql({:bucket, :middle}, [arg1, arg2], sql_dialect_module), do:
-    # floor(arg1 / arg2) * arg2 + 0.5 * arg2
-    function_sql("+", [
-      function_sql("*", ["0.5", arg2], sql_dialect_module),
-      function_sql({:bucket, :lower}, [arg1, arg2], sql_dialect_module)
-    ], sql_dialect_module)
   def function_sql(name, args, sql_dialect_module), do:
     sql_dialect_module.function_sql(synonym(name), args)
 
