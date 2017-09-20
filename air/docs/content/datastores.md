@@ -170,6 +170,9 @@ This section lists the functions which will cause a query to be emulated.
   - `length`
   - `median`
 
+### Interaction with sampling
+
+When sampling users with the `SAMPLE_USERS` clause, the `hex` function is used internally, so anywhere where `hex` is not natively available, the sampling query will be emulated.
 
 ### Interaction with probing
 

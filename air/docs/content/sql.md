@@ -87,4 +87,5 @@ inequality_operator :=
  with a column name in one of the selected tables.
 - If an integer is specified in the `GROUP BY` clause, it represents a 1-based position in the select list. The corresponding expression from the select list is used as the grouping expression.
 - Values of type `datetime with timezone` are not supported yet. The timezone information will be dropped and the value will be exposed as a simple `datetime` in the UTC format.
-- The `SAMPLE_USERS` clause is a cloak specific feature that can be use to reduce the amount of users queried in order to get some rough, fast results back from the data set.
+- The `SAMPLE_USERS` clause is an Aircloak specific feature that can be used to reduce the amount of users queried. This speeds up query execution and it is useful to estimate the results when querying large datasets. The sampling is not 100% accurate (the included users are an approximation of the requested percent from the total number of users),
+but it is deterministic (the same users will be included each time a query is executed). Any aggregates present in the query will not be automatically adjusted when the clause is active (the sampled `COUNT` or `SUM`  will be a percent from the total `COUNT` or `SUM`).
