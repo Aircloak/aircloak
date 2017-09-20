@@ -124,7 +124,8 @@ defmodule Cloak.Test.QueryHelpers do
     end
   end
   defp compare_to_within_delta(value1, value2, trace, delta) when is_float(value1) and is_float(value2) do
-    diff = abs(value1 - value2)
+    magnitude = abs((value1 + value2) / 2)
+    diff = abs(value1 - value2) / max(magnitude, delta)
     if diff <= delta do
       :ok
     else
