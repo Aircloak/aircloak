@@ -1,7 +1,7 @@
 defmodule Central.AirStats.PeriodicLogger do
   @moduledoc "Periodic logging of data for all known airs."
 
-  use GenServer
+  use GenServer, start: {__MODULE__, :start_link, []}
   alias Central.Service.{Customer, ElasticSearch}
 
   # -------------------------------------------------------------------

@@ -1,7 +1,6 @@
 defmodule Air.Service.Central do
   @moduledoc "Service functions related to central calls."
   require Logger
-  import Supervisor.Spec
   import Ecto.Query, only: [from: 2]
   alias Air.Repo
   alias Air.Schemas.{CentralCall, ExportForAircloak}
@@ -13,24 +12,6 @@ defmodule Air.Service.Central do
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
-
-  @doc "Returns the supervisor specification for this service."
-  @spec supervisor_spec() :: Supervisor.Spec.spec
-  def supervisor_spec() do
-    children =
-    Enum.concat([
-      [
-        worker(Registry, [:unique, Air.Service.Central.Registry], id: Air.Service.Central.Registry),
-      ],
-      case auto_export?() do
-        false -> []
-        true -> [worker(RpcQueue, [])]
-      end,
-      [supervisor(Air.CentralClient, [])]
-    ])
-
-    supervisor(Supervisor, [children, [strategy: :one_for_one, name: __MODULE__]], [id: __MODULE__])
-  end
 
   @doc "Returns true if auto export mode is used to communicate with central."
   @spec auto_export?() :: boolean
@@ -213,4 +194,26 @@ defmodule Air.Service.Central do
 
   defp filter_error(nil), do: nil
   defp filter_error(error), do: Air.Service.Redacter.filter_query_error(error)
+
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg) do
+    import Aircloak.ChildSpec
+
+    children =
+      Enum.concat([
+        [registry(:unique, Air.Service.Central.Registry),],
+        case auto_export?() do
+          false -> []
+          true -> [RpcQueue]
+        end,
+        [Air.CentralClient]
+      ])
+
+    supervisor(children, strategy: :one_for_one, name: __MODULE__)
+  end
 end

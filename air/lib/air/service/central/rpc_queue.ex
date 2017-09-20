@@ -18,7 +18,7 @@ defmodule Air.Service.Central.RpcQueue do
       queue is overflowed.
   """
 
-  use GenServer
+  use GenServer, start: {__MODULE__, :start_link, []}
   require Logger
 
 

@@ -381,4 +381,13 @@ defmodule Cloak.AirSocket do
     defp log_connect(), do: Logger.info("connecting")
     defp log_disconnected(reason), do: Logger.error("disconnected: #{inspect reason}")
   end
+
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg), do:
+    Supervisor.Spec.worker(__MODULE__, [])
 end

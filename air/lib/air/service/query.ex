@@ -14,24 +14,6 @@ defmodule Air.Service.Query do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Returns the supervisor specification for this service."
-  @spec supervisor_spec() :: Supervisor.Spec.spec
-  def supervisor_spec() do
-    import Supervisor.Spec, warn: false
-
-    supervisor(Supervisor,
-      [
-        [
-          supervisor(Air.Service.Query.Events, []),
-          Air.Service.Query.Lifecycle.supervisor_spec(),
-          Air.Service.Query.ResultConverter.supervisor_spec(),
-        ],
-        [strategy: :one_for_one, name: __MODULE__]
-      ],
-      [id: __MODULE__]
-    )
-  end
-
   @doc """
   Returns information about failed queries in a paginated form.
 
@@ -333,4 +315,20 @@ defmodule Air.Service.Query do
     defp report_query_result(result), do:
       Air.Service.Central.report_query_result(result)
   end
+
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg), do:
+    Aircloak.ChildSpec.supervisor(
+      [
+        Air.Service.Query.Events,
+        Air.Service.Query.Lifecycle,
+        Air.Service.Query.ResultConverter,
+      ],
+      strategy: :one_for_one, name: __MODULE__
+    )
 end

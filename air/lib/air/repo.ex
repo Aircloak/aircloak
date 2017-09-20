@@ -2,6 +2,7 @@ defmodule Air.Repo do
   @moduledoc false
   use Ecto.Repo, otp_app: :air
   use Scrivener, page_size: 20
+  use Aircloak.ChildSpec.Supervisor
 
   require Aircloak.DeployConfig
 
@@ -33,9 +34,10 @@ defmodule Air.Repo do
 
   defp db_setting(name), do: Map.fetch!(Aircloak.DeployConfig.fetch!("database"), name)
 
+
   defmodule Migrator do
     @moduledoc false
-    use GenServer
+    use GenServer, restart: :transient, start: {__MODULE__, :start_link, []}
 
     # Note: we're using GenServer (instead of e.g. `Task`) to ensure that the rest
     # of the system waits until the database is migrated.

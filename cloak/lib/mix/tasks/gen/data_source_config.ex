@@ -1,5 +1,5 @@
-if Mix.env == :dev do
-  defmodule Mix.Tasks.Gen.DataSourceConfig do
+defmodule Mix.Tasks.Gen.DataSourceConfig do
+  if Mix.env == :dev do
     @shortdoc "Generates a database JSON schema for a test data source."
     @moduledoc """
     Generates a complete data source definition for the datasets generated

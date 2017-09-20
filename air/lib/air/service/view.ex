@@ -3,7 +3,6 @@ defmodule Air.Service.View do
 
   alias Air.Schemas.{User, View}
   alias Air.{Repo, Service.DataSource, Version}
-  import Supervisor.Spec
   import Ecto.Query
   require Logger
 
@@ -16,21 +15,6 @@ defmodule Air.Service.View do
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
-
-  @doc "Returns the supervisor specification for this service."
-  @spec supervisor_spec() :: Supervisor.Spec.spec
-  def supervisor_spec(), do:
-    supervisor(
-      Supervisor,
-      [
-        [
-          supervisor(Task.Supervisor, [[name: @cloak_validations_sup]], id: @cloak_validations_sup),
-          worker(Registry, [:duplicate, @notifications_registry], id: @notifications_registry),
-        ],
-        [strategy: :one_for_one, name: __MODULE__]
-      ],
-      id: __MODULE__
-    )
 
   @doc "Subscribes to notifications about asynchronous activities, such as revalidations of views."
   @spec subscribe_to(:revalidated_views) :: :ok
@@ -239,4 +223,22 @@ defmodule Air.Service.View do
   defp by_data_source_id(scope, data_source_id), do: where(scope, [v], v.data_source_id == ^data_source_id)
 
   defp only_broken(scope), do: where(scope, [v], v.broken == true)
+
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg) do
+    import Aircloak.ChildSpec
+
+    supervisor(
+      [
+        task_supervisor(name: @cloak_validations_sup),
+        registry(:duplicate, @notifications_registry),
+      ],
+      strategy: :one_for_one, name: __MODULE__
+    )
+  end
 end

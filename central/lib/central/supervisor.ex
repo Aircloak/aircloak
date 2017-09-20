@@ -1,17 +1,15 @@
 defmodule Central.Supervisor do
   @moduledoc false
 
-  def start_link do
-    import Supervisor.Spec, warn: false
-
-    children = [
-      supervisor(Central.Repo, []),
-      worker(Central.Repo.Migrator, [], restart: :transient),
-      Central.Service.Customer.supervisor_spec(),
-      supervisor(Central.AirStats, []),
-      supervisor(Central.Endpoint, [], function: :start_site),
-    ]
-
-    Supervisor.start_link(children, strategy: :one_for_one, name: Central.Supervisor)
-  end
+  def start_link, do:
+    Supervisor.start_link(
+      [
+        Central.Repo,
+        Central.Repo.Migrator,
+        Central.Service.Customer,
+        Central.AirStats,
+        Central.Endpoint,
+      ],
+      strategy: :one_for_one, name: __MODULE__
+    )
 end

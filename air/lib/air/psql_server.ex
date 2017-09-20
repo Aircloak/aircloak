@@ -28,22 +28,12 @@ defmodule Air.PsqlServer do
 
   @behaviour RanchServer
 
-  @type configuration :: %{require_ssl: boolean, certfile: String.t, keyfile: String.t}
+  @type configuration :: %{require_ssl: boolean, certfile: String.t | nil, keyfile: String.t | nil}
 
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
-
-  @doc "Returns the supervisor specification for the server."
-  @spec child_spec() :: Supervisor.child_spec
-  def child_spec(), do:
-    RanchServer.child_spec(
-      Application.fetch_env!(:air, Air.PsqlServer)[:port],
-      __MODULE__,
-      nil,
-      ranch_opts()
-    )
 
   @doc "Converts the type string returned from cloak to PostgreSql type atom."
   @spec psql_type(String.t) :: Protocol.Value.type
@@ -341,4 +331,21 @@ defmodule Air.PsqlServer do
     defp psql_type_impl(unquote(sql_type)), do: unquote(psql_type)
   end
   defp psql_type_impl(_other), do: :unknown
+
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg), do:
+    Supervisor.child_spec(
+      {RanchServer, {
+        Application.fetch_env!(:air, Air.PsqlServer)[:port],
+        __MODULE__,
+        nil,
+        ranch_opts()
+      }},
+      id: __MODULE__
+    )
 end

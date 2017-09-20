@@ -1,6 +1,7 @@
 defmodule Central.AirStats do
   @moduledoc "Starts processes for gathering and logging of air statistics."
 
+  use Aircloak.ChildSpec.Supervisor
   alias Central.Service.Customer
 
   @type air_info :: %{
@@ -19,17 +20,14 @@ defmodule Central.AirStats do
 
   @doc "Starts the supervisor of connection monitors."
   @spec start_link() :: Supervisor.on_start
-  def start_link() do
-    import Supervisor.Spec, warn: false
-
+  def start_link(), do:
     Supervisor.start_link(
       [
-        supervisor(Task.Supervisor, [[name: Central.AirStats.TaskSup]]),
-        worker(Central.AirStats.PeriodicLogger, []),
+        Aircloak.ChildSpec.task_supervisor(name: Central.AirStats.TaskSup),
+        Central.AirStats.PeriodicLogger,
       ],
       strategy: :rest_for_one
     )
-  end
 
   @doc "Should be started from the air channel process to monitor the connection."
   @spec register(Central.Schemas.Customer.t, String.t, air_info) :: :ok

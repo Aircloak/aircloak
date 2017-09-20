@@ -1,14 +1,14 @@
 defmodule Air.CentralClient do
   @moduledoc "Top-level supervisor of Central client processes."
 
-  import Supervisor.Spec, warn: false
+  use Aircloak.ChildSpec.Supervisor
 
   @doc "Starts the supervision tree."
   @spec start_link :: Supervisor.on_start
   def start_link() do
     Supervisor.start_link(
       auto_export_process() ++ [
-        worker(Task, [&report_usage/0], id: Module.concat(__MODULE__, UsageReporter), shutdown: :brutal_kill)
+        Supervisor.Spec.worker(Task, [&report_usage/0], id: __MODULE__.UsageReporter, shutdown: :brutal_kill)
       ],
       strategy: :one_for_one,
       name: __MODULE__
@@ -17,7 +17,7 @@ defmodule Air.CentralClient do
 
   defp auto_export_process() do
     if Air.Service.Central.auto_export?(),
-      do: [worker(Air.CentralClient.Socket, [])],
+      do: [Air.CentralClient.Socket],
       else: []
   end
 

@@ -245,4 +245,12 @@ defmodule Air.CentralClient.Socket do
   end
 
   defp version(), do: Aircloak.Version.for_app(:air) |> Aircloak.Version.to_string()
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg), do:
+    Supervisor.Spec.worker(__MODULE__, [])
 end

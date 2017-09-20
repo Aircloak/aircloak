@@ -71,10 +71,10 @@ defmodule Cloak.LoggerTranslatorTest do
     end
   end
 
-  describe "GenEvent" do
+  describe ":gen_event" do
     setup do
-      {:ok, pid} = GenEvent.start()
-      GenEvent.add_mon_handler(pid, Module.concat(__MODULE__, GenEventHandler), nil)
+      {:ok, pid} = :gen_event.start()
+      :gen_event.add_sup_handler(pid, Module.concat(__MODULE__, GenEventHandler), nil)
 
       [pid: pid]
     end
@@ -90,7 +90,7 @@ defmodule Cloak.LoggerTranslatorTest do
 
     defp crash_event_handler(pid, fun) do
       ExUnit.CaptureLog.capture_log(fn ->
-        GenEvent.notify(pid, {:fun, fun})
+        :gen_event.notify(pid, {:fun, fun})
         receive do
           {:gen_event_EXIT, _handler, _reason} -> :ok
           after :timer.seconds(1) -> raise "GenEvent handler didn't exit."
@@ -99,10 +99,16 @@ defmodule Cloak.LoggerTranslatorTest do
     end
 
     defmodule GenEventHandler do
-      use GenEvent
+      @behaviour :gen_event
+
+      def init(_), do:
+        {:ok, nil}
 
       def handle_event({:fun, fun}, state), do:
         {:ok, fun.(state)}
+
+      def handle_call(_request, _state), do:
+        raise "not supported"
     end
   end
 

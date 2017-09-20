@@ -1,6 +1,7 @@
 defmodule Central.Repo do
   @moduledoc false
   use Ecto.Repo, otp_app: :central
+  use Aircloak.ChildSpec.Supervisor
   require Aircloak.DeployConfig
 
   # Need to disable due to error in old Ecto. Should be revised once we upgrade Ecto to 2.0
@@ -33,7 +34,7 @@ defmodule Central.Repo do
 
   defmodule Migrator do
     @moduledoc false
-    use GenServer
+    use GenServer, start: {__MODULE__, :start_link, []}, restart: :transient
 
     # Note: we're using GenServer (instead of e.g. `Task`) to ensure that the rest
     # of the system waits until the database is migrated.
