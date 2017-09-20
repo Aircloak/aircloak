@@ -15,8 +15,7 @@
 - Documented `HEX` and `TRIM` functions.
 - Support for TCP transport in PostgreSQL server protocol
 - Support for cancelling queries over the Postgres Message Protocol interface
-- `right` string function is now offloaded over MongoDB data sets.
-- `bucket` function is now offloaded over MongoDB data sets.
+- `right`, `bucket` and `round` functions are now offloaded over MongoDB data sets.
 
 ### Bugfixes
 

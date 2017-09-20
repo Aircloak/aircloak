@@ -217,7 +217,8 @@ defmodule Cloak.DataSource.MongoDB do
   @supported_functions_3_0 ~w(+ - * ^ / % mod count sum min max avg
     || concat lower upper lcase ucase year month day weekday hour minute second
     cast_integer_to_real cast_real_to_text cast_integer_to_text cast_datetime_to_text cast_boolean_to_text)
-  @supported_functions_3_2 @supported_functions_3_0 ++ ~w(abs ceil floor sqrt trunc quarter div cast_real_to_integer)
+  @supported_functions_3_2 @supported_functions_3_0 ++ 
+    ~w(abs ceil floor round sqrt trunc quarter div cast_real_to_integer)
   @supported_functions_3_4 @supported_functions_3_2 ++ ~w(length left right substring)
   defp supported_functions(version) do
     cond do
