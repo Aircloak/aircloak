@@ -288,7 +288,7 @@ defmodule Cloak.DataSource.MongoDBTest do
             CAST(debt AS text) AS v3
            FROM #{@table}
         ) AS t ORDER BY 1
-      """, %{rows: [%{occurrences: 1, row: [-11, -10.0, "-10.55"]}, %{occurrences: 1, row: [nil, nil, nil]}]}
+      """, %{rows: [%{occurrences: 1, row: [- 11, - 10.0, "-10.55"]}, %{occurrences: 1, row: [nil, nil, nil]}]}
   end
 
   test "cast datetime", context do
@@ -308,6 +308,6 @@ defmodule Cloak.DataSource.MongoDBTest do
         SELECT v1, v2 FROM (
           SELECT _id, round(debt) AS v1, round(debt, 1) AS v2 FROM #{@table}
         ) AS t ORDER BY 1
-      """, %{rows: [%{occurrences: 5, row: [-11, -10.6]}, %{occurrences: 14, row: [nil, nil]}]}
+      """, %{rows: [%{occurrences: 5, row: [- 11, - 10.6]}, %{occurrences: 14, row: [nil, nil]}]}
   end
 end
