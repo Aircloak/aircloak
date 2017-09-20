@@ -60,8 +60,8 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   @doc false
   def sql_type(:real), do: "float"
   def sql_type(:boolean), do: "bool"
-  # Due to limitations in the ODBC driver, we can't use nvarchar(max).
-  def sql_type(:text), do: "nvarchar(4000)"
+  # Due to limitations in the ODBC driver, we can't use varchar(max).
+  def sql_type(:text), do: "varchar(4000)"
   def sql_type(type) when is_atom(type), do: Atom.to_string(type)
 
   @doc false
