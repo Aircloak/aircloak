@@ -26,6 +26,7 @@ defmodule Cloak.Stats do
   @doc "Returns the standard deviation of the input list of values. Single pass through the values."
   @spec stddev([number]) :: number
   def stddev([]), do: nil
+  def stddev([_value]), do: nil
   def stddev(values) do
     {count, sum, sum_squares} = count_and_sums(values, 0, 0, 0)
     variance = (count * sum_squares - sum * sum) / (count * (count - 1))

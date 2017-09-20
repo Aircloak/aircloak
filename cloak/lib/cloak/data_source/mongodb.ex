@@ -35,9 +35,10 @@ defmodule Cloak.DataSource.MongoDB do
     name of the table being the base table name suffixed with the array name, separated by `_`.
   """
 
-  alias Cloak.Sql.Query
+  alias Cloak.Sql.{Query, Expression}
   alias Cloak.DataSource
   alias Cloak.DataSource.MongoDB.{Schema, Pipeline}
+  alias Cloak.Query.DataDecoder
 
 
   # -------------------------------------------------------------------
@@ -126,11 +127,14 @@ defmodule Cloak.DataSource.MongoDB do
   def select(connection, query, result_processor) do
     {collection, pipeline} = Pipeline.build(query)
     options = [max_time: @timeout, timeout: @timeout, pool_timeout: @timeout, batch_size: 25_000, allow_disk_use: true]
-    columns_count = Enum.count(query.db_columns)
+    mappers =
+      query.db_columns
+      |> Enum.map(& &1 |> DataDecoder.encoded_type() |> type_to_field_mapper())
+      |> Enum.with_index()
     result =
       connection
       |> Mongo.aggregate(collection, pipeline, options)
-      |> Stream.map(&map_fields(&1, columns_count))
+      |> Stream.map(&map_fields(&1, mappers))
       |> result_processor.()
     {:ok, result}
   end
@@ -162,13 +166,21 @@ defmodule Cloak.DataSource.MongoDB do
     end
   end
 
-  defp map_fields(row, columns_count), do: Enum.map(1..columns_count, &map_field(row["f#{&1}"]))
+  defp type_to_field_mapper(:integer), do: &integer_field_mapper/1
+  defp type_to_field_mapper(_), do: &generic_field_mapper/1
 
-  defp map_field(%BSON.ObjectId{value: value}), do: value
-  defp map_field(%BSON.Binary{binary: value}), do: value
-  defp map_field(%DateTime{} = datetime), do:
+  defp integer_field_mapper(nil), do: nil
+  defp integer_field_mapper(value) when is_integer(value), do: value
+  defp integer_field_mapper(value) when is_float(value), do: round(value)
+
+  defp map_fields(row, mappers), do:
+    Enum.map(mappers, fn ({mapper, index}) -> mapper.(row["f#{index}"]) end)
+
+  defp generic_field_mapper(%BSON.ObjectId{value: value}), do: value
+  defp generic_field_mapper(%BSON.Binary{binary: value}), do: value
+  defp generic_field_mapper(%DateTime{} = datetime), do:
     datetime |> DateTime.to_naive() |> Cloak.Time.max_precision()
-  defp map_field(value), do: value
+  defp generic_field_mapper(value), do: value
 
   # In the case of arrays or objects with mixed types, we need to drop all their subfields.
   defp drop_unknown_subfields(fields) do
@@ -198,8 +210,9 @@ defmodule Cloak.DataSource.MongoDB do
   end
 
   @supported_functions_3_0 ~w(+ - * ^ / % mod count sum min max avg
-    || concat lower upper lcase ucase year month day weekday hour minute second)
-  @supported_functions_3_2 @supported_functions_3_0 ++ ~w(abs ceil floor sqrt trunc quarter div)
+    || concat lower upper lcase ucase year month day weekday hour minute second
+    cast_integer_to_real cast_real_to_text cast_integer_to_text cast_datetime_to_text cast_boolean_to_text)
+  @supported_functions_3_2 @supported_functions_3_0 ++ ~w(abs ceil floor sqrt trunc quarter div cast_real_to_integer)
   @supported_functions_3_4 @supported_functions_3_2 ++ ~w(length left right substring)
   defp supported_functions(version) do
     cond do
@@ -220,10 +233,14 @@ defmodule Cloak.DataSource.MongoDB do
   defp supports_used_functions_in_having?(_query), do: true
 
   defp supports_used_functions?(query) do
-    used_functions = Query.Lenses.db_needed_functions() |> Lens.to_list(query) |> Enum.map(& &1.function)
+    used_functions = Query.Lenses.db_needed_functions() |> Lens.to_list(query) |> Enum.map(&function_signature/1)
     supported_functions = query.data_source |> get_mongo_version() |> supported_functions()
     Enum.reject(used_functions, & &1 in supported_functions) == []
   end
+
+  defp function_signature(%Expression{function: {:cast, type}, function_args: [value]}), do:
+    "cast_#{value.type}_to_#{type}"
+  defp function_signature(%Expression{function?: true, function: name}), do: name
 
   defp supports_joins?(%Query{from: {:join, join}} = query) do
     # join support was added in 3.2

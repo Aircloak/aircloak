@@ -45,9 +45,10 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   @doc "Creates a MongoDB projection from a column."
   @spec project_column(Expression.t) :: {String.t, atom | map}
   def project_column(%Expression{name: name, alias: nil}), do: {name, true}
+  def project_column(%Expression{name: name, alias: name}), do: {name, true}
   def project_column(%Expression{aggregate?: true, function?: true, function: fun, function_args: [arg], alias: alias}), do:
-    {get_field_name(alias), parse_function(fun, begin_parse_column(arg))}
-  def project_column(column), do: {get_field_name(column.alias), begin_parse_column(column)}
+    {project_alias(alias), parse_function(fun, begin_parse_column(arg))}
+  def project_column(column), do: {project_alias(column.alias), begin_parse_column(column)}
 
 
   # -------------------------------------------------------------------
@@ -73,9 +74,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     not String.contains?(name, "..") and
     String.last(name) != "."
 
-  defp get_field_name(nil), do: "__unknown_field_name_#{:erlang.unique_integer([:positive])}"
-  defp get_field_name(""), do: get_field_name(nil)
-  defp get_field_name(name) do
+  defp project_alias(name) do
     if not valid_alias?(name), do:
       DataSource.raise_error("MongoDB column alias `#{name}` contains invalid character(s).")
     name
@@ -119,6 +118,10 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     %{'$add': [integer_devision_by_3, 1]}
   end
   defp parse_function("div", args), do: %{'$trunc': %{'$divide': args}}
+  defp parse_function("trunc", [value, decimals]) do
+    scale = %{'$pow': [%{'$literal': 10}, decimals]}
+    %{'$divide': [%{'$trunc': %{'$multiply': [value, scale]}}, scale]}
+  end
   for {name, translation} <- %{
     "*" => "$multiply", "/" => "$divide", "+" => "$add", "-" => "$subtract",
     "^" => "$pow", "pow" => "$pow", "%" => "$mod", "mod" => "$mod", "sqrt" => "$sqrt",
@@ -130,8 +133,15 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     "sum" => "$sum", "avg" => "$avg", "min" => "$min", "max" => "$max", "stddev" => "$stdDevPop", "size" => "$size",
   }, do:
     defp parse_function(unquote(name), args), do: %{unquote(translation) => args}
+  defp parse_function("cast", [value, from, :text]) when from in [:real, :integer], do:
+    %{'$substr': [value, 0, -1]}
+  defp parse_function("cast", [value, :integer, :real]), do: value
+  defp parse_function("cast", [value, :real, :integer]), do:
+    %{'$trunc': %{'$add': [value, %{'$cond': [%{'$lt': [value, 0]}, - 0.5, 0.5]}]}}
+  defp parse_function("cast", [value, :boolean, :text]), do:
+    %{'$cond': [%{'$eq': [value, nil]}, nil, %{'$cond': [value, "true", "false"]}]}
   defp parse_function("cast", [value, :datetime, :text]), do:
-    %{"$dateToString" => %{format: "%Y-%m-%d %H:%M:%S:%L", date: value}}
+    %{'$dateToString': %{format: "%Y-%m-%d %H:%M:%S.000%L", date: value}}
   defp parse_function("cast", [_value, from, to]), do:
     DataSource.raise_error("Casting from `#{from}` to `#{to}` is not supported in subqueries on MongoDB data sources.")
   defp parse_function(name, _args) when is_binary(name), do:
