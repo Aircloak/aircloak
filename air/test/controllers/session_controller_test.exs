@@ -5,7 +5,7 @@ defmodule Air.SessionControllerTest do
   alias Air.TestRepoHelper
 
   test "anonymous user can access the login page", %{conn: conn} do
-    TestRepoHelper.create_admin_user!() # Otherwise we are redirected to the onboarding
+    perform_onboarding()
     conn |> get("/auth") |> response(200)
   end
 
@@ -48,4 +48,17 @@ defmodule Air.SessionControllerTest do
     assert "/auth" == redirected_to(conn)
     assert get_flash(conn)["error"] =~ "You must be authenticated to view this page"
   end
+
+  test "a deleted user is redirected to login" do
+    perform_onboarding()
+    user = TestRepoHelper.create_user!()
+    conn = login(user)
+    Air.Repo.delete(user)
+
+    conn = get(conn, "/")
+    assert "/auth" == redirected_to(conn)
+  end
+
+  defp perform_onboarding(), do:
+    TestRepoHelper.create_admin_user!()
 end

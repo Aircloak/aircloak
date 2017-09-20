@@ -8,6 +8,7 @@
     - [Cloak configuration](#cloak-configuration)
     - [Typical tasks](#typical-tasks)
         - [Running partial tests](#running-partial-tests)
+        - [Running a specific compliance test](#running-a-specific-compliance-test)
         - [Running a local docker container](#running-a-local-docker-container)
         - [Deploying](#deploying)
     - [Installing database servers](#installing-database-servers)
@@ -172,6 +173,22 @@ By default, only native PostgreSQL adapter is tested locally, while MongoDB and 
 In order to have working tests on other drivers, you need to start corresponding database servers locally - see [Installing database servers](#installing-database-servers).
 
 Note that SAP HANA tests can't be executed directly on macOS machines. Instead, you need to start a local development container with `make dev-container`.
+
+#### Running a specific compliance test
+
+Each compliance test gets its tag which is reported for each failing test. This simplifies running a single compliance test. Example:
+
+```
+mix test --only "compliance:upper(<col>) changes.change notes_changes"
+```
+
+Note that there is no space after `:`.
+
+In addition, tests for each functions are tagged, so one can exercise a single function with:
+
+```
+mix test --only "pow(<col1>, <col2>)"
+```
 
 #### Running a local docker container
 

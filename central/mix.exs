@@ -52,7 +52,7 @@ defmodule Central.Mixfile do
   defp deps do
     [
       {:ecto, "~> 2.1"},
-      {:phoenix, "~> 1.2.1"},
+      {:phoenix, "~> 1.2.5"},
       {:phoenix_pubsub, "~> 1.0"},
       {:postgrex, ">= 0.0.0"},
       {:phoenix_ecto, "~> 3.0"},
@@ -61,7 +61,7 @@ defmodule Central.Mixfile do
       {:gettext, "~> 0.9"},
       {:cowboy, "~> 1.0"},
       {:comeonin, "~> 2.5"},
-      {:guardian, "~> 0.13.0"},
+      {:guardian, "~> 0.14.0"},
       {:timex, "~> 3.1"},
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
