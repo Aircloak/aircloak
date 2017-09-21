@@ -47,7 +47,8 @@ defmodule Cloak.Query.Aggregator do
   """
   @spec aggregate(Enumerable.t, Query.t, Engine.state_updater) :: Result.t
   def aggregate(rows, query, state_updater) do
-    rows = perform_low_count_checks(rows, query)
+    state_updater.(:ingesting_data)
+    rows = perform_low_count_checks(rows, query, state_updater)
     groups = groups(rows, query, state_updater)
     users_count = number_of_anonymized_users(groups, query)
     aggregated_buckets = groups
@@ -65,11 +66,15 @@ defmodule Cloak.Query.Aggregator do
   # Low count checks
   # -------------------------------------------------------------------
 
-  defp perform_low_count_checks(rows, query), do:
-    Enum.reduce(query.low_count_checks, rows, &perform_low_count_check(&1, &2, query))
+  defp perform_low_count_checks(rows, %Query{low_count_checks: []}, _state_updater), do: rows
+  defp perform_low_count_checks(rows, query, state_updater) do
+    Logger.debug("Performing low count checks ...")
+    Enum.reduce(query.low_count_checks, rows, &perform_low_count_check(&1, &2, query, state_updater))
+  end
 
-  defp perform_low_count_check(%LowCountCheck{expressions: expressions}, rows, query) do
+  defp perform_low_count_check(%LowCountCheck{expressions: expressions}, rows, query, state_updater) do
     rows = run_stream_to_avoid_rewinds(rows)
+    state_updater.(:processing)
     by_value =
       rows
       |> Enum.flat_map(fn (row) -> Enum.map(expressions, &{Expression.value(&1, row), row}) end)
@@ -175,7 +180,6 @@ defmodule Cloak.Query.Aggregator do
 
   defp groups(rows, query, state_updater) do
     Logger.debug("Grouping rows ...")
-    state_updater.(:ingesting_data)
 
     {per_user_aggregators, aggregated_columns} =
       query.aggregators

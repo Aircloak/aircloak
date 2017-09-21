@@ -118,6 +118,10 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     %{'$add': [integer_devision_by_3, 1]}
   end
   defp parse_function("div", args), do: %{'$trunc': %{'$divide': args}}
+  defp parse_function("trunc", [value, decimals]) do
+    scale = %{'$pow': [%{'$literal': 10}, decimals]}
+    %{'$divide': [%{'$trunc': %{'$multiply': [value, scale]}}, scale]}
+  end
   for {name, translation} <- %{
     "*" => "$multiply", "/" => "$divide", "+" => "$add", "-" => "$subtract",
     "^" => "$pow", "pow" => "$pow", "%" => "$mod", "mod" => "$mod", "sqrt" => "$sqrt",
@@ -129,8 +133,15 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     "sum" => "$sum", "avg" => "$avg", "min" => "$min", "max" => "$max", "stddev" => "$stdDevPop", "size" => "$size",
   }, do:
     defp parse_function(unquote(name), args), do: %{unquote(translation) => args}
+  defp parse_function("cast", [value, from, :text]) when from in [:real, :integer], do:
+    %{'$substr': [value, 0, -1]}
+  defp parse_function("cast", [value, :integer, :real]), do: value
+  defp parse_function("cast", [value, :real, :integer]), do:
+    %{'$trunc': %{'$add': [value, %{'$cond': [%{'$lt': [value, 0]}, - 0.5, 0.5]}]}}
+  defp parse_function("cast", [value, :boolean, :text]), do:
+    %{'$cond': [%{'$eq': [value, nil]}, nil, %{'$cond': [value, "true", "false"]}]}
   defp parse_function("cast", [value, :datetime, :text]), do:
-    %{"$dateToString" => %{format: "%Y-%m-%d %H:%M:%S:%L", date: value}}
+    %{'$dateToString': %{format: "%Y-%m-%d %H:%M:%S.000%L", date: value}}
   defp parse_function("cast", [_value, from, to]), do:
     DataSource.raise_error("Casting from `#{from}` to `#{to}` is not supported in subqueries on MongoDB data sources.")
   defp parse_function(name, _args) when is_binary(name), do:

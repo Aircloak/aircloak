@@ -187,7 +187,7 @@ Note that there is no space after `:`.
 In addition, tests for each functions are tagged, so one can exercise a single function with:
 
 ```
-mix test --only "function:pow(<col1>, <col2>)"
+mix test --only "pow(<col1>, <col2>)"
 ```
 
 #### Running a local docker container

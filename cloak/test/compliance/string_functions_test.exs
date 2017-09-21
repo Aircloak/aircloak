@@ -32,7 +32,7 @@ Enum.each([
   "extract_matches(<col>, '\\w')",
 ], fn(function) ->
   defmodule Module.concat([Compliance.StringFunctions, String.to_atom(function), Test]) do
-    use ComplianceCase, async: true
+    use ComplianceCase, async: true, timeout: :timer.minutes(2)
 
     @moduletag :"#{function}"
 

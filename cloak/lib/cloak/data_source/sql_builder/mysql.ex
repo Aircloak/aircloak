@@ -13,11 +13,11 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   @doc false
   def supported_functions(), do:
     ~w(
-      count sum min max avg stddev
+      count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc div mod ^ * / + -
       length lower upper btrim/1 ltrim/1 rtrim/1 left right substring substring_for concat
-      hex cast coalesce bucket hash
+      hex cast coalesce hash
     )
 
   @doc false
@@ -30,6 +30,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   def function_sql("btrim", [arg1]), do: ["TRIM(", arg1, ")"]
   def function_sql("div", [arg1, arg2]), do: [arg1, " DIV ", arg2]
   def function_sql("hex", [arg]), do: ["LOWER(HEX(", arg, "))"]
+  def function_sql("stddev", [arg]), do: ["STDDEV_SAMP(", arg, ")"]
   def function_sql("hash", [arg]), do: ["CAST(CONV(SUBSTR(MD5(CAST(", arg, " AS char)), 1, 15), 16, 10) AS signed)"]
   def function_sql("^", [arg1, arg2]), do: ["POW(", arg1, ", ", arg2, ")"]
   for binary_operator <- ~w(+ - * / %) do

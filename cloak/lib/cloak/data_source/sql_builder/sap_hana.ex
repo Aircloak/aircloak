@@ -12,11 +12,11 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   @doc false
   def supported_functions(), do:
     ~w(
-      count sum min max avg stddev
+      count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc mod div ^ % * / + -
       length lower upper btrim/1 ltrim rtrim left right substring substring_for concat
-      cast coalesce bucket
+      cast coalesce
     )
 
   @doc false
@@ -39,6 +39,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def function_sql("avg", [["DISTINCT " <> _ | _] = arg]), do:
     ["AVG(DISTINCT TO_DECIMAL(", arg |> to_string() |> String.replace(~r/DISTINCT /, ""), "))"]
   def function_sql("avg", [arg]), do: ["AVG(TO_DECIMAL(", arg, "))"]
+  def function_sql("stddev", [arg]), do: ["STDDEV_SAMP(", arg, ")"]
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") ,")"]
 
   @doc false
@@ -48,8 +49,14 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   @doc false
   def sql_type(:text), do: "nclob"
   def sql_type(:datetime), do: "timestamp"
-  def sql_type(type) when is_atom(type), do: String.upcase(Atom.to_string(type))
+  def sql_type(type) when is_atom(type), do: Atom.to_string(type)
 
   @doc false
   def unicode_literal(value), do: ["N'", value, ?']
+
+  @doc false
+  def cast_sql(value, :integer), do:
+    ["CAST(", function_sql("round", [value]), " AS integer)"]
+  def cast_sql(value, type), do:
+    ["CAST(", value, " AS ", sql_type(type), ")"]
 end

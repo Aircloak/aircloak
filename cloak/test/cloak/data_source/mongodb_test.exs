@@ -275,4 +275,28 @@ defmodule Cloak.DataSource.MongoDBTest do
         SELECT v FROM (SELECT _id, left(right(name, 3), 2) AS v FROM #{@table}) AS t WHERE v IS NOT NULL
       """, %{rows: [%{occurrences: 9, row: ["er"]}]}
   end
+
+  test "cast numbers", context do
+    assert_query context, """
+        SELECT distinct v1, v2, v3 FROM (
+          SELECT _id,
+            CAST(age AS integer) AS v1,
+            CAST(round(age) AS real) AS v2,
+            CAST(age AS text) AS v3
+           FROM #{@table}
+        ) AS t ORDER BY 1
+      """, %{rows: [%{occurrences: 1, row: [30, 30.0, "30"]}, %{occurrences: 1, row: [nil, nil, nil]}]}
+  end
+
+  test "cast datetime", context do
+    assert_query context, """
+        SELECT v FROM (SELECT _id, CAST(date AS text) AS v FROM #{@table}) AS t WHERE v IS NOT NULL
+      """, %{rows: [%{occurrences: 10, row: ["2015-07-26 19:50:03.000000"]}]}
+  end
+
+  test "cast boolean", context do
+    assert_query context, """
+        SELECT v FROM (SELECT _id, CAST(male AS text) AS v FROM #{@table}) AS t ORDER BY 1
+      """, %{rows: [%{occurrences: 10, row: ["true"]}, %{occurrences: 9, row: [nil]}]}
+  end
 end

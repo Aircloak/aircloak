@@ -54,7 +54,11 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       def cast_unknown_sql(column_sql), do:
         raise ExecutionError, message: "column `#{column_sql}` is of an unknown type"
 
-      defoverridable like_sql: 2, ilike_sql: 2, limit_sql: 2, cast_unknown_sql: 1
+      @doc false
+      def cast_sql(value, type), do:
+        ["CAST(", value, " AS ", sql_type(type), ")"]
+
+      defoverridable like_sql: 2, ilike_sql: 2, limit_sql: 2, cast_unknown_sql: 1, cast_sql: 2
     end
   end
 end
