@@ -95,11 +95,11 @@ defmodule Compliance.DataSources do
   # -------------------------------------------------------------------
 
   defp config_name("compliance") do
-    if \
+    if env("TEST") == "compliance" and (
       env("TRAVIS_EVENT_TYPE") in ["pull_request", "cron"] ||
       env("TRAVIS_BRANCH") == "master" ||
       env("TRAVIS_BRANCH") =~ ~r/^release_.*/
-    do
+    ) do
       "compliance_travis"
     else
       "compliance"

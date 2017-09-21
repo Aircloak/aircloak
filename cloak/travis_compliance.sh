@@ -5,6 +5,7 @@ set -eox pipefail
 echo $TRAVIS
 echo $TRAVIS_BRANCH
 echo $TRAVIS_EVENT_TYPE
+echo $TEST
 
 cd aircloak/cloak
 

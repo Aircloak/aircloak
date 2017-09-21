@@ -61,6 +61,7 @@ set -eox pipefail
       -e TRAVIS="$TRAVIS" \
       -e TRAVIS_BRANCH="$TRAVIS_BRANCH" \
       -e TRAVIS_EVENT_TYPE="$TRAVIS_EVENT_TYPE" \
+      -e TEST="$TEST" \
       aircloak/cloak_dev:latest aircloak/cloak/travis_compliance.sh
 
   fi
