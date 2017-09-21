@@ -45,7 +45,7 @@ set -eox pipefail
     make docs
     make lint
     make odbc_drivers
-    mix test --exclude compliance --include exclude_in_dev --max-cases 10
+    mix test --include exclude_in_dev --max-cases 10
     make dialyze
     make proper-extended
     popd
