@@ -1,5 +1,3 @@
-# NOTE:
-# - stddev[_noise] is missing because it crashes on values from the users table
 Enum.each([
   # {aggregate function, whether it is supported in subqueries}
   {"count(*)", true},
@@ -12,6 +10,10 @@ Enum.each([
   {"avg_noise(<col>)", false},
   {"avg(distinct <col>)", true},
   {"avg_noise(distinct <col>)", false},
+  {"stddev(<col>)", true},
+  {"stddev_noise(<col>)", false},
+  {"stddev(distinct <col>)", true},
+  {"stddev_noise(distinct <col>)", false},
   {"median(<col>)", true},
   {"median(distinct <col>)", true},
   {"max(<col>)", true},
@@ -31,10 +33,9 @@ Enum.each([
         @tag compliance: "#{aggregate} #{column} #{table} subquery"
         test "aggregate #{aggregate} on input #{column} in a sub-query on #{table}", context do
           context
-          |> disable_for(MongoDB, match?("length" <> _, unquote(column)))
           |> assert_consistent_and_not_failing("""
             SELECT
-              aggregate
+              round(aggregate, 6)
             FROM (
               SELECT
                 #{unquote(uid)},
@@ -42,7 +43,7 @@ Enum.each([
               FROM #{unquote(table)}
               GROUP BY #{unquote(uid)}
             ) table_alias
-            ORDER BY aggregate
+            ORDER BY 1
           """)
         end
       end

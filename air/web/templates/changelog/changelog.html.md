@@ -6,6 +6,7 @@
 - Added global and per-user custom settings for displaying numbers in the UI.
 - Support for using min/max/median aggregators over date/time value in the top-level query.
 - Median is now supported in subqueries. When it is used, emulation will be activated for the query.
+- Added the beta support for SAP HANA data sources.
 
 ### Enhancements
 
@@ -14,7 +15,7 @@
 - Documented `HEX` and `TRIM` functions.
 - Support for TCP transport in PostgreSQL server protocol
 - Support for cancelling queries over the Postgres Message Protocol interface
-- `right` string function is now offloaded over MongoDB data sets.
+- `right`, `bucket` and `round` functions are now offloaded over MongoDB data sets.
 
 ### Bugfixes
 

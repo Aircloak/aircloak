@@ -175,6 +175,7 @@ defmodule Cloak.Query.DBEmulatorTest do
     end
 
     test "stddev" do
+      :ok = insert_rows(_user_ids = 21..21, "#{@prefix}emulated", ["value"], [Base.encode64("wasabi")])
       assert_query """
         select round(avg(v)) from
           (select user_id, stddev(length(value)) as v from #{@prefix}emulated group by user_id) as t

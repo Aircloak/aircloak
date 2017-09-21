@@ -67,7 +67,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     projection =
       columns
       |> Enum.map(&"$#{&1.name}")
-      |> Enum.with_index(1)
+      |> Enum.with_index()
       |> Enum.map(fn ({field, index}) -> {"f#{index}", field} end)
       |> Enum.into(%{"_id" => false})
     [%{'$project': projection}]
@@ -78,10 +78,9 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_query(%Query{subquery?: false} = query, _top_level? = true), do:
     project_columns(query.db_columns, true)
   defp parse_query(%Query{subquery?: true} = query, top_level?), do:
-    aggregate_and_project(query, top_level?) ++
-    order_rows(query.order_by) ++
-    offset_rows(query.offset) ++
-    limit_rows(query.limit)
+    query
+    |> compile_columns()
+    |> aggregate_and_project(top_level?)
 
   defp filter_data(nil), do: []
   defp filter_data(condition), do: [%{'$match': parse_where_condition(condition)}]
@@ -184,11 +183,16 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     [%{'$unwind': "$" <> path} | unwind_arrays(rest, path)]
   end
 
+  defp order_and_range(query), do:
+    order_rows(query.order_by) ++
+    offset_rows(query.offset) ++
+    limit_rows(query.limit)
+
   defp order_rows([]), do: []
   defp order_rows(order_by) do
-    order_by = for {expression, dir} <- order_by, into: %{} do
+    order_by = for {column, dir} <- order_by, into: %{} do
       dir = if dir == :desc do -1 else 1 end
-      {map_field(expression), dir}
+      {column.alias || column.name, dir}
     end
     [%{'$sort': order_by}]
   end
@@ -198,6 +202,29 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   defp limit_rows(nil), do: []
   defp limit_rows(amount), do: [%{'$limit': amount}]
+
+  defp simple_order_by?(query), do:
+    query
+    |> Query.order_by_expressions()
+    |> Enum.all?(& &1.name != nil)
+
+  defp compile_columns(query) do
+    # Complex columns referenced by the `ORDER BY` clause, that are not already selected,
+    # need to be named and included in the projected columns list so that the `$sort` step can reference them.
+    needed_columns =
+      (query.db_columns ++ Query.order_by_expressions(query))
+      |> Enum.uniq()
+      |> Enum.with_index(1)
+      |> Enum.map(fn ({column, index}) ->
+        alias = column.alias || column.name || "__unknown_#{index}"
+        %Expression{column | alias: alias}
+      end)
+    order_by = for {column, dir} <- query.order_by do
+      column_with_alias = Enum.find(needed_columns, column, &%Expression{&1 | alias: nil} == column)
+      {column_with_alias, dir}
+    end
+    %Query{query | db_columns: needed_columns, order_by: order_by}
+  end
 
   defp extract_aggregator(%Expression{aggregate?: true} = column), do: [column]
   defp extract_aggregator(%Expression{function: fun} = column) when fun != nil,
@@ -258,12 +285,14 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     |> Query.Lenses.operands()
     |> Lens.map(conditions, &extract_column_top(&1, aggregators, []))
 
-  defp aggregate_and_project(%Query{db_columns: columns, distinct?: true}, top_level?) do
+  defp aggregate_and_project(%Query{db_columns: columns, distinct?: true} = query, top_level?) do
     properties = project_properties(columns)
     column_tops = Enum.map(columns, &extract_column_top(&1, [], columns))
-    [%{'$group': %{"_id" => properties}}] ++ project_columns(column_tops, top_level?)
+    [%{'$group': %{"_id" => properties}}] ++
+    project_columns(column_tops, top_level?) ++
+    order_and_range(query)
   end
-  defp aggregate_and_project(%Query{db_columns: columns, group_by: groups, having: having}, top_level?) do
+  defp aggregate_and_project(%Query{db_columns: columns, group_by: groups, having: having} = query, top_level?) do
     having_columns =
       Query.Lenses.conditions()
       |> Lens.to_list(having)
@@ -273,13 +302,21 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       |> Enum.flat_map(&extract_aggregator/1)
       |> Enum.uniq()
     if aggregators ++ groups == [] do
-      project_columns(columns, top_level?)
+      if simple_order_by?(query) do
+        # if $sort and $limit steps are first, collection indexes might be used to speed up the pipeline
+        order_and_range(query) ++ project_columns(columns, top_level?)
+      else
+        project_columns(columns, top_level?) ++ order_and_range(query)
+      end
     else
       column_tops = Enum.map(columns, &extract_column_top(&1, aggregators, groups))
       properties = project_properties(groups)
       group = aggregators |> project_aggregators() |> Enum.into(%{"_id" => properties})
       having = extract_column_top_from_conditions(having, aggregators)
-      [%{'$group': group}] ++ filter_data(having) ++ project_columns(column_tops, top_level?)
+      [%{'$group': group}] ++
+      filter_data(having) ++
+      project_columns(column_tops, top_level?) ++
+      order_and_range(query)
     end
   end
 

@@ -6,35 +6,43 @@ defmodule Cloak.Test.QueryHelpers do
   alias Cloak.Sql.{Expression, Compiler, Parser, Query}
 
   defmacro assert_query_consistency(query, options \\ []) do
-    parameters = Keyword.get(options, :parameters, [])
-    views = Keyword.get(options, :views, quote(do: %{}))
-    data_sources = Keyword.get(options, :data_sources, quote(do: Cloak.DataSource.all()))
-    quote do
+    quote bind_quoted: [
+      query: query,
+      parameters: Keyword.get(options, :parameters, []),
+      views: Keyword.get(options, :views, quote(do: %{})),
+      data_sources: Keyword.get(options, :data_sources, quote(do: Cloak.DataSource.all())),
+      timeout: Keyword.get(options, :timeout, :timer.seconds(60))
+    ] do
       run_query =
         fn(data_source) ->
-          Cloak.Query.Runner.start("1", data_source, unquote(query), unquote(parameters), unquote(views),
+          Cloak.Query.Runner.start("1", data_source, query, parameters, views,
             {:process, self()})
           receive do
-            {:result, response} -> response
+            {:result, result} -> result
           end
         end
 
-      [{first_response, first_data_source} | other_responses] =
-        unquote(data_sources)
-        |> Enum.map(&Task.async(fn -> run_query.(&1) end))
-        |> Enum.map(&Task.yield(&1, :timer.seconds(60)))
-        |> Enum.map(fn
-          {:ok, result} -> result
-          nil -> %{error: :timeout}
+      tasks = Enum.map(data_sources, &Task.async(fn -> run_query.(&1) end))
+      results = tasks |> Task.yield_many(timeout) |> Enum.into(%{})
+
+      [{first_data_source, first_result} | other_results] =
+        data_sources
+        |> Enum.zip(tasks)
+        |> Enum.map(fn({data_source, task}) ->
+          result =
+            case Map.fetch!(results, task) do
+              {:ok, query_result} -> Map.drop(query_result, [:execution_time, :features])
+              nil -> %{error: :timeout}
+            end
+
+          {data_source, result}
         end)
-        |> Enum.map(&Map.drop(&1, [:execution_time, :features]))
-        |> Enum.zip(unquote(data_sources))
 
-      for {other_response, other_data_source} <- other_responses, do:
-        unquote(__MODULE__).assert_equal(first_response, other_response, 0.00000001,
-          first_data_source, other_data_source, unquote(query))
+      for {other_data_source, other_result} <- other_results, do:
+        Cloak.Test.QueryHelpers.assert_equal(first_result, other_result, 0.00000001,
+          first_data_source, other_data_source, query)
 
-      first_response
+      first_result
     end
   end
 
