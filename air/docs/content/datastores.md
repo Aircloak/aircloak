@@ -131,9 +131,8 @@ This section lists the functions which will cause a query to be emulated.
 |--------------:|:--------:|:--------:|:--------:|
 | abs           | emulated |  &nbsp;  |  &nbsp;  |
 | btrim         | emulated | emulated | emulated |
-| cast          | emulated | emulated | emulated |
-| ceil          | emulated |  &nbsp;  |  &nbsp;  |
-| ceiling       | emulated |  &nbsp;  |  &nbsp;  |
+| cast          | emulated | partially| partially|
+| ceil/ceiling  | emulated |  &nbsp;  |  &nbsp;  |
 | date_trunc    | emulated | emulated | emulated |
 | floor         | emulated |  &nbsp;  |  &nbsp;  |
 | hex           | emulated | emulated | emulated |
@@ -141,10 +140,9 @@ This section lists the functions which will cause a query to be emulated.
 | length        | emulated | emulated |  &nbsp;  |
 | ltrim         | emulated | emulated | emulated |
 | median        | emulated | emulated | emulated |
-| pow           | emulated | emulated | emulated |
 | quarter       | emulated |  &nbsp;  |  &nbsp;  |
 | right         | emulated | emulated |  &nbsp;  |
-| round         | emulated | emulated | emulated |
+| round         | emulated |  &nbsp;  |  &nbsp;  |
 | rtrim         | emulated | emulated | emulated |
 | sqrt          | emulated |  &nbsp;  |  &nbsp;  |
 | stddev        | emulated | emulated | emulated |

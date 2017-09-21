@@ -23,7 +23,7 @@ defmodule Cloak.DataSource.MongoDBTest do
     Mongo.insert_one!(conn, @table, %{mixed: [1, 2, 3]})
     Mongo.insert_one!(conn, @table, %{mixed: %{a: 1, b: 2}})
     for _i <- 11..15 do
-      Mongo.insert_one!(conn, @table, %{})
+      Mongo.insert_one!(conn, @table, %{debt: -10.55})
     end
     decoder = %{method: "text_to_real", columns: ["bills.ids"]}
     table_config = Table.new(@table, "_id", db_name: @table, decoders: [decoder])
@@ -51,6 +51,7 @@ defmodule Cloak.DataSource.MongoDBTest do
       Table.column("age", :real),
       Table.column("bills#", :integer),
       Table.column("date", :datetime),
+      Table.column("debt", :real),
       Table.column("male", :boolean),
       Table.column("mixed", :unknown),
       Table.column("name", :text),
@@ -59,6 +60,7 @@ defmodule Cloak.DataSource.MongoDBTest do
       Table.column("_id", :text),
       Table.column("age", :real),
       Table.column("date", :datetime),
+      Table.column("debt", :real),
       Table.column("male", :boolean),
       Table.column("mixed", :unknown),
       Table.column("name", :text),
@@ -69,6 +71,7 @@ defmodule Cloak.DataSource.MongoDBTest do
       Table.column("_id", :text),
       Table.column("age", :real),
       Table.column("date", :datetime),
+      Table.column("debt", :real),
       Table.column("male", :boolean),
       Table.column("mixed", :unknown),
       Table.column("name", :text),
@@ -203,8 +206,8 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "unsupported functions in sub-queries are emulated", context do
-    assert_query context, "SELECT AVG(age) FROM (SELECT _id, round(age) AS age FROM #{@table}) AS t",
-      %{rows: [%{occurrences: 1, row: [30.0]}]}
+    assert_query context, "SELECT v FROM (SELECT _id, btrim(bills.issuer) AS v FROM #{@table}_bills) AS t",
+      %{rows: [%{occurrences: 10, row: ["vendor"]}]}
   end
 
   test "dotted names", context do
@@ -280,12 +283,12 @@ defmodule Cloak.DataSource.MongoDBTest do
     assert_query context, """
         SELECT distinct v1, v2, v3 FROM (
           SELECT _id,
-            CAST(age AS integer) AS v1,
-            CAST(round(age) AS real) AS v2,
-            CAST(age AS text) AS v3
+            CAST(debt AS integer) AS v1,
+            CAST(ceil(debt) AS real) AS v2,
+            CAST(debt AS text) AS v3
            FROM #{@table}
         ) AS t ORDER BY 1
-      """, %{rows: [%{occurrences: 1, row: [30, 30.0, "30"]}, %{occurrences: 1, row: [nil, nil, nil]}]}
+      """, %{rows: [%{occurrences: 1, row: [- 11, - 10.0, "-10.55"]}, %{occurrences: 1, row: [nil, nil, nil]}]}
   end
 
   test "cast datetime", context do
@@ -298,5 +301,13 @@ defmodule Cloak.DataSource.MongoDBTest do
     assert_query context, """
         SELECT v FROM (SELECT _id, CAST(male AS text) AS v FROM #{@table}) AS t ORDER BY 1
       """, %{rows: [%{occurrences: 10, row: ["true"]}, %{occurrences: 9, row: [nil]}]}
+  end
+
+  test "round", context do
+    assert_query context, """
+        SELECT v1, v2 FROM (
+          SELECT _id, round(debt) AS v1, round(debt, 1) AS v2 FROM #{@table}
+        ) AS t ORDER BY 1
+      """, %{rows: [%{occurrences: 5, row: [- 11, - 10.6]}, %{occurrences: 14, row: [nil, nil]}]}
   end
 end
