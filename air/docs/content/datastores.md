@@ -152,6 +152,8 @@ This section lists the functions which will cause a query to be emulated.
 | trim          | emulated | emulated | emulated |
 | trunc         | emulated |  &nbsp;  |  &nbsp;  |
 
+__Note__: The `SAMPLE_USERS`-clause is not natively supported on this data source and it will require emulation.
+
 #### MySQL and MariaDB
 
   - `btrim`
@@ -170,9 +172,7 @@ This section lists the functions which will cause a query to be emulated.
   - `length`
   - `median`
 
-### Interaction with sampling
-
-When sampling users with the `SAMPLE_USERS` clause, the `hex` function is used internally, so anywhere where `hex` is not natively available, the sampling query will be emulated.
+__Note__: The `SAMPLE_USERS`-clause is not natively supported on this data source and it will require emulation.
 
 ### Interaction with probing
 
