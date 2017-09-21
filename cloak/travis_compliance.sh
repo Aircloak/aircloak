@@ -11,7 +11,7 @@ cd aircloak/cloak
 . $HOME/.asdf/asdf.sh
 make odbc_drivers
 odbcinst -i -s -h -f priv/odbc/odbc_travis.ini
-cp priv/config/travis_compliance.json priv/config/travis.json
+cp priv/config/compliance_travis.json priv/config/travis.json
 
 TEST_SIZE=10
 CONCURRENCY=10
