@@ -93,14 +93,13 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_operator(:<=), do: :'$lte'
   defp parse_operator(:<>), do: :'$ne'
 
-  @epoch :calendar.datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}})
-  defp map_constant(%Expression{constant?: true, value: %NaiveDateTime{} = datetime}), do:
-    DateTime.from_naive!(datetime, "Etc/UTC")
+  defp map_constant(%Expression{constant?: true, value: %NaiveDateTime{} = datetime}) do
+    {date, {hour, minute, second}} = NaiveDateTime.to_erl(datetime)
+    {usec, _precision} = datetime.microsecond
+    BSON.DateTime.from_datetime({date, {hour, minute, second, usec}})
+  end
   defp map_constant(%Expression{constant?: true, value: %Date{} = date}), do:
-    {Date.to_erl(date), {0, 0, 0}}
-    |> :calendar.datetime_to_gregorian_seconds()
-    |> Kernel.-(@epoch)
-    |> DateTime.from_unix!()
+    BSON.DateTime.from_datetime({Date.to_erl(date), {0, 0, 0, 0}})
   defp map_constant(%Expression{constant?: true, value: value}), do: value
   defp map_constant(_), do:
     DataSource.raise_error("Conditions on MongoDB data sources have to be between a column and a constant.")
