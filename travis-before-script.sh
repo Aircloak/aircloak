@@ -71,6 +71,7 @@ set -eox pipefail
   if [[ "$TEST" == "cloak" || "$TEST" == "aux" || "$TEST" == "compliance" ]]; then
 
     pushd cloak
+    make odbc_drivers
     make deps
     popd
 
