@@ -54,7 +54,7 @@ defmodule Cloak.DataSource.MongoDB do
   @doc false
   def connect!(parameters) do
     self = self()
-    parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, timeout: @timeout, cursor_timeout: false,
+    parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, timeout: @timeout,
       pool: DBConnection.Connection, pool_timeout: @timeout, after_connect: fn (_) -> send self, :connected end]
     {:ok, connection} = Mongo.start_link(parameters)
     receive do
@@ -166,9 +166,14 @@ defmodule Cloak.DataSource.MongoDB do
 
   defp map_field(%BSON.ObjectId{value: value}), do: value
   defp map_field(%BSON.Binary{binary: value}), do: value
-  defp map_field(%DateTime{} = datetime), do:
-    datetime |> DateTime.to_naive() |> Cloak.Time.max_precision()
+  defp map_field(%BSON.DateTime{} = value) do
+    {{year, month, day}, {hour, minute, second, usec}} = BSON.DateTime.to_datetime(value)
+    NaiveDateTime.new(year, month, day, hour, minute, second, {usec, 6}) |> error_to_nil()
+  end
   defp map_field(value), do: value
+
+  defp error_to_nil({:ok, result}), do: result
+  defp error_to_nil({:error, _reason}), do: nil
 
   # In the case of arrays or objects with mixed types, we need to drop all their subfields.
   defp drop_unknown_subfields(fields) do
