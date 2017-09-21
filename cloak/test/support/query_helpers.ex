@@ -39,7 +39,7 @@ defmodule Cloak.Test.QueryHelpers do
         end)
 
       for {other_data_source, other_result} <- other_results, do:
-        Cloak.Test.QueryHelpers.assert_equal(first_result, other_result, 0.00000001,
+        Cloak.Test.QueryHelpers.assert_equal(first_result, other_result, 0.000001,
           first_data_source, other_data_source, query)
 
       first_result
