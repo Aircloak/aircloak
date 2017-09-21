@@ -73,6 +73,7 @@ set -eox pipefail
     pushd cloak
     make odbc_drivers
     make deps
+    mix config_sap_hana_test_schema
     popd
 
   fi

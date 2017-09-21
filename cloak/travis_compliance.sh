@@ -15,6 +15,5 @@ cp priv/config/compliance_travis.json priv/config/travis.json
 
 TEST_SIZE=10
 CONCURRENCY=10
-mix config_sap_hana_test_schema
 mix gen.test_data compliance $TEST_SIZE
 mix test --only compliance --max-cases $CONCURRENCY
