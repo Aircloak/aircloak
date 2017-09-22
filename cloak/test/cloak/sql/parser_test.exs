@@ -777,6 +777,10 @@ defmodule Cloak.Sql.Parser.Test do
       select(columns: [{:function, "-", [constant(:integer, 0), identifier("a")]}])
   end
 
+  test "unary plus" do
+    assert_parse "select +a from bar", select(columns: [identifier("a")])
+  end
+
   test "unary minus has higher precedence than ^" do
     assert_parse "select - a ^ b from bar",
       select(columns: [{:function, "^", [

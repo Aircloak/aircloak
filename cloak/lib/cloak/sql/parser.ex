@@ -182,11 +182,13 @@ defmodule Cloak.Sql.Parser do
 
   def unary_expression() do
     choice_deepest_error([
+      sequence([keyword(:+), concat_expression()]),
       sequence([keyword(:-), concat_expression()]),
       concat_expression()
     ])
     |> map(fn
       [:-, inner] -> {:function, "-", [{:constant, :integer, 0}, inner]}
+      [:+, inner] -> inner
       other -> other
     end)
   end
