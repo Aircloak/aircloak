@@ -150,6 +150,8 @@ This section lists the functions which will cause a query to be emulated.
 | trim          | emulated | emulated | emulated |
 | trunc         | emulated |  &nbsp;  |  &nbsp;  |
 
+__Note__: The `SAMPLE_USERS`-clause is not natively supported on this data source and it will require emulation.
+
 #### MySQL and MariaDB
 
   - `btrim`
@@ -168,6 +170,7 @@ This section lists the functions which will cause a query to be emulated.
   - `length`
   - `median`
 
+__Note__: The `SAMPLE_USERS`-clause is not natively supported on this data source and it will require emulation.
 
 ### Interaction with probing
 
