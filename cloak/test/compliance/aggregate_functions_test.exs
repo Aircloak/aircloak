@@ -26,6 +26,7 @@ Enum.each([
     alias Cloak.DataSource.MongoDB
 
     @moduletag :"#{aggregate}"
+    @integer_columns for {column, _table, _user_id} <- integer_columns(), do: column
 
     Enum.each(numerical_columns(), fn({column, table, uid}) ->
 
@@ -50,11 +51,9 @@ Enum.each([
 
       @tag compliance: "#{aggregate} #{column} #{table} query"
       test "aggregate #{aggregate} on input #{column} in query on #{table}", context do
+        [function, _] = String.split(unquote(aggregate), "(")
         context
-        |> disable_for(MongoDB, match?("avg" <> _, unquote(aggregate)))
-        |> disable_for(MongoDB, match?("max" <> _, unquote(aggregate)))
-        |> disable_for(MongoDB, match?("median" <> _, unquote(aggregate)))
-        |> disable_for(MongoDB, match?("min" <> _, unquote(aggregate)))
+        |> disable_for(MongoDB, function in ~w(min max median) and unquote(column) in @integer_columns)
         |> assert_consistent_and_not_failing("""
           SELECT #{on_column(unquote(aggregate), unquote(column))}
           FROM #{unquote(table)}
