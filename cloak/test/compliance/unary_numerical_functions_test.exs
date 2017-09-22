@@ -1,4 +1,6 @@
 Enum.each([
+  "-<col>",
+  "+<col>",
   "abs(<col>)",
   "ceil(<col>)",
   "ceiling(<col>)",
