@@ -177,7 +177,18 @@ defmodule Cloak.Sql.Parser do
   end
 
   def exponentiation_expression() do
-    infix_expression([keyword(:^)], concat_expression())
+    infix_expression([keyword(:^)], unary_expression())
+  end
+
+  def unary_expression() do
+    choice_deepest_error([
+      sequence([keyword(:-), concat_expression()]),
+      concat_expression()
+    ])
+    |> map(fn
+      [:-, inner] -> {:function, "-", [{:constant, :integer, 0}, inner]}
+      other -> other
+    end)
   end
 
   defp concat_expression() do

@@ -772,6 +772,18 @@ defmodule Cloak.Sql.Parser.Test do
         identifier("c")]}])
   end
 
+  test "unary minus" do
+    assert_parse "select -a from bar",
+      select(columns: [{:function, "-", [constant(:integer, 0), identifier("a")]}])
+  end
+
+  test "unary minus has higher precedence than ^" do
+    assert_parse "select - a ^ b from bar",
+      select(columns: [{:function, "^", [
+        {:function, "-", [constant(:integer, 0), identifier("a")]},
+        identifier("b")]}])
+  end
+
   test "cast" do
     assert_parse "select cast(a, integer) from bar",
       select(columns: [{:function, {:cast, :integer}, [identifier("a")]}])
@@ -870,10 +882,13 @@ defmodule Cloak.Sql.Parser.Test do
       select(
         columns: [
           {:function, "+", [constant(1), constant(2)]},
-          constant(-3),
+          {:function, "-", [constant(0), constant(3)]},
           constant(4),
-          {:function, "-", [constant(-5), constant(-6)]},
-          {:function, "+", [constant(-7), constant(8)]},
+          {:function, "-", [
+            {:function, "-", [constant(0), constant(5)]},
+            {:function, "-", [constant(0), constant(6)]},
+          ]},
+          {:function, "+", [{:function, "-", [constant(0), constant(7)]}, constant(8)]},
           {:function, "+", [constant(9), constant(10)]}
         ]
       )
@@ -886,10 +901,13 @@ defmodule Cloak.Sql.Parser.Test do
       select(
         columns: [
           {:function, "+", [constant(1.1), constant(2.1)]},
-          constant(-3.1),
+          {:function, "-", [constant(0), constant(3.1)]},
           constant(4.1),
-          {:function, "-", [constant(-5.1), constant(-6.1)]},
-          {:function, "+", [constant(-7.1), constant(8.1)]},
+          {:function, "-", [
+            {:function, "-", [constant(0), constant(5.1)]},
+            {:function, "-", [constant(0), constant(6.1)]}
+          ]},
+          {:function, "+", [{:function, "-", [constant(0), constant(7.1)]}, constant(8.1)]},
           {:function, "+", [constant(9.1), constant(10.1)]}
         ]
       )
