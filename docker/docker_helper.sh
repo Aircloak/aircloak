@@ -157,7 +157,7 @@ function build_aircloak_image {
       sed "s/\$ERLANG_VERSION/$(erlang_version)/" |
       sed "s/\$ELIXIR_VERSION/$(elixir_version)/" |
       sed "s/\$NODEJS_VERSION/$(nodejs_version)/" > "$temp_docker_file"
-    docker build -t $full_image_name:$image_version -f "$temp_docker_file" .
+    docker build --cache-from $full_image_name:$image_version -t $full_image_name:$image_version -f "$temp_docker_file" .
   } || {
     # called in the case of an error
     exit_code=$?

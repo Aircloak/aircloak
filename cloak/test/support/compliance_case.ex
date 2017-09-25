@@ -7,7 +7,6 @@ defmodule ComplianceCase do
     quote bind_quoted: [opts: opts] do
       @timeout Keyword.get(opts, :timeout, :timer.seconds(60))
 
-      @moduletag :exclude_in_dev
       @moduletag :compliance
       @moduletag report: [:compliance]
       @moduletag timeout: @timeout + :timer.seconds(10)
