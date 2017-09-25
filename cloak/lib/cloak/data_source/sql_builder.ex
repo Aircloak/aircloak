@@ -4,6 +4,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   alias Cloak.Sql.Query
   alias Cloak.Sql.Expression
   alias Cloak.DataSource.SqlBuilder.Support
+  alias Cloak.Query.DataDecoder
 
 
   # -------------------------------------------------------------------
@@ -64,7 +65,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     constant_to_fragment(value, sql_dialect_module)
   defp column_sql(%Expression{function?: false, constant?: false} = column, sql_dialect_module) do
     cond do
-      column.type == :text ->
+      DataDecoder.encoded_type(column) == :text ->
         # Force casting to text ensures we consistently fetch a string column as unicode, regardless of how it's
         # represented in the database (VARCHAR or NVARCHAR).
         Support.function_sql({:cast, :text}, [column_name(column, sql_dialect_module)], sql_dialect_module)

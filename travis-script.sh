@@ -1,17 +1,6 @@
 #!/bin/bash
 
-set -eo pipefail
-
-function banner() {
-  component=$1
-  echo
-  echo
-  echo
-  echo "# -------------------------------------------------------------------"
-  echo "# Tests for: $component"
-  echo "# -------------------------------------------------------------------"
-  echo
-}
+set -eox pipefail
 
 # Sub-shell, so we don't change paths, and things get confusing
 (
@@ -24,7 +13,6 @@ function banner() {
 
   if [[ "$TEST" == "aux" ]]; then
 
-    banner "common/elixir"
     pushd common/elixir
     make docs
     make lint
@@ -39,7 +27,6 @@ function banner() {
 
   if [[ "$TEST" == "air" ]]; then
 
-    banner "air"
     pushd air
     make docs
     make lint
@@ -54,7 +41,6 @@ function banner() {
 
   if [[ "$TEST" == "cloak" ]]; then
 
-    banner "cloak"
     pushd cloak
     make docs
     make lint
@@ -66,12 +52,24 @@ function banner() {
 
   fi
 
+  # compliance --------------------------------------------------------
+
+  if [[ "$TEST" == "compliance" ]]; then
+
+    docker run --net host \
+      -v $(pwd):/aircloak \
+      -e TRAVIS="$TRAVIS" \
+      -e TRAVIS_BRANCH="$TRAVIS_BRANCH" \
+      -e TRAVIS_EVENT_TYPE="$TRAVIS_EVENT_TYPE" \
+      -e TEST="$TEST" \
+      aircloak/cloak_dev:latest aircloak/cloak/travis_compliance.sh
+
+  fi
 
   # bom ---------------------------------------------------------------
 
   if [[ "$TEST" == "aux" ]]; then
 
-    banner "bom"
     pushd bom
     make docs
     make lint
@@ -87,7 +85,6 @@ function banner() {
 
   if [[ "$TEST" == "central" ]]; then
 
-    banner "central"
     pushd central
     make docs
     make lint
@@ -102,10 +99,11 @@ function banner() {
 
   if [[ "$TEST" == "integration" ]]; then
 
-    banner "integration_tests"
     pushd integration_tests
     INTEGRATION_TEST=true mix test
     popd
 
   fi
 )
+
+set +x

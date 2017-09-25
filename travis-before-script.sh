@@ -1,17 +1,6 @@
 #!/bin/bash
 
-set -eo pipefail
-
-function banner() {
-  component=$1
-  echo
-  echo
-  echo
-  echo "# -------------------------------------------------------------------"
-  echo "# Before-script: $component"
-  echo "# -------------------------------------------------------------------"
-  echo
-}
+set -eox pipefail
 
 # Sub-shell, so we don't change paths, and things get confusing
 (
@@ -23,8 +12,6 @@ function banner() {
 
   if [[ "$TEST" == "air" || "$TEST" == "integration" ]]; then
 
-    banner "air DB roles"
-
     psql -U postgres -c "CREATE USER airtest CREATEDB;"
     psql -U postgres -c "CREATE DATABASE air_test ENCODING 'UTF8';"
     psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE air_test TO airtest;"
@@ -33,8 +20,6 @@ function banner() {
   fi
 
   if [[ "$TEST" == "central" || "$TEST" == "integration" ]]; then
-
-    banner "central DB roles"
 
     psql -U postgres -c "CREATE USER central_test CREATEDB;"
     psql -U postgres -c "CREATE DATABASE central_test ENCODING 'UTF8';"
@@ -48,7 +33,6 @@ function banner() {
 
   if [[ "$TEST" == "aux" ]]; then
 
-    banner "common/elixir"
     # common/elixir
     pushd common/elixir
     mix deps.get
@@ -63,7 +47,6 @@ function banner() {
 
   if [[ "$TEST" == "air" || "$TEST" == "aux" ]]; then
 
-    banner "air deps"
     pushd air
     make deps
     popd
@@ -72,7 +55,6 @@ function banner() {
 
   if [[ "$TEST" == "air" ]]; then
 
-    banner "air"
     pushd air
 
     mix compile --warnings-as-errors
@@ -86,22 +68,20 @@ function banner() {
 
   # cloak -------------------------------------------------------------
 
-  if [[ "$TEST" == "cloak" || "$TEST" == "aux" ]]; then
+  if [[ "$TEST" == "cloak" || "$TEST" == "aux" || "$TEST" == "compliance" ]]; then
 
-    banner "cloak deps"
     pushd cloak
+    make odbc_drivers
     make deps
+    mix config_sap_hana_test_schema
     popd
 
   fi
 
-  if [[ "$TEST" == "cloak" ]]; then
+  if [[ "$TEST" == "compliance" ]]; then
 
-    banner "cloak"
     pushd cloak
     mix compile --warnings-as-errors
-    mix config_sap_hana_test_schema
-    mix gen.test_data "compliance" 200
     MIX_ENV=test make all
     popd
 
@@ -112,7 +92,6 @@ function banner() {
 
   if [[ "$TEST" == "aux" ]]; then
 
-    banner "bom"
     pushd bom
     make deps
     mix compile --warnings-as-errors
@@ -125,7 +104,6 @@ function banner() {
 
   if [[ "$TEST" == "central" ]]; then
 
-    banner "central"
     pushd central
 
     make deps
@@ -142,7 +120,6 @@ function banner() {
 
   if [[ "$TEST" == "integration" ]]; then
 
-    banner "integration_tests"
     pushd integration_tests
     MIX_ENV=test mix deps.get
     MIX_ENV=test mix compile
@@ -152,3 +129,5 @@ function banner() {
 
   fi
 )
+
+set +x

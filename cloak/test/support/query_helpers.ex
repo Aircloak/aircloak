@@ -39,7 +39,7 @@ defmodule Cloak.Test.QueryHelpers do
         end)
 
       for {other_data_source, other_result} <- other_results, do:
-        Cloak.Test.QueryHelpers.assert_equal(first_result, other_result, 0.00000001,
+        Cloak.Test.QueryHelpers.assert_equal(first_result, other_result, 0.000001,
           first_data_source, other_data_source, query)
 
       first_result
@@ -132,7 +132,8 @@ defmodule Cloak.Test.QueryHelpers do
     end
   end
   defp compare_to_within_delta(value1, value2, trace, delta) when is_float(value1) and is_float(value2) do
-    diff = abs(value1 - value2)
+    magnitude = abs((value1 + value2) / 2)
+    diff = abs(value1 - value2) / max(magnitude, delta)
     if diff <= delta do
       :ok
     else
