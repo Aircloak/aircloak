@@ -105,3 +105,5 @@ set -eox pipefail
 
   fi
 )
+
+set +x

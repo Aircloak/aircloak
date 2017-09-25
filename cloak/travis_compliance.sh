@@ -17,3 +17,5 @@ TEST_SIZE=10
 CONCURRENCY=10
 mix gen.test_data compliance $TEST_SIZE
 mix test --only compliance --max-cases $CONCURRENCY
+
+set +x
