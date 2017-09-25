@@ -28,7 +28,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def function_sql("trunc", [arg1, arg2]), do: ["ROUND(", arg1, ",", arg2, ", 1)"]
   def function_sql("round", [arg1]), do: ["ROUND(", arg1, ", 0)"]
   def function_sql("div", [arg1, arg2]), do: ["(", arg1, " / ", arg2, ")"]
-  def function_sql("hex", [arg]), do: ["LOWER(CONVERT(varchar, CAST(", arg, " AS varbinary), 2))"]
+  def function_sql("hex", [arg]), do: ["LOWER(CONVERT(nvarchar, CAST(", arg, " AS varbinary), 2))"]
   def function_sql("hash", [arg]), do:
     ["CONVERT(bigint, SUBSTRING(0x00 + HASHBYTES('md5', CAST(", arg, " AS binary)), 1, 8))"]
   def function_sql("stddev", [arg]), do: ["STDEV(", arg, ")"]
