@@ -2,11 +2,11 @@
 
 ### New features
 
-- Added the `date_trunc` function
+- Added beta support for SAP HANA data sources.
+- Added the `date_trunc` function.
 - Added global and per-user custom settings for displaying numbers in the UI.
 - Support for using min/max/median aggregators over date/time value in the top-level query.
 - Median is now supported in subqueries. When it is used, emulation will be activated for the query.
-- Added the beta support for SAP HANA data sources.
 - Added `SAMPLE_USERS` clause for reducing the number of users queried.
 
 ### Enhancements
@@ -16,15 +16,14 @@
 - Documented `HEX` and `TRIM` functions.
 - Support for TCP transport in PostgreSQL server protocol
 - Support for cancelling queries over the Postgres Message Protocol interface
-- `right`, `bucket` and `round` functions are now offloaded over MongoDB data sets.
+- `right`, `bucket` and `round` functions are now natively supported for MongoDB data sets.
 
 ### Bugfixes
 
 - Fixed crash in min/max aggregators when there are insufficient data to produce a value.
 - Fixed a bug where loading your past query history would not always return the queries you expected.
 - Fixed offloading of the string `length` function.
-- Fixed translation of `IS NOT NULL` clause over MongoDB data sets.
-- Fixed incorrect offloading of `left` and `substring` functions over MongoDB data sets.
+- Fixed offloading and translation of `left` and `substring`, and the `IS NOT NULL` clause for MongoDB data sets.
 
 ## Version 17.3.2
 
