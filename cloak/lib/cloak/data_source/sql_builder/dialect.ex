@@ -27,6 +27,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @doc "Returns the dialect-specific SQL for a unicode string literal."
   @callback unicode_literal(iodata) :: iodata
 
+  @doc "Returns the dialect-specific SQL for an interval literal."
+  @callback interval_literal(iodata) :: iodata
+
   alias Cloak.Query.ExecutionError
 
   defmacro __using__(_opts) do

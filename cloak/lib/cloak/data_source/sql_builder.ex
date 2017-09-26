@@ -137,8 +137,8 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp constant_to_fragment(%NaiveDateTime{} = value, _sql_dialect_module), do: [?', to_string(value), ?']
   defp constant_to_fragment(%Time{} = value, _sql_dialect_module), do: [?', to_string(value), ?']
   defp constant_to_fragment(%Date{} = value, _sql_dialect_module), do: [?', to_string(value), ?']
-  defp constant_to_fragment(%Timex.Duration{} = value, _sql_dialect_module), do:
-    ["interval '", Timex.Duration.to_string(value), ?']
+  defp constant_to_fragment(%Timex.Duration{} = value, sql_dialect_module), do:
+    sql_dialect_module.interval_literal(value)
   defp constant_to_fragment(value, _sql_dialect_module) when is_number(value), do: to_string(value)
   defp constant_to_fragment(value, _sql_dialect_module) when is_boolean(value), do: to_string(value)
   defp constant_to_fragment(value, sql_dialect_module) when is_binary(value), do:
