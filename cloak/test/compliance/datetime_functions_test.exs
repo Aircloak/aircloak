@@ -1,5 +1,3 @@
-# NOTE:
-# - weekday(<col>) produces inconsistent results and has therefore been disabled
 Enum.each([
   "day(<col>)",
   "hour(<col>)",
@@ -8,6 +6,7 @@ Enum.each([
   "quarter(<col>)",
   "second(<col>)",
   "year(<col>)",
+  "weekday(<col>)",
   "date_trunc('year', <col>)",
   "date_trunc('quarter', <col>)",
   "date_trunc('month', <col>)",
@@ -25,6 +24,7 @@ Enum.each([
       @tag compliance: "#{function} #{column} #{table} subquery"
       test "#{function} on input #{column} in a sub-query on #{table}", context do
         context
+        |> disable_for(:all, match?("weekday" <> _, unquote(function)))
         |> assert_consistent_and_not_failing("""
           SELECT
             output
