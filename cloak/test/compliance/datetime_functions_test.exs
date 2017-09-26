@@ -17,7 +17,7 @@ Enum.each([
   "<col> + interval 'P1Y'",
   "<col> - interval 'P1M'",
   "<col> - <col>",
-  "2 * (<col> + interval 'P1Y' - <col>)",
+  "<col> + 2 * interval 'P1Y'",
 ], fn(function) ->
   defmodule Module.concat([Compliance.DateTimeFunctions, String.to_atom(function), Test]) do
     use ComplianceCase, async: true
