@@ -446,6 +446,8 @@ defmodule Cloak.Query.Aggregator do
         Time.to_iso8601(time)
       %NaiveDateTime{} = naive_date_time ->
         NaiveDateTime.to_iso8601(naive_date_time)
+      %Timex.Duration{} = duration ->
+        Timex.Duration.to_string(duration)
       other ->
         other
     end)
