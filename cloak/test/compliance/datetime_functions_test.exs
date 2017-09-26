@@ -16,11 +16,13 @@ Enum.each([
   "date_trunc('second', <col>)",
   "<col> + interval 'P1Y'",
   "<col> - interval 'P1M'",
-  "<col> - <col>",
+  "<col> - (<col> - interval 'P1D')",
   "<col> + 2 * interval 'P1Y'",
+  "interval 'P1Y2M'",
 ], fn(function) ->
   defmodule Module.concat([Compliance.DateTimeFunctions, String.to_atom(function), Test]) do
     use ComplianceCase, async: true
+    alias Cloak.DataSource.MySQL
 
     @moduletag :"#{function}"
 
@@ -29,6 +31,8 @@ Enum.each([
       test "#{function} on input #{column} in a sub-query on #{table}", context do
         context
         |> disable_for(:all, match?("weekday" <> _, unquote(function)))
+        |> disable_for(:all, match?("interval" <> _, unquote(function)))
+        |> disable_for(MySQL, match?("<col> -" <> _, unquote(function)))
         |> assert_consistent_and_not_failing("""
           SELECT
             output
