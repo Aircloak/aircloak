@@ -14,6 +14,10 @@ Enum.each([
   "date_trunc('hour', <col>)",
   "date_trunc('minute', <col>)",
   "date_trunc('second', <col>)",
+  "<col> + interval 'P1Y'",
+  "<col> - interval 'P1M'",
+  "<col> - <col>",
+  "2 * (<col> + interval 'P1Y' - <col>)",
 ], fn(function) ->
   defmodule Module.concat([Compliance.DateTimeFunctions, String.to_atom(function), Test]) do
     use ComplianceCase, async: true
