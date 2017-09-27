@@ -155,7 +155,7 @@ make sure that the specified range is included in the adjusted range. The range 
 and open on the right (`<`).
 
 If any such modifications take place an appropriate notice will be displayed in the web interface. When using the API the notice will
-be included under the `info` key of the result. The notice will _not_ appear when using the Postgres interface.
+be included under the `info` key of the result. The notice will _not_ appear when using the PostgreSQL interface.
 
 The grids available depend on the type of the column that is being limited by the range. For numerical columns the grid sizes are
 `[..., 0.1, 0.2, 0.5, 1, 2, 5, 10, ...]`. For date/time columns they are `[1, 2, 5, ...]` years, `[1, 2, 6, 12]` months, `[1, 2, 5, ...]` days,

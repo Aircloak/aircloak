@@ -1,20 +1,20 @@
-## Postgres Message Protocol server
+## PostgreSQL Message Protocol server
 
-Aircloak Insights allows users to run SQL queries using the [Postgres Message
+Aircloak Insights allows users to run SQL queries using the [PostgreSQL Message
 Protocol](https://www.postgresql.org/docs/current/static/protocol.html). This means that any driver that can be
-used to communicate with a Postgres server can also be used to communicate with Aircloak Insights.
+used to communicate with a PostgreSQL server can also be used to communicate with Aircloak Insights.
 
-__Important note__: While Aircloak Insights understands the Postgres Message Protocol it does not understand
-queries that are specific to Postgres. Examples of these are ones which query for metadata related to a Postgres server
-installation, or other Postgres specific ways of extracting metadata. When using this interface all the same restrictions apply
+__Important note__: While Aircloak Insights understands the PostgreSQL Message Protocol it does not understand
+queries that are specific to PostgreSQL. Examples of these are ones which query for metadata related to a PostgreSQL server's
+installation, or other PostgreSQL-specific ways of extracting metadata. When using this interface all the same restrictions apply
 as when you are executing queries over the web interface or using the [HTTP REST API](/api.md).
 You might get unexpected responses when using BI-tools that write and execute their own queries and
-are expecting certain Postgres specific features and behaviours to be present.
+are expecting certain PostgreSQL-specific features and behaviours to be present.
 
-In order to query Aircloak Insights using the Postgres Message Protocol server, your Aircloak Insights platform
+In order to query Aircloak Insights using the PostgreSQL Message Protocol server, your Aircloak Insights platform
 installation needs to have been configured to allow this. Specifically this means the following:
 
-- The [Insights Air docker container](installation.html#insights-air) must make the Postgres Message Protocol
+- The [Insights Air docker container](installation.html#insights-air) must make the PostgreSQL Message Protocol
   server port available
 - The firewall configuration needs to allow access to the port from your network context
 

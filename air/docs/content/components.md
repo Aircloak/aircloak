@@ -10,7 +10,7 @@ remaining ones are provided by the customer. Below follows a description of the 
 Insights Air is the component that analysts and system administrators interact with directly. It provides a web
 interface for managing users, user privileges, and datasources, as well as for running queries. Additionally Insights Air
 provides an [HTTP API](api.md) for connecting external tools to an Aircloak installation as well as an endpoint for tools and
-plugins that support the [Postgres message protocol](api/psql.md).
+plugins that support the [PostgreSQL message protocol](api/psql.md).
 
 Insights Air never handles sensitive user data. It can therefore safely be deployed in
 a [DMZ](https://en.wikipedia.org/wiki/Perimeter_Network) or made available to less
@@ -74,7 +74,7 @@ facility operated by the customer.
 
 ### Monitoring
 
-Insights Air provides an [monitoring API endpoint](monitoring.html). This API endpoint can be tied into existing monitoring infrastructure, to improve
+Insights Air provides a [monitoring API endpoint](monitoring.html). This API endpoint can be tied into existing monitoring infrastructure, to improve
 the visibility into the workings of the Aircloak Insights platform.
 
 

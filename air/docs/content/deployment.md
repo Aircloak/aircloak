@@ -3,7 +3,7 @@
 ## Overview
 
 All Aircloak-provided components (Insights Air, Insights Cloak, and Insights Datasource Connector) are deployed as
-docker containers. As such they can be deployed in physical as well as virtualized server environments. They also lend
+docker containers. As such they can be deployed in physical as well as virtualized environments. They also lend
 themselves to be deployed in managed docker environments like Kubernetes and Mesos.
 
 For information on how many instances of the different containers are required for your setup,
@@ -23,7 +23,7 @@ Insights Air uses secrets for securing the communication with the analyst.
 
 Insights Datasource Connector derives its configuration from that of Insights Cloak.
 
-The static configuration are stored in configuration files made available to the docker containers through
+The static configuration is stored in configuration files made available to the docker containers through
 [volumes](https://docs.docker.com/engine/tutorials/dockervolumes/).
 
 ## Resource requirements

@@ -53,7 +53,7 @@
   - [Data sources](api/data_sources.md)
   - [Queries](api/queries.md)
   - [Errors](api/errors.md)
-  - [Postgres Message Protocol server](api/psql.md)
+  - [PostgreSQL Message Protocol server](api/psql.md)
 
 ## Operations guides
 - [Installing the system](installation.md)
