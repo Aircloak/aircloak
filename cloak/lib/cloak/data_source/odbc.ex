@@ -175,7 +175,7 @@ defmodule Cloak.DataSource.ODBC do
   defp integer_field_mapper(value) when is_float(value), do: round(value)
 
   defp interval_field_mapper(:null, _data_source), do: nil
-  defp interval_field_mapper(string, %{driver: Cloak.DataSource.SAPHana}), do:
+  defp interval_field_mapper(string, %{driver: Cloak.DataSource.SAPHana}) when is_binary(string), do:
     string |> String.to_integer() |> Timex.Duration.from_seconds()
   defp interval_field_mapper(number, _data_source), do: Timex.Duration.from_seconds(number)
 
