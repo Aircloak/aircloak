@@ -59,3 +59,41 @@ Enum.each([
     end)
   end
 end)
+
+Enum.each([
+  "<col> - (<col> - interval 'P1D') = interval 'P1D'",
+], fn(condition) ->
+  defmodule Module.concat([Compliance.DateTimeFunctions.Where, String.to_atom(condition), Test]) do
+    use ComplianceCase, async: true
+    alias Cloak.DataSource.MySQL
+
+    @moduletag :"#{condition} in where"
+
+    Enum.each(datetime_columns(), fn({column, table, uid}) ->
+      @tag compliance: "#{condition} in where #{column} #{table} query"
+      test "#{condition} on input #{column} in where in query on table #{table}", context do
+        context
+        |> disable_for(MySQL, true)
+        |> assert_consistent_and_not_failing("""
+          SELECT COUNT(*)
+          FROM #{unquote(table)}
+          WHERE #{on_column(unquote(condition), unquote(column))}
+        """)
+      end
+
+      @tag compliance: "#{condition} in where #{column} #{table} subquery"
+      test "#{condition} on input #{column} in where in subquery on table #{table}", context do
+        context
+        |> disable_for(MySQL, true)
+        |> assert_consistent_and_not_failing("""
+          SELECT COUNT(*)
+          FROM (
+            SELECT #{unquote(uid)}
+            FROM #{unquote(table)}
+            WHERE #{on_column(unquote(condition), unquote(column))}
+          ) foo
+        """)
+      end
+    end)
+  end
+end)
