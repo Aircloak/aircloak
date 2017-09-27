@@ -28,7 +28,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @callback unicode_literal(iodata) :: iodata
 
   @doc "Returns the dialect-specific SQL for an interval literal."
-  @callback interval_literal(iodata) :: iodata
+  @callback interval_literal(Timex.Duration.t) :: iodata
 
   @doc "Returns the dialect-specific SQL for adding/subtracting to a date/time/datetime."
   @callback time_arithmetic_expression(String.t, iodata) :: iodata

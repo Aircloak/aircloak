@@ -11,7 +11,7 @@ defmodule Cloak.Query.DataDecoder do
   alias Cloak.Sql.{Query, Expression}
   alias Cloak.DataSource.Table
 
-  @type type :: Table.data_type
+  @type type :: Table.data_type | :interval
   @type decoder :: (type -> {:ok, type} | :error)
   @type t :: %{method: decoder, columns: [String.t], in: type, out: type}
 
