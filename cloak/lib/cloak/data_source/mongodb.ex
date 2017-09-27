@@ -249,7 +249,6 @@ defmodule Cloak.DataSource.MongoDB do
   defp function_signature(%Expression{function?: true, function: name}), do: name
 
   defp supports_joins?(%Query{from: {:join, join}} = query) do
-    # join support was added in 3.2
     (query.data_source |> get_mongo_version() |> Version.compare("3.2.0") != :lt) and
     join.type == :inner_join and
     supported_join_conditions?(join.conditions) and
