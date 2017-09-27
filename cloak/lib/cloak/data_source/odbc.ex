@@ -132,7 +132,7 @@ defmodule Cloak.DataSource.ODBC do
   # This is for historic reasons more than anything, since that's what our servers are using internally.
   defp type_to_field_mapper(:text, %{driver: Cloak.DataSource.SQLServer}), do: text_to_unicode_mapper({:utf16, :little})
   defp type_to_field_mapper(:text, %{driver: Cloak.DataSource.SAPHana}), do: text_to_unicode_mapper({:utf16, :little})
-  defp type_to_field_mapper(:interval, _data_source), do: &interval_field_mapper/1
+  defp type_to_field_mapper(:interval, data_source), do: &interval_field_mapper(&1, data_source)
   defp type_to_field_mapper(_, _data_source), do: &generic_field_mapper/1
 
   defp generic_field_mapper(:null), do: nil
@@ -174,8 +174,10 @@ defmodule Cloak.DataSource.ODBC do
   defp integer_field_mapper(value) when is_integer(value), do: value
   defp integer_field_mapper(value) when is_float(value), do: round(value)
 
-  defp interval_field_mapper(:null), do: nil
-  defp interval_field_mapper(number), do: Timex.Duration.from_seconds(number)
+  defp interval_field_mapper(:null, _data_source), do: nil
+  defp interval_field_mapper(string, %{driver: Cloak.DataSource.SAPHana}), do:
+    string |> String.to_integer() |> Timex.Duration.from_seconds()
+  defp interval_field_mapper(number, _data_source), do: Timex.Duration.from_seconds(number)
 
   defp text_to_unicode_mapper(encoding), do:
     fn
