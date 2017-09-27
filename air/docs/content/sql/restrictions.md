@@ -53,20 +53,19 @@ but it's usage is restricted when a constant is involved (for example `btrim(nam
 
 The restrictions are as follows:
 
-- you cannot _select a column_ in your query if the column has been processed by a restricted function in conjunction with a constant __and__
-  there has been performed math with a constant on the column as well
-- you cannot use a column in a filter condition clause inequality (meaning `>`, `>=`, `<`, or `<=` in a `WHERE`-, `JOIN`- or `HAVING`-clause)
-  if it has had math with a constant performed on it __or__ if it has been processed by one of the restricted functions together with a constant
+- you cannot _select a expression_ that includes mathematical operations with constants __as well as__ restricted functions
+- you cannot use a expression in a filter condition clause inequality (meaning `>`, `>=`, `<`, or `<=` in a `WHERE`-, `JOIN`- or `HAVING`-clause)
+  if it includes math __or__ includes a restricted function
 - you cannot use the result of a cast or of applying a date or time extraction function (like `year`, `hour` etc)
   on a `date`, `time` or `datetime` column in a filter condition clause (neither match nor inequality clause).
 
-The numerical functions that receive this kind of special treatment are: `abs`, `bucket`, `ceil`, `div`, `floor`, `mod`, `round`, `sqrt`, `/`, `trunc`, and `cast`'s.
+The following numerical functions are restricted when at least one of the arguments contain a constant expression:
+`abs`, `bucket`, `ceil`, `div`, `floor`, `mod`, `round`, `sqrt`, `/`, `trunc`, and `cast`'s.
 
-The following string functions receive this kind of special treatment only if they are later converted to a number:
-`btrim`, `left`, `ltrim`, `right`, `rtrim`, and `substring`.
+The following string functions are restricted when at least one of the arguments contain a constant expression,
+and when their return value is later converted to a number: `btrim`, `left`, `ltrim`, `right`, `rtrim`, and `substring`.
 
-The same applies to the following math operations if one or more of their arguments are a constant or is the result of
-a column having been processed together with a constant:
+The same applies to the following math operations if one or more of their arguments is an expression containing a constant:
 `+`, `-`, `*`, `/`, `^`, `pow`.
 
 The following date and time functions:
@@ -164,7 +163,7 @@ The grids available depend on the type of the column that is being limited by th
 To arrive at the final range the system finds the smallest grid size that will contain the given range. Then it shifts the lower end of the
 range to be a multiple of half of the grid size. The upper end is just the lower end plus the grid size. In some cases halving the grid size
 is not allowed and the lower end needs to be a multiple of the whole grid size instead - for example it is not allowed to halve days in
-case the underlying data type is `date` and cannot represent such halving. See the sidebar for examples of adjustment.
+case the underlying data type is `date` and cannot represent such halving. See the examples below for details.
 
 For best results design your queries so that they take this adjustment into account and mostly use ranges that are already adjusted.
 
