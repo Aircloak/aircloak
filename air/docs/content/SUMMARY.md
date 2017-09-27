@@ -25,6 +25,8 @@
   - [Microsoft SQL Server](datastores.md#microsoft-sql-server)
   - [MongoDB](datastores.md#mongodb)
   - [Feature emulation](datastores.md#emulation-overview)
+  - [Notes](datastores.md#database-specific-notes)
+
 
 ## Technical documentation
 
