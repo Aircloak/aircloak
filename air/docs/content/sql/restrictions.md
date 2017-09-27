@@ -38,13 +38,41 @@ Operators `<>`, `IN`, and `NOT` (except `IS NOT NULL`) can't be used in subquery
 When using `LIMIT` and `OFFSET` in a subquery:
 
 - `LIMIT` is required if `OFFSET` is specified
-- `LIMIT` will be adjusted to the closest number in the sequence `[10, 20, 50, 100, 200, 500, 1000, ...]` (i.e. 10e^n, 20e^n, 50e^n for any natural number n larger than 0). For example: 1 or 14 become 10, etc
+- `LIMIT` will be adjusted to the closest number in the sequence `[10, 20, 50, 100, 200, 500, 1000, ...]` (i.e. `10e^n`, `20e^n`, `50e^n`
+  for any natural number `n` larger than 0). For example: 1 or 14 become 10, etc
 - `OFFSET` will automatically be adjusted to the nearest multiple of `LIMIT`. For example an `OFFSET` of 240 will be
   adjusted to 200 given a `LIMIT` of 100
 
 
 ## Math and function application restrictions
 
+Aircloak applies some restrictions on how certain functions and math operators can be used in your queries __when
+they are used together with constant values__.
+As an example consider the function `btrim`. It can always be used directly on a column expression (for example `btrim(name)`),
+but it's usage is restricted when a constant is involved (for example `btrim(name, 'some constant')`).
+
+The restrictions are as follows:
+
+- you cannot _select a column_ in your query if the column has been processed by a restricted function in conjunction with a constant __and__
+  there has been performed math with a constant on the column as well
+- you cannot use a column in a filter condition clause inequality (meaning `>`, `>=`, `<`, or `<=` in a `WHERE`-, `JOIN`- or `HAVING`-clause)
+  if it has had math with a constant performed on it __or__ if it has been processed by one of the restricted functions together with a constant
+- you cannot use the result of a cast or of applying a date or time extraction function (like `year`, `hour` etc)
+  on a `date`, `time` or `datetime` column in a filter condition clause (neither match nor inequality clause).
+
+The numerical functions that receive this kind of special treatment are: `abs`, `bucket`, `ceil`, `div`, `floor`, `mod`, `round`, `sqrt`, `/`, `trunc`, and `cast`'s.
+
+The following string functions receive this kind of special treatment only if they are later converted to a number:
+`btrim`, `left`, `ltrim`, `right`, `rtrim`, and `substring`.
+
+The same applies to the following math operations if one or more of their arguments are a constant or is the result of
+a column having been processed together with a constant:
+`+`, `-`, `*`, `/`, `^`, `pow`.
+
+The following date and time functions:
+`year`, `quarter`, `month`, `day`, `hour`, `minute`, `second`, `weekday`
+
+Below are some examples of restrictions in action:
 
 ```sql
 -- The following examples show expressions that are not allowed
@@ -97,38 +125,14 @@ length(btrim(firstname, lastname)) + age
 length(cast(salary + salary / age as text))
 ```
 
-Aircloak applies some restrictions on how certain functions and math operators can be used in your queries __when
-they are used together with constant values__.
-As an example consider the function `btrim`. It can always be used directly on a column expression (for example `btrim(name)`),
-but it's usage is restricted when a constant is involved (for example `btrim(name, 'some constant')`).
-
-The restrictions are as follows:
-
-- you cannot _select a column_ in your query if the column has been processed by a restricted function in conjunction with a constant __and__
-  there has been performed math with a constant on the column as well
-- you cannot use a column in a filter condition clause inequality (meaning `>`, `>=`, `<`, or `<=` in a `WHERE`-, `JOIN`- or `HAVING`-clause)
-  if it has had math with a constant performed on it __or__ if it has been processed by one of the restricted functions together with a constant
-- you cannot use the result of a cast or of applying a date or time extraction function (like `year`, `hour` etc)
-  on a `date`, `time` or `datetime` column in a filter condition clause (neither match nor inequality clause).
-
-The numerical functions that receive this kind of special treatment are: `abs`, `bucket`, `ceil`, `div`, `floor`, `mod`, `round`, `sqrt`, `/`, `trunc`, and `cast`'s.
-
-The following string functions receive this kind of special treatment only if they are later converted to a number:
-`btrim`, `left`, `ltrim`, `right`, `rtrim`, and `substring`.
-
-The same applies to the following math operations if one or more of their arguments are a constant or is the result of
-a column having been processed together with a constant:
-`+`, `-`, `*`, `/`, `^`, `pow`.
-
-The following date and time functions:
-`year`, `quarter`, `month`, `day`, `hour`, `minute`, `second`, `weekday`
-
-For examples see the sidebar.
-
 
 ## Inequality restrictions
 
 ### Ranges
+
+Whenever an inequality (`>`, `>=`, `<`, or `<=`) is used in a `WHERE`-, `JOIN`- or `HAVING`-clause that clause actually needs to contain two
+inequalities. These should form a range on a single column or expression. That is, one `>` or `>=` inequality and one `<` or `<=`
+inequality, limiting the column/expression from bottom and top.
 
 ```sql
 -- Correct - a range is used
@@ -144,11 +148,25 @@ SELECT COUNT(*) FROM table WHERE column > 10 AND column < 0
 SELECT COUNT(*) FROM table WHERE column + 1 > 10 AND column - 1 < 20
 ```
 
-Whenever an inequality (`>`, `>=`, `<`, or `<=`) is used in a `WHERE`-, `JOIN`- or `HAVING`-clause that clause actually needs to contain two
-inequalities. These should form a range on a single column or expression. That is, one `>` or `>=` inequality and one `<` or `<=`
-inequality, limiting the column/expression from bottom and top.
-
 ### Range alignment
+
+The system will adjust ranges provided in queries. The adjustment will "snap" the range to a fixed, predefined grid. It will always
+make sure that the specified range is included in the adjusted range. The range will also be modified to be closed on the left (`>=`)
+and open on the right (`<`).
+
+If any such modifications take place an appropriate notice will be displayed in the web interface. When using the API the notice will
+be included under the `info` key of the result. The notice will _not_ appear when using the Postgres interface.
+
+The grids available depend on the type of the column that is being limited by the range. For numerical columns the grid sizes are
+`[..., 0.1, 0.2, 0.5, 1, 2, 5, 10, ...]`. For date/time columns they are `[1, 2, 5, ...]` years, `[1, 2, 6, 12]` months, `[1, 2, 5, ...]` days,
+`[1, 2, 6, 12, 24]` hours, `[1, 2, 5, 15, 30, 60]` minutes, and `[1, 2, 5, 15, 30, 60]` seconds.
+
+To arrive at the final range the system finds the smallest grid size that will contain the given range. Then it shifts the lower end of the
+range to be a multiple of half of the grid size. The upper end is just the lower end plus the grid size. In some cases halving the grid size
+is not allowed and the lower end needs to be a multiple of the whole grid size instead - for example it is not allowed to halve days in
+case the underlying data type is `date` and cannot represent such halving. See the sidebar for examples of adjustment.
+
+For best results design your queries so that they take this adjustment into account and mostly use ranges that are already adjusted.
 
 ```sql
 SELECT COUNT(*) FROM table WHERE column > 10 AND column < 20
@@ -170,20 +188,3 @@ SELECT COUNT(*) FROM table WHERE datetime >= '2016-01-01 12:27:00' AND date < '2
 -- Adjusted to 2016-01-01 12:22:30 <= datetime < 2016-01-01 12:37:30
 ```
 
-The system will adjust ranges provided in queries. The adjustment will "snap" the range to a fixed, predefined grid. It will always
-make sure that the specified range is included in the adjusted range. The range will also be modified to be closed on the left (`>=`)
-and open on the right (`<`).
-
-If any such modifications take place an appropriate notice will be displayed in the web interface. When using the API the notice will
-be included under the `info` key of the result. The notice will _not_ appear when using the Postgres interface.
-
-The grids available depend on the type of the column that is being limited by the range. For numerical columns the grid sizes are
-`[..., 0.1, 0.2, 0.5, 1, 2, 5, 10, ...]`. For date/time columns they are `[1, 2, 5, ...]` years, `[1, 2, 6, 12]` months, `[1, 2, 5, ...]` days,
-`[1, 2, 6, 12, 24]` hours, `[1, 2, 5, 15, 30, 60]` minutes, and `[1, 2, 5, 15, 30, 60]` seconds.
-
-To arrive at the final range the system finds the smallest grid size that will contain the given range. Then it shifts the lower end of the
-range to be a multiple of half of the grid size. The upper end is just the lower end plus the grid size. In some cases halving the grid size
-is not allowed and the lower end needs to be a multiple of the whole grid size instead - for example it is not allowed to halve days in
-case the underlying data type is `date` and cannot represent such halving. See the sidebar for examples of adjustment.
-
-For best results design your queries so that they take this adjustment into account and mostly use ranges that are already adjusted.

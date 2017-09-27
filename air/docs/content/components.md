@@ -51,9 +51,9 @@ For more information about the supported datastores and what query features are 
 
 ## Components provided by the customer
 
-### Postgres database
+### PostgreSQL database
 
-Insights Air requires access to a Postgres database. This database is used to store analyst accounts, system settings,
+Insights Air requires access to a PostgreSQL database. This database is used to store analyst accounts, system settings,
 as well as audit logs. No sensitive user data nor access credentials to the datasources being queried are stored in this
 database.
 
@@ -74,14 +74,14 @@ facility operated by the customer.
 
 ### Monitoring
 
-Insights Air provides an monitoring API endpoint. This API endpoint can be tied into existing monitoring infrastructure, to improve
+Insights Air provides an [monitoring API endpoint](monitoring.html). This API endpoint can be tied into existing monitoring infrastructure, to improve
 the visibility into the workings of the Aircloak Insights platform.
 
 
 ## How the components interact
 
 The following diagram shows the possible ways in which the components interact. For common configurations, see the
-subsequent sections.
+[deployment guide](deployment.md).
 
 ![Shows an overview of different ways in which the Aircloak Insights components interact. IA: Insights Air, IC: Insights
 Cloak, IDC: Insights Datasource connector, DS: Datasource](components/interactions.png)
