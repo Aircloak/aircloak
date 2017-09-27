@@ -42,7 +42,7 @@ defmodule Cloak.DataSource do
   alias Cloak.Query.ExecutionError
 
   require Logger
-  require Aircloak.DeployConfig
+  require Aircloak.{DeployConfig, File}
 
   use GenServer, start: {__MODULE__, :start_link, []}
 
@@ -81,6 +81,7 @@ defmodule Cloak.DataSource do
   """
   def start_link() do
     initial_state = Aircloak.DeployConfig.fetch!("data_sources")
+    |> potentially_load_individual_data_source_configs()
     |> config_to_datasources()
     |> Enum.map(&add_tables/1)
     GenServer.start_link(__MODULE__, initial_state, name: __MODULE__)
@@ -200,6 +201,30 @@ defmodule Cloak.DataSource do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  # This is the legacy path where data sources where configured as a list of data source definitions inline
+  defp potentially_load_individual_data_source_configs(data_sources) when is_list(data_sources), do: data_sources
+  defp potentially_load_individual_data_source_configs(config_path) when is_binary(config_path) do
+    case Aircloak.File.ls(config_path) do
+      {:ok, data_source_config_files} ->
+        data_source_config_files
+        |> Enum.map(fn(file_name) ->
+          path = Path.join(config_path, file_name)
+          try do
+            Aircloak.File.read_config_file(path)
+          rescue
+            e in Poison.SyntaxError ->
+              Logger.error("Failed at reading datasource config from `#{path}`: #{e.message}")
+              nil
+          end
+        end)
+        |> Enum.reject(& is_nil/1)
+      {:error, reason} ->
+        Logger.error("Failed at loading data sources configurations from `#{config_path}`. " <>
+          "Reason: #{Aircloak.File.humanize_posix_error(reason)}.")
+        []
+    end
+  end
 
   defp activate_monitor_timer(pid) do
     interval = Application.get_env(:cloak, :data_source_monitor_interval)
