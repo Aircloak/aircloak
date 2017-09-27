@@ -59,4 +59,11 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
     ["CAST(", function_sql("round", [value]), " AS integer)"]
   def cast_sql(value, type), do:
     ["CAST(", value, " AS ", sql_type(type), ")"]
+
+  @doc false
+  def time_arithmetic_expression("+", [date, interval]), do: ["ADD_SECONDS(", date, ", ", interval, ")"]
+  def time_arithmetic_expression("-", [date, interval]), do: ["ADD_SECONDS(", date, ", -(", interval, "))"]
+
+  @doc false
+  def date_subtraction_expression([arg1, arg2]), do: ["SECONDS_BETWEEN(", arg2, ", ", arg1, ")"]
 end
