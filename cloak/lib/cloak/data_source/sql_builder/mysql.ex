@@ -57,7 +57,4 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
 
   @doc false
   def unicode_literal(value), do: ["N'", value, ?']
-
-  @doc false
-  def interval_literal(value), do: value |> Timex.Duration.to_seconds() |> to_string()
 end

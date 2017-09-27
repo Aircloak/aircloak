@@ -66,4 +66,8 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
 
   @doc false
   def unicode_literal(value), do: ["N'", value, ?']
+
+  @doc false
+  def time_arithmetic_expression("+", [date, interval]), do: ["DATEADD(s, ", interval, ", ", date, ")"]
+  def time_arithmetic_expression("-", [date, interval]), do: ["DATEADD(s, -(", interval, "), ", date, ")"]
 end
