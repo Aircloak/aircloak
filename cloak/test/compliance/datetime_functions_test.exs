@@ -65,7 +65,6 @@ Enum.each([
 ], fn(condition) ->
   defmodule Module.concat([Compliance.DateTimeFunctions.Where, String.to_atom(condition), Test]) do
     use ComplianceCase, async: true
-    alias Cloak.DataSource.MySQL
 
     @moduletag :"#{condition} in where"
 
@@ -73,7 +72,6 @@ Enum.each([
       @tag compliance: "#{condition} in where #{column} #{table} query"
       test "#{condition} on input #{column} in where in query on table #{table}", context do
         context
-        |> disable_for(MySQL, true)
         |> assert_consistent_and_not_failing("""
           SELECT COUNT(*)
           FROM #{unquote(table)}
@@ -84,7 +82,6 @@ Enum.each([
       @tag compliance: "#{condition} in where #{column} #{table} subquery"
       test "#{condition} on input #{column} in where in subquery on table #{table}", context do
         context
-        |> disable_for(MySQL, true)
         |> assert_consistent_and_not_failing("""
           SELECT COUNT(*)
           FROM (
