@@ -167,11 +167,15 @@ defmodule Cloak.DataSource.MongoDB do
   end
 
   defp type_to_field_mapper(:integer), do: &integer_field_mapper/1
+  defp type_to_field_mapper(:interval), do: &interval_field_mapper/1
   defp type_to_field_mapper(_), do: &generic_field_mapper/1
 
   defp integer_field_mapper(nil), do: nil
   defp integer_field_mapper(value) when is_integer(value), do: value
   defp integer_field_mapper(value) when is_float(value), do: round(value)
+
+  defp interval_field_mapper(nil), do: nil
+  defp interval_field_mapper(number), do: Timex.Duration.from_seconds(number)
 
   defp map_fields(row, mappers), do:
     Enum.map(mappers, fn ({mapper, index}) -> mapper.(row["f#{index}"]) end)
