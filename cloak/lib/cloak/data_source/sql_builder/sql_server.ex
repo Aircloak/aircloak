@@ -70,4 +70,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   @doc false
   def time_arithmetic_expression("+", [date, interval]), do: ["DATEADD(s, ", interval, ", ", date, ")"]
   def time_arithmetic_expression("-", [date, interval]), do: ["DATEADD(s, -(", interval, "), ", date, ")"]
+
+  @doc false
+  def date_subtraction_expression([arg1, arg2]), do: ["DATEDIFF(s, ", arg2, ", ", arg1, ")"]
 end

@@ -59,6 +59,10 @@ defmodule Cloak.DataSource.SqlBuilder do
     when fun_name in ["+", "-"] and type in [:time, :date, :datetime],
   do:
     sql_dialect_module.time_arithmetic_expression(fun_name, Enum.map(args, &to_fragment(&1, sql_dialect_module)))
+  defp column_sql(%Expression{
+    function?: true, function: "-", type: :interval, function_args: args
+  }, sql_dialect_module), do:
+    sql_dialect_module.date_subtraction_expression(Enum.map(args, &to_fragment(&1, sql_dialect_module)))
   defp column_sql(%Expression{function?: true, function: fun_name, function_args: args}, sql_dialect_module)
     when fun_name != nil,
   do:

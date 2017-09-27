@@ -33,6 +33,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @doc "Returns the dialect-specific SQL for adding/subtracting to a date/time/datetime."
   @callback time_arithmetic_expression(String.t, iodata) :: iodata
 
+  @doc "Returns the dialect-specific SQL for subtracting two date/time/datetimes."
+  @callback date_subtraction_expression(iodata) :: iodata
+
   alias Cloak.Query.ExecutionError
 
   defmacro __using__(_opts) do
@@ -68,10 +71,13 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       def time_arithmetic_expression(operator, [arg1, arg2]), do: ["(", arg1, " ", operator, " ", arg2, ")"]
 
       @doc false
+      def date_subtraction_expression([arg1, arg2]), do: ["(", arg1, " - ", arg2, ")"]
+
+      @doc false
       def interval_literal(duration), do: duration |> Timex.Duration.to_seconds() |> to_string()
 
       defoverridable like_sql: 2, ilike_sql: 2, limit_sql: 2, cast_unknown_sql: 1, cast_sql: 2, interval_literal: 1,
-        time_arithmetic_expression: 2
+        time_arithmetic_expression: 2, date_subtraction_expression: 1
     end
   end
 end
