@@ -122,11 +122,7 @@ The general shape of `config.json` is:
 {
   "air_site": string,
   "salt": string,
-  "data_sources": [
-    configuration_for_data_source_1,
-    configuration_for_data_source_2,
-    ...
-  ]
+  "data_sources": string
 }
 ```
 
@@ -143,7 +139,10 @@ cat /dev/urandom |
 
 ### Data source configuration
 
-The `data_sources` section configures the databases and tables that will be made available to analysts for querying. Each value in the `data_sources` list is a json in the form of:
+The `data_sources` parameter should give the path to subfolder within the folder where the Insights Cloak config is stored that contains the datasource configurations.
+
+Each datasource configuration should be in JSON format and put in an individual file. The configuration takes the
+following form:
 
 ```
 {
