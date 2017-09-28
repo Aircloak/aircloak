@@ -38,5 +38,5 @@ defmodule Compliance.DataSource.SQLServerTds do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp execute!(conn, query), do: Tds.query!(conn, query, []) |> IO.inspect
+  defp execute!(conn, query), do: Tds.query!(conn, query, [])
 end
