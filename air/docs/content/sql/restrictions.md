@@ -53,8 +53,8 @@ but it's usage is restricted when a constant is involved (for example `btrim(nam
 
 The restrictions are as follows:
 
-- you cannot _select a expression_ that includes mathematical operations with constants __as well as__ restricted functions
-- you cannot use a expression in a filter condition clause inequality (meaning `>`, `>=`, `<`, or `<=` in a `WHERE`-, `JOIN`- or `HAVING`-clause)
+- you cannot _select an expression_ that includes mathematical operations with constants __as well as__ restricted functions
+- you cannot use an expression in a filter condition clause inequality (meaning `>`, `>=`, `<`, or `<=` in a `WHERE`-, `JOIN`- or `HAVING`-clause)
   if it includes math __or__ includes a restricted function
 - you cannot use the result of a cast or of applying a date or time extraction function (like `year`, `hour` etc)
   on a `date`, `time` or `datetime` column in a filter condition clause (neither match nor inequality clause).
