@@ -312,18 +312,21 @@ For remaining possible decoders, no additional parameters are needed:
 
 #### Tips an tricks
 
-It is common to have multiple datasource definitions that are shared amongst a set of Insights Cloak instances.
-Creating a copy of the datasource definition for each Insights Cloak instance complicates maintenance.
-Of a datasource definition changes you will have to ensure all copies are kept up to date.
+It is common to have multiple Insights Cloak instances sharing the same datasource definitions.
+Maintaining separate copies of the datasource definition for each Insights Cloak instance complicates maintenance,
+as you will have to update multiple copies of files if a datasource definition changes.
 
-The recommended and common solution to this problem is to instead create a single copy of the datasource configuration
-files that you store in a shared folder. In the following example we will call it `data_sources_available`.
+The recommended, and common, solution to this problem is to create a single copy of the datasource configuration
+files and symlink these into the configuration folders of the individual Insights Cloak instances.
 
-For each Insights Cloak instance you then create a folder called `data_sources_enabled`, and create a symlink from this
-folder to the datasource definitions you want to enable for a particular Insights Cloak.
+Below follows an example of how this could be achieved in practise.
 
-Let's take the following example showing the base file and folder structure on your file system for a setup with two
-datasources and two Insights Cloaks.
+Let's consider a scenario where we have a shared folder where we store all datasource definitions. It is called `data_sources_available`.
+In the configuration folder of each Insights Cloak instance we create a folder called `data_sources_enabled`. For each datasource we want
+to enable for a given Insights Cloak instance we create a symlink from the `data_sources_enabled` folder to the
+datasource definition stored in the `data_sources_available` folder.
+
+If we have two Insights Cloak instances, the folder structure would look like this:
 
 ```
 $ tree configs
@@ -340,8 +343,8 @@ configs/
 │   └── data_sources_enabled
 ```
 
-In order to have `data_source1` served by both `insights-cloak1` as well as `insights-cloak2` and `data_source2` only
-served by the former, we could create the following symlinks:
+In order to have `insights-cloak1` serve `data_source1`, and `data_source2`, and `insights-cloak2` server `data_source1`,
+we would create the following symlinks:
 
 ```
 $ cd config/insights-cloak1/data_sources_enabled/
