@@ -84,7 +84,7 @@ defmodule Compliance.DataSource.SAPHana do
   defp to_literal(value) do
     cond do
       is_nil(value) -> "NULL"
-      is_binary(value) -> "'#{String.replace(value, "'", "''")}'"
+      is_binary(value) -> "N'#{String.replace(value, "'", "''")}'"
       is_number(value) -> to_string(value)
       is_boolean(value) -> to_string(value)
       match?(%NaiveDateTime{}, value) -> "timestamp'#{to_string(value)}'"
