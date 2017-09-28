@@ -236,6 +236,11 @@ defmodule Cloak.Sql.Query do
     end
   end
 
+  @doc "Updates the emulation flag to reflect whether the query needs to be emulated."
+  @spec set_emulation_flag(t) :: t
+  def set_emulation_flag(query), do:
+    %__MODULE__{query | emulated?: Cloak.Query.DataEngine.needs_emulation?(query)}
+
 
   # -------------------------------------------------------------------
   # Internal functions

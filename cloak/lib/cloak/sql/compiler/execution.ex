@@ -11,7 +11,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   alias Cloak.Sql.{CompilationError, Condition, Expression, FixAlign, Function, Query, Range}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
-  alias Cloak.Query.DataDecoder
+  alias Cloak.Query.DataEngine
 
 
   # -------------------------------------------------------------------
@@ -31,7 +31,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> align_join_ranges()
     |> optimize_columns_from_projected_tables()
     |> compile_sample_rate()
-    |> set_emulation_flag()
+    |> Query.set_emulation_flag()
     |> partition_where_clauses()
     |> calculate_db_columns()
     |> parse_row_splitters()
@@ -141,7 +141,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     columns = [user_id | Enum.filter(columns, &(&1.alias || &1.name) in required_column_names)]
     titles = [user_id_title | Enum.filter(column_titles, & &1 in required_column_names)]
     %Query{ast | next_row_index: 0, db_columns: [], columns: columns, column_titles: titles}
-    |> set_emulation_flag()
+    |> Query.set_emulation_flag()
     |> calculate_db_columns()
   end
 
@@ -286,26 +286,8 @@ defmodule Cloak.Sql.Compiler.Execution do
   end
 
   defp partition_where_clauses(query) do
-    # extract conditions needing emulation
-    {emulated_where, where} = Condition.partition(query.where, fn (condition) ->
-      emulated_expression_condition?(condition) or
-      (
-        query.emulated? and
-        (
-          multiple_tables_condition?(condition) or
-          not is_binary(query.from)
-        )
-      )
-    end)
+    {emulated_where, where} = DataEngine.partitioned_where_clauses(query)
     %Query{query | where: where, emulated_where: emulated_where}
-  end
-
-  defp multiple_tables_condition?(condition) do
-    Query.Lenses.conditions_terminals()
-    |> Lens.to_list([condition])
-    |> Enum.map(& &1.table)
-    |> Enum.uniq()
-    |> Enum.count() > 1
   end
 
   defp align_join_ranges(query), do:
@@ -435,40 +417,4 @@ defmodule Cloak.Sql.Compiler.Execution do
     %Query{query | where: Condition.combine(:and, sample_condition, query.where)}
   end
   defp compile_sample_rate(query), do: query
-
-
-  # -------------------------------------------------------------------
-  # Query emulation
-  # -------------------------------------------------------------------
-
-  defp emulated_expression?(expression), do:
-    DataDecoder.needs_decoding?(expression) or Function.has_attribute?(expression, :emulated)
-
-  defp emulated_expression_condition?(condition) do
-    Query.Lenses.conditions_terminals()
-    |> Lens.to_list([condition])
-    |> Enum.any?(&emulated_expression?/1)
-  end
-
-  defp set_emulation_flag(query), do: %Query{query | emulated?: needs_emulation?(query)}
-
-  defp has_emulated_expressions?(query), do:
-    Query.Lenses.all_expressions()
-    |> Lens.to_list([query.columns, query.group_by, query.having, query.where])
-    |> Enum.any?(&emulated_expression?/1)
-
-  defp has_emulated_join_conditions?(query), do:
-    query
-    |> Helpers.all_join_conditions()
-    |> get_in([Query.Lenses.all_expressions()])
-    |> Enum.any?(&emulated_expression?/1)
-
-  defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
-  defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do:
-    not query.data_source.driver.supports_query?(query) or has_emulated_expressions?(query)
-  defp needs_emulation?(query), do:
-    not query.data_source.driver.supports_query?(query) or
-    query |> get_in([Query.Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?)) or
-    (query.subquery? and has_emulated_expressions?(query)) or
-    has_emulated_join_conditions?(query)
 end
