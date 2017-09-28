@@ -253,12 +253,15 @@ defmodule Cloak.DataSource.MongoDB do
   defp function_signature(%Expression{function?: true, function: name}), do: name
 
   defp supports_joins?(%Query{from: {:join, join}} = query) do
-    (query.data_source |> get_mongo_version() |> Version.compare("3.2.0") != :lt) and
+    mongo_version_supports_joins?(query) and
     join.type == :inner_join and
     supported_join_conditions?(join.conditions) and
     supported_join_branches?(query.selected_tables, join.lhs, join.rhs)
   end
   defp supports_joins?(_query), do: true
+
+  defp mongo_version_supports_joins?(%{data_source: data_source}), do:
+    data_source |> get_mongo_version() |> Version.compare("3.2.0") != :lt
 
   defp supported_join_conditions?({:comparison, lhs, :=, rhs}), do: lhs.name != nil and rhs.name != nil
   defp supported_join_conditions?(_conditions), do: false
