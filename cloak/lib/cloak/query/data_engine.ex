@@ -1,9 +1,7 @@
 defmodule Cloak.Query.DataEngine do
-  @moduledoc """
-  Retrieval of data from the data source according to the query specification.
+  @moduledoc "Retrieval of data from the data source according to the query specification."
 
-  Note: This module is currently a work in progress, but the description reflects the desired state
-  """
+  require Logger
 
   alias Cloak.Sql.{Condition, Function, Query}
   alias Cloak.Sql.Compiler.Helpers
@@ -13,6 +11,18 @@ defmodule Cloak.Query.DataEngine do
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Retrieves rows from the database, and applies the row processor on them."
+  @spec select(Query.t, ((Enumerable.t) -> result)) :: result when result: var
+  def select(query, row_processor) do
+    if query.emulated? do
+      Logger.debug("Emulating query ...")
+      row_processor.(Cloak.Query.DbEmulator.select(query))
+    else
+      Logger.debug("Processing final rows ...")
+      Cloak.DataSource.select!(query, fn(rows) -> row_processor.(DataDecoder.decode(rows, query)) end)
+    end
+  end
 
   @doc "Determines whether the query needs to be emulated or not."
   @spec needs_emulation?(Query.t) :: boolean
