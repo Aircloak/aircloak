@@ -47,4 +47,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
 
   @doc false
   def unicode_literal(value), do: [?', value, ?']
+
+  @doc false
+  def interval_literal(value), do: ["interval '", Timex.Duration.to_string(value), ?']
 end

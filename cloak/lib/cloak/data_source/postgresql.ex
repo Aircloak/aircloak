@@ -119,6 +119,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp type_to_field_mapper(:integer), do: &integer_field_mapper/1
   defp type_to_field_mapper(:real), do: &real_field_mapper/1
   defp type_to_field_mapper(:time), do: &time_field_mapper/1
+  defp type_to_field_mapper(:interval), do: &interval_field_mapper/1
   defp type_to_field_mapper(_), do: &generic_field_mapper/1
 
   defp integer_field_mapper(nil), do: nil
@@ -133,6 +134,10 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   defp time_field_mapper(%Postgrex.Interval{days: 0, months: 0, secs: secs}), do: Cloak.Time.from_integer(secs, :time)
   defp time_field_mapper(value), do: value
+
+  defp interval_field_mapper(%Postgrex.Interval{months: m, days: d, secs: s}), do:
+    Timex.Duration.parse!("P#{m}M#{d}DT#{s}S")
+  defp interval_field_mapper(value), do: value
 
   defp generic_field_mapper(value), do: value
 
