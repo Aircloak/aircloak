@@ -123,6 +123,7 @@ defmodule Cloak.DataSource.SQLServerTds do
   defp type_to_field_mapper(:datetime), do: &datetime_field_mapper/1
   defp type_to_field_mapper(:date), do: &date_field_mapper/1
   defp type_to_field_mapper(:time), do: &time_field_mapper/1
+  defp type_to_field_mapper(:interval), do: &interval_field_mapper/1
   defp type_to_field_mapper(_), do: &generic_field_mapper/1
 
   defp integer_field_mapper(nil), do: nil
@@ -147,6 +148,9 @@ defmodule Cloak.DataSource.SQLServerTds do
   defp time_field_mapper(nil), do: nil
   defp time_field_mapper({hour, min, sec, fsec}), do:
     Time.new(hour, min, sec, {div(fsec, 10), 6}) |> error_to_nil()
+
+  defp interval_field_mapper(nil), do: nil
+  defp interval_field_mapper(number), do: Timex.Duration.from_seconds(number)
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _reason}), do: nil

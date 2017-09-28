@@ -22,7 +22,7 @@ Enum.each([
 ], fn(function) ->
   defmodule Module.concat([Compliance.DateTimeFunctions, String.to_atom(function), Test]) do
     use ComplianceCase, async: true
-    alias Cloak.DataSource.SQLServer
+    alias Cloak.DataSource.{SQLServer, SQLServerTds}
 
     @moduletag :"#{function}"
 
@@ -32,6 +32,7 @@ Enum.each([
         context
         |> disable_for(:all, match?("weekday" <> _, unquote(function)))
         |> disable_for(SQLServer, match?("interval" <> _, unquote(function)))
+        |> disable_for(SQLServerTds, match?("interval" <> _, unquote(function)))
         |> assert_consistent_and_not_failing("""
           SELECT
             output
