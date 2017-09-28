@@ -43,6 +43,7 @@ Enum.each([
         test "#{function} on input #{column} in a sub-query on #{table}", context do
           context
           |> disable_for(SQLServer, match?("hex" <> _, unquote(function)))
+          |> disable_for(SQLServerTds, match?("hex" <> _, unquote(function)))
           |> assert_consistent_and_not_failing("""
             SELECT
               output
