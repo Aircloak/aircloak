@@ -78,17 +78,6 @@ defmodule Compliance.DataSource.SAPHana do
 
   defp rows(data, column_names), do:
     Enum.map(data, fn(entry) ->
-      Enum.map(column_names, &to_literal(Map.get(entry, &1)))
+      Enum.map(column_names, &Map.get(entry, &1))
     end)
-
-  defp to_literal(value) do
-    cond do
-      is_nil(value) -> "NULL"
-      is_binary(value) -> "N'#{String.replace(value, "'", "''")}'"
-      is_number(value) -> to_string(value)
-      is_boolean(value) -> to_string(value)
-      match?(%NaiveDateTime{}, value) -> "timestamp'#{to_string(value)}'"
-      true -> raise "Unsupported value #{inspect value}"
-    end
-  end
 end

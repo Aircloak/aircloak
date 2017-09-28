@@ -50,7 +50,8 @@ if Mix.env() in [:dev, :test] do
       |> execute(command, params)
       |> case do
         {:updated, _} -> :ok
-        {:error, error} -> raise to_string(error)
+        {:error, error} ->
+          raise to_string(error)
       end
     end
 
@@ -102,12 +103,19 @@ if Mix.env() in [:dev, :test] do
     @spec insert_rows!(conn, String.t, String.t, [String.t], [[any]]) :: :ok
     def insert_rows!(conn, schema_name, table_name, columns, rows) do
       quoted_column_names = columns |> Enum.map(&~s/"#{&1}"/) |>  Enum.join(", ")
+      value_placeholders = List.duplicate("?", length(columns)) |> Enum.join(", ")
+      row_placeholder = "SELECT #{value_placeholders} FROM dummy"
 
       rows
-      |> Stream.map(&'SELECT #{Enum.join(&1, ", ")} from dummy')
       |> Stream.chunk(100, 100, [])
-      |> Stream.map(&'(#{Enum.join(&1, " UNION ALL ")})')
-      |> Enum.each(&execute!(conn, ~s/INSERT INTO "#{schema_name}"."#{table_name}"(#{quoted_column_names}) #{&1}/))
+      |> Stream.map(fn (chunk) ->
+        select_sql = List.duplicate(row_placeholder, length(chunk)) |> Enum.join(" UNION ALL ")
+        values = chunk |> List.flatten() |> Enum.map(&cast_types/1)
+        {select_sql, values}
+      end)
+      |> Enum.each(fn ({sql, values}) ->
+        execute!(conn, ~s/INSERT INTO "#{schema_name}"."#{table_name}"(#{quoted_column_names}) (#{sql})/, values)
+      end)
 
       :ok
     end
@@ -161,5 +169,16 @@ if Mix.env() in [:dev, :test] do
           "SELECT table_name FROM tables WHERE table_name='#{table_name}' AND schema_name='#{schema_name}'"
         )
       )
+
+    defp cast_types(binary) when is_binary(binary) do
+      binary = :unicode.characters_to_binary(binary, :utf8, {:utf16, :little})
+      {{:sql_wvarchar, length_null_terminated(binary)}, [binary]}
+    end
+    defp cast_types(integer) when is_integer(integer), do: {:sql_integer, [integer]}
+    defp cast_types(float) when is_float(float), do: {:sql_real, [float]}
+    defp cast_types(boolean) when is_boolean(boolean), do: {:sql_bit, [boolean]}
+    defp cast_types(%{calendar: Calendar.ISO} = datetime), do: datetime |> to_string() |> cast_types()
+
+    defp length_null_terminated(binary), do: byte_size(binary) + 1
   end
 end
