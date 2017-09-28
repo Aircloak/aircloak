@@ -43,6 +43,17 @@ if Mix.env() in [:dev, :test] do
     def execute(conn, command, params \\ []), do:
       :odbc.param_query(conn, to_char_list(command), params)
 
+    @doc "Executes the database query. Raises on error."
+    @spec execute!(conn, String.t, [any]) :: :ok
+    def execute!(conn, command, params \\ []) do
+      conn
+      |> execute(command, params)
+      |> case do
+        {:updated, _} -> :ok
+        {:error, error} -> raise to_string(error)
+      end
+    end
+
     @doc "Executes the select query."
     @spec select!(conn, String.t, [any]) :: [[any]]
     def select!(conn, command, params \\ []) do
@@ -81,9 +92,9 @@ if Mix.env() in [:dev, :test] do
     @spec recreate_table!(conn, String.t, String.t, String.t) :: :ok
     def recreate_table!(conn, schema_name, table_name, table_def) do
       if table_exists?(conn, schema_name, table_name), do:
-        {:updated, _} = execute(conn, ~s/DROP TABLE "#{schema_name}"."#{table_name}"/)
+        execute!(conn, ~s/DROP TABLE "#{schema_name}"."#{table_name}"/)
 
-      {:updated, _} = execute(conn, ~s/CREATE TABLE "#{schema_name}"."#{table_name}" (#{table_def})/)
+      execute!(conn, ~s/CREATE TABLE "#{schema_name}"."#{table_name}" (#{table_def})/)
       :ok
     end
 
@@ -96,13 +107,7 @@ if Mix.env() in [:dev, :test] do
       |> Stream.map(&'SELECT #{Enum.join(&1, ", ")} from dummy')
       |> Stream.chunk(100, 100, [])
       |> Stream.map(&'(#{Enum.join(&1, " UNION ALL ")})')
-      |> Enum.each(fn(chunk_sql) ->
-        {:updated, _} =
-          execute(
-            conn,
-            ~s/INSERT INTO "#{schema_name}"."#{table_name}"(#{quoted_column_names}) #{chunk_sql}/
-          )
-      end)
+      |> Enum.each(&execute!(conn, ~s/INSERT INTO "#{schema_name}"."#{table_name}"(#{quoted_column_names}) #{&1}/))
 
       :ok
     end
@@ -129,7 +134,7 @@ if Mix.env() in [:dev, :test] do
         conn
         |> select!(query)
         |> Enum.map(&:unicode.characters_to_binary(&1, {:utf16, :little}))
-        |> Enum.each(&({:updated, _} = execute(conn, ~s/drop schema "#{&1}" cascade/)))
+        |> Enum.each(&execute!(conn, ~s/drop schema "#{&1}" cascade/))
       end
 
       :ok

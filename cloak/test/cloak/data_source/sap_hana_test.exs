@@ -89,7 +89,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
   defp drop_test_tables(tables_def) do
     connection = connect!(connection_params())
     Enum.each(tables_def, fn({_, %{db_name: table_name}}) ->
-      {:updated, _} = SapHanaHelpers.execute(connection, ~s/drop table "#{schema()}"."#{table_name}"/)
+      SapHanaHelpers.execute!(connection, ~s/drop table "#{schema()}"."#{table_name}"/)
     end)
   end
 
