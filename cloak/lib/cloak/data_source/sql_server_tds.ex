@@ -104,6 +104,7 @@ defmodule Cloak.DataSource.SQLServerTds do
   defp parse_type("time"), do: :time
   defp parse_type("date"), do: :date
   defp parse_type("datetime"), do: :datetime
+  defp parse_type("datetime2"), do: :datetime
   defp parse_type("smalldatetime"), do: :datetime
   defp parse_type("datetimeoffset"), do: :datetime
   defp parse_type(type), do: {:unsupported, type}
