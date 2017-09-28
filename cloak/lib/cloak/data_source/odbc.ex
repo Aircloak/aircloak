@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.ODBC do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.{SqlBuilder, Table}
+  alias Cloak.DataSource.{SqlBuilder, Table, Driver}
   alias Cloak.DataSource
   alias Cloak.Query.DataDecoder
 
@@ -13,9 +13,9 @@ defmodule Cloak.DataSource.ODBC do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Cloak.DataSource.Driver
+  @behaviour Driver
 
-  @doc false
+  @impl Driver
   def sql_dialect_module(%{dialect: dialect}), do: dialect
   def sql_dialect_module(%{'DSN': dsn}), do:
     # Only needed for dev/test, where we access PostgreSQL through an ODBC data source.
@@ -23,7 +23,7 @@ defmodule Cloak.DataSource.ODBC do
     |> String.downcase()
     |> dialect_module()
 
-  @doc false
+  @impl Driver
   def connect!(parameters) do
     options = [auto_commit: :on, binary_strings: :on, tuple_row: :off]
     with {:ok, connection} <- parameters |> to_connection_string() |> :odbc.connect(options) do
@@ -34,10 +34,10 @@ defmodule Cloak.DataSource.ODBC do
     end
   end
 
-  @doc false
+  @impl Driver
   def disconnect(connection), do: :odbc.disconnect(connection)
 
-  @doc false
+  @impl Driver
   def load_tables(connection, table) do
     case :odbc.describe_table(connection, to_charlist(table.db_name), _timeout = :timer.seconds(15)) do
       {:ok, columns} ->
@@ -48,7 +48,7 @@ defmodule Cloak.DataSource.ODBC do
     end
   end
 
-  @doc false
+  @impl Driver
   def select(connection, sql_query, result_processor) do
     statement = sql_query |> SqlBuilder.build() |> to_charlist()
     field_mappers = for column <- sql_query.db_columns, do:
@@ -67,7 +67,7 @@ defmodule Cloak.DataSource.ODBC do
     end
   end
 
-  @doc false
+  @impl Driver
   def supports_query?(query), do: SqlBuilder.Support.supported_query?(query)
 
 

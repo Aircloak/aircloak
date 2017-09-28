@@ -7,8 +7,9 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   # -------------------------------------------------------------------
 
   use Cloak.DataSource.SqlBuilder.Dialect
+  alias Cloak.DataSource.SqlBuilder.Dialect
 
-  @doc false
+  @impl Dialect
   def supported_functions(), do:
     ~w(
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct stddev_distinct
@@ -18,7 +19,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
       hex cast coalesce hash
     )
 
-  @doc false
+  @impl Dialect
   for datepart <- ~w(year month day hour minute second quarter) do
     def function_sql(unquote(datepart), args), do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
   end
@@ -33,21 +34,21 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   end
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") ,")"]
 
-  @doc false
+  @impl Dialect
   def ilike_sql(what, match), do: [what, " ILIKE " , match]
 
-  @doc false
+  @impl Dialect
   def limit_sql(nil, offset), do: [" OFFSET ", to_string(offset)]
   def limit_sql(limit, offset), do: [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
 
-  @doc false
+  @impl Dialect
   def sql_type(:real), do: "float"
   def sql_type(:boolean), do: "bool"
   def sql_type(type) when is_atom(type), do: Atom.to_string(type)
 
-  @doc false
+  @impl Dialect
   def unicode_literal(value), do: [?', value, ?']
 
-  @doc false
+  @impl Dialect
   def interval_literal(value), do: ["interval '", Timex.Duration.to_string(value), ?']
 end

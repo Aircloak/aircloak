@@ -6,6 +6,7 @@ defmodule Cloak.DataSource.MySQL do
 
   alias Cloak.DataSource.{SqlBuilder, Table}
   alias Cloak.DataSource
+  alias Cloak.DataSource.Driver
   alias Cloak.Query.DataDecoder
 
 
@@ -13,12 +14,12 @@ defmodule Cloak.DataSource.MySQL do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Cloak.DataSource.Driver
+  @behaviour Driver
 
-  @doc false
+  @impl Driver
   def sql_dialect_module(_parameters), do: Cloak.DataSource.SqlBuilder.MySQL
 
-  @doc false
+  @impl Driver
   def connect!(parameters) do
     self = self()
     parameters =
@@ -36,12 +37,12 @@ defmodule Cloak.DataSource.MySQL do
         DataSource.raise_error("Unknown failure during database connection process")
     end
   end
-  @doc false
+  @impl Driver
   def disconnect(connection) do
     GenServer.stop(connection)
   end
 
-  @doc false
+  @impl Driver
   def load_tables(connection, table) do
     query = "SHOW COLUMNS FROM #{table.db_name}"
     column_info_mapper = fn [name, type | _others] -> Table.column(name, parse_type(type)) end
@@ -49,7 +50,7 @@ defmodule Cloak.DataSource.MySQL do
     [%{table | columns: columns}]
   end
 
-  @doc false
+  @impl Driver
   def select(connection, sql_query, result_processor) do
     statement = SqlBuilder.build(sql_query)
     field_mappers = for column <- sql_query.db_columns, do:
@@ -57,7 +58,7 @@ defmodule Cloak.DataSource.MySQL do
     run_query(connection, statement, &map_fields(&1, field_mappers), result_processor)
   end
 
-  @doc false
+  @impl Driver
   def supports_query?(query), do: SqlBuilder.Support.supported_query?(query)
 
 

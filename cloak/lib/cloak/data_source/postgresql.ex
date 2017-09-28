@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.{SqlBuilder, Table}
+  alias Cloak.DataSource.{SqlBuilder, Table, Driver}
   alias Cloak.DataSource
   alias Cloak.Query.DataDecoder
 
@@ -13,12 +13,12 @@ defmodule Cloak.DataSource.PostgreSQL do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Cloak.DataSource.Driver
+  @behaviour Driver
 
-  @doc false
+  @impl Driver
   def sql_dialect_module(_parameters), do: Cloak.DataSource.SqlBuilder.PostgreSQL
 
-  @doc false
+  @impl Driver
   def connect!(parameters) do
     self = self()
     parameters = Enum.to_list(parameters) ++ [types: Postgrex.DefaultTypes, sync_connect: true,
@@ -34,12 +34,12 @@ defmodule Cloak.DataSource.PostgreSQL do
         DataSource.raise_error("Unknown failure during database connection process")
     end
   end
-  @doc false
+  @impl Driver
   def disconnect(connection) do
     GenServer.stop(connection)
   end
 
-  @doc false
+  @impl Driver
   def load_tables(connection, table) do
     {schema_name, table_name} = case String.split(table.db_name, ".") do
       [full_table_name] -> {"public", full_table_name}
@@ -55,7 +55,7 @@ defmodule Cloak.DataSource.PostgreSQL do
     end
   end
 
-  @doc false
+  @impl Driver
   def select(connection, sql_query, result_processor) do
     statement = SqlBuilder.build(sql_query)
     field_mappers = for column <- sql_query.db_columns, do:
@@ -63,7 +63,7 @@ defmodule Cloak.DataSource.PostgreSQL do
     run_query(connection, statement, &map_fields(&1, field_mappers), result_processor)
   end
 
-  @doc false
+  @impl Driver
   def supports_query?(query), do: SqlBuilder.Support.supported_query?(query)
 
 

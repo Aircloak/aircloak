@@ -6,8 +6,9 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   # -------------------------------------------------------------------
 
   use Cloak.DataSource.SqlBuilder.Dialect
+  alias Cloak.DataSource.SqlBuilder.Dialect
 
-  @doc false
+  @impl Dialect
   def supported_functions(), do:
     ~w(
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct stddev_distinct
@@ -17,7 +18,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
       hex cast coalesce hash
     )
 
-  @doc false
+  @impl Dialect
   for datepart <- ~w(year month day hour minute second quarter) do
     def function_sql(unquote(datepart), args), do: ["DATEPART(", unquote(datepart), ", ", args, ")"]
   end
@@ -40,37 +41,37 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   end
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") ,")"]
 
-  @doc false
+  @impl Dialect
   def like_sql(what, match), do: super([what, " COLLATE Latin1_General_CS_AS"], match)
 
-  @doc false
+  @impl Dialect
   def ilike_sql(what, match), do: [what, " COLLATE Latin1_General_CI_AS LIKE " , match]
 
-  @doc false
+  @impl Dialect
   def limit_sql(nil, offset), do: [" OFFSET ", to_string(offset), " ROWS"]
   def limit_sql(limit, offset), do: [" OFFSET ", to_string(offset), " ROWS FETCH NEXT ", to_string(limit), " ROWS ONLY"]
 
-  @doc false
+  @impl Dialect
   def cast_unknown_sql(column_sql), do:
     # We can't directly select a field with an unknown type, so convert it to binary
     # This is needed in the case of using the ODBC driver with a GUID user id,
     # as the GUID type is not supported by the Erlang ODBC library
     Cloak.DataSource.SqlBuilder.Support.function_sql({:cast, :varbinary}, [column_sql], __MODULE__)
 
-  @doc false
+  @impl Dialect
   def sql_type(:real), do: "float"
   def sql_type(:boolean), do: "bool"
   # Due to limitations in the ODBC driver, we can't use nvarchar(max).
   def sql_type(:text), do: "nvarchar(4000)"
   def sql_type(type) when is_atom(type), do: Atom.to_string(type)
 
-  @doc false
+  @impl Dialect
   def unicode_literal(value), do: ["N'", value, ?']
 
-  @doc false
+  @impl Dialect
   def time_arithmetic_expression("+", [date, interval]), do: ["DATEADD(s, ", interval, ", ", date, ")"]
   def time_arithmetic_expression("-", [date, interval]), do: ["DATEADD(s, -(", interval, "), ", date, ")"]
 
-  @doc false
+  @impl Dialect
   def date_subtraction_expression([arg1, arg2]), do: ["DATEDIFF(s, ", arg2, ", ", arg1, ")"]
 end

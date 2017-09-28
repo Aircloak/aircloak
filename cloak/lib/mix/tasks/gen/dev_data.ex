@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Gen.DevData do
 
     use Mix.Task
 
-    @doc false
+    @impl Mix.Task
     def run(_args), do:
       [:postgresql, :saphana]
       |> Enum.map(&{&1, open_connection(&1)})

@@ -37,6 +37,7 @@ defmodule Cloak.DataSource.MongoDB do
 
   alias Cloak.Sql.{Query, Expression}
   alias Cloak.DataSource
+  alias Cloak.DataSource.Driver
   alias Cloak.DataSource.MongoDB.{Schema, Pipeline}
   alias Cloak.Query.DataDecoder
 
@@ -45,14 +46,14 @@ defmodule Cloak.DataSource.MongoDB do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Cloak.DataSource.Driver
+  @behaviour Driver
 
   @timeout :timer.hours(1)
 
-  @doc false
+  @impl Driver
   def sql_dialect_module(_parameters), do: nil
 
-  @doc false
+  @impl Driver
   def connect!(parameters) do
     self = self()
     parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, timeout: @timeout,
@@ -67,11 +68,11 @@ defmodule Cloak.DataSource.MongoDB do
     end
   end
 
-  @doc false
+  @impl Driver
   def disconnect(connection), do:
     GenServer.stop(connection)
 
-  @doc false
+  @impl Driver
   def load_tables(connection, table) do
     table =
       table
@@ -123,7 +124,7 @@ defmodule Cloak.DataSource.MongoDB do
     |> Schema.build(table)
   end
 
-  @doc false
+  @impl Driver
   def select(connection, query, result_processor) do
     {collection, pipeline} = Pipeline.build(query)
     options = [max_time: @timeout, timeout: @timeout, pool_timeout: @timeout, batch_size: 25_000, allow_disk_use: true]
@@ -139,7 +140,7 @@ defmodule Cloak.DataSource.MongoDB do
     {:ok, result}
   end
 
-  @doc false
+  @impl Driver
   def supports_query?(query), do:
     supports_used_functions?(query) and
     supports_used_functions_in_having?(query) and
