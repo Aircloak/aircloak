@@ -99,6 +99,8 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   end
   defp map_constant(%Expression{constant?: true, value: %Date{} = date}), do:
     BSON.DateTime.from_datetime({Date.to_erl(date), {0, 0, 0, 0}})
+  defp map_constant(%Expression{constant?: true, value: %Timex.Duration{} = duration}), do:
+    Timex.Duration.to_seconds(duration)
   defp map_constant(%Expression{constant?: true, value: value}), do: value
   defp map_constant(_), do:
     DataSource.raise_error("Conditions on MongoDB data sources have to be between a column and a constant.")

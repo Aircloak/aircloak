@@ -168,11 +168,15 @@ defmodule Cloak.DataSource.MongoDB do
   end
 
   defp type_to_field_mapper(:integer), do: &integer_field_mapper/1
+  defp type_to_field_mapper(:interval), do: &interval_field_mapper/1
   defp type_to_field_mapper(_), do: &generic_field_mapper/1
 
   defp integer_field_mapper(nil), do: nil
   defp integer_field_mapper(value) when is_integer(value), do: value
   defp integer_field_mapper(value) when is_float(value), do: round(value)
+
+  defp interval_field_mapper(nil), do: nil
+  defp interval_field_mapper(number), do: Timex.Duration.from_seconds(number)
 
   defp map_fields(row, mappers), do:
     Enum.map(mappers, fn ({mapper, index}) -> mapper.(row["f#{index}"]) end)
@@ -250,13 +254,15 @@ defmodule Cloak.DataSource.MongoDB do
   defp function_signature(%Expression{function?: true, function: name}), do: name
 
   defp supports_joins?(%Query{from: {:join, join}} = query) do
-    # join support was added in 3.2
-    (query.data_source |> get_mongo_version() |> Version.compare("3.2.0") != :lt) and
+    mongo_version_supports_joins?(query) and
     join.type == :inner_join and
     supported_join_conditions?(join.conditions) and
     supported_join_branches?(query.selected_tables, join.lhs, join.rhs)
   end
   defp supports_joins?(_query), do: true
+
+  defp mongo_version_supports_joins?(%{data_source: data_source}), do:
+    data_source |> get_mongo_version() |> Version.compare("3.2.0") != :lt
 
   defp supported_join_conditions?({:comparison, lhs, :=, rhs}), do: lhs.name != nil and rhs.name != nil
   defp supported_join_conditions?(_conditions), do: false

@@ -16,28 +16,34 @@ defmodule ComplianceCase do
   end
 
   setup_all do
-    {:ok, data_sources: data_sources()}
+    {:ok, data_sources: data_sources(), disabled: false}
   end
 
   import Cloak.Test.QueryHelpers
 
   @doc false
   def disable_for(context, _driver, false), do: context
+  def disable_for(context, :all, true), do:
+    %{context | disabled: true}
   def disable_for(%{data_sources: data_sources} = context, driver, true), do:
     %{context | data_sources: Enum.reject(data_sources, & &1.driver == driver)}
 
   @doc false
   defmacro assert_consistent_and_not_failing(context, query) do
     quote bind_quoted: [context: context, query: query] do
-      if Enum.empty?(context.data_sources), do:
-        raise ExUnit.AssertionError, message: "No data sources to execute query on. Query was:\n#{query}."
-
-      result = assert_query_consistency(query, data_sources: context.data_sources, timeout: @timeout)
-      if match?(%{error: _}, result) do
-        raise ExUnit.AssertionError,
-          message: "Query execution failed. Query was:\n#{query}.\n\nError:\n#{inspect result}"
-      else
-        :ok
+      cond do
+        Enum.empty?(context.data_sources) ->
+          raise ExUnit.AssertionError, message: "No data sources to execute query on. Query was:\n#{query}."
+        context.disabled ->
+          :ok
+        true ->
+          result = assert_query_consistency(query, data_sources: context.data_sources, timeout: @timeout)
+          if match?(%{error: _}, result) do
+            raise ExUnit.AssertionError,
+              message: "Query execution failed. Query was:\n#{query}.\n\nError:\n#{inspect result}"
+          else
+            :ok
+          end
       end
     end
   end

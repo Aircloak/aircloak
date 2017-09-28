@@ -108,6 +108,7 @@ defmodule Cloak.DataSource.MySQL do
 
   defp type_to_field_mapper(:integer), do: &integer_field_mapper/1
   defp type_to_field_mapper(:real), do: &real_field_mapper/1
+  defp type_to_field_mapper(:interval), do: &interval_field_mapper/1
   defp type_to_field_mapper(_), do: &generic_field_mapper/1
 
   defp integer_field_mapper(nil), do: nil
@@ -127,6 +128,9 @@ defmodule Cloak.DataSource.MySQL do
   defp generic_field_mapper(<<0>>), do: false
   defp generic_field_mapper(<<1>>), do: true
   defp generic_field_mapper(value), do: value
+
+  defp interval_field_mapper(nil), do: nil
+  defp interval_field_mapper(number), do: Timex.Duration.from_seconds(number)
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _reason}), do: nil
