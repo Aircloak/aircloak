@@ -61,7 +61,7 @@ defmodule Central.Service.ElasticSearch do
     defp record(index, type, data, timestamp \\ Timex.now()) do
       elastic_endpoint = Central.site_setting("elastic_search_endpoint")
       url = "#{elastic_endpoint}/#{index}/#{type}"
-      data = Map.put(data, :timestamp, Timex.format!(timestamp, "{ISO:Extended}"))
+      data = Map.put(data, :timestamp, Timex.format!(timestamp, "{ISO:Extended:Z}"))
       case HTTPoison.post(url, Poison.encode!(data)) do
         {:ok, _} -> :ok
         other ->
