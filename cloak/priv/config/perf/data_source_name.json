@@ -1,0 +1,12 @@
+{
+  "driver": "postgresql",
+  "name": "data_source_name",
+  "marker": "normal",
+  "parameters": {
+    "username": "performance",
+    "password": "",
+    "hostname": "localhost",
+    "database": "performance"
+  },
+  "tables": {}
+}

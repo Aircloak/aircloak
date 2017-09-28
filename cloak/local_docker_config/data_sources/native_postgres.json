@@ -1,0 +1,27 @@
+{
+  "driver": "postgresql",
+  "marker": "postgrex",
+  "name": "native_postgres",
+  "parameters": {
+    "hostname": "air_db",
+    "username": "cloak",
+    "database": "cloak"
+  },
+  "tables": {
+    "test": {
+      "db_name": "user_data",
+      "user_id": "user_id",
+      "ignore_unsupported_types": false
+    },
+    "purchases": {
+      "db_name": "purchases",
+      "user_id": "uid",
+      "ignore_unsupported_types": false
+    },
+    "demographics": {
+      "db_name": "demographics",
+      "user_id": "uid",
+      "ignore_unsupported_types": false
+    }
+  }
+}

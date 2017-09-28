@@ -1,18 +1,5 @@
 {
   "air_site": "wss://localhost:8443",
   "salt": "test salt which doesn't matter since tests have SD=0",
-  "data_sources": [
-    {
-      "driver": "postgresql",
-      "marker": "connector",
-      "name": "postgres",
-      "parameters": {
-        "hostname": "localhost",
-        "username": "postgres",
-        "database": "cloaktest2"
-      },
-      "tables": {
-      }
-    }
-  ]
+  "data_sources": "compliance_local"
 }
