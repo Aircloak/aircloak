@@ -23,6 +23,7 @@ defmodule Compliance.DataSources do
   @spec all_from_config(String.t) :: [Cloak.DataSource.t]
   def all_from_config(name), do:
     read_config(name)["data_sources"]
+    |> Cloak.DataSource.load_individual_data_source_configs()
     |> Enum.uniq_by(& {&1["parameters"], &1["driver"]})
     |> Cloak.DataSource.config_to_datasources()
 
