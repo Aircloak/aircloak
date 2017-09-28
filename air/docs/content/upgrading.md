@@ -4,7 +4,7 @@
 
 ### Datasources configuration
 
-__This change is backwards compatible, but we recommend upgrading your configuration__.
+__The old style of configuring datasources will stop working in version 18.3.__
 
 Datasources can now be configured in individiual files to make sharing of datasource configurations easier
 between multiple Insights Cloak instances.
