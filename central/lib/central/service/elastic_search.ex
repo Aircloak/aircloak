@@ -28,14 +28,14 @@ defmodule Central.Service.ElasticSearch do
   def record_air_presence(air) do
     air = Repo.preload(air, [:customer, :cloaks])
 
-    record(:customer, :air, %{
+    record(:statuses, :air, %{
       name: air.name,
       status: air.status,
       online_cloaks: air.cloaks |> Enum.filter(&(&1.status == :online)) |> Enum.count(),
       customer: %{id: air.customer.id, name: air.customer.name}
     })
 
-    Enum.each(air.cloaks, &record(:customer, :cloak, %{
+    Enum.each(air.cloaks, &record(:statuses, :cloak, %{
       name: &1.name,
       status: &1.status,
       data_source_names: &1.data_source_names,
