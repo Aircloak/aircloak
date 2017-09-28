@@ -29,10 +29,10 @@ defmodule Compliance.DataSource.Connector do
     quote do
       @behaviour unquote(__MODULE__)
 
-      @doc false
+      @impl unquote(__MODULE__)
       def db_table_name(table_name), do: table_name
 
-      @doc false
+      @impl unquote(__MODULE__)
       def insert_documents(_collection_name, _documents, conn), do: conn
 
       defoverridable db_table_name: 1, insert_documents: 3

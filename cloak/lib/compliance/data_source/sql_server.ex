@@ -7,9 +7,9 @@ defmodule Compliance.DataSource.SQLServer do
   # -------------------------------------------------------------------
 
   use Compliance.DataSource.Connector
-  alias Compliance.DataSource.SQLServer.Queries
+  alias Compliance.DataSource.{Connector, SQLServer.Queries}
 
-  @doc false
+  @impl Connector
   def setup(%{parameters: params}) do
     Application.ensure_all_started(:odbc)
     conn = Cloak.DataSource.SQLServer.connect!(params)
@@ -17,19 +17,19 @@ defmodule Compliance.DataSource.SQLServer do
     conn
   end
 
-  @doc false
+  @impl Connector
   def create_table(table_name, columns, conn) do
     Enum.each(Queries.create_table(table_name, columns), &execute!(conn, &1))
     conn
   end
 
-  @doc false
+  @impl Connector
   def insert_rows(table_name, data, conn) do
     Enum.each(Queries.insert_rows(table_name, data), &execute!(conn, &1))
     conn
   end
 
-  @doc false
+  @impl Connector
   def terminate(_conn) do
     :ok
   end

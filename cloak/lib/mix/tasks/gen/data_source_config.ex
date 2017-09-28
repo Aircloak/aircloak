@@ -49,7 +49,7 @@ defmodule Mix.Tasks.Gen.DataSourceConfig do
 
     use Mix.Task
 
-    @doc false
+    @impl Mix.Task
     def run([config_name, output_path]) do
       File.write!(output_path, build_config(config_name))
       IO.puts "Configuration for #{config_name} generated and written to #{output_path}"

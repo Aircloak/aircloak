@@ -89,6 +89,8 @@ defmodule Cloak.DataSource.MongoDB.Projector do
 
   defp parse_column(:*), do: :*
   defp parse_column({:distinct, column}), do: {:distinct, parse_column(column)}
+  defp parse_column(%Expression{constant?: true, value: %Timex.Duration{} = value}), do:
+    %{'$literal': Timex.Duration.to_seconds(value)}
   defp parse_column(%Expression{constant?: true, value: value}), do: %{'$literal': value}
   defp parse_column(%Expression{function?: true, function: {:cast, type}, function_args: [value]}), do:
     parse_function("cast", [parse_column(value), value.type, type])

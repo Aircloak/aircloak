@@ -9,8 +9,9 @@ defmodule Compliance.DataSource.MongoDB do
   # -------------------------------------------------------------------
 
   use Compliance.DataSource.Connector
+  alias Compliance.DataSource.Connector
 
-  @doc false
+  @impl Connector
   def setup(%{parameters: params}) do
     Application.ensure_all_started(:mongodb)
     {:ok, conn} = Mongo.start_link(
@@ -21,23 +22,23 @@ defmodule Compliance.DataSource.MongoDB do
     conn
   end
 
-  @doc false
+  @impl Connector
   def create_table(table_name, _columns, conn) do
     Mongo.delete_many!(conn, table_name, %{})
     conn
   end
 
-  @doc false
+  @impl Connector
   def insert_rows(_table_name, _data, conn), do: conn
 
-  @doc false
+  @impl Connector
   def insert_documents(collection_name, documents, conn) do
     converted_documents = convert_documents(documents)
     Mongo.insert_many!(conn, collection_name, converted_documents)
     conn
   end
 
-  @doc false
+  @impl Connector
   def terminate(_conn), do: :ok
 
 

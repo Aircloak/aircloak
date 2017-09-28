@@ -6,6 +6,7 @@ defmodule Cloak.DataSource.MySQL do
 
   alias Cloak.DataSource.{SqlBuilder, Table}
   alias Cloak.DataSource
+  alias Cloak.DataSource.Driver
   alias Cloak.Query.DataDecoder
 
 
@@ -13,12 +14,12 @@ defmodule Cloak.DataSource.MySQL do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Cloak.DataSource.Driver
+  @behaviour Driver
 
-  @doc false
+  @impl Driver
   def sql_dialect_module(_parameters), do: Cloak.DataSource.SqlBuilder.MySQL
 
-  @doc false
+  @impl Driver
   def connect!(parameters) do
     self = self()
     parameters =
@@ -36,12 +37,12 @@ defmodule Cloak.DataSource.MySQL do
         DataSource.raise_error("Unknown failure during database connection process")
     end
   end
-  @doc false
+  @impl Driver
   def disconnect(connection) do
     GenServer.stop(connection)
   end
 
-  @doc false
+  @impl Driver
   def load_tables(connection, table) do
     query = "SHOW COLUMNS FROM #{table.db_name}"
     column_info_mapper = fn [name, type | _others] -> Table.column(name, parse_type(type)) end
@@ -49,7 +50,7 @@ defmodule Cloak.DataSource.MySQL do
     [%{table | columns: columns}]
   end
 
-  @doc false
+  @impl Driver
   def select(connection, sql_query, result_processor) do
     statement = SqlBuilder.build(sql_query)
     field_mappers = for column <- sql_query.db_columns, do:
@@ -57,7 +58,7 @@ defmodule Cloak.DataSource.MySQL do
     run_query(connection, statement, &map_fields(&1, field_mappers), result_processor)
   end
 
-  @doc false
+  @impl Driver
   def supports_query?(query), do: SqlBuilder.Support.supported_query?(query)
 
 
@@ -107,6 +108,7 @@ defmodule Cloak.DataSource.MySQL do
 
   defp type_to_field_mapper(:integer), do: &integer_field_mapper/1
   defp type_to_field_mapper(:real), do: &real_field_mapper/1
+  defp type_to_field_mapper(:interval), do: &interval_field_mapper/1
   defp type_to_field_mapper(_), do: &generic_field_mapper/1
 
   defp integer_field_mapper(nil), do: nil
@@ -126,6 +128,9 @@ defmodule Cloak.DataSource.MySQL do
   defp generic_field_mapper(<<0>>), do: false
   defp generic_field_mapper(<<1>>), do: true
   defp generic_field_mapper(value), do: value
+
+  defp interval_field_mapper(nil), do: nil
+  defp interval_field_mapper(number), do: Timex.Duration.from_seconds(number)
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _reason}), do: nil
