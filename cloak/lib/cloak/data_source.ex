@@ -81,7 +81,7 @@ defmodule Cloak.DataSource do
   """
   def start_link() do
     initial_state = Aircloak.DeployConfig.fetch!("data_sources")
-    |> potentially_load_individual_data_source_configs()
+    |> load_individual_data_source_configs()
     |> config_to_datasources()
     |> Enum.map(&add_tables/1)
     GenServer.start_link(__MODULE__, initial_state, name: __MODULE__)
@@ -199,12 +199,13 @@ defmodule Cloak.DataSource do
 
 
   # -------------------------------------------------------------------
-  # Internal functions
+  # Utility functions
   # -------------------------------------------------------------------
 
   # This is the legacy path where data sources where configured as a list of data source definitions inline
-  defp potentially_load_individual_data_source_configs(data_sources) when is_list(data_sources), do: data_sources
-  defp potentially_load_individual_data_source_configs(config_path) when is_binary(config_path) do
+  @doc false
+  def load_individual_data_source_configs(data_sources) when is_list(data_sources), do: data_sources
+  def load_individual_data_source_configs(config_path) when is_binary(config_path) do
     case Aircloak.File.ls(config_path) do
       {:ok, data_source_config_files} ->
         data_source_config_files
@@ -225,6 +226,11 @@ defmodule Cloak.DataSource do
         []
     end
   end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp activate_monitor_timer(pid) do
     interval = Application.get_env(:cloak, :data_source_monitor_interval)
