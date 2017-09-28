@@ -18,6 +18,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @doc "Generates dialect specific SQL for the ILIKE operator."
   @callback limit_sql(pos_integer | nil, non_neg_integer) :: iodata
 
+  @doc "Generates dialect-specific SQL for casting a column."
+  @callback cast_sql(iodata, atom) :: iodata
+
   @doc "Generates dialect specific SQL for casting a column of an unknown type."
   @callback cast_unknown_sql(iodata) :: iodata
 
@@ -33,16 +36,16 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
     quote do
       @behaviour unquote(__MODULE__)
 
-      @doc false
+      @impl unquote(__MODULE__)
       def like_sql(what, match), do:
         [what, " LIKE ", match]
 
-      @doc false
+      @impl unquote(__MODULE__)
       def ilike_sql(what, match), do:
         # ilike requires the support for collation, so each data source must explicitly handle this
         raise ExecutionError, message: "ILIKE operator is not supported on this data source"
 
-      @doc false
+      @impl unquote(__MODULE__)
       def limit_sql(nil, _offset), do:
         # ilike requires the support for collation, so each data source must explicitly handle this
         raise ExecutionError, message: "OFFSET operator is not supported on this data source"
@@ -50,11 +53,11 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
         # ilike requires the support for collation, so each data source must explicitly handle this
         raise ExecutionError, message: "LIMIT operator is not supported on this data source"
 
-      @doc false
+      @impl unquote(__MODULE__)
       def cast_unknown_sql(column_sql), do:
         raise ExecutionError, message: "column `#{column_sql}` is of an unknown type"
 
-      @doc false
+      @impl unquote(__MODULE__)
       def cast_sql(value, type), do:
         ["CAST(", value, " AS ", sql_type(type), ")"]
 

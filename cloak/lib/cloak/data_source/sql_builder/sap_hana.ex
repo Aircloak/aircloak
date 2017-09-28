@@ -6,10 +6,11 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   # -------------------------------------------------------------------
 
   use Cloak.DataSource.SqlBuilder.Dialect
+  alias Cloak.DataSource.SqlBuilder.Dialect
 
   @max_unsigned_bigint 9_223_372_036_854_775_807
 
-  @doc false
+  @impl Dialect
   def supported_functions(), do:
     ~w(
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct
@@ -19,7 +20,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
       cast coalesce
     )
 
-  @doc false
+  @impl Dialect
   for datepart <- ~w(year month day hour minute second) do
     def function_sql(unquote(datepart), args), do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
   end
@@ -42,19 +43,19 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def function_sql("stddev", [arg]), do: ["STDDEV_SAMP(", arg, ")"]
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") ,")"]
 
-  @doc false
+  @impl Dialect
   def limit_sql(nil, offset), do: limit_sql(@max_unsigned_bigint, offset)
   def limit_sql(limit, offset), do: [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
 
-  @doc false
+  @impl Dialect
   def sql_type(:text), do: "nclob"
   def sql_type(:datetime), do: "timestamp"
   def sql_type(type) when is_atom(type), do: Atom.to_string(type)
 
-  @doc false
+  @impl Dialect
   def unicode_literal(value), do: ["N'", value, ?']
 
-  @doc false
+  @impl Dialect
   def cast_sql(value, :integer), do:
     ["CAST(", function_sql("round", [value]), " AS integer)"]
   def cast_sql(value, type), do:
