@@ -73,7 +73,7 @@ defmodule Cloak.AirSocket do
   # GenSocketClient callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl GenSocketClient
   def init(air_socket_url) do
     initial_interval = config(:min_reconnect_interval)
     state = %{
@@ -84,7 +84,7 @@ defmodule Cloak.AirSocket do
     {:connect, air_socket_url, state}
   end
 
-  @doc false
+  @impl GenSocketClient
   def handle_connected(_transport, state) do
     Logger.info("connected")
     send(self(), {:join, "main"})
@@ -92,34 +92,34 @@ defmodule Cloak.AirSocket do
     {:ok, %{state | reconnect_interval: initial_interval}}
   end
 
-  @doc false
+  @impl GenSocketClient
   def handle_disconnected(reason, %{reconnect_interval: interval} = state) do
     log_disconnected(reason)
     Process.send_after(self(), :connect, interval)
     {:ok, %{state | reconnect_interval: next_interval(interval)}}
   end
 
-  @doc false
+  @impl GenSocketClient
   def handle_joined(topic, _payload, _transport, state) do
     Logger.info("joined the topic #{topic}")
     initial_interval = config(:min_reconnect_interval)
     {:ok, %{state | rejoin_interval: initial_interval}}
   end
 
-  @doc false
+  @impl GenSocketClient
   def handle_join_error(topic, payload, _transport, state) do
     Logger.error("join error on the topic #{topic}: #{inspect payload}")
     {:ok, state}
   end
 
-  @doc false
+  @impl GenSocketClient
   def handle_channel_closed(topic, payload, _transport, %{rejoin_interval: interval} = state) do
     Logger.error("disconnected from the topic #{topic}: #{inspect payload}")
     Process.send_after(self(), {:join, topic}, interval)
     {:ok, %{state | rejoin_interval: next_interval(interval)}}
   end
 
-  @doc false
+  @impl GenSocketClient
   def handle_message("main", "air_call", request, transport, state) do
     handle_air_call(request.event, request.payload, {transport, request.request_id}, state)
   end
@@ -144,13 +144,13 @@ defmodule Cloak.AirSocket do
     {:ok, state}
   end
 
-  @doc false
+  @impl GenSocketClient
   def handle_reply(topic, _ref, payload, _transport, state) do
     Logger.warn("unhandled reply on topic #{topic}: #{inspect payload}")
     {:ok, state}
   end
 
-  @doc false
+  @impl GenSocketClient
   def handle_info(:connect, _transport, state) do
     log_connect()
     {:connect, state}
@@ -180,7 +180,7 @@ defmodule Cloak.AirSocket do
   end
 
 
-  @doc false
+  @impl GenSocketClient
   def handle_call({:call_air, request_id, topic, event, payload, timeout}, from, transport, state) do
     case push(transport, topic, "cloak_call", %{request_id: request_id, event: event, payload: payload}) do
       :ok ->

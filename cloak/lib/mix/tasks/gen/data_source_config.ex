@@ -59,7 +59,7 @@ defmodule Mix.Tasks.Gen.DataSourceConfig do
 
     use Mix.Task
 
-    @doc false
+    @impl Mix.Task
     def run([config_name, output_dir]) do
       IO.puts "Writing data source definitions for #{config_name} to directory #{output_dir}"
       build_data_source_definitions(config_name)

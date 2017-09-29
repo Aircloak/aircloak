@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Gen.TestData do
 
     use Mix.Task
 
-    @doc false
+    @impl Mix.Task
     def run([config_name, num_users]) do
       num_users = String.to_integer(num_users)
       IO.puts "Generating data for #{num_users} users."

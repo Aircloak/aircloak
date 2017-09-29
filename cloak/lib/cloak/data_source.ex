@@ -164,13 +164,13 @@ defmodule Cloak.DataSource do
   # Callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl GenServer
   def init(data_sources) do
     activate_monitor_timer(self())
     {:ok, data_sources}
   end
 
-  @doc false
+  @impl GenServer
   def handle_call(:all, _from, data_sources) do
     {:reply, data_sources, data_sources}
   end
@@ -182,6 +182,7 @@ defmodule Cloak.DataSource do
     {:reply, :ok, data_sources}
   end
 
+  @impl GenServer
   def handle_info(:monitor, data_sources) do
     server_pid = self()
     Task.start_link(fn () ->

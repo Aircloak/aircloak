@@ -4,19 +4,19 @@ defmodule Cloak.DataSource.SQLServer do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.ODBC
+  alias Cloak.DataSource.{ODBC, Driver}
 
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Cloak.DataSource.Driver
+  @behaviour Driver
 
-  @doc false
+  @impl Driver
   def sql_dialect_module(_parameters), do: Cloak.DataSource.SqlBuilder.SQLServer
 
-  @doc false
+  @impl Driver
   def connect!(parameters) do
     normalized_parameters = for {key, value} <- parameters, into: %{}, do:
       {key |> Atom.to_string() |> String.downcase() |> String.to_atom(), value}
@@ -36,12 +36,16 @@ defmodule Cloak.DataSource.SQLServer do
     connection
   end
 
+  @impl Driver
   defdelegate disconnect(connection), to: ODBC
 
+  @impl Driver
   defdelegate load_tables(connection, table), to: ODBC
 
+  @impl Driver
   defdelegate select(connection, sql_query, result_processor), to: ODBC
 
+  @impl Driver
   defdelegate supports_query?(query), to: ODBC
 
 

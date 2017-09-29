@@ -55,6 +55,14 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql({:distinct, column}, sql_dialect_module), do: ["DISTINCT ", column_sql(column, sql_dialect_module)]
   defp column_sql(%Expression{alias: alias} = column, sql_dialect_module) when alias != nil and alias != "", do:
     [column_sql(%Expression{column | alias: nil}, sql_dialect_module), " AS ", quote_name(alias, sql_dialect_module)]
+  defp column_sql(%Expression{function?: true, function: fun_name, type: type, function_args: args}, sql_dialect_module)
+    when fun_name in ["+", "-"] and type in [:time, :date, :datetime],
+  do:
+    sql_dialect_module.time_arithmetic_expression(fun_name, Enum.map(args, &to_fragment(&1, sql_dialect_module)))
+  defp column_sql(%Expression{
+    function?: true, function: "-", type: :interval, function_args: args
+  }, sql_dialect_module), do:
+    sql_dialect_module.date_subtraction_expression(Enum.map(args, &to_fragment(&1, sql_dialect_module)))
   defp column_sql(%Expression{function?: true, function: fun_name, function_args: args}, sql_dialect_module)
     when fun_name != nil,
   do:
@@ -137,6 +145,8 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp constant_to_fragment(%NaiveDateTime{} = value, _sql_dialect_module), do: [?', to_string(value), ?']
   defp constant_to_fragment(%Time{} = value, _sql_dialect_module), do: [?', to_string(value), ?']
   defp constant_to_fragment(%Date{} = value, _sql_dialect_module), do: [?', to_string(value), ?']
+  defp constant_to_fragment(%Timex.Duration{} = value, sql_dialect_module), do:
+    sql_dialect_module.interval_literal(value)
   defp constant_to_fragment(value, _sql_dialect_module) when is_number(value), do: to_string(value)
   defp constant_to_fragment(value, _sql_dialect_module) when is_boolean(value), do: to_string(value)
   defp constant_to_fragment(value, sql_dialect_module) when is_binary(value), do:

@@ -37,6 +37,7 @@ defmodule Cloak.DataSource.MongoDB do
 
   alias Cloak.Sql.{Query, Expression}
   alias Cloak.DataSource
+  alias Cloak.DataSource.Driver
   alias Cloak.DataSource.MongoDB.{Schema, Pipeline}
   alias Cloak.Query.DataDecoder
 
@@ -45,14 +46,14 @@ defmodule Cloak.DataSource.MongoDB do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Cloak.DataSource.Driver
+  @behaviour Driver
 
   @timeout :timer.hours(1)
 
-  @doc false
+  @impl Driver
   def sql_dialect_module(_parameters), do: nil
 
-  @doc false
+  @impl Driver
   def connect!(parameters) do
     self = self()
     parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, timeout: @timeout,
@@ -67,11 +68,11 @@ defmodule Cloak.DataSource.MongoDB do
     end
   end
 
-  @doc false
+  @impl Driver
   def disconnect(connection), do:
     GenServer.stop(connection)
 
-  @doc false
+  @impl Driver
   def load_tables(connection, table) do
     table =
       table
@@ -123,7 +124,7 @@ defmodule Cloak.DataSource.MongoDB do
     |> Schema.build(table)
   end
 
-  @doc false
+  @impl Driver
   def select(connection, query, result_processor) do
     {collection, pipeline} = Pipeline.build(query)
     options = [max_time: @timeout, timeout: @timeout, pool_timeout: @timeout, batch_size: 25_000, allow_disk_use: true]
@@ -139,7 +140,7 @@ defmodule Cloak.DataSource.MongoDB do
     {:ok, result}
   end
 
-  @doc false
+  @impl Driver
   def supports_query?(query), do:
     supports_used_functions?(query) and
     supports_used_functions_in_having?(query) and
@@ -167,11 +168,15 @@ defmodule Cloak.DataSource.MongoDB do
   end
 
   defp type_to_field_mapper(:integer), do: &integer_field_mapper/1
+  defp type_to_field_mapper(:interval), do: &interval_field_mapper/1
   defp type_to_field_mapper(_), do: &generic_field_mapper/1
 
   defp integer_field_mapper(nil), do: nil
   defp integer_field_mapper(value) when is_integer(value), do: value
   defp integer_field_mapper(value) when is_float(value), do: round(value)
+
+  defp interval_field_mapper(nil), do: nil
+  defp interval_field_mapper(number), do: Timex.Duration.from_seconds(number)
 
   defp map_fields(row, mappers), do:
     Enum.map(mappers, fn ({mapper, index}) -> mapper.(row["f#{index}"]) end)
@@ -249,13 +254,15 @@ defmodule Cloak.DataSource.MongoDB do
   defp function_signature(%Expression{function?: true, function: name}), do: name
 
   defp supports_joins?(%Query{from: {:join, join}} = query) do
-    # join support was added in 3.2
-    (query.data_source |> get_mongo_version() |> Version.compare("3.2.0") != :lt) and
+    mongo_version_supports_joins?(query) and
     join.type == :inner_join and
     supported_join_conditions?(join.conditions) and
     supported_join_branches?(query.selected_tables, join.lhs, join.rhs)
   end
   defp supports_joins?(_query), do: true
+
+  defp mongo_version_supports_joins?(%{data_source: data_source}), do:
+    data_source |> get_mongo_version() |> Version.compare("3.2.0") != :lt
 
   defp supported_join_conditions?({:comparison, lhs, :=, rhs}), do: lhs.name != nil and rhs.name != nil
   defp supported_join_conditions?(_conditions), do: false

@@ -545,6 +545,12 @@ defmodule Cloak.Query.BasicTest do
     assert (for data <- rows, do: hd(data.row)) == Enum.reverse(dates)
   end
 
+  test "intervals in query results" do
+    :ok = insert_rows(_user_ids = 0..4, "dates", ["date"], [~N[2017-01-02 00:01:02]])
+    assert_query "select date - date, interval 'P1Y2M' from dates",
+      %{rows: [%{row: ["P", "P1Y2M"]}]}
+  end
+
   test "query allows mixing aggregated and grouped columns" do
     :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])

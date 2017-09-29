@@ -71,7 +71,7 @@ defmodule Cloak.Query.Runner do
   # GenServer callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl GenServer
   def init({query_id, data_source, statement, parameters, views, result_target}) do
     Registry.register(@queries_registry_name, :instances, query_id)
     Logger.metadata(query_id: query_id)
@@ -93,7 +93,7 @@ defmodule Cloak.Query.Runner do
     }}
   end
 
-  @doc false
+  @impl GenServer
   def handle_info({:EXIT, runner_pid, reason}, %{runner: %Task{pid: runner_pid}} = state) do
     state =
       if reason != :normal do
@@ -118,7 +118,7 @@ defmodule Cloak.Query.Runner do
   def handle_info(_other, state), do:
     {:noreply, state}
 
-  @doc false
+  @impl GenServer
   def handle_cast({:stop_query, reason}, %{runner: task} = state) do
     Task.shutdown(task)
     Logger.warn("Asked to stop query. Reason: #{inspect reason}")

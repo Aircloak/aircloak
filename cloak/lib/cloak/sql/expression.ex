@@ -8,7 +8,7 @@ defmodule Cloak.Sql.Expression do
   alias Cloak.Sql.LikePattern
   alias Timex.Duration
 
-  @type column_type :: DataSource.Table.data_type | :like_pattern | nil
+  @type column_type :: DataSource.Table.data_type | :like_pattern | :interval | nil
   @type function_name ::
     String.t |
     {:cast, DataSource.Table.data_type | :varbinary} |
