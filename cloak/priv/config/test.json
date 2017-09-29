@@ -1,17 +1,4 @@
 {
   "salt": "test salt which doesn't matter since tests have SD=0",
-  "data_sources": [
-    {
-      "driver": "postgresql",
-      "marker": "native",
-      "name": "data_source_name",
-      "parameters": {
-        "hostname": "localhost",
-        "username": "postgres",
-        "database": "cloaktest1"
-      },
-      "tables": {
-      }
-    }
-  ]
+  "data_sources": "test"
 }

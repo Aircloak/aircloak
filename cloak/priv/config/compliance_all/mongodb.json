@@ -1,0 +1,12 @@
+{
+  "driver": "mongodb",
+  "marker": "connector",
+  "name": "mongodb",
+  "parameters": {
+    "hostname": "localhost",
+    "username": "root",
+    "database": "cloaktest2"
+  },
+  "tables": {
+  }
+}
