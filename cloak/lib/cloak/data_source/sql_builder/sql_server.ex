@@ -23,7 +23,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   end
   def function_sql("ceil", [arg]), do: ["CEILING(", arg, ")"]
   def function_sql("concat", args), do: Enum.intersperse(args, " + ")
-  def function_sql("length", [arg]), do: ["LEN(", arg, ")"]
+  def function_sql("length", [arg]), do: ["(LEN(", arg, " + N'.') - 1)"]
   def function_sql("trunc", [arg1]), do: ["ROUND(", arg1, ", 0, 1)"]
   def function_sql("trunc", [arg1, arg2]), do: ["ROUND(", arg1, ",", arg2, ", 1)"]
   def function_sql("round", [arg1]), do: ["ROUND(", arg1, ", 0)"]
