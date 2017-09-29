@@ -12,34 +12,44 @@ defmodule Mix.Tasks.Gen.DataSourceConfig do
 
     Say you want to produce a performance test dataset based on the
     test data generator. You provide a data source scaffold named
-    `performance` stored under `/priv/config/performance.json`.
+    `performance` stored under `/priv/config/performance.json`, as well
+    as the data source definition in some auxiliary folder referenced
+    from the config (the convention for local data sources is to give
+    the folder the same name as the data source config, `performance`
+    in this case):
 
     It could look as follows:
 
     ```
     {
       "salt": "some salt",
-      "data_sources": [
-        {
-          "driver": "postgresql",
-          "name": "some name",
-          "parameters": {
-            "hostname": "localhost",
-            "username": "some user",
-            "database": "some database"
-          },
-          "tables": {
-          }
-        }
+      "data_sources": "performance"
       ]
     }
     ```
 
-    Running `mix gen.data_source_config performance`
-    will print the data source definition to STDOUT.
+    With a data source definition stored under `/priv/config/performance/data_source.json`:
 
-    Running `mix gen.data_source_config performance output_file_path` will
-    write the full data source definition to the specified path.
+    ```
+    {
+      "driver": "postgresql",
+      "name": "data_source",
+      "parameters": {
+        "hostname": "localhost",
+        "username": "some user",
+        "database": "some database"
+      },
+      "tables": {
+      }
+    }
+    ```
+
+    Running `mix gen.data_source_config performance`
+    will print the data source definitions referenced
+    in the performance data source config to STDOUT.
+
+    Running `mix gen.data_source_config performance output_dir_path` will
+    write the data source definitions as individual files in the specified directory.
     """
 
     alias Compliance.DataSources
@@ -50,12 +60,22 @@ defmodule Mix.Tasks.Gen.DataSourceConfig do
     use Mix.Task
 
     @doc false
-    def run([config_name, output_path]) do
-      File.write!(output_path, build_config(config_name))
-      IO.puts "Configuration for #{config_name} generated and written to #{output_path}"
+    def run([config_name, output_dir]) do
+      IO.puts "Writing data source definitions for #{config_name} to directory #{output_dir}"
+      build_data_source_definitions(config_name)
+      |> Enum.each(fn(data_source_config) ->
+        path = Path.join([output_dir, data_source_config[:name] <> ".json"])
+        File.write!(path, Poison.encode!(data_source_config, pretty: true))
+        IO.puts "OK: #{path}"
+      end)
     end
     def run([config_name]) do
-      IO.puts build_config(config_name)
+      build_data_source_definitions(config_name)
+      |> Enum.each(fn(data_source_config) ->
+        IO.puts("# #{data_source_config[:name]}:")
+        IO.puts(Poison.encode!(data_source_config, pretty: true))
+        IO.puts("\n")
+      end)
     end
     def run(_) do
       IO.puts """
@@ -70,22 +90,12 @@ defmodule Mix.Tasks.Gen.DataSourceConfig do
     # Internal functions
     # -------------------------------------------------------------------
 
-    defp build_config(config_name) do
-      original_config = Aircloak.atomize_keys(DataSources.read_config(config_name))
-      original_data_sources = original_config.data_sources
-
-      expanded_data_sources = config_name
+    defp build_data_source_definitions(config_name) do
+      config_name
       |> DataSources.all_from_config()
       |> DataSources.complete_data_source_definitions()
-      |> Enum.group_by(& &1.parameters)
-      |> Enum.flat_map(fn({parameters, data_sources}) ->
-        original_data_source = Enum.find(original_data_sources, & parameters == &1.parameters)
-        Enum.map(data_sources, & Map.merge(original_data_source, Map.take(&1, [:name, :marker, :tables])))
-      end)
-
-      original_config
-      |> Map.put(:data_sources, expanded_data_sources)
-      |> Poison.encode!(pretty: true)
+      |> Enum.map(& Map.put(&1, :driver, Map.get(&1, :driver_name)))
+      |> Enum.map(& Map.take(&1, [:marker, :name, :parameters, :tables, :driver]))
     end
   end
 end
