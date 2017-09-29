@@ -51,12 +51,12 @@ defmodule Cloak.DataSource.Utility do
   Enum.each(@driver_name_to_module_mappings, fn({name, driver}) ->
     def name_to_driver(unquote(name)), do: {:ok, unquote(driver)}
   end)
-  def name_to_driver(_other), do: {:error, :uknown}
+  def name_to_driver(_other), do: {:error, :unknown}
 
   @doc "Returns the data source type name given a driver module"
   @spec driver_to_name(atom) :: {:ok, String.t} | {:error, :unknown}
   Enum.each(@driver_name_to_module_mappings, fn({name, driver}) ->
     def driver_to_name(unquote(driver)), do: {:ok, unquote(name)}
   end)
-  def driver_to_name(_other), do: {:error, :uknown}
+  def driver_to_name(_other), do: {:error, :unknown}
 end
