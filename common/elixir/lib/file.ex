@@ -13,26 +13,10 @@ defmodule Aircloak.File do
 
   @doc "Reads a file from the configuration folder for a given application"
   @spec read_config_file(atom, String.t) :: {:ok, Map.t} | {:error, String.t}
-  def read_config_file(app, path_segment) do
-    raw_json = File.read!(config_path(app, path_segment))
-    # The reason why we are using Poison.decode! rather than Poison.decode
-    # and selecting on the result is that the return type as specified in the
-    # latter doesn't match what I am actually receiving when the JSON is broken,
-    # and furthermore: we would have to construct our own error messages whereas
-    # the current approach allows us to rely on the error messages produced by Poisson.
-    try do
-      {:ok, Poison.decode!(raw_json)}
-    rescue
-      # The reason we are catching a generic error rather than a specific one
-      # like Poison.SyntaxError is that the current Poison master has a Poison.DecodeError
-      # and Poison.ParseError but no Posion.SyntaxError, whereas the latter is what I see
-      # in practise. Since everything seems a bit in flux I am catching everything instead
-      # to keep this path stable over time. Since the try catch is wrapping the Poison.decode!
-      # by itself, this seems like a worthwhile tradeoff as the chances of catching errors
-      # from other libraries this way is limited.
-      e -> {:error, e.message}
-    end
-  end
+  def read_config_file(app, path_segment), do:
+    config_path(app, path_segment)
+    |> File.read!()
+    |> poison_safe_decode_with_error_message()
 
   @doc "Lists all files inside a config directory for the calling application"
   defmacro ls(path_segment), do:
@@ -67,4 +51,12 @@ defmodule Aircloak.File do
 
   defp config_path(app, path_segment), do:
     Path.join([Application.app_dir(app, "priv"), "config", path_segment])
+
+  defp poison_safe_decode_with_error_message(raw_json) do
+    try do
+      {:ok, Poison.decode!(raw_json)}
+    rescue
+      e -> {:error, e.message}
+    end
+  end
 end
