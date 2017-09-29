@@ -94,7 +94,10 @@ defmodule Mix.Tasks.Gen.DataSourceConfig do
       config_name
       |> DataSources.all_from_config()
       |> DataSources.complete_data_source_definitions()
-      |> Enum.map(& Map.put(&1, :driver, Map.get(&1, :driver_name)))
+      |> Enum.map(fn(data_source) ->
+        {:ok, name} = Cloak.DataSource.Utility.driver_to_name(data_source.driver)
+        Map.put(data_source, :driver, name)
+      end)
       |> Enum.map(& Map.take(&1, [:marker, :name, :parameters, :tables, :driver]))
     end
   end

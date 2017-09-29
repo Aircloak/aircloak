@@ -42,7 +42,7 @@ defmodule Cloak.DataSource do
   alias Cloak.Query.ExecutionError
 
   require Logger
-  require Aircloak.{DeployConfig, File}
+  require Aircloak.DeployConfig
 
   use GenServer, start: {__MODULE__, :start_link, []}
 
@@ -50,7 +50,6 @@ defmodule Cloak.DataSource do
   @type t :: %{
     name: String.t,
     driver: module,
-    driver_name: String.t,
     parameters: Driver.parameters,
     tables: %{atom => Table.t},
     errors: [String.t],
@@ -82,7 +81,7 @@ defmodule Cloak.DataSource do
   """
   def start_link() do
     initial_state = Aircloak.DeployConfig.fetch!("data_sources")
-    |> load_individual_data_source_configs()
+    |> Cloak.DataSource.Utility.load_individual_data_source_configs()
     |> config_to_datasources()
     |> Enum.map(&add_tables/1)
     GenServer.start_link(__MODULE__, initial_state, name: __MODULE__)
@@ -201,35 +200,6 @@ defmodule Cloak.DataSource do
 
 
   # -------------------------------------------------------------------
-  # Utility functions
-  # -------------------------------------------------------------------
-
-  # This is the legacy path where data sources where configured as a list of data source definitions inline
-  @doc false
-  def load_individual_data_source_configs(data_sources) when is_list(data_sources), do: data_sources
-  def load_individual_data_source_configs(config_path) when is_binary(config_path) do
-    case Aircloak.File.ls(config_path) do
-      {:ok, data_source_config_files} ->
-        data_source_config_files
-        |> Enum.map(fn(file_name) ->
-          path = Path.join(config_path, file_name)
-          case Aircloak.File.read_config_file(path) do
-            {:ok, data_source_definition} -> data_source_definition
-            {:error, reason} ->
-              Logger.error("Failed at reading datasource config from `#{path}`: #{reason}")
-              nil
-          end
-        end)
-        |> Enum.reject(& is_nil/1)
-      {:error, reason} ->
-        Logger.error("Failed at loading data sources configurations from `#{config_path}`. " <>
-          "Reason: #{Aircloak.File.humanize_posix_error(reason)}.")
-        []
-    end
-  end
-
-
-  # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
@@ -251,20 +221,11 @@ defmodule Cloak.DataSource do
   end
 
   defp map_driver(data_source) do
-    driver_name = data_source.driver
-    driver_module = case driver_name do
-      "mongodb" -> Cloak.DataSource.MongoDB
-      "mysql" -> Cloak.DataSource.MySQL
-      "odbc" -> Cloak.DataSource.ODBC
-      "postgresql" -> Cloak.DataSource.PostgreSQL
-      "sqlserver" -> Cloak.DataSource.SQLServer
-      "sqlserver_tds" -> Cloak.DataSource.SQLServerTds
-      "saphana" -> Cloak.DataSource.SAPHana
-      other -> raise_error("Unknown driver `#{other}` for data source `#{data_source.name}`")
+    case Cloak.DataSource.Utility.name_to_driver(data_source.driver) do
+      {:ok, driver} -> Map.put(data_source, :driver, driver)
+      {:error, :unknown} ->
+        raise_error("Unknown driver `#{data_source.driver}` for data source `#{data_source.name}`")
     end
-    data_source
-    |> Map.put(:driver, driver_module)
-    |> Map.put(:driver_name, driver_name)
   end
 
   defp save_init_fields(data_source), do:
