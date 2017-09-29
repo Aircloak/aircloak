@@ -67,7 +67,7 @@ defmodule Compliance.DataSource.SAPHana do
   defp sql_type(:integer), do: "integer"
   defp sql_type(:real), do: "float"
   defp sql_type(:boolean), do: "boolean"
-  defp sql_type(:text), do: "nclob"
+  defp sql_type(:text), do: "nvarchar(4000)"
   defp sql_type(:datetime), do: "timestamp"
 
   defp column_names(data), do:
