@@ -78,9 +78,22 @@ set -eox pipefail
 
   fi
 
-  if [[ "$TEST" == "compliance" ]]; then
+  if [[ "$TEST" == "compliance" && "$TRAVIS_EVENT_TYPE" != "push" ]]; then
 
     pushd cloak
+
+    docker run --name aircloak_sql_server -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' -p 1433:1433 -d microsoft/mssql-server-linux
+
+    if [ -e dev_container/cache/dev_container.tar ]; then docker load -i dev_container/cache/dev_container.tar; fi
+    DOCKER_BUILD_CACHED="true" dev_container/build-image.sh
+    docker save -o dev_container/cache/dev_container.tar $(docker images --format "{{.Repository}}")
+
+    psql -c "CREATE DATABASE cloaktest2 ENCODING 'UTF8';" -U postgres
+    echo "USE mysql;\nUPDATE user SET password=PASSWORD('') WHERE user='root';\nFLUSH PRIVILEGES;\n" | mysql -u root
+    mysql -e "CREATE DATABASE cloaktest2 DEFAULT CHARACTER SET utf8;" -u root --password=''
+    docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE cloaktest2"
+    docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE cloaktest3"
+
     mix compile --warnings-as-errors
     MIX_ENV=test make all
     popd
