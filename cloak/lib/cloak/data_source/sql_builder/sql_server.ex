@@ -66,4 +66,10 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
 
   @doc false
   def unicode_literal(value), do: ["N'", value, ?']
+
+  @doc false
+  def cast_sql(value, :integer), do:
+    ["CAST(", function_sql("round", [value]), " AS integer)"]
+  def cast_sql(value, type), do:
+    ["CAST(", value, " AS ", sql_type(type), ")"]
 end
