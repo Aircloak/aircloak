@@ -44,8 +44,8 @@ defmodule Cloak.DataSource.SAPHanaTest do
     SapHanaHelpers.ensure_schema!(connection_params(), schema())
 
     [
-      table_spec("strings", [value: "nvarchar(100)"], %{1..10 => [[~c('a string value')]]}),
-      table_spec("varchars", [value: "varchar(100)"], %{1..10 => [[~c('a string value')]]}),
+      table_spec("strings", [value: "nvarchar(100)"], %{1..10 => [["a string value"]]}),
+      table_spec("varchars", [value: "varchar(100)"], %{1..10 => [["a string value"]]}),
     ]
     |> Enum.map(&Task.async/1)
     |> Stream.map(&Task.await(&1, :timer.seconds(30)))
