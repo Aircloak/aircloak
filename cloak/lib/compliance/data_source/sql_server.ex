@@ -97,6 +97,6 @@ defmodule Compliance.DataSource.SQLServer do
   defp sql_type(:integer), do: "integer"
   defp sql_type(:real), do: "real"
   defp sql_type(:boolean), do: "bit"
-  defp sql_type(:text), do: "text"
+  defp sql_type(:text), do: "nvarchar(4000)"
   defp sql_type(:datetime), do: "datetime2"
 end
