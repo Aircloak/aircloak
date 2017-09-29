@@ -319,7 +319,7 @@ as you will have to update multiple copies of files if a datasource definition c
 The recommended, and common, solution to this problem is to create a single copy of the datasource configuration
 files and symlink these into the configuration folders of the individual Insights Cloak instances.
 
-Below follows an example of how this could be achieved in practise.
+Here is an example of how one can do this in pratice:
 
 Let's consider a scenario where we have a shared folder where we store all datasource definitions. It is called `data_sources_available`.
 In the configuration folder of each Insights Cloak instance we create a folder called `data_sources_enabled`. For each datasource we want
