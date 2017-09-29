@@ -33,10 +33,10 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> compile_sample_rate()
     |> Query.set_emulation_flag()
     |> partition_where_clauses()
+    |> reject_null_user_ids()
     |> calculate_db_columns()
     |> parse_row_splitters()
     |> compute_aggregators()
-    |> reject_null_user_ids()
 
   @doc "Creates an executable query which describes a SELECT statement from a single table."
   @spec make_select_query(DataSource.t, DataSource.Table.t, [Expression.t]) :: Query.t
