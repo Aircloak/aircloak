@@ -30,10 +30,10 @@ defmodule Central.Plug.Rewrite do
   # Plug callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl Plug
   def init(opts), do: opts
 
-  @doc false
+  @impl Plug
   def call(conn, opts) do
     case Map.fetch(opts[:rules], conn.path_info) do
       :error -> conn
