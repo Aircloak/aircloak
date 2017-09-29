@@ -67,13 +67,16 @@ defmodule Compliance.DataSource.SQLServer do
       |> Enum.map(& cast_types/1)
     end)
 
-  defp cast_types(binary) when is_binary(binary), do: {{:sql_varchar, length_null_terminated(binary)}, [binary]}
+  defp cast_types(binary) when is_binary(binary) do
+    binary = :unicode.characters_to_binary(binary, :utf8, {:utf16, :little})
+    {{:sql_wvarchar, length_null_terminated(binary)}, [binary]}
+  end
   defp cast_types(integer) when is_integer(integer), do: {:sql_integer, [integer]}
   defp cast_types(float) when is_float(float), do: {:sql_real, [float]}
   defp cast_types(boolean) when is_boolean(boolean), do: {:sql_bit, [boolean]}
   defp cast_types(%{calendar: Calendar.ISO} = datetime), do: datetime |> to_string() |> cast_types()
 
-  defp length_null_terminated(binary), do: String.length(binary) + 1
+  defp length_null_terminated(binary), do: byte_size(binary) + 1
 
   defp escaped_column_names(column_names), do:
     column_names
