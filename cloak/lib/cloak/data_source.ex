@@ -50,6 +50,7 @@ defmodule Cloak.DataSource do
   @type t :: %{
     name: String.t,
     driver: module,
+    driver_name: String.t,
     parameters: Driver.parameters,
     tables: %{atom => Table.t},
     errors: [String.t],
@@ -249,19 +250,22 @@ defmodule Cloak.DataSource do
     |> validate_choice_of_encoding()
   end
 
-  defp map_driver(data_source), do:
-    Map.put(data_source, :driver,
-      case data_source.driver do
-        "mongodb" -> Cloak.DataSource.MongoDB
-        "mysql" -> Cloak.DataSource.MySQL
-        "odbc" -> Cloak.DataSource.ODBC
-        "postgresql" -> Cloak.DataSource.PostgreSQL
-        "sqlserver" -> Cloak.DataSource.SQLServer
-        "sqlserver_tds" -> Cloak.DataSource.SQLServerTds
-        "saphana" -> Cloak.DataSource.SAPHana
-        other -> raise_error("Unknown driver `#{other}` for data source `#{data_source.name}`")
-      end
-    )
+  defp map_driver(data_source) do
+    driver_name = data_source.driver
+    driver_module = case driver_name do
+      "mongodb" -> Cloak.DataSource.MongoDB
+      "mysql" -> Cloak.DataSource.MySQL
+      "odbc" -> Cloak.DataSource.ODBC
+      "postgresql" -> Cloak.DataSource.PostgreSQL
+      "sqlserver" -> Cloak.DataSource.SQLServer
+      "sqlserver_tds" -> Cloak.DataSource.SQLServerTds
+      "saphana" -> Cloak.DataSource.SAPHana
+      other -> raise_error("Unknown driver `#{other}` for data source `#{data_source.name}`")
+    end
+    data_source
+    |> Map.put(:driver, driver_module)
+    |> Map.put(:driver_name, driver_name)
+  end
 
   defp save_init_fields(data_source), do:
     data_source
