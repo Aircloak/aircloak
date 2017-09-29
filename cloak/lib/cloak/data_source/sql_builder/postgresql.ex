@@ -25,7 +25,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def function_sql("weekday", args), do: ["EXTRACT(DOW FROM ", args, ")"]
   def function_sql("trunc", [arg1, arg2]), do: ["TRUNC(CAST(", arg1, " AS decimal), ", arg2, ")"]
   def function_sql("round", [arg1, arg2]), do: ["ROUND(CAST(", arg1, " AS decimal), ", arg2, ")"]
-  def function_sql("hex", [arg]), do: ["ENCODE(", arg, "::bytea, 'hex')"]
+  def function_sql("hex", [arg]), do: ["ENCODE(CONVERT_TO(", arg, ", 'utf8'), 'hex')"]
   def function_sql("hash", [arg]), do: ["('x0' || SUBSTR(MD5(", arg, "::text), 1, 15))::bit(64)::bigint"]
   def function_sql("/", [arg1, arg2]),  do: ["(", arg1, " :: double precision / ", arg2, ")"]
   for binary_operator <- ~w(+ - * ^ %) do
