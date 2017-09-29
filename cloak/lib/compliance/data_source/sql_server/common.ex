@@ -1,19 +1,19 @@
-defmodule Compliance.DataSource.SQLServer.Queries do
+defmodule Compliance.DataSource.SQLServer.Common do
   @moduledoc false
 
   @doc false
-  def setup(), do:
+  def setup_queries(), do:
     ["SET IMPLICIT_TRANSACTIONS off"]
 
   @doc false
-  def create_table(table_name, columns), do:
+  def create_table_queries(table_name, columns), do:
     [
       "DROP TABLE IF EXISTS #{table_name}",
       "CREATE TABLE #{table_name} (#{columns_sql(columns)})"
     ]
 
   @doc false
-  def insert_rows(table_name, data) do
+  def insert_rows_queries(table_name, data) do
     column_names = column_names(data)
     rows = rows(data, column_names)
     escaped_column_names = escaped_column_names(column_names)

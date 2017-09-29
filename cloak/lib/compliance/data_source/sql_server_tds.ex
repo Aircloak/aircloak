@@ -7,24 +7,24 @@ defmodule Compliance.DataSource.SQLServerTds do
   # -------------------------------------------------------------------
 
   use Compliance.DataSource.Connector
-  alias Compliance.DataSource.{Connector, SQLServer.Queries}
+  alias Compliance.DataSource.{Connector, SQLServer.Common}
 
   @impl Connector
   def setup(%{parameters: params}) do
     conn = Cloak.DataSource.SQLServerTds.connect!(params)
-    Enum.each(Queries.setup(), &execute!(conn, &1))
+    Enum.each(Common.setup_queries(), &execute!(conn, &1))
     conn
   end
 
   @impl Connector
   def create_table(table_name, columns, conn) do
-    Enum.each(Queries.create_table(table_name, columns), &execute!(conn, &1))
+    Enum.each(Common.create_table_queries(table_name, columns), &execute!(conn, &1))
     conn
   end
 
   @impl Connector
   def insert_rows(table_name, data, conn) do
-    Enum.each(Queries.insert_rows(table_name, data), &execute!(conn, &1))
+    Enum.each(Common.insert_rows_queries(table_name, data), &execute!(conn, &1))
     conn
   end
 
