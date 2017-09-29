@@ -85,9 +85,10 @@ defmodule Air.Service.Cloak do
   # GenServer callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl GenServer
   def init(_), do: {:ok, nil}
 
+  @impl GenServer
   def handle_call({:register, cloak_info, data_sources}, _from, state) do
     data_sources_by_name = data_sources
     |> Enum.map(&({&1.name, &1}))

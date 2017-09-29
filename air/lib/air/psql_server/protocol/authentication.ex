@@ -17,7 +17,7 @@ defmodule Air.PsqlServer.Protocol.Authentication do
   # Protocol callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl Protocol
   def handle_client_message(%{state: :login_params} = protocol, :raw, raw_login_params), do:
     protocol
     |> Protocol.add_action({:login_params, Messages.decode_login_params(raw_login_params)})
@@ -27,7 +27,7 @@ defmodule Air.PsqlServer.Protocol.Authentication do
     |> Protocol.add_action({:authenticate, password})
     |> Protocol.next_state(:authenticating)
 
-  @doc false
+  @impl Protocol
   def handle_event(%{state: :authenticating} = protocol, {:authentication_method, method}), do:
     protocol
     |> Protocol.send_to_client({:authentication_method, method})

@@ -47,11 +47,11 @@ defmodule Air.Service.Query.Lifecycle do
   # GenServer callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl GenServer
   def init(nil), do:
     {:ok, nil}
 
-  @doc false
+  @impl GenServer
   def handle_cast({:result_arrived, result}, state) do
     Air.ProcessQueue.run(__MODULE__.Queue, fn -> Query.process_result(result) end)
     {:stop, :normal, state}

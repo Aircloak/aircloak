@@ -1,17 +1,17 @@
 defmodule Air.PsqlServer.SpecialQueries.Tableau do
   @moduledoc "Handles common special queries issued by Tableau."
-  @behaviour Air.PsqlServer.SpecialQueries
 
   alias Air.PsqlServer
-  alias Air.PsqlServer.{Protocol, RanchServer}
+  alias Air.PsqlServer.{Protocol, RanchServer, SpecialQueries}
   alias Air.Service.DataSource
 
+  @behaviour SpecialQueries
 
   # -------------------------------------------------------------------
   # SpecialQueries callback functions
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl SpecialQueries
   def run_query(conn, query) do
     cond do
       table_name = table_name_from_table_info_query(query) ->
@@ -57,7 +57,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
     end
   end
 
-  @doc false
+  @impl SpecialQueries
   def describe_query(_conn, _query, _params), do:
     nil
 

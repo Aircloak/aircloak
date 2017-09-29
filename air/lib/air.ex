@@ -34,7 +34,7 @@ defmodule Air do
   # Application behaviour functions
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl Application
   def start(_type, _args) do
     configure_secrets()
     Air.Repo.configure()
