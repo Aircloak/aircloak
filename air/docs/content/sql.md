@@ -10,7 +10,7 @@ You can discover database tables and their structure using the `SHOW` statement.
 
 ## Querying the database
 
-The `SELECT` statement can be used to obtain anonymized data from tables. See [Understanding query results](/content/sql/query-results.md) for an explanation of the effects of anonymization on the results.
+The `SELECT` statement can be used to obtain anonymized data from tables. See [Understanding query results](sql/query-results.md) for an explanation of the effects of anonymization on the results.
 
 The syntax conforms to the standard SQL syntax (with some exceptions), but only a subset of features is supported. The general shape of the query looks like:
 
@@ -51,7 +51,8 @@ join :=
   table { [INNER] | { LEFT | RIGHT } [OUTER] } JOIN table ON where_expression
 
 aggregation_function :=
-  COUNT | SUM | AVG | MIN | MAX | STDDEV | MEDIAN
+  COUNT | SUM | AVG | MIN | MAX | STDDEV | MEDIAN |
+  COUNT_NOISE | SUM_NOISE | AVG_NOISE | STDDEV_NOISE
 
 where_expression :=
   column_expression equality_operator (value | column_expression) |
@@ -76,15 +77,15 @@ inequality_operator :=
 
 ## Notes
 
-- The `*` argument can only be provided to the `COUNT` aggregator and it specifies counting rows
+- The `*` argument can only be provided to the `COUNT` and `COUNT_NOISE` aggregators and it specifies counting rows
   instead of otherwise counting only non-`NULL` values. `NULL` values are ignored by all other aggregators.
-- The operator `OR` is currently not supported.
+- The operator `OR` is not supported.
 - The operator `NOT` can only be used in the cases mentioned above (`IS NOT NULL`, `NOT LIKE`, and `NOT ILIKE`).
 - You can restrict the range of returned rows by a query using the `LIMIT` and/or `OFFSET` clauses, but you need to
- provide the ORDER BY clause to ensure a stable order for the rows.
+ provide the `ORDER BY` clause to ensure a stable order for the rows.
 - Conditions in the `HAVING` clause must not refer to non-aggregated fields.
 - Aliases can be used in the `WHERE`, `GROUP BY`, `ORDER BY` and `HAVING` clauses, as long as the alias doesn't conflict
  with a column name in one of the selected tables.
 - If an integer is specified in the `GROUP BY` clause, it represents a 1-based position in the select list. The corresponding expression from the select list is used as the grouping expression.
-- Values of type `datetime with timezone` are not supported yet. The timezone information will be dropped and the value will be exposed as a simple `datetime` in the UTC format.
+- Values of type `datetime with timezone` are not supported. The timezone information will be dropped and the value will be exposed as a simple `datetime` in the UTC format.
 - The `SAMPLE_USERS` clause is an Aircloak specific feature that can be used to reduce the amount of users queried. This speeds up query execution and is useful for estimating the results when querying large datasets. The sampling is not 100% exact, but it is deterministic. The included users are an approximation of the requested percent from the total number of users, but the same users will be included each time a query is executed. Aggregates present in the query are not automatically adjusted. For example the `COUNT` returned when `SAMPLE_USERS 10%` is used will be approximately 10% of the count returned when the `SAMPLE_USERS`-clause is omitted.

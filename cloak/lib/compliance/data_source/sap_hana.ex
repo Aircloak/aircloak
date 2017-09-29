@@ -68,7 +68,7 @@ defmodule Compliance.DataSource.SAPHana do
   defp sql_type(:integer), do: "integer"
   defp sql_type(:real), do: "float"
   defp sql_type(:boolean), do: "boolean"
-  defp sql_type(:text), do: "nclob"
+  defp sql_type(:text), do: "nvarchar(4000)"
   defp sql_type(:datetime), do: "timestamp"
 
   defp column_names(data), do:
@@ -79,17 +79,6 @@ defmodule Compliance.DataSource.SAPHana do
 
   defp rows(data, column_names), do:
     Enum.map(data, fn(entry) ->
-      Enum.map(column_names, &to_literal(Map.get(entry, &1)))
+      Enum.map(column_names, &Map.get(entry, &1))
     end)
-
-  defp to_literal(value) do
-    cond do
-      is_nil(value) -> "NULL"
-      is_binary(value) -> "'#{String.replace(value, "'", "''")}'"
-      is_number(value) -> to_string(value)
-      is_boolean(value) -> to_string(value)
-      match?(%NaiveDateTime{}, value) -> "timestamp'#{to_string(value)}'"
-      true -> raise "Unsupported value #{inspect value}"
-    end
-  end
 end
