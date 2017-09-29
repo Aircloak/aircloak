@@ -149,6 +149,7 @@ matrix:
       - echo "USE mysql;\nUPDATE user SET password=PASSWORD('') WHERE user='root';\nFLUSH PRIVILEGES;\n" | mysql -u root
       - mysql -e "CREATE DATABASE cloaktest2 DEFAULT CHARACTER SET utf8;" -u root --password=''
       - docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE cloaktest2"
+      - docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE cloaktest3"
       - ./travis-asdf-setup.sh
     - env: TEST="aux"
       cache:
