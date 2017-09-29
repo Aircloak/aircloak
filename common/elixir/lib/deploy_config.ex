@@ -74,7 +74,7 @@ defmodule Aircloak.DeployConfig do
         config
 
       :error ->
-        config = Aircloak.File.read_config_file(app, config_file_name(app))
+        {:ok, config} = Aircloak.File.read_config_file(app, config_file_name(app))
         Application.put_env(app, __MODULE__, config)
         config
     end

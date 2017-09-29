@@ -12,11 +12,15 @@ defmodule Aircloak.File do
       unquote(Mix.Project.config[:app]), unquote(path_segment)))
 
   @doc "Reads a file from the configuration folder for a given application"
-  @spec read_config_file(atom, String.t) :: Map.t
-  def read_config_file(app, path_segment), do:
-    config_path(app, path_segment)
-    |> File.read!()
-    |> Poison.decode!()
+  @spec read_config_file(atom, String.t) :: {:ok, Map.t} | {:error, String.t}
+  def read_config_file(app, path_segment) do
+    raw_json = File.read!(config_path(app, path_segment))
+    try do
+      {:ok, Poison.decode!(raw_json)}
+    rescue
+      e -> {:error, e.message}
+    end
+  end
 
   @doc "Lists all files inside a config directory for the calling application"
   defmacro ls(path_segment), do:

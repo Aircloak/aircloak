@@ -212,11 +212,10 @@ defmodule Cloak.DataSource do
         data_source_config_files
         |> Enum.map(fn(file_name) ->
           path = Path.join(config_path, file_name)
-          try do
-            Aircloak.File.read_config_file(path)
-          rescue
-            e in Poison.SyntaxError ->
-              Logger.error("Failed at reading datasource config from `#{path}`: #{e.message}")
+          case Aircloak.File.read_config_file(path) do
+            {:ok, data_source_definition} -> data_source_definition
+            {:error, reason} ->
+              Logger.error("Failed at reading datasource config from `#{path}`: #{reason}")
               nil
           end
         end)
