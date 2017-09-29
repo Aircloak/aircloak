@@ -24,9 +24,9 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def function_sql("ceil", [arg]), do: ["CEILING(", arg, ")"]
   def function_sql("concat", args), do: Enum.intersperse(args, " + ")
   def function_sql("length", [arg]), do: ["(LEN(", arg, " + N'.') - 1)"]
-  def function_sql("trunc", [arg1]), do: ["ROUND(", arg1, ", 0, 1)"]
+  def function_sql("trunc", [arg]), do: ["ROUND(", arg, ", 0, 1)"]
   def function_sql("trunc", [arg1, arg2]), do: ["ROUND(", arg1, ",", arg2, ", 1)"]
-  def function_sql("round", [arg1]), do: ["ROUND(", arg1, ", 0)"]
+  def function_sql("round", [arg]), do: ["ROUND(", arg, ", 0)"]
   def function_sql("div", [arg1, arg2]), do: ["(", arg1, " / ", arg2, ")"]
   def function_sql("hex", [arg]), do: ["LOWER(CONVERT(nvarchar, CAST(", arg, " AS varbinary), 2))"]
   def function_sql("hash", [arg]), do:
