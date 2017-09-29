@@ -1,18 +1,5 @@
 {
   "air_site": "wss://localhost:8443",
   "salt": "perf salt which doesn't need to be safe",
-  "data_sources": [
-    {
-      "driver": "postgresql",
-      "name": "data_source_name",
-      "marker": "normal",
-      "parameters": {
-        "username": "performance",
-        "password": "",
-        "hostname": "localhost",
-        "database": "performance"
-      },
-      "tables": {}
-    }
-  ]
+  "data_sources": "perf"
 }
