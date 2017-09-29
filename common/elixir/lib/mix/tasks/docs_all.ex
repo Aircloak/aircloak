@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Docs.All do
 
   @recursive true
 
-  @doc false
+  @impl Mix.Task
   def run(_args) do
     Mix.Task.run("docs", ["--output", "doc/elixir"])
     :ok = :edoc.application(Mix.Project.config[:app], '.', preprocess: true, dir: 'doc/erlang')

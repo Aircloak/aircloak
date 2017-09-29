@@ -21,7 +21,7 @@ defmodule Mix.Tasks.DialyzeRetry do
 
   @recursive true
 
-  @doc false
+  @impl Mix.Task
   def run(args) do
     try do
       Mix.Task.run("dialyze", ["--no-analyse"])
