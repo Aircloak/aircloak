@@ -245,12 +245,7 @@ defmodule Cloak.Query.Anonymizer do
   defp noise_layers_to_seeds(layers) do
     layers
     |> Enum.map(&crypto_sum/1)
-    |> Enum.group_by(&(&1))
-    |> Enum.flat_map(fn({_, sums}) ->
-      sums
-      |> Enum.with_index()
-      |> Enum.map(fn({sum, index}) -> :crypto.exor(sum, compute_hash(index)) end)
-    end)
+    |> Enum.uniq_by(&(&1))
     |> Enum.map(&binary_to_seed/1)
   end
 
