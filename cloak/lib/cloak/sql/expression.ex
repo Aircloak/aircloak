@@ -150,6 +150,10 @@ defmodule Cloak.Sql.Expression do
   def arguments(%__MODULE__{function?: true, function_args: args}), do: args
   def arguments(_), do: []
 
+  @doc "Returns the first argument of the function expression."
+  @spec first_argument!(t) :: t
+  def first_argument!(%__MODULE__{function?: true, function_args: [arg | _]}), do: arg
+
   @doc "Returns the result of applying the given function expression to the given list of arguments."
   @spec apply_function(t, [any]) :: any
   def apply_function(expression = %__MODULE__{function?: true}, args) do
@@ -194,19 +198,23 @@ defmodule Cloak.Sql.Expression do
     end
   end
 
-  @doc "Returns a list of all splitters used in the given expressions."
+  @doc """
+  Returns a list of all splitters used in the given expressions.
+
+  The splitters are returned in the post-order, meaning that a nested splitter will always precede its ancestors.
+  """
   @spec all_splitters(t) :: [t]
   def all_splitters(%__MODULE__{function?: false}), do:
     []
   def all_splitters(function) do
-    Enum.concat([
-      (if row_splitter?(function), do: [function], else: []),
+    this_splitter = if row_splitter?(function), do: [function], else: []
+    nested_splitters =
       function
       |> arguments()
       |> Enum.flat_map(&all_splitters/1)
-    ])
-  end
 
+    Enum.concat([nested_splitters, this_splitter])
+  end
 
   @doc """
   Returns the list of unique expression, preserving duplicates of some expressions.

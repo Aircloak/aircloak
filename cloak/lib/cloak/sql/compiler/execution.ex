@@ -35,7 +35,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> partition_where_clauses()
     |> reject_null_user_ids()
     |> calculate_db_columns()
-    |> parse_row_splitters()
+    |> convert_row_splitters()
     |> compute_aggregators()
 
   @doc "Creates an executable query which describes a SELECT statement from a single table."
@@ -222,52 +222,36 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp order_by_columns(order_by_clauses), do:
     Enum.map(order_by_clauses, fn({column, _direction}) -> column end)
 
-  defp parse_row_splitters(%Query{} = query) do
-    {transformed_columns, query} = transform_splitter_columns(query, query.columns)
-    %Query{query | columns: transformed_columns}
-  end
+  defp convert_row_splitters(%Query{} = query) do
+    case Query.all_selected_splitters(query) do
+      [] ->
+        query
 
-  defp transform_splitter_columns(query, columns) do
-    {reversed_transformed_columns, final_query} =
-      Enum.reduce(columns, {[], query},
-        fn(column, {columns_acc, query_acc}) ->
-          {transformed_column, transformed_query} = transform_splitter_column(column, query_acc)
-          {[transformed_column | columns_acc], transformed_query}
-        end
-      )
-    {Enum.reverse(reversed_transformed_columns), final_query}
-  end
-
-  defp transform_splitter_column(expression = %Expression{function?: true}, query) do
-    {transformed_args, query} = transform_splitter_columns(query, Expression.arguments(expression))
-    expression = %{expression | function_args: transformed_args}
-    if Expression.row_splitter?(expression) do
-      {splitter_row_index, query} = add_row_splitter(query, expression)
-      split_expr = expression |> Expression.arguments() |> hd()
-      column_name = "#{Function.readable_name(expression.function)}_return_value"
-      return_type = Function.return_type(expression)
-      # This, most crucially, preserves the DB row position parameter
-      augmented_column = %Expression{split_expr | name: column_name, type: return_type, row_index: splitter_row_index}
-
-      # We need to update all other references to this expression (group by, property, etc.)
-      query = put_in(query, [Lenses.expression_instances(expression)], augmented_column)
-
-      {augmented_column, query}
-    else
-      {expression, query}
+      [innermost_splitter_expression | _] ->
+        query
+        |> convert_row_splitter(innermost_splitter_expression)
+        |> convert_row_splitters()
     end
   end
-  defp transform_splitter_column(other, query), do: {other, query}
 
-  defp add_row_splitter(query, function_spec) do
-    case Enum.find(query.row_splitters, &function_spec == &1.function_spec) do
-      %{row_index: splitter_row_index} ->
-        {splitter_row_index, query}
-      nil ->
-        {splitter_row_index, query} = Query.next_row_index(query)
-        new_splitter = %{function_spec: function_spec, row_index: splitter_row_index}
-        {new_splitter.row_index, %Query{query | row_splitters: query.row_splitters ++ [new_splitter]}}
-    end
+  defp convert_row_splitter(query, splitter_expression) do
+    {splitter_index, query} = add_row_splitter(query, splitter_expression)
+
+    expression_to_fetch =
+      %Expression{
+        Expression.first_argument!(splitter_expression) |
+          name: "#{Function.readable_name(splitter_expression.function)}_return_value",
+          type: Function.return_type(splitter_expression),
+          row_index: splitter_index
+      }
+
+    put_in(query, [Lenses.expression_instances(splitter_expression)], expression_to_fetch)
+  end
+
+  defp add_row_splitter(query, splitter_expression) do
+    {splitter_index, query} = Query.next_row_index(query)
+    new_splitter = %{function_spec: splitter_expression, row_index: splitter_index}
+    {splitter_index, %Query{query | row_splitters: query.row_splitters ++ [new_splitter]}}
   end
 
   defp partition_where_clauses(query) do

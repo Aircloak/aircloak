@@ -253,7 +253,11 @@ defmodule Cloak.Sql.Query do
     |> get_in([Lenses.conditions() |> Lenses.operands()])
     |> Enum.flat_map(&Expression.outermost_splitters/1)
 
-  @doc "Returns the list of all splitters which are used in select expressions."
+  @doc """
+  Returns the list of all splitters which are used in select expressions.
+
+  The splitters are returned in the post-order, meaning that a nested splitter will always precede its ancestors.
+  """
   @spec all_selected_splitters(t) :: [Expression.t]
   def all_selected_splitters(query), do:
     Enum.flat_map(query.columns, &Expression.all_splitters/1)
