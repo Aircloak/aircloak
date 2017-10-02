@@ -224,7 +224,6 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp parse_row_splitters(%Query{} = query) do
     {transformed_columns, query} = transform_splitter_columns(query, query.columns)
-    validate_row_splitters_conditions(query)
     %Query{query | columns: transformed_columns}
   end
 
@@ -242,21 +241,17 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp transform_splitter_column(expression = %Expression{function?: true}, query) do
     {transformed_args, query} = transform_splitter_columns(query, Expression.arguments(expression))
     expression = %{expression | function_args: transformed_args}
-    if Function.has_attribute?(expression, :row_splitter) do
-      # We are making the simplifying assumption that row splitting functions have
-      # the value column returned as part of the first column
+    if Expression.row_splitter?(expression) do
       {splitter_row_index, query} = add_row_splitter(query, expression)
-      db_column = case expression |> Expression.arguments() |> hd() |> Expression.first_column() do
-        nil -> raise CompilationError, message:
-          "Function `#{Function.readable_name(expression.function)}` requires that the first argument must be a column."
-        value -> value
-      end
+      split_expr = expression |> Expression.arguments() |> hd()
       column_name = "#{Function.readable_name(expression.function)}_return_value"
       return_type = Function.return_type(expression)
       # This, most crucially, preserves the DB row position parameter
-      augmented_column = %Expression{db_column | name: column_name, type: return_type, row_index: splitter_row_index}
-      # We need to update all other references to this column (group by, propeprty, etc.)
-      query = update_in(query, [Lenses.query_expressions()], &if &1 == expression do augmented_column else &1 end)
+      augmented_column = %Expression{split_expr | name: column_name, type: return_type, row_index: splitter_row_index}
+
+      # We need to update all other references to this expression (group by, property, etc.)
+      query = put_in(query, [Lenses.expression_instances(expression)], augmented_column)
+
       {augmented_column, query}
     else
       {expression, query}
@@ -272,16 +267,6 @@ defmodule Cloak.Sql.Compiler.Execution do
         {splitter_row_index, query} = Query.next_row_index(query)
         new_splitter = %{function_spec: function_spec, row_index: splitter_row_index}
         {new_splitter.row_index, %Query{query | row_splitters: query.row_splitters ++ [new_splitter]}}
-    end
-  end
-
-  defp validate_row_splitters_conditions(%Query{emulated_where: conditions}) do
-    conditions
-    |> get_in([Query.Lenses.conditions_terminals()])
-    |> Enum.any?(&Function.has_attribute?(&1, :row_splitter))
-    |> if do
-      raise CompilationError, message:
-        "Row splitter function used in the `WHERE` clause has to be first used identically in the `SELECT` clause."
     end
   end
 

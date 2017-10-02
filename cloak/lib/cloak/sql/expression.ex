@@ -177,8 +177,35 @@ defmodule Cloak.Sql.Expression do
   @doc "Returns true if the given expression is the row splitting function."
   @spec row_splitter?(t) :: boolean
   def row_splitter?(%__MODULE__{function?: true} = function), do:
-    Cloak.Sql.Function.has_attribute?(function, :row_spliiter)
+    Cloak.Sql.Function.has_attribute?(function, :row_splitter)
   def row_splitter?(_), do: false
+
+  @doc "Returns a list of outermost splitter functions used in the given expression."
+  @spec outermost_splitters(t) :: [t]
+  def outermost_splitters(%__MODULE__{function?: false}), do:
+    []
+  def outermost_splitters(function) do
+    if row_splitter?(function) do
+      [function]
+    else
+      function
+      |> arguments()
+      |> Enum.flat_map(&outermost_splitters/1)
+    end
+  end
+
+  @doc "Returns a list of all splitters used in the given expressions."
+  @spec all_splitters(t) :: [t]
+  def all_splitters(%__MODULE__{function?: false}), do:
+    []
+  def all_splitters(function) do
+    Enum.concat([
+      (if row_splitter?(function), do: [function], else: []),
+      function
+      |> arguments()
+      |> Enum.flat_map(&all_splitters/1)
+    ])
+  end
 
 
   @doc """

@@ -241,6 +241,23 @@ defmodule Cloak.Sql.Query do
   def set_emulation_flag(query), do:
     %__MODULE__{query | emulated?: Cloak.Query.DataEngine.needs_emulation?(query)}
 
+  @doc "Returns the list of outermost selected splitters."
+  @spec outermost_selected_splitters(t) :: [Expression.t]
+  def outermost_selected_splitters(query), do:
+    Enum.flat_map(query.columns, &Expression.outermost_splitters/1)
+
+  @doc "Returns the list of outermost where splitters."
+  @spec outermost_where_splitters(t) :: [Expression.t]
+  def outermost_where_splitters(query), do:
+    query.where
+    |> get_in([Lenses.conditions() |> Lenses.operands()])
+    |> Enum.flat_map(&Expression.outermost_splitters/1)
+
+  @doc "Returns the list of all splitters which are used in select expressions."
+  @spec all_selected_splitters(t) :: [Expression.t]
+  def all_selected_splitters(query), do:
+    Enum.flat_map(query.columns, &Expression.all_splitters/1)
+
 
   # -------------------------------------------------------------------
   # Internal functions

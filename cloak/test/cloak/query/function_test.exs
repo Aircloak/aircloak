@@ -240,6 +240,11 @@ defmodule Cloak.Query.FunctionTest do
         <> " has to be first used identically in the `SELECT` clause."})
   end
 
+  test "invalid extract_matches argument" do
+    assert_query("SELECT extract_matches('constant', '\\w+') FROM heights_ft",
+      %{error: "A constant is not allowed as the first argument of the function `extract_matches`."})
+  end
+
   test "extract_matches can handle regular expressions that yield no results" do
     assert_query(
       "SELECT extract_matches(name, 'foo') as words FROM heights_ft",
