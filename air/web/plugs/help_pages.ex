@@ -24,10 +24,10 @@ defmodule Air.Plug.HelpPages do
   # Plug callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl Plug
   def init(opts), do: opts
 
-  @doc false
+  @impl Plug
   def call(conn, opts) do
     Conn.assign(conn, :help_pages,
       Keyword.get(opts, Phoenix.Controller.action_name(conn), [])
