@@ -312,6 +312,8 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("extract_matches", [nil, _regex]), do: [nil]
   defp do_apply("extract_matches", [string, regex]), do:
     List.flatten(Regex.scan(regex, string, capture: :first))
+  defp do_apply("extract_words", [nil]), do: [nil]
+  defp do_apply("extract_words", [string]), do: String.split(string)
   defp do_apply("^", [x, y]), do: :math.pow(x, y)
   defp do_apply("*", [x = %Duration{}, y]), do: Duration.scale(x, y)
   defp do_apply("*", [x, y = %Duration{}]), do: do_apply("*", [y, x])

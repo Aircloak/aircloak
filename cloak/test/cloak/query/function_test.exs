@@ -304,6 +304,18 @@ defmodule Cloak.Query.FunctionTest do
     )
   end
 
+  describe "extract_words" do
+    test "basic usage" do
+      assert_query("SELECT extract_words(name), count(*) FROM heights_ft GROUP BY 1", %{rows: [
+        %{row: ["first", 100]},
+        %{row: ["second", 100]},
+        %{row: ["third", 100]},
+      ]})
+    end
+
+    test "in subquery"
+  end
+
   test "min(height)", do: assert_subquery_aggregate("min(height)", "heights_ft", 180)
   test "max(height)", do: assert_subquery_aggregate("max(height)", "heights_ft", 180)
   test "min(datetime)", do: assert_subquery_aggregate("min(datetime)", "datetimes_ft", "2015-02-03T04:05:06.000000")
