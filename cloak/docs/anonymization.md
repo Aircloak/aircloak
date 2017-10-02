@@ -280,8 +280,6 @@ Each noise layer is seeded with at least:
 * A canonical name of the column in the form `{"table", "column"}`
 * A secret salt
 * The list of the values in the column
-* A number N that is incremented each time two noise layers have exactly the
-  same seed
 
 In case the noise layers are used to compute a `COUNT(*)` as opposed to for
 example a `COUNT(column)` expression an additional, unique marker is added to
