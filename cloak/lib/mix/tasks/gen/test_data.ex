@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.Gen.TestData do
-  if Mix.env == :dev do
+  if Mix.env in [:test, :dev] do
     @shortdoc "Generates an interlinked dataset for cloak testing."
     @moduledoc """
     Generates a test dataset of users and items related to these users.
