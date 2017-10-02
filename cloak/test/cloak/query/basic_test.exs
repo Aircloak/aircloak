@@ -176,12 +176,17 @@ defmodule Cloak.Query.BasicTest do
       ]}
   end
 
-  test "should produce counts" do
+  test "count(*)" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [nil])
 
     assert_query "select count(*) from heights",
       %{columns: ["count"], rows: [%{row: [40], occurrences: 1}]}
+  end
+
+  test "count(column)" do
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [nil])
 
     assert_query "select COUNT(height) from heights",
       %{columns: ["count"], rows: [%{row: [20], occurrences: 1}]}
@@ -204,26 +209,39 @@ defmodule Cloak.Query.BasicTest do
       }
   end
 
-  test "aggregate on distinct column" do
+  test "aggregate on distinct column with too few values" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
 
     assert_query "select avg(distinct height) from heights",
       %{columns: ["avg"], rows: [%{row: [nil], occurrences: 1}]}
+  end
 
-    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [175])
-    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [nil])
-    :ok = insert_rows(_user_ids = 40..49, "heights", ["height"], [160])
-    :ok = insert_rows(_user_ids = 50..59, "heights", ["height"], [190])
-    :ok = insert_rows(_user_ids = 60..69, "heights", ["height"], [165])
-    :ok = insert_rows(_user_ids = 70..79, "heights", ["height"], [185])
+  describe "aggregate on distinct column" do
+    setup do
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [170])
+      :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [175])
+      :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [nil])
+      :ok = insert_rows(_user_ids = 40..49, "heights", ["height"], [160])
+      :ok = insert_rows(_user_ids = 50..59, "heights", ["height"], [190])
+      :ok = insert_rows(_user_ids = 60..69, "heights", ["height"], [165])
+      :ok = insert_rows(_user_ids = 70..79, "heights", ["height"], [185])
+    end
 
-    assert_query "select avg(distinct height) from heights",
-      %{columns: ["avg"], rows: [%{row: [162.5], occurrences: 1}]}
-    assert_query "select avg(distinct abs(height)) from heights",
-      %{columns: ["avg"], rows: [%{row: [162.5], occurrences: 1}]}
-    assert_query "select avg(distinct height - 100) from heights",
-      %{columns: ["avg"], rows: [%{row: [62.5], occurrences: 1}]}
+    test "avg(distinct column)" do
+      assert_query "select avg(distinct height) from heights",
+        %{columns: ["avg"], rows: [%{row: [162.5], occurrences: 1}]}
+    end
+
+    test "avg(distinct fun(column))" do
+      assert_query "select avg(distinct abs(height)) from heights",
+        %{columns: ["avg"], rows: [%{row: [162.5], occurrences: 1}]}
+    end
+
+    test "avg(distinct column - constant)" do
+      assert_query "select avg(distinct height - 100) from heights",
+        %{columns: ["avg"], rows: [%{row: [62.5], occurrences: 1}]}
+    end
   end
 
   test "aggregates of an empty table" do
@@ -231,108 +249,155 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["count", "count", "avg"], rows: [%{row: [0, 0, nil], occurrences: 1}]}
   end
 
-  test "should be able to aggregate positive values" do
-    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
-    :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [190])
-    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
+  describe "aggregating positive values" do
+    setup do
+      :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
+      :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [170])
+      :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [190])
+      :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
+    end
 
-    assert_query "select sum(height) from heights",
-      %{columns: ["sum"], rows: [%{row: [5400], occurrences: 1}]}
+    test "sum" do
+      assert_query "select sum(height) from heights",
+        %{columns: ["sum"], rows: [%{row: [5400], occurrences: 1}]}
+    end
 
-    assert_query "select min(height) from heights",
-      %{columns: ["min"], rows: [%{row: [170], occurrences: 1}]}
+    test "min" do
+      assert_query "select min(height) from heights",
+        %{columns: ["min"], rows: [%{row: [170], occurrences: 1}]}
+    end
 
-    assert_query "select max(height) from heights",
-      %{columns: ["max"], rows: [%{row: [190], occurrences: 1}]}
+    test "max" do
+      assert_query "select max(height) from heights",
+        %{columns: ["max"], rows: [%{row: [190], occurrences: 1}]}
+    end
 
-    assert_query "select avg(height) from heights",
-      %{columns: ["avg"], rows: [%{row: [180.0], occurrences: 1}]}
+    test "avg" do
+      assert_query "select avg(height) from heights",
+        %{columns: ["avg"], rows: [%{row: [180.0], occurrences: 1}]}
+    end
 
-    assert_query "select stddev(height) from heights",
-      %{columns: ["stddev"], rows: [%{row: [stddev], occurrences: 1}]}
-    assert_in_delta(stddev, 8.1, 0.1)
+    test "stddev" do
+      assert_query "select stddev(height) from heights",
+        %{columns: ["stddev"], rows: [%{row: [stddev], occurrences: 1}]}
+      assert_in_delta(stddev, 8.1, 0.1)
+    end
 
-    assert_query "select median(height) from heights",
-      %{columns: ["median"], rows: [%{row: [179], occurrences: 1}]}
+    test "median" do
+      assert_query "select median(height) from heights",
+        %{columns: ["median"], rows: [%{row: [179], occurrences: 1}]}
+    end
+
+    test "sum(qualified_column)" do
+      assert_query "select sum(heights.height) from heights",
+        %{columns: ["sum"], rows: [%{row: [5400], occurrences: 1}]}
+    end
+
+    test "min(qualified_column)" do
+      assert_query "select min(heights.height) from heights",
+        %{columns: ["min"], rows: [%{row: [170], occurrences: 1}]}
+    end
+
+    test "max(qualified_column)" do
+      assert_query "select max(heights.height) from heights",
+        %{columns: ["max"], rows: [%{row: [190], occurrences: 1}]}
+    end
+
+    test "avg(qualified_column)" do
+      assert_query "select avg(heights.height) from heights",
+        %{columns: ["avg"], rows: [%{row: [180.0], occurrences: 1}]}
+    end
+
+    test "stddev(qualified_column)" do
+      assert_query "select stddev(heights.height) from heights",
+        %{columns: ["stddev"], rows: [%{row: [stddev], occurrences: 1}]}
+      assert_in_delta(stddev, 8.1, 0.1)
+    end
+
+    test "median(qualified_column)" do
+      assert_query "select median(heights.height) from heights",
+        %{columns: ["median"], rows: [%{row: [179], occurrences: 1}]}
+    end
   end
 
-  test "should be able to aggregate qualified columns values" do
-    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
-    :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [190])
-    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
+  describe "aggregating negative values" do
+    setup do
+      :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
+      :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [-170])
+      :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [-190])
+      :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [-183])
+    end
 
-    assert_query "select sum(heights.height) from heights",
-      %{columns: ["sum"], rows: [%{row: [5400], occurrences: 1}]}
+    test "sum" do
+      assert_query "select sum(height) from heights",
+        %{columns: ["sum"], rows: [%{row: [-5430], occurrences: 1}]}
+    end
 
-    assert_query "select min(heights.height) from heights",
-      %{columns: ["min"], rows: [%{row: [170], occurrences: 1}]}
+    test "min" do
+      assert_query "select min(height) from heights",
+        %{columns: ["min"], rows: [%{row: [-190], occurrences: 1}]}
+    end
 
-    assert_query "select max(heights.height) from heights",
-      %{columns: ["max"], rows: [%{row: [190], occurrences: 1}]}
+    test "max" do
+      assert_query "select max(height) from heights",
+        %{columns: ["max"], rows: [%{row: [-170], occurrences: 1}]}
+    end
 
-    assert_query "select avg(heights.height) from heights",
-      %{columns: ["avg"], rows: [%{row: [180.0], occurrences: 1}]}
+    test "avg" do
+      assert_query "select avg(height) from heights",
+        %{columns: ["avg"], rows: [%{row: [-181.0], occurrences: 1}]}
+    end
 
-    assert_query "select stddev(heights.height) from heights",
-      %{columns: ["stddev"], rows: [%{row: [stddev], occurrences: 1}]}
-    assert_in_delta(stddev, 8.1, 0.1)
+    test "stddev" do
+      assert_query "select stddev(height) from heights",
+        %{columns: ["stddev"], rows: [%{row: [stddev], occurrences: 1}]}
+      assert_in_delta(stddev, 8.29, 0.1)
+    end
 
-    assert_query "select median(heights.height) from heights",
-      %{columns: ["median"], rows: [%{row: [179], occurrences: 1}]}
+    test "median" do
+      assert_query "select median(height) from heights",
+        %{columns: ["median"], rows: [%{row: [-184], occurrences: 1}]}
+    end
   end
 
-  test "should be able to aggregate negative values" do
-    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
-    :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [-170])
-    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [-190])
-    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [-183])
+  describe "aggregating negative and positive values" do
+    setup do
+      :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
+      :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [-175])
+      :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [-190])
+      :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
+    end
 
-    assert_query "select sum(height) from heights",
-      %{columns: ["sum"], rows: [%{row: [-5430], occurrences: 1}]}
+    test "sum" do
+      assert_query "select sum(height) from heights",
+        %{columns: ["sum"], rows: [%{row: [-1850], occurrences: 1}]}
+    end
 
-    assert_query "select min(height) from heights",
-      %{columns: ["min"], rows: [%{row: [-190], occurrences: 1}]}
+    test "min" do
+      assert_query "select min(height) from heights",
+        %{columns: ["min"], rows: [%{row: [-190], occurrences: 1}]}
+    end
 
-    assert_query "select max(height) from heights",
-      %{columns: ["max"], rows: [%{row: [-170], occurrences: 1}]}
+    test "max" do
+      assert_query "select max(height) from heights",
+        %{columns: ["max"], rows: [%{row: [180], occurrences: 1}]}
+    end
 
-    assert_query "select avg(height) from heights",
-      %{columns: ["avg"], rows: [%{row: [-181.0], occurrences: 1}]}
+    test "avg" do
+      assert_query "select avg(height) from heights",
+        %{columns: ["avg"], rows: [%{row: [-61.666666666666664], occurrences: 1}]}
+    end
 
-    assert_query "select stddev(height) from heights",
-      %{columns: ["stddev"], rows: [%{row: [stddev], occurrences: 1}]}
-    assert_in_delta(stddev, 8.29, 0.1)
+    test "stddev" do
+      assert_query "select stddev(height) from heights",
+        %{columns: ["stddev"], rows: [%{row: [stddev], occurrences: 1}]}
+      assert_in_delta(stddev, 170.99, 0.1)
+    end
 
-    assert_query "select median(height) from heights",
-      %{columns: ["median"], rows: [%{row: [-184], occurrences: 1}]}
-  end
-
-  test "should be able to aggregate negative and positive values" do
-    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
-    :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [-175])
-    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [-190])
-    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
-
-    assert_query "select sum(height) from heights",
-      %{columns: ["sum"], rows: [%{row: [-1850], occurrences: 1}]}
-
-    assert_query "select min(height) from heights",
-      %{columns: ["min"], rows: [%{row: [-190], occurrences: 1}]}
-
-    assert_query "select max(height) from heights",
-      %{columns: ["max"], rows: [%{row: [180], occurrences: 1}]}
-
-    assert_query "select avg(height) from heights",
-      %{columns: ["avg"], rows: [%{row: [-61.666666666666664], occurrences: 1}]}
-
-    assert_query "select stddev(height) from heights",
-      %{columns: ["stddev"], rows: [%{row: [stddev], occurrences: 1}]}
-    assert_in_delta(stddev, 170.99, 0.1)
-
-    assert_query "select median(height) from heights",
-      %{columns: ["median"], rows: [%{row: [-177], occurrences: 1}]}
+    test "median" do
+      assert_query "select median(height) from heights",
+        %{columns: ["median"], rows: [%{row: [-177], occurrences: 1}]}
+    end
   end
 
   test "should return nil when not enough values present for anonymization" do
@@ -612,32 +677,36 @@ defmodule Cloak.Query.BasicTest do
     assert_query "select height from heights", %{query_id: "1", columns: ["height"], rows: []}
   end
 
-  test "select with column alias" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
+  describe "alias usage" do
+    setup do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
+      :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
+    end
 
-    assert_query "select height as h from heights group by h order by h",
-      %{columns: ["h"], rows: [%{row: [170], occurrences: 1}, %{row: [180], occurrences: 1}]}
-    assert_query "select count(*) as c, count(height) as c from heights",
-      %{columns: ["c", "c"], rows: [%{row: [30, 30], occurrences: 1}]}
-  end
+    test "select with column alias" do
+      assert_query "select height as h from heights group by h order by h",
+        %{columns: ["h"], rows: [%{row: [170], occurrences: 1}, %{row: [180], occurrences: 1}]}
+    end
 
-  test "alias usage in where" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
+    test "select with duplicated alias" do
+      assert_query "select count(*) as c, count(height) as c from heights",
+        %{columns: ["c", "c"], rows: [%{row: [30, 30], occurrences: 1}]}
+    end
 
-    assert_query "select height as h from heights where h = 170",
-      %{columns: ["h"], rows: [%{row: [170], occurrences: 10}]}
-    assert_query "select round(height) as h from heights where abs(h) = 170",
-      %{columns: ["h"], rows: [%{row: [170], occurrences: 10}]}
-  end
+    test "alias usage in where" do
+      assert_query "select height as h from heights where h = 170",
+        %{columns: ["h"], rows: [%{row: [170], occurrences: 10}]}
+    end
 
-  test "alias usage in having" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
+    test "alias usage in where with a function" do
+      assert_query "select round(height) as h from heights where abs(h) = 170",
+        %{columns: ["h"], rows: [%{row: [170], occurrences: 10}]}
+    end
 
-    assert_query "select height as h from heights group by h having abs(h) = 170",
-      %{columns: ["h"], rows: [%{row: [170], occurrences: 1}]}
+    test "alias usage in having" do
+      assert_query "select height as h from heights group by h having abs(h) = 170",
+        %{columns: ["h"], rows: [%{row: [170], occurrences: 1}]}
+    end
   end
 
   test "select comparing two columns" do
@@ -754,28 +823,44 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
   end
 
-  test "limit and offset" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["aaa"])
-    :ok = insert_rows(_user_ids = 11..20, "heights", ["name"], ["bbb"])
+  describe "limit and offset" do
+    setup do
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["aaa"])
+      :ok = insert_rows(_user_ids = 11..20, "heights", ["name"], ["bbb"])
+    end
 
-    assert_query "select name from heights order by name limit 5",
-      %{columns: ["name"], rows: [%{row: ["aaa"], occurrences: 5}]}
-    assert_query "select name from heights order by name offset 15",
-      %{columns: ["name"], rows: [%{row: ["bbb"], occurrences: 5}]}
-    assert_query "select name from heights order by name limit 10 offset 5",
-      %{columns: ["name"], rows: [%{row: ["aaa"], occurrences: 5}, %{row: ["bbb"], occurrences: 5}]}
+    test "only limit" do
+      assert_query "select name from heights order by name limit 5",
+        %{columns: ["name"], rows: [%{row: ["aaa"], occurrences: 5}]}
+    end
+
+    test "only offset" do
+      assert_query "select name from heights order by name offset 15",
+        %{columns: ["name"], rows: [%{row: ["bbb"], occurrences: 5}]}
+    end
+
+    test "offset and limit" do
+      assert_query "select name from heights order by name limit 10 offset 5",
+        %{columns: ["name"], rows: [%{row: ["aaa"], occurrences: 5}, %{row: ["bbb"], occurrences: 5}]}
+    end
   end
 
-  test "grouping with having filters" do
-    :ok = insert_rows(_user_ids = 30..59, "heights", ["height", "name"], [150, "jon"])
-    :ok = insert_rows(_user_ids = 0..9, "heights", ["height", "name"], [180, "dan"])
-    :ok = insert_rows(_user_ids = 10..29, "heights", ["height", "name"], [160, "dan"])
+  describe "grouping with having filters" do
+    setup do
+      :ok = insert_rows(_user_ids = 30..59, "heights", ["height", "name"], [150, "jon"])
+      :ok = insert_rows(_user_ids = 0..9, "heights", ["height", "name"], [180, "dan"])
+      :ok = insert_rows(_user_ids = 10..29, "heights", ["height", "name"], [160, "dan"])
+    end
 
-    assert_query "select height, count(*) from heights group by height having count(*) > 25",
-      %{columns: ["height", "count"], rows: [%{row: [150, 30], occurrences: 1}]}
+    test "count(*)" do
+      assert_query "select height, count(*) from heights group by height having count(*) > 25",
+        %{columns: ["height", "count"], rows: [%{row: [150, 30], occurrences: 1}]}
+    end
 
-    assert_query "select name, count(*) from heights group by name having avg(height) <> min(height)",
-      %{columns: ["name", "count"], rows: [%{row: ["dan", 30], occurrences: 1}]}
+    test "avg <> min" do
+      assert_query "select name, count(*) from heights group by name having avg(height) <> min(height)",
+        %{columns: ["name", "count"], rows: [%{row: ["dan", 30], occurrences: 1}]}
+    end
   end
 
   test "having without group by" do
@@ -783,28 +868,37 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query "select sum(height) from heights having count(1) > 0",
       %{columns: ["sum"], rows: [%{row: [1700], occurrences: 1}]}
-
     assert_query "select sum(height) from heights having count(1) = 0",
       %{columns: ["sum"], rows: []}
   end
 
-  test "should be able to provide noise estimates for count, sum, avg and stddev aggregators" do
-    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
-    :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [190])
-    :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
+  describe "noise estimates" do
+    setup do
+      :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
+      :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [170])
+      :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [190])
+      :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
+    end
 
-    assert_query "select count_noise(*) from heights",
-      %{columns: ["count_noise"], rows: [%{row: [0.0], occurrences: 1}]}
+    test "count" do
+      assert_query "select count_noise(*) from heights",
+        %{columns: ["count_noise"], rows: [%{row: [0.0], occurrences: 1}]}
+    end
 
-    assert_query "select sum_noise(height) from heights",
-      %{columns: ["sum_noise"], rows: [%{row: [0.0], occurrences: 1}]}
+    test "sum" do
+      assert_query "select sum_noise(height) from heights",
+        %{columns: ["sum_noise"], rows: [%{row: [0.0], occurrences: 1}]}
+    end
 
-    assert_query "select avg_noise(height) from heights",
-      %{columns: ["avg_noise"], rows: [%{row: [0.0], occurrences: 1}]}
+    test "avg" do
+      assert_query "select avg_noise(height) from heights",
+        %{columns: ["avg_noise"], rows: [%{row: [0.0], occurrences: 1}]}
+    end
 
-    assert_query "select stddev_noise(height) from heights",
-      %{columns: ["stddev_noise"], rows: [%{row: [0.0], occurrences: 1}]}
+    test "stddev" do
+      assert_query "select stddev_noise(height) from heights",
+        %{columns: ["stddev_noise"], rows: [%{row: [0.0], occurrences: 1}]}
+    end
   end
 
   test "bucketing values" do
