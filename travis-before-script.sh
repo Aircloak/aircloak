@@ -68,7 +68,7 @@ set -eox pipefail
 
   # cloak -------------------------------------------------------------
 
-  if [[ "$TEST" == "cloak" || "$TEST" == "aux" || "$TEST" == "compliance" ]]; then
+  if [[ "$TEST" == "cloak" || "$TEST" == "aux" ]]; then
 
     pushd cloak
     make odbc_drivers
@@ -94,8 +94,6 @@ set -eox pipefail
     docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE cloaktest2"
     docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE cloaktest3"
 
-    mix compile --warnings-as-errors
-    MIX_ENV=test make all
     popd
 
   fi
