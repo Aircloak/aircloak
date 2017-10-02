@@ -59,7 +59,7 @@ defmodule Cloak.Query.NoiseLayerTest do
       %{rows: [%{row: [value1]}]}
     assert_query "select avg(number) from noise_layers where number = #{number} group by number",
       %{rows: [%{row: [value2]}]}
-    assert value1 != value2
+    assert value1 == value2
   end
 
   test "noise layers in subqueries" do
@@ -156,7 +156,7 @@ defmodule Cloak.Query.NoiseLayerTest do
       :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["number"], [100])
       :ok = insert_rows(_user_ids = 26..75, "noise_layers", ["number"], [50])
 
-      assert_query "select count(number) from noise_layers where sqrt(number) <> 10", %{rows: [%{row: [50]}]}
+      assert_query "select count(number) from noise_layers where sqrt(number) <> 10", %{rows: [%{row: [48]}]}
     end
 
     test "complex negative LIKE conditions matching too few users are dropped" do
