@@ -54,7 +54,6 @@ defmodule Cloak.Query.RowSplitters do
 
   defp convert_row_splitter(query, splitter_expression) do
     {splitter_index, query} = Query.next_row_index(query)
-    new_splitter = %{function_spec: splitter_expression, row_index: splitter_index}
 
     expression_to_fetch =
       %Expression{
@@ -65,7 +64,7 @@ defmodule Cloak.Query.RowSplitters do
       }
 
     {
-      new_splitter,
+      splitter_expression,
       put_in(query, [Lenses.expression_instances(splitter_expression)], expression_to_fetch)
     }
   end
@@ -77,8 +76,7 @@ defmodule Cloak.Query.RowSplitters do
     Stream.flat_map(rows, &split_row(&1, row_splitters))
 
   defp split_row(row, row_splitters) do
-    padded_row = row ++ List.duplicate(nil, length(row_splitters))
-    Enum.reduce(row_splitters, [padded_row], &expand_rows(&2, &1))
+    Enum.reduce(row_splitters, [row], &expand_rows(&2, &1))
   end
 
   defp expand_rows(rows, splitter), do:
@@ -87,8 +85,8 @@ defmodule Cloak.Query.RowSplitters do
   defp expand_row(row, splitter), do:
     row
     |> splitter_values(splitter)
-    |> Enum.map(&List.replace_at(row, splitter.row_index, &1))
+    |> Enum.map(&(row ++ [&1]))
 
   defp splitter_values(row, splitter), do:
-    Expression.value(splitter.function_spec, row)
+    Expression.value(splitter, row)
 end
