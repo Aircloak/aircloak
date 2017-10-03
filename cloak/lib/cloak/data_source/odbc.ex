@@ -14,7 +14,6 @@ defmodule Cloak.DataSource.ODBC do
   # -------------------------------------------------------------------
 
   @behaviour Driver
-  use Driver
 
   @impl Driver
   def sql_dialect_module(%{dialect: dialect}), do: dialect
@@ -54,10 +53,10 @@ defmodule Cloak.DataSource.ODBC do
     statement = sql_query |> SqlBuilder.build() |> to_charlist()
     field_mappers = for column <- sql_query.db_columns, do:
       column |> DataDecoder.encoded_type() |> type_to_field_mapper(sql_query.data_source)
-    case :odbc.select_count(connection, statement, @timeout) do
+    case :odbc.select_count(connection, statement, Driver.timeout()) do
       {:ok, _count} ->
         data_stream = Stream.resource(fn () -> connection end, fn (conn) ->
-          case :odbc.select(conn, :next, @batch_size, @timeout) do
+          case :odbc.select(conn, :next, Driver.batch_size(), Driver.timeout()) do
             {:selected, _columns, []} -> {:halt, conn}
             {:selected, _columns, rows} -> {Enum.map(rows, &map_fields(&1, field_mappers)), conn}
             {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")

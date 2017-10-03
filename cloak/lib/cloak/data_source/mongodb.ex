@@ -46,7 +46,6 @@ defmodule Cloak.DataSource.MongoDB do
   # -------------------------------------------------------------------
 
   @behaviour Driver
-  use Driver
 
   @impl Driver
   def sql_dialect_module(_parameters), do: nil
@@ -54,8 +53,9 @@ defmodule Cloak.DataSource.MongoDB do
   @impl Driver
   def connect!(parameters) do
     self = self()
-    parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, timeout: @timeout,
-      pool: DBConnection.Connection, pool_timeout: @timeout, after_connect: fn (_) -> send self, :connected end]
+    timeout = Driver.timeout()
+    parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, timeout: timeout,
+      pool: DBConnection.Connection, pool_timeout: timeout, after_connect: fn (_) -> send self, :connected end]
     {:ok, connection} = Mongo.start_link(parameters)
     receive do
       :connected -> connection
@@ -125,8 +125,9 @@ defmodule Cloak.DataSource.MongoDB do
   @impl Driver
   def select(connection, query, result_processor) do
     {collection, pipeline} = Pipeline.build(query)
-    options = [max_time: @timeout, timeout: @timeout, pool_timeout: @timeout,
-      batch_size: @batch_size, allow_disk_use: true]
+    timeout = Driver.timeout()
+    options = [max_time: timeout, timeout: timeout, pool_timeout: timeout,
+      batch_size: Driver.batch_size(), allow_disk_use: true]
     mappers =
       query.db_columns
       |> Enum.map(& &1 |> DataDecoder.encoded_type() |> type_to_field_mapper())
@@ -159,7 +160,7 @@ defmodule Cloak.DataSource.MongoDB do
   defp parse_type(type), do: {:unsupported, type}
 
   defp execute!(conn, command) do
-    case Mongo.command(conn, command, timeout: @timeout) do
+    case Mongo.command(conn, command, timeout: Driver.timeout()) do
       {:ok, %{"results" => results}} -> results
       {:ok, %{"result" => result}} -> result
       {:error, %Mongo.Error{message: error}} -> DataSource.raise_error("MongoDB execute command error: #{error}")

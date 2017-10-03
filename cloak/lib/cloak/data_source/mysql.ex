@@ -14,7 +14,6 @@ defmodule Cloak.DataSource.MySQL do
   # -------------------------------------------------------------------
 
   @behaviour Driver
-  use Driver
 
   @impl Driver
   def sql_dialect_module(_parameters), do: Cloak.DataSource.SqlBuilder.MySQL
@@ -24,7 +23,7 @@ defmodule Cloak.DataSource.MySQL do
     self = self()
     parameters =
       Enum.to_list(parameters) ++ [types: true, sync_connect: true,
-        pool: DBConnection.Connection, timeout: @timeout, after_connect: fn (_) -> send self, :connected end]
+        pool: DBConnection.Connection, timeout: Driver.timeout(), after_connect: fn (_) -> send self, :connected end]
     {:ok, connection} = Mariaex.start_link(parameters)
     receive do
       :connected ->
@@ -69,10 +68,10 @@ defmodule Cloak.DataSource.MySQL do
   defp run_query(pool, statement, decode_mapper, result_processor) do
     try do
       Mariaex.transaction(pool, fn(connection) ->
-        Mariaex.stream(connection, statement, [], [decode_mapper: decode_mapper, max_rows: @batch_size])
+        Mariaex.stream(connection, statement, [], [decode_mapper: decode_mapper, max_rows: Driver.batch_size])
         |> Stream.flat_map(fn (%Mariaex.Result{rows: rows}) -> rows end)
         |> result_processor.()
-      end, [timeout: @timeout])
+      end, [timeout: Driver.timeout()])
     rescue
       error in Mariaex.Error -> DataSource.raise_error("Driver exception: `#{Exception.message(error)}`")
     end

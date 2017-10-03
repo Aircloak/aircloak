@@ -14,7 +14,6 @@ defmodule Cloak.DataSource.PostgreSQL do
   # -------------------------------------------------------------------
 
   @behaviour Driver
-  use Driver
 
   @impl Driver
   def sql_dialect_module(_parameters), do: Cloak.DataSource.SqlBuilder.PostgreSQL
@@ -76,7 +75,7 @@ defmodule Cloak.DataSource.PostgreSQL do
     Postgrex.transaction(pool, fn(connection) ->
       with {:ok, query} <- Postgrex.prepare(connection, "data select", statement, []) do
         try do
-          Postgrex.stream(connection, query, [], [decode_mapper: decode_mapper, max_rows: @batch_size])
+          Postgrex.stream(connection, query, [], [decode_mapper: decode_mapper, max_rows: Driver.batch_size()])
           |> Stream.flat_map(fn (%Postgrex.Result{rows: rows}) -> rows end)
           |> result_processor.()
         after
@@ -85,7 +84,7 @@ defmodule Cloak.DataSource.PostgreSQL do
       else
         {:error, error} -> DataSource.raise_error("Driver exception: `#{Exception.message(error)}`")
       end
-    end, [timeout: @timeout])
+    end, [timeout: Driver.timeout()])
   end
 
   defp parse_type("varchar"), do: :text
