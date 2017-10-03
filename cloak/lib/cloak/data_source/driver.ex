@@ -4,6 +4,13 @@ defmodule Cloak.DataSource.Driver do
   alias Cloak.Sql.Query
   alias Cloak.DataSource.Table
 
+  defmacro __using__(_) do
+    quote do
+      @timeout Application.get_env(:cloak, :data_source) |> Keyword.fetch!(:timeout)
+      @batch_size Application.get_env(:cloak, :data_source) |> Keyword.fetch!(:batch_size)
+    end
+  end
+
   @type connection :: any
   @type parameters :: any
 

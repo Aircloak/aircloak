@@ -14,6 +14,7 @@ defmodule Cloak.DataSource.ODBC do
   # -------------------------------------------------------------------
 
   @behaviour Driver
+  use Driver
 
   @impl Driver
   def sql_dialect_module(%{dialect: dialect}), do: dialect
@@ -39,7 +40,7 @@ defmodule Cloak.DataSource.ODBC do
 
   @impl Driver
   def load_tables(connection, table) do
-    case :odbc.describe_table(connection, to_charlist(table.db_name), _timeout = :timer.seconds(15)) do
+    case :odbc.describe_table(connection, to_charlist(table.db_name), _timeout = :timer.seconds(30)) do
       {:ok, columns} ->
         columns = for {name, type} <- columns, do: Table.column(to_string(name), parse_type(type))
         [%{table | columns: columns}]
@@ -53,10 +54,10 @@ defmodule Cloak.DataSource.ODBC do
     statement = sql_query |> SqlBuilder.build() |> to_charlist()
     field_mappers = for column <- sql_query.db_columns, do:
       column |> DataDecoder.encoded_type() |> type_to_field_mapper(sql_query.data_source)
-    case :odbc.select_count(connection, statement, _timeout = :timer.hours(4)) do
+    case :odbc.select_count(connection, statement, @timeout) do
       {:ok, _count} ->
         data_stream = Stream.resource(fn () -> connection end, fn (conn) ->
-          case :odbc.select(conn, :next, _rows_per_batch = 25_000, _timeout = :timer.minutes(30)) do
+          case :odbc.select(conn, :next, @batch_size, @timeout) do
             {:selected, _columns, []} -> {:halt, conn}
             {:selected, _columns, rows} -> {Enum.map(rows, &map_fields(&1, field_mappers)), conn}
             {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")

@@ -37,8 +37,7 @@ defmodule Cloak.DataSource.MongoDB do
 
   alias Cloak.Sql.{Query, Expression}
   alias Cloak.DataSource
-  alias Cloak.DataSource.Driver
-  alias Cloak.DataSource.MongoDB.{Schema, Pipeline}
+  alias Cloak.DataSource.{Driver, MongoDB.Schema, MongoDB.Pipeline}
   alias Cloak.Query.DataDecoder
 
 
@@ -47,8 +46,7 @@ defmodule Cloak.DataSource.MongoDB do
   # -------------------------------------------------------------------
 
   @behaviour Driver
-
-  @timeout :timer.hours(1)
+  use Driver
 
   @impl Driver
   def sql_dialect_module(_parameters), do: nil
@@ -127,7 +125,8 @@ defmodule Cloak.DataSource.MongoDB do
   @impl Driver
   def select(connection, query, result_processor) do
     {collection, pipeline} = Pipeline.build(query)
-    options = [max_time: @timeout, timeout: @timeout, pool_timeout: @timeout, batch_size: 25_000, allow_disk_use: true]
+    options = [max_time: @timeout, timeout: @timeout, pool_timeout: @timeout,
+      batch_size: @batch_size, allow_disk_use: true]
     mappers =
       query.db_columns
       |> Enum.map(& &1 |> DataDecoder.encoded_type() |> type_to_field_mapper())
