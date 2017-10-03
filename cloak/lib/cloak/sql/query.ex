@@ -172,11 +172,6 @@ defmodule Cloak.Sql.Query do
     end
   end
 
-  @doc "Returns the next row index and the transformed query with incremented row index."
-  @spec next_row_index(t) :: {row_index, t}
-  def next_row_index(query), do:
-    {query.next_row_index, %__MODULE__{query | next_row_index: query.next_row_index + 1}}
-
   @doc "Sets the parameter type."
   @spec set_parameter_type(t, pos_integer, DataSource.Table.data_type) :: t
   def set_parameter_type(query, parameter_index, type), do:
@@ -279,4 +274,7 @@ defmodule Cloak.Sql.Query do
       :ok
     end
   end
+
+  defp next_row_index(query), do:
+    {query.next_row_index, %__MODULE__{query | next_row_index: query.next_row_index + 1}}
 end

@@ -238,6 +238,15 @@ defmodule Cloak.Sql.Expression do
     %__MODULE__{expression | alias: nil}
 
 
+  @doc "Recursively evaluates a split expression and returns all the values yielded by the splitter."
+  @spec splitter_values(t, DataSource.row) :: [DataSource.field]
+  def splitter_values(splitter, row), do:
+    Enum.map(
+      eval_split_expression(splitter, row),
+      fn(%__MODULE__{constant?: true, value: value}) -> value end
+    )
+
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -452,4 +461,35 @@ defmodule Cloak.Sql.Expression do
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _}), do: nil
+
+  defp eval_split_expression(%__MODULE__{constant?: true} = expression, _row), do:
+    [expression]
+  defp eval_split_expression(%__MODULE__{function?: false} = expression, row), do:
+    [constant(expression.type, value(expression, row))]
+  defp eval_split_expression(%__MODULE__{function?: true} = expression, row) do
+    apply_args_instances(expression, eval_args(expression.function_args, row))
+  end
+
+  defp eval_args([], _row), do: [[]]
+  defp eval_args([arg | rest], row) do
+    for arg_value <- eval_split_expression(arg, row), remaining_arg_values <- eval_args(rest, row), do:
+      [arg_value | remaining_arg_values]
+  end
+
+  defp apply_args_instances(function, args_instances) do
+    Enum.flat_map(args_instances, &invoke_fun(function, &1))
+  end
+
+  defp invoke_fun(function, args), do:
+    function
+    |> function_results(args)
+    |> Enum.map(&constant(function.type, &1))
+
+  defp function_results(function, args) do
+    if row_splitter?(function) do
+      value(%{function | function_args: args, row_index: nil})
+    else
+      [value(%{function | function_args: args})]
+    end
+  end
 end

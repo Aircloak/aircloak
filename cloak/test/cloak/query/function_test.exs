@@ -209,9 +209,9 @@ defmodule Cloak.Query.FunctionTest do
       FROM heights_ft
       """,
       %{rows: [
-        %{row: ["first", "first"], occurrences: 100},
-        %{row: ["second", "second"], occurrences: 100},
-        %{row: ["third", "third"], occurrences: 100},
+        %{row: ["first", "first"], occurrences: 300},
+        %{row: ["second", "second"], occurrences: 300},
+        %{row: ["third", "third"], occurrences: 300},
       ]}
     )
   end
