@@ -328,14 +328,10 @@ defmodule Cloak.Sql.Compiler.Validation do
         message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
   end
 
-  defp verify_limit(%Query{limit: amount}) when amount <= 0, do:
-    raise CompilationError, message: "`LIMIT` clause expects a positive value."
   defp verify_limit(%Query{order_by: [], limit: amount}) when amount != nil, do:
     raise CompilationError, message: "Using the `LIMIT` clause requires the `ORDER BY` clause to be specified."
   defp verify_limit(_query), do: :ok
 
-  defp verify_offset(%Query{offset: amount}) when amount < 0, do:
-    raise CompilationError, message: "`OFFSET` clause expects a non-negative value."
   defp verify_offset(%Query{order_by: [], offset: amount}) when amount > 0, do:
     raise CompilationError, message: "Using the `OFFSET` clause requires the `ORDER BY` clause to be specified."
   defp verify_offset(_query), do: :ok

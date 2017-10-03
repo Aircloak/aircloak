@@ -86,11 +86,14 @@ defmodule Cloak.Query.ErrorTest do
       "(`text`, `integer`, [`integer`]), but got (`text`)."
   end
 
-  test "query reports error on invalid limit / offset parameters" do
+  test "query reports error on invalid limit parameters" do
     assert_query "select name from test_errors limit -1", %{error: error}
-    assert ~s/`LIMIT` clause expects a positive value./ == error
+    assert error =~ ~r/Expected `positive integer constant`.*/
+  end
+
+  test "query reports error on invalid offset parameters" do
     assert_query "select name from test_errors offset -1", %{error: error}
-    assert ~s/`OFFSET` clause expects a non-negative value./ == error
+    assert error =~ ~r/Expected `non-negative integer constant`.*/
   end
 
   test "query reports error on invalid having clause" do
