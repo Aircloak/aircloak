@@ -19,7 +19,7 @@ type Context = {
 const stateItem = (state, currentState) => {
   if (later(currentState, state)) {
     return <s>{format(state)}</s>;
-  } else if (state == currentState) {
+  } else if (state === currentState) {
     return <b>{format(state)}</b>;
   } else {
     return format(state);
