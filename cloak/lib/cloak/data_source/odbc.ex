@@ -161,7 +161,7 @@ defmodule Cloak.DataSource.ODBC do
 
   defp real_field_mapper(:null), do: nil
   defp real_field_mapper(value) when is_binary(value) do
-    {value, ""} = Float.parse(value)
+    {value, ""} = value |> String.replace(",", ".") |> Float.parse()
     value
   end
   defp real_field_mapper(value) when is_float(value), do: value
