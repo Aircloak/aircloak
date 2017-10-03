@@ -804,16 +804,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "compilation of row splitters" do
     {:ok, query} = compile("select extract_matches(string, 'thing') from table", data_source())
-    assert [%Expression{name: "extract_matches_return_value", row_index: index}] = query.columns
     assert Enum.any?(query.db_columns, &match?(%Expression{name: "string"}, &1))
-    assert [%{
-      function_spec: %Expression{
-        function?: true,
-        function: "extract_matches",
-        function_args: [%Expression{name: "string"}, %Expression{value: ~r/thing/ui}]
-      },
-      row_index: ^index
-    }] = query.row_splitters
   end
 
   test "only needed columns are fetched from a projected table" do

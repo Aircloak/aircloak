@@ -58,7 +58,6 @@ defmodule Cloak.Sql.Query do
     #   extract_matches(cast(number as text), '\d+')
     #
     # where the latter of these two is contained in the row-splitters.
-    row_splitters: [%{function_spec: Parser.function_spec, row_index: row_index}],
     implicit_count?: boolean,
     group_by: [Function.t],
     where: where_clause,
@@ -89,7 +88,7 @@ defmodule Cloak.Sql.Query do
 
   defstruct [
     columns: [], where: nil, group_by: [], order_by: [], column_titles: [], aggregators: [],
-    info: [], selected_tables: [], row_splitters: [], implicit_count?: false, data_source: nil, command: nil,
+    info: [], selected_tables: [], implicit_count?: false, data_source: nil, command: nil,
     show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil, distinct?: false,
     features: %{}, emulated_where: nil, ranges: [], parameters: [], views: %{}, emulated?: false, sample_rate: nil,
     projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false, table_aliases: %{},

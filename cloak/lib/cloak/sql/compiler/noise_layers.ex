@@ -49,7 +49,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     {:ok, expression} = find_column(column, query)
 
     layers =
-      raw_columns(expression, query)
+      raw_columns(expression)
       |> Enum.map(&build_noise_layer(&1, extras))
 
     update_in(query, [Lens.key(:noise_layers)], &(&1 ++ layers))
@@ -163,22 +163,22 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(& not Condition.not_like?(&1))
     |> Lens.satisfy(& not fk_pk_condition?(&1))
     |> Lens.both(Lens.key(:group_by))
-    |> raw_columns(query, query)
+    |> raw_columns(query)
     |> Enum.map(&build_noise_layer/1)
 
   defp fk_pk_condition?({:comparison, lhs, :=, rhs}), do:
     Expression.key?(lhs) and Expression.key?(rhs)
   defp fk_pk_condition?(_), do: false
 
-  defp range_noise_layers(query = %{ranges: ranges}), do:
+  defp range_noise_layers(%{ranges: ranges}), do:
     Enum.flat_map(ranges, fn(%{column: column, interval: range}) ->
-      raw_columns(column, query)
+      raw_columns(column)
       |> Enum.map(&build_noise_layer(&1, range))
     end)
 
   defp negative_noise_layers(query), do:
     conditions_satisfying(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
-    |> raw_columns(query, query)
+    |> raw_columns(query)
     |> Enum.map(&build_noise_layer(&1, :<>))
 
 
@@ -200,20 +200,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> function.()
     |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_top_down(&1, function))
 
-  defp resolve_row_splitter(expression, query = %{row_splitters: row_splitters}) do
-    if splitter = Enum.find(row_splitters, &(&1.row_index == expression.row_index)) do
-      raw_columns(splitter.function_spec, query)
-    else
-      [expression]
-    end
-  end
-
-  defp raw_columns(lens \\ Lens.root(), data, query), do:
+  defp raw_columns(lens \\ Lens.root(), data), do:
     lens
     |> Query.Lenses.leaf_expressions()
     |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
     |> Lens.to_list(data)
-    |> Enum.flat_map(&resolve_row_splitter(&1, query))
 
   defp build_noise_layer(column, extras \\ nil), do:
     NoiseLayer.new({column.table.name, column.name, extras}, [Helpers.set_unique_alias(column)])

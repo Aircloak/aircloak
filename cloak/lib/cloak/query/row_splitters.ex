@@ -21,7 +21,7 @@ defmodule Cloak.Query.RowSplitters do
     `splitter(function1(function2(value)))`
   """
 
-  alias Cloak.Sql.{Query, Expression}
+  alias Cloak.Sql.{Expression, Function, Query, Query.Lenses}
 
 
   # -------------------------------------------------------------------
@@ -29,11 +29,10 @@ defmodule Cloak.Query.RowSplitters do
   # -------------------------------------------------------------------
 
   @doc "Splits individual rows into multiple rows based on applied splitter functions"
-  @spec split(Enumerable.t, Query.t) :: Enumerable.t
-  def split(rows, %Query{row_splitters: []}), do: rows
+  @spec split(Enumerable.t, Query.t) :: {Enumerable.t, Query.t}
   def split(rows, query) do
-    splitter_indices = query.row_splitters |> Enum.map(& &1.row_index) |> Enum.sort()
-    Stream.flat_map(rows, &split_row(pad(&1, splitter_indices), query))
+    {row_splitters, query} = convert_row_splitters(query)
+    {split_rows(rows, row_splitters), query}
   end
 
 
@@ -41,17 +40,55 @@ defmodule Cloak.Query.RowSplitters do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp split_row(row, query) do
-    Enum.reduce(query.row_splitters, [row], fn(splitter, rows_acc) ->
-      Enum.flat_map(rows_acc, &apply_top_most_row_splitter(&1, splitter))
-    end)
+  defp convert_row_splitters(%Query{} = query) do
+    case Query.all_selected_splitters(query) do
+      [] ->
+        {[], query}
+
+      [innermost_splitter_expression | _] ->
+        {new_splitter, query} = convert_row_splitter(query, innermost_splitter_expression)
+        {remaining_splitters, query} = convert_row_splitters(query)
+        {[new_splitter | remaining_splitters], query}
+    end
   end
 
-  defp apply_top_most_row_splitter(row, splitter) do
-    for cell_value <- Expression.value(splitter.function_spec, row), do:
-      List.replace_at(row, splitter.row_index, cell_value)
+  defp convert_row_splitter(query, splitter_expression) do
+    {splitter_index, query} = Query.next_row_index(query)
+    new_splitter = %{function_spec: splitter_expression, row_index: splitter_index}
+
+    expression_to_fetch =
+      %Expression{
+        Expression.first_argument!(splitter_expression) |
+          name: "#{Function.readable_name(splitter_expression.function)}_return_value",
+          type: Function.return_type(splitter_expression),
+          row_index: splitter_index
+      }
+
+    {
+      new_splitter,
+      put_in(query, [Lenses.expression_instances(splitter_expression)], expression_to_fetch)
+    }
   end
 
-  defp pad(row, splitter_indices), do:
-    Enum.reduce(splitter_indices, row, &List.insert_at(&2, &1, nil))
+  defp split_rows(rows, []), do:
+    # optimization -> no row splitters, so we're just passing the input enumerable
+    rows
+  defp split_rows(rows, row_splitters), do:
+    Stream.flat_map(rows, &split_row(&1, row_splitters))
+
+  defp split_row(row, row_splitters) do
+    padded_row = row ++ List.duplicate(nil, length(row_splitters))
+    Enum.reduce(row_splitters, [padded_row], &expand_rows(&2, &1))
+  end
+
+  defp expand_rows(rows, splitter), do:
+    Enum.flat_map(rows, &expand_row(&1, splitter))
+
+  defp expand_row(row, splitter), do:
+    row
+    |> splitter_values(splitter)
+    |> Enum.map(&List.replace_at(row, splitter.row_index, &1))
+
+  defp splitter_values(row, splitter), do:
+    Expression.value(splitter.function_spec, row)
 end

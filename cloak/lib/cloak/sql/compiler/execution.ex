@@ -35,7 +35,6 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> partition_where_clauses()
     |> reject_null_user_ids()
     |> calculate_db_columns()
-    |> convert_row_splitters()
     |> compute_aggregators()
 
   @doc "Creates an executable query which describes a SELECT statement from a single table."
@@ -222,38 +221,6 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp order_by_columns(order_by_clauses), do:
     Enum.map(order_by_clauses, fn({column, _direction}) -> column end)
 
-  defp convert_row_splitters(%Query{} = query) do
-    case Query.all_selected_splitters(query) do
-      [] ->
-        query
-
-      [innermost_splitter_expression | _] ->
-        query
-        |> convert_row_splitter(innermost_splitter_expression)
-        |> convert_row_splitters()
-    end
-  end
-
-  defp convert_row_splitter(query, splitter_expression) do
-    {splitter_index, query} = add_row_splitter(query, splitter_expression)
-
-    expression_to_fetch =
-      %Expression{
-        Expression.first_argument!(splitter_expression) |
-          name: "#{Function.readable_name(splitter_expression.function)}_return_value",
-          type: Function.return_type(splitter_expression),
-          row_index: splitter_index
-      }
-
-    put_in(query, [Lenses.expression_instances(splitter_expression)], expression_to_fetch)
-  end
-
-  defp add_row_splitter(query, splitter_expression) do
-    {splitter_index, query} = Query.next_row_index(query)
-    new_splitter = %{function_spec: splitter_expression, row_index: splitter_index}
-    {splitter_index, %Query{query | row_splitters: query.row_splitters ++ [new_splitter]}}
-  end
-
   defp partition_where_clauses(query) do
     {emulated_where, where} = DataEngine.partitioned_where_clauses(query)
     %Query{query | where: where, emulated_where: emulated_where}
@@ -375,7 +342,20 @@ defmodule Cloak.Sql.Compiler.Execution do
   end
 
   defp needed_columns(query), do:
-    [query.columns, query.group_by, query.emulated_where, query.having, Query.order_by_expressions(query)]
+    [
+      query.columns,
+      query.group_by,
+      query.emulated_where,
+      query.having,
+      Query.order_by_expressions(query),
+      columns_required_for_splitting(query),
+    ]
+
+  defp columns_required_for_splitting(query), do:
+    query
+    |> Query.outermost_selected_splitters()
+    |> get_in([Lenses.leaf_expressions()])
+    |> Enum.reject(&(&1.constant? or &1.function?))
 
   defp compile_sample_rate(%Query{sample_rate: amount} = query) when amount != nil do
     true = is_integer(amount)

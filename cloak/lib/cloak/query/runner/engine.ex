@@ -70,8 +70,10 @@ defmodule Cloak.Query.Runner.Engine do
 
   defp process_final_rows(rows, query, state_updater) do
     Logger.debug("Processing final rows ...")
+
+    {rows, query} = Query.RowSplitters.split(rows, query)
+
     rows
-    |> Query.RowSplitters.split(query)
     |> Query.Rows.filter(Condition.to_function(query.emulated_where))
     |> Query.Aggregator.aggregate(query, state_updater)
   end
