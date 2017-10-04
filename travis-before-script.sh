@@ -4,6 +4,22 @@ set -eox pipefail
 
 # Sub-shell, so we don't change paths, and things get confusing
 (
+  function with_retries() {
+    local retry=0
+    local max_retries=5
+    local interval=1 # second
+
+    while [ ${retry} -lt ${max_retries} ]
+    do
+      "$@" && return 0
+      retry=$[${retry}+1]
+      echo "Retrying [${retry}/${max_retries}] in ${interval}(s) "
+      sleep ${interval}
+    done
+
+    return 1
+  }
+
   # Source asdf, once and for all, so we are using the right
   # versions of Erlang, Elixir and NodeJS
   . ~/.asdf/asdf.sh
@@ -91,8 +107,8 @@ set -eox pipefail
     psql -c "CREATE DATABASE cloaktest2 ENCODING 'UTF8';" -U postgres
     echo "USE mysql;\nUPDATE user SET password=PASSWORD('') WHERE user='root';\nFLUSH PRIVILEGES;\n" | mysql -u root
     mysql -e "CREATE DATABASE cloaktest2 DEFAULT CHARACTER SET utf8;" -u root --password=''
-    docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE cloaktest2"
-    docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE cloaktest3"
+    with_retries docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE cloaktest2"
+    with_retries docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE cloaktest3"
 
     popd
 
