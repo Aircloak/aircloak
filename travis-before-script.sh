@@ -82,7 +82,7 @@ set -eox pipefail
 
     pushd cloak
 
-    docker run --name aircloak_sql_server -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' -p 1433:1433 -d microsoft/mssql-server-linux
+    docker run --name aircloak_sql_server -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' -p 1433:1433 -d microsoft/mssql-server-linux:2017-latest
 
     if [ -e dev_container/cache/dev_container.tar ]; then docker load -i dev_container/cache/dev_container.tar; fi
     DOCKER_BUILD_CACHED="true" dev_container/build-image.sh

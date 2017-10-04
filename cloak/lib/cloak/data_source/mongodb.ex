@@ -37,8 +37,7 @@ defmodule Cloak.DataSource.MongoDB do
 
   alias Cloak.Sql.{Query, Expression}
   alias Cloak.DataSource
-  alias Cloak.DataSource.Driver
-  alias Cloak.DataSource.MongoDB.{Schema, Pipeline}
+  alias Cloak.DataSource.{Driver, MongoDB.Schema, MongoDB.Pipeline}
   alias Cloak.Query.DataDecoder
 
 
@@ -48,16 +47,15 @@ defmodule Cloak.DataSource.MongoDB do
 
   @behaviour Driver
 
-  @timeout :timer.hours(1)
-
   @impl Driver
   def sql_dialect_module(_parameters), do: nil
 
   @impl Driver
   def connect!(parameters) do
     self = self()
-    parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, timeout: @timeout,
-      pool: DBConnection.Connection, pool_timeout: @timeout, after_connect: fn (_) -> send self, :connected end]
+    timeout = Driver.timeout()
+    parameters = Enum.to_list(parameters) ++ [types: true, sync_connect: true, timeout: timeout,
+      pool: DBConnection.Connection, pool_timeout: timeout, after_connect: fn (_) -> send self, :connected end]
     {:ok, connection} = Mongo.start_link(parameters)
     receive do
       :connected -> connection
@@ -127,7 +125,9 @@ defmodule Cloak.DataSource.MongoDB do
   @impl Driver
   def select(connection, query, result_processor) do
     {collection, pipeline} = Pipeline.build(query)
-    options = [max_time: @timeout, timeout: @timeout, pool_timeout: @timeout, batch_size: 25_000, allow_disk_use: true]
+    timeout = Driver.timeout()
+    options = [max_time: timeout, timeout: timeout, pool_timeout: timeout,
+      batch_size: Driver.batch_size(), allow_disk_use: true]
     mappers =
       query.db_columns
       |> Enum.map(& &1 |> DataDecoder.encoded_type() |> type_to_field_mapper())
@@ -160,7 +160,7 @@ defmodule Cloak.DataSource.MongoDB do
   defp parse_type(type), do: {:unsupported, type}
 
   defp execute!(conn, command) do
-    case Mongo.command(conn, command, timeout: @timeout) do
+    case Mongo.command(conn, command, timeout: Driver.timeout()) do
       {:ok, %{"results" => results}} -> results
       {:ok, %{"result" => result}} -> result
       {:error, %Mongo.Error{message: error}} -> DataSource.raise_error("MongoDB execute command error: #{error}")

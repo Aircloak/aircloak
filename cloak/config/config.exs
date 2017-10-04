@@ -52,6 +52,9 @@ config :cloak, :anonymizer,
 
 config :cloak, :in_development, false
 
+config :cloak, :data_source,
+  timeout: :timer.hours(12),
+  batch_size: 50_000
 
 import_config "#{Mix.env}.exs"
 if File.exists?("config/#{Mix.env}.local.exs") do

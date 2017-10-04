@@ -81,7 +81,7 @@ defmodule Cloak.DataSource.SQLServerTds do
       else
         {:error, error} -> DataSource.raise_error("Driver exception: `#{Exception.message(error)}`")
       end
-    end, [timeout: :timer.hours(4)])
+    end, [timeout: Driver.timeout()])
   end
 
   defp parse_type("varchar"), do: :text
