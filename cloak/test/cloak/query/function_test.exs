@@ -317,6 +317,127 @@ defmodule Cloak.Query.FunctionTest do
       assert_query("SELECT count(*) FROM (SELECT user_id, extract_words(name) FROM heights_ft) x",
         %{error: "Function `extract_words` is not allowed in subqueries."})
     end
+
+    test "extract_words surrounded by aggregate function" do
+      assert_query(
+        "SELECT avg(length(extract_words(name))) FROM heights_ft",
+        %{rows: [%{occurrences: 1, row: [average]}]}
+      )
+      assert_in_delta 5.3333, average, 0.0001
+    end
+
+    test "extract_words alone splits words" do
+      assert_query(
+        "SELECT extract_words(name) as word FROM heights_ft",
+        %{rows: [
+          %{row: ["first"], occurrences: 100},
+          %{row: ["second"], occurrences: 100},
+          %{row: ["third"], occurrences: 100},
+        ]}
+      )
+    end
+
+    test "extract_words can have functions inside it" do
+      assert_query(
+        "SELECT extract_words(cast(height as text)) as word FROM heights_ft",
+        %{rows: [
+          %{row: ["180"], occurrences: 100},
+        ]}
+      )
+    end
+
+    test "extract_words can have functions outside it" do
+      assert_query(
+        "SELECT length(extract_words(name)) as word_length FROM heights_ft",
+        %{rows: [
+          %{row: [5], occurrences: 200},
+          %{row: [6], occurrences: 100},
+        ]}
+      )
+    end
+
+    test "extract_words can be used multiple times at the same level" do
+      assert_query("""
+        SELECT
+          concat(
+            extract_words(word1),
+            extract_words(word2)
+          ) as pairs
+        FROM (SELECT user_id, name AS word1, name AS word2 FROM heights_ft) AS t
+        """,
+        %{rows: [
+          %{row: ["firstfirst"], occurrences: 100},
+          %{row: ["firstsecond"], occurrences: 100},
+          %{row: ["firstthird"], occurrences: 100},
+          %{row: ["secondfirst"], occurrences: 100},
+          %{row: ["secondsecond"], occurrences: 100},
+          %{row: ["secondthird"], occurrences: 100},
+          %{row: ["thirdfirst"], occurrences: 100},
+          %{row: ["thirdsecond"], occurrences: 100},
+          %{row: ["thirdthird"], occurrences: 100},
+        ]}
+      )
+    end
+
+    test "extract_words can be used multiple times in the same query" do
+      assert_query("""
+        SELECT
+          extract_words(word1),
+          extract_words(word2)
+        FROM (SELECT user_id, name AS word1, name AS word2 FROM heights_ft) AS t
+        """,
+        %{rows: [
+          %{row: ["first", "first"], occurrences: 100},
+          %{row: ["first", "second"], occurrences: 100},
+          %{row: ["first", "third"], occurrences: 100},
+          %{row: ["second", "first"], occurrences: 100},
+          %{row: ["second", "second"], occurrences: 100},
+          %{row: ["second", "third"], occurrences: 100},
+          %{row: ["third", "first"], occurrences: 100},
+          %{row: ["third", "second"], occurrences: 100},
+          %{row: ["third", "third"], occurrences: 100},
+        ]}
+      )
+    end
+
+    test "extract_words on the same column are identical" do
+      assert_query("""
+        SELECT
+          extract_words(name),
+          extract_words(name)
+        FROM heights_ft
+        """,
+        %{rows: [
+          %{row: ["first", "first"], occurrences: 300},
+          %{row: ["second", "second"], occurrences: 300},
+          %{row: ["third", "third"], occurrences: 300},
+        ]}
+      )
+    end
+
+    test "extract_words in where clause" do
+      assert_query("""
+        SELECT extract_words(name)
+        FROM heights_ft
+        WHERE extract_words(name) IN ('first', 'third')
+        """,
+        %{rows: [
+          %{row: ["first"], occurrences: 100},
+          %{row: ["third"], occurrences: 100},
+        ]}
+      )
+    end
+
+    test "invalid extract_words usage in where clause" do
+      assert_query("SELECT extract_words(name) FROM heights_ft WHERE extract_words(string_number) = 'first'",
+        %{error: "Row splitter function used in the `WHERE` clause"
+          <> " has to be first used identically in the `SELECT` clause."})
+    end
+
+    test "invalid extract_matches argument" do
+      assert_query("SELECT extract_words('constant') FROM heights_ft",
+        %{error: "A constant is not allowed as the first argument of the function `extract_words`."})
+    end
   end
 
   test "min(height)", do: assert_subquery_aggregate("min(height)", "heights_ft", 180)
