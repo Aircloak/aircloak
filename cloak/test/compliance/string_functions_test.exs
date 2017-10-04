@@ -1,5 +1,3 @@
-# NOTE:
-# - substring(<col> FROM 0) has been disabled as it produces wildly different results when emulated
 Enum.each([
   "<col> || 'text-value'",
   "'text-value' || <col>",
@@ -25,6 +23,7 @@ Enum.each([
   "substring(<col> FROM 10)",
   "substring(<col> FOR 10)",
   "substring(<col> FOR 1000)",
+  "substring(<col> FROM 0)",
   "trim(<col>)",
   "ucase(<col>)",
   "upper(<col>)",
@@ -41,6 +40,7 @@ Enum.each([
         context
         |> disable_for(Cloak.DataSource.SQLServer, match?("hex" <> _, unquote(function)))
         |> disable_for(Cloak.DataSource.SQLServerTds, match?("hex" <> _, unquote(function)))
+        |> disable_for(:all, match?("substring(<col> FROM 0)", unquote(function)))
         |> disallowed_in_subqueries("extract_words", unquote(function))
         |> assert_consistent_and_not_failing("""
           SELECT
@@ -59,6 +59,7 @@ Enum.each([
       @tag compliance: "#{function} #{column} #{table} query"
       test "#{function} on input #{column} in query on #{table}", context do
         context
+        |> disable_for(:all, match?("substring(<col> FROM 0)", unquote(function)))
         |> assert_consistent_and_not_failing("""
           SELECT #{on_column(unquote(function), "\"#{unquote(column)}\"")}
           FROM #{unquote(table)}
