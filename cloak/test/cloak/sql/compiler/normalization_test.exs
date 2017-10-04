@@ -84,6 +84,10 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     assert result1.where == result2.where
   end
 
+  test "removing constant ORDER BY clauses" do
+    assert [] = compile!("SELECT 'constant' FROM table ORDER BY 1", data_source()).order_by
+  end
+
   defp data_source() do
     %{
       driver: Cloak.DataSource.PostgreSQL,
