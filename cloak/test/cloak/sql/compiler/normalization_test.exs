@@ -1,0 +1,103 @@
+defmodule Cloak.Sql.Compiler.Normalization.Test do
+  use ExUnit.Case, async: true
+
+  alias Cloak.DataSource.Table
+
+  import Cloak.Test.QueryHelpers
+
+  test "normalizing NOT IN as a series of <>" do
+    result1 = compile!("SELECT * FROM table WHERE numeric NOT IN (1, 2, 3)", data_source())
+    result2 = compile!("SELECT * FROM table WHERE numeric <> 3 AND numeric <> 2 AND numeric <> 1", data_source())
+
+    assert result1.where == result2.where
+  end
+
+  test "normalizing constant expressions" do
+    result1 = compile!("SELECT * FROM table WHERE numeric = 2 * 3 + 4", data_source())
+    result2 = compile!("SELECT * FROM table WHERE numeric = 10", data_source())
+
+    assert result1.where == result2.where
+  end
+
+  test "normalization in subqueries" do
+    %{from: {:subquery, %{ast: result1}}} = compile!(
+      "SELECT * FROM (SELECT * FROM table WHERE numeric = 2 * 3 + 4) x", data_source())
+    %{from: {:subquery, %{ast: result2}}} = compile!(
+      "SELECT * FROM (SELECT * FROM table WHERE numeric = 10) x", data_source())
+
+    assert result1.where == result2.where
+  end
+
+  test "normalizing upper(x) <> constant" do
+    result1 = compile!("SELECT * FROM table WHERE upper(string) <> 'CeO'", data_source())
+    result2 = compile!("SELECT * FROM table WHERE lower(string) <> 'cEo'", data_source())
+
+    assert result1.where == result2.where
+  end
+
+  test "normalizing like patterns" do
+    result1 = compile!("SELECT * FROM table WHERE string LIKE 'a_%__%_b%c%%d___'", data_source())
+    result2 = compile!("SELECT * FROM table WHERE string LIKE 'a%____b%c%d___'", data_source())
+
+    assert result1.where == result2.where
+  end
+
+  test "normalizing trivial like patterns" do
+    result1 = compile!("SELECT * FROM table WHERE string LIKE 'abc'", data_source())
+    result2 = compile!("SELECT * FROM table WHERE string = 'abc'", data_source())
+
+    assert result1.where == result2.where
+  end
+
+  test "normalizing trivial not like patterns" do
+    result1 = compile!("SELECT * FROM table WHERE string NOT LIKE 'abc'", data_source())
+    result2 = compile!("SELECT * FROM table WHERE string <> 'abc'", data_source())
+
+    assert result1.where == result2.where
+  end
+
+  test "normalizing ilike patterns" do
+    result1 = compile!("SELECT * FROM table WHERE string ILIKE 'a_%__%_b%c%%d___'", data_source())
+    result2 = compile!("SELECT * FROM table WHERE string ILIKE 'a%____b%c%d___'", data_source())
+
+    assert result1.where == result2.where
+  end
+
+  test "normalizing trivial not ilike patterns" do
+    result1 = compile!("SELECT * FROM table WHERE string NOT ILIKE 'AbC'", data_source())
+    result2 = compile!("SELECT * FROM table WHERE lower(string) <> 'abc'", data_source())
+
+    assert result1.where == result2.where
+  end
+
+  test "normalizing trivial ilike patterns" do
+    result1 = compile!("SELECT * FROM table WHERE string ILIKE 'abc'", data_source())
+    result2 = compile!("SELECT * FROM table WHERE lower(string) = lower('abc')", data_source())
+
+    assert result1.where == result2.where
+  end
+
+  test "normalizing IN(single_value)" do
+    result1 = compile!("SELECT * FROM table WHERE string IN ('a')", data_source())
+    result2 = compile!("SELECT * FROM table WHERE string = 'a'", data_source())
+
+    assert result1.where == result2.where
+  end
+
+  defp data_source() do
+    %{
+      driver: Cloak.DataSource.PostgreSQL,
+      tables: %{
+        table: Cloak.DataSource.Table.new("table", "uid",
+          db_name: "table",
+          columns: [
+            Table.column("uid", :integer),
+            Table.column("numeric", :integer),
+            Table.column("string", :text),
+          ],
+          keys: ["key"],
+        ),
+      }
+    }
+  end
+end
