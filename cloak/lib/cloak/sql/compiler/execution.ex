@@ -348,14 +348,7 @@ defmodule Cloak.Sql.Compiler.Execution do
       query.emulated_where,
       query.having,
       Query.order_by_expressions(query),
-      columns_required_for_splitting(query),
     ]
-
-  defp columns_required_for_splitting(query), do:
-    query
-    |> Query.outermost_selected_splitters()
-    |> get_in([Lenses.leaf_expressions()])
-    |> Enum.reject(&(&1.constant? or &1.function?))
 
   defp compile_sample_rate(%Query{sample_rate: amount} = query) when amount != nil do
     true = is_integer(amount)
