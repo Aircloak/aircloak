@@ -95,24 +95,7 @@ defmodule Cloak.Sql.Function do
     ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
     ~w(hex) => %{type_specs: %{[:text] => :text}},
     ~w(hash) => %{type_specs: %{[:text] => :integer, [:integer] => :integer, [:real] => :integer}},
-    # NOTICE: The `not_in_subquery` needs to be set for `extract_match` and `extract_matches`
-    # (whether or not we can implement it in a subquery). The reason for this is what we have called:
-    # WYSIWYC (what you see is what you count). If `extract_match` is allowed in a subquery it can
-    # effectively be used as an `OR`, whereas if it is used at the top-level the output of
-    # the function is directly anonymised, and hence safe.
-    # An example attack could look like:
-    #
-    #   SELECT count(*)
-    #   FROM (
-    #     SELECT uid, extract_match(name, 'Pattern1|Pattern2|Pattern3|...') as match
-    #     FROM table
-    #     WHERE match is not null
-    #   )
-    #
-    ~w(extract_match) => %{type_specs: %{[:text, :text] => :text},
-      attributes: [:not_in_subquery, :precompiled, :emulated]},
-    ~w(extract_matches) => %{type_specs: %{[:text, :text] => :text},
-      attributes: [:not_in_subquery, :precompiled, :row_splitter, :emulated]},
+    # NOTICE: The `not_in_subquery` is set for `extract_words` because we are not yet sure it's safe in subqueries.
     ~w(extract_words) => %{type_specs: %{[:text] => :text}, attributes: [:not_in_subquery, :row_splitter, :emulated]},
     [{:cast, :integer}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer}},

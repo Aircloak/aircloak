@@ -28,8 +28,7 @@ Enum.each([
   "trim(<col>)",
   "ucase(<col>)",
   "upper(<col>)",
-  "extract_match(<col>, '\\w')",
-  "extract_matches(<col>, '\\w')",
+  "extract_words(<col>)",
 ], fn(function) ->
   defmodule Module.concat([Compliance.StringFunctions, String.to_atom(function), Test]) do
     use ComplianceCase, async: true, timeout: :timer.minutes(2)
@@ -37,7 +36,7 @@ Enum.each([
     @moduletag :"#{function}"
 
     Enum.each(text_columns(), fn({column, table, uid}) ->
-      if not (function in ["extract_match(<col>, '\\w')", "extract_matches(<col>, '\\w')"]) do
+      if not (function in ["extract_words(<col>)"]) do
         @tag compliance: "#{function} #{column} #{table} subquery"
         test "#{function} on input #{column} in a sub-query on #{table}", context do
           context

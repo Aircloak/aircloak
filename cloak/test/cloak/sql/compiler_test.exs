@@ -798,12 +798,12 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "view has the same limitations as the subquery" do
-    assert {:error, error} = validate_view("select uid, extract_match(string, '') from table", data_source())
-    assert error == "Function `extract_match` is not allowed in subqueries."
+    assert {:error, error} = validate_view("select uid, extract_words(string) from table", data_source())
+    assert error == "Function `extract_words` is not allowed in subqueries."
   end
 
   test "compilation of row splitters" do
-    {:ok, query} = compile("select extract_matches(string, 'thing') from table", data_source())
+    {:ok, query} = compile("select extract_words(string) from table", data_source())
     assert Enum.any?(query.db_columns, &match?(%Expression{name: "string"}, &1))
   end
 
