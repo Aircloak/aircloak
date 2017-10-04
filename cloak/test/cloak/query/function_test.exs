@@ -313,7 +313,10 @@ defmodule Cloak.Query.FunctionTest do
       ]})
     end
 
-    test "in subquery"
+    test "forbidden in subquery" do
+      assert_query("SELECT count(*) FROM (SELECT user_id, extract_words(name) FROM heights_ft) x",
+        %{error: "Function `extract_words` is not allowed in subqueries."})
+    end
   end
 
   test "min(height)", do: assert_subquery_aggregate("min(height)", "heights_ft", 180)

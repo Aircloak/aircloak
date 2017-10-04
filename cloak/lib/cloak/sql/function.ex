@@ -113,7 +113,7 @@ defmodule Cloak.Sql.Function do
       attributes: [:not_in_subquery, :precompiled, :emulated]},
     ~w(extract_matches) => %{type_specs: %{[:text, :text] => :text},
       attributes: [:not_in_subquery, :precompiled, :row_splitter, :emulated]},
-    ~w(extract_words) => %{type_specs: %{[:text] => :text}, attributes: [:row_splitter, :emulated]},
+    ~w(extract_words) => %{type_specs: %{[:text] => :text}, attributes: [:not_in_subquery, :row_splitter, :emulated]},
     [{:cast, :integer}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer}},
     [{:cast, :real}] =>
