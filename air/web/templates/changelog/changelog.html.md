@@ -1,3 +1,11 @@
+## Version 17.4.1 (unreleased)
+
+### Bugfixes
+
+- Corrected description of which `WHERE`-clause conditions are allowed in subqueries, as well
+  as when subqueries must select the uid-column.
+
+
 ## Version 17.4.0
 
 ### New features
