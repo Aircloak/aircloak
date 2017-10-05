@@ -34,7 +34,7 @@ test:
 	mix test
 
 test_all:
-	TRAVIS=true mix test --include exclude_in_dev
+	TRAVIS=true mix test --include exclude_in_dev --include compliance
 
 recreate-db:
 	@echo "Assumption: you have a database user called postgres that is a superuser. If not, run: CREATE USER postgres WITH SUPERUSER"
@@ -86,7 +86,7 @@ dev-container: odbc_drivers
 	./dev_container/container.sh console
 
 sql-server-container:
-	$(call start_container, aircloak_sql_server, -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' -p 1433:1433 -d microsoft/mssql-server-linux)
+	$(call start_container, aircloak_sql_server, -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' -p 1433:1433 -d microsoft/mssql-server-linux:2017-latest)
 
 sql-server-database:
 	docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE $(DB_NAME)"

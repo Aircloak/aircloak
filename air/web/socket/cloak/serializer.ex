@@ -7,7 +7,6 @@ defmodule Air.Socket.Cloak.Serializer do
   a query is sent from the cloak to the air. As an added bonus, there's no impedance mismatch, so we can send atoms,
   tuples and other kind of Erlang specific data to the other side just like when using clustered Erlang.
   """
-  @behaviour Phoenix.Transports.Serializer
 
   require Logger
   alias Phoenix.Socket.Reply

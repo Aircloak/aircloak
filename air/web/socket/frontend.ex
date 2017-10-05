@@ -31,7 +31,7 @@ defmodule Air.Socket.Frontend do
   # Phoenix.Socket callback functions
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl Phoenix.Socket
   def connect(%{"token" => token}, socket) do
     case Guardian.decode_and_verify(token) do
       {:ok, %{"sub" => subject}} ->
@@ -43,7 +43,7 @@ defmodule Air.Socket.Frontend do
     end
   end
 
-  @doc false
+  @impl Phoenix.Socket
   @dialyzer {:nowarn_function, id: 1} # Phoenix bug, fixed in master
   def id(socket),
     do: "user:#{socket.assigns.user.id}"

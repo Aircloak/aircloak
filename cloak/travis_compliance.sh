@@ -13,6 +13,13 @@ cd aircloak/cloak
 odbcinst -i -s -h -f priv/odbc/odbc_travis_compliance.ini
 cp priv/config/compliance_travis.json priv/config/travis.json
 
+export MIX_ENV=test
+
+make deps
+make compile
+make odbc_drivers
+mix config_sap_hana_test_schema
+
 TEST_SIZE=10
 CONCURRENCY=10
 mix gen.test_data compliance $TEST_SIZE

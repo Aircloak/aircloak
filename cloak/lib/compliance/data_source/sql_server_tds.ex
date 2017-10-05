@@ -1,4 +1,4 @@
-defmodule Compliance.DataSource.SQLServer do
+defmodule Compliance.DataSource.SQLServerTds do
   @moduledoc false
 
 
@@ -11,8 +11,7 @@ defmodule Compliance.DataSource.SQLServer do
 
   @impl Connector
   def setup(%{parameters: params}) do
-    Application.ensure_all_started(:odbc)
-    conn = Cloak.DataSource.SQLServer.connect!(params)
+    conn = Cloak.DataSource.SQLServerTds.connect!(params)
     Enum.each(Common.setup_queries(), &execute!(conn, &1))
     conn
   end
@@ -39,10 +38,5 @@ defmodule Compliance.DataSource.SQLServer do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp execute!(conn, query, params \\ []) do
-    case :odbc.param_query(conn, String.to_charlist(query), params) do
-      {:updated, _} -> :ok
-      {:error, error} -> raise to_string(error)
-    end
-  end
+  defp execute!(conn, query), do: Tds.query!(conn, query, [])
 end

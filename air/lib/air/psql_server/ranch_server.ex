@@ -104,7 +104,7 @@ defmodule Air.PsqlServer.RanchServer do
   # :ranch_protocol callback functions
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl :ranch_protocol
   def start_link(ref, socket, transport, {opts, behaviour_mod, behaviour_init_arg}), do:
     GenServer.start_link(__MODULE__, {ref, socket, transport, opts, behaviour_mod, behaviour_init_arg})
 
@@ -113,7 +113,7 @@ defmodule Air.PsqlServer.RanchServer do
   # GenServer callback functions
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl GenServer
   def init({ref, socket, transport, opts, behaviour_mod, behaviour_init_arg}) do
     send(self(), {:after_init, behaviour_init_arg})
     {:ok, %__MODULE__{
@@ -126,7 +126,7 @@ defmodule Air.PsqlServer.RanchServer do
     }}
   end
 
-  @doc false
+  @impl GenServer
   def handle_info({:after_init, behaviour_init_arg}, conn) do
     :ok = :ranch.accept_ack(conn.ref)
     set_active_mode(conn)

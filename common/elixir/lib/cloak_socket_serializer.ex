@@ -7,23 +7,25 @@ defmodule Air.CloakSocketSerializer do
   a query is sent from the cloak to the air. As an added bonus, there's no impedance mismatch, so we can send atoms,
   tuples and other kind of Erlang specific data to the other side just like when using clustered Erlang.
   """
-  @behaviour Phoenix.Channels.GenSocketClient.Serializer
 
   require Logger
+
+  alias Phoenix.Channels.GenSocketClient.Serializer
+  @behaviour Serializer
 
 
   # -------------------------------------------------------------------
   # Phoenix.Channels.GenSocketClient.Serializer callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl Serializer
   def decode_message(encoded_message), do:
     encoded_message
     |> :erlang.binary_to_term()
     |> Map.take([:topic, :event, :payload, :ref])
     |> adapt_first_phoenix_reply()
 
-  @doc false
+  @impl Serializer
   def encode_message(message), do:
     Aircloak.report_long(:encode_cloak_message, fn -> {:ok, {:binary, :erlang.term_to_binary(message)}} end)
 

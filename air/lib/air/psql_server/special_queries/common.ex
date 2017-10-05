@@ -1,15 +1,16 @@
 defmodule Air.PsqlServer.SpecialQueries.Common do
   @moduledoc "Handles common special queries issued by various clients, such as ODBC driver and postgrex."
-  @behaviour Air.PsqlServer.SpecialQueries
 
-  alias Air.PsqlServer.{Protocol, RanchServer}
+  alias Air.PsqlServer.{Protocol, RanchServer, SpecialQueries}
+
+  @behaviour SpecialQueries
 
 
   # -------------------------------------------------------------------
   # SpecialQueries callback functions
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl SpecialQueries
   def run_query(conn, query) do
     cond do
       query =~ ~r/^set /i ->
@@ -38,7 +39,7 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
     end
   end
 
-  @doc false
+  @impl SpecialQueries
   def describe_query(conn, query, _params) do
     cond do
       permission_denied_query?(query) ->

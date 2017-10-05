@@ -1,5 +1,6 @@
 {
   "air_site": "wss://localhost:8443",
   "salt": "Salt for local dev cloak",
-  "data_sources": "dev"
+  "data_sources": "dev",
+  "debug": true
 }
