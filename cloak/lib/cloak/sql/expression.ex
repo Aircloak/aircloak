@@ -36,6 +36,17 @@ defmodule Cloak.Sql.Expression do
     visible?: true, key?: false
   ]
 
+  @doc "Returns an expression representing a reference to the given column in the given table."
+  @spec column(DataSource.column, DataSource.table) :: t
+  def column(column, table), do:
+    %__MODULE__{
+      table: table,
+      name: column.name,
+      type: column.type,
+      user_id?: table.user_id == column.name,
+      key?: column.name in Map.get(table, :keys, []),
+    }
+
   @doc "Returns a column struct representing the constant `value`."
   @spec constant(column_type, any, pos_integer | nil) :: t
   def constant(type, value, parameter_index \\ nil), do:
