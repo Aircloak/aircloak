@@ -1,3 +1,9 @@
+## Version 17.4.1
+
+### Bugfixes
+
+- Fixed reporting of memory values.
+
 ## Version 17.4.0
 
 ### New features

@@ -43,17 +43,18 @@ defmodule Cloak.MemoryReader do
 
   @doc false
   def init(_) do
+    params = read_params()
     state = %{
       memory_projector: MemoryProjector.new(),
       queries: [],
-      params: read_params(),
+      params: params,
       last_reading: nil,
       readings: Readings.new([
         {"current", 1},
-        {"last_5_seconds", 5 * measurements_per_second(%{params: read_params()})},
+        {"last_5_seconds", 5 * measurements_per_second(%{params: params})},
         {"last_1_minute", 12},
         {"last_5_minutes", 5},
-        {"last_15_minutes", 15},
+        {"last_15_minutes", 3},
         {"last_1_hour", 4},
       ]),
     }
