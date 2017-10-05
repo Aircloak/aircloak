@@ -33,8 +33,6 @@ A subquery expression must always select the user-id column. For example, assumi
 - __Valid__: `SELECT name FROM (SELECT uid, name FROM t1) sq`
 - __Invalid__: `SELECT name FROM (SELECT name FROM t1) sq`
 
-Operators `<>`, `IN`, and `NOT` (except `IS NOT NULL`) can't be used in subquery `WHERE` expressions.
-
 When using `LIMIT` and `OFFSET` in a subquery:
 
 - `LIMIT` is required if `OFFSET` is specified
