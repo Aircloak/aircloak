@@ -61,36 +61,19 @@ defmodule Cloak.Query.Runner.Engine do
       &%{occurrences: 1, row: [&1.name, to_string(&1.type)]})
     )
   defp run_statement(%Sql.Query{command: :select} = query, state_updater), do:
-    select_rows(query, state_updater)
+    Cloak.Query.DataEngine.select(query, &process_final_rows(&1, query, state_updater))
 
   defp sorted_table_columns(table) do
     {[uid], other_columns} = Enum.split_with(table.columns, &(&1.name == table.user_id))
     [uid | other_columns]
   end
 
-
-  # -------------------------------------------------------------------
-  # Handling of `SELECT` statement
-  # -------------------------------------------------------------------
-
-  defp select_rows(%Sql.Query{emulated?: false} = query, state_updater) do
-    DataSource.select!(query, fn(rows) ->
-      rows
-      |> Query.DataDecoder.decode(query)
-      |> process_final_rows(query, state_updater)
-    end)
-  end
-  defp select_rows(%Sql.Query{emulated?: true} = query, state_updater) do
-    Logger.debug("Emulating query ...")
-    query
-    |> Query.DbEmulator.select()
-    |> process_final_rows(query, state_updater)
-  end
-
   defp process_final_rows(rows, query, state_updater) do
     Logger.debug("Processing final rows ...")
+
+    {rows, query} = Query.RowSplitters.split(rows, query)
+
     rows
-    |> Query.RowSplitters.split(query)
     |> Query.Rows.filter(Condition.to_function(query.emulated_where))
     |> Query.Aggregator.aggregate(query, state_updater)
   end

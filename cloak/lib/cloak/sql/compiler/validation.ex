@@ -18,6 +18,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     verify_duplicate_tables(query)
     verify_aggregated_columns(query)
     verify_group_by_functions(query)
+    verify_row_splitters(query)
     verify_joins(query)
     verify_where(query)
     verify_having(query)
@@ -130,6 +131,45 @@ defmodule Cloak.Sql.Compiler.Validation do
         "Aggregate function `#{Function.readable_name(expression.function)}` can not be used in the `GROUP BY` clause."
     end
   end
+
+  defp verify_row_splitters(query) do
+    verify_non_selected_where_splitters(query)
+    verify_splitter_arguments(query)
+
+    query
+  end
+
+  defp verify_non_selected_where_splitters(query) do
+    non_selected_where_splitters =
+      MapSet.difference(
+        MapSet.new(Query.outermost_where_splitters(query)),
+        MapSet.new(Query.outermost_selected_splitters(query))
+      )
+
+    if MapSet.size(non_selected_where_splitters) > 0 do
+      raise CompilationError, message:
+        "Row splitter functions used in the `WHERE`-clause have to be used identically in the `SELECT`-clause first."
+    end
+  end
+
+  defp verify_splitter_arguments(query) do
+    case \
+      query
+      |> Query.all_selected_splitters()
+      |> Enum.reject(&first_splitter_argument_ok?(&1 |> Expression.arguments() |> hd()))
+    do
+      [] -> :ok
+      [%{function: fun_name} | _] ->
+        raise CompilationError, message:
+          "A constant is not allowed as the first argument of the function " <>
+          "`#{Function.readable_name(fun_name)}`."
+    end
+  end
+
+  defp first_splitter_argument_ok?(%Expression{constant?: true}), do:
+    false
+  defp first_splitter_argument_ok?(_other), do:
+    true
 
 
   # -------------------------------------------------------------------
@@ -288,14 +328,10 @@ defmodule Cloak.Sql.Compiler.Validation do
         message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
   end
 
-  defp verify_limit(%Query{limit: amount}) when amount <= 0, do:
-    raise CompilationError, message: "`LIMIT` clause expects a positive value."
   defp verify_limit(%Query{order_by: [], limit: amount}) when amount != nil, do:
     raise CompilationError, message: "Using the `LIMIT` clause requires the `ORDER BY` clause to be specified."
   defp verify_limit(_query), do: :ok
 
-  defp verify_offset(%Query{offset: amount}) when amount < 0, do:
-    raise CompilationError, message: "`OFFSET` clause expects a non-negative value."
   defp verify_offset(%Query{order_by: [], offset: amount}) when amount > 0, do:
     raise CompilationError, message: "Using the `OFFSET` clause requires the `ORDER BY` clause to be specified."
   defp verify_offset(_query), do: :ok

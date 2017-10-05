@@ -201,7 +201,7 @@ defmodule Cloak.Query.FunctionTest do
     )
   end
 
-  test "extract_matches on the same column are identical" do
+  test "same extract_matches can be used multiple times in the same query" do
     assert_query("""
       SELECT
         extract_matches(name, '\\w+'),
@@ -210,7 +210,13 @@ defmodule Cloak.Query.FunctionTest do
       """,
       %{rows: [
         %{row: ["first", "first"], occurrences: 100},
+        %{row: ["first", "second"], occurrences: 100},
+        %{row: ["first", "third"], occurrences: 100},
+        %{row: ["second", "first"], occurrences: 100},
         %{row: ["second", "second"], occurrences: 100},
+        %{row: ["second", "third"], occurrences: 100},
+        %{row: ["third", "first"], occurrences: 100},
+        %{row: ["third", "second"], occurrences: 100},
         %{row: ["third", "third"], occurrences: 100},
       ]}
     )
@@ -236,8 +242,13 @@ defmodule Cloak.Query.FunctionTest do
 
   test "invalid extract_matches usage in where clause" do
     assert_query("SELECT extract_matches(name, '\\w+') FROM heights_ft WHERE extract_matches(name, '[a-z]') = 'first'",
-      %{error: "Row splitter function used in the `WHERE` clause"
-        <> " has to be first used identically in the `SELECT` clause."})
+      %{error: "Row splitter functions used in the `WHERE`-clause"
+        <> " have to be used identically in the `SELECT`-clause first."})
+  end
+
+  test "invalid extract_matches argument" do
+    assert_query("SELECT extract_matches('constant', '\\w+') FROM heights_ft",
+      %{error: "A constant is not allowed as the first argument of the function `extract_matches`."})
   end
 
   test "extract_matches can handle regular expressions that yield no results" do
