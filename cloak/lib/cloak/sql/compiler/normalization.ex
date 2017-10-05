@@ -181,20 +181,13 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp normalize_order_by(query) do
     case {query.order_by, remove_constant_ordering(query.order_by)} do
       {[], _} -> query
-      {_, []} -> %{query | order_by: [{uid_expression(query), :asc}]}
+      {_, []} -> %{query | order_by: [{Helpers.id_column(query), :asc}]}
       {_, order_list} -> %{query | order_by: order_list}
     end
   end
 
   defp remove_constant_ordering(order_list), do:
     Enum.reject(order_list, fn({expression, _direction}) -> expression.constant? end)
-
-  defp uid_expression(query) do
-    [table | _] = query.selected_tables
-    uid = Enum.find(table.columns, & &1.name == table.user_id)
-    false = is_nil(uid)
-    Expression.column(uid, table)
-  end
 
 
   # -------------------------------------------------------------------
