@@ -7,8 +7,9 @@ defmodule Compliance.DataSource.PostgreSQL do
   # -------------------------------------------------------------------
 
   use Compliance.DataSource.Connector
+  alias Compliance.DataSource.Connector
 
-  @doc false
+  @impl Connector
   def setup(%{parameters: params}) do
     Application.ensure_all_started(:postgrex)
     {:ok, conn} = Postgrex.start_link(
@@ -20,14 +21,14 @@ defmodule Compliance.DataSource.PostgreSQL do
     conn
   end
 
-  @doc false
+  @impl Connector
   def create_table(table_name, columns, conn) do
     execute!(conn, "DROP TABLE IF EXISTS #{table_name}")
     execute!(conn, "CREATE TABLE #{table_name} (#{columns_sql(columns)})")
     conn
   end
 
-  @doc false
+  @impl Connector
   def insert_rows(table_name, data, conn) do
     column_names = column_names(data)
     rows = rows(data, column_names)
@@ -46,7 +47,7 @@ defmodule Compliance.DataSource.PostgreSQL do
     conn
   end
 
-  @doc false
+  @impl Connector
   def terminate(_conn) do
     :ok
   end

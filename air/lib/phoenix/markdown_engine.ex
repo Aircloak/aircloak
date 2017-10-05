@@ -17,7 +17,7 @@ defmodule Air.Phoenix.MarkdownEngine do
   # -------------------------------------------------------------------
 
 
-  @doc false
+  @impl Phoenix.Template.Engine
   def compile(template_path, _template_name) do
     Macro.escape({:safe,
       template_path

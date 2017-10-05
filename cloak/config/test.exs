@@ -38,6 +38,10 @@ config :cloak, :anonymizer,
   # The standard deviation for the noisy top average added to summed values.
   sum_noise_sigma: 0
 
+config :cloak, :data_source,
+  timeout: :timer.minutes(10),
+  batch_size: 100
+
 config :excheck, :number_iterations, 200
 config :cloak, :sanitize_otp_errors, false
 config :cloak, :sap_hana,

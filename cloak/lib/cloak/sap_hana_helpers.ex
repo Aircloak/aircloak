@@ -1,5 +1,5 @@
-if Mix.env() in [:dev, :test] do
-  defmodule Cloak.SapHanaHelpers do
+defmodule Cloak.SapHanaHelpers do
+  if Mix.env() in [:dev, :test] do
     @moduledoc "Helper functions for working with SAP HANA database."
     @type conn :: :odbc.connection_reference
     @type connection_params :: %{
@@ -34,14 +34,14 @@ if Mix.env() in [:dev, :test] do
       |> Keyword.merge(driver_option())
       |> Enum.map(fn({key, value}) -> [to_string(key), ?=, value] end)
       |> Enum.join(";")
-      |> to_char_list()
+      |> to_charlist()
       |> :odbc.connect(auto_commit: :on, binary_strings: :on, tuple_row: :off)
     end
 
     @doc "Executes the database query."
     @spec execute(conn, String.t, [any]) :: :odbc.result_tuple
     def execute(conn, command, params \\ []), do:
-      :odbc.param_query(conn, to_char_list(command), params)
+      :odbc.param_query(conn, to_charlist(command), params)
 
     @doc "Executes the database query. Raises on error."
     @spec execute!(conn, String.t, [any]) :: :ok

@@ -1,6 +1,8 @@
 defmodule Air.Service.Query.Events do
   @moduledoc "Allows reporting and receiving lifetime events about Queries."
 
+  use Aircloak.ChildSpec.Supervisor
+
 
   # -------------------------------------------------------------------
   # API functions

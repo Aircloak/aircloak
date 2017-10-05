@@ -27,6 +27,8 @@ defmodule Air.VerifyPermissions do
   @doc "Called to retrieve the permissions for the current controller"
   @callback permissions :: Air.Schemas.User.permissions
 
+  @behaviour Plug
+
   @doc "Verifies if the currently logged-in user has permissions on the given action."
   @spec check_permission(Plug.Conn.t, module, atom) :: :ok | {:error, formatted_error::String.t}
   def check_permission(conn, controller, action) do
@@ -38,10 +40,10 @@ defmodule Air.VerifyPermissions do
     end
   end
 
-  @doc false
+  @impl Plug
   def init(opts), do: opts
 
-  @doc false
+  @impl Plug
   def call(conn, opts) do
     case check_permission(conn, opts[:controller], Phoenix.Controller.action_name(conn)) do
       :ok ->

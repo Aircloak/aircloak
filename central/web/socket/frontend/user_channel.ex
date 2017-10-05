@@ -29,7 +29,7 @@ defmodule Central.Socket.Frontend.UserChannel do
   # Phoenix.Channel callback functions
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl Phoenix.Channel
   @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
   def join("user:" <> user_id, _, socket) do
     if socket.assigns.user.id == String.to_integer(user_id) do

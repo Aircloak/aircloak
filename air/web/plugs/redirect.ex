@@ -23,10 +23,10 @@ defmodule Air.Plug.Redirect do
   # Plug callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl Plug
   def init(opts), do: opts
 
-  @doc false
+  @impl Plug
   def call(conn, opts) do
     case Map.fetch(opts[:rules], conn.request_path) do
       :error -> conn

@@ -16,7 +16,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
   # Protocol callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl Protocol
   def handle_client_message(protocol, :query, query), do:
     protocol
     |> Protocol.add_action({:run_query, query, [], 0})
@@ -78,7 +78,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> Protocol.send_to_client(:close_complete)
     |> Protocol.await_client_message()
 
-  @doc false
+  @impl Protocol
   def handle_event(protocol, {:send_query_result, result}), do:
     protocol
     |> send_result(result)

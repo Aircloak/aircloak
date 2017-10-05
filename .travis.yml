@@ -132,12 +132,6 @@ matrix:
           - ubuntu-toolchain-r-test
           - mongodb-3.4-precise
           packages:
-          - jq
-          - gcc-4.8
-          - g++-4.8
-          - unixodbc
-          - unixodbc-dev
-          - odbc-postgresql
           - mongodb-org-server
           - libaio1
       before_install:

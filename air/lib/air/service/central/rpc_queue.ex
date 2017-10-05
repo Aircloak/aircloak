@@ -18,7 +18,7 @@ defmodule Air.Service.Central.RpcQueue do
       queue is overflowed.
   """
 
-  use GenServer
+  use GenServer, start: {__MODULE__, :start_link, []}
   require Logger
 
 
@@ -43,16 +43,17 @@ defmodule Air.Service.Central.RpcQueue do
   # GenServer callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl GenServer
   def init(options) do
     Process.flag(:trap_exit, true)
     {:ok, %{current_send: nil, send_paused?: false, queue: Aircloak.Queue.new(), options: options}}
   end
 
-  @doc false
+  @impl GenServer
   def handle_call({:push, event, payload}, _from, state), do:
     {:reply, :ok, handle_push(state, event, payload)}
 
+  @impl GenServer
   def handle_info({:EXIT, pid, reason}, %{current_send: %{pid: pid}} = state), do:
     {:noreply, send_finished(state, reason)}
   def handle_info(:resume_send, state), do:

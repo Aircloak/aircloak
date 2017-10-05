@@ -1,0 +1,12 @@
+{
+  "driver": "sqlserver_tds",
+  "name": "sql_server_tds",
+  "parameters": {
+    "hostname": "localhost",
+    "username": "sa",
+    "password": "7fNBjlaeoRwz*zH9",
+    "database": "cloaktest3"
+  },
+  "tables": {
+  }
+}

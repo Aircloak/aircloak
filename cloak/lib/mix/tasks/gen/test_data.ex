@@ -1,5 +1,5 @@
-if Mix.env == :dev do
-  defmodule Mix.Tasks.Gen.TestData do
+defmodule Mix.Tasks.Gen.TestData do
+  if Mix.env in [:test, :dev] do
     @shortdoc "Generates an interlinked dataset for cloak testing."
     @moduledoc """
     Generates a test dataset of users and items related to these users.
@@ -24,7 +24,7 @@ if Mix.env == :dev do
 
     use Mix.Task
 
-    @doc false
+    @impl Mix.Task
     def run([config_name, num_users]) do
       num_users = String.to_integer(num_users)
       IO.puts "Generating data for #{num_users} users."

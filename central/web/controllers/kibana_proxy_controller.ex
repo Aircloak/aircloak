@@ -55,6 +55,7 @@ defmodule Central.KibanaProxyController do
     |> remove("cookie")
     |> remove("accept")
     |> remove("accept-encoding")
+    |> remove("host")
 
   defp remove(headers, what), do:
     Enum.reject(headers, fn({^what, _}) -> true; (_) -> false end)

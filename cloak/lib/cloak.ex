@@ -27,25 +27,19 @@ defmodule Cloak do
     :prod -> defp children, do: common_processes() ++ system_processes()
   end
 
-  defp common_processes do
-    import Supervisor.Spec, warn: false
-
+  defp common_processes, do:
     [
-      worker(Cloak.DataSource, []),
-      Cloak.Query.Runner.supervisor_spec()
+      Cloak.DataSource,
+      Cloak.Query.Runner
     ]
-  end
 
   unless Mix.env in [:test] do
     # Processes which we don't want to start in the test environment
-    defp system_processes do
-      import Supervisor.Spec, warn: false
-
+    defp system_processes, do:
       [
-        worker(Cloak.AirSocket, []),
-        worker(Cloak.MemoryReader, []),
+        Cloak.AirSocket,
+        Cloak.MemoryReader,
       ]
-    end
   end
 
   defp get_salt() do

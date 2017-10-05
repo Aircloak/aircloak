@@ -17,7 +17,7 @@ defmodule Air.PsqlServer.Protocol.ConnectionSetup do
   # Protocol callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl Protocol
   def handle_client_message(%{state: :initial} = protocol, :raw, message), do:
     handle_initial_message(protocol, message,
       %{
@@ -33,7 +33,7 @@ defmodule Air.PsqlServer.Protocol.ConnectionSetup do
     |> Protocol.add_action({:cancel_query, Messages.decode_cancel_message_parameters(message)})
     |> Protocol.close(:normal)
 
-  @doc false
+  @impl Protocol
   def handle_event(%{state: :negotiating_ssl} = protocol, :ssl_negotiated), do:
     Protocol.await_client_message(protocol, state: :ssl_negotiated, bytes: 8, decode?: false)
 

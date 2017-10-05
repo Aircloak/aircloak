@@ -51,10 +51,7 @@ defmodule Air.Token do
     # Starting an async task that uses the DB plays badly with the Ecto Sandbox
     defp touch_token(_), do: :ok
   else
-    defp touch_token(token) do
-      Task.Supervisor.start_child(Air.ApiTokenTimestampUpdater, fn() ->
-        Repo.update(ApiToken.touch(token))
-      end)
-    end
+    defp touch_token(token), do:
+      Air.ApiTokenTimestampUpdater.start_token_toucher(token)
   end
 end

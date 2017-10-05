@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.SAPHana do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.ODBC
+  alias Cloak.DataSource.{ODBC, Driver}
 
   @doc """
   Returns the SAP HANA schema as configured in app config.
@@ -29,12 +29,12 @@ defmodule Cloak.DataSource.SAPHana do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Cloak.DataSource.Driver
+  @behaviour Driver
 
-  @doc false
+  @impl Driver
   def sql_dialect_module(_parameters), do: Cloak.DataSource.SqlBuilder.SAPHana
 
-  @doc false
+  @impl Driver
   def connect!(parameters) do
     normalized_parameters = for {key, value} <- parameters, into: %{}, do:
       {key |> Atom.to_string() |> String.downcase() |> String.to_atom(), value}
@@ -51,14 +51,17 @@ defmodule Cloak.DataSource.SAPHana do
     ODBC.connect!(odbc_parameters)
   end
 
+  @impl Driver
   defdelegate disconnect(connection), to: ODBC
 
-  @doc false
+  @impl Driver
   def load_tables(connection, table), do:
     ODBC.load_tables(connection, update_in(table.db_name, &~s/"#{&1}"/))
 
+  @impl Driver
   defdelegate select(connection, sql_query, result_processor), to: ODBC
 
+  @impl Driver
   defdelegate supports_query?(query), to: ODBC
 
 

@@ -122,11 +122,7 @@ The general shape of `config.json` is:
 {
   "air_site": string,
   "salt": string,
-  "data_sources": [
-    configuration_for_data_source_1,
-    configuration_for_data_source_2,
-    ...
-  ]
+  "data_sources": string
 }
 ```
 
@@ -143,7 +139,10 @@ cat /dev/urandom |
 
 ### Data source configuration
 
-The `data_sources` section configures the databases and tables that will be made available to analysts for querying. Each value in the `data_sources` list is a json in the form of:
+The `data_sources` parameter should give the path to subfolder within the folder where the Insights Cloak config is stored that contains the datasource configurations.
+
+Each datasource configuration should be in JSON format and put in an individual file. The configuration takes the
+following form:
 
 ```
 {
@@ -310,3 +309,70 @@ For remaining possible decoders, no additional parameters are needed:
 {"method": "text_to_integer", "columns": ["another_column_name", ...]},
 ...
 ```
+
+#### Tips an tricks
+
+It is common to have multiple Insights Cloak instances sharing the same datasource definitions.
+Maintaining separate copies of the datasource definition for each Insights Cloak instance complicates maintenance,
+as you will have to update multiple copies of files if a datasource definition changes.
+
+The recommended, and common, solution to this problem is to create a single copy of the datasource configuration
+files and symlink these into the configuration folders of the individual Insights Cloak instances.
+
+Here is an example of how one can do this in pratice:
+
+Let's consider a scenario where we have a shared folder where we store all datasource definitions. It is called `data_sources_available`.
+In the configuration folder of each Insights Cloak instance we create a folder called `data_sources_enabled`. For each datasource we want
+to enable for a given Insights Cloak instance we create a symlink from the `data_sources_enabled` folder to the
+datasource definition stored in the `data_sources_available` folder.
+
+If we have two Insights Cloak instances, the folder structure would look like this:
+
+```
+$ tree configs
+
+configs/
+├── data_sources_available
+│   ├── data_source1.json
+│   └── data_source2.json
+├── insights-cloak1
+│   ├── config.json
+│   └── data_sources_enabled
+├── insights-cloak2
+│   ├── config.json
+│   └── data_sources_enabled
+```
+
+In order to have `insights-cloak1` serve `data_source1`, and `data_source2`, and `insights-cloak2` server `data_source1`,
+we would create the following symlinks:
+
+```
+$ cd config/insights-cloak1/data_sources_enabled/
+$ ln -s ../../data_sources_available/data_source1.json data_source1.json
+$ ln -s ../../data_sources_available/data_source2.json data_source2.json
+$ cd ../../insights-cloak2/data_sources_enabled
+$ ln -s ../../data_sources_available/data_source1.json data_source1.json
+```
+
+The resulting file structure would then look as follows.
+
+```
+$ tree configs
+
+configs/
+├── data_sources_available
+│   ├── data_source1.json
+│   └── data_source2.json
+├── insights-cloak1
+│   ├── config.json
+│   └── data_sources_enabled
+│       └── data_source1.json -> ../../data_sources_available/data_source1.json
+│       └── data_source2.json -> ../../data_sources_available/data_source2.json
+├── insights-cloak2
+│   ├── config.json
+│   └── data_sources_enabled
+│       └── data_source1.json -> ../../data_sources_available/data_source1.json
+```
+
+Enabling or disabling further datasources for individual Insights Cloak instances is then only a matter of adding or
+removing a symlink.

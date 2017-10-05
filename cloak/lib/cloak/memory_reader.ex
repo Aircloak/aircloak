@@ -9,7 +9,7 @@ defmodule Cloak.MemoryReader do
   running queries will be cancelled.
   """
 
-  use GenServer
+  use GenServer, start: {__MODULE__, :start_link, []}
 
   alias Cloak.MemoryReader.{MemoryProjector, Readings}
 
@@ -41,7 +41,7 @@ defmodule Cloak.MemoryReader do
   # GenServer callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl GenServer
   def init(_) do
     params = read_params()
     state = %{
@@ -63,7 +63,7 @@ defmodule Cloak.MemoryReader do
     {:ok, state}
   end
 
-  @doc false
+  @impl GenServer
   def handle_cast({:unregister_query, pid}, %{queries: queries} = state), do:
     {:noreply, %{state | queries: Enum.reject(queries, & &1 == pid)}}
   def handle_cast({:register_query, pid}, %{queries: queries} = state) do
@@ -71,7 +71,7 @@ defmodule Cloak.MemoryReader do
     {:noreply, %{state | queries: [pid | queries]}}
   end
 
-  @doc false
+  @impl GenServer
   def handle_info({:DOWN, _monitor_ref, :process, pid, _info}, %{queries: queries} = state), do:
     {:noreply, %{state | queries: Enum.reject(queries, & &1 == pid)}}
   def handle_info(:read_memory, %{memory_projector: projector} = state) do

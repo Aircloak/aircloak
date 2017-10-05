@@ -175,9 +175,6 @@ defmodule Air.PsqlServer.Protocol.Messages do
     defp client_message_byte(unquote(message_name)), do: unquote(message_byte)
   end
 
-  # we're not using all patterns in this function, so dialyzer complains
-  @dialyzer {:nowarn_function, client_message_byte: 1}
-
 
   # -------------------------------------------------------------------
   # Decoding of a bind message

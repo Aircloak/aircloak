@@ -2,6 +2,7 @@ defmodule Compliance.DataSource.SAPHana do
   @moduledoc false
 
   use Compliance.DataSource.Connector
+  alias Compliance.DataSource.Connector
   alias Cloak.SapHanaHelpers
 
 
@@ -9,7 +10,7 @@ defmodule Compliance.DataSource.SAPHana do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl Connector
   def setup(%{parameters: params}) do
     Application.ensure_all_started(:odbc)
     {:ok, conn} = SapHanaHelpers.connect(params)
@@ -17,7 +18,7 @@ defmodule Compliance.DataSource.SAPHana do
     conn
   end
 
-  @doc false
+  @impl Connector
   def create_table(table_name, columns, conn) do
     # We'll prefix the compliance table names, to avoid clashes with other tables in the same schema, for example the
     # tables used in unit tests.
@@ -25,7 +26,7 @@ defmodule Compliance.DataSource.SAPHana do
     conn
   end
 
-  @doc false
+  @impl Connector
   def insert_rows(table_name, data, conn) do
     column_names = column_names(data)
     rows = rows(data, column_names)
@@ -33,11 +34,11 @@ defmodule Compliance.DataSource.SAPHana do
     conn
   end
 
-  @doc false
+  @impl Connector
   def terminate(conn), do:
     :odbc.disconnect(conn)
 
-  @doc false
+  @impl Connector
   def db_table_name(table_name), do:
     ~s/compliance.#{table_name}/
 

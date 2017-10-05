@@ -74,19 +74,11 @@ defmodule Aircloak.DeployConfig do
         config
 
       :error ->
-        config = read_config_from_file(app)
+        {:ok, config} = Aircloak.File.read_config_file(app, config_file_name(app))
         Application.put_env(app, __MODULE__, config)
         config
     end
   end
-
-  defp read_config_from_file(app), do:
-    config_file(app)
-    |> File.read!()
-    |> Poison.decode!()
-
-  defp config_file(app), do:
-    Path.join([Application.app_dir(app, "priv"), "config", config_file_name(app)])
 
   defp config_file_name(app) do
     case {

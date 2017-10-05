@@ -4,6 +4,16 @@ defmodule Cloak.DataSource.Driver do
   alias Cloak.Sql.Query
   alias Cloak.DataSource.Table
 
+  @doc "Returns the configured maximum timeout for a database operation."
+  @spec timeout() :: pos_integer
+  def timeout(), do:
+    Application.get_env(:cloak, :data_source) |> Keyword.fetch!(:timeout)
+
+  @doc "Returns the configured batch size for a select operation."
+  @spec batch_size() :: pos_integer
+  def batch_size(), do:
+    Application.get_env(:cloak, :data_source) |> Keyword.fetch!(:batch_size)
+
   @type connection :: any
   @type parameters :: any
 

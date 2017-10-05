@@ -60,15 +60,6 @@ defmodule Air.PsqlServer.RanchServer do
   # API
   # -------------------------------------------------------------------
 
-  @doc "Returns the supervisor specification for the TCP server."
-  @spec child_spec(pos_integer, module, behaviour_init_arg, opts) :: Supervisor.child_spec
-  def child_spec(port, behaviour_mod, behaviour_init_arg, opts \\ []), do:
-    Supervisor.Spec.supervisor(
-      __MODULE__,
-      [port, behaviour_mod, behaviour_init_arg, opts],
-      function: :start_embedded_server
-    )
-
   @doc "Starts the TCP server as the linked child of the caller process."
   @spec start_embedded_server(pos_integer, module, behaviour_init_arg, opts) :: Supervisor.on_start
   def start_embedded_server(port, behaviour_mod, behaviour_init_arg, opts \\ []) do
@@ -113,7 +104,7 @@ defmodule Air.PsqlServer.RanchServer do
   # :ranch_protocol callback functions
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl :ranch_protocol
   def start_link(ref, socket, transport, {opts, behaviour_mod, behaviour_init_arg}), do:
     GenServer.start_link(__MODULE__, {ref, socket, transport, opts, behaviour_mod, behaviour_init_arg})
 
@@ -122,7 +113,7 @@ defmodule Air.PsqlServer.RanchServer do
   # GenServer callback functions
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl GenServer
   def init({ref, socket, transport, opts, behaviour_mod, behaviour_init_arg}) do
     send(self(), {:after_init, behaviour_init_arg})
     {:ok, %__MODULE__{
@@ -135,7 +126,7 @@ defmodule Air.PsqlServer.RanchServer do
     }}
   end
 
-  @doc false
+  @impl GenServer
   def handle_info({:after_init, behaviour_init_arg}, conn) do
     :ok = :ranch.accept_ack(conn.ref)
     set_active_mode(conn)
@@ -237,4 +228,16 @@ defmodule Air.PsqlServer.RanchServer do
     assign(conn, :key_data, key_data)
   defp handle_protocol_action({:describe_statement, query, params}, conn), do:
     conn.behaviour_mod.describe_statement(conn, query, params)
+
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec({port, behaviour_mod, behaviour_init_arg, opts}), do:
+    Aircloak.ChildSpec.supervisor(
+      __MODULE__, :start_embedded_server,
+      [port, behaviour_mod, behaviour_init_arg, opts]
+    )
 end

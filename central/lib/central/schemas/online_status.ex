@@ -9,20 +9,20 @@ defmodule Central.Schemas.OnlineStatus do
   # Ecto.Type behaviour
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl Ecto.Type
   def type(), do: :integer
 
-  @doc false
+  @impl Ecto.Type
   def cast(:offline), do: {:ok, :offline}
   def cast(:online), do: {:ok, :online}
   def cast(_), do: :error
 
-  @doc false
+  @impl Ecto.Type
   def load(0), do: {:ok, :offline}
   def load(1), do: {:ok, :online}
   def load(_), do: :error
 
-  @doc false
+  @impl Ecto.Type
   def dump(:offline), do: {:ok, 0}
   def dump(:online), do: {:ok, 1}
   def dump(_), do: :error

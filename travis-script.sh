@@ -54,7 +54,7 @@ set -eox pipefail
 
   # compliance --------------------------------------------------------
 
-  if [[ "$TEST" == "compliance" ]]; then
+  if [[ "$TEST" == "compliance" && "$TRAVIS_EVENT_TYPE" != "push" ]]; then
 
     docker run --net host \
       -v $(pwd):/aircloak \

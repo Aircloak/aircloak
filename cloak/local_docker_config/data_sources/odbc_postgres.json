@@ -1,0 +1,28 @@
+{
+  "driver": "odbc",
+  "marker": "odbc-postgresql",
+  "name": "odbc_postgres",
+  "parameters": {
+    "DSN": "PostgreSQL",
+    "UserName": "cloak",
+    "Database": "cloak",
+    "Server": "air_db"
+  },
+  "tables": {
+    "test": {
+      "db_name": "user_data",
+      "user_id": "user_id",
+      "ignore_unsupported_types": false
+    },
+    "purchases": {
+      "db_name": "purchases",
+      "user_id": "uid",
+      "ignore_unsupported_types": false
+    },
+    "demographics": {
+      "db_name": "demographics",
+      "user_id": "uid",
+      "ignore_unsupported_types": false
+    }
+  }
+}
