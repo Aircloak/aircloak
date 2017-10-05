@@ -88,17 +88,17 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
   describe "normalizing ORDER BY" do
     test "normalizing unordered queries" do
       assert %{from: {:subquery, %{ast: %{order_by: []}}}} =
-        compile!("SELECT COUNT(*) FROM (SELECT 'constant' FROM table) x", data_source())
+        compile!("SELECT COUNT(*) FROM (SELECT 'constant' FROM table) x", sql_server_data_source())
     end
 
     test "removing constant ORDER BY clauses" do
       assert %{from: {:subquery, %{ast: %{order_by: [{%Expression{name: "uid"}, _}]}}}} =
-        compile!("SELECT COUNT(*) FROM (SELECT 'constant' FROM table ORDER BY 1, uid) x", data_source())
+        compile!("SELECT COUNT(*) FROM (SELECT 'constant' FROM table ORDER BY 1, uid) x", sql_server_data_source())
     end
 
     test "ordering by uid if all clauses are removed" do
       assert %{from: {:subquery, %{ast: %{order_by: [{%Expression{name: "uid"}, _}]}}}} =
-        compile!("SELECT COUNT(*) FROM (SELECT 'constant' FROM table ORDER BY 1) x", data_source())
+        compile!("SELECT COUNT(*) FROM (SELECT 'constant' FROM table ORDER BY 1) x", sql_server_data_source())
     end
 
     test "ordering by uid from a join if all clauses are removed" do
@@ -106,7 +106,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
         SELECT COUNT(*) FROM (
           SELECT 'constant' FROM table AS t1 JOIN table AS t2 ON t1.uid = t2.uid ORDER BY 1
         ) x
-      """, data_source())
+      """, sql_server_data_source())
     end
 
     test "ordering by uid from a subquery if all clauses are removed" do
@@ -114,18 +114,26 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
         SELECT COUNT(*) FROM (
           SELECT 'constant' FROM (SELECT uid FROM table) x ORDER BY 1
         ) x
-      """, data_source())
+      """, sql_server_data_source())
     end
   end
 
-  test "aliasing selected constants" do
-    assert %{from: {:subquery, %{ast: %{db_columns: [%Expression{alias: alias}, _]}}}} = compile!("""
-      SELECT COUNT(*) FROM (
-        SELECT 'constant' FROM table
-      ) x
-    """, data_source())
-    refute is_nil(alias)
+  describe "aliasing selected constants" do
+    test "no action for postgres" do
+      assert %{from: {:subquery, %{ast: %{db_columns: [%Expression{alias: ""}, _]}}}} = compile!("""
+        SELECT COUNT(*) FROM (SELECT 'constant' FROM table) x
+      """, data_source())
+    end
+
+    test "aliasing selected constants for SQL Server" do
+      assert %{from: {:subquery, %{ast: %{db_columns: [%Expression{alias: alias}, _]}}}} = compile!("""
+        SELECT COUNT(*) FROM (SELECT 'constant' FROM table) x
+      """, sql_server_data_source())
+      refute is_nil(alias)
+    end
   end
+
+  defp sql_server_data_source(), do: %{data_source() | driver: Cloak.DataSource.SQLServer}
 
   defp data_source() do
     %{

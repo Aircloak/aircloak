@@ -3,6 +3,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.{Expression, Query, LikePattern}
+  alias Cloak.DataSource.{SQLServer, SQLServerTds}
 
 
   # -------------------------------------------------------------------
@@ -33,7 +34,18 @@ defmodule Cloak.Sql.Compiler.Normalization do
     |> Helpers.apply_bottom_up(&normalize_order_by/1)
     |> Helpers.apply_bottom_up(&normalize_upper/1)
     |> Helpers.apply_bottom_up(&normalize_bucket/1)
-    |> Helpers.apply_bottom_up(&alias_selected_constants/1)
+    |> data_source_specific_normalization()
+
+
+  # -------------------------------------------------------------------
+  # Data source-specific normalization
+  # -------------------------------------------------------------------
+
+  defp data_source_specific_normalization(query = %{data_source: %{driver: SQLServer}}), do:
+    sql_server_normalization(query)
+  defp data_source_specific_normalization(query = %{data_source: %{driver: SQLServerTds}}), do:
+    sql_server_normalization(query)
+  defp data_source_specific_normalization(query), do: query
 
 
   # -------------------------------------------------------------------
@@ -174,6 +186,14 @@ defmodule Cloak.Sql.Compiler.Normalization do
     false = is_nil(uid)
     Expression.column(uid, table)
   end
+
+
+  # -------------------------------------------------------------------
+  # SQL Server-specific normalization
+  # -------------------------------------------------------------------
+
+  defp sql_server_normalization(query), do:
+    Helpers.apply_bottom_up(query, &alias_selected_constants/1)
 
   defp alias_selected_constants(query = %{subquery?: false}), do: query
   defp alias_selected_constants(query) do
