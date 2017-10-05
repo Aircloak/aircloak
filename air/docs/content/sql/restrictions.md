@@ -28,10 +28,11 @@ Note:
 
 ## Subquery restrictions
 
-A subquery expression must always select the user-id column. For example, assuming table `t1` with the user-id column called `uid`:
+A subquery expression with an aggregate must always select the user-id column as well. For example, assuming there exists a table `t1` with a user-id column called `uid`:
 
-- __Valid__: `SELECT name FROM (SELECT uid, name FROM t1) sq`
-- __Invalid__: `SELECT name FROM (SELECT name FROM t1) sq`
+- __Valid__: `SELECT name FROM (SELECT name FROM t1) sq`
+- __Valid__: `SELECT name FROM (SELECT uid, count(*) FROM t1 GROUP BY uid) sq`
+- __Invalid__: `SELECT name FROM (SELECT count(*) FROM t1) sq`
 
 When using `LIMIT` and `OFFSET` in a subquery:
 
