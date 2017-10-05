@@ -30,29 +30,50 @@ defmodule Cloak.Query.RowSplitters do
 
   @doc "Splits individual rows into multiple rows based on applied splitter functions"
   @spec split(Enumerable.t, Query.t) :: {Enumerable.t, Query.t}
-  def split(rows, query), do:
+  def split(rows, query) do
+    query =
+      query
+      |> name_outermost_selected_splitters()
+      |> add_outermost_splitters_to_db_columns()
+
     {
       split_rows(rows, Query.outermost_selected_splitters(query)),
-      add_splitters_to_db_columns(query, Query.outermost_selected_splitters(query))
+      query
     }
+  end
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp add_splitters_to_db_columns(query, splitters), do:
-    Enum.reduce(splitters, query, &add_splitter_to_db_columns(&2, &1))
-
-  defp add_splitter_to_db_columns(query, splitter) do
-    named_splitter = named_splitter(splitter)
-
+  defp name_outermost_selected_splitters(query), do:
+    # Note: we need to rename all outermost splitters in the select list first, and only then can we rename the
+    # remaining splitters. This ensures that two identical outermost selected splitters will get two different names.
     query
-    |> put_in([Lenses.expression_instances(splitter)], named_splitter)
-    |> Query.add_db_column(named_splitter)
-  end
+    |> name_outermost_splitters_in_select_list()
+    |> sync_references_to_selected_outermost_splitters()
 
-  defp named_splitter(splitter), do:
+  defp name_outermost_splitters_in_select_list(query), do:
+    update_in(query, [Lenses.outermost_selected_splitters()], &name_splitter/1)
+
+  defp sync_references_to_selected_outermost_splitters(query), do:
+    Enum.reduce(
+      Query.outermost_selected_splitters(query),
+      query,
+      fn(named_splitter, query) ->
+        put_in(
+          query,
+          [Lenses.expression_instances(%Expression{named_splitter | name: nil}) |> Lens.key(:name)],
+          named_splitter.name
+        )
+      end
+    )
+
+  defp add_outermost_splitters_to_db_columns(query), do:
+    Enum.reduce(Query.outermost_selected_splitters(query), query, &Query.add_db_column(&2, &1))
+
+  defp name_splitter(splitter), do:
     %Expression{splitter |
       name: Enum.join(
         ["splitter", Function.readable_name(splitter.function), :erlang.unique_integer([:positive])],

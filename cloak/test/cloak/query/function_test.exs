@@ -201,7 +201,7 @@ defmodule Cloak.Query.FunctionTest do
     )
   end
 
-  test "extract_matches on the same column are identical" do
+  test "same extract_matches can be used multiple times in the same query" do
     assert_query("""
       SELECT
         extract_matches(name, '\\w+'),
@@ -209,9 +209,15 @@ defmodule Cloak.Query.FunctionTest do
       FROM heights_ft
       """,
       %{rows: [
-        %{row: ["first", "first"], occurrences: 300},
-        %{row: ["second", "second"], occurrences: 300},
-        %{row: ["third", "third"], occurrences: 300},
+        %{row: ["first", "first"], occurrences: 100},
+        %{row: ["first", "second"], occurrences: 100},
+        %{row: ["first", "third"], occurrences: 100},
+        %{row: ["second", "first"], occurrences: 100},
+        %{row: ["second", "second"], occurrences: 100},
+        %{row: ["second", "third"], occurrences: 100},
+        %{row: ["third", "first"], occurrences: 100},
+        %{row: ["third", "second"], occurrences: 100},
+        %{row: ["third", "third"], occurrences: 100},
       ]}
     )
   end
