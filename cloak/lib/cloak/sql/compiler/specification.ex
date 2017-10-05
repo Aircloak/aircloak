@@ -393,13 +393,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp compile_columns(query) do
     columns_by_name =
       for table <- query.selected_tables, column <- table.columns do
-        %Expression{
-          table: table,
-          name: column.name,
-          type: column.type,
-          user_id?: table.user_id == column.name,
-          key?: column.name in Map.get(table, :keys, []),
-        }
+        Expression.column(column, table)
       end
       |> Enum.group_by(&(&1.name))
     query = map_terminal_elements(query, &normalize_table_name(&1, query.selected_tables))

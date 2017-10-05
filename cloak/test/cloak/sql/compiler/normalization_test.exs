@@ -1,6 +1,7 @@
 defmodule Cloak.Sql.Compiler.Normalization.Test do
   use ExUnit.Case, async: true
 
+  alias Cloak.Sql.Expression
   alias Cloak.DataSource.Table
 
   import Cloak.Test.QueryHelpers
@@ -84,8 +85,32 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     assert result1.where == result2.where
   end
 
-  test "removing constant ORDER BY clauses" do
-    assert [] = compile!("SELECT 'constant' FROM table ORDER BY 1", data_source()).order_by
+  describe "normalizing ORDER BY" do
+    test "normalizing unordered queries" do
+      assert [] = compile!("SELECT 'constant' FROM table", data_source()).order_by
+    end
+
+    test "removing constant ORDER BY clauses" do
+      assert [{%Expression{name: "uid"}, _}] =
+        compile!("SELECT 'constant' FROM table ORDER BY 1, uid", data_source()).order_by
+    end
+
+    test "ordering by uid if all clauses are removed" do
+      assert [{%Expression{name: "uid"}, _}] =
+        compile!("SELECT 'constant' FROM table ORDER BY 1", data_source()).order_by
+    end
+
+    test "ordering by uid from a join if all clauses are removed" do
+      assert [{%Expression{name: "uid"}, _}] = compile!("""
+        SELECT 'constant' FROM table AS t1 JOIN table AS t2 ON t1.uid = t2.uid ORDER BY 1
+      """, data_source()).order_by
+    end
+
+    test "ordering by uid from a subquery if all clauses are removed" do
+      assert [{%Expression{name: "uid"}, _}] = compile!("""
+        SELECT 'constant' FROM (SELECT uid FROM table) x ORDER BY 1
+      """, data_source()).order_by
+    end
   end
 
   defp data_source() do

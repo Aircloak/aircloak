@@ -30,7 +30,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
     |> Helpers.apply_bottom_up(&normalize_like_patterns/1)
     |> Helpers.apply_bottom_up(&normalize_like/1)
     |> Helpers.apply_bottom_up(&normalize_constants/1)
-    |> Helpers.apply_bottom_up(&remove_constant_ordering/1)
+    |> Helpers.apply_bottom_up(&normalize_order_by/1)
     |> Helpers.apply_bottom_up(&normalize_upper/1)
     |> Helpers.apply_bottom_up(&normalize_bucket/1)
 
@@ -155,6 +155,21 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # Normalizing ORDER BY
   # -------------------------------------------------------------------
 
-  defp remove_constant_ordering(query), do:
-    %{query | order_by: Enum.reject(query.order_by, fn({expression, _direction}) -> expression.constant? end)}
+  defp normalize_order_by(query) do
+    case {query.order_by, remove_constant_ordering(query.order_by)} do
+      {[], _} -> query
+      {_, []} -> %{query | order_by: [{uid_expression(query), :asc}]}
+      {_, order_list} -> %{query | order_by: order_list}
+    end
+  end
+
+  defp remove_constant_ordering(order_list), do:
+    Enum.reject(order_list, fn({expression, _direction}) -> expression.constant? end)
+
+  defp uid_expression(query) do
+    [table | _] = query.selected_tables
+    uid = Enum.find(table.columns, & &1.name == table.user_id)
+    false = is_nil(uid)
+    Expression.column(uid, table)
+  end
 end
