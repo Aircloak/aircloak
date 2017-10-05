@@ -148,7 +148,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
     if MapSet.size(non_selected_where_splitters) > 0 do
       raise CompilationError, message:
-        "Row splitter function used in the `WHERE` clause has to be first used identically in the `SELECT` clause."
+        "Row splitter functions used in the `WHERE`-clause have to be used identically in the `SELECT`-clause first."
     end
   end
 
