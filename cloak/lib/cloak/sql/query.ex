@@ -244,9 +244,6 @@ defmodule Cloak.Sql.Query do
   @spec outermost_where_splitters(t) :: [Expression.t]
   def outermost_where_splitters(query), do:
     Lens.to_list(Lenses.outermost_where_splitters(), query)
-    # query.where
-    # |> get_in([Lenses.conditions() |> Lenses.operands()])
-    # |> Enum.flat_map(&Expression.outermost_splitters/1)
 
   @doc """
   Returns the list of all splitters which are used in select expressions.
