@@ -3,7 +3,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.{Expression, Query, LikePattern}
-  alias Cloak.DataSource.{SQLServer, SQLServerTds}
+  alias Cloak.DataSource.{SQLServer, SQLServerTds, MongoDB}
 
 
   # -------------------------------------------------------------------
@@ -41,11 +41,20 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # Data source-specific normalization
   # -------------------------------------------------------------------
 
-  defp data_source_specific_normalization(query = %{data_source: %{driver: SQLServer}}), do:
-    sql_server_normalization(query)
-  defp data_source_specific_normalization(query = %{data_source: %{driver: SQLServerTds}}), do:
-    sql_server_normalization(query)
-  defp data_source_specific_normalization(query), do: query
+  defp data_source_specific_normalization(query) do
+    case query.data_source.driver do
+      SQLServer -> sql_server_normalization(query)
+      SQLServerTds -> sql_server_normalization(query)
+      MongoDB -> mongo_normalization(query)
+      _no_special_normalization -> query
+    end
+  end
+
+  defp sql_server_normalization(query), do:
+    Helpers.apply_bottom_up(query, &alias_selected_constants/1)
+
+  defp mongo_normalization(query), do:
+    Helpers.apply_bottom_up(query, &alias_selected_constants/1)
 
 
   # -------------------------------------------------------------------
@@ -189,11 +198,8 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
 
   # -------------------------------------------------------------------
-  # SQL Server-specific normalization
+  # Aliasing selected constants
   # -------------------------------------------------------------------
-
-  defp sql_server_normalization(query), do:
-    Helpers.apply_bottom_up(query, &alias_selected_constants/1)
 
   defp alias_selected_constants(query = %{subquery?: false}), do: query
   defp alias_selected_constants(query) do
