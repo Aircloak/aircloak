@@ -54,7 +54,7 @@ defmodule Cloak.MemoryReader do
         {"last_5_seconds", 5 * measurements_per_second(%{params: params})},
         {"last_1_minute", 12},
         {"last_5_minutes", 5},
-        {"last_15_minutes", 15},
+        {"last_15_minutes", 3},
         {"last_1_hour", 4},
       ]),
     }
