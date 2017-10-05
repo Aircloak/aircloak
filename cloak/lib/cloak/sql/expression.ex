@@ -201,7 +201,7 @@ defmodule Cloak.Sql.Expression do
   @doc """
   Returns a list of all splitters used in the given expressions.
 
-  The splitters are returned in the post-order, meaning that a nested splitter will always precede its ancestors.
+  The splitters are returned in post-order, meaning that a nested splitter will always precede its ancestors.
   """
   @spec all_splitters(t) :: [t]
   def all_splitters(%__MODULE__{function?: false}), do:
