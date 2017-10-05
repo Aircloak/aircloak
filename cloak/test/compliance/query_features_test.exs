@@ -5,7 +5,7 @@ defmodule Compliance.QueryFeatures.Test do
 
   Enum.each(table_uids(), fn({table, uid}) ->
     @tag compliance: "offset and limit with order by constant on #{table}"
-    test "offset and limit with order by contant on #{table}", context do
+    test "offset and limit with order by constant on #{table}", context do
       context
       |> assert_consistent_and_not_failing("""
         SELECT 'a constant', COUNT(*)
@@ -17,11 +17,11 @@ defmodule Compliance.QueryFeatures.Test do
     end
 
     @tag compliance: "offset and limit with order by constant on subquery to #{table}"
-    test "offset and limit with order by contant on subquery to #{table}", context do
+    test "offset and limit with order by constant on subquery to #{table}", context do
       context
       |> assert_consistent_and_not_failing("""
         SELECT COUNT(*) FROM (
-          SELECT #{unquote(uid)}, 'a constant' AS const
+          SELECT #{unquote(uid)}, 'a constant'
           FROM #{unquote(table)}
           ORDER BY 2
           LIMIT 10

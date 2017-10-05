@@ -118,6 +118,15 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     end
   end
 
+  test "aliasing selected constants" do
+    assert %{from: {:subquery, %{ast: %{db_columns: [%Expression{alias: alias}, _]}}}} = compile!("""
+      SELECT COUNT(*) FROM (
+        SELECT 'constant' FROM table
+      ) x
+    """, data_source())
+    refute is_nil(alias)
+  end
+
   defp data_source() do
     %{
       driver: Cloak.DataSource.PostgreSQL,

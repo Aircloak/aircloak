@@ -33,6 +33,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
     |> Helpers.apply_bottom_up(&normalize_order_by/1)
     |> Helpers.apply_bottom_up(&normalize_upper/1)
     |> Helpers.apply_bottom_up(&normalize_bucket/1)
+    |> Helpers.apply_bottom_up(&alias_selected_constants/1)
 
 
   # -------------------------------------------------------------------
@@ -172,5 +173,13 @@ defmodule Cloak.Sql.Compiler.Normalization do
     uid = Enum.find(table.columns, & &1.name == table.user_id)
     false = is_nil(uid)
     Expression.column(uid, table)
+  end
+
+  defp alias_selected_constants(query = %{subquery?: false}), do: query
+  defp alias_selected_constants(query) do
+    Lens.key(:db_columns)
+    |> Lens.all()
+    |> Lens.satisfy(& &1.constant? and &1.alias in ["", nil])
+    |> Lens.map(query, &Helpers.set_unique_alias/1)
   end
 end
