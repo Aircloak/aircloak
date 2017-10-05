@@ -155,6 +155,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # Normalizing ORDER BY
   # -------------------------------------------------------------------
 
+  defp normalize_order_by(query = %{subquery?: false}), do: query
   defp normalize_order_by(query) do
     case {query.order_by, remove_constant_ordering(query.order_by)} do
       {[], _} -> query

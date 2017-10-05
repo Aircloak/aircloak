@@ -87,29 +87,34 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
 
   describe "normalizing ORDER BY" do
     test "normalizing unordered queries" do
-      assert [] = compile!("SELECT 'constant' FROM table", data_source()).order_by
+      assert %{from: {:subquery, %{ast: %{order_by: []}}}} =
+        compile!("SELECT COUNT(*) FROM (SELECT 'constant' FROM table) x", data_source())
     end
 
     test "removing constant ORDER BY clauses" do
-      assert [{%Expression{name: "uid"}, _}] =
-        compile!("SELECT 'constant' FROM table ORDER BY 1, uid", data_source()).order_by
+      assert %{from: {:subquery, %{ast: %{order_by: [{%Expression{name: "uid"}, _}]}}}} =
+        compile!("SELECT COUNT(*) FROM (SELECT 'constant' FROM table ORDER BY 1, uid) x", data_source())
     end
 
     test "ordering by uid if all clauses are removed" do
-      assert [{%Expression{name: "uid"}, _}] =
-        compile!("SELECT 'constant' FROM table ORDER BY 1", data_source()).order_by
+      assert %{from: {:subquery, %{ast: %{order_by: [{%Expression{name: "uid"}, _}]}}}} =
+        compile!("SELECT COUNT(*) FROM (SELECT 'constant' FROM table ORDER BY 1) x", data_source())
     end
 
     test "ordering by uid from a join if all clauses are removed" do
-      assert [{%Expression{name: "uid"}, _}] = compile!("""
-        SELECT 'constant' FROM table AS t1 JOIN table AS t2 ON t1.uid = t2.uid ORDER BY 1
-      """, data_source()).order_by
+      assert %{from: {:subquery, %{ast: %{order_by: [{%Expression{name: "uid"}, _}]}}}} = compile!("""
+        SELECT COUNT(*) FROM (
+          SELECT 'constant' FROM table AS t1 JOIN table AS t2 ON t1.uid = t2.uid ORDER BY 1
+        ) x
+      """, data_source())
     end
 
     test "ordering by uid from a subquery if all clauses are removed" do
-      assert [{%Expression{name: "uid"}, _}] = compile!("""
-        SELECT 'constant' FROM (SELECT uid FROM table) x ORDER BY 1
-      """, data_source()).order_by
+      assert %{from: {:subquery, %{ast: %{order_by: [{%Expression{name: "uid"}, _}]}}}} = compile!("""
+        SELECT COUNT(*) FROM (
+          SELECT 'constant' FROM (SELECT uid FROM table) x ORDER BY 1
+        ) x
+      """, data_source())
     end
   end
 
