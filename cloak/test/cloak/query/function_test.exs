@@ -161,21 +161,6 @@ defmodule Cloak.Query.FunctionTest do
       )
     end
 
-    test "extract_words on the same column are identical" do
-      assert_query("""
-        SELECT
-          extract_words(name),
-          extract_words(name)
-        FROM heights_ft
-        """,
-        %{rows: [
-          %{row: ["first", "first"], occurrences: 300},
-          %{row: ["second", "second"], occurrences: 300},
-          %{row: ["third", "third"], occurrences: 300},
-        ]}
-      )
-    end
-
     test "extract_words in where clause" do
       assert_query("""
         SELECT extract_words(name)
@@ -191,8 +176,8 @@ defmodule Cloak.Query.FunctionTest do
 
     test "invalid extract_words usage in where clause" do
       assert_query("SELECT extract_words(name) FROM heights_ft WHERE extract_words(string_number) = 'first'",
-        %{error: "Row splitter function used in the `WHERE` clause"
-          <> " has to be first used identically in the `SELECT` clause."})
+        %{error: "Row splitter functions used in the `WHERE`-clause"
+          <> " have to be used identically in the `SELECT`-clause first."})
     end
 
     test "invalid extract_words argument" do

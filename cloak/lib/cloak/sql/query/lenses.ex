@@ -163,6 +163,19 @@ defmodule Cloak.Sql.Query.Lenses do
     Lens.key(:from)
     |> ast_tables_recursive()
 
+  @doc "Lens focusing on outermost selected splitters in a compiled query."
+  deflens outermost_selected_splitters(), do:
+    Lens.key(:columns)
+    |> Lens.all()
+    |> outermost_splitters_in_expression()
+
+  @doc "Lens focusing on outermost where splitters in a compiled query."
+  deflens outermost_where_splitters(), do:
+    Lens.key(:where)
+    |> conditions()
+    |> operands()
+    |> outermost_splitters_in_expression()
+
   @doc "Returns a list of lenses focusing on all subqueries of the given query."
   @spec subquery_lenses(Query.t) :: [Lens.t]
   def subquery_lenses(query), do: [Lens.root() | do_subquery_lenses(Lens.key(:from), query.from)]
@@ -246,4 +259,19 @@ defmodule Cloak.Sql.Query.Lenses do
       {_quoted, _table} -> Lens.root()
       {_identifier, :as, _alias} -> Lens.root()
     end)
+
+  deflensp outermost_splitters_in_expression(), do:
+    Lens.match(
+      fn
+        %Expression{function?: true} = function ->
+          if Expression.row_splitter?(function) do
+            Lens.root()
+          else
+            Lens.key(:function_args) |> Lens.all() |> outermost_splitters_in_expression()
+          end
+
+        _other ->
+          Lens.empty()
+      end
+    )
 end

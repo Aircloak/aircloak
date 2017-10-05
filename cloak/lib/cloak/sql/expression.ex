@@ -184,24 +184,10 @@ defmodule Cloak.Sql.Expression do
     Cloak.Sql.Function.has_attribute?(function, :row_splitter)
   def row_splitter?(_), do: false
 
-  @doc "Returns a list of outermost splitter functions used in the given expression."
-  @spec outermost_splitters(t) :: [t]
-  def outermost_splitters(%__MODULE__{function?: false}), do:
-    []
-  def outermost_splitters(function) do
-    if row_splitter?(function) do
-      [function]
-    else
-      function
-      |> arguments()
-      |> Enum.flat_map(&outermost_splitters/1)
-    end
-  end
-
   @doc """
   Returns a list of all splitters used in the given expressions.
 
-  The splitters are returned in the post-order, meaning that a nested splitter will always precede its ancestors.
+  The splitters are returned in post-order, meaning that a nested splitter will always precede its ancestors.
   """
   @spec all_splitters(t) :: [t]
   def all_splitters(%__MODULE__{function?: false}), do:
