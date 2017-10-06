@@ -144,8 +144,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # Computing base noise layers
   # -------------------------------------------------------------------
 
-  defp calculate_base_noise_layers(query = %{projected?: true}), do:
-    query
+  defp calculate_base_noise_layers(query = %{projected?: true}), do: query
   defp calculate_base_noise_layers(query), do:
     %{query |
       noise_layers:
@@ -163,7 +162,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(& not fk_pk_condition?(&1))
     |> Lens.both(Lens.key(:group_by))
     |> raw_columns(query)
-    |> Enum.map(&build_noise_layer/1)
+    |> Enum.flat_map(& [static_noise_layer(&1), uid_noise_layer(&1, query)])
 
   defp fk_pk_condition?({:comparison, lhs, :=, rhs}), do:
     Expression.key?(lhs) and Expression.key?(rhs)
@@ -217,6 +216,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Query.Lenses.leaf_expressions()
     |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
     |> Lens.to_list(data)
+
+  defp static_noise_layer(column), do: build_noise_layer(column)
+
+  defp uid_noise_layer(column, query), do:
+    NoiseLayer.new(
+      {column.table.name, column.name, _extras = nil},
+      [Helpers.set_unique_alias(column), Helpers.id_column(query)]
+    )
 
   defp build_noise_layer(column, extras \\ nil), do:
     NoiseLayer.new({column.table.name, column.name, extras}, [Helpers.set_unique_alias(column)])

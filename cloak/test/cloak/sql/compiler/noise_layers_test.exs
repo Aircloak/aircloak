@@ -19,48 +19,71 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   end
 
   describe "picking columns for noise layers" do
-    test "lists columns filtered with WHERE" do
+    test "adds a uid and static noise layer for normal conditions" do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
 
-      assert [%{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
+      assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
     end
 
     test "noise layer bases are case-normalized" do
       result = compile!("SELECT COUNT(*) FROM camelTable WHERE camelColumn = 3", data_source())
 
-      assert [%{base: {"cameltable", "camelcolumn", nil}}] = result.noise_layers
+      assert [%{base: {"cameltable", "camelcolumn", nil}}, _] = result.noise_layers
     end
 
-    test "lists columns filtered with GROUP BY" do
+    test "adds a uid and static noise layer for columns filtered with GROUP BY" do
       result = compile!("SELECT numeric, COUNT(*) FROM table GROUP BY numeric", data_source())
 
-      assert [%{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
+      assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
     end
 
-    test "lists columns filtered with JOIN" do
+    test "adds a uid and static noise layer for columns filtered with JOIN" do
       result = compile!(
         "SELECT COUNT(*) FROM table JOIN other ON table.numeric = 3 AND table.uid = other.uid",
         data_source()
       )
 
-      assert [%{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
+      assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
     end
 
-    test "lists columns filtered with emulated WHERE" do
+    test "emulated WHERE" do
       result = compile!("SELECT COUNT(*) FROM table WHERE decoded = 'a'", data_source())
 
-      assert [%{base: {"table", "decoded", nil}, expressions: [%Expression{name: "decoded"}]}] = result.noise_layers
+      assert [
+        %{base: {"table", "decoded", nil}, expressions: [%Expression{name: "decoded"}]},
+        %{base: {"table", "decoded", nil}, expressions: [%Expression{name: "decoded"}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "decoded"}, &1))
+      assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
     end
 
-    test "lists underlying columns when a function is applied" do
-      result = compile!("SELECT COUNT(*) FROM table GROUP BY BUCKET(numeric BY 10)", data_source())
+    test "adds a uid and static noise layer for each underlying column when a function is applied" do
+      result = compile!("SELECT COUNT(*) FROM table GROUP BY numeric + numeric2", data_source())
 
-      assert [%{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]}] = result.noise_layers
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}, %Expression{name: "uid"}]},
+        %{base: {"table", "numeric2", nil}, expressions: [%Expression{name: "numeric2"}]},
+        %{base: {"table", "numeric2", nil}, expressions: [%Expression{name: "numeric2"}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
+      assert Enum.any?(result.db_columns, &match?(%Expression{name: "numeric2"}, &1))
+      assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
     end
 
     test "multiple filters on one column" do
@@ -68,9 +91,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
         %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]},
-        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]}
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}, %Expression{name: "uid"}]},
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}, %Expression{name: "uid"}]},
       ] = result.noise_layers
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
+      assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
     end
   end
 
@@ -161,12 +187,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "a noise layer for IS NULL" do
       assert [
         %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}, %Expression{name: "uid"}]},
       ] = compile!("SELECT COUNT(*) FROM table WHERE name IS NULL", data_source()).noise_layers
     end
 
     test "a noise layer for IS NOT NULL" do
       assert [
         %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}, %Expression{name: "uid"}]},
       ] = compile!("SELECT COUNT(*) FROM table WHERE name IS NOT NULL", data_source()).noise_layers
     end
   end
