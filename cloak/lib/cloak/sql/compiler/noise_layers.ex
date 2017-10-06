@@ -16,6 +16,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   needed to compute those noise layers to the top level.
   """
   @spec compile(Query.t) :: Query.t
+  def compile(query = %{command: :show}), do: query
   def compile(query), do:
     query
     |> Helpers.apply_bottom_up(&calculate_base_noise_layers/1)
