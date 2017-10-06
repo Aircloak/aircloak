@@ -10,14 +10,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       %{compiled | noise_layers: :to_be_overwritten}
       |> Cloak.Sql.Compiler.NoiseLayers.compile()
 
-    assert [] = query.noise_layers
+    assert [%{base: nil}] = query.noise_layers
+  end
+
+  test "adds a uid noise layer if no other layers are present" do
+    assert [%{base: nil, expressions: [%Expression{name: "uid"}]}] =
+      compile!("SELECT COUNT(*) FROM table", data_source()).noise_layers
   end
 
   describe "picking columns for noise layers" do
-    test "lists no noise layers by default" do
-      assert [] = compile!("SELECT COUNT(*) FROM table", data_source()).noise_layers
-    end
-
     test "lists columns filtered with WHERE" do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
 
@@ -77,13 +78,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "fk = pk" do
       result = compile!("SELECT COUNT(*) FROM table JOIN key_table
         ON table.uid = key_table.uid AND key_table.table_id = table.id", data_source())
-      assert [] = result.noise_layers
+      assert [%{base: nil}] = result.noise_layers
     end
 
     test "pk = fk" do
       result = compile!("SELECT COUNT(*) FROM table JOIN key_table
         ON table.uid = key_table.uid AND table.id = key_table.table_id", data_source())
-      assert [] = result.noise_layers
+      assert [%{base: nil}] = result.noise_layers
     end
   end
 

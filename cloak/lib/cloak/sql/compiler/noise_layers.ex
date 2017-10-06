@@ -22,6 +22,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> apply_top_down(&push_down_noise_layers/1)
     |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
     |> apply_top_down(&normalize_datasource_case/1)
+    |> add_uid_layer()
 
 
   # -------------------------------------------------------------------
@@ -63,7 +64,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp calculate_floated_noise_layers(query), do:
     query
     |> add_floated_noise_layers()
-    |> add_db_columns()
+    |> add_floated_db_columns()
     |> float_noise_layers_columns()
 
   defp add_floated_noise_layers(query), do:
@@ -90,11 +91,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   end
   defp float_noise_layers_columns(query), do: query
 
-  defp add_db_columns(query) do
-    noise_columns = noise_layer_columns(query)
-    {query, noise_columns} = Helpers.drop_redundant_floated_columns(query, query.db_columns, noise_columns)
-    Enum.reduce(noise_columns, query, &Query.add_db_column(&2, &1))
-  end
+  defp add_floated_db_columns(query), do:
+    add_db_columns(query, noise_layer_columns(query))
 
   defp noise_layer_columns(%{noise_layers: noise_layers, emulated?: true}), do:
     Enum.flat_map(noise_layers, &(&1.expressions)) |> Enum.map(fn
@@ -183,6 +181,19 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
 
   # -------------------------------------------------------------------
+  # uid layer
+  # -------------------------------------------------------------------
+
+  defp add_uid_layer(query = %{noise_layers: []}) do
+    id_column = Helpers.id_column(query)
+    uid_noise_layer = NoiseLayer.new(nil, [Helpers.id_column(query)])
+
+    %{query | noise_layers: [uid_noise_layer]}
+    |> add_db_columns([id_column])
+  end
+  defp add_uid_layer(query), do: query
+
+  # -------------------------------------------------------------------
   # Helpers
   # -------------------------------------------------------------------
 
@@ -221,5 +232,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.map(query, fn({table, column, extras}) ->
       {String.downcase(table), String.downcase(column), extras}
     end)
+  end
+
+  defp add_db_columns(query, to_add) do
+    {query, to_add} = Helpers.drop_redundant_floated_columns(query, query.db_columns, to_add)
+    Enum.reduce(to_add, query, &Query.add_db_column(&2, &1))
   end
 end
