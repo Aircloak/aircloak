@@ -43,19 +43,19 @@ defmodule Cloak.Sql.Query do
     columns: [Expression.t],
     column_titles: [String.t],
     aggregators: [Function.t],
-    # When row-splitters are used (like `extract_matches`), the row splitting has to happen
+    # When row-splitters are used (like `extract_words`), the row splitting has to happen
     # prior to other functions being executed. All function call chains that contain one or
     # more row-splitters in them are partitioned such that the row-splitters and their child
     # function applications are contained in the row-splitters. The original function call
     # chains are then amended to take a virtual column as their input representing the output
     # of the row-splitters:
     #
-    #   avg(length(extract_matches(cast(number as text), '\d+')))
+    #   avg(length(extract_words(cast(number as text))))
     #
     # becomes:
     #
-    #   avg(length(<dummy_column>)
-    #   extract_matches(cast(number as text), '\d+')
+    #   avg(length(<dummy_column>))
+    #   extract_words(cast(number as text))
     #
     # where the latter of these two is contained in the row-splitters.
     implicit_count?: boolean,

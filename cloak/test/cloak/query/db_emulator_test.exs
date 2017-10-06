@@ -271,7 +271,7 @@ defmodule Cloak.Query.DBEmulatorTest do
 
   describe "emulated joins" do
     defp join_setup(_) do
-      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("abc")])
+      :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("a b c")])
       :ok = insert_rows(_user_ids = 11..25, "#{@prefix}joined", ["age"], [30])
     end
 
@@ -311,7 +311,7 @@ defmodule Cloak.Query.DBEmulatorTest do
 
     test "join with a row splitter function" do
       assert_query """
-        select extract_matches(value, '.') from
+        select extract_words(value) from
           #{@prefix}joined inner join (select user_id as uid, value from #{@prefix}emulated) as t on user_id = uid
       """, %{rows: rows}
 
@@ -396,15 +396,15 @@ defmodule Cloak.Query.DBEmulatorTest do
             select #{@prefix}emulated.user_id, value from
               #{@prefix}emulated left join (select user_id as uid from #{@prefix}joined) as t on user_id = uid
               where t.uid is null) as t
-        """, %{rows: [%{occurrences: 10, row: ["abc"]}]}
+        """, %{rows: [%{occurrences: 10, row: ["a b c"]}]}
       end
 
       test "left join with filter in top query" do
         assert_query """
           select value from #{@prefix}emulated left join
-            (select user_id as uid from #{@prefix}joined) as t on user_id = uid and value = 'abc'
+            (select user_id as uid from #{@prefix}joined) as t on user_id = uid and value = 'a b c'
           where t.uid is null
-        """, %{rows: [%{occurrences: 10, row: ["abc"]}]}
+        """, %{rows: [%{occurrences: 10, row: ["a b c"]}]}
       end
   end
 

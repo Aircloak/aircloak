@@ -283,10 +283,10 @@ defmodule Cloak.Sql.Function.Test do
   end
 
   test "can tell when a function splits rows", do:
-    assert Function.has_attribute?("extract_matches", :row_splitter)
+    assert Function.has_attribute?("extract_words", :row_splitter)
 
   test "can tell when a function does not split rows", do:
-    refute Function.has_attribute?("extract_match", :row_splitter)
+    refute Function.has_attribute?("substring", :row_splitter)
 
   test "knows `ceil` is allowed in a subquery", do:
     refute Function.has_attribute?({:function, "ceil", []}, :not_in_subquery)

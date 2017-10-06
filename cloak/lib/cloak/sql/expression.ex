@@ -300,15 +300,8 @@ defmodule Cloak.Sql.Expression do
     <<hash::60, _::4, _::64>> = :crypto.hash(:md5, to_string(value))
     hash
   end
-  defp do_apply("extract_match", [string, regex]) do
-    case Regex.run(regex, string, capture: :first) do
-      [capture] -> capture
-      nil -> nil
-    end
-  end
-  defp do_apply("extract_matches", [nil, _regex]), do: [nil]
-  defp do_apply("extract_matches", [string, regex]), do:
-    List.flatten(Regex.scan(regex, string, capture: :first))
+  defp do_apply("extract_words", [nil]), do: [nil]
+  defp do_apply("extract_words", [string]), do: String.split(string)
   defp do_apply("^", [x, y]), do: :math.pow(x, y)
   defp do_apply("*", [x = %Duration{}, y]), do: Duration.scale(x, y)
   defp do_apply("*", [x, y = %Duration{}]), do: do_apply("*", [y, x])

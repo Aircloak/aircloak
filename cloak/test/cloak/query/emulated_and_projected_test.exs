@@ -305,12 +305,12 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
         """, %{rows: [%{occurrences: 1, row: [15]}]}
   end
 
-  describe "extract_matches" do
+  describe "extract_words" do
     setup [:simple_setup]
 
-    test "extract_matches on a concatenated string" do
+    test "extract_words on a concatenated string" do
       assert_query(
-        "SELECT extract_matches(value || value2, '\\w+') FROM #{@prefix}emulated GROUP BY 1",
+        "SELECT extract_words(value || value2) FROM #{@prefix}emulated GROUP BY 1",
         %{rows: [
           %{row: ["aaa"], occurrences: 1},
           %{row: ["b"], occurrences: 1},
