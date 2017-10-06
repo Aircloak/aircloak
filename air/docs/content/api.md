@@ -1,6 +1,11 @@
 # REST API
 
-The Aircloak REST API can be used to perform actions such as executing queries against a cloak, or access results of previous query executions. All API access is authenticated, as explained in [the authentication section](#authentication).
+The Aircloak Insights REST API can be used to execute SQL queries, and introspect the data sources connected to Aircloak
+Insights. Please note that this is not a query API along the lines of what `OData` offers. Instead, it offers a way to
+programatically schedule SQL queries for execution from programs you are developing. An alternative way of
+programatically executing queries is through the [PostgreSQL Message Protocol server](api/psql.html).
+
+All API access is authenticated, as explained in [the authentication section](#authentication).
 
 ## Authentication
 

@@ -133,6 +133,17 @@ matrix:
           - mongodb-3.4-precise
           packages:
           - mongodb-org-server
+          - libaio1
+      before_install:
+      - docker run --name aircloak_sql_server -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' -p 1433:1433 -d microsoft/mssql-server-linux:2017-latest
+      - if [ -e cloak/dev_container/cache/dev_container.tar ]; then docker load -i cloak/dev_container/cache/dev_container.tar; fi
+      - DOCKER_BUILD_CACHED="true" cloak/dev_container/build-image.sh
+      - docker save -o cloak/dev_container/cache/dev_container.tar $(docker images --format "{{.Repository}}")
+      - psql -c "CREATE DATABASE cloaktest2 ENCODING 'UTF8';" -U postgres
+      - echo "USE mysql;\nUPDATE user SET password=PASSWORD('') WHERE user='root';\nFLUSH PRIVILEGES;\n" | mysql -u root
+      - mysql -e "CREATE DATABASE cloaktest2 DEFAULT CHARACTER SET utf8;" -u root --password=''
+      - docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE cloaktest2"
+      - ./travis-asdf-setup.sh
     - env: TEST="aux"
       cache:
         directories:
