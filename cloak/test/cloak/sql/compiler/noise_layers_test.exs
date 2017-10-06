@@ -200,6 +200,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   end
 
   describe "noise layers for LIKE" do
+    @tag :pending
     test "a noise layers in LIKE" do
       result = compile!("SELECT COUNT(*) FROM table WHERE name || name2 LIKE 'b%_o_%b'", data_source())
 
@@ -209,6 +210,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       ] = result.noise_layers
     end
 
+    @tag :pending
     test "noise layers in ILIKE" do
       result = compile!("SELECT COUNT(*) FROM table WHERE name || name2 ILIKE 'b%_o_%b'", data_source())
 
@@ -218,24 +220,18 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       ] = result.noise_layers
     end
 
-    test "noise layers when LIKE has no wildcards" do
-      [%{base: base1, expressions: [%{name: name1}]}] =
-        compile!("SELECT COUNT(*) FROM table WHERE name LIKE 'bob'", data_source()).noise_layers
-      [%{base: base2, expressions: [%{name: name2}]}] =
-        compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'", data_source()).noise_layers
+    for like <- ["LIKE", "ILIKE"] do
+      test "noise layers when #{like} has no wildcards" do
+        [
+          %{base: base1, expressions: [%{name: name}]},
+          %{base: base2,  expressions: [%{name: name}, %{name: "uid"}]},
+        ] = compile!("SELECT COUNT(*) FROM table WHERE name #{unquote(like)} 'bob'", data_source()).noise_layers
 
-      assert base1 == base2
-      assert name1 == name2
-    end
-
-    test "noise layers when ILIKE has no wildcards" do
-      [%{base: base1, expressions: [%{name: name1}]}] =
-        compile!("SELECT COUNT(*) FROM table WHERE name ILIKE 'bob'", data_source()).noise_layers
-      [%{base: base2, expressions: [%{name: name2}]}] =
-        compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'", data_source()).noise_layers
-
-      assert base1 == base2
-      assert name1 == name2
+        assert [
+          %{base: ^base1, expressions: [%{name: ^name}]},
+          %{base: ^base2,  expressions: [%{name: ^name}, %{name: "uid"}]},
+        ] = compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'", data_source()).noise_layers
+      end
     end
   end
 
