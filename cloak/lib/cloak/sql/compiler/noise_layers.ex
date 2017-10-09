@@ -23,8 +23,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> apply_top_down(&push_down_noise_layers/1)
     |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
     |> apply_top_down(&normalize_datasource_case/1)
-    |> update_uid_expressions()
-    |> add_uid_layer()
+    |> normalize_uid_layers()
 
 
   # -------------------------------------------------------------------
@@ -212,6 +211,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # Finalization
   # -------------------------------------------------------------------
 
+  defp normalize_uid_layers(query = %{noise_layers: []}), do: add_uid_layer(query)
+  defp normalize_uid_layers(query), do: update_uid_expressions(query)
+
   defp add_uid_layer(query = %{noise_layers: []}) do
     id_column = Helpers.id_column(query)
     uid_noise_layer = NoiseLayer.new(nil, [Helpers.id_column(query)])
@@ -222,9 +224,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp add_uid_layer(query), do: query
 
   defp update_uid_expressions(query) do
+    id_column = Helpers.id_column(query)
+
     Lens.key(:noise_layers)
     |> uid_expressions()
-    |> Lens.map(query, fn(_) -> Helpers.id_column(query) end)
+    |> Lens.map(query, fn(_) -> id_column end)
+    |> add_db_columns([id_column])
   end
 
 
