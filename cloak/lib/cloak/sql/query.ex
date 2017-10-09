@@ -85,7 +85,21 @@ defmodule Cloak.Sql.Query do
     low_count_checks: [LowCountCheck.t],
   }
 
-  @type features :: map
+  @type features :: %{
+    num_selected_columns: pos_integer,
+    num_db_columns: pos_integer,
+    num_tables: pos_integer,
+    num_group_by: non_neg_integer,
+    functions: [String.t],
+    where_conditions: [String.t],
+    column_types: [String.t],
+    selected_types: [String.t],
+    parameter_types: [String.t],
+    decoders: [String.t],
+    driver: String.t,
+    driver_dialect: String.t,
+    emulated: boolean,
+  }
 
   defstruct [
     columns: [], where: nil, group_by: [], order_by: [], column_titles: [], aggregators: [],
