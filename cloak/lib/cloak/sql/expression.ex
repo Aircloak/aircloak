@@ -276,7 +276,6 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("right", [string, count]), do: right(string, count)
   defp do_apply("substring", [string, from]), do: substring(string, from)
   defp do_apply("substring", [string, from, count]), do: substring(string, from, count)
-  defp do_apply("substring_for", [string, count]), do: substring(string, 1, count)
   defp do_apply("concat", args), do: Enum.join(args)
   defp do_apply("hex", [string]), do: Base.encode16(string, case: :lower)
   defp do_apply("hash", [value]) do

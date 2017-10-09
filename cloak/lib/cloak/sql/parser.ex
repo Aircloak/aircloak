@@ -432,7 +432,7 @@ defmodule Cloak.Sql.Parser do
        [:substring, :"(", column, [:from, from], [:for, for_count], :")"] ->
          {:function, "substring", [column, from, for_count]}
        [:substring, :"(", column, nil, [:for, for_count], :")"] ->
-         {:function, "substring_for", [column, for_count]}
+         {:function, "substring", [column, {:constant, :integer, 1}, for_count]}
        [:substring, :"(", column, nil, nil, :")"] ->
          {:function, "substring", [column]}
      end

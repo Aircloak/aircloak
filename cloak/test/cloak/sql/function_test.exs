@@ -67,7 +67,6 @@ defmodule Cloak.Sql.Function.Test do
   test "substring" do
     assert well_typed?("substring", [:text, :integer])
     assert well_typed?("substring", [:text, :integer, :integer])
-    assert well_typed?("substring_for", [:text, :integer])
   end
 
   test "concat" do
