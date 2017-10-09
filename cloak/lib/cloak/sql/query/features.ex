@@ -1,4 +1,4 @@
-defmodule Cloak.Sql.Compiler.Features do
+defmodule Cloak.Sql.Query.Features do
   @moduledoc "Deals with compiling the list of features used by a query."
 
   alias Cloak.Sql.{Function, Expression, Query}
