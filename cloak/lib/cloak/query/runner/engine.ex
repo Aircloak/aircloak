@@ -17,17 +17,13 @@ defmodule Cloak.Query.Runner.Engine do
   def run(data_source, statement, parameters, views, state_updater, feature_updater,
       {query_killer_reg, query_killer_unreg}) do
     try do
-      with state_updater.(:parsing),
-        {:ok, parsed} <- Sql.Parser.parse(statement),
-        state_updater.(:compiling),
-        {:ok, query, features} <- Sql.Compiler.compile(data_source, parsed, parameters, views),
-        feature_updater.(features),
-        query = build_initial_noise_layers(query),
-        query = Probe.process(query),
-        query = build_final_noise_layers(query),
-        query = Sql.Compiler.LowCountChecks.compile(query),
-        state_updater.(:awaiting_data)
+      with \
+        {:ok, parsed_query} <- parse(statement, state_updater),
+        {:ok, compiled_query, features} <- compile(data_source, parsed_query, parameters, views, state_updater)
       do
+        feature_updater.(features)
+        query = prepare_for_execution(compiled_query)
+        state_updater.(:awaiting_data)
         query_killer_reg.()
         result = run_statement(query, features, state_updater)
         query_killer_unreg.()
@@ -42,6 +38,23 @@ defmodule Cloak.Query.Runner.Engine do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp parse(statement, state_updater) do
+    state_updater.(:parsing)
+    Sql.Parser.parse(statement)
+  end
+
+  defp compile(data_source, parsed_query, parameters, views, state_updater) do
+    state_updater.(:compiling)
+    Sql.Compiler.compile(data_source, parsed_query, parameters, views)
+  end
+
+  defp prepare_for_execution(compiled_query), do:
+    compiled_query
+    |> build_initial_noise_layers()
+    |> Probe.process()
+    |> build_final_noise_layers()
+    |> Sql.Compiler.LowCountChecks.compile()
 
   defp build_initial_noise_layers(query), do: Sql.Compiler.NoiseLayers.compile(query)
 
