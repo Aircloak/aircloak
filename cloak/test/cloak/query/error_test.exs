@@ -82,16 +82,18 @@ defmodule Cloak.Query.ErrorTest do
 
   test "substring with neither for nor from" do
     assert_query "select substring(name) from test_errors", %{error: error}
-    assert error == "Expected `from or for` at line 1, column 22."
+    assert error == "Expected `from or for or ,` at line 1, column 22."
   end
 
   test "substring with invalid from" do
     assert_query "select substring(name FROM 0) from test_errors", %{error: error}
+    assert_query "select substring(name ,    0) from test_errors", %{error: ^error}
     assert error == "Expected `positive integer constant` at line 1, column 28."
   end
 
   test "substring with invalid for" do
     assert_query "select substring(name FOR -1) from test_errors", %{error: error}
+    assert_query "select substring(name ,   -1) from test_errors", %{error: ^error}
     assert error == "Expected `positive integer constant` at line 1, column 27."
   end
 
