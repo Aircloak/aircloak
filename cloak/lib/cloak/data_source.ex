@@ -44,7 +44,7 @@ defmodule Cloak.DataSource do
   require Logger
   require Aircloak.DeployConfig
 
-  use GenServer
+  use GenServer, start: {__MODULE__, :start_link, []}
 
   # define returned data types and values
   @type t :: %{
@@ -81,6 +81,7 @@ defmodule Cloak.DataSource do
   """
   def start_link() do
     initial_state = Aircloak.DeployConfig.fetch!("data_sources")
+    |> Cloak.DataSource.Utility.load_individual_data_source_configs()
     |> config_to_datasources()
     |> Enum.map(&add_tables/1)
     GenServer.start_link(__MODULE__, initial_state, name: __MODULE__)
@@ -162,13 +163,13 @@ defmodule Cloak.DataSource do
   # Callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl GenServer
   def init(data_sources) do
     activate_monitor_timer(self())
     {:ok, data_sources}
   end
 
-  @doc false
+  @impl GenServer
   def handle_call(:all, _from, data_sources) do
     {:reply, data_sources, data_sources}
   end
@@ -180,6 +181,7 @@ defmodule Cloak.DataSource do
     {:reply, :ok, data_sources}
   end
 
+  @impl GenServer
   def handle_info(:monitor, data_sources) do
     server_pid = self()
     Task.start_link(fn () ->
@@ -218,19 +220,13 @@ defmodule Cloak.DataSource do
     |> validate_choice_of_encoding()
   end
 
-  defp map_driver(data_source), do:
-    Map.put(data_source, :driver,
-      case data_source.driver do
-        "mongodb" -> Cloak.DataSource.MongoDB
-        "mysql" -> Cloak.DataSource.MySQL
-        "odbc" -> Cloak.DataSource.ODBC
-        "postgresql" -> Cloak.DataSource.PostgreSQL
-        "sqlserver" -> Cloak.DataSource.SQLServer
-        "sqlserver_tds" -> Cloak.DataSource.SQLServerTds
-        "saphana" -> Cloak.DataSource.SAPHana
-        other -> raise_error("Unknown driver `#{other}` for data source `#{data_source.name}`")
-      end
-    )
+  defp map_driver(data_source) do
+    case Cloak.DataSource.Utility.name_to_driver(data_source.driver) do
+      {:ok, driver} -> Map.put(data_source, :driver, driver)
+      {:error, :unknown} ->
+        raise_error("Unknown driver `#{data_source.driver}` for data source `#{data_source.name}`")
+    end
+  end
 
   defp save_init_fields(data_source), do:
     data_source

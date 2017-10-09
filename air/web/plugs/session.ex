@@ -17,10 +17,10 @@ defmodule Air.Plug.Session do
 
     import Plug.Conn
 
-    @doc false
+    @impl Plug
     def init(opts), do: opts
 
-    @doc false
+    @impl Plug
     def call(conn, opts) do
       conn = Plug.Conn.fetch_query_params(conn)
 
@@ -111,10 +111,10 @@ defmodule Air.Plug.Session do
     # Plug callbacks
     # -------------------------------------------------------------------
 
-    @doc false
+    @impl Plug
     def init(default), do: default
 
-    @doc false
+    @impl Plug
     def call(conn, _default) do
       case Plug.Conn.get_session(conn, session_key()) do
         nil ->

@@ -118,4 +118,12 @@ defmodule Cloak.Query.AnonimyzerTest do
       end)
     end
   end
+
+  test "same noise layers are collapsed" do
+    noise_layer = MapSet.new(["a", "b"])
+    anonymizer1 = Anonymizer.new([noise_layer])
+    anonymizer2 = Anonymizer.new([noise_layer, noise_layer])
+
+    assert anonymizer1.rngs == anonymizer2.rngs
+  end
 end

@@ -1,5 +1,5 @@
-if Mix.env == :dev do
-  defmodule Mix.Tasks.Gen.DevData do
+defmodule Mix.Tasks.Gen.DevData do
+  if Mix.env == :dev do
     @shortdoc "Generates test data for dev database."
     @moduledoc false
 
@@ -8,7 +8,7 @@ if Mix.env == :dev do
 
     use Mix.Task
 
-    @doc false
+    @impl Mix.Task
     def run(_args), do:
       [:postgresql, :saphana]
       |> Enum.map(&{&1, open_connection(&1)})
@@ -75,6 +75,7 @@ if Mix.env == :dev do
       Application.ensure_all_started(:postgrex)
       db_params =
         Aircloak.DeployConfig.fetch!(:cloak, "data_sources")
+        |> Cloak.DataSource.Utility.load_individual_data_source_configs()
         |> Enum.find(&(&1["name"] == "cloak_postgres_native"))
         |> Map.fetch!("parameters")
 

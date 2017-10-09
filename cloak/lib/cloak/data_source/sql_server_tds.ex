@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.SQLServerTds do
   @moduledoc "Implements the DataSource.Driver behaviour for MS SQL Server. For more information, see `DataSource`."
 
-  alias Cloak.DataSource.{SqlBuilder, Table}
+  alias Cloak.DataSource.{SqlBuilder, Table, Driver}
   alias Cloak.DataSource
   alias Cloak.Query.DataDecoder
 
@@ -10,12 +10,12 @@ defmodule Cloak.DataSource.SQLServerTds do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Cloak.DataSource.Driver
+  @behaviour Driver
 
-  @doc false
+  @impl Driver
   def sql_dialect_module(_parameters), do: SqlBuilder.SQLServer
 
-  @doc false
+  @impl Driver
   def connect!(parameters) do
     self = self()
     parameters = Enum.to_list(parameters) ++ [sync_connect: true,
@@ -31,12 +31,12 @@ defmodule Cloak.DataSource.SQLServerTds do
         DataSource.raise_error("Unknown failure during database connection process")
     end
   end
-  @doc false
+  @impl Driver
   def disconnect(connection) do
     GenServer.stop(connection)
   end
 
-  @doc false
+  @impl Driver
   def load_tables(connection, table) do
     {schema_name, table_name} = case String.split(table.db_name, ".") do
       [full_table_name] -> {"dbo", full_table_name}
@@ -52,7 +52,7 @@ defmodule Cloak.DataSource.SQLServerTds do
     end
   end
 
-  @doc false
+  @impl Driver
   def select(connection, sql_query, result_processor) do
     statement = SqlBuilder.build(sql_query)
     field_mappers = for column <- sql_query.db_columns, do:
@@ -60,7 +60,7 @@ defmodule Cloak.DataSource.SQLServerTds do
     run_query(connection, statement, &map_fields(&1, field_mappers), result_processor)
   end
 
-  @doc false
+  @impl Driver
   def supports_query?(query), do: SqlBuilder.Support.supported_query?(query)
 
 
@@ -81,7 +81,7 @@ defmodule Cloak.DataSource.SQLServerTds do
       else
         {:error, error} -> DataSource.raise_error("Driver exception: `#{Exception.message(error)}`")
       end
-    end, [timeout: :timer.hours(4)])
+    end, [timeout: Driver.timeout()])
   end
 
   defp parse_type("varchar"), do: :text
@@ -104,6 +104,7 @@ defmodule Cloak.DataSource.SQLServerTds do
   defp parse_type("time"), do: :time
   defp parse_type("date"), do: :date
   defp parse_type("datetime"), do: :datetime
+  defp parse_type("datetime2"), do: :datetime
   defp parse_type("smalldatetime"), do: :datetime
   defp parse_type("datetimeoffset"), do: :datetime
   defp parse_type(type), do: {:unsupported, type}
@@ -122,6 +123,7 @@ defmodule Cloak.DataSource.SQLServerTds do
   defp type_to_field_mapper(:datetime), do: &datetime_field_mapper/1
   defp type_to_field_mapper(:date), do: &date_field_mapper/1
   defp type_to_field_mapper(:time), do: &time_field_mapper/1
+  defp type_to_field_mapper(:interval), do: &interval_field_mapper/1
   defp type_to_field_mapper(_), do: &generic_field_mapper/1
 
   defp integer_field_mapper(nil), do: nil
@@ -146,6 +148,9 @@ defmodule Cloak.DataSource.SQLServerTds do
   defp time_field_mapper(nil), do: nil
   defp time_field_mapper({hour, min, sec, fsec}), do:
     Time.new(hour, min, sec, {div(fsec, 10), 6}) |> error_to_nil()
+
+  defp interval_field_mapper(nil), do: nil
+  defp interval_field_mapper(number), do: Timex.Duration.from_seconds(number)
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _reason}), do: nil

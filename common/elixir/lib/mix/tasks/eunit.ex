@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Eunit do
 
   @recursive true
 
-  @doc false
+  @impl Mix.Task
   def run(args) do
     project_config = Mix.Project.config
 

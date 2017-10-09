@@ -62,7 +62,7 @@ defmodule Air.Socket.Cloak.MainChannel do
   # Phoenix.Channel callback functions
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl Phoenix.Channel
   @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
   def join("main", cloak_info, socket) do
     Process.flag(:trap_exit, true)
@@ -78,7 +78,7 @@ defmodule Air.Socket.Cloak.MainChannel do
     {:ok, %{}, assign(socket, :pending_calls, %{})}
   end
 
-  @doc false
+  @impl Phoenix.Channel
   @dialyzer {:nowarn_function, terminate: 2} # Phoenix bug, fixed in master
   def terminate(_reason, socket) do
     cloak_id = socket.assigns.cloak_id
@@ -86,7 +86,7 @@ defmodule Air.Socket.Cloak.MainChannel do
     {:ok, socket}
   end
 
-  @doc false
+  @impl Phoenix.Channel
   def handle_in("cloak_call", payload, socket), do:
     Aircloak.report_long(
       {:handle_cloak_call, payload.event},
@@ -98,7 +98,7 @@ defmodule Air.Socket.Cloak.MainChannel do
       fn -> handle_cloak_message(cloak_message_name, payload, socket) end
     )
 
-  @doc false
+  @impl Phoenix.Channel
   def handle_info(message, socket), do:
     Aircloak.report_long(
       {:handle_info, message},

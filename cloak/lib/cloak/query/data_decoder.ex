@@ -11,7 +11,7 @@ defmodule Cloak.Query.DataDecoder do
   alias Cloak.Sql.{Query, Expression}
   alias Cloak.DataSource.Table
 
-  @type type :: Table.data_type
+  @type type :: Table.data_type | :interval
   @type decoder :: (type -> {:ok, type} | :error)
   @type t :: %{method: decoder, columns: [String.t], in: type, out: type}
 
@@ -102,7 +102,10 @@ defmodule Cloak.Query.DataDecoder do
 
   defp get_decoders(%Expression{table: :unknown}), do: []
   defp get_decoders(%Expression{name: name, table: table}), do:
-    Enum.filter_map(table.decoders, &Enum.member?(&1.columns, name), & &1.method)
+    table.decoders
+    |> Enum.filter(&Enum.member?(&1.columns, name))
+    |> Enum.map(&(&1.method))
+
 
   defp get_decoded_column_type(decoder, name, type) do
     if Enum.member?(decoder.columns, name) do

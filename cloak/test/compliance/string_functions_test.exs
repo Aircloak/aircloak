@@ -1,5 +1,3 @@
-# NOTE:
-# - substring(<col> FROM 0) has been disabled as it produces wildly different results when emulated
 Enum.each([
   "<col> || 'text-value'",
   "'text-value' || <col>",
@@ -25,42 +23,43 @@ Enum.each([
   "substring(<col> FROM 10)",
   "substring(<col> FOR 10)",
   "substring(<col> FOR 1000)",
+  "substring(<col> FROM 0)",
   "trim(<col>)",
   "ucase(<col>)",
   "upper(<col>)",
-  "extract_match(<col>, '\\w')",
-  "extract_matches(<col>, '\\w')",
+  "extract_words(<col>)",
 ], fn(function) ->
   defmodule Module.concat([Compliance.StringFunctions, String.to_atom(function), Test]) do
     use ComplianceCase, async: true, timeout: :timer.minutes(2)
-    alias Cloak.DataSource.SQLServer
 
     @moduletag :"#{function}"
 
     Enum.each(text_columns(), fn({column, table, uid}) ->
-      if not (function in ["extract_match(<col>, '\\w')", "extract_matches(<col>, '\\w')"]) do
-        @tag compliance: "#{function} #{column} #{table} subquery"
-        test "#{function} on input #{column} in a sub-query on #{table}", context do
-          context
-          |> disable_for(SQLServer, match?("hex" <> _, unquote(function)))
-          |> assert_consistent_and_not_failing("""
+      @tag compliance: "#{function} #{column} #{table} subquery"
+      test "#{function} on input #{column} in a sub-query on #{table}", context do
+        context
+        |> disable_for(Cloak.DataSource.SQLServer, match?("hex" <> _, unquote(function)))
+        |> disable_for(Cloak.DataSource.SQLServerTds, match?("hex" <> _, unquote(function)))
+        |> disable_for(:all, match?("substring(<col> FROM 0)", unquote(function)))
+        |> disallowed_in_subqueries("extract_words", unquote(function))
+        |> assert_consistent_and_not_failing("""
+          SELECT
+            output
+          FROM (
             SELECT
-              output
-            FROM (
-              SELECT
-                #{unquote(uid)},
-                #{on_column(unquote(function), "\"#{unquote(column)}\"")} as output
-              FROM #{unquote(table)}
-              ORDER BY 1, 2
-            ) table_alias
-            ORDER BY output
-          """)
-        end
+              #{unquote(uid)},
+              #{on_column(unquote(function), "\"#{unquote(column)}\"")} as output
+            FROM #{unquote(table)}
+            ORDER BY 1, 2
+          ) table_alias
+          ORDER BY output
+        """)
       end
 
       @tag compliance: "#{function} #{column} #{table} query"
       test "#{function} on input #{column} in query on #{table}", context do
         context
+        |> disable_for(:all, match?("substring(<col> FROM 0)", unquote(function)))
         |> assert_consistent_and_not_failing("""
           SELECT #{on_column(unquote(function), "\"#{unquote(column)}\"")}
           FROM #{unquote(table)}
@@ -68,5 +67,8 @@ Enum.each([
         """)
       end
     end)
+
+    defp disallowed_in_subqueries(context, function, current_test), do:
+      disable_for(context, :all, String.starts_with?(current_test, function))
   end
 end)

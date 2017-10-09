@@ -10,10 +10,10 @@ defmodule Air.Plug.Expiration do
 
   import Plug.Conn
 
-  @doc false
+  @impl Plug
   def init(opts), do: opts
 
-  @doc false
+  @impl Plug
   def call(conn, _opts) do
     if Version.expired?() do
       conn

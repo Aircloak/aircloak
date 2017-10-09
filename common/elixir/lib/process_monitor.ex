@@ -31,14 +31,14 @@ defmodule Aircloak.ProcessMonitor do
   # GenServer callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl GenServer
   def init({monitored_process, exit_callback}), do:
     {:ok, %{
       mref: Process.monitor(monitored_process),
       exit_callback: exit_callback
     }}
 
-  @doc false
+  @impl GenServer
   def handle_info({:DOWN, mref, :process, _, _}, %{mref: mref} = state) do
     state.exit_callback.()
     {:stop, :normal, %{state | mref: nil}}

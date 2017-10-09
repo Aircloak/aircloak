@@ -7,7 +7,6 @@ defmodule Air.Service.Query.Lifecycle do
   while events for different queries are handled in different processes.
   """
 
-  import Supervisor.Spec, warn: false
   alias Air.Service.Query
   require Logger
   use GenServer
@@ -27,27 +26,6 @@ defmodule Air.Service.Query.Lifecycle do
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
-
-  @doc "Returns a worker specification for the query result processor"
-  @spec supervisor_spec() :: Supervisor.Spec.spec
-  def supervisor_spec, do:
-    supervisor(
-      Supervisor,
-      [
-        [
-          worker(Registry, [:unique, __MODULE__.Registry]),
-          Air.ProcessQueue.supervisor_spec(__MODULE__.Queue, size: 5),
-          supervisor(Supervisor, [
-            [worker(__MODULE__, [], restart: :temporary)],
-            [strategy: :simple_one_for_one, name: __MODULE__.QuerySupervisor, id: __MODULE__.QuerySupervisor]
-          ])
-        ],
-        [
-          strategy: :rest_for_one,
-          name: __MODULE__
-        ]
-      ]
-    )
 
   @doc "Asynchronously handles query state change."
   @spec state_changed(String.t, Air.Schemas.Query.QueryState.t) :: :ok
@@ -69,11 +47,11 @@ defmodule Air.Service.Query.Lifecycle do
   # GenServer callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl GenServer
   def init(nil), do:
     {:ok, nil}
 
-  @doc false
+  @impl GenServer
   def handle_cast({:result_arrived, result}, state) do
     Air.ProcessQueue.run(__MODULE__.Queue, fn -> Query.process_result(result) end)
     {:stop, :normal, state}
@@ -119,5 +97,27 @@ defmodule Air.Service.Query.Lifecycle do
       end
 
     GenServer.cast(server_pid, message)
+  end
+
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg) do
+    import Aircloak.ChildSpec, warn: false
+
+    supervisor(
+      [
+        registry(:unique, __MODULE__.Registry),
+        {Air.ProcessQueue, {__MODULE__.Queue, size: 5}},
+        supervisor(
+          [Supervisor.Spec.worker(__MODULE__, [], restart: :temporary)],
+          strategy: :simple_one_for_one, name: __MODULE__.QuerySupervisor
+        )
+      ],
+      strategy: :rest_for_one, name: __MODULE__
+    )
   end
 end

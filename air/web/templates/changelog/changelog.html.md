@@ -1,3 +1,9 @@
+## Version 18.1.0
+
+### Changes
+
+- Improvements to the anonymization process will cause queries to return different results from what they did in the past.
+
 ## Version 17.4.1 (unreleased)
 
 ### Bugfixes

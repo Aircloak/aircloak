@@ -26,7 +26,7 @@ defmodule Central.Socket.Air do
   # Phoenix.Socket callback functions
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl Phoenix.Socket
   def connect(params, socket) do
     Logger.info("Air connecting #{inspect params}")
     with {:ok, token, air_name} <- values_from_params(params),
@@ -42,7 +42,7 @@ defmodule Central.Socket.Air do
     end
   end
 
-  @doc false
+  @impl Phoenix.Socket
   @dialyzer {:nowarn_function, id: 1} # Phoenix bug, fixed in master
   def id(socket),
     do: "air_socket:#{socket.assigns.customer.id}"

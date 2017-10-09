@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
   # Mix.Task behaviour is not in PLT since Mix is not a runtime dep, so we disable the warning
   @dialyzer :no_undefined_callbacks
 
-  @doc false
+  @impl Mix.Task
   def run(_args) do
     update_version_numbers_in_guide()
     if stale?() do

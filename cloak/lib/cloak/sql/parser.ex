@@ -717,6 +717,16 @@ defmodule Cloak.Sql.Parser do
     |> label("#{expected_type} constant")
   end
 
+  defp non_neg_integer(), do:
+    numeric_constant(:integer)
+    |> satisfy(fn({:constant, :integer, value}) -> value >= 0 end)
+    |> label("non-negative integer constant")
+
+  defp pos_integer(), do:
+    numeric_constant(:integer)
+    |> satisfy(fn({:constant, :integer, value}) -> value > 0 end)
+    |> label("positive integer constant")
+
   defp constant_of(expected_types) do
     choice(Enum.map(expected_types, &constant/1))
     |> label(expected_types |> Enum.map(&"#{&1} constant") |> Enum.join(" or "))
@@ -844,7 +854,7 @@ defmodule Cloak.Sql.Parser do
 
   defp optional_limit() do
     switch([
-      {keyword(:limit), numeric_constant(:integer)},
+      {keyword(:limit), pos_integer()},
       {:else, noop()}
     ])
     |> map(fn {[:limit], [{:constant, :integer, amount}]} -> {:limit, amount} end)
@@ -852,7 +862,7 @@ defmodule Cloak.Sql.Parser do
 
   defp optional_offset() do
     switch([
-      {keyword(:offset), numeric_constant(:integer)},
+      {keyword(:offset), non_neg_integer()},
       {:else, noop()}
     ])
     |> map(fn {[:offset], [{:constant, :integer, amount}]} -> {:offset, amount} end)

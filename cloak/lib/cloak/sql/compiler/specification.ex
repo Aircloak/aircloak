@@ -46,7 +46,6 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> compile_aliases()
     |> compile_columns()
     |> compile_references()
-    |> compile_extraction_patterns()
     |> remove_redundant_uid_casts()
     |> cast_where_clauses()
     |> Validation.verify_query()
@@ -393,13 +392,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp compile_columns(query) do
     columns_by_name =
       for table <- query.selected_tables, column <- table.columns do
-        %Expression{
-          table: table,
-          name: column.name,
-          type: column.type,
-          user_id?: table.user_id == column.name,
-          key?: column.name in Map.get(table, :keys, []),
-        }
+        Expression.column(column, table)
       end
       |> Enum.group_by(&(&1.name))
     query = map_terminal_elements(query, &normalize_table_name(&1, query.selected_tables))
@@ -610,27 +603,6 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp do_parse_time(%Expression{type: :text, value: string}, :datetime), do:
     Cloak.Time.parse_datetime(string)
   defp do_parse_time(_, _), do: {:error, :invalid_cast}
-
-
-  # -------------------------------------------------------------------
-  # Extraction patterns
-  # -------------------------------------------------------------------
-
-  defp compile_extraction_patterns(%Query{} = query), do:
-    update_in(query,
-      [Lenses.query_expressions() |> Lens.satisfy(&(&1.function in ["extract_match", "extract_matches"]))],
-      &compile_extraction_pattern/1
-    )
-
-  defp compile_extraction_pattern(%Expression{function_args: [arg1, pattern]} =  extraction) do
-    case Regex.compile(pattern.value, "ui") do
-      {:ok, regex} ->
-        %Expression{extraction | function_args: [arg1, %Expression{pattern | value: regex}]}
-      {:error, {error, location}} ->
-        raise CompilationError,
-          message: "The regex used in `#{extraction.name}` is invalid: #{error} at character #{location}"
-    end
-  end
 
 
   # -------------------------------------------------------------------

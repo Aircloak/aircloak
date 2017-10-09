@@ -20,24 +20,6 @@ defmodule Cloak.Query.Runner do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Returns the supervisor specification for the query runner supervisor."
-  @spec supervisor_spec() :: Supervisor.Spec.spec
-  def supervisor_spec() do
-    import Supervisor.Spec, warn: false
-
-    supervisor(Supervisor, [
-      [
-        supervisor(Registry, [:unique, @runner_registry_name], id: @runner_registry_name),
-        supervisor(Registry, [:unique, @queries_registry_name], id: @queries_registry_name),
-        supervisor(Supervisor, [
-          [worker(GenServer, [__MODULE__], restart: :temporary)],
-          [id: @supervisor_name, name: @supervisor_name, strategy: :simple_one_for_one]
-        ])
-      ],
-      [id: __MODULE__.TopLevelSupervisor, strategy: :rest_for_one]
-    ])
-  end
-
   @doc """
   Starts the query execution concurrently.
 
@@ -89,7 +71,7 @@ defmodule Cloak.Query.Runner do
   # GenServer callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl GenServer
   def init({query_id, data_source, statement, parameters, views, result_target}) do
     Registry.register(@queries_registry_name, :instances, query_id)
     Logger.metadata(query_id: query_id)
@@ -111,7 +93,7 @@ defmodule Cloak.Query.Runner do
     }}
   end
 
-  @doc false
+  @impl GenServer
   def handle_info({:EXIT, runner_pid, reason}, %{runner: %Task{pid: runner_pid}} = state) do
     state =
       if reason != :normal do
@@ -136,7 +118,7 @@ defmodule Cloak.Query.Runner do
   def handle_info(_other, state), do:
     {:noreply, state}
 
-  @doc false
+  @impl GenServer
   def handle_cast({:stop_query, reason}, %{runner: task} = state) do
     Task.shutdown(task)
     Logger.warn("Asked to stop query. Reason: #{inspect reason}")
@@ -210,6 +192,28 @@ defmodule Cloak.Query.Runner do
   defp format_result({:error, reason}, state) do
     Logger.error("Unknown query error: #{inspect(reason)}")
     format_result({:error, "Unknown cloak error."}, state)
+  end
+
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg) do
+    import Aircloak.ChildSpec
+
+    supervisor(
+      [
+        registry(:unique, @runner_registry_name),
+        registry(:unique, @queries_registry_name),
+        supervisor(
+          [Supervisor.Spec.worker(GenServer, [__MODULE__], restart: :temporary)],
+          name: @supervisor_name, strategy: :simple_one_for_one
+        )
+      ],
+      strategy: :rest_for_one
+    )
   end
 
 

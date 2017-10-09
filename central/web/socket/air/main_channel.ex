@@ -17,7 +17,7 @@ defmodule Central.Socket.Air.MainChannel do
   # Phoenix.Channel callback functions
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl Phoenix.Channel
   @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
   def join("main", raw_air_info, socket) do
     Logger.metadata(customer: socket.assigns.customer.name, air: socket.assigns.air_name)
@@ -39,14 +39,14 @@ defmodule Central.Socket.Air.MainChannel do
     {:ok, %{}, socket |> assign(:air_version, air_version)}
   end
 
-  @doc false
+  @impl Phoenix.Channel
   @dialyzer {:nowarn_function, terminate: 2} # Phoenix bug, fixed in master
   def terminate(_reason, socket) do
     Logger.info("left central")
     {:ok, socket}
   end
 
-  @doc false
+  @impl Phoenix.Channel
   def handle_in("air_call", request, socket) do
     handle_air_call(request["event"], request["payload"], request["request_id"], socket)
   end
@@ -55,7 +55,7 @@ defmodule Central.Socket.Air.MainChannel do
     {:noreply, socket}
   end
 
-  @doc false
+  @impl Phoenix.Channel
   def handle_info({{__MODULE__, :call}, timeout, from, event, payload}, socket) do
     request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
     push(socket, "air_call", %{request_id: request_id, event: event, payload: payload})

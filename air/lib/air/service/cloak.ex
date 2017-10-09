@@ -19,21 +19,6 @@ defmodule Air.Service.Cloak do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Returns the supervisor specification for this service."
-  @spec supervisor_spec() :: Supervisor.Spec.spec
-  def supervisor_spec() do
-    import Supervisor.Spec
-
-    children = [
-      worker(GenServer, [__MODULE__, [], [name: @serializer_name]], id: @serializer_name),
-      worker(Registry, [:duplicate, @data_source_registry_name], id: @data_source_registry_name),
-      worker(Registry, [:unique, @memory_registry_name], id: @memory_registry_name),
-      worker(Registry, [:duplicate, @all_cloak_registry_name], id: @all_cloak_registry_name),
-    ]
-
-    supervisor(Supervisor, [children, [strategy: :one_for_one, name: __MODULE__]])
-  end
-
   @doc "Registers a data source (if needed), and associates the calling cloak with the data source."
   @spec register(Map.t, Map.t) :: [Air.Schemas.DataSource.t]
   def register(cloak_info, data_sources) do
@@ -100,9 +85,10 @@ defmodule Air.Service.Cloak do
   # GenServer callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl GenServer
   def init(_), do: {:ok, nil}
 
+  @impl GenServer
   def handle_call({:register, cloak_info, data_sources}, _from, state) do
     data_sources_by_name = data_sources
     |> Enum.map(&({&1.name, &1}))
@@ -203,5 +189,25 @@ defmodule Air.Service.Cloak do
       [{_, memory}] -> cloak_info |> Map.put(:memory, memory)
       [] -> cloak_info |> Map.put(:memory, %{})
     end
+  end
+
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg) do
+    import Aircloak.ChildSpec
+
+    supervisor(
+      [
+        gen_server(__MODULE__, [], name: @serializer_name),
+        registry(:duplicate, @data_source_registry_name),
+        registry(:unique, @memory_registry_name),
+        registry(:duplicate, @all_cloak_registry_name),
+      ],
+      strategy: :one_for_one, name: __MODULE__
+    )
   end
 end

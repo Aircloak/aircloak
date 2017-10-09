@@ -28,22 +28,12 @@ defmodule Air.PsqlServer do
 
   @behaviour RanchServer
 
-  @type configuration :: %{require_ssl: boolean, certfile: String.t, keyfile: String.t}
+  @type configuration :: %{require_ssl: boolean, certfile: String.t | nil, keyfile: String.t | nil}
 
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
-
-  @doc "Returns the supervisor specification for the server."
-  @spec child_spec() :: Supervisor.child_spec
-  def child_spec(), do:
-    RanchServer.child_spec(
-      Application.fetch_env!(:air, Air.PsqlServer)[:port],
-      __MODULE__,
-      nil,
-      ranch_opts()
-    )
 
   @doc "Converts the type string returned from cloak to PostgreSql type atom."
   @spec psql_type(String.t) :: Protocol.Value.type
@@ -120,11 +110,11 @@ defmodule Air.PsqlServer do
   # Air.PsqlServer.RanchServer callback functions
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl RanchServer
   def init(conn, nil), do:
     {:ok, RanchServer.assign(conn, :async_jobs, %{})}
 
-  @doc false
+  @impl RanchServer
   def login(conn, password) do
     with data_source_id <- {:name, conn.login_params["database"]},
          {:ok, user} <- User.login(conn.login_params["user"], password),
@@ -144,7 +134,7 @@ defmodule Air.PsqlServer do
     end
   end
 
-  @doc false
+  @impl RanchServer
   def run_query(conn, query, params, _max_rows) do
     case run_special_query(conn, query) do
       {true, conn} ->
@@ -155,13 +145,13 @@ defmodule Air.PsqlServer do
     end
   end
 
-  @doc false
+  @impl RanchServer
   def cancel_query(conn, key_data) do
     ConnectionRegistry.cancel_query(key_data)
     conn
   end
 
-  @doc false
+  @impl RanchServer
   def describe_statement(conn, query, params) do
     case describe_special_query(conn, query, params) do
       {true, conn} ->
@@ -186,7 +176,7 @@ defmodule Air.PsqlServer do
     end
   end
 
-  @doc false
+  @impl RanchServer
   def handle_message(conn, {ref, query_result}) do
     case Map.fetch(conn.assigns.async_jobs, ref) do
       :error ->
@@ -341,4 +331,21 @@ defmodule Air.PsqlServer do
     defp psql_type_impl(unquote(sql_type)), do: unquote(psql_type)
   end
   defp psql_type_impl(_other), do: :unknown
+
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg), do:
+    Supervisor.child_spec(
+      {RanchServer, {
+        Application.fetch_env!(:air, Air.PsqlServer)[:port],
+        __MODULE__,
+        nil,
+        ranch_opts()
+      }},
+      id: __MODULE__
+    )
 end

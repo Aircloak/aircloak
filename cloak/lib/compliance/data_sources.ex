@@ -23,6 +23,7 @@ defmodule Compliance.DataSources do
   @spec all_from_config(String.t) :: [Cloak.DataSource.t]
   def all_from_config(name), do:
     read_config(name)["data_sources"]
+    |> Cloak.DataSource.Utility.load_individual_data_source_configs()
     |> Enum.uniq_by(& {&1["parameters"], &1["driver"]})
     |> Cloak.DataSource.config_to_datasources()
 
@@ -88,6 +89,8 @@ defmodule Compliance.DataSources do
     Compliance.DataSource.SQLServer
   defp handler_for_data_source(%{driver: Cloak.DataSource.MongoDB}), do:
     Compliance.DataSource.MongoDB
+  defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServerTds}), do:
+    Compliance.DataSource.SQLServerTds
 
 
   # -------------------------------------------------------------------

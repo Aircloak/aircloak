@@ -14,7 +14,7 @@ defmodule Mix.Tasks.SiteRelease do
   # Mix.Task behaviour is not in PLT since Mix is not a runtime dep, so we disable the warning
   @dialyzer :no_undefined_callbacks
 
-  @doc false
+  @impl Mix.Task
   def run(args) do
     {:ok, cwd} = File.cwd()
     brunch_bin = Path.join([cwd, "node_modules/brunch/bin/brunch"])

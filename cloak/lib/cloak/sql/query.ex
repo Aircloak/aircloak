@@ -43,22 +43,21 @@ defmodule Cloak.Sql.Query do
     columns: [Expression.t],
     column_titles: [String.t],
     aggregators: [Function.t],
-    # When row-splitters are used (like `extract_matches`), the row splitting has to happen
+    # When row-splitters are used (like `extract_words`), the row splitting has to happen
     # prior to other functions being executed. All function call chains that contain one or
     # more row-splitters in them are partitioned such that the row-splitters and their child
     # function applications are contained in the row-splitters. The original function call
     # chains are then amended to take a virtual column as their input representing the output
     # of the row-splitters:
     #
-    #   avg(length(extract_matches(cast(number as text), '\d+')))
+    #   avg(length(extract_words(cast(number as text))))
     #
     # becomes:
     #
-    #   avg(length(<dummy_column>)
-    #   extract_matches(cast(number as text), '\d+')
+    #   avg(length(<dummy_column>))
+    #   extract_words(cast(number as text))
     #
     # where the latter of these two is contained in the row-splitters.
-    row_splitters: [%{function_spec: Parser.function_spec, row_index: row_index}],
     implicit_count?: boolean,
     group_by: [Function.t],
     where: where_clause,
@@ -89,7 +88,7 @@ defmodule Cloak.Sql.Query do
 
   defstruct [
     columns: [], where: nil, group_by: [], order_by: [], column_titles: [], aggregators: [],
-    info: [], selected_tables: [], row_splitters: [], implicit_count?: false, data_source: nil, command: nil,
+    info: [], selected_tables: [], implicit_count?: false, data_source: nil, command: nil,
     show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil, distinct?: false,
     features: %{}, emulated_where: nil, ranges: [], parameters: [], views: %{}, emulated?: false, sample_rate: nil,
     projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false, table_aliases: %{},
@@ -173,11 +172,6 @@ defmodule Cloak.Sql.Query do
     end
   end
 
-  @doc "Returns the next row index and the transformed query with incremented row index."
-  @spec next_row_index(t) :: {row_index, t}
-  def next_row_index(query), do:
-    {query.next_row_index, %__MODULE__{query | next_row_index: query.next_row_index + 1}}
-
   @doc "Sets the parameter type."
   @spec set_parameter_type(t, pos_integer, DataSource.Table.data_type) :: t
   def set_parameter_type(query, parameter_index, type), do:
@@ -236,6 +230,30 @@ defmodule Cloak.Sql.Query do
     end
   end
 
+  @doc "Updates the emulation flag to reflect whether the query needs to be emulated."
+  @spec set_emulation_flag(t) :: t
+  def set_emulation_flag(query), do:
+    %__MODULE__{query | emulated?: Cloak.Query.DataEngine.needs_emulation?(query)}
+
+  @doc "Returns the list of outermost selected splitters."
+  @spec outermost_selected_splitters(t) :: [Expression.t]
+  def outermost_selected_splitters(query), do:
+    Lens.to_list(Lenses.outermost_selected_splitters(), query)
+
+  @doc "Returns the list of outermost where splitters."
+  @spec outermost_where_splitters(t) :: [Expression.t]
+  def outermost_where_splitters(query), do:
+    Lens.to_list(Lenses.outermost_where_splitters(), query)
+
+  @doc """
+  Returns the list of all splitters which are used in select expressions.
+
+  The splitters are returned in post-order, meaning that a nested splitter will always precede its ancestors.
+  """
+  @spec all_selected_splitters(t) :: [Expression.t]
+  def all_selected_splitters(query), do:
+    Enum.flat_map(query.columns, &Expression.all_splitters/1)
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -254,4 +272,7 @@ defmodule Cloak.Sql.Query do
       :ok
     end
   end
+
+  defp next_row_index(query), do:
+    {query.next_row_index, %__MODULE__{query | next_row_index: query.next_row_index + 1}}
 end

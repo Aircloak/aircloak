@@ -11,7 +11,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   alias Cloak.Sql.{CompilationError, Condition, Expression, FixAlign, Function, Query, Range}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
-  alias Cloak.Query.DataDecoder
+  alias Cloak.Query.DataEngine
 
 
   # -------------------------------------------------------------------
@@ -31,12 +31,11 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> align_join_ranges()
     |> optimize_columns_from_projected_tables()
     |> compile_sample_rate()
-    |> set_emulation_flag()
+    |> Query.set_emulation_flag()
     |> partition_where_clauses()
-    |> calculate_db_columns()
-    |> parse_row_splitters()
-    |> compute_aggregators()
     |> reject_null_user_ids()
+    |> calculate_db_columns()
+    |> compute_aggregators()
 
   @doc "Creates an executable query which describes a SELECT statement from a single table."
   @spec make_select_query(DataSource.t, DataSource.Table.t, [Expression.t]) :: Query.t
@@ -141,7 +140,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     columns = [user_id | Enum.filter(columns, &(&1.alias || &1.name) in required_column_names)]
     titles = [user_id_title | Enum.filter(column_titles, & &1 in required_column_names)]
     %Query{ast | next_row_index: 0, db_columns: [], columns: columns, column_titles: titles}
-    |> set_emulation_flag()
+    |> Query.set_emulation_flag()
     |> calculate_db_columns()
   end
 
@@ -222,90 +221,9 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp order_by_columns(order_by_clauses), do:
     Enum.map(order_by_clauses, fn({column, _direction}) -> column end)
 
-  defp parse_row_splitters(%Query{} = query) do
-    {transformed_columns, query} = transform_splitter_columns(query, query.columns)
-    validate_row_splitters_conditions(query)
-    %Query{query | columns: transformed_columns}
-  end
-
-  defp transform_splitter_columns(query, columns) do
-    {reversed_transformed_columns, final_query} =
-      Enum.reduce(columns, {[], query},
-        fn(column, {columns_acc, query_acc}) ->
-          {transformed_column, transformed_query} = transform_splitter_column(column, query_acc)
-          {[transformed_column | columns_acc], transformed_query}
-        end
-      )
-    {Enum.reverse(reversed_transformed_columns), final_query}
-  end
-
-  defp transform_splitter_column(expression = %Expression{function?: true}, query) do
-    {transformed_args, query} = transform_splitter_columns(query, Expression.arguments(expression))
-    expression = %{expression | function_args: transformed_args}
-    if Function.has_attribute?(expression, :row_splitter) do
-      # We are making the simplifying assumption that row splitting functions have
-      # the value column returned as part of the first column
-      {splitter_row_index, query} = add_row_splitter(query, expression)
-      db_column = case expression |> Expression.arguments() |> hd() |> Expression.first_column() do
-        nil -> raise CompilationError, message:
-          "Function `#{Function.readable_name(expression.function)}` requires that the first argument must be a column."
-        value -> value
-      end
-      column_name = "#{Function.readable_name(expression.function)}_return_value"
-      return_type = Function.return_type(expression)
-      # This, most crucially, preserves the DB row position parameter
-      augmented_column = %Expression{db_column | name: column_name, type: return_type, row_index: splitter_row_index}
-      # We need to update all other references to this column (group by, propeprty, etc.)
-      query = update_in(query, [Lenses.query_expressions()], &if &1 == expression do augmented_column else &1 end)
-      {augmented_column, query}
-    else
-      {expression, query}
-    end
-  end
-  defp transform_splitter_column(other, query), do: {other, query}
-
-  defp add_row_splitter(query, function_spec) do
-    case Enum.find(query.row_splitters, &function_spec == &1.function_spec) do
-      %{row_index: splitter_row_index} ->
-        {splitter_row_index, query}
-      nil ->
-        {splitter_row_index, query} = Query.next_row_index(query)
-        new_splitter = %{function_spec: function_spec, row_index: splitter_row_index}
-        {new_splitter.row_index, %Query{query | row_splitters: query.row_splitters ++ [new_splitter]}}
-    end
-  end
-
-  defp validate_row_splitters_conditions(%Query{emulated_where: conditions}) do
-    conditions
-    |> get_in([Query.Lenses.conditions_terminals()])
-    |> Enum.any?(&Function.has_attribute?(&1, :row_splitter))
-    |> if do
-      raise CompilationError, message:
-        "Row splitter function used in the `WHERE` clause has to be first used identically in the `SELECT` clause."
-    end
-  end
-
   defp partition_where_clauses(query) do
-    # extract conditions needing emulation
-    {emulated_where, where} = Condition.partition(query.where, fn (condition) ->
-      emulated_expression_condition?(condition) or
-      (
-        query.emulated? and
-        (
-          multiple_tables_condition?(condition) or
-          not is_binary(query.from)
-        )
-      )
-    end)
+    {emulated_where, where} = DataEngine.partitioned_where_clauses(query)
     %Query{query | where: where, emulated_where: emulated_where}
-  end
-
-  defp multiple_tables_condition?(condition) do
-    Query.Lenses.conditions_terminals()
-    |> Lens.to_list([condition])
-    |> Enum.map(& &1.table)
-    |> Enum.uniq()
-    |> Enum.count() > 1
   end
 
   defp align_join_ranges(query), do:
@@ -424,7 +342,13 @@ defmodule Cloak.Sql.Compiler.Execution do
   end
 
   defp needed_columns(query), do:
-    [query.columns, query.group_by, query.emulated_where, query.having, Query.order_by_expressions(query)]
+    [
+      query.columns,
+      query.group_by,
+      query.emulated_where,
+      query.having,
+      Query.order_by_expressions(query),
+    ]
 
   defp compile_sample_rate(%Query{sample_rate: amount} = query) when amount != nil do
     true = is_integer(amount)
@@ -435,40 +359,4 @@ defmodule Cloak.Sql.Compiler.Execution do
     %Query{query | where: Condition.combine(:and, sample_condition, query.where)}
   end
   defp compile_sample_rate(query), do: query
-
-
-  # -------------------------------------------------------------------
-  # Query emulation
-  # -------------------------------------------------------------------
-
-  defp emulated_expression?(expression), do:
-    DataDecoder.needs_decoding?(expression) or Function.has_attribute?(expression, :emulated)
-
-  defp emulated_expression_condition?(condition) do
-    Query.Lenses.conditions_terminals()
-    |> Lens.to_list([condition])
-    |> Enum.any?(&emulated_expression?/1)
-  end
-
-  defp set_emulation_flag(query), do: %Query{query | emulated?: needs_emulation?(query)}
-
-  defp has_emulated_expressions?(query), do:
-    Query.Lenses.all_expressions()
-    |> Lens.to_list([query.columns, query.group_by, query.having, query.where])
-    |> Enum.any?(&emulated_expression?/1)
-
-  defp has_emulated_join_conditions?(query), do:
-    query
-    |> Helpers.all_join_conditions()
-    |> get_in([Query.Lenses.all_expressions()])
-    |> Enum.any?(&emulated_expression?/1)
-
-  defp needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
-  defp needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do:
-    not query.data_source.driver.supports_query?(query) or has_emulated_expressions?(query)
-  defp needs_emulation?(query), do:
-    not query.data_source.driver.supports_query?(query) or
-    query |> get_in([Query.Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?)) or
-    (query.subquery? and has_emulated_expressions?(query)) or
-    has_emulated_join_conditions?(query)
 end

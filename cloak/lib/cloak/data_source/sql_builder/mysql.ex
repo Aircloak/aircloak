@@ -7,10 +7,11 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   # -------------------------------------------------------------------
 
   use Cloak.DataSource.SqlBuilder.Dialect
+  alias Cloak.DataSource.SqlBuilder.Dialect
 
   @max_unsigned_bigint 18_446_744_073_709_551_615
 
-  @doc false
+  @impl Dialect
   def supported_functions(), do:
     ~w(
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct
@@ -20,7 +21,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
       hex cast coalesce hash
     )
 
-  @doc false
+  @impl Dialect
   for datepart <- ~w(year month day hour minute second quarter) do
     def function_sql(unquote(datepart), args), do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
   end
@@ -39,23 +40,23 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   end
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") ,")"]
 
-  @doc false
+  @impl Dialect
   def like_sql(what, match), do: super([what, " COLLATE utf8_bin"], match)
 
-  @doc false
+  @impl Dialect
   def ilike_sql(what, match), do: [what, " COLLATE utf8_general_ci LIKE " , match]
 
-  @doc false
+  @impl Dialect
   def limit_sql(nil, offset), do: [" LIMIT ", to_string(offset), ", #{@max_unsigned_bigint}"]
   def limit_sql(limit, offset), do: [" LIMIT ", to_string(offset), ", ", to_string(limit)]
 
-  @doc false
+  @impl Dialect
   def sql_type(:real), do: "decimal(65, 15)"
   def sql_type(:boolean), do: "bool"
   def sql_type(:text), do: "char"
   def sql_type(:integer), do: "signed"
   def sql_type(type) when is_atom(type), do: Atom.to_string(type)
 
-  @doc false
+  @impl Dialect
   def unicode_literal(value), do: ["N'", value, ?']
 end

@@ -1,0 +1,62 @@
+defmodule Cloak.DataSource.Utility do
+  @moduledoc """
+  This module contains utility functions that can be used when working with data sources.
+  """
+
+  require Logger
+  require Aircloak.File
+
+
+  # -------------------------------------------------------------------
+  # API
+  # -------------------------------------------------------------------
+
+  @doc "This function will return a list of data source definitions, as referenced by a data source"
+  @spec load_individual_data_source_configs(String.t | [DataSource.t]) :: [DataSource.t]
+  # This is the legacy path where data sources where configured as a list of data source definitions inline
+  def load_individual_data_source_configs(data_sources) when is_list(data_sources), do: data_sources
+  def load_individual_data_source_configs(config_path) when is_binary(config_path) do
+    case Aircloak.File.ls(config_path) do
+      {:ok, data_source_config_files} ->
+        data_source_config_files
+        |> Enum.map(fn(file_name) ->
+          path = Path.join(config_path, file_name)
+          case Aircloak.File.read_config_file(path) do
+            {:ok, data_source_definition} -> data_source_definition
+            {:error, reason} ->
+              Logger.error("Failed at reading datasource config from `#{path}`: #{reason}")
+              nil
+          end
+        end)
+        |> Enum.reject(& is_nil/1)
+      {:error, reason} ->
+        Logger.error("Failed at loading data sources configurations from `#{config_path}`. " <>
+          "Reason: #{Aircloak.File.humanize_posix_error(reason)}.")
+        []
+    end
+  end
+
+  @driver_name_to_module_mappings [
+    {"mongodb", Cloak.DataSource.MongoDB},
+    {"mysql", Cloak.DataSource.MySQL},
+    {"odbc", Cloak.DataSource.ODBC},
+    {"postgresql", Cloak.DataSource.PostgreSQL},
+    {"sqlserver", Cloak.DataSource.SQLServer},
+    {"sqlserver_tds", Cloak.DataSource.SQLServerTds},
+    {"saphana", Cloak.DataSource.SAPHana},
+  ]
+
+  @doc "Returns the data source driver module given a data source type name"
+  @spec name_to_driver(String.t) :: {:ok, atom} | {:error, :unknown}
+  Enum.each(@driver_name_to_module_mappings, fn({name, driver}) ->
+    def name_to_driver(unquote(name)), do: {:ok, unquote(driver)}
+  end)
+  def name_to_driver(_other), do: {:error, :unknown}
+
+  @doc "Returns the data source type name given a driver module"
+  @spec driver_to_name(atom) :: {:ok, String.t} | {:error, :unknown}
+  Enum.each(@driver_name_to_module_mappings, fn({name, driver}) ->
+    def driver_to_name(unquote(driver)), do: {:ok, unquote(name)}
+  end)
+  def driver_to_name(_other), do: {:error, :unknown}
+end

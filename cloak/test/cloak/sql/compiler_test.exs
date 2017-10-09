@@ -798,22 +798,13 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "view has the same limitations as the subquery" do
-    assert {:error, error} = validate_view("select uid, extract_match(string, '') from table", data_source())
-    assert error == "Function `extract_match` is not allowed in subqueries."
+    assert {:error, error} = validate_view("select uid, extract_words(string) from table", data_source())
+    assert error == "Function `extract_words` is not allowed in subqueries."
   end
 
   test "compilation of row splitters" do
-    {:ok, query} = compile("select extract_matches(string, 'thing') from table", data_source())
-    assert [%Expression{name: "extract_matches_return_value", row_index: index}] = query.columns
+    {:ok, query} = compile("select extract_words(string) from table", data_source())
     assert Enum.any?(query.db_columns, &match?(%Expression{name: "string"}, &1))
-    assert [%{
-      function_spec: %Expression{
-        function?: true,
-        function: "extract_matches",
-        function_args: [%Expression{name: "string"}, %Expression{value: ~r/thing/ui}]
-      },
-      row_index: ^index
-    }] = query.row_splitters
   end
 
   test "only needed columns are fetched from a projected table" do
@@ -849,87 +840,6 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejecting non-aggregated column when count(*) is in a non-selected ORDER BY" do
     assert {:error, "Column `numeric` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
       compile("SELECT numeric FROM table ORDER BY count(*)", data_source())
-  end
-
-  describe "normalization" do
-    test "normalizing NOT IN as a series of <>" do
-      result1 = compile!("SELECT * FROM table WHERE numeric NOT IN (1, 2, 3)", data_source())
-      result2 = compile!("SELECT * FROM table WHERE numeric <> 3 AND numeric <> 2 AND numeric <> 1", data_source())
-
-      assert result1.where == result2.where
-    end
-
-    test "normalizing constant expressions" do
-      result1 = compile!("SELECT * FROM table WHERE numeric = 2 * 3 + 4", data_source())
-      result2 = compile!("SELECT * FROM table WHERE numeric = 10", data_source())
-
-      assert result1.where == result2.where
-    end
-
-    test "normalization in subqueries" do
-      %{from: {:subquery, %{ast: result1}}} = compile!(
-        "SELECT * FROM (SELECT * FROM table WHERE numeric = 2 * 3 + 4) x", data_source())
-      %{from: {:subquery, %{ast: result2}}} = compile!(
-        "SELECT * FROM (SELECT * FROM table WHERE numeric = 10) x", data_source())
-
-      assert result1.where == result2.where
-    end
-
-    test "normalizing upper(x) <> constant" do
-      result1 = compile!("SELECT * FROM table WHERE upper(string) <> 'CeO'", data_source())
-      result2 = compile!("SELECT * FROM table WHERE lower(string) <> 'cEo'", data_source())
-
-      assert result1.where == result2.where
-    end
-
-    test "normalizing like patterns" do
-      result1 = compile!("SELECT * FROM table WHERE string LIKE 'a_%__%_b%c%%d___'", data_source())
-      result2 = compile!("SELECT * FROM table WHERE string LIKE 'a%____b%c%d___'", data_source())
-
-      assert result1.where == result2.where
-    end
-
-    test "normalizing trivial like patterns" do
-      result1 = compile!("SELECT * FROM table WHERE string LIKE 'abc'", data_source())
-      result2 = compile!("SELECT * FROM table WHERE string = 'abc'", data_source())
-
-      assert result1.where == result2.where
-    end
-
-    test "normalizing trivial not like patterns" do
-      result1 = compile!("SELECT * FROM table WHERE string NOT LIKE 'abc'", data_source())
-      result2 = compile!("SELECT * FROM table WHERE string <> 'abc'", data_source())
-
-      assert result1.where == result2.where
-    end
-
-    test "normalizing ilike patterns" do
-      result1 = compile!("SELECT * FROM table WHERE string ILIKE 'a_%__%_b%c%%d___'", data_source())
-      result2 = compile!("SELECT * FROM table WHERE string ILIKE 'a%____b%c%d___'", data_source())
-
-      assert result1.where == result2.where
-    end
-
-    test "normalizing trivial not ilike patterns" do
-      result1 = compile!("SELECT * FROM table WHERE string NOT ILIKE 'AbC'", data_source())
-      result2 = compile!("SELECT * FROM table WHERE lower(string) <> 'abc'", data_source())
-
-      assert result1.where == result2.where
-    end
-
-    test "normalizing trivial ilike patterns" do
-      result1 = compile!("SELECT * FROM table WHERE string ILIKE 'abc'", data_source())
-      result2 = compile!("SELECT * FROM table WHERE lower(string) = lower('abc')", data_source())
-
-      assert result1.where == result2.where
-    end
-
-    test "normalizing IN(single_value)" do
-      result1 = compile!("SELECT * FROM table WHERE string IN ('a')", data_source())
-      result2 = compile!("SELECT * FROM table WHERE string = 'a'", data_source())
-
-      assert result1.where == result2.where
-    end
   end
 
   test "rejecting duplicate table", do:

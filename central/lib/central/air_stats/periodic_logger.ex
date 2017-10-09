@@ -1,7 +1,7 @@
 defmodule Central.AirStats.PeriodicLogger do
   @moduledoc "Periodic logging of data for all known airs."
 
-  use GenServer
+  use GenServer, start: {__MODULE__, :start_link, []}
   alias Central.Service.{Customer, ElasticSearch}
 
   # -------------------------------------------------------------------
@@ -18,13 +18,13 @@ defmodule Central.AirStats.PeriodicLogger do
   # GenServer callbacks
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl GenServer
   def init(nil) do
     queue_next_logging()
     {:ok, nil}
   end
 
-  @doc false
+  @impl GenServer
   def handle_info({:DOWN, mref, :process, _, _}, mref) do
     queue_next_logging()
     {:noreply, nil}

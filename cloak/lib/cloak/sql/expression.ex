@@ -8,7 +8,7 @@ defmodule Cloak.Sql.Expression do
   alias Cloak.Sql.LikePattern
   alias Timex.Duration
 
-  @type column_type :: DataSource.Table.data_type | :like_pattern | nil
+  @type column_type :: DataSource.Table.data_type | :like_pattern | :interval | nil
   @type function_name ::
     String.t |
     {:cast, DataSource.Table.data_type | :varbinary} |
@@ -35,6 +35,17 @@ defmodule Cloak.Sql.Expression do
     value: nil, function: nil, function_args: [], aggregate?: false, function?: false, parameter_index: nil,
     visible?: true, key?: false
   ]
+
+  @doc "Returns an expression representing a reference to the given column in the given table."
+  @spec column(DataSource.column, DataSource.table) :: t
+  def column(column, table), do:
+    %__MODULE__{
+      table: table,
+      name: column.name,
+      type: column.type,
+      user_id?: table.user_id == column.name,
+      key?: column.name in Map.get(table, :keys, []),
+    }
 
   @doc "Returns a column struct representing the constant `value`."
   @spec constant(column_type, any, pos_integer | nil) :: t
@@ -150,6 +161,10 @@ defmodule Cloak.Sql.Expression do
   def arguments(%__MODULE__{function?: true, function_args: args}), do: args
   def arguments(_), do: []
 
+  @doc "Returns the first argument of the function expression."
+  @spec first_argument!(t) :: t
+  def first_argument!(%__MODULE__{function?: true, function_args: [arg | _]}), do: arg
+
   @doc "Returns the result of applying the given function expression to the given list of arguments."
   @spec apply_function(t, [any]) :: any
   def apply_function(expression = %__MODULE__{function?: true}, args) do
@@ -177,9 +192,26 @@ defmodule Cloak.Sql.Expression do
   @doc "Returns true if the given expression is the row splitting function."
   @spec row_splitter?(t) :: boolean
   def row_splitter?(%__MODULE__{function?: true} = function), do:
-    Cloak.Sql.Function.has_attribute?(function, :row_spliiter)
+    Cloak.Sql.Function.has_attribute?(function, :row_splitter)
   def row_splitter?(_), do: false
 
+  @doc """
+  Returns a list of all splitters used in the given expressions.
+
+  The splitters are returned in post-order, meaning that a nested splitter will always precede its ancestors.
+  """
+  @spec all_splitters(t) :: [t]
+  def all_splitters(%__MODULE__{function?: false}), do:
+    []
+  def all_splitters(function) do
+    this_splitter = if row_splitter?(function), do: [function], else: []
+    nested_splitters =
+      function
+      |> arguments()
+      |> Enum.flat_map(&all_splitters/1)
+
+    Enum.concat([nested_splitters, this_splitter])
+  end
 
   @doc """
   Returns the list of unique expression, preserving duplicates of some expressions.
@@ -201,6 +233,15 @@ defmodule Cloak.Sql.Expression do
   @spec unalias(t) :: t
   def unalias(expression), do:
     %__MODULE__{expression | alias: nil}
+
+
+  @doc "Recursively evaluates a split expression and returns all the values yielded by the splitter."
+  @spec splitter_values(t, DataSource.row) :: [DataSource.field]
+  def splitter_values(splitter, row), do:
+    Enum.map(
+      eval_split_expression(splitter, row),
+      fn(%__MODULE__{constant?: true, value: value}) -> value end
+    )
 
 
   # -------------------------------------------------------------------
@@ -259,15 +300,8 @@ defmodule Cloak.Sql.Expression do
     <<hash::60, _::4, _::64>> = :crypto.hash(:md5, to_string(value))
     hash
   end
-  defp do_apply("extract_match", [string, regex]) do
-    case Regex.run(regex, string, capture: :first) do
-      [capture] -> capture
-      nil -> nil
-    end
-  end
-  defp do_apply("extract_matches", [nil, _regex]), do: [nil]
-  defp do_apply("extract_matches", [string, regex]), do:
-    List.flatten(Regex.scan(regex, string, capture: :first))
+  defp do_apply("extract_words", [nil]), do: [nil]
+  defp do_apply("extract_words", [string]), do: String.split(string)
   defp do_apply("^", [x, y]), do: :math.pow(x, y)
   defp do_apply("*", [x = %Duration{}, y]), do: Duration.scale(x, y)
   defp do_apply("*", [x, y = %Duration{}]), do: do_apply("*", [y, x])
@@ -417,4 +451,35 @@ defmodule Cloak.Sql.Expression do
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _}), do: nil
+
+  defp eval_split_expression(%__MODULE__{constant?: true} = expression, _row), do:
+    [expression]
+  defp eval_split_expression(%__MODULE__{function?: false} = expression, row), do:
+    [constant(expression.type, value(expression, row))]
+  defp eval_split_expression(%__MODULE__{function?: true} = expression, row) do
+    apply_args_instances(expression, eval_args(expression.function_args, row))
+  end
+
+  defp eval_args([], _row), do: [[]]
+  defp eval_args([arg | rest], row) do
+    for arg_value <- eval_split_expression(arg, row), remaining_arg_values <- eval_args(rest, row), do:
+      [arg_value | remaining_arg_values]
+  end
+
+  defp apply_args_instances(function, args_instances) do
+    Enum.flat_map(args_instances, &invoke_fun(function, &1))
+  end
+
+  defp invoke_fun(function, args), do:
+    function
+    |> function_results(args)
+    |> Enum.map(&constant(function.type, &1))
+
+  defp function_results(function, args) do
+    if row_splitter?(function) do
+      value(%{function | function_args: args, row_index: nil})
+    else
+      [value(%{function | function_args: args})]
+    end
+  end
 end

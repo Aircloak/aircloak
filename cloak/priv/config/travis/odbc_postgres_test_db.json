@@ -1,0 +1,13 @@
+{
+  "driver": "odbc",
+  "marker": "odbc-postgresql",
+  "name": "odbc_postgres_test_db",
+  "parameters": {
+    "DSN": "PostgreSQL",
+    "UID": "postgres",
+    "Database": "cloaktest1",
+    "Server": "localhost"
+  },
+  "tables": {
+  }
+}

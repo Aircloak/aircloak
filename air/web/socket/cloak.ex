@@ -24,7 +24,7 @@ defmodule Air.Socket.Cloak do
   # Phoenix.Socket callback functions
   # -------------------------------------------------------------------
 
-  @doc false
+  @impl Phoenix.Socket
   def connect(params, socket) do
     Logger.info("Cloak connecting #{inspect params}")
     cloak_name = params["cloak_name"]
@@ -43,7 +43,7 @@ defmodule Air.Socket.Cloak do
     end
   end
 
-  @doc false
+  @impl Phoenix.Socket
   @dialyzer {:nowarn_function, id: 1} # Phoenix bug, fixed in master
   def id(socket),
     do: "cloak_socket:#{socket.assigns.cloak_id}"

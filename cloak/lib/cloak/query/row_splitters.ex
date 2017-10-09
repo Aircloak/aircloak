@@ -21,7 +21,7 @@ defmodule Cloak.Query.RowSplitters do
     `splitter(function1(function2(value)))`
   """
 
-  alias Cloak.Sql.{Query, Expression}
+  alias Cloak.Sql.{Expression, Function, Query, Query.Lenses}
 
 
   # -------------------------------------------------------------------
@@ -29,11 +29,17 @@ defmodule Cloak.Query.RowSplitters do
   # -------------------------------------------------------------------
 
   @doc "Splits individual rows into multiple rows based on applied splitter functions"
-  @spec split(Enumerable.t, Query.t) :: Enumerable.t
-  def split(rows, %Query{row_splitters: []}), do: rows
+  @spec split(Enumerable.t, Query.t) :: {Enumerable.t, Query.t}
   def split(rows, query) do
-    splitter_indices = query.row_splitters |> Enum.map(& &1.row_index) |> Enum.sort()
-    Stream.flat_map(rows, &split_row(pad(&1, splitter_indices), query))
+    query =
+      query
+      |> name_outermost_selected_splitters()
+      |> add_outermost_splitters_to_db_columns()
+
+    {
+      split_rows(rows, Query.outermost_selected_splitters(query)),
+      query
+    }
   end
 
 
@@ -41,17 +47,58 @@ defmodule Cloak.Query.RowSplitters do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp split_row(row, query) do
-    Enum.reduce(query.row_splitters, [row], fn(splitter, rows_acc) ->
-      Enum.flat_map(rows_acc, &apply_top_most_row_splitter(&1, splitter))
-    end)
-  end
+  defp name_outermost_selected_splitters(query), do:
+    # Note: we need to rename all outermost splitters in the select list first, and only then can we rename the
+    # remaining splitters. This ensures that two identical outermost selected splitters will get two different names.
+    query
+    |> name_outermost_splitters_in_select_list()
+    |> sync_references_to_selected_outermost_splitters()
 
-  defp apply_top_most_row_splitter(row, splitter) do
-    for cell_value <- Expression.value(splitter.function_spec, row), do:
-      List.replace_at(row, splitter.row_index, cell_value)
-  end
+  defp name_outermost_splitters_in_select_list(query), do:
+    update_in(query, [Lenses.outermost_selected_splitters()], &name_splitter/1)
 
-  defp pad(row, splitter_indices), do:
-    Enum.reduce(splitter_indices, row, &List.insert_at(&2, &1, nil))
+  defp sync_references_to_selected_outermost_splitters(query), do:
+    Enum.reduce(
+      Query.outermost_selected_splitters(query),
+      query,
+      fn(named_splitter, query) ->
+        put_in(
+          query,
+          [Lenses.expression_instances(%Expression{named_splitter | name: nil}) |> Lens.key(:name)],
+          named_splitter.name
+        )
+      end
+    )
+
+  defp add_outermost_splitters_to_db_columns(query), do:
+    Enum.reduce(Query.outermost_selected_splitters(query), query, &Query.add_db_column(&2, &1))
+
+  defp name_splitter(splitter), do:
+    %Expression{splitter |
+      name: Enum.join(
+        ["splitter", Function.readable_name(splitter.function), :erlang.unique_integer([:positive])],
+        "_"
+      )
+    }
+
+  defp split_rows(rows, []), do:
+    # optimization -> no row splitters, so we're just passing the input enumerable
+    rows
+  defp split_rows(rows, row_splitters), do:
+    Stream.flat_map(rows, &split_row(&1, row_splitters))
+
+  defp split_row(row, row_splitters), do:
+    row_splitters
+    |> splitters_values(row)
+    |> Enum.map(&(row ++ &1))
+
+  defp splitters_values([], _row), do: [[]]
+  defp splitters_values([splitter | remaining_splitters], row) do
+    for \
+      splitter_value <- Expression.splitter_values(splitter, row),
+      remaining_splitters_values <- splitters_values(remaining_splitters, row)
+    do
+      [splitter_value | remaining_splitters_values]
+    end
+  end
 end

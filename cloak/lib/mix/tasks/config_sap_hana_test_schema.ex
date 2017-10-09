@@ -13,7 +13,7 @@ defmodule Mix.Tasks.ConfigSapHanaTestSchema do
 
   use Mix.Task
 
-  @doc false
+  @impl Mix.Task
   def run(_args) do
     if System.get_env("TRAVIS") == "true" do
       schema_name = "test_schema_#{Base.encode16(:crypto.strong_rand_bytes(10))}"
