@@ -13,14 +13,12 @@ defmodule Compliance.DataSource.SQLServer.Common do
     ]
 
   @doc false
-  def insert_rows_queries(table_name, data) do
+  def insert_rows_query(table_name, data) do
     column_names = column_names(data)
     rows = rows(data, column_names)
     escaped_column_names = escaped_column_names(column_names)
-
-    Enum.map(rows, fn(row) ->
-      "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names, ", ")}) values (#{Enum.join(row, ", ")})"
-    end)
+    sql = "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names, ", ")}) values ($VALUES)"
+    {sql, rows}
   end
 
 
@@ -36,17 +34,8 @@ defmodule Compliance.DataSource.SQLServer.Common do
 
   defp rows(data, column_names), do:
     Enum.map(data, fn(entry) ->
-      column_names
-      |> Enum.map(& Map.get(entry, &1))
-      |> Enum.map(& cast_types/1)
+      Enum.map(column_names, &Map.get(entry, &1))
     end)
-
-  defp cast_types(binary) when is_binary(binary), do: "'#{String.replace(binary, "'", "''")}'"
-  defp cast_types(integer) when is_integer(integer), do: to_string(integer)
-  defp cast_types(float) when is_float(float), do: to_string(float)
-  defp cast_types(true), do: 1
-  defp cast_types(false), do: 0
-  defp cast_types(%{calendar: Calendar.ISO} = datetime), do: datetime |> to_string() |> cast_types()
 
   defp escaped_column_names(column_names), do:
     column_names
@@ -67,6 +56,6 @@ defmodule Compliance.DataSource.SQLServer.Common do
   defp sql_type(:integer), do: "integer"
   defp sql_type(:real), do: "real"
   defp sql_type(:boolean), do: "bit"
-  defp sql_type(:text), do: "text"
+  defp sql_type(:text), do: "nvarchar(4000)"
   defp sql_type(:datetime), do: "datetime2"
 end

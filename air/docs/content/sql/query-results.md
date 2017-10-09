@@ -71,7 +71,7 @@ After low-count values are filtered, some amount of noise is introduced. Conside
 
 The results of aggregate functions, such as `SUM` and `COUNT`, are also anonymized. The returned values will slightly differ from the real values.
 
-To ensure anonymity the amount of noise added depends on the number and types of filters used in the query. You might be able to get more accurate results by removing some `WHERE`- or `HAVING`-clauses from your query. Use the [avg_noise](#avgnoise), [count_noise](#countnoise), and [sum_noise](#sumnoise)  functions to get a better idea of how much noise is being added.
+To ensure anonymity the amount of noise added depends on the number and types of filters used in the query. You might be able to get more accurate results by removing some `WHERE`- or `HAVING`-clauses from your query. Use the [avg_noise](#avgnoise), [count_noise](#countnoise), [sum_noise](#sumnoise), and [stddev_noise](#stddevnoise) functions to get a better idea of how much noise is being added.
 
 ### `null` and aggregates of infrequently occurring values
 
@@ -139,3 +139,11 @@ SUM_NOISE(some_column)
 ```
 
 Returns the standard deviation of the noise that would be added to an equivalent `SUM(...)` expression.
+
+### stddev_noise
+
+```sql
+STDDEV_NOISE(some_column)
+```
+
+Returns the standard deviation of the noise that would be added to an equivalent `STDDEV(...)` expression.

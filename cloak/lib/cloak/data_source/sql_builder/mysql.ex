@@ -27,8 +27,9 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   end
   def function_sql("weekday", args), do: ["(WEEKDAY(", args, ") + 1)"]
   def function_sql("trunc", [arg1, arg2]), do: ["TRUNCATE(", arg1, ", ", arg2, ")"]
-  def function_sql("trunc", [arg1]), do: ["TRUNCATE(", arg1, ", 0)"]
-  def function_sql("btrim", [arg1]), do: ["TRIM(", arg1, ")"]
+  def function_sql("trunc", [arg]), do: ["TRUNCATE(", arg, ", 0)"]
+  def function_sql("btrim", [arg]), do: ["TRIM(", arg, ")"]
+  def function_sql("length", [arg]), do: ["CHAR_LENGTH(", arg, ")"]
   def function_sql("div", [arg1, arg2]), do: [arg1, " DIV ", arg2]
   def function_sql("hex", [arg]), do: ["LOWER(HEX(", arg, "))"]
   def function_sql("stddev", [arg]), do: ["STDDEV_SAMP(", arg, ")"]

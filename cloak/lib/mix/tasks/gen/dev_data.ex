@@ -76,7 +76,7 @@ defmodule Mix.Tasks.Gen.DevData do
       db_params =
         Aircloak.DeployConfig.fetch!(:cloak, "data_sources")
         |> Cloak.DataSource.Utility.load_individual_data_source_configs()
-        |> Enum.find(&(&1["name"] == "cloak_postgres_native"))
+        |> Enum.find(&(&1["name"] == "postgresql"))
         |> Map.fetch!("parameters")
 
       Postgrex.start_link(
@@ -145,6 +145,7 @@ defmodule Mix.Tasks.Gen.DevData do
 
     defp sap_hana_connection_params(default_schema), do:
       Aircloak.DeployConfig.fetch!(:cloak, "data_sources")
+      |> Cloak.DataSource.Utility.load_individual_data_source_configs()
       |> Enum.find(&(&1["name"] == "saphana"))
       |> Map.fetch!("parameters")
       |> Enum.map(fn({key, value}) -> {String.to_atom(key), value} end)

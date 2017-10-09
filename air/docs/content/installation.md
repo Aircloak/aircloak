@@ -14,9 +14,11 @@ Before installing components, make sure that the following prerequisites are met
 - Docker 1.11 or higher is installed on the host machines.
 - The user which installs the components is logged into `quay.io` with `docker login` using credentials provided by Aircloak.
 - You have your Aircloak provided customer token available.
-- A database in a Postgres server running version 9.4 or higher.
+- A database in a PostgreSQL server running version 9.4 or higher.
 - The Insights Air component requires at least 2GB of RAM.
 - The Insights Cloak component requires at least 8GB of RAM. However, for more complex queries on a larger dataset, more memory might be needed.
+
+{% include "./important-notice.md" %}
 
 ## Insights Air
 
