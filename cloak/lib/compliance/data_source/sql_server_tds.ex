@@ -11,6 +11,7 @@ defmodule Compliance.DataSource.SQLServerTds do
 
   @impl Connector
   def setup(%{parameters: params}) do
+    Application.ensure_all_started(:tds)
     conn = Cloak.DataSource.SQLServerTds.connect!(params)
     Enum.each(Common.setup_queries(), &execute!(conn, &1))
     conn
