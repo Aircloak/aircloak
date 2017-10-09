@@ -21,7 +21,7 @@ defmodule Cloak.Sql.Compiler.Features do
   # Internal functions
   # -------------------------------------------------------------------
 
-  def extract_features(query) do
+  defp extract_features(query) do
     %{
       num_selected_columns: num_selected_columns(query.column_titles),
       num_db_columns: num_db_columns(query.columns),
