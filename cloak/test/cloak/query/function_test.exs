@@ -74,6 +74,14 @@ defmodule Cloak.Query.FunctionTest do
       ]})
     end
 
+    test "with a constant" do
+      assert_query("SELECT extract_words('a b c'), count(*) FROM heights_ft GROUP BY 1", %{rows: [
+        %{row: ["a", 100]},
+        %{row: ["b", 100]},
+        %{row: ["c", 100]},
+      ]})
+    end
+
     test "forbidden in subquery" do
       assert_query("SELECT count(*) FROM (SELECT user_id, extract_words(name) FROM heights_ft) x",
         %{error: "Function `extract_words` is not allowed in subqueries."})
@@ -178,11 +186,6 @@ defmodule Cloak.Query.FunctionTest do
       assert_query("SELECT extract_words(name) FROM heights_ft WHERE extract_words(string_number) = 'first'",
         %{error: "Row splitter functions used in the `WHERE`-clause"
           <> " have to be used identically in the `SELECT`-clause first."})
-    end
-
-    test "invalid extract_words argument" do
-      assert_query("SELECT extract_words('constant') FROM heights_ft",
-        %{error: "A constant is not allowed as the first argument of the function `extract_words`."})
     end
   end
 
