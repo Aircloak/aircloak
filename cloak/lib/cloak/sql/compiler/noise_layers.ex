@@ -123,6 +123,18 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Enum.map(&Helpers.set_unique_alias/1)
     }
   end
+  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count, user_id]}, query) do
+    true = Helpers.aggregated_column?(query, Expression.unalias(user_id))
+    %{noise_layer | expressions:
+      [
+        Expression.function("min", [Helpers.reference_aliased(min, query)], min.type, _aggregate = true),
+        Expression.function("max", [Helpers.reference_aliased(max, query)], max.type, _aggregate = true),
+        Expression.function("sum", [Helpers.reference_aliased(count, query)], :integer, _aggregate = true),
+        user_id,
+      ]
+      |> Enum.map(&Helpers.set_unique_alias/1)
+    }
+  end
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression]}, query) do
     if not Helpers.aggregated_column?(query, Expression.unalias(expression)) do
       %{noise_layer | expressions:
@@ -131,6 +143,23 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
           Expression.function("min", [expression], expression.type, _aggregate = true),
           Expression.function("max", [expression], expression.type, _aggregate = true),
           Expression.function("count", [expression], :integer, _aggregate = true),
+        ]
+        |> Enum.map(&Helpers.set_unique_alias/1)
+      }
+    else
+      noise_layer
+    end
+  end
+  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression, user_id]}, query) do
+    true = Helpers.aggregated_column?(query, Expression.unalias(user_id))
+    if not Helpers.aggregated_column?(query, Expression.unalias(expression)) do
+      %{noise_layer | expressions:
+        [
+          # The point of this unalias is to not generate invalid SQL like `min(foo AS carry_1234)`
+          Expression.function("min", [expression], expression.type, _aggregate = true),
+          Expression.function("max", [expression], expression.type, _aggregate = true),
+          Expression.function("count", [expression], :integer, _aggregate = true),
+          user_id,
         ]
         |> Enum.map(&Helpers.set_unique_alias/1)
       }

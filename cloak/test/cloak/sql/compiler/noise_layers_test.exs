@@ -262,8 +262,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "floating noise layers from a subquery" do
       result = compile!("SELECT COUNT(*) FROM (SELECT * FROM table WHERE numeric = 3) foo", data_source())
 
-      assert [%{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}]}] = result.noise_layers
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}]},
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^name}, &1))
+      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: "uid"}, &1))
     end
 
     test "floating noise layers from a join" do
@@ -271,9 +275,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         SELECT numeric FROM table JOIN (SELECT uid FROM table WHERE numeric = 3) foo ON foo.uid = table.uid
       """, data_source())
 
-      assert [%{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}]}] = result.noise_layers
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}]},
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
       assert name != "numeric"
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^name}, &1))
+      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: "uid", table: %{name: "foo"}}, &1))
     end
 
     test "floating noise layers from an aggregating subquery" do
@@ -284,7 +292,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       {:subquery, %{ast: subquery}} = result.from
 
-      assert [%{base: {"table", "numeric", nil}, expressions: [%Expression{name: alias}]}] = result.noise_layers
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: alias}]},
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: alias}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
       assert 1 = Enum.count(subquery.db_columns, &match?(%Expression{name: "numeric", alias: ^alias}, &1))
     end
 
