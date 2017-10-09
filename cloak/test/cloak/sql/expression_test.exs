@@ -174,11 +174,7 @@ defmodule Cloak.Sql.Expression.Test do
   test "substring" do
     assert apply_function("substring", ["a string", 3]) == "string"
     assert apply_function("substring", ["a string", 3, 2]) == "st"
-    assert apply_function("substring", ["a string", -3, 2]) == ""
-    assert apply_function("substring", ["a string", -1, 4]) == "a "
-    assert apply_function("substring", ["a string", 3, -2]) == ""
-    assert apply_function("substring_for", ["a string", 3]) == "a s"
-    assert apply_function("substring", [nil, 0, 1]) == nil
+    assert apply_function("substring", [nil, 1, 1]) == nil
     assert apply_function("substring", ["  ", nil]) == nil
   end
 

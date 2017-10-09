@@ -344,11 +344,9 @@ defmodule Cloak.Sql.Expression do
 
   defp substring(string, from, count \\ nil)
   defp substring(nil, _, _), do: nil
-  defp substring(_, nil, _), do: nil
-  defp substring(string, from, count) when from < 1, do: substring(string, 1, count + from - 1)
-  defp substring(_string, _from, count) when count < 0, do: ""
+  defp substring(string, from, nil), do: substring(string, from, String.length(string))
   defp substring(string, from, count), do:
-    String.slice(string, from - 1, count || String.length(string))
+    String.slice(string, from - 1, count)
 
   defp add_to_time(time, duration) do
     NaiveDateTime.from_erl!({_arbitrary_date = {100, 1, 1}, Time.to_erl(time)})
