@@ -421,7 +421,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
   describe "noise layer base data" do
     test "insensitive to being aliased" do
-      %{noise_layers: [%{base: base}]} = compile!(
+      %{noise_layers: [%{base: base}, %{base: base}]} = compile!(
         "SELECT COUNT(*) FROM (SELECT uid, numeric as foo FROM table) bar WHERE foo = 3",
       data_source())
 
@@ -429,7 +429,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "insensitive to being aliased in views" do
-      %{noise_layers: [%{base: base}]} = compile!(
+      %{noise_layers: [%{base: base}, %{base: base}]} = compile!(
         "SELECT count(*) FROM foo WHERE bar = 3",
       data_source(), views: %{"foo" => "SELECT uid, numeric AS bar FROM table"})
 
@@ -437,15 +437,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "insensitive to being aliased after operations" do
-      %{noise_layers: [%{base: base1}, %{base: base2}]} = compile!(
+      %{noise_layers: [%{base: b1}, %{base: b2}, %{base: b3}, %{base: b4}]} = compile!(
         "SELECT COUNT(*) FROM (SELECT uid, numeric + numeric2 as foo FROM table) bar WHERE foo = 3",
       data_source())
 
-      assert [{"table", "numeric", nil}, {"table", "numeric2", nil}] = Enum.sort([base1, base2])
+      assert [{"table", "numeric", nil}, {"table", "numeric2", nil}] = [b1, b2, b3, b4] |> Enum.uniq() |> Enum.sort()
     end
 
     test "insensitive to being aliased in nested subqueries" do
-      %{noise_layers: [%{base: base}]} = compile!(
+      %{noise_layers: [%{base: base}, %{base: base}]} = compile!(
         "SELECT COUNT(*) FROM (SELECT uid, foo as bar FROM (SELECT uid, numeric AS foo FROM table) x) y WHERE bar = 3",
       data_source())
 
@@ -453,7 +453,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "insensitive to being aliased in a join" do
-      %{noise_layers: [%{base: base}]} = compile!("""
+      %{noise_layers: [%{base: base}, %{base: base}]} = compile!("""
         SELECT COUNT(*) FROM other JOIN (
           SELECT uid, numeric AS foo FROM table
         ) bar
@@ -464,7 +464,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "insensitive to being aliased in emulated queries" do
-      %{noise_layers: [%{base: base}]} = compile!(
+      %{noise_layers: [%{base: base}, %{base: base}]} = compile!(
         "SELECT COUNT(*) FROM (SELECT uid, decoded AS bar FROM table) foo WHERE bar = 'a'",
       data_source())
 
@@ -472,22 +472,28 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "insensitive to the query casing" do
-      %{noise_layers: [%{base: base1}]} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
-      %{noise_layers: [%{base: base2}]} = compile!("SELECT COUNT(*) FROM table WHERE nUmErIc = 3", data_source())
+      %{noise_layers: [%{base: base1}, %{base: base1}]} =
+        compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
+      %{noise_layers: [%{base: base2}, %{base: base2}]} =
+        compile!("SELECT COUNT(*) FROM table WHERE nUmErIc = 3", data_source())
 
       assert base1 == base2
     end
 
     test "insensitive to being quoted" do
-      %{noise_layers: [%{base: base1}]} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
-      %{noise_layers: [%{base: base2}]} = compile!("SELECT COUNT(*) FROM table WHERE \"numeric\" = 3", data_source())
+      %{noise_layers: [%{base: base1}, %{base: base1}]} =
+        compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
+      %{noise_layers: [%{base: base2}, %{base: base2}]} =
+        compile!("SELECT COUNT(*) FROM table WHERE \"numeric\" = 3", data_source())
 
       assert base1 == base2
     end
 
     test "insensitive to being scoped" do
-      %{noise_layers: [%{base: base1}]} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
-      %{noise_layers: [%{base: base2}]} = compile!("SELECT COUNT(*) FROM table WHERE table.numeric = 3", data_source())
+      %{noise_layers: [%{base: base1}, %{base: base1}]} =
+        compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
+      %{noise_layers: [%{base: base2}, %{base: base2}]} =
+        compile!("SELECT COUNT(*) FROM table WHERE table.numeric = 3", data_source())
 
       assert base1 == base2
     end
