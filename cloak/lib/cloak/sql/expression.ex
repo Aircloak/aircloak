@@ -73,7 +73,8 @@ defmodule Cloak.Sql.Expression do
   @doc "Returns true if the given term is a constant column, false otherwise."
   @spec constant?(Cloak.Sql.Parser.column | t) :: boolean
   def constant?(%__MODULE__{constant?: true}), do: true
-  def constant?(%__MODULE__{function?: true, function_args: args}), do: Enum.all?(args, &constant?/1)
+  def constant?(%__MODULE__{function?: true, function_args: args} = function), do:
+    not row_splitter?(function) and Enum.all?(args, &constant?/1)
   def constant?(_), do: false
 
   @doc "Returns true if the given column is a key (public/private/user_id), false otherwise."
@@ -194,24 +195,6 @@ defmodule Cloak.Sql.Expression do
   def row_splitter?(%__MODULE__{function?: true} = function), do:
     Cloak.Sql.Function.has_attribute?(function, :row_splitter)
   def row_splitter?(_), do: false
-
-  @doc """
-  Returns a list of all splitters used in the given expressions.
-
-  The splitters are returned in post-order, meaning that a nested splitter will always precede its ancestors.
-  """
-  @spec all_splitters(t) :: [t]
-  def all_splitters(%__MODULE__{function?: false}), do:
-    []
-  def all_splitters(function) do
-    this_splitter = if row_splitter?(function), do: [function], else: []
-    nested_splitters =
-      function
-      |> arguments()
-      |> Enum.flat_map(&all_splitters/1)
-
-    Enum.concat([nested_splitters, this_splitter])
-  end
 
   @doc """
   Returns the list of unique expression, preserving duplicates of some expressions.

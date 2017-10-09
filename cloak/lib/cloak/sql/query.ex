@@ -245,15 +245,6 @@ defmodule Cloak.Sql.Query do
   def outermost_where_splitters(query), do:
     Lens.to_list(Lenses.outermost_where_splitters(), query)
 
-  @doc """
-  Returns the list of all splitters which are used in select expressions.
-
-  The splitters are returned in post-order, meaning that a nested splitter will always precede its ancestors.
-  """
-  @spec all_selected_splitters(t) :: [Expression.t]
-  def all_selected_splitters(query), do:
-    Enum.flat_map(query.columns, &Expression.all_splitters/1)
-
 
   # -------------------------------------------------------------------
   # Internal functions
