@@ -15,12 +15,8 @@ defmodule Cloak.Sql.Compiler do
     {:ok, Query.t} | {:error, String.t}
   def compile(data_source, parsed_query, parameters, views) do
     try do
-      compiled_query =
-        parsed_query
-        |> Compiler.Specification.compile(data_source, parameters, views)
-        |> Compiler.Execution.prepare()
-
-      {:ok, Compiler.Normalization.normalize(compiled_query), Compiler.Features.compile(compiled_query)}
+      {query, features} = do_compile(data_source, parsed_query, parameters, views)
+      {:ok, query, features}
     rescue
       e in CompilationError -> {:error, e.message}
     end
@@ -35,4 +31,16 @@ defmodule Cloak.Sql.Compiler do
   @spec make_select_query(DataSource.t, DataSource.Table.t, [Expression.t]) :: Query.t
   def make_select_query(data_source, table, select_expressions), do:
     Compiler.Execution.make_select_query(data_source, table, select_expressions)
+
+  defp do_compile(data_source, parsed_query, parameters, views) do
+    compiled_query = Compiler.Specification.compile(parsed_query, data_source, parameters, views)
+    features = Compiler.Features.compile(compiled_query)
+
+    final_query =
+      compiled_query
+      |> Compiler.Execution.prepare()
+      |> Compiler.Normalization.normalize()
+
+    {final_query, %{features | emulated: final_query.emulated?}}
+  end
 end

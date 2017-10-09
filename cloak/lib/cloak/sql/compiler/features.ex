@@ -29,7 +29,7 @@ defmodule Cloak.Sql.Compiler.Features do
       decoders: extract_decoders(query),
       driver: to_string(query.data_source.driver),
       driver_dialect: sql_dialect_name(query.data_source),
-      emulated: query.emulated?,
+      emulated: false,
     }
 
   defp selected_types(columns), do:

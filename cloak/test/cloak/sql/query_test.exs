@@ -74,21 +74,21 @@ defmodule Cloak.Sql.QueryTest do
   end
 
   test "extracts types of where conditions used - no where conditions" do
-    assert %{where_conditions: ["not null"]} = features_from("SELECT count(*) FROM feat_users")
+    assert %{where_conditions: []} = features_from("SELECT count(*) FROM feat_users")
   end
 
   test "extracts types of where conditions used" do
-    assert MapSet.new(["<", ">=", "not null"]) == features_from("""
+    assert MapSet.new(["<", ">"]) == features_from("""
       SELECT height
       FROM feat_users
       WHERE height > 10 and height < 20
     """).where_conditions |> Enum.into(MapSet.new())
-    assert MapSet.new(["=", "<>", "not null"]) == features_from("""
+    assert MapSet.new(["=", "<>"]) == features_from("""
       SELECT height
       FROM feat_users
       WHERE height <> 10 and male = true
     """).where_conditions |> Enum.into(MapSet.new())
-    assert MapSet.new(["in", "not null", "not in"]) == features_from("""
+    assert MapSet.new(["in", "not in"]) == features_from("""
       SELECT height
       FROM feat_users
       WHERE
@@ -100,7 +100,7 @@ defmodule Cloak.Sql.QueryTest do
       FROM feat_users
       WHERE height IS NULL and name IS NOT NULL
     """).where_conditions |> Enum.into(MapSet.new())
-    assert MapSet.new(["like", "ilike", "not null", "not like", "not ilike"]) == features_from("""
+    assert MapSet.new(["like", "ilike", "not like", "not ilike"]) == features_from("""
       SELECT height
       FROM feat_users
       WHERE name LIKE '%' and name ILIKE '%foo%' and name NOT LIKE '_' and name NOT ILIKE '%bar%'
