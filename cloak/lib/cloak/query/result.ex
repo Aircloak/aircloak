@@ -33,13 +33,13 @@ defmodule Cloak.Query.Result do
 
     The result is a fully shaped query result.
   """
-  @spec new(Query.t, [bucket], non_neg_integer) :: t
-  def new(query, buckets, users_count \\ 0), do:
+  @spec new(Query.t, Cloak.Sql.Compiler.Features.t, [bucket], non_neg_integer) :: t
+  def new(query, features, buckets, users_count \\ 0), do:
     %__MODULE__{
       buckets: final_buckets(query, buckets),
       users_count: users_count,
       columns: query.column_titles,
-      features: query.features,
+      features: features,
     }
 
 

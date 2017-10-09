@@ -15,13 +15,12 @@ defmodule Cloak.Sql.Compiler do
     {:ok, Query.t} | {:error, String.t}
   def compile(data_source, parsed_query, parameters, views) do
     try do
-      {:ok,
+      compiled_query =
         parsed_query
         |> Compiler.Specification.compile(data_source, parameters, views)
         |> Compiler.Execution.prepare()
-        |> Compiler.Features.compile()
-        |> Compiler.Normalization.normalize()
-      }
+
+      {:ok, Compiler.Normalization.normalize(compiled_query), Compiler.Features.compile(compiled_query)}
     rescue
       e in CompilationError -> {:error, e.message}
     end

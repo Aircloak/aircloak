@@ -4,7 +4,7 @@ defmodule Cloak.Query.Runner.Engine do
   require Logger
 
   @type state_updater :: (ResultSender.query_state -> any)
-  @type feature_updater :: (any -> any)
+  @type feature_updater :: (Sql.Compiler.Features.t -> any)
 
 
   # -------------------------------------------------------------------
@@ -20,8 +20,8 @@ defmodule Cloak.Query.Runner.Engine do
       with state_updater.(:parsing),
         {:ok, parsed} <- Sql.Parser.parse(statement),
         state_updater.(:compiling),
-        {:ok, query} <- Sql.Compiler.compile(data_source, parsed, parameters, views),
-        feature_updater.(query.features),
+        {:ok, query, features} <- Sql.Compiler.compile(data_source, parsed, parameters, views),
+        feature_updater.(features),
         query = build_initial_noise_layers(query),
         query = Probe.process(query),
         query = build_final_noise_layers(query),
@@ -29,7 +29,7 @@ defmodule Cloak.Query.Runner.Engine do
         state_updater.(:awaiting_data)
       do
         query_killer_reg.()
-        result = run_statement(query, state_updater)
+        result = run_statement(query, features, state_updater)
         query_killer_unreg.()
         {:ok, result, Sql.Query.info_messages(query)}
       end
@@ -47,34 +47,39 @@ defmodule Cloak.Query.Runner.Engine do
 
   defp build_final_noise_layers(query), do: Sql.Compiler.NoiseLayers.compile(query)
 
-  defp run_statement(%Sql.Query{command: :show, show: :tables} = query, _state_updater), do:
-    Query.Result.new(query,
+  defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater), do:
+    Query.Result.new(
+      query,
+      features,
       Enum.map(
         (Map.keys(query.data_source.tables) ++ Map.keys(query.views)),
         &%{occurrences: 1, row: [to_string(&1)]}
       )
     )
-  defp run_statement(%Sql.Query{command: :show, show: :columns, selected_tables: [table]} = query, _state_updater), do:
+  defp run_statement(%Sql.Query{command: :show, show: :columns} = query, features, _state_updater), do:
     Query.Result.new(
       query,
-      Enum.map(sorted_table_columns(table),
-      &%{occurrences: 1, row: [&1.name, to_string(&1.type)]})
+      features,
+      Enum.map(
+        sorted_table_columns(hd(query.selected_tables)),
+        &%{occurrences: 1, row: [&1.name, to_string(&1.type)]}
+      )
     )
-  defp run_statement(%Sql.Query{command: :select} = query, state_updater), do:
-    Cloak.Query.DataEngine.select(query, &process_final_rows(&1, query, state_updater))
+  defp run_statement(%Sql.Query{command: :select} = query, features, state_updater), do:
+    Cloak.Query.DataEngine.select(query, &process_final_rows(&1, query, features, state_updater))
 
   defp sorted_table_columns(table) do
     {[uid], other_columns} = Enum.split_with(table.columns, &(&1.name == table.user_id))
     [uid | other_columns]
   end
 
-  defp process_final_rows(rows, query, state_updater) do
+  defp process_final_rows(rows, query, features, state_updater) do
     Logger.debug("Processing final rows ...")
 
     {rows, query} = Query.RowSplitters.split(rows, query)
 
     rows
     |> Query.Rows.filter(Condition.to_function(query.emulated_where))
-    |> Query.Aggregator.aggregate(query, state_updater)
+    |> Query.Aggregator.aggregate(query, features, state_updater)
   end
 end
