@@ -277,11 +277,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
         %{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}]},
-        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}, %Expression{name: "uid"}]},
+        %{base: {"table", "numeric", nil}, expressions: [
+          %Expression{name: name},
+          %Expression{name: "uid", table: %{name: "table"}},
+        ]},
       ] = result.noise_layers
       assert name != "numeric"
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^name}, &1))
-      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: "uid", table: %{name: "foo"}}, &1))
+      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: "uid", table: %{name: "table"}}, &1))
     end
 
     test "floating noise layers from an aggregating subquery" do
