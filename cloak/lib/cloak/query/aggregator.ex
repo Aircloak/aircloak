@@ -45,7 +45,7 @@ defmodule Cloak.Query.Aggregator do
 
   Each output row will consist of columns `foo`, `count(*)`, and `avg(bar)`.
   """
-  @spec aggregate(Enumerable.t, Query.t, Query.Features.t, Engine.state_updater) :: Result.t
+  @spec aggregate(Enumerable.t, Query.t, Query.features, Engine.state_updater) :: Result.t
   def aggregate(rows, query, features, state_updater) do
     state_updater.(:ingesting_data)
     rows = perform_low_count_checks(rows, query, state_updater)

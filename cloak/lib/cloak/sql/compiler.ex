@@ -34,7 +34,7 @@ defmodule Cloak.Sql.Compiler do
 
   defp do_compile(data_source, parsed_query, parameters, views) do
     compiled_query = Compiler.Specification.compile(parsed_query, data_source, parameters, views)
-    features = Query.Features.compile(compiled_query)
+    features = Query.features(compiled_query)
 
     final_query =
       compiled_query

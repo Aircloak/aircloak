@@ -8,9 +8,7 @@ defmodule Cloak.Sql.Query do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{
-    Expression, Compiler, Function, Parser, Query.Features, Query.Lenses, Range, NoiseLayer, LowCountCheck
-  }
+  alias Cloak.Sql.{Expression, Compiler, Function, Parser, Query.Lenses, Range, NoiseLayer, LowCountCheck}
   require Logger
 
   @type comparison :: {:comparison, Expression.t, Parser.comparator, Expression.t}
@@ -87,6 +85,8 @@ defmodule Cloak.Sql.Query do
     low_count_checks: [LowCountCheck.t],
   }
 
+  @type features :: map
+
   defstruct [
     columns: [], where: nil, group_by: [], order_by: [], column_titles: [], aggregators: [],
     info: [], selected_tables: [], implicit_count?: false, data_source: nil, command: nil,
@@ -106,7 +106,7 @@ defmodule Cloak.Sql.Query do
 
   Raises on error.
   """
-  @spec make!(DataSource.t, String.t, [parameter], view_map) :: {t, Features.t}
+  @spec make!(DataSource.t, String.t, [parameter], view_map) :: {t, features}
   def make!(data_source, string, parameters, views) do
     {:ok, query, features} = make_query(data_source, string, parameters, views)
     {query, features}
@@ -119,7 +119,7 @@ defmodule Cloak.Sql.Query do
   and types, without executing the query.
   """
   @spec describe_query(DataSource.t, String.t, [parameter] | nil, view_map) ::
-    {:ok, [String.t], Features.t} | {:error, String.t}
+    {:ok, [String.t], features} | {:error, String.t}
   def describe_query(data_source, statement, parameters, views), do:
     with {:ok, query, features} <- make_query(data_source, statement, parameters, views), do:
       {:ok, query.column_titles, features}
@@ -245,6 +245,11 @@ defmodule Cloak.Sql.Query do
   @spec outermost_where_splitters(t) :: [Expression.t]
   def outermost_where_splitters(query), do:
     Lens.to_list(Lenses.outermost_where_splitters(), query)
+
+
+  @doc "Retrieves the query features."
+  @spec features(Query.t) :: features
+  defdelegate features(query), to: __MODULE__.Features
 
 
   # -------------------------------------------------------------------

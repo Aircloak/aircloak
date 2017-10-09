@@ -4,7 +4,7 @@ defmodule Cloak.Query.Runner.Engine do
   require Logger
 
   @type state_updater :: (ResultSender.query_state -> any)
-  @type feature_updater :: (Query.Features.t -> any)
+  @type feature_updater :: (Query.features -> any)
 
 
   # -------------------------------------------------------------------
