@@ -51,6 +51,7 @@ defmodule Cloak.Query.Runner.Engine do
 
   defp prepare_for_execution(compiled_query), do:
     compiled_query
+    |> Cloak.Query.DataEngine.resolve_db_columns()
     |> build_initial_noise_layers()
     |> Probe.process()
     |> build_final_noise_layers()

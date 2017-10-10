@@ -196,7 +196,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp alias_selected_constants(query = %{subquery?: false}), do: query
   defp alias_selected_constants(query) do
-    Lens.key(:db_columns)
+    Lens.key(:columns)
     |> Lens.all()
     |> Lens.satisfy(& &1.constant? and &1.alias in ["", nil])
     |> Lens.map(query, &Helpers.set_unique_alias/1)
