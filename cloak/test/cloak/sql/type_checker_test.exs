@@ -263,7 +263,7 @@ defmodule Cloak.Sql.TypeChecker.Test do
   end
 
   defp compile!(query_string) do
-    {:ok, result} = compile(query_string)
+    {:ok, result, _features} = compile(query_string)
     result
   end
 

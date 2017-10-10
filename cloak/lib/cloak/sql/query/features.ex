@@ -1,5 +1,5 @@
-defmodule Cloak.Sql.Compiler.Features do
-  @moduledoc "Deals with compiling the list of features used by a query."
+defmodule Cloak.Sql.Query.Features do
+  @moduledoc false
 
   alias Cloak.Sql.{Function, Expression, Query}
 
@@ -8,20 +8,7 @@ defmodule Cloak.Sql.Compiler.Features do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc """
-  Sets the features field of the query to a list of features used by a query, that can be used for analytics purposes by
-  Aircloak. Examples include how many columns were selected, which, if any functions where used, etc.
-  """
-  @spec compile(Query.t) :: Query.t
-  def compile(query), do:
-    %{query | features: extract_features(query)}
-
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  def extract_features(query) do
+  def features(query), do:
     %{
       num_selected_columns: num_selected_columns(query.column_titles),
       num_db_columns: num_db_columns(query.columns),
@@ -35,9 +22,13 @@ defmodule Cloak.Sql.Compiler.Features do
       decoders: extract_decoders(query),
       driver: to_string(query.data_source.driver),
       driver_dialect: sql_dialect_name(query.data_source),
-      emulated: query.emulated?,
+      emulated: false,
     }
-  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp selected_types(columns), do:
     columns

@@ -81,16 +81,31 @@ defmodule Cloak.Sql.Query do
     next_row_index: row_index,
     noise_layers: [NoiseLayer.t],
     view?: boolean,
-    features: map,
     table_aliases: %{String.t => DataSource.Table.t},
     low_count_checks: [LowCountCheck.t],
+  }
+
+  @type features :: %{
+    num_selected_columns: pos_integer,
+    num_db_columns: pos_integer,
+    num_tables: pos_integer,
+    num_group_by: non_neg_integer,
+    functions: [String.t],
+    where_conditions: [String.t],
+    column_types: [String.t],
+    selected_types: [String.t],
+    parameter_types: [String.t],
+    decoders: [String.t],
+    driver: String.t,
+    driver_dialect: String.t,
+    emulated: boolean,
   }
 
   defstruct [
     columns: [], where: nil, group_by: [], order_by: [], column_titles: [], aggregators: [],
     info: [], selected_tables: [], implicit_count?: false, data_source: nil, command: nil,
     show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil, distinct?: false,
-    features: %{}, emulated_where: nil, ranges: [], parameters: [], views: %{}, emulated?: false, sample_rate: nil,
+    emulated_where: nil, ranges: [], parameters: [], views: %{}, emulated?: false, sample_rate: nil,
     projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false, table_aliases: %{},
     low_count_checks: []
   ]
@@ -105,10 +120,10 @@ defmodule Cloak.Sql.Query do
 
   Raises on error.
   """
-  @spec make!(DataSource.t, String.t, [parameter], view_map) :: t
+  @spec make!(DataSource.t, String.t, [parameter], view_map) :: {t, features}
   def make!(data_source, string, parameters, views) do
-    {:ok, query} = make_query(data_source, string, parameters, views)
-    query
+    {:ok, query, features} = make_query(data_source, string, parameters, views)
+    {query, features}
   end
 
   @doc """
@@ -118,10 +133,10 @@ defmodule Cloak.Sql.Query do
   and types, without executing the query.
   """
   @spec describe_query(DataSource.t, String.t, [parameter] | nil, view_map) ::
-    {:ok, [String.t], map} | {:error, String.t}
+    {:ok, [String.t], features} | {:error, String.t}
   def describe_query(data_source, statement, parameters, views), do:
-    with {:ok, query} <- make_query(data_source, statement, parameters, views), do:
-      {:ok, query.column_titles, query.features}
+    with {:ok, query, features} <- make_query(data_source, statement, parameters, views), do:
+      {:ok, query.column_titles, features}
 
 
   @doc "Validates a user-defined view."
@@ -131,7 +146,7 @@ defmodule Cloak.Sql.Query do
   def validate_view(data_source, name, sql, views) do
     with :ok <- view_name_ok?(data_source, name),
          {:ok, parsed_query} <- Parser.parse(sql),
-         {:ok, compiled_query} <- Compiler.validate_view(data_source, parsed_query, views)
+         {:ok, compiled_query, _features} <- Compiler.validate_view(data_source, parsed_query, views)
     do
       {:ok,
         Enum.zip(compiled_query.column_titles, compiled_query.columns)
@@ -244,6 +259,11 @@ defmodule Cloak.Sql.Query do
   @spec outermost_where_splitters(t) :: [Expression.t]
   def outermost_where_splitters(query), do:
     Lens.to_list(Lenses.outermost_where_splitters(), query)
+
+
+  @doc "Retrieves the query features."
+  @spec features(Query.t) :: features
+  defdelegate features(query), to: __MODULE__.Features
 
 
   # -------------------------------------------------------------------

@@ -74,21 +74,21 @@ defmodule Cloak.Sql.QueryTest do
   end
 
   test "extracts types of where conditions used - no where conditions" do
-    assert %{where_conditions: ["not null"]} = features_from("SELECT count(*) FROM feat_users")
+    assert %{where_conditions: []} = features_from("SELECT count(*) FROM feat_users")
   end
 
   test "extracts types of where conditions used" do
-    assert MapSet.new(["<", ">=", "not null"]) == features_from("""
+    assert MapSet.new(["<", ">"]) == features_from("""
       SELECT height
       FROM feat_users
       WHERE height > 10 and height < 20
     """).where_conditions |> Enum.into(MapSet.new())
-    assert MapSet.new(["=", "<>", "not null"]) == features_from("""
+    assert MapSet.new(["=", "<>"]) == features_from("""
       SELECT height
       FROM feat_users
       WHERE height <> 10 and male = true
     """).where_conditions |> Enum.into(MapSet.new())
-    assert MapSet.new(["in", "not null", "not in"]) == features_from("""
+    assert MapSet.new(["in", "not in"]) == features_from("""
       SELECT height
       FROM feat_users
       WHERE
@@ -100,7 +100,7 @@ defmodule Cloak.Sql.QueryTest do
       FROM feat_users
       WHERE height IS NULL and name IS NOT NULL
     """).where_conditions |> Enum.into(MapSet.new())
-    assert MapSet.new(["like", "ilike", "not null", "not like", "not ilike"]) == features_from("""
+    assert MapSet.new(["like", "ilike", "not like", "not ilike"]) == features_from("""
       SELECT height
       FROM feat_users
       WHERE name LIKE '%' and name ILIKE '%foo%' and name NOT LIKE '_' and name NOT ILIKE '%bar%'
@@ -233,20 +233,22 @@ defmodule Cloak.Sql.QueryTest do
 
   defp features_from(statement) do
     [first_ds | rest_ds] = Cloak.DataSource.all()
-    query = make_query(first_ds, statement)
+    {query, features} = make_query(first_ds, statement)
 
     for data_source <- rest_ds do
-      other_query = make_query(data_source, statement)
+      {other_query, other_features} = make_query(data_source, statement)
       assert Map.drop(query, [:features]) == Map.drop(other_query, [:features])
-      assert Map.drop(query.features, [:driver, :driver_dialect]) ==
-        Map.drop(other_query.features, [:driver, :driver_dialect])
+      assert Map.drop(features, [:driver, :driver_dialect]) == Map.drop(other_features, [:driver, :driver_dialect])
     end
 
-    query.features
+    features
   end
 
-  defp make_query(data_source, statement), do:
-    Query.make!(data_source, statement, [], %{})
-    |> scrub_data_sources()
-    |> scrub_aliases()
+  defp make_query(data_source, statement) do
+    {query, features} = Query.make!(data_source, statement, [], %{})
+    {
+      query |> scrub_data_sources() |> scrub_aliases(),
+      features
+    }
+  end
 end
