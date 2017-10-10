@@ -175,7 +175,16 @@ defmodule Cloak.Sql.Query do
   @doc "Adds a database column to the query and updates all references to that column."
   @spec add_db_column(t, Expression.t) :: t
   def add_db_column(query, column) do
-    column_matcher = &Expression.id(&1) == Expression.id(column) and &1.alias == column.alias
+    # A db column we're adding has to have a well-defined id
+    false = is_nil(Expression.id(column))
+
+    column_matcher =
+      fn(candidate) ->
+        Expression.id(candidate) != nil and
+        Expression.id(candidate) == Expression.id(column) and
+        candidate.alias == column.alias
+      end
+
     case Enum.find(query.db_columns, column_matcher) do
       nil ->
         {next_row_index, query} = next_row_index(query)
