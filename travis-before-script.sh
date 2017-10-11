@@ -94,21 +94,28 @@ set -eox pipefail
 
   fi
 
-  if [[ "$TEST" == "compliance" && "$TRAVIS_EVENT_TYPE" != "push" ]]; then
+  if [[ "$TEST" == "compliance" ]]; then
 
     pushd cloak
 
-    docker run --name aircloak_sql_server -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' -p 1433:1433 -d microsoft/mssql-server-linux:2017-latest
+    # We'll always build docker images on non-push builds, as well as pushes to master, to ensure we have them cached.
+    if [[ "$TRAVIS_EVENT_TYPE" != "push" || "$TRAVIS_BRANCH" == "master" ]]; then
+      if [ -e dev_container/cache/dev_container.tar ]; then
+        docker load -i dev_container/cache/dev_container.tar;
+      fi
+      DOCKER_BUILD_CACHED="true" dev_container/build-image.sh
+      docker save -o dev_container/cache/dev_container.tar $(docker images --format "{{.Repository}}")
+    fi
 
-    if [ -e dev_container/cache/dev_container.tar ]; then docker load -i dev_container/cache/dev_container.tar; fi
-    DOCKER_BUILD_CACHED="true" dev_container/build-image.sh
-    docker save -o dev_container/cache/dev_container.tar $(docker images --format "{{.Repository}}")
+    if [[ "$TRAVIS_EVENT_TYPE" != "push" ]]; then
+      docker run --name aircloak_sql_server -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' -p 1433:1433 -d microsoft/mssql-server-linux:2017-latest
 
-    psql -c "CREATE DATABASE cloaktest2 ENCODING 'UTF8';" -U postgres
-    echo "USE mysql;\nUPDATE user SET password=PASSWORD('') WHERE user='root';\nFLUSH PRIVILEGES;\n" | mysql -u root
-    mysql -e "CREATE DATABASE cloaktest2 DEFAULT CHARACTER SET utf8;" -u root --password=''
-    with_retries docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE cloaktest2"
-    with_retries docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE cloaktest3"
+      psql -c "CREATE DATABASE cloaktest2 ENCODING 'UTF8';" -U postgres
+      echo "USE mysql;\nUPDATE user SET password=PASSWORD('') WHERE user='root';\nFLUSH PRIVILEGES;\n" | mysql -u root
+      mysql -e "CREATE DATABASE cloaktest2 DEFAULT CHARACTER SET utf8;" -u root --password=''
+      with_retries docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE cloaktest2"
+      with_retries docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE cloaktest3"
+    fi
 
     popd
 
