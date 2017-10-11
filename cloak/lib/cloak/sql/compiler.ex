@@ -32,7 +32,7 @@ defmodule Cloak.Sql.Compiler do
   def make_select_query(data_source, table, select_expressions), do:
     data_source
     |> Compiler.Execution.make_select_query(table, select_expressions)
-    |> Cloak.Query.DataEngine.resolve_db_columns()
+    |> Query.resolve_db_columns()
 
   defp do_compile(data_source, parsed_query, parameters, views) do
     compiled_query = Compiler.Specification.compile(parsed_query, data_source, parameters, views)

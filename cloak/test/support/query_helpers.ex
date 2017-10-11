@@ -107,7 +107,7 @@ defmodule Cloak.Test.QueryHelpers do
           Keyword.get(options, :views, %{})
         )
     do
-      {:ok, Cloak.Query.DataEngine.resolve_db_columns(query)}
+      {:ok, Query.resolve_db_columns(query)}
     end
   end
 

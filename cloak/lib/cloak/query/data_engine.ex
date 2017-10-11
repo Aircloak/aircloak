@@ -102,6 +102,7 @@ defmodule Cloak.Query.DataEngine do
     selected_columns = select_expressions(query)
     floated_columns = range_columns(query)
     {query, floated_columns} = Helpers.drop_redundant_floated_columns(query, selected_columns, floated_columns)
+
     (selected_columns ++ floated_columns)
     |> Enum.reduce(query, &Query.add_db_column(&2, &1))
     |> optimize_columns_from_projected_subqueries()
