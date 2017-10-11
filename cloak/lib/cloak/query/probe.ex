@@ -50,9 +50,12 @@ defmodule Cloak.Query.Probe do
   end
 
   defp prepare_probe(query) do
-    [uid_column | _] = query.db_columns
-    %Query{query | limit: @lcf_upper_limit, offset: 0, distinct?: true, subquery?: true,
-      columns: [uid_column], db_columns: [uid_column], group_by: [], order_by: [], having: nil}
+    uid_column = Cloak.Sql.Compiler.Helpers.id_column(query)
+    %Query{query |
+      limit: @lcf_upper_limit, offset: 0, distinct?: true, subquery?: true, columns: [uid_column], group_by: [],
+      order_by: [], having: nil
+    }
+    |> Query.resolve_db_columns()
   end
 
   defp reject_lcf_conditions(query, probe, subquery_lens) do

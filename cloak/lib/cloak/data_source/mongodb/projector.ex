@@ -48,6 +48,9 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   def project_column(%Expression{name: name, alias: name}), do: {name, true}
   def project_column(%Expression{aggregate?: true, function?: true, function: fun, function_args: [arg], alias: alias}), do:
     {project_alias(alias), parse_function(fun, begin_parse_column(arg))}
+  def project_column(%Expression{constant?: true, alias: empty_alias} = constant) when empty_alias in [nil, ""], do:
+    # We need to give an alias to unnamed constants
+    project_column(%Expression{constant | alias: "alias_#{System.unique_integer([:positive])}"})
   def project_column(column), do: {project_alias(column.alias), begin_parse_column(column)}
 
 
