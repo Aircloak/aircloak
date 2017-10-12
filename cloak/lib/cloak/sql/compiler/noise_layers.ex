@@ -214,14 +214,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp normalize_uid_layers(query = %{noise_layers: []}), do: add_uid_layer(query)
   defp normalize_uid_layers(query), do: update_uid_expressions(query)
 
-  defp add_uid_layer(query = %{noise_layers: []}) do
+  defp add_uid_layer(query) do
     id_column = Helpers.id_column(query)
     uid_noise_layer = NoiseLayer.new(nil, [Helpers.id_column(query)])
 
     %{query | noise_layers: [uid_noise_layer]}
     |> add_db_columns([id_column])
   end
-  defp add_uid_layer(query), do: query
 
   defp update_uid_expressions(query) do
     id_column = Helpers.id_column(query)

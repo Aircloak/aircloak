@@ -284,7 +284,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
     for {:comparison, subject, :=, target} <- conditions, subject != target do
       {subject, target}
     end
-    |> Enum.max_by(&prefer_user_id/1, &>=/2)
+    |> Enum.max_by(&prefer_user_id/1, fn() -> raise "At least one condition should exist." end)
   end
 
   defp prefer_user_id({subject, target}), do:
