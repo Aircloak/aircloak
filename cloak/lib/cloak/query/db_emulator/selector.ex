@@ -78,17 +78,6 @@ defmodule Cloak.Query.DbEmulator.Selector do
     fn (row) -> Enum.at(row, index) end
   end
 
-  defp index_in_from(column, {:subquery, %{ast: source_subquery}}), do:
-    source_subquery.column_titles
-    |> Enum.find_index(&insensitive_equal?(&1, column.name))
-    |> check_index(column, source_subquery.column_titles)
-  defp index_in_from(column, {:join, join}), do:
-    join.columns |> join_column_index(column) |> check_index(column, join.columns)
-
-  defp join_column_index(columns, column), do:
-    Enum.find_index(columns, &Expression.id(column) == Expression.id(&1)) ||
-      Enum.find_index(columns, &insensitive_equal?(Expression.id(column), &1.name))
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -260,11 +249,6 @@ defmodule Cloak.Query.DbEmulator.Selector do
     end)
   end
 
-  defp check_index(nil, column, targets), do:
-    raise "Column index for column #{inspect(column, pretty: true)} could not be found in the " <>
-      "list of available options: #{inspect(targets, pretty: true)}"
-  defp check_index(index, _column, _targets), do: index
-
   # This function returns a functor that pre-filters right side rows in order to drastically improve join performance.
   # It does that by grouping rows by one of the matching columns in the join conditions.
   # For now, we assume at least an equality condition for the join always exists.
@@ -280,18 +264,9 @@ defmodule Cloak.Query.DbEmulator.Selector do
     end
   end
 
-  defp column_evaluator(%Expression{user_id?: true}), do: 1
-  defp column_evaluator(_), do: 0
-
-  defp condition_evaluator({subject, target}), do:
-    column_evaluator(subject) + column_evaluator(target)
-
   defp extract_matching_columns_from_join(join) do
-    # Get best equality comparison between left and right columns (preferring user id columns).
-    conditions = Query.Lenses.conditions() |> Lens.to_list(join.conditions)
-    [{subject, target} | _] =
-      (for {:comparison, subject, :=, target} <- conditions, subject != target, do: {subject, target})
-      |> Enum.sort_by(&condition_evaluator/1, &>=/2)
+    {subject, target} = best_condition_for_matching(join)
+
     # Make sure we return the columns in the correct order ({left_branch, right_branch}).
     if table_is_in_join_branch?(subject.table.name, join.lhs) do
       true = table_is_in_join_branch?(target.table.name, join.rhs)
@@ -303,10 +278,46 @@ defmodule Cloak.Query.DbEmulator.Selector do
     end
   end
 
+  defp best_condition_for_matching(join) do
+    conditions = Query.Lenses.conditions() |> Lens.to_list(join.conditions)
+
+    for {:comparison, subject, :=, target} <- conditions, subject != target do
+      {subject, target}
+    end
+    |> Enum.max_by(&prefer_user_id/1, &>=/2)
+  end
+
+  defp prefer_user_id({subject, target}), do:
+    user_id_score(subject) + user_id_score(target)
+
+  defp user_id_score(%Expression{user_id?: true}), do: 1
+  defp user_id_score(_), do: 0
+
   defp table_is_in_join_branch?(table_name, {:join, join}), do:
     table_is_in_join_branch?(table_name, join.lhs) or table_is_in_join_branch?(table_name, join.rhs)
   defp table_is_in_join_branch?(table_name, {:subquery, %{alias: subquery_alias}}), do: table_name == subquery_alias
   defp table_is_in_join_branch?(table_name, joined_table), do: table_name == joined_table
 
   defp insensitive_equal?(s1, s2), do: String.downcase(s1) == String.downcase(s2)
+
+
+  # -------------------------------------------------------------------
+  # Indexing helpers
+  # -------------------------------------------------------------------
+
+  defp index_in_from(column, {:subquery, %{ast: source_subquery}}), do:
+    source_subquery.column_titles
+    |> Enum.find_index(&insensitive_equal?(&1, column.name))
+    |> check_index(column, source_subquery.column_titles)
+  defp index_in_from(column, {:join, join}), do:
+    join.columns |> join_column_index(column) |> check_index(column, join.columns)
+
+  defp join_column_index(columns, column), do:
+    Enum.find_index(columns, &Expression.id(column) == Expression.id(&1)) ||
+      Enum.find_index(columns, &insensitive_equal?(Expression.id(column), &1.name))
+
+  defp check_index(nil, column, targets), do:
+    raise "Column index for column #{inspect(column, pretty: true)} could not be found in the " <>
+      "list of available options: #{inspect(targets, pretty: true)}"
+  defp check_index(index, _column, _targets), do: index
 end
