@@ -45,7 +45,7 @@ defmodule Cloak.Mixfile do
 
       # Hackney is not a direct dependency of ours, but we need it to be at version 1.8.6 or more recent
       # in order to build under Erlang 20.0. Earlier versions indirectly included too old versions of a
-      # unicode compatibility layer that doesn't jell will our version of Erlang.
+      # unicode compatibility layer that doesn't jell with our version of Erlang.
       {:hackney, ">= 1.8.6", override: true},
 
       # Test deps
