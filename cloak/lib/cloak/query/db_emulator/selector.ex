@@ -73,17 +73,17 @@ defmodule Cloak.Query.DbEmulator.Selector do
       Expression.apply_function(column, args)
     end
   end
-  defp build_evaluator(column, {:subquery, %{ast: source_subquery}}) do
-    index =
-      source_subquery.column_titles
-      |> Enum.find_index(&insensitive_equal?(&1, column.name))
-      |> check_index(column, source_subquery.column_titles)
+  defp build_evaluator(column, from) do
+    index = index_in_from(column, from)
     fn (row) -> Enum.at(row, index) end
   end
-  defp build_evaluator(column, {:join, join}) do
-    index = join.columns |> join_column_index(column) |> check_index(column, join.columns)
-    fn (row) -> Enum.at(row, index) end
-  end
+
+  defp index_in_from(column, {:subquery, %{ast: source_subquery}}), do:
+    source_subquery.column_titles
+    |> Enum.find_index(&insensitive_equal?(&1, column.name))
+    |> check_index(column, source_subquery.column_titles)
+  defp index_in_from(column, {:join, join}), do:
+    join.columns |> join_column_index(column) |> check_index(column, join.columns)
 
   defp join_column_index(columns, column), do:
     Enum.find_index(columns, &Expression.id(column) == Expression.id(&1)) ||
@@ -269,9 +269,10 @@ defmodule Cloak.Query.DbEmulator.Selector do
   # It does that by grouping rows by one of the matching columns in the join conditions.
   # For now, we assume at least an equality condition for the join always exists.
   defp create_join_pre_filter(rhs_rows, join) do
-    {%Expression{row_index: lhs_match_index}, %Expression{row_index: rhs_match_index}} =
-      extract_matching_columns_from_join(join)
-    rhs_match_index = rhs_match_index - joined_row_size(join.lhs)
+    {lhs, rhs} = extract_matching_columns_from_join(join)
+    lhs_match_index = index_in_from(lhs, join.lhs)
+    rhs_match_index = index_in_from(rhs, join.rhs)
+
     rhs_rows_map = Enum.group_by(rhs_rows, &Enum.at(&1, rhs_match_index))
     fn (lhs_row) ->
       lhs_match_value = Enum.at(lhs_row, lhs_match_index)
