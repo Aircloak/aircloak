@@ -246,7 +246,8 @@ defmodule Cloak.DataSource do
   defp initialize_data_source_configs(data_source_configs), do:
     data_source_configs
     |> config_to_datasources()
-    |> Enum.map(&add_tables/1)
+    |> Task.async_stream(&add_tables/1)
+    |> Enum.map(fn({:ok, data_source}) -> data_source end)
 
   defp watch_for_config_changes() do
     case Aircloak.DeployConfig.fetch!("data_sources") do
