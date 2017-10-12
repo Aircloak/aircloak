@@ -258,7 +258,8 @@ defmodule Cloak.DataSource do
         FileSystem.subscribe(pid)
         :ok
       _other ->
-        Logger.debug("Not starting monitoring of data source definition changes. Legacy data source definitions provided")
+        Logger.debug("Not starting monitoring of data source definition changes. " <>
+          "Legacy data source definitions provided.")
         :ok
     end
   end
