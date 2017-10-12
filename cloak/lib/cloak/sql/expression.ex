@@ -73,7 +73,8 @@ defmodule Cloak.Sql.Expression do
   @doc "Returns true if the given term is a constant column, false otherwise."
   @spec constant?(Cloak.Sql.Parser.column | t) :: boolean
   def constant?(%__MODULE__{constant?: true}), do: true
-  def constant?(%__MODULE__{function?: true, function_args: args}), do: Enum.all?(args, &constant?/1)
+  def constant?(%__MODULE__{function?: true, function_args: args} = function), do:
+    not row_splitter?(function) and Enum.all?(args, &constant?/1)
   def constant?(_), do: false
 
   @doc "Returns true if the given column is a key (public/private/user_id), false otherwise."
@@ -196,24 +197,6 @@ defmodule Cloak.Sql.Expression do
   def row_splitter?(_), do: false
 
   @doc """
-  Returns a list of all splitters used in the given expressions.
-
-  The splitters are returned in post-order, meaning that a nested splitter will always precede its ancestors.
-  """
-  @spec all_splitters(t) :: [t]
-  def all_splitters(%__MODULE__{function?: false}), do:
-    []
-  def all_splitters(function) do
-    this_splitter = if row_splitter?(function), do: [function], else: []
-    nested_splitters =
-      function
-      |> arguments()
-      |> Enum.flat_map(&all_splitters/1)
-
-    Enum.concat([nested_splitters, this_splitter])
-  end
-
-  @doc """
   Returns the list of unique expression, preserving duplicates of some expressions.
 
   Expressions for which the provided lambda returns true are not deduplicated.
@@ -293,7 +276,6 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("right", [string, count]), do: right(string, count)
   defp do_apply("substring", [string, from]), do: substring(string, from)
   defp do_apply("substring", [string, from, count]), do: substring(string, from, count)
-  defp do_apply("substring_for", [string, count]), do: substring(string, 1, count)
   defp do_apply("concat", args), do: Enum.join(args)
   defp do_apply("hex", [string]), do: Base.encode16(string, case: :lower)
   defp do_apply("hash", [value]) do
@@ -362,11 +344,9 @@ defmodule Cloak.Sql.Expression do
 
   defp substring(string, from, count \\ nil)
   defp substring(nil, _, _), do: nil
-  defp substring(_, nil, _), do: nil
-  defp substring(string, from, count) when from < 1, do: substring(string, 1, count + from - 1)
-  defp substring(_string, _from, count) when count < 0, do: ""
+  defp substring(string, from, nil), do: substring(string, from, String.length(string))
   defp substring(string, from, count), do:
-    String.slice(string, from - 1, count || String.length(string))
+    String.slice(string, from - 1, count)
 
   defp add_to_time(time, duration) do
     NaiveDateTime.from_erl!({_arbitrary_date = {100, 1, 1}, Time.to_erl(time)})

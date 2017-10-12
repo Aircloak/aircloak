@@ -11,6 +11,7 @@ defmodule Compliance.DataSource.SQLServerTds do
 
   @impl Connector
   def setup(%{parameters: params}) do
+    Application.ensure_all_started(:tds)
     conn = Cloak.DataSource.SQLServerTds.connect!(params)
     Enum.each(Common.setup_queries(), &execute!(conn, &1))
     conn
@@ -24,7 +25,12 @@ defmodule Compliance.DataSource.SQLServerTds do
 
   @impl Connector
   def insert_rows(table_name, data, conn) do
-    Enum.each(Common.insert_rows_queries(table_name, data), &execute!(conn, &1))
+    {sql, rows} = Common.insert_rows_query(table_name, data)
+    rows
+    |> Enum.map(&cast_types/1)
+    |> Enum.map(&Enum.join(&1, ", "))
+    |> Enum.map(&String.replace(sql, "$VALUES", &1))
+    |> Enum.each(&execute!(conn, &1))
     conn
   end
 
@@ -37,6 +43,15 @@ defmodule Compliance.DataSource.SQLServerTds do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp cast_types(params), do: Enum.map(params, &cast_type/1)
+
+  defp cast_type(binary) when is_binary(binary), do: "N'#{String.replace(binary, "'", "''")}'"
+  defp cast_type(integer) when is_integer(integer), do: to_string(integer)
+  defp cast_type(float) when is_float(float), do: to_string(float)
+  defp cast_type(true), do: 1
+  defp cast_type(false), do: 0
+  defp cast_type(%{calendar: Calendar.ISO} = datetime), do: datetime |> to_string() |> cast_type()
 
   defp execute!(conn, query), do: Tds.query!(conn, query, [])
 end

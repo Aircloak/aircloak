@@ -705,7 +705,7 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "substring for" do
     assert_parse "select substring(foo for 3) from bar",
-      select(columns: [{:function, "substring_for", [identifier("foo"), constant(:integer, 3)]}])
+      select(columns: [{:function, "substring", [identifier("foo"), constant(:integer, 1), constant(:integer, 3)]}])
   end
 
   test "|| compiled as concat" do

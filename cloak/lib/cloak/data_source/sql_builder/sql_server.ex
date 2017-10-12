@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct stddev_distinct
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc div mod ^ * / + -
-      length lower upper ltrim rtrim left right substring substring_for concat
+      length lower upper ltrim rtrim left right substring concat
       hex cast coalesce hash
     )
 
@@ -24,10 +24,10 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   end
   def function_sql("ceil", [arg]), do: ["CEILING(", arg, ")"]
   def function_sql("concat", args), do: Enum.intersperse(args, " + ")
-  def function_sql("length", [arg]), do: ["LEN(", arg, ")"]
-  def function_sql("trunc", [arg1]), do: ["ROUND(", arg1, ", 0, 1)"]
+  def function_sql("length", [arg]), do: ["(LEN(", arg, " + N'.') - 1)"]
+  def function_sql("trunc", [arg]), do: ["ROUND(", arg, ", 0, 1)"]
   def function_sql("trunc", [arg1, arg2]), do: ["ROUND(", arg1, ",", arg2, ", 1)"]
-  def function_sql("round", [arg1]), do: ["ROUND(", arg1, ", 0)"]
+  def function_sql("round", [arg]), do: ["ROUND(", arg, ", 0)"]
   def function_sql("div", [arg1, arg2]), do: ["(", arg1, " / ", arg2, ")"]
   def function_sql("hex", [arg]), do: ["LOWER(CONVERT(nvarchar, CAST(", arg, " AS varbinary), 2))"]
   def function_sql("hash", [arg]), do:
@@ -67,6 +67,12 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
 
   @impl Dialect
   def unicode_literal(value), do: ["N'", value, ?']
+
+  @impl Dialect
+  def cast_sql(value, :integer), do:
+    ["CAST(", function_sql("round", [value]), " AS integer)"]
+  def cast_sql(value, type), do:
+    ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
   def time_arithmetic_expression("+", [date, interval]), do: ["DATEADD(s, ", interval, ", ", date, ")"]

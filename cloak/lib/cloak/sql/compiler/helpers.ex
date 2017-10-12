@@ -15,7 +15,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
   def id_column(query) do
     id_columns = all_id_columns_from_tables(query)
     if any_outer_join?(query.from),
-      do: Expression.function("coalesce", id_columns),
+      do: %Expression{Expression.function("coalesce", id_columns) | alias: "__ac_coalesce__"},
       else: hd(id_columns)
   end
 

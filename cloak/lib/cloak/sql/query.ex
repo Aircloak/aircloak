@@ -81,16 +81,31 @@ defmodule Cloak.Sql.Query do
     next_row_index: row_index,
     noise_layers: [NoiseLayer.t],
     view?: boolean,
-    features: map,
     table_aliases: %{String.t => DataSource.Table.t},
     low_count_checks: [LowCountCheck.t],
+  }
+
+  @type features :: %{
+    num_selected_columns: pos_integer,
+    num_db_columns: pos_integer,
+    num_tables: pos_integer,
+    num_group_by: non_neg_integer,
+    functions: [String.t],
+    where_conditions: [String.t],
+    column_types: [String.t],
+    selected_types: [String.t],
+    parameter_types: [String.t],
+    decoders: [String.t],
+    driver: String.t,
+    driver_dialect: String.t,
+    emulated: boolean,
   }
 
   defstruct [
     columns: [], where: nil, group_by: [], order_by: [], column_titles: [], aggregators: [],
     info: [], selected_tables: [], implicit_count?: false, data_source: nil, command: nil,
     show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil, distinct?: false,
-    features: %{}, emulated_where: nil, ranges: [], parameters: [], views: %{}, emulated?: false, sample_rate: nil,
+    emulated_where: nil, ranges: [], parameters: [], views: %{}, emulated?: false, sample_rate: nil,
     projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false, table_aliases: %{},
     low_count_checks: []
   ]
@@ -105,10 +120,10 @@ defmodule Cloak.Sql.Query do
 
   Raises on error.
   """
-  @spec make!(DataSource.t, String.t, [parameter], view_map) :: t
+  @spec make!(DataSource.t, String.t, [parameter], view_map) :: {t, features}
   def make!(data_source, string, parameters, views) do
-    {:ok, query} = make_query(data_source, string, parameters, views)
-    query
+    {:ok, query, features} = make_query(data_source, string, parameters, views)
+    {query, features}
   end
 
   @doc """
@@ -118,10 +133,10 @@ defmodule Cloak.Sql.Query do
   and types, without executing the query.
   """
   @spec describe_query(DataSource.t, String.t, [parameter] | nil, view_map) ::
-    {:ok, [String.t], map} | {:error, String.t}
+    {:ok, [String.t], features} | {:error, String.t}
   def describe_query(data_source, statement, parameters, views), do:
-    with {:ok, query} <- make_query(data_source, statement, parameters, views), do:
-      {:ok, query.column_titles, query.features}
+    with {:ok, query, features} <- make_query(data_source, statement, parameters, views), do:
+      {:ok, query.column_titles, features}
 
 
   @doc "Validates a user-defined view."
@@ -131,7 +146,7 @@ defmodule Cloak.Sql.Query do
   def validate_view(data_source, name, sql, views) do
     with :ok <- view_name_ok?(data_source, name),
          {:ok, parsed_query} <- Parser.parse(sql),
-         {:ok, compiled_query} <- Compiler.validate_view(data_source, parsed_query, views)
+         {:ok, compiled_query, _features} <- Compiler.validate_view(data_source, parsed_query, views)
     do
       {:ok,
         Enum.zip(compiled_query.column_titles, compiled_query.columns)
@@ -160,7 +175,16 @@ defmodule Cloak.Sql.Query do
   @doc "Adds a database column to the query and updates all references to that column."
   @spec add_db_column(t, Expression.t) :: t
   def add_db_column(query, column) do
-    column_matcher = &Expression.id(&1) == Expression.id(column) and &1.alias == column.alias
+    # A db column we're adding has to have a well-defined id
+    false = is_nil(Expression.id(column))
+
+    column_matcher =
+      fn(candidate) ->
+        Expression.id(candidate) != nil and
+        Expression.id(candidate) == Expression.id(column) and
+        candidate.alias == column.alias
+      end
+
     case Enum.find(query.db_columns, column_matcher) do
       nil ->
         {next_row_index, query} = next_row_index(query)
@@ -245,14 +269,15 @@ defmodule Cloak.Sql.Query do
   def outermost_where_splitters(query), do:
     Lens.to_list(Lenses.outermost_where_splitters(), query)
 
-  @doc """
-  Returns the list of all splitters which are used in select expressions.
 
-  The splitters are returned in post-order, meaning that a nested splitter will always precede its ancestors.
-  """
-  @spec all_selected_splitters(t) :: [Expression.t]
-  def all_selected_splitters(query), do:
-    Enum.flat_map(query.columns, &Expression.all_splitters/1)
+  @doc "Retrieves the query features."
+  @spec features(Query.t) :: features
+  defdelegate features(query), to: __MODULE__.Features
+
+  @doc "Resolves the columns which must be fetched from the database."
+  @spec resolve_db_columns(t) :: t
+  def resolve_db_columns(query), do:
+    Cloak.Query.DataEngine.resolve_db_columns(%__MODULE__{query | next_row_index: 0, db_columns: []})
 
 
   # -------------------------------------------------------------------

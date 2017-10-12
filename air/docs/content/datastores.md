@@ -186,8 +186,6 @@ This section provides additional notes specific for each supported database.
 
 ### MongoDB
 
-Versions from 3.0 and newer are supported.
-
 #### Schema detection
 
 Collections in MongoDB do not have a fixed schema, whereas schema's are required by Aircloak Insights. In order to establish a schema that can be used, Aircloak Insights

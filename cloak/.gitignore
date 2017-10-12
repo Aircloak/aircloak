@@ -1,7 +1,6 @@
 *.beam
 .eunit
 ebin/*
-dev
 apps/cloak/src/*
 .DS_Store
 doc
@@ -24,7 +23,6 @@ include/*_pb.hrl
 rebar.proper
 test/app.config
 test/app-*@localhost.config
-
 undefined
 
 log

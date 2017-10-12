@@ -44,8 +44,8 @@ defmodule Cloak.DataSource.SAPHanaTest do
     SapHanaHelpers.ensure_schema!(connection_params(), schema())
 
     [
-      table_spec("strings", [value: "nvarchar(100)"], %{1..10 => [[~c('a string value')]]}),
-      table_spec("varchars", [value: "varchar(100)"], %{1..10 => [[~c('a string value')]]}),
+      table_spec("strings", [value: "nvarchar(100)"], %{1..10 => [["a string value"]]}),
+      table_spec("varchars", [value: "varchar(100)"], %{1..10 => [["a string value"]]}),
     ]
     |> Enum.map(&Task.async/1)
     |> Stream.map(&Task.await(&1, :timer.seconds(30)))
@@ -89,7 +89,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
   defp drop_test_tables(tables_def) do
     connection = connect!(connection_params())
     Enum.each(tables_def, fn({_, %{db_name: table_name}}) ->
-      {:updated, _} = SapHanaHelpers.execute(connection, ~s/drop table "#{schema()}"."#{table_name}"/)
+      SapHanaHelpers.execute!(connection, ~s/drop table "#{schema()}"."#{table_name}"/)
     end)
   end
 

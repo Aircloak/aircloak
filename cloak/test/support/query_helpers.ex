@@ -97,13 +97,18 @@ defmodule Cloak.Test.QueryHelpers do
   end
 
   def compile(query_string, data_source, options \\ []) do
-    with {:ok, parsed_query} <- Parser.parse(query_string), do:
-      Compiler.compile(
-        data_source,
-        parsed_query,
-        Keyword.get(options, :parameters, []),
-        Keyword.get(options, :views, %{})
+    with \
+      {:ok, parsed_query} <- Parser.parse(query_string),
+      {:ok, query, _features} <-
+        Compiler.compile(
+          data_source,
+          parsed_query,
+          Keyword.get(options, :parameters, []),
+          Keyword.get(options, :views, %{})
         )
+    do
+      {:ok, Query.resolve_db_columns(query)}
+    end
   end
 
   defp compare_to_within_delta(map1, map2, trace, delta) when is_map(map1) and is_map(map2) do

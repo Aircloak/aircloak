@@ -736,7 +736,7 @@ defmodule Cloak.Query.BasicTest do
 
   test "substring from 0" do
     assert_query "select substring(name from 0) from heights",
-      %{error: "The `FROM` parameter passed to `substring`" <> _}
+      %{error: "Expected `positive integer constant` at line 1, column 28."}
   end
 
   test "substring from ... for ..." do

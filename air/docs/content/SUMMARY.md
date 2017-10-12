@@ -25,6 +25,8 @@
   - [Microsoft SQL Server](datastores.md#microsoft-sql-server)
   - [MongoDB](datastores.md#mongodb)
   - [Feature emulation](datastores.md#emulation-overview)
+  - [Notes](datastores.md#database-specific-notes)
+
 
 ## Technical documentation
 
@@ -51,14 +53,15 @@
   - [Data sources](api/data_sources.md)
   - [Queries](api/queries.md)
   - [Errors](api/errors.md)
-- [Monitoring](monitoring.md)
+  - [PostgreSQL Message Protocol server](api/psql.md)
 
 ## Operations guides
-  - [Installing the system](installation.md)
-    - [Insights Air](installation.md#insights-air)
-    - [Insights Cloak](installation.md#insights-cloak)
-  - [Configuring the system](configuration.md)
-    - [Overview](configuration.md#overview)
-    - [Insights Air](configuration.md#insights-air-configuration)
-    - [Insights Cloak](configuration.md#insights-cloak-configuration)
-  - [Upgrading](upgrading.md)
+- [Installing the system](installation.md)
+  - [Insights Air](installation.md#insights-air)
+  - [Insights Cloak](installation.md#insights-cloak)
+- [Configuring the system](configuration.md)
+  - [Overview](configuration.md#overview)
+  - [Insights Air](configuration.md#insights-air-configuration)
+  - [Insights Cloak](configuration.md#insights-cloak-configuration)
+- [Upgrading](upgrading.md)
+- [Monitoring](monitoring.md)

@@ -3,7 +3,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.{Expression, Query, LikePattern}
-  alias Cloak.DataSource.{SQLServer, SQLServerTds, MongoDB}
 
 
   # -------------------------------------------------------------------
@@ -34,27 +33,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
     |> Helpers.apply_bottom_up(&normalize_order_by/1)
     |> Helpers.apply_bottom_up(&normalize_upper/1)
     |> Helpers.apply_bottom_up(&normalize_bucket/1)
-    |> data_source_specific_normalization()
-
-
-  # -------------------------------------------------------------------
-  # Data source-specific normalization
-  # -------------------------------------------------------------------
-
-  defp data_source_specific_normalization(query) do
-    case query.data_source.driver do
-      SQLServer -> sql_server_normalization(query)
-      SQLServerTds -> sql_server_normalization(query)
-      MongoDB -> mongo_normalization(query)
-      _no_special_normalization -> query
-    end
-  end
-
-  defp sql_server_normalization(query), do:
-    Helpers.apply_bottom_up(query, &alias_selected_constants/1)
-
-  defp mongo_normalization(query), do:
-    Helpers.apply_bottom_up(query, &alias_selected_constants/1)
 
 
   # -------------------------------------------------------------------
@@ -188,17 +166,4 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp remove_constant_ordering(order_list), do:
     Enum.reject(order_list, fn({expression, _direction}) -> expression.constant? end)
-
-
-  # -------------------------------------------------------------------
-  # Aliasing selected constants
-  # -------------------------------------------------------------------
-
-  defp alias_selected_constants(query = %{subquery?: false}), do: query
-  defp alias_selected_constants(query) do
-    Lens.key(:db_columns)
-    |> Lens.all()
-    |> Lens.satisfy(& &1.constant? and &1.alias in ["", nil])
-    |> Lens.map(query, &Helpers.set_unique_alias/1)
-  end
 end
