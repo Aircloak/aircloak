@@ -42,7 +42,7 @@ defmodule Cloak.DataSource do
   alias Cloak.Query.ExecutionError
 
   require Logger
-  require Aircloak.DeployConfig
+  require Aircloak.{DeployConfig, File}
 
   use GenServer, start: {__MODULE__, :start_link, []}
 
@@ -79,13 +79,8 @@ defmodule Cloak.DataSource do
   using the valid datasources. Invalid data sources won't be accessible, but
   the system will log corresponding errors.
   """
-  def start_link() do
-    initial_state = Aircloak.DeployConfig.fetch!("data_sources")
-    |> Cloak.DataSource.Utility.load_individual_data_source_configs()
-    |> config_to_datasources()
-    |> Enum.map(&add_tables/1)
-    GenServer.start_link(__MODULE__, initial_state, name: __MODULE__)
-  end
+  def start_link(), do:
+    GenServer.start_link(__MODULE__, load_data_source_configs(), name: __MODULE__)
 
   @doc "Returns the list of defined data sources."
   @spec all() :: [t]
@@ -166,6 +161,7 @@ defmodule Cloak.DataSource do
   @impl GenServer
   def init(data_sources) do
     activate_monitor_timer(self())
+    watch_for_config_changes()
     {:ok, data_sources}
   end
 
@@ -177,8 +173,17 @@ defmodule Cloak.DataSource do
     data_source = Enum.find(data_sources, & &1.name === name)
     {:reply, data_source, data_sources}
   end
-  def handle_call({:update, data_sources}, _from, _old_data_sources) do
-    {:reply, :ok, data_sources}
+  def handle_call({:update_data_source, data_source}, from, data_sources), do:
+    handle_call({:update_data_sources, replace_data_source(data_sources, data_source)}, from, data_sources)
+  def handle_call({:update_data_sources, new_data_sources}, _from, old_data_sources) do
+    if new_data_sources != old_data_sources do
+      Logger.info("Data sources status changed, sending new configuration to air ...")
+      Cloak.AirSocket.update_config(new_data_sources)
+      {:reply, :ok, new_data_sources}
+    else
+      Logger.info("No data source changed detected.")
+      {:reply, :ok, old_data_sources}
+    end
   end
 
   @impl GenServer
@@ -188,13 +193,23 @@ defmodule Cloak.DataSource do
       old_status = Enum.map(data_sources, & &1.status)
       data_sources = Enum.map(data_sources, &check_data_source/1)
       new_status = Enum.map(data_sources, & &1.status)
-      if new_status != old_status do
-        update(data_sources)
-        Logger.info("Data sources status changed, sending new configuration to air ...")
-        Cloak.AirSocket.update_config(data_sources)
-      end
+      if new_status != old_status, do: update(data_sources)
       activate_monitor_timer(server_pid)
     end)
+    {:noreply, data_sources}
+  end
+  def handle_info({:file_event, _worker_pid, {file_path, events}}, data_sources) do
+    if :removed in events do
+      Logger.debug("Data source removal detected. Reloading all data source configurations.")
+      async_reload_all_configs()
+    else
+      Logger.debug("Reloading data source configuration at #{file_path}.")
+      async_reload_config_at_path(file_path)
+    end
+    {:noreply, data_sources}
+  end
+  def handle_info({:file_event, _worker_pid, :stop}, data_sources) do
+    Logger.warn("Data source definition change detector terminated unexpectedly.")
     {:noreply, data_sources}
   end
 
@@ -202,6 +217,50 @@ defmodule Cloak.DataSource do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp async_reload_all_configs(), do:
+    Task.start_link(fn() -> update(load_data_source_configs()) end)
+
+  defp async_reload_config_at_path(file_path), do:
+    Task.start_link(fn() ->
+      file_path
+      |> File.read!()
+      |> Aircloak.Json.safe_decode()
+      |> case do
+        {:ok, data_source_definition} ->
+          [data_source] = initialize_data_source_configs([data_source_definition])
+          update(data_source)
+        {:error, reason} ->
+          Logger.warn("Failed at loading changed data source definition: #{reason}")
+      end
+    end)
+
+  defp replace_data_source(data_sources, data_source), do:
+    Enum.uniq_by([data_source] ++ data_sources, & &1.name)
+
+  defp load_data_source_configs(), do:
+    Aircloak.DeployConfig.fetch!("data_sources")
+    |> Cloak.DataSource.Utility.load_individual_data_source_configs()
+    |> initialize_data_source_configs()
+
+  defp initialize_data_source_configs(data_source_configs), do:
+    data_source_configs
+    |> config_to_datasources()
+    |> Enum.map(&add_tables/1)
+
+  defp watch_for_config_changes() do
+    case Aircloak.DeployConfig.fetch!("data_sources") do
+      path when is_binary(path) ->
+        data_source_definitions_path = Path.join([Aircloak.File.config_dir_path(), path])
+        {:ok, pid} = FileSystem.start_link(dirs: [data_source_definitions_path])
+        Logger.debug("Monitoring for data source definition changes at: #{data_source_definitions_path}")
+        FileSystem.subscribe(pid)
+        :ok
+      _other ->
+        Logger.debug("Not starting monitoring of data source definition changes. Legacy data source definitions provided")
+        :ok
+    end
+  end
 
   defp activate_monitor_timer(pid) do
     interval = Application.get_env(:cloak, :data_source_monitor_interval)
@@ -282,8 +341,10 @@ defmodule Cloak.DataSource do
   end
 
   @doc false
-  def update(data_sources), do:
-    GenServer.call(__MODULE__, {:update, data_sources}, :infinity)
+  def update(data_source) when is_map(data_source), do:
+    GenServer.call(__MODULE__, {:update_data_source, data_source}, :infinity)
+  def update(data_sources) when is_list(data_sources), do:
+    GenServer.call(__MODULE__, {:update_data_sources, data_sources}, :infinity)
 
   # We need a name for the data source in order for the Air to have something to attach
   # potential errors to. Therefore if none exists, we'll create a dummy name based on

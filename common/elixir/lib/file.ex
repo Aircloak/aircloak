@@ -6,6 +6,15 @@ defmodule Aircloak.File do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "The full path to the config directory"
+  defmacro config_dir_path(), do:
+    quote(do: unquote(__MODULE__).config_dir_path(unquote(Mix.Project.config[:app])))
+
+  @doc "The full path to the config directory for a given application"
+  @spec config_dir_path(atom) :: String.t
+  def config_dir_path(app), do:
+    Path.join([Application.app_dir(app, "priv"), "config"])
+
   @doc "Reads a file from the configuration folder for the calling application"
   defmacro read_config_file(path_segment), do:
     quote(do: unquote(__MODULE__).read_config_file(
@@ -50,5 +59,5 @@ defmodule Aircloak.File do
   # -------------------------------------------------------------------
 
   defp config_path(app, path_segment), do:
-    Path.join([Application.app_dir(app, "priv"), "config", path_segment])
+    Path.join([config_dir_path(app), path_segment])
 end
