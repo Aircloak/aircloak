@@ -81,15 +81,38 @@ defmodule Cloak.Test.QueryHelpers do
   end
 
   deflens aliases, do:
-    all_subqueries() |> Query.Lenses.terminals() |> Lens.satisfy(&match?(%Expression{}, &1)) |> Lens.key(:alias)
+    all_subqueries()
+    |> Query.Lenses.terminals()
+    |> Lens.satisfy(&match?(%Expression{}, &1))
+    |> Lens.multiple([
+      Lens.key(:alias),
+      Lens.key(:name),
+      Lens.key(:table)
+      |> Lens.match(fn
+        %{columns: _} -> Lens.key(:columns)
+        _ -> Lens.empty()
+      end)
+      |> Query.Lenses.all_expressions()
+      |> Lens.both(Lens.key(:alias), Lens.key(:name))
+    ])
+    |> is_alias()
+
+  deflens all_column_titles(), do:
+    all_subqueries() |> Lens.key(:column_titles) |> Lens.all()
 
   deflens all_subqueries(), do:
     Lens.both(Lens.recur(Query.Lenses.direct_subqueries() |> Lens.key(:ast)), Lens.root())
+
+  def is_alias(previous), do:
+    Lens.satisfy(previous, & not is_nil(&1) and String.starts_with?(&1, "alias"))
 
   def scrub_data_sources(query), do:
     put_in(query, [all_subqueries() |> Lens.key(:data_source)], nil)
 
   def scrub_aliases(query), do: put_in(query, [aliases()], nil)
+
+  def scrub_column_title_aliases(query), do:
+    put_in(query, [all_column_titles() |> is_alias()], nil)
 
   def compile!(query_string, data_source, options \\ []) do
     {:ok, result} = compile(query_string, data_source, options)

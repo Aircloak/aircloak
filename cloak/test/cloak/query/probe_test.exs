@@ -34,6 +34,7 @@ defmodule Cloak.Query.ProbeTest do
     |> Probe.process()
     |> scrub_aliases()
     |> scrub_data_sources()
+    |> scrub_column_title_aliases()
   end
 
   defp compile!(query_string, data_source) do
