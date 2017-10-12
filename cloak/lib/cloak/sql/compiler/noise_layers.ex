@@ -176,10 +176,19 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp calculate_base_noise_layers(query, top_level_uid), do:
     %{query |
       noise_layers:
+        select_noise_layers(query, top_level_uid) ++
         basic_noise_layers(query, top_level_uid) ++
         range_noise_layers(query) ++
         negative_noise_layers(query)
     }
+
+  defp select_noise_layers(%{subquery?: true}, _top_level_uid), do: []
+  defp select_noise_layers(query, top_level_uid), do:
+    Lens.key(:columns)
+    |> Lens.all()
+    |> Lens.satisfy(& not Helpers.aggregated_column?(query, &1))
+    |> raw_columns(query)
+    |> Enum.flat_map(&[static_noise_layer(&1), uid_noise_layer(&1, top_level_uid)])
 
   defp basic_noise_layers(query, top_level_uid), do:
     Query.Lenses.db_filter_clauses()
