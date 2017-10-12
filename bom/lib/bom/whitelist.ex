@@ -10,13 +10,14 @@ defmodule BOM.Whitelist do
 
   @licenses %{
     :elixir => %{
-      {"ecto",            "2.1.4"}  => %{type: :apache2, text: :provided},
-      {"erlware_commons", "0.21.0"} => %{type: :mit,     text: :provided},
-      {"scrivener",       "2.3.0"}  => %{type: :mit,     text: :standard},
-      {"scrivener_ecto",  "1.2.2"}  => %{type: :mit,     text: :standard},
-      {"scrivener_html",  "1.3.3"}  => %{type: :mit,     text: :standard},
-      {"excoveralls",     "0.5.7"}  => %{type: :mit,     text: :standard},
-      {"ecto_enum",       "1.0.1"}  => %{type: :mit,     text: :provided},
+      {"ecto",            "2.1.4"}  => %{type: :apache2,                   text: :provided},
+      {"erlware_commons", "0.21.0"} => %{type: :mit,                       text: :provided},
+      {"scrivener",       "2.3.0"}  => %{type: :mit,                       text: :standard},
+      {"scrivener_ecto",  "1.2.2"}  => %{type: :mit,                       text: :standard},
+      {"scrivener_html",  "1.3.3"}  => %{type: :mit,                       text: :standard},
+      {"excoveralls",     "0.5.7"}  => %{type: :mit,                       text: :standard},
+      {"ecto_enum",       "1.0.1"}  => %{type: :mit,                       text: :provided},
+      {"file_system",     "0.2.2"}  => %{type: :do_what_the_fuck_you_want, text: :provided},
     },
     :node => %{
       {"base64-js",                 "0.0.2"}  => %{type: :mit,           text: :provided},
@@ -103,6 +104,7 @@ defmodule BOM.Whitelist do
     "0689a7b07fec79946ae192573e1450e8" => :bsd_3_clause,  # elixir/getopt
     "9741c346eef56131163e13b9db1241b3" => :mpl_2_0,       # elixir/jose
     "4d8e2e181d7f8cdc38226f5ee04e5fdd" => :mit,           # elixir/phoenix_gen_socket_server
+    "d0d1fe59ece5018a431ad8e694ec6c6a" => :do_what_the_fuck_you_want, # elixir/file_system
   }
 
 
