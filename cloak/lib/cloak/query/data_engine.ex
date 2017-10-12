@@ -54,9 +54,7 @@ defmodule Cloak.Query.DataEngine do
   @doc "Resolves the columns which must be fetched from the database."
   @spec resolve_db_columns(Query.t) :: Query.t
   def resolve_db_columns(%Query{command: :select} = query), do:
-    query
-    |> update_in([Query.Lenses.direct_subqueries()], &%{&1 | ast: resolve_db_columns(&1.ast)})
-    |> resolve_query_db_columns()
+    Helpers.apply_bottom_up(query, &resolve_query_db_columns/1)
   def resolve_db_columns(%Query{} = query), do:
     query
 
