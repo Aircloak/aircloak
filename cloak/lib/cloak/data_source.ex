@@ -178,7 +178,7 @@ defmodule Cloak.DataSource do
   def handle_call({:update_data_sources, new_data_sources}, _from, old_data_sources) do
     if new_data_sources != old_data_sources do
       Logger.info("Data sources status changed, sending new configuration to air ...")
-      Cloak.AirSocket.update_config(new_data_sources)
+      update_air(new_data_sources)
       {:reply, :ok, new_data_sources}
     else
       Logger.info("No data source changed detected.")
@@ -421,5 +421,12 @@ defmodule Cloak.DataSource do
   else
     defp disabled_in_dev?(_data_source), do:
       false
+  end
+
+  if Mix.env == :test do
+    defp update_air(_data_sources), do: :ok
+  else
+    defp update_air(data_sources), do:
+      Cloak.AirSocket.update_config(data_sources)
   end
 end
