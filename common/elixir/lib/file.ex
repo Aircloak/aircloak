@@ -16,7 +16,7 @@ defmodule Aircloak.File do
   def read_config_file(app, path_segment), do:
     config_path(app, path_segment)
     |> File.read!()
-    |> poison_safe_decode_with_error_message()
+    |> Aircloak.Json.safe_decode()
 
   @doc "Lists all files inside a config directory for the calling application"
   defmacro ls(path_segment), do:
@@ -51,12 +51,4 @@ defmodule Aircloak.File do
 
   defp config_path(app, path_segment), do:
     Path.join([Application.app_dir(app, "priv"), "config", path_segment])
-
-  defp poison_safe_decode_with_error_message(raw_json) do
-    try do
-      {:ok, Poison.decode!(raw_json)}
-    rescue
-      e -> {:error, e.message}
-    end
-  end
 end
