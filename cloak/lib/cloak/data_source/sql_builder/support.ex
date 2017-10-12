@@ -18,8 +18,6 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
 
   @doc "Generates SQL for a function invocation. Provided arguments list must contain SQL fragments."
   @spec function_sql(Expression.function_name, [iodata], atom) :: iodata
-  def function_sql("substring_for", [arg1, arg2], sql_dialect_module), do:
-    function_sql("substring", [arg1, "1", arg2], sql_dialect_module)
   def function_sql({:cast, type}, [arg], sql_dialect_module), do:
     sql_dialect_module.cast_sql(arg, type)
   for name <- ~w(round floor ceil ceiling trunc) do

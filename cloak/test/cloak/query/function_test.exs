@@ -296,6 +296,8 @@ defmodule Cloak.Query.FunctionTest do
   test "substring from", do: assert "irst second third" == apply_function("substring(name from 2)", "heights_ft")
   test "substring for", do: assert "fi" == apply_function("substring(name for 2)", "heights_ft")
   test "substring from for", do: assert "i" == apply_function("substring(name from 2 for 1)", "heights_ft")
+  test "substring/3", do: assert "i" == apply_function("substring(name, 2, 1)", "heights_ft")
+  test "substring/2", do: assert "irst second third" == apply_function("substring(name, 2)", "heights_ft")
   test "concat", do: assert "first second third fourth" == apply_function("concat(name, ' fourth')", "heights_ft")
   test "||", do: assert "first second thirdbc" == apply_function("name || 'b' || 'c'", "heights_ft")
 
