@@ -6,7 +6,7 @@ MAINTAINER Aircloak
 # ---------------------------------------------------------------------
 
 # Setup ODBC drivers
-RUN apt-get install -y unixodbc odbc-postgresql libmyodbc libaio1
+RUN apt-get install -y unixodbc odbc-postgresql libmyodbc libaio1 inotify-tools
 COPY cloak/priv/odbc/docker/odbc.ini /etc/
 COPY cloak/priv/odbc/docker/sqlserver_setup.sh /aircloak/
 RUN /aircloak/sqlserver_setup.sh
