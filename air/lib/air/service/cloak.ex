@@ -38,9 +38,8 @@ defmodule Air.Service.Cloak do
   def update(cloak_info, data_sources) do
     # cleanup previous entries from Registry
     Registry.unregister(@all_cloak_registry_name, :all_cloaks)
-    for data_source <- data_sources do
-      Registry.unregister(@data_source_registry_name, data_source["name"])
-    end
+    for data_source_name <- Registry.keys(@data_source_registry_name, self()), do:
+      Registry.unregister(@data_source_registry_name, data_source_name)
 
     register(cloak_info, data_sources)
   end
