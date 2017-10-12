@@ -133,6 +133,8 @@ matrix:
           - mongodb-3.4-precise
           packages:
           - mongodb-org-server
+      before_install:
+      - ./travis-asdf-setup.sh
     - env: TEST="aux"
       cache:
         directories:
