@@ -120,7 +120,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         Expression.function("max", [Helpers.reference_aliased(max, query)], max.type, _aggregate = true),
         Expression.function("sum", [Helpers.reference_aliased(count, query)], :integer, _aggregate = true),
       ]
-      |> Enum.map(&Helpers.set_unique_alias/1)
+      |> Enum.map(&set_unique_alias/1)
     }
   end
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count, user_id]}, query) do
@@ -131,7 +131,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         Expression.function("sum", [Helpers.reference_aliased(count, query)], :integer, _aggregate = true),
         user_id,
       ]
-      |> Enum.map(&Helpers.set_unique_alias/1)
+      |> Enum.map(&set_unique_alias/1)
     }
   end
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression]}, query) do
@@ -142,7 +142,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
           Expression.function("max", [expression], expression.type, _aggregate = true),
           Expression.function("count", [expression], :integer, _aggregate = true),
         ]
-        |> Enum.map(&Helpers.set_unique_alias/1)
+        |> Enum.map(&set_unique_alias/1)
       }
     else
       noise_layer
@@ -157,7 +157,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
           Expression.function("count", [expression], :integer, _aggregate = true),
           user_id,
         ]
-        |> Enum.map(&Helpers.set_unique_alias/1)
+        |> Enum.map(&set_unique_alias/1)
       }
     else
       noise_layer
@@ -259,11 +259,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp uid_noise_layer(column), do:
     NoiseLayer.new(
       {column.table.name, column.name, _extras = nil},
-      [Helpers.set_unique_alias(column), %Expression{user_id?: true}]
+      [set_unique_alias(column), %Expression{user_id?: true}]
     )
 
   defp build_noise_layer(column, extras \\ nil), do:
-    NoiseLayer.new({column.table.name, column.name, extras}, [Helpers.set_unique_alias(column)])
+    NoiseLayer.new({column.table.name, column.name, extras}, [set_unique_alias(column)])
 
   defp conditions_satisfying(predicate), do:
     Query.Lenses.db_filter_clauses()
@@ -297,4 +297,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.key(:expressions)
     |> Lens.all()
   end
+
+  # Modifies the expression to have a globally unique alias. This serves to make sure a column being added to the query
+  # doesn't accidentally clash with a column selected by the user or a user-defined alias.
+  defp set_unique_alias(column), do: %{column | alias: "__ac__alias_#{System.unique_integer([:positive])}"}
 end

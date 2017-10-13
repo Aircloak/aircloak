@@ -43,7 +43,7 @@ defmodule Cloak.Sql.Compiler.LowCountChecks do
         Expression.function("min", [unaggregated], unaggregated.type, _aggregate = true),
         Expression.function("max", [unaggregated], unaggregated.type, _aggregate = true),
       ]
-      |> Enum.map(&Helpers.set_unique_alias/1)
+      |> Enum.map(&set_unique_alias/1)
     }
   defp do_aggregate_check(check = %{expressions: [min, max]}, query), do:
     %{check | expressions:
@@ -51,7 +51,7 @@ defmodule Cloak.Sql.Compiler.LowCountChecks do
         Expression.function("min", [Helpers.reference_aliased(min, query)], min.type, _aggregate = true),
         Expression.function("max", [Helpers.reference_aliased(max, query)], max.type, _aggregate = true),
       ]
-      |> Enum.map(&Helpers.set_unique_alias/1)
+      |> Enum.map(&set_unique_alias/1)
     }
 
   defp floated_checks(query), do:
@@ -95,9 +95,13 @@ defmodule Cloak.Sql.Compiler.LowCountChecks do
     |> Lens.satisfy(&Condition.like?/1)
     |> Lens.to_list(query)
     |> Enum.map(fn ({type, lhs, _rhs}) ->
-      LowCountCheck.new([lhs |> preprocess(type) |> Helpers.set_unique_alias()])
+      LowCountCheck.new([lhs |> preprocess(type) |> set_unique_alias()])
     end)
 
   defp preprocess(expression, :like), do: expression
   defp preprocess(expression, :ilike), do: Expression.function("lower", [expression], expression.type)
+
+  # Modifies the expression to have a globally unique alias. This serves to make sure a column being added to the query
+  # doesn't accidentally clash with a column selected by the user or a user-defined alias.
+  defp set_unique_alias(column), do: %{column | alias: "__ac__alias_#{System.unique_integer([:positive])}"}
 end

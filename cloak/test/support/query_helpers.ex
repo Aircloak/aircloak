@@ -103,8 +103,8 @@ defmodule Cloak.Test.QueryHelpers do
   deflens all_subqueries(), do:
     Lens.both(Lens.recur(Query.Lenses.direct_subqueries() |> Lens.key(:ast)), Lens.root())
 
-  def is_alias(previous), do:
-    Lens.satisfy(previous, & not is_nil(&1) and String.starts_with?(&1, "alias"))
+  def is_alias(previous_lens), do:
+    Lens.satisfy(previous_lens, & not is_nil(&1) and String.starts_with?(&1, "__ac__alias"))
 
   def scrub_data_sources(query), do:
     put_in(query, [all_subqueries() |> Lens.key(:data_source)], nil)
