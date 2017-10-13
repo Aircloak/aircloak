@@ -279,6 +279,11 @@ defmodule Cloak.Sql.Query do
   def resolve_db_columns(query), do:
     Cloak.Query.DataEngine.resolve_db_columns(%__MODULE__{query | next_row_index: 0, db_columns: []})
 
+  @doc "Replaces all occurrences of one expression with another expression."
+  @spec replace_expression(t, Expression.t, Expression.t) :: t
+  def replace_expression(query, expression, new_expression), do:
+    put_in(query, [Lenses.expression_instances(expression)], new_expression)
+
 
   # -------------------------------------------------------------------
   # Internal functions

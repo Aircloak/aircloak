@@ -65,7 +65,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp calculate_floated_noise_layers(query), do:
     query
     |> add_floated_noise_layers()
-    |> add_floated_db_columns()
+    |> add_db_columns()
     |> float_noise_layers_columns()
 
   defp add_floated_noise_layers(query), do:
@@ -75,6 +75,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp float_noise_layers(layers, query), do:
     Enum.map(layers, &float_noise_layer(&1, query))
+
+  defp add_db_columns(query), do:
+    Helpers.add_extra_db_columns(query, noise_layer_columns(query))
 
   defp float_noise_layers_columns(query = %{subquery?: true}) do
     noise_columns =
@@ -89,9 +92,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     }
   end
   defp float_noise_layers_columns(query), do: query
-
-  defp add_floated_db_columns(query), do:
-    add_db_columns(query, noise_layer_columns(query))
 
   defp noise_layer_columns(%{noise_layers: noise_layers, emulated?: true}), do:
     non_uid_expressions()
@@ -217,7 +217,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     uid_noise_layer = NoiseLayer.new(nil, [Helpers.id_column(query)])
 
     %{query | noise_layers: [uid_noise_layer]}
-    |> add_db_columns([id_column])
+    |> Helpers.add_extra_db_columns([id_column])
   end
 
   defp update_uid_expressions(query) do
@@ -226,7 +226,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     Lens.key(:noise_layers)
     |> uid_expressions()
     |> Lens.map(query, fn(_) -> id_column end)
-    |> add_db_columns([id_column])
+    |> Helpers.add_extra_db_columns([id_column])
   end
 
 
@@ -277,11 +277,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.map(query, fn({table, column, extras}) ->
       {String.downcase(table), String.downcase(column), extras}
     end)
-  end
-
-  defp add_db_columns(query, to_add) do
-    {query, to_add} = Helpers.drop_redundant_floated_columns(query, query.db_columns, to_add)
-    Enum.reduce(to_add, query, &Query.add_db_column(&2, &1))
   end
 
   deflensp non_uid_expressions() do
