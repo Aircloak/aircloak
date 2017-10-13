@@ -99,7 +99,7 @@ defmodule Cloak.Query.DataEngine do
   defp resolve_query_db_columns(query), do:
     query
     |> include_required_expressions()
-    |> include_floated_columns()
+    |> Helpers.add_extra_db_columns(&range_columns/1)
     |> optimize_columns_from_projected_subqueries()
 
   defp range_columns(%{subquery?: true, emulated?: false}), do: []
@@ -155,11 +155,6 @@ defmodule Cloak.Query.DataEngine do
     |> Lens.to_list(all_terminals)
     |> Enum.filter(& &1.table != :unknown and &1.table.name == table_name)
     |> Enum.uniq_by(&Expression.id/1)
-  end
-
-  defp include_floated_columns(query) do
-    {query, floated_columns} = Helpers.drop_redundant_floated_columns(query, query.db_columns, range_columns(query))
-    Enum.reduce(floated_columns, query, &Query.add_db_column(&2, &1))
   end
 
   defp optimized_projected_subquery_ast(ast, required_column_names) do

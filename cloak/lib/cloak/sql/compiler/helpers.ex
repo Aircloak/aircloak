@@ -66,17 +66,17 @@ defmodule Cloak.Sql.Compiler.Helpers do
   def set_unique_alias(column), do: %{column | alias: "alias_#{System.unique_integer([:positive])}"}
 
   @doc """
-  Removes columns from new_columns that are duplicated or already present in selected_columns. Returns a modified
+  Removes columns from new_columns that are duplicated or already present in db_columns. Returns a modified
   version of query where the appropriate selected columns are used instead of the removed columns.
   """
-  @spec drop_redundant_floated_columns(Query.t, [Expression.t], [Expression.t]) :: {Query.t, [Expression.t]}
-  def drop_redundant_floated_columns(query, selected_columns, new_columns) do
-    selected_ids = Enum.map(selected_columns, &Expression.id/1) |> Enum.uniq()
+  @spec drop_redundant_floated_columns(Query.t, [Expression.t]) :: {Query.t, [Expression.t]}
+  def drop_redundant_floated_columns(query, new_columns) do
+    selected_ids = Enum.map(query.db_columns, &Expression.id/1) |> Enum.uniq()
 
     {already_selected, new_columns} = Enum.partition(new_columns, &Expression.id(&1) in selected_ids)
     uniq_new = Enum.uniq_by(new_columns, &Expression.id/1)
     duplicated_new = new_columns -- uniq_new
-    replacements = selected_columns ++ uniq_new
+    replacements = query.db_columns ++ uniq_new
 
     query = Enum.reduce(already_selected ++ duplicated_new, query, fn (column, query) ->
       replacement = Enum.find(replacements, &Expression.id(&1) == Expression.id(column))
@@ -84,6 +84,17 @@ defmodule Cloak.Sql.Compiler.Helpers do
     end)
 
     {query, uniq_new}
+  end
+
+  @doc """
+  Adds extra columns to the db_columns list.
+
+  Duplicates are rejected and replaced using `drop_redundant_floated_columns/2`
+  """
+  @spec add_extra_db_columns(Query.t, ((Query.t) -> [Expression.t])) :: Query.t
+  def add_extra_db_columns(query, columns_getter) do
+    {query, new_columns} = drop_redundant_floated_columns(query, columns_getter.(query))
+    Enum.reduce(new_columns, query, &Query.add_db_column(&2, &1))
   end
 
   @doc """
