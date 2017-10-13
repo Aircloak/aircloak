@@ -122,7 +122,7 @@ defmodule Cloak.Query.Probe do
   def insufficient_users?(user_ids, noise_layers) do
     user_count = MapSet.size(user_ids)
     {sufficient_users?, _} =
-      [user_ids | noise_layers]
+      noise_layers
       |> Anonymizer.new()
       |> Anonymizer.sufficiently_large?(user_count)
     user_count < @lcf_upper_limit and not sufficient_users?

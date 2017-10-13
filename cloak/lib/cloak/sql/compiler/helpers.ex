@@ -15,7 +15,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
   def id_column(query) do
     id_columns = all_id_columns_from_tables(query)
     if any_outer_join?(query.from),
-      do: %Expression{Expression.function("coalesce", id_columns) | alias: "__ac_coalesce__"},
+      do: %Expression{Expression.function("coalesce", id_columns) | alias: "__ac_coalesce__", user_id?: true},
       else: hd(id_columns)
   end
 
@@ -39,7 +39,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
   @doc "Returns true if the provided expression is aggregated."
   @spec aggregated_column?(partial_query, Expression.t) :: boolean
   def aggregated_column?(query, column), do:
-    Enum.member?(query.group_by, column) or
+    Enum.member?(Enum.map(query.group_by, &Expression.unalias/1), Expression.unalias(column)) or
     (
       column.function? and
       (
@@ -60,10 +60,6 @@ defmodule Cloak.Sql.Compiler.Helpers do
     Query.Lenses.join_conditions()
     |> Query.Lenses.conditions()
     |> Lens.to_list(query)
-
-  @doc "Modifies the expression to have a globally unique alias."
-  @spec set_unique_alias(Expression.t) :: Expression.t
-  def set_unique_alias(column), do: %{column | alias: "alias_#{System.unique_integer([:positive])}"}
 
   @doc """
   Removes columns from new_columns that are duplicated or already present in db_columns. Returns a modified

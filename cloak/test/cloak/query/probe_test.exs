@@ -1,7 +1,7 @@
 defmodule Cloak.Query.ProbeTest do
   use ExUnit.Case, async: true
 
-  import Cloak.Test.QueryHelpers
+  import Cloak.Test.QueryHelpers, except: [compile!: 2]
 
   alias Cloak.Sql.Expression
   alias Cloak.Query.Probe
@@ -34,6 +34,13 @@ defmodule Cloak.Query.ProbeTest do
     |> Probe.process()
     |> scrub_aliases()
     |> scrub_data_sources()
+    |> scrub_column_title_aliases()
+  end
+
+  defp compile!(query_string, data_source) do
+    query_string
+    |> Cloak.Test.QueryHelpers.compile!(data_source)
+    |> Cloak.Sql.Compiler.NoiseLayers.compile()
   end
 
   test "complex negative conditions in top query" do
