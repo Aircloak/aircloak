@@ -103,5 +103,5 @@ defmodule Cloak.Sql.Compiler.LowCountChecks do
 
   # Modifies the expression to have a globally unique alias. This serves to make sure a column being added to the query
   # doesn't accidentally clash with a column selected by the user or a user-defined alias.
-  defp set_unique_alias(column), do: %{column | alias: "__ac__alias_#{System.unique_integer([:positive])}"}
+  defp set_unique_alias(column), do: %{column | alias: "__ac_alias__#{System.unique_integer([:positive])}"}
 end

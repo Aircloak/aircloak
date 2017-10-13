@@ -106,7 +106,7 @@ defmodule Cloak.Test.QueryHelpers do
   deflens all_subqueries(), do:
     Lens.both(Lens.recur(Query.Lenses.direct_subqueries() |> Lens.key(:ast)), Lens.root())
 
-  def is_aircloak_alias?("__ac__" <> _), do: true
+  def is_aircloak_alias?("__ac_alias__" <> _), do: true
   def is_aircloak_alias?(_), do: false
 
   def scrub_data_sources(query), do:
