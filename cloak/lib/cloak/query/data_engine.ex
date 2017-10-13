@@ -99,11 +99,7 @@ defmodule Cloak.Query.DataEngine do
   defp resolve_query_db_columns(query), do:
     query
     |> include_required_expressions()
-    |> Helpers.add_extra_db_columns(&range_columns/1)
     |> optimize_columns_from_projected_subqueries()
-
-  defp range_columns(%{subquery?: true, emulated?: false}), do: []
-  defp range_columns(%{ranges: ranges}), do: ranges |> Enum.map(&(&1.column)) |> extract_columns()
 
   defp include_required_expressions(query), do:
     Enum.reduce(required_expressions(query), query, &Query.add_db_column(&2, &1))
@@ -115,10 +111,11 @@ defmodule Cloak.Query.DataEngine do
   defp required_expressions(%Query{command: :select} = query) do
     # top-level query -> we're only fetching columns, while other expressions (e.g. function calls)
     # will be resolved in the post-processing phase
-    used_columns = query
-    |> needed_columns()
-    |> extract_columns()
-    |> Enum.reject(& &1.constant?)
+    used_columns =
+      query
+      |> needed_columns()
+      |> extract_columns()
+      |> Enum.reject(& &1.constant?)
 
     [Helpers.id_column(query) | used_columns]
   end
