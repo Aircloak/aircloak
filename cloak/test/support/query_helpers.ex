@@ -80,22 +80,25 @@ defmodule Cloak.Test.QueryHelpers do
     Cloak.Test.DB.add_users_data(table, columns, [[nil | values]])
   end
 
-  deflens aliases, do:
+  deflens aliases(), do:
     all_subqueries()
     |> Query.Lenses.terminals()
     |> Lens.satisfy(&match?(%Expression{}, &1))
     |> Lens.multiple([
-      Lens.key(:alias),
-      Lens.key(:name),
-      Lens.key(:table)
-      |> Lens.match(fn
-        %{columns: _} -> Lens.key(:columns)
-        _ -> Lens.empty()
-      end)
-      |> Query.Lenses.all_expressions()
-      |> Lens.both(Lens.key(:alias), Lens.key(:name))
+      Lens.key(:alias) |> Lens.satisfy(&is_aircloak_alias?/1),
+      # A name in a higher-level query may refer to an alias in a lower-level one
+      Lens.key(:name) |> Lens.satisfy(&is_aircloak_alias?/1),
+      Lens.key(:table) |> aliases_in_table_spec(),
     ])
-    |> is_alias()
+
+  deflens aliases_in_table_spec(), do:
+    Lens.match(fn
+      %{columns: _} -> Lens.key(:columns)
+      _ -> Lens.empty()
+    end)
+    |> Query.Lenses.all_expressions()
+    |> Lens.both(Lens.key(:alias), Lens.key(:name))
+    |> Lens.satisfy(&is_aircloak_alias?/1)
 
   deflens all_column_titles(), do:
     all_subqueries() |> Lens.key(:column_titles) |> Lens.all()
@@ -103,8 +106,8 @@ defmodule Cloak.Test.QueryHelpers do
   deflens all_subqueries(), do:
     Lens.both(Lens.recur(Query.Lenses.direct_subqueries() |> Lens.key(:ast)), Lens.root())
 
-  def is_alias(previous_lens), do:
-    Lens.satisfy(previous_lens, & not is_nil(&1) and String.starts_with?(&1, "__ac__alias"))
+  def is_aircloak_alias?("__ac__" <> _), do: true
+  def is_aircloak_alias?(_), do: false
 
   def scrub_data_sources(query), do:
     put_in(query, [all_subqueries() |> Lens.key(:data_source)], nil)
@@ -112,7 +115,7 @@ defmodule Cloak.Test.QueryHelpers do
   def scrub_aliases(query), do: put_in(query, [aliases()], nil)
 
   def scrub_column_title_aliases(query), do:
-    put_in(query, [all_column_titles() |> is_alias()], nil)
+    put_in(query, [all_column_titles() |> Lens.satisfy(&is_aircloak_alias?/1)], nil)
 
   def compile!(query_string, data_source, options \\ []) do
     {:ok, result} = compile(query_string, data_source, options)
