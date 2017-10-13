@@ -61,7 +61,9 @@ defmodule Cloak.Query.RowSplitters do
     Enum.reduce(
       Query.outermost_selected_splitters(query),
       query,
-      &Query.replace_expression(&2, %Expression{&1 | name: nil}, &1)
+      fn(expression, query) ->
+        Query.replace_expression(query, %Expression{expression | name: nil}, expression)
+      end
     )
 
   defp add_outermost_splitters_to_db_columns(query), do:

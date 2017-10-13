@@ -79,7 +79,11 @@ defmodule Cloak.Sql.Compiler.Helpers do
     replacements = (query.db_columns ++ uniq_new) |> Enum.map(&{Expression.id(&1), &1}) |> Map.new()
 
     query = Enum.reduce(already_selected ++ duplicated_new, query,
-      &Query.replace_expression(&2, &1, Map.fetch!(replacements, Expression.id(&1))))
+      fn(duplicate_expression, query) ->
+        replacement = Map.fetch!(replacements, Expression.id(duplicate_expression))
+        Query.replace_expression(query, duplicate_expression, replacement)
+      end
+    )
 
     {query, uniq_new}
   end
