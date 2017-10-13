@@ -423,6 +423,9 @@ defmodule Cloak.DataSource do
       false
   end
 
+  # Cloak.AirSocket.update_config throws during tests where there is no
+  # air conterpoint running. Rather than running a fake socket for test
+  # purposes, we opted to make the update call a noop.
   if Mix.env == :test do
     defp update_air(_data_sources), do: :ok
   else
