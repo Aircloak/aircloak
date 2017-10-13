@@ -187,7 +187,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(& not fk_pk_condition?(&1))
     |> Lens.both(Lens.key(:group_by))
     |> raw_columns(query)
-    |> Enum.flat_map(& [static_noise_layer(&1), uid_noise_layer(&1)])
+    |> Enum.flat_map(&[static_noise_layer(&1), uid_noise_layer(&1)])
 
   defp fk_pk_condition?({:comparison, lhs, :=, rhs}), do:
     Expression.key?(lhs) and Expression.key?(rhs)
