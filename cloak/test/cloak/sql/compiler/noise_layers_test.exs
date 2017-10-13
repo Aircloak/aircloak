@@ -7,7 +7,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   test "overwrites any existing noise layers" do
     compiled = Cloak.Test.QueryHelpers.compile!("SELECT COUNT(*) FROM table", data_source())
     query =
-      %{compiled | noise_layers: :to_be_overwritten}
+      %{compiled | noise_layers: [%{base: :to_be_overwritten, expressions: []}]}
       |> Cloak.Sql.Compiler.NoiseLayers.compile()
 
     assert [%{base: nil}] = query.noise_layers

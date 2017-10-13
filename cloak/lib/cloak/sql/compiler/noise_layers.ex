@@ -17,13 +17,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   """
   @spec compile(Query.t) :: Query.t
   def compile(query = %{command: :show}), do: query
-  def compile(query), do:
+  def compile(query) do
+    top_level_uid = find_top_level_uid!(query)
+
     query
-    |> Helpers.apply_bottom_up(&calculate_base_noise_layers/1)
+    |> Helpers.apply_bottom_up(&calculate_base_noise_layers(&1, top_level_uid))
     |> apply_top_down(&push_down_noise_layers/1)
     |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
     |> apply_top_down(&normalize_datasource_case/1)
-    |> normalize_uid_layers()
+    |> add_generic_uid_layer_if_needed(top_level_uid)
+  end
 
 
   # -------------------------------------------------------------------
@@ -169,16 +172,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # Computing base noise layers
   # -------------------------------------------------------------------
 
-  defp calculate_base_noise_layers(query = %{projected?: true}), do: query
-  defp calculate_base_noise_layers(query), do:
+  defp calculate_base_noise_layers(query = %{projected?: true}, _top_level_uid), do: query
+  defp calculate_base_noise_layers(query, top_level_uid), do:
     %{query |
       noise_layers:
-        basic_noise_layers(query) ++
+        basic_noise_layers(query, top_level_uid) ++
         range_noise_layers(query) ++
         negative_noise_layers(query)
     }
 
-  defp basic_noise_layers(query), do:
+  defp basic_noise_layers(query, top_level_uid), do:
     Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.satisfy(& not Condition.inequality?(&1))
@@ -187,7 +190,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(& not fk_pk_condition?(&1))
     |> Lens.both(Lens.key(:group_by))
     |> raw_columns(query)
-    |> Enum.flat_map(&[static_noise_layer(&1), uid_noise_layer(&1)])
+    |> Enum.flat_map(&[static_noise_layer(&1), uid_noise_layer(&1, top_level_uid)])
 
   defp fk_pk_condition?({:comparison, lhs, :=, rhs}), do:
     Expression.key?(lhs) and Expression.key?(rhs)
@@ -206,27 +209,17 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
 
   # -------------------------------------------------------------------
-  # Finalization
+  # UID handling
   # -------------------------------------------------------------------
 
-  defp normalize_uid_layers(query = %{noise_layers: []}), do: add_uid_layer(query)
-  defp normalize_uid_layers(query), do: update_uid_expressions(query)
+  defp add_generic_uid_layer_if_needed(query = %{noise_layers: []}, top_level_uid), do:
+    %{query | noise_layers: [NoiseLayer.new(nil, [top_level_uid])]}
+  defp add_generic_uid_layer_if_needed(query, _top_level_uid), do: query
 
-  defp add_uid_layer(query) do
-    id_column = Helpers.id_column(query)
-    uid_noise_layer = NoiseLayer.new(nil, [Helpers.id_column(query)])
-
-    %{query | noise_layers: [uid_noise_layer]}
-    |> Helpers.add_extra_db_columns([id_column])
-  end
-
-  defp update_uid_expressions(query) do
-    id_column = Helpers.id_column(query)
-
-    Lens.key(:noise_layers)
-    |> uid_expressions()
-    |> Lens.map(query, fn(_) -> id_column end)
-    |> Helpers.add_extra_db_columns([id_column])
+  defp find_top_level_uid!(query) do
+    id_column = Enum.find(query.db_columns, & &1.user_id?)
+    false = is_nil(id_column)
+    id_column
   end
 
 
@@ -256,10 +249,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp static_noise_layer(column), do: build_noise_layer(column)
 
-  defp uid_noise_layer(column), do:
+  defp uid_noise_layer(column, top_level_uid), do:
     NoiseLayer.new(
       {column.table.name, column.name, _extras = nil},
-      [set_unique_alias(column), %Expression{user_id?: true}]
+      [set_unique_alias(column), top_level_uid]
     )
 
   defp build_noise_layer(column, extras \\ nil), do:
@@ -281,10 +274,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   deflensp non_uid_expressions() do
     expressions() |> Lens.satisfy(& not &1.user_id?)
-  end
-
-  deflensp uid_expressions() do
-    expressions() |> Lens.satisfy(& &1.user_id?)
   end
 
   deflensp expressions() do
