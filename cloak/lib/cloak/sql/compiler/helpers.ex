@@ -93,9 +93,9 @@ defmodule Cloak.Sql.Compiler.Helpers do
 
   Duplicates are rejected and replaced using `drop_redundant_floated_columns/2`
   """
-  @spec add_extra_db_columns(Query.t, ((Query.t) -> [Expression.t])) :: Query.t
-  def add_extra_db_columns(query, columns_getter) do
-    {query, new_columns} = drop_redundant_floated_columns(query, columns_getter.(query))
+  @spec add_extra_db_columns(Query.t, Expression.t) :: Query.t
+  def add_extra_db_columns(query, columns) do
+    {query, new_columns} = drop_redundant_floated_columns(query, columns)
     Enum.reduce(new_columns, query, &Query.add_db_column(&2, &1))
   end
 
