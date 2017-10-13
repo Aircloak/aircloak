@@ -114,7 +114,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end)
 
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count]}, query) do
-    %{noise_layer | expressions:
+    %NoiseLayer{noise_layer | expressions:
       [
         Expression.function("min", [Helpers.reference_aliased(min, query)], min.type, _aggregate = true),
         Expression.function("max", [Helpers.reference_aliased(max, query)], max.type, _aggregate = true),
@@ -124,7 +124,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     }
   end
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count, user_id]}, query) do
-    %{noise_layer | expressions:
+    %NoiseLayer{noise_layer | expressions:
       [
         Expression.function("min", [Helpers.reference_aliased(min, query)], min.type, _aggregate = true),
         Expression.function("max", [Helpers.reference_aliased(max, query)], max.type, _aggregate = true),
@@ -136,7 +136,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   end
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression]}, query) do
     if not Helpers.aggregated_column?(query, expression) do
-      %{noise_layer | expressions:
+      %NoiseLayer{noise_layer | expressions:
         [
           Expression.function("min", [expression], expression.type, _aggregate = true),
           Expression.function("max", [expression], expression.type, _aggregate = true),
@@ -150,7 +150,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   end
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression, user_id]}, query) do
     if not Helpers.aggregated_column?(query, expression) do
-      %{noise_layer | expressions:
+      %NoiseLayer{noise_layer | expressions:
         [
           Expression.function("min", [expression], expression.type, _aggregate = true),
           Expression.function("max", [expression], expression.type, _aggregate = true),
