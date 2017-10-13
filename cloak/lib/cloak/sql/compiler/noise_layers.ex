@@ -55,7 +55,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
     layers =
       raw_columns(expression)
-      |> Enum.map(&build_noise_layer(&1, extras))
+      |> Enum.map(&static_noise_layer(&1, extras))
 
     update_in(query, [Lens.key(:noise_layers)], &(&1 ++ layers))
   end
@@ -199,13 +199,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp range_noise_layers(%{ranges: ranges}), do:
     Enum.flat_map(ranges, fn(%{column: column, interval: range}) ->
       raw_columns(column)
-      |> Enum.map(&build_noise_layer(&1, range))
+      |> Enum.map(&static_noise_layer(&1, range))
     end)
 
   defp negative_noise_layers(query), do:
     conditions_satisfying(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
     |> raw_columns(query)
-    |> Enum.map(&build_noise_layer(&1, :<>))
+    |> Enum.map(&static_noise_layer(&1, :<>))
 
 
   # -------------------------------------------------------------------
@@ -247,16 +247,17 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
     |> Lens.to_list(data)
 
-  defp static_noise_layer(column), do: build_noise_layer(column)
-
   defp uid_noise_layer(column, top_level_uid), do:
     NoiseLayer.new(
       {column.table.name, column.name, _extras = nil},
       [set_unique_alias(column), top_level_uid]
     )
 
-  defp build_noise_layer(column, extras \\ nil), do:
-    NoiseLayer.new({column.table.name, column.name, extras}, [set_unique_alias(column)])
+  defp static_noise_layer(column, extras \\ nil), do:
+    NoiseLayer.new(
+      {column.table.name, column.name, extras},
+      [set_unique_alias(column)]
+    )
 
   defp conditions_satisfying(predicate), do:
     Query.Lenses.db_filter_clauses()
