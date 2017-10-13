@@ -138,7 +138,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     if not Helpers.aggregated_column?(query, Expression.unalias(expression)) do
       %{noise_layer | expressions:
         [
-          # The point of this unalias is to not generate invalid SQL like `min(foo AS carry_1234)`
           Expression.function("min", [expression], expression.type, _aggregate = true),
           Expression.function("max", [expression], expression.type, _aggregate = true),
           Expression.function("count", [expression], :integer, _aggregate = true),
@@ -153,7 +152,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     if not Helpers.aggregated_column?(query, Expression.unalias(expression)) do
       %{noise_layer | expressions:
         [
-          # The point of this unalias is to not generate invalid SQL like `min(foo AS carry_1234)`
           Expression.function("min", [expression], expression.type, _aggregate = true),
           Expression.function("max", [expression], expression.type, _aggregate = true),
           Expression.function("count", [expression], :integer, _aggregate = true),
