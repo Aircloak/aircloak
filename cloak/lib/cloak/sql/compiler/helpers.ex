@@ -71,17 +71,15 @@ defmodule Cloak.Sql.Compiler.Helpers do
   """
   @spec drop_redundant_floated_columns(Query.t, [Expression.t]) :: {Query.t, [Expression.t]}
   def drop_redundant_floated_columns(query, new_columns) do
-    selected_ids = Enum.map(query.db_columns, &Expression.id/1) |> Enum.uniq()
+    selected_ids = query.db_columns |> Enum.map(&Expression.id/1) |> MapSet.new()
 
-    {already_selected, new_columns} = Enum.partition(new_columns, &Expression.id(&1) in selected_ids)
+    {already_selected, new_columns} = Enum.partition(new_columns, &MapSet.member?(selected_ids, Expression.id(&1)))
     uniq_new = Enum.uniq_by(new_columns, &Expression.id/1)
     duplicated_new = new_columns -- uniq_new
-    replacements = query.db_columns ++ uniq_new
+    replacements = (query.db_columns ++ uniq_new) |> Enum.map(&{Expression.id(&1), &1}) |> Map.new()
 
-    query = Enum.reduce(already_selected ++ duplicated_new, query, fn (column, query) ->
-      replacement = Enum.find(replacements, &Expression.id(&1) == Expression.id(column))
-      Query.Lenses.query_expressions() |> Lens.satisfy(&column == &1) |> Lens.map(query, fn(_) -> replacement end)
-    end)
+    query = Enum.reduce(already_selected ++ duplicated_new, query,
+      &Query.replace_expression(&2, &1, Map.fetch!(replacements, Expression.id(&1))))
 
     {query, uniq_new}
   end
