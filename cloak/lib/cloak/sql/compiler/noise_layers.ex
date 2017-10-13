@@ -135,7 +135,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     }
   end
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression]}, query) do
-    if not Helpers.aggregated_column?(query, Expression.unalias(expression)) do
+    if not Helpers.aggregated_column?(query, expression) do
       %{noise_layer | expressions:
         [
           Expression.function("min", [expression], expression.type, _aggregate = true),
@@ -149,7 +149,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end
   end
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression, user_id]}, query) do
-    if not Helpers.aggregated_column?(query, Expression.unalias(expression)) do
+    if not Helpers.aggregated_column?(query, expression) do
       %{noise_layer | expressions:
         [
           Expression.function("min", [expression], expression.type, _aggregate = true),
