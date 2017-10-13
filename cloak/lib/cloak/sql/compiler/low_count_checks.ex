@@ -67,7 +67,7 @@ defmodule Cloak.Sql.Compiler.LowCountChecks do
 
   defp add_db_columns(query) do
     to_add = Enum.flat_map(query.low_count_checks, & &1.expressions)
-    {query, to_add} = Helpers.drop_redundant_floated_columns(query, query.db_columns, to_add)
+    {query, to_add} = Helpers.drop_redundant_floated_columns(query, to_add)
     Enum.reduce(to_add, query, &add_db_column/2)
   end
 

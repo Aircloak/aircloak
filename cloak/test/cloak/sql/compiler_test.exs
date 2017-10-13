@@ -625,11 +625,6 @@ defmodule Cloak.Sql.Compiler.Test do
     assert msg == "The range for column `numeric` from table `table` has been adjusted to 0.0 <= `numeric` < 2.0."
   end
 
-  test "columns with an inequality are requested for fetching" do
-    columns = compile!("select count(*) from table where numeric >= 0.1 and numeric < 1.9", data_source()).db_columns
-    assert Enum.any?(columns, &(&1.name == "numeric"))
-  end
-
   test "columns for fetching are not duplicated" do
     columns = compile!("select numeric from table where numeric >= 0.1 and numeric < 1.9", data_source()).db_columns
     assert Enum.count(columns, &(&1.name == "numeric")) == 1
