@@ -96,24 +96,23 @@ defmodule Cloak.Query.DataEngine do
   # Calculation of db_columns
   # -------------------------------------------------------------------
 
-  defp resolve_query_db_columns(query) do
-    selected_columns = select_expressions(query)
-    floated_columns = range_columns(query)
-    {query, floated_columns} = Helpers.drop_redundant_floated_columns(query, selected_columns, floated_columns)
-
-    (selected_columns ++ floated_columns)
-    |> Enum.reduce(query, &Query.add_db_column(&2, &1))
+  defp resolve_query_db_columns(query), do:
+    query
+    |> include_required_expressions()
+    |> include_floated_columns()
     |> optimize_columns_from_projected_subqueries()
-  end
 
   defp range_columns(%{subquery?: true, emulated?: false}), do: []
   defp range_columns(%{ranges: ranges}), do: ranges |> Enum.map(&(&1.column)) |> extract_columns()
 
-  defp select_expressions(%Query{command: :select, subquery?: true, emulated?: false} = query) do
+  defp include_required_expressions(query), do:
+    Enum.reduce(required_expressions(query), query, &Query.add_db_column(&2, &1))
+
+  defp required_expressions(%Query{command: :select, subquery?: true, emulated?: false} = query) do
     Enum.zip(query.column_titles, query.columns)
     |> Enum.map(fn({column_alias, column}) -> %Expression{column | alias: column_alias} end)
   end
-  defp select_expressions(%Query{command: :select} = query) do
+  defp required_expressions(%Query{command: :select} = query) do
     # top-level query -> we're only fetching columns, while other expressions (e.g. function calls)
     # will be resolved in the post-processing phase
     used_columns = query
@@ -156,6 +155,11 @@ defmodule Cloak.Query.DataEngine do
     |> Lens.to_list(all_terminals)
     |> Enum.filter(& &1.table != :unknown and &1.table.name == table_name)
     |> Enum.uniq_by(&Expression.id/1)
+  end
+
+  defp include_floated_columns(query) do
+    {query, floated_columns} = Helpers.drop_redundant_floated_columns(query, query.db_columns, range_columns(query))
+    Enum.reduce(floated_columns, query, &Query.add_db_column(&2, &1))
   end
 
   defp optimized_projected_subquery_ast(ast, required_column_names) do
