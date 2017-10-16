@@ -116,7 +116,7 @@ defmodule Cloak.Query.NoiseLayerTest do
   end
 
   test "noise layers in hiding the low-count row" do
-    other = 26
+    other = 27
 
     for i <- 1..5, do:
       :ok = insert_rows(_user_ids = [i], "noise_layers", ["number", "other"], [i, other])
@@ -164,7 +164,7 @@ defmodule Cloak.Query.NoiseLayerTest do
       :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["number"], [100])
       :ok = insert_rows(_user_ids = 26..75, "noise_layers", ["number"], [50])
 
-      assert_query "select count(number) from noise_layers where sqrt(number) <> 10", %{rows: [%{row: [48]}]}
+      assert_query "select count(number) from noise_layers where sqrt(number) <> 10", %{rows: [%{row: [51]}]}
     end
 
     test "complex negative LIKE conditions matching too few users are dropped" do

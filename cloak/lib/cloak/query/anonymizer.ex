@@ -264,7 +264,9 @@ defmodule Cloak.Query.Anonymizer do
 
   defp compute_hash(data), do: :crypto.hash(:sha256, :erlang.term_to_binary(normalize(data)))
 
-  defp normalize([number]) when is_float(number), do:
+  defp normalize(data = [_|_]), do:
+    Enum.map(data, &normalize/1)
+  defp normalize(number) when is_number(number), do:
     Cloak.Query.Anonymizer.Normalizer.normalize_number(number, 6)
   defp normalize(data), do: data
 
