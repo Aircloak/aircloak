@@ -39,6 +39,14 @@ defmodule Cloak.Query.NoiseLayerTest do
     assert value1 != value2
   end
 
+  test "an unclear condition produces the same noise as an equivalent clear condition" do
+    for i <- 1..100, do:
+      :ok = insert_rows(_user_ids = i..i, "noise_layers", ["number", "other"], [i, 3])
+
+    assert_query "select avg(number) from noise_layers where other = 3", %{rows: [%{row: [result1]}]}
+    assert_query "select avg(number) from noise_layers where other + 1 = 4", %{rows: [%{row: [^result1]}]}
+  end
+
   test "noise layers on different columns" do
     :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number", "other"], [6, 9])
     :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number", "other"], [6, 9])
@@ -50,7 +58,7 @@ defmodule Cloak.Query.NoiseLayerTest do
     assert value1 != value2
   end
 
-  test "multiple noise layers on same column" do
+  test "multiple noise layers on same column are joined" do
     number = 10
     :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [number])
     :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [number])

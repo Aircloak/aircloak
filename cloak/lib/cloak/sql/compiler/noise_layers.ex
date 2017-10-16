@@ -177,7 +177,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     %{query |
       noise_layers:
         select_noise_layers(query, top_level_uid) ++
-        basic_noise_layers(query, top_level_uid) ++
+        clear_noise_layers(query, top_level_uid) ++
+        unclear_noise_layers(query, top_level_uid) ++
         range_noise_layers(query) ++
         negative_noise_layers(query)
     }
@@ -190,20 +191,26 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> raw_columns(query)
     |> Enum.flat_map(&[static_noise_layer(&1), uid_noise_layer(&1, top_level_uid)])
 
-  defp basic_noise_layers(query, top_level_uid), do:
-    Query.Lenses.db_filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Lens.satisfy(& not Condition.inequality?(&1))
-    |> Lens.satisfy(& not Condition.not_equals?(&1))
-    |> Lens.satisfy(& not Condition.not_like?(&1))
-    |> Lens.satisfy(& not fk_pk_condition?(&1))
-    |> Lens.both(Lens.key(:group_by))
+  defp clear_noise_layers(query, top_level_uid), do:
+    clear_conditions()
+    |> Lens.to_list(query)
+    |> Enum.flat_map(fn({:comparison, lhs, :=, rhs}) ->
+      [
+        NoiseLayer.new(
+          {lhs.table.name, lhs.name, nil},
+          [rhs]
+        ),
+        NoiseLayer.new(
+          {lhs.table.name, lhs.name, nil},
+          [rhs, top_level_uid]
+        )
+      ]
+    end)
+
+  defp unclear_noise_layers(query, top_level_uid), do:
+    unclear_conditions()
     |> raw_columns(query)
     |> Enum.flat_map(&[static_noise_layer(&1), uid_noise_layer(&1, top_level_uid)])
-
-  defp fk_pk_condition?({:comparison, lhs, :=, rhs}), do:
-    Expression.key?(lhs) and Expression.key?(rhs)
-  defp fk_pk_condition?(_), do: false
 
   defp range_noise_layers(%{ranges: ranges}), do:
     Enum.flat_map(ranges, fn(%{column: column, interval: range}) ->
@@ -282,15 +289,34 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end)
   end
 
-  deflensp non_uid_expressions() do
-    expressions() |> Lens.satisfy(& not &1.user_id?)
-  end
+  deflensp clear_conditions(), do:
+    Lens.satisfy(basic_conditions(), &clear_condition?/1)
 
-  deflensp expressions() do
-    Lens.all()
-    |> Lens.key(:expressions)
-    |> Lens.all()
-  end
+  deflensp unclear_conditions(), do:
+    Lens.satisfy(basic_conditions(), & not clear_condition?(&1))
+
+  deflensp basic_conditions(), do:
+    Query.Lenses.db_filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.satisfy(& not Condition.inequality?(&1))
+    |> Lens.satisfy(& not Condition.not_equals?(&1))
+    |> Lens.satisfy(& not Condition.not_like?(&1))
+    |> Lens.satisfy(& not fk_pk_condition?(&1))
+    |> Lens.both(Lens.key(:group_by))
+
+  deflensp non_uid_expressions(), do:
+    Lens.satisfy(expressions(), & not &1.user_id?)
+
+  deflensp expressions(), do:
+    Lens.all() |> Lens.key(:expressions) |> Lens.all() |> Lens.satisfy(& not &1.constant?)
+
+  defp clear_condition?({:comparison,
+    %Expression{user_id?: false, function?: false, constant?: false}, :=, %Expression{constant?: true}}), do: true
+  defp clear_condition?(_), do: false
+
+  defp fk_pk_condition?({:comparison, lhs, :=, rhs}), do:
+    Expression.key?(lhs) and Expression.key?(rhs)
+  defp fk_pk_condition?(_), do: false
 
   # Modifies the expression to have a globally unique alias. This serves to make sure a column being added to the query
   # doesn't accidentally clash with a column selected by the user or a user-defined alias.

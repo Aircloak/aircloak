@@ -18,9 +18,19 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       compile!("SELECT COUNT(*) FROM table", data_source()).noise_layers
   end
 
-  describe "picking columns for noise layers" do
-    test "adds a uid and static noise layer for normal conditions" do
+  describe "basic noise layers" do
+    test "adds a uid and static noise layer for clear conditions" do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
+
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 3}]},
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 3}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
+      assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
+    end
+
+    test "adds a uid and static noise layer for unclear conditions" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE numeric + 1 = 4", data_source())
 
       assert [
         %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]},
@@ -49,7 +59,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
     test "adds a uid and static noise layer for columns filtered with JOIN" do
       result = compile!(
-        "SELECT COUNT(*) FROM table JOIN other ON table.numeric = 3 AND table.uid = other.uid",
+        "SELECT COUNT(*) FROM table JOIN other ON table.numeric + 1 = 3 AND table.uid = other.uid",
         data_source()
       )
 
@@ -62,7 +72,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "emulated WHERE" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE decoded = 'a'", data_source())
+      result = compile!("SELECT COUNT(*) FROM table WHERE lower(decoded) = 'a'", data_source())
 
       assert [
         %{base: {"table", "decoded", nil}, expressions: [%Expression{name: "decoded"}]},
@@ -87,7 +97,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "multiple filters on one column" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3 GROUP BY BUCKET(numeric BY 10)", data_source())
+      result = compile!("""
+        SELECT COUNT(*) FROM table WHERE numeric + 1 = 3 GROUP BY BUCKET(numeric BY 10)
+      """, data_source())
 
       assert [
         %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]},
@@ -253,18 +265,28 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       ] = result.noise_layers
     end
 
-    for like <- ["LIKE", "ILIKE"] do
-      test "noise layers when #{like} has no wildcards" do
-        [
-          %{base: base1, expressions: [%{name: name}]},
-          %{base: base2,  expressions: [%{name: name}, %{name: "uid"}]},
-        ] = compile!("SELECT COUNT(*) FROM table WHERE name #{unquote(like)} 'bob'", data_source()).noise_layers
+    test "noise layers when LIKE has no wildcards" do
+      [
+        %{base: base1, expressions: [%{value: "bob"}]},
+        %{base: base2,  expressions: [%{value: "bob"}, %{name: "uid"}]},
+      ] = compile!("SELECT COUNT(*) FROM table WHERE name LIKE 'bob'", data_source()).noise_layers
 
-        assert [
-          %{base: ^base1, expressions: [%{name: ^name}]},
-          %{base: ^base2,  expressions: [%{name: ^name}, %{name: "uid"}]},
-        ] = compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'", data_source()).noise_layers
-      end
+      assert [
+        %{base: ^base1, expressions: [%{value: "bob"}]},
+        %{base: ^base2,  expressions: [%{value: "bob"}, %{name: "uid"}]},
+      ] = compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'", data_source()).noise_layers
+    end
+
+    test "noise layers when ILIKE has no wildcards" do
+      [
+        %{base: base1, expressions: [%{name: "name"}]},
+        %{base: base2,  expressions: [%{name: "name"}, %{name: "uid"}]},
+      ] = compile!("SELECT COUNT(*) FROM table WHERE name ILIKE 'bob'", data_source()).noise_layers
+
+      assert [
+        %{base: ^base1, expressions: [%{value: "bob"}]},
+        %{base: ^base2,  expressions: [%{value: "bob"}, %{name: "uid"}]},
+      ] = compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'", data_source()).noise_layers
     end
   end
 
@@ -293,7 +315,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
   describe "noise layers from subqueries" do
     test "floating noise layers from a subquery" do
-      result = compile!("SELECT COUNT(*) FROM (SELECT * FROM table WHERE numeric = 3) foo", data_source())
+      result = compile!("SELECT COUNT(*) FROM (SELECT * FROM table WHERE numeric + 1 = 3) foo", data_source())
 
       assert [
         %{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}]},
@@ -305,7 +327,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
     test "floating noise layers from a join" do
       result = compile!("""
-        SELECT numeric FROM table JOIN (SELECT uid FROM table WHERE numeric = 3) foo ON foo.uid = table.uid
+        SELECT numeric FROM table JOIN (SELECT uid FROM table WHERE numeric + 1= 3) foo ON foo.uid = table.uid
       """, data_source())
 
       assert [
@@ -339,7 +361,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
     test "floating columns that are not aggregated" do
       result = compile!(
-        "SELECT COUNT(*) FROM (SELECT uid FROM table WHERE numeric = 3 GROUP BY uid, dummy) foo",
+        "SELECT COUNT(*) FROM (SELECT uid FROM table WHERE numeric + 1 = 3 GROUP BY uid, dummy) foo",
         data_source()
       )
 
@@ -396,7 +418,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "floating complex noise layers through non-aggregating queries" do
       result = compile!(
         "SELECT COUNT(*) FROM (SELECT * FROM
-          (SELECT uid FROM table WHERE numeric = 3 GROUP BY uid, dummy) foo
+          (SELECT uid FROM table WHERE numeric + 1 = 3 GROUP BY uid, dummy) foo
         ) bar",
         data_source()
       )
@@ -426,7 +448,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "floating columns that are not aggregated" do
       result = compile!(
         "SELECT COUNT(*) FROM (SELECT uid FROM
-          (SELECT uid, dummy FROM table WHERE numeric = 3 GROUP BY uid, dummy, dummy2) foo
+          (SELECT uid, dummy FROM table WHERE numeric + 1 = 3 GROUP BY uid, dummy, dummy2) foo
         GROUP BY uid, dummy) bar",
         data_source()
       )
