@@ -29,6 +29,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
     end
 
+    test "noise layers for clear condition don't depend on equality order" do
+      result1 = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
+      result2 = compile!("SELECT COUNT(*) FROM table WHERE 3 = numeric", data_source())
+
+      assert result1.noise_layers == result2.noise_layers
+    end
+
     test "adds a uid and static noise layer for unclear conditions" do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric + 1 = 4", data_source())
 
