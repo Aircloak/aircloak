@@ -13,7 +13,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   Modifies the query to remove certain expressions without changing semantics. Specifically:
 
   * Switches NOT IN expressions for an equivalent conjunction of <> expressions
-  * Switches complex expressions involving constants (like 1 + 2 + 3) to with their results (6 in this case)
+  * Switches complex expressions involving constants (like 1 + 2 + 3) to their results (6 in this case)
   * Switches upper(x) <> constant to lower(x) <> toggle_case(constant)
   * Removes redundant occurences of "%" from LIKE patterns (for example "%%" -> "%")
   * Normalizes sequences of "%" and "_" in like patterns so that the "%" always precedes a sequence of "_"
