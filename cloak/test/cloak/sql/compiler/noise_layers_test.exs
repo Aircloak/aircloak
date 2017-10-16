@@ -150,6 +150,19 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         %{base: {"table", "numeric", nil}, expressions: _},
       ] = result.noise_layers
     end
+
+    test "clear condition in JOIN" do
+      result = compile!("""
+        SELECT COUNT(*) FROM table JOIN other ON table.numeric = 3 AND table.uid = other.uid
+      """, data_source())
+
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 3}]},
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 3}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
+      refute Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
+      assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
+    end
   end
 
   describe "skipping noise layers for pk = fk conditions" do
