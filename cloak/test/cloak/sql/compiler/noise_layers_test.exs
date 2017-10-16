@@ -98,6 +98,39 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
     end
+
+    test "columns in top-level select" do
+      result = compile!("SELECT numeric FROM table", data_source())
+
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
+      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
+    end
+
+    test "aggregated columns in top-level select are ignored" do
+      result = compile!("SELECT COUNT(numeric) FROM table", data_source())
+
+      assert [_generic_noise_layer = %{base: nil}] = result.noise_layers
+    end
+
+    test "having in top-level query" do
+      result = compile!("SELECT COUNT(*) FROM table HAVING COUNT(numeric) = 10", data_source())
+
+      assert [_generic_noise_layer = %{base: nil}] = result.noise_layers
+    end
+
+    test "having in subquery" do
+      result = compile!("""
+        SELECT COUNT(*) FROM (SELECT uid, COUNT(*) FROM table GROUP BY uid HAVING COUNT(numeric) = 10) x
+      """, data_source())
+
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: _},
+        %{base: {"table", "numeric", nil}, expressions: _},
+      ] = result.noise_layers
+    end
   end
 
   describe "skipping noise layers for pk = fk conditions" do
@@ -276,6 +309,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       """, data_source())
 
       assert [
+        _select_static_layer = %{},
+        _select_uid_layer = %{},
         %{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}]},
         %{base: {"table", "numeric", nil}, expressions: [
           %Expression{name: name},
