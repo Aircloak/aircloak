@@ -143,7 +143,7 @@ defmodule IntegrationTest.OdbcTest do
 
   defp param_select(conn, type, value, cast \\ nil) do
     cast = if cast != nil, do: "::#{cast}"
-    {:selected, ['x'], rows} = :odbc.param_query(conn, 'select $1#{cast} as x from users', [{type, [value]}])
+    {:selected, ['x'], rows} = :odbc.param_query(conn, 'select ?#{cast} as x from users', [{type, [value]}])
     [{result}] = Enum.uniq(rows)
     result
   end
