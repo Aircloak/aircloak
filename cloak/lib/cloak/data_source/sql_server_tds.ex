@@ -61,7 +61,7 @@ defmodule Cloak.DataSource.SQLServerTds do
   end
 
   @impl Driver
-  def supports_query?(query), do: SqlBuilder.Support.supported_query?(query)
+  def supports_query?(query), do: SqlBuilder.Support.supports_query?(query)
 
 
   # -------------------------------------------------------------------

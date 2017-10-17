@@ -9,12 +9,12 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   # -------------------------------------------------------------------
 
   @doc "Checks to see if the given query can be executed by the SQL driver."
-  @spec supported_query?(Query.t) :: boolean
-  def supported_query?(query), do:
+  @spec supports_query?(Query.t) :: boolean
+  def supports_query?(query), do:
     Query.Lenses.db_needed_functions()
     |> Lens.to_list(query)
     |> Enum.map(&function_signature/1)
-    |> Enum.all?(&supported_function?(&1, Cloak.DataSource.sql_dialect_module(query.data_source)))
+    |> Enum.all?(&supports_function?(&1, Cloak.DataSource.sql_dialect_module(query.data_source)))
 
   @doc "Generates SQL for a function invocation. Provided arguments list must contain SQL fragments."
   @spec function_sql(Expression.function_name, [iodata], atom) :: iodata
@@ -47,7 +47,7 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   defp function_signature(%Expression{function: {:cast, _target}, function_args: [_]}), do: {"cast", 1}
   defp function_signature(%Expression{function: {:bucket, _type}, function_args: [_, _]}), do: {"bucket", 2}
 
-  defp supported_function?({name, args}, sql_dialect_module) do
+  defp supports_function?({name, args}, sql_dialect_module) do
     supported_functions = sql_dialect_module.supported_functions()
     name = synonym(name)
     name in supported_functions or "#{name}/#{args}" in supported_functions
