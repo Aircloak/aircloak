@@ -66,6 +66,9 @@ defmodule Cloak.DataSource.PostgreSQL do
   @impl Driver
   defdelegate supports_query?(query), to: SqlBuilder.Support
 
+  @impl Driver
+  defdelegate supports_function?(expression, data_source), to: SqlBuilder.Support
+
 
   # -------------------------------------------------------------------
   # Internal functions

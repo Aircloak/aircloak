@@ -48,6 +48,9 @@ defmodule Cloak.DataSource.SQLServer do
   @impl Driver
   defdelegate supports_query?(query), to: ODBC
 
+  @impl Driver
+  defdelegate supports_function?(expression, data_source), to: ODBC
+
 
   # -------------------------------------------------------------------
   # Internal functions

@@ -142,9 +142,12 @@ defmodule Cloak.DataSource.MongoDB do
 
   @impl Driver
   def supports_query?(query), do:
-    supports_used_functions?(query) and
     supports_used_functions_in_having?(query) and
     supports_joins?(query)
+
+  @impl Driver
+  def supports_function?(expression, data_source), do:
+    function_signature(expression) in (data_source |> get_mongo_version() |> supported_functions())
 
 
   # -------------------------------------------------------------------
@@ -237,12 +240,6 @@ defmodule Cloak.DataSource.MongoDB do
     |> Lens.to_list(query.having) == []
   end
   defp supports_used_functions_in_having?(_query), do: true
-
-  defp supports_used_functions?(query) do
-    used_functions = Query.Lenses.db_needed_functions() |> Lens.to_list(query) |> Enum.map(&function_signature/1)
-    supported_functions = query.data_source |> get_mongo_version() |> supported_functions()
-    Enum.reject(used_functions, & &1 in supported_functions) == []
-  end
 
   defp function_signature(%Expression{function: {:cast, type}, function_args: [value]}), do:
     "cast_#{value.type}_to_#{type}"

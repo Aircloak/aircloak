@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.Driver do
   @moduledoc "Specifies the interface for implementing the database specific data access operations."
 
-  alias Cloak.Sql.Query
+  alias Cloak.Sql.{Query, Expression}
   alias Cloak.DataSource.Table
 
   @doc "Returns the configured maximum timeout for a database operation."
@@ -35,4 +35,7 @@ defmodule Cloak.DataSource.Driver do
 
   @doc "Checks to see if the driver is able to handle all the SQL features used by the query."
   @callback supports_query?(Query.t) :: boolean
+
+  @doc "Checks to see if the driver is able to handle specified function natively."
+  @callback supports_function?(Expression.t, Cloak.DataSource.t) :: boolean
 end
