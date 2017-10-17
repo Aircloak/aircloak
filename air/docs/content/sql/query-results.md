@@ -1,43 +1,107 @@
+
 # Understanding query results
 
-`SELECT` queries return anonymized results. The results have noise added to them. This is crucial in protecting the privacy of individuals, while sufficiently unobtrusive to provide accurate results during normal use.
+All anonymization systems necessarily distort query results. While the amount of distortion in Aircloak is remarkably small, the analyst must nevertheless understand how and when distortion occurs to properly interpret query results.
 
-The results are anonymized in three phases:
+This section describes how and when distortion occurs, and suggests strategies for minimizing the impact of distortion.
 
-1. Probing
-2. Low-count filtering
-3. Adding noise
+Aircloak distorts data in the following ways:
 
-## Probing
+* Adds zero mean noise to anonymizing statistical function outputs
+* May modify the values of "outlying" data
+* May suppress certain results when too few users are represented (low-count filtering)
 
-Some filtering clauses could indirectly reveal a user's identity. For example a clause like `name <> 'Fred'` could lead
-to the analyst being able to deduce things about a person named `Fred` if that person is the only one with that name.
+## Zero-mean noise
 
-For that reason Aircloak needs to check how many unique users match certain clauses. In the example above Aircloak would
-check how many users in a particular query have the name `Fred` and possibly remove the whole clause if that number is
-too low. Because of that fact when two queries such as:
+Aircloak adds zero-mean Gaussian noise to the outputs of `count`, `sum`, `avg`, and `stddev`. The "amount" (standard deviation, or "sigma") of the noise may vary. As a rule, the more that the values contributed by individual users vary between each other, the greater the noise.
+
+For example, for a query counting distinct users (`count(DISTINCT uid)`), each user contributes at most 1, so the amount contributed by each user doesn't vary at all. Here the noise is quite small (typically sigma of less than 2 depending on the number of query conditions). On the other hand, a query that counts rows (`count(*)`) where some users have substantially more rows than other users will have more noise. The reason for this is to hide the effect of the highest contributing users and thereby protect their privacy.
+
+Aircloak increases the noise with an increase in the number of certain query *conditions* (for instance those found in the `WHERE` and `HAVING` clauses). Specifically, each qualifying condition contributes at least two noise samples, which are then summed together. We refer to these noise samples as "noise layers". The following table gives the noise layers produced by each condition:
+
+| Condition | Noise Layers |
+| ----- | ----- |
+| equality (`=` or `<>`) | Baseline (two noise layers) per column |
+| Any `SELECT`'ed column | Baseline per column |
+| `concat()` in equality | Baseline per column |
+| range (`>=` and `<`, or `BETWEEN`) | Baseline |
+| `IN` and `NOT IN` | Baseline plus one layer per `IN` component |
+| `[I]LIKE` and `NOT [I]LIKE` | Baseline plus one layer per wildcard |
+| None | One noise layer |
+
+Aircloak provides functions that report the sigma of the zero-mean noise for each of the four functions. They are `count_noise()`, `sum_noise()`, `avg_noise()`, and `stddev_noise()` respectively. Note that the reported sigma are themselves rounded, but are generally within 5% of the true value.
+
+### Examples
+
+zzzz need to update these
+
+**Example 1**
+
+The answer to the following query indicates that noise with standard deviation of 1 was added to the count:
 
 ```sql
-SELECT COUNT(*) FROM people WHERE name <> 'Fred'
-```
+SELECT count(*), count_noise(*)
+FROM accounts
+``` 
 
-and:
+count  | count_noise
+------ | ------------------------
+5370   | 1
+
+This is because the `accounts` table has only one row per user, and therefore the amounts contributed by each user doesn't vary much.
+
+**Example 2**
+
+By contrast, for the following query, noise with standard deviation of roughly 340 was added:
 
 ```sql
-SELECT COUNT(*) FROM people
+SELECT count(*), count_noise(*)
+FROM transactions
 ```
 
-give the same output that doesn't mean there is nobody named `Fred` in the dataset. It might simply mean that there are too
-few of them to report.
+count   | count_noise
+------  | ------------------------
+1262872 | 320
 
-These checks are performed for all `<>`, `NOT LIKE`, and `NOT ILIKE` clauses. A check needs to be made for every constant
-in an `IN` clause as well.
+The reason is that the number of transactions per user varies substantially in this table (the reported max is nearly 14000, the reported min is 5).
+
+**Example 3**
+
+The following query has noise with standard deviation of roughly 1.7:
+
+```sql
+SELECT count(*), count_noise(*)
+FROM accounts
+WHERE frequency = 'POPLATEK MESICNE' AND
+      disp_type = 'OWNER'
+```
+
+count  | count_noise
+------ | ------------------------
+4167   | 1.700
+
+This query has more noise than the query of Example 1 above because the two `=` conditions add additional noise layers.
+
+** Example 4 **
+
+zzzz
+
+```sql
+SELECT acct_date, count(*), count_noise(*)
+FROM accounts
+WHERE frequency LIKE 'P_PL_TE_ ME_I_NE' AND
+      acct_district_id IN (30,31,33,35,37,39,41)
+GROUP BY acct_date
+```
+
 
 ## Low-count filtering
 
-In this phase, values which are not associated with a sufficiently large number of distinct users are discarded. For example, consider the query `SELECT first_name FROM users`.
+The Aircloak anonymizing statistical functions `count()`, `sum()`, `avg()`, `min()`, `max()`, `stddev()`, and `median()` compute outputs from the data of multiple users. If the number of distinct users used in an statistical function is too small, then the output is suppressed (not reported). This suppression is called "low-count filtering".
 
-Let's say that the names in the `users` table are distributed as follows:
+The threshold for the low-count filter is itself a noisy value with an average of four. If there are four distinct users that comprise an output, then there is a 50% chance the output will be suppressed. Fewer users increases the chance of suppression, and more users decreases the chance of suppression. Any reported output always has at least 2 distinct users. As a result, the value reported for `count()` is never less than 2.
+
+For instance, suppose that a query counts the users with each given first name, and that the names in the `users` table are distributed as follows:
 
 Name   | Number of distinct users
 ------ | ------------------------
@@ -47,103 +111,74 @@ John   | 150
 Mary   | 1
 Tom    | 2
 
-Since the number of distinct users named Bob, Mary, and Tom is too small, these names won't appear in the final result. In contrast, there is a sufficient number of Alices and Johns, so the result will contain the corresponding rows.
 
-`*` rows are included in the result in place of rows that are discarded due to anonymization. In this example the distribution of rows after filtering would be:
+## Anonymizing statistical functions
 
-Name   | Number of returned rows
+Aircloak provides seven basic statistical functions that anonymize. They are: `count`, `sum`, `avg`, `stddev`, `min`, `max`, and `median`. These functions may add additional distortion besides the zero mean noise and low-count filtering already described. Note in particular that Aircloak gives no indication of whether any additional distortion occurred, or how severe this additional distortion is.
+
+### sum()
+
+The `sum()` function selects a small number of high values, and "flattens" them so that they are roughly the same. As a result, the users with high values appear as a group of users within which individual users can hide. The number of users chosen for flattening is itself a noisy value.
+
+By way of example, suppose that values in a given summed column contain the following numbers of distinct users:
+
+Value   | Number of distinct users
 ------ | ------------------------
-Alice  | 100
-John   | 150
-*      | 5
+1  | 1000
+500    | 20
+500K | 1
+1M | 1
 
-The number of `*` rows indicates the amount of properties that can't be included in the result. Note that this does not represent the number of _distinct_ omitted values. In this example, three distinct names are not reported (Bob, Mary, and Tom), but since there are two Bobs, one Mary, and two Toms, the result contains `2 + 1 + 2 = 5` `*` rows.
+Aircloak will flatten the high values by modifying them to fall within a group of high value users. In this example, the high value group has the value 500, and so the users with values 500K and 1M are replaced with 500.  The resulting values are these:
 
-It is worth noting that absence of `*` rows doesn't mean that no rows were omitted. The `*` rows have to pass the same anonymization procedure. Thus, if the total count of `*` rows is too low, they will be omitted from the result.
+Value   | Number of distinct users
+------ | ------------------------
+1  | 1000
+500    | 22
 
-### `LIKE` clauses
+The users with 500K and 1M have, essentially, disappeared from the system. The affect is similar to outlier removal in statistics, and the analyst needs to be aware that this is happening, and that there is no indication from Aircloak that it has happened.
 
-An additional mechanism is applied when the query includes a `LIKE` clause. If there are too few unique values matching the `LIKE` pattern then rows with values represented by too few unique users will be omitted from the result.
+In addition, the sigma of the noise is proportional to the average value of the modified group of high users (in this case 500). This can be observed from the `sum_noise()` function.
 
-## Adding noise
+In any event, as a result of this flattening, the answer distortion in this particular extreme case is very large. The anonymized answer will be in the neighborhood of 12K where the true answer is over 1.5M. More generally, the amount of distortion depends on how much spread there is among the values of the highest (or in the case of negative values, lowest) users.
 
-After low-count values are filtered, some amount of noise is introduced. Consider the example from the [previous section](#low-count-filtering), where there are 100 Alices, 150 Johns, and 5 other names. The final result might contain a slightly different distribution, for example 94 Alice rows, 152 John rows, and 7 `*` rows.
+### count()
 
-The results of aggregate functions, such as `SUM` and `COUNT`, are also anonymized. The returned values will slightly differ from the real values.
+The `count()` function actually uses the `sum()` function, where the number of rows contributed by each user is the value being summed. As such, one or a small number of users with a high number of rows will be flattened.
 
-To ensure anonymity the amount of noise added depends on the number and types of filters used in the query. You might be able to get more accurate results by removing some `WHERE`- or `HAVING`-clauses from your query. Use the [avg_noise](#avgnoise), [count_noise](#countnoise), [sum_noise](#sumnoise), and [stddev_noise](#stddevnoise) functions to get a better idea of how much noise is being added.
+Note that when counting distinct users, there is no added distortion.
 
-### `null` and aggregates of infrequently occurring values
+### avg()
 
-Aircloak will report a value when the number of distinct users sharing the value exceeds a minimum threshold.
+The `avg()` function is literally the result of the `sum()` function divided by the result of the `count(distinct uid)` function. As such, it also flattens the high (or negative low) users.
 
-For example a query like
+### stddev()
 
-```SQL
-SELECT name
-FROM users
-GROUP BY name
-```
+The `stddev()` function uses the `avg()` function, and so flattening occurs.
 
-can safely return even infrequently occuring names.
+### max() and min()
 
-The threshold for reporting a value, which is low (but safe), does under some circumstances not allow the system to produce anonymized aggregate values.
-When this occurs `null` will be returned instead of an aggregate value. In the case of the `COUNT` aggregate the threshold value
-is returned instead of `null` to remain compliant with standard SQL where `COUNT` is expected to return a non-null value.
+The `max()` function drops the rows for a small number of users with the highest values (using a noisy number of users as with `sum()`). It then takes the average value of the next small number of distinct users with the highest values, and uses this average as the max (with potentially some additional noise, if the spread among this set of values is high). As such, the anonymized max may be very far from the true max.
 
-As an example, let's consider a dataset containing 4 users with `name` Alice and an `age` column.
-A query attempting to return aggregate properties of the `age` column will likely return a set of `null` values.
+The `min()` function operates the same as `max()`, except using low numbers. Unless the data includes negative numbers, `min()` tends to have less distortion than `max()`.
 
-```SQL
-SELECT
-  name,
-  count(*), count_noise(*),
-  sum(age), sum_noise(age),
-  avg(age), avg_noise(age),
-  stddev(age), stddev_noise(age)
-FROM users
-GROUP BY name
-```
+### median()
 
-Notice how `COUNT` still produces a non-`NULL` value. The reported count is not accurate but signifies an absolute lower
-bound.
+The `median()` function uses the average value of those of a small number of distinct users with values above and below the true median (with potentially some additional noise, if the spread among this set of values is high). In practice, the `median()` function usually does not introduce much distortion.
 
-| name  | count | count_noise | sum  | sum_noise | avg  | avg_noise | stddev | stddev_noise |
-|-------|-------|-------------|------|-----------|------|-----------|--------|--------------|
-| Alice | 2     | null        | null | null      | null | null      | null   | null         |
+### When flattening cannot occur
 
-## Anonymization functions
+The above anonymizing statistical functions must select a certain number of distinct users for the flattening procedure. It can easily happen that there are enough distinct users that the low-count filter is passed (no suppression occurs), but still not enough distinct users for the flattening procedure.
 
-### avg_noise
+In these cases, the row will be reported, but a default value will be given as the output of the anonymizing statistical function. If the function is `count()`, then the default value is `2`. For all other functions, the default value is `null`. 
 
-```sql
-AVG_NOISE(some_column)
-```
+The reason that `2` is used for `count()` instead of `null` is because by the rules of SQL, `count()` must return an integer. The reason that `2` is used instead of `0` for `count()` is that in any event every released count has at least 2 distinct users.
 
-Returns the standard deviation of the noise that would be added to an equivalent `AVG(...)` expression.
 
-### count_noise
+---------------------------
 
-```sql
-COUNT_NOISE(*)
+![Shows an overview of different ways in which the Aircloak Insights components interact. IA: Insights Air, IC: Insights
+Cloak, IDC: Insights Datasource connector, DS: Datasource](components/interactions.png)
 
-COUNT_NOISE(some_column)
-```
 
-Returns the standard deviation of the noise that would be added to an equivalent `COUNT(...)` expression.
 
-### sum_noise
-
-```sql
-SUM_NOISE(some_column)
-```
-
-Returns the standard deviation of the noise that would be added to an equivalent `SUM(...)` expression.
-
-### stddev_noise
-
-```sql
-STDDEV_NOISE(some_column)
-```
-
-Returns the standard deviation of the noise that would be added to an equivalent `STDDEV(...)` expression.
