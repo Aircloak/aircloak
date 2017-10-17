@@ -68,7 +68,7 @@ defmodule Cloak.DataSource.ODBC do
   end
 
   @impl Driver
-  def supports_query?(query), do: SqlBuilder.Support.supports_query?(query)
+  defdelegate supports_query?(query), to: SqlBuilder.Support
 
 
   # -------------------------------------------------------------------
