@@ -25,9 +25,6 @@ defmodule Cloak.Query.DataEngine do
 
   @doc "Determines whether the query needs to be emulated or not."
   @spec needs_emulation?(Query.t) :: boolean
-  def needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
-  def needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do:
-    not query.data_source.driver.supports_query?(query) or has_emulated_expressions?(query)
   def needs_emulation?(query), do:
     not query.data_source.driver.supports_query?(query) or
     query |> get_in([Query.Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?)) or
