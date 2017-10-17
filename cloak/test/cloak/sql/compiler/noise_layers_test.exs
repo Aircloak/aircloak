@@ -4,6 +4,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   alias Cloak.DataSource.Table
   alias Cloak.Sql.Expression
 
+  import Cloak.Test.QueryHelpers, except: [compile!: 2, compile!: 3]
+
   test "overwrites any existing noise layers" do
     compiled = Cloak.Test.QueryHelpers.compile!("SELECT COUNT(*) FROM table", data_source())
     query =
@@ -33,7 +35,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result1 = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
       result2 = compile!("SELECT COUNT(*) FROM table WHERE 3 = numeric", data_source())
 
-      assert result1.noise_layers == result2.noise_layers
+      assert scrub_aliases(result1).noise_layers == scrub_aliases(result2).noise_layers
     end
 
     test "adds a uid and static noise layer for unclear conditions" do

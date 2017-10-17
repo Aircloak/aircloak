@@ -118,56 +118,35 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       Lens.map(non_uid_expressions(), subquery.noise_layers, &Helpers.reference_aliased(&1, subquery, subquery_table))
     end)
 
-  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count]}, query) do
-    %NoiseLayer{noise_layer | expressions:
-      [
-        Expression.function("min", [Helpers.reference_aliased(min, query)], min.type, _aggregate = true),
-        Expression.function("max", [Helpers.reference_aliased(max, query)], max.type, _aggregate = true),
-        Expression.function("sum", [Helpers.reference_aliased(count, query)], :integer, _aggregate = true),
-      ]
-      |> Enum.map(&set_unique_alias/1)
-    }
-  end
-  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count, user_id]}, query) do
-    %NoiseLayer{noise_layer | expressions:
-      [
-        Expression.function("min", [Helpers.reference_aliased(min, query)], min.type, _aggregate = true),
-        Expression.function("max", [Helpers.reference_aliased(max, query)], max.type, _aggregate = true),
-        Expression.function("sum", [Helpers.reference_aliased(count, query)], :integer, _aggregate = true),
-        user_id,
-      ]
-      |> Enum.map(&set_unique_alias/1)
-    }
-  end
-  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression]}, query) do
-    if not aggregated_column?(query, expression) do
-      %NoiseLayer{noise_layer | expressions:
-        [
-          Expression.function("min", [expression], expression.type, _aggregate = true),
-          Expression.function("max", [expression], expression.type, _aggregate = true),
-          Expression.function("count", [expression], :integer, _aggregate = true),
-        ]
-        |> Enum.map(&set_unique_alias/1)
-      }
-    else
-      noise_layer
-    end
-  end
-  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression, user_id]}, query) do
-    if not aggregated_column?(query, expression) do
-      %NoiseLayer{noise_layer | expressions:
-        [
-          Expression.function("min", [expression], expression.type, _aggregate = true),
-          Expression.function("max", [expression], expression.type, _aggregate = true),
-          Expression.function("count", [expression], :integer, _aggregate = true),
-          user_id,
-        ]
-        |> Enum.map(&set_unique_alias/1)
-      }
-    else
-      noise_layer
-    end
-  end
+  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count]}, query), do:
+    %NoiseLayer{noise_layer | expressions: [re_min(min, query), re_max(max, query), re_count(count, query)]}
+  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count, user_id]}, query), do:
+    %NoiseLayer{noise_layer | expressions: [re_min(min, query), re_max(max, query), re_count(count, query), user_id]}
+  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression]}, query), do:
+    if not aggregated_column?(query, expression),
+      do: %NoiseLayer{noise_layer | expressions: [min(expression), max(expression), count(expression)]},
+      else: noise_layer
+  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression, user_id]}, query), do:
+    if not aggregated_column?(query, expression),
+      do: %NoiseLayer{noise_layer | expressions: [min(expression), max(expression), count(expression), user_id]},
+      else: noise_layer
+
+  defp min(expression), do:
+    Expression.function("min", [expression], expression.type, _aggregate = true) |> set_unique_alias()
+  defp max(expression), do:
+    Expression.function("max", [expression], expression.type, _aggregate = true) |> set_unique_alias()
+  defp count(expression), do:
+    Expression.function("count", [expression], :integer, _aggregate = true) |> set_unique_alias()
+
+  defp re_min(min, query), do:
+    Expression.function("min", [Helpers.reference_aliased(min, query)], min.type, _aggregate = true)
+    |> set_unique_alias()
+  defp re_max(max, query), do:
+    Expression.function("max", [Helpers.reference_aliased(max, query)], max.type, _aggregate = true)
+    |> set_unique_alias()
+  defp re_count(count, query), do:
+    Expression.function("sum", [Helpers.reference_aliased(count, query)], :integer, _aggregate = true)
+    |> set_unique_alias()
 
   defp aggregated_column?(_query, %Expression{constant?: true}), do: true
   defp aggregated_column?(query, expression), do: Helpers.aggregated_column?(query, expression)
@@ -194,39 +173,33 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.all()
     |> Lens.satisfy(& not aggregated_column?(query, &1))
     |> raw_columns(query)
-    |> Enum.flat_map(&[static_noise_layer(&1), uid_noise_layer(&1, top_level_uid)])
+    |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
 
   defp clear_noise_layers(query, top_level_uid), do:
     clear_conditions()
     |> Lens.to_list(query)
-    |> Enum.flat_map(fn({:comparison, lhs, :=, rhs}) ->
+    |> Enum.flat_map(fn({:comparison, column, :=, constant}) ->
       [
-        NoiseLayer.new(
-          {lhs.table.name, lhs.name, nil},
-          [rhs]
-        ),
-        NoiseLayer.new(
-          {lhs.table.name, lhs.name, nil},
-          [rhs, top_level_uid]
-        )
+        static_noise_layer(column, constant),
+        uid_noise_layer(column, constant, top_level_uid),
       ]
     end)
 
   defp unclear_noise_layers(query, top_level_uid), do:
     unclear_conditions()
     |> raw_columns(query)
-    |> Enum.flat_map(&[static_noise_layer(&1), uid_noise_layer(&1, top_level_uid)])
+    |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
 
   defp range_noise_layers(%{ranges: ranges}), do:
     Enum.flat_map(ranges, fn(%{column: column, interval: range}) ->
       raw_columns(column)
-      |> Enum.map(&static_noise_layer(&1, range))
+      |> Enum.map(&static_noise_layer(&1, &1, range))
     end)
 
   defp negative_noise_layers(query), do:
     conditions_satisfying(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
     |> raw_columns(query)
-    |> Enum.map(&static_noise_layer(&1, :<>))
+    |> Enum.map(&static_noise_layer(&1, &1, :<>))
 
 
   # -------------------------------------------------------------------
@@ -268,16 +241,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
     |> Lens.to_list(data)
 
-  defp uid_noise_layer(column, top_level_uid), do:
+  defp uid_noise_layer(base_column, layer_expression, top_level_uid, extras \\ nil), do:
     NoiseLayer.new(
-      {column.table.name, column.name, _extras = nil},
-      [set_unique_alias(column), top_level_uid]
+      {base_column.table.name, base_column.name, extras},
+      [set_unique_alias(layer_expression), top_level_uid]
     )
 
-  defp static_noise_layer(column, extras \\ nil), do:
+  defp static_noise_layer(base_column, layer_expression, extras \\ nil), do:
     NoiseLayer.new(
-      {column.table.name, column.name, extras},
-      [set_unique_alias(column)]
+      {base_column.table.name, base_column.name, extras},
+      [set_unique_alias(layer_expression)]
     )
 
   defp conditions_satisfying(predicate), do:
