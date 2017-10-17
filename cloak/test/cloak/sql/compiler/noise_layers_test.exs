@@ -163,6 +163,18 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       refute Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
     end
+
+    test "a column from a subquery is not clear" do
+      result = compile!("""
+        SELECT COUNT(*) FROM (SELECT uid, numeric AS number FROM table) x WHERE number = 3
+      """, data_source())
+
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: [%{name: alias}]},
+        %{base: {"table", "numeric", nil}, expressions: [%{name: alias}, %{name: "uid"}]},
+      ] = result.noise_layers
+      refute is_nil(alias)
+    end
   end
 
   describe "skipping noise layers for pk = fk conditions" do

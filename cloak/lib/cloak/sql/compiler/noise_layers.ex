@@ -50,12 +50,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.key(:ast)
     |> Lens.satisfy(&(not &1.projected?))
 
-  defp push_noise_layer(query, %{base: {_table, column, extras}}) do
+  defp push_noise_layer(query, %NoiseLayer{base: {_table, column, extras}, expressions: [_ | rest]}) do
     {:ok, expression} = find_column(column, query)
 
     layers =
       raw_columns(expression)
-      |> Enum.map(&static_noise_layer(&1, extras))
+      |> Enum.map(fn(column) ->
+        NoiseLayer.new({column.table.name, column.name, extras}, [set_unique_alias(column) | rest])
+      end)
 
     update_in(query, [Lens.key(:noise_layers)], &(&1 ++ layers))
   end
