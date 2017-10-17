@@ -24,5 +24,19 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
 
       assert ASTNormalization.normalize(parsed) == expected
     end
+
+    test "rewrites subqueries" do
+      parsed = Parser.parse!("SELECT * FROM (SELECT DISTINCT COUNT(*) + 1, ABS(AVG(a)) FROM table) x")
+      expected = Parser.parse!("SELECT * FROM (SELECT COUNT(*) + 1, ABS(AVG(a)) FROM table) x")
+
+      assert ASTNormalization.normalize(parsed) == expected
+    end
+
+    test "rewrites subqueries in joins" do
+      parsed = Parser.parse!("SELECT * FROM foo JOIN (SELECT DISTINCT COUNT(*) + 1, ABS(AVG(a)) FROM table) x ON a = b")
+      expected = Parser.parse!("SELECT * FROM foo JOIN (SELECT COUNT(*) + 1, ABS(AVG(a)) FROM table) x ON a = b")
+
+      assert ASTNormalization.normalize(parsed) == expected
+    end
   end
 end

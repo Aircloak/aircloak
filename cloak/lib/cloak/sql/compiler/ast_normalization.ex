@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.ASTNormalization do
-  alias Cloak.Sql.Function
+  alias Cloak.Sql.{Function, Compiler.Helpers}
 
-  def normalize(ast), do: rewrite_distinct(ast)
+  def normalize(ast), do: Helpers.apply_bottom_up(ast, &rewrite_distinct/1)
 
   defp rewrite_distinct(ast = %{distinct?: false}), do: ast
   defp rewrite_distinct(ast = %{distinct?: true, columns: columns, from: from, group_by: group_by = [_ | _]}), do:

@@ -248,7 +248,7 @@ defmodule Cloak.Sql.Query.Lenses do
         )
       {:subquery, _} -> Lens.root()
       nil -> Lens.empty()
-      table when is_binary(table) -> Lens.root()
+      _other -> Lens.root()
     end)
 
   deflensp ast_tables_recursive(), do:
