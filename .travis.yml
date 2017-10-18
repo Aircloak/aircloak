@@ -136,6 +136,8 @@ matrix:
           packages:
           - mongodb-org-server
           - inotify-tools
+      before_install:
+      - ./travis-asdf-setup.sh
     - env: TEST="aux"
       cache:
         directories:

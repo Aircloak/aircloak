@@ -103,7 +103,7 @@ defmodule Cloak.Query.Aggregator do
     accumulator = NoiseLayer.new_accumulator(query.noise_layers)
     noise_layers = Enum.reduce(rows, accumulator, &NoiseLayer.accumulate(query.noise_layers, &2, &1))
     user_ids = Enum.map(rows, &user_id/1) |> Enum.into(MapSet.new())
-    anonymizer = Anonymizer.new([user_ids | noise_layers])
+    anonymizer = Anonymizer.new(noise_layers)
 
     {user_ids, anonymizer}
   end
@@ -212,7 +212,7 @@ defmodule Cloak.Query.Aggregator do
 
   defp init_anonymizer(grouped_rows) do
     for {property, {users_rows, noise_layers}} <- grouped_rows do
-      {property, Anonymizer.new([users_rows | noise_layers]), users_rows}
+      {property, Anonymizer.new(noise_layers), users_rows}
     end
   end
 
@@ -420,7 +420,7 @@ defmodule Cloak.Query.Aggregator do
     Anonymizer.new(noise_layers_from_groups(groups, query))
 
   defp noise_layers_from_groups([], query), do:
-    [_user_layer = %{} | NoiseLayer.new_accumulator(query.noise_layers)]
+    NoiseLayer.new_accumulator(query.noise_layers)
   defp noise_layers_from_groups(groups, _query), do:
     Enum.reduce(groups, nil, fn({_values, anonymizer, _users_rows}, acc) -> merge_layers(acc, anonymizer.layers) end)
 
@@ -429,7 +429,6 @@ defmodule Cloak.Query.Aggregator do
 
   @dialyzer {:nowarn_function, merge_layer: 1} # disable dialyzer warning because of `MapSet.union/2` call
   defp merge_layer({%MapSet{} = layer1, %MapSet{} = layer2}), do: MapSet.union(layer1, layer2)
-  defp merge_layer({%{} = layer1, %{} = layer2}), do: Map.merge(layer1, layer2)
 
   defp unique_user_ids_from_groups(groups), do:
     groups

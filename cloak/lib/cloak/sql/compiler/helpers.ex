@@ -15,7 +15,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
   def id_column(query) do
     id_columns = all_id_columns_from_tables(query)
     if any_outer_join?(query.from),
-      do: %Expression{Expression.function("coalesce", id_columns) | alias: "__ac_coalesce__"},
+      do: %Expression{Expression.function("coalesce", id_columns) | alias: "__ac_coalesce__", user_id?: true},
       else: hd(id_columns)
   end
 
@@ -39,7 +39,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
   @doc "Returns true if the provided expression is aggregated."
   @spec aggregated_column?(partial_query, Expression.t) :: boolean
   def aggregated_column?(query, column), do:
-    Enum.member?(query.group_by, column) or
+    Enum.member?(Enum.map(query.group_by, &Expression.unalias/1), Expression.unalias(column)) or
     (
       column.function? and
       (
@@ -61,29 +61,38 @@ defmodule Cloak.Sql.Compiler.Helpers do
     |> Query.Lenses.conditions()
     |> Lens.to_list(query)
 
-  @doc "Modifies the expression to have a globally unique alias."
-  @spec set_unique_alias(Expression.t) :: Expression.t
-  def set_unique_alias(column), do: %{column | alias: "alias_#{System.unique_integer([:positive])}"}
-
   @doc """
-  Removes columns from new_columns that are duplicated or already present in selected_columns. Returns a modified
+  Removes columns from new_columns that are duplicated or already present in db_columns. Returns a modified
   version of query where the appropriate selected columns are used instead of the removed columns.
   """
-  @spec drop_redundant_floated_columns(Query.t, [Expression.t], [Expression.t]) :: {Query.t, [Expression.t]}
-  def drop_redundant_floated_columns(query, selected_columns, new_columns) do
-    selected_ids = Enum.map(selected_columns, &Expression.id/1) |> Enum.uniq()
+  @spec drop_redundant_floated_columns(Query.t, [Expression.t]) :: {Query.t, [Expression.t]}
+  def drop_redundant_floated_columns(query, new_columns) do
+    selected_ids = query.db_columns |> Enum.map(&Expression.id/1) |> MapSet.new()
 
-    {already_selected, new_columns} = Enum.partition(new_columns, &Expression.id(&1) in selected_ids)
+    {already_selected, new_columns} = Enum.partition(new_columns, &MapSet.member?(selected_ids, Expression.id(&1)))
     uniq_new = Enum.uniq_by(new_columns, &Expression.id/1)
     duplicated_new = new_columns -- uniq_new
-    replacements = selected_columns ++ uniq_new
+    replacements = (query.db_columns ++ uniq_new) |> Enum.map(&{Expression.id(&1), &1}) |> Map.new()
 
-    query = Enum.reduce(already_selected ++ duplicated_new, query, fn (column, query) ->
-      replacement = Enum.find(replacements, &Expression.id(&1) == Expression.id(column))
-      Query.Lenses.query_expressions() |> Lens.satisfy(&column == &1) |> Lens.map(query, fn(_) -> replacement end)
-    end)
+    query = Enum.reduce(already_selected ++ duplicated_new, query,
+      fn(duplicate_expression, query) ->
+        replacement = Map.fetch!(replacements, Expression.id(duplicate_expression))
+        Query.replace_expression(query, duplicate_expression, replacement)
+      end
+    )
 
     {query, uniq_new}
+  end
+
+  @doc """
+  Adds extra columns to the db_columns list.
+
+  Duplicates are rejected and replaced using `drop_redundant_floated_columns/2`
+  """
+  @spec add_extra_db_columns(Query.t, [Expression.t]) :: Query.t
+  def add_extra_db_columns(query, columns) do
+    {query, new_columns} = drop_redundant_floated_columns(query, columns)
+    Enum.reduce(new_columns, query, &Query.add_db_column(&2, &1))
   end
 
   @doc """

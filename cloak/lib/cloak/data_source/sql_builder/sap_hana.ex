@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc mod div ^ % * / + -
-      length lower upper btrim/1 ltrim rtrim left right substring substring_for concat
+      length lower upper btrim/1 ltrim rtrim left right substring concat
       cast coalesce
     )
 

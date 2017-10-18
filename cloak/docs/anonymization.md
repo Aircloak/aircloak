@@ -295,6 +295,10 @@ Additionally, depending on the type of clause, some extra data is added:
   so noise layers are never directly computed for them
 * `IN` clauses - a layer is created for the whole clause with no extra seed
 
+As a final step if the hash of the seed for many noise layers comes out the same,
+then the duplicates are discarded. This is done so that adding the same clause
+(or a clause with the same effect) multiple times does not affect query results.
+
 ### Floating data
 
 The data for a noise layer is taken from the raw database column if possible.

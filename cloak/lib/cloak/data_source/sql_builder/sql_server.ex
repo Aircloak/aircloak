@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct stddev_distinct
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc div mod ^ * / + -
-      length lower upper ltrim rtrim left right substring substring_for concat
+      length lower upper ltrim rtrim left right substring concat
       hex cast coalesce hash
     )
 

@@ -422,19 +422,20 @@ defmodule Cloak.Sql.Parser do
         keyword(:substring),
         keyword(:"("),
         column(),
-        option(sequence([keyword(:from), numeric_constant(:integer)])),
-        option(sequence([keyword(:for), numeric_constant(:integer)])),
+        choice_deepest_error([
+          sequence([keyword(:from), pos_integer(), keyword(:for), pos_integer()]),
+          sequence([keyword(:","), pos_integer(), keyword(:","), pos_integer()]),
+          sequence([keyword_of([:from, :for, :","]), pos_integer()])
+        ]),
         keyword(:")"),
      ],
      fn
-       [:substring, :"(", column, [:from, from], nil, :")"] ->
-         {:function, "substring", [column, from]}
-       [:substring, :"(", column, [:from, from], [:for, for_count], :")"] ->
+       [:substring, :"(", column, [_, from, _, for_count], :")"] ->
          {:function, "substring", [column, from, for_count]}
-       [:substring, :"(", column, nil, [:for, for_count], :")"] ->
-         {:function, "substring_for", [column, for_count]}
-       [:substring, :"(", column, nil, nil, :")"] ->
-         {:function, "substring", [column]}
+       [:substring, :"(", column, [:for, for_count], :")"] ->
+         {:function, "substring", [column, {:constant, :integer, 1}, for_count]}
+       [:substring, :"(", column, [_, from], :")"] ->
+         {:function, "substring", [column, from]}
      end
    )
   end

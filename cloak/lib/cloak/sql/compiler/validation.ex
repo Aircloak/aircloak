@@ -83,15 +83,6 @@ defmodule Cloak.Sql.Compiler.Validation do
       raise CompilationError, message: "Function `#{name}` is not allowed in subqueries."
     :ok
   end
-  defp verify_function_usage({:function, "substring", arguments}, _subquery?) when length(arguments) >= 2 do
-    # The usage is substring(<arg0> FROM <arg1> [FOR <arg2>])
-    from_value = Enum.at(arguments, 1)
-    if Expression.value(from_value) == 0 do
-      raise CompilationError, message:
-        "The `FROM` parameter passed to `substring` cannot be 0. It must be a positive or negative value."
-    end
-    :ok
-  end
   defp verify_function_usage(_function, _subquery?), do: :ok
 
   defp verify_aggregated_columns(query) do

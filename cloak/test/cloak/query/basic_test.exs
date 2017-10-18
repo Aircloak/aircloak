@@ -285,7 +285,7 @@ defmodule Cloak.Query.BasicTest do
 
     test "median" do
       assert_query "select median(height) from heights",
-        %{columns: ["median"], rows: [%{row: [178], occurrences: 1}]}
+        %{columns: ["median"], rows: [%{row: [180], occurrences: 1}]}
     end
 
     test "sum(qualified_column)" do
@@ -316,7 +316,7 @@ defmodule Cloak.Query.BasicTest do
 
     test "median(qualified_column)" do
       assert_query "select median(heights.height) from heights",
-        %{columns: ["median"], rows: [%{row: [178], occurrences: 1}]}
+        %{columns: ["median"], rows: [%{row: [180], occurrences: 1}]}
     end
   end
 
@@ -356,7 +356,7 @@ defmodule Cloak.Query.BasicTest do
 
     test "median" do
       assert_query "select median(height) from heights",
-        %{columns: ["median"], rows: [%{row: [-184], occurrences: 1}]}
+        %{columns: ["median"], rows: [%{row: [-183], occurrences: 1}]}
     end
   end
 
@@ -396,7 +396,7 @@ defmodule Cloak.Query.BasicTest do
 
     test "median" do
       assert_query "select median(height) from heights",
-        %{columns: ["median"], rows: [%{row: [-178], occurrences: 1}]}
+        %{columns: ["median"], rows: [%{row: [-175], occurrences: 1}]}
     end
   end
 
@@ -736,7 +736,7 @@ defmodule Cloak.Query.BasicTest do
 
   test "substring from 0" do
     assert_query "select substring(name from 0) from heights",
-      %{error: "The `FROM` parameter passed to `substring`" <> _}
+      %{error: "Expected `positive integer constant` at line 1, column 28."}
   end
 
   test "substring from ... for ..." do
