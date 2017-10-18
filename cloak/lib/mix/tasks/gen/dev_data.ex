@@ -9,16 +9,20 @@ defmodule Mix.Tasks.Gen.DevData do
     use Mix.Task
 
     @impl Mix.Task
-    def run(_args), do:
+    def run(_args) do
+      IO.puts "generating data"
+      data = integers_data()
+
       [:postgresql, :saphana]
       |> Enum.map(&{&1, open_connection(&1)})
       |> Enum.filter(fn({_adapter, connect_result}) -> match?({:ok, _conn}, connect_result) end)
       |> Enum.map(fn({adapter, {:ok, conn}}) -> {adapter, conn} end)
       |> Enum.each(fn({adapter, _} = descriptor) ->
         IO.puts "importing to #{adapter}"
-        insert(descriptor, integers_data())
+        insert(descriptor, data)
         IO.puts "done\n"
       end)
+    end
 
     defp integers_data() do
       %{
