@@ -9,7 +9,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
       distinct?: false,
       columns: [:*],
       from: {:subquery, %{
-        alias: "to_fix",
+        alias: unique_alias(),
         ast: %{
           command: :select,
           distinct?: false,
@@ -28,4 +28,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   defp aggregator?({:function, name, args}), do:
     Function.has_attribute?(name, :aggregator) or Enum.any?(args, &aggregator?/1)
   defp aggregator?(_), do: false
+
+  # We set a unique alias on generated subqueries so that they don't clash with user aliases or tables
+  defp unique_alias(), do: "__ac_alias__#{System.unique_integer([:positive])}"
 end
