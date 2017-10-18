@@ -6,7 +6,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
   describe "rewriting distinct" do
     test "distinct without group by" do
       parsed = Parser.parse!("SELECT DISTINCT a, b, c FROM table")
-      expected = Parser.parse!("SELECT a, b, c FROM table GROUP BY a, b, c")
+      expected = Parser.parse!("SELECT a, b, c FROM table GROUP BY 1, 2, 3")
 
       assert ASTNormalization.normalize(parsed) == expected
     end
