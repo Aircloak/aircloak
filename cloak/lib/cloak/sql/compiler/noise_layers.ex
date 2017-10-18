@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.NoiseLayers do
   @moduledoc "Contains functions related to compilation of noise layers."
 
-  alias Cloak.Sql.{Expression, Query, NoiseLayer, Condition}
+  alias Cloak.Sql.{Expression, Query, NoiseLayer, Condition, LikePattern}
   alias Cloak.Sql.Compiler.Helpers
 
   use Lens.Macros
@@ -163,6 +163,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         select_noise_layers(query, top_level_uid) ++
         clear_noise_layers(query, top_level_uid) ++
         unclear_noise_layers(query, top_level_uid) ++
+        like_noise_layers(query, top_level_uid) ++
         range_noise_layers(query) ++
         negative_noise_layers(query)
     }
@@ -200,6 +201,36 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     conditions_satisfying(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
     |> raw_columns(query)
     |> Enum.map(&static_noise_layer(&1, &1, :<>))
+
+
+  # -------------------------------------------------------------------
+  # LIKE noise layers
+  # -------------------------------------------------------------------
+
+  defp like_noise_layers(query, top_level_uid), do:
+    conditions_satisfying(&Condition.like?/1)
+    |> Lens.to_list(query)
+    |> Enum.flat_map(fn({kind, column, constant}) ->
+      columns = raw_columns(column)
+      layer_keys = constant |> Expression.value() |> like_layer_keys()
+
+      Enum.flat_map(columns, fn(column) ->
+        [
+          static_noise_layer(column, column),
+          uid_noise_layer(column, column, top_level_uid),
+        ] ++ Enum.map(layer_keys, &uid_noise_layer(column, column, top_level_uid, {kind, &1}))
+      end)
+    end)
+
+  defp like_layer_keys(like_pattern) do
+    len = like_pattern |> LikePattern.graphemes() |> Enum.reject(& &1 == :%) |> length()
+    like_layer_keys(LikePattern.graphemes(like_pattern), 0, len)
+  end
+
+  defp like_layer_keys([], _, _), do: []
+  defp like_layer_keys([:% | rest], n, len), do: [{:%, len, n} | like_layer_keys(rest, n, len)]
+  defp like_layer_keys([:_ | rest], n, len), do: [{:_, len, n} | like_layer_keys(rest, n + 1, len)]
+  defp like_layer_keys([_ | rest], n, len), do: like_layer_keys(rest, n + 1, len)
 
 
   # -------------------------------------------------------------------
@@ -279,6 +310,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(& not Condition.inequality?(&1))
     |> Lens.satisfy(& not Condition.not_equals?(&1))
     |> Lens.satisfy(& not Condition.not_like?(&1))
+    |> Lens.satisfy(& not Condition.like?(&1))
     |> Lens.satisfy(& not fk_pk_condition?(&1))
     |> Lens.both(Lens.key(:group_by))
 
