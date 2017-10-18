@@ -35,33 +35,38 @@ defmodule Mix.Tasks.Gen.DevData do
     defp insert({:postgresql, conn}, table_spec) do
       Postgrex.query!(conn, "DROP TABLE IF EXISTS #{table_spec.name}", [])
       Postgrex.query!(conn, create_statement(table_spec), [])
-
-      table_spec.data
-      |> Stream.chunk(10, 10, [])
-      |> Enum.each(&postgresql_insert_chunk(conn, table_spec, &1))
+      insert_chunks(table_spec.data, &postgresql_insert_rows(conn, table_spec, &1))
     end
     defp insert({:saphana, conn}, table_spec) do
-      column_names = Enum.map(table_spec.columns, &elem(&1, 0))
-
       Cloak.SapHanaHelpers.recreate_table!(conn, default_sap_hana_schema!(), table_spec.name, table_def(table_spec))
+      column_names = Enum.map(table_spec.columns, &elem(&1, 0))
+      insert_chunks(
+        table_spec.data,
+        &Cloak.SapHanaHelpers.insert_rows!(conn, default_sap_hana_schema!(), table_spec.name, column_names, &1)
+      )
+    end
 
-      chunks = Enum.chunk(table_spec.data, 1000, 1000, [])
+    defp insert_chunks(rows, inserter) do
+      chunks = Enum.chunk(rows, 1000, 1000, [])
+      num_chunks = length(chunks)
 
       chunks
       |> Enum.with_index()
       |> Enum.each(fn({rows, index}) ->
-        IO.puts "chunk #{index+1}/#{length(chunks)}"
-        Cloak.SapHanaHelpers.insert_rows!(conn, default_sap_hana_schema!(), table_spec.name, column_names, rows)
+        IO.write "\rchunk #{index+1}/#{num_chunks}"
+        inserter.(rows)
       end)
+
+      IO.puts "\n"
     end
 
-    defp postgresql_insert_chunk(conn, table_spec, chunk_rows), do:
+    defp postgresql_insert_rows(conn, table_spec, rows), do:
       Postgrex.query!(
         conn,
         [
           "
             INSERT INTO #{table_spec.name} (#{table_spec.columns |> Enum.map(&elem(&1, 0)) |> Enum.join(", ")})
-            VALUES #{chunk_rows |> Stream.map(&"(#{Enum.join(&1, ", ")})") |> Enum.join(",")}
+            VALUES #{rows |> Stream.map(&"(#{Enum.join(&1, ", ")})") |> Enum.join(",")}
           "
         ],
         []
