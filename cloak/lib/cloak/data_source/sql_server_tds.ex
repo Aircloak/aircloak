@@ -13,6 +13,9 @@ defmodule Cloak.DataSource.SQLServerTds do
   # -------------------------------------------------------------------
 
   @impl Driver
+  def sql_dialect_module(_parameters), do: SqlBuilder.SQLServer
+
+  @impl Driver
   def connect!(parameters) do
     self = self()
     parameters = Enum.to_list(parameters) ++ [sync_connect: true,
