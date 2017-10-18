@@ -76,7 +76,7 @@ defmodule Mix.Tasks.Gen.DevData do
       db_params =
         Aircloak.DeployConfig.fetch!(:cloak, "data_sources")
         |> Cloak.DataSource.Utility.load_individual_data_source_configs()
-        |> Enum.find(&(&1["name"] == "postgresql"))
+        |> Enum.find(&(&1["name"] == "cloak_postgres_native"))
         |> Map.fetch!("parameters")
 
       Postgrex.start_link(
