@@ -111,11 +111,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   end
   defp select_columns(stream, query) do
     columns = Rows.group_expressions(query)
-    {columns,
-      stream
-      |> Stream.map(fn(row) -> Enum.map(columns, &Expression.value(&1, row)) end)
-      |> distinct(query)
-    }
+    {columns, Stream.map(stream, fn(row) -> Enum.map(columns, &Expression.value(&1, row)) end)}
   end
 
   defp offset_rows(stream, %Query{offset: 0}), do: stream
@@ -123,9 +119,6 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp limit_rows(stream, %Query{limit: nil}), do: stream
   defp limit_rows(stream, %Query{limit: limit}), do: Stream.take(stream, limit)
-
-  defp distinct(stream, %Query{distinct?: false}), do: stream
-  defp distinct(stream, %Query{distinct?: true}), do: stream |> Enum.to_list() |> Enum.uniq()
 
   defp aggregator_to_default(%Expression{function?: true, function_args: [{:distinct, _column}]}), do: MapSet.new()
   defp aggregator_to_default(%Expression{function?: true, function: "count", function_args: [_column]}), do: 0

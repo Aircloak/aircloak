@@ -52,14 +52,10 @@ defmodule Cloak.Query.Result do
 
     buckets
     |> Cloak.Query.Sorter.order_rows(bucket_columns, query.order_by, &(&1.row))
-    |> distinct(query.distinct?)
     |> offset(query.offset)
     |> limit(query.limit)
     |> drop_non_selected_columns(bucket_columns, query.columns)
   end
-
-  defp distinct(buckets, true), do: Enum.map(buckets, &Map.put(&1, :occurrences, 1))
-  defp distinct(buckets, false), do: buckets
 
   defp offset(buckets, 0), do: buckets
   defp offset([], _amount), do: []

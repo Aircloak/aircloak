@@ -52,7 +52,7 @@ defmodule Cloak.Query.Probe do
   defp prepare_probe(query) do
     uid_column = Cloak.Sql.Compiler.Helpers.id_column(query)
     %Query{query |
-      limit: @lcf_upper_limit, offset: 0, distinct?: true, subquery?: true, columns: [uid_column], group_by: [],
+      limit: @lcf_upper_limit, offset: 0, subquery?: true, columns: [uid_column], group_by: [],
       order_by: [], having: nil
     }
     |> Query.resolve_db_columns()
