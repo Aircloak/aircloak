@@ -44,8 +44,8 @@ defmodule Cloak.DataSource.SAPHana do
       "Uid": normalized_parameters[:username],
       "Pwd": normalized_parameters[:password],
       "databasename": normalized_parameters[:database],
-      "cs": ~s/"#{default_schema()}"/,
     }
+    |> Map.merge(schema_option(default_schema()))
     |> Map.merge(driver_option())
     |> add_optional_parameters(parameters)
     ODBC.connect!(odbc_parameters)
@@ -68,6 +68,9 @@ defmodule Cloak.DataSource.SAPHana do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp schema_option(nil), do: %{}
+  defp schema_option(schema), do: %{cs: ~s/"#{schema}"/}
 
   defp driver_option() do
     if System.get_env("TRAVIS") == "true" do
