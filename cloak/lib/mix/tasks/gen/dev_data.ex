@@ -30,7 +30,7 @@ defmodule Mix.Tasks.Gen.DevData do
         columns: [{"user_id", "integer"}, {"value", "integer"}],
         data:
           Stream.flat_map(
-            1..2500,
+            1..10_000,
             fn(value) -> Stream.map(1..10, &[&1, value]) end
           )
       }
