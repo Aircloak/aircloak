@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Gen.DevData do
       |> Enum.each(fn({adapter, _} = descriptor) ->
         IO.puts "importing to #{adapter}"
         insert(descriptor, data)
-        IO.puts "done\n"
+        IO.puts "#{IO.ANSI.green()}done#{IO.ANSI.reset()}\n"
       end)
     end
 
@@ -133,11 +133,11 @@ defmodule Mix.Tasks.Gen.DevData do
     defp sap_hana_connectivity_possible() do
       if :os.type() == {:unix, :darwin} do
         [
-          "",
+          "#{IO.ANSI.red()}",
           "Can't connect to SAP HANA data source from a macOS machine. SAP HANA data will not be recreated.",
           "To work with SAP HANA data sources, start a dev container with `make dev-container`.",
           "See `README.md` for more details.",
-          "",
+          "#{IO.ANSI.reset()}",
         ]
         |> Enum.join("\n")
         |> IO.puts()
