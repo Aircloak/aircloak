@@ -55,7 +55,6 @@ defmodule Cloak.Query.Runner.Engine do
     |> build_initial_noise_layers()
     |> Probe.process()
     |> build_final_noise_layers()
-    |> Sql.Compiler.LowCountChecks.compile()
 
   defp build_initial_noise_layers(query), do: Sql.Compiler.NoiseLayers.compile(query)
 
