@@ -8,10 +8,6 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   # API
   # -------------------------------------------------------------------
 
-  @doc "Checks to see if the given query can be executed by the SQL driver."
-  @spec supports_query?(Query.t) :: boolean
-  def supports_query?(query), do: true
-
   @doc "Generates SQL for a function invocation. Provided arguments list must contain SQL fragments."
   @spec function_sql(Expression.function_name, [iodata], atom) :: iodata
   def function_sql({:cast, type}, [arg], sql_dialect_module), do:

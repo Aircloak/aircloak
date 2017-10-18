@@ -4,16 +4,15 @@ defmodule Cloak.DataSource.ODBC do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.{SqlBuilder, Table, Driver}
+  alias Cloak.DataSource.Table
   alias Cloak.DataSource
   alias Cloak.Query.DataDecoder
 
+  use Cloak.DataSource.Driver.SQL
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
-
-  @behaviour Driver
 
   @impl Driver
   def sql_dialect_module(%{dialect: dialect}), do: dialect
@@ -33,9 +32,6 @@ defmodule Cloak.DataSource.ODBC do
       {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
     end
   end
-
-  @impl Driver
-  def disconnect(connection), do: :odbc.disconnect(connection)
 
   @impl Driver
   def load_tables(connection, table) do
@@ -66,12 +62,6 @@ defmodule Cloak.DataSource.ODBC do
       {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
     end
   end
-
-  @impl Driver
-  defdelegate supports_query?(query), to: SqlBuilder.Support
-
-  @impl Driver
-  defdelegate supports_function?(expression, data_source), to: SqlBuilder.Support
 
 
   # -------------------------------------------------------------------
