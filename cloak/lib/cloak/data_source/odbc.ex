@@ -34,6 +34,9 @@ defmodule Cloak.DataSource.ODBC do
   end
 
   @impl Driver
+  def disconnect(connection), do: :odbc.disconnect(connection)
+
+  @impl Driver
   def load_tables(connection, table) do
     case :odbc.describe_table(connection, to_charlist(table.db_name), _timeout = :timer.seconds(30)) do
       {:ok, columns} ->
