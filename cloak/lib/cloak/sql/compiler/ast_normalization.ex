@@ -1,7 +1,24 @@
 defmodule Cloak.Sql.Compiler.ASTNormalization do
-  alias Cloak.Sql.{Function, Compiler.Helpers}
+  @moduledoc "Deals with normalizing the query AST so that less cases must be handled downstream."
 
+  alias Cloak.Sql.{Function, Parser, Compiler.Helpers}
+
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc """
+  Rewrites the query AST, producing one with the same semantics that is simpler to process. Currently it only replaces
+  DISTINCT usage in SELECT lists with an equivalent GROUP BY (possibly adding a subquery).
+  """
+  @spec normalize(Parser.parsed_query) :: Parser.parsed_query
   def normalize(ast), do: Helpers.apply_bottom_up(ast, &rewrite_distinct/1)
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp rewrite_distinct(ast = %{distinct?: true, columns: columns, from: from, group_by: group_by = [_ | _]}), do:
     Map.merge(ast, %{
