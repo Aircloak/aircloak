@@ -3,7 +3,7 @@ defmodule Cloak.Query.DataEngine do
 
   require Logger
 
-  alias Cloak.Sql.{Compiler.Helpers, Condition, Expression, Function, Query, Query.Lenses}
+  alias Cloak.Sql.{Compiler.Helpers, Condition, Expression, Query, Query.Lenses}
   alias Cloak.Query.DataDecoder
 
 
@@ -25,9 +25,6 @@ defmodule Cloak.Query.DataEngine do
 
   @doc "Determines whether the query needs to be emulated or not."
   @spec needs_emulation?(Query.t) :: boolean
-  def needs_emulation?(%Query{subquery?: false, from: table}) when is_binary(table), do: false
-  def needs_emulation?(%Query{subquery?: true, from: table} = query) when is_binary(table), do:
-    not query.data_source.driver.supports_query?(query) or has_emulated_expressions?(query)
   def needs_emulation?(query), do:
     not query.data_source.driver.supports_query?(query) or
     query |> get_in([Query.Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?)) or
@@ -39,7 +36,7 @@ defmodule Cloak.Query.DataEngine do
   def partitioned_where_clauses(query) do
     Condition.partition(query.where,
       fn(condition) ->
-        emulated_expression_condition?(condition) or
+        emulated_expression_condition?(condition, query.data_source) or
         (
           query.emulated? and
           (
@@ -63,25 +60,26 @@ defmodule Cloak.Query.DataEngine do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp emulated_expression?(expression), do:
-    DataDecoder.needs_decoding?(expression) or Function.has_attribute?(expression, :emulated)
+  defp emulated_expression?(expression, data_source), do:
+    DataDecoder.needs_decoding?(expression) or
+    (expression.function? and not data_source.driver.supports_function?(expression, data_source))
 
-  defp emulated_expression_condition?(condition) do
+  defp emulated_expression_condition?(condition, data_source) do
     Query.Lenses.conditions_terminals()
     |> Lens.to_list([condition])
-    |> Enum.any?(&emulated_expression?/1)
+    |> Enum.any?(&emulated_expression?(&1, data_source))
   end
 
   defp has_emulated_expressions?(query), do:
     Query.Lenses.all_expressions()
     |> Lens.to_list([query.columns, query.group_by, query.having, query.where])
-    |> Enum.any?(&emulated_expression?/1)
+    |> Enum.any?(&emulated_expression?(&1, query.data_source))
 
   defp has_emulated_join_conditions?(query), do:
     query
     |> Helpers.all_join_conditions()
     |> get_in([Query.Lenses.all_expressions()])
-    |> Enum.any?(&emulated_expression?/1)
+    |> Enum.any?(&emulated_expression?(&1, query.data_source))
 
   defp multiple_tables_condition?(condition) do
     Query.Lenses.conditions_terminals()

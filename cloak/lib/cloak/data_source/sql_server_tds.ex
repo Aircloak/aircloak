@@ -1,16 +1,16 @@
 defmodule Cloak.DataSource.SQLServerTds do
   @moduledoc "Implements the DataSource.Driver behaviour for MS SQL Server. For more information, see `DataSource`."
 
-  alias Cloak.DataSource.{SqlBuilder, Table, Driver}
+  alias Cloak.DataSource.Table
   alias Cloak.DataSource
   alias Cloak.Query.DataDecoder
+
+  use Cloak.DataSource.Driver.SQL
 
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
-
-  @behaviour Driver
 
   @impl Driver
   def sql_dialect_module(_parameters), do: SqlBuilder.SQLServer
@@ -30,10 +30,6 @@ defmodule Cloak.DataSource.SQLServerTds do
         GenServer.stop(connection)
         DataSource.raise_error("Unknown failure during database connection process")
     end
-  end
-  @impl Driver
-  def disconnect(connection) do
-    GenServer.stop(connection)
   end
 
   @impl Driver
@@ -59,9 +55,6 @@ defmodule Cloak.DataSource.SQLServerTds do
       column |> DataDecoder.encoded_type() |> type_to_field_mapper()
     run_query(connection, statement, &map_fields(&1, field_mappers), result_processor)
   end
-
-  @impl Driver
-  def supports_query?(query), do: SqlBuilder.Support.supported_query?(query)
 
 
   # -------------------------------------------------------------------

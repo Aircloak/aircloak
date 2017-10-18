@@ -4,17 +4,14 @@ defmodule Cloak.DataSource.SQLServer do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.{ODBC, Driver}
+  alias Cloak.DataSource.ODBC
+
+  use Cloak.DataSource.Driver.SQL
 
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
-
-  @behaviour Driver
-
-  @impl Driver
-  def sql_dialect_module(_parameters), do: Cloak.DataSource.SqlBuilder.SQLServer
 
   @impl Driver
   def connect!(parameters) do
@@ -44,9 +41,6 @@ defmodule Cloak.DataSource.SQLServer do
 
   @impl Driver
   defdelegate select(connection, sql_query, result_processor), to: ODBC
-
-  @impl Driver
-  defdelegate supports_query?(query), to: ODBC
 
 
   # -------------------------------------------------------------------
