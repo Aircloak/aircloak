@@ -34,27 +34,11 @@ defmodule Mix.Tasks.Gen.DevData do
 
     defp insert({:postgresql, conn}, table_spec) do
       Postgrex.query!(conn, "DROP TABLE IF EXISTS #{table_spec.name}", [])
-
       Postgrex.query!(conn, create_statement(table_spec), [])
 
       table_spec.data
-      |> Stream.map(&"(#{Enum.join(&1, ", ")})")
       |> Stream.chunk(10, 10, [])
-      |> Stream.map(&Enum.join(&1, ","))
-      |> Enum.each(
-        fn(chunk_sql) ->
-          Postgrex.query!(
-            conn,
-            [
-              "
-                INSERT INTO #{table_spec.name} (#{table_spec.columns |> Enum.map(&elem(&1, 0)) |> Enum.join(", ")})
-                VALUES #{chunk_sql}
-              "
-            ],
-            []
-          )
-        end
-      )
+      |> Enum.each(&postgresql_insert_chunk(conn, table_spec, &1))
     end
     defp insert({:saphana, conn}, table_spec) do
       column_names = Enum.map(table_spec.columns, &elem(&1, 0))
@@ -70,6 +54,18 @@ defmodule Mix.Tasks.Gen.DevData do
         Cloak.SapHanaHelpers.insert_rows!(conn, default_sap_hana_schema!(), table_spec.name, column_names, rows)
       end)
     end
+
+    defp postgresql_insert_chunk(conn, table_spec, chunk_rows), do:
+      Postgrex.query!(
+        conn,
+        [
+          "
+            INSERT INTO #{table_spec.name} (#{table_spec.columns |> Enum.map(&elem(&1, 0)) |> Enum.join(", ")})
+            VALUES #{chunk_rows |> Stream.map(&"(#{Enum.join(&1, ", ")})") |> Enum.join(",")}
+          "
+        ],
+        []
+      )
 
     defp open_connection(:postgresql) do
       Application.ensure_all_started(:postgrex)
