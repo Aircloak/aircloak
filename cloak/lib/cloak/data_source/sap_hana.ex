@@ -4,7 +4,9 @@ defmodule Cloak.DataSource.SAPHana do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.{ODBC, Driver}
+  alias Cloak.DataSource.ODBC
+
+  use Cloak.DataSource.Driver.SQL
 
   @doc """
   Returns the SAP HANA schema as configured in app config.
@@ -29,11 +31,6 @@ defmodule Cloak.DataSource.SAPHana do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  @behaviour Driver
-
-  @impl Driver
-  def sql_dialect_module(_parameters), do: Cloak.DataSource.SqlBuilder.SAPHana
-
   @impl Driver
   def connect!(parameters) do
     normalized_parameters = for {key, value} <- parameters, into: %{}, do:
@@ -44,8 +41,8 @@ defmodule Cloak.DataSource.SAPHana do
       "Uid": normalized_parameters[:username],
       "Pwd": normalized_parameters[:password],
       "databasename": normalized_parameters[:database],
-      "cs": ~s/"#{default_schema()}"/,
     }
+    |> Map.merge(schema_option(default_schema()))
     |> Map.merge(driver_option())
     |> add_optional_parameters(parameters)
     ODBC.connect!(odbc_parameters)
@@ -61,13 +58,13 @@ defmodule Cloak.DataSource.SAPHana do
   @impl Driver
   defdelegate select(connection, sql_query, result_processor), to: ODBC
 
-  @impl Driver
-  defdelegate supports_query?(query), to: ODBC
-
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp schema_option(nil), do: %{}
+  defp schema_option(schema), do: %{cs: ~s/"#{schema}"/}
 
   defp driver_option() do
     if System.get_env("TRAVIS") == "true" do

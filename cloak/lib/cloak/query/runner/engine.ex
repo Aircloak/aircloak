@@ -1,6 +1,6 @@
 defmodule Cloak.Query.Runner.Engine do
   @moduledoc "Execution of SQL queries."
-  alias Cloak.{Sql, DataSource, Query, ResultSender, Sql.Condition, Query.Probe}
+  alias Cloak.{Sql, DataSource, Query, ResultSender, Sql.Condition, Query.DataEngine}
   require Logger
 
   @type state_updater :: (ResultSender.query_state -> any)
@@ -52,14 +52,8 @@ defmodule Cloak.Query.Runner.Engine do
   defp prepare_for_execution(compiled_query), do:
     compiled_query
     |> Cloak.Sql.Query.resolve_db_columns()
-    |> build_initial_noise_layers()
-    |> Probe.process()
-    |> build_final_noise_layers()
+    |> Sql.Compiler.NoiseLayers.compile()
     |> Sql.Compiler.LowCountChecks.compile()
-
-  defp build_initial_noise_layers(query), do: Sql.Compiler.NoiseLayers.compile(query)
-
-  defp build_final_noise_layers(query), do: Sql.Compiler.NoiseLayers.compile(query)
 
   defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater), do:
     Query.Result.new(
@@ -93,7 +87,7 @@ defmodule Cloak.Query.Runner.Engine do
     {rows, query} = Query.RowSplitters.split(rows, query)
 
     rows
-    |> Query.Rows.filter(Condition.to_function(query.emulated_where))
+    |> Query.Rows.filter(query |> DataEngine.emulated_where() |> Condition.to_function())
     |> Query.Aggregator.aggregate(query, features, state_updater)
   end
 end

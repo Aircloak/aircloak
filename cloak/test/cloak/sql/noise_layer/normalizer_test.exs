@@ -1,7 +1,7 @@
-defmodule Cloak.Query.Anonimyzer.Normalizer.Test do
+defmodule Cloak.Sql.NoiseLayer.Normalizer.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.Query.Anonymizer.Normalizer
+  alias Cloak.Sql.NoiseLayer.Normalizer
 
   describe "floats" do
     test "normalizing an integer", do:
