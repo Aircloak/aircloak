@@ -1,4 +1,4 @@
-defmodule Cloak.Query.Anonymizer.Normalizer do
+defmodule Cloak.Sql.NoiseLayer.Normalizer do
   @moduledoc """
   Normalizes values for producing consistent seeds.
   """
