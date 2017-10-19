@@ -72,15 +72,10 @@ defmodule Cloak.DataSource do
   # -------------------------------------------------------------------
 
   @doc """
-  Replaces the existing data source definitions with frech ones loaded
-  and initialized from the definitions configured on disk.
+  Synchronously replaces the existing data source definitions with fresh ones loaded and initialized from the
+  definitions configured on disk.
 
-  This process blocks until it is complete.
-
-  Data sources will be processed individually and in parallel.
-
-  A call to this method will also update an Air installation, if online,
-  with the updated data source definitions.
+  If online, the Air will receive the updated data sources.
   """
   @spec reinitialize_all_data_sources() :: :ok
   def reinitialize_all_data_sources(), do:
@@ -92,15 +87,10 @@ defmodule Cloak.DataSource do
     GenServer.cast(__MODULE__, {:replace_data_sources, data_sources})
 
   @doc """
-  Given the path to a data source definition on disk, calling this method replaces an
-  existing initialized data source with a freshly initialized data source as specified
-  in the data source definition.
+  Synchronously loads and initializes a data source given the path to the data source definition. If the data source
+  doesn't yet exist it is added, and if it already exists it is replaced by the new one.
 
-  If no existing entry exists for the given data source, it will be added.
-
-  This call blocks while the data source is being initialized.
-
-  The Air will receive the updated data source definition if the update is succesful.
+  If online, the Air will receive the updated data source.
   """
   @spec initialize_data_source_from_path(String.t) :: :ok | :error
   def initialize_data_source_from_path(file_path) do
@@ -413,9 +403,8 @@ defmodule Cloak.DataSource do
     add_tables(data_source)
 
 
-  # Cloak.AirSocket.update_config throws during tests where there is no
-  # air conterpoint running. Rather than running a fake socket for test
-  # purposes, we opted to make the update call a noop.
+  # Cloak.AirSocket.update_config throws during tests where there is no air conterpoint running. Rather than running
+  # a fake socket for test purposes, we opted to make the update call a noop.
   if Mix.env == :test do
     defp update_air(_data_sources), do: :ok
   else
