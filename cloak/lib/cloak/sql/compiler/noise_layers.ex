@@ -198,7 +198,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end)
 
   defp negative_noise_layers(query), do:
-    conditions_satisfying(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
+    conditions_satisfying(&Condition.not_equals?(&1))
     |> raw_columns(query)
     |> Enum.map(&static_noise_layer(&1, &1, :<>))
 
@@ -208,22 +208,34 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # -------------------------------------------------------------------
 
   defp like_noise_layers(query, top_level_uid), do:
-    conditions_satisfying(&Condition.like?/1)
+    conditions_satisfying(&(Condition.like?(&1) or Condition.not_like?(&1)))
     |> Lens.to_list(query)
-    |> Enum.flat_map(fn({kind, column, constant}) ->
-      columns = raw_columns(column)
-      layer_keys = constant |> Expression.value() |> like_layer_keys()
+    |> Enum.flat_map(&do_like_noise_layers(&1, top_level_uid))
 
-      Enum.flat_map(columns, fn(column) ->
-        [
-          static_noise_layer(column, column) |
-          Enum.map(layer_keys, &uid_noise_layer(column, column, top_level_uid, {kind, &1}))
-        ]
-      end)
+  defp do_like_noise_layers({kind, column, %{constant?: true, value: pattern}}, top_level_uid), do:
+    column
+    |> raw_columns()
+    |> Enum.flat_map(fn(column) ->
+      [
+        static_noise_layer(column, column) |
+        pattern |> like_layer_keys() |> Enum.map(&uid_noise_layer(column, column, top_level_uid, {kind, &1}))
+      ]
+    end)
+  defp do_like_noise_layers({:not, {kind, column, %{constant?: true, value: pattern}}}, top_level_uid), do:
+    column
+    |> raw_columns()
+    |> Enum.flat_map(fn(column) ->
+      [
+        static_noise_layer(column, column, {:not, kind, without_percents(pattern)}) |
+        pattern |> like_layer_keys() |> Enum.map(&uid_noise_layer(column, column, top_level_uid, {:not, kind, &1}))
+      ]
     end)
 
+  defp without_percents(like_pattern), do:
+    like_pattern |> LikePattern.graphemes() |> Enum.reject(& &1 == :%) |> Enum.join()
+
   defp like_layer_keys(like_pattern) do
-    len = like_pattern |> LikePattern.graphemes() |> Enum.reject(& &1 == :%) |> length()
+    len = like_pattern |> without_percents() |> String.length()
     like_layer_keys(LikePattern.graphemes(like_pattern), 0, len)
   end
 

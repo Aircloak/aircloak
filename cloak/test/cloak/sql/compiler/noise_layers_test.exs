@@ -236,30 +236,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         %{base: {"table", "numeric2", :<>}, expressions: [%Expression{name: "numeric2"}]},
       ] = result.noise_layers
     end
-
-    test "noise layers for NOT LIKE" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT LIKE 'bob%'", data_source())
-
-      assert [
-        %{base: {"table", "name", :<>}, expressions: [%Expression{name: "name"}]},
-      ] = result.noise_layers
-    end
-
-    test "noise layers for NOT ILIKE" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT ILIKE 'bob%'", data_source())
-
-      assert [
-        %{base: {"table", "name", :<>}, expressions: [%Expression{name: "name"}]},
-      ] = result.noise_layers
-    end
-
-    test "noise layers when the argument to NOT LIKE is not raw" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE lower(name) NOT LIKE 'bob%'", data_source())
-
-      assert [
-        %{base: {"table", "name", :<>}, expressions: [%Expression{name: "name"}]},
-      ] = result.noise_layers
-    end
   end
 
   describe "noise layers for IS NULL" do
@@ -338,6 +314,32 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         %{base: ^base2,  expressions: [%{value: "bob"}, %{name: "uid"}]},
       ] = compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'", data_source()).noise_layers
     end
+
+    test "noise layers for NOT LIKE" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT LIKE '_bob%'", data_source())
+      len = String.length("_bob%") - String.length("%")
+
+      assert [
+        %{base: {"table", "name", {:not, :like, "_bob"}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:not, :like, {:_, ^len, 0}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", {:not, :like, {:%, ^len, 4}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+      ] = result.noise_layers
+    end
+
+    test "noise layers for NOT ILIKE" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT ILIKE '_bob%'", data_source())
+      len = String.length("_bob%") - String.length("%")
+
+      assert [
+        %{base: {"table", "name", {:not, :ilike, "_bob"}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:not, :ilike, {:_, ^len, 0}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", {:not, :ilike, {:%, ^len, 4}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+      ] = result.noise_layers
+    end
+
+    test "noise layers when NOT LIKE has no wildcards"
+
+    test "noise layers when NOT ILIKE has no wildcards"
   end
 
   describe "noise layers from IN" do
