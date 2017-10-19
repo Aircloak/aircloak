@@ -285,13 +285,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
         %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}]},
-        %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}, %Expression{name: "uid"}]},
         %{base: {"table", "name", {:like, {:%, ^len, 1}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
         %{base: {"table", "name", {:like, {:_, ^len, 1}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
         %{base: {"table", "name", {:like, {:%, ^len, 3}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
         %{base: {"table", "name", {:like, {:_, ^len, 3}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
         %{base: {"table", "name2", nil}, expressions: [%Expression{name: "name2"}]},
-        %{base: {"table", "name2", nil}, expressions: [%Expression{name: "name2"}, %Expression{name: "uid"}]},
         %{base: {"table", "name2", {:like, {:%, ^len, 1}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
         %{base: {"table", "name2", {:like, {:_, ^len, 1}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
         %{base: {"table", "name2", {:like, {:%, ^len, 3}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
@@ -305,13 +303,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
         %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}]},
-        %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}, %Expression{name: "uid"}]},
         %{base: {"table", "name", {:ilike, {:%, ^len, 1}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
         %{base: {"table", "name", {:ilike, {:_, ^len, 1}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
         %{base: {"table", "name", {:ilike, {:%, ^len, 3}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
         %{base: {"table", "name", {:ilike, {:_, ^len, 3}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
         %{base: {"table", "name2", nil}, expressions: [%Expression{name: "name2"}]},
-        %{base: {"table", "name2", nil}, expressions: [%Expression{name: "name2"}, %Expression{name: "uid"}]},
         %{base: {"table", "name2", {:ilike, {:%, ^len, 1}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
         %{base: {"table", "name2", {:ilike, {:_, ^len, 1}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
         %{base: {"table", "name2", {:ilike, {:%, ^len, 3}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},

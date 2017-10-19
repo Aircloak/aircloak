@@ -216,9 +216,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
       Enum.flat_map(columns, fn(column) ->
         [
-          static_noise_layer(column, column),
-          uid_noise_layer(column, column, top_level_uid),
-        ] ++ Enum.map(layer_keys, &uid_noise_layer(column, column, top_level_uid, {kind, &1}))
+          static_noise_layer(column, column) |
+          Enum.map(layer_keys, &uid_noise_layer(column, column, top_level_uid, {kind, &1}))
+        ]
       end)
     end)
 
