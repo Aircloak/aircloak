@@ -106,7 +106,6 @@ defmodule Cloak.DataSource do
         Logger.warn("Failed to initialize data source from path: #{file_path}: #{reason}")
         :error
     end
-    :ok
   end
 
   @doc """
