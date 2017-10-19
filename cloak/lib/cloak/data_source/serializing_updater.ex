@@ -24,7 +24,7 @@ defmodule Cloak.DataSource.SerializingUpdater do
       FileSystem.subscribe(@file_system_monitor_name)
     end
     activate_monitor_timer()
-    {:ok, %{}}
+    {:ok, nil}
   end
 
   @impl GenServer
