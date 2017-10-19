@@ -71,20 +71,6 @@ defmodule Cloak.DataSource do
   # API
   # -------------------------------------------------------------------
 
-  @doc "Starts the data source supervision tree."
-  @spec child_spec() :: Supervisor.child_spec
-  def child_spec(_options \\ []) do
-    import Aircloak.ChildSpec
-    supervisor(
-      [
-        gen_server(__MODULE__, load_data_source_configs(), name: __MODULE__),
-        Cloak.DataSource.SerializingUpdater,
-      ],
-      strategy: :one_for_one,
-      name: Cloak.DataSource.Supervisor
-    )
-  end
-
   @doc """
   Replaces the existing data source definitions with frech ones loaded
   and initialized from the definitions configured on disk.
@@ -435,5 +421,23 @@ defmodule Cloak.DataSource do
   else
     defp update_air(data_sources), do:
       Cloak.AirSocket.update_config(data_sources)
+  end
+
+
+  # -------------------------------------------------------------------
+  # Supervison tree callback
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_options \\ []) do
+    import Aircloak.ChildSpec
+    supervisor(
+      [
+        gen_server(__MODULE__, load_data_source_configs(), name: __MODULE__),
+        Cloak.DataSource.SerializingUpdater,
+      ],
+      strategy: :one_for_one,
+      name: Cloak.DataSource.Supervisor
+    )
   end
 end
