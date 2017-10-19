@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.SerializingUpdater do
 
 
   # -------------------------------------------------------------------
-  # Callbacks
+  # GenServer callbacks
   # -------------------------------------------------------------------
 
   @impl GenServer
