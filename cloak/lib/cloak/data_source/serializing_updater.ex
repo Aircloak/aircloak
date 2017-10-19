@@ -14,18 +14,6 @@ defmodule Cloak.DataSource.SerializingUpdater do
 
 
   # -------------------------------------------------------------------
-  # API
-  # -------------------------------------------------------------------
-
-  @doc "Starts the data source supervision tree."
-  @spec child_spec() :: Supervisor.child_spec
-  def child_spec(_options \\ []) do
-    import Aircloak.ChildSpec
-    supervisor(child_specs(), strategy: :one_for_all, name: Cloak.DataSource.SerializingUpdater.Supervisor)
-  end
-
-
-  # -------------------------------------------------------------------
   # Callbacks
   # -------------------------------------------------------------------
 
@@ -95,5 +83,16 @@ defmodule Cloak.DataSource.SerializingUpdater do
       path when is_binary(path) -> Path.join([Aircloak.File.config_dir_path(), path])
       _other -> nil
     end
+  end
+
+
+  # -------------------------------------------------------------------
+  # Supervison tree callback
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_options \\ []) do
+    import Aircloak.ChildSpec
+    supervisor(child_specs(), strategy: :one_for_all, name: Cloak.DataSource.SerializingUpdater.Supervisor)
   end
 end
