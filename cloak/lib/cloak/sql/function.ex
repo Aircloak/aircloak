@@ -22,7 +22,7 @@ defmodule Cloak.Sql.Function do
       [:real] => :real,
     }},
     ~w(sum_noise) => %{attributes: [:aggregator, :not_in_subquery], type_specs: %{[numeric] => :real}},
-    ~w(median) => %{attributes: [:aggregator, :emulated], type_specs: %{
+    ~w(median) => %{attributes: [:aggregator], type_specs: %{
       [:integer] => :integer,
       [:real] => :real,
       [:date] => :date,
@@ -96,7 +96,7 @@ defmodule Cloak.Sql.Function do
     ~w(hex) => %{type_specs: %{[:text] => :text}},
     ~w(hash) => %{type_specs: %{[:text] => :integer, [:integer] => :integer, [:real] => :integer}},
     # NOTICE: The `not_in_subquery` is set for `extract_words` because we are not yet sure it's safe in subqueries.
-    ~w(extract_words) => %{type_specs: %{[:text] => :text}, attributes: [:not_in_subquery, :row_splitter, :emulated]},
+    ~w(extract_words) => %{type_specs: %{[:text] => :text}, attributes: [:not_in_subquery, :row_splitter]},
     [{:cast, :integer}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer}},
     [{:cast, :real}] =>

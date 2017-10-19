@@ -21,6 +21,7 @@
         {Credo.Check.Readability.MaxLineLength, max_length: 120},
         {Credo.Check.Readability.VariableNames},
         {Credo.Check.Refactor.FunctionArity, false},
+        {Credo.Check.Design.DuplicatedCode, false},
         {Credo.Check.Warning.IExPry},
         {Credo.Check.Warning.IoInspect}
       ] ++ case Mix.env do
