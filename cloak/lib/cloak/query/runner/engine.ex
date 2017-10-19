@@ -52,13 +52,8 @@ defmodule Cloak.Query.Runner.Engine do
   defp prepare_for_execution(compiled_query), do:
     compiled_query
     |> Cloak.Sql.Query.resolve_db_columns()
-    |> build_initial_noise_layers()
-    |> build_final_noise_layers()
+    |> Sql.Compiler.NoiseLayers.compile()
     |> Sql.Compiler.LowCountChecks.compile()
-
-  defp build_initial_noise_layers(query), do: Sql.Compiler.NoiseLayers.compile(query)
-
-  defp build_final_noise_layers(query), do: Sql.Compiler.NoiseLayers.compile(query)
 
   defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater), do:
     Query.Result.new(
