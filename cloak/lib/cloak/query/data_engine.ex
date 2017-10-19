@@ -19,12 +19,14 @@ defmodule Cloak.Query.DataEngine do
       row_processor.(Cloak.Query.DbEmulator.select(query))
     else
       Logger.debug("Processing final rows ...")
-      %Query{query | where: offloaded_where(query)}
-      |> Cloak.DataSource.select!(fn(rows) ->
-        rows
-        |> DataDecoder.decode(query)
-        |> row_processor.()
-      end)
+      Cloak.DataSource.select!(
+        %Query{query | where: offloaded_where(query)},
+        fn(rows) ->
+          rows
+          |> DataDecoder.decode(query)
+          |> row_processor.()
+        end
+      )
     end
   end
 
