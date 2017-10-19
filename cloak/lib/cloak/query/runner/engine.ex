@@ -1,6 +1,6 @@
 defmodule Cloak.Query.Runner.Engine do
   @moduledoc "Execution of SQL queries."
-  alias Cloak.{Sql, DataSource, Query, ResultSender, Sql.Condition, Query.Probe}
+  alias Cloak.{Sql, DataSource, Query, ResultSender, Sql.Condition}
   require Logger
 
   @type state_updater :: (ResultSender.query_state -> any)
@@ -53,7 +53,6 @@ defmodule Cloak.Query.Runner.Engine do
     compiled_query
     |> Cloak.Sql.Query.resolve_db_columns()
     |> build_initial_noise_layers()
-    |> Probe.process()
     |> build_final_noise_layers()
     |> Sql.Compiler.LowCountChecks.compile()
 
