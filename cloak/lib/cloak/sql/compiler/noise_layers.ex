@@ -119,16 +119,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end)
 
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count]}, query), do:
-    %NoiseLayer{noise_layer | expressions: [re_min(min, query), re_max(max, query), re_count(count, query)]}
+    %{noise_layer | expressions: [min_of_min(min, query), max_of_max(max, query), sum_of_count(count, query)]}
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count, user_id]}, query), do:
-    %NoiseLayer{noise_layer | expressions: [re_min(min, query), re_max(max, query), re_count(count, query), user_id]}
+    %{noise_layer | expressions: [min_of_min(min, query), max_of_max(max, query), sum_of_count(count, query), user_id]}
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression]}, query), do:
-    if not aggregated_column?(query, expression),
-      do: %NoiseLayer{noise_layer | expressions: [min(expression), max(expression), count(expression)]},
+    if not needs_aggregation?(query, expression),
+      do: %{noise_layer | expressions: [min(expression), max(expression), count(expression)]},
       else: noise_layer
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [expression, user_id]}, query), do:
-    if not aggregated_column?(query, expression),
-      do: %NoiseLayer{noise_layer | expressions: [min(expression), max(expression), count(expression), user_id]},
+    if not needs_aggregation?(query, expression),
+      do: %{noise_layer | expressions: [min(expression), max(expression), count(expression), user_id]},
       else: noise_layer
 
   defp min(expression), do:
@@ -138,18 +138,18 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp count(expression), do:
     Expression.function("count", [expression], :integer, _aggregate = true) |> set_unique_alias()
 
-  defp re_min(min, query), do:
+  defp min_of_min(min, query), do:
     Expression.function("min", [Helpers.reference_aliased(min, query)], min.type, _aggregate = true)
     |> set_unique_alias()
-  defp re_max(max, query), do:
+  defp max_of_max(max, query), do:
     Expression.function("max", [Helpers.reference_aliased(max, query)], max.type, _aggregate = true)
     |> set_unique_alias()
-  defp re_count(count, query), do:
+  defp sum_of_count(count, query), do:
     Expression.function("sum", [Helpers.reference_aliased(count, query)], :integer, _aggregate = true)
     |> set_unique_alias()
 
-  defp aggregated_column?(_query, %Expression{constant?: true}), do: true
-  defp aggregated_column?(query, expression), do: Helpers.aggregated_column?(query, expression)
+  defp needs_aggregation?(_query, %Expression{constant?: true}), do: true
+  defp needs_aggregation?(query, expression), do: Helpers.aggregated_column?(query, expression)
 
 
   # -------------------------------------------------------------------
@@ -171,7 +171,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp select_noise_layers(query, top_level_uid), do:
     Lens.key(:columns)
     |> Lens.all()
-    |> Lens.satisfy(& not aggregated_column?(query, &1))
+    |> Lens.satisfy(& not needs_aggregation?(query, &1))
     |> raw_columns(query)
     |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
 
