@@ -115,7 +115,7 @@ defmodule Cloak.Sql.Query.Lenses do
   @doc "Lens focusing on all sources in a query where conditions can be found."
   deflens filter_clauses(), do:
     Lens.multiple([
-      Lens.keys([:where, :emulated_where, :having]),
+      Lens.keys([:where, :having]),
       join_conditions()
     ])
 
@@ -123,8 +123,8 @@ defmodule Cloak.Sql.Query.Lenses do
   deflens db_filter_clauses(), do:
     Lens.multiple([
       Lens.match(fn
-        %Query{subquery?: true} -> Lens.keys([:where, :emulated_where, :having])
-        %Query{subquery?: false} -> Lens.keys([:where, :emulated_where])
+        %Query{subquery?: true} -> Lens.keys([:where, :having])
+        %Query{subquery?: false} -> Lens.key(:where)
         _ -> Lens.empty()
       end),
       join_conditions()

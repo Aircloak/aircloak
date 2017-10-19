@@ -10,8 +10,8 @@ defmodule Cloak.Query.DbEmulator do
 
   alias Cloak.DataSource
   alias Cloak.DataSource.Table
-  alias Cloak.Sql.{Query, Condition, Expression, Function}
-  alias Cloak.Query.{Rows, DataDecoder, DbEmulator.Selector}
+  alias Cloak.Sql.{Query, Expression, Function}
+  alias Cloak.Query.{DataDecoder, DbEmulator.Selector, DataEngine}
 
 
   # -------------------------------------------------------------------
@@ -33,12 +33,11 @@ defmodule Cloak.Query.DbEmulator do
   # -------------------------------------------------------------------
 
   defp select_rows({:subquery, %{ast: %Query{emulated?: false} = query}}) do
-    query
+    %Query{query | where: DataEngine.offloaded_where(query)}
     |> Query.debug_log("Loading sub-query through data source")
     |> DataSource.select!(fn(rows) ->
       rows
       |> DataDecoder.decode(query)
-      |> Rows.filter(Condition.to_function(query.emulated_where))
       |> Enum.to_list()
     end)
   end
@@ -54,7 +53,7 @@ defmodule Cloak.Query.DbEmulator do
     |> Enum.to_list()
   end
   defp select_rows({:subquery, %{ast: %Query{emulated?: true} = query}}) do
-    %Query{query | subquery?: false}
+    %Query{query | subquery?: false, where: DataEngine.offloaded_where(query)}
     |> Query.debug_log("Emulating leaf sub-query")
     |> DataSource.select!(fn(rows) ->
       rows

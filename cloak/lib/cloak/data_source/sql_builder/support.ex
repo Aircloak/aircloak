@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.SqlBuilder.Support do
   @moduledoc "Module for detecting when a query is supported by the SQL builder module."
 
-  alias Cloak.Sql.{Query, Expression}
+  alias Cloak.Sql.Expression
 
 
   # -------------------------------------------------------------------

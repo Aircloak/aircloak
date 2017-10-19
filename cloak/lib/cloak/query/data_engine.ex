@@ -19,7 +19,14 @@ defmodule Cloak.Query.DataEngine do
       row_processor.(Cloak.Query.DbEmulator.select(query))
     else
       Logger.debug("Processing final rows ...")
-      Cloak.DataSource.select!(query, fn(rows) -> row_processor.(DataDecoder.decode(rows, query)) end)
+      Cloak.DataSource.select!(
+        %Query{query | where: offloaded_where(query)},
+        fn(rows) ->
+          rows
+          |> DataDecoder.decode(query)
+          |> row_processor.()
+        end
+      )
     end
   end
 
@@ -31,22 +38,15 @@ defmodule Cloak.Query.DataEngine do
     (query.subquery? and has_emulated_expressions?(query)) or
     has_emulated_join_conditions?(query)
 
-  @doc "Partitions where clauses to the ones which need to be emulated and the ones which don't."
-  @spec partitioned_where_clauses(Query.t) :: {Query.where_clause, Query.where_clause}
-  def partitioned_where_clauses(query) do
-    Condition.partition(query.where,
-      fn(condition) ->
-        emulated_expression_condition?(condition, query.data_source) or
-        (
-          query.emulated? and
-          (
-            multiple_tables_condition?(condition) or
-            not is_binary(query.from)
-          )
-        )
-      end
-    )
-  end
+  @doc "Returns the where clauses that can be applied by the data source."
+  @spec offloaded_where(Query.t) :: Query.where_clause
+  def offloaded_where(query), do:
+    Condition.reject(query.where, &emulated_condition?(&1, query))
+
+  @doc "Returns the where clauses that must be applied by inside the cloak."
+  @spec emulated_where(Query.t) :: Query.where_clause
+  def emulated_where(query), do:
+    Condition.reject(query.where, &not emulated_condition?(&1, query))
 
   @doc "Resolves the columns which must be fetched from the database."
   @spec resolve_db_columns(Query.t) :: Query.t
@@ -59,6 +59,17 @@ defmodule Cloak.Query.DataEngine do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp emulated_condition?(condition, query) do
+    emulated_expression_condition?(condition, query.data_source) or
+    (
+      query.emulated? and
+      (
+        multiple_tables_condition?(condition) or
+        not is_binary(query.from)
+      )
+    )
+  end
 
   defp emulated_expression?(expression, data_source), do:
     DataDecoder.needs_decoding?(expression) or
@@ -122,7 +133,7 @@ defmodule Cloak.Query.DataEngine do
     [
       query.columns,
       query.group_by,
-      query.emulated_where,
+      emulated_where(query),
       query.having,
       Query.order_by_expressions(query),
     ]
