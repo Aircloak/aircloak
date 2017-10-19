@@ -10,7 +10,7 @@ defmodule Cloak.DataSource.SerializingUpdater do
   require Logger
   require Aircloak.{DeployConfig, File}
 
-  @file_system_monitor_name Cloak.DataSource.SerializingUpdater.FileSystemMonitor
+  @file_system_monitor_name __MODULE__.FileSystemMonitor
 
 
   # -------------------------------------------------------------------
@@ -93,6 +93,6 @@ defmodule Cloak.DataSource.SerializingUpdater do
   @doc false
   def child_spec(_options \\ []) do
     import Aircloak.ChildSpec
-    supervisor(child_specs(), strategy: :one_for_all, name: Cloak.DataSource.SerializingUpdater.Supervisor)
+    supervisor(child_specs(), strategy: :one_for_all, name: __MODULE__.Supervisor)
   end
 end
