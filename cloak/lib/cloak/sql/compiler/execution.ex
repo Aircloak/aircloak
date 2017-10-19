@@ -11,7 +11,6 @@ defmodule Cloak.Sql.Compiler.Execution do
   alias Cloak.Sql.{CompilationError, Condition, Expression, FixAlign, Function, Query, Range}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
-  alias Cloak.Query.DataEngine
 
 
   # -------------------------------------------------------------------
@@ -31,7 +30,6 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> align_join_ranges()
     |> compile_sample_rate()
     |> Query.set_emulation_flag()
-    |> partition_where_clauses()
     |> reject_null_user_ids()
     |> compute_aggregators()
 
@@ -177,11 +175,6 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp order_by_columns(order_by_clauses), do:
     Enum.map(order_by_clauses, fn({column, _direction}) -> column end)
-
-  defp partition_where_clauses(query) do
-    {emulated_where, where} = DataEngine.partitioned_where_clauses(query)
-    %Query{query | where: where, emulated_where: emulated_where}
-  end
 
   defp align_join_ranges(query), do:
     query

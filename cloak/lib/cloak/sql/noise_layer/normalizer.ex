@@ -1,4 +1,4 @@
-defmodule Cloak.Query.Anonymizer.Normalizer do
+defmodule Cloak.Sql.NoiseLayer.Normalizer do
   @moduledoc """
   Normalizes values for producing consistent seeds.
   """
@@ -21,14 +21,12 @@ defmodule Cloak.Query.Anonymizer.Normalizer do
   """
   @spec normalize_number(number, non_neg_integer) :: term
   def normalize_number(number, significant_digits), do:
-    {normalize_float(abs(to_float(number)), significant_digits, 0), number < 0}
+    {normalize_float(abs(:erlang.float(number)), significant_digits, 0), number < 0}
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp to_float(number), do: number / 1
 
   defp normalize_float(0.0, _n, exponent), do:
     {0.0, exponent}
