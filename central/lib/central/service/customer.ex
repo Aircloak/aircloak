@@ -121,7 +121,7 @@ defmodule Central.Service.Customer do
   """
   @spec from_token(String.t) :: {:ok, Customer.t} | {:error, :invalid_token}
   def from_token(token) do
-    case Phoenix.Token.verify(secret_key_base(), customer_token_salt(), token) do
+    case Phoenix.Token.verify(secret_key_base(), customer_token_salt(), token, max_age: almost_infinity()) do
       {:ok, customer_id} ->
         case get(customer_id) do
           {:error, :not_found} -> {:error, :invalid_token}
@@ -275,6 +275,11 @@ defmodule Central.Service.Customer do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp almost_infinity(), do:
+    # Phoenix warns if we're not validating the token age, so we need to pass some integer value.
+    # Therefore, we're simulating infinity by using a ridiculously large value (10,000 years).
+    60 * 60 * 24 * 365 * 10000
 
   defp ensure_air_record_exists(customer, air_name, version), do:
     Repo.insert!(
