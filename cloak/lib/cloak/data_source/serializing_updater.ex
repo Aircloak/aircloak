@@ -14,6 +14,16 @@ defmodule Cloak.DataSource.SerializingUpdater do
 
 
   # -------------------------------------------------------------------
+  # API
+  # -------------------------------------------------------------------
+
+  @doc "Asynchronously runs a check to figure out if we can still connect to the data sources"
+  @spec run_liveness_check() :: :ok
+  def run_liveness_check(), do:
+    GenServer.cast(__MODULE__, :run_liveness_check)
+
+
+  # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
 
@@ -23,16 +33,16 @@ defmodule Cloak.DataSource.SerializingUpdater do
       Logger.info("Monitoring for data source definition changes")
       FileSystem.subscribe(@file_system_monitor_name)
     end
-    activate_monitor_timer()
     {:ok, nil}
   end
 
   @impl GenServer
-  def handle_info(:monitor_availability, state) do
+  def handle_cast(:run_liveness_check, state) do
     DataSource.perform_data_source_availability_checks()
-    activate_monitor_timer()
     {:noreply, state}
   end
+
+  @impl GenServer
   def handle_info({:file_event, _worker_pid, {file_path, events}}, state) do
     if :removed in events do
       Logger.debug("Data source removal detected. Reloading all data source configurations.")
@@ -52,11 +62,6 @@ defmodule Cloak.DataSource.SerializingUpdater do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp activate_monitor_timer() do
-    interval = Application.get_env(:cloak, :data_source_monitor_interval)
-    if interval != nil, do: Process.send_after(self(), :monitor_availability, interval)
-  end
 
   defp child_specs() do
     import Aircloak.ChildSpec
