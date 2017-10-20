@@ -272,6 +272,17 @@ defmodule Cloak.Sql.TypeChecker.Test do
     end
   end
 
+  describe "<>" do
+    test "allows clear <> lhs" do
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> 10")
+    end
+
+    test "forbids unclear <> lhs" do
+      assert {:error, "The <> operator must be applied to a database column and a constant."} =
+        compile("SELECT COUNT(*) FROM table WHERE numeric + 1 <> 10")
+    end
+  end
+
   defp dangerously_discontinuous?(query), do:
     type_first_column(query).dangerously_discontinuous?
 

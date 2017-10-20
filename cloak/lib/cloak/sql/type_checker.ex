@@ -46,6 +46,7 @@ defmodule Cloak.Sql.TypeChecker do
     verify_function_usage_for_selected_columns(query)
     verify_function_usage_for_condition_clauses(query)
     verify_lhs_of_in_is_clear(query)
+    verify_lhs_of_not_equals_is_clear(query)
     query
   end
 
@@ -160,6 +161,17 @@ defmodule Cloak.Sql.TypeChecker do
     |> Enum.each(fn({:in, lhs, _}) ->
       unless establish_type(lhs, query).raw_column? do
         raise CompilationError, message: "The left-hand side of an IN operator must be a database column."
+      end
+    end)
+
+  defp verify_lhs_of_not_equals_is_clear(query), do:
+    Query.Lenses.db_filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.satisfy(&Condition.not_equals?/1)
+    |> Lens.to_list(query)
+    |> Enum.each(fn({:comparison, lhs, :<>, _}) ->
+      unless establish_type(lhs, query).raw_column? do
+        raise CompilationError, message: "The <> operator must be applied to a database column and a constant."
       end
     end)
 
