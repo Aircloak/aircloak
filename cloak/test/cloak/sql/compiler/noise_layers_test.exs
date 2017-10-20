@@ -216,7 +216,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> 10", data_source())
 
       assert [
-        %{base: {"table", "numeric", :<>}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", :<>}, expressions: [%Expression{value: 10}]},
+        %{base: {"table", "numeric", :<>}, expressions: [%Expression{value: 10}, %Expression{name: "uid"}]},
       ] = result.noise_layers
     end
 
@@ -225,15 +226,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
         %{base: {"table", "numeric", :<>}, expressions: [%Expression{name: "numeric"}]},
-      ] = result.noise_layers
-    end
-
-    test "noise layers for complex conditions" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> numeric2", data_source())
-
-      assert [
-        %{base: {"table", "numeric", :<>}, expressions: [%Expression{name: "numeric"}]},
-        %{base: {"table", "numeric2", :<>}, expressions: [%Expression{name: "numeric2"}]},
       ] = result.noise_layers
     end
   end
