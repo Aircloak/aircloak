@@ -4,30 +4,41 @@ defmodule Cloak.Query.DataEngine do
   require Logger
 
   alias Cloak.Sql.{Compiler.Helpers, Condition, Expression, Query, Query.Lenses}
-  alias Cloak.Query.DataDecoder
+  alias Cloak.Query.{DataDecoder, DbEmulator}
+  alias Cloak.DataSource
 
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Retrieves rows from the database, and applies the row processor on them."
+  @doc """
+    Retrieves rows from the data source, emulating sub-queries if necessary, and applies the rows processor over them.
+  """
   @spec select(Query.t, ((Enumerable.t) -> result)) :: result when result: var
-  def select(query, row_processor) do
+  def select(query, rows_processor) do
     if query.emulated? do
       Logger.debug("Emulating query ...")
-      row_processor.(Cloak.Query.DbEmulator.select(query))
+      query
+      |> DbEmulator.select()
+      |> rows_processor.()
     else
       Logger.debug("Processing final rows ...")
-      Cloak.DataSource.select!(
-        %Query{query | where: offloaded_where(query)},
-        fn(rows) ->
-          rows
-          |> DataDecoder.decode(query)
-          |> row_processor.()
-        end
-      )
+      offload_select!(query, rows_processor)
     end
+  end
+
+  @doc "Retrieves rows directly from the data source and applies the rows processor over them."
+  @spec offload_select!(Query.t, ((Enumerable.t) -> result)) :: result when result: var
+  def offload_select!(query, rows_processor) do
+    DataSource.select!(
+      %Query{query | where: offloaded_where(query)},
+      fn(rows) ->
+        rows
+        |> Stream.concat()
+        |> DataDecoder.decode(query)
+        |> rows_processor.()
+      end)
   end
 
   @doc "Determines whether the query needs to be emulated or not."

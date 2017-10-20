@@ -34,7 +34,7 @@ defmodule Cloak.DataSourceTest do
       selected_tables: [%{db_name: "cloak_test.test", name: "test"}]
     }
     for data_source <- DataSource.all() do
-      rows = DataSource.select!(%{query | data_source: data_source}, &Enum.to_list/1)
+      rows = DataSource.select!(%{query | data_source: data_source}, &Enum.concat/1)
       assert [["user1", 10], ["user1", 20], ["user1", 30]] == rows
     end
   end

@@ -41,7 +41,7 @@ defmodule Cloak.DataSource.PostgreSQL do
     query = "SELECT column_name, udt_name FROM information_schema.columns " <>
       "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}'"
     row_mapper = fn [name, type_name] -> Table.column(name, parse_type(type_name)) end
-    case run_query(connection, query, row_mapper, &Enum.to_list/1) do
+    case run_query(connection, query, row_mapper, &Enum.concat/1) do
       {:ok, []} -> DataSource.raise_error("Table `#{table.db_name}` does not exist")
       {:ok, columns} -> [%{table | columns: columns}]
       {:error, reason} -> DataSource.raise_error("`#{reason}`")
@@ -66,7 +66,7 @@ defmodule Cloak.DataSource.PostgreSQL do
       with {:ok, query} <- Postgrex.prepare(connection, "data select", statement, []) do
         try do
           Postgrex.stream(connection, query, [], [decode_mapper: decode_mapper, max_rows: Driver.batch_size()])
-          |> Stream.flat_map(fn (%Postgrex.Result{rows: rows}) -> rows end)
+          |> Stream.map(fn (%Postgrex.Result{rows: rows}) -> rows end)
           |> result_processor.()
         after
           Postgrex.close(connection, query)

@@ -54,13 +54,17 @@ defmodule Cloak.DataSource.ODBC do
       column |> DataDecoder.encoded_type() |> type_to_field_mapper(sql_query.data_source)
     case :odbc.select_count(connection, statement, Driver.timeout()) do
       {:ok, _count} ->
-        data_stream = Stream.resource(fn () -> connection end, fn (conn) ->
-          case :odbc.select(conn, :next, Driver.batch_size(), Driver.timeout()) do
-            {:selected, _columns, []} -> {:halt, conn}
-            {:selected, _columns, rows} -> {Enum.map(rows, &map_fields(&1, field_mappers)), conn}
-            {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
-          end
-        end, fn (_conn) -> :ok end)
+        data_stream = Stream.resource(
+          fn () -> connection end,
+          fn (conn) ->
+            case :odbc.select(conn, :next, Driver.batch_size(), Driver.timeout()) do
+              {:selected, _columns, []} -> {:halt, conn}
+              {:selected, _columns, rows} -> {[Enum.map(rows, &map_fields(&1, field_mappers))], conn}
+              {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
+            end
+          end,
+          fn (_conn) -> :ok end
+        )
         {:ok, result_processor.(data_stream)}
       {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
     end
