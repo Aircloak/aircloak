@@ -8,9 +8,6 @@ defmodule Cloak.DataSource.SerializingUpdater do
   alias Cloak.DataSource
 
   require Logger
-  require Aircloak.{DeployConfig, File}
-
-  @file_system_monitor_name __MODULE__.FileSystemMonitor
 
 
   # -------------------------------------------------------------------
@@ -22,72 +19,39 @@ defmodule Cloak.DataSource.SerializingUpdater do
   def run_liveness_check(), do:
     GenServer.cast(__MODULE__, :run_liveness_check)
 
+  @doc "Processes a change event to a data source definition file"
+  @spec process_update(String.t) :: :ok
+  def process_update(path), do:
+    GenServer.cast(__MODULE__, {:process_update, path})
+
+  @doc "Processes a removal event to a data source definition file"
+  @spec process_removal(String.t) :: :ok
+  def process_removal(path), do:
+    GenServer.cast(__MODULE__, {:process_removal, path})
+
 
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(options) do
-    if Keyword.get(options, :subscribe_to_monitor) do
-      Logger.info("Monitoring for data source definition changes")
-      FileSystem.subscribe(@file_system_monitor_name)
-    end
+  def init(_), do:
     {:ok, nil}
-  end
 
   @impl GenServer
   def handle_cast(:run_liveness_check, state) do
     DataSource.perform_data_source_availability_checks()
     {:noreply, state}
   end
-
-  @impl GenServer
-  def handle_info({:file_event, _worker_pid, {file_path, events}}, state) do
-    if :removed in events do
-      Logger.debug("Data source removal detected. Reloading all data source configurations.")
-      DataSource.reinitialize_all_data_sources()
-    else
-      Logger.debug("Reloading data source configuration at #{file_path}.")
-      DataSource.initialize_data_source_from_path(file_path)
-    end
+  def handle_cast({:process_update, file_path}, state) do
+    Logger.debug("Reloading data source configuration at #{file_path}.")
+    DataSource.initialize_data_source_from_path(file_path)
     {:noreply, state}
   end
-  def handle_info({:file_event, _worker_pid, :stop}, state) do
-    Logger.warn("Data source definition change detector terminated unexpectedly.")
+  def handle_cast({:process_removal, _file_path}, state) do
+    Logger.debug("Data source removal detected. Reloading all data source configurations.")
+    DataSource.reinitialize_all_data_sources()
     {:noreply, state}
-  end
-
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp child_specs() do
-    import Aircloak.ChildSpec
-    if configured_with_individual_configurations?() do
-      [
-        %{
-          id: FileSystem,
-          start: {FileSystem, :start_link, [[dirs: [config_path()], name: @file_system_monitor_name]]},
-        },
-        gen_server(__MODULE__, [subscribe_to_monitor: true], name: __MODULE__),
-      ]
-    else
-      [
-        gen_server(__MODULE__, [subscribe_to_monitor: false], name: __MODULE__),
-      ]
-    end
-  end
-
-  defp configured_with_individual_configurations?(), do:
-    not is_nil(config_path())
-
-  defp config_path() do
-    case Aircloak.DeployConfig.fetch!("data_sources") do
-      path when is_binary(path) -> Path.join([Aircloak.File.config_dir_path(), path])
-      _other -> nil
-    end
   end
 
 
@@ -98,6 +62,10 @@ defmodule Cloak.DataSource.SerializingUpdater do
   @doc false
   def child_spec(_options \\ []) do
     import Aircloak.ChildSpec
-    supervisor(child_specs(), strategy: :one_for_all, name: __MODULE__.Supervisor)
+    supervisor([
+        gen_server(__MODULE__, [], name: __MODULE__),
+        Cloak.DataSource.FileSystemMonitor,
+      ], strategy: :one_for_all, name: __MODULE__.Supervisor
+    )
   end
 end
