@@ -273,7 +273,7 @@ defmodule Central.Service.Customer do
   defp almost_infinity(), do:
     # Phoenix warns if we're not validating the token age, so we need to pass some integer value.
     # Therefore, we're simulating infinity by using a ridiculously large value (10,000 years).
-    60 * 60 * 24 * 365 * 10000
+    60 * 60 * 24 * 365 * 10_000
 
   defp ensure_air_record_exists(customer, air_name, version), do:
     Repo.insert!(

@@ -50,7 +50,7 @@ defmodule Air.Token do
   defp normalized_max_age(:infinity), do:
     # Phoenix warns if we're not validating the token age, so we need to pass some integer value.
     # Therefore, we're simulating infinity by using a ridiculously large value (10,000 years).
-    60 * 60 * 24 * 365 * 10000
+    60 * 60 * 24 * 365 * 10_000
 
   defp api_token_salt do
     Application.get_env(:air, Air.Endpoint) |> Keyword.fetch!(:api_token_salt)
