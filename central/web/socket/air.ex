@@ -16,7 +16,7 @@ defmodule Central.Socket.Air do
 
   alias Central.Service.Customer
 
-  transport :websocket, Phoenix.Transports.WebSocket, serializer: Central.Socket.Air.Serializer
+  transport :websocket, Phoenix.Transports.WebSocket, serializer: [{Central.Socket.Air.Serializer, "~> 1.0.0"}]
 
   # List of exposed channels
   channel "main", Central.Socket.Air.MainChannel
