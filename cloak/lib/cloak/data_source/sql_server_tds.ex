@@ -41,7 +41,7 @@ defmodule Cloak.DataSource.SQLServerTds do
     query = "SELECT column_name, data_type FROM information_schema.columns " <>
       "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}' ORDER BY ordinal_position DESC"
     row_mapper = fn ([name, type_name]) -> Table.column(name, parse_type(type_name)) end
-    case run_query(connection, query, row_mapper, &Enum.to_list/1) do
+    case run_query(connection, query, row_mapper, &Enum.concat/1) do
       {:ok, []} -> DataSource.raise_error("Table `#{table.db_name}` does not exist")
       {:ok, columns} -> [%{table | columns: columns}]
       {:error, reason} -> DataSource.raise_error("`#{reason}`")
@@ -66,7 +66,7 @@ defmodule Cloak.DataSource.SQLServerTds do
       with {:ok, query} <- Tds.prepare(connection, statement, []) do
         try do
           with {:ok, %Tds.Result{rows: rows}} <- Tds.execute(connection, query, [], [decode_mapper: decode_mapper]) do
-            {:ok, result_processor.(rows)}
+            {:ok, result_processor.([rows])}
           end
         after
           Tds.close(connection, query)

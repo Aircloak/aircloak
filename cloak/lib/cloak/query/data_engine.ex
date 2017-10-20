@@ -35,6 +35,7 @@ defmodule Cloak.Query.DataEngine do
       %Query{query | where: offloaded_where(query)},
       fn(rows) ->
         rows
+        |> Stream.concat()
         |> DataDecoder.decode(query)
         |> rows_processor.()
       end)
