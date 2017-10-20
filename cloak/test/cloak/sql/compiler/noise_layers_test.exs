@@ -236,30 +236,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         %{base: {"table", "numeric2", :<>}, expressions: [%Expression{name: "numeric2"}]},
       ] = result.noise_layers
     end
-
-    test "noise layers for NOT LIKE" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT LIKE 'bob%'", data_source())
-
-      assert [
-        %{base: {"table", "name", :<>}, expressions: [%Expression{name: "name"}]},
-      ] = result.noise_layers
-    end
-
-    test "noise layers for NOT ILIKE" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT ILIKE 'bob%'", data_source())
-
-      assert [
-        %{base: {"table", "name", :<>}, expressions: [%Expression{name: "name"}]},
-      ] = result.noise_layers
-    end
-
-    test "noise layers when the argument to NOT LIKE is not raw" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE lower(name) NOT LIKE 'bob%'", data_source())
-
-      assert [
-        %{base: {"table", "name", :<>}, expressions: [%Expression{name: "name"}]},
-      ] = result.noise_layers
-    end
   end
 
   describe "noise layers for IS NULL" do
@@ -279,23 +255,39 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   end
 
   describe "noise layers for LIKE" do
-    @tag :pending
     test "a noise layers in LIKE" do
       result = compile!("SELECT COUNT(*) FROM table WHERE name || name2 LIKE 'b%_o_%b'", data_source())
+      len = String.length("b%_o_%b") - String.length("%%")
 
       assert [
         %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:like, {:%, ^len, 1}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", {:like, {:_, ^len, 1}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", {:like, {:%, ^len, 3}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", {:like, {:_, ^len, 3}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
         %{base: {"table", "name2", nil}, expressions: [%Expression{name: "name2"}]},
+        %{base: {"table", "name2", {:like, {:%, ^len, 1}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
+        %{base: {"table", "name2", {:like, {:_, ^len, 1}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
+        %{base: {"table", "name2", {:like, {:%, ^len, 3}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
+        %{base: {"table", "name2", {:like, {:_, ^len, 3}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
       ] = result.noise_layers
     end
 
-    @tag :pending
     test "noise layers in ILIKE" do
       result = compile!("SELECT COUNT(*) FROM table WHERE name || name2 ILIKE 'b%_o_%b'", data_source())
+      len = String.length("b%_o_%b") - String.length("%%")
 
       assert [
         %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:ilike, {:%, ^len, 1}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", {:ilike, {:_, ^len, 1}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", {:ilike, {:%, ^len, 3}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", {:ilike, {:_, ^len, 3}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
         %{base: {"table", "name2", nil}, expressions: [%Expression{name: "name2"}]},
+        %{base: {"table", "name2", {:ilike, {:%, ^len, 1}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
+        %{base: {"table", "name2", {:ilike, {:_, ^len, 1}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
+        %{base: {"table", "name2", {:ilike, {:%, ^len, 3}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
+        %{base: {"table", "name2", {:ilike, {:_, ^len, 3}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
       ] = result.noise_layers
     end
 
@@ -321,6 +313,42 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         %{base: ^base1, expressions: [%{value: "bob"}]},
         %{base: ^base2,  expressions: [%{value: "bob"}, %{name: "uid"}]},
       ] = compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'", data_source()).noise_layers
+    end
+
+    test "noise layers for NOT LIKE" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT LIKE '_bob%'", data_source())
+      len = String.length("_bob%") - String.length("%")
+
+      assert [
+        %{base: {"table", "name", {:not, :like, "_bob"}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:not, :like, {:_, ^len, 0}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", {:not, :like, {:%, ^len, 4}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+      ] = result.noise_layers
+    end
+
+    test "noise layers for NOT ILIKE" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT ILIKE '_bob%'", data_source())
+      len = String.length("_bob%") - String.length("%")
+
+      assert [
+        %{base: {"table", "name", {:not, :ilike, "_bob"}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:not, :ilike, {:_, ^len, 0}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", {:not, :ilike, {:%, ^len, 4}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+      ] = result.noise_layers
+    end
+
+    test "noise layers when NOT LIKE has no wildcards" do
+      result1 = compile!("SELECT COUNT(*) FROM table WHERE name NOT LIKE 'bob'", data_source())
+      result2 = compile!("SELECT COUNT(*) FROM table WHERE name <> 'bob'", data_source())
+
+      assert Enum.map(result1.noise_layers, & &1.base) == Enum.map(result2.noise_layers, & &1.base)
+    end
+
+    test "noise layers when NOT ILIKE has no wildcards" do
+      result1 = compile!("SELECT COUNT(*) FROM table WHERE name NOT ILIKE 'bob'", data_source())
+      result2 = compile!("SELECT COUNT(*) FROM table WHERE name <> 'bob'", data_source())
+
+      assert Enum.map(result1.noise_layers, & &1.base) == Enum.map(result2.noise_layers, & &1.base)
     end
   end
 

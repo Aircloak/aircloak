@@ -53,7 +53,6 @@ defmodule Cloak.Query.Runner.Engine do
     compiled_query
     |> Cloak.Sql.Query.resolve_db_columns()
     |> Sql.Compiler.NoiseLayers.compile()
-    |> Sql.Compiler.LowCountChecks.compile()
 
   defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater), do:
     Query.Result.new(
