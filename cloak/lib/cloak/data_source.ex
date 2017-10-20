@@ -240,23 +240,27 @@ defmodule Cloak.DataSource do
   end
 
   @impl GenServer
-  def handle_cast({:update_data_source, data_source}, data_sources), do:
-    handle_cast({:replace_data_sources, replace_data_source(data_sources, data_source)}, data_sources)
+  def handle_cast({:update_data_source, data_source}, old_data_sources) do
+    updated_data_sources = replace_data_source(old_data_sources, data_source)
+    update_air_on_changes(updated_data_sources, old_data_sources)
+    {:noreply, updated_data_sources}
+  end
   def handle_cast({:replace_data_sources, new_data_sources}, old_data_sources) do
-    if new_data_sources != old_data_sources do
-      Logger.info("Data sources changed, sending new configurations to air ...")
-      update_air(new_data_sources)
-      {:noreply, new_data_sources}
-    else
-      Logger.info("No data source changed detected.")
-      {:noreply, old_data_sources}
-    end
+    update_air_on_changes(new_data_sources, old_data_sources)
+    {:noreply, new_data_sources}
   end
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp update_air_on_changes(new_data_sources, old_data_sources) do
+    if new_data_sources != old_data_sources do
+      Logger.info("Data sources changed, sending new configurations to air ...")
+      update_air(new_data_sources)
+    end
+  end
 
   defp replace_data_source(data_sources, data_source), do:
     Enum.uniq_by([data_source] ++ data_sources, & &1.name)
