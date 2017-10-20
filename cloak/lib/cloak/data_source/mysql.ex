@@ -38,8 +38,10 @@ defmodule Cloak.DataSource.MySQL do
   def load_tables(connection, table) do
     query = "SHOW COLUMNS FROM #{table.db_name}"
     column_info_mapper = fn [name, type | _others] -> Table.column(name, parse_type(type)) end
-    {:ok, columns} = run_query(connection, query, column_info_mapper, &Enum.to_list/1)
-    [%{table | columns: columns}]
+    case run_query(connection, query, column_info_mapper, &Enum.concat/1) do
+      {:ok, columns} -> [%{table | columns: columns}]
+      {:error, reason} -> DataSource.raise_error("`#{reason}`")
+    end
   end
 
   @impl Driver
@@ -59,7 +61,7 @@ defmodule Cloak.DataSource.MySQL do
     try do
       Mariaex.transaction(pool, fn(connection) ->
         Mariaex.stream(connection, statement, [], [decode_mapper: decode_mapper, max_rows: Driver.batch_size])
-        |> Stream.flat_map(fn (%Mariaex.Result{rows: rows}) -> rows end)
+        |> Stream.map(fn (%Mariaex.Result{rows: rows}) -> rows end)
         |> result_processor.()
       end, [timeout: Driver.timeout()])
     rescue

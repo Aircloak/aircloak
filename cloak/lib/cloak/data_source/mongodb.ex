@@ -136,6 +136,7 @@ defmodule Cloak.DataSource.MongoDB do
       connection
       |> Mongo.aggregate(collection, pipeline, options)
       |> Stream.map(&map_fields(&1, mappers))
+      |> Stream.chunk_every(Driver.batch_size())
       |> result_processor.()
     {:ok, result}
   end
