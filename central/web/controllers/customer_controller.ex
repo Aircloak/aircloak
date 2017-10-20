@@ -83,7 +83,8 @@ defmodule Central.CustomerController do
         conn
         |> put_layout(false)
         |> put_status(:not_found)
-        |> render(Central.ErrorView, "404.html")
+        |> put_view(Central.ErrorView)
+        |> render("404.html")
         |> halt()
       {:ok, customer} -> assign(conn, :customer, customer)
     end
