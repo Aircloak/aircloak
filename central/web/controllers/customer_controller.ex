@@ -19,10 +19,6 @@ defmodule Central.CustomerController do
     render(conn, "new.html", changeset: Schemas.Customer.empty_changeset())
   end
 
-  # The dialyzer suppression is due to a bug in Phoenix whereby :milli_seconds
-  # is used instead of :milliseconds. This has been fixed in more recent
-  # versions of Phoenix: https://github.com/phoenixframework/phoenix/pull/1986
-  @dialyzer :no_return
   def token(conn, _params) do
     customer = conn.assigns.customer
     {:ok, token} = Service.Customer.generate_token(customer)

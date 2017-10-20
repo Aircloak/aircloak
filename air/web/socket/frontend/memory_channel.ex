@@ -23,7 +23,6 @@ defmodule Air.Socket.Frontend.MemoryChannel do
   # -------------------------------------------------------------------
 
   @doc false
-  @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
   def join("memory_readings", _, socket) do
     user = socket.assigns.user
     if Air.Schemas.User.admin?(user) do

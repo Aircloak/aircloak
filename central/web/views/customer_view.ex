@@ -1,9 +1,6 @@
 defmodule Central.CustomerView do
   @moduledoc false
   use Central.Web, :view
-  # bug in the current Phoenix
-  @dialyzer :no_match
-
   alias Central.Schemas.Air
 
   defp air_and_cloak_rows(customer) do

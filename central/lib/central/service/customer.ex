@@ -106,10 +106,6 @@ defmodule Central.Service.Customer do
   be used to identify a customer through APIs.
   """
   @spec generate_token(Customer.t) :: {:ok, String.t}
-  # The dialyzer suppression is due to a bug in Phoenix whereby :milli_seconds
-  # is used instead of :milliseconds. This has been fixed in more recent
-  # versions of Phoenix: https://github.com/phoenixframework/phoenix/pull/1986
-  @dialyzer :no_return
   def generate_token(customer) do
     {:ok, Phoenix.Token.sign(secret_key_base(), customer_token_salt(), customer.id)}
   end
@@ -186,8 +182,6 @@ defmodule Central.Service.Customer do
     :ok
   end
 
-  # Error in current Ecto: https://github.com/elixir-ecto/ecto/issues/1882
-  @dialyzer {:no_opaque, reset_air_statuses: 0}
   @doc "Resets statuses of all known airs and associated cloaks to offline."
   @spec reset_air_statuses() :: :ok
   def reset_air_statuses() do
