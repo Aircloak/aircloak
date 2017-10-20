@@ -250,7 +250,6 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
           (select user_id, count(distinct left(value, 1)) as v from #{@prefix}emulated group by user_id) as t
         """, %{rows: [%{occurrences: 1, row: [3.0]}]}
 
-    @tag :pending
     test "select distinct", do:
       assert_query "select v from (select distinct user_id, length(value) as v from #{@prefix}emulated) as t",
         %{rows: [

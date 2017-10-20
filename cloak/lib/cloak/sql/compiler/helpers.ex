@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.Helpers do
   @moduledoc "Common helper functions used in compilation phases."
 
-  alias Cloak.Sql.{Expression, Query}
+  alias Cloak.Sql.{Expression, Query, Parser}
 
   @type partial_query :: %Query{}
 
@@ -98,7 +98,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
   @doc """
   Updates the query and all its subqueries with the given function. Starts from the most nested subqueries going up.
   """
-  @spec apply_bottom_up(Query.t, (Query.t -> Query.t)) :: Query.t
+  @spec apply_bottom_up(q, (q -> q)) :: q when q: Query.t | Parser.parsed_query
   def apply_bottom_up(query, function), do:
     query
     |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_bottom_up(&1, function))

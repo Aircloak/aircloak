@@ -288,13 +288,6 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     |> Query.Lenses.operands()
     |> Lens.map(conditions, &extract_column_top(&1, aggregators, []))
 
-  defp aggregate_and_project(%Query{db_columns: columns, distinct?: true} = query, top_level?) do
-    properties = project_properties(columns)
-    column_tops = Enum.map(columns, &extract_column_top(&1, [], columns))
-    [%{'$group': %{"_id" => properties}}] ++
-    project_columns(column_tops, top_level?) ++
-    order_and_range(query)
-  end
   defp aggregate_and_project(%Query{db_columns: columns, group_by: groups, having: having} = query, top_level?) do
     having_columns =
       Query.Lenses.conditions()
