@@ -320,7 +320,7 @@ These layers are built according to the following procedure (assuming a clause
    1. The column name.
    1. A symbol indicating clause type, e.g. `:ilike`
    1. `N`.
-   1. The position of the `_` in `S3`.
+   1. The position of the `_` in `S3` (`M`).
    1. The symbol `_`.
    1. The uid-hash.
 1. For each `%` symbol in `S2`, add a noise layer seeded by a hash of the
@@ -328,9 +328,16 @@ These layers are built according to the following procedure (assuming a clause
    1. The column name.
    1. A symbol indicating clause type, e.g. `:ilike`
    1. `N`.
-   1. The position of the character in `S3` that precedes the `%`.
+   1. The position of the character in `S3` that precedes the `%` (`M`).
    1. The symbol `%`.
    1. The uid-hash.
+
+The purpose of this is to capture the meaning of the non-literal part of the
+pattern, which is summarized by the `{:_, N, M}`/`{:%, N, M}` tuples. At the
+same time we don't want to give the analyst an opportunity to generate new noise
+values by adding spurious `%` signs to the pattern, as these can match 0
+characters. That is the reason for normalizing the pattern at the beginning as
+well as not counting the `%` when calculating the `M` indices.
 
 ### Floating data
 
