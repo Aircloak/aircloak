@@ -50,7 +50,7 @@ defmodule Cloak.Mixfile do
 
       # Test deps
 
-      {:phoenix, "~> 1.1.6", only: :test},
+      {:phoenix, "~> 1.3.0", only: :test},
       {:cowboy, "~> 1.0", only: :test},
       {:bypass, "~> 0.5.1", only: :test},
       {:excheck, "~> 0.5.3", only: :test},
