@@ -52,7 +52,7 @@ defmodule Air.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:ecto, "~> 2.1", override: true},
+      {:ecto, "~> 2.2.0", override: true},
       # Current master has a fix to a bug introduced in 1.2.2 whereby you cannot
       # concurrently compile markdown because of a global GenServer fucking things up.
       # The fix is in this commit:
