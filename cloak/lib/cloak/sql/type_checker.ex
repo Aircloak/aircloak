@@ -45,6 +45,7 @@ defmodule Cloak.Sql.TypeChecker do
     verify_usage_of_datetime_extraction_clauses(query)
     verify_function_usage_for_selected_columns(query)
     verify_function_usage_for_condition_clauses(query)
+    verify_lhs_of_in_is_clear(query)
     query
   end
 
@@ -151,6 +152,17 @@ defmodule Cloak.Sql.TypeChecker do
       end
     end)
 
+  defp verify_lhs_of_in_is_clear(query), do:
+    Query.Lenses.db_filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.satisfy(&Condition.in?/1)
+    |> Lens.to_list(query)
+    |> Enum.each(fn({:in, lhs, _}) ->
+      unless establish_type(lhs, query).raw_column? do
+        raise CompilationError, message: "The left-hand side of an IN operator must be a database column."
+      end
+    end)
+
   def establish_type(column, query), do: construct_type(column, query)
 
 
@@ -203,6 +215,7 @@ defmodule Cloak.Sql.TypeChecker do
 
   defp column(expression), do:
     %Type{
+      raw_column?: true,
       constant?: false,
       narrative_breadcrumbs: [{expression, []}],
       datetime_involved?: datetime_type?(expression),

@@ -251,6 +251,27 @@ defmodule Cloak.Sql.TypeChecker.Test do
     end
   end
 
+  describe "IN" do
+    test "allows clear IN lhs" do
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric IN (1, 2, 3)")
+    end
+
+    test "forbids unclear IN lhs" do
+      assert {:error, "The left-hand side of an IN operator must be a database column."} =
+        compile("SELECT COUNT(*) FROM table WHERE numeric + 1 IN (1, 2, 3)")
+    end
+
+    test "allows clear IN lhs from subqueries" do
+      assert {:ok, _, _} =
+        compile("SELECT COUNT(*) FROM (SELECT numeric AS number FROM table) x WHERE number IN (1, 2, 3)")
+    end
+
+    test "forbids unclear IN lhs from subqueries" do
+      assert {:error, "The left-hand side of an IN operator must be a database column."} =
+        compile("SELECT COUNT(*) FROM (SELECT numeric + 1 AS number FROM table) x WHERE number IN (1, 2, 3)")
+    end
+  end
+
   defp dangerously_discontinuous?(query), do:
     type_first_column(query).dangerously_discontinuous?
 
