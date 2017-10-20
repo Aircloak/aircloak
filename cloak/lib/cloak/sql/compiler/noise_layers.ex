@@ -234,6 +234,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp without_percents(like_pattern), do:
     like_pattern |> LikePattern.graphemes() |> Enum.reject(& &1 == :%) |> Enum.join()
 
+  # See "LIKE pattern seeds" in docs/anonymization for details
   defp like_layer_keys(like_pattern) do
     len = like_pattern |> without_percents() |> String.length()
     like_layer_keys(LikePattern.graphemes(like_pattern), 0, len)

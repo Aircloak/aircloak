@@ -288,8 +288,10 @@ presence of `NULL` values in some column.
 
 Additionally, depending on the type of clause, some extra data is added:
 
-* `=` clauses, `LIKE` clauses, and `GROUP BY` - no extra data
-* `<>` clauses and `NOT LIKE` clauses - a `:<>` symbol
+* `=` clauses, and `GROUP BY` - no extra data
+* `<>` clauses - a `:<>` symbol
+* `[NOT] [I]LIKE` clauses - symbols indicating the type of clause (like `:ilike`)
+  plus pattern-dependent data, see [Like pattern seeds](#like-pattern-seeds)
 * range clauses - the range endpoints
 * `NOT IN` clauses - are converted to an equivalent conjunction on `<>` clauses,
   so noise layers are never directly computed for them
@@ -298,6 +300,37 @@ Additionally, depending on the type of clause, some extra data is added:
 As a final step if the hash of the seed for many noise layers comes out the same,
 then the duplicates are discarded. This is done so that adding the same clause
 (or a clause with the same effect) multiple times does not affect query results.
+
+### LIKE pattern seeds
+
+In addition to what is described in [Noise layer seeds](#noise-layer-seeds)
+`[NOT] [I]LIKE` clauses create a noise layer per wildcard used in the pattern.
+These layers are built according to the following procedure (assuming a clause
+`WHERE x [NOT] [I]LIKE 'S1'`):
+
+1. "Scrub" the string 'S1' to produce string 'S2' as follows:
+   1. Modify any sequence of characters containing both `%` and `_` symbols to
+      contain instead a single `%` at the beginning of the sequence, followed
+      by the same number of `_` symbols.
+   1. Modify any sequence of multiple `%` symbols to be a single `%` symbol.
+1. Remove all `%` symbols from `S2`, producing `S3`.
+1. Set `N = length(S3)`.
+1. For each `_` symbol in `S3`, add a noise layer seeded by a hash of the
+   following item concatenated together:
+   1. The column name.
+   1. A symbol indicating clause type, e.g. `:ilike`
+   1. `N`.
+   1. The position of the `_` in `S3`.
+   1. The symbol `_`.
+   1. The uid-hash.
+1. For each `%` symbol in `S2`, add a noise layer seeded by a hash of the
+   following item concatenated together:
+   1. The column name.
+   1. A symbol indicating clause type, e.g. `:ilike`
+   1. `N`.
+   1. The position of the character in `S3` that precedes the `%`.
+   1. The symbol `%`.
+   1. The uid-hash.
 
 ### Floating data
 
