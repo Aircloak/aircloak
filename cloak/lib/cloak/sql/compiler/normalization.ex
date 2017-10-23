@@ -83,8 +83,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       {:like, lhs, rhs} -> {:comparison, lhs, :=, LikePattern.trivial_to_string(rhs)}
       {:ilike, lhs, rhs} -> {:comparison, lowercase(lhs), :=, rhs |> LikePattern.trivial_to_string() |> lowercase()}
       {:not, {:like, lhs, rhs}} -> {:comparison, lhs, :<>, LikePattern.trivial_to_string(rhs)}
-      {:not, {:ilike, lhs, rhs}} ->
-        {:comparison, lowercase(lhs), :<>, rhs |> LikePattern.trivial_to_string() |> lowercase()}
+      {:not, {:ilike, lhs, rhs}} -> {:not, {:ilike, lhs, rhs}}
     end)
 
   defp trivial_like?({:not, like}), do: trivial_like?(like)

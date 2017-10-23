@@ -57,20 +57,6 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     assert result1.where == result2.where
   end
 
-  test "normalizing trivial not ilike patterns" do
-    result1 = compile!("SELECT * FROM table WHERE string NOT ILIKE 'AbC'", data_source())
-    result2 = compile!("SELECT * FROM table WHERE lower(string) <> 'abc'", data_source())
-
-    assert result1.where == result2.where
-  end
-
-  test "normalizing trivial ilike patterns" do
-    result1 = compile!("SELECT * FROM table WHERE string ILIKE 'abc'", data_source())
-    result2 = compile!("SELECT * FROM table WHERE lower(string) = lower('abc')", data_source())
-
-    assert result1.where == result2.where
-  end
-
   test "normalizing IN(single_value)" do
     result1 = compile!("SELECT * FROM table WHERE string IN ('a')", data_source())
     result2 = compile!("SELECT * FROM table WHERE string = 'a'", data_source())

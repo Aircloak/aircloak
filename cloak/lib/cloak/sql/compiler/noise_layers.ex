@@ -211,18 +211,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp negative_noise_layers(query, top_level_uid), do:
     conditions_satisfying(&Condition.not_equals?/1)
     |> Lens.to_list(query)
-    |> Enum.flat_map(fn
-      # Special case for lower(), because that's what NOT LIKE without wildcards gets rewritten to
-      {:comparison, %Expression{function: "lower", function_args: [column]}, :<>, constant} ->
-        [
-          static_noise_layer(column, constant, :<>),
-          uid_noise_layer(column, constant, top_level_uid, :<>),
-        ]
-      {:comparison, column, :<>, constant} ->
-        [
-          static_noise_layer(column, constant, :<>),
-          uid_noise_layer(column, constant, top_level_uid, :<>),
-        ]
+    |> Enum.flat_map(fn({:comparison, column, :<>, constant}) ->
+      [
+        static_noise_layer(column, constant, :<>),
+        uid_noise_layer(column, constant, top_level_uid, :<>),
+      ]
     end)
 
 
@@ -248,10 +241,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     column
     |> raw_columns()
     |> Enum.flat_map(fn(column) ->
-      [
-        static_noise_layer(column, column, {:not, kind, without_percents(pattern)}) |
-        pattern |> like_layer_keys() |> Enum.map(&uid_noise_layer(column, column, top_level_uid, {:not, kind, &1}))
-      ]
+      case like_layer_keys(pattern) do
+        [] -> [
+         static_noise_layer(column, column, {:not, kind, without_percents(pattern)}),
+         uid_noise_layer(column, column, top_level_uid, {:not, kind, without_percents(pattern)})
+        ]
+        keys -> [
+          static_noise_layer(column, column, {:not, kind, without_percents(pattern)}) |
+          Enum.map(keys, &uid_noise_layer(column, column, top_level_uid, {:not, kind, &1}))
+        ]
+      end
     end)
 
   defp without_percents(like_pattern), do:
