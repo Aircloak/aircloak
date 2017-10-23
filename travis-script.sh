@@ -86,7 +86,6 @@ set -eox pipefail
   if [[ "$TEST" == "central" ]]; then
 
     pushd central
-    rm -rf _build/dev/dialyze_erlang-20.1_elixir-1.5.1_deps-dev.plt || true
     make docs
     make lint
     make test
