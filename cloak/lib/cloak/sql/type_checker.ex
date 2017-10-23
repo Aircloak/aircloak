@@ -169,12 +169,16 @@ defmodule Cloak.Sql.TypeChecker do
     |> Query.Lenses.conditions()
     |> Lens.satisfy(&Condition.not_equals?/1)
     |> Lens.to_list(query)
-    |> Enum.each(fn({:comparison, lhs, :<>, _}) ->
+    |> Enum.map(&unpack_not_equals/1)
+    |> Enum.each(fn(lhs) ->
       unless establish_type(lhs, query).raw_column? do
         raise CompilationError, message:
           "The <> operator must be applied to an unmodified database column and a constant."
       end
     end)
+
+  defp unpack_not_equals({:comparison, %{function: "lower", function_args: [lhs]}, :<>, _}), do: lhs
+  defp unpack_not_equals({:comparison, lhs, :<>, _}), do: lhs
 
   def establish_type(column, query), do: construct_type(column, query)
 

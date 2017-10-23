@@ -212,7 +212,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     conditions_satisfying(&Condition.not_equals?/1)
     |> Lens.to_list(query)
     |> Enum.flat_map(fn
-      _not_like_rewrite = {:comparison, %Expression{function: "lower", function_args: [column]}, :<>, constant} ->
+      # Special case for lower(), because that's what NOT LIKE without wildcards gets rewritten to
+      {:comparison, %Expression{function: "lower", function_args: [column]}, :<>, constant} ->
         [
           static_noise_layer(column, constant, :<>),
           uid_noise_layer(column, constant, top_level_uid, :<>),

@@ -29,13 +29,6 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     assert result1.where == result2.where
   end
 
-  test "normalizing upper(x) <> constant" do
-    result1 = compile!("SELECT * FROM table WHERE upper(string) <> 'CeO'", data_source())
-    result2 = compile!("SELECT * FROM table WHERE lower(string) <> 'cEo'", data_source())
-
-    assert result1.where == result2.where
-  end
-
   test "normalizing like patterns" do
     result1 = compile!("SELECT * FROM table WHERE string LIKE 'a_%__%_b%c%%d___'", data_source())
     result2 = compile!("SELECT * FROM table WHERE string LIKE 'a%____b%c%d___'", data_source())
