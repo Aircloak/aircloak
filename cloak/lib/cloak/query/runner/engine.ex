@@ -80,11 +80,7 @@ defmodule Cloak.Query.Runner.Engine do
     Logger.debug("Processing final rows ...")
 
     query = Query.RowSplitters.compile(query)
-    state_updater = fn (query, state) ->
-      Logger.debug("Query state changed to: #{state}...")
-      state_updater.(state)
-      query
-    end
+    state_updater = fn (acc, state) -> state_updater.(state); acc end
 
     rows
     |> Query.RowSplitters.split(query)
