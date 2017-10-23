@@ -46,9 +46,13 @@ defmodule Cloak.Query.Aggregator do
   @spec aggregate(Enumerable.t, Query.t, Query.features, Engine.state_updater) :: Result.t
   def aggregate(rows, query, features, state_updater) do
     state_updater.(:ingesting_data)
-    groups = groups(rows, query, state_updater)
+    groups = groups(rows, query)
+
+    state_updater.(:processing)
+    groups = init_anonymizer(groups)
     users_count = number_of_anonymized_users(groups, query)
-    aggregated_buckets = groups
+    aggregated_buckets =
+      groups
       |> process_low_count_users(query)
       |> aggregate_groups(query)
       |> make_buckets(query)
@@ -128,7 +132,7 @@ defmodule Cloak.Query.Aggregator do
   defp per_user_aggregator_and_column(aggregator), do:
     {per_user_aggregator(aggregator), aggregated_column(aggregator)}
 
-  defp groups(rows, query, state_updater) do
+  defp groups(rows, query) do
     Logger.debug("Grouping rows ...")
 
     {per_user_aggregators, aggregated_columns} =
@@ -141,10 +145,7 @@ defmodule Cloak.Query.Aggregator do
     default_noise_layers = NoiseLayer.new_accumulator(query.noise_layers)
     merging_fun = group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query)
 
-    rows
-    |> Rows.group(query, {%{}, default_noise_layers}, merging_fun)
-    |> fn(rows) -> state_updater.(:processing); rows end.()
-    |> init_anonymizer()
+    Rows.group(rows, query, {%{}, default_noise_layers}, merging_fun)
   end
 
   defp group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query), do:
