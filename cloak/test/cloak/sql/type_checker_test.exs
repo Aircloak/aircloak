@@ -134,11 +134,6 @@ defmodule Cloak.Sql.TypeChecker.Test do
     end
   end
 
-  def expression_name(breadcrumb_trail), do:
-    breadcrumb_trail
-    |> Enum.map(fn({expression, _}) -> expression end)
-    |> Enum.map(&(&1.name))
-
   describe "knows which columns were involved" do
     test "when a column is selected" do
       type = type_first_column("SELECT numeric FROM table")
@@ -159,6 +154,11 @@ defmodule Cloak.Sql.TypeChecker.Test do
       type = type_first_column("SELECT concat(string, cast(numeric as text)) FROM table")
       assert expression_name(type.narrative_breadcrumbs) == ["string", "numeric"]
     end
+
+    def expression_name(breadcrumb_trail), do:
+      breadcrumb_trail
+      |> Enum.map(fn({expression, _}) -> expression end)
+      |> Enum.map(&(&1.name))
   end
 
   describe "detection of datetime functions" do
@@ -248,6 +248,27 @@ defmodule Cloak.Sql.TypeChecker.Test do
       type = type_first_column("SELECT numeric % 2 % 2 FROM table")
       assert [{%Expression{name: "numeric"}, [{:dangerously_discontinuous, "%"}]}] =
         type.narrative_breadcrumbs
+    end
+  end
+
+  describe "IN" do
+    test "allows clear IN lhs" do
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric IN (1, 2, 3)")
+    end
+
+    test "forbids unclear IN lhs" do
+      assert {:error, "The left-hand side of an IN operator must be a database column."} =
+        compile("SELECT COUNT(*) FROM table WHERE numeric + 1 IN (1, 2, 3)")
+    end
+
+    test "allows clear IN lhs from subqueries" do
+      assert {:ok, _, _} =
+        compile("SELECT COUNT(*) FROM (SELECT numeric AS number FROM table) x WHERE number IN (1, 2, 3)")
+    end
+
+    test "forbids unclear IN lhs from subqueries" do
+      assert {:error, "The left-hand side of an IN operator must be a database column."} =
+        compile("SELECT COUNT(*) FROM (SELECT numeric + 1 AS number FROM table) x WHERE number IN (1, 2, 3)")
     end
   end
 

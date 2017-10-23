@@ -163,6 +163,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         select_noise_layers(query, top_level_uid) ++
         clear_noise_layers(query, top_level_uid) ++
         unclear_noise_layers(query, top_level_uid) ++
+        in_noise_layers(query, top_level_uid) ++
         like_noise_layers(query, top_level_uid) ++
         range_noise_layers(query) ++
         negative_noise_layers(query)
@@ -190,6 +191,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     unclear_conditions()
     |> raw_columns(query)
     |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
+
+  defp in_noise_layers(query, top_level_uid), do:
+    conditions_satisfying(&Condition.in?/1)
+    |> Lens.to_list(query)
+    |> Enum.flat_map(fn({:in, column, constants}) ->
+      [
+        static_noise_layer(column, column) |
+        Enum.map(constants, &uid_noise_layer(column, &1, top_level_uid))
+      ]
+    end)
 
   defp range_noise_layers(%{ranges: ranges}), do:
     Enum.flat_map(ranges, fn(%{column: column, interval: range}) ->
@@ -323,6 +334,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(& not Condition.inequality?(&1))
     |> Lens.satisfy(& not Condition.not_equals?(&1))
     |> Lens.satisfy(& not Condition.not_like?(&1))
+    |> Lens.satisfy(& not Condition.in?(&1))
     |> Lens.satisfy(& not Condition.like?(&1))
     |> Lens.satisfy(& not fk_pk_condition?(&1))
     |> Lens.both(Lens.key(:group_by))
