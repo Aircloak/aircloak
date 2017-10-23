@@ -32,7 +32,6 @@ defmodule BOM.License do
     name = Path.basename(path) |> String.to_atom
     def allowed_type?(unquote(name)), do: true
   end
-  def allowed_type?(:do_what_the_fuck_you_want), do: true
   def allowed_type?(:zlib), do: true
   def allowed_type?(:mpl_2_0), do: true
   # Avoid dependencies with epl license for legal reasons (see https://github.com/Aircloak/aircloak/issues/753)
@@ -73,7 +72,7 @@ defmodule BOM.License do
   defp do_name_to_type("public domain"), do: :public_domain
   defp do_name_to_type("unlicense"), do: :public_domain
   defp do_name_to_type("boost"), do: :boost
-  defp do_name_to_type("wtfpl"), do: :do_what_the_fuck_you_want
+  defp do_name_to_type("wtfpl"), do: :wtfpl
   defp do_name_to_type("zlib"), do: :zlib
   defp do_name_to_type("cc0-1.0"), do: :"cc0-1.0"
   defp do_name_to_type(_), do: :unknown

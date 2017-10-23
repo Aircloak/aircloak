@@ -14,7 +14,7 @@ defmodule Air.Socket.Cloak do
   use Phoenix.Socket
   require Logger
 
-  transport :websocket, Phoenix.Transports.WebSocket, serializer: Air.Socket.Cloak.Serializer
+  transport :websocket, Phoenix.Transports.WebSocket, serializer: [{Air.Socket.Cloak.Serializer, "~> 1.0.0"}]
 
   # List of exposed channels
   channel "main", Air.Socket.Cloak.MainChannel
@@ -44,7 +44,6 @@ defmodule Air.Socket.Cloak do
   end
 
   @impl Phoenix.Socket
-  @dialyzer {:nowarn_function, id: 1} # Phoenix bug, fixed in master
   def id(socket),
     do: "cloak_socket:#{socket.assigns.cloak_id}"
 

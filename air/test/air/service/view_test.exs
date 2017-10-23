@@ -58,7 +58,9 @@ defmodule Air.Service.ViewTest do
     test "success", context do
       socket = data_source_socket(context.ds1)
 
-      task = Task.async(fn() -> View.create(context.u1, context.ds1, "some view", "some sql") end)
+      task = Task.async(fn() ->
+        View.create(context.u1, context.ds1, "some view", "some sql", skip_revalidation: true) end)
+
       TestSocketHelper.respond_to_validate_views!(socket,
         [%{name: "some view", columns: ["some", "columns"], "valid": true}])
 

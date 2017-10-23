@@ -48,7 +48,8 @@ defmodule Air.Service.View do
     View |> by_user_id(user.id) |> by_data_source_id(data_source.id) |> only_broken() |> Repo.all()
 
   @doc "Saves the new view in the database."
-  @spec create(User.t, DataSource.t, String.t, String.t, [revalidation_timeout: non_neg_integer]) ::
+  @spec create(User.t, DataSource.t, String.t, String.t,
+    [revalidation_timeout: non_neg_integer, skip_revalidation: boolean]) ::
     {:ok, View.t} | {:error, Ecto.Changeset.t}
   def create(user, data_source, name, sql, options \\ []) do
     changes = %{data_source_id: data_source.id, user_id: user.id, name: name, sql: sql}
@@ -56,7 +57,8 @@ defmodule Air.Service.View do
       {:ok, changeset} <- validated_view_changeset(%View{}, user, changes, :insert),
       {:ok, view} <- Repo.insert(changeset)
     do
-      revalidate_views_and_wait(user, view.data_source_id, Keyword.take(options, [:revalidation_timeout]))
+      unless options[:skip_revalidation], do:
+        revalidate_views_and_wait(user, view.data_source_id, Keyword.take(options, [:revalidation_timeout]))
       {:ok, view}
     end
   end

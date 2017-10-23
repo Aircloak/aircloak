@@ -52,7 +52,7 @@ defmodule Air.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:ecto, "~> 2.1", override: true},
+      {:ecto, "~> 2.2.0", override: true},
       # Current master has a fix to a bug introduced in 1.2.2 whereby you cannot
       # concurrently compile markdown because of a global GenServer fucking things up.
       # The fix is in this commit:
@@ -66,10 +66,10 @@ defmodule Air.Mixfile do
       {:earmark, github: "pragdave/earmark", ref: "2bc90510ddc6245ff6afcaf6cfb526e3a9fadf89",
         runtime: false, override: true},
       {:postgrex, "~> 0.13.0", override: true},
-      {:phoenix, "~> 1.2.5"},
+      {:phoenix, "~> 1.3.0"},
       {:phoenix_pubsub, "~> 1.0"},
       {:phoenix_ecto, "~> 3.0"},
-      {:phoenix_html, "~> 2.4"},
+      {:phoenix_html, "~> 2.10.0"},
       {:phoenix_live_reload, "~> 1.0", only: :dev},
       {:phoenix_gen_socket_client, "~> 1.2.0"},
       {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.2.4"},

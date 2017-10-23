@@ -6,9 +6,6 @@ defmodule Central.Endpoint do
   use Phoenix.Endpoint, otp_app: :central
   require Logger
 
-  # bug in the current Phoenix -> should be fixed with the next version
-  @dialyzer :no_unused
-
 
   # -------------------------------------------------------------------
   # API functions

@@ -25,7 +25,6 @@ defmodule Air.Socket.Frontend.DataSourceChannel do
   # -------------------------------------------------------------------
 
   @doc false
-  @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
   def join("data_source:" <> name, _, socket) do
     case DataSource.fetch_as_user({:name, name}, socket.assigns.user) do
       {:ok, _} -> {:ok, socket}
