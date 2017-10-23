@@ -71,7 +71,7 @@ defmodule Air.Mixfile do
       {:phoenix_ecto, "~> 3.0"},
       {:phoenix_html, "~> 2.10.0"},
       {:phoenix_live_reload, "~> 1.0", only: :dev},
-      {:phoenix_gen_socket_client, "~> 1.2.0"},
+      {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client", tag: "sasa/support-phoenix1.3"},
       {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.2.4"},
       {:gettext, "~> 0.9"},
       {:cowboy, "~> 1.0"},
