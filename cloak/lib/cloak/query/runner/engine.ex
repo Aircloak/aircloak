@@ -54,24 +54,20 @@ defmodule Cloak.Query.Runner.Engine do
     |> Cloak.Sql.Query.resolve_db_columns()
     |> Sql.Compiler.NoiseLayers.compile()
 
-  defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater), do:
-    Query.Result.new(
-      query,
-      features,
-      Enum.map(
-        (Map.keys(query.data_source.tables) ++ Map.keys(query.views)),
-        &%{occurrences: 1, row: [to_string(&1)]}
-      )
-    )
-  defp run_statement(%Sql.Query{command: :show, show: :columns} = query, features, _state_updater), do:
-    Query.Result.new(
-      query,
-      features,
-      Enum.map(
-        sorted_table_columns(hd(query.selected_tables)),
-        &%{occurrences: 1, row: [&1.name, to_string(&1.type)]}
-      )
-    )
+  defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater) do
+    buckets =
+      (Map.keys(query.data_source.tables) ++ Map.keys(query.views))
+      |> Enum.map(&%{occurrences: 1, row: [to_string(&1)]})
+    Query.Result.new({buckets, 0}, query, features)
+  end
+  defp run_statement(%Sql.Query{command: :show, show: :columns} = query, features, _state_updater) do
+    buckets =
+      query.selected_tables
+      |> hd()
+      |> sorted_table_columns()
+      |> Enum.map(&%{occurrences: 1, row: [&1.name, to_string(&1.type)]})
+    Query.Result.new({buckets, 0}, query, features)
+  end
   defp run_statement(%Sql.Query{command: :select} = query, features, state_updater), do:
     Cloak.Query.DataEngine.select(query, &process_final_rows(&1, query, features, state_updater))
 
@@ -84,10 +80,20 @@ defmodule Cloak.Query.Runner.Engine do
     Logger.debug("Processing final rows ...")
 
     query = Query.RowSplitters.compile(query)
+    state_updater = fn (query, state) ->
+      Logger.debug("Query state changed to: #{state}...")
+      state_updater.(state)
+      query
+    end
 
     rows
     |> Query.RowSplitters.split(query)
     |> Query.Rows.filter(query |> DataEngine.emulated_where() |> Condition.to_function())
-    |> Query.Aggregator.aggregate(query, features, state_updater)
+    |> state_updater.(:ingesting_data)
+    |> Query.Aggregator.group(query)
+    |> state_updater.(:processing)
+    |> Query.Aggregator.aggregate(query)
+    |> state_updater.(:post_processing)
+    |> Query.Result.new(query, features)
   end
 end
