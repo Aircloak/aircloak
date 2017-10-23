@@ -40,7 +40,6 @@ defmodule Central.Socket.Frontend do
   end
 
   @impl Phoenix.Socket
-  @dialyzer {:nowarn_function, id: 1} # Phoenix bug, fixed in master
   def id(socket),
     do: "user:#{socket.assigns.user.id}"
 end
