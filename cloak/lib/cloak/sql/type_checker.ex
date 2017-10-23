@@ -160,7 +160,7 @@ defmodule Cloak.Sql.TypeChecker do
     |> Lens.to_list(query)
     |> Enum.each(fn({:in, lhs, _}) ->
       unless establish_type(lhs, query).raw_column? do
-        raise CompilationError, message: "The left-hand side of an IN operator must be a database column."
+        raise CompilationError, message: "The left-hand side of an IN operator must be an unmodified database column."
       end
     end)
 
@@ -171,7 +171,8 @@ defmodule Cloak.Sql.TypeChecker do
     |> Lens.to_list(query)
     |> Enum.each(fn({:comparison, lhs, :<>, _}) ->
       unless establish_type(lhs, query).raw_column? do
-        raise CompilationError, message: "The <> operator must be applied to a database column and a constant."
+        raise CompilationError, message:
+          "The <> operator must be applied to an unmodified database column and a constant."
       end
     end)
 
