@@ -295,6 +295,21 @@ defmodule Cloak.Sql.TypeChecker.Test do
     test "forbids unclear between arguments", do:
       assert {:error, "Only unmodified database columns can be limited by a range."} =
         compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) BETWEEN 0 AND 10")
+
+    test "allows any ranges in top-level HAVING", do:
+      assert {:ok, _, _} = compile("""
+        SELECT COUNT(*) FROM table GROUP BY numeric HAVING sqrt(COUNT(float)) BETWEEN 0 AND 10
+      """)
+
+    test "allows clear ranges in subquery HAVING", do:
+      assert {:ok, _, _} = compile("""
+        SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(float) BETWEEN 0 AND 10) x
+      """)
+
+    test "forbids unclear ranges in subquery HAVING", do:
+      assert {:error,  "Only unmodified database columns can be limited by a range."} = compile("""
+        SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING sqrt(COUNT(float)) BETWEEN 0 AND 10) x
+      """)
   end
 
   defp dangerously_discontinuous?(query), do:

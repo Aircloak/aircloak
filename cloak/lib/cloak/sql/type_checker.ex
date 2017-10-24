@@ -171,10 +171,13 @@ defmodule Cloak.Sql.TypeChecker do
 
   defp verify_ranges_are_clear(query), do:
     verify_conditions(query, &Condition.inequality?/1, fn({:comparison, lhs, _, _}) ->
-      unless establish_type(lhs, query).raw_column? do
+      unless clear_range_lhs?(lhs, query) do
         raise CompilationError, message: "Only unmodified database columns can be limited by a range."
       end
     end)
+
+  defp clear_range_lhs?(%Expression{aggregate?: true, function_args: [lhs]}, query), do: clear_range_lhs?(lhs, query)
+  defp clear_range_lhs?(lhs, query), do: establish_type(lhs, query).raw_column?
 
   defp verify_conditions(query, predicate, action), do:
     Query.Lenses.db_filter_clauses()
