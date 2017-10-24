@@ -56,8 +56,6 @@ defmodule Cloak.Query.Aggregator do
   """
   @spec group(Enumerable.t, Query.t) :: Rows.groups
   def group(rows, query) do
-    Logger.debug("Grouping rows ...")
-
     {per_user_aggregators, aggregated_columns} =
       query.aggregators
       |> Enum.map(&per_user_aggregator_and_column/1)
@@ -69,6 +67,21 @@ defmodule Cloak.Query.Aggregator do
     merging_fun = group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query)
 
     Rows.group(rows, query, {%{}, default_noise_layers}, merging_fun)
+  end
+
+  @doc """
+    Returns the union of two sets of groups.
+    Merging is needed when grouping over multiple processes, before the start of the aggregation step.
+  """
+  @spec merge_groups(Rows.groups, Rows.groups) :: Rows.groups
+  def merge_groups(groups1, groups2) do
+    Map.merge(groups1, groups2, fn (_key, {user_values1, noise_layers1}, {user_values2, noise_layers2}) ->
+      user_values = Map.merge(user_values1, user_values2, fn (_user, columns1, columns2) ->
+        Enum.zip(columns1, columns2) |> Enum.map(&merge_accumulators/1)
+      end)
+      noise_layers = merge_layers(noise_layers1, noise_layers2)
+      {user_values, noise_layers}
+    end)
   end
 
 

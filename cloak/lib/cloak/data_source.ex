@@ -54,6 +54,7 @@ defmodule Cloak.DataSource do
     tables: %{atom => Table.t},
     errors: [String.t],
     status: :online | :offline,
+    ingestors: non_neg_integer,
     # we need to store the initial tables and errors in case we need to re-scan the data source tables later
     initial_tables: %{atom => Table.t},
     initial_errors: [String.t],
@@ -214,6 +215,7 @@ defmodule Cloak.DataSource do
     |> standardize_key_lists()
     |> Map.put(:errors, [])
     |> Map.put(:status, nil)
+    |> Map.put_new(:ingestors, 0)
     |> Validations.Name.ensure_permitted()
     |> potentially_create_temp_name()
     |> map_driver()

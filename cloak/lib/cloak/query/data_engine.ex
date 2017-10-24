@@ -16,29 +16,12 @@ defmodule Cloak.Query.DataEngine do
     Retrieves rows from the data source, emulating sub-queries if necessary, and applies the rows processor over them.
   """
   @spec select(Query.t, ((Enumerable.t) -> result)) :: result when result: var
-  def select(query, rows_processor) do
-    if query.emulated? do
-      Logger.debug("Emulating query ...")
-      query
-      |> DbEmulator.select()
-      |> rows_processor.()
-    else
-      Logger.debug("Processing final rows ...")
-      offload_select!(query, rows_processor)
-    end
+  def select(%Query{emulated?: true} = query, rows_processor) do
+    Logger.debug("Emulating query ...")
+    query |> DbEmulator.select() |> rows_processor.()
   end
-
-  @doc "Retrieves rows directly from the data source and applies the rows processor over them."
-  @spec offload_select!(Query.t, ((Enumerable.t) -> result)) :: result when result: var
-  def offload_select!(query, rows_processor) do
-    DataSource.select!(
-      %Query{query | where: offloaded_where(query)},
-      fn(rows) ->
-        rows
-        |> Stream.concat()
-        |> DataDecoder.decode(query)
-        |> rows_processor.()
-      end)
+  def select(%Query{emulated?: false} = query, rows_processor) do
+    DataSource.select!(%Query{query | where: offloaded_where(query)}, rows_processor)
   end
 
   @doc "Determines whether the query needs to be emulated or not."

@@ -33,3 +33,7 @@ config :cloak, :memory_limits,
   time_between_abortions: 1_000
 
 config :cloak, :data_source_monitor_interval, 15_000
+
+config :cloak, :data_source,
+  timeout: :timer.hours(1),
+  batch_size: 100
