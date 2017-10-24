@@ -154,27 +154,26 @@ defmodule Cloak.Sql.TypeChecker do
     end)
 
   defp verify_lhs_of_in_is_clear(query), do:
-    Query.Lenses.db_filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Lens.satisfy(&Condition.in?/1)
-    |> Lens.to_list(query)
-    |> Enum.each(fn({:in, lhs, _}) ->
+    verify_conditions(query, &Condition.in?/1, fn({:in, lhs, _}) ->
       unless establish_type(lhs, query).raw_column? do
         raise CompilationError, message: "The left-hand side of an IN operator must be an unmodified database column."
       end
     end)
 
   defp verify_lhs_of_not_equals_is_clear(query), do:
-    Query.Lenses.db_filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Lens.satisfy(&Condition.not_equals?/1)
-    |> Lens.to_list(query)
-    |> Enum.each(fn({:comparison, lhs, :<>, rhs}) ->
+    verify_conditions(query, &Condition.not_equals?/1, fn({:comparison, lhs, :<>, rhs}) ->
       unless establish_type(lhs, query).raw_column? and establish_type(rhs, query).constant? do
         raise CompilationError, message:
           "The <> operation can only be applied to an unmodified database column and a constant."
       end
     end)
+
+  defp verify_conditions(query, predicate, action), do:
+    Query.Lenses.db_filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.satisfy(predicate)
+    |> Lens.to_list(query)
+    |> Enum.each(action)
 
   def establish_type(column, query), do: construct_type(column, query)
 
