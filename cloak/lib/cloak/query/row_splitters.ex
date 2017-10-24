@@ -28,19 +28,17 @@ defmodule Cloak.Query.RowSplitters do
   # API
   # -------------------------------------------------------------------
 
-  @doc "Splits individual rows into multiple rows based on applied splitter functions"
-  @spec split(Enumerable.t, Query.t) :: {Enumerable.t, Query.t}
-  def split(rows, query) do
-    query =
-      query
-      |> name_outermost_selected_splitters()
-      |> add_outermost_splitters_to_db_columns()
+  @doc "Compiles splitter functions for later processing."
+  @spec compile(Query.t) :: Query.t
+  def compile(query), do:
+    query
+    |> name_outermost_selected_splitters()
+    |> add_outermost_splitters_to_db_columns()
 
-    {
-      split_rows(rows, Query.outermost_selected_splitters(query)),
-      query
-    }
-  end
+  @doc "Splits individual rows into multiple rows based on applied splitter functions."
+  @spec split(Enumerable.t, Query.t) :: Enumerable.t
+  def split(rows, query), do:
+    split_rows(rows, Query.outermost_selected_splitters(query))
 
 
   # -------------------------------------------------------------------
