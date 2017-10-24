@@ -252,40 +252,33 @@ defmodule Cloak.Sql.TypeChecker.Test do
   end
 
   describe "IN" do
-    test "allows clear IN lhs" do
+    test "allows clear IN lhs", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric IN (1, 2, 3)")
-    end
 
-    test "forbids unclear IN lhs" do
+    test "forbids unclear IN lhs", do:
       assert {:error, "The left-hand side of an IN operator must be an unmodified database column."} =
         compile("SELECT COUNT(*) FROM table WHERE numeric + 1 IN (1, 2, 3)")
-    end
 
-    test "allows clear IN lhs from subqueries" do
+    test "allows clear IN lhs from subqueries", do:
       assert {:ok, _, _} =
         compile("SELECT COUNT(*) FROM (SELECT numeric AS number FROM table) x WHERE number IN (1, 2, 3)")
-    end
 
-    test "forbids unclear IN lhs from subqueries" do
+    test "forbids unclear IN lhs from subqueries", do:
       assert {:error, "The left-hand side of an IN operator must be an unmodified database column."} =
         compile("SELECT COUNT(*) FROM (SELECT numeric + 1 AS number FROM table) x WHERE number IN (1, 2, 3)")
-    end
   end
 
   describe "<>" do
-    test "allows clear <> lhs" do
+    test "allows clear <> lhs", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> 10")
-    end
 
-    test "forbids unclear <> lhs" do
+    test "forbids unclear <> lhs", do:
       assert {:error, "The <> operation can only be applied to an unmodified database column and a constant."} =
         compile("SELECT COUNT(*) FROM table WHERE numeric + 1 <> 10")
-    end
 
-    test "forbids column <> column" do
+    test "forbids column <> column", do:
       assert {:error, "The <> operation can only be applied to an unmodified database column and a constant."} =
         compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
-    end
   end
 
   defp dangerously_discontinuous?(query), do:
