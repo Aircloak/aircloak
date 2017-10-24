@@ -278,12 +278,12 @@ defmodule Cloak.Sql.TypeChecker.Test do
     end
 
     test "forbids unclear <> lhs" do
-      assert {:error, "The <> operator must be applied to an unmodified database column and a constant."} =
+      assert {:error, "The <> operation can only be applied to an unmodified database column and a constant."} =
         compile("SELECT COUNT(*) FROM table WHERE numeric + 1 <> 10")
     end
 
     test "forbids column <> column" do
-      assert {:error, "The <> operator must be applied to an unmodified database column and a constant."} =
+      assert {:error, "The <> operation can only be applied to an unmodified database column and a constant."} =
         compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
     end
   end

@@ -172,7 +172,7 @@ defmodule Cloak.Sql.TypeChecker do
     |> Enum.each(fn({:comparison, lhs, :<>, rhs}) ->
       unless establish_type(lhs, query).raw_column? and establish_type(rhs, query).constant? do
         raise CompilationError, message:
-          "The <> operator must be applied to an unmodified database column and a constant."
+          "The <> operation can only be applied to an unmodified database column and a constant."
       end
     end)
 
