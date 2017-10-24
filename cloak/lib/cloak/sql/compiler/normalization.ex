@@ -14,7 +14,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   * Switches NOT IN expressions for an equivalent conjunction of <> expressions
   * Switches complex expressions involving constants (like 1 + 2 + 3) to their results (6 in this case)
-  * Switches upper(x) <> constant to lower(x) <> toggle_case(constant)
   * Removes redundant occurences of "%" from LIKE patterns (for example "%%" -> "%")
   * Normalizes sequences of "%" and "_" in like patterns so that the "%" always precedes a sequence of "_"
   * Normalizes `IN (single_value)` to `= single_value`
@@ -31,7 +30,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
     |> Helpers.apply_bottom_up(&normalize_like/1)
     |> Helpers.apply_bottom_up(&normalize_constants/1)
     |> Helpers.apply_bottom_up(&normalize_order_by/1)
-    |> Helpers.apply_bottom_up(&normalize_upper/1)
     |> Helpers.apply_bottom_up(&normalize_bucket/1)
 
 
@@ -72,32 +70,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
 
   # -------------------------------------------------------------------
-  # Normalizing upper(x) <> constant
-  # -------------------------------------------------------------------
-
-  defp normalize_upper(query), do:
-    update_in(query, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
-      {:comparison, lhs = %Expression{function: "upper"}, :<>, rhs = %Expression{constant?: true}} ->
-        {:comparison, %{lhs | function: "lower"}, :<>, update_in(rhs, [Lens.key(:value)], &toggle_case/1)}
-      other -> other
-    end)
-
-  defp toggle_case(string), do:
-    string
-    |> String.graphemes()
-    |> Enum.map(&toggle_one/1)
-    |> Enum.join()
-
-  defp toggle_one(string) do
-    if String.upcase(string) == string do
-      String.downcase(string)
-    else
-      String.upcase(string)
-    end
-  end
-
-
-  # -------------------------------------------------------------------
   # Normalizing like patterns
   # -------------------------------------------------------------------
 
@@ -111,8 +83,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       {:like, lhs, rhs} -> {:comparison, lhs, :=, LikePattern.trivial_to_string(rhs)}
       {:ilike, lhs, rhs} -> {:comparison, lowercase(lhs), :=, rhs |> LikePattern.trivial_to_string() |> lowercase()}
       {:not, {:like, lhs, rhs}} -> {:comparison, lhs, :<>, LikePattern.trivial_to_string(rhs)}
-      {:not, {:ilike, lhs, rhs}} ->
-        {:comparison, lowercase(lhs), :<>, rhs |> LikePattern.trivial_to_string() |> lowercase()}
+      {:not, {:ilike, lhs, rhs}} -> {:not, {:ilike, lhs, rhs}}
     end)
 
   defp trivial_like?({:not, like}), do: trivial_like?(like)

@@ -166,7 +166,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         in_noise_layers(query, top_level_uid) ++
         like_noise_layers(query, top_level_uid) ++
         range_noise_layers(query) ++
-        negative_noise_layers(query)
+        negative_noise_layers(query, top_level_uid)
     }
 
   defp select_noise_layers(%{subquery?: true}, _top_level_uid), do: []
@@ -208,10 +208,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Enum.map(&static_noise_layer(&1, &1, range))
     end)
 
-  defp negative_noise_layers(query), do:
-    conditions_satisfying(&Condition.not_equals?(&1))
-    |> raw_columns(query)
-    |> Enum.map(&static_noise_layer(&1, &1, :<>))
+  defp negative_noise_layers(query, top_level_uid), do:
+    conditions_satisfying(&Condition.not_equals?/1)
+    |> Lens.to_list(query)
+    |> Enum.flat_map(fn({:comparison, column, :<>, constant}) ->
+      [
+        static_noise_layer(column, constant, :<>),
+        uid_noise_layer(column, constant, top_level_uid, :<>),
+      ]
+    end)
 
 
   # -------------------------------------------------------------------
@@ -236,10 +241,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     column
     |> raw_columns()
     |> Enum.flat_map(fn(column) ->
-      [
-        static_noise_layer(column, column, {:not, kind, without_percents(pattern)}) |
-        pattern |> like_layer_keys() |> Enum.map(&uid_noise_layer(column, column, top_level_uid, {:not, kind, &1}))
-      ]
+      case like_layer_keys(pattern) do
+        [] -> [
+         static_noise_layer(column, column, {:not, kind, without_percents(pattern)}),
+         uid_noise_layer(column, column, top_level_uid, {:not, kind, without_percents(pattern)})
+        ]
+        keys -> [
+          static_noise_layer(column, column, {:not, kind, without_percents(pattern)}) |
+          Enum.map(keys, &uid_noise_layer(column, column, top_level_uid, {:not, kind, &1}))
+        ]
+      end
     end)
 
   defp without_percents(like_pattern), do:

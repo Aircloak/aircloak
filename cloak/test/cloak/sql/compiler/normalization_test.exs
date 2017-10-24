@@ -29,13 +29,6 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     assert result1.where == result2.where
   end
 
-  test "normalizing upper(x) <> constant" do
-    result1 = compile!("SELECT * FROM table WHERE upper(string) <> 'CeO'", data_source())
-    result2 = compile!("SELECT * FROM table WHERE lower(string) <> 'cEo'", data_source())
-
-    assert result1.where == result2.where
-  end
-
   test "normalizing like patterns" do
     result1 = compile!("SELECT * FROM table WHERE string LIKE 'a_%__%_b%c%%d___'", data_source())
     result2 = compile!("SELECT * FROM table WHERE string LIKE 'a%____b%c%d___'", data_source())
@@ -60,20 +53,6 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
   test "normalizing ilike patterns" do
     result1 = compile!("SELECT * FROM table WHERE string ILIKE 'a_%__%_b%c%%d___'", data_source())
     result2 = compile!("SELECT * FROM table WHERE string ILIKE 'a%____b%c%d___'", data_source())
-
-    assert result1.where == result2.where
-  end
-
-  test "normalizing trivial not ilike patterns" do
-    result1 = compile!("SELECT * FROM table WHERE string NOT ILIKE 'AbC'", data_source())
-    result2 = compile!("SELECT * FROM table WHERE lower(string) <> 'abc'", data_source())
-
-    assert result1.where == result2.where
-  end
-
-  test "normalizing trivial ilike patterns" do
-    result1 = compile!("SELECT * FROM table WHERE string ILIKE 'abc'", data_source())
-    result2 = compile!("SELECT * FROM table WHERE lower(string) = lower('abc')", data_source())
 
     assert result1.where == result2.where
   end
