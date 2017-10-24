@@ -4,25 +4,35 @@ defmodule Cloak.DataSource.FileSystemMonitor do
   of the appropriate actions.
   """
 
+  use GenServer
+
   require Logger
   require Aircloak.{DeployConfig, File}
 
   @file_system_monitor_name __MODULE__.FileSystemMonitor
+  @pre_processing_delay_ms 200
 
 
   # -------------------------------------------------------------------
-  # API
+  # GenServer callbacks
   # -------------------------------------------------------------------
 
-  @doc "Starts the file system monitor task"
-  @spec start_link() :: {:ok, pid}
-  def start_link() do
-    {:ok, pid} = response = Task.start_link(fn() ->
-      init()
-      message_receive_loop()
-    end)
-    Process.register(pid, __MODULE__)
-    response
+  @impl GenServer
+  def init(_) do
+    FileSystem.subscribe(@file_system_monitor_name)
+    {:ok, []}
+  end
+
+  @impl GenServer
+  def handle_info(:timeout, messages) do
+    messages
+    |> group_by_data_source_config()
+    |> consolidate_and_classify_events()
+    |> handle_events()
+    {:noreply, []}
+  end
+  def handle_info({:file_event, _pid, {file_path, events}}, messages) do
+    {:noreply, [{file_path, events} | messages], @pre_processing_delay_ms}
   end
 
 
@@ -30,36 +40,8 @@ defmodule Cloak.DataSource.FileSystemMonitor do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp init(), do:
-    FileSystem.subscribe(@file_system_monitor_name)
-
-  defp message_receive_loop() do
-    receive do
-      message ->
-        [message | debounde_receive()]
-        |> group_by_data_source_config()
-        |> consolidate_and_classify_events()
-        |> handle_events()
-    end
-    message_receive_loop()
-  end
-
-  defp handle_events(events), do:
-    Enum.each(events, fn
-      {path, :update} -> Cloak.DataSource.SerializingUpdater.process_update(path)
-      {path, :removal} -> Cloak.DataSource.SerializingUpdater.process_removal(path)
-    end)
-
-  defp debounde_receive() do
-    receive do
-      message ->
-        [message | debounde_receive()]
-    after 200 -> []
-    end
-  end
-
   defp group_by_data_source_config(messages), do:
-    Enum.group_by(messages, fn({:file_event, _pid, {file_path, _events}}) -> file_path end)
+    Enum.group_by(messages, fn({file_path, _events}) -> file_path end)
 
   defp consolidate_and_classify_events(events_by_file), do:
     Enum.map(events_by_file, fn({file_path, file_events}) -> {file_path, processed_events(file_events)} end)
@@ -71,7 +53,7 @@ defmodule Cloak.DataSource.FileSystemMonitor do
 
   defp unique_file_events(file_events), do:
     file_events
-    |> Enum.flat_map(fn({:file_event, _pid, {_path, events}}) -> events end)
+    |> Enum.flat_map(fn({_path, events}) -> events end)
     |> Enum.uniq()
 
   defp classify_events(events) do
@@ -85,10 +67,22 @@ defmodule Cloak.DataSource.FileSystemMonitor do
   defp removal_event?(events), do:
     Enum.any?([:removed, :deleted, :renamed], & &1 in events)
 
+  defp handle_events(events), do:
+    Enum.each(events, fn
+      {path, :update} -> Cloak.DataSource.SerializingUpdater.process_update(path)
+      {path, :removal} -> Cloak.DataSource.SerializingUpdater.process_removal(path)
+    end)
+
 
   # -------------------------------------------------------------------
-  # Functions related to configuring supervision
+  # Supervison tree callback
   # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_options \\ []) do
+    import Aircloak.ChildSpec
+    supervisor(child_specs(), strategy: :one_for_all, name: __MODULE__.Supervisor)
+  end
 
   defp child_specs() do
     import Aircloak.ChildSpec
@@ -98,13 +92,7 @@ defmodule Cloak.DataSource.FileSystemMonitor do
           id: FileSystem,
           start: {FileSystem, :start_link, [[dirs: [config_path()], name: @file_system_monitor_name]]},
         },
-        %{
-          id: __MODULE__,
-          start: {__MODULE__, :start_link, []},
-          restart: :permanent,
-          shutdown: 5000,
-          type: :worker
-        },
+        gen_server(__MODULE__, [], name: __MODULE__),
       ]
     else
       []
@@ -119,16 +107,5 @@ defmodule Cloak.DataSource.FileSystemMonitor do
       path when is_binary(path) -> Path.join([Aircloak.File.config_dir_path(), path])
       _other -> nil
     end
-  end
-
-
-  # -------------------------------------------------------------------
-  # Supervison tree callback
-  # -------------------------------------------------------------------
-
-  @doc false
-  def child_spec(_options \\ []) do
-    import Aircloak.ChildSpec
-    supervisor(child_specs(), strategy: :one_for_all, name: __MODULE__.Supervisor)
   end
 end
