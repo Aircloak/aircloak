@@ -281,6 +281,22 @@ defmodule Cloak.Sql.TypeChecker.Test do
         compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
   end
 
+  describe "ranges" do
+    test "allows clear >=/< arguments", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric > 0 AND numeric < 10")
+
+    test "forbids unclear >=/< arguments", do:
+      assert {:error, "Only unmodified database columns can be limited by a range."} =
+        compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) > 0 AND sqrt(numeric) < 10")
+
+    test "allows clear between arguments", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric BETWEEN 0 AND 10")
+
+    test "forbids unclear between arguments", do:
+      assert {:error, "Only unmodified database columns can be limited by a range."} =
+        compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) BETWEEN 0 AND 10")
+  end
+
   defp dangerously_discontinuous?(query), do:
     type_first_column(query).dangerously_discontinuous?
 

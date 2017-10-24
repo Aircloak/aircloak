@@ -47,6 +47,7 @@ defmodule Cloak.Sql.TypeChecker do
     verify_function_usage_for_condition_clauses(query)
     verify_lhs_of_in_is_clear(query)
     verify_lhs_of_not_equals_is_clear(query)
+    verify_ranges_are_clear(query)
     query
   end
 
@@ -165,6 +166,13 @@ defmodule Cloak.Sql.TypeChecker do
       unless establish_type(lhs, query).raw_column? and establish_type(rhs, query).constant? do
         raise CompilationError, message:
           "The <> operation can only be applied to an unmodified database column and a constant."
+      end
+    end)
+
+  defp verify_ranges_are_clear(query), do:
+    verify_conditions(query, &Condition.inequality?/1, fn({:comparison, lhs, _, _}) ->
+      unless establish_type(lhs, query).raw_column? do
+        raise CompilationError, message: "Only unmodified database columns can be limited by a range."
       end
     end)
 
