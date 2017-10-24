@@ -78,7 +78,8 @@ defmodule Air.Admin.UserController do
         conn
         |> put_layout(false)
         |> put_status(:not_found)
-        |> render(Air.ErrorView, "404.html")
+        |> put_view(Air.ErrorView)
+        |> render("404.html")
         |> halt()
       user ->
         assign(conn, :user, user)

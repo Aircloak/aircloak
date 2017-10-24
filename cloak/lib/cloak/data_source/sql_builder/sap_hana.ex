@@ -48,7 +48,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def limit_sql(limit, offset), do: [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
 
   @impl Dialect
-  def sql_type(:text), do: "nclob"
+  def sql_type(:text), do: "nvarchar"
   def sql_type(:datetime), do: "timestamp"
   def sql_type(type) when is_atom(type), do: Atom.to_string(type)
 

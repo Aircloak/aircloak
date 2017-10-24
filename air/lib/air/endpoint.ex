@@ -4,9 +4,6 @@ defmodule Air.Endpoint do
   use Phoenix.Endpoint, otp_app: :air
   use Aircloak.ChildSpec.Supervisor
 
-  # bug in the current Phoenix -> should be fixed with the next version
-  @dialyzer :no_unused
-
 
   # -------------------------------------------------------------------
   # Endpoint HTTP specification

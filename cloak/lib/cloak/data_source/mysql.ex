@@ -4,19 +4,16 @@ defmodule Cloak.DataSource.MySQL do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.{SqlBuilder, Table, Driver}
+  alias Cloak.DataSource.Table
   alias Cloak.DataSource
   alias Cloak.Query.DataDecoder
+
+  use Cloak.DataSource.Driver.SQL
 
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
-
-  @behaviour Driver
-
-  @impl Driver
-  def sql_dialect_module(_parameters), do: Cloak.DataSource.SqlBuilder.MySQL
 
   @impl Driver
   def connect!(parameters) do
@@ -36,17 +33,15 @@ defmodule Cloak.DataSource.MySQL do
         DataSource.raise_error("Unknown failure during database connection process")
     end
   end
-  @impl Driver
-  def disconnect(connection) do
-    GenServer.stop(connection)
-  end
 
   @impl Driver
   def load_tables(connection, table) do
     query = "SHOW COLUMNS FROM #{table.db_name}"
     column_info_mapper = fn [name, type | _others] -> Table.column(name, parse_type(type)) end
-    {:ok, columns} = run_query(connection, query, column_info_mapper, &Enum.to_list/1)
-    [%{table | columns: columns}]
+    case run_query(connection, query, column_info_mapper, &Enum.concat/1) do
+      {:ok, columns} -> [%{table | columns: columns}]
+      {:error, reason} -> DataSource.raise_error("`#{reason}`")
+    end
   end
 
   @impl Driver
@@ -57,9 +52,6 @@ defmodule Cloak.DataSource.MySQL do
     run_query(connection, statement, &map_fields(&1, field_mappers), result_processor)
   end
 
-  @impl Driver
-  def supports_query?(query), do: SqlBuilder.Support.supported_query?(query)
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -69,7 +61,7 @@ defmodule Cloak.DataSource.MySQL do
     try do
       Mariaex.transaction(pool, fn(connection) ->
         Mariaex.stream(connection, statement, [], [decode_mapper: decode_mapper, max_rows: Driver.batch_size])
-        |> Stream.flat_map(fn (%Mariaex.Result{rows: rows}) -> rows end)
+        |> Stream.map(fn (%Mariaex.Result{rows: rows}) -> rows end)
         |> result_processor.()
       end, [timeout: Driver.timeout()])
     rescue

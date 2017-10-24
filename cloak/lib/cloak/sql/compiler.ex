@@ -35,7 +35,11 @@ defmodule Cloak.Sql.Compiler do
     |> Query.resolve_db_columns()
 
   defp do_compile(data_source, parsed_query, parameters, views) do
-    compiled_query = Compiler.Specification.compile(parsed_query, data_source, parameters, views)
+    compiled_query =
+      parsed_query
+      |> Compiler.ASTNormalization.normalize()
+      |> Compiler.Specification.compile(data_source, parameters, views)
+
     features = Query.features(compiled_query)
 
     final_query =

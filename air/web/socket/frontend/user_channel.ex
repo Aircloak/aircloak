@@ -34,7 +34,6 @@ defmodule Air.Socket.Frontend.UserChannel do
   # -------------------------------------------------------------------
 
   @doc false
-  @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
   def join("user_queries:" <> user_id, _, socket) do
     current_user_id = socket.assigns.user.id
     case Integer.parse(user_id) do

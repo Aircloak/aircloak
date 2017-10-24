@@ -288,8 +288,10 @@ presence of `NULL` values in some column.
 
 Additionally, depending on the type of clause, some extra data is added:
 
-* `=` clauses, `LIKE` clauses, and `GROUP BY` - no extra data
-* `<>` clauses and `NOT LIKE` clauses - a `:<>` symbol
+* `=` clauses, and `GROUP BY` - no extra data
+* `<>` clauses - a `:<>` symbol
+* `[NOT] [I]LIKE` clauses - symbols indicating the type of clause (like `:ilike`)
+  plus pattern-dependent data, see [Like pattern seeds](#like-pattern-seeds)
 * range clauses - the range endpoints
 * `NOT IN` clauses - are converted to an equivalent conjunction on `<>` clauses,
   so noise layers are never directly computed for them
@@ -299,6 +301,44 @@ As a final step if the hash of the seed for many noise layers comes out the same
 then the duplicates are discarded. This is done so that adding the same clause
 (or a clause with the same effect) multiple times does not affect query results.
 
+### LIKE pattern seeds
+
+In addition to what is described in [Noise layer seeds](#noise-layer-seeds)
+`[NOT] [I]LIKE` clauses create a noise layer per wildcard used in the pattern.
+These layers are built according to the following procedure (assuming a clause
+`WHERE x [NOT] [I]LIKE 'S1'`):
+
+1. "Scrub" the string 'S1' to produce string 'S2' as follows:
+   1. Modify any sequence of characters containing both `%` and `_` symbols to
+      contain instead a single `%` at the beginning of the sequence, followed
+      by the same number of `_` symbols.
+   1. Modify any sequence of multiple `%` symbols to be a single `%` symbol.
+1. Remove all `%` symbols from `S2`, producing `S3`.
+1. Set `N = length(S3)`.
+1. For each `_` symbol in `S3`, add a noise layer seeded by a hash of the
+   following item concatenated together:
+   1. The column name.
+   1. A symbol indicating clause type, e.g. `:ilike`
+   1. `N`.
+   1. The position of the `_` in `S3` (`M`).
+   1. The symbol `_`.
+   1. The uid-hash.
+1. For each `%` symbol in `S2`, add a noise layer seeded by a hash of the
+   following item concatenated together:
+   1. The column name.
+   1. A symbol indicating clause type, e.g. `:ilike`
+   1. `N`.
+   1. The position of the character in `S3` that precedes the `%` (`M`).
+   1. The symbol `%`.
+   1. The uid-hash.
+
+The purpose of this is to capture the meaning of the non-literal part of the
+pattern, which is summarized by the `{:_, N, M}`/`{:%, N, M}` tuples. At the
+same time we don't want to give the analyst an opportunity to generate new noise
+values by adding spurious `%` signs to the pattern, as these can match 0
+characters. That is the reason for normalizing the pattern at the beginning as
+well as not counting the `%` when calculating the `M` indices.
+
 ### Floating data
 
 The data for a noise layer is taken from the raw database column if possible.
@@ -307,45 +347,3 @@ value of the column in question with every row. In that case 3 values are
 produced instead - the min, max and count of the column. This process can be
 repeated in case of multiple aggregations (in subqueries) by taking the min of
 mins, max of maxes and sum of counts.
-
-### Probing
-
-In addition to a noise layer some clauses need to be checked with a probe. The
-reason is that we don't have a way (yet?) to detect the "real" meaning of the
-clause. For example both `a <> 4` and `sqrt(a) <> 2` do the exact same thing.
-Instead of trying to guess what the effect would be from looking at the
-expression alone we issue a probe to the database to judge the effect of the
-clause on the query in practice.
-
-Probing basically means that a helper query (probe) is issued to the database
-for each "suspect" condition. The probe checks how many users the condition
-excludes from the original query. If this number is low, then such a clause
-and any corresponding noise layers are removed from the original query.
-
-See [this noise layer issue](https://github.com/Aircloak/aircloak/issues/1768)
-and [this probing issue](https://github.com/Aircloak/aircloak/issues/1777) for
-more information about noise layers and probing.
-
-### Low count checks
-
-LIKE and ILIKE clauses are subject to another mechanism that hides some rows
-matched by the query under certain conditions. This is because a LIKE is
-implicitly an OR clause - for example the clause `x LIKE '_abc'` is the same as
-`x = 'aabc' OR x = 'babc' OR ...`.
-
-For every clause of the type `x LIKE y` where `x` might be some complex expression
-`x` is floated to the top of the query. Then, before aggregation, we look at the
-number of distinct values in `x`. If it's more than 4, then no rows are suppressed.
-If it's less, then for each unique value we do a low-count computation, as usual.
-The rows containing the values that are low-count are removed from the result
-set before aggregation.
-
-There are two additional complications:
-
-1. For ILIKE, the floated values is a downcased version of what would be floated
-   for LIKE to account for the case-insensitive nature of the clause.
-2. If the rows are grouped in a subquery (e.g.
-   `SELECT ... FROM (SELECT ... WHERE x LIKE y GROUP BY z) foo`) then we float
-   `min` and `max` of the appropriate expression. These are then fed into the
-   rules above, but if a value is found to be low-count then all _aggregated_
-   rows containing that value in either `min` or `max` will be suppressed.

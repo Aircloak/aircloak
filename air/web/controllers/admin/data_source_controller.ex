@@ -83,7 +83,8 @@ defmodule Air.Admin.DataSourceController do
         conn
         |> put_layout(false)
         |> put_status(:not_found)
-        |> render(Air.ErrorView, "404.html")
+        |> put_view(Air.ErrorView)
+        |> render("404.html")
         |> halt()
       data_source ->
         assign(conn, :data_source, data_source)

@@ -18,11 +18,11 @@ defmodule Air.Token do
   end
 
   @doc "Will return the user associated with a token, assuming the token is valid"
-  @spec user_for_token(String.t, ApiToken.Access.t) :: User.t | :error
-  def user_for_token(token, access) do
+  @spec user_for_token(String.t, ApiToken.Access.t, [max_age: pos_integer | :infinity]) :: User.t | :error
+  def user_for_token(token, access, opts \\ []) do
     import Ecto.Query
 
-    case Phoenix.Token.verify(Endpoint, api_token_salt(), token) do
+    case Phoenix.Token.verify(Endpoint, api_token_salt(), token, max_age: normalized_max_age(opts[:max_age])) do
       {:ok, token_id} ->
         case Repo.one(from token in ApiToken,
             where: token.id == ^token_id,
@@ -42,6 +42,15 @@ defmodule Air.Token do
   # -------------------------------------------------------------------
   # Salt configuration
   # -------------------------------------------------------------------
+
+  defp normalized_max_age(max_age) when is_integer(max_age), do: max_age
+  defp normalized_max_age(nil), do:
+    # default max age is one day
+    60 * 60 * 24
+  defp normalized_max_age(:infinity), do:
+    # Phoenix warns if we're not validating the token age, so we need to pass some integer value.
+    # Therefore, we're simulating infinity by using a ridiculously large value (10,000 years).
+    60 * 60 * 24 * 365 * 10_000
 
   defp api_token_salt do
     Application.get_env(:air, Air.Endpoint) |> Keyword.fetch!(:api_token_salt)

@@ -262,11 +262,7 @@ defmodule Cloak.Query.Anonymizer do
     end)
   end
 
-  defp compute_hash(data), do: :crypto.hash(:sha256, :erlang.term_to_binary(normalize(data)))
-
-  defp normalize([number]) when is_float(number), do:
-    Cloak.Query.Anonymizer.Normalizer.normalize_float(number, 6)
-  defp normalize(data), do: data
+  defp compute_hash(data), do: :crypto.hash(:sha256, :erlang.term_to_binary(data))
 
   defp binary_to_seed(binary) do
     <<left :: bitstring - size(128), right :: bitstring - size(128)>> = binary

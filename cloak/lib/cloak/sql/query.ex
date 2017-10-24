@@ -61,7 +61,6 @@ defmodule Cloak.Sql.Query do
     implicit_count?: boolean,
     group_by: [Function.t],
     where: where_clause,
-    emulated_where: where_clause,
     order_by: [{Expression.t, :asc | :desc}],
     show: :tables | :columns | nil,
     selected_tables: [DataSource.Table.t],
@@ -71,7 +70,6 @@ defmodule Cloak.Sql.Query do
     limit: pos_integer | nil,
     offset: non_neg_integer,
     having: having_clause,
-    distinct?: boolean,
     sample_rate: nil | non_neg_integer,
     emulated?: boolean,
     ranges: [Range.t],
@@ -104,8 +102,8 @@ defmodule Cloak.Sql.Query do
   defstruct [
     columns: [], where: nil, group_by: [], order_by: [], column_titles: [], aggregators: [],
     info: [], selected_tables: [], implicit_count?: false, data_source: nil, command: nil,
-    show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil, distinct?: false,
-    emulated_where: nil, ranges: [], parameters: [], views: %{}, emulated?: false, sample_rate: nil,
+    show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil,
+    ranges: [], parameters: [], views: %{}, emulated?: false, sample_rate: nil,
     projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false, table_aliases: %{},
     low_count_checks: []
   ]

@@ -4,6 +4,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   alias Cloak.DataSource.Table
   alias Cloak.Sql.Expression
 
+  import Cloak.Test.QueryHelpers, except: [compile!: 2, compile!: 3]
+
   test "overwrites any existing noise layers" do
     compiled = Cloak.Test.QueryHelpers.compile!("SELECT COUNT(*) FROM table", data_source())
     query =
@@ -18,9 +20,26 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       compile!("SELECT COUNT(*) FROM table", data_source()).noise_layers
   end
 
-  describe "picking columns for noise layers" do
-    test "adds a uid and static noise layer for normal conditions" do
+  describe "basic noise layers" do
+    test "adds a uid and static noise layer for clear conditions" do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
+
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 3}]},
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 3}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
+      assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
+    end
+
+    test "noise layers for clear condition don't depend on equality order" do
+      result1 = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
+      result2 = compile!("SELECT COUNT(*) FROM table WHERE 3 = numeric", data_source())
+
+      assert scrub_aliases(result1).noise_layers == scrub_aliases(result2).noise_layers
+    end
+
+    test "adds a uid and static noise layer for unclear conditions" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE numeric + 1 = 4", data_source())
 
       assert [
         %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]},
@@ -49,7 +68,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
     test "adds a uid and static noise layer for columns filtered with JOIN" do
       result = compile!(
-        "SELECT COUNT(*) FROM table JOIN other ON table.numeric = 3 AND table.uid = other.uid",
+        "SELECT COUNT(*) FROM table JOIN other ON table.numeric + 1 = 3 AND table.uid = other.uid",
         data_source()
       )
 
@@ -62,7 +81,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "emulated WHERE" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE decoded = 'a'", data_source())
+      result = compile!("SELECT COUNT(*) FROM table WHERE lower(decoded) = 'a'", data_source())
 
       assert [
         %{base: {"table", "decoded", nil}, expressions: [%Expression{name: "decoded"}]},
@@ -87,7 +106,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "multiple filters on one column" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3 GROUP BY BUCKET(numeric BY 10)", data_source())
+      result = compile!("""
+        SELECT COUNT(*) FROM table WHERE numeric + 1 = 3 GROUP BY BUCKET(numeric BY 10)
+      """, data_source())
 
       assert [
         %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]},
@@ -97,6 +118,64 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       ] = result.noise_layers
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
+    end
+
+    test "columns in top-level select" do
+      result = compile!("SELECT numeric FROM table", data_source())
+
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
+      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
+    end
+
+    test "aggregated columns in top-level select are ignored" do
+      result = compile!("SELECT COUNT(numeric) FROM table", data_source())
+
+      assert [_generic_noise_layer = %{base: nil}] = result.noise_layers
+    end
+
+    test "having in top-level query" do
+      result = compile!("SELECT COUNT(*) FROM table HAVING COUNT(numeric) = 10", data_source())
+
+      assert [_generic_noise_layer = %{base: nil}] = result.noise_layers
+    end
+
+    test "having in subquery" do
+      result = compile!("""
+        SELECT COUNT(*) FROM (SELECT uid, COUNT(*) FROM table GROUP BY uid HAVING COUNT(numeric) = 10) x
+      """, data_source())
+
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: _},
+        %{base: {"table", "numeric", nil}, expressions: _},
+      ] = result.noise_layers
+    end
+
+    test "clear condition in JOIN" do
+      result = compile!("""
+        SELECT COUNT(*) FROM table JOIN other ON table.numeric = 3 AND table.uid = other.uid
+      """, data_source())
+
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 3}]},
+        %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 3}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
+      refute Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
+      assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
+    end
+
+    test "a column from a subquery is not clear" do
+      result = compile!("""
+        SELECT COUNT(*) FROM (SELECT uid, numeric AS number FROM table) x WHERE number = 3
+      """, data_source())
+
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: [%{name: alias}]},
+        %{base: {"table", "numeric", nil}, expressions: [%{name: alias}, %{name: "uid"}]},
+      ] = result.noise_layers
+      refute is_nil(alias)
     end
   end
 
@@ -157,30 +236,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         %{base: {"table", "numeric2", :<>}, expressions: [%Expression{name: "numeric2"}]},
       ] = result.noise_layers
     end
-
-    test "noise layers for NOT LIKE" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT LIKE 'bob%'", data_source())
-
-      assert [
-        %{base: {"table", "name", :<>}, expressions: [%Expression{name: "name"}]},
-      ] = result.noise_layers
-    end
-
-    test "noise layers for NOT ILIKE" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT ILIKE 'bob%'", data_source())
-
-      assert [
-        %{base: {"table", "name", :<>}, expressions: [%Expression{name: "name"}]},
-      ] = result.noise_layers
-    end
-
-    test "noise layers when the argument to NOT LIKE is not raw" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE lower(name) NOT LIKE 'bob%'", data_source())
-
-      assert [
-        %{base: {"table", "name", :<>}, expressions: [%Expression{name: "name"}]},
-      ] = result.noise_layers
-    end
   end
 
   describe "noise layers for IS NULL" do
@@ -200,38 +255,100 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   end
 
   describe "noise layers for LIKE" do
-    @tag :pending
     test "a noise layers in LIKE" do
       result = compile!("SELECT COUNT(*) FROM table WHERE name || name2 LIKE 'b%_o_%b'", data_source())
+      len = String.length("b%_o_%b") - String.length("%%")
 
       assert [
         %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:like, {:%, ^len, 1}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", {:like, {:_, ^len, 1}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", {:like, {:%, ^len, 3}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", {:like, {:_, ^len, 3}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
         %{base: {"table", "name2", nil}, expressions: [%Expression{name: "name2"}]},
+        %{base: {"table", "name2", {:like, {:%, ^len, 1}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
+        %{base: {"table", "name2", {:like, {:_, ^len, 1}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
+        %{base: {"table", "name2", {:like, {:%, ^len, 3}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
+        %{base: {"table", "name2", {:like, {:_, ^len, 3}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
       ] = result.noise_layers
     end
 
-    @tag :pending
     test "noise layers in ILIKE" do
       result = compile!("SELECT COUNT(*) FROM table WHERE name || name2 ILIKE 'b%_o_%b'", data_source())
+      len = String.length("b%_o_%b") - String.length("%%")
 
       assert [
         %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:ilike, {:%, ^len, 1}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", {:ilike, {:_, ^len, 1}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", {:ilike, {:%, ^len, 3}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", {:ilike, {:_, ^len, 3}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
         %{base: {"table", "name2", nil}, expressions: [%Expression{name: "name2"}]},
+        %{base: {"table", "name2", {:ilike, {:%, ^len, 1}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
+        %{base: {"table", "name2", {:ilike, {:_, ^len, 1}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
+        %{base: {"table", "name2", {:ilike, {:%, ^len, 3}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
+        %{base: {"table", "name2", {:ilike, {:_, ^len, 3}}}, expressions: [%{name: "name2"}, %{name: "uid"}]},
       ] = result.noise_layers
     end
 
-    for like <- ["LIKE", "ILIKE"] do
-      test "noise layers when #{like} has no wildcards" do
-        [
-          %{base: base1, expressions: [%{name: name}]},
-          %{base: base2,  expressions: [%{name: name}, %{name: "uid"}]},
-        ] = compile!("SELECT COUNT(*) FROM table WHERE name #{unquote(like)} 'bob'", data_source()).noise_layers
+    test "noise layers when LIKE has no wildcards" do
+      [
+        %{base: base1, expressions: [%{value: "bob"}]},
+        %{base: base2,  expressions: [%{value: "bob"}, %{name: "uid"}]},
+      ] = compile!("SELECT COUNT(*) FROM table WHERE name LIKE 'bob'", data_source()).noise_layers
 
-        assert [
-          %{base: ^base1, expressions: [%{name: ^name}]},
-          %{base: ^base2,  expressions: [%{name: ^name}, %{name: "uid"}]},
-        ] = compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'", data_source()).noise_layers
-      end
+      assert [
+        %{base: ^base1, expressions: [%{value: "bob"}]},
+        %{base: ^base2,  expressions: [%{value: "bob"}, %{name: "uid"}]},
+      ] = compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'", data_source()).noise_layers
+    end
+
+    test "noise layers when ILIKE has no wildcards" do
+      [
+        %{base: base1, expressions: [%{name: "name"}]},
+        %{base: base2,  expressions: [%{name: "name"}, %{name: "uid"}]},
+      ] = compile!("SELECT COUNT(*) FROM table WHERE name ILIKE 'bob'", data_source()).noise_layers
+
+      assert [
+        %{base: ^base1, expressions: [%{value: "bob"}]},
+        %{base: ^base2,  expressions: [%{value: "bob"}, %{name: "uid"}]},
+      ] = compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'", data_source()).noise_layers
+    end
+
+    test "noise layers for NOT LIKE" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT LIKE '_bob%'", data_source())
+      len = String.length("_bob%") - String.length("%")
+
+      assert [
+        %{base: {"table", "name", {:not, :like, "_bob"}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:not, :like, {:_, ^len, 0}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", {:not, :like, {:%, ^len, 4}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+      ] = result.noise_layers
+    end
+
+    test "noise layers for NOT ILIKE" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT ILIKE '_bob%'", data_source())
+      len = String.length("_bob%") - String.length("%")
+
+      assert [
+        %{base: {"table", "name", {:not, :ilike, "_bob"}}, expressions: [%Expression{name: "name"}]},
+        %{base: {"table", "name", {:not, :ilike, {:_, ^len, 0}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", {:not, :ilike, {:%, ^len, 4}}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+      ] = result.noise_layers
+    end
+
+    test "noise layers when NOT LIKE has no wildcards" do
+      result1 = compile!("SELECT COUNT(*) FROM table WHERE name NOT LIKE 'bob'", data_source())
+      result2 = compile!("SELECT COUNT(*) FROM table WHERE name <> 'bob'", data_source())
+
+      assert Enum.map(result1.noise_layers, & &1.base) == Enum.map(result2.noise_layers, & &1.base)
+    end
+
+    test "noise layers when NOT ILIKE has no wildcards" do
+      result1 = compile!("SELECT COUNT(*) FROM table WHERE name NOT ILIKE 'bob'", data_source())
+      result2 = compile!("SELECT COUNT(*) FROM table WHERE name <> 'bob'", data_source())
+
+      assert Enum.map(result1.noise_layers, & &1.base) == Enum.map(result2.noise_layers, & &1.base)
     end
   end
 
@@ -253,14 +370,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
         %{base: {"table", "name", nil}, expressions: [%{name: "name"}]},
-        %{base: {"table", "name", nil}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", nil}, expressions: [%{value: "a"}, %{name: "uid"}]},
+        %{base: {"table", "name", nil}, expressions: [%{value: "b"}, %{name: "uid"}]},
       ] = result.noise_layers
     end
   end
 
   describe "noise layers from subqueries" do
     test "floating noise layers from a subquery" do
-      result = compile!("SELECT COUNT(*) FROM (SELECT * FROM table WHERE numeric = 3) foo", data_source())
+      result = compile!("SELECT COUNT(*) FROM (SELECT * FROM table WHERE numeric + 1 = 3) foo", data_source())
 
       assert [
         %{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}]},
@@ -272,10 +390,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
     test "floating noise layers from a join" do
       result = compile!("""
-        SELECT numeric FROM table JOIN (SELECT uid FROM table WHERE numeric = 3) foo ON foo.uid = table.uid
+        SELECT numeric FROM table JOIN (SELECT uid FROM table WHERE numeric + 1= 3) foo ON foo.uid = table.uid
       """, data_source())
 
       assert [
+        _select_static_layer = %{},
+        _select_uid_layer = %{},
         %{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}]},
         %{base: {"table", "numeric", nil}, expressions: [
           %Expression{name: name},
@@ -304,7 +424,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
     test "floating columns that are not aggregated" do
       result = compile!(
-        "SELECT COUNT(*) FROM (SELECT uid FROM table WHERE numeric = 3 GROUP BY uid, dummy) foo",
+        "SELECT COUNT(*) FROM (SELECT uid FROM table WHERE numeric + 1 = 3 GROUP BY uid, dummy) foo",
         data_source()
       )
 
@@ -361,7 +481,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "floating complex noise layers through non-aggregating queries" do
       result = compile!(
         "SELECT COUNT(*) FROM (SELECT * FROM
-          (SELECT uid FROM table WHERE numeric = 3 GROUP BY uid, dummy) foo
+          (SELECT uid FROM table WHERE numeric + 1 = 3 GROUP BY uid, dummy) foo
         ) bar",
         data_source()
       )
@@ -391,7 +511,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "floating columns that are not aggregated" do
       result = compile!(
         "SELECT COUNT(*) FROM (SELECT uid FROM
-          (SELECT uid, dummy FROM table WHERE numeric = 3 GROUP BY uid, dummy, dummy2) foo
+          (SELECT uid, dummy FROM table WHERE numeric + 1 = 3 GROUP BY uid, dummy, dummy2) foo
         GROUP BY uid, dummy) bar",
         data_source()
       )

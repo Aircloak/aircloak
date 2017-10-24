@@ -18,7 +18,6 @@ defmodule Central.Socket.Air.MainChannel do
   # -------------------------------------------------------------------
 
   @impl Phoenix.Channel
-  @dialyzer {:nowarn_function, join: 3} # Phoenix bug, fixed in master
   def join("main", raw_air_info, socket) do
     Logger.metadata(customer: socket.assigns.customer.name, air: socket.assigns.air_name)
     Process.flag(:trap_exit, true)
@@ -40,7 +39,6 @@ defmodule Central.Socket.Air.MainChannel do
   end
 
   @impl Phoenix.Channel
-  @dialyzer {:nowarn_function, terminate: 2} # Phoenix bug, fixed in master
   def terminate(_reason, socket) do
     Logger.info("left central")
     {:ok, socket}

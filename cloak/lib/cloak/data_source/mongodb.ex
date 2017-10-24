@@ -136,15 +136,19 @@ defmodule Cloak.DataSource.MongoDB do
       connection
       |> Mongo.aggregate(collection, pipeline, options)
       |> Stream.map(&map_fields(&1, mappers))
+      |> Stream.chunk_every(Driver.batch_size())
       |> result_processor.()
     {:ok, result}
   end
 
   @impl Driver
   def supports_query?(query), do:
-    supports_used_functions?(query) and
     supports_used_functions_in_having?(query) and
     supports_joins?(query)
+
+  @impl Driver
+  def supports_function?(expression, data_source), do:
+    function_signature(expression) in (data_source |> get_mongo_version() |> supported_functions())
 
 
   # -------------------------------------------------------------------
@@ -238,12 +242,6 @@ defmodule Cloak.DataSource.MongoDB do
   end
   defp supports_used_functions_in_having?(_query), do: true
 
-  defp supports_used_functions?(query) do
-    used_functions = Query.Lenses.db_needed_functions() |> Lens.to_list(query) |> Enum.map(&function_signature/1)
-    supported_functions = query.data_source |> get_mongo_version() |> supported_functions()
-    Enum.reject(used_functions, & &1 in supported_functions) == []
-  end
-
   defp function_signature(%Expression{function: {:cast, type}, function_args: [value]}), do:
     "cast_#{value.type}_to_#{type}"
   defp function_signature(%Expression{function?: true, function: name}), do: name
@@ -251,18 +249,18 @@ defmodule Cloak.DataSource.MongoDB do
   defp supports_joins?(%Query{from: {:join, join}} = query) do
     mongo_version_supports_joins?(query) and
     join.type == :inner_join and
-    supported_join_conditions?(join.conditions) and
-    supported_join_branches?(query.selected_tables, join.lhs, join.rhs)
+    supports_join_conditions?(join.conditions) and
+    supports_join_branches?(query.selected_tables, join.lhs, join.rhs)
   end
   defp supports_joins?(_query), do: true
 
   defp mongo_version_supports_joins?(%{data_source: data_source}), do:
     data_source |> get_mongo_version() |> Version.compare("3.2.0") != :lt
 
-  defp supported_join_conditions?({:comparison, lhs, :=, rhs}), do: lhs.name != nil and rhs.name != nil
-  defp supported_join_conditions?(_conditions), do: false
+  defp supports_join_conditions?({:comparison, lhs, :=, rhs}), do: lhs.name != nil and rhs.name != nil
+  defp supports_join_conditions?(_conditions), do: false
 
-  defp supported_join_branches?(selected_tables, lhs, rhs), do:
+  defp supports_join_branches?(selected_tables, lhs, rhs), do:
     (is_binary(lhs) or is_binary(rhs)) and
     not sharded_table?(selected_tables, lhs) and
     not sharded_table?(selected_tables, rhs)

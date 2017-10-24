@@ -4,19 +4,16 @@ defmodule Cloak.DataSource.PostgreSQL do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.{SqlBuilder, Table, Driver}
+  alias Cloak.DataSource.Table
   alias Cloak.DataSource
   alias Cloak.Query.DataDecoder
+
+  use Cloak.DataSource.Driver.SQL
 
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
-
-  @behaviour Driver
-
-  @impl Driver
-  def sql_dialect_module(_parameters), do: Cloak.DataSource.SqlBuilder.PostgreSQL
 
   @impl Driver
   def connect!(parameters) do
@@ -34,10 +31,6 @@ defmodule Cloak.DataSource.PostgreSQL do
         DataSource.raise_error("Unknown failure during database connection process")
     end
   end
-  @impl Driver
-  def disconnect(connection) do
-    GenServer.stop(connection)
-  end
 
   @impl Driver
   def load_tables(connection, table) do
@@ -48,7 +41,7 @@ defmodule Cloak.DataSource.PostgreSQL do
     query = "SELECT column_name, udt_name FROM information_schema.columns " <>
       "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}'"
     row_mapper = fn [name, type_name] -> Table.column(name, parse_type(type_name)) end
-    case run_query(connection, query, row_mapper, &Enum.to_list/1) do
+    case run_query(connection, query, row_mapper, &Enum.concat/1) do
       {:ok, []} -> DataSource.raise_error("Table `#{table.db_name}` does not exist")
       {:ok, columns} -> [%{table | columns: columns}]
       {:error, reason} -> DataSource.raise_error("`#{reason}`")
@@ -63,9 +56,6 @@ defmodule Cloak.DataSource.PostgreSQL do
     run_query(connection, statement, &map_fields(&1, field_mappers), result_processor)
   end
 
-  @impl Driver
-  def supports_query?(query), do: SqlBuilder.Support.supported_query?(query)
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -76,7 +66,7 @@ defmodule Cloak.DataSource.PostgreSQL do
       with {:ok, query} <- Postgrex.prepare(connection, "data select", statement, []) do
         try do
           Postgrex.stream(connection, query, [], [decode_mapper: decode_mapper, max_rows: Driver.batch_size()])
-          |> Stream.flat_map(fn (%Postgrex.Result{rows: rows}) -> rows end)
+          |> Stream.map(fn (%Postgrex.Result{rows: rows}) -> rows end)
           |> result_processor.()
         after
           Postgrex.close(connection, query)

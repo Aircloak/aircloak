@@ -1,16 +1,16 @@
 defmodule Cloak.DataSource.SQLServerTds do
   @moduledoc "Implements the DataSource.Driver behaviour for MS SQL Server. For more information, see `DataSource`."
 
-  alias Cloak.DataSource.{SqlBuilder, Table, Driver}
+  alias Cloak.DataSource.Table
   alias Cloak.DataSource
   alias Cloak.Query.DataDecoder
+
+  use Cloak.DataSource.Driver.SQL
 
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
-
-  @behaviour Driver
 
   @impl Driver
   def sql_dialect_module(_parameters), do: SqlBuilder.SQLServer
@@ -31,10 +31,6 @@ defmodule Cloak.DataSource.SQLServerTds do
         DataSource.raise_error("Unknown failure during database connection process")
     end
   end
-  @impl Driver
-  def disconnect(connection) do
-    GenServer.stop(connection)
-  end
 
   @impl Driver
   def load_tables(connection, table) do
@@ -45,7 +41,7 @@ defmodule Cloak.DataSource.SQLServerTds do
     query = "SELECT column_name, data_type FROM information_schema.columns " <>
       "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}' ORDER BY ordinal_position DESC"
     row_mapper = fn ([name, type_name]) -> Table.column(name, parse_type(type_name)) end
-    case run_query(connection, query, row_mapper, &Enum.to_list/1) do
+    case run_query(connection, query, row_mapper, &Enum.concat/1) do
       {:ok, []} -> DataSource.raise_error("Table `#{table.db_name}` does not exist")
       {:ok, columns} -> [%{table | columns: columns}]
       {:error, reason} -> DataSource.raise_error("`#{reason}`")
@@ -60,9 +56,6 @@ defmodule Cloak.DataSource.SQLServerTds do
     run_query(connection, statement, &map_fields(&1, field_mappers), result_processor)
   end
 
-  @impl Driver
-  def supports_query?(query), do: SqlBuilder.Support.supported_query?(query)
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -73,7 +66,7 @@ defmodule Cloak.DataSource.SQLServerTds do
       with {:ok, query} <- Tds.prepare(connection, statement, []) do
         try do
           with {:ok, %Tds.Result{rows: rows}} <- Tds.execute(connection, query, [], [decode_mapper: decode_mapper]) do
-            {:ok, result_processor.(rows)}
+            {:ok, result_processor.([rows])}
           end
         after
           Tds.close(connection, query)
