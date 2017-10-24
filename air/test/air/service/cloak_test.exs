@@ -2,7 +2,7 @@ defmodule Air.Service.Cloak.Test do
   use ExUnit.Case, async: false
   use Air.SchemaCase
 
-  import Air.AssertionHelper
+  import Aircloak.AssertionHelper
 
   alias Air.{Repo, TestRepoHelper, TestSocketHelper, Schemas.DataSource, Service.Cloak}
 
