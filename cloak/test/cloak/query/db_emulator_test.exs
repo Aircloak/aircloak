@@ -65,7 +65,7 @@ defmodule Cloak.Query.DBEmulatorTest do
   end
 
   describe "aggregation in emulated subqueries" do
-    def aggregation_setup(_) do
+    setup do
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
         ["value", "date"], [Base.encode64("abc"), "2016-11-02"])
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
@@ -79,8 +79,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
         ["value", "date"], [nil, nil])
     end
-
-    setup [:aggregation_setup]
 
     test "count(*)" do
       assert_query "select avg(v) from (select user_id, count(*) as v from #{@prefix}emulated group by user_id) as t",
@@ -213,7 +211,7 @@ defmodule Cloak.Query.DBEmulatorTest do
   end
 
   describe "distinct in emulated subqueries" do
-    defp distinct_setup(_) do
+    setup do
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
         ["value", "date"], [Base.encode64("abc"), "2016-11-02"])
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
@@ -227,8 +225,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
         ["value", "date"], [nil, nil])
     end
-
-    setup [:distinct_setup]
 
     test "count(distinct value)", do:
       assert_query """
@@ -270,12 +266,10 @@ defmodule Cloak.Query.DBEmulatorTest do
   end
 
   describe "emulated joins" do
-    defp join_setup(_) do
+    setup do
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("a b c")])
       :ok = insert_rows(_user_ids = 11..25, "#{@prefix}joined", ["age"], [30])
     end
-
-    setup [:join_setup]
 
     test "cross join", do:
       assert_query """
