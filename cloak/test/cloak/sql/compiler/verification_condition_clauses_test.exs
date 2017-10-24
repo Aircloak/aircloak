@@ -113,7 +113,7 @@ defmodule Cloak.Sql.Compiler.VerificationConditionClauses.Test do
             SELECT uid, #{unquote(discontinuous_function)}(numeric) as value
             FROM table
           ) t
-          WHERE value >= 10 and value < 20
+          WHERE value = 10
         """
         assert condition_columns_have_valid_transformations(query)
       end
@@ -140,7 +140,7 @@ defmodule Cloak.Sql.Compiler.VerificationConditionClauses.Test do
             SELECT uid, #{unquote(discontinuous_function)}(numeric, numeric) as value
             FROM table
           ) t
-          WHERE value >= 10 and value < 20
+          WHERE value = 10
         """
         assert condition_columns_have_valid_transformations(query)
       end
@@ -153,7 +153,7 @@ defmodule Cloak.Sql.Compiler.VerificationConditionClauses.Test do
             SELECT uid, numeric #{unquote(math_function)} numeric as value
             FROM table
           ) t
-          WHERE value >= 10 and value < 20
+          WHERE value = 10
         """
         assert condition_columns_have_valid_transformations(query)
       end
@@ -207,14 +207,11 @@ defmodule Cloak.Sql.Compiler.VerificationConditionClauses.Test do
     case compile(query, data_source()) do
       {:ok, _} -> true
       {:error, reason} ->
-        if reason =~ ~r/Inequality clauses used to filter the data/ do
-          false
-        else
-          if reason =~ ~r/Equality clauses \(like WHERE/ do
-            false
-          else
-            raise "Compilation failed with other reason than illegal filtering condition: #{inspect reason}"
-          end
+        cond do
+          reason =~ ~r/Inequality clauses used to filter the data/ -> false
+          reason =~ ~r/Equality clauses \(like WHERE/ -> false
+          reason =~ ~r/Only unmodified database columns can be limited/ -> false
+          true -> raise "Compilation failed with other reason than illegal filtering condition: #{inspect reason}"
         end
     end
   end

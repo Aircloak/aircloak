@@ -177,12 +177,16 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
     end
 
     test "having inequality" do
+      :ok = insert_emulated_row(_user_ids = 1..10, ["num"], [3])
+      :ok = insert_emulated_row(_user_ids = 11..20, ["num"], [7])
+      :ok = insert_emulated_row(_user_ids = 21..30, ["num"], [30])
+
       assert_query """
-        select length(v) as l from
-          (select user_id, left(value, 1) as v from #{@prefix}emulated
-          group by user_id, value having length(value) >= 1 and length(value) < 2) as t
-        order by l
-        """, %{rows: [%{occurrences: 20, row: [1]}]}
+        select v from
+          (select user_id, num + 2 as v from #{@prefix}emulated
+          group by user_id, num having num >= 0 and num < 10) as t
+        order by v
+        """, %{rows: [%{occurrences: 10, row: [5]}, %{occurrences: 10, row: [9]}]}
     end
 
     test "having equality" do

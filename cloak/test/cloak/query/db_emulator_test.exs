@@ -55,14 +55,6 @@ defmodule Cloak.Query.DBEmulatorTest do
     """, %{rows: [%{occurrences: 10, row: ["abc"]}]}
   end
 
-  test "where inequality with functions" do
-    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["number"], ["-3"])
-    :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["number"], ["-11"])
-
-    assert_query "select count(*) from #{@prefix}emulated where abs(number) > 0 and abs(number) < 10",
-      %{rows: [%{row: [10]}]}
-  end
-
   test "like on an emulated column" do
     :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value"], [Base.encode64("aba")])
     :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value"], [Base.encode64("aca")])
@@ -118,23 +110,31 @@ defmodule Cloak.Query.DBEmulatorTest do
     end
 
     test "having inequality" do
+      :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["number"], ["3"])
+      :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["number"], ["7"])
+      :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["number"], ["30"])
+
       assert_query """
-        select length(v) as l from
-          (select user_id, left(value, 1) as v from #{@prefix}emulated
-          group by user_id, value having length(value) >= 1 and length(value) < 2) as t
-        order by l
-      """, %{rows: [%{occurrences: 20, row: [1]}]}
+        select v from
+          (select user_id, number + 2 as v from #{@prefix}emulated
+          group by user_id, number having number >= 0 and number < 10) as t
+        order by v
+      """, %{rows: [%{occurrences: 10, row: [5]}, %{occurrences: 10, row: [9]}]}
     end
 
     test "nested having inequality" do
+      :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["number"], ["3"])
+      :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["number"], ["7"])
+      :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["number"], ["30"])
+
       assert_query """
-        select length(v) as l from
+        select v from
           (select user_id, v from
-            (select user_id, left(value, 1) as v from #{@prefix}emulated
-            group by user_id, value having length(value) >= 1 and length(value) < 2) as t
+            (select user_id, number + 2 as v from #{@prefix}emulated
+            group by user_id, number having number >= 0 and number < 10) as t
           group by user_id, v) as foo
-        order by l
-      """, %{rows: [%{occurrences: 20, row: [1]}]}
+        order by v
+      """, %{rows: [%{occurrences: 10, row: [5]}, %{occurrences: 10, row: [9]}]}
     end
 
     test "where inequality" do
