@@ -107,6 +107,7 @@ defmodule Cloak.Query.Runner do
     {:stop, :normal, state}
   end
   def handle_info({:send_state, query_id, query_state}, state) do
+    Logger.debug("Query #{query_id} state changed to: #{query_state}...")
     ResultSender.send_state(state.result_target, query_id, query_state)
     {:noreply, state}
   end

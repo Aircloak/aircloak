@@ -228,7 +228,7 @@ defmodule Cloak.DataSource.MongoDBTest do
 
   test "functions in conditions in subqueries", context do
     assert_query context, """
-      SELECT COUNT(name) FROM (SELECT _id, name FROM #{@table}_bills WHERE age / 3 = 10 AND abs(age + 2) <> 20) AS t
+      SELECT COUNT(name) FROM (SELECT _id, name FROM #{@table}_bills WHERE abs(age / 3) = 10) AS t
     """, %{rows: [%{occurrences: 1, row: [10]}]}
   end
 

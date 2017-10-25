@@ -4,15 +4,12 @@ defmodule Cloak.Query.Aggregator do
   require Logger
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{Query, Expression, NoiseLayer, LowCountCheck}
+  alias Cloak.Sql.{Query, Expression, NoiseLayer}
   alias Cloak.Query.{Anonymizer, Rows, Result}
-  alias Cloak.Query.Runner.Engine
 
   @typep group_values :: [DataSource.field | :*]
   @typep user_id :: DataSource.field
   @typep group :: {group_values, Anonymizer.t, %{user_id => DataSource.row}}
-
-  @low_count_check_cutoff 4
 
 
   # -------------------------------------------------------------------
@@ -20,92 +17,58 @@ defmodule Cloak.Query.Aggregator do
   # -------------------------------------------------------------------
 
   @doc """
-  Transforms the non-anonymized rows returned from the database into an
-  anonymized result. This is done in following steps:
+    Transforms the previously grouped database rows into anonymized buckets. This is done in following steps:
 
-  1. Rows are grouped per query specification. See `Cloak.Query.Rows.group_expressions/1` for details.
-     Additionally, inside each distinct group, rows are groupped per user.
+    1. Groups for which there are not enough distinct users are discarded.
+       A low-count substitute row is generated for all such groups to indicate
+       the amount of rows which are filtered out. This row is reported, but only
+       if there are enough of users which are filtered out.
 
-  2. Groups for which there are not enough distinct users are discarded.
-     A low-count substitute row is generated for all such groups to indicate
-     the amount of rows which are filtered out. This row is reported, but only
-     if there are enough of users which are filtered out.
+    2. Aggregation functions (e.g. `sum`, `count`) are computed for each distinct
+       group. The resulting values are anonymized using the `Anonymizer`
+       module.
 
-  3. Aggregation functions (e.g. `sum`, `count`) are computed for each distinct
-     group. The resulting values are anonymized using the `Anonymizer`
-     module.
+    Each output row will consist of all anonymization group values together with
+    computed anonymized aggregates (count, sum, ...). For example, in the following
+    query:
 
-  Each output row will consist of all anonymization group values together with
-  computed anonymized aggregates (count, sum, ...). For example, in the following
-  query:
+    ```
+    select foo, count(*), avg(bar) from baz group by foo
+    ```
 
-  ```
-  select foo, count(*), avg(bar) from baz group by foo
-  ```
-
-  Each output row will consist of columns `foo`, `count(*)`, and `avg(bar)`.
+    Each output row will consist of columns `foo`, `count(*)`, and `avg(bar)`.
   """
-  @spec aggregate(Enumerable.t, Query.t, Query.features, Engine.state_updater) :: Result.t
-  def aggregate(rows, query, features, state_updater) do
-    state_updater.(:ingesting_data)
-    rows = perform_low_count_checks(rows, query, state_updater)
-    groups = groups(rows, query, state_updater)
+  @spec aggregate(Rows.groups, Query.t) :: {[Result.bucket], non_neg_integer}
+  def aggregate(groups, query) do
+    groups = init_anonymizer(groups)
     users_count = number_of_anonymized_users(groups, query)
-    aggregated_buckets = groups
+    aggregated_buckets =
+      groups
       |> process_low_count_users(query)
       |> aggregate_groups(query)
       |> make_buckets(query)
-
-    state_updater.(:post_processing)
-
-    Result.new(query, features, aggregated_buckets, users_count)
+    {aggregated_buckets, users_count}
   end
 
+  @doc """
+    Rows are grouped per query specification. See `Cloak.Query.Rows.group_expressions/1` for details.
+    Additionally, inside each distinct group, rows are groupped per user.
+  """
+  @spec group(Enumerable.t, Query.t) :: Rows.groups
+  def group(rows, query) do
+    Logger.debug("Grouping rows ...")
 
-  # -------------------------------------------------------------------
-  # Low count checks
-  # -------------------------------------------------------------------
+    {per_user_aggregators, aggregated_columns} =
+      query.aggregators
+      |> Enum.map(&per_user_aggregator_and_column/1)
+      |> Enum.uniq()
+      |> Enum.unzip()
 
-  defp perform_low_count_checks(rows, %Query{low_count_checks: []}, _state_updater), do: rows
-  defp perform_low_count_checks(rows, query, state_updater) do
-    Logger.debug("Performing low count checks ...")
-    Enum.reduce(query.low_count_checks, rows, &perform_low_count_check(&1, &2, query, state_updater))
-  end
+    default_accumulators = List.duplicate(nil, Enum.count(aggregated_columns))
+    default_noise_layers = NoiseLayer.new_accumulator(query.noise_layers)
+    merging_fun = group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query)
 
-  defp perform_low_count_check(%LowCountCheck{expressions: expressions}, rows, query, state_updater) do
-    rows = run_stream_to_avoid_rewinds(rows)
-    state_updater.(:processing)
-    by_value =
-      rows
-      |> Enum.flat_map(fn (row) -> Enum.map(expressions, &{Expression.value(&1, row), row}) end)
-      |> Enum.group_by(fn ({value, _}) -> value end, fn ({_, row}) -> row end)
-
-    if Enum.count(by_value) >= @low_count_check_cutoff do
-      rows
-    else
-      to_drop = values_to_drop(by_value, query)
-      Enum.reject(rows, fn (row) -> Enum.any?(expressions, &Expression.value(&1, row) in to_drop) end)
-    end
-  end
-
-  defp run_stream_to_avoid_rewinds(enum), do: Enum.to_list(enum)
-
-  defp values_to_drop(rows_by_value, query), do:
-    rows_by_value
-    |> Enum.filter(fn ({_, rows}) ->
-      {user_ids, anonymizer} = anonymizer_from_rows(rows, query)
-      low_users_count?(user_ids, anonymizer)
-    end)
-    |> Enum.map(fn ({value, _}) -> value end)
-    |> Enum.into(MapSet.new())
-
-  defp anonymizer_from_rows(rows, query) do
-    accumulator = NoiseLayer.new_accumulator(query.noise_layers)
-    noise_layers = Enum.reduce(rows, accumulator, &NoiseLayer.accumulate(query.noise_layers, &2, &1))
-    user_ids = Enum.map(rows, &user_id/1) |> Enum.into(MapSet.new())
-    anonymizer = Anonymizer.new(noise_layers)
-
-    {user_ids, anonymizer}
+    Rows.group(rows, query, {%{}, default_noise_layers}, merging_fun)
   end
 
 
@@ -177,25 +140,6 @@ defmodule Cloak.Query.Aggregator do
 
   defp per_user_aggregator_and_column(aggregator), do:
     {per_user_aggregator(aggregator), aggregated_column(aggregator)}
-
-  defp groups(rows, query, state_updater) do
-    Logger.debug("Grouping rows ...")
-
-    {per_user_aggregators, aggregated_columns} =
-      query.aggregators
-      |> Enum.map(&per_user_aggregator_and_column/1)
-      |> Enum.uniq()
-      |> Enum.unzip()
-
-    default_accumulators = List.duplicate(nil, Enum.count(aggregated_columns))
-    default_noise_layers = NoiseLayer.new_accumulator(query.noise_layers)
-    merging_fun = group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query)
-
-    rows
-    |> Rows.group(query, {%{}, default_noise_layers}, merging_fun)
-    |> fn(rows) -> state_updater.(:processing); rows end.()
-    |> init_anonymizer()
-  end
 
   defp group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query), do:
     fn({user_rows, noise_accumulator}, row) ->
