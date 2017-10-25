@@ -21,7 +21,7 @@ defmodule Cloak.Sql.TypeChecker do
   or discontinuous functions.
   """
 
-  alias Cloak.Sql.{CompilationError, Condition, Expression, Query}
+  alias Cloak.Sql.{CompilationError, Condition, Function, Expression, Query}
   alias Cloak.Sql.TypeChecker.{Narrative, Type}
 
 
@@ -177,7 +177,7 @@ defmodule Cloak.Sql.TypeChecker do
     end)
 
   defp clear_range_lhs?(%Expression{aggregate?: true, function_args: [lhs]}, query), do: clear_range_lhs?(lhs, query)
-  defp clear_range_lhs?(lhs, query), do: establish_type(lhs, query).raw_column?
+  defp clear_range_lhs?(lhs, query), do: establish_type(lhs, query).cast_raw_column?
 
   defp verify_conditions(query, predicate, action), do:
     Query.Lenses.db_filter_clauses()
@@ -239,6 +239,7 @@ defmodule Cloak.Sql.TypeChecker do
   defp column(expression), do:
     %Type{
       raw_column?: true,
+      cast_raw_column?: true,
       constant?: false,
       narrative_breadcrumbs: [{expression, []}],
       datetime_involved?: datetime_type?(expression),
@@ -252,18 +253,17 @@ defmodule Cloak.Sql.TypeChecker do
   defp construct_type(%Expression{constant?: true}, _query, _future), do: constant()
   defp construct_type(%Expression{function: nil} = column, query, future), do:
     expand_from_subquery(column, query, future)
-  defp construct_type(%Expression{function: name, function_args: args}, query, future), do:
-    type_for_function(name, args, query, future)
-  defp construct_type({:function, name, args}, query, future), do:
-    type_for_function(name, args, query, future)
+  defp construct_type(function = %Expression{function?: true}, query, future), do:
+    type_for_function(function, query, future)
 
-  defp type_for_function(name, args, query, future) do
+  defp type_for_function(function = %Expression{function: name, function_args: args}, query, future) do
     child_types = args |> Enum.map(&(construct_type(&1, query, [name | future])))
     # Prune constants, they don't interest us further
     if Enum.all?(child_types, &(&1.constant?)) do
       constant()
     else
       %Type{
+        cast_raw_column?: Function.cast?(function) and match?([%{raw_column?: true}], child_types),
         constant_involved?: any_touched_by_constant?(child_types),
         datetime_involved?: any_touched_by_datetime?(child_types),
         is_result_of_potentially_crashing_function?: performs_potentially_crashing_function?(name, child_types) ||
