@@ -1,10 +1,10 @@
-defmodule Cloak.Sql.TypeChecker.Test do
+defmodule Cloak.Sql.Compiler.TypeChecker.Test do
   @moduledoc false
 
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.Table
-  alias Cloak.Sql.{Compiler, Parser, TypeChecker, Expression}
+  alias Cloak.Sql.{Compiler, Parser, Compiler.TypeChecker, Expression}
 
   describe "math is only dangerous if a constant is involved" do
     Enum.each(~w(+ - * ^ /), fn(math_function) ->

@@ -1,4 +1,4 @@
-defmodule Cloak.Sql.TypeChecker do
+defmodule Cloak.Sql.Compiler.TypeChecker do
   @moduledoc """
   Provides functions to check whether selected columns, or expressions
   used in WHERE-clause inequalities have undergone dangerous transformations.
@@ -22,7 +22,7 @@ defmodule Cloak.Sql.TypeChecker do
   """
 
   alias Cloak.Sql.{CompilationError, Condition, Function, Expression, Query}
-  alias Cloak.Sql.TypeChecker.{Narrative, Type}
+  alias Cloak.Sql.Compiler.TypeChecker.{Narrative, Type}
 
 
   # -------------------------------------------------------------------
