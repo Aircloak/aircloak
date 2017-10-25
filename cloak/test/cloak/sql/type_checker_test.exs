@@ -280,6 +280,16 @@ defmodule Cloak.Sql.TypeChecker.Test do
       assert {:error, "The <> operation can only be applied to an unmodified database column and a constant."} =
         compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
 
+    test "allows clear <> lhs in subquery HAVING", do:
+      assert {:ok, _, _} = compile("""
+        SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(numeric) <> 10) x
+      """)
+
+    test "forbids unclear <> lhs in subquery HAVING", do:
+      assert {:error, "The <> operation can only be applied to an unmodified database column" <> _} = compile("""
+        SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING AVG(numeric + 1) <> 10) x
+      """)
+
     test "allows clear NOT LIKE lhs", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE string NOT LIKE '%some pattern_'")
 

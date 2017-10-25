@@ -157,14 +157,14 @@ defmodule Cloak.Sql.TypeChecker do
 
   defp verify_lhs_of_in_is_clear(query), do:
     verify_conditions(query, &Condition.in?/1, fn({:in, lhs, _}) ->
-      unless establish_type(lhs, query).raw_column? do
+      unless clear_lhs?(lhs, query) do
         raise CompilationError, message: "The left-hand side of an IN operator must be an unmodified database column."
       end
     end)
 
   defp verify_lhs_of_not_equals_is_clear(query), do:
     verify_conditions(query, &Condition.not_equals?/1, fn({:comparison, lhs, :<>, rhs}) ->
-      unless establish_type(lhs, query).raw_column? and establish_type(rhs, query).constant? do
+      unless clear_lhs?(lhs, query) and establish_type(rhs, query).constant? do
         raise CompilationError, message:
           "The <> operation can only be applied to an unmodified database column and a constant."
       end
@@ -172,11 +172,14 @@ defmodule Cloak.Sql.TypeChecker do
 
   defp verify_lhs_of_not_like_is_clear(query), do:
     verify_conditions(query, &Condition.not_like?/1, fn({:not, {kind, lhs, _}}) ->
-      unless establish_type(lhs, query).raw_column? do
+      unless clear_lhs?(lhs, query) do
         raise CompilationError, message:
           "NOT #{like_kind_name(kind)} can only be applied to an unmodified database column."
       end
     end)
+
+  defp clear_lhs?(%Expression{aggregate?: true, function_args: [lhs]}, query), do: clear_lhs?(lhs, query)
+  defp clear_lhs?(lhs, query), do: establish_type(lhs, query).raw_column?
 
   defp like_kind_name(:like), do: "LIKE"
   defp like_kind_name(:ilike), do: "ILIKE"
