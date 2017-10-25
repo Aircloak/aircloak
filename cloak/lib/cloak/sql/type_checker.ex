@@ -47,6 +47,7 @@ defmodule Cloak.Sql.TypeChecker do
     verify_function_usage_for_condition_clauses(query)
     verify_lhs_of_in_is_clear(query)
     verify_lhs_of_not_equals_is_clear(query)
+    verify_lhs_of_not_like_is_clear(query)
     verify_ranges_are_clear(query)
     query
   end
@@ -168,6 +169,17 @@ defmodule Cloak.Sql.TypeChecker do
           "The <> operation can only be applied to an unmodified database column and a constant."
       end
     end)
+
+  defp verify_lhs_of_not_like_is_clear(query), do:
+    verify_conditions(query, &Condition.not_like?/1, fn({:not, {kind, lhs, _}}) ->
+      unless establish_type(lhs, query).raw_column? do
+        raise CompilationError, message:
+          "NOT #{like_kind_name(kind)} can only be applied to an unmodified database column."
+      end
+    end)
+
+  defp like_kind_name(:like), do: "LIKE"
+  defp like_kind_name(:ilike), do: "ILIKE"
 
   defp verify_ranges_are_clear(query), do:
     verify_conditions(query, &Condition.inequality?/1, fn({:comparison, lhs, _, _}) ->

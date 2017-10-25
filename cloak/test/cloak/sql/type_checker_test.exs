@@ -268,7 +268,7 @@ defmodule Cloak.Sql.TypeChecker.Test do
         compile("SELECT COUNT(*) FROM (SELECT numeric + 1 AS number FROM table) x WHERE number IN (1, 2, 3)")
   end
 
-  describe "<>" do
+  describe "negative conditions" do
     test "allows clear <> lhs", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> 10")
 
@@ -279,6 +279,20 @@ defmodule Cloak.Sql.TypeChecker.Test do
     test "forbids column <> column", do:
       assert {:error, "The <> operation can only be applied to an unmodified database column and a constant."} =
         compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
+
+    test "allows clear NOT LIKE lhs", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE string NOT LIKE '%some pattern_'")
+
+    test "allows clear NOT ILIKE lhs", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE string NOT ILIKE '%some pattern_'")
+
+    test "forbids unclear NOT LIKE lhs", do:
+      assert {:error, "NOT LIKE can only be applied to an unmodified database column."} =
+        compile("SELECT COUNT(*) FROM table WHERE upper(string) NOT LIKE '%some pattern_'")
+
+    test "forbids unclear NOT ILIKE lhs", do:
+      assert {:error, "NOT ILIKE can only be applied to an unmodified database column."} =
+        compile("SELECT COUNT(*) FROM table WHERE upper(string) NOT ILIKE '%some pattern_'")
   end
 
   describe "ranges" do
