@@ -44,7 +44,7 @@ defmodule Cloak.Query.Runner.Ingestor do
 
   defp dispatch_chunks(pids, chunks) do
     Logger.debug("Ingesting data using #{length(pids)} processes ...")
-    Enum.reduce(chunks, 0, fn (chunk, _) -> send_more_reply({:data, chunk}) end)
+    Enum.each(chunks, &send_more_reply({:data, &1}))
     for _pid <- pids, do: send_more_reply(:end_of_data)
     Logger.debug("Integrating consumed data ...")
     pids
