@@ -23,6 +23,9 @@ defmodule Cloak.Sql.TypeChecker.Type do
     # that has been simply selected into the outer query.
     raw_column?: boolean,
 
+    # True if the expression is a column from the database without any processing other than casts.
+    cast_raw_column?: boolean,
+
     # True if any of the expressions it has come in contact with through functions
     # were constant.
     constant_involved?: boolean,
@@ -63,6 +66,7 @@ defmodule Cloak.Sql.TypeChecker.Type do
   defstruct [
     constant?: false, constant_involved?: false, datetime_involved?: false,
     is_result_of_datetime_processing?: false, is_result_of_potentially_crashing_function?: false,
-    dangerously_discontinuous?: false, seen_dangerous_math?: false, narrative_breadcrumbs: [], raw_column?: false
+    dangerously_discontinuous?: false, seen_dangerous_math?: false, narrative_breadcrumbs: [], raw_column?: false,
+    cast_raw_column?: false,
   ]
 end

@@ -252,40 +252,67 @@ defmodule Cloak.Sql.TypeChecker.Test do
   end
 
   describe "IN" do
-    test "allows clear IN lhs" do
+    test "allows clear IN lhs", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric IN (1, 2, 3)")
-    end
 
-    test "forbids unclear IN lhs" do
+    test "forbids unclear IN lhs", do:
       assert {:error, "The left-hand side of an IN operator must be an unmodified database column."} =
         compile("SELECT COUNT(*) FROM table WHERE numeric + 1 IN (1, 2, 3)")
-    end
 
-    test "allows clear IN lhs from subqueries" do
+    test "allows clear IN lhs from subqueries", do:
       assert {:ok, _, _} =
         compile("SELECT COUNT(*) FROM (SELECT numeric AS number FROM table) x WHERE number IN (1, 2, 3)")
-    end
 
-    test "forbids unclear IN lhs from subqueries" do
+    test "forbids unclear IN lhs from subqueries", do:
       assert {:error, "The left-hand side of an IN operator must be an unmodified database column."} =
         compile("SELECT COUNT(*) FROM (SELECT numeric + 1 AS number FROM table) x WHERE number IN (1, 2, 3)")
-    end
   end
 
   describe "<>" do
-    test "allows clear <> lhs" do
+    test "allows clear <> lhs", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> 10")
-    end
 
-    test "forbids unclear <> lhs" do
+    test "forbids unclear <> lhs", do:
       assert {:error, "The <> operation can only be applied to an unmodified database column and a constant."} =
         compile("SELECT COUNT(*) FROM table WHERE numeric + 1 <> 10")
-    end
 
-    test "forbids column <> column" do
+    test "forbids column <> column", do:
       assert {:error, "The <> operation can only be applied to an unmodified database column and a constant."} =
         compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
-    end
+  end
+
+  describe "ranges" do
+    test "allows clear >=/< arguments", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric > 0 AND numeric < 10")
+
+    test "forbids unclear >=/< arguments", do:
+      assert {:error, "Only unmodified database columns can be limited by a range."} =
+        compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) > 0 AND sqrt(numeric) < 10")
+
+    test "allows clear between arguments", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric BETWEEN 0 AND 10")
+
+    test "forbids unclear between arguments", do:
+      assert {:error, "Only unmodified database columns can be limited by a range."} =
+        compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) BETWEEN 0 AND 10")
+
+    test "allows any ranges in top-level HAVING", do:
+      assert {:ok, _, _} = compile("""
+        SELECT COUNT(*) FROM table GROUP BY numeric HAVING sqrt(COUNT(float)) BETWEEN 0 AND 10
+      """)
+
+    test "allows clear ranges in subquery HAVING", do:
+      assert {:ok, _, _} = compile("""
+        SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(float) BETWEEN 0 AND 10) x
+      """)
+
+    test "forbids unclear ranges in subquery HAVING", do:
+      assert {:error,  "Only unmodified database columns can be limited by a range."} = compile("""
+        SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING sqrt(COUNT(float)) BETWEEN 0 AND 10) x
+      """)
+
+    test "allows casts in ranges", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE CAST(string AS INTEGER) BETWEEN 0 AND 10")
   end
 
   defp dangerously_discontinuous?(query), do:
