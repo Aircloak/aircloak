@@ -1033,4 +1033,21 @@ defmodule Cloak.Query.BasicTest do
     :ok = insert_rows(_user_ids = 1..1000, "heights", ["height"], [180])
     assert_query "select count(height) from heights sample_users 2%", %{rows: [%{row: [25]}]}
   end
+
+  test "aggregation of low-count values" do
+    :ok = insert_rows(_user_ids = 1..3, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 3..5, "heights", ["height"], [178])
+    :ok = insert_rows(_user_ids = 6..7, "heights", ["height"], [155])
+    :ok = insert_rows(_user_ids = 8..9, "heights", ["height"], [150])
+    :ok = insert_rows(_user_ids = 10..12, "heights", ["height"], [152])
+    :ok = insert_rows(_user_ids = 13..15, "heights", ["height"], [175])
+    :ok = insert_rows(_user_ids = 16..17, "heights", ["height"], [153])
+    :ok = insert_rows(_user_ids = 18..19, "heights", ["height"], [177])
+
+    assert_query """
+      select
+        height, count(distinct height), min(height), max(height), median(height), round(avg(height))
+      from heights group by height
+    """, %{rows: [%{row: [:*, 8, 157, 176, 167, 165]}]}
+  end
 end
