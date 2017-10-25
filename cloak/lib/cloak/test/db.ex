@@ -64,7 +64,7 @@ defmodule Cloak.Test.DB do
           data_source
         end
     end)
-    |> DataSource.update()
+    |> DataSource.replace_all_data_source_configs()
   end
 
   # -------------------------------------------------------------------

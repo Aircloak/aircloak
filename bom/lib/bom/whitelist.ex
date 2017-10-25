@@ -104,6 +104,7 @@ defmodule BOM.Whitelist do
     "0689a7b07fec79946ae192573e1450e8" => :bsd_3_clause,  # elixir/getopt
     "9741c346eef56131163e13b9db1241b3" => :mpl_2_0,       # elixir/jose
     "4d8e2e181d7f8cdc38226f5ee04e5fdd" => :mit,           # elixir/phoenix_gen_socket_server
+    "d0d1fe59ece5018a431ad8e694ec6c6a" => :wtfpl,         # elixir/file_system
   }
 
 

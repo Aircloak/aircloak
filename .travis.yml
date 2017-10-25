@@ -43,6 +43,7 @@ matrix:
           - unixodbc
           - unixodbc-dev
           - odbc-postgresql
+          - inotify-tools
         hosts:
         - travis.aircloak.local
       before_install:
@@ -100,6 +101,7 @@ matrix:
           - odbc-postgresql
           - mongodb-org-server
           - libaio1
+          - inotify-tools
       before_install:
       - sleep 3
       - psql -c "CREATE DATABASE cloaktest1 ENCODING 'UTF8';" -U postgres
@@ -133,6 +135,7 @@ matrix:
           - mongodb-3.4-precise
           packages:
           - mongodb-org-server
+          - inotify-tools
       before_install:
       - ./travis-asdf-setup.sh
     - env: TEST="aux"

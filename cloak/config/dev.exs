@@ -31,5 +31,3 @@ config :cloak, :memory_limits,
   allowed_minimum_time_to_limit: 1_000,
   # Time in seconds to wait between consecutive memory related query abortions
   time_between_abortions: 1_000
-
-config :cloak, :data_source_monitor_interval, 15_000

@@ -36,12 +36,7 @@ defmodule Air.Service.Cloak do
   @doc "Updates the data sources configuration for the calling cloak."
   @spec update(Map.t, Map.t) :: [Air.Schemas.DataSource.t]
   def update(cloak_info, data_sources) do
-    # cleanup previous entries from Registry
-    Registry.unregister(@all_cloak_registry_name, :all_cloaks)
-    for data_source <- data_sources do
-      Registry.unregister(@data_source_registry_name, data_source["name"])
-    end
-
+    unregister_cloak()
     register(cloak_info, data_sources)
   end
 
@@ -113,6 +108,12 @@ defmodule Air.Service.Cloak do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp unregister_cloak() do
+    Registry.unregister(@all_cloak_registry_name, :all_cloaks)
+    for data_source_name <- Registry.keys(@data_source_registry_name, self()), do:
+      Registry.unregister(@data_source_registry_name, data_source_name)
+  end
 
   defp add_error(error, data_source) do
     existing_errors = Map.get(data_source, :errors, [])
