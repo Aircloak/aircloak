@@ -84,7 +84,6 @@ defmodule BOM.Gather.Elixir do
       {"poison", "1a6bff505c22047e18a9318e01bda63ede20d649", :"cc0-1.0"},
       {"websocket_client", "c2a6cf11233cad54a7f7e6c89bca172f2b494f9d", :mit},
       {"tds", "844cd4c26b2b85937fb993781ff2e6e39735b314", :apache2},
-      {"phoenix_gen_socket_client", "d95c74ea9d223ddc0cdcf8610762ff9fcbeee62a", :mit},
     ]
   do
     defp non_hex_license(unquote(package_name), unquote(version)), do:
