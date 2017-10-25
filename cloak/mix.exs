@@ -29,6 +29,7 @@ defmodule Cloak.Mixfile do
   defp deps do
     [
       {:aircloak_common, path: "../common/elixir"},
+      {:quantum, "~> 1.9"},
       {:meck, github: "eproxus/meck", tag: "0.8.2", override: true, runtime: false},
       {:postgrex, "~> 0.13"},
       {:mariaex, "~> 0.8"},
@@ -42,10 +43,11 @@ defmodule Cloak.Mixfile do
       {:backoff, "~> 1.1.3"},
       {:jiffy, "~> 0.14.1"},
       {:tds, github: "livehelpnow/tds"},
+      {:file_system, "~> 0.2.2"},
 
       # Hackney is not a direct dependency of ours, but we need it to be at version 1.8.6 or more recent
       # in order to build under Erlang 20.0. Earlier versions indirectly included too old versions of a
-      # unicode compatibility layer that doesn't jell will our version of Erlang.
+      # unicode compatibility layer that doesn't jell with our version of Erlang.
       {:hackney, ">= 1.8.6", override: true},
 
       # Test deps

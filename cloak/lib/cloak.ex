@@ -10,6 +10,7 @@ defmodule Cloak do
     Cloak.LoggerTranslator.install()
     set_salt()
     if Aircloak.DeployConfig.fetch("debug") === {:ok, true} do Logger.configure(level: :debug) end
+    configure_periodic_jobs()
     Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor)
   end
 
@@ -48,6 +49,15 @@ defmodule Cloak do
         raise("Please specify a salt in the cloak configuration file (config.json). " <>
           "The salt is a requirement for strong anonymization.")
       {:ok, value} -> value
+    end
+  end
+
+  if Mix.env == :test do
+    defp configure_periodic_jobs(), do: :ok
+  else
+    defp configure_periodic_jobs() do
+      [{"*/5 * * * *", {Cloak.DataSource.SerializingUpdater, :run_liveness_check}}]
+      |> Enum.each(fn({schedule, job}) -> Quantum.add_job(schedule, job) end)
     end
   end
 end

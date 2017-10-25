@@ -1,8 +1,5 @@
 {
   "air_site": "ws://air:8080",
   "salt": "Salt for local dev cloak",
-  "features": {
-    "math": true
-  },
   "data_sources": "data_sources"
 }

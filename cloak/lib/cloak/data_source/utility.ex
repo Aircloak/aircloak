@@ -5,6 +5,7 @@ defmodule Cloak.DataSource.Utility do
 
   require Logger
   require Aircloak.File
+  alias Cloak.DataSource
 
 
   # -------------------------------------------------------------------
