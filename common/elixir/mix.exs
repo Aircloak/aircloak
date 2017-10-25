@@ -48,7 +48,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       {:distillery, "~> 1.1.0", runtime: false},
       {:phoenix, "~> 1.1.6", only: :test},
       {:cowboy, "~> 1.0", only: :test},
-      {:phoenix_gen_socket_client, github: "aircloak/phoenix_gen_socket_client", tag: "sasa/support-phoenix1.3", optional: true},
+      {:phoenix_gen_socket_client, "~> 2.0", optional: true},
     ]
   end
 

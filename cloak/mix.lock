@@ -38,7 +38,7 @@
   "mongodb": {:hex, :mongodb, "0.3.0", "96611b380a7322a9c6796bc0a79981c8e51b4673e6c333f2bfa424ccb13b5eac", [:mix], [{:connection, "~> 1.0", [hex: :connection, repo: "hexpm", optional: false]}, {:db_connection, "~> 1.0", [hex: :db_connection, repo: "hexpm", optional: false]}], "hexpm"},
   "pbkdf2": {:git, "git://github.com/comtihon/erlang-pbkdf2.git", "7076584f5377e98600a7e2cb81980b2992fb2f71", [tag: "2.0.0"]},
   "phoenix": {:hex, :phoenix, "1.3.0", "1c01124caa1b4a7af46f2050ff11b267baa3edb441b45dbf243e979cd4c5891b", [:mix], [{:cowboy, "~> 1.0", [hex: :cowboy, repo: "hexpm", optional: true]}, {:phoenix_pubsub, "~> 1.0", [hex: :phoenix_pubsub, repo: "hexpm", optional: false]}, {:plug, "~> 1.3.3 or ~> 1.4", [hex: :plug, repo: "hexpm", optional: false]}, {:poison, "~> 2.2 or ~> 3.0", [hex: :poison, repo: "hexpm", optional: false]}], "hexpm"},
-  "phoenix_gen_socket_client": {:git, "https://github.com/aircloak/phoenix_gen_socket_client.git", "d95c74ea9d223ddc0cdcf8610762ff9fcbeee62a", [tag: "sasa/support-phoenix1.3"]},
+  "phoenix_gen_socket_client": {:hex, :phoenix_gen_socket_client, "2.0.0", "4b26eca3cf3e0dfc2ac7563fbcf8f652efe1753ab227ec365b14fd4c865fe851", [:mix], [{:poison, "~> 2.0 or ~> 3.0", [hex: :poison, repo: "hexpm", optional: true]}, {:websocket_client, "~> 1.2", [hex: :websocket_client, repo: "hexpm", optional: true]}], "hexpm"},
   "phoenix_pubsub": {:hex, :phoenix_pubsub, "1.0.2", "bfa7fd52788b5eaa09cb51ff9fcad1d9edfeb68251add458523f839392f034c1", [], [], "hexpm"},
   "plug": {:hex, :plug, "1.4.3", "236d77ce7bf3e3a2668dc0d32a9b6f1f9b1f05361019946aae49874904be4aed", [:mix], [{:cowboy, "~> 1.0.1 or ~> 1.1", [hex: :cowboy, repo: "hexpm", optional: true]}, {:mime, "~> 1.0", [hex: :mime, repo: "hexpm", optional: false]}], "hexpm"},
   "poison": {:git, "https://github.com/cristianberneanu/poison.git", "1a6bff505c22047e18a9318e01bda63ede20d649", []},
@@ -55,4 +55,4 @@
   "triq": {:git, "https://github.com/triqng/triq.git", "0591543a91bd42cd8466e441765f5b49dbef3443", []},
   "tzdata": {:hex, :tzdata, "0.5.12", "1c17b68692c6ba5b6ab15db3d64cc8baa0f182043d5ae9d4b6d35d70af76f67b", [:mix], [{:hackney, "~> 1.0", [hex: :hackney, repo: "hexpm", optional: false]}], "hexpm"},
   "unicode_util_compat": {:hex, :unicode_util_compat, "0.2.0", "dbbccf6781821b1c0701845eaf966c9b6d83d7c3bfc65ca2b78b88b8678bfa35", [:rebar3], [], "hexpm"},
-  "websocket_client": {:git, "https://github.com/sanmiguel/websocket_client.git", "c2a6cf11233cad54a7f7e6c89bca172f2b494f9d", [tag: "1.2.4"]}}
+  "websocket_client": {:hex, :websocket_client, "1.2.4", "14ec1ca4b6d247b44ccd9a80af8f6ca98328070f6c1d52a5cb00bc9d939d63b8", [:rebar3], [], "hexpm"}}
