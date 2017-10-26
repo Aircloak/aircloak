@@ -19,10 +19,9 @@ defmodule Cloak.MemoryReader.ProcMemInfo do
   @doc "Reads the memory and returns a memory info struct"
   @spec read() :: ProcMemInfo.t
   def read() do
-    case System.cmd("cat", ["/proc/meminfo"], stderr_to_stdout: true) do
-      {data, 0} ->
-        parse(data)
-      {_error, 1} ->
+    case File.open("/proc/meminfo", [:read, :binary], &IO.read(&1, :all)) do
+      {:ok, data} -> parse(data)
+      {:error, _} ->
         # We are on a system that doesn't have /proc/meminfo.
         # Fall back on using a defensive version of the erlang provided readings.
         reading = :memsup.get_system_memory_data()
