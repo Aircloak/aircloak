@@ -74,15 +74,10 @@ defmodule Cloak.Query.Aggregator do
     Merging is needed when grouping over multiple processes, before the start of the aggregation step.
   """
   @spec merge_groups(Rows.groups, Rows.groups) :: Rows.groups
-  def merge_groups(groups1, groups2) do
+  def merge_groups(groups1, groups2), do:
     Map.merge(groups1, groups2, fn (_key, {user_values1, noise_layers1}, {user_values2, noise_layers2}) ->
-      user_values = Map.merge(user_values1, user_values2, fn (_user, columns1, columns2) ->
-        Enum.zip(columns1, columns2) |> Enum.map(&merge_accumulators/1)
-      end)
-      noise_layers = merge_layers(noise_layers1, noise_layers2)
-      {user_values, noise_layers}
+      {merge_user_values(user_values1, user_values2), merge_layers(noise_layers1, noise_layers2)}
     end)
-  end
 
 
   # -------------------------------------------------------------------
@@ -386,6 +381,11 @@ defmodule Cloak.Query.Aggregator do
 
   @dialyzer {:nowarn_function, merge_layer: 1} # disable dialyzer warning because of `MapSet.union/2` call
   defp merge_layer({%MapSet{} = layer1, %MapSet{} = layer2}), do: MapSet.union(layer1, layer2)
+
+  defp merge_user_values(user_values1, user_values2), do:
+    Map.merge(user_values1, user_values2, fn (_user, columns1, columns2) ->
+      columns1 |> Enum.zip(columns2) |> Enum.map(&merge_accumulators/1)
+    end)
 
   defp unique_user_ids_from_groups(groups), do:
     groups
