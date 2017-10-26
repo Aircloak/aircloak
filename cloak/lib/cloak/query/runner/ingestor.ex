@@ -17,27 +17,26 @@ defmodule Cloak.Query.Runner.Ingestor do
   @spec ingest(Enumerable.t, non_neg_integer, ((Enumerable.t) -> any), ((any, any) -> any)) :: any
   def ingest(chunks, 0, consumer, _integrator), do: chunks |> Stream.concat() |> consumer.()
   def ingest([chunk], _proc_count, consumer, _integrator), do: consumer.(chunk)
-  def ingest(chunks, proc_count, consumer, integrator) when is_integer(proc_count) and proc_count > 0 do
-    parent = self()
+  def ingest(chunks, proc_count, consumer, integrator) when is_integer(proc_count) and proc_count > 0, do:
     proc_count
-    |> start_ingestors(fn () ->
-      parent
-      |> stream_rows()
-      |> consumer.()
-      |> integrate_result(integrator)
-    end)
+    |> start_ingestors(consumer, integrator)
     |> dispatch_chunks(chunks)
     |> integrate_results()
-  end
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp start_ingestors(count, ingestor) do
+  defp start_ingestors(count, consumer, integrator) do
+    parent = self()
     for _i <- 1..count do
-      {:ok, pid} = Task.start_link(ingestor)
+      {:ok, pid} = Task.start_link(fn () ->
+        parent
+        |> stream_rows()
+        |> consumer.()
+        |> integrate_result(integrator)
+      end)
       pid
     end
   end
