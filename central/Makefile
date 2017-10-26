@@ -47,11 +47,11 @@ lint: eslint flow
 	MIX_ENV=test mix lint
 
 flow:
-	node_modules/.bin/flow check
+	cd assets && node_modules/.bin/flow check
 
 eslint:
-	node_modules/.bin/eslint --max-warnings 0 --rulesdir eslint_rules web/static/js
-	node_modules/.bin/eslint --max-warnings 0 --rulesdir eslint_rules --config .eslintrc-test.js test/js
+	cd assets && node_modules/.bin/eslint --max-warnings 0 --rulesdir eslint_rules js
+	cd assets && node_modules/.bin/eslint --max-warnings 0 --rulesdir eslint_rules --config .eslintrc-test.js test/js
 
 mocha:
 	NODE_PATH=test/js:web/static/js npm test
