@@ -1,4 +1,4 @@
-defmodule Central.Socket.Frontend do
+defmodule CentralWeb.Socket.Frontend do
   @moduledoc """
   Implements websocket interface for web clients using our interface
 
@@ -20,7 +20,7 @@ defmodule Central.Socket.Frontend do
   transport :longpoll, Phoenix.Transports.LongPoll
 
   # List of exposed channels
-  channel "user:*", Central.Socket.Frontend.UserChannel
+  channel "user:*", CentralWeb.Socket.Frontend.UserChannel
 
 
   # -------------------------------------------------------------------

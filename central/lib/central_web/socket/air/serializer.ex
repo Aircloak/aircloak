@@ -1,4 +1,4 @@
-defmodule Central.Socket.Air.Serializer do
+defmodule CentralWeb.Socket.Air.Serializer do
   @moduledoc "Gzip based socket serializer."
   @behaviour Phoenix.Transports.Serializer
 

@@ -1,4 +1,4 @@
-defmodule Central.CustomerController do
+defmodule CentralWeb.CustomerController do
   @moduledoc false
   use Central.Web, :controller
 
@@ -79,7 +79,7 @@ defmodule Central.CustomerController do
         conn
         |> put_layout(false)
         |> put_status(:not_found)
-        |> put_view(Central.ErrorView)
+        |> put_view(CentralWeb.ErrorView)
         |> render("404.html")
         |> halt()
       {:ok, customer} -> assign(conn, :customer, customer)

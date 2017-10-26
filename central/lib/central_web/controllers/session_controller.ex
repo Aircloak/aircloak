@@ -1,4 +1,4 @@
-defmodule Central.SessionController do
+defmodule CentralWeb.SessionController do
   @moduledoc false
   use Central.Web, :controller
 
@@ -31,7 +31,7 @@ defmodule Central.SessionController do
   def delete(conn, _params) do
     conn
     |> Guardian.Plug.sign_out()
-    |> Central.Plug.Session.Restoration.remove_token()
+    |> CentralWeb.Plug.Session.Restoration.remove_token()
     |> put_flash(:info, "Logged out successfully")
     |> redirect(to: session_path(conn, :new))
   end
@@ -42,7 +42,7 @@ defmodule Central.SessionController do
   # -------------------------------------------------------------------
 
   defp conditionally_create_persistent_login(conn, %{"remember" => "on"}) do
-    Central.Plug.Session.Restoration.persist_token(conn)
+    CentralWeb.Plug.Session.Restoration.persist_token(conn)
   end
   defp conditionally_create_persistent_login(conn, _params), do: conn
 end

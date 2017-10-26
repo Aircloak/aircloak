@@ -2,7 +2,7 @@ use Mix.Config
 
 config :central, :deploy_config_file, "test.json"
 
-config :central, Central.Endpoint,
+config :central, CentralWeb.Endpoint,
   http: [port: 7081],
   server: true
 

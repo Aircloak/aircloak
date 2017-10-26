@@ -1,4 +1,4 @@
-defmodule Central.CustomerView do
+defmodule CentralWeb.CustomerView do
   @moduledoc false
   use Central.Web, :view
   alias Central.Schemas.Air

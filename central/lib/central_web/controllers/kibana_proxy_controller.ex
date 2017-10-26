@@ -1,4 +1,4 @@
-defmodule Central.KibanaProxyController do
+defmodule CentralWeb.KibanaProxyController do
   @moduledoc false
   use Central.Web, :controller
 

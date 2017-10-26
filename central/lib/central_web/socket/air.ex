@@ -1,4 +1,4 @@
-defmodule Central.Socket.Air do
+defmodule CentralWeb.Socket.Air do
   @moduledoc """
   Implements websocket interface for airs.
 
@@ -16,10 +16,10 @@ defmodule Central.Socket.Air do
 
   alias Central.Service.Customer
 
-  transport :websocket, Phoenix.Transports.WebSocket, serializer: [{Central.Socket.Air.Serializer, "~> 2.0.0"}]
+  transport :websocket, Phoenix.Transports.WebSocket, serializer: [{CentralWeb.Socket.Air.Serializer, "~> 2.0.0"}]
 
   # List of exposed channels
-  channel "main", Central.Socket.Air.MainChannel
+  channel "main", CentralWeb.Socket.Air.MainChannel
 
 
   # -------------------------------------------------------------------

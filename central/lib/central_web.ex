@@ -28,14 +28,14 @@ defmodule Central.Web do
 
   def controller do
     quote do
-      use Phoenix.Controller
+      use Phoenix.Controller, namespace: CentralWeb
 
       alias Central.Repo
       import Ecto
       import Ecto.Query, only: [from: 1, from: 2]
 
-      import Central.Router.Helpers
-      import Central.Gettext
+      import CentralWeb.Router.Helpers
+      import CentralWeb.Gettext
     end
   end
 
@@ -49,10 +49,10 @@ defmodule Central.Web do
       # Use all HTML functionality (forms, tags, etc)
       use Phoenix.HTML
 
-      import Central.Router.Helpers
-      import Central.ErrorHelpers
-      import Central.ViewHelpers
-      import Central.Gettext
+      import CentralWeb.Router.Helpers
+      import CentralWeb.ErrorHelpers
+      import CentralWeb.ViewHelpers
+      import CentralWeb.Gettext
     end
   end
 
@@ -69,7 +69,7 @@ defmodule Central.Web do
       alias Central.Repo
       import Ecto
       import Ecto.Query, only: [from: 1, from: 2]
-      import Central.Gettext
+      import CentralWeb.Gettext
     end
   end
 

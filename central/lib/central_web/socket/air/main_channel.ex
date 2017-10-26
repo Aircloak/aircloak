@@ -1,4 +1,4 @@
-defmodule Central.Socket.Air.MainChannel do
+defmodule CentralWeb.Socket.Air.MainChannel do
   @moduledoc """
   Main communication channel between an air and the central system.
   """

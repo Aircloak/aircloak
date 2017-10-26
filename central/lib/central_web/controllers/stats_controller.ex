@@ -1,4 +1,4 @@
-defmodule Central.StatsController do
+defmodule CentralWeb.StatsController do
   @moduledoc false
   use Central.Web, :controller
 

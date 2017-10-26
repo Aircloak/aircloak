@@ -1,4 +1,4 @@
-defmodule Central.ImportController do
+defmodule CentralWeb.ImportController do
   @moduledoc false
   use Central.Web, :controller
   require Logger

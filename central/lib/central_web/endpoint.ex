@@ -1,4 +1,4 @@
-defmodule Central.Endpoint do
+defmodule CentralWeb.Endpoint do
   @moduledoc "Implements the HTTP server for insights.aircloak.com."
 
   use Aircloak.ChildSpec.Supervisor, start: {__MODULE__, :start_site, []}
@@ -23,8 +23,8 @@ defmodule Central.Endpoint do
   # Endpoint HTTP specification
   # -------------------------------------------------------------------
 
-  socket "/air/socket", Central.Socket.Air
-  socket "/frontend/socket", Central.Socket.Frontend
+  socket "/air/socket", CentralWeb.Socket.Air
+  socket "/frontend/socket", CentralWeb.Socket.Frontend
 
   # Serve at "/" the static files from "priv/static" directory.
   #
@@ -58,7 +58,7 @@ defmodule Central.Endpoint do
     key: "_central_key",
     signing_salt: "hkTRmL2h"
 
-  plug Central.Router
+  plug CentralWeb.Router
 
 
   # -------------------------------------------------------------------

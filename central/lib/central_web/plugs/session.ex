@@ -1,4 +1,4 @@
-defmodule Central.Plug.Session do
+defmodule CentralWeb.Plug.Session do
   @moduledoc false
 
 
@@ -96,11 +96,11 @@ defmodule Central.Plug.Session do
     """
     use Plug.Builder
 
-    plug Central.Plug.Session.Restoration
+    plug CentralWeb.Plug.Session.Restoration
     plug Guardian.Plug.VerifySession
     plug Guardian.Plug.EnsureAuthenticated, handler: __MODULE__
     plug Guardian.Plug.LoadResource
-    plug Central.Plug.Session.AssignCurrentUser
+    plug CentralWeb.Plug.Session.AssignCurrentUser
 
 
     # -------------------------------------------------------------------
@@ -112,7 +112,7 @@ defmodule Central.Plug.Session do
       conn
       |> Phoenix.Controller.put_flash(:error, "You must be authenticated to view this page")
       |> Plug.Conn.put_session(:return_path, path)
-      |> Phoenix.Controller.redirect(to: Central.Router.Helpers.session_path(conn, :new))
+      |> Phoenix.Controller.redirect(to: CentralWeb.Router.Helpers.session_path(conn, :new))
     end
   end
 
@@ -127,7 +127,7 @@ defmodule Central.Plug.Session do
 
     plug Guardian.Plug.VerifySession
     plug Guardian.Plug.EnsureNotAuthenticated, handler: __MODULE__
-    plug Central.Plug.Session.AssignCurrentUser
+    plug CentralWeb.Plug.Session.AssignCurrentUser
 
 
     # -------------------------------------------------------------------

@@ -1,4 +1,4 @@
-defmodule Central.ViewHelpers do
+defmodule CentralWeb.ViewHelpers do
   @moduledoc "Common helper functions for views."
 
   @doc """

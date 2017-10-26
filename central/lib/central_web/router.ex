@@ -1,4 +1,4 @@
-defmodule Central.Router do
+defmodule CentralWeb.Router do
   @moduledoc false
   use Central.Web, :router
 
@@ -18,21 +18,21 @@ defmodule Central.Router do
   end
 
   pipeline :browser_auth do
-    plug Central.Plug.Session.Authenticated
+    plug CentralWeb.Plug.Session.Authenticated
   end
 
   pipeline :browser_anonymous do
-    plug Central.Plug.Session.Anonymous
+    plug CentralWeb.Plug.Session.Anonymous
   end
 
-  scope "/auth", Central do
+  scope "/auth", CentralWeb do
     pipe_through [:browser, :browser_anonymous] # Use the default browser stack
 
     get "/", SessionController, :new
     post "/", SessionController, :create
   end
 
-  scope "/kibana", Central do
+  scope "/kibana", CentralWeb do
     pipe_through [:proxy, :browser_auth]
     get "/", KibanaProxyController, :redirect_to_web_interface
     get "/*path", KibanaProxyController, :get
@@ -40,7 +40,7 @@ defmodule Central.Router do
     put "/*path", KibanaProxyController, :put
   end
 
-  scope "/", Central do
+  scope "/", CentralWeb do
     pipe_through [:browser, :browser_auth]
 
     resources "/users", UserController

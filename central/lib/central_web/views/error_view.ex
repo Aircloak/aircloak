@@ -1,4 +1,4 @@
-defmodule Central.ErrorView do
+defmodule CentralWeb.ErrorView do
   @moduledoc false
   use Central.Web, :view
 

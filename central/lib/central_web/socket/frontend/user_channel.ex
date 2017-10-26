@@ -1,4 +1,4 @@
-defmodule Central.Socket.Frontend.UserChannel do
+defmodule CentralWeb.Socket.Frontend.UserChannel do
   @moduledoc """
   Channel used for communicating events related to queries.
   For the time being no incoming messages are supported,
@@ -20,7 +20,7 @@ defmodule Central.Socket.Frontend.UserChannel do
   """
   @spec broadcast_result(Query.t) :: :ok
   def broadcast_result(query) do
-    Central.Endpoint.broadcast_from!(self(), "user:#{query.user_id}", "result", Query.for_display(query))
+    CentralWeb.Endpoint.broadcast_from!(self(), "user:#{query.user_id}", "result", Query.for_display(query))
     :ok
   end
 

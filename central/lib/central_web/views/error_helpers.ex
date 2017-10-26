@@ -1,4 +1,4 @@
-defmodule Central.ErrorHelpers do
+defmodule CentralWeb.ErrorHelpers do
   @moduledoc """
   Conveniences for translating and building error messages.
   """
@@ -32,13 +32,13 @@ defmodule Central.ErrorHelpers do
     #     dgettext "errors", "is invalid"
     #
     if count = opts[:count] do
-      Gettext.dngettext(Central.Gettext, "errors", msg, msg, count, opts)
+      Gettext.dngettext(CentralWeb.Gettext, "errors", msg, msg, count, opts)
     else
-      Gettext.dgettext(Central.Gettext, "errors", msg, opts)
+      Gettext.dgettext(CentralWeb.Gettext, "errors", msg, opts)
     end
   end
 
   def translate_error(msg) do
-    Gettext.dgettext(Central.Gettext, "errors", msg)
+    Gettext.dgettext(CentralWeb.Gettext, "errors", msg)
   end
 end

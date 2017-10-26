@@ -1,7 +1,7 @@
-defmodule Central.Socket.AirTest do
+defmodule CentralWeb.Socket.AirTest do
   # `async: false` because shared sandbox mode is used
   # (see https://hexdocs.pm/ecto/Ecto.Adapters.SQL.Sandbox.html)
-  use Central.ChannelCase, async: false
+  use CentralWeb.ChannelCase, async: false
 
   alias Phoenix.Channels.GenSocketClient
   alias GenSocketClient.TestSocket
@@ -128,7 +128,7 @@ defmodule Central.Socket.AirTest do
 
   defp joined_main(%{join_options: join_options, customer: customer, air: air}) do
     {:ok, token} = Customer.generate_token(customer)
-    {:ok, socket} = Phoenix.ChannelTest.connect(Central.Socket.Air, %{token: token, air_name: air.name})
+    {:ok, socket} = Phoenix.ChannelTest.connect(CentralWeb.Socket.Air, %{token: token, air_name: air.name})
     {:ok, _, socket} = Phoenix.ChannelTest.subscribe_and_join(socket, "main", join_options)
     {:ok, socket: socket}
   end

@@ -1,4 +1,4 @@
-defmodule Central.Plug.Rewrite do
+defmodule CentralWeb.Plug.Rewrite do
   @moduledoc """
   Rewrites incoming path to a different path.
 
