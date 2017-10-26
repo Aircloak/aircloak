@@ -25,7 +25,7 @@ defmodule Cloak.AirSocket do
     GenSocketClient.start_link(
       __MODULE__,
       GenSocketClient.Transport.WebSocketClient,
-      air_socket_url(cloak_params),
+      {air_socket_url(), Enum.to_list(cloak_params)},
       [serializer: config(:serializer)],
       gen_server_opts
     )
@@ -74,14 +74,14 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
 
   @impl GenSocketClient
-  def init(air_socket_url) do
+  def init({air_socket_url, params}) do
     initial_interval = config(:min_reconnect_interval)
     state = %{
       pending_calls: %{},
       reconnect_interval: initial_interval,
       rejoin_interval: initial_interval
     }
-    {:connect, air_socket_url, state}
+    {:connect, air_socket_url, params, state}
   end
 
   @impl GenSocketClient
@@ -276,7 +276,7 @@ defmodule Cloak.AirSocket do
 
   defp decode_params(params), do: :erlang.binary_to_term(Base.decode16!(params))
 
-  defp air_socket_url(cloak_params) do
+  defp air_socket_url() do
     full_path =
       case Aircloak.DeployConfig.fetch("air_site") do
         {:ok, air_site} -> air_site
@@ -287,7 +287,6 @@ defmodule Cloak.AirSocket do
     full_path
     |> URI.parse()
     |> Map.put(:path, "/cloak/socket/websocket")
-    |> Map.put(:query, URI.encode_query(cloak_params))
     |> URI.to_string()
   end
 

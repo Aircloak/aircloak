@@ -14,7 +14,7 @@ defmodule Air.Socket.Cloak do
   use Phoenix.Socket
   require Logger
 
-  transport :websocket, Phoenix.Transports.WebSocket, serializer: [{Air.Socket.Cloak.Serializer, "~> 1.0.0"}]
+  transport :websocket, Phoenix.Transports.WebSocket, serializer: [{Air.Socket.Cloak.Serializer, "~> 2.0.0"}]
 
   # List of exposed channels
   channel "main", Air.Socket.Cloak.MainChannel

@@ -39,7 +39,7 @@ defmodule Air.CentralClient.Socket do
     GenSocketClient.start_link(
       __MODULE__,
       GenSocketClient.Transport.WebSocketClient,
-      central_socket_url(air_params),
+      {central_socket_url(), Enum.to_list(air_params)},
       [serializer: config(:serializer)],
       gen_server_opts
     )
@@ -51,7 +51,7 @@ defmodule Air.CentralClient.Socket do
   # -------------------------------------------------------------------
 
   @impl GenSocketClient
-  def init(central_socket_url) do
+  def init({central_socket_url, params}) do
     {:ok, _} = Registry.register(Air.Service.Central.Registry, __MODULE__, false)
     initial_interval = config(:min_reconnect_interval)
     state = %{
@@ -60,7 +60,7 @@ defmodule Air.CentralClient.Socket do
       rejoin_interval: initial_interval
     }
     Logger.debug("Trying to connect to Central on #{central_socket_url}")
-    {:connect, central_socket_url, state}
+    {:connect, central_socket_url, params, state}
   end
 
   @impl GenSocketClient
@@ -193,13 +193,11 @@ defmodule Air.CentralClient.Socket do
   defp call_central(socket, event, payload, timeout \\ config(:call_timeout)), do:
     GenSocketClient.call(socket, {:call_central, timeout, event, payload})
 
-  defp central_socket_url(air_params) do
+  defp central_socket_url(), do:
     central_url()
     |> URI.parse()
     |> Map.put(:path, "/air/socket/websocket")
-    |> Map.put(:query, URI.encode_query(air_params))
     |> URI.to_string()
-  end
 
   # We allow for an alternate `central` to be used in the case of test deployments for the staging environment.
   # This parameter is not documented elsewhere. We want to reduce the chance of it becoming public knowledge.
