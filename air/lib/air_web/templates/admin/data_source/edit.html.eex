@@ -27,7 +27,7 @@
 
 <p>The data source's group assignments determine which users are available to query it.</p>
 
-<%= if length(Air.Admin.GroupView.available_groups()) == 0 do %>
+<%= if length(AirWeb.Admin.GroupView.available_groups()) == 0 do %>
   <strong>
     There are currently no groups available. You can add some on the group page:
     <%= link "Groups", to: admin_group_path(@conn, :index) %>
@@ -36,7 +36,7 @@
 
 <div class="form-group group-selector">
   <%= PhoenixMTM.Helpers.collection_checkboxes f, :groups,
-    Enum.map(Air.Admin.GroupView.available_groups(), &({&1, &1.id})),
+    Enum.map(AirWeb.Admin.GroupView.available_groups(), &({&1, &1.id})),
     selected: Enum.map(@chosen_groups, &(&1.id)),
     mapper: &checkbox_mapper/6 %>
 </div>

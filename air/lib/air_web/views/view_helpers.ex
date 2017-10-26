@@ -1,4 +1,4 @@
-defmodule Air.ViewHelpers do
+defmodule AirWeb.ViewHelpers do
   @moduledoc "Common helper functions for views."
 
   import Phoenix.HTML.Tag, only: [content_tag: 3]
@@ -10,7 +10,7 @@ defmodule Air.ViewHelpers do
   @doc "Verifies if the currently logged-in user has permissions on the given action."
   @spec permitted?(Plug.Conn.t, module, atom) :: boolean
   def permitted?(conn, controller, action) do
-    case Air.VerifyPermissions.check_permission(conn, controller, action) do
+    case AirWeb.VerifyPermissions.check_permission(conn, controller, action) do
       :ok -> true
       {:error, _formatted_error} -> false
     end
@@ -40,10 +40,10 @@ defmodule Air.ViewHelpers do
     |> Enum.map(fn(table) ->
       if table.view do
         additional_data = %{
-          edit_link: Air.Router.Helpers.data_source_view_path(conn, :edit, data_source.name,
+          edit_link: AirWeb.Router.Helpers.data_source_view_path(conn, :edit, data_source.name,
             table.internal_id),
           delete_html: Phoenix.HTML.safe_to_string(link("delete",
-            to: Air.Router.Helpers.data_source_view_path(conn, :delete, data_source.name,
+            to: AirWeb.Router.Helpers.data_source_view_path(conn, :delete, data_source.name,
               table.internal_id),
             method: :delete,
             "data-confirm": "Delete #{table.id}?",
@@ -69,7 +69,7 @@ defmodule Air.ViewHelpers do
   def warning_navbar_link(conn) do
     problems = Warnings.problems()
     if length(problems) > 0 and admin?(conn) do
-      path = Air.Router.Helpers.admin_warnings_path(conn, :index)
+      path = AirWeb.Router.Helpers.admin_warnings_path(conn, :index)
       navbar_class = problems |> Warnings.highest_severity_class() |> severity_class()
       navbar_link(conn, warnings_title(length(problems)), path, class: navbar_class)
     else

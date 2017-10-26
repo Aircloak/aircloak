@@ -1,4 +1,4 @@
-defmodule Air.Admin.ActivityMonitorView do
+defmodule AirWeb.Admin.ActivityMonitorView do
   @moduledoc false;
   use Air.Web, :view
 

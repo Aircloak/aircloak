@@ -1,4 +1,4 @@
-defmodule Air.Admin.GroupView do
+defmodule AirWeb.Admin.GroupView do
   @moduledoc false
   use Air.Web, :view
 

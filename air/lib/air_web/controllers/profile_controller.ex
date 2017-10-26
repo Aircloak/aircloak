@@ -1,11 +1,11 @@
-defmodule Air.ProfileController do
+defmodule AirWeb.ProfileController do
   @moduledoc false
   use Air.Web, :controller
   alias Air.Service.User
 
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions do

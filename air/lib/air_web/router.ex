@@ -1,4 +1,4 @@
-defmodule Air.Router do
+defmodule AirWeb.Router do
   @moduledoc false
   use Air.Web, :router
 
@@ -8,31 +8,31 @@ defmodule Air.Router do
     plug :fetch_flash
     plug :protect_from_forgery
     plug :put_secure_browser_headers
-    plug Air.Plug.Expiration
+    plug AirWeb.Plug.Expiration
   end
 
   pipeline :api do
     plug :accepts, ["json"]
-    plug Air.Plug.Expiration
-    plug Air.Plug.Session.ApiAuth, access: :api
+    plug AirWeb.Plug.Expiration
+    plug AirWeb.Plug.Session.ApiAuth, access: :api
   end
 
   pipeline :anonymous_only do
-    plug Air.Plug.Session.Anonymous
+    plug AirWeb.Plug.Session.Anonymous
   end
 
   pipeline :browser_auth do
-    plug Air.Plug.Session.Authenticated
+    plug AirWeb.Plug.Session.Authenticated
   end
 
-  scope "/auth", Air do
+  scope "/auth", AirWeb do
     pipe_through [:browser, :anonymous_only] # Use the default browser stack
 
     get "/", SessionController, :new
     post "/", SessionController, :create
   end
 
-  scope "/", Air, private: %{context: :http} do
+  scope "/", AirWeb, private: %{context: :http} do
     pipe_through [:browser, :browser_auth]
 
     get "/", DataSourceController, :redirect_to_last_used
@@ -64,7 +64,7 @@ defmodule Air.Router do
     get "/changelog", ChangelogController, :index
   end
 
-  scope "/admin", Air.Admin, as: :admin do
+  scope "/admin", AirWeb.Admin, as: :admin do
     pipe_through [:browser, :browser_auth]
 
     get "/queries/failed", QueryController, :failed
@@ -91,7 +91,7 @@ defmodule Air.Router do
     get "/warnings", WarningsController, :index
   end
 
-  scope "/onboarding", Air.Onboarding, as: :onboarding do
+  scope "/onboarding", AirWeb.Onboarding, as: :onboarding do
     pipe_through [:browser, :anonymous_only]
 
     get "/", UserController, :new
@@ -102,8 +102,8 @@ defmodule Air.Router do
   scope "/api", private: %{context: :api} do
     pipe_through [:api]
 
-    resources "/queries", Air.QueryController, only: [:create, :show]
-    post "/queries/:id/cancel", Air.QueryController, :cancel
-    resources "/data_sources", Air.API.DataSourceController
+    resources "/queries", AirWeb.QueryController, only: [:create, :show]
+    post "/queries/:id/cancel", AirWeb.QueryController, :cancel
+    resources "/data_sources", AirWeb.API.DataSourceController
   end
 end

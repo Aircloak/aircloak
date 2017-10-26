@@ -1,11 +1,11 @@
-defmodule Air.ChangelogController do
+defmodule AirWeb.ChangelogController do
   @moduledoc "Controller for displaying a changelog in the web interface"
 
   use Air.Web, :controller
 
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions do

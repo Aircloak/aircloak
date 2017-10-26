@@ -1,7 +1,8 @@
 defmodule Air.Token do
   @moduledoc "Functions for token management."
 
-  alias Air.{Schemas.ApiToken, Endpoint, Schemas.User, Repo}
+  alias Air.{Schemas.ApiToken, Schemas.User, Repo}
+  alias AirWeb.Endpoint
 
 
   # -------------------------------------------------------------------
@@ -53,7 +54,7 @@ defmodule Air.Token do
     60 * 60 * 24 * 365 * 10_000
 
   defp api_token_salt do
-    Application.get_env(:air, Air.Endpoint) |> Keyword.fetch!(:api_token_salt)
+    Application.get_env(:air, AirWeb.Endpoint) |> Keyword.fetch!(:api_token_salt)
   end
 
   if Mix.env == :test do

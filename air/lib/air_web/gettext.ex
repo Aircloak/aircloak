@@ -1,11 +1,11 @@
-defmodule Air.Gettext do
+defmodule AirWeb.Gettext do
   @moduledoc """
   A module providing Internationalization with a gettext-based API.
 
   By using [Gettext](http://hexdocs.pm/gettext),
   your module gains a set of macros for translations, for example:
 
-      import Air.Gettext
+      import AirWeb.Gettext
 
       # Simple translation
       gettext "Here is the string to translate"

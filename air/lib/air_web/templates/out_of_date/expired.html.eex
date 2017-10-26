@@ -27,7 +27,7 @@
             <h2>What is the problem</h2>
 
             <p>
-              Your Aircloak installation is running version <code><%= Air.SharedView.version() %></code>
+              Your Aircloak installation is running version <code><%= AirWeb.SharedView.version() %></code>
               which expired on <%= expiry_date() %>.
             </p>
 

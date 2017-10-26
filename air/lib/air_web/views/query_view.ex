@@ -1,4 +1,4 @@
-defmodule Air.QueryView do
+defmodule AirWeb.QueryView do
   @moduledoc false
   use Air.Web, :view
 end

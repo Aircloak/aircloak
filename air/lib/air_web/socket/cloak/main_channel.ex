@@ -1,4 +1,4 @@
-defmodule Air.Socket.Cloak.MainChannel do
+defmodule AirWeb.Socket.Cloak.MainChannel do
   @moduledoc """
   Main communication channel between a cloak and the air system.
   """
@@ -141,7 +141,7 @@ defmodule Air.Socket.Cloak.MainChannel do
 
   defp handle_cloak_message("memory_reading", reading, socket) do
     Air.Service.Cloak.record_memory(reading)
-    Air.Socket.Frontend.MemoryChannel.broadcast_memory_reading(socket.assigns.cloak_id, reading)
+    AirWeb.Socket.Frontend.MemoryChannel.broadcast_memory_reading(socket.assigns.cloak_id, reading)
     {:noreply, socket}
   end
   defp handle_cloak_message("update_config", cloak_info, socket) do

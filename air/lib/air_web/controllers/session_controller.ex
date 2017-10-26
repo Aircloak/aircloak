@@ -1,11 +1,11 @@
-defmodule Air.SessionController do
+defmodule AirWeb.SessionController do
   @moduledoc false
   use Air.Web, :controller
 
   alias Air.Service.User
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions do
@@ -53,7 +53,7 @@ defmodule Air.SessionController do
     audit_log(conn, "Logged out")
     conn
     |> Guardian.Plug.sign_out()
-    |> Air.Plug.Session.Restoration.remove_token()
+    |> AirWeb.Plug.Session.Restoration.remove_token()
     |> put_flash(:info, "Logged out successfully")
     |> redirect(to: session_path(conn, :new))
   end
@@ -64,7 +64,7 @@ defmodule Air.SessionController do
   # -------------------------------------------------------------------
 
   defp conditionally_create_persistent_login(conn, %{"remember" => "on"}) do
-    Air.Plug.Session.Restoration.persist_token(conn)
+    AirWeb.Plug.Session.Restoration.persist_token(conn)
   end
   defp conditionally_create_persistent_login(conn, _params), do: conn
 end

@@ -1,4 +1,4 @@
-defmodule Air.API.MonitoringController do
+defmodule AirWeb.API.MonitoringController do
   @moduledoc false
   use Air.Web, :controller
 

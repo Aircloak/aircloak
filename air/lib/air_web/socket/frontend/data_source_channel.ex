@@ -1,4 +1,4 @@
-defmodule Air.Socket.Frontend.DataSourceChannel do
+defmodule AirWeb.Socket.Frontend.DataSourceChannel do
   @moduledoc "Channel used for communicating data source availability to users."
   use Air.Web, :channel
 
@@ -13,7 +13,7 @@ defmodule Air.Socket.Frontend.DataSourceChannel do
   @spec push_updates() :: :ok
   def push_updates() do
     for data_source <- DataSource.all() do
-      Air.Endpoint.broadcast!("data_source:#{data_source.name}", "status", %{status: DataSource.status(data_source)})
+      AirWeb.Endpoint.broadcast!("data_source:#{data_source.name}", "status", %{status: DataSource.status(data_source)})
     end
 
     :ok

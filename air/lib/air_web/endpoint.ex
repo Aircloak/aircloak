@@ -1,4 +1,4 @@
-defmodule Air.Endpoint do
+defmodule AirWeb.Endpoint do
   @moduledoc "Implements the HTTP server for insights.aircloak.com."
 
   use Phoenix.Endpoint, otp_app: :air
@@ -9,14 +9,14 @@ defmodule Air.Endpoint do
   # Endpoint HTTP specification
   # -------------------------------------------------------------------
 
-  socket "/cloak/socket", Air.Socket.Cloak
-  socket "/frontend/socket", Air.Socket.Frontend
+  socket "/cloak/socket", AirWeb.Socket.Cloak
+  socket "/frontend/socket", AirWeb.Socket.Frontend
 
-  plug Air.Plug.Rewrite, rules: %{
+  plug AirWeb.Plug.Rewrite, rules: %{
     ["docs"] => ["docs", "index.html"]
   }
 
-  plug Air.Plug.Redirect, rules: %{
+  plug AirWeb.Plug.Redirect, rules: %{
     "/docs" => "/docs/"
   }
 
@@ -56,5 +56,5 @@ defmodule Air.Endpoint do
   # but should instead be set manually by a plug.
   plug RemoteIp
 
-  plug Air.Router
+  plug AirWeb.Router
 end

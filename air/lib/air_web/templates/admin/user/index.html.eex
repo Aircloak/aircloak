@@ -21,7 +21,7 @@
       <tr>
         <td><%= user.name %></td>
         <td><%= user.email %></td>
-        <td><%= Air.Admin.GroupView.names(user.groups) %></td>
+        <td><%= AirWeb.Admin.GroupView.names(user.groups) %></td>
         <td><%= Map.get(@data_sources_count, user.id, 0) %></td>
         <td>
           <%= if admin?(user) do %>

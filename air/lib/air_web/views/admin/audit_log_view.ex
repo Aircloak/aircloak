@@ -1,4 +1,4 @@
-defmodule Air.Admin.AuditLogView do
+defmodule AirWeb.Admin.AuditLogView do
   @moduledoc false
   use Air.Web, :view
 

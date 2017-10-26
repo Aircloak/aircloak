@@ -1,4 +1,4 @@
-defmodule Air.LayoutView do
+defmodule AirWeb.LayoutView do
   @moduledoc false
   use Air.Web, :view
 
@@ -11,7 +11,7 @@ defmodule Air.LayoutView do
   end
 
   defp help_links(conn) do
-    case Air.Plug.HelpPages.help_pages(conn) do
+    case AirWeb.Plug.HelpPages.help_pages(conn) do
       [] -> ""
       pages ->
         content_tag(:div, class: "container-fluid text-right help-links") do

@@ -1,4 +1,4 @@
-defmodule Air.Socket.Cloak.Serializer do
+defmodule AirWeb.Socket.Cloak.Serializer do
   @moduledoc """
   Phoenix socket server serializer.
 

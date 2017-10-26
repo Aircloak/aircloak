@@ -1,4 +1,4 @@
-defmodule Air.ViewView do
+defmodule AirWeb.ViewView do
   @moduledoc false
   use Air.Web, :view
 

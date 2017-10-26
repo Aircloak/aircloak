@@ -1,4 +1,4 @@
-defmodule Air.Admin.UserView do
+defmodule AirWeb.Admin.UserView do
   @moduledoc false
   use Air.Web, :view
 

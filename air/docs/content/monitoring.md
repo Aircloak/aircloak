@@ -5,7 +5,7 @@ when starting your docker container (as explained in the installation guide). Yo
 a monitoring token for an admin user by going to `/api_tokens` in the web application. Make sure to choose "Monitoring"
 from the "Access" dropdown.
 
-After that the endpoint can be accessed at `http://air.endpoint:8081/?auth_token=<your monitoring token>`.
+After that the endpoint can be accessed at `http://AirWeb.Endpoint:8081/?auth_token=<your monitoring token>`.
 
 ## Data format
 

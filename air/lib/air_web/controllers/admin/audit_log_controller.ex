@@ -1,4 +1,4 @@
-defmodule Air.Admin.AuditLogController do
+defmodule AirWeb.Admin.AuditLogController do
   @moduledoc false
   use Air.Web, :admin_controller
 
@@ -6,7 +6,7 @@ defmodule Air.Admin.AuditLogController do
 
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions do

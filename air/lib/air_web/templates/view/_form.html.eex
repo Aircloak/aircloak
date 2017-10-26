@@ -39,7 +39,7 @@
           </div>
         <% end %>
 
-        <%= render Air.SharedView, "footer.html", conn: @conn %>
+        <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
       </div>
     </div>
 

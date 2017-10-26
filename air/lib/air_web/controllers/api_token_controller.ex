@@ -1,4 +1,4 @@
-defmodule Air.ApiTokenController do
+defmodule AirWeb.ApiTokenController do
   @moduledoc false
   use Air.Web, :controller
 
@@ -6,7 +6,7 @@ defmodule Air.ApiTokenController do
 
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions do
@@ -53,7 +53,7 @@ defmodule Air.ApiTokenController do
       false ->
         conn
         |> put_status(:not_found)
-        |> put_view(Air.ErrorView)
+        |> put_view(AirWeb.ErrorView)
         |> render("404.html")
         |> halt
     end

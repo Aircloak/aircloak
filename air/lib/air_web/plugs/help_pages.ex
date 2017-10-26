@@ -1,4 +1,4 @@
-defmodule Air.Plug.HelpPages do
+defmodule AirWeb.Plug.HelpPages do
   @moduledoc """
   Plug for declaring help pages related to particular actions.
 
@@ -6,7 +6,7 @@ defmodule Air.Plug.HelpPages do
 
   ```
   defmodule MyController do
-    plug Air.Plug.HelpPages, [
+    plug AirWeb.Plug.HelpPages, [
       index: [:page_one, :page_two],
       new: [:page_three],
       ...

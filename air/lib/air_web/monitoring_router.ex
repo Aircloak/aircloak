@@ -1,10 +1,10 @@
-defmodule Air.MonitoringRouter do
+defmodule AirWeb.MonitoringRouter do
   @moduledoc false
   use Air.Web, :router
 
   pipeline :api do
     plug :accepts, ["json"]
-    plug Air.Plug.Session.ApiAuth, access: :monitoring
+    plug AirWeb.Plug.Session.ApiAuth, access: :monitoring
   end
 
   scope "/" do

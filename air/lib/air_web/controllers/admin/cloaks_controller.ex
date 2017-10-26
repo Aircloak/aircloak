@@ -1,4 +1,4 @@
-defmodule Air.Admin.CloaksController do
+defmodule AirWeb.Admin.CloaksController do
   @moduledoc false
   use Air.Web, :admin_controller
   use Timex
@@ -7,7 +7,7 @@ defmodule Air.Admin.CloaksController do
 
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions do

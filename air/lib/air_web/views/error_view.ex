@@ -1,4 +1,4 @@
-defmodule Air.ErrorView do
+defmodule AirWeb.ErrorView do
   @moduledoc false
   use Air.Web, :view
 

@@ -1,11 +1,11 @@
-defmodule Air.Admin.DataSourceView do
+defmodule AirWeb.Admin.DataSourceView do
   @moduledoc false;
   use Air.Web, :view
 
   alias Air.Repo
 
-  defdelegate availability_label(data_source), to: Air.DataSourceView
-  defdelegate number_of_tables(data_source), to: Air.DataSourceView
+  defdelegate availability_label(data_source), to: AirWeb.DataSourceView
+  defdelegate number_of_tables(data_source), to: AirWeb.DataSourceView
 
   def available?(data_source), do: Air.Service.DataSource.available?(data_source.name)
 

@@ -1,11 +1,11 @@
-defmodule Air.Admin.SettingsController do
+defmodule AirWeb.Admin.SettingsController do
   @moduledoc false
   use Air.Web, :admin_controller
 
   alias Air.Service.AuditLog
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions do

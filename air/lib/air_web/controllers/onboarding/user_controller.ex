@@ -1,11 +1,11 @@
-defmodule Air.Onboarding.UserController do
+defmodule AirWeb.Onboarding.UserController do
   @moduledoc false
   use Air.Web, :controller
   alias Air.Service.User
 
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions do
@@ -49,6 +49,6 @@ defmodule Air.Onboarding.UserController do
   defp login(conn, params) do
     login_params = Map.take(params, ["email", "password"])
     conn = put_session(conn, :return_path, admin_user_path(conn, :index))
-    Air.SessionController.create(conn, login_params)
+    AirWeb.SessionController.create(conn, login_params)
   end
 end

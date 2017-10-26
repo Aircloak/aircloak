@@ -1,4 +1,4 @@
-defmodule Air.HelpGuideView do
+defmodule AirWeb.HelpGuideView do
   @moduledoc false
   use Air.Web, :view
 

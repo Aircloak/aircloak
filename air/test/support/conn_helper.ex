@@ -1,7 +1,7 @@
 defmodule Air.TestConnHelper do
   @moduledoc "Helpers for working with the connection."
 
-  alias Air.Endpoint
+  alias AirWeb.Endpoint
   import Phoenix.ConnTest
 
   @doc "Logs-in as the given user, and returns the recycled connection."

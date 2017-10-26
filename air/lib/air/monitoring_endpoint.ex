@@ -1,4 +1,4 @@
-defmodule Air.MonitoringEndpoint do
+defmodule AirWeb.MonitoringEndpoint do
   @moduledoc "Implements the HTTP server for serving monitoring data."
 
   use Phoenix.Endpoint, otp_app: :air
@@ -28,5 +28,5 @@ defmodule Air.MonitoringEndpoint do
   plug Plug.MethodOverride
   plug Plug.Head
 
-  plug Air.MonitoringRouter
+  plug AirWeb.MonitoringRouter
 end

@@ -200,7 +200,7 @@ defmodule Air.Service.View do
           )}
         {:error, :expired} ->
           {:error, Ecto.Changeset.add_error(changeset, :sql,
-            "Your Aircloak installation is running version #{Air.SharedView.version()} " <>
+            "Your Aircloak installation is running version #{AirWeb.SharedView.version()} " <>
             "which expired on #{Version.expiry_date()}."
           )}
       end

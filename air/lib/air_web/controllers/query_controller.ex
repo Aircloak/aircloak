@@ -1,4 +1,4 @@
-defmodule Air.QueryController do
+defmodule AirWeb.QueryController do
   @moduledoc false
   use Air.Web, :controller
   use Timex
@@ -9,7 +9,7 @@ defmodule Air.QueryController do
 
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions do

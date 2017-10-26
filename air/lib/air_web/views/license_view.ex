@@ -1,4 +1,4 @@
-defmodule Air.LicenseView do
+defmodule AirWeb.LicenseView do
   @moduledoc false
   use Air.Web, :view
 

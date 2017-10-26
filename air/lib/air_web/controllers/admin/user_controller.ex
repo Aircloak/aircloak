@@ -1,4 +1,4 @@
-defmodule Air.Admin.UserController do
+defmodule AirWeb.Admin.UserController do
   @moduledoc false
   use Air.Web, :admin_controller
 
@@ -8,7 +8,7 @@ defmodule Air.Admin.UserController do
 
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions do
@@ -78,7 +78,7 @@ defmodule Air.Admin.UserController do
         conn
         |> put_layout(false)
         |> put_status(:not_found)
-        |> put_view(Air.ErrorView)
+        |> put_view(AirWeb.ErrorView)
         |> render("404.html")
         |> halt()
       user ->

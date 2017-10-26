@@ -1,4 +1,4 @@
-defmodule Air.Admin.CloaksView do
+defmodule AirWeb.Admin.CloaksView do
   @moduledoc false
   use Air.Web, :view
 
@@ -6,5 +6,5 @@ defmodule Air.Admin.CloaksView do
     Timex.from_now(date_time)
   end
 
-  defdelegate availability_label(data_source), to: Air.DataSourceView
+  defdelegate availability_label(data_source), to: AirWeb.DataSourceView
 end

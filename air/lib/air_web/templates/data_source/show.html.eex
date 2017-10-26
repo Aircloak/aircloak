@@ -18,7 +18,7 @@
 
         <div id="query-view"></div>
 
-        <%= render Air.SharedView, "footer.html", conn: @conn %>
+        <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
       </div>
     </div>
 

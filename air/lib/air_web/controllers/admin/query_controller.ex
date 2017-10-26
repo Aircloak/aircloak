@@ -1,4 +1,4 @@
-defmodule Air.Admin.QueryController do
+defmodule AirWeb.Admin.QueryController do
   @moduledoc false
   use Air.Web, :admin_controller
   use Timex
@@ -9,7 +9,7 @@ defmodule Air.Admin.QueryController do
 
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions do
@@ -36,7 +36,7 @@ defmodule Air.Admin.QueryController do
         conn
         |> put_layout(false)
         |> put_status(:not_found)
-        |> put_view(Air.ErrorView)
+        |> put_view(AirWeb.ErrorView)
         |> render("404.html")
         |> halt()
     end

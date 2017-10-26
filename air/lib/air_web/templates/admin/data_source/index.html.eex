@@ -26,7 +26,7 @@
       <td><%= availability_label(data_source) %></td>
       <td><%= number_of_tables(data_source) %></td>
       <td><%= Map.get(@users_count, data_source.id, 0) %></td>
-      <td><%= Air.Admin.GroupView.names(data_source.groups)%></td>
+      <td><%= AirWeb.Admin.GroupView.names(data_source.groups)%></td>
       <td><%= length(Air.Service.Warnings.problems_for_resource(data_source)) %></td>
       <td>
         <%= link "Show", to: admin_data_source_path(@conn, :show, data_source.name), class: "btn btn-default btn-xs" %>

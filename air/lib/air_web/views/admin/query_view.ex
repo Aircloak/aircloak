@@ -1,4 +1,4 @@
-defmodule Air.Admin.QueryView do
+defmodule AirWeb.Admin.QueryView do
   @moduledoc false
   use Air.Web, :view
 

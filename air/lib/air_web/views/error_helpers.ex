@@ -1,4 +1,4 @@
-defmodule Air.ErrorHelpers do
+defmodule AirWeb.ErrorHelpers do
   @moduledoc """
   Conveniences for translating and building error messages.
   """
@@ -34,13 +34,13 @@ defmodule Air.ErrorHelpers do
     #     dgettext "errors", "is invalid"
     #
     if count = opts[:count] do
-      Gettext.dngettext(Air.Gettext, "errors", msg, msg, count, opts)
+      Gettext.dngettext(AirWeb.Gettext, "errors", msg, msg, count, opts)
     else
-      Gettext.dgettext(Air.Gettext, "errors", msg, opts)
+      Gettext.dgettext(AirWeb.Gettext, "errors", msg, opts)
     end
   end
 
   def translate_error(msg) do
-    Gettext.dgettext(Air.Gettext, "errors", msg)
+    Gettext.dgettext(AirWeb.Gettext, "errors", msg)
   end
 end

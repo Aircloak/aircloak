@@ -1,4 +1,4 @@
-defmodule Air.DataSourceController do
+defmodule AirWeb.DataSourceController do
   @moduledoc """
   Controller that allows users to select and query a datasource
   """
@@ -11,7 +11,7 @@ defmodule Air.DataSourceController do
 
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions do

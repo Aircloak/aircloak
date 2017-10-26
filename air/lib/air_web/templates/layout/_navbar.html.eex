@@ -15,7 +15,7 @@
         <ul class="nav navbar-nav navbar-right">
           <%= warning_navbar_link(@conn) %>
 
-          <%= if permitted?(@conn, Air.DataSourceController, :index) do %>
+          <%= if permitted?(@conn, AirWeb.DataSourceController, :index) do %>
             <%= navbar_link(@conn, "Data sources", data_source_path(@conn, :index)) %>
           <% end %>
 
@@ -27,11 +27,11 @@
               </a>
 
               <ul class="dropdown-menu">
-                <%= if permitted?(@conn, Air.ProfileController, :edit) do %>
+                <%= if permitted?(@conn, AirWeb.ProfileController, :edit) do %>
                   <%= navbar_link(@conn, "Profile", profile_path(@conn, :edit)) %>
                 <% end %>
 
-                <%= if permitted?(@conn, Air.ApiTokenController, :index) do %>
+                <%= if permitted?(@conn, AirWeb.ApiTokenController, :index) do %>
                   <%= navbar_link(@conn, "API Tokens", api_token_path(@conn, :index)) %>
                 <% end %>
 

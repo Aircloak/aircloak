@@ -1,4 +1,4 @@
-defmodule Air.SessionView do
+defmodule AirWeb.SessionView do
   @moduledoc false
   use Air.Web, :view
 end

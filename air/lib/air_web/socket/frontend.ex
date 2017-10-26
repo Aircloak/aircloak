@@ -1,4 +1,4 @@
-defmodule Air.Socket.Frontend do
+defmodule AirWeb.Socket.Frontend do
   @moduledoc """
   Implements websocket interface for web clients using our interface
 
@@ -20,11 +20,11 @@ defmodule Air.Socket.Frontend do
   transport :longpoll, Phoenix.Transports.LongPoll
 
   # List of exposed channels
-  channel "user_queries:*", Air.Socket.Frontend.UserChannel
-  channel "query:*", Air.Socket.Frontend.UserChannel
-  channel "state_changes:*", Air.Socket.Frontend.UserChannel
-  channel "memory_readings", Air.Socket.Frontend.MemoryChannel
-  channel "data_source:*", Air.Socket.Frontend.DataSourceChannel
+  channel "user_queries:*", AirWeb.Socket.Frontend.UserChannel
+  channel "query:*", AirWeb.Socket.Frontend.UserChannel
+  channel "state_changes:*", AirWeb.Socket.Frontend.UserChannel
+  channel "memory_readings", AirWeb.Socket.Frontend.MemoryChannel
+  channel "data_source:*", AirWeb.Socket.Frontend.DataSourceChannel
 
 
   # -------------------------------------------------------------------

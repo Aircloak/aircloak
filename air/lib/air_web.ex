@@ -18,18 +18,18 @@ defmodule Air.Web do
 
   def controller do
     quote do
-      use Phoenix.Controller
+      use Phoenix.Controller, namespace: AirWeb
 
       alias Air.Repo
       import Ecto
       import Ecto.Query, only: [from: 1, from: 2]
 
-      import Air.Router.Helpers
-      import Air.Gettext
+      import AirWeb.Router.Helpers
+      import AirWeb.Gettext
 
       # Each controller must verify permissions
-      @behaviour Air.VerifyPermissions
-      plug Air.VerifyPermissions, controller: __MODULE__
+      @behaviour AirWeb.VerifyPermissions
+      plug AirWeb.VerifyPermissions, controller: __MODULE__
 
       @doc false
       def audit_log(conn, event, metadata \\ []) do
@@ -69,7 +69,7 @@ defmodule Air.Web do
 
   def view do
     quote do
-      use Phoenix.View, root: "lib/air_web/templates"
+      use Phoenix.View, root: "lib/air_web/templates", namespace: AirWeb
 
       # Import convenience functions from controllers
       import Phoenix.Controller, only: [get_csrf_token: 0, get_flash: 2, view_module: 1]
@@ -77,10 +77,10 @@ defmodule Air.Web do
       # Use all HTML functionality (forms, tags, etc)
       use Phoenix.HTML
 
-      import Air.Router.Helpers
-      import Air.ErrorHelpers
-      import Air.ViewHelpers
-      import Air.Gettext
+      import AirWeb.Router.Helpers
+      import AirWeb.ErrorHelpers
+      import AirWeb.ViewHelpers
+      import AirWeb.Gettext
     end
   end
 
@@ -97,7 +97,7 @@ defmodule Air.Web do
       alias Air.Repo
       import Ecto
       import Ecto.Query, only: [from: 1, from: 2]
-      import Air.Gettext
+      import AirWeb.Gettext
     end
   end
 

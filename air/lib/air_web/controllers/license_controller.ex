@@ -1,10 +1,10 @@
-defmodule Air.LicenseController do
+defmodule AirWeb.LicenseController do
   @moduledoc false
   use Air.Web, :controller
 
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions do
@@ -35,7 +35,7 @@ defmodule Air.LicenseController do
     case Air.BOM.get(fn(packages) ->
       Enum.find(packages, &(&1["realm"] == params["realm"] and &1["name"] == params["name"]))
     end) do
-      nil -> conn |> put_view(Air.ErrorView) |> render("404.html")
+      nil -> conn |> put_view(AirWeb.ErrorView) |> render("404.html")
       package -> render(conn, "show.html", package: package)
     end
   end

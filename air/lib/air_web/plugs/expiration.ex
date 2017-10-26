@@ -1,4 +1,4 @@
-defmodule Air.Plug.Expiration do
+defmodule AirWeb.Plug.Expiration do
   @moduledoc """
   This plug terminates the request with a redirect to the upgrade page
   if the Aircloak installation runs an expired version.

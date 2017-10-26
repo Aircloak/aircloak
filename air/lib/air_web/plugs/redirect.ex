@@ -1,4 +1,4 @@
-defmodule Air.Plug.Redirect do
+defmodule AirWeb.Plug.Redirect do
   @moduledoc """
   Redirects incoming requests at one path to another.
 
@@ -7,7 +7,7 @@ defmodule Air.Plug.Redirect do
   assets are loaded correctly. This could be done as:
 
   ```elixir
-  plug Air.Plug.Redirect, rules: %{
+  plug AirWeb.Plug.Redirect, rules: %{
     "docs" => "docs/"
   }
 

@@ -1,4 +1,4 @@
-defmodule Air.Socket.Frontend.UserChannel do
+defmodule AirWeb.Socket.Frontend.UserChannel do
   @moduledoc """
   Channel used for communicating events related to queries.
   For the time being no incoming messages are supported,
@@ -21,10 +21,10 @@ defmodule Air.Socket.Frontend.UserChannel do
   """
   @spec broadcast_state_change(Schemas.Query.t, nil | [map]) :: :ok
   def broadcast_state_change(query, buckets \\ nil) do
-    Air.Endpoint.broadcast_from!(self(), "state_changes:all", "state_change", state_change_message(query))
+    AirWeb.Endpoint.broadcast_from!(self(), "state_changes:all", "state_change", state_change_message(query))
     payload = Schemas.Query.for_display(query, buckets)
-    Air.Endpoint.broadcast_from!(self(), "user_queries:#{query.user_id}", "state_change", payload)
-    Air.Endpoint.broadcast_from!(self(), "query:#{query.id}", "state_change", payload)
+    AirWeb.Endpoint.broadcast_from!(self(), "user_queries:#{query.user_id}", "state_change", payload)
+    AirWeb.Endpoint.broadcast_from!(self(), "query:#{query.id}", "state_change", payload)
     :ok
   end
 
@@ -64,5 +64,5 @@ defmodule Air.Socket.Frontend.UserChannel do
     %{query_id: query.id, event: query.query_state, query: format_query(query)}
 
   def format_query(query), do:
-    hd(Air.Admin.ActivityMonitorView.format_queries([query]))
+    hd(AirWeb.Admin.ActivityMonitorView.format_queries([query]))
 end

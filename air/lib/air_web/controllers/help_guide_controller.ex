@@ -1,10 +1,10 @@
-defmodule Air.HelpGuideController do
+defmodule AirWeb.HelpGuideController do
   @moduledoc false
   use Air.Web, :controller
 
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions do

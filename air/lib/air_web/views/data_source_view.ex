@@ -1,4 +1,4 @@
-defmodule Air.DataSourceView do
+defmodule AirWeb.DataSourceView do
   @moduledoc false;
   use Air.Web, :view
 

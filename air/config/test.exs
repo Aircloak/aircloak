@@ -2,7 +2,7 @@ use Mix.Config
 
 config :air, :deploy_config_file, "test.json"
 
-config :air, Air.Endpoint,
+config :air, AirWeb.Endpoint,
   http: [port: 8082],
   server: true
 

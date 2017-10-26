@@ -1,4 +1,4 @@
-defmodule Air.ApiTokenView do
+defmodule AirWeb.ApiTokenView do
   @moduledoc false
   use Air.Web, :view
 

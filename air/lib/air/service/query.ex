@@ -1,8 +1,9 @@
 defmodule Air.Service.Query do
   @moduledoc "Services for retrieving queries."
 
-  alias Air.{Repo, Socket.Frontend.UserChannel}
+  alias Air.Repo
   alias Air.Schemas.{DataSource, Query, ResultChunk, User}
+  alias AirWeb.Socket.Frontend.UserChannel
 
   import Ecto.Query
   require Logger

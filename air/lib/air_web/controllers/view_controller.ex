@@ -1,4 +1,4 @@
-defmodule Air.ViewController do
+defmodule AirWeb.ViewController do
   @moduledoc false
 
   use Air.Web, :controller
@@ -10,7 +10,7 @@ defmodule Air.ViewController do
 
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions, do:

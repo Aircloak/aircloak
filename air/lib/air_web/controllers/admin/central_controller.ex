@@ -1,4 +1,4 @@
-defmodule Air.Admin.CentralController do
+defmodule AirWeb.Admin.CentralController do
   @moduledoc false
   use Air.Web, :admin_controller
   alias Air.Service.Central
@@ -10,7 +10,7 @@ defmodule Air.Admin.CentralController do
 
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions do

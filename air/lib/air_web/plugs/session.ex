@@ -1,4 +1,4 @@
-defmodule Air.Plug.Session do
+defmodule AirWeb.Plug.Session do
   @moduledoc false
 
 
@@ -170,12 +170,12 @@ defmodule Air.Plug.Session do
     """
     use Plug.Builder
 
-    plug Air.Plug.Session.Restoration
+    plug AirWeb.Plug.Session.Restoration
     plug Guardian.Plug.VerifySession
     plug Guardian.Plug.EnsureAuthenticated, handler: __MODULE__
     plug Guardian.Plug.LoadResource
     plug Guardian.Plug.EnsureResource, handler: __MODULE__
-    plug Air.Plug.Session.AssignCurrentUser
+    plug AirWeb.Plug.Session.AssignCurrentUser
 
 
     # -------------------------------------------------------------------
@@ -199,7 +199,7 @@ defmodule Air.Plug.Session do
       conn
       |> Phoenix.Controller.put_flash(:error, "You must be authenticated to view this page")
       |> Plug.Conn.put_session(:return_path, path)
-      |> Phoenix.Controller.redirect(to: Air.Router.Helpers.session_path(conn, :new))
+      |> Phoenix.Controller.redirect(to: AirWeb.Router.Helpers.session_path(conn, :new))
     end
   end
 
@@ -214,7 +214,7 @@ defmodule Air.Plug.Session do
 
     plug Guardian.Plug.VerifySession
     plug Guardian.Plug.EnsureNotAuthenticated, handler: __MODULE__
-    plug Air.Plug.Session.AssignCurrentUser
+    plug AirWeb.Plug.Session.AssignCurrentUser
 
 
     # -------------------------------------------------------------------

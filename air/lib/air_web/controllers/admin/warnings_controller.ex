@@ -1,4 +1,4 @@
-defmodule Air.Admin.WarningsController do
+defmodule AirWeb.Admin.WarningsController do
   @moduledoc false
   use Air.Web, :admin_controller
 
@@ -6,7 +6,7 @@ defmodule Air.Admin.WarningsController do
 
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions do

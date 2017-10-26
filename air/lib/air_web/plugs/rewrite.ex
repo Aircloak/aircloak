@@ -1,4 +1,4 @@
-defmodule Air.Plug.Rewrite do
+defmodule AirWeb.Plug.Rewrite do
   @moduledoc """
   Rewrites incoming path to a different path.
 
@@ -10,7 +10,7 @@ defmodule Air.Plug.Rewrite do
   and we want to expose the access through `/docs`. It can be done as:
 
   ```elixir
-  plug Air.Plug.Rewrite, rules: %{
+  plug AirWeb.Plug.Rewrite, rules: %{
     ["docs"] => ["docs", "index.html"]
   }
 

@@ -1,4 +1,4 @@
-defmodule Air.Admin.WarningsView do
+defmodule AirWeb.Admin.WarningsView do
   @moduledoc false
   use Air.Web, :view
   import Phoenix.HTML.Link, only: [link: 2]

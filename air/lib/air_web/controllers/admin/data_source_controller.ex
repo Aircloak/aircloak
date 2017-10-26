@@ -1,4 +1,4 @@
-defmodule Air.Admin.DataSourceController do
+defmodule AirWeb.Admin.DataSourceController do
   @moduledoc """
   Controller for administrators to manage data sources.
   """
@@ -11,7 +11,7 @@ defmodule Air.Admin.DataSourceController do
 
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions do
@@ -83,7 +83,7 @@ defmodule Air.Admin.DataSourceController do
         conn
         |> put_layout(false)
         |> put_status(:not_found)
-        |> put_view(Air.ErrorView)
+        |> put_view(AirWeb.ErrorView)
         |> render("404.html")
         |> halt()
       data_source ->

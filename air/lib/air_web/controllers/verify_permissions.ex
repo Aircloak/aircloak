@@ -1,4 +1,4 @@
-defmodule Air.VerifyPermissions do
+defmodule AirWeb.VerifyPermissions do
   @moduledoc """
   Verifies the permission for the current user on the pending Phoenix controller action.
 

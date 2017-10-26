@@ -1,4 +1,4 @@
-defmodule Air.SharedView do
+defmodule AirWeb.SharedView do
   @moduledoc false;
   use Air.Web, :view
 

@@ -1,4 +1,4 @@
-defmodule Air.Admin.ActivityMonitorController do
+defmodule AirWeb.Admin.ActivityMonitorController do
   @moduledoc """
   Controller for administrators to get a view of the live state of their system.
   """
@@ -10,7 +10,7 @@ defmodule Air.Admin.ActivityMonitorController do
 
 
   # -------------------------------------------------------------------
-  # Air.VerifyPermissions callback
+  # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
   def permissions do
