@@ -5,7 +5,7 @@ defmodule Cloak.Sql.Range do
 
   @type t :: %__MODULE__{
     column: Expression.t,
-    interval: FixAlign.interval(any),
+    interval: FixAlign.interval(any) | :invalid,
   }
 
   defstruct [:column, :interval]
@@ -28,10 +28,12 @@ defmodule Cloak.Sql.Range do
   @spec find_ranges(Query.t) :: [t]
   def find_ranges(query), do:
     inequalities_by_column(query)
-    |> Enum.map(fn({column, inequalities}) ->
-      [{:comparison, _, _, low}, {:comparison, _, _, high}] =
-        Enum.sort_by(inequalities, &Condition.direction/1, &Kernel.>/2)
-      new(column, {Expression.value(low), Expression.value(high)})
+    |> Enum.map(fn
+      ({column, inequalities = [_, _]}) ->
+        [{:comparison, _, _, low}, {:comparison, _, _, high}] =
+          Enum.sort_by(inequalities, &Condition.direction/1, &Kernel.>/2)
+        new(column, {Expression.value(low), Expression.value(high)})
+      ({column, _other}) -> new(column, :invalid)
     end)
 
 
