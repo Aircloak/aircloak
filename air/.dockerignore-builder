@@ -6,8 +6,6 @@
 !RELEASE_EXPIRY_DATE
 !air/tmp/image_shell_init.sh
 !air/brunch-config.js
-!air/package.json
-!air/yarn.lock
 !air/priv/repo
 !air/priv/task_post_processor
 !air/Makefile
@@ -16,11 +14,11 @@
 !air/config
 !air/lib
 !air/docs
-!air/web
 !air/src
 !air/include
 !air/scripts
 !air/rel
+!air/assets
 !air/fetch_deps.sh
 !bom/config
 !bom/mix.exs
@@ -37,6 +35,7 @@
 air/priv/repo/seeds.exs
 air/docs/node_modules
 air/docs/_book
+air/assets/node_modules
 
 # We don't want runtime config included. It needs to be provided through a
 # mounted volume
