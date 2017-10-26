@@ -85,7 +85,7 @@ defmodule Cloak.Query.Runner.Engine do
 
     stream
     |> state_updater.(:ingesting_data)
-    |> Ingestor.ingest(query.data_source.ingestors, &consume_rows(&1, query), &Query.Aggregator.merge_groups/2)
+    |> Ingestor.ingest(query.data_source.concurrency, &consume_rows(&1, query), &Query.Aggregator.merge_groups/2)
     |> state_updater.(:processing)
     |> Query.Aggregator.aggregate(query)
     |> state_updater.(:post_processing)
