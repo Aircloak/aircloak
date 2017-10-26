@@ -51,7 +51,7 @@ flow:
 
 eslint:
 	cd assets && node_modules/.bin/eslint --max-warnings 0 --rulesdir eslint_rules js
-	cd assets && node_modules/.bin/eslint --max-warnings 0 --rulesdir eslint_rules --config .eslintrc-test.js test/js
+	cd assets && node_modules/.bin/eslint --max-warnings 0 --rulesdir eslint_rules --config .eslintrc-test.js test
 
 mocha:
-	NODE_PATH=test/js:web/static/js npm test
+	cd assets && npm test
