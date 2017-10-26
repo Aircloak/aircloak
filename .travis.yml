@@ -26,7 +26,7 @@ matrix:
         - cloak/_build
         - central/deps
         - central/_build
-        - central/node_modules
+        - central/assets/node_modules
         - integration_tests/deps
         - integration_tests/_build
         - $HOME/.asdf
@@ -167,7 +167,7 @@ matrix:
         directories:
         - central/deps
         - central/_build
-        - central/node_modules
+        - central/assets/node_modules
         - $HOME/.asdf
         - $HOME/.yarn-cache
       addons:
