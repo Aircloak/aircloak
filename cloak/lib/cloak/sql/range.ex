@@ -15,10 +15,6 @@ defmodule Cloak.Sql.Range do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Returns a Range with the given column and interval."
-  @spec new(Expression.t, FixAlign.interval(any)) :: t
-  def new(column, interval), do: %__MODULE__{column: column, interval: interval}
-
   @doc """
   Returns all ranges present in this query.
 
@@ -29,11 +25,12 @@ defmodule Cloak.Sql.Range do
   def find_ranges(query), do:
     inequalities_by_column(query)
     |> Enum.map(fn
-      ({column, inequalities = [_, _]}) ->
+      ({column, inequalities}) when length(inequalities) == 2 ->
         [{:comparison, _, _, low}, {:comparison, _, _, high}] =
           Enum.sort_by(inequalities, &Condition.direction/1, &Kernel.>/2)
-        new(column, {Expression.value(low), Expression.value(high)})
-      ({column, _other}) -> new(column, :invalid)
+        %__MODULE__{column: column, interval: {Expression.value(low), Expression.value(high)}}
+      ({column, _other}) ->
+        %__MODULE__{column: column, interval: :invalid}
     end)
 
 
