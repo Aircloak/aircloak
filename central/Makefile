@@ -7,7 +7,7 @@ compile:
 
 deps:
 	mix deps.get
-	yarn install
+	cd assets && yarn install && cd ..
 
 clean:
 	mix clean --deps
