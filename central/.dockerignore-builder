@@ -4,9 +4,6 @@
 # whitelist only needed folders
 !central/VERSION
 !central/tmp/image_shell_init.sh
-!central/brunch-config.js
-!central/package.json
-!central/yarn.lock
 !central/priv/repo
 !central/priv/task_post_processor
 !central/Makefile
@@ -15,16 +12,17 @@
 !central/config
 !central/lib
 !central/docs
-!central/web
 !central/src
 !central/include
 !central/scripts
 !central/rel
+!central/assets
 !central/fetch_deps.sh
 !common
 
 # blacklist some stuff
 central/priv/repo/seeds.exs
+central/assets/node_modules
 
 # We don't want runtime config included. It needs to be provided through a
 # mounted volume
