@@ -8,7 +8,7 @@ defmodule Cloak.Sql.Query do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{Expression, Compiler, Function, Parser, Query.Lenses, Range, NoiseLayer, LowCountCheck}
+  alias Cloak.Sql.{Expression, Compiler, Function, Parser, Query.Lenses, NoiseLayer, LowCountCheck}
   require Logger
 
   @type comparison :: {:comparison, Expression.t, Parser.comparator, Expression.t}
@@ -72,7 +72,6 @@ defmodule Cloak.Sql.Query do
     having: having_clause,
     sample_rate: nil | non_neg_integer,
     emulated?: boolean,
-    ranges: [Range.t],
     parameters: [parameter] | nil,
     views: view_map,
     projected?: boolean,
@@ -103,8 +102,8 @@ defmodule Cloak.Sql.Query do
     columns: [], where: nil, group_by: [], order_by: [], column_titles: [], aggregators: [],
     info: [], selected_tables: [], implicit_count?: false, data_source: nil, command: nil,
     show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil,
-    ranges: [], parameters: [], views: %{}, emulated?: false, sample_rate: nil,
-    projected?: false, next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false, table_aliases: %{},
+    parameters: [], views: %{}, emulated?: false, sample_rate: nil, projected?: false,
+    next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false, table_aliases: %{},
     low_count_checks: []
   ]
 
