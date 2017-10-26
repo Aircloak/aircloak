@@ -71,11 +71,6 @@ defmodule Cloak.Query.Runner.Ingestor do
     )
   end
 
-  def transfer_result(from, to) do
-    send(from, {:transfer, to, self()})
-    receive do :transfer_complete -> :ok end
-  end
-
   defp integrate_result(this_result, integrator) do
     receive do
       {:transfer, pid, caller} ->
@@ -86,6 +81,11 @@ defmodule Cloak.Query.Runner.Ingestor do
         |> integrator.(other_result)
         |> integrate_result(integrator)
     end
+  end
+
+  defp transfer_result(from, to) do
+    send(from, {:transfer, to, self()})
+    receive do :transfer_complete -> :ok end
   end
 
   defp integrate_results([pid]) do
