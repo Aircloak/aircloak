@@ -23,6 +23,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   alias Cloak.Sql.{CompilationError, Condition, Function, Expression, Query}
   alias Cloak.Sql.Compiler.TypeChecker.{Narrative, Type}
+  alias Cloak.Sql.Compiler.Helpers
 
 
   # -------------------------------------------------------------------
@@ -41,13 +42,13 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   @spec validate_allowed_usage_of_math_and_functions(Query.t) :: Query.t
   def validate_allowed_usage_of_math_and_functions(query) do
-    verify_usage_of_potentially_crashing_functions(query)
-    verify_usage_of_datetime_extraction_clauses(query)
-    verify_function_usage_for_selected_columns(query)
-    verify_function_usage_for_condition_clauses(query)
-    verify_lhs_of_in_is_clear(query)
-    verify_lhs_of_not_equals_is_clear(query)
-    verify_ranges_are_clear(query)
+    each_subquery(query, &verify_usage_of_potentially_crashing_functions/1)
+    each_subquery(query, &verify_usage_of_datetime_extraction_clauses/1)
+    each_subquery(query, &verify_function_usage_for_selected_columns/1)
+    each_subquery(query, &verify_function_usage_for_condition_clauses/1)
+    each_subquery(query, &verify_lhs_of_in_is_clear/1)
+    each_subquery(query, &verify_lhs_of_not_equals_is_clear/1)
+    each_subquery(query, &verify_ranges_are_clear/1)
     query
   end
 
@@ -223,6 +224,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp each_subquery(query, function), do:
+    Helpers.apply_bottom_up(query, fn(subquery) ->
+      function.(subquery)
+      subquery
+    end)
 
   defp later_turned_into_a_number?(future), do:
     Enum.any?(["length", {:cast, :integer}, {:cast, :real}, {:cast, :boolean}], &(Enum.member?(future, &1)))
