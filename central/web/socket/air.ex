@@ -16,7 +16,7 @@ defmodule Central.Socket.Air do
 
   alias Central.Service.Customer
 
-  transport :websocket, Phoenix.Transports.WebSocket, serializer: Central.Socket.Air.Serializer
+  transport :websocket, Phoenix.Transports.WebSocket, serializer: [{Central.Socket.Air.Serializer, "~> 1.0.0"}]
 
   # List of exposed channels
   channel "main", Central.Socket.Air.MainChannel
@@ -43,7 +43,6 @@ defmodule Central.Socket.Air do
   end
 
   @impl Phoenix.Socket
-  @dialyzer {:nowarn_function, id: 1} # Phoenix bug, fixed in master
   def id(socket),
     do: "air_socket:#{socket.assigns.customer.id}"
 

@@ -55,14 +55,6 @@ defmodule Cloak.Query.DBEmulatorTest do
     """, %{rows: [%{occurrences: 10, row: ["abc"]}]}
   end
 
-  test "where inequality with functions" do
-    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["number"], ["-3"])
-    :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["number"], ["-11"])
-
-    assert_query "select count(*) from #{@prefix}emulated where abs(number) > 0 and abs(number) < 10",
-      %{rows: [%{row: [10]}]}
-  end
-
   test "like on an emulated column" do
     :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value"], [Base.encode64("aba")])
     :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value"], [Base.encode64("aca")])
@@ -73,7 +65,7 @@ defmodule Cloak.Query.DBEmulatorTest do
   end
 
   describe "aggregation in emulated subqueries" do
-    def aggregation_setup(_) do
+    setup do
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
         ["value", "date"], [Base.encode64("abc"), "2016-11-02"])
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
@@ -87,8 +79,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
         ["value", "date"], [nil, nil])
     end
-
-    setup [:aggregation_setup]
 
     test "count(*)" do
       assert_query "select avg(v) from (select user_id, count(*) as v from #{@prefix}emulated group by user_id) as t",
@@ -118,23 +108,31 @@ defmodule Cloak.Query.DBEmulatorTest do
     end
 
     test "having inequality" do
+      :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["number"], ["3"])
+      :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["number"], ["7"])
+      :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["number"], ["30"])
+
       assert_query """
-        select length(v) as l from
-          (select user_id, left(value, 1) as v from #{@prefix}emulated
-          group by user_id, value having length(value) >= 1 and length(value) < 2) as t
-        order by l
-      """, %{rows: [%{occurrences: 20, row: [1]}]}
+        select v from
+          (select user_id, number + 2 as v from #{@prefix}emulated
+          group by user_id, number having number >= 0 and number < 10) as t
+        order by v
+      """, %{rows: [%{occurrences: 10, row: [5]}, %{occurrences: 10, row: [9]}]}
     end
 
     test "nested having inequality" do
+      :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["number"], ["3"])
+      :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["number"], ["7"])
+      :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["number"], ["30"])
+
       assert_query """
-        select length(v) as l from
+        select v from
           (select user_id, v from
-            (select user_id, left(value, 1) as v from #{@prefix}emulated
-            group by user_id, value having length(value) >= 1 and length(value) < 2) as t
+            (select user_id, number + 2 as v from #{@prefix}emulated
+            group by user_id, number having number >= 0 and number < 10) as t
           group by user_id, v) as foo
-        order by l
-      """, %{rows: [%{occurrences: 20, row: [1]}]}
+        order by v
+      """, %{rows: [%{occurrences: 10, row: [5]}, %{occurrences: 10, row: [9]}]}
     end
 
     test "where inequality" do
@@ -213,7 +211,7 @@ defmodule Cloak.Query.DBEmulatorTest do
   end
 
   describe "distinct in emulated subqueries" do
-    defp distinct_setup(_) do
+    setup do
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
         ["value", "date"], [Base.encode64("abc"), "2016-11-02"])
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
@@ -227,8 +225,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated",
         ["value", "date"], [nil, nil])
     end
-
-    setup [:distinct_setup]
 
     test "count(distinct value)", do:
       assert_query """
@@ -270,12 +266,10 @@ defmodule Cloak.Query.DBEmulatorTest do
   end
 
   describe "emulated joins" do
-    defp join_setup(_) do
+    setup do
       :ok = insert_rows(_user_ids = 1..20, "#{@prefix}emulated", ["value"], [Base.encode64("a b c")])
       :ok = insert_rows(_user_ids = 11..25, "#{@prefix}joined", ["age"], [30])
     end
-
-    setup [:join_setup]
 
     test "cross join", do:
       assert_query """

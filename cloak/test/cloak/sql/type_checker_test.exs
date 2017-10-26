@@ -134,11 +134,6 @@ defmodule Cloak.Sql.TypeChecker.Test do
     end
   end
 
-  def expression_name(breadcrumb_trail), do:
-    breadcrumb_trail
-    |> Enum.map(fn({expression, _}) -> expression end)
-    |> Enum.map(&(&1.name))
-
   describe "knows which columns were involved" do
     test "when a column is selected" do
       type = type_first_column("SELECT numeric FROM table")
@@ -159,6 +154,11 @@ defmodule Cloak.Sql.TypeChecker.Test do
       type = type_first_column("SELECT concat(string, cast(numeric as text)) FROM table")
       assert expression_name(type.narrative_breadcrumbs) == ["string", "numeric"]
     end
+
+    def expression_name(breadcrumb_trail), do:
+      breadcrumb_trail
+      |> Enum.map(fn({expression, _}) -> expression end)
+      |> Enum.map(&(&1.name))
   end
 
   describe "detection of datetime functions" do
@@ -249,6 +249,94 @@ defmodule Cloak.Sql.TypeChecker.Test do
       assert [{%Expression{name: "numeric"}, [{:dangerously_discontinuous, "%"}]}] =
         type.narrative_breadcrumbs
     end
+  end
+
+  describe "IN" do
+    test "allows clear IN lhs", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric IN (1, 2, 3)")
+
+    test "forbids unclear IN lhs", do:
+      assert {:error, "The left-hand side of an IN operator must be an unmodified database column."} =
+        compile("SELECT COUNT(*) FROM table WHERE numeric + 1 IN (1, 2, 3)")
+
+    test "allows clear IN lhs from subqueries", do:
+      assert {:ok, _, _} =
+        compile("SELECT COUNT(*) FROM (SELECT numeric AS number FROM table) x WHERE number IN (1, 2, 3)")
+
+    test "forbids unclear IN lhs from subqueries", do:
+      assert {:error, "The left-hand side of an IN operator must be an unmodified database column."} =
+        compile("SELECT COUNT(*) FROM (SELECT numeric + 1 AS number FROM table) x WHERE number IN (1, 2, 3)")
+  end
+
+  describe "negative conditions" do
+    test "allows clear <> lhs", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> 10")
+
+    test "forbids unclear <> lhs", do:
+      assert {:error, "The <> operation can only be applied to an unmodified database column and a constant."} =
+        compile("SELECT COUNT(*) FROM table WHERE numeric + 1 <> 10")
+
+    test "forbids column <> column", do:
+      assert {:error, "The <> operation can only be applied to an unmodified database column and a constant."} =
+        compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
+
+    test "allows clear <> lhs in subquery HAVING", do:
+      assert {:ok, _, _} = compile("""
+        SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(numeric) <> 10) x
+      """)
+
+    test "forbids unclear <> lhs in subquery HAVING", do:
+      assert {:error, "The <> operation can only be applied to an unmodified database column" <> _} = compile("""
+        SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING AVG(numeric + 1) <> 10) x
+      """)
+
+    test "allows clear NOT LIKE lhs", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE string NOT LIKE '%some pattern_'")
+
+    test "allows clear NOT ILIKE lhs", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE string NOT ILIKE '%some pattern_'")
+
+    test "forbids unclear NOT LIKE lhs", do:
+      assert {:error, "NOT LIKE can only be applied to an unmodified database column."} =
+        compile("SELECT COUNT(*) FROM table WHERE upper(string) NOT LIKE '%some pattern_'")
+
+    test "forbids unclear NOT ILIKE lhs", do:
+      assert {:error, "NOT ILIKE can only be applied to an unmodified database column."} =
+        compile("SELECT COUNT(*) FROM table WHERE upper(string) NOT ILIKE '%some pattern_'")
+  end
+
+  describe "ranges" do
+    test "allows clear >=/< arguments", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric > 0 AND numeric < 10")
+
+    test "forbids unclear >=/< arguments", do:
+      assert {:error, "Only unmodified database columns can be limited by a range."} =
+        compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) > 0 AND sqrt(numeric) < 10")
+
+    test "allows clear between arguments", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric BETWEEN 0 AND 10")
+
+    test "forbids unclear between arguments", do:
+      assert {:error, "Only unmodified database columns can be limited by a range."} =
+        compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) BETWEEN 0 AND 10")
+
+    test "allows any ranges in top-level HAVING", do:
+      assert {:ok, _, _} = compile("""
+        SELECT COUNT(*) FROM table GROUP BY numeric HAVING sqrt(COUNT(float)) BETWEEN 0 AND 10
+      """)
+
+    test "allows clear ranges in subquery HAVING", do:
+      assert {:ok, _, _} = compile("""
+        SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(float) BETWEEN 0 AND 10) x
+      """)
+
+    test "forbids unclear ranges in subquery HAVING", do:
+      assert {:error,  "Only unmodified database columns can be limited by a range."} = compile("""
+        SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING sqrt(COUNT(float)) BETWEEN 0 AND 10) x
+      """)
+
+    test "allows casts in ranges", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE CAST(string AS INTEGER) BETWEEN 0 AND 10")
   end
 
   defp dangerously_discontinuous?(query), do:

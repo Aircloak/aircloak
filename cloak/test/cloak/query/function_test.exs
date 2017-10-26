@@ -173,11 +173,10 @@ defmodule Cloak.Query.FunctionTest do
       assert_query("""
         SELECT extract_words(name)
         FROM heights_ft
-        WHERE extract_words(name) IN ('first', 'third')
+        WHERE extract_words(name) = 'first'
         """,
         %{rows: [
           %{row: ["first"], occurrences: 100},
-          %{row: ["third"], occurrences: 100},
         ]}
       )
     end

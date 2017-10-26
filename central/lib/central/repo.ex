@@ -4,9 +4,6 @@ defmodule Central.Repo do
   use Aircloak.ChildSpec.Supervisor
   require Aircloak.DeployConfig
 
-  # Need to disable due to error in old Ecto. Should be revised once we upgrade Ecto to 2.0
-  @dialyzer :no_undefined_callbacks
-
   require Logger
 
   @doc """

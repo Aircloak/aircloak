@@ -211,31 +211,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
-  describe "noise layer from negative condition" do
-    test "simple noise layer" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> 10", data_source())
+  test "noise layer from negative condition" do
+    result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> 10", data_source())
 
-      assert [
-        %{base: {"table", "numeric", :<>}, expressions: [%Expression{name: "numeric"}]},
-      ] = result.noise_layers
-    end
-
-    test "noise layers for conditions with functions" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE sqrt(numeric) <> 10", data_source())
-
-      assert [
-        %{base: {"table", "numeric", :<>}, expressions: [%Expression{name: "numeric"}]},
-      ] = result.noise_layers
-    end
-
-    test "noise layers for complex conditions" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> numeric2", data_source())
-
-      assert [
-        %{base: {"table", "numeric", :<>}, expressions: [%Expression{name: "numeric"}]},
-        %{base: {"table", "numeric2", :<>}, expressions: [%Expression{name: "numeric2"}]},
-      ] = result.noise_layers
-    end
+    assert [
+      %{base: {"table", "numeric", :<>}, expressions: [%Expression{value: 10}]},
+      %{base: {"table", "numeric", :<>}, expressions: [%Expression{value: 10}, %Expression{name: "uid"}]},
+    ] = result.noise_layers
   end
 
   describe "noise layers for IS NULL" do
@@ -345,10 +327,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "noise layers when NOT ILIKE has no wildcards" do
-      result1 = compile!("SELECT COUNT(*) FROM table WHERE name NOT ILIKE 'bob'", data_source())
-      result2 = compile!("SELECT COUNT(*) FROM table WHERE name <> 'bob'", data_source())
+      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT ILIKE 'bob'", data_source())
 
-      assert Enum.map(result1.noise_layers, & &1.base) == Enum.map(result2.noise_layers, & &1.base)
+      assert [
+        %{base: {"table", "name", {:not, :ilike, "bob"}}, expressions: [%{name: "name"}]},
+        %{base: {"table", "name", {:not, :ilike, "bob"}}, expressions: [%{name: "name"}, %{name: "uid"}]},
+      ] = result.noise_layers
     end
   end
 
@@ -370,7 +354,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
         %{base: {"table", "name", nil}, expressions: [%{name: "name"}]},
-        %{base: {"table", "name", nil}, expressions: [%{name: "name"}, %{name: "uid"}]},
+        %{base: {"table", "name", nil}, expressions: [%{value: "a"}, %{name: "uid"}]},
+        %{base: {"table", "name", nil}, expressions: [%{value: "b"}, %{name: "uid"}]},
       ] = result.noise_layers
     end
   end

@@ -3,7 +3,8 @@ defmodule Air.Admin.DataSourceControllerTest do
   # (see https://hexdocs.pm/ecto/Ecto.Adapters.SQL.Sandbox.html)
   use Air.ConnCase, async: false
 
-  import Air.{TestConnHelper, AssertionHelper}
+  import Air.TestConnHelper
+  import Aircloak.AssertionHelper
   alias Air.{TestSocketHelper, TestRepoHelper, Schemas.DataSource, Repo}
 
   setup do

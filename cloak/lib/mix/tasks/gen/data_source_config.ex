@@ -52,8 +52,6 @@ defmodule Mix.Tasks.Gen.DataSourceConfig do
     write the data source definitions as individual files in the specified directory.
     """
 
-    alias Compliance.DataSources
-
     # Mix.Task behaviour is not in PLT since Mix is not a runtime dep, so we disable the warning
     @dialyzer :no_undefined_callbacks
 
@@ -92,8 +90,8 @@ defmodule Mix.Tasks.Gen.DataSourceConfig do
 
     defp build_data_source_definitions(config_name) do
       config_name
-      |> DataSources.all_from_config()
-      |> DataSources.complete_data_source_definitions()
+      |> Compliance.DataSources.all_from_config()
+      |> Compliance.DataSources.complete_data_source_definitions()
       |> Enum.map(fn(data_source) ->
         {:ok, name} = Cloak.DataSource.Utility.driver_to_name(data_source.driver)
         Map.put(data_source, :driver, name)

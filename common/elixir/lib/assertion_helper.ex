@@ -1,4 +1,4 @@
-defmodule Air.AssertionHelper do
+defmodule Aircloak.AssertionHelper do
   @moduledoc """
   Adds generic assertion useful in tests
   """
@@ -13,7 +13,8 @@ defmodule Air.AssertionHelper do
   """
   defmacro soon(check, timeout \\ 100) do
     quote do
-      Air.AssertionHelper.perform_soon_check(fn -> unquote(check) end, 10, div(unquote(timeout), 10))
+      Aircloak.AssertionHelper.perform_soon_check(fn -> unquote(check) end, 10,
+        div(unquote(timeout), 10))
     end
   end
 

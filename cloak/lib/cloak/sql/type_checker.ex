@@ -21,7 +21,7 @@ defmodule Cloak.Sql.TypeChecker do
   or discontinuous functions.
   """
 
-  alias Cloak.Sql.{CompilationError, Condition, Expression, Query}
+  alias Cloak.Sql.{CompilationError, Condition, Function, Expression, Query}
   alias Cloak.Sql.TypeChecker.{Narrative, Type}
 
 
@@ -45,6 +45,10 @@ defmodule Cloak.Sql.TypeChecker do
     verify_usage_of_datetime_extraction_clauses(query)
     verify_function_usage_for_selected_columns(query)
     verify_function_usage_for_condition_clauses(query)
+    verify_lhs_of_in_is_clear(query)
+    verify_lhs_of_not_equals_is_clear(query)
+    verify_lhs_of_not_like_is_clear(query)
+    verify_ranges_are_clear(query)
     query
   end
 
@@ -151,6 +155,52 @@ defmodule Cloak.Sql.TypeChecker do
       end
     end)
 
+  defp verify_lhs_of_in_is_clear(query), do:
+    verify_conditions(query, &Condition.in?/1, fn({:in, lhs, _}) ->
+      unless clear_lhs?(lhs, query) do
+        raise CompilationError, message: "The left-hand side of an IN operator must be an unmodified database column."
+      end
+    end)
+
+  defp verify_lhs_of_not_equals_is_clear(query), do:
+    verify_conditions(query, &Condition.not_equals?/1, fn({:comparison, lhs, :<>, rhs}) ->
+      unless clear_lhs?(lhs, query) and establish_type(rhs, query).constant? do
+        raise CompilationError, message:
+          "The <> operation can only be applied to an unmodified database column and a constant."
+      end
+    end)
+
+  defp verify_lhs_of_not_like_is_clear(query), do:
+    verify_conditions(query, &Condition.not_like?/1, fn({:not, {kind, lhs, _}}) ->
+      unless clear_lhs?(lhs, query) do
+        raise CompilationError, message:
+          "NOT #{like_kind_name(kind)} can only be applied to an unmodified database column."
+      end
+    end)
+
+  defp clear_lhs?(%Expression{aggregate?: true, function_args: [lhs]}, query), do: clear_lhs?(lhs, query)
+  defp clear_lhs?(lhs, query), do: establish_type(lhs, query).raw_column?
+
+  defp like_kind_name(:like), do: "LIKE"
+  defp like_kind_name(:ilike), do: "ILIKE"
+
+  defp verify_ranges_are_clear(query), do:
+    verify_conditions(query, &Condition.inequality?/1, fn({:comparison, lhs, _, _}) ->
+      unless clear_range_lhs?(lhs, query) do
+        raise CompilationError, message: "Only unmodified database columns can be limited by a range."
+      end
+    end)
+
+  defp clear_range_lhs?(%Expression{aggregate?: true, function_args: [lhs]}, query), do: clear_range_lhs?(lhs, query)
+  defp clear_range_lhs?(lhs, query), do: establish_type(lhs, query).cast_raw_column?
+
+  defp verify_conditions(query, predicate, action), do:
+    Query.Lenses.db_filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.satisfy(predicate)
+    |> Lens.to_list(query)
+    |> Enum.each(action)
+
   def establish_type(column, query), do: construct_type(column, query)
 
 
@@ -203,6 +253,8 @@ defmodule Cloak.Sql.TypeChecker do
 
   defp column(expression), do:
     %Type{
+      raw_column?: true,
+      cast_raw_column?: true,
       constant?: false,
       narrative_breadcrumbs: [{expression, []}],
       datetime_involved?: datetime_type?(expression),
@@ -216,18 +268,17 @@ defmodule Cloak.Sql.TypeChecker do
   defp construct_type(%Expression{constant?: true}, _query, _future), do: constant()
   defp construct_type(%Expression{function: nil} = column, query, future), do:
     expand_from_subquery(column, query, future)
-  defp construct_type(%Expression{function: name, function_args: args}, query, future), do:
-    type_for_function(name, args, query, future)
-  defp construct_type({:function, name, args}, query, future), do:
-    type_for_function(name, args, query, future)
+  defp construct_type(function = %Expression{function?: true}, query, future), do:
+    type_for_function(function, query, future)
 
-  defp type_for_function(name, args, query, future) do
+  defp type_for_function(function = %Expression{function: name, function_args: args}, query, future) do
     child_types = args |> Enum.map(&(construct_type(&1, query, [name | future])))
     # Prune constants, they don't interest us further
     if Enum.all?(child_types, &(&1.constant?)) do
       constant()
     else
       %Type{
+        cast_raw_column?: Function.cast?(function) and match?([%{raw_column?: true}], child_types),
         constant_involved?: any_touched_by_constant?(child_types),
         datetime_involved?: any_touched_by_datetime?(child_types),
         is_result_of_potentially_crashing_function?: performs_potentially_crashing_function?(name, child_types) ||

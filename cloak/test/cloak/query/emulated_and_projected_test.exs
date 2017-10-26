@@ -44,7 +44,11 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
   end
 
   describe "simple queries" do
-    setup [:simple_setup]
+    setup do
+      :ok = insert_emulated_row(_user_ids = 1..10, ["value", "num"], [Base.encode64("aaa"), 3])
+      :ok = insert_emulated_row(_user_ids = 11..20, ["value", "num"], [Base.encode64("b"), 2])
+      :ok = insert_emulated_row(_user_ids = 21..30, ["value", "num", "value2"], [nil, 1, "c"])
+    end
 
     test "where", do:
       assert_query "select count(value) from #{@prefix}emulated where value = 'aaa'",
@@ -80,13 +84,11 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
   end
 
   describe "simple emulated subqueries" do
-    defp simple_subqueries_setup(_) do
+    setup do
       :ok = insert_emulated_row(_user_ids = 1..10, ["value", "num"], [Base.encode64("aaa"), 3])
       :ok = insert_emulated_row(_user_ids = 11..20, ["value", "num"], [Base.encode64("bbb"), 2])
       :ok = insert_emulated_row(_user_ids = 21..30, ["value", "num"], [nil, 1])
     end
-
-    setup [:simple_subqueries_setup]
 
     test "where", do:
       assert_query "select count(value) from (select user_id, value from #{@prefix}emulated where value = 'aaa') as t",
@@ -127,12 +129,10 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
   end
 
   describe "emulated subqueries with functions" do
-    defp subqueries_with_functions_setup(_) do
+    setup do
       :ok = insert_emulated_row(_user_ids = 1..10, ["value"], [Base.encode64("abc")])
       :ok = insert_emulated_row(_user_ids = 11..20, ["value"], [Base.encode64("x")])
     end
-
-    setup [:subqueries_with_functions_setup]
 
     test "length", do:
       assert_query "select l from (select user_id, length(value) as l from #{@prefix}emulated) as t order by l desc",
@@ -145,7 +145,7 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
   end
 
   describe "aggregation in emulated subqueries" do
-    def aggregation_setup(_) do
+    setup do
       :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [Base.encode64("abc")])
       :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [Base.encode64("x")])
       :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [Base.encode64("xyx")])
@@ -153,8 +153,6 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
       :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [Base.encode64("1234")])
       :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [nil])
     end
-
-    setup [:aggregation_setup]
 
     test "count(*)" do
       assert_query "select avg(v) from (select user_id, count(*) as v from #{@prefix}emulated group by user_id) as t",
@@ -177,12 +175,16 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
     end
 
     test "having inequality" do
+      :ok = insert_emulated_row(_user_ids = 1..10, ["num"], [3])
+      :ok = insert_emulated_row(_user_ids = 11..20, ["num"], [7])
+      :ok = insert_emulated_row(_user_ids = 21..30, ["num"], [30])
+
       assert_query """
-        select length(v) as l from
-          (select user_id, left(value, 1) as v from #{@prefix}emulated
-          group by user_id, value having length(value) >= 1 and length(value) < 2) as t
-        order by l
-        """, %{rows: [%{occurrences: 20, row: [1]}]}
+        select v from
+          (select user_id, num + 2 as v from #{@prefix}emulated
+          group by user_id, num having num >= 0 and num < 10) as t
+        order by v
+        """, %{rows: [%{occurrences: 10, row: [5]}, %{occurrences: 10, row: [9]}]}
     end
 
     test "having equality" do
@@ -228,7 +230,7 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
   end
 
   describe "distinct in emulated subqueries" do
-    defp distinct_setup(_) do
+    setup do
       :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [Base.encode64("abc")])
       :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [Base.encode64("x")])
       :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [Base.encode64("xyx")])
@@ -236,8 +238,6 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
       :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [Base.encode64("1234")])
       :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [nil])
     end
-
-    setup [:distinct_setup]
 
     test "count(distinct value)", do:
       assert_query """
@@ -265,12 +265,10 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
   end
 
   describe "emulated joins" do
-    defp join_setup(_) do
+    setup do
       :ok = insert_emulated_row(_user_ids = 1..20, ["value"], [nil])
       :ok = insert_rows(_user_ids = 11..25, "#{@prefix}joined", ["age"], [30])
     end
-
-    setup [:join_setup]
 
     test "cross join", do:
       assert_query """
@@ -306,7 +304,11 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
   end
 
   describe "extract_words" do
-    setup [:simple_setup]
+    setup do
+      :ok = insert_emulated_row(_user_ids = 1..10, ["value", "num"], [Base.encode64("aaa"), 3])
+      :ok = insert_emulated_row(_user_ids = 11..20, ["value", "num"], [Base.encode64("b"), 2])
+      :ok = insert_emulated_row(_user_ids = 21..30, ["value", "num", "value2"], [nil, 1, "c"])
+    end
 
     test "extract_words on a concatenated string" do
       assert_query(
@@ -331,12 +333,6 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
 
     assert_query "select count(*) from #{@prefix}emulated2 where value = 'aaa'",
       %{rows: [%{occurrences: 1, row: [200]}]}
-  end
-
-  defp simple_setup(_) do
-    :ok = insert_emulated_row(_user_ids = 1..10, ["value", "num"], [Base.encode64("aaa"), 3])
-    :ok = insert_emulated_row(_user_ids = 11..20, ["value", "num"], [Base.encode64("b"), 2])
-    :ok = insert_emulated_row(_user_ids = 21..30, ["value", "num", "value2"], [nil, 1, "c"])
   end
 
   defp insert_emulated_row(user_id_range, columns, values), do:

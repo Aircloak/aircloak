@@ -13,7 +13,7 @@ clean:
 	mix clean --deps
 
 start:
-	iex -S mix phoenix.server
+	iex -S mix phx.server
 
 test: mocha
 	mix test.standard

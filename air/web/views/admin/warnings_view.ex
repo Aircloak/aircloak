@@ -1,8 +1,6 @@
 defmodule Air.Admin.WarningsView do
   @moduledoc false
   use Air.Web, :view
-  # bug in the current Phoenix
-  @dialyzer :no_match
   import Phoenix.HTML.Link, only: [link: 2]
 
   alias Air.Schemas.DataSource

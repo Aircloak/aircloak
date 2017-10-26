@@ -42,9 +42,9 @@ defmodule Cloak.DataSource do
   alias Cloak.Query.ExecutionError
 
   require Logger
-  require Aircloak.DeployConfig
+  require Aircloak.{DeployConfig, File}
 
-  use GenServer, start: {__MODULE__, :start_link, []}
+  use GenServer
 
   # define returned data types and values
   @type t :: %{
@@ -73,19 +73,58 @@ defmodule Cloak.DataSource do
   # -------------------------------------------------------------------
 
   @doc """
-  Starts the handler process for data sources.
+  Synchronously replaces the existing data source definitions with fresh ones loaded and initialized from the
+  definitions configured on disk.
 
-  Starting is fault-tolerant: if some data sources can't be accessed, or if
-  there are some errors in the configuration, the system will still start,
-  using the valid datasources. Invalid data sources won't be accessible, but
-  the system will log corresponding errors.
+  If online, the Air will receive the updated data sources.
   """
-  def start_link() do
-    initial_state = Aircloak.DeployConfig.fetch!("data_sources")
-    |> Cloak.DataSource.Utility.load_individual_data_source_configs()
-    |> config_to_datasources()
-    |> Enum.map(&add_tables/1)
-    GenServer.start_link(__MODULE__, initial_state, name: __MODULE__)
+  @spec reinitialize_all_data_sources() :: :ok
+  def reinitialize_all_data_sources(), do:
+    replace_all_data_source_configs(load_data_source_configs())
+
+  @doc "Replaces the data source definitions maintained by the DataSource server"
+  @spec replace_all_data_source_configs([t]) :: :ok
+  def replace_all_data_source_configs(data_sources), do:
+    GenServer.cast(__MODULE__, {:replace_data_sources, data_sources})
+
+  @doc """
+  Synchronously loads and initializes a data source given the path to the data source definition. If the data source
+  doesn't yet exist it is added, and if it already exists it is replaced by the new one.
+
+  If online, the Air will receive the updated data source.
+  """
+  @spec initialize_data_source_from_path(String.t) :: :ok | :error
+  def initialize_data_source_from_path(file_path) do
+    file_path
+    |> File.read!()
+    |> Aircloak.Json.safe_decode()
+    |> case do
+      {:ok, data_source_definition} ->
+        [data_source] = initialize_data_source_configs([data_source_definition])
+        replace_data_source_config(data_source)
+        :ok
+      {:error, reason} ->
+        Logger.warn("Failed to initialize data source from path: #{file_path}: #{reason}")
+        :error
+    end
+  end
+
+  @doc """
+  Validates that the Cloak can connect to the data source, and updates the online status of the
+  data source. If the data source has been offline, it also has it's table definitions refreshed.
+
+  Changes to the data source or it's online status will be propagated to the Air.
+  """
+  @spec perform_data_source_availability_checks() :: :ok
+  def perform_data_source_availability_checks() do
+    Cloak.DataSource.all()
+    |> Task.async_stream(fn(data_source) ->
+      updated_data_source = update_data_source_connectivity(data_source)
+      if data_source.status != updated_data_source.status, do:
+        replace_data_source_config(updated_data_source)
+    end)
+    |> Stream.run()
+    :ok
   end
 
   @doc "Returns the list of defined data sources."
@@ -159,16 +198,38 @@ defmodule Cloak.DataSource do
     |> Validations.Name.check_for_duplicates()
     |> Enum.map(&save_init_fields/1)
 
+  @doc "Expands a data source definition with tables derived from the database"
+  @spec add_tables(t) :: t
+  def add_tables(data_source) do
+    Logger.info("Loading tables from #{data_source.name} ...")
+    data_source = restore_init_fields(data_source)
+    driver = data_source.driver
+    try do
+      connection = driver.connect!(data_source.parameters)
+      try do
+        data_source
+        |> Table.load(connection)
+        |> Map.put(:status, :online)
+      after
+        driver.disconnect(connection)
+      end
+    rescue
+      error in ExecutionError ->
+        message = "Connection error: #{Exception.message(error)}."
+        Logger.error("Data source `#{data_source.name}` is offline: #{message}")
+        add_error_message(%{data_source | tables: %{}, status: :offline}, message)
+    end
+  end
+
+
 
   # -------------------------------------------------------------------
   # Callbacks
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(data_sources) do
-    activate_monitor_timer(self())
+  def init(data_sources), do:
     {:ok, data_sources}
-  end
 
   @impl GenServer
   def handle_call(:all, _from, data_sources) do
@@ -178,25 +239,16 @@ defmodule Cloak.DataSource do
     data_source = Enum.find(data_sources, & &1.name === name)
     {:reply, data_source, data_sources}
   end
-  def handle_call({:update, data_sources}, _from, _old_data_sources) do
-    {:reply, :ok, data_sources}
-  end
 
   @impl GenServer
-  def handle_info(:monitor, data_sources) do
-    server_pid = self()
-    Task.start_link(fn () ->
-      old_status = Enum.map(data_sources, & &1.status)
-      data_sources = Enum.map(data_sources, &check_data_source/1)
-      new_status = Enum.map(data_sources, & &1.status)
-      if new_status != old_status do
-        update(data_sources)
-        Logger.info("Data sources status changed, sending new configuration to air ...")
-        Cloak.AirSocket.update_config(data_sources)
-      end
-      activate_monitor_timer(server_pid)
-    end)
-    {:noreply, data_sources}
+  def handle_cast({:update_data_source, data_source}, old_data_sources) do
+    updated_data_sources = replace_data_source(old_data_sources, data_source)
+    update_air_on_changes(updated_data_sources, old_data_sources)
+    {:noreply, updated_data_sources}
+  end
+  def handle_cast({:replace_data_sources, new_data_sources}, old_data_sources) do
+    update_air_on_changes(new_data_sources, old_data_sources)
+    {:noreply, new_data_sources}
   end
 
 
@@ -204,10 +256,26 @@ defmodule Cloak.DataSource do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp activate_monitor_timer(pid) do
-    interval = Application.get_env(:cloak, :data_source_monitor_interval)
-    if interval != nil, do: Process.send_after(pid, :monitor, interval)
+  defp update_air_on_changes(new_data_sources, old_data_sources) do
+    if new_data_sources != old_data_sources do
+      Logger.info("Data sources changed, sending new configurations to air ...")
+      update_air(new_data_sources)
+    end
   end
+
+  defp replace_data_source(data_sources, data_source), do:
+    Enum.uniq_by([data_source] ++ data_sources, & &1.name)
+
+  defp load_data_source_configs(), do:
+    Aircloak.DeployConfig.fetch!("data_sources")
+    |> Cloak.DataSource.Utility.load_individual_data_source_configs()
+    |> initialize_data_source_configs()
+
+  defp initialize_data_source_configs(data_source_configs), do:
+    data_source_configs
+    |> config_to_datasources()
+    |> Task.async_stream(&add_tables/1)
+    |> Enum.map(fn({:ok, data_source}) -> data_source end)
 
   defp to_data_source(data_source) do
     data_source
@@ -261,31 +329,8 @@ defmodule Cloak.DataSource do
     %{data_source | tables: tables}
   end
 
-  @doc false
-  def add_tables(data_source) do
-    Logger.info("Loading tables from #{data_source.name} ...")
-    data_source = restore_init_fields(data_source)
-    driver = data_source.driver
-    try do
-      connection = driver.connect!(data_source.parameters)
-      try do
-        data_source
-        |> Table.load(connection)
-        |> Map.put(:status, :online)
-      after
-        driver.disconnect(connection)
-      end
-    rescue
-      error in ExecutionError ->
-        message = "Connection error: #{Exception.message(error)}."
-        Logger.error("Data source `#{data_source.name}` is offline: #{message}")
-        add_error_message(%{data_source | tables: %{}, status: :offline}, message)
-    end
-  end
-
-  @doc false
-  def update(data_sources), do:
-    GenServer.call(__MODULE__, {:update, data_sources}, :infinity)
+  defp replace_data_source_config(data_source), do:
+    GenServer.cast(__MODULE__, {:update_data_source, data_source})
 
   # We need a name for the data source in order for the Air to have something to attach
   # potential errors to. Therefore if none exists, we'll create a dummy name based on
@@ -302,21 +347,6 @@ defmodule Cloak.DataSource do
     end
   end
 
-  defp check_data_source(%{status: :online} = data_source) do
-    driver = data_source.driver
-    try do
-      data_source.parameters |> driver.connect!() |> driver.disconnect()
-      data_source
-    rescue
-      error in ExecutionError ->
-        message = "Connection error: #{Exception.message(error)}."
-        Logger.error("Data source `#{data_source.name}` is offline: #{message}")
-        add_error_message(%{data_source | tables: %{}, status: :offline}, message)
-    end
-  end
-  defp check_data_source(%{status: :offline} = data_source) do
-    add_tables(data_source)
-  end
 
   defp validate_choice_of_encoding(%{parameters: %{encoding: encoding}} = data_source) do
     cond do
@@ -360,5 +390,48 @@ defmodule Cloak.DataSource do
   else
     defp disabled_in_dev?(_data_source), do:
       false
+  end
+
+  defp update_data_source_connectivity(%{status: :online} = data_source) do
+    driver = data_source.driver
+    try do
+      data_source.parameters |> driver.connect!() |> driver.disconnect()
+      data_source
+    rescue
+      error in ExecutionError ->
+        message = "Connection error: #{Exception.message(error)}."
+        Logger.error("Data source `#{data_source.name}` is offline: #{message}")
+        add_error_message(%{data_source | tables: %{}, status: :offline}, message)
+    end
+  end
+  defp update_data_source_connectivity(%{status: :offline} = data_source), do:
+    add_tables(data_source)
+
+
+  # Cloak.AirSocket.update_config throws during tests where there is no air conterpoint running. Rather than running
+  # a fake socket for test purposes, we opted to make the update call a noop.
+  if Mix.env == :test do
+    defp update_air(_data_sources), do: :ok
+  else
+    defp update_air(data_sources), do:
+      Cloak.AirSocket.update_config(data_sources)
+  end
+
+
+  # -------------------------------------------------------------------
+  # Supervison tree callback
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_options \\ []) do
+    import Aircloak.ChildSpec
+    supervisor(
+      [
+        gen_server(__MODULE__, load_data_source_configs(), name: __MODULE__),
+        Cloak.DataSource.SerializingUpdater,
+      ],
+      strategy: :one_for_one,
+      name: Cloak.DataSource.Supervisor
+    )
   end
 end

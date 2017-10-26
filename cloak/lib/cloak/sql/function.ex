@@ -142,6 +142,7 @@ defmodule Cloak.Sql.Function do
   @doc "Returns true if the given function call is a cast, false otherwise."
   @spec cast?(t) :: boolean
   def cast?({:function, {:cast, _}, _}), do: true
+  def cast?(%Expression{function: {:cast, _}}), do: true
   def cast?(_), do: false
 
   @doc "Returns the target type of the given cast."

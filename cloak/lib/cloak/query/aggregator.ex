@@ -145,7 +145,7 @@ defmodule Cloak.Query.Aggregator do
   defp merge_accumulators({{:stddev, value1a, value1b, value1c}, {:stddev, value2a, value2b, value2c}}), do:
     {:stddev, value1a + value2a, value1b + value2b, value1c + value2c}
   defp merge_accumulators({{:min, value1}, {:min, value2}}), do: {:min, min(value1, value2)}
-  defp merge_accumulators({{:max, value1}, {:max, value2}}), do: {:max, min(value1, value2)}
+  defp merge_accumulators({{:max, value1}, {:max, value2}}), do: {:max, max(value1, value2)}
 
   defp aggregated_column(%Expression{function_args: [:*]}), do: Expression.constant(nil, :*)
   defp aggregated_column(%Expression{function_args: [{:distinct, column}]}), do: column

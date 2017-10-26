@@ -53,7 +53,8 @@ defmodule Air.ApiTokenController do
       false ->
         conn
         |> put_status(:not_found)
-        |> render(Air.ErrorView, "404.html")
+        |> put_view(Air.ErrorView)
+        |> render("404.html")
         |> halt
     end
   end

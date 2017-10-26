@@ -32,7 +32,7 @@ defmodule Air.Admin.CentralControllerTest do
   test "export form is visible when there's something to export" do
     Air.Service.Central.record_query(%{})
     assert (login(create_admin_user!()) |> get("/admin/central/export_for_aircloak")).resp_body =~
-      ~s(action="/admin/central/new_export")
+      ~s(data-to="/admin/central/new_export")
   end
 
   test "generating a new export" do
