@@ -3,7 +3,7 @@
   "dependencies": {
     "babel-brunch": "~6.0.0",
     "babel-preset-react": "^6.5.0",
-    "brunch": "~2.8.2",
+    "brunch": "~2.10.9",
     "chart.js": "^2.4.0",
     "clean-css-brunch": "~1.8.0",
     "codemirror": "^5.13.4",
