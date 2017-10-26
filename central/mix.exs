@@ -67,8 +67,8 @@ defmodule Central.Mixfile do
       {:inflex, "~> 1.5.0"},
       {:httpoison, "~> 0.12.0"},
       {:quantum, "~> 1.9"},
-      {:phoenix_gen_socket_client, "~> 1.2.0", only: :test},
-      {:websocket_client, github: "sanmiguel/websocket_client", tag: "1.2.4", only: :test}
+      {:phoenix_gen_socket_client, "~> 2.0", only: :test},
+      {:websocket_client, "~> 1.2.4", only: :test},
     ]
   end
 

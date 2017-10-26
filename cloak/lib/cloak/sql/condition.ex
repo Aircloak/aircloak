@@ -1,4 +1,4 @@
-  defmodule Cloak.Sql.Condition do
+defmodule Cloak.Sql.Condition do
   @moduledoc "Contains utility functions for working with conditions."
 
   alias Cloak.Sql.{Query, Expression, Parser, LikePattern}

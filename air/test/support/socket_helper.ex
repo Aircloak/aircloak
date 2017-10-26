@@ -20,7 +20,7 @@ defmodule Air.TestSocketHelper do
         Map.put(params, "version", File.read!("../VERSION"))
       _ -> params
     end
-    {:ok, socket} = TestSocket.start_link(GenSocketClient.Transport.WebSocketClient, url(params), true,
+    {:ok, socket} = TestSocket.start_link(GenSocketClient.Transport.WebSocketClient, url(), Enum.to_list(params), true,
         serializer: Air.CloakSocketSerializer)
     {TestSocket.wait_connect_status(socket), socket}
   end
@@ -94,8 +94,8 @@ defmodule Air.TestSocketHelper do
     end
   end
 
-  defp url(params) do
-    "#{Air.Endpoint.url}/cloak/socket/websocket?#{URI.encode_query(params)}"
+  defp url() do
+    "#{Air.Endpoint.url}/cloak/socket/websocket"
     |> String.replace(~r(http://), "ws://")
     |> String.replace(~r(https://), "wss://")
   end
