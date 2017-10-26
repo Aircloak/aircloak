@@ -10,6 +10,11 @@ defmodule Cloak.Sql.Range do
 
   defstruct [:column, :interval]
 
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
   @doc "Returns a Range with the given column and interval."
   @spec new(Expression.t, FixAlign.interval(any)) :: t
   def new(column, interval), do: %__MODULE__{column: column, interval: interval}
@@ -28,6 +33,11 @@ defmodule Cloak.Sql.Range do
         Enum.sort_by(inequalities, &Condition.direction/1, &Kernel.>/2)
       new(column, {Expression.value(low), Expression.value(high)})
     end)
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp inequalities_by_column(where_clause), do:
     Query.Lenses.conditions()
