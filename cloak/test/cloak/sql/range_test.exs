@@ -10,7 +10,14 @@ defmodule Cloak.Sql.Range.Test do
       assert [%Range{column: %{name: "number"}, interval: {0, 10}}] = Range.find_ranges(query)
     end
 
-    test ">/<= ranges in subquery having"
+    test ">/<= ranges in subquery having" do
+      %{from: {:subquery, %{ast: subquery}}} = compile("""
+        SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING AVG(number) > 10 AND AVG(number) < 20) x
+      """)
+
+      assert [%Range{column: %{function: "avg", function_args: [%{name: "number"}]}, interval: {10, 20}}] =
+        Range.find_ranges(subquery)
+    end
 
     test "other range functions"
   end

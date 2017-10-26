@@ -27,7 +27,7 @@ defmodule Cloak.Sql.Range do
   """
   @spec find_ranges(Query.t) :: [t]
   def find_ranges(query), do:
-    inequalities_by_column(query.where)
+    inequalities_by_column(query)
     |> Enum.map(fn({column, inequalities}) ->
       [{:comparison, _, _, low}, {:comparison, _, _, high}] =
         Enum.sort_by(inequalities, &Condition.direction/1, &Kernel.>/2)
@@ -39,10 +39,10 @@ defmodule Cloak.Sql.Range do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp inequalities_by_column(where_clause), do:
-    Query.Lenses.conditions()
-    |> Lens.to_list(where_clause)
-    |> Enum.filter(&Condition.inequality?/1)
+  defp inequalities_by_column(query), do:
+    Query.Lenses.db_filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.satisfy(&Condition.inequality?/1)
+    |> Lens.to_list(query)
     |> Enum.group_by(&Condition.subject/1)
-    |> Enum.into(%{})
 end
