@@ -3,6 +3,7 @@
 ### Changes
 
 - Improvements to the anonymization process will cause queries to return different results from what they did in the past.
+- Count cached memory towards the memory available for running queries.
 
 ## Version 17.4.1 (unreleased)
 
