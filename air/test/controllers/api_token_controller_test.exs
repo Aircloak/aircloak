@@ -1,5 +1,5 @@
-defmodule Air.ApiTokenControllerTest do
-  use Air.ConnCase, async: true
+defmodule AirWeb.ApiTokenControllerTest do
+  use AirWeb.ConnCase, async: true
 
   import Air.{TestConnHelper, TestRepoHelper, TestAuthHelper}
   alias Air.Schemas.ApiToken

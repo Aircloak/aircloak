@@ -95,7 +95,7 @@ defmodule Air.TestSocketHelper do
   end
 
   defp url() do
-    "#{Air.Endpoint.url}/cloak/socket/websocket"
+    "#{AirWeb.Endpoint.url}/cloak/socket/websocket"
     |> String.replace(~r(http://), "ws://")
     |> String.replace(~r(https://), "wss://")
   end

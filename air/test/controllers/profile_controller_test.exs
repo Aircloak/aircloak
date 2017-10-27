@@ -1,5 +1,5 @@
 defmodule Air.ProfileController.Test do
-  use Air.ConnCase, async: true
+  use AirWeb.ConnCase, async: true
 
   import Air.TestConnHelper
   alias Air.TestRepoHelper

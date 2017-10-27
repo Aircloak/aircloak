@@ -7,7 +7,8 @@ RUN apt-get install calibre -y
 
 # First we'll copy only the subset of needed files and compile deps
 # This will reduce the amount of rebuilding when only the source code is changed.
-COPY air/mix.exs air/mix.lock air/package.json air/yarn.lock /aircloak/air/
+COPY air/mix.exs air/mix.lock /aircloak/air/
+COPY air/assets/package.json air/assets/yarn.lock /aircloak/air/assets/
 COPY air/config /aircloak/air/config
 COPY common /aircloak/common
 COPY air/fetch_deps.sh /aircloak/air/
@@ -21,7 +22,7 @@ RUN \
   bash -c ". ~/.asdf/asdf.sh && ./fetch_deps.sh --only prod " && \
   bash -c ". ~/.asdf/asdf.sh && MIX_ENV=prod mix deps.compile " && \
   echo "Fetching node packages..." && \
-  bash -c ". ~/.bashrc && yarn install" && \
+  bash -c ". ~/.bashrc && cd assets && yarn install" && \
   bash -c ". ~/.bashrc && cd docs && yarn install"
 
 # Build the Bill of Materials
@@ -34,7 +35,7 @@ RUN \
   bash -c ". ~/.asdf/asdf.sh && ./fetch_deps.sh --only prod " && \
   bash -c ". ~/.asdf/asdf.sh && mix deps.compile " && \
   bash -c ". ~/.asdf/asdf.sh && mkdir /aircloak/air/priv " && \
-  bash -c ". ~/.asdf/asdf.sh && mix bom --elixir /aircloak/cloak/deps --elixir /aircloak/air/deps --node /aircloak/air/node_modules /aircloak/air/priv"
+  bash -c ". ~/.asdf/asdf.sh && mix bom --elixir /aircloak/cloak/deps --elixir /aircloak/air/deps --node /aircloak/air/assets/node_modules /aircloak/air/priv"
 
 # Now we copy the rest of the site and build the release.
 COPY air /aircloak/air

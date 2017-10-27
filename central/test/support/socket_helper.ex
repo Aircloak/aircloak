@@ -45,7 +45,7 @@ defmodule Central.TestSocketHelper do
   end
 
   defp url() do
-    "#{Central.Endpoint.url}/air/socket/websocket"
+    "#{CentralWeb.Endpoint.url}/air/socket/websocket"
     |> String.replace(~r(http://), "ws://")
     |> String.replace(~r(https://), "wss://")
   end

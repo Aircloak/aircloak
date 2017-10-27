@@ -44,7 +44,7 @@ defmodule Air do
 
   @doc false
   def config_change(changed, _new, removed) do
-    Air.Endpoint.config_change(changed, removed)
+    AirWeb.Endpoint.config_change(changed, removed)
     :ok
   end
 
@@ -57,7 +57,7 @@ defmodule Air do
     Air.Utils.update_app_env(:guardian, Guardian,
       &[{:secret_key, site_setting("auth_secret")} | &1])
 
-    Air.Utils.update_app_env(:air, Air.Endpoint,
+    Air.Utils.update_app_env(:air, AirWeb.Endpoint,
       &Keyword.merge(&1,
         secret_key_base: site_setting("endpoint_key_base"),
         api_token_salt: site_setting("api_token_salt"),
@@ -109,7 +109,7 @@ defmodule Air do
       [
         {"0 * * * *", {Air.Service.Cleanup, :cleanup_old_queries}},
         {"*/5 * * * *", {Air.Service.Cleanup, :cleanup_dead_queries}},
-        {~e[*/10 * * * * * *]e, {Air.Socket.Frontend.DataSourceChannel, :push_updates}},
+        {~e[*/10 * * * * * *]e, {AirWeb.Socket.Frontend.DataSourceChannel, :push_updates}},
       ]
       |> Enum.each(fn({schedule, job}) -> Quantum.add_job(schedule, job) end)
     end

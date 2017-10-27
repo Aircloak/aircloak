@@ -1,5 +1,5 @@
-defmodule Air.Admin.CentralControllerTest do
-  use Air.ConnCase, async: false
+defmodule AirWeb.Admin.CentralControllerTest do
+  use AirWeb.ConnCase, async: false
 
   import Air.{TestRepoHelper, TestConnHelper}
   alias Air.Schemas.ExportForAircloak

@@ -34,7 +34,7 @@ defmodule BOM.Whitelist do
       {"create-hmac",               "1.1.4"}  => %{type: :mit,           text: :standard},
       {"csscolorparser",            "1.0.3"}  => %{type: :mit,           text: :provided},
       {"damerau-levenshtein",       "1.0.3"}  => %{type: :bsd_2_clause,  text: :standard},
-      {"deppack",                   "0.6.4"}  => %{type: :mit,           text: :provided},
+      {"deppack",                   "0.7.0"}  => %{type: :mit,           text: :provided},
       {"diffie-hellman",            "5.0.2"}  => %{type: :mit,           text: :standard},
       {"esprima",                   "1.1.1"}  => %{type: :bsd_2_clause,  text: :provided},
       {"esrecurse",                 "4.1.0"}  => %{type: :bsd_2_clause,  text: :standard},

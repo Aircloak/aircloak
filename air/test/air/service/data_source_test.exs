@@ -244,7 +244,7 @@ defmodule Air.Service.DataSourceTest do
     assert {:error, changeset} = fun.(changes)
 
     changeset
-    |> Ecto.Changeset.traverse_errors(&Air.ErrorHelpers.translate_error/1)
+    |> Ecto.Changeset.traverse_errors(&AirWeb.ErrorHelpers.translate_error/1)
     |> Enum.flat_map(fn {key, errors} -> for msg <- errors, do: {key, msg} end)
   end
 end

@@ -2,9 +2,10 @@ defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
   alias Air.Schemas.{DataSource, Group, Query, User, ResultChunk}
-  alias Air.{PsqlServer.Protocol, Repo, Socket.Cloak.MainChannel, Socket.Frontend.UserChannel}
+  alias Air.{PsqlServer.Protocol, Repo}
   alias Air.Service.{Version, Cloak, View}
   alias Air.Service
+  alias AirWeb.Socket.{Cloak.MainChannel, Frontend.UserChannel}
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
   require Logger

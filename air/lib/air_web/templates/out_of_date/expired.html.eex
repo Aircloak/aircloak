@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Aircloak – Please upgrade your Aircloak</title>
+    <link rel="shortcut icon" href="<%= static_path(@conn, "/images/favicon.ico") %>" type="image/x-icon">
+    <link rel="stylesheet" href="<%= static_path(@conn, "/css/vendor.css") %>">
+    <link rel="stylesheet" href="<%= static_path(@conn, "/css/app.css") %>">
+  </head>
+
+  <body class="outdated">
+    <div class="body-wrapper">
+      <div class="container">
+
+        <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
+        <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
+
+        <main role="main">
+          <div class="col-sm-8 col-sm-offset-2">
+            <h1>Please update your Aircloak</h1>
+
+            <h2>What is the problem</h2>
+
+            <p>
+              Your Aircloak installation is running version <code><%= AirWeb.SharedView.version() %></code>
+              which expired on <%= expiry_date() %>.
+            </p>
+
+            <p>
+              This can happen for one of two reasons:
+            </p>
+
+            <ul>
+              <li>You are significantly behind the official release schedule, and run a version that is no longer supported.</li>
+              <li>Your license expired.</li>
+            </ul>
+
+            <h2>How do I fix it</h2>
+
+            <p>
+              To resume operation, please update the version of your system that you are running.
+              This can be done by pulling a more recent version of the <code>air</code> and <code>cloak</code>
+              containers from the Aircloak registry and restarting your Aircloak instance.
+            </p>
+
+            <p>
+              If you are using plain docker, the following set of commands should bring your system back up again:
+            </p>
+
+            <pre>
+docker pull quay.io/aircloak/air:latest
+docker pull quay.io/aircloak/cloak:latest
+
+docker restart air
+docker restart cloak</pre>
+
+            <h2>Why is this happening</h2>
+
+            <p>
+              All Aircloak releases expire after a set amount of time.
+              This ensures that you run a system with the strongest and most recent
+              anonymization technology that we have to offer.
+            </p>
+
+            <p>
+              Newer versions also contain important security fixes in the Linux subsystem used.
+              It is recommended that you always run the latest version available,
+              but ample time is provided so you can upgrade your installation on a schedule matching
+              your internal requirements.
+            </p>
+
+
+            <h2>I need help</h2>
+
+            <p>
+              If you have questions or need help upgrading your system, please contact support on
+              <a href="mailto:support@aircloak.com">support@aircloak.com</a>.
+            </p>
+          </div>
+        </main>
+
+      </div> <!-- /container -->
+    </div>
+
+    <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
+  </body>
+</html>

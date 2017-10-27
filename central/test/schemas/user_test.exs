@@ -44,7 +44,7 @@ defmodule Central.UserTest do
   test "requires password for new users" do
     attributes = %{@valid_attrs | password: ""}
     errors = User.new_user_changeset(%User{}, attributes)
-    |> Ecto.Changeset.traverse_errors(&Central.ErrorHelpers.translate_error/1)
+    |> Ecto.Changeset.traverse_errors(&CentralWeb.ErrorHelpers.translate_error/1)
     |> Enum.flat_map(fn {key, errors} -> for msg <- errors, do: {key, msg} end)
     assert Keyword.has_key?(errors, :password)
   end

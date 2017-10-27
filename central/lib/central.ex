@@ -14,7 +14,7 @@ defmodule Central do
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.
   def config_change(changed, _new, removed) do
-    Central.Endpoint.config_change(changed, removed)
+    CentralWeb.Endpoint.config_change(changed, removed)
     :ok
   end
 
@@ -25,7 +25,7 @@ defmodule Central do
     Central.Utils.update_app_env(:guardian, Guardian,
       &[{:secret_key, site_setting("auth_secret")} | &1])
 
-    Central.Utils.update_app_env(:central, Central.Endpoint, fn(config) ->
+    Central.Utils.update_app_env(:central, CentralWeb.Endpoint, fn(config) ->
       [
         {:secret_key_base, site_setting("endpoint_key_base")},
         {:customer_token_salt, site_setting("customer_token_salt")}

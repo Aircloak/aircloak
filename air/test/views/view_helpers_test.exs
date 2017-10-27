@@ -1,7 +1,8 @@
 defmodule Air.ViewHelpersTest do
-  use Air.ConnCase, async: true
+  use AirWeb.ConnCase, async: true
 
-  alias Air.{TestRepoHelper, ViewHelpers}
+  alias Air.TestRepoHelper
+  alias AirWeb.ViewHelpers
 
   @table_name "test_table"
 

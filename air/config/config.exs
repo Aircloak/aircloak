@@ -12,7 +12,7 @@ config :sasl, :sasl_error_logger, false
 config :aircloak_common, :env, Mix.env
 
 # Configures the endpoint
-config :air, Air.Endpoint,
+config :air, AirWeb.Endpoint,
   check_origin: false,
   http: [port: 8080],
   root: Path.dirname(__DIR__),
@@ -23,7 +23,7 @@ config :air, Air.Endpoint,
 config :air, Air.Service.Version,
   version_expiry: File.read!("../RELEASE_EXPIRY_DATE") |> String.trim() |> Date.from_iso8601!()
 
-config :air, Air.MonitoringEndpoint,
+config :air, AirWeb.MonitoringEndpoint,
   check_origin: false,
   http: [port: 8081],
   render_errors: [accepts: ~w(json)]
@@ -52,7 +52,7 @@ config :guardian, Guardian,
   serializer: Air.GuardianSerializer
 
 config :scrivener_html,
-  routes_helper: Air.Router.Helpers
+  routes_helper: AirWeb.Router.Helpers
 
 config :air, Air.Repo,
   adapter: Ecto.Adapters.Postgres,

@@ -1,7 +1,7 @@
 defmodule Central.TestConnHelper do
   @moduledoc "Helpers for working with the connection."
 
-  alias Central.Endpoint
+  alias CentralWeb.Endpoint
   import Phoenix.ConnTest
 
   @doc "Logs-in as the given user, and returns the recycled connection."
