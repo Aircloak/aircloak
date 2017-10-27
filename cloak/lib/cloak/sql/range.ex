@@ -59,7 +59,11 @@ defmodule Cloak.Sql.Range do
     |> Lens.satisfy(&Function.has_attribute?(&1, :implicit_range))
     |> Lens.to_list(query)
     |> Enum.map(fn
-      (%Expression{function_args: [column]}) -> %__MODULE__{column: column, interval: :implicit}
-      (column) -> %__MODULE__{column: column, interval: :implicit}
+      (%Expression{function_args: [column]}) ->
+        %__MODULE__{column: column, interval: :implicit}
+      (%Expression{function: function, function_args: [column, _]}) when function in ["trunc", "round"] ->
+        %__MODULE__{column: column, interval: :implicit}
+      (%Expression{function: "date_trunc", function_args: [_, column]}) ->
+        %__MODULE__{column: column, interval: :implicit}
     end)
 end
