@@ -1,7 +1,7 @@
 defmodule Cloak.Query.Runner.Engine do
   @moduledoc "Execution of SQL queries."
   alias Cloak.{Sql, DataSource, Query, ResultSender, Sql.Condition}
-  alias Cloak.Query.Runner.Ingestor
+  alias Cloak.Query.Runner.ParallelProcessor
   require Logger
 
   @type state_updater :: (ResultSender.query_state -> any)
@@ -85,7 +85,8 @@ defmodule Cloak.Query.Runner.Engine do
 
     stream
     |> state_updater.(:ingesting_data)
-    |> Ingestor.ingest(query.data_source.concurrency, &consume_rows(&1, query), &Query.Aggregator.merge_groups/2)
+    |> ParallelProcessor.execute(query.data_source.concurrency,
+      &consume_rows(&1, query), &Query.Aggregator.merge_groups/2)
     |> state_updater.(:processing)
     |> Query.Aggregator.aggregate(query)
     |> state_updater.(:post_processing)

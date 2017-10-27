@@ -1,6 +1,6 @@
-defmodule Cloak.Query.Runner.Ingestor do
+defmodule Cloak.Query.Runner.ParallelProcessor do
   @moduledoc """
-    Helper module for ingesting data using multiple processes.
+    Helper module for parallel processing of a chunked data stream.
 
     When no additional processes are needed or when the input consists of a single chunk,
     the data is processed sequentially in the current process.
@@ -11,13 +11,13 @@ defmodule Cloak.Query.Runner.Ingestor do
 
   require Logger
 
-  @doc "Helper function for ingesting data using multiple processes. See module docs for details."
-  @spec ingest(Enumerable.t, non_neg_integer, ((Enumerable.t) -> any), ((any, any) -> any)) :: any
-  def ingest(chunks, 0, consumer, _state_merger), do: chunks |> Stream.concat() |> consumer.()
-  def ingest([chunk], _proc_count, consumer, _state_merger), do: consumer.(chunk)
-  def ingest(chunks, proc_count, consumer, state_merger) when is_integer(proc_count) and proc_count > 0, do:
+  @doc "Helper function for parallel processing of a chunked data stream. See module docs for details."
+  @spec execute(Enumerable.t, non_neg_integer, ((Enumerable.t) -> any), ((any, any) -> any)) :: any
+  def execute(chunks, 0, processor, _state_merger), do: chunks |> Stream.concat() |> processor.()
+  def execute([chunk], _proc_count, processor, _state_merger), do: processor.(chunk)
+  def execute(chunks, proc_count, processor, state_merger) when is_integer(proc_count) and proc_count > 0, do:
     proc_count
-    |> start_workers(consumer)
+    |> start_workers(processor)
     |> dispatch_chunks(chunks)
     |> integrate_results(state_merger)
 
@@ -58,22 +58,22 @@ defmodule Cloak.Query.Runner.Ingestor do
     end
   end
 
-  defp start_workers(count, consumer) do
+  defp start_workers(count, processor) do
     parent = self()
-    consume_job = fn () ->
-      parent |> stream_rows() |> consumer.()
+    job = fn () ->
+      parent |> stream_rows() |> processor.()
     end
     for _i <- 1..count do
-      {:ok, worker} = GenServer.start_link(Worker, consume_job)
+      {:ok, worker} = GenServer.start_link(Worker, job)
       worker
     end
   end
 
   defp dispatch_chunks(workers, chunks) do
-    Logger.debug("Ingesting data using #{length(workers)} processes ...")
+    Logger.debug("Processing data using #{length(workers)} processes ...")
     Enum.each(chunks, &send_more_reply({:data, &1}))
     for _worker <- workers, do: send_more_reply(:end_of_data)
-    Logger.debug("Integrating consumed data ...")
+    Logger.debug("Integrating partial results ...")
     workers
   end
 
