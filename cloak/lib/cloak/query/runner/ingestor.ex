@@ -15,38 +15,68 @@ defmodule Cloak.Query.Runner.Ingestor do
 
   @doc "Helper function for ingesting data using multiple processes. See module docs for details."
   @spec ingest(Enumerable.t, non_neg_integer, ((Enumerable.t) -> any), ((any, any) -> any)) :: any
-  def ingest(chunks, 0, consumer, _integrator), do: chunks |> Stream.concat() |> consumer.()
-  def ingest([chunk], _proc_count, consumer, _integrator), do: consumer.(chunk)
-  def ingest(chunks, proc_count, consumer, integrator) when is_integer(proc_count) and proc_count > 0, do:
+  def ingest(chunks, 0, consumer, _state_merger), do: chunks |> Stream.concat() |> consumer.()
+  def ingest([chunk], _proc_count, consumer, _state_merger), do: consumer.(chunk)
+  def ingest(chunks, proc_count, consumer, state_merger) when is_integer(proc_count) and proc_count > 0, do:
     proc_count
-    |> start_ingestors(consumer, integrator)
+    |> start_workers(consumer)
     |> dispatch_chunks(chunks)
-    |> integrate_results()
+    |> integrate_results(state_merger)
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp start_ingestors(count, consumer, integrator) do
-    parent = self()
-    for _i <- 1..count do
-      {:ok, pid} = Task.start_link(fn () ->
-        parent
-        |> stream_rows()
-        |> consumer.()
-        |> integrate_result(integrator)
-      end)
-      pid
+  defmodule Worker do
+    @moduledoc "Internal module for managing workers during parallel processing."
+
+    use GenServer
+    @behaviour GenServer
+
+    @impl GenServer
+    def init(job) do
+      GenServer.cast(self(), {:execute, job})
+      {:ok, nil}
+    end
+
+    @impl GenServer
+    def handle_cast({:execute, job}, nil), do: {:noreply, job.()}
+    def handle_cast({:merge, from, state_merger}, result), do:
+      {:noreply, state_merger.(result, report!(from))}
+
+    @impl GenServer
+    def handle_call(:report, _from, result), do: {:stop, :normal, result, nil}
+
+    @doc "Reports the result of the job to the caller and stops the worker."
+    @spec report!(pid) :: any
+    def report!(worker), do: GenServer.call(worker, :report, :infinity)
+
+    @doc "Merges the job result of the first worker into the job result of the second one. Stops the first worker."
+    @spec merge(pid, pid, ((any, any) -> any)) :: pid
+    def merge(from, to, state_merger) do
+      :ok = GenServer.cast(to, {:merge, from, state_merger})
+      to
     end
   end
 
-  defp dispatch_chunks(pids, chunks) do
-    Logger.debug("Ingesting data using #{length(pids)} processes ...")
+  defp start_workers(count, consumer) do
+    parent = self()
+    consume_job = fn () ->
+      parent |> stream_rows() |> consumer.()
+    end
+    for _i <- 1..count do
+      {:ok, worker} = GenServer.start_link(Worker, consume_job)
+      worker
+    end
+  end
+
+  defp dispatch_chunks(workers, chunks) do
+    Logger.debug("Ingesting data using #{length(workers)} processes ...")
     Enum.each(chunks, &send_more_reply({:data, &1}))
-    for _pid <- pids, do: send_more_reply(:end_of_data)
+    for _worker <- workers, do: send_more_reply(:end_of_data)
     Logger.debug("Integrating consumed data ...")
-    pids
+    workers
   end
 
   defp send_more_reply(answer) do
@@ -71,36 +101,14 @@ defmodule Cloak.Query.Runner.Ingestor do
     )
   end
 
-  defp integrate_result(this_result, integrator) do
-    receive do
-      {:transfer, pid, caller} ->
-        send(pid, {:add, this_result})
-        send(caller, :transfer_complete)
-      {:add, other_result} ->
-        this_result
-        |> integrator.(other_result)
-        |> integrate_result(integrator)
-    end
-  end
-
-  defp transfer_result(from, to) do
-    send(from, {:transfer, to, self()})
-    receive do :transfer_complete -> :ok end
-  end
-
-  defp integrate_results([pid]) do
-    transfer_result(pid, self())
-    receive do {:add, result} -> result end
-  end
-  defp integrate_results(pids) do
-    pids
+  defp integrate_results([worker], _state_merger), do: Worker.report!(worker)
+  defp integrate_results(workers, state_merger) do
+    workers
     |> Enum.chunk_every(2)
     |> Enum.map(fn
-      [pid1, pid2] ->
-        transfer_result(pid1, pid2)
-        pid2
-      [pid] -> pid
+      [worker1, worker2] -> Worker.merge(worker1, worker2, state_merger)
+      [worker] -> worker
     end)
-    |> integrate_results()
+    |> integrate_results(state_merger)
   end
 end
