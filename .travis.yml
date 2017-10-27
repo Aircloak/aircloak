@@ -18,7 +18,7 @@ matrix:
         - common/elixir/_build
         - air/deps
         - air/_build
-        - air/node_modules
+        - air/assets/node_modules
         - air/docs/node_modules
         - air/docs/_book
         - .mix
@@ -56,7 +56,7 @@ matrix:
         directories:
         - air/deps
         - air/_build
-        - air/node_modules
+        - air/assets/node_modules
         - air/docs/node_modules
         - air/docs/_book
         - $HOME/.asdf
@@ -142,7 +142,7 @@ matrix:
       cache:
         directories:
         - air/deps
-        - air/node_modules
+        - air/assets/node_modules
         - .mix
         - cloak/deps
         - common/elixir/deps
