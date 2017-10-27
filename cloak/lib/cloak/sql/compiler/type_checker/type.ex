@@ -1,4 +1,4 @@
-defmodule Cloak.Sql.TypeChecker.Type do
+defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   @moduledoc false
 
   alias Cloak.Sql.Expression

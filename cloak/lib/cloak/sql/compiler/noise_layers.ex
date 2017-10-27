@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.NoiseLayers do
   @moduledoc "Contains functions related to compilation of noise layers."
 
-  alias Cloak.Sql.{Expression, Query, NoiseLayer, Condition, LikePattern}
+  alias Cloak.Sql.{Expression, Query, NoiseLayer, Condition, LikePattern, Range}
   alias Cloak.Sql.Compiler.Helpers
 
   use Lens.Macros
@@ -202,8 +202,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       ]
     end)
 
-  defp range_noise_layers(%{ranges: ranges}), do:
-    Enum.flat_map(ranges, fn(%{column: column, interval: range}) ->
+  defp range_noise_layers(query), do:
+    query
+    |> Range.find_ranges()
+    |> Enum.flat_map(fn(%{column: column, interval: range}) ->
       raw_columns(column)
       |> Enum.map(&static_noise_layer(&1, &1, range))
     end)

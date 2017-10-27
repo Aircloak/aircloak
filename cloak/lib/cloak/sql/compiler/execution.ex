@@ -8,7 +8,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{CompilationError, Condition, Expression, FixAlign, Function, Query, Range}
+  alias Cloak.Sql.{CompilationError, Condition, Expression, FixAlign, Function, Query}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
 
@@ -212,7 +212,6 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> Query.add_info("The range for column #{Expression.display_name(column)} has been adjusted to #{left} <= "
         <> "#{Expression.short_name(column)} < #{right}.")
     end
-    |> put_in([Lens.key(:ranges), Lens.front()], Range.new(column, {left, right}))
   end
 
   defp implement_range?({left, right}, conditions) do
