@@ -59,6 +59,11 @@ defmodule Cloak.Sql.Range.Test do
       assert [%Range{column: %{name: "number"}, interval: :implicit}] = Range.find_ranges(subquery)
     end
 
+    test "top-level selected aggregates are not ranges" do
+      query = compile("SELECT round(AVG(number)) FROM table")
+      assert [] = Range.find_ranges(query)
+    end
+
     for function <- ~w(round trunc) do
       test "#{function} range in SELECT" do
         query = compile("SELECT #{unquote(function)}(number, 2) FROM table")

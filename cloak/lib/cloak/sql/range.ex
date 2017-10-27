@@ -54,17 +54,32 @@ defmodule Cloak.Sql.Range do
   # -------------------------------------------------------------------
 
   defp function_ranges(query), do:
+    filter_ranges(query) ++ select_ranges(query)
+
+  defp filter_ranges(query), do:
     Query.Lenses.db_filter_clauses()
-    |> Lens.both(Lens.key(:columns))
     |> Query.Lenses.all_expressions()
     |> Lens.satisfy(&Function.has_attribute?(&1, :implicit_range))
     |> Lens.to_list(query)
-    |> Enum.map(fn
-      (%Expression{function_args: [column]}) ->
-        %__MODULE__{column: column, interval: :implicit}
-      (%Expression{function: function, function_args: [column, _]}) when function in ["trunc", "round"] ->
-        %__MODULE__{column: column, interval: :implicit}
-      (%Expression{function: "date_trunc", function_args: [_, column]}) ->
-        %__MODULE__{column: column, interval: :implicit}
-    end)
+    |> Enum.map(&function_range/1)
+
+  defp select_ranges(query), do:
+    Lens.key(:columns)
+    |> Query.Lenses.all_expressions()
+    |> Lens.satisfy(&Function.has_attribute?(&1, :implicit_range))
+    |> Lens.satisfy(& not aggregate?(&1))
+    |> Lens.to_list(query)
+    |> Enum.map(&function_range/1)
+
+  defp aggregate?(%Expression{constant?: true}), do: true
+  defp aggregate?(%Expression{aggregate?: true}), do: true
+  defp aggregate?(%Expression{function?: true, function_args: args}), do: Enum.all?(args, &aggregate?/1)
+  defp aggregate?(_), do: false
+
+  defp function_range(%Expression{function_args: [column]}), do:
+    %__MODULE__{column: column, interval: :implicit}
+  defp function_range(%Expression{function: fun, function_args: [column, _]}) when fun in ["trunc", "round"], do:
+    %__MODULE__{column: column, interval: :implicit}
+  defp function_range(%Expression{function: "date_trunc", function_args: [_, column]}), do:
+    %__MODULE__{column: column, interval: :implicit}
 end
