@@ -9,6 +9,7 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
     using the supplied `state_merger` function.
   """
 
+  alias __MODULE__.Worker
   require Logger
 
   @doc "Helper function for parallel processing of a chunked data stream. See module docs for details."
@@ -20,46 +21,6 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
     |> start_workers(processor)
     |> dispatch_chunks(chunks)
     |> merge_results(state_merger)
-
-
-  # -------------------------------------------------------------------
-  # Worker implementation
-  # -------------------------------------------------------------------
-
-  defmodule Worker do
-    @moduledoc false
-
-    use GenServer
-    @behaviour GenServer
-
-    @impl GenServer
-    def init(job) do
-      GenServer.cast(self(), {:execute, job})
-      {:ok, nil}
-    end
-
-    @impl GenServer
-    def handle_cast({:execute, job}, nil), do: {:noreply, job.()}
-    def handle_cast({:merge, from, state_merger}, result), do:
-      {:noreply, state_merger.(result, report!(from))}
-
-    @impl GenServer
-    def handle_call(:report, _from, result), do: {:stop, :normal, result, nil}
-
-    def start_link!(job) do
-      {:ok, worker} = GenServer.start_link(__MODULE__, job)
-      worker
-    end
-
-    # Reports the result of the job to the caller and stops the worker.
-    def report!(worker), do: GenServer.call(worker, :report, :infinity)
-
-    # Merges the job result of the first worker into the job result of the second one. Stops the first worker.
-    def merge(from, to, state_merger) do
-      :ok = GenServer.cast(to, {:merge, from, state_merger})
-      to
-    end
-  end
 
 
   # -------------------------------------------------------------------
@@ -118,5 +79,45 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
       [worker] -> worker
     end)
     |> merge_results(state_merger)
+  end
+
+
+  # -------------------------------------------------------------------
+  # Worker implementation
+  # -------------------------------------------------------------------
+
+  defmodule Worker do
+    @moduledoc false
+
+    use GenServer
+    @behaviour GenServer
+
+    @impl GenServer
+    def init(job) do
+      GenServer.cast(self(), {:execute, job})
+      {:ok, nil}
+    end
+
+    @impl GenServer
+    def handle_cast({:execute, job}, nil), do: {:noreply, job.()}
+    def handle_cast({:merge, from, state_merger}, result), do:
+      {:noreply, state_merger.(result, report!(from))}
+
+    @impl GenServer
+    def handle_call(:report, _from, result), do: {:stop, :normal, result, nil}
+
+    def start_link!(job) do
+      {:ok, worker} = GenServer.start_link(__MODULE__, job)
+      worker
+    end
+
+    # Reports the result of the job to the caller and stops the worker.
+    def report!(worker), do: GenServer.call(worker, :report, :infinity)
+
+    # Merges the job result of the first worker into the job result of the second one. Stops the first worker.
+    def merge(from, to, state_merger) do
+      :ok = GenServer.cast(to, {:merge, from, state_merger})
+      to
+    end
   end
 end
