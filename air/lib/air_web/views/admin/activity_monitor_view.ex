@@ -27,6 +27,6 @@ defmodule AirWeb.Admin.ActivityMonitorView do
   def format_cloak(cloak_info), do:
     Map.merge(cloak_info, %{
       total_memory: Map.get(cloak_info[:memory], :total_memory, nil),
-      free_memory: Map.get(cloak_info[:memory], :free_memory, %{}),
+      available_memory: Map.get(cloak_info[:memory], :available_memory, %{}),
     })
 end
