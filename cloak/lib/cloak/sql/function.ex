@@ -41,19 +41,19 @@ defmodule Cloak.Sql.Function do
     ~w(avg stddev) => %{attributes: [:aggregator], type_specs: %{[numeric] => :real}},
     ~w(avg_noise stddev_noise) => %{attributes: [:aggregator, :not_in_subquery], type_specs: %{[numeric] => :real}},
     ~w(hour minute second) =>
-      %{type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
+      %{attributes: [:implicit_range], type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
     ~w(year quarter month day weekday) =>
-      %{type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
-    ~w(date_trunc) => %{type_specs: %{
+      %{attributes: [:implicit_range], type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
+    ~w(date_trunc) => %{attributes: [:implicit_range], type_specs: %{
       [{:constant, :text}, :time] => :time,
       [{:constant, :text}, {:or, [:datetime, :date]}] => :datetime
     }},
     ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}},
-    ~w(round trunc) => %{type_specs: %{
+    ~w(round trunc) => %{attributes: [:implicit_range], type_specs: %{
       [numeric] => :integer,
       [numeric, :integer] => :real,
     }},
-    [{:bucket, :lower}, {:bucket, :upper}, {:bucket, :middle}] => %{type_specs: %{
+    [{:bucket, :lower}, {:bucket, :upper}, {:bucket, :middle}] => %{attributes: [:implicit_range], type_specs: %{
       [numeric, numeric] => :real,
     }},
     ~w(abs) => %{type_specs: %{[:real] => :real, [:integer] => :integer}},

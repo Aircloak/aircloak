@@ -1,11 +1,11 @@
 defmodule Cloak.Sql.Range do
   @moduledoc "Represents a range the analyst applied in the query that needs to be tracked."
 
-  alias Cloak.Sql.{Expression, FixAlign, Query, Condition}
+  alias Cloak.Sql.{Expression, FixAlign, Query, Condition, Function}
 
   @type t :: %__MODULE__{
     column: Expression.t,
-    interval: FixAlign.interval(any) | :invalid,
+    interval: FixAlign.interval(any) | :invalid | :implicit,
   }
 
   defstruct [:column, :interval]
@@ -23,6 +23,14 @@ defmodule Cloak.Sql.Range do
   """
   @spec find_ranges(Query.t) :: [t]
   def find_ranges(query), do:
+    inequality_ranges(query) ++ function_ranges(query)
+
+
+  # -------------------------------------------------------------------
+  # Inequality ranges
+  # -------------------------------------------------------------------
+
+  defp inequality_ranges(query), do:
     inequalities_by_column(query)
     |> Enum.map(fn
       ({column, inequalities}) when length(inequalities) == 2 ->
@@ -33,15 +41,25 @@ defmodule Cloak.Sql.Range do
         %__MODULE__{column: column, interval: :invalid}
     end)
 
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
   defp inequalities_by_column(query), do:
     Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.satisfy(&Condition.inequality?/1)
     |> Lens.to_list(query)
     |> Enum.group_by(&Condition.subject/1)
+
+
+  # -------------------------------------------------------------------
+  # Function ranges
+  # -------------------------------------------------------------------
+
+  defp function_ranges(query), do:
+    Lens.key(:columns)
+    |> Lens.all()
+    |> Lens.satisfy(&Function.has_attribute?(&1, :implicit_range))
+    |> Lens.to_list(query)
+    |> Enum.map(fn
+      (%Expression{function_args: [column]}) -> %__MODULE__{column: column, interval: :implicit}
+      (column) -> %__MODULE__{column: column, interval: :implicit}
+    end)
 end

@@ -27,6 +27,11 @@ defmodule Cloak.Sql.Range.Test do
 
       assert [%Range{interval: :invalid}] = Range.find_ranges(subquery)
     end
+
+    test "function range in SELECT" do
+      query = compile("SELECT month(timestamp) FROM table")
+      assert [%Range{column: %{name: "timestamp"}, interval: :implicit}] = Range.find_ranges(query)
+    end
   end
 
   defp compile(query_string) do
@@ -45,6 +50,7 @@ defmodule Cloak.Sql.Range.Test do
           columns: [
             Table.column("uid", :integer),
             Table.column("number", :integer),
+            Table.column("timestamp", :datetime),
           ]
         )
       }
