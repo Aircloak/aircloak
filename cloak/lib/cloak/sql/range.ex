@@ -55,7 +55,7 @@ defmodule Cloak.Sql.Range do
 
   defp function_ranges(query), do:
     Lens.key(:columns)
-    |> Lens.all()
+    |> Query.Lenses.all_expressions()
     |> Lens.satisfy(&Function.has_attribute?(&1, :implicit_range))
     |> Lens.to_list(query)
     |> Enum.map(fn

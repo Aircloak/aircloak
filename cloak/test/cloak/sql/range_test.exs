@@ -33,6 +33,16 @@ defmodule Cloak.Sql.Range.Test do
       assert [%Range{column: %{name: "timestamp"}, interval: :implicit}] = Range.find_ranges(query)
     end
 
+    test "function range in expression in SELECT" do
+      query = compile("SELECT month(timestamp) + 1 FROM table")
+      assert [%Range{column: %{name: "timestamp"}, interval: :implicit}] = Range.find_ranges(query)
+    end
+
+    test "function range on expression in SELECT" do
+      query = compile("SELECT trunc(number + 1) FROM table")
+      assert [%Range{column: %{function: "+"}, interval: :implicit}] = Range.find_ranges(query)
+    end
+
     for function <- ~w(round trunc) do
       test "#{function} range in SELECT" do
         query = compile("SELECT #{unquote(function)}(number, 2) FROM table")
