@@ -1,14 +1,12 @@
 defmodule Cloak.Query.Runner.Ingestor do
   @moduledoc """
     Helper module for ingesting data using multiple processes.
+
     When no additional processes are needed or when the input consists of a single chunk,
     the data is processed sequentially in the current process.
-    Otherwise, multiple processes ("ingestors") are created and the input is routed among them.
-    After all the data chunks are consumed, the ingestors will be grouped 2 by 2 in order to integrate
-    all the results (for performance reasons, as each result can be large and transfering it from one
-    process to another will be costly): one ingestor will send its result to the other one, who will
-    merge it with its own result, and so on, until only a single ingestor remains, which will send the
-    final result back to the parent process.
+    Otherwise, multiple workers are created and the input is routed among them.
+    After all the data chunks are consumed, the workers' partial states are merged into one
+    using the supplied `state_merger` function.
   """
 
   require Logger
@@ -101,6 +99,11 @@ defmodule Cloak.Query.Runner.Ingestor do
     )
   end
 
+  # For performance reasons, the workers will be grouped 2 by 2 in order to integrate all the results;
+  # as each partial state can be large, transfering it from one process to another will be costly.
+  # One worker will ask another one for its state, merge it with its own partial state, and so on,
+  # until only a single worker remains, which will send the final result back to the parent process.
+  # Once a worker reports a result, it will automatically exit. Each worker will report exactly once.
   defp integrate_results([worker], _state_merger), do: Worker.report!(worker)
   defp integrate_results(workers, state_merger) do
     workers
