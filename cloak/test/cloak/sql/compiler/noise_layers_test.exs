@@ -209,6 +209,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         %{base: {"table", "numeric", {0, 10}}, expressions: [%Expression{name: "numeric"}]},
       ] = result.noise_layers
     end
+
+    test "no noise layer from sample_users" do
+      result = compile!("SELECT COUNT(*) FROM (SELECT uid FROM table SAMPLE_USERS 10%) x", data_source())
+      assert [_generic_noise_layer = %{base: nil}] = result.noise_layers
+    end
   end
 
   test "noise layer from negative condition" do
