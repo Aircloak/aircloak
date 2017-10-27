@@ -23,11 +23,11 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
 
 
   # -------------------------------------------------------------------
-  # Internal functions
+  # Worker implementation
   # -------------------------------------------------------------------
 
   defmodule Worker do
-    @moduledoc "Internal module for managing workers during parallel processing."
+    @moduledoc false
 
     use GenServer
     @behaviour GenServer
@@ -46,27 +46,32 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
     @impl GenServer
     def handle_call(:report, _from, result), do: {:stop, :normal, result, nil}
 
-    @doc "Reports the result of the job to the caller and stops the worker."
-    @spec report!(pid) :: any
+    def start_link!(job) do
+      {:ok, worker} = GenServer.start_link(__MODULE__, job)
+      worker
+    end
+
+    # Reports the result of the job to the caller and stops the worker.
     def report!(worker), do: GenServer.call(worker, :report, :infinity)
 
-    @doc "Merges the job result of the first worker into the job result of the second one. Stops the first worker."
-    @spec merge(pid, pid, ((any, any) -> any)) :: pid
+    # Merges the job result of the first worker into the job result of the second one. Stops the first worker.
     def merge(from, to, state_merger) do
       :ok = GenServer.cast(to, {:merge, from, state_merger})
       to
     end
   end
 
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
   defp start_workers(count, processor) do
     parent = self()
     job = fn () ->
       parent |> stream_rows() |> processor.()
     end
-    for _i <- 1..count do
-      {:ok, worker} = GenServer.start_link(Worker, job)
-      worker
-    end
+    for _i <- 1..count, do: Worker.start_link!(job)
   end
 
   defp dispatch_chunks(workers, chunks) do
