@@ -18,6 +18,15 @@ defmodule Cloak.Sql.Range.Test do
       assert [%Range{column: %{function: "avg", function_args: [%{name: "number"}]}, interval: {10, 20}}] =
         Range.find_ranges(subquery)
     end
+
+    test "invalid ranges" do
+      %{from: {:subquery, %{ast: subquery}}} = compile("""
+        SELECT COUNT(*) FROM (SELECT uid FROM table SAMPLE_USERS 10%) x
+      """)
+      |> Compiler.Execution.prepare()
+
+      assert [%Range{interval: :invalid}] = Range.find_ranges(subquery)
+    end
   end
 
   defp compile(query_string) do
