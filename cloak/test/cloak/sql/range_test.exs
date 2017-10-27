@@ -43,6 +43,22 @@ defmodule Cloak.Sql.Range.Test do
       assert [%Range{column: %{function: "+"}, interval: :implicit}] = Range.find_ranges(query)
     end
 
+    test "function range in WHERE" do
+      query = compile("SELECT COUNT(*) FROM table WHERE trunc(number) = 10")
+      assert [%Range{column: %{name: "number"}, interval: :implicit}] = Range.find_ranges(query)
+    end
+
+    test "no function ranges from top-level HAVING" do
+      query = compile("SELECT COUNT(*) FROM table GROUP BY number HAVING trunc(number) = 10")
+      assert [] = Range.find_ranges(query)
+    end
+
+    test "no function ranges from subquery HAVING" do
+      %{from: {:subquery, %{ast: subquery}}} =
+        compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid, number HAVING trunc(number) = 10) x")
+      assert [%Range{column: %{name: "number"}, interval: :implicit}] = Range.find_ranges(subquery)
+    end
+
     for function <- ~w(round trunc) do
       test "#{function} range in SELECT" do
         query = compile("SELECT #{unquote(function)}(number, 2) FROM table")
