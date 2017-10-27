@@ -1,6 +1,7 @@
 defmodule Cloak.Query.Runner.Engine do
   @moduledoc "Execution of SQL queries."
-  alias Cloak.{Sql, DataSource, Query, ResultSender, Sql.Condition, Query.DataEngine}
+  alias Cloak.{Sql, DataSource, Query, ResultSender, Sql.Condition}
+  alias Cloak.Query.Runner.ParallelProcessor
   require Logger
 
   @type state_updater :: (ResultSender.query_state -> any)
@@ -69,27 +70,37 @@ defmodule Cloak.Query.Runner.Engine do
     Query.Result.new({buckets, 0}, query, features)
   end
   defp run_statement(%Sql.Query{command: :select} = query, features, state_updater), do:
-    Cloak.Query.DataEngine.select(query, &process_final_rows(&1, query, features, state_updater))
+    Query.DataEngine.select(query, &process_final_rows(&1, query, features, state_updater))
 
   defp sorted_table_columns(table) do
     {[uid], other_columns} = Enum.split_with(table.columns, &(&1.name == table.user_id))
     [uid | other_columns]
   end
 
-  defp process_final_rows(rows, query, features, state_updater) do
+  defp process_final_rows(stream, query, features, state_updater) do
     Logger.debug("Processing final rows ...")
 
     query = Query.RowSplitters.compile(query)
     state_updater = fn (acc, state) -> state_updater.(state); acc end
 
-    rows
-    |> Query.RowSplitters.split(query)
-    |> Query.Rows.filter(query |> DataEngine.emulated_where() |> Condition.to_function())
+    stream
     |> state_updater.(:ingesting_data)
-    |> Query.Aggregator.group(query)
+    |> ParallelProcessor.execute(query.data_source.concurrency,
+      &consume_rows(&1, query), &Query.Aggregator.merge_groups/2)
     |> state_updater.(:processing)
     |> Query.Aggregator.aggregate(query)
     |> state_updater.(:post_processing)
     |> Query.Result.new(query, features)
   end
+
+  defp consume_rows(stream, query) do
+    stream
+    |> decode_rows(query)
+    |> Query.RowSplitters.split(query)
+    |> Query.Rows.filter(query |> Query.DataEngine.emulated_where() |> Condition.to_function())
+    |> Query.Aggregator.group(query)
+  end
+
+  defp decode_rows(stream, %Sql.Query{emulated?: true}), do: stream
+  defp decode_rows(stream, query), do: Query.DataDecoder.decode(stream, query)
 end

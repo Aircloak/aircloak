@@ -35,6 +35,7 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
 
     data_source = %{
       name: "mongo_db_join",
+      concurrency: 0,
       driver: MongoDB,
       parameters: parameters,
       tables: tables

@@ -108,6 +108,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
     Cloak.DataSource.add_tables(%{
       name: "saphana_test",
       driver: Cloak.DataSource.SAPHana,
+      concurrency: 0,
       parameters: test_schema_connection_params(),
       tables: [],
       initial_tables: tables_def,
