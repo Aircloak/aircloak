@@ -19,7 +19,7 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
     proc_count
     |> start_workers(processor)
     |> dispatch_chunks(chunks)
-    |> integrate_results(state_merger)
+    |> merge_results(state_merger)
 
 
   # -------------------------------------------------------------------
@@ -109,14 +109,14 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
   # One worker will ask another one for its state, merge it with its own partial state, and so on,
   # until only a single worker remains, which will send the final result back to the parent process.
   # Once a worker reports a result, it will automatically exit. Each worker will report exactly once.
-  defp integrate_results([worker], _state_merger), do: Worker.report!(worker)
-  defp integrate_results(workers, state_merger) do
+  defp merge_results([worker], _state_merger), do: Worker.report!(worker)
+  defp merge_results(workers, state_merger) do
     workers
     |> Enum.chunk_every(2)
     |> Enum.map(fn
       [worker1, worker2] -> Worker.merge(worker1, worker2, state_merger)
       [worker] -> worker
     end)
-    |> integrate_results(state_merger)
+    |> merge_results(state_merger)
   end
 end
