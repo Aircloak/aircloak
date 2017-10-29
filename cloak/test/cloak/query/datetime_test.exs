@@ -122,8 +122,8 @@ defmodule Cloak.Query.DatetimeTest do
   describe "aggregators over date/time" do
     setup do
       :ok = insert_rows(_user_ids = 1..10, "datetimes", ["datetime"], [~N[2015-01-02 10:00:05.000000]])
-      :ok = insert_rows(_user_ids = 11..30, "datetimes", ["datetime"], [~N[2017-01-02 12:00:05.000000]])
-      :ok = insert_rows(_user_ids = 31..40, "datetimes", ["datetime"], [~N[2018-03-04 15:00:05.000000]])
+      :ok = insert_rows(_user_ids = 11..40, "datetimes", ["datetime"], [~N[2017-01-02 12:00:05.000000]])
+      :ok = insert_rows(_user_ids = 41..50, "datetimes", ["datetime"], [~N[2018-03-04 15:00:05.000000]])
     end
 
     test "min/max over datetime" do
