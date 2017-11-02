@@ -8,8 +8,8 @@ defmodule Air.Schemas.Query do
   require EctoEnum
 
   EctoEnum.defenum QueryState, :query_state, [
-    :started, :parsing, :compiling, :awaiting_data, :ingesting_data, :processing, :post_processing, :completed,
-    :error, :cancelled
+    :created, :started, :parsing, :compiling, :awaiting_data, :ingesting_data, :processing,
+    :post_processing, :completed, :error, :cancelled
   ]
 
   EctoEnum.defenum Context, :query_context, [:http, :psql, :api]

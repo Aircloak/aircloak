@@ -199,8 +199,8 @@ defmodule Air.Service.Query do
   end
 
   @state_order [
-    :started, :parsing, :compiling, :awaiting_data, :ingesting_data, :processing, :post_processing, :cancelled,
-    :error, :completed,
+    :created, :started, :parsing, :compiling, :awaiting_data, :ingesting_data, :processing, :post_processing,
+    :cancelled, :error, :completed,
   ]
   defp valid_state_transition?(same_state, same_state), do: true
   defp valid_state_transition?(current_state, _next_state)
