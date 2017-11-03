@@ -128,7 +128,7 @@ defmodule Cloak.Sql.Compiler.VerificationConditionClauses.Test do
           ) t
           WHERE value = 10
         """
-        refute condition_columns_have_valid_transformations(query)
+        assert condition_columns_have_valid_transformations(query)
       end
     end)
 

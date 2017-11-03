@@ -102,12 +102,5 @@ defmodule Cloak.Sql.Range do
   defp aggregate?(%Expression{function?: true, function_args: args}), do: Enum.all?(args, &aggregate?/1)
   defp aggregate?(_), do: false
 
-  defp function_range(%Expression{function_args: [column]}), do:
-    %__MODULE__{column: column, interval: :implicit}
-  defp function_range(%Expression{function: fun, function_args: [column, _]}) when fun in ["trunc", "round"], do:
-    %__MODULE__{column: column, interval: :implicit}
-  defp function_range(%Expression{function: "date_trunc", function_args: [_, column]}), do:
-    %__MODULE__{column: column, interval: :implicit}
-  defp function_range(column), do:
-    %__MODULE__{column: column, interval: :implicit}
+  defp function_range(column), do: %__MODULE__{column: column, interval: :implicit}
 end

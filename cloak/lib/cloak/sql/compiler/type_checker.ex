@@ -33,7 +33,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   @discontinuous_math_functions ~w(% abs ceil ceiling div floor mod round trunc)
   @discontinuous_string_functions ~w(btrim left ltrim right rtrim substring)
   @continuous_math_functions ~w(+ - * / ^ pow)
-  @datetime_functions ~w(year quarter month day hour minute second weekday)
 
 
   # -------------------------------------------------------------------
@@ -92,10 +91,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       types = Condition.targets(comparison)
       |> Enum.map(&establish_type(&1, query))
       |> Enum.uniq()
-      if Enum.any?(types, & &1.is_result_of_datetime_processing?) and
+      if Enum.any?(types, & &1.is_result_of_datetime_cast?) and
           Enum.any?(types, & &1.constant? or &1.constant_involved?) do
         explanations = types
-        |> Enum.filter(& &1.is_result_of_datetime_processing?)
+        |> Enum.filter(& &1.is_result_of_datetime_cast?)
         |> Enum.map_join(" ", fn(type) ->
           type.narrative_breadcrumbs
           |> reject_all_but_relevant_offensive_actions([:datetime_processing])
@@ -188,14 +187,16 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp verify_ranges_are_clear(query), do:
     query
     |> Range.find_ranges()
-    |> Enum.each(fn(%Range{column: column}) ->
-      unless clear_range_lhs?(column, query) do
+    |> Enum.each(fn(%Range{column: column, interval: interval}) ->
+      unless clear_range_lhs?(column, query, interval) do
         raise CompilationError, message: "Only unmodified database columns can be limited by a range."
       end
     end)
 
-  defp clear_range_lhs?(%Expression{aggregate?: true, function_args: [lhs]}, query), do: clear_range_lhs?(lhs, query)
-  defp clear_range_lhs?(lhs, query), do: establish_type(lhs, query).cast_raw_column?
+  defp clear_range_lhs?(%Expression{aggregate?: true, function_args: [lhs]}, query, interval), do:
+    clear_range_lhs?(lhs, query, interval)
+  defp clear_range_lhs?(lhs, query, :implicit), do: establish_type(lhs, query).raw_implicit_range?
+  defp clear_range_lhs?(lhs, query, _), do: establish_type(lhs, query).cast_raw_column?
 
   defp verify_conditions(query, predicate, action), do:
     Query.Lenses.db_filter_clauses()
@@ -226,8 +227,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     any_touched_by_constant?(child_types)
   defp is_dangerous_math?(_, _future, _child_types), do: false
 
-  defp performs_datetime_processing?(name, child_types), do:
-    any_touched_by_datetime?(child_types) and (name in @datetime_functions or match?({:cast, _}, name))
+  defp performs_datetime_cast?(name, child_types), do:
+    any_touched_by_datetime?(child_types) and match?({:cast, _}, name)
 
   defp performs_potentially_crashing_function?("/", [_, child_type]), do:
     # This allows division by a pure constant, but not by a column influenced by a constant
@@ -288,6 +289,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     else
       %Type{
         cast_raw_column?: Function.cast?(function) and match?([%{raw_column?: true}], child_types),
+        raw_implicit_range?: Function.has_attribute?(function, :implicit_range) and
+          Enum.all?(child_types, &(&1.cast_raw_column? || &1.constant?)),
         constant_involved?: any_touched_by_constant?(child_types),
         datetime_involved?: any_touched_by_datetime?(child_types),
         is_result_of_potentially_crashing_function?: performs_potentially_crashing_function?(name, child_types) ||
@@ -297,8 +300,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         dangerously_discontinuous?: dangerously_discontinuous?(name, future, child_types) ||
           Enum.any?(child_types, &(&1.dangerously_discontinuous?)),
         narrative_breadcrumbs: extend_narrative_breadcrumbs(name, future, child_types),
-        is_result_of_datetime_processing?: performs_datetime_processing?(name, child_types) ||
-          Enum.any?(child_types, &(&1.is_result_of_datetime_processing?)),
+        is_result_of_datetime_cast?: performs_datetime_cast?(name, child_types) ||
+          Enum.any?(child_types, &(&1.is_result_of_datetime_cast?)),
       }
     end
   end
@@ -307,7 +310,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     Narrative.extend(child_types, [
       {dangerously_discontinuous?(name, future, child_types), {:dangerously_discontinuous, name}},
       {is_dangerous_math?(name, future, child_types), {:dangerous_math, name}},
-      {performs_datetime_processing?(name, child_types), {:datetime_processing, name}},
+      {performs_datetime_cast?(name, child_types), {:datetime_processing, name}},
       {performs_potentially_crashing_function?(name, child_types),
         {:potentially_crashing_function, name}},
     ])

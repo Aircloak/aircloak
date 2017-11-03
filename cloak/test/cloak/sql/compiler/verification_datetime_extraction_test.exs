@@ -5,7 +5,7 @@ defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
 
   import Cloak.Test.QueryHelpers
 
-  describe "Condition affected by datetime extractors are forbidden when a constant is involved" do
+  describe "Condition affected by datetime extractors" do
     test "it is forbidden to cast a date to text and then use it in a WHERE inequality" do
       query = """
       SELECT value FROM (
@@ -90,7 +90,7 @@ defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
         refute condition_columns_have_valid_transformations(query)
       end
 
-      test "it is forbidden to use the result of function #{extractor_fun} in a WHERE equality" do
+      test "it is OK to use the result of function #{extractor_fun} in a WHERE equality" do
         query = """
         SELECT value FROM (
           SELECT uid, #{unquote(extractor_fun)}(column) as value
@@ -98,7 +98,7 @@ defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
         ) t
         WHERE value = 1
         """
-        refute condition_columns_have_valid_transformations(query)
+        assert condition_columns_have_valid_transformations(query)
       end
 
       test "it is forbidden to use the result of function #{extractor_fun} in a HAVING inequality" do
@@ -116,7 +116,7 @@ defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
         refute condition_columns_have_valid_transformations(query)
       end
 
-      test "it is forbidden to use the result of function #{extractor_fun} in a HAVING equality" do
+      test "it is OK to use the result of function #{extractor_fun} in a HAVING equality" do
         query = """
         SELECT value FROM (
           SELECT uid, value, count(*)
@@ -128,7 +128,7 @@ defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
           HAVING value = 1
         ) t
         """
-        refute condition_columns_have_valid_transformations(query)
+        assert condition_columns_have_valid_transformations(query)
       end
 
       test "it is forbidden to use the result of function #{extractor_fun} in a JOIN inequality" do
@@ -141,14 +141,14 @@ defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
         refute condition_columns_have_valid_transformations(query)
       end
 
-      test "it is forbidden to use the result of function #{extractor_fun} in a JOIN equality" do
+      test "it is OK to use the result of function #{extractor_fun} in a JOIN equality" do
         query = """
         SELECT value FROM (
           SELECT uid, #{unquote(extractor_fun)}(column) as value
           FROM table
         ) t INNER JOIN table ON table.uid = t.uid and t.value = 1
         """
-        refute condition_columns_have_valid_transformations(query)
+        assert condition_columns_have_valid_transformations(query)
       end
     end)
   end
@@ -191,6 +191,7 @@ defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
     end
 
     Enum.each(~w(year quarter month day hour minute second weekday), fn(extractor_fun) ->
+      @tag :pending
       test "it is forbidden to use the result of function #{extractor_fun} in a WHERE equality " <>
           "when comparing to a non-constant" do
         query = """
@@ -203,6 +204,7 @@ defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
         refute condition_columns_have_valid_transformations(query)
       end
 
+      @tag :pending
       test "it is forbidden to use the result of function #{extractor_fun} in a HAVING equality " <>
           "when comparing to a non-constant" do
         query = """
@@ -219,6 +221,7 @@ defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
         refute condition_columns_have_valid_transformations(query)
       end
 
+      @tag :pending
       test "it is forbidden to use the result of function #{extractor_fun} in a JOIN equality " <>
           "when comparing to a non-constant" do
         query = """
