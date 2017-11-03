@@ -252,14 +252,14 @@ defmodule Cloak.Query.BasicTest do
   describe "aggregating positive values" do
     setup do
       :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
-      :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [170])
-      :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [190])
-      :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [170])
+      :ok = insert_rows(_user_ids = 30..49, "heights", ["height"], [190])
+      :ok = insert_rows(_user_ids = 50..69, "heights", ["height"], [180])
     end
 
     test "sum" do
       assert_query "select sum(height) from heights",
-        %{columns: ["sum"], rows: [%{row: [5400], occurrences: 1}]}
+        %{columns: ["sum"], rows: [%{row: [10_800], occurrences: 1}]}
     end
 
     test "min" do
@@ -285,12 +285,12 @@ defmodule Cloak.Query.BasicTest do
 
     test "median" do
       assert_query "select median(height) from heights",
-        %{columns: ["median"], rows: [%{row: [180], occurrences: 1}]}
+        %{columns: ["median"], rows: [%{row: [177], occurrences: 1}]}
     end
 
     test "sum(qualified_column)" do
       assert_query "select sum(heights.height) from heights",
-        %{columns: ["sum"], rows: [%{row: [5400], occurrences: 1}]}
+        %{columns: ["sum"], rows: [%{row: [10_800], occurrences: 1}]}
     end
 
     test "min(qualified_column)" do
@@ -316,21 +316,21 @@ defmodule Cloak.Query.BasicTest do
 
     test "median(qualified_column)" do
       assert_query "select median(heights.height) from heights",
-        %{columns: ["median"], rows: [%{row: [180], occurrences: 1}]}
+        %{columns: ["median"], rows: [%{row: [177], occurrences: 1}]}
     end
   end
 
   describe "aggregating negative values" do
     setup do
       :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])
-      :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [-170])
-      :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [-190])
-      :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [-183])
+      :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [-170])
+      :ok = insert_rows(_user_ids = 30..49, "heights", ["height"], [-190])
+      :ok = insert_rows(_user_ids = 50..69, "heights", ["height"], [-183])
     end
 
     test "sum" do
       assert_query "select sum(height) from heights",
-        %{columns: ["sum"], rows: [%{row: [-5430], occurrences: 1}]}
+        %{columns: ["sum"], rows: [%{row: [-10_860], occurrences: 1}]}
     end
 
     test "min" do
@@ -351,12 +351,12 @@ defmodule Cloak.Query.BasicTest do
     test "stddev" do
       assert_query "select stddev(height) from heights",
         %{columns: ["stddev"], rows: [%{row: [stddev], occurrences: 1}]}
-      assert_in_delta(stddev, 8.29, 0.1)
+      assert_in_delta(stddev, 8.26, 0.1)
     end
 
     test "median" do
       assert_query "select median(height) from heights",
-        %{columns: ["median"], rows: [%{row: [-183], occurrences: 1}]}
+        %{columns: ["median"], rows: [%{row: [-185], occurrences: 1}]}
     end
   end
 
@@ -396,7 +396,7 @@ defmodule Cloak.Query.BasicTest do
 
     test "median" do
       assert_query "select median(height) from heights",
-        %{columns: ["median"], rows: [%{row: [-175], occurrences: 1}]}
+        %{columns: ["median"], rows: [%{row: [-180], occurrences: 1}]}
     end
   end
 
@@ -1048,6 +1048,6 @@ defmodule Cloak.Query.BasicTest do
       select
         height, count(distinct height), min(height), max(height), median(height), round(avg(height))
       from heights group by height
-    """, %{rows: [%{row: [:*, 8, 154, 176, 169, 167]}]}
+    """, %{rows: [%{row: [:*, 8, 154, 176, 167, 167]}]}
   end
 end

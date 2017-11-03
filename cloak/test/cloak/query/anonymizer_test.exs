@@ -102,8 +102,12 @@ defmodule Cloak.Query.AnonimyzerTest do
 
   test "median" do
     # per-user row format = collection of all values
-    rows = [[1, 2], [3], [4, 2, -3], [2, 4], [0], [-3, -2], [3], [4, -2, 1], [5], [-4], [-5, 4], [3]]
-    assert 1 = Anonymizer.new([MapSet.new()]) |> Anonymizer.median(rows) |> round()
+    rows = [
+      [-1, 2], [1, -5], [6, 23, 1], [-5], [-6], [3], [2], [6, 3], [8], [1, 1, -6],
+      [0], [0], [0, 1], [-2], [3], [1], [5], [6, 1], [4, 5], [7], [1, 2, 1], [0],
+      [0, -5], [-4], [-3],
+    ]
+    assert 0 = Anonymizer.new([MapSet.new()]) |> Anonymizer.median(rows) |> round()
   end
 
   describe "starred" do

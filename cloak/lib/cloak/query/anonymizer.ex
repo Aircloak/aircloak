@@ -195,21 +195,26 @@ defmodule Cloak.Query.Anonymizer do
       |> Enum.sort_by(fn ({_user_index, value}) -> value end)
 
     top_count = config(:top_count)
-    {noisy_above_count, anonymizer} = add_noise(anonymizer, top_count)
-    noisy_above_count = noisy_above_count |> round() |> Kernel.max(0)
-    {noisy_below_count, anonymizer} = add_noise(anonymizer, top_count)
-    noisy_below_count = noisy_below_count |> round() |> Kernel.max(0)
+    {noisy_above_count, anonymizer} = noisy_non_negative_count(anonymizer, top_count)
+    {noisy_above_outlier_count, anonymizer} = noisy_non_negative_count(anonymizer, top_count)
+    {noisy_below_count, anonymizer} = noisy_non_negative_count(anonymizer, top_count)
+    {noisy_below_outlier_count, anonymizer} = noisy_non_negative_count(anonymizer, top_count)
+    total_above_count = noisy_above_count + noisy_above_outlier_count
+    total_below_count = noisy_below_count + noisy_below_outlier_count
 
     middle = round((Enum.count(values) - 1) / 2)
     {bottom_values, [{_middle_user_index, middle_value} | top_values]} = Enum.split(values, middle - 1)
-    above_values = top_values |> take_values_from_distinct_users(noisy_above_count)
-    below_values = bottom_values |> Enum.reverse() |> take_values_from_distinct_users(noisy_below_count)
+    above_values = top_values |> take_values_from_distinct_users(total_above_count)
+    below_values = bottom_values |> Enum.reverse() |> take_values_from_distinct_users(total_below_count)
     middle_values = below_values ++ [middle_value] ++ above_values
 
     middle_values_count = Enum.count(middle_values)
-    case noisy_below_count + noisy_above_count + 1 do
+    case total_below_count + total_above_count + 1 do
       ^middle_values_count ->
-        {noised_median, _anonymizer} = noisy_average(middle_values, anonymizer)
+        {noised_median, _anonymizer} = middle_values
+        |> Enum.drop(noisy_below_outlier_count)
+        |> Enum.drop(-noisy_above_outlier_count)
+        |> noisy_average(anonymizer)
         noised_median
       _ -> nil
     end
@@ -241,6 +246,11 @@ defmodule Cloak.Query.Anonymizer do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp noisy_non_negative_count(anonymizer, count) do
+    {noisy_count, anonymizer} = add_noise(anonymizer, count)
+    {noisy_count |> round() |> Kernel.max(0), anonymizer}
+  end
 
   defp noise_layers_to_seeds(layers) do
     layers
