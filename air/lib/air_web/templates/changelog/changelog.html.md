@@ -5,6 +5,11 @@
 - Improvements to the anonymization process will cause queries to return different results from what they did in the past.
 - Count cached memory towards the memory available for running queries.
 
+### Bugfixes
+
+- The system would claim a column didn't exist in a table if it was also selected in a
+  subquery and given an alias only differring from the column name in its case.
+
 ## Version 17.4.1 (unreleased)
 
 ### Bugfixes
