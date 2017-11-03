@@ -13,16 +13,8 @@ defmodule Cloak.Test.QueryHelpers do
       data_sources: Keyword.get(options, :data_sources, quote(do: Cloak.DataSource.all())),
       timeout: Keyword.get(options, :timeout, :timer.seconds(60))
     ] do
-      run_query =
-        fn(data_source) ->
-          Cloak.Query.Runner.start("1", data_source, query, parameters, views,
-            {:process, self()})
-          receive do
-            {:result, result} -> result
-          end
-        end
-
-      tasks = Enum.map(data_sources, &Task.async(fn -> run_query.(&1) end))
+      run_query = &Cloak.Query.Runner.run_sync("1", &1, query, parameters, views)
+      tasks = Enum.map(data_sources, &Task.async(fn () -> run_query.(&1) end))
       results = tasks |> Task.yield_many(timeout) |> Enum.into(%{})
 
       [{first_data_source, first_result} | other_results] =
