@@ -16,6 +16,7 @@ defmodule Mix.Tasks.Ci.InitDataSources do
 
   defp establish_connection(%{driver: Cloak.DataSource.PostgreSQL, parameters: params}) do
     Application.ensure_all_started(:postgrex)
+
     me = self()
     ref = make_ref()
 
@@ -43,5 +44,51 @@ defmodule Mix.Tasks.Ci.InitDataSources do
     Postgrex.query!(conn, "DROP DATABASE IF EXISTS #{params.database}", [])
     Postgrex.query!(conn, "CREATE DATABASE #{params.database} ENCODING 'UTF8'", [])
     Postgrex.query!(conn, "GRANT ALL PRIVILEGES ON DATABASE #{params.database} TO #{params.username}", [])
+  end
+  defp establish_connection(%{driver: Cloak.DataSource.SQLServer, parameters: params}) do
+    Application.ensure_all_started(:odbc)
+
+    conn =
+      Cloak.DataSource.SQLServer.connect!(
+        hostname: params.hostname,
+        database: "master",
+        username: "sa",
+        password: "7fNBjlaeoRwz*zH9"
+      )
+
+    :odbc.sql_query(conn, ~c/
+      IF EXISTS(select * from sys.databases where name='#{params.database}')
+        DROP DATABASE #{params.database}
+
+      CREATE DATABASE #{params.database}
+    /)
+  end
+  defp establish_connection(%{driver: Cloak.DataSource.MySQL, parameters: params}) do
+    Application.ensure_all_started(:mariaex)
+
+    me = self()
+    ref = make_ref()
+
+    {:ok, conn} =
+      Mariaex.start_link(
+        database: "mysql",
+        hostname: params.hostname,
+        username: "root",
+        after_connect: fn(_) -> send(me, ref) end,
+      )
+
+    receive do
+      ^ref -> :ok
+    after :timer.seconds(10) ->
+      raise "Timeout connecting to the database."
+    end
+
+    case Mariaex.query!(
+      conn,
+      "SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '#{params.database}'"
+    ).rows do
+      [[1]] -> :ok
+      [[0]] -> Mariaex.query!(conn, "CREATE DATABASE #{params.database}")
+    end
   end
 end

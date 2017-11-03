@@ -38,7 +38,7 @@ function start_supporting_containers {
   start_network_container --network-alias=mysql -e MYSQL_ALLOW_EMPTY_PASSWORD=true \
     mysql:5.7.19
 
-  start_network_container --network-alias=mssql -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' \
+  start_network_container --network-alias=sqlserver -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' \
     microsoft/mssql-server-linux:2017-latest
 }
 

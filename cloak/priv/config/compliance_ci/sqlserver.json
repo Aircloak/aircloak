@@ -1,0 +1,15 @@
+{
+  "driver": "sqlserver",
+  "name": "sql_server",
+  "parameters": {
+    "hostname": "sqlserver",
+    "username": "sa",
+    "password": "7fNBjlaeoRwz*zH9",
+    "database": "cloak_compliance",
+    "odbc_parameters": {
+      "Port": "1433"
+    }
+  },
+  "tables": {
+  }
+}
