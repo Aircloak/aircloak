@@ -91,4 +91,6 @@ defmodule Mix.Tasks.Ci.InitDataSources do
       [[0]] -> Mariaex.query!(conn, "CREATE DATABASE #{params.database}")
     end
   end
+  defp establish_connection(%{driver: Cloak.DataSource.SAPHana}), do:
+    :ok
 end
