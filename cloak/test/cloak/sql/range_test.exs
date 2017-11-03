@@ -64,6 +64,13 @@ defmodule Cloak.Sql.Range.Test do
       assert [] = Range.find_ranges(query)
     end
 
+    test "subquery selected aggregates normally considered for ranges" do
+      query = compile("""
+        SELECT COUNT(*) FROM (SELECT uid, round(AVG(number)) AS rounded FROM table GROUP BY uid) x WHERE rounded = 10
+      """)
+      assert [%Range{column: %{name: "rounded"}, interval: :implicit}] = Range.find_ranges(query)
+    end
+
     test "subquery selected columns later ignored" do
       query = compile("SELECT COUNT(*) FROM (SELECT uid, trunc(number) AS trunced  FROM table) x")
       assert [] = Range.find_ranges(query)
@@ -72,6 +79,16 @@ defmodule Cloak.Sql.Range.Test do
     test "subquery selected columns later filtered" do
       query = compile("SELECT COUNT(*) FROM (SELECT uid, trunc(number) AS trunced  FROM table) x WHERE trunced = 10")
       assert [%Range{column: %{name: "trunced"}, interval: :implicit}] = Range.find_ranges(query)
+    end
+
+    test "subquery selected columns later selected top-level" do
+      query = compile("SELECT trunced FROM (SELECT uid, trunc(number) AS trunced  FROM table) x")
+      assert [%Range{column: %{name: "trunced"}, interval: :implicit}] = Range.find_ranges(query)
+    end
+
+    test "range_function() + range_function()" do
+      query = compile("SELECT trunc(number) + trunc(number) FROM table")
+      assert [%Range{column: %{function: "+"}, interval: :implicit}] = Range.find_ranges(query)
     end
 
     for function <- ~w(round trunc) do
