@@ -122,7 +122,7 @@ defmodule Cloak.DataSource do
       updated_data_source = update_data_source_connectivity(data_source)
       if data_source.status != updated_data_source.status, do:
         replace_data_source_config(updated_data_source)
-    end)
+    end, timeout: :timer.minutes(30))
     |> Stream.run()
     :ok
   end
@@ -274,7 +274,7 @@ defmodule Cloak.DataSource do
   defp initialize_data_source_configs(data_source_configs), do:
     data_source_configs
     |> config_to_datasources()
-    |> Task.async_stream(&add_tables/1)
+    |> Task.async_stream(&add_tables/1, timeout: :timer.minutes(30))
     |> Enum.map(fn({:ok, data_source}) -> data_source end)
 
   defp to_data_source(data_source) do
