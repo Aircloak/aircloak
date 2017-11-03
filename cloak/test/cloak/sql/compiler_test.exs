@@ -634,6 +634,18 @@ defmodule Cloak.Sql.Compiler.Test do
     assert compile!("select count(*) from table where numeric >= 1 and numeric < 2", data_source()).info == []
   end
 
+  test "bugfix: allows fully qualified column names when distinct case in column alias" do
+    assert %Query{} = compile!("""
+      SELECT
+        table.column
+      FROM table JOIN (
+        SELECT uid, column as Column -- only differs from original column in case...
+        FROM table
+      ) as table_subquery ON table.uid = table_subquery.uid
+      GROUP BY 1
+    """, data_source())
+  end
+
   test "silently discards redundant inequalities" do
     assert compile!("select count(*) from table
       where numeric >= 1 and numeric > 0.9 and numeric < 2 and numeric <= 2.1", data_source()) ==

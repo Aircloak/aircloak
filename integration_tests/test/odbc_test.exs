@@ -59,8 +59,7 @@ defmodule IntegrationTest.OdbcTest do
             end
           else
             quote do
-              assert {:error, msg} = var!(connect_result)
-              assert to_string(msg) =~ ~r/Connection refused/
+              assert {:error, _} = var!(connect_result)
             end
           end
         )
