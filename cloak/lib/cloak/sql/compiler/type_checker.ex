@@ -21,7 +21,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   or discontinuous functions.
   """
 
-  alias Cloak.Sql.{CompilationError, Condition, Function, Expression, Query}
+  alias Cloak.Sql.{CompilationError, Condition, Function, Expression, Query, Range}
   alias Cloak.Sql.Compiler.TypeChecker.{Narrative, Type}
   alias Cloak.Sql.Compiler.Helpers
 
@@ -186,8 +186,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp like_kind_name(:ilike), do: "ILIKE"
 
   defp verify_ranges_are_clear(query), do:
-    verify_conditions(query, &Condition.inequality?/1, fn({:comparison, lhs, _, _}) ->
-      unless clear_range_lhs?(lhs, query) do
+    query
+    |> Range.find_ranges()
+    |> Enum.each(fn(%Range{column: column}) ->
+      unless clear_range_lhs?(column, query) do
         raise CompilationError, message: "Only unmodified database columns can be limited by a range."
       end
     end)

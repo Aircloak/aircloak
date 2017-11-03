@@ -106,7 +106,7 @@ defmodule Cloak.Sql.Compiler.VerificationConditionClauses.Test do
   end
 
   describe "Condition-inequalities affected by dangerous math OR discontinuity are forbidden" do
-    Enum.each(~w(abs ceil floor round trunc sqrt), fn(discontinuous_function) ->
+    Enum.each(~w(abs ceil floor sqrt), fn(discontinuous_function) ->
       test "#{discontinuous_function} without constant used in WHERE" do
         query = """
           SELECT value FROM (
@@ -116,6 +116,19 @@ defmodule Cloak.Sql.Compiler.VerificationConditionClauses.Test do
           WHERE value = 10
         """
         assert condition_columns_have_valid_transformations(query)
+      end
+    end)
+
+    Enum.each(~w(trunc round), fn(discontinuous_function) ->
+      test "#{discontinuous_function} without constant used in WHERE" do
+        query = """
+          SELECT value FROM (
+            SELECT uid, #{unquote(discontinuous_function)}(numeric) as value
+            FROM table
+          ) t
+          WHERE value = 10
+        """
+        refute condition_columns_have_valid_transformations(query)
       end
     end)
 

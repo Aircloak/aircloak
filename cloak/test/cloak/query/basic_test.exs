@@ -699,7 +699,7 @@ defmodule Cloak.Query.BasicTest do
     end
 
     test "alias usage in where with a function" do
-      assert_query "select round(height) as h from heights where abs(h) = 170",
+      assert_query "select height as h from heights where abs(h) = 170",
         %{columns: ["h"], rows: [%{row: [170], occurrences: 10}]}
     end
 

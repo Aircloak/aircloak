@@ -191,8 +191,8 @@ defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
     end
 
     Enum.each(~w(year quarter month day hour minute second weekday), fn(extractor_fun) ->
-      test "it is OK to use the result of function #{extractor_fun} in a WHERE equality " <>
-          "when no constants are involved" do
+      test "it is forbidden to use the result of function #{extractor_fun} in a WHERE equality " <>
+          "when comparing to a non-constant" do
         query = """
         SELECT value FROM (
           SELECT uid, #{unquote(extractor_fun)}(column) as value, numeric
@@ -200,11 +200,11 @@ defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
         ) t
         WHERE value = numeric
         """
-        assert condition_columns_have_valid_transformations(query)
+        refute condition_columns_have_valid_transformations(query)
       end
 
-      test "it is OK to use the result of function #{extractor_fun} in a HAVING equality " <>
-          "when no constant is involved" do
+      test "it is forbidden to use the result of function #{extractor_fun} in a HAVING equality " <>
+          "when comparing to a non-constant" do
         query = """
         SELECT value FROM (
           SELECT uid, value, count(*)
@@ -216,18 +216,18 @@ defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
           HAVING value = numeric
         ) t
         """
-        assert condition_columns_have_valid_transformations(query)
+        refute condition_columns_have_valid_transformations(query)
       end
 
-      test "it is OK to use the result of function #{extractor_fun} in a JOIN equality " <>
-          "when no constant is involved" do
+      test "it is forbidden to use the result of function #{extractor_fun} in a JOIN equality " <>
+          "when comparing to a non-constant" do
         query = """
         SELECT value FROM (
           SELECT uid, #{unquote(extractor_fun)}(column) as value
           FROM table
         ) t INNER JOIN table ON table.uid = t.uid and t.value = table.numeric
         """
-        assert condition_columns_have_valid_transformations(query)
+        refute condition_columns_have_valid_transformations(query)
       end
     end)
   end
@@ -236,10 +236,10 @@ defmodule Cloak.Sql.Compiler.VerificationDatetimeExtraction.Test do
     case compile(query, data_source()) do
       {:ok, _} -> true
       {:error, reason} ->
-        if reason =~ ~r/functions that extract a component of a date/ do
-          false
-        else
-          raise "Compilation failed with other reason than illegal filtering condition: #{inspect reason}"
+        cond do
+          reason =~ ~r/Only unmodified database columns can be limited by a range./ -> false
+          reason =~ ~r/functions that extract a component of a date/ -> false
+          true -> raise "Compilation failed with other reason than illegal filtering condition: #{inspect reason}"
         end
     end
   end
