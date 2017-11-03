@@ -54,22 +54,48 @@ defmodule Cloak.Sql.Range do
   # -------------------------------------------------------------------
 
   defp function_ranges(query), do:
-    filter_ranges(query) ++ select_ranges(query)
+    equality_ranges(query) ++ top_level_select_ranges(query)
 
-  defp filter_ranges(query), do:
+  defp equality_ranges(query), do:
     Query.Lenses.db_filter_clauses()
-    |> Query.Lenses.all_expressions()
-    |> Lens.satisfy(&Function.has_attribute?(&1, :implicit_range))
+    |> Query.Lenses.conditions()
+    |> Lens.satisfy(&Condition.equals?/1)
     |> Lens.to_list(query)
+    |> Enum.map(fn({:comparison, lhs, :=, _}) -> lhs end)
+    |> Enum.filter(&implicit_range?(&1, query))
     |> Enum.map(&function_range/1)
 
-  defp select_ranges(query), do:
-    Lens.key(:columns)
-    |> Query.Lenses.all_expressions()
-    |> Lens.satisfy(&Function.has_attribute?(&1, :implicit_range))
-    |> Lens.satisfy(& not aggregate?(&1))
-    |> Lens.to_list(query)
-    |> Enum.map(&function_range/1)
+  defp top_level_select_ranges(query), do:
+     top_level_select(query)
+     |> Lens.all()
+     |> Lens.satisfy(& not aggregate?(&1))
+     |> Lens.to_list(query)
+     |> Enum.filter(&implicit_range?(&1, query))
+     |> Enum.map(&function_range/1)
+
+  defp top_level_select(%{subquery: true}), do: Lens.empty()
+  defp top_level_select(_), do: Lens.key(:columns)
+
+  defp implicit_range?(:*, _query), do: false
+  defp implicit_range?(%Expression{constant?: true}, _query), do: false
+  defp implicit_range?(function = %Expression{function?: true, function_args: args}, query) do
+    if Function.has_attribute?(function, :implicit_range) do
+      true
+    else
+      Enum.any?(args, &implicit_range?(&1, query))
+    end
+  end
+  defp implicit_range?(column, query) do
+    Lens.to_list(Query.Lenses.direct_subqueries(), query)
+    |> Enum.find(&(&1.alias == column.table.name))
+    |> case do
+      nil -> false
+      %{ast: subquery} ->
+        column_index = Enum.find_index(subquery.column_titles, &(&1 == column.name))
+        column = Enum.at(subquery.columns, column_index)
+        implicit_range?(column, subquery)
+    end
+  end
 
   defp aggregate?(%Expression{constant?: true}), do: true
   defp aggregate?(%Expression{aggregate?: true}), do: true
@@ -81,5 +107,7 @@ defmodule Cloak.Sql.Range do
   defp function_range(%Expression{function: fun, function_args: [column, _]}) when fun in ["trunc", "round"], do:
     %__MODULE__{column: column, interval: :implicit}
   defp function_range(%Expression{function: "date_trunc", function_args: [_, column]}), do:
+    %__MODULE__{column: column, interval: :implicit}
+  defp function_range(column), do:
     %__MODULE__{column: column, interval: :implicit}
 end

@@ -13,6 +13,11 @@ defmodule Cloak.Sql.Condition do
   def inequality?({:comparison, _, operator, _}), do: Enum.member?(@inequalities, operator)
   def inequality?(_), do: false
 
+  @doc "Returns true if the given where clause is a = clause, false otherwise."
+  @spec equals?(Query.where_clause) :: boolean
+  def equals?({:comparison, _, :=, _}), do: true
+  def equals?(_), do: false
+
   @doc "Returns true if the given where clause is a <> clause, false otherwise."
   @spec not_equals?(Query.where_clause) :: boolean
   def not_equals?({:comparison, _, :<>, _}), do: true

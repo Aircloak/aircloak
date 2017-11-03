@@ -35,7 +35,7 @@ defmodule Cloak.Sql.Range.Test do
 
     test "function range in expression in SELECT" do
       query = compile("SELECT month(timestamp) + 1 FROM table")
-      assert [%Range{column: %{name: "timestamp"}, interval: :implicit}] = Range.find_ranges(query)
+      assert [%Range{column: %{function: "+"}, interval: :implicit}] = Range.find_ranges(query)
     end
 
     test "function range on expression in SELECT" do
@@ -62,6 +62,16 @@ defmodule Cloak.Sql.Range.Test do
     test "top-level selected aggregates are not ranges" do
       query = compile("SELECT round(AVG(number)) FROM table")
       assert [] = Range.find_ranges(query)
+    end
+
+    test "subquery selected columns later ignored" do
+      query = compile("SELECT COUNT(*) FROM (SELECT uid, trunc(number) AS trunced  FROM table) x")
+      assert [] = Range.find_ranges(query)
+    end
+
+    test "subquery selected columns later filtered" do
+      query = compile("SELECT COUNT(*) FROM (SELECT uid, trunc(number) AS trunced  FROM table) x WHERE trunced = 10")
+      assert [%Range{column: %{name: "trunced"}, interval: :implicit}] = Range.find_ranges(query)
     end
 
     for function <- ~w(round trunc) do
