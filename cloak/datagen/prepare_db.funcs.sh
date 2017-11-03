@@ -26,3 +26,12 @@ regenerate_database()
   psql -h $DB_HOST -p $DB_PORT -c "CREATE DATABASE $database ENCODING 'UTF8';" -U postgres
   psql -h $DB_HOST -p $DB_PORT -c "GRANT ALL PRIVILEGES ON DATABASE $database TO $user;" -U postgres
 }
+
+initialize_database()
+{
+  database=$1
+  user=$2
+
+  conditionally_create_user $database
+  regenerate_database $database $user
+}

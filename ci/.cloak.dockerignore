@@ -1,0 +1,25 @@
+# ignore everything by default
+*
+
+
+# Whitelist only needed files and folders
+!common
+!VERSION
+!RELEASE_EXPIRY_DATE
+!cloak/Makefile
+!cloak/mix.exs
+!cloak/mix.lock
+!cloak/config
+!cloak/datagen
+!cloak/fetch_deps.sh
+!cloak/lib
+!cloak/test
+!cloak/src
+!cloak/include
+!cloak/rel
+!cloak/priv/odbc/drivers
+!cloak/priv/odbc/docker/
+!cloak/priv/config
+
+
+# Additional ignores
