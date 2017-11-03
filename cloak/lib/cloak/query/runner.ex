@@ -207,7 +207,7 @@ defmodule Cloak.Query.Runner do
     supervisor(
       [
         registry(:unique, @runner_registry_name),
-        registry(:unique, @queries_registry_name),
+        registry(:duplicate, @queries_registry_name),
         supervisor(
           [Supervisor.Spec.worker(GenServer, [__MODULE__], restart: :temporary)],
           name: @supervisor_name, strategy: :simple_one_for_one
