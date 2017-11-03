@@ -469,10 +469,11 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp get_columns(columns_by_name, {:unquoted, name}) do
     columns_by_name
-    |> Enum.find(fn({key, _}) -> insensitive_equal?(name, key) end)
+    |> Enum.filter(fn({key, _}) -> insensitive_equal?(name, key) end)
+    |> Enum.flat_map(fn({_key, columns}) -> columns end)
     |> case do
-      nil -> nil
-      {_, columns} -> columns
+      [] -> nil
+      columns -> columns
     end
   end
   defp get_columns(columns_by_name, {:quoted, name}), do: Map.get(columns_by_name, name)
