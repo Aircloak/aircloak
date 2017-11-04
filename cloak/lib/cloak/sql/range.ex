@@ -86,14 +86,9 @@ defmodule Cloak.Sql.Range do
     end
   end
   defp implicit_range?(column, query) do
-    Lens.to_list(Query.Lenses.direct_subqueries(), query)
-    |> Enum.find(&(&1.alias == column.table.name))
-    |> case do
-      nil -> false
-      %{ast: subquery} ->
-        column_index = Enum.find_index(subquery.column_titles, &(&1 == column.name))
-        column = Enum.at(subquery.columns, column_index)
-        implicit_range?(column, subquery)
+    case Query.resolve_subquery_column(column, query) do
+      :database_column -> false
+      {column, subquery} -> implicit_range?(column, subquery)
     end
   end
 
