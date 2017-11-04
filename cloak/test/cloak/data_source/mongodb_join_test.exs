@@ -84,7 +84,7 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
 
   test "complex function in inner join condition", context do
     assert_query context, """
-      SELECT AVG(salary) FROM "left" INNER JOIN "right" ON "left".id = "right".id AND round(abs(salary)) = 100
+      SELECT AVG(salary) FROM "left" INNER JOIN "right" ON "left".id = "right".id AND -abs(salary) = -100
     """, %{rows: [%{occurrences: 1, row: [100.0]}]}
   end
 
