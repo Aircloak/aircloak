@@ -2,7 +2,7 @@ use Mix.Config
 
 config :central, :deploy_config_file, "config.json"
 
-config :central, Central.Endpoint,
+config :central, CentralWeb.Endpoint,
   cache_static_manifest: "priv/static/cache_manifest.json"
 
 # Do not print debug messages in production
@@ -13,7 +13,7 @@ config :logger, level: :info
 # To get SSL working, you will need to add the `https` key
 # to the previous section and set your `:url` port to 443:
 #
-#     config :central, Central.Endpoint,
+#     config :central, CentralWeb.Endpoint,
 #       ...
 #       url: [host: "example.com", port: 443],
 #       https: [port: 443,
@@ -27,7 +27,7 @@ config :logger, level: :info
 # We also recommend setting `force_ssl`, ensuring no data is
 # ever sent via http, always redirecting to https:
 #
-#     config :central, Central.Endpoint,
+#     config :central, CentralWeb.Endpoint,
 #       force_ssl: [hsts: true]
 #
 # Check `Plug.SSL` for all available options in `force_ssl`.
@@ -42,11 +42,11 @@ config :logger, level: :info
 # Alternatively, you can configure exactly which server to
 # start per endpoint:
 #
-#     config :central, Central.Endpoint, server: true
+#     config :central, CentralWeb.Endpoint, server: true
 #
 # You will also need to set the application root to `.` in order
 # for the new static assets to be served after a hot upgrade:
 #
-#     config :central, Central.Endpoint, root: "."
+#     config :central, CentralWeb.Endpoint, root: "."
 
 config :phoenix, :serve_endpoints, true

@@ -1,7 +1,8 @@
-defmodule Air.Plug.Session.Test do
-  use Air.ConnCase, async: false
+defmodule AirWeb.Plug.Session.Test do
+  use AirWeb.ConnCase, async: false
 
-  alias Air.{Token, TestRepoHelper, Plug.Session.ApiAuth}
+  alias Air.{Token, TestRepoHelper}
+  alias AirWeb.Plug.Session.ApiAuth
 
   describe "ApiAuth" do
     test "submitting an invalid token" do

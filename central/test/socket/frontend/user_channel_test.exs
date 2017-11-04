@@ -1,9 +1,9 @@
-defmodule Central.Socket.Frontend.UserChannelTest do
-  alias Central.Socket.Frontend.UserChannel
+defmodule CentralWeb.Socket.Frontend.UserChannelTest do
+  alias CentralWeb.Socket.Frontend.UserChannel
 
   import Central.TestRepoHelper
 
-  use Central.ChannelCase, async: true
+  use CentralWeb.ChannelCase, async: true
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Central.Repo)

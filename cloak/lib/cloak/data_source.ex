@@ -54,6 +54,7 @@ defmodule Cloak.DataSource do
     tables: %{atom => Table.t},
     errors: [String.t],
     status: :online | :offline,
+    concurrency: non_neg_integer,
     # we need to store the initial tables and errors in case we need to re-scan the data source tables later
     initial_tables: %{atom => Table.t},
     initial_errors: [String.t],
@@ -121,7 +122,7 @@ defmodule Cloak.DataSource do
       updated_data_source = update_data_source_connectivity(data_source)
       if data_source.status != updated_data_source.status, do:
         replace_data_source_config(updated_data_source)
-    end)
+    end, timeout: :timer.minutes(30))
     |> Stream.run()
     :ok
   end
@@ -273,7 +274,7 @@ defmodule Cloak.DataSource do
   defp initialize_data_source_configs(data_source_configs), do:
     data_source_configs
     |> config_to_datasources()
-    |> Task.async_stream(&add_tables/1)
+    |> Task.async_stream(&add_tables/1, timeout: :timer.minutes(30))
     |> Enum.map(fn({:ok, data_source}) -> data_source end)
 
   defp to_data_source(data_source) do
@@ -282,6 +283,7 @@ defmodule Cloak.DataSource do
     |> standardize_key_lists()
     |> Map.put(:errors, [])
     |> Map.put(:status, nil)
+    |> Map.put_new(:concurrency, 0)
     |> Validations.Name.ensure_permitted()
     |> potentially_create_temp_name()
     |> map_driver()

@@ -1,18 +1,18 @@
-defmodule Central.ErrorViewTest do
-  use Central.ConnCase, async: true
+defmodule CentralWeb.ErrorViewTest do
+  use CentralWeb.ConnCase, async: true
 
   # Bring render/3 and render_to_string/3 for testing custom views
   import Phoenix.View
 
   test "renders 404.html" do
-    assert render_to_string(Central.ErrorView, "404.html", []) =~ "Not found"
+    assert render_to_string(CentralWeb.ErrorView, "404.html", []) =~ "Not found"
   end
 
   test "render 500.html" do
-    assert render_to_string(Central.ErrorView, "500.html", []) == "Server internal error"
+    assert render_to_string(CentralWeb.ErrorView, "500.html", []) == "Server internal error"
   end
 
   test "render any other" do
-    assert render_to_string(Central.ErrorView, "505.html", []) == "Server internal error"
+    assert render_to_string(CentralWeb.ErrorView, "505.html", []) == "Server internal error"
   end
 end

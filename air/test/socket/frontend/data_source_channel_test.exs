@@ -1,9 +1,9 @@
-defmodule Air.Socket.Frontend.DataSourceChannel.Test do
-  alias Air.Socket.Frontend.DataSourceChannel
+defmodule AirWeb.Socket.Frontend.DataSourceChannel.Test do
+  alias AirWeb.Socket.Frontend.DataSourceChannel
 
   import Air.TestRepoHelper
 
-  use Air.ChannelCase, async: false
+  use AirWeb.ChannelCase, async: false
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Air.Repo)

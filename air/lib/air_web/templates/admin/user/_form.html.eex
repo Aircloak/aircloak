@@ -1,0 +1,54 @@
+<%= form_for @changeset, @action, fn f -> %>
+<%= if @changeset.action do %>
+  <div class="alert alert-danger">
+    <p>Oops, something went wrong! Please check the errors below.</p>
+  </div>
+<% end %>
+
+<div class="form-group">
+  <label>Email address</label>
+  <%= text_input f, :email, class: "form-control" %>
+  <%= error_tag f, :email %>
+</div>
+
+<div class="form-group">
+  <label>Name</label>
+  <%= text_input f, :name, class: "form-control" %>
+  <%= error_tag f, :name %>
+</div>
+
+<div class="form-group">
+  <label>Password</label>
+  <%= password_input f, :password, class: "form-control" %>
+  <%= error_tag f, :password %>
+</div>
+
+<div class="form-group">
+  <label>Password Confirmation</label>
+  <%= password_input f, :password_confirmation, class: "form-control" %>
+  <%= error_tag f, :password_confirmation %>
+</div>
+
+
+<h3>Groups</h3>
+
+<p>The user's group memberships determine which data sources are available for querying.</p>
+
+<%= if length(AirWeb.Admin.GroupView.available_groups()) == 0 do %>
+  <strong>
+    There are currently no groups available. You can add some on the group page:
+    <%= link "Groups", to: admin_group_path(@conn, :index) %>
+  </strong>
+<% end %>
+
+<div class="form-group group-selector">
+  <%= PhoenixMTM.Helpers.collection_checkboxes f, :groups,
+    Enum.map(AirWeb.Admin.GroupView.available_groups(), &({&1, &1.id})),
+    selected: Enum.map(@chosen_groups, &(&1.id)),
+    mapper: &checkbox_mapper/6 %>
+</div>
+
+<div class="form-group">
+  <%= submit "Save", class: "btn btn-primary" %>
+</div>
+<% end %>

@@ -8,9 +8,9 @@ defmodule Cloak.Query.DbEmulator do
   """
   require Logger
 
-  alias Cloak.DataSource.Table
+  alias Cloak.{DataSource, DataSource.Table}
   alias Cloak.Sql.{Query, Expression, Function}
-  alias Cloak.Query.{DbEmulator.Selector, DataEngine}
+  alias Cloak.Query.{DbEmulator.Selector, DataEngine, DataDecoder}
 
 
   # -------------------------------------------------------------------
@@ -18,12 +18,10 @@ defmodule Cloak.Query.DbEmulator do
   # -------------------------------------------------------------------
 
   @doc "Retrieves rows according to the specification in the emulated query."
-  @spec select(Query.t) :: Enumerable.t
+  @spec select(Query.t) :: [Enumerable.t]
   def select(%Query{emulated?: true} = query) do
     query = compile_emulated_joins(query)
-    query.from
-    |> select_rows()
-    |> Selector.pick_db_columns(query)
+    [query.from |> select_rows() |> Selector.pick_db_columns(query)]
   end
 
 
@@ -31,10 +29,21 @@ defmodule Cloak.Query.DbEmulator do
   # Selection of rows from subparts of an emulated query
   # -------------------------------------------------------------------
 
+  defp offload_select!(query, rows_processor) do
+    DataSource.select!(
+      %Query{query | where: DataEngine.offloaded_where(query)},
+      fn(rows) ->
+        rows
+        |> Stream.concat()
+        |> DataDecoder.decode(query)
+        |> rows_processor.()
+      end)
+  end
+
   defp select_rows({:subquery, %{ast: %Query{emulated?: false} = query}}) do
     query
     |> Query.debug_log("Executing sub-query through data source")
-    |> DataEngine.offload_select!(&Enum.to_list/1)
+    |> offload_select!(&Enum.to_list/1)
   end
   defp select_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}}) when not is_binary(from) do
     subquery =
@@ -49,7 +58,7 @@ defmodule Cloak.Query.DbEmulator do
   defp select_rows({:subquery, %{ast: %Query{emulated?: true} = query}}) do
     %Query{query | subquery?: false}
     |> Query.debug_log("Emulating leaf sub-query")
-    |> DataEngine.offload_select!(&Selector.select(&1, query))
+    |> offload_select!(&Selector.select(&1, query))
   end
   defp select_rows({:join, join}) do
     Logger.debug("Emulating join ...")

@@ -1,4 +1,4 @@
-defmodule Air.ChannelCase do
+defmodule AirWeb.ChannelCase do
   @moduledoc """
   This module defines the test case to be used by
   channel tests.
@@ -27,7 +27,7 @@ defmodule Air.ChannelCase do
 
 
       # The default endpoint for testing
-      @endpoint Air.Endpoint
+      @endpoint AirWeb.Endpoint
     end
   end
 end

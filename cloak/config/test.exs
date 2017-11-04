@@ -39,7 +39,7 @@ config :cloak, :anonymizer,
   sum_noise_sigma: 0
 
 config :cloak, :data_source,
-  timeout: :timer.minutes(10),
+  timeout: :timer.minutes(15),
   batch_size: 100
 
 config :excheck, :number_iterations, 200

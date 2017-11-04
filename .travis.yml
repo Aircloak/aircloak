@@ -18,7 +18,7 @@ matrix:
         - common/elixir/_build
         - air/deps
         - air/_build
-        - air/node_modules
+        - air/assets/node_modules
         - air/docs/node_modules
         - air/docs/_book
         - .mix
@@ -26,7 +26,7 @@ matrix:
         - cloak/_build
         - central/deps
         - central/_build
-        - central/node_modules
+        - central/assets/node_modules
         - integration_tests/deps
         - integration_tests/_build
         - $HOME/.asdf
@@ -56,7 +56,7 @@ matrix:
         directories:
         - air/deps
         - air/_build
-        - air/node_modules
+        - air/assets/node_modules
         - air/docs/node_modules
         - air/docs/_book
         - $HOME/.asdf
@@ -142,7 +142,7 @@ matrix:
       cache:
         directories:
         - air/deps
-        - air/node_modules
+        - air/assets/node_modules
         - .mix
         - cloak/deps
         - common/elixir/deps
@@ -167,7 +167,7 @@ matrix:
         directories:
         - central/deps
         - central/_build
-        - central/node_modules
+        - central/assets/node_modules
         - $HOME/.asdf
         - $HOME/.yarn-cache
       addons:

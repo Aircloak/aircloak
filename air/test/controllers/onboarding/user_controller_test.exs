@@ -1,5 +1,5 @@
 defmodule Air.Onboarding.UserControllerTest do
-  use Air.ConnCase, async: true
+  use AirWeb.ConnCase, async: true
 
   alias Air.Schemas.{User, Group}
 

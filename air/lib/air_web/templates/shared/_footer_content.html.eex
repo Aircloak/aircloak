@@ -1,0 +1,13 @@
+<div class="content">
+  <small>
+    Aircloak - version <%= version() %>
+  </small>
+  <%= if permitted?(@conn, AirWeb.LicenseController, :index) do %>
+    <small>
+      <a href="/changelog">Changelog</a>
+    </small>
+    <small>
+      <%= link "Third Party Licenses", to: license_path(@conn, :index), rel: "license" %>
+    </small>
+  <% end %>
+</div>

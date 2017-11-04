@@ -15,7 +15,7 @@ config :air, Air.Repo,
   pool_size: 20,
   prepare: :unnamed
 
-config :air, Air.Endpoint,
+config :air, AirWeb.Endpoint,
   check_origin: false,
   http: [port: 8081],
   server: true,

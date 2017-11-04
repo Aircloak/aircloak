@@ -58,7 +58,7 @@ defmodule IntegrationTest.QueryTest do
     )
 
   defp air_http_port(), do:
-    Application.fetch_env!(:air, Air.Endpoint)
+    Application.fetch_env!(:air, AirWeb.Endpoint)
     |> Keyword.fetch!(:http)
     |> Keyword.fetch!(:port)
 

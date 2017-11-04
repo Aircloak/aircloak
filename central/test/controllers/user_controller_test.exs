@@ -1,5 +1,5 @@
 defmodule Central.UserControllerTest do
-  use Central.ConnCase, async: true
+  use CentralWeb.ConnCase, async: true
 
   import Central.TestConnHelper
   alias Central.TestRepoHelper

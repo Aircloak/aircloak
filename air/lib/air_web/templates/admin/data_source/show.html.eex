@@ -1,0 +1,134 @@
+<ol class="breadcrumb">
+  <li><%= link "Data sources", to: admin_data_source_path(@conn, :index) %></li>
+  <li class="active"><%= @data_source.name %></li>
+</ol>
+
+<h2>
+  <%= @data_source.name %> <%= availability_label(@data_source) %>
+  <%= if @data_source.description do %>
+    <small class="newline"><%= @data_source.description %></small>
+  <% end %>
+</h2>
+
+<%= render AirWeb.Admin.WarningsView, "_warnings.html", conn: @conn, problems: @problems %>
+
+<div class="row">
+  <div class="col-md-7">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h1 class="panel-title">
+          Users with access
+          <%= link "Edit", to: admin_data_source_path(@conn, :edit, @data_source.name), class: "btn btn-default btn-xs" %>
+        </h1>
+      </div>
+      <%= if length(@users) == 0 do %>
+        <p class="panel-body">
+          No users currently have the privileges to query this data source
+        </p>
+      <% else %>
+        <table class="table">
+          <tbody>
+            <%= for user <- @users do %>
+              <tr>
+                <td><%= user.name %></td>
+                <td class="email-column"><%= user.email %></td>
+                <td>
+                  <%= if admin?(user) do %>
+                    <span class="label label-danger">Admin</span>
+                  <% end %>
+                </td>
+                <td><%= link "Edit user", to: admin_user_path(@conn, :edit, user), class: "btn btn-default btn-xs" %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="col-md-5">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h1 class="panel-title">
+          Groups granting access
+          <%= link "Edit", to: admin_data_source_path(@conn, :edit, @data_source.name), class: "btn btn-default btn-xs" %>
+        </h1>
+      </div>
+      <%= if length(@data_source.groups) == 0 do %>
+        <p class="panel-body">
+          This data source has not been assigned any groups. As a result it will not be queryable by anyone.
+        </p>
+      <% else %>
+        <table class="table">
+          <tbody>
+            <%= for group <- @data_source.groups do %>
+              <tr>
+                <td><%= group.name %></td>
+                <td>
+                  <%= if group.admin do %>
+                    <span class="label label-danger">Admin</span>
+                  <% end %>
+                </td>
+                <td><%= link "Edit group", to: admin_group_path(@conn, :edit, group), class: "btn btn-default btn-xs" %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-7">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h1 class="panel-title">
+          Tables
+        </h1>
+      </div>
+      <%= if number_of_tables(@data_source) == 0 do %>
+        <p class="panel-body">
+          No tables are made available by this data source.
+        </p>
+      <% else %>
+        <table class="table">
+          <tbody>
+            <%= for table <- Air.Schemas.DataSource.tables(@data_source) do %>
+              <tr>
+                <td><%= table["id"] %></td>
+                <td><%= length(table["columns"]) %> columns</td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="col-md-5">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h1 class="panel-title">
+          Cloaks hosting data source
+        </h1>
+      </div>
+      <%= if number_of_tables(@data_source) == 0 do %>
+        <p class="panel-body">
+          No tables are made available by this data source.
+        </p>
+      <% else %>
+        <table class="table">
+          <tbody>
+            <%= for cloak_info <- Air.Service.Cloak.cloak_infos_for_data_source(@data_source.name) do %>
+              <tr>
+                <td><%= cloak_info.name %></td>
+                <td>Available since <%= Timex.from_now(cloak_info.online_since) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+    </div>
+  </div>
+</div>

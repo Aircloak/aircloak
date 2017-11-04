@@ -12,12 +12,12 @@ config :sasl, :sasl_error_logger, false
 config :aircloak_common, :env, Mix.env
 
 # Configures the endpoint
-config :central, Central.Endpoint,
+config :central, CentralWeb.Endpoint,
   check_origin: false,
   http: [port: 7080],
   root: Path.dirname(__DIR__),
   render_errors: [accepts: ~w(html json)],
-  pubsub: [name: Central.PubSub,
+  pubsub: [name: CentralWeb.PubSub,
            adapter: Phoenix.PubSub.PG2]
 
 config :central, :https_port, 7443

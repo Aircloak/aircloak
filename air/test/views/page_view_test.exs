@@ -1,3 +1,3 @@
 defmodule Air.PageViewTest do
-  use Air.ConnCase, async: true
+  use AirWeb.ConnCase, async: true
 end

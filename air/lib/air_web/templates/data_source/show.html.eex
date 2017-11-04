@@ -1,0 +1,55 @@
+<div class="data-source body-wrapper">
+  <div class="container">
+    <div class="column col-sm-9">
+      <div class="content-wrapper">
+        <ol class="breadcrumb">
+          <li><a href="/data_sources">Data sources</a></li>
+          <li class="active"><%= @data_source.name %></li>
+        </ol>
+
+        <%= if get_flash(@conn, :warn) do %>
+          <p class="alert alert-warning alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <%= get_flash(@conn, :warn) %></p>
+          </p>
+        <% end %>
+
+        <div id="query-view"></div>
+
+        <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
+      </div>
+    </div>
+
+    <div id="selectable-column" class="column col-sm-3">
+      <div data-spy="affix">
+        <div id="selectable-info"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      var props = {
+        lastQuery: <%= to_json(@last_query) %>,
+        pendingQueries: <%= to_json(@pending_queries) %>,
+        dataSourceName: "<%= @data_source.name %>",
+        dataSourceDescription: "<%= @data_source.description %>",
+        dataSourceStatus: "<%= status(@data_source) %>",
+        CSRFToken: "<%= @csrf_token %>",
+        guardianToken: "<%= @guardian_token %>",
+        userId: "<%= @current_user.id %>",
+        sessionId: "<%= @session_id %>",
+        selectables: <%= selectables(@conn, @data_source) |> to_json() %>,
+        numberFormat: <%= to_json(@number_format) %>,
+        newViewURL: "<%= data_source_view_path(@conn, :new, @data_source.name) %>"
+      };
+
+      App.selectableInfo(props, document.getElementById("selectable-info"));
+      App.queryPage(props, document.getElementById("query-view"));
+    }
+  };
+</script>

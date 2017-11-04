@@ -1,7 +1,7 @@
-defmodule Air.Admin.DataSourceControllerTest do
+defmodule AirWeb.Admin.DataSourceControllerTest do
   # `async: false` because shared sandbox mode is used
   # (see https://hexdocs.pm/ecto/Ecto.Adapters.SQL.Sandbox.html)
-  use Air.ConnCase, async: false
+  use AirWeb.ConnCase, async: false
 
   import Air.TestConnHelper
   import Aircloak.AssertionHelper

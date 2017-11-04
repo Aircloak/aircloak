@@ -42,7 +42,7 @@ defmodule Cloak.Mixfile do
       {:lens, "~> 0.4.0"},
       {:backoff, "~> 1.1.3"},
       {:jiffy, "~> 0.14.1"},
-      {:tds, github: "livehelpnow/tds"},
+      {:tds, github: "cristianberneanu/tds"},
       {:file_system, "~> 0.2.2"},
 
       # Hackney is not a direct dependency of ours, but we need it to be at version 1.8.6 or more recent

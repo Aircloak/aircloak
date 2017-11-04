@@ -1,4 +1,4 @@
-defmodule Air.Socket.CloakTest do
+defmodule AirWeb.Socket.CloakTest do
   # `async: false` because shared sandbox mode is used
   # (see https://hexdocs.pm/ecto/Ecto.Adapters.SQL.Sandbox.html)
   use ExUnit.Case, async: false

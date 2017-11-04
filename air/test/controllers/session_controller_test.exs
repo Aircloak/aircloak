@@ -1,5 +1,5 @@
-defmodule Air.SessionControllerTest do
-  use Air.ConnCase, async: true
+defmodule AirWeb.SessionControllerTest do
+  use AirWeb.ConnCase, async: true
 
   import Air.TestConnHelper
   alias Air.TestRepoHelper

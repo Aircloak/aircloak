@@ -8,7 +8,7 @@ defmodule Central.Supervisor do
         Central.Repo.Migrator,
         Central.Service.Customer,
         Central.AirStats,
-        Central.Endpoint,
+        CentralWeb.Endpoint,
       ],
       strategy: :one_for_one, name: __MODULE__
     )
