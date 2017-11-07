@@ -8,7 +8,11 @@ cd $ROOT_DIR
 
 . docker/docker_helper.sh
 
-function destroy_network {
+export NETWORK_ID=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')
+export MSSQL_TEMP_FOLDER="$(mktemp -d)"
+
+
+function cleanup {
   set +x
   echo "destroying network"
 
@@ -23,6 +27,7 @@ function destroy_network {
   done
 
   docker network rm $NETWORK_ID > /dev/null
+  rm -rf $MSSQL_TEMP_FOLDER
 }
 
 function start_network_container {
@@ -38,7 +43,15 @@ function start_supporting_containers {
   start_network_container --network-alias=mysql -e MYSQL_ALLOW_EMPTY_PASSWORD=true \
     mysql:5.7.19
 
-  start_network_container --network-alias=sqlserver -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' \
+  if [ $(uname -s) != "Darwin" ]; then
+    # On Linux, we have to mount mssql folder because otherwise mssql container is not stoppable.
+    mount_opt="-v $MSSQL_TEMP_FOLDER:/var/opt/mssql";
+  else
+    # On macos mssql container doesn't work with mounted folder. At the same time the container is stoppable :-)
+    # Therefore, we're not mounting a folder here.
+    mount_opt="";
+  fi
+  start_network_container --network-alias=sqlserver -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' $mount_opt \
     microsoft/mssql-server-linux:2017-latest
 }
 
@@ -59,9 +72,8 @@ function run_in_cloak {
       "
 }
 
-export NETWORK_ID=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')
 docker network create --driver bridge $NETWORK_ID > /dev/null
-trap destroy_network EXIT TERM INT
+trap cleanup EXIT TERM INT
 
 start_supporting_containers
 build_cloak_image
