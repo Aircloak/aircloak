@@ -79,7 +79,7 @@ defmodule Mix.Tasks.Ci.InitDataSources do
 
     receive do
       ^ref -> :ok
-    after :timer.seconds(10) ->
+    after :timer.seconds(60) ->
       raise "Timeout connecting to the database."
     end
 
