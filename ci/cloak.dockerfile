@@ -22,6 +22,8 @@ RUN \
 COPY cloak /aircloak/cloak
 RUN cp /aircloak/cloak/priv/odbc/docker/odbc.ini /etc/
 
+ENV CI=true
+
 RUN \
   . /tmp/build_config/proxies.sh && \
   cd /aircloak/cloak && \

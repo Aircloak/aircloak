@@ -9,9 +9,5 @@
     "password": "Aircloakdev1"
   },
   "tables": {
-    "integers": {
-      "db_name": "integers",
-      "user_id": "user_id"
-    }
   }
 }
