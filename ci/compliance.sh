@@ -24,9 +24,10 @@ function cleanup {
     '
   ); do
     docker kill $container_id > /dev/null
+    docker rm $container_id > /dev/null
   done
 
-  docker network rm $NETWORK_ID > /dev/null
+  docker network prune -f > /dev/null
   rm -rf $MSSQL_TEMP_FOLDER
 }
 
