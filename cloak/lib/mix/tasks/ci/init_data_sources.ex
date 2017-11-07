@@ -12,10 +12,13 @@ defmodule Mix.Tasks.Ci.InitDataSources do
   def run(config), do:
     config
     |> Compliance.DataSources.all_from_config()
-    |> Enum.each(&establish_connection(&1))
+    |> Enum.map(&Task.async(fn -> establish_connection(&1) end))
+    |> Task.yield_many(:timer.minutes(3))
 
   defp establish_connection(%{driver: Cloak.DataSource.PostgreSQL, parameters: params}) do
     Application.ensure_all_started(:postgrex)
+
+    await_port(params.hostname, 5432)
 
     me = self()
     ref = make_ref()
@@ -48,6 +51,8 @@ defmodule Mix.Tasks.Ci.InitDataSources do
   defp establish_connection(%{driver: Cloak.DataSource.SQLServer, parameters: params}) do
     Application.ensure_all_started(:odbc)
 
+    await_port(params.hostname, 1433)
+
     conn =
       Cloak.DataSource.SQLServer.connect!(
         hostname: params.hostname,
@@ -66,6 +71,8 @@ defmodule Mix.Tasks.Ci.InitDataSources do
   defp establish_connection(%{driver: Cloak.DataSource.MySQL, parameters: params}) do
     Application.ensure_all_started(:mariaex)
 
+    await_port(params.hostname, 3306)
+
     me = self()
     ref = make_ref()
 
@@ -79,7 +86,7 @@ defmodule Mix.Tasks.Ci.InitDataSources do
 
     receive do
       ^ref -> :ok
-    after :timer.seconds(60) ->
+    after :timer.seconds(10) ->
       raise "Timeout connecting to the database."
     end
 
@@ -93,4 +100,21 @@ defmodule Mix.Tasks.Ci.InitDataSources do
   end
   defp establish_connection(%{driver: Cloak.DataSource.SAPHana}), do:
     :ok
+
+  defp await_port(host, port) do
+    IO.puts "waiting for #{host}:#{port}..."
+
+    task =
+      Task.async(fn ->
+        fn -> :gen_tcp.connect(to_charlist(host), port, []) end
+        |> Stream.repeatedly()
+        |> Stream.drop_while(&match?({:error, _}, &1))
+        |> Enum.take(1)
+      end)
+
+    case Task.yield(task, :timer.minutes(2)) do
+      nil -> Mix.raise "#{host}:#{port} is not available"
+      _ -> IO.puts "#{host}:#{port} is available"
+    end
+  end
 end
