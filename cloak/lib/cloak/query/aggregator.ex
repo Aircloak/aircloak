@@ -163,9 +163,14 @@ defmodule Cloak.Query.Aggregator do
     end
 
   defp init_anonymizer(grouped_rows) do
-    for {property, {users_rows, noise_layers}} <- grouped_rows do
-      {property, Anonymizer.new(noise_layers), users_rows}
-    end
+    Logger.debug("Initializing anonymizer ...")
+    grouped_rows
+    |> Stream.map(fn ({_property, {_users_rows, noise_layers}}) -> noise_layers end)
+    |> Task.async_stream(&Anonymizer.new/1, timeout: :infinity)
+    |> Stream.zip(grouped_rows)
+    |> Enum.map(fn ({{:ok, anonymizer}, {property, {users_rows, _noise_layers}}}) ->
+      {property, anonymizer, users_rows}
+    end)
   end
 
   defp low_users_count?({_values, anonymizer, users_rows}), do:
