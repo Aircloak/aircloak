@@ -126,17 +126,6 @@ defmodule Cloak.Query.NoiseLayerTest do
     assert rows1 != rows2
   end
 
-  test "noise layers in hiding the user_count" do
-    number = 15
-    :ok = insert_rows(_user_ids = 1..5, "noise_layers", ["number"], [number])
-
-    assert_query "select avg(other) from noise_layers where number = #{number}",
-      %{users_count: count1}
-    assert_query "select avg(other) from noise_layers",
-      %{users_count: count2}
-    assert count1 != count2
-  end
-
   test "adding a negative condition adds a noise layer" do
     :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [14])
     :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [14])

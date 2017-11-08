@@ -1025,7 +1025,7 @@ defmodule Cloak.Query.BasicTest do
     assert_query "select * from heights h",
       %{
         columns: ["user_id", "height", "name", "male"],
-        rows: [%{occurrences: 100, row: [:*, 180, nil, nil], users_count: 100}]
+        rows: [%{occurrences: 100, row: [:*, 180, nil, nil]}]
       }
   end
 
