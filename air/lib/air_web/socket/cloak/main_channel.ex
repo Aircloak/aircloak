@@ -2,7 +2,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   @moduledoc """
   Main communication channel between a cloak and the air system.
   """
-  use Phoenix.Channel
+  use Phoenix.Channel, log_handle_in: false
   require Logger
 
   alias Air.CentralClient.Socket
