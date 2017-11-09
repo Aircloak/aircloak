@@ -131,8 +131,14 @@ defmodule Cloak.Sql.Compiler.Specification do
       :error -> table_or_view
     end
   end
-  defp do_compile_views(other, _query), do:
-    other
+  defp do_compile_views({table_or_view, :as, alias}, query) do
+    case do_compile_views(table_or_view, query) do
+      {:subquery, subquery} -> {:subquery, %{subquery | alias: alias}}
+      other -> {other, :as, alias}
+    end
+  end
+  defp do_compile_views({:subquery, subquery}, _query), do:
+    {:subquery, subquery}
 
   defp view_to_subquery(view_name, view_sql, query) do
     if Enum.any?(
