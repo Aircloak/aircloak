@@ -55,20 +55,16 @@ defmodule Cloak.Query.Runner.Engine do
     |> Cloak.Sql.Query.resolve_db_columns()
     |> Sql.Compiler.NoiseLayers.compile()
 
-  defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater) do
-    buckets =
-      (Map.keys(query.data_source.tables) ++ Map.keys(query.views))
-      |> Enum.map(&%{occurrences: 1, row: [to_string(&1)]})
-    Query.Result.new({buckets, 0}, query, features)
-  end
-  defp run_statement(%Sql.Query{command: :show, show: :columns} = query, features, _state_updater) do
-    buckets =
-      query.selected_tables
-      |> hd()
-      |> sorted_table_columns()
-      |> Enum.map(&%{occurrences: 1, row: [&1.name, to_string(&1.type)]})
-    Query.Result.new({buckets, 0}, query, features)
-  end
+  defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater), do:
+    (Map.keys(query.data_source.tables) ++ Map.keys(query.views))
+    |> Enum.map(&%{occurrences: 1, row: [to_string(&1)]})
+    |> Query.Result.new(query, features)
+  defp run_statement(%Sql.Query{command: :show, show: :columns} = query, features, _state_updater), do:
+    query.selected_tables
+    |> hd()
+    |> sorted_table_columns()
+    |> Enum.map(&%{occurrences: 1, row: [&1.name, to_string(&1.type)]})
+    |> Query.Result.new(query, features)
   defp run_statement(%Sql.Query{command: :select} = query, features, state_updater), do:
     Query.DataEngine.select(query, &process_final_rows(&1, query, features, state_updater))
 
