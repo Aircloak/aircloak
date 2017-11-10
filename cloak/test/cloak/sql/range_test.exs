@@ -77,17 +77,17 @@ defmodule Cloak.Sql.Range.Test do
     end
 
     test "subquery selected columns later ignored" do
-      query = compile("SELECT COUNT(*) FROM (SELECT uid, trunc(number) AS trunced  FROM table) x")
+      query = compile("SELECT COUNT(*) FROM (SELECT uid, trunc(number) AS trunced FROM table) x")
       assert [] = Range.find_ranges(query)
     end
 
     test "subquery selected columns later filtered" do
-      query = compile("SELECT COUNT(*) FROM (SELECT uid, trunc(number) AS trunced  FROM table) x WHERE trunced = 10")
+      query = compile("SELECT COUNT(*) FROM (SELECT uid, trunc(number) AS trunced FROM table) x WHERE trunced = 10")
       assert [%Range{column: %{name: "trunced"}, interval: :implicit}] = Range.find_ranges(query)
     end
 
     test "subquery selected columns later selected top-level" do
-      query = compile("SELECT trunced FROM (SELECT uid, trunc(number) AS trunced  FROM table) x")
+      query = compile("SELECT trunced FROM (SELECT uid, trunc(number) AS trunced FROM table) x")
       assert [%Range{column: %{name: "trunced"}, interval: :implicit}] = Range.find_ranges(query)
     end
 
