@@ -10,16 +10,22 @@ Enum.each([
   "bucket(<col1> by <col2> align upper)",
   "bucket(<col1> by <col2> align middle)",
   # MongoDB doesn't support integers, so the columns will be exposed as reals.
-  "div(trunc(<col1>), trunc(<col2>))",
-  "mod(trunc(<col1>), trunc(<col2>))",
+  "div(cast(<col1> AS integer), cast(<col2> AS integer))",
+  "mod(cast(<col1> AS integer), cast(<col2> AS integer))",
 ], fn(function) ->
   defmodule Module.concat([Compliance.BinaryNumericalFunctions, String.to_atom(function), Test]) do
     use ComplianceCase, async: true
 
     @moduletag :"#{function}"
 
+    columns = if function =~ ~r/bucket/ do
+      numerical_columns() |> raw_columns()
+    else
+      numerical_columns()
+    end
+
     test_reverse_parameters? = not String.starts_with?(function, "bucket")
-    Enum.each(integer_columns(), fn({column, table, uid}) ->
+    Enum.each(columns, fn({column, table, uid}) ->
       @tag compliance: "#{function} #{column} #{table} parameter 1 subquery"
       test "#{function} on input column #{column} from table #{table} as parameter 1, in a sub-query", context do
         context
