@@ -60,7 +60,7 @@ defmodule Cloak.Sql.Range.Test do
     end
 
     test "top-level selected aggregates are not ranges" do
-      query = compile("SELECT round(AVG(number)) FROM table")
+      query = compile("SELECT round(AVG(number)) + 1 FROM table")
       assert [] = Range.find_ranges(query)
     end
 
