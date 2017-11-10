@@ -38,7 +38,7 @@ Enum.each([
           |> disable_for(SQLServerTds, match?("avg(" <> _, unquote(aggregate)))
           |> assert_consistent_and_not_failing("""
             SELECT
-              round(aggregate, 6)
+              aggregate
             FROM (
               SELECT
                 #{unquote(uid)},

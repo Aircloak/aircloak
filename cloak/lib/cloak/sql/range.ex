@@ -77,6 +77,7 @@ defmodule Cloak.Sql.Range do
   defp top_level_select(_), do: Lens.key(:columns)
 
   defp implicit_range?(:*, _query), do: false
+  defp implicit_range?({:distinct, expression}, query), do: implicit_range?(expression, query)
   defp implicit_range?(%Expression{constant?: true}, _query), do: false
   defp implicit_range?(function = %Expression{function?: true, function_args: args}, query) do
     if Function.has_attribute?(function, :implicit_range) do

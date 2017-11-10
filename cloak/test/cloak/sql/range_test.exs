@@ -91,6 +91,13 @@ defmodule Cloak.Sql.Range.Test do
       assert [%Range{column: %{name: "trunced"}, interval: :implicit}] = Range.find_ranges(query)
     end
 
+    test "subquery distinct aggregate later selected top-level" do
+      query = compile("""
+        SELECT result FROM (SELECT uid, count(distinct round(number)) AS result FROM table GROUP BY uid) x
+      """)
+      assert [%Range{column: %{name: "result"}, interval: :implicit}] = Range.find_ranges(query)
+    end
+
     test "range_function() + range_function()" do
       query = compile("SELECT trunc(number) + trunc(number) FROM table")
       assert [%Range{column: %{function: "+"}, interval: :implicit}] = Range.find_ranges(query)
