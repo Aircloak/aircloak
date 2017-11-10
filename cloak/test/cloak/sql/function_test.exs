@@ -93,9 +93,10 @@ defmodule Cloak.Sql.Function.Test do
   end
 
   test "date_trunc typing" do
-    assert return_type("date_trunc", [:text, :datetime]) == :datetime
-    assert return_type("date_trunc", [:text, :time]) == :time
-    assert return_type("date_trunc", [:text, :date]) == :datetime
+    assert return_type("date_trunc", [{:constant, :text}, :datetime]) == :datetime
+    assert return_type("date_trunc", [{:constant, :text}, :time]) == :time
+    assert return_type("date_trunc", [{:constant, :text}, :date]) == :datetime
+    refute well_typed?("date_trunc", [:text, :date])
     refute well_typed?("date_trunc", [:date, :date])
     refute well_typed?("date_trunc", [:text, :integer])
   end
@@ -295,8 +296,15 @@ defmodule Cloak.Sql.Function.Test do
   test "returns false if function does not exists", do: refute Function.exists?({:function, "foobar", []})
 
   defp return_type(name, arg_types), do:
-    Function.return_type({:function, name, Enum.map(arg_types, &Expression.constant(&1, nil))})
+    Function.return_type({:function, name, simulate_types(arg_types)})
 
   defp well_typed?(name, types), do:
-    Function.well_typed?({:function, name, Enum.map(types, &Expression.constant(&1, nil))})
+    Function.well_typed?({:function, name, simulate_types(types)})
+
+  defp simulate_types(types) do
+    Enum.map(types, fn
+      {:constant, type} -> Expression.constant(type, nil)
+      type -> %Expression{constant?: false, type: type}
+    end)
+  end
 end
