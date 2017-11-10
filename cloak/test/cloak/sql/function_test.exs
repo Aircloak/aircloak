@@ -10,26 +10,6 @@ defmodule Cloak.Sql.Function.Test do
     end
   end
 
-  test "round" do
-    assert well_typed?("round", [:real])
-    assert well_typed?("round", [:integer])
-  end
-
-  test "binary round" do
-    assert well_typed?("round", [:real, :integer])
-    assert well_typed?("round", [:integer, :integer])
-  end
-
-  test "trunc" do
-    assert well_typed?("round", [:real])
-    assert well_typed?("round", [:integer])
-  end
-
-  test "binary trunc" do
-    assert well_typed?("round", [:real, :integer])
-    assert well_typed?("round", [:integer, :integer])
-  end
-
   test "length", do:
     assert well_typed?("length", [:text])
 
@@ -190,7 +170,8 @@ defmodule Cloak.Sql.Function.Test do
   for function <- ~w(round trunc) do
     test "#{function} return type" do
       assert return_type(unquote(function), [:real]) == :integer
-      assert return_type(unquote(function), [:real, :integer]) == :real
+      assert return_type(unquote(function), [:real, {:constant, :integer}]) == :real
+      refute well_typed?(unquote(function), [:real, :integer])
     end
   end
 

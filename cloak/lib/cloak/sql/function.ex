@@ -51,7 +51,7 @@ defmodule Cloak.Sql.Function do
     ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}},
     ~w(round trunc) => %{attributes: [:implicit_range], type_specs: %{
       [numeric] => :integer,
-      [numeric, :integer] => :real,
+      [numeric, {:constant, :integer}] => :real,
     }},
     [{:bucket, :lower}, {:bucket, :upper}, {:bucket, :middle}] => %{attributes: [:implicit_range], type_specs: %{
       [numeric, numeric] => :real,
