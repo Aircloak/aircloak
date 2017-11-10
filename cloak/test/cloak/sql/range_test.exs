@@ -64,6 +64,11 @@ defmodule Cloak.Sql.Range.Test do
       assert [] = Range.find_ranges(query)
     end
 
+    test "top-level selected constants are not ranges" do
+      query = compile("SELECT 2 + 3 FROM table")
+      assert [] = Range.find_ranges(query)
+    end
+
     test "subquery selected aggregates normally considered for ranges" do
       query = compile("""
         SELECT COUNT(*) FROM (SELECT uid, round(AVG(number)) AS rounded FROM table GROUP BY uid) x WHERE rounded = 10
