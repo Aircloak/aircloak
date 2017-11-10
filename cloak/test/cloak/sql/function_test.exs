@@ -31,17 +31,20 @@ defmodule Cloak.Sql.Function.Test do
 
   test "btrim" do
     assert well_typed?("btrim", [:text])
-    assert well_typed?("btrim", [:text, :text])
+    assert well_typed?("btrim", [:text, {:constant, :text}])
+    refute well_typed?("btrim", [:text, :text])
   end
 
   test "ltrim" do
     assert well_typed?("ltrim", [:text])
-    assert well_typed?("ltrim", [:text, :text])
+    assert well_typed?("ltrim", [:text, {:constant, :text}])
+    refute well_typed?("ltrim", [:text, :text])
   end
 
   test "rtrim" do
     assert well_typed?("rtrim", [:text])
-    assert well_typed?("rtrim", [:text, :text])
+    assert well_typed?("rtrim", [:text, {:constant, :text}])
+    refute well_typed?("rtrim", [:text, :text])
   end
 
   test "substring" do

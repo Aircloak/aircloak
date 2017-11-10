@@ -89,7 +89,7 @@ defmodule Cloak.Sql.Function do
     ~w(length) => %{type_specs: %{[:text] => :integer}},
     ~w(lower lcase upper ucase) => %{type_specs: %{[:text] => :text}},
     ~w(left right) => %{type_specs: %{[:text, :integer] => :text}},
-    ~w(btrim ltrim rtrim) => %{type_specs: %{[:text, {:optional, :text}] => :text}},
+    ~w(btrim ltrim rtrim) => %{type_specs: %{[:text, {:optional, {:constant, :text}}] => :text}},
     ~w(substring substring_for) =>
       %{type_specs: %{[:text, :integer, {:optional, :integer}] => :text}},
     ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
