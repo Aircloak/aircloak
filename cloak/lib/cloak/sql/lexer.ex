@@ -111,7 +111,7 @@ defmodule Cloak.Sql.Lexer do
   end
 
   defp horizontal_whitespace() do
-    word_of(~r/[\h]/)
+    word_of(~r/[\h]/u)
   end
 
   defp linebreak() do
