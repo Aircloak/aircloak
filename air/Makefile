@@ -20,8 +20,8 @@ test: mocha
 	mix test.standard
 
 recreate-db:
-	mix rollback --all
-	mix seed
+	mix recreate_db
+	MIX_ENV=test mix recreate_db
 
 migrate:
 	mix migrate
