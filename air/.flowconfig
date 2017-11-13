@@ -5,4 +5,4 @@
 <PROJECT_ROOT>/user_docs/.*
 <PROJECT_ROOT>/node_modules/fbjs/.*
 <PROJECT_ROOT>/node_modules/mapbox-gl-style-spec/test/fixture/invalidjson.input.json
-<PROJECT_ROOT>/deps/jiffy
+<PROJECT_ROOT>/deps/*
