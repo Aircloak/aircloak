@@ -74,7 +74,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
     [:code.root_dir(), "releases", :erlang.system_info(:otp_release), "OTP_VERSION"]
     |> Path.join()
     |> File.read!()
-    |> String.strip(?\n)
+    |> String.trim("\n")
 
   defp elixir_version(), do:
     System.version()
