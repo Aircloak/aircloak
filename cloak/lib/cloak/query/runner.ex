@@ -73,7 +73,7 @@ defmodule Cloak.Query.Runner do
 
   @impl GenServer
   def init({query_id, data_source, statement, parameters, views, result_target}) do
-    Registry.register(@queries_registry_name, :instances, query_id)
+    {:ok, _pid} = Registry.register(@queries_registry_name, :instances, query_id)
     Logger.metadata(query_id: query_id)
     Process.flag(:trap_exit, true)
     owner = self()
