@@ -10,6 +10,7 @@
 
 - The system would claim a column didn't exist in a table if it was also selected in a
   subquery and given an alias only differing from the column name in its case.
+- Fixed invalid join handling inside emulator when identically-named columns were present.
 
 ### Enhancements
 
