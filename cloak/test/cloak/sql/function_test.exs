@@ -279,6 +279,15 @@ defmodule Cloak.Sql.Function.Test do
 
   test "returns false if function does not exists", do: refute Function.exists?({:function, "foobar", []})
 
+  describe "well_typed?" do
+    test "constant expression is treated as a constant" do
+      assert Function.well_typed?({:function, "round", [
+        %Expression{type: :real},
+        Expression.function("+", [Expression.constant(:integer, 1), Expression.constant(:integer, 2)], :integer)
+      ]})
+    end
+  end
+
   defp return_type(name, arg_types), do:
     Function.return_type({:function, name, simulate_types(arg_types)})
 
