@@ -4,6 +4,7 @@
 
 - Improvements to the anonymization process will cause queries to return different results from what they did in the past.
 - Count cached memory towards the memory available for running queries.
+- Global users count information was removed from query results (computing can be very expensive).
 
 ### Bugfixes
 
@@ -11,6 +12,11 @@
   subquery and given an alias only differring from the column name in its case.
 - The system would not succesfully retain information about running queries, leading parts
   of the system to believe that queries had died.
+
+### Enhancements
+
+- Query processing is a lot faster for queries creating a large number of buckets.
+- Data ingestion can now be done concurrently, greatly improving performance at the cost of higher memory consumption.
 
 ## Version 17.4.1 (unreleased)
 

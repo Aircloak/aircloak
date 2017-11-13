@@ -940,6 +940,13 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 
+  test "select from an aliased view" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    assert_query "select height from heights_view view_alias",
+      [views: %{"heights_view" => "select user_id, height from heights"}],
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+  end
+
   test "view can be used in another view" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     assert_query "select height from v1",
@@ -1025,7 +1032,7 @@ defmodule Cloak.Query.BasicTest do
     assert_query "select * from heights h",
       %{
         columns: ["user_id", "height", "name", "male"],
-        rows: [%{occurrences: 100, row: [:*, 180, nil, nil], users_count: 100}]
+        rows: [%{occurrences: 100, row: [:*, 180, nil, nil]}]
       }
   end
 

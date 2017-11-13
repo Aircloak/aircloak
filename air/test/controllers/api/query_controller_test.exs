@@ -48,7 +48,6 @@ defmodule Air.API.QueryController.Test do
       %{
         columns: ["col1", "col2"],
         info: ["some info"],
-        users_count: 2,
         features: %{selected_types: ["some types"]},
         execution_time: 123,
       },

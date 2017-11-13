@@ -181,7 +181,6 @@ defmodule Cloak.Query.Runner do
       columns: result.columns,
       rows: result.buckets,
       info: info,
-      users_count: result.users_count,
       features: result.features,
     }
   defp format_result({:error, reason}, state) when is_binary(reason), do:

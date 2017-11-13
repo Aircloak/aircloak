@@ -168,7 +168,6 @@ defmodule Air.Service.QueryTest do
         %{
           columns: ["col1", "col2"],
           info: ["some info"],
-          users_count: 2,
           features: %{selected_types: ["some types"]},
           execution_time: 123,
         },
@@ -179,7 +178,6 @@ defmodule Air.Service.QueryTest do
       assert %{
         query_state: :completed,
         execution_time: 123,
-        users_count: 2,
         features: %{"selected_types" => ["some types"]},
       } = query
 
