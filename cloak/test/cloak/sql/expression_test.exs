@@ -60,6 +60,9 @@ defmodule Cloak.Sql.Expression.Test do
     assert apply_function("round", [pow(10, 5000), 1]) === pow(10, 5000)
     assert apply_function("round", [nil, 1]) == nil
     assert apply_function("round", [3.5, nil]) == nil
+    assert apply_function("round", [33, -1]) == 30
+    assert apply_function("round", [36, -1]) == 40
+    assert apply_function("round", [333, -2]) == 300
   end
 
   test "trunc" do

@@ -215,6 +215,8 @@ defmodule Cloak.Query.FunctionTest do
   test "round/1", do: assert 181 == apply_function("round(frac)", ["frac"], [180.6], "types_ft")
   test "round/2", do: assert 180.13 == apply_function("round(frac, 2)", ["frac"], [180.126], "types_ft")
   test "round/2 on DECIMAL", do: assert 180.13 == apply_function("round(fixed, 2)", ["fixed"], [180.126], "types_ft")
+  test "round/2 negative precision", do:
+    assert 200.0 == apply_function("round(fixed, -2)", ["fixed"], [186.126], "types_ft")
   test "abs", do: assert 180 == apply_function("abs(num)", ["num"], [-180], "types_ft")
   test "sqrt", do: assert 3.0 == apply_function("sqrt(num)", ["num"], [9], "types_ft")
   test "div", do: assert 1 == apply_function("div(height, height)", "heights_ft")

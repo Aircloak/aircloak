@@ -7,6 +7,7 @@ Enum.each([
   "floor(<col>)",
   "round(<col>)",
   "round(<col>, 4)",
+  "round(<col>, -1)",
   "sqrt(<col>)",
   "trunc(<col>)",
   "trunc(<col>, 4)",
