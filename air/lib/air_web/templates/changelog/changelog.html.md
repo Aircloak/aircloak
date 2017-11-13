@@ -12,6 +12,7 @@
 - Fixed invalid join handling inside emulator when identically-named columns were present.
 - The system would not successfully retain information about running queries, leading parts
   of the system to believe that queries had died.
+- Properly parse Unicode whitespace characters.
 
 ### Changes
 
