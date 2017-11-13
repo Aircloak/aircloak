@@ -38,17 +38,13 @@ defmodule Cloak.Query.Aggregator do
 
     Each output row will consist of columns `foo`, `count(*)`, and `avg(bar)`.
   """
-  @spec aggregate(Rows.groups, Query.t) :: {[Result.bucket], non_neg_integer}
-  def aggregate(groups, query) do
-    groups = init_anonymizer(groups)
-    users_count = number_of_anonymized_users(groups, query)
-    aggregated_buckets =
-      groups
-      |> process_low_count_users(query)
-      |> aggregate_groups(query)
-      |> make_buckets(query)
-    {aggregated_buckets, users_count}
-  end
+  @spec aggregate(Rows.groups, Query.t) :: [Result.bucket]
+  def aggregate(groups, query), do:
+    groups
+    |> init_anonymizer()
+    |> process_low_count_users(query)
+    |> aggregate_groups(query)
+    |> make_buckets(query)
 
   @doc """
     Rows are grouped per query specification. See `Cloak.Query.Rows.group_expressions/1` for details.
@@ -163,9 +159,14 @@ defmodule Cloak.Query.Aggregator do
     end
 
   defp init_anonymizer(grouped_rows) do
-    for {property, {users_rows, noise_layers}} <- grouped_rows do
-      {property, Anonymizer.new(noise_layers), users_rows}
-    end
+    Logger.debug("Initializing anonymizer ...")
+    grouped_rows
+    |> Stream.map(fn ({_property, {_users_rows, noise_layers}}) -> noise_layers end)
+    |> Task.async_stream(&Anonymizer.new/1, timeout: :infinity)
+    |> Stream.zip(grouped_rows)
+    |> Enum.map(fn ({{:ok, anonymizer}, {property, {users_rows, _noise_layers}}}) ->
+      {property, anonymizer, users_rows}
+    end)
   end
 
   defp low_users_count?({_values, anonymizer, users_rows}), do:
@@ -358,25 +359,16 @@ defmodule Cloak.Query.Aggregator do
     end)
   end
 
-  defp number_of_anonymized_users(data, query) do
-    unique_user_ids = unique_user_ids_from_groups(data)
-    anonymizer = anonymizer_from_groups(data, query)
-    unique_users_count = MapSet.size(unique_user_ids)
-    case Anonymizer.sufficiently_large?(anonymizer, unique_users_count) do
-      {true, anonymizer} -> Anonymizer.noisy_count(anonymizer, unique_users_count)
-      _ -> 0
-    end
-  end
-
   defp anonymizer_from_groups(groups, query), do:
     Anonymizer.new(noise_layers_from_groups(groups, query))
 
   defp noise_layers_from_groups([], query), do:
     NoiseLayer.new_accumulator(query.noise_layers)
   defp noise_layers_from_groups(groups, _query), do:
-    Enum.reduce(groups, nil, fn({_values, anonymizer, _users_rows}, acc) -> merge_layers(acc, anonymizer.layers) end)
+    groups
+    |> Enum.map(fn({_values, anonymizer, _users_rows}) -> anonymizer.layers end)
+    |> Enum.reduce(&merge_layers/2)
 
-  defp merge_layers(nil, layers), do: layers
   defp merge_layers(layers1, layers2), do: Enum.zip(layers1, layers2) |> Enum.map(&merge_layer/1)
 
   @dialyzer {:nowarn_function, merge_layer: 1} # disable dialyzer warning because of `MapSet.union/2` call
@@ -386,12 +378,6 @@ defmodule Cloak.Query.Aggregator do
     Map.merge(user_values1, user_values2, fn (_user, columns1, columns2) ->
       columns1 |> Enum.zip(columns2) |> Enum.map(&merge_accumulators/1)
     end)
-
-  defp unique_user_ids_from_groups(groups), do:
-    groups
-    |> Enum.map(fn({_result, _anonymizer, user_data}) -> user_data end)
-    |> Enum.flat_map(&Map.keys/1)
-    |> Enum.into(MapSet.new())
 
   defp normalize_for_encoding(row), do:
     # We're normalizing some Elixir structs, so they can be encoded to non-Elixir formats, such as JSON.
