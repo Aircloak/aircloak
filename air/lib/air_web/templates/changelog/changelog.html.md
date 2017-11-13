@@ -1,10 +1,9 @@
 ## Version 18.1.0
 
-### Changes
+### Enhancements
 
-- Improvements to the anonymization process will cause queries to return different results from what they did in the past.
-- Count cached memory towards the memory available for running queries.
-- Global users count information was removed from query results (computing can be very expensive).
+- Query processing is a lot faster for queries creating a large number of buckets.
+- Data ingestion can now be done concurrently, greatly improving performance at the cost of higher memory consumption.
 
 ### Bugfixes
 
@@ -13,10 +12,11 @@
 - The system would not succesfully retain information about running queries, leading parts
   of the system to believe that queries had died.
 
-### Enhancements
+### Changes
 
-- Query processing is a lot faster for queries creating a large number of buckets.
-- Data ingestion can now be done concurrently, greatly improving performance at the cost of higher memory consumption.
+- Improvements to the anonymization process will cause queries to return different results from what they did in the past.
+- Count cached memory towards the memory available for running queries.
+- Global users count information was removed from query results (computing can be very expensive).
 
 ## Version 17.4.1 (unreleased)
 
