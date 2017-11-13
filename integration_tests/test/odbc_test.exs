@@ -19,8 +19,7 @@ defmodule IntegrationTest.OdbcTest do
   end
 
   test "ssl mode is required", context do
-    assert {:error, msg} = connect(context.user, sslmode: "disable")
-    assert to_string(msg) =~ ~r/Connection refused/
+    assert {:error, _} = connect(context.user, sslmode: "disable")
   end
 
   test "connecting", context do
