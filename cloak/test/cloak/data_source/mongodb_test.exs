@@ -252,4 +252,10 @@ defmodule Cloak.DataSource.MongoDBTest do
       GROUP BY _id HAVING COUNT(abs(age)) = 1) AS t
     """, %{rows: [%{occurrences: 1, row: [10]}]}
   end
+
+  test "(i)like conditions", context do
+    assert_query context, """
+      SELECT left(name, 4) FROM #{@table} WHERE name LIKE 'user_' AND name NOT ILIKE 'USer__'
+    """, %{rows: [%{occurrences: 9, row: ["user"]}]}
+  end
 end
