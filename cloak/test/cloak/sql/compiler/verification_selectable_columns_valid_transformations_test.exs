@@ -7,7 +7,7 @@ defmodule Cloak.Sql.Compiler.VerificationSelectableColumnsValidTransformations.T
 
   describe "rejects queries selecing columns that have seen math, discontinuity and constants" do
     Enum.each(~w(+ - * ^), fn(math_function) ->
-      Enum.each(~w(abs ceil floor round trunc), fn(discontinuous_function) ->
+      Enum.each(~w(abs ceil floor), fn(discontinuous_function) ->
         test "when on the same level ('#{math_function}' and '#{discontinuous_function}')" do
           query = """
             SELECT #{unquote(discontinuous_function)}(numeric #{unquote(math_function)} 3)
@@ -137,10 +137,10 @@ defmodule Cloak.Sql.Compiler.VerificationSelectableColumnsValidTransformations.T
     case compile(query, data_source()) do
       {:ok, _} -> true
       {:error, reason} ->
-        if reason =~ ~r/is influenced by math and a discontinuous function/ do
-          false
-        else
-          raise "Compilation failed with other reason than illegal math/discontinuity: #{inspect reason}"
+        cond do
+          reason =~ ~r/is influenced by math and a discontinuous function/ -> false
+          reason =~ ~r/Only unmodified database columns can be limited/ -> false
+          true -> raise "Compilation failed with other reason than illegal filtering condition: #{inspect reason}"
         end
     end
   end

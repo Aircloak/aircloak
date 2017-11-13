@@ -19,7 +19,13 @@ Enum.each([
 
     @moduletag :"#{function}"
 
-    Enum.each(numerical_columns(), fn({column, table, uid}) ->
+    columns = if function =~ ~r/round/ or function =~ ~r/trunc/ do
+      numerical_columns() |> raw_columns()
+    else
+      numerical_columns()
+    end
+
+    Enum.each(columns, fn({column, table, uid}) ->
       @tag compliance: "#{function} #{column} #{table} subquery"
       test "numerical unary function #{function} on input #{column} in a sub-query on #{table}", context do
         context

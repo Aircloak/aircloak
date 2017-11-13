@@ -90,6 +90,9 @@ defmodule ComplianceCase do
   def numerical_columns(), do: float_columns() ++ integer_columns()
 
   @doc false
+  def raw_columns(columns), do: Enum.reject(columns, fn({name, _, _}) -> String.contains?(name, "(") end)
+
+  @doc false
   def datetime_columns(), do:
     [
       # {column name, table name, uid column in table}

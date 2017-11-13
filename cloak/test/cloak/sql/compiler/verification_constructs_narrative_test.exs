@@ -33,19 +33,6 @@ defmodule Cloak.Sql.Compiler.VerificationConstructsNarrative.Test do
       assert get_compilation_error(query) =~ ~r/divisor that could be zero/
     end
 
-    Enum.each(~w(year quarter month day hour minute second weekday), fn(extractor_fun) ->
-      test "constructs a narrative mentioning usage of function #{extractor_fun}" do
-        query = """
-          SELECT value FROM (
-            SELECT uid, #{unquote(extractor_fun)}(column) as value
-            FROM table
-          ) t
-          WHERE value = 10
-        """
-        assert get_compilation_error(query) =~ Regex.compile!(unquote(extractor_fun))
-      end
-    end)
-
     test "constructs a narrative mentioning usage cast datetime column" do
       query = """
         SELECT value FROM (

@@ -44,8 +44,8 @@ defmodule Cloak.Query.FloatTest do
   end
 
   test "nested function call" do
-    :ok = insert_rows(_user_ids = 1..10, "floats", ["value"], [-4.2])
-    assert_query "select sqrt(abs(round(value))) from floats",
+    :ok = insert_rows(_user_ids = 1..10, "floats", ["value"], [4])
+    assert_query "select sqrt(abs(value)) from floats",
       %{columns: ["sqrt"], rows: [%{row: [value], occurrences: 10}]}
     assert_in_delta value, 2, 0.1
   end
