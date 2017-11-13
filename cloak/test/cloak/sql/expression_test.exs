@@ -78,6 +78,9 @@ defmodule Cloak.Sql.Expression.Test do
     assert apply_function("trunc", [3, 4]) == 3
     assert apply_function("trunc", [pow(10, 5000), 1]) === pow(10, 5000)
     assert apply_function("trunc", [nil, 4]) == nil
+    assert apply_function("trunc", [39, -1]) == 30
+    assert apply_function("trunc", [399, -2]) == 300
+    assert apply_function("trunc", [31, -1]) == 30
   end
 
   test "div" do

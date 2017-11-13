@@ -210,6 +210,8 @@ defmodule Cloak.Query.FunctionTest do
   test "trunc/1", do: assert 180 == apply_function("trunc(frac)", ["frac"], [180.6], "types_ft")
   test "trunc/2", do: assert 180.12 == apply_function("trunc(frac, 2)", ["frac"], [180.126], "types_ft")
   test "trunc/2 on DECIMAL", do: assert 180.12 == apply_function("trunc(fixed, 2)", ["fixed"], [180.126], "types_ft")
+  test "trunc/2 negative precision", do:
+    assert 100.0 == apply_function("trunc(fixed, -2)", ["fixed"], [181.126], "types_ft")
   test "round/1", do: assert 181 == apply_function("round(frac)", ["frac"], [180.6], "types_ft")
   test "round/2", do: assert 180.13 == apply_function("round(frac, 2)", ["frac"], [180.126], "types_ft")
   test "round/2 on DECIMAL", do: assert 180.13 == apply_function("round(fixed, 2)", ["fixed"], [180.126], "types_ft")

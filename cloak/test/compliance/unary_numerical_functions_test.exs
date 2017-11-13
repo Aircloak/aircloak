@@ -10,6 +10,7 @@ Enum.each([
   "sqrt(<col>)",
   "trunc(<col>)",
   "trunc(<col>, 4)",
+  "trunc(<col>, -1)",
   "cast(<col> as integer)",
   "cast(<col> as real)",
   "cast(<col> as text)",
