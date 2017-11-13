@@ -214,10 +214,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     conditions_satisfying(&Condition.not_equals?/1)
     |> Lens.to_list(query)
     |> Enum.flat_map(fn({:comparison, column, :<>, constant}) ->
-      [
-        static_noise_layer(column, constant, :<>),
-        uid_noise_layer(column, constant, top_level_uid, :<>),
-      ]
+      raw_columns(column)
+      |> Enum.flat_map(&[
+        static_noise_layer(&1, constant, :<>),
+        uid_noise_layer(&1, constant, top_level_uid, :<>),
+      ])
     end)
 
 

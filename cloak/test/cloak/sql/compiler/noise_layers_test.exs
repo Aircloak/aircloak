@@ -216,13 +216,23 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
-  test "noise layer from negative condition" do
-    result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> 10", data_source())
+  describe "negative conditions" do
+    test "noise layer from negative conditions" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> 10", data_source())
 
-    assert [
-      %{base: {"table", "numeric", :<>}, expressions: [%Expression{value: 10}]},
-      %{base: {"table", "numeric", :<>}, expressions: [%Expression{value: 10}, %Expression{name: "uid"}]},
-    ] = result.noise_layers
+      assert [
+        %{base: {"table", "numeric", :<>}, expressions: [%Expression{value: 10}]},
+        %{base: {"table", "numeric", :<>}, expressions: [%Expression{value: 10}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
+    end
+
+    test "having of COUNT(*)" do
+      result = compile!("""
+        SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(*) <> 10) x
+      """, data_source())
+
+      assert [_generic_noise_layer = %{base: nil}] = result.noise_layers
+    end
   end
 
   describe "noise layers for IS NULL" do
