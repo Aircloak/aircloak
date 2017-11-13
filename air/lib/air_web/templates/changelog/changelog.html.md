@@ -8,8 +8,9 @@
 ### Bugfixes
 
 - The system would claim a column didn't exist in a table if it was also selected in a
-  subquery and given an alias only differring from the column name in its case.
-- The system would not succesfully retain information about running queries, leading parts
+  subquery and given an alias only differing from the column name in its case.
+- Fixed invalid join handling inside emulator when identically-named columns were present.
+- The system would not successfully retain information about running queries, leading parts
   of the system to believe that queries had died.
 
 ### Changes
