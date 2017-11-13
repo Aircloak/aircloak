@@ -12,6 +12,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
       deps: deps(),
+      deps_path: Path.join(["deps", otp_version(), elixir_version()]),
       aliases: [
         "test.standard": ["test", "eunit", "proper --level simple"],
         "lint": ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env), ",")}"]
@@ -73,4 +74,13 @@ defmodule Aircloak.ElixirCommon.Mixfile do
   else
     defp dialyzer_deps(), do: []
   end
+
+  defp otp_version(), do:
+    [:code.root_dir(), "releases", :erlang.system_info(:otp_release), "OTP_VERSION"]
+    |> Path.join()
+    |> File.read!()
+    |> String.strip(?\n)
+
+  defp elixir_version(), do:
+    System.version()
 end
