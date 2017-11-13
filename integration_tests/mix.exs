@@ -9,6 +9,7 @@ defmodule IntegrationTests.Mixfile do
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
       deps: deps(),
+      deps_path: Path.join(["deps", otp_version(), elixir_version()]),
       elixirc_paths: elixirc_paths(Mix.env),
     ]
   end
@@ -38,4 +39,13 @@ defmodule IntegrationTests.Mixfile do
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
+
+  defp otp_version(), do:
+    [:code.root_dir(), "releases", :erlang.system_info(:otp_release), "OTP_VERSION"]
+    |> Path.join()
+    |> File.read!()
+    |> String.trim("\n")
+
+  defp elixir_version(), do:
+    System.version()
 end

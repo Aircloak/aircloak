@@ -19,8 +19,7 @@ defmodule IntegrationTest.OdbcTest do
   end
 
   test "ssl mode is required", context do
-    assert {:error, msg} = connect(context.user, sslmode: "disable")
-    assert to_string(msg) =~ ~r/Connection refused/
+    assert {:error, _} = connect(context.user, sslmode: "disable")
   end
 
   test "connecting", context do
@@ -102,7 +101,7 @@ defmodule IntegrationTest.OdbcTest do
 
   defp param_select(conn, type, value, cast \\ nil) do
     cast = if cast != nil, do: "::#{cast}"
-    {:selected, ['x'], rows} = :odbc.param_query(conn, 'select $1#{cast} as x from users', [{type, [value]}])
+    {:selected, ['x'], rows} = :odbc.param_query(conn, 'select ?#{cast} as x from users', [{type, [value]}])
     [{result}] = Enum.uniq(rows)
     result
   end

@@ -7,9 +7,8 @@ locale-gen en_US.UTF-8
 
 # setup apt sources
 curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
-curl https://packages.microsoft.com/config/ubuntu/16.04/prod.list > /etc/apt/sources.list.d/mssql-release.list
-echo "deb http://ftp.debian.org/debian sid main" >> /etc/apt/sources.list # for libc6 >= 2.21
+curl https://packages.microsoft.com/config/debian/8/prod.list > /etc/apt/sources.list.d/mssql-release.list
 apt-get update
 
 # setup driver
-ACCEPT_EULA=Y apt-get install -y unixodbc msodbcsql libstdc++6 libc6
+ACCEPT_EULA=Y apt-get install -y unixodbc msodbcsql
