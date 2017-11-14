@@ -91,11 +91,7 @@ defmodule Air.PsqlServer do
     ((RanchServer.t, any) -> any)) :: RanchServer.t
   def run_cancellable_query_on_cloak(conn, statement, params, callback) do
     with {:ok, query} <- create_query(conn.assigns.user, statement, convert_params(params)) do
-      ConnectionRegistry.register_query(
-        conn.assigns.key_data,
-        conn.assigns.user.id,
-        query.id
-      )
+      ConnectionRegistry.register_query(conn.assigns.key_data, conn.assigns.user.id, query.id)
       run_async(conn, fn -> DataSource.run_query(query, conn.assigns.data_source_id) end, callback)
     end
   end
