@@ -76,7 +76,6 @@ set -eox pipefail
     mix compile --warnings-as-errors
     MIX_ENV=test mix compile --warnings-as-errors
     MIX_ENV=prod mix compile --warnings-as-errors
-    MIX_ENV=test make recreate-db
     popd
 
   fi
