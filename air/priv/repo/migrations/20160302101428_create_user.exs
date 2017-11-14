@@ -6,7 +6,7 @@ defmodule Air.Repo.Migrations.CreateUser do
       add :email, :string
       add :hashed_password, :string
 
-      timestamps
+      timestamps()
     end
 
     # We want the uniqueness constraint to be

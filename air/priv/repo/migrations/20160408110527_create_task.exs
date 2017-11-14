@@ -8,7 +8,7 @@ defmodule Air.Repo.Migrations.CreateTask do
       add :query, :text
       add :user_id, references(:users, on_delete: :delete_all)
 
-      timestamps
+      timestamps()
     end
     create index(:tasks, [:user_id])
 

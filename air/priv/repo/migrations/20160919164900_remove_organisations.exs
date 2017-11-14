@@ -1,4 +1,4 @@
-defmodule Air.Repo.Migrations.AddAdminFieldToGroup do
+defmodule Air.Repo.Migrations.RemoveOrganisations do
   use Ecto.Migration
 
   def up do
@@ -11,7 +11,7 @@ defmodule Air.Repo.Migrations.AddAdminFieldToGroup do
   def down do
     create table(:organisations) do
       add :name, :string
-      timestamps
+      timestamps()
     end
 
     alter table(:users) do

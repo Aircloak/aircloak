@@ -7,7 +7,7 @@ defmodule Air.Repo.Migrations.CreateAuditLog do
       add :user, :string
       add :metadata, :text
 
-      timestamps
+      timestamps()
     end
 
   end

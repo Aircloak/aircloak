@@ -6,7 +6,7 @@ defmodule Air.Repo.Migrations.CreateCentralCallsSchema do
       add :event, :string
       add :payload, :map, default: fragment("'{}'::jsonb")
 
-      timestamps
+      timestamps()
     end
   end
 end
