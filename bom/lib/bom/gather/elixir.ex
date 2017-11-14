@@ -14,6 +14,8 @@ defmodule BOM.Gather.Elixir do
     version_map = version_map(deps_path)
 
     deps_path
+    |> Path.join(otp_version())
+    |> Path.join(elixir_version())
     |> Path.join("*")
     |> Path.wildcard()
     |> Enum.map(&{&1, version_map[package_name(&1)]})
@@ -95,4 +97,13 @@ defmodule BOM.Gather.Elixir do
 
     nil
   end
+
+  defp otp_version(), do:
+    [:code.root_dir(), "releases", :erlang.system_info(:otp_release), "OTP_VERSION"]
+    |> Path.join()
+    |> File.read!()
+    |> String.strip(?\n)
+
+  defp elixir_version(), do:
+    System.version()
 end
