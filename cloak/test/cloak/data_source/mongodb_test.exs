@@ -311,4 +311,11 @@ defmodule Cloak.DataSource.MongoDBTest do
         ) AS t ORDER BY 1
       """, %{rows: [%{occurrences: 5, row: [- 11, - 10.6]}, %{occurrences: 14, row: [nil, nil]}]}
   end
+
+  test "(i)like conditions", context do
+    assert_query context, """
+      SELECT left(name, 4) FROM #{@table} WHERE name LIKE 'user_' AND name NOT ILIKE 'USer__'
+    """, %{rows: [%{occurrences: 9, row: ["user"]}]}
+  end
+
 end

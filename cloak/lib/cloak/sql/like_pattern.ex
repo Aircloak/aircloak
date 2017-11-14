@@ -53,15 +53,19 @@ defmodule Cloak.Sql.LikePattern do
       @standard_escape_character
     }
 
-  @doc "Returns a regex implementing the given pattern with the given compilation options."
-  @spec to_regex(t, String.t) :: Regex.t
-  def to_regex(pattern, options \\ ""), do:
+  @doc "Returns a regex pattern implementing the given like pattern."
+  @spec to_regex_pattern(t) :: String.t
+  def to_regex_pattern(pattern), do:
     pattern
     |> graphemes()
     |> Enum.map(&to_regex_part/1)
     |> Enum.join()
     |> anchor()
-    |> Regex.compile!(options)
+
+  @doc "Returns a regex implementing the given pattern with the given compilation options."
+  @spec to_regex(t, String.t) :: Regex.t
+  def to_regex(pattern, options \\ ""), do:
+    pattern |> to_regex_pattern() |> Regex.compile!(options)
 
 
   # -------------------------------------------------------------------

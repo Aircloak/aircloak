@@ -127,13 +127,16 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_where_condition({:not, {:in, subject, values}}), do:
     %{map_field(subject) => %{'$nin': Enum.map(values, &map_constant/1)}}
   defp parse_where_condition({:like, subject, pattern}), do:
-    %{map_field(subject) => %{'$regex': LikePattern.to_regex(map_constant(pattern)), '$options': "ms"}}
+    %{map_field(subject) => regex(pattern, "ms")}
   defp parse_where_condition({:ilike, subject, pattern}), do:
-    %{map_field(subject) => %{'$regex': LikePattern.to_regex(map_constant(pattern)), '$options': "msi"}}
+    %{map_field(subject) => regex(pattern, "msi")}
   defp parse_where_condition({:not, {:like, subject, pattern}}), do:
-    %{map_field(subject) => %{'$not': %{'$regex': LikePattern.to_regex(map_constant(pattern)), '$options': "ms"}}}
+    %{map_field(subject) => %{'$not': regex(pattern, "ms")}}
   defp parse_where_condition({:not, {:ilike, subject, pattern}}), do:
-    %{map_field(subject) => %{'$not': %{'$regex': LikePattern.to_regex(map_constant(pattern)), '$options': "msi"}}}
+    %{map_field(subject) => %{'$not': regex(pattern, "msi")}}
+
+  defp regex(pattern, options), do:
+    %BSON.Regex{pattern: LikePattern.to_regex_pattern(map_constant(pattern)), options: options}
 
   defp extract_basic_conditions(table, conditions) do
     {complex_conditions, basic_conditions} = Condition.partition(conditions, complex_filter(table.array_path))
