@@ -9,8 +9,9 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   # -------------------------------------------------------------------
 
   @doc """
-  Rewrites the query AST, producing one with the same semantics that is simpler to process. Currently it only replaces
-  DISTINCT usage in SELECT lists with an equivalent GROUP BY (possibly adding a subquery).
+  Rewrites the query AST, producing one with the same semantics that is simpler to process.
+
+  Currently it only replaces DISTINCT usage in SELECT lists with an equivalent GROUP BY (possibly adding a subquery).
   """
   @spec normalize(Parser.parsed_query) :: Parser.parsed_query
   def normalize(ast), do: Helpers.apply_bottom_up(ast, &rewrite_distinct/1)

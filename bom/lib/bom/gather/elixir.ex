@@ -14,6 +14,8 @@ defmodule BOM.Gather.Elixir do
     version_map = version_map(deps_path)
 
     deps_path
+    |> Path.join(otp_version())
+    |> Path.join(elixir_version())
     |> Path.join("*")
     |> Path.wildcard()
     |> Enum.map(&{&1, version_map[package_name(&1)]})
@@ -83,7 +85,7 @@ defmodule BOM.Gather.Elixir do
       {"pbkdf2", "7076584f5377e98600a7e2cb81980b2992fb2f71", :apache2},
       {"poison", "1a6bff505c22047e18a9318e01bda63ede20d649", :"cc0-1.0"},
       {"websocket_client", "c2a6cf11233cad54a7f7e6c89bca172f2b494f9d", :mit},
-      {"tds", "844cd4c26b2b85937fb993781ff2e6e39735b314", :apache2},
+      {"tds", "989dec9244b9ecb4d78b4fdf28a4e86237ba04d8", :apache2},
     ]
   do
     defp non_hex_license(unquote(package_name), unquote(version)), do:
@@ -95,4 +97,13 @@ defmodule BOM.Gather.Elixir do
 
     nil
   end
+
+  defp otp_version(), do:
+    [:code.root_dir(), "releases", :erlang.system_info(:otp_release), "OTP_VERSION"]
+    |> Path.join()
+    |> File.read!()
+    |> String.trim("\n")
+
+  defp elixir_version(), do:
+    System.version()
 end

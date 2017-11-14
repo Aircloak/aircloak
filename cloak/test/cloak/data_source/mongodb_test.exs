@@ -253,7 +253,7 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "integer division", context do
-    assert_query context, "SELECT v FROM (SELECT _id, div(trunc(age), -7) AS v FROM #{@table}) AS t",
+    assert_query context, "SELECT v FROM (SELECT _id, div(CAST(age AS INTEGER), -7) AS v FROM #{@table}) AS t",
       %{rows: [%{occurrences: 10, row: [-4]}, %{occurrences: 9, row: [nil]}]}
   end
 
@@ -311,4 +311,11 @@ defmodule Cloak.DataSource.MongoDBTest do
         ) AS t ORDER BY 1
       """, %{rows: [%{occurrences: 5, row: [- 11, - 10.6]}, %{occurrences: 14, row: [nil, nil]}]}
   end
+
+  test "(i)like conditions", context do
+    assert_query context, """
+      SELECT left(name, 4) FROM #{@table} WHERE name LIKE 'user_' AND name NOT ILIKE 'USer__'
+    """, %{rows: [%{occurrences: 9, row: ["user"]}]}
+  end
+
 end

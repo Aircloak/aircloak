@@ -9,6 +9,7 @@ defmodule Cloak.Mixfile do
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
       deps: deps(),
+      deps_path: Path.join(["deps", otp_version(), elixir_version()]),
       elixirc_paths: elixirc_paths(Mix.env),
       preferred_cli_env: [
         :test, dialyze: :dev, "coveralls.html": :test, release: :prod,
@@ -42,7 +43,7 @@ defmodule Cloak.Mixfile do
       {:lens, "~> 0.4.0"},
       {:backoff, "~> 1.1.3"},
       {:jiffy, "~> 0.14.1"},
-      {:tds, "~> 1.0"},
+      {:tds, github: "cristianberneanu/tds"},
       {:file_system, "~> 0.2.2"},
 
       # Hackney is not a direct dependency of ours, but we need it to be at version 1.8.6 or more recent
@@ -90,4 +91,13 @@ defmodule Cloak.Mixfile do
     ["ModuleDoc", "DuplicatedCode" | ignored_credo_checks(:dev)]
   defp ignored_credo_checks(_), do:
     ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting", "FunctionArity"]
+
+  defp otp_version(), do:
+    [:code.root_dir(), "releases", :erlang.system_info(:otp_release), "OTP_VERSION"]
+    |> Path.join()
+    |> File.read!()
+    |> String.trim("\n")
+
+  defp elixir_version(), do:
+    System.version()
 end

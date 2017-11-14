@@ -266,7 +266,6 @@ defmodule Cloak.Sql.Query do
   def outermost_where_splitters(query), do:
     Lens.to_list(Lenses.outermost_where_splitters(), query)
 
-
   @doc "Retrieves the query features."
   @spec features(Query.t) :: features
   defdelegate features(query), to: __MODULE__.Features
@@ -280,6 +279,24 @@ defmodule Cloak.Sql.Query do
   @spec replace_expression(t, Expression.t, Expression.t) :: t
   def replace_expression(query, expression, new_expression), do:
     put_in(query, [Lenses.expression_instances(expression)], new_expression)
+
+  @doc """
+  Finds the subquery a given column comes from.
+
+  Returns `:database_column` if the column does not come from any subquery. Otherwise returns `{column, subquery}`.
+  """
+  @spec resolve_subquery_column(Expression.t, t) :: :database_column | {Expression.t, t}
+  def resolve_subquery_column(column, query) do
+    Lens.to_list(Lenses.direct_subqueries(), query)
+    |> Enum.find(&(&1.alias == column.table.name))
+    |> case do
+      nil -> :database_column
+      %{ast: subquery} ->
+        column_index = Enum.find_index(subquery.column_titles, &(&1 == column.name))
+        column = Enum.at(subquery.columns, column_index)
+        {column, subquery}
+    end
+  end
 
 
   # -------------------------------------------------------------------

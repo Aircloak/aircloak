@@ -10,7 +10,7 @@ defmodule Air.Repo.Migrations.CreateDataSource do
       add :name, :string
       add :tables, :text
 
-      timestamps
+      timestamps()
     end
 
     create unique_index(:data_sources, [:unique_id])

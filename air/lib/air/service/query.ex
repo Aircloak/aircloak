@@ -285,7 +285,6 @@ defmodule Air.Service.Query do
     changeset =
       Query.changeset(query, %{
         execution_time: result[:execution_time],
-        users_count: result[:users_count],
         features: result[:features],
         query_state: query_state(result),
         result: storable_result

@@ -5,7 +5,7 @@ defmodule Air.Repo.Migrations.CreateGroup do
     create table(:groups) do
       add :name, :string
 
-      timestamps
+      timestamps()
     end
 
     create unique_index(:groups, [:name])

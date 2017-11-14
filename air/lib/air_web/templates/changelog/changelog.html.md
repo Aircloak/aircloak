@@ -1,9 +1,24 @@
 ## Version 18.1.0
 
+### Enhancements
+
+- Query processing is a lot faster for queries creating a large number of buckets.
+- Data ingestion can now be done concurrently, greatly improving performance at the cost of higher memory consumption.
+
+### Bugfixes
+
+- The system would claim a column didn't exist in a table if it was also selected in a
+  subquery and given an alias only differing from the column name in its case.
+- Fixed invalid join handling inside emulator when identically-named columns were present.
+- The system would not successfully retain information about running queries, leading parts
+  of the system to believe that queries had died.
+- Properly parse Unicode whitespace characters.
+
 ### Changes
 
 - Improvements to the anonymization process will cause queries to return different results from what they did in the past.
 - Count cached memory towards the memory available for running queries.
+- Global users count information was removed from query results (computing can be very expensive).
 
 ## Version 17.4.1 (unreleased)
 

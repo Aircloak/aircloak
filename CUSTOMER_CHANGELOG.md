@@ -1,1 +1,1 @@
-air/web/templates/changelog/changelog.html.md
+air/lib/air_web/templates/changelog/changelog.html.md

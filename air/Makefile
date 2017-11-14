@@ -1,4 +1,5 @@
-.PHONY: all compile deps clean start start2 start3 test recreate-db migrate rollback dialyze docs release release-local lint mocha
+.PHONY: all compile deps clean start start2 start3 test test-migrations recreate-db migrate rollback dialyze docs
+.PHONY: release release-local lint mocha
 
 all: deps compile
 
@@ -16,12 +17,17 @@ clean:
 start: compile
 	iex -S mix phx.server
 
-test: mocha
+test: mocha test-migrations
 	mix test.standard
 
+test-migrations:
+	MIX_ENV=test mix recreate_db
+	MIX_ENV=test mix rollback --all
+	MIX_ENV=test mix recreate_db
+
 recreate-db:
-	mix rollback --all
-	mix seed
+	mix recreate_db
+	MIX_ENV=test mix recreate_db
 
 migrate:
 	mix migrate

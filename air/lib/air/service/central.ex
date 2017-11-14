@@ -133,7 +133,6 @@ defmodule Air.Service.Central do
 
     Air.Service.Central.record_query(%{
       metrics: %{
-        users_count: result[:users_count],
         row_count: row_count,
         execution_time: result[:execution_time],
       },

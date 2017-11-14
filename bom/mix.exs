@@ -9,6 +9,7 @@ defmodule Bom.Mixfile do
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
       deps: deps(),
+      deps_path: Path.join(["deps", otp_version(), elixir_version()]),
       aliases: aliases(Mix.env),
     ]
   end
@@ -58,4 +59,13 @@ defmodule Bom.Mixfile do
     ["ModuleDoc" | ignored_credo_checks(:dev)]
   defp ignored_credo_checks(_), do:
     ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
+
+  defp otp_version(), do:
+    [:code.root_dir(), "releases", :erlang.system_info(:otp_release), "OTP_VERSION"]
+    |> Path.join()
+    |> File.read!()
+    |> String.trim("\n")
+
+  defp elixir_version(), do:
+    System.version()
 end
