@@ -3,11 +3,6 @@ defmodule Air.Service.UserTest do
 
   alias Air.{Service.User, TestRepoHelper}
 
-  setup do
-    TestRepoHelper.create_admin_user!()
-    :ok
-  end
-
   describe "user operations" do
     test "required fields", do:
       assert errors_on(&User.create/1, %{}) == [

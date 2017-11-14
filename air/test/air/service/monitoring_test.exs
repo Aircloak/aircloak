@@ -52,7 +52,6 @@ defmodule Air.Service.Monitoring.Test do
     end
 
     test "list of datasources" do
-      TestRepoHelper.create_admin_user!()
       data_source = TestRepoHelper.create_data_source!()
       group = create_group_for_data_source!(data_source)
       TestRepoHelper.create_query!(TestRepoHelper.create_user!(), %{data_source_id: data_source.id})
