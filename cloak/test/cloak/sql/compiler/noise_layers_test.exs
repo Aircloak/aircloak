@@ -167,6 +167,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [] = result.noise_layers
     end
+
+    test "Issue #2077: noise layer for negative condition on COUNT(*)" do
+      result = compile!("""
+        SELECT COUNT(*) FROM (
+          SELECT uid FROM (SELECT uid FROM table) y GROUP BY 1 HAVING COUNT(*) <> 1
+        ) x
+      """, data_source())
+
+      assert [] = result.noise_layers
+    end
   end
 
   describe "noise layers for LIKE" do

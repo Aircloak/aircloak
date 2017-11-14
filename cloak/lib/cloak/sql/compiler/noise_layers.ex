@@ -257,6 +257,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     build_noise_layer(column, {:<>, Expression.value(constant, [])})
   end
 
+  defp processed_column?(:*, _query), do: false
   defp processed_column?(%Expression{function?: true}, _query), do: true
   defp processed_column?(_expression, %{from: table}) when is_binary(table), do: false
   defp processed_column?(%Expression{name: name}, query) do
