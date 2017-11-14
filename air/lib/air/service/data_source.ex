@@ -16,7 +16,6 @@ defmodule Air.Service.DataSource do
       {:audit_meta, %{atom => any}}
     | {:notify, boolean}
     | {:session_id, String.t | nil}
-    | {:notify_about_query_id, pid}
 
   @type start_query_options :: [start_query_option]
 
@@ -134,9 +133,6 @@ defmodule Air.Service.DataSource do
 
         case MainChannel.run_query(channel_pid, cloak_query_map(query)) do
           :ok ->
-            if opts[:notify_about_query_id] do
-              send(opts[:notify_about_query_id], {:query_id, query.id})
-            end
             {:ok, query}
           {:error, :timeout} ->
             post_timeout_result(query)

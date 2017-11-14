@@ -89,20 +89,15 @@ defmodule Air.PsqlServer do
   @doc "Asynchronously runs a cancellable query"
   @spec run_cancellable_query_on_cloak(RanchServer.t, String.t, [Protocol.db_value] | nil,
     ((RanchServer.t, any) -> any)) :: RanchServer.t
-  def run_cancellable_query_on_cloak(conn, query, params, callback) do
-    options = [{:notify_about_query_id, self()}]
-    conn = start_async_query(conn, query, params, options, callback)
-    receive do
-      {:query_id, query_id} ->
-        ConnectionRegistry.register_query(
-          conn.assigns.key_data,
-          conn.assigns.user.id,
-          query_id
-        )
-    after :timer.seconds(3) ->
-      Logger.debug("Did not receive a query ID. Query cannot be cancelled")
+  def run_cancellable_query_on_cloak(conn, statement, params, callback) do
+    with {:ok, query} <- create_query(conn.assigns.user, statement, convert_params(params)) do
+      ConnectionRegistry.register_query(
+        conn.assigns.key_data,
+        conn.assigns.user.id,
+        query.id
+      )
+      run_async(conn, fn -> DataSource.run_query(query, conn.assigns.data_source_id) end, callback)
     end
-    conn
   end
 
 
@@ -194,24 +189,6 @@ defmodule Air.PsqlServer do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp start_async_query(conn, query, params, options, on_finished) do
-    user = conn.assigns.user
-    data_source_id = conn.assigns.data_source_id
-    converted_params = convert_params(params)
-    run_async(
-      conn,
-      fn ->
-        with {:ok, query} <- create_query(user, query, converted_params, options) do
-          DataSource.run_query(
-            query,
-            data_source_id
-          )
-        end
-      end,
-      on_finished
-    )
-  end
 
   defp verify_ssl_file(key) do
     cond do
@@ -339,14 +316,14 @@ defmodule Air.PsqlServer do
   end
   defp psql_type_impl(_other), do: :unknown
 
-  defp create_query(user, statement, parameters, options) do
+  defp create_query(user, statement, parameters) do
     Air.Service.Query.create(
       :autogenerate,
       user,
       :psql,
       statement,
       parameters,
-      options
+      _options = []
     )
   end
 
