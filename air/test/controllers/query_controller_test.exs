@@ -63,7 +63,7 @@ defmodule Air.QueryControllerTest do
     assert %{"success" => true, "query_id" => ^query_id} = Poison.decode!(Task.await(task))
 
     rerun_task = Task.async(fn -> login(context[:user]) |> post("/queries", query_data_params) |> response(200) end)
-    assert %{"success" => false, "reason" => "id_already_in_use"} = Poison.decode!(Task.await(rerun_task))
+    assert %{"success" => false, "reason" => "unable_to_create_query"} = Poison.decode!(Task.await(rerun_task))
   end
 
   test "can cancel a query", context do
