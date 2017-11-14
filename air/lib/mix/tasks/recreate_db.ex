@@ -9,8 +9,6 @@ defmodule Mix.Tasks.RecreateDb do
   @impl Mix.Task
   def run(_args) do
     Air.Repo.configure()
-    Mix.Task.run("ecto.drop")
-    Mix.Task.run("ecto.create")
-    Mix.Task.run("ecto.migrate")
+    Enum.each(["ecto.drop", "ecto.create", "ecto.migrate", "seed"], &Mix.Task.run/1)
   end
 end
