@@ -233,6 +233,17 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [_generic_noise_layer = %{base: nil}] = result.noise_layers
     end
+
+    test "having of count(distinct)" do
+      result = compile!("""
+        SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(distinct numeric) <> 10) x
+      """, data_source())
+
+      assert [
+        %{base: {"table", "numeric", :<>}, expressions: [%Expression{}]},
+        %{base: {"table", "numeric", :<>}, expressions: [%Expression{}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
+    end
   end
 
   describe "noise layers for IS NULL" do
