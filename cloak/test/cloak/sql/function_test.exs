@@ -10,26 +10,6 @@ defmodule Cloak.Sql.Function.Test do
     end
   end
 
-  test "round" do
-    assert well_typed?("round", [:real])
-    assert well_typed?("round", [:integer])
-  end
-
-  test "binary round" do
-    assert well_typed?("round", [:real, :integer])
-    assert well_typed?("round", [:integer, :integer])
-  end
-
-  test "trunc" do
-    assert well_typed?("round", [:real])
-    assert well_typed?("round", [:integer])
-  end
-
-  test "binary trunc" do
-    assert well_typed?("round", [:real, :integer])
-    assert well_typed?("round", [:integer, :integer])
-  end
-
   test "length", do:
     assert well_typed?("length", [:text])
 
@@ -51,17 +31,20 @@ defmodule Cloak.Sql.Function.Test do
 
   test "btrim" do
     assert well_typed?("btrim", [:text])
-    assert well_typed?("btrim", [:text, :text])
+    assert well_typed?("btrim", [:text, {:constant, :text}])
+    refute well_typed?("btrim", [:text, :text])
   end
 
   test "ltrim" do
     assert well_typed?("ltrim", [:text])
-    assert well_typed?("ltrim", [:text, :text])
+    assert well_typed?("ltrim", [:text, {:constant, :text}])
+    refute well_typed?("ltrim", [:text, :text])
   end
 
   test "rtrim" do
     assert well_typed?("rtrim", [:text])
-    assert well_typed?("rtrim", [:text, :text])
+    assert well_typed?("rtrim", [:text, {:constant, :text}])
+    refute well_typed?("rtrim", [:text, :text])
   end
 
   test "substring" do
@@ -93,9 +76,10 @@ defmodule Cloak.Sql.Function.Test do
   end
 
   test "date_trunc typing" do
-    assert return_type("date_trunc", [:text, :datetime]) == :datetime
-    assert return_type("date_trunc", [:text, :time]) == :time
-    assert return_type("date_trunc", [:text, :date]) == :datetime
+    assert return_type("date_trunc", [{:constant, :text}, :datetime]) == :datetime
+    assert return_type("date_trunc", [{:constant, :text}, :time]) == :time
+    assert return_type("date_trunc", [{:constant, :text}, :date]) == :datetime
+    refute well_typed?("date_trunc", [:text, :date])
     refute well_typed?("date_trunc", [:date, :date])
     refute well_typed?("date_trunc", [:text, :integer])
   end
@@ -189,7 +173,8 @@ defmodule Cloak.Sql.Function.Test do
   for function <- ~w(round trunc) do
     test "#{function} return type" do
       assert return_type(unquote(function), [:real]) == :integer
-      assert return_type(unquote(function), [:real, :integer]) == :real
+      assert return_type(unquote(function), [:real, {:constant, :integer}]) == :real
+      refute well_typed?(unquote(function), [:real, :integer])
     end
   end
 
@@ -294,9 +279,25 @@ defmodule Cloak.Sql.Function.Test do
 
   test "returns false if function does not exists", do: refute Function.exists?({:function, "foobar", []})
 
+  describe "well_typed?" do
+    test "constant expression is treated as a constant" do
+      assert Function.well_typed?({:function, "round", [
+        %Expression{type: :real},
+        Expression.function("+", [Expression.constant(:integer, 1), Expression.constant(:integer, 2)], :integer)
+      ]})
+    end
+  end
+
   defp return_type(name, arg_types), do:
-    Function.return_type({:function, name, Enum.map(arg_types, &Expression.constant(&1, nil))})
+    Function.return_type({:function, name, simulate_types(arg_types)})
 
   defp well_typed?(name, types), do:
-    Function.well_typed?({:function, name, Enum.map(types, &Expression.constant(&1, nil))})
+    Function.well_typed?({:function, name, simulate_types(types)})
+
+  defp simulate_types(types) do
+    Enum.map(types, fn
+      {:constant, type} -> Expression.constant(type, nil)
+      type -> %Expression{constant?: false, type: type}
+    end)
+  end
 end

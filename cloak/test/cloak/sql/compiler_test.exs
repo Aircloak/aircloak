@@ -234,7 +234,7 @@ defmodule Cloak.Sql.Compiler.Test do
     test "rejecting #{function} on non-numeric columns" do
       assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
       assert error == "Function `#{unquote(function)}` requires arguments of type"
-       <> " (`integer` | `real`) or (`integer` | `real`, `integer`), but got (`datetime`)."
+       <> " (`integer` | `real`) or (`integer` | `real`, `constant integer`), but got (`datetime`)."
     end
   end
 

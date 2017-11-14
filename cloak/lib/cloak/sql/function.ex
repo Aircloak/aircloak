@@ -51,7 +51,7 @@ defmodule Cloak.Sql.Function do
     ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}},
     ~w(round trunc) => %{attributes: [:implicit_range], type_specs: %{
       [numeric] => :integer,
-      [numeric, :integer] => :real,
+      [numeric, {:constant, :integer}] => :real,
     }},
     [{:bucket, :lower}, {:bucket, :upper}, {:bucket, :middle}] => %{attributes: [:implicit_range], type_specs: %{
       [numeric, numeric] => :real,
@@ -89,7 +89,7 @@ defmodule Cloak.Sql.Function do
     ~w(length) => %{type_specs: %{[:text] => :integer}},
     ~w(lower lcase upper ucase) => %{type_specs: %{[:text] => :text}},
     ~w(left right) => %{type_specs: %{[:text, :integer] => :text}},
-    ~w(btrim ltrim rtrim) => %{type_specs: %{[:text, {:optional, :text}] => :text}},
+    ~w(btrim ltrim rtrim) => %{type_specs: %{[:text, {:optional, {:constant, :text}}] => :text}},
     ~w(substring substring_for) =>
       %{type_specs: %{[:text, :integer, {:optional, :integer}] => :text}},
     ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
@@ -233,5 +233,7 @@ defmodule Cloak.Sql.Function do
   defp type_matches?(:any, _), do: true
   defp type_matches?(_, :*), do: false
   defp type_matches?({:constant, expected}, %{constant?: true, type: actual}), do: expected == actual
+  defp type_matches?({:constant, expected}, %{function?: true, function_args: args, type: actual}), do:
+    expected == actual and Enum.all?(args, &Expression.constant?/1)
   defp type_matches?(expected_type, %{type: actual_type}), do: expected_type == actual_type
 end
