@@ -199,6 +199,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
         %{base: {"table", "numeric", {0, 10}}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", {0, 10}}, expressions: [%Expression{name: "numeric"}, %Expression{name: "uid"}]},
       ] = result.noise_layers
     end
 
@@ -207,6 +208,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
         %{base: {"table", "numeric", {0, 10}}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", {0, 10}}, expressions: [%Expression{name: "numeric"}, %Expression{name: "uid"}]},
       ] = result.noise_layers
     end
 
