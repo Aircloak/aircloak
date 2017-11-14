@@ -61,8 +61,7 @@ export default class QueriesView extends React.PureComponent {
     };
 
     this.setStatement = this.setStatement.bind(this);
-    this.debouncedRunQuery = _.debounce(this.debouncedRunQuery.bind(this), runQueryTimeout,
-      {leading: true, trailing: false});
+    this.runQuery = _.debounce(this.runQuery.bind(this), runQueryTimeout, {leading: true, trailing: false});
     this.runQuery = this.runQuery.bind(this);
     this.queryData = this.queryData.bind(this);
     this.setResults = this.setResults.bind(this);
@@ -95,7 +94,6 @@ export default class QueriesView extends React.PureComponent {
 
   setStatement: () => void;
   runQuery: () => void;
-  debouncedRunQuery: () => void;
   queryData: () => QueryData;
   setResults: () => void;
   handleLoadHistory: () => void;
@@ -199,12 +197,8 @@ export default class QueriesView extends React.PureComponent {
     this.replaceResult(errorResult);
   }
 
-  removeQueryWithId(queryId: string) {
-    this.setResults(this.state.sessionResults.filter((query) => query.id !== queryId));
-  }
-
   bindKeysWithoutEditorFocus() {
-    Mousetrap.bind(["command+enter", "ctrl+enter"], this.debouncedRunQuery);
+    Mousetrap.bind(["command+enter", "ctrl+enter"], this.runQuery);
   }
 
   queryData(queryId: string) {
@@ -216,10 +210,6 @@ export default class QueriesView extends React.PureComponent {
         session_id: this.props.sessionId,
       },
     });
-  }
-
-  debouncedRunQuery() {
-    this.runQuery();
   }
 
   runQuery() {
@@ -234,14 +224,8 @@ export default class QueriesView extends React.PureComponent {
     startQuery(this.queryData(queryId), this.context.authentication, {
       success: (response) => {
         if (! response.success) {
-          if (response.reason === "id_already_in_use") {
-            // The randomly generated id clashed with the id of an existing query. Retry!
-            this.removeQueryWithId(queryId);
-            this.runQuery();
-          } else {
-            this.replacePendingResultWithError(queryId, statement,
-              `Error connecting to server. Reported reason: ${response.reason}.`);
-          }
+          this.replacePendingResultWithError(queryId, statement,
+            `Error connecting to server. Reported reason: ${response.reason}.`);
         }
       },
 
@@ -332,7 +316,7 @@ export default class QueriesView extends React.PureComponent {
   renderCodeEditorOrViewer() {
     if (this.runEnabled()) {
       return (<CodeEditor
-        onRun={this.debouncedRunQuery}
+        onRun={this.runQuery}
         onChange={this.setStatement}
         statement={this.state.statement}
         tableNames={this.tableNames()}
@@ -347,7 +331,7 @@ export default class QueriesView extends React.PureComponent {
     return (<div className="right-align">
       <button
         className="btn btn-primary"
-        onClick={this.debouncedRunQuery}
+        onClick={this.runQuery}
         disabled={!this.runEnabled()}
       >Run</button>
       <span> or </span>
