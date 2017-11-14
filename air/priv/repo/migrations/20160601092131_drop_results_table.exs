@@ -12,7 +12,7 @@ defmodule Air.Repo.Migrations.DropResultsTable do
       add :post_processed, :text
       add :query_id, references(:queries, on_delete: :delete_all, type: :uuid)
 
-      timestamps
+      timestamps()
     end
     create index(:results, [:query_id])
   end

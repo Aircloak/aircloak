@@ -8,7 +8,7 @@ defmodule Air.Repo.Migrations.CreateResult do
       add :post_processed, :text
       add :task_id, references(:tasks, on_delete: :delete_all, type: :uuid)
 
-      timestamps
+      timestamps()
     end
     create index(:results, [:task_id])
 

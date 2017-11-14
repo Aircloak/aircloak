@@ -5,7 +5,7 @@ defmodule Air.Repo.Migrations.CreateOrganisation do
     create table(:organisations) do
       add :name, :string
 
-      timestamps
+      timestamps()
     end
 
   end
