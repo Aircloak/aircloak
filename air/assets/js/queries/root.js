@@ -62,7 +62,6 @@ export default class QueriesView extends React.PureComponent {
 
     this.setStatement = this.setStatement.bind(this);
     this.runQuery = _.debounce(this.runQuery.bind(this), runQueryTimeout, {leading: true, trailing: false});
-    this.runQuery = this.runQuery.bind(this);
     this.queryData = this.queryData.bind(this);
     this.setResults = this.setResults.bind(this);
     this.handleLoadHistory = this.handleLoadHistory.bind(this);
