@@ -8,12 +8,46 @@ defmodule Air.Service.Query do
   import Ecto.Query
   require Logger
 
-  @type query_id :: String.t
+  @type query_id :: Query.id | :autogenerate
+  @type option :: {:session_id, Query.session_id}
+  @type options :: [option]
 
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc """
+  Creates and registers a query placeholder in the database. Given that it has an ID
+  it can be used to attach and dispatch events to, and passed around for execution.
+  """
+  @spec create(query_id, User.t, Query.Context.t, Query.statement, Query.parameters, options)
+    :: {:ok, Query.t} | {:error, :id_already_in_use | :unable_to_create_query}
+  def create(query_id, user, context, statement, parameters, opts) do
+    user
+    |> Ecto.build_assoc(:queries)
+    |> Query.changeset(%{
+      statement: statement,
+      parameters: %{values: parameters},
+      session_id: Keyword.get(opts, :session_id),
+      query_state: :created,
+      context: context,
+    })
+    |> add_id_to_changeset(query_id)
+    |> Repo.insert()
+    |> case do
+      {:ok, query} ->
+        query = Repo.preload(query, :user)
+        {:ok, query}
+      {:error, changeset} ->
+        if Keyword.get(changeset.errors, :id) do
+          {:error, :id_already_in_use}
+        else
+          {:error, :unable_to_create_query}
+        end
+    end
+  end
+
 
   @doc """
   Returns information about failed queries in a paginated form.
@@ -316,6 +350,10 @@ defmodule Air.Service.Query do
     defp report_query_result(result), do:
       Air.Service.Central.report_query_result(result)
   end
+
+  defp add_id_to_changeset(changeset, :autogenerate), do: changeset
+  defp add_id_to_changeset(changeset, id), do:
+    Query.add_id_to_changeset(changeset, id)
 
 
   # -------------------------------------------------------------------

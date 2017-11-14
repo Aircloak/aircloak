@@ -22,7 +22,7 @@ defmodule Air.QueryControllerTest do
     {:ok, data_source: data_source, user: user}
   end
 
-  test "can run a query", context do
+  test "can run a query without providing query id", context do
     socket = open_cloak_mock_socket(context.data_source)
 
     query_data_params = %{
@@ -33,6 +33,37 @@ defmodule Air.QueryControllerTest do
     TestSocketHelper.respond_to_start_task_request!(socket, :ok)
 
     assert %{"success" => true} = Poison.decode!(Task.await(task))
+  end
+
+  test "can run a query providing the desired query id", context do
+    socket = open_cloak_mock_socket(context.data_source)
+
+    query_id = "d44aecdb-b87b-43bd-a35b-3fd4a5be0bcd"
+    query_data_params = %{
+      query: %{statement: "Query code", data_source_id: context[:data_source].id, id: query_id}
+    }
+    task = Task.async(fn -> login(context[:user]) |> post("/queries", query_data_params) |> response(200) end)
+
+    TestSocketHelper.respond_to_start_task_request!(socket, :ok)
+
+    assert %{"success" => true, "query_id" => ^query_id} = Poison.decode!(Task.await(task))
+  end
+
+  test "starting a query with an already used id fails", context do
+    socket = open_cloak_mock_socket(context.data_source)
+
+    query_id = "d44aecdb-b87b-43bd-a35b-3fd4a5be0bcd"
+    query_data_params = %{
+      query: %{statement: "Query code", data_source_id: context[:data_source].id, id: query_id}
+    }
+    task = Task.async(fn -> login(context[:user]) |> post("/queries", query_data_params) |> response(200) end)
+
+    TestSocketHelper.respond_to_start_task_request!(socket, :ok)
+
+    assert %{"success" => true, "query_id" => ^query_id} = Poison.decode!(Task.await(task))
+
+    rerun_task = Task.async(fn -> login(context[:user]) |> post("/queries", query_data_params) |> response(200) end)
+    assert %{"success" => false, "reason" => "id_already_in_use"} = Poison.decode!(Task.await(rerun_task))
   end
 
   test "can cancel a query", context do

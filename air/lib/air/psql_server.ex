@@ -201,7 +201,14 @@ defmodule Air.PsqlServer do
     converted_params = convert_params(params)
     run_async(
       conn,
-      fn -> DataSource.run_query(data_source_id, user, :psql, query, converted_params, options) end,
+      fn ->
+        with {:ok, query} <- create_query(user, query, converted_params, options) do
+          DataSource.run_query(
+            query,
+            data_source_id
+          )
+        end
+      end,
       on_finished
     )
   end
@@ -331,6 +338,17 @@ defmodule Air.PsqlServer do
     defp psql_type_impl(unquote(sql_type)), do: unquote(psql_type)
   end
   defp psql_type_impl(_other), do: :unknown
+
+  defp create_query(user, statement, parameters, options) do
+    Air.Service.Query.create(
+      :autogenerate,
+      user,
+      :psql,
+      statement,
+      parameters,
+      options
+    )
+  end
 
 
   # -------------------------------------------------------------------

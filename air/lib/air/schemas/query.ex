@@ -14,10 +14,14 @@ defmodule Air.Schemas.Query do
 
   EctoEnum.defenum Context, :query_context, [:http, :psql, :api]
 
+  @type id :: String.t
+  @type statement :: String.t
+  @type parameters :: Map.t
+  @type session_id :: Ecto.UUID
   @type t :: %__MODULE__{}
   @type cloak_query :: %{
-    id: String.t,
-    statement: String.t,
+    id: id,
+    statement: statement,
     parameters: [Protocol.db_value],
     data_source: String.t,
     views: %{String.t => String.t},
@@ -69,6 +73,14 @@ defmodule Air.Schemas.Query do
     |> cast(params, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
     |> foreign_key_constraint(:data_source_id)
+  end
+
+  @doc "Adds a pre-created ID to a query changeset."
+  @spec add_id_to_changeset(Ecto.Changeset.t, String.t) :: Ecto.Changeset.t
+  def add_id_to_changeset(model, id) do
+    model
+    |> cast(%{id: id}, [:id])
+    |> unique_constraint(:id, name: :tasks_pkey)
   end
 
   @doc "Produces a JSON blob of the query and its result for rendering"
