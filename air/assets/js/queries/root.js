@@ -4,6 +4,7 @@ import React from "react";
 import _ from "lodash";
 import Mousetrap from "mousetrap";
 import Channel from "phoenix";
+import uuidv4 from "uuid/v4";
 
 import {CodeEditor} from "../code_editor";
 import {CodeViewer} from "../code_viewer";
@@ -175,29 +176,13 @@ export default class QueriesView extends React.PureComponent {
     return _.some(this.state.sessionResults, (sessionResult) => sessionResult.id === result.id);
   }
 
-  updateResultId(generatedTempId: string, serverSideId: string) {
-    const sessionResults = _.map(this.state.sessionResults, (item) => {
-      if (item.id === generatedTempId) {
-        const newItem = _.cloneDeep(item);
-        newItem.id = serverSideId;
-        return newItem;
-      }
-      return item;
-    });
-    this.setResults(sessionResults);
-  }
-
-  addPendingResult(statement: string) {
-    const generatedTempId = (Math.random() * 1e32).toString(36);
-
+  addPendingResult(queryId: string, statement: string) {
     const pendingResult = {
       statement,
-      id: generatedTempId,
-      query_state: "started",
+      id: queryId,
+      query_state: "created",
     };
     this.setResults([pendingResult].concat(this.state.sessionResults));
-
-    return generatedTempId;
   }
 
   replacePendingResultWithError(generatedTempId: string, statement: string, error: string) {
@@ -215,9 +200,10 @@ export default class QueriesView extends React.PureComponent {
     Mousetrap.bind(["command+enter", "ctrl+enter"], this.runQuery);
   }
 
-  queryData() {
+  queryData(queryId: string) {
     return JSON.stringify({
       query: {
+        id: queryId,
         statement: this.state.statement,
         data_source_name: this.props.dataSourceName,
         session_id: this.props.sessionId,
@@ -230,21 +216,20 @@ export default class QueriesView extends React.PureComponent {
 
     window.showErrorLocation(-1, -1); // clear error marker
 
+    const queryId = uuidv4();
     const statement = this.state.statement;
-    const tempId = this.addPendingResult(statement);
+    this.addPendingResult(queryId, statement);
 
-    startQuery(this.queryData(), this.context.authentication, {
+    startQuery(this.queryData(queryId), this.context.authentication, {
       success: (response) => {
-        if (response.success) {
-          this.updateResultId(tempId, response.query_id);
-        } else {
-          this.replacePendingResultWithError(tempId, statement,
+        if (! response.success) {
+          this.replacePendingResultWithError(queryId, statement,
             `Error connecting to server. Reported reason: ${response.reason}.`);
         }
       },
 
       error: (error) => {
-        this.replacePendingResultWithError(tempId, statement,
+        this.replacePendingResultWithError(queryId, statement,
           `Error connecting to server. Reported reason: ${error.statusText}.`);
         if (error.status === upgradeRequired) { window.location.reload(); }
       },
