@@ -14,6 +14,8 @@ defmodule Air.Schemas.Query do
 
   EctoEnum.defenum Context, :query_context, [:http, :psql, :api]
 
+  @inherited_pkey_name :tasks_pkey
+
   @type id :: String.t
   @type statement :: String.t
   @type parameters :: Map.t
@@ -80,7 +82,7 @@ defmodule Air.Schemas.Query do
   def add_id_to_changeset(model, id) do
     model
     |> cast(%{id: id}, [:id])
-    |> unique_constraint(:id, name: :tasks_pkey)
+    |> unique_constraint(:id, name: @inherited_pkey_name)
   end
 
   @doc "Produces a JSON blob of the query and its result for rendering"
