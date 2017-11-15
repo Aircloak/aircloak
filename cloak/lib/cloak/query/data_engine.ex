@@ -3,7 +3,7 @@ defmodule Cloak.Query.DataEngine do
 
   require Logger
 
-  alias Cloak.Sql.{Compiler.Helpers, Condition, Expression, Query, Query.Lenses}
+  alias Cloak.Sql.{Compiler.Helpers, Condition, Expression, Query}
   alias Cloak.Query.{DataDecoder, DbEmulator}
   alias Cloak.DataSource
 
@@ -45,7 +45,7 @@ defmodule Cloak.Query.DataEngine do
   @doc "Resolves the columns which must be fetched from the database."
   @spec resolve_db_columns(Query.t) :: Query.t
   def resolve_db_columns(%Query{command: :select} = query), do:
-    Helpers.apply_bottom_up(query, &resolve_query_db_columns/1)
+    Helpers.apply_bottom_up(%Query{query | next_row_index: 0, db_columns: []}, &include_required_expressions/1)
   def resolve_db_columns(%Query{} = query), do:
     query
 
@@ -99,11 +99,6 @@ defmodule Cloak.Query.DataEngine do
   # Calculation of db_columns
   # -------------------------------------------------------------------
 
-  defp resolve_query_db_columns(query), do:
-    query
-    |> include_required_expressions()
-    |> optimize_columns_from_projected_subqueries()
-
   defp include_required_expressions(query), do:
     Enum.reduce(required_expressions(query), query, &Query.add_db_column(&2, &1))
 
@@ -131,41 +126,6 @@ defmodule Cloak.Query.DataEngine do
       query.having,
       Query.order_by_expressions(query),
     ]
-
-  defp optimize_columns_from_projected_subqueries(%Query{projected?: false} = query), do:
-    # We're reducing the amount of selected columns from projected subqueries to only
-    # those columns which we in fact need in the outer query (`query`).
-    Lens.map(
-      Query.Lenses.direct_projected_subqueries(),
-      query,
-      &%{&1 | ast: optimized_projected_subquery_ast(&1.ast, required_column_names(query, &1.alias))}
-    )
-  defp optimize_columns_from_projected_subqueries(%Query{projected?: true} = query), do:
-    # If this query is projected, then the list was already optimized when the ast for this query
-    # has been initially generated, so no need to do anything.
-    query
-
-  defp required_column_names(query, subquery_name), do:
-    # all db columns of the outer query which are from this projected table, except the user id
-    query |> used_columns_from_table(subquery_name) |> Enum.map(& &1.name)
-
-  defp used_columns_from_table(query, table_name) do
-    all_terminals = Lens.both(Lenses.terminals(), Lenses.join_conditions_terminals()) |> Lens.to_list(query)
-    Lenses.leaf_expressions()
-    |> Lens.to_list(all_terminals)
-    |> Enum.filter(& &1.table != :unknown and &1.table.name == table_name)
-    |> Enum.uniq_by(&Expression.id/1)
-  end
-
-  defp optimized_projected_subquery_ast(ast, required_column_names) do
-    [user_id | columns] = ast.columns
-    [user_id_title | column_titles] = ast.column_titles
-    columns = [user_id | Enum.filter(columns, &(&1.alias || &1.name) in required_column_names)]
-    titles = [user_id_title | Enum.filter(column_titles, & &1 in required_column_names)]
-    %Query{ast | next_row_index: 0, db_columns: [], columns: columns, column_titles: titles}
-    |> Query.set_emulation_flag()
-    |> resolve_db_columns()
-  end
 
   defp extract_columns(columns), do:
     Query.Lenses.leaf_expressions() |> Lens.to_list(columns)

@@ -270,11 +270,6 @@ defmodule Cloak.Sql.Query do
   @spec features(Query.t) :: features
   defdelegate features(query), to: __MODULE__.Features
 
-  @doc "Resolves the columns which must be fetched from the database."
-  @spec resolve_db_columns(t) :: t
-  def resolve_db_columns(query), do:
-    Cloak.Query.DataEngine.resolve_db_columns(%__MODULE__{query | next_row_index: 0, db_columns: []})
-
   @doc "Replaces all occurrences of one expression with another expression."
   @spec replace_expression(t, Expression.t, Expression.t) :: t
   def replace_expression(query, expression, new_expression), do:

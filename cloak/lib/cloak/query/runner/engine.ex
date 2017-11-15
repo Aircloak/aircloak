@@ -1,7 +1,7 @@
 defmodule Cloak.Query.Runner.Engine do
   @moduledoc "Execution of SQL queries."
   alias Cloak.{Sql, DataSource, Query, ResultSender, Sql.Condition}
-  alias Cloak.Query.Runner.ParallelProcessor
+  alias Cloak.Query.{Runner.ParallelProcessor, DataEngine}
   require Logger
 
   @type state_updater :: (ResultSender.query_state -> any)
@@ -52,7 +52,7 @@ defmodule Cloak.Query.Runner.Engine do
 
   defp prepare_for_execution(compiled_query), do:
     compiled_query
-    |> Cloak.Sql.Query.resolve_db_columns()
+    |> DataEngine.resolve_db_columns()
     |> Sql.Compiler.NoiseLayers.compile()
 
   defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater), do:
