@@ -40,7 +40,7 @@ defmodule Compliance.DataSource.MySQL do
     query = "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names, ", ")}) values (#{value_placeholders})"
 
     rows
-    |> Task.async_stream(& execute!(conn, query, &1))
+    |> Task.async_stream(& execute!(conn, query, &1), timeout: :timer.minutes(1))
     |> Stream.run()
 
     conn
