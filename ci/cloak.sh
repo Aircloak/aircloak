@@ -22,12 +22,15 @@ function cleanup {
     docker network disconnect $CLOAK_NETWORK_ID $container_id > /dev/null
   done
 
+  docker network prune -f > /dev/null
+
+  docker kill $CLOAK_CONTAINER > /dev/null
+  docker rm $CLOAK_CONTAINER > /dev/null
+
   dangling_volumes=$(docker volume ls -qf dangling=true)
   if [ "$dangling_volumes" != "" ]; then
     docker volume rm $dangling_volumes > /dev/null
   fi
-
-  docker network prune -f > /dev/null
 }
 
 function ensure_container {
