@@ -125,9 +125,11 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp statement_map(command, statement_data) do
+    defaults = %{having: nil, where: nil}
+
     statement_data
     |> Enum.reject(fn(value) -> value == nil end)
-    |> Enum.into(%{})
+    |> Enum.into(defaults)
     |> Map.put(:command, command)
   end
 

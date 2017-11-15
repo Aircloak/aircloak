@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.ASTNormalization do
   @moduledoc "Deals with normalizing the query AST so that less cases must be handled downstream."
 
-  alias Cloak.Sql.{Function, Parser, Compiler.Helpers}
+  alias Cloak.Sql.{Function, Parser, Compiler.Helpers, Query}
 
 
   # -------------------------------------------------------------------
@@ -11,14 +11,19 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   @doc """
   Rewrites the query AST, producing one with the same semantics that is simpler to process.
 
-  Currently it only replaces DISTINCT usage in SELECT lists with an equivalent GROUP BY (possibly adding a subquery).
+  Performs the following normalizations:
+  * Replaces DISTINCT usage in SELECT lists with an equivalent GROUP BY (possibly adding a subquery).
+  * Replaces NOT IN with an equivalent conjunction of <>
   """
   @spec normalize(Parser.parsed_query) :: Parser.parsed_query
-  def normalize(ast), do: Helpers.apply_bottom_up(ast, &rewrite_distinct/1)
+  def normalize(ast), do:
+    ast
+    |> Helpers.apply_bottom_up(&rewrite_distinct/1)
+    |> Helpers.apply_bottom_up(&rewrite_not_in/1)
 
 
   # -------------------------------------------------------------------
-  # Internal functions
+  # DISTINCT rewriting
   # -------------------------------------------------------------------
 
   defp rewrite_distinct(ast = %{distinct?: true, columns: columns, from: from, group_by: group_by = [_ | _]}), do:
@@ -52,4 +57,17 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
 
   # We set a unique alias on generated subqueries so that they don't clash with user aliases or tables
   defp unique_alias(), do: "__ac_alias__#{System.unique_integer([:positive])}"
+
+
+  # -------------------------------------------------------------------
+  # NOT IN rewriting
+  # -------------------------------------------------------------------
+
+  defp rewrite_not_in(ast), do:
+    update_in(ast, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
+      {:not, {:in, lhs, exps = [_ | _]}} ->
+        [exp | exps] = Enum.reverse(exps)
+        Enum.reduce(exps, {:comparison, lhs, :<>, exp}, &{:and, {:comparison, lhs, :<>, &1}, &2})
+      other -> other
+    end)
 end
