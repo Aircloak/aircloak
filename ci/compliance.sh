@@ -119,6 +119,6 @@ build_cloak_image
 run_in_cloak "
   export DEFAULT_SAP_HANA_SCHEMA='$DEFAULT_SAP_HANA_SCHEMA' &&
   mix deps.get &&
-  MIX_ENV=test mix gen.test_data compliance_ci 10 &&
+  MIX_ENV=test mix gen.test_data dockerized_ci 10 &&
   mix test --only compliance --max-cases 4
 "
