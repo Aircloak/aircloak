@@ -129,7 +129,8 @@ defmodule ComplianceCase do
       {table_uid1, table_uid2}
 
   defp data_sources() do
-    data_sources = Compliance.DataSources.all_from_config_initialized("compliance")
+    compliance_file = if System.get_env("CI") == "true", do: "compliance_ci", else: "compliance"
+    data_sources = Compliance.DataSources.all_from_config_initialized(compliance_file)
 
     if length(data_sources) < 2, do:
       raise(ExUnit.AssertionError, message: "More than one data source is needed to ensure compliance")

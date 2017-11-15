@@ -78,11 +78,33 @@ function build_cloak_image {
 }
 
 function run_in_cloak {
-  docker run --rm -it --network=$NETWORK_ID aircloak/cloak_ci:latest \
+  mkdir -p tmp/ci/cloak
+
+  if [ ! -f tmp/ci/cloak/.bash_history ]; then
+    touch tmp/ci/cloak/.bash_history
+  fi
+
+  mounted_from_root="VERSION common/elixir"
+  mounted_from_cloak="config datagen include lib perftest priv rel test mix.exs mix.lock Makefile"
+  mounted_from_cloak_cache="deps _build .bash_history"
+
+  mounts="-v $(pwd)/tmp/ci/cloak/.bash_history:/root/.bash_history"
+
+  for path in $mounted_from_root; do
+    mounts="$mounts -v $(pwd)/$path:/aircloak/$path"
+  done
+
+  for path in $mounted_from_cloak; do
+    mounts="$mounts -v $(pwd)/cloak/$path:/aircloak/cloak/$path"
+  done
+
+  for path in $mounted_from_cloak_cache; do
+    mounts="$mounts -v $(pwd)/tmp/ci/cloak/$path:/aircloak/cloak/$path"
+  done
+
+  docker run --rm -it --network=$NETWORK_ID $mounts aircloak/cloak_ci:latest \
     bash -c \
       "
-        cp priv/config/compliance_ci.json priv/config/compliance.json &&
-        cp priv/config/compliance_ci.json priv/config/test.json &&
         . ~/.asdf/asdf.sh &&
         $@
       "
@@ -96,6 +118,7 @@ build_cloak_image
 
 run_in_cloak "
   export DEFAULT_SAP_HANA_SCHEMA='$DEFAULT_SAP_HANA_SCHEMA' &&
-  mix gen.test_data compliance 10 &&
+  mix deps.get &&
+  MIX_ENV=test mix gen.test_data compliance_ci 10 &&
   mix test --only compliance --max-cases 4
 "
