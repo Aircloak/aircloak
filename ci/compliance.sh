@@ -42,6 +42,15 @@ function start_supporting_containers {
   start_network_container --network-alias=postgresql \
     postgres:9.4
 
+  start_network_container --network-alias=mongo3.0 \
+    mongo:3.0
+
+  start_network_container --network-alias=mongo3.2 \
+    mongo:3.2
+
+  start_network_container --network-alias=mongo3.4 \
+    mongo:3.4
+
   start_network_container --network-alias=mysql -e MYSQL_ALLOW_EMPTY_PASSWORD=true \
     mysql:5.7.19
 
