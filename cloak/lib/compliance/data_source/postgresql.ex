@@ -12,6 +12,10 @@ defmodule Compliance.DataSource.PostgreSQL do
   @impl Connector
   def setup(%{parameters: params}) do
     Application.ensure_all_started(:postgrex)
+
+    Connector.await_port(params.hostname, 5432)
+    setup_database(params)
+
     {:ok, conn} = Postgrex.start_link(
       database: params.database,
       hostname: params.hostname,
@@ -41,7 +45,7 @@ defmodule Compliance.DataSource.PostgreSQL do
     query = "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names, ", ")}) values (#{indexed_sql})"
 
     rows
-    |> Task.async_stream(& execute!(conn, query, &1))
+    |> Task.async_stream(& execute!(conn, query, &1), timeout: :timer.minutes(1))
     |> Stream.run()
 
     conn
@@ -92,4 +96,26 @@ defmodule Compliance.DataSource.PostgreSQL do
   defp sql_type(:boolean), do: "boolean"
   defp sql_type(:text), do: "text"
   defp sql_type(:datetime), do: "timestamp"
+
+  defp setup_database(params) do
+    {:ok, conn} = Postgrex.start_link(
+      database: "postgres",
+      hostname: params.hostname,
+      username: "postgres",
+      sync_connect: true,
+    )
+
+    case Postgrex.query!(
+      conn,
+      "SELECT count(*) FROM pg_catalog.pg_user WHERE usename = '#{params.username}'",
+      []
+    ).rows do
+      [[1]] -> :ok
+      [[0]] -> Postgrex.query!(conn, "CREATE USER #{params.username}", [])
+    end
+
+    Postgrex.query!(conn, "DROP DATABASE IF EXISTS #{params.database}", [])
+    Postgrex.query!(conn, "CREATE DATABASE #{params.database} ENCODING 'UTF8'", [])
+    Postgrex.query!(conn, "GRANT ALL PRIVILEGES ON DATABASE #{params.database} TO #{params.username}", [])
+  end
 end

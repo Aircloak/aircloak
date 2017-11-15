@@ -130,6 +130,7 @@ This section lists the functions which will cause a query to be emulated.
 |               |   3.0    |    3.2   |  >= 3.4  |
 |--------------:|:--------:|:--------:|:--------:|
 | abs           | emulated |  &nbsp;  |  &nbsp;  |
+| avg           | emulated |  &nbsp;  |  &nbsp;  |
 | btrim         | emulated | emulated | emulated |
 | cast          | emulated | partially| partially|
 | ceil/ceiling  | emulated |  &nbsp;  |  &nbsp;  |
@@ -139,7 +140,10 @@ This section lists the functions which will cause a query to be emulated.
 | left          | emulated | emulated |  &nbsp;  |
 | length        | emulated | emulated |  &nbsp;  |
 | ltrim         | emulated | emulated | emulated |
+| max           | emulated |  &nbsp;  |  &nbsp;  |
 | median        | emulated | emulated | emulated |
+| min           | emulated |  &nbsp;  |  &nbsp;  |
+| pow           | emulated |  &nbsp;  |  &nbsp;  |
 | quarter       | emulated |  &nbsp;  |  &nbsp;  |
 | right         | emulated | emulated |  &nbsp;  |
 | round         | emulated |  &nbsp;  |  &nbsp;  |

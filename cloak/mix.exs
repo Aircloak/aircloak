@@ -12,8 +12,7 @@ defmodule Cloak.Mixfile do
       deps_path: Path.join(["deps", otp_version(), elixir_version()]),
       elixirc_paths: elixirc_paths(Mix.env),
       preferred_cli_env: [
-        :test, dialyze: :dev, "coveralls.html": :test, release: :prod,
-        dialyze_retry: :dev
+        dialyze: :dev, "coveralls.html": :test, release: :prod, dialyze_retry: :dev, compliance: :test
       ],
       aliases: aliases(Mix.env),
       test_coverage: [tool: ExCoveralls]

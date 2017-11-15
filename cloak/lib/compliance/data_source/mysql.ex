@@ -12,6 +12,8 @@ defmodule Compliance.DataSource.MySQL do
   @impl Connector
   def setup(%{parameters: params}) do
     Application.ensure_all_started(:mariaex)
+    Connector.await_port(params.hostname, 3306)
+    setup_database(params)
     {:ok, conn} = Mariaex.start_link(
       database: params.database,
       hostname: params.hostname,
@@ -38,7 +40,7 @@ defmodule Compliance.DataSource.MySQL do
     query = "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names, ", ")}) values (#{value_placeholders})"
 
     rows
-    |> Task.async_stream(& execute!(conn, query, &1))
+    |> Task.async_stream(& execute!(conn, query, &1), timeout: :timer.minutes(1))
     |> Stream.run()
 
     conn
@@ -94,4 +96,22 @@ defmodule Compliance.DataSource.MySQL do
   defp sql_type(:boolean), do: "boolean"
   defp sql_type(:text), do: "text"
   defp sql_type(:datetime), do: "timestamp"
+
+  defp setup_database(params) do
+    {:ok, conn} =
+      Mariaex.start_link(
+        database: "mysql",
+        hostname: params.hostname,
+        username: "root",
+        sync_connect: true,
+      )
+
+    case Mariaex.query!(
+      conn,
+      "SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '#{params.database}'"
+    ).rows do
+      [[1]] -> :ok
+      [[0]] -> Mariaex.query!(conn, "CREATE DATABASE #{params.database}")
+    end
+  end
 end
