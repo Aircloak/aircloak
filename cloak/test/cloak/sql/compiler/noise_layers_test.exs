@@ -212,6 +212,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       ] = result.noise_layers
     end
 
+    test "noise layer from an implicit range" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE trunc(numeric) = 10", data_source())
+
+      assert [
+        %{base: {"table", "numeric", :implicit}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", :implicit}, expressions: [%Expression{name: "numeric"}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
+    end
+
     test "no noise layer from sample_users" do
       result = compile!("SELECT COUNT(*) FROM (SELECT uid FROM table SAMPLE_USERS 10%) x", data_source())
       assert [_generic_noise_layer = %{base: nil}] = result.noise_layers
