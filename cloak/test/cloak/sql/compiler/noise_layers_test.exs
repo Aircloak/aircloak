@@ -199,6 +199,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
         %{base: {"table", "numeric", {0, 10}}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", {0, 10}}, expressions: [%Expression{name: "numeric"}, %Expression{name: "uid"}]},
       ] = result.noise_layers
     end
 
@@ -207,6 +208,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
         %{base: {"table", "numeric", {0, 10}}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", {0, 10}}, expressions: [%Expression{name: "numeric"}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
+    end
+
+    test "noise layer from an implicit range" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE trunc(numeric) = 10", data_source())
+
+      assert [
+        %{base: {"table", "numeric", :implicit}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", :implicit}, expressions: [%Expression{name: "numeric"}, %Expression{name: "uid"}]},
       ] = result.noise_layers
     end
 
@@ -232,6 +243,17 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       """, data_source())
 
       assert [_generic_noise_layer = %{base: nil}] = result.noise_layers
+    end
+
+    test "having of count(distinct)" do
+      result = compile!("""
+        SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(distinct numeric) <> 10) x
+      """, data_source())
+
+      assert [
+        %{base: {"table", "numeric", :<>}, expressions: [%Expression{}]},
+        %{base: {"table", "numeric", :<>}, expressions: [%Expression{}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
     end
   end
 
