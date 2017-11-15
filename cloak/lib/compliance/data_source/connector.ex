@@ -39,7 +39,7 @@ defmodule Compliance.DataSource.Connector do
     end
   end
 
-  @doc "Awaits for the port on the given host to become available."
+  @doc "Waits for the port on the given host to become available."
   @spec await_port(String.t, :inet.port_number) :: :ok
   def await_port(host, port) do
     IO.puts "waiting for #{host}:#{port}..."
