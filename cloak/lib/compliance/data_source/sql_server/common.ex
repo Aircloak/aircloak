@@ -13,34 +13,28 @@ defmodule Compliance.DataSource.SQLServer.Common do
     ]
 
   @doc false
-  def insert_rows_query(table_name, data) do
-    column_names = column_names(data)
-    rows = rows(data, column_names)
-    escaped_column_names = escaped_column_names(column_names)
-    sql = "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names, ", ")}) values ($VALUES)"
-    {sql, rows}
-  end
-
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp column_names(data), do:
+  def column_names(data), do:
     data
     |> hd()
     |> Map.keys()
     |> Enum.sort()
 
-  defp rows(data, column_names), do:
+  @doc false
+  def rows(data, column_names), do:
     Enum.map(data, fn(entry) ->
       Enum.map(column_names, &Map.get(entry, &1))
     end)
 
-  defp escaped_column_names(column_names), do:
+  @doc false
+  def escaped_column_names(column_names), do:
     column_names
-    |> Enum.map(& Atom.to_string/1)
-    |> Enum.map(& escape_name/1)
+    |> Enum.map(&Atom.to_string/1)
+    |> Enum.map(&escape_name/1)
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp columns_sql(columns), do:
     columns

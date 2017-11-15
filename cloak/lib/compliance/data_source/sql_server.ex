@@ -27,10 +27,10 @@ defmodule Compliance.DataSource.SQLServer do
 
   @impl Connector
   def insert_rows(table_name, data, conn) do
-    {sql, rows} = Common.insert_rows_query(table_name, data)
-    placeholders = List.duplicate("?", rows |> Enum.at(0) |> length()) |> Enum.join(", ")
-    sql = String.replace(sql, "$VALUES", placeholders)
-    Enum.each(rows, &execute!(conn, sql, &1))
+    table_name
+    |> chunks_to_insert(data)
+    |> Enum.each(fn({sql, params}) -> execute!(conn, sql, params) end)
+
     conn
   end
 
@@ -44,14 +44,41 @@ defmodule Compliance.DataSource.SQLServer do
   # Internal functions
   # -------------------------------------------------------------------
 
-   defp cast_type(binary) when is_binary(binary) do
-    binary = :unicode.characters_to_binary(binary, :utf8, {:utf16, :little})
-     {{:sql_wvarchar, byte_size(binary) + 1}, [binary]}
-   end
-   defp cast_type(integer) when is_integer(integer), do: {:sql_integer, [integer]}
-   defp cast_type(float) when is_float(float), do: {:sql_real, [float]}
-   defp cast_type(boolean) when is_boolean(boolean), do: {:sql_bit, [boolean]}
-   defp cast_type(%{calendar: Calendar.ISO} = datetime), do: datetime |> to_string() |> cast_type()
+  def chunks_to_insert(table_name, data) do
+    column_names = Common.column_names(data)
+
+    data
+    |> Common.rows(column_names)
+    |> Stream.chunk_every(100)
+    |> Enum.map(&chunk_to_insert(table_name, column_names, &1))
+  end
+
+  defp chunk_to_insert(table_name, column_names, rows) do
+    escaped_column_names = Common.escaped_column_names(column_names)
+
+    placeholders =
+      rows
+      |> Stream.map(&List.duplicate("?", length(&1)))
+      |> Stream.map(&"(#{Enum.join(&1, ",")})")
+      |> Enum.join(", ")
+
+    query = "
+      INSERT INTO #{table_name}(#{Enum.join(escaped_column_names, ", ")})
+      SELECT #{Enum.join(escaped_column_names, ", ")} FROM (
+        VALUES #{placeholders}
+      ) subquery (#{Enum.join(escaped_column_names, ", ")})
+    "
+    {query, List.flatten(rows)}
+  end
+
+  defp cast_type(binary) when is_binary(binary) do
+  binary = :unicode.characters_to_binary(binary, :utf8, {:utf16, :little})
+    {{:sql_wvarchar, byte_size(binary) + 1}, [binary]}
+  end
+  defp cast_type(integer) when is_integer(integer), do: {:sql_integer, [integer]}
+  defp cast_type(float) when is_float(float), do: {:sql_real, [float]}
+  defp cast_type(boolean) when is_boolean(boolean), do: {:sql_bit, [boolean]}
+  defp cast_type(%{calendar: Calendar.ISO} = datetime), do: datetime |> to_string() |> cast_type()
 
   defp execute!(conn, query, params \\ []) do
     case :odbc.param_query(conn, String.to_charlist(query), Enum.map(params, &cast_type/1)) do
