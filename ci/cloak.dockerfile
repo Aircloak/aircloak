@@ -27,6 +27,6 @@ ENV CI=true
 RUN \
   . /tmp/build_config/proxies.sh && \
   cd /aircloak/cloak && \
-  bash -c ". ~/.asdf/asdf.sh && mix config_sap_hana_test_schema && mix compile && MIX_ENV=test mix compile"
+  bash -c ". ~/.asdf/asdf.sh && mix compile && MIX_ENV=test mix compile"
 
 WORKDIR /aircloak/cloak

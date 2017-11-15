@@ -10,6 +10,7 @@ cd $ROOT_DIR
 
 export NETWORK_ID=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')
 export MSSQL_TEMP_FOLDER="$(mktemp -d)"
+export DEFAULT_SAP_HANA_SCHEMA="TEST_SCHEMA_$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')"
 
 
 function cleanup {
@@ -80,6 +81,7 @@ start_supporting_containers
 build_cloak_image
 
 run_in_cloak "
+  export DEFAULT_SAP_HANA_SCHEMA='$DEFAULT_SAP_HANA_SCHEMA' &&
   mix gen.test_data compliance 10 &&
   mix test --only compliance --max-cases 10
 "
