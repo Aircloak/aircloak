@@ -4,6 +4,7 @@
 
 - Query processing is a lot faster for queries creating a large number of buckets.
 - Data ingestion can now be done concurrently, greatly improving performance at the cost of higher memory consumption.
+- The cloak will now automatically remove unnecessary columns from the query during compilation.
 
 ### Bugfixes
 
