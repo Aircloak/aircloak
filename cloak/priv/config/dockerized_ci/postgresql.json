@@ -1,6 +1,6 @@
 {
   "driver": "postgresql",
-  "name": "postgres9.4",
+  "name": "postgresql9.4",
   "parameters": {
     "hostname": "postgres9.4",
     "username": "postgres",
