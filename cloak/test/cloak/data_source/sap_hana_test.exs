@@ -18,7 +18,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
   setup_all do
     cond do
       :os.type() == {:unix, :darwin} ->
-        raise "SAP HANA tests can't be executed on macOS. Use `make dev-container` instead."
+        raise "SAP HANA tests can't be executed on macOS. Use `make ci.compliance.debug` instead."
 
       is_nil(schema()) ->
         raise "Default SAP HANA schema not configured. Please edit your `test.local.exs` file."

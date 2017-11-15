@@ -1,5 +1,0 @@
-# ignore everything by default
-*
-
-!cloak/priv/odbc/docker/
-!cloak/dev_container/docker/start.sh
