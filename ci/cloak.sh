@@ -7,7 +7,6 @@ set -eo pipefail
 export CLOAK_NETWORK_ID=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')
 export DEFAULT_SAP_HANA_SCHEMA="TEST_SCHEMA_$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')"
 
-
 function cleanup {
   set +x
   echo "destroying network"
