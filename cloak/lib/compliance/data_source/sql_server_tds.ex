@@ -12,6 +12,8 @@ defmodule Compliance.DataSource.SQLServerTds do
   @impl Connector
   def setup(%{parameters: params}) do
     Application.ensure_all_started(:tds)
+    Connector.await_port(params.hostname, 1433)
+    setup_database(params)
     conn = Cloak.DataSource.SQLServerTds.connect!(params)
     Enum.each(Common.setup_queries(), &execute!(conn, &1))
     conn
@@ -54,4 +56,24 @@ defmodule Compliance.DataSource.SQLServerTds do
   defp cast_type(%{calendar: Calendar.ISO} = datetime), do: datetime |> to_string() |> cast_type()
 
   defp execute!(conn, query), do: Tds.query!(conn, query, [])
+
+  defp setup_database(params) do
+    {:ok, conn} =
+      Tds.start_link(
+        hostname: params.hostname,
+        username: params.username,
+        password: params.password,
+        database: "master",
+        sync_connect: true,
+        pool: DBConnection.Connection,
+        after_connect: fn (_) -> send(self(), :connected)
+      end)
+
+    case execute!(conn, "select count(*) from sys.databases where name='#{params.database}'").rows do
+      [[n]] when n > 0 -> execute!(conn, "drop database #{params.database}")
+      [[0]] -> :ok
+    end
+
+    execute!(conn, "create database #{params.database}")
+  end
 end

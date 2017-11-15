@@ -64,9 +64,9 @@ defmodule Compliance.DataSource.SQLServer do
     conn =
       Cloak.DataSource.SQLServer.connect!(
         hostname: params.hostname,
+        username: params.username,
+        password: params.password,
         database: "master",
-        username: "sa",
-        password: "7fNBjlaeoRwz*zH9"
       )
 
     :odbc.sql_query(conn, ~c/

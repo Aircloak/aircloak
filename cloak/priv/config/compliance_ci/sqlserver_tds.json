@@ -1,0 +1,15 @@
+{
+  "driver": "sqlserver_tds",
+  "name": "sqlserver_tds",
+  "parameters": {
+    "hostname": "sqlserver",
+    "username": "sa",
+    "password": "7fNBjlaeoRwz*zH9",
+    "database": "cloak_compliance_tds",
+    "odbc_parameters": {
+      "Port": "1433"
+    }
+  },
+  "tables": {
+  }
+}
