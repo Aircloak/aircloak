@@ -10,7 +10,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Rewrites the query in order to improve performance."
+  @doc "Rewrites the query in order to get faster execution, i.e.: unused columns are dropped."
   @spec optimize(Query.t) :: Query.t
   def optimize(%Query{command: :show} = query), do: query
   def optimize(%Query{command: :select} = query), do:
