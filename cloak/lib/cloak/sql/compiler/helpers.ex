@@ -105,6 +105,15 @@ defmodule Cloak.Sql.Compiler.Helpers do
     |> function.()
 
   @doc """
+  Updates the query and all its subqueries with the given function. Starts from the top-level query going down.
+  """
+  @spec apply_top_down(q, (q -> q)) :: q when q: Query.t | Parser.parsed_query
+  def apply_top_down(query, function), do:
+    query
+    |> function.()
+    |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_top_down(&1, function))
+
+  @doc """
   Returns an expression that will reference the given aliased expression in the given subquery to be used in the outer
   query. The third argument is the virtual table produced by the subquery.
   """
