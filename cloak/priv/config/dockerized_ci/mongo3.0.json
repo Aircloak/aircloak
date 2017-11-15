@@ -1,6 +1,5 @@
 {
   "driver": "mongodb",
-  "marker": "connector",
   "name": "mongodb3.0",
   "parameters": {
     "hostname": "mongo3.0",

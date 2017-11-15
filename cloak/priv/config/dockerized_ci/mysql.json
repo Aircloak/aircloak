@@ -1,7 +1,6 @@
 {
   "driver": "mysql",
-  "marker": "connector",
-  "name": "mysql",
+  "name": "mysql5.7",
   "parameters": {
     "hostname": "mysql5.7",
     "username": "root",
