@@ -95,7 +95,10 @@ function start_cloak_container {
     mounts="$mounts -v $(pwd)/tmp/ci/cloak/$path:/aircloak/cloak/$path"
   done
 
-  export CLOAK_CONTAINER=$(docker run -d --network=$CLOAK_NETWORK_ID $mounts aircloak/cloak_ci:latest sleep infinity)
+  export CLOAK_CONTAINER=$(
+    docker run -d --network=$CLOAK_NETWORK_ID $mounts -e CLOAK_DATA_SOURCES="$CLOAK_DATA_SOURCES" \
+      aircloak/cloak_ci:latest sleep infinity
+  )
 }
 
 function start_cloak_with_databases {

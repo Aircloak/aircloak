@@ -194,7 +194,7 @@ defmodule Cloak.DataSource do
   def config_to_datasources(config), do:
     config
     |> Enum.map(&to_data_source/1)
-    |> Enum.reject(&disabled_in_dev?/1)
+    |> Enum.reject(&disabled?/1)
     |> Validations.Name.check_for_duplicates()
     |> Enum.map(&save_init_fields/1)
 
@@ -371,8 +371,19 @@ defmodule Cloak.DataSource do
   defp add_error_message(data_source, message), do:
     %{data_source | errors: [message | data_source.errors]}
 
-  if Mix.env == :dev do
-    defp disabled_in_dev?(%{driver: Cloak.DataSource.SAPHana}) do
+  if Mix.env == :prod do
+    defp disabled?(_data_source), do:
+      false
+  else
+    defp disabled?(data_source), do:
+      explicitly_disabled?(data_source) || sap_hana_unavailable?(data_source)
+
+    defp explicitly_disabled?(data_source) do
+      env_data_sources = String.split(System.get_env("CLOAK_DATA_SOURCES") || "")
+      not Enum.empty?(env_data_sources) and not Enum.member?(env_data_sources, data_source.name)
+    end
+
+    defp sap_hana_unavailable?(%{driver: Cloak.DataSource.SAPHana}) do
       cond do
         is_nil(Cloak.DataSource.SAPHana.default_schema()) ->
           Logger.warn("Default schema for SAP HANA not set. Skipping SAP HANA data source.")
@@ -385,10 +396,7 @@ defmodule Cloak.DataSource do
         true -> false
       end
     end
-    defp disabled_in_dev?(_data_source), do:
-      false
-  else
-    defp disabled_in_dev?(_data_source), do:
+    defp sap_hana_unavailable?(_other_data_source), do:
       false
   end
 
