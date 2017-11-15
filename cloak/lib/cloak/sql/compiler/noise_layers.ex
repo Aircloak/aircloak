@@ -178,7 +178,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
 
   defp clear_noise_layers(query, top_level_uid), do:
-    clear_conditions(query)
+    query
+    |> clear_conditions()
     |> Lens.to_list(query)
     |> Enum.flat_map(fn({:comparison, column, :=, constant}) ->
       [
@@ -188,12 +189,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end)
 
   defp unclear_noise_layers(query, top_level_uid), do:
-    unclear_conditions(query)
+    query
+    |> unclear_conditions()
     |> raw_columns(query)
     |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
 
   defp in_noise_layers(query, top_level_uid), do:
-    conditions_satisfying(&Condition.in?/1, query)
+    query
+    |> conditions_satisfying(&Condition.in?/1)
     |> Lens.to_list(query)
     |> Enum.flat_map(fn({:in, column, constants}) ->
       [
@@ -214,7 +217,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end)
 
   defp negative_noise_layers(query, top_level_uid), do:
-    conditions_satisfying(&Condition.not_equals?/1, query)
+    query
+    |> conditions_satisfying(&Condition.not_equals?/1)
     |> Lens.to_list(query)
     |> Enum.flat_map(fn({:comparison, column, :<>, constant}) ->
       raw_columns(column)
@@ -230,7 +234,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # -------------------------------------------------------------------
 
   defp like_noise_layers(query, top_level_uid), do:
-    conditions_satisfying(&(Condition.like?(&1) or Condition.not_like?(&1)), query)
+    query
+    |> conditions_satisfying(&(Condition.like?(&1) or Condition.not_like?(&1)))
     |> Lens.to_list(query)
     |> Enum.flat_map(&do_like_noise_layers(&1, top_level_uid))
 
@@ -325,8 +330,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       [set_unique_alias(layer_expression)]
     )
 
-  defp conditions_satisfying(predicate, query), do:
-    Lens.satisfy(non_range_conditions(query), predicate)
+  defp conditions_satisfying(query, predicate), do:
+    query |> non_range_conditions() |> Lens.satisfy(predicate)
 
   defp normalize_datasource_case(query) do
     Lens.key(:noise_layers)
@@ -338,13 +343,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   end
 
   deflensp clear_conditions(query), do:
-    Lens.satisfy(basic_conditions(query), &clear_condition?/1)
+    query |> basic_conditions() |> Lens.satisfy(&clear_condition?/1)
 
   deflensp unclear_conditions(query), do:
-    Lens.satisfy(basic_conditions(query), & not clear_condition?(&1))
+    query |> basic_conditions() |> Lens.satisfy(& not clear_condition?(&1))
 
   deflensp basic_conditions(query), do:
-    non_range_conditions(query)
+    query
+    |> non_range_conditions()
     |> Lens.satisfy(& not Condition.inequality?(&1))
     |> Lens.satisfy(& not Condition.not_equals?(&1))
     |> Lens.satisfy(& not Condition.not_like?(&1))
