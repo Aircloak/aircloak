@@ -205,9 +205,9 @@ You can now interact with the cloak via the dockerized air (http://localhost:808
 
 #### Running full compliance CI locally
 
-To run the full compliance CI test locally with the command `make ci.compliance`. This will test all supported databases and drivers. The test is fully dockerized, so you can start it on Linux, as well as macOS.
+To run the full compliance CI test locally with the command `make ci.compliance`. This will test all supported databases and drivers. The test is fully dockerized, so you can start it on Linux and macOS.
 
-If you want to test some specific databases, you can set the `CLOAK_DATA_SOURCES` env variable. For example, to test only PostgreSQL and MongoDB 3.0, you can invoke the following command:
+If you want to test some specific databases, you can set the `CLOAK_DATA_SOURCES` env variable. For example, to test only PostgreSQL and MongoDB 3.0, you can run the following command:
 
 ```
 CLOAK_DATA_SOURCES="postgres9.4 mongodb3.0"  make ci.compliance
