@@ -92,5 +92,5 @@ build_cloak_image
 run_in_cloak "
   export DEFAULT_SAP_HANA_SCHEMA='$DEFAULT_SAP_HANA_SCHEMA' &&
   mix gen.test_data compliance 10 &&
-  mix test --only compliance --max-cases 10
+  mix test --only compliance --max-cases 4
 "
