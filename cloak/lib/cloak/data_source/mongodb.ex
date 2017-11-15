@@ -218,7 +218,7 @@ defmodule Cloak.DataSource.MongoDB do
     stats["sharded"] == true
   end
 
-  @supported_functions_3_0 ~w(+ - * ^ / % mod count sum min max avg pow
+  @supported_functions_3_0 ~w(+ - * / % mod count sum
     || concat lower upper lcase ucase year month day weekday hour minute second
     cast_integer_to_real cast_real_to_text cast_integer_to_text cast_datetime_to_text cast_boolean_to_text)
   @supported_functions_3_2 @supported_functions_3_0 ++
