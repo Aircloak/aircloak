@@ -6,6 +6,7 @@ SHELL=/bin/bash -o pipefail
 .PHONY: sql-server-container sql-server-database
 .PHONY: mysql-server-container mysql-server-database
 .PHONY: mongo-server-container
+.PHONY: ci.compliance ci.compliance.debug
 
 define start_container
   if [ "$$(docker ps -a | grep $(1))" ]; then docker start $(1); else docker run --name $(1) $(2); fi
@@ -107,3 +108,9 @@ odbc_drivers_folder:
 
 priv/odbc/drivers/libodbc-sap-hana-v2.so:
 	wget -P priv/odbc/drivers https://www.dropbox.com/s/aerstjlatecny79/libodbc-sap-hana-v2.so
+
+ci.compliance:
+	../ci/run.sh cloak_compliance
+
+ci.compliance.debug:
+	../ci/run.sh debug_cloak_compliance

@@ -2,13 +2,9 @@
 
 set -eo pipefail
 
-# run from the top-level folder of the project
-ROOT_DIR=$(cd $(dirname ${BASH_SOURCE[0]})/.. && pwd)
-cd $ROOT_DIR
-
 . docker/docker_helper.sh
 
-export NETWORK_ID=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')
+export CLOAK_NETWORK_ID=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')
 export MSSQL_TEMP_FOLDER="$(mktemp -d)"
 export DEFAULT_SAP_HANA_SCHEMA="TEST_SCHEMA_$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')"
 
@@ -18,7 +14,7 @@ function cleanup {
   echo "destroying network"
 
   for container_id in $(
-    docker network inspect $NETWORK_ID --format '
+    docker network inspect $CLOAK_NETWORK_ID --format '
       {{range $key, $value := .Containers}}
         {{println $key}}
       {{end}}
@@ -38,7 +34,7 @@ function cleanup {
 }
 
 function start_network_container {
-  docker run --detach --network=$NETWORK_ID $@ > /dev/null
+  docker run --detach --network=$CLOAK_NETWORK_ID $@ > /dev/null
 }
 
 function start_supporting_containers {
@@ -77,7 +73,9 @@ function build_cloak_image {
   build_aircloak_image cloak_ci ci/cloak.dockerfile ci/.cloak.dockerignore
 }
 
-function run_in_cloak {
+function start_cloak_container {
+  build_cloak_image
+
   mkdir -p tmp/ci/cloak
 
   if [ ! -f tmp/ci/cloak/.bash_history ]; then
@@ -102,23 +100,18 @@ function run_in_cloak {
     mounts="$mounts -v $(pwd)/tmp/ci/cloak/$path:/aircloak/cloak/$path"
   done
 
-  docker run --rm -it --network=$NETWORK_ID $mounts aircloak/cloak_ci:latest \
-    bash -c \
-      "
-        . ~/.asdf/asdf.sh &&
-        $@
-      "
+  export CLOAK_CONTAINER=$(docker run -d --network=$CLOAK_NETWORK_ID $mounts aircloak/cloak_ci:latest sleep infinity)
 }
 
-docker network create --driver bridge $NETWORK_ID > /dev/null
-trap cleanup EXIT TERM INT
+function start_cloak_with_databases {
+  docker network create --driver bridge $CLOAK_NETWORK_ID > /dev/null
+  trap cleanup EXIT TERM INT
 
-start_supporting_containers
-build_cloak_image
+  start_supporting_containers
+  start_cloak_container
+  run_in_cloak "mix deps.get"
+}
 
-run_in_cloak "
-  export DEFAULT_SAP_HANA_SCHEMA='$DEFAULT_SAP_HANA_SCHEMA' &&
-  mix deps.get &&
-  MIX_ENV=test mix gen.test_data dockerized_ci 10 &&
-  mix test --only compliance --max-cases 4
-"
+function run_in_cloak {
+  docker exec -it $CLOAK_CONTAINER /bin/bash -c ". ~/.asdf/asdf.sh && $@"
+}
