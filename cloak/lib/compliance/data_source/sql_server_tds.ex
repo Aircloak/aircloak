@@ -27,12 +27,10 @@ defmodule Compliance.DataSource.SQLServerTds do
 
   @impl Connector
   def insert_rows(table_name, data, conn) do
-    {sql, rows} = Common.insert_rows_query(table_name, data)
-    rows
-    |> Enum.map(&cast_types/1)
-    |> Enum.map(&Enum.join(&1, ", "))
-    |> Enum.map(&String.replace(sql, "$VALUES", &1))
+    table_name
+    |> chunks_to_insert(data)
     |> Enum.each(&execute!(conn, &1))
+
     conn
   end
 
@@ -45,6 +43,32 @@ defmodule Compliance.DataSource.SQLServerTds do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp chunks_to_insert(table_name, data) do
+    column_names = Common.column_names(data)
+
+    data
+    |> Common.rows(column_names)
+    |> Stream.chunk_every(100)
+    |> Stream.map(&chunk_to_insert(table_name, column_names, &1))
+  end
+
+  defp chunk_to_insert(table_name, column_names, rows) do
+    escaped_column_names = Common.escaped_column_names(column_names)
+
+    value_literals =
+      rows
+      |> Stream.map(&cast_types/1)
+      |> Stream.map(&"(#{Enum.join(&1, ",")})")
+      |> Enum.join(", ")
+
+    "
+      INSERT INTO #{table_name}(#{Enum.join(escaped_column_names, ", ")})
+      SELECT #{Enum.join(escaped_column_names, ", ")} FROM (
+        VALUES #{value_literals}
+      ) subquery (#{Enum.join(escaped_column_names, ", ")})
+    "
+  end
 
   defp cast_types(params), do: Enum.map(params, &cast_type/1)
 
