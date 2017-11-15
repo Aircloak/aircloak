@@ -10,6 +10,7 @@
         - [Running partial tests](#running-partial-tests)
         - [Running a specific compliance test](#running-a-specific-compliance-test)
         - [Running a local docker container](#running-a-local-docker-container)
+        - [Running full compliance CI locally](#running-full-compliance-ci-locally)
         - [Deploying](#deploying)
     - [Installing database servers](#installing-database-servers)
 
@@ -201,6 +202,21 @@ It is possible to run cloak as a local docker container:
 5. Start the container with `./container.sh console`.
 
 You can now interact with the cloak via the dockerized air (http://localhost:8080 or https://insights.air-local:8443).
+
+#### Running full compliance CI locally
+
+To run the full compliance CI test locally with the command `make ci.compliance`. This will test all supported databases and drivers. The test is fully dockerized, so you can start it on Linux, as well as macOS.
+
+If you want to test some specific databases, you can set the `CLOAK_DATA_SOURCES` env variable. For example, to test only PostgreSQL and MongoDB 3.0, you can invoke the following command:
+
+```
+CLOAK_DATA_SOURCES="postgres9.4 mongodb3.0"  make ci.compliance
+```
+
+The `CLOAK_DATA_SOURCES` env var is a whitespace separated list of data source names which you want to use in the test suite. For the list of available names, take a look at configuration files in [this folder](priv/config/dockerized_ci/mongo3.0.json).
+
+You can also start the CI container in the debug mode by running `make ci.compliance.debug`. This will start the cloak container in the console mode (`bash` shell). Now, you can invoke various project tasks, such as `mix test --only compliance` or `iex -S mix`. The container uses the source files mounted from your host, so you can easily edit those files and repeatedly run the tests.
+
 
 #### Deploying
 
