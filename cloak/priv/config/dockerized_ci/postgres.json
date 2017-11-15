@@ -3,7 +3,7 @@
   "marker": "connector",
   "name": "postgres",
   "parameters": {
-    "hostname": "postgresql",
+    "hostname": "postgres9.4",
     "username": "postgres",
     "database": "cloak_compliance"
   },

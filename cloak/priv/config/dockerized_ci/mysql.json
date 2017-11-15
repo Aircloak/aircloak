@@ -3,7 +3,7 @@
   "marker": "connector",
   "name": "mysql",
   "parameters": {
-    "hostname": "mysql",
+    "hostname": "mysql5.7",
     "username": "root",
     "database": "cloak_compliance"
   },

@@ -2,7 +2,7 @@
   "driver": "sqlserver",
   "name": "sql_server",
   "parameters": {
-    "hostname": "sqlserver",
+    "hostname": "sqlserver2017",
     "username": "sa",
     "password": "7fNBjlaeoRwz*zH9",
     "database": "cloak_compliance",

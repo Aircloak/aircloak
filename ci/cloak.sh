@@ -5,7 +5,6 @@ set -eo pipefail
 . docker/docker_helper.sh
 
 export CLOAK_NETWORK_ID=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')
-export MSSQL_TEMP_FOLDER="$(mktemp -d)"
 export DEFAULT_SAP_HANA_SCHEMA="TEST_SCHEMA_$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')"
 
 
@@ -20,8 +19,7 @@ function cleanup {
       {{end}}
     '
   ); do
-    docker kill $container_id > /dev/null
-    docker rm $container_id > /dev/null
+    docker network disconnect $CLOAK_NETWORK_ID $container_id > /dev/null
   done
 
   dangling_volumes=$(docker volume ls -qf dangling=true)
@@ -30,40 +28,37 @@ function cleanup {
   fi
 
   docker network prune -f > /dev/null
-  rm -rf $MSSQL_TEMP_FOLDER
+}
+
+function ensure_container {
+  container_name=$1
+  shift
+
+  if ! named_container_running $container_name ; then
+    if [ ! -z "$(docker ps -a --filter=name=$container_name | grep -w $container_name)" ]; then
+      echo "removing dead container $container_name"
+      docker rm $container_name > /dev/null
+    fi
+
+    echo "starting container $container_name"
+    docker run --detach --name $container_name $@ > /dev/null
+  fi
+
+  docker network connect --alias $container_name $CLOAK_NETWORK_ID $container_name
 }
 
 function start_network_container {
   docker run --detach --network=$CLOAK_NETWORK_ID $@ > /dev/null
 }
 
-function start_supporting_containers {
-  echo "starting database containers"
+function ensure_database_containers {
+  ensure_container postgres9.4 postgres:9.4
+  ensure_container mongo3.0 mongo:3.0
+  ensure_container mongo3.2 mongo:3.2
+  ensure_container mongo3.4 mongo:3.4
+  ensure_container mysql5.7 -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql:5.7.19
 
-  start_network_container --network-alias=postgresql \
-    postgres:9.4
-
-  start_network_container --network-alias=mongo3.0 \
-    mongo:3.0
-
-  start_network_container --network-alias=mongo3.2 \
-    mongo:3.2
-
-  start_network_container --network-alias=mongo3.4 \
-    mongo:3.4
-
-  start_network_container --network-alias=mysql -e MYSQL_ALLOW_EMPTY_PASSWORD=true \
-    mysql:5.7.19
-
-  if [ $(uname -s) != "Darwin" ]; then
-    # On Linux, we have to mount mssql folder because otherwise mssql container is not stoppable.
-    mount_opt="-v $MSSQL_TEMP_FOLDER:/var/opt/mssql";
-  else
-    # On macos mssql container doesn't work with mounted folder. At the same time the container is stoppable :-)
-    # Therefore, we're not mounting a folder here.
-    mount_opt="";
-  fi
-  start_network_container --network-alias=sqlserver -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' $mount_opt \
+  ensure_container sqlserver2017 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' \
     microsoft/mssql-server-linux:2017-latest
 }
 
@@ -107,7 +102,7 @@ function start_cloak_with_databases {
   docker network create --driver bridge $CLOAK_NETWORK_ID > /dev/null
   trap cleanup EXIT TERM INT
 
-  start_supporting_containers
+  ensure_database_containers
   start_cloak_container
   run_in_cloak "mix deps.get"
 }
