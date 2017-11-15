@@ -165,11 +165,10 @@ defmodule Air.PsqlServer do
           conn,
           fn -> DataSource.describe_query(data_source_id, user, query, converted_params) end,
           fn(conn, describe_result) ->
-            result =
-              case decode_cloak_query_result(describe_result) do
-                {:error, _} = error -> error
-                parsed_response -> Keyword.take(parsed_response, [:columns, :param_types])
-              end
+            result = case decode_cloak_query_result(describe_result) do
+              {:error, _} = error -> error
+              parsed_response -> Keyword.take(parsed_response, [:columns, :param_types, :info_messages])
+            end
             RanchServer.describe_result(conn, result)
           end
         )
@@ -275,10 +274,9 @@ defmodule Air.PsqlServer do
       columns:
         Enum.zip(query_result.columns, query_result.features.selected_types)
         |> Enum.map(fn({name, sql_type}) -> %{name: name, type: psql_type(sql_type)} end),
-      rows:
-        Air.Schemas.ResultChunk.rows(Map.get(query_result, :buckets, [])),
-      param_types:
-        Enum.map(query_result.features.parameter_types, &psql_type/1)
+      rows: Air.Schemas.ResultChunk.rows(Map.get(query_result, :buckets, [])),
+      param_types: Enum.map(query_result.features.parameter_types, &psql_type/1),
+      info_messages: Map.get(query_result, :info, [])
     ]
   defp do_decode_cloak_query_result(other) do
     Logger.error("Error running a query: #{inspect other}")

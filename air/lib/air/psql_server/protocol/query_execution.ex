@@ -124,10 +124,12 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     Protocol.send_to_client(protocol, {:syntax_error, error})
   defp send_result(%{executing_portal: nil} = protocol, result) do
     with {:ok, columns} <- Keyword.fetch(result, :columns),
-         {:ok, rows} <- Keyword.fetch(result, :rows) do
+         {:ok, rows} <- Keyword.fetch(result, :rows),
+         info_messages <- Keyword.get(result, :info_messages, []) do
       protocol
       |> send_row_description(columns, [:text])
       |> send_rows(rows, columns, [:text])
+      |> send_notices(info_messages)
     else
       _ -> protocol
     end
@@ -135,8 +137,14 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
   defp send_result(protocol, result) do
     statement = Map.fetch!(protocol.portals, protocol.executing_portal)
     rows = Keyword.fetch!(result, :rows)
-    send_rows(protocol, rows, statement.columns, statement.result_codes)
+    info_messages = Keyword.get(result, :info_messages, [])
+    protocol
+    |> send_rows(rows, statement.columns, statement.result_codes)
+    |> send_notices(info_messages)
   end
+
+  defp send_notices(protocol, info_messages), do:
+    Enum.reduce(info_messages, protocol, &Protocol.send_to_client(&2, {:notice, &1}))
 
   defp send_command_completion(protocol, {:error, _}), do:
     protocol
