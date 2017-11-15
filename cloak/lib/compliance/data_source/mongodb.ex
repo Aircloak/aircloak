@@ -18,8 +18,11 @@ defmodule Compliance.DataSource.MongoDB do
     {:ok, conn} = Mongo.start_link(
       database: params.database,
       hostname: params.hostname,
-      username: params.username
+      username: params.username,
+      sync_connect: true,
+      pool: DBConnection.Connection
     )
+
     conn
   end
 

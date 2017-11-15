@@ -98,22 +98,13 @@ defmodule Compliance.DataSource.MySQL do
   defp sql_type(:datetime), do: "timestamp"
 
   defp setup_database(params) do
-    me = self()
-    ref = make_ref()
-
     {:ok, conn} =
       Mariaex.start_link(
         database: "mysql",
         hostname: params.hostname,
         username: "root",
-        after_connect: fn(_) -> send(me, ref) end,
+        sync_connect: true,
       )
-
-    receive do
-      ^ref -> :ok
-    after :timer.seconds(10) ->
-      raise "Timeout connecting to the database."
-    end
 
     case Mariaex.query!(
       conn,

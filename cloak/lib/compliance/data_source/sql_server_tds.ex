@@ -66,8 +66,7 @@ defmodule Compliance.DataSource.SQLServerTds do
         database: "master",
         sync_connect: true,
         pool: DBConnection.Connection,
-        after_connect: fn (_) -> send(self(), :connected)
-      end)
+      )
 
     case execute!(conn, "select count(*) from sys.databases where name='#{params.database}'").rows do
       [[n]] when n > 0 -> execute!(conn, "drop database #{params.database}")

@@ -98,20 +98,12 @@ defmodule Compliance.DataSource.PostgreSQL do
   defp sql_type(:datetime), do: "timestamp"
 
   defp setup_database(params) do
-    me = self()
-    ref = make_ref()
-
     {:ok, conn} = Postgrex.start_link(
-      after_connect: fn(_) -> send(me, ref) end,
       database: "postgres",
       hostname: params.hostname,
-      username: "postgres"
+      username: "postgres",
+      sync_connect: true,
     )
-    receive do
-      ^ref -> :ok
-    after :timer.seconds(10) ->
-      raise "Timeout connecting to the database."
-    end
 
     case Postgrex.query!(
       conn,
