@@ -14,6 +14,7 @@ defmodule Air.Mixfile do
       start_permanent: Mix.env == :prod,
       aliases: aliases(Mix.env),
       deps: deps(),
+      deps_path: Path.join(["deps", otp_version(), elixir_version()]),
       elixirc_options: elixirc_options(Mix.env),
       erlc_paths: erlc_paths(Mix.env),
       erlc_options: erlc_options(Mix.env),
@@ -142,4 +143,13 @@ defmodule Air.Mixfile do
   defp erlc_options(:test), do: [:debug_info, {:d, :TEST}]
   defp erlc_options(:dev), do: [:debug_info]
   defp erlc_options(:prod), do: []
+
+  defp otp_version(), do:
+    [:code.root_dir(), "releases", :erlang.system_info(:otp_release), "OTP_VERSION"]
+    |> Path.join()
+    |> File.read!()
+    |> String.trim("\n")
+
+  defp elixir_version(), do:
+    System.version()
 end
