@@ -80,7 +80,6 @@ start_supporting_containers
 build_cloak_image
 
 run_in_cloak "
-  mix ci.init_data_sources compliance &&
   mix gen.test_data compliance 10 &&
   mix test --only compliance --max-cases 10
 "

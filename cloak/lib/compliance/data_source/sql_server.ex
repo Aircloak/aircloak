@@ -12,6 +12,8 @@ defmodule Compliance.DataSource.SQLServer do
   @impl Connector
   def setup(%{parameters: params}) do
     Application.ensure_all_started(:odbc)
+    Connector.await_port(params.hostname, 1433)
+    setup_database(params)
     conn = Cloak.DataSource.SQLServer.connect!(params)
     Enum.each(Common.setup_queries(), &execute!(conn, &1))
     conn
@@ -56,5 +58,22 @@ defmodule Compliance.DataSource.SQLServer do
       {:updated, _} -> :ok
       {:error, error} -> raise to_string(error)
     end
+  end
+
+  defp setup_database(params) do
+    conn =
+      Cloak.DataSource.SQLServer.connect!(
+        hostname: params.hostname,
+        database: "master",
+        username: "sa",
+        password: "7fNBjlaeoRwz*zH9"
+      )
+
+    :odbc.sql_query(conn, ~c/
+      IF EXISTS(select * from sys.databases where name='#{params.database}')
+        DROP DATABASE #{params.database}
+
+      CREATE DATABASE #{params.database}
+    /)
   end
 end

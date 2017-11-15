@@ -12,6 +12,8 @@ defmodule Compliance.DataSource.MySQL do
   @impl Connector
   def setup(%{parameters: params}) do
     Application.ensure_all_started(:mariaex)
+    Connector.await_port(params.hostname, 3306)
+    setup_database(params)
     {:ok, conn} = Mariaex.start_link(
       database: params.database,
       hostname: params.hostname,
@@ -94,4 +96,31 @@ defmodule Compliance.DataSource.MySQL do
   defp sql_type(:boolean), do: "boolean"
   defp sql_type(:text), do: "text"
   defp sql_type(:datetime), do: "timestamp"
+
+  defp setup_database(params) do
+    me = self()
+    ref = make_ref()
+
+    {:ok, conn} =
+      Mariaex.start_link(
+        database: "mysql",
+        hostname: params.hostname,
+        username: "root",
+        after_connect: fn(_) -> send(me, ref) end,
+      )
+
+    receive do
+      ^ref -> :ok
+    after :timer.seconds(10) ->
+      raise "Timeout connecting to the database."
+    end
+
+    case Mariaex.query!(
+      conn,
+      "SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '#{params.database}'"
+    ).rows do
+      [[1]] -> :ok
+      [[0]] -> Mariaex.query!(conn, "CREATE DATABASE #{params.database}")
+    end
+  end
 end
