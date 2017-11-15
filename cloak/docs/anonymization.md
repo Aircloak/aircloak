@@ -243,25 +243,29 @@ ensure that two queries that would otherwise produce the same answer may well
 in fact have different answers, so the analyst cannot be sure of the result of
 his attack.
 
-To achieve this all noisy values produced are generated using a set of random
+To achieve this, all noisy values produced are generated using a set of random
 number generators instead of just one. Each generator uses the same mean and SD
 and the resulting noise is summed. The generators differ in their seed and how
 exactly the seed is built depends on the query the analyst issued.
 
-Specifically every filtering clause the analyst adds creates (at least) one
-noise layer. The seed for that layer is based on the set of unique values in
+Specifically every filtering clause the analyst adds creates (at least) two
+noise layer. The seed for those layers is based on the set of unique values in
 the column that the filter is being applied on plus some additional data
 depending on the filter. If multiple columns are used in a filter (for example
-`a || b LIKE '%abc%'`), then a noise layer is created for each of those
-columns. This way, even if two queries with different sets of filters would
-have the same result they will have different noise applied, resulting in
-(potentially) different results. See
+`a + b = 3`), then noise layers are created for each of those columns. This
+way, even if two queries with different sets of filters would have the same
+result they will have different noise applied, resulting in (potentially)
+different results. See
 [the original issue](https://github.com/Aircloak/aircloak/issues/1276) for more
 details.
 
-Note that the set of unique user ids is still used to generate one of the noise
-layers, so even queries with no filters will have at least noise coming from
-that layer.
+The two noise layers are called a "UID layer" and a "static layer". They differ
+by the presence of user ids - the UID layer includes both them and the column
+data, while the static layer is only based on the data from the column.
+
+Note that the set of unique user ids is used to generate a special noise layer
+if no other noise layers are created. Consequently, even queries with no
+filters will have at least noise coming from that layer.
 
 ### What's a filter?
 
@@ -272,6 +276,29 @@ The following things are considered filters:
   filter instead of two
 * `HAVING` clauses in subqueries
 * `GROUP BY` clauses
+* All columns in the top-level `SELECT` clause
+
+### Implicit ranges
+
+When one of the filters includes an expression that can be used to emulate the
+effects of inequalities, that clause is treated as an implicit range instead of
+a regular (in)equality. For example the condition `WHERE trunc(x, -1) = 10` is
+equivalent to `WHERE x >= 10 AND x < 20`. This results in a different seed
+being generated for such a condition.
+
+### Clear expressions
+
+All ranges, `IN` conditions, and `<>` conditions must be "clear". That means
+that it must be immediately obvious from the SQL what is the effect of such an
+expression on the data selected. To achieve this, the LHS of these expressions
+must be a raw column that was at most processed with a cast and possibly an
+aggregator if the expression in question is in a `HAVING` clause. The RHS must
+be a constant or a set of constants in the case of `IN`.
+
+For `=` conditions that are "clear" (for example the analyst simply writes
+`WHERE x = 10` and `x` is a database column) we generate the noise layers
+without floating the data, because all the column values can be predicted
+up-front. In the example all `x` values would be `10`.
 
 ### Noise layer seeds
 
@@ -282,20 +309,23 @@ Each noise layer is seeded with at least:
 * The list of the values in the column
 
 In case the noise layers are used to compute a `COUNT(*)` as opposed to for
-example a `COUNT(column)` expression an additional, unique marker is added to
+example a `COUNT(column)` expression, an additional, unique marker is added to
 the seed. This is meant to make it harder to exploit any knowledge about the
 presence of `NULL` values in some column.
 
 Additionally, depending on the type of clause, some extra data is added:
 
-* `=` clauses, and `GROUP BY` - no extra data
-* `<>` clauses - a `:<>` symbol
+* `=` clauses, `SELECT`, and `GROUP BY` - no extra data
+* `<>` clauses - a `:<>` symbol and the RHS constant; the data from the filtered
+  column is not included
 * `[NOT] [I]LIKE` clauses - symbols indicating the type of clause (like `:ilike`)
   plus pattern-dependent data, see [Like pattern seeds](#like-pattern-seeds)
-* range clauses - the range endpoints
+* range clauses - the range endpoints or the symbol `:implicit` for implicit
+  ranges
 * `NOT IN` clauses - are converted to an equivalent conjunction on `<>` clauses,
   so noise layers are never directly computed for them
-* `IN` clauses - a layer is created for the whole clause with no extra seed
+* `IN` clauses - a static layer is created for the whole clause with no extra seed,
+  with an additional UID layer per constant in the RHS
 
 As a final step if the hash of the seed for many noise layers comes out the same,
 then the duplicates are discarded. This is done so that adding the same clause
