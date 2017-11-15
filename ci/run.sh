@@ -32,7 +32,7 @@ case "$command" in
   *)
     commands="
       cloak_compliance - runs the compliance test suite
-      cloak_debug - starts the interactive docker container which can be used for debugging
+      debug_cloak_compliance - starts the interactive docker container which can be used for debugging
     "
 
     printf "\nUsage: $0 command\n\n"
