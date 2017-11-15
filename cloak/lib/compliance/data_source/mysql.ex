@@ -33,15 +33,11 @@ defmodule Compliance.DataSource.MySQL do
   @impl Connector
   def insert_rows(table_name, data, conn) do
     column_names = column_names(data)
-    rows = rows(data, column_names)
-    escaped_column_names = escaped_column_names(column_names)
-    value_placeholders = List.duplicate("?", length(column_names)) |> Enum.join(", ")
 
-    query = "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names, ", ")}) values (#{value_placeholders})"
-
-    rows
-    |> Task.async_stream(& execute!(conn, query, &1), timeout: :timer.minutes(1))
-    |> Stream.run()
+    data
+    |> rows(column_names)
+    |> Stream.chunk_every(100)
+    |> Enum.each(&insert_chunk(conn, table_name, column_names, &1))
 
     conn
   end
@@ -55,6 +51,17 @@ defmodule Compliance.DataSource.MySQL do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp insert_chunk(conn, table_name, column_names, rows) do
+    placeholders =
+      rows
+      |> Stream.map(&List.duplicate("?", length(&1)))
+      |> Stream.map(&"(#{Enum.join(&1, ",")})")
+      |> Enum.join(", ")
+
+    query = "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names(column_names), ", ")}) values #{placeholders}"
+    Mariaex.query!(conn, query, List.flatten(rows))
+  end
 
   defp execute!(conn, query, params \\ []), do:
     Mariaex.query!(conn, query, params)
