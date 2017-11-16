@@ -54,20 +54,14 @@ defmodule Compliance.DataSource.SQLServer do
   end
 
   defp chunk_to_insert(table_name, column_names, rows) do
-    escaped_column_names = Common.escaped_column_names(column_names)
-
-    placeholders =
-      rows
-      |> Stream.map(&List.duplicate("?", length(&1)))
-      |> Stream.map(&"(#{Enum.join(&1, ",")})")
-      |> Enum.join(", ")
-
+    columns = column_names |> Common.escaped_column_names() |> Enum.join(", ")
+    row_placeholders = column_names |> Stream.map(fn(_column) -> "?" end) |> Enum.join(",")
+    all_placeholders = rows |> Stream.map(fn(_row) -> "(#{row_placeholders})" end) |> Enum.join(", ")
     query = "
-      INSERT INTO #{table_name}(#{Enum.join(escaped_column_names, ", ")})
-      SELECT #{Enum.join(escaped_column_names, ", ")} FROM (
-        VALUES #{placeholders}
-      ) subquery (#{Enum.join(escaped_column_names, ", ")})
+      INSERT INTO #{table_name}(#{columns})
+      SELECT #{columns} FROM (VALUES #{all_placeholders}) subquery (#{columns})
     "
+
     {query, List.flatten(rows)}
   end
 

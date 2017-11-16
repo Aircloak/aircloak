@@ -53,13 +53,11 @@ defmodule Compliance.DataSource.MySQL do
   # -------------------------------------------------------------------
 
   defp insert_chunk(conn, table_name, column_names, rows) do
-    placeholders =
-      rows
-      |> Stream.map(&List.duplicate("?", length(&1)))
-      |> Stream.map(&"(#{Enum.join(&1, ",")})")
-      |> Enum.join(", ")
+    columns = column_names |> escaped_column_names() |> Enum.join(", ")
+    row_placeholders = column_names |> Stream.map(fn(_column) -> "?" end) |> Enum.join(",")
+    all_placeholders = rows |> Stream.map(fn(_row) -> "(#{row_placeholders})" end) |> Enum.join(", ")
+    query = "INSERT INTO #{table_name}(#{columns}) values #{all_placeholders}"
 
-    query = "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names(column_names), ", ")}) values #{placeholders}"
     Mariaex.query!(conn, query, List.flatten(rows))
   end
 
