@@ -177,6 +177,17 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       ] = result.noise_layers
       refute is_nil(alias)
     end
+
+    test "a comparison of two columns" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE numeric = numeric2", data_source())
+
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: [%{name: "numeric"}]},
+        %{base: {"table", "numeric", nil}, expressions: [%{name: "numeric"}, %{name: "uid"}]},
+        %{base: {"table", "numeric2", nil}, expressions: [%{name: "numeric2"}]},
+        %{base: {"table", "numeric2", nil}, expressions: [%{name: "numeric2"}, %{name: "uid"}]},
+      ] = result.noise_layers
+    end
   end
 
   describe "skipping noise layers for pk = fk conditions" do
