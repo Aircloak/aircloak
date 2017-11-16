@@ -7,7 +7,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   @type offense_type :: {
       :dangerously_discontinuous
     | :dangerous_math
-    | :datetime_processing
     | :potentially_crashing_function,
     function_name
   }
@@ -37,10 +36,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     # the expressions in this expressions past represented such a value.
     datetime_involved?: boolean,
 
-    # If a function like year, month, etc has been used on the value, or the value
-    # has in some other way been manipulated, like having been cast.
-    is_result_of_datetime_cast?: boolean,
-
     # sqrt and / are functions which are illdefined for certain values. sqrt of negative values,
     # or division by 0. When these functions occur with values that have been manipulated
     # using constants (to potentially construct a failure condition), we mark them as
@@ -68,8 +63,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
 
   defstruct [
     constant?: false, constant_involved?: false, datetime_involved?: false,
-    is_result_of_datetime_cast?: false, is_result_of_potentially_crashing_function?: false,
-    dangerously_discontinuous?: false, seen_dangerous_math?: false, narrative_breadcrumbs: [], raw_column?: false,
+    is_result_of_potentially_crashing_function?: false, dangerously_discontinuous?: false,
+    seen_dangerous_math?: false, narrative_breadcrumbs: [], raw_column?: false,
     cast_raw_column?: false, raw_implicit_range?: false
   ]
 end

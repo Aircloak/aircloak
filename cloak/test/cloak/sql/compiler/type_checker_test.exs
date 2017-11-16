@@ -161,18 +161,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       |> Enum.map(&(&1.name))
   end
 
-  describe "detection of datetime cast" do
-    test "does not triggers datetime cast recognition when none is used" do
-      type = type_first_column("SELECT column FROM table")
-      refute type.is_result_of_datetime_cast?
-    end
-
-    test "triggers when a datetime column is cast" do
-      type = type_first_column("SELECT CAST(column AS text) FROM table")
-      assert type.is_result_of_datetime_cast?
-    end
-  end
-
   describe "records a trail of narrative breadcrumbs" do
     test "empty narrative for queries without functions or math" do
       type = type_first_column("SELECT numeric FROM table")
@@ -205,11 +193,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "does not record math between non-constant influenced columns" do
       type = type_first_column("SELECT numeric + numeric FROM table")
       assert [{_column_expressions, []}] = type.narrative_breadcrumbs
-    end
-
-    test "records casts of datetime's as a potential offense" do
-      type = type_first_column("SELECT cast(column as text) FROM table")
-      [{%Expression{name: "column"}, [{:datetime_processing, {:cast, :text}}]}] = type.narrative_breadcrumbs
     end
 
     test "records multiple math offenses" do
@@ -345,7 +328,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
           db_name: "table",
           columns: [
             Table.column("uid", :integer),
-            Table.column("column", :datetime),
             Table.column("numeric", :integer),
             Table.column("float", :real),
             Table.column("string", :text),

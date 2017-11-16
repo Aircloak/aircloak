@@ -52,8 +52,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Narrative do
       ({:dangerously_discontinuous, function}) ->
         "discontinuous function '#{Function.readable_name(function)}'"
       ({:dangerous_math, name}) -> "math function '#{name}'"
-      ({:datetime_processing, {:cast, target}}) -> "a cast to '#{target}'"
-      ({:datetime_processing, name}) -> "date or time processing function '#{Function.readable_name(name)}'"
       ({:potentially_crashing_function, "sqrt"}) -> "function 'sqrt' on a value that could be negative"
       ({:potentially_crashing_function, "/"}) -> "math function '/' with a divisor that could be zero"
     end)

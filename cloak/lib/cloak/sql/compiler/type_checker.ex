@@ -42,7 +42,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   @spec validate_allowed_usage_of_math_and_functions(Query.t) :: Query.t
   def validate_allowed_usage_of_math_and_functions(query) do
     each_subquery(query, &verify_usage_of_potentially_crashing_functions/1)
-    each_subquery(query, &verify_usage_of_datetime_extraction_clauses/1)
     each_subquery(query, &verify_function_usage_for_selected_columns/1)
     each_subquery(query, &verify_function_usage_for_condition_clauses/1)
     each_subquery(query, &verify_lhs_of_in_is_clear/1)
@@ -79,36 +78,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
           by an expression that both contains a user data column as well as a constant value
           (for example `age / (age - 20)`), or if the square root is taken of an expression that
           contains a user data column as well as a constant value (for example `sqrt(age - 20)`).
-          """
-      end
-    end)
-
-  defp verify_usage_of_datetime_extraction_clauses(query), do:
-    Query.Lenses.db_filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Lens.to_list(query)
-    |> Enum.each(fn(comparison) ->
-      types = Condition.targets(comparison)
-      |> Enum.map(&establish_type(&1, query))
-      |> Enum.uniq()
-      if Enum.any?(types, & &1.is_result_of_datetime_cast?) and
-          Enum.any?(types, & &1.constant? or &1.constant_involved?) do
-        explanations = types
-        |> Enum.filter(& &1.is_result_of_datetime_cast?)
-        |> Enum.map_join(" ", fn(type) ->
-          type.narrative_breadcrumbs
-          |> reject_all_but_relevant_offensive_actions([:datetime_processing])
-          |> Narrative.construct()
-        end)
-        raise CompilationError, message: """
-          #{explanations}
-
-          The results of functions that extract a component of a date, time, or datetime column
-          cannot be used in filter conditions (like WHERE, HAVING and JOIN-conditions) when the
-          value it is compared against is a constant or an expression involving a constant.
-
-          If applicable, consider using a range on the native column instead.
-          For example: column >= 'YYYY-MM-DD' and column < 'YYYY-MM-DD'.
           """
       end
     end)
@@ -225,9 +194,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     any_touched_by_constant?(child_types)
   defp is_dangerous_math?(_, _future, _child_types), do: false
 
-  defp performs_datetime_cast?(name, child_types), do:
-    any_touched_by_datetime?(child_types) and match?({:cast, _}, name)
-
   defp performs_potentially_crashing_function?("/", [_, child_type]), do:
     # This allows division by a pure constant, but not by a column influenced by a constant
     child_type.constant_involved? && not child_type.constant?
@@ -298,8 +264,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         dangerously_discontinuous?: dangerously_discontinuous?(name, future, child_types) ||
           Enum.any?(child_types, &(&1.dangerously_discontinuous?)),
         narrative_breadcrumbs: extend_narrative_breadcrumbs(name, future, child_types),
-        is_result_of_datetime_cast?: performs_datetime_cast?(name, child_types) ||
-          Enum.any?(child_types, &(&1.is_result_of_datetime_cast?)),
       }
     end
   end
@@ -308,7 +272,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     Narrative.extend(child_types, [
       {dangerously_discontinuous?(name, future, child_types), {:dangerously_discontinuous, name}},
       {is_dangerous_math?(name, future, child_types), {:dangerous_math, name}},
-      {performs_datetime_cast?(name, child_types), {:datetime_processing, name}},
       {performs_potentially_crashing_function?(name, child_types),
         {:potentially_crashing_function, name}},
     ])
