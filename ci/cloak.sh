@@ -113,5 +113,22 @@ function start_cloak_with_databases {
 }
 
 function run_in_cloak {
-  docker exec -it $CLOAK_CONTAINER /bin/bash -c ". ~/.asdf/asdf.sh && $@"
+  docker exec -it -e DEFAULT_SAP_HANA_SCHEMA="$DEFAULT_SAP_HANA_SCHEMA" $CLOAK_CONTAINER \
+    /bin/bash -c ". ~/.asdf/asdf.sh && $@"
+}
+
+function gen_test_data {
+  run_in_cloak "MIX_ENV=test mix gen.test_data dockerized_ci 10"
+}
+
+function cloak_compliance {
+  start_cloak_with_databases
+  gen_test_data
+  run_in_cloak "mix test --only compliance --max-cases 4"
+}
+
+function debug_cloak_compliance {
+  start_cloak_with_databases
+  gen_test_data
+  run_in_cloak "/bin/bash"
 }
