@@ -205,8 +205,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     |> Lens.to_list(query)
     |> Enum.each(action)
 
-  def establish_type(column, query), do: construct_type(column, query)
-
 
   # -------------------------------------------------------------------
   # Function classification
@@ -270,19 +268,19 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       datetime_involved?: datetime_type?(expression),
     }
 
-  defp construct_type(column, query, future \\ [])
-  defp construct_type(:null, _query, _future), do: constant()
-  defp construct_type({:distinct, column}, query, future), do:
-    construct_type(column, query, ["distinct" | future])
-  defp construct_type(:*, _query, _future), do: column(:*)
-  defp construct_type(%Expression{constant?: true}, _query, _future), do: constant()
-  defp construct_type(%Expression{function: nil} = column, query, future), do:
+  defp establish_type(column, query, future \\ [])
+  defp establish_type(:null, _query, _future), do: constant()
+  defp establish_type({:distinct, column}, query, future), do:
+    establish_type(column, query, ["distinct" | future])
+  defp establish_type(:*, _query, _future), do: column(:*)
+  defp establish_type(%Expression{constant?: true}, _query, _future), do: constant()
+  defp establish_type(%Expression{function: nil} = column, query, future), do:
     expand_from_subquery(column, query, future)
-  defp construct_type(function = %Expression{function?: true}, query, future), do:
+  defp establish_type(function = %Expression{function?: true}, query, future), do:
     type_for_function(function, query, future)
 
   defp type_for_function(function = %Expression{function: name, function_args: args}, query, future) do
-    child_types = args |> Enum.map(&(construct_type(&1, query, [name | future])))
+    child_types = args |> Enum.map(&(establish_type(&1, query, [name | future])))
     # Prune constants, they don't interest us further
     if Enum.all?(child_types, &(&1.constant?)) do
       constant()
@@ -318,7 +316,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp expand_from_subquery(column, query, future) do
     case Query.resolve_subquery_column(column, query) do
       :database_column -> column(column)
-      {column, subquery} -> construct_type(column, subquery, future)
+      {column, subquery} -> establish_type(column, subquery, future)
     end
   end
 
@@ -339,4 +337,14 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         Enum.member?(relevant_offenses, offense_name)
       end)}
     end)
+
+
+  # -------------------------------------------------------------------
+  # Functions exposed for testing
+  # -------------------------------------------------------------------
+
+  if Mix.env == :test do
+    @doc false
+    def test_establish_type(column, query), do: establish_type(column, query)
+  end
 end
