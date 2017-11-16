@@ -639,7 +639,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       %{noise_layers: [%{base: base1}, %{base: base1}]} =
         compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
       %{noise_layers: [%{base: base2}, %{base: base2}]} =
-        compile!("SELECT COUNT(*) FROM table WHERE \"numeric\" = 3", data_source())
+        compile!(~s[SELECT COUNT(*) FROM table WHERE "numeric" = 3], data_source())
 
       assert base1 == base2
     end
@@ -651,6 +651,22 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         compile!("SELECT COUNT(*) FROM table WHERE table.numeric = 3", data_source())
 
       assert base1 == base2
+    end
+
+    test "insensitive to the table being aliased" do
+      %{noise_layers: [%{base: base}, %{base: base}]} = compile!(
+        "SELECT COUNT(*) FROM table AS t WHERE numeric = 3",
+      data_source())
+
+      assert {"table", "numeric", nil} = base
+    end
+
+    test "insensitive to the table being aliased in subquery" do
+      %{noise_layers: [%{base: base}, %{base: base}]} = compile!(
+        "SELECT COUNT(*) FROM (SELECT uid, numeric FROM table AS t WHERE numeric = 3) x",
+      data_source())
+
+      assert {"table", "numeric", nil} = base
     end
   end
 

@@ -320,13 +320,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp uid_noise_layer(base_column, layer_expression, top_level_uid, extras \\ nil), do:
     NoiseLayer.new(
-      {base_column.table.name, base_column.name, extras},
+      {base_column.table.db_name || base_column.table.name, base_column.name, extras},
       [set_unique_alias(layer_expression), top_level_uid]
     )
 
   defp static_noise_layer(base_column, layer_expression, extras \\ nil), do:
     NoiseLayer.new(
-      {base_column.table.name, base_column.name, extras},
+      {base_column.table.db_name || base_column.table.name, base_column.name, extras},
       [set_unique_alias(layer_expression)]
     )
 
