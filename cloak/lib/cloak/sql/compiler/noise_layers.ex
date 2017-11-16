@@ -199,10 +199,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> conditions_satisfying(&Condition.in?/1)
     |> Lens.to_list(query)
     |> Enum.flat_map(fn({:in, column, constants}) ->
-      [
-        static_noise_layer(column, column) |
-        Enum.map(constants, &uid_noise_layer(column, &1, top_level_uid))
-      ]
+      column
+      |> raw_columns()
+      |> Enum.flat_map(fn(column) ->
+        [
+          static_noise_layer(column, column) |
+          Enum.map(constants, &uid_noise_layer(column, &1, top_level_uid))
+        ]
+      end)
     end)
 
   defp range_noise_layers(query, top_level_uid), do:

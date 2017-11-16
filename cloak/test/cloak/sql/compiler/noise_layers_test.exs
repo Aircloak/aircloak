@@ -406,6 +406,18 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         %{base: {"table", "name", nil}, expressions: [%{value: "b"}, %{name: "uid"}]},
       ] = result.noise_layers
     end
+
+    for function <- ~w(upper lower) do
+      test "#{function}(x) IN (many, values)" do
+        result = compile!("SELECT COUNT(*) FROM table WHERE #{unquote(function)}(name) IN ('a', 'b')", data_source())
+
+        assert [
+          %{base: {"table", "name", nil}, expressions: [%{name: "name"}]},
+          %{base: {"table", "name", nil}, expressions: [%{value: "a"}, %{name: "uid"}]},
+          %{base: {"table", "name", nil}, expressions: [%{value: "b"}, %{name: "uid"}]},
+        ] = result.noise_layers
+      end
+    end
   end
 
   describe "noise layers from subqueries" do
