@@ -283,22 +283,24 @@ The following things are considered filters:
 When one of the filters includes an expression that can be used to emulate the
 effects of inequalities, that clause is treated as an implicit range instead of
 a regular (in)equality. For example the condition `WHERE trunc(x, -1) = 10` is
-equivalent to `WHERE x >= 10 AND x < 20`. This results in a different seed
-being generated for such a condition.
+equivalent to `WHERE x >= 10 AND x < 20`. A condition with an implicit range
+has different rules for generating the seed than a regular equality. The
+ultimate goal is to have the same noise for equivalent range conditions, but
+that is not implemented yet (see [the issue](https://github.com/Aircloak/aircloak/issues/1955)).
 
 ### Clear expressions
 
-All ranges, `IN` conditions, and `<>` conditions must be "clear". That means
-that it must be immediately obvious from the SQL what is the effect of such an
-expression on the data selected. To achieve this, the LHS of these expressions
-must be a raw column that was at most processed with a cast and possibly an
-aggregator if the expression in question is in a `HAVING` clause. The RHS must
-be a constant or a set of constants in the case of `IN`.
+All ranges (both explicit and implicit), `IN` conditions, and `<>` conditions
+must be "clear". That means that it must be immediately obvious from the SQL
+what the effect of such an expression is on the selected data. To achieve this,
+the LHS of these expressions must be a raw column that was at most processed
+with a cast and possibly an aggregator if the expression in question is in a
+`HAVING` clause. The RHS must be a constant or a set of constants in the case of
+`IN`.
 
-For `=` conditions that are "clear" (for example the analyst simply writes
-`WHERE x = 10` and `x` is a database column) we generate the noise layers
-without floating the data, because all the column values can be predicted
-up-front. In the example all `x` values would be `10`.
+For `=` conditions that are "clear" (for example the analyst writes `WHERE x =
+10` and `x` is a database column) we generate the noise layers without floating
+the data, because the column value is known (`10` in the example).
 
 ### Noise layer seeds
 
