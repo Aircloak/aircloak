@@ -318,6 +318,20 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE CAST(string AS INTEGER) BETWEEN 0 AND 10")
   end
 
+  describe "exceptions" do
+    for function <- ~w(upper lower) do
+      test "#{function} is allowed with IN" do
+        assert {:ok, _, _} =
+          compile("SELECT COUNT(*) FROM table WHERE #{unquote(function)}(string) IN ('foo', 'bar', 'baz')")
+      end
+
+      test "#{function} is allowed with NOT IN" do
+        assert {:ok, _, _} =
+          compile("SELECT COUNT(*) FROM table WHERE #{unquote(function)}(string) NOT IN ('foo', 'bar', 'baz')")
+      end
+    end
+  end
+
   defp dangerously_discontinuous?(query), do:
     type_first_column(query).dangerously_discontinuous?
 
