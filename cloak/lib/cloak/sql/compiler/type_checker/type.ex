@@ -13,6 +13,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   @type offense :: {Expression.t, [offense_type]}
 
   @type t :: %__MODULE__{
+    # The names of functions that have been applied to a column or an expression
+    applied_functions: [String.t],
+
     # Whether the expressions is a constant. As soon as a constant expression
     # interacts with a non-constant expression through math or function application
     # it ceases to be constant.
@@ -65,6 +68,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     constant?: false, constant_involved?: false, datetime_involved?: false,
     is_result_of_potentially_crashing_function?: false, dangerously_discontinuous?: false,
     seen_dangerous_math?: false, narrative_breadcrumbs: [], raw_column?: false,
-    cast_raw_column?: false, raw_implicit_range?: false
+    cast_raw_column?: false, raw_implicit_range?: false, applied_functions: [],
   ]
 end

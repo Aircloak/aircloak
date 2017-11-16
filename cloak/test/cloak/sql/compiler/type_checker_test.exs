@@ -6,6 +6,42 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
   alias Cloak.DataSource.Table
   alias Cloak.Sql.{Compiler, Parser, Compiler.TypeChecker, Expression}
 
+  describe "records used functions" do
+    test "records usage of single functions", do:
+      assert type_first_column("SELECT abs(numeric) FROM table").applied_functions == ["abs"]
+
+    test "records usage of math functions", do:
+      assert type_first_column("SELECT numeric + numeric FROM table").applied_functions == ["+"]
+
+    test "records functions used across subqueries", do:
+      assert type_first_column("SELECT c FROM (SELECT abs(numeric) as c FROM table) t").applied_functions == ["abs"]
+
+    test "records multiple functions top down", do:
+      assert type_first_column("SELECT abs(numeric + numeric) FROM table").applied_functions == ["abs", "+"]
+  end
+
+  describe "constant detection" do
+    test "not constant if no constant appears", do:
+      refute constant_involved?("SELECT numeric FROM table")
+
+    test "not constant if math on two columns", do:
+      refute constant_involved?("SELECT numeric + numeric FROM table")
+
+    test "two math operations are considered a constant", do:
+      assert constant_involved?("SELECT numeric + (numeric * numeric) FROM table")
+
+    test "constant only input to a function is considered a constant" do
+      assert constant?("SELECT abs(1) FROM table")
+      assert constant?("SELECT 1 + 1 FROM table")
+    end
+
+    test "constant involved if an user provided constant is an input to a function", do:
+      assert constant_involved?("SELECT numeric + 1 FROM table")
+
+    test "touched by constant if a function input is deemed to be a potential constant", do:
+      assert constant_involved?("SELECT left(string, numeric + (numeric * numeric)) FROM table")
+  end
+
   describe "math is only dangerous if a constant is involved" do
     Enum.each(~w(+ - * ^ /), fn(math_function) ->
       test "#{math_function} with no constant" do
@@ -301,11 +337,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE CAST(string AS INTEGER) BETWEEN 0 AND 10")
   end
 
-  defp dangerously_discontinuous?(query), do:
-    type_first_column(query).dangerously_discontinuous?
-
-  defp seen_dangerous_math?(query), do:
-    type_first_column(query).seen_dangerous_math?
+  Enum.each(~w(dangerously_discontinuous? seen_dangerous_math? constant_involved? constant?)a, fn(param) ->
+    defp unquote(param)(query), do:
+      type_first_column(query).unquote(param)
+  end)
 
   defp type_first_column(query) do
     compiled_query = compile!(query)

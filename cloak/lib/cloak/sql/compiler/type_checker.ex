@@ -251,11 +251,14 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     if Enum.all?(child_types, &(&1.constant?)) do
       constant()
     else
+      applied_functions = [name | Enum.flat_map(child_types, & &1.applied_functions)]
       %Type{
+        applied_functions: applied_functions,
         cast_raw_column?: Function.cast?(function) and match?([%{raw_column?: true}], child_types),
         raw_implicit_range?: Function.has_attribute?(function, :implicit_range) and
           Enum.all?(child_types, &(&1.cast_raw_column? || &1.constant?)),
-        constant_involved?: any_touched_by_constant?(child_types),
+        constant_involved?: any_touched_by_constant?(child_types) ||
+          math_operations_count(applied_functions) >= 2,
         datetime_involved?: any_touched_by_datetime?(child_types),
         is_result_of_potentially_crashing_function?: performs_potentially_crashing_function?(name, child_types) ||
           Enum.any?(child_types, &(&1.is_result_of_potentially_crashing_function?)),
@@ -300,6 +303,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         Enum.member?(relevant_offenses, offense_name)
       end)}
     end)
+
+  defp math_operations_count(applied_functions), do:
+    applied_functions
+    |> Enum.filter(& Function.math_function?(&1))
+    |> Enum.count()
 
 
   # -------------------------------------------------------------------
