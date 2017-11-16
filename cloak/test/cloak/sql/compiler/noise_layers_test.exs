@@ -248,6 +248,36 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       ] = result.noise_layers
     end
 
+    test "clear string negative condition" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name <> 'Foo'", data_source())
+
+      assert [
+        %{base: {"table", "name", :<>}, expressions: [%Expression{value: "Foo"}]},
+        %{base: {"table", "name", :<>}, expressions: [%Expression{value: "Foo"}, %Expression{name: "uid"}]},
+        %{base: {"table", "name", {:<>, :lower}}, expressions: [%Expression{value: "foo"}]},
+      ] = result.noise_layers
+    end
+
+    test "string negative condition with upper" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE upper(name) <> 'FOO'", data_source())
+
+      assert [
+        %{base: {"table", "name", :<>}, expressions: [%Expression{value: "FOO"}]},
+        %{base: {"table", "name", :<>}, expressions: [%Expression{value: "FOO"}, %Expression{name: "uid"}]},
+        %{base: {"table", "name", {:<>, :lower}}, expressions: [%Expression{value: "foo"}]},
+      ] = result.noise_layers
+    end
+
+    test "string negative condition with lower" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE lower(name) <> 'foo'", data_source())
+
+      assert [
+        %{base: {"table", "name", :<>}, expressions: [%Expression{value: "foo"}]},
+        %{base: {"table", "name", :<>}, expressions: [%Expression{value: "foo"}, %Expression{name: "uid"}]},
+        %{base: {"table", "name", {:<>, :lower}}, expressions: [%Expression{value: "foo"}]},
+      ] = result.noise_layers
+    end
+
     test "having of COUNT(*)" do
       result = compile!("""
         SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(*) <> 10) x
