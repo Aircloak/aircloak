@@ -48,17 +48,20 @@ defmodule Cloak.Sql.Function do
       [{:constant, :text}, :time] => :time,
       [{:constant, :text}, {:or, [:datetime, :date]}] => :datetime
     }},
-    ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}, attributes: [:math]},
-    ~w(round trunc) => %{attributes: [:implicit_range, :math], type_specs: %{
+    ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer},
+      attributes: [:math, :discontinuous]},
+    ~w(round trunc) => %{attributes: [:implicit_range, :math, :discontinuous], type_specs: %{
       [numeric] => :integer,
       [numeric, {:constant, :integer}] => :real,
     }},
     [{:bucket, :lower}, {:bucket, :upper}, {:bucket, :middle}] => %{attributes: [:implicit_range], type_specs: %{
       [numeric, numeric] => :real,
     }},
-    ~w(abs) => %{type_specs: %{[:real] => :real, [:integer] => :integer}, attributes: [:math]},
+    ~w(abs) => %{type_specs: %{[:real] => :real, [:integer] => :integer},
+      attributes: [:math, :discontinuous]},
     ~w(sqrt) => %{type_specs: %{[numeric] => :real}},
-    ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}, attributes: [:math]},
+    ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer},
+      attributes: [:math, :discontinuous]},
     ~w(pow ^) => %{type_specs: %{[numeric, numeric] => :real}, attributes: [:math]},
     ~w(+) => %{type_specs: Map.merge(arithmetic_operation, %{
       [:date, :interval] => :datetime,
@@ -88,10 +91,11 @@ defmodule Cloak.Sql.Function do
     }, attributes: [:math]},
     ~w(length) => %{type_specs: %{[:text] => :integer}},
     ~w(lower lcase upper ucase) => %{type_specs: %{[:text] => :text}},
-    ~w(left right) => %{type_specs: %{[:text, :integer] => :text}},
-    ~w(btrim ltrim rtrim) => %{type_specs: %{[:text, {:optional, {:constant, :text}}] => :text}},
-    ~w(substring substring_for) =>
-      %{type_specs: %{[:text, :integer, {:optional, :integer}] => :text}},
+    ~w(left right) => %{type_specs: %{[:text, :integer] => :text}, attributes: [:discontinuous]},
+    ~w(btrim ltrim rtrim) => %{type_specs: %{[:text, {:optional, {:constant, :text}}] => :text},
+      attributes: [:discontinuous]},
+    ~w(substring substring_for) => %{type_specs: %{[:text, :integer, {:optional, :integer}] => :text},
+      attributes: [:discontinuous]},
     ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
     ~w(hex) => %{type_specs: %{[:text] => :text}},
     ~w(hash) => %{type_specs: %{[:text] => :integer, [:integer] => :integer, [:real] => :integer}},
@@ -220,6 +224,17 @@ defmodule Cloak.Sql.Function do
     @functions
     |> Enum.map(fn({name, _}) -> name end)
     |> Enum.filter(& math_function?(&1))
+
+  @doc "Returns true if a function is discontinuous"
+  @spec discontinuous_function?(t | String.t | nil) :: boolean
+  def discontinuous_function?(param), do: has_attribute?(param, :discontinuous)
+
+  @doc "Returns all discontinuous functions"
+  @spec discontinuous_functions() :: [String.t]
+  def discontinuous_functions(), do:
+    @functions
+    |> Enum.map(fn({name, _}) -> name end)
+    |> Enum.filter(& discontinuous_function?(&1))
 
 
   # -------------------------------------------------------------------
