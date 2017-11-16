@@ -96,17 +96,6 @@ defmodule Compliance.DataSources do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp config_name("compliance") do
-    if env("TEST") == "compliance" and (
-      env("TRAVIS_EVENT_TYPE") in ["pull_request", "cron"] ||
-      env("TRAVIS_BRANCH") == "master" ||
-      env("TRAVIS_BRANCH") =~ ~r/^release_.*/
-    ) do
-      "compliance_travis"
-    else
-      "compliance"
-    end
-  end
   defp config_name(other), do:
     other
 
