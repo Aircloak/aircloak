@@ -247,7 +247,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       uid_noise_layer(&1, constant, top_level_uid, :<>),
     ])
 
-  defp lower(constant = %Expression{constant?: true, type: :text, value: value}), do:
+  defp lower(%Expression{constant?: true, type: :text, value: value}), do:
     Expression.constant(:text, String.downcase(value))
 
 
