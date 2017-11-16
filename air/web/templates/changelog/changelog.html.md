@@ -1,3 +1,9 @@
+## Version 17.3.3
+
+### Bugfixes
+
+- Fixed parsing of queries containing Unicode whitespace (pasted from Missive).
+
 ## Version 17.3.2
 
 ### Bugfixes
