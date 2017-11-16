@@ -118,13 +118,15 @@ function run_in_cloak {
 }
 
 function gen_test_data {
-  run_in_cloak "MIX_ENV=test mix gen.test_data dockerized_ci 10"
+  num_users=${COMPLIANCE_USERS:-50}
+  run_in_cloak "MIX_ENV=test mix gen.test_data dockerized_ci $num_users"
 }
 
 function cloak_compliance {
+  concurrency=${COMPLIANCE_CONCURRENCY:-10}
   start_cloak_with_databases
   gen_test_data
-  run_in_cloak "mix test --only compliance --max-cases 4"
+  run_in_cloak "mix test --only compliance --max-cases $concurrency"
 }
 
 function debug_cloak_compliance {
