@@ -210,7 +210,7 @@ defmodule Cloak.Sql.Function do
   @spec exists?(t) :: boolean
   def exists?({:function, function, _}), do: @functions[function] !== nil
 
-  @doc "Returns true if a functoin is a math function"
+  @doc "Returns true if a function is a math function"
   @spec math_function?(t | String.t | nil) :: boolean
   def math_function?(param), do: has_attribute?(param, :math)
 
