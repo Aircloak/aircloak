@@ -26,14 +26,14 @@ function cleanup {
   docker kill $CLOAK_CONTAINER > /dev/null
   docker rm $CLOAK_CONTAINER > /dev/null
 
-  dangling_volumes=$(docker volume ls -qf dangling=true)
+  local dangling_volumes=$(docker volume ls -qf dangling=true)
   if [ "$dangling_volumes" != "" ]; then
     docker volume rm $dangling_volumes > /dev/null
   fi
 }
 
 function ensure_container {
-  container_name=$1
+  local container_name=$1
   shift
 
   if ! named_container_running $container_name ; then
@@ -58,7 +58,7 @@ function ensure_database_containers {
   ensure_container mongo3.0 mongo:3.0
   ensure_container mongo3.2 mongo:3.2
   ensure_container mongo3.4 mongo:3.4
-  ensure_container mysql5.7 -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql:5.7.19
+  ensure_container mysql5.7 -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql:5.7.19 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
 
   ensure_container sqlserver2017 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' \
     microsoft/mssql-server-linux:2017-latest
@@ -83,7 +83,7 @@ function start_cloak_container {
   mounted_from_cloak="config datagen include lib perftest priv rel test mix.exs mix.lock Makefile"
   mounted_from_cloak_cache="deps _build .bash_history"
 
-  mounts="-v $(pwd)/tmp/ci/cloak/.bash_history:/root/.bash_history"
+  local mounts="-v $(pwd)/tmp/ci/cloak/.bash_history:/root/.bash_history"
 
   for path in $mounted_from_root; do
     mounts="$mounts -v $(pwd)/$path:/aircloak/$path"
@@ -113,5 +113,24 @@ function start_cloak_with_databases {
 }
 
 function run_in_cloak {
-  docker exec -it $CLOAK_CONTAINER /bin/bash -c ". ~/.asdf/asdf.sh && $@"
+  docker exec -it -e DEFAULT_SAP_HANA_SCHEMA="$DEFAULT_SAP_HANA_SCHEMA" $CLOAK_CONTAINER \
+    /bin/bash -c ". ~/.asdf/asdf.sh && $@"
+}
+
+function gen_test_data {
+  local num_users=${COMPLIANCE_USERS:-50}
+  run_in_cloak "MIX_ENV=test mix gen.test_data dockerized_ci $num_users"
+}
+
+function cloak_compliance {
+  local concurrency=${COMPLIANCE_CONCURRENCY:-10}
+  start_cloak_with_databases
+  gen_test_data
+  run_in_cloak "mix test --only compliance --max-cases $concurrency"
+}
+
+function debug_cloak_compliance {
+  start_cloak_with_databases
+  gen_test_data
+  run_in_cloak "/bin/bash"
 }

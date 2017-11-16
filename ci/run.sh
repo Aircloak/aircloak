@@ -14,20 +14,11 @@ shift || true
 
 case "$command" in
   cloak_compliance)
-    start_cloak_with_databases
-    run_in_cloak "
-      export DEFAULT_SAP_HANA_SCHEMA='$DEFAULT_SAP_HANA_SCHEMA' &&
-      MIX_ENV=test mix gen.test_data dockerized_ci 10 &&
-      mix test --only compliance --max-cases 4
-    "
+    cloak_compliance
     ;;
 
   debug_cloak_compliance)
-    start_cloak_with_databases
-    run_in_cloak "
-      MIX_ENV=test mix gen.test_data dockerized_ci 10 &&
-      /bin/bash
-    "
+    debug_cloak_compliance
     ;;
   *)
     commands="
