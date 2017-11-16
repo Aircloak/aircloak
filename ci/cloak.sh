@@ -58,7 +58,7 @@ function ensure_database_containers {
   ensure_container mongo3.0 mongo:3.0
   ensure_container mongo3.2 mongo:3.2
   ensure_container mongo3.4 mongo:3.4
-  ensure_container mysql5.7 -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql:5.7.19
+  ensure_container mysql5.7 -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql:5.7.19 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
 
   ensure_container sqlserver2017 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' \
     microsoft/mssql-server-linux:2017-latest
