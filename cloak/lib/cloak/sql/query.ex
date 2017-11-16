@@ -9,6 +9,7 @@ defmodule Cloak.Sql.Query do
 
   alias Cloak.DataSource
   alias Cloak.Sql.{Expression, Compiler, Function, Parser, Query.Lenses, NoiseLayer, LowCountCheck}
+  alias Cloak.Query.DataEngine
   require Logger
 
   @type comparison :: {:comparison, Expression.t, Parser.comparator, Expression.t}
@@ -254,7 +255,7 @@ defmodule Cloak.Sql.Query do
   @doc "Updates the emulation flag to reflect whether the query needs to be emulated."
   @spec set_emulation_flag(t) :: t
   def set_emulation_flag(query), do:
-    %__MODULE__{query | emulated?: Cloak.Query.DataEngine.needs_emulation?(query)}
+    %__MODULE__{query | emulated?: DataEngine.needs_emulation?(query)}
 
   @doc "Returns the list of outermost selected splitters."
   @spec outermost_selected_splitters(t) :: [Expression.t]
@@ -293,6 +294,12 @@ defmodule Cloak.Sql.Query do
     end
   end
 
+  @doc "Resolves the columns which must be fetched from the database."
+  @spec resolve_db_columns(t) :: t
+  def resolve_db_columns(%__MODULE__{command: :select} = query), do:
+    query |> reset_db_columns() |> Compiler.Helpers.apply_bottom_up(&include_required_expressions/1)
+  def resolve_db_columns(%__MODULE__{} = query), do: query
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -314,4 +321,41 @@ defmodule Cloak.Sql.Query do
 
   defp next_row_index(query), do:
     {query.next_row_index, %__MODULE__{query | next_row_index: query.next_row_index + 1}}
+
+
+  # -------------------------------------------------------------------
+  # Calculation of db_columns
+  # -------------------------------------------------------------------
+
+  defp include_required_expressions(query), do:
+    Enum.reduce(required_expressions(query), query, &add_db_column(&2, &1))
+
+  defp required_expressions(%__MODULE__{command: :select, subquery?: true, emulated?: false} = query) do
+    Enum.zip(query.column_titles, query.columns)
+    |> Enum.map(fn({column_alias, column}) -> %Expression{column | alias: column_alias} end)
+  end
+  defp required_expressions(%__MODULE__{command: :select} = query) do
+    # top-level query -> we're only fetching columns, while other expressions (e.g. function calls)
+    # will be resolved in the post-processing phase
+    used_columns =
+      query
+      |> needed_columns()
+      |> extract_columns()
+      |> Enum.reject(& &1.constant?)
+
+    [Compiler.Helpers.id_column(query) | used_columns]
+  end
+
+  defp needed_columns(query), do:
+    [
+      query.columns,
+      query.group_by,
+      DataEngine.emulated_where(query),
+      query.having,
+      order_by_expressions(query),
+    ]
+
+  defp extract_columns(columns), do: Lenses.leaf_expressions() |> Lens.to_list(columns)
+
+  defp reset_db_columns(query), do: %__MODULE__{query | next_row_index: 0, db_columns: []}
 end

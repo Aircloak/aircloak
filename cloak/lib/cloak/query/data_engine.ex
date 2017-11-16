@@ -3,7 +3,7 @@ defmodule Cloak.Query.DataEngine do
 
   require Logger
 
-  alias Cloak.Sql.{Compiler.Helpers, Condition, Expression, Query}
+  alias Cloak.Sql.{Compiler.Helpers, Condition, Query}
   alias Cloak.Query.{DataDecoder, DbEmulator}
   alias Cloak.DataSource
 
@@ -41,13 +41,6 @@ defmodule Cloak.Query.DataEngine do
   @spec emulated_where(Query.t) :: Query.where_clause
   def emulated_where(query), do:
     Condition.reject(query.where, &not emulated_condition?(&1, query))
-
-  @doc "Resolves the columns which must be fetched from the database."
-  @spec resolve_db_columns(Query.t) :: Query.t
-  def resolve_db_columns(%Query{command: :select} = query), do:
-    Helpers.apply_bottom_up(%Query{query | next_row_index: 0, db_columns: []}, &include_required_expressions/1)
-  def resolve_db_columns(%Query{} = query), do:
-    query
 
 
   # -------------------------------------------------------------------
@@ -93,40 +86,4 @@ defmodule Cloak.Query.DataEngine do
     |> Enum.uniq()
     |> Enum.count() > 1
   end
-
-
-  # -------------------------------------------------------------------
-  # Calculation of db_columns
-  # -------------------------------------------------------------------
-
-  defp include_required_expressions(query), do:
-    Enum.reduce(required_expressions(query), query, &Query.add_db_column(&2, &1))
-
-  defp required_expressions(%Query{command: :select, subquery?: true, emulated?: false} = query) do
-    Enum.zip(query.column_titles, query.columns)
-    |> Enum.map(fn({column_alias, column}) -> %Expression{column | alias: column_alias} end)
-  end
-  defp required_expressions(%Query{command: :select} = query) do
-    # top-level query -> we're only fetching columns, while other expressions (e.g. function calls)
-    # will be resolved in the post-processing phase
-    used_columns =
-      query
-      |> needed_columns()
-      |> extract_columns()
-      |> Enum.reject(& &1.constant?)
-
-    [Helpers.id_column(query) | used_columns]
-  end
-
-  defp needed_columns(query), do:
-    [
-      query.columns,
-      query.group_by,
-      emulated_where(query),
-      query.having,
-      Query.order_by_expressions(query),
-    ]
-
-  defp extract_columns(columns), do:
-    Query.Lenses.leaf_expressions() |> Lens.to_list(columns)
 end
