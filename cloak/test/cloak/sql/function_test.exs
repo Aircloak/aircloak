@@ -3,6 +3,16 @@ defmodule Cloak.Sql.Function.Test do
 
   alias Cloak.Sql.{Expression, Function}
 
+  @math_functions ~w(+ - / * ^ pow % abs ceil ceiling div floor mod round trunc)
+
+  Enum.each(@math_functions, fn(math_function) ->
+    test "#{math_function} is registered as a math function", do:
+      assert Function.math_function?(unquote(math_function))
+
+    test "#{math_function} is in the list of math functions", do:
+      assert Enum.member?(Function.math_functions(), unquote(math_function))
+  end)
+
   for function <- ~w(floor ceil ceiling) do
     test "#{function} argument types" do
       assert well_typed?(unquote(function), [:integer])

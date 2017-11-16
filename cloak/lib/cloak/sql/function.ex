@@ -48,18 +48,18 @@ defmodule Cloak.Sql.Function do
       [{:constant, :text}, :time] => :time,
       [{:constant, :text}, {:or, [:datetime, :date]}] => :datetime
     }},
-    ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}},
-    ~w(round trunc) => %{attributes: [:implicit_range], type_specs: %{
+    ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}, attributes: [:math]},
+    ~w(round trunc) => %{attributes: [:implicit_range, :math], type_specs: %{
       [numeric] => :integer,
       [numeric, {:constant, :integer}] => :real,
     }},
     [{:bucket, :lower}, {:bucket, :upper}, {:bucket, :middle}] => %{attributes: [:implicit_range], type_specs: %{
       [numeric, numeric] => :real,
     }},
-    ~w(abs) => %{type_specs: %{[:real] => :real, [:integer] => :integer}},
+    ~w(abs) => %{type_specs: %{[:real] => :real, [:integer] => :integer}, attributes: [:math]},
     ~w(sqrt) => %{type_specs: %{[numeric] => :real}},
-    ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}},
-    ~w(pow ^) => %{type_specs: %{[numeric, numeric] => :real}},
+    ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}, attributes: [:math]},
+    ~w(pow ^) => %{type_specs: %{[numeric, numeric] => :real}, attributes: [:math]},
     ~w(+) => %{type_specs: Map.merge(arithmetic_operation, %{
       [:date, :interval] => :datetime,
       [:time, :interval] => :time,
@@ -68,7 +68,7 @@ defmodule Cloak.Sql.Function do
       [:interval, :time] => :time,
       [:interval, :datetime] => :datetime,
       [:interval, :interval] => :interval,
-    })},
+    }), attributes: [:math]},
     ~w(-) => %{type_specs: Map.merge(arithmetic_operation, %{
       [:date, :date] => :interval,
       [:time, :time] => :interval,
@@ -77,15 +77,15 @@ defmodule Cloak.Sql.Function do
       [:time, :interval] => :time,
       [:datetime, :interval] => :datetime,
       [:interval, :interval] => :interval,
-    })},
+    }), attributes: [:math]},
     ~w(*) => %{type_specs: Map.merge(arithmetic_operation, %{
        [:interval, numeric] => :interval,
        [numeric, :interval] => :interval,
-     })},
+     }), attributes: [:math]},
     ~w(/) => %{type_specs: %{
       [numeric, numeric] => :real,
       [:interval, {:or, [:integer, :real]}] => :interval,
-    }},
+    }, attributes: [:math]},
     ~w(length) => %{type_specs: %{[:text] => :integer}},
     ~w(lower lcase upper ucase) => %{type_specs: %{[:text] => :text}},
     ~w(left right) => %{type_specs: %{[:text, :integer] => :text}},
@@ -209,6 +209,17 @@ defmodule Cloak.Sql.Function do
   @doc "Returns true if the function is a valid cloak function"
   @spec exists?(t) :: boolean
   def exists?({:function, function, _}), do: @functions[function] !== nil
+
+  @doc "Returns true if a functoin is a math function"
+  @spec math_function?(t | String.t | nil) :: boolean
+  def math_function?(param), do: has_attribute?(param, :math)
+
+  @doc "Returns all math functions"
+  @spec math_functions() :: [String.t]
+  def math_functions(), do:
+    @functions
+    |> Enum.map(fn({name, _}) -> name end)
+    |> Enum.filter(& math_function?(&1))
 
 
   # -------------------------------------------------------------------
