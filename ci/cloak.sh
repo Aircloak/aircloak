@@ -26,14 +26,14 @@ function cleanup {
   docker kill $CLOAK_CONTAINER > /dev/null
   docker rm $CLOAK_CONTAINER > /dev/null
 
-  dangling_volumes=$(docker volume ls -qf dangling=true)
+  local dangling_volumes=$(docker volume ls -qf dangling=true)
   if [ "$dangling_volumes" != "" ]; then
     docker volume rm $dangling_volumes > /dev/null
   fi
 }
 
 function ensure_container {
-  container_name=$1
+  local container_name=$1
   shift
 
   if ! named_container_running $container_name ; then
@@ -83,7 +83,7 @@ function start_cloak_container {
   mounted_from_cloak="config datagen include lib perftest priv rel test mix.exs mix.lock Makefile"
   mounted_from_cloak_cache="deps _build .bash_history"
 
-  mounts="-v $(pwd)/tmp/ci/cloak/.bash_history:/root/.bash_history"
+  local mounts="-v $(pwd)/tmp/ci/cloak/.bash_history:/root/.bash_history"
 
   for path in $mounted_from_root; do
     mounts="$mounts -v $(pwd)/$path:/aircloak/$path"
@@ -118,12 +118,12 @@ function run_in_cloak {
 }
 
 function gen_test_data {
-  num_users=${COMPLIANCE_USERS:-50}
+  local num_users=${COMPLIANCE_USERS:-50}
   run_in_cloak "MIX_ENV=test mix gen.test_data dockerized_ci $num_users"
 }
 
 function cloak_compliance {
-  concurrency=${COMPLIANCE_CONCURRENCY:-10}
+  local concurrency=${COMPLIANCE_CONCURRENCY:-10}
   start_cloak_with_databases
   gen_test_data
   run_in_cloak "mix test --only compliance --max-cases $concurrency"
