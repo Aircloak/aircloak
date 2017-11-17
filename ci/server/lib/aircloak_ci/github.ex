@@ -4,8 +4,10 @@ defmodule AircloakCI.Github do
   @type pull_request :: %{
     number: pos_integer,
     approved?: true,
-    status_checks: %{String.t => :expected | :error | :failure | :pending | :success}
+    status_checks: %{String.t => :expected | status_check_state}
   }
+
+  @type status_check_state :: :error | :failure | :pending | :success
 
 
   # -------------------------------------------------------------------
@@ -35,6 +37,21 @@ defmodule AircloakCI.Github do
     |> Map.fetch!("pullRequests")
     |> Map.fetch!("nodes")
     |> Enum.map(&to_pr_data/1)
+
+  @doc "Sets the status check state for the given owner/repo/sha."
+  @spec put_status_check_state!(String.t, String.t, String.t, String.t, status_check_state) :: :ok
+  def put_status_check_state!(owner, repo, sha, context, state) do
+    %{status_code: 201} =
+      post_rest_request(
+        "/repos/#{owner}/#{repo}/statuses/#{sha}",
+        %{
+          context: context,
+          state: encode_status_check_state(state),
+        }
+      )
+
+    :ok
+  end
 
 
   # -------------------------------------------------------------------
@@ -68,6 +85,11 @@ defmodule AircloakCI.Github do
   defp decode_status_check_state("PENDING"), do: :pending
   defp decode_status_check_state("SUCCESS"), do: :success
 
+  defp encode_status_check_state(:error), do: "error"
+  defp encode_status_check_state(:failure), do: "failure"
+  defp encode_status_check_state(:pending), do: "pending"
+  defp encode_status_check_state(:success), do: "success"
+
   defp graphql_request(query), do:
     query
     |> post_graphql_request()
@@ -84,9 +106,12 @@ defmodule AircloakCI.Github do
   end
 
   defp post_graphql_request(query), do:
+    post_rest_request("/graphql", %{query: query})
+
+  defp post_rest_request(path, params), do:
     HTTPoison.post!(
-      "https://api.github.com/graphql",
-      Poison.encode!(%{query: query}),
+      "https://api.github.com#{path}",
+      Poison.encode!(params),
       [
         {"authorization", "bearer #{System.get_env("AIRCLOAK_CI_AUTH")}"},
         {"Content-Type", "application/json"}
