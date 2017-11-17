@@ -218,12 +218,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   defp any_touched_by_constant?(types), do: Enum.any?(types, &(&1.constant_involved?))
 
-  defp any_touched_by_datetime?(types), do: Enum.any?(types, &(&1.datetime_involved?))
-
   defp constant(), do: %Type{constant?: true, constant_involved?: true}
-
-  defp datetime_type?(:*), do: false
-  defp datetime_type?(%Expression{type: type}), do: type in [:datetime, :date, :time]
 
   defp column(expression), do:
     %Type{
@@ -231,7 +226,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       cast_raw_column?: true,
       constant?: false,
       narrative_breadcrumbs: [{expression, []}],
-      datetime_involved?: datetime_type?(expression),
     }
 
   defp establish_type(column, query, future \\ [])
@@ -259,7 +253,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
           Enum.all?(child_types, &(&1.cast_raw_column? || &1.constant?)),
         constant_involved?: any_touched_by_constant?(child_types) ||
           math_operations_count(applied_functions) >= 2,
-        datetime_involved?: any_touched_by_datetime?(child_types),
         is_result_of_potentially_crashing_function?: performs_potentially_crashing_function?(name, child_types) ||
           Enum.any?(child_types, &(&1.is_result_of_potentially_crashing_function?)),
         seen_dangerous_math?: is_dangerous_math?(name, future, child_types) ||
