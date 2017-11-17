@@ -135,20 +135,20 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # Function classification
   # -------------------------------------------------------------------
 
-  defp dangerously_discontinuous?({:bucket, _}, _future, child_types), do:
+  defp dangerously_discontinuous?({:bucket, _}, child_types), do:
     any_touched_by_constant?(child_types)
-  defp dangerously_discontinuous?(name, _future, child_types)
+  defp dangerously_discontinuous?(name, child_types)
       when name in @discontinuous_math_functions, do:
     any_touched_by_constant?(child_types)
-  defp dangerously_discontinuous?({:cast, _}, _future, child_types), do: any_touched_by_constant?(child_types)
-  defp dangerously_discontinuous?(name, future, child_types)
+  defp dangerously_discontinuous?({:cast, _}, child_types), do: any_touched_by_constant?(child_types)
+  defp dangerously_discontinuous?(name, child_types)
       when name in @discontinuous_string_functions, do:
-    any_touched_by_constant?(child_types) and later_turned_into_a_number?(future)
-  defp dangerously_discontinuous?(_name, _future, _child_types), do: false
-
-  defp is_dangerous_math?(name, _future, child_types) when name in @continuous_math_functions, do:
     any_touched_by_constant?(child_types)
-  defp is_dangerous_math?(_, _future, _child_types), do: false
+  defp dangerously_discontinuous?(_name, _child_types), do: false
+
+  defp is_dangerous_math?(name, child_types) when name in @continuous_math_functions, do:
+    any_touched_by_constant?(child_types)
+  defp is_dangerous_math?(_, _child_types), do: false
 
   defp performs_potentially_crashing_function?("/", [_, child_type]), do:
     # This allows division by a pure constant, but not by a column influenced by a constant
@@ -169,9 +169,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       subquery
     end)
 
-  defp later_turned_into_a_number?(future), do:
-    Enum.any?(["length", {:cast, :integer}, {:cast, :real}, {:cast, :boolean}], &(Enum.member?(future, &1)))
-
   defp any_touched_by_constant?(types), do: Enum.any?(types, &(&1.constant_involved?))
 
   defp constant(), do: %Type{constant?: true, constant_involved?: true}
@@ -184,19 +181,16 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       history_of_dangerous_transformations: [{expression, []}],
     }
 
-  defp establish_type(column, query, future \\ [])
-  defp establish_type(:null, _query, _future), do: constant()
-  defp establish_type({:distinct, column}, query, future), do:
-    establish_type(column, query, ["distinct" | future])
-  defp establish_type(:*, _query, _future), do: column(:*)
-  defp establish_type(%Expression{constant?: true}, _query, _future), do: constant()
-  defp establish_type(%Expression{function: nil} = column, query, future), do:
-    expand_from_subquery(column, query, future)
-  defp establish_type(function = %Expression{function?: true}, query, future), do:
-    type_for_function(function, query, future)
+  defp establish_type(column, query)
+  defp establish_type(:null, _query), do: constant()
+  defp establish_type({:distinct, column}, query), do: establish_type(column, query)
+  defp establish_type(:*, _query), do: column(:*)
+  defp establish_type(%Expression{constant?: true}, _query), do: constant()
+  defp establish_type(%Expression{function: nil} = column, query), do: expand_from_subquery(column, query)
+  defp establish_type(function = %Expression{function?: true}, query), do: type_for_function(function, query)
 
-  defp type_for_function(function = %Expression{function: name, function_args: args}, query, future) do
-    child_types = args |> Enum.map(&(establish_type(&1, query, [name | future])))
+  defp type_for_function(function = %Expression{function: name, function_args: args}, query) do
+    child_types = args |> Enum.map(&(establish_type(&1, query)))
     # Prune constants, they don't interest us further
     if Enum.all?(child_types, &(&1.constant?)) do
       constant()
@@ -211,27 +205,27 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
           math_operations_count(applied_functions) >= 2,
         is_result_of_potentially_crashing_function?: performs_potentially_crashing_function?(name, child_types) ||
           Enum.any?(child_types, &(&1.is_result_of_potentially_crashing_function?)),
-        seen_dangerous_math?: is_dangerous_math?(name, future, child_types) ||
+        seen_dangerous_math?: is_dangerous_math?(name, child_types) ||
           Enum.any?(child_types, &(&1.seen_dangerous_math?)),
-        dangerously_discontinuous?: dangerously_discontinuous?(name, future, child_types) ||
+        dangerously_discontinuous?: dangerously_discontinuous?(name, child_types) ||
           Enum.any?(child_types, &(&1.dangerously_discontinuous?)),
-        history_of_dangerous_transformations: extend_history_of_dangerous_transformations(name, future, child_types),
+        history_of_dangerous_transformations: extend_history_of_dangerous_transformations(name, child_types),
       }
     end
   end
 
-  defp extend_history_of_dangerous_transformations(name, future, child_types), do:
+  defp extend_history_of_dangerous_transformations(name, child_types), do:
     Narrative.extend(child_types, [
-      {dangerously_discontinuous?(name, future, child_types), {:dangerously_discontinuous, name}},
-      {is_dangerous_math?(name, future, child_types), {:dangerous_math, name}},
+      {dangerously_discontinuous?(name, child_types), {:dangerously_discontinuous, name}},
+      {is_dangerous_math?(name, child_types), {:dangerous_math, name}},
       {performs_potentially_crashing_function?(name, child_types),
         {:potentially_crashing_function, name}},
     ])
 
-  defp expand_from_subquery(column, query, future) do
+  defp expand_from_subquery(column, query) do
     case Query.resolve_subquery_column(column, query) do
       :database_column -> column(column)
-      {column, subquery} -> establish_type(column, subquery, future)
+      {column, subquery} -> establish_type(column, subquery)
     end
   end
 
