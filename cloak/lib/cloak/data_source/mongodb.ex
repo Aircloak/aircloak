@@ -218,7 +218,7 @@ defmodule Cloak.DataSource.MongoDB do
   defp supports_used_functions_in_having?(%Query{subquery?: true} = query) do
     Query.Lenses.conditions()
     |> Query.Lenses.operands()
-    |> Lens.satisfy(& &1.function? and not &1.aggregate?)
+    |> Lens.satisfy(& &1.function? and (not &1.aggregate? or match?([{:distinct, _}], &1.function_args)))
     |> Lens.to_list(query.having) == []
   end
   defp supports_used_functions_in_having?(_query), do: true
