@@ -3,14 +3,15 @@ defmodule Cloak.Sql.Function.Test do
 
   alias Cloak.Sql.{Expression, Function}
 
-  @discontinuous_functions ~w(% abs ceil ceiling div floor mod round trunc btrim left ltrim right rtrim substring)
+  @discontinuous_functions ~w(% abs ceil ceiling div floor mod round trunc btrim left ltrim right rtrim substring) ++
+    [{:bucket, :lower}, {:bucket, :middle}, {:bucket, :upper}]
   @math_functions ~w(+ - / * ^ pow % abs ceil ceiling div floor mod round trunc)
 
   Enum.each(@discontinuous_functions, fn(discontinuous_function) ->
-    test "#{discontinuous_function} is registered as a discontinuous function", do:
+    test "#{inspect(discontinuous_function)} is registered as a discontinuous function", do:
       assert Function.discontinuous_function?(unquote(discontinuous_function))
 
-    test "#{discontinuous_function} is in the list of discontinuous functions", do:
+    test "#{inspect(discontinuous_function)} is in the list of discontinuous functions", do:
       assert Enum.member?(Function.discontinuous_functions(), unquote(discontinuous_function))
   end)
 

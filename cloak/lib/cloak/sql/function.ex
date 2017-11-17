@@ -54,9 +54,8 @@ defmodule Cloak.Sql.Function do
       [numeric] => :integer,
       [numeric, {:constant, :integer}] => :real,
     }},
-    [{:bucket, :lower}, {:bucket, :upper}, {:bucket, :middle}] => %{attributes: [:implicit_range], type_specs: %{
-      [numeric, numeric] => :real,
-    }},
+    [{:bucket, :lower}, {:bucket, :upper}, {:bucket, :middle}] =>
+      %{attributes: [:implicit_range, :discontinuous], type_specs: %{[numeric, numeric] => :real}},
     ~w(abs) => %{type_specs: %{[:real] => :real, [:integer] => :integer},
       attributes: [:math, :discontinuous]},
     ~w(sqrt) => %{type_specs: %{[numeric] => :real}},
@@ -140,8 +139,12 @@ defmodule Cloak.Sql.Function do
   def has_attribute?("coalesce", _attribute), do: false # coalesce is only used internally
   def has_attribute?({:function, name, _}, attribute), do: has_attribute?(name, attribute)
   def has_attribute?(%Expression{function?: true, function: name}, attribute), do: has_attribute?(name, attribute)
-  def has_attribute?(name, attribute) when is_binary(name), do: attribute in Map.get(@functions[name], :attributes, [])
-  def has_attribute?(_, _attribute), do: false
+  def has_attribute?(name, attribute) do
+    case Map.get(@functions, name) do
+      nil -> false
+      function -> attribute in Map.get(function, :attributes, [])
+    end
+  end
 
   @doc "Returns true if the given function call is a cast, false otherwise."
   @spec cast?(t) :: boolean
