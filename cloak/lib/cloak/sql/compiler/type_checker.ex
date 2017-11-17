@@ -1,38 +1,17 @@
 defmodule Cloak.Sql.Compiler.TypeChecker do
   @moduledoc """
-  Provides functions to check whether selected columns, or expressions
-  used in WHERE-clause inequalities have undergone dangerous transformations.
-
-  What transformations are considered dangerous differs based on where
-  an expression is to be used. WHERE-clause inequalities have stricter rules
-  applied to them than selected columns.
-
-  In particular this module considers whether a column has seen math
-  or has had discontinuous functions applied to it. We currently only
-  consider math and discontinuous functions dangerous if the inputs
-  to a function have been tainted by an analyst-provided constant.
-  Hence for example `abs(<pure-column>)` is ok, whereas
-  `abs(<pure-column> + <constant>)` is not.
-  Likewise `<pure-column> + <pure-column>` is ok, whereas
-  `<pure-column> + (<pure-column> + <constant>)` is not.
-
-  Note also that `<constant> MATH <constant>` and `DISCONTINUOUS_FUNCTION(<constant>)`
-  are transformed to `<constant>`, and hence not considered as applications of math
-  or discontinuous functions.
+  Provides functions to check whether the expressions used in a query are valid according to our anonymization rules.
+  This includes checks to determine if the number of dangerous functions used (like functions that truncate values
+  and could be used to create boolean logic circumventing other checks) exceed allowed thresholds, as well
+  as checks to validate that columns used in certain filter conditions haven't been altered.
   """
 
   alias Cloak.Sql.{CompilationError, Condition, Function, Expression, Query, Range}
   alias Cloak.Sql.Compiler.TypeChecker.{Narrative, Type}
   alias Cloak.Sql.Compiler.Helpers
 
-
-  # -------------------------------------------------------------------
-  # Function and operator classifications
-  # -------------------------------------------------------------------
-
-  @discontinuous_math_functions ~w(% abs ceil ceiling div floor mod round trunc)
-  @discontinuous_string_functions ~w(btrim left ltrim right rtrim substring)
-  @continuous_math_functions ~w(+ - * / ^ pow)
+  @max_allowed_dangerous_functions 5
+  @math_operations_before_considered_constant 1
 
 
   # -------------------------------------------------------------------
@@ -42,6 +21,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   @spec validate_allowed_usage_of_math_and_functions(Query.t) :: Query.t
   def validate_allowed_usage_of_math_and_functions(query) do
     each_subquery(query, &verify_usage_of_potentially_crashing_functions/1)
+    each_subquery(query, &verify_allowed_usage_of_math/1)
     each_subquery(query, &verify_lhs_of_in_is_clear/1)
     each_subquery(query, &verify_lhs_of_not_equals_is_clear/1)
     each_subquery(query, &verify_lhs_of_not_like_is_clear/1)
@@ -62,20 +42,40 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     |> Enum.concat(columns)
     |> Enum.each(fn(column) ->
       type = establish_type(column, query)
-      if type.is_result_of_potentially_crashing_function? do
+      if potentially_crashing_function?(type) do
         explanation = type.history_of_dangerous_transformations
-        |> filter_for_offensive_actions([:potentially_crashing_function])
-        |> reject_all_but_relevant_offensive_actions([:potentially_crashing_function])
-        |> Narrative.construct()
+        |> offensive_transformations([:potentially_crashing_function])
+        |> Narrative.construct(type.history_of_columns_involved)
         raise CompilationError, message: """
           #{explanation}
 
-          Functions are not allowed to be used in ways that could cause a database exception
-          to be raised in a way controllable by the analyst.
-          For example this situation arises when a column or constant value is divided (`/`)
-          by an expression that both contains a user data column as well as a constant value
+          Functions are not allowed to be used in ways that could cause a database exception.
+          This situation arises when a column or constant value is divided (`/`)
+          by an expression that both contains a database column as well as a constant value
           (for example `age / (age - 20)`), or if the square root is taken of an expression that
-          contains a user data column as well as a constant value (for example `sqrt(age - 20)`).
+          contains a database column as well as a constant value (for example `sqrt(age - 20)`).
+          Please note that the system will also classify certain uses of math as potentially being
+          a constant, such as `div(age, age)`.
+          """
+      end
+    end)
+
+  def verify_allowed_usage_of_math(query), do:
+    Query.Lenses.analyst_provided_expressions()
+    |> Lens.to_list(query)
+    |> List.flatten()
+    |> Enum.each(fn(expression) ->
+      type = establish_type(expression, query)
+      if dangerous_transformation_count(type) > @max_allowed_dangerous_functions do
+        explanation = type.history_of_dangerous_transformations
+        |> offensive_transformations([:dangerous_function])
+        |> Narrative.construct(type.history_of_columns_involved)
+        raise CompilationError, message: """
+          #{explanation}
+
+          Queries containing expressions with a high number of functions that are used in combination
+          with constant values are prohibited. For further information about when this condition is
+          triggered, please check the restrictions section of the user guides.
           """
       end
     end)
@@ -135,21 +135,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # Function classification
   # -------------------------------------------------------------------
 
-  defp dangerously_discontinuous?({:bucket, _}, child_types), do:
-    any_touched_by_constant?(child_types)
-  defp dangerously_discontinuous?(name, child_types)
-      when name in @discontinuous_math_functions, do:
-    any_touched_by_constant?(child_types)
-  defp dangerously_discontinuous?({:cast, _}, child_types), do: any_touched_by_constant?(child_types)
-  defp dangerously_discontinuous?(name, child_types)
-      when name in @discontinuous_string_functions, do:
-    any_touched_by_constant?(child_types)
-  defp dangerously_discontinuous?(_name, _child_types), do: false
-
-  defp is_dangerous_math?(name, child_types) when name in @continuous_math_functions, do:
-    any_touched_by_constant?(child_types)
-  defp is_dangerous_math?(_, _child_types), do: false
-
   defp performs_potentially_crashing_function?("/", [_, child_type]), do:
     # This allows division by a pure constant, but not by a column influenced by a constant
     child_type.constant_involved? && not child_type.constant?
@@ -171,6 +156,20 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   defp any_touched_by_constant?(types), do: Enum.any?(types, &(&1.constant_involved?))
 
+  defp potentially_crashing_function?(type), do:
+    Enum.any?(type.history_of_dangerous_transformations, fn
+        ({:potentially_crashing_function, _}) -> true
+        (_) -> false
+      end)
+
+  defp dangerous_transformation_count(type), do:
+    type.history_of_dangerous_transformations
+    |> Enum.filter(fn
+      ({:dangerous_function, _}) -> true
+      (_) -> false
+    end)
+    |> Enum.count()
+
   defp constant(), do: %Type{constant?: true, constant_involved?: true}
 
   defp column(expression), do:
@@ -178,7 +177,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       raw_column?: true,
       cast_raw_column?: true,
       constant?: false,
-      history_of_dangerous_transformations: [{expression, []}],
+      history_of_columns_involved: [expression],
     }
 
   defp establish_type(column, query)
@@ -202,25 +201,34 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         raw_implicit_range?: Function.has_attribute?(function, :implicit_range) and
           Enum.all?(child_types, &(&1.cast_raw_column? || &1.constant?)),
         constant_involved?: any_touched_by_constant?(child_types) ||
-          math_operations_count(applied_functions) >= 2,
-        is_result_of_potentially_crashing_function?: performs_potentially_crashing_function?(name, child_types) ||
-          Enum.any?(child_types, &(&1.is_result_of_potentially_crashing_function?)),
-        seen_dangerous_math?: is_dangerous_math?(name, child_types) ||
-          Enum.any?(child_types, &(&1.seen_dangerous_math?)),
-        dangerously_discontinuous?: dangerously_discontinuous?(name, child_types) ||
-          Enum.any?(child_types, &(&1.dangerously_discontinuous?)),
-        history_of_dangerous_transformations: extend_history_of_dangerous_transformations(name, child_types),
+          math_operations_count(applied_functions) > @math_operations_before_considered_constant,
+        history_of_columns_involved: combined_columns_involved(child_types),
       }
+      |> extend_history_of_dangerous_transformations(name, child_types)
     end
   end
 
-  defp extend_history_of_dangerous_transformations(name, child_types), do:
-    Narrative.extend(child_types, [
-      {dangerously_discontinuous?(name, child_types), {:dangerously_discontinuous, name}},
-      {is_dangerous_math?(name, child_types), {:dangerous_math, name}},
-      {performs_potentially_crashing_function?(name, child_types),
-        {:potentially_crashing_function, name}},
-    ])
+  defp combined_columns_involved(child_types), do:
+    child_types
+    |> Enum.flat_map(& &1.history_of_columns_involved)
+    |> Enum.uniq()
+
+  defp extend_history_of_dangerous_transformations(%Type{constant_involved?: constant_involved?} = type,
+      name, child_types) do
+    full_history = [
+      {constant_involved? && dangerous?(name), {:dangerous_function, name}},
+      {performs_potentially_crashing_function?(name, child_types), {:potentially_crashing_function, name}},
+    ]
+    |> Enum.filter(fn({whether_applies, _}) -> whether_applies end)
+    |> Enum.map(fn({_, history_element}) -> history_element end)
+    |> Enum.concat(
+      Enum.flat_map(child_types, & &1.history_of_dangerous_transformations)
+    )
+    %Type{type | history_of_dangerous_transformations: full_history}
+  end
+
+  defp dangerous?(name), do:
+    Function.discontinuous_function?(name) or Function.math_function?(name)
 
   defp expand_from_subquery(column, query) do
     case Query.resolve_subquery_column(column, query) do
@@ -229,23 +237,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     end
   end
 
-  # Removes columns that haven't had all of a list of offenses applied to them
-  defp filter_for_offensive_actions(columns, required_offenses), do:
-    columns
-    |> Enum.filter(fn({_expression, offenses}) ->
-      offenses
-      |> Enum.map(fn({name, _}) -> name end)
-      |> Enum.reduce(required_offenses, fn (name, offenses) ->
-        Enum.reject(offenses, & &1 == name)
-      end) == []
-    end)
-
-  defp reject_all_but_relevant_offensive_actions(columns, relevant_offenses), do:
-    Enum.map(columns, fn({expression, offenses}) ->
-      {expression, Enum.filter(offenses, fn({offense_name, _}) ->
-        Enum.member?(relevant_offenses, offense_name)
-      end)}
-    end)
+  defp offensive_transformations(history_of_transformations, required_types), do:
+    history_of_transformations
+    |> Enum.filter(fn({type, _}) -> type in required_types end)
+    |> Enum.group_by(fn({type, _}) -> type end, fn({_, name}) -> name end)
+    |> Enum.map(fn({type, names}) -> {type, Enum.uniq(names)} end)
 
   defp math_operations_count(applied_functions), do:
     applied_functions

@@ -4,13 +4,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   alias Cloak.Sql.Expression
 
   @type function_name :: String.t
-  @type offense_type :: {
-      :dangerously_discontinuous
-    | :dangerous_math
-    | :potentially_crashing_function,
-    function_name
-  }
-  @type offense :: {Expression.t, [offense_type]}
+  @type dangerous_transformation :: {:dangerous_function | :potentially_crashing_function, function_name}
 
   @type t :: %__MODULE__{
     # The names of functions that have been applied to a column or an expression
@@ -35,34 +29,18 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     # were constant.
     constant_involved?: boolean,
 
-    # sqrt and / are functions which are illdefined for certain values. sqrt of negative values,
-    # or division by 0. When these functions occur with values that have been manipulated
-    # using constants (to potentially construct a failure condition), we mark them as
-    # potentially crashing.
-    is_result_of_potentially_crashing_function?: boolean,
-
-    # True if the expression has been processed by a discontinuous function and the
-    # parameters of the function call were such that the computation is classified
-    # as potentially dangerous (i.e. an attack vector).
-    # Taints all other later expressions, hence, if a single expression in a function
-    # application is dangerously discontinuous, then the result of the function is
-    # dangerously discontinous too.
-    dangerously_discontinuous?: boolean,
-
-    # Whether the expression has had dangerous math performed on it or not.
-    # Math is considered dangerous if any of the expressions in the math application
-    # have previously been touched by a constant.
-    seen_dangerous_math?: boolean,
-
-    # We keep track of the dangerous transformations a column has undergone in order
+    # We keep track of the dangerous transformations an expression has undergone in order
     # to later produce an explanation outlining the steps that led to a query being rejected.
-    history_of_dangerous_transformations: [offense],
+    history_of_dangerous_transformations: [dangerous_transformation],
+
+    # Keep track of the columns that have been involved in order to be able to produce better
+    # explanations of why queries were rejected.
+    history_of_columns_involved: [Expression.t]
   }
 
   defstruct [
-    constant?: false, constant_involved?: false,
-    is_result_of_potentially_crashing_function?: false, dangerously_discontinuous?: false,
-    seen_dangerous_math?: false, history_of_dangerous_transformations: [], raw_column?: false,
+    constant?: false, constant_involved?: false, raw_column?: false,
     cast_raw_column?: false, raw_implicit_range?: false, applied_functions: [],
+    history_of_dangerous_transformations: [], history_of_columns_involved: [],
   ]
 end

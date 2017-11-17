@@ -4,7 +4,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.Table
-  alias Cloak.Sql.{Compiler, Parser, Compiler.TypeChecker, Expression}
+  alias Cloak.Sql.{Compiler, Parser, Compiler.TypeChecker}
 
   describe "records used functions" do
     test "records usage of single functions", do:
@@ -45,79 +45,84 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
   describe "knows which columns were involved" do
     test "when a column is selected" do
       type = type_first_column("SELECT numeric FROM table")
-      assert expression_name(type.history_of_dangerous_transformations) == ["numeric"]
+      assert expression_name(type.history_of_columns_involved) == ["numeric"]
     end
 
     test "when a column is selected inside a function" do
       type = type_first_column("SELECT abs(numeric) FROM table")
-      assert expression_name(type.history_of_dangerous_transformations) == ["numeric"]
+      assert expression_name(type.history_of_columns_involved) == ["numeric"]
     end
 
     test "when a column is selected in a subquery" do
       type = type_first_column("SELECT col FROM (SELECT uid, numeric as col FROM table) t")
-      assert expression_name(type.history_of_dangerous_transformations) == ["numeric"]
+      assert expression_name(type.history_of_columns_involved) == ["numeric"]
     end
 
     test "when multiple columns are selected" do
       type = type_first_column("SELECT concat(string, cast(numeric as text)) FROM table")
-      assert expression_name(type.history_of_dangerous_transformations) == ["string", "numeric"]
+      assert expression_name(type.history_of_columns_involved) == ["string", "numeric"]
     end
 
-    def expression_name(breadcrumb_trail), do:
-      breadcrumb_trail
-      |> Enum.map(fn({expression, _}) -> expression end)
-      |> Enum.map(&(&1.name))
+    test "deduplicates columns" do
+      type = type_first_column("SELECT concat(string, string) FROM table")
+      assert expression_name(type.history_of_columns_involved) == ["string"]
+    end
+
+    def expression_name(columns), do:
+      columns
+      |> Enum.map(& &1.name)
   end
 
-  describe "records a trail of narrative breadcrumbs" do
-    test "empty narrative for queries without functions or math" do
+  describe "records a history of dangerous functions" do
+    test "empty history for queries without functions or math" do
       type = type_first_column("SELECT numeric FROM table")
-      assert [{%Expression{name: "numeric"}, []}] = type.history_of_dangerous_transformations
+      assert type.history_of_dangerous_transformations == []
     end
 
     test "for function with discontinuious function div" do
       type = type_first_column("SELECT div(numeric, 10) FROM table")
-      assert [{%Expression{name: "numeric"}, [{:dangerously_discontinuous, "div"}]}] = type.history_of_dangerous_transformations
+      assert type.history_of_dangerous_transformations == [{:dangerous_function, "div"}]
     end
 
     test "even when multiple occur" do
       type = type_first_column("SELECT abs(div(numeric, 10)) FROM table")
-      [{%Expression{name: "numeric"}, [
-         {:dangerously_discontinuous, "abs"},
-         {:dangerously_discontinuous, "div"}]
-      }] = type.history_of_dangerous_transformations
+      assert type.history_of_dangerous_transformations ==
+        [{:dangerous_function, "abs"}, {:dangerous_function, "div"}]
     end
 
     test "does not record discontinuous functions that aren't dangerous" do
       type = type_first_column("SELECT div(cast(sqrt(numeric) as integer), 10) FROM table")
-      [{%Expression{name: "numeric"}, [{:dangerously_discontinuous, "div"}]}] = type.history_of_dangerous_transformations
+      assert type.history_of_dangerous_transformations == [{:dangerous_function, "div"}]
     end
 
     test "records math influenced by a constant as a potential offense" do
       type = type_first_column("SELECT numeric + 10 FROM table")
-      [{%Expression{name: "numeric"}, [{:dangerous_math, "+"}]}] = type.history_of_dangerous_transformations
+      assert type.history_of_dangerous_transformations == [{:dangerous_function, "+"}]
     end
 
     test "does not record math between non-constant influenced columns" do
       type = type_first_column("SELECT numeric + numeric FROM table")
-      assert [{_column_expressions, []}] = type.history_of_dangerous_transformations
+      assert type.history_of_dangerous_transformations == []
     end
 
     test "records multiple math offenses" do
       type = type_first_column("SELECT numeric + 10 FROM (SELECT uid, numeric - 1 as numeric FROM table) t")
-      assert [{%Expression{name: "numeric"}, [{:dangerous_math, "+"}, {:dangerous_math, "-"}]}] =
-        type.history_of_dangerous_transformations
+      assert type.history_of_dangerous_transformations ==
+        [{:dangerous_function, "+"}, {:dangerous_function, "-"}]
     end
 
-    test "deduplicates offenses - math" do
-      type = type_first_column("SELECT numeric + 10 + 10 FROM table")
-      assert [{%Expression{name: "numeric"}, [{:dangerous_math, "+"}]}] = type.history_of_dangerous_transformations
+    test "records multiple instances of the same offense" do
+      type = type_first_column("SELECT numeric + 10 FROM (SELECT uid, numeric + 1 as numeric FROM table) t")
+      assert type.history_of_dangerous_transformations ==
+        [{:dangerous_function, "+"}, {:dangerous_function, "+"}]
     end
 
-    test "deduplicates offenses - discontinuity" do
-      type = type_first_column("SELECT numeric % 2 % 2 FROM table")
-      assert [{%Expression{name: "numeric"}, [{:dangerously_discontinuous, "%"}]}] =
-        type.history_of_dangerous_transformations
+    test "records dangerous functions when it believes a constant has been constructed" do
+      type = type_first_column("""
+        SELECT abs(div(numeric, numeric) + div(numeric, numeric)) FROM table
+      """)
+      assert type.history_of_dangerous_transformations ==
+        [{:dangerous_function, "abs"}, {:dangerous_function, "+"}]
     end
   end
 
@@ -209,7 +214,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE CAST(string AS INTEGER) BETWEEN 0 AND 10")
   end
 
-  Enum.each(~w(dangerously_discontinuous? seen_dangerous_math? constant_involved? constant?)a, fn(param) ->
+  Enum.each(~w(constant_involved? constant?)a, fn(param) ->
     defp unquote(param)(query), do:
       type_first_column(query).unquote(param)
   end)
