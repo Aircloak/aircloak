@@ -41,10 +41,10 @@ defmodule Cloak.Sql.Function do
     ~w(avg stddev) => %{attributes: [:aggregator], type_specs: %{[numeric] => :real}},
     ~w(avg_noise stddev_noise) => %{attributes: [:aggregator, :not_in_subquery], type_specs: %{[numeric] => :real}},
     ~w(hour minute second) =>
-      %{attributes: [:implicit_range], type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
+      %{attributes: [:implicit_range, :discontinuous], type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
     ~w(year quarter month day weekday) =>
-      %{attributes: [:implicit_range], type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
-    ~w(date_trunc) => %{attributes: [:implicit_range], type_specs: %{
+      %{attributes: [:implicit_range, :discontinuous], type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
+    ~w(date_trunc) => %{attributes: [:implicit_range, :discontinuous], type_specs: %{
       [{:constant, :text}, :time] => :time,
       [{:constant, :text}, {:or, [:datetime, :date]}] => :datetime
     }},
