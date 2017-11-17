@@ -302,8 +302,10 @@ For `=` conditions that are "clear" (for example the analyst writes `WHERE x =
 10` and `x` is a database column) we generate the noise layers without floating
 the data, because the column value is known (`10` in the example).
 
-As an exception the presence of the functions `upper` and `lower` does not make
-`IN` and `<>` clauses non-clear, see [this issue](https://github.com/Aircloak/aircloak/issues/2091).
+As an exception the presence of the functions `upper`, `lower`, `substring`, or
+any of the `trim`s does not make `IN` and `<>` clauses non-clear, see
+[this issue](https://github.com/Aircloak/aircloak/issues/2091)
+and [this issue](https://github.com/Aircloak/aircloak/issues/2039).
 
 ### Noise layer seeds
 
