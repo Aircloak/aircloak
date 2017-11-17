@@ -302,6 +302,9 @@ For `=` conditions that are "clear" (for example the analyst writes `WHERE x =
 10` and `x` is a database column) we generate the noise layers without floating
 the data, because the column value is known (`10` in the example).
 
+As an exception the presence of the functions `upper` and `lower` does not make
+`IN` and `<>` clauses non-clear, see [this issue](https://github.com/Aircloak/aircloak/issues/2091).
+
 ### Noise layer seeds
 
 Each noise layer is seeded with at least:
@@ -320,6 +323,9 @@ Additionally, depending on the type of clause, some extra data is added:
 * `=` clauses, `SELECT`, and `GROUP BY` - no extra data
 * `<>` clauses - a `:<>` symbol and the RHS constant; the data from the filtered
   column is not included
+* `<>` clauses of the form `column <> constant` - an additional noise layer
+  with a `:<>` symbol, a `:lower` symbol, and the constant converted to
+  lowercase
 * `[NOT] [I]LIKE` clauses - symbols indicating the type of clause (like `:ilike`)
   plus pattern-dependent data, see [Like pattern seeds](#like-pattern-seeds)
 * range clauses - the range endpoints or the symbol `:implicit` for implicit

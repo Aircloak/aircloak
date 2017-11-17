@@ -43,6 +43,29 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
     end
   end
 
+  describe "rewriting NOT IN" do
+    test "with one element in LHS" do
+      parsed = Parser.parse!("SELECT * FROM table WHERE x NOT IN ('string')")
+      expected = Parser.parse!("SELECT * FROM table WHERE x <> 'string'")
+
+      assert ASTNormalization.normalize(parsed) == expected
+    end
+
+    test "with many elements in LHS" do
+      parsed = Parser.parse!("SELECT * FROM table WHERE x NOT IN (1, 2, 3)")
+      expected = Parser.parse!("SELECT * FROM table WHERE x <> 1 AND x <> 2 AND x <> 3")
+
+      assert ASTNormalization.normalize(parsed) == expected
+    end
+
+    test "acts on subqueries" do
+      parsed = Parser.parse!("SELECT * FROM (SELECT * FROM Table WHERE x NOT IN (1, 2, 3)) x")
+      expected = Parser.parse!("SELECT * FROM (SELECT * FROM Table WHERE x <> 1 AND x <> 2 AND x <> 3) x")
+
+      assert ASTNormalization.normalize(parsed) == expected
+    end
+  end
+
   defp scrub_subquery_aliases(query), do:
     put_in(query, [Query.Lenses.subqueries() |> Lens.key(:alias)], nil)
 end
