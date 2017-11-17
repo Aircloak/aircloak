@@ -7,9 +7,23 @@ set -eo pipefail
 export CLOAK_NETWORK_ID=$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')
 export DEFAULT_SAP_HANA_SCHEMA="TEST_SCHEMA_$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')"
 
+function ignore_cleanup {
+  # NOOP which ignores cleanup while we're already cleaning up.
+  :
+}
+
 function cleanup {
-  set +x
-  echo "destroying network"
+  local exit_status=$?
+
+  # We'll ignore subsequent exit signals to avoid reentrancy.
+  trap ignore_cleanup EXIT TERM INT
+
+  echo "destroying network $CLOAK_NETWORK_ID"
+
+  # We need to kill the container before disconnecting it from the network. Otherwise, we end up with dangling network
+  # connections on database containers.
+  docker kill $CLOAK_CONTAINER > /dev/null || true
+  docker rm $CLOAK_CONTAINER > /dev/null || true
 
   for container_id in $(
     docker network inspect $CLOAK_NETWORK_ID --format '
@@ -23,13 +37,14 @@ function cleanup {
 
   docker network prune -f > /dev/null
 
-  docker kill $CLOAK_CONTAINER > /dev/null
-  docker rm $CLOAK_CONTAINER > /dev/null
-
   local dangling_volumes=$(docker volume ls -qf dangling=true)
   if [ "$dangling_volumes" != "" ]; then
     docker volume rm $dangling_volumes > /dev/null
   fi
+
+  echo "network $CLOAK_NETWORK_ID destroyed"
+
+  exit $exit_status
 }
 
 function ensure_container {
@@ -104,6 +119,7 @@ function start_cloak_container {
 }
 
 function start_cloak_with_databases {
+  echo "creating network $CLOAK_NETWORK_ID"
   docker network create --driver bridge $CLOAK_NETWORK_ID > /dev/null
   trap cleanup EXIT TERM INT
 
@@ -113,7 +129,7 @@ function start_cloak_with_databases {
 }
 
 function run_in_cloak {
-  docker exec -it -e DEFAULT_SAP_HANA_SCHEMA="$DEFAULT_SAP_HANA_SCHEMA" $CLOAK_CONTAINER \
+  docker exec $DOCKER_EXEC_ARGS -i -e DEFAULT_SAP_HANA_SCHEMA="$DEFAULT_SAP_HANA_SCHEMA" $CLOAK_CONTAINER \
     /bin/bash -c ". ~/.asdf/asdf.sh && $@"
 }
 
@@ -132,5 +148,5 @@ function cloak_compliance {
 function debug_cloak_compliance {
   start_cloak_with_databases
   gen_test_data
-  run_in_cloak "/bin/bash"
+  DOCKER_EXEC_ARGS="-t" run_in_cloak "/bin/bash"
 }
