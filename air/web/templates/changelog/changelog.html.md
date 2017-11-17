@@ -2,9 +2,10 @@
 
 ### Bugfixes
 
-- Fixed parsing of queries containing Unicode whitespace (pasted from Missive).
-- Fixed crash when using (I)LIKE over a MongoDB data source.
-- Fixed incorrect joining of tables when identically-named columns were selected.
+- Fixed parsing of queries containing Unicode whitespace.
+- Fixed crash when using non-emulated (I)LIKE over a MongoDB data source.
+- Fixed incorrect emulation of joins when identically-named columns were selected.
+- Fix crash in negative condition on `COUNT(*)`.
 
 ## Version 17.3.2
 
