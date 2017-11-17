@@ -30,7 +30,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "two math operations are considered a constant", do:
       assert constant_involved?("SELECT numeric + (numeric * numeric) FROM table")
 
-    test "constant only input to a function is considered a constant" do
+    test "constant if input to a function is a constant" do
       assert constant?("SELECT abs(1) FROM table")
       assert constant?("SELECT 1 + 1 FROM table")
     end
@@ -38,7 +38,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "constant involved if an user provided constant is an input to a function", do:
       assert constant_involved?("SELECT numeric + 1 FROM table")
 
-    test "touched by constant if a function input is deemed to be a potential constant", do:
+    test "considers two math operations to be the equivalent of there being a constant in the expression", do:
       assert constant_involved?("SELECT left(string, numeric + (numeric * numeric)) FROM table")
   end
 
