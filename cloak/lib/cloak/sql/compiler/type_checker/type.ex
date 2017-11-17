@@ -54,16 +54,15 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     # have previously been touched by a constant.
     seen_dangerous_math?: boolean,
 
-    # We keep track of the dangerous transformations each column has undergone in order
-    # to later produce a narrative to the analyst explaining what particular steps led to
-    # a query expression being rejected.
-    narrative_breadcrumbs: [offense],
+    # We keep track of the dangerous transformations a column has undergone in order
+    # to later produce an explanation outlining the steps that led to a query being rejected.
+    history_of_dangerous_transformations: [offense],
   }
 
   defstruct [
     constant?: false, constant_involved?: false,
     is_result_of_potentially_crashing_function?: false, dangerously_discontinuous?: false,
-    seen_dangerous_math?: false, narrative_breadcrumbs: [], raw_column?: false,
+    seen_dangerous_math?: false, history_of_dangerous_transformations: [], raw_column?: false,
     cast_raw_column?: false, raw_implicit_range?: false, applied_functions: [],
   ]
 end

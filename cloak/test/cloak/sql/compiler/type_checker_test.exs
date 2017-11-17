@@ -42,153 +42,25 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert constant_involved?("SELECT left(string, numeric + (numeric * numeric)) FROM table")
   end
 
-  describe "math is only dangerous if a constant is involved" do
-    Enum.each(~w(+ - * ^ /), fn(math_function) ->
-      test "#{math_function} with no constant" do
-        query = "SELECT numeric #{unquote(math_function)} numeric FROM table"
-        refute seen_dangerous_math?(query)
-      end
-    end)
-
-    # Note: we can't test with / because it is treated as a dangerous discontinuous
-    # function as soon as a constant is involved, and hence halts query compilation.
-    Enum.each(~w(+ - * ^), fn(math_function) ->
-      test "#{math_function} with constant" do
-        query = "SELECT numeric #{unquote(math_function)} 2 FROM table"
-        assert seen_dangerous_math?(query)
-      end
-    end)
-
-    test "pow with no constant" do
-      query = "SELECT pow(numeric, numeric) FROM table"
-      refute seen_dangerous_math?(query)
-    end
-
-    test "pow with constant" do
-      query = "SELECT pow(numeric, 2) FROM table"
-      assert seen_dangerous_math?(query)
-    end
-  end
-
-  describe "Discontinuous functions not dangerous when no constant" do
-    Enum.each(~w(abs ceil floor round trunc sqrt), fn(discontinuous_function) ->
-      test discontinuous_function do
-        query = "SELECT #{unquote(discontinuous_function)}(numeric) FROM table"
-        refute dangerously_discontinuous?(query)
-      end
-    end)
-
-    Enum.each(~w(div mod), fn(discontinuous_function) ->
-      test discontinuous_function do
-        query = "SELECT #{unquote(discontinuous_function)}(numeric, numeric) FROM table"
-        refute dangerously_discontinuous?(query)
-      end
-    end)
-
-    # Note bucket isn't tested here, because it only compiles if the alignment value is a constant.
-  end
-
-  describe "casts are not dangerously discontinuous by themselves" do
-    Enum.each(~w(integer real boolean), fn(cast_target) ->
-      test "cast from integer to #{cast_target}" do
-        query = "SELECT cast(numeric as #{unquote(cast_target)}) FROM table"
-        refute dangerously_discontinuous?(query)
-      end
-    end)
-
-    Enum.each(~w(datetime time date text interval), fn(cast_target) ->
-      test "cast from text to #{cast_target}" do
-        query = "SELECT cast(string as #{unquote(cast_target)}) FROM table"
-        refute dangerously_discontinuous?(query)
-      end
-    end)
-  end
-
-  describe "discontinuous string functions only dangerous if later converted to a number" do
-    Enum.each(~w(btrim ltrim rtrim), fn(discontinuous_function) ->
-      test "first #{discontinuous_function}, but not cast to number" do
-        query = "SELECT #{unquote(discontinuous_function)}(string, 'trim') FROM table"
-        refute dangerously_discontinuous?(query)
-      end
-
-      Enum.each(~w(integer real boolean), fn(cast_target) ->
-        test "first #{discontinuous_function}, then cast to #{cast_target}" do
-          query = """
-          SELECT cast(#{unquote(discontinuous_function)}(string, 'trim') as #{unquote(cast_target)})
-          FROM table
-          """
-          assert dangerously_discontinuous?(query)
-        end
-      end)
-
-      test "first #{discontinuous_function}, then use of length" do
-        query = "SELECT length(#{unquote(discontinuous_function)}(string, 'trim')) FROM table"
-        assert dangerously_discontinuous?(query)
-      end
-    end)
-
-    Enum.each(~w(left right), fn(discontinuous_function) ->
-      test "first #{discontinuous_function}, but not cast to number" do
-        query = "SELECT #{unquote(discontinuous_function)}(string, 2) FROM table"
-        refute dangerously_discontinuous?(query)
-      end
-
-      Enum.each(~w(integer real boolean), fn(cast_target) ->
-        test "first #{discontinuous_function}, then cast to #{cast_target}" do
-          query = """
-          SELECT cast(#{unquote(discontinuous_function)}(string, 2) as #{unquote(cast_target)})
-          FROM table
-          """
-          assert dangerously_discontinuous?(query)
-        end
-      end)
-
-      test "first #{discontinuous_function}, then use of length" do
-        query = "SELECT length(#{unquote(discontinuous_function)}(string, 2)) FROM table"
-        assert dangerously_discontinuous?(query)
-      end
-    end)
-
-    test "first substring, but not cast to number" do
-      query = "SELECT substring(string from 2) FROM table"
-      refute dangerously_discontinuous?(query)
-    end
-
-    Enum.each(~w(integer real boolean), fn(cast_target) ->
-      test "first substring, then cast to #{cast_target}" do
-        query = """
-        SELECT cast(substring(string from 2) as #{unquote(cast_target)})
-        FROM table
-        """
-        assert dangerously_discontinuous?(query)
-      end
-    end)
-
-    test "first substring, then use of length" do
-      query = "SELECT length(substring(string from 2)) FROM table"
-      assert dangerously_discontinuous?(query)
-    end
-  end
-
   describe "knows which columns were involved" do
     test "when a column is selected" do
       type = type_first_column("SELECT numeric FROM table")
-      assert expression_name(type.narrative_breadcrumbs) == ["numeric"]
+      assert expression_name(type.history_of_dangerous_transformations) == ["numeric"]
     end
 
     test "when a column is selected inside a function" do
       type = type_first_column("SELECT abs(numeric) FROM table")
-      assert expression_name(type.narrative_breadcrumbs) == ["numeric"]
+      assert expression_name(type.history_of_dangerous_transformations) == ["numeric"]
     end
 
     test "when a column is selected in a subquery" do
       type = type_first_column("SELECT col FROM (SELECT uid, numeric as col FROM table) t")
-      assert expression_name(type.narrative_breadcrumbs) == ["numeric"]
+      assert expression_name(type.history_of_dangerous_transformations) == ["numeric"]
     end
 
     test "when multiple columns are selected" do
       type = type_first_column("SELECT concat(string, cast(numeric as text)) FROM table")
-      assert expression_name(type.narrative_breadcrumbs) == ["string", "numeric"]
+      assert expression_name(type.history_of_dangerous_transformations) == ["string", "numeric"]
     end
 
     def expression_name(breadcrumb_trail), do:
@@ -200,12 +72,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
   describe "records a trail of narrative breadcrumbs" do
     test "empty narrative for queries without functions or math" do
       type = type_first_column("SELECT numeric FROM table")
-      assert [{%Expression{name: "numeric"}, []}] = type.narrative_breadcrumbs
+      assert [{%Expression{name: "numeric"}, []}] = type.history_of_dangerous_transformations
     end
 
     test "for function with discontinuious function div" do
       type = type_first_column("SELECT div(numeric, 10) FROM table")
-      assert [{%Expression{name: "numeric"}, [{:dangerously_discontinuous, "div"}]}] = type.narrative_breadcrumbs
+      assert [{%Expression{name: "numeric"}, [{:dangerously_discontinuous, "div"}]}] = type.history_of_dangerous_transformations
     end
 
     test "even when multiple occur" do
@@ -213,39 +85,39 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       [{%Expression{name: "numeric"}, [
          {:dangerously_discontinuous, "abs"},
          {:dangerously_discontinuous, "div"}]
-      }] = type.narrative_breadcrumbs
+      }] = type.history_of_dangerous_transformations
     end
 
     test "does not record discontinuous functions that aren't dangerous" do
       type = type_first_column("SELECT div(cast(sqrt(numeric) as integer), 10) FROM table")
-      [{%Expression{name: "numeric"}, [{:dangerously_discontinuous, "div"}]}] = type.narrative_breadcrumbs
+      [{%Expression{name: "numeric"}, [{:dangerously_discontinuous, "div"}]}] = type.history_of_dangerous_transformations
     end
 
     test "records math influenced by a constant as a potential offense" do
       type = type_first_column("SELECT numeric + 10 FROM table")
-      [{%Expression{name: "numeric"}, [{:dangerous_math, "+"}]}] = type.narrative_breadcrumbs
+      [{%Expression{name: "numeric"}, [{:dangerous_math, "+"}]}] = type.history_of_dangerous_transformations
     end
 
     test "does not record math between non-constant influenced columns" do
       type = type_first_column("SELECT numeric + numeric FROM table")
-      assert [{_column_expressions, []}] = type.narrative_breadcrumbs
+      assert [{_column_expressions, []}] = type.history_of_dangerous_transformations
     end
 
     test "records multiple math offenses" do
       type = type_first_column("SELECT numeric + 10 FROM (SELECT uid, numeric - 1 as numeric FROM table) t")
       assert [{%Expression{name: "numeric"}, [{:dangerous_math, "+"}, {:dangerous_math, "-"}]}] =
-        type.narrative_breadcrumbs
+        type.history_of_dangerous_transformations
     end
 
     test "deduplicates offenses - math" do
       type = type_first_column("SELECT numeric + 10 + 10 FROM table")
-      assert [{%Expression{name: "numeric"}, [{:dangerous_math, "+"}]}] = type.narrative_breadcrumbs
+      assert [{%Expression{name: "numeric"}, [{:dangerous_math, "+"}]}] = type.history_of_dangerous_transformations
     end
 
     test "deduplicates offenses - discontinuity" do
       type = type_first_column("SELECT numeric % 2 % 2 FROM table")
       assert [{%Expression{name: "numeric"}, [{:dangerously_discontinuous, "%"}]}] =
-        type.narrative_breadcrumbs
+        type.history_of_dangerous_transformations
     end
   end
 

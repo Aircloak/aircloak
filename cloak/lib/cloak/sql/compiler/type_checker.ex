@@ -65,7 +65,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     |> Enum.each(fn(column) ->
       type = establish_type(column, query)
       if type.is_result_of_potentially_crashing_function? do
-        explanation = type.narrative_breadcrumbs
+        explanation = type.history_of_dangerous_transformations
         |> filter_for_offensive_actions([:potentially_crashing_function])
         |> reject_all_but_relevant_offensive_actions([:potentially_crashing_function])
         |> Narrative.construct()
@@ -225,7 +225,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       raw_column?: true,
       cast_raw_column?: true,
       constant?: false,
-      narrative_breadcrumbs: [{expression, []}],
+      history_of_dangerous_transformations: [{expression, []}],
     }
 
   defp establish_type(column, query, future \\ [])
@@ -259,12 +259,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
           Enum.any?(child_types, &(&1.seen_dangerous_math?)),
         dangerously_discontinuous?: dangerously_discontinuous?(name, future, child_types) ||
           Enum.any?(child_types, &(&1.dangerously_discontinuous?)),
-        narrative_breadcrumbs: extend_narrative_breadcrumbs(name, future, child_types),
+        history_of_dangerous_transformations: extend_history_of_dangerous_transformations(name, future, child_types),
       }
     end
   end
 
-  defp extend_narrative_breadcrumbs(name, future, child_types), do:
+  defp extend_history_of_dangerous_transformations(name, future, child_types), do:
     Narrative.extend(child_types, [
       {dangerously_discontinuous?(name, future, child_types), {:dangerously_discontinuous, name}},
       {is_dangerous_math?(name, future, child_types), {:dangerous_math, name}},

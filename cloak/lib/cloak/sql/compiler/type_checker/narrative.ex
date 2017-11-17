@@ -23,7 +23,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Narrative do
   @spec extend([TypeChecker.Type.t], [{boolean, TypeChecker.Type.offense_type}]) :: [TypeChecker.Type.offense]
   def extend(child_types, potential_offenses), do:
     child_types
-    |> Enum.flat_map(&(&1.narrative_breadcrumbs))
+    |> Enum.flat_map(&(&1.history_of_dangerous_transformations))
     |> Enum.uniq()
     |> Enum.map(fn({expression, breadcrumbs}) ->
       breadcrumbs = Enum.reduce(potential_offenses, breadcrumbs, fn
