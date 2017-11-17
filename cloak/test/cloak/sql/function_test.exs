@@ -4,7 +4,11 @@ defmodule Cloak.Sql.Function.Test do
   alias Cloak.Sql.{Expression, Function}
 
   @discontinuous_functions ~w(% abs ceil ceiling div floor mod round trunc btrim left ltrim right rtrim substring) ++
-    [{:bucket, :lower}, {:bucket, :middle}, {:bucket, :upper}]
+    [
+      {:bucket, :lower}, {:bucket, :middle}, {:bucket, :upper},
+      {:cast, :integer}, {:cast, :real}, {:cast, :boolean}, {:cast, :datetime}, {:cast, :time},
+      {:cast, :date}, {:cast, :text}, {:cast, :interval}
+    ]
   @math_functions ~w(+ - / * ^ pow % abs ceil ceiling div floor mod round trunc)
 
   Enum.each(@discontinuous_functions, fn(discontinuous_function) ->

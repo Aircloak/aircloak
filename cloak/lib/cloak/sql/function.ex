@@ -101,21 +101,29 @@ defmodule Cloak.Sql.Function do
     # NOTICE: The `not_in_subquery` is set for `extract_words` because we are not yet sure it's safe in subqueries.
     ~w(extract_words) => %{type_specs: %{[:text] => :text}, attributes: [:not_in_subquery, :row_splitter]},
     [{:cast, :integer}] =>
-      %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer}},
+      %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer},
+      attributes: [:discontinuous]},
     [{:cast, :real}] =>
-      %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :real}},
+      %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :real},
+      attributes: [:discontinuous]},
     [{:cast, :boolean}] =>
-      %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :boolean}},
+      %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :boolean},
+      attributes: [:discontinuous]},
     [{:cast, :datetime}] =>
-      %{type_specs: %{[{:or, [:text, :datetime]}] => :datetime}},
+      %{type_specs: %{[{:or, [:text, :datetime]}] => :datetime},
+      attributes: [:discontinuous]},
     [{:cast, :time}] =>
-      %{type_specs: %{[{:or, [:text, :datetime, :time]}] => :time}},
+      %{type_specs: %{[{:or, [:text, :datetime, :time]}] => :time},
+      attributes: [:discontinuous]},
     [{:cast, :date}] =>
-      %{type_specs: %{[{:or, [:text, :datetime, :date]}] => :date}},
+      %{type_specs: %{[{:or, [:text, :datetime, :date]}] => :date},
+      attributes: [:discontinuous]},
     [{:cast, :text}] =>
-      %{type_specs: %{[:any] => :text}},
+      %{type_specs: %{[:any] => :text},
+      attributes: [:discontinuous]},
     [{:cast, :interval}] =>
-      %{type_specs: %{[{:or, [:text, :interval]}] => :interval}},
+      %{type_specs: %{[{:or, [:text, :interval]}] => :interval},
+      attributes: [:discontinuous]},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
