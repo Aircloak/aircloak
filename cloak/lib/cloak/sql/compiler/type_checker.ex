@@ -42,8 +42,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   @spec validate_allowed_usage_of_math_and_functions(Query.t) :: Query.t
   def validate_allowed_usage_of_math_and_functions(query) do
     each_subquery(query, &verify_usage_of_potentially_crashing_functions/1)
-    each_subquery(query, &verify_function_usage_for_selected_columns/1)
-    each_subquery(query, &verify_function_usage_for_condition_clauses/1)
     each_subquery(query, &verify_lhs_of_in_is_clear/1)
     each_subquery(query, &verify_lhs_of_not_equals_is_clear/1)
     each_subquery(query, &verify_lhs_of_not_like_is_clear/1)
@@ -78,48 +76,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
           by an expression that both contains a user data column as well as a constant value
           (for example `age / (age - 20)`), or if the square root is taken of an expression that
           contains a user data column as well as a constant value (for example `sqrt(age - 20)`).
-          """
-      end
-    end)
-
-  defp verify_function_usage_for_selected_columns(%Query{columns: _columns, subquery?: true} = query), do: query
-  defp verify_function_usage_for_selected_columns(%Query{columns: columns} = query), do:
-    Enum.each(columns, fn(column) ->
-      type = establish_type(column, query)
-      if type.dangerously_discontinuous? and type.seen_dangerous_math? do
-        explanation = type.narrative_breadcrumbs
-        |> filter_for_offensive_actions([:dangerously_discontinuous, :dangerous_math])
-        |> reject_all_but_relevant_offensive_actions([:dangerously_discontinuous, :dangerous_math])
-        |> Narrative.construct()
-        raise CompilationError, message: """
-          #{explanation}
-
-          Queries where a reported value is influenced by math and a discontinuous function
-          in conjunction with a constant are not allowed.
-          """
-      end
-    end)
-
-  defp verify_function_usage_for_condition_clauses(query), do:
-    Query.Lenses.db_filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Query.Lenses.order_condition_columns()
-    |> Lens.to_list(query)
-    |> Enum.each(fn(column) ->
-      type = establish_type(column, query)
-      if type.dangerously_discontinuous? or type.seen_dangerous_math? do
-        explanation = type.narrative_breadcrumbs
-        |> reject_all_but_relevant_offensive_actions([
-          :dangerously_discontinuous,
-          :dangerous_math
-        ])
-        |> Narrative.construct()
-        raise CompilationError, message: """
-          #{explanation}
-
-          Inequality clauses used to filter the data (like WHERE, HAVING and JOIN-condition where >,
-          >=, < or <= are used) are not allowed if the column value has either been transformed by
-          a math function or a discontinuous function where one of the other parameters was a constant.
           """
       end
     end)
