@@ -119,9 +119,7 @@ defmodule Cloak.Query.DbEmulator do
       Table.column(alias, Function.type(column))
     end)
     table = %{name: subquery.alias, columns: columns, user_id: user_id_name, decoders: [], projection: nil}
-    columns
-    |> Enum.map(&%Expression{table: table, name: &1.name, type: &1.type, user_id?: user_id_name == &1.name})
-    |> Enum.uniq()
+    Enum.map(columns, &%Expression{table: table, name: &1.name, type: &1.type, user_id?: user_id_name == &1.name})
   end
 
   defp set_column_row_index(%Expression{} = column, columns) do

@@ -103,7 +103,7 @@ defmodule Cloak.Sql.Lexer do
   defp whitespace() do
     ignore(
       either(
-        word_of(~r/[\h]/),
+        word_of(~r/[\h]/u),
         linebreak()
       )
     )

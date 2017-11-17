@@ -157,7 +157,12 @@ defmodule Cloak.Sql.Parser.Test do
   end
 
   test "whitespaces are ignored" do
-    assert_parse("select  foo\n from \n \n baz \n ; \n  ",
+    assert_parse("select  foo\n from \n \n baz  \n ; \n  ",
+      select(columns: [identifier("foo")], from: unquoted("baz")))
+  end
+
+  test "unicode whitespaces are ignored" do
+    assert_parse("select\u202Ffoo\u00A0from\u202Fbaz",
       select(columns: [identifier("foo")], from: unquoted("baz")))
   end
 

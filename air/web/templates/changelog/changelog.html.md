@@ -1,3 +1,12 @@
+## Version 17.3.3
+
+### Bugfixes
+
+- Fixed parsing of queries containing Unicode whitespace.
+- Fixed crash when using non-emulated (I)LIKE over a MongoDB data source.
+- Fixed incorrect emulation of joins when identically-named columns were selected.
+- Fix crash in negative condition on `COUNT(*)`.
+
 ## Version 17.3.2
 
 ### Bugfixes
