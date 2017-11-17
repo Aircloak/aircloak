@@ -705,7 +705,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
     test "insensitive to the table being aliased in subquery" do
       %{noise_layers: [%{base: base}, %{base: base}]} = compile!(
-        "SELECT COUNT(*) FROM (SELECT uid, numeric FROM table AS t WHERE numeric = 3) x",
+        "SELECT COUNT(*) FROM (SELECT uid, numeric FROM table AS t) x WHERE numeric = 3",
       data_source())
 
       assert {"table", "numeric", nil} = base
