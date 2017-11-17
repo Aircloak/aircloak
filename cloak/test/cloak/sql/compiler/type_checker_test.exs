@@ -131,7 +131,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric IN (1, 2, 3)")
 
     test "forbids unclear IN lhs", do:
-      assert {:error, "The left-hand side of an IN operator must be an unmodified database column."} =
+      assert {:error, "Only `lower`, `upper` can be used in the left-hand side of an IN operator."} =
         compile("SELECT COUNT(*) FROM table WHERE numeric + 1 IN (1, 2, 3)")
 
     test "allows clear IN lhs from subqueries", do:
@@ -139,7 +139,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
         compile("SELECT COUNT(*) FROM (SELECT numeric AS number FROM table) x WHERE number IN (1, 2, 3)")
 
     test "forbids unclear IN lhs from subqueries", do:
-      assert {:error, "The left-hand side of an IN operator must be an unmodified database column."} =
+      assert {:error, "Only `lower`, `upper` can be used in the left-hand side of an IN operator."} =
         compile("SELECT COUNT(*) FROM (SELECT numeric + 1 AS number FROM table) x WHERE number IN (1, 2, 3)")
   end
 
@@ -148,11 +148,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> 10")
 
     test "forbids unclear <> lhs", do:
-      assert {:error, "The <> operation can only be applied to an unmodified database column and a constant."} =
+      assert {:error, "Only `lower`, `upper` can be used in the left-hand side of an <> operator."} =
         compile("SELECT COUNT(*) FROM table WHERE numeric + 1 <> 10")
 
     test "forbids column <> column", do:
-      assert {:error, "The <> operation can only be applied to an unmodified database column and a constant."} =
+      assert {:error, "The right-hand side of an <> operator has to be a constant."} =
         compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
 
     test "allows clear <> lhs in subquery HAVING", do:
@@ -161,7 +161,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       """)
 
     test "forbids unclear <> lhs in subquery HAVING", do:
-      assert {:error, "The <> operation can only be applied to an unmodified database column" <> _} = compile("""
+      assert {:error, "Only `lower`, `upper` can be used in the left-hand side of an <> operator."} = compile("""
         SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING AVG(numeric + 1) <> 10) x
       """)
 
@@ -212,6 +212,20 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
 
     test "allows casts in ranges", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE CAST(string AS INTEGER) BETWEEN 0 AND 10")
+  end
+
+  describe "exceptions" do
+    for function <- ~w(upper lower) do
+      test "#{function} is allowed with IN" do
+        assert {:ok, _, _} =
+          compile("SELECT COUNT(*) FROM table WHERE #{unquote(function)}(string) IN ('foo', 'bar', 'baz')")
+      end
+
+      test "#{function} is allowed with NOT IN" do
+        assert {:ok, _, _} =
+          compile("SELECT COUNT(*) FROM table WHERE #{unquote(function)}(string) NOT IN ('foo', 'bar', 'baz')")
+      end
+    end
   end
 
   Enum.each(~w(constant_involved? constant?)a, fn(param) ->

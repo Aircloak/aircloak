@@ -52,7 +52,7 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
 
     test "JOIN ON-clause expression with more than 5 dangerous transformations" do
       query = """
-        SELECT string
+        SELECT c.string
         FROM #{offensive_subquery()} INNER JOIN table
           ON c.uid = table.uid and c.value <> 0
       """

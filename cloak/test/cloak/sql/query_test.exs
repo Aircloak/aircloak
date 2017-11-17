@@ -88,7 +88,7 @@ defmodule Cloak.Sql.QueryTest do
       FROM feat_users
       WHERE height <> 10 and male = true
     """).where_conditions |> Enum.into(MapSet.new())
-    assert MapSet.new(["in", "not in"]) == features_from("""
+    assert MapSet.new(["in", "<>"]) == features_from("""
       SELECT height
       FROM feat_users
       WHERE
