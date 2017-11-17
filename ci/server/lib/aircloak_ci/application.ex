@@ -4,10 +4,12 @@ defmodule AircloakCI.Application do
   use Application
 
   def start(_type, _args) do
-    children = [
-    ]
-
-    opts = [strategy: :one_for_one, name: AircloakCI.Supervisor]
-    Supervisor.start_link(children, opts)
+    Supervisor.start_link(
+      [
+        AircloakCI.CmdRunner.Supervisor
+      ],
+      strategy: :one_for_one,
+      name: AircloakCI.Supervisor
+    )
   end
 end
