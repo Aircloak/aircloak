@@ -258,4 +258,17 @@ defmodule Cloak.DataSource.MongoDBTest do
       SELECT left(name, 4) FROM #{@table} WHERE name LIKE 'user_' AND name NOT ILIKE 'USer__'
     """, %{rows: [%{occurrences: 9, row: ["user"]}]}
   end
+
+  test "handling of having clauses over distinct values in subqueries", context do
+    assert_query context, """
+      SELECT COUNT(*) FROM (SELECT _id, COUNT(name) FROM #{@table}_bills
+      GROUP BY _id HAVING COUNT(DISTINCT name) = 1) AS t
+    """, %{rows: [%{occurrences: 1, row: [10]}]}
+  end
+
+  test "sub-queries with complex order by", context do
+    assert_query context, """
+        SELECT COUNT(name) FROM (SELECT _id, name FROM #{@table}_bills_ids ORDER BY left(name, 2)) AS t
+      """, %{rows: [%{occurrences: 1, row: [20]}]}
+  end
 end
