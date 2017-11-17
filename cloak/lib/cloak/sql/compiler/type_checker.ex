@@ -11,7 +11,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   alias Cloak.Sql.Compiler.Helpers
 
   @max_allowed_dangerous_functions 5
-  @math_operations_before_considered_constant 1
+  @math_operations_before_considered_constant 2
 
 
   # -------------------------------------------------------------------
@@ -211,7 +211,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         raw_implicit_range?: Function.has_attribute?(function, :implicit_range) and
           Enum.all?(child_types, &(&1.cast_raw_column? || &1.constant?)),
         constant_involved?: any_touched_by_constant?(child_types) ||
-          math_operations_count(applied_functions) > @math_operations_before_considered_constant,
+          math_operations_count(applied_functions) >= @math_operations_before_considered_constant,
         history_of_columns_involved: combined_columns_involved(child_types),
       }
       |> extend_history_of_dangerous_transformations(name, child_types)
