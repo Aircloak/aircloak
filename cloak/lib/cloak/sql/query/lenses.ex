@@ -20,7 +20,7 @@ defmodule Cloak.Sql.Query.Lenses do
     ])
     |> terminal_elements()
 
-  @doc "Lens focusing on all outermost analyst provided elements in a query."
+  @doc "Lens focusing on all outermost analyst provided elements in the top-level query."
   deflens analyst_provided_expressions(), do:
     Lens.multiple([
       Lens.keys([:columns, :group_by]),
