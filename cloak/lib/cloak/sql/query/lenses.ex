@@ -20,6 +20,14 @@ defmodule Cloak.Sql.Query.Lenses do
     ])
     |> terminal_elements()
 
+  @doc "Lens focusing on all outermost analyst provided elements in the top-level query."
+  deflens analyst_provided_expressions(), do:
+    Lens.multiple([
+      Lens.keys([:columns, :group_by]),
+      Lens.key(:order_by) |> Lens.all() |> Lens.at(0),
+      filters_operands(),
+    ])
+
   @doc "Lens focusing on all terminal elements in a list of conditions."
   deflens conditions_terminals(), do: conditions() |> operands() |> terminal_elements()
 
@@ -195,6 +203,7 @@ defmodule Cloak.Sql.Query.Lenses do
       {_kind, _lhs, _rhs} -> Lens.at(2)
     end)
     |> Lens.key(:value)
+
 
   # -------------------------------------------------------------------
   # Internal lenses

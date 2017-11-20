@@ -387,3 +387,21 @@ value of the column in question with every row. In that case 3 values are
 produced instead - the min, max and count of the column. This process can be
 repeated in case of multiple aggregations (in subqueries) by taking the min of
 mins, max of maxes and sum of counts.
+
+## Function and math restrictions
+
+In order to prevent users from being able to express arbitrary binary logic through the
+use of functions (which would allow them to circumvent range restrictions), we apply an
+upper limit on the number of distinct function invocations we allow on a single column
+expression. This limit has been set to [5 (assumed to be safe based on the attack
+examples we have come up with so far)](https://github.com/Aircloak/aircloak/issues/2064).
+
+The attacks we have come up with have in common that the attacker had to use constants
+as part of the expressions. Using the restricted functions by themselves seems to be safe.
+The restrictions we enforce therefore only apply when constants are involved.
+
+Since it is possible to create constants with functions and database columns alone (`div(age, age)`
+being an example - see [the following issue for
+more examples](https://github.com/Aircloak/aircloak/issues/1360)), and we doubt that we have
+found all ways in which constants could be constructed, we have made the simplifying
+assumption that two or more mathematical operations in an expression act as a constant.

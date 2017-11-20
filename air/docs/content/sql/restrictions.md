@@ -45,84 +45,76 @@ When using `LIMIT` and `OFFSET` in a subquery:
 
 ## Math and function application restrictions
 
-Aircloak applies some restrictions on how certain functions and math operators can be used in your queries __when
-they are used together with constant values__.
-As an example consider the function `btrim`. It can always be used directly on a column expression (for example `btrim(name)`),
-but it's usage is restricted when a constant is involved (for example `btrim(name, 'some constant')`).
+The usage of some functions is restricted. The scenarios when the restrictions come into effect are when a database
+column is transformed by more than 5 such functions and the expression on which the functions operate also contains a constant.
 
-The restrictions are as follows:
+An expression containing two or more mathematical operators is considered to be the equivalent of a constant.
+The reason for this is that one can easily construct constants from pure database columns.
+For example `div(column, column)` equals the number 1.
 
-- you cannot _select an expression_ that includes mathematical operations with constants __as well as__ restricted functions
-- you cannot use an expression in a filter condition clause inequality (meaning `>`, `>=`, `<`, or `<=` in a `WHERE`-, `JOIN`- or `HAVING`-clause)
-  if it includes math __or__ includes a restricted function
-- you cannot use the result of a cast or of applying a date or time extraction function (like `year`, `hour` etc)
-  on a `date`, `time` or `datetime` column in a filter condition clause (neither match nor inequality clause).
+The rules apply to the following functions:
 
-The following numerical functions are restricted when at least one of the arguments contain a constant expression:
-`abs`, `bucket`, `ceil`, `div`, `floor`, `mod`, `round`, `sqrt`, `/`, `trunc`, and `cast`'s.
+- `abs`, `bucket`, `ceil`, `floor`, `length`, `round`, `trunc`, and `cast`'s.
+- `+`, `-`, `*`, `/`, `^`, `%`, `pow`, `mod`, `div`, 'sqrt'
+- `year`, `quarter`, `month`, `day`, `hour`, `minute`, `second`, `weekday`, `date_trunc`
+- `btrim`, `ltrim`, `rtrim`, `left`, `right`, `substring`
 
-The following string functions are restricted when at least one of the arguments contain a constant expression,
-and when their return value is later converted to a number: `btrim`, `left`, `ltrim`, `right`, `rtrim`, and `substring`.
-
-The same applies to the following math operations if one or more of their arguments is an expression containing a constant:
-`+`, `-`, `*`, `/`, `^`, `pow`.
-
-The following date and time functions:
-`year`, `quarter`, `month`, `day`, `hour`, `minute`, `second`, `weekday`
-
-Below are some examples of restrictions in action:
+Below is an example of the restrictions in action:
 
 ```sql
--- The following examples show expressions that are not allowed
--- for column expressions that are selected:
+-- The following query contains more than 5 restricted functions as well as a constant and
+-- is therefore rejected.
 
--- both abs and + run on a value in combination with a constant
-abs(age + 1)
-
--- string function used in combination with a constant value,
--- and later part of a math expression with a constant.
-length(btrim(name, 'constant')) + 1
-
--- both sides of the math expression are values that have been
--- processed with a constant value. This expression is
--- forbidden because the columns, in addition to the math have
--- been processed by a discontinuous string function together with
--- a constant value.
-length(btrim(first_name, 'constant')) + length(btrim(last_name, 'constant'))
-
-
--- The following examples show expressions that are allowed
--- for column expressions that are selected, but not allowed in
--- filter condition inequality clauses
-
--- restricted function with a constant
-length(btrim(name, 'constant'))
-
--- math with a constant
-age * 10
-
-
--- The following examples show expressions that are allowed
--- for column expressions that are selected, but not allowed in
--- a filter condition irrespective of whether they are match conditions
--- or inequality conditions, because they extract parts of a date or time
-
--- cast of a date
-left(cast(date as text), 7)
-
--- extract part of a date
-year(date)
-
-
--- The following show examples of the restricted functions which are OK
--- both in column expressions that are selected as well as filtering
--- clauses, despite being complex. The reason is that there are no
--- constants involved
-
-length(btrim(firstname, lastname)) + age
-length(cast(salary + salary / age as text))
+SELECT
+  -- This expression contains a total of 7 restricted functions:
+  -- - 3 from value1
+  -- - 3 from value2
+  -- - 1 from the addition of value1 and value2
+  value1 + value2
+FROM (
+  SELECT
+    uid,
+    -- contains 3 restricted functions, namely:
+    -- - division with a constant
+    -- - abs on an expression containing a constant
+    -- - + where one of the arguments is an expression containing a constant
+    abs(div(age, 2)) + height as value1
+  FROM table1
+) a INNER JOIN (
+  SELECT
+    uid,
+    -- contains 3 restricted functions, namely:
+    -- - addition with a constant
+    -- - division with a constant
+    -- - multiplication where one of the arguments is an expression containing a constant
+    (birth_year + 1) / 11 * height as value2
+  FROM table
+) b ON a.uid = b.uid
 ```
 
+Below is an example of a query being rejected because multiple math operators have been interpreted as being a constant:
+
+```sql
+SELECT
+  -- we have a total of 6 functions operating on an expression containing a potential constant,
+  -- as a result the query is rejected.
+  floor(abs(sqrt(mod(floor(mod(
+    -- Aircloak considers two or more math operations to potentially be a constant
+    (age / age) / age
+  , 2)), 2))))
+FROM table
+```
+
+Functions that can cause database exceptions when a database column contains a certain value are
+prohibited. These functions include division and sqrt when the divisor and the parameter respectively are
+expressions containing a database column as well as a constant value.
+
+Below is an example of the restrictions in action:
+
+```sql
+-- The following query is illegal as the divisor contains a constant, in this case the number 1
+SELECT age / (age + 1) FROM table
+```
 
 ## Inequality restrictions
 
