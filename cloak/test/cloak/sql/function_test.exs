@@ -9,8 +9,6 @@ defmodule Cloak.Sql.Function.Test do
       {:cast, :integer}, {:cast, :real}, {:cast, :boolean}, {:cast, :datetime}, {:cast, :time},
       {:cast, :date}, {:cast, :text}, {:cast, :interval}
     ]
-  @math_functions ~w(+ - / * ^ pow % abs ceil ceiling div floor mod round trunc)
-
   Enum.each(@discontinuous_functions, fn(discontinuous_function) ->
     test "#{inspect(discontinuous_function)} is registered as a discontinuous function", do:
       assert Function.discontinuous_function?(unquote(discontinuous_function))
@@ -19,6 +17,7 @@ defmodule Cloak.Sql.Function.Test do
       assert Enum.member?(Function.discontinuous_functions(), unquote(discontinuous_function))
   end)
 
+  @math_functions ~w(+ - / * ^ pow % abs ceil ceiling div floor mod round trunc)
   Enum.each(@math_functions, fn(math_function) ->
     test "#{math_function} is registered as a math function", do:
       assert Function.math_function?(unquote(math_function))
