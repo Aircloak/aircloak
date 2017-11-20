@@ -41,26 +41,26 @@ defmodule Cloak.Sql.Function do
     ~w(avg stddev) => %{attributes: [:aggregator], type_specs: %{[numeric] => :real}},
     ~w(avg_noise stddev_noise) => %{attributes: [:aggregator, :not_in_subquery], type_specs: %{[numeric] => :real}},
     ~w(hour minute second) =>
-      %{attributes: [:implicit_range, :non_injective], type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
+      %{attributes: [:implicit_range, :restricted], type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
     ~w(year quarter month day weekday) =>
-      %{attributes: [:implicit_range, :non_injective], type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
-    ~w(date_trunc) => %{attributes: [:implicit_range, :non_injective], type_specs: %{
+      %{attributes: [:implicit_range, :restricted], type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
+    ~w(date_trunc) => %{attributes: [:implicit_range, :restricted], type_specs: %{
       [{:constant, :text}, :time] => :time,
       [{:constant, :text}, {:or, [:datetime, :date]}] => :datetime
     }},
     ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer},
-      attributes: [:math, :non_injective]},
-    ~w(round trunc) => %{attributes: [:implicit_range, :math, :non_injective], type_specs: %{
+      attributes: [:math, :restricted]},
+    ~w(round trunc) => %{attributes: [:implicit_range, :math, :restricted], type_specs: %{
       [numeric] => :integer,
       [numeric, {:constant, :integer}] => :real,
     }},
     [{:bucket, :lower}, {:bucket, :upper}, {:bucket, :middle}] =>
-      %{attributes: [:implicit_range, :non_injective], type_specs: %{[numeric, numeric] => :real}},
+      %{attributes: [:implicit_range, :restricted], type_specs: %{[numeric, numeric] => :real}},
     ~w(abs) => %{type_specs: %{[:real] => :real, [:integer] => :integer},
-      attributes: [:math, :non_injective]},
+      attributes: [:math, :restricted]},
     ~w(sqrt) => %{type_specs: %{[numeric] => :real}},
     ~w(div) => %{type_specs: %{[:integer, :integer] => :integer}, attributes: [:math]},
-    ~w(mod %) => %{type_specs: %{[:integer, :integer] => :integer}, attributes: [:math, :non_injective]},
+    ~w(mod %) => %{type_specs: %{[:integer, :integer] => :integer}, attributes: [:math, :restricted]},
     ~w(pow ^) => %{type_specs: %{[numeric, numeric] => :real}, attributes: [:math]},
     ~w(+) => %{type_specs: Map.merge(arithmetic_operation, %{
       [:date, :interval] => :datetime,
@@ -88,13 +88,13 @@ defmodule Cloak.Sql.Function do
       [numeric, numeric] => :real,
       [:interval, {:or, [:integer, :real]}] => :interval,
     }, attributes: [:math]},
-    ~w(length) => %{type_specs: %{[:text] => :integer}, attributes: [:non_injective]},
+    ~w(length) => %{type_specs: %{[:text] => :integer}, attributes: [:restricted]},
     ~w(lower lcase upper ucase) => %{type_specs: %{[:text] => :text}},
-    ~w(left right) => %{type_specs: %{[:text, :integer] => :text}, attributes: [:non_injective]},
+    ~w(left right) => %{type_specs: %{[:text, :integer] => :text}, attributes: [:restricted]},
     ~w(btrim ltrim rtrim) => %{type_specs: %{[:text, {:optional, {:constant, :text}}] => :text},
-      attributes: [:non_injective]},
+      attributes: [:restricted]},
     ~w(substring) => %{type_specs: %{[:text, :integer, {:optional, :integer}] => :text},
-      attributes: [:non_injective]},
+      attributes: [:restricted]},
     ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
     ~w(hex) => %{type_specs: %{[:text] => :text}},
     ~w(hash) => %{type_specs: %{[:text] => :integer, [:integer] => :integer, [:real] => :integer}},
@@ -102,28 +102,28 @@ defmodule Cloak.Sql.Function do
     ~w(extract_words) => %{type_specs: %{[:text] => :text}, attributes: [:not_in_subquery, :row_splitter]},
     [{:cast, :integer}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer},
-      attributes: [:non_injective]},
+      attributes: [:restricted]},
     [{:cast, :real}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :real},
-      attributes: [:non_injective]},
+      attributes: [:restricted]},
     [{:cast, :boolean}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :boolean},
-      attributes: [:non_injective]},
+      attributes: [:restricted]},
     [{:cast, :datetime}] =>
       %{type_specs: %{[{:or, [:text, :datetime]}] => :datetime},
-      attributes: [:non_injective]},
+      attributes: [:restricted]},
     [{:cast, :time}] =>
       %{type_specs: %{[{:or, [:text, :datetime, :time]}] => :time},
-      attributes: [:non_injective]},
+      attributes: [:restricted]},
     [{:cast, :date}] =>
       %{type_specs: %{[{:or, [:text, :datetime, :date]}] => :date},
-      attributes: [:non_injective]},
+      attributes: [:restricted]},
     [{:cast, :text}] =>
       %{type_specs: %{[:any] => :text},
-      attributes: [:non_injective]},
+      attributes: [:restricted]},
     [{:cast, :interval}] =>
       %{type_specs: %{[{:or, [:text, :interval]}] => :interval},
-      attributes: [:non_injective]},
+      attributes: [:restricted]},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -236,16 +236,16 @@ defmodule Cloak.Sql.Function do
     |> Enum.map(fn({name, _}) -> name end)
     |> Enum.filter(& math_function?(&1))
 
-  @doc "Returns true if a function is non_injective"
-  @spec non_injective_function?(t | String.t | nil) :: boolean
-  def non_injective_function?(param), do: has_attribute?(param, :non_injective)
+  @doc "Returns true if a function is restricted"
+  @spec restricted_function?(t | String.t | nil) :: boolean
+  def restricted_function?(param), do: has_attribute?(param, :restricted)
 
-  @doc "Returns all non_injective functions"
-  @spec non_injective_functions() :: [String.t]
-  def non_injective_functions(), do:
+  @doc "Returns all restricted functions"
+  @spec restricted_functions() :: [String.t]
+  def restricted_functions(), do:
     @functions
     |> Enum.map(fn({name, _}) -> name end)
-    |> Enum.filter(& non_injective_function?(&1))
+    |> Enum.filter(& restricted_function?(&1))
 
 
   # -------------------------------------------------------------------

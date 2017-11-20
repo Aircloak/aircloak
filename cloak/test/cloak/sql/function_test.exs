@@ -3,18 +3,18 @@ defmodule Cloak.Sql.Function.Test do
 
   alias Cloak.Sql.{Expression, Function}
 
-  @non_injective_functions ~w(% abs ceil ceiling floor length mod round trunc btrim left ltrim right rtrim
+  @restricted_functions ~w(% abs ceil ceiling floor length mod round trunc btrim left ltrim right rtrim
     substring year quarter month day weekday hour minute second date_trunc) ++ [
       {:bucket, :lower}, {:bucket, :middle}, {:bucket, :upper},
       {:cast, :integer}, {:cast, :real}, {:cast, :boolean}, {:cast, :datetime}, {:cast, :time},
       {:cast, :date}, {:cast, :text}, {:cast, :interval}
     ]
-  Enum.each(@non_injective_functions, fn(non_injective_function) ->
-    test "#{inspect(non_injective_function)} is registered as a non_injective function", do:
-      assert Function.non_injective_function?(unquote(non_injective_function))
+  Enum.each(@restricted_functions, fn(restricted_function) ->
+    test "#{inspect(restricted_function)} is registered as a restricted function", do:
+      assert Function.restricted_function?(unquote(restricted_function))
 
-    test "#{inspect(non_injective_function)} is in the list of non_injective functions", do:
-      assert Enum.member?(Function.non_injective_functions(), unquote(non_injective_function))
+    test "#{inspect(restricted_function)} is in the list of restricted functions", do:
+      assert Enum.member?(Function.restricted_functions(), unquote(restricted_function))
   end)
 
   @math_functions ~w(+ - / * ^ pow % abs ceil ceiling div floor mod round trunc)
