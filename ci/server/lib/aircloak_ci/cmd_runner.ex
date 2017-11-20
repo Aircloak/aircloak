@@ -27,7 +27,7 @@ defmodule AircloakCI.CmdRunner do
     :ok = run(cmd, opts)
 
   @doc "Runs the command and waits for it to finish."
-  @spec run(String.t, opts) :: :ok | {:error, :timeout | integer}
+  @spec run(String.t, opts) :: :ok | {:error, String.t}
   def run(cmd, opts \\ []) do
     {:ok, runner} = AircloakCI.CmdRunner.Supervisor.start_runner()
     GenServer.call(runner, {:run, cmd, normalize_opts(opts)}, :infinity)
@@ -52,16 +52,16 @@ defmodule AircloakCI.CmdRunner do
         Process.send_after(self(), :timeout, timeout)
     end
 
-    {:noreply, %{from: from, pid: start_cmd(cmd, opts)}}
+    {:noreply, %{cmd: cmd, from: from, pid: start_cmd(cmd, opts)}}
   end
 
   @impl GenServer
   def handle_info({:EXIT, pid, reason}, %{pid: pid} = state) do
-    GenServer.reply(state.from, result(reason))
+    GenServer.reply(state.from, result(reason, state.cmd))
     {:stop, :shutdown, state}
   end
   def handle_info(:timeout, state) do
-    GenServer.reply(state.from, {:error, :timeout})
+    GenServer.reply(state.from, {:error, "timeout running `#{state.cmd}`"})
     {:stop, :shutdown, state}
   end
   def handle_info(other, state), do:
@@ -82,8 +82,8 @@ defmodule AircloakCI.CmdRunner do
       end
     )
 
-  defp result(:normal), do: :ok
-  defp result({:exit_status, status}), do: {:error, status}
+  defp result(:normal, _cmd), do: :ok
+  defp result({:exit_status, status}, cmd), do: {:error, "error running `#{cmd}`"}
 
   defp start_cmd(cmd, opts) do
     print_output = fn(_stdout_or_err, _os_pid, output) -> IO.write(output) end

@@ -1,6 +1,7 @@
 defmodule AircloakCI.Build do
   @moduledoc "Helpers for working with a single build."
-  alias AircloakCI.CmdRunner
+
+  alias AircloakCI.{CmdRunner, Github}
 
 
   # -------------------------------------------------------------------
@@ -13,22 +14,32 @@ defmodule AircloakCI.Build do
   This function initializes the folder structure for the given build, clones the repo, and merges the target branch into
   the source branch.
   """
-  @spec initialize(AircloakCI.Github.pull_request) :: :ok | {:error, String.t}
+  @spec initialize(Github.pull_request) :: :ok | {:error, String.t}
   def initialize(pr) do
     init_folder(pr)
 
     clone_repo(pr)
-    repo_git!(pr, "reset --hard HEAD")
-    repo_git!(pr, "checkout master")
-    repo_git!(pr, "pull")
-    repo_git!(pr, "checkout #{pr.source_branch}")
-    repo_git!(pr, "checkout #{pr.target_branch}")
+    cmd!(pr, "git reset --hard HEAD")
+    cmd!(pr, "git checkout master")
+    cmd!(pr, "git pull")
+    cmd!(pr, "git checkout #{pr.source_branch}")
+    cmd!(pr, "git checkout #{pr.target_branch}")
 
-    case repo_git(pr, "merge --no-ff --no-commit #{pr.source_branch}") do
+    case cmd(pr, "git merge --no-ff --no-commit #{pr.source_branch}") do
       :ok -> :ok
-      {:error, _} -> {:error, "This branch can't be merged automatically."}
+      {:error, _} -> {:error, "this branch can't be merged automatically."}
     end
   end
+
+  @doc "Executes the given command in the PR build folder."
+  @spec cmd(Github.pull_request, String.t, CmdRunner.opts) :: :ok | {:error, String.t}
+  def cmd(pr, cmd, opts \\ []), do:
+    CmdRunner.run(cmd, [cd: src_folder(pr)] ++ opts)
+
+  @doc "Executes the given command in the PR build folder, raises on error."
+  @spec cmd!(Github.pull_request, String.t, CmdRunner.opts) :: :ok
+  def cmd!(pr, cmd, opts \\ []), do:
+    :ok = cmd(pr, cmd, opts)
 
 
   # -------------------------------------------------------------------
@@ -60,7 +71,7 @@ defmodule AircloakCI.Build do
 
 
   # -------------------------------------------------------------------
-  # Git helpers
+  # Internal functions
   # -------------------------------------------------------------------
 
   defp clone_repo(pr) do
@@ -70,10 +81,4 @@ defmodule AircloakCI.Build do
         timeout: :timer.minutes(1)
       )
   end
-
-  defp repo_git!(pr, args), do:
-    CmdRunner.run!("git #{args}", cd: src_folder(pr))
-
-  defp repo_git(pr, args), do:
-    CmdRunner.run("git #{args}", cd: src_folder(pr))
 end
