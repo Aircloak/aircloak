@@ -3,18 +3,18 @@ defmodule Cloak.Sql.Function.Test do
 
   alias Cloak.Sql.{Expression, Function}
 
-  @discontinuous_functions ~w(% abs ceil ceiling floor length mod round trunc btrim left ltrim right rtrim
+  @non_injective_functions ~w(% abs ceil ceiling floor length mod round trunc btrim left ltrim right rtrim
     substring year quarter month day weekday hour minute second date_trunc) ++ [
       {:bucket, :lower}, {:bucket, :middle}, {:bucket, :upper},
       {:cast, :integer}, {:cast, :real}, {:cast, :boolean}, {:cast, :datetime}, {:cast, :time},
       {:cast, :date}, {:cast, :text}, {:cast, :interval}
     ]
-  Enum.each(@discontinuous_functions, fn(discontinuous_function) ->
-    test "#{inspect(discontinuous_function)} is registered as a discontinuous function", do:
-      assert Function.discontinuous_function?(unquote(discontinuous_function))
+  Enum.each(@non_injective_functions, fn(non_injective_function) ->
+    test "#{inspect(non_injective_function)} is registered as a non_injective function", do:
+      assert Function.non_injective_function?(unquote(non_injective_function))
 
-    test "#{inspect(discontinuous_function)} is in the list of discontinuous functions", do:
-      assert Enum.member?(Function.discontinuous_functions(), unquote(discontinuous_function))
+    test "#{inspect(non_injective_function)} is in the list of non_injective functions", do:
+      assert Enum.member?(Function.non_injective_functions(), unquote(non_injective_function))
   end)
 
   @math_functions ~w(+ - / * ^ pow % abs ceil ceiling div floor mod round trunc)

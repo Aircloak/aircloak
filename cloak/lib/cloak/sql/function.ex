@@ -41,26 +41,26 @@ defmodule Cloak.Sql.Function do
     ~w(avg stddev) => %{attributes: [:aggregator], type_specs: %{[numeric] => :real}},
     ~w(avg_noise stddev_noise) => %{attributes: [:aggregator, :not_in_subquery], type_specs: %{[numeric] => :real}},
     ~w(hour minute second) =>
-      %{attributes: [:implicit_range, :discontinuous], type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
+      %{attributes: [:implicit_range, :non_injective], type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
     ~w(year quarter month day weekday) =>
-      %{attributes: [:implicit_range, :discontinuous], type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
-    ~w(date_trunc) => %{attributes: [:implicit_range, :discontinuous], type_specs: %{
+      %{attributes: [:implicit_range, :non_injective], type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
+    ~w(date_trunc) => %{attributes: [:implicit_range, :non_injective], type_specs: %{
       [{:constant, :text}, :time] => :time,
       [{:constant, :text}, {:or, [:datetime, :date]}] => :datetime
     }},
     ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer},
-      attributes: [:math, :discontinuous]},
-    ~w(round trunc) => %{attributes: [:implicit_range, :math, :discontinuous], type_specs: %{
+      attributes: [:math, :non_injective]},
+    ~w(round trunc) => %{attributes: [:implicit_range, :math, :non_injective], type_specs: %{
       [numeric] => :integer,
       [numeric, {:constant, :integer}] => :real,
     }},
     [{:bucket, :lower}, {:bucket, :upper}, {:bucket, :middle}] =>
-      %{attributes: [:implicit_range, :discontinuous], type_specs: %{[numeric, numeric] => :real}},
+      %{attributes: [:implicit_range, :non_injective], type_specs: %{[numeric, numeric] => :real}},
     ~w(abs) => %{type_specs: %{[:real] => :real, [:integer] => :integer},
-      attributes: [:math, :discontinuous]},
+      attributes: [:math, :non_injective]},
     ~w(sqrt) => %{type_specs: %{[numeric] => :real}},
     ~w(div) => %{type_specs: %{[:integer, :integer] => :integer}, attributes: [:math]},
-    ~w(mod %) => %{type_specs: %{[:integer, :integer] => :integer}, attributes: [:math, :discontinuous]},
+    ~w(mod %) => %{type_specs: %{[:integer, :integer] => :integer}, attributes: [:math, :non_injective]},
     ~w(pow ^) => %{type_specs: %{[numeric, numeric] => :real}, attributes: [:math]},
     ~w(+) => %{type_specs: Map.merge(arithmetic_operation, %{
       [:date, :interval] => :datetime,
@@ -88,13 +88,13 @@ defmodule Cloak.Sql.Function do
       [numeric, numeric] => :real,
       [:interval, {:or, [:integer, :real]}] => :interval,
     }, attributes: [:math]},
-    ~w(length) => %{type_specs: %{[:text] => :integer}, attributes: [:discontinuous]},
+    ~w(length) => %{type_specs: %{[:text] => :integer}, attributes: [:non_injective]},
     ~w(lower lcase upper ucase) => %{type_specs: %{[:text] => :text}},
-    ~w(left right) => %{type_specs: %{[:text, :integer] => :text}, attributes: [:discontinuous]},
+    ~w(left right) => %{type_specs: %{[:text, :integer] => :text}, attributes: [:non_injective]},
     ~w(btrim ltrim rtrim) => %{type_specs: %{[:text, {:optional, {:constant, :text}}] => :text},
-      attributes: [:discontinuous]},
+      attributes: [:non_injective]},
     ~w(substring substring_for) => %{type_specs: %{[:text, :integer, {:optional, :integer}] => :text},
-      attributes: [:discontinuous]},
+      attributes: [:non_injective]},
     ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
     ~w(hex) => %{type_specs: %{[:text] => :text}},
     ~w(hash) => %{type_specs: %{[:text] => :integer, [:integer] => :integer, [:real] => :integer}},
@@ -102,28 +102,28 @@ defmodule Cloak.Sql.Function do
     ~w(extract_words) => %{type_specs: %{[:text] => :text}, attributes: [:not_in_subquery, :row_splitter]},
     [{:cast, :integer}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer},
-      attributes: [:discontinuous]},
+      attributes: [:non_injective]},
     [{:cast, :real}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :real},
-      attributes: [:discontinuous]},
+      attributes: [:non_injective]},
     [{:cast, :boolean}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :boolean},
-      attributes: [:discontinuous]},
+      attributes: [:non_injective]},
     [{:cast, :datetime}] =>
       %{type_specs: %{[{:or, [:text, :datetime]}] => :datetime},
-      attributes: [:discontinuous]},
+      attributes: [:non_injective]},
     [{:cast, :time}] =>
       %{type_specs: %{[{:or, [:text, :datetime, :time]}] => :time},
-      attributes: [:discontinuous]},
+      attributes: [:non_injective]},
     [{:cast, :date}] =>
       %{type_specs: %{[{:or, [:text, :datetime, :date]}] => :date},
-      attributes: [:discontinuous]},
+      attributes: [:non_injective]},
     [{:cast, :text}] =>
       %{type_specs: %{[:any] => :text},
-      attributes: [:discontinuous]},
+      attributes: [:non_injective]},
     [{:cast, :interval}] =>
       %{type_specs: %{[{:or, [:text, :interval]}] => :interval},
-      attributes: [:discontinuous]},
+      attributes: [:non_injective]},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -236,16 +236,16 @@ defmodule Cloak.Sql.Function do
     |> Enum.map(fn({name, _}) -> name end)
     |> Enum.filter(& math_function?(&1))
 
-  @doc "Returns true if a function is discontinuous"
-  @spec discontinuous_function?(t | String.t | nil) :: boolean
-  def discontinuous_function?(param), do: has_attribute?(param, :discontinuous)
+  @doc "Returns true if a function is non_injective"
+  @spec non_injective_function?(t | String.t | nil) :: boolean
+  def non_injective_function?(param), do: has_attribute?(param, :non_injective)
 
-  @doc "Returns all discontinuous functions"
-  @spec discontinuous_functions() :: [String.t]
-  def discontinuous_functions(), do:
+  @doc "Returns all non_injective functions"
+  @spec non_injective_functions() :: [String.t]
+  def non_injective_functions(), do:
     @functions
     |> Enum.map(fn({name, _}) -> name end)
-    |> Enum.filter(& discontinuous_function?(&1))
+    |> Enum.filter(& non_injective_function?(&1))
 
 
   # -------------------------------------------------------------------

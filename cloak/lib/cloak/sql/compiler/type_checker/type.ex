@@ -128,7 +128,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
 
   defp restricted_function?(_constant_involved? = false, _name), do: false
   defp restricted_function?(_constant_involved? = true, name), do:
-    Function.discontinuous_function?(name) or Function.math_function?(name)
+    Function.non_injective_function?(name) or Function.math_function?(name)
 
   defp performs_potentially_crashing_function?("/", [_, child_type]), do:
     # This allows division by a pure constant, but not by a column influenced by a constant
