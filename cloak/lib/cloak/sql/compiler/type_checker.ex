@@ -155,7 +155,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       end
     end)
 
-  @allowed_in_functions ~w(lower upper)
+  @allowed_in_functions ~w(lower upper substring trim ltrim rtrim btrim)
   defp verify_lhs_of_in_is_clear(query), do:
     verify_conditions(query, &Condition.in?/1, fn({:in, lhs, _}) ->
       unless clear_lhs?(lhs, query, @allowed_in_functions) do
@@ -164,7 +164,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       end
     end)
 
-  @allowed_not_equals_functions ~w(lower upper)
+  @allowed_not_equals_functions ~w(lower upper substring trim ltrim rtrim btrim)
   defp verify_lhs_of_not_equals_is_clear(query), do:
     verify_conditions(query, &Condition.not_equals?/1, fn({:comparison, lhs, :<>, rhs}) ->
       unless clear_lhs?(lhs, query, @allowed_not_equals_functions), do:
@@ -190,9 +190,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   defp clear_lhs?(%Expression{aggregate?: true, function_args: [lhs]}, query, allowed_functions), do:
     clear_lhs?(lhs, query, allowed_functions)
-  defp clear_lhs?(%Expression{function: function, function_args: [lhs]}, query, allowed_functions), do:
-    (function in allowed_functions) and clear_lhs?(lhs, query, allowed_functions)
+  defp clear_lhs?(%Expression{function?: true, function: function, function_args: args}, query, allowed_functions), do:
+    (function in allowed_functions) and clear_lhs?(main_argument(args), query, allowed_functions)
   defp clear_lhs?(lhs, query, _allowed_functions), do: establish_type(lhs, query).raw_column?
+
+  defp main_argument(args), do: Enum.at(args, 0)
 
   defp verify_ranges_are_clear(query), do:
     query
