@@ -16,8 +16,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
     test "records functions used across subqueries", do:
       assert type_first_column("SELECT c FROM (SELECT abs(numeric) as c FROM table) t").applied_functions == ["abs"]
 
-    test "records multiple functions top down", do:
+    test "records multiple functions top down (distinct functions)", do:
       assert type_first_column("SELECT abs(numeric + numeric) FROM table").applied_functions == ["abs", "+"]
+
+    test "records multiple functions top down (function repeats)", do:
+      assert type_first_column("SELECT abs(numeric + abs(numeric)) FROM table").applied_functions == ["abs", "+", "abs"]
   end
 
   describe "constant detection" do
