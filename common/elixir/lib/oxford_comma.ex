@@ -19,5 +19,5 @@ defmodule Aircloak.OxfordComma do
   defp join([part], _), do: part
   defp join([first, second], 0), do: first <> " and " <> second
   defp join([first, second], _), do: first <> ", and " <> second
-  defp join([part | rest], n), do: part <> ", " <> join(rest, n+1)
+  defp join([part | rest], n), do: part <> ", " <> join(rest, n + 1)
 end
