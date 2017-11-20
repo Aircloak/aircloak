@@ -32,7 +32,7 @@ defmodule AircloakCI.CmdRunner do
   @doc "Runs the command and waits for it to finish."
   @spec run(String.t, opts) :: :ok | {:error, String.t}
   def run(cmd, opts \\ []) do
-    {:ok, runner} = AircloakCI.CmdRunner.Supervisor.start_runner()
+    {:ok, runner} = AircloakCI.CmdRunner.Supervisor.start_runner(self())
     GenServer.call(runner, {:run, cmd, normalize_opts(opts)}, :infinity)
   end
 
@@ -50,30 +50,34 @@ defmodule AircloakCI.CmdRunner do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(nil) do
+  def init(owner) do
     Process.flag(:trap_exit, true)
-    {:ok, nil}
+    {:ok, %{owner_mref: Process.monitor(owner)}}
   end
 
   @impl GenServer
-  def handle_call({:run, cmd, opts}, from, nil) do
+  def handle_call({:run, cmd, opts}, from, state) do
     case Keyword.get(opts, :timeout, :timer.seconds(5)) do
       :infinity -> :ok
       timeout when is_integer(timeout) and timeout > 0 ->
         Process.send_after(self(), :timeout, timeout)
     end
 
-    {:noreply, %{cmd: cmd, from: from, pid: start_cmd(cmd, opts)}}
+    {:noreply, Map.merge(state, %{cmd: cmd, from: from, pid: start_cmd(cmd, opts)})}
   end
 
   @impl GenServer
   def handle_info({:EXIT, pid, reason}, %{pid: pid} = state) do
     GenServer.reply(state.from, result(reason, state.cmd))
-    {:stop, :shutdown, state}
+    {:stop, :shutdown, nil}
   end
   def handle_info(:timeout, state) do
     GenServer.reply(state.from, {:error, "timeout running `#{state.cmd}`"})
     {:stop, :shutdown, state}
+  end
+  def handle_info({:DOWN, owner_mref, :process, _pid, _reason}, %{owner_mref: owner_mref} = state) do
+    :exec.stop(state.pid)
+    {:stop, :shutdown, nil}
   end
   def handle_info(other, state), do:
     super(other, state)
@@ -118,6 +122,6 @@ defmodule AircloakCI.CmdRunner do
   # -------------------------------------------------------------------
 
   @doc false
-  def start_link(), do:
-    GenServer.start_link(__MODULE__, nil)
+  def start_link(owner), do:
+    GenServer.start_link(__MODULE__, owner)
 end

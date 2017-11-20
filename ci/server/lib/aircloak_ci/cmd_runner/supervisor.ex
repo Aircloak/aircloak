@@ -6,9 +6,9 @@ defmodule AircloakCI.CmdRunner.Supervisor do
   # -------------------------------------------------------------------
 
   @doc "Starts the new runner process."
-  @spec start_runner() :: {:ok, pid}
-  def start_runner(), do:
-    Supervisor.start_child(__MODULE__, [])
+  @spec start_runner(pid) :: {:ok, pid}
+  def start_runner(owner), do:
+    Supervisor.start_child(__MODULE__, [owner])
 
 
   # -------------------------------------------------------------------
