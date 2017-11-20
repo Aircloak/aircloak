@@ -385,3 +385,21 @@ value of the column in question with every row. In that case 3 values are
 produced instead - the min, max and count of the column. This process can be
 repeated in case of multiple aggregations (in subqueries) by taking the min of
 mins, max of maxes and sum of counts.
+
+## Function and math restrictions
+
+In order to prevent users from being able to express arbitrary binary logic through the
+use of functions (which would allow them to circumvent range restrictions), we apply an
+upper limit on the number of distinct function invocations we allow on a single column
+before it is used. This limit has been set to [5 (assumed to be safe based on the attack
+examples we have experienced so far)](https://github.com/Aircloak/aircloak/issues/2064).
+The functions which underly these restrictions are those that are non-injective in nature,
+and mathematical functions. The restrictions only apply if the function argument expressions
+also contain one or more constants.
+
+As constants can be constructed without the analyst explicitly inputting them as
+constants that we can parse as such (see [the following issue for
+exampels](https://github.com/Aircloak/aircloak/issues/1360)), the cloak is currently
+consisting any expression containing two or more mathematical functions to contain
+a constant.
+
