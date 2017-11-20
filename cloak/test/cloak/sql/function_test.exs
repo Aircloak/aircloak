@@ -3,6 +3,29 @@ defmodule Cloak.Sql.Function.Test do
 
   alias Cloak.Sql.{Expression, Function}
 
+  @restricted_functions ~w(% abs ceil ceiling floor length mod round trunc btrim left ltrim right rtrim
+    substring year quarter month day weekday hour minute second date_trunc) ++ [
+      {:bucket, :lower}, {:bucket, :middle}, {:bucket, :upper},
+      {:cast, :integer}, {:cast, :real}, {:cast, :boolean}, {:cast, :datetime}, {:cast, :time},
+      {:cast, :date}, {:cast, :text}, {:cast, :interval}
+    ]
+  Enum.each(@restricted_functions, fn(restricted_function) ->
+    test "#{inspect(restricted_function)} is registered as a restricted function", do:
+      assert Function.restricted_function?(unquote(restricted_function))
+
+    test "#{inspect(restricted_function)} is in the list of restricted functions", do:
+      assert Enum.member?(Function.restricted_functions(), unquote(restricted_function))
+  end)
+
+  @math_functions ~w(+ - / * ^ pow % abs ceil ceiling div floor mod round trunc)
+  Enum.each(@math_functions, fn(math_function) ->
+    test "#{math_function} is registered as a math function", do:
+      assert Function.math_function?(unquote(math_function))
+
+    test "#{math_function} is in the list of math functions", do:
+      assert Enum.member?(Function.math_functions(), unquote(math_function))
+  end)
+
   for function <- ~w(floor ceil ceiling) do
     test "#{function} argument types" do
       assert well_typed?(unquote(function), [:integer])

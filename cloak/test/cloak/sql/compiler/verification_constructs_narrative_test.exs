@@ -6,42 +6,14 @@ defmodule Cloak.Sql.Compiler.VerificationConstructsNarrative.Test do
   import Cloak.Test.QueryHelpers
 
   describe "constructs a narrative based on column usage when a query is considered dangerous" do
-    test "affected by math" do
-      query = """
-        SELECT value FROM (
-          SELECT uid, numeric + 2 as value
-          FROM table
-        ) t
-        WHERE value > 10 and value <= 20
-      """
-      assert get_compilation_error(query) =~ ~r/math function '\+'/
+    test "affected by restricted functions" do
+      query = "SELECT abs(abs(abs(abs(abs(abs(numeric + 1)))))) FROM table"
+      assert get_compilation_error(query) =~ ~r/restricted function/
     end
 
-    test "affected by discontinuity" do
-      query = """
-        SELECT value FROM (
-          SELECT uid, div(numeric, 2) as value
-          FROM table
-        ) t
-        WHERE value > 10 and value <= 20
-      """
-      assert get_compilation_error(query) =~ ~r/discontinuous function 'div'/
-    end
-
-    test "affected by discontinuity and dangerous math at the same time" do
+    test "affected by potentially crashing functions" do
       query = "SELECT numeric / (numeric + 10) FROM table"
-      assert get_compilation_error(query) =~ ~r/divisor that could be zero/
-    end
-
-    test "constructs a narrative mentioning usage cast datetime column" do
-      query = """
-        SELECT value FROM (
-          SELECT uid, length(cast(column as text)) as value
-          FROM table
-        ) t
-        WHERE value = 10
-      """
-      assert get_compilation_error(query) =~ ~r/a cast to/
+      assert get_compilation_error(query) =~ ~r/that could cause a runtime exception/
     end
   end
 
@@ -60,7 +32,6 @@ defmodule Cloak.Sql.Compiler.VerificationConstructsNarrative.Test do
           db_name: "table",
           columns: [
             Table.column("uid", :integer),
-            Table.column("column", :datetime),
             Table.column("numeric", :integer),
             Table.column("float", :real),
             Table.column("string", :text)
