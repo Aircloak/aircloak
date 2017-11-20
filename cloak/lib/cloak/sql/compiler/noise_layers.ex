@@ -19,9 +19,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   def compile(query), do:
     query
     |> Helpers.apply_bottom_up(&calculate_base_noise_layers/1)
-    |> apply_top_down(&push_down_noise_layers/1)
+    |> Helpers.apply_top_down(&push_down_noise_layers/1)
     |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
-    |> apply_top_down(&normalize_noise_layers_base/1)
+    |> Helpers.apply_top_down(&normalize_noise_layers_base/1)
 
 
   @allowed_not_equals_functions ~w(lower)
@@ -296,11 +296,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         Enum.at(query.column_titles, index)
     end
   end
-
-  defp apply_top_down(query, function), do:
-    query
-    |> function.()
-    |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_top_down(&1, function))
 
   defp resolve_row_splitter(expression, %{row_splitters: row_splitters}) do
     if splitter = Enum.find(row_splitters, &(&1.row_index == expression.row_index)) do
