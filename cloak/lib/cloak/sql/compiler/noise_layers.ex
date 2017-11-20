@@ -56,7 +56,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     layers =
       raw_columns(expression)
       |> Enum.map(fn(column) ->
-        NoiseLayer.new({column.table.name, column.name, extras}, [set_unique_alias(column) | rest])
+        NoiseLayer.new({table_name(column.table), column.name, extras}, [set_unique_alias(column) | rest])
       end)
 
     update_in(query, [Lens.key(:noise_layers)], &(&1 ++ layers))
@@ -342,13 +342,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp uid_noise_layer(base_column, layer_expression, top_level_uid, extras \\ nil), do:
     NoiseLayer.new(
-      {base_column.table.db_name || base_column.table.name, base_column.name, extras},
+      {table_name(base_column.table), base_column.name, extras},
       [set_unique_alias(layer_expression), top_level_uid]
     )
 
   defp static_noise_layer(base_column, layer_expression, extras \\ nil), do:
     NoiseLayer.new(
-      {base_column.table.db_name || base_column.table.name, base_column.name, extras},
+      {table_name(base_column.table), base_column.name, extras},
       [set_unique_alias(layer_expression)]
     )
 
@@ -412,4 +412,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # Modifies the expression to have a globally unique alias. This serves to make sure a column being added to the query
   # doesn't accidentally clash with a column selected by the user or a user-defined alias.
   defp set_unique_alias(column), do: %{column | alias: "__ac_alias__#{System.unique_integer([:positive])}"}
+
+  defp table_name(_virtual_table = %{db_name: nil, name: name}), do: name
+  defp table_name(table), do: table.db_name
 end
