@@ -104,14 +104,6 @@ defmodule Cloak.Sql.Compiler.Helpers do
     |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_bottom_up(&1, function))
     |> function.()
 
-  @doc """
-  Returns an expression that will reference the given aliased expression in the given subquery to be used in the outer
-  query. The third argument is the virtual table produced by the subquery.
-  """
-  @spec reference_aliased(Expression.t, Query.t, DataSource.Table.t | :unknown) :: Expression.t
-  def reference_aliased(column, subquery, table \\ :unknown), do:
-    %Expression{name: column.alias || find_alias(column, subquery) || column.name, table: table}
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -126,14 +118,4 @@ defmodule Cloak.Sql.Compiler.Helpers do
     do: true
   defp any_outer_join?({:join, join}),
     do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
-
-  defp find_alias(column, query) do
-    id = Expression.id(column)
-    case Enum.find_index(query.columns, &Expression.id(&1) == id) do
-      nil -> nil
-      index ->
-        true = index < length(query.column_titles)
-        Enum.at(query.column_titles, index)
-    end
-  end
 end
