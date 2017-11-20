@@ -13,6 +13,10 @@ command=$1
 shift || true
 
 case "$command" in
+  build_cloak)
+    build_cloak
+    ;;
+
   cloak_compliance)
     cloak_compliance
     ;;
