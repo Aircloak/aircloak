@@ -5,7 +5,7 @@ import type {Row, Column} from "./result";
 
 type ValueFormatter = (value: any, columnIndex: number) => any;
 
-type Series = {label: Column, data: number[]};
+type Series = {label: Column, data: number[], index: number};
 
 export type GraphDataT = {
   ready: () => boolean,
@@ -105,6 +105,7 @@ export const GraphData = (
   const series = () => graphConfig.yColumns().map((columnIndex) => ({
     label: columns[columnIndex],
     data: rows.map(({row}) => row[columnIndex]),
+    index: columnIndex,
   }));
 
   return {ready, x, xLabel, series};
