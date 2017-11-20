@@ -3,8 +3,8 @@ defmodule Cloak.Sql.Function.Test do
 
   alias Cloak.Sql.{Expression, Function}
 
-  @discontinuous_functions ~w(% abs ceil ceiling div floor mod round trunc btrim left ltrim right rtrim substring
-    year quarter month day weekday hour minute second date_trunc) ++ [
+  @discontinuous_functions ~w(% abs ceil ceiling floor length mod round trunc btrim left ltrim right rtrim
+    substring year quarter month day weekday hour minute second date_trunc) ++ [
       {:bucket, :lower}, {:bucket, :middle}, {:bucket, :upper},
       {:cast, :integer}, {:cast, :real}, {:cast, :boolean}, {:cast, :datetime}, {:cast, :time},
       {:cast, :date}, {:cast, :text}, {:cast, :interval}

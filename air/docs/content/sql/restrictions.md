@@ -54,8 +54,8 @@ For example `div(column, column)` equals the number 1.
 
 The following are the functions to which these rules apply:
 
-- `abs`, `bucket`, `ceil`, `floor`, `round`, `sqrt`, `trunc`, and `cast`'s.
-- `+`, `-`, `*`, `/`, `^`, `%`, `pow`, `mod`, `div`
+- `abs`, `bucket`, `ceil`, `floor`, `length`, `round`, `trunc`, and `cast`'s.
+- `+`, `-`, `*`, `/`, `^`, `%`, `pow`, `mod`, `div`, 'sqrt'
 - `year`, `quarter`, `month`, `day`, `hour`, `minute`, `second`, `weekday`, `date_trunc`
 - `btrim`, `ltrim`, `rtrim`, `left`, `right`, `substring`
 
