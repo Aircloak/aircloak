@@ -7,6 +7,10 @@
 - Fixed incorrect emulation of joins when identically-named columns were selected.
 - Fix crash in negative condition on `COUNT(*)`.
 
+### Enhancements
+
+- Unused selected columns are now automatically removed from the inner queries.
+
 ## Version 17.3.2
 
 ### Bugfixes
