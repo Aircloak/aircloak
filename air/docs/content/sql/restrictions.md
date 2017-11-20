@@ -76,7 +76,7 @@ FROM (
     -- contains 3 potentially dangerous functions, namely:
     -- - division with a constant
     -- - abs on an expression containing a constant
-    -- - + where one of the argument is an expression containing a constant
+    -- - + where one of the arguments is an expression containing a constant
     abs(div(age, 2)) + height as value1
   FROM table1
 ) a INNER JOIN (
@@ -85,15 +85,28 @@ FROM (
     -- contains 3 potentially dangerous functions, namely:
     -- - addition with a constant
     -- - division with a constant
-    -- - trunc on an expression containing a constant
+    -- - multiplication where one of the arguments is an expression contains a constant
     -- Note that month(birth_year) is not considered potentially
     -- dangerous as the argument does not contain a constant.
-    trunc((month(birth_year) + 1) / 11) as value2
+    (month(birth_year) + 1) / 11 * height as value2
   FROM table
 ) b ON a.uid = b.uid
 ```
 
-Functions that can be used to produce database exceptions when an a database column contains a certain value are
+Below is an example restriction becoming active because multiple math operators being interpreted as being a constant:
+
+```sql
+SELECT
+  -- we have a total of 6 functions operating on an expression containing a potential constant,
+  -- as a result the query is rejected.
+  floor(abs(sqrt(mod(floor(mod(
+    -- Aircloak considers two or more math operations to potentially be a constant
+    (age / age) / age
+  , 2)), 2))))
+FROM table
+```
+
+Functions that can cause database exceptions when a database column contains a certain value are
 prohibited. These functions include division and sqrt when the divisor and the parameter respectively are
 expressions containing a database column as well as a constant value.
 
