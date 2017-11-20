@@ -18,7 +18,7 @@ const maxTicksShown = 20;
 const data = (graphData) => ({
   labels: graphData.x(),
   datasets: graphData.series().map((series) =>
-    _.merge(series, {backgroundColor: fillColors[series.index % fillColors.length]})),
+    _.merge(series, {backgroundColor: fillColors[series.indexInResult % fillColors.length]})),
 });
 
 const options = (graphData) => ({
