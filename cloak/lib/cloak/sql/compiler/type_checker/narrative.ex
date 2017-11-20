@@ -39,9 +39,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Narrative do
   defp human_readable_offenses(transformations), do:
     transformations
     |> Enum.map(fn
-      ({:dangerous_function, functions}) ->
+      ({:restricted_function, functions}) ->
         Enum.join([
-          "potentially dangerous",
+          "restricted",
           naive_plural("function", "functions", length(functions)) <> ". ",
           naive_plural("The function is", "The functions are", length(functions)) <> ": ",
           join_with_and(functions) <> "."

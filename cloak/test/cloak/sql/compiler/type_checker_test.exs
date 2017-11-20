@@ -4,7 +4,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.Table
-  alias Cloak.Sql.{Compiler, Parser, Compiler.TypeChecker}
+  alias Cloak.Sql.{Compiler, Parser}
 
   describe "IN" do
     test "allows clear IN lhs", do:

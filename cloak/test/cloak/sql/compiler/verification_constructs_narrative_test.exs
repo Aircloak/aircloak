@@ -6,9 +6,9 @@ defmodule Cloak.Sql.Compiler.VerificationConstructsNarrative.Test do
   import Cloak.Test.QueryHelpers
 
   describe "constructs a narrative based on column usage when a query is considered dangerous" do
-    test "affected by dangerous functions" do
+    test "affected by restricted functions" do
       query = "SELECT abs(abs(abs(abs(abs(abs(numeric + 1)))))) FROM table"
-      assert get_compilation_error(query) =~ ~r/potentially dangerous/
+      assert get_compilation_error(query) =~ ~r/restricted function/
     end
 
     test "affected by potentially crashing functions" do

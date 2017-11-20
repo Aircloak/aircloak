@@ -6,7 +6,7 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
   import Cloak.Test.QueryHelpers
 
   describe "Rejects invalid transformations" do
-    test "SELECTed expression with more than 5 dangerous transformations" do
+    test "SELECTed expression with more than 5 restricted transformations" do
       query = """
         SELECT value
         FROM #{offensive_subquery()}
@@ -14,7 +14,7 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
       refute transformations_valid?(query)
     end
 
-    test "GROUP BY-clause expression with more than 5 dangerous transformations" do
+    test "GROUP BY-clause expression with more than 5 restricted transformations" do
       query = """
         SELECT count(*)
         FROM #{offensive_subquery()}
@@ -23,7 +23,7 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
       refute transformations_valid?(query)
     end
 
-    test "ORDER BY-clause expression with more than 5 dangerous transformations" do
+    test "ORDER BY-clause expression with more than 5 restricted transformations" do
       query = """
         SELECT string
         FROM #{offensive_subquery()}
@@ -32,7 +32,7 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
       refute transformations_valid?(query)
     end
 
-    test "WHERE-clause expression with more than 5 dangerous transformations" do
+    test "WHERE-clause expression with more than 5 restricted transformations" do
       query = """
         SELECT string
         FROM #{offensive_subquery()}
@@ -41,7 +41,7 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
       refute transformations_valid?(query)
     end
 
-    test "HAVING-clause expression with more than 5 dangerous transformations" do
+    test "HAVING-clause expression with more than 5 restricted transformations" do
       query = """
         SELECT string
         FROM #{offensive_subquery()}
@@ -50,7 +50,7 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
       refute transformations_valid?(query)
     end
 
-    test "JOIN ON-clause expression with more than 5 dangerous transformations" do
+    test "JOIN ON-clause expression with more than 5 restricted transformations" do
       query = """
         SELECT c.string
         FROM #{offensive_subquery()} INNER JOIN table
@@ -71,12 +71,12 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
         SELECT
           uid,
           string,
-          abs(abs(div(numeric, 2))) as v1 -- 3 dangerous transformations
+          abs(abs(div(numeric, 2))) as v1 -- 3 restricted transformations
         FROM table
       ) a INNER JOIN (
         SELECT
           uid,
-          abs(abs(div(numeric, 2))) as v2 -- 3 dangerous transformations
+          abs(abs(div(numeric, 2))) as v2 -- 3 restricted transformations
         FROM table
       ) b ON a.uid = b.uid
     ) c
@@ -86,7 +86,7 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
     case compile(query, data_source()) do
       {:ok, _} -> true
       {:error, reason} ->
-        if reason =~ ~r/potentially dangerous/ do
+        if reason =~ ~r/restricted function/ do
           false
         else
           raise "Compilation failed with other reason than illegal filtering condition: #{inspect reason}"

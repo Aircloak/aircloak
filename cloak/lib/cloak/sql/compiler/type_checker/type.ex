@@ -5,7 +5,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   alias Cloak.Sql.{Expression, Function, Query}
 
   @type function_name :: String.t
-  @type dangerous_transformation :: {:dangerous_function | :potentially_crashing_function, function_name}
+  @type restricted_transformation :: {:restricted_function | :potentially_crashing_function, function_name}
 
   @type t :: %__MODULE__{
     # The names of functions that have been applied to a column or an expression
@@ -30,9 +30,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     # were constant.
     constant_involved?: boolean,
 
-    # We keep track of the dangerous transformations an expression has undergone in order
+    # We keep track of the restricted transformations an expression has undergone in order
     # to later produce an explanation outlining the steps that led to a query being rejected.
-    history_of_dangerous_transformations: [dangerous_transformation],
+    history_of_restricted_transformations: [restricted_transformation],
 
     # Keep track of the columns that have been involved in order to be able to produce better
     # explanations of why queries were rejected.
@@ -42,7 +42,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   defstruct [
     constant?: false, constant_involved?: false, raw_column?: false,
     cast_raw_column?: false, raw_implicit_range?: false, applied_functions: [],
-    history_of_dangerous_transformations: [], history_of_columns_involved: [],
+    history_of_restricted_transformations: [], history_of_columns_involved: [],
   ]
 
   @math_operations_before_considered_constant 2
@@ -98,7 +98,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
           math_operations_count(applied_functions) >= @math_operations_before_considered_constant,
         history_of_columns_involved: combined_columns_involved(child_types),
       }
-      |> extend_history_of_dangerous_transformations(name, child_types)
+      |> extend_history_of_restricted_transformations(name, child_types)
     end
   end
 
@@ -114,21 +114,22 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     |> Enum.flat_map(& &1.history_of_columns_involved)
     |> Enum.uniq()
 
-  defp extend_history_of_dangerous_transformations(%Type{constant_involved?: constant_involved?} = type,
+  defp extend_history_of_restricted_transformations(%Type{constant_involved?: constant_involved?} = type,
       name, child_types) do
     full_history = [
-      {constant_involved? && dangerous?(name), {:dangerous_function, name}},
+      {restricted_function?(constant_involved?, name), {:restricted_function, name}},
       {performs_potentially_crashing_function?(name, child_types), {:potentially_crashing_function, name}},
     ]
     |> Enum.filter(fn({whether_applies, _}) -> whether_applies end)
     |> Enum.map(fn({_, history_element}) -> history_element end)
     |> Enum.concat(
-      Enum.flat_map(child_types, & &1.history_of_dangerous_transformations)
+      Enum.flat_map(child_types, & &1.history_of_restricted_transformations)
     )
-    %Type{type | history_of_dangerous_transformations: full_history}
+    %Type{type | history_of_restricted_transformations: full_history}
   end
 
-  defp dangerous?(name), do:
+  defp restricted_function?(_constant_involved? = false, _name), do: false
+  defp restricted_function?(_constant_involved? = true, name), do:
     Function.discontinuous_function?(name) or Function.math_function?(name)
 
   defp performs_potentially_crashing_function?("/", [_, child_type]), do:

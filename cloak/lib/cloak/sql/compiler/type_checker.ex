@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.TypeChecker do
   @moduledoc """
   Provides functions to check whether the expressions used in a query are valid according to our anonymization rules.
-  This includes checks to determine if the number of dangerous functions used (like functions that truncate values
+  This includes checks to determine if the number of restricted functions used (like functions that truncate values
   and could be used to create boolean logic circumventing other checks) exceed allowed thresholds, as well
   as checks to validate that columns used in certain filter conditions haven't been altered.
   """
@@ -10,7 +10,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   alias Cloak.Sql.Compiler.TypeChecker.{Narrative, Type}
   alias Cloak.Sql.Compiler.Helpers
 
-  @max_allowed_dangerous_functions 5
+  @max_allowed_restricted_functions 5
 
 
   # -------------------------------------------------------------------
@@ -42,7 +42,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     |> Enum.each(fn(column) ->
       type = Type.establish_type(column, query)
       if potentially_crashing_function?(type) do
-        explanation = type.history_of_dangerous_transformations
+        explanation = type.history_of_restricted_transformations
         |> offensive_transformations([:potentially_crashing_function])
         |> Narrative.construct(type.history_of_columns_involved)
         raise CompilationError, message: """
@@ -65,9 +65,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     |> List.flatten()
     |> Enum.each(fn(expression) ->
       type = Type.establish_type(expression, query)
-      if dangerous_transformation_count(type) > @max_allowed_dangerous_functions do
-        explanation = type.history_of_dangerous_transformations
-        |> offensive_transformations([:dangerous_function])
+      if restricted_transformations_count(type) > @max_allowed_restricted_functions do
+        explanation = type.history_of_restricted_transformations
+        |> offensive_transformations([:restricted_function])
         |> Narrative.construct(type.history_of_columns_involved)
         raise CompilationError, message: """
           #{explanation}
@@ -151,15 +151,15 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     end)
 
   defp potentially_crashing_function?(type), do:
-    Enum.any?(type.history_of_dangerous_transformations, fn
+    Enum.any?(type.history_of_restricted_transformations, fn
       ({:potentially_crashing_function, _}) -> true
       (_) -> false
     end)
 
-  defp dangerous_transformation_count(type), do:
-    type.history_of_dangerous_transformations
+  defp restricted_transformations_count(type), do:
+    type.history_of_restricted_transformations
     |> Enum.filter(fn
-      ({:dangerous_function, _}) -> true
+      ({:restricted_function, _}) -> true
       (_) -> false
     end)
     |> Enum.count()

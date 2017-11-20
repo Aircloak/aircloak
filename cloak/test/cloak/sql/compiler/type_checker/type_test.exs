@@ -73,56 +73,56 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
       |> Enum.map(& &1.name)
   end
 
-  describe "records a history of dangerous functions" do
+  describe "records a history of restricted functions" do
     test "empty history for queries without functions or math" do
       type = type_first_column("SELECT numeric FROM table")
-      assert type.history_of_dangerous_transformations == []
+      assert type.history_of_restricted_transformations == []
     end
 
     test "for function with discontinuious function div" do
       type = type_first_column("SELECT div(numeric, 10) FROM table")
-      assert type.history_of_dangerous_transformations == [{:dangerous_function, "div"}]
+      assert type.history_of_restricted_transformations == [{:restricted_function, "div"}]
     end
 
     test "even when multiple occur" do
       type = type_first_column("SELECT abs(div(numeric, 10)) FROM table")
-      assert type.history_of_dangerous_transformations ==
-        [{:dangerous_function, "abs"}, {:dangerous_function, "div"}]
+      assert type.history_of_restricted_transformations ==
+        [{:restricted_function, "abs"}, {:restricted_function, "div"}]
     end
 
-    test "does not record discontinuous functions that aren't dangerous" do
+    test "does not record discontinuous functions when they appear in an un-restricted form" do
       type = type_first_column("SELECT div(cast(sqrt(numeric) as integer), 10) FROM table")
-      assert type.history_of_dangerous_transformations == [{:dangerous_function, "div"}]
+      assert type.history_of_restricted_transformations == [{:restricted_function, "div"}]
     end
 
     test "records math influenced by a constant as a potential offense" do
       type = type_first_column("SELECT numeric + 10 FROM table")
-      assert type.history_of_dangerous_transformations == [{:dangerous_function, "+"}]
+      assert type.history_of_restricted_transformations == [{:restricted_function, "+"}]
     end
 
     test "does not record math between non-constant influenced columns" do
       type = type_first_column("SELECT numeric + numeric FROM table")
-      assert type.history_of_dangerous_transformations == []
+      assert type.history_of_restricted_transformations == []
     end
 
     test "records multiple math offenses" do
       type = type_first_column("SELECT numeric + 10 FROM (SELECT uid, numeric - 1 as numeric FROM table) t")
-      assert type.history_of_dangerous_transformations ==
-        [{:dangerous_function, "+"}, {:dangerous_function, "-"}]
+      assert type.history_of_restricted_transformations ==
+        [{:restricted_function, "+"}, {:restricted_function, "-"}]
     end
 
     test "records multiple instances of the same offense" do
       type = type_first_column("SELECT numeric + 10 FROM (SELECT uid, numeric + 1 as numeric FROM table) t")
-      assert type.history_of_dangerous_transformations ==
-        [{:dangerous_function, "+"}, {:dangerous_function, "+"}]
+      assert type.history_of_restricted_transformations ==
+        [{:restricted_function, "+"}, {:restricted_function, "+"}]
     end
 
-    test "records dangerous functions when it believes a constant has been constructed" do
+    test "records restricted functions when it believes a constant has been constructed" do
       type = type_first_column("""
         SELECT abs(div(numeric, numeric) + div(numeric, numeric)) FROM table
       """)
-      assert type.history_of_dangerous_transformations ==
-        [{:dangerous_function, "abs"}, {:dangerous_function, "+"}]
+      assert type.history_of_restricted_transformations ==
+        [{:restricted_function, "abs"}, {:restricted_function, "+"}]
     end
   end
 
