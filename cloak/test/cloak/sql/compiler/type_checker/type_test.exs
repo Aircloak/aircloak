@@ -128,10 +128,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
     end
   end
 
-  Enum.each(~w(constant_involved? constant?)a, fn(param) ->
-    defp unquote(param)(query), do:
-      type_first_column(query).unquote(param)
-  end)
+  defp constant_involved?(query), do:
+    type_first_column(query).constant_involved?
+
+  defp constant?(query), do:
+    type_first_column(query).constant?
 
   defp type_first_column(query) do
     compiled_query = compile!(query)
