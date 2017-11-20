@@ -72,8 +72,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
     end
 
     def expression_name(columns), do:
-      columns
-      |> Enum.map(& &1.name)
+      Enum.map(columns, & &1.name)
   end
 
   describe "records a history of restricted functions" do
