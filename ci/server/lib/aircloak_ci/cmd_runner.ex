@@ -14,7 +14,10 @@ defmodule AircloakCI.CmdRunner do
     timeout: pos_integer | :infinity,
     kill_timeout: pos_integer,
     cd: String.t,
+    logger: logger
   ]
+
+  @type logger :: ((iodata) -> any)
 
 
   # -------------------------------------------------------------------
@@ -32,6 +35,14 @@ defmodule AircloakCI.CmdRunner do
     {:ok, runner} = AircloakCI.CmdRunner.Supervisor.start_runner()
     GenServer.call(runner, {:run, cmd, normalize_opts(opts)}, :infinity)
   end
+
+  @doc "Logger which appends outputs to the given file."
+  @spec file_logger(String.t) :: logger
+  def file_logger(path), do:
+    fn(output) ->
+      if Application.get_env(:aircloak_ci, :cmd_runner, [])[:console_out] == true, do: IO.write(output)
+      File.write(path, output, [:append])
+    end
 
 
   # -------------------------------------------------------------------
@@ -83,15 +94,22 @@ defmodule AircloakCI.CmdRunner do
     )
 
   defp result(:normal, _cmd), do: :ok
-  defp result({:exit_status, status}, cmd), do: {:error, "error running `#{cmd}`"}
+  defp result({:exit_status, _status}, cmd), do: {:error, "error running `#{cmd}`"}
 
   defp start_cmd(cmd, opts) do
-    print_output = fn(_stdout_or_err, _os_pid, output) -> IO.write(output) end
+    print_output = fn(_stdout_or_err, _os_pid, output) -> log_output(output, opts) end
 
     {:ok, pid, _os_pid} = :exec.run_link(to_charlist(cmd),
       [stdout: print_output, stderr: print_output] ++ Keyword.take(opts, [:kill_timeout, :cd]))
 
     pid
+  end
+
+  defp log_output(output, opts) do
+    case Keyword.fetch(opts, :logger) do
+      :error -> :ok
+      {:ok, logger} -> logger.(output)
+    end
   end
 
 
