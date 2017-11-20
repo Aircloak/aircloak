@@ -116,17 +116,15 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
 
   defp extend_history_of_restricted_transformations(%Type{constant_involved?: constant_involved?} = type,
       name, child_types) do
-    full_history = [
-      {restricted_function?(constant_involved?, name), {:restricted_function, name}},
-      {performs_potentially_crashing_function?(name, child_types), {:potentially_crashing_function, name}},
-    ]
-    |> Enum.filter(fn({whether_applies, _}) -> whether_applies end)
-    |> Enum.map(fn({_, history_element}) -> history_element end)
-    |> Enum.concat(
-      Enum.flat_map(child_types, & &1.history_of_restricted_transformations)
-    )
+    full_history = child_types
+    |> Enum.flat_map(& &1.history_of_restricted_transformations)
+    |> prepend_if({:restricted_function, name}, restricted_function?(constant_involved?, name))
+    |> prepend_if({:potentially_crashing_function, name}, performs_potentially_crashing_function?(name, child_types))
     %Type{type | history_of_restricted_transformations: full_history}
   end
+
+  defp prepend_if(existing_values, _value, false), do: existing_values
+  defp prepend_if(existing_values, value, true), do: [value | existing_values]
 
   defp restricted_function?(_constant_involved? = false, _name), do: false
   defp restricted_function?(_constant_involved? = true, name), do:
