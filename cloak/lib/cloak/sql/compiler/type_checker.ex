@@ -152,9 +152,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   defp potentially_crashing_function?(type), do:
     Enum.any?(type.history_of_dangerous_transformations, fn
-        ({:potentially_crashing_function, _}) -> true
-        (_) -> false
-      end)
+      ({:potentially_crashing_function, _}) -> true
+      (_) -> false
+    end)
 
   defp dangerous_transformation_count(type), do:
     type.history_of_dangerous_transformations
