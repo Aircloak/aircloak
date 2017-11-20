@@ -12,7 +12,8 @@ defmodule AircloakCI.CmdRunner do
 
   @type opts :: [
     timeout: pos_integer | :infinity,
-    kill_timeout: pos_integer
+    kill_timeout: pos_integer,
+    cd: String.t,
   ]
 
 
@@ -29,7 +30,7 @@ defmodule AircloakCI.CmdRunner do
   @spec run(String.t, opts) :: :ok | {:error, :timeout | integer}
   def run(cmd, opts \\ []) do
     {:ok, runner} = AircloakCI.CmdRunner.Supervisor.start_runner()
-    GenServer.call(runner, {:run, cmd, opts}, :infinity)
+    GenServer.call(runner, {:run, cmd, normalize_opts(opts)}, :infinity)
   end
 
 
@@ -71,6 +72,16 @@ defmodule AircloakCI.CmdRunner do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp normalize_opts(opts), do:
+    Enum.map(
+      opts,
+      fn
+        {key, value} when key in [:cd] -> {key, to_charlist(value)}
+        {:kill_timeout, timeout} -> Float.ceil(timeout / 1000.0)
+        other -> other
+      end
+    )
+
   defp result(:normal), do: :ok
   defp result({:exit_status, status}), do: {:error, status}
 
@@ -78,7 +89,7 @@ defmodule AircloakCI.CmdRunner do
     print_output = fn(_stdout_or_err, _os_pid, output) -> IO.puts(output) end
 
     {:ok, pid, _os_pid} = :exec.run_link(to_charlist(cmd),
-      [stdout: print_output, stderr: print_output] ++ Keyword.take(opts, [:kill_timeout]))
+      [stdout: print_output, stderr: print_output] ++ Keyword.take(opts, [:kill_timeout, :cd]))
 
     pid
   end

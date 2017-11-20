@@ -2,10 +2,15 @@ defmodule AircloakCI.Github do
   @moduledoc "Wrappers for sending API requests to Github."
 
   @type pull_request :: %{
+    repo: repo,
+    source_branch: String.t,
+    target_branch: String.t,
     number: pos_integer,
     approved?: true,
     status_checks: %{String.t => :expected | status_check_state}
   }
+
+  @type repo :: %{owner: String.t, name: String.t}
 
   @type status_check_state :: :error | :failure | :pending | :success
 
@@ -26,6 +31,8 @@ defmodule AircloakCI.Github do
           ) {
             nodes {
               number
+              headRefName
+              baseRefName
               reviews(last: 1) {nodes {createdAt state}}
               commits(last: 1) {nodes {commit {oid status {contexts {context state}}}}}
             }
@@ -36,7 +43,7 @@ defmodule AircloakCI.Github do
     |> Map.fetch!("repository")
     |> Map.fetch!("pullRequests")
     |> Map.fetch!("nodes")
-    |> Enum.map(&to_pr_data/1)
+    |> Enum.map(&to_pr_data(%{owner: owner, name: repo}, &1))
 
   @doc "Sets the status check state for the given owner/repo/sha."
   @spec put_status_check_state!(String.t, String.t, String.t, String.t, status_check_state) :: :ok
@@ -58,9 +65,12 @@ defmodule AircloakCI.Github do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp to_pr_data(raw_pr_data) do
+  defp to_pr_data(repo, raw_pr_data) do
     %{
+      repo: repo,
       number: Map.fetch!(raw_pr_data, "number"),
+      source_branch: Map.fetch!(raw_pr_data, "headRefName"),
+      target_branch: Map.fetch!(raw_pr_data, "baseRefName"),
       approved?: match?(%{"reviews" => %{"nodes" => [%{"state" => "APPROVED"}]}}, raw_pr_data),
       sha:
         raw_pr_data
