@@ -5,6 +5,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Narrative do
   """
 
   alias Cloak.Sql.{Expression, Compiler.TypeChecker}
+  alias Aircloak.OxfordComma
 
 
   # -------------------------------------------------------------------
@@ -16,7 +17,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Narrative do
   def construct(transformations, columns) when is_list(columns), do:
     Enum.join([
       naive_plural("Column", "Columns", length(columns)),
-      join_with_and(column_names(columns)),
+      OxfordComma.join(column_names(columns)),
       naive_plural("is processed by", "are processed by", length(columns)),
       human_readable_offenses(transformations)
     ], " ")
@@ -32,10 +33,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Narrative do
   defp column_names(columns), do:
     Enum.map(columns, & Expression.display_name(&1))
 
-  defp join_with_and([name]), do: name
-  defp join_with_and([name1, name2]), do: name1 <> " and " <> name2
-  defp join_with_and([name | names]), do: name <> ", " <> join_with_and(names)
-
   defp human_readable_offenses(transformations), do:
     transformations
     |> Enum.map(fn
@@ -44,15 +41,15 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Narrative do
           "restricted",
           naive_plural("function", "functions", length(functions)) <> ". ",
           naive_plural("The function is", "The functions are", length(functions)) <> ": ",
-          join_with_and(functions) <> "."
+          OxfordComma.join(functions) <> "."
         ], " ")
       ({:potentially_crashing_function, functions}) ->
         Enum.join([
           naive_plural("a function", "functions", length(functions)),
           "that could cause a runtime exception given the current usage.",
           naive_plural("The function is", "The functions are", length(functions)) <> ": ",
-          join_with_and(functions) <> "."
+          OxfordComma.join(functions) <> "."
         ], " ")
     end)
-    |> Enum.join(" and ")
+    |> OxfordComma.join()
 end
