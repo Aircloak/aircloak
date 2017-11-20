@@ -9,7 +9,7 @@
 
 ### Enhancements
 
-- Unused selected columns are now automatically removed from the inner queries.
+- Unused selected columns are now automatically removed from inner queries.
 
 ## Version 17.3.2
 
