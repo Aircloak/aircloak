@@ -37,19 +37,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Narrative do
     transformations
     |> Enum.map(fn
       ({:restricted_function, functions}) ->
-        Enum.join([
-          "restricted",
-          naive_plural("function", "functions", length(functions)) <> ". ",
-          naive_plural("The function is", "The functions are", length(functions)) <> ": ",
-          OxfordComma.join(functions) <> "."
-        ], " ")
+        "restricted " <> naive_plural("function", "functions", length(functions)) <> ". " <>
+        naive_plural("The function is", "The functions are", length(functions)) <> ": " <> OxfordComma.join(functions) <> "."
       ({:potentially_crashing_function, functions}) ->
-        Enum.join([
-          naive_plural("a function", "functions", length(functions)),
-          "that could cause a runtime exception given the current usage.",
-          naive_plural("The function is", "The functions are", length(functions)) <> ": ",
-          OxfordComma.join(functions) <> "."
-        ], " ")
+        naive_plural("a function", "functions", length(functions)) <> "that could cause a runtime exception given the current usage. " <>
+        naive_plural("The function is", "The functions are", length(functions)) <> ": " <> OxfordComma.join(functions) <> "."
     end)
     |> OxfordComma.join()
 end
