@@ -3,9 +3,10 @@ defmodule AircloakCI.Github do
 
   @type pull_request :: %{
     repo: repo,
+    number: pos_integer,
+    title: String.t,
     source_branch: String.t,
     target_branch: String.t,
-    number: pos_integer,
     approved?: true,
     status_checks: %{String.t => :expected | status_check_state}
   }
@@ -31,6 +32,7 @@ defmodule AircloakCI.Github do
           ) {
             nodes {
               number
+              title
               headRefName
               baseRefName
               reviews(last: 1) {nodes {createdAt state}}
@@ -69,6 +71,7 @@ defmodule AircloakCI.Github do
     %{
       repo: repo,
       number: Map.fetch!(raw_pr_data, "number"),
+      title: Map.fetch!(raw_pr_data, "title"),
       source_branch: Map.fetch!(raw_pr_data, "headRefName"),
       target_branch: Map.fetch!(raw_pr_data, "baseRefName"),
       approved?: match?(%{"reviews" => %{"nodes" => [%{"state" => "APPROVED"}]}}, raw_pr_data),
