@@ -7,6 +7,7 @@ defmodule AircloakCI.Github do
     title: String.t,
     source_branch: String.t,
     target_branch: String.t,
+    sha: String.t,
     approved?: true,
     status_checks: %{String.t => :expected | status_check_state}
   }
