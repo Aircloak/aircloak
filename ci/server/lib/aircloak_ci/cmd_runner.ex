@@ -86,7 +86,7 @@ defmodule AircloakCI.CmdRunner do
   defp result({:exit_status, status}), do: {:error, status}
 
   defp start_cmd(cmd, opts) do
-    print_output = fn(_stdout_or_err, _os_pid, output) -> IO.puts(output) end
+    print_output = fn(_stdout_or_err, _os_pid, output) -> IO.write(output) end
 
     {:ok, pid, _os_pid} = :exec.run_link(to_charlist(cmd),
       [stdout: print_output, stderr: print_output] ++ Keyword.take(opts, [:kill_timeout, :cd]))
