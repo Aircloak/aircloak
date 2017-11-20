@@ -393,15 +393,15 @@ mins, max of maxes and sum of counts.
 In order to prevent users from being able to express arbitrary binary logic through the
 use of functions (which would allow them to circumvent range restrictions), we apply an
 upper limit on the number of distinct function invocations we allow on a single column
-before it is used. This limit has been set to [5 (assumed to be safe based on the attack
-examples we have experienced so far)](https://github.com/Aircloak/aircloak/issues/2064).
-The functions which underly these restrictions are those that are non-injective in nature,
-and mathematical functions. The restrictions only apply if the function argument expressions
-also contain one or more constants.
+expression. This limit has been set to [5 (assumed to be safe based on the attack
+examples we have come up with so far)](https://github.com/Aircloak/aircloak/issues/2064).
 
-As constants can be constructed without the analyst explicitly inputting them as
-constants that we can parse as such (see [the following issue for
-exampels](https://github.com/Aircloak/aircloak/issues/1360)), the cloak is currently
-consisting any expression containing two or more mathematical functions to contain
-a constant.
+The attacks we have come up with have in common that the attacker had to use constants
+as part of the expressions. Using the restricted functions by themselves seems to be safe.
+The restrictions we enforce therefore only apply when constants are involved.
 
+Since it is possible to create constants with functions and database columns alone (`div(age, age)`
+being an example - see [the following issue for
+more examples](https://github.com/Aircloak/aircloak/issues/1360)), and we doubt that we have
+found all ways in which constants could be constructed, we have made the simplifying
+assumption that two or more mathematical operations in an expression act as a constant.
