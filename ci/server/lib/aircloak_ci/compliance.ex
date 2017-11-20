@@ -13,9 +13,10 @@ defmodule AircloakCI.Compliance do
   def run(pr) do
     with \
       :ok <- Build.initialize(pr),
-      :ok <- run_phase(pr, "cloak build", "ci/run.sh build_cloak", timeout: :timer.minutes(10))
+      :ok <- run_phase(pr, "cloak build", "ci/run.sh build_cloak", timeout: :timer.minutes(10)),
+      :ok <- run_phase(pr, "compliance", "ci/run.sh cloak_compliance", timeout: :timer.minutes(10))
     do
-      run_phase(pr, "compliance", "ci/run.sh cloak_compliance", timeout: :timer.minutes(10))
+      :ok
     else
       {:error, reason} ->
         Build.log(pr, "error: #{reason}")
