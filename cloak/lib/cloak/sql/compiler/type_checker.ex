@@ -43,7 +43,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       type = Type.establish_type(column, query)
       if potentially_crashing_function?(type) do
         explanation = type.history_of_restricted_transformations
-        |> offensive_transformations([:potentially_crashing_function])
+        |> filter_transformations([:potentially_crashing_function])
         |> Narrative.construct(type.history_of_columns_involved)
         raise CompilationError, message: """
           #{explanation}
@@ -67,7 +67,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       type = Type.establish_type(expression, query)
       if restricted_transformations_count(type) > @max_allowed_restricted_functions do
         explanation = type.history_of_restricted_transformations
-        |> offensive_transformations([:restricted_function])
+        |> filter_transformations([:restricted_function])
         |> Narrative.construct(type.history_of_columns_involved)
         raise CompilationError, message: """
           #{explanation}
@@ -164,7 +164,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     end)
     |> Enum.count()
 
-  defp offensive_transformations(history_of_transformations, required_types), do:
+  defp filter_transformations(history_of_transformations, required_types), do:
     history_of_transformations
     |> Enum.filter(fn({type, _}) -> type in required_types end)
     |> Enum.group_by(fn({type, _}) -> type end, fn({_, name}) -> name end)
