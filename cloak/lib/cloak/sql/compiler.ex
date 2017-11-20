@@ -18,6 +18,7 @@ defmodule Cloak.Sql.Compiler do
       {:ok,
         parsed_query
         |> Compiler.Specification.compile(data_source, parameters, views)
+        |> Compiler.Optimizer.optimize()
         |> Compiler.Execution.prepare()
         |> Compiler.Features.compile()
         |> Compiler.Normalization.normalize()
