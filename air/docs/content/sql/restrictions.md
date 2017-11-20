@@ -45,13 +45,14 @@ When using `LIMIT` and `OFFSET` in a subquery:
 
 ## Math and function application restrictions
 
-Certain functions are considered potentially dangerous when used with expressions that contain a constant.
-A query is rejected if it contains more than 5 such potentially dangerous functions.
-Furthermore when an expression contains two or more mathematical operators we consider those to be the
-equivalent of a constant. The reason for this is that one can easily construct constants from pure database columns.
+The usage of some functions are restricted. The scenarios when the restriction come into effect are when a database
+column is transformed by more than 5 such functions and the expression on which the functions operate also contains a constant.
+
+An expression containing two or more mathematical operators is considered to be the equivalent of a constant.
+The reason for this is that one can easily construct constants from pure database columns.
 For example `div(column, column)` equals the number 1.
 
-The following functions are considered potentially dangerous:
+The following are the functions to which these rules apply:
 
 - `abs`, `bucket`, `ceil`, `floor`, `round`, `sqrt`, `trunc`, and `cast`'s.
 - `+`, `-`, `*`, `/`, `^`, `%`, `pow`, `mod`, `div`
@@ -61,11 +62,11 @@ The following functions are considered potentially dangerous:
 Below is an example of the restrictions in action:
 
 ```sql
--- The following query contains more than 5 potentially dangerous functions and
+-- The following query contains more than 5 restricted functions as well as a constant and
 -- is therefore rejected.
 
 SELECT
-  -- This expression contains a total of 7 potentially dangerous functions:
+  -- This expression contains a total of 7 restricted functions:
   -- - 3 from value1
   -- - 3 from value2
   -- - 1 from the addition of value1 and value2
@@ -73,7 +74,7 @@ SELECT
 FROM (
   SELECT
     uid,
-    -- contains 3 potentially dangerous functions, namely:
+    -- contains 3 restricted functions, namely:
     -- - division with a constant
     -- - abs on an expression containing a constant
     -- - + where one of the arguments is an expression containing a constant
@@ -82,12 +83,12 @@ FROM (
 ) a INNER JOIN (
   SELECT
     uid,
-    -- contains 3 potentially dangerous functions, namely:
+    -- contains 3 restricted functions, namely:
     -- - addition with a constant
     -- - division with a constant
     -- - multiplication where one of the arguments is an expression contains a constant
-    -- Note that month(birth_year) is not considered potentially
-    -- dangerous as the argument does not contain a constant.
+    -- Note that month(birth_year) is not restricted in this context
+    -- as the argument does not contain a constant.
     (month(birth_year) + 1) / 11 * height as value2
   FROM table
 ) b ON a.uid = b.uid
