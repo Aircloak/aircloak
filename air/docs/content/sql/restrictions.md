@@ -45,14 +45,14 @@ When using `LIMIT` and `OFFSET` in a subquery:
 
 ## Math and function application restrictions
 
-The usage of some functions are restricted. The scenarios when the restriction come into effect are when a database
+The usage of some functions is restricted. The scenarios when the restrictions come into effect are when a database
 column is transformed by more than 5 such functions and the expression on which the functions operate also contains a constant.
 
 An expression containing two or more mathematical operators is considered to be the equivalent of a constant.
 The reason for this is that one can easily construct constants from pure database columns.
 For example `div(column, column)` equals the number 1.
 
-The following are the functions to which these rules apply:
+The rules apply to the following functions:
 
 - `abs`, `bucket`, `ceil`, `floor`, `length`, `round`, `trunc`, and `cast`'s.
 - `+`, `-`, `*`, `/`, `^`, `%`, `pow`, `mod`, `div`, 'sqrt'
@@ -86,15 +86,13 @@ FROM (
     -- contains 3 restricted functions, namely:
     -- - addition with a constant
     -- - division with a constant
-    -- - multiplication where one of the arguments is an expression contains a constant
-    -- Note that month(birth_year) is not restricted in this context
-    -- as the argument does not contain a constant.
-    (month(birth_year) + 1) / 11 * height as value2
+    -- - multiplication where one of the arguments is an expression containing a constant
+    (birth_year + 1) / 11 * height as value2
   FROM table
 ) b ON a.uid = b.uid
 ```
 
-Below is an example restriction becoming active because multiple math operators being interpreted as being a constant:
+Below is an example of a query being rejected because multiple math operators have been interpreted as being a constant:
 
 ```sql
 SELECT

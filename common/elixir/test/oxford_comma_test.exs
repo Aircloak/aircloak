@@ -9,6 +9,6 @@ defmodule Aircloak.OxfordComma.Test do
   test "two parts don't get a comma", do:
     assert OxfordComma.join(["first", "second"]) == "first and second"
 
-  test "three parts don't get a comma", do:
+  test "three parts get a comma before the and", do:
     assert OxfordComma.join(["first", "second", "third"]) == "first, second, and third"
 end
