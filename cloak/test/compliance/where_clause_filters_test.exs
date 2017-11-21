@@ -6,8 +6,7 @@ defmodule Compliance.WhereClauseFilters.Text do
     test "input #{column} with a WHERE-clause equality in a sub-query on #{table}", context do
       context
       |> assert_consistent_and_not_failing("""
-        SELECT
-          count(*)
+        SELECT count(*)
         FROM (
           SELECT #{unquote(uid)}
           FROM #{unquote(table)}
@@ -21,8 +20,7 @@ defmodule Compliance.WhereClauseFilters.Text do
     test "on input #{column} with a WHERE-clause inequality in a sub-query on #{table}", context do
       context
       |> assert_consistent_and_not_failing("""
-        SELECT
-          count(*)
+        SELECT count(*)
         FROM (
           SELECT #{unquote(uid)}
           FROM #{unquote(table)}
@@ -36,8 +34,7 @@ defmodule Compliance.WhereClauseFilters.Text do
     test "input #{column} with a WHERE-clause IN in a sub-query on #{table}", context do
       context
       |> assert_consistent_and_not_failing("""
-        SELECT
-          count(*)
+        SELECT count(*)
         FROM (
           SELECT #{unquote(uid)}
           FROM #{unquote(table)}
@@ -51,8 +48,7 @@ defmodule Compliance.WhereClauseFilters.Text do
     test "input #{column} with a WHERE-clause NOT IN in a sub-query on #{table}", context do
       context
       |> assert_consistent_and_not_failing("""
-        SELECT
-          count(*)
+        SELECT count(*)
         FROM (
           SELECT #{unquote(uid)}
           FROM #{unquote(table)}
@@ -108,8 +104,7 @@ defmodule Compliance.WhereClauseFilters.Text do
     test "input #{column} with a WHERE-clause equality in a sub-query on #{table}", context do
       context
       |> assert_consistent_and_not_failing("""
-        SELECT
-          count(*)
+        SELECT count(*)
         FROM (
           SELECT #{unquote(uid)}
           FROM #{unquote(table)}
@@ -123,8 +118,7 @@ defmodule Compliance.WhereClauseFilters.Text do
     test "on input #{column} with a WHERE-clause inequality in a sub-query on #{table}", context do
       context
       |> assert_consistent_and_not_failing("""
-        SELECT
-          count(*)
+        SELECT count(*)
         FROM (
           SELECT #{unquote(uid)}
           FROM #{unquote(table)}
@@ -138,8 +132,7 @@ defmodule Compliance.WhereClauseFilters.Text do
     test "input #{column} with a WHERE-clause LIKE in a sub-query on #{table}", context do
       context
       |> assert_consistent_and_not_failing("""
-        SELECT
-          count(*)
+        SELECT count(*)
         FROM (
           SELECT #{unquote(uid)}
           FROM #{unquote(table)}
@@ -168,8 +161,7 @@ defmodule Compliance.WhereClauseFilters.Text do
     test "input #{column} with a WHERE-clause IN in a sub-query on #{table}", context do
       context
       |> assert_consistent_and_not_failing("""
-        SELECT
-          count(*)
+        SELECT count(*)
         FROM (
           SELECT #{unquote(uid)}
           FROM #{unquote(table)}
