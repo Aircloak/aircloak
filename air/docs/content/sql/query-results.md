@@ -40,8 +40,8 @@ Aircloak increases the noise with an increase in the number of certain query *co
 | range (`>=` and `<`, or `BETWEEN`) | Baseline |
 | `IN` and `NOT IN` | One layer plus one layer per `IN` element |
 | `[I]LIKE` and `NOT [I]LIKE` | One layer plus one layer per wildcard |
-| `right`, `left`, `ltrim`, `rtrim`, `btrim`, `trim`, or `substring | Baseline plus one layer |
-| `upper`, `lower` with `<>`) | Baseline plus one layer |
+| `right`, `left`, `ltrim`, `rtrim`, `btrim`, `trim`, or `substring` | Baseline plus one layer |
+| `upper`, `lower` with `<>` | Baseline plus one layer |
 | None | One noise layer |
 
 
