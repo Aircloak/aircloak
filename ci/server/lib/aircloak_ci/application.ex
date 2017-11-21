@@ -8,6 +8,8 @@ defmodule AircloakCI.Application do
       [
         AircloakCI.CmdRunner.Supervisor,
         AircloakCI.Github.RateLimiter,
+        AircloakCI.Builder.Server,
+        AircloakCI.Github.StatusPoller,
       ],
       strategy: :one_for_one,
       name: AircloakCI.Supervisor
