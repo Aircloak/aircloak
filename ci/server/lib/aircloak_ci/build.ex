@@ -16,7 +16,7 @@ defmodule AircloakCI.Build do
   """
   @spec initialize(Github.pull_request) :: :ok | {:error, String.t}
   def initialize(pr) do
-    log(pr, "initializing build")
+    log(pr, "initializing build for PR `#{pr.title}` (##{pr.number})")
 
     init_folder(pr)
     clone_repo(pr)
