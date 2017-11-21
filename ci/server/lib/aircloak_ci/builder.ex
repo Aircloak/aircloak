@@ -11,6 +11,8 @@ defmodule AircloakCI.Builder do
     type: module
   }
 
+  @aircloak_ci_name "continuous-integration/aircloak/ci"
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -77,7 +79,7 @@ defmodule AircloakCI.Builder do
     pr.approved? and
     pr.status_checks["continuous-integration/travis-ci/pr"] == :success and
     pr.status_checks["continuous-integration/travis-ci/push"] == :success and
-    pr.status_checks["continuous-integration/aircloak/ci"] in [nil, :pending] and
+    pr.status_checks[@aircloak_ci_name] in [nil, :pending] and
     # TODO: remove this temp filter
     pr.target_branch == "sasa/extract-compliance-ci"
 
@@ -103,7 +105,7 @@ defmodule AircloakCI.Builder do
   end
 
   defp report_status(pr, state), do:
-    Github.put_status_check_state!(pr.repo.owner, pr.repo.name, pr.sha, "continuous-integration/aircloak/ci", state)
+    Github.RateLimiter.put_status_check_state!(pr.repo.owner, pr.repo.name, pr.sha, @aircloak_ci_name, state)
 
   defp build_status(:ok), do: :success
   defp build_status(:error), do: :error

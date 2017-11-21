@@ -33,7 +33,7 @@ defmodule AircloakCI.Builder.Server do
     Process.send_after(self(), :check_for_prs, :timer.seconds(5))
 
   defp pending_prs(), do:
-    AircloakCI.Github.pending_pull_requests("aircloak", "aircloak")
+    AircloakCI.Github.RateLimiter.pending_pull_requests("aircloak", "aircloak")
 
 
   # -------------------------------------------------------------------

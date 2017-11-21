@@ -6,7 +6,8 @@ defmodule AircloakCI.Application do
   def start(_type, _args) do
     Supervisor.start_link(
       [
-        AircloakCI.CmdRunner.Supervisor
+        AircloakCI.CmdRunner.Supervisor,
+        AircloakCI.Github.RateLimiter,
       ],
       strategy: :one_for_one,
       name: AircloakCI.Supervisor
