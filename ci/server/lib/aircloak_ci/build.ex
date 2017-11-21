@@ -56,24 +56,19 @@ defmodule AircloakCI.Build do
   end
 
   defp src_folder(pr), do:
-    Path.join([build_folder(pr), "src"])
+    Path.join(build_folder(pr), "src")
 
   defp log_folder(pr), do:
-    Path.join([build_folder(pr), "log"])
+    Path.join(build_folder(pr), "log")
 
   defp truncate_logs(pr), do:
     pr |> log_folder() |> Path.join("*") |> Path.wildcard() |> Enum.each(&File.write(&1, ""))
 
   defp build_folder(pr), do:
-    Path.join([builds_folder(), encode_branch_folder(pr)])
+    Path.join(builds_folder(), to_string(pr.number))
 
   defp builds_folder(), do:
-    Application.app_dir(:aircloak_ci, Path.join(["priv", "builds"]))
-
-  defp encode_branch_folder(pr), do:
-    {pr.repo.owner, pr.repo.name, pr.source_branch, pr.target_branch}
-    |> :erlang.term_to_binary()
-    |> Base.encode64(padding: false)
+    Application.app_dir(:aircloak_ci, Path.join("priv", "builds"))
 
 
   # -------------------------------------------------------------------
