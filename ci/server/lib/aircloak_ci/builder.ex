@@ -85,7 +85,11 @@ defmodule AircloakCI.Builder do
     Enum.any?(builder.current_jobs, &(&1.pr.number == pr.number))
 
   defp cancel_outdated(builder, pr) do
-    {outdated, remaining} = Enum.split_with(builder.current_jobs, &(&1.pr.number == pr.number and &1.pr.sha != pr.sha))
+    {outdated, remaining} =
+      Enum.split_with(
+        builder.current_jobs,
+        &(&1.pr.number == pr.number and &1.pr.merge_sha != pr.merge_sha)
+      )
     Enum.each(outdated, &cancel_job/1)
     %{builder | current_jobs: remaining}
   end

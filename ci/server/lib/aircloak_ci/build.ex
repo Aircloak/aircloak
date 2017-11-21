@@ -21,15 +21,8 @@ defmodule AircloakCI.Build do
 
     clone_repo(pr)
     cmd!(pr, "git reset --hard HEAD")
-    cmd!(pr, "git checkout master")
-    cmd!(pr, "git pull")
-    cmd!(pr, "git checkout #{pr.source_branch}")
-    cmd!(pr, "git checkout #{pr.target_branch}")
-
-    case cmd(pr, "git merge --no-ff --no-commit #{pr.source_branch}") do
-      :ok -> :ok
-      {:error, _} -> {:error, "this branch can't be merged automatically."}
-    end
+    cmd!(pr, "git fetch --force origin pull/#{pr.number}/merge", timeout: :timer.minutes(1))
+    cmd!(pr, "git checkout #{pr.merge_sha}")
   end
 
   @doc "Executes the given command in the PR build folder."

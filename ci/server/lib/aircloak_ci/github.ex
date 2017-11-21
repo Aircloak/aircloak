@@ -8,7 +8,9 @@ defmodule AircloakCI.Github do
     source_branch: String.t,
     target_branch: String.t,
     sha: String.t,
-    approved?: true,
+    mergeable?: boolean,
+    merge_sha: String.t,
+    approved?: boolean,
     status_checks: %{String.t => :expected | status_check_state}
   }
 
@@ -34,6 +36,8 @@ defmodule AircloakCI.Github do
             nodes {
               number
               title
+              mergeable
+              potentialMergeCommit {oid}
               headRefName
               baseRefName
               reviews(last: 1) {nodes {createdAt state}}
@@ -76,6 +80,8 @@ defmodule AircloakCI.Github do
       source_branch: Map.fetch!(raw_pr_data, "headRefName"),
       target_branch: Map.fetch!(raw_pr_data, "baseRefName"),
       approved?: match?(%{"reviews" => %{"nodes" => [%{"state" => "APPROVED"}]}}, raw_pr_data),
+      mergeable?: Map.fetch!(raw_pr_data, "mergeable") == "MERGEABLE",
+      merge_sha: raw_pr_data["potentialMergeCommit"]["oid"],
       sha:
         raw_pr_data
         |> Map.fetch!("commits")
