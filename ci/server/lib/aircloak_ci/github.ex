@@ -1,0 +1,183 @@
+defmodule AircloakCI.Github do
+  @moduledoc "Wrappers for sending API requests to Github."
+
+  require Logger
+
+  @type pull_request :: %{
+    repo: repo,
+    number: pos_integer,
+    title: String.t,
+    source_branch: String.t,
+    target_branch: String.t,
+    sha: String.t,
+    mergeable?: boolean,
+    merge_sha: String.t,
+    approved?: boolean,
+    status_checks: %{String.t => :expected | status_check_state}
+  }
+
+  @type repo :: %{owner: String.t, name: String.t}
+
+  @type status_check_state :: :error | :failure | :pending | :success
+
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Returns the list of pending pull requests."
+  @spec pending_pull_requests(String.t, String.t) :: [pull_request]
+  def pending_pull_requests(owner, repo), do:
+    graphql_request("query {#{repo_query(owner, repo, prs_query())}}")
+    |> Map.fetch!("repository")
+    |> Map.fetch!("pullRequests")
+    |> Map.fetch!("nodes")
+    |> Enum.map(&to_pr_data(&1, %{owner: owner, name: repo}))
+
+  @doc "Returns the data for the given pull request."
+  @spec pull_request(String.t, String.t, integer) :: pull_request
+  def pull_request(owner, repo, number), do:
+    graphql_request("query {#{repo_query(owner, repo, pr_query(number))}}")
+    |> Map.fetch!("repository")
+    |> Map.fetch!("pullRequest")
+    |> to_pr_data(%{owner: owner, name: repo})
+
+
+  @doc "Sets the status check state for the given owner/repo/sha."
+  @spec put_status_check_state!(String.t, String.t, String.t, String.t, status_check_state) :: :ok
+  def put_status_check_state!(owner, repo, sha, context, state) do
+    %{status_code: 201} =
+      post_rest_request(
+        "/repos/#{owner}/#{repo}/statuses/#{sha}",
+        %{
+          context: context,
+          state: encode_status_check_state(state),
+        }
+      )
+
+    :ok
+  end
+
+
+  # -------------------------------------------------------------------
+  # GraphQL queries
+  # -------------------------------------------------------------------
+
+  defp repo_query(owner, repo, inner_query), do:
+    ~s/repository(owner: "#{owner}", name: "#{repo}") {#{inner_query}}/
+
+  defp prs_query(), do:
+    ~s/
+      pullRequests(first: 100, states: OPEN, orderBy: {field: UPDATED_AT, direction: DESC}) {
+        nodes{#{pr_fields_query()}}
+      }
+    /
+
+  defp pr_query(number), do:
+    ~s/pullRequest(number: #{number}){#{pr_fields_query()}}/
+
+  defp pr_fields_query(), do:
+    ~s/
+      number
+      title
+      mergeable
+      potentialMergeCommit {oid}
+      headRefName
+      baseRefName
+      reviews(last: 1) {nodes {createdAt state}}
+      commits(last: 1) {nodes {commit {oid status {contexts {context state}}}}}
+    /
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp to_pr_data(raw_pr_data, repo) do
+    %{
+      repo: repo,
+      number: Map.fetch!(raw_pr_data, "number"),
+      title: Map.fetch!(raw_pr_data, "title"),
+      source_branch: Map.fetch!(raw_pr_data, "headRefName"),
+      target_branch: Map.fetch!(raw_pr_data, "baseRefName"),
+      approved?: match?(%{"reviews" => %{"nodes" => [%{"state" => "APPROVED"}]}}, raw_pr_data),
+      mergeable?: Map.fetch!(raw_pr_data, "mergeable") == "MERGEABLE",
+      merge_sha: raw_pr_data["potentialMergeCommit"]["oid"],
+      sha:
+        raw_pr_data
+        |> Map.fetch!("commits")
+        |> Map.fetch!("nodes")
+        |> hd()
+        |> Map.fetch!("commit")
+        |> Map.fetch!("oid"),
+      status_checks:
+        raw_pr_data
+        |> Map.fetch!("commits")
+        |> Map.fetch!("nodes")
+        |> Enum.flat_map(&(Map.fetch!(&1, "commit")["status"]["contexts"] || []))
+        |> Enum.map(fn(%{"context" => context, "state" => state}) -> {context, decode_status_check_state(state)} end)
+        |> Enum.into(%{})
+    }
+  end
+
+  defp decode_status_check_state("EXPECTED"), do: :expected
+  defp decode_status_check_state("ERROR"), do: :error
+  defp decode_status_check_state("FAILURE"), do: :failure
+  defp decode_status_check_state("PENDING"), do: :pending
+  defp decode_status_check_state("SUCCESS"), do: :success
+
+  defp encode_status_check_state(:error), do: "error"
+  defp encode_status_check_state(:failure), do: "failure"
+  defp encode_status_check_state(:pending), do: "pending"
+  defp encode_status_check_state(:success), do: "success"
+
+  defp graphql_request(query), do:
+    query
+    |> post_graphql_request()
+    |> Map.fetch!(:body)
+    |> Poison.decode!()
+    |> extract_data!()
+
+  defp extract_data!(response) do
+    if Map.has_key?(response, "errors") do
+      raise "github error: #{inspect response}"
+    else
+      Map.fetch!(response, "data")
+    end
+  end
+
+  defp post_graphql_request(query), do:
+    post_rest_request("/graphql", %{query: query})
+
+  defp post_rest_request(path, params) do
+    auth_token = System.get_env("AIRCLOAK_CI_AUTH")
+
+    if auth_token == nil, do: raise "`AIRCLOAK_CI_AUTH` OS env is not set."
+
+    HTTPoison.post!(
+      "https://api.github.com#{path}",
+      Poison.encode!(params),
+      [
+        {"authorization", "bearer #{auth_token}"},
+        {"Content-Type", "application/json"}
+      ],
+      [timeout: :timer.seconds(30), recv_timeout: :timer.seconds(30)]
+    )
+    |> log_rate_limit_headers(path)
+  end
+
+  defp log_rate_limit_headers(response, path) do
+    with \
+      {_, remaining} <- Enum.find(response.headers, &match?({"X-RateLimit-Remaining", _value}, &1)),
+      {_, reset} <- Enum.find(response.headers, &match?({"X-RateLimit-Reset", _value}, &1)),
+      {reset_int, ""} <- Integer.parse(reset),
+      {:ok, reset_time} <- DateTime.from_unix(reset_int)
+    do
+      category = if path == "/graphql", do: "GraphQL API", else: "REST API"
+      expires_in_sec = DateTime.diff(reset_time, DateTime.utc_now(), :second)
+      Logger.info("#{category} remaining limit #{remaining}, resets in #{expires_in_sec} seconds")
+    end
+
+    response
+  end
+end
