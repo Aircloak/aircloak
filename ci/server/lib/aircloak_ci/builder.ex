@@ -58,7 +58,10 @@ defmodule AircloakCI.Builder do
     case Enum.split_with(builder.current_jobs, &(&1.pid == pid)) do
       {[], _} -> :error
       {[job], remaining_jobs} ->
-        if reason != :normal, do: report_status(job.pr, :failure)
+        if reason != :normal do
+          report_status(job.pr, :failure)
+          Logger.error("build for PR #{job.pr.number} crashed")
+        end
         {:ok, %{builder | current_jobs: remaining_jobs}}
     end
   end
@@ -80,6 +83,7 @@ defmodule AircloakCI.Builder do
   end
 
   defp start_job(builder, pr) do
+    Logger.info("starting the build for PR #{pr.number}")
     report_status(pr, :pending)
 
     me = self()
