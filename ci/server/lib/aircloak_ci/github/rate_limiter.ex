@@ -29,6 +29,11 @@ defmodule AircloakCI.Github.RateLimiter do
   def put_status_check_state!(owner, repo, sha, context, state), do:
     sync_request!(:put_status_check_state!, [owner, repo, sha, context, state])
 
+  @doc "Posts a comment to the given issue or pull request."
+  @spec post_comment(String.t, String.t, number, String.t) :: :ok
+  def post_comment(owner, repo, issue_number, body), do:
+    sync_request!(:post_comment, [owner, repo, issue_number, body])
+
 
   # -------------------------------------------------------------------
   # GenServer callbacks

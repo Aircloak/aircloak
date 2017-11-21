@@ -58,6 +58,18 @@ defmodule AircloakCI.Github do
     :ok
   end
 
+  @doc "Posts a comment to the given issue or pull request."
+  @spec post_comment(String.t, String.t, number, String.t) :: :ok
+  def post_comment(owner, repo, issue_number, body) do
+    %{status_code: 201} =
+      post_rest_request(
+        "/repos/#{owner}/#{repo}/issues/#{issue_number}/comments",
+        %{body: body}
+      )
+
+    :ok
+  end
+
 
   # -------------------------------------------------------------------
   # GraphQL queries
