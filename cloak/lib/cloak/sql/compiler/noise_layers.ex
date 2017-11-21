@@ -412,7 +412,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp table_name(table), do: table.db_name
 
   defp reference_aliased(column, subquery, table), do:
-    %Expression{name: column.alias || find_alias(column, subquery) || column.name, table: table}
+    %Expression{name: column.alias || find_alias(column, subquery) || column.name, table: table, type: column.type}
 
   defp find_alias(column, query) do
     id = Expression.id(column)

@@ -522,9 +522,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         &match?(%Expression{function: "max", function_args: [%Expression{name: "numeric"}]}, &1))
       assert [%{alias: count_alias}, %{alias: other_count_alias}] = Enum.filter(subquery.db_columns,
         &match?(%Expression{function: "count", function_args: [%Expression{name: "numeric"}]}, &1))
-      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^min_alias}, &1))
-      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^max_alias}, &1))
-      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^count_alias}, &1))
+      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^min_alias, type: :integer}, &1))
+      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^max_alias, type: :integer}, &1))
+      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^count_alias, type: :integer}, &1))
       assert 1 = Enum.count(result.noise_layers, &match?(%{base: {"table", "numeric", nil}, expressions: [
         %Expression{name: ^min_alias},
         %Expression{name: ^max_alias},
