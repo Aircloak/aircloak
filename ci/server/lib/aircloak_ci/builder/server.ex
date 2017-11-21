@@ -36,7 +36,7 @@ defmodule AircloakCI.Builder.Server do
 
   @impl GenServer
   def handle_info({:current_pull_requests, pull_requests}, builder), do:
-    {:noreply, Enum.reduce(pull_requests, builder, &Builder.process_pr(&2, &1))}
+    {:noreply, Builder.process_prs(builder, pull_requests)}
   def handle_info(message, builder) do
     case Builder.handle_message(builder, message) do
       {:ok, state} -> {:noreply, state}

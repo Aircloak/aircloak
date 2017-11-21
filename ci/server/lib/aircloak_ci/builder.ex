@@ -23,12 +23,10 @@ defmodule AircloakCI.Builder do
   def new(), do:
     %{current_jobs: []}
 
-  @doc "Processes the provided pull request."
-  @spec process_pr(t, Github.API.pull_request) :: t
-  def process_pr(builder, pr), do:
-    builder
-    |> cancel_outdated(pr)
-    |> maybe_start_job(pr)
+  @doc "Processes pending pull requests."
+  @spec process_prs(t, [Github.API.pull_request]) :: t
+  def process_prs(builder, pending_prs), do:
+    Enum.reduce(pending_prs, cancel_needless_builds(builder, pending_prs), &maybe_start_job(&2, &1))
 
   @doc "Force starts the build of the given pull request."
   @spec force_build(t, Github.API.pull_request) :: :ok | {:error, String.t}
@@ -107,15 +105,14 @@ defmodule AircloakCI.Builder do
   defp running?(builder, pr), do:
     Enum.any?(builder.current_jobs, &(&1.pr.number == pr.number))
 
-  defp cancel_outdated(builder, pr) do
-    {outdated, remaining} =
-      Enum.split_with(
-        builder.current_jobs,
-        &(&1.pr.number == pr.number and &1.pr.merge_sha != pr.merge_sha)
-      )
+  defp cancel_needless_builds(builder, pending_prs) do
+    {remaining, outdated} = Enum.split_with(builder.current_jobs, &(valid_pr?(&1.pr, pending_prs)))
     Enum.each(outdated, &cancel_job/1)
-    %{builder | current_jobs: remaining}
+    %{builder | current_jobs: remaining} |> IO.inspect
   end
+
+  defp valid_pr?(pr, pending_prs), do:
+    Enum.any?(pending_prs, &(&1.pr.number == pr.number and &1.pr.merge_sha == pr.merge_sha))
 
   defp cancel_job(%{pid: pid} = job) do
     Logger.info("cancelling outdated build for PR #{job.pr.number}")
