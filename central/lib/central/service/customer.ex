@@ -298,15 +298,17 @@ defmodule Central.Service.Customer do
 
   defp air_handler("Unknown"), do: {:ok, AirMessage.Default}
   defp air_handler(air_version) do
-    %{
-      "17.1.0" => {:ok, AirMessage.Default},
-      "17.2.0" => {:ok, AirMessage.V170200},
-      "17.3.0" => {:ok, AirMessage.V170300},
-      # No change in the communications protocol since 17.3.0. 17.3.{1,2} are bug fixes only.
-      "17.3.1" => {:ok, AirMessage.V170300},
-      "17.3.2" => {:ok, AirMessage.V170300},
-      "17.4.0" => {:ok, AirMessage.V170400},
-    } |> Map.get(air_version, {:error, :invalid_version})
+    case Version.parse(air_version) do
+      :error -> {:error, :invalid_version}
+      {:ok, version} ->
+        cond do
+          Version.match?(version, ">=17.1.0 and <17.2.0") -> {:ok, AirMessage.Default}
+          Version.match?(version, ">=17.2.0 and <17.3.0") -> {:ok, AirMessage.V170200}
+          Version.match?(version, ">=17.3.0 and <17.4.0") -> {:ok, AirMessage.V170300}
+          Version.match?(version, ">=17.4.0") -> {:ok, AirMessage.V170400}
+          true -> {:error, :invalid_version}
+        end
+    end
   end
 
 
