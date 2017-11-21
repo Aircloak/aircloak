@@ -26,31 +26,20 @@ defmodule AircloakCI.Github do
   @doc "Returns the list of pending pull requests."
   @spec pending_pull_requests(String.t, String.t) :: [pull_request]
   def pending_pull_requests(owner, repo), do:
-    graphql_request(~s/
-      query {
-        repository(owner: "#{owner}", name: "#{repo}") {
-          pullRequests(
-            first: 100, states: OPEN,
-            orderBy: {field: UPDATED_AT, direction: DESC}
-          ) {
-            nodes {
-              number
-              title
-              mergeable
-              potentialMergeCommit {oid}
-              headRefName
-              baseRefName
-              reviews(last: 1) {nodes {createdAt state}}
-              commits(last: 1) {nodes {commit {oid status {contexts {context state}}}}}
-            }
-          }
-        }
-      }
-    /)
+    graphql_request("query {#{repo_query(owner, repo, prs_query())}}")
     |> Map.fetch!("repository")
     |> Map.fetch!("pullRequests")
     |> Map.fetch!("nodes")
-    |> Enum.map(&to_pr_data(%{owner: owner, name: repo}, &1))
+    |> Enum.map(&to_pr_data(&1, %{owner: owner, name: repo}))
+
+  @doc "Returns the data for the given pull request."
+  @spec pull_request(String.t, String.t, integer) :: pull_request
+  def pull_request(owner, repo, number), do:
+    graphql_request("query {#{repo_query(owner, repo, pr_query(number))}}")
+    |> Map.fetch!("repository")
+    |> Map.fetch!("pullRequest")
+    |> to_pr_data(%{owner: owner, name: repo})
+
 
   @doc "Sets the status check state for the given owner/repo/sha."
   @spec put_status_check_state!(String.t, String.t, String.t, String.t, status_check_state) :: :ok
@@ -69,10 +58,40 @@ defmodule AircloakCI.Github do
 
 
   # -------------------------------------------------------------------
+  # GraphQL queries
+  # -------------------------------------------------------------------
+
+  defp repo_query(owner, repo, inner_query), do:
+    ~s/repository(owner: "#{owner}", name: "#{repo}") {#{inner_query}}/
+
+  defp prs_query(), do:
+    ~s/
+      pullRequests(first: 100, states: OPEN, orderBy: {field: UPDATED_AT, direction: DESC}) {
+        nodes{#{pr_fields_query()}}
+      }
+    /
+
+  defp pr_query(number), do:
+    ~s/pullRequest(number: #{number}){#{pr_fields_query()}}/
+
+  defp pr_fields_query(), do:
+    ~s/
+      number
+      title
+      mergeable
+      potentialMergeCommit {oid}
+      headRefName
+      baseRefName
+      reviews(last: 1) {nodes {createdAt state}}
+      commits(last: 1) {nodes {commit {oid status {contexts {context state}}}}}
+    /
+
+
+  # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp to_pr_data(repo, raw_pr_data) do
+  defp to_pr_data(raw_pr_data, repo) do
     %{
       repo: repo,
       number: Map.fetch!(raw_pr_data, "number"),

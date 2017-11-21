@@ -30,6 +30,16 @@ defmodule AircloakCI.Builder do
     |> cancel_outdated(pr)
     |> maybe_start_job(pr)
 
+  @doc "Force starts the build of the given pull request."
+  @spec force_build(t, Github.pull_request) :: :ok | {:error, String.t}
+  def force_build(builder, pr) do
+    cond do
+      running?(builder, pr) -> {:error, "build for this PR is already running"}
+      not pr.mergeable? or pr.merge_sha == nil -> {:error, "this PR is not mergeable"}
+      true -> {:ok, start_job(builder, pr)}
+    end
+  end
+
   @doc "Handles a builder specific message."
   @spec handle_message(t, any) :: {:ok, t} | :error
   def handle_message(builder, {:job_result, result}) do
@@ -39,7 +49,7 @@ defmodule AircloakCI.Builder do
         {:ok, builder}
 
       job ->
-        Logger.info("build for PR `#{job.pr.title}` finished with the result `#{result.outcome}`")
+        Logger.info("build for PR #{job.pr.number} finished with the result `#{result.outcome}`")
         report_status(job.pr, build_status(result.outcome))
         {:ok, builder}
     end
@@ -63,21 +73,27 @@ defmodule AircloakCI.Builder do
 
   defp maybe_start_job(builder, pr) do
     if can_start_job?(builder, pr) do
-      report_status(pr, :pending)
-
-      me = self()
-      {:ok, pid} = Task.start_link(fn ->
-        send(me, {:job_result, %{pid: self(), outcome: AircloakCI.Compliance.run(pr)}})
-      end)
-
-      update_in(builder.current_jobs, &[%{pid: pid, pr: pr} | &1])
+      start_job(builder, pr)
     else
       builder
     end
   end
 
+  defp start_job(builder, pr) do
+    report_status(pr, :pending)
+
+    me = self()
+    {:ok, pid} = Task.start_link(fn ->
+      send(me, {:job_result, %{pid: self(), outcome: AircloakCI.Compliance.run(pr)}})
+    end)
+
+    update_in(builder.current_jobs, &[%{pid: pid, pr: pr} | &1])
+  end
+
   defp can_start_job?(builder, pr), do:
     not running?(builder, pr) and
+    pr.mergeable? and
+    pr.merge_sha != nil and
     pr.approved? and
     pr.status_checks["continuous-integration/travis-ci/pr"] == :success and
     pr.status_checks["continuous-integration/travis-ci/push"] == :success and
@@ -99,7 +115,7 @@ defmodule AircloakCI.Builder do
   end
 
   defp cancel_job(%{pid: pid} = job) do
-    Logger.info("cancelling outdated build for `#{job.pr.title}`")
+    Logger.info("cancelling outdated build for PR #{job.pr.number}")
     Process.exit(pid, :kill)
     receive do
       {:EXIT, ^pid, _reason} -> :ok

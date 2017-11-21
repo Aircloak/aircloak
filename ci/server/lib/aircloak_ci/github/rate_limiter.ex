@@ -19,6 +19,11 @@ defmodule AircloakCI.Github.RateLimiter do
   def pending_pull_requests(owner, repo), do:
     sync_request!(:pending_pull_requests, [owner, repo])
 
+  @doc "Returns the data for the given pull request."
+  @spec pull_request(String.t, String.t, integer) :: Github.pull_request
+  def pull_request(owner, repo, number), do:
+    sync_request!(:pull_request, [owner, repo, number])
+
   @doc "Sets the status check state for the given owner/repo/sha."
   @spec put_status_check_state!(String.t, String.t, String.t, String.t, Github.status_check_state) :: :ok
   def put_status_check_state!(owner, repo, sha, context, state), do:
