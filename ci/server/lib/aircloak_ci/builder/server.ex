@@ -2,7 +2,7 @@ defmodule AircloakCI.Builder.Server do
   @moduledoc "Process which starts and manages CI builds."
 
   use GenServer, start: {__MODULE__, :start_link, []}
-  alias AircloakCI.Builder
+  alias AircloakCI.{Builder, Github}
 
 
   # -------------------------------------------------------------------
@@ -10,12 +10,12 @@ defmodule AircloakCI.Builder.Server do
   # -------------------------------------------------------------------
 
   @doc "Handles pending pull requests."
-  @spec handle_pending_prs([AircloakCI.Github.pull_request]) :: :ok
+  @spec handle_pending_prs([Github.API.pull_request]) :: :ok
   def handle_pending_prs(pending_prs), do:
     GenServer.call(__MODULE__, {:handle_pending_prs, pending_prs})
 
   @doc "Force starts the build of the given pull request."
-  @spec force_build(AircloakCI.Github.pull_request) :: :ok | {:error, String.t}
+  @spec force_build(Github.API.pull_request) :: :ok | {:error, String.t}
   def force_build(pr), do:
     GenServer.call(__MODULE__, {:force_build, pr})
 

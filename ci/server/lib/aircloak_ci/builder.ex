@@ -7,7 +7,7 @@ defmodule AircloakCI.Builder do
   @opaque t :: %{current_jobs: [job]}
   @opaque job :: %{
     pid: pid,
-    pr: Github.pull_request,
+    pr: Github.API.pull_request,
     type: module
   }
 
@@ -24,14 +24,14 @@ defmodule AircloakCI.Builder do
     %{current_jobs: []}
 
   @doc "Processes the provided pull request."
-  @spec process_pr(t, Github.pull_request) :: t
+  @spec process_pr(t, Github.API.pull_request) :: t
   def process_pr(builder, pr), do:
     builder
     |> cancel_outdated(pr)
     |> maybe_start_job(pr)
 
   @doc "Force starts the build of the given pull request."
-  @spec force_build(t, Github.pull_request) :: :ok | {:error, String.t}
+  @spec force_build(t, Github.API.pull_request) :: :ok | {:error, String.t}
   def force_build(builder, pr) do
     cond do
       running?(builder, pr) -> {:error, "build for this PR is already running"}
@@ -126,7 +126,7 @@ defmodule AircloakCI.Builder do
   end
 
   defp report_status(pr, state, context \\ nil) do
-    Github.RateLimiter.put_status_check_state!(pr.repo.owner, pr.repo.name, pr.sha, @aircloak_ci_name, state)
+    Github.put_status_check_state!(pr.repo.owner, pr.repo.name, pr.sha, @aircloak_ci_name, state)
     maybe_send_comment(pr, state, context)
   end
 
@@ -148,7 +148,7 @@ defmodule AircloakCI.Builder do
   defp maybe_send_comment(_pr, _, _other_status), do: :ok
 
   defp send_comment(pr, body), do:
-    Github.RateLimiter.post_comment(pr.repo.owner, pr.repo.name, pr.number, body)
+    Github.post_comment(pr.repo.owner, pr.repo.name, pr.number, body)
 
   defp build_status(:ok), do: :success
   defp build_status(:error), do: :error

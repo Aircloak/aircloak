@@ -14,7 +14,7 @@ defmodule AircloakCI.Build do
   This function initializes the folder structure for the given build, clones the repo, and merges the target branch into
   the source branch.
   """
-  @spec initialize(Github.pull_request) :: :ok | {:error, String.t}
+  @spec initialize(Github.API.pull_request) :: :ok | {:error, String.t}
   def initialize(pr) do
     log(pr, "initializing build for PR `#{pr.title}` (##{pr.number})")
 
@@ -26,17 +26,17 @@ defmodule AircloakCI.Build do
   end
 
   @doc "Executes the given command in the PR build folder."
-  @spec cmd(Github.pull_request, String.t, CmdRunner.opts) :: :ok | {:error, String.t}
+  @spec cmd(Github.API.pull_request, String.t, CmdRunner.opts) :: :ok | {:error, String.t}
   def cmd(pr, cmd, opts \\ []), do:
     CmdRunner.run(cmd, [cd: src_folder(pr), logger: CmdRunner.file_logger(log_path(pr))] ++ opts)
 
   @doc "Executes the given command in the PR build folder, raises on error."
-  @spec cmd!(Github.pull_request, String.t, CmdRunner.opts) :: :ok
+  @spec cmd!(Github.API.pull_request, String.t, CmdRunner.opts) :: :ok
   def cmd!(pr, cmd, opts \\ []), do:
     :ok = cmd(pr, cmd, opts)
 
   @doc "Appends the given output to the build log."
-  @spec log(Github.pull_request, iodata) :: :ok
+  @spec log(Github.API.pull_request, iodata) :: :ok
   def log(pr, output), do:
     pr
     |> log_path()
@@ -44,7 +44,7 @@ defmodule AircloakCI.Build do
     |> apply([["\naircloak_ci: #{output}\n"]])
 
   @doc "Returns the contents of the build log."
-  @spec log_contents(Github.pull_request) :: binary
+  @spec log_contents(Github.API.pull_request) :: binary
   def log_contents(pr) do
     case File.read(log_path(pr)) do
       {:ok, contents} -> contents

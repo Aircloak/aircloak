@@ -12,7 +12,7 @@ defmodule AircloakCI.Github.StatusPoller do
 
   defp loop() do
     try do
-      AircloakCI.Builder.Server.handle_pending_prs(Github.RateLimiter.pending_pull_requests("aircloak", "aircloak"))
+      AircloakCI.Builder.Server.handle_pending_prs(Github.pending_pull_requests("aircloak", "aircloak"))
     catch type, error ->
       Logger.error(Exception.format(type, error, System.stacktrace()))
     end

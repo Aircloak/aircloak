@@ -20,7 +20,7 @@ defmodule AircloakCI.Application do
   defp common_processes(), do:
     [
       AircloakCI.CmdRunner.Supervisor,
-      AircloakCI.Github.RateLimiter,
+      AircloakCI.Github,
       AircloakCI.Builder.Server,
     ]
 end

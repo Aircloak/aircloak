@@ -9,7 +9,7 @@ defmodule AircloakCI.Compliance do
   # -------------------------------------------------------------------
 
   @doc "Runs the compliance job."
-  @spec run(AircloakCI.Github.pull_request) :: :ok | :error
+  @spec run(AircloakCI.Github.API.pull_request) :: :ok | :error
   def run(pr) do
     with \
       :ok <- Build.initialize(pr),
