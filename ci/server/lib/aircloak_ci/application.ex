@@ -10,6 +10,7 @@ defmodule AircloakCI.Application do
         AircloakCI.Github,
         AircloakCI.PullRequestProvider,
         AircloakCI.Builder.Server,
+        AircloakCI.BuildCleaner
       ],
       strategy: :one_for_one,
       name: AircloakCI.Supervisor
