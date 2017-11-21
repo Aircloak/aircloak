@@ -1,6 +1,8 @@
 defmodule AircloakCI.Github do
   @moduledoc "Wrappers for sending API requests to Github."
 
+  require Logger
+
   @type pull_request :: %{
     repo: repo,
     number: pos_integer,
@@ -161,5 +163,21 @@ defmodule AircloakCI.Github do
       ],
       [timeout: :timer.seconds(30), recv_timeout: :timer.seconds(30)]
     )
+    |> log_rate_limit_headers(path)
+  end
+
+  defp log_rate_limit_headers(response, path) do
+    with \
+      {_, remaining} <- Enum.find(response.headers, &match?({"X-RateLimit-Remaining", _value}, &1)),
+      {_, reset} <- Enum.find(response.headers, &match?({"X-RateLimit-Reset", _value}, &1)),
+      {reset_int, ""} <- Integer.parse(reset),
+      {:ok, reset_time} <- DateTime.from_unix(reset_int)
+    do
+      category = if path == "/graphql", do: "GraphQL API", else: "REST API"
+      expires_in_sec = DateTime.diff(reset_time, DateTime.utc_now(), :second)
+      Logger.info("#{category} remaining limit #{remaining}, resets in #{expires_in_sec} seconds")
+    end
+
+    response
   end
 end
