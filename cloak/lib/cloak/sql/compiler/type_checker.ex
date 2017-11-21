@@ -22,7 +22,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     each_subquery(query, &verify_usage_of_potentially_crashing_functions/1)
     each_subquery(query, &verify_allowed_usage_of_math/1)
     each_subquery(query, &verify_lhs_of_in_is_clear/1)
-    each_subquery(query, &verify_lhs_of_not_equals_is_clear/1)
+    each_subquery(query, &verify_not_equals_is_clear/1)
     each_subquery(query, &verify_lhs_of_not_like_is_clear/1)
     each_subquery(query, &verify_ranges_are_clear/1)
     query
@@ -89,13 +89,13 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     end)
 
   @allowed_not_equals_functions ~w(lower upper substring trim ltrim rtrim btrim)
-  defp verify_lhs_of_not_equals_is_clear(query), do:
+  defp verify_not_equals_is_clear(query), do:
     verify_conditions(query, &Condition.not_equals?/1, fn({:comparison, lhs, :<>, rhs}) ->
-      unless clear_lhs?(lhs, query, @allowed_not_equals_functions), do:
+      lhs_ok = clear_lhs?(lhs, query, @allowed_not_equals_functions)
+      rhs_ok = Type.establish_type(rhs, query).constant? or clear_lhs?(rhs, query, @allowed_not_equals_functions)
+      unless lhs_ok and rhs_ok, do:
         raise CompilationError, message:
-          "Only #{function_list(@allowed_not_equals_functions)} can be used in the left-hand side of an <> operator."
-      unless Type.establish_type(rhs, query).constant?, do:
-        raise CompilationError, message: "The right-hand side of an <> operator has to be a constant."
+          "Only #{function_list(@allowed_not_equals_functions)} can be used in the arguments of an <> operator."
     end)
 
   @allowed_like_functions []
