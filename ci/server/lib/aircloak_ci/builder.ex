@@ -23,13 +23,15 @@ defmodule AircloakCI.Builder do
   def new(), do:
     %{current_jobs: []}
 
-  @doc "Processes the provided pull request"
+  @doc "Processes the provided pull request."
   @spec process_pr(t, Github.pull_request) :: t
   def process_pr(builder, pr), do:
     builder
     |> cancel_outdated(pr)
     |> maybe_start_job(pr)
 
+  @doc "Handles a builder specific message."
+  @spec handle_message(t, any) :: {:ok, t} | :error
   def handle_message(builder, {:job_result, result}) do
     case Enum.find(builder.current_jobs, &(&1.pid == result.pid)) do
       nil ->
