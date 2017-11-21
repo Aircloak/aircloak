@@ -146,6 +146,16 @@ defmodule Cloak.Query.NoiseLayerTest do
     assert_query "select sum_noise(number) from noise_layers where number = 100", %{rows: [%{row: [140.0]}]}
   end
 
+  test "same noise is generated if analyst forces floating" do
+    :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["number"], [40])
+
+    query1 = "SELECT count(*) FROM noise_layers WHERE number = 40"
+    query2 = "SELECT count(*) FROM (SELECT user_id FROM noise_layers GROUP BY user_id HAVING max(number) + 1 = 41) t"
+
+    assert_query query1, %{rows: [%{row: [count]}]}
+    assert_query query2, %{rows: [%{row: [^count]}]}
+  end
+
   test "[Issue #1538] joins with projected tables are order-independent" do
     :ok = Cloak.Test.DB.create_table("noise_layers_join1", "row_id INTEGER")
     :ok = Cloak.Test.DB.create_table("noise_layers_join2", "row_id INTEGER, one_id INTEGER", [
