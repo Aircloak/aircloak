@@ -69,7 +69,7 @@ describe("GraphData", () => {
         [{row: [null, "foo", 2]}, {row: [null, "bar", 3]}],
         {xColumns: () => [], yColumns: () => [2]}
       );
-      assert.deepEqual(data.series(), [{label: "col3", data: [2, 3]}]);
+      assert.deepEqual(data.series(), [{label: "col3", data: [2, 3], indexInResult: 2}]);
     });
 
     it("works for multiple y columns", () => {
@@ -78,7 +78,8 @@ describe("GraphData", () => {
         [{row: [null, "foo", 2]}, {row: [null, "bar", 3]}],
         {xColumns: () => [], yColumns: () => [0, 2]}
       );
-      assert.deepEqual(data.series(), [{label: "col1", data: [null, null]}, {label: "col3", data: [2, 3]}]);
+      assert.deepEqual(data.series(), [{label: "col1", data: [null, null], indexInResult: 0},
+        {label: "col3", data: [2, 3], indexInResult: 2}]);
     });
   });
 });

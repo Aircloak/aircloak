@@ -177,6 +177,17 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       ] = result.noise_layers
       refute is_nil(alias)
     end
+
+    test "a comparison of two columns" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE numeric = numeric2", data_source())
+
+      assert [
+        %{base: {"table", "numeric", nil}, expressions: [%{name: "numeric"}]},
+        %{base: {"table", "numeric", nil}, expressions: [%{name: "numeric"}, %{name: "uid"}]},
+        %{base: {"table", "numeric2", nil}, expressions: [%{name: "numeric2"}]},
+        %{base: {"table", "numeric2", nil}, expressions: [%{name: "numeric2"}, %{name: "uid"}]},
+      ] = result.noise_layers
+    end
   end
 
   describe "skipping noise layers for pk = fk conditions" do
@@ -199,6 +210,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
         %{base: {"table", "numeric", {0, 10}}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", {0, 10}}, expressions: [%Expression{name: "numeric"}, %Expression{name: "uid"}]},
       ] = result.noise_layers
     end
 
@@ -207,6 +219,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
         %{base: {"table", "numeric", {0, 10}}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", {0, 10}}, expressions: [%Expression{name: "numeric"}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
+    end
+
+    test "noise layer from an implicit range" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE trunc(numeric) = 10", data_source())
+
+      assert [
+        %{base: {"table", "numeric", :implicit}, expressions: [%Expression{name: "numeric"}]},
+        %{base: {"table", "numeric", :implicit}, expressions: [%Expression{name: "numeric"}, %Expression{name: "uid"}]},
       ] = result.noise_layers
     end
 
@@ -226,12 +248,53 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       ] = result.noise_layers
     end
 
+    test "clear string negative condition" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE name <> 'Foo'", data_source())
+
+      assert [
+        %{base: {"table", "name", :<>}, expressions: [%Expression{value: "Foo"}]},
+        %{base: {"table", "name", :<>}, expressions: [%Expression{value: "Foo"}, %Expression{name: "uid"}]},
+        %{base: {"table", "name", {:<>, :lower}}, expressions: [%Expression{value: "foo"}]},
+      ] = result.noise_layers
+    end
+
+    test "string negative condition with upper" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE upper(name) <> 'FOO'", data_source())
+
+      assert [
+        %{base: {"table", "name", :<>}, expressions: [%Expression{value: "FOO"}]},
+        %{base: {"table", "name", :<>}, expressions: [%Expression{value: "FOO"}, %Expression{name: "uid"}]},
+        %{base: {"table", "name", {:<>, :lower}}, expressions: [%Expression{value: "foo"}]},
+      ] = result.noise_layers
+    end
+
+    test "string negative condition with lower" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE lower(name) <> 'foo'", data_source())
+
+      assert [
+        %{base: {"table", "name", :<>}, expressions: [%Expression{value: "foo"}]},
+        %{base: {"table", "name", :<>}, expressions: [%Expression{value: "foo"}, %Expression{name: "uid"}]},
+        %{base: {"table", "name", {:<>, :lower}}, expressions: [%Expression{value: "foo"}]},
+      ] = result.noise_layers
+    end
+
     test "having of COUNT(*)" do
       result = compile!("""
         SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(*) <> 10) x
       """, data_source())
 
       assert [_generic_noise_layer = %{base: nil}] = result.noise_layers
+    end
+
+    test "having of count(distinct)" do
+      result = compile!("""
+        SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(distinct numeric) <> 10) x
+      """, data_source())
+
+      assert [
+        %{base: {"table", "numeric", :<>}, expressions: [%Expression{}]},
+        %{base: {"table", "numeric", :<>}, expressions: [%Expression{}, %Expression{name: "uid"}]},
+      ] = result.noise_layers
     end
   end
 
@@ -372,6 +435,18 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         %{base: {"table", "name", nil}, expressions: [%{value: "a"}, %{name: "uid"}]},
         %{base: {"table", "name", nil}, expressions: [%{value: "b"}, %{name: "uid"}]},
       ] = result.noise_layers
+    end
+
+    for function <- ~w(upper lower) do
+      test "#{function}(x) IN (many, values)" do
+        result = compile!("SELECT COUNT(*) FROM table WHERE #{unquote(function)}(name) IN ('a', 'b')", data_source())
+
+        assert [
+          %{base: {"table", "name", nil}, expressions: [%{name: "name"}]},
+          %{base: {"table", "name", nil}, expressions: [%{value: "a"}, %{name: "uid"}]},
+          %{base: {"table", "name", nil}, expressions: [%{value: "b"}, %{name: "uid"}]},
+        ] = result.noise_layers
+      end
     end
   end
 
@@ -606,7 +681,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       %{noise_layers: [%{base: base1}, %{base: base1}]} =
         compile!("SELECT COUNT(*) FROM table WHERE numeric = 3", data_source())
       %{noise_layers: [%{base: base2}, %{base: base2}]} =
-        compile!("SELECT COUNT(*) FROM table WHERE \"numeric\" = 3", data_source())
+        compile!(~s[SELECT COUNT(*) FROM table WHERE "numeric" = 3], data_source())
 
       assert base1 == base2
     end
@@ -618,6 +693,22 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         compile!("SELECT COUNT(*) FROM table WHERE table.numeric = 3", data_source())
 
       assert base1 == base2
+    end
+
+    test "insensitive to the table being aliased" do
+      %{noise_layers: [%{base: base}, %{base: base}]} = compile!(
+        "SELECT COUNT(*) FROM table AS t WHERE numeric = 3",
+      data_source())
+
+      assert {"table", "numeric", nil} = base
+    end
+
+    test "insensitive to the table being aliased in subquery" do
+      %{noise_layers: [%{base: base}, %{base: base}]} = compile!(
+        "SELECT COUNT(*) FROM (SELECT uid, numeric FROM table AS t) x WHERE numeric = 3",
+      data_source())
+
+      assert {"table", "numeric", nil} = base
     end
   end
 

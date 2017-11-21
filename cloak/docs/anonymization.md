@@ -243,25 +243,29 @@ ensure that two queries that would otherwise produce the same answer may well
 in fact have different answers, so the analyst cannot be sure of the result of
 his attack.
 
-To achieve this all noisy values produced are generated using a set of random
+To achieve this, all noisy values produced are generated using a set of random
 number generators instead of just one. Each generator uses the same mean and SD
 and the resulting noise is summed. The generators differ in their seed and how
 exactly the seed is built depends on the query the analyst issued.
 
-Specifically every filtering clause the analyst adds creates (at least) one
-noise layer. The seed for that layer is based on the set of unique values in
+Specifically every filtering clause the analyst adds creates (at least) two
+noise layer. The seed for those layers is based on the set of unique values in
 the column that the filter is being applied on plus some additional data
 depending on the filter. If multiple columns are used in a filter (for example
-`a || b LIKE '%abc%'`), then a noise layer is created for each of those
-columns. This way, even if two queries with different sets of filters would
-have the same result they will have different noise applied, resulting in
-(potentially) different results. See
+`a + b = 3`), then noise layers are created for each of those columns. This
+way, even if two queries with different sets of filters would have the same
+result they will have different noise applied, resulting in (potentially)
+different results. See
 [the original issue](https://github.com/Aircloak/aircloak/issues/1276) for more
 details.
 
-Note that the set of unique user ids is still used to generate one of the noise
-layers, so even queries with no filters will have at least noise coming from
-that layer.
+The two noise layers are called a "UID layer" and a "static layer". They differ
+by the presence of user ids - the UID layer includes both them and the column
+data, while the static layer is only based on the data from the column.
+
+Note that the set of unique user ids is used to generate a special noise layer
+if no other noise layers are created. Consequently, even queries with no
+filters will have at least noise coming from that layer.
 
 ### What's a filter?
 
@@ -272,6 +276,36 @@ The following things are considered filters:
   filter instead of two
 * `HAVING` clauses in subqueries
 * `GROUP BY` clauses
+* All columns in the top-level `SELECT` clause
+
+### Implicit ranges
+
+When one of the filters includes an expression that can be used to emulate the
+effects of inequalities, that clause is treated as an implicit range instead of
+a regular (in)equality. For example the condition `WHERE trunc(x, -1) = 10` is
+equivalent to `WHERE x >= 10 AND x < 20`. A condition with an implicit range
+has different rules for generating the seed than a regular equality. The
+ultimate goal is to have the same noise for equivalent range conditions, but
+that is not implemented yet (see [the issue](https://github.com/Aircloak/aircloak/issues/1955)).
+
+### Clear expressions
+
+All ranges (both explicit and implicit), `IN` conditions, and `<>` conditions
+must be "clear". That means that it must be immediately obvious from the SQL
+what the effect of such an expression is on the selected data. To achieve this,
+the LHS of these expressions must be a raw column that was at most processed
+with a cast and possibly an aggregator if the expression in question is in a
+`HAVING` clause. The RHS must be a constant or a set of constants in the case of
+`IN`.
+
+For `=` conditions that are "clear" (for example the analyst writes `WHERE x =
+10` and `x` is a database column) we generate the noise layers without floating
+the data, because the column value is known (`10` in the example).
+
+As an exception the presence of the functions `upper`, `lower`, `substring`, or
+any of the `trim`s does not make `IN` and `<>` clauses non-clear, see
+[this issue](https://github.com/Aircloak/aircloak/issues/2091)
+and [this issue](https://github.com/Aircloak/aircloak/issues/2039).
 
 ### Noise layer seeds
 
@@ -282,20 +316,26 @@ Each noise layer is seeded with at least:
 * The list of the values in the column
 
 In case the noise layers are used to compute a `COUNT(*)` as opposed to for
-example a `COUNT(column)` expression an additional, unique marker is added to
+example a `COUNT(column)` expression, an additional, unique marker is added to
 the seed. This is meant to make it harder to exploit any knowledge about the
 presence of `NULL` values in some column.
 
 Additionally, depending on the type of clause, some extra data is added:
 
-* `=` clauses, and `GROUP BY` - no extra data
-* `<>` clauses - a `:<>` symbol
+* `=` clauses, `SELECT`, and `GROUP BY` - no extra data
+* `<>` clauses - a `:<>` symbol and the RHS constant; the data from the filtered
+  column is not included
+* `<>` clauses of the form `column <> constant` - an additional noise layer
+  with a `:<>` symbol, a `:lower` symbol, and the constant converted to
+  lowercase
 * `[NOT] [I]LIKE` clauses - symbols indicating the type of clause (like `:ilike`)
   plus pattern-dependent data, see [Like pattern seeds](#like-pattern-seeds)
-* range clauses - the range endpoints
+* range clauses - the range endpoints or the symbol `:implicit` for implicit
+  ranges
 * `NOT IN` clauses - are converted to an equivalent conjunction on `<>` clauses,
   so noise layers are never directly computed for them
-* `IN` clauses - a layer is created for the whole clause with no extra seed
+* `IN` clauses - a static layer is created for the whole clause with no extra seed,
+  with an additional UID layer per constant in the RHS
 
 As a final step if the hash of the seed for many noise layers comes out the same,
 then the duplicates are discarded. This is done so that adding the same clause
@@ -347,3 +387,21 @@ value of the column in question with every row. In that case 3 values are
 produced instead - the min, max and count of the column. This process can be
 repeated in case of multiple aggregations (in subqueries) by taking the min of
 mins, max of maxes and sum of counts.
+
+## Function and math restrictions
+
+In order to prevent users from being able to express arbitrary binary logic through the
+use of functions (which would allow them to circumvent range restrictions), we apply an
+upper limit on the number of distinct function invocations we allow on a single column
+expression. This limit has been set to [5 (assumed to be safe based on the attack
+examples we have come up with so far)](https://github.com/Aircloak/aircloak/issues/2064).
+
+The attacks we have come up with have in common that the attacker had to use constants
+as part of the expressions. Using the restricted functions by themselves seems to be safe.
+The restrictions we enforce therefore only apply when constants are involved.
+
+Since it is possible to create constants with functions and database columns alone (`div(age, age)`
+being an example - see [the following issue for
+more examples](https://github.com/Aircloak/aircloak/issues/1360)), and we doubt that we have
+found all ways in which constants could be constructed, we have made the simplifying
+assumption that two or more mathematical operations in an expression act as a constant.

@@ -4,247 +4,25 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.Table
-  alias Cloak.Sql.{Compiler, Parser, Compiler.TypeChecker, Expression}
-
-  describe "math is only dangerous if a constant is involved" do
-    Enum.each(~w(+ - * ^ /), fn(math_function) ->
-      test "#{math_function} with no constant" do
-        query = "SELECT numeric #{unquote(math_function)} numeric FROM table"
-        refute seen_dangerous_math?(query)
-      end
-    end)
-
-    # Note: we can't test with / because it is treated as a dangerous discontinuous
-    # function as soon as a constant is involved, and hence halts query compilation.
-    Enum.each(~w(+ - * ^), fn(math_function) ->
-      test "#{math_function} with constant" do
-        query = "SELECT numeric #{unquote(math_function)} 2 FROM table"
-        assert seen_dangerous_math?(query)
-      end
-    end)
-
-    test "pow with no constant" do
-      query = "SELECT pow(numeric, numeric) FROM table"
-      refute seen_dangerous_math?(query)
-    end
-
-    test "pow with constant" do
-      query = "SELECT pow(numeric, 2) FROM table"
-      assert seen_dangerous_math?(query)
-    end
-  end
-
-  describe "Discontinuous functions not dangerous when no constant" do
-    Enum.each(~w(abs ceil floor round trunc sqrt), fn(discontinuous_function) ->
-      test discontinuous_function do
-        query = "SELECT #{unquote(discontinuous_function)}(numeric) FROM table"
-        refute dangerously_discontinuous?(query)
-      end
-    end)
-
-    Enum.each(~w(div mod), fn(discontinuous_function) ->
-      test discontinuous_function do
-        query = "SELECT #{unquote(discontinuous_function)}(numeric, numeric) FROM table"
-        refute dangerously_discontinuous?(query)
-      end
-    end)
-
-    # Note bucket isn't tested here, because it only compiles if the alignment value is a constant.
-  end
-
-  describe "casts are not dangerously discontinuous by themselves" do
-    Enum.each(~w(integer real boolean), fn(cast_target) ->
-      test "cast from integer to #{cast_target}" do
-        query = "SELECT cast(numeric as #{unquote(cast_target)}) FROM table"
-        refute dangerously_discontinuous?(query)
-      end
-    end)
-
-    Enum.each(~w(datetime time date text interval), fn(cast_target) ->
-      test "cast from text to #{cast_target}" do
-        query = "SELECT cast(string as #{unquote(cast_target)}) FROM table"
-        refute dangerously_discontinuous?(query)
-      end
-    end)
-  end
-
-  describe "discontinuous string functions only dangerous if later converted to a number" do
-    Enum.each(~w(btrim ltrim rtrim), fn(discontinuous_function) ->
-      test "first #{discontinuous_function}, but not cast to number" do
-        query = "SELECT #{unquote(discontinuous_function)}(string, 'trim') FROM table"
-        refute dangerously_discontinuous?(query)
-      end
-
-      Enum.each(~w(integer real boolean), fn(cast_target) ->
-        test "first #{discontinuous_function}, then cast to #{cast_target}" do
-          query = """
-          SELECT cast(#{unquote(discontinuous_function)}(string, 'trim') as #{unquote(cast_target)})
-          FROM table
-          """
-          assert dangerously_discontinuous?(query)
-        end
-      end)
-
-      test "first #{discontinuous_function}, then use of length" do
-        query = "SELECT length(#{unquote(discontinuous_function)}(string, 'trim')) FROM table"
-        assert dangerously_discontinuous?(query)
-      end
-    end)
-
-    Enum.each(~w(left right), fn(discontinuous_function) ->
-      test "first #{discontinuous_function}, but not cast to number" do
-        query = "SELECT #{unquote(discontinuous_function)}(string, 2) FROM table"
-        refute dangerously_discontinuous?(query)
-      end
-
-      Enum.each(~w(integer real boolean), fn(cast_target) ->
-        test "first #{discontinuous_function}, then cast to #{cast_target}" do
-          query = """
-          SELECT cast(#{unquote(discontinuous_function)}(string, 2) as #{unquote(cast_target)})
-          FROM table
-          """
-          assert dangerously_discontinuous?(query)
-        end
-      end)
-
-      test "first #{discontinuous_function}, then use of length" do
-        query = "SELECT length(#{unquote(discontinuous_function)}(string, 2)) FROM table"
-        assert dangerously_discontinuous?(query)
-      end
-    end)
-
-    test "first substring, but not cast to number" do
-      query = "SELECT substring(string from 2) FROM table"
-      refute dangerously_discontinuous?(query)
-    end
-
-    Enum.each(~w(integer real boolean), fn(cast_target) ->
-      test "first substring, then cast to #{cast_target}" do
-        query = """
-        SELECT cast(substring(string from 2) as #{unquote(cast_target)})
-        FROM table
-        """
-        assert dangerously_discontinuous?(query)
-      end
-    end)
-
-    test "first substring, then use of length" do
-      query = "SELECT length(substring(string from 2)) FROM table"
-      assert dangerously_discontinuous?(query)
-    end
-  end
-
-  describe "knows which columns were involved" do
-    test "when a column is selected" do
-      type = type_first_column("SELECT numeric FROM table")
-      assert expression_name(type.narrative_breadcrumbs) == ["numeric"]
-    end
-
-    test "when a column is selected inside a function" do
-      type = type_first_column("SELECT abs(numeric) FROM table")
-      assert expression_name(type.narrative_breadcrumbs) == ["numeric"]
-    end
-
-    test "when a column is selected in a subquery" do
-      type = type_first_column("SELECT col FROM (SELECT uid, numeric as col FROM table) t")
-      assert expression_name(type.narrative_breadcrumbs) == ["numeric"]
-    end
-
-    test "when multiple columns are selected" do
-      type = type_first_column("SELECT concat(string, cast(numeric as text)) FROM table")
-      assert expression_name(type.narrative_breadcrumbs) == ["string", "numeric"]
-    end
-
-    def expression_name(breadcrumb_trail), do:
-      breadcrumb_trail
-      |> Enum.map(fn({expression, _}) -> expression end)
-      |> Enum.map(&(&1.name))
-  end
-
-  describe "detection of datetime cast" do
-    test "does not triggers datetime cast recognition when none is used" do
-      type = type_first_column("SELECT column FROM table")
-      refute type.is_result_of_datetime_cast?
-    end
-
-    test "triggers when a datetime column is cast" do
-      type = type_first_column("SELECT CAST(column AS text) FROM table")
-      assert type.is_result_of_datetime_cast?
-    end
-  end
-
-  describe "records a trail of narrative breadcrumbs" do
-    test "empty narrative for queries without functions or math" do
-      type = type_first_column("SELECT numeric FROM table")
-      assert [{%Expression{name: "numeric"}, []}] = type.narrative_breadcrumbs
-    end
-
-    test "for function with discontinuious function div" do
-      type = type_first_column("SELECT div(numeric, 10) FROM table")
-      assert [{%Expression{name: "numeric"}, [{:dangerously_discontinuous, "div"}]}] = type.narrative_breadcrumbs
-    end
-
-    test "even when multiple occur" do
-      type = type_first_column("SELECT abs(div(numeric, 10)) FROM table")
-      [{%Expression{name: "numeric"}, [
-         {:dangerously_discontinuous, "abs"},
-         {:dangerously_discontinuous, "div"}]
-      }] = type.narrative_breadcrumbs
-    end
-
-    test "does not record discontinuous functions that aren't dangerous" do
-      type = type_first_column("SELECT div(cast(sqrt(numeric) as integer), 10) FROM table")
-      [{%Expression{name: "numeric"}, [{:dangerously_discontinuous, "div"}]}] = type.narrative_breadcrumbs
-    end
-
-    test "records math influenced by a constant as a potential offense" do
-      type = type_first_column("SELECT numeric + 10 FROM table")
-      [{%Expression{name: "numeric"}, [{:dangerous_math, "+"}]}] = type.narrative_breadcrumbs
-    end
-
-    test "does not record math between non-constant influenced columns" do
-      type = type_first_column("SELECT numeric + numeric FROM table")
-      assert [{_column_expressions, []}] = type.narrative_breadcrumbs
-    end
-
-    test "records casts of datetime's as a potential offense" do
-      type = type_first_column("SELECT cast(column as text) FROM table")
-      [{%Expression{name: "column"}, [{:datetime_processing, {:cast, :text}}]}] = type.narrative_breadcrumbs
-    end
-
-    test "records multiple math offenses" do
-      type = type_first_column("SELECT numeric + 10 FROM (SELECT uid, numeric - 1 as numeric FROM table) t")
-      assert [{%Expression{name: "numeric"}, [{:dangerous_math, "+"}, {:dangerous_math, "-"}]}] =
-        type.narrative_breadcrumbs
-    end
-
-    test "deduplicates offenses - math" do
-      type = type_first_column("SELECT numeric + 10 + 10 FROM table")
-      assert [{%Expression{name: "numeric"}, [{:dangerous_math, "+"}]}] = type.narrative_breadcrumbs
-    end
-
-    test "deduplicates offenses - discontinuity" do
-      type = type_first_column("SELECT numeric % 2 % 2 FROM table")
-      assert [{%Expression{name: "numeric"}, [{:dangerously_discontinuous, "%"}]}] =
-        type.narrative_breadcrumbs
-    end
-  end
+  alias Cloak.Sql.{Compiler, Parser}
 
   describe "IN" do
     test "allows clear IN lhs", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric IN (1, 2, 3)")
 
     test "forbids unclear IN lhs", do:
-      assert {:error, "The left-hand side of an IN operator must be an unmodified database column."} =
-        compile("SELECT COUNT(*) FROM table WHERE numeric + 1 IN (1, 2, 3)")
+      assert {:error, "Only `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim` can be used in the "
+        <> "left-hand side of an IN operator."
+      } = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 IN (1, 2, 3)")
 
     test "allows clear IN lhs from subqueries", do:
       assert {:ok, _, _} =
         compile("SELECT COUNT(*) FROM (SELECT numeric AS number FROM table) x WHERE number IN (1, 2, 3)")
 
     test "forbids unclear IN lhs from subqueries", do:
-      assert {:error, "The left-hand side of an IN operator must be an unmodified database column."} =
-        compile("SELECT COUNT(*) FROM (SELECT numeric + 1 AS number FROM table) x WHERE number IN (1, 2, 3)")
+      assert {:error, "Only `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim` can be used in the "
+        <> "left-hand side of an IN operator."
+      } = compile("SELECT COUNT(*) FROM (SELECT numeric + 1 AS number FROM table) x WHERE number IN (1, 2, 3)")
   end
 
   describe "negative conditions" do
@@ -252,11 +30,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> 10")
 
     test "forbids unclear <> lhs", do:
-      assert {:error, "The <> operation can only be applied to an unmodified database column and a constant."} =
-        compile("SELECT COUNT(*) FROM table WHERE numeric + 1 <> 10")
+      assert {:error, "Only `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim` can be used in the "
+        <> "left-hand side of an <> operator."} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 <> 10")
 
     test "forbids column <> column", do:
-      assert {:error, "The <> operation can only be applied to an unmodified database column and a constant."} =
+      assert {:error, "The right-hand side of an <> operator has to be a constant."} =
         compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
 
     test "allows clear <> lhs in subquery HAVING", do:
@@ -265,9 +43,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       """)
 
     test "forbids unclear <> lhs in subquery HAVING", do:
-      assert {:error, "The <> operation can only be applied to an unmodified database column" <> _} = compile("""
-        SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING AVG(numeric + 1) <> 10) x
-      """)
+      assert {:error, "Only `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim` can be used in the "
+        <> "left-hand side of an <> operator."
+      } = compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING AVG(numeric + 1) <> 10) x")
 
     test "allows clear NOT LIKE lhs", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE string NOT LIKE '%some pattern_'")
@@ -318,20 +96,28 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE CAST(string AS INTEGER) BETWEEN 0 AND 10")
   end
 
-  defp dangerously_discontinuous?(query), do:
-    type_first_column(query).dangerously_discontinuous?
+  describe "exceptions" do
+    for function <- ~w(upper lower ltrim btrim rtrim) do
+      test "#{function} is allowed with IN" do
+        assert {:ok, _, _} =
+          compile("SELECT COUNT(*) FROM table WHERE #{unquote(function)}(string) IN ('foo', 'bar', 'baz')")
+      end
 
-  defp seen_dangerous_math?(query), do:
-    type_first_column(query).seen_dangerous_math?
+      test "#{function} is allowed with NOT IN" do
+        assert {:ok, _, _} =
+          compile("SELECT COUNT(*) FROM table WHERE #{unquote(function)}(string) NOT IN ('foo', 'bar', 'baz')")
+      end
+    end
 
-  defp type_first_column(query) do
-    compiled_query = compile!(query)
-    TypeChecker.establish_type(hd(compiled_query.columns), compiled_query)
-  end
+    test "substring is allowed with IN" do
+      assert {:ok, _, _} =
+        compile("SELECT COUNT(*) FROM table WHERE substring(string FROM 1 FOR 10) IN ('foo', 'bar', 'baz')")
+    end
 
-  defp compile!(query_string) do
-    {:ok, result, _features} = compile(query_string)
-    result
+    test "substring is allowed with NOT IN" do
+      assert {:ok, _, _} =
+        compile("SELECT COUNT(*) FROM table WHERE substring(string FROM 1 FOR 10) NOT IN ('foo', 'bar', 'baz')")
+    end
   end
 
   defp compile(query_string), do:
@@ -345,7 +131,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
           db_name: "table",
           columns: [
             Table.column("uid", :integer),
-            Table.column("column", :datetime),
             Table.column("numeric", :integer),
             Table.column("float", :real),
             Table.column("string", :text),

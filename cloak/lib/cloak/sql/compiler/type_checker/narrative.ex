@@ -4,7 +4,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Narrative do
   being used in illegal ways.
   """
 
-  alias Cloak.Sql.{Expression, Function, Compiler.TypeChecker}
+  alias Cloak.Sql.{Expression, Compiler.TypeChecker}
+  alias Aircloak.OxfordComma
 
 
   # -------------------------------------------------------------------
@@ -12,50 +13,41 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Narrative do
   # -------------------------------------------------------------------
 
   @doc "Constructs an explanation per column about why their usage is not allowed"
-  @spec construct([TypeChecker.Type.offense]) :: String.t
-  def construct(columns) when is_list(columns), do:
-     Enum.map_join(columns, " ", &construct_explanation(&1))
-
-  @doc """
-  Extends an existing narrative with additional potential offenses, allowing
-  a narrative to be created in case a query usage violation has occurred.
-  """
-  @spec extend([TypeChecker.Type.t], [{boolean, TypeChecker.Type.offense_type}]) :: [TypeChecker.Type.offense]
-  def extend(child_types, potential_offenses), do:
-    child_types
-    |> Enum.flat_map(&(&1.narrative_breadcrumbs))
-    |> Enum.uniq()
-    |> Enum.map(fn({expression, breadcrumbs}) ->
-      breadcrumbs = Enum.reduce(potential_offenses, breadcrumbs, fn
-        ({true, offense}, breadcrumbs_acc) -> [offense | breadcrumbs_acc] |> Enum.uniq()
-        ({false, _}, breadcrumbs_acc) -> breadcrumbs_acc
-      end)
-      {expression, breadcrumbs}
-    end)
+  @spec construct([TypeChecker.Type.offense], [Expression.t]) :: String.t
+  def construct(transformations, columns) when is_list(columns), do:
+    Enum.join([
+      naive_plural("Column", "Columns", length(columns)),
+      OxfordComma.join(column_names(columns)),
+      naive_plural("is processed by", "are processed by", length(columns)),
+      human_readable_offenses(transformations)
+    ], " ")
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp construct_explanation({expression, offenses}), do:
-    "Column #{Expression.display_name(expression)} is processed by #{human_readable_offenses(offenses)}."
+  defp naive_plural(singular, _plural, 1), do: singular
+  defp naive_plural(_singular, plural, _count), do: plural
 
-  defp human_readable_offenses(offenses), do:
-    offenses
-    |> Enum.reverse()
+  defp column_names(columns), do:
+    Enum.map(columns, & Expression.display_name(&1))
+
+  defp human_readable_offenses(transformations), do:
+    transformations
     |> Enum.map(fn
-      ({:dangerously_discontinuous, "/"}) ->
-        "discontinuous function '/' ('/' can behave like a discontinuous function " <>
-          "when the divisor is an expression that combines both a column value and " <>
-          "a constant value)"
-      ({:dangerously_discontinuous, function}) ->
-        "discontinuous function '#{Function.readable_name(function)}'"
-      ({:dangerous_math, name}) -> "math function '#{name}'"
-      ({:datetime_processing, {:cast, target}}) -> "a cast to '#{target}'"
-      ({:datetime_processing, name}) -> "date or time processing function '#{Function.readable_name(name)}'"
-      ({:potentially_crashing_function, "sqrt"}) -> "function 'sqrt' on a value that could be negative"
-      ({:potentially_crashing_function, "/"}) -> "math function '/' with a divisor that could be zero"
+      ({:restricted_function, functions}) ->
+        "restricted " <> naive_plural("function", "functions", length(functions)) <> ". " <>
+        list_problematic_functions(functions)
+      ({:potentially_crashing_function, functions}) ->
+        naive_plural("a function", "functions", length(functions)) <>
+        "that could cause a runtime exception given the current usage. " <>
+        list_problematic_functions(functions)
     end)
-    |> Enum.join(" and ")
+    |> OxfordComma.join()
+
+  defp list_problematic_functions(functions) do
+    naive_plural("The function is", "The functions are", length(functions)) <> ": " <>
+    (functions |> Enum.map(& "`#{&1}`") |> OxfordComma.join()) <> "."
+  end
 end
