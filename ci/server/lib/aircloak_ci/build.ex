@@ -43,6 +43,15 @@ defmodule AircloakCI.Build do
     |> CmdRunner.file_logger()
     |> apply([["\naircloak_ci: #{output}\n"]])
 
+  @doc "Returns the contents of the build log."
+  @spec log_contents(Github.pull_request) :: binary
+  def log_contents(pr) do
+    case File.read(log_path(pr)) do
+      {:ok, contents} -> contents
+      _ -> ""
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Build folders

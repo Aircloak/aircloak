@@ -59,7 +59,7 @@ defmodule AircloakCI.Builder do
       {[], _} -> :error
       {[job], remaining_jobs} ->
         if reason != :normal do
-          report_status(job.pr, :failure)
+          report_status(job.pr, :failure, reason)
           Logger.error("build for #{pr_log_display(job.pr)} crashed")
         end
         {:ok, %{builder | current_jobs: remaining_jobs}}
@@ -125,12 +125,42 @@ defmodule AircloakCI.Builder do
     end
   end
 
-  defp report_status(pr, state), do:
+  defp report_status(pr, state, context \\ nil) do
     Github.RateLimiter.put_status_check_state!(pr.repo.owner, pr.repo.name, pr.sha, @aircloak_ci_name, state)
+    maybe_send_comment(pr, state, context)
+  end
+
+  defp maybe_send_comment(pr, :success, _context), do:
+    send_comment(pr, "Compliance build succeeded 👍")
+  defp maybe_send_comment(pr, :error, _context), do:
+    send_comment(pr, Enum.join(["Compliance build errored 😞", "", "Log tail:", "```", log_tail(pr), "```"], "\n"))
+  defp maybe_send_comment(pr, :failure, crash_reason), do:
+    send_comment(pr,
+      Enum.join(
+        [
+          "Compliance build crashed 😞", "",
+          "```", Exception.format_exit(crash_reason), "```", "",
+          "Log tail:", "```", log_tail(pr), "```"
+        ],
+        "\n"
+      )
+    )
+  defp maybe_send_comment(_pr, _, _other_status), do: :ok
+
+  defp send_comment(pr, body), do:
+    Github.RateLimiter.post_comment(pr.repo.owner, pr.repo.name, pr.number, body)
 
   defp build_status(:ok), do: :success
   defp build_status(:error), do: :error
 
   defp pr_log_display(pr), do:
     "PR `#{pr.title}` (##{pr.number})"
+
+  defp log_tail(pr) do
+    lines = pr |> AircloakCI.Build.log_contents() |> String.split("\n")
+
+    lines
+    |> Enum.drop(max(length(lines) - 100, 0))
+    |> Enum.join("\n")
+  end
 end
