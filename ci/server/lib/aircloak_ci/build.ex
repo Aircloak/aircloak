@@ -16,9 +16,9 @@ defmodule AircloakCI.Build do
   """
   @spec initialize(Github.pull_request) :: :ok | {:error, String.t}
   def initialize(pr) do
-    log(pr, "initializing build for PR #{pr.number}")
-    init_folder(pr)
+    log(pr, "initializing build")
 
+    init_folder(pr)
     clone_repo(pr)
     cmd!(pr, "git reset --hard HEAD")
     cmd!(pr, "git fetch --force origin pull/#{pr.number}/merge", timeout: :timer.minutes(1))

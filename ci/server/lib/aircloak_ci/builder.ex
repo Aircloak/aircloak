@@ -49,7 +49,7 @@ defmodule AircloakCI.Builder do
         {:ok, builder}
 
       job ->
-        Logger.info("build for PR #{job.pr.number} finished with the result `#{result.outcome}`")
+        Logger.info("build for #{pr_log_display(job.pr)} finished with the result `#{result.outcome}`")
         report_status(job.pr, build_status(result.outcome))
         {:ok, builder}
     end
@@ -60,7 +60,7 @@ defmodule AircloakCI.Builder do
       {[job], remaining_jobs} ->
         if reason != :normal do
           report_status(job.pr, :failure)
-          Logger.error("build for PR #{job.pr.number} crashed")
+          Logger.error("build for #{pr_log_display(job.pr)} crashed")
         end
         {:ok, %{builder | current_jobs: remaining_jobs}}
     end
@@ -82,7 +82,7 @@ defmodule AircloakCI.Builder do
   end
 
   defp start_job(builder, pr) do
-    Logger.info("starting the build for PR #{pr.number}")
+    Logger.info("starting the build for #{pr_log_display(pr)}")
     report_status(pr, :pending)
 
     me = self()
@@ -130,4 +130,7 @@ defmodule AircloakCI.Builder do
 
   defp build_status(:ok), do: :success
   defp build_status(:error), do: :error
+
+  defp pr_log_display(pr), do:
+    "PR `#{pr.title}` (##{pr.number})"
 end
