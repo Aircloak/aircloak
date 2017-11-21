@@ -91,12 +91,13 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   @allowed_not_equals_functions ~w(lower upper substring trim ltrim rtrim btrim)
   defp verify_not_equals_is_clear(query), do:
     verify_conditions(query, &Condition.not_equals?/1, fn({:comparison, lhs, :<>, rhs}) ->
-      lhs_ok = clear_lhs?(lhs, query, @allowed_not_equals_functions)
-      rhs_ok = Type.establish_type(rhs, query).constant? or clear_lhs?(rhs, query, @allowed_not_equals_functions)
-      unless lhs_ok and rhs_ok, do:
+      unless allowed_in_not_equals?(lhs, query) and allowed_in_not_equals?(rhs, query), do:
         raise CompilationError, message:
           "Only #{function_list(@allowed_not_equals_functions)} can be used in the arguments of an <> operator."
     end)
+
+  defp allowed_in_not_equals?(expression, query), do:
+    Type.establish_type(expression, query).constant? or clear_lhs?(expression, query, @allowed_not_equals_functions)
 
   @allowed_like_functions []
   defp verify_lhs_of_not_like_is_clear(query), do:
