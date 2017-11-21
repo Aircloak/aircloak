@@ -9,11 +9,6 @@ defmodule AircloakCI.Builder.Server do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Handles pending pull requests."
-  @spec handle_pending_prs([Github.API.pull_request]) :: :ok
-  def handle_pending_prs(pending_prs), do:
-    GenServer.call(__MODULE__, {:handle_pending_prs, pending_prs})
-
   @doc "Force starts the build of the given pull request."
   @spec force_build(Github.API.pull_request) :: :ok | {:error, String.t}
   def force_build(pr), do:
@@ -27,12 +22,11 @@ defmodule AircloakCI.Builder.Server do
   @impl GenServer
   def init(nil) do
     Process.flag(:trap_exit, true)
+    AircloakCI.PullRequestProvider.subscribe()
     {:ok, Builder.new()}
   end
 
   @impl GenServer
-  def handle_call({:handle_pending_prs, pending_prs}, _from, builder), do:
-    {:reply, :ok, Enum.reduce(pending_prs, builder, &Builder.process_pr(&2, &1))}
   def handle_call({:force_build, pr}, _from, builder) do
     case Builder.force_build(builder, pr) do
       {:ok, new_builder} -> {:reply, :ok, new_builder}
@@ -41,6 +35,8 @@ defmodule AircloakCI.Builder.Server do
   end
 
   @impl GenServer
+  def handle_info({:current_pull_requests, pull_requests}, builder), do:
+    {:noreply, Enum.reduce(pull_requests, builder, &Builder.process_pr(&2, &1))}
   def handle_info(message, builder) do
     case Builder.handle_message(builder, message) do
       {:ok, state} -> {:noreply, state}
