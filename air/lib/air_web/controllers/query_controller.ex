@@ -25,15 +25,15 @@ defmodule AirWeb.QueryController do
   # -------------------------------------------------------------------
 
   def create(conn, %{"query" => params}) do
-    case DataSource.start_query(
-      data_source_id_spec(params),
-      conn.assigns.current_user,
-      conn.private.context,
-      Map.fetch!(params, "statement"),
-      _parameters = [],
-      audit_meta: audit_log_meta(conn),
-      session_id: params["session_id"]
-    ) do
+    with {:ok, query} <- create_query(conn, params) do
+      DataSource.start_query(
+        query,
+        data_source_id_spec(params),
+        audit_meta: audit_log_meta(conn),
+        session_id: Map.get(params, "session_id")
+      )
+    end
+    |> case do
       {:ok, query} -> json(conn, %{success: true, query_id: query.id})
       {:error, reason} -> query_error(conn, reason)
     end
@@ -208,5 +208,16 @@ defmodule AirWeb.QueryController do
   defp send_chunk!(conn, chunk) do
     {:ok, conn} = chunk(conn, chunk)
     conn
+  end
+
+  defp create_query(conn, params) do
+    Air.Service.Query.create(
+      Map.get(params, "id", :autogenerate),
+      conn.assigns.current_user,
+      conn.private.context,
+      Map.fetch!(params, "statement"),
+      _parameters = [],
+      session_id: Map.get(params, "session_id")
+    )
   end
 end

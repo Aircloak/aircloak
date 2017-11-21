@@ -50,7 +50,7 @@ defmodule Air.Service.Cleanup.Test do
       Task.await(task)
       :timer.sleep(100)
 
-      assert %Query{query_state: :started, result: nil} = Repo.get!(Query, query.id)
+      assert %Query{query_state: :created, result: nil} = Repo.get!(Query, query.id)
     end
   end
 

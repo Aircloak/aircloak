@@ -1,19 +1,16 @@
 defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   @moduledoc false
 
-  alias Cloak.Sql.Expression
+  alias Cloak.Sql.Compiler.TypeChecker.Type
+  alias Cloak.Sql.{Expression, Function, Query}
 
   @type function_name :: String.t
-  @type offense_type :: {
-      :dangerously_discontinuous
-    | :dangerous_math
-    | :datetime_processing
-    | :potentially_crashing_function,
-    function_name
-  }
-  @type offense :: {Expression.t, [offense_type]}
+  @type restricted_transformation :: {:restricted_function | :potentially_crashing_function, function_name}
 
   @type t :: %__MODULE__{
+    # The names of functions that have been applied to a column or an expression
+    applied_functions: [String.t],
+
     # Whether the expressions is a constant. As soon as a constant expression
     # interacts with a non-constant expression through math or function application
     # it ceases to be constant.
@@ -33,43 +30,111 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     # were constant.
     constant_involved?: boolean,
 
-    # Whether the expression represents a date, time or datetime value, or one of
-    # the expressions in this expressions past represented such a value.
-    datetime_involved?: boolean,
+    # We keep track of the restricted transformations an expression has undergone in order
+    # to later produce an explanation outlining the steps that led to a query being rejected.
+    history_of_restricted_transformations: [restricted_transformation],
 
-    # If a function like year, month, etc has been used on the value, or the value
-    # has in some other way been manipulated, like having been cast.
-    is_result_of_datetime_cast?: boolean,
-
-    # sqrt and / are functions which are illdefined for certain values. sqrt of negative values,
-    # or division by 0. When these functions occur with values that have been manipulated
-    # using constants (to potentially construct a failure condition), we mark them as
-    # potentially crashing.
-    is_result_of_potentially_crashing_function?: boolean,
-
-    # True if the expression has been processed by a discontinuous function and the
-    # parameters of the function call were such that the computation is classified
-    # as potentially dangerous (i.e. an attack vector).
-    # Taints all other later expressions, hence, if a single expression in a function
-    # application is dangerously discontinuous, then the result of the function is
-    # dangerously discontinous too.
-    dangerously_discontinuous?: boolean,
-
-    # Whether the expression has had dangerous math performed on it or not.
-    # Math is considered dangerous if any of the expressions in the math application
-    # have previously been touched by a constant.
-    seen_dangerous_math?: boolean,
-
-    # We keep track of the dangerous transformations each column has undergone in order
-    # to later produce a narrative to the analyst explaining what particular steps led to
-    # a query expression being rejected.
-    narrative_breadcrumbs: [offense],
+    # Keep track of the columns that have been involved in order to be able to produce better
+    # explanations of why queries were rejected.
+    history_of_columns_involved: [Expression.t]
   }
 
   defstruct [
-    constant?: false, constant_involved?: false, datetime_involved?: false,
-    is_result_of_datetime_cast?: false, is_result_of_potentially_crashing_function?: false,
-    dangerously_discontinuous?: false, seen_dangerous_math?: false, narrative_breadcrumbs: [], raw_column?: false,
-    cast_raw_column?: false, raw_implicit_range?: false
+    constant?: false, constant_involved?: false, raw_column?: false,
+    cast_raw_column?: false, raw_implicit_range?: false, applied_functions: [],
+    history_of_restricted_transformations: [], history_of_columns_involved: [],
   ]
+
+  @math_operations_before_considered_constant 2
+
+
+  # -------------------------------------------------------------------
+  # API
+  # -------------------------------------------------------------------
+
+  def establish_type(column, query)
+  def establish_type(:null, _query), do: constant()
+  def establish_type({:distinct, column}, query), do: establish_type(column, query)
+  def establish_type(:*, _query), do: column(:*)
+  def establish_type(%Expression{constant?: true}, _query), do: constant()
+  def establish_type(%Expression{function: nil} = column, query), do: expand_from_subquery(column, query)
+  def establish_type(function = %Expression{function?: true}, query), do: type_for_function(function, query)
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp expand_from_subquery(column, query) do
+    case Query.resolve_subquery_column(column, query) do
+      :database_column -> column(column)
+      {column, subquery} -> establish_type(column, subquery)
+    end
+  end
+
+  defp constant(), do: %Type{constant?: true, constant_involved?: true}
+
+  defp column(expression), do:
+    %Type{
+      raw_column?: true,
+      cast_raw_column?: true,
+      constant?: false,
+      history_of_columns_involved: [expression],
+    }
+
+  defp type_for_function(function = %Expression{function: name, function_args: args}, query) do
+    child_types = args |> Enum.map(&(establish_type(&1, query)))
+    # Prune constants, they don't interest us further
+    if Enum.all?(child_types, &(&1.constant?)) do
+      constant()
+    else
+      applied_functions = [name | Enum.flat_map(child_types, & &1.applied_functions)]
+      %Type{
+        applied_functions: applied_functions,
+        cast_raw_column?: Function.cast?(function) and match?([%{raw_column?: true}], child_types),
+        raw_implicit_range?: Function.has_attribute?(function, :implicit_range) and
+          Enum.all?(child_types, &(&1.cast_raw_column? || &1.constant?)),
+        constant_involved?: any_touched_by_constant?(child_types) ||
+          math_operations_count(applied_functions) >= @math_operations_before_considered_constant,
+        history_of_columns_involved: combined_columns_involved(child_types),
+      }
+      |> extend_history_of_restricted_transformations(name, child_types)
+    end
+  end
+
+  defp any_touched_by_constant?(types), do: Enum.any?(types, &(&1.constant_involved?))
+
+  defp math_operations_count(applied_functions), do:
+    applied_functions
+    |> Enum.filter(& Function.math_function?(&1))
+    |> Enum.count()
+
+  defp combined_columns_involved(child_types), do:
+    child_types
+    |> Enum.flat_map(& &1.history_of_columns_involved)
+    |> Enum.uniq()
+
+  defp extend_history_of_restricted_transformations(%Type{constant_involved?: constant_involved?} = type,
+      name, child_types) do
+    full_history = child_types
+    |> Enum.flat_map(& &1.history_of_restricted_transformations)
+    |> prepend_if({:restricted_function, name}, restricted_function?(constant_involved?, name))
+    |> prepend_if({:potentially_crashing_function, name}, performs_potentially_crashing_function?(name, child_types))
+    %Type{type | history_of_restricted_transformations: full_history}
+  end
+
+  defp prepend_if(existing_values, _value, false), do: existing_values
+  defp prepend_if(existing_values, value, true), do: [value | existing_values]
+
+  defp restricted_function?(_constant_involved? = false, _name), do: false
+  defp restricted_function?(_constant_involved? = true, name), do:
+    Function.restricted_function?(name) or Function.math_function?(name)
+
+  defp performs_potentially_crashing_function?("/", [_, child_type]), do:
+    # This allows division by a pure constant, but not by a column influenced by a constant
+    child_type.constant_involved? && not child_type.constant?
+  defp performs_potentially_crashing_function?("sqrt", [child_type]), do:
+    # This allows usage of square root on a pure constant, but not by a column influenced by a constant
+    child_type.constant_involved? && not child_type.constant?
+  defp performs_potentially_crashing_function?(_other, _child_type), do: false
 end

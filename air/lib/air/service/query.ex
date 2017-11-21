@@ -8,12 +8,39 @@ defmodule Air.Service.Query do
   import Ecto.Query
   require Logger
 
-  @type query_id :: String.t
+  @type query_id :: Query.id | :autogenerate
+  @type option :: {:session_id, Query.session_id}
+  @type options :: [option]
 
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc """
+  Creates and registers a query placeholder in the database. Given that it has an ID
+  it can be used to attach and dispatch events to, and passed around for execution.
+  """
+  @spec create(query_id, User.t, Query.Context.t, Query.statement, Query.parameters, options)
+    :: {:ok, Query.t} | {:error, :unable_to_create_query}
+  def create(query_id, user, context, statement, parameters, opts) do
+    user
+    |> Ecto.build_assoc(:queries)
+    |> Query.changeset(%{
+      statement: statement,
+      parameters: %{values: parameters},
+      session_id: Keyword.get(opts, :session_id),
+      query_state: :created,
+      context: context,
+    })
+    |> add_id_to_changeset(query_id)
+    |> Repo.insert()
+    |> case do
+      {:ok, query} -> {:ok, Repo.preload(query, :user)}
+      {:error, _changeset} -> {:error, :unable_to_create_query}
+    end
+  end
+
 
   @doc """
   Returns information about failed queries in a paginated form.
@@ -199,8 +226,8 @@ defmodule Air.Service.Query do
   end
 
   @state_order [
-    :started, :parsing, :compiling, :awaiting_data, :ingesting_data, :processing, :post_processing, :cancelled,
-    :error, :completed,
+    :created, :started, :parsing, :compiling, :awaiting_data, :ingesting_data, :processing, :post_processing,
+    :cancelled, :error, :completed,
   ]
   defp valid_state_transition?(same_state, same_state), do: true
   defp valid_state_transition?(current_state, _next_state)
@@ -315,6 +342,10 @@ defmodule Air.Service.Query do
     defp report_query_result(result), do:
       Air.Service.Central.report_query_result(result)
   end
+
+  defp add_id_to_changeset(changeset, :autogenerate), do: changeset
+  defp add_id_to_changeset(changeset, id), do:
+    Query.add_id_to_changeset(changeset, id)
 
 
   # -------------------------------------------------------------------

@@ -18,7 +18,7 @@ defmodule Air.Schemas.QueryTest do
 
   test "for_display of an unfinished query", do:
     Enum.each(
-      [:started, :parsing, :compiling, :awaiting_data, :ingesting_data, :processing, :post_processing],
+      [:created, :started, :parsing, :compiling, :awaiting_data, :ingesting_data, :processing, :post_processing],
       &(assert %{completed: false} = display(%{query_state: &1}))
     )
 

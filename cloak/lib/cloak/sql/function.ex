@@ -41,25 +41,27 @@ defmodule Cloak.Sql.Function do
     ~w(avg stddev) => %{attributes: [:aggregator], type_specs: %{[numeric] => :real}},
     ~w(avg_noise stddev_noise) => %{attributes: [:aggregator, :not_in_subquery], type_specs: %{[numeric] => :real}},
     ~w(hour minute second) =>
-      %{attributes: [:implicit_range], type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
+      %{attributes: [:implicit_range, :restricted], type_specs: %{[{:or, [:datetime, :time]}] => :integer}},
     ~w(year quarter month day weekday) =>
-      %{attributes: [:implicit_range], type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
-    ~w(date_trunc) => %{attributes: [:implicit_range], type_specs: %{
+      %{attributes: [:implicit_range, :restricted], type_specs: %{[{:or, [:datetime, :date]}] => :integer}},
+    ~w(date_trunc) => %{attributes: [:implicit_range, :restricted], type_specs: %{
       [{:constant, :text}, :time] => :time,
       [{:constant, :text}, {:or, [:datetime, :date]}] => :datetime
     }},
-    ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}},
-    ~w(round trunc) => %{attributes: [:implicit_range], type_specs: %{
+    ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer},
+      attributes: [:math, :restricted]},
+    ~w(round trunc) => %{attributes: [:implicit_range, :math, :restricted], type_specs: %{
       [numeric] => :integer,
       [numeric, {:constant, :integer}] => :real,
     }},
-    [{:bucket, :lower}, {:bucket, :upper}, {:bucket, :middle}] => %{attributes: [:implicit_range], type_specs: %{
-      [numeric, numeric] => :real,
-    }},
-    ~w(abs) => %{type_specs: %{[:real] => :real, [:integer] => :integer}},
+    [{:bucket, :lower}, {:bucket, :upper}, {:bucket, :middle}] =>
+      %{attributes: [:implicit_range, :restricted], type_specs: %{[numeric, numeric] => :real}},
+    ~w(abs) => %{type_specs: %{[:real] => :real, [:integer] => :integer},
+      attributes: [:math, :restricted]},
     ~w(sqrt) => %{type_specs: %{[numeric] => :real}},
-    ~w(div mod %) => %{type_specs: %{[:integer, :integer] => :integer}},
-    ~w(pow ^) => %{type_specs: %{[numeric, numeric] => :real}},
+    ~w(div) => %{type_specs: %{[:integer, :integer] => :integer}, attributes: [:math]},
+    ~w(mod %) => %{type_specs: %{[:integer, :integer] => :integer}, attributes: [:math, :restricted]},
+    ~w(pow ^) => %{type_specs: %{[numeric, numeric] => :real}, attributes: [:math]},
     ~w(+) => %{type_specs: Map.merge(arithmetic_operation, %{
       [:date, :interval] => :datetime,
       [:time, :interval] => :time,
@@ -68,7 +70,7 @@ defmodule Cloak.Sql.Function do
       [:interval, :time] => :time,
       [:interval, :datetime] => :datetime,
       [:interval, :interval] => :interval,
-    })},
+    }), attributes: [:math]},
     ~w(-) => %{type_specs: Map.merge(arithmetic_operation, %{
       [:date, :date] => :interval,
       [:time, :time] => :interval,
@@ -77,42 +79,51 @@ defmodule Cloak.Sql.Function do
       [:time, :interval] => :time,
       [:datetime, :interval] => :datetime,
       [:interval, :interval] => :interval,
-    })},
+    }), attributes: [:math]},
     ~w(*) => %{type_specs: Map.merge(arithmetic_operation, %{
        [:interval, numeric] => :interval,
        [numeric, :interval] => :interval,
-     })},
+     }), attributes: [:math]},
     ~w(/) => %{type_specs: %{
       [numeric, numeric] => :real,
       [:interval, {:or, [:integer, :real]}] => :interval,
-    }},
-    ~w(length) => %{type_specs: %{[:text] => :integer}},
+    }, attributes: [:math]},
+    ~w(length) => %{type_specs: %{[:text] => :integer}, attributes: [:restricted]},
     ~w(lower lcase upper ucase) => %{type_specs: %{[:text] => :text}},
-    ~w(left right) => %{type_specs: %{[:text, :integer] => :text}},
-    ~w(btrim ltrim rtrim) => %{type_specs: %{[:text, {:optional, {:constant, :text}}] => :text}},
-    ~w(substring substring_for) =>
-      %{type_specs: %{[:text, :integer, {:optional, :integer}] => :text}},
+    ~w(left right) => %{type_specs: %{[:text, :integer] => :text}, attributes: [:restricted]},
+    ~w(btrim ltrim rtrim) => %{type_specs: %{[:text, {:optional, {:constant, :text}}] => :text},
+      attributes: [:restricted]},
+    ~w(substring) => %{type_specs: %{[:text, :integer, {:optional, :integer}] => :text},
+      attributes: [:restricted]},
     ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
     ~w(hex) => %{type_specs: %{[:text] => :text}},
     ~w(hash) => %{type_specs: %{[:text] => :integer, [:integer] => :integer, [:real] => :integer}},
     # NOTICE: The `not_in_subquery` is set for `extract_words` because we are not yet sure it's safe in subqueries.
     ~w(extract_words) => %{type_specs: %{[:text] => :text}, attributes: [:not_in_subquery, :row_splitter]},
     [{:cast, :integer}] =>
-      %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer}},
+      %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer},
+      attributes: [:restricted]},
     [{:cast, :real}] =>
-      %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :real}},
+      %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :real},
+      attributes: [:restricted]},
     [{:cast, :boolean}] =>
-      %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :boolean}},
+      %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :boolean},
+      attributes: [:restricted]},
     [{:cast, :datetime}] =>
-      %{type_specs: %{[{:or, [:text, :datetime]}] => :datetime}},
+      %{type_specs: %{[{:or, [:text, :datetime]}] => :datetime},
+      attributes: [:restricted]},
     [{:cast, :time}] =>
-      %{type_specs: %{[{:or, [:text, :datetime, :time]}] => :time}},
+      %{type_specs: %{[{:or, [:text, :datetime, :time]}] => :time},
+      attributes: [:restricted]},
     [{:cast, :date}] =>
-      %{type_specs: %{[{:or, [:text, :datetime, :date]}] => :date}},
+      %{type_specs: %{[{:or, [:text, :datetime, :date]}] => :date},
+      attributes: [:restricted]},
     [{:cast, :text}] =>
-      %{type_specs: %{[:any] => :text}},
+      %{type_specs: %{[:any] => :text},
+      attributes: [:restricted]},
     [{:cast, :interval}] =>
-      %{type_specs: %{[{:or, [:text, :interval]}] => :interval}},
+      %{type_specs: %{[{:or, [:text, :interval]}] => :interval},
+      attributes: [:restricted]},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -136,8 +147,12 @@ defmodule Cloak.Sql.Function do
   def has_attribute?("coalesce", _attribute), do: false # coalesce is only used internally
   def has_attribute?({:function, name, _}, attribute), do: has_attribute?(name, attribute)
   def has_attribute?(%Expression{function?: true, function: name}, attribute), do: has_attribute?(name, attribute)
-  def has_attribute?(name, attribute) when is_binary(name), do: attribute in Map.get(@functions[name], :attributes, [])
-  def has_attribute?(_, _attribute), do: false
+  def has_attribute?(name, attribute) do
+    case Map.get(@functions, name) do
+      nil -> false
+      function -> attribute in Map.get(function, :attributes, [])
+    end
+  end
 
   @doc "Returns true if the given function call is a cast, false otherwise."
   @spec cast?(t) :: boolean
@@ -209,6 +224,28 @@ defmodule Cloak.Sql.Function do
   @doc "Returns true if the function is a valid cloak function"
   @spec exists?(t) :: boolean
   def exists?({:function, function, _}), do: @functions[function] !== nil
+
+  @doc "Returns true if a function is a math function"
+  @spec math_function?(t | String.t | nil) :: boolean
+  def math_function?(param), do: has_attribute?(param, :math)
+
+  @doc "Returns all math functions"
+  @spec math_functions() :: [String.t]
+  def math_functions(), do:
+    @functions
+    |> Enum.map(fn({name, _}) -> name end)
+    |> Enum.filter(& math_function?(&1))
+
+  @doc "Returns true if a function is restricted"
+  @spec restricted_function?(t | String.t | nil) :: boolean
+  def restricted_function?(param), do: has_attribute?(param, :restricted)
+
+  @doc "Returns all restricted functions"
+  @spec restricted_functions() :: [String.t]
+  def restricted_functions(), do:
+    @functions
+    |> Enum.map(fn({name, _}) -> name end)
+    |> Enum.filter(& restricted_function?(&1))
 
 
   # -------------------------------------------------------------------

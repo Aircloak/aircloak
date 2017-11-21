@@ -6,13 +6,6 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
 
   import Cloak.Test.QueryHelpers
 
-  test "normalizing NOT IN as a series of <>" do
-    result1 = compile!("SELECT * FROM table WHERE numeric NOT IN (1, 2, 3)", data_source())
-    result2 = compile!("SELECT * FROM table WHERE numeric <> 3 AND numeric <> 2 AND numeric <> 1", data_source())
-
-    assert result1.where == result2.where
-  end
-
   test "normalizing constant expressions" do
     result1 = compile!("SELECT * FROM table WHERE numeric = 2 * 3 + 4", data_source())
     result2 = compile!("SELECT * FROM table WHERE numeric = 10", data_source())

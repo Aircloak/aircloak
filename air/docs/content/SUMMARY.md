@@ -38,7 +38,6 @@
     - [Math and function application](sql/restrictions.md#math-and-function-application-restrictions)
     - [Inqualities](sql/restrictions.md#inequality-restrictions)
 - [Understanding query results](sql/query-results.md)
-  - [Probing](sql/query-results.md#probing)
   - [Low-count filtering](sql/query-results.md#low-count-filtering)
   - [Added noise](sql/query-results.md#adding-noise)
   - [Anonymization functions](sql/query-results.md#anonymization-functions)

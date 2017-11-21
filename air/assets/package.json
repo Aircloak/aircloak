@@ -11,6 +11,7 @@
     "javascript-brunch": "~1.8.0",
     "jquery": "^2.2.3",
     "lodash": "^4.11.1",
+    "marked": "^0.3.6",
     "moment": "^2.14.1",
     "mousetrap": "^1.5.3",
     "phoenix": "file:../deps/20.1/1.5.1/phoenix",
@@ -20,7 +21,8 @@
     "react-chartjs-2": "^2.0.0",
     "react-codemirror": "git://github.com/sslotsky/react-codemirror#940bdfab59cb7c295f57c7f6c9aa7bb24d395277",
     "react-dom": "^15.4.2",
-    "uglify-js-brunch": "~1.7.0"
+    "uglify-js-brunch": "~1.7.0",
+    "uuid": "^3.1.0"
   },
   "optionalDependencies": {
     "fsevents": "*"
