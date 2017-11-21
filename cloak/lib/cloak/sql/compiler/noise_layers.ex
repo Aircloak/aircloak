@@ -240,12 +240,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       uid_noise_layer(&1, constant, top_level_uid, :<>),
       static_noise_layer(&1, lower(constant), {:<>, :lower}),
     ])
-  defp do_not_equals_noise_layers({:comparison, column, :<>, constant}, top_level_uid), do:
+  defp do_not_equals_noise_layers(
+    {:comparison, column, :<>, constant = %Expression{constant?: true}}, top_level_uid
+  ), do:
     raw_columns(column)
     |> Enum.flat_map(&[
       static_noise_layer(&1, constant, :<>),
       uid_noise_layer(&1, constant, top_level_uid, :<>),
     ])
+  defp do_not_equals_noise_layers({:comparison, _column, :<>, _other_column}, _top_level_uid), do: []
 
   defp lower(%Expression{constant?: true, type: :text, value: value}), do:
     Expression.constant(:text, String.downcase(value))

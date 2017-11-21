@@ -248,6 +248,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       ] = result.noise_layers
     end
 
+    test "column <> column negative condition" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> numeric", data_source())
+      assert [_generic_noise_layer = %{base: nil}] = result.noise_layers
+    end
+
     test "clear string negative condition" do
       result = compile!("SELECT COUNT(*) FROM table WHERE name <> 'Foo'", data_source())
 
