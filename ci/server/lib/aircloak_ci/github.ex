@@ -147,14 +147,19 @@ defmodule AircloakCI.Github do
   defp post_graphql_request(query), do:
     post_rest_request("/graphql", %{query: query})
 
-  defp post_rest_request(path, params), do:
+  defp post_rest_request(path, params) do
+    auth_token = System.get_env("AIRCLOAK_CI_AUTH")
+
+    if auth_token == nil, do: raise "`AIRCLOAK_CI_AUTH` OS env is not set."
+
     HTTPoison.post!(
       "https://api.github.com#{path}",
       Poison.encode!(params),
       [
-        {"authorization", "bearer #{System.get_env("AIRCLOAK_CI_AUTH")}"},
+        {"authorization", "bearer #{auth_token}"},
         {"Content-Type", "application/json"}
       ],
       [timeout: :timer.seconds(30), recv_timeout: :timer.seconds(30)]
     )
+  end
 end
