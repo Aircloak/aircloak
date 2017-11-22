@@ -327,6 +327,20 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         assert scrub_aliases(result1).noise_layers == scrub_aliases(result2).noise_layers
       end
     end
+
+    test "removes meaningless noise layers from subqueries" do
+      result1 = compile!("SELECT COUNT(*) FROM (SELECT uid, numeric FROM table WHERE numeric <> 2) x WHERE numeric = 1")
+      result2 = compile!("SELECT COUNT(*) FROM (SELECT uid, numeric FROM table) x WHERE numeric = 1")
+
+      assert scrub_aliases(result1).noise_layers == scrub_aliases(result2).noise_layers
+    end
+
+    test "removes menaingless noise layers when a more specific positive one exists in a subquery" do
+      result1 = compile!("SELECT COUNT(*) FROM (SELECT uid, numeric FROM table WHERE numeric = 2) x WHERE numeric <> 1")
+      result2 = compile!("SELECT COUNT(*) FROM (SELECT uid, numeric FROM table WHERE numeric = 2) x")
+
+      assert scrub_aliases(result1).noise_layers == scrub_aliases(result2).noise_layers
+    end
   end
 
   describe "noise layers for IS NULL" do
