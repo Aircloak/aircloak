@@ -1,6 +1,6 @@
 SHELL=/bin/bash -o pipefail
 
-.PHONY: deps test clean all compile dialyze lint docs
+.PHONY: deps test clean all compile dialyze lint docs release
 
 all: deps compile
 
@@ -24,6 +24,9 @@ docs:
 
 dialyze:
 	mix dialyze_retry
+
+release:
+	mix release
 
 lint:
 	MIX_ENV=dev mix lint
