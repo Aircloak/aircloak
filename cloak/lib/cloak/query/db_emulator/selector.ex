@@ -4,7 +4,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   """
 
   alias Cloak.Sql.{Query, Condition, Expression}
-  alias Cloak.Query.{Rows, Sorter, DataEngine}
+  alias Cloak.Query.{Rows, Sorter}
   alias Cloak.{Data, Stats}
 
 
@@ -17,7 +17,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   def select(stream, query) do
     {columns, rows} =
       stream
-      |> Rows.filter(query |> DataEngine.emulated_where() |> Condition.to_function())
+      |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
       |> select_columns(query)
 
     rows
