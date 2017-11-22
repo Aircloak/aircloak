@@ -116,7 +116,7 @@ defmodule Cloak.Query.NoiseLayerTest do
   end
 
   test "noise layers in hiding the low-count row" do
-    other = 27
+    other = 33
 
     for i <- 1..5, do:
       :ok = insert_rows(_user_ids = [i], "noise_layers", ["number", "other"], [i, other])
@@ -144,6 +144,16 @@ defmodule Cloak.Query.NoiseLayerTest do
     # The average value is 100, which means we will use a noise of:
     # average * sum_noise_sigma * sqrt(num noise layers) = 100 * 1 * sqrt(2) = 100 * sqrt(2) ~ 141 ---> 140
     assert_query "select sum_noise(number) from noise_layers where number = 100", %{rows: [%{row: [140.0]}]}
+  end
+
+  test "same noise is generated if analyst forces floating" do
+    :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["number"], [40])
+
+    query1 = "SELECT count(*) FROM noise_layers WHERE number = 40"
+    query2 = "SELECT count(*) FROM (SELECT user_id FROM noise_layers GROUP BY user_id HAVING max(number) + 1 = 41) t"
+
+    assert_query query1, %{rows: [%{row: [count]}]}
+    assert_query query2, %{rows: [%{row: [^count]}]}
   end
 
   test "[Issue #1538] joins with projected tables are order-independent" do
