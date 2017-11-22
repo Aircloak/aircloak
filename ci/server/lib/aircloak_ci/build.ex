@@ -2,12 +2,17 @@ defmodule AircloakCI.Build do
   @moduledoc "Helpers for working with a single build."
 
   alias AircloakCI.{CmdRunner, Github}
-  defstruct [:folder, :repo, :checkout]
+  require Logger
+
+  defstruct [:name, :folder, :repo, :base_branch, :update_git_command, :checkout]
 
   @opaque t :: %__MODULE__{
+    name: String.t,
     folder: String.t,
-    repo: String.t,
-    checkout: ((t) -> {:ok, t} | {:error, String.t})
+    repo: Github.API.repo,
+    base_branch: String.t | nil,
+    update_git_command: String.t,
+    checkout: String.t,
   }
 
 
@@ -19,24 +24,24 @@ defmodule AircloakCI.Build do
   @spec for_pull_request(Github.API.pull_request) :: t
   def for_pull_request(pr), do:
     init_folder(%__MODULE__{
+      name: "PR #{pr.title} (##{pr.number})",
       folder: Path.join(builds_folder(), to_string(pr.number)),
+      base_branch: pr.target_branch,
       repo: pr.repo,
-      checkout:
-        fn(build) ->
-          with \
-            :ok <- cmd(build, "git fetch --force origin pull/#{pr.number}/merge", timeout: :timer.minutes(1)),
-            :ok <- cmd(build, "git checkout #{pr.merge_sha}"),
-            do: {:ok, build}
-        end
+      update_git_command: "fetch --force origin pull/#{pr.number}/merge",
+      checkout: pr.merge_sha
     })
 
   @doc "Initializes the build."
-  @spec initialize(t) :: {:ok, t} | {:error, String.t}
+  @spec initialize(t) :: :ok | {:error, String.t}
   def initialize(build) do
+    Logger.info("initializing build for #{build.name}")
+    log(build, "initializing build for #{build.name}")
+
     with \
       :ok <- clone_repo(build),
-      :ok <- cmd(build, "git reset --hard HEAD"),
-      do: build.checkout.(build)
+      :ok <- cmd(build, "git #{build.update_git_command}"),
+      do: cmd(build, "git checkout #{build.checkout}")
   end
 
   @doc "Executes the given command in the build folder."
@@ -100,31 +105,64 @@ defmodule AircloakCI.Build do
   defp log_folder(build), do:
     Path.join(build.folder, "log")
 
+  defp git_folder(build), do:
+    Path.join(src_folder(build), ".git")
+
   defp truncate_logs(build), do:
     build.folder |> Path.join("*") |> Path.wildcard() |> Enum.each(&File.write(&1, ""))
 
   defp builds_folder(), do:
     Application.app_dir(:aircloak_ci, Path.join("priv", "builds"))
 
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp clone_repo(build) do
-    if File.exists?(Path.join(src_folder(build), ".git")) do
-      :ok
-    else
-      CmdRunner.run(
-        ~s(git clone git@github.com:#{build.repo.owner}/#{build.repo.name} #{src_folder(build)}),
-        timeout: :timer.minutes(1),
-        logger: CmdRunner.file_logger(log_path(build))
-      )
-    end
-  end
+  defp branches_folder(), do:
+    Application.app_dir(:aircloak_ci, Path.join("priv", "branches"))
 
   defp log_path(build), do:
     build
     |> log_folder()
     |> Path.join("build.log")
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp base_branch("master"), do: nil
+  defp base_branch(_not_master), do: "master"
+
+  defp clone_repo(build) do
+    if File.exists?(git_folder(build)) do
+      :ok
+    else
+      do_clone_repo(build)
+    end
+  end
+
+  defp do_clone_repo(%__MODULE__{base_branch: nil} = build) do
+    log(build, "cloning #{build.repo.owner}/#{build.repo.name}")
+
+    CmdRunner.run(
+      ~s(git clone git@github.com:#{build.repo.owner}/#{build.repo.name} #{src_folder(build)}),
+      timeout: :timer.minutes(1),
+      logger: CmdRunner.file_logger(log_path(build))
+    )
+  end
+  defp do_clone_repo(build) do
+    log(build, "waiting for #{build.base_branch} to become available")
+    base_build = for_branch(build.repo, build.base_branch)
+    with :ok <- initialize(base_build) do
+      File.cp_r(git_folder(base_build), git_folder(build))
+      cmd(build, "git reset HEAD --hard")
+    end
+  end
+
+  defp for_branch(repo, branch_name), do:
+    init_folder(%__MODULE__{
+      name: "branch #{branch_name}",
+      folder: Path.join(branches_folder(), Base.encode64(branch_name, padding: false)),
+      base_branch: base_branch(branch_name),
+      repo: repo,
+      update_git_command: "pull --rebase",
+      checkout: branch_name
+    })
 end
