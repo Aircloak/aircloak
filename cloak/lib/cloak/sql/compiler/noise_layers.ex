@@ -25,6 +25,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> apply_top_down(&push_down_noise_layers/1)
     |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
     |> apply_top_down(&normalize_datasource_case/1)
+    |> remove_meaningless_negative_noise_layers()
     |> add_generic_uid_layer_if_needed(top_level_uid)
   end
 
@@ -304,6 +305,20 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     false = is_nil(id_column)
     id_column
   end
+
+
+  # -------------------------------------------------------------------
+  # Meaningless noise layers
+  # -------------------------------------------------------------------
+
+  defp remove_meaningless_negative_noise_layers(query = %{noise_layers: noise_layers}), do:
+    %{query | noise_layers: Enum.reject(noise_layers, &meaningless?(&1, noise_layers))}
+
+  defp meaningless?(noise_layer, all_layers), do: Enum.any?(all_layers, &positive_equivalent?(noise_layer, &1))
+
+  defp positive_equivalent?(negative_layer, potential_equivalent)
+  defp positive_equivalent?(%{base: {table, column, :<>}}, %{base: {table, column, nil}}), do: true
+  defp positive_equivalent?(_, _), do: false
 
 
   # -------------------------------------------------------------------
