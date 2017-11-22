@@ -101,6 +101,7 @@ defmodule AircloakCI.CmdRunner do
   defp result({:exit_status, _status}, cmd), do: {:error, "error running `#{cmd}`"}
 
   defp start_cmd(cmd, opts) do
+    log_output("aircloak_ci: `#{cmd}`\n", opts)
     print_output = fn(_stdout_or_err, _os_pid, output) -> log_output(output, opts) end
 
     {:ok, pid, _os_pid} = :exec.run_link(to_charlist(cmd),
