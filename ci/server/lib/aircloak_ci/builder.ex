@@ -198,10 +198,11 @@ defmodule AircloakCI.Builder do
     "PR `#{pr.title}` (##{pr.number})"
 
   defp log_tail(job) do
+    max_lines = 100
     lines = job.build |> Build.log_contents() |> String.split("\n")
 
     lines
-    |> Enum.drop(max(length(lines) - 100, 0))
+    |> Enum.drop(max(length(lines) - max_lines, 0))
     |> Enum.join("\n")
   end
 end
