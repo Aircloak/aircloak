@@ -1,7 +1,8 @@
 defmodule Cloak.Sql.QueryTest do
   use ExUnit.Case, async: false
 
-  alias Cloak.Sql.Query
+  alias Cloak.Sql.{Query, Expression}
+  alias Cloak.DataSource.Table
 
   import Cloak.Test.QueryHelpers
 
@@ -250,5 +251,39 @@ defmodule Cloak.Sql.QueryTest do
       query |> scrub_data_sources() |> scrub_aliases(),
       features
     }
+  end
+
+  test "db_columns resolving" do
+    uid_column = Table.column("uid", :integer)
+    numeric_column = Table.column("numeric", :integer)
+    string_column = Table.column("string", :text)
+    table = Table.new("table", "uid", columns: [uid_column, numeric_column, string_column])
+    query = %Query{
+      command: :select,
+      columns: [
+        Expression.column(string_column, table),
+        Expression.function("abs", [Expression.column(numeric_column, table)]),
+      ],
+      column_titles: ["string", "abs"],
+      selected_tables: [table],
+      from: "table",
+    }
+
+    assert [
+        %Expression{name: "uid", row_index: 0},
+        %Expression{name: "string", row_index: 1},
+        %Expression{name: "numeric", row_index: 2},
+      ] = Query.resolve_db_columns(query).db_columns
+  end
+
+  test "where clause splitting" do
+    uid_column = Table.column("uid", :integer)
+    numeric_column = Table.column("numeric", :integer)
+    table = Table.new("table", "uid", columns: [uid_column, numeric_column])
+    condition = {:comparison, Expression.column(numeric_column, table), :=, Expression.constant(:integer, 3)}
+    query = %Query{command: :select, where: condition, selected_tables: [table], from: "table"}
+
+    assert ^condition = Query.offloaded_where(query)
+    assert nil == Query.emulated_where(query)
   end
 end
