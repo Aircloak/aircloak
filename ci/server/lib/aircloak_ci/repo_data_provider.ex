@@ -60,6 +60,8 @@ defmodule AircloakCI.RepoDataProvider do
       end
 
       :timer.sleep(:timer.seconds(5))
+
+      loop()
     end
   end
 end
