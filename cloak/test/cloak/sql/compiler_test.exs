@@ -179,6 +179,12 @@ defmodule Cloak.Sql.Compiler.Test do
       assert {:error, error} = compile(query, data_source())
       assert error == "Aggregate function `#{unquote(function)}` can not be used in the `GROUP BY` clause."
     end
+
+    test "rejecting a complex expression with #{function} in group by" do
+      query = "select #{unquote(function)}(numeric) from table group by #{unquote(function)}(numeric) + 1"
+      assert {:error, error} = compile(query, data_source())
+      assert error == "Aggregate function `#{unquote(function)}` can not be used in the `GROUP BY` clause."
+    end
   end
 
   for function <- ~w(year quarter month day hour minute second weekday) do
