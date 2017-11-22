@@ -73,6 +73,7 @@ defmodule BOM.Whitelist do
       {"weak-map",                  "1.0.5"}  => %{type: :apache2,       text: :provided},
       {"wgs84",                     "0.0.0"}  => %{type: :bsd_2_clause,  text: :standard},
       {"wordwrap",                  "0.0.2"}  => %{type: :mit,           text: :provided},
+      {"pagedown",                  "1.1.0"}  => %{type: :mit,           text: :provided},
     }
   }
 
