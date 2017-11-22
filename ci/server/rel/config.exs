@@ -15,4 +15,7 @@ end
 release :aircloak_ci do
   set version: current_version(:aircloak_ci)
   set erl_opts: "+K true"
+  set commands: [
+    "build": "rel/commands/build.sh"
+  ]
 end
