@@ -27,12 +27,12 @@ defmodule AircloakCI.Github do
   @doc "Sets the status check state for the given owner/repo/sha."
   @spec put_status_check_state!(String.t, String.t, String.t, String.t, Github.API.status_check_state) :: :ok
   def put_status_check_state!(owner, repo, sha, context, state), do:
-    sync_request!(:put_status_check_state!, [owner, repo, sha, context, state])
+    async_request(:put_status_check_state!, [owner, repo, sha, context, state])
 
   @doc "Posts a comment to the given issue or pull request."
   @spec post_comment(String.t, String.t, number, String.t) :: :ok
   def post_comment(owner, repo, issue_number, body), do:
-    sync_request!(:post_comment, [owner, repo, issue_number, body])
+    async_request(:post_comment, [owner, repo, issue_number, body])
 
 
   # -------------------------------------------------------------------
@@ -51,16 +51,16 @@ defmodule AircloakCI.Github do
     {:noreply, append_request(state, %{fun: fun, args: args, from: from})}
 
   @impl GenServer
+  def handle_cast({:request, fun, args}, state), do:
+    {:noreply, append_request(state, %{fun: fun, args: args, from: nil})}
+
+  @impl GenServer
   def handle_info(:clear, state), do:
     {:noreply, maybe_start_next_request(%{state | clear?: true})}
-  def handle_info({ref, result}, %{request_job: %Task{ref: ref}} = state) do
-    GenServer.reply(state.current_request.from, {:ok, result})
-    {:noreply, maybe_start_next_request(%{state | current_request: nil, request_job: nil})}
-  end
-  def handle_info({:DOWN, ref, :process, _, _reason}, %{request_job: %Task{ref: ref}} = state) do
-    GenServer.reply(state.current_request.from, :error)
-    {:noreply, maybe_start_next_request(%{state | current_request: nil, request_job: nil})}
-  end
+  def handle_info({ref, result}, %{request_job: %Task{ref: ref}} = state), do:
+    {:noreply, handle_current_request_finished(state, {:ok, result})}
+  def handle_info({:DOWN, ref, :process, _, _reason}, %{request_job: %Task{ref: ref}} = state), do:
+    {:noreply, handle_current_request_finished(state, :error)}
   def handle_info({:DOWN, _, :process, _, :normal}, state), do:
     # previous job exited normally -> we already removed it from the state, so nothing to do here
     {:noreply, state}
@@ -79,6 +79,9 @@ defmodule AircloakCI.Github do
     {:ok, result} = GenServer.call(__MODULE__, {:request, fun, args}, :timer.seconds(30))
     result
   end
+
+  defp async_request(fun, args), do:
+    GenServer.cast(__MODULE__, {:request, fun, args})
 
   defp enqueue_clear(), do:
     Process.send_after(self(), :clear, :timer.seconds(1))
@@ -103,6 +106,11 @@ defmodule AircloakCI.Github do
 
   defp start_request_job(request), do:
     Task.async(fn -> apply(Github.API, request.fun, request.args) end)
+
+  defp handle_current_request_finished(state, response) do
+    if not is_nil(state.current_request.from), do: GenServer.reply(state.current_request.from, response)
+    maybe_start_next_request(%{state | current_request: nil, request_job: nil})
+  end
 
 
   # -------------------------------------------------------------------
