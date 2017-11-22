@@ -31,17 +31,17 @@ defmodule AircloakCI.Builder do
   end
 
   @doc "Force starts the build of the given pull request."
-  @spec force_build(t, Github.API.pull_request) :: :ok | {:error, String.t}
+  @spec force_build(t, Github.API.pull_request) :: {:ok | {:error, String.t}, t}
   def force_build(builder, pr) do
     cond do
-      running?(builder, pr) -> {:error, "build for this PR is already running"}
-      not pr.mergeable? or pr.merge_sha == nil -> {:error, "this PR is not mergeable"}
+      running?(builder, pr) -> {{:error, "build for this PR is already running"}, builder}
+      not pr.mergeable? or pr.merge_sha == nil -> {{:error, "this PR is not mergeable"}, builder}
       true ->
         builder = initialize_build(builder, pr)
         if ci_possible?(builder, pr) do
           {:ok, start_job(builder, pr)}
         else
-          {:error, "can't run CI for this PR"}
+          {{:error, "can't run CI for this PR"}, builder}
         end
     end
   end
