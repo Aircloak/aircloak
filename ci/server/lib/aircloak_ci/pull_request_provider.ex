@@ -53,10 +53,8 @@ defmodule AircloakCI.PullRequestProvider do
 
     defp loop() do
       try do
-        Enum.each(
-          AircloakCI.PullRequestProvider.subscribers(),
-          &send(&1, {:current_pull_requests, Github.pending_pull_requests("aircloak", "aircloak")})
-        )
+        pull_requests = Github.pending_pull_requests("aircloak", "aircloak")
+        Enum.each(AircloakCI.PullRequestProvider.subscribers(), &send(&1, {:current_pull_requests, pull_requests}))
       catch type, error ->
         Logger.error(Exception.format(type, error, System.stacktrace()))
       end
