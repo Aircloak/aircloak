@@ -10,13 +10,13 @@ defmodule AircloakCI.BuildCleaner do
 
   @impl GenServer
   def init(nil) do
-    AircloakCI.PullRequestProvider.subscribe()
+    AircloakCI.RepoDataProvider.subscribe()
     {:ok, nil}
   end
 
   @impl GenServer
-  def handle_info({:current_pull_requests, pull_requests}, state) do
-    AircloakCI.Build.remove_old_folders(pull_requests)
+  def handle_info({:repo_data, repo_data}, state) do
+    AircloakCI.Build.remove_old_folders(repo_data)
     {:noreply, state}
   end
   def handle_info(message, state), do:

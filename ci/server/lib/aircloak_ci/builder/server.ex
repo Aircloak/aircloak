@@ -22,7 +22,7 @@ defmodule AircloakCI.Builder.Server do
   @impl GenServer
   def init(nil) do
     Process.flag(:trap_exit, true)
-    AircloakCI.PullRequestProvider.subscribe()
+    AircloakCI.RepoDataProvider.subscribe()
     {:ok, Builder.new()}
   end
 
@@ -35,8 +35,8 @@ defmodule AircloakCI.Builder.Server do
   end
 
   @impl GenServer
-  def handle_info({:current_pull_requests, pull_requests}, builder), do:
-    {:noreply, Builder.process_prs(builder, pull_requests)}
+  def handle_info({:repo_data, repo_data}, builder), do:
+    {:noreply, Builder.process_prs(builder, repo_data)}
   def handle_info(message, builder) do
     case Builder.handle_message(builder, message) do
       {:ok, state} -> {:noreply, state}

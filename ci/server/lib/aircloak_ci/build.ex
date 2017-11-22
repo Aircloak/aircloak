@@ -72,15 +72,15 @@ defmodule AircloakCI.Build do
   end
 
   @doc "Removes build folders not needed for any pending pull request."
-  @spec remove_old_folders([Github.API.pull_request]) :: :ok
-  def remove_old_folders(existing_pull_requests) do
+  @spec remove_old_folders(Github.API.repo_data) :: :ok
+  def remove_old_folders(repo_data) do
     existing_folder_names =
       case File.ls(builds_folder()) do
         {:ok, folders} -> folders
         _ -> []
       end
 
-    expected_folder_names = Enum.map(existing_pull_requests, &to_string(&1.number))
+    expected_folder_names = Enum.map(repo_data.pull_requests, &to_string(&1.number))
 
     existing_folder_names
     |> Enum.filter(&(not &1 in expected_folder_names))

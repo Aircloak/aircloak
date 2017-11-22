@@ -1,5 +1,5 @@
-defmodule AircloakCI.PullRequestProvider do
-  @moduledoc "Service for providing data about pull requests."
+defmodule AircloakCI.RepoDataProvider do
+  @moduledoc "Service for providing data about repository."
   use Aircloak.ChildSpec.Supervisor
 
 
@@ -7,7 +7,7 @@ defmodule AircloakCI.PullRequestProvider do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Subscribes the caller to the notifications about pull requests."
+  @doc "Subscribes the caller to the notifications about repository data."
   @spec subscribe() :: :ok
   def subscribe() do
     Registry.register(__MODULE__.Subscribers, :subscriber, nil)
@@ -53,8 +53,8 @@ defmodule AircloakCI.PullRequestProvider do
 
     defp loop() do
       try do
-        pull_requests = Github.pending_pull_requests("aircloak", "aircloak")
-        Enum.each(AircloakCI.PullRequestProvider.subscribers(), &send(&1, {:current_pull_requests, pull_requests}))
+        repo_data = Github.repo_data("aircloak", "aircloak")
+        Enum.each(AircloakCI.RepoDataProvider.subscribers(), &send(&1, {:repo_data, repo_data}))
       catch type, error ->
         Logger.error(Exception.format(type, error, System.stacktrace()))
       end

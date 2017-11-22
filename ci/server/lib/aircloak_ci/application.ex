@@ -8,7 +8,7 @@ defmodule AircloakCI.Application do
       [
         AircloakCI.CmdRunner.Supervisor,
         AircloakCI.Github,
-        AircloakCI.PullRequestProvider,
+        AircloakCI.RepoDataProvider,
         AircloakCI.Builder.Server,
         AircloakCI.BuildCleaner
       ],

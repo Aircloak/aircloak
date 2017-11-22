@@ -10,6 +10,13 @@ defmodule AircloakCI.Github.API do
 
   require Logger
 
+  @type repo_data :: %{
+    owner: String.t,
+    name: String.t,
+    branches: [String.t],
+    pull_requests: [pull_request],
+  }
+
   @type pull_request :: %{
     repo: repo,
     number: pos_integer,
@@ -32,14 +39,26 @@ defmodule AircloakCI.Github.API do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Returns the list of pending pull requests."
-  @spec pending_pull_requests(String.t, String.t) :: [pull_request]
-  def pending_pull_requests(owner, repo), do:
-    graphql_request("query {#{repo_query(owner, repo, prs_query())}}")
-    |> Map.fetch!("repository")
-    |> Map.fetch!("pullRequests")
-    |> Map.fetch!("nodes")
-    |> Enum.map(&to_pr_data(&1, %{owner: owner, name: repo}))
+  @doc "Returns the repository data, such as branches and open pull requests."
+  @spec repo_data(String.t, String.t) :: repo_data
+  def repo_data(owner, repo_name) do
+    repository =
+      "query {#{repo_query(owner, repo_name, "#{branches_query()} #{prs_query()}")}}"
+      |> graphql_request()
+      |> Map.fetch!("repository")
+
+    %{
+      owner: owner,
+      name: repo_name,
+      branches:
+        repository |> Map.fetch!("refs") |> Map.fetch!("nodes") |> Enum.map(&Map.fetch!(&1, "name")),
+      pull_requests:
+        repository
+        |> Map.fetch!("pullRequests")
+        |> Map.fetch!("nodes")
+        |> Enum.map(&to_pr_data(&1, %{owner: owner, name: repo_name}))
+    }
+  end
 
   @doc "Returns the data for the given pull request."
   @spec pull_request(String.t, String.t, integer) :: pull_request
@@ -84,6 +103,9 @@ defmodule AircloakCI.Github.API do
 
   defp repo_query(owner, repo, inner_query), do:
     ~s/repository(owner: "#{owner}", name: "#{repo}") {#{inner_query}}/
+
+  defp branches_query(), do:
+    ~s[refs(refPrefix: "refs/heads/", first: 100) {nodes {name}}]
 
   defp prs_query(), do:
     ~s/

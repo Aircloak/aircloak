@@ -14,10 +14,10 @@ defmodule AircloakCI.Github do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Returns the list of pending pull requests."
-  @spec pending_pull_requests(String.t, String.t) :: [Github.API.pull_request]
-  def pending_pull_requests(owner, repo), do:
-    sync_request!(:pending_pull_requests, [owner, repo])
+  @doc "Returns the repository data, such as branches and open pull requests."
+  @spec repo_data(String.t, String.t) :: Github.API.repo_data
+  def repo_data(owner, repo), do:
+    sync_request!(:repo_data, [owner, repo])
 
   @doc "Returns the data for the given pull request."
   @spec pull_request(String.t, String.t, integer) :: Github.API.pull_request

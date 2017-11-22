@@ -24,9 +24,11 @@ defmodule AircloakCI.Builder do
     %{current_jobs: [], builds: %{}}
 
   @doc "Processes pending pull requests."
-  @spec process_prs(t, [Github.API.pull_request]) :: t
-  def process_prs(builder, pending_prs), do:
-    Enum.reduce(pending_prs, cancel_needless_builds(builder, pending_prs), &maybe_start_job(&2, &1))
+  @spec process_prs(t, Github.API.repo_data) :: t
+  def process_prs(builder, repo_data) do
+    builder = cancel_needless_builds(builder, repo_data.pull_requests)
+    Enum.reduce(repo_data.pull_requests, builder, &maybe_start_job(&2, &1))
+  end
 
   @doc "Force starts the build of the given pull request."
   @spec force_build(t, Github.API.pull_request) :: :ok | {:error, String.t}
