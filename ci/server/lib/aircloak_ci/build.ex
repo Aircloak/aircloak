@@ -74,17 +74,20 @@ defmodule AircloakCI.Build do
   @doc "Removes build folders not needed for any pending pull request."
   @spec remove_old_folders(Github.API.repo_data) :: :ok
   def remove_old_folders(repo_data) do
+    remove_except(builds_folder(), Enum.map(repo_data.pull_requests, &to_string(&1.number)))
+    remove_except(branches_folder(), Enum.map(repo_data.branches, &branch_folder_name/1))
+  end
+
+  defp remove_except(parent_folder, expected_folder_names) do
     existing_folder_names =
-      case File.ls(builds_folder()) do
+      case File.ls(parent_folder) do
         {:ok, folders} -> folders
         _ -> []
       end
 
-    expected_folder_names = Enum.map(repo_data.pull_requests, &to_string(&1.number))
-
     existing_folder_names
     |> Enum.filter(&(not &1 in expected_folder_names))
-    |> Enum.each(&(builds_folder() |> Path.join(&1) |> File.rm_rf()))
+    |> Enum.each(&(parent_folder |> Path.join(&1) |> File.rm_rf()))
   end
 
   @doc "Returns the CI version for this build."
@@ -125,6 +128,12 @@ defmodule AircloakCI.Build do
 
   defp branches_folder(), do:
     Application.app_dir(:aircloak_ci, Path.join("priv", "branches"))
+
+  defp branch_folder(branch_name), do:
+    Path.join(branches_folder(), branch_folder_name(branch_name))
+
+  defp branch_folder_name(branch_name), do:
+    Base.encode64(branch_name, padding: false)
 
   defp log_path(build), do:
     build
@@ -168,7 +177,7 @@ defmodule AircloakCI.Build do
   defp for_branch(repo, branch_name), do:
     init_folder(%__MODULE__{
       name: "branch #{branch_name}",
-      folder: Path.join(branches_folder(), Base.encode64(branch_name, padding: false)),
+      folder: branch_folder(branch_name),
       base_branch: base_branch(branch_name),
       repo: repo,
       update_git_command: "pull --rebase",
