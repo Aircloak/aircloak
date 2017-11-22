@@ -305,18 +305,27 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   end
 
   describe "useless negative conditions" do
-    test "removing <> noise layers when a more specific = exists" do
+    test "removing <> noise layers when a more specific positive one exists" do
       result1 = compile!("SELECT COUNT(*) FROM table WHERE numeric = 1 AND numeric <> 2")
       result2 = compile!("SELECT COUNT(*) FROM table WHERE numeric = 1")
 
       assert scrub_aliases(result1).noise_layers == scrub_aliases(result2).noise_layers
     end
 
-    test "does not remove <> noise layers when a = exists on another column" do
+    test "does not remove <> noise layers when a more specific positive one exists on another column" do
       result1 = compile!("SELECT COUNT(*) FROM table WHERE numeric = 1 AND numeric2 <> 2")
       result2 = compile!("SELECT COUNT(*) FROM table WHERE numeric = 1")
 
       assert scrub_aliases(result1).noise_layers != scrub_aliases(result2).noise_layers
+    end
+
+    for operator <- ~w(LIKE ILIKE) do
+      test "removing NOT #{operator} noise layers when a more specific positive one exists" do
+        result1 = compile!("SELECT COUNT(*) FROM table WHERE name NOT #{unquote(operator)} 'a%b' GROUP BY name")
+        result2 = compile!("SELECT COUNT(*) FROM table GROUP BY name")
+
+        assert scrub_aliases(result1).noise_layers == scrub_aliases(result2).noise_layers
+      end
     end
   end
 

@@ -318,6 +318,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp positive_equivalent?(negative_layer, potential_equivalent)
   defp positive_equivalent?(%{base: {table, column, :<>}}, %{base: {table, column, nil}}), do: true
+  defp positive_equivalent?(%{base: {table, column, {:not, :like, _}}}, %{base: {table, column, nil}}), do: true
+  defp positive_equivalent?(%{base: {table, column, {:not, :ilike, _}}}, %{base: {table, column, nil}}), do: true
   defp positive_equivalent?(_, _), do: false
 
 
