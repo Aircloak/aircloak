@@ -4,11 +4,11 @@ defmodule AircloakCI.Builder do
   require Logger
   alias AircloakCI.{Build, Github}
 
-  @opaque t :: %{current_jobs: [job]}
+  @opaque t :: %{current_jobs: [job], builds: %{}}
   @opaque job :: %{
     pid: pid,
     pr: Github.API.pull_request,
-    type: module
+    type: module,
   }
 
   @aircloak_ci_name "continuous-integration/aircloak/ci"
@@ -21,7 +21,7 @@ defmodule AircloakCI.Builder do
   @doc "Creates the new builder instance."
   @spec new() :: t
   def new(), do:
-    %{current_jobs: []}
+    %{current_jobs: [], builds: %{}}
 
   @doc "Processes pending pull requests."
   @spec process_prs(t, [Github.API.pull_request]) :: t
@@ -34,7 +34,7 @@ defmodule AircloakCI.Builder do
     cond do
       running?(builder, pr) -> {:error, "build for this PR is already running"}
       not pr.mergeable? or pr.merge_sha == nil -> {:error, "this PR is not mergeable"}
-      true -> {:ok, start_job(builder, pr)}
+      true -> {:ok, builder |> initialize_build(pr) |> start_job(pr)}
     end
   end
 
@@ -72,17 +72,37 @@ defmodule AircloakCI.Builder do
   # -------------------------------------------------------------------
 
   defp maybe_start_job(builder, pr) do
-    if can_start_job?(builder, pr) do
-      start_job(builder, pr)
+    if pr.mergeable? and pr.merge_sha != nil do
+      builder = initialize_build(builder, pr)
+
+      if can_start_job?(builder, pr) do
+        start_job(builder, pr)
+      else
+        builder
+      end
     else
       builder
     end
   end
 
+  defp initialize_build(builder, pr) do
+    with \
+      :error <- Map.fetch(builder.builds, build_key(pr)),
+      build = Build.for_pull_request(pr),
+      :ok <- Build.initialize(build)
+    do
+      put_in(builder.builds[build_key(pr)], build)
+    else
+      _ -> builder
+    end
+  end
+
+  defp build_key(pr), do: {pr.title, pr.merge_sha}
+
   defp start_job(builder, pr) do
     Logger.info("starting the build for #{pr_log_display(pr)}")
 
-    build = Build.for_pull_request(pr)
+    build = Map.fetch!(builder.builds, build_key(pr))
     job = %{pr: pr, build: build, pid: start_job_task(build)}
     report_status(job, :pending)
 
@@ -118,7 +138,7 @@ defmodule AircloakCI.Builder do
   end
 
   defp valid_pr?(pr, pending_prs), do:
-    Enum.any?(pending_prs, &(&1.pr.number == pr.number and &1.pr.merge_sha == pr.merge_sha))
+    Enum.any?(pending_prs, &(&1.number == pr.number and &1.merge_sha == pr.merge_sha))
 
   defp cancel_job(%{pid: pid} = job) do
     Logger.info("cancelling outdated build for PR #{job.pr.number}")
