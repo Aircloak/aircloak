@@ -2,7 +2,7 @@ defmodule AircloakCI.Builder do
   @moduledoc "CI builder engine."
 
   require Logger
-  alias AircloakCI.Github
+  alias AircloakCI.{Build, Github}
 
   @opaque t :: %{current_jobs: [job]}
   @opaque job :: %{
@@ -48,7 +48,7 @@ defmodule AircloakCI.Builder do
 
       job ->
         Logger.info("build for #{pr_log_display(job.pr)} finished with the result `#{result.outcome}`")
-        report_status(job.pr, build_status(result.outcome))
+        report_status(job, build_status(result.outcome))
         {:ok, builder}
     end
   end
@@ -57,7 +57,7 @@ defmodule AircloakCI.Builder do
       {[], _} -> :error
       {[job], remaining_jobs} ->
         if reason != :normal do
-          report_status(job.pr, :failure, reason)
+          report_status(job, :failure, reason)
           Logger.error("build for #{pr_log_display(job.pr)} crashed")
         end
         {:ok, %{builder | current_jobs: remaining_jobs}}
@@ -81,14 +81,20 @@ defmodule AircloakCI.Builder do
 
   defp start_job(builder, pr) do
     Logger.info("starting the build for #{pr_log_display(pr)}")
-    report_status(pr, :pending)
 
+    build = Build.for_pull_request(pr)
+    job = %{pr: pr, build: build, pid: start_job_task(build)}
+    report_status(job, :pending)
+
+    update_in(builder.current_jobs, &[job | &1])
+  end
+
+  defp start_job_task(build) do
     me = self()
     {:ok, pid} = Task.start_link(fn ->
-      send(me, {:job_result, %{pid: self(), outcome: AircloakCI.Compliance.run(pr)}})
+      send(me, {:job_result, %{pid: self(), outcome: AircloakCI.Compliance.run(build)}})
     end)
-
-    update_in(builder.current_jobs, &[%{pid: pid, pr: pr} | &1])
+    pid
   end
 
   defp can_start_job?(builder, pr), do:
@@ -108,7 +114,7 @@ defmodule AircloakCI.Builder do
   defp cancel_needless_builds(builder, pending_prs) do
     {remaining, outdated} = Enum.split_with(builder.current_jobs, &(valid_pr?(&1.pr, pending_prs)))
     Enum.each(outdated, &cancel_job/1)
-    %{builder | current_jobs: remaining} |> IO.inspect
+    %{builder | current_jobs: remaining}
   end
 
   defp valid_pr?(pr, pending_prs), do:
@@ -122,30 +128,30 @@ defmodule AircloakCI.Builder do
     end
   end
 
-  defp report_status(pr, state, context \\ nil) do
-    Github.put_status_check_state!(pr.repo.owner, pr.repo.name, pr.sha, @aircloak_ci_name, state)
-    maybe_send_comment(pr, state, context)
+  defp report_status(job, state, context \\ nil) do
+    Github.put_status_check_state!(job.pr.repo.owner, job.pr.repo.name, job.pr.sha, @aircloak_ci_name, state)
+    maybe_send_comment(job, state, context)
   end
 
-  defp maybe_send_comment(pr, :success, _context), do:
-    send_comment(pr, "Compliance build succeeded 👍")
-  defp maybe_send_comment(pr, :error, _context), do:
-    send_comment(pr, Enum.join(["Compliance build errored 😞", "", "Log tail:", "```", log_tail(pr), "```"], "\n"))
-  defp maybe_send_comment(pr, :failure, crash_reason), do:
-    send_comment(pr,
+  defp maybe_send_comment(job, :success, _context), do:
+    send_comment(job, "Compliance build succeeded 👍")
+  defp maybe_send_comment(job, :error, _context), do:
+    send_comment(job, Enum.join(["Compliance build errored 😞", "", "Log tail:", "```", log_tail(job), "```"], "\n"))
+  defp maybe_send_comment(job, :failure, crash_reason), do:
+    send_comment(job,
       Enum.join(
         [
           "Compliance build crashed 😞", "",
           "```", Exception.format_exit(crash_reason), "```", "",
-          "Log tail:", "```", log_tail(pr), "```"
+          "Log tail:", "```", log_tail(job), "```"
         ],
         "\n"
       )
     )
-  defp maybe_send_comment(_pr, _, _other_status), do: :ok
+  defp maybe_send_comment(_job, _, _other_status), do: :ok
 
-  defp send_comment(pr, body), do:
-    Github.post_comment(pr.repo.owner, pr.repo.name, pr.number, body)
+  defp send_comment(job, body), do:
+    Github.post_comment(job.pr.repo.owner, job.pr.repo.name, job.pr.number, body)
 
   defp build_status(:ok), do: :success
   defp build_status(:error), do: :error
@@ -153,8 +159,8 @@ defmodule AircloakCI.Builder do
   defp pr_log_display(pr), do:
     "PR `#{pr.title}` (##{pr.number})"
 
-  defp log_tail(pr) do
-    lines = pr |> AircloakCI.Build.log_contents() |> String.split("\n")
+  defp log_tail(job) do
+    lines = job.build |> Build.log_contents() |> String.split("\n")
 
     lines
     |> Enum.drop(max(length(lines) - 100, 0))

@@ -9,17 +9,17 @@ defmodule AircloakCI.Compliance do
   # -------------------------------------------------------------------
 
   @doc "Runs the compliance job."
-  @spec run(AircloakCI.Github.API.pull_request) :: :ok | :error
-  def run(pr) do
+  @spec run(Build.t) :: :ok | :error
+  def run(build) do
     with \
-      :ok <- Build.initialize(pr),
-      :ok <- run_phase(pr, "cloak build", "ci/run.sh build_cloak", timeout: :timer.minutes(10)),
-      :ok <- run_phase(pr, "compliance", "ci/run.sh cloak_compliance", timeout: :timer.minutes(10))
+      {:ok, build} = Build.initialize(build),
+      :ok <- run_phase(build, "cloak build", "ci/run.sh build_cloak", timeout: :timer.minutes(10)),
+      :ok <- run_phase(build, "compliance", "ci/run.sh cloak_compliance", timeout: :timer.minutes(10))
     do
       :ok
     else
       {:error, reason} ->
-        Build.log(pr, "error: #{reason}")
+        Build.log(build, "error: #{reason}")
         :error
     end
   end
@@ -29,8 +29,8 @@ defmodule AircloakCI.Compliance do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp run_phase(pr, title, cmd, opts) do
-    Build.log(pr, "starting #{title}")
-    Build.cmd(pr, cmd, opts)
+  defp run_phase(build, title, cmd, opts) do
+    Build.log(build, "starting #{title}")
+    Build.cmd(build, cmd, opts)
   end
 end
