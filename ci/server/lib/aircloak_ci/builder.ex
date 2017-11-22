@@ -34,7 +34,13 @@ defmodule AircloakCI.Builder do
     cond do
       running?(builder, pr) -> {:error, "build for this PR is already running"}
       not pr.mergeable? or pr.merge_sha == nil -> {:error, "this PR is not mergeable"}
-      true -> {:ok, builder |> initialize_build(pr) |> start_job(pr)}
+      true ->
+        builder = initialize_build(builder, pr)
+        if ci_possible?(builder, pr) do
+          {:ok, start_job(builder, pr)}
+        else
+          {:error, "can't run CI for this PR"}
+        end
     end
   end
 
@@ -72,16 +78,14 @@ defmodule AircloakCI.Builder do
   # -------------------------------------------------------------------
 
   defp maybe_start_job(builder, pr) do
-    if pr.mergeable? and pr.merge_sha != nil do
-      builder = initialize_build(builder, pr)
-
-      if can_start_job?(builder, pr) do
-        start_job(builder, pr)
-      else
-        builder
-      end
+    with \
+      true <- startable?(builder, pr),
+      builder = initialize_build(builder, pr),
+      true <- ci_possible?(builder, pr)
+    do
+      start_job(builder, pr)
     else
-      builder
+      _ -> builder
     end
   end
 
@@ -102,7 +106,7 @@ defmodule AircloakCI.Builder do
   defp start_job(builder, pr) do
     Logger.info("starting the build for #{pr_log_display(pr)}")
 
-    build = Map.fetch!(builder.builds, build_key(pr))
+    build = build(builder, pr)
     job = %{pr: pr, build: build, pid: start_job_task(build)}
     report_status(job, :pending)
 
@@ -117,16 +121,20 @@ defmodule AircloakCI.Builder do
     pid
   end
 
-  defp can_start_job?(builder, pr), do:
+  defp build(builder, pr), do:
+    Map.fetch!(builder.builds, build_key(pr))
+
+  defp startable?(builder, pr), do:
     not running?(builder, pr) and
     pr.mergeable? and
     pr.merge_sha != nil and
     pr.approved? and
     pr.status_checks["continuous-integration/travis-ci/pr"] == :success and
     pr.status_checks["continuous-integration/travis-ci/push"] == :success and
-    pr.status_checks[@aircloak_ci_name] in [nil, :pending] and
-    # TODO: remove this temp filter
-    pr.target_branch == "sasa/extract-compliance-ci"
+    pr.status_checks[@aircloak_ci_name] in [nil, :pending]
+
+  defp ci_possible?(builder, pr), do:
+    not is_nil(Build.ci_version(build(builder, pr)))
 
   defp running?(builder, pr), do:
     Enum.any?(builder.current_jobs, &(&1.pr.number == pr.number))

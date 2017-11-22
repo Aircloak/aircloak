@@ -87,6 +87,15 @@ defmodule AircloakCI.Build do
     |> Enum.each(&(builds_folder() |> Path.join(&1) |> File.rm_rf()))
   end
 
+  @doc "Returns the CI version for this build."
+  @spec ci_version(t) :: nil | non_neg_integer
+  def ci_version(build) do
+    case File.read(Path.join([src_folder(build), "ci", "VERSION"])) do
+      {:ok, contents} -> contents |> String.trim() |> String.to_integer()
+      {:error, _reason} -> nil
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Build folders
