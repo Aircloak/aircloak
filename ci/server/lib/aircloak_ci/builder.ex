@@ -140,9 +140,10 @@ defmodule AircloakCI.Builder do
     Enum.any?(builder.current_jobs, &(&1.pr.number == pr.number))
 
   defp cancel_needless_builds(builder, pending_prs) do
-    {remaining, outdated} = Enum.split_with(builder.current_jobs, &(valid_pr?(&1.pr, pending_prs)))
-    Enum.each(outdated, &cancel_job/1)
-    %{builder | current_jobs: remaining}
+    remaining_builds = Map.take(builder.builds, Enum.map(pending_prs, &build_key/1))
+    {remaining_jobs, outdated_jobs} = Enum.split_with(builder.current_jobs, &(valid_pr?(&1.pr, pending_prs)))
+    Enum.each(outdated_jobs, &cancel_job/1)
+    %{builder | current_jobs: remaining_jobs, builds: remaining_builds}
   end
 
   defp valid_pr?(pr, pending_prs), do:
