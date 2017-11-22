@@ -11,13 +11,13 @@ defmodule BOM.Whitelist do
   @licenses %{
     :elixir => %{
       {"ecto",            "2.2.6"}  => %{type: :apache2, text: :provided},
+      {"ecto_enum",       "1.0.2"}  => %{type: :mit,     text: :provided},
       {"erlware_commons", "0.21.0"} => %{type: :mit,     text: :provided},
+      {"excoveralls",     "0.5.7"}  => %{type: :mit,     text: :standard},
+      {"file_system",     "0.2.2"}  => %{type: :wtfpl,   text: :standard},
       {"scrivener",       "2.3.0"}  => %{type: :mit,     text: :standard},
       {"scrivener_ecto",  "1.2.2"}  => %{type: :mit,     text: :standard},
       {"scrivener_html",  "1.3.3"}  => %{type: :mit,     text: :standard},
-      {"excoveralls",     "0.5.7"}  => %{type: :mit,     text: :standard},
-      {"ecto_enum",       "1.0.2"}  => %{type: :mit,     text: :provided},
-      {"file_system",     "0.2.2"}  => %{type: :wtfpl,   text: :standard},
     },
     :node => %{
       {"base64-js",                 "0.0.2"}  => %{type: :mit,           text: :provided},
@@ -57,6 +57,7 @@ defmodule BOM.Whitelist do
       {"micro-promisify",           "0.1.1"}  => %{type: :mit,           text: :provided},
       {"minimalistic-assert",       "1.0.0"}  => %{type: :isc,           text: :standard},
       {"object-keys",               "0.4.0"}  => %{type: :mit,           text: :provided},
+      {"pagedown",                  "1.1.0"}  => %{type: :mit,           text: :provided},
       {"parse-asn1",                "5.0.0"}  => %{type: :isc,           text: :standard},
       {"point-geometry",            "0.0.0"}  => %{type: :isc,           text: :provided},
       {"public-encrypt",            "4.0.0"}  => %{type: :mit,           text: :standard},
@@ -73,7 +74,6 @@ defmodule BOM.Whitelist do
       {"weak-map",                  "1.0.5"}  => %{type: :apache2,       text: :provided},
       {"wgs84",                     "0.0.0"}  => %{type: :bsd_2_clause,  text: :standard},
       {"wordwrap",                  "0.0.2"}  => %{type: :mit,           text: :provided},
-      {"pagedown",                  "1.1.0"}  => %{type: :mit,           text: :provided},
     }
   }
 
