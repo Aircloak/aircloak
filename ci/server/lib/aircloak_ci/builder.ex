@@ -9,6 +9,7 @@ defmodule AircloakCI.Builder do
     pr: Github.API.pull_request,
     build: Build.t,
     pid: pid,
+    start: integer()
   }
 
   @aircloak_ci_name "continuous-integration/aircloak/ci"
@@ -64,8 +65,8 @@ defmodule AircloakCI.Builder do
       {[], _} -> :error
       {[job], remaining_jobs} ->
         if reason != :normal do
-          report_status(job, :failure, reason)
           Logger.error("build for #{pr_log_display(job.pr)} crashed")
+          report_status(job, :failure, reason)
         end
         {:ok, %{builder | current_jobs: remaining_jobs}}
     end
@@ -93,7 +94,7 @@ defmodule AircloakCI.Builder do
     Logger.info("starting the build for #{pr_log_display(pr)}")
 
     build = Build.for_pull_request(pr)
-    job = %{pr: pr, build: build, pid: start_job_task(build)}
+    job = %{pr: pr, build: build, pid: start_job_task(build), start: :erlang.monotonic_time(:second)}
     report_status(job, :pending)
 
     update_in(builder.current_jobs, &[job | &1])
@@ -143,25 +144,32 @@ defmodule AircloakCI.Builder do
 
   defp report_status(job, state, context \\ nil) do
     Github.put_status_check_state!(job.pr.repo.owner, job.pr.repo.name, job.pr.sha, @aircloak_ci_name, state)
-    maybe_send_comment(job, state, context)
+    handle_job_finish(job, state, context)
   end
 
-  defp maybe_send_comment(job, :success, _context), do:
-    send_comment(job, "Compliance build succeeded 👍")
-  defp maybe_send_comment(job, :error, _context), do:
-    send_comment(job, Enum.join(["Compliance build errored 😞", "", "Log tail:", "```", log_tail(job), "```"], "\n"))
-  defp maybe_send_comment(job, :failure, crash_reason), do:
-    send_comment(job,
-      Enum.join(
-        [
-          "Compliance build crashed 😞", "",
-          "```", Exception.format_exit(crash_reason), "```", "",
-          "Log tail:", "```", log_tail(job), "```"
-        ],
-        "\n"
-      )
+  defp handle_job_finish(_job, :pending, _context), do: :ok
+  defp handle_job_finish(job, status, context) do
+    diff_sec = :erlang.monotonic_time(:second) - job.start
+    time_output = :io_lib.format("~b:~2..0b", [div(diff_sec, 60), rem(diff_sec, 60)])
+
+    Logger.info("job #{pr_log_display(job.pr)} finished in #{time_output} min")
+    Build.log(job.build, "finished with status `#{status}` in #{time_output} min")
+    send_comment(job, comment(status, job, context))
+  end
+
+  defp comment(:success, _job, _context), do:
+    "Compliance build succeeded 👍"
+  defp comment(:error, job, _context), do:
+    Enum.join(["Compliance build errored 😞", "", "Log tail:", "```", log_tail(job), "```"], "\n")
+  defp comment(:failure, job, crash_reason), do:
+    Enum.join(
+      [
+        "Compliance build crashed 😞", "",
+        "```", Exception.format_exit(crash_reason), "```", "",
+        "Log tail:", "```", log_tail(job), "```"
+      ],
+      "\n"
     )
-  defp maybe_send_comment(_job, _, _other_status), do: :ok
 
   if Mix.env == :prod do
     defp send_comment(job, body), do:
