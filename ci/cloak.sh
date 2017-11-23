@@ -20,6 +20,15 @@ function cleanup {
 
   echo "destroying network $CLOAK_NETWORK_ID"
 
+  if [ "$CLOAK_CONTAINER" != "" ]; then
+    # This handles permission problems on Linux systems, when running as a non-root. Inside the docker container
+    # we're giving ownership to the entire cloak folder to the same user as the user running the image. This ensures
+    # that the user will own generated files/folders (e.g. _build and deps) on the host machine.
+    # Without this trickery, the owner would always be root.
+    # See [this issue](https://github.com/moby/moby/issues/2259) for more details.
+    run_in_cloak "chown -R $UID /aircloak/cloak" || true
+  fi
+
   # We need to kill the container before disconnecting it from the network. Otherwise, we end up with dangling network
   # connections on database containers.
   docker kill $CLOAK_CONTAINER > /dev/null || true
