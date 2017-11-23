@@ -4,11 +4,12 @@ defmodule AircloakCI.Build do
   alias AircloakCI.{CmdRunner, Github}
   require Logger
 
-  defstruct [:name, :folder, :repo, :base_branch, :update_git_command, :checkout]
+  defstruct [:name, :build_folder, :log_folder, :repo, :base_branch, :update_git_command, :checkout]
 
   @opaque t :: %__MODULE__{
     name: String.t,
-    folder: String.t,
+    build_folder: String.t,
+    log_folder: String.t,
     repo: Github.API.repo,
     base_branch: String.t | nil,
     update_git_command: String.t,
@@ -25,7 +26,8 @@ defmodule AircloakCI.Build do
   def for_pull_request(pr), do:
     init_folder(%__MODULE__{
       name: "PR #{pr.title} (##{pr.number})",
-      folder: Path.join(builds_folder(), to_string(pr.number)),
+      build_folder: Path.join(builds_folder(), pr_folder_name(pr)),
+      log_folder: Path.join(logs_folder(), pr_folder_name(pr)),
       base_branch: pr.target_branch,
       repo: pr.repo,
       update_git_command: "fetch --force origin pull/#{pr.number}/merge",
@@ -47,7 +49,7 @@ defmodule AircloakCI.Build do
   @doc "Executes the given command in the build folder."
   @spec cmd(t, String.t, CmdRunner.opts) :: :ok | {:error, String.t}
   def cmd(build, cmd, opts \\ []), do:
-    CmdRunner.run(cmd, [cd: src_folder(build), logger: CmdRunner.file_logger(log_path(build))] ++ opts)
+    CmdRunner.run(cmd, [cd: build.build_folder, logger: CmdRunner.file_logger(log_path(build))] ++ opts)
 
   @doc "Executes the given command in the build folder, raises on error."
   @spec cmd!(t, String.t, CmdRunner.opts) :: :ok
@@ -74,7 +76,7 @@ defmodule AircloakCI.Build do
   @doc "Removes build folders not needed for any pending pull request."
   @spec remove_old_folders(Github.API.repo_data) :: :ok
   def remove_old_folders(repo_data) do
-    remove_except(builds_folder(), Enum.map(repo_data.pull_requests, &to_string(&1.number)))
+    remove_except(builds_folder(), Enum.map(repo_data.pull_requests, &pr_folder_name/1))
     remove_except(branches_folder(), Enum.map(repo_data.branches, &branch_folder_name/1))
   end
 
@@ -93,7 +95,7 @@ defmodule AircloakCI.Build do
   @doc "Returns the CI version for this build."
   @spec ci_version(t) :: nil | non_neg_integer
   def ci_version(build) do
-    case File.read(Path.join([src_folder(build), "ci", "VERSION"])) do
+    case File.read(Path.join([build.build_folder, "ci", "VERSION"])) do
       {:ok, contents} -> contents |> String.trim() |> String.to_integer()
       {:error, _reason} -> nil
     end
@@ -105,40 +107,42 @@ defmodule AircloakCI.Build do
   # -------------------------------------------------------------------
 
   defp init_folder(build) do
-    File.mkdir_p!(src_folder(build))
-    File.mkdir_p!(log_folder(build))
+    File.mkdir_p!(build.build_folder)
+    File.mkdir_p!(build.log_folder)
     truncate_logs(build)
     build
   end
 
-  defp src_folder(build), do:
-    Path.join(build.folder, "src")
+  defp data_folder(), do:
+    "/aircloak_ci"
 
-  defp log_folder(build), do:
-    Path.join(build.folder, "log")
+  defp logs_folder(), do:
+    Path.join(data_folder(), "logs")
 
-  defp git_folder(build), do:
-    Path.join(src_folder(build), ".git")
-
-  defp truncate_logs(build), do:
-    build.folder |> Path.join("*") |> Path.wildcard() |> Enum.each(&File.write(&1, ""))
+  defp cache_folder(), do:
+    Path.join(data_folder(), "cache")
 
   defp builds_folder(), do:
-    Application.app_dir(:aircloak_ci, Path.join("priv", "builds"))
+    Path.join(cache_folder(), "builds")
+
+  defp pr_folder_name(pr), do:
+    "pr-#{pr.number}"
 
   defp branches_folder(), do:
+    Path.join(cache_folder(), "branches")
     Application.app_dir(:aircloak_ci, Path.join("priv", "branches"))
 
-  defp branch_folder(branch_name), do:
-    Path.join(branches_folder(), branch_folder_name(branch_name))
-
   defp branch_folder_name(branch_name), do:
-    Base.encode64(branch_name, padding: false)
+    String.replace(branch_name, "/", "-")
+
+  defp git_folder(build), do:
+    Path.join(build.build_folder, ".git")
 
   defp log_path(build), do:
-    build
-    |> log_folder()
-    |> Path.join("build.log")
+    Path.join(build.log_folder, "build.log")
+
+  defp truncate_logs(build), do:
+    build.log_folder |> Path.join("*") |> Path.wildcard() |> Enum.each(&File.write(&1, ""))
 
 
   # -------------------------------------------------------------------
@@ -160,7 +164,7 @@ defmodule AircloakCI.Build do
     log(build, "cloning #{build.repo.owner}/#{build.repo.name}")
 
     CmdRunner.run(
-      ~s(git clone git@github.com:#{build.repo.owner}/#{build.repo.name} #{src_folder(build)}),
+      ~s(git clone git@github.com:#{build.repo.owner}/#{build.repo.name} #{build.build_folder}),
       timeout: :timer.minutes(1),
       logger: CmdRunner.file_logger(log_path(build))
     )
@@ -177,7 +181,8 @@ defmodule AircloakCI.Build do
   defp for_branch(repo, branch_name), do:
     init_folder(%__MODULE__{
       name: "branch #{branch_name}",
-      folder: branch_folder(branch_name),
+      build_folder: Path.join(branches_folder(), branch_folder_name(branch_name)),
+      log_folder: Path.join(logs_folder(), branch_folder_name(branch_name)),
       base_branch: base_branch(branch_name),
       repo: repo,
       update_git_command: "pull --rebase",
