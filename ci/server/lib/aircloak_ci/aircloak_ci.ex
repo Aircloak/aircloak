@@ -9,7 +9,7 @@ defmodule AircloakCI do
   @doc "Folder where the CI service persists various data, such as build caches and logs."
   @spec data_folder() :: String.t
   def data_folder(), do:
-    "/aircloak_ci"
+    Path.join([System.user_home(), ".aircloak_ci", "data"])
 
   @doc "Github personal access token used by this service."
   @spec github_token() :: String.t | nil
