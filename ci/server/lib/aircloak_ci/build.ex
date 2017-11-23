@@ -37,13 +37,17 @@ defmodule AircloakCI.Build do
   @doc "Initializes the build."
   @spec initialize(t) :: :ok | {:error, String.t}
   def initialize(build) do
-    Logger.info("initializing build for #{build.name}")
-    log(build, "initializing build for #{build.name}")
+    if (cached_sha(build) == build.checkout) do
+      :ok
+    else
+      Logger.info("initializing build for #{build.name}")
+      log(build, "initializing build for #{build.name}")
 
-    with \
-      :ok <- clone_repo(build),
-      :ok <- cmd(build, "git #{build.update_git_command}"),
+      with \
+        :ok <- clone_repo(build),
+        :ok <- cmd(build, "git #{build.update_git_command}"),
       do: cmd(build, "git checkout #{build.checkout}")
+    end
   end
 
   @doc "Executes the given command in the build folder."
@@ -188,4 +192,11 @@ defmodule AircloakCI.Build do
       update_git_command: "pull --rebase",
       checkout: branch_name
     })
+
+  defp cached_sha(build), do:
+    # `:os.cmd` is used since `System.cmd` starts a port which causes an :EXIT message to be delivered to the process.
+    'cd #{build.build_folder} && git rev-parse HEAD'
+    |> :os.cmd()
+    |> to_string()
+    |> String.trim()
 end

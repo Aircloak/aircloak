@@ -4,11 +4,11 @@ defmodule AircloakCI.Builder do
   require Logger
   alias AircloakCI.{Build, Github}
 
-  @opaque t :: %{current_jobs: [job], builds: %{}}
+  @opaque t :: %{current_jobs: [job]}
   @opaque job :: %{
-    pid: pid,
     pr: Github.API.pull_request,
-    type: module,
+    build: Build.t,
+    pid: pid,
   }
 
   @aircloak_ci_name "continuous-integration/aircloak/ci"
@@ -21,7 +21,7 @@ defmodule AircloakCI.Builder do
   @doc "Creates the new builder instance."
   @spec new() :: t
   def new(), do:
-    %{current_jobs: [], builds: %{}}
+    %{current_jobs: []}
 
   @doc "Processes pending pull requests."
   @spec process_prs(t, Github.API.repo_data) :: t
@@ -37,8 +37,7 @@ defmodule AircloakCI.Builder do
       running?(builder, pr) -> {{:error, "build for this PR is already running"}, builder}
       not pr.mergeable? or pr.merge_sha == nil -> {{:error, "this PR is not mergeable"}, builder}
       true ->
-        builder = initialize_build(builder, pr)
-        if ci_possible?(builder, pr) do
+        if ci_possible?(pr) do
           {:ok, start_job(builder, pr)}
         else
           {{:error, "can't run CI for this PR"}, builder}
@@ -82,8 +81,7 @@ defmodule AircloakCI.Builder do
   defp maybe_start_job(builder, pr) do
     with \
       true <- startable?(builder, pr),
-      builder = initialize_build(builder, pr),
-      true <- ci_possible?(builder, pr)
+      true <- ci_possible?(pr)
     do
       start_job(builder, pr)
     else
@@ -91,24 +89,10 @@ defmodule AircloakCI.Builder do
     end
   end
 
-  defp initialize_build(builder, pr) do
-    with \
-      :error <- Map.fetch(builder.builds, build_key(pr)),
-      build = Build.for_pull_request(pr),
-      :ok <- Build.initialize(build)
-    do
-      put_in(builder.builds[build_key(pr)], build)
-    else
-      _ -> builder
-    end
-  end
-
-  defp build_key(pr), do: {pr.title, pr.merge_sha}
-
   defp start_job(builder, pr) do
     Logger.info("starting the build for #{pr_log_display(pr)}")
 
-    build = build(builder, pr)
+    build = Build.for_pull_request(pr)
     job = %{pr: pr, build: build, pid: start_job_task(build)}
     report_status(job, :pending)
 
@@ -123,9 +107,6 @@ defmodule AircloakCI.Builder do
     pid
   end
 
-  defp build(builder, pr), do:
-    Map.fetch!(builder.builds, build_key(pr))
-
   defp startable?(builder, pr), do:
     not running?(builder, pr) and
     pr.mergeable? and
@@ -135,17 +116,18 @@ defmodule AircloakCI.Builder do
     pr.status_checks["continuous-integration/travis-ci/push"] == :success and
     pr.status_checks[@aircloak_ci_name] in [nil, :pending]
 
-  defp ci_possible?(builder, pr), do:
-    not is_nil(Build.ci_version(build(builder, pr)))
+  defp ci_possible?(pr) do
+    build = Build.for_pull_request(pr)
+    Build.initialize(build) == :ok and not is_nil(Build.ci_version(build))
+  end
 
   defp running?(builder, pr), do:
     Enum.any?(builder.current_jobs, &(&1.pr.number == pr.number))
 
   defp cancel_needless_builds(builder, pending_prs) do
-    remaining_builds = Map.take(builder.builds, Enum.map(pending_prs, &build_key/1))
     {remaining_jobs, outdated_jobs} = Enum.split_with(builder.current_jobs, &(valid_pr?(&1.pr, pending_prs)))
     Enum.each(outdated_jobs, &cancel_job/1)
-    %{builder | current_jobs: remaining_jobs, builds: remaining_builds}
+    %{builder | current_jobs: remaining_jobs}
   end
 
   defp valid_pr?(pr, pending_prs), do:
