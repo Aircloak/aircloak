@@ -44,19 +44,9 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp columns_sql(columns, sql_dialect_module) do
     columns
-    |> Enum.map(&alias_constant/1)
     |> Enum.map(&column_sql(&1, sql_dialect_module))
     |> Enum.intersperse(?,)
   end
-
-  # Some data source drivers (e.g. mssql) require that we provide aliases for constants. Therefore, we're generating
-  # an alias for non-aliased constants to satisfy that requirement. Note that we're doing it for all data sources.
-  # This is not a problem, since we don't depend on column names anyway, and by doing it always, we avoid needless
-  # polymorphism.
-  defp alias_constant(%Expression{constant?: true, alias: empty_alias} = constant) when empty_alias in [nil, ""], do:
-    %Expression{constant | alias: "alias_#{System.unique_integer([:positive])}"}
-  defp alias_constant(other), do:
-    other
 
   defp column_sql(:*, _sql_dialect_module), do: "*"
   defp column_sql({:distinct, column}, sql_dialect_module), do: ["DISTINCT ", column_sql(column, sql_dialect_module)]

@@ -22,9 +22,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
     query
     |> Helpers.apply_bottom_up(&calculate_base_noise_layers(&1, top_level_uid))
-    |> apply_top_down(&push_down_noise_layers/1)
+    |> Helpers.apply_top_down(&push_down_noise_layers/1)
     |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
-    |> apply_top_down(&normalize_datasource_case/1)
+    |> Helpers.apply_top_down(&normalize_datasource_case/1)
     |> add_generic_uid_layer_if_needed(top_level_uid)
   end
 
@@ -321,11 +321,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         {:ok, Enum.at(query.columns, index)}
     end
   end
-
-  defp apply_top_down(query, function), do:
-    query
-    |> function.()
-    |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_top_down(&1, function))
 
   defp raw_columns(lens \\ Lens.root(), data), do:
     lens

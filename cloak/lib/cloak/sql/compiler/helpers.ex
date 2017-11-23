@@ -104,6 +104,15 @@ defmodule Cloak.Sql.Compiler.Helpers do
     |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_bottom_up(&1, function))
     |> function.()
 
+  @doc """
+  Updates the query and all its subqueries with the given function. Starts from the top-level query going down.
+  """
+  @spec apply_top_down(q, (q -> q)) :: q when q: Query.t | Parser.parsed_query
+  def apply_top_down(query, function), do:
+    query
+    |> function.()
+    |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_top_down(&1, function))
+
 
   # -------------------------------------------------------------------
   # Internal functions
