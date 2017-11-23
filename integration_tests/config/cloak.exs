@@ -17,7 +17,7 @@ config :cloak, :anonymizer,
   low_count_soft_lower_bound: {5, 0},
   low_count_absolute_lower_bound: 2,
   outliers_count: {4, 0},
-  min_outliers_count: 1,
+  group_limits: {1, 6},
   top_count: {5, 0},
   sum_noise_sigma: 0
 
