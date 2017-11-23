@@ -1,9 +1,9 @@
 // @flow
 
 import React from "react";
-import marked from "marked";
+import pagedown from "pagedown";
 
-const mdToHtml = (text: string) => ({__html: marked(text)});
+const mdToHtml = (text: string) => ({__html: pagedown.getSanitizingConverter().makeHtml(text)});
 
 export const Info = (props: {info: string[]}) => {
   if (props.info && props.info.length > 0) {
