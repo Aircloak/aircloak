@@ -117,14 +117,11 @@ defmodule AircloakCI.Build do
     build
   end
 
-  defp data_folder(), do:
-    "/aircloak_ci"
-
   defp logs_folder(), do:
-    Path.join(data_folder(), "logs")
+    Path.join(AircloakCI.data_folder(), "logs")
 
   defp cache_folder(), do:
-    Path.join(data_folder(), "cache")
+    Path.join(AircloakCI.data_folder(), "cache")
 
   defp builds_folder(), do:
     Path.join(cache_folder(), "builds")
