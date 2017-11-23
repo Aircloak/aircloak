@@ -35,11 +35,8 @@ defmodule AircloakCI.Application do
   end
 
   defp check_github_access!() do
-    if AircloakCI.github_token() == "", do:
-      raise(
-        "Github token is not configured! " <>
-        "Please set the AIRCLOAK_CI_AUTH OS environment variable before starting the service."
-      )
+    with {:error, reason} <- AircloakCI.github_token(), do:
+      raise(reason)
   end
 
   defp init_data_folder!() do
