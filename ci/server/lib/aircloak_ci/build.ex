@@ -106,6 +106,11 @@ defmodule AircloakCI.Build do
     end
   end
 
+  @doc "Returns the build status."
+  @spec status(t) :: :created | :initialized | :finished
+  def status(build), do:
+    state(build).status
+
   @doc "Sets the build status to finished."
   @spec finished(t) :: :ok
   def finished(build), do:

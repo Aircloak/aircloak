@@ -12,8 +12,6 @@ defmodule AircloakCI.Builder do
     start: integer()
   }
 
-  @aircloak_ci_name "continuous-integration/aircloak/ci"
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -115,7 +113,7 @@ defmodule AircloakCI.Builder do
     pr.approved? and
     pr.status_checks["continuous-integration/travis-ci/pr"] == :success and
     pr.status_checks["continuous-integration/travis-ci/push"] == :success and
-    pr.status_checks[@aircloak_ci_name] in [nil, :pending]
+    pr |> Build.for_pull_request() |> Build.status() != :done
 
   defp ci_possible?(pr) do
     build = Build.for_pull_request(pr)
@@ -143,7 +141,8 @@ defmodule AircloakCI.Builder do
   end
 
   defp report_status(job, state, context \\ nil) do
-    Github.put_status_check_state!(job.pr.repo.owner, job.pr.repo.name, job.pr.sha, @aircloak_ci_name, state)
+    Github.put_status_check_state!(job.pr.repo.owner, job.pr.repo.name, job.pr.sha,
+      "continuous-integration/aircloak/ci", state)
     handle_job_finish(job, state, context)
   end
 
