@@ -180,7 +180,7 @@ defmodule AircloakCI.Builder do
     Enum.any?(pending_prs, &(&1.number == pr.number and &1.merge_sha == pr.merge_sha))
 
   defp send_status_to_github(pr, status, description) do
-    status_context = "continuous-integration/aircloak/ci"
+    status_context = "continuous-integration/aircloak/compliance"
     current_description = (pr.status_checks[status_context] || %{description: nil}).description
     if description != current_description, do:
       Github.put_status_check_state(pr.repo.owner, pr.repo.name, pr.sha, status_context, description, status)
