@@ -76,7 +76,7 @@ defmodule AircloakCI.Builder do
   defp process_pr(builder, pr) do
     case check_start_preconditions(builder, pr) do
       :ok ->
-        if pr_build_status(pr) != :finished || pr_build_status(pr) == :force_start do
+        if pr_build_status(pr) != :finished or force_start?(pr) do
           maybe_start_job(builder, pr)
         else
           builder
@@ -88,8 +88,8 @@ defmodule AircloakCI.Builder do
 
   defp maybe_start_job(builder, pr) do
     with \
-      {_status, true} <- {"waiting for Travis builds to succeed", travis_succeeded?(pr)},
-      {_status, true} <- {"waiting for approval", pr.approved?},
+      {_status, true} <- {"waiting for Travis builds to succeed", travis_succeeded?(pr) or force_start?(pr)},
+      {_status, true} <- {"waiting for approval", pr.approved? or force_start?(pr)},
       {_status, true} <- {"waiting in queue", Enum.empty?(builder.current_jobs)}
     do
       start_job(builder, pr)
@@ -144,6 +144,9 @@ defmodule AircloakCI.Builder do
 
   defp pr_build_status(pr), do:
     pr |> Build.for_pull_request() |> Build.status()
+
+  defp force_start?(pr), do:
+    pr_build_status(pr) == :force_start
 
   defp cancel_needless_builds(builder, pending_prs) do
     {remaining_jobs, outdated_jobs} = Enum.split_with(builder.current_jobs, &(valid_pr?(&1.pr, pending_prs)))
