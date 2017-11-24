@@ -111,10 +111,10 @@ defmodule AircloakCI.Build do
   def status(build), do:
     state(build).status
 
-  @doc "Sets the build status to finished."
-  @spec finished(t) :: :ok
-  def finished(build), do:
-    update_state(build, &%{&1 | status: :finished})
+  @doc "Sets the build status."
+  @spec set_status(t, :started | :finished) :: :ok
+  def set_status(build, status), do:
+    update_state(build, &%{&1 | status: status})
 
   @doc "Truncates logs for the given build."
   @spec truncate_logs(t) :: :ok

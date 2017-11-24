@@ -148,7 +148,7 @@ defmodule AircloakCI.Builder do
 
   defp handle_job_finish(_job, :pending, _context), do: :ok
   defp handle_job_finish(job, status, context) do
-    Build.finished(job.build)
+    Build.set_status(job.build, :finished)
     diff_sec = :erlang.monotonic_time(:second) - job.start
     time_output = :io_lib.format("~b:~2..0b", [div(diff_sec, 60), rem(diff_sec, 60)])
 
