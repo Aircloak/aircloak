@@ -24,7 +24,7 @@ defmodule AircloakCI.Build do
   @doc "Prepares the build for the given pull request."
   @spec for_pull_request(Github.API.pull_request) :: t
   def for_pull_request(pr), do:
-    init_folder(%__MODULE__{
+    create_build(%__MODULE__{
       name: "PR #{pr.title} (##{pr.number})",
       build_folder: Path.join(builds_folder(), pr_folder_name(pr)),
       log_folder: Path.join(logs_folder(), pr_folder_name(pr)),
@@ -37,7 +37,7 @@ defmodule AircloakCI.Build do
   @doc "Initializes the build."
   @spec initialize(t) :: :ok | {:error, String.t}
   def initialize(build) do
-    if (cached_sha(build) == build.checkout) do
+    if (current_sha(build) == state(build).sha) do
       :ok
     else
       Logger.info("initializing build for #{build.name}")
@@ -46,7 +46,8 @@ defmodule AircloakCI.Build do
       with \
         :ok <- clone_repo(build),
         :ok <- cmd(build, "git #{build.update_git_command}"),
-      do: cmd(build, "git checkout #{build.checkout}")
+        :ok <- cmd(build, "git checkout #{build.checkout}"),
+        do: update_state(build, &%{&1 | status: :initialized, sha: current_sha(build)})
     end
   end
 
@@ -105,16 +106,20 @@ defmodule AircloakCI.Build do
     end
   end
 
+  @doc "Sets the build status to finished."
+  @spec finished(t) :: :ok
+  def finished(build), do:
+    update_state(build, &%{&1 | status: :finished})
+
 
   # -------------------------------------------------------------------
   # Build folders
   # -------------------------------------------------------------------
 
-  defp init_folder(build) do
+  defp create_build(build) do
     File.mkdir_p!(build.build_folder)
     File.mkdir_p!(src_folder(build))
     File.mkdir_p!(build.log_folder)
-    truncate_logs(build)
     build
   end
 
@@ -136,6 +141,9 @@ defmodule AircloakCI.Build do
 
   defp branch_folder_name(branch_name), do:
     String.replace(branch_name, "/", "-")
+
+  defp state_file(build), do:
+    Path.join(build.build_folder, "state")
 
   defp src_folder(build), do:
     Path.join(build.build_folder, "src")
@@ -184,7 +192,7 @@ defmodule AircloakCI.Build do
   end
 
   defp for_branch(repo, branch_name), do:
-    init_folder(%__MODULE__{
+    create_build(%__MODULE__{
       name: "branch #{branch_name}",
       build_folder: Path.join(branches_folder(), branch_folder_name(branch_name)),
       log_folder: Path.join(logs_folder(), branch_folder_name(branch_name)),
@@ -194,10 +202,31 @@ defmodule AircloakCI.Build do
       checkout: branch_name
     })
 
-  defp cached_sha(build), do:
+  defp current_sha(build), do:
     # `:os.cmd` is used since `System.cmd` starts a port which causes an :EXIT message to be delivered to the process.
     'cd #{src_folder(build)} && git rev-parse HEAD'
     |> :os.cmd()
     |> to_string()
     |> String.trim()
+
+  defp update_state(build, updater) do
+    new_state = build |> state() |> updater.()
+    Logger.info("#{build.name} state: #{inspect(new_state)}")
+    log(build, "build state: #{inspect(new_state)}")
+
+    build
+    |> state_file()
+    |> File.write!(:erlang.term_to_binary(new_state))
+  end
+
+  defp state(build) do
+    try do
+      build
+      |> state_file
+      |> File.read!()
+      |> :erlang.binary_to_term()
+    catch _, _ ->
+      %{status: :created, sha: nil}
+    end
+  end
 end
