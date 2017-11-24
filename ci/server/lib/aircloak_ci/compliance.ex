@@ -14,8 +14,8 @@ defmodule AircloakCI.Compliance do
     with \
       :ok <- Build.truncate_logs(build),
       :ok <- Build.set_status(build, :started),
-      :ok <- run_phase(build, "cloak build", "ci/run.sh build_cloak", timeout: :timer.minutes(30)),
-      :ok <- run_phase(build, "compliance", "ci/run.sh cloak_compliance", timeout: :timer.minutes(10))
+      :ok <- run_phase(build, "cloak build", &Build.compile/1),
+      :ok <- run_phase(build, "compliance", &Build.cmd(&1, "ci/run.sh cloak_compliance", timeout: :timer.minutes(10)))
     do
       :ok
     else
@@ -30,8 +30,8 @@ defmodule AircloakCI.Compliance do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp run_phase(build, title, cmd, opts) do
+  defp run_phase(build, title, fun) do
     Build.log(build, "starting #{title}")
-    Build.cmd(build, cmd, opts)
+    fun.(build)
   end
 end
