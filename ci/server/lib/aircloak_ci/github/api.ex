@@ -8,8 +8,6 @@ defmodule AircloakCI.Github.API do
   Instead, you should use the rate-limiting wrapper `AircloakCI.Github`.
   """
 
-  require Logger
-
   @type repo_data :: %{
     owner: String.t,
     name: String.t,
@@ -34,44 +32,52 @@ defmodule AircloakCI.Github.API do
 
   @type status_check_state :: :error | :failure | :pending | :success
 
+  @type rate_limit :: %{category: :graphql | :rest, remaining: non_neg_integer, expires_at: DateTime.t} | nil
+
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Returns the repository data, such as branches and open pull requests."
-  @spec repo_data(String.t, String.t) :: repo_data
+  @spec repo_data(String.t, String.t) :: {repo_data, rate_limit}
   def repo_data(owner, repo_name) do
-    repository =
-      "query {#{repo_query(owner, repo_name, "#{branches_query()} #{prs_query()}")}}"
-      |> graphql_request()
-      |> Map.fetch!("repository")
+    result = graphql_request("query {#{repo_query(owner, repo_name, "#{branches_query()} #{prs_query()}")}}")
+    repository = Map.fetch!(result.response, "repository")
+    repo_data =
+      %{
+        owner: owner,
+        name: repo_name,
+        branches:
+          repository |> Map.fetch!("refs") |> Map.fetch!("nodes") |> Enum.map(&Map.fetch!(&1, "name")),
+        pull_requests:
+          repository
+          |> Map.fetch!("pullRequests")
+          |> Map.fetch!("nodes")
+          |> Enum.map(&to_pr_data(&1, %{owner: owner, name: repo_name}))
+      }
 
-    %{
-      owner: owner,
-      name: repo_name,
-      branches:
-        repository |> Map.fetch!("refs") |> Map.fetch!("nodes") |> Enum.map(&Map.fetch!(&1, "name")),
-      pull_requests:
-        repository
-        |> Map.fetch!("pullRequests")
-        |> Map.fetch!("nodes")
-        |> Enum.map(&to_pr_data(&1, %{owner: owner, name: repo_name}))
-    }
+    {repo_data, result.rate_limit}
   end
 
   @doc "Returns the data for the given pull request."
-  @spec pull_request(String.t, String.t, integer) :: pull_request
-  def pull_request(owner, repo, number), do:
-    graphql_request("query {#{repo_query(owner, repo, pr_query(number))}}")
-    |> Map.fetch!("repository")
-    |> Map.fetch!("pullRequest")
-    |> to_pr_data(%{owner: owner, name: repo})
+  @spec pull_request(String.t, String.t, integer) :: {pull_request, rate_limit}
+  def pull_request(owner, repo, number) do
+    result = graphql_request("query {#{repo_query(owner, repo, pr_query(number))}}")
+
+    pr_data =
+      result.response
+      |> Map.fetch!("repository")
+      |> Map.fetch!("pullRequest")
+      |> to_pr_data(%{owner: owner, name: repo})
+
+    {pr_data, result.rate_limit}
+  end
 
   @doc "Sets the status check state for the given owner/repo/sha."
-  @spec put_status_check_state!(String.t, String.t, String.t, String.t, status_check_state) :: :ok
-  def put_status_check_state!(owner, repo, sha, context, state) do
-    %{status_code: 201} =
+  @spec put_status_check_state(String.t, String.t, String.t, String.t, status_check_state) :: {:ok, rate_limit}
+  def put_status_check_state(owner, repo, sha, context, state) do
+    %{response: %{status_code: 201}, rate_limit: rate_limit} =
       post_rest_request(
         "/repos/#{owner}/#{repo}/statuses/#{sha}",
         %{
@@ -80,19 +86,19 @@ defmodule AircloakCI.Github.API do
         }
       )
 
-    :ok
+    {:ok, rate_limit}
   end
 
   @doc "Posts a comment to the given issue or pull request."
-  @spec post_comment(String.t, String.t, number, String.t) :: :ok
+  @spec post_comment(String.t, String.t, number, String.t) :: {:ok, rate_limit}
   def post_comment(owner, repo, issue_number, body) do
-    %{status_code: 201} =
+    %{response: %{status_code: 201}, rate_limit: rate_limit} =
       post_rest_request(
         "/repos/#{owner}/#{repo}/issues/#{issue_number}/comments",
         %{body: body}
       )
 
-    :ok
+    {:ok, rate_limit}
   end
 
 
@@ -124,7 +130,7 @@ defmodule AircloakCI.Github.API do
       potentialMergeCommit {oid}
       headRefName
       baseRefName
-      reviews(last: 1) {nodes {createdAt state}}
+      reviews(states: [APPROVED, DISMISSED, CHANGES_REQUESTED], last: 1) {nodes {state}}
       commits(last: 1) {nodes {commit {oid status {contexts {context state}}}}}
     /
 
@@ -172,11 +178,12 @@ defmodule AircloakCI.Github.API do
   defp encode_status_check_state(:success), do: "success"
 
   defp graphql_request(query), do:
-    query
-    |> post_graphql_request()
-    |> Map.fetch!(:body)
-    |> Poison.decode!()
-    |> extract_data!()
+    update_in(post_graphql_request(query).response, &(
+      &1
+      |> Map.fetch!(:body)
+      |> Poison.decode!()
+      |> extract_data!()
+    ))
 
   defp extract_data!(response) do
     if Map.has_key?(response, "errors") do
@@ -190,34 +197,35 @@ defmodule AircloakCI.Github.API do
     post_rest_request("/graphql", %{query: query})
 
   defp post_rest_request(path, params) do
-    auth_token = System.get_env("AIRCLOAK_CI_AUTH")
+    response =
+      HTTPoison.post!(
+        "https://api.github.com#{path}",
+        Poison.encode!(params),
+        [
+          {"authorization", "bearer #{AircloakCI.github_token!()}"},
+          {"Content-Type", "application/json"}
+        ],
+        [timeout: :timer.seconds(30), recv_timeout: :timer.seconds(30)]
+      )
 
-    if auth_token == nil, do: raise "`AIRCLOAK_CI_AUTH` OS env is not set."
-
-    HTTPoison.post!(
-      "https://api.github.com#{path}",
-      Poison.encode!(params),
-      [
-        {"authorization", "bearer #{auth_token}"},
-        {"Content-Type", "application/json"}
-      ],
-      [timeout: :timer.seconds(30), recv_timeout: :timer.seconds(30)]
-    )
-    |> log_rate_limit_headers(path)
+    %{response: response, rate_limit: rate_limit(response, path)}
   end
 
-  defp log_rate_limit_headers(response, path) do
+  defp rate_limit(response, path) do
     with \
       {_, remaining} <- Enum.find(response.headers, &match?({"X-RateLimit-Remaining", _value}, &1)),
+      {remaining_int, ""} <- Integer.parse(remaining),
       {_, reset} <- Enum.find(response.headers, &match?({"X-RateLimit-Reset", _value}, &1)),
       {reset_int, ""} <- Integer.parse(reset),
       {:ok, reset_time} <- DateTime.from_unix(reset_int)
     do
-      category = if path == "/graphql", do: "GraphQL API", else: "REST API"
-      expires_in_sec = DateTime.diff(reset_time, DateTime.utc_now(), :second)
-      Logger.info("#{category} remaining limit #{remaining}, resets in #{expires_in_sec} seconds")
+      %{
+        category: (if path == "/graphql", do: :graphql, else: :rest),
+        remaining: remaining_int,
+        expires_at: reset_time
+      }
+    else
+      _ -> nil
     end
-
-    response
   end
 end

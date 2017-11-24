@@ -4,14 +4,13 @@ defmodule AircloakCI.Builder do
   require Logger
   alias AircloakCI.{Build, Github}
 
-  @opaque t :: %{current_jobs: [job], builds: %{}}
+  @opaque t :: %{current_jobs: [job]}
   @opaque job :: %{
-    pid: pid,
     pr: Github.API.pull_request,
-    type: module,
+    build: Build.t,
+    pid: pid,
+    start: integer()
   }
-
-  @aircloak_ci_name "continuous-integration/aircloak/ci"
 
 
   # -------------------------------------------------------------------
@@ -21,7 +20,7 @@ defmodule AircloakCI.Builder do
   @doc "Creates the new builder instance."
   @spec new() :: t
   def new(), do:
-    %{current_jobs: [], builds: %{}}
+    %{current_jobs: []}
 
   @doc "Processes pending pull requests."
   @spec process_prs(t, Github.API.repo_data) :: t
@@ -31,18 +30,14 @@ defmodule AircloakCI.Builder do
   end
 
   @doc "Force starts the build of the given pull request."
-  @spec force_build(t, Github.API.pull_request) :: :ok | {:error, String.t}
+  @spec force_build(t, Github.API.pull_request) :: {:ok, t} | {:error, String.t}
   def force_build(builder, pr) do
-    cond do
-      running?(builder, pr) -> {:error, "build for this PR is already running"}
-      not pr.mergeable? or pr.merge_sha == nil -> {:error, "this PR is not mergeable"}
-      true ->
-        builder = initialize_build(builder, pr)
-        if ci_possible?(builder, pr) do
-          {:ok, start_job(builder, pr)}
-        else
-          {:error, "can't run CI for this PR"}
-        end
+    case check_start_preconditions(builder, pr) do
+      :ok ->
+        pr |> Build.for_pull_request() |> Build.set_status(:force_start)
+        send_status_to_github(pr, :pending)
+        {:ok, maybe_start_job(builder, pr)}
+      {:error, _} = error -> error
     end
   end
 
@@ -56,7 +51,7 @@ defmodule AircloakCI.Builder do
 
       job ->
         Logger.info("build for #{pr_log_display(job.pr)} finished with the result `#{result.outcome}`")
-        report_status(job, build_status(result.outcome))
+        handle_job_finish(job, build_status(result.outcome), nil)
         {:ok, builder}
     end
   end
@@ -65,8 +60,8 @@ defmodule AircloakCI.Builder do
       {[], _} -> :error
       {[job], remaining_jobs} ->
         if reason != :normal do
-          report_status(job, :failure, reason)
           Logger.error("build for #{pr_log_display(job.pr)} crashed")
+          handle_job_finish(job, :failure, reason)
         end
         {:ok, %{builder | current_jobs: remaining_jobs}}
     end
@@ -80,37 +75,19 @@ defmodule AircloakCI.Builder do
   # -------------------------------------------------------------------
 
   defp maybe_start_job(builder, pr) do
-    with \
-      true <- startable?(builder, pr),
-      builder = initialize_build(builder, pr),
-      true <- ci_possible?(builder, pr)
-    do
+    if startable?(builder, pr) do
       start_job(builder, pr)
     else
-      _ -> builder
+      builder
     end
   end
-
-  defp initialize_build(builder, pr) do
-    with \
-      :error <- Map.fetch(builder.builds, build_key(pr)),
-      build = Build.for_pull_request(pr),
-      :ok <- Build.initialize(build)
-    do
-      put_in(builder.builds[build_key(pr)], build)
-    else
-      _ -> builder
-    end
-  end
-
-  defp build_key(pr), do: {pr.title, pr.merge_sha}
 
   defp start_job(builder, pr) do
     Logger.info("starting the build for #{pr_log_display(pr)}")
 
-    build = build(builder, pr)
-    job = %{pr: pr, build: build, pid: start_job_task(build)}
-    report_status(job, :pending)
+    build = Build.for_pull_request(pr)
+    job = %{pr: pr, build: build, pid: start_job_task(build), start: :erlang.monotonic_time(:second)}
+    send_status_to_github(job.pr, :pending)
 
     update_in(builder.current_jobs, &[job | &1])
   end
@@ -123,29 +100,43 @@ defmodule AircloakCI.Builder do
     pid
   end
 
-  defp build(builder, pr), do:
-    Map.fetch!(builder.builds, build_key(pr))
+  defp check_start_preconditions(builder, pr) do
+    with \
+      {_error, true} <- {"already running", not running?(builder, pr)},
+      {_error, true} <- {"unmergeable", pr.mergeable? and pr.merge_sha != nil},
+      {_error, true} <- {"CI not possible", ci_possible?(pr)}
+    do
+      :ok
+    else
+      {error, false} -> {:error, error}
+    end
+  end
 
   defp startable?(builder, pr), do:
-    not running?(builder, pr) and
-    pr.mergeable? and
-    pr.merge_sha != nil and
-    pr.approved? and
-    pr.status_checks["continuous-integration/travis-ci/pr"] == :success and
-    pr.status_checks["continuous-integration/travis-ci/push"] == :success and
-    pr.status_checks[@aircloak_ci_name] in [nil, :pending]
-
-  defp ci_possible?(builder, pr), do:
-    not is_nil(Build.ci_version(build(builder, pr)))
+    check_start_preconditions(builder, pr) == :ok and (
+      pr_build_status(pr) == :force_start or (
+        pr.approved? and
+        pr.status_checks["continuous-integration/travis-ci/pr"] == :success and
+        pr.status_checks["continuous-integration/travis-ci/push"] == :success and
+        pr_build_status(pr) != :finished
+      )
+    )
 
   defp running?(builder, pr), do:
     Enum.any?(builder.current_jobs, &(&1.pr.number == pr.number))
 
+  defp ci_possible?(pr) do
+    build = Build.for_pull_request(pr)
+    Build.initialize(build) == :ok and not is_nil(Build.ci_version(build))
+  end
+
+  defp pr_build_status(pr), do:
+    pr |> Build.for_pull_request() |> Build.status()
+
   defp cancel_needless_builds(builder, pending_prs) do
-    remaining_builds = Map.take(builder.builds, Enum.map(pending_prs, &build_key/1))
     {remaining_jobs, outdated_jobs} = Enum.split_with(builder.current_jobs, &(valid_pr?(&1.pr, pending_prs)))
     Enum.each(outdated_jobs, &cancel_job/1)
-    %{builder | current_jobs: remaining_jobs, builds: remaining_builds}
+    %{builder | current_jobs: remaining_jobs}
   end
 
   defp valid_pr?(pr, pending_prs), do:
@@ -159,37 +150,38 @@ defmodule AircloakCI.Builder do
     end
   end
 
-  defp report_status(job, state, context \\ nil) do
-    Github.put_status_check_state!(job.pr.repo.owner, job.pr.repo.name, job.pr.sha, @aircloak_ci_name, state)
-    maybe_send_comment(job, state, context)
+  defp send_status_to_github(pr, status), do:
+    Github.put_status_check_state(pr.repo.owner, pr.repo.name, pr.sha, "continuous-integration/aircloak/ci", status)
+
+  defp handle_job_finish(job, status, context) do
+    diff_sec = :erlang.monotonic_time(:second) - job.start
+    time_output = :io_lib.format("~b:~2..0b", [div(diff_sec, 60), rem(diff_sec, 60)])
+
+    Logger.info("job #{pr_log_display(job.pr)} finished in #{time_output} min")
+    Build.log(job.build, "finished with status `#{status}` in #{time_output} min")
+
+    send_status_to_github(job.pr, status)
+    send_comment(job, comment(status, job, context))
+
+    Build.set_status(job.build, :finished)
   end
 
-  defp maybe_send_comment(job, :success, _context), do:
-    send_comment(job, "Compliance build succeeded 👍")
-  defp maybe_send_comment(job, :error, _context), do:
-    send_comment(job, Enum.join(["Compliance build errored 😞", "", "Log tail:", "```", log_tail(job), "```"], "\n"))
-  defp maybe_send_comment(job, :failure, crash_reason), do:
-    send_comment(job,
-      Enum.join(
-        [
-          "Compliance build crashed 😞", "",
-          "```", Exception.format_exit(crash_reason), "```", "",
-          "Log tail:", "```", log_tail(job), "```"
-        ],
-        "\n"
-      )
+  defp comment(:success, _job, nil), do:
+    "Compliance build succeeded 👍"
+  defp comment(:error, job, nil), do:
+    Enum.join(["Compliance build errored 😞", "", "Log tail:", "```", log_tail(job), "```"], "\n")
+  defp comment(:failure, job, crash_reason), do:
+    Enum.join(
+      [
+        "Compliance build crashed 😞", "",
+        "```", Exception.format_exit(crash_reason), "```", "",
+        "Log tail:", "```", log_tail(job), "```"
+      ],
+      "\n"
     )
-  defp maybe_send_comment(_job, _, _other_status), do: :ok
 
-  if Mix.env == :prod do
-    defp send_comment(job, body), do:
-      Github.post_comment(job.pr.repo.owner, job.pr.repo.name, job.pr.number, body)
-  else
-    defp send_comment(job, body) do
-      IO.puts "PR comment for `#{inspect(job)}`:"
-      IO.puts body
-    end
-  end
+  defp send_comment(job, body), do:
+    Github.post_comment(job.pr.repo.owner, job.pr.repo.name, job.pr.number, body)
 
   defp build_status(:ok), do: :success
   defp build_status(:error), do: :error

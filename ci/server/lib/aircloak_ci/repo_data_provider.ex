@@ -25,16 +25,13 @@ defmodule AircloakCI.RepoDataProvider do
   # -------------------------------------------------------------------
 
   def start_link(), do:
-    Supervisor.start_link(processes(), strategy: :one_for_one, name: __MODULE__)
-
-  if Mix.env == :prod do
-    defp processes(), do: [registry_spec(), __MODULE__.Poller]
-  else
-    # We won't start the poller in dev/test to avoid needless GH API requests.
-    defp processes(), do: [registry_spec()]
-  end
-
-  defp registry_spec(), do: Aircloak.ChildSpec.registry(:duplicate, __MODULE__.Subscribers)
+    Supervisor.start_link(
+      [
+        Aircloak.ChildSpec.registry(:duplicate, __MODULE__.Subscribers),
+        __MODULE__.Poller
+      ],
+      strategy: :one_for_one, name: __MODULE__
+    )
 
 
   # -------------------------------------------------------------------

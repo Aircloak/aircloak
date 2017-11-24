@@ -10,9 +10,11 @@ defmodule AircloakCI.Builder.Server do
   # -------------------------------------------------------------------
 
   @doc "Force starts the build of the given pull request."
-  @spec force_build(Github.API.pull_request) :: :ok | {:error, String.t}
-  def force_build(pr), do:
-    GenServer.call(__MODULE__, {:force_build, pr})
+  @spec force_build(pos_integer) :: :ok | {:error, String.t}
+  def force_build(pull_request_number) do
+    pr = Github.pull_request("aircloak", "aircloak", pull_request_number)
+    GenServer.call(__MODULE__, {:force_build, pr}, :timer.minutes(1))
+  end
 
 
   # -------------------------------------------------------------------
@@ -30,7 +32,7 @@ defmodule AircloakCI.Builder.Server do
   def handle_call({:force_build, pr}, _from, builder) do
     case Builder.force_build(builder, pr) do
       {:ok, new_builder} -> {:reply, :ok, new_builder}
-      error -> {:reply, error, builder}
+      {:error, _} = error -> {:reply, error, builder}
     end
   end
 

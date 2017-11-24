@@ -9,6 +9,7 @@ defmodule AircloakCI.Mixfile do
       start_permanent: Mix.env == :prod,
       deps: deps(),
       aliases: aliases(Mix.env),
+      preferred_cli_env: [dialyze: :dev, release: :prod],
     ]
   end
 

@@ -1,0 +1,65 @@
+defmodule AircloakCI do
+  @moduledoc "Common helper functions."
+
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Folder where the CI service persists various data, such as build caches and logs."
+  @spec data_folder() :: String.t
+  def data_folder(), do:
+    Path.join(home_folder(), "data")
+
+  @doc "Returns the github personal access token used by this service."
+  @spec github_token() :: {:ok, String.t} | {:error, String.t}
+  def github_token() do
+    with {:ok, config} <- user_config(), do:
+      config_value(config, "github_access_token")
+  end
+
+  @doc "Returns the github personal access token used by this service, raises on error."
+  @spec github_token!() :: String.t
+  def github_token!() do
+    {:ok, token} = github_token()
+    token
+  end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp user_config() do
+    with \
+      :error <- Application.fetch_env(:aircloak_ci, :user_config),
+      {:ok, config} <- read_user_config()
+    do
+      Application.put_env(:aircloak_ci, :user_config, config)
+      {:ok, config}
+    end
+  end
+
+  defp read_user_config() do
+    with \
+      {:ok, config_contents} <- read_config_file(),
+      {:error, _} <- Poison.decode(config_contents),
+      do: {:error, "config file is not a valid JSON"}
+  end
+
+  defp read_config_file() do
+    with {:error, _} <- File.read(config_file()), do:
+      {:error, "can't read from `#{config_file()}`"}
+  end
+
+  defp config_value(config, key) do
+    with :error <- Map.fetch(config, key), do:
+      {:error, "missing config `#{key}`"}
+  end
+
+  defp config_file(), do:
+    Path.join(home_folder(), "config.json")
+
+  defp home_folder(), do:
+    Path.join(System.user_home(), ".aircloak_ci")
+end
