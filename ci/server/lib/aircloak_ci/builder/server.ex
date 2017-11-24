@@ -13,7 +13,11 @@ defmodule AircloakCI.Builder.Server do
   @spec force_build(pos_integer) :: :ok | {:error, String.t}
   def force_build(pull_request_number) do
     pr = Github.pull_request("aircloak", "aircloak", pull_request_number)
-    GenServer.call(__MODULE__, {:force_build, pr}, :timer.minutes(1))
+    case GenServer.call(__MODULE__, {:force_build, pr}, :timer.minutes(1)) do
+      # we'll convert "already running" into a success, since the build is running
+      {:error, "already running"} -> :ok
+      other -> other
+    end
   end
 
 
@@ -38,7 +42,7 @@ defmodule AircloakCI.Builder.Server do
 
   @impl GenServer
   def handle_info({:repo_data, repo_data}, builder), do:
-    {:noreply, Builder.process_prs(builder, repo_data)}
+    {:noreply, Builder.process_repo_data(builder, repo_data)}
   def handle_info(message, builder) do
     case Builder.handle_message(builder, message) do
       {:ok, state} -> {:noreply, state}

@@ -11,9 +11,11 @@ defmodule AircloakCI.Github.API do
   @type repo_data :: %{
     owner: String.t,
     name: String.t,
-    branches: [String.t],
+    branches: [branch],
     pull_requests: [pull_request],
   }
+
+  @type branch :: %{name: String.t, sha: String.t, repo: repo}
 
   @type pull_request :: %{
     repo: repo,
@@ -25,7 +27,7 @@ defmodule AircloakCI.Github.API do
     mergeable?: boolean,
     merge_sha: String.t,
     approved?: boolean,
-    status_checks: %{String.t => :expected | status_check_state}
+    status_checks: %{String.t => %{status: :expected | status_check_state, description: String.t}}
   }
 
   @type repo :: %{owner: String.t, name: String.t}
@@ -44,17 +46,21 @@ defmodule AircloakCI.Github.API do
   def repo_data(owner, repo_name) do
     result = graphql_request("query {#{repo_query(owner, repo_name, "#{branches_query()} #{prs_query()}")}}")
     repository = Map.fetch!(result.response, "repository")
+    repo = %{owner: owner, name: repo_name}
     repo_data =
       %{
         owner: owner,
         name: repo_name,
         branches:
-          repository |> Map.fetch!("refs") |> Map.fetch!("nodes") |> Enum.map(&Map.fetch!(&1, "name")),
+          repository
+          |> Map.fetch!("refs")
+          |> Map.fetch!("nodes")
+          |> Enum.map(fn(%{"name" => name, "target" => %{"oid" => sha}}) -> %{name: name, sha: sha, repo: repo} end),
         pull_requests:
           repository
           |> Map.fetch!("pullRequests")
           |> Map.fetch!("nodes")
-          |> Enum.map(&to_pr_data(&1, %{owner: owner, name: repo_name}))
+          |> Enum.map(&to_pr_data(&1, repo))
       }
 
     {repo_data, result.rate_limit}
@@ -75,13 +81,15 @@ defmodule AircloakCI.Github.API do
   end
 
   @doc "Sets the status check state for the given owner/repo/sha."
-  @spec put_status_check_state(String.t, String.t, String.t, String.t, status_check_state) :: {:ok, rate_limit}
-  def put_status_check_state(owner, repo, sha, context, state) do
+  @spec put_status_check_state(String.t, String.t, String.t, String.t, String.t, status_check_state) ::
+    {:ok, rate_limit}
+  def put_status_check_state(owner, repo, sha, context, description, state) do
     %{response: %{status_code: 201}, rate_limit: rate_limit} =
       post_rest_request(
         "/repos/#{owner}/#{repo}/statuses/#{sha}",
         %{
           context: context,
+          description: description,
           state: encode_status_check_state(state),
         }
       )
@@ -110,7 +118,7 @@ defmodule AircloakCI.Github.API do
     ~s/repository(owner: "#{owner}", name: "#{repo}") {#{inner_query}}/
 
   defp branches_query(), do:
-    ~s[refs(refPrefix: "refs/heads/", first: 100) {nodes {name}}]
+    ~s[refs(refPrefix: "refs/heads/", first: 100) {nodes {name target {oid}}}]
 
   defp prs_query(), do:
     ~s/
@@ -131,7 +139,7 @@ defmodule AircloakCI.Github.API do
       headRefName
       baseRefName
       reviews(states: [APPROVED, DISMISSED, CHANGES_REQUESTED], last: 1) {nodes {state}}
-      commits(last: 1) {nodes {commit {oid status {contexts {context state}}}}}
+      commits(last: 1) {nodes {commit {oid status {contexts {context state description}}}}}
     /
 
 
@@ -161,7 +169,9 @@ defmodule AircloakCI.Github.API do
         |> Map.fetch!("commits")
         |> Map.fetch!("nodes")
         |> Enum.flat_map(&(Map.fetch!(&1, "commit")["status"]["contexts"] || []))
-        |> Enum.map(fn(%{"context" => context, "state" => state}) -> {context, decode_status_check_state(state)} end)
+        |> Enum.map(fn(%{"context" => context, "state" => state, "description" => description}) ->
+            {context, %{status: decode_status_check_state(state), description: description}}
+          end)
         |> Enum.into(%{})
     }
   end

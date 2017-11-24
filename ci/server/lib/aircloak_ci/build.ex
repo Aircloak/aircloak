@@ -23,21 +23,42 @@ defmodule AircloakCI.Build do
 
   @doc "Prepares the build for the given pull request."
   @spec for_pull_request(Github.API.pull_request) :: t
-  def for_pull_request(pr), do:
-    create_build(%__MODULE__{
-      name: "PR #{pr.title} (##{pr.number})",
-      build_folder: Path.join(builds_folder(), pr_folder_name(pr)),
-      log_folder: Path.join(logs_folder(), pr_folder_name(pr)),
-      base_branch: pr.target_branch,
-      repo: pr.repo,
-      update_git_command: "fetch --force origin pull/#{pr.number}/merge",
-      checkout: pr.merge_sha
-    })
+  def for_pull_request(pr) do
+    build =
+      create_build(%__MODULE__{
+        name: "PR #{pr.title} (##{pr.number})",
+        build_folder: Path.join(builds_folder(), pr_folder_name(pr)),
+        log_folder: Path.join(logs_folder(), pr_folder_name(pr)),
+        base_branch: pr.target_branch,
+        repo: pr.repo,
+        update_git_command: "fetch --force origin pull/#{pr.number}/merge",
+        checkout: pr.merge_sha
+      })
+    set_desired_sha(build, pr.merge_sha)
+    build
+  end
+
+  @doc "Prepares the build for the given branch."
+  @spec for_branch(Github.API.repo, String.t, String.t | nil) :: t
+  def for_branch(repo, branch_name, desired_sha \\ nil) do
+    build =
+      create_build(%__MODULE__{
+        name: "branch #{branch_name}",
+        build_folder: Path.join(branches_folder(), branch_folder_name(branch_name)),
+        log_folder: Path.join(logs_folder(), branch_folder_name(branch_name)),
+        base_branch: base_branch(branch_name),
+        repo: repo,
+        update_git_command: "pull --rebase",
+        checkout: branch_name
+      })
+    set_desired_sha(build, desired_sha)
+    build
+  end
 
   @doc "Initializes the build."
   @spec initialize(t) :: :ok | {:error, String.t}
   def initialize(build) do
-    if (current_sha(build) == state(build).sha) do
+    if current_sha(build) == state(build).desired_sha do
       :ok
     else
       Logger.info("initializing build for #{build.name}")
@@ -47,9 +68,14 @@ defmodule AircloakCI.Build do
         :ok <- clone_repo(build),
         :ok <- cmd(build, "git #{build.update_git_command}"),
         :ok <- cmd(build, "git checkout #{build.checkout}"),
-        do: update_state(build, &%{&1 | status: :initialized, sha: current_sha(build)})
+        do: update_state(build, &%{&1 | status: :initialized})
     end
   end
+
+  @doc "Compiles the project in the build folder."
+  @spec compile(t) :: :ok | {:error, String.t}
+  def compile(build), do:
+    cmd(build, "ci/run.sh build_cloak", timeout: :timer.minutes(30))
 
   @doc "Executes the given command in the build folder."
   @spec cmd(t, String.t, CmdRunner.opts) :: :ok | {:error, String.t}
@@ -82,19 +108,7 @@ defmodule AircloakCI.Build do
   @spec remove_old_folders(Github.API.repo_data) :: :ok
   def remove_old_folders(repo_data) do
     remove_except(builds_folder(), Enum.map(repo_data.pull_requests, &pr_folder_name/1))
-    remove_except(branches_folder(), Enum.map(repo_data.branches, &branch_folder_name/1))
-  end
-
-  defp remove_except(parent_folder, expected_folder_names) do
-    existing_folder_names =
-      case File.ls(parent_folder) do
-        {:ok, folders} -> folders
-        _ -> []
-      end
-
-    existing_folder_names
-    |> Enum.filter(&(not &1 in expected_folder_names))
-    |> Enum.each(&(parent_folder |> Path.join(&1) |> File.rm_rf()))
+    remove_except(branches_folder(), Enum.map(repo_data.branches, &branch_folder_name(&1.name)))
   end
 
   @doc "Returns the CI version for this build."
@@ -133,6 +147,18 @@ defmodule AircloakCI.Build do
     |> Path.join("*")
     |> Path.wildcard()
     |> Enum.each(&File.write(&1, ""))
+
+  defp remove_except(parent_folder, expected_folder_names) do
+    existing_folder_names =
+      case File.ls(parent_folder) do
+        {:ok, folders} -> folders
+        _ -> []
+      end
+
+    existing_folder_names
+    |> Enum.filter(&(not &1 in expected_folder_names))
+    |> Enum.each(&(parent_folder |> Path.join(&1) |> File.rm_rf()))
+  end
 
 
   # -------------------------------------------------------------------
@@ -208,19 +234,19 @@ defmodule AircloakCI.Build do
     with :ok <- initialize(base_build) do
       File.cp_r(git_folder(base_build), git_folder(build))
       cmd(build, "git reset HEAD --hard")
+      copy_folder(base_build, build, "tmp")
+      copy_folder(base_build, build, Path.join(~w(cloak priv odbc drivers)))
     end
   end
 
-  defp for_branch(repo, branch_name), do:
-    create_build(%__MODULE__{
-      name: "branch #{branch_name}",
-      build_folder: Path.join(branches_folder(), branch_folder_name(branch_name)),
-      log_folder: Path.join(logs_folder(), branch_folder_name(branch_name)),
-      base_branch: base_branch(branch_name),
-      repo: repo,
-      update_git_command: "pull --rebase",
-      checkout: branch_name
-    })
+  defp copy_folder(source_build, target_build, folder) do
+    source = Path.join(src_folder(source_build), folder)
+    destination = Path.join(src_folder(target_build), folder)
+    File.mkdir_p(Path.dirname(destination))
+    # Using `cp -a` instead of File.cp_r, since `cp -a` properly handles symlinks
+    # `:os.cmd` is used since `System.cmd` starts a port which causes an :EXIT message to be delivered to the process.
+    :os.cmd('cp -a #{source} #{destination}')
+  end
 
   defp current_sha(build), do:
     # `:os.cmd` is used since `System.cmd` starts a port which causes an :EXIT message to be delivered to the process.
@@ -246,7 +272,12 @@ defmodule AircloakCI.Build do
       |> File.read!()
       |> :erlang.binary_to_term()
     catch _, _ ->
-      %{status: :created, sha: nil}
+      %{status: :created, desired_sha: nil}
     end
+  end
+
+  defp set_desired_sha(build, desired_sha) do
+    if desired_sha != nil && desired_sha != state(build).desired_sha, do:
+      update_state(build, &%{&1 | desired_sha: desired_sha})
   end
 end

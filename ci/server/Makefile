@@ -25,7 +25,7 @@ docs:
 dialyze:
 	mix dialyze_retry
 
-release:
+release: deps
 	mix release
 
 lint:
