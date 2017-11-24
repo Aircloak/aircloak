@@ -35,6 +35,7 @@ defmodule AircloakCI.Builder do
     case check_start_preconditions(builder, pr) do
       :ok ->
         pr |> Build.for_pull_request() |> Build.set_status(:force_start)
+        send_status_to_github(pr, :pending)
         {:ok, maybe_start_job(builder, pr)}
       {:error, _} = error -> error
     end
