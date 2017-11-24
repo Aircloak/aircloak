@@ -116,6 +116,14 @@ defmodule AircloakCI.Build do
   def finished(build), do:
     update_state(build, &%{&1 | status: :finished})
 
+  @doc "Truncates logs for the given build."
+  @spec truncate_logs(t) :: :ok
+  def truncate_logs(build), do:
+    build.log_folder
+    |> Path.join("*")
+    |> Path.wildcard()
+    |> Enum.each(&File.write(&1, ""))
+
 
   # -------------------------------------------------------------------
   # Build folders
@@ -158,9 +166,6 @@ defmodule AircloakCI.Build do
 
   defp log_path(build), do:
     Path.join(build.log_folder, "build.log")
-
-  defp truncate_logs(build), do:
-    build.log_folder |> Path.join("*") |> Path.wildcard() |> Enum.each(&File.write(&1, ""))
 
 
   # -------------------------------------------------------------------
