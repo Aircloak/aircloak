@@ -53,7 +53,7 @@ defmodule AircloakCI.Build do
   @doc "Executes the given command in the build folder."
   @spec cmd(t, String.t, CmdRunner.opts) :: :ok | {:error, String.t}
   def cmd(build, cmd, opts \\ []), do:
-    CmdRunner.run(cmd, [cd: build.build_folder, logger: CmdRunner.file_logger(log_path(build))] ++ opts)
+    CmdRunner.run(cmd, [cd: src_folder(build), logger: CmdRunner.file_logger(log_path(build))] ++ opts)
 
   @doc "Executes the given command in the build folder, raises on error."
   @spec cmd!(t, String.t, CmdRunner.opts) :: :ok
@@ -99,7 +99,7 @@ defmodule AircloakCI.Build do
   @doc "Returns the CI version for this build."
   @spec ci_version(t) :: nil | non_neg_integer
   def ci_version(build) do
-    case File.read(Path.join([build.build_folder, "ci", "VERSION"])) do
+    case File.read(Path.join([src_folder(build), "ci", "VERSION"])) do
       {:ok, contents} -> contents |> String.trim() |> String.to_integer()
       {:error, _reason} -> nil
     end
@@ -112,6 +112,7 @@ defmodule AircloakCI.Build do
 
   defp init_folder(build) do
     File.mkdir_p!(build.build_folder)
+    File.mkdir_p!(src_folder(build))
     File.mkdir_p!(build.log_folder)
     truncate_logs(build)
     build
@@ -136,8 +137,11 @@ defmodule AircloakCI.Build do
   defp branch_folder_name(branch_name), do:
     String.replace(branch_name, "/", "-")
 
+  defp src_folder(build), do:
+    Path.join(build.build_folder, "src")
+
   defp git_folder(build), do:
-    Path.join(build.build_folder, ".git")
+    Path.join(src_folder(build), ".git")
 
   defp log_path(build), do:
     Path.join(build.log_folder, "build.log")
@@ -165,7 +169,7 @@ defmodule AircloakCI.Build do
     log(build, "cloning #{build.repo.owner}/#{build.repo.name}")
 
     CmdRunner.run(
-      ~s(git clone git@github.com:#{build.repo.owner}/#{build.repo.name} #{build.build_folder}),
+      ~s(git clone git@github.com:#{build.repo.owner}/#{build.repo.name} #{src_folder(build)}),
       timeout: :timer.minutes(1),
       logger: CmdRunner.file_logger(log_path(build))
     )
@@ -192,7 +196,7 @@ defmodule AircloakCI.Build do
 
   defp cached_sha(build), do:
     # `:os.cmd` is used since `System.cmd` starts a port which causes an :EXIT message to be delivered to the process.
-    'cd #{build.build_folder} && git rev-parse HEAD'
+    'cd #{src_folder(build)} && git rev-parse HEAD'
     |> :os.cmd()
     |> to_string()
     |> String.trim()
