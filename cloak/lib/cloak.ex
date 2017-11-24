@@ -10,6 +10,8 @@ defmodule Cloak do
     Cloak.LoggerTranslator.install()
     set_salt()
     if Aircloak.DeployConfig.fetch("debug") === {:ok, true} do Logger.configure(level: :debug) end
+    with {:ok, concurrency} <- Aircloak.DeployConfig.fetch("concurrency"), do:
+      Application.put_env(:cloak, :concurrency, concurrency)
     configure_periodic_jobs()
     Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor)
   end
