@@ -124,7 +124,7 @@ defmodule AircloakCI.Github.API do
       potentialMergeCommit {oid}
       headRefName
       baseRefName
-      reviews(last: 1) {nodes {createdAt state}}
+      reviews(states: [APPROVED, DISMISSED, CHANGES_REQUESTED], last: 1) {nodes {state}}
       commits(last: 1) {nodes {commit {oid status {contexts {context state}}}}}
     /
 
