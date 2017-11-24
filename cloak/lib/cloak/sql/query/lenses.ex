@@ -67,7 +67,8 @@ defmodule Cloak.Sql.Query.Lenses do
     direct_subqueries() |> Lens.key(:ast) |> Lens.key(:noise_layers) |> Lens.all()
 
   @doc "Lens focusing on all subqueries of a query."
-  deflens subqueries(), do: direct_subqueries() |> Lens.recur()
+  deflens subqueries(), do:
+    Lens.match(fn(_) -> Lens.both(direct_subqueries(), direct_subqueries() |> Lens.key(:ast) |> subqueries()) end)
 
   @doc "Lens focusing on a query's immediate subqueries"
   deflens direct_subqueries(), do:
