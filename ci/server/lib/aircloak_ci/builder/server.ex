@@ -30,8 +30,10 @@ defmodule AircloakCI.Builder.Server do
 
   @impl GenServer
   def handle_call({:force_build, pr}, _from, builder) do
-    {result, builder} = Builder.force_build(builder, pr)
-    {:reply, result, builder}
+    case Builder.force_build(builder, pr) do
+      {:ok, new_builder} -> {:reply, :ok, new_builder}
+      {:error, _} = error -> {:reply, error, builder}
+    end
   end
 
   @impl GenServer

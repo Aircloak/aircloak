@@ -106,13 +106,23 @@ defmodule AircloakCI.Build do
     end
   end
 
-  @doc "Returns the build status."
-  @spec status(t) :: :created | :initialized | :finished
+  @doc """
+  Returns the build status.
+
+  Possible states are:
+
+    - `:created` - the build has been created
+    - `:initialized` - the build source has been retrieved
+    - `:started` - the build has been started
+    - `:force_start` - the new build has been requested
+    - `:finished` - the build has completed
+  """
+  @spec status(t) :: :created | :initialized | :started | :force_start | :finished
   def status(build), do:
     state(build).status
 
   @doc "Sets the build status."
-  @spec set_status(t, :started | :finished) :: :ok
+  @spec set_status(t, :started | :finished | :force_start) :: :ok
   def set_status(build, status), do:
     update_state(build, &%{&1 | status: status})
 

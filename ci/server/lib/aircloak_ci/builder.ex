@@ -30,17 +30,13 @@ defmodule AircloakCI.Builder do
   end
 
   @doc "Force starts the build of the given pull request."
-  @spec force_build(t, Github.API.pull_request) :: {:ok | {:error, String.t}, t}
+  @spec force_build(t, Github.API.pull_request) :: {:ok, t} | {:error, String.t}
   def force_build(builder, pr) do
-    cond do
-      running?(builder, pr) -> {{:error, "build for this PR is already running"}, builder}
-      not pr.mergeable? or pr.merge_sha == nil -> {{:error, "this PR is not mergeable"}, builder}
-      true ->
-        if ci_possible?(pr) do
-          {:ok, start_job(builder, pr)}
-        else
-          {{:error, "can't run CI for this PR"}, builder}
-        end
+    case check_start_preconditions(builder, pr) do
+      :ok ->
+        pr |> Build.for_pull_request() |> Build.set_status(:force_start)
+        {:ok, maybe_start_job(builder, pr)}
+      {:error, _} = error -> error
     end
   end
 
@@ -78,13 +74,10 @@ defmodule AircloakCI.Builder do
   # -------------------------------------------------------------------
 
   defp maybe_start_job(builder, pr) do
-    with \
-      true <- startable?(builder, pr),
-      true <- ci_possible?(pr)
-    do
+    if startable?(builder, pr) do
       start_job(builder, pr)
     else
-      _ -> builder
+      builder
     end
   end
 
@@ -106,22 +99,38 @@ defmodule AircloakCI.Builder do
     pid
   end
 
+  defp check_start_preconditions(builder, pr) do
+    with \
+      {_error, true} <- {"already running", not running?(builder, pr)},
+      {_error, true} <- {"unmergeable", pr.mergeable? and pr.merge_sha != nil},
+      {_error, true} <- {"CI not possible", ci_possible?(pr)}
+    do
+      :ok
+    else
+      {error, false} -> {:error, error}
+    end
+  end
+
   defp startable?(builder, pr), do:
-    not running?(builder, pr) and
-    pr.mergeable? and
-    pr.merge_sha != nil and
-    pr.approved? and
-    pr.status_checks["continuous-integration/travis-ci/pr"] == :success and
-    pr.status_checks["continuous-integration/travis-ci/push"] == :success and
-    pr |> Build.for_pull_request() |> Build.status() != :done
+    check_start_preconditions(builder, pr) == :ok and (
+      pr_build_status(pr) == :force_start or (
+        pr.approved? and
+        pr.status_checks["continuous-integration/travis-ci/pr"] == :success and
+        pr.status_checks["continuous-integration/travis-ci/push"] == :success and
+        pr_build_status(pr) != :finished
+      )
+    )
+
+  defp running?(builder, pr), do:
+    Enum.any?(builder.current_jobs, &(&1.pr.number == pr.number))
 
   defp ci_possible?(pr) do
     build = Build.for_pull_request(pr)
     Build.initialize(build) == :ok and not is_nil(Build.ci_version(build))
   end
 
-  defp running?(builder, pr), do:
-    Enum.any?(builder.current_jobs, &(&1.pr.number == pr.number))
+  defp pr_build_status(pr), do:
+    pr |> Build.for_pull_request() |> Build.status()
 
   defp cancel_needless_builds(builder, pending_prs) do
     {remaining_jobs, outdated_jobs} = Enum.split_with(builder.current_jobs, &(valid_pr?(&1.pr, pending_prs)))
