@@ -8,6 +8,7 @@ defmodule AircloakCI.Github do
 
   use GenServer, start: {__MODULE__, :start_link, []}
   alias AircloakCI.Github
+  require Logger
 
 
   # -------------------------------------------------------------------
@@ -43,7 +44,8 @@ defmodule AircloakCI.Github do
   def init(nil) do
     Process.flag(:trap_exit, true)
     enqueue_clear()
-    {:ok, %{clear?: false, current_request: nil, request_job: nil, queue: :queue.new()}}
+    :timer.send_interval(:timer.minutes(1), :log_rate_limits)
+    {:ok, %{clear?: false, current_request: nil, request_job: nil, queue: :queue.new(), rate_limits: %{}}}
   end
 
   @impl GenServer
@@ -57,8 +59,10 @@ defmodule AircloakCI.Github do
   @impl GenServer
   def handle_info(:clear, state), do:
     {:noreply, maybe_start_next_request(%{state | clear?: true})}
-  def handle_info({ref, result}, %{request_job: %Task{ref: ref}} = state), do:
-    {:noreply, handle_current_request_finished(state, {:ok, result})}
+  def handle_info({ref, result}, %{request_job: %Task{ref: ref}} = state) do
+    {response, rate_limit} = result
+    {:noreply, state |> update_rate_limit(rate_limit) |> handle_current_request_finished({:ok, response})}
+  end
   def handle_info({:DOWN, ref, :process, _, _reason}, %{request_job: %Task{ref: ref}} = state), do:
     {:noreply, handle_current_request_finished(state, :error)}
   def handle_info({:DOWN, _, :process, _, :normal}, state), do:
@@ -67,6 +71,15 @@ defmodule AircloakCI.Github do
   def handle_info({:EXIT, _, _}, state), do:
     # ignoring task exits, since we handled DOWN and result messages
     {:noreply, state}
+  def handle_info(:log_rate_limits, state) do
+    Enum.each(state.rate_limits,
+      fn({category, rate_limit}) ->
+        expires_in = DateTime.diff(rate_limit.expires_at, DateTime.utc_now(), :second)
+        Logger.info("#{category} #{rate_limit.remaining} requests remaining, expires in #{expires_in} sec")
+      end
+    )
+    {:noreply, state}
+  end
   def handle_info(other, state), do:
     super(other, state)
 
@@ -120,6 +133,9 @@ defmodule AircloakCI.Github do
     if not is_nil(state.current_request.from), do: GenServer.reply(state.current_request.from, response)
     maybe_start_next_request(%{state | current_request: nil, request_job: nil})
   end
+
+  defp update_rate_limit(state, nil), do: state
+  defp update_rate_limit(state, rate_limit), do: put_in(state.rate_limits[rate_limit.category], rate_limit)
 
 
   # -------------------------------------------------------------------
