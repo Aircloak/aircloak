@@ -89,7 +89,7 @@ defmodule Cloak.Query.Runner.Engine do
 
     stream
     |> state_updater.(:ingesting_data)
-    |> ParallelProcessor.execute(query.data_source.concurrency,
+    |> ParallelProcessor.execute(concurrency(query),
       &consume_rows(&1, query), &Query.Aggregator.merge_groups/2)
     |> state_updater.(:processing)
     |> Query.Aggregator.aggregate(query)
@@ -107,4 +107,7 @@ defmodule Cloak.Query.Runner.Engine do
 
   defp decode_rows(stream, %Sql.Query{emulated?: true}), do: stream
   defp decode_rows(stream, query), do: Query.DataDecoder.decode(stream, query)
+
+  defp concurrency(query), do:
+    query.data_source.concurrency || Application.get_env(:cloak, :concurrency, 0)
 end
