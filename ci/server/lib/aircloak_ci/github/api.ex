@@ -25,7 +25,7 @@ defmodule AircloakCI.Github.API do
     mergeable?: boolean,
     merge_sha: String.t,
     approved?: boolean,
-    status_checks: %{String.t => :expected | status_check_state}
+    status_checks: %{String.t => %{status: :expected | status_check_state, description: String.t}}
   }
 
   @type repo :: %{owner: String.t, name: String.t}
@@ -132,7 +132,7 @@ defmodule AircloakCI.Github.API do
       headRefName
       baseRefName
       reviews(states: [APPROVED, DISMISSED, CHANGES_REQUESTED], last: 1) {nodes {state}}
-      commits(last: 1) {nodes {commit {oid status {contexts {context state}}}}}
+      commits(last: 1) {nodes {commit {oid status {contexts {context state description}}}}}
     /
 
 
@@ -162,7 +162,9 @@ defmodule AircloakCI.Github.API do
         |> Map.fetch!("commits")
         |> Map.fetch!("nodes")
         |> Enum.flat_map(&(Map.fetch!(&1, "commit")["status"]["contexts"] || []))
-        |> Enum.map(fn(%{"context" => context, "state" => state}) -> {context, decode_status_check_state(state)} end)
+        |> Enum.map(fn(%{"context" => context, "state" => state, "description" => description}) ->
+            {context, %{status: decode_status_check_state(state), description: description}}
+          end)
         |> Enum.into(%{})
     }
   end

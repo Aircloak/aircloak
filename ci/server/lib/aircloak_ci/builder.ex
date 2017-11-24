@@ -101,8 +101,8 @@ defmodule AircloakCI.Builder do
   end
 
   defp travis_succeeded?(pr), do:
-    pr.status_checks["continuous-integration/travis-ci/pr"] == :success and
-    pr.status_checks["continuous-integration/travis-ci/push"] == :success
+    (pr.status_checks["continuous-integration/travis-ci/pr"] || %{status: nil}).status == :success and
+    (pr.status_checks["continuous-integration/travis-ci/push"] || %{status: nil}).status == :success
 
   defp start_job(builder, pr) do
     Logger.info("starting the build for #{pr_log_display(pr)}")
@@ -162,9 +162,12 @@ defmodule AircloakCI.Builder do
     end
   end
 
-  defp send_status_to_github(pr, status, description), do:
-    Github.put_status_check_state(pr.repo.owner, pr.repo.name, pr.sha, "continuous-integration/aircloak/ci",
-      description, status)
+  defp send_status_to_github(pr, status, description) do
+    status_context = "continuous-integration/aircloak/ci"
+    current_description = (pr.status_checks[status_context] || %{description: nil}).description
+    if description != current_description, do:
+      Github.put_status_check_state(pr.repo.owner, pr.repo.name, pr.sha, status_context, description, status)
+  end
 
   defp handle_job_finish(job, status, context) do
     diff_sec = :erlang.monotonic_time(:second) - job.start
