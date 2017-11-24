@@ -69,8 +69,8 @@ defmodule AircloakCI.Github.API do
     |> to_pr_data(%{owner: owner, name: repo})
 
   @doc "Sets the status check state for the given owner/repo/sha."
-  @spec put_status_check_state!(String.t, String.t, String.t, String.t, status_check_state) :: :ok
-  def put_status_check_state!(owner, repo, sha, context, state) do
+  @spec put_status_check_state(String.t, String.t, String.t, String.t, status_check_state) :: :ok
+  def put_status_check_state(owner, repo, sha, context, state) do
     %{status_code: 201} =
       post_rest_request(
         "/repos/#{owner}/#{repo}/statuses/#{sha}",

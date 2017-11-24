@@ -25,9 +25,9 @@ defmodule AircloakCI.Github do
     sync_request!(:pull_request, [owner, repo, number])
 
   @doc "Sets the status check state for the given owner/repo/sha."
-  @spec put_status_check_state!(String.t, String.t, String.t, String.t, Github.API.status_check_state) :: :ok
-  def put_status_check_state!(owner, repo, sha, context, state), do:
-    async_request(:put_status_check_state!, [owner, repo, sha, context, state])
+  @spec put_status_check_state(String.t, String.t, String.t, String.t, Github.API.status_check_state) :: :ok
+  def put_status_check_state(owner, repo, sha, context, state), do:
+    async_request(:put_status_check_state, [owner, repo, sha, context, state])
 
   @doc "Posts a comment to the given issue or pull request."
   @spec post_comment(String.t, String.t, number, String.t) :: :ok

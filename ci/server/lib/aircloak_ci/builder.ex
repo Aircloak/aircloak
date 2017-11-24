@@ -50,7 +50,7 @@ defmodule AircloakCI.Builder do
 
       job ->
         Logger.info("build for #{pr_log_display(job.pr)} finished with the result `#{result.outcome}`")
-        report_status(job, build_status(result.outcome))
+        handle_job_finish(job, build_status(result.outcome), nil)
         {:ok, builder}
     end
   end
@@ -60,7 +60,7 @@ defmodule AircloakCI.Builder do
       {[job], remaining_jobs} ->
         if reason != :normal do
           Logger.error("build for #{pr_log_display(job.pr)} crashed")
-          report_status(job, :failure, reason)
+          handle_job_finish(job, :failure, reason)
         end
         {:ok, %{builder | current_jobs: remaining_jobs}}
     end
@@ -86,7 +86,7 @@ defmodule AircloakCI.Builder do
 
     build = Build.for_pull_request(pr)
     job = %{pr: pr, build: build, pid: start_job_task(build), start: :erlang.monotonic_time(:second)}
-    report_status(job, :pending)
+    send_status_to_github(job.pr, :pending)
 
     update_in(builder.current_jobs, &[job | &1])
   end
@@ -149,26 +149,25 @@ defmodule AircloakCI.Builder do
     end
   end
 
-  defp report_status(job, state, context \\ nil) do
-    Github.put_status_check_state!(job.pr.repo.owner, job.pr.repo.name, job.pr.sha,
-      "continuous-integration/aircloak/ci", state)
-    handle_job_finish(job, state, context)
-  end
+  defp send_status_to_github(pr, status), do:
+    Github.put_status_check_state(pr.repo.owner, pr.repo.name, pr.sha, "continuous-integration/aircloak/ci", status)
 
-  defp handle_job_finish(_job, :pending, _context), do: :ok
   defp handle_job_finish(job, status, context) do
-    Build.set_status(job.build, :finished)
     diff_sec = :erlang.monotonic_time(:second) - job.start
     time_output = :io_lib.format("~b:~2..0b", [div(diff_sec, 60), rem(diff_sec, 60)])
 
     Logger.info("job #{pr_log_display(job.pr)} finished in #{time_output} min")
     Build.log(job.build, "finished with status `#{status}` in #{time_output} min")
+
+    send_status_to_github(job.pr, status)
     send_comment(job, comment(status, job, context))
+
+    Build.set_status(job.build, :finished)
   end
 
-  defp comment(:success, _job, _context), do:
+  defp comment(:success, _job, nil), do:
     "Compliance build succeeded 👍"
-  defp comment(:error, job, _context), do:
+  defp comment(:error, job, nil), do:
     Enum.join(["Compliance build errored 😞", "", "Log tail:", "```", log_tail(job), "```"], "\n")
   defp comment(:failure, job, crash_reason), do:
     Enum.join(
