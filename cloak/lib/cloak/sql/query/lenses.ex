@@ -14,7 +14,7 @@ defmodule Cloak.Sql.Query.Lenses do
   deflens terminals(), do:
     Lens.multiple([
       Lens.keys([:columns, :group_by, :db_columns, :property, :aggregators]),
-      Lens.keys([:noise_layers, :low_count_checks]) |> Lens.all() |> Lens.key(:expressions),
+      Lens.keys([:noise_layers]) |> Lens.all() |> Lens.key(:expressions),
       Lens.key(:order_by) |> Lens.all() |> Lens.at(0),
       filters_operands(),
     ])
@@ -65,10 +65,6 @@ defmodule Cloak.Sql.Query.Lenses do
   @doc "Lens focusing on all noise layers of subqueries of the query."
   deflens subquery_noise_layers(), do:
     direct_subqueries() |> Lens.key(:ast) |> Lens.key(:noise_layers) |> Lens.all()
-
-  @doc "Lens focusing on all low count checks of subqueries of the query."
-  deflens subquery_low_count_checks(), do:
-    direct_subqueries() |> Lens.key(:ast) |> Lens.key(:low_count_checks) |> Lens.all()
 
   @doc "Lens focusing on all subqueries of a query."
   deflens subqueries(), do: direct_subqueries() |> Lens.recur()
