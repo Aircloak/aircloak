@@ -26,7 +26,7 @@ defmodule AircloakCI.Builder do
   @spec process_prs(t, Github.API.repo_data) :: t
   def process_prs(builder, repo_data) do
     builder = cancel_needless_builds(builder, repo_data.pull_requests)
-    Enum.reduce(repo_data.pull_requests, builder, &maybe_start_job(&2, &1))
+    Enum.reduce(repo_data.pull_requests, builder, &process_pr(&2, &1))
   end
 
   @doc "Force starts the build of the given pull request."
@@ -35,8 +35,7 @@ defmodule AircloakCI.Builder do
     case check_start_preconditions(builder, pr) do
       :ok ->
         pr |> Build.for_pull_request() |> Build.set_status(:force_start)
-        send_status_to_github(pr, :pending)
-        {:ok, maybe_start_job(builder, pr)}
+        {:ok, process_pr(builder, pr)}
       {:error, _} = error -> error
     end
   end
@@ -74,20 +73,43 @@ defmodule AircloakCI.Builder do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp maybe_start_job(builder, pr) do
-    if startable?(builder, pr) do
-      start_job(builder, pr)
-    else
-      builder
+  defp process_pr(builder, pr) do
+    case check_start_preconditions(builder, pr) do
+      :ok ->
+        if pr_build_status(pr) != :finished || pr_build_status(pr) == :force_start do
+          maybe_start_job(builder, pr)
+        else
+          builder
+        end
+
+      {:error, _} -> builder
     end
   end
+
+  defp maybe_start_job(builder, pr) do
+    with \
+      {_status, true} <- {"waiting for Travis builds to succeed", travis_succeeded?(pr)},
+      {_status, true} <- {"waiting for approval", pr.approved?},
+      {_status, true} <- {"waiting in queue", Enum.empty?(builder.current_jobs)}
+    do
+      start_job(builder, pr)
+    else
+      {status, false} ->
+        send_status_to_github(pr, :pending, status)
+        builder
+    end
+  end
+
+  defp travis_succeeded?(pr), do:
+    pr.status_checks["continuous-integration/travis-ci/pr"] == :success and
+    pr.status_checks["continuous-integration/travis-ci/push"] == :success
 
   defp start_job(builder, pr) do
     Logger.info("starting the build for #{pr_log_display(pr)}")
 
     build = Build.for_pull_request(pr)
     job = %{pr: pr, build: build, pid: start_job_task(build), start: :erlang.monotonic_time(:second)}
-    send_status_to_github(job.pr, :pending)
+    send_status_to_github(job.pr, :pending, "build started")
 
     update_in(builder.current_jobs, &[job | &1])
   end
@@ -111,16 +133,6 @@ defmodule AircloakCI.Builder do
       {error, false} -> {:error, error}
     end
   end
-
-  defp startable?(builder, pr), do:
-    check_start_preconditions(builder, pr) == :ok and (
-      pr_build_status(pr) == :force_start or (
-        pr.approved? and
-        pr.status_checks["continuous-integration/travis-ci/pr"] == :success and
-        pr.status_checks["continuous-integration/travis-ci/push"] == :success and
-        pr_build_status(pr) != :finished
-      )
-    )
 
   defp running?(builder, pr), do:
     Enum.any?(builder.current_jobs, &(&1.pr.number == pr.number))
@@ -150,8 +162,9 @@ defmodule AircloakCI.Builder do
     end
   end
 
-  defp send_status_to_github(pr, status), do:
-    Github.put_status_check_state(pr.repo.owner, pr.repo.name, pr.sha, "continuous-integration/aircloak/ci", status)
+  defp send_status_to_github(pr, status, description), do:
+    Github.put_status_check_state(pr.repo.owner, pr.repo.name, pr.sha, "continuous-integration/aircloak/ci",
+      description, status)
 
   defp handle_job_finish(job, status, context) do
     diff_sec = :erlang.monotonic_time(:second) - job.start
@@ -160,11 +173,15 @@ defmodule AircloakCI.Builder do
     Logger.info("job #{pr_log_display(job.pr)} finished in #{time_output} min")
     Build.log(job.build, "finished with status `#{status}` in #{time_output} min")
 
-    send_status_to_github(job.pr, status)
+    send_status_to_github(job.pr, status, description(status))
     send_comment(job, comment(status, job, context))
 
     Build.set_status(job.build, :finished)
   end
+
+  defp description(:success), do: "build succeeded"
+  defp description(:error), do: "build errored"
+  defp description(:failure), do: "build failed"
 
   defp comment(:success, _job, nil), do:
     "Compliance build succeeded 👍"
