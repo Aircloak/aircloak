@@ -20,3 +20,7 @@ erl_crash.dump
 *.ez
 
 /tmp
+
+config/dev.local.exs
+config/test.local.exs
+config/prod.local.exs

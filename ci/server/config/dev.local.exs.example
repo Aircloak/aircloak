@@ -1,0 +1,7 @@
+# Create the file `dev.local.exs` to change some settings in your development
+
+use Mix.Config
+
+# Enables real Github writes
+# Be very careful with this option, because it will post statuses and comments to real github issues
+# config :aircloak_ci, :simulate_github_writes, false

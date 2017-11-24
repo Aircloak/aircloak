@@ -17,22 +17,22 @@ defmodule AircloakCI.Github do
   @doc "Returns the repository data, such as branches and open pull requests."
   @spec repo_data(String.t, String.t) :: Github.API.repo_data
   def repo_data(owner, repo), do:
-    sync_request!(:repo_data, [owner, repo])
+    sync_request!(:repo_data, [owner, repo], type: :read)
 
   @doc "Returns the data for the given pull request."
   @spec pull_request(String.t, String.t, integer) :: Github.API.pull_request
   def pull_request(owner, repo, number), do:
-    sync_request!(:pull_request, [owner, repo, number])
+    sync_request!(:pull_request, [owner, repo, number], type: :read)
 
   @doc "Sets the status check state for the given owner/repo/sha."
   @spec put_status_check_state(String.t, String.t, String.t, String.t, Github.API.status_check_state) :: :ok
   def put_status_check_state(owner, repo, sha, context, state), do:
-    async_request(:put_status_check_state, [owner, repo, sha, context, state])
+    async_request(:put_status_check_state, [owner, repo, sha, context, state], type: :write)
 
   @doc "Posts a comment to the given issue or pull request."
   @spec post_comment(String.t, String.t, number, String.t) :: :ok
   def post_comment(owner, repo, issue_number, body), do:
-    async_request(:post_comment, [owner, repo, issue_number, body])
+    async_request(:post_comment, [owner, repo, issue_number, body], type: :write)
 
 
   # -------------------------------------------------------------------
@@ -47,12 +47,12 @@ defmodule AircloakCI.Github do
   end
 
   @impl GenServer
-  def handle_call({:request, fun, args}, from, state), do:
-    {:noreply, append_request(state, %{fun: fun, args: args, from: from})}
+  def handle_call({:request, fun, args, opts}, from, state), do:
+    {:noreply, handle_request(state, %{fun: fun, args: args, from: from}, opts)}
 
   @impl GenServer
-  def handle_cast({:request, fun, args}, state), do:
-    {:noreply, append_request(state, %{fun: fun, args: args, from: nil})}
+  def handle_cast({:request, fun, args, opts}, state), do:
+    {:noreply, handle_request(state, %{fun: fun, args: args, from: nil}, opts)}
 
   @impl GenServer
   def handle_info(:clear, state), do:
@@ -75,16 +75,25 @@ defmodule AircloakCI.Github do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp sync_request!(fun, args) do
-    {:ok, result} = GenServer.call(__MODULE__, {:request, fun, args}, :timer.seconds(30))
+  defp sync_request!(fun, args, opts) do
+    {:ok, result} = GenServer.call(__MODULE__, {:request, fun, args, opts}, :timer.seconds(30))
     result
   end
 
-  defp async_request(fun, args), do:
-    GenServer.cast(__MODULE__, {:request, fun, args})
+  defp async_request(fun, args, opts), do:
+    GenServer.cast(__MODULE__, {:request, fun, args, opts})
 
   defp enqueue_clear(), do:
     Process.send_after(self(), :clear, :timer.seconds(1))
+
+  defp handle_request(state, request, opts) do
+    if Keyword.fetch!(opts, :type) == :write and Application.get_env(:aircloak_ci, :simulate_github_writes) do
+      IO.puts "simulated github write #{request.fun}(#{request.args |> Enum.map(&inspect/1) |> Enum.join(", ")})"
+      state
+    else
+      append_request(state, request)
+    end
+  end
 
   defp append_request(state, request), do:
     state.queue

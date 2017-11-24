@@ -180,15 +180,8 @@ defmodule AircloakCI.Builder do
       "\n"
     )
 
-  if Mix.env == :prod do
-    defp send_comment(job, body), do:
-      Github.post_comment(job.pr.repo.owner, job.pr.repo.name, job.pr.number, body)
-  else
-    defp send_comment(job, body) do
-      IO.puts "PR comment for `#{inspect(job)}`:"
-      IO.puts body
-    end
-  end
+  defp send_comment(job, body), do:
+    Github.post_comment(job.pr.repo.owner, job.pr.repo.name, job.pr.number, body)
 
   defp build_status(:ok), do: :success
   defp build_status(:error), do: :error
