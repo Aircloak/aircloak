@@ -70,6 +70,7 @@ defmodule Cloak.Sql.Query do
     limit: pos_integer | nil,
     offset: non_neg_integer,
     having: having_clause,
+    distinct?: boolean,
     sample_rate: nil | non_neg_integer,
     emulated?: boolean,
     parameters: [parameter] | nil,
@@ -101,7 +102,7 @@ defmodule Cloak.Sql.Query do
   defstruct [
     columns: [], where: nil, group_by: [], order_by: [], column_titles: [], aggregators: [],
     info: [], selected_tables: [], implicit_count?: false, data_source: nil, command: nil,
-    show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil,
+    show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil, distinct?: false,
     parameters: [], views: %{}, emulated?: false, sample_rate: nil, projected?: false,
     next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false, table_aliases: %{},
     low_count_checks: []
