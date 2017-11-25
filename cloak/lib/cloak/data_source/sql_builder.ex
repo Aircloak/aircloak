@@ -50,7 +50,8 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp column_sql(:*, _sql_dialect_module), do: "*"
   defp column_sql({:distinct, column}, sql_dialect_module), do: ["DISTINCT ", column_sql(column, sql_dialect_module)]
-  defp column_sql(%Expression{alias: alias} = column, sql_dialect_module) when alias != nil and alias != "", do:
+  defp column_sql(%Expression{alias: alias, name: name} = column, sql_dialect_module)
+      when alias != nil and alias != "" and alias != name, do:
     [column_sql(%Expression{column | alias: nil}, sql_dialect_module), " AS ", quote_name(alias, sql_dialect_module)]
   defp column_sql(%Expression{function?: true, function: fun_name, type: type, function_args: args}, sql_dialect_module)
     when fun_name in ["+", "-"] and type in [:time, :date, :datetime],

@@ -1057,4 +1057,13 @@ defmodule Cloak.Query.BasicTest do
       from heights group by height
     """, %{rows: [%{row: [:*, 8, 154, 176, 166, 167]}]}
   end
+
+  test "distinct in subquery with group by" do
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [160, true])
+    :ok = insert_rows(_user_ids = 11..30, "heights", ["height", "male"], [170, false])
+    assert_query(
+      "select count(*) from (select distinct user_id, male from heights group by user_id, height, male) alias",
+      %{rows: [%{row: [40]}]}
+    )
+  end
 end
