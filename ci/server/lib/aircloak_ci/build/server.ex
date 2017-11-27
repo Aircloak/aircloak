@@ -34,15 +34,15 @@ defmodule AircloakCI.Build.Server do
 
     project = LocalProject.for_pull_request(pr)
     Logger.info("started build server for #{LocalProject.name(project)}")
-    {:ok, init_task} = Task.start_link(fn -> init_project(project, pr, repo_data) end)
-    {:ok, %{
+
+    {:ok, start_init_task(%{
       repo_data: repo_data,
       pr: pr,
       project: project,
-      init_task: init_task,
+      init_task: nil,
       build_task: nil,
       start: nil
-    }}
+    })}
   end
 
   @impl GenServer
@@ -67,7 +67,7 @@ defmodule AircloakCI.Build.Server do
         Logger.info("shutting down build server for `#{LocalProject.name(state.project)}`")
         {:stop, :shutdown, state}
       pr ->
-        {:noreply, %{state | repo_data: repo_data} |> update_pr(pr) |> maybe_start_build()}
+        {:noreply, update_pr(%{state | repo_data: repo_data}, pr)}
     end
   end
   def handle_info({:build_result, result}, state) do
@@ -123,15 +123,44 @@ defmodule AircloakCI.Build.Server do
   # Build lifecycle
   # -------------------------------------------------------------------
 
-  defp maybe_cancel_current_build(%{build_task: build_task} = state, pr) do
-    if state.pr.merge_sha != pr.merge_sha and build_task != nil do
-      Logger.info("cancelling outdated build")
-      Process.exit(build_task, :kill)
-      receive do {:EXIT, ^build_task, _reason} -> :ok end
-      %{state | build_task: nil}
+  defp update_pr(state, new_pr) do
+    state = if state.pr.merge_sha != new_pr.merge_sha, do: cancel_outdated_tasks(state), else: state
+    %{state | pr: new_pr}
+  end
+
+  defp cancel_outdated_tasks(state), do:
+    state
+    |> cancel_outdated_init()
+    |> cancel_current_build()
+
+  defp cancel_outdated_init(state) do
+    if state.init_task != nil do
+      Logger.info("cancelling outdated init")
+      sync_kill(state.init_task)
+      start_init_task(%{state | init_task: nil})
     else
       state
     end
+  end
+
+  defp cancel_current_build(state) do
+    if state.build_task != nil do
+      Logger.info("cancelling outdated build")
+      sync_kill(state.build_task)
+      maybe_start_build(%{state | build_task: nil})
+    else
+      state
+    end
+  end
+
+  defp sync_kill(pid) do
+    Process.exit(pid, :kill)
+    receive do {:EXIT, ^pid, _reason} -> :ok end
+  end
+
+  defp start_init_task(state) do
+    {:ok, init_task} = Task.start_link(fn -> init_project(state.project, state.pr, state.repo_data) end)
+    %{state | init_task: init_task}
   end
 
   defp maybe_start_build(%{init_task: nil, build_task: nil} = state) do
@@ -293,9 +322,6 @@ defmodule AircloakCI.Build.Server do
     {:via, Registry, {AircloakCI.Build.Registry, {:pull_request, pr.number}}}
 
   defp project_queue(project), do: {:project, LocalProject.folder(project)}
-
-  defp update_pr(state, pr), do:
-    %{maybe_cancel_current_build(state, pr) | pr: pr}
 
 
   # -------------------------------------------------------------------
