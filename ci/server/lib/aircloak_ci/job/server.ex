@@ -3,7 +3,7 @@ defmodule AircloakCI.Job.Server do
 
   use GenServer, start: {__MODULE__, :start_link, []}
   require Logger
-  alias AircloakCI.{Build, Github}
+  alias AircloakCI.{Build, Github, Job.Queue}
 
 
   # -------------------------------------------------------------------
@@ -90,27 +90,34 @@ defmodule AircloakCI.Job.Server do
   defp name(pr), do:
     {:via, Registry, {AircloakCI.Job.Registry, {:pull_request, pr.number}}}
 
+  defp build_queue(build), do: {:build, Build.folder(build)}
+
   defp init_build(pr_build, pr, repo_data) do
-    Build.truncate_logs(pr_build)
-    init_build([
-      pr_build,
-      Build.for_branch(branch!(repo_data, pr.target_branch)),
-      Build.for_branch(branch!(repo_data, "master"))
-    ])
+    Queue.exec(build_queue(pr_build), fn ->
+      init_build([
+        pr_build,
+        Build.for_branch(branch!(repo_data, pr.target_branch)),
+        Build.for_branch(branch!(repo_data, "master"))
+      ])
+    end)
   end
 
   defp init_build([build, base_build | rest]) do
     if Build.status(build) == :empty do
-      Build.log(build, "initializing from #{Build.name(base_build)}")
-      :ok = init_build([base_build | rest])
-      :ok = Build.initialize_from(build, base_build)
-      :ok = Build.ensure_compiled(build)
+      Build.truncate_logs(build)
+      # note: no need to queue in `build`, since this is done by the caller
+      Queue.exec(build_queue(base_build), fn ->
+        :ok = init_build([base_build | rest])
+        :ok = Build.initialize_from(build, base_build)
+      end)
+      :ok = Queue.exec(:compile, fn -> Build.ensure_compiled(build) end)
     else
       :ok
     end
   end
   defp init_build([master_build]), do:
-    :ok = Build.ensure_compiled(master_build)
+    # note: no need to queue in `master_build`, since this is done by the caller
+    :ok = Queue.exec(:compile, fn -> Build.ensure_compiled(master_build) end)
 
   defp update_pr(state, pr), do:
     %{maybe_cancel_current_build(state, pr) | pr: pr}
@@ -185,23 +192,28 @@ defmodule AircloakCI.Job.Server do
   end
 
   defp run_build(build) do
-    with \
-      :ok <- Build.truncate_logs(build),
-      :ok <- Build.set_status(build, :started),
-      :ok <- run_phase(build, "cloak build", &Build.compile/1),
-      :ok <- run_phase(build, "compliance", &Build.cmd(&1, "ci/run.sh cloak_compliance", timeout: :timer.minutes(10)))
-    do
-      :ok
-    else
-      {:error, reason} ->
-        Build.log(build, "error: #{reason}")
-        :error
-    end
+    Queue.exec(build_queue(build), fn ->
+      with \
+        :ok <- Build.truncate_logs(build),
+        :ok <- Build.set_status(build, :started),
+        :ok <- run_phase(build, :compile, &Build.compile/1),
+        :ok <- run_phase(build, :compliance, &Build.compliance/1)
+      do
+        :ok
+      else
+        {:error, reason} ->
+          Build.log(build, "error: #{reason}")
+          :error
+      end
+    end)
   end
 
-  defp run_phase(build, title, fun) do
-    Build.log(build, "starting #{title}")
-    fun.(build)
+  defp run_phase(build, queue_id, fun) do
+    Build.log(build, "waiting in #{queue_id} queue")
+    Queue.exec(queue_id, fn ->
+      Build.log(build, "entered #{queue_id} queue")
+      fun.(build)
+    end)
   end
 
   defp build_status(:ok), do: :success

@@ -55,6 +55,12 @@ defmodule AircloakCI.Build do
     build
   end
 
+  @doc "Returns the build folder."
+  @spec folder(t) :: String.t
+  def folder(build), do:
+    build.build_folder
+
+  @doc "Returns the build name."
   @spec name(t) :: String.t
   def name(build), do:
     build.name
@@ -91,6 +97,11 @@ defmodule AircloakCI.Build do
   @spec compile(t) :: :ok | {:error, String.t}
   def compile(build), do:
     cmd(build, "ci/run.sh build_cloak", timeout: :timer.minutes(30))
+
+  @doc "Executes the compliance suite in the build folder."
+  @spec compliance(t) :: :ok | {:error, String.t}
+  def compliance(build), do:
+    cmd(build, "ci/run.sh cloak_compliance", timeout: :timer.minutes(10))
 
   @doc "Ensures that the project in the build folder is compiled."
   @spec ensure_compiled(t) :: :ok | {:error, String.t}
