@@ -39,21 +39,25 @@ defmodule AircloakCI.Build do
   end
 
   @doc "Prepares the build for the given branch."
-  @spec for_branch(Github.API.repo, String.t, String.t | nil) :: t
-  def for_branch(repo, branch_name, desired_sha \\ nil) do
+  @spec for_branch(Github.API.branch) :: t
+  def for_branch(branch) do
     build =
       create_build(%__MODULE__{
-        name: "branch #{branch_name}",
-        build_folder: Path.join(branches_folder(), branch_folder_name(branch_name)),
-        log_folder: Path.join(logs_folder(), branch_folder_name(branch_name)),
-        base_branch: base_branch(branch_name),
-        repo: repo,
+        name: "branch #{branch.name}",
+        build_folder: Path.join(branches_folder(), branch_folder_name(branch.name)),
+        log_folder: Path.join(logs_folder(), branch_folder_name(branch.name)),
+        base_branch: base_branch(branch.name),
+        repo: branch.repo,
         update_git_command: "pull --rebase",
-        checkout: branch_name
+        checkout: branch.name
       })
-    set_desired_sha(build, desired_sha)
+    set_desired_sha(build, branch.sha)
     build
   end
+
+  @spec name(t) :: String.t
+  def name(build), do:
+    build.name
 
   @doc "Initializes the build."
   @spec initialize(t) :: :ok | {:error, String.t}
@@ -72,10 +76,27 @@ defmodule AircloakCI.Build do
     end
   end
 
+  @doc "Initializes the build from the base build."
+  @spec initialize_from(t, t) :: :ok | {:error, String.t}
+  def initialize_from(build, base_build) do
+    :empty = status(build)
+    File.cp_r(git_folder(base_build), git_folder(build))
+    cmd(build, "git reset HEAD --hard")
+    copy_folder(base_build, build, "tmp")
+    copy_folder(base_build, build, Path.join(~w(cloak priv odbc drivers)))
+    initialize(build)
+  end
+
   @doc "Compiles the project in the build folder."
   @spec compile(t) :: :ok | {:error, String.t}
   def compile(build), do:
     cmd(build, "ci/run.sh build_cloak", timeout: :timer.minutes(30))
+
+  @doc "Ensures that the project in the build folder is compiled."
+  @spec ensure_compiled(t) :: :ok | {:error, String.t}
+  def ensure_compiled(build) do
+    if ci_possible?(build), do: compile(build), else: :ok
+  end
 
   @doc "Executes the given command in the build folder."
   @spec cmd(t, String.t, CmdRunner.opts) :: :ok | {:error, String.t}
@@ -120,18 +141,23 @@ defmodule AircloakCI.Build do
     end
   end
 
+  @doc "Determines if CI can be invoked in this build."
+  @spec ci_possible?(t) :: boolean
+  def ci_possible?(build), do:
+    initialize(build) == :ok and not is_nil(ci_version(build))
+
   @doc """
   Returns the build status.
 
   Possible states are:
 
-    - `:created` - the build has been created
+    - `:empty` - the build has not yet been initialized
     - `:initialized` - the build source has been retrieved
     - `:started` - the build has been started
     - `:force_start` - the new build has been requested
     - `:finished` - the build has completed
   """
-  @spec status(t) :: :created | :initialized | :started | :force_start | :finished
+  @spec status(t) :: :empty | :initialized | :started | :force_start | :finished
   def status(build), do:
     state(build).status
 
@@ -148,17 +174,14 @@ defmodule AircloakCI.Build do
     |> Path.wildcard()
     |> Enum.each(&File.write(&1, ""))
 
-  defp remove_except(parent_folder, expected_folder_names) do
-    existing_folder_names =
-      case File.ls(parent_folder) do
-        {:ok, folders} -> folders
-        _ -> []
-      end
-
-    existing_folder_names
-    |> Enum.filter(&(not &1 in expected_folder_names))
-    |> Enum.each(&(parent_folder |> Path.join(&1) |> File.rm_rf()))
-  end
+  @doc "Returns the SHA of the current head."
+  @spec current_sha(t) :: String.t
+  def current_sha(build), do:
+    # `:os.cmd` is used since `System.cmd` starts a port which causes an :EXIT message to be delivered to the process.
+    'cd #{src_folder(build)} && git rev-parse HEAD'
+    |> :os.cmd()
+    |> to_string()
+    |> String.trim()
 
 
   # -------------------------------------------------------------------
@@ -203,6 +226,18 @@ defmodule AircloakCI.Build do
   defp log_path(build), do:
     Path.join(build.log_folder, "build.log")
 
+  defp remove_except(parent_folder, expected_folder_names) do
+    existing_folder_names =
+      case File.ls(parent_folder) do
+        {:ok, folders} -> folders
+        _ -> []
+      end
+
+    existing_folder_names
+    |> Enum.filter(&(not &1 in expected_folder_names))
+    |> Enum.each(&(parent_folder |> Path.join(&1) |> File.rm_rf()))
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -215,27 +250,13 @@ defmodule AircloakCI.Build do
     if File.exists?(git_folder(build)) do
       :ok
     else
-      do_clone_repo(build)
-    end
-  end
+      log(build, "cloning #{build.repo.owner}/#{build.repo.name}")
 
-  defp do_clone_repo(%__MODULE__{base_branch: nil} = build) do
-    log(build, "cloning #{build.repo.owner}/#{build.repo.name}")
-
-    CmdRunner.run(
-      ~s(git clone git@github.com:#{build.repo.owner}/#{build.repo.name} #{src_folder(build)}),
-      timeout: :timer.minutes(1),
-      logger: CmdRunner.file_logger(log_path(build))
-    )
-  end
-  defp do_clone_repo(build) do
-    log(build, "waiting for #{build.base_branch} to become available")
-    base_build = for_branch(build.repo, build.base_branch)
-    with :ok <- initialize(base_build) do
-      File.cp_r(git_folder(base_build), git_folder(build))
-      cmd(build, "git reset HEAD --hard")
-      copy_folder(base_build, build, "tmp")
-      copy_folder(base_build, build, Path.join(~w(cloak priv odbc drivers)))
+      CmdRunner.run(
+        ~s(git clone git@github.com:#{build.repo.owner}/#{build.repo.name} #{src_folder(build)}),
+        timeout: :timer.minutes(1),
+        logger: CmdRunner.file_logger(log_path(build))
+      )
     end
   end
 
@@ -247,13 +268,6 @@ defmodule AircloakCI.Build do
     # `:os.cmd` is used since `System.cmd` starts a port which causes an :EXIT message to be delivered to the process.
     :os.cmd('cp -a #{source} #{destination}')
   end
-
-  defp current_sha(build), do:
-    # `:os.cmd` is used since `System.cmd` starts a port which causes an :EXIT message to be delivered to the process.
-    'cd #{src_folder(build)} && git rev-parse HEAD'
-    |> :os.cmd()
-    |> to_string()
-    |> String.trim()
 
   defp update_state(build, updater) do
     new_state = build |> state() |> updater.()
@@ -268,11 +282,11 @@ defmodule AircloakCI.Build do
   defp state(build) do
     try do
       build
-      |> state_file
+      |> state_file()
       |> File.read!()
       |> :erlang.binary_to_term()
     catch _, _ ->
-      %{status: :created, desired_sha: nil}
+      %{status: :empty, desired_sha: nil}
     end
   end
 

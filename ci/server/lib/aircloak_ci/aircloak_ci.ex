@@ -25,6 +25,16 @@ defmodule AircloakCI do
     token
   end
 
+  @doc "Force starts the build of the given pull request."
+  @spec force_build(pos_integer) :: :ok | {:error, String.t}
+  def force_build(pr_number) do
+    repo_data = AircloakCI.Github.repo_data("aircloak", "aircloak")
+    case Enum.find(repo_data.pull_requests, &(&1.number == pr_number)) do
+      nil -> {:error, "PR ##{pr_number} not found"}
+      pr -> AircloakCI.Job.force_build(pr, repo_data)
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
