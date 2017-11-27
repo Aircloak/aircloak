@@ -71,14 +71,15 @@ defmodule AircloakCI.Build do
     if current_sha(build) == state(build).desired_sha do
       :ok
     else
-      Logger.info("initializing build for #{build.name}")
-      log(build, "initializing build for #{build.name}")
+      log_start_stop("initializing build for #{name(build)}", fn ->
+        log(build, "initializing build for #{name(build)}")
 
-      with \
-        :ok <- clone_repo(build),
-        :ok <- cmd(build, "git #{build.update_git_command}"),
-        :ok <- cmd(build, "git checkout #{build.checkout}"),
-        do: update_state(build, &%{&1 | status: :initialized})
+        with \
+          :ok <- clone_repo(build),
+          :ok <- cmd(build, "git #{build.update_git_command}"),
+          :ok <- cmd(build, "git checkout #{build.checkout}"),
+          do: update_state(build, &%{&1 | status: :initialized})
+      end)
     end
   end
 
@@ -86,22 +87,26 @@ defmodule AircloakCI.Build do
   @spec initialize_from(t, t) :: :ok | {:error, String.t}
   def initialize_from(build, base_build) do
     :empty = status(build)
-    File.cp_r(git_folder(base_build), git_folder(build))
-    cmd(build, "git reset HEAD --hard")
-    copy_folder(base_build, build, "tmp")
-    copy_folder(base_build, build, Path.join(~w(cloak priv odbc drivers)))
+    log_start_stop("copying build for #{name(build)} from #{name(base_build)}", fn ->
+      File.cp_r(git_folder(base_build), git_folder(build))
+      cmd(build, "git reset HEAD --hard")
+      copy_folder(base_build, build, "tmp")
+      copy_folder(base_build, build, Path.join(~w(cloak priv odbc drivers)))
+    end)
     initialize(build)
   end
 
   @doc "Compiles the project in the build folder."
   @spec compile(t) :: :ok | {:error, String.t}
   def compile(build), do:
-    cmd(build, "ci/run.sh build_cloak", timeout: :timer.minutes(30))
+    log_start_stop("compiling #{name(build)}",
+      fn -> cmd(build, "ci/run.sh build_cloak", timeout: :timer.minutes(30)) end)
 
   @doc "Executes the compliance suite in the build folder."
   @spec compliance(t) :: :ok | {:error, String.t}
   def compliance(build), do:
-    cmd(build, "ci/run.sh cloak_compliance", timeout: :timer.minutes(10))
+    log_start_stop("running compliance for #{name(build)}",
+      fn -> cmd(build, "ci/run.sh cloak_compliance", timeout: :timer.minutes(10)) end)
 
   @doc "Ensures that the project in the build folder is compiled."
   @spec ensure_compiled(t) :: :ok | {:error, String.t}
@@ -253,6 +258,15 @@ defmodule AircloakCI.Build do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp log_start_stop(msg, fun) do
+    Logger.info("started #{msg}")
+    try do
+      fun.()
+    after
+      Logger.info("finished #{msg}")
+    end
+  end
 
   defp base_branch("master"), do: nil
   defp base_branch(_not_master), do: "master"
