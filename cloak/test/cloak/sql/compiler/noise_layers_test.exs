@@ -2,9 +2,27 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.Table
-  alias Cloak.Sql.Expression
+  alias Cloak.Sql.{Expression, NoiseLayer}
 
   import Cloak.Test.QueryHelpers, except: [compile!: 2, compile!: 3]
+
+  defmacrop static_layer(base) do
+    quote do
+      %NoiseLayer{expressions: [_, _, _], base: unquote(base)}
+    end
+  end
+
+  defmacrop uid_layer(base) do
+    quote do
+      %NoiseLayer{expressions: [_, _, _, %Expression{name: "uid"}], base: unquote(base)}
+    end
+  end
+
+  defmacrop generic_layer() do
+    quote do
+      %{base: nil}
+    end
+  end
 
   test "overwrites any existing noise layers" do
     compiled = Cloak.Test.QueryHelpers.compile!("SELECT COUNT(*) FROM table", data_source())
@@ -138,13 +156,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "aggregated columns in top-level select are ignored" do
       result = compile!("SELECT COUNT(numeric) FROM table")
 
-      assert [_generic_noise_layer = %{base: nil}] = result.noise_layers
+      assert [generic_layer()] = result.noise_layers
     end
 
     test "having in top-level query" do
       result = compile!("SELECT COUNT(*) FROM table HAVING COUNT(numeric) = 10")
 
-      assert [_generic_noise_layer = %{base: nil}] = result.noise_layers
+      assert [generic_layer()] = result.noise_layers
     end
 
     test "having in subquery" do
@@ -153,8 +171,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       """)
 
       assert [
-        %{base: {"table", "numeric", nil}, expressions: _},
-        %{base: {"table", "numeric", nil}, expressions: _},
+        static_layer({"table", "numeric", nil}),
+        uid_layer({"table", "numeric", nil}),
       ] = result.noise_layers
     end
 
@@ -197,7 +215,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         SELECT COUNT(*) FROM table JOIN key_table
         ON table.uid = key_table.uid AND key_table.table_id = table.id
       """)
-      assert [%{base: nil}] = result.noise_layers
+      assert [generic_layer()] = result.noise_layers
     end
 
     test "pk = fk" do
@@ -205,7 +223,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         SELECT COUNT(*) FROM table JOIN key_table
         ON table.uid = key_table.uid AND table.id = key_table.table_id
       """)
-      assert [%{base: nil}] = result.noise_layers
+      assert [generic_layer()] = result.noise_layers
     end
   end
 
@@ -242,7 +260,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
     test "no noise layer from sample_users" do
       result = compile!("SELECT COUNT(*) FROM (SELECT uid FROM table SAMPLE_USERS 10%) x")
-      assert [_generic_noise_layer = %{base: nil}] = result.noise_layers
+      assert [generic_layer()] = result.noise_layers
     end
   end
 
@@ -258,7 +276,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
     test "column <> column negative condition" do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
-      assert [_generic_noise_layer = %{base: nil}] = result.noise_layers
+      assert [generic_layer()] = result.noise_layers
     end
 
     test "clear string negative condition" do
@@ -294,7 +312,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "having of COUNT(*)" do
       result = compile!("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(*) <> 10) x")
 
-      assert [_generic_noise_layer = %{base: nil}] = result.noise_layers
+      assert [generic_layer()] = result.noise_layers
     end
 
     test "having of count(distinct)" do
@@ -314,8 +332,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric = 1 AND numeric <> 2")
 
       assert [
-        %{base: {"table", "numeric", nil}}, %{base: {"table", "numeric", nil}},
-        %{base: {"table", "numeric", {:<>, :override}}}, %{base: {"table", "numeric", {:<>, :override}}},
+        static_layer({"table", "numeric", nil}),
+        uid_layer({"table", "numeric", nil}),
+        static_layer({"table", "numeric", {:<>, :override}}),
+        uid_layer({"table", "numeric", {:<>, :override}}),
       ] = result.noise_layers
     end
 
@@ -323,8 +343,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric = 1 AND numeric2 <> 2")
 
       assert [
-        %{base: {"table", "numeric", nil}}, %{base: {"table", "numeric", nil}},
-        %{base: {"table", "numeric2", :<>}}, %{base: {"table", "numeric2", :<>}},
+        static_layer({"table", "numeric", nil}), uid_layer({"table", "numeric", nil}),
+        static_layer({"table", "numeric2", :<>}), uid_layer({"table", "numeric2", :<>}),
       ] = result.noise_layers
     end
 
@@ -333,10 +353,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         result = compile!("SELECT COUNT(*) FROM table WHERE name NOT #{unquote(operator)} 'a%b' GROUP BY name")
 
         assert [
-          %{base: {"table", "name", nil}},
-          %{base: {"table", "name", nil}},
-          %{base: {"table", "name", {:not, _, _, :override}}},
-          %{base: {"table", "name", {:not, _, _, :override}}},
+          static_layer({"table", "name", nil}),
+          uid_layer({"table", "name", nil}),
+          static_layer({"table", "name", {:not, _, _, :override}}),
+          uid_layer({"table", "name", {:not, _, _, :override}}),
         ] = result.noise_layers
       end
     end
@@ -345,8 +365,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM (SELECT uid, numeric FROM table WHERE numeric <> 2) x WHERE numeric = 1")
 
       assert [
-        %{base: {"table", "numeric", {:<>, :override}}}, %{base: {"table", "numeric", {:<>, :override}}},
-        %{base: {"table", "numeric", nil}}, %{base: {"table", "numeric", nil}},
+        static_layer({"table", "numeric", {:<>, :override}}), uid_layer({"table", "numeric", {:<>, :override}}),
+        static_layer({"table", "numeric", nil}), uid_layer({"table", "numeric", nil}),
       ] = result.noise_layers
     end
 
@@ -354,8 +374,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM (SELECT uid, numeric FROM table WHERE numeric = 2) x WHERE numeric <> 1")
 
       assert [
-        %{base: {"table", "numeric", nil}}, %{base: {"table", "numeric", nil}},
-        %{base: {"table", "numeric", {:<>, :override}}}, %{base: {"table", "numeric", {:<>, :override}}},
+        static_layer({"table", "numeric", nil}), uid_layer({"table", "numeric", nil}),
+        static_layer({"table", "numeric", {:<>, :override}}), uid_layer({"table", "numeric", {:<>, :override}}),
       ] = result.noise_layers
     end
   end
