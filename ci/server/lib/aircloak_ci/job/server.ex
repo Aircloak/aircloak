@@ -3,7 +3,7 @@ defmodule AircloakCI.Job.Server do
 
   use GenServer, start: {__MODULE__, :start_link, []}
   require Logger
-  alias AircloakCI.{Build, Github, Job.Queue}
+  alias AircloakCI.{LocalProject, Github, Job.Queue}
 
 
   # -------------------------------------------------------------------
@@ -32,12 +32,12 @@ defmodule AircloakCI.Job.Server do
     AircloakCI.RepoDataProvider.subscribe()
     Process.flag(:trap_exit, true)
 
-    build = Build.for_pull_request(pr)
-    {:ok, init_task} = Task.start_link(fn -> init_build(build, pr, repo_data) end)
+    project = LocalProject.for_pull_request(pr)
+    {:ok, init_task} = Task.start_link(fn -> init_project(project, pr, repo_data) end)
     {:ok, %{
       repo_data: repo_data,
       pr: pr,
-      build: build,
+      project: project,
       init_task: init_task,
       build_task: nil,
       start: nil
@@ -52,7 +52,7 @@ defmodule AircloakCI.Job.Server do
   def handle_call(:force_build, _from, state) do
     case check_ci_possibility(state) do
       :ok ->
-        Build.set_status(state.build, :force_start)
+        LocalProject.set_status(state.project, :force_start)
         {:reply, :ok, maybe_start_build(state)}
       {:error, _} = error ->
         {:reply, error, state}
@@ -63,7 +63,7 @@ defmodule AircloakCI.Job.Server do
   def handle_info({:repo_data, repo_data}, state) do
     case Enum.find(repo_data.pull_requests, &(&1.number == state.pr.number)) do
       nil ->
-        Logger.info("shutting down build server for `#{Build.name(state.build)}`")
+        Logger.info("shutting down build server for `#{LocalProject.name(state.build)}`")
         {:stop, :shutdown, state}
       pr ->
         {:noreply, %{state | repo_data: repo_data} |> update_pr(pr) |> maybe_start_build()}
@@ -90,34 +90,34 @@ defmodule AircloakCI.Job.Server do
   defp name(pr), do:
     {:via, Registry, {AircloakCI.Job.Registry, {:pull_request, pr.number}}}
 
-  defp build_queue(build), do: {:build, Build.folder(build)}
+  defp project_queue(project), do: {:project, LocalProject.folder(project)}
 
-  defp init_build(pr_build, pr, repo_data) do
-    Queue.exec(build_queue(pr_build), fn ->
-      init_build([
-        pr_build,
-        Build.for_branch(branch!(repo_data, pr.target_branch)),
-        Build.for_branch(branch!(repo_data, "master"))
+  defp init_project(pr_project, pr, repo_data) do
+    Queue.exec(project_queue(pr_project), fn ->
+      init_project([
+        pr_project,
+        LocalProject.for_branch(branch!(repo_data, pr.target_branch)),
+        LocalProject.for_branch(branch!(repo_data, "master"))
       ])
     end)
   end
 
-  defp init_build([build, base_build | rest]) do
-    if Build.status(build) == :empty do
-      Build.truncate_logs(build)
-      # note: no need to queue in `build`, since this is done by the caller
-      Queue.exec(build_queue(base_build), fn ->
-        :ok = init_build([base_build | rest])
-        :ok = Build.initialize_from(build, base_build)
+  defp init_project([project, base_project | rest]) do
+    if LocalProject.status(project) == :empty do
+      LocalProject.truncate_logs(project)
+      # note: no need to queue in `project`, since this is done by the caller
+      Queue.exec(project_queue(base_project), fn ->
+        :ok = init_project([base_project | rest])
+        :ok = LocalProject.initialize_from(project, base_project)
       end)
-      :ok = Queue.exec(:compile, fn -> Build.ensure_compiled(build) end)
+      :ok = Queue.exec(:compile, fn -> LocalProject.ensure_compiled(project) end)
     else
       :ok
     end
   end
-  defp init_build([master_build]), do:
-    # note: no need to queue in `master_build`, since this is done by the caller
-    :ok = Queue.exec(:compile, fn -> Build.ensure_compiled(master_build) end)
+  defp init_project([master_project]), do:
+    # note: no need to queue in `master_project`, since this is done by the caller
+    :ok = Queue.exec(:compile, fn -> LocalProject.ensure_compiled(master_project) end)
 
   defp update_pr(state, pr), do:
     %{maybe_cancel_current_build(state, pr) | pr: pr}
@@ -138,7 +138,7 @@ defmodule AircloakCI.Job.Server do
       case check_start_preconditions(state) do
         :ok ->
           me = self()
-          {:ok, build_task} = Task.start_link(fn -> send(me, {:job_result, run_build(state.build)}) end)
+          {:ok, build_task} = Task.start_link(fn -> send(me, {:job_result, run_build(state.project)}) end)
 
           %{state | build_task: build_task, start: :erlang.monotonic_time(:second)}
         {:error, status} ->
@@ -152,12 +152,12 @@ defmodule AircloakCI.Job.Server do
   defp maybe_start_build(state), do: state
 
   defp build_finished?(state), do:
-    Build.status(state.build) == :finished and Build.current_sha(state.build) == state.pr.merge_sha
+    LocalProject.status(state.project) == :finished and LocalProject.current_sha(state.project) == state.pr.merge_sha
 
   defp check_ci_possibility(state) do
     with \
       {_error, true} <- {"unmergeable", state.pr.mergeable? and state.pr.merge_sha != nil},
-      {_error, true} <- {"CI not possible", Build.ci_possible?(state.build)}
+      {_error, true} <- {"CI not possible", LocalProject.ci_possible?(state.project)}
     do
       :ok
     else
@@ -166,7 +166,7 @@ defmodule AircloakCI.Job.Server do
   end
 
   defp check_start_preconditions(state) do
-    if Build.status(state.build) == :force_start do
+    if LocalProject.status(state.project) == :force_start do
       :ok
     else
       with \
@@ -191,28 +191,28 @@ defmodule AircloakCI.Job.Server do
       Github.put_status_check_state(pr.repo.owner, pr.repo.name, pr.sha, status_context, description, status)
   end
 
-  defp run_build(build) do
-    Queue.exec(build_queue(build), fn ->
+  defp run_build(project) do
+    Queue.exec(project_queue(project), fn ->
       with \
-        :ok <- Build.truncate_logs(build),
-        :ok <- Build.set_status(build, :started),
-        :ok <- run_phase(build, :compile, &Build.compile/1),
-        :ok <- run_phase(build, :compliance, &Build.compliance/1)
+        :ok <- LocalProject.truncate_logs(project),
+        :ok <- LocalProject.set_status(project, :started),
+        :ok <- run_phase(project, :compile, &LocalProject.compile/1),
+        :ok <- run_phase(project, :compliance, &LocalProject.compliance/1)
       do
         :ok
       else
         {:error, reason} ->
-          Build.log(build, "error: #{reason}")
+          LocalProject.log(project, "error: #{reason}")
           :error
       end
     end)
   end
 
-  defp run_phase(build, queue_id, fun) do
-    Build.log(build, "waiting in #{queue_id} queue")
+  defp run_phase(project, queue_id, fun) do
+    LocalProject.log(project, "waiting in #{queue_id} queue")
     Queue.exec(queue_id, fn ->
-      Build.log(build, "entered #{queue_id} queue")
-      fun.(build)
+      LocalProject.log(project, "entered #{queue_id} queue")
+      fun.(project)
     end)
   end
 
@@ -223,40 +223,40 @@ defmodule AircloakCI.Job.Server do
     diff_sec = :erlang.monotonic_time(:second) - state.start
     time_output = :io_lib.format("~b:~2..0b", [div(diff_sec, 60), rem(diff_sec, 60)])
 
-    Build.log(state.build, "finished with status `#{build_status}` in #{time_output} min")
+    LocalProject.log(state.project, "finished with status `#{build_status}` in #{time_output} min")
 
     send_status_to_github(state.pr, build_status, description(build_status))
     Github.post_comment(
       state.pr.repo.owner,
       state.pr.repo.name,
       state.pr.number,
-      comment(build_status, state.build, context)
+      comment(build_status, state.project, context)
     )
 
-    Build.set_status(state.build, :finished)
+    LocalProject.set_status(state.project, :finished)
   end
 
   defp description(:success), do: "build succeeded"
   defp description(:error), do: "build errored"
   defp description(:failure), do: "build failed"
 
-  defp comment(:success, _build, nil), do:
+  defp comment(:success, _project, nil), do:
     "Compliance build succeeded 👍"
-  defp comment(:error, build, nil), do:
-    Enum.join(["Compliance build errored 😞", "", "Log tail:", "```", log_tail(build), "```"], "\n")
-  defp comment(:failure, build, crash_reason), do:
+  defp comment(:error, project, nil), do:
+    Enum.join(["Compliance build errored 😞", "", "Log tail:", "```", log_tail(project), "```"], "\n")
+  defp comment(:failure, project, crash_reason), do:
     Enum.join(
       [
         "Compliance build crashed 😞", "",
         "```", Exception.format_exit(crash_reason), "```", "",
-        "Log tail:", "```", log_tail(build), "```"
+        "Log tail:", "```", log_tail(project), "```"
       ],
       "\n"
     )
 
-  defp log_tail(build) do
+  defp log_tail(project) do
     max_lines = 100
-    lines = build |> Build.log_contents() |> String.split("\n")
+    lines = project |> LocalProject.log_contents() |> String.split("\n")
 
     lines
     |> Enum.drop(max(length(lines) - max_lines, 0))

@@ -3,7 +3,7 @@ defmodule AircloakCI.Job.Queue do
 
   require Logger
 
-  @type id :: :compile | :compliance | {:build, String.t}
+  @type id :: :compile | :compliance | {:project, String.t}
 
 
   # -------------------------------------------------------------------
@@ -26,16 +26,16 @@ defmodule AircloakCI.Job.Queue do
     end
   end
 
-  @doc "Removes build queues which ar not needed anymore."
-  @spec remove_needless_build_queues() :: :ok
-  def remove_needless_build_queues(), do:
+  @doc "Removes project queues which ar not needed anymore."
+  @spec remove_needless_project_queues() :: :ok
+  def remove_needless_project_queues(), do:
     :jobs.info(:queues)
     |> Enum.map(fn({:queue, queue}) -> queue |> Keyword.take([:name, :queued, :waiters]) |> Enum.into(%{}) end)
-    |> Enum.filter(&(&1.waiters == [] && &1.queued == 0 && match?({:build, _}, &1.name)))
+    |> Enum.filter(&(&1.waiters == [] && &1.queued == 0 && match?({:project, _}, &1.name)))
     |> Enum.map(&(&1.name))
-    |> Enum.map(fn({:build, path}) -> path end)
+    |> Enum.map(fn({:project, path}) -> path end)
     |> Enum.reject(&File.exists?/1)
-    |> Enum.map(&{:build, &1})
+    |> Enum.map(&{:project, &1})
     |> Enum.each(fn(queue_name) ->
       Logger.info("removing queue #{inspect queue_name}")
       :jobs.delete_queue(queue_name)
@@ -62,7 +62,7 @@ defmodule AircloakCI.Job.Queue do
     queue_spec(concurrency: 5, max_waiting_time: :timer.hours(1))
   defp spec(:compliance), do:
     queue_spec(concurrency: 1, max_waiting_time: :timer.hours(1))
-  defp spec({:build, _}), do:
+  defp spec({:project, _}), do:
     queue_spec(concurrency: 1, max_waiting_time: :timer.hours(1))
 
   defp queue_spec(opts), do:

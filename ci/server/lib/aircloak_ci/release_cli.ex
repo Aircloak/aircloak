@@ -19,8 +19,8 @@ defmodule AircloakCI.ReleaseCLI do
   @spec print_build_log(pos_integer) :: :ok
   def print_build_log(pull_request_number) do
     AircloakCI.Github.pull_request("aircloak", "aircloak", pull_request_number)
-    |> AircloakCI.Build.for_pull_request()
-    |> AircloakCI.Build.log_contents()
+    |> AircloakCI.LocalProject.for_pull_request()
+    |> AircloakCI.LocalProject.log_contents()
     |> IO.puts()
   end
 end
