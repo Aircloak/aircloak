@@ -106,7 +106,15 @@ defmodule AircloakCI.LocalProject do
   @spec compliance(t) :: :ok | {:error, String.t}
   def compliance(project), do:
     log_start_stop("running compliance for #{name(project)}",
-      fn -> cmd(project, "ci/run.sh cloak_compliance", timeout: :timer.minutes(10)) end)
+      fn ->
+        if Application.get_env(:aircloak_ci, :simulate_compliance, false) do
+          Logger.info("simulating compliance execution")
+          :timer.sleep(:timer.seconds(1))
+        else
+          cmd(project, "ci/run.sh cloak_compliance", timeout: :timer.minutes(10))
+        end
+      end
+    )
 
   @doc "Ensures that the project in the project folder is compiled."
   @spec ensure_compiled(t) :: :ok | {:error, String.t}
