@@ -1,7 +1,7 @@
 defmodule AircloakCI.Build.Server do
   @moduledoc "Server which handles a build of a single pull request."
 
-  use GenServer, start: {__MODULE__, :start_link, []}
+  use GenServer, start: {__MODULE__, :start_link, []}, restart: :temporary
   require Logger
   alias AircloakCI.{LocalProject, Github, Queue}
 
