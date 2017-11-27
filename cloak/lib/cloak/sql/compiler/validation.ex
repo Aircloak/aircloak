@@ -70,8 +70,6 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_function_exists(function = {_, name, _}) do
     unless Function.exists?(function) do
       case Function.deprecation_info(function) do
-        {:error, :function_exists} ->
-          raise "Checked for deprecation info for existing function. Should never happen."
         {:error, :not_found} ->
           raise CompilationError, message: "Unknown function `#{Function.readable_name(name)}`."
         {:ok, %{alternative: alternative}} ->
