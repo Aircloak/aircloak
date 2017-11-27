@@ -139,7 +139,7 @@ defmodule AircloakCI.Build.Server do
       case check_start_preconditions(state) do
         :ok ->
           me = self()
-          {:ok, build_task} = Task.start_link(fn -> send(me, {:build_result, run_build(state.project)}) end)
+          {:ok, build_task} = Task.start_link(fn -> send(me, {:build_result, run_build(state.pr, state.project)}) end)
 
           %{state | build_task: build_task, start: :erlang.monotonic_time(:second)}
 
@@ -214,7 +214,8 @@ defmodule AircloakCI.Build.Server do
   # Build execution
   # -------------------------------------------------------------------
 
-  defp run_build(project) do
+  defp run_build(pr, project) do
+    send_status_to_github(pr, :pending, "build started")
     Queue.exec(project_queue(project), fn ->
       with \
         :ok <- LocalProject.truncate_logs(project),
