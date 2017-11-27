@@ -74,7 +74,7 @@ facility operated by the customer.
 
 ### Monitoring
 
-Insights Air provides a [monitoring API endpoint](monitoring.html). This API endpoint can be tied into existing monitoring infrastructure, to improve
+Insights Air provides a [monitoring API endpoint](ops/monitoring.html). This API endpoint can be tied into existing monitoring infrastructure, to improve
 the visibility into the workings of the Aircloak Insights platform.
 
 
