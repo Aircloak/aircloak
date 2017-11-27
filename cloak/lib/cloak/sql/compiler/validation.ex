@@ -62,6 +62,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     |> Enum.reject(&match?({_name, [_]}, &1))
     |> Enum.map(fn({name, _}) -> name end)
 
+
   # -------------------------------------------------------------------
   # Columns and expressions
   # -------------------------------------------------------------------
