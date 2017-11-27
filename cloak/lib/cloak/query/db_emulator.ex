@@ -10,7 +10,7 @@ defmodule Cloak.Query.DbEmulator do
 
   alias Cloak.{DataSource, DataSource.Table}
   alias Cloak.Sql.{Query, Expression, Function}
-  alias Cloak.Query.{DbEmulator.Selector, DataEngine, DataDecoder}
+  alias Cloak.Query.{DbEmulator.Selector, DataDecoder}
 
 
   # -------------------------------------------------------------------
@@ -31,7 +31,7 @@ defmodule Cloak.Query.DbEmulator do
 
   defp offload_select!(query, rows_processor) do
     DataSource.select!(
-      %Query{query | where: DataEngine.offloaded_where(query)},
+      %Query{query | where: Query.offloaded_where(query)},
       fn(rows) ->
         rows
         |> Stream.concat()

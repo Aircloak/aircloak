@@ -22,9 +22,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
     query
     |> Helpers.apply_bottom_up(&calculate_base_noise_layers(&1, top_level_uid))
-    |> apply_top_down(&push_down_noise_layers/1)
+    |> Helpers.apply_top_down(&push_down_noise_layers/1)
     |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
-    |> apply_top_down(&normalize_datasource_case/1)
+    |> Helpers.apply_top_down(&normalize_datasource_case/1)
     |> remove_meaningless_negative_noise_layers()
     |> add_generic_uid_layer_if_needed(top_level_uid)
   end
@@ -231,12 +231,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       uid_noise_layer(&1, constant, top_level_uid, :<>),
       static_noise_layer(&1, lower(constant), {:<>, :lower}),
     ])
-  defp do_not_equals_noise_layers({:comparison, column, :<>, constant}, top_level_uid), do:
+  defp do_not_equals_noise_layers(
+    {:comparison, column, :<>, constant = %Expression{constant?: true}}, top_level_uid
+  ), do:
     raw_columns(column)
     |> Enum.flat_map(&[
       static_noise_layer(&1, constant, :<>),
       uid_noise_layer(&1, constant, top_level_uid, :<>),
     ])
+  defp do_not_equals_noise_layers({:comparison, _column, :<>, _other_column}, _top_level_uid), do: []
 
   defp lower(%Expression{constant?: true, type: :text, value: value}), do:
     Expression.constant(:text, String.downcase(value))
@@ -343,11 +346,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         {:ok, Enum.at(query.columns, index)}
     end
   end
-
-  defp apply_top_down(query, function), do:
-    query
-    |> function.()
-    |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_top_down(&1, function))
 
   defp raw_columns(lens \\ Lens.root(), data), do:
     lens

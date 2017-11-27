@@ -62,13 +62,20 @@ defmodule Cloak.Sql.Compiler.Validation do
     |> Enum.reject(&match?({_name, [_]}, &1))
     |> Enum.map(fn({name, _}) -> name end)
 
+
   # -------------------------------------------------------------------
   # Columns and expressions
   # -------------------------------------------------------------------
 
   defp verify_function_exists(function = {_, name, _}) do
     unless Function.exists?(function) do
-      raise CompilationError, message: "Unknown function `#{Function.readable_name(name)}`."
+      case Function.deprecation_info(function) do
+        {:error, :not_found} ->
+          raise CompilationError, message: "Unknown function `#{Function.readable_name(name)}`."
+        {:ok, %{alternative: alternative}} ->
+          raise CompilationError, message: "Function `#{Function.readable_name(name)}` has been deprecated. " <>
+            "Depending on your use case, consider using `#{Function.readable_name(alternative)}` instead."
+      end
     end
   end
 

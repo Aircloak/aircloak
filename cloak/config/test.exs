@@ -28,8 +28,8 @@ config :cloak, :anonymizer,
   # average value for the top of the remaining users in the collection.
   outliers_count: {4, 0},
 
-  # The minimum count of dropped outliers.
-  min_outliers_count: 1,
+  # The minimum and maximum amounts of dropped outliers or top values.
+  group_limits: {1, 6},
 
   # The mean and standard deviation for the count of items at the top of a collection,
   # used for computing the average value of the top.

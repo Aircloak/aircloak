@@ -23,7 +23,7 @@ the following sections:
   system is made out of and how they interact.
 - The [resource requirements](deployment.html#resource-requirements) section of the deployment guide gives an idea of
   the resources you should make available to the distinct components of the system.
-- The [installation guide](installation.html) in the operations section guides you through the installation.
-- Once Aircloak Insights is running, you will want to consult the [monitoring](monitoring.html) section for information
+- The [installation guide](ops/installation.html) in the operations section guides you through the installation.
+- Once Aircloak Insights is running, you will want to consult the [monitoring](ops/monitoring.html) section for information
   on how to integrate Aircloak Insights into your monitoring system. This ensures you get notified if components are
   misbehaving or the system needs your attention.

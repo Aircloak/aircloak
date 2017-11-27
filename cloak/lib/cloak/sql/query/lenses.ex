@@ -80,10 +80,6 @@ defmodule Cloak.Sql.Query.Lenses do
     |> Lens.satisfy(&match?({:subquery, _}, &1))
     |> Lens.at(1)
 
-  @doc "Lens focusing on query's immediate projected subqueries"
-  deflens direct_projected_subqueries(), do:
-    Lens.satisfy(direct_subqueries(), &(&1.ast.projected?))
-
   @doc "Lens focusing on all inequality condition-clauses in a query."
   deflens order_condition_columns(), do:
     Lens.match(fn
