@@ -219,6 +219,7 @@ defmodule AircloakCI.Build.Server do
     Queue.exec(project_queue(project), fn ->
       with \
         :ok <- LocalProject.truncate_logs(project),
+        :ok <- LocalProject.initialize(project),
         :ok <- LocalProject.set_status(project, :started),
         :ok <- run_phase(project, :compile, &LocalProject.compile/1),
         :ok <- run_phase(project, :compliance, &LocalProject.compliance/1)
