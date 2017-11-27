@@ -252,7 +252,7 @@ defmodule Cloak.Sql.Function do
     |> Enum.map(fn({name, _}) -> name end)
     |> Enum.filter(& restricted_function?(&1))
 
-  @doc "Returns true if a function has been deprecated. False otherwise."
+  @doc "Provides information about alternatives for deprecated functions."
   @spec deprecation_info(t) :: {:error, :function_exists | :not_found} | {:ok, %{alternative: String.t}}
   def deprecation_info({:function, name, _} = function) do
     case {exists?(function), @deprecated_functions[name]} do
