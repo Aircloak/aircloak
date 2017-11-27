@@ -175,6 +175,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   end
 
   defp set_noise_layer_expression_alias(expression, expressions) do
+    expression = clear_alias(expression)
     index = Enum.find_index(expressions, &expression == &1)
     %Expression{expression | alias: (if is_nil(index), do: nil, else: "__ac_alias__#{index}")}
   end
