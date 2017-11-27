@@ -71,7 +71,7 @@ defmodule AircloakCI.Build.Server do
     end
   end
   def handle_info({:build_result, result}, state) do
-    handle_build_finish(state, build_status(result), nil)
+    handle_build_finish(state, result, nil)
     {:noreply, state}
   end
   def handle_info({:EXIT, init_task, _reason}, %{init_task: init_task} = state), do:
@@ -85,13 +85,8 @@ defmodule AircloakCI.Build.Server do
 
 
   # -------------------------------------------------------------------
-  # Internal functions
+  # Project initialization
   # -------------------------------------------------------------------
-
-  defp name(pr), do:
-    {:via, Registry, {AircloakCI.Build.Registry, {:pull_request, pr.number}}}
-
-  defp project_queue(project), do: {:project, LocalProject.folder(project)}
 
   defp init_project(pr_project, pr, repo_data) do
     Queue.exec(project_queue(pr_project), fn ->
@@ -120,8 +115,13 @@ defmodule AircloakCI.Build.Server do
     # note: no need to queue in `master_project`, since this is done by the caller
     :ok = Queue.exec(:compile, fn -> LocalProject.ensure_compiled(master_project) end)
 
-  defp update_pr(state, pr), do:
-    %{maybe_cancel_current_build(state, pr) | pr: pr}
+  defp branch!(repo_data, branch_name), do:
+    %{} = Enum.find(repo_data.branches, &(&1.name == branch_name))
+
+
+  # -------------------------------------------------------------------
+  # Build lifecycle
+  # -------------------------------------------------------------------
 
   defp maybe_cancel_current_build(%{build_task: build_task} = state, pr) do
     if state.pr.merge_sha != pr.merge_sha and build_task != nil do
@@ -142,6 +142,7 @@ defmodule AircloakCI.Build.Server do
           {:ok, build_task} = Task.start_link(fn -> send(me, {:build_result, run_build(state.project)}) end)
 
           %{state | build_task: build_task, start: :erlang.monotonic_time(:second)}
+
         {:error, status} ->
           send_status_to_github(state.pr, :pending, status)
           state
@@ -151,6 +152,29 @@ defmodule AircloakCI.Build.Server do
     end
   end
   defp maybe_start_build(state), do: state
+
+  defp handle_build_finish(state, result, context) do
+    diff_sec = :erlang.monotonic_time(:second) - state.start
+    time_output = :io_lib.format("~b:~2..0b", [div(diff_sec, 60), rem(diff_sec, 60)])
+
+    LocalProject.log(state.project, "finished with result `#{result}` in #{time_output} min")
+
+    send_status_to_github(state.pr, github_status(result), description(result))
+
+    Github.post_comment(
+      state.pr.repo.owner,
+      state.pr.repo.name,
+      state.pr.number,
+      comment(result, state.project, context)
+    )
+
+    LocalProject.set_status(state.project, :finished)
+  end
+
+
+  # -------------------------------------------------------------------
+  # Validation functions
+  # -------------------------------------------------------------------
 
   defp build_finished?(state), do:
     LocalProject.status(state.project) == :finished and LocalProject.current_sha(state.project) == state.pr.merge_sha
@@ -185,12 +209,10 @@ defmodule AircloakCI.Build.Server do
     (pr.status_checks["continuous-integration/travis-ci/pr"] || %{status: nil}).status == :success and
     (pr.status_checks["continuous-integration/travis-ci/push"] || %{status: nil}).status == :success
 
-  defp send_status_to_github(pr, status, description) do
-    status_context = "continuous-integration/aircloak/compliance"
-    current_description = (pr.status_checks[status_context] || %{description: nil}).description
-    if description != current_description, do:
-      Github.put_status_check_state(pr.repo.owner, pr.repo.name, pr.sha, status_context, description, status)
-  end
+
+  # -------------------------------------------------------------------
+  # Build execution
+  # -------------------------------------------------------------------
 
   defp run_build(project) do
     Queue.exec(project_queue(project), fn ->
@@ -217,31 +239,27 @@ defmodule AircloakCI.Build.Server do
     end)
   end
 
-  defp build_status(:ok), do: :success
-  defp build_status(:error), do: :error
 
-  defp handle_build_finish(state, build_status, context) do
-    diff_sec = :erlang.monotonic_time(:second) - state.start
-    time_output = :io_lib.format("~b:~2..0b", [div(diff_sec, 60), rem(diff_sec, 60)])
+  # -------------------------------------------------------------------
+  # Communication with Github
+  # -------------------------------------------------------------------
 
-    LocalProject.log(state.project, "finished with status `#{build_status}` in #{time_output} min")
-
-    send_status_to_github(state.pr, build_status, description(build_status))
-    Github.post_comment(
-      state.pr.repo.owner,
-      state.pr.repo.name,
-      state.pr.number,
-      comment(build_status, state.project, context)
-    )
-
-    LocalProject.set_status(state.project, :finished)
+  defp send_status_to_github(pr, status, description) do
+    status_context = "continuous-integration/aircloak/compliance"
+    current_description = (pr.status_checks[status_context] || %{description: nil}).description
+    if description != current_description, do:
+      Github.put_status_check_state(pr.repo.owner, pr.repo.name, pr.sha, status_context, description, status)
   end
 
-  defp description(:success), do: "build succeeded"
+  defp github_status(:ok), do: :success
+  defp github_status(:error), do: :error
+  defp github_status(:failure), do: :failure
+
+  defp description(:ok), do: "build succeeded"
   defp description(:error), do: "build errored"
   defp description(:failure), do: "build failed"
 
-  defp comment(:success, _project, nil), do:
+  defp comment(:ok, _project, nil), do:
     "Compliance build succeeded 👍"
   defp comment(:error, project, nil), do:
     Enum.join(["Compliance build errored 😞", "", "Log tail:", "```", log_tail(project), "```"], "\n")
@@ -264,8 +282,18 @@ defmodule AircloakCI.Build.Server do
     |> Enum.join("\n")
   end
 
-  defp branch!(repo_data, branch_name), do:
-    %{} = Enum.find(repo_data.branches, &(&1.name == branch_name))
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp name(pr), do:
+    {:via, Registry, {AircloakCI.Build.Registry, {:pull_request, pr.number}}}
+
+  defp project_queue(project), do: {:project, LocalProject.folder(project)}
+
+  defp update_pr(state, pr), do:
+    %{maybe_cancel_current_build(state, pr) | pr: pr}
 
 
   # -------------------------------------------------------------------
