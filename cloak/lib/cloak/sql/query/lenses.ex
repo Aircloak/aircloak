@@ -14,7 +14,7 @@ defmodule Cloak.Sql.Query.Lenses do
   deflens terminals(), do:
     Lens.multiple([
       Lens.keys([:columns, :group_by, :db_columns, :property, :aggregators]),
-      Lens.keys([:noise_layers]) |> Lens.all() |> Lens.key(:expressions),
+      Lens.key(:noise_layers) |> Lens.all() |> Lens.key(:expressions),
       Lens.key(:order_by) |> Lens.all() |> Lens.at(0),
       filters_operands(),
     ])
@@ -68,7 +68,7 @@ defmodule Cloak.Sql.Query.Lenses do
 
   @doc "Lens focusing on all subqueries of a query."
   deflens subqueries(), do:
-    Lens.match(fn(_) -> Lens.both(direct_subqueries(), direct_subqueries() |> Lens.key(:ast) |> subqueries()) end)
+    Lens.match(fn(_) -> direct_subqueries() |> Lens.both(Lens.key(:ast) |> subqueries(), Lens.root()) end)
 
   @doc "Lens focusing on a query's immediate subqueries"
   deflens direct_subqueries(), do:
