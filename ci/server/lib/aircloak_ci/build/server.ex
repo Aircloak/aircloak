@@ -64,7 +64,7 @@ defmodule AircloakCI.Build.Server do
   def handle_info({:repo_data, repo_data}, state) do
     case Enum.find(repo_data.pull_requests, &(&1.number == state.pr.number)) do
       nil ->
-        Logger.info("shutting down build server for `#{LocalProject.name(state.build)}`")
+        Logger.info("shutting down build server for `#{LocalProject.name(state.project)}`")
         {:stop, :shutdown, state}
       pr ->
         {:noreply, %{state | repo_data: repo_data} |> update_pr(pr) |> maybe_start_build()}
