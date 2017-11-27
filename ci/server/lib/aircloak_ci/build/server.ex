@@ -33,6 +33,7 @@ defmodule AircloakCI.Build.Server do
     Process.flag(:trap_exit, true)
 
     project = LocalProject.for_pull_request(pr)
+    Logger.info("started build server for #{LocalProject.name(project)}")
     {:ok, init_task} = Task.start_link(fn -> init_project(project, pr, repo_data) end)
     {:ok, %{
       repo_data: repo_data,
