@@ -14,7 +14,7 @@ are expecting certain PostgreSQL-specific features and behaviours to be present.
 In order to query Aircloak Insights using the PostgreSQL Message Protocol server, your Aircloak Insights platform
 installation needs to have been configured to allow this. Specifically this means the following:
 
-- The [Insights Air docker container](installation.html#insights-air) must make the PostgreSQL Message Protocol
+- The [Insights Air docker container](ops/installation.html#insights-air) must make the PostgreSQL Message Protocol
   server port available
 - The firewall configuration needs to allow access to the port from your network context
 
