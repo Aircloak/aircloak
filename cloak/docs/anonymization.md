@@ -396,8 +396,11 @@ with a condition like `WHERE x = 1 AND x <> 2` we would normally create a noise
 layer for the `x <> 2` condition even though it doesn't affect the results.
 
 This might lead to reverse-engineering the values of particular noise layers. In
-order to prevent it, we remove any negative noise layer (`<>`, `NOT IN`, `NOT
-(I)LIKE`) for which a corresponding positive layer exists.
+order to prevent it, we add the symbol `:override` to any negative noise layer
+(`<>`, `NOT IN`, `NOT (I)LIKE`) for which a corresponding positive layer exists.
+That way the analyst will at most be able to reverse-engineer this override layer
+instead of a regular noise layer for the given negative condition. See
+[this discussion](https://github.com/Aircloak/aircloak/pull/2146) for more.
 
 ## Function and math restrictions
 
