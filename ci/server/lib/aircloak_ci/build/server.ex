@@ -1,9 +1,9 @@
-defmodule AircloakCI.Job.Server do
+defmodule AircloakCI.Build.Server do
   @moduledoc "Server which handles a build of a single pull request."
 
   use GenServer, start: {__MODULE__, :start_link, []}
   require Logger
-  alias AircloakCI.{LocalProject, Github, Job.Queue}
+  alias AircloakCI.{LocalProject, Github, Build.Queue}
 
 
   # -------------------------------------------------------------------
@@ -69,7 +69,7 @@ defmodule AircloakCI.Job.Server do
         {:noreply, %{state | repo_data: repo_data} |> update_pr(pr) |> maybe_start_build()}
     end
   end
-  def handle_info({:job_result, result}, state) do
+  def handle_info({:build_result, result}, state) do
     handle_build_finish(state, build_status(result), nil)
     {:noreply, state}
   end
@@ -88,7 +88,7 @@ defmodule AircloakCI.Job.Server do
   # -------------------------------------------------------------------
 
   defp name(pr), do:
-    {:via, Registry, {AircloakCI.Job.Registry, {:pull_request, pr.number}}}
+    {:via, Registry, {AircloakCI.Build.Registry, {:pull_request, pr.number}}}
 
   defp project_queue(project), do: {:project, LocalProject.folder(project)}
 
@@ -138,7 +138,7 @@ defmodule AircloakCI.Job.Server do
       case check_start_preconditions(state) do
         :ok ->
           me = self()
-          {:ok, build_task} = Task.start_link(fn -> send(me, {:job_result, run_build(state.project)}) end)
+          {:ok, build_task} = Task.start_link(fn -> send(me, {:build_result, run_build(state.project)}) end)
 
           %{state | build_task: build_task, start: :erlang.monotonic_time(:second)}
         {:error, status} ->

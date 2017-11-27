@@ -1,4 +1,4 @@
-defmodule AircloakCI.Job do
+defmodule AircloakCI.Build do
   @moduledoc "Functions for interacting with builds."
   use Aircloak.ChildSpec.Supervisor
   alias AircloakCI.Github
@@ -17,7 +17,7 @@ defmodule AircloakCI.Job do
   @spec force_build(Github.API.pull_request, Github.API.repo_data) :: :ok | {:error, String.t}
   def force_build(pr, repo_data) do
     ensure_started(pr, repo_data)
-    AircloakCI.Job.Server.force_build(pr)
+    AircloakCI.Build.Server.force_build(pr)
   end
 
 
@@ -32,7 +32,7 @@ defmodule AircloakCI.Job do
     Supervisor.start_link(
       [
         registry(:unique, __MODULE__.Registry),
-        supervisor([AircloakCI.Job.Server], strategy: :simple_one_for_one, name: __MODULE__.Supervisor)
+        supervisor([AircloakCI.Build.Server], strategy: :simple_one_for_one, name: __MODULE__.Supervisor)
       ],
       strategy: :one_for_one, name: __MODULE__
     )

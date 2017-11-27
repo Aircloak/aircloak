@@ -52,7 +52,7 @@ defmodule AircloakCI.RepoDataProvider do
       try do
         repo_data = Github.repo_data("aircloak", "aircloak")
         Enum.each(AircloakCI.RepoDataProvider.subscribers(), &send(&1, {:repo_data, repo_data}))
-        Enum.each(repo_data.pull_requests, &AircloakCI.Job.ensure_started(&1, repo_data))
+        Enum.each(repo_data.pull_requests, &AircloakCI.Build.ensure_started(&1, repo_data))
       catch type, error ->
         Logger.error(Exception.format(type, error, System.stacktrace()))
       end
