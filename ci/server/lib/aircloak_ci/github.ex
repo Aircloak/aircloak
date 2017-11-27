@@ -74,7 +74,14 @@ defmodule AircloakCI.Github do
   def handle_info(:log_rate_limits, state) do
     Enum.each(state.rate_limits,
       fn({category, rate_limit}) ->
-        expires_in = DateTime.diff(rate_limit.expires_at, DateTime.utc_now(), :second)
+        expires_in =
+          case DateTime.diff(rate_limit.expires_at, DateTime.utc_now(), :second) do
+            diff when diff > 0 -> diff
+            # If we didn't issue any request since the last reset the diff will be negative.
+            # In this case, we'll report the maximum amount (5000).
+            _ -> 5000
+          end
+
         Logger.info("#{category} #{rate_limit.remaining} requests remaining, expires in #{expires_in} sec")
       end
     )

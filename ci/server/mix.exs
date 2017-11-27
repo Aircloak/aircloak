@@ -25,7 +25,8 @@ defmodule AircloakCI.Mixfile do
       {:httpoison, "~> 0.13.0"},
       {:poison, "~> 2.0"},
       {:aircloak_common, path: "../../common/elixir"},
-      {:erlexec, "~> 1.7"}
+      {:erlexec, "~> 1.7"},
+      {:jobs, "~> 0.7"},
     ]
   end
 

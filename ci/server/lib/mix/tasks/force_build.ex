@@ -26,7 +26,7 @@ defmodule Mix.Tasks.AircloakCi.ForceBuild do
   def run([number]) do
     Mix.Task.run("app.start")
 
-    case AircloakCI.Builder.Server.force_build(String.to_integer(number)) do
+    case AircloakCI.force_build(String.to_integer(number)) do
       :ok -> :timer.sleep(:infinity)
       {:error, reason} ->
         Mix.raise("error starting the build: #{reason}")
