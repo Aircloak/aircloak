@@ -17,7 +17,7 @@ defmodule AircloakCI.BuildCleaner do
   @impl GenServer
   def handle_info({:repo_data, repo_data}, state) do
     AircloakCI.LocalProject.remove_old_folders(repo_data)
-    AircloakCI.Build.Queue.remove_needless_project_queues()
+    AircloakCI.Queue.remove_needless_project_queues()
     {:noreply, state}
   end
   def handle_info(message, state), do:

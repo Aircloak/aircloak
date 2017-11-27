@@ -1,4 +1,4 @@
-defmodule AircloakCI.Build.Queue do
+defmodule AircloakCI.Queue do
   @moduledoc "Queueing helpers."
 
   require Logger

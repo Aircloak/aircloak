@@ -3,7 +3,7 @@ defmodule AircloakCI.Build.Server do
 
   use GenServer, start: {__MODULE__, :start_link, []}
   require Logger
-  alias AircloakCI.{LocalProject, Github, Build.Queue}
+  alias AircloakCI.{LocalProject, Github, Queue}
 
 
   # -------------------------------------------------------------------
