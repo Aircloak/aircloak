@@ -312,7 +312,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # -------------------------------------------------------------------
 
   defp remove_meaningless_negative_noise_layers(query = %{noise_layers: noise_layers}), do:
-    %{query | noise_layers: Enum.reject(noise_layers, &meaningless?(&1, noise_layers))}
+    %{query | noise_layers: Enum.map(noise_layers, &override_meaningless(&1, noise_layers))}
+
+  defp override_meaningless(noise_layer, all_layers), do:
+    if meaningless?(noise_layer, all_layers), do: do_override_meaningless(noise_layer), else: noise_layer
+
+  defp do_override_meaningless(layer = %{base: {table, column, :<>}}), do:
+    %{layer | base: {table, column, {:<>, :override}}}
+  defp do_override_meaningless(layer = %{base: {table, column, {:not, kind, pattern}}}), do:
+    %{layer | base: {table, column, {:not, kind, pattern, :override}}}
 
   defp meaningless?(noise_layer, all_layers), do: Enum.any?(all_layers, &positive_equivalent?(noise_layer, &1))
 

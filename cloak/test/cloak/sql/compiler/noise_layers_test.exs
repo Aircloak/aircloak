@@ -305,41 +305,53 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   end
 
   describe "useless negative conditions" do
-    test "removing <> noise layers when a more specific positive one exists" do
-      result1 = compile!("SELECT COUNT(*) FROM table WHERE numeric = 1 AND numeric <> 2")
-      result2 = compile!("SELECT COUNT(*) FROM table WHERE numeric = 1")
+    test "overrides <> noise layers when a more specific positive one exists" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE numeric = 1 AND numeric <> 2")
 
-      assert scrub_aliases(result1).noise_layers == scrub_aliases(result2).noise_layers
+      assert [
+        %{base: {"table", "numeric", nil}}, %{base: {"table", "numeric", nil}},
+        %{base: {"table", "numeric", {:<>, :override}}}, %{base: {"table", "numeric", {:<>, :override}}},
+      ] = result.noise_layers
     end
 
-    test "does not remove <> noise layers when a more specific positive one exists on another column" do
-      result1 = compile!("SELECT COUNT(*) FROM table WHERE numeric = 1 AND numeric2 <> 2")
-      result2 = compile!("SELECT COUNT(*) FROM table WHERE numeric = 1")
+    test "does not override <> noise layers when a more specific positive one exists on another column" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE numeric = 1 AND numeric2 <> 2")
 
-      assert scrub_aliases(result1).noise_layers != scrub_aliases(result2).noise_layers
+      assert [
+        %{base: {"table", "numeric", nil}}, %{base: {"table", "numeric", nil}},
+        %{base: {"table", "numeric2", :<>}}, %{base: {"table", "numeric2", :<>}},
+      ] = result.noise_layers
     end
 
     for operator <- ~w(LIKE ILIKE) do
-      test "removing NOT #{operator} noise layers when a more specific positive one exists" do
-        result1 = compile!("SELECT COUNT(*) FROM table WHERE name NOT #{unquote(operator)} 'a%b' GROUP BY name")
-        result2 = compile!("SELECT COUNT(*) FROM table GROUP BY name")
+      test "overrides NOT #{operator} noise layers when a more specific positive one exists" do
+        result = compile!("SELECT COUNT(*) FROM table WHERE name NOT #{unquote(operator)} 'a%b' GROUP BY name")
 
-        assert scrub_aliases(result1).noise_layers == scrub_aliases(result2).noise_layers
+        assert [
+          %{base: {"table", "name", nil}},
+          %{base: {"table", "name", nil}},
+          %{base: {"table", "name", {:not, _, _, :override}}},
+          %{base: {"table", "name", {:not, _, _, :override}}},
+        ] = result.noise_layers
       end
     end
 
-    test "removes meaningless noise layers from subqueries" do
-      result1 = compile!("SELECT COUNT(*) FROM (SELECT uid, numeric FROM table WHERE numeric <> 2) x WHERE numeric = 1")
-      result2 = compile!("SELECT COUNT(*) FROM (SELECT uid, numeric FROM table) x WHERE numeric = 1")
+    test "overrides meaningless noise layers from subqueries" do
+      result = compile!("SELECT COUNT(*) FROM (SELECT uid, numeric FROM table WHERE numeric <> 2) x WHERE numeric = 1")
 
-      assert scrub_aliases(result1).noise_layers == scrub_aliases(result2).noise_layers
+      assert [
+        %{base: {"table", "numeric", {:<>, :override}}}, %{base: {"table", "numeric", {:<>, :override}}},
+        %{base: {"table", "numeric", nil}}, %{base: {"table", "numeric", nil}},
+      ] = result.noise_layers
     end
 
-    test "removes menaingless noise layers when a more specific positive one exists in a subquery" do
-      result1 = compile!("SELECT COUNT(*) FROM (SELECT uid, numeric FROM table WHERE numeric = 2) x WHERE numeric <> 1")
-      result2 = compile!("SELECT COUNT(*) FROM (SELECT uid, numeric FROM table WHERE numeric = 2) x")
+    test "overrides menaingless noise layers when a more specific positive one exists in a subquery" do
+      result = compile!("SELECT COUNT(*) FROM (SELECT uid, numeric FROM table WHERE numeric = 2) x WHERE numeric <> 1")
 
-      assert scrub_aliases(result1).noise_layers == scrub_aliases(result2).noise_layers
+      assert [
+        %{base: {"table", "numeric", nil}}, %{base: {"table", "numeric", nil}},
+        %{base: {"table", "numeric", {:<>, :override}}}, %{base: {"table", "numeric", {:<>, :override}}},
+      ] = result.noise_layers
     end
   end
 
