@@ -390,6 +390,20 @@ produced instead - the min, max and count of the column. This process can be
 repeated in case of multiple aggregations (in subqueries) by taking the min of
 mins, max of maxes and sum of counts.
 
+### Meaningless layers
+
+Given the rules above, the analyst is able to create conditions that do not
+affect the result of a query, but add a noise layer. For example for a query
+with a condition like `WHERE x = 1 AND x <> 2` we would normally create a noise
+layer for the `x <> 2` condition even though it doesn't affect the results.
+
+This might lead to reverse-engineering the values of particular noise layers. In
+order to prevent it, we add the symbol `:override` to any negative noise layer
+(`<>`, `NOT IN`, `NOT (I)LIKE`) for which a corresponding positive layer exists.
+That way the analyst will at most be able to reverse-engineer this override layer
+instead of a regular noise layer for the given negative condition. See
+[this discussion](https://github.com/Aircloak/aircloak/pull/2146) for more.
+
 ## Function and math restrictions
 
 In order to prevent users from being able to express arbitrary binary logic through the
