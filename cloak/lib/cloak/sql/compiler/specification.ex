@@ -594,19 +594,18 @@ defmodule Cloak.Sql.Compiler.Specification do
     {:in, column, Enum.map(values, &parse_time(&1, type))}
   defp do_cast_where_clause(clause, _), do: clause
 
-  defp parse_time(column = %Expression{constant?: true, value: string}, type) do
-    case do_parse_time(column, type) do
+  defp parse_time(expression, type) do
+    value = Expression.value(expression)
+
+    case do_parse_time(value, type) do
       {:ok, result} -> Expression.constant(type, result)
-      _ -> raise CompilationError, message: "Cannot cast `#{string}` to #{type}."
+      _ -> raise CompilationError, message: "Cannot cast `#{value}` to #{type}."
     end
   end
 
-  defp do_parse_time(%Expression{type: :text, value: string}, :date), do:
-    Cloak.Time.parse_date(string)
-  defp do_parse_time(%Expression{type: :text, value: string}, :time), do:
-    Cloak.Time.parse_time(string)
-  defp do_parse_time(%Expression{type: :text, value: string}, :datetime), do:
-    Cloak.Time.parse_datetime(string)
+  defp do_parse_time(string, :date) when is_binary(string), do: Cloak.Time.parse_date(string)
+  defp do_parse_time(string, :time) when is_binary(string), do: Cloak.Time.parse_time(string)
+  defp do_parse_time(string, :datetime) when is_binary(string), do: Cloak.Time.parse_datetime(string)
   defp do_parse_time(_, _), do: {:error, :invalid_cast}
 
 

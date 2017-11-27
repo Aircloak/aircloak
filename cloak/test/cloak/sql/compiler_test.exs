@@ -65,6 +65,10 @@ defmodule Cloak.Sql.Compiler.Test do
     assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
 
+  test "[Issue #2152] an invalid datetime comparison", do:
+    assert {:error, "Cannot cast `900` to datetime."} =
+      compile("select * from table where column = 1000 - 100", data_source())
+
   test "allows comparing datetime columns to other datetime columns" do
     assert {:ok, _} = compile("select * from table where column = column", data_source())
   end
