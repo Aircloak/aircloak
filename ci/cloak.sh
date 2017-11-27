@@ -27,12 +27,12 @@ function cleanup {
     # Without this trickery, the owner would always be root.
     # See [this issue](https://github.com/moby/moby/issues/2259) for more details.
     run_in_cloak "chown -R $UID /aircloak/cloak" || true
-  fi
 
-  # We need to kill the container before disconnecting it from the network. Otherwise, we end up with dangling network
-  # connections on database containers.
-  docker kill $CLOAK_CONTAINER > /dev/null || true
-  docker rm $CLOAK_CONTAINER > /dev/null || true
+    # We need to kill the container before disconnecting it from the network. Otherwise, we end up with dangling network
+    # connections on database containers.
+    docker kill $CLOAK_CONTAINER > /dev/null || true
+    docker rm $CLOAK_CONTAINER > /dev/null || true
+  fi
 
   for container_id in $(
     docker network inspect $CLOAK_NETWORK_ID --format '
@@ -88,14 +88,39 @@ function ensure_database_containers {
     microsoft/mssql-server-linux:2017-latest
 }
 
+function release_lock {
+  local exit_status=$?
+
+  # We'll ignore subsequent exit signals to avoid reentrancy.
+  trap ignore_cleanup EXIT TERM INT
+
+  echo "releasing lock for cloak image build"
+  rm -f /tmp/cloak_image_build
+  exit $exit_status
+}
+
 function build_cloak_image {
+  if [ $(uname -s) != "Darwin" ]; then
+    echo "acquiring lock for cloak image build"
+    if lockfile -1 -r 3600 /tmp/cloak_image_build; then
+      trap release_lock EXIT TERM INT
+    else
+      echo "couldn't acquire lock"
+      exit 1
+    fi
+  else
+    touch "/tmp/cloak_image_build"
+    trap release_lock EXIT TERM INT
+  fi
+
   pushd ./cloak && make odbc_drivers && popd
   common/docker/elixir/build-image.sh
   build_aircloak_image cloak_ci ci/cloak.dockerfile ci/.cloak.dockerignore
 }
 
 function start_cloak_container {
-  build_cloak_image
+  # running build in a separate shell to ensure proper cleanup (removal of lock)
+  bash -c ". ./ci/cloak.sh && build_cloak_image"
 
   mkdir -p tmp/ci/cloak
 
