@@ -73,7 +73,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         {:error, :not_found} ->
           raise CompilationError, message: "Unknown function `#{Function.readable_name(name)}`."
         {:ok, %{alternative: alternative}} ->
-          raise CompilationError, message: "Function `#{Function.readable_name(name)}` has be deprecated. " <>
+          raise CompilationError, message: "Function `#{Function.readable_name(name)}` has been deprecated. " <>
             "Please use `#{Function.readable_name(alternative)}` instead."
       end
     end
