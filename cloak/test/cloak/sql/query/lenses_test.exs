@@ -1,7 +1,28 @@
 defmodule Cloak.Sql.Query.Lenses.Test do
   use ExUnit.Case, async: true
 
+  alias Cloak.Sql.Query
   alias Cloak.Sql.Query.Lenses
+
+  describe "terminals" do
+    test "returns expressions" do
+      query = %Query{columns: [:expression]}
+      assert [:expression] == Lenses.terminals() |> normalize_elements(query)
+    end
+
+    test "focuses on function arguments as well as function" do
+      query = %Query{columns: [{:function, "name", [:args]}]}
+      assert [:args, {:function, "name", [:args]}] == Lenses.terminals() |> normalize_elements(query)
+    end
+
+    test "recurses inside aliases" do
+      query = %Query{columns: [{{:function, "name", [:args]}, :as, "alias"}]}
+      assert [:args, {:function, "name", [:args]}] == Lenses.terminals() |> normalize_elements(query)
+    end
+  end
+
+  defp normalize_elements(lens, query), do:
+    lens |> Lens.to_list(query) |> Enum.filter(& &1) |> Enum.sort()
 
   describe "join_condition_lenses" do
     test "a simple join" do

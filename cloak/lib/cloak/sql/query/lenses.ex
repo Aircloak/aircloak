@@ -229,7 +229,7 @@ defmodule Cloak.Sql.Query.Lenses do
       {:function, "count_noise", :*} -> Lens.empty()
       {:function, _, _} -> Lens.both(Lens.at(2) |> terminal_elements(), Lens.root())
       {:distinct, _} -> Lens.both(Lens.at(1) |> terminal_elements(), Lens.root())
-      {_, :as, _} -> Lens.at(0)
+      {_, :as, _} -> Lens.at(0) |> terminal_elements()
       elements when is_list(elements) -> Lens.all() |> terminal_elements()
       %Expression{function?: true} -> Lens.both(Lens.key(:function_args) |> terminal_elements, Lens.root())
       _ -> Lens.root
