@@ -1,0 +1,15 @@
+[Unit]
+Description=Aircloak CI service
+
+[Service]
+Environment="https_proxy=http://acmirror.mpi-sws.org:3128"
+Environment="http_proxy=http://acmirror.mpi-sws.org:3128"
+Environment="no_proxy=localhost,127.0.0.1,acmirror.mpi-sws.org,aclog0.mpi-sws.org"
+ExecStart=/home/ci/aircloak_ci/production/current/bin/aircloak_ci foreground
+ExecStop=/home/ci/aircloak_ci/production/current/bin/aircloak_ci stop
+Restart=on-failure
+RestartSec=5s
+User=ci
+
+[Install]
+WantedBy=multi-user.target
