@@ -80,6 +80,19 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "forbids non-constant expressions on the RHS of conditions with string manipulation functions", do:
       assert {:error, "Results of string manipulation functions can only be compared to constants."} =
         compile("SELECT COUNT(*) FROM table WHERE substring(string from 1) = string")
+
+    test "allows string manipulation functions on clear columns in negative conditions", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE ltrim(string, 'abc') <> 'foo'")
+
+    test "forbids string manipulation functions on unclear columns in negative conditions", do:
+      assert {:error, _} = compile("SELECT COUNT(*) FROM table WHERE btrim(string || string, 'abc') <> 'foo'")
+
+    test "allows string manipulation functions after a cast", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE btrim(cast(numeric as text), 'abc') = 'foo'")
+
+    test "forbids string manipulation functions after nested casts", do:
+      assert {:error, _} =
+        compile("SELECT COUNT(*) FROM table WHERE btrim(cast(cast(numeric as real) as text), 'abc') = 'foo'")
   end
 
   describe "ranges" do
