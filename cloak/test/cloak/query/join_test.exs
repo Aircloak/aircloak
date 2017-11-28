@@ -228,4 +228,19 @@ defmodule Cloak.Query.JoinTest do
       JOIN children_join AS t2 ON t1.user_id = t2.user_id
     """, %{rows: [%{row: [100], occurrences: 1}]}
   end
+
+  test "bugfix: deep join with grouping" do
+    :ok = insert_rows(_user_ids = 1..15, "heights_join", ["height"], [10])
+    :ok = insert_rows(_user_ids = 1..15, "purchases", ["price"], [20])
+
+    assert_query """
+      SELECT sum(x) FROM (
+        SELECT t1.user_id, x1 + x2 AS x FROM
+          (SELECT user_id, COUNT(*) AS x2 FROM heights_join GROUP BY user_id, height) AS t1
+          INNER JOIN
+          (SELECT user_id, COUNT(*) AS x1 FROM purchases GROUP BY user_id, price) AS t2
+          ON t1.user_id = t2.user_id
+        ) AS t
+    """, %{rows: [%{row: [30], occurrences: 1}]}
+  end
 end

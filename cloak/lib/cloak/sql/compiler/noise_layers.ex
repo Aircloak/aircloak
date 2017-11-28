@@ -75,13 +75,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> add_db_columns()
     |> float_noise_layers_columns()
 
-  defp add_floated_noise_layers(query), do:
-    if query.subquery? && Helpers.aggregate?(query),
-      do: %{query | noise_layers: float_noise_layers(query.noise_layers ++ floated_noise_layers(query), query)},
-      else: %{query | noise_layers: query.noise_layers ++ floated_noise_layers(query)}
+  defp add_floated_noise_layers(query) do
+    noise_layers =
+      if query.subquery? && Helpers.aggregate?(query),
+        do: float_noise_layers(query.noise_layers ++ floated_noise_layers(query), query),
+        else: query.noise_layers ++ floated_noise_layers(query)
+    %{query | noise_layers: drop_redundant_noise_layers_columns(noise_layers)}
+  end
 
   defp float_noise_layers(layers, query), do:
-    layers |> Enum.map(&float_noise_layer(&1, query)) |> drop_redundant_noise_layers_columns()
+    Enum.map(layers, &float_noise_layer(&1, query))
 
   defp add_db_columns(query), do:
     Helpers.add_extra_db_columns(query, noise_layer_columns(query))
