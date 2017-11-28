@@ -14,6 +14,11 @@ defmodule Cloak.Sql.Query.Lenses.Test do
       query = %Query{columns: [{:function, "name", [:args]}]}
       assert [:args, {:function, "name", [:args]}] == Lenses.terminals |> trimmed_terminals(query)
     end
+
+    test "recurses inside aliases" do
+      query = %Query{columns: [{{:function, "name", [:args]}, :as, "alias"}]}
+      assert [:args, {:function, "name", [:args]}] == Lenses.terminals |> trimmed_terminals(query)
+    end
   end
 
   defp trimmed_terminals(lens, query), do:
