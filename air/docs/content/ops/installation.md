@@ -47,7 +47,7 @@ docker pull quay.io/aircloak/air:X.Y.Z
 Once air is properly configured you can start the air container with the following command:
 
 ```bash
-docker run -d --name air \
+docker run -d --name air -h air \
   -v configuration_folder:/runtime_config \
   -p desired_http_port:8080 \
   -p desired_https_port:8443 \
@@ -90,7 +90,7 @@ docker pull quay.io/aircloak/cloak:X.Y.Z
 Assuming the component is configured, we can start the cloak container as:
 
 ```bash
-docker run -d --name cloak \
+docker run -d --name cloak -h cloak \
   -v configuration_folder:/runtime_config \
   --restart=unless-stopped \
   quay.io/aircloak/cloak:latest
