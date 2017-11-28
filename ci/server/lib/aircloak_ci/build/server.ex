@@ -193,7 +193,7 @@ defmodule AircloakCI.Build.Server do
       state.pr.repo.owner,
       state.pr.repo.name,
       state.pr.number,
-      comment(result, state.project, context)
+      comment(state, result, context)
     )
 
     LocalProject.set_status(state.project, :finished)
@@ -289,16 +289,20 @@ defmodule AircloakCI.Build.Server do
   defp description(:error), do: "build errored"
   defp description(:failure), do: "build failed"
 
-  defp comment(:ok, _project, nil), do:
+  defp comment(_state, :ok, nil), do:
     "Compliance build succeeded #{happy_emoji()}"
-  defp comment(:error, project, nil), do:
-    Enum.join(["Compliance build errored #{sad_emoji()}", "", "Log tail:", "```", log_tail(project), "```"], "\n")
-  defp comment(:failure, project, crash_reason), do:
+  defp comment(state, :error, nil), do:
+    error_comment(state, "Compliance build errored")
+  defp comment(state, :failure, crash_reason), do:
+    error_comment(state, "Compliance build crashed", "```\n#{Exception.format_exit(crash_reason)}\n```")
+
+  defp error_comment(state, title, extra_info \\ nil), do:
     Enum.join(
       [
-        "Compliance build crashed #{sad_emoji()}", "",
-        "```", Exception.format_exit(crash_reason), "```", "",
-        "Log tail:", "```", log_tail(project), "```"
+        "#{title} #{sad_emoji()}",
+        (if not is_nil(extra_info), do: "\n#{extra_info}\n", else: ""),
+        "You can see the full build log by running: `ci/server/production.sh build_log #{state.pr.number}`\n",
+        "Log tail:\n", "```", log_tail(state.project), "```"
       ],
       "\n"
     )
