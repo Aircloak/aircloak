@@ -4,8 +4,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   alias Cloak.DataSource.Table
   alias Cloak.Sql.{Expression, NoiseLayer}
 
-  import Cloak.Test.QueryHelpers, except: [compile!: 2, compile!: 3]
-
   defmacrop static_layer(base) do
     quote do
       %NoiseLayer{expressions: [_, _, _], base: unquote(base)}
@@ -54,7 +52,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result1 = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3")
       result2 = compile!("SELECT COUNT(*) FROM table WHERE 3 = numeric")
 
-      assert scrub_aliases(result1).noise_layers == scrub_aliases(result2).noise_layers
+      assert result1.noise_layers == result2.noise_layers
     end
 
     test "adds a uid and static noise layer for unclear conditions" do
@@ -570,7 +568,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         %{base: {"table", "numeric", nil}, expressions: [%Expression{name: alias}, _, _]},
         %{base: {"table", "numeric", nil}, expressions: [%Expression{name: alias}, _, _, %Expression{name: "uid"}]},
       ] = result.noise_layers
-      assert 1 = Enum.count(subquery.db_columns, &match?(%Expression{name: "numeric", alias: ^alias}, &1))
+      assert 1 = Enum.count(subquery.db_columns, &match?(%Expression{name: "numeric"}, &1))
     end
 
     test "floating columns that are not aggregated" do
@@ -578,11 +576,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       %{from: {:subquery, %{ast: subquery}}} = result
 
-      assert [%{alias: min_alias}, %{alias: other_min_alias}] = Enum.filter(subquery.db_columns,
+      assert [%{alias: min_alias}] = Enum.filter(subquery.db_columns,
         &match?(%Expression{function: "min", function_args: [%Expression{name: "numeric"}]}, &1))
-      assert [%{alias: max_alias}, %{alias: other_max_alias}] = Enum.filter(subquery.db_columns,
+      assert [%{alias: max_alias}] = Enum.filter(subquery.db_columns,
         &match?(%Expression{function: "max", function_args: [%Expression{name: "numeric"}]}, &1))
-      assert [%{alias: count_alias}, %{alias: other_count_alias}] = Enum.filter(subquery.db_columns,
+      assert [%{alias: count_alias}] = Enum.filter(subquery.db_columns,
         &match?(%Expression{function: "count", function_args: [%Expression{name: "numeric"}]}, &1))
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^min_alias, type: :integer}, &1))
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^max_alias, type: :integer}, &1))
@@ -591,15 +589,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         %Expression{name: ^min_alias},
         %Expression{name: ^max_alias},
         %Expression{name: ^count_alias}
-      ]}, &1))
-      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^other_min_alias}, &1))
-      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^other_max_alias}, &1))
-      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^other_count_alias}, &1))
-      assert 1 = Enum.count(result.noise_layers, &match?(%{base: {"table", "numeric", nil}, expressions: [
-        %Expression{name: ^other_min_alias},
-        %Expression{name: ^other_max_alias},
-        %Expression{name: ^other_count_alias},
-        %Expression{name: "uid"},
       ]}, &1))
     end
 
@@ -632,11 +621,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       %{from: {:subquery, %{ast: subquery}}} = result
       %{from: {:subquery, %{ast: inner_subquery}}} = subquery
 
-      assert [%{alias: min_alias}, _] = Enum.filter(inner_subquery.db_columns,
+      assert [%{alias: min_alias}] = Enum.filter(inner_subquery.db_columns,
         &match?(%Expression{function: "min", function_args: [%Expression{name: "numeric"}]}, &1))
-      assert [%{alias: max_alias}, _] = Enum.filter(inner_subquery.db_columns,
+      assert [%{alias: max_alias}] = Enum.filter(inner_subquery.db_columns,
         &match?(%Expression{function: "max", function_args: [%Expression{name: "numeric"}]}, &1))
-      assert [%{alias: count_alias}, _] = Enum.filter(inner_subquery.db_columns,
+      assert [%{alias: count_alias}] = Enum.filter(inner_subquery.db_columns,
         &match?(%Expression{function: "count", function_args: [%Expression{name: "numeric"}]}, &1))
       assert 1 = Enum.count(subquery.db_columns, &match?(%Expression{name: ^min_alias}, &1))
       assert 1 = Enum.count(subquery.db_columns, &match?(%Expression{name: ^max_alias}, &1))
@@ -661,11 +650,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       %{from: {:subquery, %{ast: subquery}}} = result
       %{from: {:subquery, %{ast: inner_subquery}}} = subquery
 
-      assert [%{alias: min_alias}, _] = Enum.filter(inner_subquery.db_columns,
+      assert [%{alias: min_alias}] = Enum.filter(inner_subquery.db_columns,
         &match?(%Expression{function: "min", function_args: [%Expression{name: "numeric"}]}, &1))
-      assert [%{alias: max_alias}, _] = Enum.filter(inner_subquery.db_columns,
+      assert [%{alias: max_alias}] = Enum.filter(inner_subquery.db_columns,
         &match?(%Expression{function: "max", function_args: [%Expression{name: "numeric"}]}, &1))
-      assert [%{alias: count_alias}, _] = Enum.filter(inner_subquery.db_columns,
+      assert [%{alias: count_alias}] = Enum.filter(inner_subquery.db_columns,
         &match?(%Expression{function: "count", function_args: [%Expression{name: "numeric"}]}, &1))
       assert [%{alias: min_alias}] = Enum.filter(subquery.db_columns,
         &match?(%Expression{function: "min", function_args: [%Expression{name: ^min_alias}]}, &1))
@@ -770,6 +759,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert {"table", "numeric", nil} = base
     end
+  end
+
+  test "performance sanity check" do
+    %{db_columns: db_columns} =
+      compile!("SELECT COUNT(*) FROM (SELECT uid FROM table AS t WHERE numeric BETWEEN 0 AND 1000000 GROUP BY 1) x")
+    assert 4 = length(db_columns)
   end
 
   defp compile!(query, opts \\ []), do:

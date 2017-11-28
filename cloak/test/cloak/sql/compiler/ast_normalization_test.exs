@@ -1,5 +1,5 @@
 defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
-  alias Cloak.Sql.{Compiler.ASTNormalization, Parser, Query}
+  alias Cloak.Sql.{Compiler.ASTNormalization, Parser}
 
   use ExUnit.Case, async: true
 
@@ -17,12 +17,18 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
     end
 
     test "distinct with group by" do
-      normalized = Parser.parse!("SELECT COUNT(*) FROM (SELECT DISTINCT a, b + d, c FROM table GROUP BY b) x")
-        |> ASTNormalization.normalize()
-        |> scrub_subquery_aliases()
-      expected = Parser.parse!("
-        SELECT COUNT(*) FROM (SELECT * FROM (SELECT a, b + d, c FROM table GROUP BY b) alias GROUP BY 1, 2, 3) x")
-        |> scrub_subquery_aliases()
+      normalized = Parser.parse!("""
+        SELECT COUNT(*) FROM (
+          SELECT DISTINCT a, b + d, c FROM table GROUP BY b
+        ) x
+      """) |> ASTNormalization.normalize()
+      expected = Parser.parse!("""
+        SELECT COUNT(*) FROM (
+          SELECT * FROM (
+            SELECT a, b + d, c FROM table GROUP BY b
+          ) __ac_distinct GROUP BY 1, 2, 3
+        ) x
+      """)
 
       assert normalized == expected
     end
@@ -64,7 +70,4 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
       assert ASTNormalization.normalize(parsed) == expected
     end
   end
-
-  defp scrub_subquery_aliases(query), do:
-    put_in(query, [Query.Lenses.subqueries() |> Lens.key(:alias)], nil)
 end
