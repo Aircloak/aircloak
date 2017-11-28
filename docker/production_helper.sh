@@ -60,6 +60,7 @@ function start_at_version {
     echo 'Starting container $container_name'
     docker run -d -t \\
       --name $container_name \\
+      -h ${container_name//_/-} \\
       -v $RUNTIME_CONFIG_PATH:/runtime_config \\
       $DOCKER_ARGS \\
       $full_image_name
