@@ -107,7 +107,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
           Enum.any?(child_types, & &1.string_manipulation?),
         unclear_string_manipulation?:
           (Function.has_attribute?(function, :string_manipulation) and Enum.any?(child_types, &modified_column?/1)) or
-          Enum.any?(child_types, & &1.unclear_string_manipulation?),
+          Enum.any?(child_types, & &1.string_manipulation?),
         history_of_columns_involved: combined_columns_involved(child_types),
       }
       |> extend_history_of_restricted_transformations(name, child_types)
