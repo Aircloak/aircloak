@@ -71,11 +71,15 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
 
     test "forbids string manipulation functions on unclear columns in positive conditions", do:
       assert {:error, "String manipulation functions cannot be combined with other transformations."} =
-        compile("SELECT COUNT(*) FROM table WHERE ltrim(string || string, 'abc') = 'foo'")
+        compile("SELECT COUNT(*) FROM table WHERE btrim(string || string, 'abc') = 'foo'")
 
     test "forbids operations after a string manipulation function", do:
       assert {:error, "String manipulation functions cannot be combined with other transformations."} =
-        compile("SELECT COUNT(*) FROM table WHERE ltrim(string) || string = 'foo'")
+        compile("SELECT COUNT(*) FROM table WHERE rtrim(string) || string = 'foo'")
+
+    test "forbids non-constant expressions on the RHS of conditions with string manipulation functions", do:
+      assert {:error, "Results of string manipulation functions can only be compared to constants."} =
+        compile("SELECT COUNT(*) FROM table WHERE substring(string from 1) = string")
   end
 
   describe "ranges" do
