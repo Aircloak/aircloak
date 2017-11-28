@@ -36,11 +36,15 @@ defmodule Cloak.Sql.Function.Test do
   test "length", do:
     assert well_typed?("length", [:text])
 
-  test "left", do:
-    assert well_typed?("left", [:text, :integer])
+  test "left" do
+    assert well_typed?("left", [:text, {:constant, :integer}])
+    refute well_typed?("left", [:text, :integer])
+  end
 
-  test "right", do:
-    assert well_typed?("right", [:text, :integer])
+  test "right" do
+    assert well_typed?("right", [:text, {:constant, :integer}])
+    refute well_typed?("right", [:text, :integer])
+  end
 
   test "lower" do
     assert well_typed?("lower", [:text])
@@ -71,8 +75,10 @@ defmodule Cloak.Sql.Function.Test do
   end
 
   test "substring" do
-    assert well_typed?("substring", [:text, :integer])
-    assert well_typed?("substring", [:text, :integer, :integer])
+    assert well_typed?("substring", [:text, {:constant, :integer}])
+    refute well_typed?("substring", [:text, :integer])
+    assert well_typed?("substring", [:text, {:constant, :integer}, {:constant, :integer}])
+    refute well_typed?("substring", [:text, :integer, :integer])
   end
 
   test "concat" do
