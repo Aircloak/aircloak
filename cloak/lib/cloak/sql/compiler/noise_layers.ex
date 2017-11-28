@@ -169,16 +169,17 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Enum.map(&clear_alias/1)
       |> Enum.uniq()
       |> Enum.reject(& &1.constant?)
-    Enum.map(noise_layers, fn (noise_layer) ->
-      expressions = Enum.map(noise_layer.expressions, &set_noise_layer_expression_alias(&1, all_expressions))
-      %NoiseLayer{noise_layer | expressions: expressions}
-    end)
+    Lens.all()
+    |> Lens.key(:expressions)
+    |> Lens.all()
+    |> Lens.satisfy(&not &1.constant?)
+    |> Lens.map(noise_layers, &set_noise_layer_expression_alias(&1, all_expressions))
   end
 
   defp set_noise_layer_expression_alias(expression, expressions) do
     expression = clear_alias(expression)
     index = Enum.find_index(expressions, &expression == &1)
-    %Expression{expression | alias: (if is_nil(index), do: nil, else: "__ac_alias__#{index}")}
+    %Expression{expression | alias: "__ac_alias__#{index}"}
   end
 
   defp select_noise_layers(%{subquery?: true}, _top_level_uid), do: []
