@@ -290,18 +290,21 @@ defmodule AircloakCI.Build.Server do
   defp description(:failure), do: "build failed"
 
   defp comment(:ok, _project, nil), do:
-    "Compliance build succeeded 👍"
+    "Compliance build succeeded #{happy_emoji()}"
   defp comment(:error, project, nil), do:
-    Enum.join(["Compliance build errored 😞", "", "Log tail:", "```", log_tail(project), "```"], "\n")
+    Enum.join(["Compliance build errored #{sad_emoji()}", "", "Log tail:", "```", log_tail(project), "```"], "\n")
   defp comment(:failure, project, crash_reason), do:
     Enum.join(
       [
-        "Compliance build crashed 😞", "",
+        "Compliance build crashed #{sad_emoji()}", "",
         "```", Exception.format_exit(crash_reason), "```", "",
         "Log tail:", "```", log_tail(project), "```"
       ],
       "\n"
     )
+
+  defp happy_emoji(), do: Enum.random(["💯", "👍", "😊", "❤️", "🎉", "👏"])
+  defp sad_emoji(), do: Enum.random(["😞", "😢", "😟", "💔", "👿", "🔥"])
 
   defp log_tail(project) do
     max_lines = 100
