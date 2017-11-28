@@ -308,6 +308,7 @@ defmodule AircloakCI.Build.Server do
     )
 
   defp happy_emoji(), do: Enum.random(["💯", "👍", "😊", "❤️", "🎉", "👏"])
+
   defp sad_emoji(), do: Enum.random(["😞", "😢", "😟", "💔", "👿", "🔥"])
 
   defp log_tail(project) do
