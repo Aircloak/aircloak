@@ -50,8 +50,8 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp column_sql(:*, _sql_dialect_module), do: "*"
   defp column_sql({:distinct, column}, sql_dialect_module), do: ["DISTINCT ", column_sql(column, sql_dialect_module)]
-  defp column_sql(%Expression{alias: alias, name: name} = column, sql_dialect_module)
-      when alias != nil and alias != "" and alias != name, do:
+  defp column_sql(%Expression{alias: alias} = column, sql_dialect_module)
+      when alias != nil and alias != "", do:
     [column_sql(%Expression{column | alias: nil}, sql_dialect_module), " AS ", quote_name(alias, sql_dialect_module)]
   defp column_sql(%Expression{function?: true, function: fun_name, type: type, function_args: args}, sql_dialect_module)
     when fun_name in ["+", "-"] and type in [:time, :date, :datetime],
@@ -171,7 +171,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp order_by_fragments(%Query{subquery?: true, order_by: [_|_] = order_by}, sql_dialect_module) do
     order_by = for {expression, dir} <- order_by do
       dir = if dir == :desc do " DESC" else " ASC" end
-      name = column_sql(expression, sql_dialect_module)
+      name = column_sql(%Expression{expression | alias: nil}, sql_dialect_module)
       [name, dir]
     end
     [" ORDER BY ", Enum.intersperse(order_by, ", ")]
