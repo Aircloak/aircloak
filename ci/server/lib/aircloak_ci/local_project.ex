@@ -4,7 +4,7 @@ defmodule AircloakCI.LocalProject do
   alias AircloakCI.{CmdRunner, Github}
   require Logger
 
-  defstruct [:name, :build_folder, :log_folder, :repo, :base_branch, :update_git_command, :checkout]
+  defstruct [:name, :build_folder, :log_folder, :repo, :base_branch, :update_git_command, :checkout, :desired_sha]
 
   @opaque t :: %__MODULE__{
     name: String.t,
@@ -14,6 +14,7 @@ defmodule AircloakCI.LocalProject do
     base_branch: String.t | nil,
     update_git_command: String.t,
     checkout: String.t,
+    desired_sha: String.t
   }
 
 
@@ -23,37 +24,31 @@ defmodule AircloakCI.LocalProject do
 
   @doc "Prepares the local project for the given pull request."
   @spec for_pull_request(Github.API.pull_request) :: t
-  def for_pull_request(pr) do
-    project =
-      create_project(%__MODULE__{
-        name: "PR #{pr.title} (##{pr.number})",
-        build_folder: Path.join(builds_folder(), pr_folder_name(pr)),
-        log_folder: Path.join(logs_folder(), pr_folder_name(pr)),
-        base_branch: pr.target_branch,
-        repo: pr.repo,
-        update_git_command: "fetch --force origin pull/#{pr.number}/merge",
-        checkout: pr.merge_sha
-      })
-    set_desired_sha(project, pr.merge_sha)
-    project
-  end
+  def for_pull_request(pr), do:
+    create_project(%__MODULE__{
+      name: "PR #{pr.title} (##{pr.number})",
+      build_folder: Path.join(builds_folder(), pr_folder_name(pr)),
+      log_folder: Path.join(logs_folder(), pr_folder_name(pr)),
+      base_branch: pr.target_branch,
+      repo: pr.repo,
+      update_git_command: "fetch --force origin pull/#{pr.number}/merge",
+      checkout: pr.merge_sha,
+      desired_sha: pr.merge_sha
+    })
 
   @doc "Prepares the project for the given branch."
   @spec for_branch(Github.API.branch) :: t
-  def for_branch(branch) do
-    project =
-      create_project(%__MODULE__{
-        name: "branch #{branch.name}",
-        build_folder: Path.join(branches_folder(), branch_folder_name(branch.name)),
-        log_folder: Path.join(logs_folder(), branch_folder_name(branch.name)),
-        base_branch: base_branch(branch.name),
-        repo: branch.repo,
-        update_git_command: "pull --rebase",
-        checkout: branch.name
-      })
-    set_desired_sha(project, branch.sha)
-    project
-  end
+  def for_branch(branch), do:
+    create_project(%__MODULE__{
+      name: "branch #{branch.name}",
+      build_folder: Path.join(branches_folder(), branch_folder_name(branch.name)),
+      log_folder: Path.join(logs_folder(), branch_folder_name(branch.name)),
+      base_branch: base_branch(branch.name),
+      repo: branch.repo,
+      update_git_command: "pull --rebase",
+      checkout: branch.name,
+      desired_sha: branch.sha
+    })
 
   @doc "Returns the build folder."
   @spec folder(t) :: String.t
@@ -68,7 +63,7 @@ defmodule AircloakCI.LocalProject do
   @doc "Initializes the project."
   @spec initialize(t) :: :ok | {:error, String.t}
   def initialize(project) do
-    if current_sha(project) == state(project).desired_sha do
+    if current_sha(project) == project.desired_sha do
       :ok
     else
       log_start_stop("initializing local project for #{name(project)}", fn ->
@@ -319,12 +314,7 @@ defmodule AircloakCI.LocalProject do
       |> File.read!()
       |> :erlang.binary_to_term()
     catch _, _ ->
-      %{status: :empty, desired_sha: nil}
+      %{status: :empty}
     end
-  end
-
-  defp set_desired_sha(project, desired_sha) do
-    if desired_sha != nil && desired_sha != state(project).desired_sha, do:
-      update_state(project, &%{&1 | desired_sha: desired_sha})
   end
 end

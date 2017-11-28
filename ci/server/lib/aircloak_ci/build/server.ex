@@ -34,15 +34,9 @@ defmodule AircloakCI.Build.Server do
 
     project = LocalProject.for_pull_request(pr)
     Logger.info("started build server for #{LocalProject.name(project)}")
-    {:ok, init_task} = Task.start_link(fn -> init_project(project, pr, repo_data) end)
-    {:ok, %{
-      repo_data: repo_data,
-      pr: pr,
-      project: project,
-      init_task: init_task,
-      build_task: nil,
-      start: nil
-    }}
+
+    state = %{pr: pr, project: project, init_task: nil, build_task: nil, start: nil}
+    {:ok, start_init_task(state, repo_data)}
   end
 
   @impl GenServer
@@ -67,7 +61,7 @@ defmodule AircloakCI.Build.Server do
         Logger.info("shutting down build server for `#{LocalProject.name(state.project)}`")
         {:stop, :shutdown, state}
       pr ->
-        {:noreply, %{state | repo_data: repo_data} |> update_pr(pr) |> maybe_start_build()}
+        {:noreply, update_pr(state, pr, repo_data)}
     end
   end
   def handle_info({:build_result, result}, state) do
@@ -88,15 +82,14 @@ defmodule AircloakCI.Build.Server do
   # Project initialization
   # -------------------------------------------------------------------
 
-  defp init_project(pr_project, pr, repo_data) do
-    Queue.exec(project_queue(pr_project), fn ->
-      init_project([
-        pr_project,
-        LocalProject.for_branch(branch!(repo_data, pr.target_branch)),
-        LocalProject.for_branch(branch!(repo_data, "master"))
-      ])
-    end)
-  end
+  defp base_projects(pr, repo_data), do:
+    [
+      LocalProject.for_branch(branch!(repo_data, pr.target_branch)),
+      LocalProject.for_branch(branch!(repo_data, "master"))
+    ]
+
+  defp init_project(pr_project, base_projects), do:
+    Queue.exec(project_queue(pr_project), fn -> init_project([pr_project | base_projects]) end)
 
   defp init_project([project, base_project | rest]) do
     if LocalProject.status(project) == :empty do
@@ -123,15 +116,43 @@ defmodule AircloakCI.Build.Server do
   # Build lifecycle
   # -------------------------------------------------------------------
 
-  defp maybe_cancel_current_build(%{build_task: build_task} = state, pr) do
-    if state.pr.merge_sha != pr.merge_sha and build_task != nil do
-      Logger.info("cancelling outdated build")
-      Process.exit(build_task, :kill)
-      receive do {:EXIT, ^build_task, _reason} -> :ok end
-      %{state | build_task: nil}
+  defp update_pr(state, new_pr, repo_data) do
+    state = if state.pr.merge_sha != new_pr.merge_sha, do: cancel_outdated_tasks(state, repo_data), else: state
+    maybe_start_build(%{state | pr: new_pr, project: LocalProject.for_pull_request(new_pr)})
+  end
+
+  defp cancel_outdated_tasks(state, repo_data), do:
+    state
+    |> cancel_outdated_init(repo_data)
+    |> cancel_current_build()
+
+  defp cancel_outdated_init(state, repo_data) do
+    if state.init_task != nil do
+      Logger.info("cancelling outdated init")
+      sync_kill(state.init_task)
+      start_init_task(%{state | init_task: nil}, repo_data)
     else
       state
     end
+  end
+
+  defp cancel_current_build(state) do
+    if state.build_task != nil do
+      Logger.info("cancelling outdated build")
+      sync_kill(state.build_task)
+    else
+      state
+    end
+  end
+
+  defp sync_kill(pid) do
+    Process.exit(pid, :kill)
+    receive do {:EXIT, ^pid, _reason} -> :ok end
+  end
+
+  defp start_init_task(state, repo_data) do
+    {:ok, init_task} = Task.start_link(fn -> init_project(state.project, base_projects(state.pr, repo_data)) end)
+    %{state | init_task: init_task}
   end
 
   defp maybe_start_build(%{init_task: nil, build_task: nil} = state) do
@@ -293,9 +314,6 @@ defmodule AircloakCI.Build.Server do
     {:via, Registry, {AircloakCI.Build.Registry, {:pull_request, pr.number}}}
 
   defp project_queue(project), do: {:project, LocalProject.folder(project)}
-
-  defp update_pr(state, pr), do:
-    %{maybe_cancel_current_build(state, pr) | pr: pr}
 
 
   # -------------------------------------------------------------------
