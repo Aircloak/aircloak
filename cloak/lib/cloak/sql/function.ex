@@ -234,34 +234,13 @@ defmodule Cloak.Sql.Function do
   @spec math_function?(t | String.t | nil) :: boolean
   def math_function?(param), do: has_attribute?(param, :math)
 
-  @doc "Returns all math functions"
-  @spec math_functions() :: [String.t]
-  def math_functions(), do:
-    @functions
-    |> Enum.map(fn({name, _}) -> name end)
-    |> Enum.filter(& math_function?(&1))
-
   @doc "Returns true if a function is restricted"
   @spec restricted_function?(t | String.t | nil) :: boolean
   def restricted_function?(param), do: has_attribute?(param, :restricted)
 
-  @doc "Returns all restricted functions"
-  @spec restricted_functions() :: [String.t]
-  def restricted_functions(), do:
-    @functions
-    |> Enum.map(fn({name, _}) -> name end)
-    |> Enum.filter(& restricted_function?(&1))
-
   @doc "Returns true if a function is a string manipulation function"
   @spec string_manipulation_function?(t | String.t | nil) :: boolean
   def string_manipulation_function?(param), do: has_attribute?(param, :string_manipulation)
-
-  @doc "Returns all restricted functions"
-  @spec string_manipulation_functions() :: [String.t]
-  def string_manipulation_functions(), do:
-    @functions
-    |> Enum.map(fn({name, _}) -> name end)
-    |> Enum.filter(& string_manipulation_function?(&1))
 
   @doc "Provides information about alternatives for deprecated functions."
   @spec deprecation_info(t) :: {:error, :function_exists | :not_found} | {:ok, %{alternative: String.t}}
