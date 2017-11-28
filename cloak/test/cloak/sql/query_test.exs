@@ -248,7 +248,7 @@ defmodule Cloak.Sql.QueryTest do
   defp make_query(data_source, statement) do
     {query, features} = Query.make!(data_source, statement, [], %{})
     {
-      query |> scrub_data_sources() |> scrub_aliases(),
+      scrub_data_sources(query),
       features
     }
   end

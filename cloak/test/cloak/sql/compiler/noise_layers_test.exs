@@ -4,8 +4,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   alias Cloak.DataSource.Table
   alias Cloak.Sql.{Expression, NoiseLayer}
 
-  import Cloak.Test.QueryHelpers, except: [compile!: 2, compile!: 3]
-
   defmacrop static_layer(base) do
     quote do
       %NoiseLayer{expressions: [_, _, _], base: unquote(base)}
@@ -54,7 +52,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result1 = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3")
       result2 = compile!("SELECT COUNT(*) FROM table WHERE 3 = numeric")
 
-      assert scrub_aliases(result1).noise_layers == scrub_aliases(result2).noise_layers
+      assert result1.noise_layers == result2.noise_layers
     end
 
     test "adds a uid and static noise layer for unclear conditions" do
