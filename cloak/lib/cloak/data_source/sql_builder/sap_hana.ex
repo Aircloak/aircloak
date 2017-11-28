@@ -44,6 +44,9 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") ,")"]
 
   @impl Dialect
+  def ilike_sql(what, match), do: ["LOWER(", what, ") LIKE ", Cloak.Sql.LikePattern.lowercase_pattern(match)]
+
+  @impl Dialect
   def limit_sql(nil, offset), do: limit_sql(@max_unsigned_bigint, offset)
   def limit_sql(limit, offset), do: [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
 
