@@ -119,6 +119,10 @@ case "$command" in
     rollback
     ;;
 
+  service_log)
+    exec_as_root "journalctl -u aircloak_ci.service --no-pager $@"
+    ;;
+
   build_log)
     service_command build log $1
     ;;
