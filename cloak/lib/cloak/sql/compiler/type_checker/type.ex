@@ -30,6 +30,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     # were constant.
     constant_involved?: boolean,
 
+    # True if this expression includes a string manipulation function.
+    string_manipulation?: boolean,
+
+    # True if this expression includes a string manipulation function and any other function except for a single cast.
+    unclear_string_manipulation?: boolean,
+
     # We keep track of the restricted transformations an expression has undergone in order
     # to later produce an explanation outlining the steps that led to a query being rejected.
     history_of_restricted_transformations: [restricted_transformation],
@@ -41,8 +47,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
 
   defstruct [
     constant?: false, constant_involved?: false, raw_column?: false,
-    cast_raw_column?: false, raw_implicit_range?: false, applied_functions: [],
-    history_of_restricted_transformations: [], history_of_columns_involved: [],
+    cast_raw_column?: false, raw_implicit_range?: false,
+    string_manipulation?: false, unclear_string_manipulation?: false,
+    applied_functions: [], history_of_restricted_transformations: [], history_of_columns_involved: [],
   ]
 
   @math_operations_before_considered_constant 2
@@ -96,11 +103,18 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
           Enum.all?(child_types, &(&1.cast_raw_column? || &1.constant?)),
         constant_involved?: any_touched_by_constant?(child_types) ||
           math_operations_count(applied_functions) >= @math_operations_before_considered_constant,
+        string_manipulation?: Function.has_attribute?(function, :string_manipulation) or
+          Enum.any?(child_types, & &1.string_manipulation?),
+        unclear_string_manipulation?:
+          (Function.has_attribute?(function, :string_manipulation) and Enum.any?(child_types, &modified_column?/1)) or
+          Enum.any?(child_types, & &1.unclear_string_manipulation?),
         history_of_columns_involved: combined_columns_involved(child_types),
       }
       |> extend_history_of_restricted_transformations(name, child_types)
     end
   end
+
+  defp modified_column?(type), do: not (type.constant? or type.cast_raw_column?)
 
   defp any_touched_by_constant?(types), do: Enum.any?(types, &(&1.constant_involved?))
 

@@ -65,6 +65,17 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
         compile("SELECT COUNT(*) FROM table WHERE upper(string) NOT ILIKE '%some pattern_'")
   end
 
+  describe "string-based conditions" do
+    test "allows string manipulation functions on clear columns in positive conditions" do
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE ltrim(string, 'abc') = 'foo'")
+    end
+
+    test "forbids string manipulation functions on unclear columns in positive conditions" do
+      assert {:error, "String manipulation functions cannot be combined with other transformations."} =
+        compile("SELECT COUNT(*) FROM table WHERE ltrim(string || string, 'abc') = 'foo'")
+    end
+  end
+
   describe "ranges" do
     test "allows clear >=/< arguments", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric > 0 AND numeric < 10")
