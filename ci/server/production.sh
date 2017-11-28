@@ -73,19 +73,21 @@ function deploy {
     (git branch -vv | grep ': gone]' | awk '{print $1}' | xargs git branch -d &>/dev/null || true)
   "
 
-  # update systemd service file and restart the service
+  # update systemd service file
   exec_as_root "
     cp -rp $build_folder/production/aircloak_ci.service /etc/systemd/system/ &&
-    systemctl daemon-reload &&
-    systemctl restart aircloak_ci.service
+    systemctl daemon-reload
   "
+
+  # start the soft termination of the service
+  service_command build start_soft_termination
 
   # keep the most recent 10 releases
   if [ "$(exec_as_ci "cd $production_folder/releases && ls -tp | tail -n +11")" != "" ]; then
     exec_as_ci "cd $production_folder/releases && ls -tp | tail -n +11 | xargs rm -rf"
   fi
 
-  echo "CI server has been deployed successfully"
+  echo "CI server has been deployed successfully and scheduled for soft restart."
 }
 
 function rollback {
