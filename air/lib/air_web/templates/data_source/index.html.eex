@@ -70,8 +70,7 @@
         <li>
           Your cloaks do not make the data sources available, and the Aircloak system
           therefore doesn't know about them.
-          This can be solved by adding additional data sources to your cloak config
-          file and restarting your cloak
+          This can be solved by adding additional data sources to your cloak config.
         </li>
       </ol>
     </div>
