@@ -6,7 +6,7 @@ defmodule AircloakCI.Github do
   request per second.
   """
 
-  use GenServer, start: {__MODULE__, :start_link, []}
+  use GenServer, start: {__MODULE__, :start_link, []}, restart: :transient
   alias AircloakCI.Github
   require Logger
 
@@ -35,6 +35,11 @@ defmodule AircloakCI.Github do
   def post_comment(owner, repo, issue_number, body), do:
     async_request(:post_comment, [owner, repo, issue_number, body], type: :write)
 
+  @doc "Flushes pending Github requests and terminates the server."
+  @spec soft_terminate() :: :ok
+  def soft_terminate(), do:
+    GenServer.call(__MODULE__, :soft_terminate, :timer.hours(1))
+
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -45,12 +50,23 @@ defmodule AircloakCI.Github do
     Process.flag(:trap_exit, true)
     enqueue_clear()
     :timer.send_interval(:timer.minutes(1), :log_rate_limits)
-    {:ok, %{clear?: false, current_request: nil, request_job: nil, queue: :queue.new(), rate_limits: %{}}}
+    {:ok, %{
+      clear?: false,
+      current_request: nil,
+      request_job: nil,
+      queue: :queue.new(),
+      rate_limits: %{},
+      terminate_caller: nil
+    }}
   end
 
   @impl GenServer
   def handle_call({:request, fun, args, opts}, from, state), do:
     {:noreply, handle_request(state, %{fun: fun, args: args, from: from}, opts)}
+  def handle_call(:soft_terminate, from, state) do
+    state = %{state | terminate_caller: from}
+    if should_terminate?(state), do: {:stop, :normal, :ok, state}, else: {:noreply, state}
+  end
 
   @impl GenServer
   def handle_cast({:request, fun, args, opts}, state), do:
@@ -61,10 +77,13 @@ defmodule AircloakCI.Github do
     {:noreply, maybe_start_next_request(%{state | clear?: true})}
   def handle_info({ref, result}, %{request_job: %Task{ref: ref}} = state) do
     {response, rate_limit} = result
-    {:noreply, state |> update_rate_limit(rate_limit) |> handle_current_request_finished({:ok, response})}
+    state = state |> update_rate_limit(rate_limit) |> handle_current_request_finished({:ok, response})
+    if should_terminate?(state), do: {:stop, :normal, state}, else: {:noreply, state}
   end
-  def handle_info({:DOWN, ref, :process, _, _reason}, %{request_job: %Task{ref: ref}} = state), do:
-    {:noreply, handle_current_request_finished(state, :error)}
+  def handle_info({:DOWN, ref, :process, _, _reason}, %{request_job: %Task{ref: ref}} = state) do
+    state = handle_current_request_finished(state, :error)
+    if should_terminate?(state), do: {:stop, :normal, state}, else: {:noreply, state}
+  end
   def handle_info({:DOWN, _, :process, _, :normal}, state), do:
     # previous job exited normally -> we already removed it from the state, so nothing to do here
     {:noreply, state}
@@ -94,6 +113,10 @@ defmodule AircloakCI.Github do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp should_terminate?(%{terminate_caller: nil}), do: false
+  defp should_terminate?(state), do:
+    is_nil(state.request_job) and match?({:empty, _}, :queue.out(state.queue))
 
   defp sync_request!(fun, args, opts) do
     {:ok, result} = GenServer.call(__MODULE__, {:request, fun, args, opts}, :timer.seconds(30))

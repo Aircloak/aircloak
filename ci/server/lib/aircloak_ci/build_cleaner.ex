@@ -1,7 +1,7 @@
 defmodule AircloakCI.BuildCleaner do
   @moduledoc "Process which cleans up old build folders."
 
-  use GenServer, start: {__MODULE__, :start_link, []}
+  use GenServer, start: {__MODULE__, :start_link, []}, restart: :transient
 
 
   # -------------------------------------------------------------------
@@ -10,7 +10,7 @@ defmodule AircloakCI.BuildCleaner do
 
   @impl GenServer
   def init(nil) do
-    AircloakCI.RepoDataProvider.subscribe()
+    AircloakCI.RepoDataProvider.subscribe("build cleaner")
     {:ok, nil}
   end
 
@@ -20,6 +20,8 @@ defmodule AircloakCI.BuildCleaner do
     AircloakCI.Queue.remove_needless_project_queues()
     {:noreply, state}
   end
+  def handle_info(:soft_terminate, state), do:
+    {:stop, :shutdown, state}
   def handle_info(message, state), do:
     super(message, state)
 

@@ -29,13 +29,13 @@ defmodule AircloakCI.Build.Server do
 
   @impl GenServer
   def init({pr, repo_data}) do
-    AircloakCI.RepoDataProvider.subscribe()
     Process.flag(:trap_exit, true)
 
     project = LocalProject.for_pull_request(pr)
     Logger.info("started build server for #{LocalProject.name(project)}")
+    AircloakCI.RepoDataProvider.subscribe("build for #{LocalProject.name(project)}")
 
-    state = %{pr: pr, project: project, init_task: nil, build_task: nil, start: nil}
+    state = %{pr: pr, project: project, init_task: nil, build_task: nil, start: nil, terminating?: false}
     {:ok, start_init_task(state, repo_data)}
   end
 
@@ -68,11 +68,18 @@ defmodule AircloakCI.Build.Server do
     handle_build_finish(state, result, nil)
     {:noreply, state}
   end
-  def handle_info({:EXIT, init_task, _reason}, %{init_task: init_task} = state), do:
-    {:noreply, maybe_start_build(%{state | init_task: nil})}
+  def handle_info(:soft_terminate, state) do
+    state = %{state | terminating?: true}
+    if should_terminate?(state), do: {:stop, :normal, state}, else: {:noreply, state}
+  end
+  def handle_info({:EXIT, init_task, _reason}, %{init_task: init_task} = state) do
+    state = %{state | init_task: nil}
+    if should_terminate?(state), do: {:stop, :normal, state}, else: {:noreply, maybe_start_build(state)}
+  end
   def handle_info({:EXIT, build_task, reason}, %{build_task: build_task} = state) do
     if reason != :normal, do: handle_build_finish(state, :failure, reason)
-    {:noreply, %{state | build_task: nil}}
+    state = %{state | build_task: nil}
+    if should_terminate?(state), do: {:stop, :normal, state}, else: {:noreply, state}
   end
   def handle_info(other, state), do:
     super(other, state)
@@ -314,6 +321,9 @@ defmodule AircloakCI.Build.Server do
     {:via, Registry, {AircloakCI.Build.Registry, {:pull_request, pr.number}}}
 
   defp project_queue(project), do: {:project, LocalProject.folder(project)}
+
+  defp should_terminate?(%{init_task: nil, build_task: nil, terminating?: true}), do: true
+  defp should_terminate?(_state), do: false
 
 
   # -------------------------------------------------------------------
