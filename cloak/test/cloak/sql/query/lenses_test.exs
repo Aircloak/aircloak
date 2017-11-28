@@ -10,7 +10,7 @@ defmodule Cloak.Sql.Query.Lenses.Test do
       assert [:expression] == Lenses.terminals() |> normalize_elements(query)
     end
 
-    test "focuses on function arguements as well as function" do
+    test "focuses on function arguments as well as function" do
       query = %Query{columns: [{:function, "name", [:args]}]}
       assert [:args, {:function, "name", [:args]}] == Lenses.terminals() |> normalize_elements(query)
     end
