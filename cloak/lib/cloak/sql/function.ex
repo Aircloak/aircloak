@@ -95,11 +95,11 @@ defmodule Cloak.Sql.Function do
     }, attributes: [:math]},
     ~w(length) => %{type_specs: %{[:text] => :integer}, attributes: [:restricted]},
     ~w(lower lcase upper ucase) => %{type_specs: %{[:text] => :text}},
-    ~w(left right) => %{type_specs: %{[:text, :integer] => :text}, attributes: [:restricted]},
+    ~w(left right) => %{type_specs: %{[:text, :integer] => :text}, attributes: [:restricted, :string_manipulation]},
     ~w(btrim ltrim rtrim) => %{type_specs: %{[:text, {:optional, {:constant, :text}}] => :text},
-      attributes: [:restricted]},
+      attributes: [:restricted, :string_manipulation]},
     ~w(substring) => %{type_specs: %{[:text, :integer, {:optional, :integer}] => :text},
-      attributes: [:restricted]},
+      attributes: [:restricted, :string_manipulation]},
     ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
     ~w(hex) => %{type_specs: %{[:text] => :text}},
     ~w(hash) => %{type_specs: %{[:text] => :integer, [:integer] => :integer, [:real] => :integer}},
@@ -251,6 +251,17 @@ defmodule Cloak.Sql.Function do
     @functions
     |> Enum.map(fn({name, _}) -> name end)
     |> Enum.filter(& restricted_function?(&1))
+
+  @doc "Returns true if a function is a string manipulation function"
+  @spec string_manipulation_function?(t | String.t | nil) :: boolean
+  def string_manipulation_function?(param), do: has_attribute?(param, :string_manipulation)
+
+  @doc "Returns all restricted functions"
+  @spec string_manipulation_functions() :: [String.t]
+  def string_manipulation_functions(), do:
+    @functions
+    |> Enum.map(fn({name, _}) -> name end)
+    |> Enum.filter(& string_manipulation_function?(&1))
 
   @doc "Provides information about alternatives for deprecated functions."
   @spec deprecation_info(t) :: {:error, :function_exists | :not_found} | {:ok, %{alternative: String.t}}

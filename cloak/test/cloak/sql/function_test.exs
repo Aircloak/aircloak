@@ -26,6 +26,15 @@ defmodule Cloak.Sql.Function.Test do
       assert Enum.member?(Function.math_functions(), unquote(math_function))
   end)
 
+  @string_manipulation_functions ~w(substring ltrim rtrim btrim left right)
+  Enum.each(@string_manipulation_functions, fn(string_function) ->
+    test "#{string_function} is registered as a string manipulation function", do:
+      assert Function.string_manipulation_function?(unquote(string_function))
+
+    test "#{string_function} is in the list of string manipulation functions", do:
+      assert Enum.member?(Function.string_manipulation_functions(), unquote(string_function))
+  end)
+
   for function <- ~w(floor ceil ceiling) do
     test "#{function} argument types" do
       assert well_typed?(unquote(function), [:integer])
