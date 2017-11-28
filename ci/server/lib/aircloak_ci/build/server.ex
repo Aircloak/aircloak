@@ -125,7 +125,7 @@ defmodule AircloakCI.Build.Server do
 
   defp update_pr(state, new_pr) do
     state = if state.pr.merge_sha != new_pr.merge_sha, do: cancel_outdated_tasks(state), else: state
-    %{state | pr: new_pr}
+    %{state | pr: new_pr, project: LocalProject.for_pull_request(new_pr)}
   end
 
   defp cancel_outdated_tasks(state), do:
