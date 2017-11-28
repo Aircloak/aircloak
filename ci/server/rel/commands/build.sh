@@ -1,13 +1,11 @@
 #!/bin/bash
 
-set -eo pipefail
-
 shift || true
 
 command="$1"
 shift || true
 
-function exec_on_prod {
+exec_on_prod() {
   $RELEASE_ROOT_DIR/bin/aircloak_ci eval "'Elixir.AircloakCI.ReleaseCLI':$1"
 }
 
@@ -19,7 +17,6 @@ case "$command" in
   log)
     exec_on_prod "print_build_log($1)"
     ;;
-
 
   *)
     echo "Commands:"

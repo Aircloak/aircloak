@@ -103,6 +103,10 @@ function rollback {
   echo "rolled back to $previous_release"
 }
 
+function service_command {
+  exec_as_ci "$production_folder/current/bin/aircloak_ci $@"
+}
+
 command="$1"
 shift || true
 
@@ -115,8 +119,12 @@ case "$command" in
     rollback
     ;;
 
+  build_log)
+    service_command build log $1
+    ;;
+
   *)
-    echo "Usage: ./$(basename "$0") deploy | rollback"
+    echo "Usage: ./$(basename "$0") deploy | rollback | build_log pr_number"
     exit 1
     ;;
 esac
