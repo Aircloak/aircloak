@@ -171,7 +171,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp order_by_fragments(%Query{subquery?: true, order_by: [_|_] = order_by}, sql_dialect_module) do
     order_by = for {expression, dir} <- order_by do
       dir = if dir == :desc do " DESC" else " ASC" end
-      name = column_sql(%Expression{expression | alias: nil}, sql_dialect_module)
+      name = expression |> Expression.unalias() |> column_sql(sql_dialect_module)
       [name, dir]
     end
     [" ORDER BY ", Enum.intersperse(order_by, ", ")]

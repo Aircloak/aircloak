@@ -108,11 +108,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       %{aggregate?: true, function_args: [aggregated]} -> aggregated
       column -> column
     end)
-    |> Enum.uniq_by(&clear_alias/1)
+    |> Enum.uniq_by(&Expression.unalias/1)
   defp noise_layer_columns(%{noise_layers: noise_layers}), do:
     non_uid_expressions()
     |> Lens.to_list(noise_layers)
-    |> Enum.uniq_by(&clear_alias/1)
+    |> Enum.uniq_by(&Expression.unalias/1)
 
   defp floated_noise_layers(query), do:
     Query.Lenses.direct_subqueries()
@@ -134,15 +134,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       else: noise_layer
 
   defp min_of_min(min), do:
-    Expression.function("min", [clear_alias(min)], min.type, _aggregate = true)
+    Expression.function("min", [Expression.unalias(min)], min.type, _aggregate = true)
 
   defp max_of_max(max), do:
-    Expression.function("max", [clear_alias(max)], max.type, _aggregate = true)
+    Expression.function("max", [Expression.unalias(max)], max.type, _aggregate = true)
 
   defp sum_of_count(column, %Expression{value: 1}), do:
-    Expression.function("count", [clear_alias(column)], :integer, _aggregate = true)
+    Expression.function("count", [Expression.unalias(column)], :integer, _aggregate = true)
   defp sum_of_count(_column, count), do:
-    Expression.function("sum", [clear_alias(count)], :integer, _aggregate = true)
+    Expression.function("sum", [Expression.unalias(count)], :integer, _aggregate = true)
 
 
   # -------------------------------------------------------------------
@@ -166,7 +166,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     all_expressions =
       noise_layers
       |> Enum.flat_map(& &1.expressions)
-      |> Enum.map(&clear_alias/1)
+      |> Enum.map(&Expression.unalias/1)
       |> Enum.uniq()
       |> Enum.reject(& &1.constant?)
     Lens.all()
@@ -177,7 +177,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   end
 
   defp set_noise_layer_expression_alias(expression, expressions) do
-    expression = clear_alias(expression)
+    expression = Expression.unalias(expression)
     index = Enum.find_index(expressions, &expression == &1)
     %Expression{expression | alias: "__ac_alias__#{index}"}
   end
@@ -465,6 +465,4 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         Enum.at(query.column_titles, index)
     end
   end
-
-  defp clear_alias(expresion), do: %Expression{expresion | alias: nil}
 end
