@@ -81,7 +81,6 @@ defmodule AircloakCI.RepoDataProvider do
 
     defp start_termination() do
       Logger.info("starting soft termination")
-      log_remaining_subscribers()
       Enum.each(AircloakCI.RepoDataProvider.subscriber_pids(), &send(&1, :soft_terminate))
     end
 
