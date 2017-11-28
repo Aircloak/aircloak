@@ -7,17 +7,17 @@ defmodule Cloak.Sql.Query.Lenses.Test do
   describe "terminals" do
     test "returns expressions" do
       query = %Query{columns: [:expression]}
-      assert [:expression] == Lenses.terminals |> trimmed_terminals(query)
+      assert [:expression] == Lenses.terminals() |> trimmed_terminals(query)
     end
 
     test "focuses on function arguements as well as function" do
       query = %Query{columns: [{:function, "name", [:args]}]}
-      assert [:args, {:function, "name", [:args]}] == Lenses.terminals |> trimmed_terminals(query)
+      assert [:args, {:function, "name", [:args]}] == Lenses.terminals() |> trimmed_terminals(query)
     end
 
     test "recurses inside aliases" do
       query = %Query{columns: [{{:function, "name", [:args]}, :as, "alias"}]}
-      assert [:args, {:function, "name", [:args]}] == Lenses.terminals |> trimmed_terminals(query)
+      assert [:args, {:function, "name", [:args]}] == Lenses.terminals() |> trimmed_terminals(query)
     end
   end
 
