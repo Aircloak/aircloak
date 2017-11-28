@@ -15,7 +15,7 @@ defmodule AircloakCI.Mixfile do
 
   def application do
     [
-      extra_applications: [:logger],
+      extra_applications: [:logger, :runtime_tools],
       mod: {AircloakCI.Application, []}
     ]
   end
@@ -27,6 +27,7 @@ defmodule AircloakCI.Mixfile do
       {:aircloak_common, path: "../../common/elixir"},
       {:erlexec, "~> 1.7"},
       {:jobs, "~> 0.7"},
+      {:recon, "~> 2.0"},
     ]
   end
 
