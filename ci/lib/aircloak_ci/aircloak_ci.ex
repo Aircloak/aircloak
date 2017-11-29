@@ -35,23 +35,6 @@ defmodule AircloakCI do
     end
   end
 
-  @doc """
-  Puts the system in the soft termination mode.
-
-  Soft termination is used by the deploy code to restart the system without breaking currently running builds. When this
-  mode is set, we're waiting for the currently running builds to finish, but we're not polling Github, nor are we
-  starting new builds. Once all the builds are done, we're waiting for pending Github API requests to be delivered, and
-  then we halt with non-zero exit code to trigger the system restart.
-  """
-  @spec start_soft_termination() :: :ok
-  def start_soft_termination(), do:
-    Application.put_env(:aircloak_ci, :soft_termination, true)
-
-  @doc "Returns true if the system is marked for soft termination"
-  @spec soft_termination?() :: boolean
-  def soft_termination?(), do:
-    Application.get_env(:aircloak_ci, :soft_termination, false)
-
 
   # -------------------------------------------------------------------
   # Internal functions

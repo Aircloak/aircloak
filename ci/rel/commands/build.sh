@@ -18,10 +18,6 @@ case "$command" in
     exec_on_prod "print_build_log($1)"
     ;;
 
-  start_soft_termination)
-    exec_on_prod "start_soft_termination()"
-    ;;
-
   *)
     echo "Commands:"
     echo ""
