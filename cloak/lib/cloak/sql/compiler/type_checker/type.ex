@@ -106,15 +106,26 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
         string_manipulation?: Function.has_attribute?(function, :string_manipulation) or
           Enum.any?(child_types, & &1.string_manipulation?),
         unclear_string_manipulation?:
-          (Function.string_manipulation_function?(function) and Enum.any?(child_types, &modified_column?/1)) or
-          (not Function.aggregator?(function) and Enum.any?(child_types, & &1.string_manipulation?)),
+          (Function.string_manipulation_function?(function) and Enum.any?(child_types, &unclear_modification?/1))
+            or (not Function.aggregator?(function) and Enum.any?(child_types, & &1.string_manipulation?)),
         history_of_columns_involved: combined_columns_involved(child_types),
       }
       |> extend_history_of_restricted_transformations(name, child_types)
     end
   end
 
-  defp modified_column?(type), do: not (type.constant? or type.cast_raw_column?)
+  @allowed_clear_casts 1
+  @allowed_clear_funs 0
+  defp unclear_modification?(%Type{constant?: true}), do: false
+  defp unclear_modification?(type) do
+    casts = transformation_count(type, &Function.cast?/1)
+    transformations = transformation_count(type, & not Function.aggregator?(&1) and not Function.cast?(&1))
+
+    (casts > @allowed_clear_casts) or (transformations > @allowed_clear_funs)
+  end
+
+  defp transformation_count(type, predicate), do:
+    Enum.count(type.applied_functions, predicate)
 
   defp any_touched_by_constant?(types), do: Enum.any?(types, &(&1.constant_involved?))
 

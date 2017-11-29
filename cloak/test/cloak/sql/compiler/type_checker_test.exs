@@ -94,6 +94,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert {:error, _} =
         compile("SELECT COUNT(*) FROM table WHERE btrim(cast(cast(numeric as real) as text), 'abc') = 'foo'")
 
+    test "allows string-based functions after aggregator", do:
+      assert {:ok, _, _} =
+        compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING left(max(string), 3) = 'foo') x")
+
     test "allows string-based functions before aggregator", do:
       assert {:ok, _, _} =
         compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING max(left(string, 3)) = 'foo') x")
