@@ -151,7 +151,7 @@ defmodule Compliance.WhereClauseFilters.Text do
         FROM (
           SELECT #{unquote(uid)}
           FROM #{unquote(table)}
-          WHERE #{unquote(column)} ILIKE '%em%'
+          WHERE #{unquote(column)} ILIKE '%eM%'
           GROUP BY 1
         ) table_alias
       """)
@@ -222,7 +222,7 @@ defmodule Compliance.WhereClauseFilters.Text do
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
         FROM #{unquote(table)}
-        WHERE #{unquote(column)} ILIKE '%em%'
+        WHERE #{unquote(column)} ILIKE '%eM%'
       """)
     end
 
