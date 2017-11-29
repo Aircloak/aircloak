@@ -42,7 +42,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
       assert constant_involved?("SELECT numeric + 1 FROM table")
 
     test "considers two math operations to be the equivalent of there being a constant in the expression", do:
-      assert constant_involved?("SELECT left(string, numeric + (numeric * numeric)) FROM table")
+      assert constant_involved?("SELECT cast(numeric + (numeric * numeric) as integer) FROM table")
   end
 
   describe "knows which columns were involved" do

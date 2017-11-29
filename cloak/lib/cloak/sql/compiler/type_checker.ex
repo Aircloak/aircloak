@@ -24,6 +24,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     each_subquery(query, &verify_lhs_of_in_is_clear/1)
     each_subquery(query, &verify_not_equals_is_clear/1)
     each_subquery(query, &verify_lhs_of_not_like_is_clear/1)
+    each_subquery(query, &verify_string_based_conditions_are_clear/1)
     each_subquery(query, &verify_ranges_are_clear/1)
     query
   end
@@ -99,6 +100,18 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         unless Type.establish_type(lhs, query).raw_column? and Type.establish_type(rhs, query).raw_column?, do:
           raise CompilationError, message: "When comparing two database columns with <> they cannot be modified."
       end
+    end)
+
+  defp verify_string_based_conditions_are_clear(query), do:
+    verify_conditions(query, &(Condition.equals?(&1) or Condition.not_equals?(&1)), fn({:comparison, lhs, _, rhs}) ->
+      lhs_type = Type.establish_type(lhs, query)
+      rhs_type = Type.establish_type(rhs, query)
+
+      if lhs_type.unclear_string_manipulation?, do:
+        raise CompilationError, message: "String manipulation functions cannot be combined with other transformations."
+
+      if lhs_type.string_manipulation? and not rhs_type.cast_raw_column? and not rhs_type.constant?, do:
+        raise CompilationError, message: "Results of string manipulation functions can only be compared to constants."
     end)
 
   @allowed_like_functions []

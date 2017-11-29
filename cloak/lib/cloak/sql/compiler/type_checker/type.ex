@@ -30,6 +30,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     # were constant.
     constant_involved?: boolean,
 
+    # True if this expression includes a string manipulation function.
+    string_manipulation?: boolean,
+
+    # True if this expression includes a string manipulation function and any other function except for a single cast.
+    unclear_string_manipulation?: boolean,
+
     # We keep track of the restricted transformations an expression has undergone in order
     # to later produce an explanation outlining the steps that led to a query being rejected.
     history_of_restricted_transformations: [restricted_transformation],
@@ -41,8 +47,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
 
   defstruct [
     constant?: false, constant_involved?: false, raw_column?: false,
-    cast_raw_column?: false, raw_implicit_range?: false, applied_functions: [],
-    history_of_restricted_transformations: [], history_of_columns_involved: [],
+    cast_raw_column?: false, raw_implicit_range?: false,
+    string_manipulation?: false, unclear_string_manipulation?: false,
+    applied_functions: [], history_of_restricted_transformations: [], history_of_columns_involved: [],
   ]
 
   @math_operations_before_considered_constant 2
@@ -96,11 +103,37 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
           Enum.all?(child_types, &(&1.cast_raw_column? || &1.constant?)),
         constant_involved?: any_touched_by_constant?(child_types) ||
           math_operations_count(applied_functions) >= @math_operations_before_considered_constant,
+        string_manipulation?: Function.string_manipulation_function?(function) or
+          Enum.any?(child_types, & &1.string_manipulation?),
+        unclear_string_manipulation?: unclear_string_manipulation?(function, child_types),
         history_of_columns_involved: combined_columns_involved(child_types),
       }
       |> extend_history_of_restricted_transformations(name, child_types)
     end
   end
+
+  defp unclear_string_manipulation?(function, child_types) do
+    unclear_argument = Enum.any?(child_types, & &1.unclear_string_manipulation?)
+    string_fun_of_unclear_expression =
+      Function.string_manipulation_function?(function) and Enum.any?(child_types, &unclear_modification?/1)
+    unclear_transform_of_string_fun_result =
+      not Function.aggregator?(function) and Enum.any?(child_types, & &1.string_manipulation?)
+
+    unclear_argument or string_fun_of_unclear_expression or unclear_transform_of_string_fun_result
+  end
+
+  @allowed_clear_casts 1
+  @allowed_clear_funs 0
+  defp unclear_modification?(%Type{constant?: true}), do: false
+  defp unclear_modification?(type) do
+    casts = transformation_count(type, &Function.cast?/1)
+    transformations = transformation_count(type, & not Function.aggregator?(&1) and not Function.cast?(&1))
+
+    (casts > @allowed_clear_casts) or (transformations > @allowed_clear_funs)
+  end
+
+  defp transformation_count(type, predicate), do:
+    Enum.count(type.applied_functions, predicate)
 
   defp any_touched_by_constant?(types), do: Enum.any?(types, &(&1.constant_involved?))
 

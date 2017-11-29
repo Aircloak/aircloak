@@ -65,6 +65,47 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
         compile("SELECT COUNT(*) FROM table WHERE upper(string) NOT ILIKE '%some pattern_'")
   end
 
+  describe "string-based conditions" do
+    test "allows string manipulation functions on clear columns in positive conditions", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE ltrim(string, 'abc') = 'foo'")
+
+    test "forbids string manipulation functions on unclear columns in positive conditions", do:
+      assert {:error, "String manipulation functions cannot be combined with other transformations."} =
+        compile("SELECT COUNT(*) FROM table WHERE btrim(string || string, 'abc') = 'foo'")
+
+    test "forbids operations after a string manipulation function", do:
+      assert {:error, "String manipulation functions cannot be combined with other transformations."} =
+        compile("SELECT COUNT(*) FROM table WHERE rtrim(string) || string = 'foo'")
+
+    test "forbids complex expressions on the RHS of conditions with string manipulation functions", do:
+      assert {:error, "Results of string manipulation functions can only be compared to constants."} =
+        compile("SELECT COUNT(*) FROM table WHERE substring(string from 1) = lower(string)")
+
+    test "allows raw cast columns on the RHS of conditions with string manipulation functions", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE substring(string from 1) = cast(numeric as text)")
+
+    test "allows string manipulation functions on clear columns in negative conditions", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE ltrim(string, 'abc') <> 'foo'")
+
+    test "forbids string manipulation functions on unclear columns in negative conditions", do:
+      assert {:error, _} = compile("SELECT COUNT(*) FROM table WHERE btrim(string || string, 'abc') <> 'foo'")
+
+    test "allows string manipulation functions after a cast", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE btrim(cast(numeric as text), 'abc') = 'foo'")
+
+    test "forbids string manipulation functions after nested casts", do:
+      assert {:error, _} =
+        compile("SELECT COUNT(*) FROM table WHERE btrim(cast(cast(numeric as real) as text), 'abc') = 'foo'")
+
+    test "allows string-based functions after aggregator", do:
+      assert {:ok, _, _} =
+        compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING left(max(string), 3) = 'foo') x")
+
+    test "allows string-based functions before aggregator", do:
+      assert {:ok, _, _} =
+        compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING max(left(string, 3)) = 'foo') x")
+  end
+
   describe "ranges" do
     test "allows clear >=/< arguments", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric > 0 AND numeric < 10")

@@ -12,18 +12,24 @@ defmodule Cloak.Sql.Function.Test do
   Enum.each(@restricted_functions, fn(restricted_function) ->
     test "#{inspect(restricted_function)} is registered as a restricted function", do:
       assert Function.restricted_function?(unquote(restricted_function))
-
-    test "#{inspect(restricted_function)} is in the list of restricted functions", do:
-      assert Enum.member?(Function.restricted_functions(), unquote(restricted_function))
   end)
 
   @math_functions ~w(+ - / * ^ pow % abs ceil ceiling div floor mod round trunc)
   Enum.each(@math_functions, fn(math_function) ->
     test "#{math_function} is registered as a math function", do:
       assert Function.math_function?(unquote(math_function))
+  end)
 
-    test "#{math_function} is in the list of math functions", do:
-      assert Enum.member?(Function.math_functions(), unquote(math_function))
+  @string_manipulation_functions ~w(substring ltrim rtrim btrim left right)
+  Enum.each(@string_manipulation_functions, fn(string_function) ->
+    test "#{string_function} is registered as a string manipulation function", do:
+      assert Function.string_manipulation_function?(unquote(string_function))
+  end)
+
+  @aggregators ~w(count min max avg stddev median)
+  Enum.each(@aggregators, fn(aggregator) ->
+    test "#{aggregator} is registered as an aggregator", do:
+      assert Function.aggregator?(unquote(aggregator))
   end)
 
   for function <- ~w(floor ceil ceiling) do
@@ -36,11 +42,15 @@ defmodule Cloak.Sql.Function.Test do
   test "length", do:
     assert well_typed?("length", [:text])
 
-  test "left", do:
-    assert well_typed?("left", [:text, :integer])
+  test "left" do
+    assert well_typed?("left", [:text, {:constant, :integer}])
+    refute well_typed?("left", [:text, :integer])
+  end
 
-  test "right", do:
-    assert well_typed?("right", [:text, :integer])
+  test "right" do
+    assert well_typed?("right", [:text, {:constant, :integer}])
+    refute well_typed?("right", [:text, :integer])
+  end
 
   test "lower" do
     assert well_typed?("lower", [:text])
@@ -71,8 +81,10 @@ defmodule Cloak.Sql.Function.Test do
   end
 
   test "substring" do
-    assert well_typed?("substring", [:text, :integer])
-    assert well_typed?("substring", [:text, :integer, :integer])
+    assert well_typed?("substring", [:text, {:constant, :integer}])
+    refute well_typed?("substring", [:text, :integer])
+    assert well_typed?("substring", [:text, {:constant, :integer}, {:constant, :integer}])
+    refute well_typed?("substring", [:text, :integer, :integer])
   end
 
   test "concat" do
