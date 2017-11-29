@@ -243,6 +243,10 @@ defmodule Cloak.Sql.Function do
   @spec string_manipulation_function?(t | String.t | nil) :: boolean
   def string_manipulation_function?(param), do: has_attribute?(param, :string_manipulation)
 
+  @doc "Returns true if a function is an aggregator"
+  @spec aggregator?(t | String.t | nil) :: boolean
+  def aggregator?(param), do: has_attribute?(param, :aggregator)
+
   @doc "Provides information about alternatives for deprecated functions."
   @spec deprecation_info(t) :: {:error, :function_exists | :not_found} | {:ok, %{alternative: String.t}}
   def deprecation_info({:function, name, _} = function) do

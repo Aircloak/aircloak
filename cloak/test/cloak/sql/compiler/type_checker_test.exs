@@ -93,6 +93,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "forbids string manipulation functions after nested casts", do:
       assert {:error, _} =
         compile("SELECT COUNT(*) FROM table WHERE btrim(cast(cast(numeric as real) as text), 'abc') = 'foo'")
+
+    test "allows string-based functions before aggregator", do:
+      assert {:ok, _, _} =
+        compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING max(left(string, 3)) = 'foo') x")
   end
 
   describe "ranges" do

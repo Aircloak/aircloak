@@ -26,6 +26,12 @@ defmodule Cloak.Sql.Function.Test do
       assert Function.string_manipulation_function?(unquote(string_function))
   end)
 
+  @aggregators ~w(count min max avg stddev)
+  Enum.each(@aggregators, fn(aggregator) ->
+    test "#{aggregator} is registered as an aggregator", do:
+      assert Function.aggregator?(unquote(aggregator))
+  end)
+
   for function <- ~w(floor ceil ceiling) do
     test "#{function} argument types" do
       assert well_typed?(unquote(function), [:integer])
