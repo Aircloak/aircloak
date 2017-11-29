@@ -6,11 +6,11 @@ defmodule Cloak.Sql.LikePattern.Test do
   describe "trivial_to_string" do
     test "fails for non-trivial patterns", do:
       assert_raise MatchError, fn() ->
-        LikePattern.trivial_to_string(Expression.constant(:like_pattern, {"a%b", nil}))
+        LikePattern.trivial_to_string(Expression.like_pattern("a%b", nil))
       end
 
     test "unescapes trivial patterns", do:
-      assert %{value: "abcd"} = LikePattern.trivial_to_string(Expression.constant(:like_pattern, {"a~b~cd", "~"}))
+      assert %{value: "abcd"} = LikePattern.trivial_to_string(Expression.like_pattern("a~b~cd", "~"))
   end
 
   describe "graphemes" do
