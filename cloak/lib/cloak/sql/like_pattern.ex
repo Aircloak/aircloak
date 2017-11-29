@@ -41,6 +41,15 @@ defmodule Cloak.Sql.LikePattern do
     Expression.constant(:text, expression.value |> graphemes() |> Enum.join())
   end
 
+  @doc "Converts a like pattern into it's lowercase equivalent"
+  @spec lowercase_pattern(Expression.t) :: Expression.t
+  def lowercase_pattern(%Expression{value: {pattern, escape}} = expression)
+      when escape == @standard_escape_character, do:
+    %Expression{expression | value: {String.downcase(pattern), escape}}
+  def lowercase_pattern(_), do:
+    raise "Please normalize the like pattern before lowercasing the pattern"
+
+
   @doc "Returns an equivalent, normalized pattern."
   @spec normalize(t) :: t
   def normalize(pattern), do:
