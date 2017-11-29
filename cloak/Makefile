@@ -1,11 +1,12 @@
 SHELL=/bin/bash -o pipefail
 
 .PHONY: sandbox deps docs proper proper-std proper-extended test clean all compile
-.PHONY: recreate-db recreate-perf-db dialyze lint release release-local perftest dev-container
+.PHONY: recreate-db recreate-perf-db dialyze lint release release-local perftest
 .PHONY: odbc_drivers odbc_drivers_folder
 .PHONY: sql-server-container sql-server-database
 .PHONY: mysql-server-container mysql-server-database
 .PHONY: mongo-server-container
+.PHONY: ci.compliance ci.compliance.debug
 
 define start_container
   if [ "$$(docker ps -a | grep $(1))" ]; then docker start $(1); else docker run --name $(1) $(2); fi
@@ -81,10 +82,6 @@ perftest: deps
 	MIX_ENV=prod mix compile
 	PERFORMANCE_TEST=true MIX_ENV=prod mix run perftest/main.exs
 
-dev-container: odbc_drivers
-	./dev_container/build-image.sh
-	./dev_container/container.sh console
-
 sql-server-container:
 	$(call start_container, aircloak_sql_server, -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' -p 1433:1433 -d microsoft/mssql-server-linux:2017-latest)
 
@@ -107,3 +104,9 @@ odbc_drivers_folder:
 
 priv/odbc/drivers/libodbc-sap-hana-v2.so:
 	wget -P priv/odbc/drivers https://www.dropbox.com/s/aerstjlatecny79/libodbc-sap-hana-v2.so
+
+ci.compliance:
+	../ci/scripts/run.sh cloak_compliance
+
+ci.compliance.debug:
+	../ci/scripts/run.sh debug_cloak_compliance

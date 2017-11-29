@@ -52,19 +52,6 @@ set -eox pipefail
 
   fi
 
-  # compliance --------------------------------------------------------
-
-  if [[ "$TEST" == "compliance" && "$TRAVIS_EVENT_TYPE" != "push" ]]; then
-
-    docker run --net host \
-      -v $(pwd):/aircloak \
-      -e TRAVIS="$TRAVIS" \
-      -e TRAVIS_BRANCH="$TRAVIS_BRANCH" \
-      -e TRAVIS_EVENT_TYPE="$TRAVIS_EVENT_TYPE" \
-      -e TEST="$TEST" \
-      aircloak/cloak_dev:latest aircloak/cloak/travis_compliance.sh
-
-  fi
 
   # bom ---------------------------------------------------------------
 

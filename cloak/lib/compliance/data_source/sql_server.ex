@@ -12,6 +12,8 @@ defmodule Compliance.DataSource.SQLServer do
   @impl Connector
   def setup(%{parameters: params}) do
     Application.ensure_all_started(:odbc)
+    Connector.await_port(params.hostname, 1433)
+    setup_database(params)
     conn = Cloak.DataSource.SQLServer.connect!(params)
     Enum.each(Common.setup_queries(), &execute!(conn, &1))
     conn
@@ -25,10 +27,10 @@ defmodule Compliance.DataSource.SQLServer do
 
   @impl Connector
   def insert_rows(table_name, data, conn) do
-    {sql, rows} = Common.insert_rows_query(table_name, data)
-    placeholders = List.duplicate("?", rows |> Enum.at(0) |> length()) |> Enum.join(", ")
-    sql = String.replace(sql, "$VALUES", placeholders)
-    Enum.each(rows, &execute!(conn, sql, &1))
+    table_name
+    |> chunks_to_insert(data)
+    |> Enum.each(fn({sql, params}) -> execute!(conn, sql, params) end)
+
     conn
   end
 
@@ -42,19 +44,57 @@ defmodule Compliance.DataSource.SQLServer do
   # Internal functions
   # -------------------------------------------------------------------
 
-   defp cast_type(binary) when is_binary(binary) do
-    binary = :unicode.characters_to_binary(binary, :utf8, {:utf16, :little})
-     {{:sql_wvarchar, byte_size(binary) + 1}, [binary]}
-   end
-   defp cast_type(integer) when is_integer(integer), do: {:sql_integer, [integer]}
-   defp cast_type(float) when is_float(float), do: {:sql_real, [float]}
-   defp cast_type(boolean) when is_boolean(boolean), do: {:sql_bit, [boolean]}
-   defp cast_type(%{calendar: Calendar.ISO} = datetime), do: datetime |> to_string() |> cast_type()
+  def chunks_to_insert(table_name, data) do
+    column_names = Common.column_names(data)
+
+    data
+    |> Common.rows(column_names)
+    |> Stream.chunk_every(100)
+    |> Enum.map(&chunk_to_insert(table_name, column_names, &1))
+  end
+
+  defp chunk_to_insert(table_name, column_names, rows) do
+    columns = column_names |> Common.escaped_column_names() |> Enum.join(", ")
+    row_placeholders = column_names |> Stream.map(fn(_column) -> "?" end) |> Enum.join(",")
+    all_placeholders = rows |> Stream.map(fn(_row) -> "(#{row_placeholders})" end) |> Enum.join(", ")
+    query = "
+      INSERT INTO #{table_name}(#{columns})
+      SELECT #{columns} FROM (VALUES #{all_placeholders}) subquery (#{columns})
+    "
+
+    {query, List.flatten(rows)}
+  end
+
+  defp cast_type(binary) when is_binary(binary) do
+  binary = :unicode.characters_to_binary(binary, :utf8, {:utf16, :little})
+    {{:sql_wvarchar, byte_size(binary) + 1}, [binary]}
+  end
+  defp cast_type(integer) when is_integer(integer), do: {:sql_integer, [integer]}
+  defp cast_type(float) when is_float(float), do: {:sql_real, [float]}
+  defp cast_type(boolean) when is_boolean(boolean), do: {:sql_bit, [boolean]}
+  defp cast_type(%{calendar: Calendar.ISO} = datetime), do: datetime |> to_string() |> cast_type()
 
   defp execute!(conn, query, params \\ []) do
     case :odbc.param_query(conn, String.to_charlist(query), Enum.map(params, &cast_type/1)) do
       {:updated, _} -> :ok
       {:error, error} -> raise to_string(error)
     end
+  end
+
+  defp setup_database(params) do
+    conn =
+      Cloak.DataSource.SQLServer.connect!(
+        hostname: params.hostname,
+        username: params.username,
+        password: params.password,
+        database: "master",
+      )
+
+    :odbc.sql_query(conn, ~c/
+      IF EXISTS(select * from sys.databases where name='#{params.database}')
+        DROP DATABASE #{params.database}
+
+      CREATE DATABASE #{params.database}
+    /)
   end
 end
