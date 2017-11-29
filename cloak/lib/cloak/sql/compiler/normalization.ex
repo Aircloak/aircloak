@@ -72,9 +72,11 @@ defmodule Cloak.Sql.Compiler.Normalization do
     |> Lens.satisfy(&trivial_like?/1)
     |> Lens.map(query, fn
       {:like, lhs, rhs} -> {:comparison, lhs, :=, LikePattern.trivial_to_string(rhs)}
-      {:ilike, lhs, rhs} -> {:comparison, lowercase(lhs), :=, rhs |> LikePattern.trivial_to_string() |> lowercase()}
+      {:ilike, lhs, rhs} ->
+        {:comparison, lowercase(lhs), :=, rhs |> LikePattern.lowercase_pattern() |> LikePattern.trivial_to_string()}
       {:not, {:like, lhs, rhs}} -> {:comparison, lhs, :<>, LikePattern.trivial_to_string(rhs)}
-      {:not, {:ilike, lhs, rhs}} -> {:comparison, lowercase(lhs), :<>, rhs |> LikePattern.trivial_to_string() |> lowercase()}
+      {:not, {:ilike, lhs, rhs}} ->
+        {:comparison, lowercase(lhs), :<>, rhs |> LikePattern.lowercase_pattern() |> LikePattern.trivial_to_string()}
     end)
 
   defp trivial_like?({:not, like}), do: trivial_like?(like)
