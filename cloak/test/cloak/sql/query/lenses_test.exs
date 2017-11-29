@@ -1,7 +1,28 @@
 defmodule Cloak.Sql.Query.Lenses.Test do
   use ExUnit.Case, async: true
 
+  alias Cloak.Sql.Query
   alias Cloak.Sql.Query.Lenses
+
+  describe "terminals" do
+    test "returns expressions" do
+      query = %Query{columns: [:expression]}
+      assert [:expression] == Lenses.terminals() |> normalize_elements(query)
+    end
+
+    test "focuses on function arguments as well as function" do
+      query = %Query{columns: [{:function, "name", [:args]}]}
+      assert [:args, {:function, "name", [:args]}] == Lenses.terminals() |> normalize_elements(query)
+    end
+
+    test "recurses inside aliases" do
+      query = %Query{columns: [{{:function, "name", [:args]}, :as, "alias"}]}
+      assert [:args, {:function, "name", [:args]}] == Lenses.terminals() |> normalize_elements(query)
+    end
+  end
+
+  defp normalize_elements(lens, query), do:
+    lens |> Lens.to_list(query) |> Enum.filter(& &1) |> Enum.sort()
 
   describe "join_condition_lenses" do
     test "a simple join" do
@@ -25,26 +46,26 @@ defmodule Cloak.Sql.Query.Lenses.Test do
 
   describe "subqueries" do
     test "a single subquery" do
-      query = %{from: {:subquery, %{from: "table"}}}
+      query = %{from: {:subquery, %{ast: %{from: "table"}}}}
 
-      assert %{from: "table"} = Lens.get(Lenses.subqueries(), query)
+      assert %{ast: %{from: "table"}} = Lens.get(Lenses.subqueries(), query)
     end
 
     test "nested subqueries" do
-      query = %{from: {:subquery, %{
+      query = %{from: {:subquery, %{ast: %{
         from: {:join, %{
-          lhs: {:subquery, %{from: "table1"}},
-          rhs: {:subquery, %{from: {:subquery, %{from: "table2"}}}}}}}}}
+          lhs: {:subquery, %{ast: %{from: "table1"}}},
+          rhs: {:subquery, %{ast: %{from: {:subquery, %{ast: %{from: "table2"}}}}}}}}}}}}
 
       assert [
-        %{
+        %{ast: %{
           from: {:join, %{
-            lhs: {:subquery, %{from: "table1"}},
-            rhs: {:subquery, %{from: {:subquery, %{from: "table2"}}}}}}
-        },
-        %{from: {:subquery, %{from: "table2"}}},
-        %{from: "table1"},
-        %{from: "table2"},
+            lhs: {:subquery, %{ast: %{from: "table1"}}},
+            rhs: {:subquery, %{ast: %{from: {:subquery, %{ast: %{from: "table2"}}}}}}}}
+        }},
+        %{ast: %{from: {:subquery, %{ast: %{from: "table2"}}}}},
+        %{ast: %{from: "table1"}},
+        %{ast: %{from: "table2"}},
       ] = Lens.get(Lenses.subqueries(), query) |> Enum.sort()
     end
   end

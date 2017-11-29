@@ -1,13 +1,12 @@
 // @flow
 
 import React from "react";
-
-import marked from "marked";
+import pagedown from "pagedown";
 
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
 
-const mdToHtml = (text: string) => ({__html: marked(text)});
+const mdToHtml = (text: string) => ({__html: pagedown.getSanitizingConverter().makeHtml(text)});
 
 export const Error = (props: {statement: string, error: string, info: string[]}) =>
   <div className="panel panel-danger">

@@ -45,6 +45,7 @@ defmodule Cloak.Sql.Compiler do
 
     final_query =
       compiled_query
+      |> Compiler.Optimizer.optimize()
       |> Compiler.Execution.prepare()
       |> Compiler.Normalization.normalize()
 

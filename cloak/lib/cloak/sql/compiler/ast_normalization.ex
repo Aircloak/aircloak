@@ -18,7 +18,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   @spec normalize(Parser.parsed_query) :: Parser.parsed_query
   def normalize(ast), do:
     ast
-    |> Helpers.apply_bottom_up(&rewrite_distinct/1)
+    |> apply_to_subqueries(&rewrite_distinct/1)
     |> Helpers.apply_bottom_up(&rewrite_not_in/1)
 
 
@@ -31,7 +31,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
       distinct?: false,
       columns: [:*],
       from: {:subquery, %{
-        alias: unique_alias(),
+        alias: "__ac_distinct",
         ast: %{
           command: :select,
           distinct?: false,
@@ -55,9 +55,6 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
     Function.has_attribute?(name, :aggregator) or Enum.any?(args, &aggregator?/1)
   defp aggregator?(_), do: false
 
-  # We set a unique alias on generated subqueries so that they don't clash with user aliases or tables
-  defp unique_alias(), do: "__ac_alias__#{System.unique_integer([:positive])}"
-
 
   # -------------------------------------------------------------------
   # NOT IN rewriting
@@ -70,4 +67,12 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
         Enum.reduce(exps, {:comparison, lhs, :<>, exp}, &{:and, {:comparison, lhs, :<>, &1}, &2})
       other -> other
     end)
+
+
+  # -------------------------------------------------------------------
+  # Helpers
+  # -------------------------------------------------------------------
+
+  defp apply_to_subqueries(query, function), do:
+    update_in(query, [Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &Helpers.apply_bottom_up(&1, function))
 end

@@ -910,6 +910,14 @@ defmodule Cloak.Query.BasicTest do
       %{columns: ["count", "foo"], rows: [%{row: [10, 170.0]}, %{row: [10, 190.0]}]}
   end
 
+  test "select distinct" do
+    :ok = insert_rows(_user_ids = 0..5, "heights", ["height"], [175])
+    :ok = insert_rows(_user_ids = 6..10, "heights", ["height"], [176])
+
+    assert_query "select distinct height from heights group by height order by height",
+      %{columns: ["height"], rows: [%{row: [175]}, %{row: [176]}]}
+  end
+
   test "counting distinct uids" do
     :ok = insert_rows(_user_ids = 0..9, "heights", [], [])
 
@@ -1055,6 +1063,15 @@ defmodule Cloak.Query.BasicTest do
       select
         height, count(distinct height), min(height), max(height), median(height), round(avg(height))
       from heights group by height
-    """, %{rows: [%{row: [:*, 8, 154, 176, 163, 167]}]}
+    """, %{rows: [%{row: [:*, 8, 154, 176, 166, 167]}]}
+  end
+
+  test "distinct in subquery with group by" do
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [160, true])
+    :ok = insert_rows(_user_ids = 11..30, "heights", ["height", "male"], [170, false])
+    assert_query(
+      "select count(*) from (select distinct user_id, male from heights group by user_id, height, male) alias",
+      %{rows: [%{row: [40]}]}
+    )
   end
 end

@@ -34,7 +34,6 @@ defmodule Cloak.Query.Anonymizer do
 
   @type t :: %{
     rngs: rng_state,
-    starred: boolean,
     layers: [MapSet.t | %{}],
   }
 
@@ -56,18 +55,8 @@ defmodule Cloak.Query.Anonymizer do
   def new([_|_] = layers), do:
     %{
       rngs: layers |> noise_layers_to_seeds() |> Enum.map(&build_rng/1),
-      starred: false,
       layers: layers,
     }
-
-  @doc """
-  Creates a version of the anonymizer where all RNG seeds are mixed with a unique value. This is useful for computing
-  noise layers for `count(*)` columns.
-  """
-  @spec starred(t) :: t
-  def starred(anonymizer = %{starred: false}), do:
-    %{anonymizer | rngs: Enum.map(anonymizer.rngs, &add_star/1), starred: true}
-
 
   @doc """
   Returns a `{boolean, anonymizer}` tuple, where the boolean value is
@@ -194,11 +183,8 @@ defmodule Cloak.Query.Anonymizer do
       |> Stream.flat_map(fn ({row, user_index}) -> Stream.map(row, &{user_index, &1}) end)
       |> Enum.sort_by(fn ({_user_index, value}) -> value end)
 
-    top_count = config(:top_count)
-    {noisy_above_count, anonymizer} = add_noise(anonymizer, top_count)
-    noisy_above_count = noisy_above_count |> round() |> Kernel.max(0)
-    {noisy_below_count, anonymizer} = add_noise(anonymizer, top_count)
-    noisy_below_count = noisy_below_count |> round() |> Kernel.max(0)
+    {noisy_above_count, anonymizer} = get_group_count(anonymizer, config(:top_count))
+    {noisy_below_count, anonymizer} = get_group_count(anonymizer, config(:top_count))
 
     middle = round((Enum.count(values) - 1) / 2)
     {bottom_values, [{_middle_user_index, middle_value} | top_values]} = Enum.split(values, middle - 1)
@@ -297,10 +283,9 @@ defmodule Cloak.Query.Anonymizer do
 
   # Computes the noisy sum of a collection of positive numbers.
   defp sum_positives(anonymizer, rows) do
-    {outliers_count, anonymizer} = add_noise(anonymizer, config(:outliers_count))
-    outliers_count = outliers_count |> round() |> Kernel.max(config(:min_outliers_count))
-    {top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
-    top_count = top_count |> round() |> Kernel.max(0)
+    {outliers_count, anonymizer} = get_group_count(anonymizer, config(:outliers_count))
+    {top_count, anonymizer} = get_group_count(anonymizer, config(:top_count))
+
     case sum_positives(rows, outliers_count, top_count) do
       {0, nil} -> {{0, nil}, anonymizer}
       {sum, noise_sigma_scale} ->
@@ -371,10 +356,8 @@ defmodule Cloak.Query.Anonymizer do
   # Given a list of rows and a row accumulator functor, this method will drop the biggest outliers and
   # will return the average value of the top remaining rows, if enough rows are available.
   defp get_max(anonymizer, rows, row_accumulator) do
-    {outliers_count, anonymizer} = add_noise(anonymizer, config(:outliers_count))
-    outliers_count = outliers_count |> round() |> Kernel.max(config(:min_outliers_count))
-    {top_count, anonymizer} = add_noise(anonymizer, config(:top_count))
-    top_count = top_count |> round() |> Kernel.max(0)
+    {outliers_count, anonymizer} = get_group_count(anonymizer, config(:outliers_count))
+    {top_count, anonymizer} = get_group_count(anonymizer, config(:top_count))
 
     {top_length, top_values} = Enum.reduce(rows, {0, []}, fn
       (row, {top_length, top}) when top_length <= outliers_count + top_count ->
@@ -429,18 +412,12 @@ defmodule Cloak.Query.Anonymizer do
   defp sum_noise_sigmas(nil, sigma2), do: sigma2
   defp sum_noise_sigmas(sigma1, sigma2), do: :math.sqrt(sigma1 * sigma1 + sigma2 * sigma2)
 
-  @star_token <<
-    29, 219, 42, 78, 67, 253, 33, 203, 49, 214, 249, 88, 182, 201, 156, 46, 244,
-    71, 198, 30, 163, 104, 37, 252, 121, 71, 65, 35, 31, 221, 183, 34
-  >>
-
-  defp add_star(rng) do
-    :rand.export_seed_s(rng)
-    |> compute_hash()
-    |> :crypto.exor(@star_token)
-    |> binary_to_seed()
-    |> build_rng()
-  end
-
   defp build_rng(seed), do: :rand.seed(:exsplus, seed)
+
+  defp get_group_count(anonymizer, mean_sigma) do
+    {min_count, max_count} = config(:group_limits)
+    {count, anonymizer} = add_noise(anonymizer, mean_sigma)
+    count = count |> round() |> Kernel.max(min_count) |> Kernel.min(max_count)
+    {count, anonymizer}
+  end
 end

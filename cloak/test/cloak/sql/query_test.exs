@@ -1,7 +1,8 @@
 defmodule Cloak.Sql.QueryTest do
   use ExUnit.Case, async: false
 
-  alias Cloak.Sql.Query
+  alias Cloak.Sql.{Query, Expression}
+  alias Cloak.DataSource.Table
 
   import Cloak.Test.QueryHelpers
 
@@ -247,8 +248,67 @@ defmodule Cloak.Sql.QueryTest do
   defp make_query(data_source, statement) do
     {query, features} = Query.make!(data_source, statement, [], %{})
     {
-      query |> scrub_data_sources() |> scrub_aliases(),
+      scrub_data_sources(query),
       features
     }
+  end
+
+  test "db_columns resolving simple column" do
+    uid_column = Table.column("uid", :integer)
+    string_column = Table.column("string", :text)
+    table = Table.new("table", "uid", columns: [uid_column, string_column])
+    query = %Query{
+      command: :select,
+      columns: [Expression.column(string_column, table)],
+      column_titles: ["string"],
+      selected_tables: [table],
+      from: "table",
+    }
+
+    assert [
+        %Expression{name: "uid", row_index: 0},
+        %Expression{name: "string", row_index: 1},
+      ] = Query.resolve_db_columns(query).db_columns
+  end
+
+  test "db_columns resolving function call" do
+    uid_column = Table.column("uid", :integer)
+    numeric_column = Table.column("numeric", :integer)
+    table = Table.new("table", "uid", columns: [uid_column, numeric_column])
+    query = %Query{
+      command: :select,
+      columns: [Expression.function("abs", [Expression.column(numeric_column, table)])],
+      column_titles: ["abs"],
+      selected_tables: [table],
+      from: "table",
+    }
+
+    assert [
+        %Expression{name: "uid", row_index: 0},
+        %Expression{name: "numeric", row_index: 1},
+      ] = Query.resolve_db_columns(query).db_columns
+  end
+
+  test "offloaded where clauses extraction" do
+    uid_column = Table.column("uid", :integer)
+    numeric_column = Table.column("numeric", :integer)
+    table = Table.new("table", "uid", columns: [uid_column, numeric_column])
+    condition = {:comparison, Expression.column(numeric_column, table), :=, Expression.constant(:integer, 3)}
+    query = %Query{command: :select, where: condition, selected_tables: [table], from: "table"}
+
+    assert ^condition = Query.offloaded_where(query)
+    assert nil == Query.emulated_where(query)
+  end
+
+  test "emulated where clauses extraction" do
+    uid_column = Table.column("uid", :integer)
+    numeric_column = Table.column("numeric", :integer)
+    decoders = [%{method: "text_to_integer", columns: ["numeric"]}]
+    table = Table.new("table", "uid", columns: [uid_column, numeric_column], decoders: decoders)
+    condition = {:comparison, Expression.column(numeric_column, table), :=, Expression.constant(:integer, 3)}
+    query = %Query{command: :select, where: condition, selected_tables: [table], from: "table"}
+
+    assert ^condition = Query.emulated_where(query)
+    assert nil == Query.offloaded_where(query)
   end
 end

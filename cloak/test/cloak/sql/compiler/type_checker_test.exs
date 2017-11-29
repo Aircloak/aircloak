@@ -31,11 +31,14 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
 
     test "forbids unclear <> lhs", do:
       assert {:error, "Only `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim` can be used in the "
-        <> "left-hand side of an <> operator."} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 <> 10")
+        <> "arguments of an <> operator."} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 <> 10")
 
-    test "forbids column <> column", do:
-      assert {:error, "The right-hand side of an <> operator has to be a constant."} =
-        compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
+    test "allows column <> column", do:
+      assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
+
+    test "forbids column <> unclear_column", do:
+      assert {:error, "When comparing two database columns with <> they cannot be modified."} =
+        compile("SELECT COUNT(*) FROM table WHERE string <> upper(string)")
 
     test "allows clear <> lhs in subquery HAVING", do:
       assert {:ok, _, _} = compile("""
@@ -44,7 +47,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
 
     test "forbids unclear <> lhs in subquery HAVING", do:
       assert {:error, "Only `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim` can be used in the "
-        <> "left-hand side of an <> operator."
+        <> "arguments of an <> operator."
       } = compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING AVG(numeric + 1) <> 10) x")
 
     test "allows clear NOT LIKE lhs", do:

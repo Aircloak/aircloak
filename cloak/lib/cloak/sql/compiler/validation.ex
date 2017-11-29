@@ -62,13 +62,20 @@ defmodule Cloak.Sql.Compiler.Validation do
     |> Enum.reject(&match?({_name, [_]}, &1))
     |> Enum.map(fn({name, _}) -> name end)
 
+
   # -------------------------------------------------------------------
   # Columns and expressions
   # -------------------------------------------------------------------
 
   defp verify_function_exists(function = {_, name, _}) do
     unless Function.exists?(function) do
-      raise CompilationError, message: "Unknown function `#{Function.readable_name(name)}`."
+      case Function.deprecation_info(function) do
+        {:error, :not_found} ->
+          raise CompilationError, message: "Unknown function `#{Function.readable_name(name)}`."
+        {:ok, %{alternative: alternative}} ->
+          raise CompilationError, message: "Function `#{Function.readable_name(name)}` has been deprecated. " <>
+            "Depending on your use case, consider using `#{Function.readable_name(alternative)}` instead."
+      end
     end
   end
 
@@ -118,8 +125,10 @@ defmodule Cloak.Sql.Compiler.Validation do
     |> Enum.filter(&aggregate_expression?/1)
     |> case do
       [] -> :ok
-      [expression | _] -> raise CompilationError, message:
-        "Aggregate function `#{Function.readable_name(expression.function)}` can not be used in the `GROUP BY` clause."
+      [expression | _] ->
+        [aggregate | _] = aggregate_subexpressions(expression)
+        raise CompilationError, message:
+          "Aggregate function `#{Function.readable_name(aggregate.function)}` can not be used in the `GROUP BY` clause."
     end
   end
 
@@ -345,6 +354,11 @@ defmodule Cloak.Sql.Compiler.Validation do
   # Helpers
   # -------------------------------------------------------------------
 
-  defp aggregate_expression?(%Expression{aggregate?: true}), do: true
-  defp aggregate_expression?(_), do: false
+  defp aggregate_expression?(expression), do:
+    not Enum.empty?(aggregate_subexpressions(expression))
+
+  defp aggregate_subexpressions(expression), do:
+    Query.Lenses.all_expressions()
+    |> Lens.satisfy(&match?(%{aggregate?: true}, &1))
+    |> Lens.to_list(expression)
 end

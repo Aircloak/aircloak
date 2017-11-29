@@ -230,46 +230,15 @@ CONCAT('a', 'b', 'c')
 Joins the passed strings into one.
 
 
-### extract_match
+### extract_words
 
 ```sql
-EXTRACT_MATCH('Some Text', 'Some')
--- 'Some'
-
-EXTRACT_MATCH('This or that', 'this|that')
--- 'This'
-
-EXTRACT_MATCH('This or that', 'Some')
--- nil
-```
-
-Runs a regular expression over a text column. The first match is extracted and replaces the original value.
-The syntax of the regular expressions [resemble that of Perl](http://erlang.org/doc/man/re.html#regexp_syntax).
-
-All regular expressions are considered case insensitive.
-
-This function is not allowed in subqueries.
-
-
-### extract_matches
-
-```sql
-EXTRACT_MATCHES('Some Text', '\w+')
+EXTRACT_WORDS('Some Text')
 -- 'Some'
 -- 'Text'
-
-EXTRACT_MATCH('This or that', 'this|that')
--- 'This'
--- 'that'
-
-EXTRACT_MATCH('This or that', 'Some')
-# Notice, the row is surpressed when there is no match
 ```
 
-Runs a regular expression over a text column. All matches are extracted and turned into individual rows.
-The syntax of the regular expressions [resemble that of Perl](http://erlang.org/doc/man/re.html#regexp_syntax).
-
-All regular expressions are considered case insensitive.
+Splits a string into words, each becoming an individual row.
 
 This function is not allowed in subqueries.
 
@@ -284,7 +253,7 @@ For example, consider the following row coming from the database:
 | 1 | 10.00 | purchase of a book |
 | 2 | 15.00 | book of the year |
 
-If used in conjunction with `extract_matches(description, '\w+')`, the input data will be
+If used in conjunction with `extract_words(description)`, the input data will be
 converted into the following rows before furhter analysis takes place
 
 | user-id | price | description |

@@ -121,7 +121,7 @@ function start_container {
 
   stop_named_container $CONTAINER_NAME
   echo "Starting container $CONTAINER_NAME from $DOCKER_IMAGE"
-  docker run $DOCKER_START_ARGS --name $CONTAINER_NAME $DOCKER_IMAGE $CONTAINER_ARGS
+  docker run $DOCKER_START_ARGS --name $CONTAINER_NAME -h ${CONTAINER_NAME//_/-} $DOCKER_IMAGE $CONTAINER_ARGS
 }
 
 # Syntax:
