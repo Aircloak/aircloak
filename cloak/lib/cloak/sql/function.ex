@@ -108,28 +108,28 @@ defmodule Cloak.Sql.Function do
     ~w(extract_words) => %{type_specs: %{[:text] => :text}, attributes: [:not_in_subquery, :row_splitter]},
     [{:cast, :integer}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer},
-      attributes: [:restricted]},
+      attributes: [:restricted, :cast]},
     [{:cast, :real}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :real},
-      attributes: [:restricted]},
+      attributes: [:restricted, :cast]},
     [{:cast, :boolean}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :boolean},
-      attributes: [:restricted]},
+      attributes: [:restricted, :cast]},
     [{:cast, :datetime}] =>
       %{type_specs: %{[{:or, [:text, :datetime]}] => :datetime},
-      attributes: [:restricted]},
+      attributes: [:restricted, :cast]},
     [{:cast, :time}] =>
       %{type_specs: %{[{:or, [:text, :datetime, :time]}] => :time},
-      attributes: [:restricted]},
+      attributes: [:restricted, :cast]},
     [{:cast, :date}] =>
       %{type_specs: %{[{:or, [:text, :datetime, :date]}] => :date},
-      attributes: [:restricted]},
+      attributes: [:restricted, :cast]},
     [{:cast, :text}] =>
       %{type_specs: %{[:any] => :text},
-      attributes: [:restricted]},
+      attributes: [:restricted, :cast]},
     [{:cast, :interval}] =>
       %{type_specs: %{[{:or, [:text, :interval]}] => :interval},
-      attributes: [:restricted]},
+      attributes: [:restricted, :cast]},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -159,12 +159,6 @@ defmodule Cloak.Sql.Function do
       function -> attribute in Map.get(function, :attributes, [])
     end
   end
-
-  @doc "Returns true if the given function call is a cast, false otherwise."
-  @spec cast?(t) :: boolean
-  def cast?({:function, {:cast, _}, _}), do: true
-  def cast?(%Expression{function: {:cast, _}}), do: true
-  def cast?(_), do: false
 
   @doc "Returns the target type of the given cast."
   @spec cast_target(t) :: argument_type
@@ -246,6 +240,10 @@ defmodule Cloak.Sql.Function do
   @doc "Returns true if a function is an aggregator"
   @spec aggregator?(t | String.t | nil) :: boolean
   def aggregator?(param), do: has_attribute?(param, :aggregator)
+
+  @doc "Returns true if the given function call is a cast, false otherwise."
+  @spec cast?(t | String.t | nil) :: boolean
+  def cast?(param), do: has_attribute?(param, :cast)
 
   @doc "Provides information about alternatives for deprecated functions."
   @spec deprecation_info(t) :: {:error, :function_exists | :not_found} | {:ok, %{alternative: String.t}}
