@@ -106,7 +106,7 @@ priv/odbc/drivers/libodbc-sap-hana-v2.so:
 	wget -P priv/odbc/drivers https://www.dropbox.com/s/aerstjlatecny79/libodbc-sap-hana-v2.so
 
 ci.compliance:
-	../ci/run.sh cloak_compliance
+	../ci/scripts/run.sh cloak_compliance
 
 ci.compliance.debug:
-	../ci/run.sh debug_cloak_compliance
+	../ci/scripts/run.sh debug_cloak_compliance

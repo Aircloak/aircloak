@@ -11,7 +11,7 @@ defmodule Mix.Tasks.AircloakCi.ForceBuild do
   Once you have the token, you can start the build for the PR with the following command:
 
   ```
-  AIRCLOAK_CI_AUTH=your_access_token mix aircloak_ci.force_build pr_number
+  mix aircloak_ci.force_build pr_number
   ```
 
   Note that this command will only work on open pull requests.

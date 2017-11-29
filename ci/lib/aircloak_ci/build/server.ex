@@ -29,13 +29,13 @@ defmodule AircloakCI.Build.Server do
 
   @impl GenServer
   def init({pr, repo_data}) do
-    AircloakCI.RepoDataProvider.subscribe()
     Process.flag(:trap_exit, true)
 
     project = LocalProject.for_pull_request(pr)
     Logger.info("started build server for #{LocalProject.name(project)}")
+    AircloakCI.RepoDataProvider.subscribe("build for #{LocalProject.name(project)}")
 
-    state = %{pr: pr, project: project, init_task: nil, build_task: nil, start: nil}
+    state = %{pr: pr, project: project, init_task: nil, build_task: nil, start: nil, terminating?: false}
     {:ok, start_init_task(state, repo_data)}
   end
 
@@ -68,11 +68,18 @@ defmodule AircloakCI.Build.Server do
     handle_build_finish(state, result, nil)
     {:noreply, state}
   end
-  def handle_info({:EXIT, init_task, _reason}, %{init_task: init_task} = state), do:
-    {:noreply, maybe_start_build(%{state | init_task: nil})}
+  def handle_info(:soft_terminate, state) do
+    state = %{state | terminating?: true}
+    if should_terminate?(state), do: {:stop, :normal, state}, else: {:noreply, state}
+  end
+  def handle_info({:EXIT, init_task, _reason}, %{init_task: init_task} = state) do
+    state = %{state | init_task: nil}
+    if should_terminate?(state), do: {:stop, :normal, state}, else: {:noreply, maybe_start_build(state)}
+  end
   def handle_info({:EXIT, build_task, reason}, %{build_task: build_task} = state) do
     if reason != :normal, do: handle_build_finish(state, :failure, reason)
-    {:noreply, %{state | build_task: nil}}
+    state = %{state | build_task: nil}
+    if should_terminate?(state), do: {:stop, :normal, state}, else: {:noreply, state}
   end
   def handle_info(other, state), do:
     super(other, state)
@@ -186,7 +193,7 @@ defmodule AircloakCI.Build.Server do
       state.pr.repo.owner,
       state.pr.repo.name,
       state.pr.number,
-      comment(result, state.project, context)
+      comment(state, result, context)
     )
 
     LocalProject.set_status(state.project, :finished)
@@ -282,19 +289,27 @@ defmodule AircloakCI.Build.Server do
   defp description(:error), do: "build errored"
   defp description(:failure), do: "build failed"
 
-  defp comment(:ok, _project, nil), do:
-    "Compliance build succeeded 👍"
-  defp comment(:error, project, nil), do:
-    Enum.join(["Compliance build errored 😞", "", "Log tail:", "```", log_tail(project), "```"], "\n")
-  defp comment(:failure, project, crash_reason), do:
+  defp comment(_state, :ok, nil), do:
+    "Compliance build succeeded #{happy_emoji()}"
+  defp comment(state, :error, nil), do:
+    error_comment(state, "Compliance build errored")
+  defp comment(state, :failure, crash_reason), do:
+    error_comment(state, "Compliance build crashed", "```\n#{Exception.format_exit(crash_reason)}\n```")
+
+  defp error_comment(state, title, extra_info \\ nil), do:
     Enum.join(
       [
-        "Compliance build crashed 😞", "",
-        "```", Exception.format_exit(crash_reason), "```", "",
-        "Log tail:", "```", log_tail(project), "```"
+        "#{title} #{sad_emoji()}",
+        (if not is_nil(extra_info), do: "\n#{extra_info}\n", else: ""),
+        "You can see the full build log by running: `ci/production.sh build_log #{state.pr.number}`\n",
+        "Log tail:\n", "```", log_tail(state.project), "```"
       ],
       "\n"
     )
+
+  defp happy_emoji(), do: Enum.random(["💯", "👍", "😊", "❤️", "🎉", "👏"])
+
+  defp sad_emoji(), do: Enum.random(["😞", "😢", "😟", "💔", "👿", "🔥"])
 
   defp log_tail(project) do
     max_lines = 100
@@ -314,6 +329,9 @@ defmodule AircloakCI.Build.Server do
     {:via, Registry, {AircloakCI.Build.Registry, {:pull_request, pr.number}}}
 
   defp project_queue(project), do: {:project, LocalProject.folder(project)}
+
+  defp should_terminate?(%{init_task: nil, build_task: nil, terminating?: true}), do: true
+  defp should_terminate?(_state), do: false
 
 
   # -------------------------------------------------------------------

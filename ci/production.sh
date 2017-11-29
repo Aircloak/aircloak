@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-build_folder="/home/ci/aircloak_ci/build/ci/server"
+build_folder="/home/ci/aircloak_ci/build/ci"
 production_folder="/home/ci/aircloak_ci/production"
 
 function exec_as_root {
@@ -73,19 +73,25 @@ function deploy {
     (git branch -vv | grep ': gone]' | awk '{print $1}' | xargs git branch -d &>/dev/null || true)
   "
 
-  # update systemd service file and restart the service
+  # update systemd service file
   exec_as_root "
     cp -rp $build_folder/production/aircloak_ci.service /etc/systemd/system/ &&
-    systemctl daemon-reload &&
-    systemctl restart aircloak_ci.service
+    systemctl daemon-reload
   "
+
+  # start the soft termination of the service
+  if [ "$(service_command build start_soft_termination)" != "Node is not running!" ]; then
+    echo "CI server has been deployed successfully and scheduled for soft restart."
+  else
+    # if we end up here, the node is not running, so we'll just restart the service through systemd
+    exec_as_root "systemctl restart aircloak_ci.service"
+    echo "CI server has been started."
+  fi
 
   # keep the most recent 10 releases
   if [ "$(exec_as_ci "cd $production_folder/releases && ls -tp | tail -n +11")" != "" ]; then
     exec_as_ci "cd $production_folder/releases && ls -tp | tail -n +11 | xargs rm -rf"
   fi
-
-  echo "CI server has been deployed successfully"
 }
 
 function rollback {
@@ -132,7 +138,7 @@ case "$command" in
     ;;
 
   *)
-    echo "Usage: ./$(basename "$0") deploy | rollback | build_log pr_number | force_build pr_number"
+    echo "Usage: ./$(basename "$0") deploy | rollback | service_log journalctl_args | build_log pr_number | force_build pr_number"
     exit 1
     ;;
 esac
