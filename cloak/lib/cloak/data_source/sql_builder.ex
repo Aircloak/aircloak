@@ -126,8 +126,14 @@ defmodule Cloak.DataSource.SqlBuilder do
       Enum.map(values, &to_fragment(&1, sql_dialect_module)) |> join(", "), ")"]
   defp conditions_to_fragments({:like, what, match}, sql_dialect_module), do:
     sql_dialect_module.like_sql(to_fragment(what, sql_dialect_module), to_fragment(match, sql_dialect_module))
-  defp conditions_to_fragments({:ilike, what, match}, sql_dialect_module), do:
-    sql_dialect_module.ilike_sql(to_fragment(what, sql_dialect_module), to_fragment(match, sql_dialect_module))
+  defp conditions_to_fragments({:ilike, what, match}, sql_dialect_module) do
+    if sql_dialect_module.native_support_for_ilike?() do
+      sql_dialect_module.ilike_sql(to_fragment(what, sql_dialect_module),
+        to_fragment(match, sql_dialect_module))
+    else
+      conditions_to_fragments({:like, Expression.lowercase(what), Expression.lowercase(match)}, sql_dialect_module)
+    end
+  end
   defp conditions_to_fragments({:is, what, match}, sql_dialect_module), do:
     [to_fragment(what, sql_dialect_module), " IS ", to_fragment(match, sql_dialect_module)]
   defp conditions_to_fragments({:not, condition}, sql_dialect_module), do:
