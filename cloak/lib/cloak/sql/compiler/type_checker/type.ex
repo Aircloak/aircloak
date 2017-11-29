@@ -105,13 +105,21 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
           math_operations_count(applied_functions) >= @math_operations_before_considered_constant,
         string_manipulation?: Function.has_attribute?(function, :string_manipulation) or
           Enum.any?(child_types, & &1.string_manipulation?),
-        unclear_string_manipulation?:
-          (Function.string_manipulation_function?(function) and Enum.any?(child_types, &unclear_modification?/1))
-            or (not Function.aggregator?(function) and Enum.any?(child_types, & &1.string_manipulation?)),
+        unclear_string_manipulation?: unclear_string_manipulation?(function, child_types),
         history_of_columns_involved: combined_columns_involved(child_types),
       }
       |> extend_history_of_restricted_transformations(name, child_types)
     end
+  end
+
+  defp unclear_string_manipulation?(function, child_types) do
+    unclear_argument = Enum.any?(child_types, & &1.unclear_string_manipulation?)
+    string_fun_of_unclear_expression =
+      Function.string_manipulation_function?(function) and Enum.any?(child_types, &unclear_modification?/1)
+    unclear_transform_of_string_fun_result =
+      not Function.aggregator?(function) and Enum.any?(child_types, & &1.string_manipulation?)
+
+    unclear_argument or string_fun_of_unclear_expression or unclear_transform_of_string_fun_result
   end
 
   @allowed_clear_casts 1
