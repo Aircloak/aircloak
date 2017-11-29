@@ -91,17 +91,16 @@ defmodule AircloakCI.Github do
     # ignoring task exits, since we handled DOWN and result messages
     {:noreply, state}
   def handle_info(:log_rate_limits, state) do
+    # remove outdated rate limits
+    state =
+      update_in(
+        state.rate_limits,
+        &Enum.reject(&1, fn({_category, rate_limit}) -> expires_in(rate_limit) <= 0 end)
+      )
+
     Enum.each(state.rate_limits,
       fn({category, rate_limit}) ->
-        expires_in =
-          case DateTime.diff(rate_limit.expires_at, DateTime.utc_now(), :second) do
-            diff when diff > 0 -> diff
-            # If we didn't issue any request since the last reset the diff will be negative.
-            # In this case, we'll report the maximum amount (5000).
-            _ -> 5000
-          end
-
-        Logger.info("#{category} #{rate_limit.remaining} requests remaining, expires in #{expires_in} sec")
+        Logger.info("#{category} #{rate_limit.remaining} requests remaining, expires in #{expires_in(rate_limit)} sec")
       end
     )
     {:noreply, state}
@@ -166,6 +165,9 @@ defmodule AircloakCI.Github do
 
   defp update_rate_limit(state, nil), do: state
   defp update_rate_limit(state, rate_limit), do: put_in(state.rate_limits[rate_limit.category], rate_limit)
+
+  defp expires_in(rate_limit), do:
+    DateTime.diff(rate_limit.expires_at, DateTime.utc_now(), :second)
 
 
   # -------------------------------------------------------------------
