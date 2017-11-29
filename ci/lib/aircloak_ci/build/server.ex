@@ -83,10 +83,11 @@ defmodule AircloakCI.Build.Server do
   # -------------------------------------------------------------------
 
   defp base_projects(pr, repo_data), do:
-    [
+    # We're deduping, because if the target is master, we end up with two master branches, which causes deadlocks.
+    Enum.uniq([
       LocalProject.for_branch(branch!(repo_data, pr.target_branch)),
       LocalProject.for_branch(branch!(repo_data, "master"))
-    ]
+    ])
 
   defp init_project(pr_project, base_projects), do:
     Queue.exec(project_queue(pr_project), fn -> init_project([pr_project | base_projects]) end)
