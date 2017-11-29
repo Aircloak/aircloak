@@ -25,7 +25,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
     query
     |> Helpers.apply_bottom_up(&normalize_in/1)
     |> Helpers.apply_bottom_up(&normalize_like_patterns/1)
-    |> Helpers.apply_bottom_up(&normalize_like/1)
+    |> Helpers.apply_bottom_up(&normalize_trivial_like/1)
     |> Helpers.apply_bottom_up(&normalize_constants/1)
     |> Helpers.apply_bottom_up(&normalize_order_by/1)
     |> Helpers.apply_bottom_up(&normalize_bucket/1)
@@ -67,7 +67,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp normalize_like_patterns(query), do:
     Lens.map(Query.Lenses.like_patterns(), query, &LikePattern.normalize/1)
 
-  defp normalize_like(query), do:
+  defp normalize_trivial_like(query), do:
     Query.Lenses.like_clauses()
     |> Lens.satisfy(&trivial_like?/1)
     |> Lens.map(query, fn
