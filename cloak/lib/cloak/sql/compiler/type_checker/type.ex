@@ -103,7 +103,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
           Enum.all?(child_types, &(&1.cast_raw_column? || &1.constant?)),
         constant_involved?: any_touched_by_constant?(child_types) ||
           math_operations_count(applied_functions) >= @math_operations_before_considered_constant,
-        string_manipulation?: Function.has_attribute?(function, :string_manipulation) or
+        string_manipulation?: Function.string_manipulation_function?(function) or
           Enum.any?(child_types, & &1.string_manipulation?),
         unclear_string_manipulation?: unclear_string_manipulation?(function, child_types),
         history_of_columns_involved: combined_columns_involved(child_types),
