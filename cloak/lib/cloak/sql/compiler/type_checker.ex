@@ -104,9 +104,13 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   defp verify_string_based_conditions_are_clear(query), do:
     verify_conditions(query, &(Condition.equals?(&1) or Condition.not_equals?(&1)), fn({:comparison, lhs, _, rhs}) ->
-      if Type.establish_type(lhs, query).unclear_string_manipulation?, do:
+      lhs_type = Type.establish_type(lhs, query)
+      rhs_type = Type.establish_type(rhs, query)
+
+      if lhs_type.unclear_string_manipulation?, do:
         raise CompilationError, message: "String manipulation functions cannot be combined with other transformations."
-      if Type.establish_type(lhs, query).string_manipulation? and not Type.establish_type(rhs, query).constant?, do:
+
+      if lhs_type.string_manipulation? and not rhs_type.cast_raw_column?, do:
         raise CompilationError, message: "Results of string manipulation functions can only be compared to constants."
     end)
 

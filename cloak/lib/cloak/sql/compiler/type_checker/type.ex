@@ -79,7 +79,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     end
   end
 
-  defp constant(), do: %Type{constant?: true, constant_involved?: true}
+  defp constant(), do: %Type{constant?: true, constant_involved?: true, raw_column?: true, cast_raw_column?: true}
 
   defp column(expression), do:
     %Type{
