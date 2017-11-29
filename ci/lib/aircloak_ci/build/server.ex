@@ -301,7 +301,7 @@ defmodule AircloakCI.Build.Server do
       [
         "#{title} #{sad_emoji()}",
         (if not is_nil(extra_info), do: "\n#{extra_info}\n", else: ""),
-        "You can see the full build log by running: `ci/server/production.sh build_log #{state.pr.number}`\n",
+        "You can see the full build log by running: `ci/production.sh build_log #{state.pr.number}`\n",
         "Log tail:\n", "```", log_tail(state.project), "```"
       ],
       "\n"

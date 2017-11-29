@@ -3,10 +3,10 @@
 set -eo pipefail
 
 # run from the top-level folder of the project
-ROOT_DIR=$(cd $(dirname ${BASH_SOURCE[0]})/.. && pwd)
+ROOT_DIR=$(cd $(dirname ${BASH_SOURCE[0]})/../.. && pwd)
 cd $ROOT_DIR
 
-. ci/cloak.sh
+. ci/scripts/cloak.sh
 
 
 command=$1

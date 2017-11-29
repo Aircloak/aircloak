@@ -115,12 +115,12 @@ function build_cloak_image {
 
   pushd ./cloak && make odbc_drivers && popd
   common/docker/elixir/build-image.sh
-  build_aircloak_image cloak_ci ci/cloak.dockerfile ci/.cloak.dockerignore
+  build_aircloak_image cloak_ci ci/docker/cloak.dockerfile ci/docker/.cloak.dockerignore
 }
 
 function start_cloak_container {
   # running build in a separate shell to ensure proper cleanup (removal of lock)
-  bash -c ". ./ci/cloak.sh && build_cloak_image"
+  bash -c ". ./ci/scripts/cloak.sh && build_cloak_image"
 
   mkdir -p tmp/ci/cloak
 

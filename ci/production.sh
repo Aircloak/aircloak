@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-build_folder="/home/ci/aircloak_ci/build/ci/server"
+build_folder="/home/ci/aircloak_ci/build/ci"
 production_folder="/home/ci/aircloak_ci/production"
 
 function exec_as_root {
