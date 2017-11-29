@@ -23,11 +23,4 @@ defmodule AircloakCI.ReleaseCLI do
     |> AircloakCI.LocalProject.log_contents()
     |> IO.puts()
   end
-
-  @doc "Puts the system in the soft termination mode."
-  @spec start_soft_termination() :: :ok
-  def start_soft_termination() do
-    AircloakCI.start_soft_termination()
-    IO.puts "the system is marked for soft termination"
-  end
 end
