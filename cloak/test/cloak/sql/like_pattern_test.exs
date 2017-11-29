@@ -58,19 +58,12 @@ defmodule Cloak.Sql.LikePattern.Test do
       assert {~S[%__a%___bc%_], "\\"} = LikePattern.normalize({~S[__%%a___%bc%_%%%], nil})
   end
 
-  describe "lowercase_pattern" do
-    test "produces lowercase patterns for trivial patterns", do:
-      assert Expression.like_pattern("abc", "\\") ==
-        Expression.like_pattern("AbC", "\\") |> LikePattern.lowercase_pattern()
+  describe "normalized?" do
+    test "returns true if escape characters are standard", do:
+      assert Expression.like_pattern("abc", "\\") |> LikePattern.normalized?()
 
-    test "produces lowercase patterns for complex patterns", do:
-      assert Expression.like_pattern("a%b_c", "\\") ==
-        Expression.like_pattern("A%b_C", "\\") |> LikePattern.lowercase_pattern()
-
-    test "fails if a pattern hasn't been normalised", do:
-      assert_raise RuntimeError, fn() ->
-        LikePattern.lowercase_pattern(Expression.like_pattern("a%b", nil))
-      end
+    test "returns false if escape characters are non-standard", do:
+      refute Expression.like_pattern("abc", nil) |> LikePattern.normalized?()
   end
 
   describe "to_regex" do

@@ -73,17 +73,14 @@ defmodule Cloak.Sql.Compiler.Normalization do
     |> Lens.map(query, fn
       {:like, lhs, rhs} -> {:comparison, lhs, :=, LikePattern.trivial_to_string(rhs)}
       {:ilike, lhs, rhs} ->
-        {:comparison, lowercase(lhs), :=, rhs |> LikePattern.lowercase_pattern() |> LikePattern.trivial_to_string()}
+        {:comparison, Expression.lowercase(lhs), :=, rhs |> Expression.lowercase() |> LikePattern.trivial_to_string()}
       {:not, {:like, lhs, rhs}} -> {:comparison, lhs, :<>, LikePattern.trivial_to_string(rhs)}
       {:not, {:ilike, lhs, rhs}} ->
-        {:comparison, lowercase(lhs), :<>, rhs |> LikePattern.lowercase_pattern() |> LikePattern.trivial_to_string()}
+        {:comparison, Expression.lowercase(lhs), :<>, rhs |> Expression.lowercase() |> LikePattern.trivial_to_string()}
     end)
 
   defp trivial_like?({:not, like}), do: trivial_like?(like)
   defp trivial_like?({_kind, _rhs, lhs}), do: LikePattern.trivial?(lhs.value)
-
-  defp lowercase(expression), do:
-    Expression.function("lower", [expression], expression.type)
 
 
   # -------------------------------------------------------------------

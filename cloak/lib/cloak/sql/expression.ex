@@ -226,6 +226,22 @@ defmodule Cloak.Sql.Expression do
       fn(%__MODULE__{constant?: true, value: value}) -> value end
     )
 
+  @doc "Wraps a string expression in the lower case function"
+  @spec lowercase(t) :: t
+  def lowercase(%__MODULE__{constant?: true, type: :text, value: value} = expression), do:
+    %__MODULE__{expression | value: String.downcase(value)}
+  def lowercase(%__MODULE__{type: :text} = expression), do:
+    function("lower", [expression], expression.type)
+  def lowercase(%__MODULE__{type: :like_pattern, value: {pattern, escape}} = expression) do
+    if Cloak.Sql.LikePattern.normalized?(expression) do
+      %__MODULE__{expression | value: {String.downcase(pattern), escape}}
+    else
+      raise "Please normalize the like pattern before lowercasing the pattern"
+    end
+  end
+  def lowercase(_), do:
+    raise "Only textual expression can be made lowercase"
+
 
   # -------------------------------------------------------------------
   # Internal functions
