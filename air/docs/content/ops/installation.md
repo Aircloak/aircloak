@@ -5,7 +5,7 @@ The Aircloak system consists of two components:
 - Insights Air
 - Insights Cloak
 
-For an explanation of these components, see [Components provided by Aircloak](components.md#components-provided-by-aircloak).
+For an explanation of these components, see [Components provided by Aircloak](/components.md#components-provided-by-aircloak).
 
 These components should run on separate machines. In addition, the access to the Insights Cloak component should be highly restricted, since this component has complete read access to the sensitive data. The Insights Air component does not require such privileges, so you can optionally run it in another network, as long as Insights Cloak can connect to the Insights Air.
 
@@ -18,7 +18,7 @@ Before installing components, make sure that the following prerequisites are met
 - The Insights Air component requires at least 2GB of RAM.
 - The Insights Cloak component requires at least 8GB of RAM. However, for more complex queries on a larger dataset, more memory might be needed.
 
-{% include "./important-notice.md" %}
+{% include "../important-notice.md" %}
 
 ## Insights Air
 
@@ -47,7 +47,7 @@ docker pull quay.io/aircloak/air:X.Y.Z
 Once air is properly configured you can start the air container with the following command:
 
 ```bash
-docker run -d --name air \
+docker run -d --name air -h air \
   -v configuration_folder:/runtime_config \
   -p desired_http_port:8080 \
   -p desired_https_port:8443 \
@@ -90,7 +90,7 @@ docker pull quay.io/aircloak/cloak:X.Y.Z
 Assuming the component is configured, we can start the cloak container as:
 
 ```bash
-docker run -d --name cloak \
+docker run -d --name cloak -h cloak \
   -v configuration_folder:/runtime_config \
   --restart=unless-stopped \
   quay.io/aircloak/cloak:latest

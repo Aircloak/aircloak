@@ -44,23 +44,14 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp columns_sql(columns, sql_dialect_module) do
     columns
-    |> Enum.map(&alias_constant/1)
     |> Enum.map(&column_sql(&1, sql_dialect_module))
     |> Enum.intersperse(?,)
   end
 
-  # Some data source drivers (e.g. mssql) require that we provide aliases for constants. Therefore, we're generating
-  # an alias for non-aliased constants to satisfy that requirement. Note that we're doing it for all data sources.
-  # This is not a problem, since we don't depend on column names anyway, and by doing it always, we avoid needless
-  # polymorphism.
-  defp alias_constant(%Expression{constant?: true, alias: empty_alias} = constant) when empty_alias in [nil, ""], do:
-    %Expression{constant | alias: "alias_#{System.unique_integer([:positive])}"}
-  defp alias_constant(other), do:
-    other
-
   defp column_sql(:*, _sql_dialect_module), do: "*"
   defp column_sql({:distinct, column}, sql_dialect_module), do: ["DISTINCT ", column_sql(column, sql_dialect_module)]
-  defp column_sql(%Expression{alias: alias} = column, sql_dialect_module) when alias != nil and alias != "", do:
+  defp column_sql(%Expression{alias: alias} = column, sql_dialect_module)
+      when alias != nil and alias != "", do:
     [column_sql(%Expression{column | alias: nil}, sql_dialect_module), " AS ", quote_name(alias, sql_dialect_module)]
   defp column_sql(%Expression{function?: true, function: fun_name, type: type, function_args: args}, sql_dialect_module)
     when fun_name in ["+", "-"] and type in [:time, :date, :datetime],
@@ -180,7 +171,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp order_by_fragments(%Query{subquery?: true, order_by: [_|_] = order_by}, sql_dialect_module) do
     order_by = for {expression, dir} <- order_by do
       dir = if dir == :desc do " DESC" else " ASC" end
-      name = column_sql(expression, sql_dialect_module)
+      name = expression |> Expression.unalias() |> column_sql(sql_dialect_module)
       [name, dir]
     end
     [" ORDER BY ", Enum.intersperse(order_by, ", ")]

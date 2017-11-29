@@ -106,19 +106,6 @@ defmodule Cloak.Query.AnonimyzerTest do
     assert 1 = Anonymizer.new([MapSet.new()]) |> Anonymizer.median(rows) |> round()
   end
 
-  describe "starred" do
-    test "returns a different anonymizer" do
-      anonymizer = Anonymizer.new([MapSet.new()])
-      assert Anonymizer.starred(anonymizer).rngs != anonymizer.rngs
-    end
-
-    test "cannot be applied twice" do
-      assert_raise(FunctionClauseError, fn() ->
-        Anonymizer.new([MapSet.new()]) |> Anonymizer.starred() |> Anonymizer.starred()
-      end)
-    end
-  end
-
   test "same noise layers are collapsed" do
     noise_layer = MapSet.new(["a", "b"])
     anonymizer1 = Anonymizer.new([noise_layer])

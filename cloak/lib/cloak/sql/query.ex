@@ -7,8 +7,8 @@ defmodule Cloak.Sql.Query do
   database, perform anonymized aggregation, and produce the final output.
   """
 
-  alias Cloak.DataSource
-  alias Cloak.Sql.{Expression, Compiler, Function, Parser, Query.Lenses, NoiseLayer, LowCountCheck}
+  alias Cloak.{DataSource, Query.DataDecoder}
+  alias Cloak.Sql.{Expression, Compiler, Function, Parser, Query.Lenses, NoiseLayer, Condition}
   require Logger
 
   @type comparison :: {:comparison, Expression.t, Parser.comparator, Expression.t}
@@ -70,6 +70,7 @@ defmodule Cloak.Sql.Query do
     limit: pos_integer | nil,
     offset: non_neg_integer,
     having: having_clause,
+    distinct?: boolean,
     sample_rate: nil | non_neg_integer,
     emulated?: boolean,
     parameters: [parameter] | nil,
@@ -79,7 +80,6 @@ defmodule Cloak.Sql.Query do
     noise_layers: [NoiseLayer.t],
     view?: boolean,
     table_aliases: %{String.t => DataSource.Table.t},
-    low_count_checks: [LowCountCheck.t],
   }
 
   @type features :: %{
@@ -101,10 +101,9 @@ defmodule Cloak.Sql.Query do
   defstruct [
     columns: [], where: nil, group_by: [], order_by: [], column_titles: [], aggregators: [],
     info: [], selected_tables: [], implicit_count?: false, data_source: nil, command: nil,
-    show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil,
+    show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil, distinct?: false,
     parameters: [], views: %{}, emulated?: false, sample_rate: nil, projected?: false,
     next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false, table_aliases: %{},
-    low_count_checks: []
   ]
 
 
@@ -254,7 +253,7 @@ defmodule Cloak.Sql.Query do
   @doc "Updates the emulation flag to reflect whether the query needs to be emulated."
   @spec set_emulation_flag(t) :: t
   def set_emulation_flag(query), do:
-    %__MODULE__{query | emulated?: Cloak.Query.DataEngine.needs_emulation?(query)}
+    %__MODULE__{query | emulated?: needs_emulation?(query)}
 
   @doc "Returns the list of outermost selected splitters."
   @spec outermost_selected_splitters(t) :: [Expression.t]
@@ -269,11 +268,6 @@ defmodule Cloak.Sql.Query do
   @doc "Retrieves the query features."
   @spec features(Query.t) :: features
   defdelegate features(query), to: __MODULE__.Features
-
-  @doc "Resolves the columns which must be fetched from the database."
-  @spec resolve_db_columns(t) :: t
-  def resolve_db_columns(query), do:
-    Cloak.Query.DataEngine.resolve_db_columns(%__MODULE__{query | next_row_index: 0, db_columns: []})
 
   @doc "Replaces all occurrences of one expression with another expression."
   @spec replace_expression(t, Expression.t, Expression.t) :: t
@@ -298,6 +292,22 @@ defmodule Cloak.Sql.Query do
     end
   end
 
+  @doc "Resolves the columns which must be fetched from the database."
+  @spec resolve_db_columns(t) :: t
+  def resolve_db_columns(%__MODULE__{command: :select} = query), do:
+    query |> reset_db_columns() |> Compiler.Helpers.apply_bottom_up(&include_required_expressions/1)
+  def resolve_db_columns(%__MODULE__{} = query), do: query
+
+  @doc "Returns the where clauses that can be applied by the data source."
+  @spec offloaded_where(t) :: where_clause
+  def offloaded_where(query), do:
+    Condition.reject(query.where, &emulated_condition?(&1, query))
+
+  @doc "Returns the where clauses that must be applied by inside the cloak."
+  @spec emulated_where(t) :: where_clause
+  def emulated_where(query), do:
+    Condition.reject(query.where, &not emulated_condition?(&1, query))
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -319,4 +329,91 @@ defmodule Cloak.Sql.Query do
 
   defp next_row_index(query), do:
     {query.next_row_index, %__MODULE__{query | next_row_index: query.next_row_index + 1}}
+
+
+  # -------------------------------------------------------------------
+  # Calculation of db_columns
+  # -------------------------------------------------------------------
+
+  defp include_required_expressions(query), do:
+    Enum.reduce(required_expressions(query), query, &add_db_column(&2, &1))
+
+  defp required_expressions(%__MODULE__{command: :select, subquery?: true, emulated?: false} = query) do
+    Enum.zip(query.column_titles, query.columns)
+    |> Enum.map(fn({column_alias, column}) -> %Expression{column | alias: column_alias} end)
+  end
+  defp required_expressions(%__MODULE__{command: :select} = query) do
+    # top-level query -> we're only fetching columns, while other expressions (e.g. function calls)
+    # will be resolved in the post-processing phase
+    used_columns =
+      query
+      |> needed_columns()
+      |> extract_columns()
+      |> Enum.reject(& &1.constant?)
+
+    [Compiler.Helpers.id_column(query) | used_columns]
+  end
+
+  defp needed_columns(query), do:
+    [
+      query.columns,
+      query.group_by,
+      emulated_where(query),
+      query.having,
+      order_by_expressions(query),
+    ]
+
+  defp extract_columns(columns), do: Lenses.leaf_expressions() |> Lens.to_list(columns)
+
+  defp reset_db_columns(query), do: %__MODULE__{query | next_row_index: 0, db_columns: []}
+
+ # -------------------------------------------------------------------
+ # Emulation
+ # -------------------------------------------------------------------
+
+ defp needs_emulation?(query), do:
+   not query.data_source.driver.supports_query?(query) or
+   query |> get_in([Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated?)) or
+   (query.subquery? and has_emulated_expressions?(query)) or
+   has_emulated_join_conditions?(query)
+
+ defp emulated_condition?(condition, query) do
+   emulated_expression_condition?(condition, query.data_source) or
+   (
+     query.emulated? and
+     (
+       multiple_tables_condition?(condition) or
+       not is_binary(query.from)
+     )
+   )
+ end
+
+ defp emulated_expression?(expression, data_source), do:
+   DataDecoder.needs_decoding?(expression) or
+   (expression.function? and not data_source.driver.supports_function?(expression, data_source))
+
+ defp emulated_expression_condition?(condition, data_source) do
+   Lenses.conditions_terminals()
+   |> Lens.to_list([condition])
+   |> Enum.any?(&emulated_expression?(&1, data_source))
+ end
+
+ defp has_emulated_expressions?(query), do:
+   Lenses.all_expressions()
+   |> Lens.to_list([query.columns, query.group_by, query.having, query.where])
+   |> Enum.any?(&emulated_expression?(&1, query.data_source))
+
+ defp has_emulated_join_conditions?(query), do:
+   query
+   |> Compiler.Helpers.all_join_conditions()
+   |> get_in([Lenses.all_expressions()])
+   |> Enum.any?(&emulated_expression?(&1, query.data_source))
+
+ defp multiple_tables_condition?(condition) do
+   Lenses.conditions_terminals()
+   |> Lens.to_list([condition])
+   |> Enum.map(& &1.table)
+   |> Enum.uniq()
+   |> Enum.count() > 1
+ end
 end

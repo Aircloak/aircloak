@@ -14,7 +14,7 @@ defmodule Cloak.Sql.Query.Lenses do
   deflens terminals(), do:
     Lens.multiple([
       Lens.keys([:columns, :group_by, :db_columns, :property, :aggregators]),
-      Lens.keys([:noise_layers, :low_count_checks]) |> Lens.all() |> Lens.key(:expressions),
+      Lens.key(:noise_layers) |> Lens.all() |> Lens.key(:expressions),
       Lens.key(:order_by) |> Lens.all() |> Lens.at(0),
       filters_operands(),
     ])
@@ -66,12 +66,9 @@ defmodule Cloak.Sql.Query.Lenses do
   deflens subquery_noise_layers(), do:
     direct_subqueries() |> Lens.key(:ast) |> Lens.key(:noise_layers) |> Lens.all()
 
-  @doc "Lens focusing on all low count checks of subqueries of the query."
-  deflens subquery_low_count_checks(), do:
-    direct_subqueries() |> Lens.key(:ast) |> Lens.key(:low_count_checks) |> Lens.all()
-
   @doc "Lens focusing on all subqueries of a query."
-  deflens subqueries(), do: direct_subqueries() |> Lens.recur()
+  deflens subqueries(), do:
+    Lens.match(fn(_) -> direct_subqueries() |> Lens.both(Lens.key(:ast) |> subqueries(), Lens.root()) end)
 
   @doc "Lens focusing on a query's immediate subqueries"
   deflens direct_subqueries(), do:
@@ -79,10 +76,6 @@ defmodule Cloak.Sql.Query.Lenses do
     |> join_elements()
     |> Lens.satisfy(&match?({:subquery, _}, &1))
     |> Lens.at(1)
-
-  @doc "Lens focusing on query's immediate projected subqueries"
-  deflens direct_projected_subqueries(), do:
-    Lens.satisfy(direct_subqueries(), &(&1.ast.projected?))
 
   @doc "Lens focusing on all inequality condition-clauses in a query."
   deflens order_condition_columns(), do:
@@ -236,7 +229,7 @@ defmodule Cloak.Sql.Query.Lenses do
       {:function, "count_noise", :*} -> Lens.empty()
       {:function, _, _} -> Lens.both(Lens.at(2) |> terminal_elements(), Lens.root())
       {:distinct, _} -> Lens.both(Lens.at(1) |> terminal_elements(), Lens.root())
-      {_, :as, _} -> Lens.at(0)
+      {_, :as, _} -> Lens.at(0) |> terminal_elements()
       elements when is_list(elements) -> Lens.all() |> terminal_elements()
       %Expression{function?: true} -> Lens.both(Lens.key(:function_args) |> terminal_elements, Lens.root())
       _ -> Lens.root

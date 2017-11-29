@@ -311,6 +311,22 @@ defmodule Cloak.Sql.Function.Test do
     end
   end
 
+  describe "deprecation" do
+    test "no deprecation info for existing functions", do:
+      assert {:error, :function_exists} = Function.deprecation_info({:function, "abs", []})
+
+    test "no deprecation info for non-existent functions", do:
+      assert {:error, :not_found} = Function.deprecation_info({:function, "foo", []})
+
+    test "extract_match is deprecated", do:
+      assert {:ok, %{alternative: "extract_words"}} =
+        Function.deprecation_info({:function, "extract_match", []})
+
+    test "extract_matches is deprecated", do:
+      assert {:ok, %{alternative: "extract_words"}} =
+        Function.deprecation_info({:function, "extract_match", []})
+  end
+
   defp return_type(name, arg_types), do:
     Function.return_type({:function, name, simulate_types(arg_types)})
 

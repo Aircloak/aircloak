@@ -14,6 +14,11 @@ defmodule Cloak.Sql.Function do
     [:real, :real] => :real,
   }
 
+  @deprecated_functions %{
+    "extract_match" => %{alternative: "extract_words"},
+    "extract_matches" => %{alternative: "extract_words"},
+  }
+
   @functions %{
     ~w(count) => %{attributes: [:aggregator], type_specs: %{[:any] => :integer}},
     ~w(count_noise) => %{attributes: [:aggregator, :not_in_subquery], type_specs: %{[:any] => :real}},
@@ -246,6 +251,16 @@ defmodule Cloak.Sql.Function do
     @functions
     |> Enum.map(fn({name, _}) -> name end)
     |> Enum.filter(& restricted_function?(&1))
+
+  @doc "Provides information about alternatives for deprecated functions."
+  @spec deprecation_info(t) :: {:error, :function_exists | :not_found} | {:ok, %{alternative: String.t}}
+  def deprecation_info({:function, name, _} = function) do
+    case {exists?(function), @deprecated_functions[name]} do
+      {true, _} -> {:error, :function_exists}
+      {false, nil} -> {:error, :not_found}
+      {false, value} -> {:ok, value}
+    end
+  end
 
 
   # -------------------------------------------------------------------
