@@ -116,7 +116,7 @@ defmodule Compliance.DataSource.MySQL do
       "SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '#{params.database}'"
     ).rows do
       [[1]] -> :ok
-      [[0]] -> Mariaex.query!(conn, "CREATE DATABASE #{params.database}")
+      [[0]] -> Mariaex.query!(conn, "CREATE DATABASE #{params.database} DEFAULT CHARACTER SET utf8")
     end
   end
 end
