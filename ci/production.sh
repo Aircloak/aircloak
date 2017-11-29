@@ -138,7 +138,7 @@ case "$command" in
     ;;
 
   *)
-    echo "Usage: ./$(basename "$0") deploy | rollback | build_log pr_number | force_build pr_number"
+    echo "Usage: ./$(basename "$0") deploy | rollback | service_log journalctl_args | build_log pr_number | force_build pr_number"
     exit 1
     ;;
 esac
