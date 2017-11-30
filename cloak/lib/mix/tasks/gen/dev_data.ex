@@ -135,7 +135,7 @@ defmodule Mix.Tasks.Gen.DevData do
         [
           "#{IO.ANSI.red()}",
           "Can't connect to SAP HANA data source from a macOS machine. SAP HANA data will not be recreated.",
-          "To work with SAP HANA data sources, start a dev container with `make dev-container`.",
+          "To work with SAP HANA data sources, start a CI container with `make ci.compliance.debug`.",
           "See `README.md` for more details.",
           "#{IO.ANSI.reset()}",
         ]

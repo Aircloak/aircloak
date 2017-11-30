@@ -1,0 +1,13 @@
+# Create the file `dev.local.exs` to change some settings in your development
+
+use Mix.Config
+
+# Enables real Github writes
+# Be very careful with this option, because it will post statuses and comments to real github issues
+# config :aircloak_ci, :simulate_github_writes, false
+
+# Disables noisy console output for each build.
+# config :aircloak_ci, cmd_runner: [console_out: false]
+
+# Simulates compliance execution by sleeping for 1 second. Can be useful to to reduce the build time in local dev.
+config :aircloak_ci, :simulate_compliance, true

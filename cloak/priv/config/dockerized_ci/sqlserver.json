@@ -1,11 +1,11 @@
 {
   "driver": "sqlserver",
-  "name": "sql_server",
+  "name": "sqlserver2017_odbc",
   "parameters": {
-    "hostname": "localhost",
+    "hostname": "sqlserver2017",
     "username": "sa",
     "password": "7fNBjlaeoRwz*zH9",
-    "database": "cloaktest2",
+    "database": "cloak_compliance",
     "odbc_parameters": {
       "Port": "1433"
     }
