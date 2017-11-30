@@ -63,6 +63,11 @@ defmodule Cloak.Sql.LikePattern do
   def to_regex(pattern, options \\ ""), do:
     pattern |> to_regex_pattern() |> Regex.compile!(options)
 
+  @doc "Lowercases the LIKE match pattern."
+  @spec lowercase(t) :: t
+  def lowercase({pattern, escape}), do:
+    {String.downcase(pattern), escape}
+
 
   # -------------------------------------------------------------------
   # Parsing

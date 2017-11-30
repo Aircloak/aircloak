@@ -354,11 +354,9 @@ defmodule Cloak.Sql.Expression.Test do
     test "makes constant text lowercase", do:
       assert %Expression{value: "case"} = Expression.lowercase(Expression.constant(:text, "CaSe"))
 
-    test "produces lowercase patterns for trivial like patterns", do:
-      assert Expression.like_pattern("abc", "\\") == Expression.like_pattern("AbC", "\\") |> Expression.lowercase()
-
-    test "produces lowercase patterns for complex like patterns", do:
-      assert Expression.like_pattern("a%b_c", "\\") == Expression.like_pattern("A%b_C", "\\") |> Expression.lowercase()
+    test "lowercases like patterns", do:
+      assert Expression.like_pattern("a%b_c", nil) ==
+        Expression.like_pattern("A%b_C", nil) |> Expression.lowercase()
 
     test "fails if not a textual expression", do:
       assert_raise RuntimeError, fn() -> Expression.lowercase(Expression.constant(:integer, 1)) end

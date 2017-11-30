@@ -61,6 +61,14 @@ defmodule Cloak.Sql.LikePattern.Test do
       assert LikePattern.new("a_%__%_b%c%%d___", nil) == LikePattern.new("a%____b%c%d___", nil)
   end
 
+  describe "lowercase" do
+    test "produces lowercase patterns for trivial like patterns", do:
+      assert LikePattern.new("abc", "\\") == LikePattern.new("AbC", "\\") |> LikePattern.lowercase()
+
+    test "produces lowercase patterns for complex like patterns", do:
+      assert LikePattern.new("a%b_c", "\\") == LikePattern.new("A%b_C", "\\") |> LikePattern.lowercase()
+  end
+
   describe "to_regex" do
     test "converts % to .*", do:
       assert ~r/^a.*c$/ = LikePattern.to_regex({"a%c", nil})
