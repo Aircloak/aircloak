@@ -41,15 +41,6 @@ defmodule Cloak.Sql.LikePattern do
     Expression.constant(:text, expression.value |> graphemes() |> Enum.join())
   end
 
-  @doc """
-  Uses the escape character as a proxy to determine if a like pattern has been normalized.
-  Returns true iff the standard escape character sequence is used
-  """
-  @spec normalized?(Expression.t) :: boolean
-  def normalized?(%Expression{value: {_, escape}}), do:
-    escape == @standard_escape_character
-
-
   @doc "Returns an equivalent, normalized pattern."
   @spec normalize(t) :: t
   def normalize(pattern), do:

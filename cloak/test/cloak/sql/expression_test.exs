@@ -360,9 +360,6 @@ defmodule Cloak.Sql.Expression.Test do
     test "produces lowercase patterns for complex like patterns", do:
       assert Expression.like_pattern("a%b_c", "\\") == Expression.like_pattern("A%b_C", "\\") |> Expression.lowercase()
 
-    test "fails on like patterns that haven't been normalised", do:
-      assert_raise RuntimeError, fn() -> Expression.lowercase(Expression.like_pattern("a%b", nil)) end
-
     test "fails if not a textual expression", do:
       assert_raise RuntimeError, fn() -> Expression.lowercase(Expression.constant(:integer, 1)) end
   end

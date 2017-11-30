@@ -58,14 +58,6 @@ defmodule Cloak.Sql.LikePattern.Test do
       assert {~S[%__a%___bc%_], "\\"} = LikePattern.normalize({~S[__%%a___%bc%_%%%], nil})
   end
 
-  describe "normalized?" do
-    test "returns true if escape characters are standard", do:
-      assert Expression.like_pattern("abc", "\\") |> LikePattern.normalized?()
-
-    test "returns false if escape characters are non-standard", do:
-      refute Expression.like_pattern("abc", nil) |> LikePattern.normalized?()
-  end
-
   describe "to_regex" do
     test "converts % to .*", do:
       assert ~r/^a.*c$/ = LikePattern.to_regex({"a%c", nil})
