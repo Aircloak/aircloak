@@ -37,10 +37,6 @@ defmodule Cloak.Sql.LikePattern do
     result
   end
 
-  @doc "Returns true if the given grapheme is a wildcard, false otherwise."
-  @spec wildcard?(grapheme) :: boolean
-  def wildcard?(string), do: string in @special_characters
-
   @doc "Returns true if the pattern does not contain any special characters, false otherwise."
   @spec trivial?(t) :: boolean
   def trivial?(pattern), do:
@@ -113,6 +109,8 @@ defmodule Cloak.Sql.LikePattern do
   # -------------------------------------------------------------------
   # Helpers
   # -------------------------------------------------------------------
+
+  defp wildcard?(string), do: string in @special_characters
 
   defp to_regex_part(:%), do: ".*"
   defp to_regex_part(:_), do: "."
