@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.LikePattern do
   @moduledoc "Handles operations on like patterns."
 
-  @type t :: {String.t, String.t | nil}
+  @type t :: {String.t, String.t}
   @type grapheme :: String.t | :% | :_
 
   @special_characters [:%, :_]
@@ -15,11 +15,23 @@ defmodule Cloak.Sql.LikePattern do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Returns a new opaque and normalized like pattern construct that can be used with the like pattern module."
+  @spec new(String.t, String.t | nil) :: t
+  def new(pattern, escape), do:
+    {
+      {pattern, escape}
+      |> graphemes()
+      |> do_normalize()
+      |> Enum.map(&standard_escape/1)
+      |> Enum.join(),
+      @standard_escape_character
+    }
+
   @doc """
   Returns a parsed representation of this like pattern. Regular characters are represented as one-character, while the
   special characters % and _ are represented as :% and :_.
   """
-  @spec graphemes(t) :: [grapheme]
+  @spec graphemes({String.t, String.t | nil}) :: [grapheme]
   def graphemes({pattern, escape}) do
     [result] = Combine.parse(pattern, parser(escape))
     result
@@ -40,18 +52,6 @@ defmodule Cloak.Sql.LikePattern do
     true = trivial?(expression.value)
     Expression.constant(:text, expression.value |> graphemes() |> Enum.join())
   end
-
-  @doc "Returns an equivalent, normalized pattern."
-  @spec normalize(t) :: t
-  def normalize(pattern), do:
-    {
-      pattern
-      |> graphemes()
-      |> do_normalize()
-      |> Enum.map(&standard_escape/1)
-      |> Enum.join(),
-      @standard_escape_character
-    }
 
   @doc "Returns a regex pattern implementing the given like pattern."
   @spec to_regex_pattern(t) :: String.t

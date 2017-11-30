@@ -44,18 +44,21 @@ defmodule Cloak.Sql.LikePattern.Test do
       assert LikePattern.trivial?({"a~%~_c", "~"})
   end
 
-  describe "normalize" do
+  describe "new" do
     test "does nothing for trivial patterns", do:
-      assert {"abc", "\\"} = LikePattern.normalize({"abc", nil})
+      assert {"abc", "\\"} = LikePattern.new("abc", nil)
 
     test "switches the escape character to \\", do:
-      assert {~S[a\\b\%~c], "\\"} = LikePattern.normalize({~S[a~\~b~%~~c], "~"})
+      assert {~S[a\\b\%~c], "\\"} = LikePattern.new(~S[a~\~b~%~~c], "~")
 
     test "compresses multiple %%", do:
-      assert {~S[%a%b%c%], "\\"} = LikePattern.normalize({~S[%%a%%%b%c%%%%], nil})
+      assert {~S[%a%b%c%], "\\"} = LikePattern.new(~S[%%a%%%b%c%%%%], nil)
 
     test "normalizes order of % and _", do:
-      assert {~S[%__a%___bc%_], "\\"} = LikePattern.normalize({~S[__%%a___%bc%_%%%], nil})
+      assert {~S[%__a%___bc%_], "\\"} = LikePattern.new(~S[__%%a___%bc%_%%%], nil)
+
+    test "normalizes complex like patterns", do:
+      assert LikePattern.new("a_%__%_b%c%%d___", nil) == LikePattern.new("a%____b%c%d___", nil)
   end
 
   describe "to_regex" do
