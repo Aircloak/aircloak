@@ -180,7 +180,7 @@ defmodule Compliance.WhereClauseFilters.Text do
         FROM (
           SELECT #{unquote(uid)}
           FROM #{unquote(table)}
-          WHERE #{unquote(column)} NOT IN ('Jan', 'Herman', 'Berlin')
+          WHERE #{unquote(column)} NOT IN ('Otto Jan', 'Bertha Jan', 'İstanbul Hans')
           GROUP BY 1
         ) table_alias
       """)
@@ -242,7 +242,17 @@ defmodule Compliance.WhereClauseFilters.Text do
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
         FROM #{unquote(table)}
-        WHERE #{unquote(column)} NOT IN ('Jan', 'Herman', 'Berlin')
+        WHERE #{unquote(column)} NOT IN ('Otto Jan', 'Bertha Jan', 'İstanbul Hans')
+      """)
+    end
+
+    @tag compliance: "#{column} #{table} WHERE-clause NOT IN with non-existant values"
+    test "input #{column} with a WHERE-clause NOT IN on #{table} with non-existant constant values", context do
+      context
+      |> assert_consistent_and_not_failing("""
+        SELECT count(*)
+        FROM #{unquote(table)}
+        WHERE #{unquote(column)} NOT IN ('This name', 'does not', 'exist')
       """)
     end
   end)
