@@ -1,4 +1,7 @@
-<h2>Users</h2>
+<h2>
+  Users
+  <a class="btn btn-primary btn-sm pull-right" href="<%= admin_user_path(@conn, :new) %>">Add a user</a>
+</h2>
 
 <table class="table table-striped">
   <thead>
@@ -38,5 +41,3 @@
   <% end %>
   </tbody>
 </table>
-
-<a href="<%= admin_user_path(@conn, :new) %>">Add user</a>
