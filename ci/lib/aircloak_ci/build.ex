@@ -122,7 +122,8 @@ defmodule AircloakCI.Build do
         fn -> Compliance.start_link(state.pr, state.project, state.repo_data) end
       )
     else
-      LocalProject.log(state.project, "can't run compliance on this PR")
+      LocalProject.log(state.project, "main", "can't run compliance on this PR")
+      state
     end
   end
 

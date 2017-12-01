@@ -27,7 +27,7 @@ defmodule AircloakCI.Job.Compliance do
 
   @impl JobRunner
   def init(nil, state) do
-    LocalProject.log(state.project, "starting the compliance build")
+    LocalProject.log(state.project, "compliance", "starting the compliance build")
     {:ok, maybe_start_test(%{state | data: %{start: nil}})}
   end
 
@@ -95,7 +95,7 @@ defmodule AircloakCI.Job.Compliance do
     send_status_to_github(pr, :pending, "build started")
     LocalProject.set_status(project, :started)
     with {:error, reason} <- Queue.exec(:compliance, fn -> LocalProject.compliance(project) end) do
-      LocalProject.log(project, "error: #{reason}")
+      LocalProject.log(project, "compliance", "error: #{reason}")
       :error
     end
   end
@@ -104,7 +104,7 @@ defmodule AircloakCI.Job.Compliance do
     diff_sec = :erlang.monotonic_time(:second) - state.data.start
     time_output = :io_lib.format("~b:~2..0b", [div(diff_sec, 60), rem(diff_sec, 60)])
 
-    LocalProject.log(state.project, "finished with result `#{result}` in #{time_output} min")
+    LocalProject.log(state.project, "compliance", "finished with result `#{result}` in #{time_output} min")
 
     send_status_to_github(state.pr, github_status(result), description(result))
 
@@ -165,7 +165,7 @@ defmodule AircloakCI.Job.Compliance do
 
   defp log_tail(project) do
     max_lines = 100
-    lines = project |> LocalProject.log_contents() |> String.split("\n")
+    lines = project |> LocalProject.log_contents("compliance") |> String.split("\n")
 
     lines
     |> Enum.drop(max(length(lines) - max_lines, 0))

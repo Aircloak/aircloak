@@ -67,12 +67,12 @@ defmodule AircloakCI.LocalProject do
       :ok
     else
       log_start_stop("initializing local project for #{name(project)}", fn ->
-        log(project, "initializing local project for #{name(project)}")
+        log(project, "main", "initializing local project for #{name(project)}")
 
         with \
           :ok <- clone_repo(project),
-          :ok <- cmd(project, "git #{project.update_git_command}"),
-          :ok <- cmd(project, "git checkout #{project.checkout}"),
+          :ok <- cmd(project, "main", "git #{project.update_git_command}"),
+          :ok <- cmd(project, "main", "git checkout #{project.checkout}"),
           do: update_state(project, &%{&1 | status: :initialized})
       end)
     end
@@ -84,7 +84,7 @@ defmodule AircloakCI.LocalProject do
     :empty = status(project)
     log_start_stop("copying project for #{name(project)} from #{name(base_project)}", fn ->
       File.cp_r(git_folder(base_project), git_folder(project))
-      cmd(project, "git reset HEAD --hard")
+      cmd(project, "main", "git reset HEAD --hard")
       copy_folder(base_project, project, "tmp")
       copy_folder(base_project, project, Path.join(~w(cloak priv odbc drivers)))
     end)
@@ -95,7 +95,7 @@ defmodule AircloakCI.LocalProject do
   @spec compile(t) :: :ok | {:error, String.t}
   def compile(project), do:
     log_start_stop("compiling #{name(project)}",
-      fn -> cmd(project, "ci/scripts/run.sh build_cloak", timeout: :timer.minutes(30)) end)
+      fn -> cmd(project, "cloak_compile", "ci/scripts/run.sh build_cloak", timeout: :timer.minutes(30)) end)
 
   @doc "Executes the compliance suite in the project folder."
   @spec compliance(t) :: :ok | {:error, String.t}
@@ -106,7 +106,7 @@ defmodule AircloakCI.LocalProject do
           Logger.info("simulating compliance execution")
           :timer.sleep(:timer.seconds(1))
         else
-          cmd(project, "ci/scripts/run.sh cloak_compliance", timeout: :timer.minutes(10))
+          cmd(project, "compliance", "ci/scripts/run.sh cloak_compliance", timeout: :timer.minutes(10))
         end
       end
     )
@@ -118,27 +118,27 @@ defmodule AircloakCI.LocalProject do
   end
 
   @doc "Executes the given command in the project folder."
-  @spec cmd(t, String.t, CmdRunner.opts) :: :ok | {:error, String.t}
-  def cmd(project, cmd, opts \\ []), do:
-    CmdRunner.run(cmd, [cd: src_folder(project), logger: CmdRunner.file_logger(log_path(project))] ++ opts)
+  @spec cmd(t, String.t, String.t, CmdRunner.opts) :: :ok | {:error, String.t}
+  def cmd(project, log_name, cmd, opts \\ []), do:
+    CmdRunner.run(cmd, [cd: src_folder(project), logger: CmdRunner.file_logger(log_path(project, log_name))] ++ opts)
 
   @doc "Executes the given command in the project folder, raises on error."
-  @spec cmd!(t, String.t, CmdRunner.opts) :: :ok
-  def cmd!(project, cmd, opts \\ []), do:
-    :ok = cmd(project, cmd, opts)
+  @spec cmd!(t, String.t, String.t, CmdRunner.opts) :: :ok
+  def cmd!(project, log_name, cmd, opts \\ []), do:
+    :ok = cmd(project, cmd, log_name, opts)
 
   @doc "Appends the given output to the log."
-  @spec log(t, iodata) :: :ok
-  def log(project, output), do:
+  @spec log(t, String.t, iodata) :: :ok
+  def log(project, log_name, output), do:
     project
-    |> log_path()
+    |> log_path(log_name)
     |> CmdRunner.file_logger()
     |> apply([["\naircloak_ci: #{output}\n"]])
 
   @doc "Returns the contents of the project log."
-  @spec log_contents(t) :: binary
-  def log_contents(project) do
-    case File.read(log_path(project)) do
+  @spec log_contents(t, String.t) :: binary
+  def log_contents(project, log_name) do
+    case File.read(log_path(project, log_name)) do
       {:ok, contents} -> contents
       _ -> ""
     end
@@ -238,8 +238,8 @@ defmodule AircloakCI.LocalProject do
   defp git_folder(project), do:
     Path.join(src_folder(project), ".git")
 
-  defp log_path(project), do:
-    Path.join(project.log_folder, "build.log")
+  defp log_path(project, log_name), do:
+    Path.join(project.log_folder, "#{log_name}.log")
 
   defp remove_except(parent_folder, expected_folder_names) do
     existing_folder_names =
@@ -274,12 +274,12 @@ defmodule AircloakCI.LocalProject do
     if File.exists?(git_folder(project)) do
       :ok
     else
-      log(project, "cloning #{project.repo.owner}/#{project.repo.name}")
+      log(project, "main", "cloning #{project.repo.owner}/#{project.repo.name}")
 
       CmdRunner.run(
         ~s(git clone git@github.com:#{project.repo.owner}/#{project.repo.name} #{src_folder(project)}),
         timeout: :timer.minutes(1),
-        logger: CmdRunner.file_logger(log_path(project))
+        logger: CmdRunner.file_logger(log_path(project, "main"))
       )
     end
   end
@@ -296,7 +296,7 @@ defmodule AircloakCI.LocalProject do
   defp update_state(project, updater) do
     new_state = project |> state() |> updater.()
     Logger.info("#{project.name} state: #{inspect(new_state)}")
-    log(project, "project state: #{inspect(new_state)}")
+    log(project, "main", "project state: #{inspect(new_state)}")
 
     project
     |> state_file()
