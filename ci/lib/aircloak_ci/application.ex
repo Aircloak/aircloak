@@ -16,7 +16,7 @@ defmodule AircloakCI.Application do
         AircloakCI.CmdRunner.Supervisor,
         AircloakCI.Github,
         AircloakCI.RepoDataProvider,
-        AircloakCI.Build,
+        AircloakCI.Build.Service,
         AircloakCI.BuildCleaner
       ],
       strategy: :one_for_one,

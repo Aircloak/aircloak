@@ -63,7 +63,7 @@ defmodule AircloakCI.LocalProject do
   @doc "Initializes the project."
   @spec initialize(t) :: :ok | {:error, String.t}
   def initialize(project) do
-    if current_sha(project) == project.desired_sha do
+    if up_to_date?(project) do
       :ok
     else
       log_start_stop("initializing local project for #{name(project)}", fn ->
@@ -185,6 +185,11 @@ defmodule AircloakCI.LocalProject do
   def set_status(build, status), do:
     update_state(build, &%{&1 | status: status})
 
+  @doc "Returns true if the build for this project has finished."
+  @spec finished?(t) :: boolean
+  def finished?(project), do:
+    up_to_date?(project) and status(project) == :finished
+
   @doc "Truncates logs for the given project."
   @spec truncate_logs(t) :: :ok
   def truncate_logs(project), do:
@@ -192,15 +197,6 @@ defmodule AircloakCI.LocalProject do
     |> Path.join("*")
     |> Path.wildcard()
     |> Enum.each(&File.write(&1, ""))
-
-  @doc "Returns the SHA of the current head."
-  @spec current_sha(t) :: String.t
-  def current_sha(project), do:
-    # `:os.cmd` is used since `System.cmd` starts a port which causes an :EXIT message to be delivered to the process.
-    'cd #{src_folder(project)} && git rev-parse HEAD'
-    |> :os.cmd()
-    |> to_string()
-    |> String.trim()
 
 
   # -------------------------------------------------------------------
@@ -317,4 +313,14 @@ defmodule AircloakCI.LocalProject do
       %{status: :empty}
     end
   end
+
+  defp up_to_date?(project), do:
+    current_sha(project) == project.desired_sha
+
+  defp current_sha(project), do:
+    # `:os.cmd` is used since `System.cmd` starts a port which causes an :EXIT message to be delivered to the process.
+    'cd #{src_folder(project)} && git rev-parse HEAD'
+    |> :os.cmd()
+    |> to_string()
+    |> String.trim()
 end
