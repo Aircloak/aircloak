@@ -88,7 +88,7 @@ defmodule Cloak.Query.AnonimyzerTest do
         {:min, -2}, {:min, 3}, {:min, -3}, {:min, -2}, {:min, -1}, {:min, -3},
         {:min, 3}, {:min, -2}, {:min, 5}, {:min, -4}, {:min, -5}, {:min, 3}, {:min, -6}
       ]
-    assert -1 = Anonymizer.new([MapSet.new()]) |> Anonymizer.min(rows) |> round()
+    assert -2 = Anonymizer.new([MapSet.new()]) |> Anonymizer.min(rows) |> round()
   end
 
   test "max" do
@@ -102,7 +102,10 @@ defmodule Cloak.Query.AnonimyzerTest do
 
   test "median" do
     # per-user row format = collection of all values
-    rows = [[1, 2], [3], [4, 2, -3], [2, 4], [0], [-3, -2], [3], [4, -2, 1], [5], [-4], [-5, 4], [3]]
+    rows = [
+      [1, 2], [3], [4, 2, -3], [2, 4], [0], [-3, -2], [3], [4, -2, 1], [5], [-4], [-5, 4], [3],
+      [-1, 2], [4], [5, -2, 3], [-2, -1], [2], [-1, -3], [-3], [2, 6, 3], [-6], [4], [5, -4], [-3],
+    ]
     assert 1 = Anonymizer.new([MapSet.new()]) |> Anonymizer.median(rows) |> round()
   end
 
@@ -112,5 +115,23 @@ defmodule Cloak.Query.AnonimyzerTest do
     anonymizer2 = Anonymizer.new([noise_layer, noise_layer])
 
     assert anonymizer1.rngs == anonymizer2.rngs
+  end
+
+  test "min/max/median sanity check" do
+    data = [1, 1, -10, 40, 2, 5, 6, 6, 7, 10, 10, -2, 12]
+    anonymizer = Anonymizer.new([MapSet.new()])
+    min = Anonymizer.min(anonymizer, Enum.map(data, &{:min, &1}))
+    max = Anonymizer.max(anonymizer, Enum.map(data, &{:max, &1}))
+    median = Anonymizer.median(anonymizer, Enum.flat_map(data, &[[&1], [&1]]))
+    assert min < median
+    assert median < max
+  end
+
+  test "min/max/median return nil on insuficient data" do
+    data = [1, 1, 2, 5, 6, 6, 7, 10, 10, 12]
+    anonymizer = Anonymizer.new([MapSet.new()])
+    assert anonymizer |> Anonymizer.min(Enum.map(data, &{:min, &1})) |> is_nil()
+    assert anonymizer |> Anonymizer.max(Enum.map(data, &{:max, &1})) |> is_nil()
+    assert anonymizer |> Anonymizer.median(Enum.map(data, &[&1])) |> is_nil()
   end
 end
