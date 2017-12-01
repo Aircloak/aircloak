@@ -57,7 +57,7 @@ defmodule Cloak.Sql.Expression do
   @doc "Returns an expression representing the given like pattern with the given escape character."
   @spec like_pattern(String.t, String.t | nil) :: t
   def like_pattern(pattern, escape_character), do:
-    constant(:like_pattern, {pattern, escape_character})
+    constant(:like_pattern, Cloak.Sql.LikePattern.new(pattern, escape_character))
 
   @doc "Creates a column representing a function call."
   @spec function(function_name, [t | :*], column_type, boolean) :: t
@@ -225,6 +225,17 @@ defmodule Cloak.Sql.Expression do
       eval_split_expression(splitter, row),
       fn(%__MODULE__{constant?: true, value: value}) -> value end
     )
+
+  @doc "Wraps a string expression in the lower case function"
+  @spec lowercase(t) :: t
+  def lowercase(%__MODULE__{constant?: true, type: :text, value: value} = expression), do:
+    %__MODULE__{expression | value: String.downcase(value)}
+  def lowercase(%__MODULE__{type: :text} = expression), do:
+    function("lower", [expression], expression.type)
+  def lowercase(%__MODULE__{type: :like_pattern, value: {pattern, escape}} = expression), do:
+    %__MODULE__{expression | value: {String.downcase(pattern), escape}}
+  def lowercase(_), do:
+    raise "Only textual expression can be made lowercase"
 
 
   # -------------------------------------------------------------------

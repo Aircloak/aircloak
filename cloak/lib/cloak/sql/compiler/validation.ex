@@ -24,7 +24,6 @@ defmodule Cloak.Sql.Compiler.Validation do
     verify_having(query)
     verify_limit(query)
     verify_offset(query)
-    verify_like_escape(query)
     verify_sample_rate(query)
     query
   end
@@ -311,14 +310,6 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_offset(%Query{order_by: [], offset: amount}) when amount > 0, do:
     raise CompilationError, message: "Using the `OFFSET` clause requires the `ORDER BY` clause to be specified."
   defp verify_offset(_query), do: :ok
-
-  defp verify_like_escape(query) do
-    Lens.to_list(Query.Lenses.like_patterns(), query)
-    |> Enum.all?(fn({_, escape}) -> escape == nil or String.length(escape) == 1 end)
-    |> unless do
-      raise CompilationError, message: "Escape string must be one character."
-    end
-  end
 
   defp verify_sample_rate(%Query{sample_rate: amount}) when is_integer(amount) and (amount < 0 or amount > 100), do:
     raise CompilationError, message: "The `SAMPLE` clause expects an integer value between 1 and 100."

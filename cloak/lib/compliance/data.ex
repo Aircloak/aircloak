@@ -143,9 +143,10 @@ defmodule Compliance.Data do
   defp random_date(), do:
     1_500_000_000 + :rand.uniform(100_026_704) |> DateTime.from_unix!() |> DateTime.to_naive()
 
-  defp rand_range_list(val, val), do: [val]
+  defp rand_range_list(min, max) when min > max, do:
+    raise "Max must be greater or equal to min"
   defp rand_range_list(min, max), do:
-    (min..:rand.uniform(max - min) + min)
+    (min..:rand.uniform(max - min + 1) + min)
     |> Enum.to_list()
 
   defp cities(), do:
