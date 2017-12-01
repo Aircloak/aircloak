@@ -13,15 +13,15 @@ defmodule Cloak.DataSource.MongoDBTest do
     parameters = [hostname: "localhost", database: "cloaktest"]
     {:ok, conn} = Mongo.start_link(parameters)
     Mongo.delete_many(conn, @table, %{})
+    date = DateTime.from_unix!(1_437_940_203)
     for i <- 1..10 do
-      value = %{name: "user#{i}", age: 30, male: true, date: DateTime.from_unix!(1_437_940_203),
-        bills: [%{issuer: "vendor", ids: ["1", "2"]}]}
+      value = %{name: "user#{i}", age: 30, male: true, date: date, bills: [%{issuer: "vendor", ids: ["1", "2"]}]}
       Mongo.insert_one!(conn, @table, value)
     end
     Mongo.insert_one!(conn, @table, %{name: nil, male: nil, mixed: true, bills: nil})
-    Mongo.insert_one!(conn, @table, %{mixed: "dummy"})
-    Mongo.insert_one!(conn, @table, %{mixed: [1, 2, 3]})
-    Mongo.insert_one!(conn, @table, %{mixed: %{a: 1, b: 2}})
+    Mongo.insert_one!(conn, @table, %{mixed: "dummy", date: date})
+    Mongo.insert_one!(conn, @table, %{mixed: [1, 2, 3], date: date})
+    Mongo.insert_one!(conn, @table, %{mixed: %{a: 1, b: 2}, date: date})
     for _i <- 11..15 do
       Mongo.insert_one!(conn, @table, %{debt: -10.55})
     end
@@ -295,7 +295,7 @@ defmodule Cloak.DataSource.MongoDBTest do
   test "cast datetime", context do
     assert_query context, """
         SELECT v FROM (SELECT _id, CAST(date AS text) AS v FROM #{@table}) AS t WHERE v IS NOT NULL
-      """, %{rows: [%{occurrences: 10, row: ["2015-07-26 19:50:03.000000"]}]}
+      """, %{rows: [%{occurrences: 13, row: ["2015-07-26 19:50:03.000000"]}]}
   end
 
   test "cast boolean", context do
