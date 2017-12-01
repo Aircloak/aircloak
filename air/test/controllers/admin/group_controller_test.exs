@@ -26,14 +26,20 @@ defmodule AirWeb.Admin.GroupControllerTest do
 
     group_name = "test group"
 
-    conn = login(admin)
+    assert login(admin)
     |> post("/admin/groups", group: %{name: group_name, admin: false})
-
-    group = Repo.get_by(Group, name: group_name)
-    assert admin_group_path(conn, :edit, group) == redirected_to(conn)
+    |> redirected_to() == admin_group_path(build_conn(), :index)
 
     groups_html = login(admin) |> get("/admin/groups") |> response(200)
     assert groups_html =~ group_name
+  end
+
+  test "displays a warning if no group name" do
+    admin = TestRepoHelper.create_admin_user!()
+
+    assert login(admin)
+    |> post("/admin/groups", group: %{admin: false})
+    |> response(200) =~ ~r/something went wrong/
   end
 
   test "access edit page for group", %{conn: conn} do

@@ -25,9 +25,11 @@ defmodule AirWeb.Admin.GroupController do
   def index(conn, _params), do:
     render(conn, "index.html", groups: User.all_groups(), changeset: User.empty_group_changeset())
 
-  def edit(conn, _params) do
+  def new(conn, _params), do:
+    render(conn, "new.html", data: edit_form_data(conn, changeset: User.empty_group_changeset()))
+
+  def edit(conn, _params), do:
     render(conn, "edit.html", data: edit_form_data(conn))
-  end
 
   def update(conn, params) do
     verify_last_admin_deleted(User.update_group(conn.assigns.group, params["group"]), conn,
@@ -49,9 +51,9 @@ defmodule AirWeb.Admin.GroupController do
         audit_log(conn, "Created group", name: group.name)
         conn
         |> put_flash(:info, "Group created")
-        |> redirect(to: admin_group_path(conn, :edit, group))
+        |> redirect(to: admin_group_path(conn, :index))
       {:error, changeset} ->
-        render(conn, "index.html", changeset: changeset, groups: User.all_groups())
+        render(conn, "new.html", data: edit_form_data(conn, changeset: changeset))
     end
   end
 
@@ -85,7 +87,7 @@ defmodule AirWeb.Admin.GroupController do
   end
 
   defp edit_form_data(conn, options \\ []) do
-    group = conn.assigns.group
+    group = group(conn.assigns[:group])
     %{
       group: group,
       all_data_sources: DataSource.all(),
@@ -93,6 +95,9 @@ defmodule AirWeb.Admin.GroupController do
       changeset: Keyword.get(options, :changeset) || User.group_to_changeset(group),
     }
   end
+
+  defp group(nil), do: %{users: [], data_sources: []}
+  defp group(group), do: group
 
   defp verify_last_admin_deleted({:error, :forbidden_last_admin_deletion}, conn, _fun), do:
     conn
