@@ -91,6 +91,7 @@ defmodule AirWeb.Admin.GroupController do
   end
 
   defp edit_form_data(params, group) do
+    params = Aircloak.atomize_keys(params)
     %{
       selected_user_ids: selected_user_ids(params, group),
       selected_data_source_ids: selected_data_source_ids(params, group),
@@ -102,13 +103,14 @@ defmodule AirWeb.Admin.GroupController do
   defp selected_user_ids(params, group)
   defp selected_user_ids(nil, nil), do: []
   defp selected_user_ids(nil, group), do: Enum.map(group.users, & &1.id)
-  defp selected_user_ids(params, _), do: to_numerical_ids(params["group"]["users"])
+  defp selected_user_ids(params, _), do: to_numerical_ids(get_in(params, [:group, :users]))
 
   defp selected_data_source_ids(params, group)
   defp selected_data_source_ids(nil, nil), do: []
   defp selected_data_source_ids(nil, group), do: Enum.map(group.data_sources, & &1.id)
-  defp selected_data_source_ids(params, _), do: to_numerical_ids(params["group"]["data_sources"])
+  defp selected_data_source_ids(params, _), do: to_numerical_ids(get_in(params, [:group, :data_sources]))
 
+  defp to_numerical_ids(nil), do: []
   defp to_numerical_ids(values), do:
     values
     |> Enum.reject(& &1 == "")
