@@ -58,7 +58,8 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
     in the limits of [group_limits](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L44).
   - Add noise to the top average with mean 0 and SD equal a quarter of the standard deviation of the values
     used for the average calculation.
-  - In case we don't have enough values available to compute the average, `null` is returned.
+  - In case we don't have enough values available to compute the average, after excluding the outliers at both ends of
+    the sorted list of values, `null` is returned.
   - Note that a value might exist that appears frequent enough that the user could learn about it's existence through
     another query (SELECT COUNT(*) FROM table GROUP BY column) and that's larger than the value returned by this
     algorithm. We used to include an extra calculation that checked for the presence of such a value, however it seems
@@ -136,7 +137,8 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
   - The final result is the average of the real median and the extracted values from above and below,
     to which an additional noise component is added which has mean 0 and SD equal to a quarter of the
     standard deviantions of the values used for the median computation
-  - In case we don't have enough values available to compute the average, `null` is returned.
+  - In case we don't have enough values available to compute the average, after excluding the outliers at both ends of
+    the sorted list of values, `null` is returned.
 
 ## Example SUM() computation of positive values
 

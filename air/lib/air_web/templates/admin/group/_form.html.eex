@@ -1,5 +1,5 @@
-<%= form_for @data.changeset, @action, [class: "form-horizontal"], fn f -> %>
-  <%= if @data.changeset.action do %>
+<%= form_for @changeset, @action, [class: "form-horizontal"], fn f -> %>
+  <%= if @changeset.action do %>
     <div class="alert alert-danger">
       <p>Oops, something went wrong! Please check the errors below.</p>
     </div>
@@ -13,10 +13,8 @@
         </div>
         <table class="table table-striped">
           <tbody>
-            <%= PhoenixMTM.Helpers.collection_checkboxes f, :users,
-              Enum.map(@data.all_users, &({{&1.name, &1.email}, &1.id})),
-              selected: Enum.map(@data.group.users, &(&1.id)),
-              mapper: &checkbox_mapper/6
+            <%= PhoenixMTM.Helpers.collection_checkboxes f, :users, @data.all_users,
+              selected: @data.selected_user_ids, mapper: &checkbox_mapper/6
             %>
           </tbody>
         </table>
@@ -30,10 +28,8 @@
         </div>
         <table class="table table-striped">
           <tbody>
-            <%= PhoenixMTM.Helpers.collection_checkboxes f, :data_sources,
-              Enum.map(@data.all_data_sources, &({{&1.name, &1.description}, &1.id})),
-              selected: Enum.map(@data.group.data_sources, &(&1.id)),
-              mapper: &checkbox_mapper/6
+            <%= PhoenixMTM.Helpers.collection_checkboxes f, :data_sources, @data.all_data_sources,
+              selected: @data.selected_data_source_ids, mapper: &checkbox_mapper/6
             %>
           </tbody>
         </table>
@@ -64,7 +60,7 @@
 
     <div class="form-group">
       <div class="col-sm-offset-2 col-sm-10">
-        <%= submit "Update group", class: "btn btn-primary" %>
+        <%= submit "Save group", class: "btn btn-primary" %>
       </div>
     </div>
   </div>
