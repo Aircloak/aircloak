@@ -424,11 +424,25 @@ export class ResultView extends React.Component {
   renderOptionMenu() {
     return (
       <div className="options-menu">
-        <a className="btn btn-default btn-xs" href={`/queries/${this.props.result.id}.csv`}>Download as CSV</a>
-        &nbsp;
-        {this.renderChartButton()}
-        &nbsp;
-        {this.renderAxesButton()}
+        <div className="dropdown option-menu-item">
+          <button
+            className="btn btn-default btn-xs dropdown-toggle"
+            type="button" id={`dropdownMenu-${this.props.result.id}`}
+            data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
+          >
+            Download&nbsp;<span className="caret"></span>
+          </button>
+          <ul className="dropdown-menu" aria-labelledby="dropdownMenu1">
+            <li><a href={`/queries/${this.props.result.id}.csv`}>result as CSV</a></li>
+            <li><a href={`/queries/${this.props.result.id}/debug_export`}>debug export</a></li>
+          </ul>
+        </div>
+        <div className="option-menu-item">
+          {this.renderChartButton()}
+        </div>
+        <div className="option-menu-item">
+          {this.renderAxesButton()}
+        </div>
       </div>
     );
   }
