@@ -30,7 +30,9 @@ defmodule Compliance.DataSources do
   @doc "Creates tables for a normal and a encoded dataset and inserts data into them."
   @spec setup([DataSource.t], Map.t) :: :ok
   def setup(data_sources, data), do:
-    Enum.each(data_sources, &setup_datasource(&1, data))
+    data_sources
+    |> Enum.map(&Task.async(fn -> setup_datasource(&1, data) end))
+    |> Enum.each(&Task.await(&1, :timer.minutes(2)))
 
   @doc "Takes a rawling data source definition and expands it with table definitions"
   @spec complete_data_source_definitions([DataSource.t]) :: [DataSource.t]
@@ -63,18 +65,15 @@ defmodule Compliance.DataSources do
       handler, @encoded_name_postfix, encoded_data)
     |> handler.terminate()
 
-    IO.puts "#{name} done\n"
+    IO.puts "#{name} done"
   end
 
   defp handle_setup(state, definitions, handler, table_postfix, data) do
     flattened_data = Data.flatten(data)
     collections = Data.to_collections(data)
     Enum.reduce(definitions, state, fn({name, %{columns: columns}}, state) ->
-      IO.puts "- Creating table #{name}#{table_postfix}"
       state = handler.create_table("#{name}#{table_postfix}", columns, state)
-      IO.puts "- Inserting data into table #{name}#{table_postfix}"
       state = handler.insert_rows("#{name}#{table_postfix}", flattened_data[name], state)
-      IO.puts "- Inserting documents into collection #{name}#{table_postfix}"
       handler.insert_documents("#{name}#{table_postfix}", collections[name], state)
     end)
   end
@@ -97,17 +96,6 @@ defmodule Compliance.DataSources do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp config_name("compliance") do
-    if env("TEST") == "compliance" and (
-      env("TRAVIS_EVENT_TYPE") in ["pull_request", "cron"] ||
-      env("TRAVIS_BRANCH") == "master" ||
-      env("TRAVIS_BRANCH") =~ ~r/^release_.*/
-    ) do
-      "compliance_travis"
-    else
-      "compliance"
-    end
-  end
   defp config_name(other), do:
     other
 

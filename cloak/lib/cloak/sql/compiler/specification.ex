@@ -469,8 +469,13 @@ defmodule Cloak.Sql.Compiler.Specification do
   end
   defp identifier_to_column({:constant, type, value}, _columns_by_name, _query), do:
     Expression.constant(type, value)
-  defp identifier_to_column({:like_pattern, {:constant, _, pattern}, {:constant, _, escape}}, _, _), do:
-    Expression.like_pattern(pattern, escape)
+  defp identifier_to_column({:like_pattern, {:constant, _, pattern}, {:constant, _, escape}}, _, _) do
+    if escape == nil or String.length(escape) == 1 do
+      Expression.like_pattern(pattern, escape)
+    else
+      raise CompilationError, message: "Escape string must be one character."
+    end
+  end
   defp identifier_to_column(other, _columns_by_name, _query), do: other
 
   defp get_columns(columns_by_name, {:unquoted, name}) do

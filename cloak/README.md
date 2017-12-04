@@ -10,6 +10,7 @@
         - [Running partial tests](#running-partial-tests)
         - [Running a specific compliance test](#running-a-specific-compliance-test)
         - [Running a local docker container](#running-a-local-docker-container)
+        - [Running full compliance CI locally](#running-full-compliance-ci-locally)
         - [Deploying](#deploying)
     - [Installing database servers](#installing-database-servers)
 
@@ -172,7 +173,7 @@ By default, only native PostgreSQL adapter is tested locally, while MongoDB and 
 
 In order to have working tests on other drivers, you need to start corresponding database servers locally - see [Installing database servers](#installing-database-servers).
 
-Note that SAP HANA tests can't be executed directly on macOS machines. Instead, you need to start a local development container with `make dev-container`.
+Note that SAP HANA tests can't be executed directly on macOS machines. Instead, you need to start a local CI container with `make ci.compliance.debug`.
 
 #### Running a specific compliance test
 
@@ -202,9 +203,20 @@ It is possible to run cloak as a local docker container:
 
 You can now interact with the cloak via the dockerized air (http://localhost:8080 or https://insights.air-local:8443).
 
-#### Running a local development container (macos only)
+#### Running full compliance CI locally
 
-With the `make dev-container` command, you can start a Linux container with your local aircloak folder mounted. This feature is intended for macos developers, and it allows them to develop and test in the Linux environment. You need to have Docker for Mac 17.0.6 or higher.
+To run the full compliance CI test locally with the command `make ci.compliance`. This will test all supported databases and drivers. The test is fully dockerized, so you can start it on Linux and macOS.
+
+If you want to test some specific databases, you can set the `CLOAK_DATA_SOURCES` env variable. For example, to test only PostgreSQL and MongoDB 3.0, you can run the following command:
+
+```
+CLOAK_DATA_SOURCES="postgres9.4 mongodb3.0"  make ci.compliance
+```
+
+The `CLOAK_DATA_SOURCES` env var is a whitespace separated list of data source names which you want to use in the test suite. For the list of available names, take a look at configuration files in [this folder](priv/config/dockerized_ci/mongo3.0.json).
+
+You can also start the CI container in the debug mode by running `make ci.compliance.debug`. This will start the cloak container in the console mode (`bash` shell). Now, you can invoke various project tasks, such as `mix test --only compliance` or `iex -S mix`. The container uses the source files mounted from your host, so you can easily edit those files and repeatedly run the tests.
+
 
 #### Deploying
 
@@ -266,7 +278,7 @@ Note that the tests submit results to InfluxDB - it will be started with `start_
 - Change the memory allowed to docker to at least 3,5 GB
 - `make sql-server-container` - starts the container
 - `DB_NAME=cloaktest2 make sql-server-database` - creates a database named `cloaktest2`
-- Note that connecting to SQL Server will only work in the dev-container (`make dev-container`)
+- Note that connecting to SQL Server will only work in the CI container (`make ci.compliance.debug`)
 - The following example section will allow you to add an SQL Server datasource to the appropriate config.json:
 
 ```json

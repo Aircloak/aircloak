@@ -12,6 +12,8 @@ defmodule Compliance.DataSource.MySQL do
   @impl Connector
   def setup(%{parameters: params}) do
     Application.ensure_all_started(:mariaex)
+    Connector.await_port(params.hostname, 3306)
+    setup_database(params)
     {:ok, conn} = Mariaex.start_link(
       database: params.database,
       hostname: params.hostname,
@@ -31,15 +33,11 @@ defmodule Compliance.DataSource.MySQL do
   @impl Connector
   def insert_rows(table_name, data, conn) do
     column_names = column_names(data)
-    rows = rows(data, column_names)
-    escaped_column_names = escaped_column_names(column_names)
-    value_placeholders = List.duplicate("?", length(column_names)) |> Enum.join(", ")
 
-    query = "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names, ", ")}) values (#{value_placeholders})"
-
-    rows
-    |> Task.async_stream(& execute!(conn, query, &1))
-    |> Stream.run()
+    data
+    |> rows(column_names)
+    |> Stream.chunk_every(100)
+    |> Enum.each(&insert_chunk(conn, table_name, column_names, &1))
 
     conn
   end
@@ -53,6 +51,15 @@ defmodule Compliance.DataSource.MySQL do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp insert_chunk(conn, table_name, column_names, rows) do
+    columns = column_names |> escaped_column_names() |> Enum.join(", ")
+    row_placeholders = column_names |> Stream.map(fn(_column) -> "?" end) |> Enum.join(",")
+    all_placeholders = rows |> Stream.map(fn(_row) -> "(#{row_placeholders})" end) |> Enum.join(", ")
+    query = "INSERT INTO #{table_name}(#{columns}) values #{all_placeholders}"
+
+    Mariaex.query!(conn, query, List.flatten(rows))
+  end
 
   defp execute!(conn, query, params \\ []), do:
     Mariaex.query!(conn, query, params)
@@ -94,4 +101,22 @@ defmodule Compliance.DataSource.MySQL do
   defp sql_type(:boolean), do: "boolean"
   defp sql_type(:text), do: "text"
   defp sql_type(:datetime), do: "timestamp"
+
+  defp setup_database(params) do
+    {:ok, conn} =
+      Mariaex.start_link(
+        database: "mysql",
+        hostname: params.hostname,
+        username: "root",
+        sync_connect: true,
+      )
+
+    case Mariaex.query!(
+      conn,
+      "SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '#{params.database}'"
+    ).rows do
+      [[1]] -> :ok
+      [[0]] -> Mariaex.query!(conn, "CREATE DATABASE #{params.database} DEFAULT CHARACTER SET utf8")
+    end
+  end
 end

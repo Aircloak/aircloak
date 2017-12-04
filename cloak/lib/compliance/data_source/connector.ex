@@ -38,4 +38,23 @@ defmodule Compliance.DataSource.Connector do
       defoverridable db_table_name: 1, insert_documents: 3
     end
   end
+
+  @doc "Waits for the port on the given host to become available."
+  @spec await_port(String.t, :inet.port_number) :: :ok
+  def await_port(host, port) do
+    IO.puts "waiting for #{host}:#{port}..."
+
+    task =
+      Task.async(fn ->
+        fn -> :gen_tcp.connect(to_charlist(host), port, []) end
+        |> Stream.repeatedly()
+        |> Stream.drop_while(&match?({:error, _}, &1))
+        |> Enum.take(1)
+      end)
+
+    case Task.yield(task, :timer.minutes(2)) do
+      nil -> Mix.raise "#{host}:#{port} is not available"
+      _ -> IO.puts "#{host}:#{port} is available"
+    end
+  end
 end

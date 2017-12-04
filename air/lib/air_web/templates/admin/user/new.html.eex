@@ -1,4 +1,9 @@
-<h2>New user</h2>
+<ol class="breadcrumb">
+  <li><%= link "Users", to: admin_user_path(@conn, :index) %></li>
+  <li class="active">New user</li>
+</ol>
+
+<h2>Add a user</h2>
 
 <%= render "_form.html", changeset: @changeset,
   action: admin_user_path(@conn, :create), conn: @conn, chosen_groups: [] %>

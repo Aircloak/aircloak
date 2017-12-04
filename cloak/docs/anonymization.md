@@ -292,13 +292,18 @@ that is not implemented yet (see [the issue](https://github.com/Aircloak/aircloa
 
 ### Clear expressions
 
-All ranges (both explicit and implicit), `IN` conditions, and `<>` conditions
-must be "clear". That means that it must be immediately obvious from the SQL
-what the effect of such an expression is on the selected data. To achieve this,
-the LHS of these expressions must be a raw column that was at most processed
-with a cast and possibly an aggregator if the expression in question is in a
-`HAVING` clause. The RHS must be a constant or a set of constants in the case of
-`IN`.
+All ranges (both explicit and implicit), string-based conditions, `IN`
+conditions, and `<>` conditions must be "clear". That means that it must be
+immediately obvious from the SQL what the effect of such an expression is on the
+selected data. A string-based condition is one where the results of a
+`substring`, `trim`, `left`, or `right` function application are used - see
+[this issue](https://github.com/Aircloak/aircloak/issues/1912).
+
+To achieve this, the LHS of these expressions (or the argument column in the
+case of implicit ranges and string-based conditions) must be a raw column that
+was at most processed with a cast and possibly an aggregator if the expression
+in question is in a `HAVING` clause. The RHS must be a constant or a set of
+constants in the case of `IN`.
 
 For `=` conditions that are "clear" (for example the analyst writes `WHERE x =
 10` and `x` is a database column) we generate the noise layers without floating

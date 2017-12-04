@@ -14,18 +14,8 @@ defmodule Cloak.DataSource.SAPHana do
   This is useful in development, to allow different developers to work on different schemas.
   """
   @spec default_schema() :: nil | String.t
-  def default_schema() do
-    with \
-      {:ok, saphana_settings} <- Application.fetch_env(:cloak, :sap_hana),
-      {:ok, default_schema} <- Keyword.fetch(saphana_settings, :default_schema),
-      true <- String.length(default_schema) > 0
-    do
-      default_schema
-    else
-      _ -> nil
-    end
-  end
-
+  def default_schema(), do:
+    non_empty_schema(default_schema_from_os_env()) || non_empty_schema(default_schema_from_app_config())
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -62,6 +52,29 @@ defmodule Cloak.DataSource.SAPHana do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  if Mix.env == :prod do
+    # We don't allow env based override in prod
+    defp default_schema_from_os_env(), do: nil
+  else
+    defp default_schema_from_os_env(), do:
+      System.get_env("DEFAULT_SAP_HANA_SCHEMA")
+  end
+
+  defp default_schema_from_app_config() do
+    with \
+      {:ok, saphana_settings} <- Application.fetch_env(:cloak, :sap_hana),
+      {:ok, default_schema} <- Keyword.fetch(saphana_settings, :default_schema)
+    do
+      default_schema
+    else
+      _ -> nil
+    end
+  end
+
+  defp non_empty_schema(nil), do: nil
+  defp non_empty_schema(""), do: nil
+  defp non_empty_schema(schema) when is_binary(schema), do: schema
 
   defp schema_option(nil), do: %{}
   defp schema_option(schema), do: %{cs: ~s/"#{schema}"/}

@@ -1,0 +1,11 @@
+{
+  "driver": "mongodb",
+  "name": "mongodb3.2",
+  "parameters": {
+    "hostname": "mongo3.2",
+    "username": "root",
+    "database": "cloak_compliance"
+  },
+  "tables": {
+  }
+}

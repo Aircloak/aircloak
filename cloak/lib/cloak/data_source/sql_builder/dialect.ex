@@ -12,6 +12,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @doc "Generates dialect-specific SQL for the LIKE operator."
   @callback like_sql(iodata, iodata) :: iodata
 
+  @doc "Defaults to true. If false, the sql builder will rewrite ILIKE to the LIKE equivalent"
+  @callback native_support_for_ilike?() :: boolean
+
   @doc "Generates dialect-specific SQL for the ILIKE operator."
   @callback ilike_sql(iodata, iodata) :: iodata
 
@@ -50,9 +53,13 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
         [what, " LIKE ", match]
 
       @impl unquote(__MODULE__)
+      def native_support_for_ilike?(), do: true
+
+      @impl unquote(__MODULE__)
       def ilike_sql(what, match), do:
-        # ilike requires the support for collation, so each data source must explicitly handle this
-        raise ExecutionError, message: "ILIKE operator is not supported on this data source"
+        # ILIKE requires the support for collation. Each data source that returns true for
+        # `native_support_for_ilike?/1` must explicitly handle this
+        raise ExecutionError, message: "This data source is missing an Aircloak ILIKE implementation"
 
       @impl unquote(__MODULE__)
       def limit_sql(nil, _offset), do:
@@ -80,7 +87,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       def interval_literal(duration), do: duration |> Timex.Duration.to_seconds() |> to_string()
 
       defoverridable like_sql: 2, ilike_sql: 2, limit_sql: 2, cast_unknown_sql: 1, cast_sql: 2, interval_literal: 1,
-        time_arithmetic_expression: 2, date_subtraction_expression: 1
+        time_arithmetic_expression: 2, date_subtraction_expression: 1, native_support_for_ilike?: 0
     end
   end
 end

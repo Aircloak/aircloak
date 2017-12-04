@@ -12,6 +12,10 @@ defmodule Compliance.DataSource.PostgreSQL do
   @impl Connector
   def setup(%{parameters: params}) do
     Application.ensure_all_started(:postgrex)
+
+    Connector.await_port(params.hostname, 5432)
+    setup_database(params)
+
     {:ok, conn} = Postgrex.start_link(
       database: params.database,
       hostname: params.hostname,
@@ -31,20 +35,27 @@ defmodule Compliance.DataSource.PostgreSQL do
   @impl Connector
   def insert_rows(table_name, data, conn) do
     column_names = column_names(data)
-    rows = rows(data, column_names)
-    escaped_column_names = escaped_column_names(column_names)
-    indexed_sql = (1..length(column_names))
-    |> Enum.to_list()
-    |> Enum.map(& "$#{&1}")
-    |> Enum.join(", ")
 
-    query = "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names, ", ")}) values (#{indexed_sql})"
-
-    rows
-    |> Task.async_stream(& execute!(conn, query, &1))
-    |> Stream.run()
+    data
+    |> rows(column_names)
+    |> Stream.chunk_every(100)
+    |> Enum.each(&insert_chunk(conn, table_name, column_names, &1))
 
     conn
+  end
+
+  defp insert_chunk(conn, table_name, column_names, rows) do
+    placeholders =
+      rows
+      |> Stream.concat()
+      |> Stream.with_index(1)
+      |> Stream.map(fn({_value, index}) -> "$#{index}" end)
+      |> Stream.chunk_every(length(hd(rows)))
+      |> Stream.map(&"(#{Enum.join(&1, ",")})")
+      |> Enum.join(", ")
+
+    query = "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names(column_names), ", ")}) values #{placeholders}"
+    Postgrex.query!(conn, query, List.flatten(rows))
   end
 
   @impl Connector
@@ -92,4 +103,26 @@ defmodule Compliance.DataSource.PostgreSQL do
   defp sql_type(:boolean), do: "boolean"
   defp sql_type(:text), do: "text"
   defp sql_type(:datetime), do: "timestamp"
+
+  defp setup_database(params) do
+    {:ok, conn} = Postgrex.start_link(
+      database: "postgres",
+      hostname: params.hostname,
+      username: "postgres",
+      sync_connect: true,
+    )
+
+    case Postgrex.query!(
+      conn,
+      "SELECT count(*) FROM pg_catalog.pg_user WHERE usename = '#{params.username}'",
+      []
+    ).rows do
+      [[1]] -> :ok
+      [[0]] -> Postgrex.query!(conn, "CREATE USER #{params.username}", [])
+    end
+
+    Postgrex.query!(conn, "DROP DATABASE IF EXISTS #{params.database}", [])
+    Postgrex.query!(conn, "CREATE DATABASE #{params.database} ENCODING 'UTF8'", [])
+    Postgrex.query!(conn, "GRANT ALL PRIVILEGES ON DATABASE #{params.database} TO #{params.username}", [])
+  end
 end
