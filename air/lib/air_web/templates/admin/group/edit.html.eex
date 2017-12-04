@@ -1,8 +1,9 @@
 <ol class="breadcrumb">
   <li><%= link "Groups", to: admin_group_path(@conn, :index) %></li>
-  <li class="active"><%= @data.group.name %></li>
+  <li class="active"><%= @group.name %></li>
 </ol>
 
-<h2>Edit <%= @data.group.name %></h2>
+<h2>Edit <%= @group.name %></h2>
 
-<%= render "_form.html", data: @data, action: admin_group_path(@conn, :update, @data.group), conn: @conn %>
+<%= render "_form.html", data: @data, action: admin_group_path(@conn, :update, @group),
+  conn: @conn, changeset: @changeset %>
