@@ -18,7 +18,7 @@ defmodule Air.Service.DebugExport do
     files = [
       {'query.sql', query.statement},
       {'result.json', Query.buckets(query, :all) |> Poison.encode!(pretty: true)},
-      {'views.json', View.all(user, query.data_source) |> Poison.encode!(pretty: true)},
+      {'views.json', View.user_views_map(user, query.data_source.id) |> Poison.encode!(pretty: true)},
       {'tables.json', query.data_source.tables},
     ]
 
