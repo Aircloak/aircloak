@@ -25,11 +25,13 @@ defmodule AircloakCI.JobRunner do
   @type state :: %{
     callback_mod: module,
     repo_data: Github.API.repo_data,
-    pr: Github.API.pull_request,
+    source: source,
     project: LocalProject.t,
     data: any,
     jobs: jobs,
   }
+
+  @type source :: Github.API.pull_request | Github.API.branch
 
   @opaque jobs :: %{job_name => pid}
 
@@ -52,12 +54,18 @@ defmodule AircloakCI.JobRunner do
     :ignore |
     {:stop, reason :: any}
 
+  @doc "Invoked to find the source object."
+  @callback refresh_source(state) :: source | nil
+
+  @doc "Invoked to create the local project instance."
+  @callback create_project(state) :: LocalProject.t
+
   @doc """
   Invoked when there's a change in the PR.
 
   This callback is not invoked if some additional commits are pushed. In this case, `handle_restart/1` will be invoked.
   """
-  @callback handle_pr_change(state) :: async_message_result
+  @callback handle_source_change(state) :: async_message_result
 
   @doc "Invoked if some new commits are pushed to the PR."
   @callback handle_restart(state) :: async_message_result
@@ -86,9 +94,9 @@ defmodule AircloakCI.JobRunner do
   # -------------------------------------------------------------------
 
   @doc "Starts a job runner related to the given pull request."
-  @spec start_link(module, Github.API.pull_request, Github.API.repo_data, any, GenServer.options) :: GenServer.on_start
-  def start_link(callback_mod, pr, repo_data, arg, gen_server_opts \\ []), do:
-    GenServer.start_link(__MODULE__, {callback_mod, pr, repo_data, arg}, gen_server_opts)
+  @spec start_link(module, source, Github.API.repo_data, any, GenServer.options) :: GenServer.on_start
+  def start_link(callback_mod, source, repo_data, arg, gen_server_opts \\ []), do:
+    GenServer.start_link(__MODULE__, {callback_mod, source, repo_data, arg}, gen_server_opts)
 
   @doc "Makes a synchronous request to the given job runner."
   @spec call(GenServer.server, any, pos_integer | :infinity) :: any
@@ -125,20 +133,20 @@ defmodule AircloakCI.JobRunner do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init({callback_mod, pr, repo_data, arg}) do
+  def init({callback_mod, source, repo_data, arg}) do
     Process.flag(:trap_exit, true)
     AircloakCI.RepoDataProvider.subscribe()
 
-    initial_state = %{
+    %{
       callback_mod: callback_mod,
       repo_data: repo_data,
-      pr: pr,
-      project: LocalProject.for_pull_request(pr),
+      source: source,
+      project: nil,
       data: nil,
       jobs: %{}
     }
-
-    invoke_callback(initial_state, :init, [arg])
+    |> update_project()
+    |> invoke_callback(:init, [arg])
   end
 
   @impl GenServer
@@ -147,12 +155,13 @@ defmodule AircloakCI.JobRunner do
 
   @impl GenServer
   def handle_info({:repo_data, repo_data}, state) do
-    case Enum.find(repo_data.pull_requests, &(&1.number == state.pr.number)) do
+    state = %{state | repo_data: repo_data}
+    case invoke_callback(state, :refresh_source, []) do
       nil ->
         Logger.info("shutting down job runner `#{__MODULE__}` for `#{LocalProject.name(state.project)}`")
         {:stop, :shutdown, state}
-      pr ->
-        update_pr(state, pr, repo_data)
+      new_source ->
+        update_source(state, new_source)
     end
   end
   def handle_info({:EXIT, pid, reason} = exit_message, state) do
@@ -183,14 +192,17 @@ defmodule AircloakCI.JobRunner do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp update_pr(state, pr, repo_data) do
-    new_state = %{state | repo_data: repo_data, pr: pr, project: LocalProject.for_pull_request(pr)}
+  defp update_project(state), do:
+    %{state | project: invoke_callback(state, :create_project, [])}
+
+  defp update_source(state, new_source) do
+    new_state = update_project(%{state | source: new_source})
     cond do
-      new_state.pr.merge_sha != state.pr.merge_sha ->
+      new_state.project.desired_sha != state.project.desired_sha ->
         new_state |> terminate_all_jobs() |> invoke_callback(:handle_restart, [])
 
-      new_state.pr != state.pr ->
-        invoke_callback(state, :handle_pr_change, [])
+      new_state.source != state.source ->
+        invoke_callback(state, :handle_source_change, [])
 
       true ->
         {:noreply, state}
@@ -216,7 +228,7 @@ defmodule AircloakCI.JobRunner do
       @behaviour behaviour_mod
 
       @impl behaviour_mod
-      def handle_pr_change(state), do:
+      def handle_source_change(state), do:
         {:noreply, state}
 
       @impl behaviour_mod

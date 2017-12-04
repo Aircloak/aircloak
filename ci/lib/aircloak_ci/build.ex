@@ -5,7 +5,7 @@ defmodule AircloakCI.Build do
   The process will start various child jobs to initialize the repo and run different tests.
   """
 
-  use AircloakCI.JobRunner, restart: :temporary
+  use AircloakCI.JobRunner.PullRequest, restart: :temporary
   require Logger
   alias AircloakCI.{Github, JobRunner, LocalProject, Queue}
   alias AircloakCI.Job.Compliance
@@ -77,7 +77,7 @@ defmodule AircloakCI.Build do
   defp base_projects(state), do:
     # We're deduping, because if the target is master, we end up with two master branches, which causes deadlocks.
     Enum.uniq([
-      LocalProject.for_branch(branch!(state.repo_data, state.pr.target_branch)),
+      LocalProject.for_branch(branch!(state.repo_data, state.source.target_branch)),
       LocalProject.for_branch(branch!(state.repo_data, "master"))
     ])
 
@@ -119,7 +119,7 @@ defmodule AircloakCI.Build do
       JobRunner.start_job(
         state,
         :compliance,
-        fn -> Compliance.start_link(state.pr, state.project, state.repo_data) end
+        fn -> Compliance.start_link(state.source, state.project, state.repo_data) end
       )
     else
       LocalProject.log(state.project, "main", "can't run compliance on this PR")

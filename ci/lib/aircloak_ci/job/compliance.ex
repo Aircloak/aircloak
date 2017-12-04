@@ -1,7 +1,7 @@
 defmodule AircloakCI.Job.Compliance do
   @moduledoc "Execution of the compliance test suite."
 
-  use AircloakCI.JobRunner
+  use AircloakCI.JobRunner.PullRequest
   require Logger
   alias AircloakCI.{Github, JobRunner, LocalProject, Queue}
 
@@ -32,7 +32,7 @@ defmodule AircloakCI.Job.Compliance do
   end
 
   @impl JobRunner
-  def handle_pr_change(state), do:
+  def handle_source_change(state), do:
     {:noreply, (if running?(state), do: state, else: maybe_start_test(state))}
 
   @impl JobRunner
@@ -59,7 +59,7 @@ defmodule AircloakCI.Job.Compliance do
       :ok -> start_test(state)
 
       {:error, status} ->
-        send_status_to_github(state.pr, :pending, status)
+        send_status_to_github(state.source, :pending, status)
         state
     end
   end
@@ -69,8 +69,8 @@ defmodule AircloakCI.Job.Compliance do
       :ok
     else
       with \
-        {_status, true} <- {"waiting for Travis builds to succeed", travis_succeeded?(state.pr)},
-        {_status, true} <- {"waiting for approval", state.pr.approved?}
+        {_status, true} <- {"waiting for Travis builds to succeed", travis_succeeded?(state.source)},
+        {_status, true} <- {"waiting for approval", state.source.approved?}
       do
         :ok
       else
@@ -83,7 +83,7 @@ defmodule AircloakCI.Job.Compliance do
     (pr.status_checks["continuous-integration/travis-ci/pr"] || %{status: nil}).status == :success and
     (pr.status_checks["continuous-integration/travis-ci/push"] || %{status: nil}).status == :success
 
-  defp start_test(%{pr: pr, project: project} = state) do
+  defp start_test(%{source: pr, project: project} = state) do
     me = self()
     state = %{state | data: %{start: :erlang.monotonic_time(:second)}}
     JobRunner.start_job(state, :compliance_build, fn ->
@@ -106,12 +106,12 @@ defmodule AircloakCI.Job.Compliance do
 
     LocalProject.log(state.project, "compliance", "finished with result `#{result}` in #{time_output} min")
 
-    send_status_to_github(state.pr, github_status(result), description(result))
+    send_status_to_github(state.source, github_status(result), description(result))
 
     Github.post_comment(
-      state.pr.repo.owner,
-      state.pr.repo.name,
-      state.pr.number,
+      state.source.repo.owner,
+      state.source.repo.name,
+      state.source.number,
       comment(state, result, context)
     )
 
@@ -153,7 +153,7 @@ defmodule AircloakCI.Job.Compliance do
       [
         "#{title} #{sad_emoji()}",
         (if not is_nil(extra_info), do: "\n#{extra_info}\n", else: ""),
-        "You can see the full build log by running: `ci/production.sh build_log #{state.pr.number}`\n",
+        "You can see the full build log by running: `ci/production.sh build_log #{state.source.number}`\n",
         "Log tail:\n", "```", log_tail(state.project), "```"
       ],
       "\n"
