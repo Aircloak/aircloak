@@ -42,6 +42,7 @@ defmodule AirWeb.Router do
     get "/queries/load_history/:data_source_name", QueryController, :load_history
     get "/queries/:id", QueryController, :show
     get "/queries/:id/buckets", QueryController, :buckets
+    get "/queries/:id/debug_export", QueryController, :debug_export
 
     delete "/logout", SessionController, :delete
 

@@ -14,7 +14,7 @@ defmodule AirWeb.QueryController do
 
   def permissions do
     %{
-      user: [:cancel, :create, :show, :load_history, :buckets],
+      user: [:cancel, :create, :show, :load_history, :buckets, :debug_export],
       admin: :all
     }
   end
@@ -103,6 +103,14 @@ defmodule AirWeb.QueryController do
       _ ->
         send_resp(conn, Status.code(:not_found), "A query with that id does not exist")
     end
+  end
+
+  def debug_export(conn, %{"id" => id}) do
+    {:ok, {file_name, data}} = Air.Service.DebugExport.export(conn.assigns.current_user, id)
+    conn
+    |> put_resp_content_type("application/octet-stream")
+    |> put_resp_header("content-disposition", ~s[attachment; filename="#{file_name}"])
+    |> send_resp(200, data)
   end
 
 
