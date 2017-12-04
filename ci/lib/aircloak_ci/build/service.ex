@@ -15,7 +15,7 @@ defmodule AircloakCI.Build.Service do
     Supervisor.start_link(
       [
         registry(:unique, AircloakCI.Build.Registry),
-        supervisor([AircloakCI.Build], strategy: :simple_one_for_one, name: AircloakCI.Build.Supervisor)
+        supervisor([AircloakCI.Build.PullRequest], strategy: :simple_one_for_one, name: AircloakCI.Build.Supervisor)
       ],
       strategy: :one_for_one, name: __MODULE__
     )

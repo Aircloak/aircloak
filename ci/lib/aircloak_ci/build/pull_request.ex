@@ -1,4 +1,4 @@
-defmodule AircloakCI.Build do
+defmodule AircloakCI.Build.PullRequest do
   @moduledoc """
   This module powers the process responsible for the entire build of the single PR.
 
@@ -18,7 +18,7 @@ defmodule AircloakCI.Build do
   @doc "Ensures that the build server for the given pull request is started."
   @spec ensure_started(Github.API.pull_request, Github.API.repo_data) :: :ok
   def ensure_started(pr, repo_data) do
-    case Supervisor.start_child(__MODULE__.Supervisor, [pr, repo_data]) do
+    case Supervisor.start_child(AircloakCI.Build.Supervisor, [pr, repo_data]) do
       {:ok, _} -> :ok
       {:error, {:already_started, _pid}} -> :ok
     end
