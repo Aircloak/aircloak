@@ -18,7 +18,7 @@ defmodule AircloakCI.Build.PullRequest do
   @doc "Ensures that the build server for the given pull request is started."
   @spec ensure_started(Github.API.pull_request, Github.API.repo_data) :: :ok
   def ensure_started(pr, repo_data) do
-    case Supervisor.start_child(AircloakCI.Build.Supervisor, [pr, repo_data]) do
+    case AircloakCI.Build.Supervisor.start_build(__MODULE__, [pr, repo_data]) do
       {:ok, _} -> :ok
       {:error, {:already_started, _pid}} -> :ok
     end
