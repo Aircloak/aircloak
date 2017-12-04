@@ -88,7 +88,10 @@ defmodule Cloak.Query.Runner.Engine do
     state_updater = fn (acc, state) -> state_updater.(state); acc end
 
     stream
-    |> state_updater.(:ingesting_data)
+    |> Stream.transform(:first, fn
+      (chunk, :first) -> {[state_updater.(chunk, :ingesting_data)], :not_first}
+      (chunk, :not_first) -> {[chunk], :not_first}
+    end)
     |> ParallelProcessor.execute(concurrency(query),
       &consume_rows(&1, query), &Query.Aggregator.merge_groups/2)
     |> state_updater.(:processing)
