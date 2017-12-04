@@ -23,7 +23,7 @@ defmodule AirWeb.Admin.GroupController do
   # -------------------------------------------------------------------
 
   def index(conn, _params), do:
-    render(conn, "index.html", groups: User.all_groups(), changeset: User.empty_group_changeset())
+    render(conn, "index.html", groups: User.all_groups())
 
   def new(conn, _params), do:
     render(conn, "new.html", data: edit_form_data(conn, changeset: User.empty_group_changeset()))
