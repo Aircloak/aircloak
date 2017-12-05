@@ -54,7 +54,7 @@ defmodule AircloakCI.Build.PullRequest do
   def handle_call(:force_build, _from, state) do
     state = JobRunner.terminate_all_jobs(state)
     LocalProject.truncate_logs(state.project)
-    LocalProject.set_status(state.project, :force_start)
+    LocalProject.mark_forced(state.project)
     {:reply, :ok, prepare_project(state)}
   end
 
@@ -76,10 +76,11 @@ defmodule AircloakCI.Build.PullRequest do
     %{} = Enum.find(repo_data.branches, &(&1.name == branch_name))
 
   defp init_project(project, target_branch) do
-    if LocalProject.status(project) == :empty, do:
+    unless LocalProject.initialized?(project), do:
       AircloakCI.Build.Branch.transfer_project(target_branch, project)
 
-    LocalProject.ensure_compiled(project)
+    with :ok <- LocalProject.update_code(project), do:
+      LocalProject.ensure_compiled(project)
   end
 
 
@@ -95,7 +96,7 @@ defmodule AircloakCI.Build.PullRequest do
       JobRunner.start_job(
         state,
         :compliance,
-        fn -> Compliance.start_link(state.source, state.project, state.repo_data) end
+        fn -> Compliance.start_link(state.source, state.repo_data) end
       )
     else
       LocalProject.log(state.project, "main", "can't run compliance on this PR")

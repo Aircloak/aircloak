@@ -11,9 +11,9 @@ defmodule AircloakCI.Job.Compliance do
   # -------------------------------------------------------------------
 
   @doc "Starts the compliance job."
-  @spec start_link(Github.API.pull_request, LocalProject.t, Github.API.repo_data) :: {:ok, pid} | :ignore
-  def start_link(pr, project, repo_data) do
-    if LocalProject.finished?(project) or not mergeable?(pr) do
+  @spec start_link(Github.API.pull_request, Github.API.repo_data) :: {:ok, pid} | :ignore
+  def start_link(pr, repo_data) do
+    if not mergeable?(pr) do
       :ignore
     else
       JobRunner.start_link(__MODULE__, pr, repo_data, nil)
@@ -55,17 +55,21 @@ defmodule AircloakCI.Job.Compliance do
   defp running?(state), do: not is_nil(state.data.start)
 
   defp maybe_start_test(state) do
-    case check_start_preconditions(state) do
-      :ok -> start_test(state)
+    if not LocalProject.finished?(state.project) or LocalProject.forced?(state.project) do
+      case check_start_preconditions(state) do
+        :ok -> start_test(state)
 
-      {:error, status} ->
-        send_status_to_github(state.source, :pending, status)
-        state
+        {:error, status} ->
+          send_status_to_github(state.source, :pending, status)
+          state
+      end
+    else
+      state
     end
   end
 
   defp check_start_preconditions(state) do
-    if LocalProject.status(state.project) == :force_start do
+    if LocalProject.forced?(state.project) do
       :ok
     else
       with \
@@ -93,7 +97,6 @@ defmodule AircloakCI.Job.Compliance do
 
   defp run_test(pr, project) do
     send_status_to_github(pr, :pending, "build started")
-    LocalProject.set_status(project, :started)
     with {:error, reason} <- LocalProject.compliance(project) do
       LocalProject.log(project, "compliance", "error: #{reason}")
       :error
@@ -115,7 +118,7 @@ defmodule AircloakCI.Job.Compliance do
       comment(state, result, context)
     )
 
-    LocalProject.set_status(state.project, :finished)
+    LocalProject.mark_finished(state.project)
   end
 
   defp mergeable?(pr), do:

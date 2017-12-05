@@ -60,9 +60,9 @@ defmodule AircloakCI.LocalProject do
   def name(project), do:
     project.name
 
-  @doc "Initializes the project."
-  @spec initialize(t) :: :ok | {:error, String.t}
-  def initialize(project) do
+  @doc "Brings the local project to the desired sha."
+  @spec update_code(t) :: :ok | {:error, String.t}
+  def update_code(project) do
     if up_to_date?(project) do
       :ok
     else
@@ -73,22 +73,22 @@ defmodule AircloakCI.LocalProject do
           :ok <- clone_repo(project),
           :ok <- cmd(project, "main", "git #{project.update_git_command}"),
           :ok <- cmd(project, "main", "git checkout #{project.checkout}"),
-          do: update_state(project, &%{&1 | status: :initialized})
+          do: update_state(project, &%{&1 | initialized?: true})
       end)
     end
   end
 
   @doc "Initializes the build from the base build."
-  @spec initialize_from(t, t) :: :ok | {:error, String.t}
+  @spec initialize_from(t, t) :: :ok
   def initialize_from(project, base_project) do
-    :empty = status(project)
+    false = state(project).initialized?
     log_start_stop("copying project for #{name(project)} from #{name(base_project)}", fn ->
       File.cp_r(git_folder(base_project), git_folder(project))
       cmd(project, "main", "git reset HEAD --hard")
       copy_folder(base_project, project, "tmp")
       copy_folder(base_project, project, Path.join(~w(cloak priv odbc drivers)))
     end)
-    initialize(project)
+    :ok
   end
 
   @doc "Executes the compliance suite in the project folder."
@@ -117,7 +117,7 @@ defmodule AircloakCI.LocalProject do
           "compiling #{name(project)}",
           fn ->
             with :ok <- cmd(project, "cloak_compile", "ci/scripts/run.sh build_cloak", timeout: :timer.minutes(30)), do:
-              update_state(project, &%{&1 | status: :compiled})
+              mark_compiled(project)
           end
         )
       end)
@@ -172,32 +172,32 @@ defmodule AircloakCI.LocalProject do
   @doc "Determines if CI can be invoked in this project."
   @spec ci_possible?(t) :: boolean
   def ci_possible?(project), do:
-    initialize(project) == :ok and not is_nil(ci_version(project))
+    update_code(project) == :ok and not is_nil(ci_version(project))
 
-  @doc """
-  Returns the build status for this project.
+  @doc "Returns true if the project source has been initialized."
+  @spec initialized?(t) :: boolean
+  def initialized?(project), do:
+    state(project).initialized?
 
-  Possible states are:
-
-    - `:empty` - the build has not yet been initialized
-    - `:initialized` - the build source has been retrieved
-    - `:started` - the build has been started
-    - `:force_start` - the new build has been requested
-    - `:finished` - the build has completed
-  """
-  @spec status(t) :: :empty | :initialized | :compiled | :started | :force_start | :finished
-  def status(project), do:
-    state(project).status
-
-  @doc "Sets the build status."
-  @spec set_status(t, :started | :finished | :force_start) :: :ok
-  def set_status(project, status), do:
-    update_state(project, &%{&1 | status: status})
+  @doc "Marks the project as finished, and clears the force flag."
+  @spec mark_finished(t) :: :ok
+  def mark_finished(project), do:
+    update_state(project, &%{&1 | forced_at: nil, finished_at: current_sha(project)})
 
   @doc "Returns true if the build for this project has finished."
   @spec finished?(t) :: boolean
   def finished?(project), do:
-    up_to_date?(project) and status(project) == :finished
+    state(project).finished_at == project.desired_sha
+
+  @doc "Marks the project for the force build."
+  @spec mark_forced(t) :: :ok
+  def mark_forced(project), do:
+    update_state(project, &%{&1 | forced_at: project.desired_sha})
+
+  @doc "Returns whether the project has been marked for the force build."
+  @spec forced?(t) :: boolean
+  def forced?(project), do:
+    state(project).forced_at == project.desired_sha
 
   @doc "Truncates logs for the given project."
   @spec truncate_logs(t) :: :ok
@@ -303,10 +303,13 @@ defmodule AircloakCI.LocalProject do
   end
 
   defp compiled?(project), do:
-    up_to_date?(project) and status(project) in [:compiled, :started, :finished]
+    up_to_date?(project) and state(project).compiled_at == project.desired_sha
+
+  defp mark_compiled(project), do:
+    update_state(project, &%{&1 | compiled_at: current_sha(project)})
 
   defp update_state(project, updater) do
-    new_state = project |> state() |> updater.()
+    new_state = project |> state() |> updater.() |> Map.take(Map.keys(default_state()))
     Logger.info("#{project.name} state: #{inspect(new_state)}")
     log(project, "main", "project state: #{inspect(new_state)}")
 
@@ -315,16 +318,22 @@ defmodule AircloakCI.LocalProject do
     |> File.write!(:erlang.term_to_binary(new_state))
   end
 
-  defp state(project) do
+  defp state(project), do:
+    Map.merge(default_state(), deserialize_state(project))
+
+  defp deserialize_state(project) do
     try do
       project
       |> state_file()
       |> File.read!()
       |> :erlang.binary_to_term()
     catch _, _ ->
-      %{status: :empty}
+      %{}
     end
   end
+
+  defp default_state(), do:
+    %{initialized?: false, compiled_at: nil, forced_at: nil, finished_at: nil}
 
   defp up_to_date?(project), do:
     current_sha(project) == project.desired_sha

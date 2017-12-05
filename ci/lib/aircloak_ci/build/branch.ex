@@ -81,13 +81,12 @@ defmodule AircloakCI.Build.Branch do
   end
 
   defp initialize_repo(project, nil), do:
-    LocalProject.initialize(project)
+    LocalProject.update_code(project)
   defp initialize_repo(project, target_branch) do
-    if LocalProject.status(project) == :empty do
+    unless LocalProject.initialized?(project), do:
       transfer_project(target_branch, project)
-    else
-      LocalProject.initialize(project)
-    end
+
+    LocalProject.update_code(project)
   end
 
 
