@@ -175,7 +175,9 @@ defmodule AircloakCI.JobRunner do
         new_state = update_in(state.jobs, &Map.delete(&1, name))
         case reason do
           :normal -> invoke_callback(new_state, :handle_job_succeeded, [name])
-          _other -> invoke_callback(new_state, :handle_job_failed, [name, reason])
+          _other ->
+            Logger.error("job #{inspect(name)} failed: #{Exception.format_exit(reason)}")
+            invoke_callback(new_state, :handle_job_failed, [name, reason])
         end
 
       nil -> invoke_callback(state, :handle_info, [exit_message])
@@ -243,10 +245,8 @@ defmodule AircloakCI.JobRunner do
       end
 
       @impl behaviour_mod
-      def handle_job_failed(job_name, crash_reason, state) do
-        Logger.error("job #{job_name} failed: #{Exception.format_exit(crash_reason)}")
+      def handle_job_failed(job_name, crash_reason, state), do:
         {:noreply, state}
-      end
 
       @impl behaviour_mod
       def handle_restart(state), do:
