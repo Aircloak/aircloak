@@ -45,8 +45,8 @@ defmodule AircloakCI.LocalProject do
       log_folder: Path.join(logs_folder(), branch_folder_name(branch.name)),
       base_branch: base_branch(branch.name),
       repo: branch.repo,
-      update_git_command: "pull --rebase",
-      checkout: branch.name,
+      update_git_command: "fetch --force origin #{branch.name}",
+      checkout: branch.sha,
       desired_sha: branch.sha
     })
 
