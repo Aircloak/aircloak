@@ -27,7 +27,7 @@ defmodule AircloakCI.Job.Compliance do
 
   @impl JobRunner
   def init(nil, state) do
-    LocalProject.log(state.project, "compliance", "starting the compliance build")
+    LocalProject.log(state.project, "compliance", "starting the compliance server")
     {:ok, maybe_start_test(%{state | data: %{start: nil}})}
   end
 

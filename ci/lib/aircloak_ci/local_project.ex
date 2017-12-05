@@ -66,9 +66,7 @@ defmodule AircloakCI.LocalProject do
     if up_to_date?(project) do
       :ok
     else
-      log_start_stop("initializing local project for #{name(project)}", fn ->
-        log(project, "main", "initializing local project for #{name(project)}")
-
+      log_start_stop(project, "updating local project git repository for #{name(project)}", fn ->
         with \
           :ok <- clone_repo(project),
           :ok <- cmd(project, "main", "git #{project.update_git_command}"),
@@ -82,7 +80,7 @@ defmodule AircloakCI.LocalProject do
   @spec initialize_from(t, t) :: :ok
   def initialize_from(project, base_project) do
     false = state(project).initialized?
-    log_start_stop("copying project for #{name(project)} from #{name(base_project)}", fn ->
+    log_start_stop(project, "copying project for #{name(project)} from #{name(base_project)}", fn ->
       File.cp_r(git_folder(base_project), git_folder(project))
       cmd(project, "main", "git reset HEAD --hard")
       copy_folder(base_project, project, "tmp")
@@ -94,8 +92,9 @@ defmodule AircloakCI.LocalProject do
   @doc "Executes the compliance suite in the project folder."
   @spec compliance(t) :: :ok | {:error, String.t}
   def compliance(project), do:
-    log_start_stop("running compliance for #{name(project)}",
+    log_start_stop(project, "running compliance for #{name(project)}",
       fn ->
+        truncate_log(project, "compliance")
         log(project, "compliance", "waiting in compliance queue")
         Queue.exec(:compliance, fn ->
           if Application.get_env(:aircloak_ci, :simulate_compliance, false) do
@@ -113,9 +112,10 @@ defmodule AircloakCI.LocalProject do
   def ensure_compiled(project) do
     if ci_possible?(project) and not compiled?(project) do
       Queue.exec(:compile, fn ->
-        log_start_stop(
+        log_start_stop(project,
           "compiling #{name(project)}",
           fn ->
+            truncate_log(project, "cloak_compile")
             with :ok <- cmd(project, "cloak_compile", "ci/scripts/run.sh build_cloak", timeout: :timer.minutes(30)), do:
               mark_compiled(project)
           end
@@ -142,7 +142,7 @@ defmodule AircloakCI.LocalProject do
     project
     |> log_path(log_name)
     |> CmdRunner.file_logger()
-    |> apply([["\naircloak_ci: #{output}\n"]])
+    |> apply([["aircloak_ci: #{output}"]])
 
   @doc "Returns the contents of the project log."
   @spec log_contents(t, String.t) :: binary
@@ -198,14 +198,6 @@ defmodule AircloakCI.LocalProject do
   @spec forced?(t) :: boolean
   def forced?(project), do:
     state(project).forced_at == project.desired_sha
-
-  @doc "Truncates logs for the given project."
-  @spec truncate_logs(t) :: :ok
-  def truncate_logs(project), do:
-    project.log_folder
-    |> Path.join("*")
-    |> Path.wildcard()
-    |> Enum.each(&File.write(&1, ""))
 
 
   # -------------------------------------------------------------------
@@ -267,12 +259,19 @@ defmodule AircloakCI.LocalProject do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp log_start_stop(msg, fun) do
+  defp truncate_log(project, log_name), do:
+    project
+    |> log_path(log_name)
+    |> File.write("")
+
+  defp log_start_stop(project, msg, fun) do
     Logger.info("started #{msg}")
+    log(project, "main", "started #{msg}")
     try do
       fun.()
     after
       Logger.info("finished #{msg}")
+      log(project, "main", "finished #{msg}")
     end
   end
 

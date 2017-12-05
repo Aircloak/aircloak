@@ -53,7 +53,6 @@ defmodule AircloakCI.Build.PullRequest do
   @impl JobRunner
   def handle_call(:force_build, _from, state) do
     state = JobRunner.terminate_all_jobs(state)
-    LocalProject.truncate_logs(state.project)
     LocalProject.mark_forced(state.project)
     {:reply, :ok, prepare_project(state)}
   end
@@ -99,7 +98,7 @@ defmodule AircloakCI.Build.PullRequest do
         fn -> Compliance.start_link(state.source, state.repo_data) end
       )
     else
-      LocalProject.log(state.project, "main", "can't run compliance on this PR")
+      LocalProject.log(state.project, "main", "can't run CI on this PR")
       state
     end
   end
