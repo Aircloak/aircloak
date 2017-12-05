@@ -47,10 +47,8 @@ defmodule AircloakCI.Build.PullRequest do
     {:noreply, state}
 
   @impl JobRunner
-  def handle_restart(state) do
-    IO.puts "restarting build"
+  def handle_restart(state), do:
     {:noreply, prepare_project(state)}
-  end
 
   @impl JobRunner
   def handle_call(:force_build, _from, state) do
@@ -65,44 +63,24 @@ defmodule AircloakCI.Build.PullRequest do
   # Project preparation
   # -------------------------------------------------------------------
 
-  defp prepare_project(%{project: pr_project} = state) do
-    base_projects = base_projects(state)
+  defp prepare_project(%{project: project} = state) do
+    target_branch = branch!(state.repo_data, state.source.target_branch)
     JobRunner.start_job(
       state,
       :project_preparation,
-      fn -> Task.start_link(fn -> run_prepare(pr_project, base_projects) end) end
+      fn -> Task.start_link(fn -> init_project(project, target_branch) end) end
     )
   end
-
-  defp base_projects(state), do:
-    # We're deduping, because if the target is master, we end up with two master branches, which causes deadlocks.
-    Enum.uniq([
-      LocalProject.for_branch(branch!(state.repo_data, state.source.target_branch)),
-      LocalProject.for_branch(branch!(state.repo_data, "master"))
-    ])
 
   defp branch!(repo_data, branch_name), do:
     %{} = Enum.find(repo_data.branches, &(&1.name == branch_name))
 
-  defp run_prepare(pr_project, base_projects), do:
-    Queue.exec(project_queue(pr_project), fn -> init_project([pr_project | base_projects]) end)
+  defp init_project(project, target_branch) do
+    if LocalProject.status(project) == :empty, do:
+      AircloakCI.Build.Branch.transfer_project(target_branch, project)
 
-  defp init_project([project, base_project | rest]) do
-    if LocalProject.status(project) == :empty do
-      LocalProject.truncate_logs(project)
-      # note: no need to queue in `project`, since this is done by the caller
-      Queue.exec(project_queue(base_project), fn ->
-        :ok = init_project([base_project | rest])
-        :ok = LocalProject.initialize_from(project, base_project)
-      end)
-      :ok = Queue.exec(:compile, fn -> LocalProject.ensure_compiled(project) end)
-    else
-      :ok
-    end
+    Queue.exec(:compile, fn -> LocalProject.ensure_compiled(project) end)
   end
-  defp init_project([master_project]), do:
-    # note: no need to queue in `master_project`, since this is done by the caller
-    :ok = Queue.exec(:compile, fn -> LocalProject.ensure_compiled(master_project) end)
 
 
   # -------------------------------------------------------------------
@@ -111,8 +89,6 @@ defmodule AircloakCI.Build.PullRequest do
 
   defp name(pr), do:
     {:via, Registry, {AircloakCI.Build.Registry, {:pull_request, pr.number}}}
-
-  defp project_queue(project), do: {:project, LocalProject.folder(project)}
 
   defp maybe_start_ci(state) do
     if LocalProject.ci_possible?(state.project) do

@@ -91,12 +91,6 @@ defmodule AircloakCI.LocalProject do
     initialize(project)
   end
 
-  @doc "Compiles the project."
-  @spec compile(t) :: :ok | {:error, String.t}
-  def compile(project), do:
-    log_start_stop("compiling #{name(project)}",
-      fn -> cmd(project, "cloak_compile", "ci/scripts/run.sh build_cloak", timeout: :timer.minutes(30)) end)
-
   @doc "Executes the compliance suite in the project folder."
   @spec compliance(t) :: :ok | {:error, String.t}
   def compliance(project), do:
@@ -114,7 +108,17 @@ defmodule AircloakCI.LocalProject do
   @doc "Ensures that the project in the project folder is compiled."
   @spec ensure_compiled(t) :: :ok | {:error, String.t}
   def ensure_compiled(project) do
-    if ci_possible?(project), do: compile(project), else: :ok
+    if ci_possible?(project) and not compiled?(project) do
+      log_start_stop(
+        "compiling #{name(project)}",
+        fn ->
+          with :ok <- cmd(project, "cloak_compile", "ci/scripts/run.sh build_cloak", timeout: :timer.minutes(30)), do:
+            update_state(project, &%{&1 | status: :compiled})
+        end
+      )
+    else
+      :ok
+    end
   end
 
   @doc "Executes the given command in the project folder."
@@ -176,14 +180,14 @@ defmodule AircloakCI.LocalProject do
     - `:force_start` - the new build has been requested
     - `:finished` - the build has completed
   """
-  @spec status(t) :: :empty | :initialized | :started | :force_start | :finished
+  @spec status(t) :: :empty | :initialized | :compiled | :started | :force_start | :finished
   def status(project), do:
     state(project).status
 
   @doc "Sets the build status."
   @spec set_status(t, :started | :finished | :force_start) :: :ok
-  def set_status(build, status), do:
-    update_state(build, &%{&1 | status: status})
+  def set_status(project, status), do:
+    update_state(project, &%{&1 | status: status})
 
   @doc "Returns true if the build for this project has finished."
   @spec finished?(t) :: boolean
@@ -292,6 +296,9 @@ defmodule AircloakCI.LocalProject do
     # `:os.cmd` is used since `System.cmd` starts a port which causes an :EXIT message to be delivered to the process.
     :os.cmd('cp -a #{source} #{destination}')
   end
+
+  defp compiled?(project), do:
+    up_to_date?(project) and status(project) in [:compiled, :started, :finished]
 
   defp update_state(project, updater) do
     new_state = project |> state() |> updater.()

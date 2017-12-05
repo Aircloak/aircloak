@@ -127,6 +127,11 @@ defmodule AircloakCI.JobRunner do
     %{state | jobs: %{}}
   end
 
+  @doc "Returns the list of currently running jobs."
+  @spec running_jobs(state) :: [job_name]
+  def running_jobs(state), do:
+    Map.keys(state.jobs)
+
 
   # -------------------------------------------------------------------
   # GenServer callbacks
