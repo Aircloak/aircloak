@@ -3,7 +3,7 @@ defmodule AircloakCI.Queue do
 
   require Logger
 
-  @type id :: :compile | :compliance | {:project, String.t}
+  @type id :: :compile | :compliance
 
 
   # -------------------------------------------------------------------
@@ -25,21 +25,6 @@ defmodule AircloakCI.Queue do
       :jobs.done(ref)
     end
   end
-
-  @doc "Removes project queues which ar not needed anymore."
-  @spec remove_needless_project_queues() :: :ok
-  def remove_needless_project_queues(), do:
-    :jobs.info(:queues)
-    |> Enum.map(fn({:queue, queue}) -> queue |> Keyword.take([:name, :queued, :waiters]) |> Enum.into(%{}) end)
-    |> Enum.filter(&(&1.waiters == [] && &1.queued == 0 && match?({:project, _}, &1.name)))
-    |> Enum.map(&(&1.name))
-    |> Enum.map(fn({:project, path}) -> path end)
-    |> Enum.reject(&File.exists?/1)
-    |> Enum.map(&{:project, &1})
-    |> Enum.each(fn(queue_name) ->
-      Logger.info("removing queue #{inspect queue_name}")
-      :jobs.delete_queue(queue_name)
-    end)
 
 
   # -------------------------------------------------------------------
