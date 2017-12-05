@@ -11,6 +11,8 @@ defmodule AircloakCI.Application do
   def start(_type, _args) do
     startup_check()
 
+    AircloakCI.Queue.create_queues()
+
     Supervisor.start_link(
       [
         AircloakCI.CmdRunner.Supervisor,
