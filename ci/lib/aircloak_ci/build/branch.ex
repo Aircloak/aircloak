@@ -37,11 +37,11 @@ defmodule AircloakCI.Build.Branch do
 
   @impl JobRunner
   def init(nil, state), do:
-    {:ok, prepare_project(%{state | data: %{pending_transfers: []}})}
+    {:ok, start_compilation_job(%{state | data: %{pending_transfers: []}})}
 
   @impl JobRunner
   def handle_restart(state), do:
-    {:noreply, prepare_project(state)}
+    {:noreply, start_compilation_job(state)}
 
   @impl JobRunner
   def handle_job_succeeded(:compilation, state), do:
@@ -57,19 +57,37 @@ defmodule AircloakCI.Build.Branch do
 
 
   # -------------------------------------------------------------------
-  # Project preparation
+  # Project compilation
   # -------------------------------------------------------------------
 
-  defp prepare_project(%{project: project} = state), do:
+  defp start_compilation_job(%{project: project} = state) do
+    target_branch = target_branch(state)
+
     JobRunner.start_job(
       state,
       :compilation,
-      fn -> Task.start_link(fn -> initialize_project_repo(project) end) end
+      fn -> Task.start_link(fn -> compile_project(project, target_branch) end) end
     )
+  end
 
-  defp initialize_project_repo(project) do
-    with :ok <- LocalProject.initialize(project), do:
+  defp target_branch(%{source: %{name: "master"}}), do:
+    nil
+  defp target_branch(state), do:
+    Enum.find(state.repo_data.branches, &(&1.name == "master"))
+
+  defp compile_project(project, target_branch) do
+    with :ok <- initialize_repo(project, target_branch), do:
       LocalProject.ensure_compiled(project)
+  end
+
+  defp initialize_repo(project, nil), do:
+    LocalProject.initialize(project)
+  defp initialize_repo(project, target_branch) do
+    if LocalProject.status(project) == :empty do
+      transfer_project(target_branch, project)
+    else
+      LocalProject.initialize(project)
+    end
   end
 
 
