@@ -3,7 +3,7 @@ defmodule AircloakCI.Build.Branch do
 
   use AircloakCI.JobRunner.Branch, restart: :temporary
   require Logger
-  alias AircloakCI.{Github, JobRunner, LocalProject, Queue}
+  alias AircloakCI.{Github, JobRunner, LocalProject}
 
 
   # -------------------------------------------------------------------
@@ -69,7 +69,7 @@ defmodule AircloakCI.Build.Branch do
 
   defp initialize_project_repo(project) do
     with :ok <- LocalProject.initialize(project), do:
-      Queue.exec(:compile, fn -> LocalProject.ensure_compiled(project) end)
+      LocalProject.ensure_compiled(project)
   end
 
 

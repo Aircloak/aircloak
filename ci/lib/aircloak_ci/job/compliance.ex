@@ -3,7 +3,7 @@ defmodule AircloakCI.Job.Compliance do
 
   use AircloakCI.JobRunner.PullRequest
   require Logger
-  alias AircloakCI.{Github, JobRunner, LocalProject, Queue}
+  alias AircloakCI.{Github, JobRunner, LocalProject}
 
 
   # -------------------------------------------------------------------
@@ -94,7 +94,7 @@ defmodule AircloakCI.Job.Compliance do
   defp run_test(pr, project) do
     send_status_to_github(pr, :pending, "build started")
     LocalProject.set_status(project, :started)
-    with {:error, reason} <- Queue.exec(:compliance, fn -> LocalProject.compliance(project) end) do
+    with {:error, reason} <- LocalProject.compliance(project) do
       LocalProject.log(project, "compliance", "error: #{reason}")
       :error
     end

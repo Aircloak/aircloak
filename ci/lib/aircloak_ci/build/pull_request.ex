@@ -7,7 +7,7 @@ defmodule AircloakCI.Build.PullRequest do
 
   use AircloakCI.JobRunner.PullRequest, restart: :temporary
   require Logger
-  alias AircloakCI.{Github, JobRunner, LocalProject, Queue}
+  alias AircloakCI.{Github, JobRunner, LocalProject}
   alias AircloakCI.Job.Compliance
 
 
@@ -79,7 +79,7 @@ defmodule AircloakCI.Build.PullRequest do
     if LocalProject.status(project) == :empty, do:
       AircloakCI.Build.Branch.transfer_project(target_branch, project)
 
-    Queue.exec(:compile, fn -> LocalProject.ensure_compiled(project) end)
+    LocalProject.ensure_compiled(project)
   end
 
 

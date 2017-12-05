@@ -1,7 +1,7 @@
 defmodule AircloakCI.LocalProject do
   @moduledoc "Helpers for working with a cloned local project."
 
-  alias AircloakCI.{CmdRunner, Github}
+  alias AircloakCI.{CmdRunner, Github, Queue}
   require Logger
 
   defstruct [:name, :build_folder, :log_folder, :repo, :base_branch, :update_git_command, :checkout, :desired_sha]
@@ -96,12 +96,15 @@ defmodule AircloakCI.LocalProject do
   def compliance(project), do:
     log_start_stop("running compliance for #{name(project)}",
       fn ->
-        if Application.get_env(:aircloak_ci, :simulate_compliance, false) do
-          Logger.info("simulating compliance execution")
-          :timer.sleep(:timer.seconds(1))
-        else
-          cmd(project, "compliance", "ci/scripts/run.sh cloak_compliance", timeout: :timer.minutes(10))
-        end
+        log(project, "compliance", "waiting in compliance queue")
+        Queue.exec(:compliance, fn ->
+          if Application.get_env(:aircloak_ci, :simulate_compliance, false) do
+            Logger.info("simulating compliance execution")
+            :timer.sleep(:timer.seconds(1))
+          else
+            cmd(project, "compliance", "ci/scripts/run.sh cloak_compliance", timeout: :timer.minutes(10))
+          end
+        end)
       end
     )
 
@@ -109,13 +112,15 @@ defmodule AircloakCI.LocalProject do
   @spec ensure_compiled(t) :: :ok | {:error, String.t}
   def ensure_compiled(project) do
     if ci_possible?(project) and not compiled?(project) do
-      log_start_stop(
-        "compiling #{name(project)}",
-        fn ->
-          with :ok <- cmd(project, "cloak_compile", "ci/scripts/run.sh build_cloak", timeout: :timer.minutes(30)), do:
-            update_state(project, &%{&1 | status: :compiled})
-        end
-      )
+      Queue.exec(:compile, fn ->
+        log_start_stop(
+          "compiling #{name(project)}",
+          fn ->
+            with :ok <- cmd(project, "cloak_compile", "ci/scripts/run.sh build_cloak", timeout: :timer.minutes(30)), do:
+              update_state(project, &%{&1 | status: :compiled})
+          end
+        )
+      end)
     else
       :ok
     end
