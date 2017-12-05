@@ -142,9 +142,7 @@ defmodule Cloak.DataSource.MongoDB do
   end
 
   @impl Driver
-  def supports_query?(query), do:
-    supports_used_functions_in_having?(query) and
-    supports_joins?(query)
+  def supports_query?(query), do: supports_joins?(query)
 
   @impl Driver
   def supports_function?(expression, data_source), do:
@@ -233,14 +231,6 @@ defmodule Cloak.DataSource.MongoDB do
       true -> @supported_functions_3_4
     end
   end
-
-  defp supports_used_functions_in_having?(%Query{subquery?: true} = query) do
-    Query.Lenses.conditions()
-    |> Query.Lenses.operands()
-    |> Lens.satisfy(& &1.function? and not &1.aggregate?)
-    |> Lens.to_list(query.having) == []
-  end
-  defp supports_used_functions_in_having?(_query), do: true
 
   defp function_signature(%Expression{function: {:cast, type}, function_args: [value]}), do:
     "cast_#{value.type}_to_#{type}"
