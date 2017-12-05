@@ -48,6 +48,10 @@ defmodule AircloakCI.Build.Branch do
     {:noreply, maybe_perform_transfers(state)}
 
   @impl JobRunner
+  def handle_job_failed(:compilation, _reason, state), do:
+    {:noreply, start_compilation_job(state, delay: :timer.seconds(10))}
+
+  @impl JobRunner
   def handle_call({:transfer_project, target_project}, from, state), do:
     {:noreply,
       state.data.pending_transfers
@@ -60,13 +64,18 @@ defmodule AircloakCI.Build.Branch do
   # Project compilation
   # -------------------------------------------------------------------
 
-  defp start_compilation_job(%{project: project} = state) do
+  defp start_compilation_job(%{project: project} = state, opts \\ []) do
     target_branch = target_branch(state)
 
     JobRunner.start_job(
       state,
       :compilation,
-      fn -> Task.start_link(fn -> compile_project(project, target_branch) end) end
+      fn ->
+        Task.start_link(fn ->
+          opts |> Keyword.get(:delay, 0) |> :timer.sleep()
+          compile_project(project, target_branch)
+        end)
+      end
     )
   end
 
@@ -76,8 +85,12 @@ defmodule AircloakCI.Build.Branch do
     Enum.find(state.repo_data.branches, &(&1.name == "master"))
 
   defp compile_project(project, target_branch) do
-    with :ok <- initialize_repo(project, target_branch), do:
-      LocalProject.ensure_compiled(project)
+    case initialize_repo(project, target_branch) do
+      :ok -> LocalProject.ensure_compiled(project)
+      {:error, error} ->
+        LocalProject.clean(project)
+        raise "Error initializing project for #{LocalProject.name(project)}: #{error}"
+    end
   end
 
   defp initialize_repo(project, nil), do:

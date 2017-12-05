@@ -50,6 +50,13 @@ defmodule AircloakCI.LocalProject do
       desired_sha: branch.sha
     })
 
+  @doc "Cleans the entire build folder of the project."
+  @spec clean(t) :: :ok
+  def clean(project) do
+    File.rm_rf(project.build_folder)
+    File.mkdir_p!(project.build_folder)
+  end
+
   @doc "Returns the build folder."
   @spec folder(t) :: String.t
   def folder(project), do:
