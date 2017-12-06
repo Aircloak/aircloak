@@ -54,7 +54,7 @@ defmodule Cloak.Sql.Function do
       [{:constant, :text}, {:or, [:datetime, :date]}] => :datetime
     }},
     ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer},
-      attributes: [:math, :restricted]},
+      attributes: [:math, :restricted, :implicit_range]},
     ~w(round trunc) => %{attributes: [:implicit_range, :math, :restricted], type_specs: %{
       [numeric] => :integer,
       [numeric, {:constant, :integer}] => :real,
@@ -108,7 +108,7 @@ defmodule Cloak.Sql.Function do
     ~w(extract_words) => %{type_specs: %{[:text] => :text}, attributes: [:not_in_subquery, :row_splitter]},
     [{:cast, :integer}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer},
-      attributes: [:restricted, :cast]},
+      attributes: [:restricted, :cast, :implicit_range]},
     [{:cast, :real}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :real},
       attributes: [:restricted, :cast]},
