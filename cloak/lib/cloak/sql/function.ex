@@ -17,6 +17,7 @@ defmodule Cloak.Sql.Function do
   @deprecated_functions %{
     "extract_match" => %{alternative: "extract_words"},
     "extract_matches" => %{alternative: "extract_words"},
+    "div" => %{alternative: "/"},
   }
 
   @functions %{
@@ -64,8 +65,6 @@ defmodule Cloak.Sql.Function do
     ~w(abs) => %{type_specs: %{[:real] => :real, [:integer] => :integer},
       attributes: [:math, :restricted]},
     ~w(sqrt) => %{type_specs: %{[numeric] => :real}},
-    ~w(div) => %{type_specs: %{[:integer, :integer] => :integer}, attributes: [:math]},
-    ~w(mod %) => %{type_specs: %{[:integer, :integer] => :integer}, attributes: [:math, :restricted]},
     ~w(pow ^) => %{type_specs: %{[numeric, numeric] => :real}, attributes: [:math]},
     ~w(+) => %{type_specs: Map.merge(arithmetic_operation, %{
       [:date, :interval] => :datetime,

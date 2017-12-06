@@ -3,7 +3,7 @@ defmodule Cloak.Sql.Function.Test do
 
   alias Cloak.Sql.{Expression, Function}
 
-  @restricted_functions ~w(% abs ceil ceiling floor length mod round trunc btrim left ltrim right rtrim
+  @restricted_functions ~w(abs ceil ceiling floor length round trunc btrim left ltrim right rtrim
     substring year quarter month day weekday hour minute second date_trunc) ++ [
       {:bucket, :lower}, {:bucket, :middle}, {:bucket, :upper},
       {:cast, :integer}, {:cast, :real}, {:cast, :boolean}, {:cast, :datetime}, {:cast, :time},
@@ -14,7 +14,7 @@ defmodule Cloak.Sql.Function.Test do
       assert Function.restricted_function?(unquote(restricted_function))
   end)
 
-  @math_functions ~w(+ - / * ^ pow % abs ceil ceiling div floor mod round trunc)
+  @math_functions ~w(+ - / * ^ pow abs ceil ceiling floor round trunc)
   Enum.each(@math_functions, fn(math_function) ->
     test "#{math_function} is registered as a math function", do:
       assert Function.math_function?(unquote(math_function))
@@ -193,11 +193,6 @@ defmodule Cloak.Sql.Function.Test do
   test "number / interval is ill-typed" do
     refute well_typed?("/", [:integer, :interval])
     refute well_typed?("/", [:real, :interval])
-  end
-
-  test "% typing" do
-    assert well_typed?("%", [:integer, :integer])
-    refute well_typed?("%", [:real, :real])
   end
 
   test "typechecking a nested function call" do

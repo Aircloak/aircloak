@@ -81,20 +81,20 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
       assert type.history_of_restricted_transformations == []
     end
 
-    test "for function with discontinuious function div" do
-      type = type_first_column("SELECT div(numeric, 10) FROM table")
-      assert type.history_of_restricted_transformations == [{:restricted_function, "div"}]
+    test "for function with discontinuious function pow" do
+      type = type_first_column("SELECT pow(numeric, 10) FROM table")
+      assert type.history_of_restricted_transformations == [{:restricted_function, "pow"}]
     end
 
     test "even when multiple occur" do
-      type = type_first_column("SELECT abs(div(numeric, 10)) FROM table")
+      type = type_first_column("SELECT abs(pow(numeric, 10)) FROM table")
       assert type.history_of_restricted_transformations ==
-        [{:restricted_function, "abs"}, {:restricted_function, "div"}]
+        [{:restricted_function, "abs"}, {:restricted_function, "pow"}]
     end
 
     test "does not record discontinuous functions when they appear in an un-restricted form" do
-      type = type_first_column("SELECT div(cast(sqrt(numeric) as integer), 10) FROM table")
-      assert type.history_of_restricted_transformations == [{:restricted_function, "div"}]
+      type = type_first_column("SELECT pow(cast(sqrt(numeric) as float), 10) FROM table")
+      assert type.history_of_restricted_transformations == [{:restricted_function, "pow"}]
     end
 
     test "records math influenced by a constant as a potential offense" do
@@ -121,7 +121,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
 
     test "records restricted functions when it believes a constant has been constructed" do
       type = type_first_column("""
-        SELECT abs(div(numeric, numeric) + div(numeric, numeric)) FROM table
+        SELECT abs(pow(numeric, numeric) + pow(numeric, numeric)) FROM table
       """)
       assert type.history_of_restricted_transformations ==
         [{:restricted_function, "abs"}, {:restricted_function, "+"}]

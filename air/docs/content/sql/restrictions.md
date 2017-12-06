@@ -50,12 +50,12 @@ column is transformed by more than 5 such functions and the expression on which 
 
 An expression containing two or more mathematical operators is considered to be the equivalent of a constant.
 The reason for this is that one can easily construct constants from pure database columns.
-For example `div(column, column)` equals the number 1.
+For example `pow(colA, colB - colB)` equals the number 1.
 
 The rules apply to the following functions:
 
 - `abs`, `bucket`, `ceil`, `floor`, `length`, `round`, `trunc`, and `cast`'s.
-- `+`, `-`, `*`, `/`, `^`, `%`, `pow`, `mod`, `div`, `sqrt`
+- `+`, `-`, `*`, `/`, `^`, `%`, `pow`, `sqrt`
 - `year`, `quarter`, `month`, `day`, `hour`, `minute`, `second`, `weekday`, `date_trunc`
 - `btrim`, `ltrim`, `rtrim`, `left`, `right`, `substring`
 
@@ -98,7 +98,7 @@ Below is an example of a query being rejected because multiple math operators ha
 SELECT
   -- we have a total of 6 functions operating on an expression containing a potential constant,
   -- as a result the query is rejected.
-  floor(abs(sqrt(mod(floor(mod(
+  floor(abs(sqrt(ceil(floor(sqrt(
     -- Aircloak considers two or more math operations to potentially be a constant
     (age / age) / age
   , 2)), 2))))

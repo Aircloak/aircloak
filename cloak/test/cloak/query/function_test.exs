@@ -205,7 +205,6 @@ defmodule Cloak.Query.FunctionTest do
   test "*", do: assert 360 == apply_function("height * 2", "heights_ft")
   test "/", do: assert 1 == apply_function("height / height", "heights_ft")
   test "^", do: assert 32_400.0 == apply_function("height ^ 2", "heights_ft")
-  test "%", do: assert 3 == apply_function("10 % 7", "heights_ft")
 
   test "trunc/1", do: assert 180 == apply_function("trunc(frac)", ["frac"], [180.6], "types_ft")
   test "trunc/2", do: assert 180.12 == apply_function("trunc(frac, 2)", ["frac"], [180.126], "types_ft")
@@ -219,8 +218,6 @@ defmodule Cloak.Query.FunctionTest do
     assert 200.0 == apply_function("round(fixed, -2)", ["fixed"], [186.126], "types_ft")
   test "abs", do: assert 180 == apply_function("abs(num)", ["num"], [-180], "types_ft")
   test "sqrt", do: assert 3.0 == apply_function("sqrt(num)", ["num"], [9], "types_ft")
-  test "div", do: assert 1 == apply_function("div(height, height)", "heights_ft")
-  test "mod", do: assert 80 == apply_function("mod(height, 100)", "heights_ft")
   test "pow", do: assert 32_400.0 == apply_function("pow(height, 2)", "heights_ft")
   test "floor", do: assert 180 == apply_function("floor(frac)", ["frac"], [180.9], "types_ft")
   test "ceil", do: assert 181 == apply_function("ceil(frac)", ["frac"], [180.1], "types_ft")
