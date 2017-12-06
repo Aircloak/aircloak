@@ -103,19 +103,12 @@ defmodule AircloakCI.JobRunner do
   def call(server, request, timeout \\ :timer.seconds(5)), do:
     GenServer.call(server, request, timeout)
 
-  @doc """
-  Starts the job as a child of the job runner process.
-
-  The provided lambda should either return `{:ok, pid}`, or `:ignore` (in which case the job is not started).
-  The lambda should start the child process directly under the caller process.
-  """
-  @spec start_job(state, any, (() -> {:ok, pid})) :: state
-  def start_job(state, name, starter_fun) do
+  @doc "Starts the provided function as a child job of the job runner process."
+  @spec start_task(state, job_name, (() -> any)) :: state
+  def start_task(state, name, task_fun) do
     :error = Map.fetch(state.jobs, name)
-    case starter_fun.() do
-      {:ok, new_job} -> put_in(state.jobs[name], new_job)
-      :ignore -> state
-    end
+    {:ok, new_job} = Task.start_link(task_fun)
+    put_in(state.jobs[name], new_job)
   end
 
   @doc "Terminates all currently running child jobs."
@@ -127,10 +120,10 @@ defmodule AircloakCI.JobRunner do
     %{state | jobs: %{}}
   end
 
-  @doc "Returns the list of currently running jobs."
-  @spec running_jobs(state) :: [job_name]
-  def running_jobs(state), do:
-    Map.keys(state.jobs)
+  @doc "Returns true if the given job is running."
+  @spec running?(state, job_name) :: boolean
+  def running?(state, job_name), do:
+    Enum.member?(Map.keys(state.jobs), job_name)
 
 
   # -------------------------------------------------------------------

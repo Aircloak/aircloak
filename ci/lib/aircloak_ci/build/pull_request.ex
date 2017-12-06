@@ -7,8 +7,7 @@ defmodule AircloakCI.Build.PullRequest do
 
   use AircloakCI.JobRunner.PullRequest, restart: :temporary
   require Logger
-  alias AircloakCI.{Github, JobRunner, LocalProject}
-  alias AircloakCI.Job.Compliance
+  alias AircloakCI.{Build, Github, JobRunner, LocalProject}
 
 
   # -------------------------------------------------------------------
@@ -18,7 +17,7 @@ defmodule AircloakCI.Build.PullRequest do
   @doc "Ensures that the build server for the given pull request is started."
   @spec ensure_started(Github.API.pull_request, Github.API.repo_data) :: :ok
   def ensure_started(pr, repo_data) do
-    case AircloakCI.Build.Supervisor.start_build(__MODULE__, [pr, repo_data]) do
+    case Build.Supervisor.start_build(__MODULE__, [pr, repo_data]) do
       {:ok, _} -> :ok
       {:error, {:already_started, _pid}} -> :ok
     end
@@ -38,17 +37,29 @@ defmodule AircloakCI.Build.PullRequest do
 
   @impl JobRunner
   def init(nil, state), do:
-    {:ok, prepare_project(state)}
-
-  @impl JobRunner
-  def handle_job_succeeded(:project_preparation, state), do:
-    {:noreply, maybe_start_ci(state)}
-  def handle_job_succeeded(:compliance, state), do:
-    {:noreply, state}
+    {:ok, prepare_project(%{state | data: %{prepared?: false}})}
 
   @impl JobRunner
   def handle_restart(state), do:
     {:noreply, prepare_project(state)}
+
+  @impl JobRunner
+  def handle_source_change(state), do:
+    {:noreply, maybe_start_ci(state)}
+
+  @impl JobRunner
+  def handle_job_succeeded(:project_preparation, state), do:
+    {:noreply, maybe_start_ci(put_in(state.data.prepared?, true))}
+  def handle_job_succeeded(:compliance, state), do:
+    {:noreply, state}
+  def handle_job_succeeded(Build.Task.Compliance, state), do:
+    {:noreply, state}
+
+  @impl JobRunner
+  def handle_job_failed(Build.Task.Compliance, crash_reason, state), do:
+    {:stop, :normal, Build.Task.Compliance.handle_finish(state, :failure, crash_reason)}
+  def handle_job_failed(other_job, reason, state), do:
+    super(other_job, reason, state)
 
   @impl JobRunner
   def handle_call(:force_build, _from, state) do
@@ -57,6 +68,12 @@ defmodule AircloakCI.Build.PullRequest do
     {:reply, :ok, prepare_project(state)}
   end
 
+  @impl JobRunner
+  def handle_info({Build.Task.Compliance, result}, state), do:
+    {:stop, :normal, Build.Task.Compliance.handle_finish(state, result, nil)}
+  def handle_info(other, state), do:
+    super(other, state)
+
 
   # -------------------------------------------------------------------
   # Project preparation
@@ -64,10 +81,10 @@ defmodule AircloakCI.Build.PullRequest do
 
   defp prepare_project(%{project: project} = state) do
     target_branch = branch!(state.repo_data, state.source.target_branch)
-    JobRunner.start_job(
-      state,
+    JobRunner.start_task(
+      put_in(state.data.prepared?, :false),
       :project_preparation,
-      fn -> Task.start_link(fn -> init_project(project, target_branch) end) end
+      fn -> init_project(project, target_branch) end
     )
   end
 
@@ -76,10 +93,10 @@ defmodule AircloakCI.Build.PullRequest do
 
   defp init_project(project, target_branch) do
     unless LocalProject.initialized?(project), do:
-      AircloakCI.Build.Branch.transfer_project(target_branch, project)
+      Build.Branch.transfer_project(target_branch, project)
 
     with :ok <- LocalProject.update_code(project) do
-      if LocalProject.ci_possible?(project), do: AircloakCI.Build.Task.Compile.run(project)
+      if LocalProject.ci_possible?(project), do: Build.Task.Compile.run(project)
     end
   end
 
@@ -89,18 +106,24 @@ defmodule AircloakCI.Build.PullRequest do
   # -------------------------------------------------------------------
 
   defp name(pr), do:
-    {:via, Registry, {AircloakCI.Build.Registry, {:pull_request, pr.number}}}
+    {:via, Registry, {Build.Registry, {:pull_request, pr.number}}}
 
-  defp maybe_start_ci(state) do
+  defp maybe_start_ci(%{data: %{prepared?: false}} = state), do:
+    state
+  defp maybe_start_ci(%{data: %{prepared?: true}} = state) do
     if LocalProject.ci_possible?(state.project) do
-      JobRunner.start_job(
-        state,
-        :compliance,
-        fn -> Compliance.start_link(state.source, state.repo_data) end
-      )
+      maybe_start_compliance(state)
     else
       LocalProject.log(state.project, "main", "can't run CI on this PR")
       state
+    end
+  end
+
+  defp maybe_start_compliance(state) do
+    if JobRunner.running?(state, Build.Task.Compliance) do
+      state
+    else
+      Build.Task.Compliance.run(state)
     end
   end
 

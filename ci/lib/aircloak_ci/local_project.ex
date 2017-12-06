@@ -1,7 +1,7 @@
 defmodule AircloakCI.LocalProject do
   @moduledoc "Helpers for working with a cloned local project."
 
-  alias AircloakCI.{CmdRunner, Github, Queue}
+  alias AircloakCI.{CmdRunner, Github}
   require Logger
 
   defstruct [:name, :build_folder, :log_folder, :repo, :base_branch, :update_git_command, :checkout, :desired_sha]
@@ -92,24 +92,6 @@ defmodule AircloakCI.LocalProject do
     end)
     :ok
   end
-
-  @doc "Executes the compliance suite in the project folder."
-  @spec compliance(t) :: :ok | {:error, String.t}
-  def compliance(project), do:
-    log_start_stop(project, "running compliance for #{name(project)}",
-      fn ->
-        truncate_log(project, "compliance")
-        log(project, "compliance", "waiting in compliance queue")
-        Queue.exec(:compliance, fn ->
-          if Application.get_env(:aircloak_ci, :simulate_compliance, false) do
-            Logger.info("simulating compliance execution")
-            :timer.sleep(:timer.seconds(1))
-          else
-            cmd(project, "compliance", "ci/scripts/run.sh cloak_compliance", timeout: :timer.minutes(10))
-          end
-        end)
-      end
-    )
 
   @doc "Appends the given output to the log."
   @spec log(t, String.t, iodata) :: :ok

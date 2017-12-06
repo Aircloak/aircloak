@@ -67,14 +67,12 @@ defmodule AircloakCI.Build.Branch do
   defp start_compilation_job(%{project: project} = state, opts \\ []) do
     target_branch = target_branch(state)
 
-    JobRunner.start_job(
+    JobRunner.start_task(
       state,
       :compilation,
       fn ->
-        Task.start_link(fn ->
-          opts |> Keyword.get(:delay, 0) |> :timer.sleep()
-          compile_project(project, target_branch)
-        end)
+        opts |> Keyword.get(:delay, 0) |> :timer.sleep()
+        compile_project(project, target_branch)
       end
     )
   end
@@ -112,7 +110,7 @@ defmodule AircloakCI.Build.Branch do
     {:via, Registry, {AircloakCI.Build.Registry, {:branch, branch.name}}}
 
   defp maybe_perform_transfers(state) do
-    if Enum.member?(JobRunner.running_jobs(state), :compilation) do
+    if JobRunner.running?(state, :compilation) do
       state
     else
       state.data.pending_transfers
