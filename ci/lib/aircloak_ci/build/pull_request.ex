@@ -78,8 +78,9 @@ defmodule AircloakCI.Build.PullRequest do
     unless LocalProject.initialized?(project), do:
       AircloakCI.Build.Branch.transfer_project(target_branch, project)
 
-    with :ok <- LocalProject.update_code(project), do:
-      LocalProject.ensure_compiled(project)
+    with :ok <- LocalProject.update_code(project) do
+      if LocalProject.ci_possible?(project), do: AircloakCI.Build.Task.Compile.run(project)
+    end
   end
 
 

@@ -57,11 +57,6 @@ defmodule AircloakCI.LocalProject do
     File.mkdir_p!(project.build_folder)
   end
 
-  @doc "Returns the build folder."
-  @spec folder(t) :: String.t
-  def folder(project), do:
-    project.build_folder
-
   @doc "Returns the name of the build which uses this project."
   @spec name(t) :: String.t
   def name(project), do:
@@ -92,6 +87,8 @@ defmodule AircloakCI.LocalProject do
       cmd(project, "main", "git reset HEAD --hard")
       copy_folder(base_project, project, "tmp")
       copy_folder(base_project, project, Path.join(~w(cloak priv odbc drivers)))
+      copy_folder(base_project, project, Path.join(~w(ci deps)))
+      copy_folder(base_project, project, Path.join(~w(ci _build)))
     end)
     :ok
   end
@@ -114,42 +111,33 @@ defmodule AircloakCI.LocalProject do
       end
     )
 
-  @doc "Ensures that the project in the project folder is compiled."
-  @spec ensure_compiled(t) :: :ok | {:error, String.t}
-  def ensure_compiled(project) do
-    if ci_possible?(project) and not compiled?(project) do
-      Queue.exec(:compile, fn ->
-        log_start_stop(project,
-          "compiling #{name(project)}",
-          fn ->
-            truncate_log(project, "cloak_compile")
-            with :ok <- cmd(project, "cloak_compile", "ci/scripts/run.sh build_cloak", timeout: :timer.minutes(30)), do:
-              mark_compiled(project)
-          end
-        )
-      end)
-    else
-      :ok
-    end
-  end
-
-  @doc "Executes the given command in the project folder."
-  @spec cmd(t, String.t, String.t, CmdRunner.opts) :: :ok | {:error, String.t}
-  def cmd(project, log_name, cmd, opts \\ []), do:
-    CmdRunner.run(cmd, [cd: src_folder(project), logger: CmdRunner.file_logger(log_path(project, log_name))] ++ opts)
-
-  @doc "Executes the given command in the project folder, raises on error."
-  @spec cmd!(t, String.t, String.t, CmdRunner.opts) :: :ok
-  def cmd!(project, log_name, cmd, opts \\ []), do:
-    :ok = cmd(project, cmd, log_name, opts)
-
   @doc "Appends the given output to the log."
   @spec log(t, String.t, iodata) :: :ok
   def log(project, log_name, output), do:
     project
     |> log_path(log_name)
     |> CmdRunner.file_logger()
-    |> apply([["aircloak_ci: #{output}"]])
+    |> apply([["aircloak_ci: #{output}\n"]])
+
+  @doc "Executes the provided function, logging the start and finish events."
+  @spec log_start_stop(t, String.t, (() -> result)) :: result when result: var
+  def log_start_stop(project, msg, fun) do
+    Logger.info("started #{msg}")
+    log(project, "main", "started #{msg}")
+    try do
+      fun.()
+    after
+      Logger.info("finished #{msg}")
+      log(project, "main", "finished #{msg}")
+    end
+  end
+
+  @doc "Truncates the given log of the project."
+  @spec truncate_log(t, String.t) :: :ok
+  def truncate_log(project, log_name), do:
+    project
+    |> log_path(log_name)
+    |> File.write("")
 
   @doc "Returns the contents of the project log."
   @spec log_contents(t, String.t) :: binary
@@ -165,15 +153,6 @@ defmodule AircloakCI.LocalProject do
   def remove_old_folders(repo_data) do
     remove_except(builds_folder(), Enum.map(repo_data.pull_requests, &pr_folder_name/1))
     remove_except(branches_folder(), Enum.map(repo_data.branches, &branch_folder_name(&1.name)))
-  end
-
-  @doc "Returns the CI version for this project."
-  @spec ci_version(t) :: nil | non_neg_integer
-  def ci_version(project) do
-    case File.read(Path.join([src_folder(project), "ci", "VERSION"])) do
-      {:ok, contents} -> contents |> String.trim() |> String.to_integer()
-      {:error, _reason} -> nil
-    end
   end
 
   @doc "Determines if CI can be invoked in this project."
@@ -205,6 +184,41 @@ defmodule AircloakCI.LocalProject do
   @spec forced?(t) :: boolean
   def forced?(project), do:
     state(project).forced_at == project.desired_sha
+
+  @doc "Marks the project component as compiled."
+  @spec mark_compiled(t, String.t) :: :ok
+  def mark_compiled(project, component), do:
+    update_state(project, &put_in(&1.compiled_components[component], current_sha(project)))
+
+  @doc "Returns true if the project component is compiled."
+  @spec compiled?(t, String.t) :: boolean
+  def compiled?(project, component), do:
+    up_to_date?(project) and state(project).compiled_components[component] == project.desired_sha
+
+  @doc "Executes the command in the project folder."
+  @spec cmd(t, String.t, String.t, CmdRunner.opts) :: :ok | {:error, String.t}
+  def cmd(project, log_name, cmd, opts \\ []), do:
+    CmdRunner.run(
+      cmd,
+      Keyword.merge(
+        [cd: src_folder(project), logger: CmdRunner.file_logger(log_path(project, log_name))],
+        opts
+      )
+    )
+
+  @doc "Executes a sequence of commands in the project component."
+  @spec component_cmds(t, String.t, String.t, [{String.t, CmdRunner.opts} | String.t]) :: :ok | {:error, String.t}
+  def component_cmds(project, component, log_name, cmds) do
+    case \
+      cmds
+      |> Stream.map(&component_cmd(project, component, log_name, &1))
+      |> Stream.drop_while(&(&1 == :ok))
+      |> Enum.take(1)
+    do
+      [] -> :ok
+      [{:error, _reason} = error] -> error
+    end
+  end
 
 
   # -------------------------------------------------------------------
@@ -266,19 +280,10 @@ defmodule AircloakCI.LocalProject do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp truncate_log(project, log_name), do:
-    project
-    |> log_path(log_name)
-    |> File.write("")
-
-  defp log_start_stop(project, msg, fun) do
-    Logger.info("started #{msg}")
-    log(project, "main", "started #{msg}")
-    try do
-      fun.()
-    after
-      Logger.info("finished #{msg}")
-      log(project, "main", "finished #{msg}")
+  defp ci_version(project) do
+    case File.read(Path.join([src_folder(project), "ci", "VERSION"])) do
+      {:ok, contents} -> contents |> String.trim() |> String.to_integer()
+      {:error, _reason} -> nil
     end
   end
 
@@ -308,20 +313,20 @@ defmodule AircloakCI.LocalProject do
     :os.cmd('cp -a #{source} #{destination}')
   end
 
-  defp compiled?(project), do:
-    up_to_date?(project) and state(project).compiled_at == project.desired_sha
-
-  defp mark_compiled(project), do:
-    update_state(project, &%{&1 | compiled_at: current_sha(project)})
-
   defp update_state(project, updater) do
-    new_state = project |> state() |> updater.() |> Map.take(Map.keys(default_state()))
-    Logger.info("#{project.name} state: #{inspect(new_state)}")
-    log(project, "main", "project state: #{inspect(new_state)}")
+    original_state = state(project)
+    new_state = original_state |> updater.() |> Map.take(Map.keys(default_state()))
 
-    project
-    |> state_file()
-    |> File.write!(:erlang.term_to_binary(new_state))
+    if new_state != original_state do
+      Logger.info("#{project.name} state: #{inspect(new_state)}")
+      log(project, "main", "project state: #{inspect(new_state)}")
+
+      project
+      |> state_file()
+      |> File.write!(:erlang.term_to_binary(new_state))
+    end
+
+    :ok
   end
 
   defp state(project), do:
@@ -339,7 +344,7 @@ defmodule AircloakCI.LocalProject do
   end
 
   defp default_state(), do:
-    %{initialized?: false, compiled_at: nil, forced_at: nil, finished_at: nil}
+    %{initialized?: false, compiled_components: %{}, forced_at: nil, finished_at: nil}
 
   defp up_to_date?(project), do:
     current_sha(project) == project.desired_sha
@@ -350,4 +355,12 @@ defmodule AircloakCI.LocalProject do
     |> :os.cmd()
     |> to_string()
     |> String.trim()
+
+  defp component_cmd(project, component, log_name, {cmd, opts}), do:
+    component_cmd(project, component, log_name, cmd, opts)
+  defp component_cmd(project, component, log_name, cmd) when is_binary(cmd), do:
+    component_cmd(project, component, log_name, cmd, [])
+
+  defp component_cmd(project, component, log_name, cmd, opts), do:
+    cmd(project, log_name, cmd, [cd: Path.join(src_folder(project), to_string(component))] ++ opts)
 end

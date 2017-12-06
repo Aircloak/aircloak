@@ -86,7 +86,8 @@ defmodule AircloakCI.Build.Branch do
 
   defp compile_project(project, target_branch) do
     case initialize_repo(project, target_branch) do
-      :ok -> LocalProject.ensure_compiled(project)
+      :ok ->
+        if LocalProject.ci_possible?(project), do: AircloakCI.Build.Task.Compile.run(project)
       {:error, error} ->
         LocalProject.clean(project)
         raise "Error initializing project for #{LocalProject.name(project)}: #{error}"
