@@ -176,7 +176,7 @@ function run_in_cloak {
 }
 
 function gen_test_data {
-  local num_users=${COMPLIANCE_USERS:-50}
+  local num_users=${COMPLIANCE_USERS:-200}
   run_in_cloak "MIX_ENV=test mix gen.test_data dockerized_ci $num_users"
 }
 
