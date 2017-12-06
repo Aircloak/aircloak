@@ -61,6 +61,7 @@ defmodule AirWeb.Router do
 
     resources "/profile", ProfileController, singleton: true, only: [:edit, :update]
     put "/profile/change_password", ProfileController, :change_password
+    post "/profile/toggle_debug_mode", ProfileController, :toggle_debug_mode
 
     get "/changelog", ChangelogController, :index
   end

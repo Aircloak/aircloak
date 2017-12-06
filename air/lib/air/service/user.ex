@@ -233,6 +233,15 @@ defmodule Air.Service.User do
     }
   end
 
+  @doc "Toggles the debug mode for a user"
+  @spec toggle_debug_mode(User.t) :: User.t
+  def toggle_debug_mode(user) do
+    current_debug_mode = user.debug_mode_enabled || false
+    user
+    |> cast(%{debug_mode_enabled: not current_debug_mode}, [:debug_mode_enabled])
+    |> Repo.update!()
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions

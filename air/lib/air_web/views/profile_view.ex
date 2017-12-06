@@ -4,4 +4,7 @@ defmodule AirWeb.ProfileView do
 
   defp number_format_settings(conn), do:
     Air.Service.User.number_format_settings(conn.assigns.current_user)
+
+  defp panel_class(true), do: "panel-success"
+  defp panel_class(_), do: "panel-default"
 end
