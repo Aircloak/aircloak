@@ -8,6 +8,7 @@ defmodule AircloakCI.Build.PullRequest do
   use AircloakCI.JobRunner, restart: :temporary
   require Logger
   alias AircloakCI.{Build, Github, JobRunner, LocalProject}
+  alias AircloakCI.Build.Task
 
 
   # -------------------------------------------------------------------
@@ -60,12 +61,12 @@ defmodule AircloakCI.Build.PullRequest do
     {:noreply, maybe_start_ci(put_in(state.data.prepared?, true))}
   def handle_job_succeeded(:compliance, state), do:
     {:noreply, state}
-  def handle_job_succeeded(Build.Task.Compliance, state), do:
+  def handle_job_succeeded(Task.Compliance, state), do:
     {:noreply, state}
 
   @impl JobRunner
-  def handle_job_failed(Build.Task.Compliance, crash_reason, state), do:
-    {:stop, :normal, Build.Task.Compliance.handle_finish(state, :failure, crash_reason)}
+  def handle_job_failed(Task.Compliance, crash_reason, state), do:
+    {:stop, :normal, Task.Compliance.handle_finish(state, :failure, crash_reason)}
   def handle_job_failed(other_job, reason, state), do:
     super(other_job, reason, state)
 
@@ -77,8 +78,8 @@ defmodule AircloakCI.Build.PullRequest do
   end
 
   @impl JobRunner
-  def handle_info({Build.Task.Compliance, result}, state), do:
-    {:stop, :normal, Build.Task.Compliance.handle_finish(state, result, nil)}
+  def handle_info({Task.Compliance, result}, state), do:
+    {:stop, :normal, Task.Compliance.handle_finish(state, result, nil)}
   def handle_info(other, state), do:
     super(other, state)
 
@@ -104,7 +105,7 @@ defmodule AircloakCI.Build.PullRequest do
       Build.Branch.transfer_project(target_branch, project)
 
     with :ok <- LocalProject.update_code(project) do
-      if LocalProject.ci_possible?(project), do: Build.Task.Compile.run(project)
+      if LocalProject.ci_possible?(project), do: Task.Compile.run(project)
     end
   end
 
@@ -128,10 +129,10 @@ defmodule AircloakCI.Build.PullRequest do
   end
 
   defp maybe_start_compliance(state) do
-    if JobRunner.running?(state, Build.Task.Compliance) do
+    if JobRunner.running?(state, Task.Compliance) do
       state
     else
-      Build.Task.Compliance.run(state)
+      Task.Compliance.run(state)
     end
   end
 
