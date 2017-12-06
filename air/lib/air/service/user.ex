@@ -221,7 +221,6 @@ defmodule Air.Service.User do
   def admin_groups(), do:
     Repo.all(from g in Group, where: g.admin)
 
-
   @doc "Returns the number format settings for the specified user."
   @spec number_format_settings(User.t) :: Map.t
   def number_format_settings(user) do
