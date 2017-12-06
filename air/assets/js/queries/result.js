@@ -48,6 +48,7 @@ export type Result = {
 type Props = {
   result: Result,
   numberFormat: NumberFormat,
+  debugModeEnabled: boolean,
 };
 
 type State = {
@@ -95,6 +96,7 @@ export class ResultView extends React.Component {
     this.renderChartButton = this.renderChartButton.bind(this);
     this.renderAxesButton = this.renderAxesButton.bind(this);
     this.renderOptionMenu = this.renderOptionMenu.bind(this);
+    this.renderDebugExport = this.renderDebugExport.bind(this);
 
     this.conditionallyRenderChart = this.conditionallyRenderChart.bind(this);
     this.conditionallyRenderChartConfig = this.conditionallyRenderChartConfig.bind(this);
@@ -131,6 +133,7 @@ export class ResultView extends React.Component {
   componentDidUpdate: (prevProps: Props, prevState: State) => void;
   renderChartButton: () => void;
   renderAxesButton: () => void;
+  renderDebugExport: () => void;
   conditionallyRenderChartConfig: () => void;
   rebuildGraphData: () => void;
   addX: (col: number) => () => void;
@@ -421,28 +424,27 @@ export class ResultView extends React.Component {
     }
   }
 
+  renderDebugExport() {
+    if (this.props.debugModeEnabled) {
+      return (
+        <a className="btn btn-default btn-xs" href={`/queries/${this.props.result.id}/debug_export`}>
+          Download debug export
+        </a>
+      );
+    } else {
+      return null;
+    }
+  }
+
   renderOptionMenu() {
     return (
       <div className="options-menu">
-        <div className="dropdown option-menu-item">
-          <button
-            className="btn btn-default btn-xs dropdown-toggle"
-            type="button" id={`dropdownMenu-${this.props.result.id}`}
-            data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
-          >
-            Download&nbsp;<span className="caret"></span>
-          </button>
-          <ul className="dropdown-menu" aria-labelledby="dropdownMenu1">
-            <li><a href={`/queries/${this.props.result.id}.csv`}>result as CSV</a></li>
-            <li><a href={`/queries/${this.props.result.id}/debug_export`}>debug export</a></li>
-          </ul>
-        </div>
-        <div className="option-menu-item">
-          {this.renderChartButton()}
-        </div>
-        <div className="option-menu-item">
-          {this.renderAxesButton()}
-        </div>
+        <a className="btn btn-default btn-xs" href={`/queries/${this.props.result.id}.csv`}>Download as CSV</a>
+        {this.renderDebugExport()}
+        &nbsp;
+        {this.renderChartButton()}
+        &nbsp;
+        {this.renderAxesButton()}
       </div>
     );
   }
