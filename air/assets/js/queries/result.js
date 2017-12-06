@@ -441,9 +441,7 @@ export class ResultView extends React.Component {
       <div className="options-menu">
         <a className="btn btn-default btn-xs" href={`/queries/${this.props.result.id}.csv`}>Download as CSV</a>
         {this.renderDebugExport()}
-        &nbsp;
         {this.renderChartButton()}
-        &nbsp;
         {this.renderAxesButton()}
       </div>
     );
