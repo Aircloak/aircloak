@@ -66,7 +66,7 @@ defmodule AircloakCI.LocalProject do
   @spec update_code(t) :: :ok | {:error, String.t}
   def update_code(project) do
     if up_to_date?(project) do
-      :ok
+      update_state(project, &%{&1 | initialized?: true})
     else
       log_start_stop(project, "updating local project git repository for #{name(project)}", fn ->
         with \
