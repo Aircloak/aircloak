@@ -31,6 +31,7 @@ defmodule AirWeb.Admin.QueryController do
           guardian_token: Guardian.Plug.current_token(conn),
           csrf_token: CSRFProtection.get_csrf_token(),
           number_format: Air.Service.User.number_format_settings(conn.assigns.current_user),
+          debug_mode_enabled: conn.assigns.current_user.debug_mode_enabled,
         })
       {:error, _} ->
         conn

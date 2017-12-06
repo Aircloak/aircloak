@@ -145,6 +145,20 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe "toggle_debug_mode" do
+    test "toggling changes state" do
+      user = TestRepoHelper.create_user!()
+      refute user.debug_mode_enabled == User.toggle_debug_mode(user).debug_mode_enabled
+    end
+
+    test "persists changes to db" do
+      user = TestRepoHelper.create_user!()
+      User.toggle_debug_mode(user)
+      loaded_user = User.load(user.id)
+      refute loaded_user.debug_mode_enabled == user.debug_mode_enabled
+    end
+  end
+
   defp error_on(fun, field, value), do:
     errors_on(fun, %{field => value})[field]
 

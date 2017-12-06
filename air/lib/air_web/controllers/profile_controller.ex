@@ -29,6 +29,11 @@ defmodule AirWeb.ProfileController do
   def change_password(conn, params), do:
     update(conn, params, _flash = "Password changed", _log_tag = "Changed own password")
 
+  def toggle_debug_mode(conn, _params) do
+    User.toggle_debug_mode(conn.assigns.current_user)
+    redirect(conn, to: profile_path(conn, :edit))
+  end
+
 
   # -------------------------------------------------------------------
   # Update

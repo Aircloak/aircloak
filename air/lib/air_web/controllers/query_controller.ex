@@ -14,7 +14,7 @@ defmodule AirWeb.QueryController do
 
   def permissions do
     %{
-      user: [:cancel, :create, :show, :load_history, :buckets],
+      user: [:cancel, :create, :show, :load_history, :buckets, :debug_export],
       admin: :all
     }
   end
@@ -103,6 +103,15 @@ defmodule AirWeb.QueryController do
       _ ->
         send_resp(conn, Status.code(:not_found), "A query with that id does not exist")
     end
+  end
+
+  def debug_export(conn, %{"id" => query_id}) do
+    debug_file_content = Phoenix.View.render_to_iodata(AirWeb.QueryView, "debug_export.txt",
+      data: Air.Service.DebugExport.assemble(conn.assigns.current_user, query_id))
+    conn
+    |> put_resp_content_type("text/plain")
+    |> put_resp_header("content-disposition", ~s[attachment; filename="debug_export_#{query_id}.txt"])
+    |> send_resp(200, debug_file_content)
   end
 
 

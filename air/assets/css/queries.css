@@ -66,6 +66,10 @@
   font-size: 0.9em;
 }
 
+.options-menu a, .options-menu button {
+  margin-right: 5px;
+}
+
 .unreliable {
   color: gray;
   font-style: italic;

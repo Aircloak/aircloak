@@ -1,0 +1,50 @@
+Query export from Aircloak Insights - version <%= AirWeb.SharedView.version() %>
+Export by <%= get_in(@data, [:metadata, :user]) %> (<%= get_in(@data, [:metadata, :email]) %>) on <%= Timex.now %>
+
+
+<%= get_in(@data, [:statement]) %>
+
+
+
+<%= banner("META DATA", "=") %>
+
+- Initiated on: <%= get_in(@data, [:metadata, :created_on]) %>
+- Last updated: <%= get_in(@data, [:metadata, :last_update]) %>
+- Cloak: <%= get_in(@data, [:metadata, :cloak_id]) %>
+- Context: <%= get_in(@data, [:metadata, :context]) %>
+- Recorded features:
+<%= for feature <- get_in(@data, [:metadata, :features]) do %>
+  - <%= format_map(feature) %>
+<% end %>
+
+
+<%= banner("RESULT", "=") %>
+
+
+<%= print_rows(get_in(@data, [:result]) |> Poison.decode!()) %>
+
+
+
+<%= if Enum.count(get_in(@data, [:views])) > 0 do %>
+<%= banner("VIEWS", "=") %>
+<%= for {name, statement} <- get_in(@data, [:views]) do %>
+<%= banner(name, "-") %>
+
+<%= statement %>
+
+<% end %>
+<% end %>
+
+
+<%= banner("TABLES", "=") %>
+<%= for table <- get_in(@data, [:tables]) do %>
+<%= banner(table[:id], "-") %>
+<%= for column <- table[:columns] |> Enum.sort_by(& {not &1[:user_id], &1[:name]}) do %>
+  - <%= column[:name] %> (<%= column[:type] %><%= if column[:user_id], do: ", user id column" %>)<% end %>
+<% end %>
+
+
+<%= banner("RESULT AS JSON", "=") %>
+
+
+<%= get_in(@data, [:result]) %>

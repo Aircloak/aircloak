@@ -31,6 +31,8 @@ defmodule Air.Schemas.User do
     field :thousand_sep, :string
     field :decimal_digits, :integer
 
+    field :debug_mode_enabled, :boolean
+
     # These virtual fields are used for validation,
     # but never persisted to the database
     field :password, :string, virtual: true
