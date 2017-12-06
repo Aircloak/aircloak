@@ -4,7 +4,7 @@
   </div>
 <% end %>
 
-<div class="col-sm-6 col-sm-offset-3">
+<div class="col-sm-6">
   <div class="panel panel-default">
     <div class="panel-heading">
       <h4>Profile</h4>
@@ -74,7 +74,7 @@
   </div>
 </div>
 
-<div class="col-sm-6 col-sm-offset-3">
+<div class="col-sm-6">
   <div class="panel panel-default">
     <div class="panel-heading">
       <h4>Change password</h4>
