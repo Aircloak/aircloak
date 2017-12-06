@@ -32,12 +32,12 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   end
   def project_array_sizes(_table), do: [] # table is subquery
 
-  @doc "Creates a MongoDB projection for the table and a set of extra columns needed for later filtering."
-  @spec project_extra_columns(map, list) :: [map]
-  def project_extra_columns(_table, []), do: []
-  def project_extra_columns(%{columns: columns}, extra_columns) do
+  @doc "Creates a MongoDB projection that adds a set of extra columns needed for later filtering."
+  @spec project_extra_columns(list, list) :: [map]
+  def project_extra_columns(_existing_fields, []), do: []
+  def project_extra_columns(existing_fields, extra_columns) do
     projected_columns =
-      Enum.map(columns, &{&1.name, true}) ++
+      Enum.map(existing_fields, &{&1, true}) ++
       Enum.map(extra_columns, &project_column/1)
     [%{'$project': Enum.into(projected_columns, %{"_id" => false})}]
   end

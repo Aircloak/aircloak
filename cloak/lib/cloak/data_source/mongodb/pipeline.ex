@@ -58,7 +58,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       [] -> []
       _ -> Projector.project_array_sizes(table)
     end ++
-    parse_conditions(table, query.where) ++
+    (table.columns |> Enum.map(& &1.name) |> parse_conditions(query.where)) ++
     parse_query(query, top_level?)
   end
 
@@ -177,9 +177,9 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     {conditions, extra_columns}
   end
 
-  defp parse_conditions(table, conditions) do
+  defp parse_conditions(existing_fields, conditions) do
     {conditions, extra_columns} = extract_columns_from_conditions(conditions)
-    Projector.project_extra_columns(table, extra_columns) ++ filter_data(conditions)
+    Projector.project_extra_columns(existing_fields, extra_columns) ++ filter_data(conditions)
   end
 
   defp unwind_arrays(_path, _path \\ "")
@@ -313,7 +313,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       group = aggregators |> project_aggregators() |> Enum.into(%{"_id" => properties})
       having = extract_column_top_from_conditions(having, aggregators)
       [%{'$group': group}] ++
-      filter_data(having) ++
+      parse_conditions(Map.keys(group), having) ++
       project_columns(column_tops, top_level?) ++
       order_and_range(query)
     end
