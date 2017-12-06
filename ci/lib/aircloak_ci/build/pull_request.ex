@@ -5,7 +5,7 @@ defmodule AircloakCI.Build.PullRequest do
   The process will start various child jobs to initialize the repo and run different tests.
   """
 
-  use AircloakCI.JobRunner.PullRequest, restart: :temporary
+  use AircloakCI.JobRunner, restart: :temporary
   require Logger
   alias AircloakCI.{Build, Github, JobRunner, LocalProject}
 
@@ -34,6 +34,14 @@ defmodule AircloakCI.Build.PullRequest do
   # -------------------------------------------------------------------
   # JobRunner callbacks
   # -------------------------------------------------------------------
+
+  @impl AircloakCI.JobRunner
+  def create_project(state), do:
+    LocalProject.for_pull_request(state.source)
+
+  @impl AircloakCI.JobRunner
+  def refresh_source(state), do:
+    Enum.find(state.repo_data.pull_requests, &(&1.number == state.source.number))
 
   @impl JobRunner
   def init(nil, state), do:

@@ -1,7 +1,7 @@
 defmodule AircloakCI.Build.Branch do
   @moduledoc "This module powers the process responsible for the entire build of the single branch."
 
-  use AircloakCI.JobRunner.Branch, restart: :temporary
+  use AircloakCI.JobRunner, restart: :temporary
   require Logger
   alias AircloakCI.{Github, JobRunner, LocalProject}
 
@@ -34,6 +34,14 @@ defmodule AircloakCI.Build.Branch do
   # -------------------------------------------------------------------
   # JobRunner callbacks
   # -------------------------------------------------------------------
+
+  @impl AircloakCI.JobRunner
+  def create_project(state), do:
+    LocalProject.for_branch(state.source)
+
+  @impl AircloakCI.JobRunner
+  def refresh_source(state), do:
+    Enum.find(state.repo_data.branches, &(&1.name == state.source.name && &1.repo == state.source.repo))
 
   @impl JobRunner
   def init(nil, state), do:
