@@ -95,7 +95,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   defp column(expression), do:
     %Type{
       raw_column?: true,
-      cast_raw_column?: true,
+      cast_raw_column?: false,
       constant?: false,
       history_of_columns_involved: [expression],
     }
