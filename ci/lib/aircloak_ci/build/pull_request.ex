@@ -5,9 +5,9 @@ defmodule AircloakCI.Build.PullRequest do
   The process will start various child jobs to initialize the repo and run different tests.
   """
 
-  use AircloakCI.JobRunner, restart: :temporary
+  use AircloakCI.Build.Server, restart: :temporary
   require Logger
-  alias AircloakCI.{Build, Github, JobRunner, LocalProject}
+  alias AircloakCI.{Build, Github, LocalProject}
   alias AircloakCI.Build.Task
 
 
@@ -33,37 +33,37 @@ defmodule AircloakCI.Build.PullRequest do
 
 
   # -------------------------------------------------------------------
-  # JobRunner callbacks
+  # Build.Server callbacks
   # -------------------------------------------------------------------
 
-  @impl AircloakCI.JobRunner
+  @impl Build.Server
   def base_branch(state), do: Enum.find(state.repo_data.branches, &(&1.name == state.source.target_branch))
 
-  @impl AircloakCI.JobRunner
+  @impl Build.Server
   def create_project(state), do:
     LocalProject.for_pull_request(state.source)
 
-  @impl AircloakCI.JobRunner
+  @impl Build.Server
   def refresh_source(state), do:
     Enum.find(state.repo_data.pull_requests, &(&1.number == state.source.number))
 
-  @impl JobRunner
+  @impl Build.Server
   def init(nil, state), do:
     {:ok, state}
 
-  @impl JobRunner
+  @impl Build.Server
   def handle_source_change(state), do:
     {:noreply, maybe_start_ci(state)}
 
-  @impl JobRunner
+  @impl Build.Server
   def handle_job_succeeded(Task.Compile, state), do: {:noreply, maybe_start_ci(state)}
   def handle_job_succeeded(Task.Compliance, state), do: {:noreply, state}
 
-  @impl JobRunner
+  @impl Build.Server
   def handle_call(:force_build, _from, state), do:
-    {:reply, :ok, JobRunner.restart(state, before_start: &LocalProject.mark_forced(&1.project))}
+    {:reply, :ok, Build.Server.restart(state, before_start: &LocalProject.mark_forced(&1.project))}
 
-  @impl JobRunner
+  @impl Build.Server
   def handle_info({Task.Compliance, result}, state), do:
     {:stop, :normal, Task.Compliance.handle_finish(state, result, nil)}
   def handle_info(other, state), do:
@@ -78,7 +78,7 @@ defmodule AircloakCI.Build.PullRequest do
     {:via, Registry, {Build.Registry, {:pull_request, pr.number}}}
 
   defp maybe_start_ci(state) do
-    if Enum.any?([Task.Prepare, Task.Compile], &JobRunner.running?(state, &1)) do
+    if Enum.any?([Task.Prepare, Task.Compile], &Build.Server.running?(state, &1)) do
       state
     else
       maybe_start_compliance(state)
@@ -86,7 +86,7 @@ defmodule AircloakCI.Build.PullRequest do
   end
 
   defp maybe_start_compliance(state) do
-    if JobRunner.running?(state, Task.Compliance) do
+    if Build.Server.running?(state, Task.Compliance) do
       state
     else
       Task.Compliance.run(state)
@@ -100,5 +100,5 @@ defmodule AircloakCI.Build.PullRequest do
 
   @doc false
   def start_link(pr, repo_data), do:
-    JobRunner.start_link(__MODULE__, pr, repo_data, nil, name: name(pr))
+    Build.Server.start_link(__MODULE__, pr, repo_data, nil, name: name(pr))
 end

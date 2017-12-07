@@ -1,17 +1,17 @@
-defmodule AircloakCI.JobRunner do
+defmodule AircloakCI.Build.Server do
   @moduledoc """
-  Behaviour for running a CI job.
+  Behaviour for powering the life cycle of a single CI build of a pull request or a branch.
 
-  CI job is a process which performs some stage of the build of the given project. It can power a single task, such as
-  execution of compliance tests, or a more complex workflow, such as the orchestrator of the build of the entire PR.
-
-  In technical terms, CI job is a GenServer-like process which is related to a particular build (e.g. PR). The
-  behaviour will initialize the process state, and then invoke various functions from the callback module. The
-  callbacks are mostly similar to GenServer ones, with some build-specific additions.
+  Build server is a GenServer-like process. The behaviour will initialize the process state, and then invoke various
+  functions from the callback module. The callbacks are mostly similar to GenServer ones, with some build-specific
+  additions.
 
   The callback module can start child jobs using the `start_job/3` function. The behaviour will monitor the lifecycle
   of these jobs, and notify the callback module when they terminate. The behaviour also takes care of the proper
   cleanup of all child jobs.
+
+  The behaviour immediately starts the project preparation job (powered by `AircloakCI.Build.Task.Prepare`). Once this
+  job is done, the behaviour will start the compilation job (powered by `AircloakCI.Build.Task.Compile`).
 
   The behaviour will also subscribe to notifications from `AircloakCI.RepoDataProvider`, and handle changes. If the
   related PR is no longer pending, the behaviour will terminate the process. If some new commits are pushed to the PR,
@@ -93,17 +93,17 @@ defmodule AircloakCI.JobRunner do
   # API Functions
   # -------------------------------------------------------------------
 
-  @doc "Starts a job runner related to the given pull request."
+  @doc "Starts a build server related to the given pull request."
   @spec start_link(module, source, Github.API.repo_data, any, GenServer.options) :: GenServer.on_start
   def start_link(callback_mod, source, repo_data, arg, gen_server_opts \\ []), do:
     GenServer.start_link(__MODULE__, {callback_mod, source, repo_data, arg}, gen_server_opts)
 
-  @doc "Makes a synchronous request to the given job runner."
+  @doc "Makes a synchronous request to the given build server."
   @spec call(GenServer.server, any, pos_integer | :infinity) :: any
   def call(server, request, timeout \\ :timer.seconds(5)), do:
     GenServer.call(server, request, timeout)
 
-  @doc "Starts the provided function as a child job of the job runner process."
+  @doc "Starts the provided function as a child job of the build server."
   @spec start_task(state, job_name, (() -> any)) :: state
   def start_task(state, name, task_fun) do
     :error = Map.fetch(state.jobs, name)
@@ -159,7 +159,7 @@ defmodule AircloakCI.JobRunner do
     state = %{state | repo_data: repo_data}
     case invoke_callback(state, :refresh_source, []) do
       nil ->
-        Logger.info("shutting down job runner `#{__MODULE__}` for `#{LocalProject.name(state.project)}`")
+        Logger.info("shutting down build server `#{__MODULE__}` for `#{LocalProject.name(state.project)}`")
         {:stop, :shutdown, state}
       new_source ->
         update_source(state, new_source)
@@ -185,7 +185,7 @@ defmodule AircloakCI.JobRunner do
   @impl GenServer
   def terminate(reason, state) do
     Logger.info([
-      "job runner ", inspect(state.callback_mod), " for ", LocalProject.name(state.project),
+      "build server ", inspect(state.callback_mod), " for ", LocalProject.name(state.project),
       " terminating: ", Exception.format_exit(reason)
     ])
     terminate_all_jobs(state)

@@ -1,41 +1,43 @@
 defmodule AircloakCI.Build.Task.Compliance do
   @moduledoc "Execution of the compliance test suite."
 
-  alias AircloakCI.{Github, JobRunner, LocalProject, Queue}
+  alias AircloakCI.{Github, Build, LocalProject, Queue}
 
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
-  @spec run(JobRunner.state) :: JobRunner.state
-  def run(job_runner_state) do
-    if not mergeable?(job_runner_state.source) do
-      job_runner_state
+  @doc "Invokes the compliance task."
+  @spec run(Build.Server.state) :: Build.Server.state
+  def run(build_state) do
+    if not mergeable?(build_state.source) do
+      build_state
     else
-      maybe_start_test(job_runner_state)
+      maybe_start_test(build_state)
     end
   end
 
-  @spec handle_finish(JobRunner.state, :ok | :error | :failure, any) :: JobRunner.state
-  def handle_finish(job_runner_state, result, context) do
-    diff_sec = :erlang.monotonic_time(:second) - job_runner_state.data.start
+  @doc "Handles the outcome of the compliance task."
+  @spec handle_finish(Build.Server.state, :ok | :error | :failure, any) :: Build.Server.state
+  def handle_finish(build_state, result, context) do
+    diff_sec = :erlang.monotonic_time(:second) - build_state.data.start
     time_output = :io_lib.format("~b:~2..0b", [div(diff_sec, 60), rem(diff_sec, 60)])
 
-    LocalProject.log(job_runner_state.project, "compliance", "finished with result `#{result}` in #{time_output} min")
+    LocalProject.log(build_state.project, "compliance", "finished with result `#{result}` in #{time_output} min")
 
-    send_status_to_github(job_runner_state.source, github_status(result), description(result))
+    send_status_to_github(build_state.source, github_status(result), description(result))
 
     Github.post_comment(
-      job_runner_state.source.repo.owner,
-      job_runner_state.source.repo.name,
-      job_runner_state.source.number,
-      comment(job_runner_state, result, context)
+      build_state.source.repo.owner,
+      build_state.source.repo.name,
+      build_state.source.number,
+      comment(build_state, result, context)
     )
 
-    LocalProject.mark_finished(job_runner_state.project)
+    LocalProject.mark_finished(build_state.project)
 
-    job_runner_state
+    build_state
   end
 
 
@@ -46,27 +48,27 @@ defmodule AircloakCI.Build.Task.Compliance do
   defp mergeable?(pr), do:
     pr.mergeable? and pr.merge_sha != nil
 
-  defp maybe_start_test(job_runner_state) do
-    if not LocalProject.finished?(job_runner_state.project) or LocalProject.forced?(job_runner_state.project) do
-      case check_start_preconditions(job_runner_state) do
-        :ok -> start_test(job_runner_state)
+  defp maybe_start_test(build_state) do
+    if not LocalProject.finished?(build_state.project) or LocalProject.forced?(build_state.project) do
+      case check_start_preconditions(build_state) do
+        :ok -> start_test(build_state)
 
         {:error, status} ->
-          send_status_to_github(job_runner_state.source, :pending, status)
-          job_runner_state
+          send_status_to_github(build_state.source, :pending, status)
+          build_state
       end
     else
-      job_runner_state
+      build_state
     end
   end
 
-  defp check_start_preconditions(job_runner_state) do
-    if LocalProject.forced?(job_runner_state.project) do
+  defp check_start_preconditions(build_state) do
+    if LocalProject.forced?(build_state.project) do
       :ok
     else
       with \
-        {_status, true} <- {"waiting for Travis builds to succeed", travis_succeeded?(job_runner_state.source)},
-        {_status, true} <- {"waiting for approval", job_runner_state.source.approved?}
+        {_status, true} <- {"waiting for Travis builds to succeed", travis_succeeded?(build_state.source)},
+        {_status, true} <- {"waiting for approval", build_state.source.approved?}
       do
         :ok
       else
@@ -79,10 +81,10 @@ defmodule AircloakCI.Build.Task.Compliance do
     (pr.status_checks["continuous-integration/travis-ci/pr"] || %{status: nil}).status == :success and
     (pr.status_checks["continuous-integration/travis-ci/push"] || %{status: nil}).status == :success
 
-  defp start_test(%{source: pr, project: project} = job_runner_state) do
+  defp start_test(%{source: pr, project: project} = build_state) do
     me = self()
-    job_runner_state = %{job_runner_state | data: %{start: :erlang.monotonic_time(:second)}}
-    JobRunner.start_task(job_runner_state, __MODULE__, fn -> send(me, {__MODULE__, run_test(pr, project)}) end)
+    build_state = %{build_state | data: %{start: :erlang.monotonic_time(:second)}}
+    Build.Server.start_task(build_state, __MODULE__, fn -> send(me, {__MODULE__, run_test(pr, project)}) end)
   end
 
   defp run_test(pr, project) do
@@ -129,20 +131,20 @@ defmodule AircloakCI.Build.Task.Compliance do
   defp description(:error), do: "build errored"
   defp description(:failure), do: "build failed"
 
-  defp comment(_job_runner_state, :ok, nil), do:
+  defp comment(_build_state, :ok, nil), do:
     "Compliance build succeeded #{happy_emoji()}"
-  defp comment(job_runner_state, :error, nil), do:
-    error_comment(job_runner_state, "Compliance build errored")
-  defp comment(job_runner_state, :failure, crash_reason), do:
-    error_comment(job_runner_state, "Compliance build crashed", "```\n#{Exception.format_exit(crash_reason)}\n```")
+  defp comment(build_state, :error, nil), do:
+    error_comment(build_state, "Compliance build errored")
+  defp comment(build_state, :failure, crash_reason), do:
+    error_comment(build_state, "Compliance build crashed", "```\n#{Exception.format_exit(crash_reason)}\n```")
 
-  defp error_comment(job_runner_state, title, extra_info \\ nil), do:
+  defp error_comment(build_state, title, extra_info \\ nil), do:
     Enum.join(
       [
         "#{title} #{sad_emoji()}",
         (if not is_nil(extra_info), do: "\n#{extra_info}\n", else: ""),
-        "You can see the full build log by running: `ci/production.sh build_log #{job_runner_state.source.number}`\n",
-        "Log tail:\n", "```", log_tail(job_runner_state.project), "```"
+        "You can see the full build log by running: `ci/production.sh build_log #{build_state.source.number}`\n",
+        "Log tail:\n", "```", log_tail(build_state.project), "```"
       ],
       "\n"
     )

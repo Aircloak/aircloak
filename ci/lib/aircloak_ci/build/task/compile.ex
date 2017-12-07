@@ -1,7 +1,7 @@
 defmodule AircloakCI.Build.Task.Compile do
   @moduledoc "Compilation of all components in a local project."
 
-  alias AircloakCI.{JobRunner, LocalProject, Queue}
+  alias AircloakCI.{Build, LocalProject, Queue}
   alias AircloakCI.Build.Component
 
 
@@ -21,9 +21,9 @@ defmodule AircloakCI.Build.Task.Compile do
   # -------------------------------------------------------------------
 
   @doc "Compiles all the components in the given project."
-  @spec run(JobRunner.state) :: JobRunner.state
-  def run(%{project: project} = job_runner_state), do:
-    JobRunner.start_task(job_runner_state, __MODULE__, fn -> compile_project(project) end)
+  @spec run(Build.Server.state) :: Build.Server.state
+  def run(%{project: project} = build_state), do:
+    Build.Server.start_task(build_state, __MODULE__, fn -> compile_project(project) end)
 
 
   # -------------------------------------------------------------------

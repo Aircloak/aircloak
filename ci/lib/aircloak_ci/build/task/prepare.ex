@@ -1,16 +1,16 @@
 defmodule AircloakCI.Build.Task.Prepare do
   @moduledoc "Preparation of the project source code."
 
-  alias AircloakCI.{JobRunner, LocalProject}
+  alias AircloakCI.{Build, LocalProject}
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Compiles all the components in the given project."
-  @spec run(JobRunner.t, AircloakCI.Github.API.branch | nil, [delay: non_neg_integer]) :: JobRunner.t
-  def run(%{project: project} = job_runner_state, base_branch, opts \\ []), do:
-    JobRunner.start_task(job_runner_state, __MODULE__, fn -> initialize_repo(project, base_branch, opts) end)
+  @spec run(Build.Server.t, AircloakCI.Github.API.branch | nil, [delay: non_neg_integer]) :: Build.Server.t
+  def run(%{project: project} = build_state, base_branch, opts \\ []), do:
+    Build.Server.start_task(build_state, __MODULE__, fn -> initialize_repo(project, base_branch, opts) end)
 
 
   # -------------------------------------------------------------------

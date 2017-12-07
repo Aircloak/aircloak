@@ -1,9 +1,9 @@
 defmodule AircloakCI.Build.Branch do
   @moduledoc "This module powers the process responsible for the entire build of the single branch."
 
-  use AircloakCI.JobRunner, restart: :temporary
+  use AircloakCI.Build.Server, restart: :temporary
   require Logger
-  alias AircloakCI.{Github, JobRunner, LocalProject}
+  alias AircloakCI.{Github, Build, LocalProject}
   alias AircloakCI.Build.Task
 
 
@@ -33,29 +33,29 @@ defmodule AircloakCI.Build.Branch do
 
 
   # -------------------------------------------------------------------
-  # JobRunner callbacks
+  # Build.Server callbacks
   # -------------------------------------------------------------------
 
-  @impl AircloakCI.JobRunner
+  @impl Build.Server
   def base_branch(%{source: %{name: "master"}}), do: nil
   def base_branch(state), do: Enum.find(state.repo_data.branches, &(&1.name == "master"))
 
-  @impl AircloakCI.JobRunner
+  @impl Build.Server
   def create_project(state), do:
     LocalProject.for_branch(state.source)
 
-  @impl AircloakCI.JobRunner
+  @impl Build.Server
   def refresh_source(state), do:
     Enum.find(state.repo_data.branches, &(&1.name == state.source.name && &1.repo == state.source.repo))
 
-  @impl JobRunner
+  @impl Build.Server
   def init(nil, state), do:
     {:ok, %{state | data: %{pending_transfers: []}}}
 
-  @impl JobRunner
+  @impl Build.Server
   def handle_job_succeeded(Task.Compile, state), do: {:noreply, maybe_perform_transfers(state)}
 
-  @impl JobRunner
+  @impl Build.Server
   def handle_call({:transfer_project, target_project}, from, state), do:
     {:noreply,
       state.data.pending_transfers
@@ -72,7 +72,7 @@ defmodule AircloakCI.Build.Branch do
     {:via, Registry, {AircloakCI.Build.Registry, {:branch, branch.name}}}
 
   defp maybe_perform_transfers(state) do
-    if JobRunner.compiled?(state) do
+    if Build.Server.compiled?(state) do
       state
     else
       state.data.pending_transfers
@@ -95,5 +95,5 @@ defmodule AircloakCI.Build.Branch do
 
   @doc false
   def start_link(branch, repo_data), do:
-    JobRunner.start_link(__MODULE__, branch, repo_data, nil, name: name(branch))
+    Build.Server.start_link(__MODULE__, branch, repo_data, nil, name: name(branch))
 end
