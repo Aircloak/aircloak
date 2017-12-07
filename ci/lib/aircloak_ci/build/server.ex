@@ -25,14 +25,17 @@ defmodule AircloakCI.Build.Server do
 
   @type state :: %{
     callback_mod: module,
-    repo_data: Github.API.repo_data,
+    source_id: source_id,
     source: source,
+    base_branch: Github.API.branch | nil,
     project: LocalProject.t,
     data: any,
     jobs: jobs,
     prepared?: boolean,
     compiled?: boolean,
   }
+
+  @type source_id :: any
 
   @type source :: Github.API.pull_request | Github.API.branch
 
@@ -50,21 +53,16 @@ defmodule AircloakCI.Build.Server do
   # Behaviour
   # -------------------------------------------------------------------
 
+  @doc "Invoked to find the build source in the provided repo data."
+  @callback build_source(source_id, Github.API.repo_data) ::
+    %{source: source, base_branch: Github.Api.branch, project: LocalProject.t} | nil
+
   @doc "Invoked when the process is initializing."
   @callback init(any, state) ::
     {:ok, state} |
     {:ok, state, timeout | :hibernate} |
     :ignore |
     {:stop, reason :: any}
-
-  @doc "Invoked to determine the base branch for the given source."
-  @callback base_branch(state) :: Github.API.branch | nil
-
-  @doc "Invoked to find the source object."
-  @callback refresh_source(state) :: source | nil
-
-  @doc "Invoked to create the local project instance."
-  @callback create_project(state) :: LocalProject.t
 
   @doc """
   Invoked when there's a change in the PR.
@@ -97,9 +95,9 @@ defmodule AircloakCI.Build.Server do
   # -------------------------------------------------------------------
 
   @doc "Starts a build server related to the given pull request."
-  @spec start_link(module, source, Github.API.repo_data, any, GenServer.options) :: GenServer.on_start
-  def start_link(callback_mod, source, repo_data, arg, gen_server_opts \\ []), do:
-    GenServer.start_link(__MODULE__, {callback_mod, source, repo_data, arg}, gen_server_opts)
+  @spec start_link(module, source_id, Github.API.repo_data, any, GenServer.options) :: GenServer.on_start
+  def start_link(callback_mod, source_id, repo_data, arg, gen_server_opts \\ []), do:
+    GenServer.start_link(__MODULE__, {callback_mod, source_id, repo_data, arg}, gen_server_opts)
 
   @doc "Makes a synchronous request to the given build server."
   @spec call(GenServer.server, any, pos_integer | :infinity) :: any
@@ -134,21 +132,24 @@ defmodule AircloakCI.Build.Server do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init({callback_mod, source, repo_data, arg}) do
+  def init({callback_mod, source_id, repo_data, arg}) do
     Process.flag(:trap_exit, true)
     AircloakCI.RepoDataProvider.subscribe()
 
+    build_source = build_source(callback_mod, source_id, repo_data)
+    false = is_nil(build_source)
+
     %{
       callback_mod: callback_mod,
-      repo_data: repo_data,
-      source: source,
-      project: nil,
+      source_id: source_id,
+      source: build_source.source,
+      base_branch: build_source.base_branch,
+      project: build_source.project,
       data: nil,
       jobs: %{},
       prepared?: false,
       compiled?: false,
     }
-    |> update_project()
     |> start_preparation_job()
     |> invoke_callback(:init, [arg])
   end
@@ -159,13 +160,12 @@ defmodule AircloakCI.Build.Server do
 
   @impl GenServer
   def handle_info({:repo_data, repo_data}, state) do
-    state = %{state | repo_data: repo_data}
-    case invoke_callback(state, :refresh_source, []) do
+    case build_source(state.callback_mod, state.source_id, repo_data) do
       nil ->
         Logger.info("shutting down build server `#{__MODULE__}` for `#{LocalProject.name(state.project)}`")
         {:stop, :shutdown, state}
-      new_source ->
-        update_source(state, new_source)
+      build_source ->
+        update_source(state, build_source)
     end
   end
   def handle_info({:EXIT, pid, reason} = exit_message, state) do
@@ -200,6 +200,9 @@ defmodule AircloakCI.Build.Server do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp build_source(callback_mod, source_id, repo_data), do:
+    callback_mod.build_source(source_id, repo_data)
+
   defp terminate_all_jobs(state) do
     pids = Map.values(state.jobs)
     Enum.each(pids, &Process.exit(&1, :shutdown))
@@ -208,13 +211,10 @@ defmodule AircloakCI.Build.Server do
   end
 
   defp start_preparation_job(state, opts \\ []), do:
-    Job.Prepare.run(%{state | prepared?: false, compiled?: false}, invoke_callback(state, :base_branch, []), opts)
+    Job.Prepare.run(%{state | prepared?: false, compiled?: false}, opts)
 
-  defp update_project(state), do:
-    %{state | project: invoke_callback(state, :create_project, [])}
-
-  defp update_source(state, new_source) do
-    new_state = update_project(%{state | source: new_source})
+  defp update_source(state, %{source: source, base_branch: base_branch, project: project}) do
+    new_state = %{state | source: source, base_branch: base_branch, project: project}
     cond do
       new_state.project.desired_sha != state.project.desired_sha ->
         new_state |> terminate_all_jobs() |> start_preparation_job()

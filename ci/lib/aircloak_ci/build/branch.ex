@@ -37,16 +37,18 @@ defmodule AircloakCI.Build.Branch do
   # -------------------------------------------------------------------
 
   @impl Build.Server
-  def base_branch(%{source: %{name: "master"}}), do: nil
-  def base_branch(state), do: Enum.find(state.repo_data.branches, &(&1.name == "master"))
-
-  @impl Build.Server
-  def create_project(state), do:
-    LocalProject.for_branch(state.source)
-
-  @impl Build.Server
-  def refresh_source(state), do:
-    Enum.find(state.repo_data.branches, &(&1.name == state.source.name && &1.repo == state.source.repo))
+  def build_source(branch_name, repo_data) do
+    branch = find_branch(repo_data, branch_name)
+    if is_nil(branch) do
+      nil
+    else
+      %{
+        source: branch,
+        base_branch: (if branch_name == "master", do: nil, else: find_branch(repo_data, "master")),
+        project: LocalProject.for_branch(branch)
+      }
+    end
+  end
 
   @impl Build.Server
   def init(nil, state), do:
@@ -67,6 +69,9 @@ defmodule AircloakCI.Build.Branch do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp find_branch(repo_data, branch_name), do:
+    Enum.find(repo_data.branches, &(&1.name == branch_name))
 
   defp name(branch), do:
     {:via, Registry, {AircloakCI.Build.Registry, {:branch, branch.name}}}
@@ -95,5 +100,5 @@ defmodule AircloakCI.Build.Branch do
 
   @doc false
   def start_link(branch, repo_data), do:
-    Build.Server.start_link(__MODULE__, branch, repo_data, nil, name: name(branch))
+    Build.Server.start_link(__MODULE__, branch.name, repo_data, nil, name: name(branch))
 end

@@ -37,15 +37,18 @@ defmodule AircloakCI.Build.PullRequest do
   # -------------------------------------------------------------------
 
   @impl Build.Server
-  def base_branch(state), do: Enum.find(state.repo_data.branches, &(&1.name == state.source.target_branch))
-
-  @impl Build.Server
-  def create_project(state), do:
-    LocalProject.for_pull_request(state.source)
-
-  @impl Build.Server
-  def refresh_source(state), do:
-    Enum.find(state.repo_data.pull_requests, &(&1.number == state.source.number))
+  def build_source(pr_number, repo_data) do
+    pr = Enum.find(repo_data.pull_requests, &(&1.number == pr_number))
+    if is_nil(pr) do
+      nil
+    else
+      %{
+        source: pr,
+        base_branch: Enum.find(repo_data.branches, &(&1.name == pr.target_branch)),
+        project: LocalProject.for_pull_request(pr)
+      }
+    end
+  end
 
   @impl Build.Server
   def init(nil, state), do:
@@ -95,5 +98,5 @@ defmodule AircloakCI.Build.PullRequest do
 
   @doc false
   def start_link(pr, repo_data), do:
-    Build.Server.start_link(__MODULE__, pr, repo_data, nil, name: name(pr))
+    Build.Server.start_link(__MODULE__, pr.number, repo_data, nil, name: name(pr))
 end
