@@ -1,8 +1,8 @@
 defmodule AircloakCI.Build.Job.Compile do
   @moduledoc "Compilation of all components in a local project."
 
-  alias AircloakCI.{Build, LocalProject, Queue}
-  alias AircloakCI.Build.Component
+  alias AircloakCI.{Build, LocalProject}
+  alias AircloakCI.Build.{Component, Job}
 
 
   # -------------------------------------------------------------------
@@ -55,21 +55,13 @@ defmodule AircloakCI.Build.Job.Compile do
     if LocalProject.compiled?(project, component_name) do
       :ok
     else
-      Queue.exec(
-        :compile,
+      log_name = "#{component_name}_compile"
+      Job.run_queued(:compile, project, [log_name: log_name],
         fn ->
-          LocalProject.log_start_stop(
-            project,
-            "compiling #{component_name} in #{LocalProject.name(project)}",
-            fn ->
-              log_name = "#{component_name}_compile"
-              LocalProject.truncate_log(project, log_name)
-              with {:error, reason} <- component_mod.compile(project, component_name, log_name) do
-                LocalProject.log(project, log_name, reason)
-                :error
-              end
-            end
-          )
+          with {:error, reason} <- component_mod.compile(project, component_name, log_name) do
+            LocalProject.log(project, log_name, reason)
+            :error
+          end
         end
       )
     end

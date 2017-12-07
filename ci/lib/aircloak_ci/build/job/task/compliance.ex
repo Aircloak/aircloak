@@ -1,7 +1,8 @@
   defmodule AircloakCI.Build.Job.Compliance do
   @moduledoc "Execution of the compliance test suite."
 
-  alias AircloakCI.{Github, Build, LocalProject, Queue}
+  alias AircloakCI.{Github, Build, LocalProject}
+  alias AircloakCI.Build.Job
 
 
   # -------------------------------------------------------------------
@@ -21,10 +22,7 @@
   @doc "Handles the outcome of the compliance job."
   @spec handle_finish(Build.Server.state, :ok | :error | :failure, any) :: Build.Server.state
   def handle_finish(build_state, result, context) do
-    diff_sec = :erlang.monotonic_time(:second) - build_state.data.start
-    time_output = :io_lib.format("~b:~2..0b", [div(diff_sec, 60), rem(diff_sec, 60)])
-
-    LocalProject.log(build_state.project, "compliance", "finished with result `#{result}` in #{time_output} min")
+    LocalProject.log(build_state.project, "compliance", "outcome: `#{result}`")
 
     send_status_to_github(build_state.source, github_status(result), description(result))
 
@@ -83,33 +81,25 @@
 
   defp start_test(%{source: pr, project: project} = build_state) do
     me = self()
-    build_state = %{build_state | data: %{start: :erlang.monotonic_time(:second)}}
     Build.Server.start_job(build_state, __MODULE__, fn -> send(me, {__MODULE__, run_test(pr, project)}) end)
   end
 
   defp run_test(pr, project) do
     send_status_to_github(pr, :pending, "build started")
-    with {:error, reason} <- execute_compliance(project) do
+    with {:error, reason} <- Job.run_queued(:compliance, project, fn -> execute_compliance(project) end) do
       LocalProject.log(project, "compliance", "error: #{reason}")
       :error
     end
   end
 
-  defp execute_compliance(project), do:
-    LocalProject.log_start_stop(project, "running compliance for #{LocalProject.name(project)}",
-      fn ->
-        LocalProject.truncate_log(project, "compliance")
-        LocalProject.log(project, "compliance", "waiting in compliance queue")
-        Queue.exec(:compliance, fn ->
-          if Application.get_env(:aircloak_ci, :simulate_compliance, false) do
-            IO.puts("simulating compliance execution")
-            :timer.sleep(:timer.seconds(1))
-          else
-            LocalProject.cmd(project, "compliance", "ci/scripts/run.sh cloak_compliance", timeout: :timer.minutes(10))
-          end
-        end)
-      end
-    )
+  defp execute_compliance(project) do
+    if Application.get_env(:aircloak_ci, :simulate_compliance, false) do
+      IO.puts("simulating compliance execution")
+      :timer.sleep(:timer.seconds(1))
+    else
+      LocalProject.cmd(project, "compliance", "ci/scripts/run.sh cloak_compliance", timeout: :timer.minutes(10))
+    end
+  end
 
 
   # -------------------------------------------------------------------
