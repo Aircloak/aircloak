@@ -919,6 +919,19 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
+  describe "remove redundant casts" do
+    Enum.each([
+      {:integer, "numeric"},
+      {:float, "float"},
+      {:datetime, "column"},
+      {:text, "string"}
+    ], fn({target, column}) ->
+      test "removes redundant cast to #{target}", do:
+        assert compile!("SELECT cast(#{unquote(column)} as #{unquote(target)}) as c FROM table", data_source()) ==
+          compile!("SELECT #{unquote(column)} as c FROM table", data_source())
+    end)
+  end
+
   defp projected_table_db_columns(query), do:
     query
     |> get_in([all_subqueries()])
