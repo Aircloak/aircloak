@@ -14,21 +14,14 @@ defmodule Cloak.Test.QueryHelpers do
       timeout: Keyword.get(options, :timeout, :timer.minutes(15))
     ] do
       run_query = &Cloak.Query.Runner.run_sync("1", &1, query, parameters, views)
-      tasks = Enum.map(data_sources, &Task.async(fn () -> run_query.(&1) end))
-      results = tasks |> Task.yield_many(timeout) |> Enum.into(%{})
 
-      [{first_data_source, first_result} | other_results] =
-        data_sources
-        |> Enum.zip(tasks)
-        |> Enum.map(fn({data_source, task}) ->
-          result =
-            case Map.fetch!(results, task) do
-              {:ok, query_result} -> Map.drop(query_result, [:execution_time, :features])
-              nil -> %{error: :timeout}
-            end
-
-          {data_source, result}
-        end)
+      [{first_data_source, first_result} | other_results] = data_sources
+      |> Task.async_stream(& run_query.(&1), timeout: timeout, on_timeout: :kill_task)
+      |> Stream.zip(data_sources)
+      |> Enum.map(fn
+        ({{:ok, result}, data_source}) -> {data_source, Map.drop(result, [:execution_time, :features])}
+        ({{:exit, _} = exit_value, data_source}) -> {data_source, exit_value}
+      end)
 
       for {other_data_source, other_result} <- other_results, do:
         Cloak.Test.QueryHelpers.assert_equal(first_result, other_result, 0.000001,
