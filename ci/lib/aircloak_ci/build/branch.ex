@@ -4,7 +4,7 @@ defmodule AircloakCI.Build.Branch do
   use AircloakCI.Build.Server, restart: :temporary
   require Logger
   alias AircloakCI.{Github, Build, LocalProject}
-  alias AircloakCI.Build.Task
+  alias AircloakCI.Build.Job
 
 
   # -------------------------------------------------------------------
@@ -53,7 +53,7 @@ defmodule AircloakCI.Build.Branch do
     {:ok, %{state | data: %{pending_transfers: []}}}
 
   @impl Build.Server
-  def handle_job_succeeded(Task.Compile, state), do: {:noreply, maybe_perform_transfers(state)}
+  def handle_job_succeeded(Job.Compile, state), do: {:noreply, maybe_perform_transfers(state)}
 
   @impl Build.Server
   def handle_call({:transfer_project, target_project}, from, state), do:

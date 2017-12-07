@@ -8,7 +8,7 @@ defmodule AircloakCI.Build.PullRequest do
   use AircloakCI.Build.Server, restart: :temporary
   require Logger
   alias AircloakCI.{Build, Github, LocalProject}
-  alias AircloakCI.Build.Task
+  alias AircloakCI.Build.Job
 
 
   # -------------------------------------------------------------------
@@ -56,16 +56,16 @@ defmodule AircloakCI.Build.PullRequest do
     {:noreply, maybe_start_ci(state)}
 
   @impl Build.Server
-  def handle_job_succeeded(Task.Compile, state), do: {:noreply, maybe_start_ci(state)}
-  def handle_job_succeeded(Task.Compliance, state), do: {:noreply, state}
+  def handle_job_succeeded(Job.Compile, state), do: {:noreply, maybe_start_ci(state)}
+  def handle_job_succeeded(Job.Compliance, state), do: {:noreply, state}
 
   @impl Build.Server
   def handle_call(:force_build, _from, state), do:
     {:reply, :ok, Build.Server.restart(state, before_start: &LocalProject.mark_forced(&1.project))}
 
   @impl Build.Server
-  def handle_info({Task.Compliance, result}, state), do:
-    {:stop, :normal, Task.Compliance.handle_finish(state, result, nil)}
+  def handle_info({Job.Compliance, result}, state), do:
+    {:stop, :normal, Job.Compliance.handle_finish(state, result, nil)}
   def handle_info(other, state), do:
     super(other, state)
 
@@ -78,7 +78,7 @@ defmodule AircloakCI.Build.PullRequest do
     {:via, Registry, {Build.Registry, {:pull_request, pr.number}}}
 
   defp maybe_start_ci(state) do
-    if Enum.any?([Task.Prepare, Task.Compile], &Build.Server.running?(state, &1)) do
+    if Enum.any?([Job.Prepare, Job.Compile], &Build.Server.running?(state, &1)) do
       state
     else
       maybe_start_compliance(state)
@@ -86,10 +86,10 @@ defmodule AircloakCI.Build.PullRequest do
   end
 
   defp maybe_start_compliance(state) do
-    if Build.Server.running?(state, Task.Compliance) do
+    if Build.Server.running?(state, Job.Compliance) do
       state
     else
-      Task.Compliance.run(state)
+      Job.Compliance.run(state)
     end
   end
 

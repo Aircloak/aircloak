@@ -10,8 +10,8 @@ defmodule AircloakCI.Build.Server do
   of these jobs, and notify the callback module when they terminate. The behaviour also takes care of the proper
   cleanup of all child jobs.
 
-  The behaviour immediately starts the project preparation job (powered by `AircloakCI.Build.Task.Prepare`). Once this
-  job is done, the behaviour will start the compilation job (powered by `AircloakCI.Build.Task.Compile`).
+  The behaviour immediately starts the project preparation job (powered by `AircloakCI.Build.Job.Prepare`). Once this
+  job is done, the behaviour will start the compilation job (powered by `AircloakCI.Build.Job.Compile`).
 
   The behaviour will also subscribe to notifications from `AircloakCI.RepoDataProvider`, and handle changes. If the
   related PR is no longer pending, the behaviour will terminate the process. If some new commits are pushed to the PR,
@@ -21,6 +21,7 @@ defmodule AircloakCI.Build.Server do
   use GenServer
   require Logger
   alias AircloakCI.{Github, LocalProject}
+  alias AircloakCI.Build.Job
 
   @type state :: %{
     callback_mod: module,
@@ -104,8 +105,8 @@ defmodule AircloakCI.Build.Server do
     GenServer.call(server, request, timeout)
 
   @doc "Starts the provided function as a child job of the build server."
-  @spec start_task(state, job_name, (() -> any)) :: state
-  def start_task(state, name, task_fun) do
+  @spec start_job(state, job_name, (() -> any)) :: state
+  def start_job(state, name, task_fun) do
     :error = Map.fetch(state.jobs, name)
     {:ok, new_job} = Task.start_link(task_fun)
     put_in(state.jobs[name], new_job)
@@ -125,7 +126,7 @@ defmodule AircloakCI.Build.Server do
     Enum.member?(Map.keys(state.jobs), job_name)
 
   def compiled?(state), do:
-    not Enum.any?([AircloakCI.Build.Task.Prepare, AircloakCI.Build.Task.Compile], &running?(state, &1))
+    not Enum.any?([Job.Prepare, Job.Compile], &running?(state, &1))
 
 
   # -------------------------------------------------------------------
@@ -203,7 +204,7 @@ defmodule AircloakCI.Build.Server do
   end
 
   defp start_preparation_job(state, opts \\ []), do:
-    AircloakCI.Build.Task.Prepare.run(state, invoke_callback(state, :base_branch, []), opts)
+    Job.Prepare.run(state, invoke_callback(state, :base_branch, []), opts)
 
   defp update_project(state), do:
     %{state | project: invoke_callback(state, :create_project, [])}
@@ -231,12 +232,12 @@ defmodule AircloakCI.Build.Server do
     end
   end
 
-  defp handle_job_succeeded(state, AircloakCI.Build.Task.Prepare), do:
+  defp handle_job_succeeded(state, Job.Prepare), do:
     {:noreply, maybe_compile_project(state)}
   defp handle_job_succeeded(state, job_name), do:
     invoke_callback(state, :handle_job_succeeded, [job_name])
 
-  defp handle_job_failed(state, AircloakCI.Build.Task.Prepare, _reason) do
+  defp handle_job_failed(state, Job.Prepare, _reason) do
     LocalProject.clean(state.project)
     {:noreply, start_preparation_job(state, delay: :timer.seconds(10))}
   end
@@ -244,7 +245,7 @@ defmodule AircloakCI.Build.Server do
     invoke_callback(state, :handle_job_failed, [name, reason])
 
   defp maybe_compile_project(state) do
-    if LocalProject.ci_possible?(state.project), do: AircloakCI.Build.Task.Compile.run(state), else: state
+    if LocalProject.ci_possible?(state.project), do: Job.Compile.run(state), else: state
   end
 
   defp invoke_callback(state, fun, args), do:

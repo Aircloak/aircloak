@@ -1,4 +1,4 @@
-defmodule AircloakCI.Build.Task.Compliance do
+  defmodule AircloakCI.Build.Job.Compliance do
   @moduledoc "Execution of the compliance test suite."
 
   alias AircloakCI.{Github, Build, LocalProject, Queue}
@@ -8,7 +8,7 @@ defmodule AircloakCI.Build.Task.Compliance do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Invokes the compliance task."
+  @doc "Invokes the compliance job."
   @spec run(Build.Server.state) :: Build.Server.state
   def run(build_state) do
     if not mergeable?(build_state.source) do
@@ -18,7 +18,7 @@ defmodule AircloakCI.Build.Task.Compliance do
     end
   end
 
-  @doc "Handles the outcome of the compliance task."
+  @doc "Handles the outcome of the compliance job."
   @spec handle_finish(Build.Server.state, :ok | :error | :failure, any) :: Build.Server.state
   def handle_finish(build_state, result, context) do
     diff_sec = :erlang.monotonic_time(:second) - build_state.data.start
@@ -84,7 +84,7 @@ defmodule AircloakCI.Build.Task.Compliance do
   defp start_test(%{source: pr, project: project} = build_state) do
     me = self()
     build_state = %{build_state | data: %{start: :erlang.monotonic_time(:second)}}
-    Build.Server.start_task(build_state, __MODULE__, fn -> send(me, {__MODULE__, run_test(pr, project)}) end)
+    Build.Server.start_job(build_state, __MODULE__, fn -> send(me, {__MODULE__, run_test(pr, project)}) end)
   end
 
   defp run_test(pr, project) do

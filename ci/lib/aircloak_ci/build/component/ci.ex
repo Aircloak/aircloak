@@ -1,20 +1,20 @@
 defmodule AircloakCI.Build.Component.CI do
-  @moduledoc "Implements CI tasks for the CI component."
+  @moduledoc "Implements CI jobs for the CI component."
 
   alias AircloakCI.LocalProject
-  alias AircloakCI.Build.Task
+  alias AircloakCI.Build.Job
 
-  @behaviour Task.Compile
+  @behaviour Job.Compile
 
 
   # -------------------------------------------------------------------
-  # Task.Compile callbacks
+  # Job.Compile callbacks
   # -------------------------------------------------------------------
 
-  @impl Task.Compile
+  @impl Job.Compile
   def name(), do: "ci"
 
-  @impl Task.Compile
+  @impl Job.Compile
   def compile(project, name, log_name), do:
     LocalProject.component_cmds(project, name, log_name,
       [
