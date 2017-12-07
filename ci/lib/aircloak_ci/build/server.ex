@@ -111,6 +111,7 @@ defmodule AircloakCI.Build.Server do
   def start_job(state, name, task_fun) do
     :error = Map.fetch(state.jobs, name)
     {:ok, new_job} = Task.start_link(task_fun)
+    Logger.info("job #{job_display_name(name)} for `#{LocalProject.name(state.project)}` started")
     put_in(state.jobs[name], new_job)
   end
 
@@ -172,9 +173,11 @@ defmodule AircloakCI.Build.Server do
       {name, ^pid} ->
         new_state = update_in(state.jobs, &Map.delete(&1, name))
         case reason do
-          :normal -> handle_job_succeeded(new_state, name)
+          :normal ->
+            Logger.info("job #{job_display_name(name)} for `#{LocalProject.name(state.project)}` succeeded")
+            handle_job_succeeded(new_state, name)
           _other ->
-            Logger.error("job #{inspect(name)} failed")
+            Logger.error("job #{job_display_name(name)} for `#{LocalProject.name(state.project)}` failed")
             handle_job_failed(new_state, name, reason)
         end
 
@@ -253,6 +256,14 @@ defmodule AircloakCI.Build.Server do
 
   defp invoke_callback(state, fun, args), do:
     apply(state.callback_mod, fun, args ++ [state])
+
+  defp job_display_name(job_module), do:
+    job_module
+    |> to_string()
+    |> String.split("AircloakCI.Build.Job.")
+    |> Enum.reverse()
+    |> hd()
+    |> String.downcase()
 
   @doc false
   defmacro __using__(opts) do
