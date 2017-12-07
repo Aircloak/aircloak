@@ -54,6 +54,9 @@ defmodule AircloakCI.JobRunner do
     :ignore |
     {:stop, reason :: any}
 
+  @doc "Invoked to determine the base branch for the given source."
+  @callback base_branch(state) :: Github.API.branch | nil
+
   @doc "Invoked to find the source object."
   @callback refresh_source(state) :: source | nil
 
@@ -63,12 +66,9 @@ defmodule AircloakCI.JobRunner do
   @doc """
   Invoked when there's a change in the PR.
 
-  This callback is not invoked if some additional commits are pushed. In this case, `handle_restart/1` will be invoked.
+  This callback is not invoked if some additional commits are pushed. In this case, the build is restarted.
   """
   @callback handle_source_change(state) :: async_message_result
-
-  @doc "Invoked if some new commits are pushed to the PR."
-  @callback handle_restart(state) :: async_message_result
 
   @doc "Invoked if a child job terminated with the reason `:normal`."
   @callback handle_job_succeeded(job_name, state) :: async_message_result
@@ -111,19 +111,21 @@ defmodule AircloakCI.JobRunner do
     put_in(state.jobs[name], new_job)
   end
 
-  @doc "Terminates all currently running child jobs."
-  @spec terminate_all_jobs(state) :: state
-  def terminate_all_jobs(state) do
-    pids = Map.values(state.jobs)
-    Enum.each(pids, &Process.exit(&1, :shutdown))
-    Enum.each(pids, &await_shutdown_or_kill/1)
-    %{state | jobs: %{}}
+  @doc "Terminates all currently running child jobs, and restarts the build from scratch."
+  @spec restart(state, [before_start: ((state) -> any)]) :: state
+  def restart(state, opts \\ []) do
+    new_state = terminate_all_jobs(state)
+    Keyword.get(opts, :before_start, &(&1)).(new_state)
+    start_preparation_job(new_state)
   end
 
   @doc "Returns true if the given job is running."
   @spec running?(state, job_name) :: boolean
   def running?(state, job_name), do:
     Enum.member?(Map.keys(state.jobs), job_name)
+
+  def compiled?(state), do:
+    not Enum.any?([AircloakCI.Build.Task.Prepare, AircloakCI.Build.Task.Compile], &running?(state, &1))
 
 
   # -------------------------------------------------------------------
@@ -144,6 +146,7 @@ defmodule AircloakCI.JobRunner do
       jobs: %{}
     }
     |> update_project()
+    |> start_preparation_job()
     |> invoke_callback(:init, [arg])
   end
 
@@ -167,10 +170,10 @@ defmodule AircloakCI.JobRunner do
       {name, ^pid} ->
         new_state = update_in(state.jobs, &Map.delete(&1, name))
         case reason do
-          :normal -> invoke_callback(new_state, :handle_job_succeeded, [name])
+          :normal -> handle_job_succeeded(new_state, name)
           _other ->
             Logger.error("job #{inspect(name)} failed")
-            invoke_callback(new_state, :handle_job_failed, [name, reason])
+            handle_job_failed(new_state, name, reason)
         end
 
       nil -> invoke_callback(state, :handle_info, [exit_message])
@@ -192,6 +195,16 @@ defmodule AircloakCI.JobRunner do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp terminate_all_jobs(state) do
+    pids = Map.values(state.jobs)
+    Enum.each(pids, &Process.exit(&1, :shutdown))
+    Enum.each(pids, &await_shutdown_or_kill/1)
+    %{state | jobs: %{}}
+  end
+
+  defp start_preparation_job(state, opts \\ []), do:
+    AircloakCI.Build.Task.Prepare.run(state, invoke_callback(state, :base_branch, []), opts)
+
   defp update_project(state), do:
     %{state | project: invoke_callback(state, :create_project, [])}
 
@@ -199,7 +212,7 @@ defmodule AircloakCI.JobRunner do
     new_state = update_project(%{state | source: new_source})
     cond do
       new_state.project.desired_sha != state.project.desired_sha ->
-        new_state |> terminate_all_jobs() |> invoke_callback(:handle_restart, [])
+        new_state |> terminate_all_jobs() |> start_preparation_job()
 
       new_state.source != state.source ->
         invoke_callback(state, :handle_source_change, [])
@@ -216,6 +229,22 @@ defmodule AircloakCI.JobRunner do
       Process.exit(pid, :kill)
       receive do {:EXIT, ^pid, _reason} -> :ok end
     end
+  end
+
+  defp handle_job_succeeded(state, AircloakCI.Build.Task.Prepare), do:
+    {:noreply, maybe_compile_project(state)}
+  defp handle_job_succeeded(state, job_name), do:
+    invoke_callback(state, :handle_job_succeeded, [job_name])
+
+  defp handle_job_failed(state, AircloakCI.Build.Task.Prepare, _reason) do
+    LocalProject.clean(state.project)
+    {:noreply, start_preparation_job(state, delay: :timer.seconds(10))}
+  end
+  defp handle_job_failed(state, name, reason), do:
+    invoke_callback(state, :handle_job_failed, [name, reason])
+
+  defp maybe_compile_project(state) do
+    if LocalProject.ci_possible?(state.project), do: AircloakCI.Build.Task.Compile.run(state), else: state
   end
 
   defp invoke_callback(state, fun, args), do:
@@ -240,10 +269,6 @@ defmodule AircloakCI.JobRunner do
       @impl behaviour_mod
       def handle_job_failed(job_name, crash_reason, state), do:
         {:noreply, state}
-
-      @impl behaviour_mod
-      def handle_restart(state), do:
-        {:stop, :normal, state}
 
       @impl behaviour_mod
       def handle_call(request, from, state), do:

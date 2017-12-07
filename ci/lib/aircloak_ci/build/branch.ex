@@ -37,6 +37,10 @@ defmodule AircloakCI.Build.Branch do
   # -------------------------------------------------------------------
 
   @impl AircloakCI.JobRunner
+  def base_branch(%{source: %{name: "master"}}), do: nil
+  def base_branch(state), do: Enum.find(state.repo_data.branches, &(&1.name == "master"))
+
+  @impl AircloakCI.JobRunner
   def create_project(state), do:
     LocalProject.for_branch(state.source)
 
@@ -46,24 +50,10 @@ defmodule AircloakCI.Build.Branch do
 
   @impl JobRunner
   def init(nil, state), do:
-    {:ok, start_preparation_job(%{state | data: %{pending_transfers: []}})}
+    {:ok, %{state | data: %{pending_transfers: []}}}
 
   @impl JobRunner
-  def handle_restart(state), do:
-    {:noreply, start_preparation_job(state)}
-
-  @impl JobRunner
-  def handle_job_succeeded(Task.Prepare, state), do: {:noreply, maybe_compile_project(state)}
   def handle_job_succeeded(Task.Compile, state), do: {:noreply, maybe_perform_transfers(state)}
-  def handle_job_succeeded(other, state), do: super(other, state)
-
-  @impl JobRunner
-  def handle_job_failed(Task.Prepare, _reason, state) do
-    LocalProject.clean(state.project)
-    {:noreply, start_preparation_job(state, delay: :timer.seconds(10))}
-  end
-  def handle_job_failed(other, reason, state), do:
-    super(other, reason, state)
 
   @impl JobRunner
   def handle_call({:transfer_project, target_project}, from, state), do:
@@ -81,18 +71,8 @@ defmodule AircloakCI.Build.Branch do
   defp name(branch), do:
     {:via, Registry, {AircloakCI.Build.Registry, {:branch, branch.name}}}
 
-  defp start_preparation_job(state, opts \\ []), do:
-    Task.Prepare.run(state, base_branch(state), opts)
-
-  defp base_branch(%{source: %{name: "master"}}), do: nil
-  defp base_branch(state), do: Enum.find(state.repo_data.branches, &(&1.name == "master"))
-
-  defp maybe_compile_project(state) do
-    if LocalProject.ci_possible?(state.project), do: Task.Compile.run(state), else: state
-  end
-
   defp maybe_perform_transfers(state) do
-    if Enum.any?([Task.Prepare, Task.Compile], &JobRunner.running?(state, &1)) do
+    if JobRunner.compiled?(state) do
       state
     else
       state.data.pending_transfers

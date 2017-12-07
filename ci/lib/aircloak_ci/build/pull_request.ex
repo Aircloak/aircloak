@@ -37,6 +37,9 @@ defmodule AircloakCI.Build.PullRequest do
   # -------------------------------------------------------------------
 
   @impl AircloakCI.JobRunner
+  def base_branch(state), do: Enum.find(state.repo_data.branches, &(&1.name == state.source.target_branch))
+
+  @impl AircloakCI.JobRunner
   def create_project(state), do:
     LocalProject.for_pull_request(state.source)
 
@@ -46,57 +49,25 @@ defmodule AircloakCI.Build.PullRequest do
 
   @impl JobRunner
   def init(nil, state), do:
-    {:ok, start_preparation_job(state)}
-
-  @impl JobRunner
-  def handle_restart(state), do:
-    {:noreply, start_preparation_job(state)}
+    {:ok, state}
 
   @impl JobRunner
   def handle_source_change(state), do:
     {:noreply, maybe_start_ci(state)}
 
   @impl JobRunner
-  def handle_job_succeeded(Task.Prepare, state), do: {:noreply, maybe_compile_project(state)}
   def handle_job_succeeded(Task.Compile, state), do: {:noreply, maybe_start_ci(state)}
   def handle_job_succeeded(Task.Compliance, state), do: {:noreply, state}
 
   @impl JobRunner
-  def handle_job_failed(Task.Prepare, _reason, state) do
-    LocalProject.clean(state.project)
-    {:noreply, start_preparation_job(state, delay: :timer.seconds(10))}
-  end
-  def handle_job_failed(Task.Compliance, crash_reason, state), do:
-    {:stop, :normal, Task.Compliance.handle_finish(state, :failure, crash_reason)}
-  def handle_job_failed(other_job, reason, state), do:
-    super(other_job, reason, state)
-
-  @impl JobRunner
-  def handle_call(:force_build, _from, state) do
-    state = JobRunner.terminate_all_jobs(state)
-    LocalProject.mark_forced(state.project)
-    {:reply, :ok, start_preparation_job(state)}
-  end
+  def handle_call(:force_build, _from, state), do:
+    {:reply, :ok, JobRunner.restart(state, before_start: &LocalProject.mark_forced(&1.project))}
 
   @impl JobRunner
   def handle_info({Task.Compliance, result}, state), do:
     {:stop, :normal, Task.Compliance.handle_finish(state, result, nil)}
   def handle_info(other, state), do:
     super(other, state)
-
-
-  # -------------------------------------------------------------------
-  # Project preparation
-  # -------------------------------------------------------------------
-
-  defp start_preparation_job(state, opts \\ []), do:
-    Task.Prepare.run(state, base_branch(state), opts)
-
-  defp base_branch(state), do: Enum.find(state.repo_data.branches, &(&1.name == state.source.target_branch))
-
-  defp maybe_compile_project(state) do
-    if LocalProject.ci_possible?(state.project), do: Task.Compile.run(state), else: state
-  end
 
 
   # -------------------------------------------------------------------
