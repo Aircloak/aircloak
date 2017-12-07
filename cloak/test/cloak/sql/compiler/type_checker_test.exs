@@ -132,7 +132,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       """)
 
     test "forbids unclear ranges in subquery HAVING", do:
-      assert {:error,  "Only unmodified database columns can be limited by a range."} = compile("""
+      assert {:error, "Only unmodified database columns can be limited by a range."} = compile("""
         SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING sqrt(COUNT(float)) BETWEEN 0 AND 10) x
       """)
 
