@@ -64,7 +64,7 @@ defmodule AircloakCI.Build.PullRequest do
 
   @impl Build.Server
   def handle_job_failed(Job.Compliance, crash_reason, state), do:
-    {:noreply, Job.Compliance.handle_finish(state, :failure, crash_reason)}
+    {:noreply, Job.handle_pr_job_finished(state, "compliance", :failure, crash_reason)}
   def handle_job_failed(other_job, reason, state), do:
     super(other_job, reason, state)
 
@@ -74,7 +74,7 @@ defmodule AircloakCI.Build.PullRequest do
 
   @impl Build.Server
   def handle_info({Job.Compliance, result}, state), do:
-    {:noreply, Job.Compliance.handle_finish(state, result, nil)}
+    {:noreply, Job.handle_pr_job_finished(state, "compliance", result)}
   def handle_info(other, state), do:
     super(other, state)
 

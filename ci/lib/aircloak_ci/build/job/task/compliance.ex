@@ -1,7 +1,7 @@
   defmodule AircloakCI.Build.Job.Compliance do
   @moduledoc "Execution of the compliance test suite."
 
-  alias AircloakCI.{Github, Build, LocalProject}
+  alias AircloakCI.{Build, LocalProject}
   alias AircloakCI.Build.Job
 
 
@@ -19,25 +19,6 @@
     end
   end
 
-  @doc "Handles the outcome of the compliance job."
-  @spec handle_finish(Build.Server.state, :ok | :error | :failure, any) :: Build.Server.state
-  def handle_finish(build_state, result, context) do
-    LocalProject.log(build_state.project, "compliance", "outcome: `#{result}`")
-
-    send_status_to_github(build_state.source, github_status(result), description(result))
-
-    Github.post_comment(
-      build_state.source.repo.owner,
-      build_state.source.repo.name,
-      build_state.source.number,
-      comment(build_state, result, context)
-    )
-
-    LocalProject.mark_finished(build_state.project)
-
-    build_state
-  end
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -46,13 +27,13 @@
   defp mergeable?(pr), do:
     pr.mergeable? and pr.merge_sha != nil
 
-  defp maybe_start_test(build_state) do
+  defp maybe_start_test(%{source: pr} = build_state) do
     if not LocalProject.finished?(build_state.project) or LocalProject.forced?(build_state.project) do
       case check_start_preconditions(build_state) do
         :ok -> start_test(build_state)
 
         {:error, status} ->
-          send_status_to_github(build_state.source, :pending, status)
+          Job.send_github_status(pr.repo, pr.sha, "compliance", pr.status_checks, :pending, status)
           build_state
       end
     else
@@ -85,7 +66,7 @@
   end
 
   defp run_test(pr, project) do
-    send_status_to_github(pr, :pending, "build started")
+    Job.send_github_status(pr.repo, pr.sha, "compliance", pr.status_checks, :pending, "build started")
     with {:error, reason} <- Job.run_queued(:compliance, project, fn -> execute_compliance(project) end) do
       LocalProject.log(project, "compliance", "error: #{reason}")
       :error
@@ -99,56 +80,5 @@
     else
       LocalProject.cmd(project, "compliance", "ci/scripts/run.sh cloak_compliance", timeout: :timer.minutes(10))
     end
-  end
-
-
-  # -------------------------------------------------------------------
-  # Communication with Github
-  # -------------------------------------------------------------------
-
-  defp send_status_to_github(pr, status, description) do
-    status_context = "continuous-integration/aircloak/compliance"
-    current_description = (pr.status_checks[status_context] || %{description: nil}).description
-    if description != current_description, do:
-      Github.put_status_check_state(pr.repo.owner, pr.repo.name, pr.sha, status_context, description, status)
-  end
-
-  defp github_status(:ok), do: :success
-  defp github_status(:error), do: :error
-  defp github_status(:failure), do: :failure
-
-  defp description(:ok), do: "build succeeded"
-  defp description(:error), do: "build errored"
-  defp description(:failure), do: "build failed"
-
-  defp comment(_build_state, :ok, nil), do:
-    "Compliance build succeeded #{happy_emoji()}"
-  defp comment(build_state, :error, nil), do:
-    error_comment(build_state, "Compliance build errored")
-  defp comment(build_state, :failure, crash_reason), do:
-    error_comment(build_state, "Compliance build crashed", "```\n#{Exception.format_exit(crash_reason)}\n```")
-
-  defp error_comment(build_state, title, extra_info \\ nil), do:
-    Enum.join(
-      [
-        "#{title} #{sad_emoji()}",
-        (if not is_nil(extra_info), do: "\n#{extra_info}\n", else: ""),
-        "You can see the full build log by running: `ci/production.sh build_log #{build_state.source.number}`\n",
-        "Log tail:\n", "```", log_tail(build_state.project), "```"
-      ],
-      "\n"
-    )
-
-  defp happy_emoji(), do: Enum.random(["💯", "👍", "😊", "❤️", "🎉", "👏"])
-
-  defp sad_emoji(), do: Enum.random(["😞", "😢", "😟", "💔", "👿", "🔥"])
-
-  defp log_tail(project) do
-    max_lines = 100
-    lines = project |> LocalProject.log_contents("compliance") |> String.split("\n")
-
-    lines
-    |> Enum.drop(max(length(lines) - max_lines, 0))
-    |> Enum.join("\n")
   end
 end

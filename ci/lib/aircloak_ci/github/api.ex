@@ -27,10 +27,12 @@ defmodule AircloakCI.Github.API do
     mergeable?: boolean,
     merge_sha: String.t,
     approved?: boolean,
-    status_checks: %{String.t => %{status: :expected | status_check_state, description: String.t}}
+    status_checks: statuses
   }
 
   @type repo :: %{owner: String.t, name: String.t}
+
+  @type statuses :: %{String.t => %{status: :expected | status_check_state, description: String.t}}
 
   @type status_check_state :: :error | :failure | :pending | :success
 
