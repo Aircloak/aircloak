@@ -117,7 +117,8 @@ defmodule AircloakCI.Build.Server do
   @spec restart(state, [before_start: ((state) -> any)]) :: state
   def restart(state, opts \\ []) do
     new_state = terminate_all_jobs(state)
-    Keyword.get(opts, :before_start, &(&1)).(new_state)
+    before_start = Keyword.get(opts, :before_start, &(&1))
+    before_start.(new_state)
     start_preparation_job(new_state)
   end
 
