@@ -30,34 +30,22 @@ defmodule AircloakCI.Build.Job.Compile do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp compile_project(project) do
-    failed_components =
-      component_modules()
-      |> Enum.map(&Task.async(fn -> compile(project, &1) end))
-      # using infinity, since timeout is enforced in each component compilation task
-      |> Stream.map(&Task.await(&1, :infinity))
-      |> Stream.zip(component_modules())
-      |> Stream.map(
-          fn
-            {:ok, component_mod} ->
-              # setting the status here, to avoid concurrency issues
-              LocalProject.mark_compiled(project, component_mod.name())
-              nil
+  defp compile_project(project), do:
+    component_modules()
+    |> Enum.map(&Task.async(fn -> compile(project, &1) end))
+    # using infinity, since timeout is enforced in each component compilation task
+    |> Stream.map(&Task.await(&1, :infinity))
+    |> Stream.zip(component_modules())
+    |> Enum.each(
+        fn
+          {:ok, component_mod} ->
+            # setting the status here, to avoid concurrency issues
+            LocalProject.mark_compiled(project, component_mod.name())
 
-            {:error, component_mod} ->
-              component_mod.name
-          end
-        )
-      |> Enum.reject(&is_nil/1)
-
-    if Enum.empty?(failed_components) do
-      :ok
-    else
-      error = "error compiling components #{Enum.join(failed_components, ", ")}"
-      LocalProject.log(project, "main", error)
-      {:error, error}
-    end
-  end
+          {:error, component_mod} ->
+            LocalProject.log(project, "main", "error compiling component #{component_mod.name()}")
+        end
+      )
 
   defp component_modules(), do:
     [Component.CI, Component.Cloak]
