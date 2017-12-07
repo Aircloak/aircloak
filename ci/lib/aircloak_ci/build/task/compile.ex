@@ -1,7 +1,7 @@
 defmodule AircloakCI.Build.Task.Compile do
   @moduledoc "Compilation of all components in a local project."
 
-  alias AircloakCI.{LocalProject, Queue}
+  alias AircloakCI.{JobRunner, LocalProject, Queue}
   alias AircloakCI.Build.Component
 
 
@@ -21,8 +21,16 @@ defmodule AircloakCI.Build.Task.Compile do
   # -------------------------------------------------------------------
 
   @doc "Compiles all the components in the given project."
-  @spec run(LocalProject.t) :: :ok | {:error, String.t}
-  def run(project) do
+  @spec run(JobRunner.state) :: JobRunner.state
+  def run(%{project: project} = job_runner_state), do:
+    JobRunner.start_task(job_runner_state, __MODULE__, fn -> compile_project(project) end)
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp compile_project(project) do
     failed_components =
       component_modules()
       |> Enum.map(&Task.async(fn -> compile(project, &1) end))
@@ -50,11 +58,6 @@ defmodule AircloakCI.Build.Task.Compile do
       {:error, error}
     end
   end
-
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
 
   defp component_modules(), do:
     [Component.CI, Component.Cloak]

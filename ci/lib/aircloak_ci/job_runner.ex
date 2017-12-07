@@ -169,7 +169,7 @@ defmodule AircloakCI.JobRunner do
         case reason do
           :normal -> invoke_callback(new_state, :handle_job_succeeded, [name])
           _other ->
-            Logger.error("job #{inspect(name)} failed: #{Exception.format_exit(reason)}")
+            Logger.error("job #{inspect(name)} failed")
             invoke_callback(new_state, :handle_job_failed, [name, reason])
         end
 
