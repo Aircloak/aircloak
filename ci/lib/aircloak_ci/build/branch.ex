@@ -72,14 +72,14 @@ defmodule AircloakCI.Build.Branch do
     {:via, Registry, {AircloakCI.Build.Registry, {:branch, branch.name}}}
 
   defp maybe_perform_transfers(state) do
-    if Build.Server.compiled?(state) do
-      state
-    else
+    if state.prepared? and not Build.Server.running?(state, Job.Compile) do
       state.data.pending_transfers
       |> Enum.reverse()
       |> Enum.each(fn({target_project, from}) -> transfer_project(state, target_project, from) end)
 
       put_in(state.data.pending_transfers, [])
+    else
+      state
     end
   end
 

@@ -77,13 +77,8 @@ defmodule AircloakCI.Build.PullRequest do
   defp name(pr), do:
     {:via, Registry, {Build.Registry, {:pull_request, pr.number}}}
 
-  defp maybe_start_ci(state) do
-    if Enum.any?([Job.Prepare, Job.Compile], &Build.Server.running?(state, &1)) do
-      state
-    else
-      maybe_start_compliance(state)
-    end
-  end
+  defp maybe_start_ci(%{compiled?: false} = state), do: state
+  defp maybe_start_ci(%{compiled?: true} = state), do: maybe_start_compliance(state)
 
   defp maybe_start_compliance(state) do
     if Build.Server.running?(state, Job.Compliance) do

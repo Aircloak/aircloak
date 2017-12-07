@@ -30,6 +30,8 @@ defmodule AircloakCI.Build.Server do
     project: LocalProject.t,
     data: any,
     jobs: jobs,
+    prepared?: boolean,
+    compiled?: boolean,
   }
 
   @type source :: Github.API.pull_request | Github.API.branch
@@ -125,9 +127,6 @@ defmodule AircloakCI.Build.Server do
   def running?(state, job_name), do:
     Enum.member?(Map.keys(state.jobs), job_name)
 
-  def compiled?(state), do:
-    not Enum.any?([Job.Prepare, Job.Compile], &running?(state, &1))
-
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -144,7 +143,9 @@ defmodule AircloakCI.Build.Server do
       source: source,
       project: nil,
       data: nil,
-      jobs: %{}
+      jobs: %{},
+      prepared?: false,
+      compiled?: false,
     }
     |> update_project()
     |> start_preparation_job()
@@ -204,7 +205,7 @@ defmodule AircloakCI.Build.Server do
   end
 
   defp start_preparation_job(state, opts \\ []), do:
-    Job.Prepare.run(state, invoke_callback(state, :base_branch, []), opts)
+    Job.Prepare.run(%{state | prepared?: false, compiled?: false}, invoke_callback(state, :base_branch, []), opts)
 
   defp update_project(state), do:
     %{state | project: invoke_callback(state, :create_project, [])}
@@ -233,7 +234,9 @@ defmodule AircloakCI.Build.Server do
   end
 
   defp handle_job_succeeded(state, Job.Prepare), do:
-    {:noreply, maybe_compile_project(state)}
+    {:noreply, maybe_compile_project(%{state | prepared?: true})}
+  defp handle_job_succeeded(state, Job.Compile), do:
+    invoke_callback(%{state | compiled?: true}, :handle_job_succeeded, [Job.Compile])
   defp handle_job_succeeded(state, job_name), do:
     invoke_callback(state, :handle_job_succeeded, [job_name])
 
