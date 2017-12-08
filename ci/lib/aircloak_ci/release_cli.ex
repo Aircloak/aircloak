@@ -20,7 +20,7 @@ defmodule AircloakCI.ReleaseCLI do
   def print_build_log(pull_request_number) do
     AircloakCI.Github.pull_request("aircloak", "aircloak", pull_request_number)
     |> AircloakCI.LocalProject.for_pull_request()
-    |> AircloakCI.LocalProject.log_contents("main")
+    |> AircloakCI.LocalProject.log_contents("compliance")
     |> IO.puts()
   end
 end
