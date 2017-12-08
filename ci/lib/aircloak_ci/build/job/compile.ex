@@ -48,7 +48,7 @@ defmodule AircloakCI.Build.Job.Compile do
       )
 
   defp component_modules(), do:
-    [Component.CI, Component.Cloak]
+    [Component.Cloak]
 
   defp compile(project, component_mod) do
     component_name = component_mod.name()
