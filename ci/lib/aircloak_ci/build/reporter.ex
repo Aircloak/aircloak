@@ -42,7 +42,7 @@ defmodule AircloakCI.Build.Reporter do
   defp post_result_to_github(build_state, job_name, result, extra_info) do
     report_status(
       build_state.source.repo,
-      LocalProject.target_sha(build_state.project),
+      build_state.source.sha,
       job_name,
       Map.get(build_state.source, :status_checks, %{}),
       github_status(result),

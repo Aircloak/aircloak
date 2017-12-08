@@ -64,7 +64,7 @@
       build_state,
       job_name(),
       fn -> run_test(build_server, project) end,
-      report_status: {pr.repo, pr.merge_sha}
+      report_status: {pr.repo, pr.sha}
     )
 
   defp run_test(build_server, project) do
