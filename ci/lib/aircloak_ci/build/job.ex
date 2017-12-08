@@ -39,15 +39,12 @@ defmodule AircloakCI.Build.Job do
     :ok
   end
 
-  @doc "Handles the finish of a PR job."
-  @spec handle_pr_job_finished(Build.Server.state, String.t, :ok | :error | :failure, any) :: Build.Server.state
-  def handle_pr_job_finished(%{source: pr} = build_state, job_name, result, extra_info \\ nil) do
-    LocalProject.log(build_state.project, job_name, "outcome: `#{result}`")
-
-    send_github_status(pr.repo, pr.sha, job_name, pr.status_checks, github_status(result), result_description(result))
-    Github.comment_on_issue(pr.repo.owner, pr.repo.name, pr.number, comment(build_state, job_name, result, extra_info))
+  @doc "Reports the result of the given job."
+  @spec report_result(Build.Server.state, String.t, :ok | :error | :failure, any) :: Build.Server.state
+  def report_result(build_state, job_name, result, extra_info \\ nil) do
+    LocalProject.log(build_state.project, job_name, "result: `#{result}`")
+    post_result_to_github(build_state, job_name, result, extra_info)
     LocalProject.mark_finished(build_state.project)
-
     build_state
   end
 
@@ -67,14 +64,32 @@ defmodule AircloakCI.Build.Job do
   defp result_description(:error), do: "errored"
   defp result_description(:failure), do: "failed"
 
-  defp comment(_build_state, job_name, :ok, nil), do:
-    "#{String.capitalize(job_name)} job succeeded #{happy_emoji()}"
-  defp comment(build_state, job_name, :error, nil), do:
-    error_comment(build_state, job_name, "errored")
-  defp comment(build_state, job_name, :failure, crash_reason), do:
-    error_comment(build_state, job_name, "crashed", "```\n#{Exception.format_exit(crash_reason)}\n```")
+  defp post_result_to_github(build_state, job_name, result, extra_info) do
+    send_github_status(
+      build_state.source.repo,
+      LocalProject.target_sha(build_state.project),
+      job_name,
+      Map.get(build_state.source, :status_checks, %{}),
+      github_status(result),
+      result_description(result)
+    )
 
-  defp error_comment(build_state, job_name, crash_verb, extra_info \\ nil), do:
+    post_job_comment(build_state, comment_body(build_state, job_name, result, extra_info))
+  end
+
+  defp post_job_comment(%{source_type: :pull_request, source: pr}, body), do:
+    Github.comment_on_issue(pr.repo.owner, pr.repo.name, pr.number, body)
+  defp post_job_comment(%{source_type: :branch, source: branch}, body), do:
+    Github.comment_on_commit(branch.repo.owner, branch.repo.name, branch.sha, body)
+
+  defp comment_body(_build_state, job_name, :ok, nil), do:
+    "#{String.capitalize(job_name)} job succeeded #{happy_emoji()}"
+  defp comment_body(build_state, job_name, :error, nil), do:
+    error_comment_body(build_state, job_name, "errored")
+  defp comment_body(build_state, job_name, :failure, crash_reason), do:
+    error_comment_body(build_state, job_name, "crashed", "```\n#{Exception.format_exit(crash_reason)}\n```")
+
+  defp error_comment_body(build_state, job_name, crash_verb, extra_info \\ nil), do:
     Enum.join(
       [
         "#{String.capitalize(job_name)} job #{crash_verb} #{sad_emoji()}",

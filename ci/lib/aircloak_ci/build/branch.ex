@@ -100,5 +100,5 @@ defmodule AircloakCI.Build.Branch do
 
   @doc false
   def start_link(branch, repo_data), do:
-    Build.Server.start_link(__MODULE__, branch.name, repo_data, nil, name: name(branch))
+    Build.Server.start_link(__MODULE__, :branch, branch.name, repo_data, nil, name: name(branch))
 end

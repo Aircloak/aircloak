@@ -4,7 +4,7 @@ defmodule AircloakCI.LocalProject do
   alias AircloakCI.{CmdRunner, Github}
   require Logger
 
-  defstruct [:name, :build_folder, :log_folder, :repo, :base_branch, :update_git_command, :checkout, :desired_sha]
+  defstruct [:name, :build_folder, :log_folder, :repo, :base_branch, :update_git_command, :checkout, :target_sha]
 
   @opaque t :: %__MODULE__{
     name: String.t,
@@ -14,7 +14,7 @@ defmodule AircloakCI.LocalProject do
     base_branch: String.t | nil,
     update_git_command: String.t,
     checkout: String.t,
-    desired_sha: String.t
+    target_sha: String.t
   }
 
 
@@ -33,7 +33,7 @@ defmodule AircloakCI.LocalProject do
       repo: pr.repo,
       update_git_command: "fetch --force origin pull/#{pr.number}/merge",
       checkout: pr.merge_sha,
-      desired_sha: pr.merge_sha
+      target_sha: pr.merge_sha
     })
 
   @doc "Prepares the project for the given branch."
@@ -47,7 +47,7 @@ defmodule AircloakCI.LocalProject do
       repo: branch.repo,
       update_git_command: "fetch --force origin #{branch.name}",
       checkout: branch.sha,
-      desired_sha: branch.sha
+      target_sha: branch.sha
     })
 
   @doc "Cleans the entire build folder of the project."
@@ -61,6 +61,11 @@ defmodule AircloakCI.LocalProject do
   @spec name(t) :: String.t
   def name(project), do:
     project.name
+
+  @doc "Returns the target SHA of this project."
+  @spec target_sha(t) :: String.t
+  def target_sha(project), do:
+    project.target_sha
 
   @doc "Brings the local project to the desired sha."
   @spec update_code(t) :: :ok | {:error, String.t}
@@ -155,17 +160,17 @@ defmodule AircloakCI.LocalProject do
   @doc "Returns true if the build for this project has finished."
   @spec finished?(t) :: boolean
   def finished?(project), do:
-    state(project).finished_at == project.desired_sha
+    state(project).finished_at == project.target_sha
 
   @doc "Marks the project for the force build."
   @spec mark_forced(t) :: :ok
   def mark_forced(project), do:
-    update_state(project, &%{&1 | forced_at: project.desired_sha})
+    update_state(project, &%{&1 | forced_at: project.target_sha})
 
   @doc "Returns whether the project has been marked for the force build."
   @spec forced?(t) :: boolean
   def forced?(project), do:
-    state(project).forced_at == project.desired_sha
+    state(project).forced_at == project.target_sha
 
   @doc "Marks the project component as compiled."
   @spec mark_compiled(t, String.t) :: :ok
@@ -175,7 +180,7 @@ defmodule AircloakCI.LocalProject do
   @doc "Returns true if the project component is compiled."
   @spec compiled?(t, String.t) :: boolean
   def compiled?(project, component), do:
-    up_to_date?(project) and state(project).compiled_components[component] == project.desired_sha
+    up_to_date?(project) and state(project).compiled_components[component] == project.target_sha
 
   @doc "Executes the command in the project folder."
   @spec cmd(t, String.t, String.t, CmdRunner.opts) :: :ok | {:error, String.t}
@@ -329,7 +334,7 @@ defmodule AircloakCI.LocalProject do
     %{initialized?: false, compiled_components: %{}, forced_at: nil, finished_at: nil}
 
   defp up_to_date?(project), do:
-    current_sha(project) == project.desired_sha
+    current_sha(project) == project.target_sha
 
   defp current_sha(project), do:
     # `:os.cmd` is used since `System.cmd` starts a port which causes an :EXIT message to be delivered to the process.

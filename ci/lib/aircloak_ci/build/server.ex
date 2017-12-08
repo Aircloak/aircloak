@@ -25,6 +25,7 @@ defmodule AircloakCI.Build.Server do
 
   @type state :: %{
     callback_mod: module,
+    source_type: source_type,
     source_id: source_id,
     source: source,
     base_branch: Github.API.branch | nil,
@@ -34,6 +35,8 @@ defmodule AircloakCI.Build.Server do
     prepared?: boolean,
     compiled?: boolean,
   }
+
+  @type source_type :: :pull_request | :branch
 
   @type source_id :: any
 
@@ -95,9 +98,9 @@ defmodule AircloakCI.Build.Server do
   # -------------------------------------------------------------------
 
   @doc "Starts a build server related to the given pull request."
-  @spec start_link(module, source_id, Github.API.repo_data, any, GenServer.options) :: GenServer.on_start
-  def start_link(callback_mod, source_id, repo_data, arg, gen_server_opts \\ []), do:
-    GenServer.start_link(__MODULE__, {callback_mod, source_id, repo_data, arg}, gen_server_opts)
+  @spec start_link(module, source_type, source_id, Github.API.repo_data, any, GenServer.options) :: GenServer.on_start
+  def start_link(callback_mod, source_type, source_id, repo_data, arg, gen_server_opts \\ []), do:
+    GenServer.start_link(__MODULE__, {callback_mod, source_type, source_id, repo_data, arg}, gen_server_opts)
 
   @doc "Makes a synchronous request to the given build server."
   @spec call(GenServer.server, any, pos_integer | :infinity) :: any
@@ -133,7 +136,7 @@ defmodule AircloakCI.Build.Server do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init({callback_mod, source_id, repo_data, arg}) do
+  def init({callback_mod, source_type, source_id, repo_data, arg}) do
     Process.flag(:trap_exit, true)
     AircloakCI.RepoDataProvider.subscribe()
 
@@ -142,6 +145,7 @@ defmodule AircloakCI.Build.Server do
 
     %{
       callback_mod: callback_mod,
+      source_type: source_type,
       source_id: source_id,
       source: build_source.source,
       base_branch: build_source.base_branch,
@@ -217,7 +221,7 @@ defmodule AircloakCI.Build.Server do
   defp update_source(state, %{source: source, base_branch: base_branch, project: project}) do
     new_state = %{state | source: source, base_branch: base_branch, project: project}
     cond do
-      new_state.project.desired_sha != state.project.desired_sha ->
+      LocalProject.target_sha(new_state.project) != LocalProject.target_sha(state.project) ->
         new_state |> terminate_all_jobs() |> start_preparation_job()
 
       new_state.source != state.source ->
