@@ -9,9 +9,6 @@ Enum.each([
   "bucket(<col1> by <col2> align lower)",
   "bucket(<col1> by <col2> align upper)",
   "bucket(<col1> by <col2> align middle)",
-  # MongoDB doesn't support integers, so the columns will be exposed as reals.
-  "div(cast(<col1> AS integer), cast(<col2> AS integer))",
-  "mod(cast(<col1> AS integer), cast(<col2> AS integer))",
 ], fn(function) ->
   defmodule Module.concat([Compliance.BinaryNumericalFunctions, String.to_atom(function), Test]) do
     use ComplianceCase, async: true

@@ -132,9 +132,16 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       """)
 
     test "forbids unclear ranges in subquery HAVING", do:
-      assert {:error,  "Only unmodified database columns can be limited by a range."} = compile("""
+      assert {:error, "Only unmodified database columns can be limited by a range."} = compile("""
         SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING sqrt(COUNT(float)) BETWEEN 0 AND 10) x
       """)
+
+    test "allows clear implicit ranges within another function", do:
+      assert {:ok, _, _} = compile("SELECT abs(ceil(float)) + 1 FROM table")
+
+    test "considers cast to integer as an implicit range", do:
+      assert {:error, "Only unmodified database columns can be limited by a range."} =
+        compile("SELECT cast(float + 1 as integer) FROM table")
 
     test "allows casts in ranges", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE CAST(string AS INTEGER) BETWEEN 0 AND 10")

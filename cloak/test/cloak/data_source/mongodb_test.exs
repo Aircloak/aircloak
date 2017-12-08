@@ -223,7 +223,7 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "functions in conditions on virtual table and column", context do
-    assert_query context, "SELECT COUNT(name) FROM #{@table}_bills WHERE bills.ids# % 2 = 0",
+    assert_query context, "SELECT COUNT(name) FROM #{@table}_bills WHERE pow(bills.ids#, 0) = 1",
       %{rows: [%{occurrences: 1, row: [10]}]}
   end
 
@@ -250,11 +250,6 @@ defmodule Cloak.DataSource.MongoDBTest do
   test "string length", context do
     assert_query context, "SELECT v FROM (SELECT _id, length(name) AS v FROM #{@table}) AS t",
       %{rows: [%{occurrences: 9, row: [5]}, %{occurrences: 9, row: [nil]}]}
-  end
-
-  test "integer division", context do
-    assert_query context, "SELECT v FROM (SELECT _id, div(CAST(age AS INTEGER), -7) AS v FROM #{@table}) AS t",
-      %{rows: [%{occurrences: 10, row: [-4]}, %{occurrences: 9, row: [nil]}]}
   end
 
   test "select constant", context do

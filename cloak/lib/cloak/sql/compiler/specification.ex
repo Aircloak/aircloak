@@ -45,7 +45,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> compile_aliases()
     |> compile_columns()
     |> compile_references()
-    |> remove_redundant_uid_casts()
+    |> remove_redundant_casts()
     |> cast_where_clauses()
     |> Validation.verify_query()
 
@@ -565,10 +565,11 @@ defmodule Cloak.Sql.Compiler.Specification do
   # UID columns
   # -------------------------------------------------------------------
 
-  defp remove_redundant_uid_casts(query), do:
+  defp remove_redundant_casts(query), do:
     # A cast which doesn't change the expression type is removed.
-    # The main motivation for doing this is because Tableau explicitly casts string columns to text, which
-    # makes problems for our join condition check.
+    # The main motivation for doing this is because Tableau explicitly casts string columns to text,
+    # which makes problems for our join condition checks and make function usage restrictions trigger when
+    # they wouldn't strictly speaking be necessary.
     Lenses.terminals()
     |> Lens.satisfy(&match?(%Expression{function: {:cast, type}, function_args: [%Expression{type: type}]}, &1))
     |> Lens.map(query, &hd(&1.function_args))

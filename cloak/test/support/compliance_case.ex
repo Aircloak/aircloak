@@ -69,20 +69,12 @@ defmodule ComplianceCase do
   def integer_columns(), do:
     [
       # {column name, table name, uid column in table}
-      {"length(name)", "users", "user_id"},
-      {"length(title)", "notes", "uid"},
       {"age", "users", "user_id"},
       {"id", "notes", "uid"},
       {"user_fk", "addresses", "uid"},
       {"home.postal_code", "addresses", "uid"},
       {"work.postal_code", "addresses", "uid"},
-      {"length(home.city)", "addresses", "uid"},
-      {"length(work.city)", "addresses", "uid"},
       {"user_fk", "notes", "uid"},
-      {"length(content)", "notes", "uid"},
-      {"length(title)", "notes_changes", "uid"},
-      {"length(content)", "notes_changes", "uid"},
-      {"length(changes.change)", "notes_changes", "uid"},
       {"note_id", "notes_changes", "uid"},
     ]
 
