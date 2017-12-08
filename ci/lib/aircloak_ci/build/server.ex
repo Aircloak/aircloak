@@ -244,7 +244,7 @@ defmodule AircloakCI.Build.Server do
     new_state = %{state | source: source, base_branch: base_branch, project: project}
     cond do
       LocalProject.target_sha(new_state.project) != LocalProject.target_sha(state.project) ->
-        new_state |> terminate_all_jobs() |> start_preparation_job()
+        {:noreply, new_state |> terminate_all_jobs() |> start_preparation_job()}
 
       new_state.source != state.source ->
         invoke_callback(state, :handle_source_change, [])
