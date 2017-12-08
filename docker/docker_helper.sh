@@ -482,3 +482,31 @@ function package_image {
   build_and_push_to_registry
   untag_registry_tags "$image_name"
 }
+
+function reachable_heads {
+  # use all local refs
+  echo "$(git show-ref --head)" | awk '{print $1}'
+
+  # use remote refs
+  echo "$(git ls-remote --heads)" | awk '{print $1}'
+
+  # use remote PR merges
+  echo "$(git ls-remote | grep merge)" | awk '{print $1}'
+
+  # always include the latest tag
+  echo "latest"
+}
+
+function remove_old_git_head_versions {
+  # For the given image, removes all version tags which do not correspond to the reachable local or remote HEAD,
+  # including pending pull requests.
+
+  image=$1
+  known_heads=$(reachable_heads | uniq)
+  for existing_version in $(docker images | grep $image | awk '{print $2}'); do
+    if [[ ! "$known_heads" =~ "$existing_version" ]]; then
+      echo "removing image tag for $image:$existing_version"
+      docker rmi $image:$existing_version
+    fi
+  done
+}
