@@ -247,10 +247,10 @@ defmodule AircloakCI.Build.Server do
         {:noreply, new_state |> terminate_all_jobs() |> start_preparation_job()}
 
       new_state.source != state.source ->
-        invoke_callback(state, :handle_source_change, [])
+        invoke_callback(new_state, :handle_source_change, [])
 
       true ->
-        {:noreply, state}
+        {:noreply, new_state}
     end
   end
 
