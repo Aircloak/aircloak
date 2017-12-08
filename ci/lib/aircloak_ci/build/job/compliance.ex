@@ -84,7 +84,7 @@
       IO.puts("simulating compliance execution")
       :timer.sleep(:timer.seconds(1))
     else
-      LocalProject.cmd(project, "compliance", "ci/scripts/run.sh cloak_compliance", timeout: :timer.minutes(10))
+      LocalProject.cmd(project, "compliance", "ci/scripts/run.sh cloak_compliance", timeout: :timer.hours(1))
     end
   end
 end
