@@ -130,6 +130,11 @@ defmodule AircloakCI.Build.Server do
   def running?(state, job_name), do:
     Enum.member?(Map.keys(state.jobs), job_name)
 
+  @doc "Reports the job result."
+  @spec report_result(pid, job_name, :ok | :error | :failure, any) :: :ok
+  def report_result(pid, job_name, result, extra_info \\ nil), do:
+    GenServer.cast(pid, {:report_result, job_name, result, extra_info})
+
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -162,6 +167,10 @@ defmodule AircloakCI.Build.Server do
   @impl GenServer
   def handle_call(request, from, state), do:
     invoke_callback(state, :handle_call, [request, from])
+
+  @impl GenServer
+  def handle_cast({:report_result, job_name, result, extra_info}, state), do:
+    {:noreply, AircloakCI.Build.Job.report_result(state, job_name, result, extra_info)}
 
   @impl GenServer
   def handle_info({:repo_data, repo_data}, state) do

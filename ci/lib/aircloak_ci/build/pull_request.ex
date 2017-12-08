@@ -60,23 +60,11 @@ defmodule AircloakCI.Build.PullRequest do
 
   @impl Build.Server
   def handle_job_succeeded(Job.Compile, state), do: {:noreply, maybe_start_ci(state)}
-  def handle_job_succeeded(Job.Compliance, state), do: {:noreply, state}
-
-  @impl Build.Server
-  def handle_job_failed(Job.Compliance, crash_reason, state), do:
-    {:noreply, Job.report_result(state, "compliance", :failure, crash_reason)}
-  def handle_job_failed(other_job, reason, state), do:
-    super(other_job, reason, state)
+  def handle_job_succeeded(other, state), do: super(other, state)
 
   @impl Build.Server
   def handle_call(:force_build, _from, state), do:
     {:reply, :ok, Build.Server.restart(state, before_start: &LocalProject.mark_forced(&1.project, "compliance"))}
-
-  @impl Build.Server
-  def handle_info({Job.Compliance, result}, state), do:
-    {:noreply, Job.report_result(state, "compliance", result)}
-  def handle_info(other, state), do:
-    super(other, state)
 
 
   # -------------------------------------------------------------------

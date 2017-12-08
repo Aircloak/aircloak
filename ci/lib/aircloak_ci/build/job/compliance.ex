@@ -25,7 +25,7 @@
 
   defp maybe_start_test(%{source: pr} = build_state) do
     case check_start_preconditions(build_state) do
-      :ok -> start_test(build_state)
+      :ok -> start_test(self(), build_state)
 
       {:error, status} ->
         Job.send_github_status(pr.repo, pr.sha, "compliance", pr.status_checks, :pending, status)
@@ -52,17 +52,19 @@
     (pr.status_checks["continuous-integration/travis-ci/pr"] || %{status: nil}).status == :success and
     (pr.status_checks["continuous-integration/travis-ci/push"] || %{status: nil}).status == :success
 
-  defp start_test(%{source: pr, project: project} = build_state) do
-    me = self()
-    Build.Server.start_job(build_state, __MODULE__, fn -> send(me, {__MODULE__, run_test(pr, project)}) end)
-  end
+  defp start_test(build_server, %{source: pr, project: project} = build_state), do:
+    Build.Server.start_job(build_state, __MODULE__, fn -> run_test(build_server, pr, project) end)
 
-  defp run_test(pr, project) do
+  defp run_test(build_server, pr, project) do
     Job.send_github_status(pr.repo, pr.sha, "compliance", pr.status_checks, :pending, "build started")
-    with {:error, reason} <- Job.run_queued(:compliance, project, fn -> execute_compliance(project) end) do
-      LocalProject.log(project, "compliance", "error: #{reason}")
-      :error
-    end
+    Job.run_queued(:compliance, project, [report_result: build_server],
+      fn ->
+        with {:error, reason} <- execute_compliance(project) do
+          LocalProject.log(project, "compliance", "error: #{reason}")
+          :error
+        end
+      end
+    )
   end
 
   defp execute_compliance(project) do
