@@ -23,7 +23,7 @@ defmodule AircloakCI.Build.Job.Compile do
   @doc "Compiles all the components in the given project."
   @spec run(Build.Server.state) :: Build.Server.state
   def run(%{project: project} = build_state), do:
-    Build.Server.start_job(build_state, __MODULE__, fn -> compile_project(project) end)
+    Build.Server.start_job(build_state, "compile", fn -> compile_project(project) end)
 
 
   # -------------------------------------------------------------------

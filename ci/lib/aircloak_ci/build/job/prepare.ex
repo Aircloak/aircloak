@@ -10,7 +10,7 @@ defmodule AircloakCI.Build.Job.Prepare do
   @doc "Compiles all the components in the given project."
   @spec run(Build.Server.t, [delay: non_neg_integer]) :: Build.Server.t
   def run(%{project: project, base_branch: base_branch} = build_state, opts \\ []), do:
-    Build.Server.start_job(build_state, __MODULE__, fn -> initialize_repo(project, base_branch, opts) end)
+    Build.Server.start_job(build_state, "prepare", fn -> initialize_repo(project, base_branch, opts) end)
 
 
   # -------------------------------------------------------------------

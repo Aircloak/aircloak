@@ -59,7 +59,7 @@ defmodule AircloakCI.Build.PullRequest do
     {:noreply, maybe_start_ci(state)}
 
   @impl Build.Server
-  def handle_job_succeeded(Job.Compile, state), do: {:noreply, maybe_start_ci(state)}
+  def handle_job_succeeded("compile", state), do: {:noreply, maybe_start_ci(state)}
   def handle_job_succeeded(other, state), do: super(other, state)
 
   @impl Build.Server

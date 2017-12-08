@@ -44,7 +44,7 @@ defmodule AircloakCI.Build.Server do
 
   @opaque jobs :: %{job_name => pid}
 
-  @type job_name :: any
+  @type job_name :: String.t
 
   @type async_message_result ::
     {:noreply, state} |
@@ -114,7 +114,7 @@ defmodule AircloakCI.Build.Server do
   def start_job(state, name, task_fun, opts \\ []) do
     :error = Map.fetch(state.jobs, name)
     {:ok, new_job} = Task.start_link(task_fun)
-    Logger.info("job #{job_display_name(name)} for `#{LocalProject.name(state.project)}` started")
+    Logger.info("job #{name} for `#{LocalProject.name(state.project)}` started")
 
     case Keyword.fetch(opts, :report_status) do
       :error -> :ok
@@ -199,10 +199,11 @@ defmodule AircloakCI.Build.Server do
         new_state = update_in(state.jobs, &Map.delete(&1, name))
         case reason do
           :normal ->
-            Logger.info("job #{job_display_name(name)} for `#{LocalProject.name(state.project)}` succeeded")
+            Logger.info("job #{name} for `#{LocalProject.name(state.project)}` finished")
             handle_job_succeeded(new_state, name)
+
           _other ->
-            Logger.error("job #{job_display_name(name)} for `#{LocalProject.name(state.project)}` failed")
+            Logger.error("job #{name} for `#{LocalProject.name(state.project)}` crashed")
             handle_job_failed(new_state, name, reason)
         end
 
@@ -261,14 +262,14 @@ defmodule AircloakCI.Build.Server do
     end
   end
 
-  defp handle_job_succeeded(state, Job.Prepare), do:
+  defp handle_job_succeeded(state, "prepare"), do:
     {:noreply, maybe_compile_project(%{state | prepared?: true})}
-  defp handle_job_succeeded(state, Job.Compile), do:
-    invoke_callback(%{state | compiled?: true}, :handle_job_succeeded, [Job.Compile])
+  defp handle_job_succeeded(state, "compile" = job_name), do:
+    invoke_callback(%{state | compiled?: true}, :handle_job_succeeded, [job_name])
   defp handle_job_succeeded(state, job_name), do:
     invoke_callback(state, :handle_job_succeeded, [job_name])
 
-  defp handle_job_failed(state, Job.Prepare, _reason) do
+  defp handle_job_failed(state, "prepare", _reason) do
     LocalProject.clean(state.project)
     {:noreply, start_preparation_job(state, delay: :timer.seconds(10))}
   end
@@ -281,14 +282,6 @@ defmodule AircloakCI.Build.Server do
 
   defp invoke_callback(state, fun, args), do:
     apply(state.callback_mod, fun, args ++ [state])
-
-  defp job_display_name(job_module), do:
-    job_module
-    |> to_string()
-    |> String.split("AircloakCI.Build.")
-    |> Enum.reverse()
-    |> hd()
-    |> Macro.underscore()
 
   @doc false
   defmacro __using__(opts) do

@@ -4,7 +4,6 @@ defmodule AircloakCI.Build.Branch do
   use AircloakCI.Build.Server, restart: :temporary
   require Logger
   alias AircloakCI.{Github, Build, LocalProject}
-  alias AircloakCI.Build.Job
 
 
   # -------------------------------------------------------------------
@@ -55,7 +54,7 @@ defmodule AircloakCI.Build.Branch do
     {:ok, %{state | data: %{pending_transfers: []}}}
 
   @impl Build.Server
-  def handle_job_succeeded(Job.Compile, state), do: {:noreply, maybe_perform_transfers(state)}
+  def handle_job_succeeded("compile", state), do: {:noreply, maybe_perform_transfers(state)}
 
   @impl Build.Server
   def handle_call({:transfer_project, target_project}, from, state), do:
@@ -77,7 +76,7 @@ defmodule AircloakCI.Build.Branch do
     {:via, Registry, {AircloakCI.Build.Registry, {:branch, branch.name}}}
 
   defp maybe_perform_transfers(state) do
-    if state.prepared? and not Build.Server.running?(state, Job.Compile) do
+    if state.prepared? and not Build.Server.running?(state, "compile") do
       state.data.pending_transfers
       |> Enum.reverse()
       |> Enum.each(fn({target_project, from}) -> transfer_project(state, target_project, from) end)
