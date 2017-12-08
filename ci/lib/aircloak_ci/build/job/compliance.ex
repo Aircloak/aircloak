@@ -28,7 +28,7 @@
       :ok -> start_test(self(), build_state)
 
       {:error, status} ->
-        Job.send_github_status(pr.repo, pr.sha, "compliance", pr.status_checks, :pending, status)
+        Build.Reporter.report_status(pr.repo, pr.sha, "compliance", pr.status_checks, :pending, status)
         build_state
     end
   end
@@ -56,7 +56,7 @@
     Build.Server.start_job(build_state, __MODULE__, fn -> run_test(build_server, pr, project) end)
 
   defp run_test(build_server, pr, project) do
-    Job.send_github_status(pr.repo, pr.sha, "compliance", pr.status_checks, :pending, "build started")
+    Build.Reporter.report_status(pr.repo, pr.sha, "compliance", pr.status_checks, :pending, "build started")
     Job.run_queued(:compliance, project, [report_result: build_server],
       fn ->
         with {:error, reason} <- execute_compliance(project) do

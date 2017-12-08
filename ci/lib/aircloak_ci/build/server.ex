@@ -169,8 +169,10 @@ defmodule AircloakCI.Build.Server do
     invoke_callback(state, :handle_call, [request, from])
 
   @impl GenServer
-  def handle_cast({:report_result, job_name, result, extra_info}, state), do:
-    {:noreply, AircloakCI.Build.Job.report_result(state, job_name, result, extra_info)}
+  def handle_cast({:report_result, job_name, result, extra_info}, state) do
+    AircloakCI.Build.Reporter.report_result(state, job_name, result, extra_info)
+    {:noreply, state}
+  end
 
   @impl GenServer
   def handle_info({:repo_data, repo_data}, state) do
