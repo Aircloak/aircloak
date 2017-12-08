@@ -1,7 +1,6 @@
 defmodule AircloakCI.Build.Job.StandardTest do
   @moduledoc "Execution of standard tests."
 
-  alias AircloakCI.Build
   alias AircloakCI.Build.Component
 
 
