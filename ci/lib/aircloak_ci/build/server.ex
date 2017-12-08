@@ -268,7 +268,7 @@ defmodule AircloakCI.Build.Server do
     |> String.split("AircloakCI.Build.Job.")
     |> Enum.reverse()
     |> hd()
-    |> String.downcase()
+    |> Macro.underscore()
 
   @doc false
   defmacro __using__(opts) do
