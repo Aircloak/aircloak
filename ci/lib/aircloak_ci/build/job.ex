@@ -1,7 +1,7 @@
 defmodule AircloakCI.Build.Job do
   @moduledoc "Helper functions for job execution."
 
-  alias AircloakCI.{Github, LocalProject, Queue}
+  alias AircloakCI.{Emoji, Github, LocalProject, Queue}
   alias AircloakCI.Build
 
 
@@ -83,7 +83,7 @@ defmodule AircloakCI.Build.Job do
     Github.comment_on_commit(branch.repo.owner, branch.repo.name, branch.sha, body)
 
   defp comment_body(_build_state, job_name, :ok, nil), do:
-    "#{String.capitalize(job_name)} job succeeded #{happy_emoji()}"
+    "#{String.capitalize(job_name)} job succeeded #{Emoji.happy()}"
   defp comment_body(build_state, job_name, :error, nil), do:
     error_comment_body(build_state, job_name, "errored")
   defp comment_body(build_state, job_name, :failure, crash_reason), do:
@@ -92,17 +92,13 @@ defmodule AircloakCI.Build.Job do
   defp error_comment_body(build_state, job_name, crash_verb, extra_info \\ nil), do:
     Enum.join(
       [
-        "#{String.capitalize(job_name)} job #{crash_verb} #{sad_emoji()}",
+        "#{String.capitalize(job_name)} job #{crash_verb} #{Emoji.sad()}",
         (if not is_nil(extra_info), do: "\n#{extra_info}\n", else: ""),
         "You can see the full build log by running: `ci/production.sh build_log #{build_state.source.number}`\n",
         "Log tail:\n", "```", log_tail(build_state.project, job_name), "```"
       ],
       "\n"
     )
-
-  defp happy_emoji(), do: Enum.random(["💯", "👍", "😊", "❤️", "🎉", "👏"])
-
-  defp sad_emoji(), do: Enum.random(["😞", "😢", "😟", "💔", "👿", "🔥"])
 
   defp log_tail(project, job_name) do
     max_lines = 100
