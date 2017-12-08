@@ -56,13 +56,14 @@ defmodule AircloakCI.Build.Job.Compile do
       :ok
     else
       log_name = "#{component_name}_compile"
-      Job.run_queued(:compile, project, [log_name: log_name],
+      Job.run_queued(:compile, project,
         fn ->
           with {:error, reason} <- component_mod.compile(project, component_name, log_name) do
             LocalProject.log(project, log_name, reason)
             :error
           end
-        end
+        end,
+        log_name: log_name
       )
     end
   end

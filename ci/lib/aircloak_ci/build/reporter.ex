@@ -9,7 +9,7 @@ defmodule AircloakCI.Build.Reporter do
   # -------------------------------------------------------------------
 
   @doc "Asynchronously reports the status of the given job."
-  @spec report_status(Github.API.repo, String.t, String.t, Github.API.statuses, Github.API.status, String.t) :: :ok
+  @spec report_status(Github.API.repo, String.t, String.t, Github.API.status, Github.API.status, String.t) :: :ok
   def report_status(repo, sha, job_name, previous_statuses, status, description) do
     unless description == previous_statuses[job_name][:description], do:
       Github.put_status_check_state(repo.owner, repo.name, sha, full_github_context(job_name), description, status)
@@ -59,7 +59,7 @@ defmodule AircloakCI.Build.Reporter do
     Github.comment_on_commit(branch.repo.owner, branch.repo.name, branch.sha, body)
 
   defp comment_body(_build_state, job_name, :ok, nil), do:
-    "#{String.capitalize(job_name)} job succeeded #{Emoji.happy()}"
+    "#{job_name} job succeeded #{Emoji.happy()}"
   defp comment_body(build_state, job_name, :error, nil), do:
     error_comment_body(build_state, job_name, "errored")
   defp comment_body(build_state, job_name, :failure, crash_reason), do:
@@ -68,7 +68,7 @@ defmodule AircloakCI.Build.Reporter do
   defp error_comment_body(build_state, job_name, crash_verb, extra_info \\ nil), do:
     Enum.join(
       [
-        "#{String.capitalize(job_name)} job #{crash_verb} #{Emoji.sad()}",
+        "#{job_name} job #{crash_verb} #{Emoji.sad()}",
         (if not is_nil(extra_info), do: "\n#{extra_info}\n", else: ""),
         "You can see the full build log by running: `ci/production.sh build_log #{build_state.source.number}`\n",
         "Log tail:\n", "```", log_tail(build_state.project, job_name), "```"

@@ -64,7 +64,7 @@ defmodule AircloakCI.Build.PullRequest do
 
   @impl Build.Server
   def handle_call(:force_build, _from, state), do:
-    {:reply, :ok, Build.Server.restart(state, before_start: &LocalProject.mark_forced(&1.project, "compliance"))}
+    {:reply, :ok, Build.Server.restart(state, before_start: &mark_all_as_forced/1)}
 
 
   # -------------------------------------------------------------------
@@ -75,10 +75,17 @@ defmodule AircloakCI.Build.PullRequest do
     {:via, Registry, {Build.Registry, {:pull_request, pr.number}}}
 
   defp maybe_start_ci(%{compiled?: false} = state), do: state
-  defp maybe_start_ci(%{compiled?: true} = state), do: maybe_start_compliance(state)
+  defp maybe_start_ci(%{compiled?: true} = state), do:
+    state
+    |> Job.Compliance.run()
+    |> Job.StandardTest.run()
 
-  defp maybe_start_compliance(state), do:
-    Job.maybe_start(state, Job.Compliance, &Job.Compliance.run/1)
+  defp mark_all_as_forced(state), do:
+    Enum.each(
+      [Job.Compliance.job_name() | Job.StandardTest.job_names()],
+      &LocalProject.mark_forced(state.project, &1)
+    )
+    #Enum.each(["compliance", "ci_test"], &LocalProject.mark_forced(state.project, &1))
 
 
   # -------------------------------------------------------------------

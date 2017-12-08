@@ -9,11 +9,18 @@
   # API functions
   # -------------------------------------------------------------------
 
+  def job_name(), do: "compliance"
+
   @doc "Invokes the compliance job."
   @spec run(Build.Server.state) :: Build.Server.state
-  def run(build_state) do
-    if not mergeable?(build_state.source), do: build_state, else: maybe_start_test(build_state)
-  end
+  def run(build_state), do:
+    Job.maybe_start(build_state, job_name(),
+      fn(build_state) ->
+        if not mergeable?(build_state.source),
+          do: build_state,
+          else: maybe_start_test(build_state)
+      end
+    )
 
 
   # -------------------------------------------------------------------
@@ -28,13 +35,13 @@
       :ok -> start_test(self(), build_state)
 
       {:error, status} ->
-        Build.Reporter.report_status(pr.repo, pr.sha, "compliance", pr.status_checks, :pending, status)
+        Build.Reporter.report_status(pr.repo, pr.sha, job_name(), pr.status_checks, :pending, status)
         build_state
     end
   end
 
   defp check_start_preconditions(build_state) do
-    if LocalProject.forced?(build_state.project, "compliance") do
+    if LocalProject.forced?(build_state.project, job_name()) do
       :ok
     else
       with \
@@ -53,17 +60,22 @@
     (pr.status_checks["continuous-integration/travis-ci/push"] || %{status: nil}).status == :success
 
   defp start_test(build_server, %{source: pr, project: project} = build_state), do:
-    Build.Server.start_job(build_state, __MODULE__, fn -> run_test(build_server, pr, project) end)
+    Build.Server.start_job(
+      build_state,
+      job_name(),
+      fn -> run_test(build_server, project) end,
+      report_status: {pr.repo, pr.merge_sha}
+    )
 
-  defp run_test(build_server, pr, project) do
-    Build.Reporter.report_status(pr.repo, pr.sha, "compliance", pr.status_checks, :pending, "build started")
-    Job.run_queued(:compliance, project, [report_result: build_server],
+  defp run_test(build_server, project) do
+    Job.run_queued(:compliance, project,
       fn ->
         with {:error, reason} <- execute_compliance(project) do
-          LocalProject.log(project, "compliance", "error: #{reason}")
+          LocalProject.log(project, job_name(), "error: #{reason}")
           :error
         end
-      end
+      end,
+      report_result: build_server
     )
   end
 

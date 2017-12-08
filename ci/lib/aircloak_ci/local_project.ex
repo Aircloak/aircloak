@@ -308,7 +308,6 @@ defmodule AircloakCI.LocalProject do
     new_state = original_state |> updater.() |> Map.take(Map.keys(default_state()))
 
     if new_state != original_state do
-      Logger.info("#{project.name} state: #{inspect(new_state)}")
       log(project, "main", "project state: #{inspect(new_state)}")
 
       project

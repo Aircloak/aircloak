@@ -3,7 +3,7 @@ defmodule AircloakCI.Queue do
 
   require Logger
 
-  @type id :: :compile | :compliance
+  @type id :: :compile | :standard_test | :compliance
 
 
   # -------------------------------------------------------------------
@@ -27,11 +27,8 @@ defmodule AircloakCI.Queue do
 
   @doc "Sets up the CI queues."
   @spec create_queues() :: :ok
-  def create_queues() do
-    add_queue(:compile)
-    add_queue(:compliance)
-    :ok
-  end
+  def create_queues(), do:
+    Enum.each([:compile, :standard_test, :compliance], &add_queue/1)
 
 
   # -------------------------------------------------------------------
@@ -43,6 +40,8 @@ defmodule AircloakCI.Queue do
 
   defp spec(:compile), do:
     queue_spec(concurrency: 5, max_waiting_time: :timer.hours(1))
+  defp spec(:standard_test), do:
+    queue_spec(concurrency: 20, max_waiting_time: :timer.hours(1))
   defp spec(:compliance), do:
     queue_spec(concurrency: 1, max_waiting_time: :timer.hours(1))
 

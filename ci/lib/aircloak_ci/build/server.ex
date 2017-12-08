@@ -51,6 +51,8 @@ defmodule AircloakCI.Build.Server do
     {:noreply, state, timeout | :hibernate} |
     {:stop, reason :: any, state}
 
+  @type start_job_opts :: [report_status: {Github.API.repo, sha::String.t}]
+
 
   # -------------------------------------------------------------------
   # Behaviour
@@ -108,11 +110,17 @@ defmodule AircloakCI.Build.Server do
     GenServer.call(server, request, timeout)
 
   @doc "Starts the provided function as a child job of the build server."
-  @spec start_job(state, job_name, (() -> any)) :: state
-  def start_job(state, name, task_fun) do
+  @spec start_job(state, job_name, (() -> any), start_job_opts) :: state
+  def start_job(state, name, task_fun, opts \\ []) do
     :error = Map.fetch(state.jobs, name)
     {:ok, new_job} = Task.start_link(task_fun)
     Logger.info("job #{job_display_name(name)} for `#{LocalProject.name(state.project)}` started")
+
+    case Keyword.fetch(opts, :report_status) do
+      :error -> :ok
+      {:ok, {repo, sha}} -> AircloakCI.Build.Reporter.report_status(repo, sha, name, %{}, :pending, "build started")
+    end
+
     put_in(state.jobs[name], new_job)
   end
 
@@ -276,7 +284,7 @@ defmodule AircloakCI.Build.Server do
   defp job_display_name(job_module), do:
     job_module
     |> to_string()
-    |> String.split("AircloakCI.Build.Job.")
+    |> String.split("AircloakCI.Build.")
     |> Enum.reverse()
     |> hd()
     |> Macro.underscore()
