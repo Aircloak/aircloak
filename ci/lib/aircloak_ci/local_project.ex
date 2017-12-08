@@ -152,25 +152,28 @@ defmodule AircloakCI.LocalProject do
   def initialized?(project), do:
     state(project).initialized?
 
-  @doc "Marks the project as finished, and clears the force flag."
-  @spec mark_finished(t) :: :ok
-  def mark_finished(project), do:
-    update_state(project, &%{&1 | forced_at: nil, finished_at: current_sha(project)})
+  @doc "Marks the job as finished, and clears the corresponding force flag."
+  @spec mark_finished(t, String.t) :: :ok
+  def mark_finished(project, job_name), do:
+    update_state(project, &%{&1 |
+      forced_jobs: Map.put(&1.forced_jobs, job_name, nil),
+      finished_jobs: Map.put(&1.finished_jobs, job_name, current_sha(project)),
+    })
 
-  @doc "Returns true if the build for this project has finished."
-  @spec finished?(t) :: boolean
-  def finished?(project), do:
-    state(project).finished_at == project.target_sha
+  @doc "Returns true if the job for this project has finished."
+  @spec finished?(t, String.t) :: boolean
+  def finished?(project, job_name), do:
+    state(project).finished_jobs[job_name] == project.target_sha
 
   @doc "Marks the project for the force build."
-  @spec mark_forced(t) :: :ok
-  def mark_forced(project), do:
-    update_state(project, &%{&1 | forced_at: project.target_sha})
+  @spec mark_forced(t, String.t) :: :ok
+  def mark_forced(project, job_name), do:
+    update_state(project, &%{&1 | forced_jobs: Map.put(&1.forced_jobs, job_name, project.target_sha)})
 
   @doc "Returns whether the project has been marked for the force build."
-  @spec forced?(t) :: boolean
-  def forced?(project), do:
-    state(project).forced_at == project.target_sha
+  @spec forced?(t, String.t) :: boolean
+  def forced?(project, job_name), do:
+    state(project).forced_jobs[job_name] == project.target_sha
 
   @doc "Marks the project component as compiled."
   @spec mark_compiled(t, String.t) :: :ok
@@ -325,13 +328,14 @@ defmodule AircloakCI.LocalProject do
       |> state_file()
       |> File.read!()
       |> :erlang.binary_to_term()
+      |> Map.take(Map.keys(default_state()))
     catch _, _ ->
       %{}
     end
   end
 
   defp default_state(), do:
-    %{initialized?: false, compiled_components: %{}, forced_at: nil, finished_at: nil}
+    %{initialized?: false, compiled_components: %{}, forced_jobs: %{}, finished_jobs: %{}}
 
   defp up_to_date?(project), do:
     current_sha(project) == project.target_sha

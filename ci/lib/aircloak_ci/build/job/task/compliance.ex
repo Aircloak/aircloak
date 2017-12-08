@@ -27,8 +27,11 @@
   defp mergeable?(pr), do:
     pr.mergeable? and pr.merge_sha != nil
 
+  defp forced?(build_state), do:
+    LocalProject.forced?(build_state.project, "compliance")
+
   defp maybe_start_test(%{source: pr} = build_state) do
-    if not LocalProject.finished?(build_state.project) or LocalProject.forced?(build_state.project) do
+    if not LocalProject.finished?(build_state.project, "compliance") or forced?(build_state) do
       case check_start_preconditions(build_state) do
         :ok -> start_test(build_state)
 
@@ -42,7 +45,7 @@
   end
 
   defp check_start_preconditions(build_state) do
-    if LocalProject.forced?(build_state.project) do
+    if forced?(build_state) do
       :ok
     else
       with \

@@ -44,7 +44,7 @@ defmodule AircloakCI.Build.Job do
   def report_result(build_state, job_name, result, extra_info \\ nil) do
     LocalProject.log(build_state.project, job_name, "result: `#{result}`")
     post_result_to_github(build_state, job_name, result, extra_info)
-    LocalProject.mark_finished(build_state.project)
+    LocalProject.mark_finished(build_state.project, job_name)
     build_state
   end
 

@@ -70,7 +70,7 @@ defmodule AircloakCI.Build.PullRequest do
 
   @impl Build.Server
   def handle_call(:force_build, _from, state), do:
-    {:reply, :ok, Build.Server.restart(state, before_start: &LocalProject.mark_forced(&1.project))}
+    {:reply, :ok, Build.Server.restart(state, before_start: &LocalProject.mark_forced(&1.project, "compliance"))}
 
   @impl Build.Server
   def handle_info({Job.Compliance, result}, state), do:
