@@ -242,7 +242,7 @@ defmodule AircloakCI.LocalProject do
     String.replace(branch_name, "/", "-")
 
   defp state_file(project), do:
-    Path.join(project.build_folder, "state")
+    Path.join(project.build_folder, "state_2")
 
   defp src_folder(project), do:
     Path.join(project.build_folder, "src")
