@@ -55,9 +55,14 @@ defmodule AircloakCI.Build.Component.CI do
   defp run_standard_test(build_server, project), do:
     Job.run_queued(:standard_test, project,
       fn ->
-        LocalProject.component_cmds(project, "ci", standard_test_job_name(),
-          [{"make docs lint dialyze test", timeout: :timer.minutes(10)}]
-        )
+        with {:error, reason} <-
+          LocalProject.component_cmds(project, "ci", standard_test_job_name(),
+            [{"make docs lint dialyze test", timeout: :timer.minutes(10)}]
+          )
+        do
+          LocalProject.log(project, standard_test_job_name(), "error: #{reason}")
+          :error
+        end
       end,
       job_name: standard_test_job_name(),
       log_name: standard_test_job_name(),
