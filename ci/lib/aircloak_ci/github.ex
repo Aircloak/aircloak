@@ -49,7 +49,7 @@ defmodule AircloakCI.Github do
   def init(nil) do
     Process.flag(:trap_exit, true)
     enqueue_clear()
-    :timer.send_interval(:timer.minutes(1), :log_rate_limits)
+    :timer.send_interval(:timer.minutes(10), :log_rate_limits)
     {:ok, %{clear?: false, current_request: nil, request_job: nil, queue: :queue.new(), rate_limits: %{}}}
   end
 
