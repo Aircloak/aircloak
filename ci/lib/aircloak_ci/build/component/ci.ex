@@ -57,7 +57,7 @@ defmodule AircloakCI.Build.Component.CI do
       fn ->
         with {:error, reason} <-
           LocalProject.component_cmds(project, "ci", standard_test_job_name(),
-            [{"make docs lint dialyze test", timeout: :timer.minutes(10)}]
+            [{"make deps docs lint dialyze test", timeout: :timer.minutes(10)}]
           )
         do
           LocalProject.log(project, standard_test_job_name(), "error: #{reason}")
