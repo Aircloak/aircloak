@@ -31,9 +31,14 @@ defmodule AircloakCI.Github do
     async_request(:put_status_check_state, [owner, repo, sha, context, description, state], type: :write)
 
   @doc "Posts a comment to the given issue or pull request."
-  @spec post_comment(String.t, String.t, number, String.t) :: :ok
-  def post_comment(owner, repo, issue_number, body), do:
-    async_request(:post_comment, [owner, repo, issue_number, body], type: :write)
+  @spec comment_on_issue(String.t, String.t, pos_integer, String.t) :: :ok
+  def comment_on_issue(owner, repo, issue_number, body), do:
+    async_request(:comment_on_issue, [owner, repo, issue_number, body], type: :write)
+
+  @doc "Posts a comment to the given issue or pull request."
+  @spec comment_on_commit(String.t, String.t, number, String.t) :: :ok
+  def comment_on_commit(owner, repo, sha, body), do:
+    async_request(:comment_on_commit, [owner, repo, sha, body], type: :write)
 
 
   # -------------------------------------------------------------------

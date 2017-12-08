@@ -45,7 +45,7 @@ defmodule AircloakCI.Build.Job do
     LocalProject.log(build_state.project, job_name, "outcome: `#{result}`")
 
     send_github_status(pr.repo, pr.sha, job_name, pr.status_checks, github_status(result), result_description(result))
-    Github.post_comment(pr.repo.owner, pr.repo.name, pr.number, comment(build_state, job_name, result, extra_info))
+    Github.comment_on_issue(pr.repo.owner, pr.repo.name, pr.number, comment(build_state, job_name, result, extra_info))
     LocalProject.mark_finished(build_state.project)
 
     build_state

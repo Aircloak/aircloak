@@ -100,16 +100,14 @@ defmodule AircloakCI.Github.API do
   end
 
   @doc "Posts a comment to the given issue or pull request."
-  @spec post_comment(String.t, String.t, number, String.t) :: {:ok, rate_limit}
-  def post_comment(owner, repo, issue_number, body) do
-    %{response: %{status_code: 201}, rate_limit: rate_limit} =
-      post_rest_request(
-        "/repos/#{owner}/#{repo}/issues/#{issue_number}/comments",
-        %{body: body}
-      )
+  @spec comment_on_issue(String.t, String.t, pos_integer, String.t) :: {:ok, rate_limit}
+  def comment_on_issue(owner, repo, issue_number, body), do:
+    comment_on_commit(owner, repo, "issues", issue_number, body)
 
-    {:ok, rate_limit}
-  end
+  @doc "Posts a comment to the given commit."
+  @spec comment_on_commit(String.t, String.t, String.t, String.t) :: {:ok, rate_limit}
+  def comment_on_commit(owner, repo, sha, body), do:
+    comment_on_commit(owner, repo, "commits", sha, body)
 
 
   # -------------------------------------------------------------------
@@ -239,5 +237,15 @@ defmodule AircloakCI.Github.API do
     else
       _ -> nil
     end
+  end
+
+  defp comment_on_commit(owner, repo, type, id, body) do
+    %{response: %{status_code: 201}, rate_limit: rate_limit} =
+      post_rest_request(
+        "/repos/#{owner}/#{repo}/#{type}/#{id}/comments",
+        %{body: body}
+      )
+
+    {:ok, rate_limit}
   end
 end
