@@ -9,6 +9,22 @@ defmodule AircloakCI.Build.Job do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Starts the job using the provided lambda if mandatory conditions are met."
+  @spec maybe_start(Build.Server.state, Build.Server.job_name, ((Build.Server.state) -> Build.Server.state)) ::
+    Build.Server.state
+  def maybe_start(build_state, job_name, fun) do
+    if not Build.Server.running?(build_state, job_name) and
+      (
+        LocalProject.forced?(build_state.project, job_name) or
+        not LocalProject.finished?(build_state.project, job_name)
+      )
+    do
+      fun.(build_state)
+    else
+      build_state
+    end
+  end
+
   @doc """
   Executes a job in the given queue.
 

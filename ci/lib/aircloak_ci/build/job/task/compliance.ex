@@ -12,11 +12,7 @@
   @doc "Invokes the compliance job."
   @spec run(Build.Server.state) :: Build.Server.state
   def run(build_state) do
-    if not mergeable?(build_state.source) do
-      build_state
-    else
-      maybe_start_test(build_state)
-    end
+    if not mergeable?(build_state.source), do: build_state, else: maybe_start_test(build_state)
   end
 
 
@@ -27,25 +23,18 @@
   defp mergeable?(pr), do:
     pr.mergeable? and pr.merge_sha != nil
 
-  defp forced?(build_state), do:
-    LocalProject.forced?(build_state.project, "compliance")
-
   defp maybe_start_test(%{source: pr} = build_state) do
-    if not LocalProject.finished?(build_state.project, "compliance") or forced?(build_state) do
-      case check_start_preconditions(build_state) do
-        :ok -> start_test(build_state)
+    case check_start_preconditions(build_state) do
+      :ok -> start_test(build_state)
 
-        {:error, status} ->
-          Job.send_github_status(pr.repo, pr.sha, "compliance", pr.status_checks, :pending, status)
-          build_state
-      end
-    else
-      build_state
+      {:error, status} ->
+        Job.send_github_status(pr.repo, pr.sha, "compliance", pr.status_checks, :pending, status)
+        build_state
     end
   end
 
   defp check_start_preconditions(build_state) do
-    if forced?(build_state) do
+    if LocalProject.forced?(build_state.project, "compliance") do
       :ok
     else
       with \

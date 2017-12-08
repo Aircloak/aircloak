@@ -89,13 +89,8 @@ defmodule AircloakCI.Build.PullRequest do
   defp maybe_start_ci(%{compiled?: false} = state), do: state
   defp maybe_start_ci(%{compiled?: true} = state), do: maybe_start_compliance(state)
 
-  defp maybe_start_compliance(state) do
-    if Build.Server.running?(state, Job.Compliance) do
-      state
-    else
-      Job.Compliance.run(state)
-    end
-  end
+  defp maybe_start_compliance(state), do:
+    Job.maybe_start(state, Job.Compliance, &Job.Compliance.run/1)
 
 
   # -------------------------------------------------------------------
