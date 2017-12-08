@@ -71,12 +71,12 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
         SELECT
           uid,
           string,
-          abs(abs(div(numeric, 2))) as v1 -- 3 restricted transformations
+          abs(abs(pow(numeric, 2))) as v1 -- 3 restricted transformations
         FROM table
       ) a INNER JOIN (
         SELECT
           uid,
-          abs(abs(div(numeric, 2))) as v2 -- 3 restricted transformations
+          abs(abs(pow(numeric, 2))) as v2 -- 3 restricted transformations
         FROM table
       ) b ON a.uid = b.uid
     ) c

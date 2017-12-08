@@ -95,21 +95,6 @@ Computes the smallest integer that is greater than or equal to its argument.
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
 
-### div
-
-```sql
-DIV(10, 2)
--- 5
-
-DIV(10, 3)
--- 3
-```
-
-Performs integer division on its arguments.
-
-[Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
-
-
 ### floor
 
 ```sql
@@ -118,18 +103,6 @@ FLOOR(3.22)
 ```
 
 Computes the largest integer that is less than or equal to its argument.
-
-[Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
-
-
-### mod
-
-```sql
-MOD(10, 3)
--- 1
-```
-
-`MOD(a, b)` computes the remainder from `DIV(a, b)`.
 
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 

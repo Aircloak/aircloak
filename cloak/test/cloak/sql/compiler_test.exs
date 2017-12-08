@@ -249,9 +249,9 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "multiarg function argument verification" do
-    assert {:error, error} = compile("select div(numeric, column) from table", data_source())
-    assert error ==
-      "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`, `datetime`)."
+    assert {:error, error} = compile("select pow(numeric, column) from table", data_source())
+    assert error == "Function `pow` requires arguments of type (`integer` | `real`, `integer` | `real`), " <>
+      "but got (`integer`, `datetime`)."
   end
 
   test "rejecting a function with too many arguments" do
@@ -261,8 +261,9 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejecting a function with too few arguments" do
-    assert {:error, error} = compile("select div(numeric) from table", data_source())
-    assert error == "Function `div` requires arguments of type (`integer`, `integer`), but got (`integer`)."
+    assert {:error, error} = compile("select pow(numeric) from table", data_source())
+    assert error == "Function `pow` requires arguments of type (`integer` | `real`, `integer` | `real`), " <>
+      "but got (`integer`)."
   end
 
   test "rejecting a column in select when its function is grouped" do
@@ -273,7 +274,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejecting a function in select when another function is grouped" do
-    assert {:error, error} = compile("select div(numeric, numeric) from table group by abs(numeric)", data_source())
+    assert {:error, error} = compile("select pow(numeric, numeric) from table group by abs(numeric)", data_source())
     assert error == "Column `numeric` from table `table` needs to appear in the `GROUP BY` clause or be used in an " <>
       "aggregate function."
   end
@@ -535,13 +536,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "integer operations are valid on sums of integer columns" do
-    assert {:ok, _} = compile("select sum(numeric) % 3 from table", data_source())
-  end
-
-  test "integer operations are invalid on sums of real columns" do
-    assert {:error, error} = compile("select sum(float) % 3 from table", data_source())
-    assert error ==
-        "Function `%` requires arguments of type (`integer`, `integer`), but got (`real`, `integer`)."
+    assert {:ok, _} = compile("select abs(sum(numeric)) from table", data_source())
   end
 
   test "incorrect application of +" do
@@ -922,6 +917,19 @@ defmodule Cloak.Sql.Compiler.Test do
         assert error == "Function `#{unquote(function)}` is not allowed in subqueries."
       end
     end
+  end
+
+  describe "remove redundant casts" do
+    Enum.each([
+      {:integer, "numeric"},
+      {:float, "float"},
+      {:datetime, "column"},
+      {:text, "string"}
+    ], fn({target, column}) ->
+      test "removes redundant cast to #{target}", do:
+        assert compile!("SELECT cast(#{unquote(column)} as #{unquote(target)}) as c FROM table", data_source()) ==
+          compile!("SELECT #{unquote(column)} as c FROM table", data_source())
+    end)
   end
 
   defp projected_table_db_columns(query), do:

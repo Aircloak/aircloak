@@ -221,7 +221,6 @@ defmodule Air.Service.User do
   def admin_groups(), do:
     Repo.all(from g in Group, where: g.admin)
 
-
   @doc "Returns the number format settings for the specified user."
   @spec number_format_settings(User.t) :: Map.t
   def number_format_settings(user) do
@@ -231,6 +230,15 @@ defmodule Air.Service.User do
       decimal_sep: user.decimal_sep || default_settings.decimal_sep,
       thousand_sep: user.thousand_sep || default_settings.thousand_sep,
     }
+  end
+
+  @doc "Toggles the debug mode for a user"
+  @spec toggle_debug_mode(User.t) :: User.t
+  def toggle_debug_mode(user) do
+    current_debug_mode = user.debug_mode_enabled || false
+    user
+    |> cast(%{debug_mode_enabled: not current_debug_mode}, [:debug_mode_enabled])
+    |> Repo.update!()
   end
 
 

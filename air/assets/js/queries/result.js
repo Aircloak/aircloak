@@ -48,6 +48,7 @@ export type Result = {
 type Props = {
   result: Result,
   numberFormat: NumberFormat,
+  debugModeEnabled: boolean,
 };
 
 type State = {
@@ -95,6 +96,7 @@ export class ResultView extends React.Component {
     this.renderChartButton = this.renderChartButton.bind(this);
     this.renderAxesButton = this.renderAxesButton.bind(this);
     this.renderOptionMenu = this.renderOptionMenu.bind(this);
+    this.renderDebugExport = this.renderDebugExport.bind(this);
 
     this.conditionallyRenderChart = this.conditionallyRenderChart.bind(this);
     this.conditionallyRenderChartConfig = this.conditionallyRenderChartConfig.bind(this);
@@ -131,6 +133,7 @@ export class ResultView extends React.Component {
   componentDidUpdate: (prevProps: Props, prevState: State) => void;
   renderChartButton: () => void;
   renderAxesButton: () => void;
+  renderDebugExport: () => void;
   conditionallyRenderChartConfig: () => void;
   rebuildGraphData: () => void;
   addX: (col: number) => () => void;
@@ -421,13 +424,24 @@ export class ResultView extends React.Component {
     }
   }
 
+  renderDebugExport() {
+    if (this.props.debugModeEnabled) {
+      return (
+        <a className="btn btn-default btn-xs" href={`/queries/${this.props.result.id}/debug_export`}>
+          Download debug export
+        </a>
+      );
+    } else {
+      return null;
+    }
+  }
+
   renderOptionMenu() {
     return (
       <div className="options-menu">
         <a className="btn btn-default btn-xs" href={`/queries/${this.props.result.id}.csv`}>Download as CSV</a>
-        &nbsp;
+        {this.renderDebugExport()}
         {this.renderChartButton()}
-        &nbsp;
         {this.renderAxesButton()}
       </div>
     );

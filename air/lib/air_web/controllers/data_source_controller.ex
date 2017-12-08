@@ -53,6 +53,7 @@ defmodule AirWeb.DataSourceController do
         last_query: (if last_query != nil, do: Air.Schemas.Query.for_display(last_query)),
         session_id: Ecto.UUID.generate(),
         number_format: Air.Service.User.number_format_settings(conn.assigns.current_user),
+        debug_mode_enabled: conn.assigns.current_user.debug_mode_enabled,
       )
     else
       _ ->

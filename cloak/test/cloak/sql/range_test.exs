@@ -134,6 +134,7 @@ defmodule Cloak.Sql.Range.Test do
           columns: [
             Table.column("uid", :integer),
             Table.column("number", :integer),
+            Table.column("float", :real),
             Table.column("timestamp", :datetime),
           ]
         )

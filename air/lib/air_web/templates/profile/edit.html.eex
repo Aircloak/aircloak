@@ -4,7 +4,7 @@
   </div>
 <% end %>
 
-<div class="col-sm-6 col-sm-offset-3">
+<div class="col-sm-6">
   <div class="panel panel-default">
     <div class="panel-heading">
       <h4>Profile</h4>
@@ -74,7 +74,7 @@
   </div>
 </div>
 
-<div class="col-sm-6 col-sm-offset-3">
+<div class="col-sm-6">
   <div class="panel panel-default">
     <div class="panel-heading">
       <h4>Change password</h4>
@@ -104,6 +104,29 @@
           <%= submit "Save", class: "btn btn-primary" %>
         </div>
       <% end %>
+    </div>
+  </div>
+</div>
+
+<div class="col-sm-6">
+  <div class="panel <%= panel_class(@conn.assigns.current_user.debug_mode_enabled) %>">
+    <div class="panel-heading">
+      <h4>Debug mode</h4>
+    </div>
+
+    <div class="panel-body">
+      <p>
+        Debug mode enables additional functionality in the user interface aiding in debugging query results.
+        This mode is usually only enabled upon request by the Aircloak support team.
+      </p>
+      <%= if @conn.assigns.current_user.debug_mode_enabled do %>
+        <p>Debug mode is currently enabled.</p>
+        <%= button "Disable debug mode", to: profile_path(@conn, :toggle_debug_mode), class: "btn btn-primary" %>
+      <% else %>
+        <p>Debug mode is currently disabled.</p>
+        <%= button "Enable debug mode", to: profile_path(@conn, :toggle_debug_mode), class: "btn btn-primary" %>
+      <% end %>
+      </p>
     </div>
   </div>
 </div>

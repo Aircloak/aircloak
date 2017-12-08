@@ -13,9 +13,17 @@ defmodule Air.QueryControllerTest do
 
     user = create_user!(%{groups: [group.id]})
 
+    tables = [%{
+      id: "table",
+      columns: [
+        %{user_id: true, type: :string, name: "uid"},
+        %{user_id: false, type: :integer, name: "age"},
+      ]
+    }]
+
     params = %{
       "name" => "data source name",
-      "tables" => "[]",
+      "tables" => Poison.encode!(tables),
       "groups" => [group.id],
     }
     data_source = Air.Service.DataSource.create!(params)
@@ -123,6 +131,48 @@ defmodule Air.QueryControllerTest do
     )
 
     assert chunk_values(context, query.id, "all") == Enum.to_list(1..1100)
+  end
+
+  describe "debug export" do
+    test "contains query itself", context do
+      statement = "SELECT foo FROM bar"
+      assert get_query_export(context, %{statement: statement}) =~ statement
+    end
+
+    test "contains the query results", context, do:
+      assert get_query_export(context) =~ " | 1 "
+
+    test "contains the available views", context do
+      view = create_view!(context.user, context.data_source)
+      assert get_query_export(context) =~ view.sql
+    end
+
+    test "contains the available tables", context do
+      query_export = get_query_export(context)
+      assert query_export =~ ~r/uid.+string.+user id column/
+      assert query_export =~ ~r/age.+integer/
+    end
+  end
+
+  defp get_query_export(context, params \\ %{}) do
+    default_params = %{
+      statement: "SELECT count(*) FROM table",
+      query_state: :started,
+      data_source_id: context.data_source.id,
+    }
+
+    query = create_query!(
+      context.user,
+      Map.merge(default_params, params)
+    )
+
+    send_query_result(
+      query.id,
+      %{columns: ["col"]},
+      Enum.map(1..10, &%{occurrences: 1, row: [&1]})
+    )
+
+    login(context.user) |> get("/queries/#{query.id}/debug_export") |> response(200)
   end
 
   defp open_cloak_mock_socket(data_source) do

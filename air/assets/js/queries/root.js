@@ -32,6 +32,7 @@ type Props = {
   pendingQueries: Result[],
   frontendSocket: FrontendSocket,
   numberFormat: NumberFormat,
+  debugModeEnabled: boolean,
 };
 
 const upgradeRequired = 426;
@@ -354,7 +355,11 @@ export default class QueriesView extends React.PureComponent {
         {this.renderButton()}
       </div>
 
-      <Results results={this.state.sessionResults} numberFormat={this.props.numberFormat} />
+      <Results
+        results={this.state.sessionResults}
+        numberFormat={this.props.numberFormat}
+        debugModeEnabled={this.props.debugModeEnabled}
+      />
 
       <HistoryLoader history={this.state.history} handleLoadHistory={this.handleLoadHistory} />
     </div>);

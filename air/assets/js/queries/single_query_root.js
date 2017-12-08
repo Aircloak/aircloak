@@ -12,6 +12,7 @@ type Props = {
   result: Result,
   frontendSocket: FrontendSocket,
   numberFormat: NumberFormat,
+  debugModeEnabled: boolean,
 };
 
 export default class QueryView extends React.Component {
@@ -44,7 +45,11 @@ export default class QueryView extends React.Component {
       <PropertiesView {...this.state.result} />
 
       <h3>Query</h3>
-      <Results numberFormat={this.props.numberFormat} results={[this.state.result]} />
+      <Results
+        numberFormat={this.props.numberFormat}
+        results={[this.state.result]}
+        debugModeEnabled={this.props.debugModeEnabled}
+      />
     </div>);
   }
 }
