@@ -195,6 +195,7 @@ defmodule AircloakCI.Build.Server do
   def handle_info({:EXIT, pid, reason} = exit_message, state) do
     case Enum.find(state.jobs, &match?({_name, ^pid}, &1)) do
       {name, ^pid} ->
+        LocalProject.mark_finished(state.project, name)
         new_state = update_in(state.jobs, &Map.delete(&1, name))
         case reason do
           :normal ->
