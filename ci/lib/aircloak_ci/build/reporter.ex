@@ -69,7 +69,7 @@ defmodule AircloakCI.Build.Reporter do
       [
         "#{job_name} job #{crash_verb} #{Emoji.sad()}",
         (if not is_nil(extra_info), do: "\n#{extra_info}\n", else: ""),
-        "You can see the full build log by running: `ci/production.sh build_log #{build_state.source.number}`\n",
+        "You can see the full build log by running: `ci/production.sh build_log`\n",
         "Log tail:\n", "```", log_tail(build_state.project, job_name), "```"
       ],
       "\n"
