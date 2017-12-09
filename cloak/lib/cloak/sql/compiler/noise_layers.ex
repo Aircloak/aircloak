@@ -55,7 +55,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     {:ok, expression} = find_column(column, query)
 
     layers =
-      raw_columns(expression)
+      raw_non_uid_columns(expression)
       |> Enum.map(fn(column) ->
         build_noise_layer(column, extras, [_min = column, _max = column | rest])
       end)
@@ -190,7 +190,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     Lens.key(:columns)
     |> Lens.all()
     |> Lens.satisfy(& not needs_aggregation?(query, &1))
-    |> raw_columns(query)
+    |> raw_non_uid_columns(query)
     |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
 
   defp needs_aggregation?(_query, %Expression{constant?: true}), do: true
@@ -210,7 +210,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp unclear_noise_layers(query, top_level_uid), do:
     query
     |> unclear_conditions()
-    |> raw_columns(query)
+    |> raw_non_uid_columns(query)
     |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
 
   defp in_noise_layers(query, top_level_uid), do:
@@ -232,7 +232,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     query
     |> Range.find_ranges()
     |> Enum.flat_map(fn(%{column: column, interval: range}) ->
-      raw_columns(column)
+      raw_non_uid_columns(column)
       |> Enum.flat_map(&[
         static_noise_layer(&1, &1, range),
         uid_noise_layer(&1, &1, top_level_uid, range),
@@ -378,8 +378,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp raw_columns(lens \\ Lens.root(), data), do:
     lens
     |> Query.Lenses.leaf_expressions()
-    |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
+    |> Lens.satisfy(&match?(%Expression{constant?: false, function?: false}, &1))
     |> Lens.to_list(data)
+
+  defp raw_non_uid_columns(lens \\ Lens.root(), data), do:
+    Enum.reject(raw_columns(lens, data), & &1.user_id?)
 
   defp uid_noise_layer(base_column, layer_expression, top_level_uid, extras \\ nil) do
     expressions = [_min = layer_expression, _max = layer_expression, count_of_one(), top_level_uid]
@@ -446,7 +449,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(& not &1.user_id?)
 
   defp clear_condition?({:comparison,
-    %Expression{user_id?: false, function?: false, constant?: false}, :=, %Expression{constant?: true}}), do: true
+    %Expression{function?: false, constant?: false}, :=, %Expression{constant?: true}}), do: true
   defp clear_condition?(_), do: false
 
   defp fk_pk_condition?({:comparison, lhs, :=, rhs}), do:
