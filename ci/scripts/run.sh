@@ -17,6 +17,10 @@ case "$command" in
     build_cloak
     ;;
 
+  run_in_cloak_test)
+    run_in_cloak_test "$@"
+    ;;
+
   cloak_compliance)
     cloak_compliance
     ;;
