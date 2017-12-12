@@ -20,11 +20,6 @@ defmodule AircloakCI.Github do
   def repo_data(owner, repo), do:
     sync_request!(:repo_data, [owner, repo], type: :read)
 
-  @doc "Returns the data for the given pull request."
-  @spec pull_request(String.t, String.t, integer) :: Github.API.pull_request
-  def pull_request(owner, repo, number), do:
-    sync_request!(:pull_request, [owner, repo, number], type: :read)
-
   @doc "Sets the status check state for the given owner/repo/sha."
   @spec put_status_check_state(String.t, String.t, String.t, String.t, String.t, Github.API.status_check_state) :: :ok
   def put_status_check_state(owner, repo, sha, context, description, state), do:

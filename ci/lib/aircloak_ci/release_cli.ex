@@ -16,11 +16,11 @@ defmodule AircloakCI.ReleaseCLI do
   end
 
   @doc "Prints the build log of the given pull request."
-  @spec print_build_log(pos_integer) :: :ok
-  def print_build_log(pull_request_number) do
-    AircloakCI.Github.pull_request("aircloak", "aircloak", pull_request_number)
-    |> AircloakCI.LocalProject.for_pull_request()
-    |> AircloakCI.LocalProject.log_contents("compliance")
-    |> IO.puts()
+  @spec print_build_log(String.t, String.t, String.t) :: :ok
+  def print_build_log(target_type, target_id, job_name) do
+    case File.read(AircloakCI.LocalProject.log_path(target_type, target_id, job_name)) do
+      {:ok, contents} -> IO.puts contents
+      {:error, _} -> :ok
+    end
   end
 end

@@ -22,6 +22,13 @@ defmodule AircloakCI.LocalProject do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Returns the full path to the log file for the given target and job."
+  @spec log_path(String.t, String.t) :: String.t
+  def log_path("branch", name, job_name), do:
+    Path.join([logs_folder(), branch_folder_name(name), "#{job_name}.log"])
+  def log_path("pr", number, job_name), do:
+    Path.join([logs_folder(), pr_folder_name(%{number: String.to_integer(number)}), "#{job_name}.log"])
+
   @doc "Prepares the local project for the given pull request."
   @spec for_pull_request(Github.API.pull_request) :: t
   def for_pull_request(pr), do:

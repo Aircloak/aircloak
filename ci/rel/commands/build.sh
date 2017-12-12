@@ -20,14 +20,14 @@ case "$command" in
     ;;
 
   log)
-    exec_on_prod "print_build_log($1)"
+    exec_on_prod "print_build_log(<<\"$1\">>, <<\"$2\">>, <<\"$3\">>)"
     ;;
 
   *)
     echo "Commands:"
     echo ""
     echo "  force_build target_type target_id job_name"
-    echo "  log pull_request_number"
+    echo "  log target_type target_id job_name"
     echo ""
     exit 1
     ;;
