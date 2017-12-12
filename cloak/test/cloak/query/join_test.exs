@@ -244,7 +244,7 @@ defmodule Cloak.Query.JoinTest do
     """, %{rows: [%{row: [30], occurrences: 1}]}
   end
 
-  test "bugfix: boolean filtering with grouping" do
+  test "bugfix: query that creates noise layers with aggregated booleans" do
     :ok = insert_rows(_user_ids = 1..10, "heights_join", ["male"], [true])
     :ok = insert_rows(_user_ids = 5..15, "heights_join", ["male"], [false])
 
