@@ -55,7 +55,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     {:ok, expression} = find_column(column, query)
 
     layers =
-      raw_non_uid_columns(expression)
+      raw_columns(expression)
       |> Enum.map(fn(column) ->
         build_noise_layer(column, extras, [_min = column, _max = column | rest])
       end)
@@ -190,7 +190,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     Lens.key(:columns)
     |> Lens.all()
     |> Lens.satisfy(& not needs_aggregation?(query, &1))
-    |> raw_non_uid_columns(query)
+    |> raw_columns(query)
     |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
 
   defp needs_aggregation?(_query, %Expression{constant?: true}), do: true
