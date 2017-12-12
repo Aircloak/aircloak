@@ -97,7 +97,8 @@ defmodule Cloak.Query.DbEmulator do
     |> get_in([Query.Lenses.leaf_expressions()])
     |> Enum.filter(&(&1.table != :unknown))
     |> Enum.filter(&(&1.table.name == table_name))
-    |> Enum.uniq_by(&{&1.name, &1.alias})
+    |> Enum.map(&Expression.unalias/1)
+    |> Enum.uniq_by(& &1.name)
 
   defp compute_columns_to_select(join), do:
     Map.put(join, :columns, columns_needed_for_join({:join, join}))
