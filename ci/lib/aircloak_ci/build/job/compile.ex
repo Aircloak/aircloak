@@ -32,9 +32,9 @@ defmodule AircloakCI.Build.Job.Compile do
 
   defp compile_project(project), do:
     component_modules()
-    |> Enum.map(&Task.async(fn -> compile(project, &1) end))
     # using infinity, since timeout is enforced in each component compilation task
-    |> Stream.map(&Task.await(&1, :infinity))
+    |> Task.async_stream(&compile(project, &1), ordered: true, timeout: :infinity)
+    |> Stream.map(fn {:ok, result} -> result end)
     |> Stream.zip(component_modules())
     |> Enum.each(
         fn
