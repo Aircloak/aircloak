@@ -24,7 +24,7 @@ defmodule AircloakCI.Build.Supervisor do
     %{
       id: __MODULE__.BuildChild,
       start: {Kernel, :apply, []},
-      restart: :permanent,
+      restart: :temporary,
       shutdown: 5000,
       type: :worker
     }

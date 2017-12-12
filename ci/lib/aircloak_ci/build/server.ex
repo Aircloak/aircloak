@@ -322,17 +322,6 @@ defmodule AircloakCI.Build.Server do
       end
 
       defoverridable behaviour_mod
-
-      @doc false
-      def child_spec(_arg), do:
-        %{
-          id: __MODULE__,
-          start: {__MODULE__, :start_link, []},
-          restart: unquote(Keyword.get(opts, :restart, :permanent)),
-          shutdown: 5000,
-          type: :worker
-        }
-      defoverridable child_spec: 1
     end
   end
 end
