@@ -173,15 +173,6 @@ function start_cloak_with_databases {
   run_in_cloak "mix deps.get"
 }
 
-function build_cloak {
-  build_cloak_image
-  docker network create --driver bridge $CLOAK_NETWORK_ID > /dev/null
-  trap cleanup EXIT TERM INT
-  start_cloak_container
-  run_in_cloak "mix deps.get"
-  run_in_cloak "MIX_ENV=test mix compile"
-}
-
 function run_in_cloak {
   docker exec $DOCKER_EXEC_ARGS -i -e DEFAULT_SAP_HANA_SCHEMA="$DEFAULT_SAP_HANA_SCHEMA" $CLOAK_CONTAINER \
     /bin/bash -c ". ~/.asdf/asdf.sh && $@"
@@ -210,7 +201,6 @@ function run_in_cloak_test {
   CLOAK_DATA_SOURCES="postgresql9.4" start_cloak_container
   export POSTGRESQL_CONTAINER=$(docker run --detach postgres:9.4)
   docker network connect --alias postgres9.4 $CLOAK_NETWORK_ID $POSTGRESQL_CONTAINER
-  COMPLIANCE_USERS=1 gen_test_data
   for cmd in "$@"; do
     echo "invoking $cmd"
     run_in_cloak "$cmd"

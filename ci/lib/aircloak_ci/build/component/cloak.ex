@@ -16,8 +16,10 @@ defmodule AircloakCI.Build.Component.Cloak do
   def name(), do: "cloak"
 
   @impl Job.Compile
-  def compile(project, _name, log_name), do:
-    LocalProject.cmd(project, log_name, "ci/scripts/run.sh build_cloak", timeout: :timer.minutes(30))
+  def compile(project, _name, log_name) do
+    with :ok <- build_cloak_image(project, log_name), do:
+      compile_cloak(LocalProject.ci_version(project), project)
+  end
 
 
   # -------------------------------------------------------------------
@@ -50,13 +52,33 @@ defmodule AircloakCI.Build.Component.Cloak do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp build_cloak_image(project, log_name), do:
+    LocalProject.cmd(project, log_name, "ci/scripts/run.sh build_cloak", timeout: :timer.hours(1))
+
+  defp compile_cloak(1, _project), do: :ok
+  defp compile_cloak(ci_version, project) when ci_version >= 2, do:
+    run_in_cloak(project, [
+      "make deps",
+      "MIX_ENV='dev' mix compile",
+      "MIX_ENV='test' mix compile",
+      "MIX_ENV='prod' mix compile",
+    ])
+
   defp run_standard_test(build_server, project), do:
     Job.run_queued(:standard_test, project,
       fn ->
-        run_in_cloak(project, [
-          "mix lint",
-          ~s(MIX_ENV='test' mix lint)
-        ])
+        with {:error, reason} <-
+          run_in_cloak(project, [
+            "MIX_ENV='dev' mix compile --force --warnings-as-errors",
+            "MIX_ENV='test' mix compile --force --warnings-as-errors",
+            "MIX_ENV='prod' mix compile --force --warnings-as-errors",
+            "mix lint",
+            ~s(MIX_ENV='test' mix lint)
+          ])
+        do
+          LocalProject.log(project, standard_test_job_name(), "error: #{reason}")
+          :error
+        end
       end,
       job_name: standard_test_job_name(),
       log_name: standard_test_job_name(),
