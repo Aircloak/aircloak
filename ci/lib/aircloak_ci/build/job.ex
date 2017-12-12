@@ -43,7 +43,15 @@ defmodule AircloakCI.Build.Job do
       queue,
       fn ->
         LocalProject.log(project, log_name(queue, opts), "entered queue `#{queue}`")
-        result = fun.()
+        result =
+          if Enum.member?(Application.get_env(:aircloak_ci, :simulation, []), queue) do
+            IO.puts("simulating #{queue}")
+            :timer.sleep(:timer.seconds(1))
+            :ok
+          else
+            fun.()
+          end
+
         maybe_report_result(queue, opts, result)
         result
       end
