@@ -31,7 +31,7 @@ defmodule AircloakCI do
     repo_data = AircloakCI.Github.repo_data("aircloak", "aircloak")
     case Enum.find(repo_data.pull_requests, &(&1.number == pr_number)) do
       nil -> {:error, "PR ##{pr_number} not found"}
-      pr -> AircloakCI.Build.force_build(pr, repo_data)
+      pr -> AircloakCI.Build.PullRequest.force_build(pr, repo_data)
     end
   end
 

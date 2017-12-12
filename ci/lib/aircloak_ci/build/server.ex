@@ -1,26 +1,147 @@
 defmodule AircloakCI.Build.Server do
-  @moduledoc "Server which handles a build of a single pull request."
+  @moduledoc """
+  Behaviour for powering the life cycle of a single CI build of a pull request or a branch.
 
-  use GenServer, start: {__MODULE__, :start_link, []}, restart: :temporary
+  Build server is a GenServer-like process. The behaviour will initialize the process state, and then invoke various
+  functions from the callback module. The callbacks are mostly similar to GenServer ones, with some build-specific
+  additions.
+
+  The callback module can start child jobs using the `start_job/3` function. The behaviour will monitor the lifecycle
+  of these jobs, and notify the callback module when they terminate. The behaviour also takes care of the proper
+  cleanup of all child jobs.
+
+  The behaviour immediately starts the project preparation job (powered by `AircloakCI.Build.Job.Prepare`). Once this
+  job is done, the behaviour will start the compilation job (powered by `AircloakCI.Build.Job.Compile`).
+
+  The behaviour will also subscribe to notifications from `AircloakCI.RepoDataProvider`, and handle changes. If the
+  related PR is no longer pending, the behaviour will terminate the process. If some new commits are pushed to the PR,
+  the behaviour will stop all child jobs, and notify the callback module. Finally, the callback module will be notified
+  if something else changes in the PR (e.g. status message).
+  """
+  use GenServer
   require Logger
-  alias AircloakCI.{LocalProject, Github, Queue}
+  alias AircloakCI.{Github, LocalProject}
+  alias AircloakCI.Build.Job
+
+  @type state :: %{
+    callback_mod: module,
+    source_type: source_type,
+    source_id: source_id,
+    source: source,
+    base_branch: Github.API.branch | nil,
+    project: LocalProject.t,
+    data: any,
+    jobs: jobs,
+    prepared?: boolean,
+    compiled?: boolean,
+  }
+
+  @type source_type :: :pull_request | :branch
+
+  @type source_id :: any
+
+  @type source :: Github.API.pull_request | Github.API.branch
+
+  @opaque jobs :: %{job_name => pid}
+
+  @type job_name :: String.t
+
+  @type async_message_result ::
+    {:noreply, state} |
+    {:noreply, state, timeout | :hibernate} |
+    {:stop, reason :: any, state}
+
+  @type start_job_opts :: [report_status: {Github.API.repo, sha::String.t}]
 
 
   # -------------------------------------------------------------------
-  # API functions
+  # Behaviour
   # -------------------------------------------------------------------
 
-  @doc "Force starts the build of the given pull request."
-  @spec force_build(Github.API.pull_request) :: :ok | {:error, String.t}
-  def force_build(pr) do
-    fn -> GenServer.call(name(pr), :initialized?) || :timer.sleep(:timer.seconds(1)) end
-    |> Stream.repeatedly()
-    |> Stream.drop_while(&(&1 != true))
-    |> Stream.take(1)
-    |> Stream.run()
+  @doc "Invoked to find the build source in the provided repo data."
+  @callback build_source(source_id, Github.API.repo_data) ::
+    %{source: source, base_branch: Github.Api.branch, project: LocalProject.t} | nil
 
-    GenServer.call(name(pr), :force_build)
+  @doc "Invoked when the process is initializing."
+  @callback init(any, state) ::
+    {:ok, state} |
+    {:ok, state, timeout | :hibernate} |
+    :ignore |
+    {:stop, reason :: any}
+
+  @doc """
+  Invoked when there's a change in the PR.
+
+  This callback is not invoked if some additional commits are pushed. In this case, the build is restarted.
+  """
+  @callback handle_source_change(state) :: async_message_result
+
+  @doc "Invoked if a child job terminated with the reason `:normal`."
+  @callback handle_job_succeeded(job_name, state) :: async_message_result
+
+  @doc "Invoked if a child job terminated with a non-normal reason."
+  @callback handle_job_failed(job_name, reason :: any, state) :: async_message_result
+
+  @doc "Invoked to handle a synchronous request issued by `call/3`."
+  @callback handle_call(request :: any, {pid, tag :: term}, state) ::
+    {:reply, reply, state} |
+    {:reply, reply, state, timeout | :hibernate} |
+    {:noreply, state} |
+    {:noreply, state, timeout | :hibernate} |
+    {:stop, reason, reply, state} |
+    {:stop, reason, state} when reply: term, reason: term
+
+  @doc "Invoked to handle a plain message sent to this process."
+  @callback handle_info(message :: any, state) :: async_message_result
+
+
+  # -------------------------------------------------------------------
+  # API Functions
+  # -------------------------------------------------------------------
+
+  @doc "Starts a build server related to the given pull request."
+  @spec start_link(module, source_type, source_id, Github.API.repo_data, any, GenServer.options) :: GenServer.on_start
+  def start_link(callback_mod, source_type, source_id, repo_data, arg, gen_server_opts \\ []), do:
+    GenServer.start_link(__MODULE__, {callback_mod, source_type, source_id, repo_data, arg}, gen_server_opts)
+
+  @doc "Makes a synchronous request to the given build server."
+  @spec call(GenServer.server, any, pos_integer | :infinity) :: any
+  def call(server, request, timeout \\ :timer.seconds(5)), do:
+    GenServer.call(server, request, timeout)
+
+  @doc "Starts the provided function as a child job of the build server."
+  @spec start_job(state, job_name, (() -> any), start_job_opts) :: state
+  def start_job(state, name, task_fun, opts \\ []) do
+    :error = Map.fetch(state.jobs, name)
+    {:ok, new_job} = Task.start_link(task_fun)
+    Logger.info("job #{name} for `#{LocalProject.name(state.project)}` started")
+
+    case Keyword.fetch(opts, :report_status) do
+      :error -> :ok
+      {:ok, {repo, sha}} -> AircloakCI.Build.Reporter.report_status(repo, sha, name, %{}, :pending, "build started")
+    end
+
+    put_in(state.jobs[name], new_job)
   end
+
+  @doc "Terminates all currently running child jobs, and restarts the build from scratch."
+  @spec restart(state, [before_start: ((state) -> any)]) :: state
+  def restart(state, opts \\ []) do
+    new_state = terminate_all_jobs(state)
+    before_start = Keyword.get(opts, :before_start, &(&1))
+    before_start.(new_state)
+    start_preparation_job(new_state)
+  end
+
+  @doc "Returns true if the given job is running."
+  @spec running?(state, job_name) :: boolean
+  def running?(state, job_name), do:
+    Enum.member?(Map.keys(state.jobs), job_name)
+
+  @doc "Reports the job result."
+  @spec report_result(pid, job_name, :ok | :error | :failure, any) :: :ok
+  def report_result(pid, job_name, result, extra_info \\ nil), do:
+    GenServer.cast(pid, {:report_result, job_name, result, extra_info})
 
 
   # -------------------------------------------------------------------
@@ -28,290 +149,78 @@ defmodule AircloakCI.Build.Server do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init({pr, repo_data}) do
-    AircloakCI.RepoDataProvider.subscribe()
+  def init({callback_mod, source_type, source_id, repo_data, arg}) do
     Process.flag(:trap_exit, true)
+    AircloakCI.RepoDataProvider.subscribe()
 
-    project = LocalProject.for_pull_request(pr)
-    Logger.info("started build server for #{LocalProject.name(project)}")
+    build_source = build_source(callback_mod, source_id, repo_data)
+    false = is_nil(build_source)
 
-    state = %{pr: pr, project: project, init_task: nil, build_task: nil, start: nil}
-    {:ok, start_init_task(state, repo_data)}
+    %{
+      callback_mod: callback_mod,
+      source_type: source_type,
+      source_id: source_id,
+      source: build_source.source,
+      base_branch: build_source.base_branch,
+      project: build_source.project,
+      data: nil,
+      jobs: %{},
+      prepared?: false,
+      compiled?: false,
+    }
+    |> start_preparation_job()
+    |> invoke_callback(:init, [arg])
   end
 
   @impl GenServer
-  def handle_call(:initialized?, _from, state), do:
-    {:reply, state.init_task == nil, state}
-  def handle_call(:force_build, _from, %{build_task: build_task} = state) when build_task != nil, do:
-    {:reply, :ok, state}
-  def handle_call(:force_build, _from, state) do
-    case check_ci_possibility(state) do
-      :ok ->
-        LocalProject.set_status(state.project, :force_start)
-        {:reply, :ok, maybe_start_build(state)}
-      {:error, _} = error ->
-        {:reply, error, state}
-    end
+  def handle_call(request, from, state), do:
+    invoke_callback(state, :handle_call, [request, from])
+
+  @impl GenServer
+  def handle_cast({:report_result, job_name, result, extra_info}, state) do
+    LocalProject.mark_finished(state.project, job_name)
+    AircloakCI.Build.Reporter.report_result(state, job_name, result, extra_info)
+    {:noreply, state}
   end
 
   @impl GenServer
   def handle_info({:repo_data, repo_data}, state) do
-    case Enum.find(repo_data.pull_requests, &(&1.number == state.pr.number)) do
+    case build_source(state.callback_mod, state.source_id, repo_data) do
       nil ->
-        Logger.info("shutting down build server for `#{LocalProject.name(state.project)}`")
+        Logger.info("shutting down build server `#{__MODULE__}` for `#{LocalProject.name(state.project)}`")
         {:stop, :shutdown, state}
-      pr ->
-        {:noreply, update_pr(state, pr, repo_data)}
+      build_source ->
+        update_source(state, build_source)
     end
   end
-  def handle_info({:build_result, result}, state) do
-    handle_build_finish(state, result, nil)
-    {:noreply, state}
-  end
-  def handle_info({:EXIT, init_task, _reason}, %{init_task: init_task} = state), do:
-    {:noreply, maybe_start_build(%{state | init_task: nil})}
-  def handle_info({:EXIT, build_task, reason}, %{build_task: build_task} = state) do
-    if reason != :normal, do: handle_build_finish(state, :failure, reason)
-    {:noreply, %{state | build_task: nil}}
+  def handle_info({:EXIT, pid, reason} = exit_message, state) do
+    case Enum.find(state.jobs, &match?({_name, ^pid}, &1)) do
+      {name, ^pid} ->
+        LocalProject.mark_finished(state.project, name)
+        new_state = update_in(state.jobs, &Map.delete(&1, name))
+        case reason do
+          :normal ->
+            Logger.info("job #{name} for `#{LocalProject.name(state.project)}` finished")
+            handle_job_succeeded(new_state, name)
+
+          _other ->
+            Logger.error("job #{name} for `#{LocalProject.name(state.project)}` crashed")
+            handle_job_failed(new_state, name, reason)
+        end
+
+      nil -> invoke_callback(state, :handle_info, [exit_message])
+    end
   end
   def handle_info(other, state), do:
-    super(other, state)
+    invoke_callback(state, :handle_info, [other])
 
-
-  # -------------------------------------------------------------------
-  # Project initialization
-  # -------------------------------------------------------------------
-
-  defp base_projects(pr, repo_data), do:
-    # We're deduping, because if the target is master, we end up with two master branches, which causes deadlocks.
-    Enum.uniq([
-      LocalProject.for_branch(branch!(repo_data, pr.target_branch)),
-      LocalProject.for_branch(branch!(repo_data, "master"))
+  @impl GenServer
+  def terminate(reason, state) do
+    Logger.info([
+      "build server ", inspect(state.callback_mod), " for ", LocalProject.name(state.project),
+      " terminating: ", Exception.format_exit(reason)
     ])
-
-  defp init_project(pr_project, base_projects), do:
-    Queue.exec(project_queue(pr_project), fn -> init_project([pr_project | base_projects]) end)
-
-  defp init_project([project, base_project | rest]) do
-    if LocalProject.status(project) == :empty do
-      LocalProject.truncate_logs(project)
-      # note: no need to queue in `project`, since this is done by the caller
-      Queue.exec(project_queue(base_project), fn ->
-        :ok = init_project([base_project | rest])
-        :ok = LocalProject.initialize_from(project, base_project)
-      end)
-      :ok = Queue.exec(:compile, fn -> LocalProject.ensure_compiled(project) end)
-    else
-      :ok
-    end
-  end
-  defp init_project([master_project]), do:
-    # note: no need to queue in `master_project`, since this is done by the caller
-    :ok = Queue.exec(:compile, fn -> LocalProject.ensure_compiled(master_project) end)
-
-  defp branch!(repo_data, branch_name), do:
-    %{} = Enum.find(repo_data.branches, &(&1.name == branch_name))
-
-
-  # -------------------------------------------------------------------
-  # Build lifecycle
-  # -------------------------------------------------------------------
-
-  defp update_pr(state, new_pr, repo_data) do
-    state = if state.pr.merge_sha != new_pr.merge_sha, do: cancel_outdated_tasks(state, repo_data), else: state
-    maybe_start_build(%{state | pr: new_pr, project: LocalProject.for_pull_request(new_pr)})
-  end
-
-  defp cancel_outdated_tasks(state, repo_data), do:
-    state
-    |> cancel_outdated_init(repo_data)
-    |> cancel_current_build()
-
-  defp cancel_outdated_init(state, repo_data) do
-    if state.init_task != nil do
-      Logger.info("cancelling outdated init")
-      sync_kill(state.init_task)
-      start_init_task(%{state | init_task: nil}, repo_data)
-    else
-      state
-    end
-  end
-
-  defp cancel_current_build(state) do
-    if state.build_task != nil do
-      Logger.info("cancelling outdated build")
-      sync_kill(state.build_task)
-    else
-      state
-    end
-  end
-
-  defp sync_kill(pid) do
-    Process.exit(pid, :kill)
-    receive do {:EXIT, ^pid, _reason} -> :ok end
-  end
-
-  defp start_init_task(state, repo_data) do
-    {:ok, init_task} = Task.start_link(fn -> init_project(state.project, base_projects(state.pr, repo_data)) end)
-    %{state | init_task: init_task}
-  end
-
-  defp maybe_start_build(%{init_task: nil, build_task: nil} = state) do
-    if not build_finished?(state) and check_ci_possibility(state) == :ok do
-      case check_start_preconditions(state) do
-        :ok ->
-          me = self()
-          {:ok, build_task} = Task.start_link(fn -> send(me, {:build_result, run_build(state.pr, state.project)}) end)
-
-          %{state | build_task: build_task, start: :erlang.monotonic_time(:second)}
-
-        {:error, status} ->
-          send_status_to_github(state.pr, :pending, status)
-          state
-      end
-    else
-      state
-    end
-  end
-  defp maybe_start_build(state), do: state
-
-  defp handle_build_finish(state, result, context) do
-    diff_sec = :erlang.monotonic_time(:second) - state.start
-    time_output = :io_lib.format("~b:~2..0b", [div(diff_sec, 60), rem(diff_sec, 60)])
-
-    LocalProject.log(state.project, "finished with result `#{result}` in #{time_output} min")
-
-    send_status_to_github(state.pr, github_status(result), description(result))
-
-    Github.post_comment(
-      state.pr.repo.owner,
-      state.pr.repo.name,
-      state.pr.number,
-      comment(state, result, context)
-    )
-
-    LocalProject.set_status(state.project, :finished)
-  end
-
-
-  # -------------------------------------------------------------------
-  # Validation functions
-  # -------------------------------------------------------------------
-
-  defp build_finished?(state), do:
-    LocalProject.status(state.project) == :finished and LocalProject.current_sha(state.project) == state.pr.merge_sha
-
-  defp check_ci_possibility(state) do
-    with \
-      {_error, true} <- {"unmergeable", state.pr.mergeable? and state.pr.merge_sha != nil},
-      {_error, true} <- {"CI not possible", LocalProject.ci_possible?(state.project)}
-    do
-      :ok
-    else
-      {error, false} -> {:error, error}
-    end
-  end
-
-  defp check_start_preconditions(state) do
-    if LocalProject.status(state.project) == :force_start do
-      :ok
-    else
-      with \
-        {_status, true} <- {"waiting for Travis builds to succeed", travis_succeeded?(state.pr)},
-        {_status, true} <- {"waiting for approval", state.pr.approved?}
-      do
-        :ok
-      else
-        {error, false} -> {:error, error}
-      end
-    end
-  end
-
-  defp travis_succeeded?(pr), do:
-    (pr.status_checks["continuous-integration/travis-ci/pr"] || %{status: nil}).status == :success and
-    (pr.status_checks["continuous-integration/travis-ci/push"] || %{status: nil}).status == :success
-
-
-  # -------------------------------------------------------------------
-  # Build execution
-  # -------------------------------------------------------------------
-
-  defp run_build(pr, project) do
-    send_status_to_github(pr, :pending, "build started")
-    Queue.exec(project_queue(project), fn ->
-      with \
-        :ok <- LocalProject.truncate_logs(project),
-        :ok <- LocalProject.initialize(project),
-        :ok <- LocalProject.set_status(project, :started),
-        :ok <- run_phase(project, :compile, &LocalProject.compile/1),
-        :ok <- run_phase(project, :compliance, &LocalProject.compliance/1)
-      do
-        :ok
-      else
-        {:error, reason} ->
-          LocalProject.log(project, "error: #{reason}")
-          :error
-      end
-    end)
-  end
-
-  defp run_phase(project, queue_id, fun) do
-    LocalProject.log(project, "waiting in #{queue_id} queue")
-    Queue.exec(queue_id, fn ->
-      LocalProject.log(project, "entered #{queue_id} queue")
-      fun.(project)
-    end)
-  end
-
-
-  # -------------------------------------------------------------------
-  # Communication with Github
-  # -------------------------------------------------------------------
-
-  defp send_status_to_github(pr, status, description) do
-    status_context = "continuous-integration/aircloak/compliance"
-    current_description = (pr.status_checks[status_context] || %{description: nil}).description
-    if description != current_description, do:
-      Github.put_status_check_state(pr.repo.owner, pr.repo.name, pr.sha, status_context, description, status)
-  end
-
-  defp github_status(:ok), do: :success
-  defp github_status(:error), do: :error
-  defp github_status(:failure), do: :failure
-
-  defp description(:ok), do: "build succeeded"
-  defp description(:error), do: "build errored"
-  defp description(:failure), do: "build failed"
-
-  defp comment(_state, :ok, nil), do:
-    "Compliance build succeeded #{happy_emoji()}"
-  defp comment(state, :error, nil), do:
-    error_comment(state, "Compliance build errored")
-  defp comment(state, :failure, crash_reason), do:
-    error_comment(state, "Compliance build crashed", "```\n#{Exception.format_exit(crash_reason)}\n```")
-
-  defp error_comment(state, title, extra_info \\ nil), do:
-    Enum.join(
-      [
-        "#{title} #{sad_emoji()}",
-        (if not is_nil(extra_info), do: "\n#{extra_info}\n", else: ""),
-        "You can see the full build log by running: `ci/production.sh build_log #{state.pr.number}`\n",
-        "Log tail:\n", "```", log_tail(state.project), "```"
-      ],
-      "\n"
-    )
-
-  defp happy_emoji(), do: Enum.random(["💯", "👍", "😊", "❤️", "🎉", "👏"])
-
-  defp sad_emoji(), do: Enum.random(["😞", "😢", "😟", "💔", "👿", "🔥"])
-
-  defp log_tail(project) do
-    max_lines = 100
-    lines = project |> LocalProject.log_contents() |> String.split("\n")
-
-    lines
-    |> Enum.drop(max(length(lines) - max_lines, 0))
-    |> Enum.join("\n")
+    terminate_all_jobs(state)
   end
 
 
@@ -319,17 +228,111 @@ defmodule AircloakCI.Build.Server do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp name(pr), do:
-    {:via, Registry, {AircloakCI.Build.Registry, {:pull_request, pr.number}}}
+  defp build_source(callback_mod, source_id, repo_data), do:
+    callback_mod.build_source(source_id, repo_data)
 
-  defp project_queue(project), do: {:project, LocalProject.folder(project)}
+  defp terminate_all_jobs(state) do
+    pids = Map.values(state.jobs)
+    Enum.each(pids, &Process.exit(&1, :shutdown))
+    Enum.each(pids, &await_shutdown_or_kill/1)
+    %{state | jobs: %{}}
+  end
 
+  defp start_preparation_job(state, opts \\ []), do:
+    Job.Prepare.run(%{state | prepared?: false, compiled?: false}, opts)
 
-  # -------------------------------------------------------------------
-  # Supervision tree
-  # -------------------------------------------------------------------
+  defp update_source(state, %{source: source, base_branch: base_branch, project: project}) do
+    new_state = %{state | source: source, base_branch: base_branch, project: project}
+    cond do
+      LocalProject.target_sha(new_state.project) != LocalProject.target_sha(state.project) ->
+        {:noreply, new_state |> terminate_all_jobs() |> start_preparation_job()}
+
+      new_state.source != state.source ->
+        invoke_callback(new_state, :handle_source_change, [])
+
+      true ->
+        {:noreply, new_state}
+    end
+  end
+
+  defp await_shutdown_or_kill(pid) do
+    receive do
+      {:EXIT, ^pid, _reason} -> :ok
+    after :timer.seconds(5) ->
+      Process.exit(pid, :kill)
+      receive do {:EXIT, ^pid, _reason} -> :ok end
+    end
+  end
+
+  defp handle_job_succeeded(state, "prepare"), do:
+    {:noreply, maybe_compile_project(%{state | prepared?: true})}
+  defp handle_job_succeeded(state, "compile" = job_name), do:
+    invoke_callback(%{state | compiled?: true}, :handle_job_succeeded, [job_name])
+  defp handle_job_succeeded(state, job_name), do:
+    invoke_callback(state, :handle_job_succeeded, [job_name])
+
+  defp handle_job_failed(state, "prepare", _reason) do
+    LocalProject.clean(state.project)
+    {:noreply, start_preparation_job(state, delay: :timer.seconds(10))}
+  end
+  defp handle_job_failed(state, name, reason), do:
+    invoke_callback(state, :handle_job_failed, [name, reason])
+
+  defp maybe_compile_project(state) do
+    if LocalProject.ci_possible?(state.project), do: Job.Compile.run(state), else: state
+  end
+
+  defp invoke_callback(state, fun, args), do:
+    apply(state.callback_mod, fun, args ++ [state])
 
   @doc false
-  def start_link(pr, repo_data), do:
-    GenServer.start_link(__MODULE__, {pr, repo_data}, name: name(pr))
+  defmacro __using__(opts) do
+    quote bind_quoted: [opts: opts, behaviour_mod: __MODULE__] do
+      require Logger
+      @behaviour behaviour_mod
+
+      @impl behaviour_mod
+      def handle_source_change(state), do:
+        {:noreply, state}
+
+      @impl behaviour_mod
+      def handle_job_succeeded(job_name, state) do
+        Logger.info("job #{job_name} finished")
+        {:noreply, state}
+      end
+
+      @impl behaviour_mod
+      def handle_job_failed(job_name, crash_reason, state), do:
+        {:noreply, state}
+
+      @impl behaviour_mod
+      def handle_call(request, from, state), do:
+        raise "handle_call/3 not implemented in #{inspect(__MODULE__)}"
+
+      @impl behaviour_mod
+      def handle_info(msg, state) do
+        proc =
+          case Process.info(self(), :registered_name) do
+            {_, []}   -> self()
+            {_, name} -> name
+          end
+        :error_logger.error_msg('~p ~p received unexpected message in handle_info/2: ~p~n',
+                                [__MODULE__, proc, msg])
+        {:noreply, state}
+      end
+
+      defoverridable behaviour_mod
+
+      @doc false
+      def child_spec(_arg), do:
+        %{
+          id: __MODULE__,
+          start: {__MODULE__, :start_link, []},
+          restart: unquote(Keyword.get(opts, :restart, :permanent)),
+          shutdown: 5000,
+          type: :worker
+        }
+      defoverridable child_spec: 1
+    end
+  end
 end
