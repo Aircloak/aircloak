@@ -40,16 +40,22 @@ defmodule AircloakCI.Build.Reporter do
   defp result_description(:failure), do: "failed"
 
   defp post_result_to_github(build_state, job_name, result, extra_info) do
-    report_status(
-      build_state.source.repo,
-      build_state.source.sha,
-      job_name,
-      Map.get(build_state.source, :status_checks, %{}),
-      github_status(result),
-      result_description(result)
-    )
+    # Only set status for PR builds. Plain commit statuses can't be viewed in GH UI, so they don't make much sense.
+    if build_state.source_type == :pull_request, do:
+      report_status(
+        build_state.source.repo,
+        build_state.source.sha,
+        job_name,
+        Map.get(build_state.source, :status_checks, %{}),
+        github_status(result),
+        result_description(result)
+      )
 
-    post_job_comment(build_state, comment_body(build_state, job_name, result, extra_info))
+    # Only report error/failure to reduce the noise in PR builds.
+    if result in [:error, :failure], do:
+      post_job_comment(build_state, comment_body(build_state, job_name, result, extra_info))
+
+    :ok
   end
 
   defp post_job_comment(%{source_type: :pull_request, source: pr}, body), do:
@@ -57,8 +63,6 @@ defmodule AircloakCI.Build.Reporter do
   defp post_job_comment(%{source_type: :branch, source: branch}, body), do:
     Github.comment_on_commit(branch.repo.owner, branch.repo.name, branch.sha, body)
 
-  defp comment_body(_build_state, job_name, :ok, nil), do:
-    "#{job_name} job succeeded #{Emoji.happy()}"
   defp comment_body(build_state, job_name, :error, nil), do:
     error_comment_body(build_state, job_name, "errored")
   defp comment_body(build_state, job_name, :failure, crash_reason), do:
