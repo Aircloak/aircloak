@@ -136,7 +136,12 @@ defmodule AircloakCI.Build.Server do
   @doc "Returns true if the given job is running."
   @spec running?(state, job_name) :: boolean
   def running?(state, job_name), do:
-    Enum.member?(Map.keys(state.jobs), job_name)
+    state |> running_jobs() |> Enum.member?(job_name)
+
+  @doc "Returns all currently running jobs."
+  @spec running_jobs(state) :: [job_name]
+  def running_jobs(state), do:
+    Map.keys(state.jobs)
 
   @doc "Reports the job result."
   @spec report_result(pid, job_name, :ok | :error | :failure, any) :: :ok
