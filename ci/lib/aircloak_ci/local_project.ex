@@ -147,6 +147,15 @@ defmodule AircloakCI.LocalProject do
   def ci_possible?(project), do:
     update_code(project) == :ok and not is_nil(ci_version(project))
 
+  @doc "Returns the CI version of the project."
+  @spec ci_version(t) :: non_neg_integer() | nil
+  def ci_version(project) do
+    case File.read(Path.join([src_folder(project), "ci", "VERSION"])) do
+      {:ok, contents} -> contents |> String.trim() |> String.to_integer()
+      {:error, _reason} -> nil
+    end
+  end
+
   @doc "Returns true if the project source has been initialized."
   @spec initialized?(t) :: boolean
   def initialized?(project), do:
@@ -269,13 +278,6 @@ defmodule AircloakCI.LocalProject do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp ci_version(project) do
-    case File.read(Path.join([src_folder(project), "ci", "VERSION"])) do
-      {:ok, contents} -> contents |> String.trim() |> String.to_integer()
-      {:error, _reason} -> nil
-    end
-  end
 
   defp base_branch("master"), do: nil
   defp base_branch(_not_master), do: "master"
