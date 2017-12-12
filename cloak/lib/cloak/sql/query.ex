@@ -361,6 +361,7 @@ defmodule Cloak.Sql.Query do
       emulated_where(query),
       query.having,
       order_by_expressions(query),
+      Compiler.NoiseLayers.noise_layer_columns(query)
     ]
 
   defp extract_columns(columns), do: Lenses.leaf_expressions() |> Lens.to_list(columns)

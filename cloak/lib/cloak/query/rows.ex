@@ -25,11 +25,9 @@ defmodule Cloak.Query.Rows do
   def extract_groups(rows, columns_to_select, query) do
     columns =
       (group_expressions(query) ++ query.aggregators)
-      |> Enum.map(&Expression.unalias/1)
+      |> Enum.map(&clear/1)
       |> Enum.with_index()
       |> Enum.into(%{})
-
-    columns_to_select = Enum.map(columns_to_select, &Expression.unalias/1)
 
     rows
     |> Enum.filter(&filter_group(&1, columns, query))
@@ -77,19 +75,21 @@ defmodule Cloak.Query.Rows do
   defp non_selected_order_by_expressions(query), do:
     query |> Query.order_by_expressions() |> Enum.reject(& &1 in query.columns)
 
-  defp selected_values(row, columns, columns_to_select), do:
-    Enum.map(columns_to_select, &fetch_value!(row, &1, columns))
+  defp selected_values(row, expressions, columns_to_select), do:
+    Enum.map(columns_to_select, &fetch_value!(row, &1, expressions))
 
-  defp fetch_value!(row, %Expression{function?: true, function_args: args} = function, columns) do
-    case Map.fetch(columns, function) do
+  defp clear(expression), do: %Expression{expression | alias: nil, row_index: nil}
+
+  defp fetch_value!(row, expression, expressions) do
+    case Map.fetch(expressions, clear(expression)) do
       {:ok, index} -> Enum.at(row, index)
-      :error -> Expression.apply_function(function, Enum.map(args, &fetch_value!(row, &1, columns)))
-    end
-  end
-  defp fetch_value!(row, column, columns) do
-    case Map.fetch(columns, column) do
-      {:ok, index} -> Enum.at(row, index)
-      :error -> Expression.value(column, row)
+      :error ->
+        if expression.function? do
+          args = Enum.map(expression.function_args, &fetch_value!(row, &1, expressions))
+          Expression.apply_function(expression, args)
+        else
+          Expression.value(expression, row)
+        end
     end
   end
 
