@@ -11,6 +11,7 @@ defmodule Cloak.Query.DbEmulator do
   alias Cloak.{DataSource, DataSource.Table}
   alias Cloak.Sql.{Query, Expression, Function}
   alias Cloak.Query.{DbEmulator.Selector, DataDecoder}
+  alias Cloak.Sql.Compiler.Optimizer
 
 
   # -------------------------------------------------------------------
@@ -77,6 +78,8 @@ defmodule Cloak.Query.DbEmulator do
   defp compile_emulated_joins(%Query{emulated?: true, from: {:join, _}} = query) do
     query
     |> update_in([Query.Lenses.leaf_tables()], &joined_table_to_subquery(&1, query))
+    |> Optimizer.optimize()
+    |> Query.resolve_db_columns()
     |> update_in([Query.Lenses.joins()], &compute_columns_to_select/1)
     |> update_in([Query.Lenses.joins()], &update_join_conditions/1)
   end
