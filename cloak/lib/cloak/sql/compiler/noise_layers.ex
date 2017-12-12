@@ -29,6 +29,21 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> add_generic_uid_layer_if_needed(top_level_uid)
   end
 
+  @doc "Returns the columns required to compute the noise layers for the specified query."
+  @spec noise_layer_columns(Query.t) :: [Expression.t]
+  def noise_layer_columns(%{noise_layers: noise_layers, emulated?: true}), do:
+    non_uid_expressions()
+    |> Lens.to_list(noise_layers)
+    |> Enum.map(fn
+      %{aggregate?: true, function_args: [aggregated]} -> aggregated
+      column -> column
+    end)
+    |> Enum.uniq_by(&Expression.unalias/1)
+  def noise_layer_columns(%{noise_layers: noise_layers}), do:
+    non_uid_expressions()
+    |> Lens.to_list(noise_layers)
+    |> Enum.uniq_by(&Expression.unalias/1)
+
 
   # -------------------------------------------------------------------
   # Pushing layers into subqueries
@@ -99,19 +114,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     }
   end
   defp float_noise_layers_columns(query), do: query
-
-  def noise_layer_columns(%{noise_layers: noise_layers, emulated?: true}), do:
-    non_uid_expressions()
-    |> Lens.to_list(noise_layers)
-    |> Enum.map(fn
-      %{aggregate?: true, function_args: [aggregated]} -> aggregated
-      column -> column
-    end)
-    |> Enum.uniq_by(&Expression.unalias/1)
-  def noise_layer_columns(%{noise_layers: noise_layers}), do:
-    non_uid_expressions()
-    |> Lens.to_list(noise_layers)
-    |> Enum.uniq_by(&Expression.unalias/1)
 
   defp floated_noise_layers(query), do:
     Query.Lenses.direct_subqueries()
