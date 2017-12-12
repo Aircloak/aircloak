@@ -52,8 +52,8 @@ defmodule Cloak.Query.Runner.Engine do
 
   defp prepare_for_execution(compiled_query), do:
     compiled_query
-    |> Sql.Query.resolve_db_columns()
     |> Sql.Compiler.NoiseLayers.compile()
+    |> Sql.Query.resolve_db_columns()
 
   defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater), do:
     (Map.keys(query.data_source.tables) ++ Map.keys(query.views))

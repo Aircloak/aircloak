@@ -14,9 +14,10 @@ defmodule Cloak.Sql.Compiler.Helpers do
   @spec id_column(partial_query) :: Expression.t
   def id_column(query) do
     id_columns = all_id_columns_from_tables(query)
-    if any_outer_join?(query.from),
+    id_column = if any_outer_join?(query.from),
       do: %Expression{Expression.function("coalesce", id_columns) | alias: "__ac_coalesce__", user_id?: true},
       else: hd(id_columns)
+    %Expression{id_column | row_index: 0}
   end
 
   @doc "Returns true if any uid column is selected."
@@ -60,40 +61,6 @@ defmodule Cloak.Sql.Compiler.Helpers do
     Query.Lenses.join_conditions()
     |> Query.Lenses.conditions()
     |> Lens.to_list(query)
-
-  @doc """
-  Removes columns from new_columns that are duplicated or already present in db_columns. Returns a modified
-  version of query where the appropriate selected columns are used instead of the removed columns.
-  """
-  @spec drop_redundant_floated_columns(Query.t, [Expression.t]) :: {Query.t, [Expression.t]}
-  def drop_redundant_floated_columns(query, new_columns) do
-    selected_ids = query.db_columns |> Enum.map(&Expression.id/1) |> MapSet.new()
-
-    {already_selected, new_columns} = Enum.partition(new_columns, &MapSet.member?(selected_ids, Expression.id(&1)))
-    uniq_new = Enum.uniq_by(new_columns, &Expression.id/1)
-    duplicated_new = new_columns -- uniq_new
-    replacements = (query.db_columns ++ uniq_new) |> Enum.map(&{Expression.id(&1), &1}) |> Map.new()
-
-    query = Enum.reduce(already_selected ++ duplicated_new, query,
-      fn(duplicate_expression, query) ->
-        replacement = Map.fetch!(replacements, Expression.id(duplicate_expression))
-        Query.replace_expression(query, duplicate_expression, replacement)
-      end
-    )
-
-    {query, uniq_new}
-  end
-
-  @doc """
-  Adds extra columns to the db_columns list.
-
-  Duplicates are rejected and replaced using `drop_redundant_floated_columns/2`
-  """
-  @spec add_extra_db_columns(Query.t, [Expression.t]) :: Query.t
-  def add_extra_db_columns(query, columns) do
-    {query, new_columns} = drop_redundant_floated_columns(query, columns)
-    Enum.reduce(new_columns, query, &Query.add_db_column(&2, &1))
-  end
 
   @doc """
   Updates the query and all its subqueries with the given function. Starts from the most nested subqueries going up.
