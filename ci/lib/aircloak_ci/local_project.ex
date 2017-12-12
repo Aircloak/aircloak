@@ -83,7 +83,7 @@ defmodule AircloakCI.LocalProject do
       log_start_stop(project, "updating local project git repository for #{name(project)}", fn ->
         with \
           :ok <- clone_repo(project),
-          :ok <- cmd(project, "main", "git #{project.update_git_command}"),
+          :ok <- cmd(project, "main", "git #{project.update_git_command}", timeout: :timer.minutes(5)),
           :ok <- cmd(project, "main", "git checkout #{project.checkout}"),
           do: update_state(project, &%{&1 | initialized?: true})
       end)
@@ -297,7 +297,7 @@ defmodule AircloakCI.LocalProject do
 
       CmdRunner.run(
         ~s(git clone git@github.com:#{project.repo.owner}/#{project.repo.name} #{src_folder(project)}),
-        timeout: :timer.minutes(1),
+        timeout: :timer.minutes(5),
         logger: CmdRunner.file_logger(log_path(project, "main"))
       )
     end
