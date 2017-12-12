@@ -461,8 +461,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       ] = compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'").noise_layers
     end
 
-    # Can't get this one working with the uid column
-    for column <- ["string"] do
+    for column <- ~w(string uid) do
       test "noise layers when ILIKE has no wildcards (col: #{column})" do
         [
           %{base: base1, expressions: [%{name: unquote(column)}, _, _]},
@@ -474,9 +473,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
           %{base: ^base2,  expressions: [%{value: "bob"}, _, _, %{name: "uid"}]},
         ] = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} = 'bob'").noise_layers
       end
-    end
 
-    for column <- ["string", "uid"] do
       test "noise layers for NOT LIKE (col: #{column})" do
         result = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} NOT LIKE '_bob%'")
         len = String.length("_bob%") - String.length("%")

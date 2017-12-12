@@ -212,7 +212,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp unclear_noise_layers(query, top_level_uid), do:
     query
     |> unclear_conditions()
-    |> raw_non_uid_columns(query)
+    |> raw_columns(query)
     |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
 
   defp in_noise_layers(query, top_level_uid), do:
@@ -428,7 +428,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(& not Condition.in?(&1))
     |> Lens.satisfy(& not Condition.like?(&1))
     |> Lens.satisfy(& not fk_pk_condition?(&1))
-    |> Lens.both(Lens.key(:group_by))
+    |> Lens.satisfy(& not uid_is_not_null_condition?(&1))
+    |> Lens.both(non_uid_group_by_clauses())
+
+  deflensp non_uid_group_by_clauses(), do:
+    Lens.key(:group_by)
+    |> Lens.all()
+    |> Lens.satisfy(& not match?(%Expression{user_id?: true}, &1))
 
   deflensp non_range_conditions(query), do:
     Query.Lenses.db_filter_clauses()
@@ -457,6 +463,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp fk_pk_condition?({:comparison, lhs, :=, rhs}), do:
     Expression.key?(lhs) and Expression.key?(rhs)
   defp fk_pk_condition?(_), do: false
+
+  defp uid_is_not_null_condition?({:not, {:is, %Expression{user_id?: true}, :null}}), do: true
+  defp uid_is_not_null_condition?(_), do: false
 
   defp table_name(_virtual_table = %{db_name: nil, name: name}), do: name
   defp table_name(table), do: table.db_name
