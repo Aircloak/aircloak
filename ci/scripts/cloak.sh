@@ -59,8 +59,6 @@ function cleanup {
     docker volume rm $dangling_volumes > /dev/null
   fi
 
-  remove_old_git_head_versions aircloak/cloak_ci || true
-
   exit $exit_status
 }
 
@@ -123,7 +121,7 @@ function lock_and_build_cloak_image {
 
   pushd ./cloak && make odbc_drivers && popd
   common/docker/elixir/build-image.sh
-  build_aircloak_image cloak_ci ci/docker/cloak.dockerfile ci/docker/.cloak.dockerignore $(image_version)
+  build_aircloak_image cloak_ci ci/docker/cloak.dockerfile ci/docker/.cloak.dockerignore
 }
 
 function build_cloak_image {
@@ -158,13 +156,8 @@ function start_cloak_container {
 
   export CLOAK_CONTAINER=$(
     docker run -d --network=$CLOAK_NETWORK_ID $mounts -e CLOAK_DATA_SOURCES="$CLOAK_DATA_SOURCES" \
-      aircloak/cloak_ci:$(image_version) sleep infinity
+      aircloak/cloak_ci:$(git_head_image_tag) sleep infinity
   )
-}
-
-function image_version {
-  # We're tagging the version with the HEAD sha, which reduces collisions with other builds.
-  echo $(git rev-parse HEAD)
 }
 
 function create_network {
@@ -207,7 +200,6 @@ function cloak_compliance {
 }
 
 function debug_cloak_compliance {
-  remove_old_git_head_versions aircloak/cloak_ci
   start_cloak_with_databases
   gen_test_data
   DOCKER_EXEC_ARGS="-t" run_in_cloak "/bin/bash"
