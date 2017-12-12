@@ -223,6 +223,7 @@ defmodule AircloakCI.Build.Server do
     terminate_all_jobs(state)
   end
 
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
