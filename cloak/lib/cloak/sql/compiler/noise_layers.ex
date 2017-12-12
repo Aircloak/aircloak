@@ -6,6 +6,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   use Lens.Macros
 
+  @noise_layer_alias_fix_part "__ac_nlc__"
+
 
   # -------------------------------------------------------------------
   # API
@@ -182,7 +184,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp set_noise_layer_expression_alias(expression, expressions) do
     expression = Expression.unalias(expression)
     index = Enum.find_index(expressions, &expression == &1)
-    %Expression{expression | alias: "__ac_nlc__#{index}"}
+    %Expression{expression | alias: "#{@noise_layer_alias_fix_part}#{index}"}
   end
 
   defp select_noise_layers(%{subquery?: true}, _top_level_uid), do: []
