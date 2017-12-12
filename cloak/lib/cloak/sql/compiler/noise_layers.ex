@@ -136,9 +136,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       do: %{noise_layer | expressions: [min_of_min(min), max_of_max(max), sum_of_count(min, count), user_id]},
       else: noise_layer
 
+  defp cast(expression, type), do: Expression.function({:cast, type}, [expression])
+
+  defp min_of_min(%Expression{type: :boolean} = min), do:
+    min |> cast(:integer) |> min_of_min() |> cast(:boolean)
   defp min_of_min(min), do:
     Expression.function("min", [Expression.unalias(min)], min.type, _aggregate = true)
 
+  defp max_of_max(%Expression{type: :boolean} = max), do:
+    max |> cast(:integer) |> max_of_max() |> cast(:boolean)
   defp max_of_max(max), do:
     Expression.function("max", [Expression.unalias(max)], max.type, _aggregate = true)
 
@@ -381,18 +387,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
     |> Lens.to_list(data)
 
-  defp uid_noise_layer(base_column, layer_expression, top_level_uid, extras \\ nil)
-  defp uid_noise_layer(base_column, %Expression{type: :boolean} = layer_expression, top_level_uid, extras), do:
-    uid_noise_layer(base_column, Expression.function({:cast, :integer}, [layer_expression]), top_level_uid, extras)
-  defp uid_noise_layer(base_column, layer_expression, top_level_uid, extras) do
+  defp uid_noise_layer(base_column, layer_expression, top_level_uid, extras \\ nil) do
     expressions = [_min = layer_expression, _max = layer_expression, count_of_one(), top_level_uid]
     build_noise_layer(base_column, extras, expressions)
   end
 
-  defp static_noise_layer(base_column, layer_expression, extras \\ nil)
-  defp static_noise_layer(base_column, %Expression{type: :boolean} = layer_expression, extras), do:
-    static_noise_layer(base_column, Expression.function({:cast, :integer}, [layer_expression]), extras)
-  defp static_noise_layer(base_column, layer_expression, extras) do
+  defp static_noise_layer(base_column, layer_expression, extras \\ nil) do
     expressions = [_min = layer_expression, _max = layer_expression, count_of_one()]
     build_noise_layer(base_column, extras, expressions)
   end
