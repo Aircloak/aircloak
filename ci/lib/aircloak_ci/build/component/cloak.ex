@@ -59,9 +59,9 @@ defmodule AircloakCI.Build.Component.Cloak do
   defp compile_cloak(ci_version, project) when ci_version >= 2, do:
     run_in_cloak(project, [
       "make deps",
-      "MIX_ENV='dev' mix compile",
-      "MIX_ENV='test' mix compile",
-      "MIX_ENV='prod' mix compile",
+      "MIX_ENV=dev mix compile",
+      "MIX_ENV=test mix compile",
+      "MIX_ENV=prod mix compile",
     ])
 
   defp run_standard_test(build_server, project), do:
@@ -69,11 +69,14 @@ defmodule AircloakCI.Build.Component.Cloak do
       fn ->
         with {:error, reason} <-
           run_in_cloak(project, [
-            "MIX_ENV='dev' mix compile --force --warnings-as-errors",
-            "MIX_ENV='test' mix compile --force --warnings-as-errors",
-            "MIX_ENV='prod' mix compile --force --warnings-as-errors",
+            "MIX_ENV=dev mix compile --force --warnings-as-errors",
+            "MIX_ENV=test mix compile --force --warnings-as-errors",
+            "MIX_ENV=prod mix compile --force --warnings-as-errors",
             "mix lint",
-            ~s(MIX_ENV='test' mix lint)
+            "MIX_ENV=test mix lint",
+            # hacky solution for recreating the test database
+            "MIX_ENV=test mix gen.test_data dockerized_ci 1",
+            "mix test",
           ])
         do
           LocalProject.log(project, standard_test_job_name(), "error: #{reason}")
