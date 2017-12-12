@@ -127,12 +127,8 @@ case "$command" in
     service_command build log $1
     ;;
 
-  force_pr_build)
-    service_command build force_pr_build $1
-    ;;
-
-  force_branch_build)
-    service_command build force_branch_build $1
+  force_build)
+    service_command build force_build $1 $2 $3
     ;;
 
   *)

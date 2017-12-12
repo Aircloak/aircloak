@@ -47,7 +47,9 @@ The service is running as a systemd service called `aircloak_ci` on acatlas4.mpi
 
 - reading the service log: `./production.sh service_log`. This command is a wrapper around `ssh acatlas4 "journalctl -u aircloak_ci --no-pager ..."`, so you can pass standard `journalctl` arguments. For example, to tail the production log, you can invoke `./production.sh service_log -f`
 - getting the snapshot of the PR build log: `./production.sh build_log pr_number`
-- force starting a PR build: `./production.sh force_pr_build pr_number`
+- force starting compliance in a PR build: `./production.sh force_build pr pr_number compliance`
+- force starting cloak_test in a PR build: `./production.sh force_build pr pr_number cloak_test`
+- force starting cloak_test in a branch build: `./production.sh force_build branch branch_name cloak_test`
 - deploying the new version: `./production.sh deploy`
 - rolling back to the previously deployed version: `./production.sh rollback`
 

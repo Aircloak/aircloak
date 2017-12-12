@@ -12,11 +12,11 @@ defmodule AircloakCI.Build.Branch do
   # -------------------------------------------------------------------
 
   @doc "Ensures that the build server for the given branch is started."
-  @spec ensure_started(Github.API.branch, Github.API.repo_data) :: :ok
+  @spec ensure_started(Github.API.branch, Github.API.repo_data) :: pid
   def ensure_started(branch, repo_data) do
     case AircloakCI.Build.Supervisor.start_build(__MODULE__, [branch, repo_data]) do
-      {:ok, _} -> :ok
-      {:error, {:already_started, _pid}} -> :ok
+      {:ok, pid} -> pid
+      {:error, {:already_started, pid}} -> pid
     end
   end
 
@@ -30,13 +30,6 @@ defmodule AircloakCI.Build.Branch do
   @spec transfer_project(Github.API.branch, LocalProject.t) :: :ok
   def transfer_project(branch, target_project), do:
     GenServer.call(name(branch), {:transfer_project, target_project}, :timer.minutes(30))
-
-  @doc "Force starts the build of the given branch."
-  @spec force_build(Github.API.branch, Github.API.repo_data) :: :ok
-  def force_build(branch, repo_data) do
-    ensure_started(branch, repo_data)
-    GenServer.call(name(branch), :force_build, :timer.minutes(30))
-  end
 
 
   # -------------------------------------------------------------------
@@ -78,8 +71,6 @@ defmodule AircloakCI.Build.Branch do
       |> update_in(&[{target_project, from} | &1])
       |> maybe_perform_transfers()
     }
-  def handle_call(:force_build, _from, state), do:
-    {:reply, :ok, Build.Server.restart(state, before_start: &mark_all_as_forced/1)}
 
 
   # -------------------------------------------------------------------
@@ -116,9 +107,6 @@ defmodule AircloakCI.Build.Branch do
 
   defp maybe_start_ci(state), do:
     Job.StandardTest.run(state)
-
-  defp mark_all_as_forced(state), do:
-    Enum.each(Job.StandardTest.job_names(), &LocalProject.mark_forced(state.project, &1))
 
 
   # -------------------------------------------------------------------

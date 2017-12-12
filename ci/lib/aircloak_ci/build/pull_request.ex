@@ -16,19 +16,12 @@ defmodule AircloakCI.Build.PullRequest do
   # -------------------------------------------------------------------
 
   @doc "Ensures that the build server for the given pull request is started."
-  @spec ensure_started(Github.API.pull_request, Github.API.repo_data) :: :ok
+  @spec ensure_started(Github.API.pull_request, Github.API.repo_data) :: pid
   def ensure_started(pr, repo_data) do
     case Build.Supervisor.start_build(__MODULE__, [pr, repo_data]) do
-      {:ok, _} -> :ok
-      {:error, {:already_started, _pid}} -> :ok
+      {:ok, pid} -> pid
+      {:error, {:already_started, pid}} -> pid
     end
-  end
-
-  @doc "Force starts the build of the given pull request."
-  @spec force_build(Github.API.pull_request, Github.API.repo_data) :: :ok
-  def force_build(pr, repo_data) do
-    ensure_started(pr, repo_data)
-    GenServer.call(name(pr), :force_build, :timer.minutes(30))
   end
 
 
@@ -70,10 +63,6 @@ defmodule AircloakCI.Build.PullRequest do
   # reported to the author.
   def handle_job_failed("compile", _reason, state), do: {:noreply, maybe_start_ci(state)}
   def handle_job_failed(other, reason, state), do: super(other, reason, state)
-
-  @impl Build.Server
-  def handle_call(:force_build, _from, state), do:
-    {:reply, :ok, Build.Server.restart(state, before_start: &mark_all_as_forced/1)}
 
 
   # -------------------------------------------------------------------
@@ -124,12 +113,6 @@ defmodule AircloakCI.Build.PullRequest do
 
   defp required_ci_checks(ci_version) when ci_version >= 2, do:
     ["continuous-integration/aircloak/cloak_test" | required_ci_checks(1)]
-
-  defp mark_all_as_forced(state), do:
-    Enum.each(
-      [Job.Compliance.job_name() | Job.StandardTest.job_names()],
-      &LocalProject.mark_forced(state.project, &1)
-    )
 
 
   # -------------------------------------------------------------------

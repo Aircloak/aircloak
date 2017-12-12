@@ -26,29 +26,31 @@ defmodule AircloakCI do
   end
 
   @doc "Force starts the build of the given pull request."
-  @spec force_pr_build(pos_integer) :: :ok | {:error, String.t}
-  def force_pr_build(pr_number) do
-    repo_data = AircloakCI.Github.repo_data("aircloak", "aircloak")
-    case Enum.find(repo_data.pull_requests, &(&1.number == pr_number)) do
-      nil -> {:error, "PR ##{pr_number} not found"}
-      pr -> AircloakCI.Build.PullRequest.force_build(pr, repo_data)
-    end
-  end
-
-  @doc "Force starts the build of the given branch."
-  @spec force_branch_build(String.t) :: :ok | {:error, String.t}
-  def force_branch_build(branch_name) do
-    repo_data = AircloakCI.Github.repo_data("aircloak", "aircloak")
-    case Enum.find(repo_data.branches, &(&1.name == branch_name)) do
-      nil -> {:error, "branch `#{branch_name}` not found"}
-      branch -> AircloakCI.Build.Branch.force_build(branch, repo_data)
-    end
+  @spec force_build(String.t, String.t, String.t) :: :ok | {:error, String.t}
+  def force_build(target_type, target_id, job_name) do
+    with \
+      repo_data = AircloakCI.Github.repo_data("aircloak", "aircloak"),
+      {:ok, pid} <- ensure_started(target_type, target_id, repo_data),
+      do: AircloakCI.Build.Server.force_build(pid, job_name)
   end
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp ensure_started("branch", branch_name, repo_data) do
+    case Enum.find(repo_data.branches, &(&1.name == branch_name)) do
+      nil -> {:error, "branch `#{branch_name}` not found"}
+      branch -> {:ok, AircloakCI.Build.Branch.ensure_started(branch, repo_data)}
+    end
+  end
+  defp ensure_started("pr", pr_number, repo_data) do
+    case Enum.find(repo_data.pull_requests, &(&1.number == String.to_integer(pr_number))) do
+      nil -> {:error, "PR ##{pr_number} not found"}
+      pr -> {:ok, AircloakCI.Build.PullRequest.ensure_started(pr, repo_data)}
+    end
+  end
 
   defp user_config() do
     with \

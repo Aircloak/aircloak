@@ -148,6 +148,9 @@ defmodule AircloakCI.Build.Server do
   def report_result(pid, job_name, result, extra_info \\ nil), do:
     GenServer.cast(pid, {:report_result, job_name, result, extra_info})
 
+  def force_build(pid, job_name), do:
+    GenServer.cast(pid, {:force_build, job_name})
+
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -187,6 +190,9 @@ defmodule AircloakCI.Build.Server do
     AircloakCI.Build.Reporter.report_result(state, job_name, result, extra_info)
     {:noreply, state}
   end
+  def handle_cast({:force_build, job_name}, state), do:
+    {:noreply, restart(state, before_start: &LocalProject.mark_forced(&1.project, job_name))}
+
 
   @impl GenServer
   def handle_info({:repo_data, repo_data}, state) do

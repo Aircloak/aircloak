@@ -7,18 +7,9 @@ defmodule AircloakCI.ReleaseCLI do
   # -------------------------------------------------------------------
 
   @doc "Force starts the build of the given pull request."
-  @spec force_pr_build(pos_integer) :: :ok
-  def force_pr_build(pull_request_number) do
-    case AircloakCI.force_pr_build(pull_request_number) do
-      :ok -> IO.puts("build started successfully")
-      {:error, reason} -> IO.puts("error: #{reason}")
-    end
-  end
-
-  @doc "Force starts the build of the given branch."
-  @spec force_branch_build(String.t) :: :ok
-  def force_branch_build(branch_name) do
-    case AircloakCI.force_branch_build(branch_name) do
+  @spec force_build(String.t, String.t, String.t) :: :ok
+  def force_build(target_type, target_id, job_name) do
+    case AircloakCI.force_build(target_type, target_id, job_name) do
       :ok -> IO.puts("build started successfully")
       {:error, reason} -> IO.puts("error: #{reason}")
     end
