@@ -85,7 +85,6 @@ defmodule AircloakCI.Build.PullRequest do
       [Job.Compliance.job_name() | Job.StandardTest.job_names()],
       &LocalProject.mark_forced(state.project, &1)
     )
-    #Enum.each(["compliance", "ci_test"], &LocalProject.mark_forced(state.project, &1))
 
 
   # -------------------------------------------------------------------

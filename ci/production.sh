@@ -127,12 +127,16 @@ case "$command" in
     service_command build log $1
     ;;
 
-  force_build)
-    service_command build force_start $1
+  force_pr_build)
+    service_command build force_pr_build $1
+    ;;
+
+  force_branch_build)
+    service_command build force_branch_build $1
     ;;
 
   *)
-    echo "Usage: ./$(basename "$0") deploy | rollback | service_log journalctl_args | build_log pr_number | force_build pr_number"
+    echo "Usage: ./$(basename "$0") deploy | rollback | service_log journalctl_args | build_log pr_number | force_pr_build pr_number"
     exit 1
     ;;
 esac

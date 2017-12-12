@@ -10,8 +10,17 @@ exec_on_prod() {
 }
 
 case "$command" in
+  force_pr_build)
+    exec_on_prod "force_pr_build($1)"
+    ;;
+
+  force_branch_build)
+    exec_on_prod "force_branch_build($1)"
+    ;;
+
+  # backwards compatibility
   force_start)
-    exec_on_prod "force_start_build($1)"
+    exec_on_prod "force_pr_build($1)"
     ;;
 
   log)
@@ -21,7 +30,8 @@ case "$command" in
   *)
     echo "Commands:"
     echo ""
-    echo "  force_start pull_request_number"
+    echo "  force_pr_build pull_request_number"
+    echo "  force_branch_build branch_name"
     echo "  log pull_request_number"
     echo ""
     exit 1

@@ -26,12 +26,22 @@ defmodule AircloakCI do
   end
 
   @doc "Force starts the build of the given pull request."
-  @spec force_build(pos_integer) :: :ok | {:error, String.t}
-  def force_build(pr_number) do
+  @spec force_pr_build(pos_integer) :: :ok | {:error, String.t}
+  def force_pr_build(pr_number) do
     repo_data = AircloakCI.Github.repo_data("aircloak", "aircloak")
     case Enum.find(repo_data.pull_requests, &(&1.number == pr_number)) do
       nil -> {:error, "PR ##{pr_number} not found"}
       pr -> AircloakCI.Build.PullRequest.force_build(pr, repo_data)
+    end
+  end
+
+  @doc "Force starts the build of the given branch."
+  @spec force_branch_build(String.t) :: :ok | {:error, String.t}
+  def force_branch_build(branch_name) do
+    repo_data = AircloakCI.Github.repo_data("aircloak", "aircloak")
+    case Enum.find(repo_data.branches, &(&1.name == branch_name)) do
+      nil -> {:error, "branch `#{branch_name}` not found"}
+      branch -> AircloakCI.Build.Branch.force_build(branch, repo_data)
     end
   end
 

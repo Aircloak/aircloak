@@ -1,4 +1,4 @@
-defmodule Mix.Tasks.AircloakCi.ForceBuild do
+defmodule Mix.Tasks.AircloakCi.ForcePrBuild do
   @shortdoc "Force starts the build of the given pull request."
   @moduledoc """
   Force starts the build of the given pull request.
@@ -11,7 +11,7 @@ defmodule Mix.Tasks.AircloakCi.ForceBuild do
   Once you have the token, you can start the build for the PR with the following command:
 
   ```
-  mix aircloak_ci.force_build pr_number
+  mix aircloak_ci.force_pr_build pr_number
   ```
 
   Note that this command will only work on open pull requests.
@@ -26,13 +26,13 @@ defmodule Mix.Tasks.AircloakCi.ForceBuild do
   def run([number]) do
     Mix.Task.run("app.start")
 
-    case AircloakCI.force_build(String.to_integer(number)) do
+    case AircloakCI.force_pr_build(String.to_integer(number)) do
       :ok -> :timer.sleep(:infinity)
       {:error, reason} ->
         Mix.raise("error starting the build: #{reason}")
     end
   end
   def run(_other) do
-    Mix.raise("Usage: `mix run aircloak_ci.force_build pr_number`")
+    Mix.raise("Usage: `mix aircloak_ci.force_pr_build pr_number`")
   end
 end

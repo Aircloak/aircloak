@@ -30,7 +30,7 @@ Finally, you need to create the personal access token for your Github account. Y
 
 ### Running
 
-You can force start a build with `mix aircloak_ci.force_build pr_number`. The pull request needs to be mergeable (no conflicts with the target branch).
+You can force start a build with `mix aircloak_ci.force_pr_build pr_number`. The pull request needs to be mergeable (no conflicts with the target branch).
 
 You can start the local service by invoking `make start`. This will behave exactly as the real service, except it will use your credentials, and it will not post comments and status changes to Github.
 
@@ -47,7 +47,7 @@ The service is running as a systemd service called `aircloak_ci` on acatlas4.mpi
 
 - reading the service log: `./production.sh service_log`. This command is a wrapper around `ssh acatlas4 "journalctl -u aircloak_ci --no-pager ..."`, so you can pass standard `journalctl` arguments. For example, to tail the production log, you can invoke `./production.sh service_log -f`
 - getting the snapshot of the PR build log: `./production.sh build_log pr_number`
-- force starting a PR build: `./production.sh force_build pr_number`
+- force starting a PR build: `./production.sh force_pr_build pr_number`
 - deploying the new version: `./production.sh deploy`
 - rolling back to the previously deployed version: `./production.sh rollback`
 
