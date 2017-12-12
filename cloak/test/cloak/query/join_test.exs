@@ -243,4 +243,17 @@ defmodule Cloak.Query.JoinTest do
         ) AS t
     """, %{rows: [%{row: [30], occurrences: 1}]}
   end
+
+  test "bugfix: boolean filtering with grouping" do
+    :ok = insert_rows(_user_ids = 1..10, "heights_join", ["male"], [true])
+    :ok = insert_rows(_user_ids = 5..15, "heights_join", ["male"], [false])
+
+    assert_query """
+      select count(*) from
+        (select t1.user_id from
+          heights_join as t1 join heights_join as t2 on
+          t1.user_id = t2.user_id and t1.male = t2.male
+        group by 1) as t
+    """, %{query_id: "1", rows: [%{row: [15]}]}
+  end
 end
