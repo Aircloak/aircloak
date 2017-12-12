@@ -62,11 +62,12 @@ defmodule AircloakCI.Build.Branch do
     {:ok, %{state | data: %{pending_transfers: []}}}
 
   @impl Build.Server
-  def handle_job_succeeded("compile", state), do: {:noreply, state |> maybe_perform_transfers() |> maybe_start_ci()}
+  def handle_job_succeeded("compile", state), do: {:noreply, handle_compile_finished(state)}
   def handle_job_succeeded("standard_test", state), do: {:noreply, maybe_perform_transfers(state)}
   def handle_job_succeeded(other, state), do: super(other, state)
 
   @impl Build.Server
+  def handle_job_failed("compile", _reason, state), do: {:noreply, handle_compile_finished(state)}
   def handle_job_failed("standard_test", _reason, state), do: {:noreply, maybe_perform_transfers(state)}
   def handle_job_failed(other, reason, state), do: super(other, reason, state)
 
@@ -90,6 +91,11 @@ defmodule AircloakCI.Build.Branch do
 
   defp name(branch), do:
     {:via, Registry, {AircloakCI.Build.Registry, {:branch, branch.name}}}
+
+  defp handle_compile_finished(state), do:
+    # Note: we'll perform pending transfers and start the CI even if the compilation failed. If the resulting errors
+    # occur again, they will be properly reported to the author.
+    state |> maybe_perform_transfers() |> maybe_start_ci()
 
   defp maybe_perform_transfers(state) do
     if state.prepared? and not Enum.any?(["compile", "standard_test"], &Build.Server.running?(state, &1)) do

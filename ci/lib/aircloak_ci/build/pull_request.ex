@@ -63,6 +63,12 @@ defmodule AircloakCI.Build.PullRequest do
   def handle_job_succeeded(other, state), do: super(other, state)
 
   @impl Build.Server
+  # Note: we'll start the CI even if the compilation failed. If the resulting errors occur again, they will be properly
+  # reported to the author.
+  def handle_job_failed("compile", _reason, state), do: {:noreply, maybe_start_ci(state)}
+  def handle_job_failed(other, reason, state), do: super(other, reason, state)
+
+  @impl Build.Server
   def handle_call(:force_build, _from, state), do:
     {:reply, :ok, Build.Server.restart(state, before_start: &mark_all_as_forced/1)}
 
