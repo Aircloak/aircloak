@@ -79,12 +79,6 @@
     )
   end
 
-  defp execute_compliance(project) do
-    if Application.get_env(:aircloak_ci, :simulate_compliance, false) do
-      IO.puts("simulating compliance execution")
-      :timer.sleep(:timer.seconds(1))
-    else
-      LocalProject.cmd(project, "compliance", "ci/scripts/run.sh cloak_compliance", timeout: :timer.hours(1))
-    end
-  end
+  defp execute_compliance(project), do:
+    LocalProject.cmd(project, "compliance", "ci/scripts/run.sh cloak_compliance", timeout: :timer.hours(1))
 end

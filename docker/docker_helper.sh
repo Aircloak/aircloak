@@ -162,6 +162,14 @@ function build_aircloak_image {
       sed "s/\$ELIXIR_VERSION/$(elixir_version)/" |
       sed "s/\$NODEJS_VERSION/$(nodejs_version)/" > "$temp_docker_file"
     docker build $build_args
+
+    # We'll also tag the image with the current git head sha, and remove all obsolete git_sha_* image tags, which point
+    # to an older head. This allows us to keep cached builds for all currently known branches (local and remotes),
+    # which significantly reduces the image build time in the cases where there are significant differences between
+    # different branches.
+
+    docker tag $full_image_name:$image_version $full_image_name:$(git_head_image_tag)
+    remove_old_git_head_image_tags $full_image_name
   } || {
     # called in the case of an error
     exit_code=$?
@@ -180,7 +188,8 @@ function build_aircloak_image {
 
   if [ "$image_version" == "latest" ]; then
     # remove local non-latest version tags (obsolete in the new version of the build system)
-    local_version_tags=$(docker images | awk "{if (\$1 == \"$full_image_name\" && \$2 != \"latest\") print \$1\":\"\$2}")
+    # however, we'll keep git_sha_*, since they are references to the known git heads
+    local_version_tags=$(docker images | grep -v git_sha | awk "{if (\$1 == \"$full_image_name\" && \$2 != \"latest\") print \$1\":\"\$2}")
     if [ "$local_version_tags" != "" ]; then docker rmi $local_version_tags || true; fi
   else
     # remove local "latest" version tags
@@ -432,6 +441,11 @@ function untag_registry_tags {
   fi
 }
 
+function git_head_image_tag {
+  # We're tagging the version with the HEAD sha, which reduces collisions with other builds.
+  echo "git_sha_$(git rev-parse HEAD)"
+}
+
 function debian_version {
   echo "8.8"
 }
@@ -485,28 +499,25 @@ function package_image {
 
 function reachable_heads {
   # use all local refs
-  echo "$(git show-ref --head)" | awk '{print $1}'
+  echo "$(git show-ref --head)" | awk '{print "git_sha_"$1}'
 
   # use remote refs
-  echo "$(git ls-remote --heads)" | awk '{print $1}'
+  echo "$(git ls-remote --heads)" | awk '{print "git_sha_"$1}'
 
   # use remote PR merges
-  echo "$(git ls-remote | grep merge)" | awk '{print $1}'
-
-  # always include the latest tag
-  echo "latest"
+  echo "$(git ls-remote | grep merge)" | awk '{print "git_sha_"$1}'
 }
 
-function remove_old_git_head_versions {
+function remove_old_git_head_image_tags {
   # For the given image, removes all version tags which do not correspond to the reachable local or remote HEAD,
   # including pending pull requests.
 
   image=$1
   known_heads=$(reachable_heads | uniq)
-  for existing_version in $(docker images | grep $image | awk '{print $2}'); do
+  for existing_version in $(docker images | grep $image | awk '{print $2}' | grep 'git_sha_'); do
     if [[ ! "$known_heads" =~ "$existing_version" ]]; then
       echo "removing image tag for $image:$existing_version"
-      docker rmi $image:$existing_version
+      docker rmi $image:$existing_version || true
     fi
   done
 }

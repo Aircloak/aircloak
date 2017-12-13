@@ -16,19 +16,12 @@ defmodule AircloakCI.Build.PullRequest do
   # -------------------------------------------------------------------
 
   @doc "Ensures that the build server for the given pull request is started."
-  @spec ensure_started(Github.API.pull_request, Github.API.repo_data) :: :ok
+  @spec ensure_started(Github.API.pull_request, Github.API.repo_data) :: pid
   def ensure_started(pr, repo_data) do
     case Build.Supervisor.start_build(__MODULE__, [pr, repo_data]) do
-      {:ok, _} -> :ok
-      {:error, {:already_started, _pid}} -> :ok
+      {:ok, pid} -> pid
+      {:error, {:already_started, pid}} -> pid
     end
-  end
-
-  @doc "Force starts the build of the given pull request."
-  @spec force_build(Github.API.pull_request, Github.API.repo_data) :: :ok
-  def force_build(pr, repo_data) do
-    ensure_started(pr, repo_data)
-    GenServer.call(name(pr), :force_build, :timer.minutes(30))
   end
 
 
@@ -55,16 +48,21 @@ defmodule AircloakCI.Build.PullRequest do
     {:ok, state}
 
   @impl Build.Server
-  def handle_source_change(state), do:
-    {:noreply, maybe_start_ci(state)}
+  def handle_source_change(state) do
+    state = maybe_start_ci(state)
+    maybe_report_mergeable(state)
+    {:noreply, state}
+  end
 
   @impl Build.Server
   def handle_job_succeeded("compile", state), do: {:noreply, maybe_start_ci(state)}
   def handle_job_succeeded(other, state), do: super(other, state)
 
   @impl Build.Server
-  def handle_call(:force_build, _from, state), do:
-    {:reply, :ok, Build.Server.restart(state, before_start: &mark_all_as_forced/1)}
+  # Note: we'll start the CI even if the compilation failed. If the resulting errors occur again, they will be properly
+  # reported to the author.
+  def handle_job_failed("compile", _reason, state), do: {:noreply, maybe_start_ci(state)}
+  def handle_job_failed(other, reason, state), do: super(other, reason, state)
 
 
   # -------------------------------------------------------------------
@@ -80,12 +78,41 @@ defmodule AircloakCI.Build.PullRequest do
     |> Job.Compliance.run()
     |> Job.StandardTest.run()
 
-  defp mark_all_as_forced(state), do:
-    Enum.each(
-      [Job.Compliance.job_name() | Job.StandardTest.job_names()],
-      &LocalProject.mark_forced(state.project, &1)
-    )
-    #Enum.each(["compliance", "ci_test"], &LocalProject.mark_forced(state.project, &1))
+  defp maybe_report_mergeable(state) do
+    if \
+      state.compiled? and
+      state.source.mergeable? and
+      state.source.approved? and
+      ci_checks_succeeded?(state) and
+      Enum.empty?(Build.Server.running_jobs(state)) and
+      not LocalProject.finished?(state.project, "report_mergeable"),
+      do: report_mergeable(state)
+  end
+
+  defp report_mergeable(state) do
+    Github.comment_on_issue(state.source.repo.owner, state.source.repo.name, state.source.number, merge_message())
+    LocalProject.mark_finished(state.project, "report_mergeable")
+  end
+
+  defp merge_message(), do:
+    "Pull request can be merged #{AircloakCI.Emoji.happy()}"
+
+  defp ci_checks_succeeded?(state), do:
+    state.project
+    |> LocalProject.ci_version()
+    |> required_ci_checks()
+    |> Stream.map(&state.source.status_checks[&1][:status])
+    |> Enum.all?(&(&1 == :success))
+
+  defp required_ci_checks(1), do:
+    [
+      "continuous-integration/travis-ci/pr",
+      "continuous-integration/travis-ci/push",
+      "continuous-integration/aircloak/compliance",
+    ]
+
+  defp required_ci_checks(ci_version) when ci_version >= 2, do:
+    ["continuous-integration/aircloak/cloak_test" | required_ci_checks(1)]
 
 
   # -------------------------------------------------------------------

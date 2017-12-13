@@ -18,8 +18,6 @@ function cleanup {
   # We'll ignore subsequent exit signals to avoid reentrancy.
   trap ignore_cleanup EXIT TERM INT
 
-  echo "destroying network $CLOAK_NETWORK_ID"
-
   if [ "$CLOAK_CONTAINER" != "" ]; then
     # This handles permission problems on Linux systems, when running as a non-root. Inside the docker container
     # we're giving ownership to the entire cloak folder to the same user as the user running the image. This ensures
@@ -34,25 +32,32 @@ function cleanup {
     docker rm $CLOAK_CONTAINER > /dev/null || true
   fi
 
-  for container_id in $(
-    docker network inspect $CLOAK_NETWORK_ID --format '
-      {{range $key, $value := .Containers}}
-        {{println $key}}
-      {{end}}
-    '
-  ); do
-    docker network disconnect $CLOAK_NETWORK_ID $container_id > /dev/null
-  done
+  if [ "$POSTGRESQL_CONTAINER" != "" ]; then
+    docker kill $POSTGRESQL_CONTAINER > /dev/null || true
+    docker rm $POSTGRESQL_CONTAINER > /dev/null || true
+  fi
 
-  docker network prune -f > /dev/null
+  if [ "$CLOAK_NETWORK_ID" != "" ]; then
+    echo "destroying network $CLOAK_NETWORK_ID"
+
+    for container_id in $(
+      docker network inspect $CLOAK_NETWORK_ID --format '
+        {{range $key, $value := .Containers}}
+          {{println $key}}
+        {{end}}
+      '
+    ); do
+      docker network disconnect $CLOAK_NETWORK_ID $container_id > /dev/null
+    done
+
+    docker network rm $CLOAK_NETWORK_ID > /dev/null
+    echo "network $CLOAK_NETWORK_ID destroyed"
+  fi
 
   local dangling_volumes=$(docker volume ls -qf dangling=true)
   if [ "$dangling_volumes" != "" ]; then
     docker volume rm $dangling_volumes > /dev/null
   fi
-
-  echo "network $CLOAK_NETWORK_ID destroyed"
-  remove_old_git_head_versions aircloak/cloak_ci || true
 
   exit $exit_status
 }
@@ -100,7 +105,7 @@ function release_lock {
   exit $exit_status
 }
 
-function build_cloak_image {
+function lock_and_build_cloak_image {
   if [ $(uname -s) != "Darwin" ]; then
     echo "acquiring lock for cloak image build"
     if lockfile -1 -r 3600 /tmp/cloak_image_build; then
@@ -116,13 +121,15 @@ function build_cloak_image {
 
   pushd ./cloak && make odbc_drivers && popd
   common/docker/elixir/build-image.sh
-  build_aircloak_image cloak_ci ci/docker/cloak.dockerfile ci/docker/.cloak.dockerignore $(image_version)
+  build_aircloak_image ci_cloak ci/docker/cloak.dockerfile ci/docker/.cloak.dockerignore
+}
+
+function build_cloak_image {
+  # running build in a separate shell to ensure proper cleanup (removal of lock)
+  bash -c ". ./ci/scripts/cloak.sh && lock_and_build_cloak_image"
 }
 
 function start_cloak_container {
-  # running build in a separate shell to ensure proper cleanup (removal of lock)
-  bash -c ". ./ci/scripts/cloak.sh && build_cloak_image"
-
   mkdir -p tmp/ci/cloak
 
   if [ ! -f tmp/ci/cloak/.bash_history ]; then
@@ -149,31 +156,21 @@ function start_cloak_container {
 
   export CLOAK_CONTAINER=$(
     docker run -d --network=$CLOAK_NETWORK_ID $mounts -e CLOAK_DATA_SOURCES="$CLOAK_DATA_SOURCES" \
-      aircloak/cloak_ci:$(image_version) sleep infinity
+      aircloak/ci_cloak:$(git_head_image_tag) sleep infinity
   )
 }
 
-function image_version {
-  # We're tagging the version with the HEAD sha, which reduces collisions with other builds.
-  echo $(git rev-parse HEAD)
-}
-
-function start_cloak_with_databases {
+function create_network {
   echo "creating network $CLOAK_NETWORK_ID"
   docker network create --driver bridge $CLOAK_NETWORK_ID > /dev/null
   trap cleanup EXIT TERM INT
+}
 
+function start_cloak_with_databases {
+  create_network
   ensure_database_containers
   start_cloak_container
   run_in_cloak "mix deps.get"
-}
-
-function build_cloak {
-  docker network create --driver bridge $CLOAK_NETWORK_ID > /dev/null
-  trap cleanup EXIT TERM INT
-  start_cloak_container
-  run_in_cloak "mix deps.get"
-  run_in_cloak "MIX_ENV=test mix compile"
 }
 
 function run_in_cloak {
@@ -194,8 +191,18 @@ function cloak_compliance {
 }
 
 function debug_cloak_compliance {
-  remove_old_git_head_versions aircloak/cloak_ci
   start_cloak_with_databases
   gen_test_data
   DOCKER_EXEC_ARGS="-t" run_in_cloak "/bin/bash"
+}
+
+function run_in_cloak_test {
+  create_network
+  CLOAK_DATA_SOURCES="postgresql9.4" start_cloak_container
+  export POSTGRESQL_CONTAINER=$(docker run --detach postgres:9.4)
+  docker network connect --alias postgres9.4 $CLOAK_NETWORK_ID $POSTGRESQL_CONTAINER
+  for cmd in "$@"; do
+    echo "invoking $cmd"
+    run_in_cloak "$cmd"
+  done
 }

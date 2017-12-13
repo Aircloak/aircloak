@@ -22,6 +22,13 @@ defmodule AircloakCI.LocalProject do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Returns the full path to the log file for the given target and job."
+  @spec log_path(String.t, String.t) :: String.t
+  def log_path("branch", name, job_name), do:
+    Path.join([logs_folder(), branch_folder_name(name), "#{job_name}.log"])
+  def log_path("pr", number, job_name), do:
+    Path.join([logs_folder(), pr_folder_name(%{number: String.to_integer(number)}), "#{job_name}.log"])
+
   @doc "Prepares the local project for the given pull request."
   @spec for_pull_request(Github.API.pull_request) :: t
   def for_pull_request(pr), do:
@@ -76,7 +83,7 @@ defmodule AircloakCI.LocalProject do
       log_start_stop(project, "updating local project git repository for #{name(project)}", fn ->
         with \
           :ok <- clone_repo(project),
-          :ok <- cmd(project, "main", "git #{project.update_git_command}"),
+          :ok <- cmd(project, "main", "git #{project.update_git_command}", timeout: :timer.minutes(5)),
           :ok <- cmd(project, "main", "git checkout #{project.checkout}"),
           do: update_state(project, &%{&1 | initialized?: true})
       end)
@@ -146,6 +153,15 @@ defmodule AircloakCI.LocalProject do
   @spec ci_possible?(t) :: boolean
   def ci_possible?(project), do:
     update_code(project) == :ok and not is_nil(ci_version(project))
+
+  @doc "Returns the CI version of the project."
+  @spec ci_version(t) :: non_neg_integer() | nil
+  def ci_version(project) do
+    case File.read(Path.join([src_folder(project), "ci", "VERSION"])) do
+      {:ok, contents} -> contents |> String.trim() |> String.to_integer()
+      {:error, _reason} -> nil
+    end
+  end
 
   @doc "Returns true if the project source has been initialized."
   @spec initialized?(t) :: boolean
@@ -270,13 +286,6 @@ defmodule AircloakCI.LocalProject do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp ci_version(project) do
-    case File.read(Path.join([src_folder(project), "ci", "VERSION"])) do
-      {:ok, contents} -> contents |> String.trim() |> String.to_integer()
-      {:error, _reason} -> nil
-    end
-  end
-
   defp base_branch("master"), do: nil
   defp base_branch(_not_master), do: "master"
 
@@ -288,7 +297,7 @@ defmodule AircloakCI.LocalProject do
 
       CmdRunner.run(
         ~s(git clone git@github.com:#{project.repo.owner}/#{project.repo.name} #{src_folder(project)}),
-        timeout: :timer.minutes(1),
+        timeout: :timer.minutes(5),
         logger: CmdRunner.file_logger(log_path(project, "main"))
       )
     end

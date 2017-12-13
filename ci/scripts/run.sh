@@ -14,7 +14,11 @@ shift || true
 
 case "$command" in
   build_cloak)
-    build_cloak
+    build_cloak_image
+    ;;
+
+  run_in_cloak_test)
+    run_in_cloak_test "$@"
     ;;
 
   cloak_compliance)

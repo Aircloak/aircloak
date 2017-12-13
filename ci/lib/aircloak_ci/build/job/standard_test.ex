@@ -35,5 +35,5 @@ defmodule AircloakCI.Build.Job.StandardTest do
   # -------------------------------------------------------------------
 
   defp components(), do:
-    []
+    [Component.Cloak]
 end

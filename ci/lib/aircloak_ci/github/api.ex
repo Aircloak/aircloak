@@ -68,20 +68,6 @@ defmodule AircloakCI.Github.API do
     {repo_data, result.rate_limit}
   end
 
-  @doc "Returns the data for the given pull request."
-  @spec pull_request(String.t, String.t, integer) :: {pull_request, rate_limit}
-  def pull_request(owner, repo, number) do
-    result = graphql_request("query {#{repo_query(owner, repo, pr_query(number))}}")
-
-    pr_data =
-      result.response
-      |> Map.fetch!("repository")
-      |> Map.fetch!("pullRequest")
-      |> to_pr_data(%{owner: owner, name: repo})
-
-    {pr_data, result.rate_limit}
-  end
-
   @doc "Sets the status check state for the given owner/repo/sha."
   @spec put_status_check_state(String.t, String.t, String.t, String.t, String.t, status_check_state) ::
     {:ok, rate_limit}
@@ -126,9 +112,6 @@ defmodule AircloakCI.Github.API do
         nodes{#{pr_fields_query()}}
       }
     /
-
-  defp pr_query(number), do:
-    ~s/pullRequest(number: #{number}){#{pr_fields_query()}}/
 
   defp pr_fields_query(), do:
     ~s/
