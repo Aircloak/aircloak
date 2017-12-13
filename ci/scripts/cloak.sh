@@ -178,7 +178,9 @@ function run_in_cloak_test {
   export POSTGRESQL_CONTAINER=$(docker run --detach postgres:9.4)
   docker network connect --alias postgres9.4 $CLOAK_NETWORK_ID $POSTGRESQL_CONTAINER
   for cmd in "$@"; do
+    echo "--------------"
     echo "invoking $cmd"
     run_in_cloak "$cmd"
+    echo ""
   done
 }
