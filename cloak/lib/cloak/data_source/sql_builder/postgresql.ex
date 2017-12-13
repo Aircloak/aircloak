@@ -49,13 +49,18 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def cast_sql(value, _, type), do:
     ["CAST(", value, " AS ", sql_type(type), ")"]
 
-  def sql_type(:real), do: "float"
-  def sql_type(:boolean), do: "bool"
-  def sql_type(type) when is_atom(type), do: Atom.to_string(type)
-
   @impl Dialect
   def unicode_literal(value), do: [?', value, ?']
 
   @impl Dialect
   def interval_literal(value), do: ["interval '", Timex.Duration.to_string(value), ?']
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp sql_type(:real), do: "float"
+  defp sql_type(:boolean), do: "bool"
+  defp sql_type(type) when is_atom(type), do: Atom.to_string(type)
 end

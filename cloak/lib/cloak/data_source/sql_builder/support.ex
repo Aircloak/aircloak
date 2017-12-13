@@ -2,6 +2,7 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   @moduledoc "Module for detecting when a query is supported by the SQL builder module."
 
   alias Cloak.Sql.Expression
+  alias Cloak.DataSource.Table
 
 
   # -------------------------------------------------------------------
@@ -9,9 +10,7 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   # -------------------------------------------------------------------
 
   @doc "Generates SQL for a function invocation. Provided arguments list must contain SQL fragments."
-  @spec function_sql(Expression.function_name | {:cast, atom, atom}, [iodata], atom) :: iodata
-  def function_sql({:cast, from_type, to_type}, [arg], sql_dialect_module), do:
-    sql_dialect_module.cast_sql(arg, from_type, to_type)
+  @spec function_sql(Expression.function_name, [iodata], atom) :: iodata
   for name <- ~w(round floor ceil ceiling trunc) do
     def function_sql(unquote(name), [arg], sql_dialect_module) do
       unquote(name)

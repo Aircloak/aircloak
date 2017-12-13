@@ -61,7 +61,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   }, sql_dialect_module), do:
     sql_dialect_module.date_subtraction_expression(Enum.map(args, &to_fragment(&1, sql_dialect_module)))
   defp column_sql(%Expression{function: {:cast, to_type}, function_args: [arg]}, sql_dialect_module), do:
-    Support.function_sql({:cast, arg.type, to_type}, [to_fragment(arg, sql_dialect_module)], sql_dialect_module)
+    arg |> to_fragment(sql_dialect_module) |> sql_dialect_module.cast_sql(arg.type, to_type)
   defp column_sql(%Expression{function?: true, function: fun_name, function_args: args}, sql_dialect_module), do:
     Support.function_sql(fun_name, Enum.map(args, &to_fragment(&1, sql_dialect_module)), sql_dialect_module)
   defp column_sql(%Expression{constant?: true, type: :like_pattern, value: value}, _sql_dialect_module), do:
@@ -73,7 +73,7 @@ defmodule Cloak.DataSource.SqlBuilder do
       DataDecoder.encoded_type(column) == :text ->
         # Force casting to text ensures we consistently fetch a string column as unicode, regardless of how it's
         # represented in the database (VARCHAR or NVARCHAR).
-        Support.function_sql({:cast, :text, :text}, [column_name(column, sql_dialect_module)], sql_dialect_module)
+        column |> column_name(sql_dialect_module) |> sql_dialect_module.cast_sql(:text, :text)
       column.type == :unknown ->
         sql_dialect_module.cast_unknown_sql(column_name(column, sql_dialect_module))
       true ->

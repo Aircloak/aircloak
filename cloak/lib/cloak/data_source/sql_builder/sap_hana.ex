@@ -50,10 +50,6 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def limit_sql(nil, offset), do: limit_sql(@max_unsigned_bigint, offset)
   def limit_sql(limit, offset), do: [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
 
-  def sql_type(:text), do: "nvarchar"
-  def sql_type(:datetime), do: "timestamp"
-  def sql_type(type) when is_atom(type), do: Atom.to_string(type)
-
   @impl Dialect
   def unicode_literal(value), do: ["N'", value, ?']
 
@@ -69,4 +65,13 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
 
   @impl Dialect
   def date_subtraction_expression([arg1, arg2]), do: ["SECONDS_BETWEEN(", arg2, ", ", arg1, ")"]
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp sql_type(:text), do: "nvarchar"
+  defp sql_type(:datetime), do: "timestamp"
+  defp sql_type(type) when is_atom(type), do: Atom.to_string(type)
 end

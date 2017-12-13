@@ -50,11 +50,6 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   def limit_sql(nil, offset), do: [" LIMIT ", to_string(offset), ", #{@max_unsigned_bigint}"]
   def limit_sql(limit, offset), do: [" LIMIT ", to_string(offset), ", ", to_string(limit)]
 
-  def sql_type(:real), do: "decimal(65, 15)"
-  def sql_type(:text), do: "char"
-  def sql_type(:integer), do: "signed"
-  def sql_type(type) when is_atom(type), do: Atom.to_string(type)
-
   @impl Dialect
   def cast_sql(value, :integer, :boolean), do:
     ["CASE WHEN ", value, " IS NULL THEN NULL WHEN ", value, " = 0 THEN FALSE ELSE TRUE END"]
@@ -70,4 +65,14 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
 
   @impl Dialect
   def unicode_literal(value), do: ["N'", value, ?']
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp sql_type(:real), do: "decimal(65, 15)"
+  defp sql_type(:text), do: "char"
+  defp sql_type(:integer), do: "signed"
+  defp sql_type(type) when is_atom(type), do: Atom.to_string(type)
 end
