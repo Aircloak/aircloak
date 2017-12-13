@@ -205,6 +205,59 @@ defmodule Cloak.Regressions.TeamBank.Test do
     assert_compiles_successfully(query, data_source_scaffold())
   end
 
+  test "bianca 8" do
+    query = """
+    SELECT avg(income)
+    FROM(
+      SELECT
+        subInhaberId,
+        SUM(betrag) / count(distinct month) AS income
+      FROM (
+        SELECT
+          subInhaberId,
+          subKontoId,
+          month(buchungsDatum) as month,
+          betrag
+        FROM (
+          SELECT
+            bankzugang._id AS subBankzugangId,
+            bankzugang.inhaberId AS subInhaberId,
+            bankname,
+            blz,
+            betrag,
+            umsatzeigenschaften.anbieter,
+            umsatzeigenschaften.klassifizierung,
+            umsatzeigenschaften.spezifizierung,
+            umsatzeigenschaften.kategorisierungVersion,
+            verwendungszweck,
+            buchungsDatum,
+            konto._id AS subKontoId,
+            kontostand.betrag,
+            umsatzeigenschaften.unterKategorie,
+            umsatzeigenschaften.hauptKategorie,
+            financeMoodKonto,
+            letzterUmsatz.buchungsDatum,
+            umsatz._id AS subUmsatzId
+          FROM bankzugang
+            INNER JOIN konto ON
+              bankzugang.inhaberId = konto.inhaberId and
+              bankzugang._id = konto.bankzugangId AND
+              bankzugang.bestaetigt = true
+            INNER JOIN umsatz ON
+              konto.inhaberId = umsatz.inhaberId and
+              konto._id = umsatz.kontoId AND
+              konto.aktiv = true
+          WHERE bankzugang.blz NOT IN ('47110815', '90090042')
+        ) as UMSATZ_OHNE_FIGO
+        WHERE UPPER(umsatzeigenschaften.spezifizierung) = 'STROM'
+        AND buchungsDatum BETWEEN '2017-01-01' AND '2017-12-01'
+      ) per_month_strom
+      GROUP BY 1
+    ) AS umsatz
+    """
+    assert_compiles_successfully(query, data_source_scaffold())
+  end
+
   # Related issue: (#2188)
   # test "sebastian 1" do
   #   query = """
@@ -767,6 +820,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     %{
       umsatz: [
         {"inhaberId", [type: :text, uid: true]},
+        {"_id", [type: :text]},
         {"bankverbindung.bankname", [type: :text]},
         {"bankverbindung.iban", [type: :text]},
         {"betrag", [type: :real]},
@@ -776,6 +830,9 @@ defmodule Cloak.Regressions.TeamBank.Test do
         {"kontoId", [type: :text]},
         {"name", [type: :text]},
         {"umsatzeigenschaften.anbieter", [type: :text]},
+        {"umsatzeigenschaften.hauptKategorie", [type: :text]},
+        {"umsatzeigenschaften.kategorisierungVersion", [type: :text]},
+        {"umsatzeigenschaften.klassifizierung", [type: :text]},
         {"umsatzeigenschaften.spezifizierung", [type: :text]},
         {"umsatzeigenschaften.unterKategorie", [type: :text]},
         {"verwendungszweck", [type: :text]},
@@ -783,8 +840,10 @@ defmodule Cloak.Regressions.TeamBank.Test do
       konto: [
         {"inhaberId", [type: :text, uid: true]},
         {"_id", [type: :text]},
+        {"aktiv", [type: :boolean]},
         {"bankzugangId", [type: :text]},
         {"kontostand.betrag", [type: :real]},
+        {"financeMoodKonto", [type: :boolean]},
         {"letzterUmsatz.buchungsDatum", [type: :datetime]},
         {"name", [type: :text]},
       ],
@@ -792,6 +851,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
         {"inhaberId", [type: :text, uid: true]},
         {"_id", [type: :text]},
         {"bankname", [type: :text]},
+        {"bestaetigt", [type: :boolean]},
         {"blz", [type: :text]},
       ]
     }
