@@ -13,9 +13,10 @@
     "MIX_ENV=prod mix compile --warnings-as-errors --all-warnings",
     "mix lint",
     "MIX_ENV=test mix lint",
+    "mongod --fork --logpath /var/log/mongodb.log",
     # hacky solution for recreating the test database
     "MIX_ENV=test mix gen.test_data dockerized_ci 1",
-    "mix test",
+    "mix test --include exclude_in_dev",
     "MIX_HOME=_build mix dialyze --no-compile"
   ]
 }
