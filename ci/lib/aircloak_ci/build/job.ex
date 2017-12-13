@@ -90,7 +90,7 @@ defmodule AircloakCI.Build.Job do
     end)
   end
 
-  defp handle_exit(:normal, _project, _queue, _opts), do: :ok
+  defp handle_exit(normal, _project, _queue, _opts) when normal in [:normal, :shutdown], do: :ok
   defp handle_exit(crash_reason, project, queue, opts) do
     maybe_report_result(queue, opts, :failure, crash_reason)
     LocalProject.log(project, log_name(queue, opts), "crashed: #{Exception.format_exit(crash_reason)}")
