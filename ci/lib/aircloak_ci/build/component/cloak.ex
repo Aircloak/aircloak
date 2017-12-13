@@ -62,6 +62,7 @@ defmodule AircloakCI.Build.Component.Cloak do
       "MIX_ENV=dev mix compile",
       "MIX_ENV=test mix compile",
       "MIX_ENV=prod mix compile",
+      "MIX_HOME=_build mix dialyze --no-analyse --no-compile",
     ])
 
   defp run_standard_test(build_server, project), do:
@@ -77,6 +78,7 @@ defmodule AircloakCI.Build.Component.Cloak do
             # hacky solution for recreating the test database
             "MIX_ENV=test mix gen.test_data dockerized_ci 1",
             "mix test",
+            "MIX_HOME=_build mix dialyze --no-compile"
           ])
         do
           LocalProject.log(project, standard_test_job_name(), "error: #{reason}")
