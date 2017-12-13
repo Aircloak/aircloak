@@ -148,8 +148,19 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     %{'$substr': [value, 0, -1]}
   defp parse_function("cast", [value, :integer, :real]), do: value
   defp parse_function("cast", [value, :real, :integer]), do: parse_function("round", value)
+  defp parse_function("cast", [value, :boolean, :integer]), do:
+    %{'$cond': [%{'$eq': [value, nil]}, nil, %{'$cond': [value, 1, 0]}]}
+  defp parse_function("cast", [value, :boolean, :real]), do:
+    %{'$cond': [%{'$eq': [value, nil]}, nil, %{'$cond': [value, 1.0, 0.0]}]}
   defp parse_function("cast", [value, :boolean, :text]), do:
     %{'$cond': [%{'$eq': [value, nil]}, nil, %{'$cond': [value, "true", "false"]}]}
+  defp parse_function("cast", [value, :integer, :boolean]), do:
+    %{'$cond': [%{'$eq': [value, nil]}, nil, %{'$cond': [%{'$eq': [value, 0]}, false, true]}]}
+  defp parse_function("cast", [value, :real, :boolean]), do:
+    %{'$cond': [%{'$eq': [value, nil]}, nil, %{'$cond': [%{'$eq': [value, 0.0]}, false, true]}]}
+  defp parse_function("cast", [value, :text, :boolean]), do:
+    %{'$cond': [%{'$eq': [value, nil]}, nil, %{'$cond': [%{'$in':
+      [%{'$toLower': value}, ["true", "yes", "1"]]}, true, false]}]}
   defp parse_function("cast", [value, :datetime, :text]), do:
     %{'$dateToString': %{format: "%Y-%m-%d %H:%M:%S.000%L", date: value}}
   defp parse_function("cast", [_value, from, to]), do:
