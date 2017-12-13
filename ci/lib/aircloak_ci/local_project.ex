@@ -216,6 +216,11 @@ defmodule AircloakCI.LocalProject do
     end
   end
 
+  @doc "Returns the folder where the source files of the project are contained."
+  @spec src_folder(t) :: String.t
+  def src_folder(project), do:
+    Path.join(project.build_folder, "src")
+
 
   # -------------------------------------------------------------------
   # Build folders
@@ -249,9 +254,6 @@ defmodule AircloakCI.LocalProject do
 
   defp state_file(project), do:
     Path.join(project.build_folder, "state_2")
-
-  defp src_folder(project), do:
-    Path.join(project.build_folder, "src")
 
   defp git_folder(project), do:
     Path.join(src_folder(project), ".git")
