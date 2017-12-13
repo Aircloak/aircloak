@@ -99,6 +99,7 @@ defmodule Cloak.DataSource.MySQL do
 
   defp type_to_field_mapper(:integer), do: &integer_field_mapper/1
   defp type_to_field_mapper(:real), do: &real_field_mapper/1
+  defp type_to_field_mapper(:boolean), do: &boolean_field_mapper/1
   defp type_to_field_mapper(:interval), do: &interval_field_mapper/1
   defp type_to_field_mapper(_), do: &generic_field_mapper/1
 
@@ -112,12 +113,14 @@ defmodule Cloak.DataSource.MySQL do
   defp real_field_mapper(value) when is_float(value), do: value
   defp real_field_mapper(value) when is_integer(value), do: value * 1.0
 
+  defp boolean_field_mapper(nil), do: nil
+  defp boolean_field_mapper(value) when value in [<<0>>, 0, false], do: false
+  defp boolean_field_mapper(value) when value in [<<1>>, 1, true], do: true
+
   defp generic_field_mapper({{year, month, day}, {hour, min, sec, msec}}), do:
     NaiveDateTime.new(year, month, day, hour, min, sec, {msec * 1000, 6}) |> error_to_nil()
   defp generic_field_mapper({year, month, day}), do: Date.new(year, month, day) |> error_to_nil()
   defp generic_field_mapper({hour, min, sec, msec}), do: Time.new(hour, min, sec, {msec * 1000, 6}) |> error_to_nil()
-  defp generic_field_mapper(<<0>>), do: false
-  defp generic_field_mapper(<<1>>), do: true
   defp generic_field_mapper(value), do: value
 
   defp interval_field_mapper(nil), do: nil

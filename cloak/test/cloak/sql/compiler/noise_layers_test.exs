@@ -669,6 +669,29 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         %Expression{name: ^count_alias}
       ]}, &1))
     end
+
+    test "floating aggregated boolean columns " do
+      result = compile!("""
+        SELECT COUNT(*) FROM (SELECT uid FROM
+          (SELECT uid FROM table WHERE dummy = true GROUP BY uid, dummy) foo
+        GROUP BY uid) bar
+      """)
+
+      %{from: {:subquery, %{ast: subquery}}} = result
+
+      assert 1 = Enum.count(subquery.db_columns,
+        &match?(%Expression{function: {:cast, :boolean}, function_args: [
+            %Expression{function: "min", function_args: [
+              %Expression{function: {:cast, :integer}, function_args: [%Expression{type: :boolean}]}
+            ]}
+          ]}, &1))
+      assert 1 = Enum.count(subquery.db_columns,
+        &match?(%Expression{function: {:cast, :boolean}, function_args: [
+            %Expression{function: "max", function_args: [
+              %Expression{function: {:cast, :integer}, function_args: [%Expression{type: :boolean}]}
+            ]}
+          ]}, &1))
+    end
   end
 
   describe "noise layer base data" do

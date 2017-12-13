@@ -59,19 +59,12 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
     Cloak.DataSource.SqlBuilder.Support.function_sql({:cast, :varbinary}, [column_sql], __MODULE__)
 
   @impl Dialect
-  def sql_type(:real), do: "float"
-  def sql_type(:boolean), do: "bool"
-  # Due to limitations in the ODBC driver, we can't use nvarchar(max).
-  def sql_type(:text), do: "nvarchar(4000)"
-  def sql_type(type) when is_atom(type), do: Atom.to_string(type)
-
-  @impl Dialect
   def unicode_literal(value), do: ["N'", value, ?']
 
   @impl Dialect
-  def cast_sql(value, :integer), do:
+  def cast_sql(value, _, :integer), do:
     ["CAST(", function_sql("round", [value]), " AS integer)"]
-  def cast_sql(value, type), do:
+  def cast_sql(value, _, type), do:
     ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
@@ -80,4 +73,15 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
 
   @impl Dialect
   def date_subtraction_expression([arg1, arg2]), do: ["DATEDIFF(s, ", arg2, ", ", arg1, ")"]
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp sql_type(:real), do: "float"
+  defp sql_type(:boolean), do: "bit"
+  # Due to limitations in the ODBC driver, we can't use nvarchar(max).
+  defp sql_type(:text), do: "nvarchar(4000)"
+  defp sql_type(type) when is_atom(type), do: Atom.to_string(type)
 end

@@ -22,13 +22,10 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @callback limit_sql(pos_integer | nil, non_neg_integer) :: iodata
 
   @doc "Generates dialect-specific SQL for casting a column."
-  @callback cast_sql(iodata, atom) :: iodata
+  @callback cast_sql(iodata, atom, atom) :: iodata
 
   @doc "Generates dialect-specific SQL for casting a column of an unknown type."
   @callback cast_unknown_sql(iodata) :: iodata
-
-  @doc "Returns the dialect-specific SQL type for casting."
-  @callback sql_type(atom) :: String.t
 
   @doc "Returns the dialect-specific SQL for a unicode string literal."
   @callback unicode_literal(iodata) :: iodata
@@ -74,10 +71,6 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
         raise ExecutionError, message: "column `#{column_sql}` is of an unknown type"
 
       @impl unquote(__MODULE__)
-      def cast_sql(value, type), do:
-        ["CAST(", value, " AS ", sql_type(type), ")"]
-
-      @impl unquote(__MODULE__)
       def time_arithmetic_expression(operator, [arg1, arg2]), do: ["(", arg1, " ", operator, " ", arg2, ")"]
 
       @impl unquote(__MODULE__)
@@ -86,7 +79,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       @impl unquote(__MODULE__)
       def interval_literal(duration), do: duration |> Timex.Duration.to_seconds() |> to_string()
 
-      defoverridable like_sql: 2, ilike_sql: 2, limit_sql: 2, cast_unknown_sql: 1, cast_sql: 2, interval_literal: 1,
+      defoverridable like_sql: 2, ilike_sql: 2, limit_sql: 2, cast_unknown_sql: 1, interval_literal: 1,
         time_arithmetic_expression: 2, date_subtraction_expression: 1, native_support_for_ilike?: 0
     end
   end
