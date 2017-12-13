@@ -23,7 +23,7 @@ defmodule AircloakCI.LocalProject do
   # -------------------------------------------------------------------
 
   @doc "Returns the full path to the log file for the given target and job."
-  @spec log_path(String.t, String.t) :: String.t
+  @spec log_path(String.t, String.t, String.t) :: String.t
   def log_path("branch", name, job_name), do:
     Path.join([logs_folder(), branch_folder_name(name), "#{job_name}.log"])
   def log_path("pr", number, job_name), do:
