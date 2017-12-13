@@ -16,8 +16,8 @@ defmodule AircloakCI.Build.Component.Cloak do
   def name(), do: "cloak"
 
   @impl Job.Compile
-  def compile(project, _name, log_name) do
-    with :ok <- build_cloak_image(project, log_name), do:
+  def compile(project, _name, _log_name) do
+    with :ok <- build_cloak_image(project), do:
       compile_cloak(LocalProject.ci_version(project), project)
   end
 
@@ -52,8 +52,8 @@ defmodule AircloakCI.Build.Component.Cloak do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp build_cloak_image(project, log_name), do:
-    LocalProject.cmd(project, log_name, "ci/scripts/run.sh build_cloak", timeout: :timer.hours(1))
+  defp build_cloak_image(project), do:
+    Job.build_docker_image(project, "cloak", "ci/scripts/run.sh build_cloak")
 
   defp compile_cloak(1, _project), do: :ok
   defp compile_cloak(ci_version, project) when ci_version >= 2, do:
