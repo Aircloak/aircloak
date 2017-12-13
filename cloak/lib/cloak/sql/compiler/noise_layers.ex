@@ -136,7 +136,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       do: %{noise_layer | expressions: [min_of_min(min), max_of_max(max), sum_of_count(min, count), user_id]},
       else: noise_layer
 
-  defp cast(expression, type), do: Expression.function({:cast, type}, [expression])
+  defp cast(expression, type), do: Expression.function({:cast, type}, [expression], type)
 
   defp min_of_min(%Expression{type: :boolean} = min), do:
     min |> cast(:integer) |> min_of_min() |> cast(:boolean)
