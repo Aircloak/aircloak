@@ -23,6 +23,17 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert {:error, "Only `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `extract_words` can be "
         <> "used in the left-hand side of an IN operator."
       } = compile("SELECT COUNT(*) FROM (SELECT numeric + 1 AS number FROM table) x WHERE number IN (1, 2, 3)")
+
+    for function <- ~w(lower upper trim ltrim btrim extract_words) do
+      test "allows #{function} in IN lhs" do
+        assert {:ok, _, _} =
+          compile("SELECT #{unquote(function)}(string) AS x FROM table WHERE x IN ('a', 'b', 'c')")
+      end
+    end
+
+    test "allows substring in IN lhs" do
+      assert {:ok, _, _} = compile("SELECT SUBSTRING(string FROM 3) AS x FROM table WHERE x IN ('a', 'b', 'c')")
+    end
   end
 
   describe "negative conditions" do
@@ -63,6 +74,17 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "forbids unclear NOT ILIKE lhs", do:
       assert {:error, "NOT ILIKE can only be applied to an unmodified database column."} =
         compile("SELECT COUNT(*) FROM table WHERE upper(string) NOT ILIKE '%some pattern_'")
+
+    for function <- ~w(lower upper trim ltrim btrim extract_words) do
+      test "allows #{function} in <> lhs" do
+        assert {:ok, _, _} =
+          compile("SELECT #{unquote(function)}(string) AS x FROM table WHERE x <> 'a'")
+      end
+    end
+
+    test "allows substring in <> lhs" do
+      assert {:ok, _, _} = compile("SELECT SUBSTRING(string FROM 3) AS x FROM table WHERE x <> 'a'")
+    end
   end
 
   describe "string-based conditions" do
