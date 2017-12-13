@@ -69,12 +69,7 @@
 
   defp run_test(build_server, project) do
     Job.run_queued(:compliance, project,
-      fn ->
-        with {:error, reason} <- execute_compliance(project) do
-          LocalProject.log(project, job_name(), "error: #{reason}")
-          :error
-        end
-      end,
+      fn -> execute_compliance(project) end,
       report_result: build_server
     )
   end

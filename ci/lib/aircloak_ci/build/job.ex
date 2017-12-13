@@ -33,7 +33,7 @@ defmodule AircloakCI.Build.Job do
   This function will queue the given job in the desired queue, execute it, and log various events, such as start,
   finish, execution time, and crashes.
   """
-  @spec run_queued(Queue.id, LocalProject.t, (() -> result), run_queued_opts) :: result when result: var
+  @spec run_queued(Queue.id, LocalProject.t, (() -> :ok | {:error, String.t}), run_queued_opts) :: :ok | :error
   def run_queued(queue, project, fun, opts \\ []) do
     start_watcher(self(), project, queue, opts)
 
@@ -50,6 +50,12 @@ defmodule AircloakCI.Build.Job do
             :ok
           else
             fun.()
+          end
+
+        result =
+          with {:error, reason} <- result do
+            LocalProject.log(project, log_name(queue, opts), "error: #{reason}")
+            :error
           end
 
         maybe_report_result(queue, opts, result)

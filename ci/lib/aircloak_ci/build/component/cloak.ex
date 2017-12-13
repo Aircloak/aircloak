@@ -61,12 +61,7 @@ defmodule AircloakCI.Build.Component.Cloak do
 
   defp run_standard_test(build_server, project), do:
     Job.run_queued(:standard_test, project,
-      fn ->
-        with {:error, reason} <- run_in_cloak(project, commands(project, :standard_test)) do
-          LocalProject.log(project, standard_test_job_name(), "error: #{reason}")
-          :error
-        end
-      end,
+      fn -> run_in_cloak(project, commands(project, :standard_test)) end,
       job_name: standard_test_job_name(),
       log_name: standard_test_job_name(),
       report_result: build_server,
