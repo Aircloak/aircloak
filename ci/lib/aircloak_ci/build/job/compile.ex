@@ -40,7 +40,7 @@ defmodule AircloakCI.Build.Job.Compile do
         fn
           {:ok, component_mod} ->
             # setting the status here, to avoid concurrency issues
-            LocalProject.mark_compiled(project, component_mod.name())
+            LocalProject.mark_finished(project, "#{component_mod.name()}_compile")
 
           {:error, component_mod} ->
             LocalProject.log(project, "main", "error compiling component #{component_mod.name()}")
@@ -52,7 +52,7 @@ defmodule AircloakCI.Build.Job.Compile do
 
   defp compile(project, component_mod) do
     component_name = component_mod.name()
-    if LocalProject.compiled?(project, component_name) do
+    if LocalProject.finished?(project, "#{component_name}_compile") do
       :ok
     else
       log_name = "#{component_name}_compile"

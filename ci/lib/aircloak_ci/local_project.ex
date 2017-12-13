@@ -191,16 +191,6 @@ defmodule AircloakCI.LocalProject do
   def forced?(project, job_name), do:
     state(project).forced_jobs[job_name] == project.target_sha
 
-  @doc "Marks the project component as compiled."
-  @spec mark_compiled(t, String.t) :: :ok
-  def mark_compiled(project, component), do:
-    update_state(project, &put_in(&1.compiled_components[component], current_sha(project)))
-
-  @doc "Returns true if the project component is compiled."
-  @spec compiled?(t, String.t) :: boolean
-  def compiled?(project, component), do:
-    up_to_date?(project) and state(project).compiled_components[component] == project.target_sha
-
   @doc "Executes the command in the project folder."
   @spec cmd(t, String.t, String.t, CmdRunner.opts) :: :ok | {:error, String.t}
   def cmd(project, log_name, cmd, opts \\ []), do:
