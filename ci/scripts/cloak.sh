@@ -121,7 +121,7 @@ function lock_and_build_cloak_image {
 
   pushd ./cloak && make odbc_drivers && popd
   common/docker/elixir/build-image.sh
-  build_aircloak_image cloak_ci ci/docker/cloak.dockerfile ci/docker/.cloak.dockerignore
+  build_aircloak_image ci_cloak ci/docker/cloak.dockerfile ci/docker/.cloak.dockerignore
 }
 
 function build_cloak_image {
@@ -156,7 +156,7 @@ function start_cloak_container {
 
   export CLOAK_CONTAINER=$(
     docker run -d --network=$CLOAK_NETWORK_ID $mounts -e CLOAK_DATA_SOURCES="$CLOAK_DATA_SOURCES" \
-      aircloak/cloak_ci:$(git_head_image_tag) sleep infinity
+      aircloak/ci_cloak:$(git_head_image_tag) sleep infinity
   )
 }
 
