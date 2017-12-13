@@ -132,7 +132,7 @@ function start_cloak_container {
 
   export CLOAK_CONTAINER=$(
     docker run -d --network=$CLOAK_NETWORK_ID $mounts -e CLOAK_DATA_SOURCES="$CLOAK_DATA_SOURCES" \
-      aircloak/ci_cloak:$(git_head_image_tag) sleep infinity
+      aircloak/ci_cloak:$(git_head_image_tag) sleep 3600
   )
 }
 
