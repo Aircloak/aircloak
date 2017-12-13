@@ -258,7 +258,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
     test "no noise layer from sample_users" do
       result = compile!("SELECT COUNT(*) FROM (SELECT uid FROM table SAMPLE_USERS 10%) x")
-      assert [generic_layer()] = result.noise_layers
+      assert [static_layer({"table", "uid", _}), uid_layer({"table", "uid", _})] = result.noise_layers
     end
   end
 

@@ -234,7 +234,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     query
     |> Range.find_ranges()
     |> Enum.flat_map(fn(%{column: column, interval: range}) ->
-      raw_non_uid_columns(column)
+      raw_columns(column)
       |> Enum.flat_map(&[
         static_noise_layer(&1, &1, range),
         uid_noise_layer(&1, &1, top_level_uid, range),
@@ -382,9 +382,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Query.Lenses.leaf_expressions()
     |> Lens.satisfy(&match?(%Expression{constant?: false, function?: false}, &1))
     |> Lens.to_list(data)
-
-  defp raw_non_uid_columns(lens \\ Lens.root(), data), do:
-    Enum.reject(raw_columns(lens, data), & &1.user_id?)
 
   defp uid_noise_layer(base_column, layer_expression, top_level_uid, extras \\ nil) do
     expressions = [_min = layer_expression, _max = layer_expression, count_of_one(), top_level_uid]
