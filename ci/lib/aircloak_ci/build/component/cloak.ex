@@ -69,9 +69,9 @@ defmodule AircloakCI.Build.Component.Cloak do
       fn ->
         with {:error, reason} <-
           run_in_cloak(project, [
-            "MIX_ENV=dev mix compile --force --warnings-as-errors",
-            "MIX_ENV=test mix compile --force --warnings-as-errors",
-            "MIX_ENV=prod mix compile --force --warnings-as-errors",
+            "MIX_ENV=dev mix compile --warnings-as-errors --all-warnings",
+            "MIX_ENV=test mix compile --warnings-as-errors --all-warnings",
+            "MIX_ENV=prod mix compile --warnings-as-errors --all-warnings",
             "mix lint",
             "MIX_ENV=test mix lint",
             # hacky solution for recreating the test database
