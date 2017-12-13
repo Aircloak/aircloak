@@ -48,37 +48,45 @@ defmodule AircloakCI.RepoDataProvider do
     def start_link(), do:
       Task.start_link(&loop/0)
 
-    defp loop() do
-      try do
-        repo_data = Github.repo_data("aircloak", "aircloak")
-        Enum.each(AircloakCI.RepoDataProvider.subscribers(), &send(&1, {:repo_data, repo_data}))
-        ensure_branch_builds(repo_data)
-        ensure_pr_builds(repo_data)
-      catch type, error ->
-        Logger.error(Exception.format(type, error, System.stacktrace()))
-      end
+    defp loop(previous_repo_data \\ nil) do
+      repo_data =
+        try do
+          repo_data = Github.repo_data("aircloak", "aircloak")
+          Enum.each(AircloakCI.RepoDataProvider.subscribers(), &send(&1, {:repo_data, repo_data}))
+          ensure_branch_builds(repo_data, previous_repo_data)
+          ensure_pr_builds(repo_data)
+          repo_data
+        catch type, error ->
+          Logger.error(Exception.format(type, error, System.stacktrace()))
+          nil
+        end
 
       :timer.sleep(:timer.seconds(5))
 
-      loop()
+      loop(repo_data)
     end
 
     defp ensure_pr_builds(repo_data), do:
       Enum.each(repo_data.pull_requests, &AircloakCI.Build.PullRequest.ensure_started(&1, repo_data))
 
-    defp ensure_branch_builds(repo_data) do
-      pr_targets = pr_targets(repo_data)
-
-      repo_data.branches
-      |> Stream.filter(&Enum.member?(pr_targets, %{name: &1.name, repo: &1.repo}))
+    defp ensure_branch_builds(repo_data, previous_repo_data), do:
+      pr_targets(repo_data)
+      |> Stream.concat(changed_branches(repo_data, previous_repo_data))
+      |> Stream.dedup()
       # ensure that master branch is started first
       |> Enum.sort_by(&(if &1.name == "master", do: {0, &1}, else: {1, &1}))
       |> Enum.each(&AircloakCI.Build.Branch.ensure_started(&1, repo_data))
+
+    defp pr_targets(repo_data) do
+      traget_branch_names = Enum.map(repo_data.pull_requests, &(&1.target_branch))
+      Stream.filter(repo_data.branches, &Enum.member?(traget_branch_names, &1.name))
     end
 
-    defp pr_targets(repo_data), do:
-      repo_data.pull_requests
-      |> Stream.map(&%{name: &1.target_branch, repo: &1.repo})
-      |> Enum.dedup()
+    defp changed_branches(_repo_data, nil), do:
+      # If we don't have previous data, we'll assume there were no changes. This means we'll skip some pushes,
+      # but the gain is that we don't keep a large amount of branches in a local cache.
+      []
+    defp changed_branches(repo_data, previous_repo_data), do:
+      Stream.reject(repo_data.branches, &Enum.member?(previous_repo_data.branches, &1))
   end
 end
