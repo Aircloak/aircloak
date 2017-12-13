@@ -428,7 +428,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(& not Condition.in?(&1))
     |> Lens.satisfy(& not Condition.like?(&1))
     |> Lens.satisfy(& not fk_pk_condition?(&1))
-    |> Lens.satisfy(& not uid_is_not_null_condition?(&1))
+    |> Lens.satisfy(& not uid_null_conditions?(&1))
     |> Lens.both(non_uid_group_by_clauses())
 
   deflensp non_uid_group_by_clauses(), do:
@@ -464,8 +464,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     Expression.key?(lhs) and Expression.key?(rhs)
   defp fk_pk_condition?(_), do: false
 
-  defp uid_is_not_null_condition?({:not, {:is, %Expression{user_id?: true}, :null}}), do: true
-  defp uid_is_not_null_condition?(_), do: false
+  defp uid_null_conditions?({:not, {:is, %Expression{user_id?: true}, :null}}), do: true
+  defp uid_null_conditions?({:is, %Expression{user_id?: true}, :null}), do: true
+  defp uid_null_conditions?(_), do: false
 
   defp table_name(_virtual_table = %{db_name: nil, name: name}), do: name
   defp table_name(table), do: table.db_name

@@ -410,6 +410,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}, _, _, %Expression{name: "uid"}]},
       ] = compile!("SELECT COUNT(*) FROM table WHERE name IS NOT NULL").noise_layers
     end
+
+    test "no noise for IS NULL on uids", do:
+      assert [generic_layer()] = compile!("SELECT COUNT(*) FROM table WHERE uid IS NULL").noise_layers
+
+    test "no noise for IS NOT NULL on uids", do:
+      assert [generic_layer()] = compile!("SELECT COUNT(*) FROM table WHERE uid IS NOT NULL").noise_layers
   end
 
   describe "noise layers for LIKE" do
