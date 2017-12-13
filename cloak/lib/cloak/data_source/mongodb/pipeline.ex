@@ -62,16 +62,12 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     parse_query(query, top_level?)
   end
 
-  defp project_columns(columns, _top_level? = true) do
+  defp project_columns(columns, _top_level? = true), do:
     # Mongo 3.0 doesn't support projection of arrays, which would more efficient for data transfer.
-    projection =
-      columns
-      |> Enum.map(&"$#{&1.name}")
-      |> Enum.with_index()
-      |> Enum.map(fn ({field, index}) -> {"f#{index}", field} end)
-      |> Enum.into(%{"_id" => false})
-    [%{'$project': projection}]
-  end
+    columns
+    |> Enum.with_index()
+    |> Enum.map(fn ({column, index}) -> %Expression{column | alias: "f#{index}"} end)
+    |> Projector.project_columns()
   defp project_columns(columns, _top_level? = false), do:
     Projector.project_columns(columns)
 
